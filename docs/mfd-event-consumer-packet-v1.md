@@ -1,72 +1,44 @@
 # MFD Event Consumer Packet v1
 
-> **Schema version:** `0.1.0`
-> **Owner:** Claude (gameplay/producer lane)
-> **Audience:** Codex (launcher/consumer lane), Architect
-> **Status:** Frozen — additive optional fields only in `0.1.x`
-
-This document defines the exact shapes a consumer (launcher, Command Desk,
-Postgame Autopsy) will receive from the gameplay event spine. Every example
-below is generated from the canonical golden-game fixture and the actual
-producer code — not hand-typed.
+> **Contract source of truth.** Every shape in this document is generated from
+> the actual builders in `src/systems/events/`. If this doc disagrees with the
+> code, the code wins — file a bug.
 
 ---
 
-## 1. Event Envelope Shape
-
-Every game event emitted by the producer uses this top-level envelope.
-All 14 fields are always present. No field is ever `undefined`.
+## 1. Schema Version
 
 ```
-{
-  "schemaVersion": string,   // "0.1.0" — frozen
-  "eventName":     string,   // one of the 13 canonical names below
-  "seq":           number,   // monotonic, 1-based, per game session
-  "gameId":        string,   // stable identifier for the game session
-  "timestamp":     number,   // ms since epoch (injected from gameState)
-  "quarter":       number,   // 0 = pre-game, 1-4 = regulation, 5+ = OT
-  "clock":         number,   // seconds remaining in quarter (900 = 15:00)
-  "possession":    string,   // "home" | "away" | "" (empty for neutral events)
-  "fieldPos":      number,   // 0-100 (own 0 to opponent's end zone)
-  "down":          number,   // 0-4 (0 for non-play events)
-  "yardsToGo":     number,   // 0+ (0 for non-play events)
-  "homeScore":     number,   // current home score at time of event
-  "awayScore":     number,   // current away score at time of event
-  "payload":       object    // event-specific data (see below)
-}
+"0.1.0"
 ```
 
-### Canonical Event Names
+Exported as `SCHEMA_VERSION` from `src/systems/events/event-types.js`.
 
-These 13 names are frozen in `0.1.x`. Do not rename, recase, or repurpose.
+---
 
-| Name | Description |
-|------|-------------|
-| `game_start` | Session begins. Contains teams, weather, seed. |
-| `drive_start` | A new drive begins. |
-| `play_call` | Offensive and defensive play selection. |
-| `trench_resolution` | O-line vs D-line battle outcome. |
-| `pressure_resolution` | Pass rush pressure outcome. |
-| `play_result` | Final result of a play (yards, big play, TD, etc). |
-| `turnover` | Fumble or interception. |
-| `penalty` | Flag thrown. |
-| `injury` | Player injury during game. |
-| `score` | Points scored (TD, FG, safety, 2pt). |
-| `halftime_adjustment` | Coaching adjustment at halftime. |
-| `drive_end` | Drive concludes with result. |
-| `game_end` | Session ends. Final scores and MVP. |
+## 2. Event Envelope (top-level shape)
 
-### Enum / Tag Conventions
+Every game event has exactly these 14 fields at the top level.
+No field may be added, removed, or renamed without a schema version bump.
 
-- `possession`: `"home"` | `"away"` | `""` (empty string, never null/undefined)
-- `play_result.type`: `"run"` | `"complete"` | `"incomplete"` | `"sack"` | `"fumble"` | `"interception"`
-- `turnover.type`: `"fumble"` | `"interception"`
-- `score.type`: `"touchdown"` | `"field_goal"` | `"safety"` | `"two_point"`
-- `penalty.type`: free-form string (e.g. `"false_start"`, `"holding"`)
-- `injury.severity`: `"questionable"` | `"probable"` | `"out"` | `"ir"`
-- `drive_end.result`: `"touchdown"` | `"field_goal"` | `"punt"` | `"turnover_on_downs"` | `"fumble"` | `"interception"` | `"end_of_half"` | `"end_of_game"`
+| Field          | Type     | Notes                                           |
+|----------------|----------|-------------------------------------------------|
+| `schemaVersion`| `string` | Always `"0.1.0"` for this contract              |
+| `eventName`    | `string` | One of the 13 canonical names below              |
+| `seq`          | `number` | Monotonically increasing per game, 1-based       |
+| `gameId`       | `string` | Stable game identifier                           |
+| `timestamp`    | `number` | Unix epoch ms (injected from gameState)          |
+| `quarter`      | `number` | 0 = pre-game, 1-4 = regulation, 5+ = OT         |
+| `clock`        | `number` | Seconds remaining in quarter (900 = 15:00)       |
+| `possession`   | `string` | `"home"`, `"away"`, or `""` (neutral events)     |
+| `fieldPos`     | `number` | 0-100 from possessing team's goal line           |
+| `down`         | `number` | 0 when not in a down (scores, game start/end)    |
+| `yardsToGo`    | `number` | 0 when not in a down                             |
+| `homeScore`    | `number` | Current home score at event time                 |
+| `awayScore`    | `number` | Current away score at event time                 |
+| `payload`      | `object` | Event-specific data (see per-event docs below)   |
 
-### Exact Envelope Example
+### Canonical JSON Example
 
 ```json
 {
@@ -96,86 +68,344 @@ These 13 names are frozen in `0.1.x`. Do not rename, recase, or repurpose.
 
 ---
 
-## 2. Ordered Event Sequence Example (One Drive)
+## 3. Supported Event Names (13 total)
 
-A complete scoring drive with all intermediate events. This is the exact
-order a consumer will see for a typical passing touchdown drive.
+Exported as `EVENT_NAMES` from `src/systems/events/event-types.js`.
+
+| Constant               | Wire value               | Emitter method              |
+|-------------------------|--------------------------|-----------------------------|
+| `GAME_START`            | `"game_start"`           | `emitGameStart()`           |
+| `DRIVE_START`           | `"drive_start"`          | `emitDriveStart()`          |
+| `PLAY_CALL`             | `"play_call"`            | `emitPlayCall()`            |
+| `TRENCH_RESOLUTION`     | `"trench_resolution"`    | `emitTrenchResolution()`    |
+| `PRESSURE_RESOLUTION`   | `"pressure_resolution"`  | `emitPressureResolution()`  |
+| `PLAY_RESULT`           | `"play_result"`          | `emitPlayResult()`          |
+| `TURNOVER`              | `"turnover"`             | `emitTurnover()`            |
+| `PENALTY`               | `"penalty"`              | `emitPenalty()`             |
+| `INJURY`                | `"injury"`               | `emitInjury()`              |
+| `SCORE`                 | `"score"`                | `emitScore()`               |
+| `HALFTIME_ADJUSTMENT`   | `"halftime_adjustment"`  | `emitHalftimeAdjustment()`  |
+| `DRIVE_END`             | `"drive_end"`            | `emitDriveEnd()`            |
+| `GAME_END`              | `"game_end"`             | `emitGameEnd()`             |
+
+### Enum / Tag Conventions
+
+- Event names are **snake_case** strings.
+- Constants are **UPPER_SNAKE_CASE** keys in `EVENT_NAMES`.
+- `possession`: `"home"` | `"away"` | `""` (never null).
+- `payload.type` on `play_result`: `"run"` | `"complete"` | `"incomplete"` | `"sack"` | `"fumble"` | `"interception"`.
+- `payload.type` on `turnover`: `"fumble"` | `"interception"`.
+- `payload.type` on `score`: `"touchdown"` | `"field_goal"` | `"safety"`.
+- `payload.team` on `score`/`penalty`: `"home"` | `"away"`.
+- `payload.playType` on `play_call`: `"run"` | `"pass"`.
+- Letter grades: `"A"` | `"B"` | `"C"` | `"D"` | `"N/A"`.
+- Boolean flags: always literal `true`/`false`, never `0`/`1`.
+
+---
+
+## 4. Drive Sequence Example
+
+A complete drive (drive_start through drive_end) showing the typical
+play-by-play event cadence. This is Hawks drive #1 from the golden fixture.
 
 ```json
 [
   {
-    "schemaVersion": "0.1.0", "eventName": "drive_start", "seq": 2,
-    "gameId": "golden-001", "timestamp": 1700000002000,
-    "quarter": 1, "clock": 900, "possession": "home",
-    "fieldPos": 25, "down": 1, "yardsToGo": 10,
-    "homeScore": 0, "awayScore": 0,
+    "schemaVersion": "0.1.0",
+    "eventName": "drive_start",
+    "seq": 2,
+    "gameId": "golden-001",
+    "timestamp": 1700000002000,
+    "quarter": 1,
+    "clock": 900,
+    "possession": "home",
+    "fieldPos": 25,
+    "down": 1,
+    "yardsToGo": 10,
+    "homeScore": 0,
+    "awayScore": 0,
     "payload": {
-      "driveNum": 1, "startFieldPos": 25, "team": "home",
-      "startClock": 900, "startQuarter": 1
+      "driveNum": 1,
+      "startFieldPos": 25,
+      "team": "home",
+      "startClock": 900,
+      "startQuarter": 1
     }
   },
   {
-    "schemaVersion": "0.1.0", "eventName": "play_call", "seq": 3,
-    "gameId": "golden-001", "timestamp": 1700000003000,
-    "quarter": 1, "clock": 900, "possession": "home",
-    "fieldPos": 25, "down": 1, "yardsToGo": 10,
-    "homeScore": 0, "awayScore": 0,
+    "schemaVersion": "0.1.0",
+    "eventName": "play_call",
+    "seq": 3,
+    "gameId": "golden-001",
+    "timestamp": 1700000003000,
+    "quarter": 1,
+    "clock": 900,
+    "possession": "home",
+    "fieldPos": 25,
+    "down": 1,
+    "yardsToGo": 10,
+    "homeScore": 0,
+    "awayScore": 0,
     "payload": {
-      "playId": "hb_dive", "playLabel": "HB Dive", "playType": "run",
-      "formation": null, "defenseCall": "cover_3",
-      "defenseLabel": "Cover 3", "isUserCall": true
+      "playId": "hb_dive",
+      "playLabel": "HB Dive",
+      "playType": "run",
+      "formation": null,
+      "defenseCall": "cover_3",
+      "defenseLabel": "Cover 3",
+      "isUserCall": true
     }
   },
   {
-    "schemaVersion": "0.1.0", "eventName": "trench_resolution", "seq": 4,
-    "gameId": "golden-001", "timestamp": 1700000004000,
-    "quarter": 1, "clock": 900, "possession": "home",
-    "fieldPos": 25, "down": 1, "yardsToGo": 10,
-    "homeScore": 0, "awayScore": 0,
+    "schemaVersion": "0.1.0",
+    "eventName": "trench_resolution",
+    "seq": 4,
+    "gameId": "golden-001",
+    "timestamp": 1700000004000,
+    "quarter": 1,
+    "clock": 900,
+    "possession": "home",
+    "fieldPos": 25,
+    "down": 1,
+    "yardsToGo": 10,
+    "homeScore": 0,
+    "awayScore": 0,
     "payload": {
-      "olGrade": 72, "dlGrade": 65,
-      "runLaneOpen": true, "pocketIntact": true,
+      "olGrade": 72,
+      "dlGrade": 65,
+      "runLaneOpen": true,
+      "pocketIntact": true,
       "matchups": [
-        { "off": "OL (blk:72)", "def": "DL (shed:65)", "winner": "off",
-          "desc": "O-line mauls the front" }
+        {
+          "off": "OL (blk:72)",
+          "def": "DL (shed:65)",
+          "winner": "off",
+          "desc": "O-line mauls the front"
+        }
       ]
     }
   },
   {
-    "schemaVersion": "0.1.0", "eventName": "play_result", "seq": 5,
-    "gameId": "golden-001", "timestamp": 1700000005000,
-    "quarter": 1, "clock": 872, "possession": "home",
-    "fieldPos": 30, "down": 2, "yardsToGo": 5,
-    "homeScore": 0, "awayScore": 0,
+    "schemaVersion": "0.1.0",
+    "eventName": "play_result",
+    "seq": 5,
+    "gameId": "golden-001",
+    "timestamp": 1700000005000,
+    "quarter": 1,
+    "clock": 872,
+    "possession": "home",
+    "fieldPos": 30,
+    "down": 2,
+    "yardsToGo": 5,
+    "homeScore": 0,
+    "awayScore": 0,
     "payload": {
-      "type": "run", "yards": 5, "player": "Marcus Bell",
-      "passer": null, "desc": "Marcus Bell gains 5 yards",
-      "big": false, "isRush": true, "isScramble": false,
-      "firstDown": false, "touchdown": false
+      "type": "run",
+      "yards": 5,
+      "player": "Marcus Bell",
+      "passer": null,
+      "desc": "Marcus Bell gains 5 yards",
+      "big": false,
+      "isRush": true,
+      "isScramble": false,
+      "firstDown": false,
+      "touchdown": false
     }
   },
   {
-    "schemaVersion": "0.1.0", "eventName": "score", "seq": 12,
-    "gameId": "golden-001", "timestamp": 1700000012000,
-    "quarter": 1, "clock": 825, "possession": "home",
-    "fieldPos": 100, "down": 0, "yardsToGo": 0,
-    "homeScore": 7, "awayScore": 0,
+    "schemaVersion": "0.1.0",
+    "eventName": "play_call",
+    "seq": 6,
+    "gameId": "golden-001",
+    "timestamp": 1700000006000,
+    "quarter": 1,
+    "clock": 872,
+    "possession": "home",
+    "fieldPos": 30,
+    "down": 2,
+    "yardsToGo": 5,
+    "homeScore": 0,
+    "awayScore": 0,
     "payload": {
-      "type": "touchdown", "points": 7, "team": "home",
+      "playId": "slant",
+      "playLabel": "Quick Slant",
+      "playType": "pass",
+      "formation": null,
+      "defenseCall": "man_press",
+      "defenseLabel": "Man Press",
+      "isUserCall": true
+    }
+  },
+  {
+    "schemaVersion": "0.1.0",
+    "eventName": "pressure_resolution",
+    "seq": 7,
+    "gameId": "golden-001",
+    "timestamp": 1700000007000,
+    "quarter": 1,
+    "clock": 872,
+    "possession": "home",
+    "fieldPos": 30,
+    "down": 2,
+    "yardsToGo": 5,
+    "homeScore": 0,
+    "awayScore": 0,
+    "payload": {
+      "pressured": false,
+      "sacked": false,
+      "rusher": null,
+      "blocker": null,
+      "timeInPocket": 2.8,
+      "qbEscaped": false
+    }
+  },
+  {
+    "schemaVersion": "0.1.0",
+    "eventName": "play_result",
+    "seq": 8,
+    "gameId": "golden-001",
+    "timestamp": 1700000008000,
+    "quarter": 1,
+    "clock": 848,
+    "possession": "home",
+    "fieldPos": 42,
+    "down": 1,
+    "yardsToGo": 10,
+    "homeScore": 0,
+    "awayScore": 0,
+    "payload": {
+      "type": "complete",
+      "yards": 12,
+      "player": "Jaylen Swift",
+      "passer": "Drew Cannon",
+      "desc": "Complete to Jaylen Swift for 12 yards!",
+      "big": false,
+      "isRush": false,
+      "isScramble": false,
+      "firstDown": true,
+      "touchdown": false
+    }
+  },
+  {
+    "schemaVersion": "0.1.0",
+    "eventName": "play_call",
+    "seq": 9,
+    "gameId": "golden-001",
+    "timestamp": 1700000009000,
+    "quarter": 1,
+    "clock": 848,
+    "possession": "home",
+    "fieldPos": 42,
+    "down": 1,
+    "yardsToGo": 10,
+    "homeScore": 0,
+    "awayScore": 0,
+    "payload": {
+      "playId": "go_route",
+      "playLabel": "Go Route",
+      "playType": "pass",
+      "formation": null,
+      "defenseCall": "cover_2",
+      "defenseLabel": "Cover 2",
+      "isUserCall": true
+    }
+  },
+  {
+    "schemaVersion": "0.1.0",
+    "eventName": "pressure_resolution",
+    "seq": 10,
+    "gameId": "golden-001",
+    "timestamp": 1700000010000,
+    "quarter": 1,
+    "clock": 848,
+    "possession": "home",
+    "fieldPos": 42,
+    "down": 1,
+    "yardsToGo": 10,
+    "homeScore": 0,
+    "awayScore": 0,
+    "payload": {
+      "pressured": true,
+      "sacked": false,
+      "rusher": "Deon Crush",
+      "blocker": "LT Martinez",
+      "timeInPocket": 1.9,
+      "qbEscaped": false
+    }
+  },
+  {
+    "schemaVersion": "0.1.0",
+    "eventName": "play_result",
+    "seq": 11,
+    "gameId": "golden-001",
+    "timestamp": 1700000011000,
+    "quarter": 1,
+    "clock": 825,
+    "possession": "home",
+    "fieldPos": 100,
+    "down": 0,
+    "yardsToGo": 0,
+    "homeScore": 0,
+    "awayScore": 0,
+    "payload": {
+      "type": "complete",
+      "yards": 58,
+      "player": "Jaylen Swift",
+      "passer": "Drew Cannon",
+      "desc": "BIG PLAY! Drew Cannon connects with Jaylen Swift for 58 yards! TOUCHDOWN!",
+      "big": true,
+      "isRush": false,
+      "isScramble": false,
+      "firstDown": false,
+      "touchdown": true
+    }
+  },
+  {
+    "schemaVersion": "0.1.0",
+    "eventName": "score",
+    "seq": 12,
+    "gameId": "golden-001",
+    "timestamp": 1700000012000,
+    "quarter": 1,
+    "clock": 825,
+    "possession": "home",
+    "fieldPos": 100,
+    "down": 0,
+    "yardsToGo": 0,
+    "homeScore": 7,
+    "awayScore": 0,
+    "payload": {
+      "type": "touchdown",
+      "points": 7,
+      "team": "home",
       "player": "Jaylen Swift",
       "desc": "Jaylen Swift 58-yd TD reception from Drew Cannon (PAT good)",
-      "homeScore": 7, "awayScore": 0
+      "homeScore": 7,
+      "awayScore": 0
     }
   },
   {
-    "schemaVersion": "0.1.0", "eventName": "drive_end", "seq": 13,
-    "gameId": "golden-001", "timestamp": 1700000013000,
-    "quarter": 1, "clock": 825, "possession": "home",
-    "fieldPos": 100, "down": 0, "yardsToGo": 0,
-    "homeScore": 7, "awayScore": 0,
+    "schemaVersion": "0.1.0",
+    "eventName": "drive_end",
+    "seq": 13,
+    "gameId": "golden-001",
+    "timestamp": 1700000013000,
+    "quarter": 1,
+    "clock": 825,
+    "possession": "home",
+    "fieldPos": 100,
+    "down": 0,
+    "yardsToGo": 0,
+    "homeScore": 7,
+    "awayScore": 0,
     "payload": {
-      "driveNum": 1, "result": "touchdown", "plays": 3, "yards": 75,
-      "timeUsed": 75, "startFieldPos": 25, "endFieldPos": 100
+      "driveNum": 1,
+      "result": "touchdown",
+      "plays": 3,
+      "yards": 75,
+      "timeUsed": 75,
+      "startFieldPos": 25,
+      "endFieldPos": 100
     }
   }
 ]
@@ -183,46 +413,11 @@ order a consumer will see for a typical passing touchdown drive.
 
 ---
 
-## 3. Weekly Hook Output Shape
+## 5. Weekly Hook Output Shape
 
-`buildWeeklyHook(events, context)` produces the Command Desk recap.
-Context required: `{ userSide, week, year, opponent }`.
+Built by `buildWeeklyHook(events, context)` in `src/systems/events/weekly-hook.js`.
 
-```
-{
-  "week":             number,
-  "year":             number,
-  "opponent":         string,
-  "result":           string,           // "W 17-7" or "L 7-17"
-  "homeScore":        number,
-  "awayScore":        number,
-  "headlines":        string[],         // 1-5 plain-English summary lines
-  "keyPlays":         KeyPlay[],        // up to 5
-  "injuries":         Injury[],
-  "turnovers":        Turnover[],
-  "mvp":              { name: string, stat: string },
-  "driveEfficiency":  { drives: number, scoringDrives: number, pct: number },
-  "pressureRate":     number,           // 0-100
-  "rzEff":            number,           // 0-100
-  "coverageWin":      number,           // 0-100
-  "runLaneAdv":       number            // 0-100
-}
-```
-
-Where:
-
-```
-KeyPlay = { quarter: number, clock: number, type: string, desc: string, impact: string }
-  // impact: "big_play" | "turnover" | "score"
-
-Injury = { quarter: number, clock: number, player: string, pos: string,
-            team: string, type: string, severity: string, gamesOut: number, desc: string }
-
-Turnover = { quarter: number, clock: number, type: string, player: string,
-              forcedBy: string, fieldPos: number, desc: string }
-```
-
-### Exact Weekly Hook Example
+Context input: `{ userSide, week, year, opponent }`.
 
 ```json
 {
@@ -240,23 +435,83 @@ Turnover = { quarter: number, clock: number, type: string, player: string,
   ],
   "keyPlays": [
     {
-      "quarter": 1, "clock": 825, "type": "play_result",
+      "quarter": 1,
+      "clock": 825,
+      "type": "play_result",
       "desc": "BIG PLAY! Drew Cannon connects with Jaylen Swift for 58 yards! TOUCHDOWN!",
       "impact": "big_play"
     },
     {
-      "quarter": 1, "clock": 825, "type": "score",
+      "quarter": 1,
+      "clock": 825,
+      "type": "score",
       "desc": "Jaylen Swift 58-yd TD reception from Drew Cannon (PAT good)",
       "impact": "score"
     },
     {
-      "quarter": 1, "clock": 720, "type": "turnover",
+      "quarter": 1,
+      "clock": 720,
+      "type": "turnover",
       "desc": "Fumble by Marcus Bell, forced by LB Watts. Titans recover.",
       "impact": "turnover"
+    },
+    {
+      "quarter": 2,
+      "clock": 422,
+      "type": "play_result",
+      "desc": "BREAKAWAY! Jalen Rivers breaks free for 25 yards!",
+      "impact": "big_play"
+    },
+    {
+      "quarter": 2,
+      "clock": 400,
+      "type": "play_result",
+      "desc": "BIG PLAY! Trey Palmer connects with Rico Flash for 45 yards! TOUCHDOWN!",
+      "impact": "big_play"
     }
   ],
-  "mvp": { "name": "Jaylen Swift", "stat": "2 rec, 70 yds, 1 TD" },
-  "driveEfficiency": { "drives": 4, "scoringDrives": 3, "pct": 75 },
+  "injuries": [
+    {
+      "quarter": 1,
+      "clock": 750,
+      "player": "CB Revis Jr",
+      "pos": "CB",
+      "team": "away",
+      "type": "hamstring",
+      "severity": "questionable",
+      "gamesOut": 1,
+      "desc": "CB Revis Jr leaves with a hamstring injury."
+    }
+  ],
+  "turnovers": [
+    {
+      "quarter": 1,
+      "clock": 720,
+      "type": "fumble",
+      "player": "Marcus Bell",
+      "forcedBy": "LB Watts",
+      "fieldPos": 48,
+      "desc": "Fumble by Marcus Bell, forced by LB Watts. Titans recover."
+    },
+    {
+      "quarter": 4,
+      "clock": 575,
+      "type": "interception",
+      "player": "Trey Palmer",
+      "forcedBy": "S Williams",
+      "fieldPos": 30,
+      "desc": "Interception by S Williams at the 30."
+    }
+  ],
+  "mvp": {
+    "name": "Jaylen Swift",
+    "stat": "2 rec, 70 yds, 1 TD"
+  },
+  "driveEfficiency": {
+    "drives": 4,
+    "scoringDrives": 3,
+    "pct": 75
+  },
   "pressureRate": 0,
   "rzEff": 100,
   "coverageWin": 44,
@@ -264,150 +519,183 @@ Turnover = { quarter: number, clock: number, type: string, player: string,
 }
 ```
 
+### Weekly Hook Field Reference
+
+| Field              | Type       | Notes                                     |
+|--------------------|------------|-------------------------------------------|
+| `week`             | `number`   | From context                              |
+| `year`             | `number`   | From context                              |
+| `opponent`         | `string`   | From context                              |
+| `result`           | `string`   | Format: `"W 17-7"` or `"L 7-17"`         |
+| `homeScore`        | `number`   | From game_end payload                     |
+| `awayScore`        | `number`   | From game_end payload                     |
+| `headlines`        | `string[]` | 1-5 evidence-backed plain English lines   |
+| `keyPlays`         | `object[]` | Up to 5, fields: quarter/clock/type/desc/impact |
+| `injuries`         | `object[]` | From injury events                        |
+| `turnovers`        | `object[]` | From turnover events                      |
+| `mvp`              | `object`   | `{ name: string, stat: string }`          |
+| `driveEfficiency`  | `object`   | `{ drives, scoringDrives, pct }`          |
+| `pressureRate`     | `number`   | 0-100                                     |
+| `rzEff`            | `number`   | 0-100 red zone efficiency                 |
+| `coverageWin`      | `number`   | 0-100 coverage grade                      |
+| `runLaneAdv`       | `number`   | 0-100 run blocking grade                  |
+
 ---
 
-## 4. Postgame Autopsy Output Shape
+## 6. Postgame Autopsy Output Shape
 
-`buildPostgameAutopsy(events, context)` produces the detailed game breakdown.
-Context required: `{ userSide, homeTeam, awayTeam }`.
+Built by `buildPostgameAutopsy(events, context)` in `src/systems/events/postgame-autopsy.js`.
 
-```
-{
-  "summary":              string,
-  "phases":               Phase[],            // exactly 4 (Q1-Q4)
-  "trenchReport":         TrenchReport,
-  "pressureReport":       PressureReport,
-  "turnoverBattle":       TurnoverBattle,
-  "bigPlays":             BigPlay[],
-  "missedOpportunities":  MissedOpp[],
-  "adjustmentImpact":     AdjustmentImpact,
-  "playerGrades":         PlayerGrade[],      // up to 10, sorted by score desc
-  "coachingGrade":        CoachingGrade
-}
-```
-
-Where:
-
-```
-Phase = {
-  quarter: number,
-  label: string,         // "Quarter 1" .. "Quarter 4"
-  narrative: string,     // evidence-backed summary
-  events: { eventName: string, desc: string }[]   // up to 10
-}
-
-TrenchReport = {
-  grade: string,         // "A" | "B" | "C" | "D" | "N/A"
-  olWins: number,
-  dlWins: number,
-  narrative: string
-}
-
-PressureReport = {
-  sacks: number,
-  pressures: number,
-  rate: number,          // 0-100
-  narrative: string
-}
-
-TurnoverBattle = {
-  forced: number,
-  lost: number,
-  margin: number,        // positive = won the battle
-  narrative: string
-}
-
-BigPlay = {
-  quarter: number, clock: number, player: string,
-  yards: number, desc: string, side: string    // "home" | "away"
-}
-
-MissedOpp = {
-  driveNum: number, startFieldPos: number, yards: number,
-  result: string, narrative: string
-}
-
-AdjustmentImpact = {
-  adjustment: string,    // label or "None"
-  preStats: { plays: number, yards: number, ypp: number },
-  postStats: { plays: number, yards: number, ypp: number },
-  narrative: string
-}
-
-PlayerGrade = {
-  name: string,
-  grade: string,         // "A" | "B" | "C" | "D"
-  score: number,
-  stats: PlayerStatLine
-}
-
-PlayerStatLine = {
-  name: string,
-  comp: number, att: number, passYds: number, passTD: number, int: number,
-  rushAtt: number, rushYds: number, rushTD: number,
-  rec: number, recYds: number, recTD: number,
-  sacks: number, forcedFumbles: number, tackles: number
-}
-
-CoachingGrade = {
-  grade: string,         // "A" | "B" | "C" | "D"
-  narrative: string
-}
-```
-
-### Exact Postgame Autopsy Example
+Context input: `{ userSide, homeTeam, awayTeam }`.
 
 ```json
 {
   "summary": "Hawks handled Titans 17-7. Solid win across the board.",
   "phases": [
     {
-      "quarter": 1, "label": "Quarter 1",
+      "quarter": 1,
+      "label": "Quarter 1",
       "narrative": "Q1: 6 plays, 69 yards, 1 explosive play, 1 scoring play, 1 turnover.",
       "events": [
         { "eventName": "drive_start", "desc": "" },
         { "eventName": "play_call", "desc": "" },
         { "eventName": "trench_resolution", "desc": "" },
-        { "eventName": "play_result", "desc": "Marcus Bell gains 5 yards" }
+        { "eventName": "play_result", "desc": "Marcus Bell gains 5 yards" },
+        { "eventName": "play_call", "desc": "" },
+        { "eventName": "pressure_resolution", "desc": "" },
+        { "eventName": "play_result", "desc": "Complete to Jaylen Swift for 12 yards!" },
+        { "eventName": "play_call", "desc": "" },
+        { "eventName": "pressure_resolution", "desc": "" },
+        { "eventName": "play_result", "desc": "BIG PLAY! Drew Cannon connects with Jaylen Swift for 58 yards! TOUCHDOWN!" }
       ]
     },
     {
-      "quarter": 2, "label": "Quarter 2",
+      "quarter": 2,
+      "label": "Quarter 2",
       "narrative": "Q2: 2 plays, 70 yards, 2 explosive plays, 1 scoring play.",
       "events": [
         { "eventName": "drive_start", "desc": "" },
-        { "eventName": "play_result", "desc": "BREAKAWAY! Jalen Rivers breaks free for 25 yards!" }
+        { "eventName": "play_call", "desc": "" },
+        { "eventName": "trench_resolution", "desc": "" },
+        { "eventName": "play_result", "desc": "BREAKAWAY! Jalen Rivers breaks free for 25 yards!" },
+        { "eventName": "play_call", "desc": "" },
+        { "eventName": "play_result", "desc": "BIG PLAY! Trey Palmer connects with Rico Flash for 45 yards! TOUCHDOWN!" },
+        { "eventName": "score", "desc": "Rico Flash 45-yd TD reception from Trey Palmer (PAT good)" },
+        { "eventName": "drive_end", "desc": "" },
+        { "eventName": "halftime_adjustment", "desc": "" }
       ]
     },
     {
-      "quarter": 3, "label": "Quarter 3",
+      "quarter": 3,
+      "label": "Quarter 3",
       "narrative": "Q3: 1 plays, 7 yards, 1 scoring play.",
       "events": [
+        { "eventName": "drive_start", "desc": "" },
+        { "eventName": "play_call", "desc": "" },
         { "eventName": "play_result", "desc": "Marcus Bell gains 7 yards" },
-        { "eventName": "score", "desc": "K Nolan 42-yd FG is GOOD!" }
+        { "eventName": "score", "desc": "K Nolan 42-yd FG is GOOD!" },
+        { "eventName": "drive_end", "desc": "" }
       ]
     },
     {
-      "quarter": 4, "label": "Quarter 4",
+      "quarter": 4,
+      "label": "Quarter 4",
       "narrative": "Q4: 3 plays, 30 yards, 2 explosive plays, 1 scoring play, 1 turnover.",
       "events": [
+        { "eventName": "drive_start", "desc": "" },
+        { "eventName": "play_call", "desc": "" },
+        { "eventName": "pressure_resolution", "desc": "" },
         { "eventName": "play_result", "desc": "Trey Palmer INTERCEPTED by S Williams!" },
+        { "eventName": "turnover", "desc": "Interception by S Williams at the 30." },
+        { "eventName": "drive_end", "desc": "" },
+        { "eventName": "drive_start", "desc": "" },
+        { "eventName": "play_call", "desc": "" },
+        { "eventName": "play_result", "desc": "Drew Cannon scrambles for 12 yards!" },
         { "eventName": "play_result", "desc": "BREAKAWAY! Marcus Bell breaks free for 18 yards! TOUCHDOWN!" }
       ]
     }
   ],
   "trenchReport": {
-    "grade": "B", "olWins": 2, "dlWins": 1,
+    "grade": "B",
+    "olWins": 2,
+    "dlWins": 1,
     "narrative": "O-line won 2 of 3 battles. Solid protection and run blocking."
   },
   "pressureReport": {
-    "sacks": 1, "pressures": 3, "rate": 75,
+    "sacks": 1,
+    "pressures": 3,
+    "rate": 75,
     "narrative": "QB was pressured on 3 of 4 dropbacks (75%). 1 sack taken. Protection was a major issue."
   },
   "turnoverBattle": {
-    "forced": 1, "lost": 1, "margin": 0,
+    "forced": 1,
+    "lost": 1,
+    "margin": 0,
     "narrative": "Turnover battle even at 1 each."
   },
+  "bigPlays": [
+    {
+      "quarter": 1,
+      "clock": 825,
+      "player": "Jaylen Swift",
+      "yards": 58,
+      "desc": "BIG PLAY! Drew Cannon connects with Jaylen Swift for 58 yards! TOUCHDOWN!",
+      "side": "home"
+    },
+    {
+      "quarter": 2,
+      "clock": 422,
+      "player": "Jalen Rivers",
+      "yards": 25,
+      "desc": "BREAKAWAY! Jalen Rivers breaks free for 25 yards!",
+      "side": "away"
+    },
+    {
+      "quarter": 2,
+      "clock": 400,
+      "player": "Rico Flash",
+      "yards": 45,
+      "desc": "BIG PLAY! Trey Palmer connects with Rico Flash for 45 yards! TOUCHDOWN!",
+      "side": "away"
+    },
+    {
+      "quarter": 4,
+      "clock": 545,
+      "player": "Drew Cannon",
+      "yards": 12,
+      "desc": "Drew Cannon scrambles for 12 yards!",
+      "side": "home"
+    },
+    {
+      "quarter": 4,
+      "clock": 520,
+      "player": "Marcus Bell",
+      "yards": 18,
+      "desc": "BREAKAWAY! Marcus Bell breaks free for 18 yards! TOUCHDOWN!",
+      "side": "home"
+    }
+  ],
+  "missedOpportunities": [],
+  "adjustmentImpact": {
+    "adjustment": "Blitz Heavy",
+    "preStats": { "plays": 8, "yards": 139, "ypp": 17.4 },
+    "postStats": { "plays": 4, "yards": 37, "ypp": 9.3 },
+    "narrative": "Halftime adjustment: Blitz Heavy. Pre-adjustment: 17.4 yds/play (8 plays). Post-adjustment: 9.3 yds/play (4 plays)."
+  },
+  "playerGrades": [
+    {
+      "name": "Jaylen Swift",
+      "grade": "B",
+      "score": 13,
+      "stats": {
+        "name": "Jaylen Swift",
+        "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 0,
+        "rushAtt": 0, "rushYds": 0, "rushTD": 0,
+        "rec": 2, "recYds": 70, "recTD": 1,
+        "sacks": 0, "forcedFumbles": 0, "tackles": 0
+      }
+    }
+  ],
   "coachingGrade": {
     "grade": "A",
     "narrative": "Outstanding gameplan execution. Minimal mistakes."
@@ -415,49 +703,90 @@ CoachingGrade = {
 }
 ```
 
----
+> **Note:** `playerGrades` is truncated to 1 entry above for brevity. The full
+> output contains up to 10 entries sorted by score descending.
 
-## 5. Reduced-Fidelity Notes
+### Postgame Autopsy Field Reference
 
-The following fields are **placeholder or approximate** in `0.1.0` and should
-not be treated as precision metrics by consumers:
-
-| Field | Location | Note |
-|-------|----------|------|
-| `pressureRate` | weeklyHook | Approximated from sack count and estimated pass plays. Not a true pressure rate. |
-| `coverageWin` | weeklyHook | Inverse of opponent pass efficiency. Coarse grade, not snap-level. |
-| `runLaneAdv` | weeklyHook | Derived from rush yards per play, scaled. Not grade-level precision. |
-| `rzEff` | weeklyHook | Uses field position heuristic (≥80), not actual red zone entry tracking. |
-| `tackles` | PlayerStatLine | Always `0` in `0.1.0` — no tackle tracking in current event set. |
-| `momentum` (reducer) | reduceMomentum | Available via reducer but not surfaced in weekly-hook or autopsy shapes. |
-
-These fields exist to establish the shape contract. Their accuracy will
-improve in future schema versions via additive optional payload fields.
-
----
-
-## 6. Consumer Invariants
-
-These rules are **non-negotiable** for any consumer building against this contract.
-
-1. **Envelope completeness:** All 14 top-level fields are always present. Never check for `undefined`.
-2. **Monotonic seq:** `seq` values are strictly ascending within a game session. Gaps are allowed (events may be filtered), but order is guaranteed.
-3. **Stable gameId:** All events in a game session share the same `gameId`. A new game resets `seq` to 1.
-4. **Bookend events:** Every game session starts with `game_start` (seq=1) and ends with `game_end` (highest seq). If a consumer receives events without a `game_start`, the stream is invalid.
-5. **Drive bracketing:** Every `drive_start` will have a matching `drive_end` unless the game ends mid-drive. Consumers must handle the dangling-drive case.
-6. **Payload stability:** Payload keys for each event type are frozen in `0.1.x`. New optional keys may be added; existing keys will not be removed or renamed.
-7. **No schema guessing:** Consumers must check `schemaVersion` before processing. Reject envelopes with an unrecognized version.
-8. **Read-model source:** Weekly hook and postgame autopsy shapes are produced by the gameplay lane. Consumers must not build a second competing reducer pipeline — use the shapes as given.
-9. **Score fields:** `homeScore`/`awayScore` on the envelope reflect the score **at the time of the event**, not the final score. Use `game_end.payload.homeScore/awayScore` for final scores.
-10. **Possession semantics:** `possession` is `""` (empty string) for neutral events (`game_start`, `halftime_adjustment`, `game_end`). Never null or undefined.
+| Field                | Type       | Notes                                          |
+|----------------------|------------|-------------------------------------------------|
+| `summary`            | `string`   | 1-sentence game summary                        |
+| `phases`             | `object[]` | Exactly 4 entries (Q1-Q4)                      |
+| `phases[].quarter`   | `number`   | 1-4                                            |
+| `phases[].label`     | `string`   | `"Quarter N"`                                  |
+| `phases[].narrative` | `string`   | Evidence-backed quarter summary                |
+| `phases[].events`    | `object[]` | Up to 10, `{ eventName, desc }`                |
+| `trenchReport`       | `object`   | `{ grade, olWins, dlWins, narrative }`         |
+| `pressureReport`     | `object`   | `{ sacks, pressures, rate, narrative }`        |
+| `turnoverBattle`     | `object`   | `{ forced, lost, margin, narrative }`          |
+| `bigPlays`           | `object[]` | `{ quarter, clock, player, yards, desc, side }`|
+| `missedOpportunities`| `object[]` | `{ driveNum, startFieldPos, yards, result, narrative }` |
+| `adjustmentImpact`   | `object`   | `{ adjustment, preStats, postStats, narrative }`|
+| `playerGrades`       | `object[]` | Up to 10, `{ name, grade, score, stats }`      |
+| `coachingGrade`      | `object`   | `{ grade, narrative }`                         |
 
 ---
 
-## 7. Golden Fixture Reference
+## 7. Reduced-Fidelity / Placeholder Fields
 
-The canonical test fixture is `tests/fixtures/game-events/golden-game.js`.
-The generated consumer packet is `tests/fixtures/game-events/golden-consumer-packet.json`.
+These fields are structurally present but have placeholder-level resolution
+in the current v0 implementation:
 
-Shape parity tests in `tests/game-event-consumer-packet.test.js` verify that
-the documented shapes match actual producer output. If these tests fail,
-the contract has drifted and must be re-aligned before consumer work proceeds.
+| Field / Area                         | Status      | Notes                                     |
+|--------------------------------------|-------------|-------------------------------------------|
+| `trench_resolution.matchups`         | Placeholder | Single matchup string, not full OL/DL map |
+| `trench_resolution.olGrade/dlGrade`  | Placeholder | Raw 0-100 int, not positional breakdown   |
+| `pressure_resolution.timeInPocket`   | Placeholder | Simulated float, not physics-backed       |
+| `play_call.formation`                | Placeholder | Always `null` in v0                       |
+| `weekly hook: pressureRate`          | Approximate | Derived from sack count, not snap-level   |
+| `weekly hook: coverageWin`           | Approximate | Inverse of opponent pass efficiency       |
+| `weekly hook: runLaneAdv`            | Approximate | Derived from rush yards per play          |
+| `weekly hook: rzEff`                 | Approximate | Based on drive end position, not true RZ  |
+| `autopsy: adjustmentImpact.ypp`     | Approximate | All plays, not just user-side plays       |
+
+Codex should consume these fields but **must not** build UI that promises
+precision these fields don't deliver. Display as grades/bars, not exact stats.
+
+---
+
+## 8. Invariants Codex Must Not Break
+
+1. **Envelope shape is frozen.** The 14 top-level fields must always be present on every event. Do not add, remove, or rename fields.
+2. **Event name set is frozen.** The 13 event names are the complete set. Do not invent new event names.
+3. **`schemaVersion` must be `"0.1.0"`.** Do not bump without gameplay-side agreement.
+4. **`seq` is monotonically increasing** within a game, 1-based, no gaps.
+5. **`gameId` is constant** across all events in a single game.
+6. **`payload` is always a plain object**, never null, never an array.
+7. **All events are JSON-serializable.** No functions, no circular refs, no undefined values.
+8. **`possession` is `"home"`, `"away"`, or `""`.** Never null, never a team name.
+9. **Weekly hook and autopsy outputs are pure functions** of (events, context). Same input = same output. No side effects.
+10. **The golden fixture** (`tests/fixtures/game-events/golden-game.js`) is the canonical reference. If the builders change, the fixture tests must still pass.
+11. **Do not import from `src/systems/`** in launcher/UI code. Consume only the serialized JSON shapes documented here.
+12. **`keyPlays[].impact`** is one of: `"big_play"`, `"turnover"`, `"score"`. No other values.
+13. **Letter grades** are one of: `"A"`, `"B"`, `"C"`, `"D"`, `"N/A"`. No plus/minus, no numeric scales in grade fields.
+
+---
+
+## 9. Consumer Context Object
+
+Both `buildWeeklyHook` and `buildPostgameAutopsy` require a context object:
+
+```json
+{
+  "userSide": "home",
+  "homeTeam": "Hawks",
+  "awayTeam": "Titans",
+  "week": 5,
+  "year": 2026,
+  "opponent": "Titans"
+}
+```
+
+| Field      | Type     | Used by         | Notes                          |
+|------------|----------|-----------------|--------------------------------|
+| `userSide` | `string` | hook + autopsy  | `"home"` or `"away"`           |
+| `homeTeam` | `string` | autopsy         | Team name for narratives       |
+| `awayTeam` | `string` | autopsy         | Team name for narratives       |
+| `week`     | `number` | hook            | Season week number             |
+| `year`     | `number` | hook            | Season year                    |
+| `opponent` | `string` | hook            | Opponent team name for display |

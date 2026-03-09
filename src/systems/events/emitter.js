@@ -13,10 +13,12 @@
 
 import { buildEnvelope, resetSeq } from './envelope.js';
 import { EVENT_NAMES } from './event-types.js';
+import { createParentBridge } from './parent-bridge.js';
 
-export function createEventLog() {
+export function createEventLog(options) {
   const events = [];
   let _gameState = {};
+  const _bridge = createParentBridge(options);
 
   return {
     /** Bind the current game state so emitters don't need to pass it every time */
@@ -24,10 +26,11 @@ export function createEventLog() {
       _gameState = gs;
     },
 
-    /** Core emit — builds envelope and appends */
+    /** Core emit — builds envelope, appends, and sends live to parent bridge */
     emit(eventName, payload) {
       const envelope = buildEnvelope(eventName, _gameState, payload);
       events.push(envelope);
+      _bridge.emitToParent(envelope);
       return envelope;
     },
 
@@ -36,6 +39,12 @@ export function createEventLog() {
       events.length = 0;
       _gameState = {};
       resetSeq();
+      _bridge.reset();
+    },
+
+    /** Access the parent bridge instance (for diagnostics/testing) */
+    get bridge() {
+      return _bridge;
     },
 
     /** Get all events (immutable snapshot) */

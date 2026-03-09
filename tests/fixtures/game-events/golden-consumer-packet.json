@@ -1,12 +1,15 @@
 {
-  "_meta": {
-    "description": "Golden consumer packet generated from tests/fixtures/game-events/golden-game.js",
-    "schemaVersion": "0.1.0",
-    "gameId": "golden-001",
-    "generatedBy": "buildWeeklyHook + buildPostgameAutopsy",
-    "warning": "Do not hand-edit. Regenerate via: node scripts/gen-golden-consumer-packet.mjs"
+  "_comment": "Launcher-safe golden fixture. Generated from golden-game.js via buildWeeklyHook + buildPostgameAutopsy. Codex can consume this in dev without importing gameplay code.",
+  "schemaVersion": "0.1.0",
+  "context": {
+    "userSide": "home",
+    "homeTeam": "Hawks",
+    "awayTeam": "Titans",
+    "week": 5,
+    "year": 2026,
+    "opponent": "Titans"
   },
-  "sampleEnvelope": {
+  "envelope": {
     "schemaVersion": "0.1.0",
     "eventName": "game_start",
     "seq": 1,
@@ -23,316 +26,12 @@
     "payload": {
       "homeTeam": "Hawks",
       "awayTeam": "Titans",
-      "weather": {
-        "temp": 72,
-        "precip": "DOME",
-        "wind": 0
-      },
+      "weather": { "temp": 72, "precip": "DOME", "wind": 0 },
       "seed": 12345,
       "week": 5,
       "year": 2026
     }
   },
-  "sampleDriveSequence": [
-    {
-      "schemaVersion": "0.1.0",
-      "eventName": "drive_start",
-      "seq": 2,
-      "gameId": "golden-001",
-      "timestamp": 1700000002000,
-      "quarter": 1,
-      "clock": 900,
-      "possession": "home",
-      "fieldPos": 25,
-      "down": 1,
-      "yardsToGo": 10,
-      "homeScore": 0,
-      "awayScore": 0,
-      "payload": {
-        "driveNum": 1,
-        "startFieldPos": 25,
-        "team": "home",
-        "startClock": 900,
-        "startQuarter": 1
-      }
-    },
-    {
-      "schemaVersion": "0.1.0",
-      "eventName": "play_call",
-      "seq": 3,
-      "gameId": "golden-001",
-      "timestamp": 1700000003000,
-      "quarter": 1,
-      "clock": 900,
-      "possession": "home",
-      "fieldPos": 25,
-      "down": 1,
-      "yardsToGo": 10,
-      "homeScore": 0,
-      "awayScore": 0,
-      "payload": {
-        "playId": "hb_dive",
-        "playLabel": "HB Dive",
-        "playType": "run",
-        "formation": null,
-        "defenseCall": "cover_3",
-        "defenseLabel": "Cover 3",
-        "isUserCall": true
-      }
-    },
-    {
-      "schemaVersion": "0.1.0",
-      "eventName": "trench_resolution",
-      "seq": 4,
-      "gameId": "golden-001",
-      "timestamp": 1700000004000,
-      "quarter": 1,
-      "clock": 900,
-      "possession": "home",
-      "fieldPos": 25,
-      "down": 1,
-      "yardsToGo": 10,
-      "homeScore": 0,
-      "awayScore": 0,
-      "payload": {
-        "olGrade": 72,
-        "dlGrade": 65,
-        "runLaneOpen": true,
-        "pocketIntact": true,
-        "matchups": [
-          {
-            "off": "OL (blk:72)",
-            "def": "DL (shed:65)",
-            "winner": "off",
-            "desc": "O-line mauls the front"
-          }
-        ]
-      }
-    },
-    {
-      "schemaVersion": "0.1.0",
-      "eventName": "play_result",
-      "seq": 5,
-      "gameId": "golden-001",
-      "timestamp": 1700000005000,
-      "quarter": 1,
-      "clock": 872,
-      "possession": "home",
-      "fieldPos": 30,
-      "down": 2,
-      "yardsToGo": 5,
-      "homeScore": 0,
-      "awayScore": 0,
-      "payload": {
-        "type": "run",
-        "yards": 5,
-        "player": "Marcus Bell",
-        "passer": null,
-        "desc": "Marcus Bell gains 5 yards",
-        "big": false,
-        "isRush": true,
-        "isScramble": false,
-        "firstDown": false,
-        "touchdown": false
-      }
-    },
-    {
-      "schemaVersion": "0.1.0",
-      "eventName": "play_call",
-      "seq": 6,
-      "gameId": "golden-001",
-      "timestamp": 1700000006000,
-      "quarter": 1,
-      "clock": 872,
-      "possession": "home",
-      "fieldPos": 30,
-      "down": 2,
-      "yardsToGo": 5,
-      "homeScore": 0,
-      "awayScore": 0,
-      "payload": {
-        "playId": "slant",
-        "playLabel": "Quick Slant",
-        "playType": "pass",
-        "formation": null,
-        "defenseCall": "man_press",
-        "defenseLabel": "Man Press",
-        "isUserCall": true
-      }
-    },
-    {
-      "schemaVersion": "0.1.0",
-      "eventName": "pressure_resolution",
-      "seq": 7,
-      "gameId": "golden-001",
-      "timestamp": 1700000007000,
-      "quarter": 1,
-      "clock": 872,
-      "possession": "home",
-      "fieldPos": 30,
-      "down": 2,
-      "yardsToGo": 5,
-      "homeScore": 0,
-      "awayScore": 0,
-      "payload": {
-        "pressured": false,
-        "sacked": false,
-        "rusher": null,
-        "blocker": null,
-        "timeInPocket": 2.8,
-        "qbEscaped": false
-      }
-    },
-    {
-      "schemaVersion": "0.1.0",
-      "eventName": "play_result",
-      "seq": 8,
-      "gameId": "golden-001",
-      "timestamp": 1700000008000,
-      "quarter": 1,
-      "clock": 848,
-      "possession": "home",
-      "fieldPos": 42,
-      "down": 1,
-      "yardsToGo": 10,
-      "homeScore": 0,
-      "awayScore": 0,
-      "payload": {
-        "type": "complete",
-        "yards": 12,
-        "player": "Jaylen Swift",
-        "passer": "Drew Cannon",
-        "desc": "Complete to Jaylen Swift for 12 yards!",
-        "big": false,
-        "isRush": false,
-        "isScramble": false,
-        "firstDown": true,
-        "touchdown": false
-      }
-    },
-    {
-      "schemaVersion": "0.1.0",
-      "eventName": "play_call",
-      "seq": 9,
-      "gameId": "golden-001",
-      "timestamp": 1700000009000,
-      "quarter": 1,
-      "clock": 848,
-      "possession": "home",
-      "fieldPos": 42,
-      "down": 1,
-      "yardsToGo": 10,
-      "homeScore": 0,
-      "awayScore": 0,
-      "payload": {
-        "playId": "go_route",
-        "playLabel": "Go Route",
-        "playType": "pass",
-        "formation": null,
-        "defenseCall": "cover_2",
-        "defenseLabel": "Cover 2",
-        "isUserCall": true
-      }
-    },
-    {
-      "schemaVersion": "0.1.0",
-      "eventName": "pressure_resolution",
-      "seq": 10,
-      "gameId": "golden-001",
-      "timestamp": 1700000010000,
-      "quarter": 1,
-      "clock": 848,
-      "possession": "home",
-      "fieldPos": 42,
-      "down": 1,
-      "yardsToGo": 10,
-      "homeScore": 0,
-      "awayScore": 0,
-      "payload": {
-        "pressured": true,
-        "sacked": false,
-        "rusher": "Deon Crush",
-        "blocker": "LT Martinez",
-        "timeInPocket": 1.9,
-        "qbEscaped": false
-      }
-    },
-    {
-      "schemaVersion": "0.1.0",
-      "eventName": "play_result",
-      "seq": 11,
-      "gameId": "golden-001",
-      "timestamp": 1700000011000,
-      "quarter": 1,
-      "clock": 825,
-      "possession": "home",
-      "fieldPos": 100,
-      "down": 0,
-      "yardsToGo": 0,
-      "homeScore": 0,
-      "awayScore": 0,
-      "payload": {
-        "type": "complete",
-        "yards": 58,
-        "player": "Jaylen Swift",
-        "passer": "Drew Cannon",
-        "desc": "BIG PLAY! Drew Cannon connects with Jaylen Swift for 58 yards! TOUCHDOWN!",
-        "big": true,
-        "isRush": false,
-        "isScramble": false,
-        "firstDown": false,
-        "touchdown": true
-      }
-    },
-    {
-      "schemaVersion": "0.1.0",
-      "eventName": "score",
-      "seq": 12,
-      "gameId": "golden-001",
-      "timestamp": 1700000012000,
-      "quarter": 1,
-      "clock": 825,
-      "possession": "home",
-      "fieldPos": 100,
-      "down": 0,
-      "yardsToGo": 0,
-      "homeScore": 7,
-      "awayScore": 0,
-      "payload": {
-        "type": "touchdown",
-        "points": 7,
-        "team": "home",
-        "player": "Jaylen Swift",
-        "desc": "Jaylen Swift 58-yd TD reception from Drew Cannon (PAT good)",
-        "homeScore": 7,
-        "awayScore": 0
-      }
-    },
-    {
-      "schemaVersion": "0.1.0",
-      "eventName": "drive_end",
-      "seq": 13,
-      "gameId": "golden-001",
-      "timestamp": 1700000013000,
-      "quarter": 1,
-      "clock": 825,
-      "possession": "home",
-      "fieldPos": 100,
-      "down": 0,
-      "yardsToGo": 0,
-      "homeScore": 7,
-      "awayScore": 0,
-      "payload": {
-        "driveNum": 1,
-        "result": "touchdown",
-        "plays": 3,
-        "yards": 75,
-        "timeUsed": 75,
-        "startFieldPos": 25,
-        "endFieldPos": 100
-      }
-    }
-  ],
   "weeklyHook": {
     "week": 5,
     "year": 2026,
@@ -438,46 +137,16 @@
         "label": "Quarter 1",
         "narrative": "Q1: 6 plays, 69 yards, 1 explosive play, 1 scoring play, 1 turnover.",
         "events": [
-          {
-            "eventName": "drive_start",
-            "desc": ""
-          },
-          {
-            "eventName": "play_call",
-            "desc": ""
-          },
-          {
-            "eventName": "trench_resolution",
-            "desc": ""
-          },
-          {
-            "eventName": "play_result",
-            "desc": "Marcus Bell gains 5 yards"
-          },
-          {
-            "eventName": "play_call",
-            "desc": ""
-          },
-          {
-            "eventName": "pressure_resolution",
-            "desc": ""
-          },
-          {
-            "eventName": "play_result",
-            "desc": "Complete to Jaylen Swift for 12 yards!"
-          },
-          {
-            "eventName": "play_call",
-            "desc": ""
-          },
-          {
-            "eventName": "pressure_resolution",
-            "desc": ""
-          },
-          {
-            "eventName": "play_result",
-            "desc": "BIG PLAY! Drew Cannon connects with Jaylen Swift for 58 yards! TOUCHDOWN!"
-          }
+          { "eventName": "drive_start", "desc": "" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "trench_resolution", "desc": "" },
+          { "eventName": "play_result", "desc": "Marcus Bell gains 5 yards" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "pressure_resolution", "desc": "" },
+          { "eventName": "play_result", "desc": "Complete to Jaylen Swift for 12 yards!" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "pressure_resolution", "desc": "" },
+          { "eventName": "play_result", "desc": "BIG PLAY! Drew Cannon connects with Jaylen Swift for 58 yards! TOUCHDOWN!" }
         ]
       },
       {
@@ -485,42 +154,15 @@
         "label": "Quarter 2",
         "narrative": "Q2: 2 plays, 70 yards, 2 explosive plays, 1 scoring play.",
         "events": [
-          {
-            "eventName": "drive_start",
-            "desc": ""
-          },
-          {
-            "eventName": "play_call",
-            "desc": ""
-          },
-          {
-            "eventName": "trench_resolution",
-            "desc": ""
-          },
-          {
-            "eventName": "play_result",
-            "desc": "BREAKAWAY! Jalen Rivers breaks free for 25 yards!"
-          },
-          {
-            "eventName": "play_call",
-            "desc": ""
-          },
-          {
-            "eventName": "play_result",
-            "desc": "BIG PLAY! Trey Palmer connects with Rico Flash for 45 yards! TOUCHDOWN!"
-          },
-          {
-            "eventName": "score",
-            "desc": "Rico Flash 45-yd TD reception from Trey Palmer (PAT good)"
-          },
-          {
-            "eventName": "drive_end",
-            "desc": ""
-          },
-          {
-            "eventName": "halftime_adjustment",
-            "desc": ""
-          }
+          { "eventName": "drive_start", "desc": "" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "trench_resolution", "desc": "" },
+          { "eventName": "play_result", "desc": "BREAKAWAY! Jalen Rivers breaks free for 25 yards!" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "play_result", "desc": "BIG PLAY! Trey Palmer connects with Rico Flash for 45 yards! TOUCHDOWN!" },
+          { "eventName": "score", "desc": "Rico Flash 45-yd TD reception from Trey Palmer (PAT good)" },
+          { "eventName": "drive_end", "desc": "" },
+          { "eventName": "halftime_adjustment", "desc": "" }
         ]
       },
       {
@@ -528,26 +170,11 @@
         "label": "Quarter 3",
         "narrative": "Q3: 1 plays, 7 yards, 1 scoring play.",
         "events": [
-          {
-            "eventName": "drive_start",
-            "desc": ""
-          },
-          {
-            "eventName": "play_call",
-            "desc": ""
-          },
-          {
-            "eventName": "play_result",
-            "desc": "Marcus Bell gains 7 yards"
-          },
-          {
-            "eventName": "score",
-            "desc": "K Nolan 42-yd FG is GOOD!"
-          },
-          {
-            "eventName": "drive_end",
-            "desc": ""
-          }
+          { "eventName": "drive_start", "desc": "" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "play_result", "desc": "Marcus Bell gains 7 yards" },
+          { "eventName": "score", "desc": "K Nolan 42-yd FG is GOOD!" },
+          { "eventName": "drive_end", "desc": "" }
         ]
       },
       {
@@ -555,46 +182,16 @@
         "label": "Quarter 4",
         "narrative": "Q4: 3 plays, 30 yards, 2 explosive plays, 1 scoring play, 1 turnover.",
         "events": [
-          {
-            "eventName": "drive_start",
-            "desc": ""
-          },
-          {
-            "eventName": "play_call",
-            "desc": ""
-          },
-          {
-            "eventName": "pressure_resolution",
-            "desc": ""
-          },
-          {
-            "eventName": "play_result",
-            "desc": "Trey Palmer INTERCEPTED by S Williams!"
-          },
-          {
-            "eventName": "turnover",
-            "desc": "Interception by S Williams at the 30."
-          },
-          {
-            "eventName": "drive_end",
-            "desc": ""
-          },
-          {
-            "eventName": "drive_start",
-            "desc": ""
-          },
-          {
-            "eventName": "play_call",
-            "desc": ""
-          },
-          {
-            "eventName": "play_result",
-            "desc": "Drew Cannon scrambles for 12 yards!"
-          },
-          {
-            "eventName": "play_result",
-            "desc": "BREAKAWAY! Marcus Bell breaks free for 18 yards! TOUCHDOWN!"
-          }
+          { "eventName": "drive_start", "desc": "" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "pressure_resolution", "desc": "" },
+          { "eventName": "play_result", "desc": "Trey Palmer INTERCEPTED by S Williams!" },
+          { "eventName": "turnover", "desc": "Interception by S Williams at the 30." },
+          { "eventName": "drive_end", "desc": "" },
+          { "eventName": "drive_start", "desc": "" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "play_result", "desc": "Drew Cannon scrambles for 12 yards!" },
+          { "eventName": "play_result", "desc": "BREAKAWAY! Marcus Bell breaks free for 18 yards! TOUCHDOWN!" }
         ]
       }
     ],
@@ -661,16 +258,8 @@
     "missedOpportunities": [],
     "adjustmentImpact": {
       "adjustment": "Blitz Heavy",
-      "preStats": {
-        "plays": 8,
-        "yards": 139,
-        "ypp": 17.4
-      },
-      "postStats": {
-        "plays": 4,
-        "yards": 37,
-        "ypp": 9.3
-      },
+      "preStats": { "plays": 8, "yards": 139, "ypp": 17.4 },
+      "postStats": { "plays": 4, "yards": 37, "ypp": 9.3 },
       "narrative": "Halftime adjustment: Blitz Heavy. Pre-adjustment: 17.4 yds/play (8 plays). Post-adjustment: 9.3 yds/play (4 plays)."
     },
     "playerGrades": [
@@ -680,20 +269,10 @@
         "score": 13,
         "stats": {
           "name": "Jaylen Swift",
-          "comp": 0,
-          "att": 0,
-          "passYds": 0,
-          "passTD": 0,
-          "int": 0,
-          "rushAtt": 0,
-          "rushYds": 0,
-          "rushTD": 0,
-          "rec": 2,
-          "recYds": 70,
-          "recTD": 1,
-          "sacks": 0,
-          "forcedFumbles": 0,
-          "tackles": 0
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 0,
+          "rushAtt": 0, "rushYds": 0, "rushTD": 0,
+          "rec": 2, "recYds": 70, "recTD": 1,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
         }
       },
       {
@@ -702,20 +281,10 @@
         "score": 10.5,
         "stats": {
           "name": "Rico Flash",
-          "comp": 0,
-          "att": 0,
-          "passYds": 0,
-          "passTD": 0,
-          "int": 0,
-          "rushAtt": 0,
-          "rushYds": 0,
-          "rushTD": 0,
-          "rec": 1,
-          "recYds": 45,
-          "recTD": 1,
-          "sacks": 0,
-          "forcedFumbles": 0,
-          "tackles": 0
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 0,
+          "rushAtt": 0, "rushYds": 0, "rushTD": 0,
+          "rec": 1, "recYds": 45, "recTD": 1,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
         }
       },
       {
@@ -724,20 +293,10 @@
         "score": 10,
         "stats": {
           "name": "Drew Cannon",
-          "comp": 2,
-          "att": 2,
-          "passYds": 70,
-          "passTD": 1,
-          "int": 0,
-          "rushAtt": 1,
-          "rushYds": 12,
-          "rushTD": 0,
-          "rec": 0,
-          "recYds": 0,
-          "recTD": 0,
-          "sacks": 0,
-          "forcedFumbles": 0,
-          "tackles": 0
+          "comp": 2, "att": 2, "passYds": 70, "passTD": 1, "int": 0,
+          "rushAtt": 1, "rushYds": 12, "rushTD": 0,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
         }
       },
       {
@@ -746,20 +305,10 @@
         "score": 9,
         "stats": {
           "name": "Marcus Bell",
-          "comp": 0,
-          "att": 0,
-          "passYds": 0,
-          "passTD": 0,
-          "int": 0,
-          "rushAtt": 3,
-          "rushYds": 30,
-          "rushTD": 1,
-          "rec": 0,
-          "recYds": 0,
-          "recTD": 0,
-          "sacks": 0,
-          "forcedFumbles": 0,
-          "tackles": 0
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 0,
+          "rushAtt": 3, "rushYds": 30, "rushTD": 1,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
         }
       },
       {
@@ -768,20 +317,10 @@
         "score": 7.8,
         "stats": {
           "name": "Trey Palmer",
-          "comp": 1,
-          "att": 1,
-          "passYds": 45,
-          "passTD": 1,
-          "int": 0,
-          "rushAtt": 0,
-          "rushYds": 0,
-          "rushTD": 0,
-          "rec": 0,
-          "recYds": 0,
-          "recTD": 0,
-          "sacks": 0,
-          "forcedFumbles": 0,
-          "tackles": 0
+          "comp": 1, "att": 1, "passYds": 45, "passTD": 1, "int": 0,
+          "rushAtt": 0, "rushYds": 0, "rushTD": 0,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
         }
       },
       {
@@ -790,20 +329,10 @@
         "score": 3,
         "stats": {
           "name": "Khalil Storm",
-          "comp": 0,
-          "att": 0,
-          "passYds": 0,
-          "passTD": 0,
-          "int": 0,
-          "rushAtt": 0,
-          "rushYds": 0,
-          "rushTD": 0,
-          "rec": 0,
-          "recYds": 0,
-          "recTD": 0,
-          "sacks": 1,
-          "forcedFumbles": 0,
-          "tackles": 0
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 0,
+          "rushAtt": 0, "rushYds": 0, "rushTD": 0,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 1, "forcedFumbles": 0, "tackles": 0
         }
       },
       {
@@ -812,20 +341,10 @@
         "score": 3,
         "stats": {
           "name": "LB Watts",
-          "comp": 0,
-          "att": 0,
-          "passYds": 0,
-          "passTD": 0,
-          "int": 0,
-          "rushAtt": 0,
-          "rushYds": 0,
-          "rushTD": 0,
-          "rec": 0,
-          "recYds": 0,
-          "recTD": 0,
-          "sacks": 0,
-          "forcedFumbles": 1,
-          "tackles": 0
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 0,
+          "rushAtt": 0, "rushYds": 0, "rushTD": 0,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 0, "forcedFumbles": 1, "tackles": 0
         }
       },
       {
@@ -834,20 +353,10 @@
         "score": 2.3,
         "stats": {
           "name": "Jalen Rivers",
-          "comp": 0,
-          "att": 0,
-          "passYds": 0,
-          "passTD": 0,
-          "int": 0,
-          "rushAtt": 2,
-          "rushYds": 23,
-          "rushTD": 0,
-          "rec": 0,
-          "recYds": 0,
-          "recTD": 0,
-          "sacks": 0,
-          "forcedFumbles": 0,
-          "tackles": 0
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 0,
+          "rushAtt": 2, "rushYds": 23, "rushTD": 0,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
         }
       },
       {
@@ -856,20 +365,10 @@
         "score": -4,
         "stats": {
           "name": "S Williams",
-          "comp": 0,
-          "att": 0,
-          "passYds": 0,
-          "passTD": 0,
-          "int": 1,
-          "rushAtt": 0,
-          "rushYds": 0,
-          "rushTD": 0,
-          "rec": 0,
-          "recYds": 0,
-          "recTD": 0,
-          "sacks": 0,
-          "forcedFumbles": 0,
-          "tackles": 0
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 1,
+          "rushAtt": 0, "rushYds": 0, "rushTD": 0,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
         }
       }
     ],
