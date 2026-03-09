@@ -1,0 +1,380 @@
+{
+  "_comment": "Launcher-safe golden fixture. Generated from golden-game.js via buildWeeklyHook + buildPostgameAutopsy. Codex can consume this in dev without importing gameplay code.",
+  "schemaVersion": "0.1.0",
+  "context": {
+    "userSide": "home",
+    "homeTeam": "Hawks",
+    "awayTeam": "Titans",
+    "week": 5,
+    "year": 2026,
+    "opponent": "Titans"
+  },
+  "envelope": {
+    "schemaVersion": "0.1.0",
+    "eventName": "game_start",
+    "seq": 1,
+    "gameId": "golden-001",
+    "timestamp": 1700000001000,
+    "quarter": 0,
+    "clock": 900,
+    "possession": "",
+    "fieldPos": 0,
+    "down": 0,
+    "yardsToGo": 0,
+    "homeScore": 0,
+    "awayScore": 0,
+    "payload": {
+      "homeTeam": "Hawks",
+      "awayTeam": "Titans",
+      "weather": { "temp": 72, "precip": "DOME", "wind": 0 },
+      "seed": 12345,
+      "week": 5,
+      "year": 2026
+    }
+  },
+  "weeklyHook": {
+    "week": 5,
+    "year": 2026,
+    "opponent": "Titans",
+    "result": "W 17-7",
+    "homeScore": 17,
+    "awayScore": 7,
+    "headlines": [
+      "Victory 17-7 over Titans.",
+      "Offense struggled — only 115 total yards.",
+      "Player of the game: Jaylen Swift (2 rec, 70 yds, 1 TD).",
+      "1 player injured during the game."
+    ],
+    "keyPlays": [
+      {
+        "quarter": 1,
+        "clock": 825,
+        "type": "play_result",
+        "desc": "BIG PLAY! Drew Cannon connects with Jaylen Swift for 58 yards! TOUCHDOWN!",
+        "impact": "big_play"
+      },
+      {
+        "quarter": 1,
+        "clock": 825,
+        "type": "score",
+        "desc": "Jaylen Swift 58-yd TD reception from Drew Cannon (PAT good)",
+        "impact": "score"
+      },
+      {
+        "quarter": 1,
+        "clock": 720,
+        "type": "turnover",
+        "desc": "Fumble by Marcus Bell, forced by LB Watts. Titans recover.",
+        "impact": "turnover"
+      },
+      {
+        "quarter": 2,
+        "clock": 422,
+        "type": "play_result",
+        "desc": "BREAKAWAY! Jalen Rivers breaks free for 25 yards!",
+        "impact": "big_play"
+      },
+      {
+        "quarter": 2,
+        "clock": 400,
+        "type": "play_result",
+        "desc": "BIG PLAY! Trey Palmer connects with Rico Flash for 45 yards! TOUCHDOWN!",
+        "impact": "big_play"
+      }
+    ],
+    "injuries": [
+      {
+        "quarter": 1,
+        "clock": 750,
+        "player": "CB Revis Jr",
+        "pos": "CB",
+        "team": "away",
+        "type": "hamstring",
+        "severity": "questionable",
+        "gamesOut": 1,
+        "desc": "CB Revis Jr leaves with a hamstring injury."
+      }
+    ],
+    "turnovers": [
+      {
+        "quarter": 1,
+        "clock": 720,
+        "type": "fumble",
+        "player": "Marcus Bell",
+        "forcedBy": "LB Watts",
+        "fieldPos": 48,
+        "desc": "Fumble by Marcus Bell, forced by LB Watts. Titans recover."
+      },
+      {
+        "quarter": 4,
+        "clock": 575,
+        "type": "interception",
+        "player": "Trey Palmer",
+        "forcedBy": "S Williams",
+        "fieldPos": 30,
+        "desc": "Interception by S Williams at the 30."
+      }
+    ],
+    "mvp": {
+      "name": "Jaylen Swift",
+      "stat": "2 rec, 70 yds, 1 TD"
+    },
+    "driveEfficiency": {
+      "drives": 4,
+      "scoringDrives": 3,
+      "pct": 75
+    },
+    "pressureRate": 0,
+    "rzEff": 100,
+    "coverageWin": 44,
+    "runLaneAdv": 100
+  },
+  "postgameAutopsy": {
+    "summary": "Hawks handled Titans 17-7. Solid win across the board.",
+    "phases": [
+      {
+        "quarter": 1,
+        "label": "Quarter 1",
+        "narrative": "Q1: 6 plays, 69 yards, 1 explosive play, 1 scoring play, 1 turnover.",
+        "events": [
+          { "eventName": "drive_start", "desc": "" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "trench_resolution", "desc": "" },
+          { "eventName": "play_result", "desc": "Marcus Bell gains 5 yards" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "pressure_resolution", "desc": "" },
+          { "eventName": "play_result", "desc": "Complete to Jaylen Swift for 12 yards!" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "pressure_resolution", "desc": "" },
+          { "eventName": "play_result", "desc": "BIG PLAY! Drew Cannon connects with Jaylen Swift for 58 yards! TOUCHDOWN!" }
+        ]
+      },
+      {
+        "quarter": 2,
+        "label": "Quarter 2",
+        "narrative": "Q2: 2 plays, 70 yards, 2 explosive plays, 1 scoring play.",
+        "events": [
+          { "eventName": "drive_start", "desc": "" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "trench_resolution", "desc": "" },
+          { "eventName": "play_result", "desc": "BREAKAWAY! Jalen Rivers breaks free for 25 yards!" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "play_result", "desc": "BIG PLAY! Trey Palmer connects with Rico Flash for 45 yards! TOUCHDOWN!" },
+          { "eventName": "score", "desc": "Rico Flash 45-yd TD reception from Trey Palmer (PAT good)" },
+          { "eventName": "drive_end", "desc": "" },
+          { "eventName": "halftime_adjustment", "desc": "" }
+        ]
+      },
+      {
+        "quarter": 3,
+        "label": "Quarter 3",
+        "narrative": "Q3: 1 plays, 7 yards, 1 scoring play.",
+        "events": [
+          { "eventName": "drive_start", "desc": "" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "play_result", "desc": "Marcus Bell gains 7 yards" },
+          { "eventName": "score", "desc": "K Nolan 42-yd FG is GOOD!" },
+          { "eventName": "drive_end", "desc": "" }
+        ]
+      },
+      {
+        "quarter": 4,
+        "label": "Quarter 4",
+        "narrative": "Q4: 3 plays, 30 yards, 2 explosive plays, 1 scoring play, 1 turnover.",
+        "events": [
+          { "eventName": "drive_start", "desc": "" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "pressure_resolution", "desc": "" },
+          { "eventName": "play_result", "desc": "Trey Palmer INTERCEPTED by S Williams!" },
+          { "eventName": "turnover", "desc": "Interception by S Williams at the 30." },
+          { "eventName": "drive_end", "desc": "" },
+          { "eventName": "drive_start", "desc": "" },
+          { "eventName": "play_call", "desc": "" },
+          { "eventName": "play_result", "desc": "Drew Cannon scrambles for 12 yards!" },
+          { "eventName": "play_result", "desc": "BREAKAWAY! Marcus Bell breaks free for 18 yards! TOUCHDOWN!" }
+        ]
+      }
+    ],
+    "trenchReport": {
+      "grade": "B",
+      "olWins": 2,
+      "dlWins": 1,
+      "narrative": "O-line won 2 of 3 battles. Solid protection and run blocking."
+    },
+    "pressureReport": {
+      "sacks": 1,
+      "pressures": 3,
+      "rate": 75,
+      "narrative": "QB was pressured on 3 of 4 dropbacks (75%). 1 sack taken. Protection was a major issue."
+    },
+    "turnoverBattle": {
+      "forced": 1,
+      "lost": 1,
+      "margin": 0,
+      "narrative": "Turnover battle even at 1 each."
+    },
+    "bigPlays": [
+      {
+        "quarter": 1,
+        "clock": 825,
+        "player": "Jaylen Swift",
+        "yards": 58,
+        "desc": "BIG PLAY! Drew Cannon connects with Jaylen Swift for 58 yards! TOUCHDOWN!",
+        "side": "home"
+      },
+      {
+        "quarter": 2,
+        "clock": 422,
+        "player": "Jalen Rivers",
+        "yards": 25,
+        "desc": "BREAKAWAY! Jalen Rivers breaks free for 25 yards!",
+        "side": "away"
+      },
+      {
+        "quarter": 2,
+        "clock": 400,
+        "player": "Rico Flash",
+        "yards": 45,
+        "desc": "BIG PLAY! Trey Palmer connects with Rico Flash for 45 yards! TOUCHDOWN!",
+        "side": "away"
+      },
+      {
+        "quarter": 4,
+        "clock": 545,
+        "player": "Drew Cannon",
+        "yards": 12,
+        "desc": "Drew Cannon scrambles for 12 yards!",
+        "side": "home"
+      },
+      {
+        "quarter": 4,
+        "clock": 520,
+        "player": "Marcus Bell",
+        "yards": 18,
+        "desc": "BREAKAWAY! Marcus Bell breaks free for 18 yards! TOUCHDOWN!",
+        "side": "home"
+      }
+    ],
+    "missedOpportunities": [],
+    "adjustmentImpact": {
+      "adjustment": "Blitz Heavy",
+      "preStats": { "plays": 8, "yards": 139, "ypp": 17.4 },
+      "postStats": { "plays": 4, "yards": 37, "ypp": 9.3 },
+      "narrative": "Halftime adjustment: Blitz Heavy. Pre-adjustment: 17.4 yds/play (8 plays). Post-adjustment: 9.3 yds/play (4 plays)."
+    },
+    "playerGrades": [
+      {
+        "name": "Jaylen Swift",
+        "grade": "B",
+        "score": 13,
+        "stats": {
+          "name": "Jaylen Swift",
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 0,
+          "rushAtt": 0, "rushYds": 0, "rushTD": 0,
+          "rec": 2, "recYds": 70, "recTD": 1,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
+        }
+      },
+      {
+        "name": "Rico Flash",
+        "grade": "C",
+        "score": 10.5,
+        "stats": {
+          "name": "Rico Flash",
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 0,
+          "rushAtt": 0, "rushYds": 0, "rushTD": 0,
+          "rec": 1, "recYds": 45, "recTD": 1,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
+        }
+      },
+      {
+        "name": "Drew Cannon",
+        "grade": "C",
+        "score": 10,
+        "stats": {
+          "name": "Drew Cannon",
+          "comp": 2, "att": 2, "passYds": 70, "passTD": 1, "int": 0,
+          "rushAtt": 1, "rushYds": 12, "rushTD": 0,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
+        }
+      },
+      {
+        "name": "Marcus Bell",
+        "grade": "C",
+        "score": 9,
+        "stats": {
+          "name": "Marcus Bell",
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 0,
+          "rushAtt": 3, "rushYds": 30, "rushTD": 1,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
+        }
+      },
+      {
+        "name": "Trey Palmer",
+        "grade": "C",
+        "score": 7.8,
+        "stats": {
+          "name": "Trey Palmer",
+          "comp": 1, "att": 1, "passYds": 45, "passTD": 1, "int": 0,
+          "rushAtt": 0, "rushYds": 0, "rushTD": 0,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
+        }
+      },
+      {
+        "name": "Khalil Storm",
+        "grade": "D",
+        "score": 3,
+        "stats": {
+          "name": "Khalil Storm",
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 0,
+          "rushAtt": 0, "rushYds": 0, "rushTD": 0,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 1, "forcedFumbles": 0, "tackles": 0
+        }
+      },
+      {
+        "name": "LB Watts",
+        "grade": "D",
+        "score": 3,
+        "stats": {
+          "name": "LB Watts",
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 0,
+          "rushAtt": 0, "rushYds": 0, "rushTD": 0,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 0, "forcedFumbles": 1, "tackles": 0
+        }
+      },
+      {
+        "name": "Jalen Rivers",
+        "grade": "D",
+        "score": 2.3,
+        "stats": {
+          "name": "Jalen Rivers",
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 0,
+          "rushAtt": 2, "rushYds": 23, "rushTD": 0,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
+        }
+      },
+      {
+        "name": "S Williams",
+        "grade": "D",
+        "score": -4,
+        "stats": {
+          "name": "S Williams",
+          "comp": 0, "att": 0, "passYds": 0, "passTD": 0, "int": 1,
+          "rushAtt": 0, "rushYds": 0, "rushTD": 0,
+          "rec": 0, "recYds": 0, "recTD": 0,
+          "sacks": 0, "forcedFumbles": 0, "tackles": 0
+        }
+      }
+    ],
+    "coachingGrade": {
+      "grade": "A",
+      "narrative": "Outstanding gameplan execution. Minimal mistakes."
+    }
+  }
+}

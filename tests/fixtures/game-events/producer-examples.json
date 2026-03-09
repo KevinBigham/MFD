@@ -1,0 +1,156 @@
+{
+  "_comment": "MFD Event Spine v0.1.0 — Producer-side examples for consumer lane handoff",
+  "_contract": "frozen at 0.1.0 — do not widen",
+
+  "singleLiveEnvelope": {
+    "type": "mfd:game-event",
+    "envelope": {
+      "schemaVersion": "0.1.0",
+      "eventName": "play_result",
+      "seq": 8,
+      "gameId": "abc-123-def",
+      "timestamp": 1700000008000,
+      "quarter": 1,
+      "clock": 848,
+      "possession": "home",
+      "fieldPos": 42,
+      "down": 1,
+      "yardsToGo": 10,
+      "homeScore": 0,
+      "awayScore": 0,
+      "payload": {
+        "type": "complete",
+        "yards": 12,
+        "player": "Jaylen Swift",
+        "passer": "Drew Cannon",
+        "desc": "Complete to Jaylen Swift for 12 yards!",
+        "big": false,
+        "isRush": false,
+        "isScramble": false,
+        "firstDown": true,
+        "touchdown": false
+      }
+    }
+  },
+
+  "orderedSequence": [
+    {
+      "type": "mfd:game-event",
+      "envelope": {
+        "schemaVersion": "0.1.0",
+        "eventName": "game_start",
+        "seq": 1,
+        "gameId": "abc-123-def",
+        "timestamp": 1700000001000,
+        "quarter": 0,
+        "clock": 900,
+        "possession": "",
+        "fieldPos": 0,
+        "down": 0,
+        "yardsToGo": 0,
+        "homeScore": 0,
+        "awayScore": 0,
+        "payload": {
+          "homeTeam": "Hawks",
+          "awayTeam": "Titans",
+          "weather": { "temp": 72, "precip": "DOME", "wind": 0 },
+          "seed": 12345,
+          "week": 5,
+          "year": 2026
+        }
+      }
+    },
+    {
+      "type": "mfd:game-event",
+      "envelope": {
+        "schemaVersion": "0.1.0",
+        "eventName": "drive_start",
+        "seq": 2,
+        "gameId": "abc-123-def",
+        "timestamp": 1700000002000,
+        "quarter": 1,
+        "clock": 900,
+        "possession": "home",
+        "fieldPos": 25,
+        "down": 1,
+        "yardsToGo": 10,
+        "homeScore": 0,
+        "awayScore": 0,
+        "payload": {
+          "driveNum": 1,
+          "startFieldPos": 25,
+          "team": "home",
+          "startClock": 900,
+          "startQuarter": 1
+        }
+      }
+    },
+    {
+      "type": "mfd:game-event",
+      "envelope": {
+        "schemaVersion": "0.1.0",
+        "eventName": "play_call",
+        "seq": 3,
+        "gameId": "abc-123-def",
+        "timestamp": 1700000003000,
+        "quarter": 1,
+        "clock": 900,
+        "possession": "home",
+        "fieldPos": 25,
+        "down": 1,
+        "yardsToGo": 10,
+        "homeScore": 0,
+        "awayScore": 0,
+        "payload": {
+          "playId": "hb_dive",
+          "playLabel": "HB Dive",
+          "playType": "run",
+          "formation": null,
+          "defenseCall": "cover_3",
+          "defenseLabel": "Cover 3",
+          "isUserCall": true
+        }
+      }
+    },
+    {
+      "type": "mfd:game-event",
+      "envelope": {
+        "schemaVersion": "0.1.0",
+        "eventName": "game_end",
+        "seq": 55,
+        "gameId": "abc-123-def",
+        "timestamp": 1700000055000,
+        "quarter": 4,
+        "clock": 0,
+        "possession": "",
+        "fieldPos": 0,
+        "down": 0,
+        "yardsToGo": 0,
+        "homeScore": 17,
+        "awayScore": 7,
+        "payload": {
+          "homeScore": 17,
+          "awayScore": 7,
+          "winner": "Hawks",
+          "loser": "Titans",
+          "overtime": false,
+          "totalPlays": 12,
+          "mvp": "Drew Cannon"
+        }
+      }
+    }
+  ],
+
+  "approximateFields": {
+    "_note": "These fields are present but remain reduced-fidelity or approximate. Consumers must treat them as best-effort, not ground truth.",
+    "play_call.formation": "May be null — formation data is not yet wired from playbook resolution",
+    "trench_resolution.olGrade": "Approximate grade from simplified sim math, not a full PFF-style grade",
+    "trench_resolution.dlGrade": "Approximate grade from simplified sim math",
+    "trench_resolution.matchups": "Reduced fidelity — may be empty array or single summary matchup",
+    "pressure_resolution.timeInPocket": "Approximate value from sim clock, not a real-time measurement",
+    "postgame_autopsy.playerGrades": "Approximate scoring formula, not a calibrated grading system",
+    "weekly_hook.pressureRate": "Derived from approximate sack rate, not true pressure tracking",
+    "weekly_hook.coverageWin": "Inverse of opponent pass efficiency — approximate",
+    "weekly_hook.runLaneAdv": "Derived from rush yards per play — approximate"
+  }
+}

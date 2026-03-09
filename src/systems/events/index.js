@@ -16,3 +16,4 @@ export {
 } from './reducers.js';
 export { buildWeeklyHook } from './weekly-hook.js';
 export { buildPostgameAutopsy } from './postgame-autopsy.js';
+export { createParentBridge, isEmbeddedContext } from './parent-bridge.js';
