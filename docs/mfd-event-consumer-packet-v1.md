@@ -790,3 +790,56 @@ Both `buildWeeklyHook` and `buildPostgameAutopsy` require a context object:
 | `week`     | `number` | hook            | Season week number             |
 | `year`     | `number` | hook            | Season year                    |
 | `opponent` | `string` | hook            | Opponent team name for display |
+
+---
+
+## 10. Transport: postMessage Channels
+
+The producer emits two distinct message types to the parent frame via postMessage.
+
+### Per-Event Channel (existing)
+
+Sent on every `emit()` call. One message per game event.
+
+```json
+{
+  "type": "mfd:game-event",
+  "envelope": { "schemaVersion": "0.1.0", "eventName": "...", "..." : "..." }
+}
+```
+
+### Consumer Packet Channel (new)
+
+Sent exactly once at `game_end`. Contains the full consumer snapshot
+(weekly hook + postgame autopsy) built by the producer-side builders.
+
+```json
+{
+  "type": "mfd:consumer-packet",
+  "packet": {
+    "schemaVersion": "0.1.0",
+    "context": {
+      "userSide": "home",
+      "homeTeam": "Hawks",
+      "awayTeam": "Titans",
+      "week": 5,
+      "year": 2026,
+      "opponent": "Titans"
+    },
+    "envelope": { "eventName": "game_end", "..." : "..." },
+    "weeklyHook": { "...": "full buildWeeklyHook output" },
+    "postgameAutopsy": { "...": "full buildPostgameAutopsy output" }
+  }
+}
+```
+
+**Behavior:**
+- **Embedded (iframe):** Both channels are active. Consumer receives per-event
+  messages for live feed and one consumer packet at game end for Command Desk
+  and Postgame Autopsy.
+- **Standalone (direct window / Node / test):** Both channels silently no-op.
+  All events still flow to the in-memory event log.
+- **Precondition:** `bindContext(ctx)` must be called before `emitGameEnd()`.
+  If context is not bound, the consumer packet is not emitted (no error).
+- **Deduplication:** The consumer packet is sent at most once per bridge lifecycle.
+  Calling `reset()` clears this guard.
