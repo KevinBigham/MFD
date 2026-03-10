@@ -63238,9 +63238,9 @@ function AppCore() {
       }), /* @__PURE__ */ React.createElement("button", { onClick: function() {
         handlePregameSpeech977("focus");
       }, style: { fontSize: 9, color: T.faint, marginTop: 4, cursor: "pointer", background: "none", border: "none", textDecoration: "underline" } }, "Skip speech \u2192"))), gameDayPhase977 === "halftime" && halftimePanel977 && /* @__PURE__ */ React.createElement("div", { style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.92)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 500, width: "90%", background: T.bg2, borderRadius: 12, border: "1px solid rgba(59,130,246,0.4)", padding: 24 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: T.text, marginBottom: 4 } }, "\u{1F3C8} HALF-TIME ADJUSTMENTS"), (function() {
-        var _hsc = lg && lg.hScore || 0;
-        var _asc = lg && lg.aScore || 0;
-        var _usr = lg && lg.userId === (lg.homeTeam || {}).id ? "home" : "away";
+        var _hsc = liveGame986 && liveGame986.hScore || 0;
+        var _asc = liveGame986 && liveGame986.aScore || 0;
+        var _usr = liveGame986 && liveGame986.userId === (liveGame986.homeTeam || {}).id ? "home" : "away";
         var _myS = _usr === "home" ? _hsc : _asc;
         var _opS = _usr === "home" ? _asc : _hsc;
         var _mArr = _myS > _opS ? MFSN_DRIVES_994.momentum.takeLead : _opS > _myS ? MFSN_DRIVES_994.momentum.comeback : MFSN_DRIVES_994.momentum.extendLead;
