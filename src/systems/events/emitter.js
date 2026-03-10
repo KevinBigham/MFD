@@ -12,18 +12,26 @@
  */
 
 import { buildEnvelope, resetSeq } from './envelope.js';
-import { EVENT_NAMES } from './event-types.js';
+import { EVENT_NAMES, SCHEMA_VERSION } from './event-types.js';
 import { createParentBridge } from './parent-bridge.js';
+import { buildWeeklyHook } from './weekly-hook.js';
+import { buildPostgameAutopsy } from './postgame-autopsy.js';
 
 export function createEventLog(options) {
   const events = [];
   let _gameState = {};
+  let _context = null;
   const _bridge = createParentBridge(options);
 
   return {
     /** Bind the current game state so emitters don't need to pass it every time */
     bindGameState(gs) {
       _gameState = gs;
+    },
+
+    /** Bind game context for consumer packet generation at game_end */
+    bindContext(ctx) {
+      _context = ctx;
     },
 
     /** Core emit — builds envelope, appends, and sends live to parent bridge */
@@ -38,6 +46,7 @@ export function createEventLog(options) {
     reset() {
       events.length = 0;
       _gameState = {};
+      _context = null;
       resetSeq();
       _bridge.reset();
     },
@@ -203,7 +212,7 @@ export function createEventLog(options) {
     },
 
     emitGameEnd(payload) {
-      return this.emit(EVENT_NAMES.GAME_END, {
+      const envelope = this.emit(EVENT_NAMES.GAME_END, {
         homeScore: payload.homeScore,
         awayScore: payload.awayScore,
         winner: payload.winner,
@@ -212,6 +221,20 @@ export function createEventLog(options) {
         totalPlays: payload.totalPlays || 0,
         mvp: payload.mvp || null,
       });
+
+      // Emit consumer packet to parent if context is bound
+      if (_context) {
+        const allEvents = events.slice();
+        _bridge.emitConsumerPacket({
+          schemaVersion: SCHEMA_VERSION,
+          context: _context,
+          envelope: envelope,
+          weeklyHook: buildWeeklyHook(allEvents, _context),
+          postgameAutopsy: buildPostgameAutopsy(allEvents, _context),
+        });
+      }
+
+      return envelope;
     },
   };
 }

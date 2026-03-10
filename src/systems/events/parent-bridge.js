@@ -7,10 +7,24 @@
  *
  * Contract: frozen at v0.1.0 — do not widen the message shape.
  *
- * Message shape posted to parent:
+ * Message shapes posted to parent:
+ *
+ * Per-event (every emit):
  * {
  *   type: 'mfd:game-event',
  *   envelope: <frozen envelope from envelope.js>
+ * }
+ *
+ * Consumer packet (once at game_end):
+ * {
+ *   type: 'mfd:consumer-packet',
+ *   packet: {
+ *     schemaVersion: '0.1.0',
+ *     context: <game context>,
+ *     envelope: <game_end envelope>,
+ *     weeklyHook: <buildWeeklyHook output>,
+ *     postgameAutopsy: <buildPostgameAutopsy output>
+ *   }
  * }
  */
 
@@ -78,15 +92,45 @@ export function createParentBridge(options) {
     }
   }
 
+  var _consumerPacketSent = false;
+
+  /**
+   * Post a consumer packet to the parent frame.
+   * Called exactly once at game_end. No-ops if not embedded or already sent.
+   *
+   * @param {object} packet - { schemaVersion, context, envelope, weeklyHook, postgameAutopsy }
+   * @returns {boolean} true if posted
+   */
+  function emitConsumerPacket(packet) {
+    if (!enabled) return false;
+    if (_consumerPacketSent) return false;
+    if (!packet || typeof packet !== 'object') return false;
+
+    _consumerPacketSent = true;
+
+    try {
+      window.parent.postMessage({
+        type: 'mfd:consumer-packet',
+        packet: packet,
+      }, targetOrigin);
+      return true;
+    } catch (_e) {
+      return false;
+    }
+  }
+
   function reset() {
     _emittedSeqs.clear();
+    _consumerPacketSent = false;
   }
 
   return {
     emitToParent: emitToParent,
+    emitConsumerPacket: emitConsumerPacket,
     reset: reset,
     get enabled() { return enabled; },
     /** Exposed for testing — number of unique seqs emitted */
     get emittedCount() { return _emittedSeqs.size; },
+    get consumerPacketSent() { return _consumerPacketSent; },
   };
 }
