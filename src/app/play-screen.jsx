@@ -5,6 +5,8 @@ import { buildLegacyGameUrl } from './legacy-url.js';
 import { MODE_COPY } from './launcher-copy.js';
 import { endPerfSpan, startPerfSpan } from './perf-metrics.js';
 import { runPlayabilityCheck } from './playability-check.js';
+import { DEFAULT_CONSUMER_PACKET } from './default-consumer-packet.js';
+import { createGameEventReceiver, createLiveEventConsumer, SOURCE_STATE } from './live-event-consumer.js';
 
 var T = {
   bg: '#0f172a',
@@ -71,6 +73,14 @@ export default function PlayScreen(props) {
   var playability = playabilityState[0];
   var setPlayability = playabilityState[1];
 
+  var consumerRef = useRef(null);
+  if (!consumerRef.current) {
+    consumerRef.current = createLiveEventConsumer({ fixturePacket: DEFAULT_CONSUMER_PACKET });
+  }
+  var feedState = useState(consumerRef.current.getViewModel());
+  var feedView = feedState[0];
+  var setFeedView = feedState[1];
+
   useEffect(function () {
     if (loadSpanRef.current) {
       endPerfSpan(loadSpanRef.current, { result: 'replaced' });
@@ -112,6 +122,26 @@ export default function PlayScreen(props) {
       onPlayabilityState(playability);
     }
   }, [onPlayabilityState, playability]);
+
+  useEffect(function () {
+    var receiver = createGameEventReceiver({
+      onEnvelope: function (envelope) {
+        consumerRef.current.ingestMessage({ type: 'mfd:game-event', envelope: envelope });
+        setFeedView(consumerRef.current.getViewModel());
+      },
+      onInvalid: function (diag) {
+        consumerRef.current.ingestMessage(diag.data);
+        setFeedView(consumerRef.current.getViewModel());
+      },
+    });
+    var stalePoll = setInterval(function () {
+      setFeedView(consumerRef.current.getViewModel());
+    }, 1000);
+    return function () {
+      receiver();
+      clearInterval(stalePoll);
+    };
+  }, []);
 
   function onRetry() {
     setFrame({ loading: true, error: '' });
@@ -166,6 +196,21 @@ export default function PlayScreen(props) {
             </div>
           </div>
         ) : null}
+
+        <div style={{ ...S.card, marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: T.cyan, marginBottom: 6 }}>
+            Live Feed Source
+          </div>
+          <div style={{ fontSize: 11, color: T.dim }}>
+            State: <strong style={{ color: T.text }}>{feedView.sourceState}</strong>
+            {feedView.sourceState === SOURCE_STATE.FIXTURE ? ' (fixture fallback active)' : ''}
+            {feedView.sourceState === SOURCE_STATE.STALE ? ' (awaiting fresh live events)' : ''}
+            {feedView.sourceState === SOURCE_STATE.INVALID ? ' (invalid envelope rejected)' : ''}
+          </div>
+          <div style={{ fontSize: 11, color: T.dim, marginTop: 6 }}>
+            Command Desk + Postgame use unified adapter for {feedView.context.homeTeam || 'home'} vs {feedView.context.awayTeam || 'away'}.
+          </div>
+        </div>
 
         {!playability.loading && !playability.ok ? (
           <div style={{ ...S.card, borderColor: T.yellow, marginBottom: 12 }}>
