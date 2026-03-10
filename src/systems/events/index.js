@@ -17,3 +17,4 @@ export {
 export { buildWeeklyHook } from './weekly-hook.js';
 export { buildPostgameAutopsy } from './postgame-autopsy.js';
 export { createParentBridge, isEmbeddedContext } from './parent-bridge.js';
+export { createLiveBridge, MESSAGE_TYPE } from './live-bridge.js';
