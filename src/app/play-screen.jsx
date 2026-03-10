@@ -6,7 +6,7 @@ import { MODE_COPY } from './launcher-copy.js';
 import { endPerfSpan, startPerfSpan } from './perf-metrics.js';
 import { runPlayabilityCheck } from './playability-check.js';
 import { DEFAULT_CONSUMER_PACKET } from './default-consumer-packet.js';
-import { createGameEventReceiver, createLiveEventConsumer, SOURCE_STATE } from './live-event-consumer.js';
+import { createGameEventReceiver, createLiveEventConsumer, CONSUMER_PACKET_MESSAGE_TYPE, PACKET_BACKING, SOURCE_STATE } from './live-event-consumer.js';
 
 var T = {
   bg: '#0f172a',
@@ -134,11 +134,18 @@ export default function PlayScreen(props) {
         setFeedView(consumerRef.current.getViewModel());
       },
     });
+    var packetHandler = function onPacketMessage(event) {
+      if (!event.data || event.data.type !== CONSUMER_PACKET_MESSAGE_TYPE) return;
+      consumerRef.current.ingestConsumerPacket(event.data);
+      setFeedView(consumerRef.current.getViewModel());
+    };
+    window.addEventListener('message', packetHandler);
     var stalePoll = setInterval(function () {
       setFeedView(consumerRef.current.getViewModel());
     }, 1000);
     return function () {
       receiver();
+      window.removeEventListener('message', packetHandler);
       clearInterval(stalePoll);
     };
   }, []);
@@ -209,6 +216,11 @@ export default function PlayScreen(props) {
           </div>
           <div style={{ fontSize: 11, color: T.dim, marginTop: 6 }}>
             Command Desk + Postgame use unified adapter for {feedView.context.homeTeam || 'home'} vs {feedView.context.awayTeam || 'away'}.
+          </div>
+          <div style={{ fontSize: 11, color: T.dim, marginTop: 4 }}>
+            Weekly Hook: <strong style={{ color: feedView.commandDesk.backing === PACKET_BACKING.LIVE_PACKET ? T.cyan : T.text }}>{feedView.commandDesk.backing}</strong>
+            {' · '}
+            Postgame: <strong style={{ color: feedView.postgameAutopsy.backing === PACKET_BACKING.LIVE_PACKET ? T.cyan : T.text }}>{feedView.postgameAutopsy.backing}</strong>
           </div>
         </div>
 

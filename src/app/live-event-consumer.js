@@ -1,12 +1,18 @@
 import { EVENT_NAME_LIST, SCHEMA_VERSION, EVENT_NAMES } from '../systems/events/event-types.js';
 
 export const GAME_EVENT_MESSAGE_TYPE = 'mfd:game-event';
+export const CONSUMER_PACKET_MESSAGE_TYPE = 'mfd:consumer-packet';
 
 export const SOURCE_STATE = {
   FIXTURE: 'fixture',
   LIVE: 'live',
   STALE: 'stale',
   INVALID: 'invalid',
+};
+
+export const PACKET_BACKING = {
+  FIXTURE: 'fixture',
+  LIVE_PACKET: 'live-packet',
 };
 
 const ENVELOPE_NUMERIC_FIELDS = [
@@ -62,25 +68,48 @@ export function createGameEventReceiver(options = {}) {
   };
 }
 
+export function validateConsumerPacketMessage(input) {
+  if (!isObject(input)) return { ok: false, reason: 'message_not_object' };
+  if (input.type !== CONSUMER_PACKET_MESSAGE_TYPE) return { ok: false, reason: 'message_type_mismatch' };
+  if (!isObject(input.packet)) return { ok: false, reason: 'packet_missing_or_not_object' };
+
+  var p = input.packet;
+  if (p.schemaVersion !== SCHEMA_VERSION) return { ok: false, reason: 'schema_version_mismatch' };
+  if (!isObject(p.context)) return { ok: false, reason: 'packet_context_missing' };
+  if (!isObject(p.envelope)) return { ok: false, reason: 'packet_envelope_missing' };
+  if (!isObject(p.weeklyHook)) return { ok: false, reason: 'packet_weekly_hook_missing' };
+  if (!isObject(p.postgameAutopsy)) return { ok: false, reason: 'packet_postgame_autopsy_missing' };
+
+  return { ok: true, reason: '' };
+}
+
 export function adaptConsumerViewModel(input = {}) {
   const fixturePacket = input.fixturePacket || null;
   const liveEnvelope = input.liveEnvelope || null;
+  const liveConsumerPacket = input.liveConsumerPacket || null;
   const sourceState = input.sourceState || SOURCE_STATE.FIXTURE;
 
   const fixtureContext = fixturePacket && fixturePacket.context ? fixturePacket.context : {};
   const fixtureWeeklyHook = fixturePacket && fixturePacket.weeklyHook ? fixturePacket.weeklyHook : null;
   const fixtureAutopsy = fixturePacket && fixturePacket.postgameAutopsy ? fixturePacket.postgameAutopsy : null;
 
-  const context = liveEnvelope && liveEnvelope.eventName === EVENT_NAMES.GAME_START
-    ? {
-      userSide: fixtureContext.userSide || 'home',
-      homeTeam: liveEnvelope.payload.homeTeam,
-      awayTeam: liveEnvelope.payload.awayTeam,
-      week: liveEnvelope.payload.week,
-      year: liveEnvelope.payload.year,
-      opponent: fixtureContext.userSide === 'away' ? liveEnvelope.payload.homeTeam : liveEnvelope.payload.awayTeam,
-    }
-    : fixtureContext;
+  const context = liveConsumerPacket && liveConsumerPacket.context
+    ? liveConsumerPacket.context
+    : liveEnvelope && liveEnvelope.eventName === EVENT_NAMES.GAME_START
+      ? {
+        userSide: fixtureContext.userSide || 'home',
+        homeTeam: liveEnvelope.payload.homeTeam,
+        awayTeam: liveEnvelope.payload.awayTeam,
+        week: liveEnvelope.payload.week,
+        year: liveEnvelope.payload.year,
+        opponent: fixtureContext.userSide === 'away' ? liveEnvelope.payload.homeTeam : liveEnvelope.payload.awayTeam,
+      }
+      : fixtureContext;
+
+  const weeklyHookBacking = liveConsumerPacket && liveConsumerPacket.weeklyHook
+    ? PACKET_BACKING.LIVE_PACKET : PACKET_BACKING.FIXTURE;
+  const autopsyBacking = liveConsumerPacket && liveConsumerPacket.postgameAutopsy
+    ? PACKET_BACKING.LIVE_PACKET : PACKET_BACKING.FIXTURE;
 
   return {
     sourceState,
@@ -88,11 +117,15 @@ export function adaptConsumerViewModel(input = {}) {
     context,
     commandDesk: {
       context,
-      weeklyHook: fixtureWeeklyHook,
+      weeklyHook: liveConsumerPacket && liveConsumerPacket.weeklyHook
+        ? liveConsumerPacket.weeklyHook : fixtureWeeklyHook,
+      backing: weeklyHookBacking,
     },
     postgameAutopsy: {
       context,
-      autopsy: fixtureAutopsy,
+      autopsy: liveConsumerPacket && liveConsumerPacket.postgameAutopsy
+        ? liveConsumerPacket.postgameAutopsy : fixtureAutopsy,
+      backing: autopsyBacking,
     },
   };
 }
@@ -105,11 +138,15 @@ export function createLiveEventConsumer(options = {}) {
   let sourceState = SOURCE_STATE.FIXTURE;
   let lastLiveAt = null;
   let liveEnvelope = null;
+  let liveConsumerPacket = null;
   let activeSessionConfirmed = false;
   const diagnostics = {
     invalidCount: 0,
     lastInvalidReason: '',
     rejectedMessages: 0,
+    packetCount: 0,
+    packetInvalidCount: 0,
+    lastPacketInvalidReason: '',
   };
 
   function ingestMessage(data) {
@@ -137,6 +174,19 @@ export function createLiveEventConsumer(options = {}) {
     return { ok: true, reason: '' };
   }
 
+  function ingestConsumerPacket(data) {
+    const result = validateConsumerPacketMessage(data);
+    if (!result.ok) {
+      diagnostics.packetInvalidCount++;
+      diagnostics.lastPacketInvalidReason = result.reason;
+      return { ok: false, reason: result.reason };
+    }
+
+    liveConsumerPacket = data.packet;
+    diagnostics.packetCount++;
+    return { ok: true, reason: '' };
+  }
+
   function getSourceState() {
     if (sourceState === SOURCE_STATE.LIVE && lastLiveAt !== null && (now() - lastLiveAt) > staleAfterMs) {
       return SOURCE_STATE.STALE;
@@ -148,12 +198,14 @@ export function createLiveEventConsumer(options = {}) {
     return adaptConsumerViewModel({
       fixturePacket,
       liveEnvelope,
+      liveConsumerPacket,
       sourceState: getSourceState(),
     });
   }
 
   return {
     ingestMessage,
+    ingestConsumerPacket,
     getSourceState,
     getViewModel,
     diagnostics,
