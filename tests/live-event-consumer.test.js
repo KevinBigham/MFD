@@ -118,11 +118,12 @@ describe('live event consumer', () => {
     expect(JSON.stringify(fixturePacket)).toBe(before);
   });
 
-  it('marks invalid source with diagnostics when malformed envelope arrives pre-live', () => {
+  it('stays on fixture and tracks diagnostics when malformed envelope arrives pre-live', () => {
     const consumer = createLiveEventConsumer({ fixturePacket });
     const out = consumer.ingestMessage({ type: GAME_EVENT_MESSAGE_TYPE, envelope: { ...fixturePacket.envelope, seq: 'bad' } });
     expect(out.ok).toBe(false);
-    expect(consumer.getSourceState()).toBe(SOURCE_STATE.INVALID);
+    // Pre-session: stay on fixture instead of flipping to invalid from noise
+    expect(consumer.getSourceState()).toBe(SOURCE_STATE.FIXTURE);
     expect(consumer.diagnostics.invalidCount).toBe(1);
     expect(consumer.diagnostics.lastInvalidReason).toBe('invalid_numeric_field:seq');
   });
@@ -319,5 +320,111 @@ describe('adaptConsumerViewModel backing', () => {
     expect(Object.keys(fixtureVM).sort()).toEqual(Object.keys(liveVM).sort());
     expect(Object.keys(fixtureVM.commandDesk).sort()).toEqual(Object.keys(liveVM.commandDesk).sort());
     expect(Object.keys(fixtureVM.postgameAutopsy).sort()).toEqual(Object.keys(liveVM.postgameAutopsy).sort());
+  });
+});
+
+// ═══════════════════════════════════════════════
+// Noise-filtering regression (truthfulness cleanup)
+// ═══════════════════════════════════════════════
+
+describe('game-event receiver noise filtering', () => {
+  it('silently ignores non-object messages (string, number, null)', () => {
+    const win = createWindowStub();
+    const envelopes = [];
+    const invalids = [];
+    createGameEventReceiver({
+      target: win,
+      onEnvelope: (e) => envelopes.push(e),
+      onInvalid: (d) => invalids.push(d),
+    });
+
+    win.post('random string');
+    win.post(42);
+    win.post(null);
+    win.post(undefined);
+
+    expect(envelopes).toHaveLength(0);
+    expect(invalids).toHaveLength(0);
+  });
+
+  it('silently ignores mfd:consumer-packet messages', () => {
+    const win = createWindowStub();
+    const envelopes = [];
+    const invalids = [];
+    createGameEventReceiver({
+      target: win,
+      onEnvelope: (e) => envelopes.push(e),
+      onInvalid: (d) => invalids.push(d),
+    });
+
+    win.post(makeConsumerPacketMessage());
+
+    expect(envelopes).toHaveLength(0);
+    expect(invalids).toHaveLength(0);
+  });
+
+  it('silently ignores messages with unrecognized type field', () => {
+    const win = createWindowStub();
+    const invalids = [];
+    createGameEventReceiver({
+      target: win,
+      onEnvelope: () => {},
+      onInvalid: (d) => invalids.push(d),
+    });
+
+    win.post({ type: 'webpackHotUpdate' });
+    win.post({ type: 'react-devtools-bridge' });
+    win.post({ source: 'chrome-extension', data: {} });
+
+    expect(invalids).toHaveLength(0);
+  });
+
+  it('reports invalid only for mfd:game-event messages with bad envelopes', () => {
+    const win = createWindowStub();
+    const invalids = [];
+    createGameEventReceiver({
+      target: win,
+      onEnvelope: () => {},
+      onInvalid: (d) => invalids.push(d),
+    });
+
+    // This IS a game-event but with a bad envelope
+    win.post({ type: GAME_EVENT_MESSAGE_TYPE, envelope: { schemaVersion: 'wrong' } });
+
+    expect(invalids).toHaveLength(1);
+    expect(invalids[0].reason).toBe('schema_version_mismatch');
+  });
+});
+
+describe('consumer sourceState resilience pre-session', () => {
+  it('stays FIXTURE when ingestMessage receives invalid data before session confirmation', () => {
+    const consumer = createLiveEventConsumer({ fixturePacket });
+    // Feed it something that passes type check but has bad envelope
+    consumer.ingestMessage({ type: GAME_EVENT_MESSAGE_TYPE, envelope: null });
+    expect(consumer.getSourceState()).toBe(SOURCE_STATE.FIXTURE);
+    expect(consumer.diagnostics.invalidCount).toBe(1);
+  });
+
+  it('stays FIXTURE through multiple pre-session invalid messages', () => {
+    const consumer = createLiveEventConsumer({ fixturePacket });
+    for (let i = 0; i < 5; i++) {
+      consumer.ingestMessage({ type: GAME_EVENT_MESSAGE_TYPE, envelope: { bad: true } });
+    }
+    expect(consumer.getSourceState()).toBe(SOURCE_STATE.FIXTURE);
+    expect(consumer.diagnostics.invalidCount).toBe(5);
+  });
+
+  it('transitions to LIVE normally after noise, when valid game_start arrives', () => {
+    const consumer = createLiveEventConsumer({ fixturePacket });
+    // Pre-session noise
+    consumer.ingestMessage({ type: GAME_EVENT_MESSAGE_TYPE, envelope: null });
+    expect(consumer.getSourceState()).toBe(SOURCE_STATE.FIXTURE);
+
+    // Valid game_start
+    consumer.ingestMessage({
+      type: GAME_EVENT_MESSAGE_TYPE,
+      envelope: fixturePacket.envelope,
+    });
+    expect(consumer.getSourceState()).toBe(SOURCE_STATE.LIVE);
   });
 });
