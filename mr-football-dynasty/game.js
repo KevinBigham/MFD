@@ -46030,6 +46030,32 @@ function AppCore() {
             );
           })()
         );
+      })(), season2.phase === "regular" && my && opp && (function() {
+        // Command Desk: Pre-Game Intelligence Report
+        var oppStarters = opp.roster.filter(function(p) { return p.isStarter && !(p.injury && p.injury.games > 0); });
+        var oppBest = oppStarters.sort(function(a, b) { return b.ovr - a.ovr; })[0];
+        var oppInjured = opp.roster.filter(function(p) { return p.isStarter && p.injury && p.injury.games > 0; });
+        var myInjured = my.roster.filter(function(p) { return p.isStarter && p.injury && p.injury.games > 0; });
+        var oppStreak = opp.streak || 0;
+        var oppForm = oppStreak >= 3 ? "\u{1F525} Hot (" + oppStreak + "W streak)" : oppStreak <= -3 ? "\u2744\uFE0F Cold (" + Math.abs(oppStreak) + "L streak)" : oppStreak >= 1 ? "Won last " + oppStreak : oppStreak <= -1 ? "Lost last " + Math.abs(oppStreak) : "Even";
+        var recSpeech = my.wins < my.losses ? "\u{1F624} Back Against the Wall" : "\u{1F9E0} Lock In";
+        var recHalf = my.wins > my.losses + 2 ? "\u{1F3C3} Control Clock" : "\u26A1 Open It Up";
+        var posGroups = {};
+        oppStarters.forEach(function(p) { if (!posGroups[p.pos]) posGroups[p.pos] = []; posGroups[p.pos].push(p.ovr); });
+        var weakest = null, weakOvr = 99;
+        Object.keys(posGroups).forEach(function(pos) { var a2 = posGroups[pos].reduce(function(s, v) { return s + v; }, 0) / posGroups[pos].length; if (a2 < weakOvr) { weakOvr = a2; weakest = pos; } });
+        return React.createElement("div", { style: { background: "rgba(34,211,238,0.04)", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 10, padding: "10px 14px" } },
+          React.createElement("div", { style: { fontSize: 9, fontWeight: 800, letterSpacing: 2, color: T.cyan, textTransform: "uppercase", marginBottom: 6 } }, "\u{1F4CB} COMMAND DESK \u2014 PRE-GAME INTEL"),
+          oppBest ? React.createElement("div", { style: { fontSize: 10, color: T.text, marginBottom: 3 } }, "\u26A0\uFE0F Watch: " + oppBest.name + " (" + oppBest.pos + " " + oppBest.ovr + " OVR) \u2014 their best player.") : null,
+          weakest ? React.createElement("div", { style: { fontSize: 10, color: T.text, marginBottom: 3 } }, "\u{1F3AF} Exploit: Their " + weakest + " group averages " + Math.round(weakOvr) + " OVR. Attack here.") : null,
+          React.createElement("div", { style: { fontSize: 10, color: T.text, marginBottom: 3 } }, "\u{1F4C8} Form: " + opp.abbr + " is " + opp.wins + "-" + opp.losses + ". " + oppForm + "."),
+          oppInjured.length > 0 ? React.createElement("div", { style: { fontSize: 10, color: T.green, marginBottom: 3 } }, "\u{1F3E5} Their injuries: " + oppInjured.map(function(p) { return p.name + " (" + p.pos + ")"; }).join(", ") + " \u2014 advantage you.") : null,
+          myInjured.length > 0 ? React.createElement("div", { style: { fontSize: 10, color: T.red, marginBottom: 3 } }, "\u{1F6A8} Your injuries: " + myInjured.map(function(p) { return p.name + " (" + p.pos + ")"; }).join(", ") + " \u2014 depth tested.") : null,
+          React.createElement("div", { style: { marginTop: 6, paddingTop: 6, borderTop: "1px solid rgba(34,211,238,0.15)" } },
+            React.createElement("div", { style: { fontSize: 9, fontWeight: 800, color: T.gold, letterSpacing: 1, marginBottom: 3 } }, "RECOMMENDED APPROACH"),
+            React.createElement("div", { style: { fontSize: 10, color: T.text } }, "Speech: " + recSpeech + " \u00B7 Halftime: " + recHalf)
+          )
+        );
       })(), lastGameCtx && season2.phase === "regular" && (function() {
         var lg2 = lastGameCtx;
         var winBg = lg2.won ? "linear-gradient(135deg,rgba(16,185,129,0.12),rgba(16,185,129,0.03))" : "linear-gradient(135deg,rgba(239,68,68,0.12),rgba(239,68,68,0.03))";
