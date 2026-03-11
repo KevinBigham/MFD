@@ -31351,6 +31351,13 @@ function AppCore() {
   var _fieldGuide = useState(null), fieldGuide = _fieldGuide[0], setFieldGuide = _fieldGuide[1];
   var _pendDraft = useState(null), pendingDraft = _pendDraft[0], setPendingDraft = _pendDraft[1];
   var seenGuidesRef = useRef({});
+  // ── Coach Tips: contextual one-time gold toasts that teach through moments ──
+  var coachTipsRef = useRef({});
+  function coachTip(key, text) {
+    if (coachTipsRef.current[key]) return;
+    coachTipsRef.current[key] = true;
+    addN("\u{1F3C8} COACH TIP: " + text, "gold");
+  }
   var GS = {
     overlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 95, background: "rgba(2,6,18,0.97)", display: "flex", alignItems: "center", justifyContent: "center", padding: 10, backdropFilter: "blur(4px)" },
     modal: { maxWidth: 620, width: "100%", maxHeight: "92vh", overflowY: "auto", background: "linear-gradient(180deg,#0c1a30 0%,#0f1520 40%,#131b2e 100%)", borderRadius: 12, border: "1px solid rgba(251,191,36,0.35)", boxShadow: "0 0 60px rgba(251,191,36,0.12), 0 20px 60px rgba(0,0,0,0.6)", padding: 0 },
@@ -31955,6 +31962,15 @@ function AppCore() {
       setTMsg("");
     }
   }, [tab, tradeTeamId, pendingCounter971]);
+  // ── Coach Tips: fire when player visits a tab for the first time ──
+  useEffect(function() {
+    if (tab === "roster") coachTip("rosterTab", "Your depth chart matters. Only starters earn XP and development. Keep your best players at the top.");
+    if (tab === "trade") coachTip("tradeTab", "Hit \u{1F6D2} Shop on any player card to see what AI GMs will offer. Rebuilding teams sell stars for draft picks.");
+    if (tab === "office") coachTip("officeTab", "This is your front office. Check the Cap Lab for salary cap tools, and the Coaching Carousel to upgrade your coordinators.");
+    if (tab === "scouting") coachTip("scoutTab", "You start with 1,000 Scout Points each season. Film Study is the most valuable test \u2014 it reveals true OVR.");
+    if (tab === "depthChart") coachTip("depthTab", "Players at the top of the depth chart get the snaps. Snaps = XP = development. Arrange wisely.");
+    if (tab === "standings") coachTip("standingsTab", "Check the \u2694\uFE0F Rivalries section for your trophy case. Rivalries build naturally through repeated matchups.");
+  }, [tab]);
   var my = teams.find(function(t) {
     return t.id === myId;
   });
@@ -37298,6 +37314,15 @@ function AppCore() {
         }
         if (g.home === myId || g.away === myId) {
           var userWon80 = g.home === myId && r.home > r.away || g.away === myId && r.away > r.home;
+          // ── Coach Tips: contextual first-time guidance ──
+          coachTip("firstGame", userWon80 ? "Nice win, Coach. Check the Postgame Autopsy in the launcher above for a full breakdown of why you won." : "Tough loss. Check the Postgame Autopsy in the launcher above \u2014 it'll tell you exactly what went wrong and what to fix.");
+          if (season2.week === 1 && season2.year === 2026) coachTip("welcome", "Welcome to the league. Set your Practice Focus each week on the Home tab. Opponent Scout is a safe pick for now.");
+          if (season2.week >= 8 && season2.week <= 9) coachTip("deadline", "The trade deadline is Week 10. If you have surplus players, hit \u{1F6D2} Shop on their card to see what other GMs will offer.");
+          if (r && r.coachImpact) {
+            var _userEdge = g.home === myId ? r.coachImpact.home : r.coachImpact.away;
+            var _oppEdge = g.home === myId ? r.coachImpact.away : r.coachImpact.home;
+            if (_userEdge && _oppEdge && (_oppEdge.edge - _userEdge.edge) >= 5) coachTip("coachGap", "Your coaching staff is being outschemed. Consider upgrading your OC or DC in the Coaching Carousel (Office tab).");
+          }
           var myT80b = nt.find(function(t) {
             return t.id === myId;
           });
@@ -45453,7 +45478,7 @@ function AppCore() {
           locked ? "\u{1F512} " : "",
           st.label
         );
-      })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: 12 } }, tab === "home" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, season2.phase === "regular" && my && (function() {
+      })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: 12 } }, tab === "home" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { background: "linear-gradient(135deg,rgba(251,191,36,0.08),rgba(251,191,36,0.03))", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 10, padding: "10px 14px" } }, React.createElement("div", { style: { fontSize: 9, fontWeight: 800, letterSpacing: 2, color: "#fbbf24", textTransform: "uppercase", marginBottom: 4 } }, "\u{1F3C8} THIS WEEK"), React.createElement("div", { style: { fontSize: 11, color: "#e2e8f0", lineHeight: 1.6 } }, season2.phase === "preseason" && season2.week === 1 ? "Welcome, Coach. Set your Practice Focus below, then hit Sim Week to start preseason. Use this time to evaluate your 75-man roster." : season2.phase === "preseason" ? "Preseason Week " + season2.week + "/3. Evaluate your roster and set your depth chart before Cut Day." : season2.phase === "cutDay" ? "\u2702\uFE0F CUT DAY. Trim your roster to 53 + 16 practice squad. The Cut Advisor (Roster tab) recommends drops." : season2.phase === "regular" && season2.week === 1 ? "Regular season starts now. Set your Practice Focus, pick a Pre-Game Speech, and hit Sim Week. Check Postgame Autopsy after each game." : season2.phase === "regular" && season2.week <= 3 ? "Week " + season2.week + ". Set Practice Focus before each game. Try Opponent Scout for the best matchup prep." : season2.phase === "regular" && season2.week >= 8 && season2.week <= 10 ? "\u{1F4DE} Trade deadline is Week 10. Shop surplus players for draft picks. Check your cap situation in Office." : season2.phase === "regular" && season2.week >= 14 ? "Playoff push. Every game matters. Match your speech + halftime combo to the matchup. Rivalry Speech is available for heated rivalries." : season2.phase === "regular" ? "Week " + season2.week + ". Set your Practice Focus, choose your Pre-Game Speech wisely, and sim." : season2.phase === "playoffs" ? "\u{1F3C6} PLAYOFF TIME. Use Championship Mentality speech if available. Every drive counts in single elimination." : season2.phase === "reSign" ? "\u270D\uFE0F Re-Sign Phase. Lock up your best expiring players before they hit free agency. Use the Franchise Tag on your top guy." : season2.phase === "combine" ? "\u{1F52C} Combine. Spend your Scout Points wisely. Film Study reveals the most. Focus on QBs, EDGE, and CBs." : season2.phase === "draft" ? "\u{1F4FA} Draft Day. Best Player Available beats reaching for need. Dev Trait matters more than draft slot." : season2.phase === "fa" ? "\u{1F3EA} Free Agency. Fill your biggest needs first. Don't blow your entire cap \u2014 leave $15M for emergencies." : "Check your Inbox and set up for the week.")), season2.phase === "regular" && my && (function() {
         var nextGame986 = sched.find(function(g) {
           return !g.played && g.week === season2.week && (g.home === myId || g.away === myId);
         });
