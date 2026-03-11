@@ -37201,12 +37201,30 @@ function AppCore() {
             window.parent.postMessage({ type: "mfd:consumer-packet", packet: {
               schemaVersion: "0.1.0",
               context: { userSide: _mfdSide, homeTeam: h.abbr, awayTeam: a.abbr,
-                week: season2.week, year: season2.year, opponent: _mfdOpp },
+                week: season2.week, year: season2.year, opponent: _mfdOpp,
+                homeRecord: (h.wins || 0) + "-" + (h.losses || 0),
+                awayRecord: (a.wins || 0) + "-" + (a.losses || 0),
+                homeIcon: h.icon || "", awayIcon: a.icon || "" },
               envelope: _mfdEndEnv,
               weeklyHook: { week: season2.week, year: season2.year, opponent: _mfdOpp,
-                result: (_mfdWon ? "W" : "L") + " " + r.home + "-" + r.away },
+                result: (_mfdWon ? "W" : "L") + " " + r.home + "-" + r.away,
+                userRecord: _mfdSide === "home" ? (h.wins || 0) + "-" + (h.losses || 0) : (a.wins || 0) + "-" + (a.losses || 0) },
               postgameAutopsy: {
-                summary: (_mfdWon ? "Victory" : "Defeat") + ": " + h.abbr + " " + r.home + ", " + a.abbr + " " + r.away + "." }
+                summary: (_mfdWon ? "Victory" : "Defeat") + ": " + h.abbr + " " + r.home + ", " + a.abbr + " " + r.away + ".",
+                won: _mfdWon,
+                score: { home: r.home, away: r.away },
+                quarters: r.qtrs || null,
+                overtime: !!(r.qtrs && r.qtrs.h && r.qtrs.h.length > 4),
+                box: r.box || null,
+                leaders: r.leaders || null,
+                weather: r.weather || null,
+                coachImpact: r.coachImpact || null,
+                halftime: r.halftime || null,
+                log: (r.log || []).slice(0, 30),
+                keyPlays: (r.log || []).filter(function(l) {
+                  return l.indexOf("TD") >= 0 || l.indexOf("INT") >= 0 || l.indexOf("FUM") >= 0 || l.indexOf("SACK") >= 0 || l.indexOf("OT") >= 0;
+                }).slice(0, 12)
+              }
             } }, "*");
           } catch (_mfdE2) { /* event spine must never crash the game */ }
         }
