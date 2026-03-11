@@ -7,6 +7,7 @@ import { endPerfSpan, startPerfSpan } from './perf-metrics.js';
 import { runPlayabilityCheck } from './playability-check.js';
 import { DEFAULT_CONSUMER_PACKET } from './default-consumer-packet.js';
 import { createGameEventReceiver, createLiveEventConsumer, CONSUMER_PACKET_MESSAGE_TYPE, PACKET_BACKING, SOURCE_STATE } from './live-event-consumer.js';
+import PostgameAutopsy from './postgame-autopsy-view.jsx';
 
 var T = {
   bg: '#0f172a',
@@ -228,6 +229,10 @@ export default function PlayScreen(props) {
             Postgame: <strong style={{ color: feedView.postgameAutopsy.backing === PACKET_BACKING.LIVE_PACKET ? T.cyan : T.text }}>{feedView.postgameAutopsy.backing}</strong>
           </div>
         </div>
+
+        {feedView.postgameAutopsy.backing === PACKET_BACKING.LIVE_PACKET ? (
+          <PostgameAutopsy data={feedView.postgameAutopsy} />
+        ) : null}
 
         {!playability.loading && !playability.ok ? (
           <div style={{ ...S.card, borderColor: T.yellow, marginBottom: 12 }}>
