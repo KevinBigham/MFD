@@ -1,74 +1,118 @@
+import { describe, expect, it } from 'vitest';
+
 import {
-  LEGACY_MANIFEST,
-  getLegacyRequiredFiles,
-  validateLegacyManifest,
-} from './legacy-manifest.js';
+  buildExpectedLegacyFiles,
+  createDefaultProbe,
+  normalizeBasePath,
+  normalizeLegacyAssetPath,
+  probeLegacyAssets,
+  runPlayabilityCheck,
+} from '../src/app/playability-check.js';
+import { LEGACY_MANIFEST } from '../src/app/legacy-manifest.js';
 
-export function normalizeLegacyAssetPath(filepath) {
-  return String(filepath || '').replace(/\\/g, '/').replace(/^\/+/, '');
-}
+describe('playability-check helpers', () => {
+  it('buildExpectedLegacyFiles mirrors manifest-required files', () => {
+    var files = buildExpectedLegacyFiles(LEGACY_MANIFEST);
+    expect(files).toContain('legacy/index.html');
+    expect(files).toContain('legacy/game.js');
+    expect(new Set(files).size).toBe(files.length);
+  });
 
-export function buildExpectedLegacyFiles(manifest) {
-  return getLegacyRequiredFiles(manifest || LEGACY_MANIFEST).map(normalizeLegacyAssetPath);
-}
+  it('normalizes asset paths for probing', () => {
+    expect(normalizeLegacyAssetPath('/legacy/game.js')).toBe('legacy/game.js');
+    expect(normalizeLegacyAssetPath('\\legacy\\react.min.js')).toBe('legacy/react.min.js');
+  });
 
-async function defaultProbe(pathname) {
-  if (typeof fetch !== 'function') {
-    return false;
-  }
-  try {
-    var response = await fetch('/' + normalizeLegacyAssetPath(pathname), { method: 'GET' });
-    return !!(response && response.ok);
-  } catch (_err) {
-    return false;
-  }
-}
+  it('probeLegacyAssets returns missing files when probe fails', async () => {
+    var out = await probeLegacyAssets(['legacy/index.html', 'legacy/game.js'], async function (path) {
+      return path === 'legacy/index.html';
+    });
+    expect(out.ok).toBe(false);
+    expect(out.missingFiles).toEqual(['legacy/game.js']);
+    expect(out.checks.length).toBe(2);
+  });
 
-export async function probeLegacyAssets(assetPaths, probeFn) {
-  var probe = typeof probeFn === 'function' ? probeFn : defaultProbe;
-  var checks = [];
-  var missingFiles = [];
+  it('runPlayabilityCheck handles invalid manifest safely', async () => {
+    var out = await runPlayabilityCheck({ version: '', entry: '', files: [] }, async function () {
+      return true;
+    });
+    expect(out.ok).toBe(false);
+    expect(out.errors.length).toBeGreaterThan(0);
+  });
+});
 
-  for (var i = 0; i < (assetPaths || []).length; i += 1) {
-    var path = normalizeLegacyAssetPath(assetPaths[i]);
-    var pass = false;
-    try {
-      pass = !!(await probe(path));
-    } catch (_err) {
-      pass = false;
-    }
+// ═══════════════════════════════════════════════
+// basePath-aware probing (truthfulness cleanup)
+// ═══════════════════════════════════════════════
 
-    if (!pass) {
-      missingFiles.push(path);
-    }
-    checks.push({ name: path, pass: pass });
-  }
+describe('basePath-aware probing', () => {
+  it('normalizeBasePath adds leading/trailing slashes', () => {
+    expect(normalizeBasePath('mr-football-dynasty')).toBe('/mr-football-dynasty/');
+    expect(normalizeBasePath('/mr-football-dynasty')).toBe('/mr-football-dynasty/');
+    expect(normalizeBasePath('/mr-football-dynasty/')).toBe('/mr-football-dynasty/');
+    expect(normalizeBasePath('')).toBe('/');
+    expect(normalizeBasePath(null)).toBe('/');
+    expect(normalizeBasePath('/')).toBe('/');
+  });
 
-  return {
-    ok: missingFiles.length === 0,
-    missingFiles: missingFiles,
-    checks: checks,
-  };
-}
-
-export async function runPlayabilityCheck(manifest, probeFn) {
-  var m = manifest || LEGACY_MANIFEST;
-  var validation = validateLegacyManifest(m);
-  if (!validation.ok) {
-    return {
-      ok: false,
-      missingFiles: [],
-      checks: [],
-      errors: validation.errors,
+  it('createDefaultProbe prefixes basePath to fetched URL', async () => {
+    var fetchedUrls = [];
+    // Capture the URL that would be fetched by injecting a custom global fetch
+    var origFetch = globalThis.fetch;
+    globalThis.fetch = async function (url) {
+      fetchedUrls.push(url);
+      return { ok: true };
     };
-  }
+    try {
+      var probe = createDefaultProbe('/mr-football-dynasty/');
+      await probe('legacy/game.js');
+      expect(fetchedUrls.length).toBe(1);
+      expect(fetchedUrls[0]).toBe('/mr-football-dynasty/legacy/game.js');
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
 
-  var expectedFiles = buildExpectedLegacyFiles(m);
-  var result = await probeLegacyAssets(expectedFiles, probeFn);
-  return {
-    ok: result.ok,
-    missingFiles: result.missingFiles,
-    checks: result.checks,
-    errors: [],
-  };
-}
+  it('createDefaultProbe with root basePath fetches from /', async () => {
+    var fetchedUrls = [];
+    var origFetch = globalThis.fetch;
+    globalThis.fetch = async function (url) {
+      fetchedUrls.push(url);
+      return { ok: true };
+    };
+    try {
+      var probe = createDefaultProbe('/');
+      await probe('legacy/game.js');
+      expect(fetchedUrls[0]).toBe('/legacy/game.js');
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it('probeLegacyAssets threads basePath to default probe when no custom probeFn', async () => {
+    var fetchedUrls = [];
+    var origFetch = globalThis.fetch;
+    globalThis.fetch = async function (url) {
+      fetchedUrls.push(url);
+      return { ok: true };
+    };
+    try {
+      await probeLegacyAssets(['legacy/index.html', 'legacy/game.js'], null, '/mr-football-dynasty/');
+      expect(fetchedUrls).toContain('/mr-football-dynasty/legacy/index.html');
+      expect(fetchedUrls).toContain('/mr-football-dynasty/legacy/game.js');
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it('probeLegacyAssets ignores basePath when custom probeFn provided', async () => {
+    var probed = [];
+    var out = await probeLegacyAssets(
+      ['legacy/index.html'],
+      async function (path) { probed.push(path); return true; },
+      '/mr-football-dynasty/'
+    );
+    expect(out.ok).toBe(true);
+    expect(probed).toEqual(['legacy/index.html']);
+  });
+});
