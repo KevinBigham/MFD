@@ -54,7 +54,12 @@ export function createGameEventReceiver(options = {}) {
   if (!target || typeof target.addEventListener !== 'function') return function noop() {};
 
   const handler = function onMessage(event) {
-    const result = validateGameEventMessage(event.data);
+    // Silently ignore non-object messages (Chrome extensions, DevTools, etc.)
+    if (!isObject(event.data)) return;
+    // Silently ignore messages with a different or missing type — not ours
+    if (event.data.type !== GAME_EVENT_MESSAGE_TYPE) return;
+    // It claims to be a game event — validate the envelope
+    const result = validateGameEventEnvelope(event.data.envelope);
     if (!result.ok) {
       onInvalid({ reason: result.reason, data: event.data });
       return;
@@ -155,7 +160,8 @@ export function createLiveEventConsumer(options = {}) {
       diagnostics.invalidCount++;
       diagnostics.rejectedMessages++;
       diagnostics.lastInvalidReason = result.reason;
-      if (!activeSessionConfirmed) sourceState = SOURCE_STATE.INVALID;
+      // Do NOT transition to INVALID before a live session is confirmed —
+      // stay at FIXTURE so noise doesn't break the status display.
       return { ok: false, reason: result.reason };
     }
 

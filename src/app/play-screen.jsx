@@ -90,7 +90,7 @@ export default function PlayScreen(props) {
     var active = true;
     setPlayability({ loading: true, ok: true, missingFiles: [], errors: [] });
 
-    runPlayabilityCheck(manifest, probeFn).then(function (result) {
+    runPlayabilityCheck(manifest, probeFn, basePath).then(function (result) {
       if (!active) return;
       setPlayability({
         loading: false,
@@ -115,7 +115,7 @@ export default function PlayScreen(props) {
         loadSpanRef.current = '';
       }
     };
-  }, [manifest, probeFn]);
+  }, [basePath, manifest, probeFn]);
 
   useEffect(function () {
     if (onPlayabilityState) {
@@ -129,8 +129,13 @@ export default function PlayScreen(props) {
         consumerRef.current.ingestMessage({ type: 'mfd:game-event', envelope: envelope });
         setFeedView(consumerRef.current.getViewModel());
       },
-      onInvalid: function (diag) {
-        consumerRef.current.ingestMessage(diag.data);
+      onInvalid: function (_diag) {
+        // Malformed game-event envelope — track in diagnostics but do NOT
+        // feed back into ingestMessage (which would poison sourceState).
+        var d = consumerRef.current.diagnostics;
+        d.invalidCount++;
+        d.rejectedMessages++;
+        d.lastInvalidReason = _diag.reason;
         setFeedView(consumerRef.current.getViewModel());
       },
     });
