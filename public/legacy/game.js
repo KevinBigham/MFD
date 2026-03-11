@@ -37164,7 +37164,52 @@ function AppCore() {
             htMods._planDef = userT64.gameplanDef || "balanced_d";
           }
         }
+        // ── MFD Event Spine: emit game_start for user games ──
+        var _mfdGameId = "live-" + season2.year + "-wk" + season2.week;
+        if (isUserGame && typeof window !== "undefined" && window.parent && window.parent !== window) {
+          try {
+            window.parent.postMessage({ type: "mfd:game-event", envelope: {
+              schemaVersion: "0.1.0", eventName: "game_start", seq: 1,
+              gameId: _mfdGameId, timestamp: Date.now(),
+              quarter: 0, clock: 900, possession: "", fieldPos: 0, down: 0, yardsToGo: 0,
+              homeScore: 0, awayScore: 0,
+              payload: { homeTeam: h.abbr, awayTeam: a.abbr, week: season2.week, year: season2.year,
+                weather: typeof gameWeather !== "undefined" ? gameWeather : { temp: 72, precip: "DOME", wind: 0 },
+                seed: SEED_GLOBAL }
+            } }, "*");
+          } catch (_mfdE) { /* event spine must never crash the game */ }
+        }
         var r = isUserGame ? simGame(h, a, false, htMods) : SIM_CULL.simAIGame(h, a, false);
+        // ── MFD Event Spine: emit game_end + consumer-packet for user games ──
+        if (isUserGame && typeof window !== "undefined" && window.parent && window.parent !== window && r) {
+          try {
+            var _mfdEndEnv = {
+              schemaVersion: "0.1.0", eventName: "game_end", seq: 2,
+              gameId: _mfdGameId, timestamp: Date.now(),
+              quarter: 4, clock: 0, possession: "", fieldPos: 0, down: 0, yardsToGo: 0,
+              homeScore: r.home, awayScore: r.away,
+              payload: { homeScore: r.home, awayScore: r.away,
+                winner: r.home > r.away ? h.abbr : a.abbr,
+                loser: r.home > r.away ? a.abbr : h.abbr,
+                overtime: !!(r.qtrs && r.qtrs.h && r.qtrs.h.length > 4),
+                totalPlays: 2, mvp: "" }
+            };
+            window.parent.postMessage({ type: "mfd:game-event", envelope: _mfdEndEnv }, "*");
+            var _mfdSide = g.home === myId ? "home" : "away";
+            var _mfdOpp = _mfdSide === "home" ? a.abbr : h.abbr;
+            var _mfdWon = (_mfdSide === "home" && r.home > r.away) || (_mfdSide === "away" && r.away > r.home);
+            window.parent.postMessage({ type: "mfd:consumer-packet", packet: {
+              schemaVersion: "0.1.0",
+              context: { userSide: _mfdSide, homeTeam: h.abbr, awayTeam: a.abbr,
+                week: season2.week, year: season2.year, opponent: _mfdOpp },
+              envelope: _mfdEndEnv,
+              weeklyHook: { week: season2.week, year: season2.year, opponent: _mfdOpp,
+                result: (_mfdWon ? "W" : "L") + " " + r.home + "-" + r.away },
+              postgameAutopsy: {
+                summary: (_mfdWon ? "Victory" : "Defeat") + ": " + h.abbr + " " + r.home + ", " + a.abbr + " " + r.away + "." }
+            } }, "*");
+          } catch (_mfdE2) { /* event spine must never crash the game */ }
+        }
         var gi = ns.findIndex(function(x) {
           return x.home === g.home && x.away === g.away && x.week === g.week;
         });
