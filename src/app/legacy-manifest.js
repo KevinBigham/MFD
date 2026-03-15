@@ -1,5 +1,6 @@
 export var LEGACY_MANIFEST = Object.freeze({
   version: 'v100',
+  assetVersion: '20260315c',
   entry: 'legacy/index.html',
   files: Object.freeze([
     'legacy/game.js',
@@ -33,6 +34,9 @@ export function validateLegacyManifest(manifest) {
   } else {
     if (typeof m.version !== 'string' || m.version.length === 0) {
       errors.push('manifest.version must be a non-empty string');
+    }
+    if (typeof m.assetVersion !== 'string' || m.assetVersion.length === 0) {
+      errors.push('manifest.assetVersion must be a non-empty string');
     }
     if (typeof m.entry !== 'string' || m.entry.length === 0) {
       errors.push('manifest.entry must be a non-empty string');

@@ -59,6 +59,7 @@ export default function PlayScreen(props) {
       basePath: basePath,
       mode: 'play',
       legacyPath: manifest.entry,
+      assetVersion: manifest.assetVersion,
     });
   }, [basePath, manifest]);
 

@@ -10,6 +10,7 @@ describe('play-screen integration', () => {
       basePath: '/app/',
       manifest: {
         version: 'v100',
+        assetVersion: '20260315c',
         entry: 'legacy/index.html',
         files: ['legacy/game.js', 'legacy/react.min.js', 'legacy/react-dom.min.js'],
       },
@@ -27,12 +28,13 @@ describe('play-screen integration', () => {
       basePath: '/season/',
       manifest: {
         version: 'v100',
+        assetVersion: '20260315c',
         entry: 'legacy/index.html',
         files: ['legacy/game.js', 'legacy/react.min.js', 'legacy/react-dom.min.js'],
       },
     }));
 
-    expect(html).toContain('src="/season/legacy/index.html?mode=play"');
+    expect(html).toContain('src="/season/legacy/index.html?mode=play&amp;v=20260315c"');
     expect(html).toContain('Mr Football Dynasty Legacy');
   });
 
@@ -41,6 +43,7 @@ describe('play-screen integration', () => {
       basePath: '/season/',
       manifest: {
         version: 'v100',
+        assetVersion: '20260315c',
         entry: 'legacy/index.html',
         files: ['legacy/game.js', 'legacy/react.min.js', 'legacy/react-dom.min.js'],
       },
@@ -52,6 +55,7 @@ describe('play-screen integration', () => {
       basePath: '/season/',
       manifest: {
         version: 'v100',
+        assetVersion: '20260315c',
         entry: 'legacy/index.html',
         files: ['legacy/game.js', 'legacy/react.min.js', 'legacy/react-dom.min.js'],
       },

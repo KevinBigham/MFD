@@ -30,5 +30,10 @@ export function buildLegacyGameUrl(input) {
   var basePath = normalizeBasePath(opts.basePath || '/');
   var mode = parseBootMode(opts.mode) || BOOT_MODES.PLAY;
   var legacyPath = sanitizeLegacyPath(opts.legacyPath || 'legacy/index.html');
-  return basePath + legacyPath + '?mode=' + mode;
+  var assetVersion = String(opts.assetVersion || '').trim();
+  var query = ['mode=' + encodeURIComponent(mode)];
+  if (assetVersion) {
+    query.push('v=' + encodeURIComponent(assetVersion));
+  }
+  return basePath + legacyPath + '?' + query.join('&');
 }

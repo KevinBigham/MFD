@@ -9,6 +9,7 @@ import {
   findForbiddenLegacyRefs,
   isExternalRef,
   normalizeRef,
+  stripLocalRefSuffix,
   verifyLegacyRefs,
   verifyPlayableBuild,
 } from '../scripts/check-playable-build.mjs';
@@ -54,6 +55,7 @@ describe('check-playable-build script', () => {
 
   it('normalizes refs and classifies schemes as external', () => {
     expect(normalizeRef('  game.js ')).toBe('game.js');
+    expect(stripLocalRefSuffix('game.js?v=20260315c#boot')).toBe('game.js');
     expect(isExternalRef('mailto:test@example.com')).toBe(true);
     expect(isExternalRef('javascript:alert(1)')).toBe(true);
     expect(isExternalRef('//cdn.example.com/game.js')).toBe(true);
@@ -65,7 +67,7 @@ describe('check-playable-build script', () => {
     fs.writeFileSync(path.join(tmp.dist, 'legacy', 'index.html'), [
       '<script src="react.min.js"></script>',
       '<script src="react-dom.min.js"></script>',
-      '<script src="game.js"></script>',
+      '<script src="game.js?v=20260315c"></script>',
     ].join('\n'));
     fs.writeFileSync(path.join(tmp.dist, 'legacy', 'game.js'), 'x');
     fs.writeFileSync(path.join(tmp.dist, 'legacy', 'react.min.js'), 'x');

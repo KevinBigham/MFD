@@ -21,8 +21,8 @@ describe('legacy-url helpers', () => {
   });
 
   it('buildLegacyGameUrl always returns same-origin relative path', () => {
-    expect(buildLegacyGameUrl({ basePath: '/app/', mode: 'play' })).toBe('/app/legacy/index.html?mode=play');
-    expect(buildLegacyGameUrl({ basePath: '/app', mode: 'status' })).toBe('/app/legacy/index.html?mode=status');
-    expect(buildLegacyGameUrl({ basePath: '/app', mode: 'bad', legacyPath: 'https://evil' })).toBe('/app/legacy/index.html?mode=play');
+    expect(buildLegacyGameUrl({ basePath: '/app/', mode: 'play', assetVersion: '20260315c' })).toBe('/app/legacy/index.html?mode=play&v=20260315c');
+    expect(buildLegacyGameUrl({ basePath: '/app', mode: 'status', assetVersion: '20260315c' })).toBe('/app/legacy/index.html?mode=status&v=20260315c');
+    expect(buildLegacyGameUrl({ basePath: '/app', mode: 'bad', legacyPath: 'https://evil', assetVersion: '20260315c' })).toBe('/app/legacy/index.html?mode=play&v=20260315c');
   });
 });

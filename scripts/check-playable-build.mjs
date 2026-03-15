@@ -22,6 +22,10 @@ export function normalizeRef(ref) {
   return String(ref || '').trim();
 }
 
+export function stripLocalRefSuffix(ref) {
+  return normalizeRef(ref).replace(/[?#].*$/, '');
+}
+
 export function isExternalRef(ref) {
   var value = normalizeRef(ref);
   if (!value) return false;
@@ -37,10 +41,11 @@ export function findForbiddenLegacyRefs(refs) {
 }
 
 function resolveRefPath(distDir, htmlRelativePath, ref) {
-  if (ref.charAt(0) === '/') {
-    return path.resolve(distDir, ref.replace(/^\//, ''));
+  var cleanRef = stripLocalRefSuffix(ref);
+  if (cleanRef.charAt(0) === '/') {
+    return path.resolve(distDir, cleanRef.replace(/^\//, ''));
   }
-  return path.resolve(distDir, path.dirname(htmlRelativePath), ref);
+  return path.resolve(distDir, path.dirname(htmlRelativePath), cleanRef);
 }
 
 export function verifyLegacyRefs(distDir, refs, htmlRelativePath) {
