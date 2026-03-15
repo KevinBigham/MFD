@@ -46030,7 +46030,15 @@ function AppCore() {
             );
           })()
         );
-      })(), season2.phase === "regular" && my && opp && (function() {
+      })(), season2.phase === "regular" && my && (function() {
+        var nextGame = sched.find(function(g) {
+          return g.week === season2.week && !g.played && (g.home === myId || g.away === myId);
+        });
+        if (!nextGame) return null;
+        var opp = teams.find(function(t2) {
+          return t2.id === (nextGame.home === myId ? nextGame.away : nextGame.home);
+        });
+        if (!opp) return null;
         // Command Desk: Pre-Game Intelligence Report
         var oppStarters = opp.roster.filter(function(p) { return p.isStarter && !(p.injury && p.injury.games > 0); });
         var oppBest = oppStarters.sort(function(a, b) { return b.ovr - a.ovr; })[0];
