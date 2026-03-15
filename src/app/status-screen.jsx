@@ -111,16 +111,20 @@ export default function StatusScreen(props) {
     }
   }, [onRuntimeState, status]);
 
+  var titleMarginBottom = APP_SUBTITLE ? 8 : 24;
+
   if (status.loading) {
     return (
       <div style={{ minHeight: '100vh', background: STATUS_THEME.bg, color: STATUS_THEME.text, fontFamily: "'Segoe UI', sans-serif", padding: 40 }}>
         <div style={{ maxWidth: 600, margin: '0 auto' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: STATUS_THEME.gold, letterSpacing: 1.5, marginBottom: 8 }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: STATUS_THEME.gold, letterSpacing: 1.5, marginBottom: titleMarginBottom }}>
             {APP_TITLE}
           </div>
-          <div style={{ fontSize: 12, color: STATUS_THEME.dim, marginBottom: 24 }}>
-            {APP_SUBTITLE}
-          </div>
+          {APP_SUBTITLE ? (
+            <div style={{ fontSize: 12, color: STATUS_THEME.dim, marginBottom: 24 }}>
+              {APP_SUBTITLE}
+            </div>
+          ) : null}
           <div style={STATUS_STYLES.card}>
             <div style={{ ...STATUS_STYLES.sectionTitle, color: STATUS_THEME.cyan }}>{STATUS_COPY.loadingTitle}</div>
             <div style={{ fontSize: 12, color: STATUS_THEME.dim }}>
@@ -136,12 +140,14 @@ export default function StatusScreen(props) {
     return (
       <div style={{ minHeight: '100vh', background: STATUS_THEME.bg, color: STATUS_THEME.text, fontFamily: "'Segoe UI', sans-serif", padding: 40 }}>
         <div style={{ maxWidth: 600, margin: '0 auto' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: STATUS_THEME.gold, letterSpacing: 1.5, marginBottom: 8 }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: STATUS_THEME.gold, letterSpacing: 1.5, marginBottom: titleMarginBottom }}>
             {APP_TITLE}
           </div>
-          <div style={{ fontSize: 12, color: STATUS_THEME.dim, marginBottom: 24 }}>
-            {APP_SUBTITLE}
-          </div>
+          {APP_SUBTITLE ? (
+            <div style={{ fontSize: 12, color: STATUS_THEME.dim, marginBottom: 24 }}>
+              {APP_SUBTITLE}
+            </div>
+          ) : null}
           <div style={STATUS_STYLES.card}>
             <div style={{ ...STATUS_STYLES.sectionTitle, color: STATUS_THEME.red }}>{STATUS_COPY.errorTitle}</div>
             <pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, color: STATUS_THEME.dim, marginBottom: 12 }}>
@@ -160,12 +166,14 @@ export default function StatusScreen(props) {
   return (
     <div style={{ minHeight: '100vh', background: STATUS_THEME.bg, color: STATUS_THEME.text, fontFamily: "'Segoe UI', sans-serif", padding: 40 }}>
       <div style={{ maxWidth: 600, margin: '0 auto' }}>
-        <div style={{ fontSize: 28, fontWeight: 900, color: STATUS_THEME.gold, letterSpacing: 1.5, marginBottom: 8 }}>
+        <div style={{ fontSize: 28, fontWeight: 900, color: STATUS_THEME.gold, letterSpacing: 1.5, marginBottom: titleMarginBottom }}>
           {APP_TITLE}
         </div>
-        <div style={{ fontSize: 12, color: STATUS_THEME.dim, marginBottom: 24 }}>
-          {APP_SUBTITLE}
-        </div>
+        {APP_SUBTITLE ? (
+          <div style={{ fontSize: 12, color: STATUS_THEME.dim, marginBottom: 24 }}>
+            {APP_SUBTITLE}
+          </div>
+        ) : null}
 
         <div style={{ ...STATUS_STYLES.card, marginBottom: 12 }}>
           <div style={{ ...STATUS_STYLES.sectionTitle, color: validation.ok ? STATUS_THEME.green : STATUS_THEME.red }}>

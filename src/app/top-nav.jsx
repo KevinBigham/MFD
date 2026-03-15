@@ -70,7 +70,9 @@ export default function TopNav(props) {
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ minWidth: 240 }}>
             <div style={{ fontSize: 20, letterSpacing: 1.2, fontWeight: 900, color: T.text }}>{APP_TITLE}</div>
-            <div style={{ fontSize: 11, color: T.dim }}>{APP_SUBTITLE}</div>
+            {APP_SUBTITLE ? (
+              <div style={{ fontSize: 11, color: T.dim }}>{APP_SUBTITLE}</div>
+            ) : null}
             <div style={{ marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {runtimeVersion ? (
                 <div style={{ fontSize: 10, color: T.dim }}>Legacy runtime: {runtimeVersion}</div>

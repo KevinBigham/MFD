@@ -11,7 +11,7 @@ import {
 describe('launcher-copy constants', () => {
   it('exports stable launcher labels', () => {
     expect(APP_TITLE).toBe('MR. FOOTBALL DYNASTY');
-    expect(typeof APP_SUBTITLE).toBe('string');
+    expect(APP_SUBTITLE).toBe('');
     expect(MODE_COPY.play.tabLabel).toBe('Play Now');
     expect(typeof MODE_COPY.play.recoveryHint).toBe('string');
     expect(MODE_COPY.status.tabLabel).toBe('Module Status');

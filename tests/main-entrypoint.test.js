@@ -11,6 +11,7 @@ describe('main.jsx launcher entrypoint', () => {
   it('mounts launcher shell as app root', () => {
     expect(src).toContain("import LauncherShell from './app/launcher-shell.jsx'");
     expect(src).toContain('<LauncherShell basePath=');
+    expect(src).not.toContain('v101 Module System');
   });
 
   it('keeps runtime summary labels stable via status-screen', () => {

@@ -21,6 +21,7 @@ describe('top-nav', () => {
     expect(html).toContain('aria-selected="true"');
     expect(html).toContain('Legacy runtime:');
     expect(html).toContain('Forced mode:');
+    expect(html).not.toContain('v101 Module System');
   });
 
   it('resolves keyboard tab navigation order', () => {

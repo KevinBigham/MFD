@@ -1,5 +1,5 @@
 export var APP_TITLE = 'MR. FOOTBALL DYNASTY';
-export var APP_SUBTITLE = 'v101 Module System — Phase 1 Checkpoint';
+export var APP_SUBTITLE = '';
 
 export var MODE_COPY = Object.freeze({
   play: {

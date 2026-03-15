@@ -11,6 +11,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../mr-football-v100.jsx';
+import { APP_SUBTITLE, APP_TITLE } from './app/launcher-copy.js';
 import LauncherShell from './app/launcher-shell.jsx';
 
 // Validate extracted modules load correctly
@@ -1286,12 +1287,14 @@ function ModuleStatusApp() {
   return (
     <div style={{ minHeight: '100vh', background: T.bg, color: T.text, fontFamily: "'Segoe UI', sans-serif", padding: 40 }}>
       <div style={{ maxWidth: 600, margin: '0 auto' }}>
-        <div style={{ fontSize: 28, fontWeight: 900, color: T.gold, letterSpacing: 1.5, marginBottom: 8 }}>
-          MR. FOOTBALL DYNASTY
+        <div style={{ fontSize: 28, fontWeight: 900, color: T.gold, letterSpacing: 1.5, marginBottom: APP_SUBTITLE ? 8 : 24 }}>
+          {APP_TITLE}
         </div>
-        <div style={{ fontSize: 12, color: T.dim, marginBottom: 24 }}>
-          v101 Module System — Phase 1 Checkpoint
-        </div>
+        {APP_SUBTITLE ? (
+          <div style={{ fontSize: 12, color: T.dim, marginBottom: 24 }}>
+            {APP_SUBTITLE}
+          </div>
+        ) : null}
 
         <div style={{
           ...S.card,

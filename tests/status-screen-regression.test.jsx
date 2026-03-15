@@ -26,5 +26,6 @@ describe('status-screen regression', () => {
     var html = renderToStaticMarkup(React.createElement(StatusScreen));
     expect(html).toContain('Loading Module Validation');
     expect(html).toContain('Running extracted module checks...');
+    expect(html).not.toContain('v101 Module System');
   });
 });
