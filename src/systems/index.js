@@ -2,7 +2,10 @@
  * MFD Game Systems — barrel export
  */
 export { HALFTIME_V2 } from './halftime.js';
-export { TRAINING_CAMP_986 } from './training-camp.js';
+export {
+  TRAINING_CAMP_986,
+  configureTrainingCampRuntime,
+} from './training-camp.js';
 export { FRANCHISE_TAG_986 } from './franchise-tag.js';
 export { COMP_PICKS_986 } from './comp-picks.js';
 export { INCENTIVES_986 } from './incentives.js';
@@ -144,7 +147,10 @@ export {
   calcWinProbV2_993,
 } from './win-probability.js';
 export { PLAYBOOK_986 } from './playbook.js';
-export { PRESS_CONF_986 } from './press-conference.js';
+export {
+  PRESS_CONF_986,
+  configurePressConferenceRuntime,
+} from './press-conference.js';
 export { LEGACY } from './legacy.js';
 export {
   RELOCATION_CITIES976,
@@ -230,7 +236,12 @@ export {
   updateCoachLegacy,
   recordCoachRing,
   getCoachLegacyTop,
+  replaceCoachLegacyLog,
 } from './coach-legacy.js';
+export {
+  ADVANCED_ANALYTICS,
+  buildAnalyticsSnapshot,
+} from './advanced-analytics.js';
 export { buildDNAImpactReport } from './dna-impact.js';
 export {
   calcTradeValue,
@@ -242,6 +253,7 @@ export {
   nominateForRing,
   autoRingOfHonor,
   getRingOfHonor,
+  replaceRingOfHonorLog,
 } from './ring-of-honor.js';
 export {
   OWNER_PERSONALITY_EVENTS,

@@ -6,6 +6,17 @@
  * and coach personality opener integration.
  */
 
+var pressConferenceRuntime = {
+  getCoachPersonalities: function () {
+    if (typeof globalThis === 'undefined') return null;
+    return globalThis.COACH_PERSONALITIES_991 || null;
+  }
+};
+
+export function configurePressConferenceRuntime(nextRuntime){
+  pressConferenceRuntime=Object.assign({},pressConferenceRuntime,nextRuntime||{});
+}
+
 export var PRESS_CONF_986={
   questions:[
     {q:"Coach, how do you assess your team's performance this week?",type:"general"},
@@ -37,7 +48,8 @@ export var PRESS_CONF_986={
     try{
       var archetypes=["grinder","professor","hothead","zen","visionary","firestarter"];
       var teamArchetype=archetypes[Math.floor(rng2()*archetypes.length)];
-      var persona=COACH_PERSONALITIES_991&&COACH_PERSONALITIES_991[teamArchetype];
+      var coachPersonalities=pressConferenceRuntime.getCoachPersonalities?pressConferenceRuntime.getCoachPersonalities():null;
+      var persona=coachPersonalities&&coachPersonalities[teamArchetype];
       if(persona){
         var pool2=won?persona.afterWin:persona.afterLoss;
         if(pool2&&pool2.length)coachQuote={text:pool2[Math.floor(rng2()*pool2.length)],label:persona.label,icon:persona.icon};

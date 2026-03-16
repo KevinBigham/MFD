@@ -6,6 +6,7 @@ import {
   TRADE_MATH,
   getGMTradePitch,
 } from '../src/systems/trade-math.js';
+import { setSeed } from '../src/utils/rng.js';
 
 describe('trade-math.js', () => {
   describe('TRADE_MATH', () => {
@@ -116,6 +117,14 @@ describe('trade-math.js', () => {
     it('returns deterministic pitch line with provided rng', () => {
       const line = getGMTradePitch('analytics', () => 0);
       expect(line).toBe(GM_TRADE_PITCH.analytics[0]);
+    });
+
+    it('uses the seeded trade channel when rng is omitted', () => {
+      setSeed(99);
+      const first = getGMTradePitch('analytics');
+      setSeed(99);
+      const second = getGMTradePitch('analytics');
+      expect(first).toBe(second);
     });
 
     it('falls back to fallback pool for unknown archetype', () => {

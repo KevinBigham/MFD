@@ -5,6 +5,25 @@
  * based on work ethic, coach development rating, and position match.
  */
 
+var trainingCampRuntime = {
+  getPosDef: function () {
+    if (typeof globalThis === 'undefined') return null;
+    return globalThis.POS_DEF || null;
+  },
+  calcOvr: function (player) {
+    if (typeof globalThis === 'undefined') return player ? player.ovr : 0;
+    return typeof globalThis.calcOvr === 'function'
+      ? globalThis.calcOvr(player)
+      : player
+        ? player.ovr
+        : 0;
+  },
+};
+
+export function configureTrainingCampRuntime(nextRuntime) {
+  trainingCampRuntime = Object.assign({}, trainingCampRuntime, nextRuntime || {});
+}
+
 export var TRAINING_CAMP_986 = {
   focuses: ['offense', 'defense', 'conditioning', 'development', 'chemistry'],
   run: function (team, focus, rng2) {
@@ -42,7 +61,10 @@ export var TRAINING_CAMP_986 = {
       if (we <= 3 && rng2() < 0.3) baseGain = Math.min(baseGain, -1);
       baseGain = Math.max(-2, Math.min(3, baseGain));
       if (baseGain !== 0) {
-        var def = typeof POS_DEF !== 'undefined' ? POS_DEF[p.pos] : null;
+        var posDef = trainingCampRuntime.getPosDef
+          ? trainingCampRuntime.getPosDef()
+          : null;
+        var def = posDef ? posDef[p.pos] : null;
         if (def) {
           def.r.forEach(function (r) {
             p.ratings[r] = Math.max(
@@ -51,7 +73,9 @@ export var TRAINING_CAMP_986 = {
             );
           });
         }
-        p.ovr = typeof calcOvr !== 'undefined' ? calcOvr(p) : p.ovr;
+        p.ovr = trainingCampRuntime.calcOvr
+          ? trainingCampRuntime.calcOvr(p)
+          : p.ovr;
       }
       if (baseGain >= 2)
         results.push({ name: p.name, pos: p.pos, change: baseGain, type: 'star' });

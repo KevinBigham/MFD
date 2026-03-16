@@ -6,6 +6,7 @@
  * automatic HOF induction, and cap fix suggestions.
  */
 import { AWARD_HISTORY_LOG } from './award-history.js';
+import { RNG } from '../utils/rng.js';
 
 export var HALL_OF_FAME_LOG=[];// [{name, pos, teams, inducted, score, highlights}]
 export var HOF_SPEECHES={
@@ -51,9 +52,13 @@ export var HOF_SPEECHES={
     "To every coach, teammate, and fan who believed in me — this jacket is for all of us."
   ]
 };
+function resolveHofRng(rngFn){
+  return typeof rngFn==="function"?rngFn:RNG.draft;
+}
 export function getHOFSpeech(trait,rng2){
   var pool=HOF_SPEECHES[trait||"fallback"]||HOF_SPEECHES.fallback;
-  return pool[Math.floor((rng2||Math.random)()*pool.length)];
+  var speechRng=resolveHofRng(rng2);
+  return pool[Math.floor(speechRng()*pool.length)];
 }
 export function calcLegacyScore(playerName,history){
   var score=0;var highlights=[];
@@ -96,8 +101,9 @@ export function calcLegacyScore(playerName,history){
     totalYds:totalYds,peakOvr:peakOvr,seasons:seasonsPlayed,eliteSeasons:eliteSeasons,
     teams:Object.keys(teamsArr),highlights:highlights};
 }
-export function autoHallOfFame(teams,history,year){
+export function autoHallOfFame(teams,history,year,rngFn){
   if(history.length<5)return[];// Need at least 5 seasons
+  var speechRng=resolveHofRng(rngFn);
   var currentNames={};
   teams.forEach(function(t){t.roster.forEach(function(p){currentNames[p.name]=true;});});
   var inducted=[];
@@ -111,7 +117,7 @@ export function autoHallOfFame(teams,history,year){
       if(HALL_OF_FAME_LOG.some(function(h){return h.name===p.name;}))return;
       var legacy=calcLegacyScore(p.name,history);
       if(legacy.score>=80){
-        var hofSpeech=getHOFSpeech(p.trait||p.dominantTrait||"fallback",Math.random);
+        var hofSpeech=getHOFSpeech(p.trait||p.dominantTrait||"fallback",speechRng);
         var mfsnReaction=legacy.rings>=3?"A dynasty legend takes their rightful place in Canton.":legacy.mvps>=2?"Multiple MVP honors. The case was never in doubt.":legacy.eliteSeasons>=4?"Four seasons of elite dominance. That's a Hall of Fame career.":"A generational talent takes their rightful place in Canton.";
         var entry={name:p.name,pos:p.pos,teams:legacy.teams,inducted:year,
           score:legacy.score,peakOvr:legacy.peakOvr,highlights:legacy.highlights,

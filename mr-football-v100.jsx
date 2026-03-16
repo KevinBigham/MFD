@@ -41,6 +41,18 @@ import { OWNER_TYPES, OWNER_GOALS } from './src/systems/owner-goals-v2.js';
 import { LOCKER_EVENTS, checkLockerEvents } from './src/systems/locker-events.js';
 import { ROLE_DEFS, assignDefaultRoles, getRoleSnapPct } from './src/systems/role-defs.js';
 import { RIVALRY_TROPHIES_986, POWER_RANKINGS_986, CAP_PROJ_986, GENERATIONAL_986, OWNER_MODE_986, PLAYER_COMPARE_986 } from './src/systems/game-features.js';
+import { buildTheaterState } from './src/app/theater-state.js';
+import { TRAINING_CAMP_986, configureTrainingCampRuntime } from './src/systems/training-camp.js';
+import { FRANCHISE_TAG_986 } from './src/systems/franchise-tag.js';
+import { INCENTIVES_986 } from './src/systems/incentives.js';
+import { GM_REP_986 } from './src/systems/gm-reputation.js';
+import { COACH_CAROUSEL_986 } from './src/systems/coach-carousel.js';
+import { PRESS_CONF_986, configurePressConferenceRuntime } from './src/systems/press-conference.js';
+import { PRESS_QUESTIONS, HEADLINES } from './src/systems/postgame-presser.js';
+import { COACH_LEGACY_LOG, updateCoachLegacy, recordCoachRing, getCoachLegacyTop, replaceCoachLegacyLog } from './src/systems/coach-legacy.js';
+import { RING_OF_HONOR_LOG, nominateForRing, autoRingOfHonor, getRingOfHonor, replaceRingOfHonorLog } from './src/systems/ring-of-honor.js';
+import { RELOCATION_CITIES976, RELOCATION976 } from './src/systems/relocation.js';
+import { ADVANCED_ANALYTICS, buildAnalyticsSnapshot } from './src/systems/advanced-analytics.js';
 var __MFD_REACT=_R;
 var useState=__MFD_REACT&&__MFD_REACT.useState?__MFD_REACT.useState:function(init){
   return [typeof init==="function"?init():init,function(){}];
@@ -103,109 +115,17 @@ var DIFF_ACTIVE="pro";// global accessor for difficulty in sim functions outside
 
 // #1: HALFTIME_V2 — imported from src/systems/halftime.js
 
-// #2: OFFSEASON TRAINING CAMP — Allocate focus, players gain/regress
-var TRAINING_CAMP_986={
-  focuses:["offense","defense","conditioning","development","chemistry"],
-  run:function(team,focus,rng2){
-    var results=[];
-    team.roster.forEach(function(p){
-      if(!p||!p.pos)return;
-      var we=(p.personality?p.personality.workEthic:5)||5;
-      var coachDev=team.staff?((team.staff.hc?team.staff.hc.ratings.development:50)+(focus==="offense"&&team.staff.oc?team.staff.oc.ratings.development:focus==="defense"&&team.staff.dc?team.staff.dc.ratings.development:50))/2:50;
-      var baseGain=Math.round((we-5)*0.3+(coachDev-50)*0.02+(rng2()*2-0.5));
-      var posMatch=(focus==="offense"&&["QB","RB","WR","TE","OL"].indexOf(p.pos)>=0)||(focus==="defense"&&["DL","LB","CB","S"].indexOf(p.pos)>=0);
-      if(posMatch)baseGain+=1;
-      if(focus==="development"&&p.age<=25)baseGain+=1;
-      if(focus==="conditioning"){p.morale=Math.min(99,(p.morale||70)+3);baseGain=0;}
-      if(focus==="chemistry"){p.chemistry=Math.min(100,(p.chemistry||60)+5);baseGain=0;}
-      if(we<=3&&rng2()<0.3)baseGain=Math.min(baseGain,-1);// Lazy players risk regression
-      baseGain=Math.max(-2,Math.min(3,baseGain));
-      if(baseGain!==0){
-        var def=typeof POS_DEF!=="undefined"?POS_DEF[p.pos]:null;
-        if(def){def.r.forEach(function(r){p.ratings[r]=Math.max(35,Math.min(99,(p.ratings[r]||50)+baseGain));});}
-        p.ovr=typeof calcOvr!=="undefined"?calcOvr(p):p.ovr;
-      }
-      if(baseGain>=2)results.push({name:p.name,pos:p.pos,change:baseGain,type:"star"});
-      else if(baseGain<=-1)results.push({name:p.name,pos:p.pos,change:baseGain,type:"decline"});
-    });
-    return results;
-  }
-};
+// #2: OFFSEASON TRAINING CAMP — imported from src/systems/training-camp.js
 
-// #3: FRANCHISE TAG VARIANTS
-var FRANCHISE_TAG_986={
-  types:[
-    {id:"exclusive",label:"Exclusive",desc:"Top-5 salary, cannot negotiate with others",salaryMult:1.2},
-    {id:"non_exclusive",label:"Non-Exclusive",desc:"Top-5 avg, others can make offers (you match or get 2 1sts)",salaryMult:1.1},
-    {id:"transition",label:"Transition",desc:"Top-10 avg, right of first refusal, no comp picks",salaryMult:0.9}
-  ]
-};
+// #3: FRANCHISE TAG VARIANTS — imported from src/systems/franchise-tag.js
 
 // #5: COMPENSATORY DRAFT PICKS
 
-// #6: CONTRACT INCENTIVES
-var INCENTIVES_986={
-  types:[
-    {id:"pass_yds",label:"Pass Yards",threshold:3500,bonus:2.0,pos:["QB"]},
-    {id:"rush_yds",label:"Rush Yards",threshold:800,bonus:1.5,pos:["RB"]},
-    {id:"rec_yds",label:"Rec Yards",threshold:700,bonus:1.5,pos:["WR","TE"]},
-    {id:"sacks",label:"Sacks",threshold:8,bonus:1.5,pos:["DL","LB"]},
-    {id:"ints",label:"Interceptions",threshold:4,bonus:1.0,pos:["CB","S"]},
-    {id:"pro_bowl",label:"Pro Bowl",threshold:1,bonus:2.5,pos:["QB","RB","WR","TE","OL","DL","LB","CB","S"]},
-    {id:"playoffs",label:"Make Playoffs",threshold:1,bonus:1.0,pos:["QB","RB","WR","TE","OL","DL","LB","CB","S","K"]}
-  ],
-  check:function(player,teamRecord){
-    if(!player||!player.incentives986)return{hit:[],miss:[],totalBonus:0};
-    var hit=[],miss=[],total=0;var s=player.stats||{};
-    (player.incentives986||[]).forEach(function(inc){
-      var val=0;
-      if(inc.id==="pass_yds")val=s.passYds||0;
-      else if(inc.id==="rush_yds")val=s.rushYds||0;
-      else if(inc.id==="rec_yds")val=s.recYds||0;
-      else if(inc.id==="sacks")val=s.sacks||0;
-      else if(inc.id==="ints")val=s.defINT||0;
-      else if(inc.id==="playoffs")val=teamRecord&&teamRecord.madePlayoffs?1:0;
-      if(val>=inc.threshold){hit.push(inc);total+=inc.bonus;}else miss.push(inc);
-    });
-    return{hit:hit,miss:miss,totalBonus:total};
-  }
-};
+// #6: CONTRACT INCENTIVES — imported from src/systems/incentives.js
 
-// #7: GM REPUTATION SYSTEM
-var GM_REP_986={
-  calculate:function(txLog,tradeState){
-    var rep={fairDealer:50,aggressive:50,loyalty:50,overall:50};
-    if(!txLog)return rep;
-    var trades=txLog.filter(function(tx){return tx.type==="TRADE";});
-    var signs=txLog.filter(function(tx){return tx.type==="SIGN_FA";});
-    rep.fairDealer=Math.min(100,50+trades.length*2);
-    rep.aggressive=Math.min(100,30+trades.length*3+signs.length);
-    if(tradeState&&tradeState.gmTrustByTeam){
-      var trusts=Object.values(tradeState.gmTrustByTeam);
-      if(trusts.length>0)rep.loyalty=Math.round(trusts.reduce(function(s,v){return s+v;},0)/trusts.length);
-    }
-    rep.overall=Math.round((rep.fairDealer+rep.aggressive+rep.loyalty)/3);
-    return rep;
-  },
-  getLabel:function(score){
-    if(score>=85)return{label:"Elite GM",icon:"👑",color:"#d4a74b"};
-    if(score>=70)return{label:"Respected",icon:"🤝",color:"#22c55e"};
-    if(score>=50)return{label:"Average",icon:"📋",color:"#64748b"};
-    if(score>=30)return{label:"Questionable",icon:"🤔",color:"#f59e0b"};
-    return{label:"Untrusted",icon:"⚠️",color:"#ef4444"};
-  }
-};
+// #7: GM REPUTATION SYSTEM — imported from src/systems/gm-reputation.js
 
-// #8: COACHING CAROUSEL — Fired coaches become available
-var COACH_CAROUSEL_986={
-  firedPool:[],
-  fireCoach:function(coach,team,year){
-    if(!coach)return;
-    COACH_CAROUSEL_986.firedPool.push({name:coach.name,role:coach.role,arch:coach.arch,ratings:Object.assign({},coach.ratings),
-      firedFrom:team?team.abbr:"?",firedYear:year,available:true});
-    if(COACH_CAROUSEL_986.firedPool.length>20)COACH_CAROUSEL_986.firedPool=COACH_CAROUSEL_986.firedPool.slice(-20);
-  }
-};
+// #8: COACHING CAROUSEL — imported from src/systems/coach-carousel.js
 
 // #9: WEEKLY PRESS CONFERENCES
 // v99.3 — Mistral: Free Agency Narrative + Press Conference Pack
@@ -545,46 +465,7 @@ var COACH_PLAYER_VOICE_994 = {
 };
 
 
-var PRESS_CONF_986={
-  questions:[
-    {q:"Coach, how do you assess your team's performance this week?",type:"general"},
-    {q:"Your {pos} had a rough game. Are you concerned?",type:"negative"},
-    {q:"The playoff picture is getting tight. How's the locker room?",type:"pressure"},
-    {q:"Fans are calling for changes. Your response?",type:"fan_pressure"},
-    {q:"Your star player's contract is up soon. Any updates?",type:"contract"},
-    {q:"What adjustments are you making for next week?",type:"strategy"},
-    {q:"The owner seems unhappy. Is your job safe?",type:"hot_seat"},
-    {q:"That was a dominant performance. What's the secret?",type:"positive"}
-  ],
-  responses:{
-    confident:{label:"💪 Confident",morale:2,ownerMood:1,media:1},
-    humble:{label:"🙏 Humble",morale:1,ownerMood:2,media:0},
-    deflect:{label:"🤷 Deflect",morale:0,ownerMood:0,media:-1},
-    fired_up:{label:"🔥 Fired Up",morale:3,ownerMood:-1,media:2}
-  },
-  generate:function(team,week,won,scoreDiff,rng2){
-    var pool=PRESS_CONF_986.questions.slice();
-    if(won&&scoreDiff>14)pool=pool.filter(function(q){return q.type!=="negative"&&q.type!=="hot_seat";});
-    if(!won&&scoreDiff<-14)pool=pool.filter(function(q){return q.type!=="positive";});
-    var selected=[];
-    for(var i=0;i<Math.min(3,pool.length);i++){
-      var idx=Math.floor(rng2()*pool.length);
-      selected.push(pool.splice(idx,1)[0]);
-    }
-    // v99.2: Coach personality opener from COACH_PERSONALITIES_991
-    var coachQuote=null;
-    try{
-      var archetypes=["grinder","professor","hothead","zen","visionary","firestarter"];
-      var teamArchetype=archetypes[Math.floor(rng2()*archetypes.length)];
-      var persona=COACH_PERSONALITIES_991&&COACH_PERSONALITIES_991[teamArchetype];
-      if(persona){
-        var pool2=won?persona.afterWin:persona.afterLoss;
-        if(pool2&&pool2.length)coachQuote={text:pool2[Math.floor(rng2()*pool2.length)],label:persona.label,icon:persona.icon};
-      }
-    }catch(e){}
-    return {questions:selected,coachQuote:coachQuote};
-  }
-};
+// [module-swapped] PRESS_CONF_986 → src/systems/press-conference.js
 
 // #10: RIVALRY TROPHY GAMES — Named trophies between rivals
 
@@ -1073,57 +954,7 @@ var LEGACY={
     return{draftHits:draftHits,capMastery:capMastery,devSuccesses:devSuccesses};
   }
 };
-var RELOCATION_CITIES976=[
-  {city:"London",abbr:"LDN",icon:"🇬🇧",marketMod:1.25,fanbaseStart:40,presBoost:15,desc:"International expansion. Huge market, building a fanbase from scratch."},
-  {city:"Mexico City",abbr:"MEX",icon:"🇲🇽",marketMod:1.15,fanbaseStart:45,presBoost:10,desc:"Passionate fans in North America's largest city."},
-  {city:"Toronto",abbr:"TOR",icon:"🍁",marketMod:1.10,fanbaseStart:50,presBoost:8,desc:"A hungry sports town ready for football."},
-  {city:"Austin",abbr:"AUS",icon:"🎸",marketMod:1.05,fanbaseStart:55,presBoost:5,desc:"Tech money and college football culture collide."},
-  {city:"Portland",abbr:"PDX",icon:"🌲",marketMod:0.95,fanbaseStart:48,presBoost:3,desc:"Passionate, loyal fanbase in the Pacific Northwest."},
-  {city:"St. Louis",abbr:"STL",icon:"⚜️",marketMod:0.90,fanbaseStart:60,presBoost:2,desc:"A city that lost its team and is HUNGRY for football."},
-  {city:"Orlando",abbr:"ORL",icon:"🏰",marketMod:1.00,fanbaseStart:50,presBoost:4,desc:"Tourism capital with year-round warm weather."},
-  {city:"Las Cruces",abbr:"LC",icon:"🏜️",marketMod:0.80,fanbaseStart:35,presBoost:-2,desc:"Small market underdog. Low cost, loyal locals."},
-  {city:"Honolulu",abbr:"HNL",icon:"🌺",marketMod:0.85,fanbaseStart:42,presBoost:5,desc:"Paradise location. Recruiting advantage, travel nightmare."},
-  {city:"Berlin",abbr:"BER",icon:"🇩🇪",marketMod:1.20,fanbaseStart:38,presBoost:12,desc:"European powerhouse. Football is booming in Germany."}
-];
-var RELOCATION976={
-  canRelocate:function(team,season,history){
-    if(!team||!season)return{ok:false,msg:"Missing data."};
-    if(((season.year||2026)-2026)<2)return{ok:false,msg:"Must complete at least 3 seasons before relocating."};
-    if((team.cash||0)<30)return{ok:false,msg:"Need at least $30M cash to fund relocation."};
-    if(team._relocYear976&&((season.year||2026)-team._relocYear976)<5)return{ok:false,msg:"Must wait 5 years between relocations."};
-    var ownerForce=(team.ownerMood||70)<40;
-    var playerChoice=true;
-    if(!ownerForce&&!playerChoice)return{ok:false,msg:"No relocation pressure."};
-    return{ok:true,ownerForced:ownerForce};
-  },
-  relocate:function(team,destination,season,nameParts){
-    if(!team||!destination||!season)return{ok:false,msg:"Missing relocation data."};
-    var cost=30+Math.floor((destination.marketMod||1.0)*20);
-    if((team.cash||0)<cost)return{ok:false,msg:"Need $"+cost+"M cash for this move."};
-    team.cash=(team.cash||50)-cost;
-    team._prevCity976=team.city||null;
-    team._prevName976=team.name||null;
-    team._prevAbbr976=team.abbr||null;
-    team._prevIcon976=team.icon||null;
-    team._relocYear976=season.year||2026;
-    team.city=destination.city;
-    team.name=(nameParts&&nameParts.teamName)||team.name||(destination.city+" Football Club");
-    team.abbr=(nameParts&&nameParts.abbr)||destination.abbr||team.abbr;
-    team.icon=destination.icon||team.icon;
-    team.fanbase=Math.max(20,(destination.fanbaseStart||40)+Math.floor((team.prestige||50)*0.15));
-    team.prestige=cl((team.prestige||50)+(destination.presBoost||0),10,99);
-    team.ownerMood=cl((team.ownerMood||70)+15,5,99);
-    (team.roster||[]).forEach(function(p){
-      p.chemistry=cl((p.chemistry||60)-rng(3,8),15,100);
-      p.morale=cl((p.morale||70)-rng(2,5),15,100);
-    });
-    if(team.facilities)team.facilities.stad=1;
-    team.stadiumName976=null;
-    team.stadiumDeal976=null;
-    return{ok:true,cost:cost,newCity:destination.city,newName:team.name,
-      msg:"Relocated to "+destination.city+"! Cost: $"+cost+"M. New stadium construction begins."};
-  }
-};
+// [module-swapped] RELOCATION_CITIES976 + RELOCATION976 → src/systems/relocation.js
 var STADIUM_DEALS976=[
   {name:"TechNova Field",revenue:8,years:5,prestige:3,icon:"💻"},
   {name:"Ironclad Arena",revenue:6,years:7,prestige:2,icon:"🏗️"},
@@ -6938,6 +6769,9 @@ var COACH_PERSONALITIES_991={
                    "We play with an edge. We play with fire. We play for each other. LET'S GO."]
   }
 };
+configurePressConferenceRuntime({
+  getCoachPersonalities:function(){return COACH_PERSONALITIES_991;}
+});
 
 // ── RIVALRY_TRASH_991 (Mistral) ──────────────────────────────────────────────────
 var RIVALRY_TRASH_991={
@@ -7186,56 +7020,7 @@ var MFSN_WEEKLY975={
     return questions[Math.floor(RNG.ui()*questions.length)]||null;
   }
 };
-var ADVANCED_ANALYTICS={
-  calcEPA:function(p,teamWins,teamGames){
-    if(!p||!p.stats)return 0;
-    var cs=p.stats;var pos=p.pos;
-    if(pos==="QB")return Math.round(((cs.passYds||0)*0.04+(cs.passTD||0)*4-(cs.int||0)*3+(cs.rushYds||0)*0.08)*10)/10;
-    if(pos==="RB")return Math.round(((cs.rushYds||0)*0.08+(cs.rushTD||0)*5-(cs.fumbles||0)*3+(cs.recYds||0)*0.06)*10)/10;
-    if(pos==="WR"||pos==="TE")return Math.round(((cs.recYds||0)*0.07+(cs.recTD||0)*5+(cs.rec||0)*0.5)*10)/10;
-    if(pos==="DL"||pos==="LB")return Math.round(((cs.sacks||0)*5+(cs.tackles||0)*0.5+(cs.defINT||0)*6-(cs.missedTkl||0)*2)*10)/10;
-    if(pos==="CB"||pos==="S")return Math.round(((cs.defINT||0)*7+(cs.tackles||0)*0.4+(cs.passDefl||0)*2)*10)/10;
-    if(pos==="K")return Math.round(((cs.fgM||0)*3-((cs.fgA||0)-(cs.fgM||0))*2+(cs.xpM||0)*0.5)*10)/10;
-    return 0;
-  },
-  calcDVOA:function(team){
-    if(!team)return{off:0,def:0,total:0};
-    var gp=Math.max(1,(team.wins||0)+(team.losses||0));
-    var ppg=(team.pf||0)/gp;var oppPpg=(team.pa||0)/gp;
-    var offEff=Math.round((ppg-21)*3.5);// 21 ppg = league average baseline
-    var defEff=Math.round((21-oppPpg)*3.5);
-    return{off:cl(offEff,-50,50),def:cl(defEff,-50,50),total:cl(offEff+defEff,-80,80)};
-  },
-  calcTargetShare:function(player,teammates){
-    if(!player||!player.stats)return 0;
-    var myTgt=(player.stats.targets||player.stats.rec||0);
-    var totalTgt=0;
-    (teammates||[]).forEach(function(t){
-      if(t.pos==="WR"||t.pos==="TE"||t.pos==="RB")totalTgt+=(t.stats?t.stats.targets||t.stats.rec||0:0);
-    });
-    if(totalTgt===0)return 0;
-    return Math.round(myTgt/totalTgt*1000)/10;
-  },
-  findInefficiencies:function(fas){
-    if(!fas||fas.length===0)return[];
-    var gems=[];
-    fas.forEach(function(p){
-      var sal=p.contract?p.contract.salary:MIN_SALARY;
-      var expectedSal=Math.max(MIN_SALARY,((p.ovr||50)-55)*0.6);
-      if((p.ovr||50)>=72&&sal<expectedSal*0.7){
-        gems.push({player:p,value:Math.round((expectedSal-sal)*10)/10,label:"💎 "+p.name+" ("+p.pos+" "+p.ovr+" OVR) — Worth $"+expectedSal.toFixed(1)+"M, available at $"+sal.toFixed(1)+"M"});
-      }
-    });
-    gems.sort(function(a,b){return b.value-a.value;});
-    return gems.slice(0,5);
-  },
-  winProb:function(scoreDiff,quarter){
-    var q=Math.min(4,Math.max(1,quarter||4));
-    var leverage=1+(q-1)*0.6;// Later quarters = more decisive
-    var prob=1/(1+Math.exp(-scoreDiff*0.15*leverage));
-    return Math.round(prob*1000)/10;
-  }
-};
+// [module-swapped] ADVANCED_ANALYTICS → src/systems/advanced-analytics.js
 // ── FEATURE 2: PLAYER STORY ARC ENGINE (STORY_ARC) ──────────────────────────
 // [module-swapped] NARRATIVE_STATES+STORY_ARC_EVENTS → src/systems/
 // [module-swapped] pickWeightedEvent → src/systems/
@@ -7923,31 +7708,7 @@ function setTrophyNameForRivalry(trophyNames,teamA,teamB,name){
   else delete updated[key];
   return updated;
 }
-var COACH_LEGACY_LOG={};// { coachName: {name, totalWins, totalLosses, rings, seasons, teams:[]} }
-function updateCoachLegacy(teams,season){
-  teams.forEach(function(t){
-    if(!t.coaches||!t.coaches.HC)return;
-    var hc=t.coaches.HC;
-    var key=hc.name||"HC "+t.abbr;
-    if(!COACH_LEGACY_LOG[key])COACH_LEGACY_LOG[key]={name:key,totalWins:0,totalLosses:0,rings:0,seasons:0,teams:{},bestSeason:null};
-    var cl=COACH_LEGACY_LOG[key];
-    cl.totalWins+=t.wins;cl.totalLosses+=t.losses;cl.seasons++;
-    cl.teams[t.abbr]=true;
-    var wpct=t.wins/(Math.max(1,t.wins+t.losses));
-    if(!cl.bestSeason||wpct>(cl.bestSeason.wpct||0)){
-      cl.bestSeason={year:season.year,team:t.abbr,wins:t.wins,losses:t.losses,wpct:wpct};
-    }
-  });
-}
-function recordCoachRing(teams,champId){
-  var champ=teams.find(function(t){return t.id===champId;});
-  if(!champ||!champ.coaches||!champ.coaches.HC)return;
-  var key=champ.coaches.HC.name||"HC "+champ.abbr;
-  if(COACH_LEGACY_LOG[key])COACH_LEGACY_LOG[key].rings++;
-}
-function getCoachLegacyTop(n){
-  return Object.keys(COACH_LEGACY_LOG).map(function(k){return COACH_LEGACY_LOG[k];}).sort(function(a,b){return b.totalWins-a.totalWins;}).slice(0,n||10);
-}
+// [module-swapped] COACH_LEGACY_LOG + helpers → src/systems/coach-legacy.js
 function buildDNAImpactReport(dna,teams,season){
   if(!dna||!teams)return null;
   var insights=[];
@@ -9248,33 +9009,7 @@ var OFFSEASON_NEWS={
   }
 };
 // [module-swapped] HOLDOUT_SYSTEM → src/systems/
-var RING_OF_HONOR_LOG={};// {teamId: [{name, pos, number, year, seasons, ovr, reason}]}
-function nominateForRing(teamId,player,year){
-  if(!RING_OF_HONOR_LOG[teamId])RING_OF_HONOR_LOG[teamId]=[];
-  if(RING_OF_HONOR_LOG[teamId].some(function(h){return h.name===player.name;}))return false;
-  RING_OF_HONOR_LOG[teamId].push({name:player.name,pos:player.pos,
-    number:player.number||Math.floor(mulberry32(42+RING_OF_HONOR_LOG[teamId].length)()*89)+10,// deterministic fallback
-    year:year,ovr:player.ovr,
-    reason:player.ovr>=85?"Franchise legend":player.ovr>=80?"Fan favorite":"Beloved veteran"});
-  return true;
-}
-function autoRingOfHonor(teams,history,year){
-  if(history.length<3)return;
-  var currentNames={};
-  teams.forEach(function(t){t.roster.forEach(function(p){currentNames[p.name]=true;});});
-  var lastSeason=history[history.length-1];
-  if(!lastSeason||!lastSeason.teams)return;
-  lastSeason.teams.forEach(function(ht){
-    ht.roster.forEach(function(p){
-      if(!currentNames[p.name]&&p.ovr>=82){
-        nominateForRing(ht.id||ht.abbr,p,year);
-      }
-    });
-  });
-}
-function getRingOfHonor(teamId){
-  return(RING_OF_HONOR_LOG[teamId]||[]).slice().sort(function(a,b){return b.ovr-a.ovr;});
-}
+// [module-swapped] RING_OF_HONOR_LOG + helpers → src/systems/ring-of-honor.js
 var CAREER_PAGE_CACHE={};// {playerName: careerPageData}
 function getCachedCareerPage(playerName,history,teams){
   var isActive=false;
@@ -9390,95 +9125,7 @@ var SCOUT_REPORT={
       momentum:momentum,rivHeat:rivHeat};
   }
 };
-var PRESS_QUESTIONS=[
-  {id:"bad_loss",trigger:function(r){return r.lost&&r.margin>=14;},
-    q:"Your team got blown out by {margin} points. What happened out there?",
-    opts:[
-      {id:"blame",label:"🔥 \"We didn't execute. Some guys weren't ready.\"",fx:{morale:-3,ownerApproval:2,rivalHeat:0}},
-      {id:"own_it",label:"🤝 \"That's on me. I'll fix the gameplan.\"",fx:{morale:3,ownerApproval:-1,rivalHeat:0}},
-      {id:"deflect",label:"😤 \"Refs didn't help. We'll bounce back.\"",fx:{morale:1,ownerApproval:0,rivalHeat:2}}
-    ]},
-  {id:"close_loss",trigger:function(r){return r.lost&&r.margin<=7;},
-    q:"A tough {margin}-point loss. How do you keep the locker room together?",
-    opts:[
-      {id:"rally",label:"💪 \"We're close. One play away. We'll get there.\"",fx:{morale:2,ownerApproval:1,rivalHeat:0}},
-      {id:"tough_love",label:"🔥 \"Close isn't good enough. Time to earn it.\"",fx:{morale:-1,ownerApproval:2,rivalHeat:0}},
-      {id:"next_up",label:"➡️ \"Already looking at next week's film.\"",fx:{morale:0,ownerApproval:1,rivalHeat:-1}}
-    ]},
-  {id:"big_win",trigger:function(r){return r.won&&r.margin>=14;},
-    q:"Dominant {margin}-point win tonight. How does it feel?",
-    opts:[
-      {id:"humble",label:"🙏 \"Credit to the guys. They executed the gameplan.\"",fx:{morale:2,ownerApproval:1,rivalHeat:0}},
-      {id:"swagger",label:"😎 \"That's what championship teams look like.\"",fx:{morale:1,ownerApproval:2,rivalHeat:3}},
-      {id:"focused",label:"🎯 \"Good teams don't celebrate one win. Next game.\"",fx:{morale:0,ownerApproval:2,rivalHeat:-1}}
-    ]},
-  {id:"close_win",trigger:function(r){return r.won&&r.margin<=7;},
-    q:"A nail-biter — won by {margin}. Thoughts on the finish?",
-    opts:[
-      {id:"gritty",label:"💎 \"That's a character win. Gritty.\"",fx:{morale:3,ownerApproval:1,rivalHeat:0}},
-      {id:"critical",label:"📋 \"We almost gave that away. Film session tomorrow.\"",fx:{morale:-1,ownerApproval:2,rivalHeat:0}},
-      {id:"clutch",label:"⭐ \"When it mattered most, our guys delivered.\"",fx:{morale:2,ownerApproval:1,rivalHeat:1}}
-    ]},
-  {id:"rivalry_any",trigger:function(r){return r.isRivalry;},
-    q:"Rivalry game. The fans were electric. What does this matchup mean to you?",
-    opts:[
-      {id:"respect",label:"🤝 \"Great opponent. We both elevated our game.\"",fx:{morale:1,ownerApproval:1,rivalHeat:-2}},
-      {id:"fire",label:"🔥 \"This is OUR house. They know it now.\"",fx:{morale:2,ownerApproval:0,rivalHeat:4}},
-      {id:"business",label:"📊 \"Every game counts the same. On to the next.\"",fx:{morale:0,ownerApproval:1,rivalHeat:0}}
-    ]}
-];
-var HEADLINES={
-  generate:function(teams,myId,season,sched){
-    var headlines=[];
-    var my2=teams.find(function(t){return t.id===myId;});
-    teams.forEach(function(t){
-      if((t.streak||0)>=4)headlines.push({emoji:"🔥",text:t.icon+t.abbr+" on a "+t.streak+"-game win streak!",priority:3});
-      if((t.streak||0)<=-4)headlines.push({emoji:"💀",text:t.icon+t.abbr+" in freefall — "+Math.abs(t.streak)+"-game losing streak",priority:3});
-    });
-    var sorted=teams.slice().sort(function(a,b){return b.wins!==a.wins?b.wins-a.wins:b.pf-a.pf;});
-    if(season.week>=8){
-      var bubble=sorted.slice(5,8);// Teams 6-8 (on the bubble)
-      bubble.forEach(function(bt){
-        if(bt.wins>=Math.floor(season.week*0.45))
-          headlines.push({emoji:"🏈",text:bt.icon+bt.abbr+" ("+bt.wins+"-"+bt.losses+") fighting for playoff spot",priority:2});
-      });
-    }
-    if(my2){
-      my2.roster.filter(function(p){return p.age<=23&&p.isStarter&&p.ovr>=72;}).slice(0,2).forEach(function(rk){
-        var weekPff=rk.pffWeek||0;
-        if(weekPff>=80)headlines.push({emoji:"⭐",text:"Rookie Watch: "+rk.name+" ("+rk.pos+") graded "+weekPff+" this week!",priority:2});
-      });
-    }
-    if(my2){
-      my2.roster.forEach(function(p){
-        if(p.stats&&p.stats.passYds>=3500&&p.stats.passYds<4000)
-          headlines.push({emoji:"📈",text:p.name+" closing in on 4,000 passing yards ("+p.stats.passYds+")",priority:2});
-        if(p.stats&&p.stats.rushYds>=900&&p.stats.rushYds<1000)
-          headlines.push({emoji:"📈",text:p.name+" approaching 1,000 rushing yards ("+p.stats.rushYds+")",priority:2});
-        if(p.stats&&p.stats.recYds>=800&&p.stats.recYds<1000)
-          headlines.push({emoji:"📈",text:p.name+" tracking toward 1,000 receiving yards ("+p.stats.recYds+")",priority:2});
-        if(p.stats&&p.stats.sacks>=8)
-          headlines.push({emoji:"💪",text:p.name+" leads the team with "+p.stats.sacks+" sacks — DPOY candidate?",priority:2});
-      });
-    }
-    if(my2&&my2._prevRank){
-      var curRank=sorted.findIndex(function(t){return t.id===myId;})+1;
-      var delta=my2._prevRank-curRank;
-      if(delta>=3)headlines.push({emoji:"📈",text:"Your team jumped "+delta+" spots in the power rankings to #"+curRank+"!",priority:3});
-      if(delta<=-3)headlines.push({emoji:"📉",text:"You dropped "+Math.abs(delta)+" spots in the rankings to #"+curRank,priority:3});
-    }
-    if(season.week>=8&&season.week<=11){
-      var contenders=sorted.slice(0,4);
-      contenders.forEach(function(ct){
-        if(ct.id!==myId){
-          var need=ct.roster.filter(function(p){return p.isStarter&&p.ovr<65;});
-          if(need.length>0)headlines.push({emoji:"📞",text:ct.icon+ct.abbr+" reportedly shopping for "+need[0].pos+" help before deadline",priority:1});
-        }
-      });
-    }
-    return headlines.sort(function(a,b){return b.priority-a.priority;}).slice(0,6);
-  }
-};
+// [module-swapped] PRESS_QUESTIONS + HEADLINES → src/systems/postgame-presser.js
 var DOSSIER={
   getEntry:function(db,oppId,year){
     var key=year+"-"+oppId;
@@ -11323,6 +10970,10 @@ function calcOvr(p){
   if(p&&!p._noArch){p.archetype=PLAYER_ARCHETYPES.classify(p);}
   return o;
 }
+configureTrainingCampRuntime({
+  getPosDef:function(){return POS_DEF;},
+  calcOvr:function(player){return calcOvr(player);}
+});
 function genPlayer(pos,tier,age){
   var ranges={star:[78,95],good:[72,88],avg:[62,80],bad:[55,72]};
   var lo=(ranges[tier]||ranges.avg)[0],hi=(ranges[tier]||ranges.avg)[1];
@@ -17620,7 +17271,7 @@ var GS={
       }
       var drv=theater.result.log[theater.driveIdx]||"";
       var isQtrHeader=drv.indexOf("── Q")===0;
-      var delay=PREMIUM.isUnlocked('quickSim')?0:(isQtrHeader?200:(theater.speed==="fast"?250:700));
+      var delay=isQtrHeader?200:(theater.speed==="fast"?250:700);
       theaterTimer.current=setTimeout(function(){
         setTheater(function(prev){
           if(!prev) return null;
@@ -20240,8 +19891,8 @@ var GS={
     }
     if(d.trophyNames)setTrophyNames(d.trophyNames);
     if(d.awardHistory)AWARD_HISTORY_LOG=d.awardHistory;
-    if(d.coachLegacy)COACH_LEGACY_LOG=d.coachLegacy;
-    if(d.ringOfHonor)RING_OF_HONOR_LOG=d.ringOfHonor;// v60: Load Ring of Honor
+    if(d.coachLegacy)replaceCoachLegacyLog(d.coachLegacy);
+    if(d.ringOfHonor)replaceRingOfHonorLog(d.ringOfHonor);// v60: Load Ring of Honor
     if(d.hallOfFameLog)HALL_OF_FAME_LOG=d.hallOfFameLog;// v61: Load Hall of Fame
     if(d.broadcastSeq)BROADCAST_SEQ=d.broadcastSeq;// v62: Restore sequence counter
     if(d.captainId)setCaptainId(d.captainId);
@@ -27014,11 +26665,12 @@ var GS={
                       var aT2=teams.find(function(t){return t.id===nextGame986.away;});
                       if(!hT2||!aT2){addN("Error: teams not found","red");return;}
                       var res=simGame(hT2,aT2);
-                      var decisions972=detectDecisionPoints972(res,hT2,aT2,myId);
+                      var skipPresentation972=PREMIUM.isUnlocked('quickSim');
+                      var decisions972=skipPresentation972?[]:detectDecisionPoints972(res,hT2,aT2,myId);
                       AUDIO.play(gamedayTrack||(season.phase==="playoffs"?AUDIO.pickTrack("playoffs",userPlaylist):AUDIO.pickTrack("pregame",userPlaylist)));
-                      setTheater({result:res,driveIdx:0,speed:"normal",paused:false,
+                      setTheater(buildTheaterState({result:res,speed:"normal",paused:false,
                         homeTeam:hT2,awayTeam:aT2,gameRef:{home:nextGame986.home,away:nextGame986.away,week:nextGame986.week},
-                        decisions:decisions972,decisionActive:null});
+                        decisions:decisions972,skipPresentation:skipPresentation972}));
                     }} style={{
                       flex:1,padding:"14px 12px",borderRadius:12,cursor:"pointer",fontWeight:700,fontSize:11,
                       background:"rgba(255,255,255,0.04)",color:T.text,border:"1px solid rgba(255,255,255,0.08)",
@@ -27871,12 +27523,12 @@ var GS={
               )}
               
               {season.phase==="regular"&&my&&season.week>=2&&PREMIUM.isUnlocked('advancedAnalytics')&&(function(){
-                var dvoa78=ADVANCED_ANALYTICS.calcDVOA(my);
-                var topPlayers78=(my.roster||[]).filter(function(p){return p.stats&&p.stats.gp>0;}).map(function(p){
-                  return{name:p.name,pos:p.pos,ovr:p.ovr,epa:ADVANCED_ANALYTICS.calcEPA(p,my.wins,(my.wins||0)+(my.losses||0)),
-                    tgtShare:(p.pos==="WR"||p.pos==="TE"||p.pos==="RB")?ADVANCED_ANALYTICS.calcTargetShare(p,my.roster):null};
-                }).sort(function(a,b){return b.epa-a.epa;}).slice(0,5);
-                var gems78=ADVANCED_ANALYTICS.findInefficiencies(fas);
+                var analyticsCard78=buildAnalyticsSnapshot({team:my,teams:teams,season:season,sched:sched,myId:myId,fas:fas,matchupOVR:SIM_CULL.matchupOVR});
+                var dvoa78=analyticsCard78.dvoa||{off:0,def:0,total:0};
+                var topPlayers78=(analyticsCard78.epaLeaders||[]).slice(0,5).map(function(entry){
+                  return{name:entry.name,pos:entry.pos,ovr:entry.ovr,epa:entry.epa,tgtShare:entry.targetShare};
+                });
+                var gems78=analyticsCard78.marketInefficiencies||[];
                 return React.createElement("div",{style:mS(S.card,{padding:10,borderColor:"rgba(59,130,246,0.15)",background:"rgba(59,130,246,0.02)"})},
                   React.createElement("div",{style:{fontSize:11,fontWeight:800,color:"#3b82f6",marginBottom:6}},"📊 ANALYTICS DASHBOARD"),
                   React.createElement("div",{style:{display:"flex",gap:10,marginBottom:8}},
@@ -31592,11 +31244,12 @@ var GS={
                             var aT2=teams.find(function(t){return t.id===g.away;});
                             if(!hT2||!aT2) return;
                             var res=simGame(hT2,aT2);
-                            var decisions972=detectDecisionPoints972(res,hT2,aT2,myId);
+                            var skipPresentation972=PREMIUM.isUnlocked('quickSim');
+                            var decisions972=skipPresentation972?[]:detectDecisionPoints972(res,hT2,aT2,myId);
                             AUDIO.play(gamedayTrack||(season.phase==="playoffs"?AUDIO.pickTrack("playoffs",userPlaylist):AUDIO.pickTrack("pregame",userPlaylist)));// v93.18: fixed scope
-                            setTheater({result:res,driveIdx:0,speed:"normal",paused:false,
+                            setTheater(buildTheaterState({result:res,speed:"normal",paused:false,
                               homeTeam:hT2,awayTeam:aT2,gameRef:{home:g.home,away:g.away,week:g.week},
-                              decisions:decisions972,decisionActive:null});
+                              decisions:decisions972,skipPresentation:skipPresentation972}));
                           }}>{"📺 WATCH"}</button>
                           :<div style={{fontSize:11,color:T.faint}}>{"—"}</div>}
                       </div>
@@ -32081,6 +31734,7 @@ var GS={
                         var sel=tMyP.indexOf(p.id)>=0;
                         var fillsNeed=aiNeedList.indexOf(p.pos)>=0;
                         var isShort84=!!gmShortMap84[p.id];
+                        var tradeGap84=ADVANCED_ANALYTICS.calcValueGap(p);
                         return (
                         <div key={p.id} onClick={function(){setTMP(function(v){return v.indexOf(p.id)>=0?v.filter(function(x){return x!==p.id;}):v.concat([p.id]);});}}
                           style={{padding:"4px 6px",fontSize:10,cursor:"pointer",borderBottom:"1px solid "+T.border,borderRadius:4,marginBottom:1,
@@ -32093,6 +31747,8 @@ var GS={
                             {fillsNeed && <span style={{fontSize:7,color:T.green,background:"rgba(16,185,129,0.1)",padding:"1px 4px",borderRadius:3}}>{"NEED"}</span>}
                           </div>
                           <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                            {tradeGap84>=2 && <span style={{fontSize:7,color:T.green,background:"rgba(34,197,94,0.08)",padding:"1px 4px",borderRadius:3,fontWeight:800}}>{"+$"+tradeGap84.toFixed(1)+"M"}</span>}
+                            {tradeGap84<=-2 && <span style={{fontSize:7,color:T.red,background:"rgba(239,68,68,0.08)",padding:"1px 4px",borderRadius:3,fontWeight:800}}>{"-$"+Math.abs(tradeGap84).toFixed(1)+"M"}</span>}
                             <span style={{fontSize:8,color:T.faint}}>{"$"+p.contract.salary+"M"}</span>
                             <span style={oS(p.ovr)}>{p.ovr}</span>
                           </div>
@@ -32138,6 +31794,7 @@ var GS={
                       {aiTradePool84.map(function(p){
                         var sel=tAiP.indexOf(p.id)>=0;
                         var isShort84=!!gmShortMap84[p.id];
+                        var tradeGap84=ADVANCED_ANALYTICS.calcValueGap(p);
                         return (
                         <div key={p.id} onClick={function(){setTAP(function(v){return v.indexOf(p.id)>=0?v.filter(function(x){return x!==p.id;}):v.concat([p.id]);});}}
                           style={{padding:"4px 6px",fontSize:10,cursor:"pointer",borderBottom:"1px solid "+T.border,borderRadius:4,marginBottom:1,
@@ -32149,6 +31806,8 @@ var GS={
                             {isShort84 && <span style={{fontSize:7,color:T.gold,background:"rgba(212,167,75,0.14)",padding:"1px 4px",borderRadius:3,fontWeight:800}}>{"🎯 SHORTLIST"}</span>}
                           </div>
                           <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                            {tradeGap84>=2 && <span style={{fontSize:7,color:T.green,background:"rgba(34,197,94,0.08)",padding:"1px 4px",borderRadius:3,fontWeight:800}}>{"+$"+tradeGap84.toFixed(1)+"M"}</span>}
+                            {tradeGap84<=-2 && <span style={{fontSize:7,color:T.red,background:"rgba(239,68,68,0.08)",padding:"1px 4px",borderRadius:3,fontWeight:800}}>{"-$"+Math.abs(tradeGap84).toFixed(1)+"M"}</span>}
                             <span style={{fontSize:8,color:T.faint}}>{"$"+p.contract.salary+"M/"+p.contract.years+"yr"}</span>
                             <span style={oS(p.ovr)}>{p.ovr}</span>
                           </div>
@@ -33120,6 +32779,11 @@ var GS={
               var aBias=getGMFABias(gmStrategy,a);var bBias=getGMFABias(gmStrategy,b);
               return (b.ovr*bBias)-(a.ovr*aBias);
             });
+            var faAnalytics82=buildAnalyticsSnapshot({team:my,teams:teams,season:season,sched:sched,myId:myId,fas:fas,matchupOVR:SIM_CULL.matchupOVR});
+            var faGemMap82={};
+            (faAnalytics82.marketInefficiencies||[]).forEach(function(gem){
+              if(gem&&gem.player&&gem.player.id)faGemMap82[gem.player.id]=gem;
+            });
             return <div style={{display:"flex",flexDirection:"column",gap:8}}>
               
               <div style={assign({},cS,{padding:0,overflow:"hidden"})}>
@@ -33326,6 +32990,8 @@ var GS={
                 var topAI=null;entry.bids.forEach(function(b){if(!b.isUser&&(!topAI||b.salary>topAI.salary))topAI=b;});
                 var mvColor=!userBid?"transparent":userBid.salary>=entry.marketValue*1.1?T.green:userBid.salary>=entry.marketValue*0.9?T.gold:T.red;
                 var p=fas.find(function(x){return x.id===entry.playerId;})||{};
+                var faValueGap92=ADVANCED_ANALYTICS.calcValueGap(p);
+                var faGem92=p.id?faGemMap82[p.id]:null;
                 var trObj2=TRAITS[(p.trait||entry.agentType||"none")]||TRAITS.none;
                 var phase2=getAgingPhase(p.age?p:{age:entry.age,pos:entry.pos});
                 return <div key={entry.playerId} style={assign({},cS,{padding:0,overflow:"hidden",
@@ -33366,6 +33032,12 @@ var GS={
                           {PERS_ICONS[dt.key]+" "+PERS_LABELS[dt.key]}</span>:null;})()}
                         {intel92.narrowed && <span style={{fontSize:8,padding:"2px 6px",borderRadius:10,fontWeight:700,
                           background:"rgba(34,211,238,0.1)",border:"1px solid "+T.cyan,color:T.cyan}}>{"🧠 FO NEGOTIATOR"}</span>}
+                        {faGem92 && <span style={{fontSize:8,padding:"2px 6px",borderRadius:10,fontWeight:700,
+                          background:"rgba(34,197,94,0.1)",border:"1px solid "+T.green,color:T.green}}>{"💎 VALUE +$"+faGem92.value.toFixed(1)+"M"}</span>}
+                        {!faGem92&&faValueGap92>=2 && <span style={{fontSize:8,padding:"2px 6px",borderRadius:10,fontWeight:700,
+                          background:"rgba(34,197,94,0.1)",border:"1px solid "+T.green,color:T.green}}>{"📈 UNDER MARKET +$"+faValueGap92.toFixed(1)+"M"}</span>}
+                        {faValueGap92<=-2 && <span style={{fontSize:8,padding:"2px 6px",borderRadius:10,fontWeight:700,
+                          background:"rgba(239,68,68,0.08)",border:"1px solid "+T.red,color:T.red}}>{"⚠️ OVER MARKET $"+Math.abs(faValueGap92).toFixed(1)+"M"}</span>}
                       </div>
                     </div>
                     
@@ -33504,6 +33176,8 @@ var GS={
                 var canAfford=capAfter<=theCap3||isMin;
                 var tier=p.ovr>=80?"Elite":p.ovr>=72?"Starter":p.ovr>=64?"Depth":"Camp Body";
                 var tierColor=p.ovr>=80?T.green:p.ovr>=72?T.gold:p.ovr>=64?T.orange:T.faint;
+                var faValueGap92=ADVANCED_ANALYTICS.calcValueGap(p);
+                var faGem92=faGemMap82[p.id]||null;
                 return <div key={p.id} style={assign({},cS,{padding:0,overflow:"hidden",
                   borderColor:isShort84?T.gold:(fillsNeed?T.green:isRevenge?T.red:T.border),
                   borderLeft:"3px solid "+(isShort84?T.gold:(fillsNeed?T.green:isRevenge?T.red:tierColor))})}>
@@ -33541,6 +33215,12 @@ var GS={
                           background:"rgba(251,191,36,0.1)",border:"1px solid "+T.gold,color:T.gold}}>{"\ud83d\udd04 Flex: "+p.flexPos76}</span>}
                         {intelCamp92.narrowed && <span style={{fontSize:8,padding:"2px 6px",borderRadius:10,fontWeight:700,
                           background:"rgba(34,211,238,0.1)",border:"1px solid "+T.cyan,color:T.cyan}}>{"🧠 FO NEGOTIATOR"}</span>}
+                        {faGem92 && <span style={{fontSize:8,padding:"2px 6px",borderRadius:10,fontWeight:700,
+                          background:"rgba(34,197,94,0.1)",border:"1px solid "+T.green,color:T.green}}>{"💎 VALUE +$"+faGem92.value.toFixed(1)+"M"}</span>}
+                        {!faGem92&&faValueGap92>=2 && <span style={{fontSize:8,padding:"2px 6px",borderRadius:10,fontWeight:700,
+                          background:"rgba(34,197,94,0.1)",border:"1px solid "+T.green,color:T.green}}>{"📈 UNDER MARKET +$"+faValueGap92.toFixed(1)+"M"}</span>}
+                        {faValueGap92<=-2 && <span style={{fontSize:8,padding:"2px 6px",borderRadius:10,fontWeight:700,
+                          background:"rgba(239,68,68,0.08)",border:"1px solid "+T.red,color:T.red}}>{"⚠️ OVER MARKET $"+Math.abs(faValueGap92).toFixed(1)+"M"}</span>}
                       </div>
                     </div>
                     <div style={{textAlign:"center",minWidth:50}}>
@@ -37016,6 +36696,9 @@ var GS={
               var fC=getSalaryCap(season.year+yy);var fU=Math.round(sum(my.roster,function(p){return p.contract.years>yy?v36_capHit(p.contract):0;})*10)/10;
               var fD=my.deadCapByYear?Math.round((my.deadCapByYear[String(season.year+yy)]||0)*10)/10:0;
               proj35.push({yr:season.year+yy,cap:fC,used:fU,dead:fD,space:Math.round((fC-fU-fD)*10)/10});}
+            var capLabAnalytics=buildAnalyticsSnapshot({team:my,teams:teams,season:season,sched:sched,myId:myId,fas:fas,matchupOVR:SIM_CULL.matchupOVR});
+            var capLabPressure=capLabAnalytics.capHealth||{pressure:"healthy",space:room2};
+            var capLabAging=capLabAnalytics.agingRisk||{count:0,atRisk:[]};
             return <div style={{display:"flex",flexDirection:"column",gap:8}}>
               <div style={{fontWeight:900,fontSize:16,color:T.gold}}>{"🏦 CAP LAB — The Iron Bank"}</div>
               {my.franchiseTag973 && <div style={{
@@ -37111,6 +36794,17 @@ var GS={
                   <div style={{fontSize:9,color:T.faint}}>{"💵 Cash"}</div>
                 </div>
               </div>
+              {(capLabPressure.pressure!=="healthy"||capLabAging.count>0) && <div style={assign({},cS,{borderColor:capLabPressure.pressure==="critical"||capLabPressure.pressure==="tight"?T.red:capLabAging.count>=3?T.orange:T.cyan,background:capLabPressure.pressure==="critical"||capLabPressure.pressure==="tight"?"rgba(239,68,68,0.05)":"rgba(251,191,36,0.05)"})}>
+                <div style={{fontWeight:700,fontSize:11,color:capLabPressure.pressure==="critical"||capLabPressure.pressure==="tight"?T.red:T.orange,marginBottom:4}}>
+                  {capLabPressure.pressure==="critical"||capLabPressure.pressure==="tight"?"🚨 CAP PRESSURE":"⏳ AGING PRESSURE"}
+                </div>
+                {capLabPressure.pressure!=="healthy" && <div style={{fontSize:9,color:T.dim,marginBottom:capLabAging.count>0?4:0}}>
+                  {"Cap space is "+capLabPressure.pressure+" at $"+capLabPressure.space+"M. Extensions and restructures need to stay disciplined."}
+                </div>}
+                {capLabAging.count>0 && <div style={{fontSize:9,color:T.dim}}>
+                  {capLabAging.count+" starter-level veteran"+(capLabAging.count>1?"s":"")+" entering decline: "+capLabAging.atRisk.slice(0,3).map(function(entry){return entry.name+" ("+entry.pos+")";}).join(", ")}
+                </div>}
+              </div>}
               
               <div style={cS}>
                 <div style={{fontWeight:700,fontSize:11,color:T.cyan,marginBottom:6}}>{"📊 CAP vs CASH"}</div>
@@ -39952,106 +39646,30 @@ var GS={
           
           {tab==="analyticsHub"&&my&&(function(){
             // ── ANALYTICS HUB — Feature 10: ANALYTICS_HUB ──
-            var POS_PEAK={QB:28,RB:24,WR:26,TE:26,OL:28,DL:26,LB:26,CB:25,S:26,K:30,P:30};
-            var DECLINE_RATE={QB:0.012,RB:0.030,WR:0.018,TE:0.020,OL:0.010,DL:0.020,LB:0.020,CB:0.025,S:0.020,K:0.008,P:0.008};
-            function projectOVR(player,targetAge){
-              var peak=POS_PEAK[player.pos]||27;var rate=DECLINE_RATE[player.pos]||0.018;
-              if(targetAge<=peak){
-                var yearsToGrow=targetAge-player.age;
-                if(yearsToGrow<=0)return player.ovr;
-                return Math.min(99,Math.round(player.ovr*(1+yearsToGrow*0.012)));
-              }
-              var yearsPast=targetAge-peak;
-              return Math.max(40,Math.round(player.ovr*Math.exp(-rate*yearsPast)));
-            }
-            function schedIds(g){
-              var homeId=g?(g.home!==undefined?g.home:g.homeId):null;
-              var awayId=g?(g.away!==undefined?g.away:g.awayId):null;
-              return {homeId:homeId,awayId:awayId};
-            }
-            var selfMatch=SIM_CULL.matchupOVR(my,my)||{offStrength:70,defStrength:70};
-            var selfStrength=((selfMatch.offStrength||70)+(selfMatch.defStrength||70))/2;
-            function calcPlayoffOdds(team,remainingSched){
-              var teamId=team?team.id:null;
-              var teamStr=selfStrength;
-              var expW=team.wins;
-              (remainingSched||[]).forEach(function(g){
-                var ids=schedIds(g);
-                if(ids.homeId===null||ids.awayId===null)return;
-                var oppId=ids.homeId===teamId?ids.awayId:ids.homeId;
-                if(oppId===null||oppId===undefined)return;
-                var opp=teams.find(function(t2){return t2.id===oppId;});
-                if(!opp)return;
-                var om=SIM_CULL.matchupOVR(opp,opp)||{offStrength:70,defStrength:70};
-                var oppStr=((om.offStrength||70)+(om.defStrength||70))/2;
-                var diff=(teamStr-oppStr)/100;
-                var homeAdv=ids.homeId===teamId?0.04:-0.04;
-                expW+=Math.max(0.15,Math.min(0.85,0.5+diff+homeAdv));
-              });
-              var gp=(team.wins||0)+(team.losses||0);
-              var totalGames=gp+(remainingSched||[]).length;
-              var pct=totalGames>0?Math.min(99,Math.max(1,Math.round((expW/Math.max(1,totalGames))*100+10))):50;
-              return{projWins:Math.round(expW*10)/10,playoffPct:pct};
-            }
-            // Remaining schedule for user team
-            var gp=(my.wins||0)+(my.losses||0);
-            var remainingSched=(sched||[]).filter(function(g){
-              var ids=schedIds(g);
-              return season.phase==="regular"&&(ids.homeId===myId||ids.awayId===myId)&&!g.played;
-            });
-            var playoffOdds=calcPlayoffOdds(my,remainingSched);
-            // DVOA
-            var dvoaRaw=ADVANCED_ANALYTICS.calcDVOA(my)||{};
-            var dvoa={off:typeof dvoaRaw.off==="number"?dvoaRaw.off:0,def:typeof dvoaRaw.def==="number"?dvoaRaw.def:0};
-            // Cap health
-            var capUsed=capCalc(my.roster);var deadC=my.deadCap||0;
-            var theCap=getSalaryCap(season.year);
-            var capSpace=Math.round((theCap-capUsed-deadC)*10)/10;
-            var capPct=theCap>0?Math.round(((capUsed+deadC)/theCap)*100):0;
-            // Aging risk — top 10 starters by ovr
-            var topPlayers=(my.roster||[]).filter(function(p){return p.isStarter||p.ovr>=75;})
-              .sort(function(a,b){return b.ovr-a.ovr;}).slice(0,8);
-            // Schedule difficulty for remaining games
-            var schedHeat=remainingSched.slice(0,8).map(function(g){
-              var ids=schedIds(g);
-              if(ids.homeId===null||ids.awayId===null)return null;
-              var oppId=ids.homeId===myId?ids.awayId:ids.homeId;
-              var opp=teams.find(function(t2){return t2.id===oppId;});
-              if(!opp)return null;
-              var om=SIM_CULL.matchupOVR(opp,opp)||{offStrength:70,defStrength:70};
-              var oppStrength=((om.offStrength||70)+(om.defStrength||70))/2;
-              var oppStr=Math.round(oppStrength);
-              var isHome=ids.homeId===myId;
-              var diff=Math.round(selfStrength-oppStrength);
-              return{opp:opp,str:oppStr,diff:diff,isHome:isHome,week:g.week};
-            }).filter(function(x){return x;});
+            var analyticsHubSnapshot=buildAnalyticsSnapshot({team:my,teams:teams,season:season,sched:sched,myId:myId,fas:fas,matchupOVR:SIM_CULL.matchupOVR});
+            var playoffOdds=analyticsHubSnapshot.playoffOdds||{available:false,projWins:0,playoffPct:null};
+            var dvoa=analyticsHubSnapshot.dvoa||{off:0,def:0,total:0};
+            var capHealth=analyticsHubSnapshot.capHealth||{space:0,pctUsed:0};
+            var capSpace=capHealth.space||0;
+            var capPct=capHealth.pctUsed||0;
+            var topPlayers=analyticsHubSnapshot.agingRisk&&analyticsHubSnapshot.agingRisk.players?analyticsHubSnapshot.agingRisk.players:[];
+            var schedHeat=analyticsHubSnapshot.scheduleHeat||[];
             // Draft value chart (standard NFL scale approximation)
             var DRAFT_VALUES=[3000,2600,2200,1800,1600,1400,1250,1100,1000,900,800,720,660,600,550,500,460,420,390,360,
               330,310,290,270,250,230,210,200,190,180,170,160,150,140,130,120,115,110,105,100,
               95,90,86,82,78,74,70,66,62,58,55,52,49,46,43,41,39,37,35,33];
-            // Top EPA contributors this season
-            var epaPlayers=(my.roster||[]).filter(function(p){return p.stats&&(p.stats.gp||0)>0;})
-              .map(function(p){return assign({},p,{_epa:ADVANCED_ANALYTICS.calcEPA(p,my.wins,gp)});})
-              .sort(function(a,b){return b._epa-a._epa;}).slice(0,6);
-            // Front Office Report bullets
-            var foReport=[];
-            if(dvoa.off>=15)foReport.push({icon:"🚀",text:"Offense is elite (DVOA "+dvoa.off+"%) — lean into it",color:T.green});
-            else if(dvoa.off<=-10)foReport.push({icon:"⚠️",text:"Offense underperforming (DVOA "+dvoa.off+"%) — consider FA upgrades",color:T.red});
-            if(dvoa.def>=15)foReport.push({icon:"🛡️",text:"Defense top-tier (DVOA "+dvoa.def+"%) — keep the core together",color:T.green});
-            else if(dvoa.def<=-10)foReport.push({icon:"🚨",text:"Defense is a liability (DVOA "+dvoa.def+"%) — must address this offseason",color:T.red});
-            if(capSpace<10)foReport.push({icon:"💸",text:"Cap space critical ($"+capSpace+"M) — avoid long-term deals this week",color:T.red});
-            else if(capSpace>=40)foReport.push({icon:"💰",text:"Strong cap position ($"+capSpace+"M) — room to be aggressive in FA",color:T.green});
-            var agingRisk=(my.roster||[]).filter(function(p){return p.age>=31&&p.ovr>=75&&p.isStarter;});
-            if(agingRisk.length>=3)foReport.push({icon:"⏳",text:agingRisk.length+" starters age 31+ — plan succession this draft",color:T.orange});
-            if(season.phase==="regular"){
-              if(playoffOdds.playoffPct>=75)foReport.push({icon:"🏆",text:"Playoff odds "+playoffOdds.playoffPct+"% — this is a win-now window",color:T.gold});
-              else if(playoffOdds.playoffPct<=30)foReport.push({icon:"🔄",text:"Playoff odds "+playoffOdds.playoffPct+"% — consider retooling",color:T.dim});
-            }else{
-              foReport.push({icon:"📅",text:"Playoff odds update returns when regular season resumes",color:T.dim});
-            }
-            var injuryLoad=(my.roster||[]).filter(function(p){return p.injury&&p.injury.games>0;}).length;
-            if(injuryLoad>=5)foReport.push({icon:"🏥",text:injuryLoad+" players injured — depth is being tested",color:T.red});
-            if(foReport.length===0)foReport.push({icon:"✅",text:"Franchise is healthy — maintain course",color:T.green});
+            var epaPlayers=(analyticsHubSnapshot.epaLeaders||[]).map(function(entry){
+              return assign({},entry.player||{},{
+                id:entry.player&&entry.player.id,
+                name:entry.name,
+                pos:entry.pos,
+                _epa:entry.epa,
+                _tgtShare:entry.targetShare
+              });
+            });
+            var foReport=(analyticsHubSnapshot.frontOfficeReport||[]).map(function(item){
+              return assign({},item,{color:item.tone==="positive"?T.green:item.tone==="negative"?T.red:item.tone==="warning"?T.orange:T.dim});
+            });
 
             return React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:10}},
 
@@ -40113,7 +39731,7 @@ var GS={
                   React.createElement("div",{style:{color:T.faint,fontSize:10,textAlign:"center",padding:8}},"Play some games to see EPA data"):
                   epaPlayers.map(function(p,i){
                     var epaColor=p._epa>30?T.green:p._epa>10?T.gold:p._epa>=0?T.dim:T.red;
-                    var tgt=(p.pos==="WR"||p.pos==="TE"||p.pos==="RB")?ADVANCED_ANALYTICS.calcTargetShare(p,my.roster):null;
+                    var tgt=(p.pos==="WR"||p.pos==="TE"||p.pos==="RB")?p._tgtShare:null;
                     return React.createElement("div",{key:p.id,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 6px",borderBottom:i<epaPlayers.length-1?"1px solid "+T.border+"33":"none"}},
                       React.createElement("div",{style:{display:"flex",gap:8,alignItems:"center"}},
                         React.createElement("span",{style:{fontSize:10,color:T.faint,minWidth:14,fontWeight:700}},"#"+(i+1)),
@@ -40121,7 +39739,7 @@ var GS={
                         React.createElement("span",{style:{fontSize:9,color:T.dim,background:"rgba(255,255,255,0.05)",padding:"1px 5px",borderRadius:4}},p.pos)
                       ),
                       React.createElement("div",{style:{display:"flex",gap:10,alignItems:"center"}},
-                        tgt?React.createElement("span",{style:{fontSize:9,color:T.cyan}},"TGT "+tgt+"%"):null,
+                        typeof tgt==="number"&&tgt>0?React.createElement("span",{style:{fontSize:9,color:T.cyan}},"TGT "+tgt+"%"):null,
                         React.createElement("span",{style:{fontSize:12,fontWeight:900,color:epaColor}},(p._epa>0?"+":"")+p._epa+" EPA")
                       )
                     );
@@ -40134,11 +39752,11 @@ var GS={
                 React.createElement("div",{style:{fontSize:9,color:T.faint,marginBottom:8}},"Top starters — projected OVR trajectory"),
                 topPlayers.length===0?React.createElement("div",{style:{color:T.faint,fontSize:10,textAlign:"center",padding:8}},"No starters found"):
                 topPlayers.map(function(p){
-                  var now=p.ovr;
-                  var yr1=projectOVR(p,p.age+1);
-                  var yr2=projectOVR(p,p.age+2);
-                  var yr3=projectOVR(p,p.age+3);
-                  var peak=POS_PEAK[p.pos]||27;
+                  var now=p.now;
+                  var yr1=p.yr1;
+                  var yr2=p.yr2;
+                  var yr3=p.yr3;
+                  var peak=p.peakAge||27;
                   var isPeak=p.age>=peak-1&&p.age<=peak+1;
                   var isDeclining=p.age>peak;
                   var trendColor=isDeclining?T.red:yr1>now?T.green:T.gold;

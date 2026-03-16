@@ -79,11 +79,12 @@ describe('premium wiring', () => {
     expect(src.includes('PREMIUM.getScoutingBonus()')).toBe(true);
   });
 
-  it('monolith gates quickSim theater delay behind premium unlock', () => {
+  it('monolith gates quickSim theater state behind premium unlock', () => {
     var monolithPath = path.resolve(__dirname, '../mr-football-v100.jsx');
     var src = fs.readFileSync(monolithPath, 'utf8');
 
-    expect(src.includes("PREMIUM.isUnlocked('quickSim')?0:")).toBe(true);
+    expect(src.includes("skipPresentation972=PREMIUM.isUnlocked('quickSim')")).toBe(true);
+    expect(src.includes('buildTheaterState({result:res')).toBe(true);
   });
 
   it('monolith gates advancedAnalytics dashboard behind premium unlock', () => {

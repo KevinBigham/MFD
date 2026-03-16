@@ -31,4 +31,11 @@ export function recordCoachRing(teams,champId){
 export function getCoachLegacyTop(n){
   return Object.keys(COACH_LEGACY_LOG).map(function(k){return COACH_LEGACY_LOG[k];}).sort(function(a,b){return b.totalWins-a.totalWins;}).slice(0,n||10);
 }
+export function replaceCoachLegacyLog(nextLog){
+  Object.keys(COACH_LEGACY_LOG).forEach(function(key){
+    delete COACH_LEGACY_LOG[key];
+  });
+  Object.assign(COACH_LEGACY_LOG,nextLog||{});
+  return COACH_LEGACY_LOG;
+}
 export { COACH_LEGACY_LOG };

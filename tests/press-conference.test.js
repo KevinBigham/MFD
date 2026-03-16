@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { PRESS_CONF_986 } from '../src/systems/press-conference.js';
+import { PRESS_CONF_986, configurePressConferenceRuntime } from '../src/systems/press-conference.js';
 
 function fixedRng(value = 0) {
   return () => value;
@@ -32,5 +32,28 @@ describe('press-conference.js', () => {
   it('returns null coach quote when personality dependency is unavailable', () => {
     const result = PRESS_CONF_986.generate({}, 7, true, 3, fixedRng(0));
     expect(result.coachQuote).toBeNull();
+  });
+
+  it('uses configured coach personalities when the monolith wires them in', () => {
+    configurePressConferenceRuntime({
+      getCoachPersonalities: () => ({
+        grinder: {
+          label: 'Grinder',
+          icon: '⚙️',
+          afterWin: ['Keep working.'],
+          afterLoss: ['Back to the lab.'],
+        },
+      }),
+    });
+
+    const result = PRESS_CONF_986.generate({}, 7, true, 3, fixedRng(0));
+
+    expect(result.coachQuote).toEqual({
+      text: 'Keep working.',
+      label: 'Grinder',
+      icon: '⚙️',
+    });
+
+    configurePressConferenceRuntime({});
   });
 });

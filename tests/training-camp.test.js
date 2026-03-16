@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { TRAINING_CAMP_986 } from '../src/systems/training-camp.js';
+import { TRAINING_CAMP_986, configureTrainingCampRuntime } from '../src/systems/training-camp.js';
 
 function makeTeam(player, staff = null) {
   return {
@@ -21,6 +21,7 @@ describe('training-camp.js', () => {
   afterEach(() => {
     globalThis.POS_DEF = oldPosDef;
     globalThis.calcOvr = oldCalcOvr;
+    configureTrainingCampRuntime({});
   });
 
   it('defines expected focus options', () => {
@@ -182,5 +183,30 @@ describe('training-camp.js', () => {
     expect(results).toHaveLength(1);
     expect(results[0].type).toBe('star');
     expect(player.ratings.throwPower).toBe(70);
+  });
+
+  it('supports injected runtime hooks for monolith-local helpers', () => {
+    configureTrainingCampRuntime({
+      getPosDef: () => ({ QB: { r: ['throwPower'] } }),
+      calcOvr: () => 91,
+    });
+    globalThis.POS_DEF = undefined;
+    globalThis.calcOvr = undefined;
+
+    const player = {
+      name: 'Injected QB',
+      pos: 'QB',
+      age: 24,
+      ratings: { throwPower: 70 },
+      ovr: 70,
+      personality: { workEthic: 7 },
+    };
+
+    const team = makeTeam(player);
+    const results = TRAINING_CAMP_986.run(team, 'offense', () => 0.5);
+
+    expect(results[0].type).toBe('star');
+    expect(player.ratings.throwPower).toBe(72);
+    expect(player.ovr).toBe(91);
   });
 });

@@ -6,6 +6,7 @@
  */
 
 import { cl } from '../utils/helpers.js';
+import { RNG } from '../utils/rng.js';
 
 export var TRADE_MATH={
   classify:function(valueDelta,isRival){
@@ -106,7 +107,11 @@ export var GM_TRADE_PITCH={
   loyalist:["We rarely do this, but the fit is too perfect to ignore.","Our core is set. We're looking for the right complement — and that's your guy.","This is about the right player in the right system. We think that's here."],
   fallback:["Interested in making a deal? Here's our offer."]
 };
+function resolveTradePitchRng(rng2){
+  return typeof rng2==="function"?rng2:RNG.trade;
+}
 export function getGMTradePitch(archId,rng2){
   var lines=GM_TRADE_PITCH[archId||"fallback"]||GM_TRADE_PITCH.fallback;
-  return lines[Math.floor((rng2||Math.random)()*lines.length)];
+  var pitchRng=resolveTradePitchRng(rng2);
+  return lines[Math.floor(pitchRng()*lines.length)];
 }

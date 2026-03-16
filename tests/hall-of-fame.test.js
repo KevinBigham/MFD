@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { HALL_OF_FAME_LOG, autoHallOfFame, buildCapFixes, calcLegacyScore, getHOFSpeech } from '../src/systems/hall-of-fame.js';
+import { setSeed } from '../src/utils/rng.js';
 
 describe('hall-of-fame.js', () => {
   it('getHOFSpeech selects by trait and falls back safely', () => {
@@ -9,6 +10,14 @@ describe('hall-of-fame.js', () => {
     expect(typeof speech).toBe('string');
     expect(typeof fallback).toBe('string');
     expect(speech.length).toBeGreaterThan(10);
+  });
+
+  it('getHOFSpeech uses the seeded draft channel when rng is omitted', () => {
+    setSeed(42);
+    const first = getHOFSpeech('workEthic');
+    setSeed(42);
+    const second = getHOFSpeech('workEthic');
+    expect(first).toBe(second);
   });
 
   it('calcLegacyScore returns expected shape with derived career values', () => {
@@ -46,12 +55,13 @@ describe('hall-of-fame.js', () => {
     }));
 
     const before = HALL_OF_FAME_LOG.length;
-    const inducted = autoHallOfFame(currentTeams, history, 2030);
+    const inducted = autoHallOfFame(currentTeams, history, 2030, () => 0);
     const secondRun = autoHallOfFame(currentTeams, history, 2031);
 
     expect(inducted.length).toBeGreaterThanOrEqual(1);
     expect(HALL_OF_FAME_LOG.length).toBe(before + inducted.length);
     expect(secondRun).toHaveLength(0);
+    expect(inducted[0].speech).toBe(getHOFSpeech('workEthic', () => 0));
   });
 
   it('buildCapFixes returns suggestions when cap room is tight', () => {

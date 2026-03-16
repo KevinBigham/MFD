@@ -35,4 +35,11 @@ export function autoRingOfHonor(teams,history,year){
 export function getRingOfHonor(teamId){
   return(RING_OF_HONOR_LOG[teamId]||[]).slice().sort(function(a,b){return b.ovr-a.ovr;});
 }
+export function replaceRingOfHonorLog(nextLog){
+  Object.keys(RING_OF_HONOR_LOG).forEach(function(key){
+    delete RING_OF_HONOR_LOG[key];
+  });
+  Object.assign(RING_OF_HONOR_LOG,nextLog||{});
+  return RING_OF_HONOR_LOG;
+}
 export { RING_OF_HONOR_LOG };
