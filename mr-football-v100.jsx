@@ -21,7 +21,7 @@ import { TEAM_CLIMATES, CLIMATE_PROFILES, WEATHER, HT_CONDITIONS, HT_STRATEGIES 
 import { BREAKOUT_SYSTEM } from './src/systems/breakout-system.js';
 import { calcDominanceScore, calcDynastyIndex, calcPeakPower, calcLongevity, generateIdentityTags, ERA_THRESHOLD, ALMANAC_SCHEMA_VERSION, generateEraCards, buildHallOfSeasons } from './src/systems/dynasty-analytics.js';
 import { PLAYBOOK_986 } from './src/systems/playbook.js';
-import { StatBar, ToneBadge, WeeklyShowCard, Icon } from './src/components/index.js';
+import { StatBar, ToneBadge, WeeklyShowCard, Icon, Modal, PlayerCard, ToastContainer } from './src/components/index.js';
 import { ROOKIE_STEPS, createRookieFlow, advanceRookieFlow, completeRookieFlow, formatRookieDuration, shouldShowRookieCoachCard } from './src/app/rookie-funnel.js';
 import { NARRATIVE_STATES, STORY_ARC_EVENTS, pickWeightedEvent } from './src/systems/story-arcs.js';
 import { STORY_ARC_ENGINE } from './src/systems/story-arc-engine.js';
@@ -16185,34 +16185,7 @@ function loadBoxScores(cb){
     }).catch(function(){cb([]);});
   }else{cb([]);}
 }
-var ToastContainer = memo(function(props){
-  var toasts=props.toasts;var remove=props.remove;var onAction=props.onAction;
-  return React.createElement("div",{style:S.toastArea},
-    toasts.map(function(t){
-      var color=t.type==="red"?T.red:t.type==="green"?T.green:t.type==="gold"?T.gold:T.blue;
-      var hasAction=!!t.action;
-      return React.createElement("div",{key:t.id,onClick:function(){if(hasAction&&onAction){onAction(t.action);remove(t.id);}},
-        style:mS(S.toast,{borderLeft:"4px solid "+color,cursor:hasAction?"pointer":"default"})},
-        React.createElement("div",{style:{fontSize:14}},t.type==="red"?"🚨":t.type==="green"?"✅":t.type==="gold"?"🏆":"ℹ️"),
-        React.createElement("div",{style:{flex:1}},
-          React.createElement("div",{style:{fontWeight:700,color:color,fontSize:9,marginBottom:1}},t.title||"UPDATE"),
-          React.createElement("div",{style:{color:T.dim,fontSize:10,lineHeight:1.3}},t.text),
-          hasAction?React.createElement("div",{style:{fontSize:8,color:T.faint,marginTop:2}},"TAP →"):null
-        ),
-        React.createElement("button",{onClick:function(e){e.stopPropagation();remove(t.id);},style:{marginLeft:"auto",background:"none",border:"none",color:T.faint,cursor:"pointer",fontSize:14}},"✕")
-      );
-    }),
-    React.createElement("style",{},[
-      "@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}",
-      "@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}",
-      "@keyframes tdCelebrate{0%{transform:scale(1);background:rgba(212,167,75,0.10)}20%{transform:scale(1.03);background:rgba(212,167,75,0.28)}50%{transform:scale(1.01);background:rgba(212,167,75,0.18)}100%{transform:scale(1);background:rgba(212,167,75,0.10)}}",
-      "@keyframes turnoverFlash{0%{background:rgba(239,68,68,0.08)}30%{background:rgba(239,68,68,0.28)}100%{background:rgba(239,68,68,0.08)}}",
-      "@keyframes bigPlayPop{0%{transform:translateY(0);opacity:1}20%{transform:translateY(-3px);opacity:1}100%{transform:translateY(0);opacity:1}}",
-      "@keyframes pulse-draft{0%,100%{opacity:1}50%{opacity:0.4}}",
-      "@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}"
-    ].join(""))
-  );
-});
+// ToastContainer -> extracted to src/components/ (Phase 3)
 var PlayoffBracket = memo(function(props){
   var br=props.bracket;var pr=props.powerRanks||[];var myId2=props.myId;
   if(!br) return null;
@@ -17477,7 +17450,29 @@ var GS={
     }
     else if(act.type==="roster"){setTab("roster");}
     else if(act.type==="modal"&&act.modal==="preseasonReport"){setPreseasonReport(act.data);}
-  }  // v7: Transaction Log
+  }
+  function closePlayerDetailCard(){setPlayerDetail(null);}
+  function closePlayerDetailCardAndOffers(){setPlayerDetail(null);setShopOffers([]);}
+  function handlePlayerCardRehab(player,optId){
+    var nt78=teams.slice();var ut78=nt78.find(function(t){return t.id===myId;});
+    if(!ut78)return;var pp78=ut78.roster.find(function(rp){return rp.id===player.id;});
+    if(!pp78)return;
+    var opt78=(REHAB_SYSTEM.options||[]).find(function(opt){return opt.id===optId;})||{icon:"🏥",id:optId};
+    var res78=REHAB_SYSTEM.applyRehab(pp78,optId);
+    if(res78)addN(opt78.icon+" "+res78.text,opt78.id==="aggressive"?"red":opt78.id==="conservative"?"blue":"purple");
+    setTeams(nt78);doSave(nt78);setPlayerDetail(assign({},pp78));
+  }
+  function startPlayerCardHoldoutNegotiation(player){var n77=HOLDOUT_NEGOTIATION.start(player);setHoldoutNegot77(n77);}
+  function handleAcceptShopOffer(off,player){
+    setTTI(off.team.id);setTMP([player.id]);setTAP(off.players.map(function(pl){return pl.id;}));
+    setTMPk([]);setTAPk([]);setTMyPkCond972({});setTAiPkCond972({});setTMsg("");setPlayerDetail(null);setTab("trade");setShopOffers([]);
+  }
+  function handlePlayerCardCompare(player,teamAbbr){setCompareMode986({p1:assign({},player,{teamAbbr:teamAbbr||"?"}),p2:null});setPlayerDetail(null);setTab("home");}
+  function closeKeyboardHelp(){setShowKbHelp(false);}
+  function closeImportModal(){setImportModal(false);}
+  function dismissImportModal(){setImportModal(false);setImportStr("");}
+  function handleImportModalSubmit(){if(!importStr.trim()){addN("❌ Paste a save string first.","red");return;}importClipboard(importStr);dismissImportModal();}
+  // v7: Transaction Log
   var txSeqRef=useRef(0);// v58: Deterministic ordering counter (credit: ChatGPT v58 QA)
   function logTx(type,detail){txSeqRef.current++;setTxLog(function(h){return [{type:type,detail:detail,week:season.week,year:season.year,id:U(),seq:txSeqRef.current,tsWall:Date.now()}].concat(h).slice(0,200);});}
   function ledgerLog(type,teamId,summary,data){
@@ -39859,481 +39854,53 @@ var GS={
             ); // end return
           })()}
 
-          {playerDetail && (function(){
-            var p=playerDetail;var arch=p.archetype||PLAYER_ARCHETYPES.classify(p);if(!p.archetype&&arch)p.archetype=arch;var def=POS_DEF[p.pos]||{r:[],w:[]};
-            var trObj=TRAITS[p.trait||"none"]||TRAITS.none;
-            var cs=p.careerStats||{};
-            var phase=getAgingPhase(p);
-            var htFt=p.height?Math.floor(p.height/12):6;var htIn=p.height?p.height%12:0;
-            var htStr=htFt+"'"+htIn+'"';var wtStr=p.weight?p.weight+" lbs":"";
-            var expYrs=(cs.seasons||0);
-            var ovrColor=p.ovr>=90?"#10b981":p.ovr>=80?"#22d3ee":p.ovr>=70?"#fbbf24":p.ovr>=60?"#f97316":"#ef4444";
-            var ovrGlow=p.ovr>=85?"0 0 12px "+ovrColor+"66":"none";
-            var seasonLine=p.pos==="QB"?(p.stats.passYds||0)+"yd "+(p.stats.passTD||0)+"TD "+(p.stats.int||0)+"INT"
-              :p.pos==="RB"?(p.stats.rushYds||0)+"yd "+(p.stats.rushTD||0)+"TD"
-              :(p.pos==="WR"||p.pos==="TE")?(p.stats.rec||0)+"rec "+(p.stats.recYds||0)+"yd "+(p.stats.recTD||0)+"TD"
-              :(["DL","LB"].indexOf(p.pos)>=0)?(p.stats.sacks||0)+"sk "+(p.stats.tackles||0)+"tkl"
-              :(["CB","S"].indexOf(p.pos)>=0)?(p.stats.defINT||0)+"INT "+(p.stats.tackles||0)+"tkl"
-              :p.pos==="K"?(p.stats.fgM||0)+"/"+(p.stats.fgA||0)+"FG"
-              :p.pos==="P"?(p.stats.punts||0)+"pnt "+(p.stats.punts>0?Math.round((p.stats.puntYds||0)/p.stats.punts):"0")+"avg"
-              :(p.stats.gp||0)+"GP";
-            var careerLine=p.pos==="QB"?(cs.passYds||0)+"yd "+(cs.passTD||0)+"TD "+(cs.int||0)+"INT"
-              :p.pos==="RB"?(cs.rushYds||0)+"yd "+(cs.rushTD||0)+"TD"
-              :(p.pos==="WR"||p.pos==="TE")?(cs.rec||0)+"rec "+(cs.recYds||0)+"yd "+(cs.recTD||0)+"TD"
-              :(["DL","LB"].indexOf(p.pos)>=0)?(cs.sacks||0)+"sk "+(cs.tackles||0)+"tkl"
-              :(["CB","S"].indexOf(p.pos)>=0)?(cs.defINT||0)+"INT "+(cs.tackles||0)+"tkl"
-              :p.pos==="K"?(cs.fgM||0)+"/"+(cs.fgA||0)+"FG"
-              :p.pos==="P"?(cs.punts||0)+"pnt "+(cs.punts>0?Math.round((cs.puntYds||0)/cs.punts):"0")+"avg"
-              :(cs.seasons||0)+" seasons";
-            return <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:10}}
-              onClick={function(){setPlayerDetail(null);}}>
-              <div style={{width:"100%",maxWidth:400,background:T.bg2,borderRadius:16,overflow:"hidden",maxHeight:"92vh",overflowY:"auto",border:"1px solid "+ovrColor+"33",boxShadow:"0 8px 32px rgba(0,0,0,0.5), 0 0 1px "+ovrColor+"55"}}
-                onClick={function(e){e.stopPropagation();}}>
-                
-                <div style={{background:"linear-gradient(135deg, "+ovrColor+"18 0%, "+T.bg3+" 60%)",padding:"0",position:"relative"}}>
-                  
-                  <div style={{height:4,background:"linear-gradient(90deg, "+ovrColor+", "+ovrColor+"88, transparent)"}}></div>
-                  <div style={{padding:"16px 20px 14px",display:"flex",gap:16,alignItems:"flex-start"}}>
-                    {React.createElement(PlayerFace,{id:p.id,morale:p.morale||70,size:64,age:p.age})}
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:900,fontSize:20,letterSpacing:-0.5,lineHeight:1.1}}>{p.name}</div>
-                      <div style={{display:"flex",gap:6,alignItems:"center",marginTop:4,flexWrap:"wrap"}}>
-                        <span style={{background:ovrColor+"22",color:ovrColor,fontWeight:800,fontSize:11,padding:"2px 8px",borderRadius:4,border:"1px solid "+ovrColor+"44"}}>{p.pos}</span>
-                        {arch && <span title={(arch.label||"")+": "+(arch.description||"")} style={{background:"rgba(255,255,255,0.06)",border:"1px solid "+T.border,color:"#fff",fontWeight:800,fontSize:11,padding:"2px 8px",borderRadius:4}}>{arch.emoji+" "+arch.label}</span>}
-                        <span style={{fontSize:11,color:T.dim}}>{"Age "+p.age}</span>
-                        <span style={{fontSize:10,color:phase.color}}>{phase.label+" "+phase.tip}</span>
-                        {/* v95: Up to 3 trait badges in player detail header */}
-                        {(p.traits95||[p.trait]).filter(function(tk){return tk&&tk!=="none"&&TRAITS[tk]&&TRAITS[tk].icon;}).slice(0,3).map(function(tk,ti){var tO=TRAITS[tk];return <span key={ti} title={tO.name+": "+(tO.desc||"")} style={{fontSize:10,background:"rgba(255,255,255,0.07)",padding:"1px 6px",borderRadius:6,border:"1px solid rgba(255,255,255,0.12)",fontWeight:600}}>{tO.icon+" "+tO.name}</span>;})}
-                      </div>
-
-                      <div style={{display:"flex",gap:8,marginTop:6,fontSize:10,color:T.dim,flexWrap:"wrap"}}>
-                        {p.college && <span style={{color:T.cyan}}>{"🎓 "+p.college.school}</span>}
-                        {p.height && <span>{htStr}</span>}
-                        {p.weight && <span>{wtStr}</span>}
-                        {expYrs>0 && <span>{expYrs+"yr exp"}</span>}
-                        {p.isRookie && <span style={{color:T.green}}>{"ROOKIE"}</span>}
-                      </div>
-                      
-                      {p.character75 && <div style={{display:"flex",gap:4,marginTop:4,alignItems:"center",flexWrap:"wrap"}}>
-                        <span style={{fontSize:9,padding:"1px 6px",borderRadius:4,background:"rgba(167,139,250,0.12)",color:T.purple,fontWeight:700}}>{p.character75.icon+" "+p.character75.label}</span>
-                        <span style={{fontSize:8,color:T.dim}}>{p.character75.desc}</span>
-                      </div>}
-                      {p.holdout75 && (function(){
-                        /* v80: 5-stage holdout badge with escalation colors (credit: Claude — Dynasty Experience) */
-                        var stg80=holdoutStages80&&holdoutStages80[p.id]||1;
-                        var stgColors80=["#fbbf24","#f97316","#ef4444","#dc2626","#7f1d1d"];
-                        var stgLabels80=["STAGE 1: NO-SHOW","STAGE 2: STATEMENT","STAGE 3: TRADE DEMAND","STAGE 4: SUSPENDED","STAGE 5: NUCLEAR ☢️"];
-                        var stgIcons80=["⚠️","📢","🔀","🚫","☢️"];
-                        var sc80=stgColors80[stg80-1]||"#ef4444";
-                        var sl80=stgLabels80[stg80-1]||"HOLDOUT";
-                        var si80=stgIcons80[stg80-1]||"⚠️";
-                        return React.createElement("div",{style:{marginTop:3,fontSize:9,fontWeight:700,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}},
-                          React.createElement("span",{style:{color:sc80,border:"1px solid "+sc80,borderRadius:4,padding:"1px 5px",background:"rgba(0,0,0,0.3)",letterSpacing:"0.3px"}},
-                            si80+" "+sl80+" — Wk "+(p.holdout75.week||1)),
-                          my&&my.roster.some(function(rp){return rp.id===p.id;})&&!holdoutNegot77&&React.createElement("button",{
-                            onClick:function(e){e.stopPropagation();var n77=HOLDOUT_NEGOTIATION.start(p);setHoldoutNegot77(n77);},
-                            style:assign({},bS(sc80,"#fff"),{padding:"1px 6px",fontSize:8,borderRadius:4})
-                          },"🤝 Negotiate")
-                        );
-                      })()}
-                      
-                      {p.injury&&p.injury.games>0&&my&&my.roster.some(function(rp){return rp.id===p.id;})&&!p.injury._rehab78&&<div style={{marginTop:4}}>
-                        <div style={{fontSize:8,fontWeight:700,color:T.faint,marginBottom:2}}>{"🏥 CHOOSE REHAB PLAN"}</div>
-                        <div style={{display:"flex",gap:4}}>
-                          {REHAB_SYSTEM.options.map(function(opt78){
-                            return <button key={opt78.id} onClick={function(e){
-                              e.stopPropagation();
-                              var nt78=teams.slice();var ut78=nt78.find(function(t){return t.id===myId;});
-                              if(!ut78)return;var pp78=ut78.roster.find(function(rp){return rp.id===p.id;});
-                              if(!pp78)return;
-                              var res78=REHAB_SYSTEM.applyRehab(pp78,opt78.id);
-                              if(res78)addN(opt78.icon+" "+res78.text,opt78.id==="aggressive"?"red":opt78.id==="conservative"?"blue":"purple");
-                              setTeams(nt78);doSave(nt78);setPlayerDetail(assign({},pp78));
-                            }} style={assign({},bS(opt78.color,"#fff"),{padding:"2px 6px",fontSize:7,borderRadius:4})}>
-                              {opt78.icon+" "+opt78.label}
-                            </button>;
-                          })}
-                        </div>
-                      </div>}
-                      {p.injury&&p.injury._rehab78&&<div style={{marginTop:3,fontSize:9,fontWeight:700,color:p.injury._rehab78==="aggressive"?T.red:p.injury._rehab78==="conservative"?"#3b82f6":"#a855f7"}}>
-                        {"🏥 Rehab: "+(p.injury._rehab78||"standard").toUpperCase()+" — "+p.injury.games+"wk remaining"}
-                      </div>}
-                    </div>
-                  </div>
-                  
-                  <div style={{display:"flex",justifyContent:"space-around",padding:"0 20px 14px",gap:4}}>
-                    {[
-                      {label:"OVR",val:p.ovr,color:ovrColor,glow:ovrGlow},
-                      {label:"POT",val:p.pot,color:T.cyan,glow:"none"},
-                      {label:"MRL",val:p.morale||70,color:(p.morale||70)>=70?T.green:(p.morale||70)>=45?T.orange:T.red,glow:"none"},
-                      p.pff?{label:"MFDF",val:p.pff,color:p.pff>=85?"#10b981":p.pff>=75?"#22d3ee":p.pff>=60?"#fbbf24":"#ef4444",glow:"none"}:null
-                    ].filter(Boolean).map(function(g){
-                      return <div key={g.label} style={{textAlign:"center",flex:1}}>
-                        <div style={{fontSize:28,fontWeight:900,color:g.color,lineHeight:1,textShadow:g.glow}}>{g.val}</div>
-                        <div style={{fontSize:8,color:T.faint,fontWeight:700,letterSpacing:1.5,marginTop:2}}>{g.label}</div>
-                      </div>;
-                    })}
-                  </div>
-                  
-                  <div style={{position:"absolute",top:8,right:12}}>
-                    <span style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:10,
-                      background:p.devTrait==="superstar"?"rgba(251,191,36,0.2)":p.devTrait==="star"?"rgba(34,211,238,0.15)":"rgba(255,255,255,0.05)",
-                      color:p.devTrait==="superstar"?T.gold:p.devTrait==="star"?T.cyan:T.faint,
-                      border:"1px solid "+(p.devTrait==="superstar"?T.gold+"44":p.devTrait==="star"?T.cyan+"44":"transparent")}}>
-                      {p.devTrait==="superstar"?"🌟 Superstar":p.devTrait==="star"?"⭐ Star":"Normal"}
-                    </span>
-                  </div>
-                </div>
-                
-                <div style={{padding:"14px 20px",borderTop:"1px solid "+T.border,borderBottom:"1px solid "+T.border}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                    <div style={{fontSize:9,color:T.gold,fontWeight:700,letterSpacing:1.5}}>{"ATTRIBUTES ("+def.r.length+")"}</div>
-                    <div style={{fontSize:8,color:T.faint}}>{p.pos+" • "+Object.keys(def.cat||{}).join(" | ")}</div>
-                  </div>
-                  
-                  {(function(){
-                    var cats=def.cat||{ALL:def.r};
-                    return Object.keys(cats).map(function(catName){
-                      var catRatings=cats[catName];
-                      return <div key={catName} style={{marginBottom:10}}>
-                        <div style={{fontSize:8,color:T.purple,fontWeight:700,letterSpacing:1,marginBottom:4,paddingBottom:2,borderBottom:"1px solid "+T.purple+"20"}}>{catName}</div>
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"2px 12px"}}>
-                          {catRatings.map(function(r){
-                            var val=p.ratings[r]||50;
-                            var barColor=val>=85?"#10b981":val>=75?"#22d3ee":val>=65?"#fbbf24":val>=50?"#f97316":"#ef4444";
-                            var isCore=def.r.indexOf(r)<5;// First 5 are legacy core
-                            return <div key={r} style={{display:"flex",alignItems:"center",gap:4,marginBottom:1}}>
-                              <div style={{width:28,fontSize:8,color:isCore?T.gold:T.dim,fontWeight:isCore?700:500}}>{RATING_LABELS[r]||r.slice(0,3)}</div>
-                              <div style={{flex:1,height:7,background:T.bg3,borderRadius:4,overflow:"hidden"}}>
-                                <div style={{width:val+"%",height:"100%",background:"linear-gradient(90deg, "+barColor+"cc, "+barColor+")",borderRadius:4}} />
-                              </div>
-                              <div style={{width:24,textAlign:"right",fontWeight:700,fontSize:10,color:barColor}}>{val}</div>
-                            </div>;
-                          })}
-                        </div>
-                      </div>;
-                    });
-                  })()}
-                </div>
-                
-                {cs.ovrHistory && cs.ovrHistory.length>1 && (function(){
-                  var hist=cs.ovrHistory;
-                  var peakOvr=Math.max.apply(null,hist);var lowestOvr=Math.min.apply(null,hist);
-                  var range=Math.max(peakOvr-lowestOvr,10);// min 10-point range
-                  var barW=Math.floor(280/hist.length);
-                  var peakIdx=hist.indexOf(peakOvr);
-                  return <div style={{padding:"10px 20px",borderBottom:"1px solid "+T.border}}>
-                    <div style={{fontSize:9,color:T.gold,fontWeight:700,letterSpacing:1.5,marginBottom:6}}>{"📈 CAREER ARC"}</div>
-                    <div style={{display:"flex",alignItems:"flex-end",gap:1,height:40,marginBottom:4}}>
-                      {hist.map(function(ovr,si){
-                        var h=Math.max(4,Math.round(((ovr-lowestOvr+5)/range)*35));
-                        var barColor=ovr>=85?"#10b981":ovr>=75?"#22d3ee":ovr>=65?"#fbbf24":"#f97316";
-                        return <div key={si} title={"Season "+(si+1)+": "+ovr+" OVR"} style={{width:Math.max(barW,8),maxWidth:20,height:h,background:si===peakIdx?"linear-gradient(180deg, "+T.gold+", "+barColor+")":barColor,
-                          borderRadius:"2px 2px 0 0",opacity:si===hist.length-1?1:0.7,cursor:"default"}}></div>;
-                      })}
-                    </div>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:8,color:T.faint}}>
-                      <span>{"S1: "+hist[0]}</span>
-                      <span style={{color:T.gold,fontWeight:700}}>{"Peak: "+peakOvr+" (S"+(peakIdx+1)+")"}</span>
-                      <span>{"Now: "+hist[hist.length-1]}</span>
-                    </div>
-                  </div>;
-                })()}
-                
-                {p.scouting && (function(){
-                  var sc=p.scouting;var tier=confTier(sc.confidence);var cCol=confColor(sc.confidence);
-                  var confPct=Math.round(sc.confidence*100);
-                  var rpt=getScoutRpt(tier,p.ovr);
-                  var rptText=rpt.t.replace(/\{player\.name\}/g,p.name).replace(/\{player\.pos\}/g,p.pos).replace(/\{player\.age\}/g,String(p.age||"?"))
-                    .replace(/\{player\.college\.school\}/g,(p.college||{}).school||"Unknown")
-                    .replace(/\{range\.min\}/g,String(p.scoutRange?p.scoutRange.min:"?")).replace(/\{range\.max\}/g,String(p.scoutRange?p.scoutRange.max:"?"))
-                    .replace(/\{topRating\}/g,def.r[0]||"athleticism").replace(/\{weakRating\}/g,def.r[def.r.length-1]||"durability")
-                    .replace(/\{scout\.name\}/g,(my.scouts&&my.scouts[0])?my.scouts[0].name:"Scout");
-                  var reporter=rpt.r==="rex"?"Rex Buckley":rpt.r==="dana"?"Dana Sharpe":"Scout Report";
-                  return <div style={{padding:"12px 20px",borderBottom:"1px solid "+T.border,background:"rgba(167,139,250,0.03)"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                      <div style={{fontSize:9,color:"#a78bfa",fontWeight:700,letterSpacing:1.5}}>{"🔍 SCOUTING INTEL"}</div>
-                      <div style={{display:"flex",alignItems:"center",gap:6}}>
-                        <div style={{width:50,height:6,background:T.bg3,borderRadius:3,overflow:"hidden"}}>
-                          <div style={{width:confPct+"%",height:"100%",background:cCol,borderRadius:3}}></div>
-                        </div>
-                        <span style={{fontSize:10,fontWeight:700,color:cCol}}>{tier.toUpperCase()+" ("+confPct+"%)"}</span>
-                      </div>
-                    </div>
-                    
-                    <div style={{fontSize:11,color:T.dim,fontStyle:"italic",marginBottom:6,lineHeight:1.4}}>
-                      {"\""+rptText+"\""}
-                    </div>
-                    <div style={{fontSize:9,color:T.faint,textAlign:"right"}}>{"— "+reporter}</div>
-                    {sc.events&&sc.events.length>0&&<div style={{fontSize:9,color:T.faint,marginTop:4}}>
-                      {"Events: "+sc.events.join(", ")}
-                    </div>}
-                    {sc.isRookie&&<div style={{fontSize:9,color:"#f59e0b",marginTop:4,fontWeight:600}}>{"⚠️ Rookie — high variance (±15 OVR). Scout extensively before drafting."}</div>}
-                  </div>;
-                })()}
-                
-                <div style={{padding:"12px 20px",borderBottom:"1px solid "+T.border}}>
-                  <div style={{fontSize:9,color:T.blue,fontWeight:700,marginBottom:6,letterSpacing:1.5}}>{"CONTRACT"}</div>
-                  <div style={{display:"flex",gap:20,fontSize:12,flexWrap:"wrap"}}>
-                    <div><span style={{color:T.faint}}>{"Cap Hit "}</span><span style={{fontWeight:800,color:T.green}}>{"$"+v36_capHit(p.contract)+"M"}</span></div>
-                    <div><span style={{color:T.faint}}>{"Cash "}</span><span style={{fontWeight:800,color:"#22c55e"}}>{"$"+v36_cashPaid(p.contract)+"M/yr"}</span></div>
-                    <div><span style={{color:T.faint}}>{"Years "}</span><span style={{fontWeight:800}}>{p.contract.years}</span></div>
-                    {(p.contract.prorated||0)>0 && <div><span style={{color:T.faint}}>{"Bonus "}</span><span style={{fontWeight:800,color:T.orange}}>{"$"+Math.round((p.contract.prorated||0)*10)/10+"M/yr"}</span></div>}
-                  </div>
-                  
-                  {(p.contract.prorated||0)>0 && <div style={{display:"flex",gap:16,fontSize:10,marginTop:6,color:T.dim}}>
-                    <span style={{color:"#ef4444"}}>{"✂️ Cut: $"+v36_deadIfCut(p.contract)+"M dead"}</span>
-                    <span style={{color:"#f59e0b"}}>{"🔄 Trade: $"+v36_deadIfTraded(p.contract)+"M dead (save $"+Math.abs(v36_tradeSavings(p.contract))+"M)"}</span>
-                  </div>}
-                  {/* v95: All traits listed in contract section */}
-                  {(p.traits95||[p.trait]).filter(function(tk){return tk&&tk!=="none"&&TRAITS[tk]&&TRAITS[tk].name;}).length>0&&<div style={{marginTop:8,display:"flex",flexDirection:"column",gap:4}}>
-                    {(p.traits95||[p.trait]).filter(function(tk){return tk&&tk!=="none"&&TRAITS[tk]&&TRAITS[tk].name;}).slice(0,3).map(function(tk,ti){var tO=TRAITS[tk];return <div key={ti} style={{fontSize:10,color:T.dim,display:"flex",alignItems:"center",gap:4}}>
-                      <span style={{fontSize:12}}>{tO.icon}</span>
-                      <span style={{fontWeight:700,color:T.text}}>{tO.name}</span>
-                      {tO.desc&&<span style={{color:T.faint}}>{"— "+tO.desc}</span>}
-                    </div>;})}
-                  </div>}
-                </div>
-                
-                {godMode && (function(){
-                  var editBtn=function(label,onClick){return React.createElement("button",{style:mS(S.btn,{background:"rgba(167,139,250,0.15)",color:T.purple,border:"1px solid rgba(167,139,250,0.3)",padding:"4px 8px",fontSize:9,fontWeight:700}),onClick:onClick},label);};
-                  var secBtn=function(label,onClick){return React.createElement("button",{style:mS(S.btn,{background:"rgba(255,255,255,0.04)",color:T.cyan,border:"1px solid "+T.border,padding:"3px 7px",fontSize:8,fontWeight:700}),onClick:onClick},label);};
-                  var dangerBtn=function(label,onClick){return React.createElement("button",{style:mS(S.btn,{background:"rgba(239,68,68,0.15)",color:T.red,border:"1px solid rgba(239,68,68,0.3)",padding:"3px 7px",fontSize:8,fontWeight:700}),onClick:onClick},label);};
-                  // v98: Find player on ANY team
-                  var findPTeam=teams.find(function(t){return t.roster.some(function(x){return x.id===p.id;});});
-                  if(!findPTeam)return null;
-                  var pers=p.personality||{};
-                  var fmtHt=function(h){if(!h)return "?";return Math.floor(h/12)+"'"+h%12+'"';};
-                  return React.createElement("div",{style:{padding:"12px 20px",borderBottom:"1px solid rgba(167,139,250,0.3)",background:"rgba(167,139,250,0.04)"}},
-                    React.createElement("div",{style:{fontSize:10,color:T.purple,fontWeight:700,marginBottom:4,letterSpacing:1}},"⚡ GOD MODE — FULL PLAYER EDITOR"),
-                    React.createElement("div",{style:{fontSize:8,color:T.faint,marginBottom:8}},"On: "+findPTeam.icon+" "+findPTeam.abbr+" — Click any field to edit"),
-                    
-                    /* === ROW 1: IDENTITY === */
-                    React.createElement("div",{style:{fontSize:7,color:T.purple,fontWeight:700,letterSpacing:1,marginBottom:3}},"IDENTITY"),
-                    React.createElement("div",{style:{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}},
-                      editBtn("✏ "+p.name,function(){var v=prompt("Player name:",p.name);if(v){godModeEdit(p.id,"name",v);setPlayerDetail(assign({},p,{name:v}));}}),
-                      editBtn("🏈 "+p.pos,function(){var v=prompt("Position (QB/RB/WR/TE/OL/DL/LB/CB/S/K/P):",p.pos);if(v){godModeEdit(p.id,"pos",v);setPlayerDetail(null);}}),
-                      editBtn("🎂 Age: "+p.age,function(){var v=prompt("Age (19-45):",p.age);if(v){godModeEdit(p.id,"age",v);setPlayerDetail(null);}}),
-                      editBtn("📏 "+fmtHt(p.height),function(){var v=prompt("Height in inches (e.g. 73 = 6'1\"):",p.height||73);if(v){godModeEdit(p.id,"height",v);setPlayerDetail(null);}}),
-                      editBtn("⚖️ "+(p.weight||220)+"lb",function(){var v=prompt("Weight (lbs):",p.weight||220);if(v){godModeEdit(p.id,"weight",v);setPlayerDetail(null);}}),
-                      editBtn("🎓 "+(p.college?p.college.school||p.college:"?"),function(){var v=prompt("College:",p.college?p.college.school||p.college:"");if(v){godModeEdit(p.id,"college",v);setPlayerDetail(null);}}),
-                      editBtn("#"+(p.number||"??"),function(){var v=prompt("Jersey Number:",p.number||"");if(v){godModeEdit(p.id,"number",v);setPlayerDetail(null);}})
-                    ),
-                    
-                    /* === ROW 2: CORE RATINGS === */
-                    React.createElement("div",{style:{fontSize:7,color:T.purple,fontWeight:700,letterSpacing:1,marginBottom:3}},"RATINGS & DEVELOPMENT"),
-                    React.createElement("div",{style:{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}},
-                      editBtn("📊 OVR: "+p.ovr,function(){var v=prompt("Overall (35-99):",p.ovr);if(v){godModeEdit(p.id,"ovr",v);setPlayerDetail(null);}}),
-                      editBtn("📈 POT: "+p.pot,function(){var v=prompt("Potential (1-99):",p.pot);if(v){godModeEdit(p.id,"pot",v);setPlayerDetail(null);}}),
-                      editBtn("⭐ Dev: "+(p.devTrait||"normal"),function(){var v=prompt("Dev Trait (normal/star/superstar):",p.devTrait||"normal");if(v){godModeEdit(p.id,"devTrait",v);setPlayerDetail(null);}}),
-                      editBtn("😊 Morale: "+(p.morale||70),function(){var v=prompt("Morale (0-99):",(p.morale||70));if(v){godModeEdit(p.id,"morale",v);setPlayerDetail(null);}}),
-                      editBtn(p.isStarter?"⭐ Starter":"📋 Backup",function(){godModeEdit(p.id,"isStarter",p.isStarter?"false":"true");setPlayerDetail(null);}),
-                      editBtn(p.onTradeBlock?"🔴 On Block":"Trade Block",function(){godModeEdit(p.id,"tradeBlock",p.onTradeBlock?"false":"true");setPlayerDetail(null);})
-                    ),
-                    
-                    /* === ROW 3: TRAITS === */
-                    React.createElement("div",{style:{fontSize:7,color:T.purple,fontWeight:700,letterSpacing:1,marginBottom:3}},"TRAITS"),
-                    React.createElement("div",{style:{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}},
-                      editBtn(TRAITS[p.trait]?TRAITS[p.trait].icon+" "+TRAITS[p.trait].name:"No Trait",function(){
-                        var traitList=Object.keys(TRAITS).map(function(k){return k+" ("+TRAITS[k].name+")";}).join(", ");
-                        var v=prompt("Trait ID:\n"+traitList,p.trait||"none");if(v){godModeEdit(p.id,"trait",v);setPlayerDetail(null);}
-                      }),
-                      p.injury&&p.injury.games>0?editBtn("🏥 Heal ("+p.injury.games+"wk)",function(){godModeEdit(p.id,"injury","heal");setPlayerDetail(null);}):
-                        editBtn("🤕 Injure",function(){var v=prompt("Injury weeks (1-20):",4);if(v){godModeEdit(p.id,"injury",v);setPlayerDetail(null);}})
-                    ),
-                    
-                    /* === ROW 4: CONTRACT === */
-                    React.createElement("div",{style:{fontSize:7,color:T.purple,fontWeight:700,letterSpacing:1,marginBottom:3}},"CONTRACT"),
-                    React.createElement("div",{style:{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}},
-                      editBtn("💰 Base: $"+(p.contract.baseSalary||0).toFixed(1)+"M",function(){var v=prompt("Base Salary ($M):",p.contract.baseSalary||p.contract.salary);if(v){godModeEdit(p.id,"salary",v);setPlayerDetail(null);}}),
-                      editBtn("📅 "+p.contract.years+"yr",function(){var v=prompt("Contract years (1-8):",p.contract.years);if(v){godModeEdit(p.id,"years",v);setPlayerDetail(null);}}),
-                      editBtn("🎁 Bonus: $"+(p.contract.signingBonus||0).toFixed(1)+"M",function(){var v=prompt("Signing Bonus ($M):",p.contract.signingBonus||0);if(v){godModeEdit(p.id,"signingBonus",v);setPlayerDetail(null);}}),
-                      editBtn("🔒 GTD: $"+(p.contract.guaranteed||0).toFixed(1)+"M",function(){var v=prompt("Guaranteed Money ($M):",p.contract.guaranteed||0);if(v){godModeEdit(p.id,"guaranteed",v);setPlayerDetail(null);}}),
-                      secBtn("Cap Hit: $"+calcCapHit(p.contract).toFixed(1)+"M",function(){addN("Cap hit is calculated from base + prorated bonus","info");})
-                    ),
-                    
-                    /* === ROW 5: PERSONALITY (1-10 scales) === */
-                    React.createElement("div",{style:{fontSize:7,color:T.purple,fontWeight:700,letterSpacing:1,marginBottom:3}},"PERSONALITY (1-10)"),
-                    React.createElement("div",{style:{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}},
-                      editBtn("💪 Work: "+(pers.workEthic||5),function(){var v=prompt("Work Ethic (1-10):",pers.workEthic||5);if(v){godModeEdit(p.id,"workEthic",v);setPlayerDetail(null);}}),
-                      editBtn("💙 Loyal: "+(pers.loyalty||5),function(){var v=prompt("Loyalty (1-10):",pers.loyalty||5);if(v){godModeEdit(p.id,"loyalty",v);setPlayerDetail(null);}}),
-                      editBtn("💰 Greed: "+(pers.greed||5),function(){var v=prompt("Greed (1-10):",pers.greed||5);if(v){godModeEdit(p.id,"greed",v);setPlayerDetail(null);}}),
-                      editBtn("⭐ Clutch: "+(pers.pressure||5),function(){var v=prompt("Clutch / Pressure (1-10):",pers.pressure||5);if(v){godModeEdit(p.id,"pressure",v);setPlayerDetail(null);}}),
-                      editBtn("🔥 Ambition: "+(pers.ambition||5),function(){var v=prompt("Ambition (1-10):",pers.ambition||5);if(v){godModeEdit(p.id,"ambition",v);setPlayerDetail(null);}})
-                    ),
-                    
-                    /* === ROW 6: INTANGIBLES === */
-                    React.createElement("div",{style:{fontSize:7,color:T.purple,fontWeight:700,letterSpacing:1,marginBottom:3}},"INTANGIBLES"),
-                    React.createElement("div",{style:{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}},
-                      editBtn("🤝 Chemistry: "+(p.chemistry||60),function(){var v=prompt("Team Chemistry (0-100):",p.chemistry||60);if(v){godModeEdit(p.id,"chemistry",v);setPlayerDetail(null);}}),
-                      editBtn("📚 System Fit: "+(p.systemFit||50),function(){var v=prompt("System Fit (0-100):",p.systemFit||50);if(v){godModeEdit(p.id,"systemFit",v);setPlayerDetail(null);}})
-                    ),
-                    
-                    /* === ROW 7: CAREER ACCOLADES === */
-                    React.createElement("div",{style:{fontSize:7,color:T.purple,fontWeight:700,letterSpacing:1,marginBottom:3}},"CAREER & ACCOLADES"),
-                    React.createElement("div",{style:{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}},
-                      editBtn("🏆 Pro Bowls: "+(p.careerStats?p.careerStats.proBowls||0:0),function(){var v=prompt("Pro Bowl selections:",p.careerStats?p.careerStats.proBowls||0:0);if(v){godModeEdit(p.id,"proBowls",v);setPlayerDetail(null);}}),
-                      editBtn("🥇 All-Pros: "+(p.careerStats?p.careerStats.allPros||0:0),function(){var v=prompt("All-Pro selections:",p.careerStats?p.careerStats.allPros||0:0);if(v){godModeEdit(p.id,"allPros",v);setPlayerDetail(null);}}),
-                      editBtn("📊 Draft Yr: "+(p.draftInfo?p.draftInfo.year||"?":"UDFA"),function(){var v=prompt("Draft Year:",p.draftInfo?p.draftInfo.year||2026:2026);if(v){godModeEdit(p.id,"draftYear",v);setPlayerDetail(null);}}),
-                      editBtn("📋 Draft Rd: "+(p.draftInfo?p.draftInfo.round||"?":"?"),function(){var v=prompt("Draft Round (1-7):",p.draftInfo?p.draftInfo.round||1:1);if(v){godModeEdit(p.id,"draftRound",v);setPlayerDetail(null);}}),
-                      editBtn("🎯 Draft Pick: "+(p.draftInfo?p.draftInfo.pick||"?":"?"),function(){var v=prompt("Draft Pick # (1-32):",p.draftInfo?p.draftInfo.pick||1:1);if(v){godModeEdit(p.id,"draftPick",v);setPlayerDetail(null);}})
-                    ),
-                    
-                    /* === ROW 8: ACTIONS === */
-                    React.createElement("div",{style:{fontSize:7,color:T.purple,fontWeight:700,letterSpacing:1,marginBottom:3}},"ACTIONS"),
-                    React.createElement("div",{style:{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}},
-                      editBtn("⚔️ Compare",function(){setCompareMode986({p1:assign({},p,{teamAbbr:findPTeam?findPTeam.abbr:"?"}),p2:null});setPlayerDetail(null);setTab("home");}),
-                      editBtn("🧬 Clone",function(){godModeClonePlayer(findPTeam.id,p.id);}),
-                      editBtn("✈️ Move",function(){var dest=prompt("Move "+p.name+" to team (abbr):",my.abbr);if(!dest)return;var destT=teams.find(function(t){return t.abbr.toLowerCase()===dest.toLowerCase();});if(destT){godModeMovePlayer(p.id,findPTeam.id,destT.id);setPlayerDetail(null);}else addN("Team not found: "+dest,"red");}),
-                      findPTeam.id!==myId&&editBtn("⚡ Steal",function(){godModeStealPlayer(findPTeam.id,p.id);setPlayerDetail(null);}),
-                      dangerBtn("🗑 Reset Season Stats",function(){if(confirm("Clear "+p.name+"'s season stats?")){godModeEdit(p.id,"resetStats","1");setPlayerDetail(null);}}),
-                      dangerBtn("🗑 Reset Career Stats",function(){if(confirm("Clear "+p.name+"'s ENTIRE career stats?")){godModeEdit(p.id,"resetCareer","1");setPlayerDetail(null);}}),
-                      dangerBtn("🚪 Force Retire",function(){if(confirm("Force retire "+p.name+"?")){godModeForceRetire(findPTeam.id,p.id);}})
-                    ),
-                    
-                    /* === INDIVIDUAL RATINGS (existing) === */
-                    React.createElement("div",{style:{fontSize:7,color:T.purple,fontWeight:700,letterSpacing:1,marginTop:4,marginBottom:3}},"INDIVIDUAL RATINGS ("+def.r.length+" attributes)"),
-                    (function(){
-                      var cats=def.cat||{ALL:def.r};
-                      return Object.keys(cats).map(function(catName){
-                        return React.createElement("div",{key:catName,style:{marginBottom:6}},
-                          React.createElement("div",{style:{fontSize:7,color:T.purple,fontWeight:700,letterSpacing:1,marginBottom:2}},catName),
-                          React.createElement("div",{style:{display:"flex",gap:3,flexWrap:"wrap"}},
-                            cats[catName].map(function(r){
-                              var val=p.ratings[r]||50;
-                              var rColor=val>=80?T.green:val>=65?T.gold:val>=50?T.orange:T.red;
-                              return React.createElement("button",{key:r,style:mS(S.btn,{background:"rgba(255,255,255,0.04)",border:"1px solid "+rColor+"44",color:rColor,padding:"2px 5px",fontSize:7,fontWeight:700}),
-                                onClick:function(){var v=prompt((RATING_LABELS[r]||r)+" ("+r+") rating (1-99):",val);if(v){godModeEdit(p.id,"rating",r+":"+v);setPlayerDetail(null);}}},
-                                (RATING_LABELS[r]||r.slice(0,4))+": "+val);
-                            })
-                          )
-                        );
-                      });
-                    })(),
-                    React.createElement("div",{style:{fontSize:8,color:T.faint,marginTop:6}},"Changes save instantly. Close & reopen to refresh displayed values.")
-                  );
-                })()}
-                
-                <div style={{padding:"12px 20px",borderBottom:"1px solid "+T.border}}>
-                  <div style={{fontSize:9,color:T.green,fontWeight:700,marginBottom:8,letterSpacing:1.5}}>{"THIS SEASON"}</div>
-                  <div style={{display:"flex",gap:16,marginBottom:6,fontSize:12}}>
-                    <div style={{display:"flex",gap:4,alignItems:"baseline"}}><span style={{fontSize:20,fontWeight:900}}>{p.stats.gp||0}</span><span style={{fontSize:9,color:T.faint}}>{"GP"}</span></div>
-                    <div style={{display:"flex",gap:4,alignItems:"baseline"}}><span style={{fontSize:20,fontWeight:900}}>{p.stats.snaps||0}</span><span style={{fontSize:9,color:T.faint}}>{"SNAPS"}</span></div>
-                    {p.isStarter && <span style={{fontSize:9,fontWeight:700,color:T.green,background:"rgba(16,185,129,0.12)",padding:"2px 8px",borderRadius:4,alignSelf:"center"}}>{"STARTER"}</span>}
-                  </div>
-                  <div style={{fontSize:13,fontWeight:700,color:T.text,padding:"6px 10px",background:"rgba(255,255,255,0.03)",borderRadius:6,borderLeft:"3px solid "+T.green}}>{seasonLine}</div>
-                  {(p.pos==="WR"||p.pos==="TE")&&p.stats.targets>0 && <div style={{fontSize:10,color:T.dim,marginTop:4}}>
-                    {"Targets:"+p.stats.targets+" | Drops:"+p.stats.drops+" | YAC:"+p.stats.yac}
-                  </div>}
-                  {p.pos==="OL"&&(p.stats.sacksAllowed||0)>0 && <div style={{fontSize:10,color:T.red,marginTop:4}}>
-                    {"Sacks Allowed: "+p.stats.sacksAllowed}
-                  </div>}
-                </div>
-                
-                <div style={{padding:"12px 20px",borderBottom:"1px solid "+T.border}}>
-                  <div style={{fontSize:9,color:T.purple,fontWeight:700,marginBottom:8,letterSpacing:1.5}}>{"CAREER"}</div>
-                  <div style={{display:"flex",gap:12,marginBottom:6,fontSize:12,flexWrap:"wrap",alignItems:"center"}}>
-                    <div style={{display:"flex",gap:4,alignItems:"baseline"}}><span style={{fontSize:18,fontWeight:900}}>{cs.seasons||0}</span><span style={{fontSize:9,color:T.faint}}>{"YRS"}</span></div>
-                    <div style={{display:"flex",gap:4,alignItems:"baseline"}}><span style={{fontSize:18,fontWeight:900}}>{cs.gp||0}</span><span style={{fontSize:9,color:T.faint}}>{"GP"}</span></div>
-                    {(cs.rings||0)>0 && <span style={{fontSize:12,fontWeight:800,color:T.gold}}>{"💍×"+cs.rings}</span>}
-                    {(cs.mvps||0)>0 && <span style={{fontSize:12,fontWeight:800,color:T.gold}}>{"🏆×"+cs.mvps}</span>}
-                    {(cs.allPros||0)>0 && <span style={{fontSize:12,fontWeight:800,color:T.cyan}}>{"⭐×"+cs.allPros}</span>}
-                  </div>
-                  <div style={{fontSize:13,fontWeight:700,color:T.text,padding:"6px 10px",background:"rgba(255,255,255,0.03)",borderRadius:6,borderLeft:"3px solid "+T.purple}}>{careerLine}</div>
-                </div>
-                
-                {p.injury&&p.injury.games>0 && <div style={{padding:"10px 20px",borderBottom:"1px solid "+T.border,background:"rgba(239,68,68,0.06)"}}>
-                  <div style={{fontSize:11,color:T.red,fontWeight:700}}>{(function(){var injMask92=getInjuryMask92(p,my);return "🤕 "+injMask92.type+" — "+injMask92.status;})()}</div>
-                </div>}
-                
-                {p.college && (p.college.passYds||p.college.rushYds||p.college.rec||p.college.starts) && (
-                  <div style={{padding:"12px 20px",borderBottom:"1px solid "+T.border}}>
-                    <div style={{fontSize:9,color:T.cyan,fontWeight:700,marginBottom:6,letterSpacing:1.5}}>{"COLLEGE — "+p.college.school.toUpperCase()}</div>
-                    <div style={{display:"flex",gap:12,fontSize:11,flexWrap:"wrap"}}>
-                      {p.college.passYds && <span><span style={{color:T.faint}}>{"Pass "}</span><span style={{fontWeight:700}}>{p.college.passYds+"yd "+p.college.passTD+"TD "+p.college.int+"INT "+p.college.comp+"%"}</span></span>}
-                      {p.college.rushYds && <span><span style={{color:T.faint}}>{"Rush "}</span><span style={{fontWeight:700}}>{p.college.rushYds+"yd "+p.college.rushTD+"TD "+p.college.ypc+"ypc"}</span></span>}
-                      {p.college.rec && <span><span style={{color:T.faint}}>{"Rec "}</span><span style={{fontWeight:700}}>{p.college.rec+"rec "+p.college.recYds+"yd "+p.college.recTD+"TD"}</span></span>}
-                      {p.college.starts && <span><span style={{color:T.faint}}>{"Starts "}</span><span style={{fontWeight:700}}>{p.college.starts}</span>{p.college.awards&&p.college.awards!=="None" && <span style={{color:T.gold,marginLeft:4}}>{" "+p.college.awards}</span>}</span>}
-                    </div>
-                    {p.combine && <div style={{display:"flex",gap:10,fontSize:10,color:T.dim,marginTop:4}}>
-                      <span>{"40: "+p.combine.forty+"s"}</span>
-                      <span>{"Bench: "+p.combine.bench}</span>
-                      <span>{"Vert: "+p.combine.vertical+'"'}</span>
-                      <span>{"Shuttle: "+p.combine.shuttle+"s"}</span>
-                    </div>}
-                  </div>
-                )}
-                
-                {(function(){
-                  var tags=[];
-                  var phase=getAgingPhase(p);
-                  tags.push({icon:phase.label.split(" ")[0],text:phase.tip,color:phase.color});
-                  // v95.6: hasTrait95 for player card trait tags
-                  if(hasTrait95(p,"captain"))tags.push({icon:"©️",text:"Team Captain — locker room leader",color:T.gold});
-                  if(hasTrait95(p,"clutch"))tags.push({icon:"❄️",text:"Ice in Veins — performs under pressure",color:T.cyan});// v95.6
-                  if(hasTrait95(p,"cancer"))tags.push({icon:"☢️",text:"Locker Room Cancer — hurts team morale",color:T.red});
-                  if(hasTrait95(p,"ironman"))tags.push({icon:"🦾",text:"Ironman — rarely misses time",color:T.green});
-                  if(hasTrait95(p,"glass"))tags.push({icon:"🔮",text:"Made of Glass — always hurt",color:T.red});
-                  if(hasTrait95(p,"workhorse"))tags.push({icon:"🐴",text:"Workhorse — extra development gains",color:T.green});
-                  if(p.devTrait==="superstar")tags.push({icon:"🌟",text:"Generational Talent",color:T.gold});
-                  if((cs.rings||0)>=2)tags.push({icon:"💍",text:"Dynasty Builder — "+cs.rings+" rings",color:T.gold});
-                  else if((cs.rings||0)>=1)tags.push({icon:"💍",text:"Champion",color:T.gold});
-                  if((cs.mvps||0)>=1)tags.push({icon:"🏆",text:"League MVP"+((cs.mvps>1)?"×"+cs.mvps:""),color:T.gold});
-                  if((cs.allPros||0)>=1)tags.push({icon:"⭐",text:"All-Pro×"+(cs.allPros),color:T.gold});
-                  if((cs.proBowls||0)>=1)tags.push({icon:"🏈",text:"Pro Bowl×"+(cs.proBowls),color:T.cyan});
-                  if(p.pff&&p.pff>=85)tags.push({icon:"📊",text:"MFDF Elite ("+p.pff+")",color:"#10b981"});
-                  else if(p.pff&&p.pff>=75)tags.push({icon:"📊",text:"MFDF High Grade ("+p.pff+")",color:"#22d3ee"});
-                  if((cs.seasons||0)>=8)tags.push({icon:"🎖️",text:"Franchise Legend — "+(cs.seasons)+" seasons",color:T.purple});
-                  else if((cs.seasons||0)>=5)tags.push({icon:"📜",text:"Established Veteran",color:T.dim});
-                  if(p.formerTeam)tags.push({icon:"🔥",text:"Revenge Game eligible — ex-"+p.formerTeamName,color:T.red});
-                  if(p.udfaSleeper)tags.push({icon:"💎",text:"Undrafted Gem — rose from nothing",color:T.cyan});
-                  if(p.ovr>=90)tags.push({icon:"👑",text:"Generational — Top of the game",color:T.gold});
-                  else if(p.ovr>=82)tags.push({icon:"⭐",text:"Elite — true difference maker",color:T.green});
-                  else if(p.ovr<55)tags.push({icon:"🪑",text:"Roster Bubble — fighting for a spot",color:T.red});
-                  return tags.length>0?<div style={{padding:"10px 20px",borderBottom:"1px solid "+T.border}}>
-                    <div style={{fontSize:10,color:T.orange,fontWeight:700,marginBottom:6,letterSpacing:1}}>{"STORYLINES"}</div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-                      {tags.slice(0,6).map(function(tag,ti){
-                        return <span key={ti} style={{display:"inline-flex",alignItems:"center",gap:3,padding:"3px 8px",borderRadius:12,fontSize:9,fontWeight:600,
-                          background:"rgba(255,255,255,0.05)",border:"1px solid "+tag.color+"33",color:tag.color}}>
-                          <span>{tag.icon}</span><span>{tag.text}</span>
-                        </span>;
-                      })}
-                    </div>
-                  </div>:null;
-                })()}
-                
-                <div style={{padding:"8px 20px",borderBottom:"1px solid "+T.border}}>
-                  <button onClick={function(e){e.stopPropagation();shopPlayer(p);}} style={mS(S.btn,S.btnPrimary,{width:"100%",padding:10})}>{"🛒 Shop "+p.name}</button>
-                  {shopOffers.length>0 && <div style={{marginTop:8}}>
-                    <div style={{fontSize:10,fontWeight:800,color:T.gold,marginBottom:6}}>{"📊 OFFERS RECEIVED"}</div>
-                    {shopOffers.map(function(off,oi){
-                      var pickStr=off.picks.map(function(pk){return "Rd"+pk.round+(pk.year?" '"+String(pk.year).slice(2):"");}).join(", ");
-                      var plStr=off.players.map(function(pl){return pl.name+" ("+pl.pos+" "+pl.ovr+")";}).join(", ");
-                      var offerStr=[pickStr,plStr].filter(Boolean).join(" + ");
-                      return React.createElement("div",{key:oi,style:mS(S.card,{padding:10,marginBottom:6,cursor:"pointer",borderColor:T.gold}),
-                        onClick:function(e){e.stopPropagation();
-                          setTTI(off.team.id);setTMP([p.id]);setTAP(off.players.map(function(pl){return pl.id;}));
-                          setTMPk([]);setTAPk([]);setTMyPkCond972({});setTAiPkCond972({});setTMsg("");setPlayerDetail(null);setTab("trade");setShopOffers([]);
-                        }},
-                        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},
-                          React.createElement(TeamLogo,{team:off.team,size:22}),
-                          React.createElement("div",null,
-                            React.createElement("div",{style:{fontWeight:700,fontSize:11}},off.team.abbr+" offers:"),
-                            React.createElement("div",{style:{fontSize:10,color:T.cyan}},offerStr||"No valid package")
-                          )
-                        )
-                      );
-                    })}
-                  </div>}
-                </div>
-                
-                <div style={{padding:"12px 20px"}}>
-                  <button onClick={function(){setPlayerDetail(null);setShopOffers([]);}} style={mS(S.btn,S.btnGhost,{width:"100%",padding:10})}>{"Close"}</button>
-                </div>
-              </div>
-            </div>;
-          })()}
+          {playerDetail && <PlayerCard
+            player={playerDetail}
+            my={my}
+            myId={myId}
+            teams={teams}
+            godMode={godMode}
+            holdoutStages={holdoutStages80}
+            holdoutNegotiationActive={!!holdoutNegot77}
+            shopOffers={shopOffers}
+            PlayerFace={PlayerFace}
+            TeamLogo={TeamLogo}
+            getAgingPhase={getAgingPhase}
+            PLAYER_ARCHETYPES={PLAYER_ARCHETYPES}
+            POS_DEF={POS_DEF}
+            TRAITS={TRAITS}
+            RATING_LABELS={RATING_LABELS}
+            REHAB_SYSTEM={REHAB_SYSTEM}
+            hasTrait95={hasTrait95}
+            buttonStyleBuilder={bS}
+            capHelpers={{
+              v36_capHit:v36_capHit,
+              v36_cashPaid:v36_cashPaid,
+              v36_deadIfCut:v36_deadIfCut,
+              v36_deadIfTraded:v36_deadIfTraded,
+              v36_tradeSavings:v36_tradeSavings,
+            }}
+            scoutingHelpers={{
+              confTier:confTier,
+              confColor:confColor,
+              getScoutRpt:getScoutRpt,
+            }}
+            getInjuryMask={getInjuryMask92}
+            onClose={closePlayerDetailCard}
+            onCloseButton={closePlayerDetailCardAndOffers}
+            onRefresh={closePlayerDetailCard}
+            onApplyRehab={handlePlayerCardRehab}
+            onStartHoldoutNegotiation={startPlayerCardHoldoutNegotiation}
+            onShopPlayer={shopPlayer}
+            onAcceptShopOffer={handleAcceptShopOffer}
+            onCompare={handlePlayerCardCompare}
+            onNotify={addN}
+            onGodModeEdit={godModeEdit}
+            onGodModeClone={godModeClonePlayer}
+            onGodModeMove={godModeMovePlayer}
+            onGodModeSteal={godModeStealPlayer}
+            onGodModeForceRetire={godModeForceRetire}
+          />}
           
           {holdoutNegot77 && (function(){
             var hn=holdoutNegot77;
@@ -43087,45 +42654,38 @@ var GS={
           
           {autoSaveInd && <div style={{position:"fixed",bottom:60,right:16,background:T.bg2,color:T.dim,padding:"6px 14px",borderRadius:8,fontSize:11,fontWeight:600,border:"1px solid "+T.bg3,zIndex:9000,animation:"fadeInOut 1.4s ease-in-out forwards"}}>{autoSaveInd}</div>}
           
-          {showKbHelp && <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:9500,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={function(){setShowKbHelp(false);}}>
-            <div style={{background:T.bg2,border:"1px solid "+T.gold,borderRadius:12,padding:24,maxWidth:500,width:"90%",maxHeight:"80vh",overflowY:"auto"}} onClick={function(e){e.stopPropagation();}}>
-              <div style={{fontSize:18,fontWeight:800,color:T.gold,marginBottom:16,display:"inline-flex",alignItems:"center",gap:8}}>
-                {React.createElement(Icon,{name:"list",size:18,color:T.gold})}
-                <span>{"Keyboard Shortcuts"}</span>
-              </div>
-              {HELP_SECTIONS.map(function(sec){
-                return <div key={sec.title} style={{marginBottom:16}}>
-                  <div style={{fontSize:12,fontWeight:700,color:T.cyan,marginBottom:6,textTransform:"uppercase"}}>{sec.title}</div>
-                  {sec.keys.map(function(kb){
-                    return <div key={kb.k} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",fontSize:13}}>
-                      <span style={{color:T.text,fontWeight:600}}>{kb.desc}</span>
-                      <span style={{background:T.bg3,color:T.dim,padding:"2px 8px",borderRadius:4,fontFamily:"monospace",fontSize:11}}>{kb.k}</span>
-                    </div>;
-                  })}
-                </div>;
-              })}
-              <div style={{fontSize:10,color:T.faint,marginTop:12}}>{"Tip: shortcuts are disabled while typing in boxes."}</div>
-              <button onClick={function(){setShowKbHelp(false);}} style={{marginTop:12,background:T.gold,color:"#000",border:"none",borderRadius:6,padding:"8px 20px",fontWeight:700,cursor:"pointer"}}>{"Close (Esc)"}</button>
+          <Modal isOpen={showKbHelp} onClose={closeKeyboardHelp} borderColor={T.gold} contentStyle={{maxHeight:"80vh",overflowY:"auto"}}>
+            <div style={{fontSize:18,fontWeight:800,color:T.gold,marginBottom:16,display:"inline-flex",alignItems:"center",gap:8}}>
+              {React.createElement(Icon,{name:"list",size:18,color:T.gold})}
+              <span>{"Keyboard Shortcuts"}</span>
             </div>
-          </div>}
+            {HELP_SECTIONS.map(function(sec){
+              return <div key={sec.title} style={{marginBottom:16}}>
+                <div style={{fontSize:12,fontWeight:700,color:T.cyan,marginBottom:6,textTransform:"uppercase"}}>{sec.title}</div>
+                {sec.keys.map(function(kb){
+                  return <div key={kb.k} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",fontSize:13}}>
+                    <span style={{color:T.text,fontWeight:600}}>{kb.desc}</span>
+                    <span style={{background:T.bg3,color:T.dim,padding:"2px 8px",borderRadius:4,fontFamily:"monospace",fontSize:11}}>{kb.k}</span>
+                  </div>;
+                })}
+              </div>;
+            })}
+            <div style={{fontSize:10,color:T.faint,marginTop:12}}>{"Tip: shortcuts are disabled while typing in boxes."}</div>
+            <button onClick={closeKeyboardHelp} style={{marginTop:12,background:T.gold,color:"#000",border:"none",borderRadius:6,padding:"8px 20px",fontWeight:700,cursor:"pointer"}}>{"Close (Esc)"}</button>
+          </Modal>
           
-          {importModal && <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:9500,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={function(){setImportModal(false);}}>
-            <div style={{background:T.bg2,border:"1px solid "+T.cyan,borderRadius:12,padding:24,maxWidth:500,width:"90%"}} onClick={function(e){e.stopPropagation();}}>
-              <div style={{fontSize:16,fontWeight:800,color:T.cyan,marginBottom:8}}>{"📋 Import Save"}</div>
-              <div style={{fontSize:12,color:T.dim,marginBottom:12}}>{"Paste a save string to restore a league. This will overwrite your current league."}</div>
-              <textarea value={importStr} onChange={function(e){setImportStr(e.target.value);}}
-                placeholder="Paste your save string here..."
-                style={{width:"100%",height:120,background:T.bg,color:T.text,border:"1px solid "+T.bg3,borderRadius:6,padding:10,fontSize:12,fontFamily:"monospace",resize:"vertical"}}/>
-              <div style={{display:"flex",gap:8,marginTop:12}}>
-                <button onClick={function(){
-                  if(!importStr.trim()){addN("❌ Paste a save string first.","red");return;}
-                  importClipboard(importStr);setImportModal(false);setImportStr("");
-                }} style={{background:T.cyan,color:"#000",border:"none",borderRadius:6,padding:"8px 20px",fontWeight:700,cursor:"pointer"}}>{"Overwrite & Import"}</button>
-                <button onClick={function(){setImportModal(false);setImportStr("");}} style={{background:T.bg3,color:T.dim,border:"none",borderRadius:6,padding:"8px 20px",fontWeight:600,cursor:"pointer"}}>{"Cancel"}</button>
-              </div>
-              <div style={{fontSize:10,color:T.faint,marginTop:10}}>{"Move your league between devices by exporting a save string. Paste it on another computer to restore your league exactly—same teams, same seasons, same history."}</div>
+          <Modal isOpen={importModal} onClose={closeImportModal} borderColor={T.cyan}>
+            <div style={{fontSize:16,fontWeight:800,color:T.cyan,marginBottom:8}}>{"📋 Import Save"}</div>
+            <div style={{fontSize:12,color:T.dim,marginBottom:12}}>{"Paste a save string to restore a league. This will overwrite your current league."}</div>
+            <textarea value={importStr} onChange={function(e){setImportStr(e.target.value);}}
+              placeholder="Paste your save string here..."
+              style={{width:"100%",height:120,background:T.bg,color:T.text,border:"1px solid "+T.bg3,borderRadius:6,padding:10,fontSize:12,fontFamily:"monospace",resize:"vertical"}}/>
+            <div style={{display:"flex",gap:8,marginTop:12}}>
+              <button onClick={handleImportModalSubmit} style={{background:T.cyan,color:"#000",border:"none",borderRadius:6,padding:"8px 20px",fontWeight:700,cursor:"pointer"}}>{"Overwrite & Import"}</button>
+              <button onClick={dismissImportModal} style={{background:T.bg3,color:T.dim,border:"none",borderRadius:6,padding:"8px 20px",fontWeight:600,cursor:"pointer"}}>{"Cancel"}</button>
             </div>
-          </div>}
+            <div style={{fontSize:10,color:T.faint,marginTop:10}}>{"Move your league between devices by exporting a save string. Paste it on another computer to restore your league exactly—same teams, same seasons, same history."}</div>
+          </Modal>
           
           {careerPage && <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:9500,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={function(){setCareerPage(null);}}>
             <div style={{background:T.bg2,border:"1px solid "+T.gold,borderRadius:12,padding:20,maxWidth:500,width:"90%",maxHeight:"80vh",overflow:"auto"}} onClick={function(e){e.stopPropagation();}}>
