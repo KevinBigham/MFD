@@ -41,6 +41,7 @@ import { OWNER_TYPES, OWNER_GOALS } from './src/systems/owner-goals-v2.js';
 import { LOCKER_EVENTS, checkLockerEvents } from './src/systems/locker-events.js';
 import { ROLE_DEFS, assignDefaultRoles, getRoleSnapPct } from './src/systems/role-defs.js';
 import { RIVALRY_TROPHIES_986, POWER_RANKINGS_986, CAP_PROJ_986, GENERATIONAL_986, OWNER_MODE_986, PLAYER_COMPARE_986 } from './src/systems/game-features.js';
+import { CEREMONY_986 } from './src/systems/ceremony.js';
 import { buildTheaterState } from './src/app/theater-state.js';
 import { TRAINING_CAMP_986, configureTrainingCampRuntime } from './src/systems/training-camp.js';
 import { FRANCHISE_TAG_986 } from './src/systems/franchise-tag.js';
@@ -748,29 +749,6 @@ var TIMELINE_986={
     return timeline;
   },
   types:{trade:"🔄",draft:"📋",sign:"✍️",championship:"🏆",fired:"🔥",record:"📊",milestone:"🎯",injury:"🤕",retire:"🚪"}
-};
-
-// #12/#20: RETIREMENT & HOF CEREMONY
-var CEREMONY_986={
-  generateRetirementSpeech:function(player,team,careerStats){
-    var cs=careerStats||{};
-    var lines=["\"It's been an incredible journey with the "+team.city+" "+team.name+".\""];
-    if((cs.seasons||0)>=10)lines.push("\""+((cs.seasons||0))+" seasons. I wouldn't trade a single one.\"");
-    if((cs.proBowls||0)>=3)lines.push("\""+(cs.proBowls)+" Pro Bowls — each one a reminder of the team behind me.\"");
-    if((cs.passYds||0)>20000)lines.push("\"Over "+Math.round((cs.passYds||0)/1000)+"k passing yards. Every one of them belongs to my teammates.\"");
-    if((cs.rushYds||0)>5000)lines.push("\""+Math.round((cs.rushYds||0)/1000)+"k rushing yards. I left everything on that field.\"");
-    if((cs.sacks||0)>50)lines.push("\""+(cs.sacks||0)+" sacks. I lived in the backfield.\"");
-    lines.push("\"To the fans — you made this city my home. Thank you.\"");
-    return{lines:lines,isHoFWorthy:(cs.proBowls||0)>=4||(cs.seasons||0)>=10};
-  },
-  generateHoFSpeech:function(player,stats){
-    var lines=["\"Standing here in the Hall of Fame... I'm speechless.\""];
-    lines.push("\"From "+((player.college?player.college.school||player.college:"a small town"))+" to the pinnacle of football.\"");
-    if((stats.allPros||0)>=2)lines.push("\""+(stats.allPros)+" All-Pro selections. That's the one I'm most proud of.\"");
-    lines.push("\"To every coach who pushed me, every teammate who believed — this is yours too.\"");
-    lines.push("\"I am, and always will be, a football player. Thank you.\"");
-    return lines;
-  }
 };
 
 // #4: PRACTICE SQUAD SYSTEM
