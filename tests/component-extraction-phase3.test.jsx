@@ -24,7 +24,7 @@ describe('component extraction phase 3', () => {
     expect(barrelSrc).toContain("export { PlayerCard } from './PlayerCard.jsx';");
     expect(barrelSrc).toContain("export { ToastContainer } from './Toast.jsx';");
 
-    expect(monolithSrc).toContain("import { StatBar, ToneBadge, WeeklyShowCard, Icon, Modal, PlayerCard, ToastContainer } from './src/components/index.js';");
+    expect(monolithSrc).toContain("import { StatBar, ToneBadge, WeeklyShowCard, Icon, Modal, PlayerCard, ToastContainer, TerminalBoot, MondayBriefing, ChampionshipOverlay, DraftPickOverlay, PlayoffClinchOverlay, HallOfFameOverlay, InjuryOverlay, FiredOverlay, DynastyCartridge, UnresolvedHooks, ConsequenceRibbon, WeekAdvanceChecklist } from './src/components/index.js';");
     expect(monolithSrc).toContain('{playerDetail && <PlayerCard');
     expect(monolithSrc).toContain('<Modal isOpen={showKbHelp}');
     expect(monolithSrc).toContain('<Modal isOpen={importModal}');

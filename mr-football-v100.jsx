@@ -21,7 +21,14 @@ import { TEAM_CLIMATES, CLIMATE_PROFILES, WEATHER, HT_CONDITIONS, HT_STRATEGIES 
 import { BREAKOUT_SYSTEM } from './src/systems/breakout-system.js';
 import { calcDominanceScore, calcDynastyIndex, calcPeakPower, calcLongevity, generateIdentityTags, ERA_THRESHOLD, ALMANAC_SCHEMA_VERSION, generateEraCards, buildHallOfSeasons } from './src/systems/dynasty-analytics.js';
 import { PLAYBOOK_986 } from './src/systems/playbook.js';
-import { StatBar, ToneBadge, WeeklyShowCard, Icon, Modal, PlayerCard, ToastContainer } from './src/components/index.js';
+import { StatBar, ToneBadge, WeeklyShowCard, Icon, Modal, PlayerCard, ToastContainer, TerminalBoot, MondayBriefing, ChampionshipOverlay, DraftPickOverlay, PlayoffClinchOverlay, HallOfFameOverlay, InjuryOverlay, FiredOverlay, DynastyCartridge, UnresolvedHooks, ConsequenceRibbon, WeekAdvanceChecklist } from './src/components/index.js';
+import { DYNASTY_CARTRIDGE } from './src/systems/dynasty-cartridge.js';
+import { HOOKS_ENGINE } from './src/systems/hooks-engine.js';
+import { buildChecklist } from './src/components/WeekAdvanceChecklist.jsx';
+import { captureSnapshot, computeDeltas } from './src/components/ConsequenceRibbon.jsx';
+import { EXPORT_ENGINE } from './src/systems/export-engine.js';
+import { SCENARIO_SEEDS } from './src/systems/scenario-seeds.js';
+import { LEGACY_SYSTEM } from './src/systems/legacy-system.js';
 import { ROOKIE_STEPS, createRookieFlow, advanceRookieFlow, completeRookieFlow, formatRookieDuration, shouldShowRookieCoachCard } from './src/app/rookie-funnel.js';
 import { NARRATIVE_STATES, STORY_ARC_EVENTS, pickWeightedEvent } from './src/systems/story-arcs.js';
 import { STORY_ARC_ENGINE } from './src/systems/story-arc-engine.js';
@@ -16698,6 +16705,33 @@ var EXPLAIN={
 };
 function AppCore(){
   var _s=useState("title"),screen=_s[0],setScreen=_s[1];
+  var _showBoot=useState(false),showBoot=_showBoot[0],setShowBoot=_showBoot[1];// Round1: Terminal Boot
+  var _bootNewGame=useState(false),bootIsNewGame=_bootNewGame[0],setBootIsNewGame=_bootNewGame[1];// Round1: new vs load
+  var _showBriefing=useState(false),showBriefing=_showBriefing[0],setShowBriefing=_showBriefing[1];// Round1: Monday Briefing
+  // ═══ Round 2: Ceremony Overlay states ═══
+  var _champOverlay=useState(null),champOverlay=_champOverlay[0],setChampOverlay=_champOverlay[1];// Round2: Championship ceremony data
+  var _draftPickOverlay=useState(null),draftPickOverlay=_draftPickOverlay[0],setDraftPickOverlay=_draftPickOverlay[1];// Round2: Draft pick reveal data
+  var _clinchOverlay=useState(null),clinchOverlay=_clinchOverlay[0],setClinchOverlay=_clinchOverlay[1];// Round2: Playoff clinch data
+  var _hofOverlay=useState(null),hofOverlay=_hofOverlay[0],setHofOverlay=_hofOverlay[1];// Round2: Hall of Fame ceremony data
+  var _injuryOverlay=useState(null),injuryOverlay=_injuryOverlay[0],setInjuryOverlay=_injuryOverlay[1];// Round2: Season-ending injury data
+  var _firedOverlay=useState(false),firedOverlay=_firedOverlay[0],setFiredOverlay=_firedOverlay[1];// Round2: Fired/game-over overlay
+  // ═══ End Round 2 states ═══
+  // ═══ Round 4: Dynasty Cartridge states ═══
+  var _cartridgeMode=useState(null),cartridgeMode=_cartridgeMode[0],setCartridgeMode=_cartridgeMode[1];// Round4: "export"|"import"|null
+  var _lastExportTime=useState(function(){try{return parseInt(localStorage.getItem("mfd.lastExport")||"0",10);}catch(e){return 0;}}),lastExportTime=_lastExportTime[0],setLastExportTime=_lastExportTime[1];// Round4: timestamp
+  // ═══ End Round 4 states ═══
+  // ═══ Round 6: Hooks & Open Loops states ═══
+  var _showHooks=useState(false),showHooks=_showHooks[0],setShowHooks=_showHooks[1];// Round6: Coming Attractions overlay
+  var _currentHooks=useState([]),currentHooks=_currentHooks[0],setCurrentHooks=_currentHooks[1];// Round6: hook data
+  var _lastHookCats=useState([]),lastHookCats=_lastHookCats[0],setLastHookCats=_lastHookCats[1];// Round6: last shown categories
+  var _nemesis=useState(null),nemesis=_nemesis[0],setNemesis=_nemesis[1];// Round6: nemesis team data
+  // ═══ End Round 6 states ═══
+  // ═══ Round 8: Consequence Ribbon & Checklist states ═══
+  var _ribbonDeltas=useState(null),ribbonDeltas=_ribbonDeltas[0],setRibbonDeltas=_ribbonDeltas[1];// Round8: consequence ribbon data
+  var _showChecklist=useState(false),showChecklist=_showChecklist[0],setShowChecklist=_showChecklist[1];// Round8: advance checklist
+  var _checklistItems=useState([]),checklistItems=_checklistItems[0],setChecklistItems=_checklistItems[1];// Round8: checklist items
+  // ═══ End Round 8 states ═══
+  var _clinchShownYear=useState(0),clinchShownYear=_clinchShownYear[0],setClinchShownYear=_clinchShownYear[1];// Round2 fix: prevent repeat clinch
   var ROOKIE_TARGET_MS=120000;
   function makeIdleRookieFlow(){
     return {active:false,step:ROOKIE_STEPS.IDLE,startedAtMs:0,stepStartedAtMs:0,completedAtMs:null,firstGameMs:null,skipped:false};
@@ -17104,7 +17138,7 @@ var GS={
       if((e.ctrlKey||e.metaKey)&&e.shiftKey&&(k==="C"||k==="c")){e.preventDefault();exportClipboard();return;}
       if((e.ctrlKey||e.metaKey)&&k==="o"){e.preventDefault();setImportModal(true);return;}
       if(k==="?"||k==="/"){setShowKbHelp(function(v){return !v;});return;}
-      if(k==="Escape"){setShowKbHelp(false);setImportModal(false);setPlayerDetail(null);setWeekShow(null);setFitDrilldown(null);setSchemeConfirm(null);return;}
+      if(k==="Escape"){setShowBriefing(false);setShowKbHelp(false);setImportModal(false);setPlayerDetail(null);setWeekShow(null);setFitDrilldown(null);setSchemeConfirm(null);return;}
       if(showKbHelp||importModal||weekShow||playerDetail||fitDrilldown||schemeConfirm)return;
       if(k>="1"&&k<="9"){var idx=parseInt(k)-1;if(idx<TAB_ORDER.length){
         if(!isTabUnlocked(TAB_ORDER[idx],unlocks,godMode)){addN("🔒 Tab locked — keep playing to unlock!","info");return;}
@@ -19232,7 +19266,7 @@ var GS={
     setPracFocus("scout");setPracXpWeek87("");
     var my2=t.find(function(x){return x.id===myId;});
     setNews([{text:my2.icon+" "+my2.city+" "+my2.name+" — League Inaugural Draft complete! Your franchise is live.",type:"gold",id:U()}]);
-    setTab("home");setScreen("league");
+    setTab("home");setScreen("league");setBootIsNewGame(true);setShowBoot(true);
     saveG({saveVersion:SAVE_VERSION,difficulty:difficulty,teams:t,myId:myId,sched:s,season:{year:2026,week:1,phase:"regular",ledger:[]},fas:f,history:[],seed:leagueSeed,hallOfFame:[]});
   }
   function initExpAuctionDraft(idx,depth){
@@ -19561,7 +19595,7 @@ var GS={
     t.forEach(function(tm){if(tm.id!==t[idx].id)initTrust69.gmTrustByTeam[tm.id]=50;});
     setTradeState(initTrust69);
     setNews([{text:t[idx].icon+" "+t[idx].city+" "+t[idx].name+" — The Franchise is live. Seed: "+leagueSeed,type:"gold",id:U()}]);
-    setTab("home");setScreen("league");
+    setTab("home");setScreen("league");setBootIsNewGame(true);setShowBoot(true);
     saveG({teams:t,myId:t[idx].id,sched:s,season:{year:2026,week:1,phase:"regular",ledger:[]},fas:f,history:[],seed:leagueSeed,hallOfFame:[]});
     }catch(e){console.error("createLeague error:",e);alert("League creation error: "+e.message);}
   }
@@ -20285,7 +20319,7 @@ var GS={
     var loadedUnlocks=d.unlocks||DEFAULT_UNLOCKS;
     var checkedUnlocks=checkUnlocks(loadedUnlocks,d.season,d.teams,d.myId,d.godMode);
     setUnlocks(checkedUnlocks);
-    setTab("home");setScreen("league");}
+    setTab("home");setScreen("league");setBootIsNewGame(false);setShowBoot(true);}
   function _applyPositionBattleResult974(team,battle,winnerId,autoResolved){
     if(!team||!battle||!winnerId)return battle;
     var loserId=(battle.incumbent&&battle.incumbent.id)===winnerId?(battle.challenger&&battle.challenger.id):(battle.incumbent&&battle.incumbent.id);
@@ -20741,7 +20775,13 @@ var GS={
               else met81=true;// For trade/fire, check is simpler
             }
           });
-          if(!met81){addN("💀 FIRED! Owner has lost all patience. Your dynasty is over.","red");setScreen("fired81");}
+          if(!met81){addN("💀 FIRED! Owner has lost all patience. Your dynasty is over.","red");
+            // ═══ Round 2: Fired Overlay ═══
+            var _firedTitles=history?history.filter(function(h){return h.winnerId===myId||h.champId===myId;}).length:0;
+            var _firedW=0,_firedL=0;if(history)history.forEach(function(h){if(h.teamRecords){var _mr=h.teamRecords.find(function(r){return r.id===myId;});if(_mr){_firedW+=(_mr.wins||0);_firedL+=(_mr.losses||0);}}});
+            setFiredOverlay({reason:ultimatumDeadline81?ultimatumDeadline81.type:"Owner lost patience",seasons:season.year-2026,titles:_firedTitles,totalW:_firedW,totalL:_firedL,legacyTier:_firedTitles>=3?"Dynasty":_firedTitles>=1?"Champion":_firedW>_firedL?"Winning Record":"Forgettable"});
+            // ═══ End Round 2 Fired ═══
+            setScreen("fired81");}
           else{setUltimatumDeadline81(null);setOwnerPatience80(Math.min(100,ownerPatience80+20));addN("✅ Ultimatum met! Owner patience restored.","gold");}
         }
         var foRelBonus81=FRONT_OFFICE.getBonus(frontOffice78,"morale");
@@ -21609,15 +21649,35 @@ var GS={
         r.change=prev?(prev.rank-r.rank):0;
       });
       setPowerRankings986(newR);
-      // #9: Press Conference (after user game)
+      // #9: Press Conference (after user game) — Round 5: significant events only
       var uTeam986=nt.find(function(t){return t.id===myId;});
       var uGame986=ns.find(function(g){return g.week===season.week&&g.played&&(g.home===myId||g.away===myId);});
       if(uTeam986&&uGame986&&uGame986.result){
         var uWon986=uGame986.home===myId?uGame986.result.home>uGame986.result.away:uGame986.result.away>uGame986.result.home;
         var uDiff986=uGame986.home===myId?(uGame986.result.home-uGame986.result.away):(uGame986.result.away-uGame986.result.home);
-        var pc986=PRESS_CONF_986.generate(uTeam986,season.week,uWon986,uDiff986,RNG.ui||Math.random);
-        var qs986=pc986.questions||pc986||[];// v99.2 compat (now returns obj with .questions)
-        if(qs986.length>0)setPressConf986({week:season.week,won:uWon986,diff:uDiff986,questions:qs986,coachQuote:pc986.coachQuote||null,answered:false});
+        // ═══ Round 5: Press Conference Trigger Conditions ═══
+        var _pressSignificant=false;
+        if(Math.abs(uDiff986)>=14)_pressSignificant=true;// Blowout win or loss
+        if(!uWon986&&uDiff986<=-7)_pressSignificant=true;// Notable loss
+        var _oppId986=uGame986.home===myId?uGame986.away:uGame986.home;
+        var _oppT986=nt.find(function(t){return t.id===_oppId986;});
+        if(_oppT986&&uTeam986&&_findRivalObj&&_findRivalObj(uTeam986,_oppId986)){var _riv986=_findRivalObj(uTeam986,_oppId986);if(_riv986&&(_riv986.heat||0)>=5)_pressSignificant=true;}// Rival game
+        if(uTeam986.streak>=3||uTeam986.loseStreak>=3)_pressSignificant=true;// Streak
+        if((ownerPatience80||70)<40)_pressSignificant=true;// Hot seat
+        if(season.week>=14)_pressSignificant=true;// Late season
+        if(season.week===1)_pressSignificant=true;// Season opener
+        var _lastPressWeek=pressConf986?pressConf986.week:0;
+        if(season.week-_lastPressWeek<2&&!_pressSignificant)_pressSignificant=false;// Cooldown
+        if(_pressSignificant){
+          var pc986=PRESS_CONF_986.generate(uTeam986,season.week,uWon986,uDiff986,RNG.ui||Math.random);
+          var qs986=pc986.questions||pc986||[];
+          if(qs986.length>0)setPressConf986({week:season.week,won:uWon986,diff:uDiff986,questions:qs986,coachQuote:pc986.coachQuote||null,answered:false});
+        }else{
+          // Auto-summary for routine weeks
+          var _autoLabel=uWon986?("Coach declined comment after the "+uGame986.result.home+"-"+uGame986.result.away+" victory."):("Coach declined comment after the "+uGame986.result.home+"-"+uGame986.result.away+" loss.");
+          addN("\uD83C\uDFA4 MEDIA CYCLE: "+_autoLabel,"dim");
+        }
+        // ═══ End Round 5 Press Conference Reform ═══
       }
       // #7: GM Reputation update
       setGmRep986(GM_REP_986.calculate(txLog,tradeState));
@@ -21628,12 +21688,65 @@ var GS={
         if(uTeam986.streak>=5)setTimeline986(function(prev){return TIMELINE_986.addEvent(prev,season.year,season.week,"milestone",uTeam986.streak+"-game win streak!","🔥");});
       }
     }catch(e986){console.error("v98.6 weekly hooks error:",e986);}})();
+    // ═══ Round 2: Season-Ending Injury Detection ═══
+    (function(){try{
+      var _myR2i=nt.find(function(t){return t.id===myId;});
+      if(_myR2i){
+        var _severeInj=_myR2i.roster.filter(function(p){return p.injury&&p.injury.games>=8&&p.ovr>=70;});
+        if(_severeInj.length>0){
+          var _worst=_severeInj.sort(function(a,b){return b.ovr-a.ovr;})[0];
+          setInjuryOverlay({name:_worst.name,pos:_worst.pos,ovr:_worst.ovr,injuryType:_worst.injury.type||"Injury",weeksOut:_worst.injury.games,impact:"Key starter will miss significant time."});
+        }
+      }
+    }catch(e_inj){console.error("Round 2 injury overlay error:",e_inj);}})();
+    // ═══ End Round 2 Injury ═══
+    // ═══ Round 2: Playoff Clinch Detection ═══
+    (function(){try{
+      var _myR2=nt.find(function(t){return t.id===myId;});
+      if(_myR2&&!clinchOverlay&&clinchShownYear!==season.year){
+        var _totalGames=sched.filter(function(g){return (g.home===myId||g.away===myId);}).length;
+        var _played=sched.filter(function(g){return (g.home===myId||g.away===myId)&&g.played;}).length;
+        var _remain=_totalGames-_played;
+        // Sort teams by wins desc to find playoff cutoff
+        var _sorted=nt.slice().sort(function(a,b){return b.wins!==a.wins?b.wins-a.wins:(b.pf||0)-(a.pf||0);});
+        var _playoffSpots=Math.min(8,Math.floor(nt.length/4));
+        if(_playoffSpots<4)_playoffSpots=4;
+        var _cutoffTeam=_sorted[_playoffSpots]||null;
+        var _cutoffMaxWins=_cutoffTeam?_cutoffTeam.wins+(_remain):999;
+        var _rank=_sorted.findIndex(function(t){return t.id===myId;})+1;
+        if(_myR2.wins>(_cutoffTeam?_cutoffTeam.wins+_remain:999)||(_remain===0&&_rank<=_playoffSpots)){
+          setClinchOverlay({teamName:_myR2.city?_myR2.city+" "+_myR2.name:_myR2.name,teamIcon:_myR2.icon||"",record:_myR2.wins+"-"+_myR2.losses,seed:_rank});
+          setClinchShownYear(season.year);
+        }
+      }
+    }catch(e_clinch){console.error("Round 2 clinch check error:",e_clinch);}})();
+    // ═══ End Round 2 Clinch ═══
     doSave(nt,ns,{year:season.year,week:season.week+1,phase:"regular",ledger:wkLedger});
+    // ═══ Round 6: Generate Hooks after week sim ═══
+    (function(){try{
+      var _hooksMyTeam=nt.find(function(t){return t.id===myId;});
+      if(_hooksMyTeam){
+        var _hooksState={my:_hooksMyTeam,myId:myId,teams:nt,sched:ns,season:season,ownerPatience:ownerPatience80,nemesis:nemesis};
+        var _hooks=HOOKS_ENGINE.generate(_hooksState,lastHookCats);
+        if(_hooks.length>0){
+          setCurrentHooks(_hooks);
+          setLastHookCats(_hooks.map(function(h){return h.cat;}));
+          setShowHooks(true);
+        }
+      }
+    }catch(e_hooks){console.error("Round 6 hooks error:",e_hooks);}})();
+    // ═══ End Round 6 hooks ═══
     }catch(e){addN("❌ Sim error: "+e.message,"red");console.error("simWeek error:",e);alert("Sim error — please try again.\n\n"+e.message);}
   }
   // v97.7: Game Day Handlers
   function handleGameDayStart977(){
     var my977=teams.find(function(t){return t.id===myId;});
+    // ═══ Round 8: Week Advance Safety Checklist ═══
+    if(my977&&!showChecklist){
+      var _cl8=buildChecklist(my977,season,inbox,pracFocus);
+      if(_cl8.length>0){setChecklistItems(_cl8);setShowChecklist(true);return;}
+    }
+    // ═══ End Round 8 checklist ═══
     if(!my977||season.phase!=="regular")return simWeek();
     var nextG977=sched.find(function(g){return g.week===season.week&&!g.played&&(g.home===myId||g.away===myId);});
     if(!nextG977)return simWeek();
@@ -22500,6 +22613,27 @@ var GS={
         }
       }
       if(winnerId===myId)setShowConfetti(true);
+      // ═══ Round 2: Championship Ceremony Overlay ═══
+      if(winnerId===myId){
+        var _champWinner=br.champ.winner||{};
+        var _champTitleCount=(history?history.filter(function(h){return h.winnerId===myId||h.champId===myId;}).length:0)+1;
+        var _champScore=br.champ.result?br.champ.result.home+"-"+br.champ.result.away:"";
+        var _champMvp=entry.mvp?{name:entry.mvp.name,pos:entry.mvp.pos,statLine:entry.mvp.hl||""}:null;
+        setChampOverlay({teamName:_champWinner.name||"",teamIcon:_champWinner.icon||"",teamColor:_champWinner.color1||T.gold,year:season.year,score:_champScore,mvp:_champMvp,titleCount:_champTitleCount});
+      }
+      // ═══ End Round 2 Championship ═══
+      // ═══ Round 4: Auto-backup prompt after championship ═══
+      if(winnerId===myId){addN("💾 CHAMPION! Export your Dynasty Cartridge to immortalize this moment.","gold",{type:"tab",tab:"settings"});}
+      // ═══ End Round 4 champ backup ═══
+      // ═══ Round 10: Legacy achievements on championship ═══
+      if(winnerId===myId){
+        var _legRes=LEGACY_SYSTEM.award("title");
+        if(_legRes)addN("🏆 LEGACY: "+_legRes.achievement.label+" unlocked! (+"+_legRes.achievement.xp+" XP)","gold");
+        var _titleCount10=history?history.filter(function(h){return h.winnerId===myId||h.champId===myId;}).length+1:1;
+        if(_titleCount10>=3){var _lr3=LEGACY_SYSTEM.award("dynasty");if(_lr3)addN("👑 LEGACY: "+_lr3.achievement.label+"! (+"+_lr3.achievement.xp+" XP)","gold");}
+        if(_titleCount10>=5){var _lr5=LEGACY_SYSTEM.award("goat");if(_lr5)addN("🐐 LEGACY: "+_lr5.achievement.label+"! (+"+_lr5.achievement.xp+" XP)","gold");}
+      }
+      // ═══ End Round 10 champ legacy ═══
       if(entry.mvp)addN("🏅 MVP: "+entry.mvp.name+"("+entry.mvp.pos+") — "+entry.mvp.hl,"gold");
       if(entry.allPro){addN("⭐ All-Pro: "+Object.entries(entry.allPro).map(function(e){return e[0]+":"+e[1].name;}).join(", "),"info");}
       if(entry.opoy)addN("🏈 OPOY: "+entry.opoy.name+"("+entry.opoy.pos+")","green");
@@ -22547,6 +22681,9 @@ var GS={
           (function(){try{
             var hofLines986=CEREMONY_986.generateHoFSpeech({name:h.name,pos:h.pos,college:h.college||""},{allPros:h.allPros||0,proBowls:h.proBowls||0,seasons:h.seasons||0});
             setHofCeremony986({type:"hof",player:h.name+" ("+h.pos+")",lines:hofLines986,score:h.score});
+            // ═══ Round 2: Hall of Fame Overlay ═══
+            setHofOverlay({name:h.name,pos:h.pos,year:season.year,seasons:h.seasons||0,score:h.score,stats:h.statLine||"",speechLines:hofLines986});
+            // ═══ End Round 2 HoF ═══
             setTimeline986(function(prev){return TIMELINE_986.addEvent(prev,season.year,0,"milestone",h.name+" inducted into Hall of Fame (Score: "+h.score+")","🏛️");});
           }catch(e986hof){console.error("v98.6 HOF ceremony error:",e986hof);}})();
         });
@@ -23216,6 +23353,9 @@ var GS={
     })();
     logTx("DRAFT_PICK",{name:p.name,pos:p.pos,ovr:p.ovr,round:boardPick.round,pickNum:boardPick.pickNum,salary:p.contract.salary,devTrait:p.devTrait,trait:p.trait});
     ledgerLog("DRAFT",myId,"Drafted "+p.name+"("+p.pos+") Rd"+boardPick.round+" Pick #"+boardPick.pickNum+" $"+p.contract.salary+"M",{pid:p.id,name:p.name,pos:p.pos,ovr:p.ovr,round:boardPick.round,pick:boardPick.pickNum});
+    // ═══ Round 2: Draft Pick Reveal Overlay ═══
+    setDraftPickOverlay({name:p.name,pos:p.pos,college:p.college?(p.college.school||p.college):"",ovr:p.ovr,devTrait:p.devTrait||"normal",trait:trObj.name||"",round:boardPick.round,pickNum:boardPick.pickNum,scoutGrade:p.scoutGrade||""});
+    // ═══ End Round 2 Draft ═══
     var dnEntry=buildDraftNightPick(boardPick,p,u2,boardPick.pickNum-1,draftBoard.length,teams);
     if(dnEntry){
       dnEntry.comment=getDraftCommentary(boardPick.round||1,p.ovr||65);
@@ -23270,6 +23410,9 @@ var GS={
       showGuide("fa");
       var sleeperCount=udfa.filter(function(x){return x.udfaSleeper;}).length;
       addN("📋 Draft complete! "+udfa.length+" undrafted players entered Free Agency."+(sleeperCount>0?" 💎 "+sleeperCount+" sleeper(s) developed in offseason training!":""),"gold");
+      // ═══ Round 4: Auto-backup prompt after draft ═══
+      if(DYNASTY_CARTRIDGE.shouldPromptBackup(lastExportTime,history?history.length:0)){addN("💾 BACKUP RECOMMENDED — Your dynasty is "+(history?history.length:0)+" season(s) old. Export your Dynasty Cartridge to stay safe.","orange",{type:"tab",tab:"settings"});}
+      // ═══ End Round 4 draft backup ═══
       // v98.5: Archive ALL draft picks permanently
       (function(){
         var archive98={year:season.year,picks:[],isInaugural:draftHistory98.length===0};
@@ -26089,6 +26232,73 @@ var GS={
     }catch(renderErr2){console.error("Auction draft render error:",renderErr2);return <div style={{padding:40,color:"red",background:"#111",minHeight:"100vh"}}><h2>{"Auction Render Error"}</h2><pre>{String(renderErr2)}</pre><button onClick={function(){setScreen("draftMode");}}>{"← Back"}</button></div>;}
   }
   if(screen==="league"&&my){
+    // ═══ Round 1: Terminal Boot + Monday Briefing overlays ═══
+    var _bootGameState={teams:teams,myId:myId,season:season,seed:SEED_GLOBAL};
+    var _bootOverlay=showBoot?React.createElement(TerminalBoot,{
+      gameState:_bootGameState,isNewGame:bootIsNewGame,
+      onComplete:function(){setShowBoot(false);setShowBriefing(true);}
+    }):null;
+    var _briefingOverlay=showBriefing?React.createElement(MondayBriefing,{
+      teams:teams,myId:myId,season:season,sched:sched,
+      newsTicker78:news,ownerPatience:ownerPatience80,
+      pracFocus:pracFocus,holdoutStages:holdoutStages80,
+      onDismiss:function(){setShowBriefing(false);},
+      onSetTab:function(t){setTab(t);setShowBriefing(false);},
+      onAdvance:null
+    }):null;
+    // ═══ End Round 1 overlays ═══
+    // ═══ Round 2: Ceremony Overlays ═══
+    var _champOverlayEl=champOverlay?React.createElement(ChampionshipOverlay,{
+      visible:true,data:champOverlay,
+      onDismiss:function(){setChampOverlay(null);}
+    }):null;
+    var _draftPickOverlayEl=draftPickOverlay?React.createElement(DraftPickOverlay,{
+      visible:true,data:draftPickOverlay,
+      onDismiss:function(){setDraftPickOverlay(null);}
+    }):null;
+    var _clinchOverlayEl=clinchOverlay?React.createElement(PlayoffClinchOverlay,{
+      visible:true,data:clinchOverlay,
+      onDismiss:function(){setClinchOverlay(null);}
+    }):null;
+    var _hofOverlayEl=hofOverlay?React.createElement(HallOfFameOverlay,{
+      visible:true,data:hofOverlay,
+      onDismiss:function(){setHofOverlay(null);}
+    }):null;
+    var _injuryOverlayEl=injuryOverlay?React.createElement(InjuryOverlay,{
+      visible:true,data:injuryOverlay,
+      onDismiss:function(){setInjuryOverlay(null);}
+    }):null;
+    var _firedOverlayEl=(firedOverlay&&typeof firedOverlay==="object")?React.createElement(FiredOverlay,{
+      visible:true,data:firedOverlay,
+      onDismiss:function(){setFiredOverlay(false);}
+    }):null;
+    // ═══ End Round 2 overlays ═══
+    // ═══ Round 4: Dynasty Cartridge modal ═══
+    var _cartridgeMeta=my?{teamName:my.city?my.city+" "+my.name:my.name,teamIcon:my.icon||"",season:season.year,week:season.week,record:my.wins+"-"+my.losses}:{};
+    var _cartridgeEl=cartridgeMode?React.createElement(DynastyCartridge,{
+      mode:cartridgeMode,visible:true,
+      save:_save,meta:_cartridgeMeta,
+      onClose:function(){setCartridgeMode(null);},
+      onExportDone:function(){var now=Date.now();setLastExportTime(now);try{localStorage.setItem("mfd.lastExport",String(now));}catch(e){}addN("🎮 Dynasty Cartridge exported! Your dynasty is safe.","gold");},
+      onImport:function(saveData){if(saveData){_save=saveData;saveG(saveData);loadSave2();addN("📦 Dynasty Cartridge imported! Welcome to your new universe.","gold");}setCartridgeMode(null);}
+    }):null;
+    // ═══ End Round 4 modal ═══
+    // ═══ Round 6: Unresolved Hooks overlay ═══
+    var _hooksEl=showHooks?React.createElement(UnresolvedHooks,{
+      visible:true,hooks:currentHooks,
+      onContinue:function(){setShowHooks(false);},
+      onExit:function(){setShowHooks(false);doSave();addN("💾 Game saved. See you next time, coach.","green");}
+    }):null;
+    // ═══ End Round 6 hooks overlay ═══
+    // ═══ Round 8: Consequence Ribbon + Week Advance Checklist ═══
+    var _ribbonEl=ribbonDeltas?React.createElement(ConsequenceRibbon,{visible:true,deltas:ribbonDeltas}):null;
+    var _checklistEl=showChecklist?React.createElement(WeekAdvanceChecklist,{
+      visible:true,items:checklistItems,
+      onAdvance:function(){setShowChecklist(false);simWeek();},
+      onGoBack:function(){setShowChecklist(false);},
+      onJump:function(tab){setShowChecklist(false);if(tab)setTab(tab);}
+    }):null;
+    // ═══ End Round 8 renders ═══
     try{
     if(season.phase==="seasonRecap"){
       return React.createElement("div",{style:{minHeight:"100vh",background:T.bg,color:T.text}},
@@ -29236,6 +29446,36 @@ var GS={
                     );})}
                   </div>
                 )}
+                {/* ═══ Round 5: Inbox Triage — DECISION tier ═══ */}
+                {(function(){
+                  var _decisionTypes={"extension":1,"medical":1,"holdout":1,"lockerChoice":1,"schemePresser":1,"aiTrade":1,"fitGroupAlert":1};
+                  var _decisionItems=inbox.filter(function(it){return !it.urgent&&it.actionType&&_decisionTypes[it.actionType];});
+                  if(_decisionItems.length===0)return null;
+                  return React.createElement("div",{style:assign({},cS,{borderColor:T.gold,marginBottom:8})},
+                    React.createElement("div",{style:{fontWeight:700,color:T.gold,fontSize:11,marginBottom:4}},"\u26A0\uFE0F DECISIONS ("+_decisionItems.length+")"),
+                    _decisionItems.map(function(it){
+                      var bgColor=it.type==="extension"?"rgba(245,158,11,0.08)":it.type==="medical"?"rgba(96,165,250,0.08)":it.type==="fit_alert"?"rgba(248,113,113,0.08)":it.type==="press_conf"?"rgba(251,191,36,0.08)":"transparent";
+                      return React.createElement("div",{key:it.id,style:{background:bgColor,borderRadius:6,padding:"8px 10px",marginBottom:4,borderLeft:"3px solid "+(T[it.color]||T.border)}},
+                        React.createElement("div",{style:{fontSize:12,color:T[it.color]||T.text,fontWeight:700}},it.icon+" "+it.text)
+                      );
+                    })
+                  );
+                })()}
+                {/* ═══ Round 5: Inbox Triage — INTEL tier ═══ */}
+                {(function(){
+                  var _decisionTypes2={"extension":1,"medical":1,"holdout":1,"lockerChoice":1,"schemePresser":1,"aiTrade":1,"fitGroupAlert":1};
+                  var _intelItems=inbox.filter(function(it){return !it.urgent&&(!it.actionType||!_decisionTypes2[it.actionType]);});
+                  if(_intelItems.length===0)return null;
+                  return React.createElement("div",{style:{marginBottom:8}},
+                    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}},
+                      React.createElement("div",{style:{fontWeight:700,color:T.faint,fontSize:11}},"\u2139\uFE0F INTEL ("+_intelItems.length+")"),
+                      React.createElement("button",{style:{fontSize:9,padding:"2px 8px",borderRadius:4,background:"rgba(255,255,255,0.05)",color:T.faint,border:"1px solid "+T.border,cursor:"pointer",fontWeight:600},onClick:function(){
+                        setInbox(function(prev){return prev.filter(function(it){return it.urgent||it.actionType;});});addN("Cleared "+_intelItems.length+" intel items.","dim");
+                      }},"CLEAR ALL INTEL")
+                    )
+                  );
+                })()}
+                {/* ═══ End Round 5 triage headers ═══ */}
                 {inbox.filter(function(it){return !it.urgent;}).map(function(it){
                   var bgColor=it.type==="game"?"rgba(52,211,153,0.06)":it.type==="recap"?"rgba(96,165,250,0.08)":it.type==="explain"?"rgba(96,165,250,0.06)":it.type==="injury"?"rgba(239,68,68,0.06)":it.type==="owner"?"rgba(239,68,68,0.06)":it.type==="extension"?"rgba(245,158,11,0.08)":it.type==="medical"?"rgba(96,165,250,0.08)":it.type==="fit_report"?"rgba(34,211,238,0.08)":it.type==="fit_alert"?"rgba(248,113,113,0.08)":it.type==="press_conf"?"rgba(251,191,36,0.08)":"transparent";
                   return (
@@ -29958,10 +30198,18 @@ var GS={
                   <button style={bS(T.blue,"#fff")} onClick={function(){setImportModal(true);}}>{"📥 Paste Save String"}</button>
                 </div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  <button style={bS(T.bg3,T.dim)} onClick={exportSave}>{"⬇️ Download .json"}</button>
+                  <button style={bS(T.gold,"#000")} onClick={function(){setCartridgeMode("export");}}>{"🎮 Export Dynasty Cartridge"}</button>
+                  <button style={bS(T.cyan,"#000")} onClick={function(){setCartridgeMode("import");}}>{"📦 Import Dynasty Cartridge"}</button>
+                </div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:6}}>
+                  <button style={bS(T.purple,"#fff")} onClick={function(){var card=EXPORT_ENGINE.dynastyCard(my,history,season,SEED_GLOBAL,teams);EXPORT_ENGINE.copyToClipboard(card).then(function(){addN("📋 Dynasty Card copied to clipboard! Share it everywhere.","gold");});}}>{"🏆 Copy Dynasty Card"}</button>
+                  <button style={bS(T.blue,"#fff")} onClick={function(){var recap=EXPORT_ENGINE.mfsnRecap(my,season,history,seasonAwards,sched);EXPORT_ENGINE.copyToClipboard(recap).then(function(){addN("📰 MFSN Recap copied to clipboard!","gold");});}}>{"📰 Copy MFSN Recap"}</button>
+                </div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:6}}>
+                  <button style={bS(T.bg3,T.dim)} onClick={exportSave}>{"⬇️ Download .json (legacy)"}</button>
                   <label style={assign({},bS(T.bg3,T.dim),{cursor:"pointer"})}>
-                    {"⬆️ Upload .json"}
-                    <input type="file" accept=".json" onChange={importSave} style={{display:"none"}} />
+                    {"⬆️ Upload .json (legacy)"}
+                    <input type="file" accept=".json,.mfd" onChange={importSave} style={{display:"none"}} />
                   </label>
                 </div>
                 <div style={{fontSize:10,color:T.faint,marginTop:6}}>{"Move your league between devices by exporting a save string. Paste it on another computer to restore your league exactly."}</div>
@@ -42768,6 +43016,18 @@ var GS={
             </div>
           </div>}
           {React.createElement(ToastContainer,{toasts:toasts,remove:removeToast,onAction:handleToastAction})}
+          {_bootOverlay}
+          {_briefingOverlay}
+          {_champOverlayEl}
+          {_draftPickOverlayEl}
+          {_clinchOverlayEl}
+          {_hofOverlayEl}
+          {_injuryOverlayEl}
+          {_firedOverlayEl}
+          {_cartridgeEl}
+          {_hooksEl}
+          {_ribbonEl}
+          {_checklistEl}
         </div>
       </div>
     );
