@@ -4542,7 +4542,7 @@ function pickRivalryTrash991(heat,rng2){
   if(!RIVALRY_TRASH_991)return null;
   var pool=heat>=13?RIVALRY_TRASH_991.atomic:heat>=9?RIVALRY_TRASH_991.spicy:RIVALRY_TRASH_991.mild;
   if(!pool||!pool.length)return null;
-  return pool[Math.floor((rng2?rng2():Math.random())*pool.length)];
+  return pool[Math.floor((rng2?rng2():RNG.play())*pool.length)];
 }
 function generateRivalryFuelEvent(rivalry,team1,team2,rng2){
   if(!rivalry||rivalry.heat<7)return null;
@@ -8846,7 +8846,7 @@ fill986:function(template,data){
   if(!template||!data)return template||"";
   return template.replace(/\{(\w+)\}/g,function(m,k){return data[k]!==undefined?data[k]:m;});
 },
-pick986:function(arr){return arr[Math.floor(Math.random()*arr.length)]||"";},
+pick986:function(arr){return arr[Math.floor(RNG.ui()*arr.length)]||"";},
   drives:{
     TD:[
       "Touchdown! Surgical precision on that drive.",
@@ -8946,7 +8946,7 @@ pick986:function(arr){return arr[Math.floor(Math.random()*arr.length)]||"";},
   },
   get:function(category,type,rng2){
     var pool=(this.drives||{})[type]||(this[category]||{})[type]||["Great play."];
-    return pool[Math.floor((rng2||Math.random)()*pool.length)];
+    return pool[Math.floor((rng2||RNG.ui)()*pool.length)];
   }
 };
 var OFFSEASON_NEWS={
@@ -9977,7 +9977,7 @@ var HOF_SPEECHES={
 };
 function getHOFSpeech(trait,rng2){
   var pool=HOF_SPEECHES[trait||"fallback"]||HOF_SPEECHES.fallback;
-  return pool[Math.floor((rng2||Math.random)()*pool.length)];
+  return pool[Math.floor((rng2||RNG.ui)()*pool.length)];
 }
 function calcLegacyScore(playerName,history){
   var score=0;var highlights=[];
@@ -10035,7 +10035,7 @@ function autoHallOfFame(teams,history,year){
       if(HALL_OF_FAME_LOG.some(function(h){return h.name===p.name;}))return;
       var legacy=calcLegacyScore(p.name,history);
       if(legacy.score>=80){
-        var hofSpeech=getHOFSpeech(p.trait||p.dominantTrait||"fallback",Math.random);
+        var hofSpeech=getHOFSpeech(p.trait||p.dominantTrait||"fallback",RNG.ui);
         var mfsnReaction=legacy.rings>=3?"A dynasty legend takes their rightful place in Canton.":legacy.mvps>=2?"Multiple MVP honors. The case was never in doubt.":legacy.eliteSeasons>=4?"Four seasons of elite dominance. That's a Hall of Fame career.":"A generational talent takes their rightful place in Canton.";
         var entry={name:p.name,pos:p.pos,teams:legacy.teams,inducted:year,
           score:legacy.score,peakOvr:legacy.peakOvr,highlights:legacy.highlights,
@@ -13054,7 +13054,7 @@ var LIVE_GAME_986={
 
   // ═══ KICKOFF RESOLUTION ═══
   resolveKickoff:function(g,type){
-    var rng=Math.random;var kicker=LIVE_GAME_986.offTeam(g);var returner=LIVE_GAME_986.defTeam(g);
+    var rng=RNG.play;var kicker=LIVE_GAME_986.offTeam(g);var returner=LIVE_GAME_986.defTeam(g);
     var kickerK=kicker.roster.find(function(p){return p.pos==="K";});
     var retNames=returner.roster.filter(function(p){return(p.pos==="WR"||p.pos==="RB")&&p.isStarter;});
     var retName=retNames.length>0?retNames[Math.floor(rng()*retNames.length)].name:"Returner";
@@ -13134,7 +13134,7 @@ var LIVE_GAME_986={
 
   // ═══ PUNT RESOLUTION ═══
   resolvePunt:function(g){
-    var rng=Math.random;var off=LIVE_GAME_986.offTeam(g);var side=LIVE_GAME_986.side(g);
+    var rng=RNG.play;var off=LIVE_GAME_986.offTeam(g);var side=LIVE_GAME_986.side(g);
     var punter=off.roster.find(function(p){return p.pos==="P";});
     var puntPow=punter?Math.round(35+(punter.ovr-50)*0.4):40;
     var puntDist=puntPow+Math.floor(rng()*15)-5;// ±variance
@@ -13532,7 +13532,7 @@ var LIVE_GAME_986={
         LIVE_GAME_986.endDrive(g,"MISSED FG");
         g.log.push("❌ "+off.abbr+": "+fgDist+"-yard FG NO GOOD!");
         var missDescs=["WIDE RIGHT! No good!","WIDE LEFT! He missed it!","Blocked at the line!","Short! Doesn't have the leg!"];
-        g.pendingResult={type:"fg_miss",desc:(k2?k2.name:"K")+" from "+fgDist+" yards... "+missDescs[Math.floor(Math.random()*missDescs.length)],clock:5};
+        g.pendingResult={type:"fg_miss",desc:(k2?k2.name:"K")+" from "+fgDist+" yards... "+missDescs[Math.floor(RNG.play()*missDescs.length)],clock:5};
         g.momentum+=(side==="home"?-1:1);
       }
       g.lastPlay=g.pendingResult;g.driveLog=[];g.playNum=0;g.driveNum++;g.wentForItOn4th=false;
@@ -13580,7 +13580,7 @@ var LIVE_GAME_986={
         g.pendingResult={type:"two_good",desc:"TWO-POINT CONVERSION IS GOOD! "+off.abbr+" pushes it in!",clock:0};
       }else{
         var failDesc=(MFSN_OVERTIME_994.situational.twoPointFailed&&MFSN_OVERTIME_994.situational.twoPointFailed.length)?MFSN_OVERTIME_994.situational.twoPointFailed:["Two-point attempt STUFFED at the line!","Pass falls incomplete on the two-point try!","Two-point conversion FAILS!"];
-        g.pendingResult={type:"two_fail",desc:failDesc[Math.floor(Math.random()*failDesc.length)],clock:0};
+        g.pendingResult={type:"two_fail",desc:failDesc[Math.floor(RNG.play()*failDesc.length)],clock:0};
       }
     }
     g.lastPlay=g.pendingResult;g.patPending=false;g.wentForItOn4th=false;
@@ -13685,7 +13685,7 @@ var LIVE_GAME_986={
     var reads=[];
     // Situational reads
     if(g.down<=2&&g.yardsToGo>=7)reads.push("🔍 Defense is in a base look — could be zone or man");
-    if(g.down===3&&g.yardsToGo<=3)reads.push("🔍 Short yardage — they're stacking the box! "+Math.floor(55+Math.random()*20)+"% run look");
+    if(g.down===3&&g.yardsToGo<=3)reads.push("🔍 Short yardage — they're stacking the box! "+Math.floor(55+RNG.ui()*20)+"% run look");
     if(g.down===3&&g.yardsToGo>=8)reads.push("🔍 Obvious passing down — expect a nickel/dime package");
     if(g.fieldPos>=80)reads.push("🔴 Red zone — defense will tighten coverage");
     if(g.clock<=120&&(g.quarter===2||g.quarter===4))reads.push("⏰ 2-minute drill — watch for prevent defense");
@@ -13699,9 +13699,9 @@ var LIVE_GAME_986={
       "Corners in press coverage — aggressive look",
       "Defense showing soft zone — cushion on the outside",
       "Extra rusher showing — could be a blitz or a spy"];
-    reads.push("👁️ "+hints[Math.floor(Math.random()*hints.length)]);
+    reads.push("👁️ "+hints[Math.floor(RNG.ui()*hints.length)]);
 
-    g.preSnapRead=reads[Math.floor(Math.random()*reads.length)];
+    g.preSnapRead=reads[Math.floor(RNG.ui()*reads.length)];
     return g;
   },
 
@@ -13738,20 +13738,20 @@ var LIVE_GAME_986={
       else if(g.clock<=120&&(g.quarter===2||g.quarter===4)&&scoreDiff<0){pick=allPlays.find(function(p){return p.id==="go_route"||p.id==="post";});reason="Hurry-up — need a quick strike";}
       else if(scoreDiff>14&&g.quarter>=3){pick=allPlays.find(function(p){return p.type==="run";});reason="Protecting the lead — running clock";}
       else if(g.down===1){
-        var r=Math.random();
+        var r=RNG.ai();
         if(r<0.45){pick=allPlays.find(function(p){return p.type==="run";});reason="Setting up play-action";}
         else if(r<0.75){pick=allPlays.find(function(p){return p.id==="slant"||p.id==="curl";});reason="Timing route to move the chains";}
         else{pick=allPlays.find(function(p){return p.id==="play_action";});reason="Taking a shot with play-action";}
       }
-      if(!pick){pick=allPlays[Math.floor(Math.random()*allPlays.length)];reason="Reading the defense";}
+      if(!pick){pick=allPlays[Math.floor(RNG.ai()*allPlays.length)];reason="Reading the defense";}
     }else{
       // Average/below QB — more random, occasional bad reads
-      pick=allPlays[Math.floor(Math.random()*allPlays.length)];
+      pick=allPlays[Math.floor(RNG.ai()*allPlays.length)];
       var reasons=["Checking the defense","Likes what he sees","Going with his gut","Trusting his arm",
         "Audibling based on the look","Reading the safety","Quick snap before they adjust"];
-      reason=reasons[Math.floor(Math.random()*reasons.length)];
+      reason=reasons[Math.floor(RNG.ui()*reasons.length)];
       // Bad QBs sometimes force deep shots or run into blitzes
-      if(awareness<60&&Math.random()<0.15){
+      if(awareness<60&&RNG.ai()<0.15){
         pick=allPlays.find(function(p){return p.id==="go_route"||p.id==="hail_mary";});
         reason="Forcing a deep shot — risky read!";
       }
@@ -13766,7 +13766,7 @@ var LIVE_GAME_986={
     var allDeep=PLAYBOOK_986.offense.deepPass;
     var allSpec=PLAYBOOK_986.offense.special;
     var all=[].concat(allRun,allShort,allDeep);
-    var rng=Math.random;
+    var rng=RNG.ai;
     var side=g.possession;
     var score=side==="home"?g.hScore-g.aScore:g.aScore-g.hScore;
     var late=g.quarter>=4&&g.clock<=300;
@@ -13795,7 +13795,7 @@ var LIVE_GAME_986={
   },
   aiSmartDefPlay:function(g){
     var covs=PLAYBOOK_986.defense.coverage;
-    var rng=Math.random;
+    var rng=RNG.ai;
     var side=g.possession;
     var score=side==="home"?g.hScore-g.aScore:g.aScore-g.hScore;// from offense perspective
     var late=g.quarter>=4&&g.clock<=300;
@@ -13821,8 +13821,8 @@ var LIVE_GAME_986={
         var hT=teams.find(function(t){return t.id===s.home;});
         var aT=teams.find(function(t){return t.id===s.away;});
         if(hT&&aT){
-          var hS=Math.floor(Math.random()*7)*3+Math.floor(Math.random()*5)*7;
-          var aS=Math.floor(Math.random()*7)*3+Math.floor(Math.random()*5)*7;
+          var hS=Math.floor(RNG.ai()*7)*3+Math.floor(RNG.ai()*5)*7;
+          var aS=Math.floor(RNG.ai()*7)*3+Math.floor(RNG.ai()*5)*7;
           hS=Math.max(0,Math.min(45,hS+Math.round((hT.ovr-aT.ovr)*0.2)));
           aS=Math.max(0,Math.min(45,aS-Math.round((hT.ovr-aT.ovr)*0.2)));
           games.push({homeAbbr:hT.abbr,awayAbbr:aT.abbr,homeEmoji:hT.emoji||"🏈",awayEmoji:aT.emoji||"🏈",
@@ -15867,7 +15867,7 @@ function genDraftClass(n,opts){
     try{var stPos991=pos,stTier991=tier==="star"?"elite":tier==="good"?"solid":"project";
       var stTmpl991=SCOUTING_TEMPLATES_991&&SCOUTING_TEMPLATES_991[stPos991]&&SCOUTING_TEMPLATES_991[stPos991][stTier991];
       if(stTmpl991&&stTmpl991.length){
-        var stT991=stTmpl991[Math.floor(Math.random()*stTmpl991.length)];
+        var stT991=stTmpl991[Math.floor(RNG.draft()*stTmpl991.length)];
         var stSchool991=(p.college&&p.college.school)||"a major program";
         var stNote991=stT991.replace(/\[PLAYER\]/g,p.name||"Prospect").replace(/\[COLLEGE\]/g,stSchool991).replace(/\[YEAR\]/g,"Senior");
         p.scoutNotes=[stNote991];}
@@ -18912,7 +18912,7 @@ var GS={
   function godModeClonePlayer(teamId,pid){
     if(!godMode) return;var nt=teams.slice();var tm=nt.find(function(t){return t.id===teamId;});if(!tm)return;
     var src=tm.roster.find(function(p){return p.id===pid;});if(!src)return;
-    var clone=assign({},src,{id:Date.now()+"_"+Math.random().toString(36).slice(2,8),
+    var clone=assign({},src,{id:Date.now()+"_"+U(),
       name:src.name+" Jr.",ratings:assign({},src.ratings),contract:assign({},src.contract),
       stats:{gp:0,snaps:0,passYds:0,passTD:0,int:0,rushYds:0,rushTD:0,recYds:0,recTD:0,rec:0,tackles:0,sacks:0,defINT:0,fgM:0,fgA:0},
       careerStats:null,age:Math.max(21,src.age-4)});
@@ -21673,7 +21673,7 @@ var GS={
         var _lastPressWeek=pressConf986?pressConf986.week:0;
         if(season.week-_lastPressWeek<2&&!_pressSignificant)_pressSignificant=false;// Cooldown
         if(_pressSignificant){
-          var pc986=PRESS_CONF_986.generate(uTeam986,season.week,uWon986,uDiff986,RNG.ui||Math.random);
+          var pc986=PRESS_CONF_986.generate(uTeam986,season.week,uWon986,uDiff986,RNG.ui);
           var qs986=pc986.questions||pc986||[];
           if(qs986.length>0)setPressConf986({week:season.week,won:uWon986,diff:uDiff986,questions:qs986,coachQuote:pc986.coachQuote||null,answered:false});
         }else{
@@ -24527,8 +24527,8 @@ var GS={
     var d=genDraftClass(getScaledDraftClassCount97(),{pipeline:myTeamAfter&&myTeamAfter._pipeline||null,qualityBoost:pbyActive95||false});
     // v98.6 #17: Generational Talent injection
     (function(){try{
-      if(GENERATIONAL_986.shouldSpawn(season.year+1,RNG.draft||Math.random)){
-        var gen986=GENERATIONAL_986.create(RNG.draft||Math.random);
+      if(GENERATIONAL_986.shouldSpawn(season.year+1,RNG.draft)){
+        var gen986=GENERATIONAL_986.create(RNG.draft);
         var gp=genPlayer(gen986.pos,"star",rng(21,22));
         gp.name=gen986.name;gp.pot=gen986.pot;gp.devTrait="superstar";
         gp.isGenerational=true;gp._generational986=true;
@@ -24601,7 +24601,7 @@ var GS={
             if(nt[ri986].div===nt[rj986].div){
               var already=newTrophies.find(function(t){return(t.team1===nt[ri986].abbr&&t.team2===nt[rj986].abbr)||(t.team1===nt[rj986].abbr&&t.team2===nt[ri986].abbr);});
               if(!already){
-                var trophy=RIVALRY_TROPHIES_986.generate(nt[ri986],nt[rj986],RNG.ui||Math.random);
+                var trophy=RIVALRY_TROPHIES_986.generate(nt[ri986],nt[rj986],RNG.ui);
                 newTrophies.push(trophy);
               }
             }
@@ -24636,8 +24636,8 @@ var GS={
     // v98.6 #19: Expansion Draft check (Year 10+)
     (function(){try{
       var yearsPlayed986=(season.year+1)-2026;
-      if(EXPANSION_DRAFT_986.shouldTrigger(yearsPlayed986,RNG.ui||Math.random)&&nt.length<32){
-        var rng986=RNG.ui||Math.random;
+      if(EXPANSION_DRAFT_986.shouldTrigger(yearsPlayed986,RNG.ui)&&nt.length<32){
+        var rng986=RNG.ui;
         var ci=Math.floor(rng986()*EXPANSION_DRAFT_986.cities.length);
         var newTeamInfo={city:EXPANSION_DRAFT_986.cities[ci],name:EXPANSION_DRAFT_986.names[ci],
           icon:EXPANSION_DRAFT_986.icons[ci],abbr:EXPANSION_DRAFT_986.cities[ci].substring(0,3).toUpperCase()};
@@ -25941,7 +25941,7 @@ var GS={
         <div style={{display:"flex",gap:6,marginTop:10,marginBottom:6}}>
           <button onClick={function(){
             var shuffled=doOrder.slice();
-            for(var i=shuffled.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=shuffled[i];shuffled[i]=shuffled[j];shuffled[j]=tmp;}
+            for(var i=shuffled.length-1;i>0;i--){var j=Math.floor(RNG.play()*(i+1));var tmp=shuffled[i];shuffled[i]=shuffled[j];shuffled[j]=tmp;}
             setExpDraftOrder96(shuffled);
           }} style={{padding:"8px 16px",fontSize:11,fontWeight:700,borderRadius:6,border:"1px solid "+T.border,background:"rgba(255,255,255,0.06)",color:T.dim,cursor:"pointer"}}>{"🎲 Randomize"}</button>
           <button onClick={function(){
@@ -26915,7 +26915,7 @@ var GS={
                     return <button key={focus} onClick={function(){
                       var nt986tc=teams.slice();var mt986tc=nt986tc.find(function(t){return t.id===myId;});
                       if(mt986tc){
-                        var results=TRAINING_CAMP_986.run(mt986tc,focus,RNG.ui||Math.random);
+                        var results=TRAINING_CAMP_986.run(mt986tc,focus,RNG.ui);
                         setTeams(nt986tc);
                         setTrainingResult986({focus:focus,results:results});
                         var stars=results.filter(function(r){return r.type==="star";});
@@ -41043,7 +41043,7 @@ var GS={
                           {["Heads","Tails"].map(function(call){
                             return <button key={call} onClick={function(){
                               var newLg=Object.assign({},lg);
-                              var flipResult=Math.random()<0.5?"Heads":"Tails";
+                              var flipResult=RNG.play()<0.5?"Heads":"Tails";
                               newLg.coinTossCall=call;
                               newLg.coinTossResult=flipResult;
                               newLg.coinTossUserWon=(call===flipResult);
@@ -41061,8 +41061,8 @@ var GS={
                         <div style={{fontSize:11,color:T.dim,marginBottom:8}}>{"The visitor calls the toss..."}</div>
                         <button onClick={function(){
                           var newLg=Object.assign({},lg);
-                          var oppCall=Math.random()<0.5?"Heads":"Tails";
-                          var flipResult=Math.random()<0.5?"Heads":"Tails";
+                          var oppCall=RNG.ai()<0.5?"Heads":"Tails";
+                          var flipResult=RNG.play()<0.5?"Heads":"Tails";
                           newLg.coinTossCall=oppCall;
                           newLg.coinTossResult=flipResult;
                           newLg.coinTossUserWon=(oppCall!==flipResult);// user wins when opponent's call is WRONG
@@ -41135,7 +41135,7 @@ var GS={
                           // Use stored AI choice or generate once
                           var aiPick=lg.aiCoinChoice;
                           if(!aiPick){
-                            var aiChoice=Math.random();
+                            var aiChoice=RNG.ai();
                             aiPick=aiChoice<0.90?"receive":(aiChoice<0.95?"kick":"defer");
                             // Store immediately so it doesn't recalculate
                             lg.aiCoinChoice=aiPick;
