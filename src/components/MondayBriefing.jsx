@@ -167,7 +167,7 @@ export default function MondayBriefing(props) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontFamily: "'Inter',system-ui,sans-serif",
+      fontFamily: "'IBM Plex Sans','Inter',system-ui,sans-serif",
       padding: 16,
     }
   },

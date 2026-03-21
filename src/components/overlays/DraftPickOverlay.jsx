@@ -2,7 +2,7 @@
  * DraftPickOverlay — Draft Pick Reveal ceremony
  *
  * 2-second tension delay ("ANALYZING SCOUT DATA..."), then snap reveal
- * with player details and MFSN analyst quote.
+ * with staggered player details and MFSN analyst quote.
  *
  * Props:
  *   visible   — boolean
@@ -11,7 +11,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import CeremonyOverlay, { MONO } from '../CeremonyOverlay.jsx';
-import { T } from '../../config/theme.js';
+import { T, FONT } from '../../config/theme.js';
 
 var ANALYST_QUOTES = [
   'EXACTLY THE PICK I WOULD HAVE MADE.',
@@ -44,7 +44,6 @@ export default function DraftPickOverlay(props) {
   useEffect(function() {
     if (!visible) { setPhase(0); setDots(''); return; }
 
-    // Phase 1: analyzing text with animated dots
     setPhase(1);
     var dotCount = 0;
     var dotInterval = setInterval(function() {
@@ -53,7 +52,6 @@ export default function DraftPickOverlay(props) {
     }, 400);
     timers.current.push(dotInterval);
 
-    // Phase 2: reveal after 2 seconds
     var t1 = setTimeout(function() {
       clearInterval(dotInterval);
       setPhase(2);
@@ -67,8 +65,16 @@ export default function DraftPickOverlay(props) {
     };
   }, [visible]);
 
-  var devIcon = d.devTrait === 'superstar' ? ' [SUPERSTAR]' : d.devTrait === 'star' ? ' [STAR]' : '';
+  var devIcon = d.devTrait === 'superstar' ? ' ★★★' : d.devTrait === 'star' ? ' ★★' : '';
   var quote = d.analystQuote || ANALYST_QUOTES[((d.pickNum || 1) + (d.ovr || 0)) % ANALYST_QUOTES.length];
+
+  function stagger(idx) {
+    return {
+      opacity: phase >= 2 ? 1 : 0,
+      transform: phase >= 2 ? 'translateY(0)' : 'translateY(8px)',
+      transition: 'opacity 0.35s ease-out ' + (idx * 0.08) + 's, transform 0.35s ease-out ' + (idx * 0.08) + 's',
+    };
+  }
 
   return React.createElement(CeremonyOverlay, {
     visible: visible,
@@ -80,93 +86,115 @@ export default function DraftPickOverlay(props) {
     React.createElement('div', {
       style: { textAlign: 'center', maxWidth: 460, width: '100%' }
     },
-      // Phase 1: Analyzing
+      // Phase 1: Analyzing with animated progress
       phase === 1 ? React.createElement('div', null,
+        React.createElement('style', null,
+          '@keyframes mfd-scan-bar{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}'
+        ),
         React.createElement('div', {
           style: {
             fontSize: 14,
             color: T.gold,
             letterSpacing: 2,
             fontWeight: 700,
-            animation: 'none',
+            fontFamily: FONT.mono,
           }
         }, 'ANALYZING SCOUT DATA' + dots),
         React.createElement('div', {
           style: {
-            width: 200,
+            width: 220,
             height: 2,
             background: T.bg3,
             margin: '20px auto',
             overflow: 'hidden',
+            borderRadius: 1,
           }
         },
           React.createElement('div', {
             style: {
-              width: '60%',
+              width: '40%',
               height: '100%',
-              background: T.gold,
-              animation: 'none',
-              transition: 'width 0.4s ease',
+              background: 'linear-gradient(90deg, transparent, ' + T.gold + ', transparent)',
+              animation: 'mfd-scan-bar 1.2s ease-in-out infinite',
             }
           })
         )
       ) : null,
 
-      // Phase 2: Reveal
-      phase === 2 ? React.createElement('div', {
-        style: { opacity: 1, transition: 'opacity 0.3s ease-in' }
-      },
+      // Phase 2: Reveal with staggered entrance
+      phase === 2 ? React.createElement('div', null,
         // Pick header
         React.createElement('div', {
-          style: { fontSize: 11, color: T.dim, letterSpacing: 2, marginBottom: 12 }
+          style: Object.assign({
+            fontSize: 11, color: T.dim, letterSpacing: 2, marginBottom: 12,
+            fontFamily: FONT.mono,
+          }, stagger(0))
         }, 'ROUND ' + (d.round || '?') + ' — PICK #' + (d.pickNum || '?')),
 
-        // Player name
+        // Player name — display font
         React.createElement('div', {
-          style: {
-            fontSize: 26,
-            fontWeight: 900,
+          style: Object.assign({
+            fontSize: 28,
+            fontWeight: 700,
+            fontFamily: FONT.display,
             color: '#fff',
             letterSpacing: 2,
             marginBottom: 8,
-            textShadow: '0 0 20px rgba(240,160,40,0.3)',
-          }
+            textShadow: '0 0 24px rgba(240,160,40,0.3)',
+          }, stagger(1))
         }, (d.name || 'UNKNOWN').toUpperCase()),
 
         // Position + OVR
         React.createElement('div', {
-          style: { fontSize: 16, fontWeight: 700, color: T.gold, letterSpacing: 1.5, marginBottom: 6 }
+          style: Object.assign({
+            fontSize: 16, fontWeight: 700, color: T.gold, letterSpacing: 1.5, marginBottom: 6,
+            fontFamily: FONT.mono,
+          }, stagger(2))
         }, (d.pos || '') + (d.ovr ? ' — ' + d.ovr + ' OVR' : '') + devIcon),
 
         // College
         d.college ? React.createElement('div', {
-          style: { fontSize: 12, color: T.dim, letterSpacing: 1, marginBottom: 4 }
+          style: Object.assign({
+            fontSize: 12, color: T.dim, letterSpacing: 1, marginBottom: 4,
+            fontFamily: FONT.body,
+          }, stagger(3))
         }, d.college) : null,
 
         // Scout grade
         d.scoutGrade ? React.createElement('div', {
-          style: { fontSize: 11, color: T.faint, letterSpacing: 0.5, marginBottom: 20 }
+          style: Object.assign({
+            fontSize: 11, color: T.faint, letterSpacing: 0.5, marginBottom: 20,
+            fontFamily: FONT.mono,
+          }, stagger(4))
         }, 'SCOUT GRADE: ' + d.scoutGrade) : null,
 
         // Trait
         d.trait ? React.createElement('div', {
-          style: { fontSize: 11, color: T.cyan, letterSpacing: 0.5, marginBottom: 20 }
+          style: Object.assign({
+            fontSize: 11, color: T.cyan, letterSpacing: 0.5, marginBottom: 20,
+            fontFamily: FONT.body, fontWeight: 600,
+          }, stagger(5))
         }, 'TRAIT: ' + d.trait) : null,
 
-        // Divider
+        // Divider — gold line with glow
         React.createElement('div', {
-          style: { width: 60, height: 1, background: T.gold, margin: '0 auto 16px', opacity: 0.4 }
+          style: Object.assign({
+            width: 80, height: 1, margin: '0 auto 16px',
+            background: T.gold, opacity: 0.5,
+            boxShadow: '0 0 8px rgba(240,160,40,0.3)',
+          }, stagger(6))
         }),
 
         // MFSN Analyst quote
         React.createElement('div', {
-          style: {
-            fontSize: 11,
+          style: Object.assign({
+            fontSize: 12,
             color: T.gold,
             fontStyle: 'italic',
             letterSpacing: 0.5,
-            opacity: 0.8,
-          }
+            opacity: 0.85,
+            fontFamily: FONT.body,
+          }, stagger(7))
         }, 'MFSN: "' + quote + '"')
       ) : null
     )

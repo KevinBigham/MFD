@@ -10,7 +10,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import CeremonyOverlay, { MONO } from '../CeremonyOverlay.jsx';
-import { T } from '../../config/theme.js';
+import { T, FONT } from '../../config/theme.js';
 
 export default function InjuryOverlay(props) {
   var visible = props.visible;
@@ -67,11 +67,12 @@ export default function InjuryOverlay(props) {
         }
       }, 'INJURY REPORT'),
 
-      // Player name
+      // Player name — display font
       React.createElement('div', {
         style: {
           fontSize: 22,
-          fontWeight: 900,
+          fontWeight: 700,
+          fontFamily: FONT.display,
           color: '#fff',
           letterSpacing: 1.5,
           marginBottom: 6,

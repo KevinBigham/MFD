@@ -12,7 +12,7 @@
  */
 import React from 'react';
 import CeremonyOverlay, { MONO } from '../CeremonyOverlay.jsx';
-import { T } from '../../config/theme.js';
+import { T, FONT } from '../../config/theme.js';
 
 export default function HallOfFameOverlay(props) {
   var visible = props.visible;
@@ -45,9 +45,9 @@ export default function HallOfFameOverlay(props) {
         width: '100%',
       }
     },
-      // Dimmed header
+      // Dimmed header — display font
       React.createElement('div', {
-        style: { fontSize: 10, color: T.faint, letterSpacing: 2, marginBottom: 20 }
+        style: { fontSize: 11, color: T.faint, letterSpacing: 3, marginBottom: 20, fontFamily: FONT.display }
       }, 'HALL OF FAME INDUCTION CEREMONY'),
 
       // ASCII plaque

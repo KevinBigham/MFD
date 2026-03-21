@@ -30,14 +30,21 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{background:#070d17;color:#e8ecf1;overflow-x:hidden;-webkit-font-smoothing:antialiased;font-family:'Inter',system-ui,sans-serif}
+    body{background:#070d17;color:#e8ecf1;overflow-x:hidden;-webkit-font-smoothing:antialiased;font-family:'IBM Plex Sans','Inter',system-ui,sans-serif}
     ::-webkit-scrollbar{width:6px;height:6px}
     ::-webkit-scrollbar-track{background:#070d17}
-    ::-webkit-scrollbar-thumb{background:#19253a;border-radius:2px}
+    ::-webkit-scrollbar-thumb{background:rgba(240,160,40,0.25);border-radius:2px}
+    ::-webkit-scrollbar-thumb:hover{background:rgba(240,160,40,0.45)}
+    @keyframes mfd-fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes mfd-pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+    @keyframes mfd-glow{0%,100%{box-shadow:0 0 4px rgba(240,160,40,0.2)}50%{box-shadow:0 0 12px rgba(240,160,40,0.4)}}
+    @keyframes mfd-slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes mfd-scanline{from{transform:translateY(-100%)}to{transform:translateY(100vh)}}
+    @keyframes mfd-ticker{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
   </style>
 </head>
 <body>

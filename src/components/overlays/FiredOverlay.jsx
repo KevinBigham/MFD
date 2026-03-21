@@ -10,7 +10,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import CeremonyOverlay, { MONO } from '../CeremonyOverlay.jsx';
-import { T } from '../../config/theme.js';
+import { T, FONT } from '../../config/theme.js';
 
 export default function FiredOverlay(props) {
   var visible = props.visible;
@@ -82,12 +82,13 @@ export default function FiredOverlay(props) {
         // TERMINATED header
         React.createElement('div', {
           style: {
-            fontSize: 20,
-            fontWeight: 900,
+            fontSize: 22,
+            fontWeight: 700,
+            fontFamily: FONT.display,
             color: T.red,
             letterSpacing: 4,
             marginBottom: 8,
-            textShadow: '0 0 20px rgba(224,60,60,0.3)',
+            textShadow: '0 0 30px rgba(224,60,60,0.4)',
           }
         }, 'TERMINAL SESSION TERMINATED'),
 

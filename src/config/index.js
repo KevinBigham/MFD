@@ -1,7 +1,7 @@
 /**
  * MFD Config — barrel export
  */
-export { T, SP, RAD, SH, S } from './theme.js';
+export { T, SP, RAD, SH, S, FONT, MOTION } from './theme.js';
 export { DIFF_SETTINGS, SAVE_VERSION, DIFF_ACTIVE } from './difficulty.js';
 export {
   ROSTER_CAP,

@@ -10,7 +10,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import CeremonyOverlay, { MONO } from '../CeremonyOverlay.jsx';
-import { T } from '../../config/theme.js';
+import { T, FONT } from '../../config/theme.js';
 
 export default function PlayoffClinchOverlay(props) {
   var visible = props.visible;
@@ -52,13 +52,14 @@ export default function PlayoffClinchOverlay(props) {
       // Main text
       React.createElement('div', {
         style: {
-          fontSize: 24,
-          fontWeight: 900,
+          fontSize: 26,
+          fontWeight: 700,
+          fontFamily: FONT.display,
           color: T.gold,
           letterSpacing: 4,
           textTransform: 'uppercase',
           marginBottom: 16,
-          textShadow: '0 0 20px rgba(240,160,40,0.3)',
+          textShadow: '0 0 24px rgba(240,160,40,0.4)',
         }
       }, 'PLAYOFF BERTH CLINCHED'),
 
@@ -77,12 +78,12 @@ export default function PlayoffClinchOverlay(props) {
         }
       },
         d.record ? React.createElement('div', { style: { textAlign: 'center' } },
-          React.createElement('div', { style: { fontSize: 18, fontWeight: 800, color: T.green } }, d.record),
-          React.createElement('div', { style: { fontSize: 9, color: T.dim, marginTop: 2, letterSpacing: 1 } }, 'RECORD')
+          React.createElement('div', { style: { fontSize: 20, fontWeight: 700, color: T.green, fontFamily: FONT.mono } }, d.record),
+          React.createElement('div', { style: { fontSize: 9, color: T.dim, marginTop: 4, letterSpacing: 1.5, fontFamily: FONT.body, fontWeight: 600 } }, 'RECORD')
         ) : null,
         d.seed ? React.createElement('div', { style: { textAlign: 'center' } },
-          React.createElement('div', { style: { fontSize: 18, fontWeight: 800, color: T.gold } }, '#' + d.seed),
-          React.createElement('div', { style: { fontSize: 9, color: T.dim, marginTop: 2, letterSpacing: 1 } }, 'SEED')
+          React.createElement('div', { style: { fontSize: 20, fontWeight: 700, color: T.gold, fontFamily: FONT.mono } }, '#' + d.seed),
+          React.createElement('div', { style: { fontSize: 9, color: T.dim, marginTop: 4, letterSpacing: 1.5, fontFamily: FONT.body, fontWeight: 600 } }, 'SEED')
         ) : null
       )
     )
