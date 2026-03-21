@@ -41265,7 +41265,7 @@ var GS={
                     var recTeam=LIVE_GAME_986.defTeam(lg);
                     var isUserKicking=LIVE_GAME_986.isUserPoss(lg);
                     var scoreDiff=uScore-oScore;
-                    var canOnside=lg.quarter>=4&&scoreDiff<0&&isUserKicking;// only user can choose onside
+                    var canOnside=isUserKicking;// user can always attempt onside when kicking
 
                     // If OPPONENT is kicking, auto-resolve immediately
                     if(!isUserKicking){
@@ -42858,7 +42858,7 @@ var GS={
             </div>
           )}
           
-          {!theater && !selGame && !presser && !seasonReport && !preseasonReport && !fitDrilldown && !schemeConfirm && !showHelp && (function(){
+          {!theater && !selGame && !presser && !seasonReport && !preseasonReport && !fitDrilldown && !schemeConfirm && !showHelp && !liveGame986 && (function(){
             var fabLabel=null;var fabAction=null;
             var ph=season.phase;
             if(ph==="regular"&&!done){fabLabel="Sim Wk "+season.week;fabAction=simWeek;}
