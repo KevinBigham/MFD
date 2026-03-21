@@ -1,13 +1,12 @@
 /**
- * Modal — Radix-powered dialog with SSR/test fallback.
+ * Dialog — MFD adapter wrapping Radix Dialog primitive.
  *
- * API unchanged from Phase 3:
+ * Provides accessible modal dialogs with proper focus trapping,
+ * ESC to close, and screen-reader announcements.
+ *
+ * API is compatible with existing Modal.jsx:
  *   isOpen, onClose, closeOnOverlayClick, overlayStyle, contentStyle,
  *   borderColor, zIndex, children
- *
- * Uses Radix Dialog for proper focus trapping, ESC handling, and
- * screen-reader support in browser environments.
- * Falls back to simple overlay rendering for SSR/static markup.
  */
 import React from 'react';
 import * as RadixDialog from '@radix-ui/react-dialog';
@@ -34,8 +33,10 @@ var DEFAULT_CONTENT_STYLE = {
   outline: 'none',
 };
 
-export function Modal(props) {
-  if (!props.isOpen) return null;
+export function Dialog(props) {
+  var isOpen = props.isOpen;
+  var onClose = props.onClose;
+  var closeOnOverlayClick = props.closeOnOverlayClick !== false;
 
   var overlayStyle = mS(
     DEFAULT_OVERLAY_STYLE,
@@ -49,26 +50,30 @@ export function Modal(props) {
     props.contentStyle
   );
 
-  var closeOnOverlayClick = props.closeOnOverlayClick !== false;
-
   function handleOpenChange(open) {
-    if (!open && props.onClose) props.onClose();
+    if (!open && onClose) onClose();
   }
 
   return React.createElement(
     RadixDialog.Root,
-    { open: true, onOpenChange: handleOpenChange },
+    { open: isOpen, onOpenChange: handleOpenChange },
     React.createElement(
       RadixDialog.Portal,
       null,
       React.createElement(RadixDialog.Overlay, {
         style: overlayStyle,
+        onClick: closeOnOverlayClick
+          ? function () { if (onClose) onClose(); }
+          : undefined,
       }),
       React.createElement(
         RadixDialog.Content,
         {
           style: mS(overlayStyle, {
             background: 'transparent',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             pointerEvents: 'none',
           }),
           onPointerDownOutside: closeOnOverlayClick
@@ -84,17 +89,6 @@ export function Modal(props) {
           },
           props.children
         )
-      )
-    ),
-    // SSR fallback — renders content inline when Portal can't mount
-    // This ensures renderToStaticMarkup captures the content
-    React.createElement(
-      'div',
-      { style: overlayStyle, onClick: closeOnOverlayClick ? function () { if (props.onClose) props.onClose(); } : undefined },
-      React.createElement(
-        'div',
-        { style: contentStyle, onClick: function (e) { e.stopPropagation(); } },
-        props.children
       )
     )
   );

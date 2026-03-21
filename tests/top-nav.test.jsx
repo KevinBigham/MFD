@@ -19,9 +19,9 @@ describe('top-nav', () => {
     expect(html).toContain('role="tablist"');
     expect(html).toContain('role="tab"');
     expect(html).toContain('aria-selected="true"');
-    expect(html).toContain('Legacy runtime:');
-    expect(html).toContain('Forced mode:');
-    expect(html).not.toContain('v101 Module System');
+    // Debug labels removed in Sprint 18 cleanup
+    expect(html).not.toContain('Legacy runtime:');
+    expect(html).not.toContain('Forced mode:');
   });
 
   it('resolves keyboard tab navigation order', () => {

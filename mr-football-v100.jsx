@@ -21,7 +21,7 @@ import { TEAM_CLIMATES, CLIMATE_PROFILES, WEATHER, HT_CONDITIONS, HT_STRATEGIES 
 import { BREAKOUT_SYSTEM } from './src/systems/breakout-system.js';
 import { calcDominanceScore, calcDynastyIndex, calcPeakPower, calcLongevity, generateIdentityTags, ERA_THRESHOLD, ALMANAC_SCHEMA_VERSION, generateEraCards, buildHallOfSeasons } from './src/systems/dynasty-analytics.js';
 import { PLAYBOOK_986 } from './src/systems/playbook.js';
-import { StatBar, ToneBadge, WeeklyShowCard, Icon, Modal, PlayerCard, ToastContainer, TerminalBoot, MondayBriefing, ChampionshipOverlay, DraftPickOverlay, PlayoffClinchOverlay, HallOfFameOverlay, InjuryOverlay, FiredOverlay, DynastyCartridge, UnresolvedHooks, ConsequenceRibbon, WeekAdvanceChecklist, Tooltip, HoverCard, KpiCard, KpiGrid, Spotlight, LoadingButton, Skeleton, Indicator, RingProgress, Stepper } from './src/components/index.js';
+import { StatBar, ToneBadge, WeeklyShowCard, Icon, Modal, PlayerCard, ToastContainer, TerminalBoot, MondayBriefing, ChampionshipOverlay, DraftPickOverlay, PlayoffClinchOverlay, HallOfFameOverlay, InjuryOverlay, FiredOverlay, DynastyCartridge, UnresolvedHooks, ConsequenceRibbon, WeekAdvanceChecklist, Tooltip, HoverCard, KpiCard, KpiGrid, Spotlight, LoadingButton, Skeleton, Indicator, RingProgress, Stepper, LucideIcon, MfdToaster, mfdToast, Dialog, DropdownMenu, Select, AnimatedPresence, AnimatedPanel, AnimatedList, DataTable, DraggableList, useBreakpoint } from './src/components/index.js';
 import { DYNASTY_CARTRIDGE } from './src/systems/dynasty-cartridge.js';
 import { HOOKS_ENGINE } from './src/systems/hooks-engine.js';
 import { buildChecklist } from './src/components/WeekAdvanceChecklist.jsx';
@@ -17445,9 +17445,10 @@ var GS={
   function addN(text,type,action){
     setNews(function(h){return [{text:text,type:type||"info",id:U(),action:action||null}].concat(h).slice(0,50);});
     if(type==="gold"||type==="red"||type==="green"||type==="purple"||type==="cyan"){
-      var tid=U();
-      setToasts(function(prev){return [{id:tid,text:text,type:type,title:type==="gold"?"MAJOR EVENT":type==="red"?"ALERT":type==="green"?"SUCCESS":"UPDATE",action:action||null}].concat(prev).slice(0,2);});
-      setTimeout(function(){setToasts(function(prev){return prev.filter(function(t2){return t2.id!==tid;});});},2500);
+      // Fire Sonner toast via MfdToaster adapter
+      var toastOpts={};
+      if(action){toastOpts.onClick=function(){handleToastAction(action);};}
+      mfdToast(text,type,toastOpts);
     }
   }
   function removeToast(tid){setToasts(function(prev){return prev.filter(function(t2){return t2.id!==tid;});});}
@@ -17465,6 +17466,7 @@ var GS={
     else if(act.type==="roster"){setTab("roster");}
     else if(act.type==="modal"&&act.modal==="preseasonReport"){setPreseasonReport(act.data);}
   }
+  function wrapPlayerName(player,nameEl){return React.createElement(HoverCard,{player:player},nameEl);}
   function closePlayerDetailCard(){setPlayerDetail(null);}
   function closePlayerDetailCardAndOffers(){setPlayerDetail(null);setShopOffers([]);}
   function handlePlayerCardRehab(player,optId){
@@ -25219,7 +25221,7 @@ var GS={
         
         <div style={mS(S.card,{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",marginBottom:14,borderColor:godMode?"rgba(167,139,250,0.4)":T.glassBorder,background:godMode?"rgba(167,139,250,0.06)":"transparent"})}>
           <div>
-            <div style={{fontWeight:800,fontSize:13,color:godMode?T.purple:T.dim}}>{"⚡ God Mode"}</div>
+            <div style={{fontWeight:800,fontSize:13,color:godMode?T.purple:T.dim}}>{React.createElement(LucideIcon,{name:"zap",size:13,color:godMode?T.purple:T.dim})} {" God Mode"}</div>
             <div style={{fontSize:9,color:T.faint}}>{"Edit anything. Force trades. No limits. Full sandbox control."}</div>
           </div>
           <button onClick={function(){setGodMode(function(v){return !v;});}} style={mS(S.btn,{padding:"8px 16px",fontSize:11,fontWeight:800,background:godMode?"rgba(167,139,250,0.3)":"rgba(255,255,255,0.06)",color:godMode?"#fff":T.faint,border:"1px solid "+(godMode?"rgba(167,139,250,0.5)":T.glassBorder)})}>{godMode?"ON ⚡":"OFF"}</button>
@@ -25980,7 +25982,7 @@ var GS={
 
         <div style={{display:"flex",gap:10,marginTop:12}}>
           <button onClick={function(){setScreen("gameGuide");}} style={{padding:"10px 20px",fontSize:12,fontWeight:700,borderRadius:8,border:"1px solid "+T.border,background:"rgba(255,255,255,0.06)",color:T.dim,cursor:"pointer"}}>{"← Back"}</button>
-          <button onClick={function(){launchSnakeDraft96();}} style={{padding:"12px 28px",fontSize:14,fontWeight:900,borderRadius:8,border:"none",background:"linear-gradient(135deg,"+T.gold+",#f59e0b)",color:"#0f172a",cursor:"pointer",boxShadow:"0 0 20px rgba(251,191,36,0.3)",letterSpacing:1}}>{"🏈 CONFIRM ORDER & START DRAFT"}</button>
+          <button onClick={function(){launchSnakeDraft96();}} style={{padding:"12px 28px",fontSize:14,fontWeight:900,borderRadius:8,border:"none",background:"linear-gradient(135deg,"+T.gold+",#f59e0b)",color:"#0f172a",cursor:"pointer",boxShadow:"0 0 20px rgba(251,191,36,0.3)",letterSpacing:1}}>{React.createElement(LucideIcon,{name:"play",size:14,color:"#0f172a"})} {" CONFIRM ORDER & START DRAFT"}</button>
         </div>
       </div>
     );
@@ -26067,7 +26069,7 @@ var GS={
           <div style={{display:"flex",gap:8,marginTop:10}}>
             {!snkOnClock&&!snkDone && <button onClick={function(){expSnakeAutoSim(expPick,expPool.slice(),teams.slice(),expLog.slice(),expOrder);}} style={{flex:1,background:T.blue,color:"#fff",border:"none",borderRadius:6,padding:"10px",fontWeight:700,cursor:"pointer",fontSize:12}}>{"⏩ Sim to My Pick"}</button>}
             {!snkDone && <button onClick={function(){expSnakeAutoFinish();}} style={{flex:1,background:T.orange,color:"#000",border:"none",borderRadius:6,padding:"10px",fontWeight:700,cursor:"pointer",fontSize:12}}>{"🤖 Auto-Complete Draft"}</button>}
-            {snkDone && <button onClick={finishExpansionDraft} style={{flex:1,background:T.gold,color:"#000",border:"none",borderRadius:6,padding:"12px",fontWeight:800,cursor:"pointer",fontSize:14}}>{"🏈 Start Season!"}</button>}
+            {snkDone && <button onClick={finishExpansionDraft} style={{flex:1,background:T.gold,color:"#000",border:"none",borderRadius:6,padding:"12px",fontWeight:800,cursor:"pointer",fontSize:14}}>{React.createElement(LucideIcon,{name:"play",size:14,color:"#000"})} {" Start Season!"}</button>}
           </div>
           
           <div style={{marginTop:10,background:T.bg2,borderRadius:8,border:"1px solid "+T.border,padding:8,maxHeight:200,overflowY:"auto"}}>
@@ -26140,7 +26142,7 @@ var GS={
                 })}
               </div>
               <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:8}}>
-                <button onClick={aucRunBids} style={{background:T.blue,color:"#fff",border:"none",borderRadius:6,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:11}}>{"🔄 Let AI Bid"}</button>
+                <button onClick={aucRunBids} style={{background:T.blue,color:"#fff",border:"none",borderRadius:6,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:11}}>{React.createElement(LucideIcon,{name:"refresh-cw",size:11,color:"#fff"})} {" Let AI Bid"}</button>
                 <button onClick={aucSold} style={{background:T.gold,color:"#000",border:"none",borderRadius:6,padding:"8px 16px",fontWeight:800,cursor:"pointer",fontSize:11}}>{"🔨 SOLD! ($"+expBid+")"}</button>
               </div>
             </div>
@@ -26220,7 +26222,7 @@ var GS={
           
           <div style={{display:"flex",gap:8,marginTop:10}}>
             {!aucAllDone && <button onClick={aucAutoFinish} style={{flex:1,background:T.orange,color:"#000",border:"none",borderRadius:6,padding:"10px",fontWeight:700,cursor:"pointer",fontSize:12}}>{"🤖 Auto-Complete Draft"}</button>}
-            {aucAllDone && <button onClick={finishExpansionDraft} style={{flex:1,background:T.gold,color:"#000",border:"none",borderRadius:6,padding:"12px",fontWeight:800,cursor:"pointer",fontSize:14}}>{"🏈 Start Season!"}</button>}
+            {aucAllDone && <button onClick={finishExpansionDraft} style={{flex:1,background:T.gold,color:"#000",border:"none",borderRadius:6,padding:"12px",fontWeight:800,cursor:"pointer",fontSize:14}}>{React.createElement(LucideIcon,{name:"play",size:14,color:"#000"})} {" Start Season!"}</button>}
           </div>
           
           <div style={{marginTop:10,background:T.bg2,borderRadius:8,border:"1px solid "+T.border,padding:8,maxHeight:180,overflowY:"auto"}}>
@@ -26577,7 +26579,7 @@ var GS={
             <span style={{color:T.cyan,fontSize:9,flexShrink:0}}>{"Scout:"+(my.scoutPts||0)}</span>
             <span style={{color:T.gold,fontWeight:700,fontSize:10,flexShrink:0}}>{season.year+" Wk"+season.week}</span>
             {/* DBG button hidden for public release */}
-            <button onClick={function(){setTab("settings");}} style={{background:PREMIUM.isSupporter()?"rgba(212,167,75,0.15)":"none",border:"1px solid "+(PREMIUM.isSupporter()?"rgba(212,167,75,0.3)":T.glassBorder),borderRadius:4,color:PREMIUM.isSupporter()?T.gold:T.faint,fontSize:9,padding:"2px 5px",cursor:"pointer",flexShrink:0,display:"inline-flex",alignItems:"center",justifyContent:"center"}} title={PREMIUM.isSupporter()?"◆ Supporter — Thank You!":"Support MFD on Ko-fi"}>
+            <button onClick={function(){setTab("settings");}} style={{background:PREMIUM.isSupporter()?"rgba(212,167,75,0.15)":"none",border:"1px solid "+(PREMIUM.isSupporter()?"rgba(212,167,75,0.3)":T.glassBorder),borderRadius:4,color:PREMIUM.isSupporter()?T.gold:T.faint,fontSize:9,padding:"2px 5px",cursor:"pointer",flexShrink:0,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>
               {React.createElement(Icon,{name:"support",size:12,color:PREMIUM.isSupporter()?T.gold:T.faint})}
             </button>
             <button onClick={function(){setShowKbHelp(true);}} style={{background:"none",border:"1px solid "+T.glassBorder,borderRadius:4,color:T.faint,fontSize:9,padding:"2px 5px",cursor:"pointer",flexShrink:0}} title="Keyboard Shortcuts">{"?"}</button>
@@ -26673,13 +26675,13 @@ var GS={
                 }
                 setTab(st.id);if(st.id==="inbox")setInboxRead(true);
               }}>
-              {locked?"[L] ":""}{st.label}
+              {st.id==="inbox"&&!inboxRead&&inbox.length>0?React.createElement(Indicator,{count:inbox.length,color:T.gold},locked?"[L] "+st.label:st.label):st.id==="trade"&&pendingCounter971?React.createElement(Indicator,{count:1,color:T.orange},locked?"[L] "+st.label:st.label):(locked?"[L] ":"")+st.label}
             </div>;
           })}
         </div>
         
         <div style={{flex:1,overflowY:"auto",padding:12}}>
-          
+
           {tab==="home" && (
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {shouldShowRookieCoachCard(rookieFlow,{screen:screen,tab:tab,phase:season.phase,week:season.week})&&(
@@ -26765,7 +26767,7 @@ var GS={
                     {/* Rivalry / Playoff banner */}
                     {(isRivalry986&&isRivalry986.heat>=40||isPlayoff986)&&<div style={{textAlign:"center",marginBottom:12}}>
                       {isPlayoff986&&<div style={{fontSize:10,fontWeight:900,letterSpacing:2,color:T.gold,
-                        textShadow:"0 0 10px rgba(212,167,75,0.3)"}}>{"🏆 PLAYOFFS"}</div>}
+                        textShadow:"0 0 10px rgba(212,167,75,0.3)"}}>{React.createElement(LucideIcon,{name:"trophy",size:14,color:T.gold})} {" PLAYOFFS"}</div>}
                       {isRivalry986&&isRivalry986.heat>=40&&<div style={{fontSize:9,fontWeight:800,color:T.orange,letterSpacing:1}}>
                         {"⚔️ "+(isRivalry986.name||"RIVALRY GAME")}</div>}
                     </div>}
@@ -26846,7 +26848,7 @@ var GS={
                       background:"linear-gradient(135deg, #d4a74b, #b8860b)",color:"#000",border:"none",
                       boxShadow:"0 4px 15px rgba(212,167,75,0.35), inset 0 1px 0 rgba(255,255,255,0.3)",
                       letterSpacing:1,textTransform:"uppercase"
-                    }}>{"🏈 CALL PLAYS"}</button>
+                    }}>{React.createElement(LucideIcon,{name:"play",size:13,color:"#000"})} {" CALL PLAYS"}</button>
                     <button onClick={function(){
                       var hT2=teams.find(function(t){return t.id===nextGame986.home;});
                       var aT2=teams.find(function(t){return t.id===nextGame986.away;});
@@ -26867,7 +26869,7 @@ var GS={
                       flex:1,padding:"14px 12px",borderRadius:12,cursor:"pointer",fontWeight:700,fontSize:11,
                       background:"rgba(255,255,255,0.04)",color:T.dim,border:"1px solid rgba(255,255,255,0.08)",
                       transition:"background 0.2s"
-                    }}>{"⚡ Sim"}</button>
+                    }}>{React.createElement(LucideIcon,{name:"fast-forward",size:11})} {" Sim"}</button>
                   </div>
                 </div>;
               }())}
@@ -26944,7 +26946,7 @@ var GS={
 
               {/* v98.6 #10: RIVALRY TROPHIES — Show current holders */}
               {rivalTrophies986.length>0&&<div style={assign({},cS,{padding:14})}>
-                <div style={{fontWeight:900,fontSize:13,color:"#f59e0b",marginBottom:8}}>{"🏆 RIVALRY TROPHIES"}</div>
+                <div style={{fontWeight:900,fontSize:13,color:"#f59e0b",marginBottom:8}}>{React.createElement(LucideIcon,{name:"trophy",size:13,color:"#f59e0b"})} {" RIVALRY TROPHIES"}</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
                   {rivalTrophies986.slice(0,6).map(function(tr,i){
                     var isOurs=tr.holder===my.abbr;
@@ -26974,13 +26976,13 @@ var GS={
                   </div>
                 </div>
                 
-                <div style={{display:"flex",gap:6}}>
-                  <div style={S.kpiBox}><div style={mS(S.kpiValue,{color:moodColor(my.ownerMood||70)})}>{my.ownerMood||70}</div><div style={S.kpiLabel}>{"Owner"}</div></div>
-                  <div style={S.kpiBox}>{(my&&my.roster)?(function(){var _capUsed=capCalc(my.roster);var _dead=my.deadCap||0;var _theCap=getSalaryCap(season.year);var _space=Math.round((_theCap-_capUsed-_dead)*10)/10;var _capCol=_space>=20?T.green:_space>=5?T.gold:T.red;return React.createElement(React.Fragment,null,React.createElement("div",{style:mS(S.kpiValue,{color:_capCol})},(_space>=0?"$":"$-")+Math.abs(_space).toFixed(0)),React.createElement("div",{style:S.kpiLabel},"Cap $M"));})():React.createElement(React.Fragment,null,React.createElement("div",{style:S.kpiValue},"—"),React.createElement("div",{style:S.kpiLabel},"Cap $M"))}</div>
-                  <div style={S.kpiBox}><div style={mS(S.kpiValue,{color:T.cyan})}>{my.scoutPts||0}</div><div style={S.kpiLabel}>{"Scout"}</div></div>
-                  <div style={S.kpiBox}><div style={mS(S.kpiValue,{color:T.text})}>{my.roster.filter(function(p){return p.injury&&p.injury.games>0;}).length}</div><div style={S.kpiLabel}>{"Injured"}</div></div>
-                  <div style={S.kpiBox}><div style={mS(S.kpiValue,{color:T.gold,fontSize:my.ownerGoal&&my.ownerGoal.length>5?11:14})}>{my.ownerGoal||"—"}</div><div style={S.kpiLabel}>{"Goal"}</div></div>
-                </div>
+                {React.createElement(KpiGrid,null,
+                  React.createElement(KpiCard,{value:my.ownerMood||70,label:"Owner",color:moodColor(my.ownerMood||70)}),
+                  (function(){if(!my||!my.roster)return React.createElement(KpiCard,{value:"—",label:"Cap $M",color:T.dim});var _capUsed=capCalc(my.roster);var _dead=my.deadCap||0;var _theCap=getSalaryCap(season.year);var _space=Math.round((_theCap-_capUsed-_dead)*10)/10;var _capCol=_space>=20?T.green:_space>=5?T.gold:T.red;return React.createElement(KpiCard,{value:(_space>=0?"$":"$-")+Math.abs(_space).toFixed(0),label:"Cap $M",color:_capCol});})(),
+                  React.createElement(KpiCard,{value:my.scoutPts||0,label:"Scout",color:T.cyan}),
+                  React.createElement(KpiCard,{value:my.roster.filter(function(p){return p.injury&&p.injury.games>0;}).length,label:"Injured",color:T.text}),
+                  React.createElement(KpiCard,{value:my.ownerGoal||"—",label:"Goal",color:T.gold})
+                )}
               </div>
 
               {(function(){
@@ -27177,7 +27179,7 @@ var GS={
               {(ownerGoals.length>0||coachGoals.length>0||playerGoals.length>0) && (
                 <div style={mS(S.card,{padding:12,borderColor:"rgba(251,191,36,0.15)"})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                    <div style={{fontSize:11,fontWeight:800,color:T.gold}}>{"🎯 SEASON GOALS"}</div>
+                    <div style={{fontSize:11,fontWeight:800,color:T.gold}}>{React.createElement(LucideIcon,{name:"target",size:11,color:T.gold})} {" SEASON GOALS"}</div>
                     <div style={{fontSize:10,color:T.dim}}>
                       {(function(){
                         var all=[].concat(ownerGoals,coachGoals,playerGoals.map(function(pg){return pg.goal;}));
@@ -27927,7 +27929,7 @@ var GS={
               
               {season.phase==="preseason"&&Array.isArray(posBattles974)&&posBattles974.some(function(b){return b&&!b.resolved;}) && (
                 <div style={{background:"rgba(251,146,60,0.08)",border:"1px solid rgba(251,146,60,0.3)",borderRadius:8,padding:"10px 12px",marginBottom:8}}>
-                  <div style={{fontSize:12,fontWeight:900,color:T.orange,marginBottom:8}}>{"⚔️ POSITION BATTLES"}</div>
+                  <div style={{fontSize:12,fontWeight:900,color:T.orange,marginBottom:8}}>{React.createElement(LucideIcon,{name:"swords",size:12,color:T.orange})} {" POSITION BATTLES"}</div>
                   {posBattles974.map(function(battle,bi){
                     if(!battle||battle.resolved)return null;
                     var incLast=((battle.incumbent&&battle.incumbent.name)||"Incumbent").split(" ").slice(-1)[0]||"Inc";
@@ -28018,7 +28020,7 @@ var GS={
                 {rivBroadcast.biggestMoment && <div style={{fontSize:10,color:T.orange,textAlign:"center",marginBottom:4}}>
                   {"🏆 Biggest Moment: "+rivBroadcast.biggestMoment.text}
                 </div>}
-                <div style={{fontSize:9,color:T.faint,fontWeight:700,marginBottom:4}}>{"🎯 KEYS TO VICTORY"}</div>
+                <div style={{fontSize:9,color:T.faint,fontWeight:700,marginBottom:4}}>{React.createElement(LucideIcon,{name:"target",size:9,color:T.faint})} {" KEYS TO VICTORY"}</div>
                 {rivBroadcast.keys.map(function(k,ki){
                   return <div key={ki} style={{padding:"4px 0",borderBottom:ki<rivBroadcast.keys.length-1?"1px solid "+T.border:"none"}}>
                     <div style={{display:"flex",gap:6,fontSize:10,alignItems:"center"}}>
@@ -28034,10 +28036,10 @@ var GS={
               </div>}
               
               {weekShow && season.phase==="regular" && React.createElement(WeeklyShowCard,{weekShow:weekShow,myId:myId,expanded:wkShowExpand,onToggle:function(){setWkShowExpand(function(v){return !v;})}})}
-              {season.phase==="regular"&&done && <button style={mS(S.btn,S.btnPrimary,{width:"100%",padding:"14px 20px",fontSize:16,boxShadow:SH.glow})} onClick={function(){setSeason(function(s){return assign({},s,{phase:"playoffs"});});}}>{"🏆 Enter the Playoffs"}</button>}
+              {season.phase==="regular"&&done && <button style={mS(S.btn,S.btnPrimary,{width:"100%",padding:"14px 20px",fontSize:16,boxShadow:SH.glow})} onClick={function(){setSeason(function(s){return assign({},s,{phase:"playoffs"});});}}>{React.createElement(LucideIcon,{name:"trophy",size:16,color:"#000"})} {" Enter the Playoffs"}</button>}
               
               {season.phase==="preseason" && <div style={{display:"flex",gap:8,width:"100%"}}>
-                <button style={mS(S.btn,{flex:2,background:"linear-gradient(135deg,"+T.orange+",#d97706)",color:"#000",padding:"12px 16px",fontSize:13,fontWeight:800})} onClick={simWeek}>{"🏈 Sim Preseason Wk "+season.week+"/3"}</button>
+                <button style={mS(S.btn,{flex:2,background:"linear-gradient(135deg,"+T.orange+",#d97706)",color:"#000",padding:"12px 16px",fontSize:13,fontWeight:800})} onClick={simWeek}>{React.createElement(LucideIcon,{name:"play",size:13,color:"#000"})} {" Sim Preseason Wk "+season.week+"/3"}</button>
                 <button style={mS(S.btn,{flex:1,background:T.bg3,color:T.text,padding:"12px 16px",fontSize:11,fontWeight:700,border:"1px solid "+T.border})} onClick={simEntirePreseason}>{"⏭ Sim All"}</button>
               </div>}
               {season.phase==="cutDay" && <div>
@@ -28046,8 +28048,8 @@ var GS={
                   <div style={{fontSize:10,color:T.dim,marginTop:2}}>{"Must cut "+(my.roster.length-ROSTER_CAP)+" players. PS: "+(my.practiceSquad?my.practiceSquad.length:0)+"/"+PS_CAP}</div>
                 </div>
                 <div style={{display:"flex",gap:8}}>
-                  <button style={bS(T.orange,"#000")} onClick={function(){setTab("roster");}}>{"📋 Manage Roster"}</button>
-                  {my.roster.length<=ROSTER_CAP && <button style={megaGreen} onClick={finishCutDay}>{"✅ Lock "+ROSTER_CAP+"-Man Roster"}</button>}
+                  <button style={bS(T.orange,"#000")} onClick={function(){setTab("roster");}}>{React.createElement(LucideIcon,{name:"clipboard-list",size:12,color:T.orange})} {" Manage Roster"}</button>
+                  {my.roster.length<=ROSTER_CAP && <button style={megaGreen} onClick={finishCutDay}>{React.createElement(LucideIcon,{name:"check-circle",size:12,color:"#000"})} {" Lock "+ROSTER_CAP+"-Man Roster"}</button>}
                 </div></div>}
               {season.phase==="playoffs" && (function(){
                 if(!poBracket){
@@ -28339,7 +28341,7 @@ var GS={
                 </div>}
               
               {gameRecap && <div style={assign({},cS,{borderColor:T.blue})}>
-                <div style={{fontWeight:700,fontSize:11,color:T.blue,marginBottom:6}}>{"📊 LAST GAME — WHY YOU "+(gameRecap.score>gameRecap.oppScore?"WON":"LOST")}</div>
+                <div style={{fontWeight:700,fontSize:11,color:T.blue,marginBottom:6}}>{React.createElement(LucideIcon,{name:"bar-chart-3",size:11,color:T.blue})} {" LAST GAME — WHY YOU "+(gameRecap.score>gameRecap.oppScore?"WON":"LOST")}</div>
                 <div style={{display:"flex",gap:12,marginBottom:6}}>
                   <div style={{textAlign:"center",flex:1}}><div style={{fontSize:8,color:T.faint}}>POCKET</div><div style={{fontSize:14,fontWeight:800,color:gameRecap.pressureRate>=50?T.green:T.red}}>{gameRecap.pressureRate}</div></div>
                   <div style={{textAlign:"center",flex:1}}><div style={{fontSize:8,color:T.faint}}>COV</div><div style={{fontSize:14,fontWeight:800,color:gameRecap.coverageWin>=50?T.green:T.red}}>{gameRecap.coverageWin}</div></div>
@@ -28387,7 +28389,7 @@ var GS={
                 if(!deltas)return null;
                 var recentLedger2=(season.ledger||[]).filter(function(e){return e.week>=season.week-1;}).slice(0,10);
                 return <div style={assign({},cS,{borderColor:T.cyan})}>
-                  <div style={{fontWeight:700,fontSize:11,color:T.cyan,marginBottom:6}}>{"📊 WHAT CHANGED?"}</div>
+                  <div style={{fontWeight:700,fontSize:11,color:T.cyan,marginBottom:6}}>{React.createElement(LucideIcon,{name:"bar-chart-3",size:11,color:T.cyan})} {" WHAT CHANGED?"}</div>
                   {deltas.map(function(dd,di){
                     var att=attributeCause(dd,recentLedger2);
                     var confColor=att.confidence==="HIGH"?T.green:att.confidence==="MED"?T.orange:T.dim;
@@ -28453,7 +28455,7 @@ var GS={
                   </div>
                   <div style={{display:"flex",gap:12,fontSize:9,alignItems:"center",flexWrap:"wrap"}}>
                     <span style={{color:chemColor,fontWeight:700}}>{"🤝 Team Chemistry: "+teamChem}</span>
-                    <span style={{color:sysColor,fontWeight:700}}>{"🧠 System Knowledge: "+avgSys}</span>
+                    <span style={{color:sysColor,fontWeight:700}}>{React.createElement(LucideIcon,{name:"brain",size:10,color:sysColor})} {" System Knowledge: "+avgSys}</span>
                   </div>
                   {(function(){
                     var sysGrade=avgSys>=75?"ELITE":avgSys>=55?"SOLID":avgSys>=35?"DEVELOPING":"WEAK";
@@ -28506,7 +28508,7 @@ var GS={
                   <span style={{fontSize:16}}>{rivalryGD.opponent.icon}</span>
                   <span style={{fontSize:9,padding:"2px 6px",borderRadius:3,fontWeight:700,color:"#fff",
                     background:rivalryGD.tier==="BLOOD_FEUD"?"#ef4444":rivalryGD.tier==="BITTER"?"#f59e0b":"#64748b"}}>{rivalryGD.tier.replace("_"," ")}</span>
-                  <span style={{fontSize:10,fontWeight:700,color:T.orange}}>{"🔥 "+rivalryGD.heat}</span>
+                  <span style={{fontSize:10,fontWeight:700,color:T.orange}}>{React.createElement(LucideIcon,{name:"flame",size:10,color:T.orange})} {" "+rivalryGD.heat}</span>
                 </div>
                 {rivalryGD.tName && <div style={{fontSize:10,color:T.gold,fontWeight:700,marginBottom:4}}>{"🏷️ "+rivalryGD.tName+" is on the line"}</div>}
                 <div style={{fontSize:10,color:T.dim,marginBottom:4}}>{"Series: "+rivalryGD.seriesW+"-"+rivalryGD.seriesL}</div>
@@ -28519,7 +28521,7 @@ var GS={
               </div>}
               
               {season.phase==="freeAgency" && faMarket.length>0 && <div style={assign({},cS,{borderColor:"#10b981",background:"rgba(16,185,129,0.03)"})}>
-                <div style={{fontWeight:900,fontSize:12,color:T.green,marginBottom:4}}>{"🏪 FREE AGENT FRENZY"}</div>
+                <div style={{fontWeight:900,fontSize:12,color:T.green,marginBottom:4}}>{React.createElement(LucideIcon,{name:"users",size:12,color:T.green})} {" FREE AGENT FRENZY"}</div>
                 {faHeadlines.length>0 && <div style={{marginBottom:6}}>
                   <div style={{fontSize:8,fontWeight:700,color:T.faint,marginBottom:2}}>{"BREAKING NEWS"}</div>
                   {faHeadlines.slice(0,4).map(function(hl,hi){
@@ -28581,14 +28583,14 @@ var GS={
                     <div style={{fontSize:8,color:T.dim}}>{potw.opow.pos+" "+potw.opow.team+" — "+potw.opow.line}</div>
                   </div>}
                   {potw.dpow && <div style={{flex:1,padding:4,borderRadius:4,background:"rgba(96,165,250,0.05)",border:"1px solid rgba(96,165,250,0.15)"}}>
-                    <div style={{fontSize:7,fontWeight:800,color:T.cyan,letterSpacing:1}}>{"🛡️ DPOW"}</div>
+                    <div style={{fontSize:7,fontWeight:800,color:T.cyan,letterSpacing:1}}>{React.createElement(LucideIcon,{name:"shield",size:7,color:T.cyan})} {" DPOW"}</div>
                     <div style={{fontSize:10,fontWeight:700}}>{potw.dpow.icon+" "+potw.dpow.name}</div>
                     <div style={{fontSize:8,color:T.dim}}>{potw.dpow.pos+" "+potw.dpow.team+" — "+potw.dpow.line}</div>
                   </div>}
                 </div>}
                 
                 <div style={{marginTop:6,borderTop:"1px solid "+T.border,paddingTop:4}}>
-                  <div style={{fontSize:9,fontWeight:700,color:"#f59e0b",marginBottom:3}}>{"📊 POWER RANKINGS"}</div>
+                  <div style={{fontSize:9,fontWeight:700,color:"#f59e0b",marginBottom:3}}>{React.createElement(LucideIcon,{name:"bar-chart-3",size:9,color:"#f59e0b"})} {" POWER RANKINGS"}</div>
                   {broadcast.powerRankings.slice(0,5).map(function(pr,pri){
                     var isUser=pr.team.isUser;
                     return <div key={pri} style={{display:"flex",gap:6,alignItems:"center",padding:"2px 0",fontSize:10,
@@ -28679,7 +28681,7 @@ var GS={
                 return <div style={assign({},cS,{borderColor:htSetCount===5?"rgba(34,197,94,0.4)":"rgba(251,191,36,0.3)",
                   background:htSetCount===5?"rgba(34,197,94,0.04)":"rgba(251,191,36,0.03)"})}> 
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                    <div style={{fontWeight:800,fontSize:11,color:headerColor,letterSpacing:1}}>{"⚡ HALFTIME PLANS — Week "+season.week}</div>
+                    <div style={{fontWeight:800,fontSize:11,color:headerColor,letterSpacing:1}}>{React.createElement(LucideIcon,{name:"zap",size:11,color:headerColor})} {" HALFTIME PLANS — Week "+season.week}</div>
                     <span style={{fontSize:9,background:headerColor+"20",color:headerColor,padding:"2px 8px",borderRadius:10,fontWeight:700}}>
                       {htSetCount+"/5 set"}
                     </span>
@@ -28760,7 +28762,7 @@ var GS={
               })()}
               
               {season.phase==="regular" && <div style={assign({},cS,{borderColor:"rgba(168,85,247,0.2)",background:"rgba(168,85,247,0.02)"})}>
-                <div style={{fontWeight:800,fontSize:11,color:T.purple,letterSpacing:1,marginBottom:4}}>{"🏋️ PRACTICE FOCUS — Week "+season.week}</div>
+                <div style={{fontWeight:800,fontSize:11,color:T.purple,letterSpacing:1,marginBottom:4}}>{React.createElement(LucideIcon,{name:"dumbbell",size:11,color:T.purple})} {" PRACTICE FOCUS — Week "+season.week}</div>
                 <div style={{fontSize:8,color:T.dim,marginBottom:6}}>{"Choose how your team prepares. 🧠 System Knowledge grows fastest with 🔍 Scout or 💪 Pads — high knowledge = fewer turnovers, fewer stalls, better coverage."}</div>
                 <div style={{display:"flex",gap:4}}>
                   {PRACTICE_FOCUS.map(function(pf){
@@ -28835,7 +28837,7 @@ var GS={
               })()}
               
               {season.phase==="regular"&&scoutRpt && <div style={assign({},cS,{borderColor:"rgba(34,211,238,0.3)",background:"rgba(34,211,238,0.03)"})}>
-                <div style={{fontWeight:800,fontSize:11,color:T.cyan,letterSpacing:1,marginBottom:6}}>{"🔍 SCOUT REPORT — "+scoutRpt.opp}</div>
+                <div style={{fontWeight:800,fontSize:11,color:T.cyan,letterSpacing:1,marginBottom:6}}>{React.createElement(LucideIcon,{name:"search",size:11,color:T.cyan})} {" SCOUT REPORT — "+scoutRpt.opp}</div>
                 <div style={{display:"flex",gap:8}}>
                   <div style={{flex:1}}>
                     <div style={{fontSize:9,fontWeight:700,color:T.faint,marginBottom:3}}>{"TENDENCIES"}</div>
@@ -29035,7 +29037,7 @@ var GS={
                   <div style={{fontSize:9,color:T.text,fontWeight:600}}>{"🎯 Goal: "+arch.goalText}</div>
                   
                   {mandates&&mandates.length>0 && <div style={{marginTop:4}}>
-                    <div style={{fontSize:8,fontWeight:700,color:T.faint,marginBottom:2}}>{"📋 MANDATES"}</div>
+                    <div style={{fontSize:8,fontWeight:700,color:T.faint,marginBottom:2}}>{React.createElement(LucideIcon,{name:"clipboard-list",size:8,color:T.faint})} {" MANDATES"}</div>
                     {mandates.map(function(m,mi){
                       return <div key={mi} style={{fontSize:9,padding:"2px 0",display:"flex",gap:4,alignItems:"center"}}>
                         <span style={{color:m.met?T.green:T.red}}>{m.met?"✅":"❌"}</span>
@@ -29068,7 +29070,7 @@ var GS={
                   </div>;
                 })}
                 {deadlineShow.contenders.length>0 && <div style={{marginTop:4}}>
-                  <div style={{fontSize:8,fontWeight:700,color:T.green}}>{"🏆 CONTENDERS"}</div>
+                  <div style={{fontSize:8,fontWeight:700,color:T.green}}>{React.createElement(LucideIcon,{name:"trophy",size:8,color:T.green})} {" CONTENDERS"}</div>
                   {deadlineShow.contenders.map(function(ct,ci){
                     return <span key={ci} style={{fontSize:9,marginRight:6}}>{ct.icon+ct.abbr+" ("+ct.wins+"-"+ct.losses+")"}</span>;
                   })}
@@ -29186,7 +29188,7 @@ var GS={
                 <div style={mS(S.header,{fontSize:12,color:T.gold,marginBottom:10})}>{"📺 THE WEEKLY SHOW — WK "+weekShow.week}</div>
                 <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
                   {weekShow.gotw && <div style={mS(S.kpiBox,{flex:1,minWidth:90,background:"rgba(251,191,36,0.06)",border:"1px solid rgba(251,191,36,0.15)",borderRadius:RAD.sm})}>
-                    <div style={{fontSize:8,color:T.gold,fontWeight:700}}>{"🏈 GAME OF WEEK"}</div>
+                    <div style={{fontSize:8,color:T.gold,fontWeight:700}}>{React.createElement(LucideIcon,{name:"star",size:8,color:T.gold})} {" GAME OF WEEK"}</div>
                     <div style={{fontSize:11,fontWeight:800,marginTop:2}}>{weekShow.gotw.homeAbbr+" "+weekShow.gotw.score+" "+weekShow.gotw.awayAbbr}</div>
                   </div>}
                   {weekShow.upset && <div style={mS(S.kpiBox,{flex:1,minWidth:90,background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.15)",borderRadius:RAD.sm})}>
@@ -29202,7 +29204,7 @@ var GS={
                   </div>}
                 </div>
                 
-                <div style={{fontSize:9,fontWeight:800,color:T.cyan,marginBottom:4,letterSpacing:1}}>{"📊 POWER RANKINGS"}</div>
+                <div style={{fontSize:9,fontWeight:800,color:T.cyan,marginBottom:4,letterSpacing:1}}>{React.createElement(LucideIcon,{name:"bar-chart-3",size:9,color:"#f59e0b"})} {" POWER RANKINGS"}</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3}}>
                   {weekShow.powerRanks.slice(0,12).map(function(pr,pi){
                     var isUser=pr.id===myId;
@@ -29765,7 +29767,7 @@ var GS={
               })()}
               
               <div style={cS}>
-                <div style={{fontWeight:700,color:T.cyan,marginBottom:6}}>{"📅 Season Calendar"}</div>
+                <div style={{fontWeight:700,color:T.cyan,marginBottom:6}}>{React.createElement(LucideIcon,{name:"calendar",size:9,color:T.cyan})} {" Season Calendar"}</div>
                 <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
                   {Array.from({length:18},function(_,i){
                     var w2=i+1;var isCurrent=w2===season.week;var isPast=w2<season.week;
@@ -30011,7 +30013,7 @@ var GS={
                       var v=prompt("Set Week Number:",season.week);if(v){
                         setSeason(function(s){return assign({},s,{week:cl(parseInt(v)||1,1,28)});});addN("⚡ Week → "+v,"purple");
                       }
-                    }}>{"📅 Set Week"}</button>
+                    }}>{React.createElement(LucideIcon,{name:"calendar",size:10})} {" Set Week"}</button>
                     <button style={bS("#d946ef","#fff")} onClick={function(){
                       var nt=teams.slice();var u2=nt.find(function(t){return t.id===myId;});
                       u2.roster.forEach(function(p){p.devTrait="superstar";});setTeams(nt);doSave(nt);addN("⚡ All players → Superstar dev","purple");
@@ -30197,9 +30199,9 @@ var GS={
                 <div style={{fontWeight:700,color:T.cyan,marginBottom:8}}>💾 Save Management</div>
                 <div style={{fontSize:11,color:T.dim,marginBottom:8}}>Your game auto-saves every 60 seconds. Export for backup or transfer between devices.</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:8}}>
-                  <button style={bS(T.green,"#000")} onClick={function(){doSave();setAutoSaveInd("💾 Saved");setTimeout(function(){setAutoSaveInd("");},1400);}}>{"💾 Save Now"}</button>
+                  <button style={bS(T.green,"#000")} onClick={function(){doSave();setAutoSaveInd("💾 Saved");setTimeout(function(){setAutoSaveInd("");},1400);}}>{React.createElement(LucideIcon,{name:"save",size:12,color:"#000"})} {" Save Now"}</button>
                   <button style={bS(T.cyan,"#000")} onClick={exportClipboard}>{"📋 Copy Save String"}</button>
-                  <button style={bS(T.blue,"#fff")} onClick={function(){setImportModal(true);}}>{"📥 Paste Save String"}</button>
+                  <button style={bS(T.blue,"#fff")} onClick={function(){setImportModal(true);}}>{React.createElement(LucideIcon,{name:"download",size:12,color:"#fff"})} {" Paste Save String"}</button>
                 </div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                   <button style={bS(T.gold,"#000")} onClick={function(){setCartridgeMode("export");}}>{"🎮 Export Dynasty Cartridge"}</button>
@@ -30530,7 +30532,7 @@ var GS={
                     })}
                   </div>
                   {unavailable.length>0 && <div style={{marginTop:8,borderTop:"1px solid "+T.border,paddingTop:6}}>
-                    <div style={{fontSize:9,color:T.faint,fontWeight:700,marginBottom:4}}>{"🔒 AVAILABLE OTHER PHASES"}</div>
+                    <div style={{fontSize:9,color:T.faint,fontWeight:700,marginBottom:4}}>{React.createElement(LucideIcon,{name:"shield",size:9,color:T.faint})} {" AVAILABLE OTHER PHASES"}</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                       {unavailable.map(function(item){return <span key={item.id} style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"rgba(255,255,255,0.03)",color:T.faint,border:"1px solid rgba(255,255,255,0.06)"}}>{item.icon+" "+item.label+" ("+item.cost+")"}</span>;})}
                     </div>
@@ -30647,12 +30649,12 @@ var GS={
                   <div style={{display:"grid",gridTemplateColumns:"40px 1fr 70px 50px 36px 60px",gap:4,fontSize:12,alignItems:"center"}}>
                     <span style={{color:T.gold,fontWeight:700}}>{p.pos}{p.archetype||PLAYER_ARCHETYPES.classify(p) ? " "+((p.archetype||PLAYER_ARCHETYPES.classify(p)).emoji||"") : ""}</span>
                     <span>
-                      <span style={{fontWeight:600,cursor:"pointer"}} onClick={function(){setPlayerDetail(p);}}>{p.name}</span>
+                      {wrapPlayerName(p,<span style={{fontWeight:600,cursor:"pointer"}} onClick={function(){setPlayerDetail(p);}}>{p.name}</span>)}
                       <span style={{fontSize:9,color:T.faint,marginLeft:4}}>{p.college?p.college.school:""}</span>
                       {isDone && p.devTrait==="superstar" && <span style={{marginLeft:3}}>{"🌟"}</span>}
                       {isDone && p.devTrait==="star" && <span style={{marginLeft:3}}>{"⭐"}</span>}
                       {/* v95.2: Show ALL traits95 when interview-scouted (not just primary) */}
-                      {sc.interview && (Array.isArray(p.traits95)&&p.traits95.length>0?p.traits95:[p.trait||"none"]).filter(function(tk){return tk&&tk!=="none"&&TRAITS[tk]&&TRAITS[tk].icon;}).map(function(tk,ti){var tO=TRAITS[tk];return <span key={ti} style={{marginLeft:ti===0?3:1,fontSize:11}} title={tO.name+": "+tO.desc}>{tO.icon}</span>;})}
+                      {sc.interview && (Array.isArray(p.traits95)&&p.traits95.length>0?p.traits95:[p.trait||"none"]).filter(function(tk){return tk&&tk!=="none"&&TRAITS[tk]&&TRAITS[tk].icon;}).map(function(tk,ti){var tO=TRAITS[tk];return React.createElement(Tooltip,{key:ti,label:tO.name+": "+tO.desc},<span style={{marginLeft:ti===0?3:1,fontSize:11}}>{tO.icon}</span>);})}
                     </span>
                     <span style={{textAlign:"right",fontWeight:700,fontSize:11}}>
                       <span style={{color:cCol}}>{p.hypeOvr||"??"}</span>
@@ -30693,8 +30695,8 @@ var GS={
                     {my && (function(){
                       var fit75=schemeFitGrade(p,my.schemeOff||"balanced",my.schemeDef||"4-3",my);
                       var fitCol=fit75.letter==="A"?T.green:fit75.letter==="B"?T.cyan:fit75.letter==="C"?T.dim:T.red;
-                      return <span title={"Fit "+fit75.score+" | Base "+fit75.base+" | Spec "+(fit75.specialtyAdj>=0?"+":"")+fit75.specialtyAdj+" | Pers "+(fit75.personalityAdj>=0?"+":"")+fit75.personalityAdj+" | Sys "+(fit75.systemAdj>=0?"+":"")+fit75.systemAdj}
-                        style={{padding:"0 4px",borderRadius:3,background:fitCol+"20",color:fitCol,fontSize:8,fontWeight:700}}>{"FIT:"+fit75.letter}</span>;
+                      return React.createElement(Tooltip,{label:"Fit "+fit75.score+" | Base "+fit75.base+" | Spec "+(fit75.specialtyAdj>=0?"+":"")+fit75.specialtyAdj+" | Pers "+(fit75.personalityAdj>=0?"+":"")+fit75.personalityAdj+" | Sys "+(fit75.systemAdj>=0?"+":"")+fit75.systemAdj,mono:true},<span
+                        style={{padding:"0 4px",borderRadius:3,background:fitCol+"20",color:fitCol,fontSize:8,fontWeight:700}}>{"FIT:"+fit75.letter}</span>);
                     })()}
                   </div>}
                   
@@ -30771,16 +30773,17 @@ var GS={
                   var room2=Math.max(0,theCap2-capUsed2-dead2);var pctUsed=Math.min(100,(capUsed2+dead2)/theCap2*100);
                   var health=pctUsed<75?"Healthy":pctUsed<90?"Tight":"Over!";
                   var hColor=pctUsed<75?T.green:pctUsed<90?T.gold:T.red;
-                  return <div style={{padding:"8px 14px"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,marginBottom:4}}>
-                      <span style={{color:T.dim}}>{"💰 Cap: $"+capUsed2.toFixed(1)+"M used"+(dead2>0?" + $"+dead2.toFixed(1)+"M dead":"")}</span>
-                      <span style={{fontWeight:700,color:hColor}}>{"$"+room2.toFixed(1)+"M room — "+health}</span>
+                  var capSections=[{value:Math.min(100,capUsed2/theCap2*100),color:hColor}];
+                  if(dead2>0)capSections.push({value:Math.min(100-capSections[0].value,dead2/theCap2*100),color:T.red});
+                  return <div style={{padding:"8px 14px",display:"flex",alignItems:"center",gap:12}}>
+                    {React.createElement(RingProgress,{size:52,thickness:5,sections:capSections,label:React.createElement("span",{style:{fontSize:8,fontWeight:700,color:hColor,fontFamily:FONT.mono}},Math.round(pctUsed)+"%")})}
+                    <div style={{flex:1}}>
+                      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,marginBottom:2}}>
+                        <span style={{color:T.dim}}>{React.createElement(LucideIcon,{name:"dollar-sign",size:10,color:T.dim})} {"Cap: $"+capUsed2.toFixed(1)+"M used"+(dead2>0?" + $"+dead2.toFixed(1)+"M dead":"")}</span>
+                        <span style={{fontWeight:700,color:hColor}}>{"$"+room2.toFixed(1)+"M room — "+health}</span>
+                      </div>
+                      <div style={{fontSize:8,color:T.faint}}>{"Cap: $"+theCap2+"M (Year "+(season.year)+")"}</div>
                     </div>
-                    <div style={{height:8,background:T.bg3,borderRadius:4,overflow:"hidden",display:"flex"}}>
-                      <div style={{width:(capUsed2/theCap2*100)+"%",height:"100%",background:hColor,borderRadius:"4px 0 0 4px"}}></div>
-                      {dead2>0 && <div style={{width:(dead2/theCap2*100)+"%",height:"100%",background:T.red,opacity:0.5}}></div>}
-                    </div>
-                    <div style={{fontSize:8,color:T.faint,marginTop:2,textAlign:"right"}}>{"Cap: $"+theCap2+"M (Year "+(season.year)+")"}</div>
                   </div>;
                 })()}
               </div>
@@ -30973,27 +30976,27 @@ var GS={
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
                         <span style={{color:T.gold,fontWeight:700,fontSize:11}}>{p.pos}</span>
-                        <span style={{fontWeight:700,fontSize:12,cursor:"pointer",textDecoration:"underline",textDecorationColor:T.border}} onClick={function(){setPlayerDetail(p);}}>{p.name}</span>
+                        {wrapPlayerName(p,<span style={{fontWeight:700,fontSize:12,cursor:"pointer",textDecoration:"underline",textDecorationColor:T.border}} onClick={function(){setPlayerDetail(p);}}>{p.name}</span>)}
                         {/* v95: Show up to 3 trait icons from traits95 array (ChatGPT UX pattern) */}
-                        {(p.traits95||[p.trait]).filter(function(tk){return tk&&tk!=="none"&&TRAITS[tk]&&TRAITS[tk].icon;}).slice(0,3).map(function(tk,ti){var tObj95=TRAITS[tk];return <span key={ti} style={{fontSize:11}} title={tObj95.name+": "+(tObj95.desc||"")}>{tObj95.icon}</span>;})}
+                        {(p.traits95||[p.trait]).filter(function(tk){return tk&&tk!=="none"&&TRAITS[tk]&&TRAITS[tk].icon;}).slice(0,3).map(function(tk,ti){var tObj95=TRAITS[tk];return React.createElement(Tooltip,{key:ti,label:tObj95.name+": "+(tObj95.desc||"")},<span style={{fontSize:11}}>{tObj95.icon}</span>);})}
                         {p.devTrait==="superstar" && <span style={{fontSize:10}}>{"🌟"}</span>}
                         {p.devTrait==="star" && <span style={{fontSize:10}}>{"⭐"}</span>}
                         <span style={{fontSize:8,padding:"1px 5px",borderRadius:8,background:"rgba(255,255,255,0.04)",color:moraleColor,fontWeight:700}}>{"M"+(p.morale||70)}</span>
                         {(function(){var sfNew=schemeFitGrade(p,my.schemeOff,my.schemeDef,my);
                           var sfC=sfNew.letter==="A"?T.green:sfNew.letter==="B"?T.cyan:sfNew.letter==="C"?T.dim:sfNew.letter==="D"?T.orange:T.red;
-                          return <span title={"Identity Fit: "+sfNew.score+" ("+sfNew.letter+") | Base "+sfNew.base+" | Spec "+(sfNew.specialtyAdj>=0?"+":"")+sfNew.specialtyAdj+" | Pers "+(sfNew.personalityAdj>=0?"+":"")+sfNew.personalityAdj+" | Sys "+(sfNew.systemAdj>=0?"+":"")+sfNew.systemAdj}
+                          return React.createElement(Tooltip,{label:"Identity Fit: "+sfNew.score+" ("+sfNew.letter+") | Base "+sfNew.base+" | Spec "+(sfNew.specialtyAdj>=0?"+":"")+sfNew.specialtyAdj+" | Pers "+(sfNew.personalityAdj>=0?"+":"")+sfNew.personalityAdj+" | Sys "+(sfNew.systemAdj>=0?"+":"")+sfNew.systemAdj,mono:true},<span
                             style={{fontSize:8,padding:"1px 5px",borderRadius:6,
                             background:sfNew.letter==="A"?"rgba(52,211,153,0.12)":sfNew.letter==="F"?"rgba(239,68,68,0.12)":"rgba(255,255,255,0.04)",
-                            color:sfC,fontWeight:800,letterSpacing:0.5}}>{sfNew.letter}</span>;
+                            color:sfC,fontWeight:800,letterSpacing:0.5}}>{sfNew.letter}</span>);
                         })()}
                         
                         {p.role && ROLE_DEFS[p.pos] && (function(){
                           var rd=ROLE_DEFS[p.pos].find(function(r){return r.id===p.role;});
-                          return rd?<span title={rd.label+" ("+rd.snapPct+"% snaps)"} style={{fontSize:7,padding:"1px 4px",borderRadius:4,
-                            background:"rgba(167,139,250,0.1)",color:T.purple,fontWeight:700}}>{rd.label.split(" ")[0]}</span>:null;
+                          return rd?React.createElement(Tooltip,{label:rd.label+" ("+rd.snapPct+"% snaps)"},<span style={{fontSize:7,padding:"1px 4px",borderRadius:4,
+                            background:"rgba(167,139,250,0.1)",color:T.purple,fontWeight:700}}>{rd.label.split(" ")[0]}</span>):null;
                         })()}
                         {isInj && <span style={mS(S.badge,S.badgeRed,{fontSize:8})}>{"🤕"+p.injury.games+"wk"}</span>}
-                        {p.onTradeBlock && <span style={mS(S.badge,S.badgeRed,{fontSize:8})}>{"📢 BLOCK"}</span>}
+                        {p.onTradeBlock && <span style={mS(S.badge,S.badgeRed,{fontSize:8})}>{React.createElement(LucideIcon,{name:"tag",size:8,color:T.red})} {" BLOCK"}</span>}
                         
                         {defMoments80&&defMoments80[p.id]&&defMoments80[p.id].slice(-3).map(function(badge80,bi80){return React.createElement("span",{key:"dm"+bi80,title:badge80.text,style:{fontSize:12,cursor:"default",filter:"drop-shadow(0 0 3px rgba(255,215,0,0.7))"}},badge80.icon);})}
                         
@@ -31023,12 +31026,12 @@ var GS={
                     </div>
                     <div style={{display:"flex",flexDirection:"column",gap:3}}>
                       <button onClick={function(){cutPlayer(p.id);}} style={assign({},bS(T.bg3,T.red),{padding:"3px 6px",fontSize:9})}>{"✂️"}</button>
-                      <button onClick={function(){moveToPS(p.id);}} style={assign({},bS(T.bg3,T.cyan),{padding:"3px 6px",fontSize:9})} title={"Practice Squad"}>{"↓PS"}</button>
+                      {React.createElement(Tooltip,{label:"Practice Squad"},<button onClick={function(){moveToPS(p.id);}} style={assign({},bS(T.bg3,T.cyan),{padding:"3px 6px",fontSize:9})}>{"↓PS"}</button>)}
                       <button onClick={function(){toggleTradeBlock(p.id);}} style={assign({},bS(p.onTradeBlock?T.red:T.bg3,p.onTradeBlock?"#fff":T.faint),{padding:"3px 6px",fontSize:9})}>{"📢"}</button>
-                      {p.ovr>=CAPTAIN_RULES.eligibleMinOvr && <button onClick={function(){
+                      {p.ovr>=CAPTAIN_RULES.eligibleMinOvr && React.createElement(Tooltip,{label:captainId===p.id?"Remove Captain":"Make Captain"},<button onClick={function(){
                         if(captainId===p.id){setCaptainId(null);addN("⭐ "+p.name+" removed as captain","orange");}
                         else{setCaptainId(p.id);setCaptMoments(function(prev){return prev.season===season.year?prev:{season:season.year,used:0,log:[]};});addN("⭐ "+p.name+" named TEAM CAPTAIN!","gold");}
-                      }} style={assign({},bS(captainId===p.id?T.gold:T.bg3,captainId===p.id?"#000":T.faint),{padding:"3px 6px",fontSize:9})} title={captainId===p.id?"Remove Captain":"Make Captain"}>{captainId===p.id?"⭐":"☆"}</button>}
+                      }} style={assign({},bS(captainId===p.id?T.gold:T.bg3,captainId===p.id?"#000":T.faint),{padding:"3px 6px",fontSize:9})}>{captainId===p.id?"⭐":"☆"}</button>)}
                     </div>
                     {godMode && <div style={{display:"flex",flexDirection:"column",gap:2}}>
                       <button onClick={function(){setPlayerDetail(p);}} style={assign({},bS(T.purple,"#fff"),{padding:"2px 5px",fontSize:8})}>{"⚡"}</button>
@@ -31768,7 +31771,7 @@ var GS={
                   border:"1px solid rgba(251,191,36,0.3)",borderRadius:8,padding:"10px 14px",marginBottom:12}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                     <div style={{fontSize:11,fontWeight:900,color:T.gold,letterSpacing:1}}>
-                      {"📞 COUNTER-OFFER TO "+pendingCounter971.aiIcon+" "+pendingCounter971.aiAbbr}
+                      {React.createElement(LucideIcon,{name:"phone",size:11,color:T.gold})} {" COUNTER-OFFER TO "+pendingCounter971.aiIcon+" "+pendingCounter971.aiAbbr}
                     </div>
                     <button onClick={function(){setPendingCounter971(null);}} style={{fontSize:9,padding:"2px 8px",
                       background:"transparent",color:T.faint,border:"1px solid "+T.border,borderRadius:4,cursor:"pointer"}}>
@@ -31944,14 +31947,14 @@ var GS={
                     
                     {(function(){var tr69=(tradeState.gmTrustByTeam||{})[tradeTeamId]||50;var tl=TRADE_MATH.trustLabel(tr69);
                       return <span style={{fontSize:9,padding:"2px 6px",borderRadius:4,fontWeight:700,
-                        background:tl.color+"15",color:tl.color}} title={"Rises with fair deals + credible press. Falls when you fleece teams."}>{tl.emoji+" GM Trust: "+tr69+" ("+tl.label+")"}</span>;})()}
+                        background:tl.color+"15",color:tl.color}}>{tl.emoji+" GM Trust: "+tr69+" ("+tl.label+")"}</span>;})()}
                   </div>
                   
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                     
                     <div style={assign({},cS,{padding:0,overflow:"hidden",borderColor:tMyP.length>0||tMyPk.length>0?T.red:T.border})}>
                       <div style={{padding:"6px 10px",background:"rgba(239,68,68,0.06)",borderBottom:"1px solid "+T.border}}>
-                        <div style={{fontWeight:700,fontSize:11,color:T.red}}>{"📤 YOU SEND"}</div>
+                        <div style={{fontWeight:700,fontSize:11,color:T.red}}>{React.createElement(LucideIcon,{name:"arrow-right",size:11,color:T.red})} {" YOU SEND"}</div>
                         {sendVal>0 && <div style={{fontSize:9,color:T.dim}}>{"Value: "+sendVal+" | Sal: $"+sendSal.toFixed(1)+"M"}</div>}
                       </div>
                       <div style={{maxHeight:280,overflowY:"auto",padding:"4px 6px"}}>
@@ -31967,8 +31970,8 @@ var GS={
                           <div style={{display:"flex",gap:4,alignItems:"center"}}>
                             {sel && <span style={{color:T.red,fontWeight:900}}>{"✓"}</span>}
                             <span style={{color:T.gold,fontWeight:700}}>{p.pos}</span>
-                            <span style={{fontWeight:sel?700:400}}>{p.name}</span>
-                            {isShort84 && <span style={{fontSize:7,color:T.gold,background:"rgba(212,167,75,0.14)",padding:"1px 4px",borderRadius:3,fontWeight:800}}>{"🎯 SHORTLIST"}</span>}
+                            {wrapPlayerName(p,<span style={{fontWeight:sel?700:400}}>{p.name}</span>)}
+                            {isShort84 && <span style={{fontSize:7,color:T.gold,background:"rgba(212,167,75,0.14)",padding:"1px 4px",borderRadius:3,fontWeight:800}}>{React.createElement(LucideIcon,{name:"target",size:7,color:T.gold})} {" SHORTLIST"}</span>}
                             {fillsNeed && <span style={{fontSize:7,color:T.green,background:"rgba(16,185,129,0.1)",padding:"1px 4px",borderRadius:3}}>{"NEED"}</span>}
                           </div>
                           <div style={{display:"flex",gap:6,alignItems:"center"}}>
@@ -32012,7 +32015,7 @@ var GS={
                     
                     <div style={assign({},cS,{padding:0,overflow:"hidden",borderColor:tAiP.length>0||tAiPk.length>0?T.blue:T.border})}>
                       <div style={{padding:"6px 10px",background:"rgba(96,165,250,0.06)",borderBottom:"1px solid "+T.border}}>
-                        <div style={{fontWeight:700,fontSize:11,color:T.blue}}>{"📥 YOU GET"}</div>
+                        <div style={{fontWeight:700,fontSize:11,color:T.blue}}>{React.createElement(LucideIcon,{name:"arrow-right",size:11,color:T.blue,style:{transform:"rotate(180deg)"}})} {" YOU GET"}</div>
                         {getVal>0 && <div style={{fontSize:9,color:T.dim}}>{"Value: "+getVal+" | Sal: $"+getSal.toFixed(1)+"M"}</div>}
                       </div>
                       <div style={{maxHeight:280,overflowY:"auto",padding:"4px 6px"}}>
@@ -32027,8 +32030,8 @@ var GS={
                           <div style={{display:"flex",gap:4,alignItems:"center"}}>
                             {sel && <span style={{color:T.blue,fontWeight:900}}>{"✓"}</span>}
                             <span style={{color:T.gold,fontWeight:700}}>{p.pos}</span>
-                            <span style={{fontWeight:sel?700:400}}>{p.name}</span>
-                            {isShort84 && <span style={{fontSize:7,color:T.gold,background:"rgba(212,167,75,0.14)",padding:"1px 4px",borderRadius:3,fontWeight:800}}>{"🎯 SHORTLIST"}</span>}
+                            {wrapPlayerName(p,<span style={{fontWeight:sel?700:400}}>{p.name}</span>)}
+                            {isShort84 && <span style={{fontSize:7,color:T.gold,background:"rgba(212,167,75,0.14)",padding:"1px 4px",borderRadius:3,fontWeight:800}}>{React.createElement(LucideIcon,{name:"target",size:7,color:T.gold})} {" SHORTLIST"}</span>}
                           </div>
                           <div style={{display:"flex",gap:6,alignItems:"center"}}>
                             {tradeGap84>=2 && <span style={{fontSize:7,color:T.green,background:"rgba(34,197,94,0.08)",padding:"1px 4px",borderRadius:3,fontWeight:800}}>{"+$"+tradeGap84.toFixed(1)+"M"}</span>}
@@ -32281,7 +32284,7 @@ var GS={
                   <table style={tS}><thead><tr><th style={thS}>Name</th><th style={thS}>Pos</th>
                     {sec.cols.map(function(c){return <th key={c[0]} style={thS}>{c[0]}</th>;})}</tr></thead>
                     <tbody>{sec.players.map(function(p){return <tr key={p.id}>
-                      <td style={assign({},tdS,{fontWeight:600,cursor:"pointer",textDecoration:"underline",textDecorationColor:T.border})} onClick={function(){setPlayerDetail(p);}}>{p.name}</td>
+                      <td style={assign({},tdS,{fontWeight:600,cursor:"pointer",textDecoration:"underline",textDecorationColor:T.border})} onClick={function(){setPlayerDetail(p);}}>{wrapPlayerName(p,<span>{p.name}</span>)}</td>
                       <td style={assign({},tdS,{color:T.gold})}>{p.pos}</td>
                       {sec.cols.map(function(c){return <td key={c[0]} style={assign({},tdS,{fontWeight:700})}>{p.stats[c[1]]||0}</td>;})}</tr>;})}</tbody></table>
                 </div>;
@@ -32371,7 +32374,7 @@ var GS={
                       var isMe2=p.tId===myId;
                       return <tr key={i} style={{background:isMe2?"rgba(212,167,75,0.06)":"transparent"}}>
                         <td style={assign({},tdS,{color:i===0?T.gold:T.dim,fontWeight:i<3?700:400})}>{i+1}</td>
-                        <td style={assign({},tdS,{fontWeight:600,cursor:"pointer"})} onClick={function(){setPlayerDetail(p);}}>{p.name}</td>
+                        <td style={assign({},tdS,{fontWeight:600,cursor:"pointer"})} onClick={function(){setPlayerDetail(p);}}>{wrapPlayerName(p,<span>{p.name}</span>)}</td>
                         <td style={assign({},tdS,{color:T.gold,fontSize:10})}>{p.pos}</td>
                         <td style={assign({},tdS,{fontSize:10})}>{p.tIcon+" "+p.tA}</td>
                         {sec.cols.map(function(c){
@@ -32888,7 +32891,7 @@ var GS={
                         <td style={assign({},tdS,{fontWeight:600,whiteSpace:"nowrap"})}>{p.name}{(p.ovr>=76&&dPk>=10)?" 💎":""}</td>
                         <td style={assign({},tdS,{color:T.gold,fontWeight:700})}>{p.pos}</td>
                         <td style={assign({},tdS,{fontWeight:800,color:p.scoutGrade&&p.scoutGrade[0]==="A"?T.green:p.scoutGrade&&p.scoutGrade[0]==="B"?T.cyan:p.scoutGrade&&p.scoutGrade[0]==="C"?T.dim:T.red})}>{p.scoutGrade||ovrDisplay88}</td>
-                        <td style={assign({},tdS,{fontSize:9,fontWeight:700,color:ovrColor88})} title={confDraft+"% conf — ±"+errBandDraft+" OVR error"}>{ovrDisplay88}</td>
+                        <td style={assign({},tdS,{fontSize:9,fontWeight:700,color:ovrColor88})}>{React.createElement(Tooltip,{label:confDraft+"% conf — ±"+errBandDraft+" OVR error",mono:true},<span>{ovrDisplay88}</span>)}</td>
                         <td style={assign({},tdS,{fontSize:10,color:T.purple})}>{p.potLabel||(confDraft>=75?p.pot:"?")}</td>
                         <td style={assign({},tdS,{fontSize:9,color:p._scouted78?T.cyan:T.dim})}>
                           {(p.college?p.college.school:"")+(p._scouted78?" 🔍"+p._scoutGrade78:"")}
@@ -32897,7 +32900,7 @@ var GS={
                         </td>
                         <td style={assign({},tdS,{fontSize:8,color:T.faint})}>{colText}</td>
                         <td style={assign({},tdS,{fontSize:8,color:T.faint})}>{combText}</td>
-                        <td style={assign({},tdS,{fontSize:10})} title={trObj.desc||""}>{trObj.icon||"—"}</td>
+                        <td style={assign({},tdS,{fontSize:10})}>{trObj.desc?React.createElement(Tooltip,{label:trObj.desc},<span>{trObj.icon||"—"}</span>):(trObj.icon||"—")}</td>
                         <td style={tdS}><button onClick={function(){doDraftPick(p);}} style={bS()}>Draft</button></td>
                       </tr>);});
                     })()}</tbody></table>
@@ -32958,7 +32961,7 @@ var GS={
                     {udfaPool76.length>10 && <div style={{fontSize:9,color:T.faint,textAlign:"center",marginTop:4}}>{"+"+(udfaPool76.length-10)+" more available"}</div>}
                   </div>}
                   <div style={{display:"flex",gap:8,justifyContent:"center"}}>
-                    <button style={mS(S.btn,{background:"linear-gradient(135deg,"+T.blue+",#2563eb)",color:"#fff",padding:"12px 24px",fontSize:14,fontWeight:800})} onClick={function(){setTab("fa");}}>{"🏪 Browse Free Agents"}</button>
+                    <button style={mS(S.btn,{background:"linear-gradient(135deg,"+T.blue+",#2563eb)",color:"#fff",padding:"12px 24px",fontSize:14,fontWeight:800})} onClick={function(){setTab("fa");}}>{React.createElement(LucideIcon,{name:"users",size:14,color:"#fff"})} {" Browse Free Agents"}</button>
                     <button style={mS(S.btn,S.btnPrimary,{padding:"12px 24px",fontSize:14})} onClick={newSeason}>{"⏭ Start Next Season"}</button>
                   </div>
                 </div>
@@ -33187,7 +33190,7 @@ var GS={
                   var isTop=true;e.bids.forEach(function(b){if(!b.isUser&&b.salary>ub.salary)isTop=false;});
                   return <div key={e.playerId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:"1px solid "+T.border}}>
                     <div>
-                      <span style={{fontWeight:700,fontSize:11}}>{e.name}</span>
+                      {wrapPlayerName(e,<span style={{fontWeight:700,fontSize:11}}>{e.name}</span>)}
                       <span style={{fontSize:10,color:T.dim}}>{" "+e.pos+" "+e.ovr}</span>
                       <span style={{fontSize:9,color:T.faint}}>{" \u2014 Rd "+e.roundsLeft+" left"}</span>
                     </div>
@@ -33229,7 +33232,7 @@ var GS={
                       <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
                         <span style={{color:T.gold,fontWeight:700,fontSize:12}}>{entry.pos}</span>
                         <span style={{fontWeight:800,fontSize:13,cursor:"pointer",textDecoration:"underline",textDecorationColor:T.border}} onClick={function(){if(p.id)setPlayerDetail(p);}}>{entry.name}</span>
-                        {trObj2.icon && <span style={{fontSize:12}} title={trObj2.name}>{trObj2.icon}</span>}
+                        {trObj2.icon && React.createElement(Tooltip,{label:trObj2.name},<span style={{fontSize:12}}>{trObj2.icon}</span>)}
                         {p.devTrait==="superstar" && <span style={{fontSize:10}}>{"\ud83c\udf1f"}</span>}
                         {p.devTrait==="star" && <span style={{fontSize:10}}>{"\u2b50"}</span>}
                       </div>
@@ -33412,8 +33415,8 @@ var GS={
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
                         <span style={{color:T.gold,fontWeight:700,fontSize:12}}>{p.pos}</span>
-                        <span style={{fontWeight:800,fontSize:13,cursor:"pointer",textDecoration:"underline",textDecorationColor:T.border}} onClick={function(){setPlayerDetail(p);}}>{p.name}</span>
-                        {trObj2.icon && <span style={{fontSize:12}} title={trObj2.name+": "+(trObj2.desc||"")}>{trObj2.icon}</span>}
+                        {wrapPlayerName(p,<span style={{fontWeight:800,fontSize:13,cursor:"pointer",textDecoration:"underline",textDecorationColor:T.border}} onClick={function(){setPlayerDetail(p);}}>{p.name}</span>)}
+                        {trObj2.icon && React.createElement(Tooltip,{label:trObj2.name+": "+(trObj2.desc||"")},<span style={{fontSize:12}}>{trObj2.icon}</span>)}
                         {p.devTrait==="superstar" && <span style={{fontSize:10}}>{"\ud83c\udf1f"}</span>}
                         {p.devTrait==="star" && <span style={{fontSize:10}}>{"\u2b50"}</span>}
                       </div>
@@ -33598,7 +33601,7 @@ var GS={
                             {cTraits.map(function(tr){
                               return <span key={tr.label} style={{fontSize:9,padding:"2px 6px",borderRadius:8,
                                 background:"rgba(168,85,247,0.12)",border:"1px solid rgba(168,85,247,0.3)",
-                                color:T.purple,fontWeight:600}} title={tr.desc}>
+                                color:T.purple,fontWeight:600}}>
                                 {tr.icon+" "+tr.label}
                               </span>;
                             })}
@@ -33998,7 +34001,7 @@ var GS={
                   })()}
                   
                   <div style={{background:T.bg3,borderRadius:6,padding:8}}>
-                    <div style={{fontSize:9,color:T.purple,fontWeight:700,marginBottom:4}}>{"📅 LEAGUE ERAS"}</div>
+                    <div style={{fontSize:9,color:T.purple,fontWeight:700,marginBottom:4}}>{React.createElement(LucideIcon,{name:"calendar",size:9,color:T.purple})} {" LEAGUE ERAS"}</div>
                     <div style={{fontSize:10}}>{"Seasons: "+history.length}</div>
                     <div style={{fontSize:10,color:T.dim}}>{history.length>0?(history[0].year+" — "+(history[history.length-1].year)):""}</div>
                   </div>
@@ -34257,7 +34260,7 @@ var GS={
                         <span style={{color:T.gold,marginLeft:6}}>{p.pos}</span>
                         <span style={{color:T.dim,marginLeft:6,fontSize:11}}>{"OVR "+p.ovr}</span>
                         {/* v95.1: show all traits95 icons */}
-                        {allTraits95rs.map(function(tk,ti){var tObj=TRAITS[tk];return tObj&&tObj.icon?<span key={ti} style={{marginLeft:ti===0?4:2}} title={tObj.name+": "+tObj.desc}>{tObj.icon}</span>:null;})}
+                        {allTraits95rs.map(function(tk,ti){var tObj=TRAITS[tk];return tObj&&tObj.icon?React.createElement(Tooltip,{key:ti,label:tObj.name+": "+tObj.desc},<span style={{marginLeft:ti===0?4:2}}>{tObj.icon}</span>):null;})}
                         {p.devTrait==="superstar" && <span style={{marginLeft:4}}>{"🌟"}</span>}
                       </div>
                       <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -38230,7 +38233,7 @@ var GS={
           
           {tab==="calendar" && (
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              <div style={{fontWeight:700}}>{"📅 Season Calendar"}</div>
+              <div style={{fontWeight:700}}>{React.createElement(LucideIcon,{name:"calendar",size:9,color:T.cyan})} {" Season Calendar"}</div>
               <div style={{fontSize:11,color:T.dim,marginBottom:4}}>{"Key dates, deadlines, and milestones. Tap an active step to jump right in."}</div>
               {CALENDAR.map(function(ev){
                 var isPast=ev.week<season.week;var isCurrent=ev.week===season.week||ev.week===season.week+1;
@@ -42326,7 +42329,7 @@ var GS={
                   })}
                 </div>
                 {(preseasonReport.posBattles974&&preseasonReport.posBattles974.length>0) && <div style={{padding:"0 16px 12px"}}>
-                  <div style={{fontSize:10,fontWeight:800,color:T.orange,letterSpacing:1,marginBottom:4}}>{"⚔️ POSITION BATTLES"}</div>
+                  <div style={{fontSize:10,fontWeight:800,color:T.orange,letterSpacing:1,marginBottom:4}}>{React.createElement(LucideIcon,{name:"swords",size:12,color:T.orange})} {" POSITION BATTLES"}</div>
                   {preseasonReport.posBattles974.map(function(b,bi){
                     return <div key={bi} style={{fontSize:10,padding:"4px 6px",marginBottom:3,borderRadius:4,background:"rgba(251,146,60,0.06)",borderLeft:"3px solid "+T.orange}}>
                       <span style={{fontWeight:700,color:T.gold}}>{b.pos+": "}</span>
@@ -42876,7 +42879,7 @@ var GS={
             else if(tab==="roster"){fabLabel="Depth Chart";fabAction=function(){setTab("depth");};}
             if(!fabLabel)return null;
             var hasTickerBottom=weekShow&&weekShow.headlines&&weekShow.headlines.length>0&&ph==="regular"&&!done;
-            return React.createElement("button",{style:mS(S.fab,{bottom:hasTickerBottom?36:16}),onClick:fabAction},fabLabel);
+            return React.createElement(LoadingButton,{style:mS(S.fab,{bottom:hasTickerBottom?36:16}),onClick:fabAction,loading:false,loadingText:"SIMULATING..."},fabLabel);
           })()}
           
           {React.createElement(Spotlight,{isOpen:spotlightOpen,onClose:function(){setSpotlightOpen(false);},teams:teams,setTab:setTab,setPlayerDetail:setPlayerDetail,simWeek:simWeek,doSave:doSave})}
@@ -43020,6 +43023,7 @@ var GS={
               <button onClick={function(){setGameDayPhase977(null);setPostgameLocker977(null);}} style={{marginTop:8,fontSize:11,padding:"8px 16px",borderRadius:6,cursor:"pointer",background:T.bg3,color:T.text,border:"1px solid "+T.border,fontWeight:700}}>{"Continue →"}</button>
             </div>
           </div>}
+          {React.createElement(MfdToaster)}
           {React.createElement(ToastContainer,{toasts:toasts,remove:removeToast,onAction:handleToastAction})}
           {_bootOverlay}
           {_briefingOverlay}

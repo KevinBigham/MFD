@@ -185,55 +185,7 @@ export default function PlayScreen(props) {
   return (
     <div style={{ minHeight: '100vh', background: T.bg, color: T.text, fontFamily: "'Segoe UI', sans-serif", padding: 24 }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <div style={{ ...S.card, marginBottom: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>{MODE_COPY.play.title}</div>
-          <div style={{ fontSize: 12, color: T.dim }}>
-            Launching legacy gameplay runtime from <code>/legacy/index.html</code>.
-          </div>
-          <div style={{ fontSize: 11, color: T.dim, marginTop: 6 }}>
-            Legacy runtime version: <strong style={{ color: T.text }}>{manifest.version || 'unknown'}</strong>
-          </div>
-          <div style={{ marginTop: 8 }}>
-            <a href={legacyUrl} style={{ color: T.cyan, fontSize: 12 }} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
-              {MODE_COPY.play.openDirect}
-            </a>
-          </div>
-        </div>
-
-        {enableSaveImportExport ? (
-          <div style={{ ...S.card, marginBottom: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: T.cyan, marginBottom: 6 }}>
-              Save Import/Export (Beta)
-            </div>
-            <div style={{ fontSize: 11, color: T.dim }}>
-              Feature flag is enabled. Import/export hooks are available for rollout validation.
-            </div>
-          </div>
-        ) : null}
-
-        <div style={{ ...S.card, marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: T.cyan, marginBottom: 6 }}>
-            Live Feed Source
-          </div>
-          <div style={{ fontSize: 11, color: T.dim }}>
-            State: <strong style={{ color: T.text }}>{feedView.sourceState}</strong>
-            {feedView.sourceState === SOURCE_STATE.FIXTURE ? ' (fixture fallback active)' : ''}
-            {feedView.sourceState === SOURCE_STATE.STALE ? ' (awaiting fresh live events)' : ''}
-            {feedView.sourceState === SOURCE_STATE.INVALID ? ' (invalid envelope rejected)' : ''}
-          </div>
-          <div style={{ fontSize: 11, color: T.dim, marginTop: 6 }}>
-            Command Desk + Postgame use unified adapter for {feedView.context.homeTeam || 'home'} vs {feedView.context.awayTeam || 'away'}.
-          </div>
-          <div style={{ fontSize: 11, color: T.dim, marginTop: 4 }}>
-            Weekly Hook: <strong style={{ color: feedView.commandDesk.backing === PACKET_BACKING.LIVE_PACKET ? T.cyan : T.text }}>{feedView.commandDesk.backing}</strong>
-            {' · '}
-            Postgame: <strong style={{ color: feedView.postgameAutopsy.backing === PACKET_BACKING.LIVE_PACKET ? T.cyan : T.text }}>{feedView.postgameAutopsy.backing}</strong>
-          </div>
-        </div>
-
-        {feedView.postgameAutopsy.backing === PACKET_BACKING.LIVE_PACKET ? (
-          <PostgameAutopsy data={feedView.postgameAutopsy} />
-        ) : null}
+        {/* Debug ribbon removed — Sprint 18 cleanup */}
 
         {!playability.loading && !playability.ok ? (
           <div style={{ ...S.card, borderColor: T.yellow, marginBottom: 12 }}>

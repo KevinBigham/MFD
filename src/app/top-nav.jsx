@@ -73,14 +73,7 @@ export default function TopNav(props) {
             {APP_SUBTITLE ? (
               <div style={{ fontSize: 11, color: T.dim }}>{APP_SUBTITLE}</div>
             ) : null}
-            <div style={{ marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {runtimeVersion ? (
-                <div style={{ fontSize: 10, color: T.dim }}>Legacy runtime: {runtimeVersion}</div>
-              ) : null}
-              {forcedMode ? (
-                <div style={{ fontSize: 10, color: T.dim }}>Forced mode: {forcedMode}</div>
-              ) : null}
-            </div>
+            {/* Runtime version and forced mode labels removed — Sprint 18 cleanup */}
           </div>
           <div
             role="tablist"

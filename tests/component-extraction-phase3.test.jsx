@@ -24,7 +24,7 @@ describe('component extraction phase 3', () => {
     expect(barrelSrc).toContain("export { PlayerCard } from './PlayerCard.jsx';");
     expect(barrelSrc).toContain("export { ToastContainer } from './Toast.jsx';");
 
-    expect(monolithSrc).toContain("Tooltip, HoverCard, KpiCard, KpiGrid, Spotlight, LoadingButton, Skeleton, Indicator, RingProgress, Stepper } from './src/components/index.js';");
+    expect(monolithSrc).toContain("LucideIcon, MfdToaster, mfdToast, Dialog, DropdownMenu, Select, AnimatedPresence, AnimatedPanel, AnimatedList, DataTable, DraggableList, useBreakpoint } from './src/components/index.js';");
     expect(monolithSrc).toContain('{playerDetail && <PlayerCard');
     expect(monolithSrc).toContain('<Modal isOpen={showKbHelp}');
     expect(monolithSrc).toContain('<Modal isOpen={importModal}');
@@ -50,7 +50,8 @@ describe('component extraction phase 3', () => {
 
     expect(openHtml).toContain('modal body');
     expect(openHtml).toContain('#00afc8');
-    expect(closedHtml).toBe('');
+    // Radix Dialog renders a minimal Root even when closed, but no content
+    expect(closedHtml).not.toContain('hidden body');
   });
 
   it('renders ToastContainer content and actionable affordance', () => {

@@ -16,11 +16,10 @@ describe('play-screen integration', () => {
       },
     }));
 
-    expect(html).toContain('Play Legacy Build');
+    // Debug ribbon removed in Sprint 18 — verify game still renders
     expect(html).toContain('Loading legacy game...');
-    expect(html).toContain('Open legacy directly');
-    expect(html).toContain('Legacy runtime version:');
-    expect(html).toContain('legacy/index.html');
+    expect(html).not.toContain('Play Legacy Build');
+    expect(html).not.toContain('Legacy runtime version:');
   });
 
   it('renders iframe with legacy URL', () => {
@@ -38,20 +37,8 @@ describe('play-screen integration', () => {
     expect(html).toContain('Mr Football Dynasty Legacy');
   });
 
-  it('shows import/export beta card only when feature flag is enabled', () => {
-    var withoutFlag = renderToStaticMarkup(React.createElement(PlayScreen, {
-      basePath: '/season/',
-      manifest: {
-        version: 'v100',
-        assetVersion: '20260315c',
-        entry: 'legacy/index.html',
-        files: ['legacy/game.js', 'legacy/react.min.js', 'legacy/react-dom.min.js'],
-      },
-      enableSaveImportExport: false,
-    }));
-    expect(withoutFlag).not.toContain('Save Import/Export (Beta)');
-
-    var withFlag = renderToStaticMarkup(React.createElement(PlayScreen, {
+  it('debug ribbon cards removed in Sprint 18', () => {
+    var html = renderToStaticMarkup(React.createElement(PlayScreen, {
       basePath: '/season/',
       manifest: {
         version: 'v100',
@@ -61,6 +48,9 @@ describe('play-screen integration', () => {
       },
       enableSaveImportExport: true,
     }));
-    expect(withFlag).toContain('Save Import/Export (Beta)');
+    // All debug cards removed — verify they don't render
+    expect(html).not.toContain('Save Import/Export (Beta)');
+    expect(html).not.toContain('Live Feed Source');
+    expect(html).not.toContain('Play Legacy Build');
   });
 });
