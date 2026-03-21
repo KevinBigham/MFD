@@ -47,8 +47,9 @@ describe('difficulty.js', () => {
     expect(DIFF_SETTINGS.allpro.ownerMod).toBeLessThan(DIFF_SETTINGS.legend.ownerMod);
   });
 
-  it('trade and AI bid modifiers increase with difficulty', () => {
-    expect(DIFF_SETTINGS.rookie.tradeMod).toBeLessThan(DIFF_SETTINGS.pro.tradeMod);
+  it('trade and AI bid modifiers scale with difficulty', () => {
+    // Rookie tradeMod is HIGHER (trades are easier for the player)
+    expect(DIFF_SETTINGS.rookie.tradeMod).toBeGreaterThan(DIFF_SETTINGS.pro.tradeMod);
     expect(DIFF_SETTINGS.pro.tradeMod).toBeLessThan(DIFF_SETTINGS.allpro.tradeMod);
     expect(DIFF_SETTINGS.allpro.tradeMod).toBeLessThan(DIFF_SETTINGS.legend.tradeMod);
 

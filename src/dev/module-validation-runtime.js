@@ -385,7 +385,7 @@ export function runModuleValidation(prebuiltStatusRows) {
   check(!S.btn || !S.btnPrimary, 'Style objects missing');
 
   // Difficulty
-  check(DIFF_SETTINGS.rookie.tradeMod !== 0.85, 'DIFF_SETTINGS.rookie.tradeMod mismatch');
+  check(DIFF_SETTINGS.rookie.tradeMod !== 1.15, 'DIFF_SETTINGS.rookie.tradeMod mismatch');
   check(DIFF_SETTINGS.legend.injMod !== 1.5, 'DIFF_SETTINGS.legend.injMod mismatch');
 
   // Cap Math

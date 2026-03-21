@@ -8,7 +8,7 @@
 import { cl } from '../utils/helpers.js';
 
 export var OWNER_PATIENCE={
-  drainRate:{win_now:8,patient_builder:3,profit_first:5,fan_favorite:6,legacy_builder:4},
+  drainRate:{win_now:6,patient_builder:2,profit_first:4,fan_favorite:4,legacy_builder:3},
   gainRate:{win_now:12,patient_builder:6,profit_first:8,fan_favorite:10,legacy_builder:8},
   tick:function(current,owner,team,won,isPlayoffs){
     if(!owner||!owner.archetypeId)return current;
@@ -17,6 +17,7 @@ export var OWNER_PATIENCE={
     var gain=OWNER_PATIENCE.gainRate[arch]||8;
     var delta=0;
     if(won){delta=isPlayoffs?gain*1.5:gain;}else{delta=isPlayoffs?-drain*2:-drain;}
+    if(isPlayoffs)delta+=15;// making playoffs adds patience regardless of W/L
     if(won&&(team.streak||0)>=3)delta+=4;
     if(!won&&(team.streak||0)<=-3)delta-=4;
     return Math.max(0,Math.min(100,current+delta));

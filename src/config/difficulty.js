@@ -10,7 +10,7 @@ export var DIFF_SETTINGS = {
     name: 'Rookie',
     icon: '\u{1F7E2}',
     desc: 'Forgiving trades, fewer injuries, patient owner. Learn the ropes.',
-    tradeMod: 0.85,
+    tradeMod: 1.15,
     injMod: 0.6,
     ownerMod: 0.7,
     clutchSwing: 0.3,

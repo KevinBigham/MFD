@@ -28,7 +28,7 @@ export var DRAFT_WAR_ROOM={
     var scored=rem.map(function(p){
       var need=needs[p.pos]||0;
       var schemeFit=DRAFT_WAR_ROOM.schemeFitScore(p,schemes);
-      var val=(p.ovr||50)+need*0.35+schemeFit*0.20;
+      var val=(p.ovr||50)+need*0.35+schemeFit*0.20+(p.pos==='QB'?12:0);
       return {p:p,val:val,need:need,fit:schemeFit};
     }).sort(function(a,b){return b.val-a.val;});
     var targetBoard=scored.slice(0,5).map(function(x){

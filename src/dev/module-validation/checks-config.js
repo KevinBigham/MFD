@@ -8,7 +8,7 @@ import {
 } from '../../config/index.js';
 
 export function runConfigChecks(check) {
-  check(DIFF_SETTINGS.rookie.tradeMod !== 0.85, 'DIFF_SETTINGS.rookie.tradeMod mismatch');
+  check(DIFF_SETTINGS.rookie.tradeMod !== 1.15, 'DIFF_SETTINGS.rookie.tradeMod mismatch');
   check(DIFF_SETTINGS.legend.injMod !== 1.5, 'DIFF_SETTINGS.legend.injMod mismatch');
   check(CAP_MATH.BASE_CAP !== 255.0, 'CAP_MATH.BASE_CAP mismatch');
   check(getSalaryCap(2026) !== 255, 'getSalaryCap(2026) should be 255');

@@ -37,5 +37,5 @@ export function evaluateTradePackage(myAssets,theirAssets){
   var diff=myVal-theirVal;
   var verdict=diff>20?"OVERPAY":diff>5?"SLIGHT_OVERPAY":diff>-5?"FAIR":diff>-20?"GOOD_DEAL":"STEAL";
   return{myVal:myVal,theirVal:theirVal,diff:diff,verdict:verdict,
-    willAccept:myVal>=theirVal*0.9};// AI accepts if within 10% of fair
+    willAccept:myVal>=theirVal*0.95};// AI accepts if within 5% of fair
 }

@@ -18,7 +18,7 @@ export function getTradeValue(p, needs, teamCtx) {
   var v = (p.ovr * 3) + (p.pot * 2);
   if (p.age > 29) v -= (p.age - 29) * 15;
   if (p.age > 33) v -= (p.age - 33) * 20;
-  v += ((p.ovr > 85 ? 20 : p.ovr > 75 ? 8 : 2) - v36_capHit(p.contract)) * 5;
+  v -= Math.max(0, v36_capHit(p.contract) - 8) * 5;
   var deadIfTraded = v36_deadIfTraded(p.contract);
   if (deadIfTraded > 15) v -= Math.round(deadIfTraded * 2);
   if (hasTrait95(p, 'cancer')) v = Math.round(v * 0.7);

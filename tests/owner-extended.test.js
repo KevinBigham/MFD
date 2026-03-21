@@ -12,12 +12,12 @@ describe('owner-extended.js', () => {
       const win = OWNER_PATIENCE.tick(50, { archetypeId: 'win_now' }, { streak: 3 }, true, false);
       const loss = OWNER_PATIENCE.tick(50, { archetypeId: 'win_now' }, { streak: -3 }, false, false);
       expect(win).toBe(66); // +12 +4
-      expect(loss).toBe(38); // -8 -4
+      expect(loss).toBe(40); // -6 -4 (drain reduced from 8 to 6)
     });
 
     it('tick amplifies playoff stakes and clamps bounds', () => {
       expect(OWNER_PATIENCE.tick(95, { archetypeId: 'fan_favorite' }, { streak: 0 }, true, true)).toBe(100);
-      expect(OWNER_PATIENCE.tick(3, { archetypeId: 'fan_favorite' }, { streak: 0 }, false, true)).toBe(0);
+      expect(OWNER_PATIENCE.tick(3, { archetypeId: 'fan_favorite' }, { streak: 0 }, false, true)).toBe(10); // 3 + (-4*2) + 15 = 10
     });
 
     it('status returns threshold labels', () => {

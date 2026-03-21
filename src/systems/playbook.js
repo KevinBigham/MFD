@@ -25,9 +25,9 @@ export var PLAYBOOK_986={
       {id:"power_sweep",label:"Power Sweep",icon:"🦬",desc:"Pulling guards lead the way",type:"run",
         ydsBase:[0,6],bigPlay:0.08,fumble:0.02,commentary:["Power sweep!","Guards pulling — follow the blockers!","Sweep to the strong side!"]},
       {id:"jet_sweep",label:"Jet Sweep",icon:"💨",desc:"WR takes pitch on jet motion — explosive outside run",type:"run",
-        ydsBase:[-2,18],bigPlay:0.30,fumble:0.03,commentary:["Jet sweep!","WR takes the pitch on jet motion!","Speedy receiver turns the corner — huge gain possible!","Fly sweep — he's got daylight!"]},
+        ydsBase:[-2,14],bigPlay:0.30,fumble:0.03,commentary:["Jet sweep!","WR takes the pitch on jet motion!","Speedy receiver turns the corner — huge gain possible!","Fly sweep — he's got daylight!"]},
       {id:"wr_reverse",label:"WR Reverse",icon:"🔄",desc:"WR takes handoff going opposite direction — misdirection",type:"run",
-        ydsBase:[-4,22],bigPlay:0.28,fumble:0.04,commentary:["WR Reverse!","Wide receiver on the end-around!","Misdirection — the defense is confused!","Handoff to the wide receiver going the other way!"]}
+        ydsBase:[-4,16],bigPlay:0.28,fumble:0.04,commentary:["WR Reverse!","Wide receiver on the end-around!","Misdirection — the defense is confused!","Handoff to the wide receiver going the other way!"]}
     ],
     shortPass:[
       {id:"slant",label:"Quick Slant",icon:"↗️",desc:"Inside route, fast throw",type:"pass",
@@ -74,7 +74,7 @@ export var PLAYBOOK_986={
     ],
     special:[
       {id:"hail_mary",label:"Hail Mary",icon:"🙏",desc:"Last resort — throw it up",type:"pass",
-        ydsBase:[0,70],incPct:0.75,intPct:0.12,sackPct:0.03,bigPlay:0.15,
+        ydsBase:[0,70],incPct:0.75,intPct:0.18,sackPct:0.03,bigPlay:0.15,
         commentary:["HAIL MARY!","Heaves it to the end zone!","Prayer at the buzzer!"]},
       {id:"hurry_up",label:"Hurry-Up",icon:"⏱️",desc:"No huddle — save clock",type:"pass",
         ydsBase:[3,15],incPct:0.30,intPct:0.03,sackPct:0.05,bigPlay:0.08,clockSave:15,
@@ -322,8 +322,8 @@ export var PLAYBOOK_986={
         commentary:"QB flushes from the pocket!",big:scramBig,isRush:true,isScramble:true,matchups:matchups};}
 
     // SACK: OL passBlock + anchorStrength vs DL powerMoves + finesseMoves + QB pocket presence
-    var sackPct=(offPlay.sackPct||0.05)+(dm.sackMod||0)+(dm.blitz||0);
-    sackPct-=(olPassBlk-dlRush)*0.0004;     // OL protection dominates DL rush = fewer sacks
+    var sackPct=(offPlay.sackPct||0.06)+(dm.sackMod||0)+(dm.blitz||0);
+    sackPct-=(olPassBlk-dlRush)*0.0008;     // OL protection dominates DL rush = fewer sacks
     sackPct-=(olAnchor-dlPowMov)*0.0002;    // anchor strength holds against bull rush
     sackPct-=(olFinesse-dlFinMov)*0.0002;   // finesse technique counters speed rush
     sackPct-=(qbPocket-50)*0.0004;          // pocket presence buys extra time
@@ -362,7 +362,7 @@ export var PLAYBOOK_986={
     if(wrSpec>=78&&RNG.play()<0.12){incPct-=0.06;}
     // Catch in traffic helps TE/slot routes over the middle
     if(isTEPlay&&wrCIT>=75){incPct-=0.04;}
-    incPct=Math.max(0.10,Math.min(0.75,incPct));
+    incPct=Math.max(0.10,Math.min(0.85,incPct));
     if(RNG.play()<incPct){
       var incTargets=[wr,wr2,te,rb].filter(function(x){return!!x;});
       var incT=incTargets[Math.floor(RNG.play()*incTargets.length)];
