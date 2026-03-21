@@ -4,7 +4,7 @@
 
 Build a championship dynasty from the ground up. Draft 300-prospect classes through a live war room. Navigate a $255M+ salary cap with restructures, backloads, and void years. Outsmart 29 AI GMs in trades, free agency, and coaching hires. Watch your story unfold through broadcast commentary, press conferences, rivalry sagas, and Hall of Fame inductions — all in your browser, no install required.
 
-> **Play Now:** [mr-football-dynasty](https://kevinbigham.github.io/mr-football-dynasty/?v=20260320a)
+> **Play Now:** [mr-football-dynasty](https://kevinbigham.github.io/mr-football-dynasty/?v=20260321a)
 
 ---
 
