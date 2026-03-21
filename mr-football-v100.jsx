@@ -21,7 +21,7 @@ import { TEAM_CLIMATES, CLIMATE_PROFILES, WEATHER, HT_CONDITIONS, HT_STRATEGIES 
 import { BREAKOUT_SYSTEM } from './src/systems/breakout-system.js';
 import { calcDominanceScore, calcDynastyIndex, calcPeakPower, calcLongevity, generateIdentityTags, ERA_THRESHOLD, ALMANAC_SCHEMA_VERSION, generateEraCards, buildHallOfSeasons } from './src/systems/dynasty-analytics.js';
 import { PLAYBOOK_986 } from './src/systems/playbook.js';
-import { StatBar, ToneBadge, WeeklyShowCard, Icon, Modal, PlayerCard, ToastContainer, TerminalBoot, MondayBriefing, ChampionshipOverlay, DraftPickOverlay, PlayoffClinchOverlay, HallOfFameOverlay, InjuryOverlay, FiredOverlay, DynastyCartridge, UnresolvedHooks, ConsequenceRibbon, WeekAdvanceChecklist } from './src/components/index.js';
+import { StatBar, ToneBadge, WeeklyShowCard, Icon, Modal, PlayerCard, ToastContainer, TerminalBoot, MondayBriefing, ChampionshipOverlay, DraftPickOverlay, PlayoffClinchOverlay, HallOfFameOverlay, InjuryOverlay, FiredOverlay, DynastyCartridge, UnresolvedHooks, ConsequenceRibbon, WeekAdvanceChecklist, Tooltip, HoverCard, KpiCard, KpiGrid, Spotlight, LoadingButton, Skeleton, Indicator, RingProgress, Stepper } from './src/components/index.js';
 import { DYNASTY_CARTRIDGE } from './src/systems/dynasty-cartridge.js';
 import { HOOKS_ENGINE } from './src/systems/hooks-engine.js';
 import { buildChecklist } from './src/components/WeekAdvanceChecklist.jsx';
@@ -16990,6 +16990,7 @@ var GS={
   var _liveResult986=useState(null),liveResult986=_liveResult986[0],setLiveResult986=_liveResult986[1];
   var _pracSquad986=useState([]),pracSquad986=_pracSquad986[0],setPracSquad986=_pracSquad986[1];
   var _expansionEvent986=useState(null),expansionEvent986=_expansionEvent986[0],setExpansionEvent986=_expansionEvent986[1];
+  var _spotlightOpen=useState(false),spotlightOpen=_spotlightOpen[0],setSpotlightOpen=_spotlightOpen[1];
   var _draftClockKey=useState(0),draftClockKey=_draftClockKey[0],setDraftClockKey=_draftClockKey[1];// WAR_ROOM: clock restart key
   var _draftClockSec=useState(30),draftClockSec=_draftClockSec[0],setDraftClockSec=_draftClockSec[1];// WAR_ROOM: current clock seconds
   var _mfsnTicker=useState([]),mfsnTicker=_mfsnTicker[0],setMfsnTicker=_mfsnTicker[1];// WAR_ROOM: MFSN draft ticker
@@ -17134,11 +17135,12 @@ var GS={
       if(e.target&&e.target.contentEditable==="true")return;
       if(screen!=="game")return;// Only in game screen
       var k=e.key;
+      if((e.ctrlKey||e.metaKey)&&k==="k"){e.preventDefault();setSpotlightOpen(function(v){return !v;});return;}
       if((e.ctrlKey||e.metaKey)&&k==="s"){e.preventDefault();doSave();setAutoSaveInd("💾 Saved");setTimeout(function(){setAutoSaveInd("");},1400);return;}
       if((e.ctrlKey||e.metaKey)&&e.shiftKey&&(k==="C"||k==="c")){e.preventDefault();exportClipboard();return;}
       if((e.ctrlKey||e.metaKey)&&k==="o"){e.preventDefault();setImportModal(true);return;}
       if(k==="?"||k==="/"){setShowKbHelp(function(v){return !v;});return;}
-      if(k==="Escape"){setShowBriefing(false);setShowKbHelp(false);setImportModal(false);setPlayerDetail(null);setWeekShow(null);setFitDrilldown(null);setSchemeConfirm(null);return;}
+      if(k==="Escape"){setSpotlightOpen(false);setShowBriefing(false);setShowKbHelp(false);setImportModal(false);setPlayerDetail(null);setWeekShow(null);setFitDrilldown(null);setSchemeConfirm(null);return;}
       if(showKbHelp||importModal||weekShow||playerDetail||fitDrilldown||schemeConfirm)return;
       if(k>="1"&&k<="9"){var idx=parseInt(k)-1;if(idx<TAB_ORDER.length){
         if(!isTabUnlocked(TAB_ORDER[idx],unlocks,godMode)){addN("🔒 Tab locked — keep playing to unlock!","info");return;}
@@ -42877,6 +42879,7 @@ var GS={
             return React.createElement("button",{style:mS(S.fab,{bottom:hasTickerBottom?36:16}),onClick:fabAction},fabLabel);
           })()}
           
+          {React.createElement(Spotlight,{isOpen:spotlightOpen,onClose:function(){setSpotlightOpen(false);},teams:teams,setTab:setTab,setPlayerDetail:setPlayerDetail,simWeek:simWeek,doSave:doSave})}
           {showScanlines && <div style={S.scanlines}/>}
           <style>{"@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}} @keyframes fadeInOut{0%{opacity:0}10%{opacity:1}80%{opacity:1}100%{opacity:0}}"}</style>
           
