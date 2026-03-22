@@ -4,7 +4,7 @@
 
 Build a championship dynasty from the ground up. Draft 300-prospect classes through a live war room. Navigate a $255M+ salary cap with restructures, backloads, and void years. Outsmart 29 AI GMs in trades, free agency, and coaching hires. Watch your story unfold through broadcast commentary, press conferences, rivalry sagas, and Hall of Fame inductions — all in your browser, no install required.
 
-> **Play Now:** [mr-football-dynasty](https://kevinbigham.github.io/mr-football-dynasty/?v=20260321b)
+> **Play Now:** [mr-football-dynasty](https://kevinbigham.github.io/mr-football-dynasty/?v=20260321c)
 
 ---
 
@@ -121,13 +121,56 @@ A 10-sprint UI overhaul introducing 7 best-in-class open-source libraries, all w
 
 ---
 
+## Sprint 9: Determinism & Balance Blitz
+
+A deep code review uncovered 34 `Math.random()` violations breaking the seeded RNG contract, plus multiple exploitable game balance issues. This sprint fixed them all.
+
+### Determinism Restored
+- **34 Math.random() callsites eliminated** — every random call now routes through the 7-channel seeded RNG system (play, ai, ui, draft, injury, dev, trade)
+- **Grep audit test** — automated test that fails if `Math.random()` ever reappears in the codebase
+
+### Game Balance Fixes
+- **Trade acceptance threshold** raised from 90% to 95% — closes low-ball exploit
+- **Trade cap-hit formula** fixed — expensive contracts now properly penalized (was reversed)
+- **Trick play nerf** — Jet Sweep max yards 18→14, WR Reverse 22→16, Hail Mary INT rate 12%→18%
+- **Sack rate boost** — base rate 5%→6%, OL-DL modifier doubled — pass rush matters more
+- **Incompletion cap** raised 75%→85% — elite defense can shut down passing games
+- **QB draft board bonus** — +12 value for QB prospects, AI now properly values franchise QBs
+- **Rookie difficulty fixed** — tradeMod was 0.85 (harder!), now 1.15 (easier, as intended)
+- **Owner patience rebalanced** — drain rates reduced ~30%, playoff appearances add +15 buffer
+
+---
+
+## Sprint 10: Onboarding Overhaul — 3-Step Wizard
+
+Replaced the overwhelming 7-screen onboarding with a clean 3-step guided wizard.
+
+### Before (too much)
+Title → Team Pick → Draft Mode (5 options) → Game Guide (7 tabs, 100+ items) → FO Setup (8 roles) → Draft → Play
+
+### After (just right)
+Title → **Step 1: Pick Team** → **Step 2: Choose Style** → **Step 3: Quick Tips** → Play!
+
+### The 3 Steps
+1. **Pick Your Team** — Clean 30-team flat grid, one click to select
+2. **Choose Your Style** — 3 cards combining difficulty + draft mode:
+   - Easy (Rookie + pre-built roster, instant Week 1)
+   - Standard (Pro + 10-pick snake draft)
+   - Challenge (All-Pro + full 53-man draft)
+   - Hidden Legend toggle (Legend + auction draft) for veterans
+3. **Quick Tips** — 5 swipeable cards covering core gameplay essentials
+
+Advanced Options link preserves full access to God Mode, League DNA, FO Setup, and all 5 original draft modes for power users.
+
+---
+
 ## Tech Stack
 
 | Technology | Purpose |
 |-----------|---------|
 | React 18 | UI framework |
 | Vite 6 | Build system with HMR |
-| Vitest | Testing (1,345 tests across 274 files) |
+| Vitest | Testing (1,373 tests across 279 files) |
 | Lucide React | SVG icon system |
 | Sonner | Toast notifications |
 | Radix UI | Accessible dialog, dropdown, select, popover, tabs |
@@ -146,7 +189,7 @@ A 10-sprint UI overhaul introducing 7 best-in-class open-source libraries, all w
 | Source files | 490+ JS/JSX |
 | Extracted modules | 220+ |
 | UI components | 45+ |
-| Unit tests | 1,345 |
+| Unit tests | 1,373 |
 | Core systems | 95+ |
 | Narrative/data modules | 50+ |
 | Ceremony overlays | 6 |
@@ -167,7 +210,7 @@ MFD started as a single 43,000+ line React component — a true labor-of-love mo
 
 **Key architectural decisions:**
 
-- **Seeded RNG with 6 isolated channels** (gameplay, draft, trade, injury, league, weather) — same seed = same results
+- **Seeded RNG with 7 isolated channels** (play, draft, trade, injury, ai, dev, ui) — same seed = same results, zero Math.random() in codebase
 - **Hybrid architecture** — modular code validates on boot, gameplay flows through the battle-tested original engine
 - **Adapter-first UI** — every external library wrapped in MFD adapters using theme tokens, never imported directly
 - **Inline styles only** — no CSS files, all styling via JavaScript objects with centralized theme tokens
@@ -192,7 +235,7 @@ src/
 ```bash
 npm install
 npm run dev       # Start dev server on port 3000
-npm test          # Run 1,345 tests
+npm test          # Run 1,373 tests
 npm run build     # Production build
 ```
 
@@ -213,7 +256,7 @@ The humans vibe. The AIs build. The games ship.
 
 ## Status
 
-**Fully playable.** Modern build system. Comprehensive test coverage. Active development. GOAT Update + Terminal Maximalism 2.0 shipped March 2026.
+**Fully playable.** Modern build system. 1,373 tests across 279 files. Active development. GOAT Update + Terminal Maximalism 2.0 + Determinism & Balance Blitz + Onboarding Wizard shipped March 2026.
 
 ---
 
