@@ -17125,6 +17125,10 @@ var GS={
   var _expDraftType=useState("snake"),expDraftType=_expDraftType[0],setExpDraftType=_expDraftType[1];// snake|auction
   var _expDraftOrder96=useState(null),expDraftOrder96=_expDraftOrder96[0],setExpDraftOrder96=_expDraftOrder96[1];// v96.1: Draft order setup
   var _diff=useState("pro"),difficulty=_diff[0],setDifficulty=_diff[1];
+  var _wizStep=useState(0),wizardStep=_wizStep[0],setWizardStep=_wizStep[1];
+  var _wizTeam=useState(null),wizardTeamIdx=_wizTeam[0],setWizardTeamIdx=_wizTeam[1];
+  var _wizStyle=useState(null),wizardStyle=_wizStyle[0],setWizardStyle=_wizStyle[1];
+  var _wizTip=useState(0),wizardTipIdx=_wizTip[0],setWizardTipIdx=_wizTip[1];
   var _expPoolSnap=useState([]),expPoolSnap=_expPoolSnap[0],setExpPoolSnap=_expPoolSnap[1];
   var _poBracket=useState(null),poBracket=_poBracket[0],setPoBracket=_poBracket[1];
   useEffect(function(){DIFF_ACTIVE=difficulty;},[difficulty]);
@@ -17203,7 +17207,7 @@ var GS={
   },[weekShow]);
   useEffect(function(){
     if(audioMuted) return;
-    if(screen==="title"||screen==="pick"||screen==="draftMode"||screen==="draftOrderSetup"||screen==="foExplain"||screen==="foSetup"||screen==="gameGuide"){AUDIO.play("legends");}// v80.9: "Pretend We're Legends"
+    if(screen==="title"||screen==="wizard"||screen==="pick"||screen==="draftMode"||screen==="draftOrderSetup"||screen==="foExplain"||screen==="foSetup"||screen==="gameGuide"){AUDIO.play("legends");}// v80.9: "Pretend We're Legends"
     else if(screen==="expansionSnake"||screen==="expansionAuction"){AUDIO.play("gears");}// v80.9: "Gears in the Glow"
     else if(theater){AUDIO.play("neon");}// v80.9: "Neon Fever Dream"
     else if(season.phase==="combine"||season.phase==="draft"||season.phase==="drafting"){AUDIO.play("gears");}// v80.9
@@ -24695,7 +24699,8 @@ var GS={
           <button style={mS(S.btn,S.btnPrimary,{width:"100%",padding:"16px 20px",fontSize:16,borderRadius:RAD.lg,boxShadow:"0 0 30px rgba(251,191,36,0.3),"+SH.glow,letterSpacing:1,animation:"pulse 2s ease-in-out infinite"})}
             onClick={function(){
               startRookieFlow();
-              runRookieTransition("Setting up your rookie funnel...",function(){setScreen("pick");});
+              setWizardStep(0);setWizardTeamIdx(null);setWizardStyle(null);setWizardTipIdx(0);
+              runRookieTransition("Setting up your rookie funnel...",function(){setScreen("wizard");});
             }}><span style={{display:"inline-flex",alignItems:"center",gap:8}}>
               {React.createElement(Icon,{name:"play",size:16})}
               <span>{"PRESS START"}</span>
@@ -25083,6 +25088,189 @@ var GS={
 </div><div style={GS.footer}>
                 <button onClick={function(){setShowHelp(false);}} style={GS.goldBtn}>{"ENTER THE FRONT OFFICE 🏈"}</button>
               </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+  // ═══════════════════════════════════════════════════════════════════
+  // ONBOARDING WIZARD — 3-Step Guided Setup (Sprint 10)
+  // Step 0: Pick Your Team | Step 1: Choose Your Style | Step 2: Quick Tips
+  // ═══════════════════════════════════════════════════════════════════
+  if(screen==="wizard"){
+    var WIZARD_STYLES=[
+      {id:"easy",label:"Easy Mode",icon:"\uD83D\uDFE2",diff:"rookie",draftMode:"quick",draftDepth:0,
+        sub:"Pre-built roster, patient owner, forgiving trades",desc:"Perfect for your first dynasty. Jump right into Week 1."},
+      {id:"normal",label:"Standard",icon:"\uD83D\uDFE1",diff:"pro",draftMode:"snake",draftDepth:10,
+        sub:"Quick draft (10 picks), balanced challenge",desc:"Draft your cornerstones, then build from there."},
+      {id:"hard",label:"Challenge",icon:"\uD83D\uDFE0",diff:"allpro",draftMode:"snake",draftDepth:53,
+        sub:"Full 53-man draft, demanding owner",desc:"Build every position from scratch. For experienced GMs."}
+    ];
+    var WIZARD_LEGEND={id:"legend",label:"Legend Mode",icon:"\uD83D\uDD34",diff:"legend",draftMode:"auction",draftDepth:53,
+      sub:"Auction draft, ruthless AI, owner on a hair trigger",desc:"Glory or bust. The ultimate test."};
+    var WIZARD_TIPS=[
+      {icon:"\u26A1",title:"Sim weeks to advance",desc:"Click the Sim Week button to play your next game. Watch the scores roll in and manage your team week by week."},
+      {icon:"\uD83D\uDD04",title:"Trade to build your roster",desc:"Use the Trade tab to wheel and deal with 29 AI GMs. Build your dream team through smart trades."},
+      {icon:"\uD83D\uDC54",title:"Keep your owner happy",desc:"Win games and manage the salary cap. A happy owner means job security and bigger budgets."},
+      {icon:"\u2318K",title:"Find anything fast",desc:"Press Cmd+K (or Ctrl+K) to open the command palette. Search players, teams, or jump to any screen instantly."},
+      {icon:"\uD83C\uDFAE",title:"Have fun!",desc:"You can't mess up on Easy. Explore everything — trades, drafts, free agency, coaching. It's your dynasty."}
+    ];
+    function launchWizard(){
+      var idx=wizardTeamIdx;
+      setExpTeamIdx(idx);
+      var style=WIZARD_STYLES.find(function(s){return s.id===wizardStyle;})||WIZARD_LEGEND;
+      if(!style)style=WIZARD_STYLES[0];
+      setDifficulty(style.diff);
+      setRookieFlow(function(prev){
+        if(!prev||!prev.active)return prev;
+        return advanceRookieFlow(prev,ROOKIE_STEPS.MODE,Date.now());
+      });
+      if(style.draftMode==="quick"){
+        runRookieTransition("Building your Week 1 kickoff...",function(){createLeague(idx,true);});
+      }else if(style.draftMode==="auction"){
+        initExpAuctionDraft(idx,style.draftDepth);
+      }else{
+        initExpSnakeDraft(idx,style.draftDepth);
+      }
+    }
+    var wizSelectedTeam=wizardTeamIdx!==null?TD[wizardTeamIdx]:null;
+    var wizSelectedStyle=WIZARD_STYLES.find(function(s){return s.id===wizardStyle;})||(wizardStyle==="legend"?WIZARD_LEGEND:null);
+    return (
+      <div style={{minHeight:"100vh",background:T.bg,color:T.text,fontFamily:FONT.body,padding:"24px 16px",display:"flex",flexDirection:"column",alignItems:"center"}}>
+        {/* Stepper */}
+        <div style={{width:"100%",maxWidth:320,marginBottom:32}}>
+          {React.createElement(Stepper,{steps:[{label:"Team"},{label:"Style"},{label:"Tips"}],active:wizardStep})}
+        </div>
+
+        {/* ── STEP 0: Pick Your Team ── */}
+        {wizardStep===0&&(
+          <div style={{width:"100%",maxWidth:800,animation:"fadeIn 0.3s ease"}}>
+            <div style={{textAlign:"center",marginBottom:24}}>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:4,color:T.dim,textTransform:"uppercase",marginBottom:4}}>{"STEP 1"}</div>
+              <div style={{fontSize:24,fontWeight:900,fontFamily:FONT.display,color:T.gold}}>{"Pick Your Team"}</div>
+              <div style={{color:T.faint,fontSize:11,marginTop:6}}>{"Click any team to get started."}</div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:10}}>
+              {TD.map(function(t,i){return (
+                <div key={t.id} onClick={function(){setWizardTeamIdx(i);setWizardStep(1);}}
+                  style={mS(S.card,{cursor:"pointer",textAlign:"center",padding:"14px 8px",transition:"all 0.15s ease",borderColor:T.glassBorder})}>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>{React.createElement(TeamLogo,{team:t,size:38})}</div>
+                  <div style={{fontWeight:800,fontSize:12}}>{t.city}</div>
+                  <div style={{fontWeight:600,fontSize:10,color:T.dim}}>{t.name}</div>
+                </div>
+              );})}
+            </div>
+            <div style={{textAlign:"center",marginTop:20}}>
+              <button onClick={function(){setScreen("title");}} style={mS(S.btn,S.btnGhost,{padding:"8px 16px",fontSize:10})}>
+                {React.createElement(Icon,{name:"arrow-left",size:12})}
+                {" Back"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 1: Choose Your Style ── */}
+        {wizardStep===1&&(
+          <div style={{width:"100%",maxWidth:640,animation:"fadeIn 0.3s ease"}}>
+            <div style={{textAlign:"center",marginBottom:24}}>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:4,color:T.dim,textTransform:"uppercase",marginBottom:4}}>{"STEP 2"}</div>
+              <div style={{fontSize:24,fontWeight:900,fontFamily:FONT.display,color:T.gold}}>{"Choose Your Style"}</div>
+              {wizSelectedTeam&&<div style={{color:T.faint,fontSize:11,marginTop:6}}>{"Playing as the "+wizSelectedTeam.city+" "+wizSelectedTeam.name}</div>}
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {WIZARD_STYLES.map(function(ws){return (
+                <div key={ws.id} onClick={function(){setWizardStyle(ws.id);setWizardStep(2);setWizardTipIdx(0);}}
+                  style={mS(S.card,{cursor:"pointer",padding:"20px 24px",transition:"all 0.15s ease",
+                    borderColor:wizardStyle===ws.id?T.gold:T.glassBorder,
+                    background:wizardStyle===ws.id?"rgba(251,191,36,0.06)":"rgba(255,255,255,0.03)"})}>
+                  <div style={{display:"flex",alignItems:"center",gap:16}}>
+                    <div style={{fontSize:32,lineHeight:1}}>{ws.icon}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:900,fontSize:16,color:T.text,marginBottom:2}}>{ws.label}</div>
+                      <div style={{fontSize:12,color:T.gold,fontWeight:700,marginBottom:4}}>{ws.sub}</div>
+                      <div style={{fontSize:11,color:T.dim,lineHeight:1.4}}>{ws.desc}</div>
+                    </div>
+                    <div style={{fontSize:18,color:T.faint}}>{"→"}</div>
+                  </div>
+                </div>
+              );})}
+            </div>
+            {/* Legend Mode Toggle */}
+            <div style={{marginTop:16,textAlign:"center"}}>
+              <button onClick={function(){setWizardStyle("legend");setWizardStep(2);setWizardTipIdx(0);}}
+                style={mS(S.btn,S.btnGhost,{padding:"8px 16px",fontSize:10,color:T.dim})}>
+                {"\uD83D\uDD34 Legend Mode — Auction draft, ruthless AI"}
+              </button>
+            </div>
+            {/* Advanced Options */}
+            <div style={{marginTop:12,textAlign:"center"}}>
+              <button onClick={function(){openDraftModeForTeam(wizardTeamIdx);}}
+                style={{background:"none",border:"none",color:T.faint,fontSize:10,cursor:"pointer",textDecoration:"underline",fontFamily:FONT.body}}>
+                {"Advanced Options (God Mode, League DNA, FO Setup)"}
+              </button>
+            </div>
+            {/* Back */}
+            <div style={{textAlign:"center",marginTop:16}}>
+              <button onClick={function(){setWizardStep(0);}} style={mS(S.btn,S.btnGhost,{padding:"8px 16px",fontSize:10})}>
+                {React.createElement(Icon,{name:"arrow-left",size:12})}
+                {" Back"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 2: Quick Tips ── */}
+        {wizardStep===2&&(
+          <div style={{width:"100%",maxWidth:480,animation:"fadeIn 0.3s ease"}}>
+            <div style={{textAlign:"center",marginBottom:24}}>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:4,color:T.dim,textTransform:"uppercase",marginBottom:4}}>{"STEP 3"}</div>
+              <div style={{fontSize:24,fontWeight:900,fontFamily:FONT.display,color:T.gold}}>{"Quick Tips"}</div>
+              {wizSelectedTeam&&wizSelectedStyle&&(
+                <div style={{color:T.faint,fontSize:11,marginTop:6}}>{wizSelectedTeam.city+" "+wizSelectedTeam.name+" · "+wizSelectedStyle.label}</div>
+              )}
+            </div>
+            {/* Tip Card */}
+            <div style={mS(S.card,{padding:"32px 28px",textAlign:"center",minHeight:180,display:"flex",flexDirection:"column",justifyContent:"center",
+              borderColor:"rgba(251,191,36,0.3)",background:"rgba(251,191,36,0.04)"})}>
+              <div style={{fontSize:48,marginBottom:16,lineHeight:1}}>{WIZARD_TIPS[wizardTipIdx].icon}</div>
+              <div style={{fontSize:18,fontWeight:900,color:T.text,marginBottom:8,fontFamily:FONT.display}}>{WIZARD_TIPS[wizardTipIdx].title}</div>
+              <div style={{fontSize:12,color:T.dim,lineHeight:1.6,maxWidth:360,margin:"0 auto"}}>{WIZARD_TIPS[wizardTipIdx].desc}</div>
+            </div>
+            {/* Navigation */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginTop:16}}>
+              <button onClick={function(){setWizardTipIdx(Math.max(0,wizardTipIdx-1));}}
+                disabled={wizardTipIdx===0}
+                style={mS(S.btn,S.btnGhost,{padding:"8px 14px",fontSize:12,opacity:wizardTipIdx===0?0.3:1})}>{"←"}</button>
+              <div style={{display:"flex",gap:6}}>
+                {WIZARD_TIPS.map(function(_,di){return (
+                  <div key={di} onClick={function(){setWizardTipIdx(di);}}
+                    style={{width:8,height:8,borderRadius:"50%",cursor:"pointer",
+                      background:di===wizardTipIdx?T.gold:T.bg3,
+                      transition:"background 0.2s ease"}}/>
+                );})}
+              </div>
+              <button onClick={function(){setWizardTipIdx(Math.min(WIZARD_TIPS.length-1,wizardTipIdx+1));}}
+                disabled={wizardTipIdx===WIZARD_TIPS.length-1}
+                style={mS(S.btn,S.btnGhost,{padding:"8px 14px",fontSize:12,opacity:wizardTipIdx===WIZARD_TIPS.length-1?0.3:1})}>{"→"}</button>
+            </div>
+            {/* Start Dynasty Button — always visible */}
+            <div style={{textAlign:"center",marginTop:24}}>
+              <button onClick={launchWizard}
+                style={mS(S.btn,S.btnPrimary,{width:"100%",maxWidth:320,padding:"16px 20px",fontSize:16,borderRadius:RAD.lg,
+                  boxShadow:"0 0 30px rgba(251,191,36,0.3),"+SH.glow,letterSpacing:1})}>
+                <span style={{display:"inline-flex",alignItems:"center",gap:8}}>
+                  {React.createElement(Icon,{name:"play",size:16})}
+                  <span>{"\uD83C\uDFC8 Start Dynasty"}</span>
+                </span>
+              </button>
+            </div>
+            {/* Back */}
+            <div style={{textAlign:"center",marginTop:12}}>
+              <button onClick={function(){setWizardStep(1);}} style={mS(S.btn,S.btnGhost,{padding:"8px 16px",fontSize:10})}>
+                {React.createElement(Icon,{name:"arrow-left",size:12})}
+                {" Back"}
+              </button>
             </div>
           </div>
         )}
