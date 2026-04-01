@@ -1,0 +1,103 @@
+/**
+ * MFD Design System Tokens — Terminal Maximalism 3.0
+ *
+ * All visual decisions flow through these custom properties.
+ * Rule 8: No emoji anywhere. Lucide SVG icons only.
+ */
+
+:root {
+  /* ── Core Identity ──────────────────────────────────── */
+  --mfd-bg:          #070d17;
+  --mfd-bg-2:        #0e1826;
+  --mfd-bg-3:        #19253a;
+  --mfd-surface:     #0e1826;
+  --mfd-border:      rgba(255, 255, 255, 0.09);
+  --mfd-border-hover: rgba(240, 160, 40, 0.3);
+
+  /* ── Text ───────────────────────────────────────────── */
+  --mfd-text:        #e8ecf1;
+  --mfd-text-dim:    #8a97aa;
+  --mfd-text-faint:  #4a5a6e;
+
+  /* ── Signature Colors ───────────────────────────────── */
+  --mfd-gold:        #f0a028;     /* THE MFD color */
+  --mfd-gold-dim:    rgba(240, 160, 40, 0.12);
+  --mfd-gold-mid:    rgba(240, 160, 40, 0.25);
+
+  /* ── Semantic Colors ────────────────────────────────── */
+  --mfd-green:       #00b87a;
+  --mfd-red:         #e03c3c;
+  --mfd-blue:        #4a9fe8;
+  --mfd-orange:      #e07a10;
+  --mfd-purple:      #8b72ea;
+  --mfd-cyan:        #00afc8;
+
+  /* ── Glass / Atmospheric ────────────────────────────── */
+  --mfd-glass:       #0e1826;
+  --mfd-glass-border: rgba(255, 255, 255, 0.09);
+  --mfd-gradient-subtle: linear-gradient(135deg, #070d17 0%, #0e1826 50%, #0a1020 100%);
+  --mfd-gradient-card:   linear-gradient(180deg, #19253a 0%, #0e1826 100%);
+  --mfd-gradient-gold:   linear-gradient(135deg, rgba(240, 160, 40, 0.08) 0%, transparent 60%);
+
+  /* ── Typography ─────────────────────────────────────── */
+  --mfd-font-sans:   'IBM Plex Sans', 'Inter', system-ui, sans-serif;
+  --mfd-font-serif:  'IBM Plex Serif', 'Georgia', serif;
+  --mfd-font-mono:   'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+  /* ── Spacing Scale ──────────────────────────────────── */
+  --mfd-sp-xs:  4px;
+  --mfd-sp-sm:  8px;
+  --mfd-sp-md:  12px;
+  --mfd-sp-lg:  16px;
+  --mfd-sp-xl:  20px;
+  --mfd-sp-xxl: 32px;
+
+  /* ── Border Radius ──────────────────────────────────── */
+  --mfd-rad-xs: 1px;
+  --mfd-rad-sm: 2px;
+  --mfd-rad-md: 3px;
+  --mfd-rad-lg: 4px;
+  --mfd-rad-xl: 6px;
+
+  /* ── Shadows ────────────────────────────────────────── */
+  --mfd-shadow-sm:         0 1px 3px rgba(0, 0, 0, 0.7);
+  --mfd-shadow-md:         0 2px 8px rgba(0, 0, 0, 0.6);
+  --mfd-shadow-lg:         0 4px 16px rgba(0, 0, 0, 0.7);
+  --mfd-shadow-gold:       0 0 8px rgba(240, 160, 40, 0.15);
+  --mfd-shadow-gold-strong: 0 0 16px rgba(240, 160, 40, 0.3);
+
+  /* ── Motion ─────────────────────────────────────────── */
+  --mfd-motion-fast:   0.08s ease;
+  --mfd-motion-normal: 0.2s ease;
+  --mfd-motion-slow:   0.4s ease-out;
+  --mfd-motion-spring: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Focus ──────────────────────────────────────────── */
+  --mfd-focus-ring: 0 0 0 2px var(--mfd-gold);
+}
+
+/* ── Reduced Motion ───────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mfd-motion-fast:   0s;
+    --mfd-motion-normal: 0s;
+    --mfd-motion-slow:   0s;
+    --mfd-motion-spring: 0s;
+  }
+}
+
+/* ── Base Keyframes ───────────────────────────────────── */
+@keyframes mfd-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes mfd-slideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes mfd-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}

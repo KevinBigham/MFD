@@ -1,0 +1,9 @@
+{
+  "name": "@mfd/design-system",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tokens": "./tokens/index.css"
+  }
+}
