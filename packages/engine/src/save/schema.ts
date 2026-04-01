@@ -109,6 +109,8 @@ export const SaveStateSchema = z.object({
     hooks: z.array(z.any()),
     recentHeadlines: z.array(z.string()),
   }),
+  weekSummaries: z.array(z.any()),
+  playoffBracket: z.any().nullable(),
 });
 
 export type SaveState = z.infer<typeof SaveStateSchema>;

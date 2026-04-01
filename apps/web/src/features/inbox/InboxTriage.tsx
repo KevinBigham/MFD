@@ -7,7 +7,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import {
-  useGameStore, selectUserTeam, selectRoster, selectWeek, selectNarrative,
+  useGameStore, selectUserTeam, selectRoster, selectWeek, selectNarrative, selectLatestSummary, selectPhase,
 } from '../../app/store/game-store';
 
 // ── Message Types ──────────────────────────────────────
@@ -37,6 +37,8 @@ export function InboxTriage() {
   const roster = useGameStore(selectRoster);
   const week = useGameStore(selectWeek);
   const narrative = useGameStore(selectNarrative);
+  const latestSummary = useGameStore(selectLatestSummary);
+  const phase = useGameStore(selectPhase);
 
   const [selectedMsg, setSelectedMsg] = useState<InboxMessage | null>(null);
   const [filter, setFilter] = useState<MessageType | 'ALL'>('ALL');
@@ -45,6 +47,19 @@ export function InboxTriage() {
   const messages = useMemo((): InboxMessage[] => {
     const msgs: InboxMessage[] = [];
     if (!team) return msgs;
+
+    if (latestSummary) {
+      msgs.push({
+        id: `weekly-summary-${latestSummary.id}`,
+        type: latestSummary.result === 'loss' ? 'URGENT' : 'INTEL',
+        title: latestSummary.headline,
+        body: `Record: ${latestSummary.record}\nOwner delta: ${latestSummary.ownerDelta}\nNotes: ${latestSummary.notes.join(' | ')}`,
+        from: 'League Ops',
+        week: latestSummary.week,
+        read: false,
+        actionRequired: latestSummary.result === 'loss',
+      });
+    }
 
     // Owner mood messages
     if (team.owner.approval < 40) {
@@ -141,8 +156,21 @@ export function InboxTriage() {
       });
     }
 
+    if (phase === 'playoffs') {
+      msgs.push({
+        id: 'playoff-phase',
+        type: 'DECISION',
+        title: 'Playoff Football Activated',
+        body: 'Bracket play is live. Every week is elimination football until a champion is crowned.',
+        from: 'League Office',
+        week,
+        read: false,
+        actionRequired: false,
+      });
+    }
+
     return msgs;
-  }, [team, roster, week, narrative]);
+  }, [team, roster, week, narrative, latestSummary, phase]);
 
   const filtered = filter === 'ALL' ? messages : messages.filter((m) => m.type === filter);
   const urgentCount = messages.filter((m) => m.type === 'URGENT' && !m.read).length;

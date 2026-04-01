@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { SaveStateSchema } from './schema';
 import { migrate, registerMigration, getRegisteredVersions } from './migrations';
+import { SAVE_VERSION } from '../config';
 
 describe('SaveStateSchema', () => {
   it('validates a minimal valid save', () => {
     const minSave = {
-      version: 1,
+      version: SAVE_VERSION,
       seed: 12345,
       year: 2026,
       week: 1,
@@ -32,6 +33,8 @@ describe('SaveStateSchema', () => {
         hooks: [],
         recentHeadlines: [],
       },
+      weekSummaries: [],
+      playoffBracket: null,
     };
 
     const result = SaveStateSchema.safeParse(minSave);
@@ -104,6 +107,8 @@ describe('SaveStateSchema', () => {
       frontOffice: { xp: 500, level: 3, achievements: ['first_win'], perks: [], reputation: { players: 70, media: 60, owner: 80 } },
       eventLog: [],
       narrativeState: { activeArcs: [], hooks: [], recentHeadlines: ['Mahomes throws 5 TDs'] },
+      weekSummaries: [],
+      playoffBracket: null,
     };
 
     const result = SaveStateSchema.safeParse(save);
@@ -113,13 +118,13 @@ describe('SaveStateSchema', () => {
 
 describe('migration pipeline', () => {
   it('runs migrations sequentially', () => {
-    registerMigration(0, (state) => ({ ...state, migratedFrom0: true }));
-    registerMigration(1, (state) => ({ ...state, migratedFrom1: true }));
+    registerMigration(10, (state) => ({ ...state, migratedFrom10: true }));
+    registerMigration(11, (state) => ({ ...state, migratedFrom11: true }));
 
-    const result = migrate({ version: 0 }, 2);
-    expect(result['version']).toBe(2);
-    expect(result['migratedFrom0']).toBe(true);
-    expect(result['migratedFrom1']).toBe(true);
+    const result = migrate({ version: 10 }, 12);
+    expect(result['version']).toBe(12);
+    expect(result['migratedFrom10']).toBe(true);
+    expect(result['migratedFrom11']).toBe(true);
   });
 
   it('throws on missing migration', () => {
@@ -130,5 +135,38 @@ describe('migration pipeline', () => {
     const state = { version: 5, data: 'unchanged' };
     const result = migrate(state, 5);
     expect(result).toEqual(state);
+  });
+
+  it('migrates v1 saves to include season loop defaults', () => {
+    const migrated = migrate({
+      version: 1,
+      teams: {
+        t1: { wins: 3, losses: 2, ties: 0 },
+      },
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['weekSummaries']).toEqual([]);
+    expect(migrated['playoffBracket']).toBeNull();
+    expect(migrated['teams']).toEqual({
+      t1: {
+        wins: 3,
+        losses: 2,
+        ties: 0,
+        seasonStats: {
+          gamesPlayed: 5,
+          pointsFor: 0,
+          pointsAgainst: 0,
+          pointDifferential: 0,
+          totalYards: 0,
+          passingYards: 0,
+          rushingYards: 0,
+          turnoversLost: 0,
+          turnoversForced: 0,
+          sacksFor: 0,
+          sacksAgainst: 0,
+        },
+      },
+    });
   });
 });

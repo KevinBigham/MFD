@@ -42,3 +42,33 @@ export function migrate(
 export function getRegisteredVersions(): number[] {
   return Array.from(migrations.keys()).sort((a, b) => a - b);
 }
+
+registerMigration(1, (state) => {
+  const teams = (state['teams'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+
+  for (const team of Object.values(teams)) {
+    const wins = Number(team['wins'] ?? 0);
+    const losses = Number(team['losses'] ?? 0);
+    const ties = Number(team['ties'] ?? 0);
+    team['seasonStats'] = team['seasonStats'] ?? {
+      gamesPlayed: wins + losses + ties,
+      pointsFor: 0,
+      pointsAgainst: 0,
+      pointDifferential: 0,
+      totalYards: 0,
+      passingYards: 0,
+      rushingYards: 0,
+      turnoversLost: 0,
+      turnoversForced: 0,
+      sacksFor: 0,
+      sacksAgainst: 0,
+    };
+  }
+
+  return {
+    ...state,
+    teams,
+    weekSummaries: Array.isArray(state['weekSummaries']) ? state['weekSummaries'] : [],
+    playoffBracket: state['playoffBracket'] ?? null,
+  };
+});

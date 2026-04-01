@@ -46,6 +46,19 @@ function makeTeam(overrides: Partial<Team> = {}): Team {
     skillSelections: {},
     tradeState: { gmTrustByTeam: {}, recentTrades: [] },
     txLog: [],
+    seasonStats: {
+      gamesPlayed: 12,
+      pointsFor: 280,
+      pointsAgainst: 240,
+      pointDifferential: 40,
+      totalYards: 4200,
+      passingYards: 2500,
+      rushingYards: 1700,
+      turnoversLost: 12,
+      turnoversForced: 15,
+      sacksFor: 28,
+      sacksAgainst: 18,
+    },
     ...overrides,
   } as Team;
 }

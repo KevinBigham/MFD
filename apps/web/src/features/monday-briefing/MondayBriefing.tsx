@@ -9,7 +9,7 @@ import {
 import { calcCapHit } from '@mfd/engine';
 import {
   useGameStore, selectUserTeam, selectRoster,
-  selectWeek, selectYear, selectSchedule, selectOwnerState,
+  selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary,
 } from '../../app/store/game-store';
 
 export function MondayBriefing() {
@@ -19,6 +19,7 @@ export function MondayBriefing() {
   const year = useGameStore(selectYear);
   const schedule = useGameStore(selectSchedule);
   const ownerState = useGameStore(selectOwnerState);
+  const latestSummary = useGameStore(selectLatestSummary);
 
   const teamName = team ? `${team.city} ${team.name}` : 'No Team';
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '0-0';
@@ -93,18 +94,18 @@ export function MondayBriefing() {
       {/* KPI Row */}
       <MfdKpiGrid columns={4}>
         <MfdKpiCard
-          label="Next Game"
-          value={opponentName}
+          label="Latest Result"
+          value={latestSummary ? latestSummary.result.toUpperCase() : opponentName}
           icon={<Calendar size={14} />}
-          trendLabel={`Week ${week}`}
-          trend="flat"
+          trendLabel={latestSummary?.headline ?? `Week ${week}`}
+          trend={latestSummary?.result === 'win' ? 'up' : latestSummary?.result === 'loss' ? 'down' : 'flat'}
         />
         <MfdKpiCard
-          label="Cap Space"
-          value={capSpace}
+          label="Point Diff"
+          value={team ? team.seasonStats.pointDifferential : 0}
           icon={<DollarSign size={14} />}
-          trend="up"
-          variant="success"
+          trend={team && team.seasonStats.pointDifferential >= 0 ? 'up' : 'down'}
+          variant={team && team.seasonStats.pointDifferential >= 0 ? 'success' : 'default'}
         />
         <MfdKpiCard
           label="Owner Mood"
@@ -188,6 +189,27 @@ export function MondayBriefing() {
           )}
         </MfdPanel>
       </div>
+
+      <MfdPanel title="Last Game / Next Game" icon={<Calendar size={14} />}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
+          <div>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-faint)', marginBottom: 6 }}>
+              LAST RESULT
+            </div>
+            <div style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1rem', fontWeight: 700 }}>
+              {latestSummary?.headline ?? 'No games simulated yet'}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-faint)', marginBottom: 6 }}>
+              UPCOMING
+            </div>
+            <div style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1rem', fontWeight: 700 }}>
+              {opponentName}
+            </div>
+          </div>
+        </div>
+      </MfdPanel>
     </div>
   );
 }

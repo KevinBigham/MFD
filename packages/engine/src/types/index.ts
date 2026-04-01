@@ -243,6 +243,7 @@ export interface Team {
   skillSelections: Record<string, CoachSkillSelection>;
   tradeState: TradeState;
   txLog: TransactionLogEntry[];
+  seasonStats: TeamSeasonStats;
 }
 
 export interface FranchiseTagState {
@@ -377,6 +378,80 @@ export interface TeamGameStats {
   timeOfPossession: number;
 }
 
+export interface TeamSeasonStats {
+  gamesPlayed: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  pointDifferential: number;
+  totalYards: number;
+  passingYards: number;
+  rushingYards: number;
+  turnoversLost: number;
+  turnoversForced: number;
+  sacksFor: number;
+  sacksAgainst: number;
+}
+
+export interface WeeklyInjurySummary {
+  playerId: string;
+  playerName: string;
+  severity: Injury['severity'];
+  gamesOut: number;
+  type: string;
+}
+
+export interface WeeklySummary {
+  id: string;
+  year: number;
+  week: number;
+  phase: SeasonPhase;
+  teamId: string;
+  opponentTeamId: string | null;
+  opponentName: string;
+  result: 'win' | 'loss' | 'tie' | 'pending';
+  teamScore: number | null;
+  opponentScore: number | null;
+  record: string;
+  headline: string;
+  ownerDelta: number;
+  injuries: WeeklyInjurySummary[];
+  mvpPlayerId: string | null;
+  notes: string[];
+}
+
+export type PlayoffRound = 'wild_card' | 'divisional' | 'conference' | 'super_bowl';
+
+export interface PlayoffSeed {
+  seed: number;
+  teamId: string;
+  conference: 'AFC' | 'NFC';
+  division: string;
+  divisionWinner: boolean;
+  wins: number;
+  losses: number;
+  ties: number;
+  pointDifferential: number;
+}
+
+export interface PlayoffMatchup {
+  id: string;
+  round: PlayoffRound;
+  conference: 'AFC' | 'NFC' | 'NFL';
+  week: number;
+  homeTeamId: string;
+  awayTeamId: string;
+  winnerTeamId: string | null;
+  result: GameResult | null;
+}
+
+export interface PlayoffBracket {
+  season: number;
+  afc: PlayoffSeed[];
+  nfc: PlayoffSeed[];
+  matchups: PlayoffMatchup[];
+  championTeamId: string | null;
+}
+
 // ── Schedule ────────────────────────────────────────────
 
 export interface ScheduleWeek {
@@ -437,6 +512,8 @@ export interface GameState {
   frontOffice: FrontOffice;
   eventLog: GameEvent[];
   narrativeState: NarrativeState;
+  weekSummaries: WeeklySummary[];
+  playoffBracket: PlayoffBracket | null;
 }
 
 export type SeasonPhase =

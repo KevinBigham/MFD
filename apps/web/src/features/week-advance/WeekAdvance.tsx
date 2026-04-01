@@ -6,10 +6,9 @@ import {
   Play, CheckCircle, Clock, AlertTriangle,
   Users, DollarSign, Shield,
 } from 'lucide-react';
-import { getSalaryCap } from '@mfd/engine';
 import {
   useGameStore, selectUserTeam, selectRoster,
-  selectWeek, selectYear, selectSchedule, selectUserTeamId,
+  selectWeek, selectYear, selectSchedule, selectLatestSummary, selectPhase,
 } from '../../app/store/game-store';
 
 interface ChecklistItem {
@@ -26,8 +25,9 @@ export function WeekAdvance() {
   const week = useGameStore(selectWeek);
   const year = useGameStore(selectYear);
   const schedule = useGameStore(selectSchedule);
-  const teamId = useGameStore(selectUserTeamId);
-  const { advanceWeek, refreshOwner } = useGameStore((s) => s.actions);
+  const latestSummary = useGameStore(selectLatestSummary);
+  const phase = useGameStore(selectPhase);
+  const { advanceWeek } = useGameStore((s) => s.actions);
 
   const [advancing, setAdvancing] = useState(false);
 
@@ -93,12 +93,22 @@ export function WeekAdvance() {
   const gameState = useGameStore((s) => s.game);
   const opponent = matchup?.opponentId && gameState ? gameState.teams[matchup.opponentId] : null;
 
-  const handleAdvance = useCallback(() => {
+  const handleAdvance = useCallback(async () => {
     setAdvancing(true);
-    advanceWeek();
-    if (teamId) refreshOwner(teamId);
-    setTimeout(() => setAdvancing(false), 800);
-  }, [advanceWeek, refreshOwner, teamId]);
+    try {
+      await advanceWeek();
+    } finally {
+      setAdvancing(false);
+    }
+  }, [advanceWeek]);
+
+  const advanceLabel = phase === 'preseason'
+    ? 'Begin Regular Season'
+    : phase === 'playoffs'
+      ? `Advance Playoffs`
+      : phase === 'offseason'
+        ? 'Offseason Pending'
+        : `Advance to Week ${week + 1}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
@@ -106,12 +116,12 @@ export function WeekAdvance() {
         <h1 style={{
           fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem',
           fontWeight: 700, color: 'var(--mfd-text)', margin: 0,
-        }}>Advance to Week {week + 1}</h1>
+        }}>{advanceLabel}</h1>
         <p style={{
           fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
           color: 'var(--mfd-text-dim)', margin: '4px 0 0',
         }}>
-          Pre-game checklist // {allClear ? 'All clear' : `${issueCount} issue(s)`}
+          {phase} // {allClear ? 'All clear' : `${issueCount} issue(s)`}
         </p>
       </div>
 
@@ -187,7 +197,7 @@ export function WeekAdvance() {
 
           <button
             onClick={handleAdvance}
-            disabled={advancing}
+            disabled={advancing || phase === 'offseason'}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--mfd-sp-sm)',
               padding: 'var(--mfd-sp-md)',
@@ -204,18 +214,42 @@ export function WeekAdvance() {
             {advancing ? (
               <>
                 <CheckCircle size={16} />
-                Simulating Week {week}...
+                Running {phase} simulation...
               </>
             ) : (
               <>
                 <Play size={16} />
-                {allClear ? 'Advance Week' : 'Advance Anyway'}
+                {phase === 'offseason' ? 'Offseason Markets Pending' : allClear ? 'Advance Week' : 'Advance Anyway'}
                 {!allClear && <MfdBadge variant="danger">{issueCount} issue(s)</MfdBadge>}
               </>
             )}
           </button>
         </div>
       </div>
+
+      <MfdPanel title="Latest Summary" icon={<Play size={14} />}>
+        {latestSummary ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
+            <div style={{
+              fontFamily: 'var(--mfd-font-serif)', fontSize: '1rem',
+              fontWeight: 700, color: 'var(--mfd-text)',
+            }}>
+              {latestSummary.headline}
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--mfd-sp-sm)', flexWrap: 'wrap' }}>
+              <MfdBadge variant="gold">{latestSummary.record}</MfdBadge>
+              <MfdBadge variant={latestSummary.result === 'win' ? 'success' : latestSummary.result === 'loss' ? 'danger' : 'default'}>
+                {latestSummary.result.toUpperCase()}
+              </MfdBadge>
+              <MfdBadge variant="default">{latestSummary.phase}</MfdBadge>
+            </div>
+          </div>
+        ) : (
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
+            No simulated results yet.
+          </div>
+        )}
+      </MfdPanel>
     </div>
   );
 }

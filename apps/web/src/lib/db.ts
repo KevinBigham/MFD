@@ -56,21 +56,14 @@ export async function deleteSave(id: number): Promise<void> {
 
 /** Get the most recent autosave. */
 export async function getLatestAutosave(): Promise<SaveSlot | undefined> {
-  return db.saves
-    .where('isAutosave')
-    .equals(1)
-    .reverse()
-    .sortBy('timestamp')
-    .then(saves => saves[0]);
+  const saves = await db.saves.orderBy('timestamp').reverse().toArray();
+  return saves.find((slot) => slot.isAutosave);
 }
 
 /** Trim autosaves to keep only the N most recent. */
 export async function trimAutosaves(keepCount: number = 3): Promise<void> {
-  const autosaves = await db.saves
-    .where('isAutosave')
-    .equals(1)
-    .reverse()
-    .sortBy('timestamp');
+  const autosaves = (await db.saves.orderBy('timestamp').reverse().toArray())
+    .filter((slot) => slot.isAutosave);
 
   if (autosaves.length > keepCount) {
     const toDelete = autosaves.slice(keepCount);

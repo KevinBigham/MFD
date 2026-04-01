@@ -7,10 +7,10 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type {
-  GameState, Player, Team, Contract, Owner,
-  SeasonPhase, DifficultyLevel,
+  GameState, Player, Team, WeeklySummary, SeasonPhase,
 } from '@mfd/engine';
 import {
+  advanceFranchiseWeek,
   restructureContract, backloadContract,
   calcCapHit, calcDeadMoney,
   updateOwnerApproval,
@@ -18,13 +18,16 @@ import {
   earnXP,
   getSalaryCap,
 } from '@mfd/engine';
+import { autosaveDynasty, loadLatestAutosaveGame } from './persistence';
+import { runAdvanceWeek } from './sim';
 
 // ── Store shape ────────────────────────────────────────────
 
 interface GameActions {
   // Initialization
-  newGame: (state: GameState) => void;
+  newGame: (state: GameState) => Promise<void>;
   loadGame: (state: GameState) => void;
+  loadLatestAutosave: () => Promise<boolean>;
 
   // Roster actions
   cutPlayer: (teamId: string, playerId: string) => void;
@@ -36,7 +39,7 @@ interface GameActions {
   backload: (teamId: string, playerId: string, voidYears?: number) => void;
 
   // Week advance
-  advanceWeek: () => void;
+  advanceWeek: () => Promise<WeeklySummary | null>;
 
   // Owner
   refreshOwner: (teamId: string) => void;
@@ -109,26 +112,41 @@ export const selectCapInfo = (state: GameStore) => {
 export const selectSchedule = (state: GameStore) => state.game?.schedule ?? [];
 
 export const selectNarrative = (state: GameStore) => state.game?.narrativeState ?? null;
+export const selectLatestSummary = (state: GameStore): WeeklySummary | null => state.game?.weekSummaries.at(-1) ?? null;
+export const selectPlayoffBracket = (state: GameStore) => state.game?.playoffBracket ?? null;
 
 // ── Store ──────────────────────────────────────────────────
 
 export const useGameStore = create<GameStore>()(
-  immer((set) => ({
+  immer((set, get) => ({
     game: null,
     initialized: false,
 
     actions: {
-      newGame: (initial) =>
+      newGame: async (initial) => {
         set((s) => {
           s.game = initial;
           s.initialized = true;
-        }),
+        });
+        await autosaveDynasty(initial);
+      },
 
       loadGame: (loaded) =>
         set((s) => {
           s.game = loaded;
           s.initialized = true;
         }),
+
+      loadLatestAutosave: async () => {
+        const latest = await loadLatestAutosaveGame();
+        if (!latest) return false;
+
+        set((s) => {
+          s.game = latest;
+          s.initialized = true;
+        });
+        return true;
+      },
 
       cutPlayer: (teamId, playerId) =>
         set((s) => {
@@ -206,18 +224,26 @@ export const useGameStore = create<GameStore>()(
           }
         }),
 
-      advanceWeek: () =>
-        set((s) => {
-          if (!s.game) return;
-          s.game.week += 1;
+      advanceWeek: async () => {
+        const current = get().game;
+        if (!current) return null;
 
-          // Update system fit for all user team players
-          const userTeam = Object.values(s.game.teams).find((t) => t.isUser);
-          if (userTeam) {
-            // updateSystemFit operates on the team (mutates in place)
-            updateSystemFit(userTeam as unknown as Team);
-          }
-        }),
+        const result = await runAdvanceWeek(current);
+        const nextGame = result.nextState;
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+
+        if (userTeam) {
+          updateSystemFit(userTeam);
+        }
+
+        set((s) => {
+          s.game = nextGame;
+          s.initialized = true;
+        });
+        await autosaveDynasty(nextGame);
+
+        return nextGame.weekSummaries.at(-1) ?? null;
+      },
 
       refreshOwner: (teamId) =>
         set((s) => {

@@ -1,12 +1,13 @@
 /**
  * New Game screen — team selection + difficulty → creates seed state.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MfdPanel, MfdBadge } from '@mfd/design-system/components';
 import { Gamepad2, Shield, Trophy } from 'lucide-react';
 import type { DifficultyLevel } from '@mfd/engine';
 import { useGameStore } from './store/game-store';
 import { createSeedGameState, getTeamOptions } from './store/seed';
+import { loadLatestAutosaveGame } from './store/persistence';
 
 const DIFFICULTIES: { id: DifficultyLevel; label: string; desc: string }[] = [
   { id: 'rookie', label: 'Rookie', desc: 'Forgiving cap, patient owners' },
@@ -22,12 +23,39 @@ const divisions = ['East', 'North', 'South', 'West'];
 export function NewGameScreen() {
   const [selectedTeam, setSelectedTeam] = useState(0);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('pro');
+  const [hasAutosave, setHasAutosave] = useState(false);
+  const [loadingAutosave, setLoadingAutosave] = useState(false);
   const newGame = useGameStore((s) => s.actions.newGame);
+  const loadGame = useGameStore((s) => s.actions.loadGame);
 
-  const handleStart = () => {
+  useEffect(() => {
+    let active = true;
+    loadLatestAutosaveGame()
+      .then((game) => {
+        if (active) setHasAutosave(Boolean(game));
+      })
+      .catch(() => {
+        if (active) setHasAutosave(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleStart = async () => {
     const seed = Date.now();
     const state = createSeedGameState(seed, selectedTeam, difficulty);
-    newGame(state);
+    await newGame(state);
+  };
+
+  const handleContinue = async () => {
+    setLoadingAutosave(true);
+    try {
+      const latest = await loadLatestAutosaveGame();
+      if (latest) loadGame(latest);
+    } finally {
+      setLoadingAutosave(false);
+    }
   };
 
   const selected = teams[selectedTeam]!;
@@ -163,6 +191,25 @@ export function NewGameScreen() {
         </MfdPanel>
 
         {/* Start Button */}
+        {hasAutosave && (
+          <button
+            onClick={handleContinue}
+            disabled={loadingAutosave}
+            style={{
+              padding: '12px',
+              fontSize: '0.875rem',
+              fontFamily: 'var(--mfd-font-sans)',
+              fontWeight: 600,
+              color: 'var(--mfd-text)',
+              background: 'var(--mfd-bg-2)',
+              border: '1px solid var(--mfd-border)',
+              borderRadius: 'var(--mfd-rad-lg)',
+              cursor: loadingAutosave ? 'default' : 'pointer',
+            }}
+          >
+            {loadingAutosave ? 'Loading Latest Autosave...' : 'Continue Latest Autosave'}
+          </button>
+        )}
         <button
           onClick={handleStart}
           style={{

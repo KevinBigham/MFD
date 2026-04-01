@@ -14,7 +14,7 @@ import {
   setSeed, uid, rng, pick,
   ALL_POSITIONS, POS_DEF, getSalaryCap,
   makeContract, initOwner, OWNER_ARCHETYPES,
-  generatePersonality, SAVE_VERSION,
+  generatePersonality, SAVE_VERSION, createEmptySeasonStats,
 } from '@mfd/engine';
 
 // ── Name pools ─────────────────────────────────────────────
@@ -275,6 +275,7 @@ function genTeam(
     skillSelections: {},
     tradeState: { gmTrustByTeam: {}, recentTrades: [] },
     txLog: [],
+    seasonStats: createEmptySeasonStats(),
   };
 
   return { team, players };
@@ -380,6 +381,8 @@ export function createSeedGameState(
     frontOffice,
     eventLog: [],
     narrativeState,
+    weekSummaries: [],
+    playoffBracket: null,
   };
 }
 

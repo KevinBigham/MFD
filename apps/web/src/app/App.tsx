@@ -23,6 +23,7 @@ import { DepthChart } from '../features/depth-chart/DepthChart';
 import { WeekAdvance } from '../features/week-advance/WeekAdvance';
 import { HandshakeLedger } from '../features/handshake-ledger/HandshakeLedger';
 import { DynastyCartridge } from '../features/dynasty-cartridge/DynastyCartridge';
+import { GameDayRecap } from '../features/game-day/GameDayRecap';
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -316,7 +317,7 @@ const freeAgencyRoute = createRoute({
 const gameDayRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/game-day',
-  component: () => <FeatureStub name="Game Day" />,
+  component: GameDayRecap,
 });
 
 const inboxRoute = createRoute({

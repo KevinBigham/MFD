@@ -1,0 +1,58 @@
+import type { Team, TeamGameStats, TeamSeasonStats } from '../types';
+
+export function createEmptySeasonStats(gamesPlayed = 0): TeamSeasonStats {
+  return {
+    gamesPlayed,
+    pointsFor: 0,
+    pointsAgainst: 0,
+    pointDifferential: 0,
+    totalYards: 0,
+    passingYards: 0,
+    rushingYards: 0,
+    turnoversLost: 0,
+    turnoversForced: 0,
+    sacksFor: 0,
+    sacksAgainst: 0,
+  };
+}
+
+export function ensureSeasonStats(team: Team): TeamSeasonStats {
+  if (!team.seasonStats) {
+    team.seasonStats = createEmptySeasonStats(team.wins + team.losses + team.ties);
+  }
+  return team.seasonStats;
+}
+
+export function applyGameToSeasonStats(
+  team: Team,
+  teamStats: TeamGameStats,
+  opponentStats: TeamGameStats,
+  pointsFor: number,
+  pointsAgainst: number,
+): void {
+  const stats = ensureSeasonStats(team);
+
+  stats.gamesPlayed += 1;
+  stats.pointsFor += pointsFor;
+  stats.pointsAgainst += pointsAgainst;
+  stats.pointDifferential = stats.pointsFor - stats.pointsAgainst;
+  stats.totalYards += teamStats.totalYards;
+  stats.passingYards += teamStats.passingYards;
+  stats.rushingYards += teamStats.rushingYards;
+  stats.turnoversLost += teamStats.turnovers;
+  stats.turnoversForced += opponentStats.turnovers;
+  stats.sacksFor += teamStats.sacks;
+  stats.sacksAgainst += opponentStats.sacks;
+}
+
+export function tickInjuries(team: Team): void {
+  for (const player of team.roster) {
+    if (!player.injury) continue;
+    const nextGamesOut = Math.max(0, player.injury.gamesOut - 1);
+    if (nextGamesOut === 0) {
+      player.injury = null;
+      continue;
+    }
+    player.injury = { ...player.injury, gamesOut: nextGamesOut };
+  }
+}

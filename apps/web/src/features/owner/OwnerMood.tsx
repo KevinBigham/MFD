@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { getOwnerStatus } from '@mfd/engine';
 import {
-  useGameStore, selectUserTeam, selectOwnerState,
+  useGameStore, selectUserTeam, selectOwnerState, selectLatestSummary,
 } from '../../app/store/game-store';
 
 type OwnerStage = 'PATIENT' | 'RESTLESS' | 'DEMANDING' | 'ULTIMATUM';
@@ -31,6 +31,7 @@ function getStage(approval: number): OwnerStage {
 export function OwnerMood() {
   const team = useGameStore(selectUserTeam);
   const ownerState = useGameStore(selectOwnerState);
+  const latestSummary = useGameStore(selectLatestSummary);
 
   const game = useGameStore((s) => s.game);
   const owner = team && game ? game.owners[team.ownerId] : null;
@@ -119,7 +120,7 @@ export function OwnerMood() {
       {/* KPIs */}
       <MfdKpiGrid columns={4}>
         <MfdKpiCard label="Approval" value={approval} icon={<ThumbsDown size={14} />}
-          trend={approval < 50 ? 'down' : 'up'} variant={approval < 40 ? 'danger' : 'default'} />
+          trend={latestSummary?.ownerDelta && latestSummary.ownerDelta < 0 ? 'down' : approval < 50 ? 'down' : 'up'} variant={approval < 40 ? 'danger' : 'default'} />
         <MfdKpiCard label="Patience" value={patience} icon={<Clock size={14} />}
           trend={patience < 40 ? 'down' : 'flat'} variant={patience < 40 ? 'danger' : 'default'} />
         <MfdKpiCard label="Confidence" value={confidenceScore} icon={<Shield size={14} />}
@@ -202,6 +203,22 @@ export function OwnerMood() {
           ))}
         </div>
       </MfdPanel>
+
+      {latestSummary && (
+        <MfdPanel title="Latest Reaction" icon={<Shield size={14} />}>
+          <div style={{
+            fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
+            color: 'var(--mfd-text-dim)',
+          }}>
+            {latestSummary.headline}
+          </div>
+          <div style={{ marginTop: 'var(--mfd-sp-sm)' }}>
+            <MfdBadge variant={latestSummary.ownerDelta >= 0 ? 'success' : 'danger'}>
+              Owner delta {latestSummary.ownerDelta >= 0 ? '+' : ''}{latestSummary.ownerDelta}
+            </MfdBadge>
+          </div>
+        </MfdPanel>
+      )}
     </div>
   );
 }

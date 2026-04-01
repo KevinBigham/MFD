@@ -128,6 +128,10 @@ export type { SchemeFitResult, FitTier, PlayerSide, PlayerIdentityFit, TeamFitSu
 
 // Systems — Chemistry (Phase 2)
 export { chemistryMod, systemFitMod, updateSystemFit, resetSystemFit } from './systems/chemistry';
+export { createEmptySeasonStats, ensureSeasonStats, applyGameToSeasonStats, tickInjuries } from './systems/season-stats';
+export { buildWeeklySummary } from './systems/weekly-summary';
+export { seedPlayoffBracket, advancePlayoffBracket } from './systems/playoff-bracket';
+export { advanceFranchiseWeek } from './systems/franchise-week';
 
 // Systems — Coaching (Phase 2)
 export {
