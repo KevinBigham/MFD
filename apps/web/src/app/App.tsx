@@ -3,7 +3,8 @@ import { RouterProvider, createRouter, createRootRoute, createRoute, Outlet, Lin
 import {
   LayoutDashboard, Users, DollarSign, ArrowLeftRight,
   Search, FileText, Handshake, Gamepad2, GraduationCap,
-  Trophy, Settings, Terminal,
+  Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
+  Play, ScrollText, Save,
 } from 'lucide-react';
 import { MfdTooltipProvider, MfdCommandPalette, type CommandItem } from '@mfd/design-system/components';
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
@@ -11,6 +12,15 @@ import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
 import { BootScreen } from './BootScreen';
 import { MondayBriefing } from '../features/monday-briefing/MondayBriefing';
+import { RosterManagement } from '../features/roster/RosterManagement';
+import { ContractsCap } from '../features/contracts/ContractsCap';
+import { CoachingStaff } from '../features/coaching/CoachingStaff';
+import { InboxTriage } from '../features/inbox/InboxTriage';
+import { OwnerMood } from '../features/owner/OwnerMood';
+import { DepthChart } from '../features/depth-chart/DepthChart';
+import { WeekAdvance } from '../features/week-advance/WeekAdvance';
+import { HandshakeLedger } from '../features/handshake-ledger/HandshakeLedger';
+import { DynastyCartridge } from '../features/dynasty-cartridge/DynastyCartridge';
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -31,9 +41,15 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/draft',        label: 'Draft',            shortLabel: 'Draft',    icon: <FileText size={16} />,       shortcut: '6' },
   { path: '/free-agency',  label: 'Free Agency',      shortLabel: 'FA',       icon: <Handshake size={16} />,      shortcut: '7' },
   { path: '/game-day',     label: 'Game Day',         shortLabel: 'Game',     icon: <Gamepad2 size={16} />,       shortcut: '8' },
-  { path: '/coaching',     label: 'Coaching',         shortLabel: 'Coach',    icon: <GraduationCap size={16} /> },
-  { path: '/legacy',       label: 'Legacy',           shortLabel: 'Legacy',   icon: <Trophy size={16} /> },
-  { path: '/settings',     label: 'Settings',         shortLabel: 'Config',   icon: <Settings size={16} /> },
+  { path: '/inbox',          label: 'Inbox',            shortLabel: 'Inbox',    icon: <Inbox size={16} />,          shortcut: '9' },
+  { path: '/depth-chart',   label: 'Depth Chart',      shortLabel: 'Depth',    icon: <ListOrdered size={16} /> },
+  { path: '/coaching',      label: 'Coaching',         shortLabel: 'Coach',    icon: <GraduationCap size={16} /> },
+  { path: '/owner',         label: 'Owner',            shortLabel: 'Owner',    icon: <Crown size={16} /> },
+  { path: '/week-advance',  label: 'Advance Week',     shortLabel: 'Advance',  icon: <Play size={16} /> },
+  { path: '/handshakes',    label: 'Handshakes',       shortLabel: 'Promises', icon: <ScrollText size={16} /> },
+  { path: '/legacy',        label: 'Legacy',           shortLabel: 'Legacy',   icon: <Trophy size={16} /> },
+  { path: '/dynasty',       label: 'Save/Load',        shortLabel: 'Save',     icon: <Save size={16} /> },
+  { path: '/settings',      label: 'Settings',         shortLabel: 'Config',   icon: <Settings size={16} /> },
 ];
 
 // ── Root Layout ─────────────────────────────────────────────
@@ -262,13 +278,13 @@ const indexRoute = createRoute({
 const rosterRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/roster',
-  component: () => <FeatureStub name="Roster Management" />,
+  component: RosterManagement,
 });
 
 const contractsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/contracts',
-  component: () => <FeatureStub name="Contracts & Cap" />,
+  component: ContractsCap,
 });
 
 const tradesRoute = createRoute({
@@ -301,16 +317,52 @@ const gameDayRoute = createRoute({
   component: () => <FeatureStub name="Game Day" />,
 });
 
+const inboxRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/inbox',
+  component: InboxTriage,
+});
+
+const depthChartRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/depth-chart',
+  component: DepthChart,
+});
+
 const coachingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/coaching',
-  component: () => <FeatureStub name="Coaching Staff" />,
+  component: CoachingStaff,
+});
+
+const ownerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/owner',
+  component: OwnerMood,
+});
+
+const weekAdvanceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/week-advance',
+  component: WeekAdvance,
+});
+
+const handshakeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/handshakes',
+  component: HandshakeLedger,
 });
 
 const legacyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/legacy',
   component: () => <FeatureStub name="Legacy & Dynasty" />,
+});
+
+const dynastyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/dynasty',
+  component: DynastyCartridge,
 });
 
 const settingsRoute = createRoute({
@@ -323,7 +375,9 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   rosterRoute, contractsRoute, tradesRoute,
   scoutingRoute, draftRoute, freeAgencyRoute,
-  gameDayRoute, coachingRoute, legacyRoute, settingsRoute,
+  gameDayRoute, inboxRoute, depthChartRoute, coachingRoute,
+  ownerRoute, weekAdvanceRoute, handshakeRoute,
+  legacyRoute, dynastyRoute, settingsRoute,
 ]);
 
 const router = createRouter({ routeTree });

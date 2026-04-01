@@ -43,9 +43,11 @@ export interface Player {
   id: string;
   firstName: string;
   lastName: string;
+  name: string;
   pos: Position;
   age: number;
   ovr: number;
+  pot: number;
   ratings: PlayerRatings;
   devTrait: DevTrait;
   personality: Personality;
@@ -63,6 +65,23 @@ export interface Player {
   traitPowerLevel: Record<string, number>;
   injury: Injury | null;
   morale: number;
+  chemistry: number;
+  systemFit: number;
+  isStarter: boolean;
+  role: string | null;
+  roleWeeks: number;
+  tradeBlock: boolean;
+  holdout: boolean;
+  stats: PlayerSeasonStats;
+}
+
+export interface PlayerSeasonStats {
+  passYds: number;
+  rushYds: number;
+  recYds: number;
+  sacks: number;
+  defINT: number;
+  [key: string]: number;
 }
 
 export interface CareerStats {
@@ -86,9 +105,13 @@ export interface Contract {
   years: number;
   totalValue: number;
   yearlyBreakdown: ContractYear[];
+  baseSalary: number;
   guaranteed: number;
   signingBonus: number;
+  prorated: number;
+  originalYears: number;
   voidYears: number;
+  restructured: boolean;
   franchiseTag: FranchiseTagType | null;
   incentives: Incentive[];
 }
@@ -112,25 +135,123 @@ export interface Incentive {
 
 // ── Teams ───────────────────────────────────────────────
 
+export interface OwnerState {
+  archetypeId: OwnerArchetypeId;
+  label: string;
+  approval: number;
+  history: OwnerHistoryEntry[];
+}
+
+export type OwnerArchetypeId =
+  | 'win_now' | 'patient_builder' | 'profit_first'
+  | 'fan_favorite' | 'legacy_builder';
+
+export interface OwnerHistoryEntry {
+  year: number;
+  week: number;
+  approval: number;
+  delta: number;
+}
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  role: 'HC' | 'OC' | 'DC';
+  archetype: string;
+  traits: string[];
+  ratings: Record<string, number>;
+  level: number;
+  specialty75?: CoordinatorSpecialty | null;
+}
+
+export interface CoordinatorSpecialty {
+  id: string;
+  label: string;
+  icon: string;
+  effect: Record<string, number>;
+  desc: string;
+}
+
+export interface TeamStaff {
+  hc: StaffMember | null;
+  oc: StaffMember | null;
+  dc: StaffMember | null;
+}
+
+export type GmStrategy = 'rebuild' | 'contend' | 'neutral';
+
+export interface TradeState {
+  gmTrustByTeam: Record<string, number>;
+  recentTrades: { classification: 'fleece' | 'fair' | 'overpay' }[];
+}
+
+export interface TransactionLogEntry {
+  type: string;
+  year: number;
+  week: number;
+}
+
+export interface ClinicState {
+  xp: Record<string, number>;
+  perks: string[];
+}
+
+export interface CoachSkillSelection {
+  branch: string;
+  tier: number;
+  archForLookup?: string;
+}
+
+export interface DeadCapByYear {
+  [year: number]: number;
+}
+
 export interface Team {
   id: string;
   city: string;
   name: string;
   abbr: string;
+  icon: string;
   conference: 'AFC' | 'NFC';
   division: string;
-  roster: string[];       // player IDs
+  roster: Player[];
   capSpace: number;
+  capUsed: number;
   deadCap: number;
+  deadCapByYear: DeadCapByYear;
   wins: number;
   losses: number;
   ties: number;
+  streak: number;
   offScheme: string;
   defScheme: string;
+  schemeOff: string;
+  schemeDef: string;
   coachingStaff: CoachingStaff;
+  staff: TeamStaff;
   ownerId: string;
+  owner: OwnerState;
+  ownerMood: number;
+  ownerPatience80: number;
+  gmStrategy: GmStrategy;
   draftPicks: DraftPick[];
   rivalries: Rivalry[];
+  rivals: Record<string, { heat: number }>;
+  franchiseTag973: FranchiseTagState | null;
+  isUser: boolean;
+  clinic: ClinicState;
+  skillSelections: Record<string, CoachSkillSelection>;
+  tradeState: TradeState;
+  txLog: TransactionLogEntry[];
+}
+
+export interface FranchiseTagState {
+  playerId: string;
+  playerName: string;
+  pos: Position;
+  salary: number;
+  year: number;
+  reaction: string;
 }
 
 export interface CoachingStaff {
@@ -282,6 +403,14 @@ export interface HallOfFamer {
   playerId: string;
   inductionYear: number;
   careerHighlights: string[];
+}
+
+// ── Season Context ─────────────────────────────────────
+
+export interface SeasonContext {
+  year: number;
+  week: number;
+  phase: SeasonPhase;
 }
 
 // ── Difficulty ──────────────────────────────────────────
