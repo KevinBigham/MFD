@@ -35,7 +35,8 @@ export const db = new MfdDatabase();
 
 /** Save game state to a slot. */
 export async function saveGame(slot: Omit<SaveSlot, 'id'>): Promise<number> {
-  return db.saves.add(slot as SaveSlot);
+  const id = await db.saves.add(slot as SaveSlot);
+  return id as number;
 }
 
 /** Load a save by ID. */

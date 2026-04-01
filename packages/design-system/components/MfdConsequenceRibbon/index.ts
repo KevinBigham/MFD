@@ -1,0 +1,1 @@
+export { MfdConsequenceRibbon } from './MfdConsequenceRibbon';
