@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
-  MfdPanel, MfdBadge, MfdDialog,
-  MfdConsequenceRibbon,
+  MfdPanel, MfdBadge, MfdDialog, MfdConsequenceRibbon,
 } from '@mfd/design-system/components';
 import {
   AlertTriangle, Lightbulb, Inbox,
-  ChevronRight, Clock, CheckCircle,
+  ChevronRight,
 } from 'lucide-react';
+import {
+  useGameStore, selectUserTeam, selectRoster, selectWeek, selectNarrative,
+} from '../../app/store/game-store';
 
 // ── Message Types ──────────────────────────────────────
 
@@ -30,62 +32,121 @@ const TYPE_CONFIG: Record<MessageType, { icon: React.ReactNode; color: string; l
   INTEL: { icon: <Inbox size={14} />, color: 'var(--mfd-cyan)', label: 'INTEL', variant: 'info' },
 };
 
-const MOCK_MESSAGES: InboxMessage[] = [
-  {
-    id: 'm1', type: 'URGENT', title: 'Star QB Holdout Escalating',
-    body: 'Justin Fields is threatening to sit out if a new deal is not reached by Week 10. His agent called this morning. The locker room is watching.',
-    from: 'Agent Relations', week: 8, read: false, actionRequired: true,
-    consequences: [
-      { id: 'c1', label: 'Team Morale', delta: '-8 if unresolved', direction: 'negative' },
-      { id: 'c2', label: 'Chemistry', delta: '-5 per week', direction: 'warning' },
-    ],
-  },
-  {
-    id: 'm2', type: 'URGENT', title: 'Owner Demands Meeting',
-    body: 'Owner wants to discuss the losing streak and coaching staff changes. You have until Week 12 to improve the record or face consequences.',
-    from: 'Front Office', week: 8, read: false, actionRequired: true,
-    consequences: [
-      { id: 'c3', label: 'Job Security', delta: 'At Risk', direction: 'negative' },
-    ],
-  },
-  {
-    id: 'm3', type: 'DECISION', title: 'Trade Offer: WR for 2nd Round Pick',
-    body: 'The Packers are offering their 2027 2nd round pick for Marcus Williams (WR, 78 OVR). Williams has 2 years left on his deal at $6.2M/yr.',
-    from: 'Trade Desk', week: 8, read: false, actionRequired: true,
-    consequences: [
-      { id: 'c4', label: 'Cap Savings', delta: '+$6.2M/yr', direction: 'positive' },
-      { id: 'c5', label: 'WR Depth', delta: '-1 starter', direction: 'negative' },
-    ],
-  },
-  {
-    id: 'm4', type: 'DECISION', title: 'Injured Reserve Decision',
-    body: 'CB Jaylon Roberts (torn ACL) must be placed on IR or kept on the active roster. IR frees a roster spot but he cannot return for 4 weeks.',
-    from: 'Medical Staff', week: 8, read: true, actionRequired: true,
-  },
-  {
-    id: 'm5', type: 'INTEL', title: 'Scouting Report: Generational QB Prospect',
-    body: 'MFSN reports that Marcus Carter, a HS junior from Texas, is the consensus #1 prospect for the 2029 draft. Start tanking early.',
-    from: 'Scouting Dept', week: 8, read: true, actionRequired: false,
-  },
-  {
-    id: 'm6', type: 'INTEL', title: 'Rival Weakness Identified',
-    body: 'Division rival Lions have lost 3 offensive linemen to injury. Their pass protection is grading at bottom-5 in the league.',
-    from: 'Film Room', week: 8, read: true, actionRequired: false,
-  },
-  {
-    id: 'm7', type: 'INTEL', title: 'Free Agent Market Update',
-    body: 'Several quality defensive linemen expected to hit the market this offseason. Start planning cap space allocation.',
-    from: 'Player Personnel', week: 8, read: true, actionRequired: false,
-  },
-];
-
 export function InboxTriage() {
+  const team = useGameStore(selectUserTeam);
+  const roster = useGameStore(selectRoster);
+  const week = useGameStore(selectWeek);
+  const narrative = useGameStore(selectNarrative);
+
   const [selectedMsg, setSelectedMsg] = useState<InboxMessage | null>(null);
   const [filter, setFilter] = useState<MessageType | 'ALL'>('ALL');
 
-  const filtered = filter === 'ALL' ? MOCK_MESSAGES : MOCK_MESSAGES.filter((m) => m.type === filter);
-  const urgentCount = MOCK_MESSAGES.filter((m) => m.type === 'URGENT' && !m.read).length;
-  const decisionCount = MOCK_MESSAGES.filter((m) => m.type === 'DECISION' && m.actionRequired).length;
+  // Generate messages from live game state
+  const messages = useMemo((): InboxMessage[] => {
+    const msgs: InboxMessage[] = [];
+    if (!team) return msgs;
+
+    // Owner mood messages
+    if (team.owner.approval < 40) {
+      msgs.push({
+        id: 'owner-unhappy',
+        type: 'URGENT',
+        title: 'Owner Demands Improvement',
+        body: `Owner approval has dropped to ${team.owner.approval}. Results must improve soon or there will be consequences.`,
+        from: 'Front Office',
+        week,
+        read: false,
+        actionRequired: true,
+        consequences: [
+          { id: 'c1', label: 'Job Security', delta: 'At Risk', direction: 'negative' },
+        ],
+      });
+    }
+
+    // Holdout messages
+    const holdouts = roster.filter((p) => p.holdout);
+    for (const p of holdouts) {
+      msgs.push({
+        id: `holdout-${p.id}`,
+        type: 'URGENT',
+        title: `${p.name} Holdout`,
+        body: `${p.name} is holding out for a new contract. Morale is dropping.`,
+        from: 'Agent Relations',
+        week,
+        read: false,
+        actionRequired: true,
+        consequences: [
+          { id: `h1-${p.id}`, label: 'Team Morale', delta: '-5 per week', direction: 'warning' },
+        ],
+      });
+    }
+
+    // Trade block activity
+    const tradeBlockPlayers = roster.filter((p) => p.tradeBlock);
+    if (tradeBlockPlayers.length > 0) {
+      msgs.push({
+        id: 'trade-block',
+        type: 'DECISION',
+        title: `${tradeBlockPlayers.length} Player(s) on Trade Block`,
+        body: `Players on the block: ${tradeBlockPlayers.map((p) => p.name).join(', ')}. Watch for incoming offers.`,
+        from: 'Trade Desk',
+        week,
+        read: false,
+        actionRequired: false,
+      });
+    }
+
+    // Injured players intel
+    const injured = roster.filter((p) => p.injury);
+    if (injured.length > 0) {
+      msgs.push({
+        id: 'injury-report',
+        type: 'INTEL',
+        title: `${injured.length} Player(s) Injured`,
+        body: injured.map((p) => `${p.name} (${p.pos}): ${p.injury!.type} — ${p.injury!.severity}, ${p.injury!.gamesOut} games`).join('\n'),
+        from: 'Medical Staff',
+        week,
+        read: true,
+        actionRequired: false,
+      });
+    }
+
+    // Narrative headlines as intel
+    if (narrative?.recentHeadlines) {
+      for (let i = 0; i < narrative.recentHeadlines.length; i++) {
+        msgs.push({
+          id: `headline-${i}`,
+          type: 'INTEL',
+          title: narrative.recentHeadlines[i]!,
+          body: 'League-wide news from around the football world.',
+          from: 'Media',
+          week,
+          read: true,
+          actionRequired: false,
+        });
+      }
+    }
+
+    // Cap warning
+    if (team.capSpace < 10 && team.capSpace >= 0) {
+      msgs.push({
+        id: 'cap-tight',
+        type: 'DECISION',
+        title: 'Cap Space Running Low',
+        body: `Only $${Math.round(team.capSpace * 10) / 10}M in cap space remaining. Consider restructuring contracts.`,
+        from: 'Finance',
+        week,
+        read: false,
+        actionRequired: true,
+      });
+    }
+
+    return msgs;
+  }, [team, roster, week, narrative]);
+
+  const filtered = filter === 'ALL' ? messages : messages.filter((m) => m.type === filter);
+  const urgentCount = messages.filter((m) => m.type === 'URGENT' && !m.read).length;
+  const decisionCount = messages.filter((m) => m.type === 'DECISION' && m.actionRequired).length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
@@ -139,7 +200,11 @@ export function InboxTriage() {
 
       {/* Message List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-        {filtered.map((msg) => {
+        {filtered.length === 0 ? (
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.8125rem', color: 'var(--mfd-text-dim)', padding: 'var(--mfd-sp-lg)', textAlign: 'center' }}>
+            No messages
+          </div>
+        ) : filtered.map((msg) => {
           const cfg = TYPE_CONFIG[msg.type];
           return (
             <button
@@ -151,35 +216,24 @@ export function InboxTriage() {
                 background: msg.read ? 'var(--mfd-bg-2)' : 'var(--mfd-bg-3)',
                 border: `1px solid ${msg.type === 'URGENT' && !msg.read ? 'var(--mfd-red)' : 'var(--mfd-border)'}`,
                 borderRadius: 'var(--mfd-rad-md)',
-                cursor: 'pointer',
-                textAlign: 'left',
-                width: '100%',
-                transition: 'border-color var(--mfd-motion-fast)',
+                cursor: 'pointer', textAlign: 'left', width: '100%',
               }}
             >
               <div style={{ color: cfg.color, flexShrink: 0 }}>{cfg.icon}</div>
               <div style={{ flex: 1 }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)',
-                }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)' }}>
                   <MfdBadge variant={cfg.variant}>{cfg.label}</MfdBadge>
                   <span style={{
                     fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem',
                     fontWeight: msg.read ? 400 : 600, color: 'var(--mfd-text)',
-                  }}>
-                    {msg.title}
-                  </span>
+                  }}>{msg.title}</span>
                 </div>
                 <div style={{
                   fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
                   color: 'var(--mfd-text-dim)', marginTop: 2,
-                }}>
-                  From: {msg.from} // Week {msg.week}
-                </div>
+                }}>From: {msg.from} // Week {msg.week}</div>
               </div>
-              {msg.actionRequired && (
-                <MfdBadge variant="warning">Action Required</MfdBadge>
-              )}
+              {msg.actionRequired && <MfdBadge variant="warning">Action Required</MfdBadge>}
               <ChevronRight size={14} style={{ color: 'var(--mfd-text-faint)' }} />
             </button>
           );
@@ -202,36 +256,12 @@ export function InboxTriage() {
             </div>
             <p style={{
               fontFamily: 'var(--mfd-font-sans)', fontSize: '0.875rem',
-              color: 'var(--mfd-text)', lineHeight: 1.5, margin: 0,
+              color: 'var(--mfd-text)', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap',
             }}>
               {selectedMsg.body}
             </p>
             {selectedMsg.consequences && (
               <MfdConsequenceRibbon consequences={selectedMsg.consequences} />
-            )}
-            {selectedMsg.actionRequired && (
-              <div style={{ display: 'flex', gap: 'var(--mfd-sp-sm)' }}>
-                <button style={{
-                  flex: 1, padding: '8px', fontSize: '0.8125rem',
-                  fontFamily: 'var(--mfd-font-sans)', fontWeight: 600,
-                  color: 'var(--mfd-bg)', background: 'var(--mfd-green)',
-                  border: 'none', borderRadius: 'var(--mfd-rad-md)',
-                  cursor: 'pointer',
-                }}>
-                  Take Action
-                </button>
-                <button style={{
-                  flex: 1, padding: '8px', fontSize: '0.8125rem',
-                  fontFamily: 'var(--mfd-font-sans)', fontWeight: 500,
-                  color: 'var(--mfd-text)',
-                  background: 'var(--mfd-bg-2)',
-                  border: '1px solid var(--mfd-border)',
-                  borderRadius: 'var(--mfd-rad-md)',
-                  cursor: 'pointer',
-                }}>
-                  Defer
-                </button>
-              </div>
             )}
           </div>
         )}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   MfdPanel, MfdBadge, MfdDialog,
 } from '@mfd/design-system/components';
@@ -6,80 +6,72 @@ import {
   Users, ChevronDown, ChevronUp, AlertTriangle,
   Shield, Zap,
 } from 'lucide-react';
+import type { Player, Position } from '@mfd/engine';
+import { detectPositionBattles } from '@mfd/engine';
+import {
+  useGameStore, selectRoster, selectUserTeamId,
+} from '../../app/store/game-store';
 
-// ── Types ─────────────────────────────────────────────
-
-interface DepthPlayer {
-  id: string;
-  name: string;
-  ovr: number;
-  pot: number;
-  age: number;
-  dev: string;
-  fit: string;
-  injury?: string;
-}
+// ── Position slot groupings ────────────────────────────────
 
 interface PositionSlot {
-  pos: string;
-  side: 'OFF' | 'DEF' | 'ST';
-  starters: number;
-  players: DepthPlayer[];
-}
-
-// ── Mock Depth Data ───────────────────────────────────
-
-function mockPlayers(pos: string, count: number): DepthPlayer[] {
-  return Array.from({ length: count }, (_, i) => ({
-    id: `${pos}-${i}`,
-    name: `${pos} Player ${i + 1}`,
-    ovr: 88 - i * 6 - Math.floor(Math.random() * 4),
-    pot: 85 - i * 3,
-    age: 24 + i * 2,
-    dev: i === 0 ? 'Superstar' : i === 1 ? 'Star' : 'Normal',
-    fit: i < 2 ? 'A' : 'B',
-    injury: i === 2 && pos === 'CB' ? 'Hamstring (2 weeks)' : undefined,
-  }));
+  label: string;
+  positions: Position[];
+  side: 'OFF' | 'DEF';
 }
 
 const OFFENSE_SLOTS: PositionSlot[] = [
-  { pos: 'QB', side: 'OFF', starters: 1, players: mockPlayers('QB', 3) },
-  { pos: 'RB', side: 'OFF', starters: 1, players: mockPlayers('RB', 4) },
-  { pos: 'WR1', side: 'OFF', starters: 1, players: mockPlayers('WR1', 3) },
-  { pos: 'WR2', side: 'OFF', starters: 1, players: mockPlayers('WR2', 3) },
-  { pos: 'WR3', side: 'OFF', starters: 1, players: mockPlayers('WR3', 2) },
-  { pos: 'TE', side: 'OFF', starters: 1, players: mockPlayers('TE', 3) },
-  { pos: 'LT', side: 'OFF', starters: 1, players: mockPlayers('LT', 2) },
-  { pos: 'LG', side: 'OFF', starters: 1, players: mockPlayers('LG', 2) },
-  { pos: 'C', side: 'OFF', starters: 1, players: mockPlayers('C', 2) },
-  { pos: 'RG', side: 'OFF', starters: 1, players: mockPlayers('RG', 2) },
-  { pos: 'RT', side: 'OFF', starters: 1, players: mockPlayers('RT', 2) },
+  { label: 'QB', positions: ['QB'], side: 'OFF' },
+  { label: 'RB', positions: ['RB'], side: 'OFF' },
+  { label: 'WR', positions: ['WR'], side: 'OFF' },
+  { label: 'TE', positions: ['TE'], side: 'OFF' },
+  { label: 'OL', positions: ['OL'], side: 'OFF' },
 ];
 
 const DEFENSE_SLOTS: PositionSlot[] = [
-  { pos: 'EDGE1', side: 'DEF', starters: 1, players: mockPlayers('EDGE1', 3) },
-  { pos: 'EDGE2', side: 'DEF', starters: 1, players: mockPlayers('EDGE2', 3) },
-  { pos: 'DT1', side: 'DEF', starters: 1, players: mockPlayers('DT1', 3) },
-  { pos: 'DT2', side: 'DEF', starters: 1, players: mockPlayers('DT2', 2) },
-  { pos: 'MLB', side: 'DEF', starters: 1, players: mockPlayers('MLB', 3) },
-  { pos: 'OLB1', side: 'DEF', starters: 1, players: mockPlayers('OLB1', 2) },
-  { pos: 'OLB2', side: 'DEF', starters: 1, players: mockPlayers('OLB2', 2) },
-  { pos: 'CB1', side: 'DEF', starters: 1, players: mockPlayers('CB1', 3) },
-  { pos: 'CB2', side: 'DEF', starters: 1, players: mockPlayers('CB2', 3) },
-  { pos: 'FS', side: 'DEF', starters: 1, players: mockPlayers('FS', 2) },
-  { pos: 'SS', side: 'DEF', starters: 1, players: mockPlayers('SS', 2) },
-];
-
-const BATTLES = [
-  { pos: 'RB', p1: 'RB Player 1 (84 OVR)', p2: 'RB Player 2 (80 OVR)', reason: 'Close overall gap, younger challenger' },
-  { pos: 'WR3', p1: 'WR3 Player 1 (76 OVR)', p2: 'WR3 Player 2 (73 OVR)', reason: 'High-potential backup pushing for snaps' },
+  { label: 'DL', positions: ['DL'], side: 'DEF' },
+  { label: 'LB', positions: ['LB'], side: 'DEF' },
+  { label: 'CB', positions: ['CB'], side: 'DEF' },
+  { label: 'S', positions: ['S'], side: 'DEF' },
 ];
 
 export function DepthChart() {
+  const roster = useGameStore(selectRoster);
+  const teamId = useGameStore(selectUserTeamId);
+  const { setStarter } = useGameStore((s) => s.actions);
+
   const [side, setSide] = useState<'OFF' | 'DEF'>('OFF');
   const [selectedSlot, setSelectedSlot] = useState<PositionSlot | null>(null);
 
   const slots = side === 'OFF' ? OFFENSE_SLOTS : DEFENSE_SLOTS;
+
+  // Group roster by position slots
+  const slotPlayers = useMemo(() => {
+    const map = new Map<string, Player[]>();
+    for (const slot of [...OFFENSE_SLOTS, ...DEFENSE_SLOTS]) {
+      const players = roster
+        .filter((p) => slot.positions.includes(p.pos))
+        .sort((a, b) => {
+          if (a.isStarter !== b.isStarter) return a.isStarter ? -1 : 1;
+          return b.ovr - a.ovr;
+        });
+      map.set(slot.label, players);
+    }
+    return map;
+  }, [roster]);
+
+  // Position battles from engine
+  const battles = useMemo(() => detectPositionBattles(roster), [roster]);
+
+  const handlePromote = useCallback((player: Player) => {
+    if (!teamId) return;
+    setStarter(teamId, player.id, true);
+  }, [teamId, setStarter]);
+
+  const handleDemote = useCallback((player: Player) => {
+    if (!teamId) return;
+    setStarter(teamId, player.id, false);
+  }, [teamId, setStarter]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
@@ -120,10 +112,10 @@ export function DepthChart() {
       </div>
 
       {/* Position Battles */}
-      {BATTLES.length > 0 && (
+      {battles.length > 0 && (
         <MfdPanel title="Position Battles" icon={<AlertTriangle size={14} />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-            {BATTLES.map((b) => (
+            {battles.map((b) => (
               <div key={b.pos} style={{
                 display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-md)',
                 padding: 'var(--mfd-sp-xs)',
@@ -132,12 +124,12 @@ export function DepthChart() {
                 <MfdBadge variant="warning">{b.pos}</MfdBadge>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem' }}>
-                    {b.p1} vs {b.p2}
+                    {b.incumbent.name} ({b.incumbent.ovr} OVR) vs {b.challenger.name} ({b.challenger.ovr} OVR)
                   </div>
                   <div style={{
                     fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
                     color: 'var(--mfd-text-dim)',
-                  }}>{b.reason}</div>
+                  }}>Close overall gap — position battle active</div>
                 </div>
               </div>
             ))}
@@ -152,11 +144,12 @@ export function DepthChart() {
         gap: 'var(--mfd-sp-md)',
       }}>
         {slots.map((slot) => {
-          const starter = slot.players[0];
-          const hasInjury = slot.players.some((p) => p.injury);
+          const players = slotPlayers.get(slot.label) ?? [];
+          const starter = players[0];
+          const hasInjury = players.some((p) => p.injury);
           return (
             <button
-              key={slot.pos}
+              key={slot.label}
               onClick={() => setSelectedSlot(slot)}
               style={{
                 display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-xs)',
@@ -170,11 +163,11 @@ export function DepthChart() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <MfdBadge variant={side === 'OFF' ? 'info' : 'danger'}>{slot.pos}</MfdBadge>
+                <MfdBadge variant={side === 'OFF' ? 'info' : 'danger'}>{slot.label}</MfdBadge>
                 <span style={{
                   fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
                   color: 'var(--mfd-text-dim)',
-                }}>{slot.players.length} deep</span>
+                }}>{players.length} deep</span>
               </div>
               {starter && (
                 <div>
@@ -184,9 +177,7 @@ export function DepthChart() {
                   }}>
                     {starter.name}
                   </div>
-                  <div style={{
-                    display: 'flex', gap: 'var(--mfd-sp-xs)', marginTop: 2,
-                  }}>
+                  <div style={{ display: 'flex', gap: 'var(--mfd-sp-xs)', marginTop: 2 }}>
                     <span style={{
                       fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
                       color: starter.ovr >= 85 ? 'var(--mfd-green)' : 'var(--mfd-text-dim)',
@@ -195,7 +186,7 @@ export function DepthChart() {
                     <span style={{
                       fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
                       color: 'var(--mfd-text-dim)',
-                    }}>Fit: {starter.fit}</span>
+                    }}>Fit: {starter.systemFit >= 80 ? 'A' : starter.systemFit >= 60 ? 'B' : 'C'}</span>
                   </div>
                 </div>
               )}
@@ -217,15 +208,15 @@ export function DepthChart() {
       <MfdDialog
         open={!!selectedSlot}
         onOpenChange={(open) => { if (!open) setSelectedSlot(null); }}
-        title={selectedSlot ? `${selectedSlot.pos} Depth` : 'Position'}
+        title={selectedSlot ? `${selectedSlot.label} Depth` : 'Position'}
       >
         {selectedSlot && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-            {selectedSlot.players.map((p, idx) => (
+            {(slotPlayers.get(selectedSlot.label) ?? []).map((p, idx) => (
               <div key={p.id} style={{
                 display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-md)',
                 padding: 'var(--mfd-sp-sm)',
-                background: idx === 0 ? 'var(--mfd-bg-3)' : 'var(--mfd-bg-2)',
+                background: p.isStarter ? 'var(--mfd-bg-3)' : 'var(--mfd-bg-2)',
                 border: '1px solid var(--mfd-border)',
                 borderRadius: 'var(--mfd-rad-md)',
               }}>
@@ -236,33 +227,39 @@ export function DepthChart() {
                 <div style={{ flex: 1 }}>
                   <div style={{
                     fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem',
-                    fontWeight: idx === 0 ? 600 : 400,
+                    fontWeight: p.isStarter ? 600 : 400,
                   }}>{p.name}</div>
                   <div style={{ display: 'flex', gap: 'var(--mfd-sp-xs)', marginTop: 2 }}>
                     <MfdBadge variant={p.ovr >= 85 ? 'success' : 'default'}>{p.ovr} OVR</MfdBadge>
                     <MfdBadge variant="info">{p.pot} POT</MfdBadge>
                     <MfdBadge variant="default">Age {p.age}</MfdBadge>
-                    {p.injury && <MfdBadge variant="danger">{p.injury}</MfdBadge>}
+                    {p.injury && <MfdBadge variant="danger">{p.injury.type}</MfdBadge>}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
-                  {idx > 0 && (
-                    <button style={{
-                      padding: '4px', background: 'var(--mfd-bg-3)',
-                      border: '1px solid var(--mfd-border)',
-                      borderRadius: 'var(--mfd-rad-sm)', cursor: 'pointer',
-                      color: 'var(--mfd-text-dim)',
-                    }}>
+                  {!p.isStarter && (
+                    <button
+                      onClick={() => handlePromote(p)}
+                      style={{
+                        padding: '4px', background: 'var(--mfd-bg-3)',
+                        border: '1px solid var(--mfd-border)',
+                        borderRadius: 'var(--mfd-rad-sm)', cursor: 'pointer',
+                        color: 'var(--mfd-text-dim)',
+                      }}
+                    >
                       <ChevronUp size={12} />
                     </button>
                   )}
-                  {idx < selectedSlot.players.length - 1 && (
-                    <button style={{
-                      padding: '4px', background: 'var(--mfd-bg-3)',
-                      border: '1px solid var(--mfd-border)',
-                      borderRadius: 'var(--mfd-rad-sm)', cursor: 'pointer',
-                      color: 'var(--mfd-text-dim)',
-                    }}>
+                  {p.isStarter && (
+                    <button
+                      onClick={() => handleDemote(p)}
+                      style={{
+                        padding: '4px', background: 'var(--mfd-bg-3)',
+                        border: '1px solid var(--mfd-border)',
+                        borderRadius: 'var(--mfd-rad-sm)', cursor: 'pointer',
+                        color: 'var(--mfd-text-dim)',
+                      }}
+                    >
                       <ChevronDown size={12} />
                     </button>
                   )}

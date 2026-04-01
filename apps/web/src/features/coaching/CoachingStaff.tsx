@@ -1,78 +1,41 @@
+import { useMemo } from 'react';
 import {
-  MfdPanel, MfdBadge, MfdKpiGrid, MfdKpiCard,
-  MfdRingProgress, MfdStepper,
+  MfdPanel, MfdBadge, MfdRingProgress, MfdStepper,
 } from '@mfd/design-system/components';
 import {
   GraduationCap, Award, TrendingUp, Shield,
-  Zap, Target, Brain, Heart,
+  Zap, Brain,
 } from 'lucide-react';
+import type { StaffMember } from '@mfd/engine';
+import { SKILL_TREES, CLINIC_TRACKS as ENGINE_CLINIC_TRACKS } from '@mfd/engine';
+import {
+  useGameStore, selectUserTeam, selectCoachingStaff, selectClinic,
+} from '../../app/store/game-store';
 
-const MOCK_HC = {
-  name: 'Mike Davis',
-  archetype: 'Strategist',
-  level: 7,
-  xp: 340,
-  traits: ['Film Junkie', 'Aggressive 4th'],
-  skillBranch: 'Air Raid',
-  skillTier: 2,
-};
-
-const MOCK_OC = {
-  name: 'James Wilson',
-  archetype: 'QB Guru',
-  level: 5,
-  specialty: 'Pass Architect',
-  traits: ['QB Whisperer'],
-};
-
-const MOCK_DC = {
-  name: 'Robert Taylor',
-  archetype: 'Blitz Master',
-  level: 6,
-  specialty: 'Blitz Designer',
-  traits: ['Blitz Packages', 'Ball Hawks'],
-};
-
-const SKILL_TREE_BRANCHES = [
-  { id: 'air_raid', name: 'Air Raid', icon: <Zap size={14} />, tiers: [
-    { label: 'Quick Release', unlocked: true },
-    { label: 'Spread Master', unlocked: true },
-    { label: 'Aerial Dominance', unlocked: false },
-  ]},
-  { id: 'ground_pound', name: 'Ground & Pound', icon: <Shield size={14} />, tiers: [
-    { label: 'Power Run', unlocked: false },
-    { label: 'Clock Killer', unlocked: false },
-    { label: 'Steamroller', unlocked: false },
-  ]},
-  { id: 'analytics', name: 'Analytics King', icon: <Brain size={14} />, tiers: [
-    { label: '4th Down Guru', unlocked: true },
-    { label: 'Matchup Hunter', unlocked: false },
-    { label: 'Moneyball', unlocked: false },
-  ]},
-];
-
-const CLINIC_TRACKS = [
-  { id: 'offense', label: 'Offensive Mind', xp: 45, maxXp: 80, perks: 1 },
-  { id: 'defense', label: 'Defensive Architect', xp: 20, maxXp: 80, perks: 0 },
-  { id: 'analytics', label: 'Analytics', xp: 35, maxXp: 80, perks: 1 },
-  { id: 'leadership', label: 'Leadership', xp: 60, maxXp: 80, perks: 1 },
-  { id: 'development', label: 'Player Dev', xp: 10, maxXp: 80, perks: 0 },
-];
-
-function CoachCard({ coach, role }: { coach: typeof MOCK_HC | typeof MOCK_OC; role: string }) {
+function CoachCard({ coach, role }: { coach: StaffMember; role: string }) {
   return (
     <MfdPanel title={`${role}: ${coach.name}`} icon={<GraduationCap size={14} />}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
         <div style={{ display: 'flex', gap: 'var(--mfd-sp-sm)', alignItems: 'center' }}>
           <MfdBadge variant="gold">{coach.archetype}</MfdBadge>
           <MfdBadge variant="info">Lvl {coach.level}</MfdBadge>
-          {'specialty' in coach && coach.specialty && (
-            <MfdBadge variant="purple">{coach.specialty}</MfdBadge>
+          {coach.specialty75 && (
+            <MfdBadge variant="purple">{coach.specialty75.label}</MfdBadge>
           )}
         </div>
         <div style={{ display: 'flex', gap: 'var(--mfd-sp-xs)', flexWrap: 'wrap' }}>
           {coach.traits.map((t) => (
             <MfdBadge key={t} variant="default">{t}</MfdBadge>
+          ))}
+          {coach.traits.length === 0 && (
+            <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)' }}>
+              No traits
+            </span>
+          )}
+        </div>
+        <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)' }}>
+          {Object.entries(coach.ratings).map(([k, v]) => (
+            <span key={k} style={{ marginRight: 12 }}>{k}: {v}</span>
           ))}
         </div>
       </div>
@@ -81,6 +44,47 @@ function CoachCard({ coach, role }: { coach: typeof MOCK_HC | typeof MOCK_OC; ro
 }
 
 export function CoachingStaff() {
+  const staff = useGameStore(selectCoachingStaff);
+  const clinic = useGameStore(selectClinic);
+  const team = useGameStore(selectUserTeam);
+
+  const hc = staff?.hc;
+  const oc = staff?.oc;
+  const dc = staff?.dc;
+
+  // Build skill tree display from engine SKILL_TREES
+  const skillBranches = useMemo(() => {
+    const icons: React.ReactNode[] = [<Zap size={14} />, <Shield size={14} />, <Brain size={14} />];
+    const archetype = hc?.archetype ?? 'Strategist';
+    const tree = SKILL_TREES[archetype];
+    if (!tree) return [];
+    return tree.branches.map((branch, i: number) => ({
+      id: branch.id,
+      name: branch.name,
+      icon: icons[i] ?? <Zap size={14} />,
+      tiers: branch.tiers.map((t: { level: number; label: string }) => ({
+        label: t.label,
+        unlocked: (team?.skillSelections[branch.id]?.tier ?? 0) >= t.level,
+      })),
+    }));
+  }, [team, hc]);
+
+  // Build clinic tracks display
+  const clinicTracks = useMemo(() => {
+    return ENGINE_CLINIC_TRACKS.map((track: { id: string; label: string; perks: readonly { xpReq: number }[] }) => {
+      const xp = clinic?.xp[track.id] ?? 0;
+      const maxXp = track.perks.length > 0 ? track.perks[track.perks.length - 1]!.xpReq : 80;
+      const perksUnlocked = clinic?.perks.filter((p: string) => p.startsWith(track.id)).length ?? 0;
+      return {
+        id: track.id,
+        label: track.label,
+        xp,
+        maxXp,
+        perks: perksUnlocked,
+      };
+    });
+  }, [clinic]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
       <div>
@@ -98,16 +102,16 @@ export function CoachingStaff() {
 
       {/* Staff Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
-        <CoachCard coach={MOCK_HC} role="HC" />
-        <CoachCard coach={MOCK_OC} role="OC" />
-        <CoachCard coach={MOCK_DC} role="DC" />
+        {hc && <CoachCard coach={hc} role="HC" />}
+        {oc && <CoachCard coach={oc} role="OC" />}
+        {dc && <CoachCard coach={dc} role="DC" />}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
         {/* Skill Tree */}
-        <MfdPanel title="HC Skill Tree: Strategist" icon={<Award size={14} />}>
+        <MfdPanel title={`HC Skill Tree${hc ? `: ${hc.archetype}` : ''}`} icon={<Award size={14} />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-            {SKILL_TREE_BRANCHES.map((branch) => (
+            {skillBranches.map((branch) => (
               <div key={branch.id}>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)',
@@ -134,27 +138,18 @@ export function CoachingStaff() {
         {/* Coaching Clinic XP */}
         <MfdPanel title="Coaching Clinic" icon={<TrendingUp size={14} />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-md)' }}>
-            {CLINIC_TRACKS.map((track) => (
-              <div key={track.id} style={{
-                display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-md)',
-              }}>
+            {clinicTracks.map((track) => (
+              <div key={track.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-md)' }}>
                 <MfdRingProgress
-                  value={Math.round(track.xp / track.maxXp * 100)}
-                  size={32}
-                  strokeWidth={3}
+                  value={track.maxXp > 0 ? Math.round(track.xp / track.maxXp * 100) : 0}
+                  size={32} strokeWidth={3}
                   color={track.perks > 0 ? 'var(--mfd-green)' : 'var(--mfd-cyan)'}
                 />
                 <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem',
-                    color: 'var(--mfd-text)',
-                  }}>
+                  <div style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem', color: 'var(--mfd-text)' }}>
                     {track.label}
                   </div>
-                  <div style={{
-                    fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
-                    color: 'var(--mfd-text-dim)',
-                  }}>
+                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)' }}>
                     {track.xp}/{track.maxXp} XP // {track.perks} perk(s)
                   </div>
                 </div>

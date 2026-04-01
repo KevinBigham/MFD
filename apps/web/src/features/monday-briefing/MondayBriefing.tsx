@@ -1,153 +1,153 @@
+import { useMemo } from 'react';
 import {
-  MfdPanel,
-  MfdKpiCard,
-  MfdKpiGrid,
-  MfdBadge,
-  MfdRingProgress,
-  MfdConsequenceRibbon,
+  MfdPanel, MfdKpiCard, MfdKpiGrid, MfdBadge,
+  MfdRingProgress, MfdConsequenceRibbon,
 } from '@mfd/design-system/components';
 import {
-  Calendar, Users, DollarSign, TrendingUp,
-  AlertTriangle, Activity, Star, Shield,
+  Calendar, DollarSign, AlertTriangle, Activity, Star, Shield,
 } from 'lucide-react';
-
-// Mock data — replaced with real engine data in Phase 2
-const MOCK = {
-  teamName: 'Chicago Bears',
-  season: 2026,
-  week: 8,
-  record: '5-2',
-  nextOpponent: 'Green Bay Packers',
-  nextGameDay: 'Sunday, Oct 25',
-  capSpace: '$12.4M',
-  capPct: 72,
-  ownerMood: 'Pleased',
-  ownerPressure: 28,
-  injuries: [
-    { player: 'J. Fields', position: 'QB', status: 'Questionable', weeks: 1 },
-    { player: 'M. Williams', position: 'WR', status: 'Out', weeks: 3 },
-  ],
-  urgentDecisions: 3,
-  devWatchlist: [
-    { player: 'R. Johnson', position: 'CB', trait: 'Breakout candidate', progress: 68 },
-    { player: 'T. Smith', position: 'OT', trait: 'High motor', progress: 45 },
-  ],
-  recentConsequences: [
-    { id: 'c1', label: 'Cap Space', delta: '+$2.1M', direction: 'positive' as const },
-    { id: 'c2', label: 'Win Probability', delta: '-4.2%', direction: 'negative' as const },
-    { id: 'c3', label: 'Owner Mood', delta: 'Stable', direction: 'neutral' as const },
-  ],
-};
+import { calcCapHit } from '@mfd/engine';
+import {
+  useGameStore, selectUserTeam, selectRoster,
+  selectWeek, selectYear, selectSchedule, selectOwnerState,
+} from '../../app/store/game-store';
 
 export function MondayBriefing() {
+  const team = useGameStore(selectUserTeam);
+  const roster = useGameStore(selectRoster);
+  const week = useGameStore(selectWeek);
+  const year = useGameStore(selectYear);
+  const schedule = useGameStore(selectSchedule);
+  const ownerState = useGameStore(selectOwnerState);
+
+  const teamName = team ? `${team.city} ${team.name}` : 'No Team';
+  const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '0-0';
+
+  // Next opponent from schedule
+  const nextGame = useMemo(() => {
+    if (!team || !schedule.length) return null;
+    const weekSchedule = schedule.find((w) => w.week === week);
+    if (!weekSchedule) return null;
+    const game = weekSchedule.games.find(
+      (g) => g.homeTeamId === team.id || g.awayTeamId === team.id,
+    );
+    return game ?? null;
+  }, [team, schedule, week]);
+
+  const game = useGameStore((s) => s.game);
+  const opponentId = nextGame
+    ? (nextGame.homeTeamId === team?.id ? nextGame.awayTeamId : nextGame.homeTeamId)
+    : null;
+  const opponent = opponentId && game ? game.teams[opponentId] : null;
+  const opponentName = opponent ? `${opponent.city} ${opponent.name}` : 'Bye Week';
+
+  // Injuries
+  const injuries = useMemo(() =>
+    roster
+      .filter((p) => p.injury)
+      .map((p) => ({
+        player: `${p.firstName.charAt(0)}. ${p.lastName}`,
+        position: p.pos,
+        status: p.injury!.severity,
+        weeks: p.injury!.gamesOut,
+      })),
+  [roster]);
+
+  // Dev watchlist — top prospects by potential gap
+  const devWatchlist = useMemo(() =>
+    roster
+      .filter((p) => p.pot - p.ovr >= 5 && (p.devTrait === 'star' || p.devTrait === 'superstar' || p.devTrait === 'x-factor'))
+      .sort((a, b) => (b.pot - b.ovr) - (a.pot - a.ovr))
+      .slice(0, 3)
+      .map((p) => ({
+        player: `${p.firstName.charAt(0)}. ${p.lastName}`,
+        position: p.pos,
+        trait: p.devTrait === 'x-factor' ? 'X-Factor' : p.devTrait === 'superstar' ? 'Superstar' : 'Star',
+        progress: Math.round((p.ovr / p.pot) * 100),
+      })),
+  [roster]);
+
+  const capSpace = team ? `$${Math.round(team.capSpace * 10) / 10}M` : '$0M';
+  const ownerMood = ownerState ? ownerState.approval : 0;
+  const ownerLabel = ownerMood >= 70 ? 'Pleased' : ownerMood >= 50 ? 'Neutral' : ownerMood >= 30 ? 'Unhappy' : 'Furious';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
       {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'baseline',
-        justifyContent: 'space-between',
-      }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{
-            fontFamily: 'var(--mfd-font-serif)',
-            fontSize: '1.375rem',
-            fontWeight: 700,
-            color: 'var(--mfd-text)',
-            margin: 0,
-          }}>
-            Monday Briefing
-          </h1>
+            fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem',
+            fontWeight: 700, color: 'var(--mfd-text)', margin: 0,
+          }}>Monday Briefing</h1>
           <p style={{
-            fontFamily: 'var(--mfd-font-mono)',
-            fontSize: '0.75rem',
-            color: 'var(--mfd-text-dim)',
-            margin: '4px 0 0',
+            fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
+            color: 'var(--mfd-text-dim)', margin: '4px 0 0',
           }}>
-            {MOCK.teamName} // Season {MOCK.season}, Week {MOCK.week}
+            {teamName} // Season {year}, Week {week}
           </p>
         </div>
-        <MfdBadge variant="gold">{MOCK.record}</MfdBadge>
+        <MfdBadge variant="gold">{record}</MfdBadge>
       </div>
-
-      {/* Last action consequences */}
-      <MfdConsequenceRibbon consequences={MOCK.recentConsequences} />
 
       {/* KPI Row */}
       <MfdKpiGrid columns={4}>
         <MfdKpiCard
           label="Next Game"
-          value={MOCK.nextOpponent}
+          value={opponentName}
           icon={<Calendar size={14} />}
-          trendLabel={MOCK.nextGameDay}
+          trendLabel={`Week ${week}`}
           trend="flat"
         />
         <MfdKpiCard
           label="Cap Space"
-          value={MOCK.capSpace}
+          value={capSpace}
           icon={<DollarSign size={14} />}
           trend="up"
-          trendLabel="After restructure"
           variant="success"
         />
         <MfdKpiCard
           label="Owner Mood"
-          value={MOCK.ownerMood}
+          value={ownerLabel}
           icon={<Shield size={14} />}
-          trend="flat"
-          trendLabel={`Pressure: ${MOCK.ownerPressure}%`}
+          trend={ownerMood >= 60 ? 'up' : 'down'}
+          trendLabel={`Approval: ${ownerMood}`}
         />
         <MfdKpiCard
-          label="Urgent"
-          value={MOCK.urgentDecisions}
+          label="Injuries"
+          value={injuries.length}
           icon={<AlertTriangle size={14} />}
-          variant={MOCK.urgentDecisions > 2 ? 'danger' : 'default'}
-          trendLabel="Decisions needed"
+          variant={injuries.length > 2 ? 'danger' : 'default'}
+          trendLabel={injuries.length > 0 ? 'Players out' : 'All healthy'}
           trend="flat"
         />
       </MfdKpiGrid>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
         {/* Injuries */}
-        <MfdPanel
-          title="Injury Report"
-          icon={<Activity size={14} />}
-        >
-          {MOCK.injuries.length === 0 ? (
+        <MfdPanel title="Injury Report" icon={<Activity size={14} />}>
+          {injuries.length === 0 ? (
             <p style={{ color: 'var(--mfd-text-faint)', fontSize: '0.8125rem', margin: 0 }}>
               No injuries to report
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-              {MOCK.injuries.map((inj) => (
-                <div
-                  key={inj.player}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: 'var(--mfd-sp-xs) 0',
-                  }}
-                >
+              {injuries.map((inj) => (
+                <div key={inj.player} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: 'var(--mfd-sp-xs) 0',
+                }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)' }}>
-                    <span style={{
-                      fontFamily: 'var(--mfd-font-sans)',
-                      fontSize: '0.8125rem',
-                      color: 'var(--mfd-text)',
-                    }}>
+                    <span style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem', color: 'var(--mfd-text)' }}>
                       {inj.player}
                     </span>
                     <MfdBadge variant="default">{inj.position}</MfdBadge>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)' }}>
-                    <MfdBadge variant={inj.status === 'Out' ? 'danger' : 'warning'}>
+                    <MfdBadge variant={inj.status === 'out' || inj.status === 'ir' ? 'danger' : 'warning'}>
                       {inj.status}
                     </MfdBadge>
-                    <span style={{
-                      fontFamily: 'var(--mfd-font-mono)',
-                      fontSize: '0.6875rem',
-                      color: 'var(--mfd-text-faint)',
-                    }}>
+                    <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-faint)' }}>
                       {inj.weeks}w
                     </span>
                   </div>
@@ -158,47 +158,34 @@ export function MondayBriefing() {
         </MfdPanel>
 
         {/* Development Watchlist */}
-        <MfdPanel
-          title="Dev Watchlist"
-          icon={<Star size={14} />}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-md)' }}>
-            {MOCK.devWatchlist.map((dev) => (
-              <div
-                key={dev.player}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--mfd-sp-md)',
-                }}
-              >
-                <MfdRingProgress
-                  value={dev.progress}
-                  size={36}
-                  strokeWidth={3}
-                  color={dev.progress > 60 ? 'var(--mfd-green)' : 'var(--mfd-cyan)'}
-                />
-                <div>
-                  <div style={{
-                    fontFamily: 'var(--mfd-font-sans)',
-                    fontSize: '0.8125rem',
-                    color: 'var(--mfd-text)',
-                  }}>
-                    {dev.player}
-                    <MfdBadge variant="default" style={{ marginLeft: 6 }}>{dev.position}</MfdBadge>
-                  </div>
-                  <div style={{
-                    fontFamily: 'var(--mfd-font-mono)',
-                    fontSize: '0.6875rem',
-                    color: 'var(--mfd-text-dim)',
-                    marginTop: 2,
-                  }}>
-                    {dev.trait}
+        <MfdPanel title="Dev Watchlist" icon={<Star size={14} />}>
+          {devWatchlist.length === 0 ? (
+            <p style={{ color: 'var(--mfd-text-faint)', fontSize: '0.8125rem', margin: 0 }}>
+              No standout prospects on roster
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-md)' }}>
+              {devWatchlist.map((dev) => (
+                <div key={dev.player} style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-md)' }}>
+                  <MfdRingProgress
+                    value={dev.progress}
+                    size={36}
+                    strokeWidth={3}
+                    color={dev.progress > 60 ? 'var(--mfd-green)' : 'var(--mfd-cyan)'}
+                  />
+                  <div>
+                    <div style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem', color: 'var(--mfd-text)' }}>
+                      {dev.player}
+                      <MfdBadge variant="default" style={{ marginLeft: 6 }}>{dev.position}</MfdBadge>
+                    </div>
+                    <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)', marginTop: 2 }}>
+                      {dev.trait}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </MfdPanel>
       </div>
     </div>

@@ -1,72 +1,104 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
-  MfdPanel, MfdBadge, MfdStepper, MfdConsequenceRibbon,
+  MfdPanel, MfdBadge, MfdConsequenceRibbon,
 } from '@mfd/design-system/components';
 import {
   Play, CheckCircle, Clock, AlertTriangle,
-  Users, DollarSign, Shield, Zap,
+  Users, DollarSign, Shield,
 } from 'lucide-react';
-
-// ── Checklist State ───────────────────────────────────
+import { getSalaryCap } from '@mfd/engine';
+import {
+  useGameStore, selectUserTeam, selectRoster,
+  selectWeek, selectYear, selectSchedule, selectUserTeamId,
+} from '../../app/store/game-store';
 
 interface ChecklistItem {
   id: string;
   label: string;
-  desc: string;
   icon: React.ReactNode;
   status: 'done' | 'warn' | 'pending';
-  detail?: string;
+  detail: string;
 }
 
-const MOCK_CHECKLIST: ChecklistItem[] = [
-  {
-    id: 'depth', label: 'Depth Chart Set', desc: 'All positions have starters assigned',
-    icon: <Users size={14} />, status: 'done',
-  },
-  {
-    id: 'injuries', label: 'Injury Review', desc: 'Review injured players and set replacements',
-    icon: <AlertTriangle size={14} />, status: 'warn',
-    detail: 'CB1 questionable — backup auto-promoted',
-  },
-  {
-    id: 'cap', label: 'Cap Compliant', desc: 'Team is under the salary cap',
-    icon: <DollarSign size={14} />, status: 'done',
-  },
-  {
-    id: 'gameplan', label: 'Game Plan', desc: 'Offensive and defensive schemes locked in',
-    icon: <Shield size={14} />, status: 'done',
-  },
-  {
-    id: 'trades', label: 'Pending Trades', desc: 'No unresolved trade offers',
-    icon: <Zap size={14} />, status: 'warn',
-    detail: 'Trade offer from GB expires after this week',
-  },
-  {
-    id: 'inbox', label: 'Inbox Clear', desc: 'All urgent messages addressed',
-    icon: <Clock size={14} />, status: 'pending',
-    detail: '2 urgent messages unread',
-  },
-];
-
-const MOCK_MATCHUP = {
-  opponent: 'Detroit Lions',
-  record: '7-5',
-  spread: '-3.5',
-  overUnder: '44.5',
-  keyMatchup: 'Their weakened O-line vs your pass rush',
-};
-
-const MOCK_CONSEQUENCES = [
-  { id: 'c1', label: 'Owner Patience', delta: '-4 if loss', direction: 'warning' as const },
-  { id: 'c2', label: 'Playoff Odds', delta: '-12% if loss', direction: 'negative' as const },
-  { id: 'c3', label: 'Chemistry', delta: '+2 if win', direction: 'positive' as const },
-];
-
 export function WeekAdvance() {
-  const [confirmed, setConfirmed] = useState(false);
-  const allClear = MOCK_CHECKLIST.every((c) => c.status === 'done');
-  const warnCount = MOCK_CHECKLIST.filter((c) => c.status === 'warn').length;
-  const pendingCount = MOCK_CHECKLIST.filter((c) => c.status === 'pending').length;
+  const team = useGameStore(selectUserTeam);
+  const roster = useGameStore(selectRoster);
+  const week = useGameStore(selectWeek);
+  const year = useGameStore(selectYear);
+  const schedule = useGameStore(selectSchedule);
+  const teamId = useGameStore(selectUserTeamId);
+  const { advanceWeek, refreshOwner } = useGameStore((s) => s.actions);
+
+  const [advancing, setAdvancing] = useState(false);
+
+  // Build checklist from live data
+  const checklist = useMemo((): ChecklistItem[] => {
+    if (!team) return [];
+    const starters = roster.filter((p) => p.isStarter);
+    const injured = roster.filter((p) => p.injury);
+    const injuredStarters = starters.filter((p) => p.injury);
+
+    return [
+      {
+        id: 'depth',
+        label: 'Depth Chart Set',
+        icon: <Users size={14} />,
+        status: starters.length >= 22 ? 'done' : 'warn',
+        detail: starters.length >= 22 ? 'All positions have starters' : `Only ${starters.length}/22 starters set`,
+      },
+      {
+        id: 'injuries',
+        label: 'Injury Review',
+        icon: <AlertTriangle size={14} />,
+        status: injuredStarters.length > 0 ? 'warn' : injured.length > 0 ? 'warn' : 'done',
+        detail: injuredStarters.length > 0
+          ? `${injuredStarters.length} injured starter(s)`
+          : injured.length > 0
+            ? `${injured.length} injured player(s), no starters affected`
+            : 'All healthy',
+      },
+      {
+        id: 'cap',
+        label: 'Cap Compliant',
+        icon: <DollarSign size={14} />,
+        status: team.capSpace >= 0 ? 'done' : 'pending',
+        detail: team.capSpace >= 0 ? `$${Math.round(team.capSpace)}M free` : `$${Math.round(-team.capSpace)}M OVER CAP`,
+      },
+      {
+        id: 'gameplan',
+        label: 'Schemes Set',
+        icon: <Shield size={14} />,
+        status: 'done',
+        detail: `OFF: ${team.schemeOff} / DEF: ${team.schemeDef}`,
+      },
+    ];
+  }, [team, roster]);
+
+  const allClear = checklist.every((c) => c.status === 'done');
+  const issueCount = checklist.filter((c) => c.status !== 'done').length;
+
+  // Next opponent
+  const matchup = useMemo(() => {
+    if (!team || !schedule.length) return null;
+    const weekSchedule = schedule.find((w) => w.week === week);
+    if (!weekSchedule) return null;
+    const game = weekSchedule.games.find(
+      (g) => g.homeTeamId === team.id || g.awayTeamId === team.id,
+    );
+    if (!game) return null;
+    const opponentId = game.homeTeamId === team.id ? game.awayTeamId : game.homeTeamId;
+    return { game, opponentId };
+  }, [team, schedule, week]);
+
+  const gameState = useGameStore((s) => s.game);
+  const opponent = matchup?.opponentId && gameState ? gameState.teams[matchup.opponentId] : null;
+
+  const handleAdvance = useCallback(() => {
+    setAdvancing(true);
+    advanceWeek();
+    if (teamId) refreshOwner(teamId);
+    setTimeout(() => setAdvancing(false), 800);
+  }, [advanceWeek, refreshOwner, teamId]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
@@ -74,12 +106,12 @@ export function WeekAdvance() {
         <h1 style={{
           fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem',
           fontWeight: 700, color: 'var(--mfd-text)', margin: 0,
-        }}>Advance to Week 9</h1>
+        }}>Advance to Week {week + 1}</h1>
         <p style={{
           fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
           color: 'var(--mfd-text-dim)', margin: '4px 0 0',
         }}>
-          Pre-game checklist // {allClear ? 'All clear' : `${warnCount} warnings, ${pendingCount} pending`}
+          Pre-game checklist // {allClear ? 'All clear' : `${issueCount} issue(s)`}
         </p>
       </div>
 
@@ -87,7 +119,7 @@ export function WeekAdvance() {
         {/* Pre-Advance Checklist */}
         <MfdPanel title="Pre-Advance Checklist" icon={<CheckCircle size={14} />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-            {MOCK_CHECKLIST.map((item) => (
+            {checklist.map((item) => (
               <div key={item.id} style={{
                 display: 'flex', alignItems: 'flex-start', gap: 'var(--mfd-sp-md)',
                 padding: 'var(--mfd-sp-sm)',
@@ -102,9 +134,7 @@ export function WeekAdvance() {
                   {item.status === 'done' ? <CheckCircle size={14} /> : item.status === 'warn' ? <AlertTriangle size={14} /> : <Clock size={14} />}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)',
-                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)' }}>
                     <span style={{
                       fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem',
                       fontWeight: 500, color: 'var(--mfd-text)',
@@ -116,90 +146,71 @@ export function WeekAdvance() {
                   <div style={{
                     fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
                     color: 'var(--mfd-text-dim)', marginTop: 2,
-                  }}>
-                    {item.detail ?? item.desc}
-                  </div>
+                  }}>{item.detail}</div>
                 </div>
               </div>
             ))}
           </div>
         </MfdPanel>
 
-        {/* Matchup Preview + Consequences */}
+        {/* Matchup + Advance Button */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-          <MfdPanel title="Week 9 Matchup" icon={<Shield size={14} />}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-md)' }}>
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}>
-                <span style={{
-                  fontFamily: 'var(--mfd-font-serif)', fontSize: '1.125rem',
-                  fontWeight: 700,
-                }}>vs {MOCK_MATCHUP.opponent}</span>
-                <MfdBadge variant="default">{MOCK_MATCHUP.record}</MfdBadge>
-              </div>
-              <div style={{ display: 'flex', gap: 'var(--mfd-sp-md)' }}>
-                <div>
-                  <span style={{
-                    fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
-                    color: 'var(--mfd-text-dim)',
-                  }}>Spread</span>
-                  <div style={{
-                    fontFamily: 'var(--mfd-font-mono)', fontSize: '1rem', fontWeight: 600,
-                  }}>{MOCK_MATCHUP.spread}</div>
+          <MfdPanel title={`Week ${week} Matchup`} icon={<Shield size={14} />}>
+            {opponent ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-md)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1.125rem', fontWeight: 700 }}>
+                    vs {opponent.city} {opponent.name}
+                  </span>
+                  <MfdBadge variant="default">{opponent.wins}-{opponent.losses}</MfdBadge>
                 </div>
-                <div>
-                  <span style={{
-                    fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
-                    color: 'var(--mfd-text-dim)',
-                  }}>O/U</span>
-                  <div style={{
-                    fontFamily: 'var(--mfd-font-mono)', fontSize: '1rem', fontWeight: 600,
-                  }}>{MOCK_MATCHUP.overUnder}</div>
+                <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
+                  {opponent.schemeOff} offense / {opponent.schemeDef} defense
                 </div>
               </div>
-              <p style={{
-                fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem',
-                color: 'var(--mfd-text-dim)', margin: 0,
-              }}>
-                Key: {MOCK_MATCHUP.keyMatchup}
-              </p>
-            </div>
+            ) : (
+              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.8125rem', color: 'var(--mfd-text-dim)' }}>
+                Bye Week
+              </div>
+            )}
           </MfdPanel>
 
           <MfdPanel title="Stakes" icon={<AlertTriangle size={14} />}>
-            <MfdConsequenceRibbon consequences={MOCK_CONSEQUENCES} />
+            <MfdConsequenceRibbon
+              consequences={[
+                { id: 'c1', label: 'Owner Patience', delta: '-4 if loss', direction: 'warning' as const },
+                { id: 'c2', label: 'Chemistry', delta: '+2 if win', direction: 'positive' as const },
+                { id: 'c3', label: 'System Fit', delta: '+1 all players', direction: 'positive' as const },
+              ]}
+            />
           </MfdPanel>
 
-          {/* Advance Button */}
           <button
-            onClick={() => setConfirmed(true)}
-            disabled={confirmed}
+            onClick={handleAdvance}
+            disabled={advancing}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--mfd-sp-sm)',
               padding: 'var(--mfd-sp-md)',
               fontSize: '0.875rem', fontWeight: 700,
               fontFamily: 'var(--mfd-font-sans)',
-              color: confirmed ? 'var(--mfd-text-dim)' : 'var(--mfd-bg)',
-              background: confirmed ? 'var(--mfd-bg-3)' : allClear ? 'var(--mfd-green)' : 'var(--mfd-amber)',
+              color: advancing ? 'var(--mfd-text-dim)' : 'var(--mfd-bg)',
+              background: advancing ? 'var(--mfd-bg-3)' : allClear ? 'var(--mfd-green)' : 'var(--mfd-amber)',
               border: 'none',
               borderRadius: 'var(--mfd-rad-md)',
-              cursor: confirmed ? 'default' : 'pointer',
+              cursor: advancing ? 'default' : 'pointer',
               transition: 'all var(--mfd-motion-fast)',
             }}
           >
-            {confirmed ? (
+            {advancing ? (
               <>
                 <CheckCircle size={16} />
-                Simulating Week 9...
+                Simulating Week {week}...
               </>
             ) : (
               <>
                 <Play size={16} />
                 {allClear ? 'Advance Week' : 'Advance Anyway'}
-                {!allClear && (
-                  <MfdBadge variant="danger">{warnCount + pendingCount} issues</MfdBadge>
-                )}
+                {!allClear && <MfdBadge variant="danger">{issueCount} issue(s)</MfdBadge>}
               </>
             )}
           </button>

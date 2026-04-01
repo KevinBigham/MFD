@@ -10,6 +10,8 @@ import { MfdTooltipProvider, MfdCommandPalette, type CommandItem } from '@mfd/de
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
 import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
+import { useGameStore } from './store/game-store';
+import { NewGameScreen } from './NewGameScreen';
 import { BootScreen } from './BootScreen';
 import { MondayBriefing } from '../features/monday-briefing/MondayBriefing';
 import { RosterManagement } from '../features/roster/RosterManagement';
@@ -386,9 +388,14 @@ const router = createRouter({ routeTree });
 
 export function App() {
   const boot = useBootSequence();
+  const gameLoaded = useGameStore((s) => s.initialized);
 
   if (boot.shouldShow && !boot.isComplete) {
     return <BootScreen lines={boot.visibleLines} onSkip={boot.skip} />;
+  }
+
+  if (!gameLoaded) {
+    return <NewGameScreen />;
   }
 
   return <RouterProvider router={router} />;
