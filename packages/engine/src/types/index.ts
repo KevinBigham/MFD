@@ -325,6 +325,79 @@ export interface ScoutingReport {
   notes: string;
 }
 
+export interface ContractOffer {
+  years: number;
+  salary: number;
+  signingBonus: number;
+  guaranteed: number;
+}
+
+export interface ReSignDecision {
+  playerId: string;
+  teamId: string;
+  askingPrice: ContractOffer;
+  lastOffer: ContractOffer | null;
+  status: 'pending' | 'accepted' | 'declined' | 'walked';
+}
+
+export interface FreeAgencyBid extends ContractOffer {
+  playerId: string;
+  teamId: string;
+  round: number;
+  score: number;
+  status: 'pending' | 'won' | 'lost';
+}
+
+export type ScoutingAction = 'film' | 'combine' | 'interview';
+
+export interface ProspectScoutingState {
+  prospectId: string;
+  actions: ScoutingAction[];
+  accuracy: number;
+  visibleScoutGrade: number;
+  notes: string[];
+}
+
+export interface TradeOfferAsset {
+  type: 'player' | 'pick';
+  teamId: string;
+  playerId: string | null;
+  pickId: string | null;
+  description: string;
+}
+
+export interface TradeOffer {
+  id: string;
+  fromTeamId: string;
+  toTeamId: string;
+  direction: 'inbound' | 'outbound';
+  summary: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  send: TradeOfferAsset[];
+  receive: TradeOfferAsset[];
+}
+
+export interface DraftOrderEntry {
+  id: string;
+  teamId: string;
+  round: number;
+  pick: number;
+  overall: number;
+  originalTeamId: string;
+}
+
+export interface OffseasonState {
+  round: number;
+  expiringPlayerIds: string[];
+  reSignDecisions: Record<string, ReSignDecision>;
+  freeAgencyBids: Record<string, FreeAgencyBid[]>;
+  scoutingState: Record<string, ProspectScoutingState>;
+  tradeOffers: TradeOffer[];
+  draftOrder: DraftOrderEntry[];
+  currentDraftPickIndex: number;
+  completedDraftPickIds: string[];
+}
+
 // ── Owner ───────────────────────────────────────────────
 
 export interface Owner {
@@ -514,6 +587,7 @@ export interface GameState {
   narrativeState: NarrativeState;
   weekSummaries: WeeklySummary[];
   playoffBracket: PlayoffBracket | null;
+  offseasonState: OffseasonState | null;
 }
 
 export type SeasonPhase =

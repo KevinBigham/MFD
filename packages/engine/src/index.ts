@@ -131,6 +131,23 @@ export { chemistryMod, systemFitMod, updateSystemFit, resetSystemFit } from './s
 export { createEmptySeasonStats, ensureSeasonStats, applyGameToSeasonStats, tickInjuries } from './systems/season-stats';
 export { buildWeeklySummary } from './systems/weekly-summary';
 export { seedPlayoffBracket, advancePlayoffBracket } from './systems/playoff-bracket';
+export {
+  initializeOffseasonState,
+  submitReSignOffer,
+  submitFreeAgentBid,
+  advanceOffseason,
+  advanceFreeAgency,
+} from './systems/offseason';
+export {
+  runScoutingAction,
+  makeDraftPick,
+  advanceDraft,
+  finalizePostDraft,
+} from './systems/draft';
+export {
+  acceptTradeOffer,
+  rejectTradeOffer,
+} from './systems/trade-market';
 export { advanceFranchiseWeek } from './systems/franchise-week';
 
 // Systems — Coaching (Phase 2)

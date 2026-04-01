@@ -72,3 +72,8 @@ registerMigration(1, (state) => {
     playoffBracket: state['playoffBracket'] ?? null,
   };
 });
+
+registerMigration(2, (state) => ({
+  ...state,
+  offseasonState: state['offseasonState'] ?? null,
+}));

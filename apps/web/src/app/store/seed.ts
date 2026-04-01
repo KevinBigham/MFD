@@ -383,6 +383,7 @@ export function createSeedGameState(
     narrativeState,
     weekSummaries: [],
     playoffBracket: null,
+    offseasonState: null,
   };
 }
 

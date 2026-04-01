@@ -35,10 +35,14 @@ describe('SaveStateSchema', () => {
       },
       weekSummaries: [],
       playoffBracket: null,
+      offseasonState: null,
     };
 
     const result = SaveStateSchema.safeParse(minSave);
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.offseasonState).toBeNull();
+    }
   });
 
   it('rejects invalid phase', () => {
@@ -109,6 +113,7 @@ describe('SaveStateSchema', () => {
       narrativeState: { activeArcs: [], hooks: [], recentHeadlines: ['Mahomes throws 5 TDs'] },
       weekSummaries: [],
       playoffBracket: null,
+      offseasonState: null,
     };
 
     const result = SaveStateSchema.safeParse(save);
@@ -168,5 +173,36 @@ describe('migration pipeline', () => {
         },
       },
     });
+  });
+
+  it('migrates v2 saves to include offseason defaults', () => {
+    const migrated = migrate({
+      version: 2,
+      teams: {
+        t1: {
+          wins: 10,
+          losses: 7,
+          ties: 0,
+          seasonStats: {
+            gamesPlayed: 17,
+            pointsFor: 300,
+            pointsAgainst: 280,
+            pointDifferential: 20,
+            totalYards: 5200,
+            passingYards: 3400,
+            rushingYards: 1800,
+            turnoversLost: 18,
+            turnoversForced: 20,
+            sacksFor: 35,
+            sacksAgainst: 28,
+          },
+        },
+      },
+      weekSummaries: [],
+      playoffBracket: null,
+    }, 3);
+
+    expect(migrated['version']).toBe(3);
+    expect(migrated['offseasonState']).toBeNull();
   });
 });

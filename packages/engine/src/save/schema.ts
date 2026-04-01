@@ -47,6 +47,77 @@ export const InjurySchema = z.object({
   gamesOut: z.number(),
 });
 
+export const ContractOfferSchema = z.object({
+  years: z.number(),
+  salary: z.number(),
+  signingBonus: z.number(),
+  guaranteed: z.number(),
+});
+
+export const ReSignDecisionSchema = z.object({
+  playerId: z.string(),
+  teamId: z.string(),
+  askingPrice: ContractOfferSchema,
+  lastOffer: ContractOfferSchema.nullable(),
+  status: z.enum(['pending', 'accepted', 'declined', 'walked']),
+});
+
+export const FreeAgencyBidSchema = ContractOfferSchema.extend({
+  playerId: z.string(),
+  teamId: z.string(),
+  round: z.number(),
+  score: z.number(),
+  status: z.enum(['pending', 'won', 'lost']),
+});
+
+export const ProspectScoutingStateSchema = z.object({
+  prospectId: z.string(),
+  actions: z.array(z.enum(['film', 'combine', 'interview'])),
+  accuracy: z.number(),
+  visibleScoutGrade: z.number(),
+  notes: z.array(z.string()),
+});
+
+export const TradeOfferAssetSchema = z.object({
+  type: z.enum(['player', 'pick']),
+  teamId: z.string(),
+  playerId: z.string().nullable(),
+  pickId: z.string().nullable(),
+  description: z.string(),
+});
+
+export const DraftOrderEntrySchema = z.object({
+  id: z.string(),
+  teamId: z.string(),
+  round: z.number(),
+  pick: z.number(),
+  overall: z.number(),
+  originalTeamId: z.string(),
+});
+
+export const TradeOfferSchema = z.object({
+  id: z.string(),
+  fromTeamId: z.string(),
+  toTeamId: z.string(),
+  direction: z.enum(['inbound', 'outbound']),
+  summary: z.string(),
+  status: z.enum(['pending', 'accepted', 'rejected']),
+  send: z.array(TradeOfferAssetSchema),
+  receive: z.array(TradeOfferAssetSchema),
+});
+
+export const OffseasonStateSchema = z.object({
+  round: z.number(),
+  expiringPlayerIds: z.array(z.string()),
+  reSignDecisions: z.record(z.string(), ReSignDecisionSchema),
+  freeAgencyBids: z.record(z.string(), z.array(FreeAgencyBidSchema)),
+  scoutingState: z.record(z.string(), ProspectScoutingStateSchema),
+  tradeOffers: z.array(TradeOfferSchema),
+  draftOrder: z.array(DraftOrderEntrySchema),
+  currentDraftPickIndex: z.number(),
+  completedDraftPickIds: z.array(z.string()),
+});
+
 export const PlayerSchema = z.object({
   id: z.string(),
   firstName: z.string(),
@@ -111,6 +182,7 @@ export const SaveStateSchema = z.object({
   }),
   weekSummaries: z.array(z.any()),
   playoffBracket: z.any().nullable(),
+  offseasonState: OffseasonStateSchema.nullable(),
 });
 
 export type SaveState = z.infer<typeof SaveStateSchema>;

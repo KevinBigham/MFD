@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import {
   useGameStore, selectUserTeam, selectRoster,
-  selectWeek, selectYear, selectSchedule, selectLatestSummary, selectPhase,
+  selectWeek, selectYear, selectSchedule, selectLatestSummary, selectOffseasonState, selectPhase,
 } from '../../app/store/game-store';
 
 interface ChecklistItem {
@@ -26,6 +26,7 @@ export function WeekAdvance() {
   const year = useGameStore(selectYear);
   const schedule = useGameStore(selectSchedule);
   const latestSummary = useGameStore(selectLatestSummary);
+  const offseasonState = useGameStore(selectOffseasonState);
   const phase = useGameStore(selectPhase);
   const { advanceWeek } = useGameStore((s) => s.actions);
 
@@ -79,7 +80,7 @@ export function WeekAdvance() {
 
   // Next opponent
   const matchup = useMemo(() => {
-    if (!team || !schedule.length) return null;
+    if (!team || !schedule.length || (phase !== 'regular_season' && phase !== 'playoffs')) return null;
     const weekSchedule = schedule.find((w) => w.week === week);
     if (!weekSchedule) return null;
     const game = weekSchedule.games.find(
@@ -88,7 +89,7 @@ export function WeekAdvance() {
     if (!game) return null;
     const opponentId = game.homeTeamId === team.id ? game.awayTeamId : game.homeTeamId;
     return { game, opponentId };
-  }, [team, schedule, week]);
+  }, [phase, team, schedule, week]);
 
   const gameState = useGameStore((s) => s.game);
   const opponent = matchup?.opponentId && gameState ? gameState.teams[matchup.opponentId] : null;
@@ -107,8 +108,14 @@ export function WeekAdvance() {
     : phase === 'playoffs'
       ? `Advance Playoffs`
       : phase === 'offseason'
-        ? 'Offseason Pending'
-        : `Advance to Week ${week + 1}`;
+        ? 'Open Free Agency'
+        : phase === 'free_agency'
+          ? `Resolve Free Agency Round ${offseasonState?.round ?? 1}`
+          : phase === 'draft'
+            ? 'Advance To Next Draft Pick'
+            : phase === 'post_draft'
+              ? 'Finalize Preseason'
+              : `Advance to Week ${week + 1}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
@@ -180,7 +187,11 @@ export function WeekAdvance() {
               </div>
             ) : (
               <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.8125rem', color: 'var(--mfd-text-dim)' }}>
-                Bye Week
+                {phase === 'offseason' && 'Re-sign window is active'}
+                {phase === 'free_agency' && `Round ${offseasonState?.round ?? 1} market resolution`}
+                {phase === 'draft' && 'Advance until your next pick'}
+                {phase === 'post_draft' && 'Resetting league for preseason'}
+                {phase !== 'offseason' && phase !== 'free_agency' && phase !== 'draft' && phase !== 'post_draft' && 'Bye Week'}
               </div>
             )}
           </MfdPanel>
@@ -197,7 +208,7 @@ export function WeekAdvance() {
 
           <button
             onClick={handleAdvance}
-            disabled={advancing || phase === 'offseason'}
+            disabled={advancing}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--mfd-sp-sm)',
               padding: 'var(--mfd-sp-md)',
@@ -219,7 +230,7 @@ export function WeekAdvance() {
             ) : (
               <>
                 <Play size={16} />
-                {phase === 'offseason' ? 'Offseason Markets Pending' : allClear ? 'Advance Week' : 'Advance Anyway'}
+                {allClear ? advanceLabel : 'Advance Anyway'}
                 {!allClear && <MfdBadge variant="danger">{issueCount} issue(s)</MfdBadge>}
               </>
             )}

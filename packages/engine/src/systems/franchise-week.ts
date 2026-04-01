@@ -1,10 +1,13 @@
 import { DIFF_SETTINGS } from '../config/difficulty';
 import { RNG, reseedSeason, reseedWeek, setSeed } from '../rng';
 import { avg, cl } from '../utils';
+import { advanceDraft, ensureDraftClass, finalizePostDraft } from './draft';
 import { generateHooks } from './hooks-engine';
+import { advanceFreeAgency, advanceOffseason, initializeOffseasonState } from './offseason';
 import { updateOwnerApproval } from './owner';
 import { tickPatience } from './owner-extended';
 import { advancePlayoffBracket, seedPlayoffBracket } from './playoff-bracket';
+import { generateTradeOffers } from './trade-market';
 import { applyGameToSeasonStats, ensureSeasonStats, tickInjuries } from './season-stats';
 import { buildWeeklySummary } from './weekly-summary';
 import type {
@@ -242,6 +245,27 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
     return { nextState, events, consequences: [] };
   }
   if (nextState.phase === 'offseason') {
+    advanceOffseason(nextState);
+    syncPlayers(nextState);
+    refreshNarrative(nextState);
+    return { nextState, events, consequences: [] };
+  }
+  if (nextState.phase === 'free_agency') {
+    advanceFreeAgency(nextState);
+    syncPlayers(nextState);
+    refreshNarrative(nextState);
+    return { nextState, events, consequences: [] };
+  }
+  if (nextState.phase === 'draft') {
+    advanceDraft(nextState);
+    syncPlayers(nextState);
+    refreshNarrative(nextState);
+    return { nextState, events, consequences: [] };
+  }
+  if (nextState.phase === 'post_draft') {
+    finalizePostDraft(nextState);
+    syncPlayers(nextState);
+    refreshNarrative(nextState);
     return { nextState, events, consequences: [] };
   }
 
@@ -337,6 +361,9 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       nextState.phase = 'offseason';
       nextState.year += 1;
       nextState.week = 1;
+      ensureDraftClass(nextState);
+      nextState.offseasonState = initializeOffseasonState(nextState);
+      nextState.offseasonState.tradeOffers = generateTradeOffers(nextState);
     } else {
       nextState.week += 1;
     }

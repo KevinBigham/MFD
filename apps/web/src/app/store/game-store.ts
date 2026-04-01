@@ -7,16 +7,21 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type {
-  GameState, Player, Team, WeeklySummary, SeasonPhase,
+  ContractOffer, DraftOrderEntry, DraftProspect, GameState, OffseasonState, Player, Team, TradeOffer, WeeklySummary, SeasonPhase,
 } from '@mfd/engine';
 import {
-  advanceFranchiseWeek,
   restructureContract, backloadContract,
   calcCapHit, calcDeadMoney,
   updateOwnerApproval,
   updateSystemFit,
   earnXP,
   getSalaryCap,
+  submitReSignOffer as submitReSignOfferEngine,
+  submitFreeAgentBid as submitFreeAgentBidEngine,
+  runScoutingAction as runScoutingActionEngine,
+  acceptTradeOffer as acceptTradeOfferEngine,
+  rejectTradeOffer as rejectTradeOfferEngine,
+  makeDraftPick as makeDraftPickEngine,
 } from '@mfd/engine';
 import { autosaveDynasty, loadLatestAutosaveGame } from './persistence';
 import { runAdvanceWeek } from './sim';
@@ -40,6 +45,14 @@ interface GameActions {
 
   // Week advance
   advanceWeek: () => Promise<WeeklySummary | null>;
+
+  // Offseason actions
+  submitReSignOffer: (playerId: string, offer: ContractOffer) => Promise<void>;
+  submitFreeAgentBid: (playerId: string, offer: ContractOffer) => Promise<void>;
+  runScoutingAction: (prospectId: string, action: 'film' | 'combine' | 'interview') => Promise<void>;
+  acceptTradeOffer: (offerId: string) => Promise<void>;
+  rejectTradeOffer: (offerId: string) => Promise<void>;
+  makeDraftPick: (prospectId: string) => Promise<void>;
 
   // Owner
   refreshOwner: (teamId: string) => void;
@@ -114,11 +127,32 @@ export const selectSchedule = (state: GameStore) => state.game?.schedule ?? [];
 export const selectNarrative = (state: GameStore) => state.game?.narrativeState ?? null;
 export const selectLatestSummary = (state: GameStore): WeeklySummary | null => state.game?.weekSummaries.at(-1) ?? null;
 export const selectPlayoffBracket = (state: GameStore) => state.game?.playoffBracket ?? null;
+export const selectOffseasonState = (state: GameStore): OffseasonState | null => state.game?.offseasonState ?? null;
+export const selectDraftClass = (state: GameStore): DraftProspect[] => state.game?.draftClass ?? [];
+export const selectTradeOffers = (state: GameStore): TradeOffer[] => state.game?.offseasonState?.tradeOffers ?? [];
+export const selectFreeAgentPlayers = (state: GameStore): Player[] => {
+  if (!state.game) return [];
+  return state.game.freeAgents.map((playerId) => state.game!.players[playerId]).filter(Boolean) as Player[];
+};
+export const selectCurrentDraftEntry = (state: GameStore): DraftOrderEntry | null => {
+  const offseasonState = state.game?.offseasonState;
+  if (!offseasonState) return null;
+  return offseasonState.draftOrder[offseasonState.currentDraftPickIndex] ?? null;
+};
 
 // ── Store ──────────────────────────────────────────────────
 
 export const useGameStore = create<GameStore>()(
-  immer((set, get) => ({
+  immer((set, get) => {
+    const commitGame = async (nextGame: GameState) => {
+      set((s) => {
+        s.game = nextGame;
+        s.initialized = true;
+      });
+      await autosaveDynasty(nextGame);
+    };
+
+    return ({
     game: null,
     initialized: false,
 
@@ -236,13 +270,51 @@ export const useGameStore = create<GameStore>()(
           updateSystemFit(userTeam);
         }
 
-        set((s) => {
-          s.game = nextGame;
-          s.initialized = true;
-        });
-        await autosaveDynasty(nextGame);
+        await commitGame(nextGame);
 
         return nextGame.weekSummaries.at(-1) ?? null;
+      },
+
+      submitReSignOffer: async (playerId, offer) => {
+        const current = get().game;
+        if (!current) return;
+        const result = submitReSignOfferEngine(current, playerId, offer);
+        await commitGame(result.nextState);
+      },
+
+      submitFreeAgentBid: async (playerId, offer) => {
+        const current = get().game;
+        if (!current) return;
+        const result = submitFreeAgentBidEngine(current, playerId, offer);
+        await commitGame(result.nextState);
+      },
+
+      runScoutingAction: async (prospectId, action) => {
+        const current = get().game;
+        if (!current) return;
+        const result = runScoutingActionEngine(current, prospectId, action);
+        await commitGame(result.nextState);
+      },
+
+      acceptTradeOffer: async (offerId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = acceptTradeOfferEngine(current, offerId);
+        await commitGame(result.nextState);
+      },
+
+      rejectTradeOffer: async (offerId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = rejectTradeOfferEngine(current, offerId);
+        await commitGame(result.nextState);
+      },
+
+      makeDraftPick: async (prospectId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = makeDraftPickEngine(current, prospectId);
+        await commitGame(result.nextState);
       },
 
       refreshOwner: (teamId) =>
@@ -280,5 +352,6 @@ export const useGameStore = create<GameStore>()(
           s.game.phase = phase;
         }),
     },
-  })),
+  });
+  }),
 );

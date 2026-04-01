@@ -24,6 +24,10 @@ import { WeekAdvance } from '../features/week-advance/WeekAdvance';
 import { HandshakeLedger } from '../features/handshake-ledger/HandshakeLedger';
 import { DynastyCartridge } from '../features/dynasty-cartridge/DynastyCartridge';
 import { GameDayRecap } from '../features/game-day/GameDayRecap';
+import { TradeCenter } from '../features/trades/TradeCenter';
+import { ScoutingBoard } from '../features/scouting/ScoutingBoard';
+import { DraftBoard } from '../features/draft/DraftBoard';
+import { FreeAgencyHub } from '../features/free-agency/FreeAgencyHub';
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -293,25 +297,25 @@ const contractsRoute = createRoute({
 const tradesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/trades',
-  component: () => <FeatureStub name="Trade Center" />,
+  component: TradeCenter,
 });
 
 const scoutingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/scouting',
-  component: () => <FeatureStub name="Scouting" />,
+  component: ScoutingBoard,
 });
 
 const draftRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/draft',
-  component: () => <FeatureStub name="Draft Board" />,
+  component: DraftBoard,
 });
 
 const freeAgencyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/free-agency',
-  component: () => <FeatureStub name="Free Agency" />,
+  component: FreeAgencyHub,
 });
 
 const gameDayRoute = createRoute({

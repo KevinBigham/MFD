@@ -262,4 +262,28 @@ describe('franchise week simulation', () => {
     expect(bracket.nfc[5]!.teamId).toBe('nfcw2');
     expect(bracket.nfc[6]!.teamId).toBe('nfce2');
   });
+
+  it('enters offseason with a populated re-sign window after the championship', () => {
+    const game = makeLeagueState('playoffs', 22);
+    game.playoffBracket = {
+      season: 2026,
+      afc: [],
+      nfc: [],
+      matchups: [],
+      championTeamId: 'afce1',
+    };
+    game.teams.afce1.roster[0]!.contract!.years = 1;
+    game.teams.afce1.roster[0]!.contract!.yearlyBreakdown = [
+      game.teams.afce1.roster[0]!.contract!.yearlyBreakdown[0]!,
+    ];
+
+    const result = advanceFranchiseWeek(game);
+
+    expect(result.nextState.phase).toBe('offseason');
+    expect(result.nextState.year).toBe(2027);
+    expect(result.nextState.week).toBe(1);
+    expect(result.nextState.offseasonState).not.toBeNull();
+    expect(result.nextState.offseasonState?.expiringPlayerIds).toContain(game.teams.afce1.roster[0]!.id);
+    expect(result.nextState.freeAgents).not.toContain(game.teams.afce1.roster[0]!.id);
+  });
 });
