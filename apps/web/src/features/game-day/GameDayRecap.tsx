@@ -1,114 +1,130 @@
+import type { GameDayPackage, SeasonPhase } from '@mfd/engine';
+import { MfdBadge, MfdPanel } from '@mfd/design-system/components';
+import { Gamepad2, Mic2, ShieldAlert, Sparkles, Trophy } from 'lucide-react';
 import {
-  MfdBadge, MfdKpiCard, MfdKpiGrid, MfdPanel,
-} from '@mfd/design-system/components';
-import {
-  Gamepad2, Trophy, Shield, HeartPulse,
-} from 'lucide-react';
-import {
-  useGameStore,
-  selectLatestSummary,
-  selectPlayoffBracket,
+  selectLatestGameDayPackage,
+  selectPhase,
   selectUserTeam,
   selectYear,
-  selectPhase,
+  useGameStore,
 } from '../../app/store/game-store';
 
-export function GameDayRecap() {
-  const team = useGameStore(selectUserTeam);
-  const latestSummary = useGameStore(selectLatestSummary);
-  const playoffBracket = useGameStore(selectPlayoffBracket);
-  const year = useGameStore(selectYear);
-  const phase = useGameStore(selectPhase);
+interface GameDayCenterViewProps {
+  teamLabel: string;
+  phase: SeasonPhase;
+  year: number;
+  packageData: GameDayPackage | null;
+}
 
-  if (!team) return null;
+function impactVariant(impact: 'positive' | 'negative' | 'neutral') {
+  return impact === 'positive' ? 'success' : impact === 'negative' ? 'danger' : 'default';
+}
 
-  const seasonStats = team.seasonStats;
-  const latestResult = latestSummary
-    ? latestSummary.result === 'win'
-      ? 'WIN'
-      : latestSummary.result === 'loss'
-        ? 'LOSS'
-        : latestSummary.result.toUpperCase()
-    : 'NO GAME';
+export function GameDayCenterView({ teamLabel, phase, year, packageData }: GameDayCenterViewProps) {
+  if (!packageData) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
+        <div>
+          <h1 style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem', fontWeight: 700, margin: 0 }}>Game Day Center</h1>
+          <p style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)', margin: '4px 0 0' }}>
+            {teamLabel} // {phase} // Season {year}
+          </p>
+        </div>
+        <MfdPanel title="Awaiting Kickoff" icon={<Gamepad2 size={14} />}>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.8125rem', color: 'var(--mfd-text-dim)' }}>
+            No postgame package yet. Advance into the regular season to generate the first cinema bundle.
+          </div>
+        </MfdPanel>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <div>
-          <h1 style={{
-            fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem',
-            fontWeight: 700, color: 'var(--mfd-text)', margin: 0,
-          }}>Game Day Recap</h1>
-          <p style={{
-            fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
-            color: 'var(--mfd-text-dim)', margin: '4px 0 0',
-          }}>
-            {team.city} {team.name} // {phase} // Season {year}
+          <h1 style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem', fontWeight: 700, margin: 0 }}>Game Day Center</h1>
+          <p style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)', margin: '4px 0 0' }}>
+            {teamLabel} // {phase} // Season {year}
           </p>
         </div>
-        <MfdBadge variant={latestSummary?.result === 'win' ? 'success' : latestSummary?.result === 'loss' ? 'danger' : 'default'}>
-          {latestResult}
+        <MfdBadge variant={packageData.result === 'win' ? 'success' : packageData.result === 'loss' ? 'danger' : 'default'}>
+          {packageData.result.toUpperCase()}
         </MfdBadge>
       </div>
 
-      <MfdKpiGrid columns={4}>
-        <MfdKpiCard label="Record" value={`${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}`} icon={<Trophy size={14} />} trend="flat" />
-        <MfdKpiCard label="PF / PA" value={`${seasonStats.pointsFor} / ${seasonStats.pointsAgainst}`} icon={<Shield size={14} />} trend={seasonStats.pointDifferential >= 0 ? 'up' : 'down'} />
-        <MfdKpiCard label="Yards" value={seasonStats.totalYards} icon={<Gamepad2 size={14} />} trend="flat" />
-        <MfdKpiCard label="Injuries" value={latestSummary?.injuries.length ?? 0} icon={<HeartPulse size={14} />} trend={(latestSummary?.injuries.length ?? 0) > 0 ? 'down' : 'flat'} />
-      </MfdKpiGrid>
+      <MfdPanel title="Score Banner" icon={<Trophy size={14} />}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
+          <div style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1.125rem', fontWeight: 700 }}>{packageData.headline}</div>
+          <div style={{ display: 'flex', gap: 'var(--mfd-sp-sm)', flexWrap: 'wrap' }}>
+            <MfdBadge variant="gold">{packageData.finalScore}</MfdBadge>
+            {packageData.stakes.map((stake) => <MfdBadge key={stake.label} variant="default">{stake.label}</MfdBadge>)}
+          </div>
+        </div>
+      </MfdPanel>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
-        <MfdPanel title="Latest Result" icon={<Gamepad2 size={14} />}>
-          {latestSummary ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-md)' }}>
-              <div style={{
-                fontFamily: 'var(--mfd-font-serif)', fontSize: '1.125rem',
-                fontWeight: 700, color: 'var(--mfd-text)',
-              }}>
-                {latestSummary.headline}
-              </div>
-              <div style={{ display: 'flex', gap: 'var(--mfd-sp-sm)', flexWrap: 'wrap' }}>
-                <MfdBadge variant="gold">{latestSummary.record}</MfdBadge>
-                <MfdBadge variant="default">{latestSummary.phase}</MfdBadge>
-                {latestSummary.mvpPlayerId && <MfdBadge variant="info">MVP: {latestSummary.mvpPlayerId}</MfdBadge>}
-              </div>
-              {latestSummary.notes.map((note) => (
-                <div key={note} style={{
-                  fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
-                  color: 'var(--mfd-text-dim)',
-                }}>
-                  {note}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
+        <MfdPanel title="Turning Points" icon={<Sparkles size={14} />}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
+            {packageData.turningPoints.map((point) => (
+              <div key={point.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', gap: 'var(--mfd-sp-sm)', alignItems: 'center' }}>
+                  <span style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem', fontWeight: 600 }}>{point.label}</span>
+                  <MfdBadge variant={impactVariant(point.impact)}>{point.impact}</MfdBadge>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.8125rem', color: 'var(--mfd-text-dim)' }}>
-              No simulated games yet. Start the regular season from Advance Week.
-            </div>
-          )}
+                <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>{point.detail}</div>
+              </div>
+            ))}
+          </div>
         </MfdPanel>
 
-        <MfdPanel title="Playoff Picture" icon={<Trophy size={14} />}>
-          {playoffBracket ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
-                AFC Seeds: {playoffBracket.afc.map((seed) => `${seed.seed}.${seed.teamId}`).join(' / ')}
+        <MfdPanel title="Top Performers" icon={<Gamepad2 size={14} />}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
+            {packageData.topPerformers.map((performer) => (
+              <div key={performer.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem', fontWeight: 600 }}>{performer.label}</span>
+                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>{performer.statLine}</span>
               </div>
-              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
-                NFC Seeds: {playoffBracket.nfc.map((seed) => `${seed.seed}.${seed.teamId}`).join(' / ')}
+            ))}
+          </div>
+        </MfdPanel>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
+        <MfdPanel title="Postgame Autopsy" icon={<ShieldAlert size={14} />}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
+            <div style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.875rem', fontWeight: 600 }}>{packageData.autopsy.diagnosis}</div>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>{packageData.autopsy.leverage}</div>
+            {packageData.autopsy.nextFocus.map((item) => (
+              <div key={item} style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
+                {item}
               </div>
-              {playoffBracket.championTeamId && (
-                <MfdBadge variant="success">Champion: {playoffBracket.championTeamId}</MfdBadge>
-              )}
-            </div>
-          ) : (
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.8125rem', color: 'var(--mfd-text-dim)' }}>
-              Bracket locks after Week 18.
-            </div>
-          )}
+            ))}
+          </div>
+        </MfdPanel>
+
+        <MfdPanel title="Press Conference" icon={<Mic2 size={14} />}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
+            <MfdBadge variant="info">{packageData.pressConference.theme}</MfdBadge>
+            <div style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem', fontWeight: 600 }}>{packageData.pressConference.opener}</div>
+            {packageData.pressConference.quotes.map((quote) => (
+              <div key={quote} style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
+                {quote}
+              </div>
+            ))}
+          </div>
         </MfdPanel>
       </div>
     </div>
   );
+}
+
+export function GameDayRecap() {
+  const team = useGameStore(selectUserTeam);
+  const phase = useGameStore(selectPhase);
+  const year = useGameStore(selectYear);
+  const packageData = useGameStore(selectLatestGameDayPackage);
+
+  if (!team) return null;
+  return <GameDayCenterView teamLabel={`${team.city} ${team.name}`} phase={phase} year={year} packageData={packageData} />;
 }

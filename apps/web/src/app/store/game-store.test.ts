@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DraftProspect } from '@mfd/engine';
 import { initializeOffseasonState } from '@mfd/engine';
 import { createSeedGameState } from './seed';
-import { useGameStore } from './game-store';
+import { selectLatestGameDayPackage, useGameStore } from './game-store';
 import { autosaveDynasty } from './persistence';
 
 vi.mock('./persistence', () => ({
@@ -120,6 +120,26 @@ describe('game store offseason actions', () => {
     const nextGame = useGameStore.getState().game!;
     expect(nextGame.teams[userTeam.id]!.roster.some((player) => player.id === 'draft-store-prospect')).toBe(true);
     expect(nextGame.offseasonState?.currentDraftPickIndex).toBe(1);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('exposes the latest game day package after advancing a simulated week', async () => {
+    const game = createSeedGameState(99, 0, 'pro');
+    game.phase = 'regular_season';
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.advanceWeek();
+
+    const nextState = useGameStore.getState();
+    const latestPackage = selectLatestGameDayPackage(nextState);
+    expect(latestPackage).not.toBeNull();
+    expect(latestPackage?.headline).toBe(nextState.game?.weekSummaries.at(-1)?.headline);
+    expect(latestPackage?.autopsy.nextFocus.length).toBeGreaterThan(0);
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 });

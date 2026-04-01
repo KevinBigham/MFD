@@ -363,6 +363,11 @@ export function createSeedGameState(
     ],
   };
 
+  const gameDayState = {
+    recentPackages: [],
+    latestPackageId: null,
+  };
+
   return {
     version: SAVE_VERSION,
     seed,
@@ -381,6 +386,7 @@ export function createSeedGameState(
     frontOffice,
     eventLog: [],
     narrativeState,
+    gameDayState,
     weekSummaries: [],
     playoffBracket: null,
     offseasonState: null,

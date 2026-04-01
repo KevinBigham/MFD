@@ -492,6 +492,62 @@ export interface WeeklySummary {
   notes: string[];
 }
 
+export interface GameDayNote {
+  label: string;
+  detail: string;
+}
+
+export interface GameDayTurningPoint extends GameDayNote {
+  impact: 'positive' | 'negative' | 'neutral';
+}
+
+export interface GameDayTopPerformer {
+  playerId: string | null;
+  label: string;
+  statLine: string;
+}
+
+export interface GameDayCeremony {
+  title: string;
+  subtitle: string;
+}
+
+export interface GameDayPressConference {
+  theme: string;
+  opener: string;
+  quotes: string[];
+}
+
+export interface GameDayAutopsy {
+  diagnosis: string;
+  leverage: string;
+  nextFocus: string[];
+}
+
+export interface GameDayPackage {
+  id: string;
+  year: number;
+  week: number;
+  phase: SeasonPhase;
+  teamId: string;
+  opponentTeamId: string | null;
+  headline: string;
+  result: WeeklySummary['result'];
+  finalScore: string;
+  stakes: GameDayNote[];
+  turningPoints: GameDayTurningPoint[];
+  topPerformers: GameDayTopPerformer[];
+  injuryNotes: string[];
+  ceremony: GameDayCeremony | null;
+  pressConference: GameDayPressConference;
+  autopsy: GameDayAutopsy;
+}
+
+export interface GameDayState {
+  recentPackages: GameDayPackage[];
+  latestPackageId: string | null;
+}
+
 export type PlayoffRound = 'wild_card' | 'divisional' | 'conference' | 'super_bowl';
 
 export interface PlayoffSeed {
@@ -585,6 +641,7 @@ export interface GameState {
   frontOffice: FrontOffice;
   eventLog: GameEvent[];
   narrativeState: NarrativeState;
+  gameDayState: GameDayState;
   weekSummaries: WeeklySummary[];
   playoffBracket: PlayoffBracket | null;
   offseasonState: OffseasonState | null;
@@ -617,12 +674,26 @@ export interface NarrativeState {
   recentHeadlines: string[];
 }
 
+export type StoryArcTemplate =
+  | 'win_streak'
+  | 'hot_seat'
+  | 'breakout_player'
+  | 'revenge_game'
+  | 'injury_crisis';
+
 export interface StoryArc {
   id: string;
-  template: string;
+  template: StoryArcTemplate;
   playerId: string | null;
   teamId: string | null;
   stage: number;
+  title: string;
+  summary: string;
+  startedYear: number;
+  startedWeek: number;
+  updatedYear: number;
+  updatedWeek: number;
+  expiresAfterWeek: number | null;
   data: Record<string, unknown>;
 }
 

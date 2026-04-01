@@ -171,6 +171,7 @@ function makeOffseasonGame(): GameState {
     },
     eventLog: [],
     narrativeState: { activeArcs: [], hooks: [], recentHeadlines: [] },
+    gameDayState: { recentPackages: [], latestPackageId: null },
     weekSummaries: [],
     playoffBracket: null,
     offseasonState: null,

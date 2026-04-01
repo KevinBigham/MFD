@@ -9,7 +9,7 @@ import {
 import { calcCapHit } from '@mfd/engine';
 import {
   useGameStore, selectUserTeam, selectRoster,
-  selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary,
+  selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary, selectLatestGameDayPackage, selectActiveStoryArcs,
 } from '../../app/store/game-store';
 
 export function MondayBriefing() {
@@ -20,6 +20,8 @@ export function MondayBriefing() {
   const schedule = useGameStore(selectSchedule);
   const ownerState = useGameStore(selectOwnerState);
   const latestSummary = useGameStore(selectLatestSummary);
+  const latestPackage = useGameStore(selectLatestGameDayPackage);
+  const activeArcs = useGameStore(selectActiveStoryArcs);
 
   const teamName = team ? `${team.city} ${team.name}` : 'No Team';
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '0-0';
@@ -71,6 +73,7 @@ export function MondayBriefing() {
   const capSpace = team ? `$${Math.round(team.capSpace * 10) / 10}M` : '$0M';
   const ownerMood = ownerState ? ownerState.approval : 0;
   const ownerLabel = ownerMood >= 70 ? 'Pleased' : ownerMood >= 50 ? 'Neutral' : ownerMood >= 30 ? 'Unhappy' : 'Furious';
+  const leadArc = activeArcs[0] ?? null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
@@ -95,9 +98,9 @@ export function MondayBriefing() {
       <MfdKpiGrid columns={4}>
         <MfdKpiCard
           label="Latest Result"
-          value={latestSummary ? latestSummary.result.toUpperCase() : opponentName}
+          value={latestPackage ? latestPackage.result.toUpperCase() : latestSummary ? latestSummary.result.toUpperCase() : opponentName}
           icon={<Calendar size={14} />}
-          trendLabel={latestSummary?.headline ?? `Week ${week}`}
+          trendLabel={latestPackage?.headline ?? latestSummary?.headline ?? `Week ${week}`}
           trend={latestSummary?.result === 'win' ? 'up' : latestSummary?.result === 'loss' ? 'down' : 'flat'}
         />
         <MfdKpiCard
@@ -190,6 +193,33 @@ export function MondayBriefing() {
         </MfdPanel>
       </div>
 
+      <MfdPanel title="Narrative Pulse" icon={<Shield size={14} />}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
+          <div>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-faint)', marginBottom: 6 }}>
+              STORY ARC
+            </div>
+            <div style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1rem', fontWeight: 700 }}>
+              {leadArc?.title ?? 'No active arc'}
+            </div>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)', marginTop: 6 }}>
+              {leadArc?.summary ?? 'Your next big storyline will form after the next meaningful result.'}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-faint)', marginBottom: 6 }}>
+              POSTGAME CINEMA
+            </div>
+            <div style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1rem', fontWeight: 700 }}>
+              {latestPackage?.headline ?? latestSummary?.headline ?? 'No package yet'}
+            </div>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)', marginTop: 6 }}>
+              {latestPackage?.autopsy.diagnosis ?? 'The first postgame package will appear once the season begins.'}
+            </div>
+          </div>
+        </div>
+      </MfdPanel>
+
       <MfdPanel title="Last Game / Next Game" icon={<Calendar size={14} />}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
           <div>
@@ -197,7 +227,7 @@ export function MondayBriefing() {
               LAST RESULT
             </div>
             <div style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1rem', fontWeight: 700 }}>
-              {latestSummary?.headline ?? 'No games simulated yet'}
+              {latestPackage?.headline ?? latestSummary?.headline ?? 'No games simulated yet'}
             </div>
           </div>
           <div>

@@ -7,24 +7,9 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import {
-  useGameStore, selectUserTeam, selectRoster, selectWeek, selectNarrative, selectLatestSummary, selectPhase,
+  useGameStore, selectUserTeam, selectRoster, selectWeek, selectNarrative, selectLatestSummary, selectPhase, selectLatestGameDayPackage, selectActiveStoryArcs,
 } from '../../app/store/game-store';
-
-// ── Message Types ──────────────────────────────────────
-
-type MessageType = 'URGENT' | 'DECISION' | 'INTEL';
-
-interface InboxMessage {
-  id: string;
-  type: MessageType;
-  title: string;
-  body: string;
-  from: string;
-  week: number;
-  read: boolean;
-  actionRequired: boolean;
-  consequences?: { id: string; label: string; delta: string; direction: 'positive' | 'negative' | 'neutral' | 'warning' }[];
-}
+import { buildInboxMessages, type InboxMessage, type MessageType } from './buildInboxMessages';
 
 const TYPE_CONFIG: Record<MessageType, { icon: React.ReactNode; color: string; label: string; variant: 'danger' | 'warning' | 'info' }> = {
   URGENT: { icon: <AlertTriangle size={14} />, color: 'var(--mfd-red)', label: 'URGENT', variant: 'danger' },
@@ -39,138 +24,22 @@ export function InboxTriage() {
   const narrative = useGameStore(selectNarrative);
   const latestSummary = useGameStore(selectLatestSummary);
   const phase = useGameStore(selectPhase);
+  const latestPackage = useGameStore(selectLatestGameDayPackage);
+  const activeArcs = useGameStore(selectActiveStoryArcs);
 
   const [selectedMsg, setSelectedMsg] = useState<InboxMessage | null>(null);
   const [filter, setFilter] = useState<MessageType | 'ALL'>('ALL');
 
-  // Generate messages from live game state
-  const messages = useMemo((): InboxMessage[] => {
-    const msgs: InboxMessage[] = [];
-    if (!team) return msgs;
-
-    if (latestSummary) {
-      msgs.push({
-        id: `weekly-summary-${latestSummary.id}`,
-        type: latestSummary.result === 'loss' ? 'URGENT' : 'INTEL',
-        title: latestSummary.headline,
-        body: `Record: ${latestSummary.record}\nOwner delta: ${latestSummary.ownerDelta}\nNotes: ${latestSummary.notes.join(' | ')}`,
-        from: 'League Ops',
-        week: latestSummary.week,
-        read: false,
-        actionRequired: latestSummary.result === 'loss',
-      });
-    }
-
-    // Owner mood messages
-    if (team.owner.approval < 40) {
-      msgs.push({
-        id: 'owner-unhappy',
-        type: 'URGENT',
-        title: 'Owner Demands Improvement',
-        body: `Owner approval has dropped to ${team.owner.approval}. Results must improve soon or there will be consequences.`,
-        from: 'Front Office',
-        week,
-        read: false,
-        actionRequired: true,
-        consequences: [
-          { id: 'c1', label: 'Job Security', delta: 'At Risk', direction: 'negative' },
-        ],
-      });
-    }
-
-    // Holdout messages
-    const holdouts = roster.filter((p) => p.holdout);
-    for (const p of holdouts) {
-      msgs.push({
-        id: `holdout-${p.id}`,
-        type: 'URGENT',
-        title: `${p.name} Holdout`,
-        body: `${p.name} is holding out for a new contract. Morale is dropping.`,
-        from: 'Agent Relations',
-        week,
-        read: false,
-        actionRequired: true,
-        consequences: [
-          { id: `h1-${p.id}`, label: 'Team Morale', delta: '-5 per week', direction: 'warning' },
-        ],
-      });
-    }
-
-    // Trade block activity
-    const tradeBlockPlayers = roster.filter((p) => p.tradeBlock);
-    if (tradeBlockPlayers.length > 0) {
-      msgs.push({
-        id: 'trade-block',
-        type: 'DECISION',
-        title: `${tradeBlockPlayers.length} Player(s) on Trade Block`,
-        body: `Players on the block: ${tradeBlockPlayers.map((p) => p.name).join(', ')}. Watch for incoming offers.`,
-        from: 'Trade Desk',
-        week,
-        read: false,
-        actionRequired: false,
-      });
-    }
-
-    // Injured players intel
-    const injured = roster.filter((p) => p.injury);
-    if (injured.length > 0) {
-      msgs.push({
-        id: 'injury-report',
-        type: 'INTEL',
-        title: `${injured.length} Player(s) Injured`,
-        body: injured.map((p) => `${p.name} (${p.pos}): ${p.injury!.type} — ${p.injury!.severity}, ${p.injury!.gamesOut} games`).join('\n'),
-        from: 'Medical Staff',
-        week,
-        read: true,
-        actionRequired: false,
-      });
-    }
-
-    // Narrative headlines as intel
-    if (narrative?.recentHeadlines) {
-      for (let i = 0; i < narrative.recentHeadlines.length; i++) {
-        msgs.push({
-          id: `headline-${i}`,
-          type: 'INTEL',
-          title: narrative.recentHeadlines[i]!,
-          body: 'League-wide news from around the football world.',
-          from: 'Media',
-          week,
-          read: true,
-          actionRequired: false,
-        });
-      }
-    }
-
-    // Cap warning
-    if (team.capSpace < 10 && team.capSpace >= 0) {
-      msgs.push({
-        id: 'cap-tight',
-        type: 'DECISION',
-        title: 'Cap Space Running Low',
-        body: `Only $${Math.round(team.capSpace * 10) / 10}M in cap space remaining. Consider restructuring contracts.`,
-        from: 'Finance',
-        week,
-        read: false,
-        actionRequired: true,
-      });
-    }
-
-    if (phase === 'playoffs') {
-      msgs.push({
-        id: 'playoff-phase',
-        type: 'DECISION',
-        title: 'Playoff Football Activated',
-        body: 'Bracket play is live. Every week is elimination football until a champion is crowned.',
-        from: 'League Office',
-        week,
-        read: false,
-        actionRequired: false,
-      });
-    }
-
-    return msgs;
-  }, [team, roster, week, narrative, latestSummary, phase]);
+  const messages = useMemo(() => buildInboxMessages({
+    team,
+    roster,
+    week,
+    narrative,
+    latestSummary,
+    phase,
+    latestPackage,
+    activeArcs,
+  }), [activeArcs, latestPackage, latestSummary, narrative, phase, roster, team, week]);
 
   const filtered = filter === 'ALL' ? messages : messages.filter((m) => m.type === filter);
   const urgentCount = messages.filter((m) => m.type === 'URGENT' && !m.read).length;

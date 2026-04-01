@@ -77,3 +77,22 @@ registerMigration(2, (state) => ({
   ...state,
   offseasonState: state['offseasonState'] ?? null,
 }));
+
+registerMigration(3, (state) => ({
+  ...state,
+  narrativeState: {
+    activeArcs: Array.isArray((state['narrativeState'] as Record<string, unknown> | undefined)?.['activeArcs'])
+      ? (state['narrativeState'] as Record<string, unknown>)['activeArcs']
+      : [],
+    hooks: Array.isArray((state['narrativeState'] as Record<string, unknown> | undefined)?.['hooks'])
+      ? (state['narrativeState'] as Record<string, unknown>)['hooks']
+      : [],
+    recentHeadlines: Array.isArray((state['narrativeState'] as Record<string, unknown> | undefined)?.['recentHeadlines'])
+      ? (state['narrativeState'] as Record<string, unknown>)['recentHeadlines']
+      : [],
+  },
+  gameDayState: {
+    recentPackages: [],
+    latestPackageId: null,
+  },
+}));

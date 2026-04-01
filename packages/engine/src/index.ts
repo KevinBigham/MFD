@@ -130,6 +130,8 @@ export type { SchemeFitResult, FitTier, PlayerSide, PlayerIdentityFit, TeamFitSu
 export { chemistryMod, systemFitMod, updateSystemFit, resetSystemFit } from './systems/chemistry';
 export { createEmptySeasonStats, ensureSeasonStats, applyGameToSeasonStats, tickInjuries } from './systems/season-stats';
 export { buildWeeklySummary } from './systems/weekly-summary';
+export { buildGameDayPackage } from './systems/game-day-package';
+export { advanceStoryArcs } from './systems/story-arcs';
 export { seedPlayoffBracket, advancePlayoffBracket } from './systems/playoff-bracket';
 export {
   initializeOffseasonState,

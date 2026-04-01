@@ -33,6 +33,10 @@ describe('SaveStateSchema', () => {
         hooks: [],
         recentHeadlines: [],
       },
+      gameDayState: {
+        recentPackages: [],
+        latestPackageId: null,
+      },
       weekSummaries: [],
       playoffBracket: null,
       offseasonState: null,
@@ -56,6 +60,7 @@ describe('SaveStateSchema', () => {
       frontOffice: { xp: 0, level: 1, achievements: [], perks: [], reputation: { players: 0, media: 0, owner: 0 } },
       eventLog: [],
       narrativeState: { activeArcs: [], hooks: [], recentHeadlines: [] },
+      gameDayState: { recentPackages: [], latestPackageId: null },
     };
     const result = SaveStateSchema.safeParse(bad);
     expect(result.success).toBe(false);
@@ -111,6 +116,7 @@ describe('SaveStateSchema', () => {
       frontOffice: { xp: 500, level: 3, achievements: ['first_win'], perks: [], reputation: { players: 70, media: 60, owner: 80 } },
       eventLog: [],
       narrativeState: { activeArcs: [], hooks: [], recentHeadlines: ['Mahomes throws 5 TDs'] },
+      gameDayState: { recentPackages: [], latestPackageId: null },
       weekSummaries: [],
       playoffBracket: null,
       offseasonState: null,
@@ -204,5 +210,28 @@ describe('migration pipeline', () => {
 
     expect(migrated['version']).toBe(3);
     expect(migrated['offseasonState']).toBeNull();
+  });
+
+  it('migrates v3 saves to include game day defaults and preserve headlines', () => {
+    const migrated = migrate({
+      version: 3,
+      narrativeState: {
+        activeArcs: [],
+        hooks: [],
+        recentHeadlines: ['Week 18: afce1 Club beat afce2 Club 24-17'],
+      },
+      offseasonState: null,
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['narrativeState']).toEqual({
+      activeArcs: [],
+      hooks: [],
+      recentHeadlines: ['Week 18: afce1 Club beat afce2 Club 24-17'],
+    });
+    expect(migrated['gameDayState']).toEqual({
+      recentPackages: [],
+      latestPackageId: null,
+    });
   });
 });

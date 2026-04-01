@@ -47,6 +47,68 @@ export const InjurySchema = z.object({
   gamesOut: z.number(),
 });
 
+export const StoryArcSchema = z.object({
+  id: z.string(),
+  template: z.enum(['win_streak', 'hot_seat', 'breakout_player', 'revenge_game', 'injury_crisis']),
+  playerId: z.string().nullable(),
+  teamId: z.string().nullable(),
+  stage: z.number(),
+  title: z.string(),
+  summary: z.string(),
+  startedYear: z.number(),
+  startedWeek: z.number(),
+  updatedYear: z.number(),
+  updatedWeek: z.number(),
+  expiresAfterWeek: z.number().nullable(),
+  data: z.record(z.string(), z.unknown()),
+});
+
+export const GameDayPackageSchema = z.object({
+  id: z.string(),
+  year: z.number(),
+  week: z.number(),
+  phase: z.enum(['preseason', 'regular_season', 'playoffs', 'offseason', 'free_agency', 'draft', 'post_draft']),
+  teamId: z.string(),
+  opponentTeamId: z.string().nullable(),
+  headline: z.string(),
+  result: z.enum(['win', 'loss', 'tie', 'pending']),
+  finalScore: z.string(),
+  stakes: z.array(z.object({
+    label: z.string(),
+    detail: z.string(),
+  })),
+  turningPoints: z.array(z.object({
+    label: z.string(),
+    detail: z.string(),
+    impact: z.enum(['positive', 'negative', 'neutral']),
+  })),
+  topPerformers: z.array(z.object({
+    playerId: z.string().nullable(),
+    label: z.string(),
+    statLine: z.string(),
+  })),
+  injuryNotes: z.array(z.string()),
+  ceremony: z.object({
+    title: z.string(),
+    subtitle: z.string(),
+  }).nullable(),
+  pressConference: z.object({
+    theme: z.string(),
+    opener: z.string(),
+    quotes: z.array(z.string()),
+  }),
+  autopsy: z.object({
+    diagnosis: z.string(),
+    leverage: z.string(),
+    nextFocus: z.array(z.string()),
+  }),
+});
+
+export const GameDayStateSchema = z.object({
+  recentPackages: z.array(GameDayPackageSchema),
+  latestPackageId: z.string().nullable(),
+});
+
 export const ContractOfferSchema = z.object({
   years: z.number(),
   salary: z.number(),
@@ -176,10 +238,11 @@ export const SaveStateSchema = z.object({
   }),
   eventLog: z.array(z.any()),
   narrativeState: z.object({
-    activeArcs: z.array(z.any()),
+    activeArcs: z.array(StoryArcSchema),
     hooks: z.array(z.any()),
     recentHeadlines: z.array(z.string()),
   }),
+  gameDayState: GameDayStateSchema,
   weekSummaries: z.array(z.any()),
   playoffBracket: z.any().nullable(),
   offseasonState: OffseasonStateSchema.nullable(),

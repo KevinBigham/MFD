@@ -7,7 +7,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type {
-  ContractOffer, DraftOrderEntry, DraftProspect, GameState, OffseasonState, Player, Team, TradeOffer, WeeklySummary, SeasonPhase,
+  ContractOffer, GameState, SeasonPhase, Team, WeeklySummary,
 } from '@mfd/engine';
 import {
   restructureContract, backloadContract,
@@ -24,7 +24,9 @@ import {
   makeDraftPick as makeDraftPickEngine,
 } from '@mfd/engine';
 import { autosaveDynasty, loadLatestAutosaveGame } from './persistence';
+import type { GameStoreState } from './selectors';
 import { runAdvanceWeek } from './sim';
+export * from './selectors';
 
 // ── Store shape ────────────────────────────────────────────
 
@@ -64,81 +66,9 @@ interface GameActions {
   setPhase: (phase: SeasonPhase) => void;
 }
 
-interface GameStore {
-  /** null = no game loaded, show new game screen */
-  game: GameState | null;
-  initialized: boolean;
+interface GameStore extends GameStoreState {
   actions: GameActions;
 }
-
-// ── Selectors (pure functions, not in store) ───────────────
-
-export const selectUserTeam = (state: GameStore): Team | null => {
-  if (!state.game) return null;
-  return Object.values(state.game.teams).find((t) => t.isUser) ?? null;
-};
-
-export const selectUserTeamId = (state: GameStore): string | null => {
-  return selectUserTeam(state)?.id ?? null;
-};
-
-export const selectRoster = (state: GameStore): Player[] => {
-  const team = selectUserTeam(state);
-  return team?.roster ?? [];
-};
-
-export const selectPlayerById = (id: string) => (state: GameStore): Player | null => {
-  if (!state.game) return null;
-  return state.game.players[id] ?? null;
-};
-
-export const selectTeamById = (id: string) => (state: GameStore): Team | null => {
-  if (!state.game) return null;
-  return state.game.teams[id] ?? null;
-};
-
-export const selectWeek = (state: GameStore): number => state.game?.week ?? 0;
-export const selectYear = (state: GameStore): number => state.game?.year ?? 2026;
-export const selectPhase = (state: GameStore): SeasonPhase => state.game?.phase ?? 'preseason';
-
-export const selectOwnerState = (state: GameStore) => {
-  const team = selectUserTeam(state);
-  return team?.owner ?? null;
-};
-
-export const selectCoachingStaff = (state: GameStore) => {
-  const team = selectUserTeam(state);
-  return team?.staff ?? null;
-};
-
-export const selectClinic = (state: GameStore) => {
-  const team = selectUserTeam(state);
-  return team?.clinic ?? null;
-};
-
-export const selectCapInfo = (state: GameStore) => {
-  const team = selectUserTeam(state);
-  if (!team) return { capSpace: 0, capUsed: 0, deadCap: 0 };
-  return { capSpace: team.capSpace, capUsed: team.capUsed, deadCap: team.deadCap };
-};
-
-export const selectSchedule = (state: GameStore) => state.game?.schedule ?? [];
-
-export const selectNarrative = (state: GameStore) => state.game?.narrativeState ?? null;
-export const selectLatestSummary = (state: GameStore): WeeklySummary | null => state.game?.weekSummaries.at(-1) ?? null;
-export const selectPlayoffBracket = (state: GameStore) => state.game?.playoffBracket ?? null;
-export const selectOffseasonState = (state: GameStore): OffseasonState | null => state.game?.offseasonState ?? null;
-export const selectDraftClass = (state: GameStore): DraftProspect[] => state.game?.draftClass ?? [];
-export const selectTradeOffers = (state: GameStore): TradeOffer[] => state.game?.offseasonState?.tradeOffers ?? [];
-export const selectFreeAgentPlayers = (state: GameStore): Player[] => {
-  if (!state.game) return [];
-  return state.game.freeAgents.map((playerId) => state.game!.players[playerId]).filter(Boolean) as Player[];
-};
-export const selectCurrentDraftEntry = (state: GameStore): DraftOrderEntry | null => {
-  const offseasonState = state.game?.offseasonState;
-  if (!offseasonState) return null;
-  return offseasonState.draftOrder[offseasonState.currentDraftPickIndex] ?? null;
-};
 
 // ── Store ──────────────────────────────────────────────────
 

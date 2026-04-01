@@ -7,7 +7,7 @@ import {
   User, Calendar,
 } from 'lucide-react';
 import {
-  useGameStore, selectUserTeam, selectWeek, selectNarrative,
+  useGameStore, selectUserTeam, selectWeek, selectNarrative, selectActiveStoryArcs, selectLatestGameDayPackage,
 } from '../../app/store/game-store';
 
 type PromiseStatus = 'active' | 'fulfilled' | 'broken' | 'expired';
@@ -33,9 +33,32 @@ export function HandshakeLedger() {
   const team = useGameStore(selectUserTeam);
   const week = useGameStore(selectWeek);
   const narrative = useGameStore(selectNarrative);
+  const activeArcs = useGameStore(selectActiveStoryArcs);
+  const latestPackage = useGameStore(selectLatestGameDayPackage);
 
-  // Generate promises from narrative hooks (live data)
   const promises = useMemo((): HandshakePromise[] => {
+    if (activeArcs.length > 0) {
+      return activeArcs.map((arc) => ({
+        id: arc.id,
+        to: arc.title,
+        promise: arc.summary,
+        madeWeek: arc.startedWeek,
+        deadline: arc.expiresAfterWeek ? `Week ${arc.expiresAfterWeek}` : 'Open-ended',
+        status: arc.expiresAfterWeek && arc.expiresAfterWeek < week ? 'broken' : 'active',
+      }));
+    }
+
+    if (latestPackage) {
+      return latestPackage.autopsy.nextFocus.map((focus, index) => ({
+        id: `${latestPackage.id}-focus-${index}`,
+        to: 'Postgame focus',
+        promise: focus,
+        madeWeek: latestPackage.week,
+        deadline: `Week ${latestPackage.week + 1}`,
+        status: latestPackage.week + 1 < week ? 'expired' : 'active',
+      }));
+    }
+
     if (!narrative) return [];
 
     return narrative.hooks
@@ -48,7 +71,7 @@ export function HandshakeLedger() {
         deadline: `Week ${h.deadline}`,
         status: h.deadline < week ? 'broken' : 'active',
       }));
-  }, [narrative, week]);
+  }, [activeArcs, latestPackage, narrative, week]);
 
   const active = promises.filter((p) => p.status === 'active');
   const fulfilled = promises.filter((p) => p.status === 'fulfilled');
