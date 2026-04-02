@@ -179,6 +179,8 @@ describe('migration pipeline', () => {
         wins: 3,
         losses: 2,
         ties: 0,
+        practiceSquad: [],
+        stadiumType: 'outdoor',
         mentoringPairs: [],
         seasonStats: {
           gamesPlayed: 5,
@@ -358,5 +360,77 @@ describe('migration pipeline', () => {
       lastMetWeek: null,
     }]);
     expect(migrated['activeEffects']).toEqual([]);
+  });
+
+  it('migrates v7 saves to include front-office defaults', () => {
+    const migrated = migrate({
+      version: 7,
+      year: 2027,
+      week: 4,
+      teams: {
+        t1: {
+          wins: 3,
+          losses: 1,
+          ties: 0,
+          seasonStats: { pointDifferential: 14 },
+        },
+        t2: {
+          wins: 1,
+          losses: 3,
+          ties: 0,
+          seasonStats: { pointDifferential: -14 },
+        },
+      },
+      draftClass: [{
+        id: 'prospect-1',
+        firstName: 'Front',
+        lastName: 'Office',
+        pos: 'QB',
+        college: 'Test State',
+        ratings: {},
+        projectedRound: 1,
+        scoutGrade: 76,
+        trueGrade: 84,
+        personality: { workEthic: 7, loyalty: 5, greed: 4, pressure: 6, ambition: 7 },
+        traits: [],
+        archetype: null,
+        characterArchetype: 'balanced',
+        bustProbability: 0.1,
+        stealProbability: 0.1,
+        scoutingReports: [],
+      }],
+      narrativeState: {
+        activeArcs: [],
+        hooks: [],
+        recentHeadlines: [],
+      },
+      gameDayState: {
+        recentPackages: [],
+        latestPackageId: null,
+      },
+      offFieldEvents: [],
+      recentPressConferences: [],
+      coachingHistory: [],
+      leagueRivalries: [],
+      activeEffects: [],
+      weekSummaries: [],
+      offseasonState: null,
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['scoutingDepartment']).toEqual({
+      scouts: [],
+      availableScouts: [],
+      budget: 5,
+      maxScouts: 5,
+    });
+    expect(migrated['conditionalPicks']).toEqual([]);
+    expect(migrated['waiverClaims']).toEqual([]);
+    expect(migrated['waiverWire']).toEqual([]);
+    expect(migrated['handshakes']).toEqual([]);
+    expect((migrated['draftClass'] as Array<{ combine?: unknown }>)[0]!.combine).toBeNull();
+    expect((migrated['teams'] as Record<string, { practiceSquad?: unknown; stadiumType?: unknown }>).t1.practiceSquad).toEqual([]);
+    expect((migrated['teams'] as Record<string, { practiceSquad?: unknown; stadiumType?: unknown }>).t1.stadiumType).toBe('outdoor');
+    expect(migrated['waiverOrder']).toEqual(['t2', 't1']);
   });
 });

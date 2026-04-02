@@ -10,6 +10,7 @@ import type {
   GameResult,
   GameState,
   Team,
+  WeatherCondition,
   TeamGameStats,
   WeeklyInjurySummary,
 } from '../types';
@@ -68,7 +69,17 @@ export function simulateGame(
   context?: SimGameContext,
 ) {
   const sim = simGame(home, away, context);
-  const { homeScore, awayScore, overtime, homeStats, awayStats, homeMvpId, awayMvpId } = sim;
+  const {
+    homeScore,
+    awayScore,
+    overtime,
+    homeStats,
+    awayStats,
+    homeMvpId,
+    awayMvpId,
+    weather,
+    matchupHighlight,
+  } = sim;
 
   // Apply player box score lines to season stats
   applyPlayerLines(home, homeStats.playerLines);
@@ -90,12 +101,52 @@ export function simulateGame(
       overtime,
       mvpPlayerId: homeScore > awayScore ? homeMvpId : awayMvpId,
       stats: { [home.id]: homeStats, [away.id]: awayStats },
+      weather,
+      matchupHighlight,
     } satisfies GameResult,
     injuries: {
       [home.id]: maybeInjure(home, diff.injMod),
       [away.id]: maybeInjure(away, diff.injMod),
     },
   };
+}
+
+export function generateWeatherForGame(home: Team, week: number): WeatherCondition {
+  if (home.stadiumType === 'dome') return 'dome';
+
+  const roll = RNG.play();
+  if (week >= 15) {
+    if (roll < 0.16) return 'snow';
+    if (roll < 0.34) return 'wind';
+    if (roll < 0.52) return 'rain';
+    return 'clear';
+  }
+  if (week >= 10) {
+    if (roll < 0.08) return 'snow';
+    if (roll < 0.22) return 'wind';
+    if (roll < 0.38) return 'rain';
+    return 'clear';
+  }
+  if (week >= 5) {
+    if (roll < 0.10) return 'wind';
+    if (roll < 0.22) return 'rain';
+    return 'clear';
+  }
+  if (roll < 0.08) return 'rain';
+  if (roll < 0.12) return 'wind';
+  return 'clear';
+}
+
+export function ensureWeeklyWeather(game: GameState, week: number): void {
+  const weekSchedule = game.schedule.find((entry) => entry.week === week);
+  if (!weekSchedule) return;
+
+  for (const matchup of weekSchedule.games) {
+    if (matchup.weather) continue;
+    const home = game.teams[matchup.homeTeamId];
+    if (!home) continue;
+    matchup.weather = generateWeatherForGame(home, week);
+  }
 }
 
 export function updateOwner(team: Team, game: GameState): number {

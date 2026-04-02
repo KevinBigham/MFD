@@ -23,6 +23,12 @@ function impactVariant(impact: 'positive' | 'negative' | 'neutral') {
   return impact === 'positive' ? 'green' : impact === 'negative' ? 'red' : 'default';
 }
 
+function weatherVariant(weather?: string | null): 'default' | 'cyan' | 'gold' | 'red' {
+  if (weather === 'dome' || weather === 'clear') return 'cyan';
+  if (weather === 'rain') return 'gold';
+  return 'red';
+}
+
 function makeAbbr(name: string): string {
   return name.slice(0, 3).toUpperCase();
 }
@@ -96,6 +102,9 @@ export function GameDayCenterView({ teamLabel, phase, year, packageData }: GameD
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
             <PixelBadge variant="gold">{packageData.finalScore}</PixelBadge>
+            {packageData.weather ? (
+              <PixelBadge variant={weatherVariant(packageData.weather)}>{`weather // ${packageData.weather}`}</PixelBadge>
+            ) : null}
             {packageData.rivalry ? (
               <PixelBadge variant="red">{`${packageData.rivalry.tier.replace('_', ' ')} // ${packageData.rivalry.intensity}`}</PixelBadge>
             ) : null}
@@ -105,6 +114,22 @@ export function GameDayCenterView({ teamLabel, phase, year, packageData }: GameD
           </div>
         </div>
       </PixelPanel>
+
+      {packageData.matchupHighlight ? (
+        <PixelPanel title="Key Matchup" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant={packageData.matchupHighlight.advantage >= 0 ? 'green' : 'red'}>
+                {packageData.matchupHighlight.label}
+              </PixelBadge>
+              <PixelBadge variant="default">{`edge ${packageData.matchupHighlight.advantage >= 0 ? '+' : ''}${packageData.matchupHighlight.advantage}`}</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
+              {packageData.matchupHighlight.detail}
+            </div>
+          </div>
+        </PixelPanel>
+      ) : null}
 
       {/* Two-column grid: Turning Points + Top Performers */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

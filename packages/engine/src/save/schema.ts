@@ -200,6 +200,15 @@ export const GameDayPackageSchema = z.object({
     leverage: z.string(),
     nextFocus: z.array(z.string()),
   }),
+  weather: z.enum(['dome', 'clear', 'rain', 'snow', 'wind']).nullable().optional(),
+  matchupHighlight: z.object({
+    label: z.string(),
+    detail: z.string(),
+    teamId: z.string(),
+    playerId: z.string().nullable(),
+    opponentPlayerId: z.string().nullable(),
+    advantage: z.number(),
+  }).nullable().optional(),
 });
 
 export const GameDayStateSchema = z.object({
@@ -323,14 +332,103 @@ export const ProspectScoutingStateSchema = z.object({
   accuracy: z.number(),
   visibleScoutGrade: z.number(),
   notes: z.array(z.string()),
+  proDayRating: z.string().nullable().optional(),
 });
 
 export const TradeOfferAssetSchema = z.object({
-  type: z.enum(['player', 'pick']),
+  type: z.enum(['player', 'pick', 'conditional_pick']),
   teamId: z.string(),
   playerId: z.string().nullable(),
   pickId: z.string().nullable(),
+  conditionalPickId: z.string().nullable().optional(),
   description: z.string(),
+});
+
+export const ScoutSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  tier: z.enum(['elite', 'good', 'average', 'poor']),
+  specialty: z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']).nullable(),
+  salary: z.number(),
+  accuracy: z.number(),
+});
+
+export const ScoutingDepartmentSchema = z.object({
+  scouts: z.array(ScoutSchema),
+  availableScouts: z.array(ScoutSchema),
+  budget: z.number(),
+  maxScouts: z.number(),
+});
+
+export const PickConditionSchema = z.object({
+  type: z.enum(['games_played', 'pro_bowl', 'playoff_win', 'starts']),
+  playerId: z.string(),
+  threshold: z.number(),
+  upgradeRound: z.number(),
+});
+
+export const ConditionalPickSchema = z.object({
+  id: z.string(),
+  fromTeamId: z.string(),
+  toTeamId: z.string(),
+  playerId: z.string(),
+  basePick: z.object({
+    round: z.number(),
+    pick: z.number(),
+    originalTeamId: z.string(),
+    currentTeamId: z.string(),
+    year: z.number(),
+    isCompPick: z.boolean(),
+  }),
+  condition: PickConditionSchema,
+  resolvedPick: z.object({
+    round: z.number(),
+    pick: z.number(),
+    originalTeamId: z.string(),
+    currentTeamId: z.string(),
+    year: z.number(),
+    isCompPick: z.boolean(),
+  }).nullable(),
+  resolved: z.boolean(),
+  description: z.string(),
+});
+
+export const WaiverWireEntrySchema = z.object({
+  playerId: z.string(),
+  releasedByTeamId: z.string().nullable(),
+  createdYear: z.number(),
+  createdWeek: z.number(),
+  expiresYear: z.number(),
+  expiresWeek: z.number(),
+});
+
+export const WaiverClaimSchema = z.object({
+  teamId: z.string(),
+  playerId: z.string(),
+  claimYear: z.number(),
+  claimWeek: z.number(),
+});
+
+export const HandshakeConditionSchema = z.object({
+  metric: z.enum(['wins', 'playoff', 'starter', 'trade_block', 'spending', 'draft_position', 'on_roster', 'restructure']),
+  target: z.union([z.number(), z.string(), z.boolean()]),
+});
+
+export const HandshakeSchema = z.object({
+  id: z.string(),
+  type: z.enum(['owner', 'player', 'media']),
+  promiseText: z.string(),
+  targetId: z.string(),
+  teamId: z.string(),
+  madeYear: z.number(),
+  madeWeek: z.number(),
+  deadline: z.object({
+    year: z.number(),
+    week: z.number(),
+  }),
+  condition: HandshakeConditionSchema,
+  status: z.enum(['active', 'fulfilled', 'broken', 'expired']),
+  consequence: z.string().nullable(),
 });
 
 export const DraftOrderEntrySchema = z.object({
@@ -440,6 +538,17 @@ export const SaveStateSchema = z.object({
   weekSummaries: z.array(z.any()),
   playoffBracket: z.any().nullable(),
   offseasonState: OffseasonStateSchema.nullable(),
+  scoutingDepartment: ScoutingDepartmentSchema.default({
+    scouts: [],
+    availableScouts: [],
+    budget: 5,
+    maxScouts: 5,
+  }),
+  conditionalPicks: z.array(ConditionalPickSchema).default([]),
+  waiverOrder: z.array(z.string()).default([]),
+  waiverWire: z.array(WaiverWireEntrySchema).default([]),
+  waiverClaims: z.array(WaiverClaimSchema).default([]),
+  handshakes: z.array(HandshakeSchema).default([]),
 });
 
 export type SaveState = z.infer<typeof SaveStateSchema>;

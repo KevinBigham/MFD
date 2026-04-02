@@ -91,6 +91,17 @@ function capAwareness(game: GameState, player: Player): number {
 }
 
 function resolvePickValue(game: GameState, asset: TradeOfferAsset): number {
+  if (asset.type === 'conditional_pick' && asset.conditionalPickId) {
+    const conditionalPick = game.conditionalPicks.find((entry) => entry.id === asset.conditionalPickId);
+    if (!conditionalPick) return 0;
+    const baseValue = calcPickValue(conditionalPick.basePick);
+    const upgradedValue = calcPickValue({
+      round: Math.min(conditionalPick.basePick.round, conditionalPick.condition.upgradeRound),
+      pick: conditionalPick.basePick.pick,
+    });
+    return (baseValue + upgradedValue) / 2;
+  }
+
   const pick = game.teams[asset.teamId]?.draftPicks.find((entry) =>
     `${entry.currentTeamId}-${entry.year}-${entry.round}-${entry.pick}-${entry.originalTeamId}` === asset.pickId,
   );

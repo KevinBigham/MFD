@@ -1,5 +1,6 @@
 import type {
   AwardsHistoryEntry,
+  ConditionalPick,
   DraftOrderEntry,
   DraftProspect,
   GameEvent,
@@ -12,17 +13,23 @@ import type {
   MentoringPair,
   OffseasonState,
   OffFieldEvent,
+  PracticeSquadPlayer,
   Player,
   PowerRanking,
   PressConference,
   RecordBook,
   RecordEntry,
   RivalryGameContext,
+  ScoutingDepartment,
   SeasonPhase,
   StoryArc,
   Team,
   TradeOffer,
+  WaiverClaim,
+  WaiverWireEntry,
+  WeatherCondition,
   WeeklySummary,
+  Handshake,
 } from '@mfd/engine';
 import { createEmptyRecordBook, getRivalryGameContext } from '@mfd/engine';
 
@@ -47,6 +54,18 @@ const EMPTY_OFF_FIELD_EVENTS: OffFieldEvent[] = [];
 const EMPTY_PRESS_CONFERENCES: PressConference[] = [];
 const EMPTY_LEAGUE_RIVALRIES: LeagueRivalry[] = [];
 const EMPTY_GAME_EVENTS: GameEvent[] = [];
+const EMPTY_PRACTICE_SQUAD: PracticeSquadPlayer[] = [];
+const EMPTY_WAIVER_WIRE: WaiverWireEntry[] = [];
+const EMPTY_WAIVER_CLAIMS: WaiverClaim[] = [];
+const EMPTY_HANDSHAKES: Handshake[] = [];
+const EMPTY_CONDITIONAL_PICKS: ConditionalPick[] = [];
+const EMPTY_IDS: string[] = [];
+const EMPTY_SCOUTING_DEPARTMENT: ScoutingDepartment = {
+  scouts: [],
+  availableScouts: [],
+  budget: 0,
+  maxScouts: 5,
+};
 const EMPTY_RECORD_BOOK: RecordBook = createEmptyRecordBook();
 const EMPTY_CAP = { capSpace: 0, capUsed: 0, deadCap: 0 };
 
@@ -77,8 +96,17 @@ const EMPTY_MENTORING_HISTORY: MentoringHistoryNote[] = [];
 export const selectUserTeam = (state: GameStoreState): Team | null =>
   state.game ? Object.values(state.game.teams).find((team) => team.isUser) ?? null : null;
 
+function selectCurrentMatchup(state: GameStoreState) {
+  if (!state.game) return null;
+  const team = selectUserTeam(state);
+  if (!team) return null;
+  const weekSchedule = state.game.schedule.find((entry) => entry.week === state.game!.week);
+  return weekSchedule?.games.find((entry) => entry.homeTeamId === team.id || entry.awayTeamId === team.id) ?? null;
+}
+
 export const selectUserTeamId = (state: GameStoreState): string | null => selectUserTeam(state)?.id ?? null;
 export const selectRoster = (state: GameStoreState): Player[] => selectUserTeam(state)?.roster ?? EMPTY_ROSTER;
+export const selectPracticeSquad = (state: GameStoreState): PracticeSquadPlayer[] => selectUserTeam(state)?.practiceSquad ?? EMPTY_PRACTICE_SQUAD;
 export const selectPlayerById = (id: string) => (state: GameStoreState): Player | null => state.game?.players[id] ?? null;
 export const selectTeamById = (id: string) => (state: GameStoreState): Team | null => state.game?.teams[id] ?? null;
 export const selectWeek = (state: GameStoreState): number => state.game?.week ?? 0;
@@ -104,6 +132,7 @@ export const selectLatestSummary = (state: GameStoreState): WeeklySummary | null
 export const selectPlayoffBracket = (state: GameStoreState) => state.game?.playoffBracket ?? null;
 export const selectOffseasonState = (state: GameStoreState): OffseasonState | null => state.game?.offseasonState ?? null;
 export const selectDraftClass = (state: GameStoreState): DraftProspect[] => state.game?.draftClass ?? EMPTY_PROSPECTS;
+export const selectScoutingDepartment = (state: GameStoreState): ScoutingDepartment => state.game?.scoutingDepartment ?? EMPTY_SCOUTING_DEPARTMENT;
 export const selectTradeOffers = (state: GameStoreState): TradeOffer[] => state.game?.offseasonState?.tradeOffers ?? EMPTY_TRADES;
 export const selectTeams = (state: GameStoreState) => state.game?.teams ?? null;
 export const selectOwners = (state: GameStoreState) => state.game?.owners ?? null;
@@ -115,6 +144,11 @@ export const selectOffFieldEvents = (state: GameStoreState): OffFieldEvent[] => 
 export const selectRecentPressConferences = (state: GameStoreState): PressConference[] => state.game?.recentPressConferences ?? EMPTY_PRESS_CONFERENCES;
 export const selectLeagueRivalries = (state: GameStoreState): LeagueRivalry[] => state.game?.leagueRivalries ?? EMPTY_LEAGUE_RIVALRIES;
 export const selectGameDayState = (state: GameStoreState): GameDayState | null => state.game?.gameDayState ?? null;
+export const selectConditionalPicks = (state: GameStoreState): ConditionalPick[] => state.game?.conditionalPicks ?? EMPTY_CONDITIONAL_PICKS;
+export const selectWaiverOrder = (state: GameStoreState): string[] => state.game?.waiverOrder ?? EMPTY_IDS;
+export const selectWaiverWire = (state: GameStoreState): WaiverWireEntry[] => state.game?.waiverWire ?? EMPTY_WAIVER_WIRE;
+export const selectWaiverClaims = (state: GameStoreState): WaiverClaim[] => state.game?.waiverClaims ?? EMPTY_WAIVER_CLAIMS;
+export const selectHandshakes = (state: GameStoreState): Handshake[] => state.game?.handshakes ?? EMPTY_HANDSHAKES;
 export const selectLatestGameDayPackage = (state: GameStoreState): GameDayPackage | null => {
   const gameDayState = state.game?.gameDayState;
   if (!gameDayState) return null;
@@ -132,6 +166,12 @@ export const selectFreeAgentPlayers = (state: GameStoreState): Player[] => {
   _prevFAIds = state.game.freeAgents;
   _prevFAPlayers = state.game.freeAgents.map((playerId) => state.game!.players[playerId]).filter(Boolean) as Player[];
   return _prevFAPlayers;
+};
+export const selectWaiverWirePlayers = (state: GameStoreState): Player[] => {
+  if (!state.game) return EMPTY_PLAYERS;
+  return state.game.waiverWire
+    .map((entry) => state.game!.players[entry.playerId])
+    .filter(Boolean) as Player[];
 };
 export const selectLatestGameResult = (state: GameStoreState): GameResult | null => {
   if (!state.game) return null;
@@ -162,11 +202,20 @@ export const selectUpcomingRivalry = (state: GameStoreState): RivalryGameContext
   if (!state.game) return null;
   const team = selectUserTeam(state);
   if (!team) return null;
-  const weekSchedule = state.game.schedule.find((entry) => entry.week === state.game!.week);
-  const matchup = weekSchedule?.games.find((entry) => entry.homeTeamId === team.id || entry.awayTeamId === team.id) ?? null;
+  const matchup = selectCurrentMatchup(state);
   if (!matchup) return null;
   const opponentId = matchup.homeTeamId === team.id ? matchup.awayTeamId : matchup.homeTeamId;
   return getRivalryGameContext(state.game, team.id, opponentId);
+};
+export const selectWeather = (state: GameStoreState): WeatherCondition | null => {
+  const currentMatchup = selectCurrentMatchup(state);
+  if (currentMatchup?.result === null && currentMatchup.weather) {
+    return currentMatchup.weather;
+  }
+  return selectLatestGameDayPackage(state)?.weather
+    ?? selectLatestGameResult(state)?.weather
+    ?? currentMatchup?.weather
+    ?? null;
 };
 export const selectCoachingCarouselNews = (state: GameStoreState): GameEvent[] =>
   state.game?.eventLog

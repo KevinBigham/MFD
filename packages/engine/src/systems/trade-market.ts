@@ -1,4 +1,5 @@
 import { syncPlayerArchiveEntry } from './history';
+import { conditionalPickExpectedValue } from './conditional-picks';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
 import type { DraftPick, EngineOutput, GameState, Player, Team, TradeOffer, TradeOfferAsset } from '../types';
@@ -41,9 +42,40 @@ function transferPick(game: GameState, asset: TradeOfferAsset, toTeamId: string)
   toTeam.draftPicks.push(pick);
 }
 
+function transferConditionalPick(game: GameState, asset: TradeOfferAsset, toTeamId: string): void {
+  if (!asset.conditionalPickId) return;
+  const conditionalPick = game.conditionalPicks.find((entry) => entry.id === asset.conditionalPickId);
+  const fromTeam = game.teams[asset.teamId];
+  const toTeam = game.teams[toTeamId];
+  if (!conditionalPick || !fromTeam || !toTeam) return;
+
+  const index = fromTeam.draftPicks.findIndex((pick) =>
+    pick.year === conditionalPick.basePick.year &&
+    pick.round === conditionalPick.basePick.round &&
+    pick.pick === conditionalPick.basePick.pick &&
+    pick.originalTeamId === conditionalPick.basePick.originalTeamId,
+  );
+
+  const actualPick = index === -1 ? null : fromTeam.draftPicks.splice(index, 1)[0] ?? null;
+  if (actualPick) {
+    actualPick.currentTeamId = toTeamId;
+    toTeam.draftPicks.push(actualPick);
+  }
+
+  conditionalPick.toTeamId = toTeamId;
+  conditionalPick.basePick.currentTeamId = toTeamId;
+  if (conditionalPick.resolvedPick) {
+    conditionalPick.resolvedPick.currentTeamId = toTeamId;
+  }
+}
+
 function applyAsset(game: GameState, asset: TradeOfferAsset, toTeamId: string): void {
   if (asset.type === 'player') {
     transferPlayer(game, asset, toTeamId);
+    return;
+  }
+  if (asset.type === 'conditional_pick') {
+    transferConditionalPick(game, asset, toTeamId);
     return;
   }
   transferPick(game, asset, toTeamId);
@@ -64,6 +96,17 @@ function pickAsset(teamId: string, pick: DraftPick): TradeOfferAsset {
     playerId: null,
     pickId: pickId(teamId, pick.year, pick.round, pick.pick, pick.originalTeamId),
     description: `Round ${pick.round} pick`,
+  };
+}
+
+function conditionalPickAsset(teamId: string, conditionalPickId: string, description: string): TradeOfferAsset {
+  return {
+    type: 'conditional_pick',
+    teamId,
+    playerId: null,
+    pickId: null,
+    conditionalPickId,
+    description,
   };
 }
 
@@ -146,6 +189,25 @@ function buildAssetsForTarget(game: GameState, aiTeam: Team, userTeam: Team, tar
     );
     if (index !== -1) {
       remainingPicks.splice(index, 1);
+    }
+  }
+
+  if (assets.length < 3 && totalValue < targetValue * 0.92) {
+    const conditionalPick = game.conditionalPicks
+      .filter((entry) => entry.toTeamId === aiTeam.id && !entry.resolved)
+      .map((entry) => ({
+        entry,
+        value: conditionalPickExpectedValue(entry),
+      }))
+      .sort((a, b) => a.value - b.value || a.entry.id.localeCompare(b.entry.id))[0];
+
+    if (conditionalPick) {
+      assets.push(conditionalPickAsset(
+        aiTeam.id,
+        conditionalPick.entry.id,
+        conditionalPick.entry.description || `Conditional round ${conditionalPick.entry.basePick.round} pick`,
+      ));
+      totalValue += conditionalPick.value;
     }
   }
 
@@ -287,6 +349,20 @@ export function acceptTradeOffer(game: GameState, offerId: string): EngineOutput
   for (const asset of offer.send) applyAsset(nextState, asset, offer.fromTeamId);
   for (const asset of offer.receive) applyAsset(nextState, asset, offer.toTeamId);
   offer.status = 'accepted';
+
+  for (const asset of [...offer.send, ...offer.receive]) {
+    if (asset.type !== 'player' || !asset.playerId) continue;
+    const fromTeamId = asset.teamId;
+    const toTeamId = asset.teamId === offer.toTeamId ? offer.fromTeamId : offer.toTeamId;
+    nextState.teams[fromTeamId]?.txLog.push({
+      type: 'TRADE',
+      year: nextState.year,
+      week: nextState.week,
+      playerId: asset.playerId,
+      fromTeamId,
+      toTeamId,
+    });
+  }
 
   const userTeam = findUserTeam(nextState);
   if (userTeam) {

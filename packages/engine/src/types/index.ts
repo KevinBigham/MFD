@@ -203,6 +203,10 @@ export interface TransactionLogEntry {
   type: string;
   year: number;
   week: number;
+  playerId?: string;
+  fromTeamId?: string;
+  toTeamId?: string;
+  notes?: string;
 }
 
 export interface ClinicState {
@@ -259,6 +263,8 @@ export interface Team {
   txLog: TransactionLogEntry[];
   seasonStats: TeamSeasonStats;
   mentoringPairs: MentoringPair[];
+  practiceSquad: PracticeSquadPlayer[];
+  stadiumType: 'dome' | 'outdoor';
 }
 
 export interface FranchiseTagState {
@@ -416,6 +422,31 @@ export interface DraftPick {
   isCompPick: boolean;
 }
 
+export interface Scout {
+  id: string;
+  name: string;
+  tier: 'elite' | 'good' | 'average' | 'poor';
+  specialty: Position | null;
+  salary: number;
+  accuracy: number;
+}
+
+export interface ScoutingDepartment {
+  scouts: Scout[];
+  availableScouts: Scout[];
+  budget: number;
+  maxScouts: number;
+}
+
+export interface CombineMeasurables {
+  fortyYard: number;
+  benchPress: number;
+  vertical: number;
+  broadJump: number;
+  threeCone: number;
+  shuttle: number;
+}
+
 export interface DraftProspect {
   id: string;
   firstName: string;
@@ -433,6 +464,7 @@ export interface DraftProspect {
   bustProbability: number;
   stealProbability: number;
   scoutingReports: ScoutingReport[];
+  combine: CombineMeasurables | null;
 }
 
 export interface ScoutingReport {
@@ -473,14 +505,59 @@ export interface ProspectScoutingState {
   accuracy: number;
   visibleScoutGrade: number;
   notes: string[];
+  proDayRating: string | null;
 }
 
 export interface TradeOfferAsset {
-  type: 'player' | 'pick';
+  type: 'player' | 'pick' | 'conditional_pick';
   teamId: string;
   playerId: string | null;
   pickId: string | null;
+  conditionalPickId?: string | null;
   description: string;
+}
+
+export interface PickCondition {
+  type: 'games_played' | 'pro_bowl' | 'playoff_win' | 'starts';
+  playerId: string;
+  threshold: number;
+  upgradeRound: number;
+}
+
+export interface ConditionalPick {
+  id: string;
+  fromTeamId: string;
+  toTeamId: string;
+  playerId: string;
+  basePick: DraftPick;
+  condition: PickCondition;
+  resolvedPick: DraftPick | null;
+  resolved: boolean;
+  description: string;
+}
+
+export interface PracticeSquadPlayer {
+  playerId: string;
+  elevationsUsed: number;
+  maxElevations: number;
+  isElevated?: boolean;
+  elevatedWeek?: number;
+}
+
+export interface WaiverWireEntry {
+  playerId: string;
+  releasedByTeamId: string | null;
+  createdYear: number;
+  createdWeek: number;
+  expiresYear: number;
+  expiresWeek: number;
+}
+
+export interface WaiverClaim {
+  teamId: string;
+  playerId: string;
+  claimYear: number;
+  claimWeek: number;
 }
 
 export interface TradeOffer {
@@ -551,6 +628,8 @@ export interface GameResult {
   overtime: boolean;
   mvpPlayerId: string | null;
   stats: GameStats;
+  weather?: WeatherCondition | null;
+  matchupHighlight?: MatchupHighlight | null;
 }
 
 export interface GameStats {
@@ -704,6 +783,8 @@ export interface GameDayPackage {
   rivalry: RivalryGameContext | null;
   activeEffectSummaries: string[];
   autopsy: GameDayAutopsy;
+  weather?: WeatherCondition | null;
+  matchupHighlight?: MatchupHighlight | null;
 }
 
 export interface GameDayState {
@@ -755,6 +836,7 @@ export interface ScheduledGame {
   homeTeamId: string;
   awayTeamId: string;
   result: GameResult | null;
+  weather?: WeatherCondition | null;
 }
 
 // ── Dynasty & Legacy ────────────────────────────────────
@@ -923,6 +1005,36 @@ export interface SeasonContext {
 
 export type DifficultyLevel = 'rookie' | 'pro' | 'allpro' | 'legend';
 
+export type WeatherCondition = 'dome' | 'clear' | 'rain' | 'snow' | 'wind';
+
+export interface MatchupHighlight {
+  label: string;
+  detail: string;
+  teamId: string;
+  playerId: string | null;
+  opponentPlayerId: string | null;
+  advantage: number;
+}
+
+export interface HandshakeCondition {
+  metric: 'wins' | 'playoff' | 'starter' | 'trade_block' | 'spending' | 'draft_position' | 'on_roster' | 'restructure';
+  target: number | string | boolean;
+}
+
+export interface Handshake {
+  id: string;
+  type: 'owner' | 'player' | 'media';
+  promiseText: string;
+  targetId: string;
+  teamId: string;
+  madeYear: number;
+  madeWeek: number;
+  deadline: { year: number; week: number };
+  condition: HandshakeCondition;
+  status: 'active' | 'fulfilled' | 'broken' | 'expired';
+  consequence: string | null;
+}
+
 // ── Game State ──────────────────────────────────────────
 
 export interface GameState {
@@ -956,6 +1068,12 @@ export interface GameState {
   weekSummaries: WeeklySummary[];
   playoffBracket: PlayoffBracket | null;
   offseasonState: OffseasonState | null;
+  scoutingDepartment: ScoutingDepartment;
+  conditionalPicks: ConditionalPick[];
+  waiverOrder: string[];
+  waiverWire: WaiverWireEntry[];
+  waiverClaims: WaiverClaim[];
+  handshakes: Handshake[];
 }
 
 export type SeasonPhase =

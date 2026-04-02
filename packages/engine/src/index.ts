@@ -195,6 +195,32 @@ export {
   finalizePostDraft,
 } from './systems/draft';
 export {
+  createDefaultScoutingDepartment,
+  generateScoutPool,
+  applyScoutAccuracy,
+  hireScout,
+  fireScout,
+  bestScoutForProspect,
+  runCombine,
+  runProDay,
+} from './systems/scouting-staff';
+export { calculateCompPicks } from './systems/comp-picks';
+export { resolveConditions, conditionalPickExpectedValue } from './systems/conditional-picks';
+export {
+  addToPracticeSquad,
+  removeFromPracticeSquad,
+  elevateFromPracticeSquad,
+  cutPlayerToWaivers,
+  submitWaiverClaim,
+  processWaiverClaims,
+  aiWaiverLogic,
+} from './systems/practice-squad';
+export {
+  generateOwnerDemands,
+  makePlayerPromise,
+  evaluateHandshakes,
+} from './systems/handshake-ledger';
+export {
   acceptTradeOffer,
   rejectTradeOffer,
 } from './systems/trade-market';

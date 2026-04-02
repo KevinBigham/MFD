@@ -5,12 +5,14 @@ import { advancePlayoffBracket, seedPlayoffBracket } from './playoff-bracket';
 import { archiveSeasonHistory } from './history';
 import { advanceStoryArcs } from './story-arcs';
 import { buildGameDayPackage } from './game-day-package';
+import { evaluateHandshakes, generateOwnerDemands } from './handshake-ledger';
 import {
   ensureLivingWorldState,
   expireTimedEffects,
   generateWeeklyOffFieldEvents,
   getGameEffectBonuses,
 } from './off-field-events';
+import { aiWaiverLogic, processWaiverClaims } from './practice-squad';
 import {
   createPostGamePressConference,
   maybeCreateMidweekPressConference,
@@ -24,6 +26,8 @@ import { buildWeeklySummary } from './weekly-summary';
 import {
   cloneGame,
   findUserTeam,
+  ensureWeeklyWeather,
+  generateWeatherForGame,
   makeEvent,
   refreshNarrative,
   simulateGame,
@@ -112,6 +116,16 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
 
   if (nextState.phase === 'preseason') {
     nextState.phase = 'regular_season';
+    for (const team of Object.values(nextState.teams)) {
+      if (!nextState.handshakes.some((handshake) =>
+        handshake.type === 'owner' &&
+        handshake.teamId === team.id &&
+        handshake.madeYear === nextState.year,
+      )) {
+        generateOwnerDemands(nextState, team.id);
+      }
+    }
+    ensureWeeklyWeather(nextState, nextState.week);
     return { nextState, events, consequences: [] };
   }
   if (['offseason', 'free_agency', 'draft', 'post_draft'].includes(nextState.phase)) {
@@ -121,6 +135,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   expireTimedEffects(nextState);
 
   if (nextState.phase === 'regular_season') {
+    ensureWeeklyWeather(nextState, nextState.week);
     const currentWeek = nextState.schedule.find((entry) => entry.week === nextState.week);
     for (const matchup of currentWeek?.games ?? []) {
       const home = nextState.teams[matchup.homeTeamId]!;
@@ -140,8 +155,11 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
           teamOvrBonus: awayEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0),
           playerOvrBonuses: awayEffects.playerOvrBonuses,
         },
+        weather: matchup.weather ?? generateWeatherForGame(home, nextState.week),
+        rivalryIntensity: rivalry?.intensity ?? 0,
       });
       matchup.result = outcome.result;
+      matchup.weather = outcome.result.weather ?? matchup.weather ?? null;
       updateRecordsFromGameResult(nextState, outcome.result);
       updateLeagueRivalriesFromGame(nextState, outcome.result);
       ownerDelta += updateOwner(home, nextState);
@@ -167,6 +185,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
     } else {
       updatePowerRankings(nextState);
       nextState.week += 1;
+      ensureWeeklyWeather(nextState, nextState.week);
     }
   } else if (nextState.phase === 'playoffs') {
     nextState.playoffBracket = nextState.playoffBracket ?? seedPlayoffBracket(nextState);
@@ -188,6 +207,8 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
           teamOvrBonus: awayEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0),
           playerOvrBonuses: awayEffects.playerOvrBonuses,
         },
+        weather: generateWeatherForGame(home, nextState.week),
+        rivalryIntensity: rivalry?.intensity ?? 0,
       });
       updateLeagueRivalriesFromGame(nextState, outcome.result, { playoffElimination: true });
       ownerDelta += updateOwner(home, nextState);
@@ -221,6 +242,10 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       nextState.week += 1;
     }
   }
+
+  aiWaiverLogic(nextState);
+  processWaiverClaims(nextState);
+  evaluateHandshakes(nextState);
 
   syncPlayers(nextState);
   const currentUser = findUserTeam(nextState);

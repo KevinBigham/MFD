@@ -66,6 +66,33 @@ function deriveLeagueRivalries(state: Record<string, unknown>): Array<Record<str
   return [...byId.values()];
 }
 
+function sortWaiverTeams(a: Record<string, unknown>, b: Record<string, unknown>, aId: string, bId: string): number {
+  const aWins = Number(a['wins'] ?? 0);
+  const bWins = Number(b['wins'] ?? 0);
+  if (aWins !== bWins) return aWins - bWins;
+
+  const aLosses = Number(a['losses'] ?? 0);
+  const bLosses = Number(b['losses'] ?? 0);
+  if (aLosses !== bLosses) return bLosses - aLosses;
+
+  const aTies = Number(a['ties'] ?? 0);
+  const bTies = Number(b['ties'] ?? 0);
+  if (aTies !== bTies) return aTies - bTies;
+
+  const aDiff = Number((a['seasonStats'] as Record<string, unknown> | undefined)?.['pointDifferential'] ?? 0);
+  const bDiff = Number((b['seasonStats'] as Record<string, unknown> | undefined)?.['pointDifferential'] ?? 0);
+  if (aDiff !== bDiff) return aDiff - bDiff;
+
+  return aId.localeCompare(bId);
+}
+
+function deriveWaiverOrder(state: Record<string, unknown>): string[] {
+  const teams = (state['teams'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+  return Object.entries(teams)
+    .sort(([aId, a], [bId, b]) => sortWaiverTeams(a, b, aId, bId))
+    .map(([teamId]) => teamId);
+}
+
 /** Register a migration from version N to N+1. */
 export function registerMigration(fromVersion: number, fn: MigrationFn): void {
   migrations.set(fromVersion, fn);
@@ -185,3 +212,33 @@ registerMigration(6, (state) => ({
   leagueRivalries: Array.isArray(state['leagueRivalries']) ? state['leagueRivalries'] : deriveLeagueRivalries(state),
   activeEffects: Array.isArray(state['activeEffects']) ? state['activeEffects'] : [],
 }));
+
+registerMigration(7, (state) => {
+  const teams = (state['teams'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+  for (const team of Object.values(teams)) {
+    team['practiceSquad'] = Array.isArray(team['practiceSquad']) ? team['practiceSquad'] : [];
+    team['stadiumType'] = team['stadiumType'] ?? 'outdoor';
+  }
+
+  const draftClass = Array.isArray(state['draftClass']) ? state['draftClass'] as Array<Record<string, unknown>> : [];
+  for (const prospect of draftClass) {
+    prospect['combine'] = prospect['combine'] ?? null;
+  }
+
+  return {
+    ...state,
+    teams,
+    draftClass,
+    scoutingDepartment: state['scoutingDepartment'] ?? {
+      scouts: [],
+      availableScouts: [],
+      budget: 5,
+      maxScouts: 5,
+    },
+    conditionalPicks: Array.isArray(state['conditionalPicks']) ? state['conditionalPicks'] : [],
+    waiverOrder: Array.isArray(state['waiverOrder']) ? state['waiverOrder'] : deriveWaiverOrder(state),
+    waiverWire: Array.isArray(state['waiverWire']) ? state['waiverWire'] : [],
+    waiverClaims: Array.isArray(state['waiverClaims']) ? state['waiverClaims'] : [],
+    handshakes: Array.isArray(state['handshakes']) ? state['handshakes'] : [],
+  };
+});

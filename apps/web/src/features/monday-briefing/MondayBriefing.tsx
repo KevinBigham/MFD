@@ -5,6 +5,7 @@ import {
   selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary, selectLatestGameDayPackage, selectActiveStoryArcs, selectTeams,
   selectUserPowerRanking, selectUserRecordWatch, selectUserMentoringPairs,
   selectOffFieldEvents, selectUpcomingRivalry, selectCoachingCarouselNews,
+  selectConditionalPicks, selectHandshakes, selectWaiverWirePlayers, selectWeather,
 } from '../../app/store/game-store';
 import {
   PixelMetricCard,
@@ -37,6 +38,10 @@ export function MondayBriefing() {
   const offFieldEvents = useGameStore(selectOffFieldEvents);
   const upcomingRivalry = useGameStore(selectUpcomingRivalry);
   const coachingNews = useGameStore(selectCoachingCarouselNews);
+  const handshakes = useGameStore(selectHandshakes);
+  const waiverPlayers = useGameStore(selectWaiverWirePlayers);
+  const weather = useGameStore(selectWeather);
+  const conditionalPicks = useGameStore(selectConditionalPicks);
 
   const teamName = team ? `${team.city} ${team.name}` : 'No Team';
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '0-0';
@@ -90,6 +95,8 @@ export function MondayBriefing() {
   const powerRankAccent = userPowerRanking
     ? userPowerRanking.rank <= 5 ? 'gold' : userPowerRanking.rank <= 10 ? 'cyan' : 'red'
     : 'default';
+  const activePromises = handshakes.filter((handshake) => handshake.teamId === team?.id && handshake.status === 'active').slice(0, 3);
+  const userConditionalPicks = conditionalPicks.filter((pick) => pick.toTeamId === team?.id).slice(0, 2);
 
   return (
     <div style={screenStackStyle}>
@@ -265,6 +272,75 @@ export function MondayBriefing() {
       </div>
 
       <div style={autoGrid(320)}>
+        <PixelPanel title="Promise Tracker" accent={activePromises.length > 0 ? 'gold' : 'default'}>
+          {activePromises.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No active promises on the clock. Owner demands and player assurances will post here when they exist.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {activePromises.map((handshake) => (
+                <div key={handshake.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ ...mono, color: '#fff' }}>{handshake.promiseText}</div>
+                    <PixelBadge variant="gold">{handshake.type}</PixelBadge>
+                  </div>
+                  <div style={{ ...monoSm, color: '#999', lineHeight: 1.5 }}>
+                    Due {handshake.deadline.year}-W{handshake.deadline.week}. {handshake.consequence ?? 'Trust impact pending.'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
+
+        <PixelPanel title="Waiver Wire" accent={waiverPlayers.length > 0 ? 'cyan' : 'default'}>
+          {waiverPlayers.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No active waiver decisions this week.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {waiverPlayers.slice(0, 3).map((player) => (
+                <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ ...mono, color: '#fff' }}>{player.name}</div>
+                    <div style={{ ...monoSm, color: '#999' }}>{player.pos} // OVR {player.ovr}</div>
+                  </div>
+                  <PixelBadge variant="cyan">Claimable</PixelBadge>
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
+
+        <PixelPanel title="Weather Forecast" accent={weather === 'snow' || weather === 'wind' ? 'red' : weather === 'rain' ? 'gold' : 'cyan'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+              <div style={{ ...display, fontSize: '20px', color: '#fff', lineHeight: 1 }}>
+                {(weather ?? 'clear').toUpperCase()}
+              </div>
+              <PixelBadge variant={weather === 'snow' || weather === 'wind' ? 'red' : weather === 'rain' ? 'gold' : 'cyan'}>
+                {opponentName}
+              </PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
+              {weather === 'snow'
+                ? 'Snow is in the forecast. Passing volume and ball security will tighten.'
+                : weather === 'wind'
+                  ? 'Wind will destabilize long kicks and vertical shots.'
+                  : weather === 'rain'
+                    ? 'Rain favors ball-control offense and sharper handling.'
+                    : 'Standard conditions. Call the full game plan.'}
+            </div>
+            {userConditionalPicks.length > 0 ? (
+              <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
+                Conditional assets: {userConditionalPicks.map((pick) => pick.description).join(' | ')}
+              </div>
+            ) : null}
+          </div>
+        </PixelPanel>
+
         <PixelPanel title="Locker Room Pulse" accent={offFieldEvents.length > 0 ? 'gold' : 'default'}>
           {offFieldEvents.length === 0 ? (
             <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>

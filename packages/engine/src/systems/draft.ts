@@ -2,6 +2,7 @@ import { createEmptySeasonStats, emptyPlayerStats } from './season-stats';
 import { makeContract } from './contracts';
 import { syncPlayerArchiveEntry } from './history';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
+import { applyScoutAccuracy, bestScoutForProspect, runCombine, runProDay } from './scouting-staff';
 import { mulberry32 } from '../rng';
 import type {
   DraftPick,
@@ -106,6 +107,7 @@ function makeProspect(game: GameState, rand: () => number, index: number): Draft
     bustProbability: Math.round(rand() * 30) / 100,
     stealProbability: Math.round(rand() * 20) / 100,
     scoutingReports: [],
+    combine: null,
   };
 }
 
@@ -118,6 +120,7 @@ export function ensureDraftClass(game: GameState): void {
   const count = Math.max(64, pickCount + 24);
   game.draftClass = Array.from({ length: count }, (_, index) => makeProspect(game, rand, index + 1))
     .sort((a, b) => b.trueGrade - a.trueGrade || a.id.localeCompare(b.id));
+  runCombine(game, rand);
 }
 
 function rookieContract(round: number): { salary: number; years: number; signingBonus: number; guaranteed: number } {
@@ -176,8 +179,13 @@ function prospectToPlayer(prospect: DraftProspect, teamId: string, year: number,
   };
 }
 
-function removeUsedPick(team: Team, year: number, round: number, pick: number): void {
-  const index = team.draftPicks.findIndex((entry) => entry.year === year && entry.round === round && entry.pick === pick);
+function removeUsedPick(team: Team, year: number, round: number, pick: number, originalTeamId: string): void {
+  const index = team.draftPicks.findIndex((entry) =>
+    entry.year === year &&
+    entry.round === round &&
+    entry.pick === pick &&
+    entry.originalTeamId === originalTeamId,
+  );
   if (index !== -1) {
     team.draftPicks.splice(index, 1);
   }
@@ -198,22 +206,42 @@ export function runScoutingAction(game: GameState, prospectId: string, action: S
 
   const current = nextState.offseasonState.scoutingState[prospectId] ?? {
     prospectId,
-    actions: [],
+    actions: [] as ScoutingAction[],
     accuracy: 0,
     visibleScoutGrade: prospect.scoutGrade,
-    notes: [],
+    notes: [] as string[],
+    proDayRating: null,
   };
 
   if (!current.actions.includes(action)) {
-    const bonus = action === 'film' ? 0.2 : action === 'combine' ? 0.25 : 0.15;
+    const scout = bestScoutForProspect(nextState, prospect);
+    const bonus = action === 'film' ? 0.16 : action === 'combine' ? 0.22 : 0.14;
     current.actions.push(action);
-    current.accuracy = Math.min(0.85, current.accuracy + bonus);
-    current.visibleScoutGrade = Math.round(((prospect.scoutGrade * (1 - current.accuracy)) + (prospect.trueGrade * current.accuracy)) * 10) / 10;
+    current.accuracy = Math.min(0.95, current.accuracy + bonus + (scout?.accuracy ?? 0) * 0.1);
+    current.visibleScoutGrade = scout
+      ? applyScoutAccuracy(prospect, scout, randForAction(action, prospectId))
+      : Math.round(((prospect.scoutGrade * (1 - current.accuracy)) + (prospect.trueGrade * current.accuracy)) * 10) / 10;
     current.notes.push(makeScoutingNote(action, prospect));
+    if (action === 'combine' && prospect.combine) {
+      current.notes.push(`Combine: ${prospect.combine.fortyYard}s 40 // ${prospect.combine.vertical}" vertical.`);
+    }
+    if (action === 'interview') {
+      const proDay = runProDay(nextState, prospectId, randForAction('interview', prospectId));
+      nextState.offseasonState = proDay.nextState.offseasonState;
+      current.proDayRating = nextState.offseasonState?.scoutingState[prospectId]?.proDayRating ?? current.proDayRating;
+    }
   }
 
-  nextState.offseasonState.scoutingState[prospectId] = current;
+  if (nextState.offseasonState) {
+    nextState.offseasonState.scoutingState[prospectId] = current;
+  }
   return { nextState, events: [], consequences: [] };
+}
+
+function randForAction(action: ScoutingAction, prospectId: string): () => number {
+  const seed = [...`${action}:${prospectId}`].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const rand = mulberry32(seed >>> 0);
+  return () => rand();
 }
 
 function bestProspectForTeam(game: GameState, team: Team): DraftProspect | null {
@@ -247,7 +275,7 @@ function applyDraftSelection(game: GameState, teamId: string, prospectId: string
   team.roster.push(rookie);
   game.players[rookie.id] = rookie;
   syncPlayerArchiveEntry(game, rookie, game.year);
-  removeUsedPick(team, game.year, draftEntry.round, draftEntry.pick);
+  removeUsedPick(team, game.year, draftEntry.round, draftEntry.pick, draftEntry.originalTeamId);
   game.offseasonState.completedDraftPickIds.push(draftEntry.id);
   game.offseasonState.currentDraftPickIndex += 1;
 }

@@ -6,7 +6,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { Player } from '@mfd/engine';
 import { calcCapHit } from '@mfd/engine';
 import {
-  useGameStore, selectRoster, selectUserTeam, selectUserTeamId,
+  useGameStore, selectFreeAgentPlayers, selectPracticeSquad, selectRoster, selectUserTeam, selectUserTeamId, selectWaiverWirePlayers,
 } from '../../app/store/game-store';
 import {
   PixelConsequenceList,
@@ -117,9 +117,21 @@ const columns: ColumnDef<Player, unknown>[] = [
 
 export function RosterManagement() {
   const roster = useGameStore(selectRoster);
+  const practiceSquad = useGameStore(selectPracticeSquad);
+  const freeAgents = useGameStore(selectFreeAgentPlayers);
   const teamId = useGameStore(selectUserTeamId);
   const team = useGameStore(selectUserTeam);
-  const { cutPlayer, toggleTradeBlock, restructure } = useGameStore((s) => s.actions);
+  const waiverPlayers = useGameStore(selectWaiverWirePlayers);
+  const playersById = useGameStore((s) => s.game?.players ?? {});
+  const {
+    addToPracticeSquad,
+    cutPlayer,
+    elevatePracticeSquadPlayer,
+    removeFromPracticeSquad,
+    restructure,
+    submitWaiverClaim,
+    toggleTradeBlock,
+  } = useGameStore((s) => s.actions);
 
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [posFilter, setPosFilter] = useState<string>('ALL');
@@ -138,10 +150,16 @@ export function RosterManagement() {
   const avgAge = roster.length > 0
     ? Math.round(roster.reduce((sum, player) => sum + player.age, 0) / roster.length * 10) / 10
     : 0;
+  const practiceSquadRows = practiceSquad
+    .map((entry) => ({ entry, player: playersById[entry.playerId] }))
+    .filter((item): item is { entry: typeof practiceSquad[number]; player: Player } => Boolean(item.player));
+  const practiceTargets = freeAgents
+    .filter((player) => !waiverPlayers.some((waiverPlayer) => waiverPlayer.id === player.id))
+    .slice(0, 8);
 
   const handleCut = useCallback((player: Player) => {
     if (!teamId) return;
-    cutPlayer(teamId, player.id);
+    void cutPlayer(teamId, player.id);
     setSelectedPlayer(null);
   }, [teamId, cutPlayer]);
 
@@ -262,6 +280,81 @@ export function RosterManagement() {
           </div>
         ) : null}
       </PixelModal>
+
+      <div style={autoGrid(320)}>
+        <PixelPanel title={`Practice Squad (${practiceSquad.length}/16)`} accent="green">
+          {practiceSquadRows.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No players on the practice squad. Add depth from free agency after roster cuts clear.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {practiceSquadRows.map(({ entry, player }) => (
+                <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', padding: '10px', border: '3px solid var(--mfd-green)', background: 'rgba(74, 222, 128, 0.08)' }}>
+                  <div>
+                    <div style={{ ...mono, color: '#fff' }}>{player.name}</div>
+                    <div style={{ ...monoSm, color: '#999' }}>
+                      {player.pos} // Elevations {entry.elevationsUsed}/{entry.maxElevations}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <PixelButton accent="green" onClick={() => teamId && void elevatePracticeSquadPlayer(teamId, player.id)}>
+                      Elevate
+                    </PixelButton>
+                    <PixelButton accent="red" onClick={() => teamId && void removeFromPracticeSquad(teamId, player.id)}>
+                      Release
+                    </PixelButton>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
+
+        <PixelPanel title="Practice Squad Targets" accent="cyan">
+          {practiceTargets.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No free agents are clear to stash right now.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {practiceTargets.map((player) => (
+                <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', padding: '10px', border: '3px solid var(--mfd-cyan)', background: 'rgba(34, 211, 238, 0.08)' }}>
+                  <div>
+                    <div style={{ ...mono, color: '#fff' }}>{player.name}</div>
+                    <div style={{ ...monoSm, color: '#999' }}>{player.pos} // OVR {player.ovr} // Age {player.age}</div>
+                  </div>
+                  <PixelButton accent="cyan" onClick={() => teamId && void addToPracticeSquad(teamId, player.id)}>
+                    Add to PS
+                  </PixelButton>
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
+
+        <PixelPanel title={`Waiver Claims (${waiverPlayers.length})`} accent={waiverPlayers.length > 0 ? 'gold' : 'default'}>
+          {waiverPlayers.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No active waiver-wire players this week.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {waiverPlayers.slice(0, 6).map((player) => (
+                <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', padding: '10px', border: '3px solid var(--mfd-gold)', background: 'rgba(250, 204, 21, 0.08)' }}>
+                  <div>
+                    <div style={{ ...mono, color: '#fff' }}>{player.name}</div>
+                    <div style={{ ...monoSm, color: '#999' }}>{player.pos} // OVR {player.ovr}</div>
+                  </div>
+                  <PixelButton accent="gold" onClick={() => teamId && void submitWaiverClaim(teamId, player.id)}>
+                    Claim
+                  </PixelButton>
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
+      </div>
     </div>
   );
 }

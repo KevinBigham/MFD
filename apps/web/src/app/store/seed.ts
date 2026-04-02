@@ -16,6 +16,7 @@ import {
   makeContract, initOwner, OWNER_ARCHETYPES,
   generatePersonality, SAVE_VERSION, createEmptySeasonStats,
   CONTRACT_VALUE_TABLE, AGE_VALUE_CURVE, MIN_SALARY, emptyPlayerStats,
+  createDefaultScoutingDepartment,
   syncAllPlayerArchiveEntries,
 } from '@mfd/engine';
 import { createEmptyRecordBook } from '@mfd/engine';
@@ -105,6 +106,7 @@ const ROSTER_TEMPLATE: { pos: Position; count: number; starterCount: number }[] 
 
 const OFF_SCHEME_IDS = ['spread', 'west_coast', 'power_run', 'air_raid', 'rpo'];
 const DEF_SCHEME_IDS = ['cover_3', 'cover_2', 'man_press', 'hybrid_34', 'tampa_2'];
+const DOME_CITIES = new Set(['Indianapolis', 'Houston', 'Atlanta', 'New Orleans', 'Detroit', 'Minneapolis', 'Phoenix', 'Dallas', 'Las Vegas', 'Los Angeles']);
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -300,6 +302,8 @@ function genTeam(
     txLog: [],
     seasonStats: createEmptySeasonStats(),
     mentoringPairs: [],
+    practiceSquad: [],
+    stadiumType: DOME_CITIES.has(def.city) ? 'dome' : 'outdoor',
   };
 
   return { team, players };
@@ -423,6 +427,12 @@ export function createSeedGameState(
     weekSummaries: [],
     playoffBracket: null,
     offseasonState: null,
+    scoutingDepartment: createDefaultScoutingDepartment(),
+    conditionalPicks: [],
+    waiverOrder: [...teamIds],
+    waiverWire: [],
+    waiverClaims: [],
+    handshakes: [],
   };
 
   syncAllPlayerArchiveEntries(gameState, year);

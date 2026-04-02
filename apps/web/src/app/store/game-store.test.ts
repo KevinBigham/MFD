@@ -29,6 +29,7 @@ function makeProspect(id: string): DraftProspect {
     bustProbability: 0.12,
     stealProbability: 0.08,
     scoutingReports: [],
+    combine: null,
   };
 }
 

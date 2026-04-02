@@ -10,8 +10,16 @@ import type {
   ContractOffer, GameState, SeasonPhase, Team, WeeklySummary,
 } from '@mfd/engine';
 import {
+  addToPracticeSquad as addToPracticeSquadEngine,
+  cutPlayerToWaivers as cutPlayerToWaiversEngine,
+  elevateFromPracticeSquad as elevateFromPracticeSquadEngine,
+  fireScout as fireScoutEngine,
+  hireScout as hireScoutEngine,
+  makePlayerPromise as makePlayerPromiseEngine,
+  removeFromPracticeSquad as removeFromPracticeSquadEngine,
   restructureContract, backloadContract,
   calcCapHit, calcDeadMoney,
+  runProDay as runProDayEngine,
   updateOwnerApproval,
   updateSystemFit,
   earnXP,
@@ -19,6 +27,7 @@ import {
   submitReSignOffer as submitReSignOfferEngine,
   submitFreeAgentBid as submitFreeAgentBidEngine,
   runScoutingAction as runScoutingActionEngine,
+  submitWaiverClaim as submitWaiverClaimEngine,
   acceptTradeOffer as acceptTradeOfferEngine,
   rejectTradeOffer as rejectTradeOfferEngine,
   makeDraftPick as makeDraftPickEngine,
@@ -38,9 +47,13 @@ interface GameActions {
   loadLatestAutosave: () => Promise<boolean>;
 
   // Roster actions
-  cutPlayer: (teamId: string, playerId: string) => void;
+  cutPlayer: (teamId: string, playerId: string) => Promise<void>;
   toggleTradeBlock: (teamId: string, playerId: string) => void;
   setStarter: (teamId: string, playerId: string, isStarter: boolean) => void;
+  addToPracticeSquad: (teamId: string, playerId: string) => Promise<void>;
+  removeFromPracticeSquad: (teamId: string, playerId: string) => Promise<void>;
+  elevatePracticeSquadPlayer: (teamId: string, playerId: string) => Promise<void>;
+  submitWaiverClaim: (teamId: string, playerId: string) => Promise<void>;
 
   // Contract actions
   restructure: (teamId: string, playerId: string) => void;
@@ -53,9 +66,13 @@ interface GameActions {
   submitReSignOffer: (playerId: string, offer: ContractOffer) => Promise<void>;
   submitFreeAgentBid: (playerId: string, offer: ContractOffer) => Promise<void>;
   runScoutingAction: (prospectId: string, action: 'film' | 'combine' | 'interview') => Promise<void>;
+  runProDay: (prospectId: string) => Promise<void>;
+  hireScout: (scoutId: string) => Promise<void>;
+  fireScout: (scoutId: string) => Promise<void>;
   acceptTradeOffer: (offerId: string) => Promise<void>;
   rejectTradeOffer: (offerId: string) => Promise<void>;
   makeDraftPick: (prospectId: string) => Promise<void>;
+  makePromise: (teamId: string, playerId: string, promiseType: 'starter' | 'no_trade' | 'restructure') => Promise<void>;
 
   // Owner
   refreshOwner: (teamId: string) => void;
@@ -85,6 +102,8 @@ export const useGameStore = create<GameStore>()(
         await autosaveDynasty(nextGame);
       }
     };
+
+    const cloneForMutation = (game: GameState): GameState => structuredClone(game);
 
     return ({
     game: null,
@@ -116,31 +135,12 @@ export const useGameStore = create<GameStore>()(
         return true;
       },
 
-      cutPlayer: (teamId, playerId) =>
-        set((s) => {
-          if (!s.game) return;
-          const team = s.game.teams[teamId];
-          if (!team) return;
-
-          const idx = team.roster.findIndex((p) => p.id === playerId);
-          if (idx === -1) return;
-
-          const player = team.roster[idx]!;
-
-          // Calculate dead money if player has a contract
-          if (player.contract) {
-            const dead = calcDeadMoney(player.contract);
-            team.deadCap += dead;
-            team.capUsed -= calcCapHit(player.contract) - dead;
-            team.capSpace = getSalaryCap(s.game.year) - team.capUsed;
-          }
-
-          // Remove from roster, add to free agents
-          team.roster.splice(idx, 1);
-          player.teamId = null;
-          player.contract = null;
-          s.game.freeAgents.push(playerId);
-        }),
+      cutPlayer: async (teamId, playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = cutPlayerToWaiversEngine(cloneForMutation(current), teamId, playerId);
+        await commitGame(result.nextState);
+      },
 
       toggleTradeBlock: (teamId, playerId) =>
         set((s) => {
@@ -159,6 +159,34 @@ export const useGameStore = create<GameStore>()(
           const player = team.roster.find((p) => p.id === playerId);
           if (player) player.isStarter = isStarter;
         }),
+
+      addToPracticeSquad: async (teamId, playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = addToPracticeSquadEngine(cloneForMutation(current), teamId, playerId);
+        await commitGame(result.nextState);
+      },
+
+      removeFromPracticeSquad: async (teamId, playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = removeFromPracticeSquadEngine(cloneForMutation(current), teamId, playerId);
+        await commitGame(result.nextState);
+      },
+
+      elevatePracticeSquadPlayer: async (teamId, playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = elevateFromPracticeSquadEngine(cloneForMutation(current), teamId, playerId);
+        await commitGame(result.nextState);
+      },
+
+      submitWaiverClaim: async (teamId, playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = submitWaiverClaimEngine(cloneForMutation(current), teamId, playerId);
+        await commitGame(result.nextState);
+      },
 
       restructure: (teamId, playerId) =>
         set((s) => {
@@ -230,6 +258,27 @@ export const useGameStore = create<GameStore>()(
         await commitGame(result.nextState);
       },
 
+      runProDay: async (prospectId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = runProDayEngine(current, prospectId);
+        await commitGame(result.nextState);
+      },
+
+      hireScout: async (scoutId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = hireScoutEngine(current, scoutId);
+        await commitGame(result.nextState);
+      },
+
+      fireScout: async (scoutId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = fireScoutEngine(current, scoutId);
+        await commitGame(result.nextState);
+      },
+
       acceptTradeOffer: async (offerId) => {
         const current = get().game;
         if (!current) return;
@@ -248,6 +297,13 @@ export const useGameStore = create<GameStore>()(
         const current = get().game;
         if (!current) return;
         const result = makeDraftPickEngine(current, prospectId);
+        await commitGame(result.nextState);
+      },
+
+      makePromise: async (teamId, playerId, promiseType) => {
+        const current = get().game;
+        if (!current) return;
+        const result = makePlayerPromiseEngine(cloneForMutation(current), teamId, playerId, promiseType);
         await commitGame(result.nextState);
       },
 

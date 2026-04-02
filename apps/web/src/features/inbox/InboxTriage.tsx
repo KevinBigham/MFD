@@ -5,6 +5,7 @@ import {
 import {
   useGameStore, selectUserTeam, selectRoster, selectWeek, selectNarrative, selectLatestSummary, selectPhase, selectLatestGameDayPackage, selectActiveStoryArcs,
   selectOffFieldEvents, selectRecentPressConferences, selectUpcomingRivalry, selectCoachingCarouselNews,
+  selectConditionalPicks, selectHandshakes, selectWaiverWire, selectWeather,
 } from '../../app/store/game-store';
 import { buildInboxMessages, type InboxMessage, type MessageType } from './buildInboxMessages';
 import {
@@ -33,6 +34,10 @@ export function InboxTriage() {
   const recentPressConferences = useGameStore(selectRecentPressConferences);
   const upcomingRivalry = useGameStore(selectUpcomingRivalry);
   const coachingNews = useGameStore(selectCoachingCarouselNews);
+  const handshakes = useGameStore(selectHandshakes);
+  const conditionalPicks = useGameStore(selectConditionalPicks);
+  const waiverWire = useGameStore(selectWaiverWire);
+  const weather = useGameStore(selectWeather);
 
   const [selectedMsg, setSelectedMsg] = useState<InboxMessage | null>(null);
   const [filter, setFilter] = useState<MessageType | 'ALL'>('ALL');
@@ -50,7 +55,11 @@ export function InboxTriage() {
     recentPressConferences,
     coachingNews,
     upcomingRivalry,
-  }), [activeArcs, coachingNews, latestPackage, latestSummary, narrative, offFieldEvents, phase, recentPressConferences, roster, team, upcomingRivalry, week]);
+    handshakes,
+    conditionalPicks,
+    waiverWire,
+    weather,
+  }), [activeArcs, coachingNews, conditionalPicks, handshakes, latestPackage, latestSummary, narrative, offFieldEvents, phase, recentPressConferences, roster, team, upcomingRivalry, waiverWire, weather, week]);
 
   const filtered = filter === 'ALL' ? messages : messages.filter((m) => m.type === filter);
   const urgentCount = messages.filter((m) => m.type === 'URGENT' && !m.read).length;

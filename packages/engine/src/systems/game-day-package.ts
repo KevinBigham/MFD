@@ -245,5 +245,7 @@ export function buildGameDayPackage(params: BuildGameDayPackageParams): GameDayP
     rivalry,
     activeEffectSummaries,
     autopsy,
+    weather: result.weather ?? null,
+    matchupHighlight: result.matchupHighlight ?? null,
   };
 }

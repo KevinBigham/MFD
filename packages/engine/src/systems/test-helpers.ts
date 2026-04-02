@@ -11,7 +11,7 @@ export function createEmptyGameDayState(): GameDayState {
 
 export function makePlayer(
   id: string,
-  teamId: string,
+  teamId: string | null,
   pos: Player['pos'],
   ovr: number,
   isStarter = true,
@@ -30,7 +30,7 @@ export function makePlayer(
     personality: { workEthic: 7, loyalty: 5, greed: 5, pressure: 5, ambition: 6 },
     traits: [],
     archetype: null,
-    contract: makeContract(8, 3, 4, 3, id, teamId),
+    contract: teamId ? makeContract(8, 3, 4, 3, id, teamId) : null,
     teamId,
     draftYear: 2022,
     draftRound: 1,
@@ -130,6 +130,8 @@ export function makeTeam(
       sacksAgainst: 0,
     },
     mentoringPairs: [],
+    practiceSquad: [],
+    stadiumType: 'outdoor',
   } as unknown as Team;
 }
 
@@ -235,5 +237,16 @@ export function makeLeagueState(
     weekSummaries: [],
     playoffBracket: null,
     offseasonState: null,
+    scoutingDepartment: {
+      scouts: [],
+      availableScouts: [],
+      budget: 5,
+      maxScouts: 5,
+    },
+    conditionalPicks: [],
+    waiverOrder: Object.keys(teams),
+    waiverWire: [],
+    waiverClaims: [],
+    handshakes: [],
   } as unknown as GameState;
 }

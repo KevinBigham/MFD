@@ -1,6 +1,8 @@
 import type {
+  ConditionalPick,
   GameDayPackage,
   GameEvent,
+  Handshake,
   NarrativeState,
   OffFieldEvent,
   Player,
@@ -9,6 +11,8 @@ import type {
   SeasonPhase,
   StoryArc,
   Team,
+  WaiverWireEntry,
+  WeatherCondition,
   WeeklySummary,
 } from '@mfd/engine';
 
@@ -39,6 +43,10 @@ interface BuildInboxMessagesParams {
   recentPressConferences: PressConference[];
   coachingNews: GameEvent[];
   upcomingRivalry: RivalryGameContext | null;
+  handshakes: Handshake[];
+  conditionalPicks: ConditionalPick[];
+  waiverWire: WaiverWireEntry[];
+  weather: WeatherCondition | null;
 }
 
 export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessage[] {
@@ -55,6 +63,10 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     recentPressConferences,
     coachingNews,
     upcomingRivalry,
+    handshakes,
+    conditionalPicks,
+    waiverWire,
+    weather,
   } = params;
   const msgs: InboxMessage[] = [];
   if (!team) return msgs;
@@ -109,6 +121,19 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     });
   }
 
+  for (const handshake of handshakes.filter((entry) => entry.teamId === team.id && (entry.status === 'broken' || entry.status === 'fulfilled')).slice(0, 3)) {
+    msgs.push({
+      id: `handshake-${handshake.id}`,
+      type: handshake.status === 'broken' ? 'URGENT' : 'INTEL',
+      title: handshake.status === 'broken' ? 'Promise Broken' : 'Promise Fulfilled',
+      body: `${handshake.promiseText}\nStatus: ${handshake.status}\n${handshake.consequence ?? 'Trust ledger updated.'}`,
+      from: handshake.type === 'owner' ? 'Owner Suite' : handshake.type === 'player' ? 'Locker Room' : 'Media Desk',
+      week,
+      read: false,
+      actionRequired: handshake.status === 'broken',
+    });
+  }
+
   for (const conference of recentPressConferences.slice(0, 2)) {
     msgs.push({
       id: `press-${conference.id}`,
@@ -142,6 +167,63 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       title: 'Rivalry Week Building',
       body: `${upcomingRivalry.headline}\nIntensity ${upcomingRivalry.intensity} // Tier ${upcomingRivalry.tier.replace('_', ' ')}.`,
       from: 'Broadcast Prep',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  const teamCompPicks = team.draftPicks.filter((pick) => pick.isCompPick).slice(0, 3);
+  if (teamCompPicks.length > 0) {
+    msgs.push({
+      id: 'comp-picks',
+      type: 'INTEL',
+      title: 'Comp Picks Awarded',
+      body: teamCompPicks.map((pick) => `Round ${pick.round} compensation pick added to your board.`).join('\n'),
+      from: 'League Office',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  const teamConditionalPicks = conditionalPicks.filter((pick) => pick.toTeamId === team.id && pick.resolved);
+  if (teamConditionalPicks.length > 0) {
+    msgs.push({
+      id: 'conditional-picks',
+      type: 'INTEL',
+      title: 'Conditional Picks Resolved',
+      body: teamConditionalPicks.map((pick) =>
+        `${pick.description}: now round ${pick.resolvedPick?.round ?? pick.basePick.round}.`).join('\n'),
+      from: 'Trade Desk',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  if (waiverWire.length > 0) {
+    msgs.push({
+      id: 'waiver-wire',
+      type: 'DECISION',
+      title: 'Waiver Wire Update',
+      body: `${waiverWire.length} player(s) are on waivers.\n${waiverWire.slice(0, 3).map((entry) => entry.playerId).join(' | ')}`,
+      from: 'Personnel',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  if (weather === 'snow' || weather === 'wind') {
+    msgs.push({
+      id: 'weather-alert',
+      type: 'INTEL',
+      title: 'Weather Advisory',
+      body: weather === 'snow'
+        ? 'Snow is in the forecast. Expect lower passing efficiency and a higher fumble risk.'
+        : 'Heavy wind is in the forecast. Long field goals and deep passing will be volatile.',
+      from: 'Game Operations',
       week,
       read: false,
       actionRequired: false,

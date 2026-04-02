@@ -1,17 +1,23 @@
 import { DIFF_SETTINGS } from '../config/difficulty';
+import { mulberry32 } from '../rng';
 import { generateAwards } from './awards';
 import { runCoachingCarousel } from './coaching-carousel';
+import { calculateCompPicks } from './comp-picks';
 import { makeContract } from './contracts';
+import { resolveConditions } from './conditional-picks';
 import { ensureDraftClass } from './draft';
 import { reevaluateLeagueStrategies } from './gm-strategies';
+import { evaluateHandshakes } from './handshake-ledger';
 import { inductHallOfFame } from './hall-of-fame';
 import { syncPlayerArchiveEntry } from './history';
 import { applyMentoringBonuses, formMentoringPairs } from './mentoring';
 import { clearSeasonLivingWorldState } from './off-field-events';
+import { processWaiverClaims } from './practice-squad';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { progressPlayers } from './progression';
 import { getSeasonRecordNotes, updateCareerRecords, updateSeasonRecords } from './records';
 import { decayLeagueRivalries } from './rivalries';
+import { createDefaultScoutingDepartment, generateScoutPool } from './scouting-staff';
 import { generateTradeOffers } from './trade-market';
 import type {
   AwardResult,
@@ -74,18 +80,20 @@ function buildAskingPrice(player: Player): ContractOffer {
 }
 
 function buildDraftOrder(game: GameState): DraftOrderEntry[] {
-  const teams = Object.values(game.teams).sort(sortDraftTeams);
   const ordered: DraftOrderEntry[] = [];
   let overall = 1;
 
   for (let round = 1; round <= 7; round++) {
-    for (const team of teams) {
-      const pick = team.draftPicks
-        .filter((entry) => entry.year === game.year && entry.round === round)
-        .sort((a, b) => a.pick - b.pick || a.originalTeamId.localeCompare(b.originalTeamId))[0];
+    const roundPicks = Object.values(game.teams)
+      .flatMap((team) => team.draftPicks)
+      .filter((entry) => entry.year === game.year && entry.round === round)
+      .sort((a, b) =>
+        a.pick - b.pick ||
+        Number(a.isCompPick) - Number(b.isCompPick) ||
+        a.originalTeamId.localeCompare(b.originalTeamId) ||
+        a.currentTeamId.localeCompare(b.currentTeamId));
 
-      if (!pick) continue;
-
+    for (const pick of roundPicks) {
       ordered.push({
         id: `${pick.currentTeamId}-${pick.year}-${pick.round}-${pick.pick}-${pick.originalTeamId}`,
         teamId: pick.currentTeamId,
@@ -133,6 +141,13 @@ function moveToFreeAgency(game: GameState, team: Team, playerId: string): void {
   const player = rosterPlayer ?? getPlayer(game, playerId);
   if (!player) return;
 
+  team.txLog.push({
+    type: 'LOSE_FA',
+    year: game.year,
+    week: game.week,
+    playerId: player.id,
+    fromTeamId: team.id,
+  });
   syncPlayerArchiveEntry(game, player, game.year);
   player.teamId = null;
   player.contract = null;
@@ -292,6 +307,13 @@ function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState): voi
       team.roster.push(signedPlayer);
     }
     applyOfferToPlayer(game, team, signedPlayer, winner);
+    team.txLog.push({
+      type: 'SIGN_FA',
+      year: game.year,
+      week: game.week,
+      playerId: signedPlayer.id,
+      toTeamId: team.id,
+    });
     game.freeAgents = game.freeAgents.filter((id) => id !== playerId);
 
     for (const bid of bids) {
@@ -352,7 +374,44 @@ function stampChampionCareers(game: GameState, seasonYear: number): void {
   }
 }
 
+function refreshScoutPool(game: GameState): void {
+  if (!game.scoutingDepartment) {
+    game.scoutingDepartment = createDefaultScoutingDepartment();
+  }
+  const rand = mulberry32((game.seed ^ (game.year * 7919)) >>> 0);
+  game.scoutingDepartment.availableScouts = generateScoutPool(rand, game.year);
+}
+
+function resetPracticeSquads(game: GameState): void {
+  for (const team of Object.values(game.teams)) {
+    if (!team.practiceSquad) {
+      team.practiceSquad = [];
+    }
+    for (const squadPlayer of team.practiceSquad) {
+      const player = game.players[squadPlayer.playerId];
+      if (!player) continue;
+      if (!game.freeAgents.includes(player.id)) {
+        game.freeAgents.push(player.id);
+      }
+      player.teamId = null;
+      player.contract = null;
+    }
+    team.practiceSquad = [];
+  }
+  game.waiverWire = [];
+  game.waiverClaims = [];
+  processWaiverClaims(game);
+}
+
+function rebuildDraftBoard(game: GameState): void {
+  if (!game.offseasonState) return;
+  game.offseasonState.draftOrder = buildDraftOrder(game);
+  game.offseasonState.currentDraftPickIndex = 0;
+  game.offseasonState.completedDraftPickIds = [];
+}
+
 export function initializeOffseasonState(game: GameState): OffseasonState {
+  refreshScoutPool(game);
   const expiringPlayers = Object.values(game.teams)
     .flatMap((team) => team.roster)
     .filter((player) => (player.contract?.years ?? 0) <= 1);
@@ -418,12 +477,17 @@ export function advanceOffseason(game: GameState): void {
     ensureDraftClass(game);
     game.offseasonState = initializeOffseasonState(game);
   }
+  if (game.scoutingDepartment.availableScouts.length === 0) {
+    refreshScoutPool(game);
+  }
 
   const seasonYear = currentSeasonYear(game);
   markCompletedSeason(game, seasonYear);
   clearSeasonLivingWorldState(game);
   stampChampionCareers(game, seasonYear);
   const awards = generateAwards(game, seasonYear);
+  resolveConditions(game);
+  evaluateHandshakes(game);
   updateSeasonRecords(game, seasonYear);
   updateCareerRecords(game, seasonYear);
   patchSeasonHistory(game, seasonYear, awards.awards);
@@ -455,6 +519,7 @@ export function advanceOffseason(game: GameState): void {
   const mentoringBonuses = applyMentoringBonuses(game, mentoringPairs);
   const progression = progressPlayers(game, { mentoringBonuses });
   game.eventLog.push(...progression.events);
+  resetPracticeSquads(game);
   const narrativeAdds = [
     awards.ceremony.headline,
     ...hofClass.map((entry) => `${entry.name} enters the Hall of Fame.`),
@@ -482,6 +547,10 @@ export function advanceFreeAgency(game: GameState): void {
   game.offseasonState.tradeOffers = generateTradeOffers(game);
 
   if (game.offseasonState.round >= 3) {
+    for (const team of Object.values(game.teams)) {
+      calculateCompPicks(game, team.id);
+    }
+    rebuildDraftBoard(game);
     game.phase = 'draft';
     game.week = 1;
     return;

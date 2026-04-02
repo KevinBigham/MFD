@@ -6,13 +6,16 @@
  * and play-level stat accumulation.
  */
 import { RNG } from '../rng';
+import { HOME_FIELD_ADV } from '../config';
 import { avg, cl } from '../utils';
 import type {
+  MatchupHighlight,
   Player,
   PlayerGameLine,
   Position,
   Team,
   TeamGameStats,
+  WeatherCondition,
 } from '../types';
 
 export interface SimTeamContext {
@@ -23,6 +26,8 @@ export interface SimTeamContext {
 export interface SimGameContext {
   home?: SimTeamContext;
   away?: SimTeamContext;
+  weather?: WeatherCondition;
+  rivalryIntensity?: number;
 }
 
 // ── Helpers ─────────────────────────────────────────────
@@ -65,7 +70,27 @@ const BASE_PRESSURE_CHANCE = 0.24;
 const PRESSURE_GAP_MULTIPLIER = 0.006;
 const STRIP_SACK_CHANCE = 0.34;
 const BASE_INT_CHANCE = 0.097;
-const BASE_FUMBLE_CHANCE = 0.062;
+const BASE_FUMBLE_CHANCE = 0.065;
+
+interface WeatherEffects {
+  passQuality: number;
+  runQuality: number;
+  fumbleChance: number;
+  longFieldGoalPenalty: number;
+}
+
+function weatherEffects(weather: WeatherCondition): WeatherEffects {
+  if (weather === 'rain') {
+    return { passQuality: -8, runQuality: 0, fumbleChance: 0.03, longFieldGoalPenalty: 0 };
+  }
+  if (weather === 'snow') {
+    return { passQuality: -12, runQuality: -5, fumbleChance: 0.05, longFieldGoalPenalty: 0 };
+  }
+  if (weather === 'wind') {
+    return { passQuality: -2, runQuality: 0, fumbleChance: 0, longFieldGoalPenalty: 0.15 };
+  }
+  return { passQuality: 0, runQuality: 0, fumbleChance: 0, longFieldGoalPenalty: 0 };
+}
 
 // ── Coaching edge calculation ───────────────────────────
 
@@ -73,6 +98,30 @@ function coachingEdge(team: Team, opponent: Team): number {
   const hcRating = team.staff?.hc?.ratings?.gameplan ?? 70;
   const oppHcRating = opponent.staff?.hc?.ratings?.gameplan ?? 70;
   return (hcRating - oppHcRating) * 0.03;
+}
+
+function topReceivingThreat(team: Team): Player | null {
+  return team.roster
+    .filter((player) => (player.pos === 'WR' || player.pos === 'TE') && !player.injury)
+    .sort((a, b) => Number(b.isStarter) - Number(a.isStarter) || b.ovr - a.ovr || a.id.localeCompare(b.id))[0] ?? null;
+}
+
+function buildMatchupHighlight(offense: Team, defense: Team): MatchupHighlight | null {
+  const target = topReceivingThreat(offense);
+  const corner = bestAvailable(defense.roster, 'CB');
+  if (!target || !corner) return null;
+
+  const advantage = target.ovr - corner.ovr;
+  if (Math.abs(advantage) < 8) return null;
+
+  return {
+    label: advantage > 0 ? 'WR-CB mismatch' : 'Corner eraser',
+    detail: `${target.name} (${target.ovr}) vs ${corner.name} (${corner.ovr}) shapes the outside passing game.`,
+    teamId: offense.id,
+    playerId: target.id,
+    opponentPlayerId: corner.id,
+    advantage,
+  };
 }
 
 // ── Single drive simulation ─────────────────────────────
@@ -85,6 +134,7 @@ function simulateDrive(
   quarter: number,
   lines: Map<string, PlayerGameLine>,
   playCallState: PlayCallState,
+  weather: WeatherCondition,
 ): DriveResult {
   const qb = bestAvailable(offense.roster, 'QB');
   const rb = bestAvailable(offense.roster, 'RB');
@@ -97,11 +147,11 @@ function simulateDrive(
   const olOvr = posAvg(offense.roster, 'OL');
   const dlOvr = posAvg(defense.roster, 'DL');
   const lbOvr = posAvg(defense.roster, 'LB');
-  const cbOvr = posAvg(defense.roster, 'CB');
   const sOvr = posAvg(defense.roster, 'S');
+  const bestCb = bestAvailable(defense.roster, 'CB');
+  const weatherFx = weatherEffects(weather);
 
   const pocket = (olOvr - dlOvr) * 0.15;
-  const coverage = (cbOvr + sOvr) / 2;
   const runLanes = (olOvr - (dlOvr + lbOvr) / 2) * 0.12;
 
   // Run/pass split — ~46% run base, adjusted by game script
@@ -152,14 +202,40 @@ function simulateDrive(
 
   // ── PASSING PLAY ──────────────────────────────────────
   if (!isRun && qb && receivers.length > 0) {
+    const targetWeights = [0.40, 0.28, 0.20, 0.12];
+    let targetIdx = 0;
+    const tRoll = RNG.play();
+    let cumulative = 0;
+    for (let i = 0; i < receivers.length; i++) {
+      cumulative += targetWeights[i] ?? 0.1;
+      if (tRoll < cumulative) { targetIdx = i; break; }
+    }
+    const target = receivers[targetIdx] ?? receivers[0]!;
+
     const qbOvr = qb.ovr;
     const qbAcc = qb.ratings.accuracy ?? qbOvr;
     const qbAware = qb.ratings.awareness ?? qbOvr;
+    const coverage = ((bestCb?.ovr ?? 68) * 0.7) + sOvr * 0.3;
+    const matchupGap = target.ovr - (bestCb?.ovr ?? 68);
+    const matchupBonus = matchupGap >= 8 ? 4 : matchupGap <= -8 ? -4 : 0;
 
-    let quality = (qbAcc - coverage) * 0.45 + (qbAware - 70) * 0.22 + cEdge * 0.4 + pocket * 0.55 - tendencyPenalty;
+    let quality = (qbAcc - coverage) * 0.45
+      + (qbAware - 70) * 0.22
+      + cEdge * 0.4
+      + pocket * 0.55
+      + matchupBonus
+      + weatherFx.passQuality
+      - tendencyPenalty;
 
-    // 4th quarter clutch boost
-    if (quarter === 4 && Math.abs(scoreDiff) <= 7) quality += 2;
+    if (quarter === 4 && Math.abs(scoreDiff) <= 7) {
+      if (qb.traits.includes('clutch')) {
+        quality += 6;
+      } else if (qb.traits.includes('streaky')) {
+        quality += RNG.play() < 0.5 ? 4 : -4;
+      } else if (qb.personality.pressure < 4) {
+        quality -= 3;
+      }
+    }
 
     // Pressure/sack check
     const pressureChance = cl(BASE_PRESSURE_CHANCE + (dlOvr - olOvr) * PRESSURE_GAP_MULTIPLIER + tendencyPenalty * 0.01, 0.08, 0.38);
@@ -179,7 +255,7 @@ function simulateDrive(
         }
         const ql = ensureLine(lines, qb);
         ql.sacked = (ql.sacked ?? 0) + 1;
-        if (RNG.play() < STRIP_SACK_CHANCE) {
+        if (RNG.play() < cl(STRIP_SACK_CHANCE + weatherFx.fumbleChance, 0.18, 0.55)) {
           ql.fumbles = (ql.fumbles ?? 0) + 1;
           return { points: 0, type: 'turnover', yards: sackYards, playType };
         }
@@ -209,19 +285,11 @@ function simulateDrive(
     // Outcome roll
     const roll = RNG.play() * 100 + quality;
     const isRedZone = RNG.play() < 0.28;
-    const tdThreshold = isRedZone ? 68 : 76;
+    const redZonePassAdvantage = isRedZone && (((target.ovr + (topReceivingThreat(offense)?.ovr ?? target.ovr)) / 2) - (((bestCb?.ovr ?? 68) + sOvr) / 2)) >= 4
+      ? 6
+      : 0;
+    const tdThreshold = isRedZone ? 68 - redZonePassAdvantage : 76;
     const fgThreshold = isRedZone ? 52 : 60;
-
-    // Pick target receiver
-    const targetWeights = [0.40, 0.28, 0.20, 0.12];
-    let targetIdx = 0;
-    const tRoll = RNG.play();
-    let cumulative = 0;
-    for (let i = 0; i < receivers.length; i++) {
-      cumulative += targetWeights[i] ?? 0.1;
-      if (tRoll < cumulative) { targetIdx = i; break; }
-    }
-    const target = receivers[targetIdx] ?? receivers[0]!;
     const ql = ensureLine(lines, qb);
     const rl = ensureLine(lines, target);
 
@@ -261,7 +329,13 @@ function simulateDrive(
 
       const kOvr = kicker?.ovr ?? 70;
       const fgDist = cl(100 - 40 - driveYds + 17, 20, 58);
-      const makeChance = cl(0.65 + (kOvr - 60) * 0.008 - (fgDist > 45 ? 0.15 : fgDist > 35 ? 0.05 : 0), 0.40, 0.95);
+      const makeChance = cl(
+        0.65 + (kOvr - 60) * 0.008
+        - (fgDist > 45 ? 0.15 : fgDist > 35 ? 0.05 : 0)
+        - (weather === 'wind' && fgDist > 40 ? weatherFx.longFieldGoalPenalty : 0),
+        0.30,
+        0.95,
+      );
       if (kicker) {
         const kl = ensureLine(lines, kicker);
         kl.fgAtt = (kl.fgAtt ?? 0) + 1;
@@ -294,15 +368,32 @@ function simulateDrive(
     const rbSpeed = rb.ratings.speed ?? rbOvr;
     const rbElusive = rb.ratings.elusiveness ?? rbOvr;
 
-    let quality2 = (rbSpeed - ((dlOvr + lbOvr) / 2)) * 0.4 + (rbElusive - lbOvr) * 0.22 + runLanes * 0.7 + cEdge * 0.35 - tendencyPenalty;
-    if (quarter === 4 && Math.abs(scoreDiff) <= 7) quality2 += 1.5;
+    let quality2 = (rbSpeed - ((dlOvr + lbOvr) / 2)) * 0.4
+      + (rbElusive - lbOvr) * 0.22
+      + runLanes * 0.7
+      + cEdge * 0.35
+      + weatherFx.runQuality
+      - tendencyPenalty;
+    if (quarter === 4 && Math.abs(scoreDiff) <= 7) {
+      if (qb?.traits.includes('clutch')) {
+        quality2 += 2;
+      } else if (qb?.traits.includes('streaky')) {
+        quality2 += RNG.play() < 0.5 ? 1 : -1;
+      } else if ((qb?.personality.pressure ?? 5) < 4) {
+        quality2 -= 1;
+      }
+    }
 
     // Big play chance
     const bigPlayChance = cl(0.02 + (rbSpeed > 85 && rbElusive > 80 ? 0.05 : 0), 0.005, 0.10);
     if (RNG.play() < bigPlayChance) quality2 += 20;
 
     // Fumble check
-    const fumbleChance = cl(BASE_FUMBLE_CHANCE + (lbOvr - rbOvr) * 0.0014 + tendencyPenalty * 0.002, 0.015, 0.09);
+    const fumbleChance = cl(
+      BASE_FUMBLE_CHANCE + weatherFx.fumbleChance + (lbOvr - rbOvr) * 0.0014 + tendencyPenalty * 0.002,
+      0.015,
+      0.12,
+    );
     if (RNG.play() < fumbleChance) {
       const rbl = ensureLine(lines, rb);
       rbl.rushAtt = (rbl.rushAtt ?? 0) + 1;
@@ -318,7 +409,8 @@ function simulateDrive(
 
     const roll2 = RNG.play() * 100 + quality2;
     const isRedZone = RNG.play() < 0.22;
-    const tdThreshold = isRedZone ? 74 : 82;
+    const redZoneRunAdvantage = isRedZone && (((rb.ovr + olOvr) / 2) - ((dlOvr + lbOvr) / 2)) >= 4 ? 4 : 0;
+    const tdThreshold = isRedZone ? 74 - redZoneRunAdvantage : 82;
     const fgThreshold = isRedZone ? 58 : 66;
 
     const rbl = ensureLine(lines, rb);
@@ -365,7 +457,13 @@ function simulateDrive(
       const kl = ensureLine(lines, kicker);
       const kOvr = kicker.ovr;
       const fgDist = cl(100 - 40 - driveYds + 17, 20, 58);
-      const makeChance = cl(0.65 + (kOvr - 60) * 0.008 - (fgDist > 45 ? 0.15 : fgDist > 35 ? 0.05 : 0), 0.40, 0.95);
+      const makeChance = cl(
+        0.65 + (kOvr - 60) * 0.008
+        - (fgDist > 45 ? 0.15 : fgDist > 35 ? 0.05 : 0)
+        - (weather === 'wind' && fgDist > 40 ? weatherFx.longFieldGoalPenalty : 0),
+        0.30,
+        0.95,
+      );
       kl.fgAtt = (kl.fgAtt ?? 0) + 1;
       if (RNG.play() < makeChance) {
         kl.fgMade = (kl.fgMade ?? 0) + 1;
@@ -528,6 +626,8 @@ export interface SimGameResult {
   awayStats: TeamGameStats;
   homeMvpId: string | null;
   awayMvpId: string | null;
+  weather: WeatherCondition;
+  matchupHighlight: MatchupHighlight | null;
 }
 
 function applySimContext(team: Team, context?: SimTeamContext): Team {
@@ -556,11 +656,15 @@ function applySimContext(team: Team, context?: SimTeamContext): Team {
 export function simGame(home: Team, away: Team, context?: SimGameContext): SimGameResult {
   const adjustedHome = applySimContext(home, context?.home);
   const adjustedAway = applySimContext(away, context?.away);
+  const weather = context?.weather ?? 'dome';
+  const rivalryBoost = context?.rivalryIntensity ? Math.min(2, Math.round(context.rivalryIntensity / 35)) : 0;
+  const matchupHighlight = buildMatchupHighlight(adjustedHome, adjustedAway)
+    ?? buildMatchupHighlight(adjustedAway, adjustedHome);
   const homeLines = new Map<string, PlayerGameLine>();
   const awayLines = new Map<string, PlayerGameLine>();
 
-  const homeCEdge = coachingEdge(adjustedHome, adjustedAway) + 1.0; // home field advantage
-  const awayCEdge = coachingEdge(adjustedAway, adjustedHome);
+  const baseHomeCEdge = coachingEdge(adjustedHome, adjustedAway) + HOME_FIELD_ADV / 3 + rivalryBoost;
+  const baseAwayCEdge = coachingEdge(adjustedAway, adjustedHome);
 
   let homeScore = 0;
   let awayScore = 0;
@@ -574,9 +678,11 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
 
   for (let d = 0; d < totalDrives; d++) {
     const quarter = Math.min(3, Math.floor((d / totalDrives) * 4));
+    const homeCEdge = baseHomeCEdge + (homeScore > awayScore ? 1 : 0);
+    const awayCEdge = baseAwayCEdge - (homeScore - awayScore >= 10 ? 1 : 0);
 
     // Home drive
-    const hDrive = simulateDrive(adjustedHome, adjustedAway, homeCEdge, homeScore - awayScore, quarter + 1, homeLines, homePlayState);
+    const hDrive = simulateDrive(adjustedHome, adjustedAway, homeCEdge, homeScore - awayScore, quarter + 1, homeLines, homePlayState, weather);
     homeScore += hDrive.points;
     homeQtrScores[quarter]! += hDrive.points;
     homePlayState = hDrive.playType === homePlayState.lastPlayType
@@ -584,7 +690,7 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
       : { lastPlayType: hDrive.playType, streak: 1 };
 
     // Away drive
-    const aDrive = simulateDrive(adjustedAway, adjustedHome, awayCEdge, awayScore - homeScore, quarter + 1, awayLines, awayPlayState);
+    const aDrive = simulateDrive(adjustedAway, adjustedHome, awayCEdge, awayScore - homeScore, quarter + 1, awayLines, awayPlayState, weather);
     awayScore += aDrive.points;
     awayQtrScores[quarter]! += aDrive.points;
     awayPlayState = aDrive.playType === awayPlayState.lastPlayType
@@ -598,14 +704,14 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
     overtime = true;
     const otDrives = 2 + Math.floor(RNG.play() * 2);
     for (let d = 0; d < otDrives; d++) {
-      const hOT = simulateDrive(adjustedHome, adjustedAway, homeCEdge, 0, 5, homeLines, homePlayState);
+      const hOT = simulateDrive(adjustedHome, adjustedAway, baseHomeCEdge, 0, 5, homeLines, homePlayState, weather);
       homeScore += hOT.points;
       homePlayState = hOT.playType === homePlayState.lastPlayType
         ? { lastPlayType: hOT.playType, streak: homePlayState.streak + 1 }
         : { lastPlayType: hOT.playType, streak: 1 };
       if (homeScore !== awayScore) break;
 
-      const aOT = simulateDrive(adjustedAway, adjustedHome, awayCEdge, 0, 5, awayLines, awayPlayState);
+      const aOT = simulateDrive(adjustedAway, adjustedHome, baseAwayCEdge, 0, 5, awayLines, awayPlayState, weather);
       awayScore += aOT.points;
       awayPlayState = aOT.playType === awayPlayState.lastPlayType
         ? { lastPlayType: aOT.playType, streak: awayPlayState.streak + 1 }
@@ -645,7 +751,7 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
   const homeMvpId = findMvp(homeTeamLines, home);
   const awayMvpId = findMvp(awayTeamLines, away);
 
-  return { homeScore, awayScore, overtime, homeStats, awayStats, homeMvpId, awayMvpId };
+  return { homeScore, awayScore, overtime, homeStats, awayStats, homeMvpId, awayMvpId, weather, matchupHighlight };
 }
 
 function findMvp(lines: Map<string, PlayerGameLine>, team: Team): string | null {
