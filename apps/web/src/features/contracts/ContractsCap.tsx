@@ -1,20 +1,21 @@
 import { useState, useMemo, useCallback } from 'react';
 import {
-  MfdPanel, MfdTable, MfdBadge, MfdKpiGrid, MfdKpiCard,
-  MfdDialog, MfdConsequenceRibbon, MfdRingProgress,
+  PixelPanel, PixelTable, PixelBadge, PixelModal, PixelButton, PixelProgressBar,
 } from '@mfd/design-system/components';
-import {
-  DollarSign, TrendingUp, TrendingDown,
-  Scissors, RefreshCw, Tag, Calendar,
-} from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { Player } from '@mfd/engine';
 import { calcCapHit, calcDeadMoney, getSalaryCap } from '@mfd/engine';
 import {
   useGameStore, selectRoster, selectUserTeam, selectUserTeamId, selectYear,
 } from '../../app/store/game-store';
-
-// ── Derived row type for table ─────────────────────────────
+import {
+  PixelConsequenceList,
+  PixelMetricCard,
+  PixelScreenHeader,
+  autoGrid,
+  monoSm,
+  screenStackStyle,
+} from '../shared/pixelUi';
 
 interface ContractRow {
   id: string;
@@ -33,28 +34,26 @@ interface ContractRow {
 
 function toContractRows(roster: Player[]): ContractRow[] {
   return roster
-    .filter((p) => p.contract)
-    .map((p) => {
-      const c = p.contract!;
+    .filter((player) => player.contract)
+    .map((player) => {
+      const contract = player.contract!;
       return {
-        id: p.id,
-        name: p.name,
-        pos: p.pos,
-        ovr: p.ovr,
-        age: p.age,
-        capHit: Math.round(calcCapHit(c) * 10) / 10,
-        deadCap: Math.round(calcDeadMoney(c) * 10) / 10,
-        years: c.years,
-        guaranteed: Math.round(c.guaranteed * 10) / 10,
-        totalValue: Math.round(c.totalValue * 10) / 10,
-        restructured: c.restructured,
-        player: p,
+        id: player.id,
+        name: player.name,
+        pos: player.pos,
+        ovr: player.ovr,
+        age: player.age,
+        capHit: Math.round(calcCapHit(contract) * 10) / 10,
+        deadCap: Math.round(calcDeadMoney(contract) * 10) / 10,
+        years: contract.years,
+        guaranteed: Math.round(contract.guaranteed * 10) / 10,
+        totalValue: Math.round(contract.totalValue * 10) / 10,
+        restructured: contract.restructured,
+        player,
       };
     })
     .sort((a, b) => b.capHit - a.capHit);
 }
-
-// ── Columns ────────────────────────────────────────────────
 
 const columns: ColumnDef<ContractRow, unknown>[] = [
   {
@@ -65,14 +64,14 @@ const columns: ColumnDef<ContractRow, unknown>[] = [
   {
     accessorKey: 'pos',
     header: 'Pos',
-    cell: ({ getValue }) => <MfdBadge variant="default">{getValue() as string}</MfdBadge>,
+    cell: ({ getValue }) => <PixelBadge variant="default">{getValue() as string}</PixelBadge>,
     size: 60,
   },
   {
     accessorKey: 'ovr',
     header: 'OVR',
     cell: ({ getValue }) => (
-      <span style={{ fontFamily: 'var(--mfd-font-mono)', fontWeight: 600 }}>{getValue() as number}</span>
+      <span style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '22px', lineHeight: 1 }}>{getValue() as number}</span>
     ),
     size: 50,
   },
@@ -82,7 +81,7 @@ const columns: ColumnDef<ContractRow, unknown>[] = [
     cell: ({ getValue }) => (
       <span style={{ fontFamily: 'var(--mfd-font-mono)' }}>${getValue() as number}M</span>
     ),
-    size: 80,
+    size: 84,
   },
   {
     accessorKey: 'deadCap',
@@ -92,7 +91,7 @@ const columns: ColumnDef<ContractRow, unknown>[] = [
         ${getValue() as number}M
       </span>
     ),
-    size: 80,
+    size: 84,
   },
   {
     accessorKey: 'years',
@@ -106,26 +105,23 @@ const columns: ColumnDef<ContractRow, unknown>[] = [
     id: 'value',
     header: 'Value',
     cell: ({ row }) => {
-      const r = row.original;
-      // Simple value assessment: capHit vs OVR
-      const ratio = r.capHit / Math.max(r.ovr - 50, 1);
+      const contract = row.original;
+      const ratio = contract.capHit / Math.max(contract.ovr - 50, 1);
       const label = ratio < 0.3 ? 'Fair' : ratio < 0.5 ? 'Watch' : 'Overpay';
-      const variant = label === 'Fair' ? 'success' : label === 'Watch' ? 'warning' : 'danger';
-      return <MfdBadge variant={variant}>{label}</MfdBadge>;
+      const variant = label === 'Fair' ? 'green' : label === 'Watch' ? 'gold' : 'red';
+      return <PixelBadge variant={variant}>{label}</PixelBadge>;
     },
-    size: 70,
+    size: 74,
   },
   {
     accessorKey: 'restructured',
     header: 'Status',
     cell: ({ getValue }) => (
-      getValue() ? <MfdBadge variant="info">Restructured</MfdBadge> : null
+      getValue() ? <PixelBadge variant="cyan">Restructured</PixelBadge> : null
     ),
-    size: 90,
+    size: 94,
   },
 ];
-
-// ── Component ──────────────────────────────────────────────
 
 export function ContractsCap() {
   const roster = useGameStore(selectRoster);
@@ -162,15 +158,13 @@ export function ContractsCap() {
     setSelectedContract(null);
   }, [teamId, selectedContract, cutPlayer]);
 
-  // Simple 3-year projections
   const projections = useMemo(() => {
     return [1, 2, 3].map((offset) => {
       const projYear = year + offset;
       const projCap = getSalaryCap(projYear);
-      // Rough estimate: committed = contracts with years remaining > offset
       const committed = contractRows
-        .filter((r) => r.years > offset)
-        .reduce((s, r) => s + r.capHit, 0);
+        .filter((row) => row.years > offset)
+        .reduce((sum, row) => sum + row.capHit, 0);
       return {
         year: projYear,
         committed: Math.round(committed * 10) / 10,
@@ -179,11 +173,10 @@ export function ContractsCap() {
     });
   }, [contractRows, year]);
 
-  // Positional cap breakdown
   const posBreakdown = useMemo(() => {
     const byPos: Record<string, number> = {};
-    for (const r of contractRows) {
-      byPos[r.pos] = (byPos[r.pos] ?? 0) + r.capHit;
+    for (const row of contractRows) {
+      byPos[row.pos] = (byPos[row.pos] ?? 0) + row.capHit;
     }
     return Object.entries(byPos)
       .sort((a, b) => b[1] - a[1])
@@ -192,156 +185,115 @@ export function ContractsCap() {
   }, [contractRows, salaryCap]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-      <div>
-        <h1 style={{
-          fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem',
-          fontWeight: 700, color: 'var(--mfd-text)', margin: 0,
-        }}>Contracts & Salary Cap</h1>
-        <p style={{
-          fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
-          color: 'var(--mfd-text-dim)', margin: '4px 0 0',
-        }}>
-          Cap: ${salaryCap}M // Used: ${capUsed}M // Space: ${capSpace}M
-        </p>
+    <div style={screenStackStyle}>
+      <PixelScreenHeader
+        title="Contracts & Salary Cap"
+        subtitle={`Cap $${salaryCap}M // Used $${capUsed}M // Space $${capSpace}M`}
+        badges={(
+          <>
+            <PixelBadge variant={capSpace >= 0 ? 'green' : 'red'}>${capSpace}M</PixelBadge>
+            <PixelBadge variant="gold">{capPct}% used</PixelBadge>
+          </>
+        )}
+      />
+
+      <div style={autoGrid(210)}>
+        <PixelMetricCard label="Salary Cap" value={`$${salaryCap}M`} accent="cyan" detail="League cap ceiling" />
+        <PixelMetricCard label="Cap Used" value={`$${capUsed}M`} accent={capPct > 90 ? 'red' : 'gold'} detail={`${capPct}% committed`} />
+        <PixelMetricCard label="Dead Cap" value={`$${deadCap}M`} accent={deadCap > 20 ? 'red' : 'gold'} detail="Sunk contract cost" />
+        <PixelMetricCard label="Cap Space" value={`$${capSpace}M`} accent={capSpace >= 0 ? 'green' : 'red'} detail={capSpace >= 0 ? 'Flexible' : 'Over the limit'} />
       </div>
 
-      {/* Cap KPIs */}
-      <MfdKpiGrid columns={4}>
-        <MfdKpiCard label="Salary Cap" value={`$${salaryCap}M`} icon={<DollarSign size={14} />} trend="flat" />
-        <MfdKpiCard
-          label="Cap Used" value={`$${capUsed}M`} icon={<TrendingUp size={14} />}
-          trend="up" trendLabel={`${capPct}% used`}
-          variant={capPct > 90 ? 'danger' : 'default'}
-        />
-        <MfdKpiCard label="Dead Cap" value={`$${deadCap}M`} icon={<TrendingDown size={14} />} trend="down" variant="danger" />
-        <MfdKpiCard label="Cap Space" value={`$${capSpace}M`} icon={<DollarSign size={14} />} trend="up" variant="success" />
-      </MfdKpiGrid>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
-        {/* Cap Visualization Ring */}
-        <MfdPanel title="Cap Breakdown" icon={<DollarSign size={14} />}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-xl)' }}>
-            <MfdRingProgress
-              value={capPct}
-              size={100}
-              strokeWidth={8}
-              color={capPct > 90 ? 'var(--mfd-red)' : 'var(--mfd-cyan)'}
-              label={`${capPct}%`}
-            />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-              {posBreakdown.map((pb) => (
-                <div key={pb.pos} style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)' }}>
-                  <MfdBadge variant="default">{pb.pos}</MfdBadge>
-                  <div style={{
-                    flex: 1, height: 6, background: 'var(--mfd-bg-3)',
-                    borderRadius: 3, overflow: 'hidden', minWidth: 60,
-                  }}>
-                    <div style={{
-                      height: '100%', borderRadius: 3,
-                      background: 'var(--mfd-cyan)',
-                      width: `${Math.min(100, pb.pct * 3)}%`,
-                    }} />
-                  </div>
-                  <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.625rem', color: 'var(--mfd-text-dim)' }}>
-                    ${Math.round(pb.total)}M
-                  </span>
+      <div style={autoGrid(320)}>
+        <PixelPanel title="Cap Breakdown" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <PixelProgressBar value={capPct} accent={capPct > 90 ? 'red' : 'cyan'} label="Cap Usage" valueLabel={`${capPct}%`} />
+            {posBreakdown.map((entry) => (
+              <div key={entry.pos} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                  <PixelBadge variant="default">{entry.pos}</PixelBadge>
+                  <span style={{ ...monoSm, color: '#999' }}>${Math.round(entry.total)}M</span>
                 </div>
-              ))}
-            </div>
-          </div>
-        </MfdPanel>
-
-        {/* 3-Year Projections */}
-        <MfdPanel title="Cap Projections" icon={<Calendar size={14} />}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-md)' }}>
-            {projections.map((proj) => (
-              <div key={proj.year} style={{
-                display: 'flex', justifyContent: 'space-between',
-                padding: 'var(--mfd-sp-xs) 0',
-                borderBottom: '1px solid var(--mfd-border)',
-              }}>
-                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.8125rem' }}>
-                  {proj.year}
-                </span>
-                <div style={{ display: 'flex', gap: 'var(--mfd-sp-sm)' }}>
-                  <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
-                    ${proj.committed}M committed
-                  </span>
-                  <MfdBadge variant="success">${proj.space}M free</MfdBadge>
-                </div>
+                <PixelProgressBar value={entry.pct} accent="gold" label="Share" valueLabel={`${Math.round(entry.pct)}%`} />
               </div>
             ))}
           </div>
-        </MfdPanel>
+        </PixelPanel>
+
+        <PixelPanel title="Cap Projections" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {projections.map((proj) => (
+              <div key={proj.year} style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: '12px',
+                alignItems: 'center',
+                paddingBottom: '8px',
+                borderBottom: '1px solid #1a1a1a',
+              }}>
+                <div>
+                  <div style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '20px', color: '#fff', lineHeight: 1 }}>
+                    {proj.year}
+                  </div>
+                  <div style={{ ...monoSm, color: '#888', marginTop: '4px' }}>
+                    ${proj.committed}M committed
+                  </div>
+                </div>
+                <PixelBadge variant={proj.space >= 0 ? 'green' : 'red'}>${proj.space}M free</PixelBadge>
+              </div>
+            ))}
+          </div>
+        </PixelPanel>
       </div>
 
-      {/* Contracts Table */}
-      <MfdTable
+      <PixelTable
         data={contractRows}
         columns={columns}
         density="compact"
+        accent="gold"
         onRowClick={(row) => setSelectedContract(row)}
       />
 
-      {/* Contract Detail Dialog */}
-      <MfdDialog
+      <PixelModal
         open={!!selectedContract}
         onOpenChange={(open) => { if (!open) setSelectedContract(null); }}
-        title={selectedContract ? `${selectedContract.name} — Contract` : 'Contract Details'}
+        title={selectedContract ? `${selectedContract.name} Contract` : 'Contract Details'}
+        description={selectedContract ? `${selectedContract.pos} // ${selectedContract.ovr} OVR` : undefined}
+        accent="red"
       >
-        {selectedContract && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-md)' }}>
-            <MfdKpiGrid columns={3}>
-              <MfdKpiCard label="Cap Hit" value={`$${selectedContract.capHit}M`} icon={<DollarSign size={14} />} trend="flat" />
-              <MfdKpiCard label="Dead Cap" value={`$${selectedContract.deadCap}M`} icon={<TrendingDown size={14} />} trend="flat" variant="danger" />
-              <MfdKpiCard label="Years Left" value={selectedContract.years} icon={<Calendar size={14} />} trend="flat" />
-            </MfdKpiGrid>
+        {selectedContract ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={autoGrid(180)}>
+              <PixelMetricCard label="Cap Hit" value={`$${selectedContract.capHit}M`} accent="gold" />
+              <PixelMetricCard label="Dead Cap" value={`$${selectedContract.deadCap}M`} accent="red" />
+              <PixelMetricCard label="Years Left" value={selectedContract.years} accent="cyan" />
+            </div>
 
-            <MfdPanel title="Actions" icon={<RefreshCw size={14} />}>
-              <div style={{ display: 'flex', gap: 'var(--mfd-sp-sm)', flexWrap: 'wrap' }}>
-                <ActionBtn label="Restructure" icon={<RefreshCw size={12} />} onClick={handleRestructure} />
-                <ActionBtn label="Cut" icon={<Scissors size={12} />} onClick={handleCut} variant="danger" />
-                <ActionBtn label="Add Void Years" icon={<Calendar size={12} />} onClick={handleBackload} />
+            <PixelPanel title="Actions" accent="red">
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <PixelButton accent="cyan" onClick={handleRestructure}>
+                  Restructure
+                </PixelButton>
+                <PixelButton accent="gold" onClick={handleBackload}>
+                  Add Void Years
+                </PixelButton>
+                <PixelButton accent="red" onClick={handleCut}>
+                  Cut Player
+                </PixelButton>
               </div>
-              <div style={{ marginTop: 'var(--mfd-sp-sm)' }}>
-                <MfdConsequenceRibbon
-                  consequences={[
-                    { id: 'c1', label: 'Cap Savings', delta: `+$${Math.round(selectedContract.capHit * 0.3 * 10) / 10}M/yr`, direction: 'positive' as const },
-                    { id: 'c2', label: 'Dead Cap', delta: `+$${selectedContract.deadCap}M`, direction: 'negative' as const },
-                    { id: 'c3', label: 'Guaranteed', delta: `$${selectedContract.guaranteed}M`, direction: 'warning' as const },
+              <div style={{ marginTop: '12px' }}>
+                <PixelConsequenceList
+                  items={[
+                    { id: 'c1', label: 'Cap Savings', delta: `+$${Math.round(selectedContract.capHit * 0.3 * 10) / 10}M/yr`, accent: 'green' },
+                    { id: 'c2', label: 'Dead Cap', delta: `+$${selectedContract.deadCap}M`, accent: 'red' },
+                    { id: 'c3', label: 'Guaranteed', delta: `$${selectedContract.guaranteed}M`, accent: 'gold' },
                   ]}
                 />
               </div>
-            </MfdPanel>
+            </PixelPanel>
           </div>
-        )}
-      </MfdDialog>
+        ) : null}
+      </PixelModal>
     </div>
-  );
-}
-
-function ActionBtn({ label, icon, onClick, variant }: {
-  label: string;
-  icon: React.ReactNode;
-  onClick: () => void;
-  variant?: 'danger';
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'flex', alignItems: 'center', gap: '6px',
-        padding: '6px 12px', fontSize: '0.75rem',
-        fontFamily: 'var(--mfd-font-sans)', fontWeight: 500,
-        color: variant === 'danger' ? 'var(--mfd-red)' : 'var(--mfd-text)',
-        background: 'var(--mfd-bg-2)',
-        border: `1px solid ${variant === 'danger' ? 'var(--mfd-red)' : 'var(--mfd-border)'}`,
-        borderRadius: 'var(--mfd-rad-md)',
-        cursor: 'pointer',
-      }}
-    >
-      {icon} {label}
-    </button>
   );
 }

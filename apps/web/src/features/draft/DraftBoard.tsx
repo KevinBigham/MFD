@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
-import { FileText, ArrowRight } from 'lucide-react';
 import {
-  MfdBadge,
-  MfdPanel,
+  PixelBadge, PixelButton, PixelPanel,
 } from '@mfd/design-system/components';
 import {
   selectCurrentDraftEntry,
@@ -12,19 +10,14 @@ import {
   selectUserTeam,
   useGameStore,
 } from '../../app/store/game-store';
-
-function actionButtonStyle(color: string) {
-  return {
-    padding: '6px 10px',
-    borderRadius: 'var(--mfd-rad-md)',
-    border: `1px solid ${color}`,
-    background: 'transparent',
-    color,
-    cursor: 'pointer',
-    fontFamily: 'var(--mfd-font-mono)',
-    fontSize: '0.6875rem',
-  } as const;
-}
+import {
+  PixelMetricCard,
+  PixelScreenHeader,
+  autoGrid,
+  display,
+  monoSm,
+  screenStackStyle,
+} from '../shared/pixelUi';
 
 export function DraftBoard() {
   const phase = useGameStore(selectPhase);
@@ -48,127 +41,114 @@ export function DraftBoard() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-      <div>
-        <h1 style={{
-          fontFamily: 'var(--mfd-font-serif)',
-          fontSize: '1.375rem',
-          fontWeight: 700,
-          color: 'var(--mfd-text)',
-          margin: 0,
-        }}>
-          Draft Board
-        </h1>
-        <p style={{
-          fontFamily: 'var(--mfd-font-mono)',
-          fontSize: '0.75rem',
-          color: 'var(--mfd-text-dim)',
-          margin: '4px 0 0',
-        }}>
-          {phase === 'draft' ? 'Advance to your next pick or make the selection.' : `Current phase: ${phase}`}
-        </p>
+    <div style={screenStackStyle}>
+      <PixelScreenHeader
+        title="Draft Board"
+        subtitle={phase === 'draft' ? 'Advance to your next pick or make the selection.' : `Current phase: ${phase}`}
+        badges={(
+          <>
+            <PixelBadge variant={userOnClock ? 'gold' : 'cyan'}>{userOnClock ? 'On The Clock' : 'Waiting'}</PixelBadge>
+            {currentEntry ? <PixelBadge variant="default">R{currentEntry.round} P{currentEntry.pick}</PixelBadge> : null}
+          </>
+        )}
+      />
+
+      <div style={autoGrid(210)}>
+        <PixelMetricCard label="Board Size" value={visibleProspects.length} accent="cyan" detail="Visible prospects" />
+        <PixelMetricCard label="Current Round" value={currentEntry?.round ?? '-'} accent="gold" detail="Live draft slot" />
+        <PixelMetricCard label="Overall Pick" value={currentEntry?.overall ?? '-'} accent={userOnClock ? 'gold' : 'default'} detail={userOnClock ? 'Your selection' : 'League clock'} />
       </div>
 
-      <MfdPanel title="Current Pick" icon={<FileText size={14} />}>
+      <PixelPanel title="Current Pick" accent={userOnClock ? 'gold' : 'cyan'}>
         {currentEntry ? (
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 'var(--mfd-sp-md)',
-            padding: 'var(--mfd-sp-sm)',
-            border: '1px solid var(--mfd-border)',
-            borderRadius: 'var(--mfd-rad-md)',
-            background: 'var(--mfd-bg-2)',
-          }}>
-            <div>
-              <div style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.875rem', fontWeight: 600 }}>
-                Overall #{currentEntry.overall} // Round {currentEntry.round}, Pick {currentEntry.pick}
-              </div>
-              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)', marginTop: 4 }}>
-                Team on clock: {currentEntry.teamId}
-              </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...display, fontSize: '24px', color: '#fff', lineHeight: 1 }}>
+              {`OVERALL #${currentEntry.overall}`.toUpperCase()}
             </div>
-            <MfdBadge variant={userOnClock ? 'gold' : 'info'}>
-              {userOnClock ? 'YOU ARE ON THE CLOCK' : 'AI PICK'}
-            </MfdBadge>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="default">Round {currentEntry.round}</PixelBadge>
+              <PixelBadge variant="default">Pick {currentEntry.pick}</PixelBadge>
+              <PixelBadge variant={userOnClock ? 'gold' : 'cyan'}>
+                {userOnClock ? 'YOU ARE ON THE CLOCK' : 'AI PICK'}
+              </PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: '#999' }}>
+              Team on clock: {currentEntry.teamId}
+            </div>
           </div>
         ) : (
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
+          <div style={{ ...monoSm, color: '#999' }}>
             Draft order not available.
           </div>
         )}
 
-        {phase === 'draft' && !userOnClock && (
-          <div style={{ marginTop: 'var(--mfd-sp-md)', display: 'flex', justifyContent: 'flex-end' }}>
-            <button
+        {phase === 'draft' && !userOnClock ? (
+          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+            <PixelButton
+              accent="green"
               disabled={pending === 'advance-draft'}
-              style={actionButtonStyle('var(--mfd-green)')}
               onClick={() => void handleAction('advance-draft', async () => {
                 await advanceWeek();
               })}
             >
-              Advance To Next Pick <ArrowRight size={12} style={{ display: 'inline', marginLeft: 4 }} />
-            </button>
+              Advance To Next Pick
+            </PixelButton>
+          </div>
+        ) : null}
+      </PixelPanel>
+
+      <PixelPanel title="Big Board" accent="cyan">
+        {visibleProspects.length === 0 ? (
+          <div style={{ ...monoSm, color: '#999' }}>
+            No prospects remain on the board.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {visibleProspects.map((prospect) => {
+              const scouting = offseasonState?.scoutingState[prospect.id];
+              const visibleGrade = scouting?.visibleScoutGrade ?? prospect.scoutGrade;
+              return (
+                <div key={prospect.id} style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  padding: '10px',
+                  border: '3px solid var(--mfd-border)',
+                  background: 'var(--mfd-bg-3)',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ ...display, fontSize: '22px', color: '#fff', lineHeight: 1 }}>
+                        {`${prospect.firstName} ${prospect.lastName}`.toUpperCase()}
+                      </div>
+                      <div style={{ ...monoSm, color: '#888', marginTop: '6px' }}>
+                        {prospect.pos} // {prospect.college} // projected round {prospect.projectedRound}
+                      </div>
+                    </div>
+                    <PixelBadge variant="cyan">{visibleGrade.toFixed(1)}</PixelBadge>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
+                    {userOnClock ? (
+                      <PixelButton
+                        accent="gold"
+                        disabled={pending === prospect.id}
+                        onClick={() => void handleAction(prospect.id, async () => {
+                          await makeDraftPick(prospect.id);
+                        })}
+                      >
+                        Draft Player
+                      </PixelButton>
+                    ) : (
+                      <PixelBadge variant="default">Waiting</PixelBadge>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
-      </MfdPanel>
-
-      <MfdPanel title="Big Board" icon={<FileText size={14} />}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-          {visibleProspects.length === 0 && (
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
-              No prospects remain on the board.
-            </div>
-          )}
-
-          {visibleProspects.map((prospect) => {
-            const scouting = offseasonState?.scoutingState[prospect.id];
-            const visibleGrade = scouting?.visibleScoutGrade ?? prospect.scoutGrade;
-            return (
-              <div key={prospect.id} style={{
-                display: 'grid',
-                gridTemplateColumns: '1.4fr auto auto',
-                gap: 'var(--mfd-sp-md)',
-                alignItems: 'center',
-                padding: 'var(--mfd-sp-sm)',
-                border: '1px solid var(--mfd-border)',
-                borderRadius: 'var(--mfd-rad-md)',
-                background: 'var(--mfd-bg-2)',
-              }}>
-                <div>
-                  <div style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem', fontWeight: 600 }}>
-                    {prospect.firstName} {prospect.lastName} <span style={{ color: 'var(--mfd-text-dim)' }}>{prospect.pos}</span>
-                  </div>
-                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)', marginTop: 4 }}>
-                    {prospect.college} // projected round {prospect.projectedRound}
-                  </div>
-                </div>
-
-                <MfdBadge variant="info">{visibleGrade.toFixed(1)}</MfdBadge>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  {userOnClock ? (
-                    <button
-                      disabled={pending === prospect.id}
-                      style={actionButtonStyle('var(--mfd-gold)')}
-                      onClick={() => void handleAction(prospect.id, async () => {
-                        await makeDraftPick(prospect.id);
-                      })}
-                    >
-                      Draft Player
-                    </button>
-                  ) : (
-                    <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)' }}>
-                      Waiting
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </MfdPanel>
+      </PixelPanel>
     </div>
   );
 }

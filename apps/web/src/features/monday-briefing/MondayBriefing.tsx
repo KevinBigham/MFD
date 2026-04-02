@@ -1,16 +1,23 @@
 import { useMemo } from 'react';
-import {
-  MfdPanel, MfdKpiCard, MfdKpiGrid, MfdBadge,
-  MfdRingProgress, MfdConsequenceRibbon,
-} from '@mfd/design-system/components';
-import {
-  Calendar, DollarSign, AlertTriangle, Activity, Star, Shield,
-} from 'lucide-react';
-import { calcCapHit } from '@mfd/engine';
+import { PixelPanel, PixelBadge, PixelProgressBar } from '@mfd/design-system/components';
 import {
   useGameStore, selectUserTeam, selectRoster,
   selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary, selectLatestGameDayPackage, selectActiveStoryArcs, selectTeams,
 } from '../../app/store/game-store';
+import {
+  PixelMetricCard,
+  PixelScreenHeader,
+  autoGrid,
+  display,
+  mono,
+  monoSm,
+  pixelSm,
+  screenStackStyle,
+} from '../shared/pixelUi';
+
+function resultAccent(result?: string): 'default' | 'green' | 'red' {
+  return result === 'win' ? 'green' : result === 'loss' ? 'red' : 'default';
+}
 
 export function MondayBriefing() {
   const team = useGameStore(selectUserTeam);
@@ -26,7 +33,6 @@ export function MondayBriefing() {
   const teamName = team ? `${team.city} ${team.name}` : 'No Team';
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '0-0';
 
-  // Next opponent from schedule
   const nextGame = useMemo(() => {
     if (!team || !schedule.length) return null;
     const weekSchedule = schedule.find((w) => w.week === week);
@@ -44,7 +50,6 @@ export function MondayBriefing() {
   const opponent = opponentId && teams ? teams[opponentId] : null;
   const opponentName = opponent ? `${opponent.city} ${opponent.name}` : 'Bye Week';
 
-  // Injuries
   const injuries = useMemo(() =>
     roster
       .filter((p) => p.injury)
@@ -56,7 +61,6 @@ export function MondayBriefing() {
       })),
   [roster]);
 
-  // Dev watchlist — top prospects by potential gap
   const devWatchlist = useMemo(() =>
     roster
       .filter((p) => p.pot - p.ovr >= 5 && (p.devTrait === 'star' || p.devTrait === 'superstar' || p.devTrait === 'x-factor'))
@@ -74,172 +78,150 @@ export function MondayBriefing() {
   const ownerMood = ownerState ? ownerState.approval : 0;
   const ownerLabel = ownerMood >= 70 ? 'Pleased' : ownerMood >= 50 ? 'Neutral' : ownerMood >= 30 ? 'Unhappy' : 'Furious';
   const leadArc = activeArcs[0] ?? null;
+  const latestResult = latestPackage?.result ?? latestSummary?.result;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-        <div>
-          <h1 style={{
-            fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem',
-            fontWeight: 700, color: 'var(--mfd-text)', margin: 0,
-          }}>Monday Briefing</h1>
-          <p style={{
-            fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
-            color: 'var(--mfd-text-dim)', margin: '4px 0 0',
-          }}>
-            {teamName} // Season {year}, Week {week}
-          </p>
-        </div>
-        <MfdBadge variant="gold">{record}</MfdBadge>
-      </div>
+    <div style={screenStackStyle}>
+      <PixelScreenHeader
+        title="Monday Briefing"
+        subtitle={`${teamName} // Season ${year}, Week ${week}`}
+        badges={(
+          <>
+            <PixelBadge variant="gold">{record}</PixelBadge>
+            <PixelBadge variant="cyan">WK {String(week).padStart(2, '0')}</PixelBadge>
+            <PixelBadge variant="default">YR {year}</PixelBadge>
+          </>
+        )}
+      />
 
-      {/* KPI Row */}
-      <MfdKpiGrid columns={4}>
-        <MfdKpiCard
+      <div style={autoGrid(210)}>
+        <PixelMetricCard
           label="Latest Result"
-          value={latestPackage ? latestPackage.result.toUpperCase() : latestSummary ? latestSummary.result.toUpperCase() : opponentName}
-          icon={<Calendar size={14} />}
-          trendLabel={latestPackage?.headline ?? latestSummary?.headline ?? `Week ${week}`}
-          trend={latestSummary?.result === 'win' ? 'up' : latestSummary?.result === 'loss' ? 'down' : 'flat'}
+          value={latestResult ? latestResult.toUpperCase() : 'PENDING'}
+          accent={resultAccent(latestResult)}
+          detail={latestPackage?.headline ?? latestSummary?.headline ?? `Week ${week} loading...`}
+          badge={latestResult ? <PixelBadge variant={resultAccent(latestResult)}>Live</PixelBadge> : null}
         />
-        <MfdKpiCard
+        <PixelMetricCard
           label="Point Diff"
           value={team ? team.seasonStats.pointDifferential : 0}
-          icon={<DollarSign size={14} />}
-          trend={team && team.seasonStats.pointDifferential >= 0 ? 'up' : 'down'}
-          variant={team && team.seasonStats.pointDifferential >= 0 ? 'success' : 'default'}
+          accent={team && team.seasonStats.pointDifferential >= 0 ? 'green' : 'red'}
+          detail="Season scoring margin"
         />
-        <MfdKpiCard
+        <PixelMetricCard
           label="Owner Mood"
           value={ownerLabel}
-          icon={<Shield size={14} />}
-          trend={ownerMood >= 60 ? 'up' : 'down'}
-          trendLabel={`Approval: ${ownerMood}`}
+          accent={ownerMood >= 60 ? 'green' : ownerMood >= 40 ? 'cyan' : 'red'}
+          detail={`Approval ${ownerMood}`}
         />
-        <MfdKpiCard
-          label="Injuries"
-          value={injuries.length}
-          icon={<AlertTriangle size={14} />}
-          variant={injuries.length > 2 ? 'danger' : 'default'}
-          trendLabel={injuries.length > 0 ? 'Players out' : 'All healthy'}
-          trend="flat"
+        <PixelMetricCard
+          label="Cap Space"
+          value={capSpace}
+          accent={team && team.capSpace >= 0 ? 'cyan' : 'red'}
+          detail={injuries.length > 0 ? `${injuries.length} injury alerts active` : 'Healthy enough to push'}
         />
-      </MfdKpiGrid>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
-        {/* Injuries */}
-        <MfdPanel title="Injury Report" icon={<Activity size={14} />}>
-          {injuries.length === 0 ? (
-            <p style={{ color: 'var(--mfd-text-faint)', fontSize: '0.8125rem', margin: 0 }}>
-              No injuries to report
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-              {injuries.map((inj) => (
-                <div key={inj.player} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: 'var(--mfd-sp-xs) 0',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)' }}>
-                    <span style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem', color: 'var(--mfd-text)' }}>
-                      {inj.player}
-                    </span>
-                    <MfdBadge variant="default">{inj.position}</MfdBadge>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)' }}>
-                    <MfdBadge variant={inj.status === 'out' || inj.status === 'ir' ? 'danger' : 'warning'}>
-                      {inj.status}
-                    </MfdBadge>
-                    <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-faint)' }}>
-                      {inj.weeks}w
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </MfdPanel>
-
-        {/* Development Watchlist */}
-        <MfdPanel title="Dev Watchlist" icon={<Star size={14} />}>
-          {devWatchlist.length === 0 ? (
-            <p style={{ color: 'var(--mfd-text-faint)', fontSize: '0.8125rem', margin: 0 }}>
-              No standout prospects on roster
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-md)' }}>
-              {devWatchlist.map((dev) => (
-                <div key={dev.player} style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-md)' }}>
-                  <MfdRingProgress
-                    value={dev.progress}
-                    size={36}
-                    strokeWidth={3}
-                    color={dev.progress > 60 ? 'var(--mfd-green)' : 'var(--mfd-cyan)'}
-                  />
-                  <div>
-                    <div style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem', color: 'var(--mfd-text)' }}>
-                      {dev.player}
-                      <MfdBadge variant="default" style={{ marginLeft: 6 }}>{dev.position}</MfdBadge>
-                    </div>
-                    <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)', marginTop: 2 }}>
-                      {dev.trait}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </MfdPanel>
       </div>
 
-      <MfdPanel title="Narrative Pulse" icon={<Shield size={14} />}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
+      <div style={autoGrid(320)}>
+        <PixelPanel title="Injury Report" accent={injuries.length > 0 ? 'red' : 'green'}>
+          {injuries.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No fresh injuries. Training room is quiet heading into the next broadcast.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {injuries.map((inj) => (
+                <div key={inj.player} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ ...mono, color: '#fff' }}>
+                      {inj.player} <span style={{ color: '#777' }}>{inj.position}</span>
+                    </div>
+                    <div style={{ ...monoSm, color: '#888' }}>
+                      Recovery timeline: {inj.weeks} week(s)
+                    </div>
+                  </div>
+                  <PixelBadge variant="red">{inj.status}</PixelBadge>
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
+
+        <PixelPanel title="Dev Watch" accent="cyan">
+          {devWatchlist.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No breakout candidates are flashing beyond expectation right now.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {devWatchlist.map((dev) => (
+                <div key={dev.player} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ ...display, fontSize: '18px', color: '#fff', lineHeight: 1 }}>
+                        {dev.player.toUpperCase()}
+                      </div>
+                      <div style={{ ...monoSm, color: '#888' }}>
+                        {dev.position} // {dev.trait}
+                      </div>
+                    </div>
+                    <PixelBadge variant="cyan">{dev.progress}%</PixelBadge>
+                  </div>
+                  <PixelProgressBar
+                    value={dev.progress}
+                    accent={dev.progress >= 70 ? 'green' : 'cyan'}
+                    label="Development Track"
+                    valueLabel={`${dev.progress}%`}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
+      </div>
+
+      <PixelPanel title="Narrative Pulse" accent="gold">
+        <div style={autoGrid(320)}>
           <div>
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-faint)', marginBottom: 6 }}>
-              STORY ARC
+            <div style={{ ...pixelSm, color: '#666', marginBottom: '6px' }}>STORY ARC</div>
+            <div style={{ ...display, fontSize: '22px', color: '#fff', lineHeight: 1 }}>
+              {(leadArc?.title ?? 'No active arc').toUpperCase()}
             </div>
-            <div style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1rem', fontWeight: 700 }}>
-              {leadArc?.title ?? 'No active arc'}
-            </div>
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)', marginTop: 6 }}>
+            <div style={{ ...monoSm, color: '#999', marginTop: '8px', lineHeight: 1.6 }}>
               {leadArc?.summary ?? 'Your next big storyline will form after the next meaningful result.'}
             </div>
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-faint)', marginBottom: 6 }}>
-              POSTGAME CINEMA
+            <div style={{ ...pixelSm, color: '#666', marginBottom: '6px' }}>POSTGAME CINEMA</div>
+            <div style={{ ...display, fontSize: '22px', color: '#fff', lineHeight: 1 }}>
+              {(latestPackage?.headline ?? latestSummary?.headline ?? 'No package yet').toUpperCase()}
             </div>
-            <div style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1rem', fontWeight: 700 }}>
-              {latestPackage?.headline ?? latestSummary?.headline ?? 'No package yet'}
-            </div>
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)', marginTop: 6 }}>
+            <div style={{ ...monoSm, color: '#999', marginTop: '8px', lineHeight: 1.6 }}>
               {latestPackage?.autopsy.diagnosis ?? 'The first postgame package will appear once the season begins.'}
             </div>
           </div>
         </div>
-      </MfdPanel>
+      </PixelPanel>
 
-      <MfdPanel title="Last Game / Next Game" icon={<Calendar size={14} />}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
+      <PixelPanel title="Next Broadcast" accent="cyan">
+        <div style={autoGrid(260)}>
           <div>
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-faint)', marginBottom: 6 }}>
-              LAST RESULT
-            </div>
-            <div style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1rem', fontWeight: 700 }}>
-              {latestPackage?.headline ?? latestSummary?.headline ?? 'No games simulated yet'}
+            <div style={{ ...pixelSm, color: '#666', marginBottom: '6px' }}>LAST RESULT</div>
+            <div style={{ ...display, fontSize: '20px', color: '#fff', lineHeight: 1 }}>
+              {(latestPackage?.headline ?? latestSummary?.headline ?? 'No games simulated yet').toUpperCase()}
             </div>
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-faint)', marginBottom: 6 }}>
-              UPCOMING
+            <div style={{ ...pixelSm, color: '#666', marginBottom: '6px' }}>UPCOMING</div>
+            <div style={{ ...display, fontSize: '20px', color: '#fff', lineHeight: 1 }}>
+              {opponentName.toUpperCase()}
             </div>
-            <div style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1rem', fontWeight: 700 }}>
-              {opponentName}
+            <div style={{ ...monoSm, color: '#999', marginTop: '8px' }}>
+              Owner approval {ownerMood}. Cap room {capSpace}. Keep momentum before kickoff.
             </div>
           </div>
         </div>
-      </MfdPanel>
+      </PixelPanel>
     </div>
   );
 }

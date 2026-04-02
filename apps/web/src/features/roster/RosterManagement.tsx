@@ -1,20 +1,23 @@
 import { useState, useMemo, useCallback } from 'react';
 import {
-  MfdPanel, MfdTable, MfdBadge, MfdKpiGrid, MfdKpiCard,
-  MfdDialog, MfdConsequenceRibbon,
+  PixelPanel, PixelTable, PixelBadge, PixelModal, PixelNav, PixelButton,
 } from '@mfd/design-system/components';
-import {
-  Users, Search, Filter, ChevronRight,
-  TrendingUp, Shield, DollarSign, Zap,
-} from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { Player } from '@mfd/engine';
-import { calcCapHit, calcSchemeFit } from '@mfd/engine';
+import { calcCapHit } from '@mfd/engine';
 import {
   useGameStore, selectRoster, selectUserTeam, selectUserTeamId,
 } from '../../app/store/game-store';
-
-// ── Table columns ──────────────────────────────────────────
+import {
+  PixelConsequenceList,
+  PixelMetricCard,
+  PixelScreenHeader,
+  autoGrid,
+  display,
+  mono,
+  monoSm,
+  screenStackStyle,
+} from '../shared/pixelUi';
 
 const columns: ColumnDef<Player, unknown>[] = [
   {
@@ -29,31 +32,33 @@ const columns: ColumnDef<Player, unknown>[] = [
   {
     accessorKey: 'pos',
     header: 'Pos',
-    cell: ({ getValue }) => <MfdBadge variant="default">{getValue() as string}</MfdBadge>,
+    cell: ({ getValue }) => <PixelBadge variant="default">{getValue() as string}</PixelBadge>,
     size: 60,
   },
   {
     accessorKey: 'ovr',
     header: 'OVR',
     cell: ({ getValue }) => {
-      const v = getValue() as number;
-      const color = v >= 85 ? 'var(--mfd-green)' : v >= 70 ? 'var(--mfd-text)' : 'var(--mfd-text-dim)';
-      return <span style={{ fontFamily: 'var(--mfd-font-mono)', fontWeight: 600, color }}>{v}</span>;
+      const value = getValue() as number;
+      const color = value >= 85 ? 'var(--mfd-green)' : value >= 70 ? 'var(--mfd-text)' : 'var(--mfd-text-dim)';
+      return <span style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '22px', color, lineHeight: 1 }}>{value}</span>;
     },
-    size: 50,
+    size: 56,
   },
   {
     accessorKey: 'pot',
     header: 'POT',
     cell: ({ getValue }) => (
-      <span style={{ fontFamily: 'var(--mfd-font-mono)', color: 'var(--mfd-cyan)' }}>{getValue() as number}</span>
+      <span style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '22px', color: 'var(--mfd-cyan)', lineHeight: 1 }}>
+        {getValue() as number}
+      </span>
     ),
-    size: 50,
+    size: 56,
   },
   {
     accessorKey: 'age',
     header: 'Age',
-    size: 40,
+    size: 44,
     cell: ({ getValue }) => (
       <span style={{ fontFamily: 'var(--mfd-font-mono)' }}>{getValue() as number}</span>
     ),
@@ -62,56 +67,53 @@ const columns: ColumnDef<Player, unknown>[] = [
     id: 'capHit',
     header: 'Cap Hit',
     cell: ({ row }) => {
-      const c = row.original.contract;
-      const hit = c ? Math.round(calcCapHit(c) * 10) / 10 : 0;
+      const contract = row.original.contract;
+      const hit = contract ? Math.round(calcCapHit(contract) * 10) / 10 : 0;
       return <span style={{ fontFamily: 'var(--mfd-font-mono)' }}>${hit}M</span>;
     },
-    size: 70,
+    size: 78,
   },
   {
     id: 'contract',
     header: 'Contract',
     cell: ({ row }) => {
-      const c = row.original.contract;
-      return <span>{c ? `${c.years}yr` : 'FA'}</span>;
+      const contract = row.original.contract;
+      return <span>{contract ? `${contract.years}yr` : 'FA'}</span>;
     },
-    size: 70,
+    size: 74,
   },
   {
     id: 'fit',
     header: 'Fit',
     cell: ({ row }) => {
-      const p = row.original;
-      const score = p.systemFit;
+      const score = row.original.systemFit;
       const tier = score >= 80 ? 'A' : score >= 60 ? 'B' : score >= 40 ? 'C' : 'D';
-      const variant = tier === 'A' ? 'success' : tier === 'B' ? 'info' : tier === 'C' ? 'warning' : 'danger';
-      return <MfdBadge variant={variant}>{tier}</MfdBadge>;
+      const variant = tier === 'A' ? 'green' : tier === 'B' ? 'cyan' : tier === 'C' ? 'gold' : 'red';
+      return <PixelBadge variant={variant}>{tier}</PixelBadge>;
     },
-    size: 40,
+    size: 44,
   },
   {
     id: 'role',
     header: 'Role',
     cell: ({ row }) => {
-      const v = row.original.isStarter ? 'Starter' : 'Backup';
-      return <MfdBadge variant={row.original.isStarter ? 'gold' : 'default'}>{v}</MfdBadge>;
+      const value = row.original.isStarter ? 'Starter' : 'Backup';
+      return <PixelBadge variant={row.original.isStarter ? 'gold' : 'default'}>{value}</PixelBadge>;
     },
-    size: 70,
+    size: 76,
   },
   {
     accessorKey: 'devTrait',
     header: 'Dev',
     cell: ({ getValue }) => {
-      const v = getValue() as string;
-      const variant = v === 'x-factor' ? 'purple' : v === 'superstar' ? 'gold' : v === 'star' ? 'info' : 'default';
-      const label = v === 'x-factor' ? 'X-Factor' : v === 'superstar' ? 'Superstar' : v === 'star' ? 'Star' : 'Normal';
-      return <MfdBadge variant={variant}>{label}</MfdBadge>;
+      const value = getValue() as string;
+      const variant = value === 'x-factor' ? 'red' : value === 'superstar' ? 'gold' : value === 'star' ? 'cyan' : 'default';
+      const label = value === 'x-factor' ? 'X-Factor' : value === 'superstar' ? 'Superstar' : value === 'star' ? 'Star' : 'Normal';
+      return <PixelBadge variant={variant}>{label}</PixelBadge>;
     },
-    size: 80,
+    size: 90,
   },
 ];
-
-// ── Component ──────────────────────────────────────────────
 
 export function RosterManagement() {
   const roster = useGameStore(selectRoster);
@@ -126,15 +128,15 @@ export function RosterManagement() {
 
   const filtered = useMemo(() => {
     if (posFilter === 'ALL') return roster;
-    return roster.filter((p) => p.pos === posFilter);
+    return roster.filter((player) => player.pos === posFilter);
   }, [roster, posFilter]);
 
   const avgOvr = roster.length > 0
-    ? Math.round(roster.reduce((s, p) => s + p.ovr, 0) / roster.length)
+    ? Math.round(roster.reduce((sum, player) => sum + player.ovr, 0) / roster.length)
     : 0;
-  const starters = roster.filter((p) => p.isStarter).length;
+  const starters = roster.filter((player) => player.isStarter).length;
   const avgAge = roster.length > 0
-    ? Math.round(roster.reduce((s, p) => s + p.age, 0) / roster.length * 10) / 10
+    ? Math.round(roster.reduce((sum, player) => sum + player.age, 0) / roster.length * 10) / 10
     : 0;
 
   const handleCut = useCallback((player: Player) => {
@@ -153,151 +155,113 @@ export function RosterManagement() {
     restructure(teamId, player.id);
   }, [teamId, restructure]);
 
-  // Compute consequences for selected player
   const consequences = useMemo(() => {
     if (!selectedPlayer?.contract || !team) return [];
     const capHit = calcCapHit(selectedPlayer.contract);
     return [
-      { id: 'c1', label: 'Cap Hit', delta: `$${Math.round(capHit * 10) / 10}M`, direction: 'negative' as const },
-      { id: 'c2', label: 'Cap Space', delta: `$${Math.round(team.capSpace * 10) / 10}M`, direction: 'positive' as const },
+      { id: 'c1', label: 'Cap Hit', delta: `$${Math.round(capHit * 10) / 10}M`, accent: 'red' as const },
+      { id: 'c2', label: 'Cap Space', delta: `$${Math.round(team.capSpace * 10) / 10}M`, accent: 'green' as const },
     ];
   }, [selectedPlayer, team]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-        <div>
-          <h1 style={{
-            fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem',
-            fontWeight: 700, color: 'var(--mfd-text)', margin: 0,
-          }}>Roster Management</h1>
-          <p style={{
-            fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
-            color: 'var(--mfd-text-dim)', margin: '4px 0 0',
-          }}>
-            {roster.length} players // 53-man roster
-          </p>
-        </div>
+    <div style={screenStackStyle}>
+      <PixelScreenHeader
+        title="Roster Management"
+        subtitle={`${team ? `${team.city} ${team.name}` : 'No Team'} // ${roster.length} players active`}
+        badges={(
+          <>
+            <PixelBadge variant="gold">{roster.length}/53</PixelBadge>
+            <PixelBadge variant="cyan">{starters} starters</PixelBadge>
+          </>
+        )}
+      />
+
+      <div style={autoGrid(210)}>
+        <PixelMetricCard label="Roster Size" value={`${roster.length}/53`} accent={roster.length > 53 ? 'red' : 'green'} detail="League roster limit" />
+        <PixelMetricCard label="Avg OVR" value={avgOvr} accent={avgOvr >= 80 ? 'green' : avgOvr >= 72 ? 'cyan' : 'gold'} detail="Overall team strength" />
+        <PixelMetricCard label="Starters" value={starters} accent={starters >= 22 ? 'green' : 'gold'} detail="Projected first unit" />
+        <PixelMetricCard label="Avg Age" value={avgAge} accent="cyan" detail="Current roster age curve" />
       </div>
 
-      {/* KPI Row */}
-      <MfdKpiGrid columns={4}>
-        <MfdKpiCard label="Roster Size" value={`${roster.length}/53`} icon={<Users size={14} />} trend="flat" />
-        <MfdKpiCard label="Avg OVR" value={avgOvr} icon={<Shield size={14} />} trend="up" variant="success" />
-        <MfdKpiCard label="Starters" value={starters} icon={<Zap size={14} />} trend="flat" />
-        <MfdKpiCard label="Avg Age" value={avgAge} icon={<TrendingUp size={14} />} trend="flat" />
-      </MfdKpiGrid>
+      <PixelNav
+        activeKey={posFilter}
+        wrap
+        items={positions.map((pos) => ({ key: pos, label: pos }))}
+        onSelect={setPosFilter}
+      />
 
-      {/* Position Filter */}
-      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-        {positions.map((pos) => (
-          <button
-            key={pos}
-            onClick={() => setPosFilter(pos)}
-            style={{
-              padding: '4px 10px', fontSize: '0.6875rem',
-              fontFamily: 'var(--mfd-font-mono)',
-              color: posFilter === pos ? 'var(--mfd-bg)' : 'var(--mfd-text-dim)',
-              background: posFilter === pos ? 'var(--mfd-gold)' : 'var(--mfd-bg-2)',
-              border: '1px solid var(--mfd-border)',
-              borderRadius: 'var(--mfd-rad-md)',
-              cursor: 'pointer',
-              transition: 'all var(--mfd-motion-fast)',
-            }}
-          >
-            {pos}
-          </button>
-        ))}
-      </div>
-
-      {/* Roster Table */}
-      <MfdTable
+      <PixelTable
         data={filtered}
         columns={columns}
         density="compact"
+        accent="cyan"
         onRowClick={(row) => setSelectedPlayer(row)}
       />
 
-      {/* Player Details Dialog */}
-      <MfdDialog
+      <PixelModal
         open={!!selectedPlayer}
         onOpenChange={(open) => { if (!open) setSelectedPlayer(null); }}
         title={selectedPlayer?.name ?? 'Player Details'}
+        description={selectedPlayer ? `${selectedPlayer.pos} // ${selectedPlayer.age} years old` : undefined}
+        accent="gold"
       >
-        {selectedPlayer && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-md)' }}>
-            <div style={{ display: 'flex', gap: 'var(--mfd-sp-md)', flexWrap: 'wrap' }}>
-              <MfdBadge variant="gold">{selectedPlayer.pos}</MfdBadge>
-              <MfdBadge variant="info">OVR {selectedPlayer.ovr}</MfdBadge>
-              <MfdBadge variant="default">Age {selectedPlayer.age}</MfdBadge>
-              <MfdBadge variant="success">POT {selectedPlayer.pot}</MfdBadge>
-              {selectedPlayer.tradeBlock && <MfdBadge variant="danger">Trade Block</MfdBadge>}
+        {selectedPlayer ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="gold">{selectedPlayer.pos}</PixelBadge>
+              <PixelBadge variant="cyan">OVR {selectedPlayer.ovr}</PixelBadge>
+              <PixelBadge variant="green">POT {selectedPlayer.pot}</PixelBadge>
+              <PixelBadge variant="default">Age {selectedPlayer.age}</PixelBadge>
+              {selectedPlayer.tradeBlock ? <PixelBadge variant="red">Trade Block</PixelBadge> : null}
             </div>
 
-            <MfdPanel title="Contract" icon={<DollarSign size={14} />}>
-              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.8125rem' }}>
-                {selectedPlayer.contract ? (
-                  <>
-                    <div>Cap Hit: ${Math.round(calcCapHit(selectedPlayer.contract) * 10) / 10}M</div>
-                    <div>Duration: {selectedPlayer.contract.years}yr</div>
-                    <div>Total Value: ${Math.round(selectedPlayer.contract.totalValue * 10) / 10}M</div>
-                    <div>Guaranteed: ${Math.round(selectedPlayer.contract.guaranteed * 10) / 10}M</div>
-                  </>
-                ) : (
-                  <div>No contract</div>
-                )}
-              </div>
-            </MfdPanel>
+            <div style={autoGrid(260)}>
+              <PixelPanel title="Contract" accent="cyan">
+                <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.7 }}>
+                  {selectedPlayer.contract ? (
+                    <>
+                      <div>Cap Hit: ${Math.round(calcCapHit(selectedPlayer.contract) * 10) / 10}M</div>
+                      <div>Duration: {selectedPlayer.contract.years} year(s)</div>
+                      <div>Total Value: ${Math.round(selectedPlayer.contract.totalValue * 10) / 10}M</div>
+                      <div>Guaranteed: ${Math.round(selectedPlayer.contract.guaranteed * 10) / 10}M</div>
+                    </>
+                  ) : (
+                    <div>No contract on file.</div>
+                  )}
+                </div>
+              </PixelPanel>
 
-            <MfdPanel title="Vitals" icon={<TrendingUp size={14} />}>
-              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.8125rem' }}>
-                <div>Morale: {selectedPlayer.morale}</div>
-                <div>Chemistry: {selectedPlayer.chemistry}</div>
-                <div>System Fit: {selectedPlayer.systemFit}</div>
-                <div>Dev: {selectedPlayer.devTrait}</div>
-                <div>Experience: {selectedPlayer.yearsExp} years</div>
-              </div>
-            </MfdPanel>
+              <PixelPanel title="Vitals" accent="green">
+                <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.7 }}>
+                  <div>Morale: {selectedPlayer.morale}</div>
+                  <div>Chemistry: {selectedPlayer.chemistry}</div>
+                  <div>System Fit: {selectedPlayer.systemFit}</div>
+                  <div>Dev Trait: {selectedPlayer.devTrait}</div>
+                  <div>Experience: {selectedPlayer.yearsExp} year(s)</div>
+                </div>
+              </PixelPanel>
+            </div>
 
-            {/* Action Tray with Delta Preview */}
-            <MfdPanel title="Actions" icon={<Zap size={14} />}>
-              <div style={{ display: 'flex', gap: 'var(--mfd-sp-sm)', flexWrap: 'wrap' }}>
-                <ActionButton label="Restructure" onClick={() => handleRestructure(selectedPlayer)} />
-                <ActionButton label="Cut" onClick={() => handleCut(selectedPlayer)} variant="danger" />
-                <ActionButton
-                  label={selectedPlayer.tradeBlock ? 'Remove from Block' : 'Trade Block'}
-                  onClick={() => handleTradeBlock(selectedPlayer)}
-                />
+            <PixelPanel title="Actions" accent="red">
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <PixelButton accent="cyan" onClick={() => handleRestructure(selectedPlayer)}>
+                  Restructure
+                </PixelButton>
+                <PixelButton accent="gold" onClick={() => handleTradeBlock(selectedPlayer)}>
+                  {selectedPlayer.tradeBlock ? 'Remove Block' : 'Trade Block'}
+                </PixelButton>
+                <PixelButton accent="red" onClick={() => handleCut(selectedPlayer)}>
+                  Cut Player
+                </PixelButton>
               </div>
-              <MfdConsequenceRibbon consequences={consequences} />
-            </MfdPanel>
+              <div style={{ marginTop: '12px' }}>
+                <PixelConsequenceList items={consequences} />
+              </div>
+            </PixelPanel>
           </div>
-        )}
-      </MfdDialog>
+        ) : null}
+      </PixelModal>
     </div>
-  );
-}
-
-function ActionButton({ label, onClick, variant }: {
-  label: string;
-  onClick: () => void;
-  variant?: 'danger';
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: '6px 12px', fontSize: '0.75rem',
-        fontFamily: 'var(--mfd-font-sans)', fontWeight: 500,
-        color: variant === 'danger' ? 'var(--mfd-red)' : 'var(--mfd-text)',
-        background: 'var(--mfd-bg-2)',
-        border: `1px solid ${variant === 'danger' ? 'var(--mfd-red)' : 'var(--mfd-border)'}`,
-        borderRadius: 'var(--mfd-rad-md)',
-        cursor: 'pointer',
-      }}
-    >
-      {label}
-    </button>
   );
 }

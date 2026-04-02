@@ -1,12 +1,11 @@
-import { useState, useCallback } from 'react';
-import { RouterProvider, createRouter, createRootRoute, createRoute, Outlet, Link, useRouter } from '@tanstack/react-router';
+import { RouterProvider, createRouter, createRootRoute, createRoute, Outlet, useRouter, useRouterState } from '@tanstack/react-router';
 import {
   LayoutDashboard, Users, DollarSign, ArrowLeftRight,
   Search, FileText, Handshake, Gamepad2, GraduationCap,
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
   Play, ScrollText, Save,
 } from 'lucide-react';
-import { MfdTooltipProvider, MfdCommandPalette, type CommandItem } from '@mfd/design-system/components';
+import { MfdTooltipProvider, MfdCommandPalette, PixelNav, type CommandItem } from '@mfd/design-system/components';
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
 import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
@@ -119,95 +118,65 @@ function RootLayout() {
 // ── Top Nav ─────────────────────────────────────────────────
 
 function TopNav() {
+  const router = useRouter();
+  const activePath = useRouterState({ select: (state) => state.location.pathname });
+
   return (
     <header style={{
       display: 'flex',
       alignItems: 'center',
-      gap: 0,
-      padding: '0 var(--mfd-sp-lg)',
-      height: 44,
-      borderBottom: '1px solid var(--mfd-border)',
-      background: 'var(--mfd-bg-2)',
+      gap: '16px',
+      padding: '12px 16px',
+      borderBottom: '3px solid var(--mfd-gold)',
+      background: 'linear-gradient(180deg, #080808 0%, #000 100%)',
       flexShrink: 0,
+      flexWrap: 'wrap',
     }}>
       <div style={{
         display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--mfd-sp-sm)',
-        paddingRight: 'var(--mfd-sp-lg)',
-        marginRight: 'var(--mfd-sp-sm)',
-        borderRight: '1px solid var(--mfd-border)',
+        flexDirection: 'column',
+        gap: '4px',
+        paddingRight: '8px',
       }}>
         <span style={{
-          fontFamily: 'var(--mfd-font-serif)',
-          fontSize: '1rem',
-          fontWeight: 700,
+          fontFamily: 'var(--mfd-font-pixel)',
+          fontSize: '8px',
+          color: 'var(--mfd-green)',
+          letterSpacing: '1px',
+        }}>
+          MFD NETWORK
+        </span>
+        <span style={{
+          fontFamily: 'var(--mfd-font-display)',
+          fontSize: '28px',
+          lineHeight: 1,
           color: 'var(--mfd-gold)',
-          letterSpacing: '0.02em',
+          letterSpacing: '1px',
         }}>
           MFD
         </span>
       </div>
 
-      <nav style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '2px',
+      <div style={{
         flex: 1,
-        overflow: 'auto',
+        minWidth: '280px',
       }}>
-        {NAV_ITEMS.map((item) => (
-          <NavLink key={item.path} item={item} />
-        ))}
-      </nav>
+        <PixelNav
+          items={NAV_ITEMS.map((item) => ({
+            key: item.path,
+            label: item.shortLabel,
+            icon: item.icon,
+          }))}
+          activeKey={activePath}
+          onSelect={(path) => {
+            void router.navigate({ to: path });
+          }}
+          style={{ paddingBottom: '2px' }}
+        />
+      </div>
 
       <CommandPaletteTrigger />
     </header>
-  );
-}
-
-function NavLink({ item }: { item: NavItem }) {
-  return (
-    <Link
-      to={item.path}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '6px 10px',
-        fontSize: '0.75rem',
-        fontFamily: 'var(--mfd-font-sans)',
-        fontWeight: 500,
-        color: 'var(--mfd-text-dim)',
-        textDecoration: 'none',
-        borderRadius: 'var(--mfd-rad-md)',
-        whiteSpace: 'nowrap',
-        transition: 'color var(--mfd-motion-fast), background var(--mfd-motion-fast)',
-      }}
-      activeProps={{
-        style: {
-          color: 'var(--mfd-gold)',
-          background: 'var(--mfd-gold-dim)',
-        },
-      }}
-      onMouseEnter={(e) => {
-        const el = e.currentTarget;
-        if (!el.getAttribute('data-status')?.includes('active')) {
-          el.style.color = 'var(--mfd-text)';
-          el.style.background = 'var(--mfd-bg-3)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        const el = e.currentTarget;
-        if (!el.getAttribute('data-status')?.includes('active')) {
-          el.style.color = 'var(--mfd-text-dim)';
-          el.style.background = 'transparent';
-        }
-      }}
-    >
-      {item.icon}
-      {item.shortLabel}
-    </Link>
   );
 }
 
@@ -222,31 +191,25 @@ function CommandPaletteTrigger() {
         display: 'flex',
         alignItems: 'center',
         gap: '6px',
-        padding: '4px 10px',
-        fontSize: '0.6875rem',
-        fontFamily: 'var(--mfd-font-mono)',
-        color: 'var(--mfd-text-faint)',
-        background: 'var(--mfd-bg)',
-        border: '1px solid var(--mfd-border)',
-        borderRadius: 'var(--mfd-rad-md)',
+        padding: '7px 10px',
+        fontSize: '8px',
+        fontFamily: 'var(--mfd-font-pixel)',
+        color: 'var(--mfd-cyan)',
+        background: 'rgba(0, 229, 255, 0.08)',
+        border: '3px solid var(--mfd-cyan)',
         cursor: 'pointer',
-        transition: 'border-color var(--mfd-motion-fast)',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'var(--mfd-border-hover)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'var(--mfd-border)';
+        textTransform: 'uppercase',
       }}
     >
       <Search size={12} />
-      <span>Search</span>
+      <span>Cmd Deck</span>
       <kbd style={{
-        padding: '1px 4px',
+        padding: '2px 4px',
         fontSize: '0.5625rem',
-        background: 'var(--mfd-bg-3)',
-        border: '1px solid var(--mfd-border)',
-        borderRadius: 'var(--mfd-rad-xs)',
+        fontFamily: 'var(--mfd-font-mono)',
+        background: '#04141a',
+        color: '#9be7ff',
+        border: '2px solid rgba(0, 229, 255, 0.35)',
       }}>
         {isMac ? '\u2318' : 'Ctrl+'}K
       </kbd>

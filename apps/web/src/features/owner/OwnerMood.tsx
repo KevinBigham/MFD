@@ -1,24 +1,27 @@
 import { useMemo } from 'react';
 import {
-  MfdPanel, MfdBadge, MfdKpiGrid, MfdKpiCard,
-  MfdRingProgress,
+  PixelPanel, PixelBadge, PixelProgressBar,
 } from '@mfd/design-system/components';
-import {
-  Shield, AlertTriangle, Clock, TrendingDown,
-  Flame, ThumbsUp, ThumbsDown, Target,
-} from 'lucide-react';
-import { getOwnerStatus } from '@mfd/engine';
 import {
   useGameStore, selectUserTeam, selectOwnerState, selectLatestSummary, selectOwners,
 } from '../../app/store/game-store';
+import {
+  PixelMetricCard,
+  PixelScreenHeader,
+  autoGrid,
+  display,
+  monoSm,
+  pixelSm,
+  screenStackStyle,
+} from '../shared/pixelUi';
 
 type OwnerStage = 'PATIENT' | 'RESTLESS' | 'DEMANDING' | 'ULTIMATUM';
 
-const STAGE_CONFIG: Record<OwnerStage, { color: string; label: string; icon: React.ReactNode }> = {
-  PATIENT: { color: 'var(--mfd-green)', label: 'Patient', icon: <ThumbsUp size={14} /> },
-  RESTLESS: { color: 'var(--mfd-cyan)', label: 'Restless', icon: <Clock size={14} /> },
-  DEMANDING: { color: 'var(--mfd-amber)', label: 'Demanding', icon: <AlertTriangle size={14} /> },
-  ULTIMATUM: { color: 'var(--mfd-red)', label: 'Ultimatum', icon: <Flame size={14} /> },
+const STAGE_CONFIG: Record<OwnerStage, { accent: 'green' | 'cyan' | 'gold' | 'red'; label: string }> = {
+  PATIENT: { accent: 'green', label: 'Patient' },
+  RESTLESS: { accent: 'cyan', label: 'Restless' },
+  DEMANDING: { accent: 'gold', label: 'Demanding' },
+  ULTIMATUM: { accent: 'red', label: 'Ultimatum' },
 };
 
 function getStage(approval: number): OwnerStage {
@@ -32,7 +35,6 @@ export function OwnerMood() {
   const team = useGameStore(selectUserTeam);
   const ownerState = useGameStore(selectOwnerState);
   const latestSummary = useGameStore(selectLatestSummary);
-
   const owners = useGameStore(selectOwners);
   const owner = team && owners ? owners[team.ownerId] : null;
 
@@ -46,13 +48,11 @@ export function OwnerMood() {
   const ownerName = owner?.name ?? 'Unknown Owner';
   const archetype = ownerState?.label ?? 'Unknown';
 
-  // Approval history from owner state
   const approvalHistory = useMemo(() => {
     if (!ownerState?.history?.length) return [approval];
     return ownerState.history.slice(-6).map((h) => h.approval);
   }, [ownerState, approval]);
 
-  // Owner goals from owners table
   const goals = useMemo(() => {
     if (!owner || !team) return [];
     const wins = team.wins;
@@ -80,144 +80,133 @@ export function OwnerMood() {
   }, [owner, team]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-      <div>
-        <h1 style={{
-          fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem',
-          fontWeight: 700, color: 'var(--mfd-text)', margin: 0,
-        }}>Owner Relations</h1>
-        <p style={{
-          fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
-          color: 'var(--mfd-text-dim)', margin: '4px 0 0',
-        }}>
-          {ownerName} // {archetype} // Stage: {stage}
-        </p>
-      </div>
+    <div style={screenStackStyle}>
+      <PixelScreenHeader
+        title="Owner Relations"
+        subtitle={`${ownerName} // ${archetype} // ${cfg.label.toUpperCase()}`}
+        badges={(
+          <>
+            <PixelBadge variant={cfg.accent}>{stage}</PixelBadge>
+            {hotSeat ? <PixelBadge variant="red">Hot Seat</PixelBadge> : null}
+          </>
+        )}
+      />
 
-      {/* Hot Seat Warning */}
       {hotSeat && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-md)',
-          padding: 'var(--mfd-sp-md)',
-          background: 'color-mix(in srgb, var(--mfd-red) 12%, transparent)',
-          border: '1px solid var(--mfd-red)',
-          borderRadius: 'var(--mfd-rad-md)',
-        }}>
-          <Flame size={18} style={{ color: 'var(--mfd-red)', flexShrink: 0 }} />
-          <div>
-            <div style={{
-              fontFamily: 'var(--mfd-font-sans)', fontSize: '0.875rem',
-              fontWeight: 600, color: 'var(--mfd-red)',
-            }}>HOT SEAT</div>
-            <div style={{
-              fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
-              color: 'var(--mfd-text-dim)',
-            }}>Owner patience running out. Win now or face consequences.</div>
+        <PixelPanel title="Hot Seat Alert" accent="red">
+          <div style={{ ...monoSm, color: '#fca5a5', lineHeight: 1.6 }}>
+            Owner patience is running out. Another collapse will tilt the dynasty into ultimatum territory.
           </div>
-        </div>
+        </PixelPanel>
       )}
 
-      {/* KPIs */}
-      <MfdKpiGrid columns={4}>
-        <MfdKpiCard label="Approval" value={approval} icon={<ThumbsDown size={14} />}
-          trend={latestSummary?.ownerDelta && latestSummary.ownerDelta < 0 ? 'down' : approval < 50 ? 'down' : 'up'} variant={approval < 40 ? 'danger' : 'default'} />
-        <MfdKpiCard label="Patience" value={patience} icon={<Clock size={14} />}
-          trend={patience < 40 ? 'down' : 'flat'} variant={patience < 40 ? 'danger' : 'default'} />
-        <MfdKpiCard label="Confidence" value={confidenceScore} icon={<Shield size={14} />}
-          trend={confidenceScore < 40 ? 'down' : 'flat'} variant={confidenceScore < 40 ? 'danger' : 'default'} />
-        <MfdKpiCard label="Stage" value={stage} icon={cfg.icon} trend="flat"
-          variant={stage === 'ULTIMATUM' || stage === 'DEMANDING' ? 'danger' : 'default'} />
-      </MfdKpiGrid>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
-        {/* Confidence Arc */}
-        <MfdPanel title="Confidence Arc" icon={<Shield size={14} />}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-xl)' }}>
-            <MfdRingProgress
-              value={confidenceScore}
-              size={80} strokeWidth={6}
-              color={cfg.color}
-              label={`${confidenceScore}`}
-            />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-              {(['PATIENT', 'RESTLESS', 'DEMANDING', 'ULTIMATUM'] as const).map((s) => {
-                const sc = STAGE_CONFIG[s];
-                const active = stage === s;
-                return (
-                  <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)', opacity: active ? 1 : 0.4 }}>
-                    {sc.icon}
-                    <span style={{
-                      fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
-                      fontWeight: active ? 600 : 400,
-                      color: active ? sc.color : 'var(--mfd-text-dim)',
-                    }}>{sc.label}</span>
-                    {active && <MfdBadge variant={s === 'PATIENT' ? 'success' : s === 'RESTLESS' ? 'info' : s === 'DEMANDING' ? 'warning' : 'danger'}>ACTIVE</MfdBadge>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </MfdPanel>
-
-        {/* Approval Trend */}
-        <MfdPanel title="Approval Trend" icon={<TrendingDown size={14} />}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 80 }}>
-            {approvalHistory.map((val, i) => (
-              <div key={i} style={{
-                flex: 1,
-                height: `${val}%`,
-                background: val < 40 ? 'var(--mfd-red)' : val < 60 ? 'var(--mfd-amber)' : 'var(--mfd-green)',
-                borderRadius: '2px 2px 0 0',
-                transition: 'height var(--mfd-motion-fast)',
-              }} />
-            ))}
-          </div>
-          <div style={{
-            fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
-            color: 'var(--mfd-text-dim)', marginTop: 'var(--mfd-sp-xs)',
-          }}>
-            Recent weeks — {approvalHistory.length > 1 && approvalHistory[approvalHistory.length - 1]! < approvalHistory[0]! ? 'trending down' : 'stable'}
-          </div>
-        </MfdPanel>
+      <div style={autoGrid(210)}>
+        <PixelMetricCard
+          label="Approval"
+          value={approval}
+          accent={approval >= 70 ? 'green' : approval >= 50 ? 'cyan' : approval >= 30 ? 'gold' : 'red'}
+          detail={latestSummary?.ownerDelta ? `Delta ${latestSummary.ownerDelta >= 0 ? '+' : ''}${latestSummary.ownerDelta}` : 'Stable for now'}
+        />
+        <PixelMetricCard
+          label="Patience"
+          value={patience}
+          accent={patience >= 60 ? 'green' : patience >= 40 ? 'cyan' : patience >= 25 ? 'gold' : 'red'}
+          detail="Owner baseline tolerance"
+        />
+        <PixelMetricCard
+          label="Confidence"
+          value={confidenceScore}
+          accent={confidenceScore >= 60 ? 'green' : confidenceScore >= 40 ? 'cyan' : confidenceScore >= 25 ? 'gold' : 'red'}
+          detail="Weighted trust score"
+        />
+        <PixelMetricCard
+          label="Stage"
+          value={stage}
+          accent={cfg.accent}
+          detail={`${cfg.label} mode active`}
+        />
       </div>
 
-      {/* Owner Goals */}
-      <MfdPanel title="Owner Goals" icon={<Target size={14} />}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-md)' }}>
+      <div style={autoGrid(320)}>
+        <PixelPanel title="Confidence Arc" accent={cfg.accent}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <PixelProgressBar value={approval} accent={approval >= 70 ? 'green' : approval >= 50 ? 'cyan' : approval >= 30 ? 'gold' : 'red'} label="Approval" valueLabel={`${approval}`} />
+            <PixelProgressBar value={patience} accent={patience >= 60 ? 'green' : patience >= 40 ? 'cyan' : patience >= 25 ? 'gold' : 'red'} label="Patience" valueLabel={`${patience}`} />
+            <PixelProgressBar value={confidenceScore} accent={cfg.accent} label="Confidence" valueLabel={`${confidenceScore}`} />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
+            {(['PATIENT', 'RESTLESS', 'DEMANDING', 'ULTIMATUM'] as const).map((value) => (
+              <div key={value} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                <span style={{ ...monoSm, color: stage === value ? '#fff' : '#777' }}>
+                  {value}
+                </span>
+                {stage === value ? <PixelBadge variant={STAGE_CONFIG[value].accent}>Active</PixelBadge> : null}
+              </div>
+            ))}
+          </div>
+        </PixelPanel>
+
+        <PixelPanel title="Approval Trend" accent="cyan">
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '96px' }}>
+            {approvalHistory.map((value, index) => (
+              <div key={`${value}-${index}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                <div style={{
+                  width: '100%',
+                  height: `${Math.max(8, value)}%`,
+                  background: value < 40 ? 'var(--mfd-red)' : value < 60 ? 'var(--mfd-gold)' : 'var(--mfd-green)',
+                  border: '2px solid #111',
+                }} />
+                <span style={{ ...pixelSm, color: '#666' }}>W{index + 1}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ ...monoSm, color: '#999', marginTop: '8px' }}>
+            {approvalHistory.length > 1 && approvalHistory[approvalHistory.length - 1]! < approvalHistory[0]!
+              ? 'Trend: cooling'
+              : 'Trend: stable or improving'}
+          </div>
+        </PixelPanel>
+      </div>
+
+      <PixelPanel title="Owner Goals" accent="gold">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {goals.map((goal) => (
             <div key={goal.id} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: 'var(--mfd-sp-xs) 0',
-              borderBottom: '1px solid var(--mfd-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: '12px',
+              alignItems: 'center',
+              paddingBottom: '8px',
+              borderBottom: '1px solid #1a1a1a',
             }}>
-              <span style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem' }}>{goal.label}</span>
-              <div style={{ display: 'flex', gap: 'var(--mfd-sp-sm)', alignItems: 'center' }}>
-                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
+              <div>
+                <div style={{ ...display, fontSize: '18px', color: '#fff', lineHeight: 1 }}>
+                  {goal.label.toUpperCase()}
+                </div>
+                <div style={{ ...monoSm, color: '#888', marginTop: '4px' }}>
                   {goal.progress}
-                </span>
-                <MfdBadge variant={goal.status === 'met' ? 'success' : goal.status === 'failing' ? 'danger' : 'warning'}>
-                  {goal.status === 'met' ? 'Met' : goal.status === 'failing' ? 'Failing' : 'At Risk'}
-                </MfdBadge>
+                </div>
               </div>
+              <PixelBadge variant={goal.status === 'met' ? 'green' : goal.status === 'at_risk' ? 'gold' : 'red'}>
+                {goal.status === 'met' ? 'Met' : goal.status === 'at_risk' ? 'At Risk' : 'Failing'}
+              </PixelBadge>
             </div>
           ))}
         </div>
-      </MfdPanel>
+      </PixelPanel>
 
       {latestSummary && (
-        <MfdPanel title="Latest Reaction" icon={<Shield size={14} />}>
-          <div style={{
-            fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
-            color: 'var(--mfd-text-dim)',
-          }}>
-            {latestSummary.headline}
+        <PixelPanel title="Latest Reaction" accent={latestSummary.ownerDelta >= 0 ? 'green' : 'red'}>
+          <div style={{ ...display, fontSize: '20px', color: '#fff', lineHeight: 1 }}>
+            {latestSummary.headline.toUpperCase()}
           </div>
-          <div style={{ marginTop: 'var(--mfd-sp-sm)' }}>
-            <MfdBadge variant={latestSummary.ownerDelta >= 0 ? 'success' : 'danger'}>
+          <div style={{ marginTop: '8px' }}>
+            <PixelBadge variant={latestSummary.ownerDelta >= 0 ? 'green' : 'red'}>
               Owner delta {latestSummary.ownerDelta >= 0 ? '+' : ''}{latestSummary.ownerDelta}
-            </MfdBadge>
+            </PixelBadge>
           </div>
-        </MfdPanel>
+        </PixelPanel>
       )}
     </div>
   );

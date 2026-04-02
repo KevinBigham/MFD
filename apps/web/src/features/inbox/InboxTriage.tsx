@@ -1,20 +1,22 @@
 import { useState, useMemo } from 'react';
 import {
-  MfdPanel, MfdBadge, MfdDialog, MfdConsequenceRibbon,
+  PixelBadge, PixelModal, PixelNav, PixelPanel,
 } from '@mfd/design-system/components';
-import {
-  AlertTriangle, Lightbulb, Inbox,
-  ChevronRight,
-} from 'lucide-react';
 import {
   useGameStore, selectUserTeam, selectRoster, selectWeek, selectNarrative, selectLatestSummary, selectPhase, selectLatestGameDayPackage, selectActiveStoryArcs,
 } from '../../app/store/game-store';
 import { buildInboxMessages, type InboxMessage, type MessageType } from './buildInboxMessages';
+import {
+  PixelConsequenceList,
+  PixelScreenHeader,
+  monoSm,
+  screenStackStyle,
+} from '../shared/pixelUi';
 
-const TYPE_CONFIG: Record<MessageType, { icon: React.ReactNode; color: string; label: string; variant: 'danger' | 'warning' | 'info' }> = {
-  URGENT: { icon: <AlertTriangle size={14} />, color: 'var(--mfd-red)', label: 'URGENT', variant: 'danger' },
-  DECISION: { icon: <Lightbulb size={14} />, color: 'var(--mfd-amber)', label: 'DECISION', variant: 'warning' },
-  INTEL: { icon: <Inbox size={14} />, color: 'var(--mfd-cyan)', label: 'INTEL', variant: 'info' },
+const TYPE_CONFIG: Record<MessageType, { accent: 'red' | 'gold' | 'cyan'; label: string; badge: 'red' | 'gold' | 'cyan' }> = {
+  URGENT: { accent: 'red', label: 'URGENT', badge: 'red' },
+  DECISION: { accent: 'gold', label: 'DECISION', badge: 'gold' },
+  INTEL: { accent: 'cyan', label: 'INTEL', badge: 'cyan' },
 };
 
 export function InboxTriage() {
@@ -46,123 +48,114 @@ export function InboxTriage() {
   const decisionCount = messages.filter((m) => m.type === 'DECISION' && m.actionRequired).length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-        <div>
-          <h1 style={{
-            fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem',
-            fontWeight: 700, color: 'var(--mfd-text)', margin: 0,
-          }}>Inbox</h1>
-          <p style={{
-            fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
-            color: 'var(--mfd-text-dim)', margin: '4px 0 0',
-          }}>
-            {urgentCount} urgent // {decisionCount} decisions pending
-          </p>
-        </div>
-      </div>
+    <div style={screenStackStyle}>
+      <PixelScreenHeader
+        title="Inbox"
+        subtitle={`${messages.length} messages // ${urgentCount} urgent // ${decisionCount} decisions pending`}
+        badges={(
+          <>
+            <PixelBadge variant="red">{urgentCount} urgent</PixelBadge>
+            <PixelBadge variant="gold">{decisionCount} decisions</PixelBadge>
+          </>
+        )}
+      />
 
-      {/* Filter Tabs */}
-      <div style={{ display: 'flex', gap: '4px' }}>
-        {(['ALL', 'URGENT', 'DECISION', 'INTEL'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setFilter(t)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '6px 12px', fontSize: '0.75rem',
-              fontFamily: 'var(--mfd-font-mono)',
-              color: filter === t ? 'var(--mfd-bg)' : 'var(--mfd-text-dim)',
-              background: filter === t ? (t === 'ALL' ? 'var(--mfd-gold)' : TYPE_CONFIG[t as MessageType]?.color ?? 'var(--mfd-gold)') : 'var(--mfd-bg-2)',
-              border: '1px solid var(--mfd-border)',
-              borderRadius: 'var(--mfd-rad-md)',
-              cursor: 'pointer',
-            }}
-          >
-            {t !== 'ALL' && TYPE_CONFIG[t as MessageType]?.icon}
-            {t}
-            {t === 'URGENT' && urgentCount > 0 && (
-              <span style={{
-                background: 'var(--mfd-red)', color: 'white',
-                borderRadius: '50%', width: 16, height: 16,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.5625rem', fontWeight: 700,
-              }}>
-                {urgentCount}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <PixelNav
+        activeKey={filter}
+        wrap
+        items={[
+          { key: 'ALL', label: `All ${messages.length}` },
+          { key: 'URGENT', label: `Urgent ${urgentCount}` },
+          { key: 'DECISION', label: `Decision ${decisionCount}` },
+          { key: 'INTEL', label: 'Intel' },
+        ]}
+        onSelect={(key) => setFilter(key as MessageType | 'ALL')}
+      />
 
-      {/* Message List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
+      <PixelPanel title="Message Queue" accent={urgentCount > 0 ? 'red' : 'cyan'}>
         {filtered.length === 0 ? (
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.8125rem', color: 'var(--mfd-text-dim)', padding: 'var(--mfd-sp-lg)', textAlign: 'center' }}>
-            No messages
+          <div style={{ ...monoSm, color: '#999', textAlign: 'center', padding: '16px 0' }}>
+            No messages in this channel.
           </div>
-        ) : filtered.map((msg) => {
-          const cfg = TYPE_CONFIG[msg.type];
-          return (
-            <button
-              key={msg.id}
-              onClick={() => setSelectedMsg(msg)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-md)',
-                padding: 'var(--mfd-sp-md)',
-                background: msg.read ? 'var(--mfd-bg-2)' : 'var(--mfd-bg-3)',
-                border: `1px solid ${msg.type === 'URGENT' && !msg.read ? 'var(--mfd-red)' : 'var(--mfd-border)'}`,
-                borderRadius: 'var(--mfd-rad-md)',
-                cursor: 'pointer', textAlign: 'left', width: '100%',
-              }}
-            >
-              <div style={{ color: cfg.color, flexShrink: 0 }}>{cfg.icon}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)' }}>
-                  <MfdBadge variant={cfg.variant}>{cfg.label}</MfdBadge>
-                  <span style={{
-                    fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem',
-                    fontWeight: msg.read ? 400 : 600, color: 'var(--mfd-text)',
-                  }}>{msg.title}</span>
-                </div>
-                <div style={{
-                  fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
-                  color: 'var(--mfd-text-dim)', marginTop: 2,
-                }}>From: {msg.from} // Week {msg.week}</div>
-              </div>
-              {msg.actionRequired && <MfdBadge variant="warning">Action Required</MfdBadge>}
-              <ChevronRight size={14} style={{ color: 'var(--mfd-text-faint)' }} />
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Message Detail Dialog */}
-      <MfdDialog
-        open={!!selectedMsg}
-        onOpenChange={(open) => { if (!open) setSelectedMsg(null); }}
-        title={selectedMsg?.title ?? ''}
-      >
-        {selectedMsg && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-md)' }}>
-            <div style={{ display: 'flex', gap: 'var(--mfd-sp-sm)' }}>
-              <MfdBadge variant={TYPE_CONFIG[selectedMsg.type].variant}>
-                {TYPE_CONFIG[selectedMsg.type].label}
-              </MfdBadge>
-              <MfdBadge variant="default">From: {selectedMsg.from}</MfdBadge>
-            </div>
-            <p style={{
-              fontFamily: 'var(--mfd-font-sans)', fontSize: '0.875rem',
-              color: 'var(--mfd-text)', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap',
-            }}>
-              {selectedMsg.body}
-            </p>
-            {selectedMsg.consequences && (
-              <MfdConsequenceRibbon consequences={selectedMsg.consequences} />
-            )}
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {filtered.map((msg) => {
+              const cfg = TYPE_CONFIG[msg.type];
+              return (
+                <button
+                  key={msg.id}
+                  type="button"
+                  onClick={() => setSelectedMsg(msg)}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    alignItems: 'flex-start',
+                    width: '100%',
+                    padding: '10px',
+                    background: msg.read ? 'var(--mfd-bg-2)' : 'var(--mfd-bg-3)',
+                    border: `3px solid ${cfg.accent === 'red' ? 'var(--mfd-red)' : cfg.accent === 'gold' ? 'var(--mfd-gold)' : 'var(--mfd-cyan)'}`,
+                    color: 'var(--mfd-text)',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <PixelBadge variant={cfg.badge}>{cfg.label}</PixelBadge>
+                      {msg.actionRequired ? <PixelBadge variant="gold">Action Required</PixelBadge> : null}
+                      {!msg.read ? <PixelBadge variant="green">New</PixelBadge> : null}
+                    </div>
+                    <div style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '20px', color: '#fff', lineHeight: 1 }}>
+                      {msg.title.toUpperCase()}
+                    </div>
+                    <div style={{ ...monoSm, color: '#999' }}>
+                      From: {msg.from} // Week {msg.week}
+                    </div>
+                  </div>
+                  <span style={{ ...monoSm, color: '#666' }}>OPEN</span>
+                </button>
+              );
+            })}
           </div>
         )}
-      </MfdDialog>
+      </PixelPanel>
+
+      <PixelModal
+        open={!!selectedMsg}
+        onOpenChange={(open) => { if (!open) setSelectedMsg(null); }}
+        title={selectedMsg?.title ?? 'Message Detail'}
+        description={selectedMsg ? `${selectedMsg.from} // Week ${selectedMsg.week}` : undefined}
+        accent={selectedMsg ? TYPE_CONFIG[selectedMsg.type].accent : 'default'}
+      >
+        {selectedMsg ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant={TYPE_CONFIG[selectedMsg.type].badge}>{TYPE_CONFIG[selectedMsg.type].label}</PixelBadge>
+              <PixelBadge variant="default">From: {selectedMsg.from}</PixelBadge>
+            </div>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '12px', color: '#ddd', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+              {selectedMsg.body}
+            </div>
+            {selectedMsg.consequences ? (
+              <PixelConsequenceList
+                items={selectedMsg.consequences.map((item) => ({
+                  id: item.id,
+                  label: item.label,
+                  delta: item.delta,
+                  accent: item.direction === 'positive'
+                    ? 'green'
+                    : item.direction === 'warning'
+                      ? 'gold'
+                      : item.direction === 'negative'
+                        ? 'red'
+                        : 'default',
+                }))}
+              />
+            ) : null}
+          </div>
+        ) : null}
+      </PixelModal>
     </div>
   );
 }

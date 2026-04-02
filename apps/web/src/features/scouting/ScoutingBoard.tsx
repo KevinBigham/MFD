@@ -1,27 +1,20 @@
-import { useState } from 'react';
-import { Search, Eye } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import {
-  MfdBadge,
-  MfdPanel,
+  PixelBadge, PixelButton, PixelPanel,
 } from '@mfd/design-system/components';
 import {
   selectDraftClass,
   selectOffseasonState,
   useGameStore,
 } from '../../app/store/game-store';
-
-function actionButtonStyle(color: string) {
-  return {
-    padding: '6px 10px',
-    borderRadius: 'var(--mfd-rad-md)',
-    border: `1px solid ${color}`,
-    background: 'transparent',
-    color,
-    cursor: 'pointer',
-    fontFamily: 'var(--mfd-font-mono)',
-    fontSize: '0.6875rem',
-  } as const;
-}
+import {
+  PixelMetricCard,
+  PixelScreenHeader,
+  autoGrid,
+  display,
+  monoSm,
+  screenStackStyle,
+} from '../shared/pixelUi';
 
 export function ScoutingBoard() {
   const draftClass = useGameStore(selectDraftClass);
@@ -38,96 +31,91 @@ export function ScoutingBoard() {
     }
   };
 
+  const visibleProspects = draftClass.slice(0, 24);
+  const completedActions = useMemo(() => {
+    return visibleProspects.reduce((sum, prospect) => sum + (offseasonState?.scoutingState[prospect.id]?.actions.length ?? 0), 0);
+  }, [offseasonState, visibleProspects]);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-      <div>
-        <h1 style={{
-          fontFamily: 'var(--mfd-font-serif)',
-          fontSize: '1.375rem',
-          fontWeight: 700,
-          color: 'var(--mfd-text)',
-          margin: 0,
-        }}>
-          Scouting Board
-        </h1>
-        <p style={{
-          fontFamily: 'var(--mfd-font-mono)',
-          fontSize: '0.75rem',
-          color: 'var(--mfd-text-dim)',
-          margin: '4px 0 0',
-        }}>
-          Deterministic reveal actions. True grades stay hidden.
-        </p>
+    <div style={screenStackStyle}>
+      <PixelScreenHeader
+        title="Scouting Board"
+        subtitle="Deterministic reveal actions. True grades stay hidden."
+        badges={(
+          <>
+            <PixelBadge variant="cyan">{visibleProspects.length} prospects</PixelBadge>
+            <PixelBadge variant="gold">{completedActions} actions logged</PixelBadge>
+          </>
+        )}
+      />
+
+      <div style={autoGrid(210)}>
+        <PixelMetricCard label="Board Size" value={visibleProspects.length} accent="cyan" detail="Visible prospects" />
+        <PixelMetricCard label="Scouting Actions" value={completedActions} accent="gold" detail="Film, combine, interview" />
       </div>
 
-      <MfdPanel title="Prospect Board" icon={<Search size={14} />}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-          {draftClass.length === 0 && (
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
-              No draft class has been generated yet.
-            </div>
-          )}
-
-          {draftClass.slice(0, 24).map((prospect) => {
-            const scouting = offseasonState?.scoutingState[prospect.id];
-            const visibleGrade = scouting?.visibleScoutGrade ?? prospect.scoutGrade;
-            return (
-              <div key={prospect.id} style={{
-                display: 'grid',
-                gridTemplateColumns: '1.4fr auto auto',
-                gap: 'var(--mfd-sp-md)',
-                alignItems: 'center',
-                padding: 'var(--mfd-sp-sm)',
-                border: '1px solid var(--mfd-border)',
-                borderRadius: 'var(--mfd-rad-md)',
-                background: 'var(--mfd-bg-2)',
-              }}>
-                <div>
-                  <div style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem', fontWeight: 600 }}>
-                    {prospect.firstName} {prospect.lastName} <span style={{ color: 'var(--mfd-text-dim)' }}>{prospect.pos}</span>
-                  </div>
-                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)', marginTop: 4 }}>
-                    {prospect.college} // projected round {prospect.projectedRound}
-                  </div>
-                  {scouting?.notes?.length ? (
-                    <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.625rem', color: 'var(--mfd-cyan)', marginTop: 6 }}>
-                      {scouting.notes[scouting.notes.length - 1]}
+      <PixelPanel title="Prospect Board" accent="cyan">
+        {visibleProspects.length === 0 ? (
+          <div style={{ ...monoSm, color: '#999' }}>
+            No draft class has been generated yet.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {visibleProspects.map((prospect) => {
+              const scouting = offseasonState?.scoutingState[prospect.id];
+              const visibleGrade = scouting?.visibleScoutGrade ?? prospect.scoutGrade;
+              return (
+                <div key={prospect.id} style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  padding: '10px',
+                  border: '3px solid var(--mfd-cyan)',
+                  background: 'var(--mfd-bg-3)',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ ...display, fontSize: '22px', color: '#fff', lineHeight: 1 }}>
+                        {`${prospect.firstName} ${prospect.lastName}`.toUpperCase()}
+                      </div>
+                      <div style={{ ...monoSm, color: '#888', marginTop: '6px' }}>
+                        {prospect.pos} // {prospect.college} // projected round {prospect.projectedRound}
+                      </div>
+                      {scouting?.notes?.length ? (
+                        <div style={{ ...monoSm, color: 'var(--mfd-cyan)', marginTop: '6px' }}>
+                          {scouting.notes[scouting.notes.length - 1]}
+                        </div>
+                      ) : null}
                     </div>
-                  ) : null}
-                </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <PixelBadge variant="cyan">{visibleGrade.toFixed(1)}</PixelBadge>
+                      <PixelBadge variant="default">{(((scouting?.accuracy ?? 0) * 100)).toFixed(0)}% conf</PixelBadge>
+                    </div>
+                  </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                  <MfdBadge variant="info">
-                    <Eye size={12} style={{ display: 'inline', marginRight: 4 }} />
-                    {visibleGrade.toFixed(1)}
-                  </MfdBadge>
-                  <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.625rem', color: 'var(--mfd-text-dim)' }}>
-                    {(((scouting?.accuracy ?? 0) * 100)).toFixed(0)}% confidence
-                  </span>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {(['film', 'combine', 'interview'] as const).map((action) => {
+                      const taken = scouting?.actions.includes(action);
+                      return (
+                        <PixelButton
+                          key={action}
+                          accent={taken ? 'default' : action === 'film' ? 'cyan' : action === 'combine' ? 'gold' : 'green'}
+                          disabled={taken || pending === `${prospect.id}-${action}`}
+                          onClick={() => void handleAction(`${prospect.id}-${action}`, async () => {
+                            await runScoutingAction(prospect.id, action);
+                          })}
+                        >
+                          {taken ? `${action} done` : action}
+                        </PixelButton>
+                      );
+                    })}
+                  </div>
                 </div>
-
-                <div style={{ display: 'flex', gap: 'var(--mfd-sp-xs)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  {(['film', 'combine', 'interview'] as const).map((action) => {
-                    const taken = scouting?.actions.includes(action);
-                    return (
-                      <button
-                        key={action}
-                        disabled={taken || pending === `${prospect.id}-${action}`}
-                        style={actionButtonStyle(taken ? 'var(--mfd-text-faint)' : 'var(--mfd-gold)')}
-                        onClick={() => void handleAction(`${prospect.id}-${action}`, async () => {
-                          await runScoutingAction(prospect.id, action);
-                        })}
-                      >
-                        {action}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </MfdPanel>
+              );
+            })}
+          </div>
+        )}
+      </PixelPanel>
     </div>
   );
 }

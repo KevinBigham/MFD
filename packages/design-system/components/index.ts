@@ -17,3 +17,8 @@ export { PixelBadge } from './PixelBadge';
 export { PixelDialog } from './PixelDialog';
 export { PixelScoreboard } from './PixelScoreboard';
 export { PixelStatBar } from './PixelStatBar';
+export { PixelButton } from './PixelButton';
+export { PixelNav, type PixelNavItem } from './PixelNav';
+export { PixelTable } from './PixelTable';
+export { PixelModal } from './PixelModal';
+export { PixelProgressBar } from './PixelProgressBar';
