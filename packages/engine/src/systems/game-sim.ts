@@ -635,9 +635,12 @@ function findMvp(lines: Map<string, PlayerGameLine>, team: Team): string | null 
 // ── Apply player lines to season stats ──────────────────
 
 export function applyPlayerLines(team: Team, lines: PlayerGameLine[]): void {
+  const participants = new Set<string>();
+
   for (const line of lines) {
     const player = team.roster.find((p) => p.id === line.playerId);
     if (!player) continue;
+    participants.add(player.id);
     player.stats.passYds += line.passYds ?? 0;
     player.stats.passTD += line.passTD ?? 0;
     player.stats.passINT += line.passINT ?? 0;
@@ -656,5 +659,31 @@ export function applyPlayerLines(team: Team, lines: PlayerGameLine[]): void {
     player.stats.tackles += line.tackles ?? 0;
     player.stats.fgMade += line.fgMade ?? 0;
     player.stats.fgAtt += line.fgAtt ?? 0;
+
+    player.careerStats.passYds = (player.careerStats.passYds ?? 0) + (line.passYds ?? 0);
+    player.careerStats.passTD = (player.careerStats.passTD ?? 0) + (line.passTD ?? 0);
+    player.careerStats.passINT = (player.careerStats.passINT ?? 0) + (line.passINT ?? 0);
+    player.careerStats.passAtt = (player.careerStats.passAtt ?? 0) + (line.passAtt ?? 0);
+    player.careerStats.passComp = (player.careerStats.passComp ?? 0) + (line.passComp ?? 0);
+    player.careerStats.rushYds = (player.careerStats.rushYds ?? 0) + (line.rushYds ?? 0);
+    player.careerStats.rushAtt = (player.careerStats.rushAtt ?? 0) + (line.rushAtt ?? 0);
+    player.careerStats.rushTD = (player.careerStats.rushTD ?? 0) + (line.rushTD ?? 0);
+    player.careerStats.fumbles = (player.careerStats.fumbles ?? 0) + (line.fumbles ?? 0);
+    player.careerStats.rec = (player.careerStats.rec ?? 0) + (line.rec ?? 0);
+    player.careerStats.recYds = (player.careerStats.recYds ?? 0) + (line.recYds ?? 0);
+    player.careerStats.recTD = (player.careerStats.recTD ?? 0) + (line.recTD ?? 0);
+    player.careerStats.targets = (player.careerStats.targets ?? 0) + (line.targets ?? 0);
+    player.careerStats.sacks = (player.careerStats.sacks ?? 0) + (line.sacks ?? 0);
+    player.careerStats.defINT = (player.careerStats.defINT ?? 0) + (line.defINT ?? 0);
+    player.careerStats.tackles = (player.careerStats.tackles ?? 0) + (line.tackles ?? 0);
+    player.careerStats.fgMade = (player.careerStats.fgMade ?? 0) + (line.fgMade ?? 0);
+    player.careerStats.fgAtt = (player.careerStats.fgAtt ?? 0) + (line.fgAtt ?? 0);
+  }
+
+  for (const player of team.roster) {
+    if (player.injury) continue;
+    if (player.isStarter || participants.has(player.id)) {
+      player.careerStats.gp = (player.careerStats.gp ?? 0) + 1;
+    }
   }
 }

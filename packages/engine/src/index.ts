@@ -57,6 +57,18 @@ export {
 } from './systems/history';
 export { progressPlayers } from './systems/progression';
 export type { ProgressionResult } from './systems/progression';
+export {
+  createEmptyRecordBook,
+  updateSingleGameRecords,
+  updateRecordsFromGameResult,
+  updateSeasonRecords,
+  updateCareerRecords,
+  getSeasonRecordNotes,
+} from './systems/records';
+export { createPowerRankings, updatePowerRankings } from './systems/power-rankings';
+export { formMentoringPairs, applyMentoringBonuses } from './systems/mentoring';
+export { generateAwards } from './systems/awards';
+export { inductHallOfFame } from './systems/hall-of-fame';
 
 // Systems — Contracts (Phase 2)
 export {

@@ -18,6 +18,7 @@ import {
   CONTRACT_VALUE_TABLE, AGE_VALUE_CURVE, MIN_SALARY, emptyPlayerStats,
   syncAllPlayerArchiveEntries,
 } from '@mfd/engine';
+import { createEmptyRecordBook } from '@mfd/engine';
 
 // ── Name pools ─────────────────────────────────────────────
 
@@ -297,6 +298,7 @@ function genTeam(
     tradeState: { gmTrustByTeam: {}, recentTrades: [] },
     txLog: [],
     seasonStats: createEmptySeasonStats(),
+    mentoringPairs: [],
   };
 
   return { team, players };
@@ -402,8 +404,10 @@ export function createSeedGameState(
     schedule,
     draftClass: [],
     freeAgents: [],
-    records: [],
+    records: createEmptyRecordBook(),
+    awardsHistory: [],
     hallOfFame: [],
+    powerRankings: [],
     franchiseHistory: [],
     playerArchive: [],
     frontOffice,

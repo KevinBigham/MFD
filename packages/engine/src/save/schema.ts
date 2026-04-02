@@ -109,6 +109,93 @@ export const GameDayStateSchema = z.object({
   latestPackageId: z.string().nullable(),
 });
 
+export const RecordEntrySchema = z.object({
+  category: z.enum(['singleGame', 'singleSeason', 'career', 'franchise']),
+  stat: z.string(),
+  value: z.number(),
+  teamId: z.string(),
+  teamName: z.string(),
+  year: z.number(),
+  week: z.number().nullable().optional(),
+  playerId: z.string().nullable().optional(),
+  playerName: z.string().nullable().optional(),
+  note: z.string().optional(),
+});
+
+export const RecordBucketSchema = z.record(z.string(), z.array(RecordEntrySchema));
+
+export const RecordBookSchema = z.object({
+  singleGame: RecordBucketSchema,
+  singleSeason: RecordBucketSchema,
+  career: RecordBucketSchema,
+  franchise: RecordBucketSchema,
+});
+
+export const AwardNomineeSchema = z.object({
+  entityId: z.string(),
+  entityType: z.enum(['player', 'coach']),
+  name: z.string(),
+  teamId: z.string().nullable(),
+  teamName: z.string(),
+  position: z.union([z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']), z.enum(['HC', 'OC', 'DC'])]).nullable(),
+  ovr: z.number(),
+  score: z.number(),
+  stats: z.record(z.string(), z.union([z.number(), z.string()])),
+});
+
+export const AwardResultSchema = z.object({
+  awardId: z.string(),
+  label: z.string(),
+  winnerId: z.string(),
+  winnerName: z.string(),
+  winnerTeamId: z.string().nullable(),
+  winnerTeam: z.string(),
+  winnerPosition: AwardNomineeSchema.shape.position,
+  winnerStats: z.record(z.string(), z.union([z.number(), z.string()])),
+  score: z.number(),
+  runnersUp: z.array(AwardNomineeSchema),
+  narrative: z.string(),
+});
+
+export const AwardsHistoryEntrySchema = z.object({
+  year: z.number(),
+  awards: z.array(AwardResultSchema),
+  ceremony: z.object({
+    headline: z.string(),
+    intro: z.string(),
+    blurbs: z.array(z.string()),
+  }),
+});
+
+export const HallOfFameEntrySchema = z.object({
+  playerId: z.string(),
+  name: z.string(),
+  position: z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']),
+  inductionYear: z.number(),
+  peakOvr: z.number(),
+  careerYears: z.number(),
+  score: z.number(),
+  awards: z.object({
+    mvps: z.number(),
+    allPros: z.number(),
+    proBowls: z.number(),
+    championships: z.number(),
+  }),
+  highlights: z.array(z.string()),
+  teams: z.array(z.string()),
+});
+
+export const PowerRankingSchema = z.object({
+  rank: z.number(),
+  teamId: z.string(),
+  teamName: z.string(),
+  score: z.number(),
+  previousRank: z.number().nullable(),
+  delta: z.number(),
+  blurb: z.string(),
+  record: z.string(),
+});
+
 export const ContractOfferSchema = z.object({
   years: z.number(),
   salary: z.number(),
@@ -223,8 +310,10 @@ export const SaveStateSchema = z.object({
   schedule: z.array(z.any()),
   draftClass: z.array(z.any()),
   freeAgents: z.array(z.string()),
-  records: z.array(z.any()),
-  hallOfFame: z.array(z.any()),
+  records: RecordBookSchema,
+  awardsHistory: z.array(AwardsHistoryEntrySchema),
+  hallOfFame: z.array(HallOfFameEntrySchema),
+  powerRankings: z.array(PowerRankingSchema),
   franchiseHistory: z.array(z.any()),
   playerArchive: z.array(z.any()),
   frontOffice: z.object({

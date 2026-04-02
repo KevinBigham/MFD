@@ -118,5 +118,7 @@ describe('three-season integration loop', () => {
     expect(state.eventLog.some((event) => event.type === 'gm_strategy_shift')).toBe(true);
     expect(qbTopFiveDraftYears).toBeGreaterThanOrEqual(1);
     expect(middlingTeams.some((entry) => state.teams[entry.teamId]!.ownerPatience80 > 25)).toBe(true);
+    expect(state.awardsHistory.length).toBeGreaterThan(0);
+    expect(state.records.singleSeason.wins.length).toBeGreaterThan(0);
   });
 });

@@ -1,11 +1,16 @@
 import { DIFF_SETTINGS } from '../config/difficulty';
+import { generateAwards } from './awards';
 import { makeContract } from './contracts';
 import { ensureDraftClass } from './draft';
 import { reevaluateLeagueStrategies } from './gm-strategies';
+import { inductHallOfFame } from './hall-of-fame';
 import { syncPlayerArchiveEntry } from './history';
+import { applyMentoringBonuses, formMentoringPairs } from './mentoring';
 import { progressPlayers } from './progression';
+import { getSeasonRecordNotes, updateCareerRecords, updateSeasonRecords } from './records';
 import { generateTradeOffers } from './trade-market';
 import type {
+  AwardResult,
   ContractOffer,
   DraftOrderEntry,
   EngineOutput,
@@ -291,6 +296,58 @@ function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState): voi
   }
 }
 
+function currentSeasonYear(game: GameState): number {
+  return game.year - 1;
+}
+
+function markCompletedSeason(game: GameState, seasonYear: number): void {
+  for (const player of Object.values(game.players)) {
+    if ((player.careerStats.lastSeasonCountedYear ?? 0) === seasonYear) continue;
+    player.careerStats.seasons = (player.careerStats.seasons ?? 0) + 1;
+    player.careerStats.lastSeasonCountedYear = seasonYear;
+  }
+}
+
+function patchSeasonHistory(game: GameState, seasonYear: number, awards: AwardResult[]): void {
+  for (const entry of game.franchiseHistory) {
+    if (entry.year !== seasonYear) continue;
+    entry.awardsWon = awards
+      .filter((award) => !['all_pro_first_team', 'all_pro_second_team', 'pro_bowl'].includes(award.awardId))
+      .filter((award) => award.winnerTeamId === entry.teamId)
+      .map((award) => award.label);
+    entry.recordsBroken = getSeasonRecordNotes(game, seasonYear, entry.teamId);
+  }
+}
+
+function patchMentoringHistory(game: GameState, seasonYear: number, team: Team, pairs: Team['mentoringPairs']): void {
+  if (pairs.length === 0) return;
+
+  const entry = game.franchiseHistory.find((history) => history.year === seasonYear && history.teamId === team.id);
+  if (!entry) return;
+
+  const existing = new Set(entry.majorEvents);
+  for (const pair of pairs) {
+    const event = `Mentoring: ${pair.mentorName} -> ${pair.menteeName} (+${pair.bonus} OVR)`;
+    if (existing.has(event)) continue;
+    entry.majorEvents.push(event);
+    existing.add(event);
+  }
+}
+
+function stampChampionCareers(game: GameState, seasonYear: number): void {
+  const championTeamId = game.playoffBracket?.championTeamId ?? null;
+  if (!championTeamId) return;
+
+  const champion = game.teams[championTeamId];
+  if (!champion) return;
+
+  for (const player of champion.roster) {
+    if ((player.careerStats.lastChampionshipYear ?? 0) === seasonYear) continue;
+    player.careerStats.championships = (player.careerStats.championships ?? 0) + 1;
+    player.careerStats.lastChampionshipYear = seasonYear;
+  }
+}
+
 export function initializeOffseasonState(game: GameState): OffseasonState {
   const expiringPlayers = Object.values(game.teams)
     .flatMap((team) => team.roster)
@@ -358,15 +415,33 @@ export function advanceOffseason(game: GameState): void {
     game.offseasonState = initializeOffseasonState(game);
   }
 
+  const seasonYear = currentSeasonYear(game);
+  markCompletedSeason(game, seasonYear);
+  stampChampionCareers(game, seasonYear);
+  const awards = generateAwards(game, seasonYear);
+  updateSeasonRecords(game, seasonYear);
+  updateCareerRecords(game, seasonYear);
+  patchSeasonHistory(game, seasonYear, awards.awards);
   decrementCarryoverContracts(game, game.offseasonState);
   resolveUserReSigns(game, game.offseasonState);
   resolveAiReSigns(game, game.offseasonState);
   finalizeUnsignedExpiringPlayers(game, game.offseasonState);
-  const progression = progressPlayers(game);
+  const hofClass = inductHallOfFame(game, seasonYear);
+  const mentoringPairs = formMentoringPairs(game, game.year);
+  for (const team of Object.values(game.teams)) {
+    patchMentoringHistory(game, seasonYear, team, team.mentoringPairs);
+  }
+  const mentoringBonuses = applyMentoringBonuses(game, mentoringPairs);
+  const progression = progressPlayers(game, { mentoringBonuses });
   game.eventLog.push(...progression.events);
-  if (progression.events.length > 0) {
+  const narrativeAdds = [
+    awards.ceremony.headline,
+    ...hofClass.map((entry) => `${entry.name} enters the Hall of Fame.`),
+    ...progression.events.map((event) => event.description),
+  ];
+  if (narrativeAdds.length > 0) {
     game.narrativeState.recentHeadlines = [
-      ...progression.events.map((event) => event.description),
+      ...narrativeAdds,
       ...game.narrativeState.recentHeadlines,
     ].slice(0, 8);
   }

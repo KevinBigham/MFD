@@ -1,12 +1,40 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { createEmptyRecordBook } from '@mfd/engine';
 import { LegacyTimeline } from './LegacyTimeline';
+
+const recordBook = createEmptyRecordBook();
+recordBook.singleSeason.passYds = [{
+  category: 'singleSeason',
+  stat: 'passYds',
+  value: 5114,
+  teamId: 'user',
+  teamName: 'Chicago Blaze',
+  year: 2030,
+  playerId: 'p1',
+  playerName: 'Jay Stone',
+}];
 
 const mockState = {
   game: {
     year: 2031,
     teams: {
-      user: { id: 'user', city: 'Chicago', name: 'Blaze', isUser: true },
+      user: {
+        id: 'user',
+        city: 'Chicago',
+        name: 'Blaze',
+        isUser: true,
+        mentoringPairs: [{
+          mentorId: 'mentor-1',
+          mentorName: 'Rick Mason',
+          menteeId: 'mentee-1',
+          menteeName: 'Jay Stone',
+          teamId: 'user',
+          positionGroup: 'QB',
+          year: 2031,
+          bonus: 2,
+        }],
+      },
     },
     franchiseHistory: [
       {
@@ -18,7 +46,9 @@ const mockState = {
         record: '12-5',
         pointDifferential: 84,
         playoffFinish: 'champion',
-        majorEvents: ['Won the championship.', 'Shifted to contend.'],
+        majorEvents: ['Won the championship.', 'Shifted to contend.', 'Mentoring: Rick Mason -> Jay Stone (+2 OVR)'],
+        awardsWon: ['MVP'],
+        recordsBroken: ['Passing Yards: Jay Stone (5114)'],
       },
     ],
     playerArchive: [
@@ -36,21 +66,131 @@ const mockState = {
         teamHistory: [{ teamId: 'user', firstYear: 2026, lastYear: 2030 }],
       },
     ],
+    awardsHistory: [
+      {
+        year: 2030,
+        ceremony: {
+          headline: 'Jay Stone headlines awards night.',
+          intro: 'A banner season.',
+          blurbs: [],
+        },
+        awards: [
+          {
+            awardId: 'mvp',
+            label: 'MVP',
+            winnerId: 'p1',
+            winnerName: 'Jay Stone',
+            winnerTeamId: 'user',
+            winnerTeam: 'Chicago Blaze',
+            winnerPosition: 'QB',
+            winnerStats: { passYds: 5114 },
+            score: 98,
+            runnersUp: [],
+            narrative: 'He owned the season.',
+          },
+        ],
+      },
+    ],
+    hallOfFame: [
+      {
+        playerId: 'hof-1',
+        name: 'Legend One',
+        position: 'QB',
+        inductionYear: 2031,
+        peakOvr: 94,
+        careerYears: 12,
+        score: 102,
+        awards: { mvps: 2, allPros: 5, proBowls: 8, championships: 2 },
+        highlights: ['Peak 94 OVR', '2 MVP'],
+        teams: ['user'],
+      },
+    ],
+    records: recordBook,
   },
+  awardsHistory: [
+    {
+      year: 2030,
+      ceremony: {
+        headline: 'Jay Stone headlines awards night.',
+        intro: 'A banner season.',
+        blurbs: [],
+      },
+      awards: [
+        {
+          awardId: 'mvp',
+          label: 'MVP',
+          winnerId: 'p1',
+          winnerName: 'Jay Stone',
+          winnerTeamId: 'user',
+          winnerTeam: 'Chicago Blaze',
+          winnerPosition: 'QB',
+          winnerStats: { passYds: 5114 },
+          score: 98,
+          runnersUp: [],
+          narrative: 'He owned the season.',
+        },
+      ],
+    },
+  ],
+  hallOfFame: [
+    {
+      playerId: 'hof-1',
+      name: 'Legend One',
+      position: 'QB',
+      inductionYear: 2031,
+      peakOvr: 94,
+      careerYears: 12,
+      score: 102,
+      awards: { mvps: 2, allPros: 5, proBowls: 8, championships: 2 },
+      highlights: ['Peak 94 OVR', '2 MVP'],
+      teams: ['user'],
+    },
+  ],
+  records: recordBook,
+  userMentoringPairs: [{
+    mentorId: 'mentor-1',
+    mentorName: 'Rick Mason',
+    menteeId: 'mentee-1',
+    menteeName: 'Jay Stone',
+    teamId: 'user',
+    positionGroup: 'QB',
+    year: 2031,
+    bonus: 2,
+  }],
+  historicalMentoring: [
+    {
+      id: '2030-0-0',
+      year: 2030,
+      summary: 'Rick Mason -> Jay Stone (+2 OVR)',
+    },
+  ],
 };
 
 vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: typeof mockState) => unknown) => selector(mockState),
   selectUserTeam: (state: typeof mockState) => Object.values(state.game.teams)[0],
+  selectAwardsHistory: (state: typeof mockState) => state.awardsHistory,
+  selectHallOfFame: (state: typeof mockState) => state.hallOfFame,
+  selectRecords: (state: typeof mockState) => state.records,
+  selectUserMentoringPairs: (state: typeof mockState) => state.userMentoringPairs,
+  selectHistoricalMentoringChains: (state: typeof mockState) => state.historicalMentoring,
 }));
 
 describe('LegacyTimeline', () => {
-  it('renders season history, major events, and the all-time roster', () => {
+  it('renders season history plus awards, hall of fame, records, and mentoring sections', () => {
     const markup = renderToStaticMarkup(<LegacyTimeline />);
 
     expect(markup).toContain('DYNASTY LEGACY');
     expect(markup).toContain('12-5');
     expect(markup).toContain('Won the championship.');
+    expect(markup).toContain('--- AWARDS HISTORY ---');
+    expect(markup).toContain('Jay Stone');
+    expect(markup).toContain('--- HALL OF FAME ---');
+    expect(markup).toContain('Legend One');
+    expect(markup).toContain('--- RECORDS BOOK ---');
+    expect(markup).toContain('Passing Yards: 5114');
+    expect(markup).toContain('--- MENTORING REPORT ---');
+    expect(markup).toContain('Rick Mason -&gt; Jay Stone');
     expect(markup).toContain('Jay Stone');
   });
 });

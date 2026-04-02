@@ -24,9 +24,17 @@ describe('franchise week simulation', () => {
     expect(first.nextState.weekSummaries).toHaveLength(1);
     expect(first.nextState.gameDayState.recentPackages).toHaveLength(1);
     expect(first.nextState.gameDayState.latestPackageId).toBe(first.nextState.gameDayState.recentPackages[0]!.id);
+    expect(first.nextState.powerRankings).toHaveLength(Object.keys(first.nextState.teams).length);
+    expect(first.nextState.records.singleGame.passYds.length).toBeGreaterThan(0);
     expect(first.nextState.weekSummaries).toEqual(second.nextState.weekSummaries);
     expect(first.nextState.gameDayState).toEqual(second.nextState.gameDayState);
+    expect(first.nextState.powerRankings).toEqual(second.nextState.powerRankings);
+    expect(first.nextState.records).toEqual(second.nextState.records);
     expect(first.nextState.narrativeState.hooks.length).toBeGreaterThan(0);
+
+    const userTeam = first.nextState.teams.afce1;
+    const activePlayers = userTeam.roster.filter((player) => player.stats.passAtt > 0 || player.stats.rushAtt > 0 || player.stats.targets > 0 || player.stats.tackles > 0);
+    expect(activePlayers.some((player) => (player.careerStats.gp ?? 0) >= 52)).toBe(true);
   });
 
   it('seeds seven playoff teams per conference using standings tiebreakers', () => {

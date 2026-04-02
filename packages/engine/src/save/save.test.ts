@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { SaveStateSchema } from './schema';
 import { migrate, registerMigration, getRegisteredVersions } from './migrations';
 import { SAVE_VERSION } from '../config';
+import { createEmptyRecordBook } from '../systems/records';
 
 describe('SaveStateSchema', () => {
   it('validates a minimal valid save', () => {
@@ -18,8 +19,10 @@ describe('SaveStateSchema', () => {
       schedule: [],
       draftClass: [],
       freeAgents: [],
-      records: [],
+      records: createEmptyRecordBook(),
+      awardsHistory: [],
       hallOfFame: [],
+      powerRankings: [],
       franchiseHistory: [],
       playerArchive: [],
       frontOffice: {
@@ -58,7 +61,7 @@ describe('SaveStateSchema', () => {
       difficulty: 'pro',
       players: {}, teams: {}, owners: {},
       schedule: [], draftClass: [], freeAgents: [],
-      records: [], hallOfFame: [], franchiseHistory: [], playerArchive: [],
+      records: createEmptyRecordBook(), awardsHistory: [], hallOfFame: [], powerRankings: [], franchiseHistory: [], playerArchive: [],
       frontOffice: { xp: 0, level: 1, achievements: [], perks: [], reputation: { players: 0, media: 0, owner: 0 } },
       eventLog: [],
       narrativeState: { activeArcs: [], hooks: [], recentHeadlines: [] },
@@ -114,7 +117,7 @@ describe('SaveStateSchema', () => {
       players: { p1: player },
       teams: {}, owners: {},
       schedule: [], draftClass: [], freeAgents: [],
-      records: [], hallOfFame: [], franchiseHistory: [], playerArchive: [],
+      records: createEmptyRecordBook(), awardsHistory: [], hallOfFame: [], powerRankings: [], franchiseHistory: [], playerArchive: [],
       frontOffice: { xp: 500, level: 3, achievements: ['first_win'], perks: [], reputation: { players: 70, media: 60, owner: 80 } },
       eventLog: [],
       narrativeState: { activeArcs: [], hooks: [], recentHeadlines: ['Mahomes throws 5 TDs'] },
@@ -166,6 +169,7 @@ describe('migration pipeline', () => {
         wins: 3,
         losses: 2,
         ties: 0,
+        mentoringPairs: [],
         seasonStats: {
           gamesPlayed: 5,
           pointsFor: 0,
@@ -255,5 +259,34 @@ describe('migration pipeline', () => {
     expect(migrated['version']).toBe(SAVE_VERSION);
     expect(migrated['franchiseHistory']).toEqual([]);
     expect(migrated['playerArchive']).toEqual([]);
+  });
+
+  it('migrates v5 saves to include sprint 6 dynasty defaults', () => {
+    const migrated = migrate({
+      version: 5,
+      teams: {
+        t1: {
+          id: 't1',
+          city: 'Test',
+          name: 'Club',
+        },
+      },
+      records: [],
+      hallOfFame: [],
+      franchiseHistory: [],
+      playerArchive: [],
+      gameDayState: {
+        recentPackages: [],
+        latestPackageId: null,
+      },
+      weekSummaries: [],
+      offseasonState: null,
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['awardsHistory']).toEqual([]);
+    expect(migrated['powerRankings']).toEqual([]);
+    expect(migrated['records']).toEqual(createEmptyRecordBook());
+    expect((migrated['teams'] as Record<string, { mentoringPairs?: unknown }>).t1.mentoringPairs).toEqual([]);
   });
 });

@@ -30,6 +30,10 @@ export interface ProgressionResult {
   events: GameEvent[];
 }
 
+interface ProgressionOptions {
+  mentoringBonuses?: Map<string, number>;
+}
+
 function getCoachMultiplier(team: Team | null): number {
   const development = team?.staff.hc?.ratings?.development ?? 70;
   return cl(0.5 + (development / 100), 0.9, 1.5);
@@ -158,22 +162,32 @@ function makeRetirementEvent(game: GameState, player: Player, teamId: string | n
   };
 }
 
-function progressSinglePlayer(game: GameState, player: Player, team: Team | null): number {
+function progressSinglePlayer(
+  game: GameState,
+  player: Player,
+  team: Team | null,
+  options: ProgressionOptions,
+): number {
   const baseAgeDelta = getBaseAgeDelta(player);
   const performanceMultiplier = getPerformanceMultiplier(player);
   const coachMultiplier = getCoachMultiplier(team);
   const devTraitMultiplier = DEV_TRAIT_MULTIPLIER[player.devTrait] ?? 1;
-  const overallDelta = baseAgeDelta * performanceMultiplier * coachMultiplier * devTraitMultiplier;
+  const mentoringBonus = options.mentoringBonuses?.get(player.id) ?? 0;
+  const overallDelta = baseAgeDelta * performanceMultiplier * coachMultiplier * devTraitMultiplier + mentoringBonus;
+
+  const previousSeasonStart = player.careerStats.seasonStartOvr ?? player.ovr;
+  player.careerStats.previousSeasonOvr = previousSeasonStart;
 
   applyRatingProgression(player, overallDelta);
   player.ovr = cl(Math.round(player.ovr + overallDelta), 40, 99);
   player.pot = Math.max(player.pot, player.ovr);
+  player.careerStats.seasonStartOvr = player.ovr;
   syncPlayerArchiveEntry(game, player, game.year);
 
   return overallDelta;
 }
 
-export function progressPlayers(game: GameState): ProgressionResult {
+export function progressPlayers(game: GameState, options: ProgressionOptions = {}): ProgressionResult {
   const retiredPlayerIds: string[] = [];
   const events: GameEvent[] = [];
 
@@ -181,7 +195,7 @@ export function progressPlayers(game: GameState): ProgressionResult {
     const retirees: Player[] = [];
 
     for (const player of team.roster) {
-      progressSinglePlayer(game, player, team);
+      progressSinglePlayer(game, player, team, options);
       if (player.ovr < RETIREMENT_THRESHOLD[player.pos]) {
         retirees.push(player);
       }
@@ -201,7 +215,7 @@ export function progressPlayers(game: GameState): ProgressionResult {
   for (const playerId of game.freeAgents) {
     const player = game.players[playerId];
     if (!player) continue;
-    progressSinglePlayer(game, player, null);
+    progressSinglePlayer(game, player, null, options);
     if (player.ovr < RETIREMENT_THRESHOLD[player.pos]) {
       player.teamId = null;
       player.contract = null;

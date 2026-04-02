@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   acceptTradeOffer,
   advanceFranchiseWeek,
+  createEmptyRecordBook,
   makeDraftPick,
   initializeOffseasonState,
   makeContract,
@@ -131,6 +132,7 @@ function makeTeam(id: string, conference: Team['conference'], division: string, 
       sacksFor: 32,
       sacksAgainst: 27,
     },
+    mentoringPairs: [],
   } as Team;
 }
 
@@ -160,8 +162,10 @@ function makeOffseasonGame(): GameState {
     schedule: [],
     draftClass: [],
     freeAgents: [],
-    records: [],
+    records: createEmptyRecordBook(),
+    awardsHistory: [],
     hallOfFame: [],
+    powerRankings: [],
     franchiseHistory: [],
     playerArchive: [],
     frontOffice: {
@@ -364,6 +368,57 @@ describe('offseason systems', () => {
       event.data.teamId === 'ai1' &&
       event.data.to === 'contend'
     )).toBe(true);
+  });
+
+  it('generates awards, hall of fame entries, season records, and mentoring pairs on offseason advance', () => {
+    const game = makeChampionshipGame();
+    game.playerArchive = [{
+      playerId: 'legend-1',
+      firstName: 'Legend',
+      lastName: 'One',
+      name: 'Legend One',
+      positions: ['QB'],
+      peakOvr: 91,
+      peakYear: 2024,
+      firstYear: 2020,
+      lastYear: 2025,
+      retirementYear: 2025,
+      teamHistory: [{ teamId: 'user', firstYear: 2020, lastYear: 2030 }],
+      careerStats: { gp: 170, seasons: 10, mvps: 1, allPros: 4, proBowls: 6, championships: 2, passYds: 43000 },
+    }];
+
+    const userQb = game.teams.user.roster.find((player) => player.pos === 'QB')!;
+    userQb.age = 23;
+    userQb.ovr = 90;
+    userQb.stats.passAtt = 575;
+    userQb.stats.passComp = 399;
+    userQb.stats.passYds = 4980;
+    userQb.stats.passTD = 41;
+    userQb.stats.passINT = 7;
+
+    const mentor = game.teams.user.roster.find((player) => player.pos === 'RB')!;
+    mentor.age = 30;
+    mentor.ovr = 85;
+    mentor.traits = ['captain'];
+    mentor.contract!.years = 2;
+
+    const mentee = game.teams.user.roster.find((player) => player.pos === 'WR')!;
+    mentee.pos = 'RB';
+    mentee.age = 22;
+    mentee.ovr = 73;
+    mentee.devTrait = 'star';
+    mentee.personality.ambition = 8;
+
+    const offseasonStart = advanceFranchiseWeek(game);
+    const advanced = advanceFranchiseWeek(offseasonStart.nextState);
+
+    expect(advanced.nextState.awardsHistory.at(-1)?.year).toBe(2026);
+    expect(advanced.nextState.awardsHistory.at(-1)?.awards.some((award) => award.awardId === 'mvp')).toBe(true);
+    expect(advanced.nextState.hallOfFame.some((entry) => entry.playerId === 'legend-1')).toBe(true);
+    expect(advanced.nextState.records.singleSeason.passYds[0]?.year).toBe(2026);
+    expect(advanced.nextState.teams.user.mentoringPairs.length).toBeGreaterThan(0);
+    expect(advanced.nextState.franchiseHistory.find((entry) => entry.year === 2026 && entry.teamId === 'user')?.awardsWon.length).toBeGreaterThan(0);
+    expect(advanced.nextState.franchiseHistory.find((entry) => entry.year === 2026 && entry.teamId === 'user')?.majorEvents.some((event) => event.startsWith('Mentoring:'))).toBe(true);
   });
 
   it('updates scouting reports without mutating prospect true grade', () => {

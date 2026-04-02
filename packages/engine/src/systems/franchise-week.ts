@@ -5,6 +5,8 @@ import { advancePlayoffBracket, seedPlayoffBracket } from './playoff-bracket';
 import { archiveSeasonHistory } from './history';
 import { advanceStoryArcs } from './story-arcs';
 import { buildGameDayPackage } from './game-day-package';
+import { updatePowerRankings } from './power-rankings';
+import { updateRecordsFromGameResult } from './records';
 import { generateTradeOffers } from './trade-market';
 import { buildWeeklySummary } from './weekly-summary';
 import {
@@ -85,6 +87,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
 
       const outcome = simulateGame(home, away, nextState.year, nextState.week, nextState.difficulty);
       matchup.result = outcome.result;
+      updateRecordsFromGameResult(nextState, outcome.result);
       ownerDelta += updateOwner(home, nextState);
       ownerDelta += updateOwner(away, nextState);
       const event = makeEvent(nextState, 'weekly_result', `${home.name} ${outcome.result.homeScore}, ${away.name} ${outcome.result.awayScore}`, { gameId: outcome.result.id });
@@ -103,6 +106,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       nextState.week = 19;
       nextState.playoffBracket = seedPlayoffBracket(nextState);
     } else {
+      updatePowerRankings(nextState);
       nextState.week += 1;
     }
   } else if (nextState.phase === 'playoffs') {

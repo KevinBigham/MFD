@@ -1,4 +1,5 @@
 import { makeContract, SAVE_VERSION, emptyPlayerStats } from '../index';
+import { createEmptyRecordBook } from './records';
 import type { GameState, GameDayState, Player, Team } from '../types';
 
 export function createEmptyGameDayState(): GameDayState {
@@ -65,6 +66,7 @@ export function makeRoster(teamId: string, ratingBase: number): Player[] {
     makePlayer(`${teamId}-cb`, teamId, 'CB', ratingBase),
     makePlayer(`${teamId}-s`, teamId, 'S', ratingBase),
     makePlayer(`${teamId}-k`, teamId, 'K', ratingBase - 2),
+    makePlayer(`${teamId}-p`, teamId, 'P', ratingBase - 2),
   ];
 }
 
@@ -127,6 +129,7 @@ export function makeTeam(
       sacksFor: 0,
       sacksAgainst: 0,
     },
+    mentoringPairs: [],
   } as unknown as Team;
 }
 
@@ -208,8 +211,10 @@ export function makeLeagueState(
     ],
     draftClass: [],
     freeAgents: [],
-    records: [],
+    records: createEmptyRecordBook(),
+    awardsHistory: [],
     hallOfFame: [],
+    powerRankings: [],
     franchiseHistory: [],
     playerArchive: [],
     frontOffice: {

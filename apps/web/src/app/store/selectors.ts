@@ -1,18 +1,25 @@
 import type {
+  AwardsHistoryEntry,
   DraftOrderEntry,
   DraftProspect,
   GameDayPackage,
   GameDayState,
   GameResult,
   GameState,
+  HallOfFameEntry,
+  MentoringPair,
   OffseasonState,
   Player,
+  PowerRanking,
+  RecordBook,
+  RecordEntry,
   SeasonPhase,
   StoryArc,
   Team,
   TradeOffer,
   WeeklySummary,
 } from '@mfd/engine';
+import { createEmptyRecordBook } from '@mfd/engine';
 
 export interface GameStoreState {
   game: GameState | null;
@@ -27,7 +34,36 @@ const EMPTY_SCHEDULE: never[] = [];
 const EMPTY_ARCS: StoryArc[] = [];
 const EMPTY_PROSPECTS: DraftProspect[] = [];
 const EMPTY_TRADES: TradeOffer[] = [];
+const EMPTY_AWARDS: AwardsHistoryEntry[] = [];
+const EMPTY_HALL_OF_FAME: HallOfFameEntry[] = [];
+const EMPTY_POWER_RANKINGS: PowerRanking[] = [];
+const EMPTY_MENTORING: MentoringPair[] = [];
+const EMPTY_RECORD_BOOK: RecordBook = createEmptyRecordBook();
 const EMPTY_CAP = { capSpace: 0, capUsed: 0, deadCap: 0 };
+
+const SEASON_LENGTH = 17;
+const RECORD_WATCH_STATS = ['passYds', 'rushYds', 'recYds', 'passTD', 'rushTD', 'sacks', 'defINT'] as const;
+
+export interface RecordWatchItem {
+  id: string;
+  playerId: string;
+  playerName: string;
+  stat: typeof RECORD_WATCH_STATS[number];
+  label: string;
+  currentValue: number;
+  projectedValue: number;
+  recordValue: number;
+  recordHolder: string;
+}
+
+export interface MentoringHistoryNote {
+  id: string;
+  year: number;
+  summary: string;
+}
+
+const EMPTY_RECORD_WATCH: RecordWatchItem[] = [];
+const EMPTY_MENTORING_HISTORY: MentoringHistoryNote[] = [];
 
 export const selectUserTeam = (state: GameStoreState): Team | null =>
   state.game ? Object.values(state.game.teams).find((team) => team.isUser) ?? null : null;
@@ -62,6 +98,10 @@ export const selectDraftClass = (state: GameStoreState): DraftProspect[] => stat
 export const selectTradeOffers = (state: GameStoreState): TradeOffer[] => state.game?.offseasonState?.tradeOffers ?? EMPTY_TRADES;
 export const selectTeams = (state: GameStoreState) => state.game?.teams ?? null;
 export const selectOwners = (state: GameStoreState) => state.game?.owners ?? null;
+export const selectAwardsHistory = (state: GameStoreState): AwardsHistoryEntry[] => state.game?.awardsHistory ?? EMPTY_AWARDS;
+export const selectHallOfFame = (state: GameStoreState): HallOfFameEntry[] => state.game?.hallOfFame ?? EMPTY_HALL_OF_FAME;
+export const selectRecords = (state: GameStoreState): RecordBook => state.game?.records ?? EMPTY_RECORD_BOOK;
+export const selectPowerRankings = (state: GameStoreState): PowerRanking[] => state.game?.powerRankings ?? EMPTY_POWER_RANKINGS;
 export const selectGameDayState = (state: GameStoreState): GameDayState | null => state.game?.gameDayState ?? null;
 export const selectLatestGameDayPackage = (state: GameStoreState): GameDayPackage | null => {
   const gameDayState = state.game?.gameDayState;
@@ -100,3 +140,88 @@ export const selectCurrentDraftEntry = (state: GameStoreState): DraftOrderEntry 
   const offseasonState = state.game?.offseasonState;
   return offseasonState ? offseasonState.draftOrder[offseasonState.currentDraftPickIndex] ?? null : null;
 };
+export const selectUserPowerRanking = (state: GameStoreState): PowerRanking | null => {
+  const userTeamId = selectUserTeamId(state);
+  if (!userTeamId) return null;
+  return selectPowerRankings(state).find((entry) => entry.teamId === userTeamId) ?? null;
+};
+export const selectUserMentoringPairs = (state: GameStoreState): MentoringPair[] => selectUserTeam(state)?.mentoringPairs ?? EMPTY_MENTORING;
+export const selectHistoricalMentoringChains = (state: GameStoreState): MentoringHistoryNote[] => {
+  const team = selectUserTeam(state);
+  if (!state.game || !team) return EMPTY_MENTORING_HISTORY;
+
+  return [...state.game.franchiseHistory]
+    .filter((entry) => entry.teamId === team.id)
+    .sort((a, b) => b.year - a.year)
+    .flatMap((entry, index) =>
+      entry.majorEvents
+        .filter((event) => event.startsWith('Mentoring: '))
+        .map((event, eventIndex) => ({
+          id: `${entry.year}-${index}-${eventIndex}`,
+          year: entry.year,
+          summary: event.replace(/^Mentoring:\s*/, ''),
+        })));
+};
+export const selectUserRecordWatch = (state: GameStoreState): RecordWatchItem[] => {
+  if (!state.game) return EMPTY_RECORD_WATCH;
+  const team = selectUserTeam(state);
+  if (!team) return EMPTY_RECORD_WATCH;
+
+  const gamesPlayed = team.seasonStats.gamesPlayed || team.wins + team.losses + team.ties;
+  if (gamesPlayed <= 0) return EMPTY_RECORD_WATCH;
+
+  const recordBook = selectRecords(state);
+  const recordWatch: RecordWatchItem[] = [];
+
+  for (const player of team.roster) {
+    for (const stat of RECORD_WATCH_STATS) {
+      const currentValue = getSeasonStat(player, stat);
+      if (currentValue <= 0) continue;
+
+      const leader = recordBook.singleSeason[stat]?.[0];
+      if (!leader) continue;
+
+      const projectedValue = Math.round((currentValue / gamesPlayed) * SEASON_LENGTH);
+      if (projectedValue <= leader.value) continue;
+
+      recordWatch.push({
+        id: `${player.id}-${stat}`,
+        playerId: player.id,
+        playerName: player.name,
+        stat,
+        label: recordLabel(stat),
+        currentValue,
+        projectedValue,
+        recordValue: leader.value,
+        recordHolder: leader.playerName ?? leader.teamName,
+      });
+    }
+  }
+
+  recordWatch.sort((a, b) =>
+    (b.projectedValue - b.recordValue) - (a.projectedValue - a.recordValue) ||
+    b.currentValue - a.currentValue ||
+    a.playerName.localeCompare(b.playerName));
+
+  return recordWatch.length > 0 ? recordWatch.slice(0, 3) : EMPTY_RECORD_WATCH;
+};
+
+function getSeasonStat(player: Player, stat: typeof RECORD_WATCH_STATS[number]): number {
+  if (stat === 'passYds') return player.stats.passYds;
+  if (stat === 'rushYds') return player.stats.rushYds;
+  if (stat === 'recYds') return player.stats.recYds;
+  if (stat === 'passTD') return player.stats.passTD;
+  if (stat === 'rushTD') return player.stats.rushTD;
+  if (stat === 'sacks') return player.stats.sacks;
+  return player.stats.defINT;
+}
+
+function recordLabel(stat: RecordEntry['stat']): string {
+  if (stat === 'passYds') return 'Passing Yards';
+  if (stat === 'rushYds') return 'Rushing Yards';
+  if (stat === 'recYds') return 'Receiving Yards';
+  if (stat === 'passTD') return 'Passing TDs';
+  if (stat === 'rushTD') return 'Rushing TDs';
+  if (stat === 'defINT') return 'Interceptions';
+  return 'Sacks';
+}

@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, DollarSign, ArrowLeftRight,
   Search, FileText, Handshake, Gamepad2, GraduationCap,
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
-  Play, ScrollText, Save,
+  Play, ScrollText, Save, TrendingUp,
 } from 'lucide-react';
 import { MfdTooltipProvider, MfdCommandPalette, PixelNav, type CommandItem } from '@mfd/design-system/components';
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
@@ -31,6 +31,7 @@ const LazyScoutingBoard = lazy(async () => ({ default: (await import('../feature
 const LazyDraftBoard = lazy(async () => ({ default: (await import('../features/draft/DraftBoard')).DraftBoard }));
 const LazyDynastyCartridge = lazy(async () => ({ default: (await import('../features/dynasty-cartridge/DynastyCartridge')).DynastyCartridge }));
 const LazyLegacyTimeline = lazy(async () => ({ default: (await import('../features/legacy/LegacyTimeline')).LegacyTimeline }));
+const LazyPowerRankings = lazy(async () => ({ default: (await import('../features/power-rankings/PowerRankings')).PowerRankings }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -57,6 +58,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/owner',         label: 'Owner',            shortLabel: 'Owner',    icon: <Crown size={16} /> },
   { path: '/week-advance',  label: 'Advance Week',     shortLabel: 'Advance',  icon: <Play size={16} /> },
   { path: '/handshakes',    label: 'Handshakes',       shortLabel: 'Promises', icon: <ScrollText size={16} /> },
+  { path: '/power-rankings',label: 'Power Rankings',   shortLabel: 'Rankings', icon: <TrendingUp size={16} /> },
   { path: '/legacy',        label: 'Legacy',           shortLabel: 'Legacy',   icon: <Trophy size={16} /> },
   { path: '/dynasty',       label: 'Save/Load',        shortLabel: 'Save',     icon: <Save size={16} /> },
   { path: '/settings',      label: 'Settings',         shortLabel: 'Config',   icon: <Settings size={16} /> },
@@ -354,6 +356,16 @@ const legacyRoute = createRoute({
   ),
 });
 
+const powerRankingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/power-rankings',
+  component: () => (
+    <LazyRouteFrame label="power rankings">
+      <LazyPowerRankings />
+    </LazyRouteFrame>
+  ),
+});
+
 const dynastyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/dynasty',
@@ -376,7 +388,7 @@ const routeTree = rootRoute.addChildren([
   scoutingRoute, draftRoute, freeAgencyRoute,
   gameDayRoute, inboxRoute, depthChartRoute, coachingRoute,
   ownerRoute, weekAdvanceRoute, handshakeRoute,
-  legacyRoute, dynastyRoute, settingsRoute,
+  powerRankingsRoute, legacyRoute, dynastyRoute, settingsRoute,
 ]);
 
 const router = createRouter({ routeTree });

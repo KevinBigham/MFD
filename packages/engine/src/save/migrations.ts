@@ -5,6 +5,8 @@
  * Each migration takes a save at version N and returns version N+1.
  */
 
+import { createEmptyRecordBook } from '../systems/records';
+
 type MigrationFn = (state: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Map<number, MigrationFn> = new Map();
@@ -102,3 +104,20 @@ registerMigration(4, (state) => ({
   franchiseHistory: Array.isArray(state['franchiseHistory']) ? state['franchiseHistory'] : [],
   playerArchive: Array.isArray(state['playerArchive']) ? state['playerArchive'] : [],
 }));
+
+registerMigration(5, (state) => {
+  const teams = (state['teams'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+
+  for (const team of Object.values(teams)) {
+    team['mentoringPairs'] = Array.isArray(team['mentoringPairs']) ? team['mentoringPairs'] : [];
+  }
+
+  return {
+    ...state,
+    teams,
+    records: createEmptyRecordBook(),
+    awardsHistory: Array.isArray(state['awardsHistory']) ? state['awardsHistory'] : [],
+    hallOfFame: Array.isArray(state['hallOfFame']) ? state['hallOfFame'] : [],
+    powerRankings: Array.isArray(state['powerRankings']) ? state['powerRankings'] : [],
+  };
+});

@@ -3,6 +3,7 @@ import { PixelPanel, PixelBadge, PixelProgressBar } from '@mfd/design-system/com
 import {
   useGameStore, selectUserTeam, selectRoster,
   selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary, selectLatestGameDayPackage, selectActiveStoryArcs, selectTeams,
+  selectUserPowerRanking, selectUserRecordWatch, selectUserMentoringPairs,
 } from '../../app/store/game-store';
 import {
   PixelMetricCard,
@@ -29,6 +30,9 @@ export function MondayBriefing() {
   const latestSummary = useGameStore(selectLatestSummary);
   const latestPackage = useGameStore(selectLatestGameDayPackage);
   const activeArcs = useGameStore(selectActiveStoryArcs);
+  const userPowerRanking = useGameStore(selectUserPowerRanking);
+  const recordWatch = useGameStore(selectUserRecordWatch);
+  const mentoringPairs = useGameStore(selectUserMentoringPairs);
 
   const teamName = team ? `${team.city} ${team.name}` : 'No Team';
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '0-0';
@@ -79,6 +83,9 @@ export function MondayBriefing() {
   const ownerLabel = ownerMood >= 70 ? 'Pleased' : ownerMood >= 50 ? 'Neutral' : ownerMood >= 30 ? 'Unhappy' : 'Furious';
   const leadArc = activeArcs[0] ?? null;
   const latestResult = latestPackage?.result ?? latestSummary?.result;
+  const powerRankAccent = userPowerRanking
+    ? userPowerRanking.rank <= 5 ? 'gold' : userPowerRanking.rank <= 10 ? 'cyan' : 'red'
+    : 'default';
 
   return (
     <div style={screenStackStyle}>
@@ -120,6 +127,79 @@ export function MondayBriefing() {
           accent={team && team.capSpace >= 0 ? 'cyan' : 'red'}
           detail={injuries.length > 0 ? `${injuries.length} injury alerts active` : 'Healthy enough to push'}
         />
+      </div>
+
+      <div style={autoGrid(280)}>
+        <PixelPanel title="Power Rankings" accent={powerRankAccent}>
+          {!userPowerRanking ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              Rankings publish after each regular-season advance. The first table will drop once the season starts moving.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                <div>
+                  <div style={{ ...pixelSm, color: '#666', marginBottom: '6px' }}>LEAGUE SLOT</div>
+                  <div style={{ ...display, fontSize: '28px', color: '#fff', lineHeight: 1 }}>
+                    #{userPowerRanking.rank}
+                  </div>
+                </div>
+                <PixelBadge variant={rankingDeltaAccent(userPowerRanking.delta)}>
+                  {rankingDeltaLabel(userPowerRanking.delta)}
+                </PixelBadge>
+              </div>
+              <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
+                {userPowerRanking.blurb}
+              </div>
+            </div>
+          )}
+        </PixelPanel>
+
+        <PixelPanel title="Record Watch" accent={recordWatch.length > 0 ? 'gold' : 'default'}>
+          {recordWatch.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No user-team player is pacing above the current season record board right now.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {recordWatch.map((entry) => (
+                <div key={entry.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ ...mono, color: '#fff' }}>{entry.playerName}</div>
+                    <PixelBadge variant="gold">{entry.label}</PixelBadge>
+                  </div>
+                  <div style={{ ...monoSm, color: '#999', lineHeight: 1.5 }}>
+                    Pace {entry.projectedValue} vs {entry.recordHolder}&apos;s {entry.recordValue}.
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
+
+        <PixelPanel title="Mentoring Report" accent={mentoringPairs.length > 0 ? 'green' : 'default'}>
+          {mentoringPairs.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No active mentoring chains are locked in yet. Veteran guidance will appear once the offseason pairs are formed.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {mentoringPairs.map((pair) => (
+                <div key={`${pair.mentorId}-${pair.menteeId}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ ...mono, color: '#fff' }}>
+                      {pair.mentorName}{' -> '}{pair.menteeName}
+                    </div>
+                    <PixelBadge variant="green">{`+${pair.bonus} OVR`}</PixelBadge>
+                  </div>
+                  <div style={{ ...monoSm, color: '#999' }}>
+                    {pair.positionGroup} room connection for {pair.year}.
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
       </div>
 
       <div style={autoGrid(320)}>
@@ -224,4 +304,14 @@ export function MondayBriefing() {
       </PixelPanel>
     </div>
   );
+}
+
+function rankingDeltaAccent(delta: number): 'default' | 'green' | 'red' {
+  return delta > 0 ? 'green' : delta < 0 ? 'red' : 'default';
+}
+
+function rankingDeltaLabel(delta: number): string {
+  if (delta > 0) return `UP ${delta}`;
+  if (delta < 0) return `DOWN ${Math.abs(delta)}`;
+  return 'EVEN';
 }

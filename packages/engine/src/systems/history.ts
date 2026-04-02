@@ -33,6 +33,7 @@ function ensureArchiveEntry(game: GameState, player: Player, year: number): Play
       lastYear: year,
       retirementYear: null,
       teamHistory: [],
+      careerStats: { ...player.careerStats },
     };
     game.playerArchive.push(entry);
   }
@@ -41,6 +42,7 @@ function ensureArchiveEntry(game: GameState, player: Player, year: number): Play
   entry.lastName = player.lastName;
   entry.name = player.name;
   entry.lastYear = Math.max(entry.lastYear, year);
+  entry.careerStats = { ...player.careerStats };
   if (!entry.positions.includes(player.pos)) {
     entry.positions.push(player.pos);
     entry.positions.sort();
@@ -154,6 +156,8 @@ export function archiveSeasonHistory(game: GameState): FranchiseHistoryEntry[] {
         pointDifferential: team.seasonStats.pointDifferential,
         playoffFinish,
         majorEvents,
+        awardsWon: [],
+        recordsBroken: [],
       } satisfies FranchiseHistoryEntry;
     });
 

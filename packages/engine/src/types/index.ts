@@ -257,6 +257,7 @@ export interface Team {
   tradeState: TradeState;
   txLog: TransactionLogEntry[];
   seasonStats: TeamSeasonStats;
+  mentoringPairs: MentoringPair[];
 }
 
 export interface FranchiseTagState {
@@ -649,17 +650,118 @@ export interface ScheduledGame {
 
 // ── Dynasty & Legacy ────────────────────────────────────
 
-export interface DynastyRecord {
-  category: string;
-  holder: string;
+export interface RecordEntry {
+  category: 'singleGame' | 'singleSeason' | 'career' | 'franchise';
+  stat: string;
   value: number;
+  teamId: string;
+  teamName: string;
   year: number;
+  week?: number | null;
+  playerId?: string | null;
+  playerName?: string | null;
+  note?: string;
 }
 
-export interface HallOfFamer {
+export interface RecordBucket {
+  [stat: string]: RecordEntry[];
+}
+
+export interface RecordBook {
+  singleGame: RecordBucket;
+  singleSeason: RecordBucket;
+  career: RecordBucket;
+  franchise: RecordBucket;
+}
+
+export interface AwardEntity {
+  entityId: string;
+  entityType: 'player' | 'coach';
+  name: string;
+  teamId: string | null;
+  teamName: string;
+  position: Position | 'HC' | 'OC' | 'DC' | null;
+  ovr: number;
+  stats: Record<string, number | string>;
+  score: number;
+}
+
+export interface AwardNominee {
+  entityId: string;
+  entityType: AwardEntity['entityType'];
+  name: string;
+  teamId: string | null;
+  teamName: string;
+  position: AwardEntity['position'];
+  ovr: number;
+  score: number;
+  stats: Record<string, number | string>;
+}
+
+export interface AwardResult {
+  awardId: string;
+  label: string;
+  winnerId: string;
+  winnerName: string;
+  winnerTeamId: string | null;
+  winnerTeam: string;
+  winnerPosition: AwardEntity['position'];
+  winnerStats: Record<string, number | string>;
+  score: number;
+  runnersUp: AwardNominee[];
+  narrative: string;
+}
+
+export interface AwardsCeremony {
+  headline: string;
+  intro: string;
+  blurbs: string[];
+}
+
+export interface AwardsHistoryEntry {
+  year: number;
+  awards: AwardResult[];
+  ceremony: AwardsCeremony;
+}
+
+export interface HallOfFameEntry {
   playerId: string;
+  name: string;
+  position: Position;
   inductionYear: number;
-  careerHighlights: string[];
+  peakOvr: number;
+  careerYears: number;
+  score: number;
+  awards: {
+    mvps: number;
+    allPros: number;
+    proBowls: number;
+    championships: number;
+  };
+  highlights: string[];
+  teams: string[];
+}
+
+export interface PowerRanking {
+  rank: number;
+  teamId: string;
+  teamName: string;
+  score: number;
+  previousRank: number | null;
+  delta: number;
+  blurb: string;
+  record: string;
+}
+
+export interface MentoringPair {
+  mentorId: string;
+  mentorName: string;
+  menteeId: string;
+  menteeName: string;
+  teamId: string;
+  positionGroup: string;
+  year: number;
+  bonus: number;
 }
 
 export interface PlayerArchiveTeamStint {
@@ -680,6 +782,7 @@ export interface PlayerArchiveEntry {
   lastYear: number;
   retirementYear: number | null;
   teamHistory: PlayerArchiveTeamStint[];
+  careerStats?: CareerStats;
 }
 
 export interface FranchiseHistoryEntry {
@@ -692,7 +795,12 @@ export interface FranchiseHistoryEntry {
   pointDifferential: number;
   playoffFinish: string;
   majorEvents: string[];
+  awardsWon: string[];
+  recordsBroken: string[];
 }
+
+export type DynastyRecord = RecordEntry;
+export type HallOfFamer = HallOfFameEntry;
 
 // ── Season Context ─────────────────────────────────────
 
@@ -721,8 +829,10 @@ export interface GameState {
   schedule: ScheduleWeek[];
   draftClass: DraftProspect[];
   freeAgents: string[];    // player IDs
-  records: DynastyRecord[];
-  hallOfFame: HallOfFamer[];
+  records: RecordBook;
+  awardsHistory: AwardsHistoryEntry[];
+  hallOfFame: HallOfFameEntry[];
+  powerRankings: PowerRanking[];
   franchiseHistory: FranchiseHistoryEntry[];
   playerArchive: PlayerArchiveEntry[];
   frontOffice: FrontOffice;

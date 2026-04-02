@@ -74,6 +74,41 @@ const mockState = {
       name: 'Armadillos',
     },
   },
+  userPowerRanking: {
+    rank: 4,
+    teamId: 'team-1',
+    teamName: 'Chicago Blaze',
+    score: 84.5,
+    previousRank: 6,
+    delta: 2,
+    blurb: 'Chicago is climbing behind a quarterback heating up in December.',
+    record: '8-4',
+  },
+  userRecordWatch: [
+    {
+      id: 'watch-1',
+      playerId: 'p1',
+      playerName: 'Jay Stone',
+      stat: 'passYds',
+      label: 'Passing Yards',
+      currentValue: 3610,
+      projectedValue: 5114,
+      recordValue: 4980,
+      recordHolder: 'Legend One',
+    },
+  ],
+  userMentoringPairs: [
+    {
+      mentorId: 'mentor-1',
+      mentorName: 'Rick Mason',
+      menteeId: 'mentee-1',
+      menteeName: 'Jay Stone',
+      teamId: 'team-1',
+      positionGroup: 'QB',
+      year: 2029,
+      bonus: 2,
+    },
+  ],
 };
 
 vi.mock('../../app/store/game-store', () => ({
@@ -88,13 +123,22 @@ vi.mock('../../app/store/game-store', () => ({
   selectLatestGameDayPackage: (state: typeof mockState) => state.latestGameDayPackage,
   selectActiveStoryArcs: (state: typeof mockState) => state.activeStoryArcs,
   selectTeams: (state: typeof mockState) => state.teams,
+  selectUserPowerRanking: (state: typeof mockState) => state.userPowerRanking,
+  selectUserRecordWatch: (state: typeof mockState) => state.userRecordWatch,
+  selectUserMentoringPairs: (state: typeof mockState) => state.userMentoringPairs,
 }));
 
 describe('MondayBriefing', () => {
-  it('renders the 8-Bit ESPN broadcast header and narrative panel labels', () => {
+  it('renders the broadcast header plus rankings, record watch, and mentoring widgets', () => {
     const markup = renderToStaticMarkup(<MondayBriefing />);
 
     expect(markup).toContain('MFD NETWORK');
+    expect(markup).toContain('--- POWER RANKINGS ---');
+    expect(markup).toContain('Chicago is climbing behind a quarterback heating up in December.');
+    expect(markup).toContain('--- RECORD WATCH ---');
+    expect(markup).toContain('Jay Stone');
+    expect(markup).toContain('--- MENTORING REPORT ---');
+    expect(markup).toContain('Rick Mason -&gt; Jay Stone');
     expect(markup).toContain('--- NARRATIVE PULSE ---');
     expect(markup).toContain('DIVISION RACE TIGHTENING');
   });
