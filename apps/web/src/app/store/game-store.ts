@@ -26,6 +26,7 @@ import {
 import { autosaveDynasty, loadLatestAutosaveGame } from './persistence';
 import type { GameStoreState } from './selectors';
 import { runAdvanceWeek } from './sim';
+import { useUiStore } from './ui-store';
 export * from './selectors';
 
 // ── Store shape ────────────────────────────────────────────
@@ -64,6 +65,7 @@ interface GameActions {
 
   // Season phase
   setPhase: (phase: SeasonPhase) => void;
+  setDifficulty: (difficulty: GameState['difficulty']) => Promise<void>;
 }
 
 interface GameStore extends GameStoreState {
@@ -79,7 +81,9 @@ export const useGameStore = create<GameStore>()(
         s.game = nextGame;
         s.initialized = true;
       });
-      await autosaveDynasty(nextGame);
+      if (useUiStore.getState().autosaveEnabled) {
+        await autosaveDynasty(nextGame);
+      }
     };
 
     return ({
@@ -281,6 +285,16 @@ export const useGameStore = create<GameStore>()(
           if (!s.game) return;
           s.game.phase = phase;
         }),
+
+      setDifficulty: async (difficulty) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = {
+          ...current,
+          difficulty,
+        };
+        await commitGame(nextGame);
+      },
     },
   });
   }),

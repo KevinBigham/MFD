@@ -1,45 +1,62 @@
 import { useMemo } from 'react';
 import {
-  MfdPanel, MfdBadge, MfdRingProgress, MfdStepper,
+  PixelBadge,
+  PixelPanel,
+  PixelProgressBar,
 } from '@mfd/design-system/components';
+import { CLINIC_TRACKS as ENGINE_CLINIC_TRACKS, SKILL_TREES, type StaffMember } from '@mfd/engine';
 import {
-  GraduationCap, Award, TrendingUp, Shield,
-  Zap, Brain,
-} from 'lucide-react';
-import type { StaffMember } from '@mfd/engine';
-import { SKILL_TREES, CLINIC_TRACKS as ENGINE_CLINIC_TRACKS } from '@mfd/engine';
-import {
-  useGameStore, selectUserTeam, selectCoachingStaff, selectClinic,
+  useGameStore, selectClinic, selectCoachingStaff, selectUserTeam,
 } from '../../app/store/game-store';
+import {
+  PixelMetricCard,
+  PixelScreenHeader,
+  autoGrid,
+  monoSm,
+  screenStackStyle,
+} from '../shared/pixelUi';
 
-function CoachCard({ coach, role }: { coach: StaffMember; role: string }) {
+function CoachPanel({ coach, role }: { coach: StaffMember | null | undefined; role: string }) {
+  if (!coach) {
+    return (
+      <PixelPanel title={`${role} Seat`} accent="red">
+        <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No coach assigned.</span>
+      </PixelPanel>
+    );
+  }
+
+  const ratings = Object.entries(coach.ratings)
+    .sort(([a], [b]) => a.localeCompare(b));
+
   return (
-    <MfdPanel title={`${role}: ${coach.name}`} icon={<GraduationCap size={14} />}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-        <div style={{ display: 'flex', gap: 'var(--mfd-sp-sm)', alignItems: 'center' }}>
-          <MfdBadge variant="gold">{coach.archetype}</MfdBadge>
-          <MfdBadge variant="info">Lvl {coach.level}</MfdBadge>
-          {coach.specialty75 && (
-            <MfdBadge variant="purple">{coach.specialty75.label}</MfdBadge>
+    <PixelPanel title={`${role}: ${coach.name}`} accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="gold">{coach.archetype}</PixelBadge>
+          <PixelBadge variant="cyan">LVL {coach.level}</PixelBadge>
+          {coach.specialty75 ? <PixelBadge variant="green">{coach.specialty75.label}</PixelBadge> : null}
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {coach.traits.length > 0 ? coach.traits.map((trait) => (
+            <PixelBadge key={trait} variant="default">{trait}</PixelBadge>
+          )) : (
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No active coach traits.</span>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 'var(--mfd-sp-xs)', flexWrap: 'wrap' }}>
-          {coach.traits.map((t) => (
-            <MfdBadge key={t} variant="default">{t}</MfdBadge>
-          ))}
-          {coach.traits.length === 0 && (
-            <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)' }}>
-              No traits
-            </span>
-          )}
-        </div>
-        <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)' }}>
-          {Object.entries(coach.ratings).map(([k, v]) => (
-            <span key={k} style={{ marginRight: 12 }}>{k}: {v}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {ratings.map(([label, value]) => (
+            <PixelProgressBar
+              key={label}
+              label={label.replace(/([A-Z])/g, ' $1').trim()}
+              value={value}
+              max={100}
+              accent={value >= 85 ? 'green' : value >= 75 ? 'cyan' : value >= 65 ? 'gold' : 'red'}
+              valueLabel={`${value}`}
+            />
           ))}
         </div>
       </div>
-    </MfdPanel>
+    </PixelPanel>
   );
 }
 
@@ -48,116 +65,100 @@ export function CoachingStaff() {
   const clinic = useGameStore(selectClinic);
   const team = useGameStore(selectUserTeam);
 
-  const hc = staff?.hc;
-  const oc = staff?.oc;
-  const dc = staff?.dc;
-
-  // Build skill tree display from engine SKILL_TREES
   const skillBranches = useMemo(() => {
-    const icons: React.ReactNode[] = [<Zap size={14} />, <Shield size={14} />, <Brain size={14} />];
-    const archetype = hc?.archetype ?? 'Strategist';
+    const archetype = staff?.hc?.archetype ?? 'Strategist';
     const tree = SKILL_TREES[archetype];
     if (!tree) return [];
-    return tree.branches.map((branch, i: number) => ({
-      id: branch.id,
-      name: branch.name,
-      icon: icons[i] ?? <Zap size={14} />,
-      tiers: branch.tiers.map((t: { level: number; label: string }) => ({
-        label: t.label,
-        unlocked: (team?.skillSelections[branch.id]?.tier ?? 0) >= t.level,
-      })),
-    }));
-  }, [team, hc]);
 
-  // Build clinic tracks display
-  const clinicTracks = useMemo(() => {
-    return ENGINE_CLINIC_TRACKS.map((track: { id: string; label: string; perks: readonly { xpReq: number }[] }) => {
-      const xp = clinic?.xp[track.id] ?? 0;
-      const maxXp = track.perks.length > 0 ? track.perks[track.perks.length - 1]!.xpReq : 80;
-      const perksUnlocked = clinic?.perks.filter((p: string) => p.startsWith(track.id)).length ?? 0;
+    return tree.branches.map((branch) => {
+      const unlockedTier = team?.skillSelections[branch.id]?.tier ?? 0;
       return {
-        id: track.id,
-        label: track.label,
-        xp,
-        maxXp,
-        perks: perksUnlocked,
+        id: branch.id,
+        name: branch.name,
+        unlockedTier,
+        maxTier: branch.tiers.length,
+        labels: branch.tiers.map((tier) => tier.label),
       };
     });
-  }, [clinic]);
+  }, [staff, team]);
+
+  const clinicTracks = useMemo(() => ENGINE_CLINIC_TRACKS.map((track) => {
+    const xp = clinic?.xp[track.id] ?? 0;
+    const maxXp = track.perks.length > 0 ? track.perks[track.perks.length - 1]!.xpReq : 80;
+    const unlockedPerks = clinic?.perks.filter((perk) => perk.startsWith(track.id)).length ?? 0;
+    return {
+      id: track.id,
+      label: track.label,
+      xp,
+      maxXp,
+      unlockedPerks,
+    };
+  }), [clinic]);
+
+  const activeCoaches = [staff?.hc, staff?.oc, staff?.dc].filter(Boolean).length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-      <div>
-        <h1 style={{
-          fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem',
-          fontWeight: 700, color: 'var(--mfd-text)', margin: 0,
-        }}>Coaching Staff</h1>
-        <p style={{
-          fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
-          color: 'var(--mfd-text-dim)', margin: '4px 0 0',
-        }}>
-          Staff management, skill trees, and coaching clinic
-        </p>
+    <div style={screenStackStyle}>
+      <PixelScreenHeader
+        title="Coaching Staff"
+        subtitle="Coordinate the sideline brain trust, unlock skill branches, and stack clinic upgrades."
+        badges={(
+          <>
+            <PixelBadge variant="gold">{activeCoaches}/3 staffed</PixelBadge>
+            <PixelBadge variant="cyan">{clinic?.perks.length ?? 0} clinic perks</PixelBadge>
+          </>
+        )}
+      />
+
+      <div style={autoGrid(220)}>
+        <PixelMetricCard label="Head Coach" value={staff?.hc?.name ?? 'OPEN'} accent={staff?.hc ? 'green' : 'red'} detail={staff?.hc?.archetype ?? 'Vacant leadership slot'} />
+        <PixelMetricCard label="Clinic XP" value={Object.values(clinic?.xp ?? {}).reduce((sum, value) => sum + value, 0)} accent="cyan" detail="Total staff development bank" />
+        <PixelMetricCard label="Skill Branches" value={skillBranches.length} accent="gold" detail="Head coach progression lanes" />
       </div>
 
-      {/* Staff Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
-        {hc && <CoachCard coach={hc} role="HC" />}
-        {oc && <CoachCard coach={oc} role="OC" />}
-        {dc && <CoachCard coach={dc} role="DC" />}
+      <div style={autoGrid(280)}>
+        <CoachPanel coach={staff?.hc} role="HC" />
+        <CoachPanel coach={staff?.oc} role="OC" />
+        <CoachPanel coach={staff?.dc} role="DC" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
-        {/* Skill Tree */}
-        <MfdPanel title={`HC Skill Tree${hc ? `: ${hc.archetype}` : ''}`} icon={<Award size={14} />}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
+      <div style={autoGrid(320)}>
+        <PixelPanel title="Head Coach Skill Tree" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {skillBranches.map((branch) => (
-              <div key={branch.id}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)',
-                  marginBottom: 'var(--mfd-sp-sm)',
-                }}>
-                  {branch.icon}
-                  <span style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem', fontWeight: 600 }}>
-                    {branch.name}
-                  </span>
+              <div key={branch.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{branch.name}</span>
+                  <PixelBadge variant={branch.unlockedTier >= branch.maxTier ? 'green' : 'cyan'}>
+                    TIER {branch.unlockedTier}/{branch.maxTier}
+                  </PixelBadge>
                 </div>
-                <MfdStepper
-                  steps={branch.tiers.map((t) => ({
-                    label: t.label,
-                    description: t.unlocked ? 'Unlocked' : 'Locked',
-                  }))}
-                  activeStep={branch.tiers.filter((t) => t.unlocked).length}
-                  orientation="horizontal"
+                <PixelProgressBar
+                  label={branch.labels.join(' / ')}
+                  value={branch.unlockedTier}
+                  max={branch.maxTier}
+                  accent={branch.unlockedTier >= branch.maxTier ? 'green' : 'gold'}
+                  valueLabel={`${branch.unlockedTier}`}
                 />
               </div>
             ))}
           </div>
-        </MfdPanel>
+        </PixelPanel>
 
-        {/* Coaching Clinic XP */}
-        <MfdPanel title="Coaching Clinic" icon={<TrendingUp size={14} />}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-md)' }}>
+        <PixelPanel title="Coaching Clinic" accent="green">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {clinicTracks.map((track) => (
-              <div key={track.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-md)' }}>
-                <MfdRingProgress
-                  value={track.maxXp > 0 ? Math.round(track.xp / track.maxXp * 100) : 0}
-                  size={32} strokeWidth={3}
-                  color={track.perks > 0 ? 'var(--mfd-green)' : 'var(--mfd-cyan)'}
-                />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem', color: 'var(--mfd-text)' }}>
-                    {track.label}
-                  </div>
-                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)' }}>
-                    {track.xp}/{track.maxXp} XP // {track.perks} perk(s)
-                  </div>
-                </div>
-                {track.perks > 0 && <MfdBadge variant="success">Unlocked</MfdBadge>}
-              </div>
+              <PixelProgressBar
+                key={track.id}
+                label={`${track.label} // ${track.unlockedPerks} perks`}
+                value={track.xp}
+                max={track.maxXp}
+                accent={track.unlockedPerks > 0 ? 'green' : 'cyan'}
+                valueLabel={`${track.xp}/${track.maxXp}`}
+              />
             ))}
           </div>
-        </MfdPanel>
+        </PixelPanel>
       </div>
     </div>
   );

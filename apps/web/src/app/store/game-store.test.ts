@@ -4,6 +4,7 @@ import { initializeOffseasonState } from '@mfd/engine';
 import { createSeedGameState } from './seed';
 import { selectLatestGameDayPackage, useGameStore } from './game-store';
 import { autosaveDynasty } from './persistence';
+import { useUiStore } from './ui-store';
 
 vi.mock('./persistence', () => ({
   autosaveDynasty: vi.fn().mockResolvedValue(1),
@@ -38,6 +39,11 @@ describe('game store offseason actions', () => {
       game: null,
       initialized: false,
     }));
+    useUiStore.setState((state) => ({
+      ...state,
+      autosaveEnabled: true,
+      simSpeed: 'normal',
+    }));
     vi.clearAllMocks();
   });
 
@@ -46,6 +52,11 @@ describe('game store offseason actions', () => {
       ...state,
       game: null,
       initialized: false,
+    }));
+    useUiStore.setState((state) => ({
+      ...state,
+      autosaveEnabled: true,
+      simSpeed: 'normal',
     }));
   });
 
@@ -141,5 +152,24 @@ describe('game store offseason actions', () => {
     expect(latestPackage?.headline).toBe(nextState.game?.weekSummaries.at(-1)?.headline);
     expect(latestPackage?.autopsy.nextFocus.length).toBeGreaterThan(0);
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('updates difficulty without autosaving when UI autosave is disabled', async () => {
+    const game = createSeedGameState(123, 0, 'pro');
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+    useUiStore.setState((state) => ({
+      ...state,
+      autosaveEnabled: false,
+    }));
+
+    await useGameStore.getState().actions.setDifficulty('legend');
+
+    expect(useGameStore.getState().game?.difficulty).toBe('legend');
+    expect(autosaveDynasty).not.toHaveBeenCalled();
   });
 });

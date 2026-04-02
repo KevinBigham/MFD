@@ -51,6 +51,7 @@ export function PixelButton({
   return (
     <button
       type={type}
+      data-mfd-focusable="pixel-button"
       className={className}
       disabled={disabled}
       style={{

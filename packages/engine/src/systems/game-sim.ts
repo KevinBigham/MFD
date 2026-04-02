@@ -40,7 +40,22 @@ interface DriveResult {
   points: number;
   type: 'td_pass' | 'td_rush' | 'fg' | 'punt' | 'turnover' | 'stall';
   yards: number;
+  playType: 'run' | 'pass';
 }
+
+interface PlayCallState {
+  lastPlayType: 'run' | 'pass' | null;
+  streak: number;
+}
+
+const PASS_TENDENCY_PENALTY = 3;
+const BASE_PASS_STALL_CHANCE = 0.16;
+const BASE_RUN_STALL_CHANCE = 0.13;
+const BASE_PRESSURE_CHANCE = 0.24;
+const PRESSURE_GAP_MULTIPLIER = 0.006;
+const STRIP_SACK_CHANCE = 0.34;
+const BASE_INT_CHANCE = 0.097;
+const BASE_FUMBLE_CHANCE = 0.062;
 
 // ── Coaching edge calculation ───────────────────────────
 
@@ -59,6 +74,7 @@ function simulateDrive(
   scoreDiff: number,
   quarter: number,
   lines: Map<string, PlayerGameLine>,
+  playCallState: PlayCallState,
 ): DriveResult {
   const qb = bestAvailable(offense.roster, 'QB');
   const rb = bestAvailable(offense.roster, 'RB');
@@ -78,13 +94,6 @@ function simulateDrive(
   const coverage = (cbOvr + sOvr) / 2;
   const runLanes = (olOvr - (dlOvr + lbOvr) / 2) * 0.12;
 
-  // Stall check — 12% base, modified by coaching and pocket
-  const stallChance = cl(0.12 - cEdge * 0.002 - pocket * 0.005, 0.04, 0.25);
-  if (RNG.play() < stallChance) {
-    const stallYards = Math.round(RNG.play() * 8);
-    return { points: 0, type: 'stall', yards: stallYards };
-  }
-
   // Run/pass split — ~46% run base, adjusted by game script
   let runRate = 0.46 + runLanes * 0.02;
   if (scoreDiff <= -14) runRate -= 0.10;
@@ -92,7 +101,44 @@ function simulateDrive(
   if (quarter === 4 && scoreDiff <= -7) runRate -= 0.06;
   runRate = cl(runRate, 0.28, 0.65);
 
-  const isRun = RNG.play() < runRate;
+  const playType = RNG.play() < runRate ? 'run' : 'pass';
+  const isRun = playType === 'run';
+  const tendencyPenalty = playCallState.lastPlayType === playType && playCallState.streak >= 2
+    ? PASS_TENDENCY_PENALTY
+    : 0;
+
+  const stallChance = isRun
+    ? cl(BASE_RUN_STALL_CHANCE - cEdge * 0.002 - runLanes * 0.008 + tendencyPenalty * 0.008, 0.08, 0.32)
+    : cl(BASE_PASS_STALL_CHANCE - cEdge * 0.002 - pocket * 0.008 + tendencyPenalty * 0.008, 0.08, 0.35);
+  if (RNG.play() < stallChance) {
+    if (!isRun && qb) {
+      const ql = ensureLine(lines, qb);
+      const completions = (RNG.play() < 0.6 ? 1 : 0) + (RNG.play() < 0.15 ? 1 : 0);
+      const attempts = completions + 1 + (RNG.play() < 0.45 ? 1 : 0);
+      const stallYards = Math.round(4 + RNG.play() * 12);
+      ql.passAtt = (ql.passAtt ?? 0) + attempts;
+      ql.passComp = (ql.passComp ?? 0) + completions;
+      ql.passYds = (ql.passYds ?? 0) + stallYards;
+      if (receivers.length > 0 && completions > 0) {
+        const target = receivers[Math.floor(RNG.play() * receivers.length)] ?? receivers[0]!;
+        const rl = ensureLine(lines, target);
+        rl.targets = (rl.targets ?? 0) + completions;
+        rl.rec = (rl.rec ?? 0) + completions;
+        rl.recYds = (rl.recYds ?? 0) + stallYards;
+      }
+      return { points: 0, type: 'punt', yards: stallYards, playType };
+    }
+
+    if (rb) {
+      const rbl = ensureLine(lines, rb);
+      const stallYards = Math.round(3 + RNG.play() * 9);
+      rbl.rushAtt = (rbl.rushAtt ?? 0) + Math.round(2 + RNG.play() * 2);
+      rbl.rushYds = (rbl.rushYds ?? 0) + stallYards;
+      return { points: 0, type: 'punt', yards: stallYards, playType };
+    }
+
+    return { points: 0, type: 'stall', yards: Math.round(RNG.play() * 6), playType };
+  }
 
   // ── PASSING PLAY ──────────────────────────────────────
   if (!isRun && qb && receivers.length > 0) {
@@ -100,15 +146,15 @@ function simulateDrive(
     const qbAcc = qb.ratings.accuracy ?? qbOvr;
     const qbAware = qb.ratings.awareness ?? qbOvr;
 
-    let quality = (qbAcc + qbAware) / 3 + cEdge * 0.35 + pocket * 0.4;
+    let quality = (qbAcc - coverage) * 0.45 + (qbAware - 70) * 0.22 + cEdge * 0.4 + pocket * 0.55 - tendencyPenalty;
 
     // 4th quarter clutch boost
     if (quarter === 4 && Math.abs(scoreDiff) <= 7) quality += 2;
 
     // Pressure/sack check
-    const pressureChance = cl(0.14 + (dlOvr - olOvr) * 0.004, 0.06, 0.30);
+    const pressureChance = cl(BASE_PRESSURE_CHANCE + (dlOvr - olOvr) * PRESSURE_GAP_MULTIPLIER + tendencyPenalty * 0.01, 0.08, 0.38);
     if (RNG.play() < pressureChance) {
-      const isSack = RNG.play() < 0.50;
+      const isSack = RNG.play() < 0.62;
       if (isSack) {
         const sackYards = -(5 + Math.round(RNG.play() * 7));
         // Credit sack to a defensive player
@@ -123,13 +169,17 @@ function simulateDrive(
         }
         const ql = ensureLine(lines, qb);
         ql.sacked = (ql.sacked ?? 0) + 1;
-        return { points: 0, type: 'stall', yards: sackYards };
+        if (RNG.play() < STRIP_SACK_CHANCE) {
+          ql.fumbles = (ql.fumbles ?? 0) + 1;
+          return { points: 0, type: 'turnover', yards: sackYards, playType };
+        }
+        return { points: 0, type: 'stall', yards: sackYards, playType };
       }
       quality -= 4; // hurried, less accurate
     }
 
     // INT check
-    const intChance = cl(0.06 - (qbAcc - 60) * 0.001 + (coverage - 70) * 0.001, 0.015, 0.12);
+    const intChance = cl(BASE_INT_CHANCE - (qbAcc - 70) * 0.0007 + (coverage - 70) * 0.0011 + tendencyPenalty * 0.002, 0.025, 0.14);
     if (RNG.play() < intChance) {
       const ql = ensureLine(lines, qb);
       ql.passAtt = (ql.passAtt ?? 0) + 1;
@@ -143,14 +193,14 @@ function simulateDrive(
         const dl = ensureLine(lines, interceptor);
         dl.defINT = (dl.defINT ?? 0) + 1;
       }
-      return { points: 0, type: 'turnover', yards: 0 };
+      return { points: 0, type: 'turnover', yards: 0, playType };
     }
 
     // Outcome roll
     const roll = RNG.play() * 100 + quality;
     const isRedZone = RNG.play() < 0.28;
-    const tdThreshold = isRedZone ? 82 : 90;
-    const fgThreshold = isRedZone ? 68 : 76;
+    const tdThreshold = isRedZone ? 68 : 76;
+    const fgThreshold = isRedZone ? 52 : 60;
 
     // Pick target receiver
     const targetWeights = [0.40, 0.28, 0.20, 0.12];
@@ -176,26 +226,27 @@ function simulateDrive(
       rl.rec = (rl.rec ?? 0) + 1;
       rl.recYds = (rl.recYds ?? 0) + passYds;
       rl.recTD = (rl.recTD ?? 0) + 1;
-      return { points: 7, type: 'td_pass', yards: passYds };
+      return { points: 7, type: 'td_pass', yards: passYds, playType };
     }
 
     if (roll > fgThreshold) {
       // FIELD GOAL ATTEMPT
       const driveYds = Math.round(25 + RNG.play() * 20);
       // Completions on the drive
-      const compCount = Math.round(2 + RNG.play() * 3);
-      ql.passAtt = (ql.passAtt ?? 0) + compCount + Math.round(RNG.play() * 2);
+      const compCount = 2 + Math.round(RNG.play());
+      ql.passAtt = (ql.passAtt ?? 0) + compCount + (RNG.play() < 0.35 ? 1 : 0);
       ql.passComp = (ql.passComp ?? 0) + compCount;
       ql.passYds = (ql.passYds ?? 0) + driveYds;
       rl.targets = (rl.targets ?? 0) + Math.round(1 + RNG.play() * 2);
-      rl.rec = (rl.rec ?? 0) + Math.round(1 + RNG.play());
+      rl.rec = (rl.rec ?? 0) + Math.max(1, compCount - 1);
       rl.recYds = (rl.recYds ?? 0) + Math.round(driveYds * 0.4);
       // Also give some to RB check-downs
       if (rb) {
         const rbl = ensureLine(lines, rb);
         rbl.targets = (rbl.targets ?? 0) + 1;
-        rbl.rec = (rbl.rec ?? 0) + (RNG.play() < 0.7 ? 1 : 0);
-        rbl.recYds = (rbl.recYds ?? 0) + Math.round(driveYds * 0.15);
+        const rbCatch = RNG.play() < 0.6 ? 1 : 0;
+        rbl.rec = (rbl.rec ?? 0) + rbCatch;
+        rbl.recYds = (rbl.recYds ?? 0) + (rbCatch ? Math.round(driveYds * 0.12) : 0);
       }
 
       const kOvr = kicker?.ovr ?? 70;
@@ -206,24 +257,25 @@ function simulateDrive(
         kl.fgAtt = (kl.fgAtt ?? 0) + 1;
         if (RNG.play() < makeChance) {
           kl.fgMade = (kl.fgMade ?? 0) + 1;
-          return { points: 3, type: 'fg', yards: driveYds };
+          return { points: 3, type: 'fg', yards: driveYds, playType };
         }
       } else if (RNG.play() < makeChance) {
-        return { points: 3, type: 'fg', yards: driveYds };
+        return { points: 3, type: 'fg', yards: driveYds, playType };
       }
-      return { points: 0, type: 'punt', yards: driveYds };
+      return { points: 0, type: 'punt', yards: driveYds, playType };
     }
 
     // Incomplete / stalled drive — still accumulate some yards
-    const stallYds = Math.round(8 + RNG.play() * 22);
-    const compOnDrive = Math.round(1 + RNG.play() * 2);
-    ql.passAtt = (ql.passAtt ?? 0) + compOnDrive + Math.round(1 + RNG.play() * 2);
+    const stallYds = Math.round(5 + RNG.play() * 15);
+    const compOnDrive = 1 + (RNG.play() < 0.35 ? 1 : 0);
+    ql.passAtt = (ql.passAtt ?? 0) + compOnDrive + 1;
     ql.passComp = (ql.passComp ?? 0) + compOnDrive;
     ql.passYds = (ql.passYds ?? 0) + stallYds;
     rl.targets = (rl.targets ?? 0) + 1;
-    rl.rec = (rl.rec ?? 0) + (RNG.play() < 0.6 ? 1 : 0);
-    rl.recYds = (rl.recYds ?? 0) + Math.round(stallYds * 0.35);
-    return { points: 0, type: 'punt', yards: stallYds };
+    const catchMade = compOnDrive > 0 && RNG.play() < 0.8 ? 1 : 0;
+    rl.rec = (rl.rec ?? 0) + catchMade;
+    rl.recYds = (rl.recYds ?? 0) + (catchMade ? Math.round(stallYds * 0.35) : 0);
+    return { points: 0, type: 'punt', yards: stallYds, playType };
   }
 
   // ── RUSHING PLAY ──────────────────────────────────────
@@ -232,7 +284,7 @@ function simulateDrive(
     const rbSpeed = rb.ratings.speed ?? rbOvr;
     const rbElusive = rb.ratings.elusiveness ?? rbOvr;
 
-    let quality2 = (rbSpeed + rbElusive) / 3 + runLanes * 0.8 + cEdge * 0.3;
+    let quality2 = (rbSpeed - ((dlOvr + lbOvr) / 2)) * 0.4 + (rbElusive - lbOvr) * 0.22 + runLanes * 0.7 + cEdge * 0.35 - tendencyPenalty;
     if (quarter === 4 && Math.abs(scoreDiff) <= 7) quality2 += 1.5;
 
     // Big play chance
@@ -240,7 +292,7 @@ function simulateDrive(
     if (RNG.play() < bigPlayChance) quality2 += 20;
 
     // Fumble check
-    const fumbleChance = cl(0.03 + (lbOvr - rbOvr) * 0.001, 0.01, 0.07);
+    const fumbleChance = cl(BASE_FUMBLE_CHANCE + (lbOvr - rbOvr) * 0.0014 + tendencyPenalty * 0.002, 0.015, 0.09);
     if (RNG.play() < fumbleChance) {
       const rbl = ensureLine(lines, rb);
       rbl.rushAtt = (rbl.rushAtt ?? 0) + 1;
@@ -251,13 +303,13 @@ function simulateDrive(
         const ll = ensureLine(lines, lbs[0]);
         ll.tackles = (ll.tackles ?? 0) + 1;
       }
-      return { points: 0, type: 'turnover', yards: 0 };
+      return { points: 0, type: 'turnover', yards: 0, playType };
     }
 
     const roll2 = RNG.play() * 100 + quality2;
     const isRedZone = RNG.play() < 0.22;
-    const tdThreshold = isRedZone ? 88 : 96;
-    const fgThreshold = isRedZone ? 72 : 80;
+    const tdThreshold = isRedZone ? 74 : 82;
+    const fgThreshold = isRedZone ? 58 : 66;
 
     const rbl = ensureLine(lines, rb);
 
@@ -271,11 +323,13 @@ function simulateDrive(
       if (qb) {
         const ql = ensureLine(lines, qb);
         const drivePassYds = Math.round(5 + RNG.play() * 15);
-        ql.passAtt = (ql.passAtt ?? 0) + Math.round(1 + RNG.play() * 2);
-        ql.passComp = (ql.passComp ?? 0) + Math.round(1 + RNG.play());
+        const passAttempts = 1 + Math.round(RNG.play());
+        const completions = passAttempts === 2 && RNG.play() < 0.35 ? 2 : 1;
+        ql.passAtt = (ql.passAtt ?? 0) + passAttempts;
+        ql.passComp = (ql.passComp ?? 0) + completions;
         ql.passYds = (ql.passYds ?? 0) + drivePassYds;
       }
-      return { points: 7, type: 'td_rush', yards: rushYds };
+      return { points: 7, type: 'td_rush', yards: rushYds, playType };
     }
 
     if (roll2 > fgThreshold && kicker) {
@@ -286,8 +340,10 @@ function simulateDrive(
       if (qb && receivers.length > 0) {
         const ql = ensureLine(lines, qb);
         const drivePassYds = Math.round(driveYds * 0.35);
-        ql.passAtt = (ql.passAtt ?? 0) + Math.round(2 + RNG.play() * 2);
-        ql.passComp = (ql.passComp ?? 0) + Math.round(1 + RNG.play() * 2);
+        const passAttempts = 1 + Math.round(RNG.play());
+        const completions = passAttempts === 2 && RNG.play() < 0.45 ? 2 : 1;
+        ql.passAtt = (ql.passAtt ?? 0) + passAttempts;
+        ql.passComp = (ql.passComp ?? 0) + completions;
         ql.passYds = (ql.passYds ?? 0) + drivePassYds;
         const rec = receivers[Math.floor(RNG.play() * receivers.length)]!;
         const rl = ensureLine(lines, rec);
@@ -303,20 +359,20 @@ function simulateDrive(
       kl.fgAtt = (kl.fgAtt ?? 0) + 1;
       if (RNG.play() < makeChance) {
         kl.fgMade = (kl.fgMade ?? 0) + 1;
-        return { points: 3, type: 'fg', yards: driveYds };
+        return { points: 3, type: 'fg', yards: driveYds, playType };
       }
-      return { points: 0, type: 'punt', yards: driveYds };
+      return { points: 0, type: 'punt', yards: driveYds, playType };
     }
 
     // Stalled run drive
     const stallYds = Math.round(5 + RNG.play() * 18);
     rbl.rushAtt = (rbl.rushAtt ?? 0) + Math.round(2 + RNG.play() * 3);
     rbl.rushYds = (rbl.rushYds ?? 0) + stallYds;
-    return { points: 0, type: 'punt', yards: stallYds };
+    return { points: 0, type: 'punt', yards: stallYds, playType };
   }
 
   // Fallback: no QB and no RB
-  return { points: 0, type: 'stall', yards: Math.round(RNG.play() * 6) };
+  return { points: 0, type: 'stall', yards: Math.round(RNG.play() * 6), playType };
 }
 
 // ── Player line helper ──────────────────────────────────
@@ -348,9 +404,9 @@ function distributeDefensiveStats(
     dl.tackles = (dl.tackles ?? 0) + baseTackles + Math.round(RNG.play() * (player.pos === 'LB' ? 5 : 3));
 
     // Additional sack chances for DL/LB (if they didn't already get one in-drive)
-    if (player.pos === 'DL' && RNG.play() < 0.08) {
+    if (player.pos === 'DL' && RNG.play() < 0.12) {
       dl.sacks = (dl.sacks ?? 0) + 1;
-    } else if (player.pos === 'LB' && RNG.play() < 0.04) {
+    } else if (player.pos === 'LB' && RNG.play() < 0.06) {
       dl.sacks = (dl.sacks ?? 0) + 1;
     }
 
@@ -432,6 +488,26 @@ function buildTeamStats(
   };
 }
 
+function mergeTeamLines(team: Team, ...sources: Map<string, PlayerGameLine>[]): Map<string, PlayerGameLine> {
+  const merged = new Map<string, PlayerGameLine>();
+  const rosterIds = new Set(team.roster.map((player) => player.id));
+
+  for (const source of sources) {
+    for (const [playerId, line] of source.entries()) {
+      if (!rosterIds.has(playerId)) continue;
+      const existing = merged.get(playerId) ?? { playerId: line.playerId, name: line.name, pos: line.pos };
+      const mutableExisting = existing as unknown as Record<string, number | string | undefined>;
+      for (const [key, value] of Object.entries(line)) {
+        if (key === 'playerId' || key === 'name' || key === 'pos' || typeof value !== 'number') continue;
+        mutableExisting[key] = ((mutableExisting[key] as number | undefined) ?? 0) + value;
+      }
+      merged.set(playerId, existing);
+    }
+  }
+
+  return merged;
+}
+
 // ── Main game simulation ────────────────────────────────
 
 export interface SimGameResult {
@@ -455,6 +531,8 @@ export function simGame(home: Team, away: Team): SimGameResult {
   let awayScore = 0;
   const homeQtrScores: number[] = [0, 0, 0, 0];
   const awayQtrScores: number[] = [0, 0, 0, 0];
+  let homePlayState: PlayCallState = { lastPlayType: null, streak: 0 };
+  let awayPlayState: PlayCallState = { lastPlayType: null, streak: 0 };
 
   // 11-13 drives per team
   const totalDrives = 11 + Math.floor(RNG.play() * 3);
@@ -463,14 +541,20 @@ export function simGame(home: Team, away: Team): SimGameResult {
     const quarter = Math.min(3, Math.floor((d / totalDrives) * 4));
 
     // Home drive
-    const hDrive = simulateDrive(home, away, homeCEdge, homeScore - awayScore, quarter + 1, homeLines);
+    const hDrive = simulateDrive(home, away, homeCEdge, homeScore - awayScore, quarter + 1, homeLines, homePlayState);
     homeScore += hDrive.points;
     homeQtrScores[quarter]! += hDrive.points;
+    homePlayState = hDrive.playType === homePlayState.lastPlayType
+      ? { lastPlayType: hDrive.playType, streak: homePlayState.streak + 1 }
+      : { lastPlayType: hDrive.playType, streak: 1 };
 
     // Away drive
-    const aDrive = simulateDrive(away, home, awayCEdge, awayScore - homeScore, quarter + 1, awayLines);
+    const aDrive = simulateDrive(away, home, awayCEdge, awayScore - homeScore, quarter + 1, awayLines, awayPlayState);
     awayScore += aDrive.points;
     awayQtrScores[quarter]! += aDrive.points;
+    awayPlayState = aDrive.playType === awayPlayState.lastPlayType
+      ? { lastPlayType: aDrive.playType, streak: awayPlayState.streak + 1 }
+      : { lastPlayType: aDrive.playType, streak: 1 };
   }
 
   // Overtime if tied
@@ -479,12 +563,18 @@ export function simGame(home: Team, away: Team): SimGameResult {
     overtime = true;
     const otDrives = 2 + Math.floor(RNG.play() * 2);
     for (let d = 0; d < otDrives; d++) {
-      const hOT = simulateDrive(home, away, homeCEdge, 0, 5, homeLines);
+      const hOT = simulateDrive(home, away, homeCEdge, 0, 5, homeLines, homePlayState);
       homeScore += hOT.points;
+      homePlayState = hOT.playType === homePlayState.lastPlayType
+        ? { lastPlayType: hOT.playType, streak: homePlayState.streak + 1 }
+        : { lastPlayType: hOT.playType, streak: 1 };
       if (homeScore !== awayScore) break;
 
-      const aOT = simulateDrive(away, home, awayCEdge, 0, 5, awayLines);
+      const aOT = simulateDrive(away, home, awayCEdge, 0, 5, awayLines, awayPlayState);
       awayScore += aOT.points;
+      awayPlayState = aOT.playType === awayPlayState.lastPlayType
+        ? { lastPlayType: aOT.playType, streak: awayPlayState.streak + 1 }
+        : { lastPlayType: aOT.playType, streak: 1 };
       if (homeScore !== awayScore) break;
     }
     // Still tied? Coin flip FG
@@ -502,44 +592,25 @@ export function simGame(home: Team, away: Team): SimGameResult {
   distributeDefensiveStats(away, totalDrives, awayLines);
 
   // Build stats
+  const homeTeamLines = mergeTeamLines(home, homeLines, awayLines);
+  const awayTeamLines = mergeTeamLines(away, awayLines, homeLines);
+
   const homeStats = buildTeamStats(
-    homeLines, home, homeScore,
+    homeTeamLines, home, homeScore,
     homeQtrScores as [number, number, number, number, ...number[]],
     totalDrives,
   );
   const awayStats = buildTeamStats(
-    awayLines, away, awayScore,
+    awayTeamLines, away, awayScore,
     awayQtrScores as [number, number, number, number, ...number[]],
     totalDrives,
   );
 
-  // Fix sacks: team stats sacks = defensive sacks by OPPONENT (sacks suffered)
-  // We need to swap: homeStats.sacks should be sacks that home's defense recorded
-  // against the away team. Currently homeLines has home's offensive + defensive lines.
-  // We need to separate. The buildTeamStats counted sacks from all lines belonging to
-  // team's roster. Let's recalculate properly.
-  const homeSacksRecorded = sumStat(homeLines, home.roster, 'sacks');
-  const awaySacksRecorded = sumStat(awayLines, away.roster, 'sacks');
-  homeStats.sacks = homeSacksRecorded;
-  awayStats.sacks = awaySacksRecorded;
-
   // Find MVPs
-  const homeMvpId = findMvp(homeLines, home);
-  const awayMvpId = findMvp(awayLines, away);
+  const homeMvpId = findMvp(homeTeamLines, home);
+  const awayMvpId = findMvp(awayTeamLines, away);
 
   return { homeScore, awayScore, overtime, homeStats, awayStats, homeMvpId, awayMvpId };
-}
-
-function sumStat(lines: Map<string, PlayerGameLine>, roster: Player[], stat: keyof PlayerGameLine): number {
-  let total = 0;
-  for (const p of roster) {
-    const line = lines.get(p.id);
-    if (line) {
-      const val = line[stat];
-      if (typeof val === 'number') total += val;
-    }
-  }
-  return total;
 }
 
 function findMvp(lines: Map<string, PlayerGameLine>, team: Team): string | null {

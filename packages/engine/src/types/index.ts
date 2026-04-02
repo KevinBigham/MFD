@@ -662,6 +662,38 @@ export interface HallOfFamer {
   careerHighlights: string[];
 }
 
+export interface PlayerArchiveTeamStint {
+  teamId: string;
+  firstYear: number;
+  lastYear: number;
+}
+
+export interface PlayerArchiveEntry {
+  playerId: string;
+  firstName: string;
+  lastName: string;
+  name: string;
+  positions: Position[];
+  peakOvr: number;
+  peakYear: number;
+  firstYear: number;
+  lastYear: number;
+  retirementYear: number | null;
+  teamHistory: PlayerArchiveTeamStint[];
+}
+
+export interface FranchiseHistoryEntry {
+  year: number;
+  teamId: string;
+  wins: number;
+  losses: number;
+  ties: number;
+  record: string;
+  pointDifferential: number;
+  playoffFinish: string;
+  majorEvents: string[];
+}
+
 // ── Season Context ─────────────────────────────────────
 
 export interface SeasonContext {
@@ -691,6 +723,8 @@ export interface GameState {
   freeAgents: string[];    // player IDs
   records: DynastyRecord[];
   hallOfFame: HallOfFamer[];
+  franchiseHistory: FranchiseHistoryEntry[];
+  playerArchive: PlayerArchiveEntry[];
   frontOffice: FrontOffice;
   eventLog: GameEvent[];
   narrativeState: NarrativeState;

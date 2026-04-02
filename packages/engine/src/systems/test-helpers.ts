@@ -210,6 +210,8 @@ export function makeLeagueState(
     freeAgents: [],
     records: [],
     hallOfFame: [],
+    franchiseHistory: [],
+    playerArchive: [],
     frontOffice: {
       xp: 0,
       level: 1,

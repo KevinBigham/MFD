@@ -1,6 +1,9 @@
 import { DIFF_SETTINGS } from '../config/difficulty';
 import { makeContract } from './contracts';
 import { ensureDraftClass } from './draft';
+import { reevaluateLeagueStrategies } from './gm-strategies';
+import { syncPlayerArchiveEntry } from './history';
+import { progressPlayers } from './progression';
 import { generateTradeOffers } from './trade-market';
 import type {
   ContractOffer,
@@ -106,6 +109,7 @@ function applyOfferToPlayer(game: GameState, team: Team, player: Player, offer: 
   player.teamId = team.id;
   updateCap(team, offer.salary + player.contract.prorated);
   attachPlayerRecord(game, player);
+  syncPlayerArchiveEntry(game, player, game.year);
 }
 
 function removePlayerFromRoster(team: Team, playerId: string): Player | null {
@@ -120,6 +124,7 @@ function moveToFreeAgency(game: GameState, team: Team, playerId: string): void {
   const player = rosterPlayer ?? getPlayer(game, playerId);
   if (!player) return;
 
+  syncPlayerArchiveEntry(game, player, game.year);
   player.teamId = null;
   player.contract = null;
   attachPlayerRecord(game, player);
@@ -357,6 +362,16 @@ export function advanceOffseason(game: GameState): void {
   resolveUserReSigns(game, game.offseasonState);
   resolveAiReSigns(game, game.offseasonState);
   finalizeUnsignedExpiringPlayers(game, game.offseasonState);
+  const progression = progressPlayers(game);
+  game.eventLog.push(...progression.events);
+  if (progression.events.length > 0) {
+    game.narrativeState.recentHeadlines = [
+      ...progression.events.map((event) => event.description),
+      ...game.narrativeState.recentHeadlines,
+    ].slice(0, 8);
+  }
+  const strategyEvents = reevaluateLeagueStrategies(game);
+  game.eventLog.push(...strategyEvents);
   game.offseasonState.tradeOffers = generateTradeOffers(game);
   game.phase = 'free_agency';
   game.week = 1;

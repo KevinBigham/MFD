@@ -1,0 +1,6 @@
+button:focus-visible,
+[role="button"]:focus-visible,
+[data-mfd-focusable]:focus-visible {
+  outline: 3px solid var(--mfd-cyan);
+  outline-offset: 2px;
+}

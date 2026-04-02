@@ -1,14 +1,18 @@
 import { useMemo } from 'react';
 import {
-  MfdPanel, MfdBadge,
+  PixelBadge,
+  PixelPanel,
 } from '@mfd/design-system/components';
 import {
-  Handshake, CheckCircle, Clock, XCircle,
-  User, Calendar,
-} from 'lucide-react';
-import {
-  useGameStore, selectUserTeam, selectWeek, selectNarrative, selectActiveStoryArcs, selectLatestGameDayPackage,
+  useGameStore, selectActiveStoryArcs, selectLatestGameDayPackage, selectNarrative, selectUserTeam, selectWeek,
 } from '../../app/store/game-store';
+import {
+  PixelMetricCard,
+  PixelScreenHeader,
+  autoGrid,
+  monoSm,
+  screenStackStyle,
+} from '../shared/pixelUi';
 
 type PromiseStatus = 'active' | 'fulfilled' | 'broken' | 'expired';
 
@@ -22,11 +26,11 @@ interface HandshakePromise {
   consequence?: string;
 }
 
-const STATUS_CONFIG: Record<PromiseStatus, { icon: React.ReactNode; label: string; variant: 'warning' | 'success' | 'danger' | 'default' }> = {
-  active: { icon: <Clock size={14} />, label: 'Active', variant: 'warning' },
-  fulfilled: { icon: <CheckCircle size={14} />, label: 'Fulfilled', variant: 'success' },
-  broken: { icon: <XCircle size={14} />, label: 'Broken', variant: 'danger' },
-  expired: { icon: <Clock size={14} />, label: 'Expired', variant: 'default' },
+const statusVariant: Record<PromiseStatus, 'default' | 'gold' | 'green' | 'red'> = {
+  active: 'gold',
+  fulfilled: 'green',
+  broken: 'red',
+  expired: 'default',
 };
 
 export function HandshakeLedger() {
@@ -59,147 +63,116 @@ export function HandshakeLedger() {
       }));
     }
 
-    if (!narrative) return [];
-
-    return narrative.hooks
-      .filter((h) => !h.resolved)
-      .map((h): HandshakePromise => ({
-        id: h.id,
-        to: h.type,
-        promise: h.description,
+    return (narrative?.hooks ?? [])
+      .filter((hook) => !hook.resolved)
+      .map((hook) => ({
+        id: hook.id,
+        to: hook.type,
+        promise: hook.description,
         madeWeek: Math.max(1, week - 2),
-        deadline: `Week ${h.deadline}`,
-        status: h.deadline < week ? 'broken' : 'active',
+        deadline: `Week ${hook.deadline}`,
+        status: hook.deadline < week ? 'broken' : 'active',
       }));
   }, [activeArcs, latestPackage, narrative, week]);
 
-  const active = promises.filter((p) => p.status === 'active');
-  const fulfilled = promises.filter((p) => p.status === 'fulfilled');
-  const broken = promises.filter((p) => p.status === 'broken');
+  const active = promises.filter((promise) => promise.status === 'active');
+  const fulfilled = promises.filter((promise) => promise.status === 'fulfilled');
+  const broken = promises.filter((promise) => promise.status === 'broken');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-      <div>
-        <h1 style={{
-          fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem',
-          fontWeight: 700, color: 'var(--mfd-text)', margin: 0,
-        }}>Handshake Ledger</h1>
-        <p style={{
-          fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
-          color: 'var(--mfd-text-dim)', margin: '4px 0 0',
-        }}>
-          {active.length} active // {fulfilled.length} fulfilled // {broken.length} broken
-        </p>
+    <div style={screenStackStyle}>
+      <PixelScreenHeader
+        title="Handshake Ledger"
+        subtitle={`${team ? `${team.city} ${team.name}` : 'Franchise'} trust promises, public commitments, and narrative deadlines.`}
+        badges={(
+          <>
+            <PixelBadge variant="gold">{active.length} active</PixelBadge>
+            <PixelBadge variant={broken.length > 0 ? 'red' : 'green'}>{broken.length} broken</PixelBadge>
+          </>
+        )}
+      />
+
+      <div style={autoGrid(220)}>
+        <PixelMetricCard label="Active" value={active.length} accent="gold" detail="Open promises still on the clock" />
+        <PixelMetricCard label="Fulfilled" value={fulfilled.length} accent="green" detail="Trust-building commitments kept" />
+        <PixelMetricCard label="Broken" value={broken.length} accent={broken.length > 0 ? 'red' : 'default'} detail="Missed or violated commitments" />
       </div>
 
-      {/* Broken Promises Warning */}
-      {broken.length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-md)',
-          padding: 'var(--mfd-sp-md)',
-          background: 'color-mix(in srgb, var(--mfd-red) 10%, transparent)',
-          border: '1px solid var(--mfd-red)',
-          borderRadius: 'var(--mfd-rad-md)',
-        }}>
-          <XCircle size={16} style={{ color: 'var(--mfd-red)', flexShrink: 0 }} />
-          <div>
-            <div style={{
-              fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem',
-              fontWeight: 600, color: 'var(--mfd-red)',
-            }}>
-              {broken.length} Broken Promise{broken.length > 1 ? 's' : ''}
-            </div>
-            <div style={{
-              fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
-              color: 'var(--mfd-text-dim)',
-            }}>
-              Broken promises erode trust and morale. Reputation impact is cumulative.
-            </div>
+      {broken.length > 0 ? (
+        <PixelPanel title="Trust Warning" accent="red">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ ...monoSm, color: 'var(--mfd-red)' }}>
+              Broken promises stack reputation damage and raise pressure inside the building.
+            </span>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              Clear these story threads quickly or they start defining the season narrative for you.
+            </span>
           </div>
-        </div>
-      )}
+        </PixelPanel>
+      ) : null}
 
-      {/* Active Promises */}
-      <MfdPanel title={`Active Promises (${active.length})`} icon={<Handshake size={14} />}>
+      <PixelPanel title={`Active Promises (${active.length})`} accent="gold">
         {active.length === 0 ? (
-          <p style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
-            No active promises. Promises are made during negotiations, trades, and owner interactions.
-          </p>
+          <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+            No open promises right now. Negotiations and story arcs will surface them automatically.
+          </span>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-            {active.map((p) => <PromiseCard key={p.id} promise={p} />)}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {active.map((promise) => <PromiseCard key={promise.id} promise={promise} />)}
           </div>
         )}
-      </MfdPanel>
+      </PixelPanel>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--mfd-sp-lg)' }}>
-        <MfdPanel title={`Fulfilled (${fulfilled.length})`} icon={<CheckCircle size={14} />}>
+      <div style={autoGrid(320)}>
+        <PixelPanel title={`Fulfilled (${fulfilled.length})`} accent="green">
           {fulfilled.length === 0 ? (
-            <p style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
-              No fulfilled promises yet.
-            </p>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Nothing banked yet.</span>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-              {fulfilled.map((p) => <PromiseCard key={p.id} promise={p} />)}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {fulfilled.map((promise) => <PromiseCard key={promise.id} promise={promise} />)}
             </div>
           )}
-        </MfdPanel>
+        </PixelPanel>
 
-        <MfdPanel title={`Broken (${broken.length})`} icon={<XCircle size={14} />}>
+        <PixelPanel title={`Broken (${broken.length})`} accent="red">
           {broken.length === 0 ? (
-            <p style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem', color: 'var(--mfd-text-dim)' }}>
-              Clean record. Keep it up.
-            </p>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Ledger is clean.</span>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-              {broken.map((p) => <PromiseCard key={p.id} promise={p} />)}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {broken.map((promise) => <PromiseCard key={promise.id} promise={promise} />)}
             </div>
           )}
-        </MfdPanel>
+        </PixelPanel>
       </div>
     </div>
   );
 }
 
 function PromiseCard({ promise }: { promise: HandshakePromise }) {
-  const cfg = STATUS_CONFIG[promise.status];
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-xs)',
-      padding: 'var(--mfd-sp-sm)',
-      background: promise.status === 'broken' ? 'color-mix(in srgb, var(--mfd-red) 6%, transparent)' : 'var(--mfd-bg-2)',
-      border: `1px solid ${promise.status === 'broken' ? 'var(--mfd-red)' : 'var(--mfd-border)'}`,
-      borderRadius: 'var(--mfd-rad-md)',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-sm)' }}>
-          <User size={12} style={{ color: 'var(--mfd-text-dim)' }} />
-          <span style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem', fontWeight: 600 }}>
-            {promise.to}
-          </span>
-        </div>
-        <MfdBadge variant={cfg.variant}>{cfg.label}</MfdBadge>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        padding: '12px',
+        border: `3px solid ${promise.status === 'broken' ? 'var(--mfd-red)' : 'var(--mfd-border)'}`,
+        background: promise.status === 'broken' ? 'rgba(248, 113, 113, 0.08)' : 'rgba(255,255,255,0.02)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{promise.to.toUpperCase()}</span>
+        <PixelBadge variant={statusVariant[promise.status]}>{promise.status}</PixelBadge>
       </div>
-      <p style={{
-        fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem',
-        color: 'var(--mfd-text)', margin: 0,
-      }}>{promise.promise}</p>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <Calendar size={10} style={{ color: 'var(--mfd-text-dim)' }} />
-        <span style={{
-          fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
-          color: 'var(--mfd-text-dim)',
-        }}>Made: Wk {promise.madeWeek} // Due: {promise.deadline}</span>
-      </div>
-      {promise.consequence && (
-        <div style={{
-          fontFamily: 'var(--mfd-font-mono)', fontSize: '0.625rem',
-          color: promise.status === 'broken' ? 'var(--mfd-red)' : 'var(--mfd-amber)',
-          fontStyle: 'italic',
-        }}>
+      <span style={{ ...monoSm, color: '#fff' }}>{promise.promise}</span>
+      <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+        MADE: WEEK {promise.madeWeek} // DUE: {promise.deadline.toUpperCase()}
+      </span>
+      {promise.consequence ? (
+        <span style={{ ...monoSm, color: promise.status === 'broken' ? 'var(--mfd-red)' : 'var(--mfd-gold)' }}>
           {promise.consequence}
-        </div>
-      )}
+        </span>
+      ) : null}
     </div>
   );
 }

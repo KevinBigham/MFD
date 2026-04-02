@@ -92,13 +92,24 @@ export function simulateGame(home: Team, away: Team, year: number, week: number,
 
 export function updateOwner(team: Team, game: GameState): number {
   const before = team.owner.approval;
+  const gamesPlayed = team.wins + team.losses + team.ties;
+  const winPct = gamesPlayed > 0
+    ? (team.wins + team.ties * 0.5) / gamesPlayed
+    : 0.5;
+  const firstSeason = !game.franchiseHistory.some((entry) => entry.teamId === team.id);
   updateOwnerApproval(team.owner, team, { year: game.year, week: game.week, phase: game.phase });
   team.ownerMood = team.owner.approval;
   team.ownerPatience80 = tickPatience(
     team.ownerPatience80,
     team.owner.archetypeId,
     team.streak > 0 ? 'win' : 'loss',
-    { isPlayoff: game.phase === 'playoffs', streak: team.streak },
+    {
+      isPlayoff: game.phase === 'playoffs',
+      streak: team.streak,
+      week: game.week,
+      winPct,
+      firstSeason,
+    },
   ).patience;
   return team.owner.approval - before;
 }

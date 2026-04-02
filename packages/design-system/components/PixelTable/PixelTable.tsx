@@ -172,6 +172,7 @@ export function PixelTable<T>({
                 onKeyDown={(e) => handleKeyDown(e, row.original)}
                 tabIndex={onRowClick ? 0 : undefined}
                 role={onRowClick ? 'button' : undefined}
+                data-mfd-focusable={onRowClick ? 'pixel-row' : undefined}
                 style={{
                   cursor: onRowClick ? 'pointer' : 'default',
                   borderBottom: '1px solid #151515',

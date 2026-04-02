@@ -1,4 +1,6 @@
-import type { EngineOutput, GameState, Player, TradeOffer, TradeOfferAsset } from '../types';
+import { syncPlayerArchiveEntry } from './history';
+import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
+import type { DraftPick, EngineOutput, GameState, Player, Team, TradeOffer, TradeOfferAsset } from '../types';
 
 function cloneGame(game: GameState): GameState {
   return JSON.parse(JSON.stringify(game)) as GameState;
@@ -19,6 +21,7 @@ function transferPlayer(game: GameState, asset: TradeOfferAsset, toTeamId: strin
   player.teamId = toTeamId;
   toTeam.roster.push(player as Player);
   game.players[player.id] = player as Player;
+  syncPlayerArchiveEntry(game, player as Player, game.year);
 }
 
 function transferPick(game: GameState, asset: TradeOfferAsset, toTeamId: string): void {
@@ -53,98 +56,226 @@ function pickId(teamId: string, year: number, round: number, pick: number, origi
   return `${teamId}-${year}-${round}-${pick}-${originalTeamId}`;
 }
 
+function pickAsset(teamId: string, pick: DraftPick): TradeOfferAsset {
+  return {
+    type: 'pick',
+    teamId,
+    playerId: null,
+    pickId: pickId(teamId, pick.year, pick.round, pick.pick, pick.originalTeamId),
+    description: `Round ${pick.round} pick`,
+  };
+}
+
+function playerAsset(teamId: string, player: Player): TradeOfferAsset {
+  return {
+    type: 'player',
+    teamId,
+    playerId: player.id,
+    pickId: null,
+    description: player.name,
+  };
+}
+
+function describeAssets(assets: TradeOfferAsset[]): string {
+  if (assets.length === 0) return 'future assets';
+  if (assets.length === 1) return assets[0]!.description;
+  if (assets.length === 2) return `${assets[0]!.description} and ${assets[1]!.description}`;
+  return `${assets[0]!.description}, ${assets[1]!.description}, and ${assets[2]!.description}`;
+}
+
+function positionNeed(team: Team, pos: Player['pos']): number {
+  const bestAtPosition = team.roster
+    .filter((player) => player.pos === pos)
+    .sort((a, b) => b.ovr - a.ovr)[0];
+  return 90 - (bestAtPosition?.ovr ?? 60);
+}
+
+function tradeablePlayers(team: Team, targetPos: Player['pos']): Player[] {
+  return [...team.roster]
+    .filter((player) => player.pos !== 'QB' || targetPos === 'QB')
+    .filter((player) => !(team.gmStrategy === 'contend' && player.age <= 26 && player.ovr >= 80))
+    .sort((a, b) => b.ovr - a.ovr || a.id.localeCompare(b.id));
+}
+
+function selectBestPick(picks: DraftPick[], remaining: number): DraftPick | null {
+  if (picks.length === 0) return null;
+  const valued = picks.map((pick) => ({ pick, value: calcPickValue(pick) }));
+  const covering = valued
+    .filter((entry) => entry.value >= remaining)
+    .sort((a, b) => a.value - b.value || a.pick.round - b.pick.round || a.pick.pick - b.pick.pick)[0];
+  if (covering) return covering.pick;
+  return valued
+    .sort((a, b) => b.value - a.value || a.pick.round - b.pick.round || a.pick.pick - b.pick.pick)[0]
+    ?.pick ?? null;
+}
+
+function buildAssetsForTarget(game: GameState, aiTeam: Team, userTeam: Team, targetPlayer: Player): TradeOfferAsset[] {
+  const targetValue = Math.max(1, calcPlayerValue(game, targetPlayer, aiTeam));
+  const assets: TradeOfferAsset[] = [];
+  let totalValue = 0;
+
+  const candidatePlayer = tradeablePlayers(aiTeam, targetPlayer.pos)
+    .map((player) => ({
+      player,
+      value: Math.max(1, calcPlayerValue(game, player, userTeam)),
+      fitGap: Math.abs(calcPlayerValue(game, player, userTeam) - targetValue * 0.45),
+    }))
+    .filter((entry) => entry.player.id !== targetPlayer.id)
+    .sort((a, b) => a.fitGap - b.fitGap || b.value - a.value || a.player.id.localeCompare(b.player.id))[0];
+
+  if (candidatePlayer && aiTeam.gmStrategy !== 'rebuild' && candidatePlayer.value < targetValue * 0.8) {
+    assets.push(playerAsset(aiTeam.id, candidatePlayer.player));
+    totalValue += candidatePlayer.value;
+  }
+
+  const remainingPicks = aiTeam.draftPicks
+    .filter((pick) => pick.year === game.year)
+    .sort((a, b) => a.round - b.round || a.pick - b.pick);
+
+  while (remainingPicks.length > 0 && assets.length < 3 && totalValue < targetValue * 0.92) {
+    const pick = selectBestPick(remainingPicks, targetValue * 0.92 - totalValue);
+    if (!pick) break;
+    assets.push(pickAsset(aiTeam.id, pick));
+    totalValue += calcPickValue(pick);
+    const index = remainingPicks.findIndex((candidate) =>
+      candidate.year === pick.year &&
+      candidate.round === pick.round &&
+      candidate.pick === pick.pick &&
+      candidate.originalTeamId === pick.originalTeamId,
+    );
+    if (index !== -1) {
+      remainingPicks.splice(index, 1);
+    }
+  }
+
+  return assets;
+}
+
+function buildInboundOffer(game: GameState, userTeam: Team, aiTeam: Team, targetPlayer: Player): TradeOffer | null {
+  const send = [playerAsset(userTeam.id, targetPlayer)];
+  const receive = buildAssetsForTarget(game, aiTeam, userTeam, targetPlayer);
+  if (receive.length === 0) return null;
+
+  const evaluation = evaluateTradeOffer(game, aiTeam, send, receive);
+  if (!evaluation.accepted) return null;
+
+  return {
+    id: `trade-offer-${aiTeam.id}-${targetPlayer.id}`,
+    fromTeamId: aiTeam.id,
+    toTeamId: userTeam.id,
+    direction: 'inbound',
+    summary: `${aiTeam.city} offers ${describeAssets(receive)} for ${targetPlayer.name}.`,
+    status: 'pending',
+    send,
+    receive,
+  };
+}
+
+function buildPickOnlyFallback(game: GameState, userTeam: Team, aiTeam: Team, targetPlayer: Player): TradeOffer | null {
+  const picks = aiTeam.draftPicks
+    .filter((pick) => pick.year === game.year)
+    .sort((a, b) => a.round - b.round || a.pick - b.pick)
+    .slice(0, 2);
+  if (picks.length === 0) return null;
+
+  const receive = picks.map((pick) => pickAsset(aiTeam.id, pick));
+  const totalPickValue = picks.reduce((sum, pick) => sum + calcPickValue(pick), 0);
+  const targetValue = Math.max(1, calcPlayerValue(game, targetPlayer, aiTeam));
+  if (totalPickValue < targetValue * 0.75) return null;
+
+  return {
+    id: `trade-offer-fallback-${aiTeam.id}-${targetPlayer.id}`,
+    fromTeamId: aiTeam.id,
+    toTeamId: userTeam.id,
+    direction: 'inbound',
+    summary: `${aiTeam.city} offers ${describeAssets(receive)} for ${targetPlayer.name}.`,
+    status: 'pending',
+    send: [playerAsset(userTeam.id, targetPlayer)],
+    receive,
+  };
+}
+
+function buildOutboundOffer(game: GameState, userTeam: Team, aiTeam: Team): TradeOffer | null {
+  const targetPlayer = [...aiTeam.roster]
+    .filter((player) => player.tradeBlock || (aiTeam.gmStrategy === 'rebuild' && player.age >= 28 && player.ovr >= 76))
+    .sort((a, b) => b.ovr - a.ovr || a.id.localeCompare(b.id))[0];
+  if (!targetPlayer) return null;
+
+  const userPicks = userTeam.draftPicks
+    .filter((pick) => pick.year === game.year)
+    .sort((a, b) => a.round - b.round || a.pick - b.pick);
+
+  const send: TradeOfferAsset[] = [];
+  let sentValue = 0;
+  const targetValue = Math.max(1, calcPlayerValue(game, targetPlayer, userTeam));
+
+  for (const pick of userPicks) {
+    send.push(pickAsset(userTeam.id, pick));
+    sentValue += calcPickValue(pick);
+    if (sentValue >= targetValue * 0.95) break;
+  }
+
+  if (send.length === 0) return null;
+
+  const receive = [playerAsset(aiTeam.id, targetPlayer)];
+  const evaluation = evaluateTradeOffer(game, aiTeam, send, receive);
+  if (!evaluation.accepted) return null;
+
+  return {
+    id: `trade-offer-${userTeam.id}-${targetPlayer.id}`,
+    fromTeamId: aiTeam.id,
+    toTeamId: userTeam.id,
+    direction: 'outbound',
+    summary: `${aiTeam.city} wants ${describeAssets(send)} for ${targetPlayer.name}.`,
+    status: 'pending',
+    send,
+    receive,
+  };
+}
+
 export function generateTradeOffers(game: GameState): TradeOffer[] {
   const userTeam = findUserTeam(game);
   if (!userTeam) return [];
 
   const aiTeams = Object.values(game.teams)
     .filter((team) => !team.isUser)
-    .sort((a, b) => b.capSpace - a.capSpace || a.id.localeCompare(b.id));
+    .sort((a, b) => a.id.localeCompare(b.id));
   const tradeBlock = userTeam.roster
     .filter((player) => player.tradeBlock)
     .sort((a, b) => b.ovr - a.ovr || a.id.localeCompare(b.id));
 
   const offers: TradeOffer[] = [];
 
-  for (let index = 0; index < Math.min(2, tradeBlock.length, aiTeams.length); index++) {
-    const player = tradeBlock[index]!;
-    const aiTeam = aiTeams[index]!;
-    const aiPlayer = [...aiTeam.roster]
-      .filter((candidate) => candidate.pos !== 'QB' && candidate.ovr >= player.ovr - 8)
-      .sort((a, b) => b.ovr - a.ovr || a.id.localeCompare(b.id))[0];
-    const aiPick = aiTeam.draftPicks
-      .filter((pick) => pick.year === game.year && pick.round >= 2)
-      .sort((a, b) => a.round - b.round || a.pick - b.pick)[0];
+  for (const player of tradeBlock) {
+    const rankedTeams = [...aiTeams]
+      .sort((a, b) => positionNeed(b, player.pos) - positionNeed(a, player.pos) || a.id.localeCompare(b.id));
 
-    if (!aiPlayer || !aiPick) continue;
+    for (const aiTeam of rankedTeams) {
+      const offer = buildInboundOffer(game, userTeam, aiTeam, player);
+      if (offer) {
+        offers.push(offer);
+        break;
+      }
+    }
 
-    offers.push({
-      id: `trade-offer-${aiTeam.id}-${player.id}`,
-      fromTeamId: aiTeam.id,
-      toTeamId: userTeam.id,
-      direction: 'inbound',
-      summary: `${aiTeam.city} offers ${aiPlayer.name} and a Day 2 pick for ${player.name}.`,
-      status: 'pending',
-      send: [{
-        type: 'player',
-        teamId: userTeam.id,
-        playerId: player.id,
-        pickId: null,
-        description: player.name,
-      }],
-      receive: [
-        {
-          type: 'player',
-          teamId: aiTeam.id,
-          playerId: aiPlayer.id,
-          pickId: null,
-          description: aiPlayer.name,
-        },
-        {
-          type: 'pick',
-          teamId: aiTeam.id,
-          playerId: null,
-          pickId: pickId(aiTeam.id, aiPick.year, aiPick.round, aiPick.pick, aiPick.originalTeamId),
-          description: `Round ${aiPick.round} pick`,
-        },
-      ],
-    });
+    if (!offers.some((offer) => offer.send.some((asset) => asset.playerId === player.id))) {
+      const fallbackTeam = rankedTeams[0];
+      const fallbackOffer = fallbackTeam ? buildPickOnlyFallback(game, userTeam, fallbackTeam, player) : null;
+      if (fallbackOffer) {
+        offers.push(fallbackOffer);
+      }
+    }
   }
 
-  if (offers.length > 0) return offers;
+  for (const aiTeam of aiTeams) {
+    if (offers.length >= 6) break;
+    const offer = buildOutboundOffer(game, userTeam, aiTeam);
+    if (offer) {
+      offers.push(offer);
+    }
+  }
 
-  const aiTarget = aiTeams[0];
-  const userPick = userTeam.draftPicks
-    .filter((pick) => pick.year === game.year)
-    .sort((a, b) => a.round - b.round || a.pick - b.pick)[0];
-  const aiPlayer = aiTarget?.roster
-    .filter((player) => player.ovr >= 76)
-    .sort((a, b) => b.ovr - a.ovr || a.id.localeCompare(b.id))[0];
-
-  if (!aiTarget || !userPick || !aiPlayer) return [];
-
-  return [{
-    id: `trade-offer-${userTeam.id}-${aiPlayer.id}`,
-    fromTeamId: aiTarget.id,
-    toTeamId: userTeam.id,
-    direction: 'outbound',
-    summary: `Pay a premium pick for ${aiPlayer.name}.`,
-    status: 'pending',
-    send: [{
-      type: 'pick',
-      teamId: userTeam.id,
-      playerId: null,
-      pickId: pickId(userTeam.id, userPick.year, userPick.round, userPick.pick, userPick.originalTeamId),
-      description: `Round ${userPick.round} pick`,
-    }],
-    receive: [{
-      type: 'player',
-      teamId: aiTarget.id,
-      playerId: aiPlayer.id,
-      pickId: null,
-      description: aiPlayer.name,
-    }],
-  }];
+  return offers;
 }
 
 export function acceptTradeOffer(game: GameState, offerId: string): EngineOutput {

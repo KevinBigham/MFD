@@ -96,3 +96,9 @@ registerMigration(3, (state) => ({
     latestPackageId: null,
   },
 }));
+
+registerMigration(4, (state) => ({
+  ...state,
+  franchiseHistory: Array.isArray(state['franchiseHistory']) ? state['franchiseHistory'] : [],
+  playerArchive: Array.isArray(state['playerArchive']) ? state['playerArchive'] : [],
+}));

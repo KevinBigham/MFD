@@ -5,7 +5,7 @@
  * influence AI trade behavior and roster management.
  */
 
-import type { Team, GmStrategy } from '../types';
+import type { GameEvent, GameState, Team, GmStrategy } from '../types';
 
 // ── Strategy Definitions ───────────────────────────────
 
@@ -86,4 +86,77 @@ export function suggestStrategy(team: Team): GmStrategy {
   if (wp >= 0.6 && avgOvr >= 75) return 'contend';
   if (wp <= 0.35 || avgAge >= 29) return 'rebuild';
   return 'neutral';
+}
+
+export function evaluateStrategy(team: Team): GmStrategy {
+  const avgOvr = team.roster.length > 0
+    ? team.roster.reduce((sum, player) => sum + player.ovr, 0) / team.roster.length
+    : 65;
+  const avgAge = team.roster.length > 0
+    ? team.roster.reduce((sum, player) => sum + player.age, 0) / team.roster.length
+    : 26;
+  const winPct = (team.wins + team.losses + team.ties) > 0
+    ? (team.wins + team.ties * 0.5) / (team.wins + team.losses + team.ties)
+    : 0.5;
+  const youngStars = team.roster.filter((player) => player.age <= 25 && player.ovr > 80).length;
+
+  if (team.gmStrategy === 'rebuild' && avgOvr > 78 && youngStars >= 3) {
+    return 'contend';
+  }
+
+  if (team.gmStrategy === 'contend' && winPct < 0.4 && avgAge > 28) {
+    return 'rebuild';
+  }
+
+  if (team.gmStrategy === 'neutral') {
+    if (winPct >= 0.6 && avgOvr >= 78) return 'contend';
+    if (winPct < 0.4 && avgAge > 28) return 'rebuild';
+  }
+
+  return team.gmStrategy;
+}
+
+function recentSeasonTrend(game: GameState, teamId: string): number {
+  const recent = game.franchiseHistory
+    .filter((entry) => entry.teamId === teamId)
+    .sort((a, b) => b.year - a.year)
+    .slice(0, 2);
+
+  if (recent.length < 2) return 0;
+
+  if (recent.every((entry) => entry.wins > entry.losses)) return 1;
+  if (recent.every((entry) => entry.wins < entry.losses)) return -1;
+  return 0;
+}
+
+export function reevaluateLeagueStrategies(game: GameState): GameEvent[] {
+  const events: GameEvent[] = [];
+
+  for (const team of Object.values(game.teams)) {
+    if (team.isUser) continue;
+
+    let nextStrategy = evaluateStrategy(team);
+    if (team.gmStrategy === 'neutral') {
+      const trend = recentSeasonTrend(game, team.id);
+      if (trend > 0) nextStrategy = 'contend';
+      if (trend < 0) nextStrategy = 'rebuild';
+    }
+
+    if (nextStrategy === team.gmStrategy) continue;
+
+    const previous = team.gmStrategy;
+    applyGmStrategy(team, nextStrategy);
+    const description = `${team.city} shifts from ${previous} to ${nextStrategy}.`;
+    const event: GameEvent = {
+      id: `gm-strategy-${team.id}-${game.year}-${events.length}`,
+      type: 'gm_strategy_shift',
+      timestamp: game.year * 1000 + game.eventLog.length + events.length,
+      description,
+      data: { teamId: team.id, from: previous, to: nextStrategy },
+    };
+    events.push(event);
+    game.narrativeState.recentHeadlines = [description, ...game.narrativeState.recentHeadlines].slice(0, 8);
+  }
+
+  return events;
 }

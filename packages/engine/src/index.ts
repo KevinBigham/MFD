@@ -49,6 +49,14 @@ export {
 export {
   AGE_CURVES, classifyArchetype, getAgeCurve,
 } from './systems/player-archetypes';
+export {
+  syncPlayerArchiveEntry,
+  syncAllPlayerArchiveEntries,
+  recordPlayerRetirement,
+  archiveSeasonHistory,
+} from './systems/history';
+export { progressPlayers } from './systems/progression';
+export type { ProgressionResult } from './systems/progression';
 
 // Systems — Contracts (Phase 2)
 export {
@@ -104,7 +112,13 @@ export {
 export type { TrustArrow, TrustReputation, LeagueTrustSnapshot, AgingPhase, RatingCategory } from './systems/trust-aging';
 
 // Systems — GM (Phase 2)
-export { GM_STRATEGIES, applyGmStrategy, suggestStrategy } from './systems/gm-strategies';
+export {
+  GM_STRATEGIES,
+  applyGmStrategy,
+  suggestStrategy,
+  evaluateStrategy,
+  reevaluateLeagueStrategies,
+} from './systems/gm-strategies';
 export type { GmStrategyDef } from './systems/gm-strategies';
 
 export { calculateReputation, getRepLabel } from './systems/gm-reputation';
@@ -152,6 +166,11 @@ export {
   acceptTradeOffer,
   rejectTradeOffer,
 } from './systems/trade-market';
+export {
+  calcPlayerValue,
+  calcPickValue,
+  evaluateTradeOffer,
+} from './systems/trade-value';
 export { advanceFranchiseWeek } from './systems/franchise-week';
 
 // Systems — Coaching (Phase 2)

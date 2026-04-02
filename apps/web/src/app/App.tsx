@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { RouterProvider, createRouter, createRootRoute, createRoute, Outlet, useRouter, useRouterState } from '@tanstack/react-router';
 import {
   LayoutDashboard, Users, DollarSign, ArrowLeftRight,
@@ -21,12 +22,15 @@ import { OwnerMood } from '../features/owner/OwnerMood';
 import { DepthChart } from '../features/depth-chart/DepthChart';
 import { WeekAdvance } from '../features/week-advance/WeekAdvance';
 import { HandshakeLedger } from '../features/handshake-ledger/HandshakeLedger';
-import { DynastyCartridge } from '../features/dynasty-cartridge/DynastyCartridge';
 import { GameDayRecap } from '../features/game-day/GameDayRecap';
 import { TradeCenter } from '../features/trades/TradeCenter';
-import { ScoutingBoard } from '../features/scouting/ScoutingBoard';
-import { DraftBoard } from '../features/draft/DraftBoard';
 import { FreeAgencyHub } from '../features/free-agency/FreeAgencyHub';
+import { Settings as SettingsScreen } from '../features/settings/Settings';
+
+const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
+const LazyDraftBoard = lazy(async () => ({ default: (await import('../features/draft/DraftBoard')).DraftBoard }));
+const LazyDynastyCartridge = lazy(async () => ({ default: (await import('../features/dynasty-cartridge/DynastyCartridge')).DynastyCartridge }));
+const LazyLegacyTimeline = lazy(async () => ({ default: (await import('../features/legacy/LegacyTimeline')).LegacyTimeline }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -217,21 +221,30 @@ function CommandPaletteTrigger() {
   );
 }
 
-// ── Feature route stubs ─────────────────────────────────────
-
-function FeatureStub({ name }: { name: string }) {
+function LazyRouteFrame({
+  children,
+  label,
+}: {
+  children: React.ReactNode;
+  label: string;
+}) {
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: 300,
-      fontFamily: 'var(--mfd-font-mono)',
-      color: 'var(--mfd-text-faint)',
-      fontSize: '0.875rem',
-    }}>
-      {name} — Phase 2+
-    </div>
+    <Suspense fallback={(
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 300,
+        fontFamily: 'var(--mfd-font-mono)',
+        color: 'var(--mfd-text-faint)',
+        fontSize: '0.875rem',
+      }}>
+        Loading {label}...
+      </div>
+    )}
+    >
+      {children}
+    </Suspense>
   );
 }
 
@@ -266,13 +279,21 @@ const tradesRoute = createRoute({
 const scoutingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/scouting',
-  component: ScoutingBoard,
+  component: () => (
+    <LazyRouteFrame label="scouting board">
+      <LazyScoutingBoard />
+    </LazyRouteFrame>
+  ),
 });
 
 const draftRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/draft',
-  component: DraftBoard,
+  component: () => (
+    <LazyRouteFrame label="draft board">
+      <LazyDraftBoard />
+    </LazyRouteFrame>
+  ),
 });
 
 const freeAgencyRoute = createRoute({
@@ -326,19 +347,27 @@ const handshakeRoute = createRoute({
 const legacyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/legacy',
-  component: () => <FeatureStub name="Legacy & Dynasty" />,
+  component: () => (
+    <LazyRouteFrame label="legacy timeline">
+      <LazyLegacyTimeline />
+    </LazyRouteFrame>
+  ),
 });
 
 const dynastyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/dynasty',
-  component: DynastyCartridge,
+  component: () => (
+    <LazyRouteFrame label="dynasty cartridge">
+      <LazyDynastyCartridge />
+    </LazyRouteFrame>
+  ),
 });
 
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
-  component: () => <FeatureStub name="Settings" />,
+  component: SettingsScreen,
 });
 
 const routeTree = rootRoute.addChildren([

@@ -225,6 +225,8 @@ export const SaveStateSchema = z.object({
   freeAgents: z.array(z.string()),
   records: z.array(z.any()),
   hallOfFame: z.array(z.any()),
+  franchiseHistory: z.array(z.any()),
+  playerArchive: z.array(z.any()),
   frontOffice: z.object({
     xp: z.number(),
     level: z.number(),

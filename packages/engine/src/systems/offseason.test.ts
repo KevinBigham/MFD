@@ -162,6 +162,8 @@ function makeOffseasonGame(): GameState {
     freeAgents: [],
     records: [],
     hallOfFame: [],
+    franchiseHistory: [],
+    playerArchive: [],
     frontOffice: {
       xp: 0,
       level: 1,
@@ -274,6 +276,94 @@ describe('offseason systems', () => {
     expect(result.nextState.phase).toBe('offseason');
     expect(result.nextState.draftClass.length).toBeGreaterThan(0);
     expect(result.nextState.offseasonState?.tradeOffers.length).toBeGreaterThan(0);
+  });
+
+  it('archives the completed season when the league rolls into the offseason', () => {
+    const game = makeChampionshipGame();
+    game.teams.user.wins = 12;
+    game.teams.user.losses = 5;
+    game.teams.user.seasonStats.pointDifferential = 88;
+
+    const result = advanceFranchiseWeek(game);
+
+    expect(result.nextState.franchiseHistory.some((entry) =>
+      entry.year === 2026 &&
+      entry.teamId === 'user' &&
+      entry.playoffFinish === 'champion' &&
+      entry.record === '12-5'
+    )).toBe(true);
+  });
+
+  it('progresses players and records retirements on the first offseason advance', () => {
+    const game = makeChampionshipGame();
+    const youngQuarterback = game.teams.user.roster[0]!;
+    youngQuarterback.age = 23;
+    youngQuarterback.ovr = 82;
+    youngQuarterback.devTrait = 'superstar';
+    youngQuarterback.stats.passAtt = 550;
+    youngQuarterback.stats.passComp = 374;
+    youngQuarterback.stats.passYds = 4480;
+    youngQuarterback.stats.passTD = 35;
+    youngQuarterback.stats.passINT = 8;
+
+    const oldRunner = game.teams.user.roster[1]!;
+    oldRunner.age = 35;
+    oldRunner.ovr = 58;
+    oldRunner.stats.rushAtt = 84;
+    oldRunner.stats.rushYds = 260;
+
+    game.teams.user.staff.hc = {
+      id: 'user-hc',
+      name: 'User Coach',
+      role: 'HC',
+      archetype: 'Strategist',
+      traits: [],
+      ratings: { development: 92, gameplan: 78, motivation: 75 },
+      level: 5,
+      specialty75: null,
+    };
+
+    const offseasonStart = advanceFranchiseWeek(game);
+    const progressed = advanceFranchiseWeek(offseasonStart.nextState);
+
+    expect(progressed.nextState.players[youngQuarterback.id]!.ovr).toBeGreaterThanOrEqual(85);
+    expect(progressed.nextState.teams.user.roster.some((player) => player.id === oldRunner.id)).toBe(false);
+    expect(progressed.nextState.playerArchive.find((entry) => entry.playerId === oldRunner.id)?.retirementYear)
+      .toBe(progressed.nextState.year);
+    expect(progressed.nextState.eventLog.some((event) => event.type === 'player_retired' && event.data.playerId === oldRunner.id))
+      .toBe(true);
+  });
+
+  it('re-evaluates AI team strategy before the trade market refreshes', () => {
+    const game = makeChampionshipGame();
+    const aiTeam = game.teams.ai1;
+    aiTeam.gmStrategy = 'rebuild';
+    aiTeam.wins = 11;
+    aiTeam.losses = 6;
+    aiTeam.roster.forEach((player, index) => {
+      player.ovr = index < 4 ? 83 : 79;
+      player.age = index < 4 ? 24 : 25;
+    });
+    aiTeam.staff.hc = {
+      id: 'ai1-hc',
+      name: 'AI Coach',
+      role: 'HC',
+      archetype: 'Strategist',
+      traits: [],
+      ratings: { development: 88, gameplan: 76, motivation: 74 },
+      level: 5,
+      specialty75: null,
+    };
+
+    const offseasonStart = advanceFranchiseWeek(game);
+    const progressed = advanceFranchiseWeek(offseasonStart.nextState);
+
+    expect(progressed.nextState.teams.ai1.gmStrategy).toBe('contend');
+    expect(progressed.nextState.eventLog.some((event) =>
+      event.type === 'gm_strategy_shift' &&
+      event.data.teamId === 'ai1' &&
+      event.data.to === 'contend'
+    )).toBe(true);
   });
 
   it('updates scouting reports without mutating prospect true grade', () => {

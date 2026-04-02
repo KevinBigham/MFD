@@ -1,5 +1,6 @@
 import { createEmptySeasonStats, emptyPlayerStats } from './season-stats';
 import { makeContract } from './contracts';
+import { syncPlayerArchiveEntry } from './history';
 import { mulberry32 } from '../rng';
 import type {
   DraftPick,
@@ -16,6 +17,10 @@ const FIRST_NAMES = ['Jalen', 'Tyrese', 'Malik', 'Cam', 'Bryce', 'Jordan', 'Cale
 const LAST_NAMES = ['Carter', 'Daniels', 'Brooks', 'Turner', 'Parker', 'Walker', 'Mitchell', 'Hayes', 'Bennett', 'Ward'];
 const COLLEGES = ['Texas', 'Georgia', 'Michigan', 'Oregon', 'LSU', 'Ohio State', 'Miami', 'Washington'];
 const POSITIONS: Player['pos'][] = ['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P'];
+const DRAFT_POSITION_PREMIUM: Partial<Record<Player['pos'], number>> = {
+  QB: 12,
+  OL: 4,
+};
 
 function cloneGame(game: GameState): GameState {
   return JSON.parse(JSON.stringify(game)) as GameState;
@@ -221,7 +226,9 @@ function bestProspectForTeam(game: GameState, team: Team): DraftProspect | null 
     .sort((a, b) => {
       const aNeed = 90 - (weakestPosition[a.pos] ?? 60);
       const bNeed = 90 - (weakestPosition[b.pos] ?? 60);
-      return (b.trueGrade + bNeed) - (a.trueGrade + aNeed) || a.id.localeCompare(b.id);
+      const aPremium = DRAFT_POSITION_PREMIUM[a.pos] ?? 0;
+      const bPremium = DRAFT_POSITION_PREMIUM[b.pos] ?? 0;
+      return (b.trueGrade + bNeed + bPremium) - (a.trueGrade + aNeed + aPremium) || a.id.localeCompare(b.id);
     })[0] ?? null;
 }
 
@@ -238,6 +245,7 @@ function applyDraftSelection(game: GameState, teamId: string, prospectId: string
   const rookie = prospectToPlayer(prospect, teamId, game.year, draftEntry.round);
   team.roster.push(rookie);
   game.players[rookie.id] = rookie;
+  syncPlayerArchiveEntry(game, rookie, game.year);
   removeUsedPick(team, game.year, draftEntry.round, draftEntry.pick);
   game.offseasonState.completedDraftPickIds.push(draftEntry.id);
   game.offseasonState.currentDraftPickIndex += 1;

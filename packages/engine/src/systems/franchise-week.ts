@@ -2,6 +2,7 @@ import { reseedSeason, reseedWeek, setSeed } from '../rng';
 import { advanceDraft, ensureDraftClass, finalizePostDraft } from './draft';
 import { advanceFreeAgency, advanceOffseason, initializeOffseasonState } from './offseason';
 import { advancePlayoffBracket, seedPlayoffBracket } from './playoff-bracket';
+import { archiveSeasonHistory } from './history';
 import { advanceStoryArcs } from './story-arcs';
 import { buildGameDayPackage } from './game-day-package';
 import { generateTradeOffers } from './trade-market';
@@ -130,6 +131,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
     });
 
     if (nextState.playoffBracket.championTeamId) {
+      archiveSeasonHistory(nextState);
       nextState.phase = 'offseason';
       nextState.year += 1;
       nextState.week = 1;

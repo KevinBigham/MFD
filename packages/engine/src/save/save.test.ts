@@ -20,6 +20,8 @@ describe('SaveStateSchema', () => {
       freeAgents: [],
       records: [],
       hallOfFame: [],
+      franchiseHistory: [],
+      playerArchive: [],
       frontOffice: {
         xp: 0,
         level: 1,
@@ -56,7 +58,7 @@ describe('SaveStateSchema', () => {
       difficulty: 'pro',
       players: {}, teams: {}, owners: {},
       schedule: [], draftClass: [], freeAgents: [],
-      records: [], hallOfFame: [],
+      records: [], hallOfFame: [], franchiseHistory: [], playerArchive: [],
       frontOffice: { xp: 0, level: 1, achievements: [], perks: [], reputation: { players: 0, media: 0, owner: 0 } },
       eventLog: [],
       narrativeState: { activeArcs: [], hooks: [], recentHeadlines: [] },
@@ -112,7 +114,7 @@ describe('SaveStateSchema', () => {
       players: { p1: player },
       teams: {}, owners: {},
       schedule: [], draftClass: [], freeAgents: [],
-      records: [], hallOfFame: [],
+      records: [], hallOfFame: [], franchiseHistory: [], playerArchive: [],
       frontOffice: { xp: 500, level: 3, achievements: ['first_win'], perks: [], reputation: { players: 70, media: 60, owner: 80 } },
       eventLog: [],
       narrativeState: { activeArcs: [], hooks: [], recentHeadlines: ['Mahomes throws 5 TDs'] },
@@ -233,5 +235,25 @@ describe('migration pipeline', () => {
       recentPackages: [],
       latestPackageId: null,
     });
+  });
+
+  it('migrates v4 saves to include legacy history defaults', () => {
+    const migrated = migrate({
+      version: 4,
+      narrativeState: {
+        activeArcs: [],
+        hooks: [],
+        recentHeadlines: ['Dynasty save in progress'],
+      },
+      gameDayState: {
+        recentPackages: [],
+        latestPackageId: null,
+      },
+      offseasonState: null,
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['franchiseHistory']).toEqual([]);
+    expect(migrated['playerArchive']).toEqual([]);
   });
 });

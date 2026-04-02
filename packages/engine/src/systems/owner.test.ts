@@ -108,6 +108,21 @@ describe('owner-extended', () => {
     expect(playoff.patience).toBeLessThan(normal.patience);
   });
 
+  it('tickPatience grants a week 9 checkpoint boost for .500 teams', () => {
+    const result = tickPatience(50, 'win_now', 'loss', { week: 9, winPct: 0.5 });
+    expect(result.delta).toBe(-1);
+  });
+
+  it('tickPatience uses the softer losing streak penalty', () => {
+    const result = tickPatience(50, 'win_now', 'loss', { streak: -3 });
+    expect(result.delta).toBe(-9);
+  });
+
+  it('tickPatience halves drain during the honeymoon season', () => {
+    const result = tickPatience(50, 'win_now', 'loss', { firstSeason: true });
+    expect(result.delta).toBe(-3);
+  });
+
   it('calcConfidenceArc returns correct stages', () => {
     expect(calcConfidenceArc(80, 80).stage).toBe('PATIENT');
     expect(calcConfidenceArc(60, 60).stage).toBe('RESTLESS');

@@ -1,18 +1,25 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useMemo, useState } from 'react';
 import {
-  MfdPanel, MfdBadge, MfdDialog,
+  PixelBadge,
+  PixelButton,
+  PixelModal,
+  PixelPanel,
 } from '@mfd/design-system/components';
-import {
-  Users, ChevronDown, ChevronUp, AlertTriangle,
-  Shield, Zap,
-} from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import type { Player, Position } from '@mfd/engine';
 import { detectPositionBattles } from '@mfd/engine';
 import {
   useGameStore, selectRoster, selectUserTeamId,
 } from '../../app/store/game-store';
-
-// ── Position slot groupings ────────────────────────────────
+import {
+  PixelMetricCard,
+  PixelScreenHeader,
+  autoGrid,
+  display,
+  monoSm,
+  pixel,
+  screenStackStyle,
+} from '../shared/pixelUi';
 
 interface PositionSlot {
   label: string;
@@ -38,19 +45,21 @@ const DEFENSE_SLOTS: PositionSlot[] = [
 export function DepthChart() {
   const roster = useGameStore(selectRoster);
   const teamId = useGameStore(selectUserTeamId);
-  const { setStarter } = useGameStore((s) => s.actions);
+  const { setStarter } = useGameStore((state) => state.actions);
 
   const [side, setSide] = useState<'OFF' | 'DEF'>('OFF');
   const [selectedSlot, setSelectedSlot] = useState<PositionSlot | null>(null);
 
   const slots = side === 'OFF' ? OFFENSE_SLOTS : DEFENSE_SLOTS;
+  const battles = useMemo(() => detectPositionBattles(roster), [roster]);
+  const starters = roster.filter((player) => player.isStarter).length;
+  const injuryCount = roster.filter((player) => player.injury).length;
 
-  // Group roster by position slots
   const slotPlayers = useMemo(() => {
     const map = new Map<string, Player[]>();
     for (const slot of [...OFFENSE_SLOTS, ...DEFENSE_SLOTS]) {
       const players = roster
-        .filter((p) => slot.positions.includes(p.pos))
+        .filter((player) => slot.positions.includes(player.pos))
         .sort((a, b) => {
           if (a.isStarter !== b.isStarter) return a.isStarter ? -1 : 1;
           return b.ovr - a.ovr;
@@ -60,215 +69,163 @@ export function DepthChart() {
     return map;
   }, [roster]);
 
-  // Position battles from engine
-  const battles = useMemo(() => detectPositionBattles(roster), [roster]);
-
-  const handlePromote = useCallback((player: Player) => {
-    if (!teamId) return;
-    setStarter(teamId, player.id, true);
-  }, [teamId, setStarter]);
-
-  const handleDemote = useCallback((player: Player) => {
-    if (!teamId) return;
-    setStarter(teamId, player.id, false);
-  }, [teamId, setStarter]);
+  const selectedPlayers = selectedSlot ? slotPlayers.get(selectedSlot.label) ?? [] : [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-      <div>
-        <h1 style={{
-          fontFamily: 'var(--mfd-font-serif)', fontSize: '1.375rem',
-          fontWeight: 700, color: 'var(--mfd-text)', margin: 0,
-        }}>Depth Chart</h1>
-        <p style={{
-          fontFamily: 'var(--mfd-font-mono)', fontSize: '0.75rem',
-          color: 'var(--mfd-text-dim)', margin: '4px 0 0',
-        }}>
-          Set starters, manage position battles, review depth
-        </p>
+    <div style={screenStackStyle}>
+      <PixelScreenHeader
+        title="Depth Chart"
+        subtitle="Set starters, monitor competition, and keep every position room broadcast-ready."
+        badges={(
+          <>
+            <PixelBadge variant="gold">{starters} starters</PixelBadge>
+            <PixelBadge variant={injuryCount > 0 ? 'red' : 'green'}>{injuryCount} injuries</PixelBadge>
+          </>
+        )}
+      />
+
+      <div style={autoGrid(220)}>
+        <PixelMetricCard label="Open Battles" value={battles.length} accent={battles.length > 0 ? 'gold' : 'green'} detail="Roster spots still up for grabs" />
+        <PixelMetricCard label="Offense Rooms" value={OFFENSE_SLOTS.length} accent="cyan" detail="Skill groups and trench depth" />
+        <PixelMetricCard label="Defense Rooms" value={DEFENSE_SLOTS.length} accent="red" detail="Front seven plus back-end rotation" />
       </div>
 
-      {/* Side Toggle */}
-      <div style={{ display: 'flex', gap: '4px' }}>
-        {(['OFF', 'DEF'] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setSide(s)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '6px 16px', fontSize: '0.75rem',
-              fontFamily: 'var(--mfd-font-mono)',
-              color: side === s ? 'var(--mfd-bg)' : 'var(--mfd-text-dim)',
-              background: side === s ? (s === 'OFF' ? 'var(--mfd-cyan)' : 'var(--mfd-red)') : 'var(--mfd-bg-2)',
-              border: '1px solid var(--mfd-border)',
-              borderRadius: 'var(--mfd-rad-md)',
-              cursor: 'pointer',
-            }}
-          >
-            {s === 'OFF' ? <Zap size={12} /> : <Shield size={12} />}
-            {s === 'OFF' ? 'Offense' : 'Defense'}
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <PixelButton type="button" accent={side === 'OFF' ? 'cyan' : 'default'} onClick={() => setSide('OFF')}>
+          Offense
+        </PixelButton>
+        <PixelButton type="button" accent={side === 'DEF' ? 'red' : 'default'} onClick={() => setSide('DEF')}>
+          Defense
+        </PixelButton>
       </div>
 
-      {/* Position Battles */}
-      {battles.length > 0 && (
-        <MfdPanel title="Position Battles" icon={<AlertTriangle size={14} />}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-            {battles.map((b) => (
-              <div key={b.pos} style={{
-                display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-md)',
-                padding: 'var(--mfd-sp-xs)',
-                borderBottom: '1px solid var(--mfd-border)',
-              }}>
-                <MfdBadge variant="warning">{b.pos}</MfdBadge>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem' }}>
-                    {b.incumbent.name} ({b.incumbent.ovr} OVR) vs {b.challenger.name} ({b.challenger.ovr} OVR)
+      {battles.length > 0 ? (
+        <PixelPanel title="Position Battles" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {battles.map((battle) => (
+              <div
+                key={battle.pos}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  paddingBottom: '10px',
+                  borderBottom: '1px solid #1a1a1a',
+                }}
+              >
+                <AlertTriangle size={14} style={{ color: 'var(--mfd-gold)', flexShrink: 0 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <PixelBadge variant="gold">{battle.pos}</PixelBadge>
+                    <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>
+                      {battle.incumbent.name} ({battle.incumbent.ovr}) vs {battle.challenger.name} ({battle.challenger.ovr})
+                    </span>
                   </div>
-                  <div style={{
-                    fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
-                    color: 'var(--mfd-text-dim)',
-                  }}>Close overall gap — position battle active</div>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                    Tight overall range. Practice reps and preseason usage should decide it.
+                  </span>
                 </div>
               </div>
             ))}
           </div>
-        </MfdPanel>
-      )}
+        </PixelPanel>
+      ) : null}
 
-      {/* Depth Slots Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-        gap: 'var(--mfd-sp-md)',
-      }}>
+      <div style={autoGrid(220)}>
         {slots.map((slot) => {
           const players = slotPlayers.get(slot.label) ?? [];
-          const starter = players[0];
-          const hasInjury = players.some((p) => p.injury);
+          const starter = players[0] ?? null;
+          const injuryInRoom = players.some((player) => player.injury);
           return (
             <button
               key={slot.label}
+              type="button"
+              data-mfd-focusable="depth-slot"
               onClick={() => setSelectedSlot(slot)}
               style={{
-                display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-xs)',
-                padding: 'var(--mfd-sp-md)',
-                background: 'var(--mfd-bg-2)',
-                border: `1px solid ${hasInjury ? 'var(--mfd-amber)' : 'var(--mfd-border)'}`,
-                borderRadius: 'var(--mfd-rad-md)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                width: '100%',
+                padding: '14px',
+                border: `3px solid ${injuryInRoom ? 'var(--mfd-red)' : slot.side === 'OFF' ? 'var(--mfd-cyan)' : 'var(--mfd-green)'}`,
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(0,0,0,0.3) 100%)',
                 cursor: 'pointer',
                 textAlign: 'left',
-                width: '100%',
+                boxShadow: 'var(--mfd-shadow-sm)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <MfdBadge variant={side === 'OFF' ? 'info' : 'danger'}>{slot.label}</MfdBadge>
-                <span style={{
-                  fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
-                  color: 'var(--mfd-text-dim)',
-                }}>{players.length} deep</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                <PixelBadge variant={slot.side === 'OFF' ? 'cyan' : 'green'}>{slot.label}</PixelBadge>
+                <span style={{ ...pixel, color: 'var(--mfd-text-faint)' }}>{players.length} DEEP</span>
               </div>
-              {starter && (
-                <div>
-                  <div style={{
-                    fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem',
-                    fontWeight: 600, color: 'var(--mfd-text)',
-                  }}>
-                    {starter.name}
-                  </div>
-                  <div style={{ display: 'flex', gap: 'var(--mfd-sp-xs)', marginTop: 2 }}>
-                    <span style={{
-                      fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
-                      color: starter.ovr >= 85 ? 'var(--mfd-green)' : 'var(--mfd-text-dim)',
-                      fontWeight: 600,
-                    }}>{starter.ovr} OVR</span>
-                    <span style={{
-                      fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
-                      color: 'var(--mfd-text-dim)',
-                    }}>Fit: {starter.systemFit >= 80 ? 'A' : starter.systemFit >= 60 ? 'B' : 'C'}</span>
-                  </div>
+              <div>
+                <div style={{ ...display, fontSize: '24px', color: '#fff', lineHeight: 1 }}>
+                  {starter?.name ?? 'OPEN'}
                 </div>
-              )}
-              {hasInjury && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                  <AlertTriangle size={10} style={{ color: 'var(--mfd-amber)' }} />
-                  <span style={{
-                    fontFamily: 'var(--mfd-font-mono)', fontSize: '0.625rem',
-                    color: 'var(--mfd-amber)',
-                  }}>Injury in depth</span>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px' }}>
+                  {starter ? `${starter.ovr} OVR // ${starter.pot} POT // AGE ${starter.age}` : 'No eligible players'}
                 </div>
-              )}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <PixelBadge variant={starter?.isStarter ? 'gold' : 'default'}>{starter?.isStarter ? 'Starter Locked' : 'Rotation'}</PixelBadge>
+                {injuryInRoom ? <PixelBadge variant="red">Injury Watch</PixelBadge> : null}
+              </div>
             </button>
           );
         })}
       </div>
 
-      {/* Position Detail Dialog */}
-      <MfdDialog
+      <PixelModal
         open={!!selectedSlot}
         onOpenChange={(open) => { if (!open) setSelectedSlot(null); }}
-        title={selectedSlot ? `${selectedSlot.label} Depth` : 'Position'}
+        title={selectedSlot ? `${selectedSlot.label} Room` : 'Position Room'}
+        description={selectedSlot ? `${selectedPlayers.length} players available in the ${selectedSlot.side === 'OFF' ? 'offense' : 'defense'} rotation.` : undefined}
+        accent={selectedSlot?.side === 'OFF' ? 'cyan' : 'green'}
       >
-        {selectedSlot && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-sm)' }}>
-            {(slotPlayers.get(selectedSlot.label) ?? []).map((p, idx) => (
-              <div key={p.id} style={{
-                display: 'flex', alignItems: 'center', gap: 'var(--mfd-sp-md)',
-                padding: 'var(--mfd-sp-sm)',
-                background: p.isStarter ? 'var(--mfd-bg-3)' : 'var(--mfd-bg-2)',
-                border: '1px solid var(--mfd-border)',
-                borderRadius: 'var(--mfd-rad-md)',
-              }}>
-                <span style={{
-                  fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem',
-                  color: 'var(--mfd-text-dim)', width: 20,
-                }}>#{idx + 1}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontFamily: 'var(--mfd-font-sans)', fontSize: '0.8125rem',
-                    fontWeight: p.isStarter ? 600 : 400,
-                  }}>{p.name}</div>
-                  <div style={{ display: 'flex', gap: 'var(--mfd-sp-xs)', marginTop: 2 }}>
-                    <MfdBadge variant={p.ovr >= 85 ? 'success' : 'default'}>{p.ovr} OVR</MfdBadge>
-                    <MfdBadge variant="info">{p.pot} POT</MfdBadge>
-                    <MfdBadge variant="default">Age {p.age}</MfdBadge>
-                    {p.injury && <MfdBadge variant="danger">{p.injury.type}</MfdBadge>}
-                  </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {selectedPlayers.map((player, index) => (
+            <PixelPanel key={player.id} title={`${index + 1}. ${player.name}`} accent={player.isStarter ? 'gold' : 'default'}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <PixelBadge variant="cyan">{player.ovr} OVR</PixelBadge>
+                  <PixelBadge variant="green">{player.pot} POT</PixelBadge>
+                  <PixelBadge variant="default">AGE {player.age}</PixelBadge>
+                  {player.injury ? <PixelBadge variant="red">{player.injury.type}</PixelBadge> : null}
                 </div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {!p.isStarter && (
-                    <button
-                      onClick={() => handlePromote(p)}
-                      style={{
-                        padding: '4px', background: 'var(--mfd-bg-3)',
-                        border: '1px solid var(--mfd-border)',
-                        borderRadius: 'var(--mfd-rad-sm)', cursor: 'pointer',
-                        color: 'var(--mfd-text-dim)',
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                  System fit: {player.systemFit} // Current role: {player.isStarter ? 'Starter' : 'Backup'}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {!player.isStarter ? (
+                    <PixelButton
+                      type="button"
+                      accent="green"
+                      onClick={() => {
+                        if (!teamId) return;
+                        setStarter(teamId, player.id, true);
                       }}
                     >
-                      <ChevronUp size={12} />
-                    </button>
-                  )}
-                  {p.isStarter && (
-                    <button
-                      onClick={() => handleDemote(p)}
-                      style={{
-                        padding: '4px', background: 'var(--mfd-bg-3)',
-                        border: '1px solid var(--mfd-border)',
-                        borderRadius: 'var(--mfd-rad-sm)', cursor: 'pointer',
-                        color: 'var(--mfd-text-dim)',
+                      Promote To Starter
+                    </PixelButton>
+                  ) : (
+                    <PixelButton
+                      type="button"
+                      accent="red"
+                      onClick={() => {
+                        if (!teamId) return;
+                        setStarter(teamId, player.id, false);
                       }}
                     >
-                      <ChevronDown size={12} />
-                    </button>
+                      Move To Backup
+                    </PixelButton>
                   )}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </MfdDialog>
+            </PixelPanel>
+          ))}
+        </div>
+      </PixelModal>
     </div>
   );
 }

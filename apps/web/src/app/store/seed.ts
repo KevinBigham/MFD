@@ -16,6 +16,7 @@ import {
   makeContract, initOwner, OWNER_ARCHETYPES,
   generatePersonality, SAVE_VERSION, createEmptySeasonStats,
   CONTRACT_VALUE_TABLE, AGE_VALUE_CURVE, MIN_SALARY, emptyPlayerStats,
+  syncAllPlayerArchiveEntries,
 } from '@mfd/engine';
 
 // ── Name pools ─────────────────────────────────────────────
@@ -388,7 +389,7 @@ export function createSeedGameState(
     latestPackageId: null,
   };
 
-  return {
+  const gameState: GameState = {
     version: SAVE_VERSION,
     seed,
     year,
@@ -403,6 +404,8 @@ export function createSeedGameState(
     freeAgents: [],
     records: [],
     hallOfFame: [],
+    franchiseHistory: [],
+    playerArchive: [],
     frontOffice,
     eventLog: [],
     narrativeState,
@@ -411,6 +414,9 @@ export function createSeedGameState(
     playoffBracket: null,
     offseasonState: null,
   };
+
+  syncAllPlayerArchiveEntries(gameState, year);
+  return gameState;
 }
 
 /** Get the team definitions for team selection UI */
