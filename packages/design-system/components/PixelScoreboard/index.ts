@@ -1,0 +1,1 @@
+export { PixelScoreboard } from './PixelScoreboard';

@@ -1,0 +1,1 @@
+export { PixelBadge } from './PixelBadge';

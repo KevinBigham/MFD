@@ -1,4 +1,4 @@
-import { makeContract, SAVE_VERSION } from '../index';
+import { makeContract, SAVE_VERSION, emptyPlayerStats } from '../index';
 import type { GameState, GameDayState, Player, Team } from '../types';
 
 export function createEmptyGameDayState(): GameDayState {
@@ -48,7 +48,7 @@ export function makePlayer(
     roleWeeks: 10,
     tradeBlock: false,
     holdout: false,
-    stats: { passYds: 0, rushYds: 0, recYds: 0, sacks: 0, defINT: 0 },
+    stats: emptyPlayerStats(),
   };
 }
 

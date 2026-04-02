@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { getOwnerStatus } from '@mfd/engine';
 import {
-  useGameStore, selectUserTeam, selectOwnerState, selectLatestSummary,
+  useGameStore, selectUserTeam, selectOwnerState, selectLatestSummary, selectOwners,
 } from '../../app/store/game-store';
 
 type OwnerStage = 'PATIENT' | 'RESTLESS' | 'DEMANDING' | 'ULTIMATUM';
@@ -33,8 +33,8 @@ export function OwnerMood() {
   const ownerState = useGameStore(selectOwnerState);
   const latestSummary = useGameStore(selectLatestSummary);
 
-  const game = useGameStore((s) => s.game);
-  const owner = team && game ? game.owners[team.ownerId] : null;
+  const owners = useGameStore(selectOwners);
+  const owner = team && owners ? owners[team.ownerId] : null;
 
   const approval = ownerState?.approval ?? 60;
   const patience = owner?.patience ?? 60;

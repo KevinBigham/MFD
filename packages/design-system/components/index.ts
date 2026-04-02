@@ -10,3 +10,10 @@ export { MfdDialog } from './MfdDialog';
 export { MfdTable } from './MfdTable';
 export { MfdConsequenceRibbon } from './MfdConsequenceRibbon';
 export { MfdCommandPalette, type CommandItem } from './MfdCommandPalette';
+
+// 8-Bit ESPN pixel components
+export { PixelPanel } from './PixelPanel';
+export { PixelBadge } from './PixelBadge';
+export { PixelDialog } from './PixelDialog';
+export { PixelScoreboard } from './PixelScoreboard';
+export { PixelStatBar } from './PixelStatBar';

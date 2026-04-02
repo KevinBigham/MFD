@@ -128,7 +128,9 @@ export type { SchemeFitResult, FitTier, PlayerSide, PlayerIdentityFit, TeamFitSu
 
 // Systems — Chemistry (Phase 2)
 export { chemistryMod, systemFitMod, updateSystemFit, resetSystemFit } from './systems/chemistry';
-export { createEmptySeasonStats, ensureSeasonStats, applyGameToSeasonStats, tickInjuries } from './systems/season-stats';
+export { emptyPlayerStats, createEmptySeasonStats, ensureSeasonStats, applyGameToSeasonStats, tickInjuries } from './systems/season-stats';
+export { simGame, applyPlayerLines } from './systems/game-sim';
+export type { SimGameResult } from './systems/game-sim';
 export { buildWeeklySummary } from './systems/weekly-summary';
 export { buildGameDayPackage } from './systems/game-day-package';
 export { advanceStoryArcs } from './systems/story-arcs';

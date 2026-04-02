@@ -24,28 +24,36 @@ function findPlayer(team: Team, playerId: string | null): Player | null {
   return playerId ? team.roster.find((player) => player.id === playerId) ?? null : null;
 }
 
-function formatPerformerLine(player: Player, teamStats: GameResult['stats'][string], opponentStats: GameResult['stats'][string]): string {
-  switch (player.pos) {
-    case 'QB':
-      return `${teamStats.passingYards} pass yds, ${Math.max(1, Math.round(teamStats.passingYards / 110))} TD`;
-    case 'RB':
-      return `${Math.round(teamStats.rushingYards * 0.58)} rush yds, ${Math.max(1, Math.round(teamStats.rushingYards / 80))} explosive runs`;
-    case 'WR':
-    case 'TE':
-      return `${Math.round(teamStats.passingYards * 0.38)} rec yds, ${Math.max(1, Math.round(teamStats.thirdDownConversions / 2))} chain-moving catches`;
-    case 'DL':
-    case 'LB':
-      return `${Math.max(1, teamStats.sacks)} sacks, ${Math.max(2, teamStats.turnovers)} pressures created`;
-    default:
-      return `${Math.max(1, opponentStats.turnovers - 1)} takeaways, tone-setting coverage`;
+function formatPerformerLine(player: Player, teamStats: GameResult['stats'][string]): string {
+  // Look up the player's actual game line from the box score
+  const line = teamStats.playerLines?.find((l) => l.playerId === player.id);
+  if (line) {
+    if (player.pos === 'QB') {
+      return `${line.passComp ?? 0}/${line.passAtt ?? 0}, ${line.passYds ?? 0} yds, ${line.passTD ?? 0} TD, ${line.passINT ?? 0} INT`;
+    }
+    if (player.pos === 'RB') {
+      return `${line.rushAtt ?? 0} car, ${line.rushYds ?? 0} yds, ${line.rushTD ?? 0} TD${(line.rec ?? 0) > 0 ? `, ${line.rec} rec` : ''}`;
+    }
+    if (player.pos === 'WR' || player.pos === 'TE') {
+      return `${line.rec ?? 0} rec, ${line.recYds ?? 0} yds, ${line.recTD ?? 0} TD`;
+    }
+    if (player.pos === 'DL' || player.pos === 'LB') {
+      return `${line.tackles ?? 0} tkl, ${line.sacks ?? 0} sack${(line.sacks ?? 0) !== 1 ? 's' : ''}`;
+    }
+    if (player.pos === 'CB' || player.pos === 'S') {
+      return `${line.tackles ?? 0} tkl, ${line.defINT ?? 0} INT`;
+    }
+    if (player.pos === 'K') {
+      return `${line.fgMade ?? 0}/${line.fgAtt ?? 0} FG`;
+    }
   }
+  // Fallback for positions without lines
+  return `${player.ovr} OVR`;
 }
 
 function buildTopPerformers(team: Team, result: GameResult): GameDayTopPerformer[] {
   const teamStats = result.stats[team.id];
-  const opponentId = result.homeTeamId === team.id ? result.awayTeamId : result.homeTeamId;
-  const opponentStats = result.stats[opponentId];
-  if (!teamStats || !opponentStats) return [];
+  if (!teamStats) return [];
 
   const mvp = findPlayer(team, result.mvpPlayerId) ?? team.roster.find((player) => player.pos === 'QB') ?? null;
   const skill = team.roster.find((player) => player.pos === 'RB' || player.pos === 'WR' || player.pos === 'TE') ?? null;
@@ -56,7 +64,7 @@ function buildTopPerformers(team: Team, result: GameResult): GameDayTopPerformer
   return group.map((player) => ({
     playerId: player.id,
     label: `${player.name} (${player.pos})`,
-    statLine: formatPerformerLine(player, teamStats, opponentStats),
+    statLine: formatPerformerLine(player, teamStats),
   }));
 }
 

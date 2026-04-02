@@ -1,48 +1,66 @@
 /**
- * MFD Design System Tokens — Terminal Maximalism 3.0
+ * MFD Design System Tokens — 8-Bit ESPN
  *
+ * Pixel chrome frames broadcast data. NES borders hold NFL numbers.
  * All visual decisions flow through these custom properties.
- * Rule 8: No emoji anywhere. Lucide SVG icons only.
  */
 
 :root {
   /* ── Core Identity ──────────────────────────────────── */
-  --mfd-bg:          #070d17;
-  --mfd-bg-2:        #0e1826;
-  --mfd-bg-3:        #19253a;
-  --mfd-surface:     #0e1826;
-  --mfd-border:      rgba(255, 255, 255, 0.09);
-  --mfd-border-hover: rgba(240, 160, 40, 0.3);
+  --mfd-bg:          #000000;
+  --mfd-bg-2:        #0a0a0a;
+  --mfd-bg-3:        #111111;
+  --mfd-surface:     #0a0a0a;
+  --mfd-border:      #333333;
+  --mfd-border-hover: #4ade80;
 
   /* ── Text ───────────────────────────────────────────── */
   --mfd-text:        #e8ecf1;
-  --mfd-text-dim:    #8a97aa;
-  --mfd-text-faint:  #4a5a6e;
+  --mfd-text-dim:    #999999;
+  --mfd-text-faint:  #555555;
 
   /* ── Signature Colors ───────────────────────────────── */
-  --mfd-gold:        #f0a028;     /* THE MFD color */
-  --mfd-gold-dim:    rgba(240, 160, 40, 0.12);
-  --mfd-gold-mid:    rgba(240, 160, 40, 0.25);
+  --mfd-gold:        #ffd700;     /* THE MFD color — pixel gold */
+  --mfd-gold-dim:    rgba(255, 215, 0, 0.10);
+  --mfd-gold-mid:    rgba(255, 215, 0, 0.25);
 
   /* ── Semantic Colors ────────────────────────────────── */
-  --mfd-green:       #00b87a;
-  --mfd-red:         #e03c3c;
-  --mfd-blue:        #4a9fe8;
-  --mfd-orange:      #e07a10;
-  --mfd-purple:      #8b72ea;
-  --mfd-cyan:        #00afc8;
+  --mfd-green:       #4ade80;
+  --mfd-red:         #f87171;
+  --mfd-blue:        #00b4ff;
+  --mfd-orange:      #fbbf24;
+  --mfd-purple:      #a78bfa;
+  --mfd-cyan:        #00e5ff;
+
+  /* ── Pixel / 8-Bit Layer ────────────────────────────── */
+  --mfd-pixel-border:      3px solid #333333;
+  --mfd-pixel-border-gold: 3px solid #ffd700;
+  --mfd-pixel-border-cyan: 3px solid #00e5ff;
+  --mfd-pixel-border-green: 3px solid #4ade80;
+  --mfd-pixel-border-red:  3px solid #f87171;
+  --mfd-pixel-glow-green:  0 0 12px rgba(74, 222, 128, 0.3);
+  --mfd-pixel-glow-cyan:   0 0 12px rgba(0, 229, 255, 0.3);
+  --mfd-pixel-glow-gold:   0 0 12px rgba(255, 215, 0, 0.3);
+
+  /* ── Broadcast Layer ────────────────────────────────── */
+  --mfd-home-color:  #00b4ff;
+  --mfd-away-color:  #e03030;
+  --mfd-home-bg:     rgba(0, 80, 180, 0.15);
+  --mfd-away-bg:     rgba(200, 0, 0, 0.15);
 
   /* ── Glass / Atmospheric ────────────────────────────── */
-  --mfd-glass:       #0e1826;
-  --mfd-glass-border: rgba(255, 255, 255, 0.09);
-  --mfd-gradient-subtle: linear-gradient(135deg, #070d17 0%, #0e1826 50%, #0a1020 100%);
-  --mfd-gradient-card:   linear-gradient(180deg, #19253a 0%, #0e1826 100%);
-  --mfd-gradient-gold:   linear-gradient(135deg, rgba(240, 160, 40, 0.08) 0%, transparent 60%);
+  --mfd-glass:       #0a0a0a;
+  --mfd-glass-border: #222222;
+  --mfd-gradient-subtle: linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #050508 100%);
+  --mfd-gradient-card:   linear-gradient(180deg, #111111 0%, #0a0a0a 100%);
+  --mfd-gradient-gold:   linear-gradient(135deg, rgba(255, 215, 0, 0.06) 0%, transparent 60%);
 
   /* ── Typography ─────────────────────────────────────── */
-  --mfd-font-sans:   'IBM Plex Sans', 'Inter', system-ui, sans-serif;
-  --mfd-font-serif:  'IBM Plex Serif', 'Georgia', serif;
-  --mfd-font-mono:   'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --mfd-font-sans:    'IBM Plex Sans', 'Inter', system-ui, sans-serif;
+  --mfd-font-serif:   'IBM Plex Serif', 'Georgia', serif;
+  --mfd-font-mono:    'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --mfd-font-pixel:   'Press Start 2P', monospace;
+  --mfd-font-display: 'Bebas Neue', 'Impact', sans-serif;
 
   /* ── Spacing Scale ──────────────────────────────────── */
   --mfd-sp-xs:  4px;
@@ -52,19 +70,19 @@
   --mfd-sp-xl:  20px;
   --mfd-sp-xxl: 32px;
 
-  /* ── Border Radius ──────────────────────────────────── */
-  --mfd-rad-xs: 1px;
-  --mfd-rad-sm: 2px;
-  --mfd-rad-md: 3px;
-  --mfd-rad-lg: 4px;
-  --mfd-rad-xl: 6px;
+  /* ── Border Radius (pixel = sharp) ───────────────────── */
+  --mfd-rad-xs: 0px;
+  --mfd-rad-sm: 0px;
+  --mfd-rad-md: 2px;
+  --mfd-rad-lg: 2px;
+  --mfd-rad-xl: 4px;
 
   /* ── Shadows ────────────────────────────────────────── */
-  --mfd-shadow-sm:         0 1px 3px rgba(0, 0, 0, 0.7);
-  --mfd-shadow-md:         0 2px 8px rgba(0, 0, 0, 0.6);
-  --mfd-shadow-lg:         0 4px 16px rgba(0, 0, 0, 0.7);
-  --mfd-shadow-gold:       0 0 8px rgba(240, 160, 40, 0.15);
-  --mfd-shadow-gold-strong: 0 0 16px rgba(240, 160, 40, 0.3);
+  --mfd-shadow-sm:         0 1px 3px rgba(0, 0, 0, 0.8);
+  --mfd-shadow-md:         0 2px 8px rgba(0, 0, 0, 0.7);
+  --mfd-shadow-lg:         0 4px 16px rgba(0, 0, 0, 0.8);
+  --mfd-shadow-gold:       0 0 8px rgba(255, 215, 0, 0.2);
+  --mfd-shadow-gold-strong: 0 0 16px rgba(255, 215, 0, 0.35);
 
   /* ── Motion ─────────────────────────────────────────── */
   --mfd-motion-fast:   0.08s ease;
@@ -100,4 +118,25 @@
 @keyframes mfd-pulse {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.6; }
+}
+
+@keyframes mfd-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* ── Scanline Overlay (opt-in via class) ─────────────── */
+.mfd-scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.06) 3px,
+    rgba(0, 0, 0, 0.06) 6px
+  );
+  z-index: 10;
 }

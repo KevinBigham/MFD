@@ -1,4 +1,14 @@
-import type { Team, TeamGameStats, TeamSeasonStats } from '../types';
+import type { PlayerSeasonStats, Team, TeamGameStats, TeamSeasonStats } from '../types';
+
+export function emptyPlayerStats(): PlayerSeasonStats {
+  return {
+    passYds: 0, passTD: 0, passINT: 0, passAtt: 0, passComp: 0,
+    rushYds: 0, rushAtt: 0, rushTD: 0, fumbles: 0,
+    rec: 0, recYds: 0, recTD: 0, targets: 0,
+    sacks: 0, defINT: 0, tackles: 0,
+    fgMade: 0, fgAtt: 0,
+  };
+}
 
 export function createEmptySeasonStats(gamesPlayed = 0): TeamSeasonStats {
   return {

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import {
   useGameStore, selectUserTeam, selectRoster,
-  selectWeek, selectYear, selectSchedule, selectLatestSummary, selectOffseasonState, selectPhase,
+  selectWeek, selectYear, selectSchedule, selectLatestSummary, selectOffseasonState, selectPhase, selectTeams,
 } from '../../app/store/game-store';
 
 interface ChecklistItem {
@@ -91,8 +91,8 @@ export function WeekAdvance() {
     return { game, opponentId };
   }, [phase, team, schedule, week]);
 
-  const gameState = useGameStore((s) => s.game);
-  const opponent = matchup?.opponentId && gameState ? gameState.teams[matchup.opponentId] : null;
+  const teams = useGameStore(selectTeams);
+  const opponent = matchup?.opponentId && teams ? teams[matchup.opponentId] : null;
 
   const handleAdvance = useCallback(async () => {
     setAdvancing(true);

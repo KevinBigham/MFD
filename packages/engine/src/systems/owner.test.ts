@@ -21,7 +21,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     traitMilestones: {}, traitPowerLevel: {},
     injury: null, morale: 60, chemistry: 60, systemFit: 50,
     isStarter: true, role: null, roleWeeks: 0, tradeBlock: false,
-    holdout: false, stats: { passYds: 0, rushYds: 0, recYds: 0, sacks: 0, defINT: 0 },
+    holdout: false, stats: { passYds: 0, passTD: 0, passINT: 0, passAtt: 0, passComp: 0, rushYds: 0, rushAtt: 0, rushTD: 0, fumbles: 0, rec: 0, recYds: 0, recTD: 0, targets: 0, sacks: 0, defINT: 0, tackles: 0, fgMade: 0, fgAtt: 0 },
     ...overrides,
   } as Player;
 }

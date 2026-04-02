@@ -1,4 +1,4 @@
-import { createEmptySeasonStats } from './season-stats';
+import { createEmptySeasonStats, emptyPlayerStats } from './season-stats';
 import { makeContract } from './contracts';
 import { mulberry32 } from '../rng';
 import type {
@@ -166,7 +166,7 @@ function prospectToPlayer(prospect: DraftProspect, teamId: string, year: number,
     roleWeeks: 0,
     tradeBlock: false,
     holdout: false,
-    stats: { passYds: 0, rushYds: 0, recYds: 0, sacks: 0, defINT: 0 },
+    stats: emptyPlayerStats(),
   };
 }
 
@@ -294,7 +294,7 @@ export function finalizePostDraft(game: GameState): void {
       player.age += 1;
       player.yearsExp += 1;
       player.injury = null;
-      player.stats = { passYds: 0, rushYds: 0, recYds: 0, sacks: 0, defINT: 0 };
+      player.stats = emptyPlayerStats();
       game.players[player.id] = player;
     }
   }
@@ -305,7 +305,7 @@ export function finalizePostDraft(game: GameState): void {
     player.age += 1;
     player.yearsExp += 1;
     player.injury = null;
-    player.stats = { passYds: 0, rushYds: 0, recYds: 0, sacks: 0, defINT: 0 };
+    player.stats = emptyPlayerStats();
   }
 
   game.schedule = makeSchedule(Object.keys(game.teams));

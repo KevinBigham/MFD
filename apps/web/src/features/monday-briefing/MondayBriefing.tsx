@@ -9,7 +9,7 @@ import {
 import { calcCapHit } from '@mfd/engine';
 import {
   useGameStore, selectUserTeam, selectRoster,
-  selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary, selectLatestGameDayPackage, selectActiveStoryArcs,
+  selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary, selectLatestGameDayPackage, selectActiveStoryArcs, selectTeams,
 } from '../../app/store/game-store';
 
 export function MondayBriefing() {
@@ -37,11 +37,11 @@ export function MondayBriefing() {
     return game ?? null;
   }, [team, schedule, week]);
 
-  const game = useGameStore((s) => s.game);
+  const teams = useGameStore(selectTeams);
   const opponentId = nextGame
     ? (nextGame.homeTeamId === team?.id ? nextGame.awayTeamId : nextGame.homeTeamId)
     : null;
-  const opponent = opponentId && game ? game.teams[opponentId] : null;
+  const opponent = opponentId && teams ? teams[opponentId] : null;
   const opponentName = opponent ? `${opponent.city} ${opponent.name}` : 'Bye Week';
 
   // Injuries

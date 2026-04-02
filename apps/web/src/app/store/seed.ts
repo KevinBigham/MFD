@@ -15,6 +15,7 @@ import {
   ALL_POSITIONS, POS_DEF, getSalaryCap,
   makeContract, initOwner, OWNER_ARCHETYPES,
   generatePersonality, SAVE_VERSION, createEmptySeasonStats,
+  CONTRACT_VALUE_TABLE, AGE_VALUE_CURVE, MIN_SALARY, emptyPlayerStats,
 } from '@mfd/engine';
 
 // ── Name pools ─────────────────────────────────────────────
@@ -121,7 +122,7 @@ function genRatings(pos: Position, ovr: number): PlayerRatings {
 }
 
 function genStats(): PlayerSeasonStats {
-  return { passYds: 0, rushYds: 0, recYds: 0, sacks: 0, defINT: 0 };
+  return emptyPlayerStats();
 }
 
 function genCareerStats(yoe: number): CareerStats {
@@ -143,9 +144,15 @@ function genPlayer(
   const devTraits = ['normal', 'normal', 'normal', 'star', 'star', 'superstar', 'x-factor'] as const;
   const devTrait = devTraits[rng(0, devTraits.length - 1)]!;
 
-  const salary = isStarter
-    ? Math.round((baseOvr / 10 + rng(0, 8)) * 10) / 10
-    : Math.round((1 + rng(0, 4)) * 10) / 10;
+  // Position-based salary using the engine's CONTRACT_VALUE_TABLE + age curve
+  const table = CONTRACT_VALUE_TABLE[pos];
+  const tier = isStarter ? (baseOvr >= 85 ? 'elite' : 'starter') : 'backup';
+  const baseSal = table[tier];
+  const ageIdx = Math.min(Math.max(age - 21, 0), 17);
+  const ageMult = (AGE_VALUE_CURVE[pos] ?? AGE_VALUE_CURVE.WR)[ageIdx] ?? 0.8;
+  // ±20% variance keeps rosters distinct
+  const variance = 1 + (rng(-20, 20) / 100);
+  const salary = Math.round(Math.max(MIN_SALARY, baseSal * ageMult * variance) * 10) / 10;
   const contractYears = rng(1, 5);
 
   const id = uid();
@@ -227,8 +234,21 @@ function genTeam(
     }
   }
 
-  const capUsed = players.reduce((s, p) => s + (p.contract ? p.contract.totalValue / p.contract.years : 0), 0);
+  let capUsed = players.reduce((s, p) => s + (p.contract ? p.contract.totalValue / p.contract.years : 0), 0);
   const capTotal = getSalaryCap(year);
+
+  // Cap enforcement: if over 95% of cap, scale all contracts down proportionally
+  const capTarget = capTotal * 0.95;
+  if (capUsed > capTarget) {
+    const scale = capTarget / capUsed;
+    for (const p of players) {
+      if (p.contract) {
+        const newSal = Math.round(Math.max(MIN_SALARY, p.contract.baseSalary * scale) * 10) / 10;
+        p.contract = makeContract(newSal, p.contract.years, newSal * 0.3, newSal * 0.5, p.id, teamId);
+      }
+    }
+    capUsed = players.reduce((s, p) => s + (p.contract ? p.contract.totalValue / p.contract.years : 0), 0);
+  }
 
   const ownerState = initOwner();
   const offScheme = OFF_SCHEME_IDS[rng(0, OFF_SCHEME_IDS.length - 1)]!;

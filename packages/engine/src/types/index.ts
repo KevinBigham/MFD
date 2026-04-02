@@ -77,10 +77,23 @@ export interface Player {
 
 export interface PlayerSeasonStats {
   passYds: number;
+  passTD: number;
+  passINT: number;
+  passAtt: number;
+  passComp: number;
   rushYds: number;
+  rushAtt: number;
+  rushTD: number;
+  fumbles: number;
+  rec: number;
   recYds: number;
+  recTD: number;
+  targets: number;
   sacks: number;
   defINT: number;
+  tackles: number;
+  fgMade: number;
+  fgAtt: number;
   [key: string]: number;
 }
 
@@ -440,6 +453,31 @@ export interface GameStats {
   [teamId: string]: TeamGameStats;
 }
 
+export interface PlayerGameLine {
+  playerId: string;
+  name: string;
+  pos: Position;
+  passAtt?: number;
+  passComp?: number;
+  passYds?: number;
+  passTD?: number;
+  passINT?: number;
+  sacked?: number;
+  rushAtt?: number;
+  rushYds?: number;
+  rushTD?: number;
+  fumbles?: number;
+  targets?: number;
+  rec?: number;
+  recYds?: number;
+  recTD?: number;
+  tackles?: number;
+  sacks?: number;
+  defINT?: number;
+  fgAtt?: number;
+  fgMade?: number;
+}
+
 export interface TeamGameStats {
   totalYards: number;
   passingYards: number;
@@ -449,6 +487,21 @@ export interface TeamGameStats {
   thirdDownConversions: number;
   thirdDownAttempts: number;
   timeOfPossession: number;
+  // Full box score fields
+  passAttempts: number;
+  passCompletions: number;
+  passTDs: number;
+  interceptions: number;
+  rushAttempts: number;
+  rushTDs: number;
+  fumbles: number;
+  penalties: number;
+  penaltyYards: number;
+  fgMade: number;
+  fgAttempted: number;
+  punts: number;
+  quarterScores: [number, number, number, number, ...number[]];
+  playerLines: PlayerGameLine[];
 }
 
 export interface TeamSeasonStats {

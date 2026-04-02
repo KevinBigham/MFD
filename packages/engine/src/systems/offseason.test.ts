@@ -47,7 +47,7 @@ function makePlayer(id: string, teamId: string, pos: Player['pos'], ovr: number,
     roleWeeks: 10,
     tradeBlock: false,
     holdout: false,
-    stats: { passYds: 0, rushYds: 0, recYds: 0, sacks: 0, defINT: 0 },
+    stats: { passYds: 0, passTD: 0, passINT: 0, passAtt: 0, passComp: 0, rushYds: 0, rushAtt: 0, rushTD: 0, fumbles: 0, rec: 0, recYds: 0, recTD: 0, targets: 0, sacks: 0, defINT: 0, tackles: 0, fgMade: 0, fgAtt: 0 },
   };
 }
 
