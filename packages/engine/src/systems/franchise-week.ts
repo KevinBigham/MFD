@@ -5,8 +5,20 @@ import { advancePlayoffBracket, seedPlayoffBracket } from './playoff-bracket';
 import { archiveSeasonHistory } from './history';
 import { advanceStoryArcs } from './story-arcs';
 import { buildGameDayPackage } from './game-day-package';
+import {
+  ensureLivingWorldState,
+  expireTimedEffects,
+  generateWeeklyOffFieldEvents,
+  getGameEffectBonuses,
+} from './off-field-events';
+import {
+  createPostGamePressConference,
+  maybeCreateMidweekPressConference,
+  recordPressConference,
+} from './press-conference';
 import { updatePowerRankings } from './power-rankings';
 import { updateRecordsFromGameResult } from './records';
+import { getRivalryGameContext, seedLeagueRivalries, updateLeagueRivalriesFromGame } from './rivalries';
 import { generateTradeOffers } from './trade-market';
 import { buildWeeklySummary } from './weekly-summary';
 import {
@@ -19,7 +31,17 @@ import {
   tickInjuries,
   updateOwner,
 } from './franchise-week-helpers';
-import type { Consequence, EngineOutput, GameEvent, GameResult, GameState, Team, WeeklyInjurySummary } from '../types';
+import type {
+  Consequence,
+  EngineOutput,
+  GameEvent,
+  GameResult,
+  GameState,
+  PressConference,
+  RivalryGameContext,
+  Team,
+  WeeklyInjurySummary,
+} from '../types';
 
 function applyNonGamePhase(nextState: GameState): void {
   if (nextState.phase === 'offseason') advanceOffseason(nextState);
@@ -35,7 +57,18 @@ function applyNonGamePhase(nextState: GameState): void {
   }
 }
 
-function appendGameDayPackage(nextState: GameState, team: Team, opponent: Team | null, result: GameResult, summary: ReturnType<typeof buildWeeklySummary>): void {
+function appendGameDayPackage(
+  nextState: GameState,
+  team: Team,
+  opponent: Team | null,
+  result: GameResult,
+  summary: ReturnType<typeof buildWeeklySummary>,
+  options?: {
+    pressConference?: PressConference | null;
+    rivalry?: RivalryGameContext | null;
+    activeEffectSummaries?: string[];
+  },
+): void {
   refreshNarrative(nextState);
   nextState.narrativeState.activeArcs = advanceStoryArcs(nextState, { team, opponent, summary });
 
@@ -46,6 +79,9 @@ function appendGameDayPackage(nextState: GameState, team: Team, opponent: Team |
     summary,
     hooks: nextState.narrativeState.hooks,
     activeArcs: nextState.narrativeState.activeArcs,
+    pressConference: options?.pressConference ?? null,
+    rivalry: options?.rivalry ?? null,
+    activeEffectSummaries: options?.activeEffectSummaries ?? [],
   });
 
   nextState.gameDayState.recentPackages = [...nextState.gameDayState.recentPackages, packageData].slice(-8);
@@ -62,11 +98,17 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   let userResult: GameResult | null = null;
   let userOpponent: Team | null = null;
   let userInjuries: WeeklyInjurySummary[] = [];
+  let userRivalry: RivalryGameContext | null = null;
+  let userActiveEffectSummaries: string[] = [];
   let label: string | undefined;
 
   setSeed(game.seed);
   reseedSeason(game.year);
   reseedWeek(game.year, game.week);
+  ensureLivingWorldState(nextState);
+  if (nextState.leagueRivalries.length === 0) {
+    seedLeagueRivalries(nextState);
+  }
 
   if (nextState.phase === 'preseason') {
     nextState.phase = 'regular_season';
@@ -76,18 +118,32 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
     applyNonGamePhase(nextState);
     return { nextState, events, consequences: [] };
   }
+  expireTimedEffects(nextState);
 
   if (nextState.phase === 'regular_season') {
     const currentWeek = nextState.schedule.find((entry) => entry.week === nextState.week);
     for (const matchup of currentWeek?.games ?? []) {
       const home = nextState.teams[matchup.homeTeamId]!;
       const away = nextState.teams[matchup.awayTeamId]!;
+      const rivalry = getRivalryGameContext(nextState, home.id, away.id);
+      const homeEffects = getGameEffectBonuses(nextState, home.id);
+      const awayEffects = getGameEffectBonuses(nextState, away.id);
       tickInjuries(home);
       tickInjuries(away);
 
-      const outcome = simulateGame(home, away, nextState.year, nextState.week, nextState.difficulty);
+      const outcome = simulateGame(home, away, nextState.year, nextState.week, nextState.difficulty, {
+        home: {
+          teamOvrBonus: homeEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0),
+          playerOvrBonuses: homeEffects.playerOvrBonuses,
+        },
+        away: {
+          teamOvrBonus: awayEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0),
+          playerOvrBonuses: awayEffects.playerOvrBonuses,
+        },
+      });
       matchup.result = outcome.result;
       updateRecordsFromGameResult(nextState, outcome.result);
+      updateLeagueRivalriesFromGame(nextState, outcome.result);
       ownerDelta += updateOwner(home, nextState);
       ownerDelta += updateOwner(away, nextState);
       const event = makeEvent(nextState, 'weekly_result', `${home.name} ${outcome.result.homeScore}, ${away.name} ${outcome.result.awayScore}`, { gameId: outcome.result.id });
@@ -98,6 +154,9 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         userResult = outcome.result;
         userOpponent = home.id === startingUser.id ? away : home;
         userInjuries = outcome.injuries[startingUser.id] ?? [];
+        userRivalry = rivalry;
+        const userEffects = home.id === startingUser.id ? homeEffects : awayEffects;
+        userActiveEffectSummaries = [...userEffects.summaries, ...(rivalry ? [rivalry.headline] : [])].slice(0, 4);
       }
     }
 
@@ -114,10 +173,23 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
     nextState.playoffBracket = advancePlayoffBracket(nextState.playoffBracket, nextState.week, (homeTeamId, awayTeamId) => {
       const home = nextState.teams[homeTeamId]!;
       const away = nextState.teams[awayTeamId]!;
+      const rivalry = getRivalryGameContext(nextState, home.id, away.id);
+      const homeEffects = getGameEffectBonuses(nextState, home.id);
+      const awayEffects = getGameEffectBonuses(nextState, away.id);
       tickInjuries(home);
       tickInjuries(away);
 
-      const outcome = simulateGame(home, away, nextState.year, nextState.week, nextState.difficulty);
+      const outcome = simulateGame(home, away, nextState.year, nextState.week, nextState.difficulty, {
+        home: {
+          teamOvrBonus: homeEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0),
+          playerOvrBonuses: homeEffects.playerOvrBonuses,
+        },
+        away: {
+          teamOvrBonus: awayEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0),
+          playerOvrBonuses: awayEffects.playerOvrBonuses,
+        },
+      });
+      updateLeagueRivalriesFromGame(nextState, outcome.result, { playoffElimination: true });
       ownerDelta += updateOwner(home, nextState);
       ownerDelta += updateOwner(away, nextState);
       const event = makeEvent(nextState, 'playoff_result', `${home.name} ${outcome.result.homeScore}, ${away.name} ${outcome.result.awayScore}`, { gameId: outcome.result.id });
@@ -128,6 +200,9 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         userResult = outcome.result;
         userOpponent = home.id === startingUser.id ? away : home;
         userInjuries = outcome.injuries[startingUser.id] ?? [];
+        userRivalry = rivalry;
+        const userEffects = home.id === startingUser.id ? homeEffects : awayEffects;
+        userActiveEffectSummaries = [...userEffects.summaries, ...(rivalry ? [rivalry.headline] : [])].slice(0, 4);
         label = `Playoffs: ${nextState.week === 19 ? 'Wild Card' : nextState.week === 20 ? 'Divisional' : nextState.week === 21 ? 'Conference Final' : 'Championship'}`;
       }
 
@@ -165,7 +240,28 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       label,
     });
     nextState.weekSummaries.push(summary);
-    appendGameDayPackage(nextState, currentUser, userOpponent, userResult, summary);
+    const postGameConference = createPostGamePressConference({
+      game: nextState,
+      team: currentUser,
+      opponent: userOpponent,
+      result: summary.result,
+      topic: userRivalry ? 'rivalry showdown' : summary.result === 'win' ? 'statement win' : 'hard reset',
+      rivalryIntensity: userRivalry?.intensity ?? 0,
+      ownerDelta,
+    });
+    appendGameDayPackage(nextState, currentUser, userOpponent, userResult, summary, {
+      pressConference: postGameConference,
+      rivalry: userRivalry,
+      activeEffectSummaries: userActiveEffectSummaries,
+    });
+    recordPressConference(nextState, postGameConference);
+    if (nextState.phase === 'regular_season') {
+      generateWeeklyOffFieldEvents(nextState, currentUser);
+      const midweekConference = maybeCreateMidweekPressConference(nextState, currentUser);
+      if (midweekConference) {
+        recordPressConference(nextState, midweekConference);
+      }
+    }
   } else {
     refreshNarrative(nextState);
     if (currentUser) {

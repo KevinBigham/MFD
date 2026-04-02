@@ -1,4 +1,5 @@
 import { syncPlayerArchiveEntry } from './history';
+import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
 import type { DraftPick, EngineOutput, GameState, Player, Team, TradeOffer, TradeOfferAsset } from '../types';
 
@@ -286,6 +287,18 @@ export function acceptTradeOffer(game: GameState, offerId: string): EngineOutput
   for (const asset of offer.send) applyAsset(nextState, asset, offer.fromTeamId);
   for (const asset of offer.receive) applyAsset(nextState, asset, offer.toTeamId);
   offer.status = 'accepted';
+
+  const userTeam = findUserTeam(nextState);
+  if (userTeam) {
+    const conference = createTransactionalPressConference({
+      game: nextState,
+      teamId: userTeam.id,
+      type: 'post_trade',
+      topic: `${userTeam.city} addresses the trade market after landing ${describeAssets(offer.receive)}.`,
+      speaker: userTeam.staff.hc?.name ?? 'Head Coach',
+    });
+    recordPressConference(nextState, conference);
+  }
 
   return { nextState, events: [], consequences: [] };
 }

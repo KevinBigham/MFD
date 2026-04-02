@@ -1,6 +1,7 @@
 import { createEmptySeasonStats, emptyPlayerStats } from './season-stats';
 import { makeContract } from './contracts';
 import { syncPlayerArchiveEntry } from './history';
+import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { mulberry32 } from '../rng';
 import type {
   DraftPick,
@@ -258,7 +259,18 @@ export function makeDraftPick(game: GameState, prospectId: string): EngineOutput
     return { nextState, events: [], consequences: [] };
   }
 
+  const drafted = nextState.draftClass.find((prospect) => prospect.id === prospectId) ?? null;
   applyDraftSelection(nextState, userTeam.id, prospectId);
+  if (drafted) {
+    const conference = createTransactionalPressConference({
+      game: nextState,
+      teamId: userTeam.id,
+      type: 'post_draft',
+      topic: `${userTeam.city} presents ${drafted.firstName} ${drafted.lastName} as the newest addition.`,
+      speaker: userTeam.staff.hc?.name ?? 'Head Coach',
+    });
+    recordPressConference(nextState, conference);
+  }
   if (nextState.offseasonState.currentDraftPickIndex >= nextState.offseasonState.draftOrder.length) {
     nextState.phase = 'post_draft';
   }

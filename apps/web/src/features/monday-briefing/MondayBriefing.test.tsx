@@ -109,6 +109,28 @@ const mockState = {
       bonus: 2,
     },
   ],
+  offFieldEvents: [
+    {
+      id: 'event-1',
+      headline: 'Jay Stone owns the media cycle',
+      description: 'Stone leaned into the spotlight and the room fed off it.',
+      category: 'media',
+    },
+  ],
+  upcomingRivalry: {
+    rivalryId: 'team-1::team-2',
+    intensity: 68,
+    tier: 'heated',
+    ovrBoost: 3,
+    headline: 'Chicago and Austin are carrying real heat into kickoff.',
+  },
+  coachingCarouselNews: [
+    {
+      id: 'coach-1',
+      type: 'coach_hired',
+      description: 'Austin hires Mason Pike to run the sideline.',
+    },
+  ],
 };
 
 vi.mock('../../app/store/game-store', () => ({
@@ -126,6 +148,9 @@ vi.mock('../../app/store/game-store', () => ({
   selectUserPowerRanking: (state: typeof mockState) => state.userPowerRanking,
   selectUserRecordWatch: (state: typeof mockState) => state.userRecordWatch,
   selectUserMentoringPairs: (state: typeof mockState) => state.userMentoringPairs,
+  selectOffFieldEvents: (state: typeof mockState) => state.offFieldEvents,
+  selectUpcomingRivalry: (state: typeof mockState) => state.upcomingRivalry,
+  selectCoachingCarouselNews: (state: typeof mockState) => state.coachingCarouselNews,
 }));
 
 describe('MondayBriefing', () => {
@@ -139,6 +164,12 @@ describe('MondayBriefing', () => {
     expect(markup).toContain('Jay Stone');
     expect(markup).toContain('--- MENTORING REPORT ---');
     expect(markup).toContain('Rick Mason -&gt; Jay Stone');
+    expect(markup).toContain('--- LOCKER ROOM PULSE ---');
+    expect(markup).toContain('Jay Stone owns the media cycle');
+    expect(markup).toContain('--- RIVALRY WATCH ---');
+    expect(markup).toContain('Chicago and Austin are carrying real heat into kickoff.');
+    expect(markup).toContain('--- COACHING NEWS ---');
+    expect(markup).toContain('Austin hires Mason Pike to run the sideline.');
     expect(markup).toContain('--- NARRATIVE PULSE ---');
     expect(markup).toContain('DIVISION RACE TIGHTENING');
   });

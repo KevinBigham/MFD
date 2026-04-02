@@ -13,6 +13,7 @@ import type {
   TeamGameStats,
   WeeklyInjurySummary,
 } from '../types';
+import type { SimGameContext } from './game-sim';
 
 function applyResult(home: Team, away: Team, homeStats: TeamGameStats, awayStats: TeamGameStats, homeScore: number, awayScore: number): void {
   applyGameToSeasonStats(home, homeStats, awayStats, homeScore, awayScore);
@@ -58,8 +59,15 @@ function maybeInjure(team: Team, injMod: number): WeeklyInjurySummary[] {
   return injuries;
 }
 
-export function simulateGame(home: Team, away: Team, year: number, week: number, difficulty: GameState['difficulty']) {
-  const sim = simGame(home, away);
+export function simulateGame(
+  home: Team,
+  away: Team,
+  year: number,
+  week: number,
+  difficulty: GameState['difficulty'],
+  context?: SimGameContext,
+) {
+  const sim = simGame(home, away, context);
   const { homeScore, awayScore, overtime, homeStats, awayStats, homeMvpId, awayMvpId } = sim;
 
   // Apply player box score lines to season stats

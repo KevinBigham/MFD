@@ -27,8 +27,22 @@ describe('GameDayCenterView', () => {
           pressConference: {
             theme: 'Statement win',
             opener: 'We played clean situational football.',
+            speaker: 'Head Coach',
+            tone: 'confident',
+            topic: 'postgame win',
+            reporterQuestions: [
+              { id: 'q-1', prompt: 'How did the offense stay on schedule?', response: 'We stayed ahead of the sticks.', topic: 'offense' },
+            ],
             quotes: ['We controlled the moment.', 'The line set the tone.'],
           },
+          rivalry: {
+            rivalryId: 'team-1::team-2',
+            intensity: 72,
+            tier: 'heated',
+            ovrBoost: 3,
+            headline: 'These teams brought real heat into kickoff.',
+          },
+          activeEffectSummaries: ['Breakout practice carried into kickoff.'],
           autopsy: {
             diagnosis: 'Controlled passing rhythm kept the offense ahead of schedule.',
             leverage: 'Turnover margin plus third-down efficiency flipped the game.',
@@ -41,5 +55,7 @@ describe('GameDayCenterView', () => {
     expect(markup).toContain('Week 3: New York Titans beat Boston Minutemen 31-17');
     expect(markup).toContain('Controlled passing rhythm kept the offense ahead of schedule.');
     expect(markup).toContain('Turnover margin plus third-down efficiency flipped the game.');
+    expect(markup).toContain('Breakout practice carried into kickoff.');
+    expect(markup).toContain('How did the offense stay on schedule?');
   });
 });

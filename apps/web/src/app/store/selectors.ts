@@ -2,24 +2,29 @@ import type {
   AwardsHistoryEntry,
   DraftOrderEntry,
   DraftProspect,
+  GameEvent,
   GameDayPackage,
   GameDayState,
   GameResult,
   GameState,
   HallOfFameEntry,
+  LeagueRivalry,
   MentoringPair,
   OffseasonState,
+  OffFieldEvent,
   Player,
   PowerRanking,
+  PressConference,
   RecordBook,
   RecordEntry,
+  RivalryGameContext,
   SeasonPhase,
   StoryArc,
   Team,
   TradeOffer,
   WeeklySummary,
 } from '@mfd/engine';
-import { createEmptyRecordBook } from '@mfd/engine';
+import { createEmptyRecordBook, getRivalryGameContext } from '@mfd/engine';
 
 export interface GameStoreState {
   game: GameState | null;
@@ -38,6 +43,10 @@ const EMPTY_AWARDS: AwardsHistoryEntry[] = [];
 const EMPTY_HALL_OF_FAME: HallOfFameEntry[] = [];
 const EMPTY_POWER_RANKINGS: PowerRanking[] = [];
 const EMPTY_MENTORING: MentoringPair[] = [];
+const EMPTY_OFF_FIELD_EVENTS: OffFieldEvent[] = [];
+const EMPTY_PRESS_CONFERENCES: PressConference[] = [];
+const EMPTY_LEAGUE_RIVALRIES: LeagueRivalry[] = [];
+const EMPTY_GAME_EVENTS: GameEvent[] = [];
 const EMPTY_RECORD_BOOK: RecordBook = createEmptyRecordBook();
 const EMPTY_CAP = { capSpace: 0, capUsed: 0, deadCap: 0 };
 
@@ -102,6 +111,9 @@ export const selectAwardsHistory = (state: GameStoreState): AwardsHistoryEntry[]
 export const selectHallOfFame = (state: GameStoreState): HallOfFameEntry[] => state.game?.hallOfFame ?? EMPTY_HALL_OF_FAME;
 export const selectRecords = (state: GameStoreState): RecordBook => state.game?.records ?? EMPTY_RECORD_BOOK;
 export const selectPowerRankings = (state: GameStoreState): PowerRanking[] => state.game?.powerRankings ?? EMPTY_POWER_RANKINGS;
+export const selectOffFieldEvents = (state: GameStoreState): OffFieldEvent[] => state.game?.offFieldEvents ?? EMPTY_OFF_FIELD_EVENTS;
+export const selectRecentPressConferences = (state: GameStoreState): PressConference[] => state.game?.recentPressConferences ?? EMPTY_PRESS_CONFERENCES;
+export const selectLeagueRivalries = (state: GameStoreState): LeagueRivalry[] => state.game?.leagueRivalries ?? EMPTY_LEAGUE_RIVALRIES;
 export const selectGameDayState = (state: GameStoreState): GameDayState | null => state.game?.gameDayState ?? null;
 export const selectLatestGameDayPackage = (state: GameStoreState): GameDayPackage | null => {
   const gameDayState = state.game?.gameDayState;
@@ -146,6 +158,21 @@ export const selectUserPowerRanking = (state: GameStoreState): PowerRanking | nu
   return selectPowerRankings(state).find((entry) => entry.teamId === userTeamId) ?? null;
 };
 export const selectUserMentoringPairs = (state: GameStoreState): MentoringPair[] => selectUserTeam(state)?.mentoringPairs ?? EMPTY_MENTORING;
+export const selectUpcomingRivalry = (state: GameStoreState): RivalryGameContext | null => {
+  if (!state.game) return null;
+  const team = selectUserTeam(state);
+  if (!team) return null;
+  const weekSchedule = state.game.schedule.find((entry) => entry.week === state.game!.week);
+  const matchup = weekSchedule?.games.find((entry) => entry.homeTeamId === team.id || entry.awayTeamId === team.id) ?? null;
+  if (!matchup) return null;
+  const opponentId = matchup.homeTeamId === team.id ? matchup.awayTeamId : matchup.homeTeamId;
+  return getRivalryGameContext(state.game, team.id, opponentId);
+};
+export const selectCoachingCarouselNews = (state: GameStoreState): GameEvent[] =>
+  state.game?.eventLog
+    .filter((event) => event.type === 'coach_fired' || event.type === 'coach_hired')
+    .slice(-6)
+    .reverse() ?? EMPTY_GAME_EVENTS;
 export const selectHistoricalMentoringChains = (state: GameStoreState): MentoringHistoryNote[] => {
   const team = selectUserTeam(state);
   if (!state.game || !team) return EMPTY_MENTORING_HISTORY;

@@ -1,4 +1,16 @@
-import type { GameDayPackage, NarrativeState, Player, SeasonPhase, StoryArc, Team, WeeklySummary } from '@mfd/engine';
+import type {
+  GameDayPackage,
+  GameEvent,
+  NarrativeState,
+  OffFieldEvent,
+  Player,
+  PressConference,
+  RivalryGameContext,
+  SeasonPhase,
+  StoryArc,
+  Team,
+  WeeklySummary,
+} from '@mfd/engine';
 
 export type MessageType = 'URGENT' | 'DECISION' | 'INTEL';
 
@@ -23,6 +35,10 @@ interface BuildInboxMessagesParams {
   phase: SeasonPhase;
   latestPackage: GameDayPackage | null;
   activeArcs: StoryArc[];
+  offFieldEvents: OffFieldEvent[];
+  recentPressConferences: PressConference[];
+  coachingNews: GameEvent[];
+  upcomingRivalry: RivalryGameContext | null;
 }
 
 export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessage[] {
@@ -35,6 +51,10 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     phase,
     latestPackage,
     activeArcs,
+    offFieldEvents,
+    recentPressConferences,
+    coachingNews,
+    upcomingRivalry,
   } = params;
   const msgs: InboxMessage[] = [];
   if (!team) return msgs;
@@ -73,6 +93,58 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       week,
       read: false,
       actionRequired: arc.template !== 'breakout_player',
+    });
+  }
+
+  for (const event of offFieldEvents.slice(-2).reverse()) {
+    msgs.push({
+      id: `off-field-${event.id}`,
+      type: event.effects.some((effect) => effect.delta < 0) ? 'URGENT' : 'INTEL',
+      title: event.headline,
+      body: `${event.description}${event.effects.length > 0 ? `\nEffects: ${event.effects.map((effect) => effect.summary).join(' | ')}` : ''}`,
+      from: event.category === 'media' ? 'Media Desk' : event.category === 'locker_room' ? 'Locker Room' : 'Player Services',
+      week: event.week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  for (const conference of recentPressConferences.slice(0, 2)) {
+    msgs.push({
+      id: `press-${conference.id}`,
+      type: conference.type === 'coaching_change' ? 'DECISION' : 'INTEL',
+      title: conference.headline,
+      body: `${conference.opener}\n${conference.reporterQuestions.slice(0, 2).map((question) => `Q: ${question.prompt}`).join('\n')}`,
+      from: `${conference.speaker} // Press Conference`,
+      week: conference.week,
+      read: true,
+      actionRequired: false,
+    });
+  }
+
+  for (const item of coachingNews.slice(0, 2)) {
+    msgs.push({
+      id: `coach-news-${item.id}`,
+      type: item.type === 'coach_fired' ? 'URGENT' : 'INTEL',
+      title: item.description,
+      body: 'League-wide coaching movement is reshaping the sideline landscape.',
+      from: 'League Office',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  if (upcomingRivalry) {
+    msgs.push({
+      id: `rivalry-${upcomingRivalry.rivalryId}`,
+      type: upcomingRivalry.intensity >= 60 ? 'URGENT' : 'DECISION',
+      title: 'Rivalry Week Building',
+      body: `${upcomingRivalry.headline}\nIntensity ${upcomingRivalry.intensity} // Tier ${upcomingRivalry.tier.replace('_', ' ')}.`,
+      from: 'Broadcast Prep',
+      week,
+      read: false,
+      actionRequired: false,
     });
   }
 

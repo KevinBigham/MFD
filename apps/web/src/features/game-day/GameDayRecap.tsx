@@ -96,6 +96,9 @@ export function GameDayCenterView({ teamLabel, phase, year, packageData }: GameD
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
             <PixelBadge variant="gold">{packageData.finalScore}</PixelBadge>
+            {packageData.rivalry ? (
+              <PixelBadge variant="red">{`${packageData.rivalry.tier.replace('_', ' ')} // ${packageData.rivalry.intensity}`}</PixelBadge>
+            ) : null}
             {packageData.stakes.map((s) => (
               <PixelBadge key={s.label} variant="default">{s.label.toUpperCase()}</PixelBadge>
             ))}
@@ -164,13 +167,22 @@ export function GameDayCenterView({ teamLabel, phase, year, packageData }: GameD
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <PixelPanel title="Press Conference" accent="cyan">
-            <div style={{ padding: '8px' }}>
+            <div style={{ padding: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <PixelBadge variant="cyan">{packageData.pressConference.theme.toUpperCase()}</PixelBadge>
+              <PixelBadge variant={packageData.pressConference.tone === 'somber' ? 'red' : packageData.pressConference.tone === 'fired_up' ? 'gold' : 'green'}>
+                {packageData.pressConference.tone.toUpperCase()}
+              </PixelBadge>
+              {packageData.rivalry ? <PixelBadge variant="red">RIVALRY</PixelBadge> : null}
             </div>
           </PixelPanel>
-          <PixelDialog speaker="Press Conference" accent="cyan">
+          <PixelDialog speaker={packageData.pressConference.speaker} accent="cyan">
             {packageData.pressConference.opener}
           </PixelDialog>
+          {packageData.pressConference.reporterQuestions.map((question) => (
+            <PixelDialog key={question.id} speaker="Reporter Q&A" accent="green">
+              {`Q: ${question.prompt}\nA: ${question.response}`}
+            </PixelDialog>
+          ))}
           {packageData.pressConference.quotes.map((quote, i) => (
             <PixelDialog key={i} speaker={i === 0 ? 'Reporter Q&A' : undefined} accent="green" showCursor={i === packageData.pressConference.quotes.length - 1}>
               {quote}
@@ -178,6 +190,18 @@ export function GameDayCenterView({ teamLabel, phase, year, packageData }: GameD
           ))}
         </div>
       </div>
+
+      {packageData.activeEffectSummaries.length > 0 && (
+        <PixelPanel title="Off-Field Carryover" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '8px' }}>
+            {packageData.activeEffectSummaries.map((summary) => (
+              <div key={summary} style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
+                {summary}
+              </div>
+            ))}
+          </div>
+        </PixelPanel>
+      )}
 
       {/* Injury notes */}
       {packageData.injuryNotes.length > 0 && (

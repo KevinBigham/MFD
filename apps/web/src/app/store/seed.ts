@@ -219,6 +219,7 @@ function genCoach(role: 'HC' | 'OC' | 'DC'): StaffMember {
     traits: [],
     ratings: { gameplan: rng(60, 90), development: rng(55, 85), motivation: rng(50, 85) },
     level: rng(1, 5),
+    age: rng(36, 64),
   };
 }
 
@@ -413,6 +414,11 @@ export function createSeedGameState(
     frontOffice,
     eventLog: [],
     narrativeState,
+    offFieldEvents: [],
+    recentPressConferences: [],
+    coachingHistory: [],
+    leagueRivalries: [],
+    activeEffects: [],
     gameDayState,
     weekSummaries: [],
     playoffBracket: null,

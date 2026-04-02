@@ -15,6 +15,16 @@ import type {
   TeamGameStats,
 } from '../types';
 
+export interface SimTeamContext {
+  teamOvrBonus?: number;
+  playerOvrBonuses?: Record<string, number>;
+}
+
+export interface SimGameContext {
+  home?: SimTeamContext;
+  away?: SimTeamContext;
+}
+
 // ── Helpers ─────────────────────────────────────────────
 
 function starters(roster: Player[], pos: Position): Player[] {
@@ -520,12 +530,37 @@ export interface SimGameResult {
   awayMvpId: string | null;
 }
 
-export function simGame(home: Team, away: Team): SimGameResult {
+function applySimContext(team: Team, context?: SimTeamContext): Team {
+  if (!context) return team;
+  const teamOvrBonus = context.teamOvrBonus ?? 0;
+  const playerBonuses = context.playerOvrBonuses ?? {};
+  if (teamOvrBonus === 0 && Object.keys(playerBonuses).length === 0) return team;
+
+  return {
+    ...team,
+    roster: team.roster.map((player) => {
+      const bonus = teamOvrBonus + (playerBonuses[player.id] ?? 0);
+      if (bonus === 0) return player;
+      const ratings = Object.fromEntries(
+        Object.entries(player.ratings).map(([key, value]) => [key, value + bonus]),
+      );
+      return {
+        ...player,
+        ovr: player.ovr + bonus,
+        ratings,
+      };
+    }),
+  };
+}
+
+export function simGame(home: Team, away: Team, context?: SimGameContext): SimGameResult {
+  const adjustedHome = applySimContext(home, context?.home);
+  const adjustedAway = applySimContext(away, context?.away);
   const homeLines = new Map<string, PlayerGameLine>();
   const awayLines = new Map<string, PlayerGameLine>();
 
-  const homeCEdge = coachingEdge(home, away) + 1.0; // home field advantage
-  const awayCEdge = coachingEdge(away, home);
+  const homeCEdge = coachingEdge(adjustedHome, adjustedAway) + 1.0; // home field advantage
+  const awayCEdge = coachingEdge(adjustedAway, adjustedHome);
 
   let homeScore = 0;
   let awayScore = 0;
@@ -541,7 +576,7 @@ export function simGame(home: Team, away: Team): SimGameResult {
     const quarter = Math.min(3, Math.floor((d / totalDrives) * 4));
 
     // Home drive
-    const hDrive = simulateDrive(home, away, homeCEdge, homeScore - awayScore, quarter + 1, homeLines, homePlayState);
+    const hDrive = simulateDrive(adjustedHome, adjustedAway, homeCEdge, homeScore - awayScore, quarter + 1, homeLines, homePlayState);
     homeScore += hDrive.points;
     homeQtrScores[quarter]! += hDrive.points;
     homePlayState = hDrive.playType === homePlayState.lastPlayType
@@ -549,7 +584,7 @@ export function simGame(home: Team, away: Team): SimGameResult {
       : { lastPlayType: hDrive.playType, streak: 1 };
 
     // Away drive
-    const aDrive = simulateDrive(away, home, awayCEdge, awayScore - homeScore, quarter + 1, awayLines, awayPlayState);
+    const aDrive = simulateDrive(adjustedAway, adjustedHome, awayCEdge, awayScore - homeScore, quarter + 1, awayLines, awayPlayState);
     awayScore += aDrive.points;
     awayQtrScores[quarter]! += aDrive.points;
     awayPlayState = aDrive.playType === awayPlayState.lastPlayType
@@ -563,14 +598,14 @@ export function simGame(home: Team, away: Team): SimGameResult {
     overtime = true;
     const otDrives = 2 + Math.floor(RNG.play() * 2);
     for (let d = 0; d < otDrives; d++) {
-      const hOT = simulateDrive(home, away, homeCEdge, 0, 5, homeLines, homePlayState);
+      const hOT = simulateDrive(adjustedHome, adjustedAway, homeCEdge, 0, 5, homeLines, homePlayState);
       homeScore += hOT.points;
       homePlayState = hOT.playType === homePlayState.lastPlayType
         ? { lastPlayType: hOT.playType, streak: homePlayState.streak + 1 }
         : { lastPlayType: hOT.playType, streak: 1 };
       if (homeScore !== awayScore) break;
 
-      const aOT = simulateDrive(away, home, awayCEdge, 0, 5, awayLines, awayPlayState);
+      const aOT = simulateDrive(adjustedAway, adjustedHome, awayCEdge, 0, 5, awayLines, awayPlayState);
       awayScore += aOT.points;
       awayPlayState = aOT.playType === awayPlayState.lastPlayType
         ? { lastPlayType: aOT.playType, streak: awayPlayState.streak + 1 }
@@ -588,8 +623,8 @@ export function simGame(home: Team, away: Team): SimGameResult {
   }
 
   // Distribute defensive stats
-  distributeDefensiveStats(home, totalDrives, homeLines);
-  distributeDefensiveStats(away, totalDrives, awayLines);
+  distributeDefensiveStats(adjustedHome, totalDrives, homeLines);
+  distributeDefensiveStats(adjustedAway, totalDrives, awayLines);
 
   // Build stats
   const homeTeamLines = mergeTeamLines(home, homeLines, awayLines);

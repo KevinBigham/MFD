@@ -174,6 +174,7 @@ export interface StaffMember {
   traits: string[];
   ratings: Record<string, number>;
   level: number;
+  age?: number;
   specialty75?: CoordinatorSpecialty | null;
 }
 
@@ -300,6 +301,108 @@ export interface RivalryResult {
   week: number;
   winner: string;
   score: string;
+}
+
+export type TimedEffectSourceType = 'off_field_event' | 'press_conference' | 'rivalry';
+export type TimedEffectTargetType = 'team' | 'player';
+export type TimedEffectStat = 'chemistry' | 'morale' | 'ovr' | 'ownerApproval';
+
+export interface TimedEffect {
+  id: string;
+  sourceType: TimedEffectSourceType;
+  sourceId: string;
+  teamId: string;
+  targetType: TimedEffectTargetType;
+  targetId: string | null;
+  stat: TimedEffectStat;
+  delta: number;
+  appliesToGame: boolean;
+  startStamp: number;
+  endStamp: number;
+  summary: string;
+}
+
+export interface OffFieldEvent {
+  id: string;
+  type: string;
+  category: 'locker_room' | 'media' | 'personal';
+  week: number;
+  year: number;
+  playerIds: string[];
+  teamId: string;
+  headline: string;
+  description: string;
+  effects: TimedEffect[];
+}
+
+export type PressConferenceType = 'postgame' | 'midweek' | 'post_trade' | 'post_draft' | 'coaching_change';
+export type PressConferenceTone = 'confident' | 'deflecting' | 'fired_up' | 'somber';
+export type PressConferenceSpeakerRole = 'HC' | 'GM' | 'PLAYER';
+
+export interface ReporterQuestion {
+  id: string;
+  prompt: string;
+  topic: string;
+  response: string;
+}
+
+export interface PressConference {
+  id: string;
+  type: PressConferenceType;
+  year: number;
+  week: number;
+  teamId: string | null;
+  speaker: string;
+  speakerRole: PressConferenceSpeakerRole;
+  topic: string;
+  tone: PressConferenceTone;
+  headline: string;
+  opener: string;
+  quotes: string[];
+  reporterQuestions: ReporterQuestion[];
+  effects: TimedEffect[];
+}
+
+export interface CoachCareerTeamHistory {
+  teamId: string;
+  startYear: number;
+  endYear: number;
+  wins: number;
+  losses: number;
+  championships: number;
+}
+
+export interface CoachCareerHistory {
+  coachId: string;
+  name: string;
+  archetype: string;
+  age: number;
+  seasonsCoached: number;
+  wins: number;
+  losses: number;
+  championships: number;
+  awards: number;
+  retired: boolean;
+  teams: CoachCareerTeamHistory[];
+}
+
+export interface LeagueRivalry {
+  id: string;
+  teamA: string;
+  teamB: string;
+  intensity: number;
+  isDivision: boolean;
+  history: string[];
+  lastMetYear: number | null;
+  lastMetWeek: number | null;
+}
+
+export interface RivalryGameContext {
+  rivalryId: string;
+  intensity: number;
+  tier: 'budding' | 'heated' | 'blood_feud';
+  ovrBoost: number;
+  headline: string;
 }
 
 // ── Draft ───────────────────────────────────────────────
@@ -570,6 +673,10 @@ export interface GameDayPressConference {
   theme: string;
   opener: string;
   quotes: string[];
+  speaker: string;
+  tone: PressConferenceTone;
+  topic: string;
+  reporterQuestions: ReporterQuestion[];
 }
 
 export interface GameDayAutopsy {
@@ -594,6 +701,8 @@ export interface GameDayPackage {
   injuryNotes: string[];
   ceremony: GameDayCeremony | null;
   pressConference: GameDayPressConference;
+  rivalry: RivalryGameContext | null;
+  activeEffectSummaries: string[];
   autopsy: GameDayAutopsy;
 }
 
@@ -838,6 +947,11 @@ export interface GameState {
   frontOffice: FrontOffice;
   eventLog: GameEvent[];
   narrativeState: NarrativeState;
+  offFieldEvents: OffFieldEvent[];
+  recentPressConferences: PressConference[];
+  coachingHistory: CoachCareerHistory[];
+  leagueRivalries: LeagueRivalry[];
+  activeEffects: TimedEffect[];
   gameDayState: GameDayState;
   weekSummaries: WeeklySummary[];
   playoffBracket: PlayoffBracket | null;

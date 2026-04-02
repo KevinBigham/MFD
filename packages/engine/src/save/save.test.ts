@@ -38,6 +38,11 @@ describe('SaveStateSchema', () => {
         hooks: [],
         recentHeadlines: [],
       },
+      offFieldEvents: [],
+      recentPressConferences: [],
+      coachingHistory: [],
+      leagueRivalries: [],
+      activeEffects: [],
       gameDayState: {
         recentPackages: [],
         latestPackageId: null,
@@ -121,6 +126,11 @@ describe('SaveStateSchema', () => {
       frontOffice: { xp: 500, level: 3, achievements: ['first_win'], perks: [], reputation: { players: 70, media: 60, owner: 80 } },
       eventLog: [],
       narrativeState: { activeArcs: [], hooks: [], recentHeadlines: ['Mahomes throws 5 TDs'] },
+      offFieldEvents: [],
+      recentPressConferences: [],
+      coachingHistory: [],
+      leagueRivalries: [],
+      activeEffects: [],
       gameDayState: { recentPackages: [], latestPackageId: null },
       weekSummaries: [],
       playoffBracket: null,
@@ -226,6 +236,11 @@ describe('migration pipeline', () => {
         hooks: [],
         recentHeadlines: ['Week 18: afce1 Club beat afce2 Club 24-17'],
       },
+      offFieldEvents: [],
+      recentPressConferences: [],
+      coachingHistory: [],
+      leagueRivalries: [],
+      activeEffects: [],
       offseasonState: null,
     }, SAVE_VERSION);
 
@@ -253,6 +268,11 @@ describe('migration pipeline', () => {
         recentPackages: [],
         latestPackageId: null,
       },
+      offFieldEvents: [],
+      recentPressConferences: [],
+      coachingHistory: [],
+      leagueRivalries: [],
+      activeEffects: [],
       offseasonState: null,
     }, SAVE_VERSION);
 
@@ -279,6 +299,11 @@ describe('migration pipeline', () => {
         recentPackages: [],
         latestPackageId: null,
       },
+      offFieldEvents: [],
+      recentPressConferences: [],
+      coachingHistory: [],
+      leagueRivalries: [],
+      activeEffects: [],
       weekSummaries: [],
       offseasonState: null,
     }, SAVE_VERSION);
@@ -288,5 +313,50 @@ describe('migration pipeline', () => {
     expect(migrated['powerRankings']).toEqual([]);
     expect(migrated['records']).toEqual(createEmptyRecordBook());
     expect((migrated['teams'] as Record<string, { mentoringPairs?: unknown }>).t1.mentoringPairs).toEqual([]);
+  });
+
+  it('migrates v6 saves to include living world defaults', () => {
+    const migrated = migrate({
+      version: 6,
+      teams: {
+        t1: {
+          division: 'AFC East',
+          rivalries: [{ teamId: 't2', heat: 52, trophyName: null, history: [] }],
+          rivals: { t2: { heat: 6 } },
+        },
+        t2: {
+          division: 'AFC East',
+          rivalries: [{ teamId: 't1', heat: 48, trophyName: null, history: [] }],
+          rivals: { t1: { heat: 5 } },
+        },
+      },
+      narrativeState: {
+        activeArcs: [],
+        hooks: [],
+        recentHeadlines: ['Training camp opens'],
+      },
+      gameDayState: {
+        recentPackages: [],
+        latestPackageId: null,
+      },
+      weekSummaries: [],
+      offseasonState: null,
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['offFieldEvents']).toEqual([]);
+    expect(migrated['recentPressConferences']).toEqual([]);
+    expect(migrated['coachingHistory']).toEqual([]);
+    expect(migrated['leagueRivalries']).toEqual([{
+      id: 't1::t2',
+      teamA: 't1',
+      teamB: 't2',
+      intensity: 52,
+      isDivision: true,
+      history: [],
+      lastMetYear: null,
+      lastMetWeek: null,
+    }]);
+    expect(migrated['activeEffects']).toEqual([]);
   });
 });

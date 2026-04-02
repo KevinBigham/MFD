@@ -1,11 +1,14 @@
 import type { Hook } from './hooks-engine';
 import type {
   GameDayPackage,
+  GameDayPressConference,
   GameDayTopPerformer,
   GameDayTurningPoint,
   GameResult,
   NarrativeHook,
   Player,
+  PressConference,
+  RivalryGameContext,
   StoryArc,
   Team,
   WeeklySummary,
@@ -18,6 +21,9 @@ interface BuildGameDayPackageParams {
   summary: WeeklySummary;
   hooks: Array<Hook | NarrativeHook>;
   activeArcs: StoryArc[];
+  pressConference?: PressConference | null;
+  rivalry?: RivalryGameContext | null;
+  activeEffectSummaries?: string[];
 }
 
 function findPlayer(team: Team, playerId: string | null): Player | null {
@@ -177,9 +183,48 @@ function buildAutopsy(team: Team, summary: WeeklySummary, result: GameResult) {
 }
 
 export function buildGameDayPackage(params: BuildGameDayPackageParams): GameDayPackage {
-  const { team, opponent, result, summary, hooks, activeArcs } = params;
+  const {
+    team,
+    opponent,
+    result,
+    summary,
+    hooks,
+    activeArcs,
+    pressConference,
+    rivalry = null,
+    activeEffectSummaries = [],
+  } = params;
   const ceremony = buildCeremony(team, summary, activeArcs);
   const autopsy = buildAutopsy(team, summary, result);
+  const packagePressConference: GameDayPressConference = pressConference
+    ? {
+      theme: pressConference.type === 'postgame' ? 'Postgame Podium' : 'Media Availability',
+      opener: pressConference.opener,
+      quotes: pressConference.quotes,
+      speaker: pressConference.speaker,
+      tone: pressConference.tone,
+      topic: pressConference.topic,
+      reporterQuestions: pressConference.reporterQuestions,
+    }
+    : {
+      theme: summary.result === 'win' ? 'Statement win' : summary.result === 'loss' ? 'Hard truth' : 'Measured response',
+      opener: summary.result === 'win'
+        ? 'We played clean situational football and stayed aggressive without losing control.'
+        : 'The margins got away from us, and the tape is going to demand cleaner answers.',
+      quotes: [
+        `The ${summary.result === 'win' ? 'locker room feels the momentum' : 'room knows the standard was missed'}.`,
+        autopsy.leverage,
+        ceremony ? ceremony.subtitle : 'Next week starts with sharper detail and better finishing.',
+      ],
+      speaker: team.staff.hc?.name ?? 'Head Coach',
+      tone: summary.result === 'win'
+        ? 'confident'
+        : summary.result === 'loss'
+          ? 'somber'
+          : 'deflecting' as const,
+      topic: summary.result === 'win' ? 'postgame win' : 'postgame response',
+      reporterQuestions: [],
+    };
 
   return {
     id: `gameday-${summary.year}-${summary.week}-${team.id}`,
@@ -196,17 +241,9 @@ export function buildGameDayPackage(params: BuildGameDayPackageParams): GameDayP
     topPerformers: buildTopPerformers(team, result),
     injuryNotes: summary.injuries.map((injury) => `${injury.playerName}: ${injury.type} (${injury.severity}, ${injury.gamesOut} games)`),
     ceremony,
-    pressConference: {
-      theme: summary.result === 'win' ? 'Statement win' : summary.result === 'loss' ? 'Hard truth' : 'Measured response',
-      opener: summary.result === 'win'
-        ? 'We played clean situational football and stayed aggressive without losing control.'
-        : 'The margins got away from us, and the tape is going to demand cleaner answers.',
-      quotes: [
-        `The ${summary.result === 'win' ? 'locker room feels the momentum' : 'room knows the standard was missed'}.`,
-        autopsy.leverage,
-        ceremony ? ceremony.subtitle : 'Next week starts with sharper detail and better finishing.',
-      ],
-    },
+    pressConference: packagePressConference,
+    rivalry,
+    activeEffectSummaries,
     autopsy,
   };
 }

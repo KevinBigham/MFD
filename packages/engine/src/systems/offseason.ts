@@ -1,13 +1,17 @@
 import { DIFF_SETTINGS } from '../config/difficulty';
 import { generateAwards } from './awards';
+import { runCoachingCarousel } from './coaching-carousel';
 import { makeContract } from './contracts';
 import { ensureDraftClass } from './draft';
 import { reevaluateLeagueStrategies } from './gm-strategies';
 import { inductHallOfFame } from './hall-of-fame';
 import { syncPlayerArchiveEntry } from './history';
 import { applyMentoringBonuses, formMentoringPairs } from './mentoring';
+import { clearSeasonLivingWorldState } from './off-field-events';
+import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { progressPlayers } from './progression';
 import { getSeasonRecordNotes, updateCareerRecords, updateSeasonRecords } from './records';
+import { decayLeagueRivalries } from './rivalries';
 import { generateTradeOffers } from './trade-market';
 import type {
   AwardResult,
@@ -417,6 +421,7 @@ export function advanceOffseason(game: GameState): void {
 
   const seasonYear = currentSeasonYear(game);
   markCompletedSeason(game, seasonYear);
+  clearSeasonLivingWorldState(game);
   stampChampionCareers(game, seasonYear);
   const awards = generateAwards(game, seasonYear);
   updateSeasonRecords(game, seasonYear);
@@ -427,6 +432,22 @@ export function advanceOffseason(game: GameState): void {
   resolveAiReSigns(game, game.offseasonState);
   finalizeUnsignedExpiringPlayers(game, game.offseasonState);
   const hofClass = inductHallOfFame(game, seasonYear);
+  decayLeagueRivalries(game);
+  const carousel = runCoachingCarousel(game, seasonYear);
+  const hireEvents = carousel.events.filter((event) => event.type === 'coach_hired');
+  for (const event of hireEvents) {
+    const teamId = String(event.data['teamId'] ?? '');
+    const team = game.teams[teamId];
+    if (!team) continue;
+    const pressConference = createTransactionalPressConference({
+      game,
+      teamId: team.id,
+      type: 'coaching_change',
+      topic: `${team.city} introduces ${team.staff.hc?.name ?? 'a new head coach'}`,
+      speaker: 'General Manager',
+    });
+    recordPressConference(game, pressConference);
+  }
   const mentoringPairs = formMentoringPairs(game, game.year);
   for (const team of Object.values(game.teams)) {
     patchMentoringHistory(game, seasonYear, team, team.mentoringPairs);

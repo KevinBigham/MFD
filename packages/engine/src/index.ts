@@ -156,9 +156,28 @@ export type { SchemeFitResult, FitTier, PlayerSide, PlayerIdentityFit, TeamFitSu
 export { chemistryMod, systemFitMod, updateSystemFit, resetSystemFit } from './systems/chemistry';
 export { emptyPlayerStats, createEmptySeasonStats, ensureSeasonStats, applyGameToSeasonStats, tickInjuries } from './systems/season-stats';
 export { simGame, applyPlayerLines } from './systems/game-sim';
-export type { SimGameResult } from './systems/game-sim';
+export type { SimGameContext, SimGameResult, SimTeamContext } from './systems/game-sim';
 export { buildWeeklySummary } from './systems/weekly-summary';
 export { buildGameDayPackage } from './systems/game-day-package';
+export {
+  clearSeasonLivingWorldState,
+  expireTimedEffects,
+  generateWeeklyOffFieldEvents,
+  getGameEffectBonuses,
+  getTimedEffectDelta,
+} from './systems/off-field-events';
+export {
+  createPostGamePressConference,
+  createTransactionalPressConference,
+  maybeCreateMidweekPressConference,
+  recordPressConference,
+} from './systems/press-conference';
+export {
+  decayLeagueRivalries,
+  getRivalryGameContext,
+  seedLeagueRivalries,
+  updateLeagueRivalriesFromGame,
+} from './systems/rivalries';
 export { advanceStoryArcs } from './systems/story-arcs';
 export { seedPlayoffBracket, advancePlayoffBracket } from './systems/playoff-bracket';
 export {
@@ -168,6 +187,7 @@ export {
   advanceOffseason,
   advanceFreeAgency,
 } from './systems/offseason';
+export { runCoachingCarousel } from './systems/coaching-carousel';
 export {
   runScoutingAction,
   makeDraftPick,

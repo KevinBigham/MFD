@@ -63,6 +63,98 @@ export const StoryArcSchema = z.object({
   data: z.record(z.string(), z.unknown()),
 });
 
+export const TimedEffectSchema = z.object({
+  id: z.string(),
+  sourceType: z.enum(['off_field_event', 'press_conference', 'rivalry']),
+  sourceId: z.string(),
+  teamId: z.string(),
+  targetType: z.enum(['team', 'player']),
+  targetId: z.string().nullable(),
+  stat: z.enum(['chemistry', 'morale', 'ovr', 'ownerApproval']),
+  delta: z.number(),
+  appliesToGame: z.boolean(),
+  startStamp: z.number(),
+  endStamp: z.number(),
+  summary: z.string(),
+});
+
+export const ReporterQuestionSchema = z.object({
+  id: z.string(),
+  prompt: z.string(),
+  topic: z.string(),
+  response: z.string(),
+});
+
+export const PressConferenceSchema = z.object({
+  id: z.string(),
+  type: z.enum(['postgame', 'midweek', 'post_trade', 'post_draft', 'coaching_change']),
+  year: z.number(),
+  week: z.number(),
+  teamId: z.string().nullable(),
+  speaker: z.string(),
+  speakerRole: z.enum(['HC', 'GM', 'PLAYER']),
+  topic: z.string(),
+  tone: z.enum(['confident', 'deflecting', 'fired_up', 'somber']),
+  headline: z.string(),
+  opener: z.string(),
+  quotes: z.array(z.string()),
+  reporterQuestions: z.array(ReporterQuestionSchema),
+  effects: z.array(TimedEffectSchema),
+});
+
+export const OffFieldEventSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  category: z.enum(['locker_room', 'media', 'personal']),
+  week: z.number(),
+  year: z.number(),
+  playerIds: z.array(z.string()),
+  teamId: z.string(),
+  headline: z.string(),
+  description: z.string(),
+  effects: z.array(TimedEffectSchema),
+});
+
+export const RivalryGameContextSchema = z.object({
+  rivalryId: z.string(),
+  intensity: z.number(),
+  tier: z.enum(['budding', 'heated', 'blood_feud']),
+  ovrBoost: z.number(),
+  headline: z.string(),
+});
+
+export const CoachCareerHistorySchema = z.object({
+  coachId: z.string(),
+  name: z.string(),
+  archetype: z.string(),
+  age: z.number(),
+  seasonsCoached: z.number(),
+  wins: z.number(),
+  losses: z.number(),
+  championships: z.number(),
+  awards: z.number(),
+  retired: z.boolean(),
+  teams: z.array(z.object({
+    teamId: z.string(),
+    startYear: z.number(),
+    endYear: z.number(),
+    wins: z.number(),
+    losses: z.number(),
+    championships: z.number(),
+  })),
+});
+
+export const LeagueRivalrySchema = z.object({
+  id: z.string(),
+  teamA: z.string(),
+  teamB: z.string(),
+  intensity: z.number(),
+  isDivision: z.boolean(),
+  history: z.array(z.string()),
+  lastMetYear: z.number().nullable(),
+  lastMetWeek: z.number().nullable(),
+});
+
 export const GameDayPackageSchema = z.object({
   id: z.string(),
   year: z.number(),
@@ -96,7 +188,13 @@ export const GameDayPackageSchema = z.object({
     theme: z.string(),
     opener: z.string(),
     quotes: z.array(z.string()),
+    speaker: z.string(),
+    tone: z.enum(['confident', 'deflecting', 'fired_up', 'somber']),
+    topic: z.string(),
+    reporterQuestions: z.array(ReporterQuestionSchema),
   }),
+  rivalry: RivalryGameContextSchema.nullable(),
+  activeEffectSummaries: z.array(z.string()),
   autopsy: z.object({
     diagnosis: z.string(),
     leverage: z.string(),
@@ -333,6 +431,11 @@ export const SaveStateSchema = z.object({
     hooks: z.array(z.any()),
     recentHeadlines: z.array(z.string()),
   }),
+  offFieldEvents: z.array(OffFieldEventSchema),
+  recentPressConferences: z.array(PressConferenceSchema),
+  coachingHistory: z.array(CoachCareerHistorySchema),
+  leagueRivalries: z.array(LeagueRivalrySchema),
+  activeEffects: z.array(TimedEffectSchema),
   gameDayState: GameDayStateSchema,
   weekSummaries: z.array(z.any()),
   playoffBracket: z.any().nullable(),

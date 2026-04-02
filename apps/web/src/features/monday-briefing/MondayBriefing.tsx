@@ -4,6 +4,7 @@ import {
   useGameStore, selectUserTeam, selectRoster,
   selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary, selectLatestGameDayPackage, selectActiveStoryArcs, selectTeams,
   selectUserPowerRanking, selectUserRecordWatch, selectUserMentoringPairs,
+  selectOffFieldEvents, selectUpcomingRivalry, selectCoachingCarouselNews,
 } from '../../app/store/game-store';
 import {
   PixelMetricCard,
@@ -33,6 +34,9 @@ export function MondayBriefing() {
   const userPowerRanking = useGameStore(selectUserPowerRanking);
   const recordWatch = useGameStore(selectUserRecordWatch);
   const mentoringPairs = useGameStore(selectUserMentoringPairs);
+  const offFieldEvents = useGameStore(selectOffFieldEvents);
+  const upcomingRivalry = useGameStore(selectUpcomingRivalry);
+  const coachingNews = useGameStore(selectCoachingCarouselNews);
 
   const teamName = team ? `${team.city} ${team.name}` : 'No Team';
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '0-0';
@@ -253,6 +257,74 @@ export function MondayBriefing() {
                     label="Development Track"
                     valueLabel={`${dev.progress}%`}
                   />
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
+      </div>
+
+      <div style={autoGrid(320)}>
+        <PixelPanel title="Locker Room Pulse" accent={offFieldEvents.length > 0 ? 'gold' : 'default'}>
+          {offFieldEvents.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              The room is quiet. No extra headlines have broken between kickoff windows.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {offFieldEvents.slice(-2).reverse().map((event) => (
+                <div key={event.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ ...mono, color: '#fff' }}>{event.headline}</div>
+                    <PixelBadge variant={event.category === 'media' ? 'cyan' : event.category === 'locker_room' ? 'gold' : 'green'}>
+                      {event.category.replace('_', ' ')}
+                    </PixelBadge>
+                  </div>
+                  <div style={{ ...monoSm, color: '#999', lineHeight: 1.5 }}>{event.description}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
+
+        <PixelPanel title="Rivalry Watch" accent={upcomingRivalry ? 'red' : 'default'}>
+          {!upcomingRivalry ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No heated matchup is on the immediate radar. Broadcast prep stays standard for now.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                <div style={{ ...display, fontSize: '20px', color: '#fff', lineHeight: 1 }}>
+                  {upcomingRivalry.tier.replace('_', ' ').toUpperCase()}
+                </div>
+                <PixelBadge variant="red">INT {upcomingRivalry.intensity}</PixelBadge>
+              </div>
+              <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>{upcomingRivalry.headline}</div>
+              {upcomingRivalry.ovrBoost > 0 ? (
+                <div style={{ ...monoSm, color: '#fca5a5' }}>
+                  Rivalry adrenaline active: +{upcomingRivalry.ovrBoost} OVR in-game.
+                </div>
+              ) : null}
+            </div>
+          )}
+        </PixelPanel>
+
+        <PixelPanel title="Coaching News" accent={coachingNews.length > 0 ? 'cyan' : 'default'}>
+          {coachingNews.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No sideline shakeups this week. League staff boards are holding steady.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {coachingNews.slice(0, 3).map((event) => (
+                <div key={event.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ ...mono, color: '#fff' }}>{event.description}</div>
+                    <PixelBadge variant={event.type === 'coach_fired' ? 'red' : 'cyan'}>
+                      {event.type === 'coach_fired' ? 'FIRED' : 'HIRED'}
+                    </PixelBadge>
+                  </div>
                 </div>
               ))}
             </div>
