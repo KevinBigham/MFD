@@ -270,6 +270,7 @@ export function makeLeagueState(
     powerRankings: [],
     franchiseHistory: [],
     playerArchive: [],
+    playerSeasonHistory: {},
     frontOffice: {
       xp: 0,
       level: 1,
@@ -290,6 +291,14 @@ export function makeLeagueState(
     offseasonState: null,
     leagueNews: [],
     activeProposals: [],
+    faTargetBoard: {
+      teamId: null,
+      watchlist: [],
+      targets: [],
+    },
+    teamNeedsCache: {},
+    warRoomState: null,
+    contractExtensions: [],
     difficultyState: {
       enabled: true,
       adaptiveSlider: 50,

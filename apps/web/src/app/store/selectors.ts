@@ -3,10 +3,14 @@ import type {
   AchievementProgress,
   AgentProfile,
   AwardsHistoryEntry,
+  CapProjectionYear,
   Ceremony,
   ConditionalPick,
+  ContractExtensionRecord,
+  FATargetBoard,
   DashboardState,
   DifficultyState,
+  DraftTradeOffer,
   DraftRecap,
   DraftOrderEntry,
   DraftProspect,
@@ -29,8 +33,12 @@ import type {
   NarrativeIntensity,
   PracticeSquadPlayer,
   Player,
+  PlayerProfile,
+  PlayerProjection,
+  PlayerValue,
   PowerRanking,
   PressConference,
+  PositionGroup,
   RecordBook,
   RecordEntry,
   RivalryGameContext,
@@ -40,6 +48,8 @@ import type {
   SpecialTeamsState,
   StoryArc,
   Team,
+  TeamNeedsComparisonEntry,
+  TeamNeedsReport,
   TradeSuggestion,
   TradeProposal,
   TransactionLogEntry,
@@ -50,10 +60,18 @@ import type {
   WaiverRunResult,
   WaiverWireEntry,
   WeatherCondition,
+  WarRoomState,
   WeeklySummary,
   Handshake,
 } from '@mfd/engine';
 import {
+  analyzeTeamNeeds,
+  buildDraftWarRoomState,
+  buildFATargetBoard,
+  buildLeagueAverageByGroup,
+  buildPlayerProfile,
+  capProjection,
+  checkIncentives,
   buildPlayoffPicture,
   calculateAdvancedStats,
   createDefaultDashboardState,
@@ -62,6 +80,9 @@ import {
   getAchievementProgress,
   getAnalyticsStatLeaders,
   getFullSchedule,
+  getPlayerComparables,
+  getPlayerProjection,
+  getPlayerValue,
   getStoredOpponentReport,
   getPlayerComparison,
   getCooldownStatus,
@@ -79,6 +100,7 @@ import {
   getRivalryGameContext,
   getStatLeaders,
   getTeamNews,
+  mulberry32,
 } from '@mfd/engine';
 
 export interface GameStoreState {
@@ -150,6 +172,25 @@ const EMPTY_TRANSACTION_LOG: TransactionLogEntry[] = [];
 const EMPTY_DRAFT_RECAPS: DraftRecap[] = [];
 const EMPTY_TRADE_SUGGESTIONS: TradeSuggestion[] = [];
 const EMPTY_PLAYOFF_PICTURE = { afc: [], nfc: [] };
+const EMPTY_TEAM_NEEDS_REPORT: TeamNeedsReport = {
+  overall: 'No report available',
+  positionGrades: [],
+  criticalNeeds: [],
+  strengths: [],
+  draftTargets: [],
+  faTargets: [],
+  capFlexibility: 'moderate',
+};
+const EMPTY_FA_TARGET_BOARD: FATargetBoard = {
+  watchlist: [],
+  targets: [],
+  topAvailable: [],
+  bestFits: [],
+  bargains: [],
+};
+const EMPTY_CAP_PROJECTION: CapProjectionYear[] = [];
+const EMPTY_CONTRACT_EXTENSIONS: ContractExtensionRecord[] = [];
+const EMPTY_WAR_ROOM_STATE: WarRoomState | null = null;
 const EMPTY_STAT_LEADERS = { passYds: [], rushYds: [], recYds: [], sacks: [], defINT: [] };
 const EMPTY_ADVANCED_STATS = {
   stats: { qbr: 0, epa: 0, successRate: 0, yac: 0, pressureRate: 0, thirdDownRate: 0, redZoneRate: 0, turnoverRate: 0 },
@@ -198,6 +239,51 @@ export interface MentoringHistoryNote {
 
 const EMPTY_RECORD_WATCH: RecordWatchItem[] = [];
 const EMPTY_MENTORING_HISTORY: MentoringHistoryNote[] = [];
+
+export interface PlayerProfileBundle {
+  profile: PlayerProfile;
+  value: PlayerValue;
+  comparables: Player[];
+  projection: PlayerProjection;
+}
+
+function buildIntelSeed(game: GameState, salt: string): number {
+  const saltHash = [...salt].reduce((hash, char) => ((hash * 33) ^ char.charCodeAt(0)) >>> 0, 5381);
+  return (game.seed ^ (game.year * 131) ^ (game.week * 977) ^ saltHash) >>> 0;
+}
+
+function intelRng(game: GameState, salt: string): () => number {
+  return mulberry32(buildIntelSeed(game, salt));
+}
+
+function teamNeedsReportFor(game: GameState, team: Team): TeamNeedsReport {
+  const cached = game.teamNeedsCache[team.id];
+  if (cached) return cached;
+  return analyzeTeamNeeds(team, buildLeagueAverageByGroup(Object.values(game.teams)));
+}
+
+function faBoardSnapshotCurrent(game: GameState, teamId: string): boolean {
+  if (game.faTargetBoard.teamId !== teamId || game.faTargetBoard.targets.length === 0) {
+    return false;
+  }
+  const freeAgentIds = new Set(game.freeAgents);
+  return game.faTargetBoard.targets.every((target) => freeAgentIds.has(target.player.id));
+}
+
+function bargainScore(target: FATargetBoard['targets'][number]): number {
+  return (target.fitScore + target.player.ovr) - target.projectedSalary * 6;
+}
+
+function materializeStoredFATargetBoard(game: GameState): FATargetBoard {
+  const targets = [...game.faTargetBoard.targets];
+  return {
+    watchlist: [...game.faTargetBoard.watchlist],
+    targets,
+    topAvailable: [...targets].sort((a, b) => b.player.ovr - a.player.ovr || a.projectedSalary - b.projectedSalary).slice(0, 10),
+    bestFits: [...targets].sort((a, b) => b.fitScore - a.fitScore || b.player.ovr - a.player.ovr).slice(0, 5),
+    bargains: [...targets].sort((a, b) => bargainScore(b) - bargainScore(a) || a.projectedSalary - b.projectedSalary).slice(0, 5),
+  };
+}
 
 export const selectUserTeam = (state: GameStoreState): Team | null =>
   state.game ? Object.values(state.game.teams).find((team) => team.isUser) ?? null : null;
@@ -568,6 +654,137 @@ export const selectLatestGameResult = (state: GameStoreState): GameResult | null
 export const selectCurrentDraftEntry = (state: GameStoreState): DraftOrderEntry | null => {
   const offseasonState = state.game?.offseasonState;
   return offseasonState ? offseasonState.draftOrder[offseasonState.currentDraftPickIndex] ?? null : null;
+};
+export const selectPlayerProfileBundle = (playerId: string) => (state: GameStoreState): PlayerProfileBundle | null => {
+  if (!state.game) return null;
+  const player = state.game.players[playerId];
+  if (!player) return null;
+
+  return {
+    profile: buildPlayerProfile(player, state.game),
+    value: getPlayerValue(player, state.game),
+    comparables: getPlayerComparables(player, Object.values(state.game.players)),
+    projection: getPlayerProjection(player),
+  };
+};
+export const selectUserTeamNeeds = (state: GameStoreState): TeamNeedsReport => {
+  if (!state.game) return EMPTY_TEAM_NEEDS_REPORT;
+  const team = selectUserTeam(state);
+  return team ? teamNeedsReportFor(state.game, team) : EMPTY_TEAM_NEEDS_REPORT;
+};
+export const selectTeamNeedsById = (teamId: string) => (state: GameStoreState): TeamNeedsReport => {
+  if (!state.game) return EMPTY_TEAM_NEEDS_REPORT;
+  const team = state.game.teams[teamId];
+  return team ? teamNeedsReportFor(state.game, team) : EMPTY_TEAM_NEEDS_REPORT;
+};
+export const selectTeamNeedsComparison = (otherTeamId: string | null) => (state: GameStoreState): TeamNeedsComparisonEntry[] => {
+  if (!state.game || !otherTeamId) return [];
+  const userTeam = selectUserTeam(state);
+  const otherTeam = state.game.teams[otherTeamId];
+  if (!userTeam || !otherTeam) return [];
+
+  const userReport = teamNeedsReportFor(state.game, userTeam);
+  const otherReport = teamNeedsReportFor(state.game, otherTeam);
+  const groups = ['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P'] as const satisfies PositionGroup[];
+
+  return groups.map((group) => {
+    const left = userReport.positionGrades.find((entry) => entry.group === group);
+    const right = otherReport.positionGrades.find((entry) => entry.group === group);
+    const differential = (left?.starterOvr ?? 0) - (right?.starterOvr ?? 0);
+    return {
+      group,
+      teamAGrade: left?.grade ?? 'F',
+      teamBGrade: right?.grade ?? 'F',
+      edge: differential > 1 ? 'teamA' : differential < -1 ? 'teamB' : 'even',
+      differential: Math.round(differential * 10) / 10,
+    };
+  });
+};
+export const selectFATargetBoard = (state: GameStoreState): FATargetBoard => {
+  if (!state.game) return EMPTY_FA_TARGET_BOARD;
+  const team = selectUserTeam(state);
+  if (!team) return EMPTY_FA_TARGET_BOARD;
+
+  if (faBoardSnapshotCurrent(state.game, team.id)) {
+    return materializeStoredFATargetBoard(state.game);
+  }
+
+  return buildFATargetBoard(
+    team,
+    selectFreeAgentPlayers(state),
+    Object.values(state.game.teams),
+    intelRng(state.game, `fa-board:${team.id}`),
+    state.game.faTargetBoard,
+  );
+};
+export const selectWatchlistTargets = (state: GameStoreState) => {
+  const board = selectFATargetBoard(state);
+  const watchlist = new Set(board.watchlist);
+  return board.targets.filter((target) => watchlist.has(target.player.id));
+};
+export const selectWarRoomState = (state: GameStoreState): WarRoomState | null => {
+  if (!state.game || state.game.phase !== 'draft') return EMPTY_WAR_ROOM_STATE;
+  const currentPick = selectCurrentDraftEntry(state);
+  if (!currentPick) return EMPTY_WAR_ROOM_STATE;
+  const stored = state.game.warRoomState;
+  if (stored && stored.currentPick === currentPick.overall && stored.onTheClock === currentPick.teamId) {
+    return stored;
+  }
+  return buildDraftWarRoomState(state.game, intelRng(state.game, `war-room:${currentPick.overall}`));
+};
+export const selectCapProjection = (state: GameStoreState): CapProjectionYear[] => {
+  if (!state.game) return EMPTY_CAP_PROJECTION;
+  const team = selectUserTeam(state);
+  return team ? capProjection(team, state.game.year, 3) : EMPTY_CAP_PROJECTION;
+};
+export const selectContractExtensions = (state: GameStoreState): ContractExtensionRecord[] => {
+  if (!state.game) return EMPTY_CONTRACT_EXTENSIONS;
+  const teamId = selectUserTeamId(state);
+  if (!teamId) return EMPTY_CONTRACT_EXTENSIONS;
+  return state.game.contractExtensions.filter((entry) => entry.teamId === teamId).slice().reverse();
+};
+export const selectLatestExtensionRecord = (playerId: string) => (state: GameStoreState): ContractExtensionRecord | null => {
+  return selectContractExtensions(state).find((entry) => entry.playerId === playerId) ?? null;
+};
+export const selectIncentiveSummary = (state: GameStoreState) => {
+  const team = selectUserTeam(state);
+  if (!team) {
+    return {
+      total: 0,
+      likely: 0,
+      unlikely: 0,
+      entries: [],
+    };
+  }
+
+  const entries = team.roster.flatMap((player) => {
+    const result = checkIncentives(player, {
+      madePlayoffs: team.wins >= 9,
+      proBowl: player.ovr >= 85,
+    });
+    const allHits = [...result.hit, ...result.miss];
+    return (player.contract?.incentives ?? []).map((incentive) => {
+      const tracked = allHits.find((entry) => entry.id === incentive.type);
+      const progress = tracked ? Math.min(100, Math.round((tracked.actual / Math.max(1, tracked.threshold)) * 100)) : 0;
+      const likely = tracked ? tracked.actual >= tracked.threshold * 0.65 : false;
+      return {
+        id: `${player.id}-${incentive.type}`,
+        playerId: player.id,
+        playerName: player.name,
+        label: incentive.type.replaceAll('_', ' '),
+        bonus: incentive.bonus,
+        progress,
+        likely,
+      };
+    });
+  });
+
+  return {
+    total: entries.length,
+    likely: entries.filter((entry) => entry.likely).length,
+    unlikely: entries.filter((entry) => !entry.likely).length,
+    entries,
+  };
 };
 export const selectUserPowerRanking = (state: GameStoreState): PowerRanking | null => {
   const userTeamId = selectUserTeamId(state);

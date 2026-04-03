@@ -13,6 +13,7 @@ import { advanceFreeAgency, advanceOffseason, initializeOffseasonState } from '.
 import { advancePlayoffBracket, seedPlayoffBracket } from './playoff-bracket';
 import { generatePlayoffNews, calculatePlayoffMomentum, getPlayoffMomentumBonus } from './playoff-momentum';
 import { processWeeklyTraining } from './player-development';
+import { archivePlayerSeasonHistory } from './player-profile';
 import { processCarryoverHoldouts } from './player-agents';
 import { archiveSeasonHistory } from './history';
 import { advanceStoryArcs } from './story-arcs';
@@ -375,6 +376,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
 
     if (nextState.playoffBracket.championTeamId) {
       archiveSeasonHistory(nextState);
+      archivePlayerSeasonHistory(nextState, nextState.year);
       nextState.phase = 'offseason';
       nextState.year += 1;
       nextState.week = 1;

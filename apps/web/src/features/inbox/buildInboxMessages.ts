@@ -2,8 +2,10 @@ import type {
   Achievement,
   Ceremony,
   ConditionalPick,
+  ContractExtensionRecord,
   DraftRecap,
   DifficultyState,
+  FATargetBoard,
   GameDayPackage,
   GameEvent,
   GamePlan,
@@ -20,11 +22,13 @@ import type {
   SeasonPhase,
   StoryArc,
   Team,
+  TeamNeedsReport,
   TradeSuggestion,
   TradeProposal,
   TransactionLogEntry,
   TrainingAssignment,
   WaiverWireEntry,
+  WarRoomState,
   WeatherCondition,
   WeeklySummary,
   MedicalStaff,
@@ -85,6 +89,10 @@ interface BuildInboxMessagesParams {
   claimResults: ClaimResultDigest[];
   transactionLog: TransactionLogEntry[];
   tradeSuggestions: Array<TradeSuggestion & { partnerName?: string }>;
+  faTargetBoard: FATargetBoard;
+  teamNeedsReport: TeamNeedsReport;
+  warRoomState: WarRoomState | null;
+  contractExtensions: ContractExtensionRecord[];
   upcomingGame: {
     week: number;
     opponentName: string;
@@ -128,6 +136,10 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     claimResults,
     transactionLog,
     tradeSuggestions,
+    faTargetBoard,
+    teamNeedsReport,
+    warRoomState,
+    contractExtensions,
     upcomingGame,
   } = params;
   const msgs: InboxMessage[] = [];
@@ -247,6 +259,61 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       week,
       read: false,
       actionRequired: false,
+    });
+  }
+
+  if (teamNeedsReport.criticalNeeds.length > 0) {
+    msgs.push({
+      id: `team-needs-${week}`,
+      type: 'DECISION',
+      title: 'Team Needs Alert',
+      body: `Critical rooms: ${teamNeedsReport.criticalNeeds.join(' | ')}\nDraft targets: ${teamNeedsReport.draftTargets.join(' | ')}\nFA targets: ${teamNeedsReport.faTargets.join(' | ')}`,
+      from: 'Roster Intel',
+      week,
+      read: false,
+      actionRequired: true,
+    });
+  }
+
+  if (faTargetBoard.bestFits.length > 0 && (phase === 'offseason' || phase === 'free_agency')) {
+    msgs.push({
+      id: `fa-board-${week}`,
+      type: 'INTEL',
+      title: 'FA Target Board Updated',
+      body: faTargetBoard.bestFits.slice(0, 3).map((target) =>
+        `${target.player.name}: ${target.player.pos} // fit ${target.fitScore} // $${target.projectedSalary}M`).join('\n'),
+      from: 'Free Agency Intel',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  if ((warRoomState?.incomingOffers.length ?? 0) > 0) {
+    msgs.push({
+      id: `draft-war-room-${warRoomState?.currentPick ?? week}`,
+      type: 'DECISION',
+      title: 'Draft Trade Offers Waiting',
+      body: warRoomState!.incomingOffers.slice(0, 3).map((offer) =>
+        `${offer.from} (${offer.urgency}): ${offer.reasoning}`).join('\n'),
+      from: 'Draft War Room',
+      week,
+      read: false,
+      actionRequired: true,
+    });
+  }
+
+  const latestExtension = contractExtensions[0] ?? null;
+  if (latestExtension) {
+    msgs.push({
+      id: `extension-${latestExtension.playerId}-${latestExtension.year}-${latestExtension.week}`,
+      type: latestExtension.status === 'accepted' ? 'INTEL' : 'DECISION',
+      title: latestExtension.status === 'accepted' ? 'Extension Signed' : 'Extension Response',
+      body: `${roster.find((player) => player.id === latestExtension.playerId)?.name ?? latestExtension.playerId}\n${latestExtension.reasoning}`,
+      from: 'Contract Desk',
+      week: latestExtension.week,
+      read: false,
+      actionRequired: latestExtension.status !== 'accepted',
     });
   }
 

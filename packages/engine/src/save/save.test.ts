@@ -52,6 +52,15 @@ describe('SaveStateSchema', () => {
       offseasonState: null,
       leagueNews: [],
       activeProposals: [],
+      playerSeasonHistory: {},
+      faTargetBoard: {
+        teamId: null,
+        watchlist: [],
+        targets: [],
+      },
+      teamNeedsCache: {},
+      warRoomState: null,
+      contractExtensions: [],
       difficultyState: {
         enabled: true,
         adaptiveSlider: 50,
@@ -65,6 +74,15 @@ describe('SaveStateSchema', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.offseasonState).toBeNull();
+      expect(result.data.playerSeasonHistory).toEqual({});
+      expect(result.data.faTargetBoard).toMatchObject({
+        teamId: null,
+        watchlist: [],
+        targets: [],
+      });
+      expect(result.data.teamNeedsCache).toEqual({});
+      expect(result.data.warRoomState).toBeNull();
+      expect(result.data.contractExtensions).toEqual([]);
     }
   });
 
@@ -146,6 +164,15 @@ describe('SaveStateSchema', () => {
       offseasonState: null,
       leagueNews: [],
       activeProposals: [],
+      playerSeasonHistory: {},
+      faTargetBoard: {
+        teamId: null,
+        watchlist: [],
+        targets: [],
+      },
+      teamNeedsCache: {},
+      warRoomState: null,
+      contractExtensions: [],
       difficultyState: {
         enabled: true,
         adaptiveSlider: 50,
@@ -706,5 +733,49 @@ describe('migration pipeline', () => {
     expect(migrated['draftRecaps']).toEqual([]);
     expect(migrated['tradeSuggestions']).toEqual([]);
     expect(migrated['waiverResults']).toEqual([]);
+  });
+
+  it('migrates v13 saves to include scout report state defaults', () => {
+    const migrated = migrate({
+      version: 13,
+      year: 2032,
+      week: 3,
+      players: {
+        p1: {
+          id: 'p1',
+          name: 'Legacy Veteran',
+          careerStats: { seasons: 8, gp: 136, passYds: 28600, seasonStartOvr: 84, previousSeasonOvr: 81 },
+        },
+      },
+      teams: {
+        t1: {
+          id: 't1',
+          isUser: true,
+          roster: [{ id: 'p1', name: 'Legacy Veteran', pos: 'QB', ovr: 84 }],
+          txLog: [],
+        },
+      },
+      tradeSuggestions: [],
+      gamePlan: null,
+      opponentReports: [],
+      draftRecaps: [],
+      waiverResults: [],
+    }, 14);
+
+    expect(migrated['version']).toBe(14);
+    expect(migrated['playerSeasonHistory']).toEqual({});
+    expect(migrated['faTargetBoard']).toEqual({
+      teamId: null,
+      watchlist: [],
+      targets: [],
+    });
+    expect(migrated['teamNeedsCache']).toEqual({});
+    expect(migrated['warRoomState']).toBeNull();
+    expect(migrated['contractExtensions']).toEqual([]);
+    expect((migrated['players'] as Record<string, Record<string, unknown>>).p1?.['careerStats']).toMatchObject({
+      seasons: 8,
+      gp: 136,
+      passYds: 28600,
+    });
   });
 });

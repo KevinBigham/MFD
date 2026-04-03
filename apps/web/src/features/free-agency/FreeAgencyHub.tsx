@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import {
   PixelBadge, PixelButton, PixelPanel,
 } from '@mfd/design-system/components';
@@ -14,6 +15,7 @@ import {
 import {
   PixelMetricCard,
   PixelScreenHeader,
+  PlayerNameLink,
   autoGrid,
   display,
   monoSm,
@@ -55,7 +57,12 @@ function marketOffer(player: Player, multiplier: number): ContractOffer {
   };
 }
 
+function boardLabel(phase: string): string {
+  return phase === 'free_agency' ? 'Live' : 'Prep';
+}
+
 export function FreeAgencyHub() {
+  const navigate = useNavigate();
   const phase = useGameStore(selectPhase);
   const roster = useGameStore(selectRoster);
   const offseasonState = useGameStore(selectOffseasonState);
@@ -100,6 +107,13 @@ export function FreeAgencyHub() {
         <PixelMetricCard label="Expiring Deals" value={expiringPlayers.length} accent="gold" detail="Players up for renewal" />
         <PixelMetricCard label="Open Market" value={freeAgents.length} accent="cyan" detail="Unsigned players available" />
         <PixelMetricCard label="Round" value={freeAgencyRound} accent="green" detail="Current market cycle" />
+        <PixelMetricCard label="Target Board" value={boardLabel(phase)} accent="gold" detail="Use the FA targets route for watchlist intel" />
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <PixelButton accent="cyan" onClick={() => { void navigate({ to: '/fa-targets' }); }}>
+          Open FA Target Board
+        </PixelButton>
       </div>
 
       {phase === 'offseason' ? (
@@ -126,7 +140,12 @@ export function FreeAgencyHub() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                       <div>
                         <div style={{ ...display, fontSize: '22px', color: '#fff', lineHeight: 1 }}>
-                          {player.name.toUpperCase()}
+                          <PlayerNameLink
+                            playerId={player.id}
+                            name={player.name.toUpperCase()}
+                            ovr={player.ovr}
+                            style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '22px', lineHeight: 1 }}
+                          />
                         </div>
                         <div style={{ ...monoSm, color: '#888', marginTop: '6px' }}>
                           {player.pos} // {player.ovr} OVR
@@ -249,7 +268,12 @@ export function FreeAgencyHub() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                       <div>
                         <div style={{ ...display, fontSize: '22px', color: '#fff', lineHeight: 1 }}>
-                          {player.name.toUpperCase()}
+                          <PlayerNameLink
+                            playerId={player.id}
+                            name={player.name.toUpperCase()}
+                            ovr={player.ovr}
+                            style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '22px', lineHeight: 1 }}
+                          />
                         </div>
                         <div style={{ ...monoSm, color: '#888', marginTop: '6px' }}>
                           {player.pos} // {player.ovr} OVR // Age {player.age}

@@ -61,6 +61,10 @@ vi.mock('../../app/store/game-store', () => ({
   selectUserTeamId: (state: typeof mockState) => state.userTeamId,
 }));
 
+vi.mock('@tanstack/react-router', () => ({
+  useNavigate: () => () => Promise.resolve(),
+}));
+
 describe('FreeAgencyHub', () => {
   it('renders agent demand, counter language, and accept-counter controls in the re-sign window', () => {
     const markup = renderToStaticMarkup(<FreeAgencyHub />);

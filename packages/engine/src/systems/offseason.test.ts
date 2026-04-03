@@ -168,6 +168,7 @@ function makeOffseasonGame(): GameState {
     powerRankings: [],
     franchiseHistory: [],
     playerArchive: [],
+    playerSeasonHistory: {},
     frontOffice: {
       xp: 0,
       level: 1,
@@ -181,6 +182,68 @@ function makeOffseasonGame(): GameState {
     weekSummaries: [],
     playoffBracket: null,
     offseasonState: null,
+    leagueNews: [],
+    activeProposals: [],
+    faTargetBoard: {
+      teamId: null,
+      watchlist: [],
+      targets: [],
+    },
+    teamNeedsCache: {},
+    warRoomState: null,
+    contractExtensions: [],
+    difficultyState: {
+      enabled: true,
+      adaptiveSlider: 50,
+      recentUserResults: [],
+      currentStreak: 0,
+      adjustmentHistory: [],
+    },
+    availableMedicalStaff: [],
+    playoffMomentum: {},
+    scoutingDepartment: {
+      scouts: [],
+      availableScouts: [],
+      budget: 5,
+      maxScouts: 5,
+    },
+    conditionalPicks: [],
+    waiverOrder: Object.keys(teams),
+    waiverWire: [],
+    waiverClaims: [],
+    waiverResults: [],
+    handshakes: [],
+    tutorialState: {
+      active: false,
+      currentStepIndex: 0,
+      steps: [],
+      completedSteps: [],
+      dismissed: false,
+    },
+    agents: [],
+    narrativeIntensity: {
+      current: 50,
+      recentBeats: [],
+      cooldownWeeks: 0,
+    },
+    ceremonies: [],
+    dynastyTimeline: [],
+    achievements: [],
+    dashboardState: {
+      activeLayoutId: 'layout:default',
+      layouts: [{
+        id: 'layout:default',
+        name: 'Command Center',
+        widgets: [],
+        columns: 3,
+      }],
+      pinnedWidgets: [],
+    },
+    seasonReports: [],
+    gamePlan: null,
+    opponentReports: [],
+    draftRecaps: [],
+    tradeSuggestions: [],
   };
 
   game.teams.user.roster[0]!.contract!.years = 1;
@@ -296,6 +359,25 @@ describe('offseason systems', () => {
       entry.playoffFinish === 'champion' &&
       entry.record === '12-5'
     )).toBe(true);
+  });
+
+  it('archives player season snapshots before offseason progression changes ratings', () => {
+    const game = makeChampionshipGame();
+    const userQuarterback = game.teams.user.roster[0]!;
+    userQuarterback.age = 24;
+    userQuarterback.ovr = 88;
+    userQuarterback.stats.gamesPlayed = 17;
+    userQuarterback.stats.passYds = 4625;
+    userQuarterback.stats.passTD = 36;
+
+    const result = advanceFranchiseWeek(game);
+    const snapshot = result.nextState.playerSeasonHistory[userQuarterback.id]?.[0];
+
+    expect(snapshot?.season).toBe(2026);
+    expect(snapshot?.ovr).toBe(88);
+    expect(snapshot?.age).toBe(24);
+    expect(snapshot?.gamesPlayed).toBe(17);
+    expect(snapshot?.keyStats.passYds).toBe(4625);
   });
 
   it('progresses players and records retirements on the first offseason advance', () => {

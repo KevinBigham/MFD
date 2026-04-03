@@ -19,6 +19,7 @@ import {
 } from '../../app/store/game-store';
 import {
   PixelScreenHeader,
+  PlayerNameLink,
   autoGrid,
   display,
   mono,
@@ -72,7 +73,7 @@ const efficiencyColumns: ColumnDef<EfficiencyRow, unknown>[] = [
   {
     accessorKey: 'name',
     header: 'Player',
-    cell: ({ row }) => <span style={{ ...mono, color: '#fff' }}>{row.original.name}</span>,
+    cell: ({ row }) => <PlayerNameLink playerId={row.original.id} name={row.original.name} style={{ ...mono }} />,
   },
   {
     accessorKey: 'pos',

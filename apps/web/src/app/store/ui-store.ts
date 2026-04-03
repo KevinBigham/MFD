@@ -25,6 +25,11 @@ interface UiState {
 
   simSpeed: SimSpeed;
   setSimSpeed: (speed: SimSpeed) => void;
+
+  focusedPlayerId: string | null;
+  focusedPlayerScreen: 'contracts' | 'trades' | null;
+  setFocusedPlayerContext: (playerId: string | null, screen?: 'contracts' | 'trades' | null) => void;
+  clearFocusedPlayerContext: () => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -45,6 +50,11 @@ export const useUiStore = create<UiState>()(
 
       simSpeed: 'normal',
       setSimSpeed: (simSpeed) => set({ simSpeed }),
+
+      focusedPlayerId: null,
+      focusedPlayerScreen: null,
+      setFocusedPlayerContext: (focusedPlayerId, focusedPlayerScreen = null) => set({ focusedPlayerId, focusedPlayerScreen }),
+      clearFocusedPlayerContext: () => set({ focusedPlayerId: null, focusedPlayerScreen: null }),
     }),
     {
       name: 'mfd-ui-preferences',

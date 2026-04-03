@@ -20,6 +20,7 @@ import { applyMentoringBonuses, formMentoringPairs } from './mentoring';
 import { recordBeat } from './narrative-director';
 import { clearSeasonLivingWorldState } from './off-field-events';
 import { buildTrainingProgressionBonuses, clearTrainingAssignments } from './player-development';
+import { archivePlayerSeasonHistory } from './player-profile';
 import { agentDemand, ensureAgentsInitialized, getAgentPatienceWeeks, getPlayerAgent, negotiateOffer } from './player-agents';
 import { processWaiverClaims } from './practice-squad';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
@@ -589,6 +590,7 @@ export function advanceOffseason(game: GameState): void {
 
   const seasonYear = currentSeasonYear(game);
   markCompletedSeason(game, seasonYear);
+  archivePlayerSeasonHistory(game, seasonYear);
   clearSeasonLivingWorldState(game);
   stampChampionCareers(game, seasonYear);
   ensureAgentsInitialized(game);
@@ -709,6 +711,8 @@ export function advanceOffseason(game: GameState): void {
   game.eventLog.push(...strategyEvents);
   generateOffseasonNews(game);
   game.offseasonState.tradeOffers = generateTradeOffers(game);
+  game.teamNeedsCache = {};
+  game.warRoomState = null;
   checkAchievements(game);
   game.phase = 'free_agency';
   game.week = 1;
@@ -728,6 +732,8 @@ export function advanceFreeAgency(game: GameState): void {
     }
     generateOffseasonNews(game);
     rebuildDraftBoard(game);
+    game.teamNeedsCache = {};
+    game.warRoomState = null;
     game.phase = 'draft';
     game.week = 1;
     return;

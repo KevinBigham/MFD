@@ -602,3 +602,22 @@ registerMigration(12, (state) => ({
   tradeSuggestions: Array.isArray(state['tradeSuggestions']) ? state['tradeSuggestions'] : [],
   waiverResults: Array.isArray(state['waiverResults']) ? state['waiverResults'] : [],
 }));
+
+registerMigration(13, (state) => ({
+  ...state,
+  playerSeasonHistory: (state['playerSeasonHistory'] && typeof state['playerSeasonHistory'] === 'object')
+    ? state['playerSeasonHistory']
+    : {},
+  faTargetBoard: (state['faTargetBoard'] && typeof state['faTargetBoard'] === 'object')
+    ? state['faTargetBoard']
+    : {
+      teamId: null,
+      watchlist: [],
+      targets: [],
+    },
+  teamNeedsCache: (state['teamNeedsCache'] && typeof state['teamNeedsCache'] === 'object')
+    ? state['teamNeedsCache']
+    : {},
+  warRoomState: state['warRoomState'] ?? null,
+  contractExtensions: Array.isArray(state['contractExtensions']) ? state['contractExtensions'] : [],
+}));

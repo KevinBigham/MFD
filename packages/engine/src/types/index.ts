@@ -971,6 +971,61 @@ export interface DraftRecap {
   leagueHighlights: DraftRecapPick[];
 }
 
+export type ReportCardGrade = 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C' | 'D' | 'F';
+export type PositionGroup = 'QB' | 'RB' | 'WR' | 'TE' | 'OL' | 'DL' | 'LB' | 'CB' | 'S' | 'K' | 'P';
+
+export interface PositionGroupGrade {
+  group: PositionGroup;
+  grade: ReportCardGrade;
+  avgOvr: number;
+  starterOvr: number;
+  depth: number;
+  ageRisk: 'low' | 'medium' | 'high';
+  topPlayer: Player | null;
+  weakestStarter: Player | null;
+}
+
+export interface TeamNeedsReport {
+  overall: string;
+  positionGrades: PositionGroupGrade[];
+  criticalNeeds: string[];
+  strengths: string[];
+  draftTargets: string[];
+  faTargets: string[];
+  capFlexibility: 'tight' | 'moderate' | 'abundant';
+}
+
+export interface TeamNeedsComparisonEntry {
+  group: PositionGroup;
+  teamAGrade: ReportCardGrade;
+  teamBGrade: ReportCardGrade;
+  edge: 'teamA' | 'teamB' | 'even';
+  differential: number;
+}
+
+export interface FATarget {
+  player: Player;
+  projectedSalary: number;
+  marketDemand: 'high' | 'medium' | 'low';
+  fitScore: number;
+  signProbability: number;
+  competingTeams: string[];
+}
+
+export interface FATargetBoard {
+  watchlist: string[];
+  targets: FATarget[];
+  topAvailable: FATarget[];
+  bestFits: FATarget[];
+  bargains: FATarget[];
+}
+
+export interface FATargetBoardState {
+  teamId: string | null;
+  watchlist: string[];
+  targets: FATarget[];
+}
+
 export interface TradePackage {
   offering: TradeOfferAsset[];
   requesting: TradeOfferAsset[];
@@ -984,6 +1039,68 @@ export interface TradeSuggestion {
   valueGap: number;
   acceptanceLikelihood: number;
   need: Position | null;
+}
+
+export interface DraftTradeOffer {
+  from: string;
+  targetPick: number;
+  offer: TradePackage;
+  urgency: 'desperate' | 'interested' | 'casual';
+  reasoning: string;
+}
+
+export interface TradeUpEvaluation {
+  cost: TradePackage;
+  worthIt: boolean;
+  reasoning: string;
+}
+
+export interface TradeDownEvaluation {
+  haul: TradePackage;
+  bestAvailableAfter: Player[];
+}
+
+export interface WarRoomState {
+  currentPick: number;
+  onTheClock: string;
+  timeRemaining: number;
+  incomingOffers: DraftTradeOffer[];
+  userCanTradeUp: Array<{ targetPick: number; cost: TradePackage }>;
+  draftGrade: string;
+}
+
+export interface ExtensionOffer {
+  playerId: string;
+  newYears: number;
+  newAvgSalary: number;
+  guaranteedAmount: number;
+  signingBonus: number;
+  capHitByYear: number[];
+}
+
+export interface ExtensionEvaluation {
+  playerAccepts: boolean;
+  counterOffer?: ExtensionOffer;
+  reasoning: string;
+}
+
+export interface ContractExtensionRecord {
+  playerId: string;
+  teamId: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'countered';
+  offer: ExtensionOffer;
+  counterOffer: ExtensionOffer | null;
+  reasoning: string;
+  year: number;
+  week: number;
+}
+
+export interface CapProjectionYear {
+  year: number;
+  totalCap: number;
+  committedCap: number;
+  deadCap: number;
+  freeSpace: number;
 }
 
 // ── Owner ───────────────────────────────────────────────
@@ -1432,6 +1549,68 @@ export interface PlayerArchiveEntry {
   careerStats?: CareerStats;
 }
 
+export interface PlayerSeasonHistoryEntry {
+  playerId: string;
+  season: number;
+  age: number;
+  ovr: number;
+  teamId: string | null;
+  gamesPlayed: number;
+  gamesStarted: number;
+  keyStats: Record<string, number>;
+}
+
+export interface PlayerContractDetailYear {
+  year: number;
+  baseSalary: number;
+  capHit: number;
+  deadCap: number;
+}
+
+export interface PlayerCareerStatLine {
+  season: number;
+  team: string;
+  gamesPlayed: number;
+  gamesStarted: number;
+  keyStats: Record<string, number>;
+}
+
+export interface PlayerPersonalityReport {
+  traits: string[];
+  agentStyle: string;
+  mediaPresence: 'high' | 'medium' | 'low';
+  lockerRoomImpact: 'positive' | 'neutral' | 'negative';
+}
+
+export interface PlayerProfile {
+  player: Player;
+  contractDetails: {
+    yearByYear: PlayerContractDetailYear[];
+    totalValue: number;
+    guaranteedRemaining: number;
+  };
+  developmentArc: Array<{ ovr: number; age: number }>;
+  careerStats: PlayerCareerStatLine[];
+  personalityReport: PlayerPersonalityReport;
+  awardsWon: string[];
+  mentorHistory: Array<{ mentorName: string; bonus: number }>;
+  injuryHistory: Array<{ type: string; weeksOut: number; season: number }>;
+  legacyHistoryPartial: boolean;
+}
+
+export interface PlayerValue {
+  tradeValue: number;
+  marketValue: number;
+  surplus: number;
+}
+
+export interface PlayerProjection {
+  nextYearOvr: number;
+  peakOvr: number;
+  peakAge: number;
+  retirementAge: number;
+}
+
 export interface FranchiseHistoryEntry {
   year: number;
   teamId: string;
@@ -1512,6 +1691,7 @@ export interface GameState {
   powerRankings: PowerRanking[];
   franchiseHistory: FranchiseHistoryEntry[];
   playerArchive: PlayerArchiveEntry[];
+  playerSeasonHistory: Record<string, PlayerSeasonHistoryEntry[]>;
   frontOffice: FrontOffice;
   eventLog: GameEvent[];
   narrativeState: NarrativeState;
@@ -1526,6 +1706,10 @@ export interface GameState {
   offseasonState: OffseasonState | null;
   leagueNews: NewsItem[];
   activeProposals: TradeProposal[];
+  faTargetBoard: FATargetBoardState;
+  teamNeedsCache: Record<string, TeamNeedsReport>;
+  warRoomState: WarRoomState | null;
+  contractExtensions: ContractExtensionRecord[];
   difficultyState: DifficultyState;
   availableMedicalStaff: MedicalStaff[];
   playoffMomentum: Record<string, PlayoffMomentum>;

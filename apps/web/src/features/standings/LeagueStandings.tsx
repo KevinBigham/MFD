@@ -9,6 +9,7 @@ import {
   pixelSm,
   screenStackStyle,
   PixelScreenHeader,
+  PlayerNameLink,
 } from '../shared/pixelUi';
 
 function streakLabel(streak: number): string {
@@ -162,7 +163,10 @@ export function LeagueStandings() {
                 {leaders.map((leader, index) => (
                   <div key={leader.playerId} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
                     <div>
-                      <div style={{ ...mono, color: '#fff' }}>{index + 1}. {leader.playerName}</div>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span style={{ ...mono, color: 'var(--mfd-text)' }}>{index + 1}.</span>
+                        <PlayerNameLink playerId={leader.playerId} name={leader.playerName} style={{ ...mono }} />
+                      </div>
                       <div style={{ ...monoSm, color: '#999' }}>{leader.teamName}</div>
                     </div>
                     <PixelBadge variant="green">{leader.value}</PixelBadge>

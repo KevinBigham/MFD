@@ -198,6 +198,41 @@ export {
 export { generateDraftRecap } from './systems/draft-recap';
 export { findTradeTargets } from './systems/trade-finder';
 export {
+  buildPlayerSeasonHistoryEntry,
+  archivePlayerSeasonHistory,
+  buildPlayerProfile,
+  getPlayerValue,
+  getPlayerComparables,
+  getPlayerProjection,
+} from './systems/player-profile';
+export {
+  buildLeagueAverageByGroup,
+  analyzeTeamNeeds,
+  compareTeamNeeds,
+} from './systems/team-needs';
+export {
+  addToWatchlist,
+  removeFromWatchlist,
+  buildFATargetBoard,
+  buildFATargetBoardState,
+  refreshStoredFATargetBoard,
+} from './systems/fa-target-board';
+export {
+  generateDraftTradeOffers,
+  evaluateTradeUp,
+  evaluateTradeDown,
+  updateDraftWarRoomState,
+  buildDraftWarRoomState,
+  applyDraftTradeOffer,
+} from './systems/draft-war-room';
+export {
+  generateExtensionOffer,
+  evaluateExtension,
+  postJune1Cut,
+  capProjection,
+  applyExtensionOffer,
+} from './systems/contract-extensions';
+export {
   generateAgentPool,
   ensureAgentsInitialized,
   getPlayerAgent,

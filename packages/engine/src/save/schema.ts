@@ -720,6 +720,93 @@ export const TradeSuggestionSchema = z.object({
   need: z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']).nullable(),
 });
 
+export const PlayerSeasonHistoryEntrySchema = z.object({
+  playerId: z.string(),
+  season: z.number(),
+  age: z.number(),
+  ovr: z.number(),
+  teamId: z.string().nullable(),
+  gamesPlayed: z.number(),
+  gamesStarted: z.number(),
+  keyStats: z.record(z.string(), z.number()),
+});
+
+export const PositionGroupGradeSchema = z.object({
+  group: z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']),
+  grade: z.enum(['A+', 'A', 'B+', 'B', 'C+', 'C', 'D', 'F']),
+  avgOvr: z.number(),
+  starterOvr: z.number(),
+  depth: z.number(),
+  ageRisk: z.enum(['low', 'medium', 'high']),
+  topPlayer: z.lazy(() => PlayerSchema).nullable(),
+  weakestStarter: z.lazy(() => PlayerSchema).nullable(),
+});
+
+export const TeamNeedsReportSchema = z.object({
+  overall: z.string(),
+  positionGrades: z.array(PositionGroupGradeSchema),
+  criticalNeeds: z.array(z.string()),
+  strengths: z.array(z.string()),
+  draftTargets: z.array(z.string()),
+  faTargets: z.array(z.string()),
+  capFlexibility: z.enum(['tight', 'moderate', 'abundant']),
+});
+
+export const FATargetSchema = z.object({
+  player: z.lazy(() => PlayerSchema),
+  projectedSalary: z.number(),
+  marketDemand: z.enum(['high', 'medium', 'low']),
+  fitScore: z.number(),
+  signProbability: z.number(),
+  competingTeams: z.array(z.string()),
+});
+
+export const FATargetBoardStateSchema = z.object({
+  teamId: z.string().nullable(),
+  watchlist: z.array(z.string()),
+  targets: z.array(FATargetSchema),
+});
+
+export const DraftTradeOfferSchema = z.object({
+  from: z.string(),
+  targetPick: z.number(),
+  offer: TradePackageSchema,
+  urgency: z.enum(['desperate', 'interested', 'casual']),
+  reasoning: z.string(),
+});
+
+export const WarRoomStateSchema = z.object({
+  currentPick: z.number(),
+  onTheClock: z.string(),
+  timeRemaining: z.number(),
+  incomingOffers: z.array(DraftTradeOfferSchema),
+  userCanTradeUp: z.array(z.object({
+    targetPick: z.number(),
+    cost: TradePackageSchema,
+  })),
+  draftGrade: z.string(),
+});
+
+export const ExtensionOfferSchema = z.object({
+  playerId: z.string(),
+  newYears: z.number(),
+  newAvgSalary: z.number(),
+  guaranteedAmount: z.number(),
+  signingBonus: z.number(),
+  capHitByYear: z.array(z.number()),
+});
+
+export const ContractExtensionRecordSchema = z.object({
+  playerId: z.string(),
+  teamId: z.string(),
+  status: z.enum(['pending', 'accepted', 'rejected', 'countered']),
+  offer: ExtensionOfferSchema,
+  counterOffer: ExtensionOfferSchema.nullable(),
+  reasoning: z.string(),
+  year: z.number(),
+  week: z.number(),
+});
+
 export const SpecialTeamsGameSummarySchema = z.object({
   kickReturnYards: z.number(),
   puntReturnYards: z.number(),
@@ -886,6 +973,7 @@ export const SaveStateSchema = z.object({
   powerRankings: z.array(PowerRankingSchema),
   franchiseHistory: z.array(z.any()),
   playerArchive: z.array(z.any()),
+  playerSeasonHistory: z.record(z.string(), z.array(PlayerSeasonHistoryEntrySchema)).default({}),
   frontOffice: z.object({
     xp: z.number(),
     level: z.number(),
@@ -914,6 +1002,14 @@ export const SaveStateSchema = z.object({
   offseasonState: OffseasonStateSchema.nullable(),
   leagueNews: z.array(NewsItemSchema).default([]),
   activeProposals: z.array(TradeProposalSchema).default([]),
+  faTargetBoard: FATargetBoardStateSchema.default({
+    teamId: null,
+    watchlist: [],
+    targets: [],
+  }),
+  teamNeedsCache: z.record(z.string(), TeamNeedsReportSchema).default({}),
+  warRoomState: WarRoomStateSchema.nullable().default(null),
+  contractExtensions: z.array(ContractExtensionRecordSchema).default([]),
   difficultyState: DifficultyStateSchema.default({
     enabled: true,
     adaptiveSlider: 50,

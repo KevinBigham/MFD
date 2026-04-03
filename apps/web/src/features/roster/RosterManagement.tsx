@@ -11,6 +11,7 @@ import {
 import {
   PixelConsequenceList,
   PixelMetricCard,
+  PlayerNameLink,
   PixelScreenHeader,
   autoGrid,
   display,
@@ -83,9 +84,12 @@ const columns: ColumnDef<Player, unknown>[] = [
     accessorKey: 'name',
     header: 'Name',
     cell: ({ row }) => (
-      <span style={{ fontWeight: 500, color: 'var(--mfd-text)' }}>
-        {row.original.name}
-      </span>
+      <PlayerNameLink
+        playerId={row.original.id}
+        name={row.original.name}
+        ovr={row.original.ovr}
+        style={{ fontWeight: 500 }}
+      />
     ),
   },
   {

@@ -7,12 +7,28 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type {
-  ContractOffer, DashboardWidget, GamePlan, GameState, OpponentReport, SeasonPhase, Team, TradeOfferAsset, TradeProposal, TrainingFocus, WeeklySummary,
+  ContractOffer,
+  DashboardWidget,
+  DraftTradeOffer,
+  ExtensionEvaluation,
+  ExtensionOffer,
+  GamePlan,
+  GameState,
+  OpponentReport,
+  SeasonPhase,
+  Team,
+  TradeOfferAsset,
+  TradeProposal,
+  TrainingFocus,
+  WeeklySummary,
 } from '@mfd/engine';
 import {
+  addToWatchlist,
   addToPracticeSquad as addToPracticeSquadEngine,
   activateFromIR as activateFromIREngine,
   advanceTutorial as advanceTutorialEngine,
+  applyDraftTradeOffer,
+  applyExtensionOffer,
   assignTraining as assignTrainingEngine,
   acceptCounterProposal as acceptCounterProposalEngine,
   completeTutorialAction as completeTutorialActionEngine,
@@ -20,12 +36,18 @@ import {
   createTradeProposal as createTradeProposalEngine,
   dismissTutorial as dismissTutorialEngine,
   elevateFromPracticeSquad as elevateFromPracticeSquadEngine,
+  evaluateExtension,
   fireScout as fireScoutEngine,
+  buildDraftWarRoomState,
   hireMedicalStaff as hireMedicalStaffEngine,
   hireScout as hireScoutEngine,
   makePlayerPromise as makePlayerPromiseEngine,
+  mulberry32,
   placeOnIR as placeOnIREngine,
+  postJune1Cut,
+  refreshStoredFATargetBoard,
   removeFromPracticeSquad as removeFromPracticeSquadEngine,
+  removeFromWatchlist,
   restructureContract, backloadContract,
   calcCapHit, calcDeadMoney,
   runProDay as runProDayEngine,
@@ -69,7 +91,7 @@ interface GameActions {
   loadLatestAutosave: () => Promise<boolean>;
 
   // Roster actions
-  cutPlayer: (teamId: string, playerId: string) => Promise<void>;
+  cutPlayer: (teamId: string, playerId: string, options?: { postJune1?: boolean }) => Promise<void>;
   toggleTradeBlock: (teamId: string, playerId: string) => void;
   setStarter: (teamId: string, playerId: string, isStarter: boolean) => void;
   addToPracticeSquad: (teamId: string, playerId: string) => Promise<void>;
@@ -95,6 +117,8 @@ interface GameActions {
   // Offseason actions
   submitReSignOffer: (playerId: string, offer: ContractOffer) => Promise<void>;
   submitFreeAgentBid: (playerId: string, offer: ContractOffer) => Promise<void>;
+  toggleFATargetWatchlist: (playerId: string) => Promise<void>;
+  refreshFATargetBoard: () => Promise<void>;
   runScoutingAction: (prospectId: string, action: 'film' | 'combine' | 'interview') => Promise<void>;
   runProDay: (prospectId: string) => Promise<void>;
   hireScout: (scoutId: string) => Promise<void>;
@@ -112,7 +136,11 @@ interface GameActions {
   submitTradeProposal: (proposalId: string) => Promise<TradeProposal | null>;
   acceptCounter: (proposalId: string) => Promise<TradeProposal | null>;
   rejectCounter: (proposalId: string) => Promise<TradeProposal | null>;
+  acceptDraftTradeOffer: (offer: DraftTradeOffer) => Promise<void>;
+  rejectDraftTradeOffer: (offer: DraftTradeOffer) => Promise<void>;
+  refreshWarRoom: () => Promise<void>;
   makeDraftPick: (prospectId: string) => Promise<void>;
+  submitExtensionOffer: (playerId: string, offer: ExtensionOffer) => Promise<ExtensionEvaluation | null>;
   makePromise: (teamId: string, playerId: string, promiseType: 'starter' | 'no_trade' | 'restructure') => Promise<void>;
 
   // Owner
@@ -154,6 +182,48 @@ export const useGameStore = create<GameStore>()(
     };
 
     const cloneForMutation = (game: GameState): GameState => structuredClone(game);
+    const buildIntelSeed = (game: GameState, salt: string) => {
+      const saltHash = [...salt].reduce((hash, char) => ((hash * 33) ^ char.charCodeAt(0)) >>> 0, 5381);
+      return (game.seed ^ (game.year * 131) ^ (game.week * 977) ^ saltHash) >>> 0;
+    };
+    const intelRng = (game: GameState, salt: string) => mulberry32(buildIntelSeed(game, salt));
+    const applyPostJune1CutToGame = (game: GameState, teamId: string, playerId: string) => {
+      const team = game.teams[teamId];
+      const player = game.players[playerId];
+      if (!team || !player?.contract) return;
+
+      const rosterIndex = team.roster.findIndex((entry) => entry.id === playerId);
+      if (rosterIndex === -1) return;
+
+      const preCutCapHit = calcCapHit(player.contract);
+      const impact = postJune1Cut(player, team, game.year);
+      const currentYearDeadCap = Math.max(0, impact.deadCap - impact.acceleratedCap);
+
+      team.deadCap = Math.round((team.deadCap + currentYearDeadCap) * 10) / 10;
+      team.capUsed = Math.round((team.capUsed - (preCutCapHit - currentYearDeadCap)) * 10) / 10;
+      team.capSpace = Math.round((getSalaryCap(game.year) - team.capUsed) * 10) / 10;
+
+      team.roster.splice(rosterIndex, 1);
+      team.practiceSquad = team.practiceSquad.filter((entry) => entry.playerId !== playerId);
+      player.teamId = null;
+      player.contract = null;
+      game.waiverWire.push({
+        playerId,
+        releasedByTeamId: teamId,
+        createdYear: game.year,
+        createdWeek: game.week,
+        expiresYear: game.year,
+        expiresWeek: game.week + 1,
+      });
+      team.txLog.push({
+        type: 'CUT',
+        year: game.year,
+        week: game.week,
+        playerId,
+        fromTeamId: teamId,
+        notes: 'Post-June 1 designation',
+      });
+    };
     const runContractNegotiation = async (playerId: string, offer: ContractOffer) => {
       const current = get().game;
       if (!current) return;
@@ -191,9 +261,15 @@ export const useGameStore = create<GameStore>()(
         return true;
       },
 
-      cutPlayer: async (teamId, playerId) => {
+      cutPlayer: async (teamId, playerId, options) => {
         const current = get().game;
         if (!current) return;
+        if (options?.postJune1) {
+          const nextGame = cloneForMutation(current);
+          applyPostJune1CutToGame(nextGame, teamId, playerId);
+          await commitGame(nextGame);
+          return;
+        }
         const result = cutPlayerToWaiversEngine(cloneForMutation(current), teamId, playerId);
         await commitGame(result.nextState);
       },
@@ -373,6 +449,29 @@ export const useGameStore = create<GameStore>()(
         await commitGame(result.nextState);
       },
 
+      toggleFATargetWatchlist: async (playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.faTargetBoard = nextGame.faTargetBoard.watchlist.includes(playerId)
+          ? removeFromWatchlist(nextGame.faTargetBoard, playerId)
+          : addToWatchlist(nextGame.faTargetBoard, playerId);
+        await commitGame(nextGame);
+      },
+
+      refreshFATargetBoard: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam) return;
+        const freeAgents = nextGame.freeAgents
+          .map((playerId) => nextGame.players[playerId])
+          .filter((player): player is NonNullable<typeof player> => Boolean(player));
+        refreshStoredFATargetBoard(nextGame, userTeam, freeAgents, intelRng(nextGame, `fa-board:${userTeam.id}`));
+        await commitGame(nextGame);
+      },
+
       runScoutingAction: async (prospectId, action) => {
         const current = get().game;
         if (!current) return;
@@ -468,11 +567,80 @@ export const useGameStore = create<GameStore>()(
         return proposal;
       },
 
+      acceptDraftTradeOffer: async (offer) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = applyDraftTradeOffer(current, offer);
+        nextGame.warRoomState = buildDraftWarRoomState(nextGame, intelRng(nextGame, `war-room:${offer.targetPick}`));
+        await commitGame(nextGame);
+      },
+
+      rejectDraftTradeOffer: async (offer) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        if (nextGame.warRoomState) {
+          nextGame.warRoomState.incomingOffers = nextGame.warRoomState.incomingOffers.filter((entry) =>
+            !(entry.from === offer.from && entry.targetPick === offer.targetPick && entry.reasoning === offer.reasoning));
+        }
+        await commitGame(nextGame);
+      },
+
+      refreshWarRoom: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.warRoomState = buildDraftWarRoomState(nextGame, intelRng(nextGame, `war-room:${nextGame.week}:${nextGame.phase}`));
+        await commitGame(nextGame);
+      },
+
       makeDraftPick: async (prospectId) => {
         const current = get().game;
         if (!current) return;
         const result = makeDraftPickEngine(current, prospectId);
         await commitGame(result.nextState);
+      },
+
+      submitExtensionOffer: async (playerId, offer) => {
+        const current = get().game;
+        if (!current) return null;
+        const nextGame = cloneForMutation(current);
+        const player = nextGame.players[playerId];
+        const userTeam = Object.values(nextGame.teams).find((entry) => entry.isUser) ?? null;
+        const team = player && userTeam && player.teamId === userTeam.id ? userTeam : null;
+        if (!player || !team) return null;
+
+        const evaluation = evaluateExtension(offer, player, team, nextGame);
+
+        if (evaluation.playerAccepts) {
+          const acceptedState = applyExtensionOffer(nextGame, team.id, offer);
+          acceptedState.contractExtensions = acceptedState.contractExtensions.map((entry) =>
+            entry.playerId === playerId && entry.teamId === team.id
+              ? {
+                ...entry,
+                reasoning: evaluation.reasoning,
+                counterOffer: null,
+              }
+              : entry);
+          await commitGame(acceptedState);
+          return evaluation;
+        }
+
+        nextGame.contractExtensions = [
+          ...nextGame.contractExtensions.filter((entry) => !(entry.playerId === playerId && entry.teamId === team.id)),
+          {
+            playerId,
+            teamId: team.id,
+            status: evaluation.counterOffer ? 'countered' : 'rejected',
+            offer,
+            counterOffer: evaluation.counterOffer ?? null,
+            reasoning: evaluation.reasoning,
+            year: nextGame.year,
+            week: nextGame.week,
+          },
+        ];
+        await commitGame(nextGame);
+        return evaluation;
       },
 
       makePromise: async (teamId, playerId, promiseType) => {

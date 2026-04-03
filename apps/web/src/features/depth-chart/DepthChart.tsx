@@ -15,6 +15,7 @@ import {
 import {
   PixelMetricCard,
   PixelScreenHeader,
+  PlayerNameLink,
   autoGrid,
   display,
   monoSm,
@@ -175,7 +176,9 @@ export function DepthChart() {
               </div>
               <div>
                 <div style={{ ...display, fontSize: '24px', color: '#fff', lineHeight: 1 }}>
-                  {starter?.name ?? 'OPEN'}
+                  {starter ? (
+                    <PlayerNameLink playerId={starter.id} name={starter.name} ovr={starter.ovr} style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '24px', lineHeight: 1 }} />
+                  ) : 'OPEN'}
                 </div>
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px' }}>
                   {starter ? `${starter.ovr} OVR // ${starter.pot} POT // AGE ${starter.age}` : 'No eligible players'}
@@ -276,6 +279,7 @@ export function DepthChart() {
           {selectedPlayers.map((player, index) => (
             <PixelPanel key={player.id} title={`${index + 1}. ${player.name}`} accent={player.isStarter ? 'gold' : 'default'}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <PlayerNameLink playerId={player.id} name={player.name} ovr={player.ovr} style={{ ...monoSm, fontSize: '14px' }} />
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <PixelBadge variant="cyan">{player.ovr} OVR</PixelBadge>
                   <PixelBadge variant="green">{player.pot} POT</PixelBadge>
