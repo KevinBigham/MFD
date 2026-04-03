@@ -228,6 +228,7 @@ const EMPTY_SCOUTING_DEPARTMENT: ScoutingDepartment = {
   availableScouts: [],
   budget: 0,
   maxScouts: 5,
+  privateWorkoutsRemaining: 3,
 };
 const EMPTY_RECORD_BOOK: RecordBook = createEmptyRecordBook();
 const EMPTY_CAP = { capSpace: 0, capUsed: 0, deadCap: 0 };

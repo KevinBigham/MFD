@@ -7,6 +7,11 @@
 
 import { z } from 'zod';
 
+const ScoutingRegionSchema = z.enum(['east', 'south', 'midwest', 'west']);
+const ProspectRiskBandSchema = z.enum(['unknown', 'safe', 'balanced', 'volatile']);
+const ProspectCeilingBandSchema = z.enum(['unknown', 'starter', 'impact', 'star']);
+const ProspectCharacterReadSchema = z.enum(['unknown', 'leader', 'steady', 'mercurial', 'red_flag']);
+
 export const PersonalitySchema = z.object({
   workEthic: z.number().min(1).max(10),
   loyalty: z.number().min(1).max(10),
@@ -346,11 +351,17 @@ export const FreeAgencyBidSchema = ContractOfferSchema.extend({
 
 export const ProspectScoutingStateSchema = z.object({
   prospectId: z.string(),
-  actions: z.array(z.enum(['film', 'combine', 'interview'])),
+  actions: z.array(z.enum(['film', 'combine', 'interview', 'private_workout'])),
   accuracy: z.number(),
+  confidence: z.number(),
   visibleScoutGrade: z.number(),
   notes: z.array(z.string()),
   proDayRating: z.string().nullable().optional(),
+  assignedScoutId: z.string().nullable(),
+  riskBand: ProspectRiskBandSchema,
+  ceilingBand: ProspectCeilingBandSchema,
+  characterRead: ProspectCharacterReadSchema,
+  privateWorkoutRatings: z.array(z.string()),
 });
 
 export const TradeOfferAssetSchema = z.object({
@@ -367,6 +378,8 @@ export const ScoutSchema = z.object({
   name: z.string(),
   tier: z.enum(['elite', 'good', 'average', 'poor']),
   specialty: z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']).nullable(),
+  scope: z.enum(['national', 'regional']),
+  region: ScoutingRegionSchema.nullable(),
   salary: z.number(),
   accuracy: z.number(),
 });
@@ -376,6 +389,7 @@ export const ScoutingDepartmentSchema = z.object({
   availableScouts: z.array(ScoutSchema),
   budget: z.number(),
   maxScouts: z.number(),
+  privateWorkoutsRemaining: z.number(),
 });
 
 export const MedicalStaffSchema = z.object({
@@ -1005,6 +1019,7 @@ export const OffseasonStateSchema = z.object({
   reSignDecisions: z.record(z.string(), ReSignDecisionSchema),
   freeAgencyBids: z.record(z.string(), z.array(FreeAgencyBidSchema)),
   scoutingState: z.record(z.string(), ProspectScoutingStateSchema),
+  scoutingWatchlist: z.array(z.string()),
   tradeOffers: z.array(TradeOfferSchema),
   draftOrder: z.array(DraftOrderEntrySchema),
   currentDraftPickIndex: z.number(),
@@ -1126,6 +1141,7 @@ export const SaveStateSchema = z.object({
     availableScouts: [],
     budget: 5,
     maxScouts: 5,
+    privateWorkoutsRemaining: 3,
   }),
   conditionalPicks: z.array(ConditionalPickSchema).default([]),
   waiverOrder: z.array(z.string()).default([]),

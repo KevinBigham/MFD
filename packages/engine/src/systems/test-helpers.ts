@@ -323,6 +323,7 @@ export function makeLeagueState(
       availableScouts: [],
       budget: 5,
       maxScouts: 5,
+      privateWorkoutsRemaining: 3,
     },
     conditionalPicks: [],
     waiverOrder: Object.keys(teams),

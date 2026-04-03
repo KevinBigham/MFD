@@ -69,6 +69,7 @@ describe('league news', () => {
       reSignDecisions: {},
       freeAgencyBids: {},
       scoutingState: {},
+      scoutingWatchlist: [],
       tradeOffers: [{
         id: 'offer-1',
         fromTeamId: 'afce2',

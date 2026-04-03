@@ -480,6 +480,7 @@ describe('migration pipeline', () => {
       availableScouts: [],
       budget: 5,
       maxScouts: 5,
+      privateWorkoutsRemaining: 3,
     });
     expect(migrated['conditionalPicks']).toEqual([]);
     expect(migrated['waiverClaims']).toEqual([]);
@@ -530,6 +531,79 @@ describe('migration pipeline', () => {
       adjustmentHistory: [],
     });
     expect((migrated['teams'] as Record<string, { trainingAssignments: Record<string, unknown> }>).t1.trainingAssignments).toEqual({});
+  });
+
+  it('migrates v15 saves to include advanced scouting defaults', () => {
+    const migrated = migrate({
+      version: 15,
+      year: 2030,
+      draftClass: [{
+        id: 'prospect-1',
+        firstName: 'Test',
+        lastName: 'Prospect',
+        pos: 'WR',
+        college: 'Texas',
+        ratings: { awareness: 82, speed: 90, stamina: 84 },
+        projectedRound: 1,
+        scoutGrade: 79,
+        trueGrade: 86,
+        personality: { workEthic: 7, loyalty: 5, greed: 4, pressure: 6, ambition: 7 },
+        traits: [],
+        archetype: null,
+        characterArchetype: 'balanced',
+        bustProbability: 0.18,
+        stealProbability: 0.11,
+        scoutingReports: [],
+        combine: null,
+      }],
+      scoutingDepartment: {
+        scouts: [{
+          id: 'scout-1',
+          name: 'Scout One',
+          tier: 'good',
+          specialty: 'WR',
+          salary: 1.5,
+          accuracy: 0.84,
+        }],
+        availableScouts: [],
+        budget: 4.5,
+        maxScouts: 5,
+      },
+      offseasonState: {
+        round: 1,
+        expiringPlayerIds: [],
+        reSignDecisions: {},
+        freeAgencyBids: {},
+        scoutingState: {
+          'prospect-1': {
+            prospectId: 'prospect-1',
+            actions: ['film'],
+            accuracy: 0.38,
+            visibleScoutGrade: 80,
+            notes: ['Old note'],
+            proDayRating: null,
+          },
+        },
+        tradeOffers: [],
+        draftOrder: [],
+        currentDraftPickIndex: 0,
+        completedDraftPickIds: [],
+      },
+    }, SAVE_VERSION);
+
+    const prospect = (migrated['draftClass'] as Array<Record<string, unknown>>)[0]!;
+    const scout = ((migrated['scoutingDepartment'] as Record<string, unknown>)['scouts'] as Array<Record<string, unknown>>)[0]!;
+    const scoutingState = (((migrated['offseasonState'] as Record<string, unknown>)['scoutingState'] as Record<string, Record<string, unknown>>)['prospect-1'])!;
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(prospect['region']).toBe('south');
+    expect(scout['scope']).toBe('national');
+    expect(scout['region']).toBeNull();
+    expect((migrated['scoutingDepartment'] as Record<string, unknown>)['privateWorkoutsRemaining']).toBe(3);
+    expect(scoutingState['confidence']).toBeGreaterThan(0);
+    expect(scoutingState['riskBand']).toBe('unknown');
+    expect(scoutingState['characterRead']).toBe('unknown');
+    expect(((migrated['offseasonState'] as Record<string, unknown>)['scoutingWatchlist'])).toEqual([]);
   });
 
   it('migrates v9 saves to include sprint 10 iron man state', () => {

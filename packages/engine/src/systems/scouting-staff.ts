@@ -1,4 +1,11 @@
 import { RNG } from '../rng';
+import {
+  SCOUTING_REGIONS,
+  buildInitialScoutingState,
+  normalizeScoutingState,
+  scoutFitScore,
+  tightenVisibleGrade,
+} from './advanced-scouting';
 import type {
   CombineMeasurables,
   DraftProspect,
@@ -32,7 +39,8 @@ function rangeValue(min: number, max: number, rand: () => number): number {
 
 function scoutSpread(scout: Scout, prospect: DraftProspect): number {
   const base = TIER_CONFIG[scout.tier]?.spread ?? 6;
-  return Math.max(1, base - (scout.specialty === prospect.pos ? 1 : 0));
+  const coverageBonus = Number(scout.specialty === prospect.pos) + Number(scout.scope === 'regional' && scout.region === prospect.region);
+  return Math.max(1, base - coverageBonus);
 }
 
 export function createDefaultScoutingDepartment(): ScoutingDepartment {
@@ -41,21 +49,31 @@ export function createDefaultScoutingDepartment(): ScoutingDepartment {
     availableScouts: [],
     budget: 5,
     maxScouts: 5,
+    privateWorkoutsRemaining: 3,
   };
 }
 
 export function generateScoutPool(rand: () => number = RNG.play, year: number): Scout[] {
   const count = 8 + Math.floor(rand() * 5);
   const tiers: Scout['tier'][] = ['elite', 'good', 'good', 'average', 'average', 'average', 'poor', 'poor'];
+  const guaranteed: Array<{ scope: Scout['scope']; region: Scout['region'] }> = [
+    { scope: 'national', region: null },
+    ...SCOUTING_REGIONS.map((region) => ({ scope: 'regional' as const, region })),
+  ];
 
   return Array.from({ length: count }, (_, index) => {
     const tier = tiers[Math.floor(rand() * tiers.length)] ?? 'average';
     const config = TIER_CONFIG[tier];
+    const guaranteedShape = guaranteed[index] ?? null;
+    const scope = guaranteedShape?.scope ?? (rand() < 0.35 ? 'national' : 'regional');
+    const region = guaranteedShape?.region ?? (scope === 'regional' ? SCOUTING_REGIONS[Math.floor(rand() * SCOUTING_REGIONS.length)]! : null);
     return {
       id: `scout-${year}-${index + 1}`,
       name: `${FIRST_NAMES[Math.floor(rand() * FIRST_NAMES.length)]!} ${LAST_NAMES[Math.floor(rand() * LAST_NAMES.length)]!}`,
       tier,
       specialty: POSITIONS[Math.floor(rand() * POSITIONS.length)] ?? null,
+      scope,
+      region,
       salary: rangeValue(config.salary[0], config.salary[1], rand),
       accuracy: rangeValue(config.accuracy[0], config.accuracy[1], rand),
     };
@@ -109,13 +127,8 @@ export function fireScout(game: GameState, scoutId: string): EngineOutput {
 }
 
 export function bestScoutForProspect(game: GameState, prospect: DraftProspect): Scout | null {
-  const matching = game.scoutingDepartment.scouts
-    .filter((scout) => scout.specialty === prospect.pos)
-    .sort((a, b) => b.accuracy - a.accuracy || a.id.localeCompare(b.id))[0];
-  if (matching) return matching;
-
   return [...game.scoutingDepartment.scouts]
-    .sort((a, b) => b.accuracy - a.accuracy || a.id.localeCompare(b.id))[0] ?? null;
+    .sort((a, b) => scoutFitScore(b, prospect) - scoutFitScore(a, prospect) || b.accuracy - a.accuracy || a.id.localeCompare(b.id))[0] ?? null;
 }
 
 function buildCombine(prospect: DraftProspect, rand: () => number): CombineMeasurables {
@@ -162,17 +175,19 @@ export function runProDay(game: GameState, prospectId: string, rand: () => numbe
 
   const ratingKey = keys[Math.floor(rand() * keys.length)]!;
   const rating = clamp(Math.round((prospect.ratings[ratingKey] ?? prospect.trueGrade) + (rand() * 2 - 1) * scoutSpread(scout, prospect)), 40, 99);
-  const current = nextState.offseasonState.scoutingState[prospectId] ?? {
-    prospectId,
-    actions: [],
-    accuracy: 0,
-    visibleScoutGrade: prospect.scoutGrade,
-    notes: [],
-    proDayRating: null,
-  };
+  const current = nextState.offseasonState.scoutingState[prospectId]
+    ? normalizeScoutingState(prospect, nextState.offseasonState.scoutingState[prospectId]!)
+    : buildInitialScoutingState(prospect, scout);
+  const accuracy = clamp(current.accuracy + 0.12, 0, 0.95);
 
-  current.proDayRating = `${ratingKey.toUpperCase()}: ${rating}`;
-  current.notes.push(`Pro Day: ${ratingKey} tested at ${rating}.`);
-  nextState.offseasonState.scoutingState[prospectId] = current;
+  nextState.offseasonState.scoutingState[prospectId] = normalizeScoutingState(prospect, {
+    ...current,
+    accuracy,
+    confidence: undefined,
+    assignedScoutId: scout.id,
+    visibleScoutGrade: tightenVisibleGrade(current.visibleScoutGrade, prospect.trueGrade, accuracy),
+    proDayRating: `${ratingKey}: ${rating}`,
+    notes: [...current.notes, `Pro Day: ${ratingKey} tested at ${rating}.`],
+  });
   return { nextState, events: [], consequences: [] };
 }

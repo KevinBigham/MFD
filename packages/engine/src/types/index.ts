@@ -469,6 +469,8 @@ export interface Scout {
   name: string;
   tier: 'elite' | 'good' | 'average' | 'poor';
   specialty: Position | null;
+  scope: 'national' | 'regional';
+  region: 'east' | 'south' | 'midwest' | 'west' | null;
   salary: number;
   accuracy: number;
 }
@@ -478,7 +480,13 @@ export interface ScoutingDepartment {
   availableScouts: Scout[];
   budget: number;
   maxScouts: number;
+  privateWorkoutsRemaining: number;
 }
+
+export type ScoutingRegion = 'east' | 'south' | 'midwest' | 'west';
+export type ProspectRiskBand = 'unknown' | 'safe' | 'balanced' | 'volatile';
+export type ProspectCeilingBand = 'unknown' | 'starter' | 'impact' | 'star';
+export type ProspectCharacterRead = 'unknown' | 'leader' | 'steady' | 'mercurial' | 'red_flag';
 
 export interface MedicalStaff {
   id: string;
@@ -542,6 +550,7 @@ export interface DraftProspect {
   lastName: string;
   pos: Position;
   college: string;
+  region: ScoutingRegion;
   ratings: PlayerRatings;
   projectedRound: number;
   scoutGrade: number;
@@ -590,15 +599,21 @@ export interface FreeAgencyBid extends ContractOffer {
   status: 'pending' | 'won' | 'lost';
 }
 
-export type ScoutingAction = 'film' | 'combine' | 'interview';
+export type ScoutingAction = 'film' | 'combine' | 'interview' | 'private_workout';
 
 export interface ProspectScoutingState {
   prospectId: string;
   actions: ScoutingAction[];
   accuracy: number;
+  confidence: number;
   visibleScoutGrade: number;
   notes: string[];
   proDayRating: string | null;
+  assignedScoutId: string | null;
+  riskBand: ProspectRiskBand;
+  ceilingBand: ProspectCeilingBand;
+  characterRead: ProspectCharacterRead;
+  privateWorkoutRatings: string[];
 }
 
 export interface TradeOfferAsset {
@@ -921,6 +936,7 @@ export interface OffseasonState {
   reSignDecisions: Record<string, ReSignDecision>;
   freeAgencyBids: Record<string, FreeAgencyBid[]>;
   scoutingState: Record<string, ProspectScoutingState>;
+  scoutingWatchlist: string[];
   tradeOffers: TradeOffer[];
   draftOrder: DraftOrderEntry[];
   currentDraftPickIndex: number;

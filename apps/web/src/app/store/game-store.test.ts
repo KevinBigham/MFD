@@ -18,6 +18,7 @@ function makeProspect(id: string): DraftProspect {
     lastName: 'Prospect',
     pos: 'WR',
     college: 'Test State',
+    region: 'south',
     ratings: { awareness: 82, speed: 84, stamina: 83 },
     projectedRound: 1,
     scoutGrade: 76,
@@ -101,6 +102,48 @@ describe('game store offseason actions', () => {
     const scouting = useGameStore.getState().game?.offseasonState?.scoutingState['store-prospect'];
     expect(scouting?.actions).toEqual(['film']);
     expect(scouting?.accuracy).toBeGreaterThan(0);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs a private workout and spends one scouting workout slot', async () => {
+    const game = createSeedGameState(8, 0, 'pro');
+    game.year = 2027;
+    game.phase = 'offseason';
+    game.offseasonState = initializeOffseasonState(game);
+    game.draftClass = [makeProspect('workout-prospect')];
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.runPrivateWorkout('workout-prospect');
+
+    const nextGame = useGameStore.getState().game!;
+    const scouting = nextGame.offseasonState?.scoutingState['workout-prospect'];
+    expect(scouting?.actions).toContain('private_workout');
+    expect(scouting?.privateWorkoutRatings).toEqual(expect.any(Array));
+    expect(nextGame.scoutingDepartment.privateWorkoutsRemaining).toBe(2);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggles a scouting watchlist entry through the store', async () => {
+    const game = createSeedGameState(9, 0, 'pro');
+    game.year = 2027;
+    game.phase = 'offseason';
+    game.offseasonState = initializeOffseasonState(game);
+    game.draftClass = [makeProspect('watch-prospect')];
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.toggleScoutingWatchlist('watch-prospect');
+
+    expect(useGameStore.getState().game?.offseasonState?.scoutingWatchlist).toEqual(['watch-prospect']);
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 

@@ -3,6 +3,7 @@ import type { DraftProspect, Scout } from '../types';
 import { makeLeagueState } from './test-helpers';
 import {
   applyScoutAccuracy,
+  bestScoutForProspect,
   fireScout,
   generateScoutPool,
   hireScout,
@@ -16,6 +17,7 @@ function makeProspect(id: string, pos: DraftProspect['pos'], trueGrade: number):
     lastName: `Prospect${id}`,
     pos,
     college: 'Test State',
+    region: 'south',
     ratings: { awareness: trueGrade, speed: trueGrade + 1, stamina: trueGrade - 1 },
     projectedRound: 1,
     scoutGrade: trueGrade - 5,
@@ -37,6 +39,8 @@ function makeScout(overrides: Partial<Scout>): Scout {
     name: overrides.name ?? 'Test Scout',
     tier: overrides.tier ?? 'good',
     specialty: overrides.specialty ?? null,
+    scope: overrides.scope ?? 'national',
+    region: overrides.region ?? null,
     salary: overrides.salary ?? 1.4,
     accuracy: overrides.accuracy ?? 0.82,
   };
@@ -121,5 +125,33 @@ describe('scouting staff system', () => {
     expect(scouts.length).toBeLessThanOrEqual(12);
     expect(scouts.every((scout) => scout.salary > 0)).toBe(true);
     expect(scouts.every((scout) => scout.accuracy >= 0.6 && scout.accuracy <= 0.95)).toBe(true);
+  });
+
+  it('includes at least one national scout and regional coverage across the pool', () => {
+    const scouts = generateScoutPool(() => 0.11, 2028) as Array<Scout & { scope?: string; region?: string | null }>;
+
+    expect(scouts.some((scout) => scout.scope === 'national')).toBe(true);
+    expect(new Set(scouts.filter((scout) => scout.scope === 'regional').map((scout) => scout.region))).toEqual(
+      new Set(['east', 'south', 'midwest', 'west']),
+    );
+  });
+
+  it('prefers a same-region specialist over an equal-quality national scout', () => {
+    const game = makeLeagueState('offseason', 1);
+    const prospect = makeProspect('regional-prospect', 'WR', 87) as DraftProspect & { region?: string };
+    prospect.region = 'south';
+    game.draftClass = [prospect];
+
+    const national = makeScout({ id: 'national', specialty: 'WR', accuracy: 0.85 }) as Scout & { scope?: string; region?: string | null };
+    national.scope = 'national';
+    national.region = null;
+
+    const regional = makeScout({ id: 'regional', specialty: 'WR', accuracy: 0.85 }) as Scout & { scope?: string; region?: string | null };
+    regional.scope = 'regional';
+    regional.region = 'south';
+
+    game.scoutingDepartment.scouts = [national as Scout, regional as Scout];
+
+    expect(bestScoutForProspect(game, prospect)?.id).toBe('regional');
   });
 });

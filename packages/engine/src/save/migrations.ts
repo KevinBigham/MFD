@@ -6,6 +6,7 @@
  */
 
 import { createDefaultAchievements } from '../systems/achievements';
+import { assignProspectRegion, deriveConfidence } from '../systems/advanced-scouting';
 import { createDefaultDashboardState } from '../systems/dashboard-config';
 import { createEmptyRecordBook } from '../systems/records';
 import { buildSpecialTeamsState, createDefaultSpecialTeamsState } from '../systems/special-teams';
@@ -789,3 +790,78 @@ registerMigration(14, (state) => ({
   weeklyPrepHistory: Array.isArray(state['weeklyPrepHistory']) ? state['weeklyPrepHistory'] : [],
   filmRoomHistory: Array.isArray(state['filmRoomHistory']) ? state['filmRoomHistory'] : [],
 }));
+
+registerMigration(15, (state) => {
+  const draftClass: Array<Record<string, unknown>> = Array.isArray(state['draftClass'])
+    ? (state['draftClass'] as Array<Record<string, unknown>>).map((prospect) => ({
+      ...prospect,
+      region: typeof prospect['region'] === 'string'
+        ? prospect['region']
+        : assignProspectRegion(String(prospect['college'] ?? 'unknown')),
+    }))
+    : [];
+
+  const scoutingDepartment: Record<string, unknown> = (state['scoutingDepartment'] && typeof state['scoutingDepartment'] === 'object')
+    ? { ...(state['scoutingDepartment'] as Record<string, unknown>) }
+    : {
+      scouts: [],
+      availableScouts: [],
+      budget: 5,
+      maxScouts: 5,
+    };
+
+  const normalizeScout = (scout: Record<string, unknown>): Record<string, unknown> => ({
+    ...scout,
+    scope: scout['scope'] ?? 'national',
+    region: scout['region'] ?? null,
+  });
+
+  scoutingDepartment['scouts'] = Array.isArray(scoutingDepartment['scouts'])
+    ? (scoutingDepartment['scouts'] as Array<Record<string, unknown>>).map(normalizeScout)
+    : [];
+  scoutingDepartment['availableScouts'] = Array.isArray(scoutingDepartment['availableScouts'])
+    ? (scoutingDepartment['availableScouts'] as Array<Record<string, unknown>>).map(normalizeScout)
+    : [];
+  scoutingDepartment['privateWorkoutsRemaining'] = Number(scoutingDepartment['privateWorkoutsRemaining'] ?? 3);
+
+  const prospectById = new Map<string, Record<string, unknown>>(
+    draftClass.map((prospect): [string, Record<string, unknown>] => [String(prospect['id'] ?? ''), prospect]),
+  );
+  const offseasonState: Record<string, unknown> | null = (state['offseasonState'] && typeof state['offseasonState'] === 'object')
+    ? { ...(state['offseasonState'] as Record<string, unknown>) }
+    : null;
+
+  if (offseasonState) {
+    const scoutingState = (offseasonState['scoutingState'] && typeof offseasonState['scoutingState'] === 'object')
+      ? { ...(offseasonState['scoutingState'] as Record<string, Record<string, unknown>>) }
+      : {};
+
+    for (const [prospectId, scouting] of Object.entries(scoutingState)) {
+      const prospect = prospectById.get(prospectId);
+      const accuracy = Number(scouting['accuracy'] ?? 0);
+      scoutingState[prospectId] = {
+        ...scouting,
+        actions: Array.isArray(scouting['actions']) ? scouting['actions'] : [],
+        confidence: Number(scouting['confidence'] ?? deriveConfidence(accuracy)),
+        assignedScoutId: scouting['assignedScoutId'] ?? null,
+        riskBand: scouting['riskBand'] ?? 'unknown',
+        ceilingBand: scouting['ceilingBand'] ?? 'unknown',
+        characterRead: scouting['characterRead'] ?? 'unknown',
+        privateWorkoutRatings: Array.isArray(scouting['privateWorkoutRatings']) ? scouting['privateWorkoutRatings'] : [],
+      };
+      if (prospect && typeof prospect['region'] !== 'string') {
+        prospect['region'] = assignProspectRegion(String(prospect['college'] ?? 'unknown'));
+      }
+    }
+
+    offseasonState['scoutingState'] = scoutingState;
+    offseasonState['scoutingWatchlist'] = Array.isArray(offseasonState['scoutingWatchlist']) ? offseasonState['scoutingWatchlist'] : [];
+  }
+
+  return {
+    ...state,
+    draftClass,
+    scoutingDepartment,
+    offseasonState,
+  };
+});

@@ -59,6 +59,7 @@ import {
   calcCapHit, calcDeadMoney,
   promoteCoordinator,
   runProDay as runProDayEngine,
+  runPrivateWorkout as runPrivateWorkoutEngine,
   updateOwnerApproval,
   updateSystemFit,
   earnXP,
@@ -74,6 +75,7 @@ import {
   rejectCounterProposal as rejectCounterProposalEngine,
   submitWaiverClaim as submitWaiverClaimEngine,
   switchLayout as switchDashboardLayout,
+  toggleScoutingWatchlist as toggleScoutingWatchlistEngine,
   submitProposal as submitTradeProposalEngine,
   acceptTradeOffer as acceptTradeOfferEngine,
   rejectTradeOffer as rejectTradeOfferEngine,
@@ -129,6 +131,8 @@ interface GameActions {
   refreshFATargetBoard: () => Promise<void>;
   runScoutingAction: (prospectId: string, action: 'film' | 'combine' | 'interview') => Promise<void>;
   runProDay: (prospectId: string) => Promise<void>;
+  runPrivateWorkout: (prospectId: string) => Promise<void>;
+  toggleScoutingWatchlist: (prospectId: string) => Promise<void>;
   hireScout: (scoutId: string) => Promise<void>;
   fireScout: (scoutId: string) => Promise<void>;
   upgradeFacility: (teamId: string, facilityType: 'training_complex' | 'medical_center' | 'film_room' | 'weight_room' | 'recovery_suite') => Promise<void>;
@@ -521,6 +525,26 @@ export const useGameStore = create<GameStore>()(
         if (!current) return;
         const result = runProDayEngine(current, prospectId);
         await commitGame(result.nextState);
+      },
+
+      runPrivateWorkout: async (prospectId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = runPrivateWorkoutEngine(current, prospectId);
+        await commitGame(result.nextState);
+      },
+
+      toggleScoutingWatchlist: async (prospectId) => {
+        const current = get().game;
+        if (!current?.offseasonState) return;
+        const nextGame = cloneForMutation(current);
+        const offseasonState = nextGame.offseasonState;
+        if (!offseasonState) return;
+        offseasonState.scoutingWatchlist = toggleScoutingWatchlistEngine(
+          offseasonState.scoutingWatchlist ?? [],
+          prospectId,
+        );
+        await commitGame(nextGame);
       },
 
       hireScout: async (scoutId) => {

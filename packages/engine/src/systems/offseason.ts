@@ -501,6 +501,7 @@ function rebuildDraftBoard(game: GameState): void {
 
 export function initializeOffseasonState(game: GameState): OffseasonState {
   refreshScoutPool(game);
+  game.scoutingDepartment.privateWorkoutsRemaining = 3;
   refreshMedicalStaffPool(game);
   resetPhysicalState(game);
   const expiringPlayers = Object.values(game.teams)
@@ -538,6 +539,7 @@ export function initializeOffseasonState(game: GameState): OffseasonState {
     reSignDecisions,
     freeAgencyBids: {},
     scoutingState: {},
+    scoutingWatchlist: [],
     tradeOffers: [],
     draftOrder: buildDraftOrder(game),
     currentDraftPickIndex: 0,

@@ -409,6 +409,7 @@ export {
 export { runCoachingCarousel } from './systems/coaching-carousel';
 export {
   runScoutingAction,
+  runPrivateWorkout,
   makeDraftPick,
   advanceDraft,
   finalizePostDraft,
@@ -423,6 +424,21 @@ export {
   runCombine,
   runProDay,
 } from './systems/scouting-staff';
+export {
+  SCOUTING_REGIONS,
+  assignProspectRegion,
+  buildInitialScoutingState,
+  buildActionNote,
+  deriveCharacterRead,
+  deriveCeilingBand,
+  deriveConfidence,
+  deriveRiskBand,
+  normalizeScoutingState,
+  resolvePrivateWorkout,
+  scoutFitScore,
+  tightenVisibleGrade,
+  toggleScoutingWatchlist,
+} from './systems/advanced-scouting';
 export { calculateCompPicks } from './systems/comp-picks';
 export { resolveConditions, conditionalPickExpectedValue } from './systems/conditional-picks';
 export {

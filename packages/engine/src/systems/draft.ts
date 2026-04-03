@@ -1,4 +1,12 @@
 import { createEmptySeasonStats, emptyPlayerStats } from './season-stats';
+import {
+  assignProspectRegion,
+  buildActionNote,
+  buildInitialScoutingState,
+  normalizeScoutingState,
+  resolvePrivateWorkout,
+  tightenVisibleGrade,
+} from './advanced-scouting';
 import { makeContract } from './contracts';
 import { recordDynastyEvent } from './dynasty-timeline';
 import { generateDraftRecap } from './draft-recap';
@@ -6,7 +14,7 @@ import { applyFacilityBonuses } from './facilities';
 import { syncPlayerArchiveEntry } from './history';
 import { recordNewsItem } from './league-news';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
-import { applyScoutAccuracy, bestScoutForProspect, runCombine, runProDay } from './scouting-staff';
+import { applyScoutAccuracy, bestScoutForProspect, runCombine } from './scouting-staff';
 import { mulberry32 } from '../rng';
 import type {
   DraftPick,
@@ -87,13 +95,15 @@ function makeProspect(game: GameState, rand: () => number, index: number): Draft
   const scoutGrade = Math.max(55, trueGrade - nextInt(rand, 3, 10));
   const firstName = FIRST_NAMES[nextInt(rand, 0, FIRST_NAMES.length - 1)] ?? 'Jalen';
   const lastName = LAST_NAMES[nextInt(rand, 0, LAST_NAMES.length - 1)] ?? 'Carter';
+  const college = COLLEGES[nextInt(rand, 0, COLLEGES.length - 1)] ?? 'Texas';
 
   return {
     id: `prospect-${game.year}-${index}`,
     firstName,
     lastName,
     pos,
-    college: COLLEGES[nextInt(rand, 0, COLLEGES.length - 1)] ?? 'Texas',
+    college,
+    region: assignProspectRegion(college),
     ratings: { awareness: trueGrade, speed: Math.min(99, trueGrade + nextInt(rand, -5, 5)), stamina: Math.min(99, trueGrade + nextInt(rand, -4, 6)) },
     projectedRound: Math.min(7, Math.max(1, Math.ceil((93 - trueGrade) / 4))),
     scoutGrade,
@@ -196,12 +206,6 @@ function removeUsedPick(team: Team, year: number, round: number, pick: number, o
   }
 }
 
-function makeScoutingNote(action: ScoutingAction, prospect: DraftProspect): string {
-  if (action === 'film') return `${prospect.lastName} flashes ${prospect.pos} instincts on tape.`;
-  if (action === 'combine') return `${prospect.lastName} tested like an ${prospect.trueGrade >= 85 ? 'elite' : 'solid'} athlete.`;
-  return `${prospect.lastName} interviewed as a ${prospect.personality.workEthic >= 7 ? 'high-motor' : 'volatile'} competitor.`;
-}
-
 export function runScoutingAction(game: GameState, prospectId: string, action: ScoutingAction): EngineOutput {
   const nextState = cloneGame(game);
   const prospect = nextState.draftClass.find((entry) => entry.id === prospectId);
@@ -209,39 +213,43 @@ export function runScoutingAction(game: GameState, prospectId: string, action: S
     return { nextState, events: [], consequences: [] };
   }
 
-  const current = nextState.offseasonState.scoutingState[prospectId] ?? {
-    prospectId,
-    actions: [] as ScoutingAction[],
-    accuracy: 0,
-    visibleScoutGrade: prospect.scoutGrade,
-    notes: [] as string[],
-    proDayRating: null,
-  };
+  const scout = bestScoutForProspect(nextState, prospect);
+  const current = nextState.offseasonState.scoutingState[prospectId]
+    ? normalizeScoutingState(prospect, nextState.offseasonState.scoutingState[prospectId]!)
+    : buildInitialScoutingState(prospect, scout);
 
   if (!current.actions.includes(action)) {
-    const scout = bestScoutForProspect(nextState, prospect);
     const scoutingBonus = applyFacilityBonuses(findUserTeam(nextState) ?? Object.values(nextState.teams)[0]!).scoutingBonus;
-    const bonus = action === 'film' ? 0.16 : action === 'combine' ? 0.22 : 0.14;
-    current.actions.push(action);
-    current.accuracy = Math.min(0.95, current.accuracy + bonus + (scout?.accuracy ?? 0) * 0.1);
-    current.visibleScoutGrade = scout
-      ? applyScoutAccuracy(prospect, scout, randForAction(action, prospectId), scoutingBonus)
-      : Math.round(((prospect.scoutGrade * (1 - current.accuracy)) + (prospect.trueGrade * current.accuracy)) * 10) / 10;
-    current.notes.push(makeScoutingNote(action, prospect));
-    if (action === 'combine' && prospect.combine) {
-      current.notes.push(`Combine: ${prospect.combine.fortyYard}s 40 // ${prospect.combine.vertical}" vertical.`);
-    }
-    if (action === 'interview') {
-      const proDay = runProDay(nextState, prospectId, randForAction('interview', prospectId));
-      nextState.offseasonState = proDay.nextState.offseasonState;
-      current.proDayRating = nextState.offseasonState?.scoutingState[prospectId]?.proDayRating ?? current.proDayRating;
+    if (action === 'private_workout') {
+      const workout = resolvePrivateWorkout(prospect, current, nextState.scoutingDepartment.privateWorkoutsRemaining);
+      nextState.scoutingDepartment.privateWorkoutsRemaining = workout.remainingWorkouts;
+      nextState.offseasonState.scoutingState[prospectId] = normalizeScoutingState(prospect, {
+        ...workout.nextState,
+        assignedScoutId: scout?.id ?? workout.nextState.assignedScoutId,
+        visibleScoutGrade: tightenVisibleGrade(workout.nextState.visibleScoutGrade, prospect.trueGrade, workout.nextState.accuracy),
+      });
+    } else {
+      const bonus = action === 'film' ? 0.16 : action === 'combine' ? 0.22 : 0.14;
+      const accuracy = Math.min(0.95, current.accuracy + bonus + (scout?.accuracy ?? 0) * 0.1);
+      const nextScoutingState = normalizeScoutingState(prospect, {
+        ...current,
+        actions: [...current.actions, action],
+        accuracy,
+        assignedScoutId: scout?.id ?? current.assignedScoutId,
+        visibleScoutGrade: scout
+          ? applyScoutAccuracy(prospect, scout, randForAction(action, prospectId), scoutingBonus)
+          : tightenVisibleGrade(current.visibleScoutGrade, prospect.trueGrade, accuracy),
+        notes: [...current.notes, buildActionNote(prospect, action)],
+      });
+      nextState.offseasonState.scoutingState[prospectId] = nextScoutingState;
     }
   }
 
-  if (nextState.offseasonState) {
-    nextState.offseasonState.scoutingState[prospectId] = current;
-  }
   return { nextState, events: [], consequences: [] };
+}
+
+export function runPrivateWorkout(game: GameState, prospectId: string): EngineOutput {
+  return runScoutingAction(game, prospectId, 'private_workout');
 }
 
 function randForAction(action: ScoutingAction, prospectId: string): () => number {

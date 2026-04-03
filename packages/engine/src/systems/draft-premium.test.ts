@@ -10,6 +10,7 @@ function makeOffseasonState(teamIds: string[], year: number): OffseasonState {
     reSignDecisions: {},
     freeAgencyBids: {},
     scoutingState: {},
+    scoutingWatchlist: [],
     tradeOffers: [],
     draftOrder: teamIds.map((teamId, index) => ({
       id: `${teamId}-${year}-1-${index + 1}-${teamId}`,
@@ -31,6 +32,7 @@ function makeProspect(id: string, pos: DraftProspect['pos'], trueGrade: number):
     lastName: id,
     pos,
     college: 'Test U',
+    region: 'south',
     ratings: { awareness: trueGrade, speed: trueGrade, stamina: trueGrade },
     projectedRound: 1,
     scoutGrade: trueGrade - 2,
@@ -42,6 +44,7 @@ function makeProspect(id: string, pos: DraftProspect['pos'], trueGrade: number):
     bustProbability: 0.1,
     stealProbability: 0.1,
     scoutingReports: [],
+    combine: null,
   };
 }
 

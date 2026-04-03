@@ -239,6 +239,7 @@ export function DraftBoard() {
             {visibleProspects.map((prospect) => {
               const scouting = offseasonState?.scoutingState[prospect.id];
               const visibleGrade = scouting?.visibleScoutGrade ?? prospect.scoutGrade;
+              const confidence = Number(scouting?.confidence ?? Math.round((scouting?.accuracy ?? 0) * 100));
               const matchesNeed = needsReport.criticalNeeds.includes(prospect.pos);
               return (
                 <div key={prospect.id} style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '10px', border: `3px solid ${matchesNeed ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`, background: 'var(--mfd-bg-3)' }}>
@@ -253,7 +254,11 @@ export function DraftBoard() {
                     </div>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <PixelBadge variant="cyan">{visibleGrade.toFixed(1)}</PixelBadge>
+                      <PixelBadge variant="default">{confidence}%</PixelBadge>
                       <PixelBadge variant={needAccent(matchesNeed)}>{matchesNeed ? 'Need Fit' : 'Board'}</PixelBadge>
+                      <PixelBadge variant="gold">{scouting?.riskBand ?? 'unknown'}</PixelBadge>
+                      <PixelBadge variant="green">{scouting?.ceilingBand ?? 'unknown'}</PixelBadge>
+                      <PixelBadge variant="default">{scouting?.characterRead ?? 'unknown'}</PixelBadge>
                     </div>
                   </div>
 

@@ -17,6 +17,7 @@ describe('draft war room', () => {
       reSignDecisions: {},
       freeAgencyBids: {},
       scoutingState: {},
+      scoutingWatchlist: [],
       tradeOffers: [],
       draftOrder: [
         { id: 'afce1-2030-1-1-afce1', teamId: 'afce1', round: 1, pick: 1, overall: 1, originalTeamId: 'afce1' },
@@ -58,6 +59,7 @@ describe('draft war room', () => {
       reSignDecisions: {},
       freeAgencyBids: {},
       scoutingState: {},
+      scoutingWatchlist: [],
       tradeOffers: [],
       draftOrder: [
         { id: 'afce1-2030-1-1-afce1', teamId: 'afce1', round: 1, pick: 1, overall: 1, originalTeamId: 'afce1' },
@@ -98,6 +100,7 @@ describe('draft war room', () => {
       reSignDecisions: {},
       freeAgencyBids: {},
       scoutingState: {},
+      scoutingWatchlist: [],
       tradeOffers: [],
       draftOrder: [
         { id: 'afce2-2030-1-1-afce2', teamId: 'afce2', round: 1, pick: 1, overall: 1, originalTeamId: 'afce2' },

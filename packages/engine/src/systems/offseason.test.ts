@@ -206,6 +206,7 @@ function makeOffseasonGame(): GameState {
       availableScouts: [],
       budget: 5,
       maxScouts: 5,
+      privateWorkoutsRemaining: 3,
     },
     conditionalPicks: [],
     waiverOrder: Object.keys(teams),
@@ -283,6 +284,7 @@ function makeProspect(id: string, pos: Player['pos'], trueGrade = 84): DraftPros
     lastName: `Prospect${id}`,
     pos,
     college: 'Test State',
+    region: 'south',
     ratings: { awareness: trueGrade, speed: trueGrade, stamina: trueGrade },
     projectedRound: 1,
     scoutGrade: trueGrade - 8,
@@ -294,6 +296,7 @@ function makeProspect(id: string, pos: Player['pos'], trueGrade = 84): DraftPros
     bustProbability: 0.15,
     stealProbability: 0.1,
     scoutingReports: [],
+    combine: null,
   };
 }
 
