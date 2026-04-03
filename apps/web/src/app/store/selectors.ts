@@ -1,6 +1,7 @@
 import type {
   AwardsHistoryEntry,
   ConditionalPick,
+  DifficultyState,
   DraftOrderEntry,
   DraftProspect,
   GameEvent,
@@ -11,6 +12,7 @@ import type {
   HallOfFameEntry,
   LeagueRivalry,
   MentoringPair,
+  NewsItem,
   OffseasonState,
   OffFieldEvent,
   PracticeSquadPlayer,
@@ -24,14 +26,25 @@ import type {
   SeasonPhase,
   StoryArc,
   Team,
+  TradeProposal,
   TradeOffer,
+  TrainingAssignment,
   WaiverClaim,
   WaiverWireEntry,
   WeatherCondition,
   WeeklySummary,
   Handshake,
 } from '@mfd/engine';
-import { createEmptyRecordBook, getRivalryGameContext } from '@mfd/engine';
+import {
+  buildPlayoffPicture,
+  createDefaultDifficultyState,
+  createEmptyRecordBook,
+  getDivisionStandings,
+  getRecentNews,
+  getRivalryGameContext,
+  getStatLeaders,
+  getTeamNews,
+} from '@mfd/engine';
 
 export interface GameStoreState {
   game: GameState | null;
@@ -46,6 +59,8 @@ const EMPTY_SCHEDULE: never[] = [];
 const EMPTY_ARCS: StoryArc[] = [];
 const EMPTY_PROSPECTS: DraftProspect[] = [];
 const EMPTY_TRADES: TradeOffer[] = [];
+const EMPTY_PROPOSALS: TradeProposal[] = [];
+const EMPTY_NEWS: NewsItem[] = [];
 const EMPTY_AWARDS: AwardsHistoryEntry[] = [];
 const EMPTY_HALL_OF_FAME: HallOfFameEntry[] = [];
 const EMPTY_POWER_RANKINGS: PowerRanking[] = [];
@@ -60,6 +75,20 @@ const EMPTY_WAIVER_CLAIMS: WaiverClaim[] = [];
 const EMPTY_HANDSHAKES: Handshake[] = [];
 const EMPTY_CONDITIONAL_PICKS: ConditionalPick[] = [];
 const EMPTY_IDS: string[] = [];
+const EMPTY_TRAINING_ASSIGNMENTS: Record<string, TrainingAssignment> = {};
+const EMPTY_DIFFICULTY_STATE: DifficultyState = createDefaultDifficultyState();
+const EMPTY_PLAYOFF_PICTURE = { afc: [], nfc: [] };
+const EMPTY_STAT_LEADERS = { passYds: [], rushYds: [], recYds: [], sacks: [], defINT: [] };
+const STANDINGS_DIVISIONS = [
+  ['AFC', 'East'],
+  ['AFC', 'North'],
+  ['AFC', 'South'],
+  ['AFC', 'West'],
+  ['NFC', 'East'],
+  ['NFC', 'North'],
+  ['NFC', 'South'],
+  ['NFC', 'West'],
+] as const;
 const EMPTY_SCOUTING_DEPARTMENT: ScoutingDepartment = {
   scouts: [],
   availableScouts: [],
@@ -134,6 +163,7 @@ export const selectOffseasonState = (state: GameStoreState): OffseasonState | nu
 export const selectDraftClass = (state: GameStoreState): DraftProspect[] => state.game?.draftClass ?? EMPTY_PROSPECTS;
 export const selectScoutingDepartment = (state: GameStoreState): ScoutingDepartment => state.game?.scoutingDepartment ?? EMPTY_SCOUTING_DEPARTMENT;
 export const selectTradeOffers = (state: GameStoreState): TradeOffer[] => state.game?.offseasonState?.tradeOffers ?? EMPTY_TRADES;
+export const selectActiveProposals = (state: GameStoreState): TradeProposal[] => state.game?.activeProposals ?? EMPTY_PROPOSALS;
 export const selectTeams = (state: GameStoreState) => state.game?.teams ?? null;
 export const selectOwners = (state: GameStoreState) => state.game?.owners ?? null;
 export const selectAwardsHistory = (state: GameStoreState): AwardsHistoryEntry[] => state.game?.awardsHistory ?? EMPTY_AWARDS;
@@ -149,6 +179,29 @@ export const selectWaiverOrder = (state: GameStoreState): string[] => state.game
 export const selectWaiverWire = (state: GameStoreState): WaiverWireEntry[] => state.game?.waiverWire ?? EMPTY_WAIVER_WIRE;
 export const selectWaiverClaims = (state: GameStoreState): WaiverClaim[] => state.game?.waiverClaims ?? EMPTY_WAIVER_CLAIMS;
 export const selectHandshakes = (state: GameStoreState): Handshake[] => state.game?.handshakes ?? EMPTY_HANDSHAKES;
+export const selectLeagueNews = (state: GameStoreState): NewsItem[] =>
+  state.game ? getRecentNews(state.game, state.game.leagueNews.length) : EMPTY_NEWS;
+export const selectTeamNews = (state: GameStoreState): NewsItem[] => {
+  if (!state.game) return EMPTY_NEWS;
+  const teamId = selectUserTeamId(state);
+  return teamId ? getTeamNews(state.game, teamId, 24) : EMPTY_NEWS;
+};
+export const selectTrainingAssignments = (state: GameStoreState): Record<string, TrainingAssignment> =>
+  selectUserTeam(state)?.trainingAssignments ?? EMPTY_TRAINING_ASSIGNMENTS;
+export const selectDifficultyState = (state: GameStoreState): DifficultyState =>
+  state.game?.difficultyState ?? EMPTY_DIFFICULTY_STATE;
+export const selectStandings = (state: GameStoreState) => {
+  if (!state.game) return [];
+  return STANDINGS_DIVISIONS.map(([conference, division]) => ({
+    conference,
+    division,
+    rows: getDivisionStandings(state.game!, conference, division),
+  }));
+};
+export const selectPlayoffPicture = (state: GameStoreState) =>
+  state.game ? buildPlayoffPicture(state.game) : EMPTY_PLAYOFF_PICTURE;
+export const selectStatLeaders = (state: GameStoreState) =>
+  state.game ? getStatLeaders(state.game) : EMPTY_STAT_LEADERS;
 export const selectLatestGameDayPackage = (state: GameStoreState): GameDayPackage | null => {
   const gameDayState = state.game?.gameDayState;
   if (!gameDayState) return null;

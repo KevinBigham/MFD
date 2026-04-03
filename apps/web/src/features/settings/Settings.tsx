@@ -3,8 +3,9 @@ import {
   PixelBadge,
   PixelButton,
   PixelPanel,
+  PixelSwitch,
 } from '@mfd/design-system/components';
-import { useGameStore } from '../../app/store/game-store';
+import { selectDifficultyState, useGameStore } from '../../app/store/game-store';
 import { useUiStore } from '../../app/store/ui-store';
 import {
   PixelMetricCard,
@@ -19,7 +20,9 @@ const simSpeeds = ['fast', 'normal', 'detailed'] as const;
 
 export function Settings() {
   const difficulty = useGameStore((state) => state.game?.difficulty ?? 'pro');
+  const difficultyState = useGameStore(selectDifficultyState);
   const setDifficulty = useGameStore((state) => state.actions.setDifficulty);
+  const setAdaptiveDifficultyEnabled = useGameStore((state) => state.actions.setAdaptiveDifficultyEnabled);
   const autosaveEnabled = useUiStore((state) => state.autosaveEnabled);
   const setAutosaveEnabled = useUiStore((state) => state.setAutosaveEnabled);
   const simSpeed = useUiStore((state) => state.simSpeed);
@@ -36,6 +39,9 @@ export function Settings() {
             <PixelBadge variant={autosaveEnabled ? 'green' : 'red'}>
               Autosave {autosaveEnabled ? 'On' : 'Off'}
             </PixelBadge>
+            <PixelBadge variant={difficultyState.enabled ? 'cyan' : 'default'}>
+              Adaptive {difficultyState.enabled ? 'On' : 'Off'}
+            </PixelBadge>
           </>
         )}
       />
@@ -44,6 +50,14 @@ export function Settings() {
         <PixelMetricCard label="Difficulty" value={DIFF_SETTINGS[difficulty].name} accent="gold" detail={DIFF_SETTINGS[difficulty].desc} />
         <PixelMetricCard label="Autosave" value={autosaveEnabled ? 'ON' : 'OFF'} accent={autosaveEnabled ? 'green' : 'red'} detail="Apply to weekly advances and state-changing actions" />
         <PixelMetricCard label="Sim Speed" value={simSpeed.toUpperCase()} accent="cyan" detail="UI preference stored locally, outside the save file" />
+        <PixelMetricCard
+          label="Adaptive Difficulty"
+          value={difficultyState.enabled ? 'ON' : 'OFF'}
+          accent={difficultyState.enabled ? 'cyan' : 'default'}
+          detail={difficultyState.enabled
+            ? `League slider ${difficultyState.adaptiveSlider}/100`
+            : 'Fixed difficulty — AI teams play at their natural level'}
+        />
       </div>
 
       <PixelPanel title="Difficulty" accent="gold">
@@ -71,6 +85,16 @@ export function Settings() {
       <div style={autoGrid(320)}>
         <PixelPanel title="Simulation Preferences" accent="cyan">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <PixelSwitch
+              checked={difficultyState.enabled}
+              accent="cyan"
+              label="Adaptive Difficulty"
+              description={difficultyState.enabled
+                ? 'AI teams subtly adjust to your performance. Winning streaks get tougher, losing streaks get gentler.'
+                : 'Fixed difficulty — AI teams play at their natural level'}
+              onChange={(checked) => { void setAdaptiveDifficultyEnabled(checked); }}
+            />
+
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <span style={{ ...monoSm, color: '#fff' }}>Autosave</span>

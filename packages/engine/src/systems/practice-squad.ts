@@ -1,6 +1,7 @@
 import { RNG } from '../rng';
 import { getSalaryCap } from '../config';
 import { calcCapHit, calcDeadMoney } from './contracts';
+import { recordNewsItem } from './league-news';
 import type {
   EngineOutput,
   GameState,
@@ -155,6 +156,17 @@ function awardClaim(game: GameState, claim: WaiverClaim): void {
   player.teamId = team.id;
   game.waiverWire = game.waiverWire.filter((entry) => entry.playerId !== player.id);
   game.waiverClaims = game.waiverClaims.filter((entry) => entry.playerId !== player.id);
+  recordNewsItem(game, {
+    id: `waiver-${player.id}-${team.id}-${game.year}-${game.week}`,
+    year: game.year,
+    week: game.week,
+    type: 'waiver',
+    headline: `${team.city} claims ${player.name} off waivers`,
+    body: `${team.city} ${team.name} adds ${player.name} after a waiver run.`,
+    teamIds: [team.id],
+    playerIds: [player.id],
+    importance: 'minor',
+  });
 }
 
 function expireWaivers(game: GameState): void {

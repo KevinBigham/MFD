@@ -50,6 +50,15 @@ describe('SaveStateSchema', () => {
       weekSummaries: [],
       playoffBracket: null,
       offseasonState: null,
+      leagueNews: [],
+      activeProposals: [],
+      difficultyState: {
+        enabled: true,
+        adaptiveSlider: 50,
+        recentUserResults: [],
+        currentStreak: 0,
+        adjustmentHistory: [],
+      },
     };
 
     const result = SaveStateSchema.safeParse(minSave);
@@ -135,6 +144,15 @@ describe('SaveStateSchema', () => {
       weekSummaries: [],
       playoffBracket: null,
       offseasonState: null,
+      leagueNews: [],
+      activeProposals: [],
+      difficultyState: {
+        enabled: true,
+        adaptiveSlider: 50,
+        recentUserResults: [],
+        currentStreak: 0,
+        adjustmentHistory: [],
+      },
     };
 
     const result = SaveStateSchema.safeParse(save);
@@ -182,6 +200,7 @@ describe('migration pipeline', () => {
         practiceSquad: [],
         stadiumType: 'outdoor',
         mentoringPairs: [],
+        trainingAssignments: {},
         seasonStats: {
           gamesPlayed: 5,
           pointsFor: 0,
@@ -432,5 +451,46 @@ describe('migration pipeline', () => {
     expect((migrated['teams'] as Record<string, { practiceSquad?: unknown; stadiumType?: unknown }>).t1.practiceSquad).toEqual([]);
     expect((migrated['teams'] as Record<string, { practiceSquad?: unknown; stadiumType?: unknown }>).t1.stadiumType).toBe('outdoor');
     expect(migrated['waiverOrder']).toEqual(['t2', 't1']);
+  });
+
+  it('migrates v8 saves to include sprint 9 broadcast surfaces state', () => {
+    const migrated = migrate({
+      version: 8,
+      teams: {
+        t1: {
+          wins: 3,
+          losses: 2,
+          ties: 0,
+          practiceSquad: [],
+          mentoringPairs: [],
+          stadiumType: 'outdoor',
+          seasonStats: {
+            gamesPlayed: 5,
+            pointsFor: 120,
+            pointsAgainst: 110,
+            pointDifferential: 10,
+            totalYards: 1800,
+            passingYards: 1200,
+            rushingYards: 600,
+            turnoversLost: 3,
+            turnoversForced: 4,
+            sacksFor: 8,
+            sacksAgainst: 6,
+          },
+        },
+      },
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['leagueNews']).toEqual([]);
+    expect(migrated['activeProposals']).toEqual([]);
+    expect(migrated['difficultyState']).toEqual({
+      enabled: true,
+      adaptiveSlider: 50,
+      recentUserResults: [],
+      currentStreak: 0,
+      adjustmentHistory: [],
+    });
+    expect((migrated['teams'] as Record<string, { trainingAssignments: Record<string, unknown> }>).t1.trainingAssignments).toEqual({});
   });
 });

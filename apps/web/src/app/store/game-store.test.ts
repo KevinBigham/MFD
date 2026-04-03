@@ -173,4 +173,48 @@ describe('game store offseason actions', () => {
     expect(useGameStore.getState().game?.difficulty).toBe('legend');
     expect(autosaveDynasty).not.toHaveBeenCalled();
   });
+
+  it('assigns player training through the store and persists the updated game', async () => {
+    const game = createSeedGameState(222, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const player = userTeam.roster[0]!;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.assignTraining(userTeam.id, player.id, 'film_study');
+
+    expect(useGameStore.getState().game?.teams[userTeam.id]?.trainingAssignments[player.id]?.focus).toBe('film_study');
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('creates and submits a user trade proposal through the store', async () => {
+    const game = createSeedGameState(333, 0, 'pro');
+    game.phase = 'offseason';
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const partner = Object.values(game.teams).find((team) => !team.isUser)!;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    const created = await useGameStore.getState().actions.createTradeProposal(
+      userTeam.id,
+      partner.id,
+      [{ type: 'pick', teamId: userTeam.id, playerId: null, pickId: `${userTeam.id}-${game.year}-1-1-${userTeam.id}`, description: 'Round 1 pick' }],
+      [{ type: 'pick', teamId: partner.id, playerId: null, pickId: `${partner.id}-${game.year}-7-7-${partner.id}`, description: 'Round 7 pick' }],
+    );
+
+    expect(created).not.toBeNull();
+    const submitted = await useGameStore.getState().actions.submitTradeProposal(created!.id);
+
+    expect(submitted?.status).not.toBe('draft');
+    expect(useGameStore.getState().game?.activeProposals.length).toBeGreaterThan(0);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(2);
+  });
 });

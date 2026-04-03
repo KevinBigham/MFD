@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
+import { calculateTrainingXP } from '@mfd/engine';
 import { PixelPanel, PixelBadge, PixelProgressBar } from '@mfd/design-system/components';
 import {
   useGameStore, selectUserTeam, selectRoster,
   selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary, selectLatestGameDayPackage, selectActiveStoryArcs, selectTeams,
   selectUserPowerRanking, selectUserRecordWatch, selectUserMentoringPairs,
   selectOffFieldEvents, selectUpcomingRivalry, selectCoachingCarouselNews,
-  selectConditionalPicks, selectHandshakes, selectWaiverWirePlayers, selectWeather,
+  selectConditionalPicks, selectHandshakes, selectLeagueNews, selectPlayoffPicture, selectTrainingAssignments, selectWaiverWirePlayers, selectWeather,
 } from '../../app/store/game-store';
 import {
   PixelMetricCard,
@@ -42,6 +43,9 @@ export function MondayBriefing() {
   const waiverPlayers = useGameStore(selectWaiverWirePlayers);
   const weather = useGameStore(selectWeather);
   const conditionalPicks = useGameStore(selectConditionalPicks);
+  const leagueNews = useGameStore(selectLeagueNews);
+  const trainingAssignments = useGameStore(selectTrainingAssignments);
+  const playoffPicture = useGameStore(selectPlayoffPicture);
 
   const teamName = team ? `${team.city} ${team.name}` : 'No Team';
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '0-0';
@@ -97,6 +101,26 @@ export function MondayBriefing() {
     : 'default';
   const activePromises = handshakes.filter((handshake) => handshake.teamId === team?.id && handshake.status === 'active').slice(0, 3);
   const userConditionalPicks = conditionalPicks.filter((pick) => pick.toTeamId === team?.id).slice(0, 2);
+  const headlineItems = leagueNews.filter((item) => item.importance !== 'minor').slice(0, 3);
+  const trainingLeaders = roster
+    .map((player) => {
+      const assignment = trainingAssignments[player.id];
+      if (!assignment) return null;
+      return {
+        player,
+        assignment,
+        weeklyXp: calculateTrainingXP(
+          player,
+          assignment.focus,
+          team?.staff?.hc?.ratings?.development ?? 70,
+          player.devTrait,
+        ).totalXp,
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+    .sort((a, b) => b.weeklyXp - a.weeklyXp || b.assignment.xpGained - a.assignment.xpGained)
+    .slice(0, 3);
+  const conferencePlayoffPicture = team?.conference === 'NFC' ? playoffPicture.nfc : playoffPicture.afc;
 
   return (
     <div style={screenStackStyle}>
@@ -138,6 +162,76 @@ export function MondayBriefing() {
           accent={team && team.capSpace >= 0 ? 'cyan' : 'red'}
           detail={injuries.length > 0 ? `${injuries.length} injury alerts active` : 'Healthy enough to push'}
         />
+      </div>
+
+      <div style={autoGrid(320)}>
+        <PixelPanel title="League Headlines" accent={headlineItems[0]?.importance === 'breaking' ? 'gold' : 'cyan'}>
+          {headlineItems.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No breaking league stories are crowding the wire right now.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {headlineItems.map((item) => (
+                <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ ...mono, color: '#fff' }}>{item.headline}</div>
+                    <PixelBadge variant={item.importance === 'breaking' ? 'gold' : 'cyan'}>
+                      {item.importance}
+                    </PixelBadge>
+                  </div>
+                  <div style={{ ...monoSm, color: '#999', lineHeight: 1.5 }}>{item.body}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
+
+        <PixelPanel title="Training Report" accent={trainingLeaders.length > 0 ? 'green' : 'default'}>
+          {trainingLeaders.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No weekly training plans are locked in yet. Assign focuses from the roster table.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {trainingLeaders.map((entry) => (
+                <div key={entry.player.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ ...mono, color: '#fff' }}>{entry.player.name}</div>
+                    <div style={{ ...monoSm, color: '#999' }}>
+                      {entry.assignment.focus.replaceAll('_', ' ')} // {entry.assignment.xpGained.toFixed(1)} total XP
+                    </div>
+                  </div>
+                  <PixelBadge variant="green">{`+${entry.weeklyXp.toFixed(1)} XP`}</PixelBadge>
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
+
+        <PixelPanel title="Playoff Race" accent={week > 8 ? 'gold' : 'default'}>
+          {week <= 8 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              The playoff picture firms up after Week 8. The race board will light up once the field separates.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {conferencePlayoffPicture.slice(0, 4).map((seed) => (
+                <div key={seed.teamId} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ ...mono, color: seed.teamId === team?.id ? 'var(--mfd-gold)' : '#fff' }}>
+                      #{seed.seed} {seed.teamName}
+                    </div>
+                    <div style={{ ...monoSm, color: '#999' }}>
+                      {seed.divisionWinner ? 'Division leader' : 'Wildcard track'}
+                    </div>
+                  </div>
+                  {seed.indicator ? <PixelBadge variant="gold">{seed.indicator}</PixelBadge> : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
       </div>
 
       <div style={autoGrid(280)}>

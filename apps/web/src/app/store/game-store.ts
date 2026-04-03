@@ -7,11 +7,14 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type {
-  ContractOffer, GameState, SeasonPhase, Team, WeeklySummary,
+  ContractOffer, GameState, SeasonPhase, Team, TradeOfferAsset, TradeProposal, TrainingFocus, WeeklySummary,
 } from '@mfd/engine';
 import {
   addToPracticeSquad as addToPracticeSquadEngine,
+  assignTraining as assignTrainingEngine,
+  acceptCounterProposal as acceptCounterProposalEngine,
   cutPlayerToWaivers as cutPlayerToWaiversEngine,
+  createTradeProposal as createTradeProposalEngine,
   elevateFromPracticeSquad as elevateFromPracticeSquadEngine,
   fireScout as fireScoutEngine,
   hireScout as hireScoutEngine,
@@ -27,7 +30,9 @@ import {
   submitReSignOffer as submitReSignOfferEngine,
   submitFreeAgentBid as submitFreeAgentBidEngine,
   runScoutingAction as runScoutingActionEngine,
+  rejectCounterProposal as rejectCounterProposalEngine,
   submitWaiverClaim as submitWaiverClaimEngine,
+  submitProposal as submitTradeProposalEngine,
   acceptTradeOffer as acceptTradeOfferEngine,
   rejectTradeOffer as rejectTradeOfferEngine,
   makeDraftPick as makeDraftPickEngine,
@@ -54,6 +59,7 @@ interface GameActions {
   removeFromPracticeSquad: (teamId: string, playerId: string) => Promise<void>;
   elevatePracticeSquadPlayer: (teamId: string, playerId: string) => Promise<void>;
   submitWaiverClaim: (teamId: string, playerId: string) => Promise<void>;
+  assignTraining: (teamId: string, playerId: string, focus: TrainingFocus) => Promise<void>;
 
   // Contract actions
   restructure: (teamId: string, playerId: string) => void;
@@ -71,6 +77,15 @@ interface GameActions {
   fireScout: (scoutId: string) => Promise<void>;
   acceptTradeOffer: (offerId: string) => Promise<void>;
   rejectTradeOffer: (offerId: string) => Promise<void>;
+  createTradeProposal: (
+    fromTeamId: string,
+    toTeamId: string,
+    offering: TradeOfferAsset[],
+    requesting: TradeOfferAsset[],
+  ) => Promise<TradeProposal | null>;
+  submitTradeProposal: (proposalId: string) => Promise<TradeProposal | null>;
+  acceptCounter: (proposalId: string) => Promise<TradeProposal | null>;
+  rejectCounter: (proposalId: string) => Promise<TradeProposal | null>;
   makeDraftPick: (prospectId: string) => Promise<void>;
   makePromise: (teamId: string, playerId: string, promiseType: 'starter' | 'no_trade' | 'restructure') => Promise<void>;
 
@@ -83,6 +98,7 @@ interface GameActions {
   // Season phase
   setPhase: (phase: SeasonPhase) => void;
   setDifficulty: (difficulty: GameState['difficulty']) => Promise<void>;
+  setAdaptiveDifficultyEnabled: (enabled: boolean) => Promise<void>;
 }
 
 interface GameStore extends GameStoreState {
@@ -186,6 +202,14 @@ export const useGameStore = create<GameStore>()(
         if (!current) return;
         const result = submitWaiverClaimEngine(cloneForMutation(current), teamId, playerId);
         await commitGame(result.nextState);
+      },
+
+      assignTraining: async (teamId, playerId, focus) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        assignTrainingEngine(nextGame, teamId, playerId, focus);
+        await commitGame(nextGame);
       },
 
       restructure: (teamId, playerId) =>
@@ -293,6 +317,42 @@ export const useGameStore = create<GameStore>()(
         await commitGame(result.nextState);
       },
 
+      createTradeProposal: async (fromTeamId, toTeamId, offering, requesting) => {
+        const current = get().game;
+        if (!current) return null;
+        const nextGame = cloneForMutation(current);
+        const proposal = createTradeProposalEngine(nextGame, fromTeamId, toTeamId, offering, requesting);
+        await commitGame(nextGame);
+        return proposal;
+      },
+
+      submitTradeProposal: async (proposalId) => {
+        const current = get().game;
+        if (!current) return null;
+        const nextGame = cloneForMutation(current);
+        const { proposal } = submitTradeProposalEngine(nextGame, proposalId);
+        await commitGame(nextGame);
+        return proposal;
+      },
+
+      acceptCounter: async (proposalId) => {
+        const current = get().game;
+        if (!current) return null;
+        const nextGame = cloneForMutation(current);
+        const proposal = acceptCounterProposalEngine(nextGame, proposalId);
+        await commitGame(nextGame);
+        return proposal;
+      },
+
+      rejectCounter: async (proposalId) => {
+        const current = get().game;
+        if (!current) return null;
+        const nextGame = cloneForMutation(current);
+        const proposal = rejectCounterProposalEngine(nextGame, proposalId);
+        await commitGame(nextGame);
+        return proposal;
+      },
+
       makeDraftPick: async (prospectId) => {
         const current = get().game;
         if (!current) return;
@@ -349,6 +409,17 @@ export const useGameStore = create<GameStore>()(
           ...current,
           difficulty,
         };
+        await commitGame(nextGame);
+      },
+
+      setAdaptiveDifficultyEnabled: async (enabled) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.difficultyState.enabled = enabled;
+        if (!enabled) {
+          nextGame.difficultyState.adaptiveSlider = 50;
+        }
         await commitGame(nextGame);
       },
     },

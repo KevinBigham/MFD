@@ -6,6 +6,7 @@ import {
   useGameStore, selectUserTeam, selectRoster, selectWeek, selectNarrative, selectLatestSummary, selectPhase, selectLatestGameDayPackage, selectActiveStoryArcs,
   selectOffFieldEvents, selectRecentPressConferences, selectUpcomingRivalry, selectCoachingCarouselNews,
   selectConditionalPicks, selectHandshakes, selectWaiverWire, selectWeather,
+  selectActiveProposals, selectDifficultyState, selectLeagueNews, selectTrainingAssignments,
 } from '../../app/store/game-store';
 import { buildInboxMessages, type InboxMessage, type MessageType } from './buildInboxMessages';
 import {
@@ -38,6 +39,10 @@ export function InboxTriage() {
   const conditionalPicks = useGameStore(selectConditionalPicks);
   const waiverWire = useGameStore(selectWaiverWire);
   const weather = useGameStore(selectWeather);
+  const leagueNews = useGameStore(selectLeagueNews);
+  const activeProposals = useGameStore(selectActiveProposals);
+  const trainingAssignments = useGameStore(selectTrainingAssignments);
+  const difficultyState = useGameStore(selectDifficultyState);
 
   const [selectedMsg, setSelectedMsg] = useState<InboxMessage | null>(null);
   const [filter, setFilter] = useState<MessageType | 'ALL'>('ALL');
@@ -59,7 +64,11 @@ export function InboxTriage() {
     conditionalPicks,
     waiverWire,
     weather,
-  }), [activeArcs, coachingNews, conditionalPicks, handshakes, latestPackage, latestSummary, narrative, offFieldEvents, phase, recentPressConferences, roster, team, upcomingRivalry, waiverWire, weather, week]);
+    leagueNews,
+    activeProposals,
+    trainingAssignments,
+    difficultyState,
+  }), [activeArcs, activeProposals, coachingNews, conditionalPicks, difficultyState, handshakes, latestPackage, latestSummary, leagueNews, narrative, offFieldEvents, phase, recentPressConferences, roster, team, trainingAssignments, upcomingRivalry, waiverWire, weather, week]);
 
   const filtered = filter === 'ALL' ? messages : messages.filter((m) => m.type === filter);
   const urgentCount = messages.filter((m) => m.type === 'URGENT' && !m.read).length;

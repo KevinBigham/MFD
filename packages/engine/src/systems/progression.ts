@@ -2,6 +2,7 @@ import { cl } from '../utils';
 import { getAgeCurve } from './player-archetypes';
 import { getAgingMultiplier } from './trust-aging';
 import { recordPlayerRetirement, syncPlayerArchiveEntry } from './history';
+import { recordNewsItem } from './league-news';
 import type { GameEvent, GameState, Player, Position, Team } from '../types';
 
 const DEV_TRAIT_MULTIPLIER: Record<Player['devTrait'], number> = {
@@ -32,6 +33,7 @@ export interface ProgressionResult {
 
 interface ProgressionOptions {
   mentoringBonuses?: Map<string, number>;
+  trainingBonuses?: Map<string, { overall: number; ratings: Record<string, number> }>;
 }
 
 function getCoachMultiplier(team: Team | null): number {
@@ -119,7 +121,7 @@ function getAgingPhase(player: Player): Parameters<typeof getAgingMultiplier>[1]
   return 'twilight';
 }
 
-function applyRatingProgression(player: Player, overallDelta: number): void {
+function applyRatingProgression(player: Player, overallDelta: number, ratingBonuses: Record<string, number> = {}): void {
   const phase = getAgingPhase(player);
   const curve = getAgeCurve(player.pos, player.archetype?.archetype ?? null);
   const upcomingAge = player.age + 1;
@@ -148,7 +150,7 @@ function applyRatingProgression(player: Player, overallDelta: number): void {
       }
     }
 
-    player.ratings[ratingName] = cl(Math.round(ratingValue + delta), 40, 99);
+    player.ratings[ratingName] = cl(Math.round(ratingValue + delta + (ratingBonuses[ratingName] ?? 0)), 40, 99);
   }
 }
 
@@ -173,12 +175,17 @@ function progressSinglePlayer(
   const coachMultiplier = getCoachMultiplier(team);
   const devTraitMultiplier = DEV_TRAIT_MULTIPLIER[player.devTrait] ?? 1;
   const mentoringBonus = options.mentoringBonuses?.get(player.id) ?? 0;
-  const overallDelta = baseAgeDelta * performanceMultiplier * coachMultiplier * devTraitMultiplier + mentoringBonus;
+  const trainingBonus = options.trainingBonuses?.get(player.id) ?? { overall: 0, ratings: {} };
+  const overallDelta = (
+    baseAgeDelta * performanceMultiplier * coachMultiplier * devTraitMultiplier +
+    mentoringBonus +
+    trainingBonus.overall
+  );
 
   const previousSeasonStart = player.careerStats.seasonStartOvr ?? player.ovr;
   player.careerStats.previousSeasonOvr = previousSeasonStart;
 
-  applyRatingProgression(player, overallDelta);
+  applyRatingProgression(player, overallDelta, trainingBonus.ratings);
   player.ovr = cl(Math.round(player.ovr + overallDelta), 40, 99);
   player.pot = Math.max(player.pot, player.ovr);
   player.careerStats.seasonStartOvr = player.ovr;
@@ -209,6 +216,17 @@ export function progressPlayers(game: GameState, options: ProgressionOptions = {
       game.players[retiree.id] = retiree;
       retiredPlayerIds.push(retiree.id);
       events.push(makeRetirementEvent(game, retiree, team.id));
+      recordNewsItem(game, {
+        id: `retirement-${retiree.id}-${game.year}`,
+        year: game.year,
+        week: game.week,
+        type: 'milestone',
+        headline: `${retiree.name} calls it a career`,
+        body: `${retiree.name} steps away after ${retiree.careerStats.seasons ?? 0} seasons in the league.`,
+        teamIds: [team.id],
+        playerIds: [retiree.id],
+        importance: 'major',
+      });
     }
   }
 
@@ -223,6 +241,17 @@ export function progressPlayers(game: GameState, options: ProgressionOptions = {
       game.freeAgents = game.freeAgents.filter((id) => id !== playerId);
       retiredPlayerIds.push(player.id);
       events.push(makeRetirementEvent(game, player, null));
+      recordNewsItem(game, {
+        id: `retirement-${player.id}-${game.year}`,
+        year: game.year,
+        week: game.week,
+        type: 'milestone',
+        headline: `${player.name} calls it a career`,
+        body: `${player.name} steps away after ${player.careerStats.seasons ?? 0} seasons in the league.`,
+        teamIds: [],
+        playerIds: [player.id],
+        importance: 'major',
+      });
     }
   }
 

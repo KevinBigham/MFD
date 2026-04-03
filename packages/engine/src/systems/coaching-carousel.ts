@@ -1,5 +1,6 @@
 import { RNG, uid } from '../rng';
 import type { GameEvent, GameState, StaffMember, Team } from '../types';
+import { recordNewsItem } from './league-news';
 import { ensureLivingWorldState } from './off-field-events';
 
 const FIRST_NAMES = ['Marcus', 'Calvin', 'Derrick', 'Andre', 'Jalen', 'Ty', 'Mason', 'Victor'];
@@ -171,6 +172,17 @@ export function runCoachingCarousel(game: GameState, seasonYear: number): { even
       events.push(fired);
       game.narrativeState.recentHeadlines = [fired.description, ...game.narrativeState.recentHeadlines].slice(0, 8);
       game.eventLog.push(fired);
+      recordNewsItem(game, {
+        id: `coach-fired-${team.id}-${seasonYear}`,
+        year: game.year,
+        week: game.week,
+        type: 'coaching',
+        headline: fired.description,
+        body: `${team.city} begins a new search after the ${seasonYear} campaign.`,
+        teamIds: [team.id],
+        playerIds: [],
+        importance: 'major',
+      });
     }
 
     const pool = Array.from({ length: 5 + Math.floor(RNG.ai() * 4) }, () => generateCandidate('HC'));
@@ -181,6 +193,17 @@ export function runCoachingCarousel(game: GameState, seasonYear: number): { even
     events.push(hired);
     game.narrativeState.recentHeadlines = [hired.description, ...game.narrativeState.recentHeadlines].slice(0, 8);
     game.eventLog.push(hired);
+    recordNewsItem(game, {
+      id: `coach-hired-${team.id}-${seasonYear}`,
+      year: game.year,
+      week: game.week,
+      type: 'coaching',
+      headline: hired.description,
+      body: `${hire.name} takes over with a ${hire.archetype.replaceAll('_', ' ')} profile.`,
+      teamIds: [team.id],
+      playerIds: [],
+      importance: 'major',
+    });
     recordCoachHistory(game, hire, team, seasonYear, false);
   }
 

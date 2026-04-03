@@ -1,12 +1,12 @@
 import { useState, useMemo, useCallback } from 'react';
 import {
-  PixelPanel, PixelTable, PixelBadge, PixelModal, PixelNav, PixelButton,
+  PixelPanel, PixelTable, PixelBadge, PixelModal, PixelNav, PixelButton, PixelSelect,
 } from '@mfd/design-system/components';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { Player } from '@mfd/engine';
-import { calcCapHit } from '@mfd/engine';
+import { calcCapHit, calculateTrainingXP } from '@mfd/engine';
 import {
-  useGameStore, selectFreeAgentPlayers, selectPracticeSquad, selectRoster, selectUserTeam, selectUserTeamId, selectWaiverWirePlayers,
+  useGameStore, selectFreeAgentPlayers, selectPracticeSquad, selectRoster, selectTrainingAssignments, selectUserTeam, selectUserTeamId, selectWaiverWirePlayers,
 } from '../../app/store/game-store';
 import {
   PixelConsequenceList,
@@ -18,6 +18,52 @@ import {
   monoSm,
   screenStackStyle,
 } from '../shared/pixelUi';
+
+const trainingFocusOptions = [
+  { value: 'film_study', label: 'Film Study' },
+  { value: 'position_drills', label: 'Position Drills' },
+  { value: 'conditioning', label: 'Conditioning' },
+  { value: 'mentorship', label: 'Mentorship' },
+  { value: 'rest', label: 'Rest' },
+];
+
+function TrainingCell({ player }: { player: Player }) {
+  const team = useGameStore(selectUserTeam);
+  const teamId = useGameStore(selectUserTeamId);
+  const assignments = useGameStore(selectTrainingAssignments);
+  const assignTraining = useGameStore((s) => s.actions.assignTraining);
+
+  const assignment = assignments[player.id];
+  const focus = assignment?.focus ?? 'film_study';
+  const xp = team
+    ? calculateTrainingXP(player, focus, team.staff.hc?.ratings?.development ?? 70, player.devTrait)
+    : null;
+  const mentorshipBonus = focus === 'mentorship' && team?.mentoringPairs.some((pair) => pair.menteeId === player.id || pair.mentorId === player.id);
+
+  return (
+    <div
+      onClick={(event) => event.stopPropagation()}
+      style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '160px' }}
+    >
+      <PixelSelect
+        value={focus}
+        accent={mentorshipBonus ? 'gold' : 'cyan'}
+        options={trainingFocusOptions}
+        onChange={(event) => {
+          if (!teamId) return;
+          void assignTraining(teamId, player.id, event.target.value as typeof focus);
+        }}
+        style={{ width: '100%' }}
+      />
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ ...monoSm, color: '#999' }}>
+          {xp ? `+${xp.totalXp.toFixed(1)} XP/wk` : '--'}
+        </span>
+        {mentorshipBonus ? <PixelBadge variant="gold">Mentor Bonus</PixelBadge> : null}
+      </div>
+    </div>
+  );
+}
 
 const columns: ColumnDef<Player, unknown>[] = [
   {
@@ -113,6 +159,12 @@ const columns: ColumnDef<Player, unknown>[] = [
     },
     size: 90,
   },
+  {
+    id: 'training',
+    header: 'Training',
+    cell: ({ row }) => <TrainingCell player={row.original} />,
+    size: 190,
+  },
 ];
 
 export function RosterManagement() {
@@ -122,9 +174,11 @@ export function RosterManagement() {
   const teamId = useGameStore(selectUserTeamId);
   const team = useGameStore(selectUserTeam);
   const waiverPlayers = useGameStore(selectWaiverWirePlayers);
+  const trainingAssignments = useGameStore(selectTrainingAssignments);
   const playersById = useGameStore((s) => s.game?.players ?? {});
   const {
     addToPracticeSquad,
+    assignTraining,
     cutPlayer,
     elevatePracticeSquadPlayer,
     removeFromPracticeSquad,
@@ -150,6 +204,7 @@ export function RosterManagement() {
   const avgAge = roster.length > 0
     ? Math.round(roster.reduce((sum, player) => sum + player.age, 0) / roster.length * 10) / 10
     : 0;
+  const playersInTraining = Object.keys(trainingAssignments).length;
   const practiceSquadRows = practiceSquad
     .map((entry) => ({ entry, player: playersById[entry.playerId] }))
     .filter((item): item is { entry: typeof practiceSquad[number]; player: Player } => Boolean(item.player));
@@ -200,6 +255,7 @@ export function RosterManagement() {
         <PixelMetricCard label="Avg OVR" value={avgOvr} accent={avgOvr >= 80 ? 'green' : avgOvr >= 72 ? 'cyan' : 'gold'} detail="Overall team strength" />
         <PixelMetricCard label="Starters" value={starters} accent={starters >= 22 ? 'green' : 'gold'} detail="Projected first unit" />
         <PixelMetricCard label="Avg Age" value={avgAge} accent="cyan" detail="Current roster age curve" />
+        <PixelMetricCard label="Training Plans" value={playersInTraining} accent="gold" detail="Players with an active weekly focus" />
       </div>
 
       <PixelNav
@@ -232,6 +288,9 @@ export function RosterManagement() {
               <PixelBadge variant="green">POT {selectedPlayer.pot}</PixelBadge>
               <PixelBadge variant="default">Age {selectedPlayer.age}</PixelBadge>
               {selectedPlayer.tradeBlock ? <PixelBadge variant="red">Trade Block</PixelBadge> : null}
+              {team?.mentoringPairs.some((pair) => pair.menteeId === selectedPlayer.id || pair.mentorId === selectedPlayer.id)
+                ? <PixelBadge variant="gold">Mentoring Pair</PixelBadge>
+                : null}
             </div>
 
             <div style={autoGrid(260)}>
@@ -257,6 +316,7 @@ export function RosterManagement() {
                   <div>System Fit: {selectedPlayer.systemFit}</div>
                   <div>Dev Trait: {selectedPlayer.devTrait}</div>
                   <div>Experience: {selectedPlayer.yearsExp} year(s)</div>
+                  <div>Training Focus: {trainingAssignments[selectedPlayer.id]?.focus?.replaceAll('_', ' ') ?? 'unassigned'}</div>
                 </div>
               </PixelPanel>
             </div>

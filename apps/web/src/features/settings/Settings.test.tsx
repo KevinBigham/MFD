@@ -4,6 +4,13 @@ import { Settings } from './Settings';
 
 const gameState = {
   difficulty: 'allpro',
+  difficultyState: {
+    enabled: true,
+    adaptiveSlider: 58,
+    recentUserResults: [],
+    currentStreak: 4,
+    adjustmentHistory: [],
+  },
 };
 
 const uiState = {
@@ -12,12 +19,20 @@ const uiState = {
 };
 
 vi.mock('../../app/store/game-store', () => ({
-  useGameStore: (selector: (state: { game: typeof gameState; actions: { setDifficulty: () => Promise<void> } }) => unknown) => selector({
+  useGameStore: (selector: (state: {
+    game: typeof gameState;
+    actions: {
+      setDifficulty: () => Promise<void>;
+      setAdaptiveDifficultyEnabled: () => Promise<void>;
+    };
+  }) => unknown) => selector({
     game: gameState,
     actions: {
       setDifficulty: async () => undefined,
+      setAdaptiveDifficultyEnabled: async () => undefined,
     },
   }),
+  selectDifficultyState: (state: { game: typeof gameState }) => state.game.difficultyState,
 }));
 
 vi.mock('../../app/store/ui-store', () => ({
@@ -40,5 +55,7 @@ describe('Settings', () => {
     expect(markup).toContain('All-Pro');
     expect(markup).toContain('Autosave');
     expect(markup).toContain('DETAILED');
+    expect(markup).toContain('Adaptive Difficulty');
+    expect(markup).toContain('Winning streaks get tougher');
   });
 });

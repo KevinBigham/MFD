@@ -17,6 +17,7 @@ import {
   generatePersonality, SAVE_VERSION, createEmptySeasonStats,
   CONTRACT_VALUE_TABLE, AGE_VALUE_CURVE, MIN_SALARY, emptyPlayerStats,
   createDefaultScoutingDepartment,
+  createDefaultDifficultyState,
   syncAllPlayerArchiveEntries,
 } from '@mfd/engine';
 import { createEmptyRecordBook } from '@mfd/engine';
@@ -302,6 +303,7 @@ function genTeam(
     txLog: [],
     seasonStats: createEmptySeasonStats(),
     mentoringPairs: [],
+    trainingAssignments: {},
     practiceSquad: [],
     stadiumType: DOME_CITIES.has(def.city) ? 'dome' : 'outdoor',
   };
@@ -427,6 +429,9 @@ export function createSeedGameState(
     weekSummaries: [],
     playoffBracket: null,
     offseasonState: null,
+    leagueNews: [],
+    activeProposals: [],
+    difficultyState: createDefaultDifficultyState(),
     scoutingDepartment: createDefaultScoutingDepartment(),
     conditionalPicks: [],
     waiverOrder: [...teamIds],

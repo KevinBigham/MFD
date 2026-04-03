@@ -7,6 +7,7 @@ const mockState = {
     id: 'team-1',
     city: 'Chicago',
     name: 'Blaze',
+    conference: 'AFC',
     wins: 8,
     losses: 4,
     ties: 0,
@@ -131,6 +132,40 @@ const mockState = {
       description: 'Austin hires Mason Pike to run the sideline.',
     },
   ],
+  leagueNews: [
+    {
+      id: 'news-1',
+      headline: 'League trade talks are heating up',
+      body: 'A contender is pushing chips into the middle of the table.',
+      importance: 'breaking',
+    },
+  ],
+  trainingAssignments: {
+    p1: {
+      playerId: 'p1',
+      focus: 'film_study',
+      weeksAssigned: 4,
+      xpGained: 18.5,
+      focusXp: {
+        film_study: 18.5,
+        position_drills: 0,
+        conditioning: 0,
+        mentorship: 0,
+        rest: 0,
+      },
+    },
+  },
+  playoffPicture: {
+    afc: [
+      { seed: 1, teamId: 'team-1', teamName: 'Chicago Blaze', divisionWinner: true, indicator: 'X' },
+      { seed: 2, teamId: 'team-2', teamName: 'Austin Armadillos', divisionWinner: true, indicator: '' },
+    ],
+    nfc: [],
+  },
+  handshakes: [],
+  waiverWirePlayers: [],
+  weather: 'clear',
+  conditionalPicks: [],
 };
 
 vi.mock('../../app/store/game-store', () => ({
@@ -151,6 +186,13 @@ vi.mock('../../app/store/game-store', () => ({
   selectOffFieldEvents: (state: typeof mockState) => state.offFieldEvents,
   selectUpcomingRivalry: (state: typeof mockState) => state.upcomingRivalry,
   selectCoachingCarouselNews: (state: typeof mockState) => state.coachingCarouselNews,
+  selectLeagueNews: (state: typeof mockState) => state.leagueNews,
+  selectTrainingAssignments: (state: typeof mockState) => state.trainingAssignments,
+  selectPlayoffPicture: (state: typeof mockState) => state.playoffPicture,
+  selectHandshakes: (state: typeof mockState) => state.handshakes,
+  selectWaiverWirePlayers: (state: typeof mockState) => state.waiverWirePlayers,
+  selectWeather: (state: typeof mockState) => state.weather,
+  selectConditionalPicks: (state: typeof mockState) => state.conditionalPicks,
 }));
 
 describe('MondayBriefing', () => {
@@ -164,6 +206,12 @@ describe('MondayBriefing', () => {
     expect(markup).toContain('Jay Stone');
     expect(markup).toContain('--- MENTORING REPORT ---');
     expect(markup).toContain('Rick Mason -&gt; Jay Stone');
+    expect(markup).toContain('--- LEAGUE HEADLINES ---');
+    expect(markup).toContain('League trade talks are heating up');
+    expect(markup).toContain('--- TRAINING REPORT ---');
+    expect(markup).toContain('film study');
+    expect(markup).toContain('--- PLAYOFF RACE ---');
+    expect(markup).toContain('#1 Chicago Blaze');
     expect(markup).toContain('--- LOCKER ROOM PULSE ---');
     expect(markup).toContain('Jay Stone owns the media cycle');
     expect(markup).toContain('--- RIVALRY WATCH ---');

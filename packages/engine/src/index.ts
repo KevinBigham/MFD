@@ -69,6 +69,41 @@ export { createPowerRankings, updatePowerRankings } from './systems/power-rankin
 export { formMentoringPairs, applyMentoringBonuses } from './systems/mentoring';
 export { generateAwards } from './systems/awards';
 export { inductHallOfFame } from './systems/hall-of-fame';
+export {
+  recordNewsItem,
+  generateWeeklyLeagueNews,
+  generateOffseasonNews,
+  getRecentNews,
+  getTeamNews,
+} from './systems/league-news';
+export {
+  createTradeProposal,
+  submitProposal,
+  generateCounterOffer,
+  getTradeTargets,
+  getTradeableAssets,
+  acceptCounterProposal,
+  rejectCounterProposal,
+} from './systems/trade-negotiation';
+export {
+  assignTraining,
+  processWeeklyTraining,
+  calculateTrainingXP,
+  getTrainingProgress,
+  buildTrainingProgressionBonuses,
+  clearTrainingAssignments,
+} from './systems/player-development';
+export {
+  createDefaultDifficultyState,
+  updateAdaptiveDifficulty,
+  getAdaptiveModifier,
+} from './systems/adaptive-difficulty';
+export {
+  buildPlayoffPicture,
+  getDivisionStandings,
+  getClinchedStatus,
+  getStatLeaders,
+} from './systems/standings';
 
 // Systems — Contracts (Phase 2)
 export {

@@ -263,6 +263,7 @@ export interface Team {
   txLog: TransactionLogEntry[];
   seasonStats: TeamSeasonStats;
   mentoringPairs: MentoringPair[];
+  trainingAssignments: Record<string, TrainingAssignment>;
   practiceSquad: PracticeSquadPlayer[];
   stadiumType: 'dome' | 'outdoor';
 }
@@ -569,6 +570,68 @@ export interface TradeOffer {
   status: 'pending' | 'accepted' | 'rejected';
   send: TradeOfferAsset[];
   receive: TradeOfferAsset[];
+}
+
+export type NewsType =
+  | 'trade'
+  | 'signing'
+  | 'cut'
+  | 'injury'
+  | 'record'
+  | 'coaching'
+  | 'rivalry'
+  | 'milestone'
+  | 'draft'
+  | 'waiver';
+
+export interface NewsItem {
+  id: string;
+  year: number;
+  week: number;
+  type: NewsType;
+  headline: string;
+  body: string;
+  teamIds: string[];
+  playerIds: string[];
+  importance: 'breaking' | 'major' | 'minor';
+}
+
+export type TrainingFocus = 'film_study' | 'position_drills' | 'conditioning' | 'mentorship' | 'rest';
+
+export interface TrainingAssignment {
+  playerId: string;
+  focus: TrainingFocus;
+  weeksAssigned: number;
+  xpGained: number;
+  focusXp: Record<TrainingFocus, number>;
+}
+
+export interface DifficultyAdjustment {
+  week: number;
+  delta: number;
+  reason: string;
+}
+
+export interface DifficultyState {
+  enabled: boolean;
+  adaptiveSlider: number;
+  recentUserResults: { week: number; result: 'win' | 'loss' }[];
+  currentStreak: number;
+  adjustmentHistory: DifficultyAdjustment[];
+}
+
+export type TradeProposalStatus = 'draft' | 'sent' | 'countered' | 'accepted' | 'rejected';
+
+export interface TradeProposal {
+  id: string;
+  fromTeamId: string;
+  toTeamId: string;
+  offering: TradeOfferAsset[];
+  requesting: TradeOfferAsset[];
+  status: TradeProposalStatus;
+  counterOffer: TradeProposal | null;
+  aiResponse: string;
+  valueDiff: number;
 }
 
 export interface DraftOrderEntry {
@@ -1068,6 +1131,9 @@ export interface GameState {
   weekSummaries: WeeklySummary[];
   playoffBracket: PlayoffBracket | null;
   offseasonState: OffseasonState | null;
+  leagueNews: NewsItem[];
+  activeProposals: TradeProposal[];
+  difficultyState: DifficultyState;
   scoutingDepartment: ScoutingDepartment;
   conditionalPicks: ConditionalPick[];
   waiverOrder: string[];

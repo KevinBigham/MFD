@@ -10,8 +10,10 @@ import { reevaluateLeagueStrategies } from './gm-strategies';
 import { evaluateHandshakes } from './handshake-ledger';
 import { inductHallOfFame } from './hall-of-fame';
 import { syncPlayerArchiveEntry } from './history';
+import { generateOffseasonNews, recordNewsItem } from './league-news';
 import { applyMentoringBonuses, formMentoringPairs } from './mentoring';
 import { clearSeasonLivingWorldState } from './off-field-events';
+import { buildTrainingProgressionBonuses, clearTrainingAssignments } from './player-development';
 import { processWaiverClaims } from './practice-squad';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { progressPlayers } from './progression';
@@ -314,6 +316,17 @@ function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState): voi
       playerId: signedPlayer.id,
       toTeamId: team.id,
     });
+    recordNewsItem(game, {
+      id: `fa-signing-${signedPlayer.id}-${team.id}-${game.year}`,
+      year: game.year,
+      week: game.week,
+      type: 'signing',
+      headline: `${team.city} lands ${signedPlayer.name}`,
+      body: `${team.city} ${team.name} wins the free-agent sweepstakes for ${signedPlayer.name}.`,
+      teamIds: [team.id],
+      playerIds: [signedPlayer.id],
+      importance: signedPlayer.ovr >= 85 ? 'breaking' : signedPlayer.ovr >= 78 ? 'major' : 'minor',
+    });
     game.freeAgents = game.freeAgents.filter((id) => id !== playerId);
 
     for (const bid of bids) {
@@ -517,8 +530,10 @@ export function advanceOffseason(game: GameState): void {
     patchMentoringHistory(game, seasonYear, team, team.mentoringPairs);
   }
   const mentoringBonuses = applyMentoringBonuses(game, mentoringPairs);
-  const progression = progressPlayers(game, { mentoringBonuses });
+  const trainingBonuses = buildTrainingProgressionBonuses(game);
+  const progression = progressPlayers(game, { mentoringBonuses, trainingBonuses });
   game.eventLog.push(...progression.events);
+  clearTrainingAssignments(game);
   resetPracticeSquads(game);
   const narrativeAdds = [
     awards.ceremony.headline,
@@ -533,6 +548,7 @@ export function advanceOffseason(game: GameState): void {
   }
   const strategyEvents = reevaluateLeagueStrategies(game);
   game.eventLog.push(...strategyEvents);
+  generateOffseasonNews(game);
   game.offseasonState.tradeOffers = generateTradeOffers(game);
   game.phase = 'free_agency';
   game.week = 1;
@@ -550,12 +566,14 @@ export function advanceFreeAgency(game: GameState): void {
     for (const team of Object.values(game.teams)) {
       calculateCompPicks(game, team.id);
     }
+    generateOffseasonNews(game);
     rebuildDraftBoard(game);
     game.phase = 'draft';
     game.week = 1;
     return;
   }
 
+  generateOffseasonNews(game);
   game.offseasonState.round += 1;
   game.week = game.offseasonState.round;
 }

@@ -1,5 +1,6 @@
 import { syncPlayerArchiveEntry } from './history';
 import { conditionalPickExpectedValue } from './conditional-picks';
+import { recordNewsItem } from './league-news';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
 import type { DraftPick, EngineOutput, GameState, Player, Team, TradeOffer, TradeOfferAsset } from '../types';
@@ -343,6 +344,9 @@ export function generateTradeOffers(game: GameState): TradeOffer[] {
 
 export function acceptTradeOffer(game: GameState, offerId: string): EngineOutput {
   const nextState = cloneGame(game);
+  if (nextState.phase === 'regular_season' && nextState.week > 12) {
+    return { nextState, events: [], consequences: [] };
+  }
   const offer = nextState.offseasonState?.tradeOffers.find((entry) => entry.id === offerId);
   if (!offer) return { nextState, events: [], consequences: [] };
 
@@ -375,6 +379,18 @@ export function acceptTradeOffer(game: GameState, offerId: string): EngineOutput
     });
     recordPressConference(nextState, conference);
   }
+
+  recordNewsItem(nextState, {
+    id: `${offer.id}-news`,
+    year: nextState.year,
+    week: nextState.week,
+    type: 'trade',
+    headline: `${nextState.teams[offer.toTeamId]?.city ?? 'A team'} closes a trade with ${nextState.teams[offer.fromTeamId]?.city ?? 'a rival'}`,
+    body: offer.summary,
+    teamIds: [offer.fromTeamId, offer.toTeamId],
+    playerIds: [...offer.send, ...offer.receive].flatMap((asset) => asset.playerId ? [asset.playerId] : []),
+    importance: 'breaking',
+  });
 
   return { nextState, events: [], consequences: [] };
 }

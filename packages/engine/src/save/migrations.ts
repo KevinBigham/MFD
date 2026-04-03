@@ -242,3 +242,24 @@ registerMigration(7, (state) => {
     handshakes: Array.isArray(state['handshakes']) ? state['handshakes'] : [],
   };
 });
+
+registerMigration(8, (state) => {
+  const teams = (state['teams'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+  for (const team of Object.values(teams)) {
+    team['trainingAssignments'] = team['trainingAssignments'] ?? {};
+  }
+
+  return {
+    ...state,
+    teams,
+    leagueNews: Array.isArray(state['leagueNews']) ? state['leagueNews'] : [],
+    activeProposals: Array.isArray(state['activeProposals']) ? state['activeProposals'] : [],
+    difficultyState: state['difficultyState'] ?? {
+      enabled: true,
+      adaptiveSlider: 50,
+      recentUserResults: [],
+      currentStreak: 0,
+      adjustmentHistory: [],
+    },
+  };
+});

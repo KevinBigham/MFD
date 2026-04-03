@@ -130,6 +130,7 @@ export function makeTeam(
       sacksAgainst: 0,
     },
     mentoringPairs: [],
+    trainingAssignments: {},
     practiceSquad: [],
     stadiumType: 'outdoor',
   } as unknown as Team;
@@ -237,6 +238,15 @@ export function makeLeagueState(
     weekSummaries: [],
     playoffBracket: null,
     offseasonState: null,
+    leagueNews: [],
+    activeProposals: [],
+    difficultyState: {
+      enabled: true,
+      adaptiveSlider: 50,
+      recentUserResults: [],
+      currentStreak: 0,
+      adjustmentHistory: [],
+    },
     scoutingDepartment: {
       scouts: [],
       availableScouts: [],

@@ -22,3 +22,5 @@ export { PixelNav, type PixelNavItem } from './PixelNav';
 export { PixelTable } from './PixelTable';
 export { PixelModal } from './PixelModal';
 export { PixelProgressBar } from './PixelProgressBar';
+export { PixelSelect, type PixelSelectOption } from './PixelSelect';
+export { PixelSwitch } from './PixelSwitch';

@@ -1,9 +1,11 @@
 import type {
   ConditionalPick,
+  DifficultyState,
   GameDayPackage,
   GameEvent,
   Handshake,
   NarrativeState,
+  NewsItem,
   OffFieldEvent,
   Player,
   PressConference,
@@ -11,6 +13,8 @@ import type {
   SeasonPhase,
   StoryArc,
   Team,
+  TradeProposal,
+  TrainingAssignment,
   WaiverWireEntry,
   WeatherCondition,
   WeeklySummary,
@@ -47,6 +51,10 @@ interface BuildInboxMessagesParams {
   conditionalPicks: ConditionalPick[];
   waiverWire: WaiverWireEntry[];
   weather: WeatherCondition | null;
+  leagueNews: NewsItem[];
+  activeProposals: TradeProposal[];
+  trainingAssignments: Record<string, TrainingAssignment>;
+  difficultyState: DifficultyState | null;
 }
 
 export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessage[] {
@@ -67,6 +75,10 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     conditionalPicks,
     waiverWire,
     weather,
+    leagueNews,
+    activeProposals,
+    trainingAssignments,
+    difficultyState,
   } = params;
   const msgs: InboxMessage[] = [];
   if (!team) return msgs;
@@ -160,6 +172,22 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     });
   }
 
+  for (const proposal of activeProposals
+    .filter((entry) => entry.fromTeamId === team.id && entry.status !== 'draft')
+    .slice(-3)
+    .reverse()) {
+    msgs.push({
+      id: `proposal-${proposal.id}`,
+      type: proposal.status === 'accepted' ? 'INTEL' : proposal.status === 'countered' ? 'DECISION' : 'URGENT',
+      title: proposal.status === 'countered' ? 'Trade Counter Received' : `Trade ${proposal.status}`,
+      body: `${proposal.aiResponse}\nOffering: ${proposal.offering.map((asset) => asset.description).join(' | ')}\nRequesting: ${proposal.requesting.map((asset) => asset.description).join(' | ')}`,
+      from: 'Trade Desk',
+      week,
+      read: false,
+      actionRequired: proposal.status === 'countered',
+    });
+  }
+
   if (upcomingRivalry) {
     msgs.push({
       id: `rivalry-${upcomingRivalry.rivalryId}`,
@@ -209,6 +237,56 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       title: 'Waiver Wire Update',
       body: `${waiverWire.length} player(s) are on waivers.\n${waiverWire.slice(0, 3).map((entry) => entry.playerId).join(' | ')}`,
       from: 'Personnel',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  if (phase === 'regular_season' && (week === 11 || week === 12)) {
+    msgs.push({
+      id: `trade-deadline-${week}`,
+      type: week === 12 ? 'URGENT' : 'DECISION',
+      title: week === 12 ? 'Trade Deadline Week' : 'Trade Deadline Closing In',
+      body: week === 12
+        ? 'This is the last week to complete in-season trades before the market closes.'
+        : 'The trade deadline hits after Week 12. Push deals now if you need roster help.',
+      from: 'League Office',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  const trainingMilestones = Object.values(trainingAssignments)
+    .filter((assignment) => assignment.xpGained >= 20)
+    .sort((a, b) => b.xpGained - a.xpGained)
+    .slice(0, 2);
+  for (const assignment of trainingMilestones) {
+    const player = roster.find((candidate) => candidate.id === assignment.playerId);
+    if (!player) continue;
+    msgs.push({
+      id: `training-${assignment.playerId}`,
+      type: 'INTEL',
+      title: `${player.name} is stacking training gains`,
+      body: `${assignment.focus.replaceAll('_', ' ')} has banked ${assignment.xpGained.toFixed(1)} XP across ${assignment.weeksAssigned} week(s).`,
+      from: 'Player Development',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  const latestAdjustment = difficultyState?.adjustmentHistory.at(-1) ?? null;
+  if (latestAdjustment) {
+    msgs.push({
+      id: `adaptive-${latestAdjustment.week}-${latestAdjustment.delta}`,
+      type: 'INTEL',
+      title: latestAdjustment.delta > 0 ? 'League Pressure Rising' : 'League Pressure Softening',
+      body: latestAdjustment.delta > 0
+        ? 'The league seems to be stepping up their game after your recent run.'
+        : 'The edge around the league feels a little softer after the recent skid.',
+      from: 'Broadcast Prep',
       week,
       read: false,
       actionRequired: false,
@@ -299,6 +377,19 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
         actionRequired: false,
       });
     }
+  }
+
+  for (const headline of leagueNews.slice(0, 2)) {
+    msgs.push({
+      id: `league-news-${headline.id}`,
+      type: headline.importance === 'breaking' ? 'URGENT' : 'INTEL',
+      title: headline.headline,
+      body: headline.body,
+      from: 'League Wire',
+      week: headline.week,
+      read: false,
+      actionRequired: false,
+    });
   }
 
   if (team.capSpace < 10 && team.capSpace >= 0) {

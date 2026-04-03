@@ -451,6 +451,63 @@ export const TradeOfferSchema = z.object({
   receive: z.array(TradeOfferAssetSchema),
 });
 
+export const NewsItemSchema = z.object({
+  id: z.string(),
+  year: z.number(),
+  week: z.number(),
+  type: z.enum(['trade', 'signing', 'cut', 'injury', 'record', 'coaching', 'rivalry', 'milestone', 'draft', 'waiver']),
+  headline: z.string(),
+  body: z.string(),
+  teamIds: z.array(z.string()),
+  playerIds: z.array(z.string()),
+  importance: z.enum(['breaking', 'major', 'minor']),
+});
+
+export const TrainingFocusSchema = z.enum(['film_study', 'position_drills', 'conditioning', 'mentorship', 'rest']);
+
+export const TrainingAssignmentSchema = z.object({
+  playerId: z.string(),
+  focus: TrainingFocusSchema,
+  weeksAssigned: z.number(),
+  xpGained: z.number(),
+  focusXp: z.object({
+    film_study: z.number(),
+    position_drills: z.number(),
+    conditioning: z.number(),
+    mentorship: z.number(),
+    rest: z.number(),
+  }),
+});
+
+export const DifficultyAdjustmentSchema = z.object({
+  week: z.number(),
+  delta: z.number(),
+  reason: z.string(),
+});
+
+export const DifficultyStateSchema = z.object({
+  enabled: z.boolean(),
+  adaptiveSlider: z.number(),
+  recentUserResults: z.array(z.object({
+    week: z.number(),
+    result: z.enum(['win', 'loss']),
+  })),
+  currentStreak: z.number(),
+  adjustmentHistory: z.array(DifficultyAdjustmentSchema),
+});
+
+export const TradeProposalSchema: z.ZodType = z.lazy(() => z.object({
+  id: z.string(),
+  fromTeamId: z.string(),
+  toTeamId: z.string(),
+  offering: z.array(TradeOfferAssetSchema),
+  requesting: z.array(TradeOfferAssetSchema),
+  status: z.enum(['draft', 'sent', 'countered', 'accepted', 'rejected']),
+  counterOffer: TradeProposalSchema.nullable(),
+  aiResponse: z.string(),
+  valueDiff: z.number(),
+}));
+
 export const OffseasonStateSchema = z.object({
   round: z.number(),
   expiringPlayerIds: z.array(z.string()),
@@ -538,6 +595,15 @@ export const SaveStateSchema = z.object({
   weekSummaries: z.array(z.any()),
   playoffBracket: z.any().nullable(),
   offseasonState: OffseasonStateSchema.nullable(),
+  leagueNews: z.array(NewsItemSchema).default([]),
+  activeProposals: z.array(TradeProposalSchema).default([]),
+  difficultyState: DifficultyStateSchema.default({
+    enabled: true,
+    adaptiveSlider: 50,
+    recentUserResults: [],
+    currentStreak: 0,
+    adjustmentHistory: [],
+  }),
   scoutingDepartment: ScoutingDepartmentSchema.default({
     scouts: [],
     availableScouts: [],

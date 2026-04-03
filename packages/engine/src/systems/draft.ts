@@ -1,6 +1,7 @@
 import { createEmptySeasonStats, emptyPlayerStats } from './season-stats';
 import { makeContract } from './contracts';
 import { syncPlayerArchiveEntry } from './history';
+import { recordNewsItem } from './league-news';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { applyScoutAccuracy, bestScoutForProspect, runCombine, runProDay } from './scouting-staff';
 import { mulberry32 } from '../rng';
@@ -278,6 +279,17 @@ function applyDraftSelection(game: GameState, teamId: string, prospectId: string
   removeUsedPick(team, game.year, draftEntry.round, draftEntry.pick, draftEntry.originalTeamId);
   game.offseasonState.completedDraftPickIds.push(draftEntry.id);
   game.offseasonState.currentDraftPickIndex += 1;
+  recordNewsItem(game, {
+    id: `draft-${rookie.id}-${game.year}`,
+    year: game.year,
+    week: game.week,
+    type: 'draft',
+    headline: `${team.city} drafts ${rookie.name}`,
+    body: `${team.city} ${team.name} selects ${rookie.name} in Round ${draftEntry.round}, Pick ${draftEntry.pick}.`,
+    teamIds: [team.id],
+    playerIds: [rookie.id],
+    importance: draftEntry.round === 1 ? 'breaking' : draftEntry.round <= 3 ? 'major' : 'minor',
+  });
 }
 
 export function makeDraftPick(game: GameState, prospectId: string): EngineOutput {

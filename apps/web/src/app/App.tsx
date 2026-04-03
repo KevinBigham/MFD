@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, DollarSign, ArrowLeftRight,
   Search, FileText, Handshake, Gamepad2, GraduationCap,
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
-  Play, ScrollText, Save, TrendingUp,
+  Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3,
 } from 'lucide-react';
 import { MfdTooltipProvider, MfdCommandPalette, PixelNav, type CommandItem } from '@mfd/design-system/components';
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
@@ -32,6 +32,8 @@ const LazyDraftBoard = lazy(async () => ({ default: (await import('../features/d
 const LazyDynastyCartridge = lazy(async () => ({ default: (await import('../features/dynasty-cartridge/DynastyCartridge')).DynastyCartridge }));
 const LazyLegacyTimeline = lazy(async () => ({ default: (await import('../features/legacy/LegacyTimeline')).LegacyTimeline }));
 const LazyPowerRankings = lazy(async () => ({ default: (await import('../features/power-rankings/PowerRankings')).PowerRankings }));
+const LazyLeagueNews = lazy(async () => ({ default: (await import('../features/league-news/LeagueNews')).LeagueNews }));
+const LazyLeagueStandings = lazy(async () => ({ default: (await import('../features/standings/LeagueStandings')).LeagueStandings }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -58,6 +60,8 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/owner',         label: 'Owner',            shortLabel: 'Owner',    icon: <Crown size={16} /> },
   { path: '/week-advance',  label: 'Advance Week',     shortLabel: 'Advance',  icon: <Play size={16} /> },
   { path: '/handshakes',    label: 'Handshakes',       shortLabel: 'Promises', icon: <ScrollText size={16} /> },
+  { path: '/news',          label: 'News',             shortLabel: 'News',     icon: <Newspaper size={16} /> },
+  { path: '/standings',     label: 'Standings',        shortLabel: 'Stand',    icon: <BarChart3 size={16} /> },
   { path: '/power-rankings',label: 'Power Rankings',   shortLabel: 'Rankings', icon: <TrendingUp size={16} /> },
   { path: '/legacy',        label: 'Legacy',           shortLabel: 'Legacy',   icon: <Trophy size={16} /> },
   { path: '/dynasty',       label: 'Save/Load',        shortLabel: 'Save',     icon: <Save size={16} /> },
@@ -346,6 +350,26 @@ const handshakeRoute = createRoute({
   component: HandshakeLedger,
 });
 
+const newsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/news',
+  component: () => (
+    <LazyRouteFrame label="league news">
+      <LazyLeagueNews />
+    </LazyRouteFrame>
+  ),
+});
+
+const standingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/standings',
+  component: () => (
+    <LazyRouteFrame label="standings">
+      <LazyLeagueStandings />
+    </LazyRouteFrame>
+  ),
+});
+
 const legacyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/legacy',
@@ -388,6 +412,7 @@ const routeTree = rootRoute.addChildren([
   scoutingRoute, draftRoute, freeAgencyRoute,
   gameDayRoute, inboxRoute, depthChartRoute, coachingRoute,
   ownerRoute, weekAdvanceRoute, handshakeRoute,
+  newsRoute, standingsRoute,
   powerRankingsRoute, legacyRoute, dynastyRoute, settingsRoute,
 ]);
 
