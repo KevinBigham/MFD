@@ -53,6 +53,7 @@ const LazyDraftRecap = lazy(async () => ({ default: (await import('../features/d
 const LazyPlayerProfile = lazy(async () => ({ default: (await import('../features/player/PlayerProfile')).PlayerProfile }));
 const LazyTeamNeeds = lazy(async () => ({ default: (await import('../features/team-needs/TeamNeeds')).TeamNeeds }));
 const LazyFATargetBoard = lazy(async () => ({ default: (await import('../features/free-agency/FATargetBoard')).FATargetBoard }));
+const LazyFilmRoom = lazy(async () => ({ default: (await import('../features/film-room/FilmRoom')).FilmRoom }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -572,6 +573,16 @@ const coachingRoute = createRoute({
   component: CoachingStaff,
 });
 
+const filmRoomRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/film-room',
+  component: () => (
+    <LazyRouteFrame label="film room">
+      <LazyFilmRoom />
+    </LazyRouteFrame>
+  ),
+});
+
 const ownerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/owner',
@@ -661,7 +672,7 @@ const routeTree = rootRoute.addChildren([
   rosterRoute, contractsRoute, tradesRoute,
   scoutingRoute, draftRoute, freeAgencyRoute, faTargetsRoute,
   gameDayRoute, inboxRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
-  scheduleRoute, depthChartRoute, playerProfileRoute, teamNeedsRoute, coachingRoute,
+  scheduleRoute, depthChartRoute, playerProfileRoute, teamNeedsRoute, coachingRoute, filmRoomRoute,
   ownerRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, legacyRoute, dynastyRoute, settingsRoute,

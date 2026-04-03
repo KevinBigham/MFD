@@ -14,13 +14,16 @@ import {
   selectAchievements,
   selectActiveStoryArcs,
   selectCoachingCarouselNews,
+  selectCoachingMarket,
   selectConditionalPicks,
+  selectCurrentWeeklyPrepPlan,
   selectDashboardState,
   selectDynastyScore,
   selectFacilities,
   selectFatigueReport,
   selectHandshakes,
   selectLatestGameDayPackage,
+  selectLatestFilmRoomReport,
   selectLatestSummary,
   selectLeagueNews,
   selectNarrativeIntensity,
@@ -137,6 +140,7 @@ export function MondayBriefing() {
   const ownerState = useGameStore(selectOwnerState);
   const latestSummary = useGameStore(selectLatestSummary);
   const latestPackage = useGameStore(selectLatestGameDayPackage);
+  const latestFilmRoomReport = useGameStore(selectLatestFilmRoomReport);
   const activeArcs = useGameStore(selectActiveStoryArcs);
   const teams = useGameStore(selectTeams);
   const userPowerRanking = useGameStore(selectUserPowerRanking);
@@ -144,6 +148,8 @@ export function MondayBriefing() {
   const achievements = useGameStore(selectAchievements);
   const upcomingRivalry = useGameStore(selectUpcomingRivalry);
   const coachingNews = useGameStore(selectCoachingCarouselNews);
+  const coachingMarket = useGameStore(selectCoachingMarket);
+  const currentWeeklyPrepPlan = useGameStore(selectCurrentWeeklyPrepPlan);
   const handshakes = useGameStore(selectHandshakes);
   const waiverPlayers = useGameStore(selectWaiverWirePlayers);
   const weather = useGameStore(selectWeather);
@@ -786,7 +792,68 @@ export function MondayBriefing() {
           accent={nextGame?.primetime ? 'gold' : 'cyan'}
           detail={nextGame?.primetime ? 'Primetime slot active' : 'Standard network window'}
         />
+        <PixelMetricCard
+          label="Weekly Prep"
+          value={currentWeeklyPrepPlan ? 'LOCKED' : 'MISSING'}
+          accent={currentWeeklyPrepPlan ? 'green' : 'red'}
+          detail={currentWeeklyPrepPlan ? `${currentWeeklyPrepPlan.offensiveFocus} / ${currentWeeklyPrepPlan.defensiveFocus}` : 'Open Game Plan to lock the prep board'}
+        />
+        <PixelMetricCard
+          label="Film Room"
+          value={latestFilmRoomReport?.grade ?? '--'}
+          accent={latestFilmRoomReport?.grade === 'A' || latestFilmRoomReport?.grade === 'B' ? 'green' : latestFilmRoomReport?.grade === 'C' ? 'gold' : 'red'}
+          detail={latestFilmRoomReport?.headline ?? 'No postgame coaching review yet'}
+        />
+        <PixelMetricCard
+          label="Sideline Heat"
+          value={coachingMarket.hotSeat ? 'HOT' : 'STABLE'}
+          accent={coachingMarket.hotSeat ? 'red' : 'green'}
+          detail={coachingMarket.hotSeat ? 'Owner approval and patience are both strained' : 'Staff stability is intact'}
+        />
       </div>
+
+      <PixelPanel title="Coaching Loop" accent="cyan">
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+            Move straight from the Monday board into weekly prep, coaching decisions, or the latest film review.
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <PixelButton
+              accent={currentWeeklyPrepPlan ? 'green' : 'gold'}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.history.pushState({}, '', '/game-plan');
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                }
+              }}
+            >
+              Open Game Plan
+            </PixelButton>
+            <PixelButton
+              accent={latestFilmRoomReport ? 'cyan' : 'default'}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.history.pushState({}, '', '/film-room');
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                }
+              }}
+            >
+              Open Film Room
+            </PixelButton>
+            <PixelButton
+              accent={coachingMarket.hotSeat ? 'red' : 'gold'}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.history.pushState({}, '', '/coaching');
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                }
+              }}
+            >
+              Open Coaching
+            </PixelButton>
+          </div>
+        </div>
+      </PixelPanel>
 
       <PixelPanel title="Dashboard Control" accent="cyan">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>

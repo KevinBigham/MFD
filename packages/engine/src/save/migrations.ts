@@ -284,6 +284,151 @@ function teamSpecialTeams(team: Record<string, unknown>): Record<string, unknown
   return buildSpecialTeamsState(team as unknown as Team) as unknown as Record<string, unknown>;
 }
 
+function normalizeCoachRecord(
+  coach: Record<string, unknown> | null,
+  role: 'HC' | 'OC' | 'DC',
+): Record<string, unknown> | null {
+  if (!coach) return null;
+  const firstName = typeof coach['firstName'] === 'string'
+    ? coach['firstName']
+    : typeof coach['name'] === 'string'
+      ? String(coach['name']).split(' ')[0] ?? role
+      : role;
+  const lastName = typeof coach['lastName'] === 'string'
+    ? coach['lastName']
+    : typeof coach['name'] === 'string'
+      ? String(coach['name']).split(' ').slice(1).join(' ') || 'Coach'
+      : 'Coach';
+
+  return {
+    ...coach,
+    id: typeof coach['id'] === 'string' ? coach['id'] : `${role.toLowerCase()}-legacy`,
+    firstName,
+    lastName,
+    role,
+    archetype: typeof coach['archetype'] === 'string' ? coach['archetype'] : 'balanced',
+    traits: Array.isArray(coach['traits']) ? coach['traits'] : [],
+    skillTree: (coach['skillTree'] && typeof coach['skillTree'] === 'object') ? coach['skillTree'] : {},
+    xp: Number(coach['xp'] ?? 0),
+    reputation: Number(coach['reputation'] ?? 50),
+    tenure: Number(coach['tenure'] ?? 0),
+  };
+}
+
+function normalizeStaffRecord(
+  staff: Record<string, unknown> | null,
+  role: 'HC' | 'OC' | 'DC',
+  year: number,
+  offenseScheme: string,
+  defenseScheme: string,
+): Record<string, unknown> | null {
+  if (!staff) return null;
+  const derivedName = typeof staff['firstName'] === 'string' || typeof staff['lastName'] === 'string'
+    ? `${String(staff['firstName'] ?? role)} ${String(staff['lastName'] ?? 'Coach')}`.trim()
+    : `${role} Coach`;
+  return {
+    ...staff,
+    id: typeof staff['id'] === 'string' ? staff['id'] : `${role.toLowerCase()}-${year}`,
+    name: typeof staff['name'] === 'string' ? staff['name'] : derivedName,
+    role,
+    archetype: typeof staff['archetype'] === 'string' ? staff['archetype'] : 'balanced',
+    traits: Array.isArray(staff['traits']) ? staff['traits'] : [],
+    ratings: (staff['ratings'] && typeof staff['ratings'] === 'object')
+      ? staff['ratings']
+      : {
+        gameplan: 70,
+        development: 70,
+        motivation: 70,
+        strategy: 70,
+      },
+    level: Number(staff['level'] ?? 1),
+    age: Number(staff['age'] ?? 48),
+    specialty75: staff['specialty75'] ?? null,
+    term: Number(staff['term'] ?? 3),
+    buyoutPenalty: Number(staff['buyoutPenalty'] ?? 2),
+    loyalty: Number(staff['loyalty'] ?? 5),
+    ambition: Number(staff['ambition'] ?? 5),
+    schemeLean: (staff['schemeLean'] && typeof staff['schemeLean'] === 'object')
+      ? staff['schemeLean']
+      : {
+        offense: offenseScheme,
+        defense: defenseScheme,
+      },
+    lastHiredYear: Number(staff['lastHiredYear'] ?? year),
+  };
+}
+
+function coachFromStaff(staff: Record<string, unknown> | null, role: 'HC' | 'OC' | 'DC'): Record<string, unknown> | null {
+  if (!staff) return null;
+  const name = typeof staff['name'] === 'string' ? staff['name'] : `${role} Coach`;
+  const [firstName, ...rest] = name.split(' ');
+  const hireYear = Number(staff['lastHiredYear'] ?? 0);
+  return {
+    id: typeof staff['id'] === 'string' ? staff['id'] : `${role.toLowerCase()}-legacy`,
+    firstName: firstName || role,
+    lastName: rest.join(' ') || 'Coach',
+    role,
+    archetype: typeof staff['archetype'] === 'string' ? staff['archetype'] : 'balanced',
+    traits: Array.isArray(staff['traits']) ? staff['traits'] : [],
+    skillTree: {},
+    xp: 0,
+    reputation: Number(staff['level'] ?? 1) * 10 + 40,
+    tenure: hireYear > 0 ? 1 : 0,
+  };
+}
+
+function normalizeTeamsForV15(state: Record<string, unknown>): Record<string, Record<string, unknown>> {
+  const teams = (state['teams'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+  const year = Number(state['year'] ?? 2026);
+
+  for (const team of Object.values(teams)) {
+    const offenseScheme = String(team['schemeOff'] ?? team['offScheme'] ?? 'balanced');
+    const defenseScheme = String(team['schemeDef'] ?? team['defScheme'] ?? '4-3');
+    team['schemeOff'] = offenseScheme;
+    team['offScheme'] = offenseScheme;
+    team['schemeDef'] = defenseScheme;
+    team['defScheme'] = defenseScheme;
+
+    const coachingStaff = (team['coachingStaff'] && typeof team['coachingStaff'] === 'object')
+      ? team['coachingStaff'] as Record<string, Record<string, unknown> | null>
+      : {};
+    const staff = (team['staff'] && typeof team['staff'] === 'object')
+      ? team['staff'] as Record<string, Record<string, unknown> | null>
+      : {};
+
+    const hc = normalizeStaffRecord(
+      (staff['hc'] as Record<string, unknown> | null) ?? normalizeCoachRecord(coachingStaff['hc'] ?? null, 'HC'),
+      'HC',
+      year,
+      offenseScheme,
+      defenseScheme,
+    );
+    const oc = normalizeStaffRecord(
+      (staff['oc'] as Record<string, unknown> | null) ?? normalizeCoachRecord(coachingStaff['oc'] ?? null, 'OC'),
+      'OC',
+      year,
+      offenseScheme,
+      defenseScheme,
+    );
+    const dc = normalizeStaffRecord(
+      (staff['dc'] as Record<string, unknown> | null) ?? normalizeCoachRecord(coachingStaff['dc'] ?? null, 'DC'),
+      'DC',
+      year,
+      offenseScheme,
+      defenseScheme,
+    );
+
+    team['staff'] = { hc, oc, dc };
+    team['coachingStaff'] = {
+      hc: coachFromStaff(hc, 'HC'),
+      oc: coachFromStaff(oc, 'OC'),
+      dc: coachFromStaff(dc, 'DC'),
+    };
+  }
+
+  return teams;
+}
+
 /** Register a migration from version N to N+1. */
 export function registerMigration(fromVersion: number, fn: MigrationFn): void {
   migrations.set(fromVersion, fn);
@@ -620,4 +765,27 @@ registerMigration(13, (state) => ({
     : {},
   warRoomState: state['warRoomState'] ?? null,
   contractExtensions: Array.isArray(state['contractExtensions']) ? state['contractExtensions'] : [],
+}));
+
+registerMigration(14, (state) => ({
+  ...state,
+  teams: normalizeTeamsForV15(state),
+  coachingMarket: (state['coachingMarket'] && typeof state['coachingMarket'] === 'object')
+    ? state['coachingMarket']
+    : {
+      teamId: null,
+      updatedYear: Number(state['year'] ?? 0),
+      updatedWeek: Number(state['week'] ?? 0),
+      hotSeat: false,
+      candidates: {
+        HC: [],
+        OC: [],
+        DC: [],
+      },
+    },
+  weeklyPrepPlans: (state['weeklyPrepPlans'] && typeof state['weeklyPrepPlans'] === 'object')
+    ? state['weeklyPrepPlans']
+    : {},
+  weeklyPrepHistory: Array.isArray(state['weeklyPrepHistory']) ? state['weeklyPrepHistory'] : [],
+  filmRoomHistory: Array.isArray(state['filmRoomHistory']) ? state['filmRoomHistory'] : [],
 }));

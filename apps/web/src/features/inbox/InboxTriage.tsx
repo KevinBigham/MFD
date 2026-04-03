@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import {
-  PixelBadge, PixelModal, PixelNav, PixelPanel,
+  PixelBadge, PixelButton, PixelModal, PixelNav, PixelPanel,
 } from '@mfd/design-system/components';
 import {
   useGameStore, selectUserTeam, selectRoster, selectWeek, selectNarrative, selectLatestSummary, selectPhase, selectLatestGameDayPackage, selectActiveStoryArcs,
-  selectOffFieldEvents, selectRecentPressConferences, selectUpcomingRivalry, selectCoachingCarouselNews,
+  selectOffFieldEvents, selectRecentPressConferences, selectUpcomingRivalry, selectCoachingCarouselNews, selectCoachingMarket,
   selectConditionalPicks, selectHandshakes, selectWaiverWire, selectWeather,
-  selectActiveProposals, selectCeremonies, selectClaimResults, selectContractExtensions, selectCurrentGamePlan, selectDifficultyState, selectDraftRecaps, selectFATargetBoard, selectLeagueNews, selectMedicalStaff, selectNewlyUnlocked, selectOffseasonState, selectPlayoffMomentum, selectSeasonReports, selectTeamSchedule, selectTradeSuggestions, selectTrainingAssignments, selectTransactionLog, selectUserTeamNeeds, selectWarRoomState,
+  selectActiveProposals, selectCeremonies, selectClaimResults, selectContractExtensions, selectCurrentWeeklyPrepPlan, selectDifficultyState, selectDraftRecaps, selectFATargetBoard, selectLatestFilmRoomReport, selectLeagueNews, selectMedicalStaff, selectNewlyUnlocked, selectOffseasonState, selectPlayoffMomentum, selectSeasonReports, selectTeamSchedule, selectTradeSuggestions, selectTrainingAssignments, selectTransactionLog, selectUserTeamNeeds, selectWarRoomState,
 } from '../../app/store/game-store';
 import { buildInboxMessages, type InboxMessage, type MessageType } from './buildInboxMessages';
 import {
@@ -36,6 +36,7 @@ export function InboxTriage() {
   const recentPressConferences = useGameStore(selectRecentPressConferences);
   const upcomingRivalry = useGameStore(selectUpcomingRivalry);
   const coachingNews = useGameStore(selectCoachingCarouselNews);
+  const coachingMarket = useGameStore(selectCoachingMarket);
   const handshakes = useGameStore(selectHandshakes);
   const conditionalPicks = useGameStore(selectConditionalPicks);
   const waiverWire = useGameStore(selectWaiverWire);
@@ -50,8 +51,9 @@ export function InboxTriage() {
   const newlyUnlockedAchievements = useGameStore(selectNewlyUnlocked);
   const seasonReports = useGameStore(selectSeasonReports);
   const teamSchedule = useGameStore(selectTeamSchedule);
-  const currentGamePlan = useGameStore(selectCurrentGamePlan);
+  const currentWeeklyPrepPlan = useGameStore(selectCurrentWeeklyPrepPlan);
   const draftRecaps = useGameStore(selectDraftRecaps);
+  const latestFilmRoomReport = useGameStore(selectLatestFilmRoomReport);
   const claimResults = useGameStore(selectClaimResults);
   const transactionLog = useGameStore(selectTransactionLog);
   const tradeSuggestions = useGameStore(selectTradeSuggestions);
@@ -90,7 +92,6 @@ export function InboxTriage() {
     ceremonies,
     newlyUnlockedAchievements,
     latestSeasonReport: seasonReports[0] ?? null,
-    currentGamePlan,
     latestDraftRecap: draftRecaps[0] ?? null,
     claimResults,
     transactionLog,
@@ -99,12 +100,22 @@ export function InboxTriage() {
     teamNeedsReport,
     warRoomState,
     contractExtensions,
+    coachingMarket,
+    currentWeeklyPrepPlan,
+    latestFilmRoomReport,
     upcomingGame: teamSchedule.find((entry) => entry.week === week) ?? null,
-  }), [activeArcs, activeProposals, ceremonies, claimResults, coachingNews, conditionalPicks, contractExtensions, currentGamePlan, difficultyState, draftRecaps, faTargetBoard, handshakes, latestPackage, latestSummary, leagueNews, medicalStaff.available, narrative, newlyUnlockedAchievements, offFieldEvents, offseasonState, phase, playoffMomentum, recentPressConferences, roster, seasonReports, team, teamNeedsReport, teamSchedule, tradeSuggestions, trainingAssignments, transactionLog, upcomingRivalry, waiverWire, warRoomState, weather, week]);
+  }), [activeArcs, activeProposals, ceremonies, claimResults, coachingMarket, coachingNews, conditionalPicks, contractExtensions, currentWeeklyPrepPlan, difficultyState, draftRecaps, faTargetBoard, handshakes, latestFilmRoomReport, latestPackage, latestSummary, leagueNews, medicalStaff.available, narrative, newlyUnlockedAchievements, offFieldEvents, offseasonState, phase, playoffMomentum, recentPressConferences, roster, seasonReports, team, teamNeedsReport, teamSchedule, tradeSuggestions, trainingAssignments, transactionLog, upcomingRivalry, waiverWire, warRoomState, weather, week]);
 
   const filtered = filter === 'ALL' ? messages : messages.filter((m) => m.type === filter);
   const urgentCount = messages.filter((m) => m.type === 'URGENT' && !m.read).length;
   const decisionCount = messages.filter((m) => m.type === 'DECISION' && m.actionRequired).length;
+  const selectedRoute = selectedMsg?.from === 'Film Room'
+    ? '/film-room'
+    : selectedMsg?.from === 'Prep Desk'
+      ? '/game-plan'
+      : selectedMsg?.from === 'Ownership'
+        ? '/coaching'
+        : null;
 
   return (
     <div style={screenStackStyle}>
@@ -211,6 +222,21 @@ export function InboxTriage() {
                         : 'default',
                 }))}
               />
+            ) : null}
+            {selectedRoute ? (
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <PixelButton
+                  accent="cyan"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.history.pushState({}, '', selectedRoute);
+                      window.dispatchEvent(new PopStateEvent('popstate'));
+                    }
+                  }}
+                >
+                  Open Related Screen
+                </PixelButton>
+              </div>
             ) : null}
           </div>
         ) : null}

@@ -52,6 +52,9 @@ describe('GameDayCenterView', () => {
             nextFocus: ['Protect the injured backfield', 'Carry the pass protection forward'],
           },
           specialTeamsHighlights: ['Keenan Ward ripped off a 74-yard kick return that flipped the field.'],
+          prepGrade: 'A',
+          coachingNotes: ['Protection emphasis kept the quarterback clean.'],
+          carryForwardRecommendations: ['Keep the successful plan family available next week.'],
         }}
       />,
     );
@@ -65,5 +68,7 @@ describe('GameDayCenterView', () => {
     expect(markup).toContain('PRIMETIME');
     expect(markup).toContain('FLEXED');
     expect(markup).toContain('Keenan Ward ripped off a 74-yard kick return that flipped the field.');
+    expect(markup).toContain('PREP A');
+    expect(markup).toContain('Open Film Room');
   });
 });

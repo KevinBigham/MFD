@@ -204,6 +204,15 @@ export interface StaffMember {
   level: number;
   age?: number;
   specialty75?: CoordinatorSpecialty | null;
+  term?: number;
+  buyoutPenalty?: number;
+  loyalty?: number;
+  ambition?: number;
+  schemeLean?: {
+    offense: string;
+    defense: string;
+  };
+  lastHiredYear?: number;
 }
 
 export interface CoordinatorSpecialty {
@@ -1330,6 +1339,166 @@ export interface GameDayPackage {
   primetime?: boolean;
   flexed?: boolean;
   specialTeamsHighlights?: string[];
+  prepGrade?: string | null;
+  coachingNotes?: string[];
+  carryForwardRecommendations?: string[];
+}
+
+export type StaffRole = StaffMember['role'];
+
+export interface StaffCandidate extends StaffMember {
+  desiredRole: StaffRole;
+  fitScore: number;
+  continuityTag: 'ideal' | 'strong' | 'transition' | 'risky';
+  reasoning: string[];
+}
+
+export interface CoachingMarketState {
+  teamId: string | null;
+  updatedYear: number;
+  updatedWeek: number;
+  hotSeat: boolean;
+  candidates: Record<StaffRole, StaffCandidate[]>;
+}
+
+export interface TeamIdentityRoom {
+  group: string;
+  fitScore: number;
+  topPlayerId: string | null;
+  topPlayerName: string;
+}
+
+export interface TeamIdentitySnapshot {
+  teamId: string;
+  offenseScheme: string;
+  defenseScheme: string;
+  overallFit: number;
+  continuity: number;
+  rooms: TeamIdentityRoom[];
+}
+
+export interface SchemeInstallLane {
+  from: string;
+  to: string;
+  installProgress: number;
+  continuityBonus: number;
+  transitionPenalty: number;
+}
+
+export interface SchemeInstallState {
+  teamId: string;
+  overallContinuity: number;
+  offense: SchemeInstallLane;
+  defense: SchemeInstallLane;
+  snapshot: TeamIdentitySnapshot;
+}
+
+export interface OpponentIntel {
+  teamId: string;
+  opponentTeamId: string;
+  baseReport: OpponentReport;
+  dangerPlayers: Player[];
+  weakLinks: Player[];
+  attackLane: 'passing' | 'rushing';
+  defendLane: 'passing' | 'rushing';
+  tendencies: string[];
+  recommendations: {
+    offense: string[];
+    defense: string[];
+  };
+}
+
+export type WeeklyPrepOffensiveFocus = 'balanced' | 'attack_secondary' | 'attack_front' | 'feed_star' | 'protect_qb';
+export type WeeklyPrepDefensiveFocus = 'balanced' | 'stop_run' | 'limit_explosive' | 'heat_qb' | 'erase_wr1';
+export type WeeklyPracticeIntensity = 'light' | 'normal' | 'full_pads';
+export type WeeklyPrepSnapManagement = 'normal' | 'protect_starters' | 'ride_stars';
+export type WeeklyPrepSpecialSituation = 'balanced' | 'red_zone' | 'third_down' | 'two_minute' | 'field_position';
+
+export interface WeeklyPrepPlan {
+  teamId: string;
+  opponentTeamId: string;
+  year: number;
+  week: number;
+  offensiveFocus: WeeklyPrepOffensiveFocus;
+  defensiveFocus: WeeklyPrepDefensiveFocus;
+  practiceIntensity: WeeklyPracticeIntensity;
+  keyMatchupPlayerId: string | null;
+  snapManagement: WeeklyPrepSnapManagement;
+  specialSituation: WeeklyPrepSpecialSituation;
+}
+
+export interface WeeklyPrepEffects {
+  teamOvrBonus: number;
+  playerBonuses: Record<string, number>;
+  fatigueDelta: number;
+  injuryRiskDelta: number;
+  moraleDelta: number;
+  chemistryDelta: number;
+}
+
+export interface WeeklyPrepOutcome {
+  teamId: string;
+  opponentTeamId: string;
+  year: number;
+  week: number;
+  plan: WeeklyPrepPlan;
+  readiness: number;
+  reasoning: string[];
+  effects: WeeklyPrepEffects;
+}
+
+export interface CoachRetentionDecision {
+  teamId: string;
+  role: StaffRole;
+  staffId: string;
+  poachRisk: number;
+  acceptsExtension: boolean;
+  askingTerm: number;
+  buyoutPenalty: number;
+  reasoning: string;
+}
+
+export interface CoachDevelopmentDelta {
+  teamId: string;
+  role: StaffRole;
+  staffId: string;
+  xpGain: number;
+  levelUps: number;
+  ratingGrowth: Record<string, number>;
+  summary: string;
+}
+
+export interface PoachingDeparture {
+  teamId: string;
+  role: StaffRole;
+  staffId: string;
+  staffName: string;
+  poachRisk: number;
+  reason: string;
+}
+
+export interface GamePlanExecutionGrade {
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  score: number;
+  alignedCalls: string[];
+  missedCalls: string[];
+}
+
+export interface FilmRoomReport {
+  id: string;
+  teamId: string;
+  opponentTeamId: string | null;
+  year: number;
+  week: number;
+  grade: GamePlanExecutionGrade['grade'];
+  score: number;
+  headline: string;
+  planSummary: string;
+  alignedCalls: string[];
+  missedCalls: string[];
+  executionNotes: string[];
+  recommendations: string[];
+  carryForward: string[];
 }
 
 export interface GameDayState {
@@ -1724,6 +1893,10 @@ export interface GameState {
   narrativeIntensity: NarrativeIntensity;
   ceremonies: Ceremony[];
   dynastyTimeline: DynastyEvent[];
+  coachingMarket?: CoachingMarketState;
+  weeklyPrepPlans?: Record<string, WeeklyPrepPlan>;
+  weeklyPrepHistory?: WeeklyPrepOutcome[];
+  filmRoomHistory?: FilmRoomReport[];
   achievements?: Achievement[];
   dashboardState?: DashboardState;
   seasonReports?: SeasonReport[];

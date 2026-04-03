@@ -233,6 +233,32 @@ export {
   applyExtensionOffer,
 } from './systems/contract-extensions';
 export {
+  buildCoachingMarket,
+  scoreStaffFit,
+  hireStaffCandidate,
+  fireStaffMember,
+  promoteCoordinator,
+} from './systems/coaching-market';
+export {
+  snapshotTeamIdentity,
+  projectSchemeTransition,
+  applySchemeChange,
+} from './systems/scheme-install';
+export {
+  buildOpponentIntel,
+  evaluateWeeklyPrep,
+  applyWeeklyPrepToSim,
+} from './systems/weekly-prep';
+export {
+  buildCoachRetentionDecision,
+  advanceCoachDevelopment,
+  resolvePoachingCycle,
+} from './systems/coach-retention';
+export {
+  gradeGamePlanExecution,
+  buildFilmRoomReport,
+} from './systems/film-room';
+export {
   generateAgentPool,
   ensureAgentsInitialized,
   getPlayerAgent,

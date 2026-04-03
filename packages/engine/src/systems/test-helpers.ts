@@ -299,6 +299,16 @@ export function makeLeagueState(
     teamNeedsCache: {},
     warRoomState: null,
     contractExtensions: [],
+    coachingMarket: {
+      teamId: null,
+      updatedYear: 2026,
+      updatedWeek: week,
+      hotSeat: false,
+      candidates: { HC: [], OC: [], DC: [] },
+    },
+    weeklyPrepPlans: {},
+    weeklyPrepHistory: [],
+    filmRoomHistory: [],
     difficultyState: {
       enabled: true,
       adaptiveSlider: 50,

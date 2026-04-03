@@ -44,6 +44,11 @@ const mockState = {
     result: 'win',
     autopsy: { diagnosis: 'Tempo and field position buried the opponent.' },
   },
+  latestFilmRoomReport: {
+    id: 'film-1',
+    grade: 'B',
+    headline: 'Chicago matched the prep board to the game flow.',
+  },
   activeStoryArcs: [
     { id: 'arc-1', title: 'Division race tightening', summary: 'One more win keeps the inside track to the crown.' },
   ],
@@ -83,6 +88,13 @@ const mockState = {
   coachingCarouselNews: [
     { id: 'coach-1', type: 'coach_hired', description: 'Austin hires Mason Pike to run the sideline.' },
   ],
+  coachingMarket: {
+    hotSeat: false,
+  },
+  currentWeeklyPrepPlan: {
+    offensiveFocus: 'attack_secondary',
+    defensiveFocus: 'limit_explosive',
+  },
   leagueNews: [
     { id: 'news-1', headline: 'League trade talks are heating up', body: 'A contender is pushing chips into the middle of the table.', importance: 'breaking' },
   ],
@@ -193,12 +205,15 @@ vi.mock('../../app/store/game-store', () => ({
   selectOwnerState: (state: typeof mockState) => state.ownerState,
   selectLatestSummary: (state: typeof mockState) => state.latestSummary,
   selectLatestGameDayPackage: (state: typeof mockState) => state.latestGameDayPackage,
+  selectLatestFilmRoomReport: (state: typeof mockState) => state.latestFilmRoomReport,
   selectActiveStoryArcs: (state: typeof mockState) => state.activeStoryArcs,
   selectTeams: (state: typeof mockState) => state.teams,
   selectUserPowerRanking: (state: typeof mockState) => state.userPowerRanking,
   selectUserRecordWatch: (state: typeof mockState) => state.userRecordWatch,
   selectUpcomingRivalry: (state: typeof mockState) => state.upcomingRivalry,
   selectCoachingCarouselNews: (state: typeof mockState) => state.coachingCarouselNews,
+  selectCoachingMarket: (state: typeof mockState) => state.coachingMarket,
+  selectCurrentWeeklyPrepPlan: (state: typeof mockState) => state.currentWeeklyPrepPlan,
   selectLeagueNews: (state: typeof mockState) => state.leagueNews,
   selectTrainingAssignments: (state: typeof mockState) => state.trainingAssignments,
   selectPlayoffPicture: (state: typeof mockState) => state.playoffPicture,
@@ -232,6 +247,9 @@ describe('MondayBriefing', () => {
     expect(markup).toContain('Chicago is climbing behind a quarterback heating up in December.');
     expect(markup).toContain('--- LEAGUE HEADLINES ---');
     expect(markup).toContain('League trade talks are heating up');
+    expect(markup).toContain('LOCKED');
+    expect(markup).toContain('Chicago matched the prep board to the game flow.');
+    expect(markup).toContain('STABLE');
     expect(markup).toContain('--- RECORD WATCH ---');
     expect(markup).toContain('Jay Stone');
     expect(markup).toContain('--- PLAYOFF PICTURE ---');

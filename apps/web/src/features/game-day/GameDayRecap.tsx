@@ -1,5 +1,5 @@
 import type { GameDayPackage, GameResult, PlayerGameLine, PlayoffMomentum, SeasonPhase, TeamGameStats } from '@mfd/engine';
-import { PixelPanel, PixelBadge, PixelDialog, PixelScoreboard, PixelStatBar } from '@mfd/design-system/components';
+import { PixelPanel, PixelBadge, PixelButton, PixelDialog, PixelScoreboard, PixelStatBar } from '@mfd/design-system/components';
 import {
   selectLatestGameDayPackage,
   selectLatestGameResult,
@@ -277,6 +277,35 @@ export function GameDayCenterView({
           </div>
         </PixelPanel>
       )}
+
+      {packageData.prepGrade ? (
+        <PixelPanel title="Coaching Review" accent={packageData.prepGrade === 'A' || packageData.prepGrade === 'B' ? 'green' : packageData.prepGrade === 'C' ? 'gold' : 'red'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <PixelBadge variant={packageData.prepGrade === 'A' || packageData.prepGrade === 'B' ? 'green' : packageData.prepGrade === 'C' ? 'gold' : 'red'}>
+                PREP {packageData.prepGrade}
+              </PixelBadge>
+              <PixelButton
+                accent="cyan"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState({}, '', '/film-room');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }
+                }}
+              >
+                Open Film Room
+              </PixelButton>
+            </div>
+            {(packageData.coachingNotes ?? []).map((note) => (
+              <div key={note} style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>{note}</div>
+            ))}
+            {(packageData.carryForwardRecommendations ?? []).map((note) => (
+              <div key={note} style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>{note}</div>
+            ))}
+          </div>
+        </PixelPanel>
+      ) : null}
 
       {/* Injury notes */}
       {packageData.injuryNotes.length > 0 && (

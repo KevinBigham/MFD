@@ -1,6 +1,7 @@
 import type {
   Achievement,
   Ceremony,
+  CoachingMarketState,
   ConditionalPick,
   ContractExtensionRecord,
   DraftRecap,
@@ -8,7 +9,6 @@ import type {
   FATargetBoard,
   GameDayPackage,
   GameEvent,
-  GamePlan,
   Handshake,
   NarrativeState,
   NewsItem,
@@ -27,11 +27,13 @@ import type {
   TradeProposal,
   TransactionLogEntry,
   TrainingAssignment,
+  WeeklyPrepPlan,
   WaiverWireEntry,
   WarRoomState,
   WeatherCondition,
   WeeklySummary,
   MedicalStaff,
+  FilmRoomReport,
 } from '@mfd/engine';
 
 export type MessageType = 'URGENT' | 'DECISION' | 'INTEL';
@@ -84,7 +86,6 @@ interface BuildInboxMessagesParams {
   ceremonies: Ceremony[];
   newlyUnlockedAchievements: Achievement[];
   latestSeasonReport: SeasonReport | null;
-  currentGamePlan: GamePlan | null;
   latestDraftRecap: DraftRecap | null;
   claimResults: ClaimResultDigest[];
   transactionLog: TransactionLogEntry[];
@@ -93,6 +94,9 @@ interface BuildInboxMessagesParams {
   teamNeedsReport: TeamNeedsReport;
   warRoomState: WarRoomState | null;
   contractExtensions: ContractExtensionRecord[];
+  coachingMarket: CoachingMarketState;
+  currentWeeklyPrepPlan: WeeklyPrepPlan | null;
+  latestFilmRoomReport: FilmRoomReport | null;
   upcomingGame: {
     week: number;
     opponentName: string;
@@ -131,7 +135,6 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     ceremonies,
     newlyUnlockedAchievements,
     latestSeasonReport,
-    currentGamePlan,
     latestDraftRecap,
     claimResults,
     transactionLog,
@@ -140,6 +143,9 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     teamNeedsReport,
     warRoomState,
     contractExtensions,
+    coachingMarket,
+    currentWeeklyPrepPlan,
+    latestFilmRoomReport,
     upcomingGame,
   } = params;
   const msgs: InboxMessage[] = [];
@@ -235,16 +241,42 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     });
   }
 
-  if (upcomingGame && !upcomingGame.bye && (phase === 'regular_season' || phase === 'playoffs') && !currentGamePlan) {
+  if (upcomingGame && !upcomingGame.bye && (phase === 'regular_season' || phase === 'playoffs') && !currentWeeklyPrepPlan) {
     msgs.push({
-      id: `game-plan-reminder-${upcomingGame.week}`,
+      id: `weekly-prep-reminder-${upcomingGame.week}`,
       type: 'DECISION',
-      title: 'Game Plan Reminder',
-      body: `No custom plan is locked in for ${upcomingGame.opponentName}.\nOpen the Game Plan screen to confirm a tactical approach before sim.`,
-      from: 'War Room',
+      title: 'Weekly Prep Board Is Empty',
+      body: `No weekly prep plan is locked in for ${upcomingGame.opponentName}.\nOpen the Game Plan screen to choose your offensive focus, defensive focus, and practice settings before sim.`,
+      from: 'Prep Desk',
       week: upcomingGame.week,
       read: false,
       actionRequired: true,
+    });
+  }
+
+  if (coachingMarket.hotSeat) {
+    msgs.push({
+      id: `coaching-hot-seat-${week}`,
+      type: 'URGENT',
+      title: 'Sideline Heat Is Rising',
+      body: 'Owner patience and approval are both in the danger zone.\nReview the coaching market, continuity, and scheme plan before the next result lands.',
+      from: 'Ownership',
+      week,
+      read: false,
+      actionRequired: true,
+    });
+  }
+
+  if (latestFilmRoomReport) {
+    msgs.push({
+      id: `film-room-${latestFilmRoomReport.id}`,
+      type: latestFilmRoomReport.grade === 'D' || latestFilmRoomReport.grade === 'F' ? 'URGENT' : 'INTEL',
+      title: `Film Room Ready: ${latestFilmRoomReport.grade} Grade`,
+      body: `${latestFilmRoomReport.headline}\nCarry forward: ${latestFilmRoomReport.carryForward.join(' | ')}`,
+      from: 'Film Room',
+      week: latestFilmRoomReport.week,
+      read: false,
+      actionRequired: latestFilmRoomReport.grade === 'D' || latestFilmRoomReport.grade === 'F',
     });
   }
 

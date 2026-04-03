@@ -231,6 +231,15 @@ function genCoach(role: 'HC' | 'OC' | 'DC'): StaffMember {
     ratings: { gameplan: rng(60, 90), development: rng(55, 85), motivation: rng(50, 85) },
     level: rng(1, 5),
     age: rng(36, 64),
+    term: role === 'HC' ? 4 : 3,
+    buyoutPenalty: role === 'HC' ? 3 : 2,
+    loyalty: rng(4, 8),
+    ambition: rng(4, 8),
+    schemeLean: {
+      offense: pick(OFF_SCHEME_IDS),
+      defense: pick(DEF_SCHEME_IDS),
+    },
+    lastHiredYear: 2026,
   };
 }
 
@@ -462,6 +471,16 @@ export function createSeedGameState(
     teamNeedsCache: {},
     warRoomState: null,
     contractExtensions: [],
+    coachingMarket: {
+      teamId: null,
+      updatedYear: year,
+      updatedWeek: 1,
+      hotSeat: false,
+      candidates: { HC: [], OC: [], DC: [] },
+    },
+    weeklyPrepPlans: {},
+    weeklyPrepHistory: [],
+    filmRoomHistory: [],
     difficultyState: createDefaultDifficultyState(),
     availableMedicalStaff: [],
     playoffMomentum: {},

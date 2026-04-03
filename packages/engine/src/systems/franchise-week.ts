@@ -18,6 +18,7 @@ import { processCarryoverHoldouts } from './player-agents';
 import { archiveSeasonHistory } from './history';
 import { advanceStoryArcs } from './story-arcs';
 import { buildGameDayPackage } from './game-day-package';
+import { buildFilmRoomReport } from './film-room';
 import { evaluateHandshakes, generateOwnerDemands } from './handshake-ledger';
 import {
   ensureLivingWorldState,
@@ -38,6 +39,7 @@ import { generateTradeOffers } from './trade-market';
 import { findTradeTargets } from './trade-finder';
 import { buildWeeklySummary } from './weekly-summary';
 import { autoAssignSpecialTeams } from './special-teams';
+import { applyWeeklyPrepToSim, buildOpponentIntel, evaluateWeeklyPrep } from './weekly-prep';
 import {
   cloneGame,
   findUserTeam,
@@ -67,17 +69,33 @@ import type {
 
 function buildSimPlanContext(nextState: GameState, team: Team, opponent: Team) {
   const report = generateOpponentScouting(nextState, team.id, opponent.id);
+  const storedPrep = nextState.weeklyPrepPlans?.[team.id];
+  const hasStoredPrep = Boolean(
+    storedPrep
+    && storedPrep.year === nextState.year
+    && storedPrep.week === nextState.week
+    && storedPrep.opponentTeamId === opponent.id,
+  );
+  const prepIntel = hasStoredPrep ? buildOpponentIntel(nextState, team.id, opponent.id) : null;
+  const prepOutcome = storedPrep && prepIntel ? evaluateWeeklyPrep(team, prepIntel, storedPrep) : null;
+  const prepContext = prepOutcome ? applyWeeklyPrepToSim(team, prepOutcome) : {};
   if (team.isUser) {
     const storedReport = upsertOpponentReport(nextState, report);
     return {
       gamePlan: nextState.gamePlan ?? generateAiGamePlan(nextState, team.id, opponent.id),
       opponentReport: storedReport,
+      prepIntel,
+      prepOutcome,
+      prepContext,
     };
   }
 
   return {
     gamePlan: generateAiGamePlan(nextState, team.id, opponent.id),
     opponentReport: report,
+    prepIntel,
+    prepOutcome,
+    prepContext,
   };
 }
 
@@ -105,6 +123,7 @@ function appendGameDayPackage(
     pressConference?: PressConference | null;
     rivalry?: RivalryGameContext | null;
     activeEffectSummaries?: string[];
+    filmRoomReport?: ReturnType<typeof buildFilmRoomReport> | null;
   },
 ): void {
   refreshNarrative(nextState);
@@ -121,6 +140,11 @@ function appendGameDayPackage(
     rivalry: options?.rivalry ?? null,
     activeEffectSummaries: options?.activeEffectSummaries ?? [],
   });
+  if (options?.filmRoomReport) {
+    packageData.prepGrade = options.filmRoomReport.grade;
+    packageData.coachingNotes = options.filmRoomReport.executionNotes;
+    packageData.carryForwardRecommendations = options.filmRoomReport.carryForward;
+  }
 
   nextState.gameDayState.recentPackages = [...nextState.gameDayState.recentPackages, packageData].slice(-8);
   nextState.gameDayState.latestPackageId = packageData.id;
@@ -154,6 +178,8 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   let userInjuries: WeeklyInjurySummary[] = [];
   let userRivalry: RivalryGameContext | null = null;
   let userActiveEffectSummaries: string[] = [];
+  let userPrepOutcome: ReturnType<typeof evaluateWeeklyPrep> | null = null;
+  let userPrepIntel: ReturnType<typeof buildOpponentIntel> | null = null;
   let label: string | undefined;
   let completedRegularSeasonWeek = false;
 
@@ -240,14 +266,14 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
 
       const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, {
         home: {
-          teamOvrBonus: buildTeamOvrBonus(home, homeEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0), adaptiveModifier),
-          playerOvrBonuses: buildPlayerBonuses(home, mergePlayerBonuses(homeEffects.playerOvrBonuses, homeFatigueBonuses)),
+          teamOvrBonus: buildTeamOvrBonus(home, homeEffects.teamOvrBonus + (homePlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0), adaptiveModifier),
+          playerOvrBonuses: buildPlayerBonuses(home, mergePlayerBonuses(homeEffects.playerOvrBonuses, homeFatigueBonuses, homePlanContext.prepContext.playerOvrBonuses)),
           gamePlan: homePlanContext.gamePlan,
           opponentReport: homePlanContext.opponentReport,
         },
         away: {
-          teamOvrBonus: buildTeamOvrBonus(away, awayEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0), adaptiveModifier),
-          playerOvrBonuses: buildPlayerBonuses(away, mergePlayerBonuses(awayEffects.playerOvrBonuses, awayFatigueBonuses)),
+          teamOvrBonus: buildTeamOvrBonus(away, awayEffects.teamOvrBonus + (awayPlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0), adaptiveModifier),
+          playerOvrBonuses: buildPlayerBonuses(away, mergePlayerBonuses(awayEffects.playerOvrBonuses, awayFatigueBonuses, awayPlanContext.prepContext.playerOvrBonuses)),
           gamePlan: awayPlanContext.gamePlan,
           opponentReport: awayPlanContext.opponentReport,
         },
@@ -282,8 +308,11 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         userInjuries = outcome.injuries[startingUser.id] ?? [];
         userRivalry = rivalry;
         const userEffects = home.id === startingUser.id ? homeEffects : awayEffects;
+        userPrepOutcome = home.id === startingUser.id ? homePlanContext.prepOutcome ?? null : awayPlanContext.prepOutcome ?? null;
+        userPrepIntel = home.id === startingUser.id ? homePlanContext.prepIntel ?? null : awayPlanContext.prepIntel ?? null;
         userActiveEffectSummaries = [
           ...userEffects.summaries,
+          ...(home.id === startingUser.id ? homePlanContext.prepOutcome?.reasoning ?? [] : awayPlanContext.prepOutcome?.reasoning ?? []),
           ...(rivalry ? [rivalry.headline] : []),
           ...(matchup.primetime ? ['Primetime spotlight puts the game under a brighter microscope.'] : []),
         ].slice(0, 4);
@@ -320,14 +349,14 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
 
       const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, {
         home: {
-          teamOvrBonus: buildTeamOvrBonus(home, homeEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0) + homeMomentum, adaptiveModifier),
-          playerOvrBonuses: buildPlayerBonuses(home, mergePlayerBonuses(homeEffects.playerOvrBonuses, homeFatigueBonuses)),
+          teamOvrBonus: buildTeamOvrBonus(home, homeEffects.teamOvrBonus + (homePlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + homeMomentum, adaptiveModifier),
+          playerOvrBonuses: buildPlayerBonuses(home, mergePlayerBonuses(homeEffects.playerOvrBonuses, homeFatigueBonuses, homePlanContext.prepContext.playerOvrBonuses)),
           gamePlan: homePlanContext.gamePlan,
           opponentReport: homePlanContext.opponentReport,
         },
         away: {
-          teamOvrBonus: buildTeamOvrBonus(away, awayEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0) + awayMomentum, adaptiveModifier),
-          playerOvrBonuses: buildPlayerBonuses(away, mergePlayerBonuses(awayEffects.playerOvrBonuses, awayFatigueBonuses)),
+          teamOvrBonus: buildTeamOvrBonus(away, awayEffects.teamOvrBonus + (awayPlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + awayMomentum, adaptiveModifier),
+          playerOvrBonuses: buildPlayerBonuses(away, mergePlayerBonuses(awayEffects.playerOvrBonuses, awayFatigueBonuses, awayPlanContext.prepContext.playerOvrBonuses)),
           gamePlan: awayPlanContext.gamePlan,
           opponentReport: awayPlanContext.opponentReport,
         },
@@ -367,7 +396,13 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         userInjuries = outcome.injuries[startingUser.id] ?? [];
         userRivalry = rivalry;
         const userEffects = home.id === startingUser.id ? homeEffects : awayEffects;
-        userActiveEffectSummaries = [...userEffects.summaries, ...(rivalry ? [rivalry.headline] : [])].slice(0, 4);
+        userPrepOutcome = home.id === startingUser.id ? homePlanContext.prepOutcome ?? null : awayPlanContext.prepOutcome ?? null;
+        userPrepIntel = home.id === startingUser.id ? homePlanContext.prepIntel ?? null : awayPlanContext.prepIntel ?? null;
+        userActiveEffectSummaries = [
+          ...userEffects.summaries,
+          ...(home.id === startingUser.id ? homePlanContext.prepOutcome?.reasoning ?? [] : awayPlanContext.prepOutcome?.reasoning ?? []),
+          ...(rivalry ? [rivalry.headline] : []),
+        ].slice(0, 4);
         label = `Playoffs: ${nextState.week === 19 ? 'Wild Card' : nextState.week === 20 ? 'Divisional' : nextState.week === 21 ? 'Conference Final' : 'Championship'}`;
       }
 
@@ -433,10 +468,20 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       rivalryIntensity: userRivalry?.intensity ?? 0,
       ownerDelta,
     });
+    const filmRoomReport = userPrepOutcome && userPrepIntel
+      ? buildFilmRoomReport(nextState, currentUser.id, userResult, userPrepOutcome, userPrepIntel)
+      : null;
+    if (userPrepOutcome) {
+      nextState.weeklyPrepHistory = [...(nextState.weeklyPrepHistory ?? []), userPrepOutcome].slice(-24);
+    }
+    if (filmRoomReport) {
+      nextState.filmRoomHistory = [...(nextState.filmRoomHistory ?? []), filmRoomReport].slice(-24);
+    }
     appendGameDayPackage(nextState, currentUser, userOpponent, userResult, summary, {
       pressConference: postGameConference,
       rivalry: userRivalry,
       activeEffectSummaries: userActiveEffectSummaries,
+      filmRoomReport,
     });
     recordPressConference(nextState, postGameConference);
     recordBeat(nextState, {
@@ -479,6 +524,9 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
 
   checkAchievements(nextState);
   resetGamePlan(nextState);
+  if (currentUser?.id && nextState.weeklyPrepPlans?.[currentUser.id]) {
+    delete nextState.weeklyPrepPlans[currentUser.id];
+  }
   if (currentUser && (nextState.phase === 'regular_season' || nextState.phase === 'playoffs')) {
     nextState.tradeSuggestions = findTradeTargets(nextState, currentUser.id);
   } else {

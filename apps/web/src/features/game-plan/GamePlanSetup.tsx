@@ -1,165 +1,268 @@
 import { useMemo, useState } from 'react';
-import { PixelBadge, PixelButton, PixelPanel, PixelSelect } from '@mfd/design-system/components';
-import type { DefensiveGamePlan, GamePlan, OffensiveGamePlan } from '@mfd/engine';
+import { PixelBadge, PixelButton, PixelPanel, PixelProgressBar, PixelSelect } from '@mfd/design-system/components';
+import type { WeeklyPrepPlan } from '@mfd/engine';
 import {
-  selectCurrentGamePlan,
+  selectCurrentOpponentIntel,
   selectCurrentOpponentReport,
+  selectCurrentWeeklyPrepPlan,
   selectPhase,
   selectUserTeam,
   selectWeek,
+  selectYear,
   useGameStore,
 } from '../../app/store/game-store';
 import { PixelScreenHeader, autoGrid, monoSm, screenStackStyle } from '../shared/pixelUi';
 
-const offenseOptions: Array<{ value: OffensiveGamePlan; label: string }> = [
+const offensiveOptions: Array<{ value: WeeklyPrepPlan['offensiveFocus']; label: string }> = [
   { value: 'balanced', label: 'Balanced' },
-  { value: 'pass_heavy', label: 'Pass Heavy' },
-  { value: 'run_heavy', label: 'Run Heavy' },
-  { value: 'spread', label: 'Spread' },
-  { value: 'power', label: 'Power' },
+  { value: 'attack_secondary', label: 'Attack Secondary' },
+  { value: 'attack_front', label: 'Attack Front' },
+  { value: 'feed_star', label: 'Feed Star' },
+  { value: 'protect_qb', label: 'Protect QB' },
 ];
 
-const defenseOptions: Array<{ value: DefensiveGamePlan; label: string }> = [
-  { value: 'base', label: 'Base' },
-  { value: 'blitz_heavy', label: 'Blitz Heavy' },
-  { value: 'coverage', label: 'Coverage' },
-  { value: 'contain', label: 'Contain' },
-  { value: 'aggressive', label: 'Aggressive' },
+const defensiveOptions: Array<{ value: WeeklyPrepPlan['defensiveFocus']; label: string }> = [
+  { value: 'balanced', label: 'Balanced' },
+  { value: 'stop_run', label: 'Stop Run' },
+  { value: 'limit_explosive', label: 'Limit Explosive' },
+  { value: 'heat_qb', label: 'Heat QB' },
+  { value: 'erase_wr1', label: 'Erase WR1' },
+];
+
+const intensityOptions: Array<{ value: WeeklyPrepPlan['practiceIntensity']; label: string }> = [
+  { value: 'light', label: 'Light' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'full_pads', label: 'Full Pads' },
+];
+
+const snapOptions: Array<{ value: WeeklyPrepPlan['snapManagement']; label: string }> = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'protect_starters', label: 'Protect Starters' },
+  { value: 'ride_stars', label: 'Ride Stars' },
+];
+
+const specialSituationOptions: Array<{ value: WeeklyPrepPlan['specialSituation']; label: string }> = [
+  { value: 'balanced', label: 'Balanced' },
+  { value: 'red_zone', label: 'Red Zone' },
+  { value: 'third_down', label: 'Third Down' },
+  { value: 'two_minute', label: 'Two Minute' },
+  { value: 'field_position', label: 'Field Position' },
 ];
 
 export function GamePlanSetup() {
   const week = useGameStore(selectWeek);
+  const year = useGameStore(selectYear);
   const phase = useGameStore(selectPhase);
   const team = useGameStore(selectUserTeam);
-  const currentGamePlan = useGameStore(selectCurrentGamePlan);
   const report = useGameStore(selectCurrentOpponentReport);
-  const { advanceWeek, clearGamePlan, saveGamePlan } = useGameStore((state) => state.actions);
+  const intel = useGameStore(selectCurrentOpponentIntel);
+  const storedPlan = useGameStore(selectCurrentWeeklyPrepPlan);
+  const { advanceWeek, clearWeeklyPrepPlan, saveWeeklyPrepPlan } = useGameStore((state) => state.actions);
 
-  const defaultPlan = currentGamePlan ?? {
-    offensiveScheme: report?.schemeRecommendation.offense ?? 'balanced',
-    defensiveScheme: report?.schemeRecommendation.defense ?? 'base',
-    keyMatchup: null,
-    gamePlanBonus: 0,
-  };
-  const [offensiveScheme, setOffensiveScheme] = useState<OffensiveGamePlan>(defaultPlan.offensiveScheme);
-  const [defensiveScheme, setDefensiveScheme] = useState<DefensiveGamePlan>(defaultPlan.defensiveScheme);
-  const [keyMatchupPlayer, setKeyMatchupPlayer] = useState(defaultPlan.keyMatchup?.playerA ?? '');
+  const defaultPlan = storedPlan ?? (team && intel ? {
+    teamId: team.id,
+    opponentTeamId: intel.opponentTeamId,
+    year,
+    week,
+    offensiveFocus: intel.attackLane === 'passing' ? 'attack_secondary' : 'attack_front',
+    defensiveFocus: intel.defendLane === 'passing' ? 'limit_explosive' : 'stop_run',
+    practiceIntensity: 'normal',
+    keyMatchupPlayerId: null,
+    snapManagement: 'normal',
+    specialSituation: 'third_down',
+  } satisfies WeeklyPrepPlan : null);
+
+  const [offensiveFocus, setOffensiveFocus] = useState<WeeklyPrepPlan['offensiveFocus']>(defaultPlan?.offensiveFocus ?? 'balanced');
+  const [defensiveFocus, setDefensiveFocus] = useState<WeeklyPrepPlan['defensiveFocus']>(defaultPlan?.defensiveFocus ?? 'balanced');
+  const [practiceIntensity, setPracticeIntensity] = useState<WeeklyPrepPlan['practiceIntensity']>(defaultPlan?.practiceIntensity ?? 'normal');
+  const [snapManagement, setSnapManagement] = useState<WeeklyPrepPlan['snapManagement']>(defaultPlan?.snapManagement ?? 'normal');
+  const [specialSituation, setSpecialSituation] = useState<WeeklyPrepPlan['specialSituation']>(defaultPlan?.specialSituation ?? 'balanced');
+  const [keyMatchupPlayerId, setKeyMatchupPlayerId] = useState(defaultPlan?.keyMatchupPlayerId ?? '');
 
   const matchupOptions = useMemo(() => (
     team?.roster.map((player) => ({ value: player.id, label: `${player.name} // ${player.pos}` })) ?? []
   ), [team]);
 
-  const recommendedOffense = report?.schemeRecommendation.offense ?? 'balanced';
-  const recommendedDefense = report?.schemeRecommendation.defense ?? 'base';
+  if (!team || !report || !intel) {
+    return (
+      <div style={screenStackStyle}>
+        <PixelScreenHeader title="Weekly Prep" subtitle="No opponent intel is available for this week." />
+        <PixelPanel title="Scouting Pending" accent="default">
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Advance to an active matchup before locking a prep board.</div>
+        </PixelPanel>
+      </div>
+    );
+  }
 
-  const currentPlan: GamePlan = {
-    offensiveScheme,
-    defensiveScheme,
-    keyMatchup: keyMatchupPlayer && report?.keyPlayers[0]
-      ? { playerA: keyMatchupPlayer, playerB: report.keyPlayers[0].id }
-      : null,
-    gamePlanBonus: 0,
+  const currentPlan: WeeklyPrepPlan = {
+    teamId: team.id,
+    opponentTeamId: intel.opponentTeamId,
+    year,
+    week,
+    offensiveFocus,
+    defensiveFocus,
+    practiceIntensity,
+    keyMatchupPlayerId: keyMatchupPlayerId || null,
+    snapManagement,
+    specialSituation,
   };
 
   return (
     <div style={screenStackStyle}>
       <PixelScreenHeader
-        title="Game Plan"
-        subtitle={`${phase.replaceAll('_', ' ')} // week ${week} // tactical edge before kickoff`}
+        title="Weekly Prep"
+        subtitle={`${phase.replaceAll('_', ' ')} // week ${week} // turn scouting into a concrete game-week plan`}
         badges={(
           <>
-            <PixelBadge variant="gold">Recommended: {recommendedOffense}</PixelBadge>
-            <PixelBadge variant="cyan">Recommended: {recommendedDefense}</PixelBadge>
+            <PixelBadge variant="gold">Attack lane: {intel.attackLane}</PixelBadge>
+            <PixelBadge variant="cyan">Defend lane: {intel.defendLane}</PixelBadge>
           </>
         )}
       />
 
-      {report ? (
-        <>
-          <div style={autoGrid(260)}>
-            <PixelPanel title="Opponent Report" accent="gold">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{report.teamName}</div>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <PixelBadge variant="default">{report.record}</PixelBadge>
-                  <PixelBadge variant="cyan">OFF #{report.offenseRank}</PixelBadge>
-                  <PixelBadge variant="red">DEF #{report.defenseRank}</PixelBadge>
-                </div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-                  Strengths: {report.strengths.join(' | ')}
-                </div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-                  Weaknesses: {report.weaknesses.join(' | ')}
-                </div>
-              </div>
-            </PixelPanel>
-
-            <PixelPanel title="AI Recommendation" accent="green">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{report.schemeRecommendation.reasoning}</div>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <PixelBadge variant="gold">{report.schemeRecommendation.offense}</PixelBadge>
-                  <PixelBadge variant="cyan">{report.schemeRecommendation.defense}</PixelBadge>
-                </div>
-              </div>
-            </PixelPanel>
+      <div style={autoGrid(260)}>
+        <PixelPanel title="Opponent Intel" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{report.teamName}</div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="default">{report.record}</PixelBadge>
+              <PixelBadge variant="cyan">OFF #{report.offenseRank}</PixelBadge>
+              <PixelBadge variant="red">DEF #{report.defenseRank}</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              Danger: {intel.dangerPlayers.map((player) => player.name).join(' | ')}
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              Weak links: {intel.weakLinks.map((player) => `${player.name} (${player.pos})`).join(' | ')}
+            </div>
           </div>
-
-          <div style={autoGrid(260)}>
-            <PixelPanel title="Offensive Scheme" accent={offensiveScheme === recommendedOffense ? 'gold' : 'default'}>
-              <PixelSelect
-                value={offensiveScheme}
-                onChange={(event) => setOffensiveScheme(event.target.value as OffensiveGamePlan)}
-                options={offenseOptions}
-                accent={offensiveScheme === recommendedOffense ? 'gold' : 'cyan'}
-              />
-            </PixelPanel>
-
-            <PixelPanel title="Defensive Scheme" accent={defensiveScheme === recommendedDefense ? 'gold' : 'default'}>
-              <PixelSelect
-                value={defensiveScheme}
-                onChange={(event) => setDefensiveScheme(event.target.value as DefensiveGamePlan)}
-                options={defenseOptions}
-                accent={defensiveScheme === recommendedDefense ? 'gold' : 'cyan'}
-              />
-            </PixelPanel>
-
-            <PixelPanel title="Key Matchup" accent="cyan">
-              <PixelSelect
-                value={keyMatchupPlayer}
-                onChange={(event) => setKeyMatchupPlayer(event.target.value)}
-                options={[{ value: '', label: 'No targeted matchup' }, ...matchupOptions]}
-                accent="cyan"
-              />
-            </PixelPanel>
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <PixelButton
-              accent="gold"
-              onClick={() => {
-                void clearGamePlan();
-                void advanceWeek();
-              }}
-            >
-              Skip With AI Plan
-            </PixelButton>
-            <PixelButton
-              accent="green"
-              onClick={() => {
-                void saveGamePlan(currentPlan, report);
-                void advanceWeek();
-              }}
-            >
-              Confirm &amp; Sim
-            </PixelButton>
-          </div>
-        </>
-      ) : (
-        <PixelPanel title="Scouting Pending" accent="default">
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No opponent report is available for this week.</div>
         </PixelPanel>
-      )}
+
+        <PixelPanel title="Recommended Prep" accent="green">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {intel.recommendations.offense.map((line) => (
+              <div key={line} style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{line}</div>
+            ))}
+            {intel.recommendations.defense.map((line) => (
+              <div key={line} style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{line}</div>
+            ))}
+          </div>
+        </PixelPanel>
+
+        <PixelPanel title="Tendencies" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {intel.tendencies.map((line) => (
+              <div key={line} style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{line}</div>
+            ))}
+          </div>
+        </PixelPanel>
+      </div>
+
+      <div style={autoGrid(260)}>
+        <PixelPanel title="Offensive Focus" accent="gold">
+          <PixelSelect
+            value={offensiveFocus}
+            onChange={(event) => setOffensiveFocus(event.target.value as WeeklyPrepPlan['offensiveFocus'])}
+            options={offensiveOptions}
+            accent="gold"
+          />
+        </PixelPanel>
+        <PixelPanel title="Defensive Focus" accent="cyan">
+          <PixelSelect
+            value={defensiveFocus}
+            onChange={(event) => setDefensiveFocus(event.target.value as WeeklyPrepPlan['defensiveFocus'])}
+            options={defensiveOptions}
+            accent="cyan"
+          />
+        </PixelPanel>
+        <PixelPanel title="Practice Intensity" accent="default">
+          <PixelSelect
+            value={practiceIntensity}
+            onChange={(event) => setPracticeIntensity(event.target.value as WeeklyPrepPlan['practiceIntensity'])}
+            options={intensityOptions}
+            accent="default"
+          />
+        </PixelPanel>
+        <PixelPanel title="Snap Management" accent="default">
+          <PixelSelect
+            value={snapManagement}
+            onChange={(event) => setSnapManagement(event.target.value as WeeklyPrepPlan['snapManagement'])}
+            options={snapOptions}
+            accent="default"
+          />
+        </PixelPanel>
+        <PixelPanel title="Special Situation" accent="default">
+          <PixelSelect
+            value={specialSituation}
+            onChange={(event) => setSpecialSituation(event.target.value as WeeklyPrepPlan['specialSituation'])}
+            options={specialSituationOptions}
+            accent="default"
+          />
+        </PixelPanel>
+        <PixelPanel title="Key Matchup" accent="green">
+          <PixelSelect
+            value={keyMatchupPlayerId}
+            onChange={(event) => setKeyMatchupPlayerId(event.target.value)}
+            options={[{ value: '', label: 'No matchup emphasis' }, ...matchupOptions]}
+            accent="green"
+          />
+        </PixelPanel>
+      </div>
+
+      <PixelPanel title="Prep Board Readout" accent="green">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <PixelProgressBar
+            label="Offensive alignment"
+            value={offensiveFocus === 'attack_secondary' && intel.attackLane === 'passing'
+              ? 88
+              : offensiveFocus === 'attack_front' && intel.attackLane === 'rushing'
+                ? 88
+                : offensiveFocus === 'balanced'
+                  ? 70
+                  : 62}
+            max={100}
+            accent="gold"
+            valueLabel={offensiveFocus.replaceAll('_', ' ')}
+          />
+          <PixelProgressBar
+            label="Defensive alignment"
+            value={defensiveFocus === 'limit_explosive' && intel.defendLane === 'passing'
+              ? 88
+              : defensiveFocus === 'stop_run' && intel.defendLane === 'rushing'
+                ? 88
+                : defensiveFocus === 'balanced'
+                  ? 70
+                  : 62}
+            max={100}
+            accent="cyan"
+            valueLabel={defensiveFocus.replaceAll('_', ' ')}
+          />
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+            Stored plan status: {storedPlan ? 'weekly prep locked' : 'no prep saved yet'}
+          </div>
+        </div>
+      </PixelPanel>
+
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <PixelButton
+          accent="gold"
+          onClick={() => {
+            void clearWeeklyPrepPlan();
+            void advanceWeek();
+          }}
+        >
+          Skip With Auto Prep
+        </PixelButton>
+        <PixelButton
+          accent="green"
+          onClick={() => {
+            void saveWeeklyPrepPlan(currentPlan, report);
+            void advanceWeek();
+          }}
+        >
+          Save Weekly Prep &amp; Sim
+        </PixelButton>
+      </div>
     </div>
   );
 }

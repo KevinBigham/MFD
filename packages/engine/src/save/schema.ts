@@ -220,6 +220,9 @@ export const GameDayPackageSchema = z.object({
   primetime: z.boolean().optional(),
   flexed: z.boolean().optional(),
   specialTeamsHighlights: z.array(z.string()).optional(),
+  prepGrade: z.string().nullable().optional(),
+  coachingNotes: z.array(z.string()).optional(),
+  carryForwardRecommendations: z.array(z.string()).optional(),
 });
 
 export const GameDayStateSchema = z.object({
@@ -807,6 +810,91 @@ export const ContractExtensionRecordSchema = z.object({
   week: z.number(),
 });
 
+export const StaffCandidateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.enum(['HC', 'OC', 'DC']),
+  archetype: z.string(),
+  traits: z.array(z.string()),
+  ratings: z.record(z.number()),
+  level: z.number(),
+  age: z.number().optional(),
+  specialty75: z.any().nullable().optional(),
+  term: z.number().optional(),
+  buyoutPenalty: z.number().optional(),
+  loyalty: z.number().optional(),
+  ambition: z.number().optional(),
+  schemeLean: z.object({
+    offense: z.string(),
+    defense: z.string(),
+  }).optional(),
+  lastHiredYear: z.number().optional(),
+  desiredRole: z.enum(['HC', 'OC', 'DC']),
+  fitScore: z.number(),
+  continuityTag: z.enum(['ideal', 'strong', 'transition', 'risky']),
+  reasoning: z.array(z.string()),
+});
+
+export const CoachingMarketStateSchema = z.object({
+  teamId: z.string().nullable(),
+  updatedYear: z.number(),
+  updatedWeek: z.number(),
+  hotSeat: z.boolean(),
+  candidates: z.object({
+    HC: z.array(StaffCandidateSchema),
+    OC: z.array(StaffCandidateSchema),
+    DC: z.array(StaffCandidateSchema),
+  }),
+});
+
+export const WeeklyPrepPlanSchema = z.object({
+  teamId: z.string(),
+  opponentTeamId: z.string(),
+  year: z.number(),
+  week: z.number(),
+  offensiveFocus: z.enum(['balanced', 'attack_secondary', 'attack_front', 'feed_star', 'protect_qb']),
+  defensiveFocus: z.enum(['balanced', 'stop_run', 'limit_explosive', 'heat_qb', 'erase_wr1']),
+  practiceIntensity: z.enum(['light', 'normal', 'full_pads']),
+  keyMatchupPlayerId: z.string().nullable(),
+  snapManagement: z.enum(['normal', 'protect_starters', 'ride_stars']),
+  specialSituation: z.enum(['balanced', 'red_zone', 'third_down', 'two_minute', 'field_position']),
+});
+
+export const WeeklyPrepOutcomeSchema = z.object({
+  teamId: z.string(),
+  opponentTeamId: z.string(),
+  year: z.number(),
+  week: z.number(),
+  plan: WeeklyPrepPlanSchema,
+  readiness: z.number(),
+  reasoning: z.array(z.string()),
+  effects: z.object({
+    teamOvrBonus: z.number(),
+    playerBonuses: z.record(z.string(), z.number()),
+    fatigueDelta: z.number(),
+    injuryRiskDelta: z.number(),
+    moraleDelta: z.number(),
+    chemistryDelta: z.number(),
+  }),
+});
+
+export const FilmRoomReportSchema = z.object({
+  id: z.string(),
+  teamId: z.string(),
+  opponentTeamId: z.string().nullable(),
+  year: z.number(),
+  week: z.number(),
+  grade: z.enum(['A', 'B', 'C', 'D', 'F']),
+  score: z.number(),
+  headline: z.string(),
+  planSummary: z.string(),
+  alignedCalls: z.array(z.string()),
+  missedCalls: z.array(z.string()),
+  executionNotes: z.array(z.string()),
+  recommendations: z.array(z.string()),
+  carryForward: z.array(z.string()),
+});
+
 export const SpecialTeamsGameSummarySchema = z.object({
   kickReturnYards: z.number(),
   puntReturnYards: z.number(),
@@ -1010,6 +1098,20 @@ export const SaveStateSchema = z.object({
   teamNeedsCache: z.record(z.string(), TeamNeedsReportSchema).default({}),
   warRoomState: WarRoomStateSchema.nullable().default(null),
   contractExtensions: z.array(ContractExtensionRecordSchema).default([]),
+  coachingMarket: CoachingMarketStateSchema.default({
+    teamId: null,
+    updatedYear: 0,
+    updatedWeek: 0,
+    hotSeat: false,
+    candidates: {
+      HC: [],
+      OC: [],
+      DC: [],
+    },
+  }),
+  weeklyPrepPlans: z.record(z.string(), WeeklyPrepPlanSchema).default({}),
+  weeklyPrepHistory: z.array(WeeklyPrepOutcomeSchema).default([]),
+  filmRoomHistory: z.array(FilmRoomReportSchema).default([]),
   difficultyState: DifficultyStateSchema.default({
     enabled: true,
     adaptiveSlider: 50,

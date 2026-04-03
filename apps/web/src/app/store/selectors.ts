@@ -5,6 +5,7 @@ import type {
   AwardsHistoryEntry,
   CapProjectionYear,
   Ceremony,
+  CoachingMarketState,
   ConditionalPick,
   ContractExtensionRecord,
   FATargetBoard,
@@ -29,6 +30,7 @@ import type {
   NewsItem,
   OffseasonState,
   OffFieldEvent,
+  OpponentIntel,
   OpponentReport,
   NarrativeIntensity,
   PracticeSquadPlayer,
@@ -46,6 +48,7 @@ import type {
   SeasonPhase,
   SeasonReport,
   SpecialTeamsState,
+  SchemeInstallState,
   StoryArc,
   Team,
   TeamNeedsComparisonEntry,
@@ -61,14 +64,18 @@ import type {
   WaiverWireEntry,
   WeatherCondition,
   WarRoomState,
+  WeeklyPrepPlan,
   WeeklySummary,
   Handshake,
+  FilmRoomReport,
 } from '@mfd/engine';
 import {
   analyzeTeamNeeds,
+  buildCoachingMarket,
   buildDraftWarRoomState,
   buildFATargetBoard,
   buildLeagueAverageByGroup,
+  buildOpponentIntel,
   buildPlayerProfile,
   capProjection,
   checkIncentives,
@@ -101,6 +108,7 @@ import {
   getStatLeaders,
   getTeamNews,
   mulberry32,
+  projectSchemeTransition,
 } from '@mfd/engine';
 
 export interface GameStoreState {
@@ -191,6 +199,14 @@ const EMPTY_FA_TARGET_BOARD: FATargetBoard = {
 const EMPTY_CAP_PROJECTION: CapProjectionYear[] = [];
 const EMPTY_CONTRACT_EXTENSIONS: ContractExtensionRecord[] = [];
 const EMPTY_WAR_ROOM_STATE: WarRoomState | null = null;
+const EMPTY_COACHING_MARKET: CoachingMarketState = {
+  teamId: null,
+  updatedYear: 0,
+  updatedWeek: 0,
+  hotSeat: false,
+  candidates: { HC: [], OC: [], DC: [] },
+};
+const EMPTY_FILM_ROOM_HISTORY: FilmRoomReport[] = [];
 const EMPTY_STAT_LEADERS = { passYds: [], rushYds: [], recYds: [], sacks: [], defINT: [] };
 const EMPTY_ADVANCED_STATS = {
   stats: { qbr: 0, epa: 0, successRate: 0, yac: 0, pressureRate: 0, thirdDownRate: 0, redZoneRate: 0, turnoverRate: 0 },
@@ -651,6 +667,14 @@ export const selectLatestGameResult = (state: GameStoreState): GameResult | null
   }
   return null;
 };
+export const selectCurrentOpponentIntel = (state: GameStoreState): OpponentIntel | null => {
+  if (!state.game) return null;
+  const team = selectUserTeam(state);
+  const matchup = selectCurrentMatchup(state);
+  if (!team || !matchup) return null;
+  const opponentId = matchup.homeTeamId === team.id ? matchup.awayTeamId : matchup.homeTeamId;
+  return buildOpponentIntel(state.game, team.id, opponentId);
+};
 export const selectCurrentDraftEntry = (state: GameStoreState): DraftOrderEntry | null => {
   const offseasonState = state.game?.offseasonState;
   return offseasonState ? offseasonState.draftOrder[offseasonState.currentDraftPickIndex] ?? null : null;
@@ -700,6 +724,33 @@ export const selectTeamNeedsComparison = (otherTeamId: string | null) => (state:
     };
   });
 };
+export const selectCoachingMarket = (state: GameStoreState): CoachingMarketState => {
+  if (!state.game) return EMPTY_COACHING_MARKET;
+  const team = selectUserTeam(state);
+  if (!team) return EMPTY_COACHING_MARKET;
+  const cached = state.game.coachingMarket;
+  if (cached
+    && cached.teamId === team.id
+    && cached.updatedYear === state.game.year
+    && cached.updatedWeek === state.game.week) {
+    return cached;
+  }
+  return buildCoachingMarket(state.game, team.id);
+};
+export const selectSchemeTransitionPreview = (offenseScheme: string, defenseScheme: string) => (state: GameStoreState): SchemeInstallState | null => {
+  const team = selectUserTeam(state);
+  return team ? projectSchemeTransition(team, offenseScheme, defenseScheme) : null;
+};
+export const selectCurrentWeeklyPrepPlan = (state: GameStoreState): WeeklyPrepPlan | null => {
+  if (!state.game) return null;
+  const team = selectUserTeam(state);
+  const matchup = selectCurrentMatchup(state);
+  if (!team || !matchup) return null;
+  const plan = state.game.weeklyPrepPlans?.[team.id] ?? null;
+  const opponentId = matchup.homeTeamId === team.id ? matchup.awayTeamId : matchup.homeTeamId;
+  if (!plan) return null;
+  return plan.year === state.game.year && plan.week === state.game.week && plan.opponentTeamId === opponentId ? plan : null;
+};
 export const selectFATargetBoard = (state: GameStoreState): FATargetBoard => {
   if (!state.game) return EMPTY_FA_TARGET_BOARD;
   const team = selectUserTeam(state);
@@ -743,6 +794,14 @@ export const selectContractExtensions = (state: GameStoreState): ContractExtensi
   if (!teamId) return EMPTY_CONTRACT_EXTENSIONS;
   return state.game.contractExtensions.filter((entry) => entry.teamId === teamId).slice().reverse();
 };
+export const selectFilmRoomHistory = (state: GameStoreState): FilmRoomReport[] => {
+  if (!state.game) return EMPTY_FILM_ROOM_HISTORY;
+  const teamId = selectUserTeamId(state);
+  if (!teamId) return EMPTY_FILM_ROOM_HISTORY;
+  return (state.game.filmRoomHistory ?? []).filter((entry) => entry.teamId === teamId).slice().reverse();
+};
+export const selectLatestFilmRoomReport = (state: GameStoreState): FilmRoomReport | null =>
+  selectFilmRoomHistory(state)[0] ?? null;
 export const selectLatestExtensionRecord = (playerId: string) => (state: GameStoreState): ContractExtensionRecord | null => {
   return selectContractExtensions(state).find((entry) => entry.playerId === playerId) ?? null;
 };
@@ -813,7 +872,7 @@ export const selectWeather = (state: GameStoreState): WeatherCondition | null =>
 };
 export const selectCoachingCarouselNews = (state: GameStoreState): GameEvent[] =>
   state.game?.eventLog
-    .filter((event) => event.type === 'coach_fired' || event.type === 'coach_hired')
+    .filter((event) => event.type === 'coach_fired' || event.type === 'coach_hired' || event.type === 'coach_promoted' || event.type === 'coach_departed')
     .slice(-6)
     .reverse() ?? EMPTY_GAME_EVENTS;
 export const selectHistoricalMentoringChains = (state: GameStoreState): MentoringHistoryNote[] => {

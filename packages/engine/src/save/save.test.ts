@@ -778,4 +778,60 @@ describe('migration pipeline', () => {
       passYds: 28600,
     });
   });
+
+  it('migrates v14 saves to include sideline empire state defaults', () => {
+    const migrated = migrate({
+      version: 14,
+      year: 2033,
+      week: 6,
+      teams: {
+        t1: {
+          id: 't1',
+          isUser: true,
+          schemeOff: 'spread',
+          schemeDef: 'cover_3',
+          offScheme: 'spread',
+          defScheme: 'cover_3',
+          staff: {
+            hc: { id: 'hc-1', name: 'Coach One', role: 'HC', archetype: 'Strategist', traits: [], ratings: { gameplan: 82 }, level: 4 },
+            oc: null,
+            dc: null,
+          },
+          coachingStaff: { hc: null, oc: null, dc: null },
+          roster: [],
+          txLog: [],
+        },
+      },
+    }, 15);
+
+    expect(migrated['version']).toBe(15);
+    expect(migrated['coachingMarket']).toEqual({
+      teamId: null,
+      updatedYear: 2033,
+      updatedWeek: 6,
+      hotSeat: false,
+      candidates: {
+        HC: [],
+        OC: [],
+        DC: [],
+      },
+    });
+    expect(migrated['weeklyPrepPlans']).toEqual({});
+    expect(migrated['weeklyPrepHistory']).toEqual([]);
+    expect(migrated['filmRoomHistory']).toEqual([]);
+    expect(((migrated['teams'] as Record<string, Record<string, unknown>>).t1?.['staff'] as Record<string, Record<string, unknown>>).hc).toMatchObject({
+      id: 'hc-1',
+      term: 3,
+      buyoutPenalty: 2,
+      loyalty: 5,
+      ambition: 5,
+      lastHiredYear: 2033,
+    });
+    expect((migrated['teams'] as Record<string, Record<string, unknown>>).t1).toMatchObject({
+      schemeOff: 'spread',
+      schemeDef: 'cover_3',
+      offScheme: 'spread',
+      defScheme: 'cover_3',
+    });
+  });
 });

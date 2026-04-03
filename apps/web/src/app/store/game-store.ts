@@ -16,10 +16,13 @@ import type {
   GameState,
   OpponentReport,
   SeasonPhase,
+  StaffCandidate,
+  StaffRole,
   Team,
   TradeOfferAsset,
   TradeProposal,
   TrainingFocus,
+  WeeklyPrepPlan,
   WeeklySummary,
 } from '@mfd/engine';
 import {
@@ -28,18 +31,22 @@ import {
   activateFromIR as activateFromIREngine,
   advanceTutorial as advanceTutorialEngine,
   applyDraftTradeOffer,
+  applySchemeChange,
   applyExtensionOffer,
   assignTraining as assignTrainingEngine,
   acceptCounterProposal as acceptCounterProposalEngine,
+  buildCoachingMarket,
   completeTutorialAction as completeTutorialActionEngine,
   cutPlayerToWaivers as cutPlayerToWaiversEngine,
   createTradeProposal as createTradeProposalEngine,
   dismissTutorial as dismissTutorialEngine,
   elevateFromPracticeSquad as elevateFromPracticeSquadEngine,
   evaluateExtension,
+  fireStaffMember,
   fireScout as fireScoutEngine,
   buildDraftWarRoomState,
   hireMedicalStaff as hireMedicalStaffEngine,
+  hireStaffCandidate,
   hireScout as hireScoutEngine,
   makePlayerPromise as makePlayerPromiseEngine,
   mulberry32,
@@ -50,6 +57,7 @@ import {
   removeFromWatchlist,
   restructureContract, backloadContract,
   calcCapHit, calcDeadMoney,
+  promoteCoordinator,
   runProDay as runProDayEngine,
   updateOwnerApproval,
   updateSystemFit,
@@ -148,6 +156,12 @@ interface GameActions {
 
   // Coaching
   addClinicXP: (teamId: string, track: string, amount: number) => void;
+  refreshCoachingMarket: () => Promise<void>;
+  hireStaff: (role: StaffRole, candidate: StaffCandidate) => Promise<void>;
+  fireStaff: (role: StaffRole) => Promise<void>;
+  promoteStaff: (fromRole: 'OC' | 'DC') => Promise<void>;
+  applyTeamSchemeChange: (offenseScheme: string, defenseScheme: string) => Promise<void>;
+  setHeadCoachSkillSelection: (branch: string, tier: number) => Promise<void>;
 
   // Season phase
   setPhase: (phase: SeasonPhase) => void;
@@ -155,6 +169,8 @@ interface GameActions {
   setAdaptiveDifficultyEnabled: (enabled: boolean) => Promise<void>;
   saveGamePlan: (plan: GamePlan, report?: OpponentReport | null) => Promise<void>;
   clearGamePlan: () => Promise<void>;
+  saveWeeklyPrepPlan: (plan: WeeklyPrepPlan, report?: OpponentReport | null) => Promise<void>;
+  clearWeeklyPrepPlan: () => Promise<void>;
   pinWidget: (widgetType: DashboardWidget) => Promise<void>;
   unpinWidget: (widgetType: DashboardWidget) => Promise<void>;
   switchLayout: (layoutId: string) => Promise<void>;
@@ -187,6 +203,26 @@ export const useGameStore = create<GameStore>()(
       return (game.seed ^ (game.year * 131) ^ (game.week * 977) ^ saltHash) >>> 0;
     };
     const intelRng = (game: GameState, salt: string) => mulberry32(buildIntelSeed(game, salt));
+    const offensePlanFromPrep = (focus: WeeklyPrepPlan['offensiveFocus']): GamePlan['offensiveScheme'] => {
+      if (focus === 'attack_secondary') return 'pass_heavy';
+      if (focus === 'attack_front') return 'run_heavy';
+      if (focus === 'feed_star') return 'spread';
+      if (focus === 'protect_qb') return 'balanced';
+      return 'balanced';
+    };
+    const defensePlanFromPrep = (focus: WeeklyPrepPlan['defensiveFocus']): GamePlan['defensiveScheme'] => {
+      if (focus === 'heat_qb') return 'blitz_heavy';
+      if (focus === 'limit_explosive') return 'coverage';
+      if (focus === 'stop_run') return 'contain';
+      if (focus === 'erase_wr1') return 'aggressive';
+      return 'base';
+    };
+    const buildGamePlanFromWeeklyPrep = (plan: WeeklyPrepPlan): GamePlan => ({
+      offensiveScheme: offensePlanFromPrep(plan.offensiveFocus),
+      defensiveScheme: defensePlanFromPrep(plan.defensiveFocus),
+      keyMatchup: plan.keyMatchupPlayerId ? { playerA: plan.keyMatchupPlayerId, playerB: plan.opponentTeamId } : null,
+      gamePlanBonus: 0,
+    });
     const applyPostJune1CutToGame = (game: GameState, teamId: string, playerId: string) => {
       const team = game.teams[teamId];
       const player = game.players[playerId];
@@ -680,6 +716,74 @@ export const useGameStore = create<GameStore>()(
           team.clinic = result;
         }),
 
+      refreshCoachingMarket: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam) return;
+        nextGame.coachingMarket = buildCoachingMarket(nextGame, userTeam.id);
+        await commitGame(nextGame);
+      },
+
+      hireStaff: async (role, candidate) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam) return;
+        hireStaffCandidate(nextGame, userTeam.id, candidate, role);
+        nextGame.coachingMarket = buildCoachingMarket(nextGame, userTeam.id);
+        await commitGame(nextGame);
+      },
+
+      fireStaff: async (role) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam) return;
+        fireStaffMember(nextGame, userTeam.id, role);
+        nextGame.coachingMarket = buildCoachingMarket(nextGame, userTeam.id);
+        await commitGame(nextGame);
+      },
+
+      promoteStaff: async (fromRole) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam) return;
+        promoteCoordinator(nextGame, userTeam.id, fromRole);
+        nextGame.coachingMarket = buildCoachingMarket(nextGame, userTeam.id);
+        await commitGame(nextGame);
+      },
+
+      applyTeamSchemeChange: async (offenseScheme, defenseScheme) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam) return;
+        applySchemeChange(nextGame, userTeam.id, offenseScheme, defenseScheme);
+        await commitGame(nextGame);
+      },
+
+      setHeadCoachSkillSelection: async (branch, tier) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        const coachId = userTeam?.staff.hc?.id;
+        if (!userTeam || !coachId) return;
+        userTeam.skillSelections[coachId] = {
+          branch,
+          tier,
+          archForLookup: userTeam.staff.hc?.archetype,
+        };
+        await commitGame(nextGame);
+      },
+
       setPhase: (phase) =>
         set((s) => {
           if (!s.game) return;
@@ -722,6 +826,38 @@ export const useGameStore = create<GameStore>()(
         const current = get().game;
         if (!current) return;
         const nextGame = cloneForMutation(current);
+        resetGamePlanEngine(nextGame);
+        await commitGame(nextGame);
+      },
+
+      saveWeeklyPrepPlan: async (plan, report) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.weeklyPrepPlans = nextGame.weeklyPrepPlans ?? {};
+        nextGame.weeklyPrepPlans[plan.teamId] = plan;
+        if (report) {
+          upsertOpponentReportEngine(nextGame, report);
+        }
+        const derivedPlan = buildGamePlanFromWeeklyPrep(plan);
+        if (report?.keyPlayers?.[0]?.id && plan.keyMatchupPlayerId) {
+          derivedPlan.keyMatchup = {
+            playerA: plan.keyMatchupPlayerId,
+            playerB: report.keyPlayers[0].id,
+          };
+        }
+        setGamePlanEngine(nextGame, derivedPlan, report);
+        await commitGame(nextGame);
+      },
+
+      clearWeeklyPrepPlan: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (userTeam && nextGame.weeklyPrepPlans?.[userTeam.id]) {
+          delete nextGame.weeklyPrepPlans[userTeam.id];
+        }
         resetGamePlanEngine(nextGame);
         await commitGame(nextGame);
       },
