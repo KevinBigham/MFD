@@ -644,6 +644,21 @@ export interface WaiverClaim {
   claimWeek: number;
 }
 
+export interface WaiverResultEntry {
+  playerId: string;
+  releasedByTeamId: string | null;
+  winningTeamId: string | null;
+  losingTeamIds: string[];
+  clearedToFreeAgency: boolean;
+}
+
+export interface WaiverRunResult {
+  id: string;
+  year: number;
+  week: number;
+  entries: WaiverResultEntry[];
+}
+
 export interface TradeOffer {
   id: string;
   fromTeamId: string;
@@ -901,6 +916,74 @@ export interface OffseasonState {
   draftOrder: DraftOrderEntry[];
   currentDraftPickIndex: number;
   completedDraftPickIds: string[];
+}
+
+export type OffensiveGamePlan = 'balanced' | 'pass_heavy' | 'run_heavy' | 'spread' | 'power';
+export type DefensiveGamePlan = 'base' | 'blitz_heavy' | 'coverage' | 'contain' | 'aggressive';
+
+export interface GamePlan {
+  offensiveScheme: OffensiveGamePlan;
+  defensiveScheme: DefensiveGamePlan;
+  keyMatchup: { playerA: string; playerB: string } | null;
+  gamePlanBonus: number;
+}
+
+export interface OpponentReport {
+  teamId: string;
+  teamName: string;
+  record: string;
+  year: number;
+  week: number;
+  offenseRank: number;
+  defenseRank: number;
+  strengths: string[];
+  weaknesses: string[];
+  keyPlayers: Player[];
+  vulnerabilityRatings: Record<'passing' | 'rushing' | 'pass_rush' | 'coverage', number>;
+  schemeRecommendation: {
+    offense: OffensiveGamePlan;
+    defense: DefensiveGamePlan;
+    reasoning: string;
+  };
+}
+
+export interface DraftRecapPick {
+  playerId: string;
+  teamId: string;
+  playerName: string;
+  position: Position;
+  ovr: number;
+  round: number;
+  pick: number;
+  projectedPick: number;
+  valueDelta: number;
+  verdict: 'steal' | 'reach' | 'fair';
+}
+
+export interface DraftRecap {
+  year: number;
+  teamId: string;
+  picks: DraftRecapPick[];
+  classGrade: string;
+  bestValue: DraftRecapPick;
+  biggestReach: DraftRecapPick;
+  steals: DraftRecapPick[];
+  leagueHighlights: DraftRecapPick[];
+}
+
+export interface TradePackage {
+  offering: TradeOfferAsset[];
+  requesting: TradeOfferAsset[];
+  type: 'pick_for_player' | 'player_for_player' | 'mixed';
+}
+
+export interface TradeSuggestion {
+  partner: string;
+  offer: TradePackage;
+  reasoning: string;
+  valueGap: number;
+  acceptanceLikelihood: number;
+  need: Position | null;
 }
 
 // ── Owner ───────────────────────────────────────────────
@@ -1460,6 +1543,11 @@ export interface GameState {
   achievements?: Achievement[];
   dashboardState?: DashboardState;
   seasonReports?: SeasonReport[];
+  waiverResults?: WaiverRunResult[];
+  gamePlan?: GamePlan | null;
+  opponentReports?: OpponentReport[];
+  draftRecaps?: DraftRecap[];
+  tradeSuggestions?: TradeSuggestion[];
 }
 
 export type SeasonPhase =

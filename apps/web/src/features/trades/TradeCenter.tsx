@@ -15,6 +15,7 @@ import {
   selectActiveProposals,
   selectPhase,
   selectTradeOffers,
+  selectTradeSuggestions,
   selectUserTeam,
   selectWeek,
   useGameStore,
@@ -28,6 +29,7 @@ import {
   pixelSm,
   screenStackStyle,
 } from '../shared/pixelUi';
+import { TradeFinder } from './TradeFinder';
 
 function offerAccent(status: string): 'cyan' | 'green' | 'gold' | 'red' {
   if (status === 'accepted') return 'green';
@@ -141,6 +143,7 @@ export function TradeCenter() {
   const userTeam = useGameStore(selectUserTeam);
   const offers = useGameStore(selectTradeOffers);
   const proposals = useGameStore(selectActiveProposals);
+  const tradeSuggestions = useGameStore(selectTradeSuggestions);
   const week = useGameStore(selectWeek);
   const phase = useGameStore(selectPhase);
   const {
@@ -236,6 +239,14 @@ export function TradeCenter() {
     });
   };
 
+  const loadSuggestion = (suggestion: (typeof tradeSuggestions)[number]) => {
+    setTab('propose');
+    setSelectedPartnerId(suggestion.partner);
+    setOfferingKeys(suggestion.offer.offering.map((asset) => assetKey(asset)));
+    setRequestingKeys(suggestion.offer.requesting.map((asset) => assetKey(asset)));
+    setError(null);
+  };
+
   return (
     <div style={screenStackStyle}>
       <PixelScreenHeader
@@ -264,6 +275,8 @@ export function TradeCenter() {
           detail={phase === 'regular_season' ? `Regular season week ${week}` : 'Offseason trade market'}
         />
       </div>
+
+      <TradeFinder suggestions={tradeSuggestions} onLoadSuggestion={loadSuggestion} />
 
       <PixelNav
         activeKey={tab}

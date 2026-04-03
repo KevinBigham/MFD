@@ -593,3 +593,12 @@ registerMigration(11, (state) => {
     seasonReports: Array.isArray(state['seasonReports']) ? state['seasonReports'] : [],
   };
 });
+
+registerMigration(12, (state) => ({
+  ...state,
+  gamePlan: state['gamePlan'] ?? null,
+  opponentReports: Array.isArray(state['opponentReports']) ? state['opponentReports'] : [],
+  draftRecaps: Array.isArray(state['draftRecaps']) ? state['draftRecaps'] : [],
+  tradeSuggestions: Array.isArray(state['tradeSuggestions']) ? state['tradeSuggestions'] : [],
+  waiverResults: Array.isArray(state['waiverResults']) ? state['waiverResults'] : [],
+}));

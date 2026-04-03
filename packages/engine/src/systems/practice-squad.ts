@@ -8,6 +8,7 @@ import type {
   PracticeSquadPlayer,
   Team,
   WaiverClaim,
+  WaiverResultEntry,
   WaiverWireEntry,
 } from '../types';
 
@@ -17,9 +18,13 @@ function ensureWaiverState(game: GameState): void {
   if (!game.waiverOrder) game.waiverOrder = [];
   if (!game.waiverWire) game.waiverWire = [];
   if (!game.waiverClaims) game.waiverClaims = [];
+  if (!game.waiverResults) game.waiverResults = [];
   for (const team of Object.values(game.teams)) {
     if (!team.practiceSquad) {
       team.practiceSquad = [];
+    }
+    if (!team.txLog) {
+      team.txLog = [];
     }
   }
 }
@@ -63,6 +68,13 @@ export function addToPracticeSquad(game: GameState, teamId: string, playerId: st
   game.freeAgents = game.freeAgents.filter((id) => id !== playerId);
   player.teamId = teamId;
   player.contract = null;
+  team.txLog.push({
+    type: 'PS_ADD',
+    year: game.year,
+    week: game.week,
+    playerId,
+    toTeamId: teamId,
+  });
   return emptyResult(game);
 }
 
@@ -76,6 +88,13 @@ export function removeFromPracticeSquad(game: GameState, teamId: string, playerI
     game.freeAgents.push(playerId);
   }
   player.teamId = null;
+  team.txLog.push({
+    type: 'PS_RELEASE',
+    year: game.year,
+    week: game.week,
+    playerId,
+    fromTeamId: teamId,
+  });
   return emptyResult(game);
 }
 
@@ -94,6 +113,13 @@ export function elevateFromPracticeSquad(game: GameState, teamId: string, player
   squadPlayer.isElevated = true;
   squadPlayer.elevatedWeek = game.week;
   player.teamId = teamId;
+  team.txLog.push({
+    type: 'PS_ELEVATE',
+    year: game.year,
+    week: game.week,
+    playerId,
+    toTeamId: teamId,
+  });
   return emptyResult(game);
 }
 
@@ -125,6 +151,13 @@ export function cutPlayerToWaivers(game: GameState, teamId: string, playerId: st
     expiresYear: game.year,
     expiresWeek: game.week + 1,
   });
+  team.txLog.push({
+    type: 'CUT',
+    year: game.year,
+    week: game.week,
+    playerId,
+    fromTeamId: teamId,
+  });
   return emptyResult(game);
 }
 
@@ -149,6 +182,7 @@ export function submitWaiverClaim(game: GameState, teamId: string, playerId: str
 function awardClaim(game: GameState, claim: WaiverClaim): void {
   const team = game.teams[claim.teamId];
   const player = game.players[claim.playerId];
+  const waiverEntry = game.waiverWire.find((entry) => entry.playerId === claim.playerId) ?? null;
   if (!team || !player) return;
   if (!team.roster.some((entry) => entry.id === player.id)) {
     team.roster.push(player);
@@ -156,6 +190,14 @@ function awardClaim(game: GameState, claim: WaiverClaim): void {
   player.teamId = team.id;
   game.waiverWire = game.waiverWire.filter((entry) => entry.playerId !== player.id);
   game.waiverClaims = game.waiverClaims.filter((entry) => entry.playerId !== player.id);
+  team.txLog.push({
+    type: 'WAIVER_CLAIM',
+    year: game.year,
+    week: game.week,
+    playerId: player.id,
+    fromTeamId: waiverEntry?.releasedByTeamId ?? undefined,
+    toTeamId: team.id,
+  });
   recordNewsItem(game, {
     id: `waiver-${player.id}-${team.id}-${game.year}-${game.week}`,
     year: game.year,
@@ -169,21 +211,30 @@ function awardClaim(game: GameState, claim: WaiverClaim): void {
   });
 }
 
-function expireWaivers(game: GameState): void {
+function expireWaivers(game: GameState): WaiverResultEntry[] {
   const expired = game.waiverWire.filter((entry) =>
     entry.expiresYear < game.year ||
     (entry.expiresYear === game.year && entry.expiresWeek <= game.week),
   );
+  const results: WaiverResultEntry[] = [];
   for (const entry of expired) {
     if (!game.freeAgents.includes(entry.playerId)) {
       game.freeAgents.push(entry.playerId);
     }
+    results.push({
+      playerId: entry.playerId,
+      releasedByTeamId: entry.releasedByTeamId,
+      winningTeamId: null,
+      losingTeamIds: [],
+      clearedToFreeAgency: true,
+    });
   }
   if (expired.length > 0) {
     const expiredIds = new Set(expired.map((entry) => entry.playerId));
     game.waiverWire = game.waiverWire.filter((entry) => !expiredIds.has(entry.playerId));
     game.waiverClaims = game.waiverClaims.filter((entry) => !expiredIds.has(entry.playerId));
   }
+  return results;
 }
 
 function returnElevatedPlayers(game: GameState): void {
@@ -201,6 +252,7 @@ export function processWaiverClaims(game: GameState): EngineOutput {
   ensureWaiverState(game);
   game.waiverOrder = waiverSort(game);
   const byPlayer = new Map<string, WaiverClaim[]>();
+  const results: WaiverResultEntry[] = [];
   for (const claim of game.waiverClaims) {
     const claims = byPlayer.get(claim.playerId) ?? [];
     claims.push(claim);
@@ -208,15 +260,31 @@ export function processWaiverClaims(game: GameState): EngineOutput {
   }
 
   for (const [playerId, claims] of byPlayer.entries()) {
+    const waiverEntry = game.waiverWire.find((entry) => entry.playerId === playerId) ?? null;
     const winner = [...claims].sort((a, b) =>
       game.waiverOrder.indexOf(a.teamId) - game.waiverOrder.indexOf(b.teamId) ||
       a.teamId.localeCompare(b.teamId))[0];
     if (winner && game.waiverWire.some((entry) => entry.playerId === playerId)) {
       awardClaim(game, winner);
+      results.push({
+        playerId,
+        releasedByTeamId: waiverEntry?.releasedByTeamId ?? null,
+        winningTeamId: winner.teamId,
+        losingTeamIds: claims.filter((entry) => entry.teamId !== winner.teamId).map((entry) => entry.teamId),
+        clearedToFreeAgency: false,
+      });
     }
   }
 
-  expireWaivers(game);
+  results.push(...expireWaivers(game));
+  if (results.length > 0) {
+    game.waiverResults!.push({
+      id: `waiver-results-${game.year}-${game.week}-${game.waiverResults!.length}`,
+      year: game.year,
+      week: game.week,
+      entries: results,
+    });
+  }
   returnElevatedPlayers(game);
   return emptyResult(game);
 }

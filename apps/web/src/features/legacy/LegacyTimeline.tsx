@@ -17,6 +17,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import {
   selectAwardsHistory,
   selectCeremonies,
+  selectDraftRecaps,
   selectDynastyScore,
   selectDynastyTimeline,
   selectHallOfFame,
@@ -123,6 +124,7 @@ export function LegacyTimeline() {
   const userTeam = useGameStore(selectUserTeam);
   const awardsHistory = useGameStore(selectAwardsHistory);
   const ceremonies = useGameStore(selectCeremonies);
+  const draftRecaps = useGameStore(selectDraftRecaps);
   const dynastyScore = useGameStore(selectDynastyScore);
   const dynastyTimeline = useGameStore(selectDynastyTimeline);
   const hallOfFame = useGameStore(selectHallOfFame);
@@ -351,6 +353,53 @@ export function LegacyTimeline() {
                 </div>
                 <PixelButton accent="gold" onClick={() => setSelectedReportYear(report.year)}>
                   View Report
+                </PixelButton>
+              </div>
+            ))}
+          </div>
+        )}
+      </PixelPanel>
+
+      <PixelPanel title="Draft Recaps" accent="cyan">
+        {draftRecaps.length === 0 ? (
+          <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Draft class reviews will archive here after the next completed draft.</span>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {draftRecaps.map((recap) => (
+              <div
+                key={recap.year}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  alignItems: 'center',
+                  padding: '10px',
+                  border: '3px solid var(--mfd-border)',
+                  background: 'var(--mfd-bg-2)',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ ...monoSm, color: '#fff' }}>{recap.year}</div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <PixelBadge variant={recap.classGrade.startsWith('A') ? 'gold' : recap.classGrade.startsWith('B') ? 'cyan' : recap.classGrade.startsWith('D') || recap.classGrade.startsWith('F') ? 'red' : 'default'}>
+                      {recap.classGrade}
+                    </PixelBadge>
+                    <PixelBadge variant="default">{`${recap.picks.length} picks`}</PixelBadge>
+                  </div>
+                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                    Best value: {recap.bestValue.playerName}
+                  </div>
+                </div>
+                <PixelButton
+                  accent="cyan"
+                  onClick={() => {
+                    if (typeof window === 'undefined') return;
+                    window.history.pushState({}, '', '/draft-recap');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }}
+                >
+                  Open Recap
                 </PixelButton>
               </div>
             ))}

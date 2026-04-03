@@ -2,9 +2,11 @@ import type {
   Achievement,
   Ceremony,
   ConditionalPick,
+  DraftRecap,
   DifficultyState,
   GameDayPackage,
   GameEvent,
+  GamePlan,
   Handshake,
   NarrativeState,
   NewsItem,
@@ -18,7 +20,9 @@ import type {
   SeasonPhase,
   StoryArc,
   Team,
+  TradeSuggestion,
   TradeProposal,
+  TransactionLogEntry,
   TrainingAssignment,
   WaiverWireEntry,
   WeatherCondition,
@@ -38,6 +42,15 @@ export interface InboxMessage {
   read: boolean;
   actionRequired: boolean;
   consequences?: { id: string; label: string; delta: string; direction: 'positive' | 'negative' | 'neutral' | 'warning' }[];
+}
+
+interface ClaimResultDigest {
+  id: string;
+  year: number;
+  week: number;
+  successfulClaims: Array<{ playerId: string; playerName: string; winningTeamName: string }>;
+  lostClaims: Array<{ playerId: string; playerName: string; winningTeamName: string }>;
+  clearedPlayers: Array<{ playerId: string; playerName: string }>;
 }
 
 interface BuildInboxMessagesParams {
@@ -67,6 +80,11 @@ interface BuildInboxMessagesParams {
   ceremonies: Ceremony[];
   newlyUnlockedAchievements: Achievement[];
   latestSeasonReport: SeasonReport | null;
+  currentGamePlan: GamePlan | null;
+  latestDraftRecap: DraftRecap | null;
+  claimResults: ClaimResultDigest[];
+  transactionLog: TransactionLogEntry[];
+  tradeSuggestions: Array<TradeSuggestion & { partnerName?: string }>;
   upcomingGame: {
     week: number;
     opponentName: string;
@@ -105,6 +123,11 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     ceremonies,
     newlyUnlockedAchievements,
     latestSeasonReport,
+    currentGamePlan,
+    latestDraftRecap,
+    claimResults,
+    transactionLog,
+    tradeSuggestions,
     upcomingGame,
   } = params;
   const msgs: InboxMessage[] = [];
@@ -147,6 +170,46 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     });
   }
 
+  const latestClaimResult = claimResults[0] ?? null;
+  if (latestClaimResult) {
+    msgs.push({
+      id: `waiver-results-${latestClaimResult.id}`,
+      type: latestClaimResult.successfulClaims.length > 0 ? 'INTEL' : 'DECISION',
+      title: 'Waiver Claims Processed',
+      body: [
+        latestClaimResult.successfulClaims.length > 0
+          ? `Won: ${latestClaimResult.successfulClaims.map((entry) => `${entry.playerName} -> ${entry.winningTeamName}`).join(' | ')}`
+          : 'No winning claims this cycle.',
+        latestClaimResult.lostClaims.length > 0
+          ? `Lost: ${latestClaimResult.lostClaims.map((entry) => `${entry.playerName} lost to ${entry.winningTeamName}`).join(' | ')}`
+          : null,
+        latestClaimResult.clearedPlayers.length > 0
+          ? `Cleared: ${latestClaimResult.clearedPlayers.map((entry) => entry.playerName).join(' | ')}`
+          : null,
+      ].filter(Boolean).join('\n'),
+      from: 'Waiver Desk',
+      week: latestClaimResult.week,
+      read: false,
+      actionRequired: latestClaimResult.lostClaims.length > 0,
+    });
+  }
+
+  const recentPracticeSquadMoves = transactionLog
+    .filter((entry) => entry.type === 'PS_ADD' || entry.type === 'PS_RELEASE' || entry.type === 'PS_ELEVATE')
+    .slice(0, 2);
+  if (recentPracticeSquadMoves.length > 0) {
+    msgs.push({
+      id: `practice-squad-moves-${recentPracticeSquadMoves[0]!.year}-${recentPracticeSquadMoves[0]!.week}`,
+      type: 'INTEL',
+      title: 'Practice Squad Log Updated',
+      body: recentPracticeSquadMoves.map((entry) => `${entry.type}: ${entry.notes ?? entry.playerId ?? 'Roster move logged.'}`).join('\n'),
+      from: 'Personnel',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
   if (upcomingGame && !upcomingGame.bye && upcomingGame.primetime) {
     msgs.push({
       id: `primetime-${upcomingGame.week}`,
@@ -155,6 +218,33 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       body: `${upcomingGame.opponentName} has been placed in the ${upcomingGame.broadcastNetwork ?? 'national'} window.\nThe stakes and spotlight both rise for this matchup.`,
       from: 'Broadcast Prep',
       week: upcomingGame.week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  if (upcomingGame && !upcomingGame.bye && (phase === 'regular_season' || phase === 'playoffs') && !currentGamePlan) {
+    msgs.push({
+      id: `game-plan-reminder-${upcomingGame.week}`,
+      type: 'DECISION',
+      title: 'Game Plan Reminder',
+      body: `No custom plan is locked in for ${upcomingGame.opponentName}.\nOpen the Game Plan screen to confirm a tactical approach before sim.`,
+      from: 'War Room',
+      week: upcomingGame.week,
+      read: false,
+      actionRequired: true,
+    });
+  }
+
+  if (tradeSuggestions.length > 0) {
+    msgs.push({
+      id: `trade-finder-${week}`,
+      type: 'DECISION',
+      title: 'Trade Finder Board Refreshed',
+      body: tradeSuggestions.slice(0, 3).map((suggestion) =>
+        `${suggestion.partnerName ?? suggestion.partner}: ${suggestion.reasoning} (${suggestion.acceptanceLikelihood.toFixed(1)})`).join('\n'),
+      from: 'Trade Desk',
+      week,
       read: false,
       actionRequired: false,
     });
@@ -524,6 +614,19 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       title: `Season Report Ready: ${latestSeasonReport.year}`,
       body: `Overall grade: ${latestSeasonReport.overallGrade}\nTen-section report card is now archived in Legacy.`,
       from: 'League Archive',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  if (latestDraftRecap) {
+    msgs.push({
+      id: `draft-recap-${latestDraftRecap.year}`,
+      type: 'INTEL',
+      title: `Draft Recap Archived: ${latestDraftRecap.year}`,
+      body: `Class grade: ${latestDraftRecap.classGrade}\nBest value: ${latestDraftRecap.bestValue.playerName}\nOpen the Draft Recap screen for the full board.`,
+      from: 'Draft Desk',
       week,
       read: false,
       actionRequired: false,

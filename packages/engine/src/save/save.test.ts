@@ -684,4 +684,27 @@ describe('migration pipeline', () => {
       broadcastNetwork: null,
     });
   });
+
+  it('migrates v12 saves to include war room planning state', () => {
+    const migrated = migrate({
+      version: 12,
+      year: 2031,
+      week: 9,
+      teams: {
+        t1: {
+          id: 't1',
+          isUser: true,
+          roster: [],
+          txLog: [],
+        },
+      },
+    }, 13);
+
+    expect(migrated['version']).toBe(13);
+    expect(migrated['gamePlan']).toBeNull();
+    expect(migrated['opponentReports']).toEqual([]);
+    expect(migrated['draftRecaps']).toEqual([]);
+    expect(migrated['tradeSuggestions']).toEqual([]);
+    expect(migrated['waiverResults']).toEqual([]);
+  });
 });

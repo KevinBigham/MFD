@@ -106,4 +106,37 @@ describe('practice squad and waiver wire', () => {
 
     expect(game.waiverClaims.some((claim) => claim.teamId === 'afcn1' && claim.playerId === waiverQb.id)).toBe(true);
   });
+
+  it('persists waiver run results with winners and losers', () => {
+    const game = makeLeagueState('regular_season', 1);
+    game.teams.afce1.wins = 2;
+    game.teams.afce1.losses = 15;
+    game.teams.afcn1.wins = 10;
+    game.teams.afcn1.losses = 7;
+    const player = game.teams.nfce1.roster[0]!;
+
+    cutPlayerToWaivers(game, 'nfce1', player.id);
+    submitWaiverClaim(game, 'afce1', player.id);
+    submitWaiverClaim(game, 'afcn1', player.id);
+    processWaiverClaims(game);
+
+    const result = game.waiverResults?.at(-1);
+    expect(result?.entries[0]?.playerId).toBe(player.id);
+    expect(result?.entries[0]?.winningTeamId).toBe('afce1');
+    expect(result?.entries[0]?.losingTeamIds).toContain('afcn1');
+  });
+
+  it('tracks players who clear waivers into free agency', () => {
+    const game = makeLeagueState('regular_season', 1);
+    const player = game.teams.nfce1.roster[0]!;
+
+    cutPlayerToWaivers(game, 'nfce1', player.id);
+    game.week += 1;
+    processWaiverClaims(game);
+
+    const result = game.waiverResults?.at(-1);
+    expect(result?.entries[0]?.playerId).toBe(player.id);
+    expect(result?.entries[0]?.clearedToFreeAgency).toBe(true);
+    expect(game.freeAgents).toContain(player.id);
+  });
 });

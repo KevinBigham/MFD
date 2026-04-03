@@ -1,6 +1,7 @@
 import { createEmptySeasonStats, emptyPlayerStats } from './season-stats';
 import { makeContract } from './contracts';
 import { recordDynastyEvent } from './dynasty-timeline';
+import { generateDraftRecap } from './draft-recap';
 import { applyFacilityBonuses } from './facilities';
 import { syncPlayerArchiveEntry } from './history';
 import { recordNewsItem } from './league-news';
@@ -136,7 +137,7 @@ function rookieContract(round: number): { salary: number; years: number; signing
   };
 }
 
-function prospectToPlayer(prospect: DraftProspect, teamId: string, year: number, round: number): Player {
+function prospectToPlayer(prospect: DraftProspect, teamId: string, year: number, round: number, pick: number): Player {
   const deal = rookieContract(round);
   return {
     id: prospect.id,
@@ -163,7 +164,7 @@ function prospectToPlayer(prospect: DraftProspect, teamId: string, year: number,
     teamId,
     draftYear: year,
     draftRound: round,
-    draftPick: 1,
+    draftPick: pick,
     college: prospect.college,
     yearsExp: 0,
     careerStats: { seasons: 0, gp: 0, snaps: 0 },
@@ -276,7 +277,7 @@ function applyDraftSelection(game: GameState, teamId: string, prospectId: string
   const [prospect] = game.draftClass.splice(prospectIndex, 1);
   if (!prospect) return;
 
-  const rookie = prospectToPlayer(prospect, teamId, game.year, draftEntry.round);
+  const rookie = prospectToPlayer(prospect, teamId, game.year, draftEntry.round, draftEntry.pick);
   team.roster.push(rookie);
   game.players[rookie.id] = rookie;
   syncPlayerArchiveEntry(game, rookie, game.year);
@@ -358,6 +359,14 @@ export function advanceDraft(game: GameState): void {
 }
 
 export function finalizePostDraft(game: GameState): void {
+  const recaps = game.draftRecaps ?? [];
+  game.draftRecaps = Object.values(game.teams).reduce<NonNullable<GameState['draftRecaps']>>((acc, team) => {
+    const recap = generateDraftRecap(game, team.id);
+    if (!recap) return acc;
+    const filtered = acc.filter((entry) => !(entry.teamId === team.id && entry.year === recap.year));
+    return [...filtered, recap];
+  }, recaps);
+
   for (const team of Object.values(game.teams)) {
     team.wins = 0;
     team.losses = 0;

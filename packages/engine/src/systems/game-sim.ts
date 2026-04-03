@@ -9,9 +9,12 @@ import { RNG } from '../rng';
 import { HOME_FIELD_ADV } from '../config';
 import { avg, cl } from '../utils';
 import { isPlayerUnavailable } from './injury-system';
+import { applyGamePlan } from './game-plan';
 import { simulateSpecialTeams } from './special-teams';
 import type {
+  GamePlan,
   MatchupHighlight,
+  OpponentReport,
   Player,
   PlayerGameLine,
   Position,
@@ -24,6 +27,8 @@ import type {
 export interface SimTeamContext {
   teamOvrBonus?: number;
   playerOvrBonuses?: Record<string, number>;
+  gamePlan?: GamePlan | null;
+  opponentReport?: OpponentReport | null;
 }
 
 export interface SimGameContext {
@@ -648,7 +653,14 @@ export interface SimGameResult {
 function applySimContext(team: Team, context?: SimTeamContext): Team {
   if (!context) return team;
   const teamOvrBonus = context.teamOvrBonus ?? 0;
-  const playerBonuses = context.playerOvrBonuses ?? {};
+  const basePlayerBonuses = context.playerOvrBonuses ?? {};
+  const gamePlanBonuses = context.gamePlan && context.opponentReport
+    ? applyGamePlan(context.gamePlan, context.opponentReport, team).playerOvrBonuses ?? {}
+    : {};
+  const playerBonuses = { ...basePlayerBonuses };
+  for (const [playerId, bonus] of Object.entries(gamePlanBonuses)) {
+    playerBonuses[playerId] = (playerBonuses[playerId] ?? 0) + bonus;
+  }
   if (teamOvrBonus === 0 && Object.keys(playerBonuses).length === 0) return team;
 
   return {

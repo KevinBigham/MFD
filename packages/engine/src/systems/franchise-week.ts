@@ -5,6 +5,7 @@ import { checkAchievements } from './achievements';
 import { advanceDraft, ensureDraftClass, finalizePostDraft } from './draft';
 import { recordCeremony, generateRingCeremony } from './ceremonies';
 import { assignBroadcasts, flexSchedule } from './flex-schedule';
+import { generateAiGamePlan, generateOpponentScouting, resetGamePlan, upsertOpponentReport } from './game-plan';
 import { recordDynastyEvent } from './dynasty-timeline';
 import { generateWeeklyLeagueNews, recordNewsItem } from './league-news';
 import { recordBeat, shouldGenerateEvent } from './narrative-director';
@@ -33,6 +34,7 @@ import { updatePowerRankings } from './power-rankings';
 import { updateRecordsFromGameResult } from './records';
 import { getRivalryGameContext, seedLeagueRivalries, updateLeagueRivalriesFromGame } from './rivalries';
 import { generateTradeOffers } from './trade-market';
+import { findTradeTargets } from './trade-finder';
 import { buildWeeklySummary } from './weekly-summary';
 import { autoAssignSpecialTeams } from './special-teams';
 import {
@@ -61,6 +63,22 @@ import type {
   Team,
   WeeklyInjurySummary,
 } from '../types';
+
+function buildSimPlanContext(nextState: GameState, team: Team, opponent: Team) {
+  const report = generateOpponentScouting(nextState, team.id, opponent.id);
+  if (team.isUser) {
+    const storedReport = upsertOpponentReport(nextState, report);
+    return {
+      gamePlan: nextState.gamePlan ?? generateAiGamePlan(nextState, team.id, opponent.id),
+      opponentReport: storedReport,
+    };
+  }
+
+  return {
+    gamePlan: generateAiGamePlan(nextState, team.id, opponent.id),
+    opponentReport: report,
+  };
+}
 
 function applyNonGamePhase(nextState: GameState): void {
   if (nextState.phase === 'offseason') advanceOffseason(nextState);
@@ -216,15 +234,21 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       processInjuryRecovery(nextState, away.id, RNG.injury);
       const homeFatigueBonuses = buildFatiguePlayerBonuses(nextState, home.id);
       const awayFatigueBonuses = buildFatiguePlayerBonuses(nextState, away.id);
+      const homePlanContext = buildSimPlanContext(nextState, home, away);
+      const awayPlanContext = buildSimPlanContext(nextState, away, home);
 
       const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, {
         home: {
           teamOvrBonus: buildTeamOvrBonus(home, homeEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0), adaptiveModifier),
           playerOvrBonuses: buildPlayerBonuses(home, mergePlayerBonuses(homeEffects.playerOvrBonuses, homeFatigueBonuses)),
+          gamePlan: homePlanContext.gamePlan,
+          opponentReport: homePlanContext.opponentReport,
         },
         away: {
           teamOvrBonus: buildTeamOvrBonus(away, awayEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0), adaptiveModifier),
           playerOvrBonuses: buildPlayerBonuses(away, mergePlayerBonuses(awayEffects.playerOvrBonuses, awayFatigueBonuses)),
+          gamePlan: awayPlanContext.gamePlan,
+          opponentReport: awayPlanContext.opponentReport,
         },
         weather: matchup.weather ?? generateWeatherForGame(home, nextState.week),
         rivalryIntensity: rivalry?.intensity ?? 0,
@@ -286,6 +310,8 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       processInjuryRecovery(nextState, away.id, RNG.injury);
       const homeFatigueBonuses = buildFatiguePlayerBonuses(nextState, home.id);
       const awayFatigueBonuses = buildFatiguePlayerBonuses(nextState, away.id);
+      const homePlanContext = buildSimPlanContext(nextState, home, away);
+      const awayPlanContext = buildSimPlanContext(nextState, away, home);
       nextState.playoffMomentum[home.id] = nextState.playoffMomentum[home.id] ?? calculatePlayoffMomentum(nextState, home.id);
       nextState.playoffMomentum[away.id] = nextState.playoffMomentum[away.id] ?? calculatePlayoffMomentum(nextState, away.id);
       const homeMomentum = getPlayoffMomentumBonus(nextState.playoffMomentum[home.id]);
@@ -295,10 +321,14 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         home: {
           teamOvrBonus: buildTeamOvrBonus(home, homeEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0) + homeMomentum, adaptiveModifier),
           playerOvrBonuses: buildPlayerBonuses(home, mergePlayerBonuses(homeEffects.playerOvrBonuses, homeFatigueBonuses)),
+          gamePlan: homePlanContext.gamePlan,
+          opponentReport: homePlanContext.opponentReport,
         },
         away: {
           teamOvrBonus: buildTeamOvrBonus(away, awayEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0) + awayMomentum, adaptiveModifier),
           playerOvrBonuses: buildPlayerBonuses(away, mergePlayerBonuses(awayEffects.playerOvrBonuses, awayFatigueBonuses)),
+          gamePlan: awayPlanContext.gamePlan,
+          opponentReport: awayPlanContext.opponentReport,
         },
         weather: generateWeatherForGame(home, nextState.week),
         rivalryIntensity: rivalry?.intensity ?? 0,
@@ -446,6 +476,12 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   }
 
   checkAchievements(nextState);
+  resetGamePlan(nextState);
+  if (currentUser && (nextState.phase === 'regular_season' || nextState.phase === 'playoffs')) {
+    nextState.tradeSuggestions = findTradeTargets(nextState, currentUser.id);
+  } else {
+    nextState.tradeSuggestions = [];
+  }
 
   return {
     nextState,

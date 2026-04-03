@@ -295,6 +295,20 @@ const mockState = {
       ],
     },
   ],
+  draftRecaps: [
+    {
+      year: 2030,
+      teamId: 'user',
+      classGrade: 'A',
+      picks: [
+        { playerId: 'p2', playerName: 'Drew Moss', teamId: 'user', position: 'LB', ovr: 84, round: 4, pick: 120, projectedPick: 40, valueDelta: 80, verdict: 'steal' },
+      ],
+      bestValue: { playerId: 'p2', playerName: 'Drew Moss', teamId: 'user', position: 'LB', ovr: 84, round: 4, pick: 120, projectedPick: 40, valueDelta: 80, verdict: 'steal' },
+      biggestReach: { playerId: 'p2', playerName: 'Drew Moss', teamId: 'user', position: 'LB', ovr: 84, round: 4, pick: 120, projectedPick: 40, valueDelta: 80, verdict: 'steal' },
+      steals: [{ playerId: 'p2', playerName: 'Drew Moss', teamId: 'user', position: 'LB', ovr: 84, round: 4, pick: 120, projectedPick: 40, valueDelta: 80, verdict: 'steal' }],
+      leagueHighlights: [{ playerId: 'p2', playerName: 'Drew Moss', teamId: 'user', position: 'LB', ovr: 84, round: 4, pick: 120, projectedPick: 40, valueDelta: 80, verdict: 'steal' }],
+    },
+  ],
 };
 
 vi.mock('../../app/store/game-store', () => ({
@@ -307,6 +321,7 @@ vi.mock('../../app/store/game-store', () => ({
   selectHallOfFame: (state: typeof mockState) => state.hallOfFame,
   selectRecords: (state: typeof mockState) => state.records,
   selectSeasonReports: (state: typeof mockState) => state.seasonReports,
+  selectDraftRecaps: (state: typeof mockState) => state.draftRecaps,
   selectUserMentoringPairs: (state: typeof mockState) => state.userMentoringPairs,
   selectHistoricalMentoringChains: (state: typeof mockState) => state.historicalMentoring,
   selectAchievements: (state: typeof mockState) => state.achievements,
@@ -333,6 +348,9 @@ describe('LegacyTimeline', () => {
     expect(markup).toContain('First Championship');
     expect(markup).toContain('--- SEASON REPORTS ---');
     expect(markup).toContain('View Report');
+    expect(markup).toContain('--- DRAFT RECAPS ---');
+    expect(markup).toContain('Open Recap');
+    expect(markup).toContain('Drew Moss');
     expect(markup).toContain('--- MENTORING REPORT ---');
     expect(markup).toContain('Rick Mason -&gt; Jay Stone');
     expect(markup).toContain('Jay Stone');

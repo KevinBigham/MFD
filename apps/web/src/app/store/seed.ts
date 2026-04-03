@@ -461,6 +461,7 @@ export function createSeedGameState(
     waiverOrder: [...teamIds],
     waiverWire: [],
     waiverClaims: [],
+    waiverResults: [],
     handshakes: [],
     tutorialState: createDefaultTutorialState(true),
     agents: [],
@@ -470,6 +471,10 @@ export function createSeedGameState(
     achievements: createDefaultAchievements(),
     dashboardState: createDefaultDashboardState(),
     seasonReports: [],
+    gamePlan: null,
+    opponentReports: [],
+    draftRecaps: [],
+    tradeSuggestions: [],
   };
 
   ensureAgentsInitialized(gameState);

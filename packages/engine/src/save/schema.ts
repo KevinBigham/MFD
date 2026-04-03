@@ -466,6 +466,21 @@ export const WaiverClaimSchema = z.object({
   claimWeek: z.number(),
 });
 
+export const WaiverResultEntrySchema = z.object({
+  playerId: z.string(),
+  releasedByTeamId: z.string().nullable(),
+  winningTeamId: z.string().nullable(),
+  losingTeamIds: z.array(z.string()),
+  clearedToFreeAgency: z.boolean(),
+});
+
+export const WaiverRunResultSchema = z.object({
+  id: z.string(),
+  year: z.number(),
+  week: z.number(),
+  entries: z.array(WaiverResultEntrySchema),
+});
+
 export const HandshakeConditionSchema = z.object({
   metric: z.enum(['wins', 'playoff', 'starter', 'trade_block', 'spending', 'draft_position', 'on_roster', 'restructure']),
   target: z.union([z.number(), z.string(), z.boolean()]),
@@ -630,6 +645,79 @@ export const SeasonReportSchema = z.object({
   teamId: z.string(),
   overallGrade: z.enum(['A+', 'A', 'B+', 'B', 'C+', 'C', 'D', 'F']),
   sections: z.array(ReportSectionSchema),
+});
+
+export const GamePlanSchema = z.object({
+  offensiveScheme: z.enum(['balanced', 'pass_heavy', 'run_heavy', 'spread', 'power']),
+  defensiveScheme: z.enum(['base', 'blitz_heavy', 'coverage', 'contain', 'aggressive']),
+  keyMatchup: z.object({
+    playerA: z.string(),
+    playerB: z.string(),
+  }).nullable(),
+  gamePlanBonus: z.number(),
+});
+
+export const OpponentReportSchema = z.object({
+  teamId: z.string(),
+  teamName: z.string(),
+  record: z.string(),
+  year: z.number(),
+  week: z.number(),
+  offenseRank: z.number(),
+  defenseRank: z.number(),
+  strengths: z.array(z.string()),
+  weaknesses: z.array(z.string()),
+  keyPlayers: z.array(z.lazy(() => PlayerSchema)),
+  vulnerabilityRatings: z.object({
+    passing: z.number(),
+    rushing: z.number(),
+    pass_rush: z.number(),
+    coverage: z.number(),
+  }),
+  schemeRecommendation: z.object({
+    offense: GamePlanSchema.shape.offensiveScheme,
+    defense: GamePlanSchema.shape.defensiveScheme,
+    reasoning: z.string(),
+  }),
+});
+
+export const DraftRecapPickSchema = z.object({
+  playerId: z.string(),
+  teamId: z.string(),
+  playerName: z.string(),
+  position: z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']),
+  ovr: z.number(),
+  round: z.number(),
+  pick: z.number(),
+  projectedPick: z.number(),
+  valueDelta: z.number(),
+  verdict: z.enum(['steal', 'reach', 'fair']),
+});
+
+export const DraftRecapSchema = z.object({
+  year: z.number(),
+  teamId: z.string(),
+  picks: z.array(DraftRecapPickSchema),
+  classGrade: z.string(),
+  bestValue: DraftRecapPickSchema,
+  biggestReach: DraftRecapPickSchema,
+  steals: z.array(DraftRecapPickSchema),
+  leagueHighlights: z.array(DraftRecapPickSchema),
+});
+
+export const TradePackageSchema = z.object({
+  offering: z.array(TradeOfferAssetSchema),
+  requesting: z.array(TradeOfferAssetSchema),
+  type: z.enum(['pick_for_player', 'player_for_player', 'mixed']),
+});
+
+export const TradeSuggestionSchema = z.object({
+  partner: z.string(),
+  offer: TradePackageSchema,
+  reasoning: z.string(),
+  valueGap: z.number(),
+  acceptanceLikelihood: z.number(),
+  need: z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']).nullable(),
 });
 
 export const SpecialTeamsGameSummarySchema = z.object({
@@ -880,6 +968,11 @@ export const SaveStateSchema = z.object({
     pinnedWidgets: [],
   }),
   seasonReports: z.array(SeasonReportSchema).default([]),
+  waiverResults: z.array(WaiverRunResultSchema).default([]),
+  gamePlan: GamePlanSchema.nullable().default(null),
+  opponentReports: z.array(OpponentReportSchema).default([]),
+  draftRecaps: z.array(DraftRecapSchema).default([]),
+  tradeSuggestions: z.array(TradeSuggestionSchema).default([]),
   ceremonies: z.array(CeremonySchema).default([]),
   dynastyTimeline: z.array(DynastyEventSchema).default([]),
 });

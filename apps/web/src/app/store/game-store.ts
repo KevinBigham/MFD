@@ -7,7 +7,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type {
-  ContractOffer, DashboardWidget, GameState, SeasonPhase, Team, TradeOfferAsset, TradeProposal, TrainingFocus, WeeklySummary,
+  ContractOffer, DashboardWidget, GamePlan, GameState, OpponentReport, SeasonPhase, Team, TradeOfferAsset, TradeProposal, TrainingFocus, WeeklySummary,
 } from '@mfd/engine';
 import {
   addToPracticeSquad as addToPracticeSquadEngine,
@@ -48,7 +48,10 @@ import {
   acceptTradeOffer as acceptTradeOfferEngine,
   rejectTradeOffer as rejectTradeOfferEngine,
   makeDraftPick as makeDraftPickEngine,
+  resetGamePlan as resetGamePlanEngine,
+  setGamePlan as setGamePlanEngine,
   unpinWidget as unpinDashboardWidget,
+  upsertOpponentReport as upsertOpponentReportEngine,
   upgradeFacility as upgradeFacilityEngine,
 } from '@mfd/engine';
 import { autosaveDynasty, loadLatestAutosaveGame } from './persistence';
@@ -72,6 +75,8 @@ interface GameActions {
   addToPracticeSquad: (teamId: string, playerId: string) => Promise<void>;
   removeFromPracticeSquad: (teamId: string, playerId: string) => Promise<void>;
   elevatePracticeSquadPlayer: (teamId: string, playerId: string) => Promise<void>;
+  releasePSPlayer: (teamId: string, playerId: string) => Promise<void>;
+  elevatePSPlayer: (teamId: string, playerId: string) => Promise<void>;
   submitWaiverClaim: (teamId: string, playerId: string) => Promise<void>;
   assignTraining: (teamId: string, playerId: string, focus: TrainingFocus) => Promise<void>;
   placeOnIR: (teamId: string, playerId: string) => Promise<void>;
@@ -120,6 +125,8 @@ interface GameActions {
   setPhase: (phase: SeasonPhase) => void;
   setDifficulty: (difficulty: GameState['difficulty']) => Promise<void>;
   setAdaptiveDifficultyEnabled: (enabled: boolean) => Promise<void>;
+  saveGamePlan: (plan: GamePlan, report?: OpponentReport | null) => Promise<void>;
+  clearGamePlan: () => Promise<void>;
   pinWidget: (widgetType: DashboardWidget) => Promise<void>;
   unpinWidget: (widgetType: DashboardWidget) => Promise<void>;
   switchLayout: (layoutId: string) => Promise<void>;
@@ -228,7 +235,21 @@ export const useGameStore = create<GameStore>()(
         await commitGame(result.nextState);
       },
 
+      releasePSPlayer: async (teamId, playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = removeFromPracticeSquadEngine(cloneForMutation(current), teamId, playerId);
+        await commitGame(result.nextState);
+      },
+
       elevatePracticeSquadPlayer: async (teamId, playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const result = elevateFromPracticeSquadEngine(cloneForMutation(current), teamId, playerId);
+        await commitGame(result.nextState);
+      },
+
+      elevatePSPlayer: async (teamId, playerId) => {
         const current = get().game;
         if (!current) return;
         const result = elevateFromPracticeSquadEngine(cloneForMutation(current), teamId, playerId);
@@ -515,6 +536,25 @@ export const useGameStore = create<GameStore>()(
         if (!enabled) {
           nextGame.difficultyState.adaptiveSlider = 50;
         }
+        await commitGame(nextGame);
+      },
+
+      saveGamePlan: async (plan, report) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        if (report) {
+          upsertOpponentReportEngine(nextGame, report);
+        }
+        setGamePlanEngine(nextGame, plan, report);
+        await commitGame(nextGame);
+      },
+
+      clearGamePlan: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        resetGamePlanEngine(nextGame);
         await commitGame(nextGame);
       },
 

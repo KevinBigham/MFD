@@ -187,6 +187,17 @@ export {
 } from './systems/special-teams';
 export { generateSeasonReport } from './systems/season-report';
 export {
+  applyGamePlan,
+  generateAiGamePlan,
+  generateOpponentScouting,
+  getStoredOpponentReport,
+  resetGamePlan,
+  setGamePlan,
+  upsertOpponentReport,
+} from './systems/game-plan';
+export { generateDraftRecap } from './systems/draft-recap';
+export { findTradeTargets } from './systems/trade-finder';
+export {
   generateAgentPool,
   ensureAgentsInitialized,
   getPlayerAgent,

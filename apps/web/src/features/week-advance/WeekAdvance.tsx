@@ -5,6 +5,7 @@ import {
 import { Play } from 'lucide-react';
 import {
   useGameStore, selectUserTeam, selectRoster,
+  selectCurrentGamePlan,
   selectWeek, selectYear, selectSchedule, selectLatestSummary, selectOffseasonState, selectPhase, selectTeams,
 } from '../../app/store/game-store';
 import {
@@ -43,9 +44,24 @@ export function WeekAdvance() {
   const latestSummary = useGameStore(selectLatestSummary);
   const offseasonState = useGameStore(selectOffseasonState);
   const phase = useGameStore(selectPhase);
+  const currentGamePlan = useGameStore(selectCurrentGamePlan);
   const { advanceWeek } = useGameStore((s) => s.actions);
 
   const [advancing, setAdvancing] = useState(false);
+
+  const matchup = useMemo(() => {
+    if (!team || !schedule.length || (phase !== 'regular_season' && phase !== 'playoffs')) return null;
+    const weekSchedule = schedule.find((w) => w.week === week);
+    if (!weekSchedule) return null;
+    const game = weekSchedule.games.find(
+      (g) => g.homeTeamId === team.id || g.awayTeamId === team.id,
+    );
+    if (!game) return null;
+    const opponentId = game.homeTeamId === team.id ? game.awayTeamId : game.homeTeamId;
+    return { game, opponentId };
+  }, [phase, team, schedule, week]);
+
+  const needsGamePlan = Boolean(matchup) && (phase === 'regular_season' || phase === 'playoffs') && !currentGamePlan;
 
   const checklist = useMemo((): ChecklistItem[] => {
     if (!team) return [];
@@ -78,55 +94,58 @@ export function WeekAdvance() {
       },
       {
         id: 'gameplan',
-        label: 'Schemes Set',
-        status: 'done',
-        detail: `OFF: ${team.schemeOff} / DEF: ${team.schemeDef}`,
+        label: 'Game Plan',
+        status: needsGamePlan ? 'pending' : 'done',
+        detail: needsGamePlan
+          ? 'Plan Needed'
+          : currentGamePlan
+            ? `OFF: ${currentGamePlan.offensiveScheme} / DEF: ${currentGamePlan.defensiveScheme}`
+            : matchup
+              ? 'AI plan ready if you skip setup'
+              : 'Bye week',
       },
     ];
-  }, [team, roster]);
+  }, [currentGamePlan, matchup, needsGamePlan, team, roster]);
 
   const allClear = checklist.every((c) => c.status === 'done');
   const issueCount = checklist.filter((c) => c.status !== 'done').length;
   const starters = roster.filter((p) => p.isStarter).length;
   const injuredCount = roster.filter((p) => p.injury).length;
 
-  const matchup = useMemo(() => {
-    if (!team || !schedule.length || (phase !== 'regular_season' && phase !== 'playoffs')) return null;
-    const weekSchedule = schedule.find((w) => w.week === week);
-    if (!weekSchedule) return null;
-    const game = weekSchedule.games.find(
-      (g) => g.homeTeamId === team.id || g.awayTeamId === team.id,
-    );
-    if (!game) return null;
-    const opponentId = game.homeTeamId === team.id ? game.awayTeamId : game.homeTeamId;
-    return { game, opponentId };
-  }, [phase, team, schedule, week]);
-
   const teams = useGameStore(selectTeams);
   const opponent = matchup?.opponentId && teams ? teams[matchup.opponentId] : null;
 
   const handleAdvance = useCallback(async () => {
+    if (needsGamePlan) {
+      if (typeof window !== 'undefined') {
+        window.history.pushState({}, '', '/game-plan');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }
+      return;
+    }
     setAdvancing(true);
     try {
       await advanceWeek();
     } finally {
       setAdvancing(false);
     }
-  }, [advanceWeek]);
+  }, [advanceWeek, needsGamePlan]);
 
-  const advanceLabel = phase === 'preseason'
-    ? 'Begin Regular Season'
-    : phase === 'playoffs'
-      ? 'Advance Playoffs'
-      : phase === 'offseason'
-        ? 'Open Free Agency'
-        : phase === 'free_agency'
-          ? `Resolve FA Round ${offseasonState?.round ?? 1}`
-          : phase === 'draft'
-            ? 'Advance To Next Draft Pick'
-            : phase === 'post_draft'
-              ? 'Finalize Preseason'
-              : `Advance To Week ${week + 1}`;
+  const advanceLabel = needsGamePlan
+    ? 'Prepare Game Plan'
+    : phase === 'preseason'
+      ? 'Begin Regular Season'
+      : phase === 'playoffs'
+        ? 'Advance Playoffs'
+        : phase === 'offseason'
+          ? 'Open Free Agency'
+          : phase === 'free_agency'
+            ? `Resolve FA Round ${offseasonState?.round ?? 1}`
+            : phase === 'draft'
+              ? 'Advance To Next Draft Pick'
+              : phase === 'post_draft'
+                ? 'Finalize Preseason'
+                : `Advance To Week ${week + 1}`;
 
   return (
     <div style={screenStackStyle}>
@@ -145,8 +164,8 @@ export function WeekAdvance() {
         <PixelMetricCard
           label="Readiness"
           value={allClear ? 'READY' : 'CHECK'}
-          accent={allClear ? 'green' : 'gold'}
-          detail={allClear ? 'No blocking roster issues' : `${issueCount} review item(s) before sim`}
+          accent={allClear ? 'green' : needsGamePlan ? 'red' : 'gold'}
+          detail={allClear ? 'No blocking roster issues' : needsGamePlan ? 'Game plan still needs a final call' : `${issueCount} review item(s) before sim`}
         />
         <PixelMetricCard
           label="Starters"
@@ -232,11 +251,11 @@ export function WeekAdvance() {
       <PixelButton
         onClick={() => void handleAdvance()}
         disabled={advancing}
-        accent={advancing ? 'default' : allClear ? 'green' : 'gold'}
+        accent={advancing ? 'default' : needsGamePlan ? 'gold' : allClear ? 'green' : 'gold'}
         style={{ width: '100%', justifyContent: 'center', minHeight: '42px' }}
       >
         <Play size={14} />
-        {advancing ? `Running ${phaseLabel(phase)}` : allClear ? advanceLabel : `Advance Anyway (${issueCount})`}
+        {advancing ? `Running ${phaseLabel(phase)}` : needsGamePlan ? advanceLabel : allClear ? advanceLabel : `Advance Anyway (${issueCount})`}
       </PixelButton>
 
       <PixelPanel title="Latest Summary" accent={latestSummary?.result === 'win' ? 'green' : latestSummary?.result === 'loss' ? 'red' : 'default'}>

@@ -46,6 +46,10 @@ const LazyLeagueNews = lazy(async () => ({ default: (await import('../features/l
 const LazyLeagueStandings = lazy(async () => ({ default: (await import('../features/standings/LeagueStandings')).LeagueStandings }));
 const LazyAnalyticsDashboard = lazy(async () => ({ default: (await import('../features/analytics/AnalyticsDashboard')).AnalyticsDashboard }));
 const LazyTeamSchedule = lazy(async () => ({ default: (await import('../features/schedule/TeamSchedule')).TeamSchedule }));
+const LazyWaiverWire = lazy(async () => ({ default: (await import('../features/waiver-wire/WaiverWire')).WaiverWire }));
+const LazyPracticeSquad = lazy(async () => ({ default: (await import('../features/practice-squad/PracticeSquad')).PracticeSquad }));
+const LazyGamePlanSetup = lazy(async () => ({ default: (await import('../features/game-plan/GamePlanSetup')).GamePlanSetup }));
+const LazyDraftRecap = lazy(async () => ({ default: (await import('../features/draft/DraftRecap')).DraftRecap }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -67,6 +71,8 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/free-agency',  label: 'Free Agency',      shortLabel: 'FA',       icon: <Handshake size={16} />,      shortcut: '7' },
   { path: '/game-day',     label: 'Game Day',         shortLabel: 'Game',     icon: <Gamepad2 size={16} />,       shortcut: '8' },
   { path: '/inbox',          label: 'Inbox',            shortLabel: 'Inbox',    icon: <Inbox size={16} />,          shortcut: '9' },
+  { path: '/waivers',       label: 'Waiver Wire',      shortLabel: 'Waivers',  icon: <ScrollText size={16} /> },
+  { path: '/practice-squad',label: 'Practice Squad',   shortLabel: 'PS',       icon: <Users size={16} /> },
   { path: '/schedule',      label: 'Schedule',         shortLabel: 'Schedule', icon: <CalendarRange size={16} /> },
   { path: '/depth-chart',   label: 'Depth Chart',      shortLabel: 'Depth',    icon: <ListOrdered size={16} /> },
   { path: '/coaching',      label: 'Coaching',         shortLabel: 'Coach',    icon: <GraduationCap size={16} /> },
@@ -470,6 +476,46 @@ const inboxRoute = createRoute({
   component: InboxTriage,
 });
 
+const waiverWireRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/waivers',
+  component: () => (
+    <LazyRouteFrame label="waiver wire">
+      <LazyWaiverWire />
+    </LazyRouteFrame>
+  ),
+});
+
+const practiceSquadRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/practice-squad',
+  component: () => (
+    <LazyRouteFrame label="practice squad">
+      <LazyPracticeSquad />
+    </LazyRouteFrame>
+  ),
+});
+
+const gamePlanRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/game-plan',
+  component: () => (
+    <LazyRouteFrame label="game plan">
+      <LazyGamePlanSetup />
+    </LazyRouteFrame>
+  ),
+});
+
+const draftRecapRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draft-recap',
+  component: () => (
+    <LazyRouteFrame label="draft recap">
+      <LazyDraftRecap />
+    </LazyRouteFrame>
+  ),
+});
+
 const scheduleRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/schedule',
@@ -580,7 +626,8 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   rosterRoute, contractsRoute, tradesRoute,
   scoutingRoute, draftRoute, freeAgencyRoute,
-  gameDayRoute, inboxRoute, scheduleRoute, depthChartRoute, coachingRoute,
+  gameDayRoute, inboxRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
+  scheduleRoute, depthChartRoute, coachingRoute,
   ownerRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, legacyRoute, dynastyRoute, settingsRoute,

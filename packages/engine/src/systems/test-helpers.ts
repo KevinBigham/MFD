@@ -309,6 +309,7 @@ export function makeLeagueState(
     waiverOrder: Object.keys(teams),
     waiverWire: [],
     waiverClaims: [],
+    waiverResults: [],
     handshakes: [],
     tutorialState: {
       active: false,
@@ -346,5 +347,9 @@ export function makeLeagueState(
       pinnedWidgets: [],
     },
     seasonReports: [],
+    gamePlan: null,
+    opponentReports: [],
+    draftRecaps: [],
+    tradeSuggestions: [],
   } as unknown as GameState;
 }

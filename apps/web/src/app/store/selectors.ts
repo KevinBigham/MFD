@@ -7,6 +7,7 @@ import type {
   ConditionalPick,
   DashboardState,
   DifficultyState,
+  DraftRecap,
   DraftOrderEntry,
   DraftProspect,
   DynastyEvent,
@@ -16,6 +17,7 @@ import type {
   GameDayState,
   GameResult,
   GameState,
+  GamePlan,
   HallOfFameEntry,
   LeagueRivalry,
   MentoringPair,
@@ -23,6 +25,7 @@ import type {
   NewsItem,
   OffseasonState,
   OffFieldEvent,
+  OpponentReport,
   NarrativeIntensity,
   PracticeSquadPlayer,
   Player,
@@ -37,11 +40,14 @@ import type {
   SpecialTeamsState,
   StoryArc,
   Team,
+  TradeSuggestion,
   TradeProposal,
+  TransactionLogEntry,
   TutorialState,
   TradeOffer,
   TrainingAssignment,
   WaiverClaim,
+  WaiverRunResult,
   WaiverWireEntry,
   WeatherCondition,
   WeeklySummary,
@@ -52,9 +58,11 @@ import {
   calculateAdvancedStats,
   createDefaultDashboardState,
   createDefaultSpecialTeamsState,
+  generateOpponentScouting,
   getAchievementProgress,
   getAnalyticsStatLeaders,
   getFullSchedule,
+  getStoredOpponentReport,
   getPlayerComparison,
   getCooldownStatus,
   getPlayerAgent,
@@ -104,6 +112,7 @@ const EMPTY_ACHIEVEMENTS: Achievement[] = [];
 const EMPTY_SEASON_REPORTS: SeasonReport[] = [];
 const EMPTY_WAIVER_WIRE: WaiverWireEntry[] = [];
 const EMPTY_WAIVER_CLAIMS: WaiverClaim[] = [];
+const EMPTY_WAIVER_RESULTS: WaiverRunResult[] = [];
 const EMPTY_HANDSHAKES: Handshake[] = [];
 const EMPTY_CONDITIONAL_PICKS: ConditionalPick[] = [];
 const EMPTY_IDS: string[] = [];
@@ -137,6 +146,9 @@ const EMPTY_ACHIEVEMENT_PROGRESS: AchievementProgress = {
 };
 const EMPTY_TEAM_SCHEDULE = [] as ReturnType<typeof getFullSchedule>;
 const EMPTY_WEEK_SCHEDULE = [] as ReturnType<typeof getWeekScheduleEntries>;
+const EMPTY_TRANSACTION_LOG: TransactionLogEntry[] = [];
+const EMPTY_DRAFT_RECAPS: DraftRecap[] = [];
+const EMPTY_TRADE_SUGGESTIONS: TradeSuggestion[] = [];
 const EMPTY_PLAYOFF_PICTURE = { afc: [], nfc: [] };
 const EMPTY_STAT_LEADERS = { passYds: [], rushYds: [], recYds: [], sacks: [], defINT: [] };
 const EMPTY_ADVANCED_STATS = {
@@ -190,7 +202,7 @@ const EMPTY_MENTORING_HISTORY: MentoringHistoryNote[] = [];
 export const selectUserTeam = (state: GameStoreState): Team | null =>
   state.game ? Object.values(state.game.teams).find((team) => team.isUser) ?? null : null;
 
-function selectCurrentMatchup(state: GameStoreState) {
+export function selectCurrentMatchup(state: GameStoreState) {
   if (!state.game) return null;
   const team = selectUserTeam(state);
   if (!team) return null;
@@ -264,6 +276,56 @@ export const selectConditionalPicks = (state: GameStoreState): ConditionalPick[]
 export const selectWaiverOrder = (state: GameStoreState): string[] => state.game?.waiverOrder ?? EMPTY_IDS;
 export const selectWaiverWire = (state: GameStoreState): WaiverWireEntry[] => state.game?.waiverWire ?? EMPTY_WAIVER_WIRE;
 export const selectWaiverClaims = (state: GameStoreState): WaiverClaim[] => state.game?.waiverClaims ?? EMPTY_WAIVER_CLAIMS;
+export const selectWaiverPriority = (state: GameStoreState) => {
+  if (!state.game) return [];
+  return (state.game.waiverOrder ?? EMPTY_IDS).map((teamId, index) => {
+    const team = state.game!.teams[teamId];
+    return {
+      teamId,
+      teamName: team ? `${team.city} ${team.name}` : teamId,
+      priority: index + 1,
+      isUser: Boolean(team?.isUser),
+    };
+  });
+};
+export const selectTransactionLog = (state: GameStoreState): TransactionLogEntry[] =>
+  [...(selectUserTeam(state)?.txLog ?? EMPTY_TRANSACTION_LOG)]
+    .sort((a, b) => b.year - a.year || b.week - a.week || (b.playerId ?? '').localeCompare(a.playerId ?? ''));
+export const selectClaimResults = (state: GameStoreState) => {
+  if (!state.game) return [];
+  const teamId = selectUserTeamId(state);
+  if (!teamId) return [];
+
+  return [...(state.game.waiverResults ?? EMPTY_WAIVER_RESULTS)]
+    .slice()
+    .reverse()
+    .map((result) => ({
+      id: result.id,
+      year: result.year,
+      week: result.week,
+      successfulClaims: result.entries
+        .filter((entry) => entry.winningTeamId === teamId)
+        .map((entry) => ({
+          playerId: entry.playerId,
+          playerName: state.game!.players[entry.playerId]?.name ?? entry.playerId,
+          winningTeamName: `${state.game!.teams[teamId]?.city ?? ''} ${state.game!.teams[teamId]?.name ?? ''}`.trim(),
+        })),
+      lostClaims: result.entries
+        .filter((entry) => entry.losingTeamIds.includes(teamId))
+        .map((entry) => ({
+          playerId: entry.playerId,
+          playerName: state.game!.players[entry.playerId]?.name ?? entry.playerId,
+          winningTeamName: entry.winningTeamId ? `${state.game!.teams[entry.winningTeamId]?.city ?? ''} ${state.game!.teams[entry.winningTeamId]?.name ?? ''}`.trim() : 'Cleared',
+        })),
+      clearedPlayers: result.entries
+        .filter((entry) => entry.clearedToFreeAgency)
+        .map((entry) => ({
+          playerId: entry.playerId,
+          playerName: state.game!.players[entry.playerId]?.name ?? entry.playerId,
+        })),
+    }))
+    .filter((result) => result.successfulClaims.length > 0 || result.lostClaims.length > 0 || result.clearedPlayers.length > 0);
+};
 export const selectHandshakes = (state: GameStoreState): Handshake[] => state.game?.handshakes ?? EMPTY_HANDSHAKES;
 export const selectLeagueNews = (state: GameStoreState): NewsItem[] =>
   state.game ? getRecentNews(state.game, state.game.leagueNews.length) : EMPTY_NEWS;
@@ -309,6 +371,16 @@ export const selectAchievementProgress = (achievementId: string) => (state: Game
 };
 export const selectDashboardState = (state: GameStoreState): DashboardState => state.game?.dashboardState ?? EMPTY_DASHBOARD_STATE;
 export const selectSpecialTeams = (state: GameStoreState): SpecialTeamsState => selectUserTeam(state)?.specialTeams ?? EMPTY_SPECIAL_TEAMS;
+export const selectCurrentGamePlan = (state: GameStoreState): GamePlan | null => state.game?.gamePlan ?? null;
+export const selectCurrentOpponentReport = (state: GameStoreState): OpponentReport | null => {
+  if (!state.game) return null;
+  const team = selectUserTeam(state);
+  const matchup = selectCurrentMatchup(state);
+  if (!team || !matchup) return null;
+  const opponentId = matchup.homeTeamId === team.id ? matchup.awayTeamId : matchup.homeTeamId;
+  return getStoredOpponentReport(state.game, team.id, opponentId)
+    ?? generateOpponentScouting(state.game, team.id, opponentId);
+};
 export const selectSeasonReports = (state: GameStoreState): SeasonReport[] => {
   if (!state.game) return EMPTY_SEASON_REPORTS;
   const teamId = selectUserTeamId(state);
@@ -431,6 +503,52 @@ export const selectWaiverWirePlayers = (state: GameStoreState): Player[] => {
   return state.game.waiverWire
     .map((entry) => state.game!.players[entry.playerId])
     .filter(Boolean) as Player[];
+};
+export const selectWaiverWireBoard = (state: GameStoreState) => {
+  if (!state.game) return [];
+  const teamId = selectUserTeamId(state);
+  return state.game.waiverWire.map((entry) => {
+    const player = state.game!.players[entry.playerId];
+    const releasedBy = entry.releasedByTeamId ? state.game!.teams[entry.releasedByTeamId] : null;
+    return {
+      playerId: entry.playerId,
+      name: player?.name ?? entry.playerId,
+      pos: player?.pos ?? 'WR',
+      ovr: player?.ovr ?? 0,
+      age: player?.age ?? 0,
+      salary: player?.contract?.baseSalary ?? 0,
+      releasedByTeamId: entry.releasedByTeamId,
+      releasedByName: releasedBy ? `${releasedBy.city} ${releasedBy.name}` : 'Free Agent Pool',
+      countdown: `${Math.max(0, entry.expiresWeek - state.game!.week)} day${Math.max(0, entry.expiresWeek - state.game!.week) === 1 ? '' : 's'}`,
+      claimPending: Boolean(teamId && state.game!.waiverClaims.some((claim) => claim.teamId === teamId && claim.playerId === entry.playerId)),
+    };
+  });
+};
+export const selectPracticeSquadCandidates = (state: GameStoreState): Player[] => {
+  if (!state.game) return EMPTY_PLAYERS;
+  const existing = new Set((selectPracticeSquad(state) ?? EMPTY_PRACTICE_SQUAD).map((entry) => entry.playerId));
+  const waiverPlayers = selectWaiverWirePlayers(state);
+  const freeAgents = selectFreeAgentPlayers(state);
+  return [...freeAgents, ...waiverPlayers]
+    .filter((player) => !existing.has(player.id))
+    .sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name));
+};
+export const selectDraftRecaps = (state: GameStoreState): DraftRecap[] => {
+  if (!state.game) return EMPTY_DRAFT_RECAPS;
+  const teamId = selectUserTeamId(state);
+  if (!teamId) return EMPTY_DRAFT_RECAPS;
+  return [...(state.game.draftRecaps ?? EMPTY_DRAFT_RECAPS)]
+    .filter((recap) => recap.teamId === teamId)
+    .sort((a, b) => b.year - a.year);
+};
+export const selectTradeSuggestions = (state: GameStoreState) => {
+  if (!state.game) return EMPTY_TRADE_SUGGESTIONS;
+  return (state.game.tradeSuggestions ?? EMPTY_TRADE_SUGGESTIONS).map((suggestion) => ({
+    ...suggestion,
+    partnerName: state.game!.teams[suggestion.partner]
+      ? `${state.game!.teams[suggestion.partner]!.city} ${state.game!.teams[suggestion.partner]!.name}`
+      : suggestion.partner,
+  }));
 };
 export const selectLatestGameResult = (state: GameStoreState): GameResult | null => {
   if (!state.game) return null;
