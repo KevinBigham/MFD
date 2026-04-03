@@ -8,6 +8,7 @@ import type {
   NewsItem,
   OffFieldEvent,
   Player,
+  PlayoffMomentum,
   PressConference,
   RivalryGameContext,
   SeasonPhase,
@@ -18,6 +19,7 @@ import type {
   WaiverWireEntry,
   WeatherCondition,
   WeeklySummary,
+  MedicalStaff,
 } from '@mfd/engine';
 
 export type MessageType = 'URGENT' | 'DECISION' | 'INTEL';
@@ -55,6 +57,8 @@ interface BuildInboxMessagesParams {
   activeProposals: TradeProposal[];
   trainingAssignments: Record<string, TrainingAssignment>;
   difficultyState: DifficultyState | null;
+  availableMedicalStaff: MedicalStaff[];
+  playoffMomentum: PlayoffMomentum | null;
 }
 
 export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessage[] {
@@ -79,6 +83,8 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     activeProposals,
     trainingAssignments,
     difficultyState,
+    availableMedicalStaff,
+    playoffMomentum,
   } = params;
   const msgs: InboxMessage[] = [];
   if (!team) return msgs;
@@ -412,6 +418,76 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       title: 'Playoff Football Activated',
       body: 'Bracket play is live. Every week is elimination football until a champion is crowned.',
       from: 'League Office',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  const fatigueAlerts = roster
+    .map((player) => ({
+      player,
+      fatigue: team.fatigueState[player.id]?.fatigue ?? 0,
+    }))
+    .filter((entry) => entry.fatigue >= 80)
+    .sort((a, b) => b.fatigue - a.fatigue)
+    .slice(0, 2);
+  for (const entry of fatigueAlerts) {
+    msgs.push({
+      id: `fatigue-${entry.player.id}-${week}`,
+      type: 'URGENT',
+      title: `${entry.player.name} is overworked`,
+      body: `Fatigue has climbed to ${entry.fatigue.toFixed(1)}.\nOn-field penalties are active and injury exposure is elevated until workload drops.`,
+      from: 'Performance Science',
+      week,
+      read: false,
+      actionRequired: true,
+    });
+  }
+
+  const upgradeCandidate = team.facilityState.facilities
+    .map((facility) => ({
+      facility,
+      cost: facility.level >= 3 ? null : team.facilityState.upgradeCosts[facility.type][facility.level - 1] ?? null,
+    }))
+    .find((entry) => entry.cost !== null && team.facilityState.budget >= entry.cost);
+  if (upgradeCandidate && upgradeCandidate.cost !== null) {
+    msgs.push({
+      id: `facility-upgrade-${week}`,
+      type: 'DECISION',
+      title: 'Facility budget is ready to deploy',
+      body: `${upgradeCandidate.facility.type.replaceAll('_', ' ')} can upgrade from level ${upgradeCandidate.facility.level} for $${upgradeCandidate.cost}.\nCurrent budget: $${team.facilityState.budget}.`,
+      from: 'Ownership Finance',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  if (phase === 'offseason' && availableMedicalStaff.length > 0) {
+    const bestStaff = [...availableMedicalStaff]
+      .sort((a, b) => a.recoveryBonus - b.recoveryBonus || a.preventionBonus - b.preventionBonus)[0]!;
+    msgs.push({
+      id: `medical-pool-${week}`,
+      type: 'DECISION',
+      title: 'Medical staff market refreshed',
+      body: `${availableMedicalStaff.length} candidates are available.\nTop current option: ${bestStaff.name} (${bestStaff.tier}) // recovery x${bestStaff.recoveryBonus.toFixed(2)} // prevention x${bestStaff.preventionBonus.toFixed(2)}.`,
+      from: 'League Hiring Desk',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  if (phase === 'playoffs' && playoffMomentum) {
+    msgs.push({
+      id: `playoff-momentum-${week}`,
+      type: playoffMomentum.momentum > 70 ? 'INTEL' : 'DECISION',
+      title: 'Playoff momentum update',
+      body: playoffMomentum.narrativeTag
+        ? `${playoffMomentum.narrativeTag.replaceAll('_', ' ')} narrative is active.\nMomentum ${playoffMomentum.momentum} with a ${playoffMomentum.winStreak}-game streak profile.`
+        : `Momentum sits at ${playoffMomentum.momentum} entering the next playoff game.`,
+      from: 'Broadcast Prep',
       week,
       read: false,
       actionRequired: false,

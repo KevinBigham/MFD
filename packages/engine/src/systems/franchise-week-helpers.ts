@@ -1,7 +1,9 @@
 import { DIFF_SETTINGS } from '../config/difficulty';
 import { RNG } from '../rng';
 import { simGame, applyPlayerLines } from './game-sim';
+import { buildFatiguePlayerBonuses, processWeeklyFatigue } from './fatigue';
 import { generateHooks } from './hooks-engine';
+import { getInjuryPenalty, isPlayerUnavailable, maybeGenerateTeamInjury, processInjuryRecovery } from './injury-system';
 import { updateOwnerApproval } from './owner';
 import { tickPatience } from './owner-extended';
 import { applyGameToSeasonStats, ensureSeasonStats, tickInjuries } from './season-stats';
@@ -34,33 +36,43 @@ function applyResult(home: Team, away: Team, homeStats: TeamGameStats, awayStats
   home.streak = home.streak <= 0 ? home.streak - 1 : -1;
 }
 
-function maybeInjure(team: Team, injMod: number): WeeklyInjurySummary[] {
+function maybeInjure(game: GameState, team: Team, injMod: number): WeeklyInjurySummary[] {
   const injuries: WeeklyInjurySummary[] = [];
-  const healthy = team.roster.filter((player) => player.isStarter && !player.injury && player.pos !== 'K' && player.pos !== 'P');
-  if (healthy.length === 0 || RNG.injury() >= 0.08 * injMod) return injuries;
+  const eligible = team.roster.filter((player) =>
+    player.isStarter &&
+    !player.injury &&
+    player.pos !== 'K' &&
+    player.pos !== 'P',
+  );
 
-  const player = healthy[Math.floor(RNG.injury() * healthy.length)]!;
-  const roll = [
-    { severity: 'questionable', gamesOut: 1 },
-    { severity: 'doubtful', gamesOut: 2 },
-    { severity: 'out', gamesOut: 4 },
-    { severity: 'ir', gamesOut: 8 },
-  ][Math.floor(RNG.injury() * 4)]!;
-  const type = ['hamstring', 'ankle', 'shoulder', 'knee'][Math.floor(RNG.injury() * 4)]!;
+  for (const player of eligible) {
+    const fatigueLevel = team.fatigueState[player.id]?.fatigue ?? 0;
+    const injury = maybeGenerateTeamInjury(game, team.id, player, fatigueLevel, injMod, RNG.injury);
+    if (!injury) continue;
 
-  player.injury = { type, severity: roll.severity as WeeklyInjurySummary['severity'], gamesOut: roll.gamesOut };
-  injuries.push({
-    playerId: player.id,
-    playerName: player.name,
-    severity: roll.severity as WeeklyInjurySummary['severity'],
-    gamesOut: roll.gamesOut,
-    type,
-  });
+    injuries.push({
+      playerId: player.id,
+      playerName: player.name,
+      severity: injury.severity,
+      gamesOut: injury.gamesOut,
+      type: injury.type,
+    });
+  }
 
   return injuries;
 }
 
+function buildPlayerBonuses(team: Team, extraBonuses: Record<string, number> = {}): Record<string, number> {
+  const fatigueBonuses = Object.fromEntries(team.roster.map((player) => [player.id, getInjuryPenalty(player)]));
+  return team.roster.reduce<Record<string, number>>((bonuses, player) => {
+    const total = (extraBonuses[player.id] ?? 0) + (fatigueBonuses[player.id] ?? 0);
+    if (total !== 0) bonuses[player.id] = total;
+    return bonuses;
+  }, {});
+}
+
 export function simulateGame(
+  game: GameState,
   home: Team,
   away: Team,
   year: number,
@@ -88,6 +100,8 @@ export function simulateGame(
   // Apply team-level results
   applyResult(home, away, homeStats, awayStats, homeScore, awayScore);
   const diff = DIFF_SETTINGS[difficulty];
+  processWeeklyFatigue(game, home.id, homeStats);
+  processWeeklyFatigue(game, away.id, awayStats);
 
   return {
     result: {
@@ -105,8 +119,8 @@ export function simulateGame(
       matchupHighlight,
     } satisfies GameResult,
     injuries: {
-      [home.id]: maybeInjure(home, diff.injMod),
-      [away.id]: maybeInjure(away, diff.injMod),
+      [home.id]: maybeInjure(game, home, diff.injMod),
+      [away.id]: maybeInjure(game, away, diff.injMod),
     },
   };
 }
@@ -228,3 +242,4 @@ export function findUserTeam(game: GameState): Team | null {
 }
 
 export { tickInjuries };
+export { processInjuryRecovery, buildPlayerBonuses, buildFatiguePlayerBonuses, isPlayerUnavailable };

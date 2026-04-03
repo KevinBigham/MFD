@@ -66,8 +66,9 @@ export function applyScoutAccuracy(
   prospect: DraftProspect,
   scout: Scout,
   rand: () => number = RNG.play,
+  scoutingBonus = 1,
 ): number {
-  const spread = scoutSpread(scout, prospect);
+  const spread = Math.max(1, scoutSpread(scout, prospect) / Math.max(1, scoutingBonus));
   const swing = Math.round((rand() * 2 - 1) * spread);
   return clamp(prospect.trueGrade + swing, 40, 99);
 }

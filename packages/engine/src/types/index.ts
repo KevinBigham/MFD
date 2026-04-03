@@ -76,6 +76,7 @@ export interface Player {
 }
 
 export interface PlayerSeasonStats {
+  gamesPlayed: number;
   passYds: number;
   passTD: number;
   passINT: number;
@@ -94,6 +95,7 @@ export interface PlayerSeasonStats {
   tackles: number;
   fgMade: number;
   fgAtt: number;
+  yacYds: number;
   [key: string]: number;
 }
 
@@ -104,11 +106,36 @@ export interface CareerStats {
   [key: string]: number;
 }
 
-export interface Injury {
-  type: string;
+export type InjuryType =
+  | 'hamstring'
+  | 'knee_sprain'
+  | 'ankle_sprain'
+  | 'concussion'
+  | 'acl'
+  | 'shoulder'
+  | 'back'
+  | 'foot'
+  | 'hand'
+  | 'ribs'
+  | 'groin'
+  | 'quad';
+
+export type InjurySeverityTier = 'minor' | 'moderate' | 'severe' | 'season_ending';
+
+export interface InjuryDetail {
+  id: string;
+  type: InjuryType | string;
   severity: 'questionable' | 'doubtful' | 'out' | 'ir';
+  severityTier: InjurySeverityTier;
   gamesOut: number;
+  gamesRecovered: number;
+  reinjuryRisk: number;
+  affectedRatings: string[];
+  ratingPenalty: number;
+  onIR: boolean;
 }
+
+export type Injury = InjuryDetail;
 
 // ── Contracts ───────────────────────────────────────────
 
@@ -264,6 +291,9 @@ export interface Team {
   seasonStats: TeamSeasonStats;
   mentoringPairs: MentoringPair[];
   trainingAssignments: Record<string, TrainingAssignment>;
+  medicalStaff: MedicalStaff | null;
+  fatigueState: Record<string, FatigueState>;
+  facilityState: FacilityState;
   practiceSquad: PracticeSquadPlayer[];
   stadiumType: 'dome' | 'outdoor';
 }
@@ -437,6 +467,53 @@ export interface ScoutingDepartment {
   availableScouts: Scout[];
   budget: number;
   maxScouts: number;
+}
+
+export interface MedicalStaff {
+  id: string;
+  name: string;
+  tier: 'elite' | 'good' | 'average' | 'poor';
+  salary: number;
+  recoveryBonus: number;
+  preventionBonus: number;
+}
+
+export interface FatigueState {
+  playerId: string;
+  fatigue: number;
+  weeklySnaps: number[];
+  seasonSnaps: number;
+  restWeeks: number;
+  conditioningBonus: number;
+}
+
+export type FacilityType =
+  | 'training_complex'
+  | 'medical_center'
+  | 'film_room'
+  | 'weight_room'
+  | 'recovery_suite';
+
+export interface FacilityEffect {
+  trainingXPBonus: number;
+  recoveryBonus: number;
+  injuryPreventionBonus: number;
+  scoutingBonus: number;
+  moraleBonus: number;
+  fatigueGainBonus: number;
+}
+
+export interface Facility {
+  type: FacilityType;
+  level: 1 | 2 | 3;
+  effect: FacilityEffect;
+}
+
+export interface FacilityState {
+  facilities: Facility[];
+  budget: number;
+  maxFacilities: number;
+  upgradeCosts: Record<FacilityType, number[]>;
 }
 
 export interface CombineMeasurables {
@@ -620,6 +697,24 @@ export interface DifficultyState {
   adjustmentHistory: DifficultyAdjustment[];
 }
 
+export interface AdvancedStats {
+  qbr: number;
+  epa: number;
+  successRate: number;
+  yac: number;
+  pressureRate: number;
+  thirdDownRate: number;
+  redZoneRate: number;
+  turnoverRate: number;
+}
+
+export interface PlayoffMomentum {
+  teamId: string;
+  momentum: number;
+  narrativeTag: 'cinderella' | 'dynasty' | 'revenge' | 'hot_streak' | 'defending_champ' | 'underdog' | null;
+  winStreak: number;
+}
+
 export type TradeProposalStatus = 'draft' | 'sent' | 'countered' | 'accepted' | 'rejected';
 
 export interface TradeProposal {
@@ -730,6 +825,7 @@ export interface TeamGameStats {
   rushingYards: number;
   turnovers: number;
   sacks: number;
+  pressuresAllowed: number;
   thirdDownConversions: number;
   thirdDownAttempts: number;
   timeOfPossession: number;
@@ -746,6 +842,10 @@ export interface TeamGameStats {
   fgMade: number;
   fgAttempted: number;
   punts: number;
+  drives: number;
+  yacYards: number;
+  redZoneTrips: number;
+  redZoneScores: number;
   quarterScores: [number, number, number, number, ...number[]];
   playerLines: PlayerGameLine[];
 }
@@ -762,6 +862,17 @@ export interface TeamSeasonStats {
   turnoversForced: number;
   sacksFor: number;
   sacksAgainst: number;
+  drives: number;
+  thirdDownConversions: number;
+  thirdDownAttempts: number;
+  timeOfPossession: number;
+  fgMade: number;
+  fgAttempted: number;
+  punts: number;
+  pressuresAllowed: number;
+  yacYards: number;
+  redZoneTrips: number;
+  redZoneScores: number;
 }
 
 export interface WeeklyInjurySummary {
@@ -1134,6 +1245,8 @@ export interface GameState {
   leagueNews: NewsItem[];
   activeProposals: TradeProposal[];
   difficultyState: DifficultyState;
+  availableMedicalStaff: MedicalStaff[];
+  playoffMomentum: Record<string, PlayoffMomentum>;
   scoutingDepartment: ScoutingDepartment;
   conditionalPicks: ConditionalPick[];
   waiverOrder: string[];

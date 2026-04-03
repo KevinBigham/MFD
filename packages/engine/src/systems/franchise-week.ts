@@ -2,9 +2,10 @@ import { cl } from '../utils';
 import { RNG, reseedSeason, reseedWeek, setSeed } from '../rng';
 import { getAdaptiveModifier, updateAdaptiveDifficulty } from './adaptive-difficulty';
 import { advanceDraft, ensureDraftClass, finalizePostDraft } from './draft';
-import { generateWeeklyLeagueNews } from './league-news';
+import { generateWeeklyLeagueNews, recordNewsItem } from './league-news';
 import { advanceFreeAgency, advanceOffseason, initializeOffseasonState } from './offseason';
 import { advancePlayoffBracket, seedPlayoffBracket } from './playoff-bracket';
+import { generatePlayoffNews, calculatePlayoffMomentum, getPlayoffMomentumBonus } from './playoff-momentum';
 import { processWeeklyTraining } from './player-development';
 import { archiveSeasonHistory } from './history';
 import { advanceStoryArcs } from './story-arcs';
@@ -37,6 +38,9 @@ import {
   simulateGame,
   syncPlayers,
   tickInjuries,
+  processInjuryRecovery,
+  buildPlayerBonuses,
+  buildFatiguePlayerBonuses,
   updateOwner,
 } from './franchise-week-helpers';
 import type {
@@ -101,6 +105,17 @@ function buildTeamOvrBonus(team: Team, baseBonus: number, adaptiveModifier: numb
   return cl(baseBonus + (team.isUser ? 0 : adaptiveModifier), -5, 5);
 }
 
+function mergePlayerBonuses(...maps: Array<Record<string, number> | undefined>): Record<string, number> {
+  const merged: Record<string, number> = {};
+  for (const map of maps) {
+    if (!map) continue;
+    for (const [playerId, bonus] of Object.entries(map)) {
+      merged[playerId] = (merged[playerId] ?? 0) + bonus;
+    }
+  }
+  return merged;
+}
+
 export function advanceFranchiseWeek(game: GameState): EngineOutput {
   const nextState = cloneGame(game);
   const events: GameEvent[] = [];
@@ -161,17 +176,19 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       const rivalry = getRivalryGameContext(nextState, home.id, away.id);
       const homeEffects = getGameEffectBonuses(nextState, home.id);
       const awayEffects = getGameEffectBonuses(nextState, away.id);
-      tickInjuries(home);
-      tickInjuries(away);
+      processInjuryRecovery(nextState, home.id, RNG.injury);
+      processInjuryRecovery(nextState, away.id, RNG.injury);
+      const homeFatigueBonuses = buildFatiguePlayerBonuses(nextState, home.id);
+      const awayFatigueBonuses = buildFatiguePlayerBonuses(nextState, away.id);
 
-      const outcome = simulateGame(home, away, nextState.year, nextState.week, nextState.difficulty, {
+      const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, {
         home: {
           teamOvrBonus: buildTeamOvrBonus(home, homeEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0), adaptiveModifier),
-          playerOvrBonuses: homeEffects.playerOvrBonuses,
+          playerOvrBonuses: buildPlayerBonuses(home, mergePlayerBonuses(homeEffects.playerOvrBonuses, homeFatigueBonuses)),
         },
         away: {
           teamOvrBonus: buildTeamOvrBonus(away, awayEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0), adaptiveModifier),
-          playerOvrBonuses: awayEffects.playerOvrBonuses,
+          playerOvrBonuses: buildPlayerBonuses(away, mergePlayerBonuses(awayEffects.playerOvrBonuses, awayFatigueBonuses)),
         },
         weather: matchup.weather ?? generateWeatherForGame(home, nextState.week),
         rivalryIntensity: rivalry?.intensity ?? 0,
@@ -213,21 +230,47 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       const rivalry = getRivalryGameContext(nextState, home.id, away.id);
       const homeEffects = getGameEffectBonuses(nextState, home.id);
       const awayEffects = getGameEffectBonuses(nextState, away.id);
-      tickInjuries(home);
-      tickInjuries(away);
+      processInjuryRecovery(nextState, home.id, RNG.injury);
+      processInjuryRecovery(nextState, away.id, RNG.injury);
+      const homeFatigueBonuses = buildFatiguePlayerBonuses(nextState, home.id);
+      const awayFatigueBonuses = buildFatiguePlayerBonuses(nextState, away.id);
+      nextState.playoffMomentum[home.id] = nextState.playoffMomentum[home.id] ?? calculatePlayoffMomentum(nextState, home.id);
+      nextState.playoffMomentum[away.id] = nextState.playoffMomentum[away.id] ?? calculatePlayoffMomentum(nextState, away.id);
+      const homeMomentum = getPlayoffMomentumBonus(nextState.playoffMomentum[home.id]);
+      const awayMomentum = getPlayoffMomentumBonus(nextState.playoffMomentum[away.id]);
 
-      const outcome = simulateGame(home, away, nextState.year, nextState.week, nextState.difficulty, {
+      const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, {
         home: {
-          teamOvrBonus: buildTeamOvrBonus(home, homeEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0), adaptiveModifier),
-          playerOvrBonuses: homeEffects.playerOvrBonuses,
+          teamOvrBonus: buildTeamOvrBonus(home, homeEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0) + homeMomentum, adaptiveModifier),
+          playerOvrBonuses: buildPlayerBonuses(home, mergePlayerBonuses(homeEffects.playerOvrBonuses, homeFatigueBonuses)),
         },
         away: {
-          teamOvrBonus: buildTeamOvrBonus(away, awayEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0), adaptiveModifier),
-          playerOvrBonuses: awayEffects.playerOvrBonuses,
+          teamOvrBonus: buildTeamOvrBonus(away, awayEffects.teamOvrBonus + (rivalry?.ovrBoost ?? 0) + awayMomentum, adaptiveModifier),
+          playerOvrBonuses: buildPlayerBonuses(away, mergePlayerBonuses(awayEffects.playerOvrBonuses, awayFatigueBonuses)),
         },
         weather: generateWeatherForGame(home, nextState.week),
         rivalryIntensity: rivalry?.intensity ?? 0,
       });
+      const winnerTeamId = outcome.result.homeScore >= outcome.result.awayScore ? outcome.result.homeTeamId : outcome.result.awayTeamId;
+      const loserTeamId = winnerTeamId === outcome.result.homeTeamId ? outcome.result.awayTeamId : outcome.result.homeTeamId;
+      nextState.playoffMomentum[winnerTeamId] = calculatePlayoffMomentum(nextState, winnerTeamId, true);
+      nextState.playoffMomentum[loserTeamId] = calculatePlayoffMomentum(nextState, loserTeamId, false);
+      recordNewsItem(nextState, generatePlayoffNews(nextState, {
+        id: outcome.result.id,
+        round: nextState.week === 19 ? 'wild_card' : nextState.week === 20 ? 'divisional' : nextState.week === 21 ? 'conference' : 'super_bowl',
+        conference: nextState.week === 22 ? 'NFL' : home.conference,
+        week: nextState.week,
+        homeTeamId: home.id,
+        awayTeamId: away.id,
+        winnerTeamId,
+        result: outcome.result,
+      }, {
+        winnerTeamId,
+        loserTeamId,
+        homeScore: outcome.result.homeScore,
+        awayScore: outcome.result.awayScore,
+        narrativeTag: nextState.playoffMomentum[winnerTeamId]?.narrativeTag ?? null,
+      }));
       updateLeagueRivalriesFromGame(nextState, outcome.result, { playoffElimination: true });
       ownerDelta += updateOwner(home, nextState);
       ownerDelta += updateOwner(away, nextState);

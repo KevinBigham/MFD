@@ -192,28 +192,39 @@ describe('migration pipeline', () => {
     expect(migrated['version']).toBe(SAVE_VERSION);
     expect(migrated['weekSummaries']).toEqual([]);
     expect(migrated['playoffBracket']).toBeNull();
-    expect(migrated['teams']).toEqual({
-      t1: {
-        wins: 3,
-        losses: 2,
-        ties: 0,
-        practiceSquad: [],
-        stadiumType: 'outdoor',
-        mentoringPairs: [],
-        trainingAssignments: {},
-        seasonStats: {
-          gamesPlayed: 5,
-          pointsFor: 0,
-          pointsAgainst: 0,
-          pointDifferential: 0,
-          totalYards: 0,
-          passingYards: 0,
-          rushingYards: 0,
-          turnoversLost: 0,
-          turnoversForced: 0,
-          sacksFor: 0,
-          sacksAgainst: 0,
-        },
+    expect((migrated['teams'] as Record<string, Record<string, unknown>>).t1).toMatchObject({
+      wins: 3,
+      losses: 2,
+      ties: 0,
+      practiceSquad: [],
+      stadiumType: 'outdoor',
+      mentoringPairs: [],
+      trainingAssignments: {},
+      medicalStaff: null,
+      fatigueState: {},
+      seasonStats: {
+        gamesPlayed: 5,
+        pointsFor: 0,
+        pointsAgainst: 0,
+        pointDifferential: 0,
+        totalYards: 0,
+        passingYards: 0,
+        rushingYards: 0,
+        turnoversLost: 0,
+        turnoversForced: 0,
+        sacksFor: 0,
+        sacksAgainst: 0,
+        drives: 0,
+        thirdDownConversions: 0,
+        thirdDownAttempts: 0,
+        timeOfPossession: 0,
+        fgMade: 0,
+        fgAttempted: 0,
+        punts: 0,
+        pressuresAllowed: 0,
+        yacYards: 0,
+        redZoneTrips: 0,
+        redZoneScores: 0,
       },
     });
   });
@@ -492,5 +503,90 @@ describe('migration pipeline', () => {
       adjustmentHistory: [],
     });
     expect((migrated['teams'] as Record<string, { trainingAssignments: Record<string, unknown> }>).t1.trainingAssignments).toEqual({});
+  });
+
+  it('migrates v9 saves to include sprint 10 iron man state', () => {
+    const migrated = migrate({
+      version: 9,
+      teams: {
+        t1: {
+          wins: 3,
+          losses: 2,
+          ties: 0,
+          practiceSquad: [],
+          mentoringPairs: [],
+          trainingAssignments: {},
+          stadiumType: 'outdoor',
+          owner: { archetypeId: 'legacy_builder' },
+          roster: [
+            {
+              id: 'p1',
+              injury: {
+                type: 'knee',
+                severity: 'out',
+                gamesOut: 4,
+              },
+            },
+          ],
+          seasonStats: {
+            gamesPlayed: 5,
+            pointsFor: 120,
+            pointsAgainst: 110,
+            pointDifferential: 10,
+            totalYards: 1800,
+            passingYards: 1200,
+            rushingYards: 600,
+            turnoversLost: 3,
+            turnoversForced: 4,
+            sacksFor: 8,
+            sacksAgainst: 6,
+          },
+        },
+      },
+    }, 10);
+
+    expect(migrated['version']).toBe(10);
+    expect(migrated['availableMedicalStaff']).toEqual([]);
+    expect(migrated['playoffMomentum']).toEqual({});
+    expect((migrated['teams'] as Record<string, {
+      medicalStaff: unknown;
+      fatigueState: Record<string, unknown>;
+      facilityState: { budget: number; facilities: Array<{ type: string; level: number }> };
+      roster: Array<{ injury: Record<string, unknown> }>;
+    }>).t1.medicalStaff).toBeNull();
+    expect((migrated['teams'] as Record<string, {
+      medicalStaff: unknown;
+      fatigueState: Record<string, unknown>;
+      facilityState: { budget: number; facilities: Array<{ type: string; level: number }> };
+      roster: Array<{ injury: Record<string, unknown> }>;
+    }>).t1.fatigueState).toEqual({});
+    expect((migrated['teams'] as Record<string, {
+      medicalStaff: unknown;
+      fatigueState: Record<string, unknown>;
+      facilityState: { budget: number; facilities: Array<{ type: string; level: number }> };
+      roster: Array<{ injury: Record<string, unknown> }>;
+    }>).t1.facilityState.budget).toBe(12);
+    expect((migrated['teams'] as Record<string, {
+      medicalStaff: unknown;
+      fatigueState: Record<string, unknown>;
+      facilityState: { budget: number; facilities: Array<{ type: string; level: number }> };
+      roster: Array<{ injury: Record<string, unknown> }>;
+    }>).t1.facilityState.facilities).toHaveLength(5);
+    expect((migrated['teams'] as Record<string, {
+      medicalStaff: unknown;
+      fatigueState: Record<string, unknown>;
+      facilityState: { budget: number; facilities: Array<{ type: string; level: number }> };
+      roster: Array<{ injury: Record<string, unknown> }>;
+    }>).t1.roster[0]!.injury).toMatchObject({
+      type: 'knee',
+      severity: 'out',
+      severityTier: 'severe',
+      gamesOut: 4,
+      gamesRecovered: 0,
+      reinjuryRisk: expect.any(Number),
+      affectedRatings: expect.any(Array),
+      ratingPenalty: 0,
+      onIR: false,
+    });
   });
 });

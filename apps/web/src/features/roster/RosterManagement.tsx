@@ -6,7 +6,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { Player } from '@mfd/engine';
 import { calcCapHit, calculateTrainingXP } from '@mfd/engine';
 import {
-  useGameStore, selectFreeAgentPlayers, selectPracticeSquad, selectRoster, selectTrainingAssignments, selectUserTeam, selectUserTeamId, selectWaiverWirePlayers,
+  useGameStore, selectFatigueReport, selectFreeAgentPlayers, selectPracticeSquad, selectRoster, selectTrainingAssignments, selectUserTeam, selectUserTeamId, selectWaiverWirePlayers,
 } from '../../app/store/game-store';
 import {
   PixelConsequenceList,
@@ -61,6 +61,19 @@ function TrainingCell({ player }: { player: Player }) {
         </span>
         {mentorshipBonus ? <PixelBadge variant="gold">Mentor Bonus</PixelBadge> : null}
       </div>
+    </div>
+  );
+}
+
+function FatigueCell({ playerId }: { playerId: string }) {
+  const fatigue = useGameStore((state) => selectUserTeam(state)?.fatigueState[playerId]?.fatigue ?? 0);
+  const variant = fatigue >= 80 ? 'red' : fatigue >= 60 ? 'gold' : 'green';
+  const label = fatigue >= 80 ? 'Exhausted' : fatigue >= 60 ? 'Fatigued' : 'Fresh';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '82px' }}>
+      <PixelBadge variant={variant}>{label}</PixelBadge>
+      <span style={{ ...monoSm, color: '#999' }}>{fatigue.toFixed(1)}</span>
     </div>
   );
 }
@@ -160,6 +173,12 @@ const columns: ColumnDef<Player, unknown>[] = [
     size: 90,
   },
   {
+    id: 'fatigue',
+    header: 'Fatigue',
+    cell: ({ row }) => <FatigueCell playerId={row.original.id} />,
+    size: 110,
+  },
+  {
     id: 'training',
     header: 'Training',
     cell: ({ row }) => <TrainingCell player={row.original} />,
@@ -173,14 +192,17 @@ export function RosterManagement() {
   const freeAgents = useGameStore(selectFreeAgentPlayers);
   const teamId = useGameStore(selectUserTeamId);
   const team = useGameStore(selectUserTeam);
+  const fatigueReport = useGameStore(selectFatigueReport);
   const waiverPlayers = useGameStore(selectWaiverWirePlayers);
   const trainingAssignments = useGameStore(selectTrainingAssignments);
   const playersById = useGameStore((s) => s.game?.players ?? {});
   const {
+    activateFromIR,
     addToPracticeSquad,
     assignTraining,
     cutPlayer,
     elevatePracticeSquadPlayer,
+    placeOnIR,
     removeFromPracticeSquad,
     restructure,
     submitWaiverClaim,
@@ -205,6 +227,9 @@ export function RosterManagement() {
     ? Math.round(roster.reduce((sum, player) => sum + player.age, 0) / roster.length * 10) / 10
     : 0;
   const playersInTraining = Object.keys(trainingAssignments).length;
+  const activeRosterCount = roster.filter((player) => !player.injury?.onIR).length;
+  const exhaustedPlayers = fatigueReport.filter((entry) => entry.status === 'exhausted').length;
+  const fatiguedPlayers = fatigueReport.filter((entry) => entry.status === 'fatigued').length;
   const practiceSquadRows = practiceSquad
     .map((entry) => ({ entry, player: playersById[entry.playerId] }))
     .filter((item): item is { entry: typeof practiceSquad[number]; player: Player } => Boolean(item.player));
@@ -228,34 +253,51 @@ export function RosterManagement() {
     restructure(teamId, player.id);
   }, [teamId, restructure]);
 
+  const handlePlaceOnIR = useCallback((player: Player) => {
+    if (!teamId) return;
+    void placeOnIR(teamId, player.id);
+  }, [placeOnIR, teamId]);
+
+  const handleActivateFromIR = useCallback((player: Player) => {
+    if (!teamId) return;
+    void activateFromIR(teamId, player.id);
+  }, [activateFromIR, teamId]);
+
+  const liveSelectedPlayer = selectedPlayer
+    ? playersById[selectedPlayer.id] ?? roster.find((player) => player.id === selectedPlayer.id) ?? selectedPlayer
+    : null;
+  const selectedPlayerFatigue = liveSelectedPlayer ? team?.fatigueState[liveSelectedPlayer.id]?.fatigue ?? 0 : 0;
+  const selectedPlayerFatigueLabel = selectedPlayerFatigue >= 80 ? 'Exhausted' : selectedPlayerFatigue >= 60 ? 'Fatigued' : 'Fresh';
+
   const consequences = useMemo(() => {
-    if (!selectedPlayer?.contract || !team) return [];
-    const capHit = calcCapHit(selectedPlayer.contract);
+    if (!liveSelectedPlayer?.contract || !team) return [];
+    const capHit = calcCapHit(liveSelectedPlayer.contract);
     return [
       { id: 'c1', label: 'Cap Hit', delta: `$${Math.round(capHit * 10) / 10}M`, accent: 'red' as const },
       { id: 'c2', label: 'Cap Space', delta: `$${Math.round(team.capSpace * 10) / 10}M`, accent: 'green' as const },
     ];
-  }, [selectedPlayer, team]);
+  }, [liveSelectedPlayer, team]);
 
   return (
     <div style={screenStackStyle}>
       <PixelScreenHeader
         title="Roster Management"
-        subtitle={`${team ? `${team.city} ${team.name}` : 'No Team'} // ${roster.length} players active`}
+        subtitle={`${team ? `${team.city} ${team.name}` : 'No Team'} // ${activeRosterCount} players active`}
         badges={(
           <>
-            <PixelBadge variant="gold">{roster.length}/53</PixelBadge>
+            <PixelBadge variant="gold">{activeRosterCount}/53</PixelBadge>
             <PixelBadge variant="cyan">{starters} starters</PixelBadge>
           </>
         )}
       />
 
       <div style={autoGrid(210)}>
-        <PixelMetricCard label="Roster Size" value={`${roster.length}/53`} accent={roster.length > 53 ? 'red' : 'green'} detail="League roster limit" />
+        <PixelMetricCard label="Roster Size" value={`${activeRosterCount}/53`} accent={activeRosterCount > 53 ? 'red' : 'green'} detail="IR players do not count against the 53-man cap" />
         <PixelMetricCard label="Avg OVR" value={avgOvr} accent={avgOvr >= 80 ? 'green' : avgOvr >= 72 ? 'cyan' : 'gold'} detail="Overall team strength" />
         <PixelMetricCard label="Starters" value={starters} accent={starters >= 22 ? 'green' : 'gold'} detail="Projected first unit" />
         <PixelMetricCard label="Avg Age" value={avgAge} accent="cyan" detail="Current roster age curve" />
         <PixelMetricCard label="Training Plans" value={playersInTraining} accent="gold" detail="Players with an active weekly focus" />
+        <PixelMetricCard label="Fatigue Watch" value={fatiguedPlayers + exhaustedPlayers} accent={exhaustedPlayers > 0 ? 'red' : fatiguedPlayers > 0 ? 'gold' : 'green'} detail={exhaustedPlayers > 0 ? `${exhaustedPlayers} exhausted` : fatiguedPlayers > 0 ? `${fatiguedPlayers} fatigued` : 'No red-zone workloads'} />
       </div>
 
       <PixelNav
@@ -274,21 +316,25 @@ export function RosterManagement() {
       />
 
       <PixelModal
-        open={!!selectedPlayer}
+        open={!!liveSelectedPlayer}
         onOpenChange={(open) => { if (!open) setSelectedPlayer(null); }}
-        title={selectedPlayer?.name ?? 'Player Details'}
-        description={selectedPlayer ? `${selectedPlayer.pos} // ${selectedPlayer.age} years old` : undefined}
+        title={liveSelectedPlayer?.name ?? 'Player Details'}
+        description={liveSelectedPlayer ? `${liveSelectedPlayer.pos} // ${liveSelectedPlayer.age} years old` : undefined}
         accent="gold"
       >
-        {selectedPlayer ? (
+        {liveSelectedPlayer ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <PixelBadge variant="gold">{selectedPlayer.pos}</PixelBadge>
-              <PixelBadge variant="cyan">OVR {selectedPlayer.ovr}</PixelBadge>
-              <PixelBadge variant="green">POT {selectedPlayer.pot}</PixelBadge>
-              <PixelBadge variant="default">Age {selectedPlayer.age}</PixelBadge>
-              {selectedPlayer.tradeBlock ? <PixelBadge variant="red">Trade Block</PixelBadge> : null}
-              {team?.mentoringPairs.some((pair) => pair.menteeId === selectedPlayer.id || pair.mentorId === selectedPlayer.id)
+              <PixelBadge variant="gold">{liveSelectedPlayer.pos}</PixelBadge>
+              <PixelBadge variant="cyan">OVR {liveSelectedPlayer.ovr}</PixelBadge>
+              <PixelBadge variant="green">POT {liveSelectedPlayer.pot}</PixelBadge>
+              <PixelBadge variant="default">Age {liveSelectedPlayer.age}</PixelBadge>
+              <PixelBadge variant={selectedPlayerFatigue >= 80 ? 'red' : selectedPlayerFatigue >= 60 ? 'gold' : 'green'}>
+                {selectedPlayerFatigueLabel}
+              </PixelBadge>
+              {liveSelectedPlayer.tradeBlock ? <PixelBadge variant="red">Trade Block</PixelBadge> : null}
+              {liveSelectedPlayer.injury?.onIR ? <PixelBadge variant="red">IR</PixelBadge> : null}
+              {team?.mentoringPairs.some((pair) => pair.menteeId === liveSelectedPlayer.id || pair.mentorId === liveSelectedPlayer.id)
                 ? <PixelBadge variant="gold">Mentoring Pair</PixelBadge>
                 : null}
             </div>
@@ -296,12 +342,12 @@ export function RosterManagement() {
             <div style={autoGrid(260)}>
               <PixelPanel title="Contract" accent="cyan">
                 <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.7 }}>
-                  {selectedPlayer.contract ? (
+                  {liveSelectedPlayer.contract ? (
                     <>
-                      <div>Cap Hit: ${Math.round(calcCapHit(selectedPlayer.contract) * 10) / 10}M</div>
-                      <div>Duration: {selectedPlayer.contract.years} year(s)</div>
-                      <div>Total Value: ${Math.round(selectedPlayer.contract.totalValue * 10) / 10}M</div>
-                      <div>Guaranteed: ${Math.round(selectedPlayer.contract.guaranteed * 10) / 10}M</div>
+                      <div>Cap Hit: ${Math.round(calcCapHit(liveSelectedPlayer.contract) * 10) / 10}M</div>
+                      <div>Duration: {liveSelectedPlayer.contract.years} year(s)</div>
+                      <div>Total Value: ${Math.round(liveSelectedPlayer.contract.totalValue * 10) / 10}M</div>
+                      <div>Guaranteed: ${Math.round(liveSelectedPlayer.contract.guaranteed * 10) / 10}M</div>
                     </>
                   ) : (
                     <div>No contract on file.</div>
@@ -311,25 +357,62 @@ export function RosterManagement() {
 
               <PixelPanel title="Vitals" accent="green">
                 <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.7 }}>
-                  <div>Morale: {selectedPlayer.morale}</div>
-                  <div>Chemistry: {selectedPlayer.chemistry}</div>
-                  <div>System Fit: {selectedPlayer.systemFit}</div>
-                  <div>Dev Trait: {selectedPlayer.devTrait}</div>
-                  <div>Experience: {selectedPlayer.yearsExp} year(s)</div>
-                  <div>Training Focus: {trainingAssignments[selectedPlayer.id]?.focus?.replaceAll('_', ' ') ?? 'unassigned'}</div>
+                  <div>Morale: {liveSelectedPlayer.morale}</div>
+                  <div>Chemistry: {liveSelectedPlayer.chemistry}</div>
+                  <div>System Fit: {liveSelectedPlayer.systemFit}</div>
+                  <div>Dev Trait: {liveSelectedPlayer.devTrait}</div>
+                  <div>Experience: {liveSelectedPlayer.yearsExp} year(s)</div>
+                  <div>Training Focus: {trainingAssignments[liveSelectedPlayer.id]?.focus?.replaceAll('_', ' ') ?? 'unassigned'}</div>
+                  <div>Fatigue: {selectedPlayerFatigue.toFixed(1)}</div>
+                </div>
+              </PixelPanel>
+
+              <PixelPanel title="Medical Report" accent={liveSelectedPlayer.injury ? 'red' : 'green'}>
+                <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.7 }}>
+                  {liveSelectedPlayer.injury ? (
+                    <>
+                      <div>Injury: {liveSelectedPlayer.injury.type.replaceAll('_', ' ')}</div>
+                      <div>Availability: {liveSelectedPlayer.injury.severity}</div>
+                      <div>Severity Tier: {liveSelectedPlayer.injury.severityTier.replaceAll('_', ' ')}</div>
+                      <div>Recovery Timeline: {liveSelectedPlayer.injury.gamesOut > 0 ? `${liveSelectedPlayer.injury.gamesOut} week(s)` : 'Available, monitored'}</div>
+                      <div>Reinjury Risk: {(liveSelectedPlayer.injury.reinjuryRisk * 100).toFixed(0)}%</div>
+                      <div>Lingering Penalty: {liveSelectedPlayer.injury.ratingPenalty > 0 ? `-${liveSelectedPlayer.injury.ratingPenalty} OVR` : 'None'}</div>
+                      <div>Roster Status: {liveSelectedPlayer.injury.onIR ? 'Injured Reserve' : 'Active'}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div>No active injury.</div>
+                      <div>Fatigue status: {selectedPlayerFatigueLabel}</div>
+                      <div>Weighted workload is being tracked week to week.</div>
+                    </>
+                  )}
                 </div>
               </PixelPanel>
             </div>
 
             <PixelPanel title="Actions" accent="red">
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <PixelButton accent="cyan" onClick={() => handleRestructure(selectedPlayer)}>
+                <PixelButton accent="cyan" onClick={() => handleRestructure(liveSelectedPlayer)}>
                   Restructure
                 </PixelButton>
-                <PixelButton accent="gold" onClick={() => handleTradeBlock(selectedPlayer)}>
-                  {selectedPlayer.tradeBlock ? 'Remove Block' : 'Trade Block'}
+                <PixelButton accent="gold" onClick={() => handleTradeBlock(liveSelectedPlayer)}>
+                  {liveSelectedPlayer.tradeBlock ? 'Remove Block' : 'Trade Block'}
                 </PixelButton>
-                <PixelButton accent="red" onClick={() => handleCut(selectedPlayer)}>
+                <PixelButton
+                  accent="red"
+                  disabled={!liveSelectedPlayer.injury || liveSelectedPlayer.injury.onIR}
+                  onClick={() => handlePlaceOnIR(liveSelectedPlayer)}
+                >
+                  Place on IR
+                </PixelButton>
+                <PixelButton
+                  accent="green"
+                  disabled={!liveSelectedPlayer.injury?.onIR || liveSelectedPlayer.injury.gamesOut > 0}
+                  onClick={() => handleActivateFromIR(liveSelectedPlayer)}
+                >
+                  Activate from IR
+                </PixelButton>
+                <PixelButton accent="red" onClick={() => handleCut(liveSelectedPlayer)}>
                   Cut Player
                 </PixelButton>
               </div>

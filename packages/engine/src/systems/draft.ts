@@ -1,5 +1,6 @@
 import { createEmptySeasonStats, emptyPlayerStats } from './season-stats';
 import { makeContract } from './contracts';
+import { applyFacilityBonuses } from './facilities';
 import { syncPlayerArchiveEntry } from './history';
 import { recordNewsItem } from './league-news';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
@@ -216,11 +217,12 @@ export function runScoutingAction(game: GameState, prospectId: string, action: S
 
   if (!current.actions.includes(action)) {
     const scout = bestScoutForProspect(nextState, prospect);
+    const scoutingBonus = applyFacilityBonuses(findUserTeam(nextState) ?? Object.values(nextState.teams)[0]!).scoutingBonus;
     const bonus = action === 'film' ? 0.16 : action === 'combine' ? 0.22 : 0.14;
     current.actions.push(action);
     current.accuracy = Math.min(0.95, current.accuracy + bonus + (scout?.accuracy ?? 0) * 0.1);
     current.visibleScoutGrade = scout
-      ? applyScoutAccuracy(prospect, scout, randForAction(action, prospectId))
+      ? applyScoutAccuracy(prospect, scout, randForAction(action, prospectId), scoutingBonus)
       : Math.round(((prospect.scoutGrade * (1 - current.accuracy)) + (prospect.trueGrade * current.accuracy)) * 10) / 10;
     current.notes.push(makeScoutingNote(action, prospect));
     if (action === 'combine' && prospect.combine) {

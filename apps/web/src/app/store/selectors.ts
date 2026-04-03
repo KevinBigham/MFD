@@ -4,6 +4,7 @@ import type {
   DifficultyState,
   DraftOrderEntry,
   DraftProspect,
+  FacilityState,
   GameEvent,
   GameDayPackage,
   GameDayState,
@@ -12,6 +13,7 @@ import type {
   HallOfFameEntry,
   LeagueRivalry,
   MentoringPair,
+  MedicalStaff,
   NewsItem,
   OffseasonState,
   OffFieldEvent,
@@ -37,10 +39,16 @@ import type {
 } from '@mfd/engine';
 import {
   buildPlayoffPicture,
+  calculateAdvancedStats,
+  getAnalyticsStatLeaders,
+  getPlayerComparison,
+  getTeamRankings,
+  getWeeklyTrend,
   createDefaultDifficultyState,
   createEmptyRecordBook,
   getDivisionStandings,
   getRecentNews,
+  getWorkloadReport,
   getRivalryGameContext,
   getStatLeaders,
   getTeamNews,
@@ -76,9 +84,27 @@ const EMPTY_HANDSHAKES: Handshake[] = [];
 const EMPTY_CONDITIONAL_PICKS: ConditionalPick[] = [];
 const EMPTY_IDS: string[] = [];
 const EMPTY_TRAINING_ASSIGNMENTS: Record<string, TrainingAssignment> = {};
+const EMPTY_FACILITY_STATE: FacilityState = {
+  facilities: [],
+  budget: 0,
+  maxFacilities: 5,
+  upgradeCosts: {
+    training_complex: [4, 8, 12],
+    medical_center: [4, 8, 12],
+    film_room: [3, 6, 9],
+    weight_room: [3, 6, 9],
+    recovery_suite: [5, 10, 15],
+  },
+};
+const EMPTY_MEDICAL_STAFF: MedicalStaff[] = [];
 const EMPTY_DIFFICULTY_STATE: DifficultyState = createDefaultDifficultyState();
 const EMPTY_PLAYOFF_PICTURE = { afc: [], nfc: [] };
 const EMPTY_STAT_LEADERS = { passYds: [], rushYds: [], recYds: [], sacks: [], defINT: [] };
+const EMPTY_ADVANCED_STATS = {
+  stats: { qbr: 0, epa: 0, successRate: 0, yac: 0, pressureRate: 0, thirdDownRate: 0, redZoneRate: 0, turnoverRate: 0 },
+  ranks: { offense: null as number | null, defense: null as number | null, specialTeams: null as number | null },
+  teamRankings: { offense: [], defense: [], specialTeams: [] },
+};
 const STANDINGS_DIVISIONS = [
   ['AFC', 'East'],
   ['AFC', 'North'],
@@ -188,8 +214,43 @@ export const selectTeamNews = (state: GameStoreState): NewsItem[] => {
 };
 export const selectTrainingAssignments = (state: GameStoreState): Record<string, TrainingAssignment> =>
   selectUserTeam(state)?.trainingAssignments ?? EMPTY_TRAINING_ASSIGNMENTS;
+export const selectMedicalStaff = (state: GameStoreState) => ({
+  current: selectUserTeam(state)?.medicalStaff ?? null,
+  available: state.game?.availableMedicalStaff ?? EMPTY_MEDICAL_STAFF,
+});
+export const selectFatigueReport = (state: GameStoreState) => {
+  if (!state.game) return [];
+  const teamId = selectUserTeamId(state);
+  return teamId ? getWorkloadReport(state.game, teamId) : [];
+};
+export const selectFacilities = (state: GameStoreState): FacilityState =>
+  selectUserTeam(state)?.facilityState ?? EMPTY_FACILITY_STATE;
+export const selectInjuryReport = (state: GameStoreState) =>
+  selectRoster(state)
+    .filter((player) => player.injury)
+    .map((player) => ({ playerId: player.id, name: player.name, pos: player.pos, injury: player.injury! }));
 export const selectDifficultyState = (state: GameStoreState): DifficultyState =>
   state.game?.difficultyState ?? EMPTY_DIFFICULTY_STATE;
+export const selectAdvancedStats = (state: GameStoreState) => {
+  if (!state.game) return EMPTY_ADVANCED_STATS;
+  const team = selectUserTeam(state);
+  if (!team) return EMPTY_ADVANCED_STATS;
+
+  const teamRankings = getTeamRankings(state.game);
+  return {
+    stats: calculateAdvancedStats(team, team.seasonStats),
+    ranks: {
+      offense: teamRankings.offense.findIndex((entry) => entry.teamId === team.id) + 1 || null,
+      defense: teamRankings.defense.findIndex((entry) => entry.teamId === team.id) + 1 || null,
+      specialTeams: teamRankings.specialTeams.findIndex((entry) => entry.teamId === team.id) + 1 || null,
+    },
+    teamRankings,
+  };
+};
+export const selectPlayoffMomentum = (state: GameStoreState) => {
+  const teamId = selectUserTeamId(state);
+  return teamId ? state.game?.playoffMomentum?.[teamId] ?? null : null;
+};
 export const selectStandings = (state: GameStoreState) => {
   if (!state.game) return [];
   return STANDINGS_DIVISIONS.map(([conference, division]) => ({
@@ -202,6 +263,25 @@ export const selectPlayoffPicture = (state: GameStoreState) =>
   state.game ? buildPlayoffPicture(state.game) : EMPTY_PLAYOFF_PICTURE;
 export const selectStatLeaders = (state: GameStoreState) =>
   state.game ? getStatLeaders(state.game) : EMPTY_STAT_LEADERS;
+export const selectAnalyticsLeaders = (state: GameStoreState) => {
+  if (!state.game) return EMPTY_STAT_LEADERS;
+  return {
+    passYds: getAnalyticsStatLeaders(state.game, 'passYds', 5),
+    rushYds: getAnalyticsStatLeaders(state.game, 'rushYds', 5),
+    recYds: getAnalyticsStatLeaders(state.game, 'recYds', 5),
+    sacks: getAnalyticsStatLeaders(state.game, 'sacks', 5),
+    defINT: getAnalyticsStatLeaders(state.game, 'defINT', 5),
+  };
+};
+export const selectPlayerComparison = (playerIdA: string | null, playerIdB: string | null) => (state: GameStoreState) => {
+  if (!state.game || !playerIdA || !playerIdB) return null;
+  return getPlayerComparison(state.game, playerIdA, playerIdB);
+};
+export const selectWeeklyTrend = (stat: 'pointsFor' | 'pointDifferential' | 'thirdDownConversions' | 'redZoneScores') => (state: GameStoreState) => {
+  if (!state.game) return [];
+  const teamId = selectUserTeamId(state);
+  return teamId ? getWeeklyTrend(state.game, teamId, stat, 5) : [];
+};
 export const selectLatestGameDayPackage = (state: GameStoreState): GameDayPackage | null => {
   const gameDayState = state.game?.gameDayState;
   if (!gameDayState) return null;

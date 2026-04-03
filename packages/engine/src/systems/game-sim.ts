@@ -8,6 +8,7 @@
 import { RNG } from '../rng';
 import { HOME_FIELD_ADV } from '../config';
 import { avg, cl } from '../utils';
+import { isPlayerUnavailable } from './injury-system';
 import type {
   MatchupHighlight,
   Player,
@@ -34,18 +35,18 @@ export interface SimGameContext {
 
 function starters(roster: Player[], pos: Position): Player[] {
   return roster
-    .filter((p) => p.pos === pos && p.isStarter && !p.injury)
+    .filter((p) => p.pos === pos && p.isStarter && !isPlayerUnavailable(p))
     .sort((a, b) => b.ovr - a.ovr);
 }
 
 function bestAvailable(roster: Player[], pos: Position): Player | null {
   return roster
-    .filter((p) => p.pos === pos && !p.injury)
+    .filter((p) => p.pos === pos && !isPlayerUnavailable(p))
     .sort((a, b) => Number(b.isStarter) - Number(a.isStarter) || b.ovr - a.ovr)[0] ?? null;
 }
 
 function posAvg(roster: Player[], pos: Position): number {
-  const group = roster.filter((p) => p.pos === pos && !p.injury);
+  const group = roster.filter((p) => p.pos === pos && !isPlayerUnavailable(p));
   return group.length > 0 ? avg(group.map((p) => p.ovr)) : 60;
 }
 
@@ -102,7 +103,7 @@ function coachingEdge(team: Team, opponent: Team): number {
 
 function topReceivingThreat(team: Team): Player | null {
   return team.roster
-    .filter((player) => (player.pos === 'WR' || player.pos === 'TE') && !player.injury)
+    .filter((player) => (player.pos === 'WR' || player.pos === 'TE') && !isPlayerUnavailable(player))
     .sort((a, b) => Number(b.isStarter) - Number(a.isStarter) || b.ovr - a.ovr || a.id.localeCompare(b.id))[0] ?? null;
 }
 
@@ -502,7 +503,7 @@ function distributeDefensiveStats(
   lines: Map<string, PlayerGameLine>,
 ): void {
   const defStarters = defense.roster.filter((p) =>
-    (p.pos === 'DL' || p.pos === 'LB' || p.pos === 'CB' || p.pos === 'S') && !p.injury,
+    (p.pos === 'DL' || p.pos === 'LB' || p.pos === 'CB' || p.pos === 'S') && !isPlayerUnavailable(p),
   );
 
   for (const player of defStarters) {
@@ -536,7 +537,7 @@ function buildTeamStats(
   quarterScores: [number, number, number, number, ...number[]],
   driveCount: number,
 ): TeamGameStats {
-  let passYds = 0, rushYds = 0, turnovers = 0, sacks = 0;
+  let passYds = 0, rushYds = 0, turnovers = 0, sacks = 0, pressuresAllowed = 0, yacYards = 0;
   let passAtt = 0, passComp = 0, passTDs = 0, ints = 0;
   let rushAtt = 0, rushTDs = 0, fumbles = 0;
   let fgMade = 0, fgAtt = 0;
@@ -547,12 +548,14 @@ function buildTeamStats(
     passComp += line.passComp ?? 0;
     passTDs += line.passTD ?? 0;
     ints += line.passINT ?? 0;
+    pressuresAllowed += line.sacked ?? 0;
     rushYds += line.rushYds ?? 0;
     rushAtt += line.rushAtt ?? 0;
     rushTDs += line.rushTD ?? 0;
     fumbles += line.fumbles ?? 0;
     fgMade += line.fgMade ?? 0;
     fgAtt += line.fgAtt ?? 0;
+    yacYards += Math.max(0, (line.recYds ?? 0) - (line.rec ?? 0) * 8);
     // sacks here are defensive sacks credited TO this team's defenders
     sacks += line.sacks ?? 0;
   }
@@ -565,6 +568,9 @@ function buildTeamStats(
   const penalties = Math.round(3 + RNG.play() * 7);
   const penaltyYards = Math.round(penalties * (5 + RNG.play() * 8));
   const punts = cl(driveCount - Math.round(score / 3.5) - turnovers, 1, 8);
+  const redZoneTrips = cl(Math.round(score / 6 + totalYards / 180), 1, Math.max(1, driveCount));
+  const redZoneScores = cl(passTDs + rushTDs + fgMade, 0, redZoneTrips);
+  pressuresAllowed += Math.round(passAtt * 0.18);
 
   const playerLines = Array.from(lines.values()).filter(
     (l) => team.roster.some((p) => p.id === l.playerId),
@@ -576,6 +582,7 @@ function buildTeamStats(
     rushingYards: rushYds,
     turnovers,
     sacks,
+    pressuresAllowed,
     thirdDownConversions,
     thirdDownAttempts,
     timeOfPossession,
@@ -591,6 +598,10 @@ function buildTeamStats(
     fgMade,
     fgAttempted: fgAtt,
     punts,
+    drives: driveCount,
+    yacYards,
+    redZoneTrips,
+    redZoneScores,
     quarterScores,
     playerLines,
   };
@@ -795,6 +806,7 @@ export function applyPlayerLines(team: Team, lines: PlayerGameLine[]): void {
     player.stats.recYds += line.recYds ?? 0;
     player.stats.recTD += line.recTD ?? 0;
     player.stats.targets += line.targets ?? 0;
+    player.stats.yacYds += Math.max(0, (line.recYds ?? 0) - (line.rec ?? 0) * 8);
     player.stats.sacks += line.sacks ?? 0;
     player.stats.defINT += line.defINT ?? 0;
     player.stats.tackles += line.tackles ?? 0;
@@ -822,9 +834,10 @@ export function applyPlayerLines(team: Team, lines: PlayerGameLine[]): void {
   }
 
   for (const player of team.roster) {
-    if (player.injury) continue;
+    if (isPlayerUnavailable(player)) continue;
     if (player.isStarter || participants.has(player.id)) {
       player.careerStats.gp = (player.careerStats.gp ?? 0) + 1;
+      player.stats.gamesPlayed += 1;
     }
   }
 }

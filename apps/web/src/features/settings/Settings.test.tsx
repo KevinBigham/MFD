@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { Settings } from './Settings';
 
 const gameState = {
+  phase: 'offseason',
   difficulty: 'allpro',
   difficultyState: {
     enabled: true,
@@ -10,6 +11,41 @@ const gameState = {
     recentUserResults: [],
     currentStreak: 4,
     adjustmentHistory: [],
+  },
+  userTeam: { id: 'team-1' },
+  facilities: {
+    budget: 9,
+    facilities: [
+      { type: 'training_complex', level: 2 },
+      { type: 'medical_center', level: 1 },
+    ],
+    upgradeCosts: {
+      training_complex: [4, 8, 12],
+      medical_center: [4, 8, 12],
+      film_room: [3, 6, 9],
+      weight_room: [3, 6, 9],
+      recovery_suite: [5, 10, 15],
+    },
+  },
+  medicalStaff: {
+    current: {
+      id: 'med-1',
+      name: 'Dr. Harper',
+      tier: 'good',
+      salary: 1.8,
+      recoveryBonus: 0.9,
+      preventionBonus: 0.9,
+    },
+    available: [
+      {
+        id: 'med-2',
+        name: 'Parker Lane',
+        tier: 'elite',
+        salary: 2.8,
+        recoveryBonus: 0.8,
+        preventionBonus: 0.8,
+      },
+    ],
   },
 };
 
@@ -24,15 +60,23 @@ vi.mock('../../app/store/game-store', () => ({
     actions: {
       setDifficulty: () => Promise<void>;
       setAdaptiveDifficultyEnabled: () => Promise<void>;
+      upgradeFacility: () => Promise<void>;
+      hireMedicalStaff: () => Promise<void>;
     };
   }) => unknown) => selector({
     game: gameState,
     actions: {
       setDifficulty: async () => undefined,
       setAdaptiveDifficultyEnabled: async () => undefined,
+      upgradeFacility: async () => undefined,
+      hireMedicalStaff: async () => undefined,
     },
   }),
   selectDifficultyState: (state: { game: typeof gameState }) => state.game.difficultyState,
+  selectUserTeam: (state: { game: typeof gameState }) => state.game.userTeam,
+  selectFacilities: (state: { game: typeof gameState }) => state.game.facilities,
+  selectMedicalStaff: (state: { game: typeof gameState }) => state.game.medicalStaff,
+  selectPhase: (state: { game: typeof gameState }) => state.game.phase,
 }));
 
 vi.mock('../../app/store/ui-store', () => ({
@@ -57,5 +101,8 @@ describe('Settings', () => {
     expect(markup).toContain('DETAILED');
     expect(markup).toContain('Adaptive Difficulty');
     expect(markup).toContain('Winning streaks get tougher');
+    expect(markup).toContain('--- FACILITIES ---');
+    expect(markup).toContain('--- MEDICAL STAFF ---');
+    expect(markup).toContain('Dr. Harper');
   });
 });

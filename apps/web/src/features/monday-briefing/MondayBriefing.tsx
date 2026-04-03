@@ -3,7 +3,7 @@ import { calculateTrainingXP } from '@mfd/engine';
 import { PixelPanel, PixelBadge, PixelProgressBar } from '@mfd/design-system/components';
 import {
   useGameStore, selectUserTeam, selectRoster,
-  selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary, selectLatestGameDayPackage, selectActiveStoryArcs, selectTeams,
+  selectFacilities, selectFatigueReport, selectPhase, selectPlayoffMomentum, selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary, selectLatestGameDayPackage, selectActiveStoryArcs, selectTeams,
   selectUserPowerRanking, selectUserRecordWatch, selectUserMentoringPairs,
   selectOffFieldEvents, selectUpcomingRivalry, selectCoachingCarouselNews,
   selectConditionalPicks, selectHandshakes, selectLeagueNews, selectPlayoffPicture, selectTrainingAssignments, selectWaiverWirePlayers, selectWeather,
@@ -19,6 +19,14 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 
+const facilityLabels: Record<string, string> = {
+  training_complex: 'Training Complex',
+  medical_center: 'Medical Center',
+  film_room: 'Film Room',
+  weight_room: 'Weight Room',
+  recovery_suite: 'Recovery Suite',
+};
+
 function resultAccent(result?: string): 'default' | 'green' | 'red' {
   return result === 'win' ? 'green' : result === 'loss' ? 'red' : 'default';
 }
@@ -26,6 +34,7 @@ function resultAccent(result?: string): 'default' | 'green' | 'red' {
 export function MondayBriefing() {
   const team = useGameStore(selectUserTeam);
   const roster = useGameStore(selectRoster);
+  const phase = useGameStore(selectPhase);
   const week = useGameStore(selectWeek);
   const year = useGameStore(selectYear);
   const schedule = useGameStore(selectSchedule);
@@ -46,6 +55,9 @@ export function MondayBriefing() {
   const leagueNews = useGameStore(selectLeagueNews);
   const trainingAssignments = useGameStore(selectTrainingAssignments);
   const playoffPicture = useGameStore(selectPlayoffPicture);
+  const fatigueReport = useGameStore(selectFatigueReport);
+  const facilities = useGameStore(selectFacilities);
+  const playoffMomentum = useGameStore(selectPlayoffMomentum);
 
   const teamName = team ? `${team.city} ${team.name}` : 'No Team';
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '0-0';
@@ -73,10 +85,30 @@ export function MondayBriefing() {
       .map((p) => ({
         player: `${p.firstName.charAt(0)}. ${p.lastName}`,
         position: p.pos,
+        type: p.injury!.type,
         status: p.injury!.severity,
+        severityTier: p.injury!.severityTier,
         weeks: p.injury!.gamesOut,
+        reinjuryRisk: p.injury!.reinjuryRisk,
+        onIR: p.injury!.onIR,
       })),
   [roster]);
+
+  const fatigueWatch = useMemo(() =>
+    fatigueReport
+      .map((entry) => ({
+        ...entry,
+        player: roster.find((candidate) => candidate.id === entry.playerId),
+      }))
+      .filter((entry): entry is typeof entry & { player: NonNullable<typeof entry.player> } => Boolean(entry.player) && entry.status !== 'fresh')
+      .slice(0, 4),
+  [fatigueReport, roster]);
+
+  const facilityStatus = useMemo(() =>
+    [...facilities.facilities]
+      .sort((a, b) => b.level - a.level || a.type.localeCompare(b.type))
+      .slice(0, 5),
+  [facilities]);
 
   const devWatchlist = useMemo(() =>
     roster
@@ -132,6 +164,11 @@ export function MondayBriefing() {
             <PixelBadge variant="gold">{record}</PixelBadge>
             <PixelBadge variant="cyan">WK {String(week).padStart(2, '0')}</PixelBadge>
             <PixelBadge variant="default">YR {year}</PixelBadge>
+            {phase === 'playoffs' && playoffMomentum ? (
+              <PixelBadge variant={playoffMomentum.momentum > 85 ? 'gold' : playoffMomentum.momentum > 70 ? 'cyan' : 'default'}>
+                {playoffMomentum.narrativeTag ? playoffMomentum.narrativeTag.replaceAll('_', ' ') : 'playoff push'}
+              </PixelBadge>
+            ) : null}
           </>
         )}
       />
@@ -322,10 +359,13 @@ export function MondayBriefing() {
                       {inj.player} <span style={{ color: '#777' }}>{inj.position}</span>
                     </div>
                     <div style={{ ...monoSm, color: '#888' }}>
-                      Recovery timeline: {inj.weeks} week(s)
+                      {inj.type.replaceAll('_', ' ')} // {inj.severityTier.replaceAll('_', ' ')} // recovery {inj.weeks} week(s)
                     </div>
                   </div>
-                  <PixelBadge variant="red">{inj.status}</PixelBadge>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {inj.onIR ? <PixelBadge variant="red">IR</PixelBadge> : null}
+                    <PixelBadge variant="red">{inj.status}</PixelBadge>
+                  </div>
                 </div>
               ))}
             </div>
@@ -360,6 +400,87 @@ export function MondayBriefing() {
                   />
                 </div>
               ))}
+            </div>
+          )}
+        </PixelPanel>
+      </div>
+
+      <div style={autoGrid(320)}>
+        <PixelPanel title="Fatigue Watch" accent={fatigueWatch.some((entry) => entry.status === 'exhausted') ? 'red' : fatigueWatch.length > 0 ? 'gold' : 'green'}>
+          {fatigueWatch.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No workload alerts. The roster is entering the next week with fresh legs.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {fatigueWatch.map((entry) => (
+                <div key={entry.playerId} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ ...mono, color: '#fff' }}>{entry.player.name}</div>
+                    <div style={{ ...monoSm, color: '#999' }}>{entry.player.pos} // fatigue {entry.fatigue.toFixed(1)}</div>
+                  </div>
+                  <PixelBadge variant={entry.status === 'exhausted' ? 'red' : 'gold'}>
+                    {entry.status}
+                  </PixelBadge>
+                </div>
+              ))}
+            </div>
+          )}
+        </PixelPanel>
+
+        <PixelPanel title="Facility Status" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+              <div style={{ ...mono, color: '#fff' }}>Budget Remaining</div>
+              <PixelBadge variant={facilities.budget >= 6 ? 'green' : facilities.budget >= 3 ? 'gold' : 'red'}>
+                ${facilities.budget}
+              </PixelBadge>
+            </div>
+            {facilityStatus.map((facility) => (
+              <div key={facility.type} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                <div>
+                  <div style={{ ...monoSm, color: '#fff' }}>{facilityLabels[facility.type] ?? facility.type}</div>
+                  <div style={{ ...monoSm, color: '#999' }}>
+                    {facility.type === 'training_complex' ? 'Player development boost' : facility.type === 'medical_center' ? 'Faster recovery cycle' : facility.type === 'film_room' ? 'Cleaner scouting reads' : facility.type === 'weight_room' ? 'Lower fatigue gain' : 'Lower injury exposure'}
+                  </div>
+                </div>
+                <PixelBadge variant={facility.level === 3 ? 'gold' : facility.level === 2 ? 'cyan' : 'default'}>
+                  L{facility.level}
+                </PixelBadge>
+              </div>
+            ))}
+          </div>
+        </PixelPanel>
+
+        <PixelPanel title="Playoff Momentum" accent={phase === 'playoffs' && playoffMomentum ? 'gold' : 'default'}>
+          {phase !== 'playoffs' || !playoffMomentum ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              Narrative momentum activates once the postseason bracket is live.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                <div style={{ ...display, fontSize: '22px', color: '#fff', lineHeight: 1 }}>
+                  {playoffMomentum.momentum}
+                </div>
+                {playoffMomentum.narrativeTag ? (
+                  <PixelBadge variant={playoffMomentum.momentum > 85 ? 'gold' : 'cyan'}>
+                    {playoffMomentum.narrativeTag.replaceAll('_', ' ')}
+                  </PixelBadge>
+                ) : null}
+              </div>
+              <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
+                {playoffMomentum.winStreak > 0
+                  ? `${playoffMomentum.winStreak}-game streak carries into this matchup.`
+                  : 'No active streak edge entering the playoff round.'}
+              </div>
+              <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
+                {playoffMomentum.momentum > 85
+                  ? 'The room is carrying a full postseason surge into kickoff.'
+                  : playoffMomentum.momentum > 70
+                    ? 'There is a measurable playoff bump behind the current run.'
+                    : 'Narrative pressure is real, but the edge is modest right now.'}
+              </div>
             </div>
           )}
         </PixelPanel>

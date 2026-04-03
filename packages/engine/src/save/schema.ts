@@ -44,7 +44,14 @@ export const ContractSchema = z.object({
 export const InjurySchema = z.object({
   type: z.string(),
   severity: z.enum(['questionable', 'doubtful', 'out', 'ir']),
+  severityTier: z.enum(['minor', 'moderate', 'severe', 'season_ending']).default('minor'),
   gamesOut: z.number(),
+  id: z.string().default('legacy-injury'),
+  gamesRecovered: z.number().default(0),
+  reinjuryRisk: z.number().default(0),
+  affectedRatings: z.array(z.string()).default([]),
+  ratingPenalty: z.number().default(0),
+  onIR: z.boolean().default(false),
 });
 
 export const StoryArcSchema = z.object({
@@ -360,6 +367,48 @@ export const ScoutingDepartmentSchema = z.object({
   maxScouts: z.number(),
 });
 
+export const MedicalStaffSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  tier: z.enum(['elite', 'good', 'average', 'poor']),
+  salary: z.number(),
+  recoveryBonus: z.number(),
+  preventionBonus: z.number(),
+});
+
+export const FatigueStateSchema = z.object({
+  playerId: z.string(),
+  fatigue: z.number(),
+  weeklySnaps: z.array(z.number()),
+  seasonSnaps: z.number(),
+  restWeeks: z.number(),
+  conditioningBonus: z.number(),
+});
+
+export const FacilityTypeSchema = z.enum(['training_complex', 'medical_center', 'film_room', 'weight_room', 'recovery_suite']);
+
+export const FacilityEffectSchema = z.object({
+  trainingXPBonus: z.number(),
+  recoveryBonus: z.number(),
+  injuryPreventionBonus: z.number(),
+  scoutingBonus: z.number(),
+  moraleBonus: z.number(),
+  fatigueGainBonus: z.number(),
+});
+
+export const FacilitySchema = z.object({
+  type: FacilityTypeSchema,
+  level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  effect: FacilityEffectSchema,
+});
+
+export const FacilityStateSchema = z.object({
+  facilities: z.array(FacilitySchema),
+  budget: z.number(),
+  maxFacilities: z.number(),
+  upgradeCosts: z.record(FacilityTypeSchema, z.array(z.number())),
+});
+
 export const PickConditionSchema = z.object({
   type: z.enum(['games_played', 'pro_bowl', 'playoff_win', 'starts']),
   playerId: z.string(),
@@ -496,6 +545,13 @@ export const DifficultyStateSchema = z.object({
   adjustmentHistory: z.array(DifficultyAdjustmentSchema),
 });
 
+export const PlayoffMomentumSchema = z.object({
+  teamId: z.string(),
+  momentum: z.number(),
+  narrativeTag: z.enum(['cinderella', 'dynasty', 'revenge', 'hot_streak', 'defending_champ', 'underdog']).nullable(),
+  winStreak: z.number(),
+});
+
 export const TradeProposalSchema: z.ZodType = z.lazy(() => z.object({
   id: z.string(),
   fromTeamId: z.string(),
@@ -604,6 +660,8 @@ export const SaveStateSchema = z.object({
     currentStreak: 0,
     adjustmentHistory: [],
   }),
+  availableMedicalStaff: z.array(MedicalStaffSchema).default([]),
+  playoffMomentum: z.record(z.string(), PlayoffMomentumSchema).default({}),
   scoutingDepartment: ScoutingDepartmentSchema.default({
     scouts: [],
     availableScouts: [],

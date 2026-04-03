@@ -217,4 +217,73 @@ describe('game store offseason actions', () => {
     expect(useGameStore.getState().game?.activeProposals.length).toBeGreaterThan(0);
     expect(autosaveDynasty).toHaveBeenCalledTimes(2);
   });
+
+  it('routes IR placement and activation through the store', async () => {
+    const game = createSeedGameState(444, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const player = userTeam.roster[0]!;
+    player.injury = {
+      id: 'inj-store',
+      type: 'hamstring',
+      severity: 'out',
+      severityTier: 'severe',
+      gamesOut: 2,
+      gamesRecovered: 0,
+      reinjuryRisk: 0.2,
+      affectedRatings: ['speed'],
+      ratingPenalty: 0,
+      onIR: false,
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.placeOnIR(userTeam.id, player.id);
+    expect(useGameStore.getState().game?.teams[userTeam.id]?.roster[0]?.injury?.onIR).toBe(true);
+
+    const clearedGame = structuredClone(useGameStore.getState().game!);
+    clearedGame.teams[userTeam.id]!.roster[0]!.injury!.gamesOut = 0;
+    useGameStore.setState((state) => ({
+      ...state,
+      game: clearedGame,
+      initialized: true,
+    }));
+    await useGameStore.getState().actions.activateFromIR(userTeam.id, player.id);
+
+    expect(useGameStore.getState().game?.teams[userTeam.id]?.roster[0]?.injury?.onIR).toBe(false);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(2);
+  });
+
+  it('upgrades facilities and hires medical staff through the store', async () => {
+    const game = createSeedGameState(555, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    game.phase = 'offseason';
+    game.availableMedicalStaff = [{
+      id: 'med-store',
+      name: 'Parker Lane',
+      tier: 'elite',
+      salary: 2.8,
+      recoveryBonus: 0.8,
+      preventionBonus: 0.8,
+    }];
+
+    const startingBudget = userTeam.facilityState.budget;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.upgradeFacility(userTeam.id, 'film_room');
+    await useGameStore.getState().actions.hireMedicalStaff(userTeam.id, 'med-store');
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.teams[userTeam.id]!.facilityState.budget).toBeLessThan(startingBudget);
+    expect(nextGame.teams[userTeam.id]!.medicalStaff?.id).toBe('med-store');
+    expect(autosaveDynasty).toHaveBeenCalledTimes(2);
+  });
 });

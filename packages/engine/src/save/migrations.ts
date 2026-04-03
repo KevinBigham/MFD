@@ -11,6 +11,160 @@ type MigrationFn = (state: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Map<number, MigrationFn> = new Map();
 
+const FACILITY_TYPES = ['training_complex', 'medical_center', 'film_room', 'weight_room', 'recovery_suite'] as const;
+
+function defaultUpgradeCosts(): Record<string, number[]> {
+  return {
+    training_complex: [4, 8, 12],
+    medical_center: [4, 8, 12],
+    film_room: [3, 6, 9],
+    weight_room: [3, 6, 9],
+    recovery_suite: [5, 10, 15],
+  };
+}
+
+function facilityBudgetForOwner(archetypeId: unknown): number {
+  switch (archetypeId) {
+    case 'profit_first':
+      return 8;
+    case 'fan_favorite':
+    case 'legacy_builder':
+      return 12;
+    case 'win_now':
+    case 'patient_builder':
+    default:
+      return 10;
+  }
+}
+
+function emptyFacilityEffect() {
+  return {
+    trainingXPBonus: 1,
+    recoveryBonus: 1,
+    injuryPreventionBonus: 1,
+    scoutingBonus: 1,
+    moraleBonus: 1,
+    fatigueGainBonus: 1,
+  };
+}
+
+function defaultFacilityState(archetypeId: unknown): Record<string, unknown> {
+  return {
+    facilities: FACILITY_TYPES.map((type) => ({
+      type,
+      level: 1,
+      effect: emptyFacilityEffect(),
+    })),
+    budget: facilityBudgetForOwner(archetypeId),
+    maxFacilities: 5,
+    upgradeCosts: defaultUpgradeCosts(),
+  };
+}
+
+function severityTierForLegacy(value: unknown): string {
+  switch (value) {
+    case 'doubtful':
+      return 'moderate';
+    case 'out':
+      return 'severe';
+    case 'ir':
+      return 'season_ending';
+    case 'questionable':
+    default:
+      return 'minor';
+  }
+}
+
+function affectedRatingsForInjury(type: unknown): string[] {
+  switch (type) {
+    case 'concussion':
+      return ['awareness'];
+    case 'acl':
+    case 'hamstring':
+    case 'groin':
+    case 'quad':
+    case 'ankle_sprain':
+    case 'knee_sprain':
+    case 'foot':
+      return ['speed', 'acceleration', 'agility'];
+    case 'shoulder':
+    case 'hand':
+      return ['throwPower', 'catching'];
+    case 'back':
+    case 'ribs':
+      return ['strength', 'stamina'];
+    default:
+      return ['stamina'];
+  }
+}
+
+function legacyReinjuryRisk(severity: unknown): number {
+  switch (severity) {
+    case 'doubtful':
+      return 0.12;
+    case 'out':
+      return 0.22;
+    case 'ir':
+      return 0.35;
+    case 'questionable':
+    default:
+      return 0.08;
+  }
+}
+
+function convertInjury(injury: unknown, fallbackId: string): Record<string, unknown> | null {
+  if (!injury || typeof injury !== 'object') return null;
+  const record = injury as Record<string, unknown>;
+  if (Array.isArray(record['affectedRatings']) && typeof record['severityTier'] === 'string') {
+    return record;
+  }
+
+  const severity = typeof record['severity'] === 'string' ? record['severity'] : 'questionable';
+  const gamesOut = Number(record['gamesOut'] ?? 0);
+  const onIR = Boolean(record['onIR']) || severity === 'ir';
+
+  return {
+    id: typeof record['id'] === 'string' ? record['id'] : fallbackId,
+    type: typeof record['type'] === 'string' ? record['type'] : 'hamstring',
+    severity,
+    severityTier: severityTierForLegacy(severity),
+    gamesOut,
+    gamesRecovered: Number(record['gamesRecovered'] ?? 0),
+    reinjuryRisk: Number(record['reinjuryRisk'] ?? legacyReinjuryRisk(severity)),
+    affectedRatings: Array.isArray(record['affectedRatings']) ? record['affectedRatings'] : affectedRatingsForInjury(record['type']),
+    ratingPenalty: Number(record['ratingPenalty'] ?? 0),
+    onIR,
+  };
+}
+
+function extendSeasonStats(raw: unknown): Record<string, unknown> {
+  const seasonStats = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  return {
+    gamesPlayed: Number(seasonStats['gamesPlayed'] ?? 0),
+    pointsFor: Number(seasonStats['pointsFor'] ?? 0),
+    pointsAgainst: Number(seasonStats['pointsAgainst'] ?? 0),
+    pointDifferential: Number(seasonStats['pointDifferential'] ?? 0),
+    totalYards: Number(seasonStats['totalYards'] ?? 0),
+    passingYards: Number(seasonStats['passingYards'] ?? 0),
+    rushingYards: Number(seasonStats['rushingYards'] ?? 0),
+    turnoversLost: Number(seasonStats['turnoversLost'] ?? 0),
+    turnoversForced: Number(seasonStats['turnoversForced'] ?? 0),
+    sacksFor: Number(seasonStats['sacksFor'] ?? 0),
+    sacksAgainst: Number(seasonStats['sacksAgainst'] ?? 0),
+    drives: Number(seasonStats['drives'] ?? 0),
+    thirdDownConversions: Number(seasonStats['thirdDownConversions'] ?? 0),
+    thirdDownAttempts: Number(seasonStats['thirdDownAttempts'] ?? 0),
+    timeOfPossession: Number(seasonStats['timeOfPossession'] ?? 0),
+    fgMade: Number(seasonStats['fgMade'] ?? 0),
+    fgAttempted: Number(seasonStats['fgAttempted'] ?? 0),
+    punts: Number(seasonStats['punts'] ?? 0),
+    pressuresAllowed: Number(seasonStats['pressuresAllowed'] ?? 0),
+    yacYards: Number(seasonStats['yacYards'] ?? 0),
+    redZoneTrips: Number(seasonStats['redZoneTrips'] ?? 0),
+    redZoneScores: Number(seasonStats['redZoneScores'] ?? 0),
+  };
+}
+
 function rivalryId(teamA: string, teamB: string): string {
   return [teamA, teamB].sort().join('::');
 }
@@ -261,5 +415,79 @@ registerMigration(8, (state) => {
       currentStreak: 0,
       adjustmentHistory: [],
     },
+  };
+});
+
+registerMigration(9, (state) => {
+  const teams = (state['teams'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+  for (const [teamId, team] of Object.entries(teams)) {
+    team['medicalStaff'] = team['medicalStaff'] ?? null;
+    team['fatigueState'] = team['fatigueState'] ?? {};
+    team['facilityState'] = team['facilityState'] ?? defaultFacilityState((team['owner'] as Record<string, unknown> | undefined)?.['archetypeId']);
+    team['seasonStats'] = extendSeasonStats(team['seasonStats']);
+
+    const roster = Array.isArray(team['roster']) ? team['roster'] as Array<Record<string, unknown>> : [];
+    for (const player of roster) {
+      player['injury'] = convertInjury(player['injury'], `injury-${teamId}-${String(player['id'] ?? 'player')}`);
+      const stats = (player['stats'] as Record<string, unknown> | undefined) ?? {};
+      player['stats'] = {
+        gamesPlayed: Number(stats['gamesPlayed'] ?? 0),
+        passYds: Number(stats['passYds'] ?? 0),
+        passTD: Number(stats['passTD'] ?? 0),
+        passINT: Number(stats['passINT'] ?? 0),
+        passAtt: Number(stats['passAtt'] ?? 0),
+        passComp: Number(stats['passComp'] ?? 0),
+        rushYds: Number(stats['rushYds'] ?? 0),
+        rushAtt: Number(stats['rushAtt'] ?? 0),
+        rushTD: Number(stats['rushTD'] ?? 0),
+        fumbles: Number(stats['fumbles'] ?? 0),
+        rec: Number(stats['rec'] ?? 0),
+        recYds: Number(stats['recYds'] ?? 0),
+        recTD: Number(stats['recTD'] ?? 0),
+        targets: Number(stats['targets'] ?? 0),
+        sacks: Number(stats['sacks'] ?? 0),
+        defINT: Number(stats['defINT'] ?? 0),
+        tackles: Number(stats['tackles'] ?? 0),
+        fgMade: Number(stats['fgMade'] ?? 0),
+        fgAtt: Number(stats['fgAtt'] ?? 0),
+        yacYds: Number(stats['yacYds'] ?? 0),
+      };
+    }
+  }
+
+  const players = (state['players'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+  for (const [playerId, player] of Object.entries(players)) {
+    player['injury'] = convertInjury(player['injury'], `injury-player-${playerId}`);
+    const stats = (player['stats'] as Record<string, unknown> | undefined) ?? {};
+    player['stats'] = {
+      gamesPlayed: Number(stats['gamesPlayed'] ?? 0),
+      passYds: Number(stats['passYds'] ?? 0),
+      passTD: Number(stats['passTD'] ?? 0),
+      passINT: Number(stats['passINT'] ?? 0),
+      passAtt: Number(stats['passAtt'] ?? 0),
+      passComp: Number(stats['passComp'] ?? 0),
+      rushYds: Number(stats['rushYds'] ?? 0),
+      rushAtt: Number(stats['rushAtt'] ?? 0),
+      rushTD: Number(stats['rushTD'] ?? 0),
+      fumbles: Number(stats['fumbles'] ?? 0),
+      rec: Number(stats['rec'] ?? 0),
+      recYds: Number(stats['recYds'] ?? 0),
+      recTD: Number(stats['recTD'] ?? 0),
+      targets: Number(stats['targets'] ?? 0),
+      sacks: Number(stats['sacks'] ?? 0),
+      defINT: Number(stats['defINT'] ?? 0),
+      tackles: Number(stats['tackles'] ?? 0),
+      fgMade: Number(stats['fgMade'] ?? 0),
+      fgAtt: Number(stats['fgAtt'] ?? 0),
+      yacYds: Number(stats['yacYds'] ?? 0),
+    };
+  }
+
+  return {
+    ...state,
+    teams,
+    players,
+    availableMedicalStaff: Array.isArray(state['availableMedicalStaff']) ? state['availableMedicalStaff'] : [],
+    playoffMomentum: state['playoffMomentum'] ?? {},
   };
 });

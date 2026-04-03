@@ -6,10 +6,12 @@ import { calculateCompPicks } from './comp-picks';
 import { makeContract } from './contracts';
 import { resolveConditions } from './conditional-picks';
 import { ensureDraftClass } from './draft';
+import { replenishFacilityBudget } from './facilities';
 import { reevaluateLeagueStrategies } from './gm-strategies';
 import { evaluateHandshakes } from './handshake-ledger';
 import { inductHallOfFame } from './hall-of-fame';
 import { syncPlayerArchiveEntry } from './history';
+import { generateMedicalStaffPool } from './injury-system';
 import { generateOffseasonNews, recordNewsItem } from './league-news';
 import { applyMentoringBonuses, formMentoringPairs } from './mentoring';
 import { clearSeasonLivingWorldState } from './off-field-events';
@@ -395,6 +397,19 @@ function refreshScoutPool(game: GameState): void {
   game.scoutingDepartment.availableScouts = generateScoutPool(rand, game.year);
 }
 
+function refreshMedicalStaffPool(game: GameState): void {
+  const rand = mulberry32((game.seed ^ (game.year * 6151)) >>> 0);
+  game.availableMedicalStaff = generateMedicalStaffPool(rand, game.year);
+}
+
+function resetPhysicalState(game: GameState): void {
+  for (const team of Object.values(game.teams)) {
+    team.fatigueState = {};
+    replenishFacilityBudget(team);
+  }
+  game.playoffMomentum = {};
+}
+
 function resetPracticeSquads(game: GameState): void {
   for (const team of Object.values(game.teams)) {
     if (!team.practiceSquad) {
@@ -425,6 +440,8 @@ function rebuildDraftBoard(game: GameState): void {
 
 export function initializeOffseasonState(game: GameState): OffseasonState {
   refreshScoutPool(game);
+  refreshMedicalStaffPool(game);
+  resetPhysicalState(game);
   const expiringPlayers = Object.values(game.teams)
     .flatMap((team) => team.roster)
     .filter((player) => (player.contract?.years ?? 0) <= 1);
@@ -493,6 +510,9 @@ export function advanceOffseason(game: GameState): void {
   if (game.scoutingDepartment.availableScouts.length === 0) {
     refreshScoutPool(game);
   }
+  if (game.availableMedicalStaff.length === 0) {
+    refreshMedicalStaffPool(game);
+  }
 
   const seasonYear = currentSeasonYear(game);
   markCompletedSeason(game, seasonYear);
@@ -534,6 +554,7 @@ export function advanceOffseason(game: GameState): void {
   const progression = progressPlayers(game, { mentoringBonuses, trainingBonuses });
   game.eventLog.push(...progression.events);
   clearTrainingAssignments(game);
+  resetPhysicalState(game);
   resetPracticeSquads(game);
   const narrativeAdds = [
     awards.ceremony.headline,

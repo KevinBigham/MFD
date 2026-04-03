@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, DollarSign, ArrowLeftRight,
   Search, FileText, Handshake, Gamepad2, GraduationCap,
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
-  Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3,
+  Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity,
 } from 'lucide-react';
 import { MfdTooltipProvider, MfdCommandPalette, PixelNav, type CommandItem } from '@mfd/design-system/components';
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
@@ -34,6 +34,7 @@ const LazyLegacyTimeline = lazy(async () => ({ default: (await import('../featur
 const LazyPowerRankings = lazy(async () => ({ default: (await import('../features/power-rankings/PowerRankings')).PowerRankings }));
 const LazyLeagueNews = lazy(async () => ({ default: (await import('../features/league-news/LeagueNews')).LeagueNews }));
 const LazyLeagueStandings = lazy(async () => ({ default: (await import('../features/standings/LeagueStandings')).LeagueStandings }));
+const LazyAnalyticsDashboard = lazy(async () => ({ default: (await import('../features/analytics/AnalyticsDashboard')).AnalyticsDashboard }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -62,6 +63,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/handshakes',    label: 'Handshakes',       shortLabel: 'Promises', icon: <ScrollText size={16} /> },
   { path: '/news',          label: 'News',             shortLabel: 'News',     icon: <Newspaper size={16} /> },
   { path: '/standings',     label: 'Standings',        shortLabel: 'Stand',    icon: <BarChart3 size={16} /> },
+  { path: '/analytics',     label: 'Analytics',        shortLabel: 'Data',     icon: <Activity size={16} /> },
   { path: '/power-rankings',label: 'Power Rankings',   shortLabel: 'Rankings', icon: <TrendingUp size={16} /> },
   { path: '/legacy',        label: 'Legacy',           shortLabel: 'Legacy',   icon: <Trophy size={16} /> },
   { path: '/dynasty',       label: 'Save/Load',        shortLabel: 'Save',     icon: <Save size={16} /> },
@@ -370,6 +372,16 @@ const standingsRoute = createRoute({
   ),
 });
 
+const analyticsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/analytics',
+  component: () => (
+    <LazyRouteFrame label="analytics">
+      <LazyAnalyticsDashboard />
+    </LazyRouteFrame>
+  ),
+});
+
 const legacyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/legacy',
@@ -412,7 +424,7 @@ const routeTree = rootRoute.addChildren([
   scoutingRoute, draftRoute, freeAgencyRoute,
   gameDayRoute, inboxRoute, depthChartRoute, coachingRoute,
   ownerRoute, weekAdvanceRoute, handshakeRoute,
-  newsRoute, standingsRoute,
+  newsRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, legacyRoute, dynastyRoute, settingsRoute,
 ]);
 

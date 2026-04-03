@@ -2,11 +2,13 @@ import type { PlayerSeasonStats, Team, TeamGameStats, TeamSeasonStats } from '..
 
 export function emptyPlayerStats(): PlayerSeasonStats {
   return {
+    gamesPlayed: 0,
     passYds: 0, passTD: 0, passINT: 0, passAtt: 0, passComp: 0,
     rushYds: 0, rushAtt: 0, rushTD: 0, fumbles: 0,
     rec: 0, recYds: 0, recTD: 0, targets: 0,
     sacks: 0, defINT: 0, tackles: 0,
     fgMade: 0, fgAtt: 0,
+    yacYds: 0,
   };
 }
 
@@ -23,6 +25,17 @@ export function createEmptySeasonStats(gamesPlayed = 0): TeamSeasonStats {
     turnoversForced: 0,
     sacksFor: 0,
     sacksAgainst: 0,
+    drives: 0,
+    thirdDownConversions: 0,
+    thirdDownAttempts: 0,
+    timeOfPossession: 0,
+    fgMade: 0,
+    fgAttempted: 0,
+    punts: 0,
+    pressuresAllowed: 0,
+    yacYards: 0,
+    redZoneTrips: 0,
+    redZoneScores: 0,
   };
 }
 
@@ -53,6 +66,17 @@ export function applyGameToSeasonStats(
   stats.turnoversForced += opponentStats.turnovers;
   stats.sacksFor += teamStats.sacks;
   stats.sacksAgainst += opponentStats.sacks;
+  stats.drives += teamStats.drives;
+  stats.thirdDownConversions += teamStats.thirdDownConversions;
+  stats.thirdDownAttempts += teamStats.thirdDownAttempts;
+  stats.timeOfPossession += teamStats.timeOfPossession;
+  stats.fgMade += teamStats.fgMade;
+  stats.fgAttempted += teamStats.fgAttempted;
+  stats.punts += teamStats.punts;
+  stats.pressuresAllowed += teamStats.pressuresAllowed;
+  stats.yacYards += teamStats.yacYards;
+  stats.redZoneTrips += teamStats.redZoneTrips;
+  stats.redZoneScores += teamStats.redZoneScores;
 }
 
 export function tickInjuries(team: Team): void {

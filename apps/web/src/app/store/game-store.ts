@@ -11,14 +11,17 @@ import type {
 } from '@mfd/engine';
 import {
   addToPracticeSquad as addToPracticeSquadEngine,
+  activateFromIR as activateFromIREngine,
   assignTraining as assignTrainingEngine,
   acceptCounterProposal as acceptCounterProposalEngine,
   cutPlayerToWaivers as cutPlayerToWaiversEngine,
   createTradeProposal as createTradeProposalEngine,
   elevateFromPracticeSquad as elevateFromPracticeSquadEngine,
   fireScout as fireScoutEngine,
+  hireMedicalStaff as hireMedicalStaffEngine,
   hireScout as hireScoutEngine,
   makePlayerPromise as makePlayerPromiseEngine,
+  placeOnIR as placeOnIREngine,
   removeFromPracticeSquad as removeFromPracticeSquadEngine,
   restructureContract, backloadContract,
   calcCapHit, calcDeadMoney,
@@ -36,6 +39,7 @@ import {
   acceptTradeOffer as acceptTradeOfferEngine,
   rejectTradeOffer as rejectTradeOfferEngine,
   makeDraftPick as makeDraftPickEngine,
+  upgradeFacility as upgradeFacilityEngine,
 } from '@mfd/engine';
 import { autosaveDynasty, loadLatestAutosaveGame } from './persistence';
 import type { GameStoreState } from './selectors';
@@ -60,6 +64,8 @@ interface GameActions {
   elevatePracticeSquadPlayer: (teamId: string, playerId: string) => Promise<void>;
   submitWaiverClaim: (teamId: string, playerId: string) => Promise<void>;
   assignTraining: (teamId: string, playerId: string, focus: TrainingFocus) => Promise<void>;
+  placeOnIR: (teamId: string, playerId: string) => Promise<void>;
+  activateFromIR: (teamId: string, playerId: string) => Promise<void>;
 
   // Contract actions
   restructure: (teamId: string, playerId: string) => void;
@@ -75,6 +81,8 @@ interface GameActions {
   runProDay: (prospectId: string) => Promise<void>;
   hireScout: (scoutId: string) => Promise<void>;
   fireScout: (scoutId: string) => Promise<void>;
+  upgradeFacility: (teamId: string, facilityType: 'training_complex' | 'medical_center' | 'film_room' | 'weight_room' | 'recovery_suite') => Promise<void>;
+  hireMedicalStaff: (teamId: string, staffId: string) => Promise<void>;
   acceptTradeOffer: (offerId: string) => Promise<void>;
   rejectTradeOffer: (offerId: string) => Promise<void>;
   createTradeProposal: (
@@ -212,6 +220,22 @@ export const useGameStore = create<GameStore>()(
         await commitGame(nextGame);
       },
 
+      placeOnIR: async (teamId, playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        placeOnIREngine(nextGame, teamId, playerId);
+        await commitGame(nextGame);
+      },
+
+      activateFromIR: async (teamId, playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        activateFromIREngine(nextGame, teamId, playerId);
+        await commitGame(nextGame);
+      },
+
       restructure: (teamId, playerId) =>
         set((s) => {
           if (!s.game) return;
@@ -301,6 +325,22 @@ export const useGameStore = create<GameStore>()(
         if (!current) return;
         const result = fireScoutEngine(current, scoutId);
         await commitGame(result.nextState);
+      },
+
+      upgradeFacility: async (teamId, facilityType) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        upgradeFacilityEngine(nextGame, teamId, facilityType);
+        await commitGame(nextGame);
+      },
+
+      hireMedicalStaff: async (teamId, staffId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        hireMedicalStaffEngine(nextGame, teamId, staffId);
+        await commitGame(nextGame);
       },
 
       acceptTradeOffer: async (offerId) => {

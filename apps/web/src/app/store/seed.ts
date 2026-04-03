@@ -18,6 +18,7 @@ import {
   CONTRACT_VALUE_TABLE, AGE_VALUE_CURVE, MIN_SALARY, emptyPlayerStats,
   createDefaultScoutingDepartment,
   createDefaultDifficultyState,
+  createFacilityState,
   syncAllPlayerArchiveEntries,
 } from '@mfd/engine';
 import { createEmptyRecordBook } from '@mfd/engine';
@@ -304,6 +305,9 @@ function genTeam(
     seasonStats: createEmptySeasonStats(),
     mentoringPairs: [],
     trainingAssignments: {},
+    medicalStaff: null,
+    fatigueState: {},
+    facilityState: createFacilityState(ownerState.archetypeId, !isUser, () => rng(0, 1000) / 1000),
     practiceSquad: [],
     stadiumType: DOME_CITIES.has(def.city) ? 'dome' : 'outdoor',
   };
@@ -432,6 +436,8 @@ export function createSeedGameState(
     leagueNews: [],
     activeProposals: [],
     difficultyState: createDefaultDifficultyState(),
+    availableMedicalStaff: [],
+    playoffMomentum: {},
     scoutingDepartment: createDefaultScoutingDepartment(),
     conditionalPicks: [],
     waiverOrder: [...teamIds],

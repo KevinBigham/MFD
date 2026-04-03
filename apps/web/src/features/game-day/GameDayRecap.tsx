@@ -1,9 +1,10 @@
-import type { GameDayPackage, GameResult, PlayerGameLine, SeasonPhase, TeamGameStats } from '@mfd/engine';
+import type { GameDayPackage, GameResult, PlayerGameLine, PlayoffMomentum, SeasonPhase, TeamGameStats } from '@mfd/engine';
 import { PixelPanel, PixelBadge, PixelDialog, PixelScoreboard, PixelStatBar } from '@mfd/design-system/components';
 import {
   selectLatestGameDayPackage,
   selectLatestGameResult,
   selectPhase,
+  selectPlayoffMomentum,
   selectTeams,
   selectUserTeam,
   selectYear,
@@ -45,9 +46,16 @@ interface GameDayCenterViewProps {
   phase: SeasonPhase;
   year: number;
   packageData: GameDayPackage | null;
+  playoffMomentum?: PlayoffMomentum | null;
 }
 
-export function GameDayCenterView({ teamLabel, phase, year, packageData }: GameDayCenterViewProps) {
+export function GameDayCenterView({
+  teamLabel,
+  phase,
+  year,
+  packageData,
+  playoffMomentum = null,
+}: GameDayCenterViewProps) {
   if (!packageData) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -111,9 +119,34 @@ export function GameDayCenterView({ teamLabel, phase, year, packageData }: GameD
             {packageData.stakes.map((s) => (
               <PixelBadge key={s.label} variant="default">{s.label.toUpperCase()}</PixelBadge>
             ))}
+            {phase === 'playoffs' && playoffMomentum ? (
+              <PixelBadge variant={playoffMomentum.momentum > 85 ? 'gold' : playoffMomentum.momentum > 70 ? 'cyan' : 'default'}>
+                {playoffMomentum.narrativeTag ? playoffMomentum.narrativeTag.replaceAll('_', ' ') : `momentum ${playoffMomentum.momentum}`}
+              </PixelBadge>
+            ) : null}
           </div>
         </div>
       </PixelPanel>
+
+      {phase === 'playoffs' && playoffMomentum ? (
+        <PixelPanel title="Playoff Momentum" accent={playoffMomentum.momentum > 85 ? 'gold' : playoffMomentum.momentum > 70 ? 'cyan' : 'default'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+              <div style={{ ...display, fontSize: '20px', color: '#fff', lineHeight: 1 }}>
+                {teamLabel.toUpperCase()}
+              </div>
+              <PixelBadge variant={playoffMomentum.momentum > 85 ? 'gold' : playoffMomentum.momentum > 70 ? 'cyan' : 'default'}>
+                MOM {playoffMomentum.momentum}
+              </PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
+              {playoffMomentum.narrativeTag
+                ? `${playoffMomentum.narrativeTag.replaceAll('_', ' ')} narrative is active with a ${playoffMomentum.winStreak}-game streak profile.`
+                : `Momentum sits at ${playoffMomentum.momentum} entering this playoff stage.`}
+            </div>
+          </div>
+        </PixelPanel>
+      ) : null}
 
       {packageData.matchupHighlight ? (
         <PixelPanel title="Key Matchup" accent="cyan">
@@ -499,11 +532,18 @@ export function GameDayRecap() {
   const year = useGameStore(selectYear);
   const packageData = useGameStore(selectLatestGameDayPackage);
   const gameResult = useGameStore(selectLatestGameResult);
+  const playoffMomentum = useGameStore(selectPlayoffMomentum);
 
   if (!team) return null;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <GameDayCenterView teamLabel={`${team.city} ${team.name}`} phase={phase} year={year} packageData={packageData} />
+      <GameDayCenterView
+        teamLabel={`${team.city} ${team.name}`}
+        phase={phase}
+        year={year}
+        packageData={packageData}
+        playoffMomentum={playoffMomentum}
+      />
       {gameResult && <FullBoxScore gameResult={gameResult} userTeamId={team.id} />}
     </div>
   );

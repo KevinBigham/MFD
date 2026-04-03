@@ -1,3 +1,4 @@
+import { applyFacilityBonuses } from './facilities';
 import type { GameState, Player, Team, TrainingAssignment, TrainingFocus } from '../types';
 
 const TRAINING_BASE: Record<TrainingFocus, number> = {
@@ -127,19 +128,20 @@ export function processWeeklyTraining(game: GameState, teamId: string, rand: () 
   }
 
   const devRating = coachRating(team);
+  const facilityBonuses = applyFacilityBonuses(team);
   for (const assignment of Object.values(team.trainingAssignments)) {
     const player = game.players[assignment.playerId];
     if (!player || player.teamId !== teamId) continue;
 
     const xp = calculateTrainingXP(player, assignment.focus, devRating, player.devTrait);
     const variance = Number((rand() * 1.5).toFixed(2));
-    const totalXp = Number((xp.totalXp + variance).toFixed(2));
+    const totalXp = Number(((xp.totalXp + variance) * facilityBonuses.trainingXPBonus).toFixed(2));
     assignment.weeksAssigned += 1;
     assignment.xpGained = Number((assignment.xpGained + totalXp).toFixed(2));
     assignment.focusXp[assignment.focus] = Number((assignment.focusXp[assignment.focus] + totalXp).toFixed(2));
 
     if (assignment.focus === 'rest') {
-      player.morale = Math.min(99, player.morale + 3);
+      player.morale = Math.min(99, Math.round(player.morale + 3 * facilityBonuses.moraleBonus));
     }
   }
 }

@@ -94,16 +94,58 @@ export {
   clearTrainingAssignments,
 } from './systems/player-development';
 export {
+  createFacilityState,
+  getFacilityLevelEffect,
+  getFacility,
+  applyFacilityBonuses,
+  upgradeFacility,
+  replenishFacilityBudget,
+} from './systems/facilities';
+export {
+  isPlayerUnavailable,
+  getInjuryPenalty,
+  calculateRecoveryGames,
+  generateInjury,
+  processInjuryRecovery,
+  placeOnIR,
+  activateFromIR,
+  generateMedicalStaffPool,
+  hireMedicalStaff,
+  maybeGenerateTeamInjury,
+} from './systems/injury-system';
+export {
+  calculateGameFatigue,
+  applyWeeklyRecovery,
+  getFatigueModifier,
+  getInjuryRiskMultiplier,
+  processWeeklyFatigue,
+  getWorkloadReport,
+  buildFatiguePlayerBonuses,
+} from './systems/fatigue';
+export {
   createDefaultDifficultyState,
   updateAdaptiveDifficulty,
   getAdaptiveModifier,
 } from './systems/adaptive-difficulty';
+export {
+  calculateAdvancedStats,
+  calculatePlayerEfficiency,
+  getStatLeaders as getAnalyticsStatLeaders,
+  getTeamRankings,
+  getPlayerComparison,
+  getWeeklyTrend,
+} from './systems/analytics';
 export {
   buildPlayoffPicture,
   getDivisionStandings,
   getClinchedStatus,
   getStatLeaders,
 } from './systems/standings';
+export {
+  calculatePlayoffMomentum,
+  getPlayoffMomentumBonus,
+  generatePlayoffNews,
+} from './systems/playoff-momentum';
 
 // Systems — Contracts (Phase 2)
 export {

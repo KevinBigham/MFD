@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MondayBriefing } from './MondayBriefing';
 
 const mockState = {
+  phase: 'playoffs',
   userTeam: {
     id: 'team-1',
     city: 'Chicago',
@@ -37,7 +38,7 @@ const mockState = {
       pot: 80,
       age: 27,
       devTrait: 'normal',
-      injury: { severity: 'out', gamesOut: 2 },
+      injury: { type: 'hamstring', severity: 'out', severityTier: 'severe', gamesOut: 2, reinjuryRisk: 0.18, onIR: false },
     },
   ],
   week: 13,
@@ -162,6 +163,23 @@ const mockState = {
     ],
     nfc: [],
   },
+  fatigueReport: [
+    { playerId: 'p1', fatigue: 82, status: 'exhausted' },
+    { playerId: 'p2', fatigue: 66, status: 'fatigued' },
+  ],
+  facilities: {
+    budget: 7,
+    facilities: [
+      { type: 'training_complex', level: 2 },
+      { type: 'recovery_suite', level: 3 },
+    ],
+  },
+  playoffMomentum: {
+    teamId: 'team-1',
+    momentum: 88,
+    narrativeTag: 'hot_streak',
+    winStreak: 6,
+  },
   handshakes: [],
   waiverWirePlayers: [],
   weather: 'clear',
@@ -170,6 +188,7 @@ const mockState = {
 
 vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: typeof mockState) => unknown) => selector(mockState),
+  selectPhase: (state: typeof mockState) => state.phase,
   selectUserTeam: (state: typeof mockState) => state.userTeam,
   selectRoster: (state: typeof mockState) => state.roster,
   selectWeek: (state: typeof mockState) => state.week,
@@ -189,6 +208,9 @@ vi.mock('../../app/store/game-store', () => ({
   selectLeagueNews: (state: typeof mockState) => state.leagueNews,
   selectTrainingAssignments: (state: typeof mockState) => state.trainingAssignments,
   selectPlayoffPicture: (state: typeof mockState) => state.playoffPicture,
+  selectFatigueReport: (state: typeof mockState) => state.fatigueReport,
+  selectFacilities: (state: typeof mockState) => state.facilities,
+  selectPlayoffMomentum: (state: typeof mockState) => state.playoffMomentum,
   selectHandshakes: (state: typeof mockState) => state.handshakes,
   selectWaiverWirePlayers: (state: typeof mockState) => state.waiverWirePlayers,
   selectWeather: (state: typeof mockState) => state.weather,
@@ -212,6 +234,10 @@ describe('MondayBriefing', () => {
     expect(markup).toContain('film study');
     expect(markup).toContain('--- PLAYOFF RACE ---');
     expect(markup).toContain('#1 Chicago Blaze');
+    expect(markup).toContain('--- FATIGUE WATCH ---');
+    expect(markup).toContain('--- FACILITY STATUS ---');
+    expect(markup).toContain('--- PLAYOFF MOMENTUM ---');
+    expect(markup).toContain('hot streak');
     expect(markup).toContain('--- LOCKER ROOM PULSE ---');
     expect(markup).toContain('Jay Stone owns the media cycle');
     expect(markup).toContain('--- RIVALRY WATCH ---');
