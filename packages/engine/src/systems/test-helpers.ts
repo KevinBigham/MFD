@@ -176,6 +176,13 @@ export function makeTeam(
     },
     practiceSquad: [],
     stadiumType: 'outdoor',
+    specialTeams: {
+      kickReturner: null,
+      puntReturner: null,
+      longSnapper: null,
+      kickCoverageUnit: [],
+      puntCoverageUnit: [],
+    },
   } as unknown as Team;
 }
 
@@ -235,23 +242,23 @@ export function makeLeagueState(
       {
         week: 1,
         games: [
-          { homeTeamId: 'afce1', awayTeamId: 'afce2', result: null },
-          { homeTeamId: 'afcn1', awayTeamId: 'afcn2', result: null },
-          { homeTeamId: 'afcs1', awayTeamId: 'afcs2', result: null },
-          { homeTeamId: 'afcw1', awayTeamId: 'afcw2', result: null },
-          { homeTeamId: 'nfce1', awayTeamId: 'nfce2', result: null },
-          { homeTeamId: 'nfcn1', awayTeamId: 'nfcn2', result: null },
-          { homeTeamId: 'nfcs1', awayTeamId: 'nfcs2', result: null },
-          { homeTeamId: 'nfcw1', awayTeamId: 'nfcw2', result: null },
+          { homeTeamId: 'afce1', awayTeamId: 'afce2', result: null, flexed: false, primetime: false, broadcastNetwork: null },
+          { homeTeamId: 'afcn1', awayTeamId: 'afcn2', result: null, flexed: false, primetime: false, broadcastNetwork: null },
+          { homeTeamId: 'afcs1', awayTeamId: 'afcs2', result: null, flexed: false, primetime: false, broadcastNetwork: null },
+          { homeTeamId: 'afcw1', awayTeamId: 'afcw2', result: null, flexed: false, primetime: false, broadcastNetwork: null },
+          { homeTeamId: 'nfce1', awayTeamId: 'nfce2', result: null, flexed: false, primetime: false, broadcastNetwork: null },
+          { homeTeamId: 'nfcn1', awayTeamId: 'nfcn2', result: null, flexed: false, primetime: false, broadcastNetwork: null },
+          { homeTeamId: 'nfcs1', awayTeamId: 'nfcs2', result: null, flexed: false, primetime: false, broadcastNetwork: null },
+          { homeTeamId: 'nfcw1', awayTeamId: 'nfcw2', result: null, flexed: false, primetime: false, broadcastNetwork: null },
         ],
       },
       {
         week: 18,
         games: [
-          { homeTeamId: 'afce1', awayTeamId: 'afcn1', result: null },
-          { homeTeamId: 'afcs1', awayTeamId: 'afcw1', result: null },
-          { homeTeamId: 'nfce1', awayTeamId: 'nfcn1', result: null },
-          { homeTeamId: 'nfcs1', awayTeamId: 'nfcw1', result: null },
+          { homeTeamId: 'afce1', awayTeamId: 'afcn1', result: null, flexed: false, primetime: false, broadcastNetwork: null },
+          { homeTeamId: 'afcs1', awayTeamId: 'afcw1', result: null, flexed: false, primetime: false, broadcastNetwork: null },
+          { homeTeamId: 'nfce1', awayTeamId: 'nfcn1', result: null, flexed: false, primetime: false, broadcastNetwork: null },
+          { homeTeamId: 'nfcs1', awayTeamId: 'nfcw1', result: null, flexed: false, primetime: false, broadcastNetwork: null },
         ],
       },
     ],
@@ -318,5 +325,26 @@ export function makeLeagueState(
     },
     ceremonies: [],
     dynastyTimeline: [],
+    achievements: [],
+    dashboardState: {
+      activeLayoutId: 'layout:default',
+      layouts: [{
+        id: 'layout:default',
+        name: 'Command Center',
+        widgets: [
+          'team_record',
+          'next_game',
+          'injury_report',
+          'cap_snapshot',
+          'power_ranking',
+          'league_headlines',
+          'promise_tracker',
+          'training_report',
+        ],
+        columns: 3,
+      }],
+      pinnedWidgets: [],
+    },
+    seasonReports: [],
   } as unknown as GameState;
 }

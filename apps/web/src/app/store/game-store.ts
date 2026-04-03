@@ -7,7 +7,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type {
-  ContractOffer, GameState, SeasonPhase, Team, TradeOfferAsset, TradeProposal, TrainingFocus, WeeklySummary,
+  ContractOffer, DashboardWidget, GameState, SeasonPhase, Team, TradeOfferAsset, TradeProposal, TrainingFocus, WeeklySummary,
 } from '@mfd/engine';
 import {
   addToPracticeSquad as addToPracticeSquadEngine,
@@ -33,15 +33,22 @@ import {
   updateSystemFit,
   earnXP,
   getSalaryCap,
+  assignKickReturner as assignKickReturnerEngine,
+  assignPuntReturner as assignPuntReturnerEngine,
+  createLayout as createDashboardLayout,
+  pinWidget as pinDashboardWidget,
+  reorderWidgets as reorderDashboardWidgets,
   submitReSignOffer as submitReSignOfferEngine,
   submitFreeAgentBid as submitFreeAgentBidEngine,
   runScoutingAction as runScoutingActionEngine,
   rejectCounterProposal as rejectCounterProposalEngine,
   submitWaiverClaim as submitWaiverClaimEngine,
+  switchLayout as switchDashboardLayout,
   submitProposal as submitTradeProposalEngine,
   acceptTradeOffer as acceptTradeOfferEngine,
   rejectTradeOffer as rejectTradeOfferEngine,
   makeDraftPick as makeDraftPickEngine,
+  unpinWidget as unpinDashboardWidget,
   upgradeFacility as upgradeFacilityEngine,
 } from '@mfd/engine';
 import { autosaveDynasty, loadLatestAutosaveGame } from './persistence';
@@ -113,6 +120,12 @@ interface GameActions {
   setPhase: (phase: SeasonPhase) => void;
   setDifficulty: (difficulty: GameState['difficulty']) => Promise<void>;
   setAdaptiveDifficultyEnabled: (enabled: boolean) => Promise<void>;
+  pinWidget: (widgetType: DashboardWidget) => Promise<void>;
+  unpinWidget: (widgetType: DashboardWidget) => Promise<void>;
+  switchLayout: (layoutId: string) => Promise<void>;
+  saveLayout: (name: string, widgets: DashboardWidget[], columns: 2 | 3, layoutId?: string) => Promise<void>;
+  assignKickReturner: (teamId: string, playerId: string) => Promise<void>;
+  assignPuntReturner: (teamId: string, playerId: string) => Promise<void>;
 }
 
 interface GameStore extends GameStoreState {
@@ -502,6 +515,68 @@ export const useGameStore = create<GameStore>()(
         if (!enabled) {
           nextGame.difficultyState.adaptiveSlider = 50;
         }
+        await commitGame(nextGame);
+      },
+
+      pinWidget: async (widgetType) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        pinDashboardWidget(nextGame, widgetType);
+        await commitGame(nextGame);
+      },
+
+      unpinWidget: async (widgetType) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        unpinDashboardWidget(nextGame, widgetType);
+        await commitGame(nextGame);
+      },
+
+      switchLayout: async (layoutId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        switchDashboardLayout(nextGame, layoutId);
+        await commitGame(nextGame);
+      },
+
+      saveLayout: async (name, widgets, columns, layoutId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+
+        if (layoutId) {
+          const layout = nextGame.dashboardState?.layouts.find((entry) => entry.id === layoutId);
+          if (layout) {
+            layout.name = name;
+            layout.columns = columns;
+            reorderDashboardWidgets(nextGame, layoutId, widgets);
+            switchDashboardLayout(nextGame, layoutId);
+            await commitGame(nextGame);
+            return;
+          }
+        }
+
+        const layout = createDashboardLayout(nextGame, name, widgets, columns);
+        switchDashboardLayout(nextGame, layout.id);
+        await commitGame(nextGame);
+      },
+
+      assignKickReturner: async (teamId, playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        assignKickReturnerEngine(nextGame, teamId, playerId);
+        await commitGame(nextGame);
+      },
+
+      assignPuntReturner: async (teamId, playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        assignPuntReturnerEngine(nextGame, teamId, playerId);
         await commitGame(nextGame);
       },
     },

@@ -1,8 +1,11 @@
 import type {
+  Achievement,
+  AchievementProgress,
   AgentProfile,
   AwardsHistoryEntry,
   Ceremony,
   ConditionalPick,
+  DashboardState,
   DifficultyState,
   DraftOrderEntry,
   DraftProspect,
@@ -30,6 +33,8 @@ import type {
   RivalryGameContext,
   ScoutingDepartment,
   SeasonPhase,
+  SeasonReport,
+  SpecialTeamsState,
   StoryArc,
   Team,
   TradeProposal,
@@ -45,11 +50,16 @@ import type {
 import {
   buildPlayoffPicture,
   calculateAdvancedStats,
+  createDefaultDashboardState,
+  createDefaultSpecialTeamsState,
+  getAchievementProgress,
   getAnalyticsStatLeaders,
+  getFullSchedule,
   getPlayerComparison,
   getCooldownStatus,
   getPlayerAgent,
   getTeamRankings,
+  getWeekSchedule as getWeekScheduleEntries,
   getWeeklyTrend,
   createDefaultNarrativeIntensity,
   createDefaultTutorialState,
@@ -90,6 +100,8 @@ const EMPTY_PRESS_CONFERENCES: PressConference[] = [];
 const EMPTY_LEAGUE_RIVALRIES: LeagueRivalry[] = [];
 const EMPTY_GAME_EVENTS: GameEvent[] = [];
 const EMPTY_PRACTICE_SQUAD: PracticeSquadPlayer[] = [];
+const EMPTY_ACHIEVEMENTS: Achievement[] = [];
+const EMPTY_SEASON_REPORTS: SeasonReport[] = [];
 const EMPTY_WAIVER_WIRE: WaiverWireEntry[] = [];
 const EMPTY_WAIVER_CLAIMS: WaiverClaim[] = [];
 const EMPTY_HANDSHAKES: Handshake[] = [];
@@ -112,6 +124,19 @@ const EMPTY_MEDICAL_STAFF: MedicalStaff[] = [];
 const EMPTY_DIFFICULTY_STATE: DifficultyState = createDefaultDifficultyState();
 const EMPTY_TUTORIAL_STATE: TutorialState = createDefaultTutorialState(false);
 const EMPTY_NARRATIVE_INTENSITY: NarrativeIntensity = createDefaultNarrativeIntensity();
+const EMPTY_DASHBOARD_STATE: DashboardState = createDefaultDashboardState();
+const EMPTY_SPECIAL_TEAMS: SpecialTeamsState = createDefaultSpecialTeamsState();
+const EMPTY_ACHIEVEMENT_PROGRESS: AchievementProgress = {
+  achievementId: '',
+  current: 0,
+  target: 1,
+  percentage: 0,
+  label: '0/1',
+  hidden: false,
+  complete: false,
+};
+const EMPTY_TEAM_SCHEDULE = [] as ReturnType<typeof getFullSchedule>;
+const EMPTY_WEEK_SCHEDULE = [] as ReturnType<typeof getWeekScheduleEntries>;
 const EMPTY_PLAYOFF_PICTURE = { afc: [], nfc: [] };
 const EMPTY_STAT_LEADERS = { passYds: [], rushYds: [], recYds: [], sacks: [], defINT: [] };
 const EMPTY_ADVANCED_STATS = {
@@ -266,6 +291,41 @@ export const selectInjuryReport = (state: GameStoreState) =>
     .map((player) => ({ playerId: player.id, name: player.name, pos: player.pos, injury: player.injury! }));
 export const selectDifficultyState = (state: GameStoreState): DifficultyState =>
   state.game?.difficultyState ?? EMPTY_DIFFICULTY_STATE;
+export const selectAchievements = (state: GameStoreState): Achievement[] => state.game?.achievements ?? EMPTY_ACHIEVEMENTS;
+export const selectNewlyUnlocked = (state: GameStoreState): Achievement[] => {
+  if (!state.game) return EMPTY_ACHIEVEMENTS;
+  return (state.game.achievements ?? EMPTY_ACHIEVEMENTS)
+    .filter((achievement) => achievement.unlockedYear === state.game!.year && achievement.unlockedWeek === state.game!.week)
+    .sort((a, b) => a.title.localeCompare(b.title));
+};
+export const selectAchievementProgress = (achievementId: string) => (state: GameStoreState): AchievementProgress => {
+  if (!state.game) {
+    return {
+      ...EMPTY_ACHIEVEMENT_PROGRESS,
+      achievementId,
+    };
+  }
+  return getAchievementProgress(state.game, achievementId);
+};
+export const selectDashboardState = (state: GameStoreState): DashboardState => state.game?.dashboardState ?? EMPTY_DASHBOARD_STATE;
+export const selectSpecialTeams = (state: GameStoreState): SpecialTeamsState => selectUserTeam(state)?.specialTeams ?? EMPTY_SPECIAL_TEAMS;
+export const selectSeasonReports = (state: GameStoreState): SeasonReport[] => {
+  if (!state.game) return EMPTY_SEASON_REPORTS;
+  const teamId = selectUserTeamId(state);
+  if (!teamId) return EMPTY_SEASON_REPORTS;
+  return [...(state.game.seasonReports ?? EMPTY_SEASON_REPORTS)]
+    .filter((report) => report.teamId === teamId)
+    .sort((a, b) => b.year - a.year);
+};
+export const selectTeamSchedule = (state: GameStoreState) => {
+  if (!state.game) return EMPTY_TEAM_SCHEDULE;
+  const teamId = selectUserTeamId(state);
+  return teamId ? getFullSchedule(state.game, teamId) : EMPTY_TEAM_SCHEDULE;
+};
+export const selectWeekSchedule = (week?: number) => (state: GameStoreState) => {
+  if (!state.game) return EMPTY_WEEK_SCHEDULE;
+  return getWeekScheduleEntries(state.game, week ?? state.game.week);
+};
 export const selectAdvancedStats = (state: GameStoreState) => {
   if (!state.game) return EMPTY_ADVANCED_STATS;
   const team = selectUserTeam(state);

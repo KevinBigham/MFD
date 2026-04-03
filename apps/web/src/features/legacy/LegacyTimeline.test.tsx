@@ -142,6 +142,35 @@ const mockState = {
         teamIds: ['user'],
       },
     ],
+    achievements: [
+      {
+        id: 'dynasty:first_championship',
+        title: 'First Championship',
+        description: 'Win your first title.',
+        category: 'dynasty',
+        tier: 'bronze',
+        condition: { type: 'championships', threshold: 1 },
+        unlockedYear: 2030,
+        unlockedWeek: 18,
+        icon: 'trophy',
+      },
+    ],
+    seasonReports: [
+      {
+        year: 2030,
+        teamId: 'user',
+        overallGrade: 'A+',
+        sections: [
+          {
+            title: 'Season Overview',
+            grade: 'A+',
+            summary: 'Dominant championship run.',
+            highlights: ['12-5 record', 'Won the title'],
+            stats: { record: '12-5' },
+          },
+        ],
+      },
+    ],
   },
   awardsHistory: [
     {
@@ -237,6 +266,35 @@ const mockState = {
     },
   ],
   dynastyScore: 15,
+  achievements: [
+    {
+      id: 'dynasty:first_championship',
+      title: 'First Championship',
+      description: 'Win your first title.',
+      category: 'dynasty',
+      tier: 'bronze',
+      condition: { type: 'championships', threshold: 1 },
+      unlockedYear: 2030,
+      unlockedWeek: 18,
+      icon: 'trophy',
+    },
+  ],
+  seasonReports: [
+    {
+      year: 2030,
+      teamId: 'user',
+      overallGrade: 'A+',
+      sections: [
+        {
+          title: 'Season Overview',
+          grade: 'A+',
+          summary: 'Dominant championship run.',
+          highlights: ['12-5 record', 'Won the title'],
+          stats: { record: '12-5' },
+        },
+      ],
+    },
+  ],
 };
 
 vi.mock('../../app/store/game-store', () => ({
@@ -248,8 +306,10 @@ vi.mock('../../app/store/game-store', () => ({
   selectDynastyTimeline: (state: typeof mockState) => state.dynastyTimeline,
   selectHallOfFame: (state: typeof mockState) => state.hallOfFame,
   selectRecords: (state: typeof mockState) => state.records,
+  selectSeasonReports: (state: typeof mockState) => state.seasonReports,
   selectUserMentoringPairs: (state: typeof mockState) => state.userMentoringPairs,
   selectHistoricalMentoringChains: (state: typeof mockState) => state.historicalMentoring,
+  selectAchievements: (state: typeof mockState) => state.achievements,
 }));
 
 describe('LegacyTimeline', () => {
@@ -269,6 +329,10 @@ describe('LegacyTimeline', () => {
     expect(markup).toContain('Legend One');
     expect(markup).toContain('--- RECORDS BOOK ---');
     expect(markup).toContain('Passing Yards: 5114');
+    expect(markup).toContain('--- HALL OF CHAMPIONS ---');
+    expect(markup).toContain('First Championship');
+    expect(markup).toContain('--- SEASON REPORTS ---');
+    expect(markup).toContain('View Report');
     expect(markup).toContain('--- MENTORING REPORT ---');
     expect(markup).toContain('Rick Mason -&gt; Jay Stone');
     expect(markup).toContain('Jay Stone');

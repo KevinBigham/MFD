@@ -4,13 +4,19 @@ import {
   LayoutDashboard, Users, DollarSign, ArrowLeftRight,
   Search, FileText, Handshake, Gamepad2, GraduationCap,
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
-  Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity,
+  Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity, CalendarRange,
 } from 'lucide-react';
 import { MfdTooltipProvider, MfdCommandPalette, type CommandItem } from '@mfd/design-system/components';
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
 import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
-import { selectCeremonies, selectTutorial, useGameStore } from './store/game-store';
+import {
+  selectCeremonies,
+  selectNewlyUnlocked,
+  selectSeasonReports,
+  selectTutorial,
+  useGameStore,
+} from './store/game-store';
 import { NewGameScreen } from './NewGameScreen';
 import { BootScreen } from './BootScreen';
 import { MondayBriefing } from '../features/monday-briefing/MondayBriefing';
@@ -27,6 +33,8 @@ import { TradeCenter } from '../features/trades/TradeCenter';
 import { FreeAgencyHub } from '../features/free-agency/FreeAgencyHub';
 import { Settings as SettingsScreen } from '../features/settings/Settings';
 import { CeremonyViewer } from '../features/legacy/CeremonyViewer';
+import { AchievementUnlockToast } from '../features/legacy/AchievementGallery';
+import { SeasonReportViewer } from '../features/legacy/SeasonReportViewer';
 import { TutorialOverlay } from '../features/onboarding/TutorialOverlay';
 
 const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
@@ -37,6 +45,7 @@ const LazyPowerRankings = lazy(async () => ({ default: (await import('../feature
 const LazyLeagueNews = lazy(async () => ({ default: (await import('../features/league-news/LeagueNews')).LeagueNews }));
 const LazyLeagueStandings = lazy(async () => ({ default: (await import('../features/standings/LeagueStandings')).LeagueStandings }));
 const LazyAnalyticsDashboard = lazy(async () => ({ default: (await import('../features/analytics/AnalyticsDashboard')).AnalyticsDashboard }));
+const LazyTeamSchedule = lazy(async () => ({ default: (await import('../features/schedule/TeamSchedule')).TeamSchedule }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -58,6 +67,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/free-agency',  label: 'Free Agency',      shortLabel: 'FA',       icon: <Handshake size={16} />,      shortcut: '7' },
   { path: '/game-day',     label: 'Game Day',         shortLabel: 'Game',     icon: <Gamepad2 size={16} />,       shortcut: '8' },
   { path: '/inbox',          label: 'Inbox',            shortLabel: 'Inbox',    icon: <Inbox size={16} />,          shortcut: '9' },
+  { path: '/schedule',      label: 'Schedule',         shortLabel: 'Schedule', icon: <CalendarRange size={16} /> },
   { path: '/depth-chart',   label: 'Depth Chart',      shortLabel: 'Depth',    icon: <ListOrdered size={16} /> },
   { path: '/coaching',      label: 'Coaching',         shortLabel: 'Coach',    icon: <GraduationCap size={16} /> },
   { path: '/owner',         label: 'Owner',            shortLabel: 'Owner',    icon: <Crown size={16} /> },
@@ -80,12 +90,18 @@ function RootLayout() {
   const setCommandPaletteOpen = useUiStore((s) => s.setCommandPaletteOpen);
   const tutorial = useGameStore(selectTutorial);
   const ceremonies = useGameStore(selectCeremonies);
+  const newlyUnlocked = useGameStore(selectNewlyUnlocked);
+  const seasonReports = useGameStore(selectSeasonReports);
   const advanceTutorial = useGameStore((s) => s.actions.advanceTutorial);
   const dismissTutorial = useGameStore((s) => s.actions.dismissTutorial);
   const router = useRouter();
   const activePath = useRouterState({ select: (state) => state.location.pathname });
   const [seenCeremonies, setSeenCeremonies] = useState<string[]>([]);
   const [activeCeremonyId, setActiveCeremonyId] = useState<string | null>(null);
+  const [seenAchievements, setSeenAchievements] = useState<string[]>([]);
+  const [activeAchievement, setActiveAchievement] = useState<(typeof newlyUnlocked)[number] | null>(null);
+  const [seenReports, setSeenReports] = useState<number[]>([]);
+  const [activeReportYear, setActiveReportYear] = useState<number | null>(null);
 
   useShortcut('k', () => setCommandPaletteOpen(true), 'Open command palette', { meta: true });
 
@@ -114,6 +130,36 @@ function RootLayout() {
     setSeenCeremonies((current) => [...current, latest.id]);
     setActiveCeremonyId(latest.id);
   }, [activeCeremonyId, ceremonies, seenCeremonies]);
+
+  useEffect(() => {
+    if (activeAchievement) return;
+    const nextAchievement = newlyUnlocked.find((achievement) => {
+      const key = `${achievement.id}:${achievement.unlockedYear}:${achievement.unlockedWeek}`;
+      return !seenAchievements.includes(key);
+    });
+    if (!nextAchievement) return;
+
+    const key = `${nextAchievement.id}:${nextAchievement.unlockedYear}:${nextAchievement.unlockedWeek}`;
+    setSeenAchievements((current) => [...current, key]);
+    setActiveAchievement(nextAchievement);
+
+    const timeout = window.setTimeout(() => {
+      setActiveAchievement(null);
+    }, 3000);
+
+    return () => window.clearTimeout(timeout);
+  }, [activeAchievement, newlyUnlocked, seenAchievements]);
+
+  useEffect(() => {
+    if (activeCeremonyId || activeReportYear !== null) return;
+    const latestReport = seasonReports[0];
+    if (!latestReport || seenReports.includes(latestReport.year)) {
+      return;
+    }
+
+    setSeenReports((current) => [...current, latestReport.year]);
+    setActiveReportYear(latestReport.year);
+  }, [activeCeremonyId, activeReportYear, seasonReports, seenReports]);
 
   const commandItems: CommandItem[] = [
     ...NAV_ITEMS.map((nav): CommandItem => ({
@@ -173,11 +219,19 @@ function RootLayout() {
             onSkip={() => { void dismissTutorial(); }}
           />
         ) : null}
+        <AchievementUnlockToast achievement={activeAchievement} />
         <CeremonyViewer
           ceremony={activeCeremony}
           open={!!activeCeremony}
           onOpenChange={(open) => {
             if (!open) setActiveCeremonyId(null);
+          }}
+        />
+        <SeasonReportViewer
+          report={seasonReports.find((report) => report.year === activeReportYear) ?? null}
+          open={activeReportYear !== null}
+          onOpenChange={(open) => {
+            if (!open) setActiveReportYear(null);
           }}
         />
       </div>
@@ -416,6 +470,16 @@ const inboxRoute = createRoute({
   component: InboxTriage,
 });
 
+const scheduleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/schedule',
+  component: () => (
+    <LazyRouteFrame label="team schedule">
+      <LazyTeamSchedule />
+    </LazyRouteFrame>
+  ),
+});
+
 const depthChartRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/depth-chart',
@@ -516,7 +580,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   rosterRoute, contractsRoute, tradesRoute,
   scoutingRoute, draftRoute, freeAgencyRoute,
-  gameDayRoute, inboxRoute, depthChartRoute, coachingRoute,
+  gameDayRoute, inboxRoute, scheduleRoute, depthChartRoute, coachingRoute,
   ownerRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, legacyRoute, dynastyRoute, settingsRoute,

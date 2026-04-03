@@ -9,11 +9,13 @@ import { RNG } from '../rng';
 import { HOME_FIELD_ADV } from '../config';
 import { avg, cl } from '../utils';
 import { isPlayerUnavailable } from './injury-system';
+import { simulateSpecialTeams } from './special-teams';
 import type {
   MatchupHighlight,
   Player,
   PlayerGameLine,
   Position,
+  SpecialTeamsGameSummary,
   Team,
   TeamGameStats,
   WeatherCondition,
@@ -29,6 +31,7 @@ export interface SimGameContext {
   away?: SimTeamContext;
   weather?: WeatherCondition;
   rivalryIntensity?: number;
+  homeFieldBonus?: number;
 }
 
 // ── Helpers ─────────────────────────────────────────────
@@ -639,6 +642,7 @@ export interface SimGameResult {
   awayMvpId: string | null;
   weather: WeatherCondition;
   matchupHighlight: MatchupHighlight | null;
+  specialTeams: Record<string, SpecialTeamsGameSummary>;
 }
 
 function applySimContext(team: Team, context?: SimTeamContext): Team {
@@ -674,7 +678,7 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
   const homeLines = new Map<string, PlayerGameLine>();
   const awayLines = new Map<string, PlayerGameLine>();
 
-  const baseHomeCEdge = coachingEdge(adjustedHome, adjustedAway) + HOME_FIELD_ADV / 3 + rivalryBoost;
+  const baseHomeCEdge = coachingEdge(adjustedHome, adjustedAway) + (HOME_FIELD_ADV + (context?.homeFieldBonus ?? 0)) / 3 + rivalryBoost;
   const baseAwayCEdge = coachingEdge(adjustedAway, adjustedHome);
 
   let homeScore = 0;
@@ -739,6 +743,18 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
     awayQtrScores.push(awayScore - awayQtrScores.reduce((a, b) => a + b, 0));
   }
 
+  const specialTeams = simulateSpecialTeams(adjustedHome, adjustedAway, RNG.play);
+  if (specialTeams.home.returnTouchdowns > 0) {
+    const points = specialTeams.home.returnTouchdowns * 7;
+    homeScore += points;
+    homeQtrScores[homeQtrScores.length - 1] = (homeQtrScores[homeQtrScores.length - 1] ?? 0) + points;
+  }
+  if (specialTeams.away.returnTouchdowns > 0) {
+    const points = specialTeams.away.returnTouchdowns * 7;
+    awayScore += points;
+    awayQtrScores[awayQtrScores.length - 1] = (awayQtrScores[awayQtrScores.length - 1] ?? 0) + points;
+  }
+
   // Distribute defensive stats
   distributeDefensiveStats(adjustedHome, totalDrives, homeLines);
   distributeDefensiveStats(adjustedAway, totalDrives, awayLines);
@@ -762,7 +778,21 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
   const homeMvpId = findMvp(homeTeamLines, home);
   const awayMvpId = findMvp(awayTeamLines, away);
 
-  return { homeScore, awayScore, overtime, homeStats, awayStats, homeMvpId, awayMvpId, weather, matchupHighlight };
+  return {
+    homeScore,
+    awayScore,
+    overtime,
+    homeStats,
+    awayStats,
+    homeMvpId,
+    awayMvpId,
+    weather,
+    matchupHighlight,
+    specialTeams: {
+      [home.id]: specialTeams.home,
+      [away.id]: specialTeams.away,
+    },
+  };
 }
 
 function findMvp(lines: Map<string, PlayerGameLine>, team: Team): string | null {

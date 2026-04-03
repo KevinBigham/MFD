@@ -216,6 +216,10 @@ export const GameDayPackageSchema = z.object({
     opponentPlayerId: z.string().nullable(),
     advantage: z.number(),
   }).nullable().optional(),
+  broadcastNetwork: z.enum(['MFN', 'ESPN8', 'FOX8', 'CBS8', 'NBC8']).nullable().optional(),
+  primetime: z.boolean().optional(),
+  flexed: z.boolean().optional(),
+  specialTeamsHighlights: z.array(z.string()).optional(),
 });
 
 export const GameDayStateSchema = z.object({
@@ -556,6 +560,103 @@ export const PlayoffMomentumSchema = z.object({
   winStreak: z.number(),
 });
 
+export const AchievementConditionSchema = z.object({
+  type: z.string(),
+  threshold: z.union([z.number(), z.string(), z.boolean()]),
+});
+
+export const AchievementSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  category: z.enum(['dynasty', 'roster', 'draft', 'financial', 'coaching', 'narrative', 'records', 'milestones', 'hidden']),
+  tier: z.enum(['bronze', 'silver', 'gold', 'platinum']),
+  condition: AchievementConditionSchema,
+  unlockedYear: z.number().nullable(),
+  unlockedWeek: z.number().nullable(),
+  icon: z.string(),
+});
+
+export const DashboardLayoutSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  widgets: z.array(z.enum([
+    'team_record',
+    'next_game',
+    'injury_report',
+    'fatigue_watch',
+    'cap_snapshot',
+    'power_ranking',
+    'promise_tracker',
+    'training_report',
+    'league_headlines',
+    'record_watch',
+    'rivalry_watch',
+    'coaching_news',
+    'waiver_wire',
+    'weather_forecast',
+    'achievement_progress',
+    'dynasty_score',
+    'playoff_picture',
+    'stat_leaders',
+  ])),
+  columns: z.union([z.literal(2), z.literal(3)]),
+});
+
+export const DashboardStateSchema = z.object({
+  activeLayoutId: z.string(),
+  layouts: z.array(DashboardLayoutSchema),
+  pinnedWidgets: z.array(DashboardLayoutSchema.shape.widgets.element),
+});
+
+export const SpecialTeamsStateSchema = z.object({
+  kickReturner: z.string().nullable(),
+  puntReturner: z.string().nullable(),
+  longSnapper: z.string().nullable(),
+  kickCoverageUnit: z.array(z.string()),
+  puntCoverageUnit: z.array(z.string()),
+});
+
+export const ReportSectionSchema = z.object({
+  title: z.string(),
+  grade: z.string(),
+  summary: z.string(),
+  highlights: z.array(z.string()),
+  stats: z.record(z.union([z.string(), z.number()])),
+});
+
+export const SeasonReportSchema = z.object({
+  year: z.number(),
+  teamId: z.string(),
+  overallGrade: z.enum(['A+', 'A', 'B+', 'B', 'C+', 'C', 'D', 'F']),
+  sections: z.array(ReportSectionSchema),
+});
+
+export const SpecialTeamsGameSummarySchema = z.object({
+  kickReturnYards: z.number(),
+  puntReturnYards: z.number(),
+  returnTouchdowns: z.number(),
+  returnFumbles: z.number(),
+  touchbacks: z.number(),
+  netPuntAverage: z.number(),
+  highlights: z.array(z.string()),
+});
+
+export const ScheduledGameSchema = z.object({
+  homeTeamId: z.string(),
+  awayTeamId: z.string(),
+  result: z.any().nullable(),
+  weather: z.enum(['dome', 'clear', 'rain', 'snow', 'wind']).nullable().optional(),
+  flexed: z.boolean().default(false),
+  primetime: z.boolean().default(false),
+  broadcastNetwork: z.enum(['MFN', 'ESPN8', 'FOX8', 'CBS8', 'NBC8']).nullable().default(null),
+});
+
+export const ScheduleWeekSchema = z.object({
+  week: z.number(),
+  games: z.array(ScheduledGameSchema),
+});
+
 export const TutorialStepSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -688,7 +789,7 @@ export const SaveStateSchema = z.object({
   players: z.record(PlayerSchema),
   teams: z.record(z.any()),
   owners: z.record(z.any()),
-  schedule: z.array(z.any()),
+  schedule: z.array(ScheduleWeekSchema),
   draftClass: z.array(z.any()),
   freeAgents: z.array(z.string()),
   records: RecordBookSchema,
@@ -758,6 +859,27 @@ export const SaveStateSchema = z.object({
     recentBeats: [],
     cooldownWeeks: 0,
   }),
+  achievements: z.array(AchievementSchema).default([]),
+  dashboardState: DashboardStateSchema.default({
+    activeLayoutId: 'layout:default',
+    layouts: [{
+      id: 'layout:default',
+      name: 'Command Center',
+      widgets: [
+        'team_record',
+        'next_game',
+        'injury_report',
+        'cap_snapshot',
+        'power_ranking',
+        'league_headlines',
+        'promise_tracker',
+        'training_report',
+      ],
+      columns: 3,
+    }],
+    pinnedWidgets: [],
+  }),
+  seasonReports: z.array(SeasonReportSchema).default([]),
   ceremonies: z.array(CeremonySchema).default([]),
   dynastyTimeline: z.array(DynastyEventSchema).default([]),
 });

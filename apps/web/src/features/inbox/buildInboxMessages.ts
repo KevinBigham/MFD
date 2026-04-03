@@ -1,4 +1,5 @@
 import type {
+  Achievement,
   Ceremony,
   ConditionalPick,
   DifficultyState,
@@ -13,6 +14,7 @@ import type {
   PlayoffMomentum,
   PressConference,
   RivalryGameContext,
+  SeasonReport,
   SeasonPhase,
   StoryArc,
   Team,
@@ -63,6 +65,16 @@ interface BuildInboxMessagesParams {
   availableMedicalStaff: MedicalStaff[];
   playoffMomentum: PlayoffMomentum | null;
   ceremonies: Ceremony[];
+  newlyUnlockedAchievements: Achievement[];
+  latestSeasonReport: SeasonReport | null;
+  upcomingGame: {
+    week: number;
+    opponentName: string;
+    primetime: boolean;
+    flexed: boolean;
+    broadcastNetwork: string | null;
+    bye: boolean;
+  } | null;
 }
 
 export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessage[] {
@@ -91,6 +103,9 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     availableMedicalStaff,
     playoffMomentum,
     ceremonies,
+    newlyUnlockedAchievements,
+    latestSeasonReport,
+    upcomingGame,
   } = params;
   const msgs: InboxMessage[] = [];
   if (!team) return msgs;
@@ -116,6 +131,45 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       week: latestSummary.week,
       read: false,
       actionRequired: latestSummary.result === 'loss',
+    });
+  }
+
+  for (const achievement of newlyUnlockedAchievements.slice(0, 2)) {
+    msgs.push({
+      id: `achievement-${achievement.id}-${achievement.unlockedYear}-${achievement.unlockedWeek}`,
+      type: 'INTEL',
+      title: `Achievement Unlocked: ${achievement.title}`,
+      body: `${achievement.description}\nTier: ${achievement.tier}\nCategory: ${achievement.category}`,
+      from: 'Hall of Champions',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  if (upcomingGame && !upcomingGame.bye && upcomingGame.primetime) {
+    msgs.push({
+      id: `primetime-${upcomingGame.week}`,
+      type: 'INTEL',
+      title: 'Primetime Slot Locked',
+      body: `${upcomingGame.opponentName} has been placed in the ${upcomingGame.broadcastNetwork ?? 'national'} window.\nThe stakes and spotlight both rise for this matchup.`,
+      from: 'Broadcast Prep',
+      week: upcomingGame.week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  if (upcomingGame && !upcomingGame.bye && upcomingGame.flexed) {
+    msgs.push({
+      id: `flex-${upcomingGame.week}`,
+      type: 'DECISION',
+      title: 'Flex Schedule Update',
+      body: `${upcomingGame.opponentName} has been flexed into a higher-profile slot.\nExpect stronger media heat and a louder environment.`,
+      from: 'League Scheduling',
+      week: upcomingGame.week,
+      read: false,
+      actionRequired: false,
     });
   }
 
@@ -457,6 +511,19 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       title: 'Playoff Football Activated',
       body: 'Bracket play is live. Every week is elimination football until a champion is crowned.',
       from: 'League Office',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  if (latestSeasonReport && phase === 'offseason') {
+    msgs.push({
+      id: `season-report-${latestSeasonReport.year}`,
+      type: 'INTEL',
+      title: `Season Report Ready: ${latestSeasonReport.year}`,
+      body: `Overall grade: ${latestSeasonReport.overallGrade}\nTen-section report card is now archived in Legacy.`,
+      from: 'League Archive',
       week,
       read: false,
       actionRequired: false,

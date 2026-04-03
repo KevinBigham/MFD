@@ -5,7 +5,11 @@
  * Each migration takes a save at version N and returns version N+1.
  */
 
+import { createDefaultAchievements } from '../systems/achievements';
+import { createDefaultDashboardState } from '../systems/dashboard-config';
 import { createEmptyRecordBook } from '../systems/records';
+import { buildSpecialTeamsState, createDefaultSpecialTeamsState } from '../systems/special-teams';
+import type { Team } from '../types';
 
 type MigrationFn = (state: Record<string, unknown>) => Record<string, unknown>;
 
@@ -245,6 +249,39 @@ function deriveWaiverOrder(state: Record<string, unknown>): string[] {
   return Object.entries(teams)
     .sort(([aId, a], [bId, b]) => sortWaiverTeams(a, b, aId, bId))
     .map(([teamId]) => teamId);
+}
+
+function migrateScheduledGame(raw: unknown): Record<string, unknown> {
+  const matchup = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  return {
+    ...matchup,
+    flexed: Boolean(matchup['flexed']),
+    primetime: Boolean(matchup['primetime']),
+    broadcastNetwork: matchup['broadcastNetwork'] ?? null,
+  };
+}
+
+function migrateSchedule(raw: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((week) => {
+    const entry = (week && typeof week === 'object' ? week : {}) as Record<string, unknown>;
+    const games = Array.isArray(entry['games']) ? entry['games'].map((game) => migrateScheduledGame(game)) : [];
+    return {
+      ...entry,
+      week: Number(entry['week'] ?? 0),
+      games,
+    };
+  });
+}
+
+function teamSpecialTeams(team: Record<string, unknown>): Record<string, unknown> {
+  if (team['specialTeams'] && typeof team['specialTeams'] === 'object') {
+    return team['specialTeams'] as Record<string, unknown>;
+  }
+  if (!Array.isArray(team['roster'])) {
+    return createDefaultSpecialTeamsState() as unknown as Record<string, unknown>;
+  }
+  return buildSpecialTeamsState(team as unknown as Team) as unknown as Record<string, unknown>;
 }
 
 /** Register a migration from version N to N+1. */
@@ -536,5 +573,23 @@ registerMigration(10, (state) => {
     },
     ceremonies: Array.isArray(state['ceremonies']) ? state['ceremonies'] : [],
     dynastyTimeline: Array.isArray(state['dynastyTimeline']) ? state['dynastyTimeline'] : [],
+  };
+});
+
+registerMigration(11, (state) => {
+  const teams = (state['teams'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+  for (const team of Object.values(teams)) {
+    team['specialTeams'] = teamSpecialTeams(team);
+  }
+
+  return {
+    ...state,
+    teams,
+    schedule: migrateSchedule(state['schedule']),
+    achievements: Array.isArray(state['achievements']) && state['achievements'].length > 0
+      ? state['achievements']
+      : createDefaultAchievements(),
+    dashboardState: state['dashboardState'] ?? createDefaultDashboardState(),
+    seasonReports: Array.isArray(state['seasonReports']) ? state['seasonReports'] : [],
   };
 });

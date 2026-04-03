@@ -22,11 +22,14 @@ import {
   selectHallOfFame,
   selectHistoricalMentoringChains,
   selectRecords,
+  selectSeasonReports,
   selectUserMentoringPairs,
   selectUserTeam,
   useGameStore,
 } from '../../app/store/game-store';
+import { AchievementGallery } from './AchievementGallery';
 import { CeremonyViewer } from './CeremonyViewer';
+import { SeasonReportViewer } from './SeasonReportViewer';
 import {
   PixelMetricCard,
   PixelScreenHeader,
@@ -124,9 +127,11 @@ export function LegacyTimeline() {
   const dynastyTimeline = useGameStore(selectDynastyTimeline);
   const hallOfFame = useGameStore(selectHallOfFame);
   const records = useGameStore(selectRecords);
+  const seasonReports = useGameStore(selectSeasonReports);
   const activeMentoringPairs = useGameStore(selectUserMentoringPairs);
   const historicalMentoring = useGameStore(selectHistoricalMentoringChains);
   const [selectedCeremonyId, setSelectedCeremonyId] = useState<string | null>(null);
+  const [selectedReportYear, setSelectedReportYear] = useState<number | null>(null);
 
   const teamHistory = useMemo(() => {
     if (!game || !userTeam) return [];
@@ -193,6 +198,8 @@ export function LegacyTimeline() {
         <PixelMetricCard label="Legends" value={legendCount} accent="cyan" detail="Players who peaked at 85+ overall" />
         <PixelMetricCard label="Dynasty Score" value={dynastyScore} accent="gold" detail="Championships, playoff trips, awards, and records blended" />
       </div>
+
+      <AchievementGallery />
 
       <div style={autoGrid(360)}>
         <PixelPanel title="Season Results" accent="gold">
@@ -314,6 +321,43 @@ export function LegacyTimeline() {
         </PixelPanel>
       </div>
 
+      <PixelPanel title="Season Reports" accent="gold">
+        {seasonReports.length === 0 ? (
+          <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Season report cards will archive here after the next completed season.</span>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {seasonReports.map((report) => (
+              <div
+                key={report.year}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  alignItems: 'center',
+                  padding: '10px',
+                  border: '3px solid var(--mfd-border)',
+                  background: 'var(--mfd-bg-2)',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ ...monoSm, color: '#fff' }}>{report.year}</div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <PixelBadge variant={report.overallGrade.startsWith('A') ? 'gold' : report.overallGrade.startsWith('B') ? 'cyan' : report.overallGrade.startsWith('D') || report.overallGrade.startsWith('F') ? 'red' : 'default'}>
+                      {report.overallGrade}
+                    </PixelBadge>
+                    <PixelBadge variant="default">{`${report.sections.length} sections`}</PixelBadge>
+                  </div>
+                </div>
+                <PixelButton accent="gold" onClick={() => setSelectedReportYear(report.year)}>
+                  View Report
+                </PixelButton>
+              </div>
+            ))}
+          </div>
+        )}
+      </PixelPanel>
+
       <PixelPanel title="Hall of Fame" accent="red">
         {hallOfFame.length === 0 ? (
           <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Inductees will appear after retired legends clear the threshold.</span>
@@ -404,6 +448,13 @@ export function LegacyTimeline() {
         open={!!selectedCeremony}
         onOpenChange={(open) => {
           if (!open) setSelectedCeremonyId(null);
+        }}
+      />
+      <SeasonReportViewer
+        report={seasonReports.find((report) => report.year === selectedReportYear) ?? null}
+        open={selectedReportYear !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedReportYear(null);
         }}
       />
     </div>

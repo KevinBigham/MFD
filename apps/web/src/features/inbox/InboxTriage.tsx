@@ -6,7 +6,7 @@ import {
   useGameStore, selectUserTeam, selectRoster, selectWeek, selectNarrative, selectLatestSummary, selectPhase, selectLatestGameDayPackage, selectActiveStoryArcs,
   selectOffFieldEvents, selectRecentPressConferences, selectUpcomingRivalry, selectCoachingCarouselNews,
   selectConditionalPicks, selectHandshakes, selectWaiverWire, selectWeather,
-  selectActiveProposals, selectCeremonies, selectDifficultyState, selectLeagueNews, selectMedicalStaff, selectOffseasonState, selectPlayoffMomentum, selectTrainingAssignments,
+  selectActiveProposals, selectCeremonies, selectDifficultyState, selectLeagueNews, selectMedicalStaff, selectNewlyUnlocked, selectOffseasonState, selectPlayoffMomentum, selectSeasonReports, selectTeamSchedule, selectTrainingAssignments,
 } from '../../app/store/game-store';
 import { buildInboxMessages, type InboxMessage, type MessageType } from './buildInboxMessages';
 import {
@@ -47,6 +47,9 @@ export function InboxTriage() {
   const medicalStaff = useGameStore(selectMedicalStaff);
   const playoffMomentum = useGameStore(selectPlayoffMomentum);
   const ceremonies = useGameStore(selectCeremonies);
+  const newlyUnlockedAchievements = useGameStore(selectNewlyUnlocked);
+  const seasonReports = useGameStore(selectSeasonReports);
+  const teamSchedule = useGameStore(selectTeamSchedule);
 
   const [selectedMsg, setSelectedMsg] = useState<InboxMessage | null>(null);
   const [filter, setFilter] = useState<MessageType | 'ALL'>('ALL');
@@ -76,7 +79,10 @@ export function InboxTriage() {
     availableMedicalStaff: medicalStaff.available,
     playoffMomentum,
     ceremonies,
-  }), [activeArcs, activeProposals, ceremonies, coachingNews, conditionalPicks, difficultyState, handshakes, latestPackage, latestSummary, leagueNews, medicalStaff.available, narrative, offFieldEvents, offseasonState, phase, playoffMomentum, recentPressConferences, roster, team, trainingAssignments, upcomingRivalry, waiverWire, weather, week]);
+    newlyUnlockedAchievements,
+    latestSeasonReport: seasonReports[0] ?? null,
+    upcomingGame: teamSchedule.find((entry) => entry.week === week) ?? null,
+  }), [activeArcs, activeProposals, ceremonies, coachingNews, conditionalPicks, difficultyState, handshakes, latestPackage, latestSummary, leagueNews, medicalStaff.available, narrative, newlyUnlockedAchievements, offFieldEvents, offseasonState, phase, playoffMomentum, recentPressConferences, roster, seasonReports, team, teamSchedule, trainingAssignments, upcomingRivalry, waiverWire, weather, week]);
 
   const filtered = filter === 'ALL' ? messages : messages.filter((m) => m.type === filter);
   const urgentCount = messages.filter((m) => m.type === 'URGENT' && !m.read).length;

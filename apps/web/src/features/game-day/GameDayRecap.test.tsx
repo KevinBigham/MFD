@@ -19,6 +19,9 @@ describe('GameDayCenterView', () => {
           headline: 'Week 3: New York Titans beat Boston Minutemen 31-17',
           result: 'win',
           finalScore: '31-17',
+          broadcastNetwork: 'MFN',
+          primetime: true,
+          flexed: true,
           stakes: [{ label: 'Division pace', detail: 'A fast AFC East start matters.' }],
           turningPoints: [{ label: 'Third-down edge', detail: 'The offense extended three late drives.', impact: 'positive' }],
           topPerformers: [{ playerId: 'p1', label: 'QB1', statLine: '286 pass yds, 3 TD' }],
@@ -48,6 +51,7 @@ describe('GameDayCenterView', () => {
             leverage: 'Turnover margin plus third-down efficiency flipped the game.',
             nextFocus: ['Protect the injured backfield', 'Carry the pass protection forward'],
           },
+          specialTeamsHighlights: ['Keenan Ward ripped off a 74-yard kick return that flipped the field.'],
         }}
       />,
     );
@@ -57,5 +61,9 @@ describe('GameDayCenterView', () => {
     expect(markup).toContain('Turnover margin plus third-down efficiency flipped the game.');
     expect(markup).toContain('Breakout practice carried into kickoff.');
     expect(markup).toContain('How did the offense stay on schedule?');
+    expect(markup).toContain('MFN');
+    expect(markup).toContain('PRIMETIME');
+    expect(markup).toContain('FLEXED');
+    expect(markup).toContain('Keenan Ward ripped off a 74-yard kick return that flipped the field.');
   });
 });

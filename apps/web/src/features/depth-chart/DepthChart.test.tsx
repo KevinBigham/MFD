@@ -46,6 +46,15 @@ const mockState = {
   ],
   actions: {
     setStarter: () => undefined,
+    assignKickReturner: () => Promise.resolve(),
+    assignPuntReturner: () => Promise.resolve(),
+  },
+  specialTeams: {
+    kickReturner: null,
+    puntReturner: null,
+    longSnapper: null,
+    kickCoverageUnit: [],
+    puntCoverageUnit: [],
   },
 };
 
@@ -63,6 +72,7 @@ vi.mock('../../app/store/game-store', () => ({
     teamId: 'user-team',
   }),
   selectRoster: (state: typeof mockState) => state.roster,
+  selectSpecialTeams: (state: typeof mockState) => state.specialTeams,
   selectUserTeamId: (state: typeof mockState & { teamId: string | null }) => state.teamId,
 }));
 
@@ -72,5 +82,6 @@ describe('DepthChart accessibility', () => {
 
     expect(markup).toContain('DEPTH CHART');
     expect(markup).toContain('type="button"');
+    expect(markup).toContain('--- SPECIAL TEAMS ---');
   });
 });

@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MondayBriefing } from './MondayBriefing';
 
 const mockState = {
-  phase: 'playoffs',
+  phase: 'regular_season',
   userTeam: {
     id: 'team-1',
     city: 'Chicago',
@@ -13,7 +13,10 @@ const mockState = {
     losses: 4,
     ties: 0,
     capSpace: 21.4,
+    capUsed: 197.2,
+    deadCap: 6.1,
     seasonStats: { pointDifferential: 37 },
+    staff: { hc: { ratings: { development: 80 } } },
   },
   roster: [
     {
@@ -28,31 +31,10 @@ const mockState = {
       devTrait: 'superstar',
       injury: null,
     },
-    {
-      id: 'p2',
-      firstName: 'Rick',
-      lastName: 'Mason',
-      name: 'Rick Mason',
-      pos: 'RB',
-      ovr: 78,
-      pot: 80,
-      age: 27,
-      devTrait: 'normal',
-      injury: { type: 'hamstring', severity: 'out', severityTier: 'severe', gamesOut: 2, reinjuryRisk: 0.18, onIR: false },
-    },
   ],
   week: 13,
   year: 2029,
-  schedule: [
-    {
-      week: 13,
-      games: [{ homeTeamId: 'team-1', awayTeamId: 'team-2' }],
-    },
-  ],
-  ownerState: {
-    approval: 74,
-    label: 'Players First',
-  },
+  ownerState: { approval: 74 },
   latestSummary: {
     headline: 'Blaze stay hot behind a fourth-quarter avalanche.',
     result: 'win',
@@ -63,18 +45,10 @@ const mockState = {
     autopsy: { diagnosis: 'Tempo and field position buried the opponent.' },
   },
   activeStoryArcs: [
-    {
-      id: 'arc-1',
-      title: 'Division race tightening',
-      summary: 'One more win keeps the inside track to the crown.',
-    },
+    { id: 'arc-1', title: 'Division race tightening', summary: 'One more win keeps the inside track to the crown.' },
   ],
   teams: {
-    'team-2': {
-      id: 'team-2',
-      city: 'Austin',
-      name: 'Armadillos',
-    },
+    'team-2': { id: 'team-2', city: 'Austin', name: 'Armadillos', wins: 7, losses: 5, ties: 0 },
   },
   userPowerRanking: {
     rank: 4,
@@ -99,26 +73,6 @@ const mockState = {
       recordHolder: 'Legend One',
     },
   ],
-  userMentoringPairs: [
-    {
-      mentorId: 'mentor-1',
-      mentorName: 'Rick Mason',
-      menteeId: 'mentee-1',
-      menteeName: 'Jay Stone',
-      teamId: 'team-1',
-      positionGroup: 'QB',
-      year: 2029,
-      bonus: 2,
-    },
-  ],
-  offFieldEvents: [
-    {
-      id: 'event-1',
-      headline: 'Jay Stone owns the media cycle',
-      description: 'Stone leaned into the spotlight and the room fed off it.',
-      category: 'media',
-    },
-  ],
   upcomingRivalry: {
     rivalryId: 'team-1::team-2',
     intensity: 68,
@@ -127,19 +81,10 @@ const mockState = {
     headline: 'Chicago and Austin are carrying real heat into kickoff.',
   },
   coachingCarouselNews: [
-    {
-      id: 'coach-1',
-      type: 'coach_hired',
-      description: 'Austin hires Mason Pike to run the sideline.',
-    },
+    { id: 'coach-1', type: 'coach_hired', description: 'Austin hires Mason Pike to run the sideline.' },
   ],
   leagueNews: [
-    {
-      id: 'news-1',
-      headline: 'League trade talks are heating up',
-      body: 'A contender is pushing chips into the middle of the table.',
-      importance: 'breaking',
-    },
+    { id: 'news-1', headline: 'League trade talks are heating up', body: 'A contender is pushing chips into the middle of the table.', importance: 'breaking' },
   ],
   trainingAssignments: {
     p1: {
@@ -163,32 +108,79 @@ const mockState = {
     ],
     nfc: [],
   },
-  fatigueReport: [
-    { playerId: 'p1', fatigue: 82, status: 'exhausted' },
-    { playerId: 'p2', fatigue: 66, status: 'fatigued' },
-  ],
+  fatigueReport: [],
   facilities: {
     budget: 7,
-    facilities: [
-      { type: 'training_complex', level: 2 },
-      { type: 'recovery_suite', level: 3 },
-    ],
+    facilities: [{ type: 'training_complex', level: 2 }],
   },
-  playoffMomentum: {
-    teamId: 'team-1',
-    momentum: 88,
-    narrativeTag: 'hot_streak',
-    winStreak: 6,
-  },
-  narrativeIntensity: {
-    current: 76,
-    status: 'hot',
-  },
+  playoffMomentum: null,
+  narrativeIntensity: { current: 76, status: 'hot' },
   dynastyScore: 19,
   handshakes: [],
   waiverWirePlayers: [],
   weather: 'clear',
   conditionalPicks: [],
+  achievements: [
+    {
+      id: 'dynasty:first_championship',
+      title: 'First Championship',
+      description: 'Win your first title.',
+      category: 'dynasty',
+      tier: 'bronze',
+      condition: { type: 'championships', threshold: 1 },
+      unlockedYear: 2028,
+      unlockedWeek: 18,
+      icon: 'trophy',
+    },
+  ],
+  dashboardState: {
+    activeLayoutId: 'layout:default',
+    pinnedWidgets: [],
+    layouts: [
+      {
+        id: 'layout:default',
+        name: 'Command Center',
+        columns: 3,
+        widgets: [
+          'team_record',
+          'next_game',
+          'power_ranking',
+          'league_headlines',
+          'training_report',
+          'record_watch',
+          'playoff_picture',
+          'coaching_news',
+        ],
+      },
+    ],
+  },
+  teamSchedule: [
+    {
+      week: 13,
+      opponentTeamId: 'team-2',
+      opponentName: 'Austin Armadillos',
+      home: true,
+      result: null,
+      recordAfterGame: null,
+      bye: false,
+      primetime: true,
+      flexed: true,
+      broadcastNetwork: 'MFN',
+    },
+  ],
+  statLeaders: {
+    passYds: [{ name: 'Jay Stone', value: 3810 }],
+    rushYds: [{ name: 'Rick Mason', value: 1264 }],
+    recYds: [],
+    sacks: [{ name: 'Ace Bolt', value: 12 }],
+    defINT: [],
+  },
+  actions: {
+    pinWidget: () => Promise.resolve(),
+    unpinWidget: () => Promise.resolve(),
+    saveLayout: () => Promise.resolve(),
+    switchLayout: () => Promise.resolve(),
+  },
 };
 
 vi.mock('../../app/store/game-store', () => ({
@@ -198,7 +190,6 @@ vi.mock('../../app/store/game-store', () => ({
   selectRoster: (state: typeof mockState) => state.roster,
   selectWeek: (state: typeof mockState) => state.week,
   selectYear: (state: typeof mockState) => state.year,
-  selectSchedule: (state: typeof mockState) => state.schedule,
   selectOwnerState: (state: typeof mockState) => state.ownerState,
   selectLatestSummary: (state: typeof mockState) => state.latestSummary,
   selectLatestGameDayPackage: (state: typeof mockState) => state.latestGameDayPackage,
@@ -206,8 +197,6 @@ vi.mock('../../app/store/game-store', () => ({
   selectTeams: (state: typeof mockState) => state.teams,
   selectUserPowerRanking: (state: typeof mockState) => state.userPowerRanking,
   selectUserRecordWatch: (state: typeof mockState) => state.userRecordWatch,
-  selectUserMentoringPairs: (state: typeof mockState) => state.userMentoringPairs,
-  selectOffFieldEvents: (state: typeof mockState) => state.offFieldEvents,
   selectUpcomingRivalry: (state: typeof mockState) => state.upcomingRivalry,
   selectCoachingCarouselNews: (state: typeof mockState) => state.coachingCarouselNews,
   selectLeagueNews: (state: typeof mockState) => state.leagueNews,
@@ -222,38 +211,34 @@ vi.mock('../../app/store/game-store', () => ({
   selectWaiverWirePlayers: (state: typeof mockState) => state.waiverWirePlayers,
   selectWeather: (state: typeof mockState) => state.weather,
   selectConditionalPicks: (state: typeof mockState) => state.conditionalPicks,
+  selectAchievements: (state: typeof mockState) => state.achievements,
+  selectDashboardState: (state: typeof mockState) => state.dashboardState,
+  selectTeamSchedule: (state: typeof mockState) => state.teamSchedule,
+  selectStatLeaders: (state: typeof mockState) => state.statLeaders,
 }));
 
 describe('MondayBriefing', () => {
-  it('renders the broadcast header plus rankings, record watch, and mentoring widgets', () => {
+  it('renders the widget-driven dashboard with layout controls and spotlight widgets', () => {
     const markup = renderToStaticMarkup(<MondayBriefing />);
 
-    expect(markup).toContain('MFD NETWORK');
+    expect(markup).toContain('MONDAY BRIEFING');
+    expect(markup).toContain('Command Center');
+    expect(markup).toContain('Customize');
+    expect(markup).toContain('--- TEAM RECORD ---');
+    expect(markup).toContain('--- NEXT GAME ---');
+    expect(markup).toContain('MFN');
+    expect(markup).toContain('Flexed');
     expect(markup).toContain('--- POWER RANKINGS ---');
     expect(markup).toContain('Chicago is climbing behind a quarterback heating up in December.');
-    expect(markup).toContain('--- RECORD WATCH ---');
-    expect(markup).toContain('Jay Stone');
-    expect(markup).toContain('--- MENTORING REPORT ---');
-    expect(markup).toContain('Rick Mason -&gt; Jay Stone');
     expect(markup).toContain('--- LEAGUE HEADLINES ---');
     expect(markup).toContain('League trade talks are heating up');
-    expect(markup).toContain('--- TRAINING REPORT ---');
-    expect(markup).toContain('film study');
-    expect(markup).toContain('Narrative hot');
-    expect(markup).toContain('Dynasty 19');
-    expect(markup).toContain('--- PLAYOFF RACE ---');
+    expect(markup).toContain('--- RECORD WATCH ---');
+    expect(markup).toContain('Jay Stone');
+    expect(markup).toContain('--- PLAYOFF PICTURE ---');
     expect(markup).toContain('#1 Chicago Blaze');
-    expect(markup).toContain('--- FATIGUE WATCH ---');
-    expect(markup).toContain('--- FACILITY STATUS ---');
-    expect(markup).toContain('--- PLAYOFF MOMENTUM ---');
-    expect(markup).toContain('hot streak');
-    expect(markup).toContain('--- LOCKER ROOM PULSE ---');
-    expect(markup).toContain('Jay Stone owns the media cycle');
-    expect(markup).toContain('--- RIVALRY WATCH ---');
-    expect(markup).toContain('Chicago and Austin are carrying real heat into kickoff.');
     expect(markup).toContain('--- COACHING NEWS ---');
     expect(markup).toContain('Austin hires Mason Pike to run the sideline.');
-    expect(markup).toContain('--- NARRATIVE PULSE ---');
-    expect(markup).toContain('DIVISION RACE TIGHTENING');
+    expect(markup).toContain('Narrative hot');
+    expect(markup).toContain('Dynasty 19');
   });
 });

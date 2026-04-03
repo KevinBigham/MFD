@@ -1,8 +1,10 @@
 import { cl } from '../utils';
 import { RNG, reseedSeason, reseedWeek, setSeed } from '../rng';
 import { getAdaptiveModifier, updateAdaptiveDifficulty } from './adaptive-difficulty';
+import { checkAchievements } from './achievements';
 import { advanceDraft, ensureDraftClass, finalizePostDraft } from './draft';
 import { recordCeremony, generateRingCeremony } from './ceremonies';
+import { assignBroadcasts, flexSchedule } from './flex-schedule';
 import { recordDynastyEvent } from './dynasty-timeline';
 import { generateWeeklyLeagueNews, recordNewsItem } from './league-news';
 import { recordBeat, shouldGenerateEvent } from './narrative-director';
@@ -32,6 +34,7 @@ import { updateRecordsFromGameResult } from './records';
 import { getRivalryGameContext, seedLeagueRivalries, updateLeagueRivalriesFromGame } from './rivalries';
 import { generateTradeOffers } from './trade-market';
 import { buildWeeklySummary } from './weekly-summary';
+import { autoAssignSpecialTeams } from './special-teams';
 import {
   cloneGame,
   findUserTeam,
@@ -192,6 +195,15 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
 
   if (nextState.phase === 'regular_season') {
     completedRegularSeasonWeek = true;
+    for (const team of Object.values(nextState.teams)) {
+      if (!team.isUser) {
+        autoAssignSpecialTeams(nextState, team.id);
+      }
+    }
+    if (nextState.week >= 14) {
+      flexSchedule(nextState, RNG.ai);
+    }
+    assignBroadcasts(nextState, nextState.week);
     ensureWeeklyWeather(nextState, nextState.week);
     const currentWeek = nextState.schedule.find((entry) => entry.week === nextState.week);
     for (const matchup of currentWeek?.games ?? []) {
@@ -216,7 +228,11 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         },
         weather: matchup.weather ?? generateWeatherForGame(home, nextState.week),
         rivalryIntensity: rivalry?.intensity ?? 0,
+        homeFieldBonus: matchup.primetime ? 2 : 0,
       });
+      outcome.result.broadcastNetwork = matchup.broadcastNetwork;
+      outcome.result.primetime = matchup.primetime;
+      outcome.result.flexed = matchup.flexed;
       matchup.result = outcome.result;
       matchup.weather = outcome.result.weather ?? matchup.weather ?? null;
       updateRecordsFromGameResult(nextState, outcome.result);
@@ -226,6 +242,14 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       const event = makeEvent(nextState, 'weekly_result', `${home.name} ${outcome.result.homeScore}, ${away.name} ${outcome.result.awayScore}`, { gameId: outcome.result.id });
       events.push(event);
       nextState.eventLog.push(event);
+      if (matchup.primetime) {
+        recordBeat(nextState, {
+          week: nextState.week,
+          type: 'positive',
+          intensity: 55,
+          source: 'primetime_spotlight',
+        });
+      }
 
       if (startingUser && (home.id === startingUser.id || away.id === startingUser.id)) {
         userResult = outcome.result;
@@ -233,7 +257,11 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         userInjuries = outcome.injuries[startingUser.id] ?? [];
         userRivalry = rivalry;
         const userEffects = home.id === startingUser.id ? homeEffects : awayEffects;
-        userActiveEffectSummaries = [...userEffects.summaries, ...(rivalry ? [rivalry.headline] : [])].slice(0, 4);
+        userActiveEffectSummaries = [
+          ...userEffects.summaries,
+          ...(rivalry ? [rivalry.headline] : []),
+          ...(matchup.primetime ? ['Primetime spotlight puts the game under a brighter microscope.'] : []),
+        ].slice(0, 4);
       }
     }
 
@@ -416,6 +444,8 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   if (completedRegularSeasonWeek) {
     generateWeeklyLeagueNews(nextState, RNG.ai);
   }
+
+  checkAchievements(nextState);
 
   return {
     nextState,

@@ -297,6 +297,7 @@ export interface Team {
   facilityState: FacilityState;
   practiceSquad: PracticeSquadPlayer[];
   stadiumType: 'dome' | 'outdoor';
+  specialTeams?: SpecialTeamsState;
 }
 
 export interface FranchiseTagState {
@@ -738,6 +739,79 @@ export interface TutorialState {
   dismissed: boolean;
 }
 
+export interface AchievementCondition {
+  type: string;
+  threshold: number | string | boolean;
+}
+
+export type AchievementCategory =
+  | 'dynasty'
+  | 'roster'
+  | 'draft'
+  | 'financial'
+  | 'coaching'
+  | 'narrative'
+  | 'records'
+  | 'milestones'
+  | 'hidden';
+
+export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum';
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  category: AchievementCategory;
+  tier: AchievementTier;
+  condition: AchievementCondition;
+  unlockedYear: number | null;
+  unlockedWeek: number | null;
+  icon: string;
+}
+
+export interface AchievementProgress {
+  achievementId: string;
+  current: number;
+  target: number;
+  percentage: number;
+  label: string;
+  hidden: boolean;
+  complete: boolean;
+}
+
+export type DashboardWidget =
+  | 'team_record'
+  | 'next_game'
+  | 'injury_report'
+  | 'fatigue_watch'
+  | 'cap_snapshot'
+  | 'power_ranking'
+  | 'promise_tracker'
+  | 'training_report'
+  | 'league_headlines'
+  | 'record_watch'
+  | 'rivalry_watch'
+  | 'coaching_news'
+  | 'waiver_wire'
+  | 'weather_forecast'
+  | 'achievement_progress'
+  | 'dynasty_score'
+  | 'playoff_picture'
+  | 'stat_leaders';
+
+export interface DashboardLayout {
+  id: string;
+  name: string;
+  widgets: DashboardWidget[];
+  columns: 2 | 3;
+}
+
+export interface DashboardState {
+  activeLayoutId: string;
+  layouts: DashboardLayout[];
+  pinnedWidgets: DashboardWidget[];
+}
+
 export interface AgentProfile {
   id: string;
   name: string;
@@ -867,6 +941,10 @@ export interface GameResult {
   stats: GameStats;
   weather?: WeatherCondition | null;
   matchupHighlight?: MatchupHighlight | null;
+  broadcastNetwork?: BroadcastNetwork | null;
+  primetime?: boolean;
+  flexed?: boolean;
+  specialTeams?: Record<string, SpecialTeamsGameSummary>;
 }
 
 export interface GameStats {
@@ -927,6 +1005,16 @@ export interface TeamGameStats {
   redZoneScores: number;
   quarterScores: [number, number, number, number, ...number[]];
   playerLines: PlayerGameLine[];
+}
+
+export interface SpecialTeamsGameSummary {
+  kickReturnYards: number;
+  puntReturnYards: number;
+  returnTouchdowns: number;
+  returnFumbles: number;
+  touchbacks: number;
+  netPuntAverage: number;
+  highlights: string[];
 }
 
 export interface TeamSeasonStats {
@@ -1038,6 +1126,10 @@ export interface GameDayPackage {
   autopsy: GameDayAutopsy;
   weather?: WeatherCondition | null;
   matchupHighlight?: MatchupHighlight | null;
+  broadcastNetwork?: BroadcastNetwork | null;
+  primetime?: boolean;
+  flexed?: boolean;
+  specialTeamsHighlights?: string[];
 }
 
 export interface GameDayState {
@@ -1080,6 +1172,16 @@ export interface PlayoffBracket {
 
 // ── Schedule ────────────────────────────────────────────
 
+export type BroadcastNetwork = 'MFN' | 'ESPN8' | 'FOX8' | 'CBS8' | 'NBC8';
+
+export interface SpecialTeamsState {
+  kickReturner: string | null;
+  puntReturner: string | null;
+  longSnapper: string | null;
+  kickCoverageUnit: string[];
+  puntCoverageUnit: string[];
+}
+
 export interface ScheduleWeek {
   week: number;
   games: ScheduledGame[];
@@ -1090,6 +1192,9 @@ export interface ScheduledGame {
   awayTeamId: string;
   result: GameResult | null;
   weather?: WeatherCondition | null;
+  flexed?: boolean;
+  primetime?: boolean;
+  broadcastNetwork?: BroadcastNetwork | null;
 }
 
 // ── Dynasty & Legacy ────────────────────────────────────
@@ -1184,6 +1289,21 @@ export interface HallOfFameEntry {
   };
   highlights: string[];
   teams: string[];
+}
+
+export interface ReportSection {
+  title: string;
+  grade: string;
+  summary: string;
+  highlights: string[];
+  stats: Record<string, string | number>;
+}
+
+export interface SeasonReport {
+  year: number;
+  teamId: string;
+  overallGrade: 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C' | 'D' | 'F';
+  sections: ReportSection[];
 }
 
 export interface PowerRanking {
@@ -1337,6 +1457,9 @@ export interface GameState {
   narrativeIntensity: NarrativeIntensity;
   ceremonies: Ceremony[];
   dynastyTimeline: DynastyEvent[];
+  achievements?: Achievement[];
+  dashboardState?: DashboardState;
+  seasonReports?: SeasonReport[];
 }
 
 export type SeasonPhase =

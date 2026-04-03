@@ -1,5 +1,6 @@
 import { DIFF_SETTINGS } from '../config/difficulty';
 import { mulberry32, RNG } from '../rng';
+import { checkAchievements } from './achievements';
 import { generateAwards } from './awards';
 import { recordCeremony, generateAwardsNight, generateChampionshipCeremony, generateHOFInduction } from './ceremonies';
 import { runCoachingCarousel } from './coaching-carousel';
@@ -26,6 +27,8 @@ import { progressPlayers } from './progression';
 import { getSeasonRecordNotes, updateCareerRecords, updateSeasonRecords } from './records';
 import { decayLeagueRivalries } from './rivalries';
 import { createDefaultScoutingDepartment, generateScoutPool } from './scouting-staff';
+import { generateSeasonReport } from './season-report';
+import { buildSpecialTeamsState } from './special-teams';
 import { generateTradeOffers } from './trade-market';
 import type {
   AwardResult,
@@ -461,6 +464,12 @@ function resetPhysicalState(game: GameState): void {
   game.playoffMomentum = {};
 }
 
+function resetSpecialTeams(game: GameState): void {
+  for (const team of Object.values(game.teams)) {
+    team.specialTeams = buildSpecialTeamsState(team);
+  }
+}
+
 function resetPracticeSquads(game: GameState): void {
   for (const team of Object.values(game.teams)) {
     if (!team.practiceSquad) {
@@ -620,6 +629,12 @@ export function advanceOffseason(game: GameState): void {
   updateSeasonRecords(game, seasonYear);
   updateCareerRecords(game, seasonYear);
   patchSeasonHistory(game, seasonYear, awards.awards);
+  const existingReports = game.seasonReports ?? [];
+  game.seasonReports = Object.values(game.teams).reduce<NonNullable<GameState['seasonReports']>>((reports, team) => {
+    const report = generateSeasonReport(game, team.id);
+    const withoutCurrent = reports.filter((entry) => !(entry.teamId === team.id && entry.year === report.year));
+    return [...withoutCurrent, report];
+  }, existingReports);
   decrementCarryoverContracts(game, game.offseasonState);
   resolveUserReSigns(game, game.offseasonState);
   resolveAiReSigns(game, game.offseasonState);
@@ -677,6 +692,7 @@ export function advanceOffseason(game: GameState): void {
   clearTrainingAssignments(game);
   resetPhysicalState(game);
   resetPracticeSquads(game);
+  resetSpecialTeams(game);
   const narrativeAdds = [
     awardsNight.headline,
     awards.ceremony.headline,
@@ -693,6 +709,7 @@ export function advanceOffseason(game: GameState): void {
   game.eventLog.push(...strategyEvents);
   generateOffseasonNews(game);
   game.offseasonState.tradeOffers = generateTradeOffers(game);
+  checkAchievements(game);
   game.phase = 'free_agency';
   game.week = 1;
 }

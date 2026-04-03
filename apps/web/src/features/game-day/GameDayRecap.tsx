@@ -96,10 +96,13 @@ export function GameDayCenterView({
           <span style={{ ...pixelSm, color: '#666' }}>
             YR <span style={{ color: '#fff' }}>{packageData.year}</span>
           </span>
-          <PixelBadge variant={packageData.result === 'win' ? 'green' : packageData.result === 'loss' ? 'red' : 'default'}>
-            {packageData.result.toUpperCase()}
-          </PixelBadge>
-        </div>
+            <PixelBadge variant={packageData.result === 'win' ? 'green' : packageData.result === 'loss' ? 'red' : 'default'}>
+              {packageData.result.toUpperCase()}
+            </PixelBadge>
+            {packageData.broadcastNetwork ? (
+              <PixelBadge variant={packageData.primetime ? 'gold' : 'cyan'}>{packageData.broadcastNetwork}</PixelBadge>
+            ) : null}
+          </div>
       </div>
 
       {/* Headline */}
@@ -113,6 +116,8 @@ export function GameDayCenterView({
             {packageData.weather ? (
               <PixelBadge variant={weatherVariant(packageData.weather)}>{`weather // ${packageData.weather}`}</PixelBadge>
             ) : null}
+            {packageData.primetime ? <PixelBadge variant="gold">PRIMETIME</PixelBadge> : null}
+            {packageData.flexed ? <PixelBadge variant="gold">FLEXED</PixelBadge> : null}
             {packageData.rivalry ? (
               <PixelBadge variant="red">{`${packageData.rivalry.tier.replace('_', ' ')} // ${packageData.rivalry.intensity}`}</PixelBadge>
             ) : null}
@@ -160,6 +165,18 @@ export function GameDayCenterView({
             <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
               {packageData.matchupHighlight.detail}
             </div>
+          </div>
+        </PixelPanel>
+      ) : null}
+
+      {packageData.specialTeamsHighlights && packageData.specialTeamsHighlights.length > 0 ? (
+        <PixelPanel title="Special Teams Swing" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px' }}>
+            {packageData.specialTeamsHighlights.map((highlight) => (
+              <div key={highlight} style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
+                {highlight}
+              </div>
+            ))}
           </div>
         </PixelPanel>
       ) : null}

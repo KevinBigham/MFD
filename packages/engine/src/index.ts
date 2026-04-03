@@ -155,6 +155,38 @@ export {
   completeTutorialAction,
 } from './systems/tutorial';
 export {
+  createDefaultAchievements,
+  getAchievementCatalog,
+  checkAchievements,
+  getUnlockedAchievements,
+  getAchievementProgress,
+} from './systems/achievements';
+export {
+  createDefaultDashboardState,
+  createLayout,
+  switchLayout,
+  pinWidget,
+  unpinWidget,
+  reorderWidgets,
+  getActiveDashboardLayout,
+} from './systems/dashboard-config';
+export {
+  assignBroadcasts,
+  flexSchedule,
+  getFullSchedule,
+  getWeekSchedule,
+} from './systems/flex-schedule';
+export {
+  createDefaultSpecialTeamsState,
+  buildSpecialTeamsState,
+  assignKickReturner,
+  assignPuntReturner,
+  autoAssignSpecialTeams,
+  calculateReturnYards,
+  simulateSpecialTeams,
+} from './systems/special-teams';
+export { generateSeasonReport } from './systems/season-report';
+export {
   generateAgentPool,
   ensureAgentsInitialized,
   getPlayerAgent,

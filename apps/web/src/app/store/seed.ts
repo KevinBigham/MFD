@@ -20,7 +20,10 @@ import {
   createDefaultDifficultyState,
   createDefaultNarrativeIntensity,
   createDefaultTutorialState,
+  createDefaultAchievements,
+  createDefaultDashboardState,
   createFacilityState,
+  buildSpecialTeamsState,
   ensureAgentsInitialized,
   syncAllPlayerArchiveEntries,
 } from '@mfd/engine';
@@ -314,7 +317,15 @@ function genTeam(
     facilityState: createFacilityState(ownerState.archetypeId, !isUser, () => rng(0, 1000) / 1000),
     practiceSquad: [],
     stadiumType: DOME_CITIES.has(def.city) ? 'dome' : 'outdoor',
+    specialTeams: {
+      kickReturner: null,
+      puntReturner: null,
+      longSnapper: null,
+      kickCoverageUnit: [],
+      puntCoverageUnit: [],
+    },
   };
+  team.specialTeams = buildSpecialTeamsState(team);
 
   return { team, players };
 }
@@ -337,6 +348,9 @@ function generateSchedule(teamIds: string[], year: number): ScheduleWeek[] {
         homeTeamId: available[i]!,
         awayTeamId: available[i + 1]!,
         result: null,
+        flexed: false,
+        primetime: false,
+        broadcastNetwork: null,
       });
     }
     weeks.push({ week: w, games });
@@ -453,6 +467,9 @@ export function createSeedGameState(
     narrativeIntensity: createDefaultNarrativeIntensity(),
     ceremonies: [],
     dynastyTimeline: [],
+    achievements: createDefaultAchievements(),
+    dashboardState: createDefaultDashboardState(),
+    seasonReports: [],
   };
 
   ensureAgentsInitialized(gameState);

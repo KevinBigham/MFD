@@ -4,12 +4,13 @@ import {
   PixelButton,
   PixelModal,
   PixelPanel,
+  PixelSelect,
 } from '@mfd/design-system/components';
 import { AlertTriangle } from 'lucide-react';
 import type { Player, Position } from '@mfd/engine';
 import { detectPositionBattles } from '@mfd/engine';
 import {
-  useGameStore, selectRoster, selectUserTeamId,
+  useGameStore, selectRoster, selectSpecialTeams, selectUserTeamId,
 } from '../../app/store/game-store';
 import {
   PixelMetricCard,
@@ -45,7 +46,8 @@ const DEFENSE_SLOTS: PositionSlot[] = [
 export function DepthChart() {
   const roster = useGameStore(selectRoster);
   const teamId = useGameStore(selectUserTeamId);
-  const { setStarter } = useGameStore((state) => state.actions);
+  const specialTeams = useGameStore(selectSpecialTeams);
+  const { setStarter, assignKickReturner, assignPuntReturner } = useGameStore((state) => state.actions);
 
   const [side, setSide] = useState<'OFF' | 'DEF'>('OFF');
   const [selectedSlot, setSelectedSlot] = useState<PositionSlot | null>(null);
@@ -70,6 +72,18 @@ export function DepthChart() {
   }, [roster]);
 
   const selectedPlayers = selectedSlot ? slotPlayers.get(selectedSlot.label) ?? [] : [];
+  const eligibleReturners = roster
+    .filter((player) => (player.pos === 'RB' || player.pos === 'WR') && (player.ratings.speed ?? player.ovr) > 75)
+    .sort((a, b) => (b.ratings.speed ?? b.ovr) - (a.ratings.speed ?? a.ovr) || b.ovr - a.ovr);
+  const kickReturner = roster.find((player) => player.id === specialTeams.kickReturner) ?? null;
+  const puntReturner = roster.find((player) => player.id === specialTeams.puntReturner) ?? null;
+  const longSnapper = roster.find((player) => player.id === specialTeams.longSnapper) ?? null;
+  const kicker = roster.find((player) => player.pos === 'K') ?? null;
+  const punter = roster.find((player) => player.pos === 'P') ?? null;
+  const kickerAccuracy = kicker
+    ? `SR ${Math.round(kicker.ratings.shortRange ?? kicker.ovr)} // MR ${Math.round(kicker.ratings.medRange ?? kicker.ovr - 5)} // LR ${Math.round(kicker.ratings.longRange ?? kicker.ovr - 10)}`
+    : 'No kicker on roster';
+  const punterNetAverage = punter ? (35 + ((punter.ovr ?? 70) - 60) * 0.25).toFixed(1) : '--';
 
   return (
     <div style={screenStackStyle}>
@@ -175,6 +189,81 @@ export function DepthChart() {
           );
         })}
       </div>
+
+      <PixelPanel title="Special Teams" accent="gold">
+        <div style={autoGrid(260)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: '#fff' }}>Kick Returner</div>
+            <PixelSelect
+              aria-label="Kick returner"
+              value={specialTeams.kickReturner ?? ''}
+              onChange={(event) => {
+                if (!teamId || !event.target.value) return;
+                void assignKickReturner(teamId, event.target.value);
+              }}
+              options={eligibleReturners.length > 0
+                ? eligibleReturners.map((player) => ({
+                  value: player.id,
+                  label: `${player.name} // SPD ${Math.round(player.ratings.speed ?? player.ovr)}`,
+                }))
+                : [{ value: '', label: 'No eligible returners', disabled: true }]}
+              accent="gold"
+            />
+            <div style={{ ...monoSm, color: '#999' }}>
+              {kickReturner
+                ? `${kickReturner.name} // speed ${Math.round(kickReturner.ratings.speed ?? kickReturner.ovr)}`
+                : 'Assign your best burst threat.'}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: '#fff' }}>Punt Returner</div>
+            <PixelSelect
+              aria-label="Punt returner"
+              value={specialTeams.puntReturner ?? ''}
+              onChange={(event) => {
+                if (!teamId || !event.target.value) return;
+                void assignPuntReturner(teamId, event.target.value);
+              }}
+              options={eligibleReturners.length > 0
+                ? eligibleReturners.map((player) => ({
+                  value: player.id,
+                  label: `${player.name} // SPD ${Math.round(player.ratings.speed ?? player.ovr)}`,
+                }))
+                : [{ value: '', label: 'No eligible returners', disabled: true }]}
+              accent="gold"
+            />
+            <div style={{ ...monoSm, color: '#999' }}>
+              {puntReturner
+                ? `${puntReturner.name} // speed ${Math.round(puntReturner.ratings.speed ?? puntReturner.ovr)}`
+                : 'Punt return role is still open.'}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: '#fff' }}>Long Snapper</div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="cyan">{longSnapper?.name ?? 'Unassigned'}</PixelBadge>
+              {longSnapper ? <PixelBadge variant="default">{longSnapper.pos}</PixelBadge> : null}
+            </div>
+            <div style={{ ...monoSm, color: '#999' }}>Auto-assigned from the best OL/TE awareness profile.</div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: '#fff' }}>Kicking Battery</div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="green">{kicker ? `${kicker.name} // OVR ${kicker.ovr}` : 'No kicker'}</PixelBadge>
+              <PixelBadge variant="cyan">{punter ? `${punter.name} // OVR ${punter.ovr}` : 'No punter'}</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
+              FG accuracy: {kickerAccuracy}
+            </div>
+            <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
+              Net punt average: {punterNetAverage} yards
+            </div>
+          </div>
+        </div>
+      </PixelPanel>
 
       <PixelModal
         open={!!selectedSlot}

@@ -247,5 +247,9 @@ export function buildGameDayPackage(params: BuildGameDayPackageParams): GameDayP
     autopsy,
     weather: result.weather ?? null,
     matchupHighlight: result.matchupHighlight ?? null,
+    broadcastNetwork: result.broadcastNetwork ?? null,
+    primetime: result.primetime ?? false,
+    flexed: result.flexed ?? false,
+    specialTeamsHighlights: result.specialTeams?.[team.id]?.highlights ?? [],
   };
 }

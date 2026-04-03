@@ -79,7 +79,10 @@ export function simulateGame(
   week: number,
   difficulty: GameState['difficulty'],
   context?: SimGameContext,
-) {
+): {
+  result: GameResult;
+  injuries: Record<string, WeeklyInjurySummary[]>;
+} {
   const sim = simGame(home, away, context);
   const {
     homeScore,
@@ -117,7 +120,8 @@ export function simulateGame(
       stats: { [home.id]: homeStats, [away.id]: awayStats },
       weather,
       matchupHighlight,
-    } satisfies GameResult,
+      specialTeams: sim.specialTeams,
+    },
     injuries: {
       [home.id]: maybeInjure(game, home, diff.injMod),
       [away.id]: maybeInjure(game, away, diff.injMod),

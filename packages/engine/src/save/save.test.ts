@@ -623,4 +623,65 @@ describe('migration pipeline', () => {
     expect(migrated['dynastyTimeline']).toEqual([]);
     expect((migrated['players'] as Record<string, Record<string, unknown>>).p1?.['agentId']).toBeNull();
   });
+
+  it('migrates v11 saves to include sprint 12 prestige systems', () => {
+    const migrated = migrate({
+      version: 11,
+      year: 2030,
+      week: 15,
+      teams: {
+        t1: {
+          id: 't1',
+          isUser: true,
+          roster: [
+            {
+              id: 'wr-1',
+              pos: 'WR',
+              ovr: 81,
+              ratings: { speed: 92, awareness: 70 },
+            },
+            {
+              id: 'rb-1',
+              pos: 'RB',
+              ovr: 79,
+              ratings: { speed: 88, awareness: 66 },
+            },
+            {
+              id: 'ol-1',
+              pos: 'OL',
+              ovr: 76,
+              ratings: { awareness: 82 },
+            },
+          ],
+        },
+      },
+      schedule: [
+        {
+          week: 15,
+          games: [
+            { homeTeamId: 't1', awayTeamId: 't2', result: null },
+          ],
+        },
+      ],
+    }, 12);
+
+    expect(migrated['version']).toBe(12);
+    expect(Array.isArray(migrated['achievements'])).toBe(true);
+    expect((migrated['achievements'] as Array<Record<string, unknown>>).length).toBeGreaterThanOrEqual(50);
+    expect(migrated['dashboardState']).toMatchObject({
+      activeLayoutId: expect.any(String),
+      pinnedWidgets: [],
+    });
+    expect(migrated['seasonReports']).toEqual([]);
+    expect((migrated['teams'] as Record<string, Record<string, unknown>>).t1?.['specialTeams']).toMatchObject({
+      kickReturner: 'wr-1',
+      puntReturner: 'wr-1',
+      longSnapper: 'ol-1',
+    });
+    expect((migrated['schedule'] as Array<{ games: Array<Record<string, unknown>> }>)[0]?.games[0]).toMatchObject({
+      flexed: false,
+      primetime: false,
+      broadcastNetwork: null,
+    });
+  });
 });
