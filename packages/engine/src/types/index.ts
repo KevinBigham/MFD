@@ -72,6 +72,7 @@ export interface Player {
   roleWeeks: number;
   tradeBlock: boolean;
   holdout: boolean;
+  agentId: string | null;
   stats: PlayerSeasonStats;
 }
 
@@ -563,8 +564,12 @@ export interface ReSignDecision {
   playerId: string;
   teamId: string;
   askingPrice: ContractOffer;
+  agentDemand: ContractOffer;
   lastOffer: ContractOffer | null;
-  status: 'pending' | 'accepted' | 'declined' | 'walked';
+  counterOffer: ContractOffer | null;
+  agentResponse: string;
+  patienceWeeksRemaining: number;
+  status: 'pending' | 'countered' | 'accepted' | 'declined' | 'walked';
 }
 
 export interface FreeAgencyBid extends ContractOffer {
@@ -713,6 +718,80 @@ export interface PlayoffMomentum {
   momentum: number;
   narrativeTag: 'cinderella' | 'dynasty' | 'revenge' | 'hot_streak' | 'defending_champ' | 'underdog' | null;
   winStreak: number;
+}
+
+export interface TutorialStep {
+  id: string;
+  title: string;
+  description: string;
+  targetScreen: string;
+  targetElement: string | null;
+  action: string | null;
+  completed: boolean;
+}
+
+export interface TutorialState {
+  active: boolean;
+  currentStepIndex: number;
+  steps: TutorialStep[];
+  completedSteps: string[];
+  dismissed: boolean;
+}
+
+export interface AgentProfile {
+  id: string;
+  name: string;
+  style: 'hardball' | 'collaborative' | 'media_savvy' | 'old_school';
+  demandMultiplier: number;
+  patienceModifier: number;
+  clients: string[];
+}
+
+export interface NarrativeBeat {
+  week: number;
+  type: 'positive' | 'negative' | 'neutral';
+  intensity: number;
+  source: string;
+}
+
+export interface NarrativeIntensity {
+  current: number;
+  recentBeats: NarrativeBeat[];
+  cooldownWeeks: number;
+}
+
+export type CeremonyType =
+  | 'championship'
+  | 'awards_night'
+  | 'hall_of_fame_induction'
+  | 'ring_ceremony'
+  | 'jersey_retirement';
+
+export interface CeremonyHighlight {
+  label: string;
+  value: string;
+  playerIds: string[];
+}
+
+export interface Ceremony {
+  id: string;
+  type: CeremonyType;
+  year: number;
+  headline: string;
+  description: string;
+  highlights: CeremonyHighlight[];
+  mvp: string | null;
+}
+
+export interface DynastyEvent {
+  id: string;
+  year: number;
+  week: number | null;
+  type: 'championship' | 'draft_pick' | 'trade' | 'signing' | 'firing' | 'record' | 'award' | 'hof' | 'milestone';
+  headline: string;
+  importance: 'landmark' | 'major' | 'minor';
+  playerIds: string[];
+  teamIds: string[];
 }
 
 export type TradeProposalStatus = 'draft' | 'sent' | 'countered' | 'accepted' | 'rejected';
@@ -1253,6 +1332,11 @@ export interface GameState {
   waiverWire: WaiverWireEntry[];
   waiverClaims: WaiverClaim[];
   handshakes: Handshake[];
+  tutorialState: TutorialState;
+  agents: AgentProfile[];
+  narrativeIntensity: NarrativeIntensity;
+  ceremonies: Ceremony[];
+  dynastyTimeline: DynastyEvent[];
 }
 
 export type SeasonPhase =

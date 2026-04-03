@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   PixelBadge,
+  PixelButton,
   PixelPanel,
   PixelTable,
 } from '@mfd/design-system/components';
@@ -15,6 +16,9 @@ import type {
 import type { ColumnDef } from '@tanstack/react-table';
 import {
   selectAwardsHistory,
+  selectCeremonies,
+  selectDynastyScore,
+  selectDynastyTimeline,
   selectHallOfFame,
   selectHistoricalMentoringChains,
   selectRecords,
@@ -22,6 +26,7 @@ import {
   selectUserTeam,
   useGameStore,
 } from '../../app/store/game-store';
+import { CeremonyViewer } from './CeremonyViewer';
 import {
   PixelMetricCard,
   PixelScreenHeader,
@@ -34,7 +39,12 @@ const historyColumns: ColumnDef<FranchiseHistoryEntry, unknown>[] = [
   {
     accessorKey: 'year',
     header: 'Year',
-    cell: ({ getValue }) => <span style={{ color: '#fff' }}>{getValue() as number}</span>,
+    cell: ({ row, getValue }) => (
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+        {row.original.playoffFinish === 'champion' ? <PixelBadge variant="gold">Trophy</PixelBadge> : null}
+        <span style={{ color: '#fff' }}>{getValue() as number}</span>
+      </div>
+    ),
   },
   {
     accessorKey: 'record',
@@ -109,10 +119,14 @@ export function LegacyTimeline() {
   const game = useGameStore((state) => state.game);
   const userTeam = useGameStore(selectUserTeam);
   const awardsHistory = useGameStore(selectAwardsHistory);
+  const ceremonies = useGameStore(selectCeremonies);
+  const dynastyScore = useGameStore(selectDynastyScore);
+  const dynastyTimeline = useGameStore(selectDynastyTimeline);
   const hallOfFame = useGameStore(selectHallOfFame);
   const records = useGameStore(selectRecords);
   const activeMentoringPairs = useGameStore(selectUserMentoringPairs);
   const historicalMentoring = useGameStore(selectHistoricalMentoringChains);
+  const [selectedCeremonyId, setSelectedCeremonyId] = useState<string | null>(null);
 
   const teamHistory = useMemo(() => {
     if (!game || !userTeam) return [];
@@ -121,13 +135,27 @@ export function LegacyTimeline() {
       .sort((a, b) => b.year - a.year);
   }, [game, userTeam]);
 
-  const timelineEvents = useMemo(() => teamHistory.flatMap((entry) =>
-    entry.majorEvents.map((event, index) => ({
-      id: `${entry.year}-${index}`,
-      year: entry.year,
-      event,
-      accent: finishAccent(entry.playoffFinish),
-    }))), [teamHistory]);
+  const timelineYears = useMemo(() => {
+    const historyByYear = new Map(teamHistory.map((entry) => [entry.year, entry]));
+    const grouped = new Map<number, typeof dynastyTimeline>();
+
+    for (const event of dynastyTimeline) {
+      const current = grouped.get(event.year) ?? [];
+      current.push(event);
+      grouped.set(event.year, current);
+    }
+
+    return [...grouped.entries()]
+      .sort((a, b) => b[0] - a[0])
+      .map(([year, events]) => ({
+        year,
+        summary: historyByYear.get(year) ?? null,
+        events: [...events].sort((a, b) =>
+          (b.week ?? 99) - (a.week ?? 99) ||
+          importanceWeight(b.importance) - importanceWeight(a.importance) ||
+          a.headline.localeCompare(b.headline)),
+      }));
+  }, [dynastyTimeline, teamHistory]);
 
   const allTimeRoster = useMemo(() => {
     if (!game || !userTeam) return [];
@@ -142,6 +170,7 @@ export function LegacyTimeline() {
   const titleCount = teamHistory.filter((entry) => entry.playoffFinish === 'champion').length;
   const legendCount = allTimeRoster.filter((entry) => entry.peakOvr >= 85).length;
   const hallCount = hallOfFame.length;
+  const selectedCeremony = ceremonies.find((entry) => entry.id === selectedCeremonyId) ?? null;
 
   return (
     <div style={screenStackStyle}>
@@ -153,6 +182,7 @@ export function LegacyTimeline() {
             <PixelBadge variant="gold">{teamHistory.length} seasons</PixelBadge>
             <PixelBadge variant="green">{titleCount} titles</PixelBadge>
             <PixelBadge variant="cyan">{hallCount} hall of famers</PixelBadge>
+            <PixelBadge variant="gold">{`Dynasty ${dynastyScore}`}</PixelBadge>
           </>
         )}
       />
@@ -161,7 +191,7 @@ export function LegacyTimeline() {
         <PixelMetricCard label="Seasons Tracked" value={teamHistory.length} accent="gold" detail="Archived finishes in the dynasty timeline" />
         <PixelMetricCard label="Championships" value={titleCount} accent="green" detail="Titles captured in the archive" />
         <PixelMetricCard label="Legends" value={legendCount} accent="cyan" detail="Players who peaked at 85+ overall" />
-        <PixelMetricCard label="Hall of Fame" value={hallCount} accent="red" detail="Immortals inducted across dynasty history" />
+        <PixelMetricCard label="Dynasty Score" value={dynastyScore} accent="gold" detail="Championships, playoff trips, awards, and records blended" />
       </div>
 
       <div style={autoGrid(360)}>
@@ -199,43 +229,104 @@ export function LegacyTimeline() {
       </div>
 
       <div style={autoGrid(360)}>
-        <PixelPanel title="Franchise Timeline" accent="cyan">
-          {timelineEvents.length === 0 ? (
+        <PixelPanel title="Dynasty Timeline" accent="cyan">
+          {timelineYears.length === 0 ? (
             <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Major events will start stacking once seasons complete.</span>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {timelineEvents.map((entry) => (
-                <div
-                  key={entry.id}
-                  style={{
-                    display: 'flex',
-                    gap: '12px',
-                    paddingLeft: '10px',
-                    borderLeft: `3px solid ${accentColor(entry.accent)}`,
-                  }}
+              {timelineYears.map((entry) => (
+                <div key={entry.year} style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  padding: '10px',
+                  border: `3px solid ${entry.summary?.playoffFinish === 'champion' ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
+                  background: 'var(--mfd-bg-2)',
+                }}
                 >
-                  <span style={{ ...monoSm, color: '#fff', minWidth: '52px' }}>{entry.year}</span>
-                  <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{entry.event}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ ...monoSm, color: '#fff' }}>{entry.year}</span>
+                      {entry.summary ? <PixelBadge variant={finishAccent(entry.summary.playoffFinish)}>{entry.summary.record}</PixelBadge> : null}
+                      {entry.summary?.playoffFinish === 'champion' ? <PixelBadge variant="gold">Championship Year</PixelBadge> : null}
+                    </div>
+                    {entry.summary ? <PixelBadge variant="default">{formatFinish(entry.summary.playoffFinish)}</PixelBadge> : null}
+                  </div>
+                  {entry.events.map((event) => (
+                    <div
+                      key={event.id}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                        paddingLeft: '10px',
+                        borderLeft: `3px solid ${dynastyAccent(event.importance)}`,
+                        background: event.importance === 'landmark' ? 'rgba(255, 215, 0, 0.06)' : event.importance === 'major' ? 'rgba(0, 229, 255, 0.05)' : 'transparent',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span style={{ ...monoSm, color: '#fff' }}>{event.headline}</span>
+                        <PixelBadge variant={event.importance === 'landmark' ? 'gold' : event.importance === 'major' ? 'cyan' : 'default'}>
+                          {event.importance}
+                        </PixelBadge>
+                      </div>
+                      <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                        {event.type.replaceAll('_', ' ')}{event.week !== null ? ` // Week ${event.week}` : ''}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
           )}
         </PixelPanel>
 
-        <PixelPanel title="Hall of Fame" accent="red">
-          {hallOfFame.length === 0 ? (
-            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Inductees will appear after retired legends clear the threshold.</span>
+        <PixelPanel title="Ceremonies" accent="gold">
+          {ceremonies.length === 0 ? (
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Ceremony broadcasts will archive here after the first major milestone lands.</span>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {[...hallOfFame]
-                .sort((a, b) => b.inductionYear - a.inductionYear || b.peakOvr - a.peakOvr || a.name.localeCompare(b.name))
-                .map((entry) => (
-                  <HallOfFameCard key={`${entry.playerId}-${entry.inductionYear}`} entry={entry} userTeamId={userTeam?.id ?? null} />
-                ))}
+              {ceremonies.map((ceremony) => (
+                <div key={ceremony.id} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  alignItems: 'center',
+                  padding: '10px',
+                  border: '3px solid var(--mfd-border)',
+                  background: 'var(--mfd-bg-2)',
+                  flexWrap: 'wrap',
+                }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ ...monoSm, color: '#fff' }}>{ceremony.headline}</div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                      {ceremony.year} // {ceremony.type.replaceAll('_', ' ')}
+                    </div>
+                  </div>
+                  <PixelButton accent="gold" onClick={() => setSelectedCeremonyId(ceremony.id)}>
+                    View
+                  </PixelButton>
+                </div>
+              ))}
             </div>
           )}
         </PixelPanel>
       </div>
+
+      <PixelPanel title="Hall of Fame" accent="red">
+        {hallOfFame.length === 0 ? (
+          <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Inductees will appear after retired legends clear the threshold.</span>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {[...hallOfFame]
+              .sort((a, b) => b.inductionYear - a.inductionYear || b.peakOvr - a.peakOvr || a.name.localeCompare(b.name))
+              .map((entry) => (
+                <HallOfFameCard key={`${entry.playerId}-${entry.inductionYear}`} entry={entry} userTeamId={userTeam?.id ?? null} />
+              ))}
+          </div>
+        )}
+      </PixelPanel>
 
       <PixelPanel title="Records Book" accent="green">
         <div style={autoGrid(260)}>
@@ -307,6 +398,14 @@ export function LegacyTimeline() {
           <PixelTable data={allTimeRoster} columns={playerColumns} accent="green" />
         )}
       </PixelPanel>
+
+      <CeremonyViewer
+        ceremony={selectedCeremony}
+        open={!!selectedCeremony}
+        onOpenChange={(open) => {
+          if (!open) setSelectedCeremonyId(null);
+        }}
+      />
     </div>
   );
 }
@@ -437,4 +536,16 @@ function accentColor(accent: 'default' | 'gold' | 'cyan' | 'green' | 'red') {
   if (accent === 'green') return 'var(--mfd-green)';
   if (accent === 'red') return 'var(--mfd-red)';
   return 'var(--mfd-border)';
+}
+
+function dynastyAccent(importance: 'landmark' | 'major' | 'minor') {
+  if (importance === 'landmark') return 'var(--mfd-gold)';
+  if (importance === 'major') return 'var(--mfd-cyan)';
+  return 'var(--mfd-border)';
+}
+
+function importanceWeight(importance: 'landmark' | 'major' | 'minor') {
+  if (importance === 'landmark') return 3;
+  if (importance === 'major') return 2;
+  return 1;
 }

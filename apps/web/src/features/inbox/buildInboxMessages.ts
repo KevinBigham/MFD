@@ -1,4 +1,5 @@
 import type {
+  Ceremony,
   ConditionalPick,
   DifficultyState,
   GameDayPackage,
@@ -6,6 +7,7 @@ import type {
   Handshake,
   NarrativeState,
   NewsItem,
+  OffseasonState,
   OffFieldEvent,
   Player,
   PlayoffMomentum,
@@ -46,6 +48,7 @@ interface BuildInboxMessagesParams {
   latestPackage: GameDayPackage | null;
   activeArcs: StoryArc[];
   offFieldEvents: OffFieldEvent[];
+  offseasonState: OffseasonState | null;
   recentPressConferences: PressConference[];
   coachingNews: GameEvent[];
   upcomingRivalry: RivalryGameContext | null;
@@ -59,6 +62,7 @@ interface BuildInboxMessagesParams {
   difficultyState: DifficultyState | null;
   availableMedicalStaff: MedicalStaff[];
   playoffMomentum: PlayoffMomentum | null;
+  ceremonies: Ceremony[];
 }
 
 export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessage[] {
@@ -72,6 +76,7 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     latestPackage,
     activeArcs,
     offFieldEvents,
+    offseasonState,
     recentPressConferences,
     coachingNews,
     upcomingRivalry,
@@ -85,6 +90,7 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     difficultyState,
     availableMedicalStaff,
     playoffMomentum,
+    ceremonies,
   } = params;
   const msgs: InboxMessage[] = [];
   if (!team) return msgs;
@@ -134,6 +140,39 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       body: `${event.description}${event.effects.length > 0 ? `\nEffects: ${event.effects.map((effect) => effect.summary).join(' | ')}` : ''}`,
       from: event.category === 'media' ? 'Media Desk' : event.category === 'locker_room' ? 'Locker Room' : 'Player Services',
       week: event.week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  const userReSignDecisions = Object.values(offseasonState?.reSignDecisions ?? {})
+    .filter((decision) => decision.teamId === team.id && decision.status !== 'accepted')
+    .slice(0, 2);
+  for (const decision of userReSignDecisions) {
+    const player = roster.find((candidate) => candidate.id === decision.playerId);
+    if (!player) continue;
+    msgs.push({
+      id: `agent-demand-${player.id}`,
+      type: decision.status === 'countered' ? 'DECISION' : 'INTEL',
+      title: `${player.name} contract pressure`,
+      body: decision.counterOffer
+        ? `${decision.agentResponse}\nCounter: ${decision.counterOffer.years}Y / $${decision.counterOffer.salary}M with $${decision.counterOffer.signingBonus}M signing bonus.`
+        : `Agent demand sits at ${decision.agentDemand.years}Y / $${decision.agentDemand.salary}M with patience for ${decision.patienceWeeksRemaining} more week(s).`,
+      from: 'Agent Relations',
+      week,
+      read: false,
+      actionRequired: decision.status === 'countered',
+    });
+  }
+
+  for (const leak of offFieldEvents.filter((event) => event.type === 'agent_media_leak').slice(-1)) {
+    msgs.push({
+      id: `agent-leak-${leak.id}`,
+      type: 'URGENT',
+      title: 'Agent leak hits the cycle',
+      body: leak.description,
+      from: 'Media Desk',
+      week: leak.week,
       read: false,
       actionRequired: false,
     });
@@ -488,6 +527,20 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
         ? `${playoffMomentum.narrativeTag.replaceAll('_', ' ')} narrative is active.\nMomentum ${playoffMomentum.momentum} with a ${playoffMomentum.winStreak}-game streak profile.`
         : `Momentum sits at ${playoffMomentum.momentum} entering the next playoff game.`,
       from: 'Broadcast Prep',
+      week,
+      read: false,
+      actionRequired: false,
+    });
+  }
+
+  const latestCeremony = ceremonies[0] ?? null;
+  if (latestCeremony) {
+    msgs.push({
+      id: `ceremony-${latestCeremony.id}`,
+      type: latestCeremony.type === 'championship' ? 'URGENT' : 'INTEL',
+      title: latestCeremony.headline,
+      body: latestCeremony.description,
+      from: 'League Broadcast',
       week,
       read: false,
       actionRequired: false,

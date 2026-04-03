@@ -20,13 +20,28 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 
-function askBasedOffer(base: ContractOffer, multiplier: number): ContractOffer {
+interface AgentSummary {
+  id: string;
+  name: string;
+  style: 'hardball' | 'collaborative' | 'media_savvy' | 'old_school';
+  demandMultiplier: number;
+}
+
+function scaleOffer(base: ContractOffer, multiplier: number): ContractOffer {
   return {
     years: base.years,
     salary: Math.round(base.salary * multiplier * 10) / 10,
     signingBonus: Math.round(base.signingBonus * multiplier * 10) / 10,
     guaranteed: Math.round(base.guaranteed * multiplier * 10) / 10,
   };
+}
+
+function agentStyleMultiplier(agent: AgentSummary | null): number {
+  if (!agent) return 1;
+  if (agent.style === 'hardball') return 1.18 * agent.demandMultiplier;
+  if (agent.style === 'collaborative') return 0.95 * agent.demandMultiplier;
+  if (agent.style === 'media_savvy') return 1.08 * agent.demandMultiplier;
+  return agent.demandMultiplier;
 }
 
 function marketOffer(player: Player, multiplier: number): ContractOffer {
@@ -46,8 +61,10 @@ export function FreeAgencyHub() {
   const offseasonState = useGameStore(selectOffseasonState);
   const freeAgents = useGameStore(selectFreeAgentPlayers);
   const userTeamId = useGameStore(selectUserTeamId);
-  const { advanceWeek, submitFreeAgentBid, submitReSignOffer } = useGameStore((s) => s.actions);
+  const agents = useGameStore((state) => state.game?.agents ?? []);
+  const { advanceWeek, submitFreeAgentBid, negotiateContract } = useGameStore((s) => s.actions);
   const [pending, setPending] = useState<string | null>(null);
+  const agentById = useMemo(() => new Map(agents.map((agent) => [agent.id, agent])), [agents]);
 
   const expiringPlayers = useMemo(() => {
     if (!offseasonState) return [];
@@ -115,13 +132,20 @@ export function FreeAgencyHub() {
                           {player.pos} // {player.ovr} OVR
                         </div>
                         <div style={{ ...monoSm, color: '#bbb', marginTop: '6px' }}>
-                          Ask: {decision.askingPrice.years}Y / ${decision.askingPrice.salary}M + ${decision.askingPrice.signingBonus}M SB
+                          Agent demand: {decision.agentDemand.years}Y / ${decision.agentDemand.salary}M + ${decision.agentDemand.signingBonus}M SB
+                        </div>
+                        <div style={{ ...monoSm, color: '#888', marginTop: '6px' }}>
+                          Agent: {(player.agentId ? agentById.get(player.agentId)?.name : null) ?? 'Unassigned'} // {(player.agentId ? agentById.get(player.agentId)?.style : 'old_school')?.replaceAll('_', ' ')}
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        <PixelBadge variant={decision.status === 'accepted' ? 'green' : decision.status === 'declined' ? 'red' : 'default'}>
+                        <PixelBadge variant={decision.status === 'accepted' ? 'green' : decision.status === 'countered' ? 'gold' : decision.status === 'declined' ? 'red' : 'default'}>
                           {decision.status}
                         </PixelBadge>
+                        {player.holdout ? <PixelBadge variant="red">Holdout</PixelBadge> : null}
+                        {decision.patienceWeeksRemaining > 0 ? (
+                          <PixelBadge variant="cyan">{`${decision.patienceWeeksRemaining}w patience`}</PixelBadge>
+                        ) : null}
                         {decision.lastOffer ? (
                           <PixelBadge variant="cyan">
                             {decision.lastOffer.years}Y / ${decision.lastOffer.salary}M
@@ -130,25 +154,56 @@ export function FreeAgencyHub() {
                       </div>
                     </div>
 
+                    {decision.agentResponse ? (
+                      <div style={{
+                        padding: '10px',
+                        border: '2px solid rgba(0, 229, 255, 0.28)',
+                        background: 'rgba(0, 229, 255, 0.06)',
+                        ...monoSm,
+                        color: '#cfefff',
+                        lineHeight: 1.6,
+                      }}
+                      >
+                        {decision.agentResponse}
+                      </div>
+                    ) : null}
+
+                    {decision.counterOffer ? (
+                      <div style={{ ...monoSm, color: '#f4d35e' }}>
+                        Counter: {decision.counterOffer.years}Y / ${decision.counterOffer.salary}M + ${decision.counterOffer.signingBonus}M SB
+                      </div>
+                    ) : null}
+
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <PixelButton
                         accent="cyan"
                         disabled={pending === `${player.id}-value`}
                         onClick={() => void handleOffer(`${player.id}-value`, async () => {
-                          await submitReSignOffer(player.id, askBasedOffer(decision.askingPrice, 0.92));
+                          await negotiateContract(player.id, scaleOffer(decision.agentDemand, 0.88));
                         })}
                       >
-                        Value Offer
+                        Open at 88%
                       </PixelButton>
                       <PixelButton
                         accent="gold"
                         disabled={pending === `${player.id}-match`}
                         onClick={() => void handleOffer(`${player.id}-match`, async () => {
-                          await submitReSignOffer(player.id, decision.askingPrice);
+                          await negotiateContract(player.id, decision.agentDemand);
                         })}
                       >
-                        Match Ask
+                        Meet Demand
                       </PixelButton>
+                      {decision.counterOffer ? (
+                        <PixelButton
+                          accent="green"
+                          disabled={pending === `${player.id}-counter`}
+                          onClick={() => void handleOffer(`${player.id}-counter`, async () => {
+                            await negotiateContract(player.id, decision.counterOffer!);
+                          })}
+                        >
+                          Accept Counter
+                        </PixelButton>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -180,6 +235,8 @@ export function FreeAgencyHub() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {freeAgents.slice(0, 18).map((player) => {
                 const currentBid = offseasonState?.freeAgencyBids[player.id]?.find((bid) => bid.teamId === userTeamId && bid.round === freeAgencyRound);
+                const agent = player.agentId ? agentById.get(player.agentId) as AgentSummary | undefined : undefined;
+                const demand = marketOffer(player, agentStyleMultiplier(agent ?? null));
                 return (
                   <div key={player.id} style={{
                     display: 'flex',
@@ -197,6 +254,9 @@ export function FreeAgencyHub() {
                         <div style={{ ...monoSm, color: '#888', marginTop: '6px' }}>
                           {player.pos} // {player.ovr} OVR // Age {player.age}
                         </div>
+                        <div style={{ ...monoSm, color: '#bbb', marginTop: '6px' }}>
+                          {agent?.name ?? 'Market rep'} // {agent?.style.replaceAll('_', ' ') ?? 'open market'} // Demand {demand.years}Y / ${demand.salary}M
+                        </div>
                       </div>
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         <PixelBadge variant={currentBid ? 'cyan' : 'default'}>
@@ -211,7 +271,7 @@ export function FreeAgencyHub() {
                         accent="cyan"
                         disabled={pending === `${player.id}-market`}
                         onClick={() => void handleOffer(`${player.id}-market`, async () => {
-                          await submitFreeAgentBid(player.id, marketOffer(player, 0.95));
+                          await submitFreeAgentBid(player.id, scaleOffer(demand, 0.95));
                         })}
                       >
                         Market
@@ -220,7 +280,7 @@ export function FreeAgencyHub() {
                         accent="gold"
                         disabled={pending === `${player.id}-aggressive`}
                         onClick={() => void handleOffer(`${player.id}-aggressive`, async () => {
-                          await submitFreeAgentBid(player.id, marketOffer(player, 1.1));
+                          await submitFreeAgentBid(player.id, scaleOffer(demand, 1.08));
                         })}
                       >
                         Aggressive

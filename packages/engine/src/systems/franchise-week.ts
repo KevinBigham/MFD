@@ -2,11 +2,15 @@ import { cl } from '../utils';
 import { RNG, reseedSeason, reseedWeek, setSeed } from '../rng';
 import { getAdaptiveModifier, updateAdaptiveDifficulty } from './adaptive-difficulty';
 import { advanceDraft, ensureDraftClass, finalizePostDraft } from './draft';
+import { recordCeremony, generateRingCeremony } from './ceremonies';
+import { recordDynastyEvent } from './dynasty-timeline';
 import { generateWeeklyLeagueNews, recordNewsItem } from './league-news';
+import { recordBeat, shouldGenerateEvent } from './narrative-director';
 import { advanceFreeAgency, advanceOffseason, initializeOffseasonState } from './offseason';
 import { advancePlayoffBracket, seedPlayoffBracket } from './playoff-bracket';
 import { generatePlayoffNews, calculatePlayoffMomentum, getPlayoffMomentumBonus } from './playoff-momentum';
 import { processWeeklyTraining } from './player-development';
+import { processCarryoverHoldouts } from './player-agents';
 import { archiveSeasonHistory } from './history';
 import { advanceStoryArcs } from './story-arcs';
 import { buildGameDayPackage } from './game-day-package';
@@ -141,6 +145,23 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
 
   if (nextState.phase === 'preseason') {
     nextState.phase = 'regular_season';
+    const defendingChampion = nextState.franchiseHistory.find((entry) => entry.year === nextState.year - 1 && entry.playoffFinish === 'champion');
+    if (defendingChampion && !nextState.ceremonies.some((ceremony) => ceremony.type === 'ring_ceremony' && ceremony.year === nextState.year)) {
+      const ringCeremony = generateRingCeremony(nextState, defendingChampion.teamId);
+      if (ringCeremony) {
+        recordCeremony(nextState, ringCeremony);
+        recordDynastyEvent(nextState, {
+          id: `${ringCeremony.id}-dynasty`,
+          year: nextState.year,
+          week: nextState.week,
+          type: 'milestone',
+          headline: ringCeremony.headline,
+          importance: 'major',
+          playerIds: [],
+          teamIds: [defendingChampion.teamId],
+        });
+      }
+    }
     for (const team of Object.values(nextState.teams)) {
       if (!nextState.handshakes.some((handshake) =>
         handshake.type === 'owner' &&
@@ -162,6 +183,9 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
 
   if (nextState.phase === 'regular_season' || nextState.phase === 'playoffs') {
     for (const team of Object.values(nextState.teams)) {
+      if (team.isUser) {
+        processCarryoverHoldouts(nextState, team.id, RNG.ai);
+      }
       processWeeklyTraining(nextState, team.id, RNG.dev);
     }
   }
@@ -355,9 +379,29 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       activeEffectSummaries: userActiveEffectSummaries,
     });
     recordPressConference(nextState, postGameConference);
+    recordBeat(nextState, {
+      week: playedWeek,
+      type: summary.result === 'win' ? 'positive' : summary.result === 'loss' ? 'negative' : 'neutral',
+      intensity: summary.result === 'win' ? 72 : summary.result === 'loss' ? 68 : 50,
+      source: 'game_result',
+    });
+    if (userInjuries.length > 0) {
+      recordBeat(nextState, {
+        week: playedWeek,
+        type: 'negative',
+        intensity: Math.min(90, 35 + userInjuries.length * 12),
+        source: 'injuries',
+      });
+    }
     if (nextState.phase === 'regular_season') {
-      generateWeeklyOffFieldEvents(nextState, currentUser);
-      const midweekConference = maybeCreateMidweekPressConference(nextState, currentUser);
+      if (shouldGenerateEvent(nextState, 'off_field_event', 40, RNG.ai, {
+        polarity: summary.result === 'loss' ? 'negative' : 'positive',
+      })) {
+        generateWeeklyOffFieldEvents(nextState, currentUser);
+      }
+      const midweekConference = shouldGenerateEvent(nextState, 'midweek_press', 30, RNG.ai, {
+        polarity: userRivalry ? 'positive' : 'neutral',
+      }) ? maybeCreateMidweekPressConference(nextState, currentUser) : null;
       if (midweekConference) {
         recordPressConference(nextState, midweekConference);
       }

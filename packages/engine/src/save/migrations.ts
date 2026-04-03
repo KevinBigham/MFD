@@ -491,3 +491,50 @@ registerMigration(9, (state) => {
     playoffMomentum: state['playoffMomentum'] ?? {},
   };
 });
+
+registerMigration(10, (state) => {
+  const players = (state['players'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+  for (const player of Object.values(players)) {
+    player['agentId'] = player['agentId'] ?? null;
+  }
+
+  const offseasonState = (state['offseasonState'] && typeof state['offseasonState'] === 'object')
+    ? { ...(state['offseasonState'] as Record<string, unknown>) }
+    : null;
+  if (offseasonState && offseasonState['reSignDecisions'] && typeof offseasonState['reSignDecisions'] === 'object') {
+    const reSignDecisions = offseasonState['reSignDecisions'] as Record<string, Record<string, unknown>>;
+    for (const decision of Object.values(reSignDecisions)) {
+      const askingPrice = (decision['askingPrice'] as Record<string, unknown> | undefined) ?? {
+        years: 1,
+        salary: 1,
+        signingBonus: 0,
+        guaranteed: 0,
+      };
+      decision['agentDemand'] = decision['agentDemand'] ?? { ...askingPrice };
+      decision['counterOffer'] = decision['counterOffer'] ?? null;
+      decision['agentResponse'] = typeof decision['agentResponse'] === 'string' ? decision['agentResponse'] : '';
+      decision['patienceWeeksRemaining'] = Number(decision['patienceWeeksRemaining'] ?? 0);
+    }
+  }
+
+  return {
+    ...state,
+    players,
+    offseasonState,
+    tutorialState: state['tutorialState'] ?? {
+      active: false,
+      currentStepIndex: 0,
+      steps: [],
+      completedSteps: [],
+      dismissed: false,
+    },
+    agents: Array.isArray(state['agents']) ? state['agents'] : [],
+    narrativeIntensity: state['narrativeIntensity'] ?? {
+      current: 50,
+      recentBeats: [],
+      cooldownWeeks: 0,
+    },
+    ceremonies: Array.isArray(state['ceremonies']) ? state['ceremonies'] : [],
+    dynastyTimeline: Array.isArray(state['dynastyTimeline']) ? state['dynastyTimeline'] : [],
+  };
+});

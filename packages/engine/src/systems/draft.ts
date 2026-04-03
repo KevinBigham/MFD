@@ -1,5 +1,6 @@
 import { createEmptySeasonStats, emptyPlayerStats } from './season-stats';
 import { makeContract } from './contracts';
+import { recordDynastyEvent } from './dynasty-timeline';
 import { applyFacilityBonuses } from './facilities';
 import { syncPlayerArchiveEntry } from './history';
 import { recordNewsItem } from './league-news';
@@ -177,6 +178,7 @@ function prospectToPlayer(prospect: DraftProspect, teamId: string, year: number,
     roleWeeks: 0,
     tradeBlock: false,
     holdout: false,
+    agentId: null,
     stats: emptyPlayerStats(),
   };
 }
@@ -292,6 +294,18 @@ function applyDraftSelection(game: GameState, teamId: string, prospectId: string
     playerIds: [rookie.id],
     importance: draftEntry.round === 1 ? 'breaking' : draftEntry.round <= 3 ? 'major' : 'minor',
   });
+  if (draftEntry.round <= 2) {
+    recordDynastyEvent(game, {
+      id: `draft-dynasty-${rookie.id}-${game.year}`,
+      year: game.year,
+      week: game.week,
+      type: 'draft_pick',
+      headline: `${team.city} drafts ${rookie.name} in Round ${draftEntry.round}`,
+      importance: draftEntry.round === 1 ? 'major' : 'minor',
+      playerIds: [rookie.id],
+      teamIds: [team.id],
+    });
+  }
 }
 
 export function makeDraftPick(game: GameState, prospectId: string): EngineOutput {

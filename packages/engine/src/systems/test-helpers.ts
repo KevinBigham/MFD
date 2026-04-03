@@ -49,6 +49,7 @@ export function makePlayer(
     roleWeeks: 10,
     tradeBlock: false,
     holdout: false,
+    agentId: null,
     stats: emptyPlayerStats(),
   };
 }
@@ -302,5 +303,20 @@ export function makeLeagueState(
     waiverWire: [],
     waiverClaims: [],
     handshakes: [],
+    tutorialState: {
+      active: false,
+      currentStepIndex: 0,
+      steps: [],
+      completedSteps: [],
+      dismissed: false,
+    },
+    agents: [],
+    narrativeIntensity: {
+      current: 50,
+      recentBeats: [],
+      cooldownWeeks: 0,
+    },
+    ceremonies: [],
+    dynastyTimeline: [],
   } as unknown as GameState;
 }

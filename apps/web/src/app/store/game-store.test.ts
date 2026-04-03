@@ -218,6 +218,26 @@ describe('game store offseason actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(2);
   });
 
+  it('advances and dismisses tutorial state through the store', async () => {
+    const game = createSeedGameState(345, 0, 'pro');
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.advanceTutorial();
+    expect(useGameStore.getState().game?.tutorialState.currentStepIndex).toBe(1);
+
+    await useGameStore.getState().actions.advanceTutorial('screen:/roster');
+    expect(useGameStore.getState().game?.tutorialState.currentStepIndex).toBe(2);
+
+    await useGameStore.getState().actions.dismissTutorial();
+    expect(useGameStore.getState().game?.tutorialState.dismissed).toBe(true);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(3);
+  });
+
   it('routes IR placement and activation through the store', async () => {
     const game = createSeedGameState(444, 0, 'pro');
     const userTeam = Object.values(game.teams).find((team) => team.isUser)!;

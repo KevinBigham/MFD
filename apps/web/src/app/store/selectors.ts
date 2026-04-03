@@ -1,9 +1,12 @@
 import type {
+  AgentProfile,
   AwardsHistoryEntry,
+  Ceremony,
   ConditionalPick,
   DifficultyState,
   DraftOrderEntry,
   DraftProspect,
+  DynastyEvent,
   FacilityState,
   GameEvent,
   GameDayPackage,
@@ -17,6 +20,7 @@ import type {
   NewsItem,
   OffseasonState,
   OffFieldEvent,
+  NarrativeIntensity,
   PracticeSquadPlayer,
   Player,
   PowerRanking,
@@ -29,6 +33,7 @@ import type {
   StoryArc,
   Team,
   TradeProposal,
+  TutorialState,
   TradeOffer,
   TrainingAssignment,
   WaiverClaim,
@@ -42,8 +47,12 @@ import {
   calculateAdvancedStats,
   getAnalyticsStatLeaders,
   getPlayerComparison,
+  getCooldownStatus,
+  getPlayerAgent,
   getTeamRankings,
   getWeeklyTrend,
+  createDefaultNarrativeIntensity,
+  createDefaultTutorialState,
   createDefaultDifficultyState,
   createEmptyRecordBook,
   getDivisionStandings,
@@ -64,12 +73,15 @@ export interface GameStoreState {
 const EMPTY_PLAYERS: Player[] = [];
 const EMPTY_ROSTER: Player[] = [];
 const EMPTY_SCHEDULE: never[] = [];
+const EMPTY_AGENTS: AgentProfile[] = [];
 const EMPTY_ARCS: StoryArc[] = [];
 const EMPTY_PROSPECTS: DraftProspect[] = [];
 const EMPTY_TRADES: TradeOffer[] = [];
 const EMPTY_PROPOSALS: TradeProposal[] = [];
 const EMPTY_NEWS: NewsItem[] = [];
 const EMPTY_AWARDS: AwardsHistoryEntry[] = [];
+const EMPTY_CEREMONIES: Ceremony[] = [];
+const EMPTY_DYNASTY_EVENTS: DynastyEvent[] = [];
 const EMPTY_HALL_OF_FAME: HallOfFameEntry[] = [];
 const EMPTY_POWER_RANKINGS: PowerRanking[] = [];
 const EMPTY_MENTORING: MentoringPair[] = [];
@@ -98,6 +110,8 @@ const EMPTY_FACILITY_STATE: FacilityState = {
 };
 const EMPTY_MEDICAL_STAFF: MedicalStaff[] = [];
 const EMPTY_DIFFICULTY_STATE: DifficultyState = createDefaultDifficultyState();
+const EMPTY_TUTORIAL_STATE: TutorialState = createDefaultTutorialState(false);
+const EMPTY_NARRATIVE_INTENSITY: NarrativeIntensity = createDefaultNarrativeIntensity();
 const EMPTY_PLAYOFF_PICTURE = { afc: [], nfc: [] };
 const EMPTY_STAT_LEADERS = { passYds: [], rushYds: [], recYds: [], sacks: [], defINT: [] };
 const EMPTY_ADVANCED_STATS = {
@@ -182,14 +196,35 @@ export const selectCapInfo = (state: GameStoreState) => {
 };
 export const selectSchedule = (state: GameStoreState) => state.game?.schedule ?? EMPTY_SCHEDULE;
 export const selectNarrative = (state: GameStoreState) => state.game?.narrativeState ?? null;
+export const selectNarrativeIntensity = (state: GameStoreState) => {
+  if (!state.game) {
+    return {
+      ...EMPTY_NARRATIVE_INTENSITY,
+      status: 'warm' as const,
+    };
+  }
+
+  return {
+    ...state.game.narrativeIntensity,
+    status: getCooldownStatus(state.game),
+  };
+};
 export const selectActiveStoryArcs = (state: GameStoreState): StoryArc[] => state.game?.narrativeState.activeArcs ?? EMPTY_ARCS;
 export const selectLatestSummary = (state: GameStoreState): WeeklySummary | null => state.game?.weekSummaries.at(-1) ?? null;
 export const selectPlayoffBracket = (state: GameStoreState) => state.game?.playoffBracket ?? null;
 export const selectOffseasonState = (state: GameStoreState): OffseasonState | null => state.game?.offseasonState ?? null;
+export const selectTutorial = (state: GameStoreState): TutorialState => state.game?.tutorialState ?? EMPTY_TUTORIAL_STATE;
+export const selectAgents = (state: GameStoreState): AgentProfile[] => state.game?.agents ?? EMPTY_AGENTS;
+export const selectPlayerAgent = (playerId: string) => (state: GameStoreState): AgentProfile | null =>
+  state.game ? getPlayerAgent(state.game, playerId) : null;
 export const selectDraftClass = (state: GameStoreState): DraftProspect[] => state.game?.draftClass ?? EMPTY_PROSPECTS;
 export const selectScoutingDepartment = (state: GameStoreState): ScoutingDepartment => state.game?.scoutingDepartment ?? EMPTY_SCOUTING_DEPARTMENT;
 export const selectTradeOffers = (state: GameStoreState): TradeOffer[] => state.game?.offseasonState?.tradeOffers ?? EMPTY_TRADES;
 export const selectActiveProposals = (state: GameStoreState): TradeProposal[] => state.game?.activeProposals ?? EMPTY_PROPOSALS;
+export const selectCeremonies = (state: GameStoreState): Ceremony[] =>
+  state.game
+    ? [...state.game.ceremonies].sort((a, b) => b.year - a.year || b.id.localeCompare(a.id))
+    : EMPTY_CEREMONIES;
 export const selectTeams = (state: GameStoreState) => state.game?.teams ?? null;
 export const selectOwners = (state: GameStoreState) => state.game?.owners ?? null;
 export const selectAwardsHistory = (state: GameStoreState): AwardsHistoryEntry[] => state.game?.awardsHistory ?? EMPTY_AWARDS;
@@ -250,6 +285,37 @@ export const selectAdvancedStats = (state: GameStoreState) => {
 export const selectPlayoffMomentum = (state: GameStoreState) => {
   const teamId = selectUserTeamId(state);
   return teamId ? state.game?.playoffMomentum?.[teamId] ?? null : null;
+};
+export const selectDynastyTimeline = (state: GameStoreState): DynastyEvent[] => {
+  if (!state.game) return EMPTY_DYNASTY_EVENTS;
+  const teamId = selectUserTeamId(state);
+  if (!teamId) return EMPTY_DYNASTY_EVENTS;
+
+  const weighted = (importance: DynastyEvent['importance']) =>
+    (importance === 'landmark' ? 3 : importance === 'major' ? 2 : 1);
+
+  return state.game.dynastyTimeline
+    .filter((event) => event.teamIds.includes(teamId))
+    .slice()
+    .sort((a, b) =>
+      b.year - a.year ||
+      (b.week ?? 99) - (a.week ?? 99) ||
+      weighted(b.importance) - weighted(a.importance) ||
+      a.id.localeCompare(b.id));
+};
+export const selectDynastyScore = (state: GameStoreState): number => {
+  const team = selectUserTeam(state);
+  if (!state.game || !team) return 0;
+
+  const championships = state.game.franchiseHistory.filter((entry) =>
+    entry.teamId === team.id && entry.playoffFinish === 'champion').length;
+  const playoffAppearances = state.game.franchiseHistory.filter((entry) =>
+    entry.teamId === team.id && entry.playoffFinish && entry.playoffFinish !== 'missed').length;
+  const timeline = selectDynastyTimeline(state);
+  const awards = timeline.filter((event) => event.type === 'award').length;
+  const records = timeline.filter((event) => event.type === 'record').length;
+
+  return championships * 10 + playoffAppearances * 3 + awards * 2 + records;
 };
 export const selectStandings = (state: GameStoreState) => {
   if (!state.game) return [];

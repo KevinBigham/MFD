@@ -106,6 +106,42 @@ const mockState = {
       },
     ],
     records: recordBook,
+    ceremonies: [
+      {
+        id: 'cer-1',
+        type: 'championship',
+        year: 2030,
+        headline: 'Chicago Blaze championship ceremony',
+        description: 'Confetti fell over a title run.',
+        highlights: [
+          { label: 'Season Record', value: '12-5', playerIds: [] },
+          { label: 'Super Bowl MVP', value: 'Jay Stone', playerIds: ['p1'] },
+        ],
+        mvp: 'p1',
+      },
+    ],
+    dynastyTimeline: [
+      {
+        id: 'dyn-1',
+        year: 2030,
+        week: null,
+        type: 'championship',
+        headline: 'Won the championship.',
+        importance: 'landmark',
+        playerIds: ['p1'],
+        teamIds: ['user'],
+      },
+      {
+        id: 'dyn-2',
+        year: 2030,
+        week: 1,
+        type: 'award',
+        headline: 'Jay Stone wins MVP.',
+        importance: 'major',
+        playerIds: ['p1'],
+        teamIds: ['user'],
+      },
+    ],
   },
   awardsHistory: [
     {
@@ -164,12 +200,52 @@ const mockState = {
       summary: 'Rick Mason -> Jay Stone (+2 OVR)',
     },
   ],
+  ceremonies: [
+    {
+      id: 'cer-1',
+      type: 'championship',
+      year: 2030,
+      headline: 'Chicago Blaze championship ceremony',
+      description: 'Confetti fell over a title run.',
+      highlights: [
+        { label: 'Season Record', value: '12-5', playerIds: [] },
+        { label: 'Super Bowl MVP', value: 'Jay Stone', playerIds: ['p1'] },
+      ],
+      mvp: 'p1',
+    },
+  ],
+  dynastyTimeline: [
+    {
+      id: 'dyn-1',
+      year: 2030,
+      week: null,
+      type: 'championship',
+      headline: 'Won the championship.',
+      importance: 'landmark',
+      playerIds: ['p1'],
+      teamIds: ['user'],
+    },
+    {
+      id: 'dyn-2',
+      year: 2030,
+      week: 1,
+      type: 'award',
+      headline: 'Jay Stone wins MVP.',
+      importance: 'major',
+      playerIds: ['p1'],
+      teamIds: ['user'],
+    },
+  ],
+  dynastyScore: 15,
 };
 
 vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: typeof mockState) => unknown) => selector(mockState),
   selectUserTeam: (state: typeof mockState) => Object.values(state.game.teams)[0],
   selectAwardsHistory: (state: typeof mockState) => state.awardsHistory,
+  selectCeremonies: (state: typeof mockState) => state.ceremonies,
+  selectDynastyScore: (state: typeof mockState) => state.dynastyScore,
+  selectDynastyTimeline: (state: typeof mockState) => state.dynastyTimeline,
   selectHallOfFame: (state: typeof mockState) => state.hallOfFame,
   selectRecords: (state: typeof mockState) => state.records,
   selectUserMentoringPairs: (state: typeof mockState) => state.userMentoringPairs,
@@ -182,7 +258,11 @@ describe('LegacyTimeline', () => {
 
     expect(markup).toContain('DYNASTY LEGACY');
     expect(markup).toContain('12-5');
+    expect(markup).toContain('Dynasty 15');
+    expect(markup).toContain('--- DYNASTY TIMELINE ---');
     expect(markup).toContain('Won the championship.');
+    expect(markup).toContain('--- CEREMONIES ---');
+    expect(markup).toContain('Chicago Blaze championship ceremony');
     expect(markup).toContain('--- AWARDS HISTORY ---');
     expect(markup).toContain('Jay Stone');
     expect(markup).toContain('--- HALL OF FAME ---');

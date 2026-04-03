@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { RouterProvider, createRouter, createRootRoute, createRoute, Outlet, useRouter, useRouterState } from '@tanstack/react-router';
 import {
   LayoutDashboard, Users, DollarSign, ArrowLeftRight,
@@ -6,11 +6,11 @@ import {
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
   Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity,
 } from 'lucide-react';
-import { MfdTooltipProvider, MfdCommandPalette, PixelNav, type CommandItem } from '@mfd/design-system/components';
+import { MfdTooltipProvider, MfdCommandPalette, type CommandItem } from '@mfd/design-system/components';
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
 import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
-import { useGameStore } from './store/game-store';
+import { selectCeremonies, selectTutorial, useGameStore } from './store/game-store';
 import { NewGameScreen } from './NewGameScreen';
 import { BootScreen } from './BootScreen';
 import { MondayBriefing } from '../features/monday-briefing/MondayBriefing';
@@ -26,6 +26,8 @@ import { GameDayRecap } from '../features/game-day/GameDayRecap';
 import { TradeCenter } from '../features/trades/TradeCenter';
 import { FreeAgencyHub } from '../features/free-agency/FreeAgencyHub';
 import { Settings as SettingsScreen } from '../features/settings/Settings';
+import { CeremonyViewer } from '../features/legacy/CeremonyViewer';
+import { TutorialOverlay } from '../features/onboarding/TutorialOverlay';
 
 const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
 const LazyDraftBoard = lazy(async () => ({ default: (await import('../features/draft/DraftBoard')).DraftBoard }));
@@ -76,9 +78,42 @@ function RootLayout() {
   useGlobalKeyboard();
   const commandPaletteOpen = useUiStore((s) => s.commandPaletteOpen);
   const setCommandPaletteOpen = useUiStore((s) => s.setCommandPaletteOpen);
+  const tutorial = useGameStore(selectTutorial);
+  const ceremonies = useGameStore(selectCeremonies);
+  const advanceTutorial = useGameStore((s) => s.actions.advanceTutorial);
+  const dismissTutorial = useGameStore((s) => s.actions.dismissTutorial);
   const router = useRouter();
+  const activePath = useRouterState({ select: (state) => state.location.pathname });
+  const [seenCeremonies, setSeenCeremonies] = useState<string[]>([]);
+  const [activeCeremonyId, setActiveCeremonyId] = useState<string | null>(null);
 
   useShortcut('k', () => setCommandPaletteOpen(true), 'Open command palette', { meta: true });
+
+  const currentTutorialStep = tutorial.steps[tutorial.currentStepIndex] ?? null;
+  const activeCeremony = useMemo(
+    () => ceremonies.find((ceremony) => ceremony.id === activeCeremonyId) ?? null,
+    [activeCeremonyId, ceremonies],
+  );
+
+  useEffect(() => {
+    if (!tutorial.active || tutorial.dismissed || !currentTutorialStep?.action?.startsWith('screen:')) {
+      return;
+    }
+    if (currentTutorialStep.targetScreen !== activePath) {
+      return;
+    }
+    void advanceTutorial(currentTutorialStep.action);
+  }, [activePath, advanceTutorial, currentTutorialStep, tutorial.active, tutorial.dismissed]);
+
+  useEffect(() => {
+    const latest = ceremonies[0];
+    if (!latest || activeCeremonyId || seenCeremonies.includes(latest.id)) {
+      return;
+    }
+
+    setSeenCeremonies((current) => [...current, latest.id]);
+    setActiveCeremonyId(latest.id);
+  }, [activeCeremonyId, ceremonies, seenCeremonies]);
 
   const commandItems: CommandItem[] = [
     ...NAV_ITEMS.map((nav): CommandItem => ({
@@ -109,7 +144,14 @@ function RootLayout() {
         color: 'var(--mfd-text)',
         fontFamily: 'var(--mfd-font-sans)',
       }}>
-        <TopNav />
+        <style>{`
+          @keyframes mfdTutorialPulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.55); }
+            70% { box-shadow: 0 0 0 8px rgba(255, 215, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+          }
+        `}</style>
+        <TopNav highlightedPath={tutorial.active && !tutorial.dismissed ? currentTutorialStep?.targetScreen ?? null : null} activePath={activePath} />
         <main style={{
           flex: 1,
           padding: 'var(--mfd-sp-lg) var(--mfd-sp-xl)',
@@ -122,6 +164,22 @@ function RootLayout() {
           onOpenChange={setCommandPaletteOpen}
           items={commandItems}
         />
+        {tutorial.active && !tutorial.dismissed && currentTutorialStep ? (
+          <TutorialOverlay
+            step={currentTutorialStep}
+            stepIndex={Math.min(tutorial.currentStepIndex + 1, tutorial.steps.length)}
+            totalSteps={tutorial.steps.length}
+            onNext={() => { void advanceTutorial(); }}
+            onSkip={() => { void dismissTutorial(); }}
+          />
+        ) : null}
+        <CeremonyViewer
+          ceremony={activeCeremony}
+          open={!!activeCeremony}
+          onOpenChange={(open) => {
+            if (!open) setActiveCeremonyId(null);
+          }}
+        />
       </div>
     </MfdTooltipProvider>
   );
@@ -129,9 +187,14 @@ function RootLayout() {
 
 // ── Top Nav ─────────────────────────────────────────────────
 
-function TopNav() {
+function TopNav({
+  highlightedPath,
+  activePath,
+}: {
+  highlightedPath: string | null;
+  activePath: string;
+}) {
   const router = useRouter();
-  const activePath = useRouterState({ select: (state) => state.location.pathname });
 
   return (
     <header style={{
@@ -172,19 +235,50 @@ function TopNav() {
       <div style={{
         flex: 1,
         minWidth: '280px',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '6px',
       }}>
-        <PixelNav
-          items={NAV_ITEMS.map((item) => ({
-            key: item.path,
-            label: item.shortLabel,
-            icon: item.icon,
-          }))}
-          activeKey={activePath}
-          onSelect={(path) => {
-            void router.navigate({ to: path });
-          }}
-          style={{ paddingBottom: '2px' }}
-        />
+        {NAV_ITEMS.map((item) => {
+          const active = item.path === activePath;
+          const highlighted = item.path === highlightedPath;
+          return (
+            <div
+              key={item.path}
+              style={{
+                animation: highlighted ? 'mfdTutorialPulse 1.2s infinite' : undefined,
+                border: highlighted ? '3px solid rgba(255, 215, 0, 0.85)' : '3px solid transparent',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  void router.navigate({ to: item.path });
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  minHeight: '32px',
+                  padding: '7px 10px',
+                  border: `3px solid ${active ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
+                  background: active ? 'rgba(255, 215, 0, 0.1)' : 'var(--mfd-bg-2)',
+                  color: active ? 'var(--mfd-gold)' : highlighted ? '#ffe27a' : 'var(--mfd-text-dim)',
+                  fontFamily: 'var(--mfd-font-pixel)',
+                  fontSize: '8px',
+                  letterSpacing: '0.8px',
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                {item.icon}
+                <span>{item.shortLabel.toUpperCase()}</span>
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       <CommandPaletteTrigger />

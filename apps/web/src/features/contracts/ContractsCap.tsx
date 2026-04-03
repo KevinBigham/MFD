@@ -29,26 +29,37 @@ interface ContractRow {
   guaranteed: number;
   totalValue: number;
   restructured: boolean;
+  holdout: boolean;
+  agentName: string;
+  agentStyle: string;
   player: Player;
 }
 
-function toContractRows(roster: Player[]): ContractRow[] {
+function toContractRows(
+  roster: Player[],
+  agents: Array<{ id: string; name: string; style: string }>,
+): ContractRow[] {
+  const agentsById = new Map(agents.map((agent) => [agent.id, agent]));
   return roster
-    .filter((player) => player.contract)
+    .filter((player) => player.contract || player.holdout)
     .map((player) => {
-      const contract = player.contract!;
+      const contract = player.contract;
+      const agent = player.agentId ? agentsById.get(player.agentId) : null;
       return {
         id: player.id,
         name: player.name,
         pos: player.pos,
         ovr: player.ovr,
         age: player.age,
-        capHit: Math.round(calcCapHit(contract) * 10) / 10,
-        deadCap: Math.round(calcDeadMoney(contract) * 10) / 10,
-        years: contract.years,
-        guaranteed: Math.round(contract.guaranteed * 10) / 10,
-        totalValue: Math.round(contract.totalValue * 10) / 10,
-        restructured: contract.restructured,
+        capHit: contract ? Math.round(calcCapHit(contract) * 10) / 10 : 0,
+        deadCap: contract ? Math.round(calcDeadMoney(contract) * 10) / 10 : 0,
+        years: contract?.years ?? 0,
+        guaranteed: contract ? Math.round(contract.guaranteed * 10) / 10 : 0,
+        totalValue: contract ? Math.round(contract.totalValue * 10) / 10 : 0,
+        restructured: contract?.restructured ?? false,
+        holdout: player.holdout,
+        agentName: agent?.name ?? 'Unassigned',
+        agentStyle: agent?.style.replaceAll('_', ' ') ?? 'n/a',
         player,
       };
     })
@@ -102,6 +113,17 @@ const columns: ColumnDef<ContractRow, unknown>[] = [
     size: 60,
   },
   {
+    accessorKey: 'agentName',
+    header: 'Agent',
+    cell: ({ row }) => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <span style={{ color: '#fff' }}>{row.original.agentName}</span>
+        <PixelBadge variant="cyan">{row.original.agentStyle}</PixelBadge>
+      </div>
+    ),
+    size: 136,
+  },
+  {
     id: 'value',
     header: 'Value',
     cell: ({ row }) => {
@@ -116,15 +138,19 @@ const columns: ColumnDef<ContractRow, unknown>[] = [
   {
     accessorKey: 'restructured',
     header: 'Status',
-    cell: ({ getValue }) => (
-      getValue() ? <PixelBadge variant="cyan">Restructured</PixelBadge> : null
+    cell: ({ row, getValue }) => (
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+        {row.original.holdout ? <PixelBadge variant="red">Holdout</PixelBadge> : null}
+        {getValue() ? <PixelBadge variant="cyan">Restructured</PixelBadge> : null}
+      </div>
     ),
-    size: 94,
+    size: 132,
   },
 ];
 
 export function ContractsCap() {
   const roster = useGameStore(selectRoster);
+  const agents = useGameStore((state) => state.game?.agents ?? []);
   const team = useGameStore(selectUserTeam);
   const teamId = useGameStore(selectUserTeamId);
   const year = useGameStore(selectYear);
@@ -132,7 +158,7 @@ export function ContractsCap() {
 
   const [selectedContract, setSelectedContract] = useState<ContractRow | null>(null);
 
-  const contractRows = useMemo(() => toContractRows(roster), [roster]);
+  const contractRows = useMemo(() => toContractRows(roster, agents), [agents, roster]);
 
   const salaryCap = getSalaryCap(year);
   const capUsed = team ? Math.round(team.capUsed * 10) / 10 : 0;
@@ -267,6 +293,7 @@ export function ContractsCap() {
               <PixelMetricCard label="Cap Hit" value={`$${selectedContract.capHit}M`} accent="gold" />
               <PixelMetricCard label="Dead Cap" value={`$${selectedContract.deadCap}M`} accent="red" />
               <PixelMetricCard label="Years Left" value={selectedContract.years} accent="cyan" />
+              <PixelMetricCard label="Agent" value={selectedContract.agentName} accent="gold" detail={selectedContract.agentStyle} />
             </div>
 
             <PixelPanel title="Actions" accent="red">

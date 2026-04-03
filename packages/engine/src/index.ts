@@ -146,6 +146,44 @@ export {
   getPlayoffMomentumBonus,
   generatePlayoffNews,
 } from './systems/playoff-momentum';
+export {
+  createDefaultTutorialState,
+  advanceTutorial,
+  dismissTutorial,
+  isTutorialActive,
+  getTutorialHint,
+  completeTutorialAction,
+} from './systems/tutorial';
+export {
+  generateAgentPool,
+  ensureAgentsInitialized,
+  getPlayerAgent,
+  getAgentPatienceWeeks,
+  agentDemand,
+  negotiateOffer,
+  holdoutCheck,
+  agentMediaLeak,
+  processCarryoverHoldouts,
+} from './systems/player-agents';
+export {
+  createDefaultNarrativeIntensity,
+  calculateIntensity,
+  recordBeat,
+  shouldGenerateEvent,
+  getCooldownStatus,
+} from './systems/narrative-director';
+export {
+  recordCeremony,
+  generateChampionshipCeremony,
+  generateAwardsNight,
+  generateHOFInduction,
+  generateRingCeremony,
+} from './systems/ceremonies';
+export {
+  recordDynastyEvent,
+  getDynastyHighlights,
+  getDynastyByYear,
+} from './systems/dynasty-timeline';
 
 // Systems — Contracts (Phase 2)
 export {

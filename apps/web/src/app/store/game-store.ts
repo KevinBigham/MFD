@@ -12,10 +12,13 @@ import type {
 import {
   addToPracticeSquad as addToPracticeSquadEngine,
   activateFromIR as activateFromIREngine,
+  advanceTutorial as advanceTutorialEngine,
   assignTraining as assignTrainingEngine,
   acceptCounterProposal as acceptCounterProposalEngine,
+  completeTutorialAction as completeTutorialActionEngine,
   cutPlayerToWaivers as cutPlayerToWaiversEngine,
   createTradeProposal as createTradeProposalEngine,
+  dismissTutorial as dismissTutorialEngine,
   elevateFromPracticeSquad as elevateFromPracticeSquadEngine,
   fireScout as fireScoutEngine,
   hireMedicalStaff as hireMedicalStaffEngine,
@@ -66,10 +69,13 @@ interface GameActions {
   assignTraining: (teamId: string, playerId: string, focus: TrainingFocus) => Promise<void>;
   placeOnIR: (teamId: string, playerId: string) => Promise<void>;
   activateFromIR: (teamId: string, playerId: string) => Promise<void>;
+  advanceTutorial: (actionId?: string) => Promise<void>;
+  dismissTutorial: () => Promise<void>;
 
   // Contract actions
   restructure: (teamId: string, playerId: string) => void;
   backload: (teamId: string, playerId: string, voidYears?: number) => void;
+  negotiateContract: (playerId: string, offer: ContractOffer) => Promise<void>;
 
   // Week advance
   advanceWeek: () => Promise<WeeklySummary | null>;
@@ -128,6 +134,12 @@ export const useGameStore = create<GameStore>()(
     };
 
     const cloneForMutation = (game: GameState): GameState => structuredClone(game);
+    const runContractNegotiation = async (playerId: string, offer: ContractOffer) => {
+      const current = get().game;
+      if (!current) return;
+      const result = submitReSignOfferEngine(current, playerId, offer);
+      await commitGame(result.nextState);
+    };
 
     return ({
     game: null,
@@ -181,7 +193,12 @@ export const useGameStore = create<GameStore>()(
           const team = s.game.teams[teamId];
           if (!team) return;
           const player = team.roster.find((p) => p.id === playerId);
-          if (player) player.isStarter = isStarter;
+          if (player) {
+            player.isStarter = isStarter;
+            if (isStarter) {
+              completeTutorialActionEngine(s.game, 'depth_chart:update');
+            }
+          }
         }),
 
       addToPracticeSquad: async (teamId, playerId) => {
@@ -217,6 +234,7 @@ export const useGameStore = create<GameStore>()(
         if (!current) return;
         const nextGame = cloneForMutation(current);
         assignTrainingEngine(nextGame, teamId, playerId, focus);
+        completeTutorialActionEngine(nextGame, 'training:assign');
         await commitGame(nextGame);
       },
 
@@ -233,6 +251,26 @@ export const useGameStore = create<GameStore>()(
         if (!current) return;
         const nextGame = cloneForMutation(current);
         activateFromIREngine(nextGame, teamId, playerId);
+        await commitGame(nextGame);
+      },
+
+      advanceTutorial: async (actionId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        if (actionId) {
+          completeTutorialActionEngine(nextGame, actionId);
+        } else {
+          advanceTutorialEngine(nextGame);
+        }
+        await commitGame(nextGame);
+      },
+
+      dismissTutorial: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        dismissTutorialEngine(nextGame);
         await commitGame(nextGame);
       },
 
@@ -280,16 +318,18 @@ export const useGameStore = create<GameStore>()(
           updateSystemFit(userTeam);
         }
 
+        completeTutorialActionEngine(nextGame, 'week:advance');
         await commitGame(nextGame);
 
         return nextGame.weekSummaries.at(-1) ?? null;
       },
 
       submitReSignOffer: async (playerId, offer) => {
-        const current = get().game;
-        if (!current) return;
-        const result = submitReSignOfferEngine(current, playerId, offer);
-        await commitGame(result.nextState);
+        await runContractNegotiation(playerId, offer);
+      },
+
+      negotiateContract: async (playerId, offer) => {
+        await runContractNegotiation(playerId, offer);
       },
 
       submitFreeAgentBid: async (playerId, offer) => {
@@ -303,6 +343,7 @@ export const useGameStore = create<GameStore>()(
         const current = get().game;
         if (!current) return;
         const result = runScoutingActionEngine(current, prospectId, action);
+        completeTutorialActionEngine(result.nextState, 'scouting:action');
         await commitGame(result.nextState);
       },
 
@@ -404,6 +445,7 @@ export const useGameStore = create<GameStore>()(
         const current = get().game;
         if (!current) return;
         const result = makePlayerPromiseEngine(cloneForMutation(current), teamId, playerId, promiseType);
+        completeTutorialActionEngine(result.nextState, 'handshake:create');
         await commitGame(result.nextState);
       },
 

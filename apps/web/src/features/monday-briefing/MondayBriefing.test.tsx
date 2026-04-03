@@ -180,6 +180,11 @@ const mockState = {
     narrativeTag: 'hot_streak',
     winStreak: 6,
   },
+  narrativeIntensity: {
+    current: 76,
+    status: 'hot',
+  },
+  dynastyScore: 19,
   handshakes: [],
   waiverWirePlayers: [],
   weather: 'clear',
@@ -211,6 +216,8 @@ vi.mock('../../app/store/game-store', () => ({
   selectFatigueReport: (state: typeof mockState) => state.fatigueReport,
   selectFacilities: (state: typeof mockState) => state.facilities,
   selectPlayoffMomentum: (state: typeof mockState) => state.playoffMomentum,
+  selectNarrativeIntensity: (state: typeof mockState) => state.narrativeIntensity,
+  selectDynastyScore: (state: typeof mockState) => state.dynastyScore,
   selectHandshakes: (state: typeof mockState) => state.handshakes,
   selectWaiverWirePlayers: (state: typeof mockState) => state.waiverWirePlayers,
   selectWeather: (state: typeof mockState) => state.weather,
@@ -232,6 +239,8 @@ describe('MondayBriefing', () => {
     expect(markup).toContain('League trade talks are heating up');
     expect(markup).toContain('--- TRAINING REPORT ---');
     expect(markup).toContain('film study');
+    expect(markup).toContain('Narrative hot');
+    expect(markup).toContain('Dynasty 19');
     expect(markup).toContain('--- PLAYOFF RACE ---');
     expect(markup).toContain('#1 Chicago Blaze');
     expect(markup).toContain('--- FATIGUE WATCH ---');

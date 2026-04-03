@@ -18,7 +18,10 @@ import {
   CONTRACT_VALUE_TABLE, AGE_VALUE_CURVE, MIN_SALARY, emptyPlayerStats,
   createDefaultScoutingDepartment,
   createDefaultDifficultyState,
+  createDefaultNarrativeIntensity,
+  createDefaultTutorialState,
   createFacilityState,
+  ensureAgentsInitialized,
   syncAllPlayerArchiveEntries,
 } from '@mfd/engine';
 import { createEmptyRecordBook } from '@mfd/engine';
@@ -197,6 +200,7 @@ function genPlayer(
     roleWeeks: rng(0, 40),
     tradeBlock: false,
     holdout: false,
+    agentId: null,
     stats: genStats(),
   };
 }
@@ -444,8 +448,14 @@ export function createSeedGameState(
     waiverWire: [],
     waiverClaims: [],
     handshakes: [],
+    tutorialState: createDefaultTutorialState(true),
+    agents: [],
+    narrativeIntensity: createDefaultNarrativeIntensity(),
+    ceremonies: [],
+    dynastyTimeline: [],
   };
 
+  ensureAgentsInitialized(gameState);
   syncAllPlayerArchiveEntries(gameState, year);
   return gameState;
 }

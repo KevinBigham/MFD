@@ -3,7 +3,7 @@ import { calculateTrainingXP } from '@mfd/engine';
 import { PixelPanel, PixelBadge, PixelProgressBar } from '@mfd/design-system/components';
 import {
   useGameStore, selectUserTeam, selectRoster,
-  selectFacilities, selectFatigueReport, selectPhase, selectPlayoffMomentum, selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary, selectLatestGameDayPackage, selectActiveStoryArcs, selectTeams,
+  selectDynastyScore, selectFacilities, selectFatigueReport, selectNarrativeIntensity, selectPhase, selectPlayoffMomentum, selectWeek, selectYear, selectSchedule, selectOwnerState, selectLatestSummary, selectLatestGameDayPackage, selectActiveStoryArcs, selectTeams,
   selectUserPowerRanking, selectUserRecordWatch, selectUserMentoringPairs,
   selectOffFieldEvents, selectUpcomingRivalry, selectCoachingCarouselNews,
   selectConditionalPicks, selectHandshakes, selectLeagueNews, selectPlayoffPicture, selectTrainingAssignments, selectWaiverWirePlayers, selectWeather,
@@ -58,6 +58,8 @@ export function MondayBriefing() {
   const fatigueReport = useGameStore(selectFatigueReport);
   const facilities = useGameStore(selectFacilities);
   const playoffMomentum = useGameStore(selectPlayoffMomentum);
+  const narrativeIntensity = useGameStore(selectNarrativeIntensity);
+  const dynastyScore = useGameStore(selectDynastyScore);
 
   const teamName = team ? `${team.city} ${team.name}` : 'No Team';
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '0-0';
@@ -164,6 +166,12 @@ export function MondayBriefing() {
             <PixelBadge variant="gold">{record}</PixelBadge>
             <PixelBadge variant="cyan">WK {String(week).padStart(2, '0')}</PixelBadge>
             <PixelBadge variant="default">YR {year}</PixelBadge>
+            <PixelBadge
+              variant={narrativeIntensity.status === 'hot' ? 'red' : narrativeIntensity.status === 'warm' ? 'gold' : 'cyan'}
+            >
+              {`Narrative ${narrativeIntensity.status}`}
+            </PixelBadge>
+            <PixelBadge variant="green">{`Dynasty ${dynastyScore}`}</PixelBadge>
             {phase === 'playoffs' && playoffMomentum ? (
               <PixelBadge variant={playoffMomentum.momentum > 85 ? 'gold' : playoffMomentum.momentum > 70 ? 'cyan' : 'default'}>
                 {playoffMomentum.narrativeTag ? playoffMomentum.narrativeTag.replaceAll('_', ' ') : 'playoff push'}
@@ -198,6 +206,18 @@ export function MondayBriefing() {
           value={capSpace}
           accent={team && team.capSpace >= 0 ? 'cyan' : 'red'}
           detail={injuries.length > 0 ? `${injuries.length} injury alerts active` : 'Healthy enough to push'}
+        />
+        <PixelMetricCard
+          label="Narrative Intensity"
+          value={narrativeIntensity.status.toUpperCase()}
+          accent={narrativeIntensity.status === 'hot' ? 'red' : narrativeIntensity.status === 'warm' ? 'gold' : 'cyan'}
+          detail={`Current pulse ${Math.round(narrativeIntensity.current)}`}
+        />
+        <PixelMetricCard
+          label="Dynasty Score"
+          value={dynastyScore}
+          accent={dynastyScore >= 25 ? 'gold' : dynastyScore >= 12 ? 'cyan' : 'green'}
+          detail="Legacy index across titles, playoffs, awards, and records"
         />
       </div>
 

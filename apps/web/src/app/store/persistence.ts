@@ -1,4 +1,5 @@
 import {
+  ensureAgentsInitialized,
   SAVE_VERSION,
   SaveStateSchema,
   buildCartridge,
@@ -31,7 +32,9 @@ export function normalizeImportedGame(raw: unknown): GameState {
     throw new Error('Save data failed schema validation.');
   }
 
-  return result.data as GameState;
+  const game = result.data as GameState;
+  ensureAgentsInitialized(game);
+  return game;
 }
 
 function buildSlotPayload(game: GameState, isAutosave: boolean, name?: string): Omit<SaveSlot, 'id'> {

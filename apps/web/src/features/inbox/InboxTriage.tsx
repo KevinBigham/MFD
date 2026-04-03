@@ -6,7 +6,7 @@ import {
   useGameStore, selectUserTeam, selectRoster, selectWeek, selectNarrative, selectLatestSummary, selectPhase, selectLatestGameDayPackage, selectActiveStoryArcs,
   selectOffFieldEvents, selectRecentPressConferences, selectUpcomingRivalry, selectCoachingCarouselNews,
   selectConditionalPicks, selectHandshakes, selectWaiverWire, selectWeather,
-  selectActiveProposals, selectDifficultyState, selectLeagueNews, selectMedicalStaff, selectPlayoffMomentum, selectTrainingAssignments,
+  selectActiveProposals, selectCeremonies, selectDifficultyState, selectLeagueNews, selectMedicalStaff, selectOffseasonState, selectPlayoffMomentum, selectTrainingAssignments,
 } from '../../app/store/game-store';
 import { buildInboxMessages, type InboxMessage, type MessageType } from './buildInboxMessages';
 import {
@@ -32,6 +32,7 @@ export function InboxTriage() {
   const latestPackage = useGameStore(selectLatestGameDayPackage);
   const activeArcs = useGameStore(selectActiveStoryArcs);
   const offFieldEvents = useGameStore(selectOffFieldEvents);
+  const offseasonState = useGameStore(selectOffseasonState);
   const recentPressConferences = useGameStore(selectRecentPressConferences);
   const upcomingRivalry = useGameStore(selectUpcomingRivalry);
   const coachingNews = useGameStore(selectCoachingCarouselNews);
@@ -45,6 +46,7 @@ export function InboxTriage() {
   const difficultyState = useGameStore(selectDifficultyState);
   const medicalStaff = useGameStore(selectMedicalStaff);
   const playoffMomentum = useGameStore(selectPlayoffMomentum);
+  const ceremonies = useGameStore(selectCeremonies);
 
   const [selectedMsg, setSelectedMsg] = useState<InboxMessage | null>(null);
   const [filter, setFilter] = useState<MessageType | 'ALL'>('ALL');
@@ -59,6 +61,7 @@ export function InboxTriage() {
     latestPackage,
     activeArcs,
     offFieldEvents,
+    offseasonState,
     recentPressConferences,
     coachingNews,
     upcomingRivalry,
@@ -72,7 +75,8 @@ export function InboxTriage() {
     difficultyState,
     availableMedicalStaff: medicalStaff.available,
     playoffMomentum,
-  }), [activeArcs, activeProposals, coachingNews, conditionalPicks, difficultyState, handshakes, latestPackage, latestSummary, leagueNews, medicalStaff.available, narrative, offFieldEvents, phase, playoffMomentum, recentPressConferences, roster, team, trainingAssignments, upcomingRivalry, waiverWire, weather, week]);
+    ceremonies,
+  }), [activeArcs, activeProposals, ceremonies, coachingNews, conditionalPicks, difficultyState, handshakes, latestPackage, latestSummary, leagueNews, medicalStaff.available, narrative, offFieldEvents, offseasonState, phase, playoffMomentum, recentPressConferences, roster, team, trainingAssignments, upcomingRivalry, waiverWire, weather, week]);
 
   const filtered = filter === 'ALL' ? messages : messages.filter((m) => m.type === filter);
   const urgentCount = messages.filter((m) => m.type === 'URGENT' && !m.read).length;

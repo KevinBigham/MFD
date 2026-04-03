@@ -162,13 +162,13 @@ describe('SaveStateSchema', () => {
 
 describe('migration pipeline', () => {
   it('runs migrations sequentially', () => {
-    registerMigration(10, (state) => ({ ...state, migratedFrom10: true }));
-    registerMigration(11, (state) => ({ ...state, migratedFrom11: true }));
+    registerMigration(110, (state) => ({ ...state, migratedFrom110: true }));
+    registerMigration(111, (state) => ({ ...state, migratedFrom111: true }));
 
-    const result = migrate({ version: 10 }, 12);
-    expect(result['version']).toBe(12);
-    expect(result['migratedFrom10']).toBe(true);
-    expect(result['migratedFrom11']).toBe(true);
+    const result = migrate({ version: 110 }, 112);
+    expect(result['version']).toBe(112);
+    expect(result['migratedFrom110']).toBe(true);
+    expect(result['migratedFrom111']).toBe(true);
   });
 
   it('throws on missing migration', () => {
@@ -588,5 +588,39 @@ describe('migration pipeline', () => {
       ratingPenalty: 0,
       onIR: false,
     });
+  });
+
+  it('migrates v10 saves to include sprint 11 opening night state', () => {
+    const migrated = migrate({
+      version: 10,
+      players: {
+        p1: {
+          id: 'p1',
+          name: 'Test Player',
+        },
+      },
+      teams: {
+        t1: {
+          isUser: true,
+          roster: [{ id: 'p1', name: 'Test Player' }],
+        },
+      },
+    }, 11);
+
+    expect(migrated['version']).toBe(11);
+    expect(migrated['tutorialState']).toMatchObject({
+      active: false,
+      currentStepIndex: 0,
+      dismissed: false,
+    });
+    expect(migrated['agents']).toEqual([]);
+    expect(migrated['narrativeIntensity']).toMatchObject({
+      current: 50,
+      recentBeats: [],
+      cooldownWeeks: 0,
+    });
+    expect(migrated['ceremonies']).toEqual([]);
+    expect(migrated['dynastyTimeline']).toEqual([]);
+    expect((migrated['players'] as Record<string, Record<string, unknown>>).p1?.['agentId']).toBeNull();
   });
 });

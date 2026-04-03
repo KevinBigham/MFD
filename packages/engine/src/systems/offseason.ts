@@ -1,11 +1,13 @@
 import { DIFF_SETTINGS } from '../config/difficulty';
-import { mulberry32 } from '../rng';
+import { mulberry32, RNG } from '../rng';
 import { generateAwards } from './awards';
+import { recordCeremony, generateAwardsNight, generateChampionshipCeremony, generateHOFInduction } from './ceremonies';
 import { runCoachingCarousel } from './coaching-carousel';
 import { calculateCompPicks } from './comp-picks';
 import { makeContract } from './contracts';
 import { resolveConditions } from './conditional-picks';
 import { ensureDraftClass } from './draft';
+import { recordDynastyEvent } from './dynasty-timeline';
 import { replenishFacilityBudget } from './facilities';
 import { reevaluateLeagueStrategies } from './gm-strategies';
 import { evaluateHandshakes } from './handshake-ledger';
@@ -14,8 +16,10 @@ import { syncPlayerArchiveEntry } from './history';
 import { generateMedicalStaffPool } from './injury-system';
 import { generateOffseasonNews, recordNewsItem } from './league-news';
 import { applyMentoringBonuses, formMentoringPairs } from './mentoring';
+import { recordBeat } from './narrative-director';
 import { clearSeasonLivingWorldState } from './off-field-events';
 import { buildTrainingProgressionBonuses, clearTrainingAssignments } from './player-development';
+import { agentDemand, ensureAgentsInitialized, getAgentPatienceWeeks, getPlayerAgent, negotiateOffer } from './player-agents';
 import { processWaiverClaims } from './practice-squad';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { progressPlayers } from './progression';
@@ -81,6 +85,23 @@ function buildAskingPrice(player: Player): ContractOffer {
     signingBonus,
     guaranteed,
   };
+}
+
+function topFiveAtPosition(game: GameState, player: Player): boolean {
+  const peers = Object.values(game.players)
+    .filter((candidate) => candidate.pos === player.pos)
+    .sort((a, b) => b.ovr - a.ovr || a.id.localeCompare(b.id));
+  return peers.slice(0, 5).some((candidate) => candidate.id === player.id);
+}
+
+function buildAgentDemandForPlayer(game: GameState, player: Player, baseOffer: ContractOffer = buildAskingPrice(player)): ContractOffer {
+  ensureAgentsInitialized(game);
+  const agent = getPlayerAgent(game, player.id);
+  if (!agent) return baseOffer;
+  return agentDemand(player, agent, {
+    baseOffer,
+    topFiveAtPosition: topFiveAtPosition(game, player),
+  });
 }
 
 function buildDraftOrder(game: GameState): DraftOrderEntry[] {
@@ -216,12 +237,12 @@ function resolveAiReSigns(game: GameState, offseason: OffseasonState): void {
     const team = game.teams[decision.teamId];
     if (!team) continue;
 
-    const canAfford = team.capSpace >= decision.askingPrice.salary * 1.25;
+    const canAfford = team.capSpace >= decision.agentDemand.salary * 1.25;
     const wantsPlayer = player.ovr >= 72 || player.pos === 'QB' || player.personality.loyalty >= 7;
 
     if (canAfford && wantsPlayer) {
-      applyOfferToPlayer(game, team, player, decision.askingPrice);
-      decision.lastOffer = decision.askingPrice;
+      applyOfferToPlayer(game, team, player, decision.agentDemand);
+      decision.lastOffer = decision.agentDemand;
       decision.status = 'accepted';
     } else {
       decision.status = 'walked';
@@ -238,13 +259,14 @@ function resolveUserReSigns(game: GameState, offseason: OffseasonState): void {
     const decision = offseason.reSignDecisions[playerId];
     if (!player || !decision || decision.teamId !== userTeam.id) continue;
 
-    if (resolveUserOffer(player, decision)) {
+    if (decision.status === 'accepted' && decision.lastOffer) {
       applyOfferToPlayer(game, userTeam, player, decision.lastOffer!);
-      decision.status = 'accepted';
       continue;
     }
 
-    decision.status = decision.lastOffer ? 'declined' : 'walked';
+    if (!decision.lastOffer) {
+      decision.status = 'pending';
+    }
   }
 }
 
@@ -253,7 +275,36 @@ function finalizeUnsignedExpiringPlayers(game: GameState, offseason: OffseasonSt
     const decision = offseason.reSignDecisions[playerId];
     if (decision?.status === 'accepted') continue;
     const team = game.teams[decision?.teamId ?? ''];
-    if (team) moveToFreeAgency(game, team, playerId);
+    if (!team) continue;
+    if (!team.isUser || !decision?.lastOffer) {
+      moveToFreeAgency(game, team, playerId);
+      continue;
+    }
+
+    const player = findRosterPlayer(team, playerId);
+    const agent = getPlayerAgent(game, playerId);
+    if (!player) continue;
+    player.contract = null;
+    player.teamId = team.id;
+    player.holdout = false;
+    player.careerStats.holdoutPatienceWeeksRemaining = decision?.patienceWeeksRemaining ?? Math.max(0, getAgentPatienceWeeks(agent ?? {
+      id: '',
+      name: 'Agent',
+      style: 'old_school',
+      demandMultiplier: 1,
+      patienceModifier: 0,
+      clients: [],
+    }));
+    player.careerStats.holdoutWalkWeeksRemaining = Math.max(1, getAgentPatienceWeeks(agent ?? {
+      id: '',
+      name: 'Agent',
+      style: 'old_school',
+      demandMultiplier: 1,
+      patienceModifier: 0,
+      clients: [],
+    }));
+    player.careerStats.agentDemandSalary = decision?.agentDemand.salary ?? 0;
+    attachPlayerRecord(game, player);
   }
 }
 
@@ -288,7 +339,7 @@ function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState): voi
     const player = getPlayer(game, playerId);
     if (!player) continue;
 
-    const ask = buildAskingPrice(player);
+    const ask = buildAgentDemandForPlayer(game, player);
     const userBids = (offseason.freeAgencyBids[playerId] ?? []).filter((bid) => bid.round === offseason.round);
     const aiBids = Object.values(game.teams)
       .filter((team) => !team.isUser)
@@ -445,13 +496,27 @@ export function initializeOffseasonState(game: GameState): OffseasonState {
   const expiringPlayers = Object.values(game.teams)
     .flatMap((team) => team.roster)
     .filter((player) => (player.contract?.years ?? 0) <= 1);
+  ensureAgentsInitialized(game);
 
   const reSignDecisions = expiringPlayers.reduce<Record<string, ReSignDecision>>((acc, player) => {
+    const askingPrice = buildAskingPrice(player);
+    const adjustedDemand = buildAgentDemandForPlayer(game, player, askingPrice);
     acc[player.id] = {
       playerId: player.id,
       teamId: player.teamId ?? '',
-      askingPrice: buildAskingPrice(player),
+      askingPrice,
+      agentDemand: adjustedDemand,
       lastOffer: null,
+      counterOffer: null,
+      agentResponse: '',
+      patienceWeeksRemaining: getAgentPatienceWeeks(getPlayerAgent(game, player.id) ?? {
+        id: '',
+        name: 'Agent',
+        style: 'old_school',
+        demandMultiplier: 1,
+        patienceModifier: 0,
+        clients: [],
+      }),
       status: 'pending',
     };
     return acc;
@@ -474,8 +539,7 @@ export function submitReSignOffer(game: GameState, playerId: string, offer: Cont
   const nextState = cloneGame(game);
   const decision = nextState.offseasonState?.reSignDecisions[playerId];
   if (decision) {
-    decision.lastOffer = offer;
-    decision.status = 'pending';
+    negotiateOffer(nextState, decision.teamId, playerId, offer);
   }
 
   return { nextState, events: [], consequences: [] };
@@ -518,7 +582,39 @@ export function advanceOffseason(game: GameState): void {
   markCompletedSeason(game, seasonYear);
   clearSeasonLivingWorldState(game);
   stampChampionCareers(game, seasonYear);
+  ensureAgentsInitialized(game);
   const awards = generateAwards(game, seasonYear);
+  if (game.playoffBracket?.championTeamId) {
+    const championship = generateChampionshipCeremony(game, game.playoffBracket.championTeamId);
+    recordCeremony(game, championship);
+    recordDynastyEvent(game, {
+      id: `${championship.id}-dynasty`,
+      year: game.year,
+      week: null,
+      type: 'championship',
+      headline: championship.headline,
+      importance: 'landmark',
+      playerIds: championship.mvp ? [championship.mvp] : [],
+      teamIds: [game.playoffBracket.championTeamId],
+    });
+    recordBeat(game, { week: game.week, type: 'positive', intensity: 90, source: 'championship' });
+  }
+  const awardsNight = generateAwardsNight(game);
+  recordCeremony(game, awardsNight);
+  recordBeat(game, { week: game.week, type: 'positive', intensity: 65, source: 'awards_night' });
+  for (const award of awards.awards.filter((entry) =>
+    ['mvp', 'opoy', 'dpoy', 'oroy', 'droy', 'coach_of_year', 'comeback_player'].includes(entry.awardId))) {
+    recordDynastyEvent(game, {
+      id: `award-${award.awardId}-${award.winnerId ?? award.winnerTeamId}-${seasonYear}`,
+      year: seasonYear,
+      week: null,
+      type: 'award',
+      headline: `${award.winnerName} wins ${award.label}`,
+      importance: award.awardId === 'mvp' ? 'landmark' : 'major',
+      playerIds: award.winnerId ? [award.winnerId] : [],
+      teamIds: award.winnerTeamId ? [award.winnerTeamId] : [],
+    });
+  }
   resolveConditions(game);
   evaluateHandshakes(game);
   updateSeasonRecords(game, seasonYear);
@@ -529,6 +625,21 @@ export function advanceOffseason(game: GameState): void {
   resolveAiReSigns(game, game.offseasonState);
   finalizeUnsignedExpiringPlayers(game, game.offseasonState);
   const hofClass = inductHallOfFame(game, seasonYear);
+  if (hofClass.length > 0) {
+    recordCeremony(game, generateHOFInduction(game, hofClass));
+    for (const inductee of hofClass) {
+      recordDynastyEvent(game, {
+        id: `hof-${inductee.playerId}-${inductee.inductionYear}`,
+        year: inductee.inductionYear,
+        week: null,
+        type: 'hof',
+        headline: `${inductee.name} enters the Hall of Fame`,
+        importance: 'landmark',
+        playerIds: [inductee.playerId],
+        teamIds: inductee.teams,
+      });
+    }
+  }
   decayLeagueRivalries(game);
   const carousel = runCoachingCarousel(game, seasonYear);
   const hireEvents = carousel.events.filter((event) => event.type === 'coach_hired');
@@ -544,6 +655,16 @@ export function advanceOffseason(game: GameState): void {
       speaker: 'General Manager',
     });
     recordPressConference(game, pressConference);
+    recordDynastyEvent(game, {
+      id: `coach-hire-${team.id}-${seasonYear}`,
+      year: seasonYear,
+      week: 1,
+      type: 'firing',
+      headline: `${team.city} makes a coaching change`,
+      importance: team.isUser ? 'major' : 'minor',
+      playerIds: [],
+      teamIds: [team.id],
+    });
   }
   const mentoringPairs = formMentoringPairs(game, game.year);
   for (const team of Object.values(game.teams)) {
@@ -557,6 +678,7 @@ export function advanceOffseason(game: GameState): void {
   resetPhysicalState(game);
   resetPracticeSquads(game);
   const narrativeAdds = [
+    awardsNight.headline,
     awards.ceremony.headline,
     ...hofClass.map((entry) => `${entry.name} enters the Hall of Fame.`),
     ...progression.events.map((event) => event.description),

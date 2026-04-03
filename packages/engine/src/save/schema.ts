@@ -321,8 +321,12 @@ export const ReSignDecisionSchema = z.object({
   playerId: z.string(),
   teamId: z.string(),
   askingPrice: ContractOfferSchema,
+  agentDemand: ContractOfferSchema,
   lastOffer: ContractOfferSchema.nullable(),
-  status: z.enum(['pending', 'accepted', 'declined', 'walked']),
+  counterOffer: ContractOfferSchema.nullable(),
+  agentResponse: z.string(),
+  patienceWeeksRemaining: z.number(),
+  status: z.enum(['pending', 'countered', 'accepted', 'declined', 'walked']),
 });
 
 export const FreeAgencyBidSchema = ContractOfferSchema.extend({
@@ -552,6 +556,73 @@ export const PlayoffMomentumSchema = z.object({
   winStreak: z.number(),
 });
 
+export const TutorialStepSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  targetScreen: z.string(),
+  targetElement: z.string().nullable(),
+  action: z.string().nullable(),
+  completed: z.boolean(),
+});
+
+export const TutorialStateSchema = z.object({
+  active: z.boolean(),
+  currentStepIndex: z.number(),
+  steps: z.array(TutorialStepSchema),
+  completedSteps: z.array(z.string()),
+  dismissed: z.boolean(),
+});
+
+export const AgentProfileSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  style: z.enum(['hardball', 'collaborative', 'media_savvy', 'old_school']),
+  demandMultiplier: z.number(),
+  patienceModifier: z.number(),
+  clients: z.array(z.string()),
+});
+
+export const NarrativeBeatSchema = z.object({
+  week: z.number(),
+  type: z.enum(['positive', 'negative', 'neutral']),
+  intensity: z.number(),
+  source: z.string(),
+});
+
+export const NarrativeIntensitySchema = z.object({
+  current: z.number(),
+  recentBeats: z.array(NarrativeBeatSchema),
+  cooldownWeeks: z.number(),
+});
+
+export const CeremonyHighlightSchema = z.object({
+  label: z.string(),
+  value: z.string(),
+  playerIds: z.array(z.string()),
+});
+
+export const CeremonySchema = z.object({
+  id: z.string(),
+  type: z.enum(['championship', 'awards_night', 'hall_of_fame_induction', 'ring_ceremony', 'jersey_retirement']),
+  year: z.number(),
+  headline: z.string(),
+  description: z.string(),
+  highlights: z.array(CeremonyHighlightSchema),
+  mvp: z.string().nullable(),
+});
+
+export const DynastyEventSchema = z.object({
+  id: z.string(),
+  year: z.number(),
+  week: z.number().nullable(),
+  type: z.enum(['championship', 'draft_pick', 'trade', 'signing', 'firing', 'record', 'award', 'hof', 'milestone']),
+  headline: z.string(),
+  importance: z.enum(['landmark', 'major', 'minor']),
+  playerIds: z.array(z.string()),
+  teamIds: z.array(z.string()),
+});
+
 export const TradeProposalSchema: z.ZodType = z.lazy(() => z.object({
   id: z.string(),
   fromTeamId: z.string(),
@@ -604,6 +675,7 @@ export const PlayerSchema = z.object({
   traitPowerLevel: z.record(z.number()),
   injury: InjurySchema.nullable(),
   morale: z.number(),
+  agentId: z.string().nullable().default(null),
 });
 
 export const SaveStateSchema = z.object({
@@ -673,6 +745,21 @@ export const SaveStateSchema = z.object({
   waiverWire: z.array(WaiverWireEntrySchema).default([]),
   waiverClaims: z.array(WaiverClaimSchema).default([]),
   handshakes: z.array(HandshakeSchema).default([]),
+  tutorialState: TutorialStateSchema.default({
+    active: false,
+    currentStepIndex: 0,
+    steps: [],
+    completedSteps: [],
+    dismissed: false,
+  }),
+  agents: z.array(AgentProfileSchema).default([]),
+  narrativeIntensity: NarrativeIntensitySchema.default({
+    current: 50,
+    recentBeats: [],
+    cooldownWeeks: 0,
+  }),
+  ceremonies: z.array(CeremonySchema).default([]),
+  dynastyTimeline: z.array(DynastyEventSchema).default([]),
 });
 
 export type SaveState = z.infer<typeof SaveStateSchema>;
