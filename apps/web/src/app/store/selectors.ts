@@ -2,6 +2,7 @@ import type {
   Achievement,
   AchievementProgress,
   AgentProfile,
+  AllDecadeTeam,
   AwardsHistoryEntry,
   BroadcastOutput,
   CapProjectionYear,
@@ -13,11 +14,15 @@ import type {
   DashboardState,
   DifficultyState,
   DraftTradeOffer,
+  ExpansionDraftState,
   DraftRecap,
   DraftOrderEntry,
   DraftProspect,
   DynastyEvent,
   FacilityState,
+  FranchiseDashboard,
+  FranchiseEra,
+  FranchiseLegend,
   GameEvent,
   GameDayPackage,
   GameDayState,
@@ -73,9 +78,11 @@ import type {
   WeeklySummary,
   Handshake,
   FilmRoomReport,
+  StadiumDeal,
 } from '@mfd/engine';
 import {
   analyzeTeamNeeds,
+  buildFranchiseDashboard,
   buildCoachingMarket,
   buildDraftWarRoomState,
   buildFATargetBoard,
@@ -86,21 +93,26 @@ import {
   checkIncentives,
   buildPlayoffPicture,
   calculateAdvancedStats,
+  canRelocate,
   createDefaultDashboardState,
   createDefaultSpecialTeamsState,
+  detectFranchiseEras,
   generateBroadcast,
   generateOpponentScouting,
   getAchievementProgress,
   getAvailableScenarios,
   getAnalyticsStatLeaders,
+  getDecadeNarrative,
   getFullSchedule,
   getPlayerComparables,
   getPlayerProjection,
   getPlayerValue,
+  getFranchiseLegends,
   getStoredOpponentReport,
   getPlayerComparison,
   getCooldownStatus,
   getPlayerAgent,
+  getRelocationDestinations,
   getTeamRankings,
   getWeekSchedule as getWeekScheduleEntries,
   getWeeklyTrend,
@@ -152,6 +164,10 @@ const EMPTY_WAIVER_CLAIMS: WaiverClaim[] = [];
 const EMPTY_WAIVER_RESULTS: WaiverRunResult[] = [];
 const EMPTY_HANDSHAKES: Handshake[] = [];
 const EMPTY_CONDITIONAL_PICKS: ConditionalPick[] = [];
+const EMPTY_STADIUM_DEALS: StadiumDeal[] = [];
+const EMPTY_ALL_DECADE_TEAMS: AllDecadeTeam[] = [];
+const EMPTY_FRANCHISE_LEGENDS: FranchiseLegend[] = [];
+const EMPTY_FRANCHISE_ERAS: FranchiseEra[] = [];
 const EMPTY_IDS: string[] = [];
 const EMPTY_TRAINING_ASSIGNMENTS: Record<string, TrainingAssignment> = {};
 const EMPTY_FACILITY_STATE: FacilityState = {
@@ -210,6 +226,9 @@ const EMPTY_SOCIAL_FEED: SocialPost[] = [];
 const EMPTY_AVAILABLE_SCENARIOS: ScenarioDefinition[] = getAvailableScenarios();
 const EMPTY_TRADE_DEADLINE_STATE: TradeDeadlineState | null = null;
 const EMPTY_SCENARIO_STATE: ScenarioState | null = null;
+const EMPTY_EXPANSION_DRAFT_STATE: ExpansionDraftState | null = null;
+const EMPTY_FRANCHISE_DASHBOARD: FranchiseDashboard | null = null;
+const EMPTY_RELOCATION_DESTINATIONS: ReturnType<typeof getRelocationDestinations> = [];
 const EMPTY_COACHING_MARKET: CoachingMarketState = {
   teamId: null,
   updatedYear: 0,
@@ -563,6 +582,48 @@ export const selectTeamSchedule = (state: GameStoreState) => {
   if (!state.game) return EMPTY_TEAM_SCHEDULE;
   const teamId = selectUserTeamId(state);
   return teamId ? getFullSchedule(state.game, teamId) : EMPTY_TEAM_SCHEDULE;
+};
+export const selectFranchiseDashboard = (state: GameStoreState): FranchiseDashboard | null => {
+  if (!state.game) return EMPTY_FRANCHISE_DASHBOARD;
+  const teamId = selectUserTeamId(state);
+  return teamId ? buildFranchiseDashboard(state.game, teamId) : EMPTY_FRANCHISE_DASHBOARD;
+};
+export const selectFranchiseLegends = (state: GameStoreState): FranchiseLegend[] => {
+  if (!state.game) return EMPTY_FRANCHISE_LEGENDS;
+  const teamId = selectUserTeamId(state);
+  return teamId ? getFranchiseLegends(state.game, teamId, 25) : EMPTY_FRANCHISE_LEGENDS;
+};
+export const selectAllDecadeTeams = (state: GameStoreState): AllDecadeTeam[] => {
+  if (!state.game) return EMPTY_ALL_DECADE_TEAMS;
+  const teamId = selectUserTeamId(state);
+  if (!teamId) return EMPTY_ALL_DECADE_TEAMS;
+  return state.game.allDecadeTeams
+    .filter((entry) => entry.teamId === teamId)
+    .sort((a, b) => b.startYear - a.startYear);
+};
+export const selectFranchiseEras = (state: GameStoreState): FranchiseEra[] => {
+  if (!state.game) return EMPTY_FRANCHISE_ERAS;
+  const teamId = selectUserTeamId(state);
+  if (!teamId) return EMPTY_FRANCHISE_ERAS;
+  return detectFranchiseEras(state.game.franchiseHistory.filter((entry) => entry.teamId === teamId));
+};
+export const selectCurrentAllDecadeNarrative = (state: GameStoreState): string | null => {
+  if (!state.game) return null;
+  const active = selectAllDecadeTeams(state)[0] ?? null;
+  return active ? getDecadeNarrative(active, state.game.franchiseHistory.filter((entry) => entry.teamId === active.teamId)) : null;
+};
+export const selectStadiumDealOffers = (state: GameStoreState): StadiumDeal[] => state.game?.stadiumDealOffers ?? EMPTY_STADIUM_DEALS;
+export const selectExpansionDraftState = (state: GameStoreState): ExpansionDraftState | null => state.game?.expansionDraftState ?? EMPTY_EXPANSION_DRAFT_STATE;
+export const selectCanRelocate = (state: GameStoreState): boolean => {
+  const team = selectUserTeam(state);
+  const game = state.game;
+  if (!team || !game) return false;
+  return canRelocate(team.franchiseIdentity, team, game.year);
+};
+export const selectRelocationDestinations = (state: GameStoreState) => {
+  const team = selectUserTeam(state);
+  if (!team) return EMPTY_RELOCATION_DESTINATIONS;
+  return getRelocationDestinations(team.franchiseIdentity, team.city);
 };
 export const selectWeekSchedule = (week?: number) => (state: GameStoreState) => {
   if (!state.game) return EMPTY_WEEK_SCHEDULE;

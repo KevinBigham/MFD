@@ -11,6 +11,7 @@ const ScoutingRegionSchema = z.enum(['east', 'south', 'midwest', 'west']);
 const ProspectRiskBandSchema = z.enum(['unknown', 'safe', 'balanced', 'volatile']);
 const ProspectCeilingBandSchema = z.enum(['unknown', 'starter', 'impact', 'star']);
 const ProspectCharacterReadSchema = z.enum(['unknown', 'leader', 'steady', 'mercurial', 'red_flag']);
+const MarketSizeSchema = z.enum(['small', 'medium', 'large', 'mega']);
 
 export const PersonalitySchema = z.object({
   workEthic: z.number().min(1).max(10),
@@ -434,6 +435,32 @@ export const FacilityStateSchema = z.object({
   upgradeCosts: z.record(FacilityTypeSchema, z.array(z.number())),
 });
 
+export const StadiumDealSchema = z.object({
+  sponsorName: z.string(),
+  revenuePerYear: z.number(),
+  yearsTotal: z.number(),
+  yearsRemaining: z.number(),
+  prestigeBonus: z.number(),
+});
+
+export const FranchiseIdentitySchema = z.object({
+  fanbase: z.number(),
+  prestige: z.number(),
+  marketSize: MarketSizeSchema,
+  marketModifier: z.number(),
+  stadiumName: z.string(),
+  stadiumDeal: StadiumDealSchema.nullable(),
+  stadiumLevel: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  attendance: z.number(),
+  relocationHistory: z.array(z.object({
+    fromCity: z.string(),
+    fromName: z.string(),
+    toCity: z.string(),
+    toName: z.string(),
+    year: z.number(),
+  })),
+});
+
 export const PickConditionSchema = z.object({
   type: z.enum(['games_played', 'pro_bowl', 'playoff_win', 'starts']),
   playerId: z.string(),
@@ -781,6 +808,40 @@ export const PlayerSeasonHistoryEntrySchema = z.object({
   gamesPlayed: z.number(),
   gamesStarted: z.number(),
   keyStats: z.record(z.string(), z.number()),
+});
+
+export const AllDecadeTeamEntrySchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  pos: z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']),
+  peakOvr: z.number(),
+  seasonsWithTeam: z.number(),
+  highlights: z.array(z.string()),
+});
+
+export const AllDecadeTeamSchema = z.object({
+  id: z.string(),
+  decade: z.string(),
+  startYear: z.number(),
+  endYear: z.number(),
+  teamId: z.string(),
+  roster: z.array(AllDecadeTeamEntrySchema),
+  headline: z.string(),
+});
+
+export const ExpansionDraftStateSchema = z.object({
+  expansionTeam: z.object({
+    city: z.string(),
+    name: z.string(),
+    abbr: z.string(),
+    conference: z.enum(['AFC', 'NFC']),
+    division: z.string(),
+  }),
+  protectedPlayers: z.record(z.string(), z.array(z.string())),
+  availablePlayers: z.array(z.lazy(() => PlayerSchema)),
+  selectedPlayers: z.array(z.lazy(() => PlayerSchema)),
+  picksRemaining: z.number(),
+  phase: z.enum(['protection', 'drafting', 'complete']),
 });
 
 export const PositionGroupGradeSchema = z.object({
@@ -1145,6 +1206,7 @@ export const SaveStateSchema = z.object({
   records: RecordBookSchema,
   awardsHistory: z.array(AwardsHistoryEntrySchema),
   hallOfFame: z.array(HallOfFameEntrySchema),
+  allDecadeTeams: z.array(AllDecadeTeamSchema).default([]),
   powerRankings: z.array(PowerRankingSchema),
   franchiseHistory: z.array(z.any()),
   playerArchive: z.array(z.any()),
@@ -1175,6 +1237,8 @@ export const SaveStateSchema = z.object({
   weekSummaries: z.array(z.any()),
   playoffBracket: z.any().nullable(),
   offseasonState: OffseasonStateSchema.nullable(),
+  expansionDraftState: ExpansionDraftStateSchema.optional(),
+  stadiumDealOffers: z.array(StadiumDealSchema).default([]),
   leagueNews: z.array(NewsItemSchema).default([]),
   socialFeed: z.array(SocialPostSchema).default([]),
   activeProposals: z.array(TradeProposalSchema).default([]),

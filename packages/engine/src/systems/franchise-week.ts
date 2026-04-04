@@ -44,6 +44,8 @@ import { generateBroadcast } from './broadcast';
 import { advanceScenarioSeason, checkScenarioProgress } from './scenario-challenge';
 import { initializeDeadline } from './trade-deadline';
 import { applyWeeklyPrepToSim, buildOpponentIntel, evaluateWeeklyPrep } from './weekly-prep';
+import { createDefaultFranchiseIdentity, getStadiumHomeFieldBonus, updateAttendance } from './franchise-identity';
+import { initializeExpansionDraft, shouldTriggerExpansion } from './expansion-draft';
 import {
   cloneGame,
   findUserTeam,
@@ -248,6 +250,13 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
     ensureWeeklyWeather(nextState, nextState.week);
     return { nextState, events, consequences: [] };
   }
+  if (nextState.phase === 'offseason' && nextState.expansionDraftState) {
+    return { nextState, events, consequences: [] };
+  }
+  if (nextState.phase === 'offseason' && shouldTriggerExpansion(nextState, RNG.ai)) {
+    nextState.expansionDraftState = initializeExpansionDraft(nextState, RNG.ai);
+    return { nextState, events, consequences: [] };
+  }
   if (['offseason', 'free_agency', 'draft', 'post_draft'].includes(nextState.phase)) {
     applyNonGamePhase(nextState);
     return { nextState, events, consequences: [] };
@@ -287,6 +296,11 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
     for (const matchup of currentWeek?.games ?? []) {
       const home = nextState.teams[matchup.homeTeamId]!;
       const away = nextState.teams[matchup.awayTeamId]!;
+      home.franchiseIdentity = home.franchiseIdentity ?? createDefaultFranchiseIdentity(home);
+      home.franchiseIdentity = {
+        ...home.franchiseIdentity,
+        attendance: updateAttendance(home.franchiseIdentity, home),
+      };
       const rivalry = getRivalryGameContext(nextState, home.id, away.id);
       const homeEffects = getGameEffectBonuses(nextState, home.id);
       const awayEffects = getGameEffectBonuses(nextState, away.id);
@@ -312,7 +326,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         },
         weather: matchup.weather ?? generateWeatherForGame(home, nextState.week),
         rivalryIntensity: rivalry?.intensity ?? 0,
-        homeFieldBonus: matchup.primetime ? 2 : 0,
+        homeFieldBonus: (matchup.primetime ? 2 : 0) + getStadiumHomeFieldBonus(home.franchiseIdentity),
       });
       outcome.result.broadcastNetwork = matchup.broadcastNetwork;
       outcome.result.primetime = matchup.primetime;
@@ -369,6 +383,11 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
     nextState.playoffBracket = advancePlayoffBracket(nextState.playoffBracket, nextState.week, (homeTeamId, awayTeamId) => {
       const home = nextState.teams[homeTeamId]!;
       const away = nextState.teams[awayTeamId]!;
+      home.franchiseIdentity = home.franchiseIdentity ?? createDefaultFranchiseIdentity(home);
+      home.franchiseIdentity = {
+        ...home.franchiseIdentity,
+        attendance: updateAttendance(home.franchiseIdentity, home),
+      };
       const rivalry = getRivalryGameContext(nextState, home.id, away.id);
       const homeEffects = getGameEffectBonuses(nextState, home.id);
       const awayEffects = getGameEffectBonuses(nextState, away.id);
@@ -398,6 +417,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         },
         weather: generateWeatherForGame(home, nextState.week),
         rivalryIntensity: rivalry?.intensity ?? 0,
+        homeFieldBonus: getStadiumHomeFieldBonus(home.franchiseIdentity),
       });
       if (home.isUser || away.isUser) {
         outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));

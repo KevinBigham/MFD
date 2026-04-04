@@ -1,4 +1,5 @@
 import { createEmptySeasonStats, emptyPlayerStats } from './season-stats';
+import { buildSeasonSchedule } from './season-schedule';
 import {
   assignProspectRegion,
   buildActionNote,
@@ -23,7 +24,6 @@ import type {
   GameState,
   Player,
   ScoutingAction,
-  ScheduleWeek,
   Team,
 } from '../types';
 
@@ -42,32 +42,6 @@ function cloneGame(game: GameState): GameState {
 
 function findUserTeam(game: GameState): Team | null {
   return Object.values(game.teams).find((team) => team.isUser) ?? null;
-}
-
-function makeSchedule(teamIds: string[]): ScheduleWeek[] {
-  const teams = [...teamIds].sort();
-  const weeks: ScheduleWeek[] = [];
-  const working = [...teams];
-
-  for (let week = 1; week <= 18; week++) {
-    const games = [];
-    for (let i = 0; i < working.length / 2; i++) {
-      const home = week % 2 === 0 ? working[working.length - 1 - i]! : working[i]!;
-      const away = week % 2 === 0 ? working[i]! : working[working.length - 1 - i]!;
-      games.push({
-        homeTeamId: home,
-        awayTeamId: away,
-        result: null,
-      });
-    }
-
-    weeks.push({ week, games });
-    const fixed = working[0]!;
-    const rotated = [fixed, working[working.length - 1]!, ...working.slice(1, -1)];
-    working.splice(0, working.length, ...rotated);
-  }
-
-  return weeks;
 }
 
 function makeDraftPicks(teamId: string, year: number): DraftPick[] {
@@ -401,7 +375,7 @@ export function finalizePostDraft(game: GameState): void {
     player.stats = emptyPlayerStats();
   }
 
-  game.schedule = makeSchedule(Object.keys(game.teams));
+  game.schedule = buildSeasonSchedule(Object.keys(game.teams), game.year);
   game.weekSummaries = [];
   game.playoffBracket = null;
   game.offseasonState = null;

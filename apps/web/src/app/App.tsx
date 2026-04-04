@@ -5,7 +5,7 @@ import {
   Search, FileText, Handshake, Gamepad2, GraduationCap,
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
   Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity, CalendarRange,
-  Radio, MessageSquare, Crosshair,
+  Radio, MessageSquare, Crosshair, Building2, Award,
 } from 'lucide-react';
 import { MfdTooltipProvider, MfdCommandPalette, type CommandItem } from '@mfd/design-system/components';
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
@@ -13,6 +13,7 @@ import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
 import {
   selectCeremonies,
+  selectExpansionDraftState,
   selectNewlyUnlocked,
   selectSeasonReports,
   selectTutorial,
@@ -59,6 +60,10 @@ const LazyGameBroadcast = lazy(async () => ({ default: (await import('../feature
 const LazySocialFeed = lazy(async () => ({ default: (await import('../features/social/SocialFeed')).SocialFeed }));
 const LazyTradeDeadline = lazy(async () => ({ default: (await import('../features/trades/TradeDeadline')).TradeDeadline }));
 const LazyScenarioSelect = lazy(async () => ({ default: (await import('../features/scenario/ScenarioSelect')).ScenarioSelect }));
+const LazyFranchiseHub = lazy(async () => ({ default: (await import('../features/franchise/FranchiseHub')).FranchiseHub }));
+const LazyRelocationScreen = lazy(async () => ({ default: (await import('../features/franchise/RelocationScreen')).RelocationScreen }));
+const LazyExpansionDraft = lazy(async () => ({ default: (await import('../features/franchise/ExpansionDraft')).ExpansionDraft }));
+const LazyFranchiseLegends = lazy(async () => ({ default: (await import('../features/franchise/FranchiseLegends')).FranchiseLegends }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -89,6 +94,8 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/depth-chart',   label: 'Depth Chart',      shortLabel: 'Depth',    icon: <ListOrdered size={16} /> },
   { path: '/coaching',      label: 'Coaching',         shortLabel: 'Coach',    icon: <GraduationCap size={16} /> },
   { path: '/owner',         label: 'Owner',            shortLabel: 'Owner',    icon: <Crown size={16} /> },
+  { path: '/franchise',     label: 'Franchise',        shortLabel: 'Franchise', icon: <Building2 size={16} /> },
+  { path: '/legends',       label: 'Legends',          shortLabel: 'Legends',  icon: <Award size={16} /> },
   { path: '/week-advance',  label: 'Advance Week',     shortLabel: 'Advance',  icon: <Play size={16} /> },
   { path: '/handshakes',    label: 'Handshakes',       shortLabel: 'Promises', icon: <ScrollText size={16} /> },
   { path: '/news',          label: 'News',             shortLabel: 'News',     icon: <Newspaper size={16} /> },
@@ -111,6 +118,7 @@ function RootLayout() {
   const ceremonies = useGameStore(selectCeremonies);
   const newlyUnlocked = useGameStore(selectNewlyUnlocked);
   const seasonReports = useGameStore(selectSeasonReports);
+  const expansionDraftState = useGameStore(selectExpansionDraftState);
   const advanceTutorial = useGameStore((s) => s.actions.advanceTutorial);
   const dismissTutorial = useGameStore((s) => s.actions.dismissTutorial);
   const router = useRouter();
@@ -139,6 +147,13 @@ function RootLayout() {
     }
     void advanceTutorial(currentTutorialStep.action);
   }, [activePath, advanceTutorial, currentTutorialStep, tutorial.active, tutorial.dismissed]);
+
+  useEffect(() => {
+    if (!expansionDraftState || activePath === '/expansion-draft') {
+      return;
+    }
+    void router.navigate({ to: '/expansion-draft' });
+  }, [activePath, expansionDraftState, router]);
 
   useEffect(() => {
     const latest = ceremonies[0];
@@ -627,6 +642,46 @@ const ownerRoute = createRoute({
   component: OwnerMood,
 });
 
+const franchiseRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/franchise',
+  component: () => (
+    <LazyRouteFrame label="franchise hub">
+      <LazyFranchiseHub />
+    </LazyRouteFrame>
+  ),
+});
+
+const relocationRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/relocate',
+  component: () => (
+    <LazyRouteFrame label="relocation screen">
+      <LazyRelocationScreen />
+    </LazyRouteFrame>
+  ),
+});
+
+const expansionDraftRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/expansion-draft',
+  component: () => (
+    <LazyRouteFrame label="expansion draft">
+      <LazyExpansionDraft />
+    </LazyRouteFrame>
+  ),
+});
+
+const legendsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/legends',
+  component: () => (
+    <LazyRouteFrame label="franchise legends">
+      <LazyFranchiseLegends />
+    </LazyRouteFrame>
+  ),
+});
+
 const weekAdvanceRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/week-advance',
@@ -721,7 +776,7 @@ const routeTree = rootRoute.addChildren([
   scoutingRoute, draftRoute, freeAgencyRoute, faTargetsRoute,
   gameDayRoute, broadcastRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
   scheduleRoute, depthChartRoute, playerProfileRoute, teamNeedsRoute, coachingRoute, filmRoomRoute, tradeDeadlineRoute,
-  ownerRoute, weekAdvanceRoute, handshakeRoute,
+  ownerRoute, franchiseRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, settingsRoute,
 ]);

@@ -7,7 +7,7 @@ import type {
   GameState, Player, Team, Contract, Owner, OwnerState,
   PlayerRatings, Personality, PlayerSeasonStats, CareerStats,
   TeamStaff, StaffMember, ClinicState, TradeState, DraftPick,
-  CoachingStaff, Coach, FrontOffice, NarrativeState, ScheduleWeek,
+  CoachingStaff, Coach, FrontOffice, NarrativeState,
   DifficultyLevel, Position, DeadCapByYear,
 } from '@mfd/engine';
 import {
@@ -22,9 +22,12 @@ import {
   createDefaultTutorialState,
   createDefaultAchievements,
   createDefaultDashboardState,
+  createDefaultFranchiseIdentity,
   createFacilityState,
+  buildSeasonSchedule,
   buildSpecialTeamsState,
   ensureAgentsInitialized,
+  initializeFranchiseIdentity,
   syncAllPlayerArchiveEntries,
 } from '@mfd/engine';
 import { createEmptyRecordBook } from '@mfd/engine';
@@ -326,6 +329,10 @@ function genTeam(
     facilityState: createFacilityState(ownerState.archetypeId, !isUser, () => rng(0, 1000) / 1000),
     practiceSquad: [],
     stadiumType: DOME_CITIES.has(def.city) ? 'dome' : 'outdoor',
+    franchiseIdentity: createDefaultFranchiseIdentity({
+      city: def.city,
+      stadiumType: DOME_CITIES.has(def.city) ? 'dome' : 'outdoor',
+    }),
     specialTeams: {
       kickReturner: null,
       puntReturner: null,
@@ -335,36 +342,9 @@ function genTeam(
     },
   };
   team.specialTeams = buildSpecialTeamsState(team);
+  team.franchiseIdentity = initializeFranchiseIdentity(team, () => rng(0, 1000) / 1000);
 
   return { team, players };
-}
-
-// ── Schedule generator (17-week, round-robin simplified) ───
-
-function generateSchedule(teamIds: string[], year: number): ScheduleWeek[] {
-  const weeks: ScheduleWeek[] = [];
-  for (let w = 1; w <= 18; w++) {
-    const games = [];
-    const available = [...teamIds];
-    // Shuffle available teams
-    for (let i = available.length - 1; i > 0; i--) {
-      const j = rng(0, i);
-      [available[i], available[j]] = [available[j]!, available[i]!];
-    }
-    // Pair them up
-    for (let i = 0; i + 1 < available.length; i += 2) {
-      games.push({
-        homeTeamId: available[i]!,
-        awayTeamId: available[i + 1]!,
-        result: null,
-        flexed: false,
-        primetime: false,
-        broadcastNetwork: null,
-      });
-    }
-    weeks.push({ week: w, games });
-  }
-  return weeks;
 }
 
 // ── Main factory ───────────────────────────────────────────
@@ -404,7 +384,7 @@ export function createSeedGameState(
     };
   }
 
-  const schedule = generateSchedule(teamIds, year);
+  const schedule = buildSeasonSchedule(teamIds, year);
 
   const frontOffice: FrontOffice = {
     xp: 0,
@@ -445,6 +425,7 @@ export function createSeedGameState(
     records: createEmptyRecordBook(),
     awardsHistory: [],
     hallOfFame: [],
+    allDecadeTeams: [],
     powerRankings: [],
     franchiseHistory: [],
     playerArchive: [],
@@ -461,6 +442,8 @@ export function createSeedGameState(
     weekSummaries: [],
     playoffBracket: null,
     offseasonState: null,
+    expansionDraftState: undefined,
+    stadiumDealOffers: [],
     leagueNews: [],
     socialFeed: [],
     activeProposals: [],

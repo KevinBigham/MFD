@@ -1,4 +1,4 @@
-import { makeContract, SAVE_VERSION, emptyPlayerStats } from '../index';
+import { createDefaultFranchiseIdentity, makeContract, SAVE_VERSION, emptyPlayerStats } from '../index';
 import { createEmptyRecordBook } from './records';
 import type { GameState, GameDayState, Player, Team } from '../types';
 
@@ -176,6 +176,7 @@ export function makeTeam(
     },
     practiceSquad: [],
     stadiumType: 'outdoor',
+    franchiseIdentity: createDefaultFranchiseIdentity({ city: id.toUpperCase(), stadiumType: 'outdoor' }),
     specialTeams: {
       kickReturner: null,
       puntReturner: null,
@@ -267,6 +268,7 @@ export function makeLeagueState(
     records: createEmptyRecordBook(),
     awardsHistory: [],
     hallOfFame: [],
+    allDecadeTeams: [],
     powerRankings: [],
     franchiseHistory: [],
     playerArchive: [],
@@ -289,6 +291,8 @@ export function makeLeagueState(
     weekSummaries: [],
     playoffBracket: null,
     offseasonState: null,
+    expansionDraftState: undefined,
+    stadiumDealOffers: [],
     leagueNews: [],
     socialFeed: [],
     activeProposals: [],

@@ -16,6 +16,7 @@ import type {
   GamePlan,
   GameState,
   OpponentReport,
+  RelocationDestination,
   SeasonPhase,
   StaffCandidate,
   StaffRole,
@@ -30,6 +31,7 @@ import {
   addToWatchlist,
   addToPracticeSquad as addToPracticeSquadEngine,
   activateFromIR as activateFromIREngine,
+  acceptStadiumDeal as acceptStadiumDealEngine,
   advanceTutorial as advanceTutorialEngine,
   applyDraftTradeOffer,
   applySchemeChange,
@@ -41,6 +43,7 @@ import {
   completeTutorialAction as completeTutorialActionEngine,
   cutPlayerToWaivers as cutPlayerToWaiversEngine,
   createTradeProposal as createTradeProposalEngine,
+  finalizeExpansionDraft as finalizeExpansionDraftEngine,
   dismissTutorial as dismissTutorialEngine,
   elevateFromPracticeSquad as elevateFromPracticeSquadEngine,
   evaluateExtension,
@@ -52,11 +55,15 @@ import {
   hireStaffCandidate,
   hireScout as hireScoutEngine,
   initializeOffseasonState,
+  getRelocationDestinations,
+  makeExpansionPick as makeExpansionPickEngine,
   makePlayerPromise as makePlayerPromiseEngine,
   mulberry32,
   placeOnIR as placeOnIREngine,
   postJune1Cut,
+  protectPlayers as protectExpansionPlayersEngine,
   refreshStoredFATargetBoard,
+  relocateTeam as relocateTeamEngine,
   removeFromPracticeSquad as removeFromPracticeSquadEngine,
   removeFromWatchlist,
   restructureContract, backloadContract,
@@ -84,6 +91,7 @@ import {
   submitProposal as submitTradeProposalEngine,
   acceptTradeOffer as acceptTradeOfferEngine,
   rejectTradeOffer as rejectTradeOfferEngine,
+  upgradeStadium as upgradeStadiumEngine,
   makeDraftPick as makeDraftPickEngine,
   resetGamePlan as resetGamePlanEngine,
   setGamePlan as setGamePlanEngine,
@@ -140,6 +148,11 @@ interface GameActions {
   submitFreeAgentBid: (playerId: string, offer: ContractOffer) => Promise<void>;
   toggleFATargetWatchlist: (playerId: string) => Promise<void>;
   refreshFATargetBoard: () => Promise<void>;
+  upgradeStadium: () => Promise<void>;
+  acceptNamingRights: (dealIndex: number) => Promise<void>;
+  relocateTeam: (destinationId: string) => Promise<void>;
+  protectExpansionPlayers: (playerIds: string[]) => Promise<void>;
+  finalizeExpansionDraft: () => Promise<void>;
   runScoutingAction: (prospectId: string, action: 'film' | 'combine' | 'interview') => Promise<void>;
   runProDay: (prospectId: string) => Promise<void>;
   runPrivateWorkout: (prospectId: string) => Promise<void>;
@@ -286,6 +299,21 @@ export const useGameStore = create<GameStore>()(
       if (typeof window === 'undefined') return;
       window.history.pushState({}, '', path);
       window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+    const adjustFranchiseCap = (team: Team, amount: number) => {
+      team.capSpace = Math.round((team.capSpace + amount) * 10) / 10;
+      team.capUsed = Math.round(Math.max(0, team.capUsed - amount) * 10) / 10;
+    };
+    const resolveRelocationDestination = (team: Team, destinationId: string): RelocationDestination | null =>
+      getRelocationDestinations(team.franchiseIdentity, team.city)
+        .find((destination) => destination.abbr === destinationId || destination.city === destinationId) ?? null;
+    const completeExpansionPreview = (game: GameState) => {
+      let state = game.expansionDraftState;
+      while (state && state.phase !== 'complete' && state.picksRemaining > 0) {
+        state = makeExpansionPickEngine(state, '');
+      }
+      game.expansionDraftState = state;
+      return state;
     };
     const deadlineResolvedEvent = (game: GameState): GameEvent => ({
       id: `trade-deadline-resolved-${game.year}-${game.week}`,
@@ -506,6 +534,12 @@ export const useGameStore = create<GameStore>()(
           return null;
         }
 
+        if (nextGame.expansionDraftState) {
+          await commitGame(nextGame);
+          navigateTo('/expansion-draft');
+          return null;
+        }
+
         const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
 
         if (userTeam) {
@@ -628,6 +662,81 @@ export const useGameStore = create<GameStore>()(
           .filter((player): player is NonNullable<typeof player> => Boolean(player));
         refreshStoredFATargetBoard(nextGame, userTeam, freeAgents, intelRng(nextGame, `fa-board:${userTeam.id}`));
         await commitGame(nextGame);
+      },
+
+      upgradeStadium: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam) return;
+        const result = upgradeStadiumEngine(userTeam.franchiseIdentity, userTeam);
+        if (!result) return;
+        userTeam.franchiseIdentity = result.identity;
+        adjustFranchiseCap(userTeam, -result.cost);
+        await commitGame(nextGame);
+      },
+
+      acceptNamingRights: async (dealIndex) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        const deal = nextGame.stadiumDealOffers[dealIndex];
+        if (!userTeam || !deal) return;
+        userTeam.franchiseIdentity = acceptStadiumDealEngine(userTeam.franchiseIdentity, deal);
+        nextGame.stadiumDealOffers = [];
+        await commitGame(nextGame);
+      },
+
+      relocateTeam: async (destinationId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam) return;
+        const destination = resolveRelocationDestination(userTeam, destinationId);
+        if (!destination) return;
+        const relocated = relocateTeamEngine(
+          userTeam,
+          userTeam.franchiseIdentity,
+          destination,
+          nextGame.year,
+          mulberry32(buildIntelSeed(nextGame, `relocate:${destination.abbr}`)),
+        );
+        adjustFranchiseCap(relocated.team, -destination.cost);
+        nextGame.teams[userTeam.id] = relocated.team;
+        for (const player of relocated.team.roster) {
+          nextGame.players[player.id] = player;
+        }
+        await commitGame(nextGame);
+        navigateTo('/franchise');
+      },
+
+      protectExpansionPlayers: async (playerIds) => {
+        const current = get().game;
+        if (!current?.expansionDraftState) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam || !nextGame.expansionDraftState) return;
+        nextGame.expansionDraftState = protectExpansionPlayersEngine(nextGame.expansionDraftState, userTeam.id, playerIds);
+        completeExpansionPreview(nextGame);
+        await commitGame(nextGame);
+      },
+
+      finalizeExpansionDraft: async () => {
+        const current = get().game;
+        if (!current?.expansionDraftState) return;
+        const nextGame = cloneForMutation(current);
+        const previewState = completeExpansionPreview(nextGame);
+        if (!previewState) return;
+        const finalized = finalizeExpansionDraftEngine(
+          nextGame,
+          previewState,
+          mulberry32(buildIntelSeed(nextGame, `expansion:${previewState.expansionTeam.abbr}`)),
+        );
+        await commitGame(finalized);
+        navigateTo('/franchise');
       },
 
       runScoutingAction: async (prospectId, action) => {

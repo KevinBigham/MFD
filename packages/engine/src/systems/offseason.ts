@@ -33,11 +33,22 @@ import { generateSeasonReport } from './season-report';
 import { buildSpecialTeamsState } from './special-teams';
 import { appendToSocialFeed, generateTransactionPosts } from './social-feed';
 import { generateTradeOffers } from './trade-market';
+import {
+  createDefaultFranchiseIdentity,
+  generateStadiumDeals,
+  getFanbaseEffect,
+  tickStadiumDeal,
+  updateAttendance,
+  updateFanbase,
+  updatePrestige,
+} from './franchise-identity';
+import { generateAllDecadeTeam, shouldGenerateAllDecadeTeam } from './franchise-legends';
 import type {
   AwardResult,
   ContractOffer,
   DraftOrderEntry,
   EngineOutput,
+  FranchiseHistoryEntry,
   FreeAgencyBid,
   GameState,
   OffseasonState,
@@ -143,6 +154,15 @@ function buildDraftOrder(game: GameState): DraftOrderEntry[] {
 function updateCap(team: Team, delta: number): void {
   team.capUsed = Math.round((team.capUsed + delta) * 10) / 10;
   team.capSpace = Math.round((team.capSpace - delta) * 10) / 10;
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+function adjustCapSpace(team: Team, amount: number): void {
+  team.capSpace = roundMoney(team.capSpace + amount);
+  team.capUsed = roundMoney(Math.max(0, team.capUsed - amount));
 }
 
 function applyOfferToPlayer(game: GameState, team: Team, player: Player, offer: ContractOffer): void {
@@ -316,6 +336,7 @@ function finalizeUnsignedExpiringPlayers(game: GameState, offseason: OffseasonSt
 
 function createAiBid(player: Player, ask: ContractOffer, team: Team, round: number, difficulty: GameState['difficulty']): FreeAgencyBid | null {
   if (team.capSpace < ask.salary) return null;
+  const identity = team.franchiseIdentity ?? createDefaultFranchiseIdentity(team);
   const positionNeed = team.roster
     .filter((candidate) => candidate.pos === player.pos)
     .reduce((lowest, candidate) => Math.min(lowest, candidate.ovr), 99);
@@ -324,6 +345,7 @@ function createAiBid(player: Player, ask: ContractOffer, team: Team, round: numb
   const salary = Math.round((ask.salary * (0.88 + needBoost / 100) * difficultyMult) * 10) / 10;
   const signingBonus = Math.round((ask.signingBonus * (0.8 + needBoost / 120)) * 10) / 10;
   const guaranteed = Math.round((ask.guaranteed * (0.82 + needBoost / 150)) * 10) / 10;
+  const franchiseAppeal = 1 + getFanbaseEffect(identity).faInterestBonus;
 
   return {
     playerId: player.id,
@@ -333,7 +355,7 @@ function createAiBid(player: Player, ask: ContractOffer, team: Team, round: numb
     signingBonus,
     guaranteed,
     round,
-    score: scoreOffer({ years: ask.years, salary, signingBonus, guaranteed }, ask),
+    score: scoreOffer({ years: ask.years, salary, signingBonus, guaranteed }, ask) * franchiseAppeal,
     status: 'pending',
   };
 }
@@ -403,6 +425,57 @@ function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState): voi
 
 function currentSeasonYear(game: GameState): number {
   return game.year - 1;
+}
+
+function findSeasonHistoryEntry(game: GameState, seasonYear: number, teamId: string): FranchiseHistoryEntry | null {
+  return game.franchiseHistory.find((entry) => entry.year === seasonYear && entry.teamId === teamId) ?? null;
+}
+
+function isPlayoffAppearance(playoffFinish: string): boolean {
+  return playoffFinish !== 'missed_playoffs' && playoffFinish !== 'regular_season';
+}
+
+function payStadiumNamingRights(team: Team): void {
+  const identity = team.franchiseIdentity ?? createDefaultFranchiseIdentity(team);
+  if (!identity.stadiumDeal) return;
+  const revenueMultiplier = getFanbaseEffect(identity).revenueMultiplier;
+  adjustCapSpace(team, roundMoney(identity.stadiumDeal.revenuePerYear * revenueMultiplier));
+}
+
+function refreshFranchiseIdentity(
+  game: GameState,
+  seasonYear: number,
+  hofClass: NonNullable<GameState['hallOfFame']>,
+): void {
+  for (const team of Object.values(game.teams)) {
+    const historyEntry = findSeasonHistoryEntry(game, seasonYear, team.id);
+    if (!historyEntry) continue;
+    const currentIdentity = team.franchiseIdentity ?? createDefaultFranchiseIdentity(team);
+
+    payStadiumNamingRights(team);
+
+    let identity = updateFanbase(currentIdentity, team, {
+      wins: team.wins,
+      losses: team.losses,
+      playoffFinish: historyEntry.playoffFinish,
+    });
+    identity = updatePrestige(identity, team, {
+      championships: historyEntry.playoffFinish === 'champion' ? 1 : 0,
+      playoffAppearances: isPlayoffAppearance(historyEntry.playoffFinish) ? 1 : 0,
+      hallOfFamers: hofClass.filter((entry) => entry.teams.includes(team.id) && entry.inductionYear === seasonYear).length,
+    });
+    identity = tickStadiumDeal(identity, team.city);
+    identity = {
+      ...identity,
+      attendance: updateAttendance(identity, team),
+    };
+
+    team.franchiseIdentity = identity;
+    historyEntry.fanbase = identity.fanbase;
+    historyEntry.prestige = identity.prestige;
+    historyEntry.attendance = identity.attendance;
+    historyEntry.stadiumName = identity.stadiumName;
+  }
 }
 
 function markCompletedSeason(game: GameState, seasonYear: number): void {
@@ -573,6 +646,7 @@ export function submitFreeAgentBid(game: GameState, playerId: string, offer: Con
   }
   const userTeam = findUserTeam(nextState);
   if (nextState.offseasonState && userTeam) {
+    const identity = userTeam.franchiseIdentity ?? createDefaultFranchiseIdentity(userTeam);
     const bids = nextState.offseasonState.freeAgencyBids[playerId] ?? [];
     const currentRound = nextState.offseasonState.round;
     const filtered = bids.filter((bid) => !(bid.teamId === userTeam.id && bid.round === currentRound));
@@ -581,7 +655,7 @@ export function submitFreeAgentBid(game: GameState, playerId: string, offer: Con
       playerId,
       teamId: userTeam.id,
       round: currentRound,
-      score: scoreOffer(offer, buildAskingPrice(nextState.players[playerId]!)),
+      score: scoreOffer(offer, buildAskingPrice(nextState.players[playerId]!)) * (1 + getFanbaseEffect(identity).faInterestBonus),
       status: 'pending',
     });
     nextState.offseasonState.freeAgencyBids[playerId] = filtered;
@@ -669,6 +743,14 @@ export function advanceOffseason(game: GameState): void {
         playerIds: [inductee.playerId],
         teamIds: inductee.teams,
       });
+    }
+  }
+  refreshFranchiseIdentity(game, seasonYear, hofClass);
+  const userTeam = findUserTeam(game);
+  game.stadiumDealOffers = userTeam ? generateStadiumDeals(RNG.ai) : [];
+  if (shouldGenerateAllDecadeTeam(game)) {
+    for (const team of Object.values(game.teams)) {
+      game.allDecadeTeams.push(generateAllDecadeTeam(game, team.id));
     }
   }
   decayLeagueRivalries(game);

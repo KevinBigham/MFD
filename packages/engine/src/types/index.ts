@@ -176,6 +176,80 @@ export interface Incentive {
 
 // ── Teams ───────────────────────────────────────────────
 
+export type MarketSize = 'small' | 'medium' | 'large' | 'mega';
+
+export interface StadiumDeal {
+  sponsorName: string;
+  revenuePerYear: number;
+  yearsTotal: number;
+  yearsRemaining: number;
+  prestigeBonus: number;
+}
+
+export interface RelocationRecord {
+  fromCity: string;
+  fromName: string;
+  toCity: string;
+  toName: string;
+  year: number;
+}
+
+export interface FranchiseIdentity {
+  fanbase: number;
+  prestige: number;
+  marketSize: MarketSize;
+  marketModifier: number;
+  stadiumName: string;
+  stadiumDeal: StadiumDeal | null;
+  stadiumLevel: 1 | 2 | 3;
+  attendance: number;
+  relocationHistory: RelocationRecord[];
+}
+
+export interface RelocationDestination {
+  city: string;
+  teamName: string;
+  abbr: string;
+  marketSize: MarketSize;
+  marketModifier: number;
+  fanbaseStart: number;
+  prestigeBonus: number;
+  cost: number;
+  stadiumType: 'dome' | 'outdoor';
+  description: string;
+}
+
+export interface StadiumSponsor {
+  name: string;
+  baseRevenue: number;
+  baseDuration: number;
+  prestigeBonus: number;
+}
+
+export interface ExpansionCity {
+  city: string;
+  name: string;
+  abbr: string;
+  marketSize: MarketSize;
+  marketModifier: number;
+  stadiumType: 'dome' | 'outdoor';
+}
+
+export interface ExpansionDraftState {
+  expansionTeam: {
+    city: string;
+    name: string;
+    abbr: string;
+    conference: 'AFC' | 'NFC';
+    division: string;
+  };
+  protectedPlayers: Record<string, string[]>;
+  availablePlayers: Player[];
+  selectedPlayers: Player[];
+  picksRemaining: number;
+  phase: 'protection' | 'drafting' | 'complete';
+}
+
 export interface OwnerState {
   archetypeId: OwnerArchetypeId;
   label: string;
@@ -306,6 +380,7 @@ export interface Team {
   facilityState: FacilityState;
   practiceSquad: PracticeSquadPlayer[];
   stadiumType: 'dome' | 'outdoor';
+  franchiseIdentity: FranchiseIdentity;
   specialTeams?: SpecialTeamsState;
 }
 
@@ -1810,6 +1885,61 @@ export interface HallOfFameEntry {
   teams: string[];
 }
 
+export interface AllDecadeTeamEntry {
+  playerId: string;
+  playerName: string;
+  pos: Position;
+  peakOvr: number;
+  seasonsWithTeam: number;
+  highlights: string[];
+}
+
+export interface AllDecadeTeam {
+  id: string;
+  decade: string;
+  startYear: number;
+  endYear: number;
+  teamId: string;
+  roster: AllDecadeTeamEntry[];
+  headline: string;
+}
+
+export interface FranchiseLegend {
+  playerId: string;
+  playerName: string;
+  pos: Position;
+  legacyScore: number;
+  tenureYears: number;
+  peakOvr: number;
+  championships: number;
+  mvps: number;
+  allPros: number;
+  proBowls: number;
+  hallOfFame: boolean;
+  careerHighlights: string[];
+}
+
+export interface FranchiseEra {
+  name: string;
+  startYear: number;
+  endYear: number | null;
+  description: string;
+}
+
+export interface FranchiseDashboard {
+  identity: FranchiseIdentity;
+  allTimeRecord: { wins: number; losses: number; ties: number; winPct: number };
+  championships: number;
+  playoffAppearances: number;
+  activeStreaks: { winningSeasons: number; playoffStreak: number; losingSeasons: number };
+  topLegends: FranchiseLegend[];
+  currentDecadeTeam: AllDecadeTeam | null;
+  stadiumDealStatus: 'active' | 'expiring' | 'none';
+  fanbaseTrend: number[];
+  prestigeTrend: number[];
+  currentEra: { name: string; startYear: number; description: string };
+}
+
 export interface ReportSection {
   title: string;
   grade: string;
@@ -1942,6 +2072,10 @@ export interface FranchiseHistoryEntry {
   majorEvents: string[];
   awardsWon: string[];
   recordsBroken: string[];
+  fanbase?: number;
+  prestige?: number;
+  attendance?: number;
+  stadiumName?: string;
 }
 
 export type DynastyRecord = RecordEntry;
@@ -2007,6 +2141,7 @@ export interface GameState {
   records: RecordBook;
   awardsHistory: AwardsHistoryEntry[];
   hallOfFame: HallOfFameEntry[];
+  allDecadeTeams: AllDecadeTeam[];
   powerRankings: PowerRanking[];
   franchiseHistory: FranchiseHistoryEntry[];
   playerArchive: PlayerArchiveEntry[];
@@ -2023,6 +2158,8 @@ export interface GameState {
   weekSummaries: WeeklySummary[];
   playoffBracket: PlayoffBracket | null;
   offseasonState: OffseasonState | null;
+  expansionDraftState?: ExpansionDraftState;
+  stadiumDealOffers: StadiumDeal[];
   leagueNews: NewsItem[];
   socialFeed: SocialPost[];
   activeProposals: TradeProposal[];

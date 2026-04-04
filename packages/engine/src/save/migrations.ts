@@ -872,3 +872,30 @@ registerMigration(16, (state) => ({
   tradeDeadlineState: state['tradeDeadlineState'],
   scenarioState: state['scenarioState'],
 }));
+
+registerMigration(17, (state) => {
+  const teams = (state['teams'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+
+  for (const team of Object.values(teams)) {
+    if (team['franchiseIdentity']) continue;
+    team['franchiseIdentity'] = {
+      fanbase: 55,
+      prestige: 50,
+      marketSize: 'medium',
+      marketModifier: 1,
+      stadiumName: `${String(team['city'] ?? 'City')} Stadium`,
+      stadiumDeal: null,
+      stadiumLevel: 1,
+      attendance: 70,
+      relocationHistory: [],
+    };
+  }
+
+  return {
+    ...state,
+    teams,
+    allDecadeTeams: Array.isArray(state['allDecadeTeams']) ? state['allDecadeTeams'] : [],
+    expansionDraftState: state['expansionDraftState'],
+    stadiumDealOffers: Array.isArray(state['stadiumDealOffers']) ? state['stadiumDealOffers'] : [],
+  };
+});

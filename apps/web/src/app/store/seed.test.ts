@@ -18,4 +18,19 @@ describe('seed game state', () => {
       { teamId: userTeam.id, firstYear: game.year, lastYear: game.year },
     ]);
   });
+
+  it('seeds sprint 18 franchise defaults for every team', () => {
+    const game = createSeedGameState(7, 0, 'pro');
+    const teams = Object.values(game.teams);
+
+    expect(game.allDecadeTeams).toEqual([]);
+    expect(game.stadiumDealOffers).toEqual([]);
+    expect(game.expansionDraftState).toBeUndefined();
+    expect(teams.every((team) => team.franchiseIdentity)).toBe(true);
+
+    const userTeam = teams.find((team) => team.isUser)!;
+    expect(userTeam.franchiseIdentity.stadiumName).toContain(userTeam.city);
+    expect(userTeam.franchiseIdentity.stadiumLevel).toBe(1);
+    expect(userTeam.franchiseIdentity.relocationHistory).toEqual([]);
+  });
 });

@@ -215,6 +215,29 @@ export {
   calculateReturnYards,
   simulateSpecialTeams,
 } from './systems/special-teams';
+export {
+  RELOCATION_DESTINATIONS,
+  STADIUM_SPONSORS,
+  STADIUM_UPGRADE_COSTS,
+  STADIUM_REVENUE_BONUS,
+  STADIUM_PRESTIGE_BONUS,
+  STADIUM_CROWD_BONUS,
+  createDefaultFranchiseIdentity,
+  initializeFranchiseIdentity,
+  updateFanbase,
+  updatePrestige,
+  updateAttendance,
+  getStadiumHomeFieldBonus,
+  generateStadiumDeals,
+  acceptStadiumDeal,
+  tickStadiumDeal,
+  upgradeStadium,
+  canRelocate,
+  getRelocationDestinations,
+  relocateTeam,
+  getFanbaseEffect,
+} from './systems/franchise-identity';
+export { buildSeasonSchedule } from './systems/season-schedule';
 export { generateSeasonReport } from './systems/season-report';
 export {
   applyGamePlan,
@@ -495,6 +518,30 @@ export {
   evaluateTradeOffer,
 } from './systems/trade-value';
 export { advanceFranchiseWeek } from './systems/franchise-week';
+export {
+  EXPANSION_CITIES,
+  EXPANSION_CHANCE_PER_YEAR,
+  EXPANSION_MIN_YEAR,
+  PROTECT_LIMIT,
+  finalizeExpansionDraft,
+  getExpansionTeamNeeds,
+  initializeExpansionDraft,
+  makeExpansionPick,
+  protectPlayers,
+  shouldTriggerExpansion,
+} from './systems/expansion-draft';
+export {
+  buildFranchiseDashboard,
+  detectFranchiseEras,
+} from './systems/franchise-dashboard';
+export {
+  calculateLegacyScore,
+  generateAllDecadeTeam,
+  generateLegendHighlights,
+  getDecadeNarrative,
+  getFranchiseLegends,
+  shouldGenerateAllDecadeTeam,
+} from './systems/franchise-legends';
 
 // Systems — Coaching (Phase 2)
 export {

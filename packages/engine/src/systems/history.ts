@@ -6,6 +6,7 @@ import type {
   PlayerArchiveEntry,
   PlayoffRound,
 } from '../types';
+import { createDefaultFranchiseIdentity } from './franchise-identity';
 
 const PLAYOFF_FINISH_LABELS: Record<PlayoffRound, string> = {
   wild_card: 'wild_card_exit',
@@ -139,6 +140,7 @@ export function archiveSeasonHistory(game: GameState): FranchiseHistoryEntry[] {
   const seasonEntries = Object.values(game.teams)
     .sort((a, b) => a.id.localeCompare(b.id))
     .map((team) => {
+      const identity = team.franchiseIdentity ?? createDefaultFranchiseIdentity(team);
       const playoffFinish = resolvePlayoffFinish(game, team.id);
       const majorEvents: string[] = [];
       if (playoffFinish === 'champion') {
@@ -158,6 +160,10 @@ export function archiveSeasonHistory(game: GameState): FranchiseHistoryEntry[] {
         majorEvents,
         awardsWon: [],
         recordsBroken: [],
+        fanbase: identity.fanbase,
+        prestige: identity.prestige,
+        attendance: identity.attendance,
+        stadiumName: identity.stadiumName,
       } satisfies FranchiseHistoryEntry;
     });
 
