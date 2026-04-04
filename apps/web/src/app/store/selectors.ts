@@ -3,6 +3,7 @@ import type {
   AchievementProgress,
   AgentProfile,
   AwardsHistoryEntry,
+  BroadcastOutput,
   CapProjectionYear,
   Ceremony,
   CoachingMarketState,
@@ -45,14 +46,18 @@ import type {
   RecordEntry,
   RivalryGameContext,
   ScoutingDepartment,
+  ScenarioDefinition,
+  ScenarioState,
   SeasonPhase,
   SeasonReport,
+  SocialPost,
   SpecialTeamsState,
   SchemeInstallState,
   StoryArc,
   Team,
   TeamNeedsComparisonEntry,
   TeamNeedsReport,
+  TradeDeadlineState,
   TradeSuggestion,
   TradeProposal,
   TransactionLogEntry,
@@ -83,8 +88,10 @@ import {
   calculateAdvancedStats,
   createDefaultDashboardState,
   createDefaultSpecialTeamsState,
+  generateBroadcast,
   generateOpponentScouting,
   getAchievementProgress,
+  getAvailableScenarios,
   getAnalyticsStatLeaders,
   getFullSchedule,
   getPlayerComparables,
@@ -199,6 +206,10 @@ const EMPTY_FA_TARGET_BOARD: FATargetBoard = {
 const EMPTY_CAP_PROJECTION: CapProjectionYear[] = [];
 const EMPTY_CONTRACT_EXTENSIONS: ContractExtensionRecord[] = [];
 const EMPTY_WAR_ROOM_STATE: WarRoomState | null = null;
+const EMPTY_SOCIAL_FEED: SocialPost[] = [];
+const EMPTY_AVAILABLE_SCENARIOS: ScenarioDefinition[] = getAvailableScenarios();
+const EMPTY_TRADE_DEADLINE_STATE: TradeDeadlineState | null = null;
+const EMPTY_SCENARIO_STATE: ScenarioState | null = null;
 const EMPTY_COACHING_MARKET: CoachingMarketState = {
   teamId: null,
   updatedYear: 0,
@@ -264,6 +275,13 @@ export interface PlayerProfileBundle {
   projection: PlayerProjection;
 }
 
+export interface BroadcastViewModel {
+  gameResult: GameResult;
+  broadcast: BroadcastOutput;
+  homeTeam: Team;
+  awayTeam: Team;
+}
+
 function buildIntelSeed(game: GameState, salt: string): number {
   const saltHash = [...salt].reduce((hash, char) => ((hash * 33) ^ char.charCodeAt(0)) >>> 0, 5381);
   return (game.seed ^ (game.year * 131) ^ (game.week * 977) ^ saltHash) >>> 0;
@@ -271,6 +289,51 @@ function buildIntelSeed(game: GameState, salt: string): number {
 
 function intelRng(game: GameState, salt: string): () => number {
   return mulberry32(buildIntelSeed(game, salt));
+}
+
+function hashString(value: string): number {
+  return [...value].reduce((hash, char) => ((hash * 33) ^ char.charCodeAt(0)) >>> 0, 5381);
+}
+
+function buildBroadcastSeed(game: GameState, gameResult: GameResult): number {
+  return (
+    game.seed
+    ^ (gameResult.year * 131)
+    ^ (gameResult.week * 977)
+    ^ hashString(gameResult.id)
+    ^ hashString(`${gameResult.homeTeamId}:${gameResult.awayTeamId}`)
+  ) >>> 0;
+}
+
+function rebuildBroadcast(game: GameState, gameResult: GameResult): BroadcastViewModel | null {
+  const homeTeam = game.teams[gameResult.homeTeamId];
+  const awayTeam = game.teams[gameResult.awayTeamId];
+  if (!homeTeam || !awayTeam) return null;
+
+  return {
+    gameResult,
+    broadcast: gameResult.broadcast ?? generateBroadcast(gameResult, homeTeam, awayTeam, mulberry32(buildBroadcastSeed(game, gameResult))),
+    homeTeam,
+    awayTeam,
+  };
+}
+
+function findGameResultById(game: GameState, gameId: string): GameResult | null {
+  for (const week of game.schedule) {
+    for (const matchup of week.games) {
+      if (matchup.result?.id === gameId) {
+        return matchup.result;
+      }
+    }
+  }
+
+  for (const matchup of game.playoffBracket?.matchups ?? []) {
+    if (matchup.result?.id === gameId) {
+      return matchup.result;
+    }
+  }
+
+  return null;
 }
 
 function teamNeedsReportFor(game: GameState, team: Team): TeamNeedsReport {
@@ -375,6 +438,10 @@ export const selectOffFieldEvents = (state: GameStoreState): OffFieldEvent[] => 
 export const selectRecentPressConferences = (state: GameStoreState): PressConference[] => state.game?.recentPressConferences ?? EMPTY_PRESS_CONFERENCES;
 export const selectLeagueRivalries = (state: GameStoreState): LeagueRivalry[] => state.game?.leagueRivalries ?? EMPTY_LEAGUE_RIVALRIES;
 export const selectGameDayState = (state: GameStoreState): GameDayState | null => state.game?.gameDayState ?? null;
+export const selectSocialFeed = (state: GameStoreState): SocialPost[] => state.game?.socialFeed ?? EMPTY_SOCIAL_FEED;
+export const selectTradeDeadlineState = (state: GameStoreState): TradeDeadlineState | null => state.game?.tradeDeadlineState ?? EMPTY_TRADE_DEADLINE_STATE;
+export const selectScenarioState = (state: GameStoreState): ScenarioState | null => state.game?.scenarioState ?? EMPTY_SCENARIO_STATE;
+export const selectAvailableScenarios = (_state: GameStoreState): ScenarioDefinition[] => EMPTY_AVAILABLE_SCENARIOS;
 export const selectConditionalPicks = (state: GameStoreState): ConditionalPick[] => state.game?.conditionalPicks ?? EMPTY_CONDITIONAL_PICKS;
 export const selectWaiverOrder = (state: GameStoreState): string[] => state.game?.waiverOrder ?? EMPTY_IDS;
 export const selectWaiverWire = (state: GameStoreState): WaiverWireEntry[] => state.game?.waiverWire ?? EMPTY_WAIVER_WIRE;
@@ -668,6 +735,13 @@ export const selectLatestGameResult = (state: GameStoreState): GameResult | null
   }
   return null;
 };
+export const selectBroadcastByGameId = (gameId: string | null) => (state: GameStoreState): BroadcastViewModel | null => {
+  if (!state.game) return null;
+  const gameResult = gameId ? findGameResultById(state.game, gameId) : selectLatestGameResult(state);
+  return gameResult ? rebuildBroadcast(state.game, gameResult) : null;
+};
+export const selectLatestBroadcast = (state: GameStoreState): BroadcastViewModel | null =>
+  selectBroadcastByGameId(null)(state);
 export const selectCurrentOpponentIntel = (state: GameStoreState): OpponentIntel | null => {
   if (!state.game) return null;
   const team = selectUserTeam(state);

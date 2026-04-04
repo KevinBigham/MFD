@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DraftProspect } from '@mfd/engine';
-import { initializeOffseasonState } from '@mfd/engine';
+import { initializeDeadline, initializeOffseasonState, mulberry32 } from '@mfd/engine';
 import { createSeedGameState } from './seed';
 import { selectLatestGameDayPackage, useGameStore } from './game-store';
 import { autosaveDynasty } from './persistence';
@@ -45,7 +45,15 @@ describe('game store offseason actions', () => {
       ...state,
       autosaveEnabled: true,
       simSpeed: 'normal',
+      broadcastGameId: null,
     }));
+    vi.stubGlobal('PopStateEvent', class PopStateEventMock {
+      type: string;
+
+      constructor(type: string) {
+        this.type = type;
+      }
+    });
     vi.clearAllMocks();
   });
 
@@ -59,7 +67,9 @@ describe('game store offseason actions', () => {
       ...state,
       autosaveEnabled: true,
       simSpeed: 'normal',
+      broadcastGameId: null,
     }));
+    vi.unstubAllGlobals();
   });
 
   it('stores a re-sign offer and autosaves the updated game', async () => {
@@ -348,5 +358,104 @@ describe('game store offseason actions', () => {
     expect(nextGame.teams[userTeam.id]!.facilityState.budget).toBeLessThan(startingBudget);
     expect(nextGame.teams[userTeam.id]!.medicalStaff?.id).toBe('med-store');
     expect(autosaveDynasty).toHaveBeenCalledTimes(2);
+  });
+
+  it('stores the selected broadcast game and navigates to the broadcast route', () => {
+    const pushState = vi.fn();
+    const dispatchEvent = vi.fn();
+    vi.stubGlobal('window', {
+      history: { pushState },
+      dispatchEvent,
+    });
+
+    useGameStore.getState().actions.watchBroadcast('game-42');
+
+    expect(useUiStore.getState().broadcastGameId).toBe('game-42');
+    expect(pushState).toHaveBeenCalledWith({}, '', '/broadcast');
+    expect(dispatchEvent).toHaveBeenCalled();
+  });
+
+  it('interrupts week 9 with the trade deadline and routes to the countdown screen', async () => {
+    const pushState = vi.fn();
+    const dispatchEvent = vi.fn();
+    vi.stubGlobal('window', {
+      history: { pushState },
+      dispatchEvent,
+    });
+
+    const game = createSeedGameState(808, 0, 'pro');
+    game.phase = 'regular_season';
+    game.week = 9;
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    userTeam.roster[0]!.tradeBlock = true;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.advanceWeek();
+
+    expect(useGameStore.getState().game?.tradeDeadlineState).toBeDefined();
+    expect(useGameStore.getState().game?.week).toBe(9);
+    expect(pushState).toHaveBeenCalledWith({}, '', '/trade-deadline');
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('finalizes the trade deadline and resumes the same week advance', async () => {
+    const pushState = vi.fn();
+    const dispatchEvent = vi.fn();
+    vi.stubGlobal('window', {
+      history: { pushState },
+      dispatchEvent,
+    });
+
+    const game = createSeedGameState(909, 0, 'pro');
+    game.phase = 'regular_season';
+    game.week = 9;
+    game.tradeDeadlineState = initializeDeadline(game, mulberry32(17));
+    game.tradeDeadlineState.minutesRemaining = 0;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.finalizeDeadline();
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.tradeDeadlineState).toBeUndefined();
+    expect(nextGame.week).toBe(10);
+    expect(pushState).toHaveBeenCalledWith({}, '', '/game-day');
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts a fresh scenario challenge from the current user franchise identity', async () => {
+    const pushState = vi.fn();
+    const dispatchEvent = vi.fn();
+    vi.stubGlobal('window', {
+      history: { pushState },
+      dispatchEvent,
+    });
+
+    const game = createSeedGameState(1001, 5, 'legend');
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    const previousUser = Object.values(game.teams).find((team) => team.isUser)!;
+    await useGameStore.getState().actions.startScenarioChallenge('the_savant');
+
+    const nextGame = useGameStore.getState().game!;
+    const nextUser = Object.values(nextGame.teams).find((team) => team.isUser)!;
+    expect(nextGame.scenarioState?.activeScenario?.id).toBe('the_savant');
+    expect(nextGame.scenarioState?.activeScenario?.constraints.blockTrades).toBe(true);
+    expect(nextUser.city).toBe(previousUser.city);
+    expect(nextUser.name).toBe(previousUser.name);
+    expect(pushState).toHaveBeenCalledWith({}, '', '/');
   });
 });

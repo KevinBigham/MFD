@@ -58,6 +58,7 @@ vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: typeof mockState) => unknown) => selector(mockState),
   selectActiveProposals: (state: typeof mockState) => state.proposals,
   selectPhase: (state: typeof mockState) => state.phase,
+  selectTradeDeadlineState: () => null,
   selectTradeOffers: (state: typeof mockState) => state.offers,
   selectTradeSuggestions: (state: typeof mockState) => state.tradeSuggestions,
   selectUserTeam: (state: typeof mockState) => state.userTeam,

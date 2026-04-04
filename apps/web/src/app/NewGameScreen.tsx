@@ -2,9 +2,9 @@
  * New Game screen — team selection + difficulty → creates seed state.
  */
 import { useEffect, useState } from 'react';
-import { MfdPanel, MfdBadge } from '@mfd/design-system/components';
+import { MfdPanel, PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import { Gamepad2, Shield, Trophy } from 'lucide-react';
-import type { DifficultyLevel } from '@mfd/engine';
+import { getAvailableScenarios, mulberry32, startScenario, type DifficultyLevel } from '@mfd/engine';
 import { useGameStore } from './store/game-store';
 import { createSeedGameState, getTeamOptions } from './store/seed';
 import { loadLatestAutosaveGame } from './store/persistence';
@@ -23,6 +23,8 @@ const divisions = ['East', 'North', 'South', 'West'];
 export function NewGameScreen() {
   const [selectedTeam, setSelectedTeam] = useState(0);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('pro');
+  const [mode, setMode] = useState<'dynasty' | 'scenario'>('dynasty');
+  const [selectedScenarioId, setSelectedScenarioId] = useState(getAvailableScenarios()[0]?.id ?? 'rebuild');
   const [hasAutosave, setHasAutosave] = useState(false);
   const [loadingAutosave, setLoadingAutosave] = useState(false);
   const newGame = useGameStore((s) => s.actions.newGame);
@@ -44,7 +46,10 @@ export function NewGameScreen() {
 
   const handleStart = async () => {
     const seed = Date.now();
-    const state = createSeedGameState(seed, selectedTeam, difficulty);
+    const baseState = createSeedGameState(seed, selectedTeam, difficulty);
+    const state = mode === 'scenario'
+      ? startScenario(selectedScenarioId, baseState, mulberry32(seed ^ (selectedScenarioId.length * 97)))
+      : baseState;
     await newGame(state);
   };
 
@@ -59,6 +64,7 @@ export function NewGameScreen() {
   };
 
   const selected = teams[selectedTeam]!;
+  const scenarios = getAvailableScenarios();
 
   return (
     <div style={{
@@ -89,8 +95,17 @@ export function NewGameScreen() {
             color: 'var(--mfd-text-dim)',
             margin: '8px 0 0',
           }}>
-            Select your franchise // Choose your difficulty
+            Select your franchise // Choose your difficulty // Pick your mode
           </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <PixelButton accent={mode === 'dynasty' ? 'gold' : 'default'} onClick={() => setMode('dynasty')}>
+            New Dynasty
+          </PixelButton>
+          <PixelButton accent={mode === 'scenario' ? 'cyan' : 'default'} onClick={() => setMode('scenario')}>
+            Scenario Challenge
+          </PixelButton>
         </div>
 
         {/* Team Selection */}
@@ -190,6 +205,51 @@ export function NewGameScreen() {
           </div>
         </MfdPanel>
 
+        {mode === 'scenario' ? (
+          <PixelPanel title="Scenario Challenge" accent="cyan">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {scenarios.map((scenario) => {
+                const selectedScenario = scenario.id === selectedScenarioId;
+                return (
+                  <button
+                    key={scenario.id}
+                    type="button"
+                    onClick={() => setSelectedScenarioId(scenario.id)}
+                    style={{
+                      padding: '12px',
+                      border: `2px solid ${selectedScenario ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
+                      background: selectedScenario ? 'rgba(255, 215, 0, 0.08)' : 'var(--mfd-bg-2)',
+                      color: 'var(--mfd-text)',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '10px', color: 'var(--mfd-gold)' }}>
+                          {scenario.name.toUpperCase()}
+                        </div>
+                        <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', marginTop: '6px' }}>
+                          {scenario.tagline}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <PixelBadge variant={scenario.difficulty === 'rookie' ? 'green' : scenario.difficulty === 'pro' ? 'cyan' : scenario.difficulty === 'all_pro' ? 'gold' : 'red'}>
+                          {scenario.difficulty.toUpperCase()}
+                        </PixelBadge>
+                        <PixelBadge variant="default">{scenario.seasonLimit} seasons</PixelBadge>
+                      </div>
+                    </div>
+                    <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '12px', color: 'var(--mfd-text)', marginTop: '8px', lineHeight: 1.6 }}>
+                      {scenario.description}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </PixelPanel>
+        ) : null}
+
         {/* Start Button */}
         {hasAutosave && (
           <button
@@ -226,7 +286,7 @@ export function NewGameScreen() {
             transition: 'opacity var(--mfd-motion-fast)',
           }}
         >
-          Start Dynasty
+          {mode === 'scenario' ? 'Start Challenge' : 'Start Dynasty'}
         </button>
       </div>
     </div>

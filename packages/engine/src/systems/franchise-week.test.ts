@@ -37,6 +37,64 @@ describe('franchise week simulation', () => {
     expect(activePlayers.some((player) => (player.careerStats.gp ?? 0) >= 52)).toBe(true);
   });
 
+  it('generates broadcast data only for the user team game', () => {
+    const game = makeLeagueState('regular_season', 1);
+
+    const result = advanceFranchiseWeek(game);
+
+    expect(result.nextState.schedule[0]!.games[0]!.result?.broadcast).toBeDefined();
+    expect(result.nextState.schedule[0]!.games[1]!.result?.broadcast).toBeUndefined();
+  });
+
+  it('adds game-day and weekly buzz posts for the user-visible week', () => {
+    const game = makeLeagueState('regular_season', 1);
+
+    const result = advanceFranchiseWeek(game);
+
+    expect(result.nextState.socialFeed.length).toBeGreaterThan(0);
+    expect(result.nextState.socialFeed.some((post) => post.trigger === 'weekly')).toBe(true);
+  });
+
+  it('interrupts week 9 with the trade deadline before any games are simulated', () => {
+    const game = makeLeagueState('regular_season', 9);
+    game.schedule.unshift({
+      week: 9,
+      games: [
+        { homeTeamId: 'afce1', awayTeamId: 'afce2', result: null, flexed: false, primetime: true, broadcastNetwork: 'MFN' },
+      ],
+    });
+    game.teams.afce1.roster[2]!.tradeBlock = true;
+    game.teams.afce1.wins = 7;
+    game.teams.afce1.losses = 1;
+    game.teams.afce2.wins = 2;
+    game.teams.afce2.losses = 6;
+    game.teams.afce2.gmStrategy = 'rebuild';
+    game.teams.afce1.draftPicks = [{ round: 2, pick: 14, originalTeamId: 'afce1', currentTeamId: 'afce1', year: 2026, isCompPick: false }];
+    game.teams.afce2.draftPicks = [{ round: 2, pick: 10, originalTeamId: 'afce2', currentTeamId: 'afce2', year: 2026, isCompPick: false }];
+
+    const result = advanceFranchiseWeek(game);
+
+    expect(result.nextState.tradeDeadlineState).toBeDefined();
+    expect(result.nextState.week).toBe(9);
+    expect(result.nextState.schedule[0]!.games[0]!.result).toBeNull();
+  });
+
+  it('continues the week 9 simulation after the deadline has already been resolved', () => {
+    const game = makeLeagueState('regular_season', 9);
+    game.eventLog.push({
+      id: 'deadline-resolved-9',
+      type: 'trade_deadline_resolved',
+      timestamp: 9,
+      description: 'Deadline already resolved.',
+      data: { year: game.year, week: game.week },
+    });
+
+    const result = advanceFranchiseWeek(game);
+
+    expect(result.nextState.tradeDeadlineState).toBeUndefined();
+    expect(result.nextState.week).toBe(10);
+  });
+
   it('seeds seven playoff teams per conference using standings tiebreakers', () => {
     const game = makeLeagueState('regular_season', 19);
     const records: Record<string, [number, number, number]> = {

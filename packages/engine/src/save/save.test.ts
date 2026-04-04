@@ -83,6 +83,9 @@ describe('SaveStateSchema', () => {
       expect(result.data.teamNeedsCache).toEqual({});
       expect(result.data.warRoomState).toBeNull();
       expect(result.data.contractExtensions).toEqual([]);
+      expect(result.data.socialFeed).toEqual([]);
+      expect(result.data.tradeDeadlineState).toBeUndefined();
+      expect(result.data.scenarioState).toBeUndefined();
     }
   });
 
@@ -907,5 +910,120 @@ describe('migration pipeline', () => {
       offScheme: 'spread',
       defScheme: 'cover_3',
     });
+  });
+
+  it('migrates v16 saves to include prime time state defaults', () => {
+    const migrated = migrate({
+      version: 16,
+      year: 2034,
+      week: 9,
+      phase: 'regular_season',
+      difficulty: 'pro',
+      teams: {
+        t1: {
+          id: 't1',
+          isUser: true,
+          roster: [],
+          txLog: [],
+        },
+      },
+      players: {},
+      schedule: [],
+      freeAgents: [],
+      records: createEmptyRecordBook(),
+      awardsHistory: [],
+      hallOfFame: [],
+      powerRankings: [],
+      franchiseHistory: [],
+      playerArchive: [],
+      playerSeasonHistory: {},
+      frontOffice: {
+        xp: 0,
+        level: 1,
+        achievements: [],
+        perks: [],
+        reputation: { players: 50, media: 50, owner: 50 },
+      },
+      eventLog: [],
+      narrativeState: { activeArcs: [], hooks: [], recentHeadlines: [] },
+      offFieldEvents: [],
+      recentPressConferences: [],
+      coachingHistory: [],
+      leagueRivalries: [],
+      activeEffects: [],
+      gameDayState: { recentPackages: [], latestPackageId: null },
+      weekSummaries: [],
+      playoffBracket: null,
+      offseasonState: null,
+      leagueNews: [],
+      activeProposals: [],
+      faTargetBoard: { teamId: null, watchlist: [], targets: [] },
+      teamNeedsCache: {},
+      warRoomState: null,
+      contractExtensions: [],
+      coachingMarket: {
+        teamId: null,
+        updatedYear: 2034,
+        updatedWeek: 9,
+        hotSeat: false,
+        candidates: { HC: [], OC: [], DC: [] },
+      },
+      weeklyPrepPlans: {},
+      weeklyPrepHistory: [],
+      filmRoomHistory: [],
+      difficultyState: {
+        enabled: true,
+        adaptiveSlider: 50,
+        recentUserResults: [],
+        currentStreak: 0,
+        adjustmentHistory: [],
+      },
+      availableMedicalStaff: [],
+      playoffMomentum: {},
+      scoutingDepartment: {
+        scouts: [],
+        availableScouts: [],
+        budget: 5,
+        maxScouts: 5,
+        privateWorkoutsRemaining: 3,
+      },
+      conditionalPicks: [],
+      waiverOrder: [],
+      waiverWire: [],
+      waiverClaims: [],
+      waiverResults: [],
+      handshakes: [],
+      tutorialState: {
+        active: false,
+        currentStepIndex: 0,
+        steps: [],
+        completedSteps: [],
+        dismissed: false,
+      },
+      agents: [],
+      narrativeIntensity: {
+        current: 50,
+        recentBeats: [],
+        cooldownWeeks: 0,
+      },
+      ceremonies: [],
+      dynastyTimeline: [],
+      achievements: [],
+      dashboardState: {
+        activeLayoutId: 'layout:default',
+        layouts: [],
+        pinnedWidgets: [],
+      },
+      seasonReports: [],
+      gamePlan: null,
+      opponentReports: [],
+      draftRecaps: [],
+      tradeSuggestions: [],
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['socialFeed']).toEqual([]);
+    expect(migrated['tradeDeadlineState']).toBeUndefined();
+    expect(migrated['scenarioState']).toBeUndefined();
   });
 });

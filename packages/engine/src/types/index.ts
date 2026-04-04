@@ -694,6 +694,28 @@ export interface TradeOffer {
   receive: TradeOfferAsset[];
 }
 
+export interface DeadlineDeal {
+  id: string;
+  teams: [string, string];
+  players: string[];
+  picks: string[];
+  pickIds?: string[];
+  timestamp: number;
+  grade: string;
+  splash: boolean;
+  narrative: string;
+}
+
+export interface TradeDeadlineState {
+  isDeadlineWeek: boolean;
+  minutesRemaining: number;
+  completedDeals: DeadlineDeal[];
+  scheduledDeals?: DeadlineDeal[];
+  pendingOffers: TradeOffer[];
+  urgencyLevel: 'calm' | 'heating_up' | 'frantic' | 'buzzer_beater';
+  tickerMessages: string[];
+}
+
 export type NewsType =
   | 'trade'
   | 'signing'
@@ -716,6 +738,33 @@ export interface NewsItem {
   teamIds: string[];
   playerIds: string[];
   importance: 'breaking' | 'major' | 'minor';
+}
+
+export type SocialPostSource = 'player' | 'fan' | 'analyst' | 'reporter' | 'team';
+
+export type SocialTrigger =
+  | 'big_play'
+  | 'trade'
+  | 'signing'
+  | 'injury'
+  | 'draft_pick'
+  | 'achievement'
+  | 'upset'
+  | 'rivalry'
+  | 'milestone'
+  | 'weekly';
+
+export interface SocialPost {
+  id: string;
+  source: SocialPostSource;
+  authorName: string;
+  authorPlayerId?: string;
+  content: string;
+  trigger: SocialTrigger;
+  sentiment: 'positive' | 'negative' | 'neutral' | 'hype' | 'sarcastic';
+  likes: number;
+  timestamp: number;
+  replyTo?: string;
 }
 
 export type TrainingFocus = 'film_study' | 'position_drills' | 'conditioning' | 'mentorship' | 'rest';
@@ -1151,6 +1200,51 @@ export interface OwnerPersonality {
   mediaAwareness: number; // 1-10
 }
 
+export type PlayDescriptionType =
+  | 'run'
+  | 'pass'
+  | 'sack'
+  | 'turnover'
+  | 'penalty'
+  | 'fieldGoal'
+  | 'punt'
+  | 'kickoff'
+  | 'touchdown'
+  | 'safety';
+
+export interface PlayDescription {
+  type: PlayDescriptionType;
+  yardsGained: number;
+  playerIds: string[];
+  commentary: string;
+  excitement: number;
+  isBigPlay: boolean;
+  isClutch: boolean;
+}
+
+export interface DriveNarrative {
+  plays: PlayDescription[];
+  startYardLine: number;
+  endResult: 'touchdown' | 'fieldGoal' | 'punt' | 'turnover' | 'endOfHalf' | 'turnoverOnDowns';
+  yardsTotal: number;
+  timeElapsed: number;
+  narrative: string;
+}
+
+export interface BroadcastOutput {
+  gameId: string;
+  quarters: DriveNarrative[][];
+  highlights: PlayDescription[];
+  mvpPlayerIds: string[];
+  momentumSwings: Array<{
+    quarter: number;
+    play: number;
+    description: string;
+  }>;
+  broadcastNetwork: string;
+  finalNarrative: string;
+}
+
 // ── Game Simulation ─────────────────────────────────────
 
 export interface GameResult {
@@ -1167,6 +1261,7 @@ export interface GameResult {
   weather?: WeatherCondition | null;
   matchupHighlight?: MatchupHighlight | null;
   broadcastNetwork?: BroadcastNetwork | null;
+  broadcast?: BroadcastOutput;
   primetime?: boolean;
   flexed?: boolean;
   specialTeams?: Record<string, SpecialTeamsGameSummary>;
@@ -1292,6 +1387,45 @@ export interface WeeklySummary {
   injuries: WeeklyInjurySummary[];
   mvpPlayerId: string | null;
   notes: string[];
+}
+
+export interface ScenarioObjective {
+  id: string;
+  description: string;
+  type: 'wins' | 'championship' | 'cap_space' | 'roster_ovr' | 'draft_pick' | 'record' | 'playoffs' | 'custom';
+  target: number;
+  completed: boolean;
+}
+
+export type ScenarioDifficulty = 'rookie' | 'pro' | 'all_pro' | 'hall_of_fame';
+
+export interface ScenarioConstraints {
+  blockTrades: boolean;
+  blockFreeAgency: boolean;
+  blockDraft: boolean;
+  forcedDifficulty?: DifficultyLevel;
+}
+
+export interface ScenarioDefinition {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  difficulty: ScenarioDifficulty;
+  seasonLimit: number;
+  objectives: ScenarioObjective[];
+  bonusObjectives: ScenarioObjective[];
+  constraints: ScenarioConstraints;
+}
+
+export interface ScenarioState {
+  activeScenario?: ScenarioDefinition;
+  scenarioSeason: number;
+  completedScenarios: Array<{
+    id: string;
+    score: number;
+    grade: string;
+  }>;
 }
 
 export interface GameDayNote {
@@ -1890,9 +2024,12 @@ export interface GameState {
   playoffBracket: PlayoffBracket | null;
   offseasonState: OffseasonState | null;
   leagueNews: NewsItem[];
+  socialFeed: SocialPost[];
   activeProposals: TradeProposal[];
+  tradeDeadlineState?: TradeDeadlineState;
   faTargetBoard: FATargetBoardState;
   teamNeedsCache: Record<string, TeamNeedsReport>;
+  scenarioState?: ScenarioState;
   warRoomState: WarRoomState | null;
   contractExtensions: ContractExtensionRecord[];
   difficultyState: DifficultyState;

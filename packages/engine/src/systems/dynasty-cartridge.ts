@@ -49,6 +49,36 @@ export interface ParseError {
   error: string;
 }
 
+function stripResultBroadcast(result: unknown): void {
+  if (!result || typeof result !== 'object') return;
+  delete (result as Record<string, unknown>)['broadcast'];
+}
+
+function sanitizeSaveForExport(save: unknown): unknown {
+  if (!save || typeof save !== 'object') return save;
+
+  const clone = JSON.parse(JSON.stringify(save)) as Record<string, unknown>;
+  const schedule = Array.isArray(clone['schedule']) ? clone['schedule'] as Array<Record<string, unknown>> : [];
+  for (const week of schedule) {
+    const games = Array.isArray(week['games']) ? week['games'] as Array<Record<string, unknown>> : [];
+    for (const game of games) {
+      stripResultBroadcast(game['result']);
+    }
+  }
+
+  const playoffBracket = clone['playoffBracket'];
+  if (playoffBracket && typeof playoffBracket === 'object') {
+    const matchups = Array.isArray((playoffBracket as Record<string, unknown>)['matchups'])
+      ? (playoffBracket as Record<string, unknown>)['matchups'] as Array<Record<string, unknown>>
+      : [];
+    for (const matchup of matchups) {
+      stripResultBroadcast(matchup['result']);
+    }
+  }
+
+  return clone;
+}
+
 // ── Build ──────────────────────────────────────────────
 
 export function buildCartridge(
@@ -56,12 +86,13 @@ export function buildCartridge(
   meta: CartridgeMeta = {},
 ): BuildResult | BuildError {
   if (!save) return { ok: false, error: 'No save data provided.' };
+  const sanitizedSave = sanitizeSaveForExport(save);
 
   const envelope: CartridgeEnvelope = {
     cartridgeVersion: CARTRIDGE_VERSION,
     exportedAt: new Date().toISOString(),
     meta,
-    save,
+    save: sanitizedSave,
   };
 
   const json = JSON.stringify(envelope);

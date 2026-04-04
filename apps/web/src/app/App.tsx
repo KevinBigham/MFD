@@ -5,6 +5,7 @@ import {
   Search, FileText, Handshake, Gamepad2, GraduationCap,
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
   Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity, CalendarRange,
+  Radio, MessageSquare, Crosshair,
 } from 'lucide-react';
 import { MfdTooltipProvider, MfdCommandPalette, type CommandItem } from '@mfd/design-system/components';
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
@@ -54,6 +55,10 @@ const LazyPlayerProfile = lazy(async () => ({ default: (await import('../feature
 const LazyTeamNeeds = lazy(async () => ({ default: (await import('../features/team-needs/TeamNeeds')).TeamNeeds }));
 const LazyFATargetBoard = lazy(async () => ({ default: (await import('../features/free-agency/FATargetBoard')).FATargetBoard }));
 const LazyFilmRoom = lazy(async () => ({ default: (await import('../features/film-room/FilmRoom')).FilmRoom }));
+const LazyGameBroadcast = lazy(async () => ({ default: (await import('../features/broadcast/GameBroadcast')).GameBroadcast }));
+const LazySocialFeed = lazy(async () => ({ default: (await import('../features/social/SocialFeed')).SocialFeed }));
+const LazyTradeDeadline = lazy(async () => ({ default: (await import('../features/trades/TradeDeadline')).TradeDeadline }));
+const LazyScenarioSelect = lazy(async () => ({ default: (await import('../features/scenario/ScenarioSelect')).ScenarioSelect }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -75,7 +80,9 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/draft',        label: 'Draft',            shortLabel: 'Draft',    icon: <FileText size={16} />,       shortcut: '6' },
   { path: '/free-agency',  label: 'Free Agency',      shortLabel: 'FA',       icon: <Handshake size={16} />,      shortcut: '7' },
   { path: '/game-day',     label: 'Game Day',         shortLabel: 'Game',     icon: <Gamepad2 size={16} />,       shortcut: '8' },
+  { path: '/broadcast',    label: 'Broadcast',        shortLabel: 'Live',     icon: <Radio size={16} /> },
   { path: '/inbox',          label: 'Inbox',            shortLabel: 'Inbox',    icon: <Inbox size={16} />,          shortcut: '9' },
+  { path: '/social',       label: 'MFSN',             shortLabel: 'Social',   icon: <MessageSquare size={16} /> },
   { path: '/waivers',       label: 'Waiver Wire',      shortLabel: 'Waivers',  icon: <ScrollText size={16} /> },
   { path: '/practice-squad',label: 'Practice Squad',   shortLabel: 'PS',       icon: <Users size={16} /> },
   { path: '/schedule',      label: 'Schedule',         shortLabel: 'Schedule', icon: <CalendarRange size={16} /> },
@@ -88,6 +95,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/standings',     label: 'Standings',        shortLabel: 'Stand',    icon: <BarChart3 size={16} /> },
   { path: '/analytics',     label: 'Analytics',        shortLabel: 'Data',     icon: <Activity size={16} /> },
   { path: '/power-rankings',label: 'Power Rankings',   shortLabel: 'Rankings', icon: <TrendingUp size={16} /> },
+  { path: '/scenarios',    label: 'Scenarios',        shortLabel: 'Challenge', icon: <Crosshair size={16} /> },
   { path: '/legacy',        label: 'Legacy',           shortLabel: 'Legacy',   icon: <Trophy size={16} /> },
   { path: '/dynasty',       label: 'Save/Load',        shortLabel: 'Save',     icon: <Save size={16} /> },
   { path: '/settings',      label: 'Settings',         shortLabel: 'Config',   icon: <Settings size={16} /> },
@@ -485,10 +493,30 @@ const gameDayRoute = createRoute({
   component: GameDayRecap,
 });
 
+const broadcastRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/broadcast',
+  component: () => (
+    <LazyRouteFrame label="game broadcast">
+      <LazyGameBroadcast />
+    </LazyRouteFrame>
+  ),
+});
+
 const inboxRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/inbox',
   component: InboxTriage,
+});
+
+const socialRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/social',
+  component: () => (
+    <LazyRouteFrame label="social feed">
+      <LazySocialFeed />
+    </LazyRouteFrame>
+  ),
 });
 
 const waiverWireRoute = createRoute({
@@ -583,6 +611,16 @@ const filmRoomRoute = createRoute({
   ),
 });
 
+const tradeDeadlineRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/trade-deadline',
+  component: () => (
+    <LazyRouteFrame label="trade deadline">
+      <LazyTradeDeadline />
+    </LazyRouteFrame>
+  ),
+});
+
 const ownerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/owner',
@@ -651,6 +689,16 @@ const powerRankingsRoute = createRoute({
   ),
 });
 
+const scenarioRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/scenarios',
+  component: () => (
+    <LazyRouteFrame label="scenario challenges">
+      <LazyScenarioSelect />
+    </LazyRouteFrame>
+  ),
+});
+
 const dynastyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/dynasty',
@@ -671,11 +719,11 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   rosterRoute, contractsRoute, tradesRoute,
   scoutingRoute, draftRoute, freeAgencyRoute, faTargetsRoute,
-  gameDayRoute, inboxRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
-  scheduleRoute, depthChartRoute, playerProfileRoute, teamNeedsRoute, coachingRoute, filmRoomRoute,
+  gameDayRoute, broadcastRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
+  scheduleRoute, depthChartRoute, playerProfileRoute, teamNeedsRoute, coachingRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, standingsRoute, analyticsRoute,
-  powerRankingsRoute, legacyRoute, dynastyRoute, settingsRoute,
+  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, settingsRoute,
 ]);
 
 const router = createRouter({ routeTree });

@@ -177,6 +177,36 @@ export {
   getWeekSchedule,
 } from './systems/flex-schedule';
 export {
+  generateBroadcast,
+  generatePlayCommentary,
+  selectHighlights,
+  generateDriveSummary,
+  generateFinalNarrative,
+} from './systems/broadcast';
+export {
+  generateGameDayPosts,
+  generateTransactionPosts,
+  generateWeeklyBuzz,
+  generatePlayerReaction,
+  appendToSocialFeed,
+} from './systems/social-feed';
+export {
+  initializeDeadline,
+  advanceDeadlineClock,
+  generateDeadlineDeal,
+  gradeDeadlineDeal,
+  getTickerMessage,
+  finalizeDeadline,
+} from './systems/trade-deadline';
+export {
+  getAvailableScenarios,
+  startScenario,
+  checkScenarioProgress,
+  gradeScenarioCompletion,
+  advanceScenarioSeason,
+  getScenarioConstraints,
+} from './systems/scenario-challenge';
+export {
   createDefaultSpecialTeamsState,
   buildSpecialTeamsState,
   assignKickReturner,

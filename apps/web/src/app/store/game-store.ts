@@ -12,6 +12,7 @@ import type {
   DraftTradeOffer,
   ExtensionEvaluation,
   ExtensionOffer,
+  GameEvent,
   GamePlan,
   GameState,
   OpponentReport,
@@ -35,6 +36,7 @@ import {
   applyExtensionOffer,
   assignTraining as assignTrainingEngine,
   acceptCounterProposal as acceptCounterProposalEngine,
+  advanceDeadlineClock as advanceDeadlineClockEngine,
   buildCoachingMarket,
   completeTutorialAction as completeTutorialActionEngine,
   cutPlayerToWaivers as cutPlayerToWaiversEngine,
@@ -45,9 +47,11 @@ import {
   fireStaffMember,
   fireScout as fireScoutEngine,
   buildDraftWarRoomState,
+  finalizeDeadline as finalizeDeadlineEngine,
   hireMedicalStaff as hireMedicalStaffEngine,
   hireStaffCandidate,
   hireScout as hireScoutEngine,
+  initializeOffseasonState,
   makePlayerPromise as makePlayerPromiseEngine,
   mulberry32,
   placeOnIR as placeOnIREngine,
@@ -74,6 +78,7 @@ import {
   runScoutingAction as runScoutingActionEngine,
   rejectCounterProposal as rejectCounterProposalEngine,
   submitWaiverClaim as submitWaiverClaimEngine,
+  startScenario as startScenarioEngine,
   switchLayout as switchDashboardLayout,
   toggleScoutingWatchlist as toggleScoutingWatchlistEngine,
   submitProposal as submitTradeProposalEngine,
@@ -90,6 +95,7 @@ import { autosaveDynasty, loadLatestAutosaveGame } from './persistence';
 import type { GameStoreState } from './selectors';
 import { runAdvanceWeek } from './sim';
 import { useUiStore } from './ui-store';
+import { createSeedGameState, getTeamOptions } from './seed';
 export * from './selectors';
 
 // ── Store shape ────────────────────────────────────────────
@@ -123,6 +129,11 @@ interface GameActions {
 
   // Week advance
   advanceWeek: () => Promise<WeeklySummary | null>;
+  watchBroadcast: (gameId: string) => void;
+  advanceDeadlineClock: (minutes: number) => Promise<void>;
+  acceptDeadlineOffer: (offerId: string) => Promise<void>;
+  rejectDeadlineOffer: (offerId: string) => Promise<void>;
+  finalizeDeadline: () => Promise<void>;
 
   // Offseason actions
   submitReSignOffer: (playerId: string, offer: ContractOffer) => Promise<void>;
@@ -171,6 +182,7 @@ interface GameActions {
   setPhase: (phase: SeasonPhase) => void;
   setDifficulty: (difficulty: GameState['difficulty']) => Promise<void>;
   setAdaptiveDifficultyEnabled: (enabled: boolean) => Promise<void>;
+  startScenarioChallenge: (scenarioId: string) => Promise<void>;
   saveGamePlan: (plan: GamePlan, report?: OpponentReport | null) => Promise<void>;
   clearGamePlan: () => Promise<void>;
   saveWeeklyPrepPlan: (plan: WeeklyPrepPlan, report?: OpponentReport | null) => Promise<void>;
@@ -269,6 +281,27 @@ export const useGameStore = create<GameStore>()(
       if (!current) return;
       const result = submitReSignOfferEngine(current, playerId, offer);
       await commitGame(result.nextState);
+    };
+    const navigateTo = (path: string) => {
+      if (typeof window === 'undefined') return;
+      window.history.pushState({}, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+    const deadlineResolvedEvent = (game: GameState): GameEvent => ({
+      id: `trade-deadline-resolved-${game.year}-${game.week}`,
+      type: 'trade_deadline_resolved',
+      timestamp: Date.now(),
+      description: `Trade deadline resolved in week ${game.week}.`,
+      data: {
+        year: game.year,
+        week: game.week,
+      },
+    });
+    const userTeamIndexFor = (game: GameState): number => {
+      const userTeam = Object.values(game.teams).find((team) => team.isUser) ?? null;
+      if (!userTeam) return 0;
+      const options = getTeamOptions();
+      return options.find((option) => option.city === userTeam.city && option.name === userTeam.name)?.index ?? 0;
     };
 
     return ({
@@ -462,6 +495,17 @@ export const useGameStore = create<GameStore>()(
 
         const result = await runAdvanceWeek(current);
         const nextGame = result.nextState;
+        const deadlineInterrupted = current.phase === 'regular_season'
+          && current.week === 9
+          && nextGame.week === current.week
+          && Boolean(nextGame.tradeDeadlineState?.isDeadlineWeek);
+
+        if (deadlineInterrupted) {
+          await commitGame(nextGame);
+          navigateTo('/trade-deadline');
+          return null;
+        }
+
         const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
 
         if (userTeam) {
@@ -472,6 +516,80 @@ export const useGameStore = create<GameStore>()(
         await commitGame(nextGame);
 
         return nextGame.weekSummaries.at(-1) ?? null;
+      },
+
+      watchBroadcast: (gameId) => {
+        useUiStore.getState().setBroadcastGameId(gameId);
+        navigateTo('/broadcast');
+      },
+
+      advanceDeadlineClock: async (minutes) => {
+        const current = get().game;
+        const deadlineState = current?.tradeDeadlineState;
+        if (!current || !deadlineState) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.tradeDeadlineState = advanceDeadlineClockEngine(deadlineState, minutes, mulberry32(buildIntelSeed(current, `deadline:${deadlineState.minutesRemaining}:${minutes}`)));
+        await commitGame(nextGame);
+      },
+
+      acceptDeadlineOffer: async (offerId) => {
+        const current = get().game;
+        const deadlineState = current?.tradeDeadlineState;
+        if (!current || !deadlineState) return;
+        const pendingOffer = deadlineState.pendingOffers.find((offer) => offer.id === offerId);
+        if (!pendingOffer) return;
+
+        const stagedGame = cloneForMutation(current);
+        stagedGame.offseasonState = initializeOffseasonState(stagedGame);
+        stagedGame.offseasonState.tradeOffers = [...deadlineState.pendingOffers];
+        const result = acceptTradeOfferEngine(stagedGame, offerId);
+
+        if (result.nextState.tradeDeadlineState) {
+          result.nextState.tradeDeadlineState.pendingOffers = deadlineState.pendingOffers.filter((offer) => offer.id !== offerId);
+          result.nextState.tradeDeadlineState.tickerMessages = [
+            ...deadlineState.tickerMessages,
+            `USER MOVE: ${pendingOffer.summary}`,
+          ].slice(-20);
+        }
+        result.nextState.offseasonState = null;
+        await commitGame(result.nextState);
+      },
+
+      rejectDeadlineOffer: async (offerId) => {
+        const current = get().game;
+        const deadlineState = current?.tradeDeadlineState;
+        if (!current || !deadlineState) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.tradeDeadlineState = {
+          ...deadlineState,
+          pendingOffers: deadlineState.pendingOffers.filter((offer) => offer.id !== offerId),
+          tickerMessages: [
+            ...deadlineState.tickerMessages,
+            'USER MOVE: Offer declined before the market moved on.',
+          ].slice(-20),
+        };
+        await commitGame(nextGame);
+      },
+
+      finalizeDeadline: async () => {
+        const current = get().game;
+        const deadlineState = current?.tradeDeadlineState;
+        if (!current || !deadlineState) return;
+
+        const resolvedState = finalizeDeadlineEngine(current, deadlineState);
+        resolvedState.eventLog = [...resolvedState.eventLog, deadlineResolvedEvent(resolvedState)];
+
+        const result = await runAdvanceWeek(resolvedState);
+        const nextGame = result.nextState;
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+
+        if (userTeam) {
+          updateSystemFit(userTeam);
+        }
+
+        completeTutorialActionEngine(nextGame, 'week:advance');
+        await commitGame(nextGame);
+        navigateTo('/game-day');
       },
 
       submitReSignOffer: async (playerId, offer) => {
@@ -833,6 +951,24 @@ export const useGameStore = create<GameStore>()(
           nextGame.difficultyState.adaptiveSlider = 50;
         }
         await commitGame(nextGame);
+      },
+
+      startScenarioChallenge: async (scenarioId) => {
+        const current = get().game;
+        const seed = Date.now();
+        const userTeamIndex = current ? userTeamIndexFor(current) : 0;
+        const difficulty = current?.difficulty ?? 'pro';
+        const baseGame = createSeedGameState(seed, userTeamIndex, difficulty);
+        if (current?.scenarioState?.completedScenarios.length) {
+          baseGame.scenarioState = {
+            activeScenario: undefined,
+            scenarioSeason: 1,
+            completedScenarios: structuredClone(current.scenarioState.completedScenarios),
+          };
+        }
+        const nextGame = startScenarioEngine(scenarioId, baseGame, mulberry32(seed ^ (scenarioId.length * 97)));
+        await commitGame(nextGame);
+        navigateTo('/');
       },
 
       saveGamePlan: async (plan, report) => {

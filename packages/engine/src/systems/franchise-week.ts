@@ -1,5 +1,5 @@
 import { cl } from '../utils';
-import { RNG, reseedSeason, reseedWeek, setSeed } from '../rng';
+import { RNG, mulberry32, reseedSeason, reseedWeek, setSeed } from '../rng';
 import { getAdaptiveModifier, updateAdaptiveDifficulty } from './adaptive-difficulty';
 import { checkAchievements } from './achievements';
 import { advanceDraft, ensureDraftClass, finalizePostDraft } from './draft';
@@ -39,6 +39,10 @@ import { generateTradeOffers } from './trade-market';
 import { findTradeTargets } from './trade-finder';
 import { buildWeeklySummary } from './weekly-summary';
 import { autoAssignSpecialTeams } from './special-teams';
+import { appendToSocialFeed, generateGameDayPosts, generateWeeklyBuzz } from './social-feed';
+import { generateBroadcast } from './broadcast';
+import { advanceScenarioSeason, checkScenarioProgress } from './scenario-challenge';
+import { initializeDeadline } from './trade-deadline';
 import { applyWeeklyPrepToSim, buildOpponentIntel, evaluateWeeklyPrep } from './weekly-prep';
 import {
   cloneGame,
@@ -166,6 +170,28 @@ function mergePlayerBonuses(...maps: Array<Record<string, number> | undefined>):
   return merged;
 }
 
+function deadlineAlreadyResolved(game: GameState): boolean {
+  return game.eventLog.some((event) =>
+    event.type === 'trade_deadline_resolved'
+    && event.data.year === game.year
+    && event.data.week === game.week);
+}
+
+function hashString(value: string): number {
+  return [...value].reduce((hash, char) => ((hash * 33) ^ char.charCodeAt(0)) >>> 0, 5381);
+}
+
+function buildBroadcastRng(game: GameState, result: GameResult) {
+  const seed = (
+    game.seed
+    ^ (result.year * 131)
+    ^ (result.week * 977)
+    ^ hashString(result.id)
+    ^ hashString(`${result.homeTeamId}:${result.awayTeamId}`)
+  ) >>> 0;
+  return mulberry32(seed);
+}
+
 export function advanceFranchiseWeek(game: GameState): EngineOutput {
   const nextState = cloneGame(game);
   const events: GameEvent[] = [];
@@ -229,6 +255,13 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   expireTimedEffects(nextState);
   const adaptiveModifier = getAdaptiveModifier(nextState);
 
+  if (nextState.phase === 'regular_season' && nextState.week === 9 && !deadlineAlreadyResolved(nextState)) {
+    if (!nextState.tradeDeadlineState) {
+      nextState.tradeDeadlineState = initializeDeadline(nextState, RNG.trade);
+    }
+    return { nextState, events, consequences: [] };
+  }
+
   if (nextState.phase === 'regular_season' || nextState.phase === 'playoffs') {
     for (const team of Object.values(nextState.teams)) {
       if (team.isUser) {
@@ -284,6 +317,9 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       outcome.result.broadcastNetwork = matchup.broadcastNetwork;
       outcome.result.primetime = matchup.primetime;
       outcome.result.flexed = matchup.flexed;
+      if (home.isUser || away.isUser) {
+        outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
+      }
       matchup.result = outcome.result;
       matchup.weather = outcome.result.weather ?? matchup.weather ?? null;
       updateRecordsFromGameResult(nextState, outcome.result);
@@ -363,6 +399,9 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         weather: generateWeatherForGame(home, nextState.week),
         rivalryIntensity: rivalry?.intensity ?? 0,
       });
+      if (home.isUser || away.isUser) {
+        outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
+      }
       const winnerTeamId = outcome.result.homeScore >= outcome.result.awayScore ? outcome.result.homeTeamId : outcome.result.awayTeamId;
       const loserTeamId = winnerTeamId === outcome.result.homeTeamId ? outcome.result.awayTeamId : outcome.result.homeTeamId;
       nextState.playoffMomentum[winnerTeamId] = calculatePlayoffMomentum(nextState, winnerTeamId, true);
@@ -418,6 +457,10 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       ensureDraftClass(nextState);
       nextState.offseasonState = initializeOffseasonState(nextState);
       nextState.offseasonState.tradeOffers = generateTradeOffers(nextState);
+      if (nextState.scenarioState?.activeScenario) {
+        checkScenarioProgress(nextState);
+        advanceScenarioSeason(nextState);
+      }
     } else {
       nextState.week += 1;
     }
@@ -516,6 +559,23 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
     if (currentUser) {
       nextState.narrativeState.activeArcs = advanceStoryArcs(nextState, { team: currentUser, opponent: null, summary: null });
     }
+  }
+
+  if (currentUser && (game.phase === 'regular_season' || game.phase === 'playoffs')) {
+    const newPosts = [
+      ...(userResult?.broadcast
+        ? generateGameDayPosts(
+          userResult.broadcast,
+          userResult,
+          nextState.teams,
+          Object.values(nextState.players),
+          playedWeek,
+          RNG.ai,
+        )
+        : []),
+      ...generateWeeklyBuzz(nextState, playedWeek, RNG.ai),
+    ];
+    nextState.socialFeed = appendToSocialFeed(nextState.socialFeed, newPosts);
   }
 
   if (completedRegularSeasonWeek) {

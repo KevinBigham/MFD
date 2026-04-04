@@ -462,13 +462,16 @@ export function createSeedGameState(
     playoffBracket: null,
     offseasonState: null,
     leagueNews: [],
+    socialFeed: [],
     activeProposals: [],
+    tradeDeadlineState: undefined,
     faTargetBoard: {
       teamId: null,
       watchlist: [],
       targets: [],
     },
     teamNeedsCache: {},
+    scenarioState: undefined,
     warRoomState: null,
     contractExtensions: [],
     coachingMarket: {

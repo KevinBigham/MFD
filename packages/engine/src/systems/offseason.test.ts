@@ -183,13 +183,16 @@ function makeOffseasonGame(): GameState {
     playoffBracket: null,
     offseasonState: null,
     leagueNews: [],
+    socialFeed: [],
     activeProposals: [],
+    tradeDeadlineState: undefined,
     faTargetBoard: {
       teamId: null,
       watchlist: [],
       targets: [],
     },
     teamNeedsCache: {},
+    scenarioState: undefined,
     warRoomState: null,
     contractExtensions: [],
     difficultyState: {
@@ -333,6 +336,7 @@ describe('offseason systems', () => {
 
     expect(roundOne.nextState.teams.user.roster.some((player) => player.id === expiringRunner.id)).toBe(true);
     expect(roundOne.nextState.freeAgents).not.toContain(expiringRunner.id);
+    expect(roundOne.nextState.socialFeed.some((post) => post.trigger === 'signing')).toBe(true);
     expect(roundThree.nextState.phase).toBe('draft');
     expect(roundThree.nextState.offseasonState?.draftOrder.length).toBeGreaterThan(0);
   });
@@ -561,6 +565,7 @@ describe('offseason systems', () => {
     expect(accepted.nextState.teams.user.roster.some((player) => player.id === aiCorner.id)).toBe(true);
     expect(accepted.nextState.teams.ai1.roster.some((player) => player.id === userReceiver.id)).toBe(true);
     expect(accepted.nextState.offseasonState?.tradeOffers[0]?.status).toBe('accepted');
+    expect(accepted.nextState.socialFeed.some((post) => post.trigger === 'trade')).toBe(true);
 
     const rejected = rejectTradeOffer(game, 'trade-1');
     expect(rejected.nextState.offseasonState?.tradeOffers[0]?.status).toBe('rejected');

@@ -14,6 +14,7 @@ import {
 import {
   selectActiveProposals,
   selectPhase,
+  selectTradeDeadlineState,
   selectTradeOffers,
   selectTradeSuggestions,
   selectUserTeam,
@@ -144,6 +145,7 @@ export function TradeCenter() {
   const offers = useGameStore(selectTradeOffers);
   const proposals = useGameStore(selectActiveProposals);
   const tradeSuggestions = useGameStore(selectTradeSuggestions);
+  const tradeDeadlineState = useGameStore(selectTradeDeadlineState);
   const week = useGameStore(selectWeek);
   const phase = useGameStore(selectPhase);
   const {
@@ -256,6 +258,19 @@ export function TradeCenter() {
           <>
             <PixelBadge variant="cyan">{pendingOffers} pending</PixelBadge>
             <PixelBadge variant="green">{acceptedOffers} accepted</PixelBadge>
+            {tradeDeadlineState ? (
+              <PixelButton
+                accent="red"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState({}, '', '/trade-deadline');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }
+                }}
+              >
+                Deadline Live
+              </PixelButton>
+            ) : null}
             {showDeadlineBadge ? (
               <PixelBadge variant={deadlineClosed ? 'red' : 'gold'}>
                 {deadlineClosed ? 'Deadline Passed' : `Deadline W${12 - week + 1}`}

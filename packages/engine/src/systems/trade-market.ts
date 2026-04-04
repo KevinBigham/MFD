@@ -1,7 +1,10 @@
+import { mulberry32 } from '../rng';
 import { syncPlayerArchiveEntry } from './history';
 import { conditionalPickExpectedValue } from './conditional-picks';
 import { recordNewsItem } from './league-news';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
+import { getScenarioConstraints } from './scenario-challenge';
+import { appendToSocialFeed, generateTransactionPosts } from './social-feed';
 import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
 import type { DraftPick, EngineOutput, GameState, Player, Team, TradeOffer, TradeOfferAsset } from '../types';
 
@@ -298,6 +301,7 @@ function buildOutboundOffer(game: GameState, userTeam: Team, aiTeam: Team): Trad
 }
 
 export function generateTradeOffers(game: GameState): TradeOffer[] {
+  if (getScenarioConstraints(game)?.blockTrades) return [];
   const userTeam = findUserTeam(game);
   if (!userTeam) return [];
 
@@ -344,6 +348,9 @@ export function generateTradeOffers(game: GameState): TradeOffer[] {
 
 export function acceptTradeOffer(game: GameState, offerId: string): EngineOutput {
   const nextState = cloneGame(game);
+  if (getScenarioConstraints(nextState)?.blockTrades) {
+    return { nextState, events: [], consequences: [] };
+  }
   if (nextState.phase === 'regular_season' && nextState.week > 12) {
     return { nextState, events: [], consequences: [] };
   }
@@ -391,6 +398,20 @@ export function acceptTradeOffer(game: GameState, offerId: string): EngineOutput
     playerIds: [...offer.send, ...offer.receive].flatMap((asset) => asset.playerId ? [asset.playerId] : []),
     importance: 'breaking',
   });
+
+  if (userTeam && (offer.fromTeamId === userTeam.id || offer.toTeamId === userTeam.id)) {
+    const socialRng = mulberry32(nextState.seed ^ nextState.year ^ nextState.week ^ offer.summary.length);
+    nextState.socialFeed = appendToSocialFeed(nextState.socialFeed, generateTransactionPosts('trade', {
+      playerNames: [...offer.send, ...offer.receive]
+        .flatMap((asset) => asset.playerId ? [nextState.players[asset.playerId]?.name ?? asset.description] : [])
+        .slice(0, 3),
+      teamNames: [
+        nextState.teams[offer.fromTeamId]?.name ?? offer.fromTeamId,
+        nextState.teams[offer.toTeamId]?.name ?? offer.toTeamId,
+      ],
+      context: offer.summary,
+    }, socialRng));
+  }
 
   return { nextState, events: [], consequences: [] };
 }

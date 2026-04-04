@@ -540,6 +540,28 @@ export const TradeOfferSchema = z.object({
   receive: z.array(TradeOfferAssetSchema),
 });
 
+export const DeadlineDealSchema = z.object({
+  id: z.string(),
+  teams: z.tuple([z.string(), z.string()]),
+  players: z.array(z.string()),
+  picks: z.array(z.string()),
+  pickIds: z.array(z.string()).optional(),
+  timestamp: z.number(),
+  grade: z.string(),
+  splash: z.boolean(),
+  narrative: z.string(),
+});
+
+export const TradeDeadlineStateSchema = z.object({
+  isDeadlineWeek: z.boolean(),
+  minutesRemaining: z.number(),
+  completedDeals: z.array(DeadlineDealSchema),
+  scheduledDeals: z.array(DeadlineDealSchema).optional(),
+  pendingOffers: z.array(TradeOfferSchema),
+  urgencyLevel: z.enum(['calm', 'heating_up', 'frantic', 'buzzer_beater']),
+  tickerMessages: z.array(z.string()),
+});
+
 export const NewsItemSchema = z.object({
   id: z.string(),
   year: z.number(),
@@ -550,6 +572,19 @@ export const NewsItemSchema = z.object({
   teamIds: z.array(z.string()),
   playerIds: z.array(z.string()),
   importance: z.enum(['breaking', 'major', 'minor']),
+});
+
+export const SocialPostSchema = z.object({
+  id: z.string(),
+  source: z.enum(['player', 'fan', 'analyst', 'reporter', 'team']),
+  authorName: z.string(),
+  authorPlayerId: z.string().optional(),
+  content: z.string(),
+  trigger: z.enum(['big_play', 'trade', 'signing', 'injury', 'draft_pick', 'achievement', 'upset', 'rivalry', 'milestone', 'weekly']),
+  sentiment: z.enum(['positive', 'negative', 'neutral', 'hype', 'sarcastic']),
+  likes: z.number(),
+  timestamp: z.number(),
+  replyTo: z.string().optional(),
 });
 
 export const TrainingFocusSchema = z.enum(['film_study', 'position_drills', 'conditioning', 'mentorship', 'rest']);
@@ -909,6 +944,43 @@ export const FilmRoomReportSchema = z.object({
   carryForward: z.array(z.string()),
 });
 
+export const ScenarioObjectiveSchema = z.object({
+  id: z.string(),
+  description: z.string(),
+  type: z.enum(['wins', 'championship', 'cap_space', 'roster_ovr', 'draft_pick', 'record', 'playoffs', 'custom']),
+  target: z.number(),
+  completed: z.boolean(),
+});
+
+export const ScenarioConstraintsSchema = z.object({
+  blockTrades: z.boolean().default(false),
+  blockFreeAgency: z.boolean().default(false),
+  blockDraft: z.boolean().default(false),
+  forcedDifficulty: z.enum(['rookie', 'pro', 'allpro', 'legend']).optional(),
+});
+
+export const ScenarioDefinitionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  tagline: z.string(),
+  description: z.string(),
+  difficulty: z.enum(['rookie', 'pro', 'all_pro', 'hall_of_fame']),
+  seasonLimit: z.number(),
+  objectives: z.array(ScenarioObjectiveSchema),
+  bonusObjectives: z.array(ScenarioObjectiveSchema),
+  constraints: ScenarioConstraintsSchema,
+});
+
+export const ScenarioStateSchema = z.object({
+  activeScenario: ScenarioDefinitionSchema.optional(),
+  scenarioSeason: z.number(),
+  completedScenarios: z.array(z.object({
+    id: z.string(),
+    score: z.number(),
+    grade: z.string(),
+  })),
+});
+
 export const SpecialTeamsGameSummarySchema = z.object({
   kickReturnYards: z.number(),
   puntReturnYards: z.number(),
@@ -1104,13 +1176,16 @@ export const SaveStateSchema = z.object({
   playoffBracket: z.any().nullable(),
   offseasonState: OffseasonStateSchema.nullable(),
   leagueNews: z.array(NewsItemSchema).default([]),
+  socialFeed: z.array(SocialPostSchema).default([]),
   activeProposals: z.array(TradeProposalSchema).default([]),
+  tradeDeadlineState: TradeDeadlineStateSchema.optional(),
   faTargetBoard: FATargetBoardStateSchema.default({
     teamId: null,
     watchlist: [],
     targets: [],
   }),
   teamNeedsCache: z.record(z.string(), TeamNeedsReportSchema).default({}),
+  scenarioState: ScenarioStateSchema.optional(),
   warRoomState: WarRoomStateSchema.nullable().default(null),
   contractExtensions: z.array(ContractExtensionRecordSchema).default([]),
   coachingMarket: CoachingMarketStateSchema.default({

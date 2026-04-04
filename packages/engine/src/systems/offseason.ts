@@ -27,9 +27,11 @@ import { createTransactionalPressConference, recordPressConference } from './pre
 import { progressPlayers } from './progression';
 import { getSeasonRecordNotes, updateCareerRecords, updateSeasonRecords } from './records';
 import { decayLeagueRivalries } from './rivalries';
+import { getScenarioConstraints } from './scenario-challenge';
 import { createDefaultScoutingDepartment, generateScoutPool } from './scouting-staff';
 import { generateSeasonReport } from './season-report';
 import { buildSpecialTeamsState } from './special-teams';
+import { appendToSocialFeed, generateTransactionPosts } from './social-feed';
 import { generateTradeOffers } from './trade-market';
 import type {
   AwardResult,
@@ -384,6 +386,13 @@ function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState): voi
       playerIds: [signedPlayer.id],
       importance: signedPlayer.ovr >= 85 ? 'breaking' : signedPlayer.ovr >= 78 ? 'major' : 'minor',
     });
+    if (team.isUser) {
+      game.socialFeed = appendToSocialFeed(game.socialFeed, generateTransactionPosts('signing', {
+        playerNames: [signedPlayer.name],
+        teamNames: [team.name],
+        context: `Free-agency agreement for ${signedPlayer.name}.`,
+      }, RNG.ai));
+    }
     game.freeAgents = game.freeAgents.filter((id) => id !== playerId);
 
     for (const bid of bids) {
@@ -559,6 +568,9 @@ export function submitReSignOffer(game: GameState, playerId: string, offer: Cont
 
 export function submitFreeAgentBid(game: GameState, playerId: string, offer: ContractOffer): EngineOutput {
   const nextState = cloneGame(game);
+  if (getScenarioConstraints(nextState)?.blockFreeAgency) {
+    return { nextState, events: [], consequences: [] };
+  }
   const userTeam = findUserTeam(nextState);
   if (nextState.offseasonState && userTeam) {
     const bids = nextState.offseasonState.freeAgencyBids[playerId] ?? [];

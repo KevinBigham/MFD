@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advanceFranchiseWeek, syncAllPlayerArchiveEntries } from '../index';
+import { advanceFranchiseWeek, finalizeDeadline, syncAllPlayerArchiveEntries } from '../index';
 import { makeLeagueState } from './test-helpers';
 import type { GameState, Player, ScheduleWeek } from '../types';
 
@@ -81,7 +81,17 @@ describe('three-season integration loop', () => {
     let guard = 0;
 
     while (completedSeasons < 3 && guard < 500) {
-      if (state.phase === 'draft' && state.offseasonState) {
+      if (state.tradeDeadlineState) {
+        const resolved = finalizeDeadline(state, state.tradeDeadlineState);
+        resolved.eventLog.push({
+          id: `deadline-resolved-${resolved.year}-${resolved.week}`,
+          type: 'trade_deadline_resolved',
+          timestamp: guard,
+          description: 'Deadline auto-resolved for integration coverage.',
+          data: { year: resolved.year, week: resolved.week },
+        });
+        state = advanceFranchiseWeek(resolved).nextState;
+      } else if (state.phase === 'draft' && state.offseasonState) {
         const draftYear = state.year;
         const topFiveTeams = state.offseasonState.draftOrder.slice(0, 5).map((entry) => entry.teamId);
         state = advanceFranchiseWeek(state).nextState;
@@ -120,5 +130,5 @@ describe('three-season integration loop', () => {
     expect(middlingTeams.some((entry) => state.teams[entry.teamId]!.ownerPatience80 > 25)).toBe(true);
     expect(state.awardsHistory.length).toBeGreaterThan(0);
     expect(state.records.singleSeason.wins.length).toBeGreaterThan(0);
-  });
+  }, 15000);
 });

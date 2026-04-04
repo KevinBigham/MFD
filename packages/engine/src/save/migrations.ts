@@ -865,3 +865,10 @@ registerMigration(15, (state) => {
     offseasonState,
   };
 });
+
+registerMigration(16, (state) => ({
+  ...state,
+  socialFeed: Array.isArray(state['socialFeed']) ? state['socialFeed'] : [],
+  tradeDeadlineState: state['tradeDeadlineState'],
+  scenarioState: state['scenarioState'],
+}));

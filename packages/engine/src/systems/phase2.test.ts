@@ -285,6 +285,89 @@ describe('dynasty cartridge', () => {
     }
   });
 
+  it('buildCartridge strips ephemeral broadcast payloads from saved game results', () => {
+    const built = buildCartridge({
+      version: 17,
+      schedule: [{
+        week: 9,
+        games: [{
+          homeTeamId: 'home',
+          awayTeamId: 'away',
+          result: {
+            id: 'game-1',
+            homeTeamId: 'home',
+            awayTeamId: 'away',
+            homeScore: 27,
+            awayScore: 24,
+            week: 9,
+            year: 2034,
+            overtime: false,
+            mvpPlayerId: 'qb-1',
+            stats: {},
+            broadcast: {
+              gameId: 'game-1',
+              quarters: [],
+              highlights: [{ commentary: 'Should not persist.' }],
+              mvpPlayerIds: ['qb-1'],
+              momentumSwings: [],
+              broadcastNetwork: 'MFN',
+              finalNarrative: 'Ephemeral.',
+            },
+          },
+        }],
+      }],
+      playoffBracket: {
+        season: 2034,
+        afc: [],
+        nfc: [],
+        championTeamId: null,
+        matchups: [{
+          id: 'matchup-1',
+          round: 'wild_card',
+          conference: 'AFC',
+          week: 19,
+          homeTeamId: 'home',
+          awayTeamId: 'away',
+          winnerTeamId: null,
+          result: {
+            id: 'playoff-game-1',
+            homeTeamId: 'home',
+            awayTeamId: 'away',
+            homeScore: 31,
+            awayScore: 28,
+            week: 19,
+            year: 2034,
+            overtime: true,
+            mvpPlayerId: 'qb-1',
+            stats: {},
+            broadcast: {
+              gameId: 'playoff-game-1',
+              quarters: [],
+              highlights: [],
+              mvpPlayerIds: ['qb-1'],
+              momentumSwings: [],
+              broadcastNetwork: 'NBC8',
+              finalNarrative: 'Also ephemeral.',
+            },
+          },
+        }],
+      },
+    });
+    expect(built.ok).toBe(true);
+    if (!built.ok) return;
+
+    const parsed = parseCartridge(built.json);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+
+    const save = parsed.save as {
+      schedule: Array<{ games: Array<{ result: { broadcast?: unknown } | null }> }>;
+      playoffBracket: { matchups: Array<{ result: { broadcast?: unknown } | null }> } | null;
+    };
+    expect(save.schedule[0]?.games[0]?.result?.broadcast).toBeUndefined();
+    expect(save.playoffBracket?.matchups[0]?.result?.broadcast).toBeUndefined();
+  });
+
   it('parseCartridge rejects empty', () => {
     const result = parseCartridge('');
     expect(result.ok).toBe(false);

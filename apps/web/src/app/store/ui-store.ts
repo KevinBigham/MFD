@@ -30,6 +30,10 @@ interface UiState {
   focusedPlayerScreen: 'contracts' | 'trades' | null;
   setFocusedPlayerContext: (playerId: string | null, screen?: 'contracts' | 'trades' | null) => void;
   clearFocusedPlayerContext: () => void;
+
+  broadcastGameId: string | null;
+  setBroadcastGameId: (gameId: string | null) => void;
+  clearBroadcastGameId: () => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -55,6 +59,10 @@ export const useUiStore = create<UiState>()(
       focusedPlayerScreen: null,
       setFocusedPlayerContext: (focusedPlayerId, focusedPlayerScreen = null) => set({ focusedPlayerId, focusedPlayerScreen }),
       clearFocusedPlayerContext: () => set({ focusedPlayerId: null, focusedPlayerScreen: null }),
+
+      broadcastGameId: null,
+      setBroadcastGameId: (broadcastGameId) => set({ broadcastGameId }),
+      clearBroadcastGameId: () => set({ broadcastGameId: null }),
     }),
     {
       name: 'mfd-ui-preferences',
