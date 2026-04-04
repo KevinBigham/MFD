@@ -979,3 +979,10 @@ registerMigration(19, (state) => {
     laborState: state['laborState'] ?? initLaborState(),
   };
 });
+
+registerMigration(20, (state) => ({
+  ...state,
+  activeRecordChases: Array.isArray(state['activeRecordChases']) ? state['activeRecordChases'] : [],
+  recentBrokenRecords: Array.isArray(state['recentBrokenRecords']) ? state['recentBrokenRecords'] : [],
+  recentMilestones: Array.isArray(state['recentMilestones']) ? state['recentMilestones'] : [],
+}));

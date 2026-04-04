@@ -168,6 +168,45 @@ export const LeagueRivalrySchema = z.object({
   lastMetWeek: z.number().nullable(),
 });
 
+export const BrokenRecordSchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  teamId: z.string(),
+  stat: z.string(),
+  newValue: z.number(),
+  previousValue: z.number(),
+  previousHolder: z.string(),
+  category: z.enum(['singleGame', 'singleSeason']),
+  year: z.number(),
+  week: z.number(),
+  narrative: z.string(),
+});
+
+export const MilestoneReachedSchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  stat: z.string(),
+  value: z.number(),
+  milestoneLabel: z.string(),
+  narrative: z.string(),
+  year: z.number(),
+  week: z.number(),
+});
+
+export const RecordChaseSchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  teamId: z.string(),
+  stat: z.string(),
+  currentValue: z.number(),
+  recordValue: z.number(),
+  recordHolder: z.string(),
+  pace: z.number(),
+  category: z.enum(['singleGame', 'singleSeason', 'career', 'franchise']),
+  weeksRemaining: z.number(),
+  projected: z.number(),
+});
+
 export const GameDayPackageSchema = z.object({
   id: z.string(),
   year: z.number(),
@@ -229,6 +268,8 @@ export const GameDayPackageSchema = z.object({
   prepGrade: z.string().nullable().optional(),
   coachingNotes: z.array(z.string()).optional(),
   carryForwardRecommendations: z.array(z.string()).optional(),
+  recordsMoments: z.array(BrokenRecordSchema).default([]),
+  milestoneMoments: z.array(MilestoneReachedSchema).default([]),
 });
 
 export const GameDayStateSchema = z.object({
@@ -607,7 +648,7 @@ export const SocialPostSchema = z.object({
   authorName: z.string(),
   authorPlayerId: z.string().optional(),
   content: z.string(),
-  trigger: z.enum(['big_play', 'trade', 'signing', 'injury', 'draft_pick', 'achievement', 'upset', 'rivalry', 'milestone', 'weekly', 'governance', 'labor']),
+  trigger: z.enum(['big_play', 'record', 'trade', 'signing', 'injury', 'draft_pick', 'achievement', 'upset', 'rivalry', 'milestone', 'weekly', 'governance', 'labor']),
   sentiment: z.enum(['positive', 'negative', 'neutral', 'hype', 'sarcastic']),
   likes: z.number(),
   timestamp: z.number(),
@@ -1407,6 +1448,9 @@ export const SaveStateSchema = z.object({
   draftClass: z.array(z.any()),
   freeAgents: z.array(z.string()),
   records: RecordBookSchema,
+  activeRecordChases: z.array(RecordChaseSchema).default([]),
+  recentBrokenRecords: z.array(BrokenRecordSchema).default([]),
+  recentMilestones: z.array(MilestoneReachedSchema).default([]),
   awardsHistory: z.array(AwardsHistoryEntrySchema),
   hallOfFame: z.array(HallOfFameEntrySchema),
   allDecadeTeams: z.array(AllDecadeTeamSchema).default([]),

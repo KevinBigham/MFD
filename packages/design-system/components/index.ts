@@ -24,3 +24,7 @@ export { PixelModal } from './PixelModal';
 export { PixelProgressBar } from './PixelProgressBar';
 export { PixelSelect, type PixelSelectOption } from './PixelSelect';
 export { PixelSwitch } from './PixelSwitch';
+export { PixelScreenHeader } from './PixelScreenHeader';
+export { PixelMetricCard } from './PixelMetricCard';
+export { PixelConsequenceList } from './PixelConsequenceList';
+export { PixelPlayerLink } from './PixelPlayerLink';

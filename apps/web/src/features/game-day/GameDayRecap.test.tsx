@@ -52,6 +52,8 @@ describe('GameDayCenterView', () => {
             nextFocus: ['Protect the injured backfield', 'Carry the pass protection forward'],
           },
           specialTeamsHighlights: ['Keenan Ward ripped off a 74-yard kick return that flipped the field.'],
+          recordsMoments: [],
+          milestoneMoments: [],
           prepGrade: 'A',
           coachingNotes: ['Protection emphasis kept the quarterback clean.'],
           carryForwardRecommendations: ['Keep the successful plan family available next week.'],

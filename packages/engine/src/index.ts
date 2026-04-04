@@ -65,6 +65,39 @@ export {
   updateCareerRecords,
   getSeasonRecordNotes,
 } from './systems/records';
+export {
+  MILESTONE_THRESHOLDS,
+  checkRecordChases,
+  detectBrokenRecords,
+  getActiveMilestoneChases,
+  checkMilestones,
+  generateRecordNarrative,
+  generateMilestoneNarrative,
+  getRecordHolders,
+  getLeagueLeaders,
+  getCareerLeaders,
+  getSeasonPaceProjection,
+} from './systems/record-tracker';
+export {
+  buildCapScenario,
+  simulateRestructure,
+  simulateBackload,
+  simulateCut,
+  simulateExtension,
+  simulateMultipleMoves,
+  getCapHealth,
+  identifyCapCandidates,
+  buildMultiYearProjection,
+} from './systems/cap-laboratory';
+export {
+  getStatLeaderboard,
+  getPlayerCareerTimeline,
+  comparePlayerCareers,
+  getTeamSeasonHistory,
+  getLeagueAverages,
+  getPositionRankings,
+  buildStatSnapshot,
+} from './systems/stat-central';
 export { createPowerRankings, updatePowerRankings } from './systems/power-rankings';
 export { formMentoringPairs, applyMentoringBonuses } from './systems/mentoring';
 export { generateAwards } from './systems/awards';
@@ -73,6 +106,9 @@ export {
   recordNewsItem,
   recordGovernanceNews,
   recordLaborNews,
+  createRecordBreakingNews,
+  createMilestoneNews,
+  createStatWatchNews,
   generateWeeklyLeagueNews,
   generateOffseasonNews,
   getRecentNews,
@@ -188,6 +224,10 @@ export {
 export {
   createGovernancePost,
   createLaborPost,
+  createRecordBreakingPost,
+  createMilestonePost,
+  createRecordChasePost,
+  createCapMovePost,
   generateGameDayPosts,
   generateTransactionPosts,
   generateWeeklyBuzz,

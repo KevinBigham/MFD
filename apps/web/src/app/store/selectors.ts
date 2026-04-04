@@ -4,9 +4,14 @@ import type {
   AgentProfile,
   AllDecadeTeam,
   AwardsHistoryEntry,
+  BrokenRecord,
   BroadcastOutput,
   CBAState,
+  CapCandidate,
+  CapHealthReport,
   CapProjectionYear,
+  CareerLeader,
+  CareerTimeline,
   Ceremony,
   CommissionerRuling,
   CommissionerState,
@@ -37,12 +42,15 @@ import type {
   HallOfFameEntry,
   JerseyRetirement,
   LaborState,
+  LeagueAverageEntry,
   LeagueRuleHistoryGroup,
   LeagueRules,
   LockerRoomState,
   LeagueRivalry,
   MentoringPair,
   MedicalStaff,
+  MilestoneReached,
+  MultiYearProjection,
   NewsItem,
   OffseasonState,
   OffFieldEvent,
@@ -51,14 +59,18 @@ import type {
   NarrativeIntensity,
   PracticeSquadPlayer,
   Player,
+  PlayerComparison,
   PlayerProfile,
   PlayerProjection,
   PlayerRivalry,
   PlayerValue,
+  Position,
+  PositionRanking,
   PowerRanking,
   PressConference,
   PositionGroup,
   RecordBook,
+  RecordChase,
   RecordEntry,
   RuleDiff,
   RuleProposal,
@@ -72,9 +84,11 @@ import type {
   SpecialTeamsState,
   SchemeInstallState,
   StoryArc,
+  StatLeaderEntry,
   Team,
   TeamNeedsComparisonEntry,
   TeamNeedsReport,
+  TeamSeasonSummary,
   TradeDeadlineState,
   TradeSuggestion,
   TradeProposal,
@@ -100,8 +114,10 @@ import {
   buildDraftWarRoomState,
   buildFATargetBoard,
   buildLeagueAverageByGroup,
+  buildMultiYearProjection,
   buildOpponentIntel,
   buildPlayerProfile,
+  comparePlayerCareers,
   detectRetirementCandidates,
   capProjection,
   checkIncentives,
@@ -117,11 +133,16 @@ import {
   getAchievementProgress,
   getAvailableScenarios,
   getAnalyticsStatLeaders,
+  getCapHealth,
+  getCareerLeaders,
   getDecadeNarrative,
   getFullSchedule,
+  getLeagueAverages,
   getPlayerComparables,
+  getPlayerCareerTimeline,
   getPlayerProjection,
   getPlayerValue,
+  getPositionRankings,
   getFranchiseLegends,
   getEndorsementRevenue,
   getActiveRivalries,
@@ -130,7 +151,10 @@ import {
   getPlayerComparison,
   getCooldownStatus,
   getPlayerAgent,
+  getStatLeaderboard,
+  getTeamSeasonHistory,
   initLeagueRules,
+  identifyCapCandidates,
   LEAGUE_RULE_DEFINITIONS,
   getRelocationDestinations,
   getTeamRankings,
@@ -276,6 +300,31 @@ const EMPTY_FILM_ROOM_HISTORY: FilmRoomReport[] = [];
 const EMPTY_CBA_STATE: CBAState | null = null;
 const EMPTY_COMMISSIONER_STATE: CommissionerState | null = null;
 const EMPTY_LABOR_STATE: LaborState | null = null;
+const EMPTY_RECORD_CHASES: RecordChase[] = [];
+const EMPTY_BROKEN_RECORDS: BrokenRecord[] = [];
+const EMPTY_MILESTONES: MilestoneReached[] = [];
+const EMPTY_CAP_HEALTH: CapHealthReport = {
+  grade: 'C',
+  capSpace: 0,
+  capUsed: 0,
+  deadCapPct: 0,
+  topHeavyScore: 0,
+  flexibilityScore: 0,
+  futureRisk: 0,
+  recommendations: [],
+};
+const EMPTY_CAP_CANDIDATES: CapCandidate[] = [];
+const EMPTY_MULTI_YEAR_PROJECTION: MultiYearProjection = { years: [] };
+const EMPTY_STAT_LEADERBOARD: StatLeaderEntry[] = [];
+const EMPTY_CAREER_LEADERS: CareerLeader[] = [];
+const EMPTY_LEAGUE_AVERAGES: LeagueAverageEntry[] = [];
+const EMPTY_POSITION_RANKINGS: PositionRanking[] = [];
+const EMPTY_TEAM_SEASON_HISTORY: TeamSeasonSummary[] = [];
+const EMPTY_PLAYER_COMPARISON: PlayerComparison = {
+  players: [],
+  statColumns: [],
+  peakComparison: {},
+};
 
 export interface LeagueRuleDisplay {
   key: keyof LeagueRules['entries'];
@@ -1250,3 +1299,52 @@ function recordLabel(stat: RecordEntry['stat']): string {
   if (stat === 'defINT') return 'Interceptions';
   return 'Sacks';
 }
+
+function emptyCareerTimeline(playerId: string): CareerTimeline {
+  return {
+    playerId,
+    playerName: '',
+    pos: 'WR',
+    seasons: [],
+  };
+}
+
+export const selectRecordChases = (state: GameStoreState): RecordChase[] =>
+  state.game?.activeRecordChases ?? EMPTY_RECORD_CHASES;
+export const selectRecentBrokenRecords = (state: GameStoreState): BrokenRecord[] =>
+  state.game?.recentBrokenRecords ?? EMPTY_BROKEN_RECORDS;
+export const selectRecentMilestones = (state: GameStoreState): MilestoneReached[] =>
+  state.game?.recentMilestones ?? EMPTY_MILESTONES;
+export const selectCapHealth = (state: GameStoreState): CapHealthReport => {
+  const game = state.game;
+  const team = selectUserTeam(state);
+  if (!game || !team) return EMPTY_CAP_HEALTH;
+  return getCapHealth(team, game);
+};
+export const selectCapCandidates = (state: GameStoreState): CapCandidate[] => {
+  const team = selectUserTeam(state);
+  return team ? identifyCapCandidates(team) : EMPTY_CAP_CANDIDATES;
+};
+export const selectMultiYearProjection = (state: GameStoreState): MultiYearProjection => {
+  const game = state.game;
+  const team = selectUserTeam(state);
+  if (!game || !team) return EMPTY_MULTI_YEAR_PROJECTION;
+  return buildMultiYearProjection(team, game, 3);
+};
+export const selectLeagueLeaders = (stat: string, pos?: Position, season?: number) => (state: GameStoreState): StatLeaderEntry[] =>
+  state.game ? getStatLeaderboard(state.game, stat, season, pos) : EMPTY_STAT_LEADERBOARD;
+export const selectCareerStatLeaders = (stat: string, limit = 20) => (state: GameStoreState): CareerLeader[] =>
+  state.game ? getCareerLeaders(state.game, stat, limit) : EMPTY_CAREER_LEADERS;
+export const selectPlayerTimeline = (playerId: string) => (state: GameStoreState): CareerTimeline =>
+  state.game ? getPlayerCareerTimeline(state.game, playerId) : emptyCareerTimeline(playerId);
+export const selectPlayerCareerComparison = (playerIds: string[]) => (state: GameStoreState): PlayerComparison => {
+  const validIds = playerIds.filter((playerId) => playerId.length > 0);
+  if (!state.game || validIds.length === 0) return EMPTY_PLAYER_COMPARISON;
+  return comparePlayerCareers(state.game, validIds);
+};
+export const selectTeamSeasonHistory = (teamId: string) => (state: GameStoreState): TeamSeasonSummary[] =>
+  state.game ? getTeamSeasonHistory(state.game, teamId) : EMPTY_TEAM_SEASON_HISTORY;
+export const selectLeagueAverages = (stat: string) => (state: GameStoreState): LeagueAverageEntry[] =>
+  state.game ? getLeagueAverages(state.game, stat) : EMPTY_LEAGUE_AVERAGES;
+export const selectPositionRankings = (pos: Position) => (state: GameStoreState): PositionRanking[] =>
+  state.game ? getPositionRankings(state.game, pos) : EMPTY_POSITION_RANKINGS;

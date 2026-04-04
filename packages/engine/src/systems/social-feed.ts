@@ -1,8 +1,11 @@
 import type {
+  BrokenRecord,
   BroadcastOutput,
   GameResult,
   GameState,
+  MilestoneReached,
   Player,
+  RecordChase,
   SocialPost,
   SocialTrigger,
   Team,
@@ -58,7 +61,7 @@ function buildPost(
 }
 
 function postSentimentForTrigger(trigger: SocialTrigger): SocialPost['sentiment'] {
-  if (trigger === 'big_play' || trigger === 'achievement' || trigger === 'upset') return 'hype';
+  if (trigger === 'big_play' || trigger === 'achievement' || trigger === 'upset' || trigger === 'record') return 'hype';
   if (trigger === 'trade') return 'neutral';
   if (trigger === 'injury') return 'negative';
   return 'positive';
@@ -333,6 +336,89 @@ export function generateTransactionPosts(
     timestamp,
     replyTo: undefined,
   }, timestamp, `${type}-reporter`, rng)];
+}
+
+export function createRecordBreakingPost(
+  record: BrokenRecord,
+  week: number,
+  rng: PrngFn,
+): SocialPost {
+  return buildPost({
+    source: 'reporter',
+    authorName: pickWithRng(REPORTERS, rng),
+    authorPlayerId: undefined,
+    content: `${record.playerName} just broke the ${record.category === 'singleSeason' ? 'single-season' : 'single-game'} ${record.stat} record. ${record.newValue} passes ${record.previousHolder}'s ${record.previousValue}.`,
+    trigger: 'record',
+    sentiment: 'hype',
+    likes: likesFor(0.88, rng, 280),
+    timestamp: week,
+    replyTo: undefined,
+  }, week, 'record-post', rng);
+}
+
+export function createMilestonePost(
+  milestone: MilestoneReached,
+  week: number,
+  rng: PrngFn,
+): SocialPost {
+  return buildPost({
+    source: 'reporter',
+    authorName: pickWithRng(REPORTERS, rng),
+    authorPlayerId: undefined,
+    content: `${milestone.playerName} reaches ${milestone.milestoneLabel}. ${milestone.value} career ${milestone.stat} and counting.`,
+    trigger: 'milestone',
+    sentiment: 'positive',
+    likes: likesFor(0.64, rng, 190),
+    timestamp: week,
+    replyTo: undefined,
+  }, week, 'milestone-post', rng);
+}
+
+export function createRecordChasePost(
+  chase: RecordChase,
+  week: number,
+  rng: PrngFn,
+): SocialPost {
+  return buildPost({
+    source: 'analyst',
+    authorName: pickWithRng(ANALYSTS, rng),
+    authorPlayerId: undefined,
+    content: `${chase.playerName} is on pace for ${chase.projected} ${chase.stat} this season. The record is ${chase.recordValue}. ${chase.weeksRemaining} games to go.`,
+    trigger: 'record',
+    sentiment: 'hype',
+    likes: likesFor(0.56, rng, 160),
+    timestamp: week,
+    replyTo: undefined,
+  }, week, 'record-chase', rng);
+}
+
+export function createCapMovePost(
+  team: Team,
+  playerName: string,
+  moveType: string,
+  savings: number,
+  week: number,
+  rng: PrngFn,
+): SocialPost {
+  return buildPost({
+    source: 'analyst',
+    authorName: pickWithRng(ANALYSTS, rng),
+    authorPlayerId: undefined,
+    content: `${team.city} ${team.name} freed up $${roundMillion(savings)}M in cap space with a ${moveType.replaceAll('_', ' ')} of ${playerName}.`,
+    trigger: 'trade',
+    sentiment: 'neutral',
+    likes: likesFor(0.45, rng, 150),
+    timestamp: week,
+    replyTo: undefined,
+  }, week, 'cap-move', rng);
+}
+
+function roundMillion(value: number): string {
+  return round(value).toFixed(1);
+}
+
+function round(value: number): number {
+  return Math.round(value * 10) / 10;
 }
 
 export function generateWeeklyBuzz(gameState: GameState, week: number, rng: PrngFn): SocialPost[] {

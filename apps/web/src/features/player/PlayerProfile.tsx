@@ -299,6 +299,14 @@ export function PlayerProfile() {
       <PixelPanel title="Actions" accent="gold">
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelButton
+            accent="gold"
+            onClick={() => {
+              void navigate({ to: `/player/${player.id}/timeline` });
+            }}
+          >
+            View Career Timeline
+          </PixelButton>
+          <PixelButton
             accent="cyan"
             onClick={() => {
               setFocusedPlayerContext(player.id, 'trades');

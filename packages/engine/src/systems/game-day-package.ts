@@ -1,10 +1,12 @@
 import type { Hook } from './hooks-engine';
 import type {
+  BrokenRecord,
   GameDayPackage,
   GameDayPressConference,
   GameDayTopPerformer,
   GameDayTurningPoint,
   GameResult,
+  MilestoneReached,
   NarrativeHook,
   Player,
   PressConference,
@@ -24,6 +26,8 @@ interface BuildGameDayPackageParams {
   pressConference?: PressConference | null;
   rivalry?: RivalryGameContext | null;
   activeEffectSummaries?: string[];
+  recordsMoments?: BrokenRecord[];
+  milestoneMoments?: MilestoneReached[];
 }
 
 function findPlayer(team: Team, playerId: string | null): Player | null {
@@ -193,6 +197,8 @@ export function buildGameDayPackage(params: BuildGameDayPackageParams): GameDayP
     pressConference,
     rivalry = null,
     activeEffectSummaries = [],
+    recordsMoments = [],
+    milestoneMoments = [],
   } = params;
   const ceremony = buildCeremony(team, summary, activeArcs);
   const autopsy = buildAutopsy(team, summary, result);
@@ -251,5 +257,7 @@ export function buildGameDayPackage(params: BuildGameDayPackageParams): GameDayP
     primetime: result.primetime ?? false,
     flexed: result.flexed ?? false,
     specialTeamsHighlights: result.specialTeams?.[team.id]?.highlights ?? [],
+    recordsMoments,
+    milestoneMoments,
   };
 }

@@ -14,7 +14,14 @@ import {
 import { assignBroadcasts, flexSchedule } from './flex-schedule';
 import { generateAiGamePlan, generateOpponentScouting, resetGamePlan, upsertOpponentReport } from './game-plan';
 import { recordDynastyEvent } from './dynasty-timeline';
-import { generateWeeklyLeagueNews, recordLaborNews, recordNewsItem } from './league-news';
+import {
+  createMilestoneNews,
+  createRecordBreakingNews,
+  createStatWatchNews,
+  generateWeeklyLeagueNews,
+  recordLaborNews,
+  recordNewsItem,
+} from './league-news';
 import { checkWorkStoppage, generateLaborEvent, initLaborState, updateUnionSatisfaction } from './labor-relations';
 import { recordBeat, shouldGenerateEvent } from './narrative-director';
 import { advanceFreeAgency, advanceOffseason, initializeOffseasonState } from './offseason';
@@ -25,6 +32,12 @@ import { archivePlayerSeasonHistory } from './player-profile';
 import { processCarryoverHoldouts } from './player-agents';
 import { archiveSeasonHistory } from './history';
 import { generateFarewellMoment } from './jersey-retirement';
+import {
+  checkMilestones,
+  checkRecordChases,
+  detectBrokenRecords,
+  getLeagueLeaders,
+} from './record-tracker';
 import { advanceStoryArcs } from './story-arcs';
 import { buildGameDayPackage } from './game-day-package';
 import { buildFilmRoomReport } from './film-room';
@@ -55,7 +68,15 @@ import { generateTradeOffers } from './trade-market';
 import { findTradeTargets } from './trade-finder';
 import { buildWeeklySummary } from './weekly-summary';
 import { autoAssignSpecialTeams } from './special-teams';
-import { appendToSocialFeed, createLaborPost, generateGameDayPosts, generateWeeklyBuzz } from './social-feed';
+import {
+  appendToSocialFeed,
+  createLaborPost,
+  createMilestonePost,
+  createRecordBreakingPost,
+  createRecordChasePost,
+  generateGameDayPosts,
+  generateWeeklyBuzz,
+} from './social-feed';
 import { generateBroadcast } from './broadcast';
 import { advanceScenarioSeason, checkScenarioProgress } from './scenario-challenge';
 import { initializeDeadline } from './trade-deadline';
@@ -147,6 +168,8 @@ function appendGameDayPackage(
     rivalry?: RivalryGameContext | null;
     activeEffectSummaries?: string[];
     filmRoomReport?: ReturnType<typeof buildFilmRoomReport> | null;
+    recordsMoments?: GameState['recentBrokenRecords'];
+    milestoneMoments?: GameState['recentMilestones'];
   },
 ): void {
   refreshNarrative(nextState);
@@ -162,6 +185,8 @@ function appendGameDayPackage(
     pressConference: options?.pressConference ?? null,
     rivalry: options?.rivalry ?? null,
     activeEffectSummaries: options?.activeEffectSummaries ?? [],
+    recordsMoments: options?.recordsMoments ?? [],
+    milestoneMoments: options?.milestoneMoments ?? [],
   });
   if (options?.filmRoomReport) {
     packageData.prepGrade = options.filmRoomReport.grade;
@@ -364,6 +389,10 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   let userActiveEffectSummaries: string[] = [];
   let userPrepOutcome: ReturnType<typeof evaluateWeeklyPrep> | null = null;
   let userPrepIntel: ReturnType<typeof buildOpponentIntel> | null = null;
+  let userRecordMoments: GameState['recentBrokenRecords'] = [];
+  let userMilestoneMoments: GameState['recentMilestones'] = [];
+  const weeklyBrokenRecords: GameState['recentBrokenRecords'] = [];
+  const weeklyMilestones: GameState['recentMilestones'] = [];
   const ambientSocialPosts: NonNullable<GameState['socialFeed']> = [];
   let label: string | undefined;
   let completedRegularSeasonWeek = false;
@@ -372,6 +401,9 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   reseedSeason(game.year);
   reseedWeek(game.year, game.week);
   ensureLivingWorldState(nextState);
+  nextState.activeRecordChases ??= [];
+  nextState.recentBrokenRecords ??= [];
+  nextState.recentMilestones ??= [];
   nextState.cbaState.status = checkCBAStatus(nextState.cbaState, nextState.year);
   if (nextState.leagueRivalries.length === 0) {
     seedLeagueRivalries(nextState);
@@ -558,6 +590,10 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       );
       nextState.playerRivalries = detectNewRivalries(outcome.result, home, away, nextState.playerRivalries, RNG.ai);
       updateRecordsFromGameResult(nextState, outcome.result);
+      const brokenRecords = detectBrokenRecords(nextState, [outcome.result]);
+      const reachedMilestones = checkMilestones(nextState);
+      weeklyBrokenRecords.push(...brokenRecords);
+      weeklyMilestones.push(...reachedMilestones);
       updateLeagueRivalriesFromGame(nextState, outcome.result);
       for (const rivalryEntry of nextState.playerRivalries.filter((entry) => {
         const ids = [entry.teamAId, entry.teamBId];
@@ -593,6 +629,9 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         userOpponent = home.id === startingUser.id ? away : home;
         userInjuries = outcome.injuries[startingUser.id] ?? [];
         userRivalry = rivalry;
+        userRecordMoments = brokenRecords.filter((record) => record.teamId === startingUser.id);
+        userMilestoneMoments = reachedMilestones.filter((milestone) =>
+          nextState.players[milestone.playerId]?.teamId === startingUser.id);
         const userEffects = home.id === startingUser.id ? homeEffects : awayEffects;
         userPrepOutcome = home.id === startingUser.id ? homePlanContext.prepOutcome ?? null : awayPlanContext.prepOutcome ?? null;
         userPrepIntel = home.id === startingUser.id ? homePlanContext.prepIntel ?? null : awayPlanContext.prepIntel ?? null;
@@ -719,6 +758,11 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
           : entry,
       );
       nextState.playerRivalries = detectNewRivalries(outcome.result, home, away, nextState.playerRivalries, RNG.ai);
+      updateRecordsFromGameResult(nextState, outcome.result);
+      const brokenRecords = detectBrokenRecords(nextState, [outcome.result]);
+      const reachedMilestones = checkMilestones(nextState);
+      weeklyBrokenRecords.push(...brokenRecords);
+      weeklyMilestones.push(...reachedMilestones);
       updateLeagueRivalriesFromGame(nextState, outcome.result, { playoffElimination: true });
       ownerDelta += updateOwner(home, nextState);
       ownerDelta += updateOwner(away, nextState);
@@ -731,6 +775,9 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         userOpponent = home.id === startingUser.id ? away : home;
         userInjuries = outcome.injuries[startingUser.id] ?? [];
         userRivalry = rivalry;
+        userRecordMoments = brokenRecords.filter((record) => record.teamId === startingUser.id);
+        userMilestoneMoments = reachedMilestones.filter((milestone) =>
+          nextState.players[milestone.playerId]?.teamId === startingUser.id);
         const userEffects = home.id === startingUser.id ? homeEffects : awayEffects;
         userPrepOutcome = home.id === startingUser.id ? homePlanContext.prepOutcome ?? null : awayPlanContext.prepOutcome ?? null;
         userPrepIntel = home.id === startingUser.id ? homePlanContext.prepIntel ?? null : awayPlanContext.prepIntel ?? null;
@@ -768,6 +815,21 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   evaluateHandshakes(nextState);
 
   syncPlayers(nextState);
+  if (weeklyBrokenRecords.length > 0) {
+    nextState.recentBrokenRecords = [...nextState.recentBrokenRecords, ...weeklyBrokenRecords].slice(-25);
+    for (const record of weeklyBrokenRecords) {
+      createRecordBreakingNews(nextState, record);
+    }
+  }
+  if (weeklyMilestones.length > 0) {
+    nextState.recentMilestones = [...nextState.recentMilestones, ...weeklyMilestones].slice(-25);
+    for (const milestone of weeklyMilestones) {
+      createMilestoneNews(nextState, milestone);
+    }
+  }
+  nextState.activeRecordChases = nextState.phase === 'regular_season'
+    ? checkRecordChases(nextState)
+    : [];
   const currentUser = findUserTeam(nextState);
   if (currentUser && userResult) {
     const userOutcome = userResult.homeTeamId === currentUser.id
@@ -822,6 +884,8 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       rivalry: userRivalry,
       activeEffectSummaries: userActiveEffectSummaries,
       filmRoomReport,
+      recordsMoments: userRecordMoments,
+      milestoneMoments: userMilestoneMoments,
     });
     recordPressConference(nextState, postGameConference);
     recordBeat(nextState, {
@@ -861,6 +925,8 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   if (currentUser && (game.phase === 'regular_season' || game.phase === 'playoffs')) {
     const newPosts = [
       ...ambientSocialPosts,
+      ...weeklyBrokenRecords.map((record) => createRecordBreakingPost(record, playedWeek, RNG.ai)),
+      ...weeklyMilestones.map((milestone) => createMilestonePost(milestone, playedWeek, RNG.ai)),
       ...(userResult?.broadcast
         ? generateGameDayPosts(
           userResult.broadcast,
@@ -871,6 +937,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
           RNG.ai,
         )
         : []),
+      ...nextState.activeRecordChases.slice(0, 3).map((chase) => createRecordChasePost(chase, playedWeek, RNG.ai)),
       ...generateWeeklyBuzz(nextState, playedWeek, RNG.ai),
     ];
     nextState.socialFeed = appendToSocialFeed(nextState.socialFeed, newPosts);
@@ -878,6 +945,12 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
 
   if (completedRegularSeasonWeek) {
     generateWeeklyLeagueNews(nextState, RNG.ai);
+    for (const stat of ['passYds', 'rushYds', 'sacks'] as const) {
+      const leader = getLeagueLeaders(nextState, stat, undefined, 1)[0];
+      if (leader) {
+        createStatWatchNews(nextState, stat, leader);
+      }
+    }
   }
 
   checkAchievements(nextState);

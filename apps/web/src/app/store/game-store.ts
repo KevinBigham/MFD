@@ -4,9 +4,14 @@
  * Holds the full GameState from @mfd/engine and exposes actions
  * that call engine functions to mutate state.
  */
+import { useCallback } from 'react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type {
+  CapCandidate,
+  CapHealthReport,
+  CapMove,
+  CareerTimeline,
   ContractOffer,
   DashboardWidget,
   DraftTradeOffer,
@@ -17,17 +22,23 @@ import type {
   GameState,
   LeagueRuleKey,
   LeagueRuleValue,
+  MilestoneReached,
   OpponentReport,
+  Position,
   RelocationDestination,
+  RecordChase,
   SeasonPhase,
   StaffCandidate,
   StaffRole,
+  StatLeaderEntry,
   Team,
   TradeOfferAsset,
   TradeProposal,
   TrainingFocus,
   WeeklyPrepPlan,
   WeeklySummary,
+  BrokenRecord,
+  MultiYearProjection,
 } from '@mfd/engine';
 import {
   acceptEndorsement as acceptEndorsementEngine,
@@ -43,6 +54,7 @@ import {
   applyExtensionOffer,
   appointCaptain,
   assignTraining as assignTrainingEngine,
+  buildCapScenario,
   callTeamMeeting as callTeamMeetingEngine,
   acceptCounterProposal as acceptCounterProposalEngine,
   advanceDeadlineClock as advanceDeadlineClockEngine,
@@ -50,6 +62,7 @@ import {
   castVote as castRuleVote,
   checkCBAStatus,
   completeTutorialAction as completeTutorialActionEngine,
+  createCapMovePost,
   createGovernancePost,
   createLaborPost,
   diffRules,
@@ -75,6 +88,8 @@ import {
   initializeOffseasonState,
   LEAGUE_RULE_DEFINITIONS,
   getRelocationDestinations,
+  getPlayerCareerTimeline,
+  getStatLeaderboard,
   makeExpansionPick as makeExpansionPickEngine,
   makePlayerPromise as makePlayerPromiseEngine,
   mulberry32,
@@ -96,7 +111,11 @@ import {
   promoteCoordinator,
   runProDay as runProDayEngine,
   runPrivateWorkout as runPrivateWorkoutEngine,
+  simulateBackload,
   simulateAIVotes,
+  simulateCut,
+  simulateExtension,
+  simulateRestructure,
   updateOwnerApproval,
   updateSystemFit,
   earnXP,
@@ -128,7 +147,16 @@ import {
   upgradeFacility as upgradeFacilityEngine,
 } from '@mfd/engine';
 import { autosaveDynasty, loadLatestAutosaveGame } from './persistence';
-import type { GameStoreState } from './selectors';
+import {
+  selectCapCandidates,
+  selectCapHealth,
+  selectMultiYearProjection,
+  selectPlayerTimeline,
+  selectRecentBrokenRecords,
+  selectRecentMilestones,
+  selectRecordChases,
+  type GameStoreState,
+} from './selectors';
 import { runAdvanceWeek } from './sim';
 import { useUiStore } from './ui-store';
 import { createSeedGameState, getTeamOptions } from './seed';
@@ -161,6 +189,8 @@ interface GameActions {
   // Contract actions
   restructure: (teamId: string, playerId: string) => void;
   backload: (teamId: string, playerId: string, voidYears?: number) => void;
+  executeCapMoves: (moves: CapMove[]) => Promise<void>;
+  executeCapMove: (move: CapMove) => Promise<void>;
   negotiateContract: (playerId: string, offer: ContractOffer) => Promise<void>;
 
   // Week advance
@@ -386,6 +416,36 @@ export const useGameStore = create<GameStore>()(
       for (const team of Object.values(game.teams)) {
         team.capSpace = Math.round((salaryCap - team.capUsed) * 10) / 10;
       }
+    };
+    const roundMoney = (value: number) => Math.round(value * 10) / 10;
+    const syncTeamCapTotals = (game: GameState, team: Team) => {
+      const contractCommitments = team.roster.reduce((sum, player) => sum + calcCapHit(player.contract ?? null), 0);
+      team.capUsed = roundMoney(contractCommitments + team.deadCap);
+      team.capSpace = roundMoney(getSalaryCap(game.year, game) - team.capUsed);
+    };
+    const syncPlayerContractReference = (game: GameState, teamId: string, playerId: string) => {
+      const team = game.teams[teamId];
+      const teamPlayer = team?.roster.find((entry) => entry.id === playerId) ?? null;
+      const player = game.players[playerId];
+      if (!team || !teamPlayer || !player) return;
+      player.teamId = teamId;
+      player.contract = teamPlayer.contract;
+    };
+    const buildCapMoveOffer = (playerId: string, years: number, avgSalary: number): ExtensionOffer => {
+      const newYears = Math.max(1, Math.min(5, years));
+      const newAvgSalary = roundMoney(Math.max(0.5, avgSalary));
+      const signingBonus = roundMoney(newAvgSalary * newYears * 0.2);
+      const guaranteedAmount = roundMoney(newAvgSalary * Math.min(newYears, 2));
+      const yearlyProration = roundMoney(signingBonus / newYears);
+      return {
+        playerId,
+        newYears,
+        newAvgSalary,
+        guaranteedAmount,
+        signingBonus,
+        capHitByYear: Array.from({ length: newYears }, (_, index) =>
+          roundMoney(newAvgSalary * (1 + index * 0.04) + yearlyProration)),
+      };
     };
     const applyOwnerMoodDelta = (team: Team, delta: number) => {
       team.ownerMood = clampMeter((team.ownerMood ?? team.owner.approval ?? 50) + delta);
@@ -649,6 +709,121 @@ export const useGameStore = create<GameStore>()(
             team.capSpace += result.savings;
           }
         }),
+
+      executeCapMoves: async (moves) => {
+        if (moves.length === 0) return;
+
+        const current = get().game;
+        if (!current) return;
+
+        let nextGame = cloneForMutation(current);
+        const userTeam = getUserTeam(nextGame);
+        if (!userTeam) return;
+
+        let scenario = buildCapScenario(userTeam, nextGame);
+        const previews: Array<{
+          move: CapMove;
+          capSaved: number;
+          playerName: string;
+        }> = [];
+
+        for (const move of moves) {
+          if (move.type === 'trade') {
+            return;
+          }
+
+          const playerName = nextGame.players[move.playerId]?.name
+            ?? userTeam.roster.find((player) => player.id === move.playerId)?.name
+            ?? move.playerId;
+
+          const preview = move.type === 'restructure'
+            ? simulateRestructure(scenario, move.playerId)
+            : move.type === 'backload'
+              ? simulateBackload(scenario, move.playerId, move.params?.voidYears ?? 1)
+              : move.type === 'cut'
+                ? simulateCut(scenario, move.playerId, false)
+                : move.type === 'post_june_1_cut'
+                  ? simulateCut(scenario, move.playerId, true)
+                  : simulateExtension(
+                    scenario,
+                    move.playerId,
+                    move.params?.years ?? 2,
+                    move.params?.avgSalary ?? 1,
+                  );
+
+          if (!preview.success) {
+            return;
+          }
+
+          previews.push({
+            move,
+            capSaved: preview.capSaved,
+            playerName,
+          });
+          scenario = preview.scenario;
+        }
+
+        for (const [index, preview] of previews.entries()) {
+          const team = nextGame.teams[userTeam.id];
+          if (!team) return;
+
+          const rosterPlayer = team.roster.find((player) => player.id === preview.move.playerId) ?? null;
+
+          if (preview.move.type === 'restructure') {
+            if (!rosterPlayer?.contract) return;
+            const result = restructureContract({ contract: rosterPlayer.contract });
+            if (!result.ok) return;
+            syncPlayerContractReference(nextGame, team.id, preview.move.playerId);
+            syncTeamCapTotals(nextGame, team);
+          } else if (preview.move.type === 'backload') {
+            if (!rosterPlayer?.contract) return;
+            const result = backloadContract({ contract: rosterPlayer.contract }, preview.move.params?.voidYears ?? 1);
+            if (!result.ok) return;
+            syncPlayerContractReference(nextGame, team.id, preview.move.playerId);
+            syncTeamCapTotals(nextGame, team);
+          } else if (preview.move.type === 'cut') {
+            const result = cutPlayerToWaiversEngine(nextGame, team.id, preview.move.playerId);
+            nextGame = result.nextState;
+          } else if (preview.move.type === 'post_june_1_cut') {
+            applyPostJune1CutToGame(nextGame, team.id, preview.move.playerId);
+          } else if (preview.move.type === 'extend') {
+            if (!rosterPlayer) return;
+            nextGame = applyExtensionOffer(
+              nextGame,
+              team.id,
+              buildCapMoveOffer(
+                preview.move.playerId,
+                preview.move.params?.years ?? 2,
+                preview.move.params?.avgSalary ?? rosterPlayer.contract?.baseSalary ?? 1,
+              ),
+            );
+            syncTeamCapTotals(nextGame, nextGame.teams[team.id]!);
+          }
+
+          const currentTeam = nextGame.teams[userTeam.id];
+          if (!currentTeam) return;
+
+          nextGame.socialFeed = [
+            createCapMovePost(
+              currentTeam,
+              preview.playerName,
+              preview.move.type,
+              preview.capSaved,
+              nextGame.week,
+              intelRng(nextGame, `cap-move:${preview.move.type}:${preview.move.playerId}:${index}`),
+            ),
+            ...nextGame.socialFeed,
+          ].slice(0, 200);
+        }
+
+        syncTeamCapTotals(nextGame, nextGame.teams[userTeam.id]!);
+        refreshLeagueCapSpace(nextGame);
+        await commitGame(nextGame);
+      },
+
+      executeCapMove: async (move) => {
+        await get().actions.executeCapMoves([move]);
+      },
 
       advanceWeek: async () => {
         const current = get().game;
@@ -1720,3 +1895,50 @@ export const useGameStore = create<GameStore>()(
   });
   }),
 );
+
+const EMPTY_TIMELINE = (playerId: string): CareerTimeline => ({
+  playerId,
+  playerName: '',
+  pos: 'WR',
+  seasons: [],
+});
+
+export function useRecordChases(): RecordChase[] {
+  return useGameStore(selectRecordChases);
+}
+
+export function useRecentBrokenRecords(): BrokenRecord[] {
+  return useGameStore(selectRecentBrokenRecords);
+}
+
+export function useRecentMilestones(): MilestoneReached[] {
+  return useGameStore(selectRecentMilestones);
+}
+
+export function useCapHealth(): CapHealthReport {
+  return useGameStore(selectCapHealth);
+}
+
+export function useCapCandidates(): CapCandidate[] {
+  return useGameStore(selectCapCandidates);
+}
+
+export function useMultiYearProjection(): MultiYearProjection {
+  return useGameStore(selectMultiYearProjection);
+}
+
+export function useLeagueLeaders() {
+  const game = useGameStore((state) => state.game);
+  return useCallback((stat: string, pos?: Position, season?: number): StatLeaderEntry[] => {
+    if (!game) return [];
+    return getStatLeaderboard(game, stat, season, pos);
+  }, [game]);
+}
+
+export function usePlayerTimeline() {
+  const game = useGameStore((state) => state.game);
+  return useCallback((playerId: string): CareerTimeline => {
+    if (!game) return EMPTY_TIMELINE(playerId);
+    return getPlayerCareerTimeline(game, playerId);
+  }, [game]);
+}

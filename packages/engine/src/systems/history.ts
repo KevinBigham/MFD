@@ -166,6 +166,11 @@ export function archiveSeasonHistory(game: GameState): FranchiseHistoryEntry[] {
         prestige: identity.prestige,
         attendance: identity.attendance,
         stadiumName: identity.stadiumName,
+        keyStats: {
+          totalYards: team.seasonStats.totalYards,
+          pointsFor: team.seasonStats.pointsFor,
+          pointsAgainst: team.seasonStats.pointsAgainst,
+        },
       } satisfies FranchiseHistoryEntry;
     });
 

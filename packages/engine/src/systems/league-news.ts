@@ -1,4 +1,4 @@
-import type { GameResult, GameState, NewsItem, Player, Team } from '../types';
+import type { BrokenRecord, GameResult, GameState, LeagueLeader, MilestoneReached, NewsItem, Player, Team } from '../types';
 
 function nextNewsId(game: GameState, type: NewsItem['type']): string {
   return `${type}-${game.year}-${game.week}-${game.leagueNews.length}`;
@@ -68,6 +68,52 @@ export function recordLaborNews(
     teamIds: options?.teamIds ?? [],
     playerIds: options?.playerIds ?? [],
     importance: options?.importance ?? 'major',
+  });
+}
+
+export function createRecordBreakingNews(game: GameState, record: BrokenRecord): NewsItem {
+  return recordNewsItem(game, {
+    id: `record-${record.playerId}-${record.stat}-${record.category}-${record.year}-${record.week}`,
+    year: record.year,
+    week: record.week,
+    type: 'record',
+    headline: `RECORD BROKEN: ${record.playerName} sets the ${record.category === 'singleSeason' ? 'single-season' : 'single-game'} ${record.stat} mark`,
+    body: `${record.narrative} ${record.newValue} tops ${record.previousHolder}'s ${record.previousValue}.`,
+    teamIds: [record.teamId],
+    playerIds: [record.playerId],
+    importance: 'breaking',
+  });
+}
+
+export function createMilestoneNews(game: GameState, milestone: MilestoneReached): NewsItem {
+  return recordNewsItem(game, {
+    id: `milestone-${milestone.playerId}-${milestone.stat}-${milestone.year}-${milestone.week}-${milestone.milestoneLabel}`,
+    year: milestone.year,
+    week: milestone.week,
+    type: 'milestone',
+    headline: `MILESTONE: ${milestone.playerName} joins elite company with ${milestone.value} career ${milestone.stat}`,
+    body: milestone.narrative,
+    teamIds: game.players[milestone.playerId]?.teamId ? [game.players[milestone.playerId]!.teamId!] : [],
+    playerIds: [milestone.playerId],
+    importance: 'major',
+  });
+}
+
+export function createStatWatchNews(
+  game: GameState,
+  stat: string,
+  leader: LeagueLeader,
+): NewsItem {
+  return recordNewsItem(game, {
+    id: `stat-watch-${stat}-${leader.playerId}-${game.year}-${game.week}`,
+    year: game.year,
+    week: game.week,
+    type: 'record',
+    headline: `STAT WATCH: ${leader.playerName} leads the league in ${stat} (${leader.value})`,
+    body: `${leader.playerName} of ${leader.teamAbbr} sits on top of the ${stat} leaderboard.`,
+    teamIds: [leader.teamId],
+    playerIds: [leader.playerId],
+    importance: 'minor',
   });
 }
 

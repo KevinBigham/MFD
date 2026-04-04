@@ -68,6 +68,19 @@ function stableSort(a: RecordEntry, b: RecordEntry): number {
   return (a.playerId ?? '').localeCompare(b.playerId ?? '');
 }
 
+function recordIdentity(entry: RecordEntry): string {
+  if (entry.category === 'singleGame') {
+    return [entry.category, entry.stat, entry.year, entry.week ?? 0, entry.teamId, entry.playerId ?? ''].join(':');
+  }
+  if (entry.category === 'singleSeason') {
+    return [entry.category, entry.stat, entry.year, entry.teamId, entry.playerId ?? ''].join(':');
+  }
+  if (entry.category === 'career') {
+    return [entry.category, entry.stat, entry.teamId, entry.playerId ?? ''].join(':');
+  }
+  return [entry.category, entry.stat, entry.year, entry.teamId].join(':');
+}
+
 function upsertRecord(
   book: RecordBook,
   category: keyof RecordBook,
@@ -75,7 +88,11 @@ function upsertRecord(
   entry: RecordEntry,
 ): RecordEntry[] {
   const bucket = book[category];
-  bucket[stat] = [...(bucket[stat] ?? []), entry].sort(stableSort).slice(0, 10);
+  const existing = bucket[stat] ?? [];
+  const identity = recordIdentity(entry);
+  bucket[stat] = [...existing.filter((candidate) => recordIdentity(candidate) !== identity), entry]
+    .sort(stableSort)
+    .slice(0, 10);
   return bucket[stat]!;
 }
 

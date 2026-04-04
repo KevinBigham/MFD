@@ -53,8 +53,12 @@ const LazyPracticeSquad = lazy(async () => ({ default: (await import('../feature
 const LazyGamePlanSetup = lazy(async () => ({ default: (await import('../features/game-plan/GamePlanSetup')).GamePlanSetup }));
 const LazyDraftRecap = lazy(async () => ({ default: (await import('../features/draft/DraftRecap')).DraftRecap }));
 const LazyPlayerProfile = lazy(async () => ({ default: (await import('../features/player/PlayerProfile')).PlayerProfile }));
+const LazyPlayerTimeline = lazy(async () => ({ default: (await import('../features/stats/PlayerTimeline')).default }));
 const LazyPlayerRivalries = lazy(async () => ({ default: (await import('../features/player/PlayerRivalries')).PlayerRivalries }));
+const LazyRecordBook = lazy(async () => ({ default: (await import('../features/stats/RecordBook')).default }));
+const LazyStatCentral = lazy(async () => ({ default: (await import('../features/stats/StatCentral')).default }));
 const LazyTeamNeeds = lazy(async () => ({ default: (await import('../features/team-needs/TeamNeeds')).TeamNeeds }));
+const LazyCapLaboratory = lazy(async () => ({ default: (await import('../features/contracts/CapLaboratory')).default }));
 const LazyFATargetBoard = lazy(async () => ({ default: (await import('../features/free-agency/FATargetBoard')).FATargetBoard }));
 const LazyFilmRoom = lazy(async () => ({ default: (await import('../features/film-room/FilmRoom')).FilmRoom }));
 const LazyGameBroadcast = lazy(async () => ({ default: (await import('../features/broadcast/GameBroadcast')).GameBroadcast }));
@@ -86,6 +90,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/roster',       label: 'Roster',          shortLabel: 'Roster',   icon: <Users size={16} />,          shortcut: '2' },
   { path: '/locker-room',  label: 'Locker Room',     shortLabel: 'Locker',   icon: <Users2 size={16} /> },
   { path: '/contracts',    label: 'Contracts',        shortLabel: 'Cap',      icon: <DollarSign size={16} />,     shortcut: '3' },
+  { path: '/cap-lab',      label: 'Cap Lab',          shortLabel: 'Cap Lab',  icon: <DollarSign size={16} /> },
   { path: '/endorsements', label: 'Endorsements',     shortLabel: 'Deals',    icon: <Sparkles size={16} /> },
   { path: '/trades',       label: 'Trades',           shortLabel: 'Trades',   icon: <ArrowLeftRight size={16} />, shortcut: '4' },
   { path: '/team-needs',   label: 'Team Needs',       shortLabel: 'Needs',    icon: <BarChart3 size={16} /> },
@@ -108,6 +113,8 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/week-advance',  label: 'Advance Week',     shortLabel: 'Advance',  icon: <Play size={16} /> },
   { path: '/handshakes',    label: 'Handshakes',       shortLabel: 'Promises', icon: <ScrollText size={16} /> },
   { path: '/news',          label: 'News',             shortLabel: 'News',     icon: <Newspaper size={16} /> },
+  { path: '/records',       label: 'Record Book',      shortLabel: 'Records',  icon: <ScrollText size={16} /> },
+  { path: '/stat-central',  label: 'Stat Central',     shortLabel: 'Stats',    icon: <BarChart3 size={16} /> },
   { path: '/standings',     label: 'Standings',        shortLabel: 'Stand',    icon: <BarChart3 size={16} /> },
   { path: '/analytics',     label: 'Analytics',        shortLabel: 'Data',     icon: <Activity size={16} /> },
   { path: '/power-rankings',label: 'Power Rankings',   shortLabel: 'Rankings', icon: <TrendingUp size={16} /> },
@@ -469,6 +476,16 @@ const contractsRoute = createRoute({
   component: ContractsCap,
 });
 
+const capLabRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/cap-lab',
+  component: () => (
+    <LazyRouteFrame label="cap laboratory">
+      <LazyCapLaboratory />
+    </LazyRouteFrame>
+  ),
+});
+
 const lockerRoomRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/locker-room',
@@ -629,6 +646,16 @@ const playerProfileRoute = createRoute({
   ),
 });
 
+const playerTimelineRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/player/$playerId/timeline',
+  component: () => (
+    <LazyRouteFrame label="player timeline">
+      <LazyPlayerTimeline />
+    </LazyRouteFrame>
+  ),
+});
+
 const rivalriesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/rivalries',
@@ -773,6 +800,26 @@ const newsRoute = createRoute({
   ),
 });
 
+const recordsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/records',
+  component: () => (
+    <LazyRouteFrame label="record book">
+      <LazyRecordBook />
+    </LazyRouteFrame>
+  ),
+});
+
+const statCentralRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/stat-central',
+  component: () => (
+    <LazyRouteFrame label="stat central">
+      <LazyStatCentral />
+    </LazyRouteFrame>
+  ),
+});
+
 const standingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/standings',
@@ -841,12 +888,12 @@ const settingsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  rosterRoute, lockerRoomRoute, contractsRoute, endorsementsRoute, tradesRoute,
+  rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, endorsementsRoute, tradesRoute,
   scoutingRoute, draftRoute, freeAgencyRoute, faTargetsRoute,
   gameDayRoute, broadcastRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
-  scheduleRoute, depthChartRoute, playerProfileRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, filmRoomRoute, tradeDeadlineRoute,
+  scheduleRoute, depthChartRoute, playerProfileRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
-  newsRoute, standingsRoute, analyticsRoute,
+  newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, settingsRoute,
 ]);
 

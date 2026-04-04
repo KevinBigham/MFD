@@ -1171,6 +1171,7 @@ export type SocialPostSource = 'player' | 'fan' | 'analyst' | 'reporter' | 'team
 
 export type SocialTrigger =
   | 'big_play'
+  | 'record'
   | 'trade'
   | 'signing'
   | 'injury'
@@ -1989,6 +1990,8 @@ export interface GameDayPackage {
   prepGrade?: string | null;
   coachingNotes?: string[];
   carryForwardRecommendations?: string[];
+  recordsMoments: BrokenRecord[];
+  milestoneMoments: MilestoneReached[];
 }
 
 export type StaffRole = StaffMember['role'];
@@ -2237,6 +2240,263 @@ export interface RecordBook {
   singleSeason: RecordBucket;
   career: RecordBucket;
   franchise: RecordBucket;
+}
+
+export type RecordCategory = keyof RecordBook;
+
+export interface RecordChase {
+  playerId: string;
+  playerName: string;
+  teamId: string;
+  stat: string;
+  currentValue: number;
+  recordValue: number;
+  recordHolder: string;
+  pace: number;
+  category: RecordCategory;
+  weeksRemaining: number;
+  projected: number;
+}
+
+export interface BrokenRecord {
+  playerId: string;
+  playerName: string;
+  teamId: string;
+  stat: string;
+  newValue: number;
+  previousValue: number;
+  previousHolder: string;
+  category: 'singleGame' | 'singleSeason';
+  year: number;
+  week: number;
+  narrative: string;
+}
+
+export interface MilestoneChase {
+  playerId: string;
+  playerName: string;
+  stat: string;
+  currentValue: number;
+  milestoneValue: number;
+  milestoneLabel: string;
+  remaining: number;
+  pace: number;
+}
+
+export interface MilestoneReached {
+  playerId: string;
+  playerName: string;
+  stat: string;
+  value: number;
+  milestoneLabel: string;
+  narrative: string;
+  year: number;
+  week: number;
+}
+
+export interface LeagueLeader {
+  playerId: string;
+  playerName: string;
+  teamId: string;
+  teamAbbr: string;
+  pos: Position;
+  value: number;
+  rank: number;
+}
+
+export interface CareerLeader {
+  playerId: string;
+  playerName: string;
+  pos: Position;
+  value: number;
+  rank: number;
+  isActive: boolean;
+  years: number;
+}
+
+export interface PaceProjection {
+  stat: string;
+  currentValue: number;
+  projected: number;
+  gamesRemaining: number;
+  onRecordPace: boolean;
+  recordValue: number;
+  recordHolder: string;
+  pacePct: number;
+}
+
+export interface YearProjection {
+  year: number;
+  capTotal: number;
+  committed: number;
+  deadCap: number;
+  available: number;
+  expiringContracts: string[];
+  notes: string[];
+}
+
+export interface CapMove {
+  type: 'restructure' | 'backload' | 'cut' | 'post_june_1_cut' | 'extend' | 'trade';
+  playerId: string;
+  params?: {
+    voidYears?: number;
+    years?: number;
+    avgSalary?: number;
+  };
+}
+
+export interface CapScenario {
+  teamId: string;
+  originalCapSpace: number;
+  originalCapUsed: number;
+  originalDeadCap: number;
+  contracts: Contract[];
+  appliedMoves: CapMove[];
+  currentCapSpace: number;
+  currentCapUsed: number;
+  currentDeadCap: number;
+  projections: YearProjection[];
+}
+
+export interface CapScenarioResult {
+  success: boolean;
+  capSpaceBefore: number;
+  capSpaceAfter: number;
+  capSaved: number;
+  deadCapAdded: number;
+  yearlyImpact: YearProjection[];
+  warnings: string[];
+  details: string;
+  scenario: CapScenario;
+}
+
+export interface CapHealthReport {
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  capSpace: number;
+  capUsed: number;
+  deadCapPct: number;
+  topHeavyScore: number;
+  flexibilityScore: number;
+  futureRisk: number;
+  recommendations: string[];
+}
+
+export interface CapCandidate {
+  playerId: string;
+  playerName: string;
+  pos: Position;
+  capHit: number;
+  deadIfCut: number;
+  deadIfTraded: number;
+  savingsIfCut: number;
+  savingsIfTraded: number;
+  restructureSavings: number;
+  backloadSavings: number;
+  recommendation: 'restructure' | 'backload' | 'cut' | 'trade' | 'hold';
+}
+
+export interface MultiYearProjection {
+  years: YearProjection[];
+}
+
+export interface StatLeaderEntry {
+  rank: number;
+  playerId: string;
+  playerName: string;
+  teamId: string | null;
+  teamAbbr: string;
+  pos: Position;
+  value: number;
+  gamesPlayed: number;
+  perGame: number;
+}
+
+export interface CareerSeasonEntry {
+  year: number;
+  teamId: string | null;
+  teamAbbr: string;
+  age: number;
+  ovr: number;
+  stats: PlayerSeasonStats;
+  awards: string[];
+  highlights: string[];
+}
+
+export interface CareerTimeline {
+  playerId: string;
+  playerName: string;
+  pos: Position;
+  seasons: CareerSeasonEntry[];
+}
+
+export interface ComparedPlayer {
+  playerId: string;
+  playerName: string;
+  pos: Position;
+  peakOvr: number;
+  careerLength: number;
+  championships: number;
+  mvps: number;
+  allPros: number;
+  seasons: Array<{
+    year: number;
+    ovr: number;
+    keyStats: Record<string, number>;
+  }>;
+}
+
+export interface PlayerComparison {
+  players: ComparedPlayer[];
+  statColumns: string[];
+  peakComparison: Record<string, {
+    leader: string;
+    values: Record<string, number>;
+  }>;
+}
+
+export interface TeamSeasonSummary {
+  year: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  playoffResult: string;
+  mvpName: string | null;
+  keyStats: {
+    totalYards: number;
+    pointsFor: number;
+    pointsAgainst: number;
+  };
+  era: string | null;
+}
+
+export interface LeagueAverageEntry {
+  year: number;
+  average: number;
+  median: number;
+  top10Avg: number;
+}
+
+export interface PositionRanking {
+  rank: number;
+  playerId: string;
+  playerName: string;
+  teamId: string | null;
+  ovr: number;
+  keyStats: Record<string, number>;
+  contractValue: number;
+  surplus: number;
+}
+
+export interface LeagueStatSnapshot {
+  year: number;
+  week: number;
+  leaders: Record<string, {
+    playerId: string;
+    playerName: string;
+    value: number;
+  }>;
+  totals: Record<string, number>;
+  averages: Record<string, number>;
 }
 
 export interface AwardEntity {
@@ -2499,6 +2759,11 @@ export interface FranchiseHistoryEntry {
   prestige?: number;
   attendance?: number;
   stadiumName?: string;
+  keyStats?: {
+    totalYards: number;
+    pointsFor: number;
+    pointsAgainst: number;
+  };
 }
 
 export type DynastyRecord = RecordEntry;
@@ -2562,6 +2827,9 @@ export interface GameState {
   draftClass: DraftProspect[];
   freeAgents: string[];    // player IDs
   records: RecordBook;
+  activeRecordChases: RecordChase[];
+  recentBrokenRecords: BrokenRecord[];
+  recentMilestones: MilestoneReached[];
   awardsHistory: AwardsHistoryEntry[];
   hallOfFame: HallOfFameEntry[];
   allDecadeTeams: AllDecadeTeam[];

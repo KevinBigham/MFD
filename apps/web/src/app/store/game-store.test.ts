@@ -741,4 +741,48 @@ describe('game store offseason actions', () => {
     expect(nextGame.leagueRules.entries.practice_squad_size.value).toBe(currentTerms.practiceSquadSize + 2);
     expect(nextGame.laborState.activeStoppage).toBeNull();
   });
+
+  it('applies a cap move through the store and records the cap reaction post', async () => {
+    const game = createSeedGameState(1700, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const player = userTeam.roster.find((entry) => entry.contract && entry.contract.years > 1)!;
+    const startingCapSpace = userTeam.capSpace;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.executeCapMove({ type: 'restructure', playerId: player.id });
+
+    const nextGame = useGameStore.getState().game!;
+    const nextTeam = nextGame.teams[userTeam.id]!;
+    expect(nextTeam.capSpace).toBeGreaterThan(startingCapSpace);
+    expect(nextGame.socialFeed[0]?.content).toContain(player.name);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies multiple cap moves sequentially and updates the player contract state', async () => {
+    const game = createSeedGameState(1800, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const player = userTeam.roster.find((entry) => entry.contract && entry.contract.years > 1)!;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.executeCapMoves([
+      { type: 'backload', playerId: player.id, params: { voidYears: 1 } },
+      { type: 'extend', playerId: player.id, params: { years: 3, avgSalary: 18 } },
+    ]);
+
+    const nextPlayer = useGameStore.getState().game!.players[player.id]!;
+    expect(nextPlayer.contract?.years).toBe(3);
+    expect(nextPlayer.contract?.voidYears).toBeGreaterThanOrEqual(0);
+    expect(useGameStore.getState().game!.socialFeed[0]?.content).toContain(player.name);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
 });
