@@ -1,7 +1,9 @@
 import { RNG } from '../rng';
 import { getSalaryCap } from '../config';
 import { calcCapHit, calcDeadMoney } from './contracts';
+import { assignJerseyNumber } from './jersey-retirement';
 import { recordNewsItem } from './league-news';
+import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
 import type {
   EngineOutput,
   GameState,
@@ -13,6 +15,13 @@ import type {
 } from '../types';
 
 const PRACTICE_SQUAD_MAX = 16;
+
+function refreshRosterState(team: Team): void {
+  for (const player of team.roster) {
+    assignJerseyNumber(team, player);
+  }
+  team.lockerRoom = syncLockerRoomRoster(team, team.lockerRoom ?? initializeLockerRoom(team, () => 0.42));
+}
 
 function ensureWaiverState(game: GameState): void {
   if (!game.waiverOrder) game.waiverOrder = [];
@@ -95,6 +104,7 @@ export function removeFromPracticeSquad(game: GameState, teamId: string, playerI
     playerId,
     fromTeamId: teamId,
   });
+  refreshRosterState(team);
   return emptyResult(game);
 }
 
@@ -109,6 +119,7 @@ export function elevateFromPracticeSquad(game: GameState, teamId: string, player
   if (!team.roster.some((entry) => entry.id === playerId)) {
     team.roster.push(player);
   }
+  assignJerseyNumber(team, player);
   squadPlayer.elevationsUsed += 1;
   squadPlayer.isElevated = true;
   squadPlayer.elevatedWeek = game.week;
@@ -120,6 +131,7 @@ export function elevateFromPracticeSquad(game: GameState, teamId: string, player
     playerId,
     toTeamId: teamId,
   });
+  refreshRosterState(team);
   return emptyResult(game);
 }
 
@@ -158,6 +170,7 @@ export function cutPlayerToWaivers(game: GameState, teamId: string, playerId: st
     playerId,
     fromTeamId: teamId,
   });
+  refreshRosterState(team);
   return emptyResult(game);
 }
 
@@ -187,6 +200,7 @@ function awardClaim(game: GameState, claim: WaiverClaim): void {
   if (!team.roster.some((entry) => entry.id === player.id)) {
     team.roster.push(player);
   }
+  assignJerseyNumber(team, player);
   player.teamId = team.id;
   game.waiverWire = game.waiverWire.filter((entry) => entry.playerId !== player.id);
   game.waiverClaims = game.waiverClaims.filter((entry) => entry.playerId !== player.id);
@@ -209,6 +223,7 @@ function awardClaim(game: GameState, claim: WaiverClaim): void {
     playerIds: [player.id],
     importance: 'minor',
   });
+  refreshRosterState(team);
 }
 
 function expireWaivers(game: GameState): WaiverResultEntry[] {

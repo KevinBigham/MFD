@@ -1187,6 +1187,9 @@ export const PlayerSchema = z.object({
   traitPowerLevel: z.record(z.number()),
   injury: InjurySchema.nullable(),
   morale: z.number(),
+  cliqueId: z.union([z.literal(0), z.literal(1), z.literal(2)]).nullable().default(null),
+  jerseyNumber: z.number().default(0),
+  endorsements: z.array(z.any()).default([]),
   agentId: z.string().nullable().default(null),
 });
 
@@ -1211,6 +1214,9 @@ export const SaveStateSchema = z.object({
   franchiseHistory: z.array(z.any()),
   playerArchive: z.array(z.any()),
   playerSeasonHistory: z.record(z.string(), z.array(PlayerSeasonHistoryEntrySchema)).default({}),
+  playerRivalries: z.array(z.any()).default([]),
+  farewellTours: z.array(z.any()).default([]),
+  endorsementOffers: z.array(z.any()).default([]),
   frontOffice: z.object({
     xp: z.number(),
     level: z.number(),

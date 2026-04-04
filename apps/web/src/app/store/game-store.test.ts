@@ -360,6 +360,137 @@ describe('game store offseason actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(2);
   });
 
+  it('routes locker room meetings through the store', async () => {
+    const game = createSeedGameState(606, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    userTeam.lockerRoom = {
+      cliques: [
+        { id: 0, label: 'Vets', playerIds: [userTeam.roster[0]!.id], cohesion: 62, influence: 55 },
+        { id: 1, label: 'Young Core', playerIds: [userTeam.roster[1]!.id], cohesion: 58, influence: 45 },
+        { id: 2, label: 'Stars', playerIds: [], cohesion: 50, influence: 0 },
+      ],
+      captains: [{ playerId: userTeam.roster[0]!.id, playerName: userTeam.roster[0]!.name, captainMoments: 0, rallyCooldown: 0, perks: ['rally_cry'] }],
+      culture: 'stable',
+      cultureScore: 54,
+      tensions: [{ id: 'ten-1', type: 'playing_time', involvedPlayerIds: [userTeam.roster[0]!.id], involvedCliqueIds: [0], severity: 'minor', weekCreated: 1, resolved: false, narrative: 'Snap count tension.' }],
+      lastMeetingWeek: null,
+    };
+
+    useGameStore.setState((state) => ({ ...state, game, initialized: true }));
+
+    await useGameStore.getState().actions.callTeamMeeting();
+
+    const nextLockerRoom = useGameStore.getState().game!.teams[userTeam.id]!.lockerRoom;
+    expect(nextLockerRoom.lastMeetingWeek).toBe(game.week);
+    expect(nextLockerRoom.tensions.some((tension) => tension.resolved)).toBe(true);
+  });
+
+  it('routes captain rallies through the store', async () => {
+    const game = createSeedGameState(707, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    userTeam.streak = -3;
+    userTeam.lockerRoom = {
+      cliques: [
+        { id: 0, label: 'Vets', playerIds: [userTeam.roster[0]!.id], cohesion: 50, influence: 55 },
+        { id: 1, label: 'Young Core', playerIds: [userTeam.roster[1]!.id], cohesion: 51, influence: 45 },
+        { id: 2, label: 'Stars', playerIds: [], cohesion: 52, influence: 0 },
+      ],
+      captains: [{ playerId: userTeam.roster[0]!.id, playerName: userTeam.roster[0]!.name, captainMoments: 0, rallyCooldown: 0, perks: ['rally_cry'] }],
+      culture: 'fragile',
+      cultureScore: 39,
+      tensions: [],
+      lastMeetingWeek: null,
+    };
+
+    useGameStore.setState((state) => ({ ...state, game, initialized: true }));
+
+    await useGameStore.getState().actions.triggerCaptainRally(userTeam.roster[0]!.id);
+
+    const nextLockerRoom = useGameStore.getState().game!.teams[userTeam.id]!.lockerRoom;
+    expect(nextLockerRoom.cliques[0]?.cohesion).toBe(55);
+    expect(nextLockerRoom.captains[0]?.rallyCooldown).toBe(4);
+  });
+
+  it('accepts endorsement offers through the store', async () => {
+    const game = createSeedGameState(818, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const player = userTeam.roster[0]!;
+    game.endorsementOffers = [{
+      id: 'offer-store',
+      playerId: player.id,
+      brandName: 'Apex Athletics',
+      revenuePerYear: 5.2,
+      yearsTotal: 3,
+      yearsRemaining: 3,
+      tier: 'national',
+      moraleBonus: 4,
+      requirement: { type: 'min_ovr', value: 80 },
+      active: false,
+    }];
+
+    useGameStore.setState((state) => ({ ...state, game, initialized: true }));
+
+    await useGameStore.getState().actions.acceptEndorsement('offer-store');
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.endorsementOffers).toHaveLength(0);
+    expect(nextGame.players[player.id]!.endorsements).toHaveLength(1);
+    expect(nextGame.players[player.id]!.endorsements[0]?.active).toBe(true);
+  });
+
+  it('declines endorsement offers through the store', async () => {
+    const game = createSeedGameState(819, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    game.endorsementOffers = [{
+      id: 'offer-decline',
+      playerId: userTeam.roster[0]!.id,
+      brandName: 'Metro Health',
+      revenuePerYear: 1.2,
+      yearsTotal: 2,
+      yearsRemaining: 2,
+      tier: 'regional',
+      moraleBonus: 3,
+      requirement: { type: 'team_wins', value: 8 },
+      active: false,
+    }];
+
+    useGameStore.setState((state) => ({ ...state, game, initialized: true }));
+
+    await useGameStore.getState().actions.declineEndorsement('offer-decline');
+
+    expect(useGameStore.getState().game?.endorsementOffers).toHaveLength(0);
+  });
+
+  it('starts farewell tours and elects captains through the store', async () => {
+    const game = createSeedGameState(920, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const player = userTeam.roster[0]!;
+    player.age = 38;
+    player.yearsExp = 15;
+    player.ovr = Math.max(player.ovr, 80);
+    userTeam.lockerRoom = {
+      cliques: [
+        { id: 0, label: 'Vets', playerIds: [player.id], cohesion: 60, influence: 55 },
+        { id: 1, label: 'Young Core', playerIds: [], cohesion: 50, influence: 0 },
+        { id: 2, label: 'Stars', playerIds: [], cohesion: 50, influence: 0 },
+      ],
+      captains: [],
+      culture: 'stable',
+      cultureScore: 50,
+      tensions: [],
+      lastMeetingWeek: null,
+    };
+
+    useGameStore.setState((state) => ({ ...state, game, initialized: true }));
+
+    await useGameStore.getState().actions.startFarewellTour(player.id);
+    await useGameStore.getState().actions.electCaptain(player.id);
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.farewellTours.some((tour) => tour.playerId === player.id)).toBe(true);
+    expect(nextGame.teams[userTeam.id]!.lockerRoom.captains.some((captain) => captain.playerId === player.id)).toBe(true);
+  });
+
   it('stores the selected broadcast game and navigates to the broadcast route', () => {
     const pushState = vi.fn();
     const dispatchEvent = vi.fn();

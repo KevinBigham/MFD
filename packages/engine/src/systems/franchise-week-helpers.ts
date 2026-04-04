@@ -121,6 +121,7 @@ export function simulateGame(
       weather,
       matchupHighlight,
       specialTeams: sim.specialTeams,
+      playerMatchupEvents: sim.playerMatchupEvents,
     },
     injuries: {
       [home.id]: maybeInjure(game, home, diff.injMod),

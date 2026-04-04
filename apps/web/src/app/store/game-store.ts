@@ -28,6 +28,7 @@ import type {
   WeeklySummary,
 } from '@mfd/engine';
 import {
+  acceptEndorsement as acceptEndorsementEngine,
   addToWatchlist,
   addToPracticeSquad as addToPracticeSquadEngine,
   activateFromIR as activateFromIREngine,
@@ -36,7 +37,9 @@ import {
   applyDraftTradeOffer,
   applySchemeChange,
   applyExtensionOffer,
+  appointCaptain,
   assignTraining as assignTrainingEngine,
+  callTeamMeeting as callTeamMeetingEngine,
   acceptCounterProposal as acceptCounterProposalEngine,
   advanceDeadlineClock as advanceDeadlineClockEngine,
   buildCoachingMarket,
@@ -54,6 +57,7 @@ import {
   hireMedicalStaff as hireMedicalStaffEngine,
   hireStaffCandidate,
   hireScout as hireScoutEngine,
+  initializeLockerRoom,
   initializeOffseasonState,
   getRelocationDestinations,
   makeExpansionPick as makeExpansionPickEngine,
@@ -86,7 +90,9 @@ import {
   rejectCounterProposal as rejectCounterProposalEngine,
   submitWaiverClaim as submitWaiverClaimEngine,
   startScenario as startScenarioEngine,
+  startFarewellTour as startFarewellTourEngine,
   switchLayout as switchDashboardLayout,
+  triggerCaptainRally as triggerCaptainRallyEngine,
   toggleScoutingWatchlist as toggleScoutingWatchlistEngine,
   submitProposal as submitTradeProposalEngine,
   acceptTradeOffer as acceptTradeOfferEngine,
@@ -159,6 +165,12 @@ interface GameActions {
   toggleScoutingWatchlist: (prospectId: string) => Promise<void>;
   hireScout: (scoutId: string) => Promise<void>;
   fireScout: (scoutId: string) => Promise<void>;
+  callTeamMeeting: () => Promise<void>;
+  triggerCaptainRally: (captainId: string) => Promise<void>;
+  acceptEndorsement: (dealId: string) => Promise<void>;
+  declineEndorsement: (dealId: string) => Promise<void>;
+  startFarewellTour: (playerId: string) => Promise<void>;
+  electCaptain: (playerId: string) => Promise<void>;
   upgradeFacility: (teamId: string, facilityType: 'training_complex' | 'medical_center' | 'film_room' | 'weight_room' | 'recovery_suite') => Promise<void>;
   hireMedicalStaff: (teamId: string, staffId: string) => Promise<void>;
   acceptTradeOffer: (offerId: string) => Promise<void>;
@@ -786,6 +798,91 @@ export const useGameStore = create<GameStore>()(
         if (!current) return;
         const result = fireScoutEngine(current, scoutId);
         await commitGame(result.nextState);
+      },
+
+      callTeamMeeting: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam) return;
+        userTeam.lockerRoom = userTeam.lockerRoom ?? initializeLockerRoom(userTeam, intelRng(nextGame, `locker:init:${userTeam.id}`));
+        const outcome = callTeamMeetingEngine(
+          userTeam,
+          userTeam.lockerRoom,
+          intelRng(nextGame, `locker:meeting:${nextGame.year}:${nextGame.week}:${userTeam.id}`),
+          nextGame.week,
+        );
+        userTeam.lockerRoom = outcome.lockerRoom;
+        await commitGame(nextGame);
+      },
+
+      triggerCaptainRally: async (captainId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam) return;
+        userTeam.lockerRoom = userTeam.lockerRoom ?? initializeLockerRoom(userTeam, intelRng(nextGame, `locker:init:${userTeam.id}`));
+        userTeam.lockerRoom = triggerCaptainRallyEngine(userTeam.lockerRoom, captainId, userTeam, nextGame.week);
+        await commitGame(nextGame);
+      },
+
+      acceptEndorsement: async (dealId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const deal = nextGame.endorsementOffers.find((entry) => entry.id === dealId);
+        if (!deal) return;
+        const player = nextGame.players[deal.playerId];
+        if (!player) return;
+        acceptEndorsementEngine(player, deal);
+        nextGame.endorsementOffers = nextGame.endorsementOffers.filter((entry) => entry.id !== dealId);
+        await commitGame(nextGame);
+      },
+
+      declineEndorsement: async (dealId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.endorsementOffers = nextGame.endorsementOffers.filter((entry) => entry.id !== dealId);
+        await commitGame(nextGame);
+      },
+
+      startFarewellTour: async (playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam) return;
+        const player = userTeam.roster.find((entry) => entry.id === playerId);
+        if (!player) return;
+        nextGame.farewellTours = nextGame.farewellTours.filter((tour) => tour.playerId !== playerId);
+        const seasonSchedule = nextGame.schedule.flatMap((week) =>
+          week.games.map((game) => ({ ...game, week: week.week })),
+        );
+        nextGame.farewellTours.push(
+          startFarewellTourEngine(
+            player,
+            userTeam,
+            nextGame.week,
+            intelRng(nextGame, `farewell:${playerId}:${nextGame.year}:${nextGame.week}`),
+            seasonSchedule as typeof seasonSchedule & Parameters<typeof startFarewellTourEngine>[4],
+            nextGame.teams,
+          ),
+        );
+        await commitGame(nextGame);
+      },
+
+      electCaptain: async (playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam) return;
+        userTeam.lockerRoom = userTeam.lockerRoom ?? initializeLockerRoom(userTeam, intelRng(nextGame, `locker:init:${userTeam.id}`));
+        userTeam.lockerRoom = appointCaptain(userTeam, userTeam.lockerRoom, playerId);
+        await commitGame(nextGame);
       },
 
       upgradeFacility: async (teamId, facilityType) => {

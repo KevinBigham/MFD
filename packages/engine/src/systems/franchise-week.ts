@@ -4,6 +4,12 @@ import { getAdaptiveModifier, updateAdaptiveDifficulty } from './adaptive-diffic
 import { checkAchievements } from './achievements';
 import { advanceDraft, ensureDraftClass, finalizePostDraft } from './draft';
 import { recordCeremony, generateRingCeremony } from './ceremonies';
+import {
+  getLockerRoomClutchBonuses,
+  getLockerRoomGameBonus,
+  initializeLockerRoom,
+  updateLockerRoomWeekly,
+} from './locker-room';
 import { assignBroadcasts, flexSchedule } from './flex-schedule';
 import { generateAiGamePlan, generateOpponentScouting, resetGamePlan, upsertOpponentReport } from './game-plan';
 import { recordDynastyEvent } from './dynasty-timeline';
@@ -16,6 +22,7 @@ import { processWeeklyTraining } from './player-development';
 import { archivePlayerSeasonHistory } from './player-profile';
 import { processCarryoverHoldouts } from './player-agents';
 import { archiveSeasonHistory } from './history';
+import { generateFarewellMoment } from './jersey-retirement';
 import { advanceStoryArcs } from './story-arcs';
 import { buildGameDayPackage } from './game-day-package';
 import { buildFilmRoomReport } from './film-room';
@@ -33,6 +40,12 @@ import {
   recordPressConference,
 } from './press-conference';
 import { updatePowerRankings } from './power-rankings';
+import {
+  createRivalryTrashTalkPost,
+  detectNewRivalries,
+  getRivalryGameBonus,
+  updateRivalryFromGame,
+} from './player-rivalries';
 import { updateRecordsFromGameResult } from './records';
 import { getRivalryGameContext, seedLeagueRivalries, updateLeagueRivalriesFromGame } from './rivalries';
 import { generateTradeOffers } from './trade-market';
@@ -194,6 +207,40 @@ function buildBroadcastRng(game: GameState, result: GameResult) {
   return mulberry32(seed);
 }
 
+function buildPlayerRivalryContext(game: GameState, home: Team, away: Team) {
+  const rivalries = (game.playerRivalries ?? []).filter((rivalry) => {
+    const teamIds = [rivalry.teamAId, rivalry.teamBId];
+    return teamIds.includes(home.id) && teamIds.includes(away.id);
+  });
+  const homeBonuses: Record<string, number> = {};
+  const awayBonuses: Record<string, number> = {};
+
+  for (const rivalry of rivalries) {
+    if (rivalry.teamAId === home.id) {
+      homeBonuses[rivalry.playerAId] = (homeBonuses[rivalry.playerAId] ?? 0) + getRivalryGameBonus(rivalry, rivalry.playerAId);
+      awayBonuses[rivalry.playerBId] = (awayBonuses[rivalry.playerBId] ?? 0) + getRivalryGameBonus(rivalry, rivalry.playerBId);
+    } else {
+      homeBonuses[rivalry.playerBId] = (homeBonuses[rivalry.playerBId] ?? 0) + getRivalryGameBonus(rivalry, rivalry.playerBId);
+      awayBonuses[rivalry.playerAId] = (awayBonuses[rivalry.playerAId] ?? 0) + getRivalryGameBonus(rivalry, rivalry.playerAId);
+    }
+  }
+
+  return { rivalries, homeBonuses, awayBonuses };
+}
+
+function createFarewellPost(game: GameState, content: string): GameState['socialFeed'][number] {
+  return {
+    id: `farewell-${game.year}-${game.week}-${game.socialFeed.length}`,
+    source: 'team',
+    authorName: 'MFSN Legacy Desk',
+    content,
+    trigger: 'milestone',
+    sentiment: 'positive',
+    likes: 220,
+    timestamp: game.week,
+  };
+}
+
 export function advanceFranchiseWeek(game: GameState): EngineOutput {
   const nextState = cloneGame(game);
   const events: GameEvent[] = [];
@@ -208,6 +255,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   let userActiveEffectSummaries: string[] = [];
   let userPrepOutcome: ReturnType<typeof evaluateWeeklyPrep> | null = null;
   let userPrepIntel: ReturnType<typeof buildOpponentIntel> | null = null;
+  const ambientSocialPosts: NonNullable<GameState['socialFeed']> = [];
   let label: string | undefined;
   let completedRegularSeasonWeek = false;
 
@@ -220,6 +268,9 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   }
 
   if (nextState.phase === 'preseason') {
+    for (const team of Object.values(nextState.teams)) {
+      team.lockerRoom = initializeLockerRoom(team, RNG.ai);
+    }
     nextState.phase = 'regular_season';
     const defendingChampion = nextState.franchiseHistory.find((entry) => entry.year === nextState.year - 1 && entry.playoffFinish === 'champion');
     if (defendingChampion && !nextState.ceremonies.some((ceremony) => ceremony.type === 'ring_ceremony' && ceremony.year === nextState.year)) {
@@ -296,14 +347,19 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
     for (const matchup of currentWeek?.games ?? []) {
       const home = nextState.teams[matchup.homeTeamId]!;
       const away = nextState.teams[matchup.awayTeamId]!;
+      home.lockerRoom = home.lockerRoom?.cliques?.length ? home.lockerRoom : initializeLockerRoom(home, RNG.ai);
+      away.lockerRoom = away.lockerRoom?.cliques?.length ? away.lockerRoom : initializeLockerRoom(away, RNG.ai);
       home.franchiseIdentity = home.franchiseIdentity ?? createDefaultFranchiseIdentity(home);
       home.franchiseIdentity = {
         ...home.franchiseIdentity,
         attendance: updateAttendance(home.franchiseIdentity, home),
       };
       const rivalry = getRivalryGameContext(nextState, home.id, away.id);
+      const playerRivalryContext = buildPlayerRivalryContext(nextState, home, away);
       const homeEffects = getGameEffectBonuses(nextState, home.id);
       const awayEffects = getGameEffectBonuses(nextState, away.id);
+      const homeLockerBonus = getLockerRoomGameBonus(home.lockerRoom);
+      const awayLockerBonus = getLockerRoomGameBonus(away.lockerRoom);
       processInjuryRecovery(nextState, home.id, RNG.injury);
       processInjuryRecovery(nextState, away.id, RNG.injury);
       const homeFatigueBonuses = buildFatiguePlayerBonuses(nextState, home.id);
@@ -313,14 +369,42 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
 
       const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, {
         home: {
-          teamOvrBonus: buildTeamOvrBonus(home, homeEffects.teamOvrBonus + (homePlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0), adaptiveModifier),
-          playerOvrBonuses: buildPlayerBonuses(home, mergePlayerBonuses(homeEffects.playerOvrBonuses, homeFatigueBonuses, homePlanContext.prepContext.playerOvrBonuses)),
+          teamOvrBonus: buildTeamOvrBonus(
+            home,
+            homeEffects.teamOvrBonus + homeLockerBonus.teamOvrBonus + (homePlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0),
+            adaptiveModifier,
+          ),
+          playerOvrBonuses: buildPlayerBonuses(
+            home,
+            mergePlayerBonuses(
+              homeEffects.playerOvrBonuses,
+              homeFatigueBonuses,
+              homePlanContext.prepContext.playerOvrBonuses,
+              homeLockerBonus.captainBonuses,
+              playerRivalryContext.homeBonuses,
+            ),
+          ),
+          clutchPlayerBonuses: getLockerRoomClutchBonuses(home.lockerRoom, home),
           gamePlan: homePlanContext.gamePlan,
           opponentReport: homePlanContext.opponentReport,
         },
         away: {
-          teamOvrBonus: buildTeamOvrBonus(away, awayEffects.teamOvrBonus + (awayPlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0), adaptiveModifier),
-          playerOvrBonuses: buildPlayerBonuses(away, mergePlayerBonuses(awayEffects.playerOvrBonuses, awayFatigueBonuses, awayPlanContext.prepContext.playerOvrBonuses)),
+          teamOvrBonus: buildTeamOvrBonus(
+            away,
+            awayEffects.teamOvrBonus + awayLockerBonus.teamOvrBonus + (awayPlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0),
+            adaptiveModifier,
+          ),
+          playerOvrBonuses: buildPlayerBonuses(
+            away,
+            mergePlayerBonuses(
+              awayEffects.playerOvrBonuses,
+              awayFatigueBonuses,
+              awayPlanContext.prepContext.playerOvrBonuses,
+              awayLockerBonus.captainBonuses,
+              playerRivalryContext.awayBonuses,
+            ),
+          ),
+          clutchPlayerBonuses: getLockerRoomClutchBonuses(away.lockerRoom, away),
           gamePlan: awayPlanContext.gamePlan,
           opponentReport: awayPlanContext.opponentReport,
         },
@@ -336,8 +420,31 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       }
       matchup.result = outcome.result;
       matchup.weather = outcome.result.weather ?? matchup.weather ?? null;
+      home.lockerRoom = updateLockerRoomWeekly(home, home.lockerRoom, outcome.result, RNG.ai).lockerRoom;
+      away.lockerRoom = updateLockerRoomWeekly(away, away.lockerRoom, outcome.result, RNG.ai).lockerRoom;
+      nextState.playerRivalries = (nextState.playerRivalries ?? []).map((entry) =>
+        playerRivalryContext.rivalries.some((rivalryEntry) => rivalryEntry.id === entry.id)
+          ? updateRivalryFromGame(entry, outcome.result)
+          : entry,
+      );
+      nextState.playerRivalries = detectNewRivalries(outcome.result, home, away, nextState.playerRivalries, RNG.ai);
       updateRecordsFromGameResult(nextState, outcome.result);
       updateLeagueRivalriesFromGame(nextState, outcome.result);
+      for (const rivalryEntry of nextState.playerRivalries.filter((entry) => {
+        const ids = [entry.teamAId, entry.teamBId];
+        return ids.includes(home.id) && ids.includes(away.id);
+      })) {
+        const trashTalkPost = createRivalryTrashTalkPost(rivalryEntry, nextState.week, RNG.ai);
+        if (trashTalkPost) ambientSocialPosts.push(trashTalkPost);
+      }
+      for (const tour of nextState.farewellTours ?? []) {
+        if (tour.teamId !== home.id && tour.teamId !== away.id) continue;
+        const opponent = tour.teamId === home.id ? away : home;
+        const moment = generateFarewellMoment(tour, nextState.week, opponent, RNG.ai);
+        if (moment) {
+          ambientSocialPosts.push(createFarewellPost(nextState, moment.narrative));
+        }
+      }
       ownerDelta += updateOwner(home, nextState);
       ownerDelta += updateOwner(away, nextState);
       const event = makeEvent(nextState, 'weekly_result', `${home.name} ${outcome.result.homeScore}, ${away.name} ${outcome.result.awayScore}`, { gameId: outcome.result.id });
@@ -383,14 +490,19 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
     nextState.playoffBracket = advancePlayoffBracket(nextState.playoffBracket, nextState.week, (homeTeamId, awayTeamId) => {
       const home = nextState.teams[homeTeamId]!;
       const away = nextState.teams[awayTeamId]!;
+      home.lockerRoom = home.lockerRoom?.cliques?.length ? home.lockerRoom : initializeLockerRoom(home, RNG.ai);
+      away.lockerRoom = away.lockerRoom?.cliques?.length ? away.lockerRoom : initializeLockerRoom(away, RNG.ai);
       home.franchiseIdentity = home.franchiseIdentity ?? createDefaultFranchiseIdentity(home);
       home.franchiseIdentity = {
         ...home.franchiseIdentity,
         attendance: updateAttendance(home.franchiseIdentity, home),
       };
       const rivalry = getRivalryGameContext(nextState, home.id, away.id);
+      const playerRivalryContext = buildPlayerRivalryContext(nextState, home, away);
       const homeEffects = getGameEffectBonuses(nextState, home.id);
       const awayEffects = getGameEffectBonuses(nextState, away.id);
+      const homeLockerBonus = getLockerRoomGameBonus(home.lockerRoom);
+      const awayLockerBonus = getLockerRoomGameBonus(away.lockerRoom);
       processInjuryRecovery(nextState, home.id, RNG.injury);
       processInjuryRecovery(nextState, away.id, RNG.injury);
       const homeFatigueBonuses = buildFatiguePlayerBonuses(nextState, home.id);
@@ -404,14 +516,42 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
 
       const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, {
         home: {
-          teamOvrBonus: buildTeamOvrBonus(home, homeEffects.teamOvrBonus + (homePlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + homeMomentum, adaptiveModifier),
-          playerOvrBonuses: buildPlayerBonuses(home, mergePlayerBonuses(homeEffects.playerOvrBonuses, homeFatigueBonuses, homePlanContext.prepContext.playerOvrBonuses)),
+          teamOvrBonus: buildTeamOvrBonus(
+            home,
+            homeEffects.teamOvrBonus + homeLockerBonus.teamOvrBonus + (homePlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + homeMomentum,
+            adaptiveModifier,
+          ),
+          playerOvrBonuses: buildPlayerBonuses(
+            home,
+            mergePlayerBonuses(
+              homeEffects.playerOvrBonuses,
+              homeFatigueBonuses,
+              homePlanContext.prepContext.playerOvrBonuses,
+              homeLockerBonus.captainBonuses,
+              playerRivalryContext.homeBonuses,
+            ),
+          ),
+          clutchPlayerBonuses: getLockerRoomClutchBonuses(home.lockerRoom, home),
           gamePlan: homePlanContext.gamePlan,
           opponentReport: homePlanContext.opponentReport,
         },
         away: {
-          teamOvrBonus: buildTeamOvrBonus(away, awayEffects.teamOvrBonus + (awayPlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + awayMomentum, adaptiveModifier),
-          playerOvrBonuses: buildPlayerBonuses(away, mergePlayerBonuses(awayEffects.playerOvrBonuses, awayFatigueBonuses, awayPlanContext.prepContext.playerOvrBonuses)),
+          teamOvrBonus: buildTeamOvrBonus(
+            away,
+            awayEffects.teamOvrBonus + awayLockerBonus.teamOvrBonus + (awayPlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + awayMomentum,
+            adaptiveModifier,
+          ),
+          playerOvrBonuses: buildPlayerBonuses(
+            away,
+            mergePlayerBonuses(
+              awayEffects.playerOvrBonuses,
+              awayFatigueBonuses,
+              awayPlanContext.prepContext.playerOvrBonuses,
+              awayLockerBonus.captainBonuses,
+              playerRivalryContext.awayBonuses,
+            ),
+          ),
+          clutchPlayerBonuses: getLockerRoomClutchBonuses(away.lockerRoom, away),
           gamePlan: awayPlanContext.gamePlan,
           opponentReport: awayPlanContext.opponentReport,
         },
@@ -442,6 +582,14 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         awayScore: outcome.result.awayScore,
         narrativeTag: nextState.playoffMomentum[winnerTeamId]?.narrativeTag ?? null,
       }));
+      home.lockerRoom = updateLockerRoomWeekly(home, home.lockerRoom, outcome.result, RNG.ai).lockerRoom;
+      away.lockerRoom = updateLockerRoomWeekly(away, away.lockerRoom, outcome.result, RNG.ai).lockerRoom;
+      nextState.playerRivalries = (nextState.playerRivalries ?? []).map((entry) =>
+        playerRivalryContext.rivalries.some((rivalryEntry) => rivalryEntry.id === entry.id)
+          ? updateRivalryFromGame(entry, outcome.result)
+          : entry,
+      );
+      nextState.playerRivalries = detectNewRivalries(outcome.result, home, away, nextState.playerRivalries, RNG.ai);
       updateLeagueRivalriesFromGame(nextState, outcome.result, { playoffElimination: true });
       ownerDelta += updateOwner(home, nextState);
       ownerDelta += updateOwner(away, nextState);
@@ -583,6 +731,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
 
   if (currentUser && (game.phase === 'regular_season' || game.phase === 'playoffs')) {
     const newPosts = [
+      ...ambientSocialPosts,
       ...(userResult?.broadcast
         ? generateGameDayPosts(
           userResult.broadcast,

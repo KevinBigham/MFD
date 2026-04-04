@@ -5,7 +5,7 @@ import {
   Search, FileText, Handshake, Gamepad2, GraduationCap,
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
   Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity, CalendarRange,
-  Radio, MessageSquare, Crosshair, Building2, Award,
+  Radio, MessageSquare, Crosshair, Building2, Award, Users2, Sparkles,
 } from 'lucide-react';
 import { MfdTooltipProvider, MfdCommandPalette, type CommandItem } from '@mfd/design-system/components';
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
@@ -53,6 +53,7 @@ const LazyPracticeSquad = lazy(async () => ({ default: (await import('../feature
 const LazyGamePlanSetup = lazy(async () => ({ default: (await import('../features/game-plan/GamePlanSetup')).GamePlanSetup }));
 const LazyDraftRecap = lazy(async () => ({ default: (await import('../features/draft/DraftRecap')).DraftRecap }));
 const LazyPlayerProfile = lazy(async () => ({ default: (await import('../features/player/PlayerProfile')).PlayerProfile }));
+const LazyPlayerRivalries = lazy(async () => ({ default: (await import('../features/player/PlayerRivalries')).PlayerRivalries }));
 const LazyTeamNeeds = lazy(async () => ({ default: (await import('../features/team-needs/TeamNeeds')).TeamNeeds }));
 const LazyFATargetBoard = lazy(async () => ({ default: (await import('../features/free-agency/FATargetBoard')).FATargetBoard }));
 const LazyFilmRoom = lazy(async () => ({ default: (await import('../features/film-room/FilmRoom')).FilmRoom }));
@@ -64,6 +65,8 @@ const LazyFranchiseHub = lazy(async () => ({ default: (await import('../features
 const LazyRelocationScreen = lazy(async () => ({ default: (await import('../features/franchise/RelocationScreen')).RelocationScreen }));
 const LazyExpansionDraft = lazy(async () => ({ default: (await import('../features/franchise/ExpansionDraft')).ExpansionDraft }));
 const LazyFranchiseLegends = lazy(async () => ({ default: (await import('../features/franchise/FranchiseLegends')).FranchiseLegends }));
+const LazyLockerRoom = lazy(async () => ({ default: (await import('../features/locker-room/LockerRoom')).LockerRoom }));
+const LazyEndorsementCenter = lazy(async () => ({ default: (await import('../features/endorsements/EndorsementCenter')).EndorsementCenter }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -78,7 +81,9 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { path: '/',             label: 'Monday Briefing', shortLabel: 'Briefing', icon: <LayoutDashboard size={16} />, shortcut: '1' },
   { path: '/roster',       label: 'Roster',          shortLabel: 'Roster',   icon: <Users size={16} />,          shortcut: '2' },
+  { path: '/locker-room',  label: 'Locker Room',     shortLabel: 'Locker',   icon: <Users2 size={16} /> },
   { path: '/contracts',    label: 'Contracts',        shortLabel: 'Cap',      icon: <DollarSign size={16} />,     shortcut: '3' },
+  { path: '/endorsements', label: 'Endorsements',     shortLabel: 'Deals',    icon: <Sparkles size={16} /> },
   { path: '/trades',       label: 'Trades',           shortLabel: 'Trades',   icon: <ArrowLeftRight size={16} />, shortcut: '4' },
   { path: '/team-needs',   label: 'Team Needs',       shortLabel: 'Needs',    icon: <BarChart3 size={16} /> },
   { path: '/scouting',     label: 'Scouting',         shortLabel: 'Scout',    icon: <Search size={16} />,         shortcut: '5' },
@@ -460,6 +465,26 @@ const contractsRoute = createRoute({
   component: ContractsCap,
 });
 
+const lockerRoomRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/locker-room',
+  component: () => (
+    <LazyRouteFrame label="locker room">
+      <LazyLockerRoom />
+    </LazyRouteFrame>
+  ),
+});
+
+const endorsementsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/endorsements',
+  component: () => (
+    <LazyRouteFrame label="endorsement center">
+      <LazyEndorsementCenter />
+    </LazyRouteFrame>
+  ),
+});
+
 const tradesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/trades',
@@ -596,6 +621,16 @@ const playerProfileRoute = createRoute({
   component: () => (
     <LazyRouteFrame label="player profile">
       <LazyPlayerProfile />
+    </LazyRouteFrame>
+  ),
+});
+
+const rivalriesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/rivalries',
+  component: () => (
+    <LazyRouteFrame label="player rivalries">
+      <LazyPlayerRivalries />
     </LazyRouteFrame>
   ),
 });
@@ -772,10 +807,10 @@ const settingsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  rosterRoute, contractsRoute, tradesRoute,
+  rosterRoute, lockerRoomRoute, contractsRoute, endorsementsRoute, tradesRoute,
   scoutingRoute, draftRoute, freeAgencyRoute, faTargetsRoute,
   gameDayRoute, broadcastRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
-  scheduleRoute, depthChartRoute, playerProfileRoute, teamNeedsRoute, coachingRoute, filmRoomRoute, tradeDeadlineRoute,
+  scheduleRoute, depthChartRoute, playerProfileRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, franchiseRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, settingsRoute,

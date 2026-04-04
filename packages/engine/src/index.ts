@@ -191,6 +191,53 @@ export {
   appendToSocialFeed,
 } from './systems/social-feed';
 export {
+  CLIQUE_ASSIGNMENT_RULES,
+  CULTURE_THRESHOLDS,
+  CAPTAIN_PERK_EFFECTS,
+  MAX_CAPTAINS,
+  CAPTAIN_MIN_OVR,
+  CAPTAIN_MIN_YEARS_EXP,
+  CAPTAIN_RALLY_COOLDOWN,
+  assignCliques,
+  initializeLockerRoom,
+  electCaptains,
+  appointCaptain,
+  syncLockerRoomRoster,
+  updateLockerRoomWeekly,
+  triggerCaptainRally,
+  callTeamMeeting,
+  getLockerRoomGameBonus,
+  getLockerRoomClutchBonuses,
+  getCultureLabel,
+} from './systems/locker-room';
+export {
+  ENDORSEMENT_BRANDS,
+  ENDORSEMENT_MARKET_MULTIPLIERS,
+  generateEndorsementOffers,
+  acceptEndorsement,
+  tickEndorsements,
+  getEndorsementRevenue,
+  getEndorsementNarrative,
+} from './systems/endorsements';
+export {
+  detectNewRivalries,
+  updateRivalryFromGame,
+  getRivalryGameBonus,
+  generateRivalryTrashTalk,
+  createRivalryTrashTalkPost,
+  decayRivalries,
+  getActiveRivalries,
+} from './systems/player-rivalries';
+export {
+  assignJerseyNumber,
+  detectRetirementCandidates,
+  startFarewellTour,
+  generateFarewellMoment,
+  shouldRetireJersey,
+  generateJerseyRetirement,
+  getRetiredJerseys,
+} from './systems/jersey-retirement';
+export {
   initializeDeadline,
   advanceDeadlineClock,
   generateDeadlineDeal,

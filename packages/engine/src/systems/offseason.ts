@@ -9,13 +9,16 @@ import { makeContract } from './contracts';
 import { resolveConditions } from './conditional-picks';
 import { ensureDraftClass } from './draft';
 import { recordDynastyEvent } from './dynasty-timeline';
+import { generateEndorsementOffers, getEndorsementNarrative, tickEndorsements } from './endorsements';
 import { replenishFacilityBudget } from './facilities';
 import { reevaluateLeagueStrategies } from './gm-strategies';
 import { evaluateHandshakes } from './handshake-ledger';
 import { inductHallOfFame } from './hall-of-fame';
 import { syncPlayerArchiveEntry } from './history';
 import { generateMedicalStaffPool } from './injury-system';
+import { assignJerseyNumber, generateJerseyRetirement, shouldRetireJersey } from './jersey-retirement';
 import { generateOffseasonNews, recordNewsItem } from './league-news';
+import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
 import { applyMentoringBonuses, formMentoringPairs } from './mentoring';
 import { recordBeat } from './narrative-director';
 import { clearSeasonLivingWorldState } from './off-field-events';
@@ -27,6 +30,7 @@ import { createTransactionalPressConference, recordPressConference } from './pre
 import { progressPlayers } from './progression';
 import { getSeasonRecordNotes, updateCareerRecords, updateSeasonRecords } from './records';
 import { decayLeagueRivalries } from './rivalries';
+import { decayRivalries } from './player-rivalries';
 import { getScenarioConstraints } from './scenario-challenge';
 import { createDefaultScoutingDepartment, generateScoutPool } from './scouting-staff';
 import { generateSeasonReport } from './season-report';
@@ -63,6 +67,13 @@ function cloneGame(game: GameState): GameState {
 
 function findUserTeam(game: GameState): Team | null {
   return Object.values(game.teams).find((team) => team.isUser) ?? null;
+}
+
+function refreshRosterState(team: Team): void {
+  for (const player of team.roster) {
+    assignJerseyNumber(team, player);
+  }
+  team.lockerRoom = syncLockerRoomRoster(team, team.lockerRoom ?? initializeLockerRoom(team, () => 0.42));
 }
 
 function sortDraftTeams(a: Team, b: Team): number {
@@ -390,6 +401,8 @@ function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState): voi
       team.roster.push(signedPlayer);
     }
     applyOfferToPlayer(game, team, signedPlayer, winner);
+    assignJerseyNumber(team, signedPlayer);
+    refreshRosterState(team);
     team.txLog.push({
       type: 'SIGN_FA',
       year: game.year,
@@ -581,6 +594,68 @@ function rebuildDraftBoard(game: GameState): void {
   game.offseasonState.completedDraftPickIds = [];
 }
 
+function recordUserEndorsementPosts(game: GameState, team: Team, summary: ReturnType<typeof tickEndorsements>): void {
+  if (!team.isUser) return;
+  const posts = [
+    ...summary.lostDeals.map((deal) => {
+      const player = game.players[deal.playerId];
+      return player
+        ? {
+          id: `endorsement-lost-${deal.id}`,
+          source: 'reporter' as const,
+          authorName: 'MFSN Business',
+          content: getEndorsementNarrative(deal, player, 'lost'),
+          trigger: 'milestone' as const,
+          sentiment: 'negative' as const,
+          likes: 140,
+          timestamp: game.week,
+        }
+        : null;
+    }),
+    ...summary.renewedDeals.map((deal) => {
+      const player = game.players[deal.playerId];
+      return player
+        ? {
+          id: `endorsement-renewed-${deal.id}`,
+          source: 'reporter' as const,
+          authorName: 'MFSN Business',
+          content: getEndorsementNarrative(deal, player, 'renewed'),
+          trigger: 'milestone' as const,
+          sentiment: 'positive' as const,
+          likes: 180,
+          timestamp: game.week,
+        }
+        : null;
+    }),
+  ].filter((post): post is NonNullable<typeof post> => Boolean(post));
+  game.socialFeed = appendToSocialFeed(game.socialFeed, posts);
+}
+
+function processJerseyRetirement(game: GameState, playerId: string, teamId: string, isHallOfFamer = false): void {
+  const team = game.teams[teamId];
+  const archiveEntry = game.playerArchive.find((entry) => entry.playerId === playerId);
+  if (!team || !archiveEntry || archiveEntry.jerseyNumber === null) return;
+  team.retiredJerseys = team.retiredJerseys ?? [];
+  if (team.retiredJerseys.some((retired) => retired.jerseyNumber === archiveEntry.jerseyNumber)) return;
+  if (!shouldRetireJersey(archiveEntry, team, game.franchiseHistory, { isHallOfFamer })) return;
+
+  const retirement = generateJerseyRetirement(archiveEntry, team, game.year, RNG.ai, game.franchiseHistory, { isHallOfFamer });
+  team.retiredJerseys = [...(team.retiredJerseys ?? []), retirement];
+  recordCeremony(game, {
+    id: `ceremony-${retirement.id}`,
+    type: 'jersey_retirement',
+    year: retirement.year,
+    headline: retirement.headline,
+    description: retirement.ceremony,
+    highlights: [
+      { label: 'Number', value: `#${retirement.jerseyNumber}`, playerIds: [retirement.playerId] },
+      { label: 'Peak OVR', value: String(retirement.peakOvr), playerIds: [retirement.playerId] },
+      { label: 'Championships', value: String(retirement.championships), playerIds: [retirement.playerId] },
+    ],
+    mvp: retirement.playerId,
+  });
+}
+
 export function initializeOffseasonState(game: GameState): OffseasonState {
   refreshScoutPool(game);
   game.scoutingDepartment.privateWorkoutsRemaining = 3;
@@ -677,6 +752,10 @@ export function advanceOffseason(game: GameState): void {
   }
 
   const seasonYear = currentSeasonYear(game);
+  for (const team of Object.values(game.teams)) {
+    const endorsementSummary = tickEndorsements(team, { wins: team.wins, losses: team.losses }, RNG.ai);
+    recordUserEndorsementPosts(game, team, endorsementSummary);
+  }
   markCompletedSeason(game, seasonYear);
   archivePlayerSeasonHistory(game, seasonYear);
   clearSeasonLivingWorldState(game);
@@ -743,6 +822,9 @@ export function advanceOffseason(game: GameState): void {
         playerIds: [inductee.playerId],
         teamIds: inductee.teams,
       });
+      for (const teamId of inductee.teams) {
+        processJerseyRetirement(game, inductee.playerId, teamId, true);
+      }
     }
   }
   refreshFranchiseIdentity(game, seasonYear, hofClass);
@@ -754,6 +836,7 @@ export function advanceOffseason(game: GameState): void {
     }
   }
   decayLeagueRivalries(game);
+  game.playerRivalries = decayRivalries(game.playerRivalries ?? [], game.year);
   const carousel = runCoachingCarousel(game, seasonYear);
   const hireEvents = carousel.events.filter((event) => event.type === 'coach_hired');
   for (const event of hireEvents) {
@@ -786,11 +869,25 @@ export function advanceOffseason(game: GameState): void {
   const mentoringBonuses = applyMentoringBonuses(game, mentoringPairs);
   const trainingBonuses = buildTrainingProgressionBonuses(game);
   const progression = progressPlayers(game, { mentoringBonuses, trainingBonuses });
+  for (const retiredPlayerId of progression.retiredPlayerIds) {
+    const archiveEntry = game.playerArchive.find((entry) => entry.playerId === retiredPlayerId);
+    const lastTeamId = archiveEntry?.teamHistory.at(-1)?.teamId ?? null;
+    if (lastTeamId) {
+      processJerseyRetirement(game, retiredPlayerId, lastTeamId, false);
+    }
+  }
   game.eventLog.push(...progression.events);
   clearTrainingAssignments(game);
   resetPhysicalState(game);
   resetPracticeSquads(game);
   resetSpecialTeams(game);
+  for (const team of Object.values(game.teams)) {
+    for (const player of team.roster) {
+      assignJerseyNumber(team, player);
+    }
+    team.lockerRoom = initializeLockerRoom(team, RNG.ai);
+  }
+  game.farewellTours = [];
   const narrativeAdds = [
     awardsNight.headline,
     awards.ceremony.headline,
@@ -807,6 +904,7 @@ export function advanceOffseason(game: GameState): void {
   game.eventLog.push(...strategyEvents);
   generateOffseasonNews(game);
   game.offseasonState.tradeOffers = generateTradeOffers(game);
+  game.endorsementOffers = userTeam ? generateEndorsementOffers(userTeam, userTeam.roster, RNG.ai) : [];
   game.teamNeedsCache = {};
   game.warRoomState = null;
   checkAchievements(game);

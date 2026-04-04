@@ -1,5 +1,7 @@
 import { mulberry32 } from '../rng';
 import { syncPlayerArchiveEntry } from './history';
+import { assignJerseyNumber } from './jersey-retirement';
+import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
 import { conditionalPickExpectedValue } from './conditional-picks';
 import { recordNewsItem } from './league-news';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
@@ -10,6 +12,13 @@ import type { DraftPick, EngineOutput, GameState, Player, Team, TradeOffer, Trad
 
 function cloneGame(game: GameState): GameState {
   return JSON.parse(JSON.stringify(game)) as GameState;
+}
+
+function refreshRosterState(team: Team): void {
+  for (const player of team.roster) {
+    assignJerseyNumber(team, player);
+  }
+  team.lockerRoom = syncLockerRoomRoster(team, team.lockerRoom ?? initializeLockerRoom(team, () => 0.42));
 }
 
 function transferPlayer(game: GameState, asset: TradeOfferAsset, toTeamId: string): void {
@@ -27,6 +36,9 @@ function transferPlayer(game: GameState, asset: TradeOfferAsset, toTeamId: strin
   player.teamId = toTeamId;
   toTeam.roster.push(player as Player);
   game.players[player.id] = player as Player;
+  assignJerseyNumber(toTeam, player as Player);
+  refreshRosterState(fromTeam);
+  refreshRosterState(toTeam);
   syncPlayerArchiveEntry(game, player as Player, game.year);
 }
 

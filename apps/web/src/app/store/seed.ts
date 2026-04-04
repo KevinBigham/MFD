@@ -28,6 +28,8 @@ import {
   buildSpecialTeamsState,
   ensureAgentsInitialized,
   initializeFranchiseIdentity,
+  initializeLockerRoom,
+  assignJerseyNumber,
   syncAllPlayerArchiveEntries,
 } from '@mfd/engine';
 import { createEmptyRecordBook } from '@mfd/engine';
@@ -201,6 +203,9 @@ function genPlayer(
     morale: rng(50, 90),
     chemistry: rng(40, 85),
     systemFit: rng(50, 90),
+    cliqueId: null,
+    jerseyNumber: 0,
+    endorsements: [],
     isStarter,
     role: isStarter ? 'Starter' : 'Backup',
     roleWeeks: rng(0, 40),
@@ -333,6 +338,15 @@ function genTeam(
       city: def.city,
       stadiumType: DOME_CITIES.has(def.city) ? 'dome' : 'outdoor',
     }),
+    lockerRoom: {
+      cliques: [],
+      captains: [],
+      culture: 'stable',
+      cultureScore: 50,
+      tensions: [],
+      lastMeetingWeek: null,
+    },
+    retiredJerseys: [],
     specialTeams: {
       kickReturner: null,
       puntReturner: null,
@@ -341,8 +355,12 @@ function genTeam(
       puntCoverageUnit: [],
     },
   };
+  for (const player of players) {
+    assignJerseyNumber(team, player);
+  }
   team.specialTeams = buildSpecialTeamsState(team);
   team.franchiseIdentity = initializeFranchiseIdentity(team, () => rng(0, 1000) / 1000);
+  team.lockerRoom = initializeLockerRoom(team, () => rng(0, 1000) / 1000);
 
   return { team, players };
 }
@@ -430,6 +448,9 @@ export function createSeedGameState(
     franchiseHistory: [],
     playerArchive: [],
     playerSeasonHistory: {},
+    playerRivalries: [],
+    farewellTours: [],
+    endorsementOffers: [],
     frontOffice,
     eventLog: [],
     narrativeState,

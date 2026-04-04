@@ -17,6 +17,7 @@ export interface PlayerRatings {
 }
 
 export type DevTrait = 'normal' | 'star' | 'superstar' | 'x-factor';
+export type CliqueId = 0 | 1 | 2;
 
 export interface Personality {
   workEthic: number;  // 1-10
@@ -67,6 +68,9 @@ export interface Player {
   morale: number;
   chemistry: number;
   systemFit: number;
+  cliqueId: CliqueId | null;
+  jerseyNumber: number;
+  endorsements: EndorsementDeal[];
   isStarter: boolean;
   role: string | null;
   roleWeeks: number;
@@ -325,6 +329,49 @@ export interface ClinicState {
   perks: string[];
 }
 
+export interface CliqueState {
+  id: CliqueId;
+  label: string;
+  playerIds: string[];
+  cohesion: number;
+  influence: number;
+}
+
+export type CaptainPerk =
+  | 'rally_cry'
+  | 'mentor_boost'
+  | 'hazing_shield'
+  | 'clutch_aura'
+  | 'media_shield';
+
+export interface CaptainState {
+  playerId: string;
+  playerName: string;
+  captainMoments: number;
+  rallyCooldown: number;
+  perks: CaptainPerk[];
+}
+
+export interface LockerRoomTension {
+  id: string;
+  type: 'clique_beef' | 'contract_envy' | 'playing_time' | 'rookie_hazing' | 'star_demands' | 'captain_challenge';
+  involvedPlayerIds: string[];
+  involvedCliqueIds: CliqueId[];
+  severity: 'minor' | 'moderate' | 'serious';
+  weekCreated: number;
+  resolved: boolean;
+  narrative: string;
+}
+
+export interface LockerRoomState {
+  cliques: CliqueState[];
+  captains: CaptainState[];
+  culture: 'toxic' | 'fragile' | 'stable' | 'strong' | 'elite';
+  cultureScore: number;
+  tensions: LockerRoomTension[];
+  lastMeetingWeek: number | null;
+}
+
 export interface CoachSkillSelection {
   branch: string;
   tier: number;
@@ -381,6 +428,8 @@ export interface Team {
   practiceSquad: PracticeSquadPlayer[];
   stadiumType: 'dome' | 'outdoor';
   franchiseIdentity: FranchiseIdentity;
+  lockerRoom: LockerRoomState;
+  retiredJerseys: JerseyRetirement[];
   specialTeams?: SpecialTeamsState;
 }
 
@@ -638,6 +687,34 @@ export interface DraftProspect {
   stealProbability: number;
   scoutingReports: ScoutingReport[];
   combine: CombineMeasurables | null;
+}
+
+export type EndorsementRequirement =
+  | { type: 'min_ovr'; value: number }
+  | { type: 'min_games'; value: number }
+  | { type: 'no_suspension'; value: true }
+  | { type: 'team_wins'; value: number };
+
+export interface EndorsementDeal {
+  id: string;
+  playerId: string;
+  brandName: string;
+  revenuePerYear: number;
+  yearsTotal: number;
+  yearsRemaining: number;
+  tier: 'local' | 'regional' | 'national' | 'global';
+  moraleBonus: number;
+  requirement: EndorsementRequirement;
+  active: boolean;
+}
+
+export interface EndorsementBrand {
+  name: string;
+  tier: 'local' | 'regional' | 'national' | 'global';
+  baseRevenue: number;
+  baseDuration: number;
+  positionPreference: Position[] | null;
+  ovrThreshold: number;
 }
 
 export interface ScoutingReport {
@@ -1020,6 +1097,60 @@ export interface Ceremony {
   mvp: string | null;
 }
 
+export interface PlayerRivalryEvent {
+  year: number;
+  week: number;
+  description: string;
+  intensityDelta: number;
+}
+
+export interface PlayerRivalry {
+  id: string;
+  playerAId: string;
+  playerBId: string;
+  playerAName: string;
+  playerBName: string;
+  teamAId: string;
+  teamBId: string;
+  intensity: number;
+  tier: 'budding' | 'heated' | 'nemesis';
+  origin: string;
+  history: PlayerRivalryEvent[];
+  seasonStarted: number;
+}
+
+export interface FarewellMoment {
+  week: number;
+  type: 'standing_ovation' | 'gift_exchange' | 'emotional_speech' | 'final_home_game' | 'final_game';
+  narrative: string;
+  opponent: string;
+}
+
+export interface FarewellTour {
+  playerId: string;
+  playerName: string;
+  teamId: string;
+  finalSeason: boolean;
+  announcedWeek: number;
+  moments: FarewellMoment[];
+}
+
+export interface JerseyRetirement {
+  id: string;
+  playerId: string;
+  playerName: string;
+  pos: Position;
+  jerseyNumber: number;
+  teamId: string;
+  year: number;
+  peakOvr: number;
+  seasonsWithTeam: number;
+  championships: number;
+  headline: string;
+  ceremony: string;
+  legacyScore: number;
+}
+
 export interface DynastyEvent {
   id: string;
   year: number;
@@ -1340,6 +1471,7 @@ export interface GameResult {
   primetime?: boolean;
   flexed?: boolean;
   specialTeams?: Record<string, SpecialTeamsGameSummary>;
+  playerMatchupEvents: PlayerMatchupEvent[];
 }
 
 export interface GameStats {
@@ -1410,6 +1542,13 @@ export interface SpecialTeamsGameSummary {
   touchbacks: number;
   netPuntAverage: number;
   highlights: string[];
+}
+
+export interface PlayerMatchupEvent {
+  type: 'interception' | 'sack' | 'fumble';
+  offensePlayerId: string;
+  defensePlayerId: string;
+  quarter: number;
 }
 
 export interface TeamSeasonStats {
@@ -1989,6 +2128,7 @@ export interface PlayerArchiveEntry {
   lastName: string;
   name: string;
   positions: Position[];
+  jerseyNumber: number | null;
   peakOvr: number;
   peakYear: number;
   firstYear: number;
@@ -2146,6 +2286,9 @@ export interface GameState {
   franchiseHistory: FranchiseHistoryEntry[];
   playerArchive: PlayerArchiveEntry[];
   playerSeasonHistory: Record<string, PlayerSeasonHistoryEntry[]>;
+  playerRivalries: PlayerRivalry[];
+  farewellTours: FarewellTour[];
+  endorsementOffers: EndorsementDeal[];
   frontOffice: FrontOffice;
   eventLog: GameEvent[];
   narrativeState: NarrativeState;

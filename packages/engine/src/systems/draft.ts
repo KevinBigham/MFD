@@ -13,7 +13,9 @@ import { recordDynastyEvent } from './dynasty-timeline';
 import { generateDraftRecap } from './draft-recap';
 import { applyFacilityBonuses } from './facilities';
 import { syncPlayerArchiveEntry } from './history';
+import { assignJerseyNumber } from './jersey-retirement';
 import { recordNewsItem } from './league-news';
+import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { applyScoutAccuracy, bestScoutForProspect, runCombine } from './scouting-staff';
 import { mulberry32 } from '../rng';
@@ -38,6 +40,13 @@ const DRAFT_POSITION_PREMIUM: Partial<Record<Player['pos'], number>> = {
 
 function cloneGame(game: GameState): GameState {
   return JSON.parse(JSON.stringify(game)) as GameState;
+}
+
+function refreshRosterState(team: Team): void {
+  for (const player of team.roster) {
+    assignJerseyNumber(team, player);
+  }
+  team.lockerRoom = syncLockerRoomRoster(team, team.lockerRoom ?? initializeLockerRoom(team, () => 0.42));
 }
 
 function findUserTeam(game: GameState): Team | null {
@@ -158,6 +167,9 @@ function prospectToPlayer(prospect: DraftProspect, teamId: string, year: number,
     morale: 72,
     chemistry: 60,
     systemFit: 60,
+    cliqueId: null,
+    jerseyNumber: 0,
+    endorsements: [],
     isStarter: false,
     role: 'Rookie',
     roleWeeks: 0,
@@ -262,6 +274,7 @@ function applyDraftSelection(game: GameState, teamId: string, prospectId: string
   const rookie = prospectToPlayer(prospect, teamId, game.year, draftEntry.round, draftEntry.pick);
   team.roster.push(rookie);
   game.players[rookie.id] = rookie;
+  refreshRosterState(team);
   syncPlayerArchiveEntry(game, rookie, game.year);
   removeUsedPick(team, game.year, draftEntry.round, draftEntry.pick, draftEntry.originalTeamId);
   game.offseasonState.completedDraftPickIds.push(draftEntry.id);

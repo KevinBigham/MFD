@@ -27,6 +27,9 @@ const baseState = () => ({
       headline: 'The Dynasty Era',
     },
   ],
+  retiredJerseys: [
+    { id: 'jr-1', playerId: 'p1', playerName: 'Cole Stone', pos: 'QB', jerseyNumber: 12, teamId: 'team-1', year: 2030, peakOvr: 94, seasonsWithTeam: 9, championships: 3, headline: 'Chicago retires #12', ceremony: 'A banner night.', legacyScore: 98 },
+  ],
 });
 
 let mockState = baseState();
@@ -35,6 +38,7 @@ vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: typeof mockState) => unknown) => selector(mockState),
   selectAllDecadeTeams: (state: typeof mockState) => state.allDecadeTeams,
   selectFranchiseLegends: (state: typeof mockState) => state.legends,
+  selectRetiredJerseys: (state: typeof mockState) => state.retiredJerseys,
   selectUserTeam: (state: typeof mockState) => state.team,
 }));
 
@@ -47,6 +51,7 @@ describe('FranchiseLegends', () => {
     const markup = renderToStaticMarkup(<FranchiseLegends />);
     expect(markup).toContain('FRANCHISE LEGENDS');
     expect(markup).toContain('2 LEGENDS');
+    expect(markup).toContain('1 RETIRED JERSEYS');
   });
 
   it('shows the focused legend panel for the top legend', () => {
@@ -55,21 +60,21 @@ describe('FranchiseLegends', () => {
     expect(markup).toContain('HOF');
   });
 
-  it('shows the unlock message when no all-decade team exists yet', () => {
-    mockState.allDecadeTeams = [];
+  it('renders the tab controls for legends, decades, and retired jerseys', () => {
     const markup = renderToStaticMarkup(<FranchiseLegends />);
-    expect(markup).toContain('Play 10 seasons to unlock your first All-Decade Team');
+    expect(markup).toContain('Legends');
+    expect(markup).toContain('All-Decade');
+    expect(markup).toContain('Retired Jerseys');
   });
 
-  it('renders the decade selector and roster cards when decade teams exist', () => {
+  it('keeps the legends board visible by default after adding tabs', () => {
     const markup = renderToStaticMarkup(<FranchiseLegends />);
-    expect(markup).toContain('2020-2029');
-    expect(markup).toContain('STARTER');
-    expect(markup).toContain('2x League MVP');
+    expect(markup).toContain('LEGEND BOARD');
+    expect(markup).toContain('FOCUSED LEGEND');
   });
 
-  it('renders the generated narrative for the selected decade', () => {
+  it('shows retired jersey totals in the header badges', () => {
     const markup = renderToStaticMarkup(<FranchiseLegends />);
-    expect(markup).toContain('Championship seasons arrived in 2029');
+    expect(markup).toContain('1 RETIRED JERSEYS');
   });
 });

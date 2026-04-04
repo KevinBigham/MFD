@@ -1,4 +1,11 @@
-import { createDefaultFranchiseIdentity, makeContract, SAVE_VERSION, emptyPlayerStats } from '../index';
+import {
+  assignJerseyNumber,
+  createDefaultFranchiseIdentity,
+  initializeLockerRoom,
+  makeContract,
+  SAVE_VERSION,
+  emptyPlayerStats,
+} from '../index';
 import { createEmptyRecordBook } from './records';
 import type { GameState, GameDayState, Player, Team } from '../types';
 
@@ -44,6 +51,9 @@ export function makePlayer(
     morale: 70,
     chemistry: 68,
     systemFit: 67,
+    cliqueId: null,
+    jerseyNumber: 0,
+    endorsements: [],
     isStarter,
     role: isStarter ? 'Starter' : 'Backup',
     roleWeeks: 10,
@@ -80,7 +90,7 @@ export function makeTeam(
 ): Team {
   const roster = makeRoster(id, ratingBase);
 
-  return {
+  const team = {
     id,
     city: id.toUpperCase(),
     name: 'Club',
@@ -177,6 +187,15 @@ export function makeTeam(
     practiceSquad: [],
     stadiumType: 'outdoor',
     franchiseIdentity: createDefaultFranchiseIdentity({ city: id.toUpperCase(), stadiumType: 'outdoor' }),
+    lockerRoom: {
+      cliques: [],
+      captains: [],
+      culture: 'stable',
+      cultureScore: 50,
+      tensions: [],
+      lastMeetingWeek: null,
+    },
+    retiredJerseys: [],
     specialTeams: {
       kickReturner: null,
       puntReturner: null,
@@ -185,6 +204,11 @@ export function makeTeam(
       puntCoverageUnit: [],
     },
   } as unknown as Team;
+  for (const player of roster) {
+    assignJerseyNumber(team, player);
+  }
+  team.lockerRoom = initializeLockerRoom(team, () => 0.42);
+  return team;
 }
 
 export function makeLeagueState(
@@ -273,6 +297,9 @@ export function makeLeagueState(
     franchiseHistory: [],
     playerArchive: [],
     playerSeasonHistory: {},
+    playerRivalries: [],
+    farewellTours: [],
+    endorsementOffers: [],
     frontOffice: {
       xp: 0,
       level: 1,

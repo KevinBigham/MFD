@@ -19,7 +19,9 @@ import type {
   DraftOrderEntry,
   DraftProspect,
   DynastyEvent,
+  EndorsementDeal,
   FacilityState,
+  FarewellTour,
   FranchiseDashboard,
   FranchiseEra,
   FranchiseLegend,
@@ -30,6 +32,8 @@ import type {
   GameState,
   GamePlan,
   HallOfFameEntry,
+  JerseyRetirement,
+  LockerRoomState,
   LeagueRivalry,
   MentoringPair,
   MedicalStaff,
@@ -43,6 +47,7 @@ import type {
   Player,
   PlayerProfile,
   PlayerProjection,
+  PlayerRivalry,
   PlayerValue,
   PowerRanking,
   PressConference,
@@ -89,6 +94,7 @@ import {
   buildLeagueAverageByGroup,
   buildOpponentIntel,
   buildPlayerProfile,
+  detectRetirementCandidates,
   capProjection,
   checkIncentives,
   buildPlayoffPicture,
@@ -108,6 +114,8 @@ import {
   getPlayerProjection,
   getPlayerValue,
   getFranchiseLegends,
+  getEndorsementRevenue,
+  getActiveRivalries,
   getStoredOpponentReport,
   getPlayerComparison,
   getCooldownStatus,
@@ -126,6 +134,7 @@ import {
   getRivalryGameContext,
   getStatLeaders,
   getTeamNews,
+  getRetiredJerseys,
   mulberry32,
   projectSchemeTransition,
 } from '@mfd/engine';
@@ -168,6 +177,18 @@ const EMPTY_STADIUM_DEALS: StadiumDeal[] = [];
 const EMPTY_ALL_DECADE_TEAMS: AllDecadeTeam[] = [];
 const EMPTY_FRANCHISE_LEGENDS: FranchiseLegend[] = [];
 const EMPTY_FRANCHISE_ERAS: FranchiseEra[] = [];
+const EMPTY_LOCKER_ROOM: LockerRoomState = {
+  cliques: [],
+  captains: [],
+  culture: 'stable',
+  cultureScore: 50,
+  tensions: [],
+  lastMeetingWeek: null,
+};
+const EMPTY_ENDORSEMENTS: EndorsementDeal[] = [];
+const EMPTY_PLAYER_RIVALRIES: PlayerRivalry[] = [];
+const EMPTY_FAREWELL_TOURS: FarewellTour[] = [];
+const EMPTY_RETIRED_JERSEYS: JerseyRetirement[] = [];
 const EMPTY_IDS: string[] = [];
 const EMPTY_TRAINING_ASSIGNMENTS: Record<string, TrainingAssignment> = {};
 const EMPTY_FACILITY_STATE: FacilityState = {
@@ -386,6 +407,38 @@ function materializeStoredFATargetBoard(game: GameState): FATargetBoard {
 
 export const selectUserTeam = (state: GameStoreState): Team | null =>
   state.game ? Object.values(state.game.teams).find((team) => team.isUser) ?? null : null;
+
+export const selectLockerRoom = (state: GameStoreState): LockerRoomState =>
+  selectUserTeam(state)?.lockerRoom ?? EMPTY_LOCKER_ROOM;
+
+export const selectEndorsementOffers = (state: GameStoreState): EndorsementDeal[] =>
+  state.game?.endorsementOffers ?? EMPTY_ENDORSEMENTS;
+
+export const selectActiveEndorsements = (state: GameStoreState): EndorsementDeal[] =>
+  selectUserTeam(state)?.roster.flatMap((player) => player.endorsements.filter((deal) => deal.active)) ?? EMPTY_ENDORSEMENTS;
+
+export const selectEndorsementRevenue = (state: GameStoreState): number =>
+  getEndorsementRevenue(selectActiveEndorsements(state));
+
+export const selectPlayerRivalries = (playerId: string) => (state: GameStoreState): PlayerRivalry[] =>
+  state.game ? getActiveRivalries(state.game.playerRivalries ?? EMPTY_PLAYER_RIVALRIES, playerId) : EMPTY_PLAYER_RIVALRIES;
+
+export const selectAllPlayerRivalries = (state: GameStoreState): PlayerRivalry[] =>
+  state.game?.playerRivalries ?? EMPTY_PLAYER_RIVALRIES;
+
+export const selectFarewellTours = (state: GameStoreState): FarewellTour[] =>
+  state.game?.farewellTours ?? EMPTY_FAREWELL_TOURS;
+
+export const selectFarewellCandidates = (state: GameStoreState): Player[] => {
+  if (!state.game) return EMPTY_PLAYERS;
+  const team = selectUserTeam(state);
+  return team ? detectRetirementCandidates(team, state.game.playerSeasonHistory ?? {}) : EMPTY_PLAYERS;
+};
+
+export const selectRetiredJerseys = (state: GameStoreState): JerseyRetirement[] => {
+  const team = selectUserTeam(state);
+  return team ? getRetiredJerseys(team) : EMPTY_RETIRED_JERSEYS;
+};
 
 export function selectCurrentMatchup(state: GameStoreState) {
   if (!state.game) return null;

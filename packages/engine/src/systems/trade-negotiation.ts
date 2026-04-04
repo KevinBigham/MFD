@@ -1,5 +1,7 @@
 import { syncPlayerArchiveEntry } from './history';
+import { assignJerseyNumber } from './jersey-retirement';
 import { recordNewsItem } from './league-news';
+import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
 import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
 import type { DraftPick, GameState, Player, Team, TradeOfferAsset, TradeProposal } from '../types';
 
@@ -68,6 +70,13 @@ function playerAsset(teamId: string, player: Player): TradeOfferAsset {
     pickId: null,
     description: player.name,
   };
+}
+
+function refreshRosterState(team: Team): void {
+  for (const player of team.roster) {
+    assignJerseyNumber(team, player);
+  }
+  team.lockerRoom = syncLockerRoomRoster(team, team.lockerRoom ?? initializeLockerRoom(team, () => 0.42));
 }
 
 function availableExtraPicks(game: GameState, teamId: string, usedPickIds: Set<string>): TradeOfferAsset[] {
@@ -147,6 +156,8 @@ function executeProposal(game: GameState, proposal: TradeProposal): void {
 
   const fromTeam = game.teams[proposal.fromTeamId];
   const toTeam = game.teams[proposal.toTeamId];
+  if (fromTeam) refreshRosterState(fromTeam);
+  if (toTeam) refreshRosterState(toTeam);
   const notable = proposal.requesting.find((asset) => asset.playerId)?.description ?? 'new pieces';
   recordNewsItem(game, {
     id: `${proposal.id}-accepted`,

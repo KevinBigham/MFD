@@ -1,4 +1,6 @@
 import { generateTradeOffers } from './trade-market';
+import { assignJerseyNumber } from './jersey-retirement';
+import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
 import { calcPickValue, calcPlayerValue } from './trade-value';
 import type {
   DeadlineDeal,
@@ -13,6 +15,13 @@ import type { PrngFn } from '../rng';
 
 function cloneGame(game: GameState): GameState {
   return JSON.parse(JSON.stringify(game)) as GameState;
+}
+
+function refreshRosterState(team: Team): void {
+  for (const player of team.roster) {
+    assignJerseyNumber(team, player);
+  }
+  team.lockerRoom = syncLockerRoomRoster(team, team.lockerRoom ?? initializeLockerRoom(team, () => 0.42));
 }
 
 function pickWithRng<T>(items: readonly T[], rng: PrngFn): T {
@@ -316,6 +325,9 @@ function movePlayer(game: GameState, fromTeamId: string, toTeamId: string, playe
   if (!player) return;
   player.teamId = toTeamId;
   toTeam.roster.push(player);
+  assignJerseyNumber(toTeam, player);
+  refreshRosterState(fromTeam);
+  refreshRosterState(toTeam);
   game.players[player.id] = player;
 }
 

@@ -13,6 +13,8 @@ const mockBundle = {
       devTrait: 'superstar',
       teamId: 'user',
       draftPick: 12,
+      jerseyNumber: 12,
+      endorsements: [{ id: 'deal-1', playerId: 'p-1', brandName: 'Apex Athletics', revenuePerYear: 6, yearsTotal: 3, yearsRemaining: 2, tier: 'global', moraleBonus: 6, requirement: { type: 'min_ovr', value: 90 }, active: true }],
     },
     contractDetails: {
       yearByYear: [{ year: 2027, baseSalary: 18, capHit: 22, deadCap: 8 }],
@@ -46,9 +48,16 @@ vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: any) => unknown) => selector({
     bundle: mockBundle,
     team: { id: 'user', city: 'Chicago', name: 'Blaze' },
+    rivalries: [{ id: 'riv-1', playerAId: 'p-1', playerBId: 'p-3', playerAName: 'Jay Stone', playerBName: 'Duke Hayes', intensity: 64, tier: 'heated', origin: 'Week 3, 2027: Hayes baited Stone into two picks' }],
+    farewellCandidates: [],
+    farewellTours: [],
+    actions: { startFarewellTour: () => Promise.resolve() },
   }),
   selectPlayerProfileBundle: () => (state: any) => state.bundle,
   selectTeamById: () => (state: any) => state.team,
+  selectPlayerRivalries: () => (state: any) => state.rivalries,
+  selectFarewellCandidates: (state: any) => state.farewellCandidates,
+  selectFarewellTours: (state: any) => state.farewellTours,
 }));
 
 vi.mock('../../app/store/ui-store', () => ({
@@ -65,5 +74,7 @@ describe('PlayerProfile', () => {
     expect(markup).toContain('TRADE VALUE');
     expect(markup).toContain('2026 MVP');
     expect(markup).toContain('Retirement Age');
+    expect(markup).toContain('Open Endorsements');
+    expect(markup).toContain('View Rivalries');
   });
 });

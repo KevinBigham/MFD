@@ -8,6 +8,8 @@
 import { createDefaultAchievements } from '../systems/achievements';
 import { assignProspectRegion, deriveConfidence } from '../systems/advanced-scouting';
 import { createDefaultDashboardState } from '../systems/dashboard-config';
+import { initializeLockerRoom } from '../systems/locker-room';
+import { assignJerseyNumber } from '../systems/jersey-retirement';
 import { createEmptyRecordBook } from '../systems/records';
 import { buildSpecialTeamsState, createDefaultSpecialTeamsState } from '../systems/special-teams';
 import type { Team } from '../types';
@@ -897,5 +899,61 @@ registerMigration(17, (state) => {
     allDecadeTeams: Array.isArray(state['allDecadeTeams']) ? state['allDecadeTeams'] : [],
     expansionDraftState: state['expansionDraftState'],
     stadiumDealOffers: Array.isArray(state['stadiumDealOffers']) ? state['stadiumDealOffers'] : [],
+  };
+});
+
+registerMigration(18, (state) => {
+  const teams = (state['teams'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+  const players = (state['players'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+
+  for (const team of Object.values(teams)) {
+    team['retiredJerseys'] = Array.isArray(team['retiredJerseys']) ? team['retiredJerseys'] : [];
+    team['roster'] = Array.isArray(team['roster']) ? team['roster'] : [];
+    const roster = team['roster'] as Array<Record<string, unknown>>;
+    for (const player of roster) {
+      player['endorsements'] = Array.isArray(player['endorsements']) ? player['endorsements'] : [];
+      player['cliqueId'] = player['cliqueId'] ?? null;
+      player['jerseyNumber'] = Number(player['jerseyNumber'] ?? 0);
+    }
+
+    const typedTeam = team as unknown as Team;
+    for (const player of typedTeam.roster ?? []) {
+      assignJerseyNumber(typedTeam, player);
+      const storedPlayer = players[player.id];
+      if (storedPlayer) {
+        storedPlayer['endorsements'] = Array.isArray(storedPlayer['endorsements']) ? storedPlayer['endorsements'] : player.endorsements ?? [];
+        storedPlayer['cliqueId'] = player.cliqueId ?? null;
+        storedPlayer['jerseyNumber'] = Number(player.jerseyNumber ?? 0);
+      }
+    }
+
+    team['lockerRoom'] = team['lockerRoom'] ?? initializeLockerRoom(typedTeam, () => 0.42);
+    for (const player of typedTeam.roster ?? []) {
+      const storedPlayer = players[player.id];
+      if (!storedPlayer) continue;
+      storedPlayer['cliqueId'] = player.cliqueId ?? null;
+      storedPlayer['jerseyNumber'] = Number(player.jerseyNumber ?? 0);
+    }
+  }
+
+  for (const player of Object.values(players)) {
+    player['endorsements'] = Array.isArray(player['endorsements']) ? player['endorsements'] : [];
+    player['cliqueId'] = player['cliqueId'] ?? null;
+    player['jerseyNumber'] = Number(player['jerseyNumber'] ?? 0);
+  }
+
+  const playerArchive = Array.isArray(state['playerArchive']) ? state['playerArchive'] as Array<Record<string, unknown>> : [];
+  for (const entry of playerArchive) {
+    entry['jerseyNumber'] = entry['jerseyNumber'] ?? null;
+  }
+
+  return {
+    ...state,
+    teams,
+    players,
+    playerArchive,
+    playerRivalries: Array.isArray(state['playerRivalries']) ? state['playerRivalries'] : [],
+    farewellTours: Array.isArray(state['farewellTours']) ? state['farewellTours'] : [],
+    endorsementOffers: Array.isArray(state['endorsementOffers']) ? state['endorsementOffers'] : [],
   };
 });

@@ -3,7 +3,14 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { PixelBadge, PixelButton, PixelPanel, PixelTable } from '@mfd/design-system/components';
 import type { PlayerCareerStatLine } from '@mfd/engine';
-import { selectPlayerProfileBundle, selectTeamById, useGameStore } from '../../app/store/game-store';
+import {
+  selectFarewellCandidates,
+  selectFarewellTours,
+  selectPlayerProfileBundle,
+  selectPlayerRivalries,
+  selectTeamById,
+  useGameStore,
+} from '../../app/store/game-store';
 import { useUiStore } from '../../app/store/ui-store';
 import {
   PixelMetricCard,
@@ -81,8 +88,12 @@ export function PlayerProfile() {
   const { playerId } = useParams({ from: '/player/$playerId' });
   const bundle = useGameStore(selectPlayerProfileBundle(playerId));
   const team = useGameStore(selectTeamById(bundle?.profile.player.teamId ?? ''));
+  const rivalries = useGameStore(selectPlayerRivalries(playerId));
+  const farewellCandidates = useGameStore(selectFarewellCandidates);
+  const farewellTours = useGameStore(selectFarewellTours);
   const navigate = useNavigate();
   const setFocusedPlayerContext = useUiStore((state) => state.setFocusedPlayerContext);
+  const startFarewellTour = useGameStore((state) => state.actions.startFarewellTour);
 
   const chartData = useMemo(() => bundle ? chartPoints(bundle.profile.developmentArc) : '', [bundle]);
 
@@ -96,12 +107,14 @@ export function PlayerProfile() {
 
   const { profile, value, comparables, projection } = bundle;
   const player = profile.player;
+  const hasFarewellTour = farewellTours.some((tour) => tour.playerId === player.id);
+  const isFarewellCandidate = farewellCandidates.some((candidate) => candidate.id === player.id);
 
   return (
     <div style={screenStackStyle}>
       <PixelScreenHeader
         title={player.name}
-        subtitle={`${player.pos} // ${team ? `${team.city} ${team.name}` : 'Free Agent'} // age ${player.age} // #${player.draftPick ?? '--'}`}
+        subtitle={`${player.pos} // ${team ? `${team.city} ${team.name}` : 'Free Agent'} // age ${player.age} // jersey #${player.jerseyNumber || '--'}`}
         badges={(
           <>
             <PixelBadge variant={player.ovr >= 90 ? 'gold' : player.ovr >= 80 ? 'green' : 'cyan'}>{player.ovr} OVR</PixelBadge>
@@ -197,6 +210,25 @@ export function PlayerProfile() {
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Locker room: {profile.personalityReport.lockerRoomImpact}</div>
           </div>
         </PixelPanel>
+
+        <PixelPanel title="Endorsements" accent="green">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {player.endorsements.filter((deal) => deal.active).length > 0 ? player.endorsements.filter((deal) => deal.active).map((deal) => (
+              <div key={deal.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{deal.brandName}</span>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{deal.yearsRemaining} year(s) left</span>
+                </div>
+                <PixelBadge variant={deal.tier === 'global' ? 'gold' : deal.tier === 'national' ? 'green' : 'cyan'}>
+                  ${deal.revenuePerYear.toFixed(1)}M
+                </PixelBadge>
+              </div>
+            )) : <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No active endorsement deals.</div>}
+            <PixelButton accent="green" onClick={() => { void navigate({ to: '/endorsements' }); }}>
+              Open Endorsements
+            </PixelButton>
+          </div>
+        </PixelPanel>
       </div>
 
       <PixelPanel title="Career Stats" accent="cyan">
@@ -224,6 +256,28 @@ export function PlayerProfile() {
                 {entry.season}: {entry.type} ({entry.weeksOut} weeks)
               </div>
             )) : <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No major injuries logged.</div>}
+          </div>
+        </PixelPanel>
+
+        <PixelPanel title="Active Rivalries" accent={rivalries.some((rivalry) => rivalry.tier === 'nemesis') ? 'red' : rivalries.length > 0 ? 'gold' : 'cyan'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {rivalries.length > 0 ? rivalries.map((rivalry) => {
+              const opponentName = rivalry.playerAId === player.id ? rivalry.playerBName : rivalry.playerAName;
+              return (
+                <div key={rivalry.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{opponentName}</span>
+                    <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{rivalry.origin}</span>
+                  </div>
+                  <PixelBadge variant={rivalry.tier === 'nemesis' ? 'red' : rivalry.tier === 'heated' ? 'gold' : 'cyan'}>
+                    {rivalry.tier.toUpperCase()} {rivalry.intensity}
+                  </PixelBadge>
+                </div>
+              );
+            }) : <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No active player rivalries.</div>}
+            <PixelButton accent="cyan" onClick={() => { void navigate({ to: '/rivalries' }); }}>
+              View Rivalries
+            </PixelButton>
           </div>
         </PixelPanel>
       </div>
@@ -271,6 +325,16 @@ export function PlayerProfile() {
           >
             Extend
           </PixelButton>
+          {team?.isUser && isFarewellCandidate && !hasFarewellTour ? (
+            <PixelButton
+              accent="gold"
+              onClick={() => {
+                void startFarewellTour(player.id);
+              }}
+            >
+              Start Farewell Tour
+            </PixelButton>
+          ) : null}
         </div>
       </PixelPanel>
     </div>

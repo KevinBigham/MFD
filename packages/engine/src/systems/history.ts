@@ -28,6 +28,7 @@ function ensureArchiveEntry(game: GameState, player: Player, year: number): Play
       lastName: player.lastName,
       name: player.name,
       positions: [player.pos],
+      jerseyNumber: player.jerseyNumber ?? null,
       peakOvr: player.ovr,
       peakYear: year,
       firstYear: year,
@@ -42,6 +43,7 @@ function ensureArchiveEntry(game: GameState, player: Player, year: number): Play
   entry.firstName = player.firstName;
   entry.lastName = player.lastName;
   entry.name = player.name;
+  entry.jerseyNumber = player.jerseyNumber ?? entry.jerseyNumber ?? null;
   entry.lastYear = Math.max(entry.lastYear, year);
   entry.careerStats = { ...player.careerStats };
   if (!entry.positions.includes(player.pos)) {

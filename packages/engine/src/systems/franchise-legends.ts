@@ -153,6 +153,7 @@ function eligibleRosterPlayers(game: GameState, teamId: string, startYear: numbe
         lastName: player.lastName,
         name: player.name,
         positions: [player.pos],
+        jerseyNumber: player.jerseyNumber ?? null,
         peakOvr: player.ovr,
         peakYear: game.year,
         firstYear: game.year,
