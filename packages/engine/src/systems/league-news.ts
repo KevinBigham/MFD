@@ -23,6 +23,54 @@ export function recordNewsItem(game: GameState, item: NewsItem): NewsItem {
   return pushNews(game, item);
 }
 
+export function recordGovernanceNews(
+  game: GameState,
+  headline: string,
+  body: string,
+  options?: {
+    importance?: NewsItem['importance'];
+    teamIds?: string[];
+    playerIds?: string[];
+    idSuffix?: string;
+  },
+): NewsItem {
+  return recordNewsItem(game, {
+    id: options?.idSuffix ? `governance-${options.idSuffix}` : nextNewsId(game, 'governance'),
+    year: game.year,
+    week: game.week,
+    type: 'governance',
+    headline,
+    body,
+    teamIds: options?.teamIds ?? [],
+    playerIds: options?.playerIds ?? [],
+    importance: options?.importance ?? 'major',
+  });
+}
+
+export function recordLaborNews(
+  game: GameState,
+  headline: string,
+  body: string,
+  options?: {
+    importance?: NewsItem['importance'];
+    teamIds?: string[];
+    playerIds?: string[];
+    idSuffix?: string;
+  },
+): NewsItem {
+  return recordNewsItem(game, {
+    id: options?.idSuffix ? `labor-${options.idSuffix}` : nextNewsId(game, 'labor'),
+    year: game.year,
+    week: game.week,
+    type: 'labor',
+    headline,
+    body,
+    teamIds: options?.teamIds ?? [],
+    playerIds: options?.playerIds ?? [],
+    importance: options?.importance ?? 'major',
+  });
+}
+
 function makeWeeklyResultNews(game: GameState, result: GameResult): NewsItem {
   const home = game.teams[result.homeTeamId];
   const away = game.teams[result.awayTeamId];

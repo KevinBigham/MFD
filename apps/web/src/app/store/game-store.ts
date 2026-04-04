@@ -15,6 +15,8 @@ import type {
   GameEvent,
   GamePlan,
   GameState,
+  LeagueRuleKey,
+  LeagueRuleValue,
   OpponentReport,
   RelocationDestination,
   SeasonPhase,
@@ -34,7 +36,9 @@ import {
   activateFromIR as activateFromIREngine,
   acceptStadiumDeal as acceptStadiumDealEngine,
   advanceTutorial as advanceTutorialEngine,
+  applyCBADealToRules,
   applyDraftTradeOffer,
+  applyRuleChange,
   applySchemeChange,
   applyExtensionOffer,
   appointCaptain,
@@ -43,7 +47,12 @@ import {
   acceptCounterProposal as acceptCounterProposalEngine,
   advanceDeadlineClock as advanceDeadlineClockEngine,
   buildCoachingMarket,
+  castVote as castRuleVote,
+  checkCBAStatus,
   completeTutorialAction as completeTutorialActionEngine,
+  createGovernancePost,
+  createLaborPost,
+  diffRules,
   cutPlayerToWaivers as cutPlayerToWaiversEngine,
   createTradeProposal as createTradeProposalEngine,
   finalizeExpansionDraft as finalizeExpansionDraftEngine,
@@ -54,15 +63,22 @@ import {
   fireScout as fireScoutEngine,
   buildDraftWarRoomState,
   finalizeDeadline as finalizeDeadlineEngine,
+  getActiveRule,
   hireMedicalStaff as hireMedicalStaffEngine,
   hireStaffCandidate,
   hireScout as hireScoutEngine,
+  initCBA,
+  initCommissioner,
+  initLaborState,
+  initLeagueRules,
   initializeLockerRoom,
   initializeOffseasonState,
+  LEAGUE_RULE_DEFINITIONS,
   getRelocationDestinations,
   makeExpansionPick as makeExpansionPickEngine,
   makePlayerPromise as makePlayerPromiseEngine,
   mulberry32,
+  negotiateCBA,
   placeOnIR as placeOnIREngine,
   postJune1Cut,
   protectPlayers as protectExpansionPlayersEngine,
@@ -70,11 +86,17 @@ import {
   relocateTeam as relocateTeamEngine,
   removeFromPracticeSquad as removeFromPracticeSquadEngine,
   removeFromWatchlist,
+  recordGovernanceNews,
+  recordLaborNews,
+  ratifyCBA,
+  resolveLockout,
+  resolveVote,
   restructureContract, backloadContract,
   calcCapHit, calcDeadMoney,
   promoteCoordinator,
   runProDay as runProDayEngine,
   runPrivateWorkout as runPrivateWorkoutEngine,
+  simulateAIVotes,
   updateOwnerApproval,
   updateSystemFit,
   earnXP,
@@ -171,6 +193,10 @@ interface GameActions {
   declineEndorsement: (dealId: string) => Promise<void>;
   startFarewellTour: (playerId: string) => Promise<void>;
   electCaptain: (playerId: string) => Promise<void>;
+  voteOnProposal: (proposalId: string, vote: 'yes' | 'no' | 'abstain') => Promise<void>;
+  petitionRuleChange: (ruleKey: LeagueRuleKey, proposedValue: LeagueRuleValue) => Promise<void>;
+  voteOnCBA: (vote: 'approve' | 'reject') => Promise<void>;
+  advanceCBANegotiation: () => Promise<void>;
   upgradeFacility: (teamId: string, facilityType: 'training_complex' | 'medical_center' | 'film_room' | 'weight_room' | 'recovery_suite') => Promise<void>;
   hireMedicalStaff: (teamId: string, staffId: string) => Promise<void>;
   acceptTradeOffer: (offerId: string) => Promise<void>;
@@ -278,7 +304,7 @@ export const useGameStore = create<GameStore>()(
 
       team.deadCap = Math.round((team.deadCap + currentYearDeadCap) * 10) / 10;
       team.capUsed = Math.round((team.capUsed - (preCutCapHit - currentYearDeadCap)) * 10) / 10;
-      team.capSpace = Math.round((getSalaryCap(game.year) - team.capUsed) * 10) / 10;
+      team.capSpace = Math.round((getSalaryCap(game.year, game) - team.capUsed) * 10) / 10;
 
       team.roster.splice(rosterIndex, 1);
       team.practiceSquad = team.practiceSquad.filter((entry) => entry.playerId !== playerId);
@@ -342,6 +368,101 @@ export const useGameStore = create<GameStore>()(
       if (!userTeam) return 0;
       const options = getTeamOptions();
       return options.find((option) => option.city === userTeam.city && option.name === userTeam.name)?.index ?? 0;
+    };
+    const clampMeter = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
+    const getUserTeam = (game: GameState): Team | null =>
+      Object.values(game.teams).find((team) => team.isUser) ?? null;
+    const majorityThreshold = (game: GameState) => Math.floor(Object.keys(game.teams).length / 2) + 1;
+    const isCBAInterruptStatus = (status: GameState['cbaState']['status']) =>
+      status === 'negotiating' || status === 'awaiting_owner_vote' || status === 'lockout';
+    const ensureGovernanceState = (game: GameState) => {
+      game.leagueRules ??= initLeagueRules(game.year);
+      game.cbaState ??= initCBA(game.year);
+      game.commissionerState ??= initCommissioner(game.year);
+      game.laborState ??= initLaborState();
+    };
+    const refreshLeagueCapSpace = (game: GameState) => {
+      const salaryCap = getSalaryCap(game.year, game);
+      for (const team of Object.values(game.teams)) {
+        team.capSpace = Math.round((salaryCap - team.capUsed) * 10) / 10;
+      }
+    };
+    const applyOwnerMoodDelta = (team: Team, delta: number) => {
+      team.ownerMood = clampMeter((team.ownerMood ?? team.owner.approval ?? 50) + delta);
+      team.owner.approval = clampMeter((team.owner.approval ?? team.ownerMood ?? 50) + delta);
+    };
+    const addGovernanceNarrative = (
+      game: GameState,
+      headline: string,
+      body: string,
+      options?: {
+        sentiment?: 'positive' | 'neutral' | 'negative' | 'hype' | 'sarcastic';
+        importance?: 'minor' | 'major' | 'breaking';
+        idSuffix?: string;
+      },
+    ) => {
+      recordGovernanceNews(game, headline, body, {
+        importance: options?.importance ?? 'major',
+        idSuffix: options?.idSuffix,
+      });
+      game.socialFeed = [
+        createGovernancePost(headline, game.week, intelRng(game, `governance:${headline}:${game.leagueNews.length}`), {
+          sentiment: options?.sentiment ?? 'neutral',
+        }),
+        ...game.socialFeed,
+      ].slice(0, 200);
+    };
+    const addLaborNarrative = (
+      game: GameState,
+      headline: string,
+      body: string,
+      options?: {
+        sentiment?: 'positive' | 'neutral' | 'negative' | 'hype' | 'sarcastic';
+        importance?: 'minor' | 'major' | 'breaking';
+        idSuffix?: string;
+      },
+    ) => {
+      recordLaborNews(game, headline, body, {
+        importance: options?.importance ?? 'major',
+        idSuffix: options?.idSuffix,
+      });
+      game.socialFeed = [
+        createLaborPost(headline, game.week, intelRng(game, `labor:${headline}:${game.leagueNews.length}`), {
+          sentiment: options?.sentiment ?? 'neutral',
+        }),
+        ...game.socialFeed,
+      ].slice(0, 200);
+    };
+    const summarizeRuleDiffs = (before: GameState['leagueRules'], after: GameState['leagueRules']) => {
+      const changes = diffRules(before, after).filter((entry) => entry.changed);
+      if (changes.length === 0) return 'No terms changed.';
+      return changes.slice(0, 3).map((entry) => `${entry.label}: ${entry.before} -> ${entry.after}`).join('; ');
+    };
+    const cbaOwnerVoteForTeam = (
+      game: GameState,
+      teamId: string,
+      proposal: NonNullable<GameState['cbaState']['negotiationState']>['currentProposal'],
+    ): 'approve' | 'reject' => {
+      const team = game.teams[teamId];
+      const currentTerms = game.cbaState.currentDeal?.terms;
+      if (!team || !proposal || !currentTerms) return 'approve';
+
+      let score = 0;
+      if (team.franchiseIdentity.marketSize === 'small' || team.franchiseIdentity.marketSize === 'medium') {
+        score += proposal.terms.revenueSplit >= currentTerms.revenueSplit ? 2 : -1;
+      } else {
+        score += proposal.terms.revenueSplit <= currentTerms.revenueSplit + 0.01 ? 1 : -2;
+      }
+
+      score += proposal.terms.capGrowthRate <= currentTerms.capGrowthRate + 0.005 ? 1 : -1;
+      score += proposal.terms.capFloorPct <= currentTerms.capFloorPct + 0.02 ? 1 : -1;
+      score += team.gmStrategy === 'contend'
+        ? proposal.terms.playoffSeeds >= currentTerms.playoffSeeds ? 1 : -1
+        : proposal.terms.practiceSquadSize >= currentTerms.practiceSquadSize ? 1 : 0;
+      score += proposal.terms.franchiseTagLimit > currentTerms.franchiseTagLimit && team.gmStrategy === 'contend' ? -1 : 0;
+      score += proposal.terms.rosterLimit >= currentTerms.rosterLimit ? 1 : 0;
+
+      return score >= 0 ? 'approve' : 'reject';
     };
 
     return ({
@@ -535,10 +656,13 @@ export const useGameStore = create<GameStore>()(
 
         const result = await runAdvanceWeek(current);
         const nextGame = result.nextState;
+        ensureGovernanceState(nextGame);
         const deadlineInterrupted = current.phase === 'regular_season'
           && current.week === 9
           && nextGame.week === current.week
           && Boolean(nextGame.tradeDeadlineState?.isDeadlineWeek);
+        const cbaInterrupted = (nextGame.phase === 'offseason' || nextGame.phase === 'preseason')
+          && isCBAInterruptStatus(nextGame.cbaState.status);
 
         if (deadlineInterrupted) {
           await commitGame(nextGame);
@@ -549,6 +673,12 @@ export const useGameStore = create<GameStore>()(
         if (nextGame.expansionDraftState) {
           await commitGame(nextGame);
           navigateTo('/expansion-draft');
+          return null;
+        }
+
+        if (cbaInterrupted) {
+          await commitGame(nextGame);
+          navigateTo('/cba');
           return null;
         }
 
@@ -883,6 +1013,303 @@ export const useGameStore = create<GameStore>()(
         userTeam.lockerRoom = userTeam.lockerRoom ?? initializeLockerRoom(userTeam, intelRng(nextGame, `locker:init:${userTeam.id}`));
         userTeam.lockerRoom = appointCaptain(userTeam, userTeam.lockerRoom, playerId);
         await commitGame(nextGame);
+      },
+
+      voteOnProposal: async (proposalId, vote) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        ensureGovernanceState(nextGame);
+        const userTeam = getUserTeam(nextGame);
+        if (!userTeam) return;
+
+        const proposal = nextGame.commissionerState.activeProposals.find((entry) => entry.id === proposalId);
+        if (!proposal) return;
+
+        let resolvedProposal = vote === 'abstain'
+          ? { ...proposal, votes: { ...proposal.votes, [userTeam.id]: 'abstain' as const } }
+          : castRuleVote(proposal, userTeam.id, vote);
+        resolvedProposal = simulateAIVotes(resolvedProposal, nextGame);
+
+        const result = resolveVote(resolvedProposal);
+        const label = LEAGUE_RULE_DEFINITIONS[proposal.ruleKey].label;
+
+        nextGame.commissionerState.activeProposals = nextGame.commissionerState.activeProposals
+          .filter((entry) => entry.id !== proposalId);
+        nextGame.commissionerState.history = [...nextGame.commissionerState.history, result];
+
+        if (result.passed) {
+          const beforeRules = structuredClone(nextGame.leagueRules);
+          nextGame.leagueRules = applyRuleChange(nextGame.leagueRules, {
+            key: proposal.ruleKey,
+            newValue: proposal.proposedValue,
+            source: proposal.source === 'commissioner' ? 'commissioner_vote' : 'owners_vote',
+            proposedBy: proposal.proposedByTeamId ?? nextGame.commissionerState.name,
+            effectiveYear: proposal.effectiveYear,
+            rationale: proposal.rationale,
+          });
+
+          if (proposal.ruleKey === 'salary_cap_growth' || proposal.ruleKey === 'cap_floor_pct') {
+            refreshLeagueCapSpace(nextGame);
+          }
+
+          const voteLine = `${result.yesVotes}-${result.noVotes}${result.abstains > 0 ? ` with ${result.abstains} abstain${result.abstains === 1 ? '' : 's'}` : ''}`;
+          const summary = summarizeRuleDiffs(beforeRules, nextGame.leagueRules);
+          addGovernanceNarrative(
+            nextGame,
+            `${label} approved`,
+            `Owners passed ${label} by a ${voteLine} margin. The change takes effect in ${result.effectiveYear}. ${summary}`,
+            {
+              sentiment: 'positive',
+              idSuffix: `${proposal.id}-passed`,
+            },
+          );
+        } else {
+          if (proposal.source === 'owner_petition' && proposal.proposedByTeamId === userTeam.id) {
+            applyOwnerMoodDelta(userTeam, -10);
+          }
+
+          addGovernanceNarrative(
+            nextGame,
+            `${label} rejected`,
+            `${nextGame.commissionerState.name}'s ${label} proposal failed ${result.yesVotes}-${result.noVotes}.`,
+            {
+              sentiment: 'negative',
+              idSuffix: `${proposal.id}-failed`,
+            },
+          );
+        }
+
+        await commitGame(nextGame);
+      },
+
+      petitionRuleChange: async (ruleKey, proposedValue) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        ensureGovernanceState(nextGame);
+        const userTeam = getUserTeam(nextGame);
+        if (!userTeam) return;
+
+        const definition = LEAGUE_RULE_DEFINITIONS[ruleKey];
+        if (!definition?.petitionable) return;
+
+        const currentValue = getActiveRule(nextGame.leagueRules, ruleKey, nextGame.year);
+        if (JSON.stringify(currentValue) === JSON.stringify(proposedValue)) return;
+
+        const proposalId = `petition-${nextGame.year}-${nextGame.week}-${ruleKey}-${nextGame.commissionerState.history.length + nextGame.commissionerState.activeProposals.length}`;
+        nextGame.commissionerState.activeProposals = [
+          ...nextGame.commissionerState.activeProposals.filter(
+            (entry) => !(entry.source === 'owner_petition' && entry.proposedByTeamId === userTeam.id),
+          ),
+          {
+            id: proposalId,
+            ruleKey,
+            currentValue,
+            proposedValue,
+            rationale: `${userTeam.city} ${userTeam.name} ownership petitioned to adjust ${definition.label.toLowerCase()}.`,
+            source: 'owner_petition',
+            votes: {},
+            requiredMajority: majorityThreshold(nextGame),
+            deadline: nextGame.year,
+            effectiveYear: nextGame.year + 1,
+            proposedByTeamId: userTeam.id,
+          },
+        ];
+
+        addGovernanceNarrative(
+          nextGame,
+          `Rule petition filed for ${definition.label}`,
+          `${userTeam.city} ${userTeam.name} ownership filed a petition to change ${definition.label}. If it fails, owner goodwill takes a hit.`,
+          {
+            sentiment: 'neutral',
+            importance: 'minor',
+            idSuffix: `${proposalId}-filed`,
+          },
+        );
+
+        await commitGame(nextGame);
+      },
+
+      voteOnCBA: async (vote) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        ensureGovernanceState(nextGame);
+        const userTeam = getUserTeam(nextGame);
+        const negotiationState = nextGame.cbaState.negotiationState;
+        const proposal = negotiationState?.currentProposal;
+        if (!userTeam || !negotiationState || !proposal || nextGame.cbaState.status !== 'awaiting_owner_vote') return;
+
+        const ownerVotes = {
+          ...negotiationState.ownerVotes,
+          [userTeam.id]: vote,
+        };
+
+        for (const team of Object.values(nextGame.teams).sort((a, b) => a.id.localeCompare(b.id))) {
+          if (team.id === userTeam.id) continue;
+          ownerVotes[team.id] = cbaOwnerVoteForTeam(nextGame, team.id, proposal);
+        }
+
+        const yesVotes = Object.values(ownerVotes).filter((entry) => entry === 'approve').length;
+        const threshold = majorityThreshold(nextGame);
+
+        if (yesVotes >= threshold) {
+          const beforeRules = structuredClone(nextGame.leagueRules);
+          nextGame.cbaState = ratifyCBA(nextGame.cbaState, proposal, nextGame.year);
+          applyCBADealToRules(nextGame, nextGame.cbaState.currentDeal!);
+          refreshLeagueCapSpace(nextGame);
+          nextGame.laborState.activeStoppage = null;
+          nextGame.laborState.unionSatisfaction = clampMeter(nextGame.laborState.unionSatisfaction + 10);
+
+          const summary = summarizeRuleDiffs(beforeRules, nextGame.leagueRules);
+          addGovernanceNarrative(
+            nextGame,
+            `New CBA ratified`,
+            `Owners approved the new agreement ${yesVotes}-${Object.keys(nextGame.teams).length - yesVotes}. ${summary}`,
+            {
+              sentiment: 'positive',
+              idSuffix: `cba-ratified-${nextGame.year}`,
+            },
+          );
+          addLaborNarrative(
+            nextGame,
+            `Lockout threat ends with a new deal`,
+            `After ${negotiationState.round} round(s), league business is back on track under a fresh agreement.`,
+            {
+              sentiment: 'positive',
+              idSuffix: `cba-labor-ratified-${nextGame.year}`,
+            },
+          );
+        } else {
+          const nextStatus = negotiationState.round >= 5 ? 'lockout' : 'negotiating';
+          nextGame.cbaState = {
+            ...nextGame.cbaState,
+            status: nextStatus,
+            lockoutRisk: Math.min(100, nextGame.cbaState.lockoutRisk + 15),
+            negotiationState: {
+              ...negotiationState,
+              currentProposal: null,
+              ownerVotes: {},
+              userVote: null,
+              publicPressure: Math.min(100, negotiationState.publicPressure + 10),
+            },
+          };
+
+          if (nextStatus === 'lockout') {
+            nextGame.laborState.activeStoppage = {
+              type: 'lockout',
+              severity: 3,
+              startWeek: nextGame.week,
+              resolvedWeek: null,
+              affectedTeams: Object.keys(nextGame.teams),
+              moralePenalty: -10,
+            };
+            addLaborNarrative(
+              nextGame,
+              `League enters a lockout`,
+              `Owners rejected the latest CBA ${yesVotes}-${Object.keys(nextGame.teams).length - yesVotes}, and league operations are now frozen.`,
+              {
+                sentiment: 'negative',
+                importance: 'breaking',
+                idSuffix: `cba-lockout-${nextGame.year}`,
+              },
+            );
+          } else {
+            addGovernanceNarrative(
+              nextGame,
+              `Owners reject the current CBA offer`,
+              `The latest agreement failed ${yesVotes}-${Object.keys(nextGame.teams).length - yesVotes}. Negotiations will continue.`,
+              {
+                sentiment: 'negative',
+                idSuffix: `cba-rejected-${nextGame.year}-${negotiationState.round}`,
+              },
+            );
+          }
+        }
+
+        await commitGame(nextGame);
+        if (isCBAInterruptStatus(nextGame.cbaState.status)) {
+          navigateTo('/cba');
+        }
+      },
+
+      advanceCBANegotiation: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        ensureGovernanceState(nextGame);
+        nextGame.cbaState.status = checkCBAStatus(nextGame.cbaState, nextGame.year);
+
+        if (nextGame.cbaState.status === 'awaiting_owner_vote') {
+          navigateTo('/cba');
+          return;
+        }
+
+        if (nextGame.cbaState.status === 'lockout') {
+          const resolution = resolveLockout(nextGame.cbaState, nextGame);
+          if (!resolution.resolved) return;
+          nextGame.cbaState = resolution.cba;
+          applyCBADealToRules(nextGame, nextGame.cbaState.currentDeal!);
+          refreshLeagueCapSpace(nextGame);
+          nextGame.laborState.activeStoppage = null;
+          nextGame.laborState.unionSatisfaction = clampMeter(nextGame.laborState.unionSatisfaction + 8);
+          addLaborNarrative(
+            nextGame,
+            `Lockout resolved`,
+            resolution.summary,
+            {
+              sentiment: 'positive',
+              idSuffix: `lockout-resolved-${nextGame.year}`,
+            },
+          );
+          await commitGame(nextGame);
+          return;
+        }
+
+        if (nextGame.cbaState.status === 'active') {
+          return;
+        }
+
+        const outcome = negotiateCBA(nextGame.cbaState, nextGame);
+        nextGame.cbaState = outcome.cba;
+
+        if (outcome.lockout) {
+          nextGame.laborState.activeStoppage = {
+            type: 'lockout',
+            severity: 3,
+            startWeek: nextGame.week,
+            resolvedWeek: null,
+            affectedTeams: Object.keys(nextGame.teams),
+            moralePenalty: -10,
+          };
+          addLaborNarrative(
+            nextGame,
+            `CBA talks collapse`,
+            outcome.summary,
+            {
+              sentiment: 'negative',
+              importance: 'breaking',
+              idSuffix: `cba-collapse-${nextGame.year}-${nextGame.cbaState.negotiationState?.round ?? 0}`,
+            },
+          );
+        } else {
+          addGovernanceNarrative(
+            nextGame,
+            `CBA round ${nextGame.cbaState.negotiationState?.round ?? 0}`,
+            outcome.summary,
+            {
+              sentiment: outcome.dealReached ? 'positive' : 'neutral',
+              importance: outcome.dealReached ? 'major' : 'minor',
+              idSuffix: `cba-round-${nextGame.year}-${nextGame.cbaState.negotiationState?.round ?? 0}`,
+            },
+          );
+        }
+
+        await commitGame(nextGame);
+        if (isCBAInterruptStatus(nextGame.cbaState.status)) {
+          navigateTo('/cba');
+        }
       },
 
       upgradeFacility: async (teamId, facilityType) => {

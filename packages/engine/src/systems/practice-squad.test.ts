@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { applyRuleChange, initLeagueRules } from './league-rules';
 import { makeLeagueState, makePlayer } from './test-helpers';
 import {
   addToPracticeSquad,
@@ -12,6 +13,14 @@ import {
 describe('practice squad and waiver wire', () => {
   it('enforces the practice squad cap at 16 players', () => {
     const game = makeLeagueState('regular_season', 1);
+    game.leagueRules = applyRuleChange(initLeagueRules(game.year), {
+      key: 'practice_squad_size',
+      newValue: 16,
+      source: 'commissioner_vote',
+      proposedBy: 'commissioner',
+      effectiveYear: game.year,
+      rationale: 'Expand the practice squad for this season.',
+    });
     const team = game.teams.afce1;
     for (let index = 0; index < 16; index += 1) {
       const player = makePlayer(`ps-${index}`, null as never, 'WR', 65, false);

@@ -593,7 +593,7 @@ export const NewsItemSchema = z.object({
   id: z.string(),
   year: z.number(),
   week: z.number(),
-  type: z.enum(['trade', 'signing', 'cut', 'injury', 'record', 'coaching', 'rivalry', 'milestone', 'draft', 'waiver']),
+  type: z.enum(['trade', 'signing', 'cut', 'injury', 'record', 'coaching', 'rivalry', 'milestone', 'draft', 'waiver', 'governance', 'labor']),
   headline: z.string(),
   body: z.string(),
   teamIds: z.array(z.string()),
@@ -607,11 +607,211 @@ export const SocialPostSchema = z.object({
   authorName: z.string(),
   authorPlayerId: z.string().optional(),
   content: z.string(),
-  trigger: z.enum(['big_play', 'trade', 'signing', 'injury', 'draft_pick', 'achievement', 'upset', 'rivalry', 'milestone', 'weekly']),
+  trigger: z.enum(['big_play', 'trade', 'signing', 'injury', 'draft_pick', 'achievement', 'upset', 'rivalry', 'milestone', 'weekly', 'governance', 'labor']),
   sentiment: z.enum(['positive', 'negative', 'neutral', 'hype', 'sarcastic']),
   likes: z.number(),
   timestamp: z.number(),
   replyTo: z.string().optional(),
+});
+
+export const LeagueRuleKeySchema = z.enum([
+  'salary_cap_growth',
+  'cap_floor_pct',
+  'franchise_tag_limit',
+  'roster_limit',
+  'practice_squad_size',
+  'playoff_seeds_per_conf',
+  'schedule_weeks',
+  'trade_deadline_week',
+  'ir_return_limit',
+  'overtime_format',
+  'min_salary_scale',
+  'revenue_split',
+  'draft_rounds',
+  'comp_pick_limit',
+  'tag_types_allowed',
+]);
+
+export const LeagueRuleValueSchema = z.union([
+  z.number(),
+  z.string(),
+  z.boolean(),
+  z.array(z.number()),
+  z.array(z.enum(['exclusive', 'non-exclusive', 'transition'])),
+]);
+
+export const RuleChangeRecordSchema = z.object({
+  key: LeagueRuleKeySchema,
+  previousValue: LeagueRuleValueSchema,
+  newValue: LeagueRuleValueSchema,
+  source: z.enum(['initial', 'cba', 'commissioner_vote', 'owners_vote']),
+  proposedBy: z.string(),
+  effectiveYear: z.number(),
+  rationale: z.string(),
+});
+
+export const LeagueRuleSchema = z.object({
+  key: LeagueRuleKeySchema,
+  value: LeagueRuleValueSchema,
+  effectiveYear: z.number(),
+  source: z.enum(['initial', 'cba', 'commissioner_vote', 'owners_vote']),
+  previousValue: LeagueRuleValueSchema,
+});
+
+export const LeagueRulesSchema = z.object({
+  initializedYear: z.number(),
+  entries: z.record(LeagueRuleKeySchema, LeagueRuleSchema),
+  history: z.array(RuleChangeRecordSchema),
+});
+
+export const CBATermsSchema = z.object({
+  revenueSplit: z.number(),
+  capGrowthRate: z.number(),
+  capFloorPct: z.number(),
+  minSalaryScale: z.array(z.number()),
+  franchiseTagLimit: z.number(),
+  tagTypesAllowed: z.array(z.enum(['exclusive', 'non-exclusive', 'transition'])),
+  rosterLimit: z.number(),
+  practiceSquadSize: z.number(),
+  irReturnLimit: z.number(),
+  playoffSeeds: z.number(),
+  draftRounds: z.number(),
+});
+
+export const CBAAmendmentSchema = z.object({
+  year: z.number(),
+  summary: z.string(),
+  changes: z.array(RuleChangeRecordSchema),
+});
+
+export const CBADealSchema = z.object({
+  id: z.string(),
+  startYear: z.number(),
+  endYear: z.number(),
+  duration: z.number(),
+  terms: CBATermsSchema,
+  ratifiedBy: z.enum(['owners', 'players', 'both']),
+  amendments: z.array(CBAAmendmentSchema),
+});
+
+export const CBAProposalSchema = z.object({
+  id: z.string(),
+  side: z.enum(['owners', 'players']),
+  year: z.number(),
+  round: z.number(),
+  rationale: z.string(),
+  terms: CBATermsSchema,
+});
+
+export const CBAEvaluationSchema = z.object({
+  side: z.enum(['owners', 'players']),
+  score: z.number(),
+  concessions: z.array(z.string()),
+  painPoints: z.array(z.string()),
+});
+
+export const NegotiationStateSchema = z.object({
+  round: z.number(),
+  ownersProposal: CBAProposalSchema.nullable(),
+  playersProposal: CBAProposalSchema.nullable(),
+  currentProposal: CBAProposalSchema.nullable(),
+  gap: z.number(),
+  mediator: z.boolean(),
+  publicPressure: z.number(),
+  ownerVotes: z.record(z.string(), z.enum(['approve', 'reject'])),
+  userVote: z.enum(['approve', 'reject']).nullable(),
+});
+
+export const CBAStateSchema = z.object({
+  status: z.enum(['active', 'expiring', 'expired', 'negotiating', 'awaiting_owner_vote', 'lockout']),
+  currentDeal: CBADealSchema.nullable(),
+  negotiationState: NegotiationStateSchema.nullable(),
+  history: z.array(CBADealSchema),
+  lockoutRisk: z.number(),
+  lastNegotiationYear: z.number().nullable(),
+});
+
+export const RuleProposalSchema = z.object({
+  id: z.string(),
+  ruleKey: LeagueRuleKeySchema,
+  currentValue: LeagueRuleValueSchema,
+  proposedValue: LeagueRuleValueSchema,
+  rationale: z.string(),
+  source: z.enum(['commissioner', 'owner_petition']),
+  votes: z.record(z.string(), z.enum(['yes', 'no', 'abstain'])),
+  requiredMajority: z.number(),
+  deadline: z.number(),
+  effectiveYear: z.number(),
+  proposedByTeamId: z.string().nullable(),
+});
+
+export const VoteResultSchema = z.object({
+  proposalId: z.string(),
+  passed: z.boolean(),
+  yesVotes: z.number(),
+  noVotes: z.number(),
+  abstains: z.number(),
+  effectiveYear: z.number(),
+  ruleKey: LeagueRuleKeySchema,
+  proposedValue: LeagueRuleValueSchema,
+});
+
+export const CommissionerRulingSchema = z.object({
+  id: z.string(),
+  year: z.number(),
+  week: z.number(),
+  type: z.enum(['fine', 'warning', 'suspension']),
+  playerId: z.string().nullable(),
+  teamId: z.string().nullable(),
+  headline: z.string(),
+  description: z.string(),
+  moraleImpact: z.number(),
+  approvalImpact: z.number(),
+});
+
+export const CommissionerStateSchema = z.object({
+  name: z.string(),
+  personality: z.enum(['progressive', 'traditionalist', 'populist']),
+  tenure: z.number(),
+  approval: z.number(),
+  activeProposals: z.array(RuleProposalSchema),
+  history: z.array(VoteResultSchema),
+  rulings: z.array(CommissionerRulingSchema),
+  lowApprovalYears: z.number(),
+});
+
+export const GrievanceSchema = z.object({
+  playerId: z.string(),
+  type: z.enum(['tag_dispute', 'salary_grievance', 'discipline_appeal']),
+  filed: z.number(),
+  resolved: z.number().nullable(),
+  outcome: z.enum(['upheld', 'denied', 'settled']).nullable(),
+});
+
+export const WorkStoppageSchema = z.object({
+  type: z.enum(['holdout_wave', 'practice_boycott', 'lockout']),
+  severity: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  startWeek: z.number(),
+  resolvedWeek: z.number().nullable(),
+  affectedTeams: z.array(z.string()),
+  moralePenalty: z.number(),
+});
+
+export const LaborEventSchema = z.object({
+  type: z.enum(['union_statement', 'owner_response', 'media_leak', 'mediation_call']),
+  description: z.string(),
+  impact: z.object({
+    satisfaction: z.number().optional(),
+    morale: z.number().optional(),
+  }),
+});
+
+export const LaborStateSchema = z.object({
+  unionSatisfaction: z.number(),
+  playerRepId: z.string().nullable(),
+  grievances: z.array(GrievanceSchema),
+  activeStoppage: WorkStoppageSchema.nullable(),
+  laborEvents: z.array(LaborEventSchema),
 });
 
 export const TrainingFocusSchema = z.enum(['film_study', 'position_drills', 'conditioning', 'mentorship', 'rest']);
@@ -1217,6 +1417,10 @@ export const SaveStateSchema = z.object({
   playerRivalries: z.array(z.any()).default([]),
   farewellTours: z.array(z.any()).default([]),
   endorsementOffers: z.array(z.any()).default([]),
+  leagueRules: LeagueRulesSchema,
+  cbaState: CBAStateSchema,
+  commissionerState: CommissionerStateSchema,
+  laborState: LaborStateSchema,
   frontOffice: z.object({
     xp: z.number(),
     level: z.number(),

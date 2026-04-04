@@ -15,7 +15,7 @@ export { cl, sum, avg } from './utils';
 export {
   mulberry32, RNG, setSeed, getSeed,
   reseedWeek, reseedSeason,
-  rng, rngI, rngD, rngAI, rngT, rngDev,
+  rng, rngI, rngD, rngAI, rngT, rngDev, rngEvent,
   pick, pickD, uid,
 } from './rng';
 export type { RngChannel, PrngFn, RngState } from './rng';
@@ -71,6 +71,8 @@ export { generateAwards } from './systems/awards';
 export { inductHallOfFame } from './systems/hall-of-fame';
 export {
   recordNewsItem,
+  recordGovernanceNews,
+  recordLaborNews,
   generateWeeklyLeagueNews,
   generateOffseasonNews,
   getRecentNews,
@@ -184,6 +186,8 @@ export {
   generateFinalNarrative,
 } from './systems/broadcast';
 export {
+  createGovernancePost,
+  createLaborPost,
   generateGameDayPosts,
   generateTransactionPosts,
   generateWeeklyBuzz,
@@ -219,6 +223,45 @@ export {
   getEndorsementRevenue,
   getEndorsementNarrative,
 } from './systems/endorsements';
+export {
+  LEAGUE_RULE_DEFINITIONS,
+  LEAGUE_RULE_DEFAULTS,
+  initLeagueRules,
+  getActiveRule,
+  applyRuleChange,
+  getRuleHistory,
+  diffRules,
+} from './systems/league-rules';
+export {
+  initCBA,
+  checkCBAStatus,
+  generateCBAProposal,
+  evaluateCBAProposal,
+  negotiateCBA,
+  ratifyCBA,
+  getLockoutRisk,
+  resolveLockout,
+  cbaTermsToRuleChanges,
+  applyCBADealToRules,
+} from './systems/cba-engine';
+export {
+  initCommissioner,
+  generateRuleProposal,
+  castVote,
+  simulateAIVotes,
+  resolveVote,
+  getCommissionerAgenda,
+  issueRuling,
+  advanceCommissioner,
+} from './systems/commissioner';
+export {
+  initLaborState,
+  updateUnionSatisfaction,
+  checkWorkStoppage,
+  resolveWorkStoppage,
+  generateLaborEvent,
+  getUnionLeader,
+} from './systems/labor-relations';
 export {
   detectNewRivalries,
   updateRivalryFromGame,

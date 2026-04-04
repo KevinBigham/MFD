@@ -26,6 +26,10 @@ import {
   createFacilityState,
   buildSeasonSchedule,
   buildSpecialTeamsState,
+  initCBA,
+  initCommissioner,
+  initLaborState,
+  initLeagueRules,
   ensureAgentsInitialized,
   initializeFranchiseIdentity,
   initializeLockerRoom,
@@ -321,6 +325,7 @@ function genTeam(
     rivalries: [],
     rivals: {},
     franchiseTag973: null,
+    franchiseTags: [],
     isUser,
     clinic: { xp: {}, perks: [] },
     skillSelections: {},
@@ -379,6 +384,7 @@ export function createSeedGameState(
   const allTeams: Record<string, Team> = {};
   const allOwners: Record<string, Owner> = {};
   const teamIds: string[] = [];
+  const leagueRules = initLeagueRules(year);
 
   for (let i = 0; i < TEAM_DEFS.length; i++) {
     const def = TEAM_DEFS[i]!;
@@ -402,7 +408,7 @@ export function createSeedGameState(
     };
   }
 
-  const schedule = buildSeasonSchedule(teamIds, year);
+  const schedule = buildSeasonSchedule(teamIds, year, { leagueRules } as GameState);
 
   const frontOffice: FrontOffice = {
     xp: 0,
@@ -451,6 +457,10 @@ export function createSeedGameState(
     playerRivalries: [],
     farewellTours: [],
     endorsementOffers: [],
+    leagueRules,
+    cbaState: initCBA(year),
+    commissionerState: initCommissioner(year),
+    laborState: initLaborState(),
     frontOffice,
     eventLog: [],
     narrativeState,

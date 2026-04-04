@@ -1,3 +1,4 @@
+import { getActiveRule } from './league-rules';
 import { calcPlayerValue } from './trade-value';
 import type { DraftPick, GameState } from '../types';
 
@@ -31,6 +32,7 @@ function nextPickNumber(game: GameState, round: number): number {
 export function calculateCompPicks(game: GameState, teamId: string): DraftPick[] {
   const team = game.teams[teamId];
   if (!team) return [];
+  const limit = game.leagueRules ? Number(getActiveRule(game.leagueRules, 'comp_pick_limit', game.year)) : 4;
 
   team.draftPicks = team.draftPicks.filter((pick) => !(pick.year === game.year && pick.isCompPick));
   const losses = currentYearTransactions(game, teamId, 'LOSE_FA')
@@ -42,7 +44,7 @@ export function calculateCompPicks(game: GameState, teamId: string): DraftPick[]
     .filter((entry) => entry.value > 0)
     .sort((a, b) => b.value - a.value || (a.entry.playerId ?? '').localeCompare(b.entry.playerId ?? ''));
 
-  const unmatchedLosses = losses.slice(signings.length, signings.length + 4);
+  const unmatchedLosses = losses.slice(signings.length, signings.length + limit);
   const picks = unmatchedLosses.map(({ value }) => {
     const round = roundForValue(value);
     return {

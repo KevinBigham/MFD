@@ -7,7 +7,11 @@
 
 import { createDefaultAchievements } from '../systems/achievements';
 import { assignProspectRegion, deriveConfidence } from '../systems/advanced-scouting';
+import { initCBA } from '../systems/cba-engine';
+import { initCommissioner } from '../systems/commissioner';
 import { createDefaultDashboardState } from '../systems/dashboard-config';
+import { initLaborState } from '../systems/labor-relations';
+import { initLeagueRules } from '../systems/league-rules';
 import { initializeLockerRoom } from '../systems/locker-room';
 import { assignJerseyNumber } from '../systems/jersey-retirement';
 import { createEmptyRecordBook } from '../systems/records';
@@ -955,5 +959,23 @@ registerMigration(18, (state) => {
     playerRivalries: Array.isArray(state['playerRivalries']) ? state['playerRivalries'] : [],
     farewellTours: Array.isArray(state['farewellTours']) ? state['farewellTours'] : [],
     endorsementOffers: Array.isArray(state['endorsementOffers']) ? state['endorsementOffers'] : [],
+  };
+});
+
+registerMigration(19, (state) => {
+  const year = Number(state['year'] ?? 2026);
+  const teams = (state['teams'] as Record<string, Record<string, unknown>> | undefined) ?? {};
+
+  for (const team of Object.values(teams)) {
+    team['franchiseTags'] = Array.isArray(team['franchiseTags']) ? team['franchiseTags'] : [];
+  }
+
+  return {
+    ...state,
+    teams,
+    leagueRules: state['leagueRules'] ?? initLeagueRules(year),
+    cbaState: state['cbaState'] ?? initCBA(year),
+    commissionerState: state['commissionerState'] ?? initCommissioner(year),
+    laborState: state['laborState'] ?? initLaborState(),
   };
 });

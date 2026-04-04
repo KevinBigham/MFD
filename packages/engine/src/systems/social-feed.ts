@@ -64,6 +64,52 @@ function postSentimentForTrigger(trigger: SocialTrigger): SocialPost['sentiment'
   return 'positive';
 }
 
+export function createGovernancePost(
+  content: string,
+  week: number,
+  rng: PrngFn,
+  options?: {
+    sentiment?: SocialPost['sentiment'];
+    authorName?: string;
+    source?: SocialPost['source'];
+  },
+): SocialPost {
+  return buildPost({
+    source: options?.source ?? 'reporter',
+    authorName: options?.authorName ?? pickWithRng(REPORTERS, rng),
+    authorPlayerId: undefined,
+    content,
+    trigger: 'governance',
+    sentiment: options?.sentiment ?? 'neutral',
+    likes: likesFor(0.52, rng, 160),
+    timestamp: week,
+    replyTo: undefined,
+  }, week, 'governance', rng);
+}
+
+export function createLaborPost(
+  content: string,
+  week: number,
+  rng: PrngFn,
+  options?: {
+    sentiment?: SocialPost['sentiment'];
+    authorName?: string;
+    source?: SocialPost['source'];
+  },
+): SocialPost {
+  return buildPost({
+    source: options?.source ?? 'reporter',
+    authorName: options?.authorName ?? pickWithRng(REPORTERS, rng),
+    authorPlayerId: undefined,
+    content,
+    trigger: 'labor',
+    sentiment: options?.sentiment ?? 'neutral',
+    likes: likesFor(0.5, rng, 150),
+    timestamp: week,
+    replyTo: undefined,
+  }, week, 'labor', rng);
+}
+
 export function generatePlayerReaction(
   player: Player,
   trigger: SocialTrigger,

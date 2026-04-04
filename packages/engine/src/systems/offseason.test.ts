@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   acceptTradeOffer,
+  advanceOffseason,
   advanceFranchiseWeek,
   createEmptyRecordBook,
+  initCBA,
+  initCommissioner,
+  initLaborState,
+  initLeagueRules,
   makeDraftPick,
   initializeOffseasonState,
   makeContract,
@@ -195,6 +200,10 @@ function makeOffseasonGame(): GameState {
     scenarioState: undefined,
     warRoomState: null,
     contractExtensions: [],
+    leagueRules: initLeagueRules(2027),
+    cbaState: initCBA(2027),
+    commissionerState: initCommissioner(2027),
+    laborState: initLaborState(),
     difficultyState: {
       enabled: true,
       adaptiveSlider: 50,
@@ -673,5 +682,38 @@ describe('offseason systems', () => {
 
     expect(first.phase).toBe('preseason');
     expect(first).toEqual(second);
+  });
+
+  it('starts cba negotiations when the current deal has expired', () => {
+    const game = makeOffseasonGame();
+    game.cbaState.status = 'expired';
+    if (game.cbaState.currentDeal) {
+      game.cbaState.currentDeal.endYear = game.year - 1;
+    }
+
+    advanceOffseason(game);
+
+    expect(['negotiating', 'awaiting_owner_vote', 'lockout']).toContain(game.cbaState.status);
+  });
+
+  it('applies current-year cba terms into league rules during offseason advancement', () => {
+    const game = makeOffseasonGame();
+    const currentTerms = game.cbaState.currentDeal!.terms;
+    const newPracticeSquadSize = currentTerms.practiceSquadSize + 2;
+
+    game.cbaState.currentDeal = {
+      ...game.cbaState.currentDeal!,
+      startYear: game.year,
+      endYear: game.year + 6,
+      duration: 6,
+      terms: {
+        ...currentTerms,
+        practiceSquadSize: newPracticeSquadSize,
+      },
+    };
+
+    advanceOffseason(game);
+
+    expect(game.leagueRules.entries.practice_squad_size.value).toBe(newPracticeSquadSize);
   });
 });

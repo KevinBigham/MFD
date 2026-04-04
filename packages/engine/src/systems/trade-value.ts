@@ -80,14 +80,14 @@ function ageCurveMultiplier(player: Player): number {
 function contractValue(game: GameState, player: Player): number {
   if (!player.contract) return 1;
   const annualCapHit = player.contract.baseSalary + (player.contract.prorated ?? 0);
-  const cap = getSalaryCap(game.year);
+  const cap = getSalaryCap(game.year, game);
   return 1 - (annualCapHit / (cap * 0.10));
 }
 
 function capAwareness(game: GameState, player: Player): number {
   if (!player.contract) return 1;
   const annualCapHit = player.contract.baseSalary + (player.contract.prorated ?? 0);
-  return annualCapHit > getSalaryCap(game.year) * 0.08 ? 0.5 : 1;
+  return annualCapHit > getSalaryCap(game.year, game) * 0.08 ? 0.5 : 1;
 }
 
 function resolvePickValue(game: GameState, asset: TradeOfferAsset): number {

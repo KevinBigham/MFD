@@ -5,8 +5,11 @@ import type {
   AllDecadeTeam,
   AwardsHistoryEntry,
   BroadcastOutput,
+  CBAState,
   CapProjectionYear,
   Ceremony,
+  CommissionerRuling,
+  CommissionerState,
   CoachingMarketState,
   ConditionalPick,
   ContractExtensionRecord,
@@ -33,6 +36,9 @@ import type {
   GamePlan,
   HallOfFameEntry,
   JerseyRetirement,
+  LaborState,
+  LeagueRuleHistoryGroup,
+  LeagueRules,
   LockerRoomState,
   LeagueRivalry,
   MentoringPair,
@@ -54,6 +60,8 @@ import type {
   PositionGroup,
   RecordBook,
   RecordEntry,
+  RuleDiff,
+  RuleProposal,
   RivalryGameContext,
   ScoutingDepartment,
   ScenarioDefinition,
@@ -102,6 +110,7 @@ import {
   canRelocate,
   createDefaultDashboardState,
   createDefaultSpecialTeamsState,
+  diffRules,
   detectFranchiseEras,
   generateBroadcast,
   generateOpponentScouting,
@@ -116,10 +125,13 @@ import {
   getFranchiseLegends,
   getEndorsementRevenue,
   getActiveRivalries,
+  getUnionLeader,
   getStoredOpponentReport,
   getPlayerComparison,
   getCooldownStatus,
   getPlayerAgent,
+  initLeagueRules,
+  LEAGUE_RULE_DEFINITIONS,
   getRelocationDestinations,
   getTeamRankings,
   getWeekSchedule as getWeekScheduleEntries,
@@ -189,6 +201,9 @@ const EMPTY_ENDORSEMENTS: EndorsementDeal[] = [];
 const EMPTY_PLAYER_RIVALRIES: PlayerRivalry[] = [];
 const EMPTY_FAREWELL_TOURS: FarewellTour[] = [];
 const EMPTY_RETIRED_JERSEYS: JerseyRetirement[] = [];
+const EMPTY_RULE_PROPOSALS: RuleProposal[] = [];
+const EMPTY_RULE_DIFFS: RuleDiff[] = [];
+const EMPTY_RULE_HISTORY: LeagueRuleHistoryGroup[] = [];
 const EMPTY_IDS: string[] = [];
 const EMPTY_TRAINING_ASSIGNMENTS: Record<string, TrainingAssignment> = {};
 const EMPTY_FACILITY_STATE: FacilityState = {
@@ -258,6 +273,27 @@ const EMPTY_COACHING_MARKET: CoachingMarketState = {
   candidates: { HC: [], OC: [], DC: [] },
 };
 const EMPTY_FILM_ROOM_HISTORY: FilmRoomReport[] = [];
+const EMPTY_CBA_STATE: CBAState | null = null;
+const EMPTY_COMMISSIONER_STATE: CommissionerState | null = null;
+const EMPTY_LABOR_STATE: LaborState | null = null;
+
+export interface LeagueRuleDisplay {
+  key: keyof LeagueRules['entries'];
+  label: string;
+  category: RuleDiff['category'];
+  value: string;
+  source: LeagueRules['entries'][keyof LeagueRules['entries']]['source'];
+  effectiveYear: number;
+  changedFromDefault: boolean;
+}
+
+function stringifyRuleValue(value: LeagueRules['entries'][keyof LeagueRules['entries']]['value']): string {
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'number' && value > 0 && value < 1) {
+    return Number.isInteger(value * 100) ? `${Math.round(value * 100)}%` : `${(value * 100).toFixed(1)}%`;
+  }
+  return String(value);
+}
 const EMPTY_STAT_LEADERS = { passYds: [], rushYds: [], recYds: [], sacks: [], defINT: [] };
 const EMPTY_ADVANCED_STATS = {
   stats: { qbr: 0, epa: 0, successRate: 0, yac: 0, pressureRate: 0, thirdDownRate: 0, redZoneRate: 0, turnoverRate: 0 },
@@ -439,6 +475,77 @@ export const selectRetiredJerseys = (state: GameStoreState): JerseyRetirement[] 
   const team = selectUserTeam(state);
   return team ? getRetiredJerseys(team) : EMPTY_RETIRED_JERSEYS;
 };
+
+export const selectLeagueRules = (state: GameStoreState): LeagueRules | null =>
+  state.game?.leagueRules ?? null;
+
+export const selectLeagueRuleDiffs = (state: GameStoreState): RuleDiff[] => {
+  if (!state.game?.leagueRules) return EMPTY_RULE_DIFFS;
+  return diffRules(initLeagueRules(state.game.year), state.game.leagueRules)
+    .sort((a, b) => a.category.localeCompare(b.category) || a.label.localeCompare(b.label));
+};
+
+export const selectLeagueRulesByCategory = (state: GameStoreState): Record<string, LeagueRuleDisplay[]> => {
+  const rules = state.game?.leagueRules;
+  if (!rules) return {};
+  const defaultDiffs = new Map(selectLeagueRuleDiffs(state).map((entry) => [entry.key, entry]));
+
+  return Object.values(rules.entries).reduce<Record<string, LeagueRuleDisplay[]>>((groups, rule) => {
+    const definition = LEAGUE_RULE_DEFINITIONS[rule.key];
+    const diff = defaultDiffs.get(rule.key);
+    const category = definition.category;
+    groups[category] = groups[category] ?? [];
+    groups[category].push({
+      key: rule.key,
+      label: definition.label,
+      category,
+      value: stringifyRuleValue(rule.value),
+      source: rule.source,
+      effectiveYear: rule.effectiveYear,
+      changedFromDefault: Boolean(diff?.changed),
+    });
+    groups[category].sort((a, b) => a.label.localeCompare(b.label));
+    return groups;
+  }, {});
+};
+
+export const selectLeagueRuleHistory = (state: GameStoreState): LeagueRuleHistoryGroup[] => {
+  const rules = state.game?.leagueRules;
+  if (!rules) return EMPTY_RULE_HISTORY;
+  return Object.values(LEAGUE_RULE_DEFINITIONS)
+    .map((definition) => ({
+      key: definition.key,
+      label: definition.label,
+      changes: rules.history
+        .filter((entry) => entry.key === definition.key)
+        .sort((a, b) => b.effectiveYear - a.effectiveYear || b.rationale.localeCompare(a.rationale)),
+    }))
+    .filter((group) => group.changes.length > 0);
+};
+
+export const selectCBAState = (state: GameStoreState): CBAState | null =>
+  state.game?.cbaState ?? EMPTY_CBA_STATE;
+
+export const selectCBAProposal = (state: GameStoreState) =>
+  state.game?.cbaState?.negotiationState?.currentProposal ?? null;
+
+export const selectCommissionerState = (state: GameStoreState): CommissionerState | null =>
+  state.game?.commissionerState ?? EMPTY_COMMISSIONER_STATE;
+
+export const selectCommissionerAgenda = (state: GameStoreState): RuleProposal[] =>
+  state.game?.commissionerState?.activeProposals ?? EMPTY_RULE_PROPOSALS;
+
+export const selectCommissionerVoteHistory = (state: GameStoreState) =>
+  state.game?.commissionerState?.history ?? [];
+
+export const selectCommissionerRulings = (state: GameStoreState): CommissionerRuling[] =>
+  state.game?.commissionerState?.rulings ?? [];
+
+export const selectLaborState = (state: GameStoreState): LaborState | null =>
+  state.game?.laborState ?? EMPTY_LABOR_STATE;
+
+export const selectUnionLeader = (state: GameStoreState): Player | null =>
+  state.game ? getUnionLeader(state.game) : null;
 
 export function selectCurrentMatchup(state: GameStoreState) {
   if (!state.game) return null;

@@ -7,9 +7,10 @@
 
 import { makeContract } from './contracts';
 import { v36CapHit } from './contract-helpers';
+import { getActiveRule } from './league-rules';
 import { getPersonality } from './personality';
 import { cl } from '../utils';
-import type { Contract, Player, Team, Position, FranchiseTagType, FranchiseTagState } from '../types';
+import type { Contract, GameState, Player, Team, Position, FranchiseTagType, FranchiseTagState } from '../types';
 
 // ── Tag Type Definitions ───────────────────────────────
 
@@ -100,9 +101,19 @@ export function applyFranchiseTag(
   teams: readonly Team[],
   year: number,
   tagType: FranchiseTagType = 'non-exclusive',
+  gameState?: GameState | null,
 ): TagResult {
-  if (team.franchiseTag973) {
+  const currentTags = team.franchiseTags ?? (team.franchiseTag973 ? [team.franchiseTag973] : []);
+  const tagLimit = gameState?.leagueRules ? Number(getActiveRule(gameState.leagueRules, 'franchise_tag_limit', year)) : 1;
+  const allowedTypes = gameState?.leagueRules
+    ? getActiveRule(gameState.leagueRules, 'tag_types_allowed', year) as FranchiseTagType[]
+    : FRANCHISE_TAG_TYPES.map((entry) => entry.id);
+
+  if (currentTags.length >= tagLimit) {
     return { ok: false, salary: 0, reaction: 'neutral', msg: 'Already used franchise tag this year.' };
+  }
+  if (!allowedTypes.includes(tagType)) {
+    return { ok: false, salary: 0, reaction: 'neutral', msg: 'That tag type is not allowed under current league rules.' };
   }
 
   const tagDef = FRANCHISE_TAG_TYPES.find((t) => t.id === tagType);
@@ -117,7 +128,7 @@ export function applyFranchiseTag(
   player.contract = makeContract(tagSal, 1, 0, tagSal, player.id, team.id);
   player.contract.franchiseTag = tagType;
 
-  team.franchiseTag973 = {
+  const tagState: FranchiseTagState = {
     playerId: player.id,
     playerName: player.name,
     pos: player.pos,
@@ -125,6 +136,8 @@ export function applyFranchiseTag(
     year,
     reaction,
   };
+  team.franchiseTags = [...currentTags, tagState];
+  team.franchiseTag973 = team.franchiseTags[0] ?? tagState;
 
   if (reaction === 'holdout') {
     player.holdout = true;

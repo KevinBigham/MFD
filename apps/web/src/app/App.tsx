@@ -5,7 +5,7 @@ import {
   Search, FileText, Handshake, Gamepad2, GraduationCap,
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
   Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity, CalendarRange,
-  Radio, MessageSquare, Crosshair, Building2, Award, Users2, Sparkles,
+  Radio, MessageSquare, Crosshair, Building2, Award, Users2, Sparkles, Scale,
 } from 'lucide-react';
 import { MfdTooltipProvider, MfdCommandPalette, type CommandItem } from '@mfd/design-system/components';
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
@@ -67,6 +67,9 @@ const LazyExpansionDraft = lazy(async () => ({ default: (await import('../featur
 const LazyFranchiseLegends = lazy(async () => ({ default: (await import('../features/franchise/FranchiseLegends')).FranchiseLegends }));
 const LazyLockerRoom = lazy(async () => ({ default: (await import('../features/locker-room/LockerRoom')).LockerRoom }));
 const LazyEndorsementCenter = lazy(async () => ({ default: (await import('../features/endorsements/EndorsementCenter')).EndorsementCenter }));
+const LazyCommissionerOffice = lazy(async () => ({ default: (await import('../features/league/CommissionerOffice')).CommissionerOffice }));
+const LazyCBANegotiation = lazy(async () => ({ default: (await import('../features/league/CBANegotiation')).CBANegotiation }));
+const LazyLeagueRulesViewer = lazy(async () => ({ default: (await import('../features/league/LeagueRulesViewer')).LeagueRulesViewer }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -99,6 +102,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/depth-chart',   label: 'Depth Chart',      shortLabel: 'Depth',    icon: <ListOrdered size={16} /> },
   { path: '/coaching',      label: 'Coaching',         shortLabel: 'Coach',    icon: <GraduationCap size={16} /> },
   { path: '/owner',         label: 'Owner',            shortLabel: 'Owner',    icon: <Crown size={16} /> },
+  { path: '/commissioner',  label: 'Commissioner',     shortLabel: 'Commish',  icon: <Scale size={16} /> },
   { path: '/franchise',     label: 'Franchise',        shortLabel: 'Franchise', icon: <Building2 size={16} /> },
   { path: '/legends',       label: 'Legends',          shortLabel: 'Legends',  icon: <Award size={16} /> },
   { path: '/week-advance',  label: 'Advance Week',     shortLabel: 'Advance',  icon: <Play size={16} /> },
@@ -677,6 +681,36 @@ const ownerRoute = createRoute({
   component: OwnerMood,
 });
 
+const commissionerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/commissioner',
+  component: () => (
+    <LazyRouteFrame label="commissioner office">
+      <LazyCommissionerOffice />
+    </LazyRouteFrame>
+  ),
+});
+
+const cbaRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/cba',
+  component: () => (
+    <LazyRouteFrame label="cba negotiations">
+      <LazyCBANegotiation />
+    </LazyRouteFrame>
+  ),
+});
+
+const leagueRulesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/league-rules',
+  component: () => (
+    <LazyRouteFrame label="league rules">
+      <LazyLeagueRulesViewer />
+    </LazyRouteFrame>
+  ),
+});
+
 const franchiseRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/franchise',
@@ -811,7 +845,7 @@ const routeTree = rootRoute.addChildren([
   scoutingRoute, draftRoute, freeAgencyRoute, faTargetsRoute,
   gameDayRoute, broadcastRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
   scheduleRoute, depthChartRoute, playerProfileRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, filmRoomRoute, tradeDeadlineRoute,
-  ownerRoute, franchiseRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
+  ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, settingsRoute,
 ]);

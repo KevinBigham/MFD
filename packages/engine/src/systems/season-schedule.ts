@@ -1,4 +1,5 @@
-import type { ScheduleWeek } from '../types';
+import type { GameState, ScheduleWeek } from '../types';
+import { getRuleValueForYear } from './league-rules';
 
 const BYE_TEAM_ID = '__BYE__';
 
@@ -10,12 +11,18 @@ function orderedTeams(teamIds: string[], year: number): string[] {
   return sorted;
 }
 
-export function buildSeasonSchedule(teamIds: string[], year: number): ScheduleWeek[] {
+function scheduleWeeksFor(gameState: GameState | null | undefined): number {
+  if (!gameState?.leagueRules) return 18;
+  return Number(getRuleValueForYear(gameState.leagueRules, 'schedule_weeks', gameState.year));
+}
+
+export function buildSeasonSchedule(teamIds: string[], year: number, gameState?: GameState | null): ScheduleWeek[] {
   const baseTeams = orderedTeams(teamIds, year);
   const working = baseTeams.length % 2 === 0 ? [...baseTeams] : [...baseTeams, BYE_TEAM_ID];
   const weeks: ScheduleWeek[] = [];
+  const totalWeeks = scheduleWeeksFor(gameState);
 
-  for (let week = 1; week <= 18; week += 1) {
+  for (let week = 1; week <= totalWeeks; week += 1) {
     const games = [];
     for (let index = 0; index < working.length / 2; index += 1) {
       const left = working[index]!;

@@ -2,14 +2,19 @@ import { describe, it, expect } from 'vitest';
 import { SaveStateSchema } from './schema';
 import { migrate, registerMigration, getRegisteredVersions } from './migrations';
 import { SAVE_VERSION } from '../config';
+import { initCBA } from '../systems/cba-engine';
+import { initCommissioner } from '../systems/commissioner';
+import { initLaborState } from '../systems/labor-relations';
+import { initLeagueRules } from '../systems/league-rules';
 import { createEmptyRecordBook } from '../systems/records';
 
 describe('SaveStateSchema', () => {
   it('validates a minimal valid save', () => {
+    const year = 2026;
     const minSave = {
       version: SAVE_VERSION,
       seed: 12345,
-      year: 2026,
+      year,
       week: 1,
       phase: 'preseason',
       difficulty: 'pro',
@@ -61,6 +66,10 @@ describe('SaveStateSchema', () => {
       teamNeedsCache: {},
       warRoomState: null,
       contractExtensions: [],
+      leagueRules: initLeagueRules(year),
+      cbaState: initCBA(year),
+      commissionerState: initCommissioner(year),
+      laborState: initLaborState(),
       difficultyState: {
         enabled: true,
         adaptiveSlider: 50,
@@ -107,6 +116,7 @@ describe('SaveStateSchema', () => {
   });
 
   it('validates a player with contract', () => {
+    const year = 2026;
     const player = {
       id: 'p1',
       firstName: 'Patrick',
@@ -147,7 +157,7 @@ describe('SaveStateSchema', () => {
     };
 
     const save = {
-      version: 1, seed: 42, year: 2026, week: 5,
+      version: 1, seed: 42, year, week: 5,
       phase: 'regular_season', difficulty: 'legend',
       players: { p1: player },
       teams: {}, owners: {},
@@ -176,6 +186,10 @@ describe('SaveStateSchema', () => {
       teamNeedsCache: {},
       warRoomState: null,
       contractExtensions: [],
+      leagueRules: initLeagueRules(year),
+      cbaState: initCBA(year),
+      commissionerState: initCommissioner(year),
+      laborState: initLaborState(),
       difficultyState: {
         enabled: true,
         adaptiveSlider: 50,
@@ -187,6 +201,26 @@ describe('SaveStateSchema', () => {
 
     const result = SaveStateSchema.safeParse(save);
     expect(result.success).toBe(true);
+  });
+
+  it('migrates v19 saves to include governance defaults', () => {
+    const migrated = migrate({
+      version: 19,
+      year: 2030,
+      teams: {
+        t1: {
+          id: 't1',
+          franchiseTags: null,
+        },
+      },
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['leagueRules']).toBeTruthy();
+    expect(migrated['cbaState']).toBeTruthy();
+    expect(migrated['commissionerState']).toBeTruthy();
+    expect(migrated['laborState']).toBeTruthy();
+    expect((migrated['teams'] as Record<string, { franchiseTags?: unknown[] }>).t1.franchiseTags).toEqual([]);
   });
 });
 

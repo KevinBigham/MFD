@@ -7,6 +7,7 @@ import type {
   PlayoffSeed,
   Team,
 } from '../types';
+import { getRuleValueForYear } from './league-rules';
 
 function getWinPct(team: Team): number {
   const gamesPlayed = team.wins + team.losses + team.ties;
@@ -33,6 +34,11 @@ function toSeed(seed: number, team: Team, divisionWinner: boolean): PlayoffSeed 
   };
 }
 
+function seedsPerConference(game: GameState): number {
+  if (!game.leagueRules) return 7;
+  return Number(getRuleValueForYear(game.leagueRules, 'playoff_seeds_per_conf', game.year));
+}
+
 function createMatchup(round: PlayoffRound, conference: PlayoffMatchup['conference'], week: number, homeTeamId: string, awayTeamId: string): PlayoffMatchup {
   return {
     id: `${round}-${conference}-${week}-${homeTeamId}-${awayTeamId}`,
@@ -46,7 +52,7 @@ function createMatchup(round: PlayoffRound, conference: PlayoffMatchup['conferen
   };
 }
 
-function buildConferenceSeeds(teams: Team[]): PlayoffSeed[] {
+function buildConferenceSeeds(teams: Team[], seedCount: number): PlayoffSeed[] {
   const sorted = [...teams].sort(sortStandings);
   const divisionLeaders = new Map<string, Team>();
 
@@ -60,15 +66,29 @@ function buildConferenceSeeds(teams: Team[]): PlayoffSeed[] {
   const divisionWinners = [...divisionLeaders.values()].sort(sortStandings);
   const wildcards = sorted
     .filter((team) => divisionLeaders.get(team.division)?.id !== team.id)
-    .slice(0, 3)
+    .slice(0, Math.max(0, seedCount - divisionWinners.length))
     .sort(sortStandings);
 
   return [...divisionWinners, ...wildcards]
-    .slice(0, 7)
+    .slice(0, seedCount)
     .map((team, index) => toSeed(index + 1, team, index < divisionWinners.length));
 }
 
 function buildInitialMatchups(seeds: PlayoffSeed[], conference: 'AFC' | 'NFC', week: number): PlayoffMatchup[] {
+  if (seeds.length === 6) {
+    return [
+      createMatchup('wild_card', conference, week, seeds[2]!.teamId, seeds[5]!.teamId),
+      createMatchup('wild_card', conference, week, seeds[3]!.teamId, seeds[4]!.teamId),
+    ];
+  }
+  if (seeds.length === 8) {
+    return [
+      createMatchup('wild_card', conference, week, seeds[0]!.teamId, seeds[7]!.teamId),
+      createMatchup('wild_card', conference, week, seeds[1]!.teamId, seeds[6]!.teamId),
+      createMatchup('wild_card', conference, week, seeds[2]!.teamId, seeds[5]!.teamId),
+      createMatchup('wild_card', conference, week, seeds[3]!.teamId, seeds[4]!.teamId),
+    ];
+  }
   return [
     createMatchup('wild_card', conference, week, seeds[1]!.teamId, seeds[6]!.teamId),
     createMatchup('wild_card', conference, week, seeds[2]!.teamId, seeds[5]!.teamId),
@@ -95,7 +115,12 @@ function getWinners(bracket: PlayoffBracket, conference: 'AFC' | 'NFC', round: P
 function buildDivisionalMatchups(bracket: PlayoffBracket, conference: 'AFC' | 'NFC', week: number): PlayoffMatchup[] {
   const seeds = getConferenceSeeds(bracket, conference);
   const winners = getWinners(bracket, conference, 'wild_card');
-  const remaining = [seeds[0]!, ...winners].sort((a, b) => a.seed - b.seed);
+  const remaining = (seeds.length === 6
+    ? [seeds[0]!, seeds[1]!, ...winners]
+    : seeds.length === 7
+      ? [seeds[0]!, ...winners]
+      : winners
+  ).sort((a, b) => a.seed - b.seed);
 
   return [
     createMatchup('divisional', conference, week, remaining[0]!.teamId, remaining[3]!.teamId),
@@ -119,8 +144,9 @@ function buildSuperBowl(bracket: PlayoffBracket, week: number): PlayoffMatchup[]
 
 export function seedPlayoffBracket(game: GameState): PlayoffBracket {
   const teams = Object.values(game.teams);
-  const afc = buildConferenceSeeds(teams.filter((team) => team.conference === 'AFC'));
-  const nfc = buildConferenceSeeds(teams.filter((team) => team.conference === 'NFC'));
+  const seedCount = seedsPerConference(game);
+  const afc = buildConferenceSeeds(teams.filter((team) => team.conference === 'AFC'), seedCount);
+  const nfc = buildConferenceSeeds(teams.filter((team) => team.conference === 'NFC'), seedCount);
 
   return {
     season: game.year,

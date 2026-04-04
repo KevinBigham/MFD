@@ -589,4 +589,156 @@ describe('game store offseason actions', () => {
     expect(nextUser.name).toBe(previousUser.name);
     expect(pushState).toHaveBeenCalledWith({}, '', '/');
   });
+
+  it('files an owner petition for a new league rule proposal', async () => {
+    const game = createSeedGameState(1200, 0, 'pro');
+    game.phase = 'offseason';
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.petitionRuleChange('practice_squad_size', 10);
+
+    const proposal = useGameStore.getState().game?.commissionerState.activeProposals[0];
+    expect(proposal?.source).toBe('owner_petition');
+    expect(proposal?.ruleKey).toBe('practice_squad_size');
+    expect(proposal?.proposedValue).toBe(10);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves a passed rule proposal and records the vote result', async () => {
+    const game = createSeedGameState(1300, 0, 'pro');
+    game.phase = 'offseason';
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const supportingTeam = Object.values(game.teams).find((team) => team.id !== userTeam.id)!;
+
+    game.commissionerState.activeProposals = [{
+      id: 'proposal-pass',
+      ruleKey: 'practice_squad_size',
+      currentValue: 8,
+      proposedValue: 10,
+      rationale: 'Expand practice depth.',
+      source: 'commissioner',
+      votes: { [supportingTeam.id]: 'yes' },
+      requiredMajority: 2,
+      deadline: game.year,
+      effectiveYear: game.year + 1,
+      proposedByTeamId: null,
+    }];
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.voteOnProposal('proposal-pass', 'yes');
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.commissionerState.activeProposals).toHaveLength(0);
+    expect(nextGame.commissionerState.history.at(-1)?.passed).toBe(true);
+    expect(nextGame.leagueRules.entries.practice_squad_size.value).toBe(10);
+    expect(nextGame.leagueRules.entries.practice_squad_size.effectiveYear).toBe(game.year + 1);
+  });
+
+  it('charges owner goodwill when a user petition fails', async () => {
+    const game = createSeedGameState(1400, 0, 'pro');
+    game.phase = 'offseason';
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const startingMood = userTeam.ownerMood;
+
+    game.commissionerState.activeProposals = [{
+      id: 'proposal-fail',
+      ruleKey: 'schedule_weeks',
+      currentValue: 18,
+      proposedValue: 19,
+      rationale: 'Stretch the season.',
+      source: 'owner_petition',
+      votes: {},
+      requiredMajority: 99,
+      deadline: game.year,
+      effectiveYear: game.year + 1,
+      proposedByTeamId: userTeam.id,
+    }];
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.voteOnProposal('proposal-fail', 'no');
+
+    expect(useGameStore.getState().game?.teams[userTeam.id]?.ownerMood).toBe(startingMood - 10);
+    expect(useGameStore.getState().game?.commissionerState.history.at(-1)?.passed).toBe(false);
+  });
+
+  it('advances one cba negotiation round from an expired agreement', async () => {
+    const game = createSeedGameState(1500, 0, 'pro');
+    game.phase = 'offseason';
+    game.cbaState.status = 'expired';
+    if (game.cbaState.currentDeal) {
+      game.cbaState.currentDeal.endYear = game.year - 1;
+    }
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.advanceCBANegotiation();
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.cbaState.negotiationState?.round).toBe(1);
+    expect(['negotiating', 'awaiting_owner_vote', 'lockout']).toContain(nextGame.cbaState.status);
+  });
+
+  it('ratifies a cba proposal after owner approval and applies its rule changes', async () => {
+    const game = createSeedGameState(1600, 0, 'pro');
+    game.phase = 'offseason';
+    const currentTerms = game.cbaState.currentDeal!.terms;
+    const proposal = {
+      id: 'cba-proposal',
+      side: 'owners' as const,
+      year: game.year,
+      round: 2,
+      rationale: 'A compromise is ready for approval.',
+      terms: {
+        ...currentTerms,
+        capGrowthRate: Number((currentTerms.capGrowthRate + 0.005).toFixed(3)),
+        practiceSquadSize: currentTerms.practiceSquadSize + 2,
+      },
+    };
+
+    game.cbaState.status = 'awaiting_owner_vote';
+    game.cbaState.negotiationState = {
+      round: 2,
+      ownersProposal: proposal,
+      playersProposal: proposal,
+      currentProposal: proposal,
+      gap: 10,
+      mediator: true,
+      publicPressure: 70,
+      ownerVotes: {},
+      userVote: null,
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.voteOnCBA('approve');
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.cbaState.status).toBe('active');
+    expect(nextGame.cbaState.currentDeal?.terms.practiceSquadSize).toBe(currentTerms.practiceSquadSize + 2);
+    expect(nextGame.leagueRules.entries.practice_squad_size.value).toBe(currentTerms.practiceSquadSize + 2);
+    expect(nextGame.laborState.activeStoppage).toBeNull();
+  });
 });

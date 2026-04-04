@@ -2,6 +2,7 @@ import { RNG } from '../rng';
 import { getSalaryCap } from '../config';
 import { calcCapHit, calcDeadMoney } from './contracts';
 import { assignJerseyNumber } from './jersey-retirement';
+import { getActiveRule } from './league-rules';
 import { recordNewsItem } from './league-news';
 import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
 import type {
@@ -15,6 +16,11 @@ import type {
 } from '../types';
 
 const PRACTICE_SQUAD_MAX = 16;
+
+function getPracticeSquadLimit(game: GameState): number {
+  if (!game.leagueRules) return PRACTICE_SQUAD_MAX;
+  return Number(getActiveRule(game.leagueRules, 'practice_squad_size', game.year));
+}
 
 function refreshRosterState(team: Team): void {
   for (const player of team.roster) {
@@ -65,7 +71,7 @@ function teamNeeds(team: Team, playerPos: string): boolean {
 export function addToPracticeSquad(game: GameState, teamId: string, playerId: string): EngineOutput {
   const team = game.teams[teamId];
   const player = game.players[playerId];
-  if (!team || !player || !game.freeAgents.includes(playerId) || team.practiceSquad.length >= PRACTICE_SQUAD_MAX) {
+  if (!team || !player || !game.freeAgents.includes(playerId) || team.practiceSquad.length >= getPracticeSquadLimit(game)) {
     return emptyResult(game);
   }
 
@@ -148,7 +154,7 @@ export function cutPlayerToWaivers(game: GameState, teamId: string, playerId: st
     const deadCap = calcDeadMoney(player.contract);
     team.deadCap += deadCap;
     team.capUsed -= calcCapHit(player.contract) - deadCap;
-    team.capSpace = getSalaryCap(game.year) - team.capUsed;
+    team.capSpace = getSalaryCap(game.year, game) - team.capUsed;
   }
 
   team.roster.splice(index, 1);

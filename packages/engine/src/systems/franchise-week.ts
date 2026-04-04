@@ -3,6 +3,7 @@ import { RNG, mulberry32, reseedSeason, reseedWeek, setSeed } from '../rng';
 import { getAdaptiveModifier, updateAdaptiveDifficulty } from './adaptive-difficulty';
 import { checkAchievements } from './achievements';
 import { advanceDraft, ensureDraftClass, finalizePostDraft } from './draft';
+import { checkCBAStatus, initCBA } from './cba-engine';
 import { recordCeremony, generateRingCeremony } from './ceremonies';
 import {
   getLockerRoomClutchBonuses,
@@ -13,7 +14,8 @@ import {
 import { assignBroadcasts, flexSchedule } from './flex-schedule';
 import { generateAiGamePlan, generateOpponentScouting, resetGamePlan, upsertOpponentReport } from './game-plan';
 import { recordDynastyEvent } from './dynasty-timeline';
-import { generateWeeklyLeagueNews, recordNewsItem } from './league-news';
+import { generateWeeklyLeagueNews, recordLaborNews, recordNewsItem } from './league-news';
+import { checkWorkStoppage, generateLaborEvent, initLaborState, updateUnionSatisfaction } from './labor-relations';
 import { recordBeat, shouldGenerateEvent } from './narrative-director';
 import { advanceFreeAgency, advanceOffseason, initializeOffseasonState } from './offseason';
 import { advancePlayoffBracket, seedPlayoffBracket } from './playoff-bracket';
@@ -48,17 +50,19 @@ import {
 } from './player-rivalries';
 import { updateRecordsFromGameResult } from './records';
 import { getRivalryGameContext, seedLeagueRivalries, updateLeagueRivalriesFromGame } from './rivalries';
+import { getActiveRule, initLeagueRules } from './league-rules';
 import { generateTradeOffers } from './trade-market';
 import { findTradeTargets } from './trade-finder';
 import { buildWeeklySummary } from './weekly-summary';
 import { autoAssignSpecialTeams } from './special-teams';
-import { appendToSocialFeed, generateGameDayPosts, generateWeeklyBuzz } from './social-feed';
+import { appendToSocialFeed, createLaborPost, generateGameDayPosts, generateWeeklyBuzz } from './social-feed';
 import { generateBroadcast } from './broadcast';
 import { advanceScenarioSeason, checkScenarioProgress } from './scenario-challenge';
 import { initializeDeadline } from './trade-deadline';
 import { applyWeeklyPrepToSim, buildOpponentIntel, evaluateWeeklyPrep } from './weekly-prep';
 import { createDefaultFranchiseIdentity, getStadiumHomeFieldBonus, updateAttendance } from './franchise-identity';
 import { initializeExpansionDraft, shouldTriggerExpansion } from './expansion-draft';
+import { initCommissioner } from './commissioner';
 import {
   cloneGame,
   findUserTeam,
@@ -207,6 +211,110 @@ function buildBroadcastRng(game: GameState, result: GameResult) {
   return mulberry32(seed);
 }
 
+function getTradeDeadlineWeek(game: GameState): number {
+  if (!game.leagueRules) return 9;
+  return Number(getActiveRule(game.leagueRules, 'trade_deadline_week', game.year));
+}
+
+function isCBAInterruptStatus(status: GameState['cbaState']['status']): boolean {
+  return status === 'negotiating' || status === 'awaiting_owner_vote' || status === 'lockout';
+}
+
+function clampRating(value: number): number {
+  return Math.max(0, Math.min(100, value));
+}
+
+function getTaggedPlayers(game: GameState) {
+  return Object.values(game.players).filter((player) => {
+    if (player.contract?.franchiseTag) return true;
+    const team = player.teamId ? game.teams[player.teamId] : null;
+    const tags = team ? (team.franchiseTags ?? (team.franchiseTag973 ? [team.franchiseTag973] : [])) : [];
+    return tags.some((tag) => tag.playerId === player.id);
+  });
+}
+
+function activateWorkStoppage(game: GameState, check: ReturnType<typeof checkWorkStoppage>): void {
+  if (!check.stoppage) return;
+  if (game.laborState.activeStoppage?.type === check.stoppage.type) return;
+
+  let affectedTeams = [...check.stoppage.affectedTeams];
+  if (check.stoppage.type === 'holdout_wave') {
+    const taggedPlayers = getTaggedPlayers(game).sort((a, b) => a.id.localeCompare(b.id));
+    const share = 0.05 + RNG.event() * 0.1;
+    const holdoutCount = Math.max(1, Math.min(taggedPlayers.length, Math.round(taggedPlayers.length * share)));
+    for (const player of taggedPlayers.slice(0, holdoutCount)) {
+      player.holdout = true;
+      player.morale = clampRating(player.morale + check.stoppage.moralePenalty);
+    }
+    affectedTeams = [...new Set(taggedPlayers.slice(0, holdoutCount).map((player) => player.teamId).filter((teamId): teamId is string => Boolean(teamId)))];
+  } else {
+    const targetTeams = check.stoppage.affectedTeams.length > 0 ? check.stoppage.affectedTeams : Object.keys(game.teams);
+    for (const player of Object.values(game.players)) {
+      if (player.teamId && targetTeams.includes(player.teamId)) {
+        player.morale = clampRating(player.morale + check.stoppage.moralePenalty);
+      }
+    }
+    affectedTeams = targetTeams;
+  }
+
+  game.laborState.activeStoppage = {
+    ...check.stoppage,
+    affectedTeams,
+    startWeek: game.week,
+  };
+  recordLaborNews(game, 'League labor unrest intensifies', check.summary, {
+    idSuffix: `${check.stoppage.type}-${game.year}-${game.week}`,
+    importance: check.stoppage.type === 'lockout' ? 'breaking' : 'major',
+    teamIds: affectedTeams,
+  });
+  game.socialFeed = appendToSocialFeed(game.socialFeed, [
+    createLaborPost(check.summary, game.week, RNG.ai, {
+      sentiment: check.stoppage.type === 'lockout' ? 'negative' : 'neutral',
+    }),
+  ]);
+}
+
+function recordLaborEventNarrative(game: GameState): void {
+  const laborEvent = generateLaborEvent(game.laborState, game);
+  if (!laborEvent) return;
+  game.laborState = {
+    ...game.laborState,
+    unionSatisfaction: clampRating(game.laborState.unionSatisfaction + (laborEvent.impact.satisfaction ?? 0)),
+    laborEvents: [...game.laborState.laborEvents, laborEvent].slice(-20),
+  };
+  if (laborEvent.impact.morale) {
+    for (const player of Object.values(game.players)) {
+      player.morale = clampRating(player.morale + laborEvent.impact.morale);
+    }
+  }
+  recordLaborNews(game, 'Labor talks dominate the league conversation', laborEvent.description, {
+    idSuffix: `${laborEvent.type}-${game.year}-${game.week}`,
+  });
+  game.socialFeed = appendToSocialFeed(game.socialFeed, [
+    createLaborPost(laborEvent.description, game.week, RNG.ai, {
+      sentiment: laborEvent.impact.satisfaction && laborEvent.impact.satisfaction > 0 ? 'positive' : 'negative',
+    }),
+  ]);
+}
+
+function buildLaborPenaltyMap(team: Team, penalty: number, game: GameState): Record<string, number> | undefined {
+  if (penalty === 0) return undefined;
+  const stoppage = game.laborState.activeStoppage;
+  if (!stoppage || stoppage.type !== 'practice_boycott') return undefined;
+  if (stoppage.affectedTeams.length > 0 && !stoppage.affectedTeams.includes(team.id)) return undefined;
+  return team.roster.reduce<Record<string, number>>((map, player) => {
+    map[player.id] = penalty;
+    return map;
+  }, {});
+}
+
+function ensureGovernanceState(game: GameState): void {
+  game.leagueRules = game.leagueRules ?? initLeagueRules(game.year);
+  game.cbaState = game.cbaState ?? initCBA(game.year);
+  game.commissionerState = game.commissionerState ?? initCommissioner(game.year);
+  game.laborState = game.laborState ?? initLaborState();
+}
+
 function buildPlayerRivalryContext(game: GameState, home: Team, away: Team) {
   const rivalries = (game.playerRivalries ?? []).filter((rivalry) => {
     const teamIds = [rivalry.teamAId, rivalry.teamBId];
@@ -243,6 +351,7 @@ function createFarewellPost(game: GameState, content: string): GameState['social
 
 export function advanceFranchiseWeek(game: GameState): EngineOutput {
   const nextState = cloneGame(game);
+  ensureGovernanceState(nextState);
   const events: GameEvent[] = [];
   const playedWeek = nextState.week;
   const startingUser = findUserTeam(nextState);
@@ -263,8 +372,13 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   reseedSeason(game.year);
   reseedWeek(game.year, game.week);
   ensureLivingWorldState(nextState);
+  nextState.cbaState.status = checkCBAStatus(nextState.cbaState, nextState.year);
   if (nextState.leagueRivalries.length === 0) {
     seedLeagueRivalries(nextState);
+  }
+  if ((nextState.phase === 'preseason' || nextState.phase === 'offseason') && isCBAInterruptStatus(nextState.cbaState.status)) {
+    recordLaborEventNarrative(nextState);
+    return { nextState, events, consequences: [] };
   }
 
   if (nextState.phase === 'preseason') {
@@ -315,7 +429,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   expireTimedEffects(nextState);
   const adaptiveModifier = getAdaptiveModifier(nextState);
 
-  if (nextState.phase === 'regular_season' && nextState.week === 9 && !deadlineAlreadyResolved(nextState)) {
+  if (nextState.phase === 'regular_season' && nextState.week === getTradeDeadlineWeek(nextState) && !deadlineAlreadyResolved(nextState)) {
     if (!nextState.tradeDeadlineState) {
       nextState.tradeDeadlineState = initializeDeadline(nextState, RNG.trade);
     }
@@ -328,6 +442,19 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         processCarryoverHoldouts(nextState, team.id, RNG.ai);
       }
       processWeeklyTraining(nextState, team.id, RNG.dev);
+    }
+  }
+
+  let laborPenalty = 0;
+  if (nextState.phase === 'regular_season') {
+    nextState.laborState = updateUnionSatisfaction(nextState.laborState, nextState);
+    const stoppageCheck = checkWorkStoppage(nextState.laborState, nextState.cbaState);
+    if (stoppageCheck.triggered) {
+      activateWorkStoppage(nextState, stoppageCheck);
+      laborPenalty = stoppageCheck.playerOvrPenalty;
+    }
+    if (['expiring', 'expired', 'negotiating', 'awaiting_owner_vote', 'lockout'].includes(nextState.cbaState.status)) {
+      recordLaborEventNarrative(nextState);
     }
   }
 
@@ -381,6 +508,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
               homeFatigueBonuses,
               homePlanContext.prepContext.playerOvrBonuses,
               homeLockerBonus.captainBonuses,
+              buildLaborPenaltyMap(home, laborPenalty, nextState),
               playerRivalryContext.homeBonuses,
             ),
           ),
@@ -401,6 +529,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
               awayFatigueBonuses,
               awayPlanContext.prepContext.playerOvrBonuses,
               awayLockerBonus.captainBonuses,
+              buildLaborPenaltyMap(away, laborPenalty, nextState),
               playerRivalryContext.awayBonuses,
             ),
           ),

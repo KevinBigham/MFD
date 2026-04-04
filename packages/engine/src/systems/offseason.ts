@@ -2,9 +2,11 @@ import { DIFF_SETTINGS } from '../config/difficulty';
 import { mulberry32, RNG } from '../rng';
 import { checkAchievements } from './achievements';
 import { generateAwards } from './awards';
+import { applyCBADealToRules, checkCBAStatus, getLockoutRisk, initCBA } from './cba-engine';
 import { recordCeremony, generateAwardsNight, generateChampionshipCeremony, generateHOFInduction } from './ceremonies';
 import { runCoachingCarousel } from './coaching-carousel';
 import { calculateCompPicks } from './comp-picks';
+import { advanceCommissioner, initCommissioner } from './commissioner';
 import { makeContract } from './contracts';
 import { resolveConditions } from './conditional-picks';
 import { ensureDraftClass } from './draft';
@@ -17,7 +19,9 @@ import { inductHallOfFame } from './hall-of-fame';
 import { syncPlayerArchiveEntry } from './history';
 import { generateMedicalStaffPool } from './injury-system';
 import { assignJerseyNumber, generateJerseyRetirement, shouldRetireJersey } from './jersey-retirement';
-import { generateOffseasonNews, recordNewsItem } from './league-news';
+import { getActiveRule, initLeagueRules } from './league-rules';
+import { generateOffseasonNews, recordGovernanceNews, recordLaborNews, recordNewsItem } from './league-news';
+import { generateLaborEvent, initLaborState } from './labor-relations';
 import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
 import { applyMentoringBonuses, formMentoringPairs } from './mentoring';
 import { recordBeat } from './narrative-director';
@@ -35,7 +39,7 @@ import { getScenarioConstraints } from './scenario-challenge';
 import { createDefaultScoutingDepartment, generateScoutPool } from './scouting-staff';
 import { generateSeasonReport } from './season-report';
 import { buildSpecialTeamsState } from './special-teams';
-import { appendToSocialFeed, generateTransactionPosts } from './social-feed';
+import { appendToSocialFeed, createGovernancePost, createLaborPost, generateTransactionPosts } from './social-feed';
 import { generateTradeOffers } from './trade-market';
 import {
   createDefaultFranchiseIdentity,
@@ -63,6 +67,13 @@ import type {
 
 function cloneGame(game: GameState): GameState {
   return JSON.parse(JSON.stringify(game)) as GameState;
+}
+
+function ensureGovernanceState(game: GameState): void {
+  game.leagueRules = game.leagueRules ?? initLeagueRules(game.year);
+  game.cbaState = game.cbaState ?? initCBA(game.year);
+  game.commissionerState = game.commissionerState ?? initCommissioner(game.year);
+  game.laborState = game.laborState ?? initLaborState();
 }
 
 function findUserTeam(game: GameState): Team | null {
@@ -135,8 +146,9 @@ function buildAgentDemandForPlayer(game: GameState, player: Player, baseOffer: C
 function buildDraftOrder(game: GameState): DraftOrderEntry[] {
   const ordered: DraftOrderEntry[] = [];
   let overall = 1;
+  const draftRounds = game.leagueRules ? Number(getActiveRule(game.leagueRules, 'draft_rounds', game.year)) : 7;
 
-  for (let round = 1; round <= 7; round++) {
+  for (let round = 1; round <= draftRounds; round++) {
     const roundPicks = Object.values(game.teams)
       .flatMap((team) => team.draftPicks)
       .filter((entry) => entry.year === game.year && entry.round === round)
@@ -169,6 +181,104 @@ function updateCap(team: Team, delta: number): void {
 
 function roundMoney(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+function isCBAInterruptStatus(status: GameState['cbaState']['status']): boolean {
+  return status === 'negotiating' || status === 'awaiting_owner_vote' || status === 'lockout';
+}
+
+function startCBANegotiation(game: GameState): void {
+  game.cbaState = {
+    ...game.cbaState,
+    status: 'negotiating',
+    negotiationState: game.cbaState.negotiationState ?? {
+      round: 0,
+      ownersProposal: null,
+      playersProposal: null,
+      currentProposal: null,
+      gap: Math.max(35, getLockoutRisk(game.cbaState, game.year)),
+      mediator: false,
+      publicPressure: 15,
+      ownerVotes: {},
+      userVote: null,
+    },
+    lockoutRisk: getLockoutRisk(game.cbaState, game.year),
+    lastNegotiationYear: game.year,
+  };
+  recordLaborNews(
+    game,
+    'CBA negotiations open',
+    'League business pauses while owners and players begin bargaining on a new agreement.',
+    { idSuffix: `cba-open-${game.year}`, importance: 'breaking' },
+  );
+  game.socialFeed = appendToSocialFeed(game.socialFeed, [
+    createLaborPost('Negotiations are underway as the league and players association work toward a new CBA.', game.week, RNG.ai),
+  ]);
+}
+
+function maybeGenerateGovernanceNarrative(game: GameState, previousCommissionerName: string, previousProposalIds: string[]): void {
+  const newProposals = game.commissionerState.activeProposals.filter((proposal) => !previousProposalIds.includes(proposal.id));
+  for (const proposal of newProposals) {
+    recordGovernanceNews(
+      game,
+      `${game.commissionerState.name} proposes a rules vote`,
+      `${game.commissionerState.name} wants to change ${proposal.ruleKey.replaceAll('_', ' ')} for ${proposal.effectiveYear}.`,
+      { idSuffix: proposal.id },
+    );
+    game.socialFeed = appendToSocialFeed(game.socialFeed, [
+      createGovernancePost(
+        `${game.commissionerState.name} floated a rule proposal: ${proposal.ruleKey.replaceAll('_', ' ')} from ${String(proposal.currentValue)} to ${String(proposal.proposedValue)}.`,
+        game.week,
+        RNG.ai,
+      ),
+    ]);
+  }
+
+  if (previousCommissionerName !== game.commissionerState.name) {
+    recordGovernanceNews(
+      game,
+      `${previousCommissionerName} is out as commissioner`,
+      `${game.commissionerState.name} takes over league governance after a collapse in approval.`,
+      { idSuffix: `commissioner-fired-${game.year}`, importance: 'breaking' },
+    );
+    game.socialFeed = appendToSocialFeed(game.socialFeed, [
+      createGovernancePost(
+        `${previousCommissionerName} is out. ${game.commissionerState.name} takes the office with a ${game.commissionerState.personality} agenda.`,
+        game.week,
+        RNG.ai,
+        { sentiment: 'hype' },
+      ),
+    ]);
+  }
+}
+
+function maybeGenerateOffseasonLaborEvent(game: GameState): void {
+  const laborEvent = generateLaborEvent(game.laborState, game);
+  if (!laborEvent) return;
+
+  game.laborState = {
+    ...game.laborState,
+    unionSatisfaction: Math.max(0, Math.min(100, game.laborState.unionSatisfaction + (laborEvent.impact.satisfaction ?? 0))),
+    laborEvents: [...game.laborState.laborEvents, laborEvent].slice(-20),
+  };
+
+  if (laborEvent.impact.morale) {
+    for (const player of Object.values(game.players)) {
+      player.morale = Math.max(0, Math.min(100, player.morale + laborEvent.impact.morale));
+    }
+  }
+
+  recordLaborNews(
+    game,
+    'Labor tensions stay in the spotlight',
+    laborEvent.description,
+    { idSuffix: `${laborEvent.type}-${game.year}-${game.week}` },
+  );
+  game.socialFeed = appendToSocialFeed(game.socialFeed, [
+    createLaborPost(laborEvent.description, game.week, RNG.ai, {
+      sentiment: laborEvent.impact.satisfaction && laborEvent.impact.satisfaction > 0 ? 'positive' : 'negative',
+    }),
+  ]);
 }
 
 function adjustCapSpace(team: Team, amount: number): void {
@@ -740,9 +850,23 @@ export function submitFreeAgentBid(game: GameState, playerId: string, offer: Con
 }
 
 export function advanceOffseason(game: GameState): void {
+  ensureGovernanceState(game);
   if (!game.offseasonState) {
     ensureDraftClass(game);
     game.offseasonState = initializeOffseasonState(game);
+  }
+  game.cbaState.status = checkCBAStatus(game.cbaState, game.year);
+  if (game.cbaState.currentDeal && game.cbaState.currentDeal.startYear === game.year) {
+    applyCBADealToRules(game, game.cbaState.currentDeal);
+  }
+  if (game.cbaState.status === 'expiring' || game.cbaState.status === 'expired') {
+    startCBANegotiation(game);
+    maybeGenerateOffseasonLaborEvent(game);
+    return;
+  }
+  if (isCBAInterruptStatus(game.cbaState.status)) {
+    maybeGenerateOffseasonLaborEvent(game);
+    return;
   }
   if (game.scoutingDepartment.availableScouts.length === 0) {
     refreshScoutPool(game);
@@ -902,6 +1026,10 @@ export function advanceOffseason(game: GameState): void {
   }
   const strategyEvents = reevaluateLeagueStrategies(game);
   game.eventLog.push(...strategyEvents);
+  const previousCommissionerName = game.commissionerState.name;
+  const previousProposalIds = game.commissionerState.activeProposals.map((proposal) => proposal.id);
+  game.commissionerState = advanceCommissioner(game.commissionerState, game);
+  maybeGenerateGovernanceNarrative(game, previousCommissionerName, previousProposalIds);
   generateOffseasonNews(game);
   game.offseasonState.tradeOffers = generateTradeOffers(game);
   game.endorsementOffers = userTeam ? generateEndorsementOffers(userTeam, userTeam.roster, RNG.ai) : [];

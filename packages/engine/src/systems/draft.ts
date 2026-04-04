@@ -14,6 +14,7 @@ import { generateDraftRecap } from './draft-recap';
 import { applyFacilityBonuses } from './facilities';
 import { syncPlayerArchiveEntry } from './history';
 import { assignJerseyNumber } from './jersey-retirement';
+import { getActiveRule } from './league-rules';
 import { recordNewsItem } from './league-news';
 import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
@@ -53,8 +54,13 @@ function findUserTeam(game: GameState): Team | null {
   return Object.values(game.teams).find((team) => team.isUser) ?? null;
 }
 
-function makeDraftPicks(teamId: string, year: number): DraftPick[] {
-  return Array.from({ length: 7 }, (_, index) => ({
+function getDraftRounds(game: GameState | null, year: number): number {
+  if (!game?.leagueRules) return 7;
+  return Number(getActiveRule(game.leagueRules, 'draft_rounds', year));
+}
+
+function makeDraftPicks(teamId: string, year: number, rounds = 7): DraftPick[] {
+  return Array.from({ length: rounds }, (_, index) => ({
     round: index + 1,
     pick: index + 1,
     originalTeamId: teamId,
@@ -368,7 +374,7 @@ export function finalizePostDraft(game: GameState): void {
     team.ties = 0;
     team.streak = 0;
     team.seasonStats = createEmptySeasonStats();
-    team.draftPicks = makeDraftPicks(team.id, game.year + 1);
+    team.draftPicks = makeDraftPicks(team.id, game.year + 1, getDraftRounds(game, game.year));
 
     for (const player of team.roster) {
       player.age += 1;
@@ -388,7 +394,7 @@ export function finalizePostDraft(game: GameState): void {
     player.stats = emptyPlayerStats();
   }
 
-  game.schedule = buildSeasonSchedule(Object.keys(game.teams), game.year);
+  game.schedule = buildSeasonSchedule(Object.keys(game.teams), game.year, game);
   game.weekSummaries = [];
   game.playoffBracket = null;
   game.offseasonState = null;

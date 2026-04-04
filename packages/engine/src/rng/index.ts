@@ -1,14 +1,14 @@
 /**
  * MFD Seeded RNG System
  *
- * Mulberry32 PRNG with 7 isolated channels for deterministic simulation.
- * Channels: play, injury, draft, ai, dev, trade, ui
+ * Mulberry32 PRNG with isolated channels for deterministic simulation.
+ * Channels: play, injury, draft, ai, dev, trade, ui, event
  *
  * Rule 7: No Math.random() — ALL randomness flows through this module.
  */
 
-/** Channel identifiers for the 7 RNG streams. */
-export type RngChannel = 'play' | 'injury' | 'draft' | 'ai' | 'dev' | 'trade' | 'ui';
+/** Channel identifiers for the RNG streams. */
+export type RngChannel = 'play' | 'injury' | 'draft' | 'ai' | 'dev' | 'trade' | 'ui' | 'event';
 
 /** A seeded PRNG function that returns a float in [0, 1). */
 export type PrngFn = () => number;
@@ -22,6 +22,7 @@ export interface RngState {
   dev: PrngFn;
   trade: PrngFn;
   ui: PrngFn;
+  event: PrngFn;
 }
 
 /** Channel offset constants — each channel uses seed + offset. */
@@ -33,6 +34,7 @@ const CHANNEL_OFFSETS: Record<RngChannel, number> = {
   dev: 4,
   trade: 5,
   ui: 6,
+  event: 7,
 } as const;
 
 /**
@@ -66,6 +68,7 @@ function createRngState(seed: number): RngState {
     dev: mulberry32(seed + CHANNEL_OFFSETS.dev),
     trade: mulberry32(seed + CHANNEL_OFFSETS.trade),
     ui: mulberry32(seed + CHANNEL_OFFSETS.ui),
+    event: mulberry32(seed + CHANNEL_OFFSETS.event),
   };
 }
 
@@ -91,6 +94,7 @@ export function reseedWeek(yr: number, wk: number): void {
   RNG.ai = mulberry32(chain + 3);
   RNG.dev = mulberry32(chain + 4);
   RNG.trade = mulberry32(chain + 5);
+  RNG.event = mulberry32(chain + 7);
 }
 
 /** Reseed draft channel for a new season. */
@@ -124,6 +128,10 @@ export function rngT(a: number, b: number): number {
 
 export function rngDev(a: number, b: number): number {
   return Math.floor(RNG.dev() * (b - a + 1)) + a;
+}
+
+export function rngEvent(a: number, b: number): number {
+  return Math.floor(RNG.event() * (b - a + 1)) + a;
 }
 
 /** Pick a random element from an array using the play channel. */

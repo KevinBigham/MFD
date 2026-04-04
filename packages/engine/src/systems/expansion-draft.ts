@@ -213,7 +213,7 @@ export function finalizeExpansionDraft(gameState: GameState, state: ExpansionDra
   const nextState = cloneValue(gameState);
   const template = Object.values(nextState.teams)[0]!;
   const teamId = nextTeamId(nextState, state.expansionTeam.abbr);
-  const salaryCap = getSalaryCap(nextState.year);
+  const salaryCap = getSalaryCap(nextState.year, nextState);
   const rosterIds = new Set(state.selectedPlayers.map((player) => player.id));
 
   for (const team of Object.values(nextState.teams)) {
@@ -275,7 +275,7 @@ export function finalizeExpansionDraft(gameState: GameState, state: ExpansionDra
   };
 
   nextState.teams[teamId] = nextTeam;
-  nextState.schedule = buildSeasonSchedule(Object.keys(nextState.teams), nextState.year);
+  nextState.schedule = buildSeasonSchedule(Object.keys(nextState.teams), nextState.year, nextState);
   nextState.expansionDraftState = undefined;
   return nextState;
 }

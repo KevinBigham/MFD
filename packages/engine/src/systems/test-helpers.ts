@@ -1,6 +1,10 @@
 import {
   assignJerseyNumber,
   createDefaultFranchiseIdentity,
+  initCBA,
+  initCommissioner,
+  initLaborState,
+  initLeagueRules,
   initializeLockerRoom,
   makeContract,
   SAVE_VERSION,
@@ -244,6 +248,8 @@ export function makeLeagueState(
     }
   }
 
+  const leagueRules = initLeagueRules(2026);
+
   return {
     version: SAVE_VERSION,
     seed: 42,
@@ -300,6 +306,10 @@ export function makeLeagueState(
     playerRivalries: [],
     farewellTours: [],
     endorsementOffers: [],
+    leagueRules,
+    cbaState: initCBA(2026),
+    commissionerState: initCommissioner(2026),
+    laborState: initLaborState(),
     frontOffice: {
       xp: 0,
       level: 1,

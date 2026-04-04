@@ -156,4 +156,47 @@ describe('franchise week simulation', () => {
     expect(result.nextState.offseasonState?.expiringPlayerIds).toContain(game.teams.afce1.roster[0]!.id);
     expect(result.nextState.freeAgents).not.toContain(game.teams.afce1.roster[0]!.id);
   });
+
+  it('interrupts preseason progression when the cba is still negotiating', () => {
+    const game = makeLeagueState('preseason', 1);
+    game.cbaState.status = 'negotiating';
+    game.cbaState.negotiationState = {
+      round: 1,
+      ownersProposal: null,
+      playersProposal: null,
+      currentProposal: null,
+      gap: 42,
+      mediator: false,
+      publicPressure: 24,
+      ownerVotes: {},
+      userVote: null,
+    };
+
+    const result = advanceFranchiseWeek(game);
+
+    expect(result.nextState.phase).toBe('preseason');
+    expect(result.nextState.week).toBe(1);
+    expect(result.nextState.weekSummaries).toHaveLength(0);
+  });
+
+  it('records labor unrest during the regular season when satisfaction collapses', () => {
+    const game = makeLeagueState('regular_season', 4);
+    game.cbaState.status = 'expiring';
+    game.laborState.grievances.push({
+      playerId: game.teams.afce1.roster[0]!.id,
+      type: 'salary_grievance',
+      filed: game.year,
+      resolved: null,
+      outcome: null,
+    });
+    for (const player of Object.values(game.players)) {
+      player.morale = 12;
+    }
+
+    const result = advanceFranchiseWeek(game);
+
+    expect(result.nextState.laborState.activeStoppage?.type).toBe('practice_boycott');
+    expect(result.nextState.socialFeed.some((post) => post.trigger === 'labor')).toBe(true);
+    expect(result.nextState.leagueNews.some((item) => item.type === 'labor')).toBe(true);
+  });
 });
