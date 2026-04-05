@@ -246,15 +246,67 @@ export function WeekAdvance() {
         />
       </PixelPanel>
 
-      <PixelButton
-        onClick={() => void handleAdvance()}
-        disabled={advancing}
-        accent={advancing ? 'default' : needsGamePlan ? 'gold' : allClear ? 'green' : 'gold'}
-        style={{ width: '100%', justifyContent: 'center', minHeight: '42px' }}
-      >
-        <Play size={14} />
-        {advancing ? `Running ${phaseLabel(phase)}` : needsGamePlan ? advanceLabel : allClear ? advanceLabel : `Advance Anyway (${issueCount})`}
-      </PixelButton>
+      {advancing ? (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '24px',
+          border: '3px solid var(--mfd-gold)',
+          background: 'rgba(255, 215, 0, 0.04)',
+        }}>
+          <style>{`
+            @keyframes mfdSimPulse {
+              0%, 100% { opacity: 0.4; }
+              50% { opacity: 1; }
+            }
+          `}</style>
+          <div style={{
+            ...pixelSm,
+            color: 'var(--mfd-gold)',
+            animation: 'mfdSimPulse 1.2s ease-in-out infinite',
+            fontSize: '10px',
+            letterSpacing: '2px',
+          }}>
+            SIMULATING {phaseLabel(phase)}...
+          </div>
+          <div style={{
+            width: '100%',
+            maxWidth: '300px',
+            height: '6px',
+            background: '#111',
+            border: '1px solid var(--mfd-border)',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              width: '40%',
+              height: '100%',
+              background: 'var(--mfd-gold)',
+              animation: 'mfdSimSlide 1.5s ease-in-out infinite',
+            }} />
+            <style>{`
+              @keyframes mfdSimSlide {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(350%); }
+              }
+            `}</style>
+          </div>
+          <div style={{ ...monoSm, color: '#666' }}>
+            Processing league-wide results...
+          </div>
+        </div>
+      ) : (
+        <PixelButton
+          onClick={() => void handleAdvance()}
+          disabled={advancing}
+          accent={needsGamePlan ? 'gold' : allClear ? 'green' : 'gold'}
+          style={{ width: '100%', justifyContent: 'center', minHeight: '42px' }}
+        >
+          <Play size={14} />
+          {needsGamePlan ? advanceLabel : allClear ? advanceLabel : `Advance Anyway (${issueCount})`}
+        </PixelButton>
+      )}
 
       <PixelPanel title="Latest Summary" accent={latestSummary?.result === 'win' ? 'green' : latestSummary?.result === 'loss' ? 'red' : 'default'}>
         {latestSummary ? (

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RouterProvider, createRouter, createRootRoute, createRoute, createHashHistory, Outlet, useRouter, useRouterState } from '@tanstack/react-router';
 import {
   LayoutDashboard, Users, DollarSign, ArrowLeftRight,
@@ -6,6 +6,7 @@ import {
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
   Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity, CalendarRange,
   Radio, MessageSquare, Crosshair, Building2, Award, Users2, Sparkles, Scale,
+  ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { MfdTooltipProvider, MfdCommandPalette, type CommandItem } from '@mfd/design-system/components';
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
@@ -19,6 +20,8 @@ import {
   selectTutorial,
   useGameStore,
 } from './store/game-store';
+import { ErrorBoundary } from './ErrorBoundary';
+import { AutosaveToast } from './AutosaveToast';
 import { NewGameScreen } from './NewGameScreen';
 import { BootScreen } from './BootScreen';
 import { MondayBriefing } from '../features/monday-briefing/MondayBriefing';
@@ -89,6 +92,7 @@ interface NavItem {
   shortcut?: string;
 }
 
+/** Flat list of all nav items — used by command palette and keyboard shortcuts */
 const NAV_ITEMS: NavItem[] = [
   { path: '/',             label: 'Monday Briefing', shortLabel: 'Briefing', icon: <LayoutDashboard size={16} />, shortcut: '1' },
   { path: '/roster',       label: 'Roster',          shortLabel: 'Roster',   icon: <Users size={16} />,          shortcut: '2' },
@@ -130,6 +134,24 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/settings',      label: 'Settings',         shortLabel: 'Config',   icon: <Settings size={16} /> },
 ];
 
+/** Grouped navigation categories for the sidebar/top nav */
+interface NavGroup {
+  id: string;
+  label: string;
+  paths: string[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  { id: 'core',     label: 'CORE',     paths: ['/', '/week-advance', '/inbox'] },
+  { id: 'team',     label: 'TEAM',     paths: ['/roster', '/depth-chart', '/locker-room', '/coaching', '/handshakes'] },
+  { id: 'money',    label: 'MONEY',    paths: ['/contracts', '/cap-lab', '/endorsements'] },
+  { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/scouting', '/draft', '/free-agency', '/waivers', '/practice-squad', '/team-needs'] },
+  { id: 'gameday',  label: 'GAMEDAY',  paths: ['/game-day', '/game-plan', '/broadcast', '/play-by-play', '/game-flow', '/film-room', '/schedule'] },
+  { id: 'league',   label: 'LEAGUE',   paths: ['/standings', '/power-rankings', '/news', '/social', '/commissioner', '/analytics', '/records', '/stat-central'] },
+  { id: 'dynasty',  label: 'DYNASTY',  paths: ['/franchise', '/owner', '/legends', '/legacy', '/scenarios'] },
+  { id: 'meta',     label: 'SYSTEM',   paths: ['/dynasty', '/settings'] },
+];
+
 // ── Root Layout ─────────────────────────────────────────────
 
 function RootLayout() {
@@ -141,6 +163,7 @@ function RootLayout() {
   const newlyUnlocked = useGameStore(selectNewlyUnlocked);
   const seasonReports = useGameStore(selectSeasonReports);
   const expansionDraftState = useGameStore(selectExpansionDraftState);
+  const currentWeek = useGameStore((s) => s.game?.week ?? 0);
   const advanceTutorial = useGameStore((s) => s.actions.advanceTutorial);
   const dismissTutorial = useGameStore((s) => s.actions.dismissTutorial);
   const router = useRouter();
@@ -151,6 +174,8 @@ function RootLayout() {
   const [activeAchievement, setActiveAchievement] = useState<(typeof newlyUnlocked)[number] | null>(null);
   const [seenReports, setSeenReports] = useState<number[]>([]);
   const [activeReportYear, setActiveReportYear] = useState<number | null>(null);
+  const [showSaveToast, setShowSaveToast] = useState(false);
+  const prevWeek = useRef(0);
 
   useShortcut('k', () => setCommandPaletteOpen(true), 'Open command palette', { meta: true });
 
@@ -216,6 +241,16 @@ function RootLayout() {
     setSeenReports((current) => [...current, latestReport.year]);
     setActiveReportYear(latestReport.year);
   }, [activeCeremonyId, activeReportYear, seasonReports, seenReports]);
+
+  // Autosave toast — triggers when week changes (indicating advanceWeek completed + autosaved)
+  useEffect(() => {
+    if (prevWeek.current !== 0 && currentWeek !== prevWeek.current) {
+      setShowSaveToast(true);
+      const t = window.setTimeout(() => setShowSaveToast(false), 3000);
+      return () => window.clearTimeout(t);
+    }
+    prevWeek.current = currentWeek;
+  }, [currentWeek]);
 
   const commandItems: CommandItem[] = [
     ...NAV_ITEMS.map((nav): CommandItem => ({
@@ -290,12 +325,100 @@ function RootLayout() {
             if (!open) setActiveReportYear(null);
           }}
         />
+        <AutosaveToast visible={showSaveToast} />
       </div>
     </MfdTooltipProvider>
   );
 }
 
 // ── Top Nav ─────────────────────────────────────────────────
+
+function NavGroupSection({
+  group,
+  items,
+  activePath,
+  highlightedPath,
+  expanded,
+  onToggle,
+}: {
+  group: NavGroup;
+  items: NavItem[];
+  activePath: string;
+  highlightedPath: string | null;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const router = useRouter();
+  const hasActive = items.some((i) => i.path === activePath);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '3px 6px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontFamily: 'var(--mfd-font-pixel)',
+          fontSize: '6px',
+          letterSpacing: '1px',
+          color: hasActive ? 'var(--mfd-gold)' : 'var(--mfd-text-faint)',
+          textTransform: 'uppercase',
+        }}
+      >
+        {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+        {group.label}
+      </button>
+      {expanded && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', paddingLeft: '4px' }}>
+          {items.map((item) => {
+            const active = item.path === activePath;
+            const highlighted = item.path === highlightedPath;
+            return (
+              <div
+                key={item.path}
+                style={{
+                  animation: highlighted ? 'mfdTutorialPulse 1.2s infinite' : undefined,
+                  border: highlighted ? '2px solid rgba(255, 215, 0, 0.85)' : '2px solid transparent',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => { void router.navigate({ to: item.path }); }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    minHeight: '28px',
+                    padding: '5px 8px',
+                    border: `2px solid ${active ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
+                    background: active ? 'rgba(255, 215, 0, 0.1)' : 'var(--mfd-bg-2)',
+                    color: active ? 'var(--mfd-gold)' : highlighted ? '#ffe27a' : 'var(--mfd-text-dim)',
+                    fontFamily: 'var(--mfd-font-pixel)',
+                    fontSize: '7px',
+                    letterSpacing: '0.8px',
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                >
+                  {item.icon}
+                  <span>{item.shortLabel.toUpperCase()}</span>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function TopNav({
   highlightedPath,
@@ -304,24 +427,60 @@ function TopNav({
   highlightedPath: string | null;
   activePath: string;
 }) {
-  const router = useRouter();
+  // Auto-expand the group containing the active path, plus always expand 'core'
+  const activeGroupId = useMemo(() => {
+    for (const g of NAV_GROUPS) {
+      if (g.paths.includes(activePath)) return g.id;
+    }
+    return 'core';
+  }, [activePath]);
+
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+    () => new Set(['core', activeGroupId]),
+  );
+
+  // Auto-expand group when navigating to a new section
+  useEffect(() => {
+    setExpandedGroups((prev) => {
+      if (prev.has(activeGroupId)) return prev;
+      const next = new Set(prev);
+      next.add(activeGroupId);
+      return next;
+    });
+  }, [activeGroupId]);
+
+  const toggleGroup = useCallback((id: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+  }, []);
+
+  // Build grouped items lookup
+  const navItemMap = useMemo(() => {
+    const map = new Map<string, NavItem>();
+    for (const item of NAV_ITEMS) map.set(item.path, item);
+    return map;
+  }, []);
 
   return (
     <header style={{
       display: 'flex',
-      alignItems: 'center',
-      gap: '16px',
-      padding: '12px 16px',
+      alignItems: 'flex-start',
+      gap: '12px',
+      padding: '10px 12px',
       borderBottom: '3px solid var(--mfd-gold)',
       background: 'linear-gradient(180deg, #080808 0%, #000 100%)',
       flexShrink: 0,
-      flexWrap: 'wrap',
+      overflowX: 'auto',
     }}>
       <div style={{
         display: 'flex',
         flexDirection: 'column',
         gap: '4px',
         paddingRight: '8px',
+        flexShrink: 0,
       }}>
         <span style={{
           fontFamily: 'var(--mfd-font-pixel)',
@@ -346,47 +505,24 @@ function TopNav({
         flex: 1,
         minWidth: '280px',
         display: 'flex',
-        flexWrap: 'wrap',
-        gap: '6px',
+        flexDirection: 'column',
+        gap: '4px',
       }}>
-        {NAV_ITEMS.map((item) => {
-          const active = item.path === activePath;
-          const highlighted = item.path === highlightedPath;
+        {NAV_GROUPS.map((group) => {
+          const items = group.paths
+            .map((p) => navItemMap.get(p))
+            .filter((i): i is NavItem => !!i);
+          if (items.length === 0) return null;
           return (
-            <div
-              key={item.path}
-              style={{
-                animation: highlighted ? 'mfdTutorialPulse 1.2s infinite' : undefined,
-                border: highlighted ? '3px solid rgba(255, 215, 0, 0.85)' : '3px solid transparent',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  void router.navigate({ to: item.path });
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  minHeight: '32px',
-                  padding: '7px 10px',
-                  border: `3px solid ${active ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
-                  background: active ? 'rgba(255, 215, 0, 0.1)' : 'var(--mfd-bg-2)',
-                  color: active ? 'var(--mfd-gold)' : highlighted ? '#ffe27a' : 'var(--mfd-text-dim)',
-                  fontFamily: 'var(--mfd-font-pixel)',
-                  fontSize: '8px',
-                  letterSpacing: '0.8px',
-                  textTransform: 'uppercase',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                }}
-              >
-                {item.icon}
-                <span>{item.shortLabel.toUpperCase()}</span>
-              </button>
-            </div>
+            <NavGroupSection
+              key={group.id}
+              group={group}
+              items={items}
+              activePath={activePath}
+              highlightedPath={highlightedPath}
+              expanded={expandedGroups.has(group.id)}
+              onToggle={() => toggleGroup(group.id)}
+            />
           );
         })}
       </div>
@@ -965,5 +1101,9 @@ export function App() {
     return <NewGameScreen />;
   }
 
-  return <RouterProvider router={router} />;
+  return (
+    <ErrorBoundary>
+      <RouterProvider router={router} />
+    </ErrorBoundary>
+  );
 }
