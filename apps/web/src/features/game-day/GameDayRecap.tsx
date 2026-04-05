@@ -1,5 +1,6 @@
 import type { GameDayPackage, GameResult, PlayerGameLine, PlayoffMomentum, SeasonPhase, TeamGameStats } from '@mfd/engine';
 import { PixelPanel, PixelBadge, PixelButton, PixelDialog, PixelScoreboard, PixelStatBar } from '@mfd/design-system/components';
+import { navigateTo } from '../shared/pixelUi';
 import {
   selectLatestGameDayPackage,
   selectLatestGameResult,
@@ -287,12 +288,7 @@ export function GameDayCenterView({
               </PixelBadge>
               <PixelButton
                 accent="cyan"
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.history.pushState({}, '', '/film-room');
-                    window.dispatchEvent(new PopStateEvent('popstate'));
-                  }
-                }}
+                onClick={() => navigateTo('/film-room')}
               >
                 Open Film Room
               </PixelButton>

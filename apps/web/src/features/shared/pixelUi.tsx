@@ -16,6 +16,12 @@ export const display = { fontFamily: 'var(--mfd-font-display)' } as const;
 export const mono = { fontFamily: 'var(--mfd-font-mono)', fontSize: '12px' } as const;
 export const monoSm = { fontFamily: 'var(--mfd-font-mono)', fontSize: '11px' } as const;
 
+/** Navigate to a route — works with both browser history and hash history. */
+export function navigateTo(path: string): void {
+  if (typeof window === 'undefined') return;
+  window.location.hash = path;
+}
+
 export const screenStackStyle = {
   display: 'flex',
   flexDirection: 'column',

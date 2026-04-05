@@ -27,6 +27,7 @@ import {
   autoGrid,
   display,
   monoSm,
+  navigateTo,
   pixelSm,
   screenStackStyle,
 } from '../shared/pixelUi';
@@ -261,12 +262,7 @@ export function TradeCenter() {
             {tradeDeadlineState ? (
               <PixelButton
                 accent="red"
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.history.pushState({}, '', '/trade-deadline');
-                    window.dispatchEvent(new PopStateEvent('popstate'));
-                  }
-                }}
+                onClick={() => navigateTo('/trade-deadline')}
               >
                 Deadline Live
               </PixelButton>

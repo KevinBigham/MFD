@@ -78,6 +78,7 @@ import {
   generateWeeklyBuzz,
 } from './social-feed';
 import { generateBroadcast } from './broadcast';
+import { allocateGameSnaps, applySnapCounts } from './snap-counts';
 import { advanceScenarioSeason, checkScenarioProgress } from './scenario-challenge';
 import { initializeDeadline } from './trade-deadline';
 import { applyWeeklyPrepToSim, buildOpponentIntel, evaluateWeeklyPrep } from './weekly-prep';
@@ -583,6 +584,13 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       if (home.isUser || away.isUser) {
         outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
       }
+      // Snap count allocation
+      const homePrep = nextState.weeklyPrepPlans?.[home.id];
+      const homeSnapMgmt = homePrep?.snapManagement ?? 'normal';
+      const homeSnaps = allocateGameSnaps(home, homeSnapMgmt, outcome.result.stats?.[home.id]?.playerLines ?? [], RNG.play);
+      applySnapCounts(home, homeSnaps);
+      const awaySnaps = allocateGameSnaps(away, 'normal', outcome.result.stats?.[away.id]?.playerLines ?? [], RNG.play);
+      applySnapCounts(away, awaySnaps);
       matchup.result = outcome.result;
       matchup.weather = outcome.result.weather ?? matchup.weather ?? null;
       home.lockerRoom = updateLockerRoomWeekly(home, home.lockerRoom, outcome.result, RNG.ai).lockerRoom;
@@ -737,6 +745,13 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       if (home.isUser || away.isUser) {
         outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
       }
+      // Playoff snap counts — ride_stars in playoffs
+      const playoffHomePrep = nextState.weeklyPrepPlans?.[home.id];
+      const playoffHomeSnapMgmt = playoffHomePrep?.snapManagement ?? 'ride_stars';
+      const playoffHomeSnaps = allocateGameSnaps(home, playoffHomeSnapMgmt, outcome.result.stats?.[home.id]?.playerLines ?? [], RNG.play);
+      applySnapCounts(home, playoffHomeSnaps);
+      const playoffAwaySnaps = allocateGameSnaps(away, 'ride_stars', outcome.result.stats?.[away.id]?.playerLines ?? [], RNG.play);
+      applySnapCounts(away, playoffAwaySnaps);
       const winnerTeamId = outcome.result.homeScore >= outcome.result.awayScore ? outcome.result.homeTeamId : outcome.result.awayTeamId;
       const loserTeamId = winnerTeamId === outcome.result.homeTeamId ? outcome.result.awayTeamId : outcome.result.homeTeamId;
       nextState.playoffMomentum[winnerTeamId] = calculatePlayoffMomentum(nextState, winnerTeamId, true);

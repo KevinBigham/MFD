@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { RouterProvider, createRouter, createRootRoute, createRoute, Outlet, useRouter, useRouterState } from '@tanstack/react-router';
+import { RouterProvider, createRouter, createRootRoute, createRoute, createHashHistory, Outlet, useRouter, useRouterState } from '@tanstack/react-router';
 import {
   LayoutDashboard, Users, DollarSign, ArrowLeftRight,
   Search, FileText, Handshake, Gamepad2, GraduationCap,
@@ -76,6 +76,8 @@ const LazyCBANegotiation = lazy(async () => ({ default: (await import('../featur
 const LazyLeagueRulesViewer = lazy(async () => ({ default: (await import('../features/league/LeagueRulesViewer')).LeagueRulesViewer }));
 const LazySuperBowlPresentation = lazy(async () => ({ default: (await import('../features/playoffs/SuperBowlPresentation')).SuperBowlPresentation }));
 const LazyPlayerDevelopment = lazy(async () => ({ default: (await import('../features/player/PlayerDevelopment')).PlayerDevelopmentView }));
+const LazyPlayByPlay = lazy(async () => ({ default: (await import('../features/broadcast/PlayByPlay')).PlayByPlay }));
+const LazyGameFlow = lazy(async () => ({ default: (await import('../features/broadcast/GameFlow')).GameFlow }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -101,6 +103,8 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/free-agency',  label: 'Free Agency',      shortLabel: 'FA',       icon: <Handshake size={16} />,      shortcut: '7' },
   { path: '/game-day',     label: 'Game Day',         shortLabel: 'Game',     icon: <Gamepad2 size={16} />,       shortcut: '8' },
   { path: '/broadcast',    label: 'Broadcast',        shortLabel: 'Live',     icon: <Radio size={16} /> },
+  { path: '/play-by-play', label: 'Play-by-Play',     shortLabel: 'PbP',      icon: <ScrollText size={16} /> },
+  { path: '/game-flow',    label: 'Game Flow',        shortLabel: 'Flow',     icon: <Activity size={16} /> },
   { path: '/inbox',          label: 'Inbox',            shortLabel: 'Inbox',    icon: <Inbox size={16} />,          shortcut: '9' },
   { path: '/social',       label: 'MFSN',             shortLabel: 'Social',   icon: <MessageSquare size={16} /> },
   { path: '/waivers',       label: 'Waiver Wire',      shortLabel: 'Waivers',  icon: <ScrollText size={16} /> },
@@ -566,6 +570,26 @@ const broadcastRoute = createRoute({
   ),
 });
 
+const playByPlayRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/play-by-play',
+  component: () => (
+    <LazyRouteFrame label="play by play">
+      <LazyPlayByPlay />
+    </LazyRouteFrame>
+  ),
+});
+
+const gameFlowRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/game-flow',
+  component: () => (
+    <LazyRouteFrame label="game flow">
+      <LazyGameFlow />
+    </LazyRouteFrame>
+  ),
+});
+
 const inboxRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/inbox',
@@ -917,14 +941,15 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, endorsementsRoute, tradesRoute,
   scoutingRoute, draftRoute, freeAgencyRoute, faTargetsRoute,
-  gameDayRoute, broadcastRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
+  gameDayRoute, broadcastRoute, playByPlayRoute, gameFlowRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
   scheduleRoute, depthChartRoute, playerProfileRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, superBowlRoute, playerDevRoute, settingsRoute,
 ]);
 
-const router = createRouter({ routeTree });
+const hashHistory = createHashHistory();
+const router = createRouter({ routeTree, history: hashHistory });
 
 // ── App entry ───────────────────────────────────────────────
 

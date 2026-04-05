@@ -739,6 +739,26 @@ export {
 } from './systems/development-insights';
 export type { DevelopmentSnapshot, DevelopmentReport, DevelopmentProjection, BreakoutCandidate, DevComparison } from './systems/development-insights';
 
+// Systems — Snap Counts (Sprint 24)
+export {
+  allocateGameSnaps, applySnapCounts, getSnapReport, getRotationAdvice, getSnapShareByPosition,
+} from './systems/snap-counts';
+export type { SnapAllocation, SnapReport, RotationAdvice, SnapManagement } from './systems/snap-counts';
+
+// Systems — Game Flow Analysis (Sprint 24)
+export {
+  analyzeGameFlow, getQuarterMomentum, getDriveEfficiency,
+  getScoringRuns, getWinProbabilityCurve, identifyTurningPoint,
+} from './systems/game-flow';
+export type { GameFlowAnalysis, QuarterMomentum, DriveEfficiencyReport, ScoringRun, WinProbPoint, TurningPoint } from './systems/game-flow';
+
+// Systems — Enhanced Film Room Analysis (Sprint 24)
+export {
+  analyzePlayTendencies, analyzeSituationalSuccess,
+  analyzeCoachingAdjustments, generateEnhancedFilmReport, getSeasonTendencies,
+} from './systems/film-room-analysis';
+export type { PlayTendencyReport, SituationalReport, CoachingAdjustment, EnhancedFilmReport, SeasonTendencyProfile } from './systems/film-room-analysis';
+
 // Save
 export { SaveStateSchema, migrate, registerMigration } from './save';
 export type { SaveState } from './save';

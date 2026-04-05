@@ -18,8 +18,7 @@ type OfficeTab = 'agenda' | 'history' | 'rulings';
 
 function goTo(path: string) {
   if (typeof window === 'undefined') return;
-  window.history.pushState({}, '', path);
-  window.dispatchEvent(new PopStateEvent('popstate'));
+  window.location.hash = path;
 }
 
 function stringifyRuleValue(value: LeagueRuleValue): string {

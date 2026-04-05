@@ -1006,3 +1006,8 @@ registerMigration(22, (state) => {
   }
   return { ...state, teams };
 });
+
+// v23→v24: Snap counts added as optional field on PlayerGameLine — no data transform needed
+registerMigration(23, (state) => {
+  return { ...state };
+});

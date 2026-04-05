@@ -1721,6 +1721,7 @@ export interface DriveNarrative {
   yardsTotal: number;
   timeElapsed: number;
   narrative: string;
+  teamId?: string;
 }
 
 export interface BroadcastOutput {
@@ -1787,6 +1788,7 @@ export interface PlayerGameLine {
   defINT?: number;
   fgAtt?: number;
   fgMade?: number;
+  snaps?: number;
 }
 
 export interface TeamGameStats {

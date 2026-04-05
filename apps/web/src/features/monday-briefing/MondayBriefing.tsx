@@ -53,6 +53,7 @@ import {
   mono,
   monoSm,
   pixelSm,
+  navigateTo,
   screenStackStyle,
 } from '../shared/pixelUi';
 
@@ -820,34 +821,19 @@ export function MondayBriefing() {
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <PixelButton
               accent={currentWeeklyPrepPlan ? 'green' : 'gold'}
-              onClick={() => {
-                if (typeof window !== 'undefined') {
-                  window.history.pushState({}, '', '/game-plan');
-                  window.dispatchEvent(new PopStateEvent('popstate'));
-                }
-              }}
+              onClick={() => navigateTo('/game-plan')}
             >
               Open Game Plan
             </PixelButton>
             <PixelButton
               accent={latestFilmRoomReport ? 'cyan' : 'default'}
-              onClick={() => {
-                if (typeof window !== 'undefined') {
-                  window.history.pushState({}, '', '/film-room');
-                  window.dispatchEvent(new PopStateEvent('popstate'));
-                }
-              }}
+              onClick={() => navigateTo('/film-room')}
             >
               Open Film Room
             </PixelButton>
             <PixelButton
               accent={coachingMarket.hotSeat ? 'red' : 'gold'}
-              onClick={() => {
-                if (typeof window !== 'undefined') {
-                  window.history.pushState({}, '', '/coaching');
-                  window.dispatchEvent(new PopStateEvent('popstate'));
-                }
-              }}
+              onClick={() => navigateTo('/coaching')}
             >
               Open Coaching
             </PixelButton>

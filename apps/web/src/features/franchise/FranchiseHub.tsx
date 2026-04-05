@@ -25,8 +25,7 @@ import {
 
 function navigateTo(path: string) {
   if (typeof window === 'undefined') return;
-  window.history.pushState({}, '', path);
-  window.dispatchEvent(new PopStateEvent('popstate'));
+  window.location.hash = path;
 }
 
 function stadiumLevelLabel(level: 1 | 2 | 3): string {

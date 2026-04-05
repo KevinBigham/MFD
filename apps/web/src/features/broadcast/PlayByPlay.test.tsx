@@ -1,0 +1,76 @@
+import { describe, expect, it } from 'vitest';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { PlayByPlayView } from './PlayByPlay';
+import type { BroadcastOutput } from '@mfd/engine/types';
+
+const mockBroadcast: BroadcastOutput = {
+  gameId: 'test-1',
+  quarters: [
+    [
+      {
+        plays: [
+          { type: 'run', yardsGained: 5, playerIds: [], commentary: 'Smith rushes up the middle', excitement: 3, isBigPlay: false, isClutch: false },
+          { type: 'pass', yardsGained: 25, playerIds: [], commentary: 'Jones bombs it deep', excitement: 8, isBigPlay: true, isClutch: false },
+        ],
+        startYardLine: 25,
+        yardsTotal: 75,
+        timeElapsed: 180,
+        endResult: 'touchdown',
+        narrative: 'A 75-yard touchdown drive',
+      },
+    ],
+    [],
+    [],
+    [],
+  ],
+  highlights: [
+    { type: 'pass', yardsGained: 25, playerIds: [], commentary: 'Jones bombs it deep', excitement: 8, isBigPlay: true, isClutch: false },
+  ],
+  momentumSwings: [
+    { quarter: 1, play: 2, description: 'Big touchdown shifts momentum' },
+  ],
+  mvpPlayerIds: ['p1'],
+  finalNarrative: 'A thrilling game from start to finish.',
+  broadcastNetwork: 'MFN',
+};
+
+describe('PlayByPlayView', () => {
+  it('renders quarter tabs', () => {
+    const markup = renderToStaticMarkup(<PlayByPlayView broadcast={mockBroadcast} />);
+
+    expect(markup).toContain('Q1');
+    expect(markup).toContain('Q2');
+    expect(markup).toContain('Q3');
+    expect(markup).toContain('Q4');
+  });
+
+  it('shows drive cards for the active quarter', () => {
+    const markup = renderToStaticMarkup(<PlayByPlayView broadcast={mockBroadcast} />);
+
+    expect(markup).toContain('DRIVE #1');
+    expect(markup).toContain('TOUCHDOWN');
+    expect(markup).toContain('75 YDS');
+    expect(markup).toContain('A 75-yard touchdown drive');
+  });
+
+  it('shows the highlight reel', () => {
+    const markup = renderToStaticMarkup(<PlayByPlayView broadcast={mockBroadcast} />);
+
+    expect(markup).toContain('HIGHLIGHTS');
+    expect(markup).toContain('Jones bombs it deep');
+    expect(markup).toContain('EXC 8');
+  });
+
+  it('shows momentum swings', () => {
+    const markup = renderToStaticMarkup(<PlayByPlayView broadcast={mockBroadcast} />);
+
+    expect(markup).toContain('MOMENTUM SWINGS');
+    expect(markup).toContain('Big touchdown shifts momentum');
+  });
+
+  it('displays the final narrative', () => {
+    const markup = renderToStaticMarkup(<PlayByPlayView broadcast={mockBroadcast} />);
+
+    expect(markup).toContain('A thrilling game from start to finish.');
+  });
+});

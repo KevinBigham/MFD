@@ -36,6 +36,7 @@ import {
   PixelScreenHeader,
   autoGrid,
   monoSm,
+  navigateTo,
   screenStackStyle,
 } from '../shared/pixelUi';
 
@@ -393,11 +394,7 @@ export function LegacyTimeline() {
                 </div>
                 <PixelButton
                   accent="cyan"
-                  onClick={() => {
-                    if (typeof window === 'undefined') return;
-                    window.history.pushState({}, '', '/draft-recap');
-                    window.dispatchEvent(new PopStateEvent('popstate'));
-                  }}
+                  onClick={() => navigateTo('/draft-recap')}
                 >
                   Open Recap
                 </PixelButton>

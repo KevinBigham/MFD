@@ -16,6 +16,7 @@ import {
   display,
   mono,
   monoSm,
+  navigateTo,
   pixelSm,
   screenStackStyle,
 } from '../shared/pixelUi';
@@ -117,10 +118,7 @@ export function WeekAdvance() {
 
   const handleAdvance = useCallback(async () => {
     if (needsGamePlan) {
-      if (typeof window !== 'undefined') {
-        window.history.pushState({}, '', '/game-plan');
-        window.dispatchEvent(new PopStateEvent('popstate'));
-      }
+      navigateTo('/game-plan');
       return;
     }
     setAdvancing(true);

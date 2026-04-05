@@ -494,6 +494,7 @@ function buildTouchdownDrive(
     yardsTotal: baseYards,
     timeElapsed,
     narrative: '',
+    teamId: runtime.team.id,
   };
   drive.narrative = generateDriveSummary(drive, runtime.team.name, names);
   return drive;
@@ -525,6 +526,7 @@ function buildFieldGoalDrive(
     yardsTotal: randInt(rng, 29, 56),
     timeElapsed: randInt(rng, 80, 180),
     narrative: '',
+    teamId: runtime.team.id,
   };
   drive.narrative = generateDriveSummary(drive, runtime.team.name, names);
   return drive;
@@ -578,6 +580,7 @@ function buildStalledDrive(
     yardsTotal: clamp(plays.reduce((sum, play) => sum + Math.max(play.yardsGained, 0), 0) + randInt(rng, 4, 18), 8, 52),
     timeElapsed: randInt(rng, 55, 165),
     narrative: '',
+    teamId: runtime.team.id,
   };
   drive.narrative = generateDriveSummary(drive, runtime.team.name, names);
   return drive;

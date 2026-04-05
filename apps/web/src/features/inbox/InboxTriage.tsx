@@ -13,6 +13,7 @@ import {
   PixelConsequenceList,
   PixelScreenHeader,
   monoSm,
+  navigateTo,
   screenStackStyle,
 } from '../shared/pixelUi';
 
@@ -227,12 +228,7 @@ export function InboxTriage() {
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <PixelButton
                   accent="cyan"
-                  onClick={() => {
-                    if (typeof window !== 'undefined') {
-                      window.history.pushState({}, '', selectedRoute);
-                      window.dispatchEvent(new PopStateEvent('popstate'));
-                    }
-                  }}
+                  onClick={() => navigateTo(selectedRoute)}
                 >
                   Open Related Screen
                 </PixelButton>

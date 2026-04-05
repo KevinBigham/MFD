@@ -5,6 +5,7 @@ import path from 'path';
 const root = path.resolve(__dirname, '../..');
 
 export default defineConfig({
+  base: '/MFD/',
   plugins: [react()],
   build: {
     rollupOptions: {
