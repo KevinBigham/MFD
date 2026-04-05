@@ -432,6 +432,7 @@ export interface Team {
   lockerRoom: LockerRoomState;
   retiredJerseys: JerseyRetirement[];
   specialTeams?: SpecialTeamsState;
+  staffChemistry?: import('../systems/coordinator-chemistry').StaffChemistry;
 }
 
 export interface FranchiseTagState {

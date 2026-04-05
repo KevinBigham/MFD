@@ -698,6 +698,25 @@ export {
 } from './systems/dynasty-cartridge';
 export type { CartridgeEnvelope, CartridgeMeta, BuildResult, BuildError, ParseResult, ParseError } from './systems/dynasty-cartridge';
 
+// Systems — Atmosphere Engine (Sprint 22)
+export { getCrowdEnergy, calculateAtmosphere, getAtmosphereBonus } from './systems/atmosphere';
+export type { AtmosphereContext, AtmosphereBonus, AtmosphereIntensity } from './systems/atmosphere';
+
+// Systems — Regional Weather (Sprint 22)
+export { getWeatherRegion, getRegionWeatherOdds, generateRegionalWeather } from './systems/regional-weather';
+export type { WeatherRegion, WeatherOdds } from './systems/regional-weather';
+
+// Systems — Super Bowl Spectacle (Sprint 22)
+export {
+  getSuperBowlNumber, generateSuperBowlContext, generateHalftimeShow,
+  generateChampionParade, generateSuperBowlMVP, generateSuperBowlNarrative,
+} from './systems/super-bowl';
+export type { SuperBowlContext, HalftimeShow, ChampionParade, SuperBowlMVPAward } from './systems/super-bowl';
+
+// Systems — Coordinator Chemistry (Sprint 22)
+export { calculateStaffChemistry, getChemistryBonus, evaluateCoordinatorFit } from './systems/coordinator-chemistry';
+export type { StaffChemistry, ChemistryBonus, FitScore } from './systems/coordinator-chemistry';
+
 // Save
 export { SaveStateSchema, migrate, registerMigration } from './save';
 export type { SaveState } from './save';

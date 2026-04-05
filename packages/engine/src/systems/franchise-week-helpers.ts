@@ -7,6 +7,7 @@ import { getInjuryPenalty, isPlayerUnavailable, maybeGenerateTeamInjury, process
 import { updateOwnerApproval } from './owner';
 import { tickPatience } from './owner-extended';
 import { applyGameToSeasonStats, ensureSeasonStats, tickInjuries } from './season-stats';
+import { generateRegionalWeather } from './regional-weather';
 import type {
   GameEvent,
   GameResult,
@@ -164,7 +165,7 @@ export function ensureWeeklyWeather(game: GameState, week: number): void {
     if (matchup.weather) continue;
     const home = game.teams[matchup.homeTeamId];
     if (!home) continue;
-    matchup.weather = generateWeatherForGame(home, week);
+    matchup.weather = generateRegionalWeather(home, week, RNG.play);
   }
 }
 

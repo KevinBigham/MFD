@@ -74,6 +74,7 @@ const LazyEndorsementCenter = lazy(async () => ({ default: (await import('../fea
 const LazyCommissionerOffice = lazy(async () => ({ default: (await import('../features/league/CommissionerOffice')).CommissionerOffice }));
 const LazyCBANegotiation = lazy(async () => ({ default: (await import('../features/league/CBANegotiation')).CBANegotiation }));
 const LazyLeagueRulesViewer = lazy(async () => ({ default: (await import('../features/league/LeagueRulesViewer')).LeagueRulesViewer }));
+const LazySuperBowlPresentation = lazy(async () => ({ default: (await import('../features/playoffs/SuperBowlPresentation')).SuperBowlPresentation }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -880,6 +881,16 @@ const dynastyRoute = createRoute({
   ),
 });
 
+const superBowlRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/super-bowl',
+  component: () => (
+    <LazyRouteFrame label="super bowl">
+      <LazySuperBowlPresentation />
+    </LazyRouteFrame>
+  ),
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
@@ -894,7 +905,7 @@ const routeTree = rootRoute.addChildren([
   scheduleRoute, depthChartRoute, playerProfileRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
-  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, settingsRoute,
+  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, superBowlRoute, settingsRoute,
 ]);
 
 const router = createRouter({ routeTree });

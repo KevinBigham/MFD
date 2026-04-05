@@ -986,3 +986,13 @@ registerMigration(20, (state) => ({
   recentBrokenRecords: Array.isArray(state['recentBrokenRecords']) ? state['recentBrokenRecords'] : [],
   recentMilestones: Array.isArray(state['recentMilestones']) ? state['recentMilestones'] : [],
 }));
+
+registerMigration(21, (state) => {
+  const teams = state['teams'] as Record<string, Record<string, unknown>> | undefined;
+  if (teams) {
+    for (const team of Object.values(teams)) {
+      if (!team.staffChemistry) team.staffChemistry = undefined;
+    }
+  }
+  return { ...state, teams };
+});

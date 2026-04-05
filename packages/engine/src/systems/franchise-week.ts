@@ -99,6 +99,8 @@ import {
   buildFatiguePlayerBonuses,
   updateOwner,
 } from './franchise-week-helpers';
+import { calculateAtmosphere, getAtmosphereBonus } from './atmosphere';
+import { generateRegionalWeather } from './regional-weather';
 import type {
   Consequence,
   EngineOutput,
@@ -525,12 +527,14 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       const awayFatigueBonuses = buildFatiguePlayerBonuses(nextState, away.id);
       const homePlanContext = buildSimPlanContext(nextState, home, away);
       const awayPlanContext = buildSimPlanContext(nextState, away, home);
+      const atmosphere = calculateAtmosphere(nextState, home, away, nextState.week, false);
+      const atmosphereBonus = getAtmosphereBonus(atmosphere);
 
       const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, {
         home: {
           teamOvrBonus: buildTeamOvrBonus(
             home,
-            homeEffects.teamOvrBonus + homeLockerBonus.teamOvrBonus + (homePlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0),
+            homeEffects.teamOvrBonus + homeLockerBonus.teamOvrBonus + (homePlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + atmosphereBonus.homeOvrBonus,
             adaptiveModifier,
           ),
           playerOvrBonuses: buildPlayerBonuses(
@@ -551,7 +555,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         away: {
           teamOvrBonus: buildTeamOvrBonus(
             away,
-            awayEffects.teamOvrBonus + awayLockerBonus.teamOvrBonus + (awayPlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0),
+            awayEffects.teamOvrBonus + awayLockerBonus.teamOvrBonus + (awayPlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + atmosphereBonus.awayOvrPenalty,
             adaptiveModifier,
           ),
           playerOvrBonuses: buildPlayerBonuses(
@@ -569,7 +573,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
           gamePlan: awayPlanContext.gamePlan,
           opponentReport: awayPlanContext.opponentReport,
         },
-        weather: matchup.weather ?? generateWeatherForGame(home, nextState.week),
+        weather: matchup.weather ?? generateRegionalWeather(home, nextState.week, RNG.play),
         rivalryIntensity: rivalry?.intensity ?? 0,
         homeFieldBonus: (matchup.primetime ? 2 : 0) + getStadiumHomeFieldBonus(home.franchiseIdentity),
       });
@@ -681,12 +685,15 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       nextState.playoffMomentum[away.id] = nextState.playoffMomentum[away.id] ?? calculatePlayoffMomentum(nextState, away.id);
       const homeMomentum = getPlayoffMomentumBonus(nextState.playoffMomentum[home.id]);
       const awayMomentum = getPlayoffMomentumBonus(nextState.playoffMomentum[away.id]);
+      const playoffRound = nextState.week === 19 ? 'wild_card' : nextState.week === 20 ? 'divisional' : nextState.week === 21 ? 'conference' : 'super_bowl';
+      const playoffAtmosphere = calculateAtmosphere(nextState, home, away, nextState.week, true, playoffRound);
+      const playoffAtmosphereBonus = getAtmosphereBonus(playoffAtmosphere);
 
       const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, {
         home: {
           teamOvrBonus: buildTeamOvrBonus(
             home,
-            homeEffects.teamOvrBonus + homeLockerBonus.teamOvrBonus + (homePlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + homeMomentum,
+            homeEffects.teamOvrBonus + homeLockerBonus.teamOvrBonus + (homePlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + homeMomentum + playoffAtmosphereBonus.homeOvrBonus,
             adaptiveModifier,
           ),
           playerOvrBonuses: buildPlayerBonuses(
@@ -706,7 +713,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         away: {
           teamOvrBonus: buildTeamOvrBonus(
             away,
-            awayEffects.teamOvrBonus + awayLockerBonus.teamOvrBonus + (awayPlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + awayMomentum,
+            awayEffects.teamOvrBonus + awayLockerBonus.teamOvrBonus + (awayPlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + awayMomentum + playoffAtmosphereBonus.awayOvrPenalty,
             adaptiveModifier,
           ),
           playerOvrBonuses: buildPlayerBonuses(
@@ -723,7 +730,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
           gamePlan: awayPlanContext.gamePlan,
           opponentReport: awayPlanContext.opponentReport,
         },
-        weather: generateWeatherForGame(home, nextState.week),
+        weather: generateRegionalWeather(home, nextState.week, RNG.play),
         rivalryIntensity: rivalry?.intensity ?? 0,
         homeFieldBonus: getStadiumHomeFieldBonus(home.franchiseIdentity),
       });
