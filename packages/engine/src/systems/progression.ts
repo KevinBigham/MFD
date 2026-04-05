@@ -3,6 +3,8 @@ import { getAgeCurve } from './player-archetypes';
 import { getAgingMultiplier } from './trust-aging';
 import { recordPlayerRetirement, syncPlayerArchiveEntry } from './history';
 import { recordNewsItem } from './league-news';
+import { getArchetypeProgressionMultipliers } from './archetype-progression';
+import { getPositionCoachBonus } from './position-coaches';
 import type { GameEvent, GameState, Player, Position, Team } from '../types';
 
 const DEV_TRAIT_MULTIPLIER: Record<Player['devTrait'], number> = {
@@ -125,6 +127,7 @@ function applyRatingProgression(player: Player, overallDelta: number, ratingBonu
   const phase = getAgingPhase(player);
   const curve = getAgeCurve(player.pos, player.archetype?.archetype ?? null);
   const upcomingAge = player.age + 1;
+  const archetypeMults = getArchetypeProgressionMultipliers(player);
 
   for (const [ratingName, ratingValue] of Object.entries(player.ratings)) {
     let delta = overallDelta;
@@ -141,6 +144,10 @@ function applyRatingProgression(player: Player, overallDelta: number, ratingBonu
       } else {
         delta *= 0.8;
       }
+
+      // Archetype progression: key ratings develop faster, off-key slower
+      const archetypeMult = archetypeMults.multipliers[ratingName] ?? 1;
+      delta *= archetypeMult;
     } else {
       const agingWeight = getAgingMultiplier(ratingName, phase, curve.decayRate);
       if (['awareness', 'playRecognition', 'fieldVision', 'decisionSpeed', 'leadership', 'assignmentIQ'].includes(ratingName)) {
@@ -176,8 +183,9 @@ function progressSinglePlayer(
   const devTraitMultiplier = DEV_TRAIT_MULTIPLIER[player.devTrait] ?? 1;
   const mentoringBonus = options.mentoringBonuses?.get(player.id) ?? 0;
   const trainingBonus = options.trainingBonuses?.get(player.id) ?? { overall: 0, ratings: {} };
+  const posCoachBonus = getPositionCoachBonus(team?.positionCoaches, player);
   const overallDelta = (
-    baseAgeDelta * performanceMultiplier * coachMultiplier * devTraitMultiplier +
+    baseAgeDelta * performanceMultiplier * coachMultiplier * devTraitMultiplier * posCoachBonus.devMultiplier +
     mentoringBonus +
     trainingBonus.overall
   );
@@ -185,7 +193,12 @@ function progressSinglePlayer(
   const previousSeasonStart = player.careerStats.seasonStartOvr ?? player.ovr;
   player.careerStats.previousSeasonOvr = previousSeasonStart;
 
-  applyRatingProgression(player, overallDelta, trainingBonus.ratings);
+  // Merge position coach rating boosts with training bonuses
+  const mergedRatingBonuses = { ...trainingBonus.ratings };
+  for (const [k, v] of Object.entries(posCoachBonus.ratingBoosts)) {
+    mergedRatingBonuses[k] = (mergedRatingBonuses[k] ?? 0) + v;
+  }
+  applyRatingProgression(player, overallDelta, mergedRatingBonuses);
   player.ovr = cl(Math.round(player.ovr + overallDelta), 40, 99);
   player.pot = Math.max(player.pot, player.ovr);
   player.careerStats.seasonStartOvr = player.ovr;

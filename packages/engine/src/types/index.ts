@@ -433,6 +433,7 @@ export interface Team {
   retiredJerseys: JerseyRetirement[];
   specialTeams?: SpecialTeamsState;
   staffChemistry?: import('../systems/coordinator-chemistry').StaffChemistry;
+  positionCoaches?: import('../systems/position-coaches').PositionCoachStaff;
 }
 
 export interface FranchiseTagState {

@@ -996,3 +996,13 @@ registerMigration(21, (state) => {
   }
   return { ...state, teams };
 });
+
+registerMigration(22, (state) => {
+  const teams = state['teams'] as Record<string, Record<string, unknown>> | undefined;
+  if (teams) {
+    for (const team of Object.values(teams)) {
+      if (!team.positionCoaches) team.positionCoaches = undefined;
+    }
+  }
+  return { ...state, teams };
+});

@@ -717,6 +717,28 @@ export type { SuperBowlContext, HalftimeShow, ChampionParade, SuperBowlMVPAward 
 export { calculateStaffChemistry, getChemistryBonus, evaluateCoordinatorFit } from './systems/coordinator-chemistry';
 export type { StaffChemistry, ChemistryBonus, FitScore } from './systems/coordinator-chemistry';
 
+// Systems — Archetype Progression (Sprint 23)
+export {
+  getArchetypeProgressionMultipliers, getArchetypeAlignment,
+  checkArchetypeEvolution, applyArchetypeEvolution, getArchetypeDevelopmentReport,
+} from './systems/archetype-progression';
+export type { ArchetypeProgressionMultipliers, ArchetypeEvolution, ArchetypeDevelopmentReport } from './systems/archetype-progression';
+
+// Systems — Position Coaches (Sprint 23)
+export {
+  generatePositionCoach, initializePositionCoaches, getPositionCoachBonus,
+  evaluatePositionCoachFit, upgradePositionCoach, generateCoachingStaffReport,
+  advancePositionCoachSeason,
+} from './systems/position-coaches';
+export type { PositionCoach, PositionCoachRole, PositionCoachStaff, PositionCoachBonus } from './systems/position-coaches';
+
+// Systems — Development Insights (Sprint 23)
+export {
+  generateDevelopmentReport, projectDevelopmentCurve, identifyBreakoutCandidates,
+  getDevelopmentHistory, compareDevPaths, createDevelopmentSnapshot,
+} from './systems/development-insights';
+export type { DevelopmentSnapshot, DevelopmentReport, DevelopmentProjection, BreakoutCandidate, DevComparison } from './systems/development-insights';
+
 // Save
 export { SaveStateSchema, migrate, registerMigration } from './save';
 export type { SaveState } from './save';
