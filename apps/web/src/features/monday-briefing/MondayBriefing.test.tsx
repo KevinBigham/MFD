@@ -30,6 +30,7 @@ const mockState = {
       age: 25,
       devTrait: 'superstar',
       injury: null,
+      isStarter: true,
     },
   ],
   week: 13,
@@ -180,6 +181,7 @@ const mockState = {
       broadcastNetwork: 'MFN',
     },
   ],
+  tradeOffers: [],
   statLeaders: {
     passYds: [{ name: 'Jay Stone', value: 3810 }],
     rushYds: [{ name: 'Rick Mason', value: 1264 }],
@@ -230,6 +232,7 @@ vi.mock('../../app/store/game-store', () => ({
   selectDashboardState: (state: typeof mockState) => state.dashboardState,
   selectTeamSchedule: (state: typeof mockState) => state.teamSchedule,
   selectStatLeaders: (state: typeof mockState) => state.statLeaders,
+  selectTradeOffers: (state: typeof mockState) => state.tradeOffers,
 }));
 
 describe('MondayBriefing', () => {

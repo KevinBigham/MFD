@@ -9,11 +9,11 @@ import { useGameStore } from './store/game-store';
 import { createSeedGameState, getTeamOptions } from './store/seed';
 import { loadLatestAutosaveGame } from './store/persistence';
 
-const DIFFICULTIES: { id: DifficultyLevel; label: string; desc: string }[] = [
-  { id: 'rookie', label: 'Rookie', desc: 'Forgiving cap, patient owners' },
-  { id: 'pro', label: 'Pro', desc: 'Balanced challenge' },
-  { id: 'allpro', label: 'All-Pro', desc: 'Tight cap, demanding owners' },
-  { id: 'legend', label: 'Legend', desc: 'Maximum pressure on every decision' },
+const DIFFICULTIES: { id: DifficultyLevel; label: string; desc: string; guide: string }[] = [
+  { id: 'rookie', label: 'Rookie', desc: 'Forgiving cap, patient owners', guide: 'Best for new players. Patient owners, forgiving cap, room to experiment.' },
+  { id: 'pro', label: 'Pro', desc: 'Balanced challenge', guide: 'Standard experience. Balanced across all systems.' },
+  { id: 'allpro', label: 'All-Pro', desc: 'Tight cap, demanding owners', guide: 'For veterans. Tight cap, demanding owners, injuries hit harder.' },
+  { id: 'legend', label: 'Legend', desc: 'Maximum pressure on every decision', guide: 'Maximum pressure. Not recommended for first playthrough.' },
 ];
 
 const teams = getTeamOptions();
@@ -198,11 +198,27 @@ export function NewGameScreen() {
                   transition: 'all var(--mfd-motion-fast)',
                 }}
               >
-                <div style={{ fontWeight: 600 }}>{d.label}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                  <span style={{ fontWeight: 600 }}>{d.label}</span>
+                  {d.id === 'rookie' && <PixelBadge variant="green">REC</PixelBadge>}
+                </div>
                 <div style={{ fontSize: '0.5625rem', opacity: 0.7, marginTop: '4px' }}>{d.desc}</div>
               </button>
             ))}
           </div>
+          <PixelPanel title="Difficulty Guide" accent="default">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {DIFFICULTIES.map((d) => (
+                <div key={d.id} style={{
+                  fontFamily: 'var(--mfd-font-mono)',
+                  fontSize: '0.6875rem',
+                  color: difficulty === d.id ? 'var(--mfd-gold)' : 'var(--mfd-text-dim)',
+                }}>
+                  <strong>{d.label}:</strong> {d.guide}
+                </div>
+              ))}
+            </div>
+          </PixelPanel>
         </MfdPanel>
 
         {mode === 'scenario' ? (

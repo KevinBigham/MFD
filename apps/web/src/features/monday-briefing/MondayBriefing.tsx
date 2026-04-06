@@ -35,6 +35,7 @@ import {
   selectStatLeaders,
   selectTeamSchedule,
   selectTeams,
+  selectTradeOffers,
   selectTrainingAssignments,
   selectUpcomingRivalry,
   selectUserPowerRanking,
@@ -45,6 +46,8 @@ import {
   selectYear,
   selectUserTeam,
 } from '../../app/store/game-store';
+import { ActionCenter } from './ActionCenter';
+import { PhaseIndicator } from './PhaseIndicator';
 import {
   PixelMetricCard,
   PixelScreenHeader,
@@ -166,6 +169,7 @@ export function MondayBriefing() {
   const dashboardState = useGameStore(selectDashboardState);
   const teamSchedule = useGameStore(selectTeamSchedule);
   const statLeaders = useGameStore(selectStatLeaders);
+  const tradeOffers = useGameStore(selectTradeOffers);
   const {
     pinWidget,
     unpinWidget,
@@ -748,8 +752,12 @@ export function MondayBriefing() {
     );
   };
 
+  const injuredCount = roster.filter((p) => p.injury).length;
+  const starterCount = roster.filter((p) => p.isStarter).length;
+
   return (
     <div style={screenStackStyle}>
+      <PhaseIndicator phase={phase} week={week} year={year} />
       <PixelScreenHeader
         title="Monday Briefing"
         subtitle={`${teamName} // Season ${year}, Week ${week}`}
@@ -766,6 +774,15 @@ export function MondayBriefing() {
             <PixelBadge variant="green">{`Dynasty ${dynastyScore}`}</PixelBadge>
           </>
         )}
+      />
+
+      <ActionCenter
+        phase={phase}
+        hasGamePlan={!!currentWeeklyPrepPlan}
+        starterCount={starterCount}
+        tradeOfferCount={tradeOffers.length}
+        ownerApproval={ownerState?.approval ?? 100}
+        injuredCount={injuredCount}
       />
 
       <div style={autoGrid(220)}>

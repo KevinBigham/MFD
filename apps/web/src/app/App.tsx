@@ -14,12 +14,18 @@ import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
 import {
   selectCeremonies,
+  selectCurrentWeeklyPrepPlan,
   selectExpansionDraftState,
+  selectHandshakes,
   selectNewlyUnlocked,
+  selectPhase,
+  selectRoster,
   selectSeasonReports,
+  selectTradeOffers,
   selectTutorial,
   useGameStore,
 } from './store/game-store';
+import { computeNavBadges } from './navBadges';
 import { ErrorBoundary } from './ErrorBoundary';
 import { AutosaveToast } from './AutosaveToast';
 import { NewGameScreen } from './NewGameScreen';
@@ -340,6 +346,7 @@ function NavGroupSection({
   highlightedPath,
   expanded,
   onToggle,
+  badges,
 }: {
   group: NavGroup;
   items: NavItem[];
@@ -347,6 +354,7 @@ function NavGroupSection({
   highlightedPath: string | null;
   expanded: boolean;
   onToggle: () => void;
+  badges: Record<string, number>;
 }) {
   const router = useRouter();
   const hasActive = items.some((i) => i.path === activePath);
@@ -410,6 +418,15 @@ function NavGroupSection({
                 >
                   {item.icon}
                   <span>{item.shortLabel.toUpperCase()}</span>
+                  {(badges[item.path] ?? 0) > 0 && (
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: 'var(--mfd-red)',
+                      flexShrink: 0,
+                    }} />
+                  )}
                 </button>
               </div>
             );
@@ -420,6 +437,22 @@ function NavGroupSection({
   );
 }
 
+function useNavBadges(): Record<string, number> {
+  const tradeOffers = useGameStore(selectTradeOffers);
+  const roster = useGameStore(selectRoster);
+  const phase = useGameStore(selectPhase);
+  const hasGamePlan = !!useGameStore(selectCurrentWeeklyPrepPlan);
+  const handshakes = useGameStore(selectHandshakes);
+
+  return useMemo(() => computeNavBadges({
+    tradeOfferCount: tradeOffers.length,
+    starterCount: roster.filter((p) => p.isStarter).length,
+    hasGamePlan,
+    phase,
+    activeHandshakeCount: handshakes.filter((h) => h.status === 'active').length,
+  }), [tradeOffers, roster, hasGamePlan, phase, handshakes]);
+}
+
 function TopNav({
   highlightedPath,
   activePath,
@@ -427,6 +460,8 @@ function TopNav({
   highlightedPath: string | null;
   activePath: string;
 }) {
+  const badges = useNavBadges();
+
   // Auto-expand the group containing the active path, plus always expand 'core'
   const activeGroupId = useMemo(() => {
     for (const g of NAV_GROUPS) {
@@ -522,6 +557,7 @@ function TopNav({
               highlightedPath={highlightedPath}
               expanded={expandedGroups.has(group.id)}
               onToggle={() => toggleGroup(group.id)}
+              badges={badges}
             />
           );
         })}

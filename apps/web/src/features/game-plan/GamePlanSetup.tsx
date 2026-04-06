@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { PixelBadge, PixelButton, PixelPanel, PixelProgressBar, PixelSelect } from '@mfd/design-system/components';
+import { PixelBadge, PixelButton, PixelPanel, PixelProgressBar, PixelSelect, MfdTooltip } from '@mfd/design-system/components';
 import type { WeeklyPrepPlan } from '@mfd/engine';
 import {
   selectCurrentOpponentIntel,
@@ -12,6 +12,15 @@ import {
   useGameStore,
 } from '../../app/store/game-store';
 import { PixelScreenHeader, autoGrid, monoSm, screenStackStyle } from '../shared/pixelUi';
+
+const PLAN_TOOLTIPS: Record<string, string> = {
+  'Offensive Focus': 'Choose how your offense attacks. "Attack Secondary" targets the passing game, "Attack Front" emphasizes the run, "Feed Star" gives your best player extra touches.',
+  'Defensive Focus': 'Set your defensive priority. "Stop Run" stacks the box, "Heat QB" sends extra blitzes, "Erase WR1" shadows their top receiver.',
+  'Practice Intensity': 'Higher intensity boosts preparation but increases injury risk. Light is safest, Full Pads gives maximum readiness.',
+  'Snap Management': 'Control how you distribute playing time. "Protect Starters" reduces wear, "Ride Stars" maximizes your best players\' snaps.',
+  'Special Situation': 'Focus practice reps on a specific game scenario. Red Zone, Third Down, Two Minute, or Field Position drills.',
+  'Key Matchup': 'Designate a player to receive extra game-plan attention for this matchup.',
+};
 
 const offensiveOptions: Array<{ value: WeeklyPrepPlan['offensiveFocus']; label: string }> = [
   { value: 'balanced', label: 'Balanced' },
@@ -159,54 +168,78 @@ export function GamePlanSetup() {
       </div>
 
       <div style={autoGrid(260)}>
-        <PixelPanel title="Offensive Focus" accent="gold">
-          <PixelSelect
-            value={offensiveFocus}
-            onChange={(event) => setOffensiveFocus(event.target.value as WeeklyPrepPlan['offensiveFocus'])}
-            options={offensiveOptions}
-            accent="gold"
-          />
-        </PixelPanel>
-        <PixelPanel title="Defensive Focus" accent="cyan">
-          <PixelSelect
-            value={defensiveFocus}
-            onChange={(event) => setDefensiveFocus(event.target.value as WeeklyPrepPlan['defensiveFocus'])}
-            options={defensiveOptions}
-            accent="cyan"
-          />
-        </PixelPanel>
-        <PixelPanel title="Practice Intensity" accent="default">
-          <PixelSelect
-            value={practiceIntensity}
-            onChange={(event) => setPracticeIntensity(event.target.value as WeeklyPrepPlan['practiceIntensity'])}
-            options={intensityOptions}
-            accent="default"
-          />
-        </PixelPanel>
-        <PixelPanel title="Snap Management" accent="default">
-          <PixelSelect
-            value={snapManagement}
-            onChange={(event) => setSnapManagement(event.target.value as WeeklyPrepPlan['snapManagement'])}
-            options={snapOptions}
-            accent="default"
-          />
-        </PixelPanel>
-        <PixelPanel title="Special Situation" accent="default">
-          <PixelSelect
-            value={specialSituation}
-            onChange={(event) => setSpecialSituation(event.target.value as WeeklyPrepPlan['specialSituation'])}
-            options={specialSituationOptions}
-            accent="default"
-          />
-        </PixelPanel>
-        <PixelPanel title="Key Matchup" accent="green">
-          <PixelSelect
-            value={keyMatchupPlayerId}
-            onChange={(event) => setKeyMatchupPlayerId(event.target.value)}
-            options={[{ value: '', label: 'No matchup emphasis' }, ...matchupOptions]}
-            accent="green"
-          />
-        </PixelPanel>
+        <MfdTooltip content={PLAN_TOOLTIPS['Offensive Focus']} side="bottom">
+          <PixelPanel title="Offensive Focus" accent="gold">
+            <PixelSelect
+              value={offensiveFocus}
+              onChange={(event) => setOffensiveFocus(event.target.value as WeeklyPrepPlan['offensiveFocus'])}
+              options={offensiveOptions}
+              accent="gold"
+            />
+            {intel && (
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                Intel says: {intel.attackLane === 'passing' ? 'Attack Secondary' : 'Attack Front'}
+                {offensiveFocus === (intel.attackLane === 'passing' ? 'attack_secondary' : 'attack_front') && <PixelBadge variant="green">REC</PixelBadge>}
+              </div>
+            )}
+          </PixelPanel>
+        </MfdTooltip>
+        <MfdTooltip content={PLAN_TOOLTIPS['Defensive Focus']} side="bottom">
+          <PixelPanel title="Defensive Focus" accent="cyan">
+            <PixelSelect
+              value={defensiveFocus}
+              onChange={(event) => setDefensiveFocus(event.target.value as WeeklyPrepPlan['defensiveFocus'])}
+              options={defensiveOptions}
+              accent="cyan"
+            />
+            {intel && (
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                Intel says: {intel.defendLane === 'passing' ? 'Limit Explosive' : 'Stop Run'}
+                {defensiveFocus === (intel.defendLane === 'passing' ? 'limit_explosive' : 'stop_run') && <PixelBadge variant="green">REC</PixelBadge>}
+              </div>
+            )}
+          </PixelPanel>
+        </MfdTooltip>
+        <MfdTooltip content={PLAN_TOOLTIPS['Practice Intensity']} side="bottom">
+          <PixelPanel title="Practice Intensity" accent="default">
+            <PixelSelect
+              value={practiceIntensity}
+              onChange={(event) => setPracticeIntensity(event.target.value as WeeklyPrepPlan['practiceIntensity'])}
+              options={intensityOptions}
+              accent="default"
+            />
+          </PixelPanel>
+        </MfdTooltip>
+        <MfdTooltip content={PLAN_TOOLTIPS['Snap Management']} side="bottom">
+          <PixelPanel title="Snap Management" accent="default">
+            <PixelSelect
+              value={snapManagement}
+              onChange={(event) => setSnapManagement(event.target.value as WeeklyPrepPlan['snapManagement'])}
+              options={snapOptions}
+              accent="default"
+            />
+          </PixelPanel>
+        </MfdTooltip>
+        <MfdTooltip content={PLAN_TOOLTIPS['Special Situation']} side="bottom">
+          <PixelPanel title="Special Situation" accent="default">
+            <PixelSelect
+              value={specialSituation}
+              onChange={(event) => setSpecialSituation(event.target.value as WeeklyPrepPlan['specialSituation'])}
+              options={specialSituationOptions}
+              accent="default"
+            />
+          </PixelPanel>
+        </MfdTooltip>
+        <MfdTooltip content={PLAN_TOOLTIPS['Key Matchup']} side="bottom">
+          <PixelPanel title="Key Matchup" accent="green">
+            <PixelSelect
+              value={keyMatchupPlayerId}
+              onChange={(event) => setKeyMatchupPlayerId(event.target.value)}
+              options={[{ value: '', label: 'No matchup emphasis' }, ...matchupOptions]}
+              accent="green"
+            />
+          </PixelPanel>
+        </MfdTooltip>
       </div>
 
       <PixelPanel title="Prep Board Readout" accent="green">

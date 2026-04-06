@@ -26,6 +26,8 @@ interface ChecklistItem {
   label: string;
   status: 'done' | 'warn' | 'pending';
   detail: string;
+  fixRoute?: string;
+  fixLabel?: string;
 }
 
 function statusAccent(status: ChecklistItem['status']): 'green' | 'gold' | 'red' {
@@ -76,6 +78,8 @@ export function WeekAdvance() {
         label: 'Depth Chart Set',
         status: starters.length >= 22 ? 'done' : 'warn',
         detail: starters.length >= 22 ? 'All positions have starters' : `Only ${starters.length}/22 starters set`,
+        fixRoute: '/depth-chart',
+        fixLabel: 'Fix Depth Chart',
       },
       {
         id: 'injuries',
@@ -86,12 +90,16 @@ export function WeekAdvance() {
           : injured.length > 0
             ? `${injured.length} injured player(s), no starters affected`
             : 'All healthy',
+        fixRoute: '/roster',
+        fixLabel: 'View Roster',
       },
       {
         id: 'cap',
         label: 'Cap Compliant',
         status: team.capSpace >= 0 ? 'done' : 'pending',
         detail: team.capSpace >= 0 ? `$${Math.round(team.capSpace)}M free` : `$${Math.round(-team.capSpace)}M over cap`,
+        fixRoute: '/contracts',
+        fixLabel: 'Manage Cap',
       },
       {
         id: 'gameplan',
@@ -104,6 +112,8 @@ export function WeekAdvance() {
             : matchup
               ? 'AI plan ready if you skip setup'
               : 'Bye week',
+        fixRoute: '/game-plan',
+        fixLabel: 'Open Game Plan',
       },
     ];
   }, [currentGamePlan, matchup, needsGamePlan, team, roster]);
@@ -193,7 +203,7 @@ export function WeekAdvance() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 gap: '12px',
-                alignItems: 'flex-start',
+                alignItems: 'center',
                 paddingBottom: '8px',
                 borderBottom: '1px solid #1a1a1a',
               }}>
@@ -201,9 +211,16 @@ export function WeekAdvance() {
                   <div style={{ ...mono, color: '#fff' }}>{item.label}</div>
                   <div style={{ ...monoSm, color: '#888', marginTop: '4px' }}>{item.detail}</div>
                 </div>
-                <PixelBadge variant={statusAccent(item.status)}>
-                  {item.status}
-                </PixelBadge>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {item.status !== 'done' && item.fixRoute && (
+                    <PixelButton accent="gold" onClick={() => navigateTo(item.fixRoute!)}>
+                      {item.fixLabel}
+                    </PixelButton>
+                  )}
+                  <PixelBadge variant={statusAccent(item.status)}>
+                    {item.status}
+                  </PixelBadge>
+                </div>
               </div>
             ))}
           </div>

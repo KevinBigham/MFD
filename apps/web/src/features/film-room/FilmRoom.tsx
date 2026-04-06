@@ -1,6 +1,7 @@
 import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
 import { selectFilmRoomHistory, selectLatestFilmRoomReport, useGameStore } from '../../app/store/game-store';
 import { PixelScreenHeader, autoGrid, monoSm, screenStackStyle } from '../shared/pixelUi';
+import { EmptyState } from '../shared/EmptyState';
 
 export function FilmRoom() {
   const latest = useGameStore(selectLatestFilmRoomReport);
@@ -8,14 +9,13 @@ export function FilmRoom() {
 
   if (!latest) {
     return (
-      <div style={screenStackStyle}>
-        <PixelScreenHeader title="Film Room" subtitle="No postgame coaching review is available yet." />
-        <PixelPanel title="Tape Pending" accent="default">
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-            Finish a game week with a saved prep plan to generate the first film-room review.
-          </div>
-        </PixelPanel>
-      </div>
+      <EmptyState
+        title="Film Room"
+        reason="No postgame coaching review is available yet. Finish a game week with a saved prep plan to generate the first film-room review."
+        nextStep="Set your game plan, then advance a game week to generate film."
+        actionLabel="Open Game Plan"
+        actionRoute="/game-plan"
+      />
     );
   }
 

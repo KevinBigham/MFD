@@ -3,6 +3,7 @@ import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/componen
 import { selectBroadcastByGameId, useGameStore } from '../../app/store/game-store';
 import { useUiStore } from '../../app/store/ui-store';
 import { PixelScreenHeader, autoGrid, monoSm, pixelSm, screenStackStyle } from '../shared/pixelUi';
+import { EmptyState } from '../shared/EmptyState';
 
 type BroadcastTab = 'q1' | 'q2' | 'q3' | 'q4' | 'highlights';
 
@@ -29,14 +30,13 @@ export function GameBroadcast() {
 
   if (!latestBroadcast) {
     return (
-      <div style={screenStackStyle}>
-        <PixelScreenHeader title="Game Broadcast" subtitle="No recent broadcast is available right now." />
-        <PixelPanel title="No Recent Broadcast" accent="default">
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-            Advance a user game week to generate a broadcast recap and highlight reel.
-          </div>
-        </PixelPanel>
-      </div>
+      <EmptyState
+        title="Game Broadcast"
+        reason="No recent broadcast is available. Advance a game week to generate a broadcast recap and highlight reel."
+        nextStep="Advance a game week to generate your first broadcast."
+        actionLabel="Advance Week"
+        actionRoute="/week-advance"
+      />
     );
   }
 

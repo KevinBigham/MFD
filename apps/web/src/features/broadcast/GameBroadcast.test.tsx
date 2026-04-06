@@ -81,8 +81,8 @@ describe('GameBroadcast', () => {
 
     const markup = renderToStaticMarkup(<GameBroadcast />);
 
-    expect(markup).toContain('NO RECENT BROADCAST');
-    expect(markup).toContain('Advance a user game week');
+    expect(markup).toContain('GAME BROADCAST');
+    expect(markup).toContain('Advance Week');
 
     gameStoreState = {
       broadcastView: {

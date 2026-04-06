@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MfdTooltipProvider } from '@mfd/design-system/components';
 import { GamePlanSetup } from './GamePlanSetup';
 
 const mockState = {
@@ -63,7 +64,7 @@ vi.mock('../../app/store/game-store', () => ({
 
 describe('GamePlanSetup', () => {
   it('renders the scouting report and recommendation-driven controls', () => {
-    const markup = renderToStaticMarkup(<GamePlanSetup />);
+    const markup = renderToStaticMarkup(<MfdTooltipProvider><GamePlanSetup /></MfdTooltipProvider>);
 
     expect(markup).toContain('WEEKLY PREP');
     expect(markup).toContain('Austin Armadillos');
