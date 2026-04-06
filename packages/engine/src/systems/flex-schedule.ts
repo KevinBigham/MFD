@@ -64,10 +64,20 @@ function compellingScore(game: GameState, matchup: ScheduledGame): number {
   return combinedWinPct + rivalryHeat(game, home.id, away.id) + playoffImplicationScore(game, home.id, away.id);
 }
 
+/** Mutating version — only safe during advanceWeek when state is mutable. */
 function ensureScheduledGameDefaults(matchup: ScheduledGame): void {
   matchup.flexed ??= false;
   matchup.primetime ??= false;
   matchup.broadcastNetwork ??= null;
+}
+
+/** Returns safe defaults for optional ScheduledGame fields without mutating the original. */
+function readScheduledGameDefaults(matchup: ScheduledGame) {
+  return {
+    flexed: matchup.flexed ?? false,
+    primetime: matchup.primetime ?? false,
+    broadcastNetwork: matchup.broadcastNetwork ?? null,
+  };
 }
 
 export function flexSchedule(game: GameState, random: RandomFn = RNG.ai): ScheduledGame | null {
@@ -156,7 +166,7 @@ export function getFullSchedule(game: GameState, teamId: string): TeamScheduleEn
       continue;
     }
 
-    ensureScheduledGameDefaults(matchup);
+    const defaults = readScheduledGameDefaults(matchup);
     const home = matchup.homeTeamId === teamId;
     const opponentTeamId = home ? matchup.awayTeamId : matchup.homeTeamId;
 
@@ -178,9 +188,9 @@ export function getFullSchedule(game: GameState, teamId: string): TeamScheduleEn
       result: matchup.result,
       recordAfterGame: matchup.result ? `${wins}-${losses}${ties ? `-${ties}` : ''}` : null,
       bye: false,
-      primetime: matchup.primetime ?? false,
-      flexed: matchup.flexed ?? false,
-      broadcastNetwork: matchup.broadcastNetwork ?? null,
+      primetime: defaults.primetime,
+      flexed: defaults.flexed,
+      broadcastNetwork: defaults.broadcastNetwork,
     });
   }
 
@@ -192,7 +202,7 @@ export function getWeekSchedule(game: GameState, week: number): WeekScheduleEntr
   if (!weekSchedule) return [];
 
   return weekSchedule.games.map((matchup) => {
-    ensureScheduledGameDefaults(matchup);
+    const defaults = readScheduledGameDefaults(matchup);
     return {
       week,
       homeTeamId: matchup.homeTeamId,
@@ -200,8 +210,8 @@ export function getWeekSchedule(game: GameState, week: number): WeekScheduleEntr
       homeTeamName: teamLabel(game, matchup.homeTeamId),
       awayTeamName: teamLabel(game, matchup.awayTeamId),
       result: matchup.result,
-      broadcastNetwork: matchup.broadcastNetwork ?? null,
-      primetime: matchup.primetime ?? false,
+      broadcastNetwork: defaults.broadcastNetwork,
+      primetime: defaults.primetime,
       flexed: matchup.flexed ?? false,
       compellingScore: Math.round(compellingScore(game, matchup) * 100) / 100,
     };
