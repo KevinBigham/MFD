@@ -1,0 +1,12 @@
+{
+  "id": "draft.thresholds.contract.v1",
+  "contractType": "shape",
+  "owner": "claude",
+  "expected": {
+    "r1EliteMin": 80,
+    "r1SolidMin": 72,
+    "r2StealMin": 72,
+    "r2SolidMin": 66,
+    "r3GemMin": 68
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "sim.output.contract.v1",
+  "contractType": "shape",
+  "owner": "claude",
+  "expected": {
+    "result": {
+      "home": 0,
+      "away": 0,
+      "winnerId": ""
+    },
+    "summary": {
+      "turnovers": 0,
+      "totalYards": 0
+    }
+  }
+}

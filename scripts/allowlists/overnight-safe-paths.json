@@ -1,0 +1,181 @@
+{
+  "safePrefixes": [
+    "docs/",
+    "scripts/",
+    ".github/workflows/",
+    "src/dev/",
+    "src/app/",
+    "src/main.jsx",
+    "tests/",
+    "package.json"
+  ],
+  "forbiddenPrefixes": [
+    "src/systems/",
+    "src/data/"
+  ],
+  "strictLanes": {
+    "codex-playable": {
+      "safePrefixes": [
+        "docs/",
+        "scripts/",
+        ".github/workflows/",
+        "src/dev/",
+        "src/app/",
+        "src/main.jsx",
+        "tests/",
+        "package.json"
+      ],
+      "forbiddenPrefixes": [
+        "src/systems/",
+        "src/data/"
+      ]
+    },
+    "codex-hybrid-v3": {
+      "safePrefixes": [
+        "docs/",
+        "scripts/",
+        ".github/workflows/",
+        "src/dev/",
+        "src/app/",
+        "src/main.jsx",
+        "tests/",
+        "package.json"
+      ],
+      "forbiddenPrefixes": [
+        "src/systems/",
+        "src/data/"
+      ],
+      "sharedFiles": [
+        "package.json",
+        "docs/index.md",
+        "docs/hybrid-v3-integration-contract.md",
+        "tests/gameplay-contract-sim-output.test.js",
+        "tests/gameplay-contract-draft-thresholds.test.js",
+        "tests/gameplay-contract-trade-thresholds.test.js",
+        "tests/gameplay-contract-chemistry.test.js",
+        "tests/gameplay-contract-rivalry.test.js"
+      ]
+    },
+    "codex-hybrid-v4": {
+      "safePrefixes": [
+        "docs/",
+        "scripts/",
+        ".github/workflows/",
+        "src/dev/",
+        "src/app/",
+        "src/main.jsx",
+        "tests/",
+        "package.json"
+      ],
+      "forbiddenPrefixes": [
+        "src/systems/",
+        "src/data/"
+      ],
+      "sharedFiles": [
+        "package.json",
+        "docs/index.md",
+        "docs/hybrid-v3-integration-contract.md",
+        "docs/hybrid-v4-integration-contract.md",
+        "tests/gameplay-contract-sim-output.test.js",
+        "tests/gameplay-contract-draft-thresholds.test.js",
+        "tests/gameplay-contract-trade-thresholds.test.js",
+        "tests/gameplay-contract-chemistry.test.js",
+        "tests/gameplay-contract-rivalry.test.js"
+      ]
+    },
+    "claude-extraction": {
+      "safePrefixes": [
+        "src/systems/",
+        "src/data/",
+        "tests/"
+      ],
+      "forbiddenPrefixes": [
+        "src/app/",
+        "src/dev/",
+        "scripts/",
+        ".github/workflows/"
+      ]
+    },
+    "claude-gameplay-v3": {
+      "safePrefixes": [
+        "src/systems/",
+        "src/data/",
+        "tests/",
+        "docs/"
+      ],
+      "forbiddenPrefixes": [
+        "src/app/",
+        "src/dev/",
+        "scripts/",
+        ".github/workflows/"
+      ],
+      "sharedFiles": [
+        "package.json",
+        "docs/index.md",
+        "docs/hybrid-v3-integration-contract.md",
+        "tests/gameplay-contract-sim-output.test.js",
+        "tests/gameplay-contract-draft-thresholds.test.js",
+        "tests/gameplay-contract-trade-thresholds.test.js",
+        "tests/gameplay-contract-chemistry.test.js",
+        "tests/gameplay-contract-rivalry.test.js"
+      ]
+    },
+    "claude-gameplay-v4": {
+      "safePrefixes": [
+        "src/systems/",
+        "src/data/",
+        "tests/",
+        "docs/"
+      ],
+      "forbiddenPrefixes": [
+        "src/app/",
+        "src/dev/",
+        "scripts/",
+        ".github/workflows/"
+      ],
+      "sharedFiles": [
+        "package.json",
+        "docs/index.md",
+        "docs/hybrid-v3-integration-contract.md",
+        "docs/hybrid-v4-integration-contract.md",
+        "tests/gameplay-contract-sim-output.test.js",
+        "tests/gameplay-contract-draft-thresholds.test.js",
+        "tests/gameplay-contract-trade-thresholds.test.js",
+        "tests/gameplay-contract-chemistry.test.js",
+        "tests/gameplay-contract-rivalry.test.js"
+      ]
+    }
+  },
+  "sharedWindowProfiles": {
+    "closed": {
+      "description": "Default mode: no shared-file edits are allowed.",
+      "enabled": false,
+      "allowedSharedFiles": []
+    },
+    "contracts-integration": {
+      "description": "Shared window for gameplay contract integration and gating.",
+      "enabled": true,
+      "allowedSharedFiles": [
+        "package.json",
+        "docs/index.md",
+        "docs/hybrid-v3-integration-contract.md",
+        "docs/hybrid-v4-integration-contract.md",
+        "tests/gameplay-contract-sim-output.test.js",
+        "tests/gameplay-contract-draft-thresholds.test.js",
+        "tests/gameplay-contract-trade-thresholds.test.js",
+        "tests/gameplay-contract-chemistry.test.js",
+        "tests/gameplay-contract-rivalry.test.js"
+      ]
+    },
+    "final-contracts": {
+      "description": "Final lock-step window for contract references before RC decision.",
+      "enabled": true,
+      "allowedSharedFiles": [
+        "package.json",
+        "docs/index.md",
+        "docs/hybrid-v4-integration-contract.md"
+      ]
+    }
+  },
+  "notes": "Guardrail for strict collaboration lanes. codex-playable is the no-gameplay lane used for the playable checkpoint stream."
+}

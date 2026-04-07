@@ -1,0 +1,267 @@
+name: nightly
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nightly-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify Toolchain
+        id: toolchain
+        continue-on-error: true
+        run: npm run verify:toolchain
+
+      - name: Verify Lane (Codex Hybrid)
+        id: lane
+        continue-on-error: true
+        run: npm run verify:lane
+
+      - name: Verify All
+        id: verify
+        continue-on-error: true
+        run: npm run verify:all
+
+      - name: Verify Playable
+        id: playable
+        continue-on-error: true
+        run: npm run verify:playable
+
+      - name: Verify Hybrid
+        id: hybrid
+        continue-on-error: true
+        run: npm run verify:hybrid
+
+      - name: Report Hybrid Metrics
+        id: hybrid_metrics
+        continue-on-error: true
+        run: npm run report:hybrid-metrics
+
+      - name: Verify Perf Thresholds
+        id: perf
+        continue-on-error: true
+        run: npm run verify:perf
+
+      - name: Verify Contracts
+        id: contracts
+        continue-on-error: true
+        run: npm run verify:contracts
+
+      - name: Verify Security Guardrails
+        id: security
+        continue-on-error: true
+        run: npm run verify:security
+
+      - name: Write Nightly Summary
+        if: always()
+        run: node scripts/ci/write-job-summary.mjs docs/nightly-summary.md
+
+      - name: Write Blitz Summary
+        if: always()
+        run: npm run blitz:summary
+
+      - name: Write Playable Trend
+        if: always()
+        run: node scripts/ci/write-playable-trend.mjs dist/playability-report.json docs/nightly-playable-trend.json
+
+      - name: Upload Dist Profile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-dist-perf-profile
+          path: dist/perf-profile.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Toolchain Readiness Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-toolchain-readiness-report
+          path: dist/toolchain-readiness-report.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Lane Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-lane-report
+          path: dist/lane-report.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Shared Window Audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-shared-window-audit
+          path: dist/shared-window-audit.json
+          if-no-files-found: warn
+
+      - name: Upload Preload Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-preload-report
+          path: dist/preload-report.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-summary
+          path: docs/nightly-summary.md
+          if-no-files-found: warn
+
+      - name: Upload Nightly Blitz Summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-blitz-summary
+          path: docs/blitz-summary.md
+          if-no-files-found: warn
+
+      - name: Upload Nightly Playable Trend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-playable-trend
+          path: docs/nightly-playable-trend.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Playable Build Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-playable-build-report
+          path: dist/playable-build-report.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Playable Smoke Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-playable-smoke-report
+          path: dist/playable-smoke-report.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Playability Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-playability-report
+          path: dist/playability-report.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Hybrid Metrics Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-hybrid-metrics-report
+          path: dist/hybrid-metrics.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Legacy Save Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-legacy-save-report
+          path: dist/legacy-save-report.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Legacy Session Smoke Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-legacy-session-smoke-report
+          path: dist/legacy-session-smoke-report.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Import Safety Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-import-safety-report
+          path: dist/import-safety-report.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Security Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-security-report
+          path: dist/security-report.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Perf Threshold Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-perf-threshold-report
+          path: dist/perf-threshold-report.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Contracts Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-contracts-report
+          path: dist/contracts-report.json
+          if-no-files-found: warn
+
+      - name: Upload Nightly Contracts Summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-contracts-summary
+          path: dist/contracts-report.md
+          if-no-files-found: warn
+
+      - name: Publish Playable Health Summary
+        if: always()
+        run: |
+          echo "## Playable Health" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f dist/lane-report.json ]; then
+            node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('dist/lane-report.json','utf8'));console.log('- shared window profile: '+(p.sharedWindowProfile||'closed'));console.log('- shared window enabled: '+(p.sharedWindow===true));" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- shared window profile: missing lane report" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f dist/playability-report.json ]; then
+            echo "- playability report generated" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- playability report missing" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f dist/hybrid-metrics.json ]; then
+            echo "- hybrid metrics generated" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- hybrid metrics missing" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f dist/contracts-report.json ]; then
+            echo "- contracts report generated" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- contracts report missing" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Fail if Verify Step Failed
+        if: steps.toolchain.outcome == 'failure' || steps.lane.outcome == 'failure' || steps.verify.outcome == 'failure' || steps.playable.outcome == 'failure' || steps.hybrid.outcome == 'failure' || steps.hybrid_metrics.outcome == 'failure' || steps.perf.outcome == 'failure' || steps.contracts.outcome == 'failure' || steps.security.outcome == 'failure'
+        run: exit 1

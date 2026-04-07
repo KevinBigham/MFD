@@ -1,0 +1,14 @@
+{
+  "id": "rivalry.contract.v1",
+  "contractType": "shape",
+  "owner": "claude",
+  "expected": {
+    "heat": {
+      "min": 0,
+      "max": 0
+    },
+    "trophy": {
+      "enabled": true
+    }
+  }
+}

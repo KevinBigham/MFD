@@ -1,0 +1,154 @@
+/**
+ * MFD Coach x Player Personality Voice System
+ *
+ * Narrative templates for coach-player synergy and friction,
+ * keyed by coach archetype + player personality axis.
+ * Used for broadcast commentary and locker room narratives.
+ */
+
+export var COACH_PLAYER_VOICE_994 = {
+  synergy: {
+    grinder_workEthic: [
+      "[COACH] and [PLAYER] don't need words — they just put in the work. The results speak for themselves.",
+      "When [COACH] says 'no shortcuts,' [PLAYER] is the first one nodding. Their bond is built on sweat.",
+      "[PLAYER]'s work ethic is the embodiment of [COACH]'s philosophy: relentless, no excuses.",
+      "The film room is their sanctuary. [COACH] and [PLAYER] are always the last ones to leave.",
+      "[COACH] demands effort, and [PLAYER] delivers it — every single day.",
+      "There's no 'off' switch for these two. [COACH] and [PLAYER] are always grinding.",
+      "[PLAYER] is the kind of player [COACH] builds a program around — no-nonsense, all effort.",
+      "The connection between [COACH] and [PLAYER] is simple: they both love the grind.",
+      "[COACH] doesn't need to motivate [PLAYER]. He's already the first one in and the last one out.",
+      "Their relationship is built on one thing: outworking everyone else."
+    ],
+    hothead_pressure: [
+      "When the game is on the line, [COACH] and [PLAYER] are a volcano ready to erupt.",
+      "The fire in [COACH]'s eyes matches the intensity in [PLAYER]'s heart — explosive.",
+      "[PLAYER] thrives under pressure, and [COACH] fuels that fire.",
+      "Their connection is electric. [COACH] demands it, and [PLAYER] delivers it.",
+      "The scoreboard lights up when [COACH] and [PLAYER] are in sync — pure energy.",
+      "[COACH]'s passion meets [PLAYER]'s clutch gene — it's a show every time.",
+      "They don't just rise to the moment — they own it. [COACH] and [PLAYER] are built for pressure.",
+      "The bigger the game, the brighter they burn. [COACH] and [PLAYER] are a force of nature.",
+      "Their relationship is a spark — ignite it, and the whole stadium feels the heat.",
+      "[PLAYER] is the match, and [COACH] is the accelerant. Together, they're unstoppable."
+    ],
+    professor_discipline: [
+      "[COACH] and [PLAYER] speak the same language: precision, preparation, and execution.",
+      "The game plan is a masterpiece, and [PLAYER] is the artist who brings it to life.",
+      "[COACH]'s schemes are complex, but [PLAYER] thrives in the details.",
+      "Their connection is cerebral. [COACH] designs it, [PLAYER] executes it flawlessly.",
+      "The film doesn't lie, and [PLAYER] is the proof of [COACH]'s genius.",
+      "[COACH]'s playbook is a puzzle, and [PLAYER] is the piece that makes it all fit.",
+      "Their relationship is a chess match, and they're always three moves ahead.",
+      "[PLAYER] is the perfect student for [COACH]'s classroom — they both love the process.",
+      "The precision of [COACH]'s system meets the discipline of [PLAYER] — a match made in football heaven.",
+      "Their bond is built on intellect and execution. [COACH] and [PLAYER] are always in sync."
+    ],
+    zen_ambition: [
+      "[COACH]'s calm is the perfect balance for [PLAYER]'s hunger. Together, they're unstoppable.",
+      "The zen of [COACH] meets the ambition of [PLAYER] — a rare and powerful combination.",
+      "Their connection is quiet but deadly. [COACH] keeps [PLAYER] focused on the prize.",
+      "[PLAYER]'s drive is relentless, but [COACH]'s steadiness keeps it all in check.",
+      "They don't chase the moment — they let it come to them. [COACH] and [PLAYER] are in perfect harmony.",
+      "The ambition is there, but [COACH] ensures it's always under control.",
+      "Their relationship is a masterclass in balance: hunger meets patience.",
+      "[PLAYER] wants it all, and [COACH] knows exactly how to guide him there.",
+      "The zen master and the hungry star — together, they're a championship formula.",
+      "Their bond is built on trust. [COACH]'s calm fuels [PLAYER]'s ambition."
+    ],
+    visionary_loyalty: [
+      "[COACH] and [PLAYER] are building something bigger than themselves — a legacy.",
+      "Their connection is about the long game. [PLAYER] is the cornerstone of [COACH]'s vision.",
+      "[COACH] sees the future, and [PLAYER] is the heart of it.",
+      "They're not just a coach and a player — they're architects of a dynasty.",
+      "The loyalty of [PLAYER] is the foundation of [COACH]'s grand plan.",
+      "Their relationship is a promise: [PLAYER] is all-in, and [COACH] is building around him.",
+      "[COACH]'s vision meets [PLAYER]'s commitment — a recipe for greatness.",
+      "They're writing a story together, and it's only just beginning.",
+      "The bond between [COACH] and [PLAYER] is unbreakable — they're in this for the long haul.",
+      "Their connection is about more than wins — it's about building something that lasts."
+    ],
+    firestarter_greed: [
+      "[COACH] and [PLAYER] are a high-risk, high-reward duo — always entertaining, always explosive.",
+      "Their relationship is a gamble, but when it works, it's pure magic.",
+      "[PLAYER] wants the money, and [COACH] wants the fire — together, they're a spectacle.",
+      "The greed is real, but so is the talent. [COACH] and [PLAYER] are a show you can't look away from.",
+      "They're a volatile mix, but when they click, the league takes notice.",
+      "[COACH] fuels the fire, and [PLAYER] wants the payday — it's a dangerous dance.",
+      "Their connection is combustible, but it's never boring.",
+      "The risk is high, but so is the reward. [COACH] and [PLAYER] are all-in on the chaos.",
+      "They're a rollercoaster, but when they're on, they're unstoppable.",
+      "The greed and the fire make for a wild ride — but it's one the fans love."
+    ]
+  },
+  clash: {
+    hothead_zenPlayer: [
+      "[COACH] wants fire, but [PLAYER] is all about control — it's a clash of energies.",
+      "The tension is palpable. [COACH]'s intensity meets [PLAYER]'s calm — it's a volatile mix.",
+      "Their dynamic is a storm waiting to happen. [COACH]'s passion vs. [PLAYER]'s composure.",
+      "The friction isn't personal — it's about energy. [COACH] wants heat, [PLAYER] wants balance.",
+      "[COACH]'s fire is met with [PLAYER]'s ice — it's a battle of wills.",
+      "The clash is about tempo. [COACH] wants urgency, [PLAYER] wants patience.",
+      "Their relationship is a test of adaptability. [COACH]'s intensity vs. [PLAYER]'s serenity.",
+      "The tension is in the air. [COACH]'s emotions run hot, but [PLAYER] stays cool.",
+      "The dynamic is a puzzle. [COACH]'s fire vs. [PLAYER]'s calm — can they find a middle ground?",
+      "The friction is about energy. [COACH] wants explosion, [PLAYER] wants control."
+    ],
+    professor_instinct: [
+      "[COACH]'s playbook is a masterpiece, but [PLAYER] plays by feel — it's a clash of styles.",
+      "The data says one thing, but [PLAYER]'s gut says another. [COACH] isn't happy about it.",
+      "Their dynamic is a battle between science and art. [COACH] wants precision, [PLAYER] wants freedom.",
+      "The tension is intellectual. [COACH] trusts the numbers, [PLAYER] trusts the moment.",
+      "[COACH]'s schemes are brilliant, but [PLAYER] thrives on instinct — it's a delicate balance.",
+      "The friction isn't personal — it's about process. [COACH] and [PLAYER] see the game through different lenses.",
+      "The clash is quiet but real. [COACH] wants structure, [PLAYER] wants spontaneity.",
+      "Their relationship is a test of adaptability. [COACH]'s system vs. [PLAYER]'s instincts.",
+      "The tension is in the details. [COACH]'s playbook is rigid, but [PLAYER] is fluid.",
+      "The dynamic is a puzzle. [COACH]'s logic vs. [PLAYER]'s gut — something's got to give."
+    ],
+    grinder_entitled: [
+      "[COACH] and [PLAYER] speak different languages — one demands effort, the other expects privilege.",
+      "The friction is subtle but real. [COACH] wants grind, [PLAYER] wants glory.",
+      "Their relationship is a slow burn — [COACH]'s old-school ways clash with [PLAYER]'s modern demands.",
+      "The distance between them is quiet but undeniable. [COACH] and [PLAYER] are on different wavelengths.",
+      "[COACH] preaches sacrifice, but [PLAYER] is all about the spotlight.",
+      "Their dynamic is a cold war — no blowups, just a steady drift apart.",
+      "The tension isn't loud, but it's there. [COACH] and [PLAYER] are misaligned.",
+      "The clash isn't personal — it's philosophical. [COACH] and [PLAYER] see the game differently."
+    ]
+  },
+  coordinatorHire: [
+    "[COACH] brings a completely different philosophy to [TEAM]'s [ROLE] room.",
+    "Change is in the air. [COACH] is the new [ROLE] for [TEAM], and the energy is electric.",
+    "[TEAM] has made a bold move, hiring [COACH] as their new [ROLE]. The future starts now.",
+    "A new era begins. [COACH] takes over as [ROLE] for [TEAM], and the possibilities are endless.",
+    "[TEAM] is shaking things up, bringing in [COACH] as their new [ROLE]. The fans are buzzing.",
+    "The search is over. [COACH] is the new [ROLE] for [TEAM], and the excitement is palpable.",
+    "[TEAM] has found their [ROLE]. [COACH] arrives, and the team is ready for a fresh start.",
+    "A new chapter begins. [COACH] is [TEAM]'s new [ROLE], and the future looks bright.",
+    "[TEAM] has made their move, hiring [COACH] as [ROLE]. The rebuild is officially underway.",
+    "[TEAM] is turning the page, bringing in [COACH] as their new [ROLE]. The energy is contagious."
+  ],
+  coordinatorFire: [
+    "[COACH] clears out the [ROLE] office. The system gets a reset.",
+    "The [TEAM] [ROLE] experiment is over. Time to find a new voice.",
+    "[TEAM] has parted ways with [COACH], their [ROLE]. The search for a replacement begins now.",
+    "Change is inevitable. [TEAM] has relieved [COACH] of his duties as [ROLE]. The hunt for a new voice starts today.",
+    "[TEAM] has made the difficult decision to move on from [COACH] as [ROLE]. The future is the focus.",
+    "A new direction is needed. [TEAM] has let go of [COACH] as [ROLE], and the search for a successor is on.",
+    "[TEAM] has decided to go in a different direction, parting ways with [COACH] as [ROLE]. The next chapter begins now.",
+    "[TEAM] has announced the dismissal of [COACH] as [ROLE]. The team is already looking ahead.",
+    "The decision has been made. [COACH] is out as [ROLE] for [TEAM], and the focus shifts to the future.",
+    "[TEAM] has made a change, moving on from [COACH] as [ROLE]. The rebuild continues."
+  ],
+  midseasonFiring: [
+    "The [TEAM] season didn't end — but [COACH]'s did.",
+    "A shocking midseason move. [COACH] is out and everything just changed.",
+    "The axe has fallen. [COACH] is out as head coach of [TEAM], and the season takes a dramatic turn.",
+    "A midseason shakeup. [TEAM] has fired [COACH], and the search for a new leader begins immediately.",
+    "[TEAM] has made the bold decision to part ways with [COACH] midseason. The stakes just got higher.",
+    "The season isn't over, but the [COACH] era is. [TEAM] has made a change at the top.",
+    "[TEAM] has pulled the trigger, firing [COACH] midseason. The hunt for a new voice starts now.",
+    "[TEAM] have relieved [COACH] of his duties midseason. The future is uncertain."
+  ]
+};

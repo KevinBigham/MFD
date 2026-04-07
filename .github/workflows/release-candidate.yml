@@ -1,0 +1,94 @@
+name: release-candidate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Run Release Candidate Gate
+        run: npm run ci:release-candidate
+
+      - name: Write RC Summary
+        run: node scripts/ci/write-job-summary.mjs docs/release-candidate-summary.md
+
+      - name: Write Blitz Summary
+        run: npm run blitz:summary
+
+      - name: Build RC Bundle Manifest
+        run: npm run rc:bundle
+
+      - name: Create RC Artifact Bundle
+        run: |
+          mkdir -p dist
+          tar -czf dist/release-candidate-artifacts.tgz \
+            dist/playability-report.json \
+            dist/hybrid-metrics.json \
+            dist/perf-threshold-report.json \
+            dist/legacy-save-report.json \
+            dist/legacy-session-smoke-report.json \
+            dist/import-safety-report.json \
+            dist/playable-build-report.json \
+            dist/playable-smoke-report.json \
+            dist/e2e-launcher-report.json \
+            dist/e2e-launcher-summary.md \
+            dist/contracts-report.json \
+            dist/contracts-report.md \
+            dist/security-report.json \
+            dist/rc-bundle-manifest.json \
+            docs/blitz-summary.md \
+            docs/release-candidate-summary.md
+
+      - name: Publish RC Summary
+        run: cat docs/release-candidate-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload RC Artifact Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-bundle
+          path: dist/release-candidate-artifacts.tgz
+          if-no-files-found: error
+
+      - name: Upload RC Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-summary
+          path: docs/release-candidate-summary.md
+          if-no-files-found: warn
+
+      - name: Upload RC Bundle Manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-bundle-manifest
+          path: dist/rc-bundle-manifest.json
+          if-no-files-found: warn
+
+      - name: Upload RC Blitz Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-blitz-summary
+          path: docs/blitz-summary.md
+          if-no-files-found: warn

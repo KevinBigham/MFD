@@ -1,0 +1,40 @@
+{
+  "name": "Mr. Football Dynasty",
+  "short_name": "MFD",
+  "description": "The ultimate browser-based football GM simulation. Draft, trade, and build a dynasty.",
+  "start_url": "/mr-football-dynasty/",
+  "scope": "/mr-football-dynasty/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#070d17",
+  "theme_color": "#070d17",
+  "categories": ["games", "sports"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot-roster.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Roster Management"
+    },
+    {
+      "src": "screenshot-draft.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Draft Night"
+    }
+  ]
+}

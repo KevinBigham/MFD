@@ -1,0 +1,10 @@
+{
+  "id": "chemistry.contract.v1",
+  "contractType": "shape",
+  "owner": "claude",
+  "expected": {
+    "keepRateBase": 0,
+    "systemFitDefaultMod": 0,
+    "captainBonus": 0
+  }
+}

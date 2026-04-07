@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "hybrid-perf-thresholds.v1",
+  "softMs": {
+    "p95": 1500,
+    "max": 3000
+  },
+  "catastrophicMs": {
+    "p95": 5000,
+    "max": 12000
+  }
+}

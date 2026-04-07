@@ -1,0 +1,16 @@
+{
+  "id": "trade.thresholds.contract.v1",
+  "contractType": "shape",
+  "owner": "claude",
+  "expected": {
+    "easy": {
+      "acceptanceFloor": 0
+    },
+    "normal": {
+      "acceptanceFloor": 0
+    },
+    "hard": {
+      "acceptanceFloor": 0
+    }
+  }
+}
