@@ -277,6 +277,31 @@ function memoByGame<T>(fn: (state: GameStoreState) => T): (state: GameStoreState
   };
 }
 
+/**
+ * Memoizes a parameterized selector factory by parameter key + state.game identity.
+ * Each distinct parameter string gets its own single-slot cache keyed by state.game.
+ * Prevents infinite loops from `useGameStore(selectFoo(param))` patterns where
+ * each call creates a new closure that returns a new object.
+ */
+function memoParamByGame<P extends string | number | null | undefined, T>(
+  fn: (param: P, state: GameStoreState) => T,
+): (param: P) => (state: GameStoreState) => T {
+  const cache = new Map<P, (state: GameStoreState) => T>();
+  return (param: P) => {
+    let selector = cache.get(param);
+    if (!selector) {
+      selector = memoByGame((state) => fn(param, state));
+      cache.set(param, selector);
+      // Bound cache to prevent unbounded growth from dynamic params
+      if (cache.size > 64) {
+        const first = cache.keys().next().value;
+        if (first !== undefined) cache.delete(first);
+      }
+    }
+    return selector;
+  };
+}
+
 const EMPTY_TEAM_SCHEDULE = [] as ReturnType<typeof getFullSchedule>;
 const EMPTY_WEEK_SCHEDULE = [] as ReturnType<typeof getWeekScheduleEntries>;
 const EMPTY_TRANSACTION_LOG: TransactionLogEntry[] = [];
@@ -765,10 +790,10 @@ export const selectFatigueReport = memoByGame((state: GameStoreState) => {
 });
 export const selectFacilities = (state: GameStoreState): FacilityState =>
   selectUserTeam(state)?.facilityState ?? EMPTY_FACILITY_STATE;
-export const selectInjuryReport = (state: GameStoreState) =>
+export const selectInjuryReport = memoByGame((state: GameStoreState) =>
   selectRoster(state)
     .filter((player) => player.injury)
-    .map((player) => ({ playerId: player.id, name: player.name, pos: player.pos, injury: player.injury! }));
+    .map((player) => ({ playerId: player.id, name: player.name, pos: player.pos, injury: player.injury! })));
 export const selectDifficultyState = (state: GameStoreState): DifficultyState =>
   state.game?.difficultyState ?? EMPTY_DIFFICULTY_STATE;
 export const selectAchievements = (state: GameStoreState): Achievement[] => state.game?.achievements ?? EMPTY_ACHIEVEMENTS;
@@ -778,7 +803,7 @@ export const selectNewlyUnlocked: (state: GameStoreState) => Achievement[] = mem
     .filter((achievement) => achievement.unlockedYear === state.game!.year && achievement.unlockedWeek === state.game!.week)
     .sort((a, b) => a.title.localeCompare(b.title));
 });
-export const selectAchievementProgress = (achievementId: string) => (state: GameStoreState): AchievementProgress => {
+export const selectAchievementProgress = memoParamByGame((achievementId: string, state: GameStoreState): AchievementProgress => {
   if (!state.game) {
     return {
       ...EMPTY_ACHIEVEMENT_PROGRESS,
@@ -786,7 +811,7 @@ export const selectAchievementProgress = (achievementId: string) => (state: Game
     };
   }
   return getAchievementProgress(state.game, achievementId);
-};
+});
 export const selectDashboardState = (state: GameStoreState): DashboardState => state.game?.dashboardState ?? EMPTY_DASHBOARD_STATE;
 export const selectSpecialTeams = (state: GameStoreState): SpecialTeamsState => selectUserTeam(state)?.specialTeams ?? EMPTY_SPECIAL_TEAMS;
 export const selectCurrentGamePlan = (state: GameStoreState): GamePlan | null => state.game?.gamePlan ?? null;
@@ -854,10 +879,10 @@ export const selectRelocationDestinations = memoByGame((state: GameStoreState) =
   if (!team) return EMPTY_RELOCATION_DESTINATIONS;
   return getRelocationDestinations(team.franchiseIdentity, team.city);
 });
-export const selectWeekSchedule = (week?: number) => (state: GameStoreState) => {
+export const selectWeekSchedule = memoParamByGame((week: number | undefined, state: GameStoreState) => {
   if (!state.game) return EMPTY_WEEK_SCHEDULE;
   return getWeekScheduleEntries(state.game, week ?? state.game.week);
-};
+});
 export const selectAdvancedStats = memoByGame((state: GameStoreState) => {
   if (!state.game) return EMPTY_ADVANCED_STATS;
   const team = selectUserTeam(state);
@@ -931,15 +956,27 @@ export const selectAnalyticsLeaders = memoByGame((state: GameStoreState) => {
     defINT: getAnalyticsStatLeaders(state.game, 'defINT', 5),
   };
 });
-export const selectPlayerComparison = (playerIdA: string | null, playerIdB: string | null) => (state: GameStoreState) => {
-  if (!state.game || !playerIdA || !playerIdB) return null;
-  return getPlayerComparison(state.game, playerIdA, playerIdB);
-};
-export const selectWeeklyTrend = (stat: 'pointsFor' | 'pointDifferential' | 'thirdDownConversions' | 'redZoneScores') => (state: GameStoreState) => {
+export const selectPlayerComparison = (() => {
+  const cache = new Map<string, (state: GameStoreState) => ReturnType<typeof getPlayerComparison> | null>();
+  return (playerIdA: string | null, playerIdB: string | null) => {
+    const key = `${playerIdA}:${playerIdB}`;
+    let selector = cache.get(key);
+    if (!selector) {
+      selector = memoByGame((state) => {
+        if (!state.game || !playerIdA || !playerIdB) return null;
+        return getPlayerComparison(state.game, playerIdA, playerIdB);
+      });
+      cache.set(key, selector);
+      if (cache.size > 32) cache.delete(cache.keys().next().value!);
+    }
+    return selector;
+  };
+})();
+export const selectWeeklyTrend = memoParamByGame((stat: 'pointsFor' | 'pointDifferential' | 'thirdDownConversions' | 'redZoneScores', state: GameStoreState) => {
   if (!state.game) return [];
   const teamId = selectUserTeamId(state);
   return teamId ? getWeeklyTrend(state.game, teamId, stat, 5) : [];
-};
+});
 export const selectLatestGameDayPackage = (state: GameStoreState): GameDayPackage | null => {
   const gameDayState = state.game?.gameDayState;
   if (!gameDayState) return null;
@@ -1026,11 +1063,11 @@ export const selectLatestGameResult = (state: GameStoreState): GameResult | null
   }
   return null;
 };
-export const selectBroadcastByGameId = (gameId: string | null) => (state: GameStoreState): BroadcastViewModel | null => {
+export const selectBroadcastByGameId = memoParamByGame((gameId: string | null, state: GameStoreState): BroadcastViewModel | null => {
   if (!state.game) return null;
   const gameResult = gameId ? findGameResultById(state.game, gameId) : selectLatestGameResult(state);
   return gameResult ? rebuildBroadcast(state.game, gameResult) : null;
-};
+});
 export const selectLatestBroadcast = (state: GameStoreState): BroadcastViewModel | null =>
   selectBroadcastByGameId(null)(state);
 export const selectCurrentOpponentIntel = (state: GameStoreState): OpponentIntel | null => {
@@ -1045,7 +1082,7 @@ export const selectCurrentDraftEntry = (state: GameStoreState): DraftOrderEntry 
   const offseasonState = state.game?.offseasonState;
   return offseasonState ? offseasonState.draftOrder[offseasonState.currentDraftPickIndex] ?? null : null;
 };
-export const selectPlayerProfileBundle = (playerId: string) => (state: GameStoreState): PlayerProfileBundle | null => {
+export const selectPlayerProfileBundle = memoParamByGame((playerId: string, state: GameStoreState): PlayerProfileBundle | null => {
   if (!state.game) return null;
   const player = state.game.players[playerId];
   if (!player) return null;
@@ -1056,18 +1093,18 @@ export const selectPlayerProfileBundle = (playerId: string) => (state: GameStore
     comparables: getPlayerComparables(player, Object.values(state.game.players)),
     projection: getPlayerProjection(player),
   };
-};
-export const selectUserTeamNeeds = (state: GameStoreState): TeamNeedsReport => {
+});
+export const selectUserTeamNeeds: (state: GameStoreState) => TeamNeedsReport = memoByGame((state) => {
   if (!state.game) return EMPTY_TEAM_NEEDS_REPORT;
   const team = selectUserTeam(state);
   return team ? teamNeedsReportFor(state.game, team) : EMPTY_TEAM_NEEDS_REPORT;
-};
-export const selectTeamNeedsById = (teamId: string) => (state: GameStoreState): TeamNeedsReport => {
+});
+export const selectTeamNeedsById = memoParamByGame((teamId: string, state: GameStoreState): TeamNeedsReport => {
   if (!state.game) return EMPTY_TEAM_NEEDS_REPORT;
   const team = state.game.teams[teamId];
   return team ? teamNeedsReportFor(state.game, team) : EMPTY_TEAM_NEEDS_REPORT;
-};
-export const selectTeamNeedsComparison = (otherTeamId: string | null) => (state: GameStoreState): TeamNeedsComparisonEntry[] => {
+});
+export const selectTeamNeedsComparison = memoParamByGame((otherTeamId: string | null, state: GameStoreState): TeamNeedsComparisonEntry[] => {
   if (!state.game || !otherTeamId) return [];
   const userTeam = selectUserTeam(state);
   const otherTeam = state.game.teams[otherTeamId];
@@ -1089,7 +1126,7 @@ export const selectTeamNeedsComparison = (otherTeamId: string | null) => (state:
       differential: Math.round(differential * 10) / 10,
     };
   });
-};
+});
 export const selectCoachingMarket: (state: GameStoreState) => CoachingMarketState = memoByGame((state) => {
   if (!state.game) return EMPTY_COACHING_MARKET;
   const team = selectUserTeam(state);
@@ -1103,10 +1140,22 @@ export const selectCoachingMarket: (state: GameStoreState) => CoachingMarketStat
   }
   return buildCoachingMarket(state.game, team.id);
 });
-export const selectSchemeTransitionPreview = (offenseScheme: string, defenseScheme: string) => (state: GameStoreState): SchemeInstallState | null => {
-  const team = selectUserTeam(state);
-  return team ? projectSchemeTransition(team, offenseScheme, defenseScheme) : null;
-};
+export const selectSchemeTransitionPreview = (() => {
+  const cache = new Map<string, (state: GameStoreState) => SchemeInstallState | null>();
+  return (offenseScheme: string, defenseScheme: string) => {
+    const key = `${offenseScheme}:${defenseScheme}`;
+    let selector = cache.get(key);
+    if (!selector) {
+      selector = memoByGame((state) => {
+        const team = selectUserTeam(state);
+        return team ? projectSchemeTransition(team, offenseScheme, defenseScheme) : null;
+      });
+      cache.set(key, selector);
+      if (cache.size > 16) cache.delete(cache.keys().next().value!);
+    }
+    return selector;
+  };
+})();
 export const selectCurrentWeeklyPrepPlan = (state: GameStoreState): WeeklyPrepPlan | null => {
   if (!state.game) return null;
   const team = selectUserTeam(state);
@@ -1352,20 +1401,56 @@ export const selectMultiYearProjection: (state: GameStoreState) => MultiYearProj
   if (!game || !team) return EMPTY_MULTI_YEAR_PROJECTION;
   return buildMultiYearProjection(team, game, 3);
 });
-export const selectLeagueLeaders = (stat: string, pos?: Position, season?: number) => (state: GameStoreState): StatLeaderEntry[] =>
-  state.game ? getStatLeaderboard(state.game, stat, season, pos) : EMPTY_STAT_LEADERBOARD;
-export const selectCareerStatLeaders = (stat: string, limit = 20) => (state: GameStoreState): CareerLeader[] =>
-  state.game ? getCareerLeaders(state.game, stat, limit) : EMPTY_CAREER_LEADERS;
-export const selectPlayerTimeline = (playerId: string) => (state: GameStoreState): CareerTimeline =>
-  state.game ? getPlayerCareerTimeline(state.game, playerId) : emptyCareerTimeline(playerId);
-export const selectPlayerCareerComparison = (playerIds: string[]) => (state: GameStoreState): PlayerComparison => {
-  const validIds = playerIds.filter((playerId) => playerId.length > 0);
-  if (!state.game || validIds.length === 0) return EMPTY_PLAYER_COMPARISON;
-  return comparePlayerCareers(state.game, validIds);
-};
-export const selectTeamSeasonHistory = (teamId: string) => (state: GameStoreState): TeamSeasonSummary[] =>
-  state.game ? getTeamSeasonHistory(state.game, teamId) : EMPTY_TEAM_SEASON_HISTORY;
-export const selectLeagueAverages = (stat: string) => (state: GameStoreState): LeagueAverageEntry[] =>
-  state.game ? getLeagueAverages(state.game, stat) : EMPTY_LEAGUE_AVERAGES;
-export const selectPositionRankings = (pos: Position) => (state: GameStoreState): PositionRanking[] =>
-  state.game ? getPositionRankings(state.game, pos) : EMPTY_POSITION_RANKINGS;
+export const selectLeagueLeaders = (() => {
+  const cache = new Map<string, (state: GameStoreState) => StatLeaderEntry[]>();
+  return (stat: string, pos?: Position, season?: number) => {
+    const key = `${stat}:${pos ?? ''}:${season ?? ''}`;
+    let selector = cache.get(key);
+    if (!selector) {
+      selector = memoByGame((state) =>
+        state.game ? getStatLeaderboard(state.game, stat, season, pos) : EMPTY_STAT_LEADERBOARD);
+      cache.set(key, selector);
+      if (cache.size > 32) cache.delete(cache.keys().next().value!);
+    }
+    return selector;
+  };
+})();
+export const selectCareerStatLeaders = (() => {
+  const cache = new Map<string, (state: GameStoreState) => CareerLeader[]>();
+  return (stat: string, limit = 20) => {
+    const key = `${stat}:${limit}`;
+    let selector = cache.get(key);
+    if (!selector) {
+      selector = memoByGame((state) =>
+        state.game ? getCareerLeaders(state.game, stat, limit) : EMPTY_CAREER_LEADERS);
+      cache.set(key, selector);
+      if (cache.size > 32) cache.delete(cache.keys().next().value!);
+    }
+    return selector;
+  };
+})();
+export const selectPlayerTimeline = memoParamByGame((playerId: string, state: GameStoreState): CareerTimeline =>
+  state.game ? getPlayerCareerTimeline(state.game, playerId) : emptyCareerTimeline(playerId));
+export const selectPlayerCareerComparison = (() => {
+  const cache = new Map<string, (state: GameStoreState) => PlayerComparison>();
+  return (playerIds: string[]) => {
+    const key = playerIds.sort().join(':');
+    let selector = cache.get(key);
+    if (!selector) {
+      selector = memoByGame((state) => {
+        const validIds = playerIds.filter((id) => id.length > 0);
+        if (!state.game || validIds.length === 0) return EMPTY_PLAYER_COMPARISON;
+        return comparePlayerCareers(state.game, validIds);
+      });
+      cache.set(key, selector);
+      if (cache.size > 16) cache.delete(cache.keys().next().value!);
+    }
+    return selector;
+  };
+})();
+export const selectTeamSeasonHistory = memoParamByGame((teamId: string, state: GameStoreState): TeamSeasonSummary[] =>
+  state.game ? getTeamSeasonHistory(state.game, teamId) : EMPTY_TEAM_SEASON_HISTORY);
+export const selectLeagueAverages = memoParamByGame((stat: string, state: GameStoreState): LeagueAverageEntry[] =>
+  state.game ? getLeagueAverages(state.game, stat) : EMPTY_LEAGUE_AVERAGES);
+export const selectPositionRankings = memoParamByGame((pos: Position, state: GameStoreState): PositionRanking[] =>
+  state.game ? getPositionRankings(state.game, pos) : EMPTY_POSITION_RANKINGS);
