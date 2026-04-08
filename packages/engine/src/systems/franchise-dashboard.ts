@@ -2,8 +2,10 @@ import type {
   FranchiseDashboard,
   FranchiseEra,
   FranchiseHistoryEntry,
+  FranchiseDoctrine,
   GameState,
 } from '../types';
+import { getDoctrinesByCategory } from './franchise-doctrines';
 import { getFranchiseLegends } from './franchise-legends';
 
 function sortHistory(history: FranchiseHistoryEntry[]): FranchiseHistoryEntry[] {
@@ -86,6 +88,14 @@ function activeStreak(history: FranchiseHistoryEntry[], predicate: (entry: Franc
   return count;
 }
 
+function sortDoctrines(doctrines: FranchiseDoctrine[]): FranchiseDoctrine[] {
+  return [...doctrines].sort((left, right) =>
+    right.earnedYear - left.earnedYear
+    || right.earnedWeek - left.earnedWeek
+    || left.name.localeCompare(right.name),
+  );
+}
+
 export function buildFranchiseDashboard(gameState: GameState, teamId: string): FranchiseDashboard {
   const team = gameState.teams[teamId]!;
   const history = sortHistory(gameState.franchiseHistory.filter((entry) => entry.teamId === teamId));
@@ -101,6 +111,7 @@ export function buildFranchiseDashboard(gameState: GameState, teamId: string): F
 
   const recent = history.slice(-5);
   const topLegends = getFranchiseLegends(gameState, teamId, 5);
+  const earnedDoctrines = sortDoctrines(gameState.earnedDoctrines ?? []);
   const currentDecadeTeam = [...gameState.allDecadeTeams]
     .filter((entry) => entry.teamId === teamId)
     .sort((a, b) => b.startYear - a.startYear)[0] ?? null;
@@ -117,6 +128,8 @@ export function buildFranchiseDashboard(gameState: GameState, teamId: string): F
     },
     topLegends,
     currentDecadeTeam,
+    earnedDoctrines,
+    doctrineGroups: getDoctrinesByCategory(earnedDoctrines),
     stadiumDealStatus: !team.franchiseIdentity.stadiumDeal
       ? 'none'
       : team.franchiseIdentity.stadiumDeal.yearsRemaining <= 1

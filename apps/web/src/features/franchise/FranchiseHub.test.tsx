@@ -32,6 +32,56 @@ const baseState = () => ({
     fanbaseTrend: [63, 68, 73, 79, 82],
     prestigeTrend: [59, 64, 69, 74, 77],
     currentEra: { name: 'Dynasty Era', startYear: 2029, description: 'A sustained title window is defining the club.' },
+    earnedDoctrines: [
+      {
+        id: 'cap_wizardry',
+        name: 'Cap Wizardry',
+        description: 'The franchise has mastered salary cap management.',
+        origin: 'Maintained 15%+ cap space for 3 consecutive years',
+        bonus: 'Restructure savings +10%.',
+        category: 'strategy',
+        earnedYear: 2028,
+        earnedWeek: 18,
+      },
+      {
+        id: 'championship_dna',
+        name: 'Championship DNA',
+        description: 'Multiple championships have created a winning culture that attracts talent.',
+        origin: 'Won 2+ Super Bowls',
+        bonus: 'Free agent signing bonus: +5 desirability rating.',
+        category: 'reputation',
+        earnedYear: 2029,
+        earnedWeek: 22,
+      },
+    ],
+    doctrineGroups: {
+      culture: [],
+      strategy: [
+        {
+          id: 'cap_wizardry',
+          name: 'Cap Wizardry',
+          description: 'The franchise has mastered salary cap management.',
+          origin: 'Maintained 15%+ cap space for 3 consecutive years',
+          bonus: 'Restructure savings +10%.',
+          category: 'strategy',
+          earnedYear: 2028,
+          earnedWeek: 18,
+        },
+      ],
+      reputation: [
+        {
+          id: 'championship_dna',
+          name: 'Championship DNA',
+          description: 'Multiple championships have created a winning culture that attracts talent.',
+          origin: 'Won 2+ Super Bowls',
+          bonus: 'Free agent signing bonus: +5 desirability rating.',
+          category: 'reputation',
+          earnedYear: 2029,
+          earnedWeek: 22,
+        },
+      ],
+      personnel: [],
+    },
   },
   eras: [
     { name: 'Dark Ages', startYear: 2024, endYear: 2026, description: 'Lean years.' },
@@ -92,9 +142,31 @@ describe('FranchiseHub', () => {
     expect(markup).toContain('Accept');
   });
 
+  it('renders earned doctrines with origin and bonus details', () => {
+    const markup = renderToStaticMarkup(<FranchiseHub />);
+    expect(markup).toContain('FRANCHISE DOCTRINES');
+    expect(markup).toContain('Cap Wizardry');
+    expect(markup).toContain('Championship DNA');
+    expect(markup).toContain('Restructure savings +10%.');
+    expect(markup).toContain('Earned Y2029 // W22');
+  });
+
   it('shows the empty naming rights state when there are no offers', () => {
     mockState.offers = [];
     const markup = renderToStaticMarkup(<FranchiseHub />);
     expect(markup).toContain('No fresh offers are on the desk');
+  });
+
+  it('shows a stable empty state when no doctrines are unlocked', () => {
+    mockState.dashboard.earnedDoctrines = [];
+    mockState.dashboard.doctrineGroups = {
+      culture: [],
+      strategy: [],
+      reputation: [],
+      personnel: [],
+    };
+    const markup = renderToStaticMarkup(<FranchiseHub />);
+    expect(markup).toContain('FRANCHISE DOCTRINES');
+    expect(markup).toContain('No doctrines unlocked yet');
   });
 });

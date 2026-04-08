@@ -23,6 +23,13 @@ import {
   TrendSparkline,
 } from './franchiseUi';
 
+const DOCTRINE_ACCENTS = {
+  culture: 'green',
+  strategy: 'gold',
+  reputation: 'cyan',
+  personnel: 'default',
+} as const;
+
 function navigateTo(path: string) {
   if (typeof window === 'undefined') return;
   window.location.hash = path;
@@ -52,6 +59,13 @@ export function FranchiseHub() {
 
   const activeDeal = dashboard.identity.stadiumDeal;
   const identity = dashboard.identity;
+  const doctrineGroups = dashboard.doctrineGroups ?? {
+    culture: [],
+    strategy: [],
+    reputation: [],
+    personnel: [],
+  };
+  const hasDoctrines = dashboard.earnedDoctrines.length > 0;
 
   return (
     <div style={screenStackStyle}>
@@ -134,6 +148,61 @@ export function FranchiseHub() {
             <LegendCard key={legend.playerId} legend={legend} index={index} />
           ))}
         </div>
+      </PixelPanel>
+
+      <PixelPanel title="Franchise Doctrines" accent="cyan">
+        {!hasDoctrines ? (
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+            No doctrines unlocked yet. Win defining seasons and shape the franchise identity to earn permanent philosophies.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {(Object.entries(doctrineGroups) as Array<[keyof typeof doctrineGroups, typeof dashboard.earnedDoctrines]>)
+              .filter(([, doctrines]) => doctrines.length > 0)
+              .map(([category, doctrines]) => (
+                <div key={category} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <PixelBadge variant={DOCTRINE_ACCENTS[category]}>{category.toUpperCase()}</PixelBadge>
+                    <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{doctrines.length} unlocked</span>
+                  </div>
+                  <div style={autoGrid(260)}>
+                    {doctrines.map((doctrine) => (
+                      <div
+                        key={doctrine.id}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                          padding: '10px',
+                          border: '2px solid var(--mfd-border)',
+                          background: 'var(--mfd-bg-2)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <div style={{ ...display, fontSize: '18px', color: 'var(--mfd-text)', lineHeight: 1 }}>
+                            {doctrine.name}
+                          </div>
+                          <PixelBadge variant={DOCTRINE_ACCENTS[category]}>{category.toUpperCase()}</PixelBadge>
+                        </div>
+                        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+                          {doctrine.description}
+                        </div>
+                        <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>
+                          Origin: {doctrine.origin}
+                        </div>
+                        <div style={{ ...monoSm, color: 'var(--mfd-green)' }}>
+                          Bonus: {doctrine.bonus}
+                        </div>
+                        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                          Earned Y{doctrine.earnedYear} // W{doctrine.earnedWeek}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
       </PixelPanel>
 
       <div style={autoGrid(320)}>

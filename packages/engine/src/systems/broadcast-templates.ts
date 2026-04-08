@@ -232,6 +232,25 @@ export const overtimeLeads = [
   'Nobody is blinking in overtime.',
 ] as const;
 
+export const PLAYBOOK_BRIDGE_TEMPLATES = {
+  run: [
+    '{{offensivePlay}} is the call into {{defensivePlay}}.',
+    'They dial up {{offensivePlay}} against {{defensivePlay}}.',
+  ] as const,
+  pass: [
+    '{{offensivePlay}} gets drawn up against {{defensivePlay}}.',
+    'The booth spots {{offensivePlay}} attacking {{defensivePlay}}.',
+  ] as const,
+  touchdown: [
+    '{{offensivePlay}} breaks through the {{defensivePlay}} look for the finish.',
+    '{{offensivePlay}} wins the rep against {{defensivePlay}} at the goal line.',
+  ] as const,
+  turnover: [
+    '{{offensivePlay}} runs straight into {{defensivePlay}} and the defense steals the snap.',
+    '{{defensivePlay}} blows up {{offensivePlay}} and flips possession.',
+  ] as const,
+} as const;
+
 export const BROADCAST_COMMENTARY_TEMPLATES = {
   routine_run,
   routine_pass,

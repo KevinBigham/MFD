@@ -306,6 +306,31 @@ describe('broadcast', () => {
     expect(left).toEqual(right);
   });
 
+  it('attaches playbook metadata to synthetic plays and uses that data in commentary', () => {
+    const { home, away } = makeTeams();
+    const broadcast = generateBroadcast(makeResult(), home, away, mulberry32(17));
+    const taggedPlay = flattenPlays(broadcast).find((play) => play.type === 'run' || play.type === 'pass');
+
+    expect(taggedPlay).toBeTruthy();
+    expect(taggedPlay?.offensivePlayId).toBeTruthy();
+    expect(taggedPlay?.offensivePlayName).toBeTruthy();
+    expect(taggedPlay?.defensivePlayId).toBeTruthy();
+    expect(taggedPlay?.defensivePlayName).toBeTruthy();
+    expect(taggedPlay?.commentary).toContain(taggedPlay?.offensivePlayName ?? '');
+  });
+
+  it('adds leverage tiers and selective win probability notes to swing moments', () => {
+    const { home, away } = makeTeams();
+    const broadcast = generateBroadcast(makeResult(), home, away, mulberry32(17));
+    const plays = flattenPlays(broadcast);
+    const leveragePlay = plays.find((play) => (play.leverageIndex ?? 0) >= 4);
+
+    expect(leveragePlay).toBeTruthy();
+    expect(leveragePlay?.leverageTier).toMatch(/ELEVATED|HIGH|CRITICAL/);
+    expect(leveragePlay?.winProbabilityNote).toBeTruthy();
+    expect(plays.some((play) => play.winProbabilityNote == null)).toBe(true);
+  });
+
   it('flags big plays, touchdowns, turnovers, and clutch moments', () => {
     const { home, away } = makeTeams();
     const broadcast = generateBroadcast(makeResult(), home, away, mulberry32(21));

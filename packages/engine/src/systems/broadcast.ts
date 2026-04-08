@@ -1,8 +1,10 @@
-import type { PrngFn } from '../rng';
+import { mulberry32, type PrngFn } from '../rng';
 import type {
   BroadcastOutput,
+  DefensiveGamePlan,
   DriveNarrative,
   GameResult,
+  OffensiveGamePlan,
   PlayDescription,
   Player,
   PlayerGameLine,
@@ -14,9 +16,24 @@ import {
   clutchLeads,
   heroicLeads,
   overtimeLeads,
+  PLAYBOOK_BRIDGE_TEMPLATES,
   rivalryLeads,
   underdogLeads,
 } from './broadcast-templates';
+import {
+  OFFENSIVE_PLAYS,
+  determineSituation,
+  selectDefensivePlay,
+  selectOffensivePlay,
+  type DefensivePlayDef,
+  type PlayDef,
+} from './playbook';
+import {
+  calculateLeverageIndex,
+  calculateWinProbability,
+  leverageLabel,
+  winProbabilityNarrative,
+} from './win-probability';
 
 type ScoringType = 'pass_td' | 'rush_td' | 'field_goal';
 
@@ -73,6 +90,10 @@ function randInt(rng: PrngFn, min: number, max: number): number {
 
 function pickWithRng<T>(items: readonly T[], rng: PrngFn): T {
   return items[Math.floor(rng() * items.length)]!;
+}
+
+function hashString(value: string): number {
+  return [...value].reduce((hash, char) => ((hash * 33) ^ char.charCodeAt(0)) >>> 0, 5381);
 }
 
 function teamLabel(team: Team): string {
@@ -412,6 +433,193 @@ function computeExcitement(
   return clamp(Number(excitement.toFixed(2)), 0, 1);
 }
 
+function resolvePlaybookCategory(
+  type: PlayDescription['type'],
+  playerIds: string[],
+): 'run' | 'pass' | null {
+  if (type === 'run') return 'run';
+  if (type === 'pass' || type === 'sack') return 'pass';
+  if (type === 'touchdown') return playerIds.length > 1 ? 'pass' : 'run';
+  if (type === 'turnover') return playerIds.length > 1 ? 'pass' : 'run';
+  return null;
+}
+
+function resolveOffensivePlan(scoreDiff: number, quarter: number): OffensiveGamePlan {
+  if (quarter >= 4 && scoreDiff <= -7) return 'pass_heavy';
+  if (quarter >= 4 && scoreDiff >= 10) return 'run_heavy';
+  if (scoreDiff <= -14) return 'spread';
+  if (scoreDiff >= 14) return 'power';
+  return 'balanced';
+}
+
+function resolveDefensivePlan(scoreDiff: number, quarter: number): DefensiveGamePlan {
+  if (quarter >= 4 && scoreDiff <= -7) return 'blitz_heavy';
+  if (quarter >= 4 && scoreDiff >= 10) return 'coverage';
+  if (Math.abs(scoreDiff) <= 3) return 'aggressive';
+  return 'base';
+}
+
+function estimateYardsToGo(type: PlayDescription['type'], yardsGained: number): number {
+  if (type === 'fieldGoal' || type === 'punt') return 10;
+  if (type === 'touchdown') return Math.max(1, 3 - Math.min(2, Math.abs(yardsGained) / 10));
+  return clamp(10 - Math.max(0, Math.min(8, Math.floor(Math.abs(yardsGained) / 3))), 1, 10);
+}
+
+function estimateTimeRemainingSeconds(quarter: number, isClutch: boolean): number {
+  if (quarter >= 5) return 300;
+  if (quarter === 4) return isClutch ? 90 : 420;
+  if (quarter === 3) return 1020;
+  if (quarter === 2) return 1860;
+  return 2760;
+}
+
+function scoreDiffShift(
+  type: PlayDescription['type'],
+  isBigPlay: boolean,
+): number {
+  switch (type) {
+    case 'touchdown':
+      return 7;
+    case 'fieldGoal':
+      return 3;
+    case 'turnover':
+      return -3;
+    case 'sack':
+      return -1;
+    case 'run':
+    case 'pass':
+      return isBigPlay ? 1 : 0;
+    default:
+      return 0;
+  }
+}
+
+function selectOffensivePlayForCategory(
+  rng: PrngFn,
+  situation: ReturnType<typeof determineSituation>,
+  offSchemeId: string,
+  offPlan: OffensiveGamePlan,
+  category: 'run' | 'pass',
+): PlayDef {
+  const fallback = selectOffensivePlay(rng, situation, offSchemeId, offPlan);
+  if (fallback.category === category) return fallback;
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const candidate = selectOffensivePlay(rng, situation, offSchemeId, offPlan);
+    if (candidate.category === category) return candidate;
+  }
+
+  return pickWithRng(OFFENSIVE_PLAYS.filter((play) => play.category === category), rng);
+}
+
+function ensureSentence(value: string): string {
+  const trimmed = value.trim().replace(/\s*[—-]\s*$/, '').trim();
+  if (trimmed.length === 0) return '';
+  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
+function buildPlaybookSelectionRng(
+  type: PlayDescription['type'],
+  team: Team,
+  quarter: number,
+  scoreDiff: number,
+  yardsGained: number,
+  playerIds: string[],
+): PrngFn {
+  const seed = (
+    hashString(team.id)
+    ^ hashString(`${type}:${quarter}:${scoreDiff}:${yardsGained}`)
+    ^ hashString(playerIds.join(':'))
+  ) >>> 0;
+  return mulberry32(seed);
+}
+
+function derivePlayMetadata(
+  type: PlayDescription['type'],
+  team: Team,
+  quarter: number,
+  scoreDiff: number,
+  yardsGained: number,
+  playerIds: string[],
+  isBigPlay: boolean,
+  isClutch: boolean,
+): {
+  offensivePlay?: PlayDef;
+  defensivePlay?: DefensivePlayDef;
+  leverageIndex: number;
+  leverageTier: string;
+  winProbabilityNote?: string;
+} {
+  const timeRemainingSeconds = estimateTimeRemainingSeconds(quarter, isClutch);
+  const leverageBase = calculateLeverageIndex(scoreDiff, quarter, timeRemainingSeconds);
+  const leverageAdjustment = quarter === 1 ? 0.45 : quarter === 2 ? 0.7 : quarter === 3 ? 0.9 : 1;
+  const leverageIndex = Math.round(leverageBase * leverageAdjustment * 10) / 10;
+  const leverageTier = leverageLabel(leverageIndex);
+  const category = resolvePlaybookCategory(type, playerIds);
+  const isRedZone = type === 'touchdown' || type === 'fieldGoal';
+  const yardsToGo = estimateYardsToGo(type, yardsGained);
+  const situation = determineSituation(quarter, scoreDiff, isRedZone, yardsToGo, timeRemainingSeconds);
+  const selectionRng = buildPlaybookSelectionRng(type, team, quarter, scoreDiff, yardsGained, playerIds);
+  const offensivePlay = category
+    ? selectOffensivePlayForCategory(selectionRng, situation, team.offScheme, resolveOffensivePlan(scoreDiff, quarter), category)
+    : undefined;
+  const defensivePlay = offensivePlay
+    ? selectDefensivePlay(selectionRng, situation, resolveDefensivePlan(scoreDiff, quarter))
+    : undefined;
+  const wpBefore = calculateWinProbability(scoreDiff, quarter, timeRemainingSeconds, true);
+  const swing = scoreDiffShift(type, isBigPlay);
+  const wpAfter = calculateWinProbability(
+    scoreDiff + swing,
+    quarter,
+    Math.max(15, timeRemainingSeconds - 25),
+    !['fieldGoal', 'punt', 'touchdown', 'turnover'].includes(type),
+  );
+  const narrative = winProbabilityNarrative(team.name, wpBefore, wpAfter);
+  const winProbabilityNote = leverageIndex >= 4
+    ? (narrative ?? `${team.name} just pushed this drive into ${leverageTier} leverage territory.`)
+    : (Math.abs(swing) >= 3 ? (narrative ?? undefined) : undefined);
+
+  return {
+    offensivePlay,
+    defensivePlay,
+    leverageIndex,
+    leverageTier,
+    winProbabilityNote,
+  };
+}
+
+function playbookBridgeCategory(type: PlayDescription['type']): keyof typeof PLAYBOOK_BRIDGE_TEMPLATES | null {
+  if (type === 'run') return 'run';
+  if (type === 'pass' || type === 'sack') return 'pass';
+  if (type === 'touchdown') return 'touchdown';
+  if (type === 'turnover') return 'turnover';
+  return null;
+}
+
+function buildPlaybookBridge(
+  type: PlayDescription['type'],
+  offensivePlay: PlayDef | undefined,
+  defensivePlay: DefensivePlayDef | undefined,
+  player: string,
+  target: string,
+  rng: PrngFn,
+): string | null {
+  const bridgeCategory = playbookBridgeCategory(type);
+  if (!bridgeCategory || !offensivePlay || !defensivePlay) return null;
+
+  const intro = replaceTokens(pickWithRng(PLAYBOOK_BRIDGE_TEMPLATES[bridgeCategory], rng), {
+    offensivePlay: offensivePlay.name,
+    defensivePlay: defensivePlay.name,
+  });
+  const offensiveHook = ensureSentence(replaceTokens(offensivePlay.commentary, {
+    player,
+    target,
+  }));
+  const defensiveHook = ensureSentence(defensivePlay.commentary);
+
+  return [intro, offensiveHook, defensiveHook].filter(Boolean).join(' ');
+}
+
 function createPlay(
   type: PlayDescription['type'],
   yardsGained: number,
@@ -427,6 +635,7 @@ function createPlay(
   const isBigPlay = type === 'touchdown' || type === 'turnover' || Math.abs(yardsGained) >= 20;
   const isClutch = quarter === 4 && Math.abs(scoreDiff) <= 7;
   const excitement = computeExcitement(type, yardsGained, isBigPlay, isClutch, isRivalry);
+  const metadata = derivePlayMetadata(type, team, quarter, scoreDiff, yardsGained, playerIds, isBigPlay, isClutch);
   const template = generatePlayCommentary({
     type,
     yardsGained,
@@ -440,23 +649,39 @@ function createPlay(
     quarter,
     isRivalry,
     playerOvr,
-  }, rng);
+    }, rng);
   const primaryName = playerIds[0] ? names[playerIds[0]] ?? playerIds[0] : 'the offense';
   const secondaryName = playerIds[1] ? names[playerIds[1]] ?? playerIds[1] : primaryName;
-
-  return {
-    type,
-    yardsGained,
-    playerIds,
-    commentary: replaceTokens(template, {
+  const bridge = buildPlaybookBridge(type, metadata.offensivePlay, metadata.defensivePlay, primaryName, secondaryName, rng);
+  const winProbabilityNote = metadata.leverageIndex >= 4 || metadata.winProbabilityNote
+    ? metadata.winProbabilityNote
+    : undefined;
+  const commentary = [
+    replaceTokens(template, {
       player: primaryName,
       yards: String(Math.abs(yardsGained)),
       team: team.name,
       secondary: secondaryName,
     }),
+    bridge,
+    winProbabilityNote,
+  ].filter(Boolean).join(' ');
+
+  return {
+    type,
+    yardsGained,
+    playerIds,
+    commentary,
     excitement,
     isBigPlay,
     isClutch,
+    offensivePlayId: metadata.offensivePlay?.id,
+    offensivePlayName: metadata.offensivePlay?.name,
+    defensivePlayId: metadata.defensivePlay?.id,
+    defensivePlayName: metadata.defensivePlay?.name,
+    leverageIndex: metadata.leverageIndex,
+    leverageTier: metadata.leverageTier,
+    winProbabilityNote,
   };
 }
 

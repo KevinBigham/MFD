@@ -1740,6 +1740,13 @@ export interface PlayDescription {
   excitement: number;
   isBigPlay: boolean;
   isClutch: boolean;
+  offensivePlayId?: string;
+  offensivePlayName?: string;
+  defensivePlayId?: string;
+  defensivePlayName?: string;
+  leverageIndex?: number;
+  leverageTier?: string;
+  winProbabilityNote?: string;
 }
 
 export interface DriveNarrative {
@@ -2648,6 +2655,19 @@ export interface FranchiseEra {
   description: string;
 }
 
+export type DoctrineCategory = 'culture' | 'strategy' | 'reputation' | 'personnel';
+
+export interface FranchiseDoctrine {
+  id: string;
+  name: string;
+  description: string;
+  origin: string;
+  bonus: string;
+  category: DoctrineCategory;
+  earnedYear: number;
+  earnedWeek: number;
+}
+
 export interface FranchiseDashboard {
   identity: FranchiseIdentity;
   allTimeRecord: { wins: number; losses: number; ties: number; winPct: number };
@@ -2660,6 +2680,8 @@ export interface FranchiseDashboard {
   fanbaseTrend: number[];
   prestigeTrend: number[];
   currentEra: { name: string; startYear: number; description: string };
+  earnedDoctrines: FranchiseDoctrine[];
+  doctrineGroups: Record<DoctrineCategory, FranchiseDoctrine[]>;
 }
 
 export interface ReportSection {
@@ -2951,16 +2973,7 @@ export interface GameState {
   draftRecaps?: DraftRecap[];
   tradeSuggestions?: TradeSuggestion[];
   trainingCampResults?: TrainingCampReport[];
-  earnedDoctrines?: Array<{
-    id: string;
-    name: string;
-    description: string;
-    origin: string;
-    bonus: string;
-    category: 'culture' | 'strategy' | 'reputation' | 'personnel';
-    earnedYear: number;
-    earnedWeek: number;
-  }>;
+  earnedDoctrines?: FranchiseDoctrine[];
 }
 
 export type SeasonPhase =
