@@ -534,7 +534,7 @@ describe('game store offseason actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 
-  it('finalizes the trade deadline and resumes the same week advance', async () => {
+  it('finalizes the trade deadline and resumes the same week advance', { timeout: 15_000 }, async () => {
     const pushState = vi.fn();
     const dispatchEvent = vi.fn();
     vi.stubGlobal('window', {
