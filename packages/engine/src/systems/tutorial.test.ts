@@ -10,14 +10,14 @@ import {
 import { makeLeagueState } from './test-helpers';
 
 describe('tutorial', () => {
-  it('starts with twelve active steps on a new tutorial state', () => {
+  it('starts with sixteen active steps on a new tutorial state', () => {
     const tutorial = createDefaultTutorialState();
 
     expect(tutorial.active).toBe(true);
     expect(tutorial.currentStepIndex).toBe(0);
-    expect(tutorial.steps).toHaveLength(12);
+    expect(tutorial.steps).toHaveLength(16);
     expect(tutorial.steps[0]?.title).toBe('Welcome');
-    expect(tutorial.steps[11]?.title).toBe("You're Ready!");
+    expect(tutorial.steps[15]?.title).toBe("You're Ready!");
   });
 
   it('advanceTutorial progresses correctly', () => {
@@ -55,6 +55,37 @@ describe('tutorial', () => {
 
     expect(game.tutorialState.completedSteps).toContain('check_roster');
     expect(game.tutorialState.currentStepIndex).toBe(2);
+  });
+
+  it('assigns navigation selectors to route-driven steps and keeps you are ready last', () => {
+    const tutorial = createDefaultTutorialState();
+    const rosterStep = tutorial.steps.find((step) => step.id === 'check_roster');
+    const advanceWeekStep = tutorial.steps.find((step) => step.id === 'advance_week');
+    const finalStep = tutorial.steps.at(-1);
+
+    expect(rosterStep?.targetElement).toBe('[data-nav="/roster"]');
+    expect(advanceWeekStep?.targetElement).toBe('[data-nav="/week-advance"]');
+    expect(finalStep?.id).toBe('you_are_ready');
+  });
+
+  it('includes the convention demo steps before the final tutorial step', () => {
+    const tutorial = createDefaultTutorialState();
+    const ids = tutorial.steps.map((step) => step.id);
+
+    expect(ids).toContain('check_game_plan');
+    expect(ids).toContain('review_broadcast');
+    expect(ids).toContain('explore_trades');
+    expect(ids).toContain('check_franchise');
+    expect(ids.indexOf('check_franchise')).toBeLessThan(ids.indexOf('you_are_ready'));
+  });
+
+  it('updates the final readiness copy and demo-step selectors', () => {
+    const tutorial = createDefaultTutorialState();
+    const gamePlanStep = tutorial.steps.find((step) => step.id === 'check_game_plan');
+    const finalStep = tutorial.steps.at(-1);
+
+    expect(gamePlanStep?.targetElement).toBe('[data-nav="/game-plan"]');
+    expect(finalStep?.description).toBe('You have the tools to build a dynasty. Play your way — there are no wrong answers, only your story. Good luck, Coach.');
   });
 
   it('mutating steps require their explicit action instead of just visiting the screen', () => {

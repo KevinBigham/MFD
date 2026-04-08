@@ -30,6 +30,8 @@ vi.mock('@mfd/engine', () => ({
   getAvailableScenarios: () => [{ id: 'rebuild', name: 'Rebuild', tagline: 'Start over', description: 'Rebuild a franchise', difficulty: 'pro', seasonLimit: 5 }],
   mulberry32: vi.fn(),
   startScenario: vi.fn(),
+  generateConventionSave: vi.fn(),
+  CONVENTION_SAVE_METADATA: { headline: 'Test headline', week: 14, description: 'Test', team: 'Test' },
 }));
 
 import { NewGameScreen } from './NewGameScreen';

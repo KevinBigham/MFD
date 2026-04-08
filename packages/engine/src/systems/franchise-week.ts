@@ -3,6 +3,8 @@ import { RNG, mulberry32, reseedSeason, reseedWeek, setSeed } from '../rng';
 import { getAdaptiveModifier, updateAdaptiveDifficulty } from './adaptive-difficulty';
 import { checkAchievements } from './achievements';
 import { advanceDraft, ensureDraftClass, finalizePostDraft } from './draft';
+import { resolveCallYourShot, type CallYourShotResult } from './call-your-shot';
+import { generateNearMissReceipts, hasNotableNearMisses } from './near-miss-receipts';
 import { runAllTrainingCamps } from './training-camp';
 import { checkForNamedGame } from './named-games';
 import { calculateDynastyWindow } from './dynasty-window';
@@ -64,6 +66,7 @@ import {
   recordPressConference,
 } from './press-conference';
 import { updatePowerRankings } from './power-rankings';
+import { shouldShowSaveReminder } from './save-reminder';
 import {
   createRivalryTrashTalkPost,
   detectNewRivalries,
@@ -224,6 +227,19 @@ function mergePlayerBonuses(...maps: Array<Record<string, number> | undefined>):
     }
   }
   return merged;
+}
+
+function resolveActiveCallYourShot(
+  game: GameState,
+  result: GameResult,
+  userTeamId: string | null,
+): CallYourShotResult | undefined {
+  if (!userTeamId || !game.activeCallYourShot) return undefined;
+  if (result.homeTeamId !== userTeamId && result.awayTeamId !== userTeamId) return undefined;
+
+  const shotResult = resolveCallYourShot(RNG.event, game.activeCallYourShot, result, userTeamId);
+  delete game.activeCallYourShot;
+  return shotResult;
 }
 
 function deadlineAlreadyResolved(game: GameState): boolean {
@@ -395,6 +411,9 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   const previousRecord = startingUser ? `${startingUser.wins}-${startingUser.losses}${startingUser.ties ? `-${startingUser.ties}` : ''}` : '0-0';
   let ownerDelta = 0;
   let userResult: GameResult | null = null;
+  let callYourShotResult: CallYourShotResult | undefined;
+  let nearMissReceipts: GameState['seasonNearMissReceipts'] | undefined;
+  let showSaveReminder: boolean | undefined;
   let userOpponent: Team | null = null;
   let userInjuries: WeeklyInjurySummary[] = [];
   let userRivalry: RivalryGameContext | null = null;
@@ -597,6 +616,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       outcome.result.broadcastNetwork = matchup.broadcastNetwork;
       outcome.result.primetime = matchup.primetime;
       outcome.result.flexed = matchup.flexed;
+      callYourShotResult ??= resolveActiveCallYourShot(nextState, outcome.result, startingUser?.id ?? null);
       if (home.isUser || away.isUser) {
         outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
         // Ghost broadcast lines from retired HOFers
@@ -796,6 +816,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         rivalryIntensity: rivalry?.intensity ?? 0,
         homeFieldBonus: getStadiumHomeFieldBonus(home.franchiseIdentity),
       });
+      callYourShotResult ??= resolveActiveCallYourShot(nextState, outcome.result, startingUser?.id ?? null);
       if (home.isUser || away.isUser) {
         outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
       }
@@ -907,7 +928,16 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       }
 
       nextState.phase = 'offseason';
+      delete nextState.seasonNearMissReceipts;
+      if (nextState.nearMissTracker) {
+        if (hasNotableNearMisses(nextState.nearMissTracker)) {
+          nearMissReceipts = generateNearMissReceipts(RNG.event, nextState.nearMissTracker);
+          nextState.seasonNearMissReceipts = nearMissReceipts;
+        }
+        delete nextState.nearMissTracker;
+      }
       nextState.year += 1;
+      showSaveReminder = shouldShowSaveReminder(nextState.year, nextState.lastManualSaveYear ?? null);
       nextState.week = 1;
       ensureDraftClass(nextState);
       nextState.offseasonState = initializeOffseasonState(nextState);
@@ -1094,5 +1124,9 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         severity: ownerDelta >= 0 ? 'positive' : 'negative',
       },
     ] satisfies Consequence[],
+    milestones: userMilestoneMoments,
+    callYourShotResult,
+    nearMissReceipts,
+    showSaveReminder,
   };
 }

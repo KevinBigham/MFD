@@ -1,4 +1,5 @@
 import { DIFF_SETTINGS, type DifficultyLevel } from '@mfd/engine';
+import { useAudio } from '../audio/AudioManager';
 import {
   PixelBadge,
   PixelButton,
@@ -56,6 +57,7 @@ export function Settings() {
   const setAutosaveEnabled = useUiStore((state) => state.setAutosaveEnabled);
   const simSpeed = useUiStore((state) => state.simSpeed);
   const setSimSpeed = useUiStore((state) => state.setSimSpeed);
+  const audio = useAudio();
   const currentMedical = medicalStaff.current;
   const availableMedicalStaff = medicalStaff.available;
   const medicalHiringOpen = phase === 'offseason';
@@ -173,6 +175,61 @@ export function Settings() {
                 ))}
               </div>
             </div>
+          </div>
+        </PixelPanel>
+
+        <PixelPanel title="Audio" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ ...monoSm, color: '#fff' }}>Sound Effects</span>
+                <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                  28 procedural SFX — UI feedback, game events, milestones.
+                </span>
+              </div>
+              <PixelButton
+                type="button"
+                accent={audio.muted ? 'red' : 'green'}
+                onClick={audio.toggleMute}
+              >
+                {audio.muted ? 'Unmute Audio' : 'Mute Audio'}
+              </PixelButton>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ ...monoSm, color: '#fff' }}>Volume</span>
+                <PixelBadge variant={audio.muted ? 'red' : 'green'}>
+                  {audio.muted ? 'MUTED' : `${Math.round(audio.volume * 100)}%`}
+                </PixelBadge>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(audio.volume * 100)}
+                onChange={(e) => audio.setVolume(Number(e.target.value) / 100)}
+                disabled={audio.muted}
+                style={{
+                  width: '100%',
+                  height: '6px',
+                  appearance: 'none',
+                  background: audio.muted ? 'var(--mfd-bg-2)' : 'var(--mfd-gold)',
+                  border: '1px solid var(--mfd-border)',
+                  cursor: audio.muted ? 'not-allowed' : 'pointer',
+                  accentColor: 'var(--mfd-gold)',
+                }}
+              />
+            </div>
+
+            <PixelButton
+              type="button"
+              accent="cyan"
+              onClick={() => audio.play('notification')}
+              disabled={audio.muted}
+            >
+              Test Sound
+            </PixelButton>
           </div>
         </PixelPanel>
 

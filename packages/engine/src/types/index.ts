@@ -458,6 +458,7 @@ export interface Team {
   franchiseIdentity: FranchiseIdentity;
   lockerRoom: LockerRoomState;
   retiredJerseys: JerseyRetirement[];
+  era?: string | null;
   specialTeams?: SpecialTeamsState;
   staffChemistry?: import('../systems/coordinator-chemistry').StaffChemistry;
   positionCoaches?: import('../systems/position-coaches').PositionCoachStaff;
@@ -1520,6 +1521,7 @@ export interface GamePlan {
   defensiveScheme: DefensiveGamePlan;
   keyMatchup: { playerA: string; playerB: string } | null;
   gamePlanBonus: number;
+  contingencyRules?: import('../systems/contingency-plans').ContingencyRule[];
 }
 
 export interface OpponentReport {
@@ -1795,6 +1797,12 @@ export interface GameResult {
   flexed?: boolean;
   specialTeams?: Record<string, SpecialTeamsGameSummary>;
   playerMatchupEvents: PlayerMatchupEvent[];
+  contingencyActivations?: Array<{
+    teamId: string;
+    ruleId: string;
+    label: string;
+    quarter: number;
+  }>;
 }
 
 export interface GameStats {
@@ -2612,6 +2620,15 @@ export interface HallOfFameEntry {
   };
   highlights: string[];
   teams: string[];
+  epilogue?: import('../systems/career-epilogues').CareerEpilogue;
+}
+
+export interface PendingPassedPickTarget {
+  prospectId: string;
+  playerName: string;
+  playerOvr: number;
+  round: number;
+  pickNumber: number;
 }
 
 export interface AllDecadeTeamEntry {
@@ -2911,9 +2928,12 @@ export interface GameState {
   recentMilestones: MilestoneReached[];
   awardsHistory: AwardsHistoryEntry[];
   hallOfFame: HallOfFameEntry[];
+  ballotWaitlist?: import('../systems/hall-of-fame').HOFBallotEntry[];
+  ballotEliminatedIds?: string[];
   allDecadeTeams: AllDecadeTeam[];
   powerRankings: PowerRanking[];
   franchiseHistory: FranchiseHistoryEntry[];
+  userDynastyEras?: import('../systems/dynasty-era').DynastyEra[];
   playerArchive: PlayerArchiveEntry[];
   playerSeasonHistory: Record<string, PlayerSeasonHistoryEntry[]>;
   playerRivalries: PlayerRivalry[];
@@ -2947,6 +2967,8 @@ export interface GameState {
   warRoomState: WarRoomState | null;
   contractExtensions: ContractExtensionRecord[];
   difficultyState: DifficultyState;
+  activeMentors?: import('../systems/alumni-mentors').AlumniMentor[];
+  mentorBudget?: number;
   availableMedicalStaff: MedicalStaff[];
   playoffMomentum: Record<string, PlayoffMomentum>;
   scoutingDepartment: ScoutingDepartment;
@@ -2974,6 +2996,11 @@ export interface GameState {
   tradeSuggestions?: TradeSuggestion[];
   trainingCampResults?: TrainingCampReport[];
   earnedDoctrines?: FranchiseDoctrine[];
+  nearMissTracker?: import('../systems/near-miss-receipts').NearMissTracker;
+  seasonNearMissReceipts?: import('../systems/near-miss-receipts').NearMissEntry[];
+  pendingPassedPickTargets?: PendingPassedPickTarget[];
+  activeCallYourShot?: import('../systems/call-your-shot').ShotDeclaration;
+  lastManualSaveYear?: number;
 }
 
 export type SeasonPhase =
@@ -3064,4 +3091,8 @@ export interface EngineOutput {
   nextState: GameState;
   events: GameEvent[];
   consequences: Consequence[];
+  milestones?: MilestoneReached[];
+  callYourShotResult?: import('../systems/call-your-shot').CallYourShotResult;
+  nearMissReceipts?: import('../systems/near-miss-receipts').NearMissEntry[];
+  showSaveReminder?: boolean;
 }

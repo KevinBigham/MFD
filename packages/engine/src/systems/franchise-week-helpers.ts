@@ -95,6 +95,7 @@ export function simulateGame(
     awayMvpId,
     weather,
     matchupHighlight,
+    contingencyActivations,
   } = sim;
 
   // Apply player box score lines to season stats
@@ -123,6 +124,7 @@ export function simulateGame(
       matchupHighlight,
       specialTeams: sim.specialTeams,
       playerMatchupEvents: sim.playerMatchupEvents,
+      contingencyActivations,
     },
     injuries: {
       [home.id]: maybeInjure(game, home, diff.injMod),

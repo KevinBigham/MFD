@@ -79,6 +79,16 @@ vi.mock('../../app/store/game-store', () => ({
   selectPhase: (state: { game: typeof gameState }) => state.game.phase,
 }));
 
+vi.mock('../audio/AudioManager', () => ({
+  useAudio: () => ({
+    play: vi.fn(),
+    muted: false,
+    toggleMute: vi.fn(),
+    volume: 0.5,
+    setVolume: vi.fn(),
+  }),
+}));
+
 vi.mock('../../app/store/ui-store', () => ({
   useUiStore: (selector: (state: typeof uiState & {
     setAutosaveEnabled: () => void;

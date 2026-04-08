@@ -18,6 +18,7 @@ import { assignJerseyNumber } from './jersey-retirement';
 import { getActiveRule } from './league-rules';
 import { recordNewsItem } from './league-news';
 import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
+import { createNearMissTracker, recordPassedPick } from './near-miss-receipts';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { applyScoutAccuracy, bestScoutForProspect, runCombine } from './scouting-staff';
 import { mulberry32 } from '../rng';
@@ -53,6 +54,11 @@ function refreshRosterState(team: Team): void {
 
 function findUserTeam(game: GameState): Team | null {
   return Object.values(game.teams).find((team) => team.isUser) ?? null;
+}
+
+function ensureNearMissTracker(game: GameState) {
+  game.nearMissTracker ??= createNearMissTracker();
+  return game.nearMissTracker;
 }
 
 function getDraftRounds(game: GameState | null, year: number): number {
@@ -301,6 +307,51 @@ function applyDraftSelection(game: GameState, teamId: string, prospectId: string
   }
 }
 
+function queuePassedPickTarget(
+  game: GameState,
+  selectedProspect: DraftProspect,
+): void {
+  if (!game.offseasonState) return;
+  const currentEntry = game.offseasonState.draftOrder[game.offseasonState.currentDraftPickIndex];
+  const userTeam = findUserTeam(game);
+  if (!currentEntry || !userTeam || currentEntry.teamId !== userTeam.id) return;
+
+  const bypassedProspect = [...game.draftClass]
+    .filter((prospect) => prospect.id !== selectedProspect.id && prospect.trueGrade > selectedProspect.trueGrade)
+    .sort((a, b) => b.trueGrade - a.trueGrade || a.id.localeCompare(b.id))[0] ?? null;
+
+  if (!bypassedProspect) return;
+
+  game.pendingPassedPickTargets ??= [];
+  if (game.pendingPassedPickTargets.some((target) => target.prospectId === bypassedProspect.id)) {
+    return;
+  }
+
+  game.pendingPassedPickTargets.push({
+    prospectId: bypassedProspect.id,
+    playerName: `${bypassedProspect.firstName} ${bypassedProspect.lastName}`,
+    playerOvr: bypassedProspect.trueGrade,
+    round: currentEntry.round,
+    pickNumber: currentEntry.pick,
+  });
+}
+
+function recordPendingPassedPick(game: GameState, team: Team, prospect: DraftProspect): void {
+  const pendingIndex = game.pendingPassedPickTargets?.findIndex((target) => target.prospectId === prospect.id) ?? -1;
+  if (pendingIndex < 0 || !game.pendingPassedPickTargets) return;
+
+  const [pending] = game.pendingPassedPickTargets.splice(pendingIndex, 1);
+  if (!pending) return;
+
+  recordPassedPick(ensureNearMissTracker(game), {
+    playerName: pending.playerName,
+    playerOvr: pending.playerOvr,
+    round: pending.round,
+    pickNumber: pending.pickNumber,
+    draftedByTeam: `${team.city} ${team.name}`,
+  });
+}
+
 export function makeDraftPick(game: GameState, prospectId: string): EngineOutput {
   const nextState = cloneGame(game);
   const userTeam = findUserTeam(nextState);
@@ -309,6 +360,9 @@ export function makeDraftPick(game: GameState, prospectId: string): EngineOutput
   }
 
   const drafted = nextState.draftClass.find((prospect) => prospect.id === prospectId) ?? null;
+  if (drafted) {
+    queuePassedPickTarget(nextState, drafted);
+  }
   applyDraftSelection(nextState, userTeam.id, prospectId);
   if (drafted) {
     const conference = createTransactionalPressConference({
@@ -344,6 +398,7 @@ export function advanceDraft(game: GameState): void {
       continue;
     }
 
+    recordPendingPassedPick(game, team, prospect);
     applyDraftSelection(game, team.id, prospect.id);
   }
 

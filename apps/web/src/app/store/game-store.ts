@@ -40,6 +40,7 @@ import type {
   BrokenRecord,
   MultiYearProjection,
 } from '@mfd/engine';
+import type { ShotDeclaration, AlumniMentor, DynastyEra } from '@mfd/engine';
 import {
   acceptEndorsement as acceptEndorsementEngine,
   addToWatchlist,
@@ -122,6 +123,9 @@ import {
   getSalaryCap,
   assignKickReturner as assignKickReturnerEngine,
   assignPuntReturner as assignPuntReturnerEngine,
+  startDynastyEra as startDynastyEraEngine,
+  hireMentor as hireMentorEngine,
+  fireMentor as fireMentorEngine,
   createLayout as createDashboardLayout,
   pinWidget as pinDashboardWidget,
   reorderWidgets as reorderDashboardWidgets,
@@ -274,6 +278,13 @@ interface GameActions {
   saveLayout: (name: string, widgets: DashboardWidget[], columns: 2 | 3, layoutId?: string) => Promise<void>;
   assignKickReturner: (teamId: string, playerId: string) => Promise<void>;
   assignPuntReturner: (teamId: string, playerId: string) => Promise<void>;
+
+  // Dynasty systems
+  nameDynastyEra: (eraName: string) => Promise<void>;
+  hireMentor: (mentorId: string) => Promise<void>;
+  fireMentor: (mentorId: string) => Promise<void>;
+  setCallYourShot: (declaration: ShotDeclaration | null) => Promise<void>;
+  recordManualSave: () => void;
 
   // Undo
   undo: () => Promise<void>;
@@ -1920,6 +1931,49 @@ export const useGameStore = create<GameStore>()(
         const nextGame = cloneForMutation(current);
         assignPuntReturnerEngine(nextGame, teamId, playerId);
         await commitGame(nextGame);
+      },
+
+      // ── Dynasty Systems ─────────────────────────────────
+      nameDynastyEra: async (eraName: string) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const updated = startDynastyEraEngine(nextGame, eraName);
+        await commitGame(updated);
+      },
+
+      hireMentor: async (mentorId: string) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const updated = hireMentorEngine(nextGame, mentorId);
+        await commitGame(updated);
+      },
+
+      fireMentor: async (mentorId: string) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const updated = fireMentorEngine(nextGame, mentorId);
+        await commitGame(updated);
+      },
+
+      setCallYourShot: async (declaration: ShotDeclaration | null) => {
+        const current = get().game;
+        if (!current) return;
+        set((s) => {
+          if (s.game) {
+            (s.game as GameState & { activeCallYourShot?: ShotDeclaration }).activeCallYourShot = declaration ?? undefined;
+          }
+        });
+      },
+
+      recordManualSave: () => {
+        set((s) => {
+          if (s.game) {
+            (s.game as GameState & { lastManualSaveYear?: number }).lastManualSaveYear = s.game.year;
+          }
+        });
       },
 
       // ── Undo ────────────────────────────────────────────

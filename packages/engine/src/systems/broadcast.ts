@@ -13,7 +13,9 @@ import type {
 } from '../types';
 import {
   BROADCAST_COMMENTARY_TEMPLATES,
+  CRITICAL_LEVERAGE_TEMPLATES,
   clutchLeads,
+  HIGH_LEVERAGE_TEMPLATES,
   heroicLeads,
   overtimeLeads,
   PLAYBOOK_BRIDGE_TEMPLATES,
@@ -36,6 +38,9 @@ import {
 } from './win-probability';
 
 type ScoringType = 'pass_td' | 'rush_td' | 'field_goal';
+
+const HIGH_WP_SWING_THRESHOLD = 15;
+const CRITICAL_WP_SWING_THRESHOLD = 30;
 
 interface PlayerRef {
   id: string;
@@ -311,6 +316,35 @@ function replaceTokens(template: string, tokens: Record<string, string>): string
   return template.replace(/\{\{(\w+)\}\}/g, (_match, token: string) => tokens[token] ?? token);
 }
 
+function formatWpPercent(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
+export function calculateWpSwing(wpBefore: number, wpAfter: number): number {
+  return Math.round(Math.abs(wpAfter - wpBefore) * 100);
+}
+
+export function getWpLeverageCallout(
+  wpBefore: number,
+  wpAfter: number,
+  team: string,
+  rng: PrngFn,
+): string | null {
+  const wpSwing = calculateWpSwing(wpBefore, wpAfter);
+  if (wpSwing < HIGH_WP_SWING_THRESHOLD) return null;
+
+  const templates = wpSwing >= CRITICAL_WP_SWING_THRESHOLD
+    ? CRITICAL_LEVERAGE_TEMPLATES
+    : HIGH_LEVERAGE_TEMPLATES;
+
+  return replaceTokens(pickWithRng(templates, rng), {
+    wpBefore: formatWpPercent(wpBefore),
+    wpAfter: formatWpPercent(wpAfter),
+    wpSwing: String(wpSwing),
+    team,
+  });
+}
+
 function driveVerb(yardsTotal: number): string {
   if (yardsTotal >= 75) return 'marched';
   if (yardsTotal >= 55) return 'moved';
@@ -534,6 +568,21 @@ function buildPlaybookSelectionRng(
   return mulberry32(seed);
 }
 
+function buildLeverageCalloutRng(
+  team: Team,
+  quarter: number,
+  scoreDiff: number,
+  yardsGained: number,
+  playerIds: string[],
+): PrngFn {
+  const seed = (
+    hashString(`${team.id}:wp`)
+    ^ hashString(`${quarter}:${scoreDiff}:${yardsGained}`)
+    ^ hashString(playerIds.join(':'))
+  ) >>> 0;
+  return mulberry32(seed);
+}
+
 function derivePlayMetadata(
   type: PlayDescription['type'],
   team: Team,
@@ -574,7 +623,13 @@ function derivePlayMetadata(
     Math.max(15, timeRemainingSeconds - 25),
     !['fieldGoal', 'punt', 'touchdown', 'turnover'].includes(type),
   );
-  const narrative = winProbabilityNarrative(team.name, wpBefore, wpAfter);
+  const leverageCallout = getWpLeverageCallout(
+    wpBefore,
+    wpAfter,
+    team.name,
+    buildLeverageCalloutRng(team, quarter, scoreDiff, yardsGained, playerIds),
+  );
+  const narrative = leverageCallout ?? winProbabilityNarrative(team.name, wpBefore, wpAfter);
   const winProbabilityNote = leverageIndex >= 4
     ? (narrative ?? `${team.name} just pushed this drive into ${leverageTier} leverage territory.`)
     : (Math.abs(swing) >= 3 ? (narrative ?? undefined) : undefined);

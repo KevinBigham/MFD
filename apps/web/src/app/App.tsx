@@ -6,7 +6,7 @@ import {
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
   Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity, CalendarRange,
   Radio, MessageSquare, Crosshair, Building2, Award, Users2, Sparkles, Scale,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, Map as MapIcon, Film, Tent, Target, Loader,
 } from 'lucide-react';
 import { MfdTooltipProvider, MfdCommandPalette, type CommandItem } from '@mfd/design-system/components';
 import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
@@ -23,8 +23,11 @@ import {
   selectSeasonReports,
   selectTradeOffers,
   selectTutorial,
+  selectUserTeam,
   useGameStore,
 } from './store/game-store';
+import { selectCanUndo, selectUndoLabel } from './store/selectors';
+import { generateDevelopmentReport, identifyBreakoutCandidates } from '@mfd/engine';
 import { computeNavBadges } from './navBadges';
 import { ErrorBoundary } from './ErrorBoundary';
 import { AutosaveToast } from './AutosaveToast';
@@ -47,6 +50,12 @@ import { CeremonyViewer } from '../features/legacy/CeremonyViewer';
 import { AchievementUnlockToast } from '../features/legacy/AchievementGallery';
 import { SeasonReportViewer } from '../features/legacy/SeasonReportViewer';
 import { TutorialOverlay } from '../features/onboarding/TutorialOverlay';
+import { AudioToggle, playSound } from '../features/audio/AudioManager';
+import { MilestoneCard, type MilestoneType } from '../features/shared/MilestoneCard';
+import { BreakingNews } from '../features/shared/BreakingNews';
+import { DynastyEraPrompt } from '../features/dynasty-era/DynastyEraPrompt';
+import { shouldPromptEraNaming, shouldShowSaveReminder } from '@mfd/engine';
+import { ConfirmDialog } from '../features/shared/ConfirmDialog';
 
 const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
 const LazyDraftBoard = lazy(async () => ({ default: (await import('../features/draft/DraftBoard')).DraftBoard }));
@@ -86,7 +95,8 @@ const LazyCommissionerOffice = lazy(async () => ({ default: (await import('../fe
 const LazyCBANegotiation = lazy(async () => ({ default: (await import('../features/league/CBANegotiation')).CBANegotiation }));
 const LazyLeagueRulesViewer = lazy(async () => ({ default: (await import('../features/league/LeagueRulesViewer')).LeagueRulesViewer }));
 const LazySuperBowlPresentation = lazy(async () => ({ default: (await import('../features/playoffs/SuperBowlPresentation')).SuperBowlPresentation }));
-const LazyPlayerDevelopment = lazy(async () => ({ default: (await import('../features/player/PlayerDevelopment')).PlayerDevelopmentView }));
+const LazyAlumniMentors = lazy(async () => ({ default: (await import('../features/mentors/AlumniMentorsScreen')).AlumniMentorsScreen }));
+const LazyPlayerDevelopmentInner = lazy(async () => ({ default: (await import('../features/player/PlayerDevelopment')).PlayerDevelopmentView }));
 const LazyPlayByPlay = lazy(async () => ({ default: (await import('../features/broadcast/PlayByPlay')).PlayByPlay }));
 const LazyGameFlow = lazy(async () => ({ default: (await import('../features/broadcast/GameFlow')).GameFlow }));
 
@@ -113,10 +123,14 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/scouting',     label: 'Scouting',         shortLabel: 'Scout',    icon: <Search size={16} />,         shortcut: '5' },
   { path: '/draft',        label: 'Draft',            shortLabel: 'Draft',    icon: <FileText size={16} />,       shortcut: '6' },
   { path: '/free-agency',  label: 'Free Agency',      shortLabel: 'FA',       icon: <Handshake size={16} />,      shortcut: '7' },
+  { path: '/fa-targets',  label: 'FA Targets',       shortLabel: 'Targets',  icon: <Target size={16} /> },
   { path: '/game-day',     label: 'Game Day',         shortLabel: 'Game',     icon: <Gamepad2 size={16} />,       shortcut: '8' },
+  { path: '/game-plan',   label: 'Game Plan',        shortLabel: 'Plan',     icon: <MapIcon size={16} /> },
   { path: '/broadcast',    label: 'Broadcast',        shortLabel: 'Live',     icon: <Radio size={16} /> },
   { path: '/play-by-play', label: 'Play-by-Play',     shortLabel: 'PbP',      icon: <ScrollText size={16} /> },
   { path: '/game-flow',    label: 'Game Flow',        shortLabel: 'Flow',     icon: <Activity size={16} /> },
+  { path: '/film-room',   label: 'Film Room',        shortLabel: 'Film',     icon: <Film size={16} /> },
+  { path: '/super-bowl',  label: 'Super Bowl',       shortLabel: 'SB',       icon: <Trophy size={16} /> },
   { path: '/inbox',          label: 'Inbox',            shortLabel: 'Inbox',    icon: <Inbox size={16} />,          shortcut: '9' },
   { path: '/social',       label: 'MFSN',             shortLabel: 'Social',   icon: <MessageSquare size={16} /> },
   { path: '/waivers',       label: 'Waiver Wire',      shortLabel: 'Waivers',  icon: <ScrollText size={16} /> },
@@ -124,6 +138,8 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/schedule',      label: 'Schedule',         shortLabel: 'Schedule', icon: <CalendarRange size={16} /> },
   { path: '/depth-chart',   label: 'Depth Chart',      shortLabel: 'Depth',    icon: <ListOrdered size={16} /> },
   { path: '/coaching',      label: 'Coaching',         shortLabel: 'Coach',    icon: <GraduationCap size={16} /> },
+  { path: '/training-camp', label: 'Training Camp',    shortLabel: 'Camp',     icon: <Tent size={16} /> },
+  { path: '/mentors',       label: 'Alumni Mentors',   shortLabel: 'Mentors',  icon: <Award size={16} /> },
   { path: '/owner',         label: 'Owner',            shortLabel: 'Owner',    icon: <Crown size={16} /> },
   { path: '/commissioner',  label: 'Commissioner',     shortLabel: 'Commish',  icon: <Scale size={16} /> },
   { path: '/franchise',     label: 'Franchise',        shortLabel: 'Franchise', icon: <Building2 size={16} /> },
@@ -151,10 +167,10 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   { id: 'core',     label: 'CORE',     paths: ['/', '/week-advance', '/inbox'] },
-  { id: 'team',     label: 'TEAM',     paths: ['/roster', '/depth-chart', '/locker-room', '/coaching', '/handshakes'] },
+  { id: 'team',     label: 'TEAM',     paths: ['/roster', '/depth-chart', '/locker-room', '/coaching', '/handshakes', '/training-camp', '/mentors'] },
   { id: 'money',    label: 'MONEY',    paths: ['/contracts', '/cap-lab', '/endorsements'] },
-  { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/scouting', '/draft', '/free-agency', '/waivers', '/practice-squad', '/team-needs'] },
-  { id: 'gameday',  label: 'GAMEDAY',  paths: ['/game-day', '/game-plan', '/broadcast', '/play-by-play', '/game-flow', '/film-room', '/schedule'] },
+  { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/scouting', '/draft', '/free-agency', '/fa-targets', '/waivers', '/practice-squad', '/team-needs'] },
+  { id: 'gameday',  label: 'GAMEDAY',  paths: ['/game-day', '/game-plan', '/broadcast', '/play-by-play', '/game-flow', '/film-room', '/schedule', '/super-bowl'] },
   { id: 'league',   label: 'LEAGUE',   paths: ['/standings', '/power-rankings', '/news', '/social', '/commissioner', '/analytics', '/records', '/stat-central'] },
   { id: 'dynasty',  label: 'DYNASTY',  paths: ['/franchise', '/owner', '/legends', '/legacy', '/scenarios'] },
   { id: 'meta',     label: 'SYSTEM',   paths: ['/dynasty', '/settings'] },
@@ -171,7 +187,17 @@ function RootLayout() {
   const newlyUnlocked = useGameStore(selectNewlyUnlocked);
   const seasonReports = useGameStore(selectSeasonReports);
   const expansionDraftState = useGameStore(selectExpansionDraftState);
+  const game = useGameStore((s) => s.game);
   const currentWeek = useGameStore((s) => s.game?.week ?? 0);
+  const currentYear = useGameStore((s) => s.game?.year ?? 0);
+  const userTeamWins = useGameStore((s) => {
+    if (!s.game) return 0;
+    const team = Object.values(s.game.teams).find((t) => t.isUser);
+    return team?.wins ?? 0;
+  });
+  const canUndo = useGameStore(selectCanUndo);
+  const undoLabel = useGameStore(selectUndoLabel);
+  const undo = useGameStore((s) => s.actions.undo);
   const advanceTutorial = useGameStore((s) => s.actions.advanceTutorial);
   const dismissTutorial = useGameStore((s) => s.actions.dismissTutorial);
   const router = useRouter();
@@ -182,6 +208,13 @@ function RootLayout() {
   const [activeAchievement, setActiveAchievement] = useState<(typeof newlyUnlocked)[number] | null>(null);
   const [seenReports, setSeenReports] = useState<number[]>([]);
   const [activeReportYear, setActiveReportYear] = useState<number | null>(null);
+  const [activeMilestone, setActiveMilestone] = useState<{ type: MilestoneType; headline: string; detail: string } | null>(null);
+  const [activeBreakingNews, setActiveBreakingNews] = useState<{ headline: string; detail: string } | null>(null);
+  const [lastMilestoneCheck, setLastMilestoneCheck] = useState('');
+  const [showEraPrompt, setShowEraPrompt] = useState(false);
+  const [showSaveReminder, setShowSaveReminder] = useState(false);
+  const [lastEraCheck, setLastEraCheck] = useState('');
+  const prevWins = useRef(0);
   const [showSaveToast, setShowSaveToast] = useState(false);
   const prevWeek = useRef(0);
 
@@ -218,6 +251,7 @@ function RootLayout() {
 
     setSeenCeremonies((current) => [...current, latest.id]);
     setActiveCeremonyId(latest.id);
+    playSound('notification');
   }, [activeCeremonyId, ceremonies, seenCeremonies]);
 
   useEffect(() => {
@@ -231,6 +265,7 @@ function RootLayout() {
     const key = `${nextAchievement.id}:${nextAchievement.unlockedYear}:${nextAchievement.unlockedWeek}`;
     setSeenAchievements((current) => [...current, key]);
     setActiveAchievement(nextAchievement);
+    playSound('achievement_unlocked');
 
     const timeout = window.setTimeout(() => {
       setActiveAchievement(null);
@@ -254,11 +289,47 @@ function RootLayout() {
   useEffect(() => {
     if (prevWeek.current !== 0 && currentWeek !== prevWeek.current) {
       setShowSaveToast(true);
+      playSound('week_advance_complete');
       const t = window.setTimeout(() => setShowSaveToast(false), 3000);
       return () => window.clearTimeout(t);
     }
     prevWeek.current = currentWeek;
   }, [currentWeek]);
+
+  // Milestone detection — check for first win, 100 wins, etc.
+  useEffect(() => {
+    const key = `${currentYear}-${currentWeek}-${userTeamWins}`;
+    if (key === lastMilestoneCheck || currentWeek === 0) return;
+    setLastMilestoneCheck(key);
+
+    if (userTeamWins === 1 && prevWins.current === 0) {
+      setActiveMilestone({ type: 'first_win', headline: 'First Victory', detail: 'Your franchise just earned its first win. The dynasty starts here.' });
+      playSound('record_broken');
+    } else if (userTeamWins === 100 && prevWins.current < 100) {
+      setActiveMilestone({ type: 'win_100', headline: '100 Wins', detail: 'A century of victories. Your franchise has reached elite status.' });
+      playSound('super_bowl_win');
+    } else if (currentYear >= 10 && currentWeek === 1 && currentYear % 10 === 0) {
+      setActiveMilestone({ type: 'season_10', headline: `Season ${currentYear}`, detail: `${currentYear} seasons deep. This is no rebuild — this is a legacy.` });
+      playSound('achievement_unlocked');
+    }
+    prevWins.current = userTeamWins;
+  }, [currentYear, currentWeek, userTeamWins, lastMilestoneCheck]);
+
+  // Dynasty era naming prompt — check after week advances
+  useEffect(() => {
+    const key = `${currentYear}-${currentWeek}`;
+    if (key === lastEraCheck || !game) return;
+    setLastEraCheck(key);
+
+    if (shouldPromptEraNaming(game)) {
+      setShowEraPrompt(true);
+    }
+
+    const lastSaveYear = (game as unknown as Record<string, unknown>).lastManualSaveYear as number | undefined;
+    if (shouldShowSaveReminder(currentYear, lastSaveYear ?? null)) {
+      setShowSaveReminder(true);
+    }
+  }, [currentYear, currentWeek, game, lastEraCheck]);
 
   const commandItems: CommandItem[] = [
     ...NAV_ITEMS.map((nav): CommandItem => ({
@@ -275,7 +346,7 @@ function RootLayout() {
       category: 'action',
       icon: <Terminal size={16} />,
       keywords: ['next', 'sim', 'advance'],
-      onSelect: () => {},
+      onSelect: () => { void router.navigate({ to: '/week-advance' }); },
     },
   ];
 
@@ -334,6 +405,32 @@ function RootLayout() {
           }}
         />
         <AutosaveToast visible={showSaveToast} />
+        {activeMilestone && (
+          <MilestoneCard
+            type={activeMilestone.type}
+            headline={activeMilestone.headline}
+            detail={activeMilestone.detail}
+            onDismiss={() => setActiveMilestone(null)}
+          />
+        )}
+        {activeBreakingNews && (
+          <BreakingNews
+            headline={activeBreakingNews.headline}
+            detail={activeBreakingNews.detail}
+            onDismiss={() => setActiveBreakingNews(null)}
+          />
+        )}
+        <DynastyEraPrompt open={showEraPrompt} onClose={() => setShowEraPrompt(false)} />
+        <ConfirmDialog
+          open={showSaveReminder}
+          title="Save Reminder"
+          message={`Season ${currentYear} complete. Your dynasty is ${currentYear} seasons deep — consider creating a manual save to protect your progress.`}
+          confirmLabel="Open Save Screen"
+          cancelLabel="Dismiss"
+          accent="gold"
+          onConfirm={() => { setShowSaveReminder(false); void router.navigate({ to: '/dynasty' }); }}
+          onCancel={() => setShowSaveReminder(false)}
+        />
       </div>
     </MfdTooltipProvider>
   );
@@ -399,6 +496,7 @@ function NavGroupSection({
               >
                 <button
                   type="button"
+                  data-nav={item.path}
                   onClick={() => { void router.navigate({ to: item.path }); }}
                   style={{
                     display: 'inline-flex',
@@ -453,6 +551,39 @@ function useNavBadges(): Record<string, number> {
     phase,
     activeHandshakeCount: handshakes.filter((h) => h.status === 'active').length,
   }), [tradeOffers, roster, hasGamePlan, phase, handshakes]);
+}
+
+function UndoButton() {
+  const canUndo = useGameStore(selectCanUndo);
+  const undoLabel = useGameStore(selectUndoLabel);
+  const undo = useGameStore((s) => s.actions.undo);
+
+  if (!canUndo) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={() => { void undo(); playSound('ui_navigate'); }}
+      title={undoLabel ? `Undo: ${undoLabel}` : 'Undo last action'}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '4px 8px',
+        background: 'rgba(255, 215, 0, 0.1)',
+        border: '2px solid var(--mfd-gold)',
+        color: 'var(--mfd-gold)',
+        fontFamily: 'var(--mfd-font-pixel)',
+        fontSize: '7px',
+        letterSpacing: '0.8px',
+        cursor: 'pointer',
+        textTransform: 'uppercase',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      UNDO
+    </button>
+  );
 }
 
 function TopNav({
@@ -565,7 +696,11 @@ function TopNav({
         })}
       </div>
 
-      <CommandPaletteTrigger />
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+        <UndoButton />
+        <AudioToggle />
+        <CommandPaletteTrigger />
+      </div>
     </header>
   );
 }
@@ -618,14 +753,43 @@ function LazyRouteFrame({
     <Suspense fallback={(
       <div style={{
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: 300,
-        fontFamily: 'var(--mfd-font-mono)',
-        color: 'var(--mfd-text-faint)',
-        fontSize: '0.875rem',
+        gap: '16px',
       }}>
-        Loading {label}...
+        <Loader size={24} style={{ color: 'var(--mfd-gold)', animation: 'spin 1.2s linear infinite' }} />
+        <div style={{
+          fontFamily: 'var(--mfd-font-pixel)',
+          fontSize: '8px',
+          letterSpacing: '1px',
+          color: 'var(--mfd-gold)',
+          textTransform: 'uppercase',
+        }}>
+          Loading {label}
+        </div>
+        <div style={{
+          width: 120,
+          height: 4,
+          background: 'var(--mfd-bg-2)',
+          border: '1px solid var(--mfd-border)',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            width: '40%',
+            height: '100%',
+            background: 'var(--mfd-gold)',
+            animation: 'mfdLoadSlide 1s ease-in-out infinite',
+          }} />
+        </div>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+          @keyframes mfdLoadSlide {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(350%); }
+          }
+        `}</style>
       </div>
     )}
     >
@@ -1100,19 +1264,35 @@ const dynastyRoute = createRoute({
   ),
 });
 
-const playerDevRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/player-development',
-  component: () => (
+function PlayerDevRouteWrapper() {
+  const roster = useGameStore(selectRoster);
+  const team = useGameStore(selectUserTeam);
+  const game = useGameStore((s) => s.game);
+  const firstPlayer = roster[0] ?? null;
+  const report = useMemo(() => {
+    if (!firstPlayer) return null;
+    return generateDevelopmentReport(firstPlayer, team ?? null);
+  }, [firstPlayer, team]);
+  const breakoutCandidates = useMemo(() => {
+    if (!game || !team) return [];
+    return identifyBreakoutCandidates(game, team.id);
+  }, [game, team]);
+  return (
     <LazyRouteFrame label="player development">
-      <LazyPlayerDevelopment
-        report={null}
+      <LazyPlayerDevelopmentInner
+        report={report}
         projections={[]}
-        breakoutCandidates={[]}
+        breakoutCandidates={breakoutCandidates}
         coachImpact={null}
       />
     </LazyRouteFrame>
-  ),
+  );
+}
+
+const playerDevRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/player-development',
+  component: PlayerDevRouteWrapper,
 });
 
 const superBowlRoute = createRoute({
@@ -1121,6 +1301,16 @@ const superBowlRoute = createRoute({
   component: () => (
     <LazyRouteFrame label="super bowl">
       <LazySuperBowlPresentation />
+    </LazyRouteFrame>
+  ),
+});
+
+const mentorsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/mentors',
+  component: () => (
+    <LazyRouteFrame label="alumni mentors">
+      <LazyAlumniMentors />
     </LazyRouteFrame>
   ),
 });
@@ -1139,7 +1329,7 @@ const routeTree = rootRoute.addChildren([
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
-  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, superBowlRoute, playerDevRoute, settingsRoute,
+  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
 ]);
 
 const hashHistory = createHashHistory();

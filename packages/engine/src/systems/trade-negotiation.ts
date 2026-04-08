@@ -2,6 +2,7 @@ import { syncPlayerArchiveEntry } from './history';
 import { assignJerseyNumber } from './jersey-retirement';
 import { recordNewsItem } from './league-news';
 import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
+import { createNearMissTracker, recordDeclinedTrade } from './near-miss-receipts';
 import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
 import type { DraftPick, GameState, Player, Team, TradeOfferAsset, TradeProposal } from '../types';
 
@@ -77,6 +78,31 @@ function refreshRosterState(team: Team): void {
     assignJerseyNumber(team, player);
   }
   team.lockerRoom = syncLockerRoomRoster(team, team.lockerRoom ?? initializeLockerRoom(team, () => 0.42));
+}
+
+function ensureNearMissTracker(game: GameState) {
+  game.nearMissTracker ??= createNearMissTracker();
+  return game.nearMissTracker;
+}
+
+function recordRejectedTradeNearMiss(game: GameState, proposal: TradeProposal): void {
+  const fromTeam = game.teams[proposal.fromTeamId];
+  const toTeam = game.teams[proposal.toTeamId];
+  if (!fromTeam?.isUser || !toTeam) return;
+
+  const requestedPlayer = proposal.requesting
+    .map((asset) => asset.playerId ? game.players[asset.playerId] : null)
+    .filter((player): player is Player => Boolean(player))
+    .sort((a, b) => b.ovr - a.ovr || a.id.localeCompare(b.id))[0] ?? null;
+
+  if (!requestedPlayer) return;
+
+  recordDeclinedTrade(ensureNearMissTracker(game), {
+    playerName: requestedPlayer.name,
+    playerOvr: requestedPlayer.ovr,
+    partnerTeamName: `${toTeam.city} ${toTeam.name}`,
+    week: game.week,
+  });
 }
 
 function availableExtraPicks(game: GameState, teamId: string, usedPickIds: Set<string>): TradeOfferAsset[] {
@@ -312,6 +338,7 @@ export function submitProposal(
 
   proposal.status = 'rejected';
   proposal.aiResponse = 'Rejected. This package is too light for us.';
+  recordRejectedTradeNearMiss(game, proposal);
   return { proposal, nextState: game };
 }
 
@@ -339,5 +366,6 @@ export function rejectCounterProposal(game: GameState, proposalIdValue: string):
   }
   proposal.status = 'rejected';
   proposal.aiResponse = 'Counter declined.';
+  recordRejectedTradeNearMiss(game, proposal);
   return proposal;
 }

@@ -10,8 +10,10 @@ import { HOME_FIELD_ADV } from '../config';
 import { avg, cl } from '../utils';
 import { isPlayerUnavailable } from './injury-system';
 import { applyGamePlan } from './game-plan';
+import { evaluateContingencies } from './contingency-plans';
 import { determineSituation, selectOffensivePlay, selectDefensivePlay, playMatchupQuality } from './playbook';
 import { simulateSpecialTeams } from './special-teams';
+import type { ContingencyCheckContext } from './contingency-plans';
 import type {
   GamePlan,
   MatchupHighlight,
@@ -103,6 +105,19 @@ const PRESSURE_GAP_MULTIPLIER = 0.006;
 const STRIP_SACK_CHANCE = 0.34;
 const BASE_INT_CHANCE = 0.097;
 const BASE_FUMBLE_CHANCE = 0.065;
+const PLAN_RUN_RATE_ADJUSTMENT: Record<NonNullable<GamePlan['offensiveScheme']>, number> = {
+  balanced: 0,
+  pass_heavy: -0.14,
+  run_heavy: 0.14,
+  spread: -0.08,
+  power: 0.1,
+};
+const PLAYBOOK_ALIGNMENT_RUN_RATE = 0.12;
+const DOME_WIND_SPEED = 0;
+const CLEAR_WIND_SPEED = 8;
+const RAIN_WIND_SPEED = 12;
+const SNOW_WIND_SPEED = 14;
+const WINDY_WIND_SPEED = 20;
 
 interface WeatherEffects {
   passQuality: number;
@@ -122,6 +137,14 @@ function weatherEffects(weather: WeatherCondition): WeatherEffects {
     return { passQuality: -2, runQuality: 0, fumbleChance: 0, longFieldGoalPenalty: 0.15 };
   }
   return { passQuality: 0, runQuality: 0, fumbleChance: 0, longFieldGoalPenalty: 0 };
+}
+
+function deriveWindSpeed(weather: WeatherCondition): number {
+  if (weather === 'dome') return DOME_WIND_SPEED;
+  if (weather === 'rain') return RAIN_WIND_SPEED;
+  if (weather === 'snow') return SNOW_WIND_SPEED;
+  if (weather === 'wind') return WINDY_WIND_SPEED;
+  return CLEAR_WIND_SPEED;
 }
 
 // ── Coaching edge calculation ───────────────────────────
@@ -167,6 +190,8 @@ function simulateDrive(
   lines: Map<string, PlayerGameLine>,
   playCallState: PlayCallState,
   weather: WeatherCondition,
+  offenseGamePlan: GamePlan | null | undefined,
+  defenseGamePlan: GamePlan | null | undefined,
   offenseClutchBonuses: Record<string, number>,
   defenseClutchBonuses: Record<string, number>,
   matchupEvents: PlayerMatchupEvent[],
@@ -194,14 +219,16 @@ function simulateDrive(
 
   // Playbook-driven play selection
   const situation = determineSituation(quarter, scoreDiff, false, 10, quarter === 4 ? 90 : 600);
-  const offPlan = (offense as Team & { offensivePlan?: string }).offensivePlan as import('../types').OffensiveGamePlan ?? 'balanced';
-  const defPlan = (defense as Team & { defensivePlan?: string }).defensivePlan as import('../types').DefensiveGamePlan ?? 'base';
+  const offPlan = offenseGamePlan?.offensiveScheme ?? 'balanced';
+  const defPlan = defenseGamePlan?.defensiveScheme ?? 'base';
   const selectedPlay = selectOffensivePlay(RNG.play, situation, 'balanced', offPlan);
   const selectedDefPlay = selectDefensivePlay(RNG.play, situation, defPlan);
   const matchupMod = playMatchupQuality(selectedPlay, selectedDefPlay);
 
   // Run/pass split — playbook play category influences the decision
   let runRate = 0.46 + runLanes * 0.02;
+  runRate += PLAN_RUN_RATE_ADJUSTMENT[offPlan] ?? 0;
+  runRate += selectedPlay.category === 'run' ? PLAYBOOK_ALIGNMENT_RUN_RATE : -PLAYBOOK_ALIGNMENT_RUN_RATE;
   if (scoreDiff <= -14) runRate -= 0.10;
   if (scoreDiff >= 14) runRate += 0.08;
   if (quarter === 4 && scoreDiff <= -7) runRate -= 0.06;
@@ -716,6 +743,7 @@ export interface SimGameResult {
   matchupHighlight: MatchupHighlight | null;
   specialTeams: Record<string, SpecialTeamsGameSummary>;
   playerMatchupEvents: PlayerMatchupEvent[];
+  contingencyActivations: Array<{ teamId: string; ruleId: string; label: string; quarter: number }>;
 }
 
 function applySimContext(team: Team, context?: SimTeamContext): Team {
@@ -748,12 +776,37 @@ function applySimContext(team: Team, context?: SimTeamContext): Team {
   };
 }
 
+function buildContingencyContext(params: {
+  quarter: number;
+  teamScore: number;
+  opponentScore: number;
+  turnovers: number;
+  opponentTurnovers: number;
+  opponentScoredOnOpening: boolean;
+  windSpeed: number;
+}): ContingencyCheckContext {
+  return {
+    quarter: params.quarter,
+    scoreDiff: params.teamScore - params.opponentScore,
+    turnovers: params.turnovers,
+    opponentTurnovers: params.opponentTurnovers,
+    opponentScoredOnOpening: params.opponentScoredOnOpening,
+    windSpeed: params.windSpeed,
+  };
+}
+
 export function simGame(home: Team, away: Team, context?: SimGameContext): SimGameResult {
-  const adjustedHome = applySimContext(home, context?.home);
-  const adjustedAway = applySimContext(away, context?.away);
   const weather = context?.weather ?? 'dome';
+  const windSpeed = deriveWindSpeed(weather);
   const rivalryBoost = context?.rivalryIntensity ? Math.min(2, Math.round(context.rivalryIntensity / 35)) : 0;
-  const matchupHighlight = buildMatchupHighlight(adjustedHome, adjustedAway)
+  let activeHomePlan = context?.home?.gamePlan ?? null;
+  let activeAwayPlan = context?.away?.gamePlan ?? null;
+  let adjustedHome = applySimContext(home, context?.home ? { ...context.home, gamePlan: activeHomePlan } : undefined);
+  let adjustedAway = applySimContext(away, context?.away ? { ...context.away, gamePlan: activeAwayPlan } : undefined);
+  const contingencyActivations: Array<{ teamId: string; ruleId: string; label: string; quarter: number }> = [];
+  const homeFiredRules = new Set<string>();
+  const awayFiredRules = new Set<string>();
+  let matchupHighlight = buildMatchupHighlight(adjustedHome, adjustedAway)
     ?? buildMatchupHighlight(adjustedAway, adjustedHome);
   const homeLines = new Map<string, PlayerGameLine>();
   const awayLines = new Map<string, PlayerGameLine>();
@@ -766,14 +819,81 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
   let awayScore = 0;
   const homeQtrScores: number[] = [0, 0, 0, 0];
   const awayQtrScores: number[] = [0, 0, 0, 0];
+  let homeTurnovers = 0;
+  let awayTurnovers = 0;
+  let homeOpeningTouchdown = false;
+  let awayOpeningTouchdown = false;
+  let homeOpeningDriveComplete = false;
+  let awayOpeningDriveComplete = false;
   let homePlayState: PlayCallState = { lastPlayType: null, streak: 0 };
   let awayPlayState: PlayCallState = { lastPlayType: null, streak: 0 };
+
+  const evaluateQuarterBreak = (quarter: number) => {
+    const nextHomeRules = activeHomePlan?.contingencyRules?.filter((rule) => !homeFiredRules.has(rule.id)) ?? [];
+    if (activeHomePlan && nextHomeRules.length > 0) {
+      const homeContext = buildContingencyContext({
+        quarter,
+        teamScore: homeScore,
+        opponentScore: awayScore,
+        turnovers: homeTurnovers,
+        opponentTurnovers: awayTurnovers,
+        opponentScoredOnOpening: awayOpeningTouchdown,
+        windSpeed,
+      });
+      const evaluation = evaluateContingencies(nextHomeRules, homeContext, activeHomePlan);
+      if (evaluation.firedRule) {
+        activeHomePlan = evaluation.plan;
+        homeFiredRules.add(evaluation.firedRule.id);
+        contingencyActivations.push({
+          teamId: home.id,
+          ruleId: evaluation.firedRule.id,
+          label: evaluation.firedRule.label,
+          quarter,
+        });
+      }
+    }
+
+    const nextAwayRules = activeAwayPlan?.contingencyRules?.filter((rule) => !awayFiredRules.has(rule.id)) ?? [];
+    if (activeAwayPlan && nextAwayRules.length > 0) {
+      const awayContext = buildContingencyContext({
+        quarter,
+        teamScore: awayScore,
+        opponentScore: homeScore,
+        turnovers: awayTurnovers,
+        opponentTurnovers: homeTurnovers,
+        opponentScoredOnOpening: homeOpeningTouchdown,
+        windSpeed,
+      });
+      const evaluation = evaluateContingencies(nextAwayRules, awayContext, activeAwayPlan);
+      if (evaluation.firedRule) {
+        activeAwayPlan = evaluation.plan;
+        awayFiredRules.add(evaluation.firedRule.id);
+        contingencyActivations.push({
+          teamId: away.id,
+          ruleId: evaluation.firedRule.id,
+          label: evaluation.firedRule.label,
+          quarter,
+        });
+      }
+    }
+
+    adjustedHome = applySimContext(home, context?.home ? { ...context.home, gamePlan: activeHomePlan } : undefined);
+    adjustedAway = applySimContext(away, context?.away ? { ...context.away, gamePlan: activeAwayPlan } : undefined);
+    matchupHighlight = buildMatchupHighlight(adjustedHome, adjustedAway)
+      ?? buildMatchupHighlight(adjustedAway, adjustedHome);
+  };
 
   // 11-13 drives per team
   const totalDrives = 11 + Math.floor(RNG.play() * 3);
 
+  let currentQuarter = 1;
   for (let d = 0; d < totalDrives; d++) {
     const quarter = Math.min(3, Math.floor((d / totalDrives) * 4));
+    const quarterNumber = quarter + 1;
+    if (quarterNumber !== currentQuarter) {
+      currentQuarter = quarterNumber;
+      evaluateQuarterBreak(currentQuarter);
+    }
     const homeCEdge = baseHomeCEdge + (homeScore > awayScore ? 1 : 0);
     const awayCEdge = baseAwayCEdge - (homeScore - awayScore >= 10 ? 1 : 0);
 
@@ -787,12 +907,21 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
       homeLines,
       homePlayState,
       weather,
+      activeHomePlan,
+      activeAwayPlan,
       context?.home?.clutchPlayerBonuses ?? {},
       context?.away?.clutchPlayerBonuses ?? {},
       playerMatchupEvents,
     );
     homeScore += hDrive.points;
     homeQtrScores[quarter]! += hDrive.points;
+    if (hDrive.type === 'turnover') {
+      homeTurnovers += 1;
+    }
+    if (!homeOpeningDriveComplete) {
+      homeOpeningTouchdown = hDrive.type === 'td_pass' || hDrive.type === 'td_rush';
+      homeOpeningDriveComplete = true;
+    }
     homePlayState = hDrive.playType === homePlayState.lastPlayType
       ? { lastPlayType: hDrive.playType, streak: homePlayState.streak + 1 }
       : { lastPlayType: hDrive.playType, streak: 1 };
@@ -807,12 +936,21 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
       awayLines,
       awayPlayState,
       weather,
+      activeAwayPlan,
+      activeHomePlan,
       context?.away?.clutchPlayerBonuses ?? {},
       context?.home?.clutchPlayerBonuses ?? {},
       playerMatchupEvents,
     );
     awayScore += aDrive.points;
     awayQtrScores[quarter]! += aDrive.points;
+    if (aDrive.type === 'turnover') {
+      awayTurnovers += 1;
+    }
+    if (!awayOpeningDriveComplete) {
+      awayOpeningTouchdown = aDrive.type === 'td_pass' || aDrive.type === 'td_rush';
+      awayOpeningDriveComplete = true;
+    }
     awayPlayState = aDrive.playType === awayPlayState.lastPlayType
       ? { lastPlayType: aDrive.playType, streak: awayPlayState.streak + 1 }
       : { lastPlayType: aDrive.playType, streak: 1 };
@@ -822,6 +960,7 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
   let overtime = false;
   if (homeScore === awayScore) {
     overtime = true;
+    evaluateQuarterBreak(5);
     const otDrives = 2 + Math.floor(RNG.play() * 2);
     for (let d = 0; d < otDrives; d++) {
       const hOT = simulateDrive(
@@ -833,11 +972,16 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
         homeLines,
         homePlayState,
         weather,
+        activeHomePlan,
+        activeAwayPlan,
         context?.home?.clutchPlayerBonuses ?? {},
         context?.away?.clutchPlayerBonuses ?? {},
         playerMatchupEvents,
       );
       homeScore += hOT.points;
+      if (hOT.type === 'turnover') {
+        homeTurnovers += 1;
+      }
       homePlayState = hOT.playType === homePlayState.lastPlayType
         ? { lastPlayType: hOT.playType, streak: homePlayState.streak + 1 }
         : { lastPlayType: hOT.playType, streak: 1 };
@@ -852,11 +996,16 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
         awayLines,
         awayPlayState,
         weather,
+        activeAwayPlan,
+        activeHomePlan,
         context?.away?.clutchPlayerBonuses ?? {},
         context?.home?.clutchPlayerBonuses ?? {},
         playerMatchupEvents,
       );
       awayScore += aOT.points;
+      if (aOT.type === 'turnover') {
+        awayTurnovers += 1;
+      }
       awayPlayState = aOT.playType === awayPlayState.lastPlayType
         ? { lastPlayType: aOT.playType, streak: awayPlayState.streak + 1 }
         : { lastPlayType: aOT.playType, streak: 1 };
@@ -922,6 +1071,7 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
       [away.id]: specialTeams.away,
     },
     playerMatchupEvents,
+    contingencyActivations,
   };
 }
 

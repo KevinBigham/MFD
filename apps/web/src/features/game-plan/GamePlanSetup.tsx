@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { PixelBadge, PixelButton, PixelPanel, PixelProgressBar, PixelSelect, MfdTooltip } from '@mfd/design-system/components';
-import type { WeeklyPrepPlan } from '@mfd/engine';
+import type { WeeklyPrepPlan, ShotDeclaration } from '@mfd/engine';
+import { isCallYourShotEligible, getDeclarations } from '@mfd/engine';
 import {
   selectCurrentOpponentIntel,
   selectCurrentOpponentReport,
@@ -87,6 +88,14 @@ export function GamePlanSetup() {
   const [snapManagement, setSnapManagement] = useState<WeeklyPrepPlan['snapManagement']>(defaultPlan?.snapManagement ?? 'normal');
   const [specialSituation, setSpecialSituation] = useState<WeeklyPrepPlan['specialSituation']>(defaultPlan?.specialSituation ?? 'balanced');
   const [keyMatchupPlayerId, setKeyMatchupPlayerId] = useState(defaultPlan?.keyMatchupPlayerId ?? '');
+  const [shotDeclaration, setShotDeclaration] = useState<ShotDeclaration | null>(null);
+
+  const shotEligibility = useMemo(() => {
+    const isPlayoff = (phase as string) === 'playoffs' || (phase as string) === 'super_bowl';
+    const isLateSeasonRivalry = week >= 14;
+    return isCallYourShotEligible(isLateSeasonRivalry, false, isPlayoff, week);
+  }, [phase, week]);
+  const declarations = useMemo(() => getDeclarations(), []);
 
   const matchupOptions = useMemo(() => (
     team?.roster.map((player) => ({ value: player.id, label: `${player.name} // ${player.pos}` })) ?? []
@@ -275,6 +284,42 @@ export function GamePlanSetup() {
           </div>
         </div>
       </PixelPanel>
+
+      {shotEligibility.eligible && (
+        <PixelPanel title="Call Your Shot" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-gold)', lineHeight: 1.6 }}>
+              {shotEligibility.reason} — Make a bold prediction and earn bonus morale if you deliver.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {declarations.map((decl) => (
+                <button
+                  key={decl.id}
+                  type="button"
+                  onClick={() => setShotDeclaration(shotDeclaration === decl.id ? null : decl.id)}
+                  style={{
+                    padding: '10px 12px',
+                    border: `2px solid ${shotDeclaration === decl.id ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
+                    background: shotDeclaration === decl.id ? 'rgba(255, 215, 0, 0.1)' : 'var(--mfd-bg-2)',
+                    color: shotDeclaration === decl.id ? 'var(--mfd-gold)' : 'var(--mfd-text-dim)',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--mfd-font-mono)',
+                    fontSize: '11px',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <div style={{ fontWeight: 600, marginBottom: '4px' }}>{decl.label}</div>
+                  <div style={{ fontSize: '10px', opacity: 0.8 }}>{decl.description}</div>
+                </button>
+              ))}
+            </div>
+            {shotDeclaration && (
+              <PixelBadge variant="gold">SHOT CALLED: {declarations.find((d) => d.id === shotDeclaration)?.label}</PixelBadge>
+            )}
+          </div>
+        </PixelPanel>
+      )}
 
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
         <PixelButton

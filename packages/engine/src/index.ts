@@ -102,7 +102,13 @@ export {
 export { createPowerRankings, updatePowerRankings } from './systems/power-rankings';
 export { formMentoringPairs, applyMentoringBonuses } from './systems/mentoring';
 export { generateAwards } from './systems/awards';
-export { inductHallOfFame } from './systems/hall-of-fame';
+export {
+  FIRST_BALLOT_THRESHOLD,
+  buildBallotFromEligible,
+  inductHallOfFame,
+  simulateHOFBallot,
+} from './systems/hall-of-fame';
+export type { HOFBallotEntry, HOFBallotResult } from './systems/hall-of-fame';
 export {
   recordNewsItem,
   recordGovernanceNews,
@@ -186,6 +192,10 @@ export {
   generatePlayoffNews,
 } from './systems/playoff-momentum';
 export {
+  CONVENTION_SAVE_METADATA,
+  generateConventionSave,
+} from './systems/convention-save';
+export {
   createDefaultTutorialState,
   advanceTutorial,
   dismissTutorial,
@@ -217,11 +227,46 @@ export {
 } from './systems/flex-schedule';
 export {
   generateBroadcast,
+  calculateWpSwing,
   generatePlayCommentary,
   selectHighlights,
   generateDriveSummary,
   generateFinalNarrative,
+  getWpLeverageCallout,
 } from './systems/broadcast';
+export {
+  CRITICAL_LEVERAGE_TEMPLATES,
+  HIGH_LEVERAGE_TEMPLATES,
+  PLAY_SPECIFIC_COMMENTARY,
+  PLAYBOOK_BRIDGE_TEMPLATES,
+  getPlaybookCommentary,
+} from './systems/broadcast-templates';
+export {
+  endDynastyEra,
+  generateEraSuggestions,
+  getDynastyEraHistory,
+  shouldPromptEraNaming,
+  startDynastyEra,
+} from './systems/dynasty-era';
+export type { DynastyEra, EraNameSuggestion } from './systems/dynasty-era';
+export {
+  calculateMentorEffects,
+  fireMentor,
+  getAvailableMentors,
+  hireMentor,
+} from './systems/alumni-mentors';
+export type { AlumniMentor, MentorEffect, MentorSpecialty } from './systems/alumni-mentors';
+export { getSaveReminderMessage, shouldShowSaveReminder } from './systems/save-reminder';
+export {
+  DEFAULT_AUDIO_QUEUE_CONFIG,
+  DEFAULT_DEBOUNCE_MS,
+  DEFAULT_MAX_QUEUE_SIZE,
+  createAudioCue,
+  getEventPriority,
+  shouldPlaySound,
+  mapGameResultToAudioCues,
+} from './systems/audio-events';
+export type { SoundEvent, AudioCue, AudioQueueConfig, AudioPriority } from './systems/audio-events';
 export {
   createGovernancePost,
   createLaborPost,
@@ -456,10 +501,12 @@ export {
 export {
   createDefaultNarrativeIntensity,
   calculateIntensity,
+  generateBreakingNews,
   recordBeat,
   shouldGenerateEvent,
   getCooldownStatus,
 } from './systems/narrative-director';
+export type { BreakingNewsEvent } from './systems/narrative-director';
 export {
   recordCeremony,
   generateChampionshipCeremony,

@@ -25,6 +25,7 @@ import {
   monoSm,
   screenStackStyle,
 } from '../shared/pixelUi';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 const slotColumns: ColumnDef<SaveSlot & { label: string }, unknown>[] = [
   {
@@ -64,6 +65,7 @@ export function DynastyCartridge() {
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: 'load' | 'delete'; slotId: number; label: string } | null>(null);
 
   const teamName = team ? `${team.city} ${team.name}` : 'Unknown';
   const meta = { teamName, season: year, week };
@@ -208,10 +210,10 @@ export function DynastyCartridge() {
               />
               {selectedSlot ? (
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <PixelButton type="button" accent="green" onClick={() => void handleLoadSlot(selectedSlot.id!)}>
+                  <PixelButton type="button" accent="green" onClick={() => setConfirmAction({ type: 'load', slotId: selectedSlot.id!, label: selectedSlot.label })}>
                     Load Selected
                   </PixelButton>
-                  <PixelButton type="button" accent="red" onClick={() => void handleDeleteSlot(selectedSlot.id!)}>
+                  <PixelButton type="button" accent="red" onClick={() => setConfirmAction({ type: 'delete', slotId: selectedSlot.id!, label: selectedSlot.label })}>
                     Delete Selected
                   </PixelButton>
                 </div>
@@ -244,6 +246,31 @@ export function DynastyCartridge() {
           </div>
         </PixelPanel>
       </div>
+
+      <ConfirmDialog
+        open={confirmAction?.type === 'load'}
+        title="Load Save Slot"
+        message={`Load "${confirmAction?.label ?? ''}"? Your current unsaved progress will be replaced.`}
+        confirmLabel="Load"
+        accent="green"
+        onConfirm={() => {
+          if (confirmAction) void handleLoadSlot(confirmAction.slotId);
+          setConfirmAction(null);
+        }}
+        onCancel={() => setConfirmAction(null)}
+      />
+      <ConfirmDialog
+        open={confirmAction?.type === 'delete'}
+        title="Delete Save Slot"
+        message={`Permanently delete "${confirmAction?.label ?? ''}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        accent="red"
+        onConfirm={() => {
+          if (confirmAction) void handleDeleteSlot(confirmAction.slotId);
+          setConfirmAction(null);
+        }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   );
 }

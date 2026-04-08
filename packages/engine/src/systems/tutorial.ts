@@ -14,7 +14,7 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     title: 'Check Roster',
     description: 'Open the roster and identify the core pieces you are building around.',
     targetScreen: '/roster',
-    targetElement: null,
+    targetElement: '[data-nav="/roster"]',
     action: 'screen:/roster',
   },
   {
@@ -22,7 +22,7 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     title: 'Review Cap',
     description: 'Look at the contracts screen to understand your cap shape and dead money.',
     targetScreen: '/contracts',
-    targetElement: null,
+    targetElement: '[data-nav="/contracts"]',
     action: 'screen:/contracts',
   },
   {
@@ -30,7 +30,7 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     title: 'Set Depth Chart',
     description: 'Visit the depth chart and lock in at least one starter decision.',
     targetScreen: '/depth-chart',
-    targetElement: null,
+    targetElement: '[data-nav="/depth-chart"]',
     action: 'depth_chart:update',
   },
   {
@@ -38,7 +38,7 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     title: 'Assign Training',
     description: 'Back on the roster, give a player a weekly training focus.',
     targetScreen: '/roster',
-    targetElement: null,
+    targetElement: '[data-nav="/roster"]',
     action: 'training:assign',
   },
   {
@@ -46,7 +46,7 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     title: 'Check Inbox',
     description: 'Open the inbox and read what the league is already telling you.',
     targetScreen: '/inbox',
-    targetElement: null,
+    targetElement: '[data-nav="/inbox"]',
     action: 'screen:/inbox',
   },
   {
@@ -54,7 +54,7 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     title: 'Advance Week',
     description: 'Advance into the first game and let the season start moving.',
     targetScreen: '/week-advance',
-    targetElement: null,
+    targetElement: '[data-nav="/week-advance"]',
     action: 'week:advance',
   },
   {
@@ -62,7 +62,7 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     title: 'Review Game Day',
     description: 'Use the Game Day screen to see what actually happened after kickoff.',
     targetScreen: '/game-day',
-    targetElement: null,
+    targetElement: '[data-nav="/game-day"]',
     action: 'screen:/game-day',
   },
   {
@@ -70,7 +70,7 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     title: 'Check Standings',
     description: 'Open standings and place your team inside the league context.',
     targetScreen: '/standings',
-    targetElement: null,
+    targetElement: '[data-nav="/standings"]',
     action: 'screen:/standings',
   },
   {
@@ -78,7 +78,7 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     title: 'Make a Promise',
     description: 'Use the handshake ledger to make one promise and feel the trust system.',
     targetScreen: '/handshakes',
-    targetElement: null,
+    targetElement: '[data-nav="/handshakes"]',
     action: 'handshake:create',
   },
   {
@@ -86,13 +86,50 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     title: 'Scout a Prospect',
     description: 'Open scouting and run one scouting action.',
     targetScreen: '/scouting',
-    targetElement: null,
+    targetElement: '[data-nav="/scouting"]',
     action: 'scouting:action',
+  },
+  {
+    id: 'check_game_plan',
+    title: 'Set Your Game Plan',
+    description:
+      'Before each game, visit Game Plan to choose your offensive and defensive strategies. Match your scheme to your roster strengths.',
+    targetScreen: '/game-plan',
+    targetElement: '[data-nav="/game-plan"]',
+    action: 'screen:/game-plan',
+  },
+  {
+    id: 'review_broadcast',
+    title: 'Watch the Broadcast',
+    description:
+      'After advancing a week with a game, check the Broadcast screen to see a play-by-play recap with commentary and key moments.',
+    targetScreen: '/broadcast',
+    targetElement: '[data-nav="/broadcast"]',
+    action: 'screen:/broadcast',
+  },
+  {
+    id: 'explore_trades',
+    title: 'Explore the Trade Market',
+    description:
+      'Visit the Trade Center to see what deals are available. Every team has different needs — find the right match.',
+    targetScreen: '/trades',
+    targetElement: '[data-nav="/trades"]',
+    action: 'screen:/trades',
+  },
+  {
+    id: 'check_franchise',
+    title: 'Build Your Dynasty',
+    description:
+      'The Franchise Hub tracks your legacy — owner mood, franchise doctrines, and dynasty window. This is the long game.',
+    targetScreen: '/franchise',
+    targetElement: '[data-nav="/franchise"]',
+    action: 'screen:/franchise',
   },
   {
     id: 'you_are_ready',
     title: "You're Ready!",
-    description: 'You have touched the core loops. The dynasty is yours now.',
+    description:
+      'You have the tools to build a dynasty. Play your way — there are no wrong answers, only your story. Good luck, Coach.',
     targetScreen: '/',
     targetElement: null,
     action: null,

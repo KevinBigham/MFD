@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { MfdPanel, PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import { Gamepad2, Shield, Trophy } from 'lucide-react';
-import { getAvailableScenarios, mulberry32, startScenario, type DifficultyLevel } from '@mfd/engine';
+import { getAvailableScenarios, mulberry32, startScenario, generateConventionSave, CONVENTION_SAVE_METADATA, type DifficultyLevel } from '@mfd/engine';
 import { useGameStore } from './store/game-store';
 import { createSeedGameState, getTeamOptions } from './store/seed';
 import { TeamLogo } from '../features/shared/TeamLogo';
@@ -28,6 +28,7 @@ export function NewGameScreen() {
   const [selectedScenarioId, setSelectedScenarioId] = useState(getAvailableScenarios()[0]?.id ?? 'rebuild');
   const [hasAutosave, setHasAutosave] = useState(false);
   const [loadingAutosave, setLoadingAutosave] = useState(false);
+  const [autosaveError, setAutosaveError] = useState<string | null>(null);
   const newGame = useGameStore((s) => s.actions.newGame);
   const loadGame = useGameStore((s) => s.actions.loadGame);
 
@@ -54,11 +55,27 @@ export function NewGameScreen() {
     await newGame(state);
   };
 
+  const handleConventionDemo = async () => {
+    const seed = Date.now();
+    const rng = mulberry32(seed);
+    const demoState = generateConventionSave('afce1', rng);
+    await newGame(demoState);
+  };
+
   const handleContinue = async () => {
     setLoadingAutosave(true);
+    setAutosaveError(null);
     try {
       const latest = await loadLatestAutosaveGame();
-      if (latest) loadGame(latest);
+      if (latest) {
+        loadGame(latest);
+      } else {
+        setAutosaveError('Autosave data could not be loaded. It may be corrupted. Start a new dynasty instead.');
+        setHasAutosave(false);
+      }
+    } catch (err) {
+      setAutosaveError(err instanceof Error ? err.message : 'Failed to load autosave. The save file may be corrupted.');
+      setHasAutosave(false);
     } finally {
       setLoadingAutosave(false);
     }
@@ -108,6 +125,22 @@ export function NewGameScreen() {
             Scenario Challenge
           </PixelButton>
         </div>
+
+        {/* Convention Demo Quick-Start */}
+        <PixelPanel title="Convention Demo" accent="green">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+              {CONVENTION_SAVE_METADATA.headline}
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="green">Week {CONVENTION_SAVE_METADATA.week}</PixelBadge>
+              <PixelBadge variant="gold">Playoff Race</PixelBadge>
+            </div>
+            <PixelButton accent="green" onClick={handleConventionDemo}>
+              Launch Demo Scenario
+            </PixelButton>
+          </div>
+        </PixelPanel>
 
         {/* Team Selection */}
         <MfdPanel title="Select Franchise" icon={<Shield size={14} />}>
@@ -276,6 +309,22 @@ export function NewGameScreen() {
             </div>
           </PixelPanel>
         ) : null}
+
+        {/* Autosave error message */}
+        {autosaveError && (
+          <div style={{
+            padding: '12px',
+            background: 'rgba(255, 50, 50, 0.1)',
+            border: '1px solid var(--mfd-red)',
+            borderRadius: 'var(--mfd-rad-md)',
+            fontFamily: 'var(--mfd-font-mono)',
+            fontSize: '0.75rem',
+            color: 'var(--mfd-red)',
+            lineHeight: 1.5,
+          }}>
+            {autosaveError}
+          </div>
+        )}
 
         {/* Start Button */}
         {hasAutosave && (

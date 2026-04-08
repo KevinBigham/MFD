@@ -4,6 +4,7 @@ import { getAgingMultiplier } from './trust-aging';
 import { recordPlayerRetirement, syncPlayerArchiveEntry } from './history';
 import { recordNewsItem } from './league-news';
 import { getArchetypeProgressionMultipliers } from './archetype-progression';
+import { calculateMentorEffects } from './alumni-mentors';
 import { getPositionCoachBonus } from './position-coaches';
 import type { GameEvent, GameState, Player, Position, Team } from '../types';
 
@@ -34,8 +35,24 @@ export interface ProgressionResult {
 }
 
 interface ProgressionOptions {
+  alumniMentorBonuses?: Map<string, number>;
   mentoringBonuses?: Map<string, number>;
   trainingBonuses?: Map<string, { overall: number; ratings: Record<string, number> }>;
+}
+
+function buildActiveMentorBonusMap(game: GameState): Map<string, number> {
+  const bonuses = new Map<string, number>();
+  const userTeam = Object.values(game.teams).find((team) => team.isUser) ?? null;
+  if (!userTeam || !game.activeMentors?.length) return bonuses;
+
+  for (const mentor of game.activeMentors) {
+    const effects = calculateMentorEffects([mentor], userTeam.roster);
+    for (const effect of effects) {
+      bonuses.set(effect.targetPlayerId, (bonuses.get(effect.targetPlayerId) ?? 0) + effect.devBonus);
+    }
+  }
+
+  return bonuses;
 }
 
 function getCoachMultiplier(team: Team | null): number {
@@ -181,11 +198,18 @@ function progressSinglePlayer(
   const performanceMultiplier = getPerformanceMultiplier(player);
   const coachMultiplier = getCoachMultiplier(team);
   const devTraitMultiplier = DEV_TRAIT_MULTIPLIER[player.devTrait] ?? 1;
+  const alumniMentorBonus = options.alumniMentorBonuses?.get(player.id) ?? 0;
   const mentoringBonus = options.mentoringBonuses?.get(player.id) ?? 0;
   const trainingBonus = options.trainingBonuses?.get(player.id) ?? { overall: 0, ratings: {} };
   const posCoachBonus = getPositionCoachBonus(team?.positionCoaches, player);
+  const baseDevelopmentDelta = (
+    baseAgeDelta * performanceMultiplier * coachMultiplier * devTraitMultiplier * posCoachBonus.devMultiplier
+  );
+  const boostedDevelopmentDelta = baseDevelopmentDelta > 0
+    ? baseDevelopmentDelta * cl(1 + alumniMentorBonus, 1, 1.25)
+    : baseDevelopmentDelta;
   const overallDelta = (
-    baseAgeDelta * performanceMultiplier * coachMultiplier * devTraitMultiplier * posCoachBonus.devMultiplier +
+    boostedDevelopmentDelta +
     mentoringBonus +
     trainingBonus.overall
   );
@@ -210,12 +234,16 @@ function progressSinglePlayer(
 export function progressPlayers(game: GameState, options: ProgressionOptions = {}): ProgressionResult {
   const retiredPlayerIds: string[] = [];
   const events: GameEvent[] = [];
+  const progressionOptions: ProgressionOptions = {
+    ...options,
+    alumniMentorBonuses: buildActiveMentorBonusMap(game),
+  };
 
   for (const team of Object.values(game.teams)) {
     const retirees: Player[] = [];
 
     for (const player of team.roster) {
-      progressSinglePlayer(game, player, team, options);
+      progressSinglePlayer(game, player, team, progressionOptions);
       if (player.ovr < RETIREMENT_THRESHOLD[player.pos]) {
         retirees.push(player);
       }
@@ -246,7 +274,7 @@ export function progressPlayers(game: GameState, options: ProgressionOptions = {
   for (const playerId of game.freeAgents) {
     const player = game.players[playerId];
     if (!player) continue;
-    progressSinglePlayer(game, player, null, options);
+    progressSinglePlayer(game, player, null, progressionOptions);
     if (player.ovr < RETIREMENT_THRESHOLD[player.pos]) {
       player.teamId = null;
       player.contract = null;

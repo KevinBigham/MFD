@@ -11,6 +11,7 @@ import {
   type Player,
   type TradeOfferAsset,
 } from '@mfd/engine';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import {
   selectActiveProposals,
   selectPhase,
@@ -163,6 +164,7 @@ export function TradeCenter() {
   const [offeringKeys, setOfferingKeys] = useState<string[]>([]);
   const [requestingKeys, setRequestingKeys] = useState<string[]>([]);
   const [pending, setPending] = useState<string | null>(null);
+  const [confirmTradeId, setConfirmTradeId] = useState<string | null>(null);
   const [activeProposalId, setActiveProposalId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -361,9 +363,7 @@ export function TradeCenter() {
                       <PixelButton
                         accent="green"
                         disabled={pending === `${offer.id}-accept`}
-                        onClick={() => void handleAction(`${offer.id}-accept`, async () => {
-                          await acceptTradeOffer(offer.id);
-                        })}
+                        onClick={() => setConfirmTradeId(offer.id)}
                       >
                         Accept
                       </PixelButton>
@@ -550,6 +550,23 @@ export function TradeCenter() {
           ) : null}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmTradeId !== null}
+        title="Accept Trade"
+        message="Accept this trade offer? This action will move players and picks between rosters."
+        confirmLabel="Accept Trade"
+        accent="green"
+        onConfirm={() => {
+          if (confirmTradeId) {
+            void handleAction(`${confirmTradeId}-accept`, async () => {
+              await acceptTradeOffer(confirmTradeId);
+            });
+          }
+          setConfirmTradeId(null);
+        }}
+        onCancel={() => setConfirmTradeId(null)}
+      />
     </div>
   );
 }
