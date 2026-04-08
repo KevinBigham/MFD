@@ -57,7 +57,7 @@ function stripResultBroadcast(result: unknown): void {
 function sanitizeSaveForExport(save: unknown): unknown {
   if (!save || typeof save !== 'object') return save;
 
-  const clone = JSON.parse(JSON.stringify(save)) as Record<string, unknown>;
+  const clone = structuredClone(save) as Record<string, unknown>;
   const schedule = Array.isArray(clone['schedule']) ? clone['schedule'] as Array<Record<string, unknown>> : [];
   for (const week of schedule) {
     const games = Array.isArray(week['games']) ? week['games'] as Array<Record<string, unknown>> : [];

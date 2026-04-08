@@ -11,7 +11,7 @@ import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-valu
 import type { DraftPick, EngineOutput, GameState, Player, Team, TradeOffer, TradeOfferAsset } from '../types';
 
 function cloneGame(game: GameState): GameState {
-  return JSON.parse(JSON.stringify(game)) as GameState;
+  return structuredClone(game);
 }
 
 function refreshRosterState(team: Team): void {

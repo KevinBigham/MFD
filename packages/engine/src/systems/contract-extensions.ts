@@ -152,7 +152,7 @@ export function capProjection(team: Team, startYear: number, years = 3): CapProj
 }
 
 export function applyExtensionOffer(game: GameState, teamId: string, offer: ExtensionOffer): GameState {
-  const nextState = JSON.parse(JSON.stringify(game)) as GameState;
+  const nextState = structuredClone(game);
   const team = nextState.teams[teamId];
   const player = nextState.players[offer.playerId];
   if (!team || !player) return nextState;

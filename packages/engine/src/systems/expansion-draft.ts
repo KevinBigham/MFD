@@ -46,7 +46,7 @@ const POSITION_TARGETS: Record<Position, number> = {
 };
 
 function cloneValue<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
+  return structuredClone(value);
 }
 
 function draftPickTotal(teamCount: number): number {

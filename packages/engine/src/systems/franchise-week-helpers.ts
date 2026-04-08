@@ -240,7 +240,7 @@ export function refreshNarrative(game: GameState): void {
 }
 
 export function cloneGame(game: GameState): GameState {
-  return JSON.parse(JSON.stringify(game)) as GameState;
+  return structuredClone(game);
 }
 
 export function findUserTeam(game: GameState): Team | null {

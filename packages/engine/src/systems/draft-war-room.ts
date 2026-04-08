@@ -349,7 +349,7 @@ export function buildDraftWarRoomState(game: GameState, rng: () => number): WarR
 }
 
 export function applyDraftTradeOffer(game: GameState, offer: DraftTradeOffer): GameState {
-  const nextState = JSON.parse(JSON.stringify(game)) as GameState;
+  const nextState = structuredClone(game);
   const userTeam = (Object.values(nextState.teams) as Team[]).find((team) => team.isUser) ?? null;
   if (!userTeam) return nextState;
 

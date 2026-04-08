@@ -26,7 +26,7 @@ const TIER_CONFIG: Record<Scout['tier'], { salary: [number, number]; accuracy: [
 };
 
 function cloneGame(game: GameState): GameState {
-  return JSON.parse(JSON.stringify(game)) as GameState;
+  return structuredClone(game);
 }
 
 function clamp(value: number, min: number, max: number): number {

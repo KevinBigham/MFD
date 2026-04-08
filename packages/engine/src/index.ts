@@ -629,6 +629,8 @@ export { runTrainingCamp, runAllTrainingCamps } from './systems/training-camp';
 export type { CampStandout, CampInjury, TrainingCampResults } from './systems/training-camp';
 export type { PositionBattle as CampPositionBattle } from './systems/training-camp';
 export { getRookieSlot, rookieSlotContract } from './config/rookie-slots';
+export { validateGameState, assertGameStateValid } from './systems/invariants';
+export type { InvariantViolation, InvariantResult } from './systems/invariants';
 export { resolveConditions, conditionalPickExpectedValue } from './systems/conditional-picks';
 export {
   addToPracticeSquad,

@@ -41,7 +41,7 @@ const DRAFT_POSITION_PREMIUM: Partial<Record<Player['pos'], number>> = {
 };
 
 function cloneGame(game: GameState): GameState {
-  return JSON.parse(JSON.stringify(game)) as GameState;
+  return structuredClone(game);
 }
 
 function refreshRosterState(team: Team): void {

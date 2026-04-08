@@ -66,7 +66,7 @@ import type {
 } from '../types';
 
 function cloneGame(game: GameState): GameState {
-  return JSON.parse(JSON.stringify(game)) as GameState;
+  return structuredClone(game);
 }
 
 function ensureGovernanceState(game: GameState): void {

@@ -117,7 +117,7 @@ const SCENARIO_DEFINITIONS: ScenarioDefinition[] = [
 ];
 
 function cloneScenario<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
+  return structuredClone(value);
 }
 
 function findUserTeam(gameState: GameState): Team {

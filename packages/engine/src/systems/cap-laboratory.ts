@@ -28,7 +28,7 @@ function round(value: number): number {
 }
 
 function cloneDeep<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
+  return structuredClone(value);
 }
 
 function cloneScenario(scenario: CapScenario): CapScenarioInternal {
