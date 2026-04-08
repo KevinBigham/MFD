@@ -70,38 +70,46 @@ const COLLEGES = [
 ];
 
 const TEAM_DEFS = [
-  { city: 'New York',       name: 'Titans',     abbr: 'NYT', conf: 'AFC' as const, div: 'East' },
-  { city: 'Boston',         name: 'Minutemen',  abbr: 'BOS', conf: 'AFC' as const, div: 'East' },
-  { city: 'Miami',          name: 'Sharks',     abbr: 'MIA', conf: 'AFC' as const, div: 'East' },
-  { city: 'Baltimore',      name: 'Knights',    abbr: 'BAL', conf: 'AFC' as const, div: 'East' },
-  { city: 'Pittsburgh',     name: 'Ironmen',    abbr: 'PIT', conf: 'AFC' as const, div: 'North' },
-  { city: 'Cleveland',      name: 'Bulldogs',   abbr: 'CLE', conf: 'AFC' as const, div: 'North' },
-  { city: 'Cincinnati',     name: 'Royals',     abbr: 'CIN', conf: 'AFC' as const, div: 'North' },
-  { city: 'Indianapolis',   name: 'Racers',     abbr: 'IND', conf: 'AFC' as const, div: 'North' },
-  { city: 'Houston',        name: 'Outlaws',    abbr: 'HOU', conf: 'AFC' as const, div: 'South' },
-  { city: 'Nashville',      name: 'Vipers',     abbr: 'NSH', conf: 'AFC' as const, div: 'South' },
-  { city: 'Jacksonville',   name: 'Gators',     abbr: 'JAX', conf: 'AFC' as const, div: 'South' },
-  { city: 'Memphis',        name: 'Grizzlies',  abbr: 'MEM', conf: 'AFC' as const, div: 'South' },
-  { city: 'Kansas City',    name: 'Monarchs',   abbr: 'KC',  conf: 'AFC' as const, div: 'West' },
-  { city: 'Denver',         name: 'Mustangs',   abbr: 'DEN', conf: 'AFC' as const, div: 'West' },
-  { city: 'Las Vegas',      name: 'Aces',       abbr: 'LV',  conf: 'AFC' as const, div: 'West' },
-  { city: 'Los Angeles',    name: 'Chargers',   abbr: 'LAC', conf: 'AFC' as const, div: 'West' },
-  { city: 'Dallas',         name: 'Lone Stars', abbr: 'DAL', conf: 'NFC' as const, div: 'East' },
-  { city: 'Philadelphia',   name: 'Liberty',    abbr: 'PHI', conf: 'NFC' as const, div: 'East' },
-  { city: 'Washington',     name: 'Sentinels',  abbr: 'WAS', conf: 'NFC' as const, div: 'East' },
-  { city: 'Charlotte',      name: 'Hornets',    abbr: 'CLT', conf: 'NFC' as const, div: 'East' },
-  { city: 'Chicago',        name: 'Fire',       abbr: 'CHI', conf: 'NFC' as const, div: 'North' },
-  { city: 'Detroit',        name: 'Engines',    abbr: 'DET', conf: 'NFC' as const, div: 'North' },
-  { city: 'Green Bay',      name: 'Tundra',     abbr: 'GB',  conf: 'NFC' as const, div: 'North' },
-  { city: 'Minneapolis',    name: 'Wolves',     abbr: 'MIN', conf: 'NFC' as const, div: 'North' },
-  { city: 'Atlanta',        name: 'Hawks',      abbr: 'ATL', conf: 'NFC' as const, div: 'South' },
-  { city: 'New Orleans',    name: 'Krewe',      abbr: 'NO',  conf: 'NFC' as const, div: 'South' },
-  { city: 'Tampa Bay',      name: 'Storm',      abbr: 'TB',  conf: 'NFC' as const, div: 'South' },
-  { city: 'Orlando',        name: 'Explorers',  abbr: 'ORL', conf: 'NFC' as const, div: 'South' },
-  { city: 'San Francisco',  name: 'Gold Rush',  abbr: 'SF',  conf: 'NFC' as const, div: 'West' },
-  { city: 'Seattle',        name: 'Cascades',   abbr: 'SEA', conf: 'NFC' as const, div: 'West' },
-  { city: 'Phoenix',        name: 'Scorpions',  abbr: 'PHX', conf: 'NFC' as const, div: 'West' },
-  { city: 'Portland',       name: 'Pioneers',   abbr: 'POR', conf: 'NFC' as const, div: 'West' },
+  // AFC East — Northeast corridor
+  { city: 'New York',       name: 'Concrete Jungle Cabbies',              abbr: 'NYC', conf: 'AFC' as const, div: 'East' },
+  { city: 'Boston',         name: 'Hub of the Universe Chowderheads',     abbr: 'BOS', conf: 'AFC' as const, div: 'East' },
+  { city: 'Philadelphia',   name: 'City of Brotherly Love Bell-Ringers',  abbr: 'PHI', conf: 'AFC' as const, div: 'East' },
+  { city: 'Baltimore',      name: 'Charm City Crab Pickers',              abbr: 'BAL', conf: 'AFC' as const, div: 'East' },
+  // AFC North — Rust Belt / Great Lakes
+  { city: 'Pittsburgh',     name: 'Steel City Iron Smelters',             abbr: 'PIT', conf: 'AFC' as const, div: 'North' },
+  { city: 'Cleveland',      name: 'Forest City Rockers',                  abbr: 'CLE', conf: 'AFC' as const, div: 'North' },
+  { city: 'Cincinnati',     name: 'Porkopolis Flying Pigs',               abbr: 'CIN', conf: 'AFC' as const, div: 'North' },
+  { city: 'Columbus',       name: 'Cowtown Astronauts',                   abbr: 'COL', conf: 'AFC' as const, div: 'North' },
+  // AFC South — Texas / South Central
+  { city: 'Houston',        name: 'Brisket Spaceships',                   abbr: 'HOU', conf: 'AFC' as const, div: 'South' },
+  { city: 'Dallas',         name: 'Pegasus Rodeos',                       abbr: 'DAL', conf: 'AFC' as const, div: 'South' },
+  { city: 'San Antonio',    name: 'Puroville Rivers',                     abbr: 'SA',  conf: 'AFC' as const, div: 'South' },
+  { city: 'Nashville',      name: 'Buckle of the Bible Belt',             abbr: 'NSH', conf: 'AFC' as const, div: 'South' },
+  // AFC West — Plains / Mountain / Desert
+  { city: 'Kansas City',    name: 'BBQ Fountains',                        abbr: 'KC',  conf: 'AFC' as const, div: 'West' },
+  { city: 'Denver',         name: 'Wall Street of the West',              abbr: 'DEN', conf: 'AFC' as const, div: 'West' },
+  { city: 'Las Vegas',      name: 'Sin City Cardsharks',                  abbr: 'LV',  conf: 'AFC' as const, div: 'West' },
+  { city: 'Phoenix',        name: 'Valley of the Sun Grand Canyons',      abbr: 'PHX', conf: 'AFC' as const, div: 'West' },
+  // NFC East — Southeast
+  { city: 'Washington',     name: 'Bi-Partisan Filibusters',              abbr: 'DC',  conf: 'NFC' as const, div: 'East' },
+  { city: 'Charlotte',      name: 'Queen City Bootleggers',               abbr: 'CLT', conf: 'NFC' as const, div: 'East' },
+  { city: 'Atlanta',        name: 'Empire City of the South Peaches',     abbr: 'ATL', conf: 'NFC' as const, div: 'East' },
+  { city: 'Miami',          name: 'Sunny Place for Shady People',         abbr: 'MIA', conf: 'NFC' as const, div: 'East' },
+  // NFC North — Great Lakes / Midwest
+  { city: 'Chicago',        name: 'City of Broad Shoulders Deep-Dish',    abbr: 'CHI', conf: 'NFC' as const, div: 'North' },
+  { city: 'Detroit',        name: 'Motown Music Machine',                 abbr: 'DET', conf: 'NFC' as const, div: 'North' },
+  { city: 'Minneapolis',    name: 'Juicy-Lucy Lakers',                    abbr: 'MIN', conf: 'NFC' as const, div: 'North' },
+  { city: 'St. Louis',      name: 'Gateway to the West Toasted Raviolis', abbr: 'STL', conf: 'NFC' as const, div: 'North' },
+  // NFC South — Florida + Indy
+  { city: 'Tampa Bay',      name: 'The Big Guava Pirates',                abbr: 'TB',  conf: 'NFC' as const, div: 'South' },
+  { city: 'Orlando',        name: 'Theme Park Capital Rollercoasters',    abbr: 'ORL', conf: 'NFC' as const, div: 'South' },
+  { city: 'Jacksonville',   name: 'Bold New City Swamps',                 abbr: 'JAX', conf: 'NFC' as const, div: 'South' },
+  { city: 'Indianapolis',   name: 'Nap Town Speed Racers',                abbr: 'IND', conf: 'NFC' as const, div: 'South' },
+  // NFC West — Pacific Coast
+  { city: 'Los Angeles',    name: 'La-La Land Traffic Jams',              abbr: 'LA',  conf: 'NFC' as const, div: 'West' },
+  { city: 'San Francisco',  name: 'City by the Bay Sourdoughs',           abbr: 'SF',  conf: 'NFC' as const, div: 'West' },
+  { city: 'Seattle',        name: 'Emerald City Grunge',                  abbr: 'SEA', conf: 'NFC' as const, div: 'West' },
+  { city: 'San Diego',      name: "America's Finest City Surfers",        abbr: 'SD',  conf: 'NFC' as const, div: 'West' },
 ];
 
 // ── Position roster template (53-man distribution) ─────────
@@ -123,7 +131,7 @@ const ROSTER_TEMPLATE: { pos: Position; count: number; starterCount: number }[] 
 
 const OFF_SCHEME_IDS = ['spread', 'west_coast', 'power_run', 'air_raid', 'rpo'];
 const DEF_SCHEME_IDS = ['cover_3', 'cover_2', 'man_press', 'hybrid_34', 'tampa_2'];
-const DOME_CITIES = new Set(['Indianapolis', 'Houston', 'Atlanta', 'New Orleans', 'Detroit', 'Minneapolis', 'Phoenix', 'Dallas', 'Las Vegas', 'Los Angeles']);
+const DOME_CITIES = new Set(['Indianapolis', 'Houston', 'Atlanta', 'Detroit', 'Minneapolis', 'Phoenix', 'Dallas', 'Las Vegas', 'San Antonio']);
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -266,6 +274,32 @@ function genTeam(
   for (const slot of ROSTER_TEMPLATE) {
     for (let i = 0; i < slot.count; i++) {
       players.push(genPlayer(slot.pos, teamId, i < slot.starterCount, year));
+    }
+  }
+
+  // KC BBQ Fountains: league's premier franchise — elite young QB, dominant DE, best OL/WR corps
+  if (def.abbr === 'KC') {
+    const qb = players.find(p => p.pos === 'QB' && p.isStarter)!;
+    qb.age = 23; qb.ovr = 97; qb.pot = 99; qb.yearsExp = 1; qb.draftYear = year - 1;
+    qb.draftRound = 1; qb.draftPick = 1; qb.devTrait = 'x-factor';
+    qb.ratings = genRatings('QB', 97);
+    qb.careerStats = genCareerStats(1);
+
+    const de = players.find(p => p.pos === 'DL' && p.isStarter)!;
+    de.age = 25; de.ovr = 98; de.pot = 99; de.yearsExp = 3; de.draftYear = year - 3;
+    de.draftRound = 1; de.draftPick = 2; de.devTrait = 'x-factor';
+    de.ratings = genRatings('DL', 98);
+    de.careerStats = genCareerStats(3);
+
+    for (const p of players) {
+      if (p.pos === 'OL' && p.isStarter) {
+        p.ovr = Math.max(p.ovr, rng(88, 94)); p.pot = Math.min(99, p.ovr + rng(2, 8));
+        p.ratings = genRatings('OL', p.ovr); p.devTrait = 'star';
+      }
+      if (p.pos === 'WR' && p.isStarter) {
+        p.ovr = Math.max(p.ovr, rng(87, 93)); p.pot = Math.min(99, p.ovr + rng(2, 8));
+        p.ratings = genRatings('WR', p.ovr); p.devTrait = 'star';
+      }
     }
   }
 
@@ -537,6 +571,7 @@ export function getTeamOptions() {
     city: d.city,
     name: d.name,
     abbr: d.abbr,
+    icon: d.abbr.toLowerCase(),
     conference: d.conf,
     division: d.div,
     fullName: `${d.city} ${d.name}`,

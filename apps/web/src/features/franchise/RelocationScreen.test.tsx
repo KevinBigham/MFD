@@ -13,7 +13,7 @@ const baseState = () => ({
   canRelocate: true,
   destinations: [
     { city: 'London', teamName: 'Monarchs', abbr: 'LDN', marketSize: 'mega', marketModifier: 1.25, fanbaseStart: 40, prestigeBonus: 15, cost: 55, stadiumType: 'dome', description: 'International expansion, massive market' },
-    { city: 'Berlin', teamName: 'Sentinels', abbr: 'BER', marketSize: 'large', marketModifier: 1.2, fanbaseStart: 38, prestigeBonus: 12, cost: 52, stadiumType: 'dome', description: 'European powerhouse, hungry for American football' },
+    { city: 'Berlin', teamName: 'Wanderers', abbr: 'BER', marketSize: 'large', marketModifier: 1.2, fanbaseStart: 38, prestigeBonus: 12, cost: 52, stadiumType: 'dome', description: 'European powerhouse, hungry for American football' },
   ],
   actions: {
     relocateTeam: () => Promise.resolve(),

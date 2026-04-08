@@ -11,6 +11,7 @@ import {
   PixelScreenHeader,
   PlayerNameLink,
 } from '../shared/pixelUi';
+import { TeamLogo } from '../shared/TeamLogo';
 
 function streakLabel(streak: number): string {
   if (streak > 0) return `W${streak}`;
@@ -37,6 +38,7 @@ function standingsColumns(userTeamId: string | null): ColumnDef<(ReturnType<type
           border: row.original.teamId === userTeamId ? '3px solid var(--mfd-gold)' : 'none',
         }}
         >
+          <TeamLogo icon={row.original.teamIcon} size={22} />
           <span style={{ ...mono, color: row.original.teamId === userTeamId ? 'var(--mfd-gold)' : '#fff' }}>
             {row.original.teamName}
           </span>
@@ -132,12 +134,15 @@ export function LeagueStandings() {
                   </div>
                   {conference.seeds.map((seed) => (
                     <div key={seed.teamId} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
-                      <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <TeamLogo icon={seed.teamIcon} size={24} />
+                        <div>
                         <div style={{ ...mono, color: seed.teamId === userTeam?.id ? 'var(--mfd-gold)' : '#fff' }}>
                           #{seed.seed} {seed.teamName}
                         </div>
                         <div style={{ ...monoSm, color: '#999' }}>
                           {seed.divisionWinner ? 'Division winner' : 'Wildcard'}
+                        </div>
                         </div>
                       </div>
                       {seed.indicator ? <PixelBadge variant="gold">{seed.indicator}</PixelBadge> : null}

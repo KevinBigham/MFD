@@ -1453,4 +1453,57 @@ describe('migration pipeline', () => {
     expect(migrated['farewellTours']).toEqual([]);
     expect(migrated['endorsementOffers']).toEqual([]);
   });
+
+  it('v24→v25 migration adds slices and guaranteeSchedule to contracts', () => {
+    const migrated = migrate({
+      version: 24,
+      players: {
+        p1: {
+          id: 'p1',
+          contract: {
+            playerId: 'p1',
+            teamId: 't1',
+            years: 3,
+            totalValue: 30,
+            yearlyBreakdown: [
+              { year: 0, baseSalary: 8, capHit: 11, deadCap: 9, guaranteed: true },
+              { year: 1, baseSalary: 8, capHit: 11, deadCap: 6, guaranteed: false },
+              { year: 2, baseSalary: 8, capHit: 11, deadCap: 3, guaranteed: false },
+            ],
+            guaranteed: 8,
+            signingBonus: 9,
+            voidYears: 0,
+            franchiseTag: null,
+            incentives: [],
+          },
+        },
+      },
+      teams: {},
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    const player = (migrated['players'] as Record<string, any>).p1;
+    const c = player.contract;
+    expect(c.slices).toEqual([]);
+    expect(c.guaranteeSchedule).toEqual([]);
+    expect(c.baseSalary).toBe(8);
+    expect(c.prorated).toBe(3); // 9/3
+    expect(c.originalYears).toBe(3);
+    expect(c.restructured).toBe(false);
+    // guaranteeType backfilled on yearly breakdown
+    expect(c.yearlyBreakdown[0].guaranteeType).toBe('GAS');
+  });
+
+  it('v24→v25 migration handles player without contract', () => {
+    const migrated = migrate({
+      version: 24,
+      players: {
+        p1: { id: 'p1', contract: null },
+      },
+      teams: {},
+    }, SAVE_VERSION);
+
+    const player = (migrated['players'] as Record<string, any>).p1;
+    expect(player.contract).toBeNull();
+  });
 });

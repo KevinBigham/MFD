@@ -17,9 +17,9 @@ function makeFixture() {
   const away = structuredClone(game.teams.afce2!);
 
   home.city = 'Nashville';
-  home.name = 'Titans';
+  home.name = 'Buckle of the Bible Belt';
   away.city = 'Jacksonville';
-  away.name = 'Jaguars';
+  away.name = 'Bold New City Swamps';
 
   const marcus = home.roster[0]!;
   marcus.name = 'Marcus Cole';
@@ -205,12 +205,12 @@ describe('social feed', () => {
   it('builds trade transaction posts with the expected team names', () => {
     const posts = generateTransactionPosts('trade', {
       playerNames: ['Marcus Cole', 'Jalen Price'],
-      teamNames: ['Titans', 'Jaguars'],
+      teamNames: ['Buckle of the Bible Belt', 'Bold New City Swamps'],
       context: 'Blockbuster swap',
     }, mulberry32(22));
 
     expect(posts.length).toBeGreaterThanOrEqual(2);
-    expect(posts.some((post) => /Titans|Jaguars/.test(post.content))).toBe(true);
+    expect(posts.some((post) => /Bible Belt|Bold New City/.test(post.content))).toBe(true);
   });
 
   it('keeps only the newest 100 posts in FIFO order', () => {

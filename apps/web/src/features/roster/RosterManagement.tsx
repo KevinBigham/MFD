@@ -8,6 +8,7 @@ import { calcCapHit, calculateTrainingXP } from '@mfd/engine';
 import {
   useGameStore, selectFatigueReport, selectFreeAgentPlayers, selectPracticeSquad, selectRoster, selectTrainingAssignments, selectUserTeam, selectUserTeamId, selectWaiverWirePlayers,
 } from '../../app/store/game-store';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import {
   PixelConsequenceList,
   PixelMetricCard,
@@ -241,11 +242,18 @@ export function RosterManagement() {
     .filter((player) => !waiverPlayers.some((waiverPlayer) => waiverPlayer.id === player.id))
     .slice(0, 8);
 
+  const [confirmCut, setConfirmCut] = useState<Player | null>(null);
+
   const handleCut = useCallback((player: Player) => {
-    if (!teamId) return;
-    void cutPlayer(teamId, player.id);
+    setConfirmCut(player);
+  }, []);
+
+  const confirmCutAction = useCallback(() => {
+    if (!teamId || !confirmCut) return;
+    void cutPlayer(teamId, confirmCut.id);
     setSelectedPlayer(null);
-  }, [teamId, cutPlayer]);
+    setConfirmCut(null);
+  }, [teamId, confirmCut, cutPlayer]);
 
   const handleTradeBlock = useCallback((player: Player) => {
     if (!teamId) return;
@@ -502,6 +510,16 @@ export function RosterManagement() {
           )}
         </PixelPanel>
       </div>
+
+      <ConfirmDialog
+        open={confirmCut != null}
+        title="Release Player"
+        message={confirmCut ? `Are you sure you want to release ${confirmCut.name} (${confirmCut.pos}, ${confirmCut.ovr} OVR)? Dead cap: $${Math.round(calcCapHit(confirmCut.contract) * 10) / 10}M` : ''}
+        confirmLabel="Release"
+        accent="red"
+        onConfirm={confirmCutAction}
+        onCancel={() => setConfirmCut(null)}
+      />
     </div>
   );
 }

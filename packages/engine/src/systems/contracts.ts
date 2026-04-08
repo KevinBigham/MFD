@@ -7,7 +7,7 @@
 
 import { MIN_SALARY, getMinSalary } from '../config/cap-math';
 import { cl } from '../utils';
-import type { Contract, ContractYear, Position, Player } from '../types';
+import type { BonusSlice, Contract, ContractYear, GuaranteeEntry, GuaranteeType, Position, Player } from '../types';
 
 // ── Contract Creation ──────────────────────────────────
 
@@ -22,13 +22,39 @@ export function makeContract(
   const pro = years > 0 ? signingBonus / years : 0;
   const breakdown: ContractYear[] = [];
 
+  // Build bonus slices — one per year for signing bonus amortization
+  const slices: BonusSlice[] = [];
   for (let i = 0; i < years; i++) {
+    if (pro > 0) {
+      slices.push({ sourceOp: 'signing', season: i, amount: Math.round(pro * 100) / 100 });
+    }
+  }
+
+  // Build guarantee schedule
+  const guaranteeSchedule: GuaranteeEntry[] = [];
+  for (let i = 0; i < years; i++) {
+    const isGuaranteed = i === 0 ? true : guaranteed > salary * (i + 1);
+    if (isGuaranteed) {
+      const gType: GuaranteeType = i <= 1 ? 'GAS' : 'RDG';
+      guaranteeSchedule.push({
+        year: i,
+        type: gType,
+        amount: salary + pro,
+        vestedAt: gType === 'RDG' ? 'roster_week_1' : undefined,
+      });
+    }
+  }
+
+  for (let i = 0; i < years; i++) {
+    const isGuaranteed = i === 0 ? true : guaranteed > salary * (i + 1);
+    const gType: GuaranteeType | undefined = isGuaranteed ? (i <= 1 ? 'GAS' : 'RDG') : undefined;
     breakdown.push({
       year: i,
       baseSalary: salary,
       capHit: salary + pro,
       deadCap: pro * (years - i),
-      guaranteed: i === 0 ? true : guaranteed > salary * (i + 1),
+      guaranteed: isGuaranteed,
+      guaranteeType: gType,
     });
   }
 
@@ -47,6 +73,8 @@ export function makeContract(
     restructured: false,
     franchiseTag: null,
     incentives: [],
+    slices,
+    guaranteeSchedule,
   };
 }
 
@@ -96,6 +124,16 @@ export function restructureContract(player: { contract: Contract | null }): Rest
   c.restructured = true;
   c.guaranteed += convertible;
 
+  // Add restructure bonus slices
+  if (!c.slices) c.slices = [];
+  for (let i = 0; i < spreadYears; i++) {
+    c.slices.push({
+      sourceOp: 'restructure',
+      season: i,
+      amount: Math.round(addedPro * 100) / 100,
+    });
+  }
+
   const newHit = calcCapHit(c);
   const savings = oldHit - newHit;
 
@@ -138,6 +176,16 @@ export function backloadContract(
   c.prorated += addedPro;
   c.voidYears += actualVoid;
   c.guaranteed += convertible;
+
+  // Add backload bonus slices (including void years)
+  if (!c.slices) c.slices = [];
+  for (let i = 0; i < spreadYears; i++) {
+    c.slices.push({
+      sourceOp: 'backload',
+      season: i,
+      amount: Math.round(addedPro * 100) / 100,
+    });
+  }
 
   const newHit = calcCapHit(c);
 
@@ -262,12 +310,15 @@ export function calcDeadCap(
 function rebuildBreakdown(c: Contract): void {
   c.yearlyBreakdown = [];
   for (let i = 0; i < c.years; i++) {
+    const isGuaranteed = c.guaranteed > c.baseSalary * (i + 1);
+    const gType: GuaranteeType | undefined = isGuaranteed ? (i <= 1 ? 'GAS' : 'RDG') : undefined;
     c.yearlyBreakdown.push({
       year: i,
       baseSalary: c.baseSalary,
       capHit: c.baseSalary + c.prorated,
       deadCap: c.prorated * (c.years - i),
-      guaranteed: c.guaranteed > c.baseSalary * (i + 1),
+      guaranteed: isGuaranteed,
+      guaranteeType: gType,
     });
   }
 }

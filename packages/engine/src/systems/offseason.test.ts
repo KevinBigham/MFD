@@ -631,7 +631,7 @@ describe('offseason systems', () => {
 
     const reset = advanceFranchiseWeek(drafted.nextState);
 
-    expect(reset.nextState.phase).toBe('preseason');
+    expect(reset.nextState.phase).toBe('training_camp');
     expect(reset.nextState.week).toBe(1);
     expect(reset.nextState.weekSummaries).toEqual([]);
     expect(reset.nextState.playoffBracket).toBeNull();

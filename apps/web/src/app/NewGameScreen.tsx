@@ -7,6 +7,7 @@ import { Gamepad2, Shield, Trophy } from 'lucide-react';
 import { getAvailableScenarios, mulberry32, startScenario, type DifficultyLevel } from '@mfd/engine';
 import { useGameStore } from './store/game-store';
 import { createSeedGameState, getTeamOptions } from './store/seed';
+import { TeamLogo } from '../features/shared/TeamLogo';
 import { loadLatestAutosaveGame } from './store/persistence';
 
 const DIFFICULTIES: { id: DifficultyLevel; label: string; desc: string; guide: string }[] = [
@@ -142,8 +143,13 @@ export function NewGameScreen() {
                         transition: 'all var(--mfd-motion-fast)',
                       }}
                     >
-                      <div style={{ fontWeight: 600, fontSize: '0.75rem' }}>{t.abbr}</div>
-                      <div style={{ fontSize: '0.625rem', opacity: 0.8 }}>{t.city}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <TeamLogo icon={t.icon} size={28} alt={t.fullName} />
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '0.75rem' }}>{t.abbr}</div>
+                          <div style={{ fontSize: '0.625rem', opacity: 0.8 }}>{t.city}</div>
+                        </div>
+                      </div>
                     </button>
                   ))}
               </div>
@@ -158,7 +164,12 @@ export function NewGameScreen() {
           border: '1px solid var(--mfd-gold)',
           borderRadius: 'var(--mfd-rad-lg)',
           textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '8px',
         }}>
+          <TeamLogo icon={selected.icon} size={96} alt={selected.fullName} />
           <div style={{
             fontFamily: 'var(--mfd-font-serif)',
             fontSize: '1.25rem',

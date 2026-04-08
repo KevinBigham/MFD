@@ -8,9 +8,9 @@ const mockState = {
     teams: {
       'team-1': {
         id: 'team-1',
-        city: 'Green Bay',
-        name: 'Packers',
-        abbr: 'GB',
+        city: 'Chicago',
+        name: 'City of Broad Shoulders Deep-Dish',
+        abbr: 'CHI',
         wins: 7,
         losses: 3,
         ownerId: 'owner-1',
@@ -42,7 +42,7 @@ const mockState = {
     },
     weekSummaries: [
       {
-        headline: 'Packers cruise to comfortable victory',
+        headline: 'Deep-Dish cruise to comfortable victory',
         ownerDelta: 3,
       },
     ],

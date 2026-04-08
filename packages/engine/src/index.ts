@@ -88,6 +88,7 @@ export {
   getCapHealth,
   identifyCapCandidates,
   buildMultiYearProjection,
+  projectCapDeltas,
 } from './systems/cap-laboratory';
 export {
   getStatLeaderboard,
@@ -485,8 +486,9 @@ export {
   voidYearDeadCap, v36CapHit, v36CashPaid, v36DeadIfCut, v36DeadIfTraded, v36TradeSavings,
   splitDeadCapCharge, applyDeadCapCharge,
   calcTradeImpact, addVoidYears, restructureCascade,
+  calcDeadMoneyFromSlices, explainDeadMoney,
 } from './systems/contract-helpers';
-export type { DeadCapSplit, TradeImpact, VoidYearResult, CascadeResult } from './systems/contract-helpers';
+export type { DeadCapSplit, TradeImpact, VoidYearResult, CascadeResult, DeadMoneyExplanation } from './systems/contract-helpers';
 
 export {
   FRANCHISE_TAG_TYPES, getFranchiseTagSalary, applyFranchiseTag,
@@ -623,6 +625,10 @@ export {
   toggleScoutingWatchlist,
 } from './systems/advanced-scouting';
 export { calculateCompPicks } from './systems/comp-picks';
+export { runTrainingCamp, runAllTrainingCamps } from './systems/training-camp';
+export type { CampStandout, CampInjury, TrainingCampResults } from './systems/training-camp';
+export type { PositionBattle as CampPositionBattle } from './systems/training-camp';
+export { getRookieSlot, rookieSlotContract } from './config/rookie-slots';
 export { resolveConditions, conditionalPickExpectedValue } from './systems/conditional-picks';
 export {
   addToPracticeSquad,
@@ -758,6 +764,82 @@ export {
   analyzeCoachingAdjustments, generateEnhancedFilmReport, getSeasonTendencies,
 } from './systems/film-room-analysis';
 export type { PlayTendencyReport, SituationalReport, CoachingAdjustment, EnhancedFilmReport, SeasonTendencyProfile } from './systems/film-room-analysis';
+
+// Systems — Playbook (Sprint 27)
+export {
+  OFFENSIVE_PLAYS, DEFENSIVE_PLAYS,
+  determineSituation, scorePlay, scoreDefensivePlay,
+  selectOffensivePlay, selectDefensivePlay,
+  playMatchupQuality, getPlaysByCategory, getPlayById, getDefensivePlayById,
+  formatPlayCommentary,
+} from './systems/playbook';
+export type { PlayDef, DefensivePlayDef, PlayCategory, Situation } from './systems/playbook';
+
+// Systems — Trick Plays (Sprint 27)
+export {
+  TRICK_PLAYS,
+  canCallTrickPlays, getAvailableTrickPlays, executeTrickPlay, shouldCallTrickPlay,
+} from './systems/trick-plays';
+export type { TrickPlayDef, TrickPlayResult } from './systems/trick-plays';
+
+// Systems — Win Probability (Sprint 27)
+export {
+  getExpectedPoints, calculateWinProbability, calculateLeverageIndex,
+  leverageLabel, winProbabilityNarrative, isTurningPoint,
+} from './systems/win-probability';
+
+// Systems — Halftime Adjustments (Sprint 27)
+export {
+  generateHalftimeAdjustments, shouldMakeAdjustments,
+} from './systems/halftime';
+export type { HalftimeAdjustment, HalftimeReport } from './systems/halftime';
+
+// Systems — Dynasty Window (Sprint 27)
+export {
+  calculateDynastyWindow, windowPhaseLabel, windowPhaseColor,
+} from './systems/dynasty-window';
+export type { WindowPhase, DynastyWindowResult } from './systems/dynasty-window';
+
+// Systems — Named Games (Sprint 27)
+export { checkForNamedGame, formatNamedGame } from './systems/named-games';
+export type { NamedGame } from './systems/named-games';
+
+// Systems — Career Epilogues (Sprint 27)
+export { generateCareerEpilogue, isEpilogueWorthy } from './systems/career-epilogues';
+export type { CareerEpilogue, EpilogueCategory } from './systems/career-epilogues';
+
+// Systems — Near-Miss Receipts (Sprint 27)
+export {
+  createNearMissTracker, recordDeclinedTrade, recordPassedPick, recordMissedFA,
+  generateNearMissReceipts, hasNotableNearMisses,
+} from './systems/near-miss-receipts';
+export type { NearMissEntry, NearMissTracker } from './systems/near-miss-receipts';
+
+// Systems — Contingency Plans (Sprint 27)
+export {
+  CONTINGENCY_TRIGGERS, MAX_CONTINGENCIES,
+  checkTrigger, applyContingencyAction, evaluateContingencies, createContingencyRule,
+} from './systems/contingency-plans';
+export type { ContingencyTrigger, ContingencyAction, ContingencyRule, ContingencyCheckContext } from './systems/contingency-plans';
+
+// Systems — Call Your Shot (Sprint 27)
+export {
+  isCallYourShotEligible, getDeclarations, resolveCallYourShot,
+} from './systems/call-your-shot';
+export type { ShotDeclaration, CallYourShotResult, CallYourShotEligibility } from './systems/call-your-shot';
+
+// Systems — Ghost Broadcasts (Sprint 27)
+export {
+  determineCommentaryStyle, generateGhostLine, shouldIncludeGhostBroadcast,
+} from './systems/ghost-broadcasts';
+export type { GhostCommentator, GhostBroadcastLine } from './systems/ghost-broadcasts';
+
+// Systems — Franchise Doctrines (Sprint 27)
+export {
+  DOCTRINE_DEFS, getAllDoctrines, getDoctrineById,
+  checkDoctrineEligibility, awardDoctrine, getDoctrinesByCategory,
+} from './systems/franchise-doctrines';
+export type { DoctrineDef, EarnedDoctrine, DoctrineId } from './systems/franchise-doctrines';
 
 // Save
 export { SaveStateSchema, migrate, registerMigration } from './save';

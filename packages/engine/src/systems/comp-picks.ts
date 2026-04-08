@@ -1,16 +1,37 @@
 import { getActiveRule } from './league-rules';
 import { calcPlayerValue } from './trade-value';
-import type { DraftPick, GameState } from '../types';
+import type { DraftPick, GameState, Position } from '../types';
+
+// ── Position Weights for Comp Pick Valuation ──────────────
+
+const COMP_POSITION_WEIGHTS: Record<Position, number> = {
+  QB: 1.4,
+  WR: 1.2,
+  CB: 1.2,
+  DL: 1.2,
+  OL: 1.1,
+  LB: 1.1,
+  RB: 1.0,
+  TE: 1.0,
+  S: 1.0,
+  K: 0.5,
+  P: 0.5,
+};
 
 function currentYearTransactions(game: GameState, teamId: string, type: string) {
   return game.teams[teamId]?.txLog.filter((entry) => entry.type === type && entry.year === game.year) ?? [];
 }
 
-function playerValueForTeam(game: GameState, playerId: string, teamId: string): number {
+function compPickScore(game: GameState, playerId: string, teamId: string): number {
   const player = game.players[playerId];
   const team = game.teams[teamId];
   if (!player || !team) return 0;
-  return calcPlayerValue(game, player, team);
+
+  const baseValue = calcPlayerValue(game, player, team);
+  const posWeight = COMP_POSITION_WEIGHTS[player.pos] ?? 1.0;
+  const ageFactor = player.age <= 27 ? 1.15 : player.age >= 31 ? 0.75 : 1.0;
+
+  return Math.round(baseValue * posWeight * ageFactor);
 }
 
 function roundForValue(value: number): number {
@@ -36,11 +57,11 @@ export function calculateCompPicks(game: GameState, teamId: string): DraftPick[]
 
   team.draftPicks = team.draftPicks.filter((pick) => !(pick.year === game.year && pick.isCompPick));
   const losses = currentYearTransactions(game, teamId, 'LOSE_FA')
-    .map((entry) => ({ entry, value: playerValueForTeam(game, entry.playerId ?? '', teamId) }))
+    .map((entry) => ({ entry, value: compPickScore(game, entry.playerId ?? '', teamId) }))
     .filter((entry) => entry.value > 0)
     .sort((a, b) => b.value - a.value || (a.entry.playerId ?? '').localeCompare(b.entry.playerId ?? ''));
   const signings = currentYearTransactions(game, teamId, 'SIGN_FA')
-    .map((entry) => ({ entry, value: playerValueForTeam(game, entry.playerId ?? '', teamId) }))
+    .map((entry) => ({ entry, value: compPickScore(game, entry.playerId ?? '', teamId) }))
     .filter((entry) => entry.value > 0)
     .sort((a, b) => b.value - a.value || (a.entry.playerId ?? '').localeCompare(b.entry.playerId ?? ''));
 

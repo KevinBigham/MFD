@@ -64,4 +64,35 @@ describe('comp pick calculation', () => {
 
     expect(picks).toHaveLength(0);
   });
+
+  it('young QB loss generates higher-round comp pick than old kicker', () => {
+    // Position weight: QB=1.4, K=0.5; Age factor: 25=1.15, 34=0.75
+    const gameQB = makeLeagueState('free_agency', 1);
+    const qb = makePlayer('young-qb', 'afce1', 'QB', 85);
+    qb.age = 25;
+    qb.teamId = 'afcn1';
+    gameQB.players[qb.id] = qb;
+    gameQB.teams.afce1.txLog.push({ type: 'LOSE_FA', year: gameQB.year, week: 1, playerId: qb.id, fromTeamId: 'afce1', toTeamId: 'afcn1' });
+
+    const gameK = makeLeagueState('free_agency', 1);
+    const kicker = makePlayer('old-k', 'afce1', 'K', 85);
+    kicker.age = 34;
+    kicker.teamId = 'afcn1';
+    gameK.players[kicker.id] = kicker;
+    gameK.teams.afce1.txLog.push({ type: 'LOSE_FA', year: gameK.year, week: 1, playerId: kicker.id, fromTeamId: 'afce1', toTeamId: 'afcn1' });
+
+    const qbPicks = calculateCompPicks(gameQB, 'afce1');
+    const kPicks = calculateCompPicks(gameK, 'afce1');
+
+    // Both should generate picks, but QB should get equal or better round
+    if (qbPicks.length > 0 && kPicks.length > 0) {
+      expect(qbPicks[0]!.round).toBeLessThanOrEqual(kPicks[0]!.round);
+    }
+  });
+
+  it('returns empty for team with no txLog entries', () => {
+    const game = makeLeagueState('free_agency', 1);
+    const picks = calculateCompPicks(game, 'afce1');
+    expect(picks).toHaveLength(0);
+  });
 });

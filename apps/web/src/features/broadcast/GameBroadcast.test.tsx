@@ -42,8 +42,8 @@ let gameStoreState: { broadcastView: any | null } = {
       momentumSwings: [{ quarter: 4, play: 6, description: 'Chicago seized the late lead.' }],
       finalNarrative: 'In a thriller at Soldier Field, Chicago finished the job late.',
     },
-    homeTeam: { city: 'Chicago', name: 'Blaze', roster: [{ id: 'p1', name: 'Marcus Cole' }] },
-    awayTeam: { city: 'Detroit', name: 'Engines', roster: [] },
+    homeTeam: { city: 'Chicago', name: 'City of Broad Shoulders Deep-Dish', roster: [{ id: 'p1', name: 'Marcus Cole' }] },
+    awayTeam: { city: 'Detroit', name: 'Motown Music Machine', roster: [] },
   },
 };
 
@@ -120,8 +120,8 @@ describe('GameBroadcast', () => {
           momentumSwings: [{ quarter: 4, play: 6, description: 'Chicago seized the late lead.' }],
           finalNarrative: 'In a thriller at Soldier Field, Chicago finished the job late.',
         },
-        homeTeam: { city: 'Chicago', name: 'Blaze', roster: [{ id: 'p1', name: 'Marcus Cole' }] },
-        awayTeam: { city: 'Detroit', name: 'Engines', roster: [] },
+        homeTeam: { city: 'Chicago', name: 'City of Broad Shoulders Deep-Dish', roster: [{ id: 'p1', name: 'Marcus Cole' }] },
+        awayTeam: { city: 'Detroit', name: 'Motown Music Machine', roster: [] },
       },
     };
   });

@@ -7,13 +7,44 @@
 
 import { calcCapHit, calcDeadMoney, makeContract } from './contracts';
 import { cl } from '../utils';
-import type { Contract, Player, Team, DeadCapByYear, SeasonPhase } from '../types';
+import type { BonusSlice, Contract, Player, Team, DeadCapByYear, SeasonPhase } from '../types';
 
 // ── Void Year Dead Cap ─────────────────────────────────
 
 export function voidYearDeadCap(c: Contract | null): number {
   if (!c || !c.voidYears) return 0;
   return c.prorated * c.voidYears;
+}
+
+// ── Slice-Aware Dead Money ─────────────────────────────
+
+export function calcDeadMoneyFromSlices(c: Contract | null): number {
+  if (!c) return 0;
+  if (!c.slices?.length) return calcDeadMoney(c);
+  return Math.round(c.slices.reduce((sum, s) => sum + s.amount, 0) * 100) / 100;
+}
+
+export interface DeadMoneyExplanation {
+  source: 'signing' | 'restructure' | 'backload' | 'extension';
+  season: number;
+  amount: number;
+}
+
+export function explainDeadMoney(c: Contract | null): DeadMoneyExplanation[] {
+  if (!c?.slices?.length) {
+    if (!c || c.prorated <= 0) return [];
+    // Synthetic explanation for old contracts without slices
+    const entries: DeadMoneyExplanation[] = [];
+    for (let i = 0; i < c.years; i++) {
+      entries.push({ source: 'signing', season: i, amount: Math.round(c.prorated * 100) / 100 });
+    }
+    return entries;
+  }
+  return c.slices.map((s) => ({
+    source: s.sourceOp,
+    season: s.season,
+    amount: s.amount,
+  }));
 }
 
 // ── V36 Cap Hit Variants ───────────────────────────────
@@ -31,11 +62,14 @@ export function v36CashPaid(c: Contract | null, yrOff = 0, isSigning = false): n
 
 export function v36DeadIfCut(c: Contract | null): number {
   if (!c) return 0;
-  return calcDeadMoney(c) + voidYearDeadCap(c);
+  return calcDeadMoneyFromSlices(c) + voidYearDeadCap(c);
 }
 
 export function v36DeadIfTraded(c: Contract | null): number {
   if (!c) return 0;
+  if (c.slices?.length) {
+    return calcDeadMoneyFromSlices(c) + voidYearDeadCap(c);
+  }
   return c.prorated * c.years + voidYearDeadCap(c);
 }
 

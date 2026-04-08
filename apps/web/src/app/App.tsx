@@ -50,6 +50,8 @@ import { TutorialOverlay } from '../features/onboarding/TutorialOverlay';
 
 const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
 const LazyDraftBoard = lazy(async () => ({ default: (await import('../features/draft/DraftBoard')).DraftBoard }));
+const LazyTrainingCamp = lazy(async () => ({ default: (await import('../features/training-camp/TrainingCamp')).TrainingCamp }));
+const LazyPlayerComparison = lazy(async () => ({ default: (await import('../features/shared/PlayerComparison')).PlayerComparison }));
 const LazyDynastyCartridge = lazy(async () => ({ default: (await import('../features/dynasty-cartridge/DynastyCartridge')).DynastyCartridge }));
 const LazyLegacyTimeline = lazy(async () => ({ default: (await import('../features/legacy/LegacyTimeline')).LegacyTimeline }));
 const LazyPowerRankings = lazy(async () => ({ default: (await import('../features/power-rankings/PowerRankings')).PowerRankings }));
@@ -710,6 +712,16 @@ const draftRoute = createRoute({
   ),
 });
 
+const trainingCampRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/training-camp',
+  component: () => (
+    <LazyRouteFrame label="training camp">
+      <LazyTrainingCamp />
+    </LazyRouteFrame>
+  ),
+});
+
 const freeAgencyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/free-agency',
@@ -840,6 +852,16 @@ const playerProfileRoute = createRoute({
   component: () => (
     <LazyRouteFrame label="player profile">
       <LazyPlayerProfile />
+    </LazyRouteFrame>
+  ),
+});
+
+const playerComparisonRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/compare',
+  component: () => (
+    <LazyRouteFrame label="player comparison">
+      <LazyPlayerComparison />
     </LazyRouteFrame>
   ),
 });
@@ -1112,9 +1134,9 @@ const settingsRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, endorsementsRoute, tradesRoute,
-  scoutingRoute, draftRoute, freeAgencyRoute, faTargetsRoute,
+  scoutingRoute, draftRoute, trainingCampRoute, freeAgencyRoute, faTargetsRoute,
   gameDayRoute, broadcastRoute, playByPlayRoute, gameFlowRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
-  scheduleRoute, depthChartRoute, playerProfileRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, filmRoomRoute, tradeDeadlineRoute,
+  scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, superBowlRoute, playerDevRoute, settingsRoute,

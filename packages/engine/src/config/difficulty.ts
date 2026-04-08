@@ -76,4 +76,4 @@ export const DIFF_SETTINGS: Record<DifficultyLevel, DifficultyConfig> = {
   },
 };
 
-export const SAVE_VERSION = 24;
+export const SAVE_VERSION = 25;

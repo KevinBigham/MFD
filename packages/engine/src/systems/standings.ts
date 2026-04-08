@@ -81,6 +81,7 @@ export interface StandingsRow {
   rank: number;
   teamId: string;
   teamName: string;
+  teamIcon: string;
   conference: Team['conference'];
   division: string;
   wins: number;
@@ -99,6 +100,7 @@ export interface PlayoffPictureEntry {
   seed: number;
   teamId: string;
   teamName: string;
+  teamIcon: string;
   conference: Team['conference'];
   divisionWinner: boolean;
   indicator: '' | 'X' | 'Y' | 'E';
@@ -126,6 +128,7 @@ export function getDivisionStandings(
         rank: index + 1,
         teamId: team.id,
         teamName: teamName(team),
+        teamIcon: team.icon,
         conference: team.conference,
         division: team.division,
         wins: team.wins,
@@ -173,6 +176,7 @@ export function buildPlayoffPicture(game: GameState): { afc: PlayoffPictureEntry
       seed: index + 1,
       teamId: team.id,
       teamName: teamName(team),
+      teamIcon: team.icon,
       conference,
       divisionWinner: divisionLeader(game, team).id === team.id,
       indicator: getClinchedStatus(game, team.id),

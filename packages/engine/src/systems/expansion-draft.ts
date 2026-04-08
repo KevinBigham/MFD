@@ -13,16 +13,16 @@ import { createDefaultFranchiseIdentity, initializeFranchiseIdentity } from './f
 import { createEmptySeasonStats } from './season-stats';
 
 export const EXPANSION_CITIES: ExpansionCity[] = [
-  { city: 'San Antonio', name: 'Rattlers', abbr: 'SAT', marketSize: 'medium', marketModifier: 0.95, stadiumType: 'dome' },
-  { city: 'Portland', name: 'Wolves', abbr: 'PDX', marketSize: 'medium', marketModifier: 0.95, stadiumType: 'outdoor' },
-  { city: 'Salt Lake', name: 'Storm', abbr: 'SLC', marketSize: 'medium', marketModifier: 0.9, stadiumType: 'outdoor' },
-  { city: 'Sacramento', name: 'Knights', abbr: 'SAC', marketSize: 'medium', marketModifier: 0.9, stadiumType: 'outdoor' },
-  { city: 'Columbus', name: 'Titans', abbr: 'CLB', marketSize: 'medium', marketModifier: 0.85, stadiumType: 'dome' },
-  { city: 'Memphis', name: 'Vipers', abbr: 'MEM', marketSize: 'small', marketModifier: 0.85, stadiumType: 'outdoor' },
-  { city: 'Richmond', name: 'Sentinels', abbr: 'RIC', marketSize: 'small', marketModifier: 0.9, stadiumType: 'outdoor' },
-  { city: 'Oklahoma City', name: 'Thunder', abbr: 'OKC', marketSize: 'medium', marketModifier: 0.9, stadiumType: 'dome' },
-  { city: 'San Diego', name: 'Chargers', abbr: 'SDG', marketSize: 'large', marketModifier: 1.05, stadiumType: 'outdoor' },
-  { city: 'Birmingham', name: 'Stallions', abbr: 'BHM', marketSize: 'small', marketModifier: 0.8, stadiumType: 'outdoor' },
+  { city: 'Portland', name: 'Lumberjacks', abbr: 'PDX', marketSize: 'medium', marketModifier: 0.95, stadiumType: 'outdoor' },
+  { city: 'Salt Lake', name: 'Prospectors', abbr: 'SLC', marketSize: 'medium', marketModifier: 0.9, stadiumType: 'outdoor' },
+  { city: 'Sacramento', name: 'Gold Panners', abbr: 'SAC', marketSize: 'medium', marketModifier: 0.9, stadiumType: 'outdoor' },
+  { city: 'Memphis', name: 'Riverboats', abbr: 'MEM', marketSize: 'small', marketModifier: 0.85, stadiumType: 'outdoor' },
+  { city: 'Richmond', name: 'Colonials', abbr: 'RIC', marketSize: 'small', marketModifier: 0.9, stadiumType: 'outdoor' },
+  { city: 'Oklahoma City', name: 'Twisters', abbr: 'OKC', marketSize: 'medium', marketModifier: 0.9, stadiumType: 'dome' },
+  { city: 'Birmingham', name: 'Ironworks', abbr: 'BHM', marketSize: 'small', marketModifier: 0.8, stadiumType: 'outdoor' },
+  { city: 'Austin', name: 'Armadillos', abbr: 'AUS', marketSize: 'medium', marketModifier: 0.95, stadiumType: 'outdoor' },
+  { city: 'New Orleans', name: 'Voodoo', abbr: 'NO', marketSize: 'medium', marketModifier: 1.0, stadiumType: 'dome' },
+  { city: 'Milwaukee', name: 'Brewmasters', abbr: 'MKE', marketSize: 'medium', marketModifier: 0.85, stadiumType: 'dome' },
 ];
 
 export const PROTECT_LIMIT = 15;

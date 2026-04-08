@@ -178,6 +178,8 @@ import {
 export interface GameStoreState {
   game: GameState | null;
   initialized: boolean;
+  undoSnapshot: GameState | null;
+  undoLabel: string | null;
 }
 
 // Stable empty arrays — prevents infinite re-renders when selectors
@@ -650,6 +652,8 @@ export function selectCurrentMatchup(state: GameStoreState) {
 }
 
 export const selectUserTeamId = (state: GameStoreState): string | null => selectUserTeam(state)?.id ?? null;
+export const selectUndoLabel = (state: GameStoreState): string | null => state.undoLabel;
+export const selectCanUndo = (state: GameStoreState): boolean => state.undoSnapshot != null;
 export const selectRoster = (state: GameStoreState): Player[] => selectUserTeam(state)?.roster ?? EMPTY_ROSTER;
 export const selectPracticeSquad = (state: GameStoreState): PracticeSquadPlayer[] => selectUserTeam(state)?.practiceSquad ?? EMPTY_PRACTICE_SQUAD;
 export const selectPlayerById = (id: string) => (state: GameStoreState): Player | null => state.game?.players[id] ?? null;

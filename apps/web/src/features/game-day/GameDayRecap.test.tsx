@@ -6,7 +6,7 @@ describe('GameDayCenterView', () => {
   it('renders the package headline and autopsy details', () => {
     const markup = renderToStaticMarkup(
       <GameDayCenterView
-        teamLabel="New York Titans"
+        teamLabel="New York Concrete Jungle Cabbies"
         phase="regular_season"
         year={2026}
         packageData={{
@@ -16,7 +16,7 @@ describe('GameDayCenterView', () => {
           phase: 'regular_season',
           teamId: 'team-1',
           opponentTeamId: 'team-2',
-          headline: 'Week 3: New York Titans beat Boston Minutemen 31-17',
+          headline: 'Week 3: New York Concrete Jungle Cabbies beat Boston Hub of the Universe Chowderheads 31-17',
           result: 'win',
           finalScore: '31-17',
           broadcastNetwork: 'MFN',
@@ -61,7 +61,7 @@ describe('GameDayCenterView', () => {
       />,
     );
 
-    expect(markup).toContain('Week 3: New York Titans beat Boston Minutemen 31-17');
+    expect(markup).toContain('Week 3: New York Concrete Jungle Cabbies beat Boston Hub of the Universe Chowderheads 31-17');
     expect(markup).toContain('Controlled passing rhythm kept the offense ahead of schedule.');
     expect(markup).toContain('Turnover margin plus third-down efficiency flipped the game.');
     expect(markup).toContain('Breakout practice carried into kickoff.');

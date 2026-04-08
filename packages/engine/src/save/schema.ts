@@ -21,12 +21,26 @@ export const PersonalitySchema = z.object({
   ambition: z.number().min(1).max(10),
 });
 
+export const BonusSliceSchema = z.object({
+  sourceOp: z.enum(['signing', 'restructure', 'backload', 'extension']),
+  season: z.number(),
+  amount: z.number(),
+});
+
+export const GuaranteeEntrySchema = z.object({
+  year: z.number(),
+  type: z.enum(['GAS', 'RDG', 'VT']),
+  amount: z.number(),
+  vestedAt: z.string().optional(),
+});
+
 export const ContractYearSchema = z.object({
   year: z.number(),
   baseSalary: z.number(),
   capHit: z.number(),
   deadCap: z.number(),
   guaranteed: z.boolean(),
+  guaranteeType: z.enum(['GAS', 'RDG', 'VT']).optional(),
 });
 
 export const ContractSchema = z.object({
@@ -35,9 +49,13 @@ export const ContractSchema = z.object({
   years: z.number(),
   totalValue: z.number(),
   yearlyBreakdown: z.array(ContractYearSchema),
+  baseSalary: z.number().optional(),
   guaranteed: z.number(),
   signingBonus: z.number(),
+  prorated: z.number().optional(),
+  originalYears: z.number().optional(),
   voidYears: z.number(),
+  restructured: z.boolean().optional(),
   franchiseTag: z.enum(['exclusive', 'non-exclusive', 'transition']).nullable(),
   incentives: z.array(z.object({
     type: z.string(),
@@ -45,6 +63,8 @@ export const ContractSchema = z.object({
     bonus: z.number(),
     achieved: z.boolean(),
   })),
+  slices: z.array(BonusSliceSchema).optional(),
+  guaranteeSchedule: z.array(GuaranteeEntrySchema).optional(),
 });
 
 export const InjurySchema = z.object({
@@ -211,7 +231,7 @@ export const GameDayPackageSchema = z.object({
   id: z.string(),
   year: z.number(),
   week: z.number(),
-  phase: z.enum(['preseason', 'regular_season', 'playoffs', 'offseason', 'free_agency', 'draft', 'post_draft']),
+  phase: z.enum(['preseason', 'regular_season', 'playoffs', 'offseason', 'free_agency', 'draft', 'post_draft', 'training_camp']),
   teamId: z.string(),
   opponentTeamId: z.string().nullable(),
   headline: z.string(),
@@ -1439,7 +1459,7 @@ export const SaveStateSchema = z.object({
   seed: z.number(),
   year: z.number(),
   week: z.number(),
-  phase: z.enum(['preseason', 'regular_season', 'playoffs', 'offseason', 'free_agency', 'draft', 'post_draft']),
+  phase: z.enum(['preseason', 'regular_season', 'playoffs', 'offseason', 'free_agency', 'draft', 'post_draft', 'training_camp']),
   difficulty: z.enum(['rookie', 'pro', 'allpro', 'legend']),
   players: z.record(PlayerSchema),
   teams: z.record(z.any()),

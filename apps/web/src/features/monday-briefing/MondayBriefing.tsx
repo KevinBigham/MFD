@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { calculateTrainingXP, getAchievementProgress, type Achievement, type DashboardWidget } from '@mfd/engine';
+import { calculateTrainingXP, getAchievementProgress, calculateDynastyWindow, windowPhaseLabel, windowPhaseColor, type Achievement, type DashboardWidget } from '@mfd/engine';
 import {
   PixelBadge,
   PixelButton,
@@ -59,6 +59,7 @@ import {
   navigateTo,
   screenStackStyle,
 } from '../shared/pixelUi';
+import { TeamLogo } from '../shared/TeamLogo';
 
 const facilityLabels: Record<string, string> = {
   training_complex: 'Training Complex',
@@ -74,6 +75,7 @@ const WIDGET_OPTIONS: Array<{ value: DashboardWidget; label: string; description
   { value: 'injury_report', label: 'Injury Report', description: 'Current injuries and recovery windows.' },
   { value: 'fatigue_watch', label: 'Fatigue Watch', description: 'Workload alerts before kickoff.' },
   { value: 'cap_snapshot', label: 'Cap Snapshot', description: 'Cap room, payroll, and facility budget.' },
+  { value: 'dynasty_window', label: 'Dynasty Window', description: 'Competitive window phase and franchise trajectory.' },
   { value: 'power_ranking', label: 'Power Ranking', description: 'League positioning and movement.' },
   { value: 'promise_tracker', label: 'Promise Tracker', description: 'Owner and player promises on the clock.' },
   { value: 'training_report', label: 'Training Report', description: 'Who is stacking the best weekly gains.' },
@@ -268,9 +270,12 @@ export function MondayBriefing() {
         <PixelPanel key={widget} title="Team Record" accent={resultAccent(latestResult)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
-              <div>
-                <div style={{ ...pixelSm, color: '#666', marginBottom: '6px' }}>CURRENT MARK</div>
-                <div style={{ ...display, fontSize: '28px', color: '#fff', lineHeight: 1 }}>{record}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {team && <TeamLogo icon={team.icon} size={48} alt={teamName} />}
+                <div>
+                  <div style={{ ...pixelSm, color: '#666', marginBottom: '6px' }}>CURRENT MARK</div>
+                  <div style={{ ...display, fontSize: '28px', color: '#fff', lineHeight: 1 }}>{record}</div>
+                </div>
               </div>
               <PixelBadge variant={resultAccent(latestResult)}>{latestResult ? latestResult.toUpperCase() : 'PENDING'}</PixelBadge>
             </div>
@@ -295,14 +300,17 @@ export function MondayBriefing() {
         <PixelPanel key={widget} title="Next Game" accent={nextGame?.primetime ? 'gold' : 'cyan'}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ ...display, fontSize: '22px', color: '#fff', lineHeight: 1 }}>
-                  {opponentName.toUpperCase()}
-                </div>
-                <div style={{ ...monoSm, color: '#999', marginTop: '6px' }}>
-                  {nextGame?.bye
-                    ? 'Bye week on deck.'
-                    : `${nextGame?.home ? 'Home' : 'Away'} // Week ${nextGame?.week ?? week}`}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {opponent && <TeamLogo icon={opponent.icon} size={40} alt={opponentName} />}
+                <div>
+                  <div style={{ ...display, fontSize: '22px', color: '#fff', lineHeight: 1 }}>
+                    {opponentName.toUpperCase()}
+                  </div>
+                  <div style={{ ...monoSm, color: '#999', marginTop: '6px' }}>
+                    {nextGame?.bye
+                      ? 'Bye week on deck.'
+                      : `${nextGame?.home ? 'Home' : 'Away'} // Week ${nextGame?.week ?? week}`}
+                  </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -404,6 +412,37 @@ export function MondayBriefing() {
               </PixelBadge>
               <PixelBadge variant="default">{`Dead ${Math.round((team?.deadCap ?? 0) * 10) / 10}M`}</PixelBadge>
             </div>
+          </div>
+        </PixelPanel>
+      );
+    }
+
+    if (widget === 'dynasty_window') {
+      const windowResult = team ? calculateDynastyWindow(team, game?.year ?? 2026, team.draftPicks?.length) : null;
+      const phaseLabel = windowResult ? windowPhaseLabel(windowResult.phase) : 'UNKNOWN';
+      const phaseColor = windowResult ? windowPhaseColor(windowResult.phase) : 'var(--mfd-text-dim)';
+      return (
+        <PixelPanel key={widget} title="Dynasty Window" accent={windowResult?.phase === 'peaking' ? 'gold' : windowResult?.phase === 'closing' ? 'red' : 'cyan'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ ...pixelSm, color: '#666', marginBottom: '6px' }}>WINDOW PHASE</div>
+                <div style={{ ...display, fontSize: '20px', color: phaseColor, lineHeight: 1 }}>
+                  {phaseLabel}
+                </div>
+              </div>
+              <PixelBadge variant={windowResult?.score && windowResult.score >= 70 ? 'gold' : windowResult?.score && windowResult.score >= 40 ? 'cyan' : 'red'}>
+                {`Score: ${windowResult?.score ?? 0}`}
+              </PixelBadge>
+            </div>
+            {windowResult && (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <PixelBadge variant="default">{`Roster ${windowResult.factors.rosterStrength}`}</PixelBadge>
+                <PixelBadge variant="default">{`Youth ${windowResult.factors.youthFactor}`}</PixelBadge>
+                <PixelBadge variant="default">{`Cap ${windowResult.factors.capHealth}`}</PixelBadge>
+                <PixelBadge variant="default">{`Draft ${windowResult.factors.draftCapital}`}</PixelBadge>
+              </div>
+            )}
           </div>
         </PixelPanel>
       );

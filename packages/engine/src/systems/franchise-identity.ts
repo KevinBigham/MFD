@@ -64,13 +64,13 @@ const MARKET_MODIFIER_BY_SIZE: Record<MarketSize, number> = {
 export const RELOCATION_DESTINATIONS: RelocationDestination[] = [
   { city: 'London', teamName: 'Monarchs', abbr: 'LDN', marketSize: 'mega', marketModifier: 1.25, fanbaseStart: 40, prestigeBonus: 15, cost: 55, stadiumType: 'dome', description: 'International expansion, massive market' },
   { city: 'Mexico City', teamName: 'Aztecs', abbr: 'MEX', marketSize: 'mega', marketModifier: 1.15, fanbaseStart: 45, prestigeBonus: 10, cost: 48, stadiumType: 'outdoor', description: 'Passionate fans, largest metro in North America' },
-  { city: 'Berlin', teamName: 'Sentinels', abbr: 'BER', marketSize: 'large', marketModifier: 1.2, fanbaseStart: 38, prestigeBonus: 12, cost: 52, stadiumType: 'dome', description: 'European powerhouse, hungry for American football' },
-  { city: 'Toronto', teamName: 'Raptors', abbr: 'TOR', marketSize: 'large', marketModifier: 1.1, fanbaseStart: 50, prestigeBonus: 8, cost: 42, stadiumType: 'dome', description: 'Hungry sports town with deep pockets' },
-  { city: 'Austin', teamName: 'Blazers', abbr: 'AUS', marketSize: 'medium', marketModifier: 1.05, fanbaseStart: 55, prestigeBonus: 5, cost: 38, stadiumType: 'outdoor', description: 'Tech money meets college football culture' },
-  { city: 'Portland', teamName: 'Wolves', abbr: 'PDX', marketSize: 'medium', marketModifier: 0.95, fanbaseStart: 48, prestigeBonus: 3, cost: 34, stadiumType: 'outdoor', description: 'Pacific Northwest loyalty runs deep' },
-  { city: 'St. Louis', teamName: 'Stallions', abbr: 'STL', marketSize: 'medium', marketModifier: 0.9, fanbaseStart: 60, prestigeBonus: 2, cost: 32, stadiumType: 'dome', description: 'A city starving for football — instant love' },
-  { city: 'San Antonio', teamName: 'Rattlers', abbr: 'SAT', marketSize: 'medium', marketModifier: 0.95, fanbaseStart: 52, prestigeBonus: 4, cost: 35, stadiumType: 'dome', description: 'Military town with fierce loyalty' },
-  { city: 'Orlando', teamName: 'Thunder', abbr: 'ORL', marketSize: 'medium', marketModifier: 1, fanbaseStart: 50, prestigeBonus: 4, cost: 36, stadiumType: 'dome', description: 'Tourism capital with year-round weather' },
+  { city: 'Berlin', teamName: 'Wanderers', abbr: 'BER', marketSize: 'large', marketModifier: 1.2, fanbaseStart: 38, prestigeBonus: 12, cost: 52, stadiumType: 'dome', description: 'European powerhouse, hungry for American football' },
+  { city: 'Toronto', teamName: 'Maple Leafs', abbr: 'TOR', marketSize: 'large', marketModifier: 1.1, fanbaseStart: 50, prestigeBonus: 8, cost: 42, stadiumType: 'dome', description: 'Hungry sports town with deep pockets' },
+  { city: 'Austin', teamName: 'Armadillos', abbr: 'AUS', marketSize: 'medium', marketModifier: 1.05, fanbaseStart: 55, prestigeBonus: 5, cost: 38, stadiumType: 'outdoor', description: 'Tech money meets college football culture' },
+  { city: 'Portland', teamName: 'Lumberjacks', abbr: 'PDX', marketSize: 'medium', marketModifier: 0.95, fanbaseStart: 48, prestigeBonus: 3, cost: 34, stadiumType: 'outdoor', description: 'Pacific Northwest loyalty runs deep' },
+  { city: 'New Orleans', teamName: 'Voodoo', abbr: 'NO', marketSize: 'medium', marketModifier: 1.0, fanbaseStart: 60, prestigeBonus: 6, cost: 35, stadiumType: 'dome', description: 'Jazz, gumbo, and a city that bleeds football' },
+  { city: 'Sacramento', teamName: 'Gold Panners', abbr: 'SAC', marketSize: 'medium', marketModifier: 0.9, fanbaseStart: 48, prestigeBonus: 3, cost: 32, stadiumType: 'outdoor', description: 'Capital city with untapped football hunger' },
+  { city: 'Memphis', teamName: 'Riverboats', abbr: 'MEM', marketSize: 'small', marketModifier: 0.85, fanbaseStart: 50, prestigeBonus: 4, cost: 30, stadiumType: 'outdoor', description: 'Blues, BBQ, and a chip on its shoulder' },
   { city: 'Honolulu', teamName: 'Tides', abbr: 'HNL', marketSize: 'small', marketModifier: 0.85, fanbaseStart: 42, prestigeBonus: 5, cost: 45, stadiumType: 'outdoor', description: 'Paradise location, tiny but passionate market' },
 ];
 

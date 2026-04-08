@@ -4,6 +4,7 @@ import { v36CapHit, v36DeadIfCut, v36DeadIfTraded, v36TradeSavings } from './con
 import { postJune1Cut } from './contract-extensions';
 import type {
   CapCandidate,
+  CapDelta,
   CapHealthReport,
   CapMove,
   CapScenario,
@@ -472,4 +473,36 @@ export function buildMultiYearProjection(team: Team, game: GameState, years: num
   return {
     years: scenario.projections,
   };
+}
+
+export function projectCapDeltas(
+  team: Team,
+  game: GameState,
+  moves: CapMove[],
+  years = 3,
+): CapDelta[] {
+  const before = buildMultiYearProjection(team, game, years);
+  const scenario = buildCapScenario(team, game);
+  const result = simulateMultipleMoves(scenario, moves);
+  const after = result.scenario.projections.length > 0
+    ? result.scenario.projections
+    : buildProjectionYears(
+        result.scenario.contracts,
+        game,
+        years,
+        playerMeta(team),
+        team.deadCapByYear ?? {},
+      );
+
+  return before.years.map((bYear, i) => {
+    const aYear = after[i];
+    const currentCommitted = bYear.committed;
+    const projectedCommitted = aYear ? aYear.committed : currentCommitted;
+    return {
+      year: bYear.year,
+      currentCommitted: round(currentCommitted),
+      projectedCommitted: round(projectedCommitted),
+      delta: round(projectedCommitted - currentCommitted),
+    };
+  });
 }

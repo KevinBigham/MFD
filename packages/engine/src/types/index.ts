@@ -144,6 +144,30 @@ export type Injury = InjuryDetail;
 
 // ── Contracts ───────────────────────────────────────────
 
+export type GuaranteeType = 'GAS' | 'RDG' | 'VT';
+
+export interface BonusSlice {
+  sourceOp: 'signing' | 'restructure' | 'backload' | 'extension';
+  season: number;
+  amount: number;
+}
+
+export interface GuaranteeEntry {
+  year: number;
+  type: GuaranteeType;
+  amount: number;
+  vestedAt?: string;
+}
+
+export interface RookieSlot {
+  tier: number;
+  salary: number;
+  years: number;
+  signingBonus: number;
+  guaranteed: number;
+  optionYear: boolean;
+}
+
 export interface Contract {
   playerId: string;
   teamId: string;
@@ -159,6 +183,8 @@ export interface Contract {
   restructured: boolean;
   franchiseTag: FranchiseTagType | null;
   incentives: Incentive[];
+  slices?: BonusSlice[];
+  guaranteeSchedule?: GuaranteeEntry[];
 }
 
 export interface ContractYear {
@@ -167,6 +193,7 @@ export interface ContractYear {
   capHit: number;
   deadCap: number;
   guaranteed: boolean;
+  guaranteeType?: GuaranteeType;
 }
 
 export type FranchiseTagType = 'exclusive' | 'non-exclusive' | 'transition';
@@ -1316,6 +1343,7 @@ export type DashboardWidget =
   | 'weather_forecast'
   | 'achievement_progress'
   | 'dynasty_score'
+  | 'dynasty_window'
   | 'playoff_picture'
   | 'stat_leaders';
 
@@ -1736,6 +1764,7 @@ export interface BroadcastOutput {
   }>;
   broadcastNetwork: string;
   finalNarrative: string;
+  ghostLines?: Array<{ commentatorName: string; commentary: string; trigger: string }>;
 }
 
 // ── Game Simulation ─────────────────────────────────────
@@ -2403,6 +2432,13 @@ export interface MultiYearProjection {
   years: YearProjection[];
 }
 
+export interface CapDelta {
+  year: number;
+  currentCommitted: number;
+  projectedCommitted: number;
+  delta: number;
+}
+
 export interface StatLeaderEntry {
   rank: number;
   playerId: string;
@@ -2817,6 +2853,23 @@ export interface Handshake {
 
 // ── Game State ──────────────────────────────────────────
 
+export interface TrainingCampStandout {
+  playerId: string;
+  playerName: string;
+  pos: Position;
+  ovrBefore: number;
+  ovrAfter: number;
+  reason: 'rookie_standout' | 'breakout' | 'battle_winner';
+}
+
+export interface TrainingCampReport {
+  teamId: string;
+  standouts: TrainingCampStandout[];
+  injuries: Array<{ playerId: string; playerName: string; pos: Position; weeksOut: number }>;
+  battles: Array<{ pos: Position; winnerId: string; winnerName: string; loserId: string; loserName: string; winnerOvr: number; loserOvr: number }>;
+  headlines: string[];
+}
+
 export interface GameState {
   version: number;
   seed: number;
@@ -2897,6 +2950,17 @@ export interface GameState {
   opponentReports?: OpponentReport[];
   draftRecaps?: DraftRecap[];
   tradeSuggestions?: TradeSuggestion[];
+  trainingCampResults?: TrainingCampReport[];
+  earnedDoctrines?: Array<{
+    id: string;
+    name: string;
+    description: string;
+    origin: string;
+    bonus: string;
+    category: 'culture' | 'strategy' | 'reputation' | 'personnel';
+    earnedYear: number;
+    earnedWeek: number;
+  }>;
 }
 
 export type SeasonPhase =
@@ -2906,7 +2970,8 @@ export type SeasonPhase =
   | 'offseason'
   | 'free_agency'
   | 'draft'
-  | 'post_draft';
+  | 'post_draft'
+  | 'training_camp';
 
 export interface FrontOffice {
   xp: number;

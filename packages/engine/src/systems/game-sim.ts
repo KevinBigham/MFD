@@ -10,6 +10,7 @@ import { HOME_FIELD_ADV } from '../config';
 import { avg, cl } from '../utils';
 import { isPlayerUnavailable } from './injury-system';
 import { applyGamePlan } from './game-plan';
+import { determineSituation, selectOffensivePlay, selectDefensivePlay, playMatchupQuality } from './playbook';
 import { simulateSpecialTeams } from './special-teams';
 import type {
   GamePlan,
@@ -191,7 +192,15 @@ function simulateDrive(
   const pocket = (olOvr - dlOvr) * 0.15;
   const runLanes = (olOvr - (dlOvr + lbOvr) / 2) * 0.12;
 
-  // Run/pass split — ~46% run base, adjusted by game script
+  // Playbook-driven play selection
+  const situation = determineSituation(quarter, scoreDiff, false, 10, quarter === 4 ? 90 : 600);
+  const offPlan = (offense as Team & { offensivePlan?: string }).offensivePlan as import('../types').OffensiveGamePlan ?? 'balanced';
+  const defPlan = (defense as Team & { defensivePlan?: string }).defensivePlan as import('../types').DefensiveGamePlan ?? 'base';
+  const selectedPlay = selectOffensivePlay(RNG.play, situation, 'balanced', offPlan);
+  const selectedDefPlay = selectDefensivePlay(RNG.play, situation, defPlan);
+  const matchupMod = playMatchupQuality(selectedPlay, selectedDefPlay);
+
+  // Run/pass split — playbook play category influences the decision
   let runRate = 0.46 + runLanes * 0.02;
   if (scoreDiff <= -14) runRate -= 0.10;
   if (scoreDiff >= 14) runRate += 0.08;

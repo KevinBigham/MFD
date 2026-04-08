@@ -274,6 +274,9 @@ interface GameActions {
   saveLayout: (name: string, widgets: DashboardWidget[], columns: 2 | 3, layoutId?: string) => Promise<void>;
   assignKickReturner: (teamId: string, playerId: string) => Promise<void>;
   assignPuntReturner: (teamId: string, playerId: string) => Promise<void>;
+
+  // Undo
+  undo: () => Promise<void>;
 }
 
 interface GameStore extends GameStoreState {
@@ -525,9 +528,28 @@ export const useGameStore = create<GameStore>()(
       return score >= 0 ? 'approve' : 'reject';
     };
 
+    const snapshotForUndo = (label: string) => {
+      const current = get().game;
+      if (current) {
+        set((s) => {
+          s.undoSnapshot = JSON.parse(JSON.stringify(current)) as GameState;
+          s.undoLabel = label;
+        });
+      }
+    };
+
+    const clearUndo = () => {
+      set((s) => {
+        s.undoSnapshot = null;
+        s.undoLabel = null;
+      });
+    };
+
     return ({
     game: null,
     initialized: false,
+    undoSnapshot: null,
+    undoLabel: null,
 
     actions: {
       newGame: async (initial) => {
@@ -558,6 +580,7 @@ export const useGameStore = create<GameStore>()(
       cutPlayer: async (teamId, playerId, options) => {
         const current = get().game;
         if (!current) return;
+        snapshotForUndo('Cut Player');
         if (options?.postJune1) {
           const nextGame = cloneForMutation(current);
           applyPostJune1CutToGame(nextGame, teamId, playerId);
@@ -678,7 +701,8 @@ export const useGameStore = create<GameStore>()(
         await commitGame(nextGame);
       },
 
-      restructure: (teamId, playerId) =>
+      restructure: (teamId, playerId) => {
+        snapshotForUndo('Restructure');
         set((s) => {
           if (!s.game) return;
           const team = s.game.teams[teamId];
@@ -693,9 +717,11 @@ export const useGameStore = create<GameStore>()(
             team.capUsed -= result.savings;
             team.capSpace += result.savings;
           }
-        }),
+        });
+      },
 
-      backload: (teamId, playerId, voidYears = 2) =>
+      backload: (teamId, playerId, voidYears = 2) => {
+        snapshotForUndo('Backload');
         set((s) => {
           if (!s.game) return;
           const team = s.game.teams[teamId];
@@ -708,10 +734,12 @@ export const useGameStore = create<GameStore>()(
             team.capUsed -= result.savings;
             team.capSpace += result.savings;
           }
-        }),
+        });
+      },
 
       executeCapMoves: async (moves) => {
         if (moves.length === 0) return;
+        snapshotForUndo('Cap Moves');
 
         const current = get().game;
         if (!current) return;
@@ -828,6 +856,7 @@ export const useGameStore = create<GameStore>()(
       advanceWeek: async () => {
         const current = get().game;
         if (!current) return null;
+        clearUndo(); // Week advance is not undoable
 
         const result = await runAdvanceWeek(current);
         const nextGame = result.nextState;
@@ -1506,6 +1535,7 @@ export const useGameStore = create<GameStore>()(
       acceptTradeOffer: async (offerId) => {
         const current = get().game;
         if (!current) return;
+        snapshotForUndo('Accept Trade');
         const result = acceptTradeOfferEngine(current, offerId);
         await commitGame(result.nextState);
       },
@@ -1890,6 +1920,18 @@ export const useGameStore = create<GameStore>()(
         const nextGame = cloneForMutation(current);
         assignPuntReturnerEngine(nextGame, teamId, playerId);
         await commitGame(nextGame);
+      },
+
+      // ── Undo ────────────────────────────────────────────
+      undo: async () => {
+        const snapshot = get().undoSnapshot;
+        if (!snapshot) return;
+        set((s) => {
+          s.game = snapshot;
+          s.undoSnapshot = null;
+          s.undoLabel = null;
+        });
+        await autosaveDynasty(snapshot);
       },
     },
   });

@@ -9,6 +9,7 @@ import {
   tightenVisibleGrade,
 } from './advanced-scouting';
 import { makeContract } from './contracts';
+import { rookieSlotContract } from '../config/rookie-slots';
 import { recordDynastyEvent } from './dynasty-timeline';
 import { generateDraftRecap } from './draft-recap';
 import { applyFacilityBonuses } from './facilities';
@@ -126,18 +127,8 @@ export function ensureDraftClass(game: GameState): void {
   runCombine(game, rand);
 }
 
-function rookieContract(round: number): { salary: number; years: number; signingBonus: number; guaranteed: number } {
-  const salary = Math.max(1, 8 - round * 0.7);
-  return {
-    salary: Math.round(salary * 10) / 10,
-    years: round <= 3 ? 4 : 3,
-    signingBonus: Math.round(Math.max(0.5, salary * 0.35) * 10) / 10,
-    guaranteed: Math.round(Math.max(0.5, salary * (round <= 2 ? 2.2 : 1.2)) * 10) / 10,
-  };
-}
-
 function prospectToPlayer(prospect: DraftProspect, teamId: string, year: number, round: number, pick: number): Player {
-  const deal = rookieContract(round);
+  const deal = rookieSlotContract(round, pick);
   return {
     id: prospect.id,
     firstName: prospect.firstName,
@@ -399,6 +390,6 @@ export function finalizePostDraft(game: GameState): void {
   game.playoffBracket = null;
   game.offseasonState = null;
   game.draftClass = [];
-  game.phase = 'preseason';
+  game.phase = 'training_camp';
   game.week = 1;
 }

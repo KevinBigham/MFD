@@ -43,6 +43,11 @@ const PHASE_CONFIG: Record<string, { label: string; color: string; tip: string }
     color: 'var(--mfd-cyan)',
     tip: 'Finalize your roster before camp opens.',
   },
+  training_camp: {
+    label: 'TRAINING CAMP',
+    color: 'var(--mfd-gold)',
+    tip: 'Rookies compete, veterans battle, and surprises emerge.',
+  },
 };
 
 const DEFAULT_CONFIG = (phase: string) => ({

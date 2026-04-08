@@ -4,7 +4,7 @@ import { ExpansionDraft } from './ExpansionDraft';
 
 const baseState = () => ({
   expansionDraftState: {
-    expansionTeam: { city: 'Portland', name: 'Wolves', abbr: 'PDX', conference: 'NFC', division: 'West' },
+    expansionTeam: { city: 'Portland', name: 'Lumberjacks', abbr: 'PDX', conference: 'NFC', division: 'West' },
     protectedPlayers: {},
     availablePlayers: [],
     selectedPlayers: [],

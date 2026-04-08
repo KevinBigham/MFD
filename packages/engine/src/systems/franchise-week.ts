@@ -3,6 +3,15 @@ import { RNG, mulberry32, reseedSeason, reseedWeek, setSeed } from '../rng';
 import { getAdaptiveModifier, updateAdaptiveDifficulty } from './adaptive-difficulty';
 import { checkAchievements } from './achievements';
 import { advanceDraft, ensureDraftClass, finalizePostDraft } from './draft';
+import { runAllTrainingCamps } from './training-camp';
+import { checkForNamedGame } from './named-games';
+import { calculateDynastyWindow } from './dynasty-window';
+import {
+  shouldIncludeGhostBroadcast,
+  generateGhostLine,
+} from './ghost-broadcasts';
+import type { GhostCommentator } from './ghost-broadcasts';
+import { awardDoctrine, checkDoctrineEligibility, type DoctrineId } from './franchise-doctrines';
 import { checkCBAStatus, initCBA } from './cba-engine';
 import { recordCeremony, generateRingCeremony } from './ceremonies';
 import {
@@ -411,8 +420,15 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   if (nextState.leagueRivalries.length === 0) {
     seedLeagueRivalries(nextState);
   }
-  if ((nextState.phase === 'preseason' || nextState.phase === 'offseason') && isCBAInterruptStatus(nextState.cbaState.status)) {
+  if ((nextState.phase === 'preseason' || nextState.phase === 'training_camp' || nextState.phase === 'offseason') && isCBAInterruptStatus(nextState.cbaState.status)) {
     recordLaborEventNarrative(nextState);
+    return { nextState, events, consequences: [] };
+  }
+
+  if (nextState.phase === 'training_camp') {
+    const campResults = runAllTrainingCamps(nextState);
+    nextState.trainingCampResults = campResults;
+    nextState.phase = 'preseason';
     return { nextState, events, consequences: [] };
   }
 
@@ -583,6 +599,24 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       outcome.result.flexed = matchup.flexed;
       if (home.isUser || away.isUser) {
         outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
+        // Ghost broadcast lines from retired HOFers
+        const hasHofers = (nextState.hallOfFame ?? []).length > 0;
+        if (outcome.result.broadcast && shouldIncludeGhostBroadcast(RNG.ai, nextState.year - 2026, hasHofers)) {
+          const hofer = nextState.hallOfFame[Math.floor(RNG.ai() * nextState.hallOfFame.length)];
+          if (hofer) {
+            const GHOST_STYLES = ['analyst', 'hype', 'storyteller', 'technical'] as const;
+            const commentator: GhostCommentator = {
+              id: hofer.playerId,
+              name: hofer.name,
+              position: hofer.position,
+              peakOvr: hofer.peakOvr,
+              retiredYear: hofer.inductionYear - 1,
+              style: GHOST_STYLES[Math.floor(RNG.ai() * GHOST_STYLES.length)]!,
+            };
+            const line = generateGhostLine(RNG.ai, commentator, 'touchdown');
+            outcome.result.broadcast.ghostLines = [line];
+          }
+        }
       }
       // Snap count allocation
       const homePrep = nextState.weeklyPrepPlans?.[home.id];
@@ -606,6 +640,26 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       const reachedMilestones = checkMilestones(nextState);
       weeklyBrokenRecords.push(...brokenRecords);
       weeklyMilestones.push(...reachedMilestones);
+
+      // Named game detection
+      const isPlayoff = nextState.playoffBracket != null;
+      const isRivalry = (nextState.leagueRivalries ?? []).some((r) =>
+        (r.teamA === home.id && r.teamB === away.id) || (r.teamA === away.id && r.teamB === home.id),
+      );
+      const namedGame = checkForNamedGame(RNG.ai, outcome.result, isPlayoff, isRivalry);
+      if (namedGame) {
+        recordDynastyEvent(nextState, {
+          id: `named-game-${nextState.year}-${nextState.week}-${home.id}`,
+          year: nextState.year,
+          week: nextState.week,
+          type: 'milestone',
+          headline: `${namedGame.name}: ${home.name} vs ${away.name}`,
+          importance: 'major',
+          playerIds: [],
+          teamIds: [home.id, away.id],
+        });
+      }
+
       updateLeagueRivalriesFromGame(nextState, outcome.result);
       for (const rivalryEntry of nextState.playerRivalries.filter((entry) => {
         const ids = [entry.teamAId, entry.teamBId];
@@ -817,6 +871,41 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
     if (nextState.playoffBracket.championTeamId) {
       archiveSeasonHistory(nextState);
       archivePlayerSeasonHistory(nextState, nextState.year);
+
+      // Doctrine detection at season end
+      if (!nextState.earnedDoctrines) nextState.earnedDoctrines = [];
+      const userTeamId = Object.values(nextState.teams).find((t) => t.isUser)?.id;
+      if (userTeamId) {
+        const userTeam = nextState.teams[userTeamId]!;
+        const championships = nextState.franchiseHistory.filter((h) => h.teamId === userTeamId && h.playoffFinish === 'champion').length;
+
+        // Championship DNA: 2+ Super Bowls
+        if (championships >= 2 && checkDoctrineEligibility('championship_dna', nextState.earnedDoctrines)) {
+          nextState.earnedDoctrines.push(awardDoctrine('championship_dna', nextState.year, nextState.week));
+        }
+
+        // Trust the Process: Won SB as champion this year + had a losing record in the past 3 years
+        if (nextState.playoffBracket.championTeamId === userTeamId) {
+          const recentHistory = nextState.franchiseHistory.filter((h) => h.teamId === userTeamId && h.year >= nextState.year - 3);
+          const hadLosingRecord = recentHistory.some((h) => (h.losses ?? 0) > (h.wins ?? 0));
+          if (hadLosingRecord && checkDoctrineEligibility('trust_the_process', nextState.earnedDoctrines)) {
+            nextState.earnedDoctrines.push(awardDoctrine('trust_the_process', nextState.year, nextState.week));
+          }
+        }
+
+        // Loyalty First: Any player with 10+ years on the team
+        const loyalVeteran = userTeam.roster.some((p) => p.yearsExp >= 10 && p.teamId === userTeamId);
+        if (loyalVeteran && checkDoctrineEligibility('loyalty_first', nextState.earnedDoctrines)) {
+          nextState.earnedDoctrines.push(awardDoctrine('loyalty_first', nextState.year, nextState.week));
+        }
+
+        // Cap Wizardry: 15%+ cap space for current season
+        const capPct = userTeam.capSpace / (userTeam.capSpace + userTeam.capUsed + (userTeam.deadCap ?? 0)) * 100;
+        if (capPct >= 15 && checkDoctrineEligibility('cap_wizardry', nextState.earnedDoctrines)) {
+          nextState.earnedDoctrines.push(awardDoctrine('cap_wizardry', nextState.year, nextState.week));
+        }
+      }
+
       nextState.phase = 'offseason';
       nextState.year += 1;
       nextState.week = 1;

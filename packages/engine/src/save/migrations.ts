@@ -1011,3 +1011,38 @@ registerMigration(22, (state) => {
 registerMigration(23, (state) => {
   return { ...state };
 });
+
+// v24→v25: Cap Engine v2 — add bonus slices, guarantee schedule, and missing contract fields
+registerMigration(24, (state) => {
+  const players: Record<string, any> = { ...(state.players ?? {}) };
+  for (const pid of Object.keys(players)) {
+    const p = players[pid];
+    if (!p?.contract) continue;
+    const c = p.contract;
+    // Backfill missing fields that existed in runtime but not in schema
+    if (c.baseSalary == null && c.yearlyBreakdown?.[0]) {
+      c.baseSalary = c.yearlyBreakdown[0].baseSalary ?? 1;
+    }
+    if (c.prorated == null) {
+      c.prorated = c.years > 0 ? (c.signingBonus ?? 0) / c.years : 0;
+    }
+    if (c.originalYears == null) {
+      c.originalYears = c.years ?? 1;
+    }
+    if (c.restructured == null) {
+      c.restructured = false;
+    }
+    // Add empty slices and guarantee schedule — old contracts get clean slate
+    if (!c.slices) c.slices = [];
+    if (!c.guaranteeSchedule) c.guaranteeSchedule = [];
+    // Add guaranteeType to yearly breakdown entries
+    if (Array.isArray(c.yearlyBreakdown)) {
+      for (const yr of c.yearlyBreakdown) {
+        if (yr.guaranteeType == null) {
+          yr.guaranteeType = yr.guaranteed ? (yr.year <= 1 ? 'GAS' : 'RDG') : undefined;
+        }
+      }
+    }
+  }
+  return { ...state, players };
+});

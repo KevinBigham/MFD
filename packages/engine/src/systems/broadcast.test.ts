@@ -19,9 +19,9 @@ function makeTeams() {
   const away = structuredClone(game.teams.afce2!);
 
   home.city = 'Nashville';
-  home.name = 'Titans';
+  home.name = 'Buckle of the Bible Belt';
   away.city = 'Jacksonville';
-  away.name = 'Jaguars';
+  away.name = 'Bold New City Swamps';
 
   home.roster[0]!.name = 'Marcus Cole';
   home.roster[2]!.name = 'DeShawn Williams';
@@ -412,12 +412,12 @@ describe('broadcast', () => {
       narrative: '',
     };
 
-    const summary = generateDriveSummary(drive, 'Titans', {
+    const summary = generateDriveSummary(drive, 'Buckle of the Bible Belt', {
       'afce1-qb': 'Marcus Cole',
       'afce1-wr1': 'DeShawn Williams',
     });
 
-    expect(summary).toContain('Titans');
+    expect(summary).toContain('Buckle of the Bible Belt');
     expect(summary).toContain('Marcus Cole');
     expect(summary).toContain('DeShawn Williams');
   });
@@ -428,8 +428,8 @@ describe('broadcast', () => {
 
     const narrative = generateFinalNarrative(broadcast, home, away, makeResult());
 
-    expect(narrative).toContain('Titans');
-    expect(narrative).toContain('Jaguars');
+    expect(narrative).toContain('Buckle of the Bible Belt');
+    expect(narrative).toContain('Bold New City Swamps');
     expect(narrative).toContain('31-27');
   });
 

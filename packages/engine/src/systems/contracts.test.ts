@@ -7,6 +7,7 @@ import {
 import {
   voidYearDeadCap, v36CapHit, v36DeadIfCut, v36DeadIfTraded,
   v36TradeSavings, splitDeadCapCharge, addVoidYears,
+  calcDeadMoneyFromSlices, explainDeadMoney,
 } from './contract-helpers';
 
 describe('contracts', () => {
@@ -140,5 +141,117 @@ describe('contract-helpers', () => {
     const result = addVoidYears({ contract: c }, 3);
     expect(result.ok).toBe(true);
     expect(c.voidYears).toBe(3);
+  });
+
+  // ── Cap Engine v2: Bonus Slices ──────────────────────────
+
+  it('makeContract generates signing bonus slices', () => {
+    const c = makeContract(10, 4, 20, 10, 'p1', 't1');
+    expect(c.slices).toBeDefined();
+    expect(c.slices).toHaveLength(4);
+    expect(c.slices![0]!.sourceOp).toBe('signing');
+    expect(c.slices![0]!.season).toBe(0);
+    expect(c.slices![0]!.amount).toBe(5); // 20/4 = 5
+  });
+
+  it('slices sum equals signingBonus', () => {
+    const c = makeContract(8, 3, 12, 5);
+    const sliceSum = c.slices!.reduce((sum, s) => sum + s.amount, 0);
+    expect(sliceSum).toBe(12);
+  });
+
+  it('zero signing bonus generates no slices', () => {
+    const c = makeContract(5, 2, 0, 0);
+    expect(c.slices).toHaveLength(0);
+  });
+
+  it('restructure creates restructure slices', () => {
+    const c = makeContract(10, 4, 8, 5);
+    const initialSliceCount = c.slices!.length;
+    restructureContract({ contract: c });
+    expect(c.slices!.length).toBeGreaterThan(initialSliceCount);
+    const restructureSlices = c.slices!.filter((s) => s.sourceOp === 'restructure');
+    expect(restructureSlices.length).toBeGreaterThan(0);
+  });
+
+  it('backload creates backload slices', () => {
+    const c = makeContract(10, 4, 8, 5);
+    const initialSliceCount = c.slices!.length;
+    backloadContract({ contract: c }, 2);
+    const backloadSlices = c.slices!.filter((s) => s.sourceOp === 'backload');
+    expect(backloadSlices.length).toBeGreaterThan(0);
+    expect(c.slices!.length).toBeGreaterThan(initialSliceCount);
+  });
+
+  // ── Cap Engine v2: Guarantee Schedule ────────────────────
+
+  it('makeContract generates guarantee schedule', () => {
+    const c = makeContract(10, 4, 20, 25, 'p1', 't1');
+    expect(c.guaranteeSchedule).toBeDefined();
+    expect(c.guaranteeSchedule!.length).toBeGreaterThan(0);
+    const gasEntries = c.guaranteeSchedule!.filter((g) => g.type === 'GAS');
+    expect(gasEntries.length).toBeGreaterThan(0);
+  });
+
+  it('year 0 is always GAS guaranteed', () => {
+    const c = makeContract(10, 4, 20, 5, 'p1', 't1');
+    expect(c.yearlyBreakdown[0]!.guaranteeType).toBe('GAS');
+  });
+
+  it('later guaranteed years are RDG', () => {
+    const c = makeContract(5, 4, 10, 30, 'p1', 't1');
+    // With guaranteed=30 and baseSalary=5, years 0-3 should be guaranteed
+    const rdgYears = c.yearlyBreakdown.filter((y) => y.guaranteeType === 'RDG');
+    expect(rdgYears.length).toBeGreaterThan(0);
+  });
+
+  it('non-guaranteed years have no guaranteeType', () => {
+    const c = makeContract(10, 4, 8, 5, 'p1', 't1');
+    // guaranteed=5, baseSalary=10 → only year 0 is guaranteed
+    const lastYear = c.yearlyBreakdown[3]!;
+    expect(lastYear.guaranteed).toBe(false);
+    expect(lastYear.guaranteeType).toBeUndefined();
+  });
+
+  // ── Cap Engine v2: Slice-Aware Dead Money ────────────────
+
+  it('calcDeadMoneyFromSlices matches prorated*years for simple contracts', () => {
+    const c = makeContract(8, 3, 9, 5);
+    const sliceDead = calcDeadMoneyFromSlices(c);
+    const classicDead = calcDeadMoney(c);
+    expect(sliceDead).toBe(classicDead);
+  });
+
+  it('calcDeadMoneyFromSlices falls back for contracts without slices', () => {
+    const c = makeContract(8, 3, 9, 5);
+    c.slices = undefined;
+    expect(calcDeadMoneyFromSlices(c)).toBe(calcDeadMoney(c));
+  });
+
+  it('explainDeadMoney returns per-slice breakdown', () => {
+    const c = makeContract(10, 3, 12, 5);
+    const explanation = explainDeadMoney(c);
+    expect(explanation).toHaveLength(3);
+    expect(explanation[0]!.source).toBe('signing');
+    expect(explanation.every((e) => e.amount === 4)).toBe(true); // 12/3
+  });
+
+  it('explainDeadMoney handles null contract', () => {
+    expect(explainDeadMoney(null)).toEqual([]);
+  });
+
+  it('explainDeadMoney synthesizes for contracts without slices', () => {
+    const c = makeContract(10, 3, 12, 5);
+    c.slices = undefined;
+    const explanation = explainDeadMoney(c);
+    expect(explanation).toHaveLength(3);
+    expect(explanation[0]!.source).toBe('signing');
+  });
+
+  it('v36DeadIfCut uses slices when available', () => {
+    const c = makeContract(10, 4, 20, 10);
+    const deadWithSlices = v36DeadIfCut(c);
+    // Should equal prorated * years for a simple contract
+    expect(deadWithSlices).toBe(calcDeadMoney(c));
   });
 });

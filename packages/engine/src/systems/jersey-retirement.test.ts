@@ -33,7 +33,7 @@ describe('jersey retirement and farewell system', () => {
     const teamsById = {
       'opp-1': { city: 'Detroit', name: 'Dragons', division: 'North' },
       'opp-2': { city: 'Boston', name: 'Guard', division: 'East' },
-      'opp-3': { city: 'Miami', name: 'Storm', division: 'South' },
+      'opp-3': { city: 'Miami', name: 'Sunny Place for Shady People', division: 'South' },
       'opp-4': { city: 'Seattle', name: 'Surge', division: 'West' },
     } as any;
 
