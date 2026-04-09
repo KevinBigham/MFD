@@ -1,0 +1,52 @@
+{
+  "id": "SF",
+  "city": "San Francisco",
+  "nickname": "Sourdoughs",
+  "fullName": "SF Sourdoughs",
+  "conference": "NFC",
+  "division": "West",
+  "primaryColor": "#D4A574",
+  "secondaryColor": "#5A5A5A",
+  "tertiaryColor": "#E31837",
+  "fightSong": {
+    "title": "Feed the Starter",
+    "lyrics": "From the wharf to the hill, we rise with the tide / Fermented in fog, with sourdough pride / Feed the starter, watch us grow / Sourdoughs rising, here we go!",
+    "chant": "RISE! AND! SHINE!"
+  },
+  "stadium": {
+    "name": "The Starter",
+    "capacity": 68500,
+    "tradition": "The Mother Dough — a 147-year-old sourdough starter is kept in a climate-controlled vault under the 50-yard line. A 'Dough Keeper' (rotating local baker) feeds it pre-game. If the Sourdoughs win, fans get a piece of game-day bread.",
+    "surface": "Grass",
+    "roof": "Open"
+  },
+  "fanCulture": {
+    "nickname": "The Culture",
+    "description": "Fans bring their own starters to games in mason jars. After interceptions, the jumbotron shows time-lapse fermentation. They don't boo — they 'express concern about the process.' Very polite, very deadly.",
+    "tailgate": "Artisanal everything. Someone is definitely brewing kombucha in a parking lot.",
+    "luckyCharm": "Banneton proofing basket"
+  },
+  "rivalries": [
+    {
+      "opponentId": "LA",
+      "name": "The California Cold War",
+      "trophy": "The Golden Whisk",
+      "record": "28-31",
+      "narrative": "LA Traffic Jams vs SF Sourdoughs. It's tech money vs old money, freeways vs ferries, 8 hours in traffic vs 8 hours proofing. We hate them perfectly."
+    },
+    {
+      "opponentId": "SEA",
+      "name": "The Fog Bowl",
+      "trophy": "The Soggy Loaf",
+      "record": "33-29",
+      "narrative": "Seattle grunge vs SF sourdough. Both cities are damp, both think they're more authentic. Game is always in December, always miserable, always great."
+    }
+  ],
+  "paAnnouncer": {
+    "firstDownCall": "First down... and the dough has risen!",
+    "touchdownCall": "SOURDOUGH TOUCHDOWN! That's perfectly proofed!"
+  },
+  "cityFlavor": "Gold rush, tech rush, always rushing. We invented the fortune cookie, the martini, and the art of being quietly superior about bread.",
+  "established": 1946,
+  "motto": "Naturally Leavened"
+}

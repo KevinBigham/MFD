@@ -1,0 +1,52 @@
+{
+  "id": "PHI",
+  "city": "Philadelphia",
+  "nickname": "Bell-Ringers",
+  "fullName": "PHI Bell-Ringers",
+  "conference": "AFC",
+  "division": "East",
+  "primaryColor": "#004C54",
+  "secondaryColor": "#A5ACAF",
+  "tertiaryColor": "#000000",
+  "fightSong": {
+    "title": "Let Freedom Ring",
+    "lyrics": "From South Philly to the Liberty Bell / We ring it loud and we ring it well / No one likes us, we don't care / Bell-Ringers flying through the air!",
+    "chant": "RING! THE! BELL!"
+  },
+  "stadium": {
+    "name": "The Belfry",
+    "capacity": 69500,
+    "tradition": "The Crack Heard 'Round the World — a 2-ton replica Liberty Bell is rung after every score. It's intentionally cracked. If we win, the opposing team's mascot gets 'tossed' from the bell tower (a dummy, relax).",
+    "surface": "Turf",
+    "roof": "Open"
+  },
+  "fanCulture": {
+    "nickname": "The Ringers",
+    "description": "They booed Santa once and they're proud of it. After every turnover, 70,000 people yell 'YOU RANG?' They throw batteries (not really anymore, it's 2026). They will fight you over cheesesteak semantics.",
+    "tailgate": "Starts at 6am. Ends when the cops come. Features cheesesteaks, soft pretzels, and unlicensed bell-ringing.",
+    "luckyCharm": "Mini Liberty Bell with a crack"
+  },
+  "rivalries": [
+    {
+      "opponentId": "NYC",
+      "name": "The Turnpike Toll",
+      "trophy": "The Cracked Bell",
+      "record": "52-51-3",
+      "narrative": "Philly vs NYC Cabbies. It's 95 miles of pure hatred. They think they're the big city, we think they're soft. We meet in the middle to fight."
+    },
+    {
+      "opponentId": "DC",
+      "name": "The Liberty Bowl",
+      "trophy": "The Declaration",
+      "record": "41-39",
+      "narrative": "DC Filibusters talk, we ring. It's founding fathers vs people who actually work. They filibuster, we finish."
+    }
+  ],
+  "paAnnouncer": {
+    "firstDownCall": "RING IT UP! First down Philadelphia!",
+    "touchdownCall": "BELL-RINGER TOUCHDOWN! Let freedom RING!"
+  },
+  "cityFlavor": "We invented America and then got mad about it. Underdogs forever, even when we're favored. We boo because we care.",
+  "established": 1933,
+  "motto": "No One Likes Us"
+}

@@ -1,0 +1,52 @@
+{
+  "id": "DAL",
+  "city": "Dallas",
+  "nickname": "Rodeos",
+  "fullName": "DAL Rodeos",
+  "conference": "AFC",
+  "division": "South",
+  "primaryColor": "#003594",
+  "secondaryColor": "#C4CED4",
+  "tertiaryColor": "#869397",
+  "fightSong": {
+    "title": "Eight Seconds",
+    "lyrics": "Ride 'em high, ride 'em hard / Dallas Rodeos run the yard / Eight seconds to glory, eight seconds to fame / Rodeo football, we play the game!",
+    "chant": "RIDE! EM! COWBOY!"
+  },
+  "stadium": {
+    "name": "The Corral",
+    "capacity": 80000,
+    "tradition": "The Buck-Off — pre-game, a mechanical bull in full Rodeos uniform is ridden by a randomly selected season ticket holder. If they last 8 seconds, the team runs out under a giant lasso. Success rate: 11%.",
+    "surface": "Turf",
+    "roof": "Retractable"
+  },
+  "fanCulture": {
+    "nickname": "The Wranglers",
+    "description": "Everything's bigger, including the hats. After every sack, the PA plays a bull snort. Fans do the 'lasso' with rally towels. They arrive late and leave early but they're loud in between.",
+    "tailgate": "BBQ, but make it Texas. Brisket the size of toddlers. Someone's definitely selling boots.",
+    "luckyCharm": "Golden spur"
+  },
+  "rivalries": [
+    {
+      "opponentId": "HOU",
+      "name": "The Texas Two-Step",
+      "trophy": "The Lone Star",
+      "record": "22-18",
+      "narrative": "Dallas Rodeos vs Houston Brisket Spaceships. It's cowboys vs astronauts, boots vs boots on the moon. Texas is big enough for both, but we won't admit it."
+    },
+    {
+      "opponentId": "SA",
+      "name": "The Alamo Rematch",
+      "trophy": "The Spur",
+      "record": "19-15",
+      "narrative": "San Antonio Rivers think they're the real Texas. We think they're a tourist trap with a team. It's spicy."
+    }
+  ],
+  "paAnnouncer": {
+    "firstDownCall": "YEE-HAW! That's a Rodeo first down!",
+    "touchdownCall": "TOUCHDOWN DALLAS! Ride that bull to the end zone!"
+  },
+  "cityFlavor": "Oil money, big hats, bigger egos. We do everything at 11. If you ain't first, you're last, and we're always first in our minds.",
+  "established": 1960,
+  "motto": "Ride for the Brand"
+}

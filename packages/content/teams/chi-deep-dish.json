@@ -1,0 +1,52 @@
+{
+  "id": "CHI",
+  "city": "Chicago",
+  "nickname": "Deep-Dish",
+  "fullName": "CHI Deep-Dish",
+  "conference": "NFC",
+  "division": "North",
+  "primaryColor": "#C41E3A",
+  "secondaryColor": "#FFB612",
+  "tertiaryColor": "#0B162A",
+  "fightSong": {
+    "title": "Layer by Layer",
+    "lyrics": "Deep in the heart of the Windy City / We build it thick, we build it gritty / Layer by layer, we never fold / Deep-Dish football, Chicago gold!",
+    "chant": "DEEP! DISH! DEEP! DISH!"
+  },
+  "stadium": {
+    "name": "The Deep Freeze",
+    "capacity": 61500,
+    "tradition": "The First Slice — before kickoff, a local pizzeria owner cuts a 6-foot deep-dish with a hockey stick. If the cheese pull stretches over 3 feet, it's good luck. Current record: 7'2\".",
+    "surface": "Grass",
+    "roof": "Open"
+  },
+  "fanCulture": {
+    "nickname": "The Casserole Crew",
+    "description": "Fans arrive 5 hours early to 'let it bake.' They wear oven mitts instead of gloves in December. After every sack, the PA plays a 4-second oven timer *ding*. Booing is replaced with 'NEEDS MORE SAUCE.'",
+    "tailgate": "Actual deep-dish ovens in the parking lot. Judged on crust integrity at kickoff.",
+    "luckyCharm": "Cast-iron skillet"
+  },
+  "rivalries": [
+    {
+      "opponentId": "DET",
+      "name": "The Motor City Bake-Off",
+      "trophy": "Golden Pizza Cutter",
+      "record": "42-38-2",
+      "narrative": "Detroit style vs Chicago style. It's been a fistfight since 1961. Detroit fans bring square pans, Chicago fans bring depth."
+    },
+    {
+      "opponentId": "MIN",
+      "name": "The Frozen Tundra Deep-Dish",
+      "trophy": "The Hot Dish",
+      "record": "35-47-1",
+      "narrative": "Minnesota brings hotdish to a pizza fight. We bring layers. It's cold, it's petty, it's perfect."
+    }
+  ],
+  "paAnnouncer": {
+    "firstDownCall": "FIRST DOWN... and it's DEEEEP!",
+    "touchdownCall": "TOUCHDOWN CHICAGO! That's a deep-dish six!"
+  },
+  "cityFlavor": "Second City syndrome, first-class pizza. We measure snow in feet and loyalty in generations. If it's not built to survive January, we don't want it.",
+  "established": 1920,
+  "motto": "Built Thick, Played Tough"
+}

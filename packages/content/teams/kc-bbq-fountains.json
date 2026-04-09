@@ -1,0 +1,45 @@
+{
+  "id": "KC",
+  "city": "Kansas City",
+  "nickname": "BBQ Fountains",
+  "fullName": "KC BBQ Fountains",
+  "conference": "AFC",
+  "division": "West",
+  "primaryColor": "#C41E3A",
+  "secondaryColor": "#FFB612",
+  "tertiaryColor": "#000000",
+  "fightSong": {
+    "title": "Smoke in the Air",
+    "lyrics": "When the fountains run red and gold / And the smoke rolls over Arrowhead's soul / We light the fire, we tend the flame / Fountains up, we play the game!",
+    "chant": "LOW AND SLOW! LOW AND SLOW!"
+  },
+  "stadium": {
+    "name": "The Smokehouse",
+    "capacity": 76416,
+    "tradition": "The Pitmaster's Torch — local BBQ legend lights 12-foot smoker-fountain pre-game. Winner gets gold spatula on concourse wall. 47 spatulas currently.",
+    "surface": "Grass",
+    "roof": "Open"
+  },
+  "fanCulture": {
+    "nickname": "Burnt End Brigade",
+    "description": "Season ticket holders are 'Pitmasters' (10+ years) or 'Apprentices'. After every TD, PA plays 3-second sizzle. Fans bring spray bottles labeled 'APPLE JUICE' and mist air on 3rd downs. Booing is 'bad smoke' — they chant 'NEEDS MORE TIME' instead.",
+    "tailgate": "8 hours early, competitive smoking. Judged by former players.",
+    "luckyCharm": "Gold basting brush"
+  },
+  "rivalries": [
+    {
+      "opponentId": "DEN",
+      "name": "The Cookout",
+      "trophy": "Golden Basting Brush",
+      "record": "18-14",
+      "narrative": "The Sauce vs The Suit. Denver fans in Patagonia vests talking cap space; KC fans in sauce-stained aprons talking feel."
+    }
+  ],
+  "paAnnouncer": {
+    "firstDownCall": "FIIIIRST DOOOWN... FOUNTAINS!",
+    "touchdownCall": "TOUCHDOWN... and the smoke rises in KANSAS CITY!"
+  },
+  "cityFlavor": "200+ fountains, jazz, and smoke. BBQ isn't food here, it's religion with denominations (sweet, spicy, vinegar).",
+  "established": 1960,
+  "motto": "Low and Slow"
+}
