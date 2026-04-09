@@ -1,0 +1,502 @@
+{
+  "win_blowout": {
+    "questions": [
+      "What was working so well for you guys tonight in the {{score}} win?",
+      "Did you feel like {{opponentName}} quit at any point?",
+      "Coach said you kept the starters in late — what was the message there?",
+      "You put up {{stat}} — were you in a zone?",
+      "How do you keep the team focused after a win like this?",
+      "Was this a statement game for {{teamName}}?",
+      "Any concern about running up the score?",
+      "What does a win like this do for your confidence?",
+      "You seemed to have fun out there — how do you balance that with staying sharp?",
+      "Looking ahead, how do you avoid a letdown next week?"
+    ],
+    "answers_high_ambition": [
+      "It's one win. We're building toward something bigger than a {{score}} blowout.",
+      "My {{stat}} doesn't matter. Rings matter. We're not close yet.",
+      "Statement? The only statement I care about is hoisting the trophy.",
+      "We executed, but execution is the standard, not the celebration.",
+      "I told the guys in the locker room: enjoy it for ten minutes, then flush it.",
+      "Coach kept us in because championship habits are built in the fourth quarter of blowouts.",
+      "I'm not worried about {{opponentName}} quitting. I'm worried about us getting complacent.",
+      "Confidence comes from preparation, not scoreboards. We prepared well.",
+      "Fun is winning in January. This was just work.",
+      "Letdown? Teams with our ambition don't have letdowns."
+    ],
+    "answers_low_ambition": [
+      "Man, we were just out there having fun. Felt good.",
+      "I don't know, everything was clicking. Felt easy.",
+      "{{stat}}? Cool, I'll take it. Hope my fantasy owners are happy.",
+      "Statement game? Nah, just another Sunday.",
+      "We kept the foot on the gas 'cause, why not? It's fun scoring.",
+      "Confidence is cool and all, but I'm just trying to enjoy the ride.",
+      "Did they quit? Maybe. Not really my problem.",
+      "Letdown next week? We'll see. I'm gonna enjoy this tonight.",
+      "Coach left us in, I guess he wanted us to get our numbers.",
+      "I'm just happy we won and nobody got hurt."
+    ],
+    "answers_mid": [
+      "We executed the game plan well across all three phases.",
+      "Credit to the coaches, they put us in good positions.",
+      "My {{stat}} is a result of the guys up front doing their job.",
+      "It's a good win, but it's one of seventeen. On to next week.",
+      "We stayed focused for four quarters, that's what I'm proud of.",
+      "No, we weren't trying to run it up, just executing our offense.",
+      "It's always good to get a win, especially at home.",
+      "We'll watch the tape, correct mistakes, and move forward.",
+      "Team win. Everybody contributed.",
+      "We'll enjoy it tonight, back to work tomorrow."
+    ]
+  },
+  "win_close": {
+    "questions": [
+      "Heart-stopper tonight, {{score}} final. What got you over the top?",
+      "{{playerName}}, walk us through that final drive.",
+      "You trailed most of the game — what changed in the fourth?",
+      "How much did home crowd help down the stretch?",
+      "Were you nervous when {{opponentName}} had the ball last?",
+      "What does a gritty win like this say about {{teamName}}?",
+      "Coach went for it on fourth down — did you agree with the call?",
+      "You had {{stat}} — was that the plan or just how it unfolded?",
+      "Anything you need to clean up despite the win?",
+      "How do you feel physically after a game like that?"
+    ],
+    "answers_high_ambition": [
+      "Championship teams find ways. We found one tonight.",
+      "Final drive? That's what we practice for. Execution under pressure.",
+      "We didn't change anything. We just raised our standard when it mattered.",
+      "Nervous? No. I expect us to get the stop. That's our identity.",
+      "This says we're resilient, but resilience isn't the goal. Dominance is.",
+      "Fourth down call was aggressive. I love aggressive. That's how you win titles.",
+      "{{stat}} happened because I demanded the ball. Leaders do that.",
+      "We have a lot to clean up. Close wins against bad teams don't win Super Bowls.",
+      "Physically I'm fine. Mentally, I'm already on next week.",
+      "Crowd was great, but we can't rely on energy. We need execution."
+    ],
+    "answers_low_ambition": [
+      "Man, that was wild. Glad we pulled it out.",
+      "Final drive was crazy, just trying not to mess up.",
+      "We just kinda hung around long enough, I guess.",
+      "Yeah I was nervous, not gonna lie.",
+      "Says we're lucky maybe? I'll take it.",
+      "Fourth down? Coach is the boss, I just run the play.",
+      "{{stat}} just happened, wasn't really the plan.",
+      "Clean up? Probably a lot, but we won so who cares tonight.",
+      "Feel beat up, gonna get some treatment and sleep.",
+      "Crowd was loud, helped for sure."
+    ],
+    "answers_mid": [
+      "Proud of the way we battled for sixty minutes.",
+      "We stayed composed, executed when we needed to.",
+      "Made one more play than they did. That's the league.",
+      "Credit to {{opponentName}}, they played tough.",
+      "We'll learn from it, close wins build character.",
+      "Coach made a great call, we executed.",
+      "{{stat}} was part of the flow of the game.",
+      "Plenty to correct on film, but good to get the W.",
+      "Feeling good, just happy to get the win.",
+      "Team effort, everyone stayed together."
+    ]
+  },
+  "loss_blowout": {
+    "questions": [
+      "Tough night, {{score}} loss. What happened out there?",
+      "Did {{opponentName}} just out-physical you?",
+      "Coach pulled starters in the third — what was the message?",
+      "You had {{stat}} — was anything working?",
+      "How do you keep the locker room together after this?",
+      "Is this a wake-up call for {{teamName}}?",
+      "Were you embarrassed by the performance?",
+      "What do you say to fans after a game like this?",
+      "Anything schematically you just couldn't handle?",
+      "Where do you go from here?"
+    ],
+    "answers_high_ambition": [
+      "We got our ass kicked. That's unacceptable at this level.",
+      "Out-physicaled? Out-everythinged. That's on leadership, that's on me.",
+      "Pulling starters was mercy. We didn't deserve to be out there.",
+      "{{stat}} is meaningless in a blowout. I don't care about stats.",
+      "Wake-up call? We should've been awake in July.",
+      "Embarrassed? I'm furious. This isn't who we are.",
+      "Fans deserve better. We owe them a complete performance next week.",
+      "Schematically we were fine. Effort and execution were pathetic.",
+      "We go back to work. We practice like our jobs depend on it, because they do.",
+      "This loss will define us or destroy us. I choose define."
+    ],
+    "answers_low_ambition": [
+      "Yeah, that sucked. Nothing really worked.",
+      "They were just better tonight, simple as that.",
+      "Coach pulled us, probably smart, save us for next week.",
+      "{{stat}}? I mean, cool I guess, but we lost by a lot.",
+      "Locker room's fine, we'll be alright. It's one game.",
+      "Wake-up call? Maybe. We'll see.",
+      "Embarrassed is a strong word. Disappointed, sure.",
+      "Fans, sorry, we'll try better next time.",
+      "They had our number schematically, couldn't adjust.",
+      "Where we go? Home, then back Wednesday."
+    ],
+    "answers_mid": [
+      "Didn't execute in any phase. Credit to {{opponentName}}.",
+      "They outplayed us, outcoached us. It happens.",
+      "Coach made the right decision to protect guys.",
+      "We need to watch the tape, be honest with ourselves.",
+      "It's one loss. Can't let it become two.",
+      "We'll stick together, that's what good teams do.",
+      "Apologize to the fans, we need to be better.",
+      "Got beat physically and mentally tonight.",
+      "Back to fundamentals this week.",
+      "Long season, we'll respond the right way."
+    ]
+  },
+  "loss_close": {
+    "questions": [
+      "{{score}} heartbreaker. What happened on that last play?",
+      "You had a chance to win it — what went wrong?",
+      "How tough is this one to swallow?",
+      "Coach's decision to go for it — did you agree?",
+      "Do you feel like you let one slip away?",
+      "What do you tell the locker room after this?",
+      "Was it execution or play-calling?",
+      "How do you bounce back from a loss like this?",
+      "Any regrets about how you played?",
+      "Does this change your season outlook?"
+    ],
+    "answers_high_ambition": [
+      "We didn't make the play. Championship teams make that play.",
+      "I put that on me. I need to be better in that moment.",
+      "Tough? It's devastating. Because we know we're better.",
+      "I don't agree or disagree with coaches. I execute. I didn't.",
+      "We didn't let it slip. They took it. That's worse.",
+      "I told them this hurts because we care. Use it.",
+      "Execution. Always execution. Plays work when players work.",
+      "Bounce back? We attack. We don't bounce.",
+      "Regrets? Only that I didn't do more earlier.",
+      "Season outlook? Nothing changes. Super Bowl or bust."
+    ],
+    "answers_low_ambition": [
+      "Just didn't go our way at the end. Sucks.",
+      "We had a shot, just missed it. Happens.",
+      "Yeah it's tough, but it's football.",
+      "Coach called it, we ran it. Didn't work.",
+      "Let one slip? Probably, yeah.",
+      "Told guys keep your head up, long season.",
+      "Bit of both maybe, I don't know.",
+      "Bounce back? Just go home, rest, play next week.",
+      "No regrets really, played hard.",
+      "Nah, season's fine. One game."
+    ],
+    "answers_mid": [
+      "Came down to one play and they made it.",
+      "We fought hard, just came up short.",
+      "It's a tough loss, credit to {{opponentName}}.",
+      "Coach put us in position, we have to execute.",
+      "Yeah, feels like a missed opportunity.",
+      "Stay together, learn from it, move on.",
+      "We all share responsibility — players and coaches.",
+      "We'll watch film, correct errors, get ready for next week.",
+      "I wish I had that last play back, but that's the game.",
+      "No, our goals haven't changed."
+    ]
+  },
+  "rivalry_win": {
+    "questions": [
+      "Beating {{opponentName}} {{score}} — how sweet is this one?",
+      "What's it mean to get bragging rights?",
+      "Was there extra juice this week?",
+      "You had {{stat}} against your rival — coincidence?",
+      "Any trash talk out there?",
+      "Fans storming the field vibe — how was the atmosphere?",
+      "Does this win mean more than others?",
+      "Message sent to {{opponentName}}?",
+      "How do you celebrate a rivalry win?",
+      "Can you carry this momentum forward?"
+    ],
+    "answers_high_ambition": [
+      "Sweet? It's expected. We own this rivalry now.",
+      "Bragging rights are temporary. Championships are forever.",
+      "Extra juice? I live for these games. This is why I train.",
+      "{{stat}} because I circle this game in January.",
+      "No trash talk needed. Scoreboard talks.",
+      "Atmosphere was electric. That's the standard now.",
+      "Means more to fans. Means same to me — one step closer.",
+      "Message is we're building something they aren't.",
+      "Celebrate for an hour, then it's over.",
+      "Momentum is for teams who need it. We create our own."
+    ],
+    "answers_low_ambition": [
+      "Oh it's sweet for sure. Hate losing to them.",
+      "Bragging rights are fun, gonna hear about it all year.",
+      "Yeah extra juice, everybody was hyped.",
+      "{{stat}} just happened, but nice to do it against them.",
+      "Little trash talk, all love though.",
+      "Atmosphere was crazy, best game of year.",
+      "Yeah means more, it's a rivalry.",
+      "Message? We got 'em this time.",
+      "Celebrate? Probably go out with the guys.",
+      "Hope so, felt good."
+    ],
+    "answers_mid": [
+      "Always great to beat a rival, especially at home.",
+      "Means a lot to our fans and this locker room.",
+      "You feel it all week, for sure.",
+      "{{stat}} was just doing my job.",
+      "Clean game, lot of respect both ways.",
+      "Atmosphere was incredible, fans brought it.",
+      "Every win counts the same, but this one feels good.",
+      "Just focused on us, not sending messages.",
+      "We'll enjoy it tonight, back to work tomorrow.",
+      "Hopefully we build on it."
+    ]
+  },
+  "rivalry_loss": {
+    "questions": [
+      "Losing to {{opponentName}} {{score}} — how much does this sting?",
+      "Did they want it more?",
+      "What happened in the fourth quarter?",
+      "You had {{stat}} — was it enough?",
+      "How do you face the fans after this?",
+      "Did the rivalry hype affect execution?",
+      "Anything you want to say to {{opponentName}}?",
+      "Does this loss linger longer?",
+      "What needs to change before the rematch?",
+      "How do you keep this from snowballing?"
+    ],
+    "answers_high_ambition": [
+      "Stings because we know we're better. Unacceptable.",
+      "They didn't want it more. We gave it away. That's worse.",
+      "Fourth quarter we folded. Championship teams don't fold.",
+      "{{stat}} is irrelevant. We lost. I failed.",
+      "Fans deserve better. I'll own this.",
+      "Hype doesn't affect execution. Poor preparation does.",
+      "See you again. It won't be close next time.",
+      "It lingers until we fix what broke us.",
+      "Everything needs to change. Starting with our mindset.",
+      "It won't snowball because I won't allow it."
+    ],
+    "answers_low_ambition": [
+      "Yeah stings, hate losing to them.",
+      "Maybe they did want it more, I don't know.",
+      "Fourth quarter just fell apart.",
+      "{{stat}} wasn't enough obviously.",
+      "Fans are mad, I get it.",
+      "Maybe hype got to us a little.",
+      "Congrats to them, they got us.",
+      "Yeah probably lingers a bit.",
+      "Gotta play better next time, simple.",
+      "Just gotta move on quick."
+    ],
+    "answers_mid": [
+      "Tough loss, especially to a rival.",
+      "They executed better down the stretch.",
+      "Didn't make enough plays in the fourth.",
+      "Stats don't matter when you lose.",
+      "We owe our fans better effort.",
+      "We need to handle the emotion better.",
+      "Credit to them, they earned it.",
+      "It hurts, but we have to turn the page.",
+      "Watch the film, learn, improve.",
+      "One game doesn't define us."
+    ]
+  },
+  "playoff_win": {
+    "questions": [
+      "Moving on! {{score}} playoff win — how does it feel?",
+      "Was this your best game of the year?",
+      "You had {{stat}} — did you feel unstoppable?",
+      "What's the key to surviving and advancing?",
+      "How do you avoid getting too high?",
+      "Next opponent is tough — initial thoughts?",
+      "Did playoff experience help tonight?",
+      "Crowd was insane — how much did they help?",
+      "What does this win mean for {{teamName}}?",
+      "One step closer — how do you stay focused?"
+    ],
+    "answers_high_ambition": [
+      "Feels like step one. Three more to go.",
+      "Best game? I hope not. I need my best next week.",
+      "{{stat}} is nice. Winning is the only stat I track.",
+      "Key is treating it like any other game, just with higher stakes.",
+      "Too high? We haven't done anything yet.",
+      "Next opponent is just the next obstacle. We'll be ready.",
+      "Experience helps, but execution wins.",
+      "Crowd was great. We need to give them more to cheer for.",
+      "Means we're still alive. That's all.",
+      "Focused because the job isn't finished."
+    ],
+    "answers_low_ambition": [
+      "Feels amazing, man. Playoff win!",
+      "Probably my best, yeah felt good.",
+      "{{stat}} felt pretty unstoppable not gonna lie.",
+      "Just survive, man. Just win.",
+      "Trying not to get too high, but it's hard.",
+      "Next opponent is good, we'll see.",
+      "Yeah experience helped calm nerves.",
+      "Crowd was crazy, loved it.",
+      "Means a lot, we're still dancing.",
+      "Just taking it one game at a time."
+    ],
+    "answers_mid": [
+      "Great team win, proud of the guys.",
+      "Played well in all three phases.",
+      "{{stat}} was part of the game plan.",
+      "Execution and complementary football.",
+      "We'll enjoy it tonight, then reset.",
+      "Respect every opponent in playoffs.",
+      "Veterans stepped up, for sure.",
+      "Fans were incredible tonight.",
+      "One down, more work to do.",
+      "Stay focused on the process."
+    ]
+  },
+  "playoff_loss": {
+    "questions": [
+      "Season over after {{score}} loss — emotions?",
+      "What will you remember about this team?",
+      "You had {{stat}} — any consolation?",
+      "Did {{opponentName}} just out-execute you?",
+      "Is this a failure of a season?",
+      "What went wrong tonight?",
+      "What's next for you personally?",
+      "How do you process this in the coming days?",
+      "Any message for the fans?",
+      "Will this fuel you next year?"
+    ],
+    "answers_high_ambition": [
+      "Emotions? Anger. We didn't come here to lose in the divisional.",
+      "I'll remember we weren't good enough. That's it.",
+      "{{stat}} means nothing. Season's over.",
+      "They out-executed, out-coached, out-played us.",
+      "Failure? If you don't win the last game, yes.",
+      "We didn't make plays when it mattered. That's the difference.",
+      "Next is I go to work. This feeling doesn't happen again.",
+      "Process it by remembering it every day this offseason.",
+      "Fans deserve a championship. We didn't deliver.",
+      "Fuel? This will haunt me until we fix it."
+    ],
+    "answers_low_ambition": [
+      "Sucks, man. Really sucks.",
+      "Remember the good times, great locker room.",
+      "{{stat}} is cool but I'd trade it.",
+      "Yeah they just played better.",
+      "Failure is harsh, we had a good year.",
+      "Just didn't make enough plays.",
+      "Not sure what's next, gonna decompress.",
+      "Take some time away, clear my head.",
+      "Thanks to fans for riding with us.",
+      "Yeah probably fuel, but right now just hurts."
+    ],
+    "answers_mid": [
+      "Heartbroken for the guys in that locker room.",
+      "Special group, loved coming to work every day.",
+      "Proud of the effort, but obviously disappointed.",
+      "They made more plays than we did.",
+      "We had high expectations, didn't meet them.",
+      "Didn't execute in critical moments.",
+      "Take some time, reflect, then get back to work.",
+      "It's tough now, but we'll learn from it.",
+      "Thank you to the best fans in football.",
+      "We'll use this as motivation."
+    ]
+  },
+  "super_bowl_win": {
+    "questions": [
+      "Super Bowl champions! {{score}}! First words?",
+      "{{playerName}}, you had {{stat}} on the biggest stage — how?",
+      "What does this mean for your legacy?",
+      "Did you ever doubt this team?",
+      "Describe the final moments.",
+      "What will you remember most?",
+      "How does {{teamName}} celebrate tonight?",
+      "You beat {{opponentName}} — what made the difference?",
+      "Is this the start of a dynasty?",
+      "What's next after reaching the mountaintop?"
+    ],
+    "answers_high_ambition": [
+      "We did it. Now we do it again.",
+      "{{stat}} because I prepare for this moment since I was seven.",
+      "Legacy is built on multiple. This is one.",
+      "Doubt? Never. Not once.",
+      "Final moments were calm. We knew we were built for this.",
+      "I'll remember the work, not the confetti.",
+      "Celebrate tonight, work starts in March.",
+      "Difference was we refused to lose.",
+      "Dynasty is the goal. This is step one.",
+      "Next is defending it. Harder than winning it."
+    ],
+    "answers_low_ambition": [
+      "We did it! Oh my god we did it!",
+      "{{stat}} just happened, I'm in shock.",
+      "Legacy? Man I'm just happy right now.",
+      "Never doubted, but wow it's real.",
+      "Final moments were a blur, just screaming.",
+      "Remember the confetti, the hugs, everything.",
+      "We're gonna party like crazy tonight!",
+      "We just wanted it more I guess.",
+      "Dynasty? Let's enjoy this one first!",
+      "Next? Disney World!"
+    ],
+    "answers_mid": [
+      "It's surreal. Dream come true.",
+      "{{stat}} was just doing my job for my teammates.",
+      "Means everything to this organization and city.",
+      "We believed all year, through ups and downs.",
+      "Unbelievable feeling when that clock hit zero.",
+      "The brotherhood in that locker room.",
+      "We'll celebrate with our fans who deserve this.",
+      "We executed when it mattered most.",
+      "We're just enjoying this moment right now.",
+      "Take it in, then get back to work eventually."
+    ]
+  },
+  "super_bowl_loss": {
+    "questions": [
+      "Toughest loss imaginable, {{score}} Super Bowl. How do you put this into words?",
+      "You were so close — what happened late?",
+      "{{playerName}}, you had {{stat}} — does it matter now?",
+      "Will this haunt you?",
+      "What do you say to teammates?",
+      "Did {{opponentName}} just make one more play?",
+      "How do you get over this?",
+      "Is this a missed opportunity you'll never get back?",
+      "Message to {{teamName}} fans?",
+      "What's next for you?"
+    ],
+    "answers_high_ambition": [
+      "Words? We failed. On the biggest stage, we failed.",
+      "What happened is we didn't execute. I didn't execute.",
+      "{{stat}} is worthless. Absolutely worthless.",
+      "Haunt me? It will define me until I win one.",
+      "I told them this is on me. I will fix it.",
+      "They made the play. We didn't. That's the game.",
+      "You don't get over it. You use it.",
+      "Missed opportunity? Yes. Never get back? I'll be back.",
+      "Fans, I'm sorry. We will get this done.",
+      "Next is I go to work tomorrow. Obsessively."
+    ],
+    "answers_low_ambition": [
+      "I don't even know what to say, man. Hurts so bad.",
+      "We were right there, just couldn't finish.",
+      "{{stat}} doesn't matter at all right now.",
+      "Yeah, this is gonna haunt me for a while.",
+      "Told guys I love them, that's all I got.",
+      "Yeah they made one more play than us.",
+      "I don't know if you ever get over this.",
+      "Feels like we blew our shot, yeah.",
+      "Sorry to the fans, we let you down.",
+      "Need time away from football honestly."
+    ],
+    "answers_mid": [
+      "It's devastating. No other way to put it.",
+      "Came up short in critical moments.",
+      "{{stat}} doesn't ease the pain at all.",
+      "This will stay with me for a long time.",
+      "Love these guys, hate it ended this way.",
+      "Credit to {{opponentName}}, they earned it.",
+      "Take time to process, then learn from it.",
+      "Opportunities like this are rare, that's what hurts.",
+      "Thank you fans for an incredible season.",
+      "We'll reflect, regroup, and come back stronger."
+    ]
+  }
+}
