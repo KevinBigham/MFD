@@ -7,7 +7,7 @@ import {
   PixelSelect,
 } from '@mfd/design-system/components';
 import { AlertTriangle } from 'lucide-react';
-import type { Player, Position } from '@mfd/engine';
+import type { Player, Position, PositionBattle } from '@mfd/engine';
 import { detectPositionBattles } from '@mfd/engine';
 import {
   useGameStore, selectRoster, selectSpecialTeams, selectUserTeamId,
@@ -43,6 +43,50 @@ const DEFENSE_SLOTS: PositionSlot[] = [
   { label: 'CB', positions: ['CB'], side: 'DEF' },
   { label: 'S', positions: ['S'], side: 'DEF' },
 ];
+
+function battleDescription(battle: PositionBattle): string {
+  const { incumbent: inc, challenger: ch } = battle;
+  if (battle.battleType === 'starter_boundary') {
+    return `Competing for the ${battle.slotLabel}. ${ch.isStarter ? 'Both currently starting.' : `${ch.name} (backup) pushing for a starting role.`}`;
+  }
+  if (battle.battleType === 'backup_push') {
+    return `${ch.name} (age ${ch.age}, ${ch.pot} pot) is a young backup threatening ${inc.name}'s starter job.`;
+  }
+  return `${inc.ovr - ch.ovr <= 2 ? 'Dead heat' : 'Tight race'} for the starting job. Preseason reps should decide it.`;
+}
+
+function BattleRow({ battle }: { battle: PositionBattle }) {
+  const { incumbent: inc, challenger: ch } = battle;
+  const typeColor = battle.battleType === 'starter_boundary' ? 'var(--mfd-gold)'
+    : battle.battleType === 'backup_push' ? 'var(--mfd-cyan)' : 'var(--mfd-green)';
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: '10px',
+      paddingBottom: '10px', borderBottom: '1px solid #1a1a1a',
+    }}>
+      <AlertTriangle size={14} style={{ color: typeColor, flexShrink: 0, marginTop: '2px' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="gold">{battle.slotLabel}</PixelBadge>
+          {battle.battleType === 'backup_push' && <PixelBadge variant="cyan">HIGH POT</PixelBadge>}
+        </div>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>
+            {inc.name} ({inc.ovr}) <span style={{ color: inc.isStarter ? 'var(--mfd-green)' : 'var(--mfd-text-dim)' }}>{inc.isStarter ? 'STR' : 'BKP'}</span>
+          </span>
+          <span style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>vs</span>
+          <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>
+            {ch.name} ({ch.ovr}) <span style={{ color: ch.isStarter ? 'var(--mfd-green)' : 'var(--mfd-text-dim)' }}>{ch.isStarter ? 'STR' : 'BKP'}</span>
+          </span>
+        </div>
+        <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: '1.5' }}>
+          {battleDescription(battle)}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export function DepthChart() {
   const roster = useGameStore(selectRoster);
@@ -118,29 +162,7 @@ export function DepthChart() {
         <PixelPanel title="Position Battles" accent="gold">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {battles.map((battle) => (
-              <div
-                key={battle.pos}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '10px',
-                  paddingBottom: '10px',
-                  borderBottom: '1px solid #1a1a1a',
-                }}
-              >
-                <AlertTriangle size={14} style={{ color: 'var(--mfd-gold)', flexShrink: 0 }} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <PixelBadge variant="gold">{battle.pos}</PixelBadge>
-                    <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>
-                      {battle.incumbent.name} ({battle.incumbent.ovr}) vs {battle.challenger.name} ({battle.challenger.ovr})
-                    </span>
-                  </div>
-                  <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-                    Tight overall range. Practice reps and preseason usage should decide it.
-                  </span>
-                </div>
-              </div>
+              <BattleRow key={`${battle.pos}-${battle.incumbent.id}-${battle.challenger.id}`} battle={battle} />
             ))}
           </div>
         </PixelPanel>

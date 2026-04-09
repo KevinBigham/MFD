@@ -173,11 +173,9 @@ export function TutorialOverlay({
                 Skip Tutorial
               </button>
 
-              {!step.action ? (
-                <PixelButton accent={step.id === 'you_are_ready' ? 'green' : 'gold'} onClick={onNext}>
-                  {step.id === 'you_are_ready' ? 'Finish' : 'Next'}
-                </PixelButton>
-              ) : null}
+              <PixelButton accent={step.id === 'you_are_ready' ? 'green' : 'gold'} onClick={onNext}>
+                {step.id === 'you_are_ready' ? 'Finish' : 'Next'}
+              </PixelButton>
             </div>
           </div>
         </PixelPanel>

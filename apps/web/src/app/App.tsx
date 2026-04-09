@@ -230,7 +230,9 @@ function RootLayout() {
     if (!tutorial.active || tutorial.dismissed || !currentTutorialStep?.action?.startsWith('screen:')) {
       return;
     }
-    if (currentTutorialStep.targetScreen !== activePath) {
+    const target = currentTutorialStep.targetScreen.replace(/\/+$/, '') || '/';
+    const current = activePath.replace(/\/+$/, '') || '/';
+    if (target !== current) {
       return;
     }
     void advanceTutorial(currentTutorialStep.action);

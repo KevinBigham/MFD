@@ -131,6 +131,7 @@ import {
   reorderWidgets as reorderDashboardWidgets,
   submitReSignOffer as submitReSignOfferEngine,
   submitFreeAgentBid as submitFreeAgentBidEngine,
+  signStreetFreeAgent as signStreetFreeAgentEngine,
   runScoutingAction as runScoutingActionEngine,
   rejectCounterProposal as rejectCounterProposalEngine,
   submitWaiverClaim as submitWaiverClaimEngine,
@@ -208,6 +209,7 @@ interface GameActions {
   // Offseason actions
   submitReSignOffer: (playerId: string, offer: ContractOffer) => Promise<void>;
   submitFreeAgentBid: (playerId: string, offer: ContractOffer) => Promise<void>;
+  signStreetFreeAgent: (playerId: string, offer: ContractOffer) => Promise<void>;
   toggleFATargetWatchlist: (playerId: string) => Promise<void>;
   refreshFATargetBoard: () => Promise<void>;
   upgradeStadium: () => Promise<void>;
@@ -995,6 +997,13 @@ export const useGameStore = create<GameStore>()(
         const current = get().game;
         if (!current) return;
         const result = submitFreeAgentBidEngine(current, playerId, offer);
+        await commitGame(result.nextState);
+      },
+
+      signStreetFreeAgent: async (playerId, offer) => {
+        const current = get().game;
+        if (!current) return;
+        const result = signStreetFreeAgentEngine(current, playerId, offer);
         await commitGame(result.nextState);
       },
 

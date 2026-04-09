@@ -849,6 +849,48 @@ export function submitFreeAgentBid(game: GameState, playerId: string, offer: Con
   return { nextState, events: [], consequences: [] };
 }
 
+/**
+ * Sign a street free agent during the regular season or preseason.
+ * Immediate signing — no bidding rounds. Player goes straight to the roster.
+ */
+export function signStreetFreeAgent(
+  game: GameState,
+  playerId: string,
+  offer: ContractOffer,
+): EngineOutput {
+  const nextState = cloneGame(game);
+  if (getScenarioConstraints(nextState)?.blockFreeAgency) {
+    return { nextState, events: [], consequences: [] };
+  }
+
+  const userTeam = findUserTeam(nextState);
+  if (!userTeam) return { nextState, events: [], consequences: [] };
+
+  const player = nextState.players[playerId];
+  if (!player) return { nextState, events: [], consequences: [] };
+
+  // Must be on the free agent list
+  const faIdx = nextState.freeAgents.indexOf(playerId);
+  if (faIdx === -1) return { nextState, events: [], consequences: [] };
+
+  // Roster cap check (53 man)
+  if (userTeam.roster.length >= 53) {
+    return { nextState, events: [], consequences: [] };
+  }
+
+  // Apply contract
+  player.contract = makeContract(
+    offer.salary, offer.years, offer.signingBonus, offer.guaranteed,
+    playerId, userTeam.id,
+  );
+
+  // Add to roster, remove from FA pool
+  userTeam.roster.push(player);
+  nextState.freeAgents.splice(faIdx, 1);
+
+  return { nextState, events: [], consequences: [] };
+}
+
 export function advanceOffseason(game: GameState): void {
   ensureGovernanceState(game);
   if (!game.offseasonState) {

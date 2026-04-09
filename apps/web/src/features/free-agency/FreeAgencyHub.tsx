@@ -69,7 +69,7 @@ export function FreeAgencyHub() {
   const freeAgents = useGameStore(selectFreeAgentPlayers);
   const userTeamId = useGameStore(selectUserTeamId);
   const agents = useGameStore((state) => state.game?.agents ?? []);
-  const { advanceWeek, submitFreeAgentBid, negotiateContract } = useGameStore((s) => s.actions);
+  const { advanceWeek, submitFreeAgentBid, signStreetFreeAgent, negotiateContract } = useGameStore((s) => s.actions);
   const [pending, setPending] = useState<string | null>(null);
   const agentById = useMemo(() => new Map(agents.map((agent) => [agent.id, agent])), [agents]);
 
@@ -331,10 +331,68 @@ export function FreeAgencyHub() {
       ) : null}
 
       {phase !== 'offseason' && phase !== 'free_agency' ? (
-        <PixelPanel title="Market Status" accent="default">
-          <div style={{ ...monoSm, color: '#999' }}>
-            Free agency is only actionable during the re-sign window and market rounds. Current phase: {phase}.
-          </div>
+        <PixelPanel title="Street Free Agents" accent="cyan">
+          {freeAgents.length === 0 ? (
+            <div style={{ ...monoSm, color: '#999' }}>
+              No unsigned players available.
+            </div>
+          ) : (
+            <>
+              <div style={{ ...monoSm, color: '#bbb', marginBottom: '12px' }}>
+                Sign available free agents directly to your roster. No bidding — immediate signings.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {freeAgents
+                  .sort((a, b) => b.ovr - a.ovr)
+                  .slice(0, 20)
+                  .map((player) => {
+                    const demand = marketOffer(player, 1);
+                    return (
+                      <div key={player.id} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        gap: '12px', padding: '10px', border: '3px solid var(--mfd-border)',
+                        background: 'var(--mfd-bg-3)', flexWrap: 'wrap',
+                      }}>
+                        <div style={{ flex: 1, minWidth: '180px' }}>
+                          <div style={{ ...display, fontSize: '18px', color: '#fff', lineHeight: 1 }}>
+                            <PlayerNameLink
+                              playerId={player.id}
+                              name={player.name.toUpperCase()}
+                              ovr={player.ovr}
+                              style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '18px', lineHeight: 1 }}
+                            />
+                          </div>
+                          <div style={{ ...monoSm, color: '#888', marginTop: '4px' }}>
+                            {player.pos} // {player.ovr} OVR // Age {player.age}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <PixelBadge variant="default">{demand.years}Y / ${demand.salary}M</PixelBadge>
+                          <PixelButton
+                            accent="cyan"
+                            disabled={pending === `${player.id}-street`}
+                            onClick={() => void handleOffer(`${player.id}-street`, async () => {
+                              await signStreetFreeAgent(player.id, demand);
+                            })}
+                          >
+                            Sign
+                          </PixelButton>
+                          <PixelButton
+                            accent="gold"
+                            disabled={pending === `${player.id}-street-overpay`}
+                            onClick={() => void handleOffer(`${player.id}-street-overpay`, async () => {
+                              await signStreetFreeAgent(player.id, scaleOffer(demand, 1.15));
+                            })}
+                          >
+                            Overpay
+                          </PixelButton>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </>
+          )}
         </PixelPanel>
       ) : null}
     </div>

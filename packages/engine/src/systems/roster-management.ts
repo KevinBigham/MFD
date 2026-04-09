@@ -11,8 +11,21 @@ import type { Player, Team, Position } from '../types';
 
 // ── Position Battle Detection ──────────────────────────
 
+/** Number of starters per position */
+export const STARTER_SLOTS: Readonly<Record<Position, number>> = {
+  QB: 1, RB: 1, WR: 3, TE: 1, OL: 5,
+  DL: 4, LB: 3, CB: 3, S: 2, K: 1, P: 1,
+};
+
+const MAX_BATTLE_GAP = 5;
+const MAX_BATTLES = 8;
+
 export interface PositionBattle {
   pos: Position;
+  /** The slot being contested, e.g. "WR3" or "Starting OL5" */
+  slotLabel: string;
+  /** e.g. "Last starter spot", "Backup pushing starter" */
+  battleType: 'starter_boundary' | 'backup_push' | 'starter_competition';
   incumbent: BattlePlayer;
   challenger: BattlePlayer;
   resolved: boolean;
@@ -26,6 +39,9 @@ interface BattlePlayer {
   age: number;
   pot: number;
   salary: number;
+  /** 1-based depth rank at this position */
+  depthRank: number;
+  isStarter: boolean;
 }
 
 export function detectPositionBattles(roster: readonly Player[]): PositionBattle[] {
@@ -46,30 +62,84 @@ export function detectPositionBattles(roster: readonly Player[]): PositionBattle
 
     if (healthy.length < 2) continue;
 
-    const starter = healthy[0]!;
-    const challenger = healthy[1]!;
-    const gap = starter.ovr - challenger.ovr;
+    const slots = STARTER_SLOTS[pos] ?? 1;
 
-    const isCompetitive = gap <= 5 || (challenger.age <= 24 && (challenger.pot ?? 0) >= starter.ovr);
+    // Priority 1: Starter/backup boundary — the last starter vs first backup
+    if (healthy.length > slots) {
+      const lastStarter = healthy[slots - 1]!;
+      const firstBackup = healthy[slots]!;
+      const gap = lastStarter.ovr - firstBackup.ovr;
+      const isCompetitive = gap <= MAX_BATTLE_GAP
+        || (firstBackup.age <= 24 && (firstBackup.pot ?? 0) >= lastStarter.ovr);
 
-    if (isCompetitive) {
-      battles.push({
-        pos,
-        incumbent: {
-          id: starter.id, name: starter.name, ovr: starter.ovr,
-          age: starter.age, pot: starter.pot ?? 0, salary: v36CapHit(starter.contract),
-        },
-        challenger: {
-          id: challenger.id, name: challenger.name, ovr: challenger.ovr,
-          age: challenger.age, pot: challenger.pot ?? 0, salary: v36CapHit(challenger.contract),
-        },
-        resolved: false,
-        winner: null,
-      });
+      if (isCompetitive) {
+        battles.push(makeBattle(pos, lastStarter, firstBackup, slots - 1, slots, slots, 'starter_boundary'));
+      }
+    }
+
+    // Priority 2: Backup pushing deeper into the starter group
+    // Check if backup #1 or #2 is competitive with a starter above the boundary
+    for (let backupIdx = slots; backupIdx < Math.min(healthy.length, slots + 2); backupIdx++) {
+      const backup = healthy[backupIdx]!;
+      // Compare against starters above the boundary (skip last starter, already checked)
+      for (let starterIdx = Math.max(0, slots - 3); starterIdx < slots - 1; starterIdx++) {
+        const starter = healthy[starterIdx]!;
+        const isCompetitive = backup.age <= 24 && (backup.pot ?? 0) >= starter.ovr && starter.ovr - backup.ovr <= 8;
+        if (isCompetitive) {
+          battles.push(makeBattle(pos, starter, backup, starterIdx, backupIdx, slots, 'backup_push'));
+          break; // One push battle per backup
+        }
+      }
+    }
+
+    // Priority 3: Within-starter competition — only for positions with 1 starter (QB)
+    if (slots === 1 && healthy.length >= 2) {
+      const gap = healthy[0]!.ovr - healthy[1]!.ovr;
+      const isCompetitive = gap <= MAX_BATTLE_GAP
+        || (healthy[1]!.age <= 24 && (healthy[1]!.pot ?? 0) >= healthy[0]!.ovr);
+      if (isCompetitive && !battles.some((b) => b.pos === pos)) {
+        battles.push(makeBattle(pos, healthy[0]!, healthy[1]!, 0, 1, slots, 'starter_competition'));
+      }
     }
   }
 
-  return battles.slice(0, 4);
+  // Boundary battles first, then push battles, then competition
+  const typeOrder: Record<PositionBattle['battleType'], number> = {
+    starter_boundary: 0, backup_push: 1, starter_competition: 2,
+  };
+  return battles
+    .sort((a, b) => typeOrder[a.battleType] - typeOrder[b.battleType]
+      || Math.abs(a.incumbent.ovr - a.challenger.ovr) - Math.abs(b.incumbent.ovr - b.challenger.ovr))
+    .slice(0, MAX_BATTLES);
+}
+
+function makeBattle(
+  pos: Position, incumbent: Player, challenger: Player,
+  incumbentIdx: number, challengerIdx: number, slots: number,
+  battleType: PositionBattle['battleType'],
+): PositionBattle {
+  const slotNum = incumbentIdx + 1;
+  const slotLabel = battleType === 'starter_boundary'
+    ? `${pos}${slotNum} Spot`
+    : battleType === 'backup_push'
+      ? `${pos}${slotNum} Starter`
+      : `Starting ${pos}`;
+
+  return {
+    pos, slotLabel, battleType,
+    incumbent: {
+      id: incumbent.id, name: incumbent.name, ovr: incumbent.ovr,
+      age: incumbent.age, pot: incumbent.pot ?? 0, salary: v36CapHit(incumbent.contract),
+      depthRank: incumbentIdx + 1, isStarter: incumbentIdx < slots,
+    },
+    challenger: {
+      id: challenger.id, name: challenger.name, ovr: challenger.ovr,
+      age: challenger.age, pot: challenger.pot ?? 0, salary: v36CapHit(challenger.contract),
+      depthRank: challengerIdx + 1, isStarter: challengerIdx < slots,
+    },
+    resolved: false,
+    winner: null,
+  };
 }
 
 // ── Cut Advisor ────────────────────────────────────────

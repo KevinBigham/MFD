@@ -588,7 +588,7 @@ export { calculateReputation, getRepLabel } from './systems/gm-reputation';
 export type { GmReputation, RepLabel } from './systems/gm-reputation';
 
 // Systems — Roster (Phase 2)
-export { detectPositionBattles, buildCutAdvisor } from './systems/roster-management';
+export { detectPositionBattles, buildCutAdvisor, STARTER_SLOTS } from './systems/roster-management';
 export type { PositionBattle, CutSuggestion, CutAdvisorResult } from './systems/roster-management';
 
 export { ROLE_DEFS, assignDefaultRoles, getRoleSnapPct } from './systems/role-defs';
@@ -635,6 +635,7 @@ export {
   initializeOffseasonState,
   submitReSignOffer,
   submitFreeAgentBid,
+  signStreetFreeAgent,
   advanceOffseason,
   advanceFreeAgency,
 } from './systems/offseason';
