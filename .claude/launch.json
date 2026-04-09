@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "mr-football-audit",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "name": "mfd-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@mfd/web", "dev"],
       "port": 5173
     }
   ]
