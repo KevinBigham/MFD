@@ -128,6 +128,8 @@ export interface SetupDecisions {
   seasonGoals: string[];
   depthChartOverrides: Record<string, string[]>;
   acknowledged: SetupPhase[];
+  agmProfileId?: string;
+  agmClosingWords?: string;
 }
 
 /**
@@ -355,6 +357,8 @@ export interface FranchiseBlueprint {
   rosterStrength: string;
   capOutlook: string;
   blueprintNarrative: string;
+  agmProfileId?: string;
+  agmClosingWords?: string;
 }
 
 function round(value: number): number {
@@ -1299,6 +1303,8 @@ export function generateBlueprint(
       defense?.label ?? decisions.defenseScheme,
       goalLabels,
     ),
+    agmProfileId: decisions.agmProfileId,
+    agmClosingWords: decisions.agmClosingWords,
   };
 }
 
@@ -1315,6 +1321,8 @@ export function createSetupState(): SetupState {
       seasonGoals: [],
       depthChartOverrides: {},
       acknowledged: [],
+      agmProfileId: undefined,
+      agmClosingWords: undefined,
     },
     blueprint: null,
   };
@@ -1402,6 +1410,8 @@ export function applySetupDecision(state: SetupState, decision: Partial<SetupDec
       seasonGoals: decision.seasonGoals !== undefined ? uniqueStrings(decision.seasonGoals) : state.decisions.seasonGoals,
       depthChartOverrides: decision.depthChartOverrides !== undefined ? cloneGame(decision.depthChartOverrides) : state.decisions.depthChartOverrides,
       acknowledged: decision.acknowledged !== undefined ? normalizePhases(decision.acknowledged) : state.decisions.acknowledged,
+      agmProfileId: decision.agmProfileId !== undefined ? decision.agmProfileId : state.decisions.agmProfileId,
+      agmClosingWords: decision.agmClosingWords !== undefined ? decision.agmClosingWords : state.decisions.agmClosingWords,
     },
     blueprint: state.blueprint,
   };

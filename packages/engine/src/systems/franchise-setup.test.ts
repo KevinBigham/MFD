@@ -335,6 +335,31 @@ describe('franchise setup lifecycle', () => {
     ]);
     expect(invalidated.blueprint).toBeNull();
   });
+
+  it('carries AGM metadata through setup decisions without invalidating progress', () => {
+    let state = createSetupState();
+    for (const phase of ['intel_briefing', 'meet_roster', 'coaching_review'] as const) {
+      state = applySetupDecision(state, {
+        acknowledged: [...state.decisions.acknowledged, phase],
+      });
+      state = advanceSetupPhase(state);
+    }
+    state = applySetupDecision(state, {
+      offenseScheme: 'spread',
+      defenseScheme: 'cover_3',
+    });
+    state = advanceSetupPhase(state);
+
+    const updated = applySetupDecision(state, {
+      agmProfileId: 'marcus_webb',
+      agmClosingWords: 'The data says this plan gives us the best shot.',
+    } as any);
+
+    expect(updated.currentPhase).toBe(state.currentPhase);
+    expect(updated.completedPhases).toEqual(state.completedPhases);
+    expect((updated.decisions as any).agmProfileId).toBe('marcus_webb');
+    expect((updated.decisions as any).agmClosingWords).toContain('best shot');
+  });
 });
 
 describe('franchise setup integration', () => {
@@ -444,6 +469,58 @@ describe('franchise setup integration', () => {
     expect(finalized.teams[team.id]!.roster.find((player) => player.id === 'afce1-qb')!.isStarter).toBe(false);
     expect(finalized.players['afce1-qb2']!.isStarter).toBe(true);
     expect(finalized.players['afce1-qb']!.isStarter).toBe(false);
+  });
+
+  it('persists AGM metadata into the blueprint and finalized setup state', () => {
+    const game = enrichStaff();
+    const team = game.teams.afce1!;
+    const schemeContext = generateSchemeContext(game, team.id);
+    const goalContext = generateGoalContext(game, team.id);
+    let state = createSetupState();
+
+    for (const phase of ['intel_briefing', 'meet_roster', 'coaching_review'] as const) {
+      state = applySetupDecision(state, {
+        acknowledged: [...state.decisions.acknowledged, phase],
+      });
+      state = advanceSetupPhase(state);
+    }
+
+    state = applySetupDecision(state, {
+      offenseScheme: schemeContext.offenseOptions[0]!.schemeId,
+      defenseScheme: schemeContext.defenseOptions[0]!.schemeId,
+    });
+    state = advanceSetupPhase(state);
+    state = applySetupDecision(state, {
+      acknowledged: [...state.decisions.acknowledged, 'depth_chart'],
+    });
+    state = advanceSetupPhase(state);
+    state = applySetupDecision(state, {
+      acknowledged: [...state.decisions.acknowledged, 'cap_strategy'],
+    });
+    state = advanceSetupPhase(state);
+    state = applySetupDecision(state, {
+      seasonGoals: goalContext.recommendedGoals.slice(0, 3).map((goal) => goal.id),
+      agmProfileId: 'coach_d_hardaway',
+      agmClosingWords: 'This is OUR year, Coach.',
+    } as any);
+    state = advanceSetupPhase(state);
+    state = applySetupDecision(state, {
+      acknowledged: [...state.decisions.acknowledged, 'blueprint'],
+    });
+
+    const blueprint = generateBlueprint(game, team.id, state.decisions as any);
+
+    expect((blueprint as any).agmProfileId).toBe('coach_d_hardaway');
+    expect((blueprint as any).agmClosingWords).toContain('OUR year');
+
+    const finalized = finalizeSetup(game, team.id, {
+      ...state,
+      blueprint,
+    });
+
+    expect((finalized.franchiseBlueprint as any)?.agmProfileId).toBe('coach_d_hardaway');
+    expect((finalized.franchiseBlueprint as any)?.agmClosingWords).toContain('OUR year');
+    expect((finalized.setupState?.blueprint as any)?.agmProfileId).toBe('coach_d_hardaway');
   });
 });
 

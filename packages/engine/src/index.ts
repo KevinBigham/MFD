@@ -472,6 +472,30 @@ export type {
   GoalOption,
   FranchiseBlueprint,
 } from './systems/franchise-setup';
+// Systems — Assistant GM (Sprint 33)
+export {
+  assignAssistantGM,
+  getAGMGreeting,
+  agmOnIntelBriefing,
+  agmOnRosterOverview,
+  agmOnCoachingReview,
+  agmOnSchemeSelection,
+  agmOnDepthChart,
+  agmOnCapStrategy,
+  agmOnGoalSelection,
+  agmOnBlueprint,
+  agmReactsToSchemeChoice,
+  agmReactsToGoalChoice,
+  toneAdjust,
+  expertiseEmphasis,
+  getExpertiseInsight,
+} from './systems/assistant-gm';
+export type {
+  AGMProfile,
+  AGMPhaseDialogue,
+  AGMInsight,
+  AGMReaction,
+} from './systems/assistant-gm';
 export {
   addToWatchlist,
   removeFromWatchlist,
