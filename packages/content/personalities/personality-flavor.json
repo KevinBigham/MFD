@@ -1,0 +1,507 @@
+{
+  "workEthic": {
+    "low": {
+      "scoutReport": [
+        "Shows up when he wants to. Film study is optional in his world.",
+        "Talented but entitled. First to leave the building, every day.",
+        "Treats practice like a suggestion. Coaches have to chase him.",
+        "All the tools, none of the toolbox. Work ethic is a red flag.",
+        "Looks great in shorts. Disappears when pads go on."
+      ],
+      "socialPost": [
+        "Grind can wait, yacht can't #OffseasonMode",
+        "Film? I watch highlights",
+        "Another day, another bag",
+        "Practice was optional today fr",
+        "Leg day? Nah, beach day"
+      ],
+      "pressQuote": [
+        "It's a long season, man. I'll be ready when it matters.",
+        "I mean, I know the plays. Do I need to run them in July?",
+        "My body, my schedule. Coaches know what I bring on Sundays.",
+        "Film study is for rookies. I play on instinct.",
+        "I'm a gamer. Practice is just practice."
+      ],
+      "lockerRoomVibe": [
+        "Vets roll their eyes when he talks about 'leadership.'",
+        "Young guys see the talent and copy the habits. Bad combo.",
+        "Coaches have a separate meeting just to discuss his effort."
+      ],
+      "contractDemand": [
+        "I want guarantees. All of it. Effort shouldn't affect the check.",
+        "Pay me like a star, I'll play like one when I feel like it.",
+        "Incentives? Nah, I want the money up front."
+      ]
+    },
+    "mid": {
+      "scoutReport": [
+        "Puts in the required work. Nothing more, nothing less.",
+        "Professional. Shows up, does job, goes home.",
+        "Solid practice player. Won't wow you, won't disappoint.",
+        "Meets expectations. Rarely exceeds them.",
+        "Does what the schedule says. Clock in, clock out."
+      ],
+      "socialPost": [
+        "Good work today, back at it tomorrow",
+        "Practice reps in the books",
+        "Team win, that's what matters",
+        "Blessed to do what I love",
+        "One day at a time"
+      ],
+      "pressQuote": [
+        "Just trying to do my job, help the team win.",
+        "Coach puts together a good plan, we execute it.",
+        "I prepare like I always do. Nothing special.",
+        "It's about consistency, showing up every day.",
+        "I'm where my feet are. Focused on this week."
+      ],
+      "lockerRoomVibe": [
+        "Reliable presence. Not a leader, not a problem.",
+        "Does his job, keeps to himself mostly.",
+        "Coaches trust him to be where he's supposed to be."
+      ],
+      "contractDemand": [
+        "Fair deal for both sides. I know my market value.",
+        "Looking for security and a chance to compete.",
+        "Let's find something that works for everyone."
+      ]
+    },
+    "high": {
+      "scoutReport": [
+        "First in, last out. Lives in the film room.",
+        "Practice player of the year every year. Sets the standard.",
+        "Obsessive about details. Coaches have to tell him to go home.",
+        "Film junkie with a work ethic that infects the whole room.",
+        "Treats Wednesday like the Super Bowl. Every rep matters."
+      ],
+      "socialPost": [
+        "5AM club, film before the sun's up",
+        "Another day to get 1% better",
+        "No days off when you're chasing great",
+        "Empty facility hits different at 6am",
+        "Reps on reps on reps"
+      ],
+      "pressQuote": [
+        "I just want to be the best version of myself for this team.",
+        "The work is the reward, honestly. I love the process.",
+        "Coach gives us a plan, I try to master every detail.",
+        "I'm not worried about stats. I'm worried about getting better today.",
+        "This game owes you nothing. You earn everything."
+      ],
+      "lockerRoomVibe": [
+        "Young guys follow him around like a shadow. He teaches without preaching.",
+        "When he talks, the room gets quiet. Earned respect.",
+        "Coaches use his tape as the example. Every time."
+      ],
+      "contractDemand": [
+        "I want to win. Structure it however you need to keep the team together.",
+        "Pay me fairly, but I'm not breaking the bank for this group.",
+        "Winning environment matters more than the last dollar."
+      ]
+    }
+  },
+  "loyalty": {
+    "low": {
+      "scoutReport": [
+        "Mercenary mindset. Already thinking about next team.",
+        "Loyalty is a contract term, not a value.",
+        "Will chase the bag every time. No hard feelings.",
+        "Plays for the name on back of jersey, period.",
+        "Agent runs the show. Player just cashes checks."
+      ],
+      "socialPost": [
+        "Business is business",
+        "Free agency loading...",
+        "Loyalty don't pay bills",
+        "New city, same mission",
+        "It's a business, always has been"
+      ],
+      "pressQuote": [
+        "I love the fans here, but I've got to do what's best for me.",
+        "This is a business first. Everybody knows that.",
+        "I'm focused on this season. We'll see what happens after.",
+        "I appreciate the organization, but I've got a family to feed.",
+        "Loyalty is earned both ways, you know?"
+      ],
+      "lockerRoomVibe": [
+        "Guys know he's gone if the money's right elsewhere.",
+        "Keeps his locker clean. Easy to pack.",
+        "Never really invested in the community stuff."
+      ],
+      "contractDemand": [
+        "I need a no-trade clause and an opt-out after year two.",
+        "Highest bidder wins. That's the game.",
+        "Show me the money, I'll show you the loyalty."
+      ]
+    },
+    "mid": {
+      "scoutReport": [
+        "Appreciates stability but won't take a hometown discount.",
+        "Loyal if the situation is right. Not blindly.",
+        "Likes it here, but has a price like everyone.",
+        "Good teammate, professional approach to business.",
+        "Will listen to other offers, but gives home team a chance."
+      ],
+      "socialPost": [
+        "Love this city",
+        "Great win with my brothers",
+        "Building something special here",
+        "Appreciate all the support",
+        "One week at a time with this squad"
+      ],
+      "pressQuote": [
+        "I love playing here, the fans are great.",
+        "We'll cross that bridge when we get there. Focused on now.",
+        "This organization has been good to me.",
+        "I hope we can work something out, but I understand the business.",
+        "My agent handles that stuff. I'm just playing ball."
+      ],
+      "lockerRoomVibe": [
+        "Liked by everyone, close with a few guys.",
+        "Shows up for team events, doesn't have to be asked twice.",
+        "Good locker room presence, steady."
+      ],
+      "contractDemand": [
+        "I want to stay, but it has to make sense for both sides.",
+        "Give me a fair market deal and I'm here.",
+        "Let's talk, I'm open to staying."
+      ]
+    },
+    "high": {
+      "scoutReport": [
+        "Wants to retire here. Means it.",
+        "Franchise cornerstone in every sense.",
+        "Turned down more money elsewhere. Twice.",
+        "Bleeds the colors. Community pillar.",
+        "Recruits other players to come play with him."
+      ],
+      "socialPost": [
+        "This is home, wouldn't want to be anywhere else",
+        "City on my back forever",
+        "Built not bought",
+        "Through the ups and downs, we ride",
+        "My kids will grow up here"
+      ],
+      "pressQuote": [
+        "I want to be here my whole career. This is family.",
+        "They believed in me when nobody else did. I won't forget that.",
+        "Money's great, but legacy matters more to me.",
+        "I told my agent, figure it out. I ain't leaving.",
+        "This city raised me. I'm not going anywhere."
+      ],
+      "lockerRoomVibe": [
+        "The heart of the locker room. Everyone gravitates to him.",
+        "Rookies get the 'this is how we do it here' speech from him, not coaches.",
+        "Would run through a wall for the logo on his helmet."
+      ],
+      "contractDemand": [
+        "I'll take less to keep the band together. Just get it done.",
+        "Structure it however, I want to retire a [team] player.",
+        "Hometown discount? Call it a hometown investment."
+      ]
+    }
+  },
+  "greed": {
+    "low": {
+      "scoutReport": [
+        "Team-first guy. Will take less to win.",
+        "Not motivated by money. Wants rings.",
+        "Values fit and culture over cash.",
+        "Has made his money, now chasing legacy.",
+        "Unselfish in every way, including contracts."
+      ],
+      "socialPost": [
+        "Winning cures everything",
+        "Team over everything",
+        "Culture > contract",
+        "Blessed beyond measure already",
+        "Legacy season loading"
+      ],
+      "pressQuote": [
+        "I just want to win. The money will take care of itself.",
+        "I've been paid well in this league. Now I want a ring.",
+        "Cap space wins championships too.",
+        "My agent hates me, but I told him to make it work.",
+        "It's not about the dollars, it's about the opportunity."
+      ],
+      "lockerRoomVibe": [
+        "Took less so they could sign his buddy. Guys notice that.",
+        "Never complains about his deal, even when he's outperforming it.",
+        "Leads by sacrificing."
+      ],
+      "contractDemand": [
+        "Pay me the minimum if it means we keep the core together.",
+        "I don't need top dollar. I need a top team.",
+        "Whatever's left after we take care of the guys, I'll sign it."
+      ]
+    },
+    "mid": {
+      "scoutReport": [
+        "Wants fair market value. Not greedy, not cheap.",
+        "Understands his worth, won't leave money on table.",
+        "Reasonable negotiator, wants to be paid appropriately.",
+        "Balances winning and earning. Like most players.",
+        "Professional approach to business side."
+      ],
+      "socialPost": [
+        "Bet on yourself",
+        "Hard work pays off",
+        "Thankful for the opportunity",
+        "Next chapter",
+        "Focused on the field"
+      ],
+      "pressQuote": [
+        "I think my play speaks for itself.",
+        "I trust my agent to handle that side.",
+        "I want to be compensated fairly, like anyone would.",
+        "We'll see what the market says.",
+        "I'm confident we'll get something done."
+      ],
+      "lockerRoomVibe": [
+        "Doesn't talk money in the locker room. Keeps it professional.",
+        "Understands it's a business for everyone.",
+        "No hard feelings either way."
+      ],
+      "contractDemand": [
+        "I want to be paid in line with my peers.",
+        "Show me respect in the offer, I'll show you loyalty.",
+        "Fair deal, I'm signing today."
+      ]
+    },
+    "high": {
+      "scoutReport": [
+        "All about the bag. Will hold out, will hold in.",
+        "Maximizes every dollar. Agent is aggressive.",
+        "Money is the primary motivator. Winning is secondary.",
+        "Counts other people's money. Knows the cap better than the GM.",
+        "Will force his way out for an extra million."
+      ],
+      "socialPost": [
+        "Know your worth then add tax",
+        "Secure the bag",
+        "Business decisions only",
+        "Pay the man",
+        "Show me the money"
+      ],
+      "pressQuote": [
+        "I know what I bring to the table. Pay me accordingly.",
+        "This is a business, and I'm the business.",
+        "I've outperformed my contract for three years. Time to reset the market.",
+        "Respect is spelled C-A-S-H in this league.",
+        "I'm not taking a discount for anyone."
+      ],
+      "lockerRoomVibe": [
+        "Guys joke about his contract more than he does.",
+        "Always talking about the next deal, even in season.",
+        "Counts his teammates' money out loud."
+      ],
+      "contractDemand": [
+        "Top of market or I'm walking. Non-negotiable.",
+        "I want the highest AAV at my position, plus incentives.",
+        "Guarantee 75% or don't bother calling back."
+      ]
+    }
+  },
+  "pressure": {
+    "low": {
+      "scoutReport": [
+        "Shrinks in big moments. Avoids the ball late.",
+        "Tightens up when lights get bright.",
+        "Good player until the game is on the line.",
+        "Pressure exposes him. Bad body language.",
+        "Coaches have to hide him in clutch situations."
+      ],
+      "socialPost": [
+        "Tough loss, we'll learn from it",
+        "On to next week",
+        "Not my best night",
+        "Gotta be better",
+        "Back to work"
+      ],
+      "pressQuote": [
+        "I just didn't execute when we needed it.",
+        "That's on me. I have to make that play.",
+        "The moment got a little big for me tonight.",
+        "I need to be better in those situations.",
+        "It just didn't go our way at the end."
+      ],
+      "lockerRoomVibe": [
+        "Guys don't look his way in the huddle late.",
+        "Coaches call plays away from him in crunch time.",
+        "He knows it too. You can see it."
+      ],
+      "contractDemand": [
+        "I need a situation where I'm not the guy in the clutch.",
+        "Put me in a role where pressure isn't on me.",
+        "I'll take less to not be the focal point late."
+      ]
+    },
+    "mid": {
+      "scoutReport": [
+        "Solid under pressure. Not elite, not a liability.",
+        "Handles big moments adequately.",
+        "Even keel. Doesn't get too high or low.",
+        "Makes the play he's supposed to make.",
+        "Reliable, if not spectacular, late."
+      ],
+      "socialPost": [
+        "Good team win",
+        "Did my job",
+        "On to the next one",
+        "Proud of this group",
+        "Staying even keel"
+      ],
+      "pressQuote": [
+        "Just trying to do my job in that situation.",
+        "Coach called a good play, I executed.",
+        "We practice those situations all week.",
+        "Stay calm, trust your training.",
+        "It's just another play, honestly."
+      ],
+      "lockerRoomVibe": [
+        "Steady presence. Doesn't panic.",
+        "Guys trust him to do his job.",
+        "Not the first option, not the last."
+      ],
+      "contractDemand": [
+        "I want a fair deal for a reliable player.",
+        "Pay me like a solid starter.",
+        "I know my role, compensate me for it."
+      ]
+    },
+    "high": {
+      "scoutReport": [
+        "Ice in his veins. Wants the ball with game on line.",
+        "Pressure makes him better. Rare trait.",
+        "Clutch gene is real with this kid.",
+        "Big moment player. Lives for fourth quarter.",
+        "Thrives when stakes are highest."
+      ],
+      "socialPost": [
+        "Pressure is a privilege",
+        "4th quarter is my quarter",
+        "Built for this",
+        "Give me the ball",
+        "Clutch, always"
+      ],
+      "pressQuote": [
+        "I live for those moments. That's why I play.",
+        "Coach drew it up, I just had to go make a play.",
+        "Pressure? That's just another word for opportunity.",
+        "I want the ball when it matters most.",
+        "We practice for those exact situations."
+      ],
+      "lockerRoomVibe": [
+        "Everyone looks at him in the huddle late. He nods.",
+        "Guys feed off his calm. He slows the game down.",
+        "Wants the pressure. Demands it."
+      ],
+      "contractDemand": [
+        "Pay me like the closer I am.",
+        "I deliver in big moments, compensate me for it.",
+        "Clutch players get clutch money."
+      ]
+    }
+  },
+  "ambition": {
+    "low": {
+      "scoutReport": [
+        "Content collecting checks. No drive to be great.",
+        "Happy to be here. Not hungry to win.",
+        "Coasting on talent. No chip on shoulder.",
+        "Comfortable being average.",
+        "Lacks that dog in him."
+      ],
+      "socialPost": [
+        "Living the dream",
+        "Good vibes only",
+        "Another day in paradise",
+        "Blessed",
+        "Life is good"
+      ],
+      "pressQuote": [
+        "I'm just happy to be in the league, man.",
+        "Winning would be nice, but I'm living my dream.",
+        "I try hard, but at the end of the day it's just a game.",
+        "I'm content with my role.",
+        "Whatever happens, happens."
+      ],
+      "lockerRoomVibe": [
+        "Never the first one in, always talking about his boat.",
+        "Guys like him, but don't follow him.",
+        "Coaches wish he wanted it more."
+      ],
+      "contractDemand": [
+        "Just give me a comfortable deal where I can coast.",
+        "I don't need to win, I need to get paid.",
+        "Long-term security over everything."
+      ]
+    },
+    "mid": {
+      "scoutReport": [
+        "Wants to win, but won't sacrifice everything.",
+        "Competitive, but balanced perspective.",
+        "Good pro, wants success within reason.",
+        "Ambitious but not obsessive.",
+        "Wants to be good, not necessarily great."
+      ],
+      "socialPost": [
+        "Working to get better",
+        "Team first",
+        "Grind don't stop",
+        "Focused on the process",
+        "One game at a time"
+      ],
+      "pressQuote": [
+        "I want to win, that's why I'm here.",
+        "We're building something good.",
+        "I take pride in my work.",
+        "Every year you want to take a step forward.",
+        "I'm competitive, I hate losing."
+      ],
+      "lockerRoomVibe": [
+        "Solid pro, good teammate.",
+        "Wants to win, puts in work.",
+        "Leads by example, not speeches."
+      ],
+      "contractDemand": [
+        "I want to win and get paid fairly.",
+        "Find me a good team with a good deal.",
+        "Balance of both worlds."
+      ]
+    },
+    "high": {
+      "scoutReport": [
+        "Obsessed with winning. Ring or bust mentality.",
+        "Will take less, do more, whatever it takes.",
+        "Hates losing more than he loves winning.",
+        "Driven to be an all-timer.",
+        "Mamba mentality. Every day."
+      ],
+      "socialPost": [
+        "Championship or failure",
+        "Unfinished business",
+        "Ring chasing season",
+        "Obsessed",
+        "Legacy > everything"
+      ],
+      "pressQuote": [
+        "I didn't come here to be good. I came here to win championships.",
+        "Second place is first loser. I don't do moral victories.",
+        "I'll do whatever it takes. Whatever.",
+        "My legacy is written in rings, nothing else.",
+        "I'm not satisfied. I won't be satisfied until we win it all."
+      ],
+      "lockerRoomVibe": [
+        "Infectious drive. Makes everyone around him better.",
+        "Hates losing in practice. Hates it.",
+        "Sets a standard that drags the whole team up."
+      ],
+      "contractDemand": [
+        "I'll take the minimum if it gets us a ring.",
+        "Pay me in championships.",
+        "Structure it to win. I don't care about the number."
+      ]
+    }
+  }
+}

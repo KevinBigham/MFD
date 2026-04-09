@@ -1,0 +1,522 @@
+{
+  "routine_pass": {
+    "openers": [
+      "{{player}} quick throw",
+      "Short pass for {{team}}",
+      "{{player}} finds his man",
+      "Timing route, {{player}}",
+      "Dump off to {{player}}",
+      "Slant from {{player}}",
+      "Checkdown, {{team}}",
+      "Rhythm throw by {{player}}",
+      "Simple completion, {{player}}",
+      "On schedule, {{player}}"
+    ],
+    "endings": [
+      "for {{yards}}, moves chains.",
+      "picks up {{yards}}.",
+      "gains {{yards}} underneath.",
+      "{{yards}}, easy pitch and catch.",
+      "completes for {{yards}}.",
+      "{{team}} gets {{yards}}.",
+      "{{yards}} on the crosser.",
+      "finds {{yards}} in zone.",
+      "{{yards}}, stays ahead of sticks.",
+      "takes {{yards}}, nothing fancy."
+    ]
+  },
+  "big_play_pass": {
+    "openers": [
+      "{{player}} launches deep",
+      "Shot play, {{team}}",
+      "Bomb from {{player}}",
+      "Deep ball, {{player}}",
+      "Let it fly, {{player}}",
+      "Explosive pass by {{team}}",
+      "Over the top, {{player}}",
+      "Fifty-fifty ball, {{player}}",
+      "Takeoff, {{player}}",
+      "Air it out, {{team}}"
+    ],
+    "endings": [
+      "for {{yards}}, huge gain!",
+      "{{yards}} downfield, what a throw!",
+      "connects for {{yards}}!",
+      "{{yards}} and the crowd erupts!",
+      "flips field, {{yards}}!",
+      "{{team}} strikes for {{yards}}!",
+      "{{yards}}, perfect placement!",
+      "takes it {{yards}}!",
+      "{{yards}} against single high!",
+      "house call setup, {{yards}}!"
+    ]
+  },
+  "screen_pass": {
+    "openers": [
+      "{{player}} screen",
+      "Set up screen, {{team}}",
+      "Tunnel screen to {{player}}",
+      "Draws them in, {{player}}",
+      "Slow play, {{team}}",
+      "Bubble to {{player}}",
+      "Running back screen, {{player}}",
+      "Sells it, {{player}}",
+      "Let rush through, {{team}}",
+      "Perfectly timed, {{player}}"
+    ],
+    "endings": [
+      "gets {{yards}} behind wall.",
+      "{{yards}}, blockers out front.",
+      "picks up {{yards}}.",
+      "{{team}} gains {{yards}}.",
+      "{{yards}} on the screen.",
+      "takes {{yards}}, nice setup.",
+      "{{yards}}, defense fooled.",
+      "finds {{yards}} in space.",
+      "{{yards}}, linemen lead.",
+      "works for {{yards}}."
+    ]
+  },
+  "sack": {
+    "openers": [
+      "{{player}} goes down",
+      "Pressure gets home, {{team}}",
+      "Blitz hits, {{player}}",
+      "Coverage sack on {{team}}",
+      "Edge wins, {{player}}",
+      "Interior push, {{team}}",
+      "Unblocked, {{player}}",
+      "Spin move, {{team}}",
+      "Stunt works, {{player}}",
+      "Fourth rusher, {{team}}"
+    ],
+    "endings": [
+      "loss of {{yards}}.",
+      "{{yards}} back, drive killer.",
+      "drops for {{yards}}.",
+      "{{team}} loses {{yards}}.",
+      "{{yards}} sack, third and long.",
+      "taken down, {{yards}} loss.",
+      "{{yards}}, protection breaks.",
+      "{{team}} backed up {{yards}}.",
+      "sacked for {{yards}}.",
+      "{{yards}}, huge play defense."
+    ]
+  },
+  "interception": {
+    "openers": [
+      "{{defenderName}} jumps it",
+      "Picked by {{team}}",
+      "{{defenderName}} reads {{player}}",
+      "Undercut by {{defenderName}}",
+      "Ball hawk, {{team}}",
+      "{{defenderName}} baits him",
+      "Tipped and taken, {{team}}",
+      "Jump ball, {{defenderName}}",
+      "Zone drop, {{team}}",
+      "{{defenderName}} high-points it"
+    ],
+    "endings": [
+      "interception, {{yards}} return.",
+      "picks it, {{team}} ball.",
+      "{{yards}} the other way!",
+      "takes it {{yards}}.",
+      "{{defenderName}} returns {{yards}}.",
+      "turnover, {{yards}} field position.",
+      "{{team}} gets it at {{yards}}.",
+      "{{yards}} return, huge swing.",
+      "picks for {{yards}}.",
+      "{{defenderName}} to the {{yards}}."
+    ]
+  },
+  "fumble": {
+    "openers": [
+      "{{player}} coughs it up",
+      "Ball out, {{team}}",
+      "Strip by {{team}}",
+      "Punch out, {{player}}",
+      "Loose ball, {{team}}",
+      "Helmet on ball, {{player}}",
+      "Scoop chance, {{team}}",
+      "Turf monster, {{player}}",
+      "Fights for it, {{team}}",
+      "Scrum for {{player}}"
+    ],
+    "endings": [
+      "{{team}} recovers at {{yards}}.",
+      "turnover, {{yards}} line.",
+      "pounced on, {{yards}}.",
+      "{{yards}}, huge takeaway.",
+      "recovered for {{yards}} gain.",
+      "{{team}} ball at {{yards}}.",
+      "{{yards}} return after fumble.",
+      "loss of {{yards}}, turnover.",
+      "{{yards}}, defense pounces.",
+      "recovered, {{yards}} field position."
+    ]
+  },
+  "touchdown_pass": {
+    "openers": [
+      "{{player}} touchdown throw",
+      "End zone, {{team}}",
+      "Strikes for six, {{player}}",
+      "Perfect ball, {{team}}",
+      "Fade to {{player}}",
+      "Corner route, {{team}}",
+      "Back shoulder, {{player}}",
+      "Slant and score, {{team}}",
+      "Over middle, {{player}}",
+      "Touchdown pass, {{team}}"
+    ],
+    "endings": [
+      "{{yards}} touchdown!",
+      "six points, {{team}}!",
+      "{{yards}}, what a throw!",
+      "scores from {{yards}}!",
+      "{{team}} leads, {{yards}} TD!",
+      "{{yards}} strike!",
+      "touchdown {{team}}, {{yards}}!",
+      "{{yards}}, in stride!",
+      "paydirt, {{yards}}!",
+      "{{team}} cashes in, {{yards}}!"
+    ]
+  },
+  "touchdown_run": {
+    "openers": [
+      "{{player}} walks in",
+      "Powers in, {{team}}",
+      "Goal line, {{player}}",
+      "Untouched, {{team}}",
+      "Leaps over, {{player}}",
+      "Stretch play, {{team}}",
+      "Cuts back, {{player}}",
+      "Bounces outside, {{team}}",
+      "Trucks in, {{player}}",
+      "Sneaks it, {{team}}"
+    ],
+    "endings": [
+      "{{yards}} touchdown run!",
+      "scores from {{yards}}!",
+      "{{team}} punches it {{yards}}!",
+      "{{yards}}, six points!",
+      "in from {{yards}}!",
+      "{{yards}} TD, {{team}}!",
+      "takes it {{yards}} for score!",
+      "{{yards}}, touchdown {{team}}!",
+      "walks in, {{yards}}!",
+      "{{yards}}, paydirt!"
+    ]
+  },
+  "field_goal": {
+    "openers": [
+      "{{team}} kick is up",
+      "From {{yards}}, {{team}}",
+      "Long attempt, {{team}}",
+      "Chip shot, {{team}}",
+      "Kicker lines up, {{player}}",
+      "Into wind, {{team}}",
+      "Clutch kick, {{player}}",
+      "For the lead, {{team}}",
+      "Right hash, {{team}}",
+      "Clean hold, {{player}}"
+    ],
+    "endings": [
+      "good from {{yards}}!",
+      "{{yards}}, it's good!",
+      "splits uprights, {{yards}}!",
+      "{{team}} leads by {{yards}}!",
+      "{{yards}}, right down middle!",
+      "good, {{yards}} field goal!",
+      "{{yards}}, three points!",
+      "{{team}} converts from {{yards}}!",
+      "{{yards}}, no doubt!",
+      "drills it from {{yards}}!"
+    ]
+  },
+  "field_goal_miss": {
+    "openers": [
+      "{{team}} push",
+      "Wide right, {{team}}",
+      "No good, {{player}}",
+      "Short from {{yards}}",
+      "Doink, {{team}}",
+      "Pulls it, {{player}}",
+      "Blocked? No, {{team}}",
+      "Wind takes it, {{team}}",
+      "Shanked by {{player}}",
+      "Misses, {{team}}"
+    ],
+    "endings": [
+      "missed from {{yards}}, no good.",
+      "{{yards}}, wide left.",
+      "no good, {{yards}} attempt.",
+      "{{team}} fails from {{yards}}.",
+      "{{yards}}, off upright.",
+      "short from {{yards}}.",
+      "{{yards}}, wide right.",
+      "{{team}} misses, {{yards}}.",
+      "no good, {{yards}} out.",
+      "{{yards}}, still scoreless."
+    ]
+  },
+  "punt": {
+    "openers": [
+      "{{player}} punts",
+      "Fourth down, {{team}}",
+      "Booming kick by {{player}}",
+      "Angled punt, {{team}}",
+      "Rugby style, {{player}}",
+      "End over end, {{team}}",
+      "Fair catch coming, {{player}}",
+      "Directional, {{team}}",
+      "High hangtime, {{player}}",
+      "From own end, {{team}}"
+    ],
+    "endings": [
+      "{{yards}} punt, fair caught.",
+      "{{team}} flips field {{yards}}.",
+      "{{yards}}, downed inside 20.",
+      "travels {{yards}}, touchback.",
+      "{{yards}}, nice coffin corner.",
+      "{{team}} punts {{yards}}.",
+      "{{yards}}, returner waves it off.",
+      "rolls to {{yards}}, good bounce.",
+      "{{yards}}, pins them deep.",
+      "out of bounds at {{yards}}."
+    ]
+  },
+  "punt_return": {
+    "openers": [
+      "{{player}} fields it",
+      "Return coming, {{team}}",
+      "Makes first man miss, {{player}}",
+      "Finds seam, {{team}}",
+      "Dances, {{player}}",
+      "North-south, {{team}}",
+      "Cuts back, {{player}}",
+      "Wedge forms, {{team}}",
+      "Fair catch? No, {{player}}",
+      "Spins out, {{team}}"
+    ],
+    "endings": [
+      "returns {{returnYards}}.",
+      "{{returnYards}}, good field position.",
+      "{{team}} gets {{returnYards}}.",
+      "{{returnYards}} and out of bounds.",
+      "picks up {{returnYards}}.",
+      "{{returnYards}}, nearly broke it.",
+      "{{team}} starts at {{returnYards}}.",
+      "{{returnYards}} return.",
+      "takes it {{returnYards}}.",
+      "{{returnYards}}, solid return."
+    ]
+  },
+  "kickoff_return": {
+    "openers": [
+      "{{player}} from the end zone",
+      "Deep kick, {{team}}",
+      "Brings it out, {{player}}",
+      "Wedge set, {{team}}",
+      "Speed to edge, {{player}}",
+      "Cuts upfield, {{team}}",
+      "Bounces outside, {{player}}",
+      "Middle return, {{team}}",
+      "Touchback? No, {{player}}",
+      "Full steam, {{team}}"
+    ],
+    "endings": [
+      "out to the {{returnYards}}.",
+      "{{returnYards}} return.",
+      "{{team}} starts at {{returnYards}}.",
+      "takes it {{returnYards}}.",
+      "{{returnYards}}, good lane.",
+      "to the {{returnYards}}, nice.",
+      "{{returnYards}}, avoids tackle.",
+      "{{team}} gets {{returnYards}}.",
+      "{{returnYards}} and down.",
+      "returns {{returnYards}}."
+    ]
+  },
+  "safety": {
+    "openers": [
+      "{{player}} tackled in end zone",
+      "Safety, {{team}}",
+      "Blown up, {{player}}",
+      "Defense gets home, {{team}}",
+      "Intentional? No, {{player}}",
+      "Sack in end zone, {{team}}",
+      "Pinned deep, {{player}}",
+      "Whistle blows, {{team}}",
+      "Two points, {{player}}",
+      "Backed up, {{team}}"
+    ],
+    "endings": [
+      "safety, {{yards}} loss.",
+      "{{team}} gives up two.",
+      "{{yards}}, defense scores.",
+      "safety for {{team}}.",
+      "{{yards}}, huge play.",
+      "two points, {{yards}} deep.",
+      "{{team}} concedes safety.",
+      "{{yards}}, crowd erupts.",
+      "safety, {{team}} leads.",
+      "{{yards}}, momentum swing."
+    ]
+  },
+  "penalty": {
+    "openers": [
+      "Flag down on {{team}}",
+      "Whistle blows, {{player}}",
+      "Officials confer, {{team}}",
+      "Yellow on field, {{player}}",
+      "Holding, {{team}}",
+      "False start, {{player}}",
+      "Pass interference, {{team}}",
+      "Offsides, {{player}}",
+      "Personal foul, {{team}}",
+      "Delay of game, {{player}}"
+    ],
+    "endings": [
+      "{{penaltyType}}, {{penaltyYards}} yards.",
+      "{{team}} penalized {{penaltyYards}}.",
+      "{{penaltyType}}, costs {{penaltyYards}}.",
+      "{{penaltyYards}} yards, {{team}}.",
+      "{{penaltyType}}, {{yards}} to go.",
+      "{{team}} backs up {{penaltyYards}}.",
+      "{{penaltyYards}}, automatic first.",
+      "{{penaltyType}}, {{team}} hurt.",
+      "{{yards}}, drive killer.",
+      "{{penaltyYards}} yards, replay down."
+    ]
+  },
+  "clutch": {
+    "openers": [
+      "{{player}} in the clutch",
+      "Money down, {{team}}",
+      "Fourth quarter, {{player}}",
+      "Ice water, {{team}}",
+      "Game on line, {{player}}",
+      "Two minutes, {{team}}",
+      "Needs this, {{player}}",
+      "Pressure moment, {{team}}",
+      "Big spot, {{player}}",
+      "Season defining, {{team}}"
+    ],
+    "endings": [
+      "delivers for {{yards}}!",
+      "{{team}} gets {{yards}} when it matters!",
+      "{{yards}}, clutch gene!",
+      "comes through, {{yards}}!",
+      "{{yards}}, that's a pro!",
+      "{{team}} converts, {{yards}}!",
+      "{{yards}}, ice in veins!",
+      "makes play, {{yards}}!",
+      "{{yards}}, big time!",
+      "{{team}} answers, {{yards}}!"
+    ]
+  },
+  "rivalry": {
+    "openers": [
+      "{{player}} vs rival",
+      "Hate week, {{team}}",
+      "Bad blood, {{player}}",
+      "Circle this, {{team}}",
+      "They know each other, {{player}}",
+      "Personal, {{team}}",
+      "No love lost, {{player}}",
+      "Grudge match, {{team}}",
+      "Extra juice, {{player}}",
+      "This one matters, {{team}}"
+    ],
+    "endings": [
+      "{{yards}}, rivalry renewed!",
+      "{{team}} takes {{yards}}!",
+      "{{yards}}, bragging rights!",
+      "gets {{yards}}, crowd hates it!",
+      "{{yards}}, that's personal!",
+      "{{team}} strikes for {{yards}}!",
+      "{{yards}}, extra chippy!",
+      "picks up {{yards}}, rivalry!",
+      "{{yards}}, they feel that!",
+      "{{team}} answers, {{yards}}!"
+    ]
+  },
+  "overtime": {
+    "openers": [
+      "{{player}} in OT",
+      "Sudden death, {{team}}",
+      "Extra period, {{player}}",
+      "Next score wins, {{team}}",
+      "Overtime, {{player}}",
+      "Heart rates up, {{team}}",
+      "First possession, {{player}}",
+      "Walk-off chance, {{team}}",
+      "No tomorrow, {{player}}",
+      "OT drama, {{team}}"
+    ],
+    "endings": [
+      "{{yards}}, OT alive!",
+      "{{team}} gets {{yards}}!",
+      "{{yards}}, sudden death!",
+      "picks up {{yards}} in OT!",
+      "{{yards}}, next play crucial!",
+      "{{team}} moves {{yards}}!",
+      "{{yards}}, extra football!",
+      "gains {{yards}}, OT!",
+      "{{yards}}, who wants it?",
+      "{{team}} takes {{yards}}!"
+    ]
+  },
+  "blowout": {
+    "openers": [
+      "{{player}} in garbage time",
+      "Running clock, {{team}}",
+      "Backups in, {{player}}",
+      "Game over, {{team}}",
+      "Mop up duty, {{player}}",
+      "Clock killer, {{team}}",
+      "Mercy rule? No, {{player}}",
+      "Stat padding, {{team}}",
+      "Meaningless, {{player}}",
+      "Just finish, {{team}}"
+    ],
+    "endings": [
+      "{{yards}}, game decided.",
+      "{{team}} gets {{yards}}, who cares.",
+      "{{yards}}, clock runs.",
+      "picks up {{yards}}, blowout.",
+      "{{yards}}, backups playing.",
+      "{{team}} takes {{yards}}.",
+      "{{yards}}, just end it.",
+      "gains {{yards}}, meaningless.",
+      "{{yards}}, garbage time.",
+      "{{team}} gets {{yards}}."
+    ]
+  },
+  "comeback": {
+    "openers": [
+      "{{player}} sparking rally",
+      "Comeback bid, {{team}}",
+      "Momentum shift, {{player}}",
+      "Not dead yet, {{team}}",
+      "Chipping away, {{player}}",
+      "Life left, {{team}}",
+      "Answer back, {{player}}",
+      "Clawing, {{team}}",
+      "Refusing to quit, {{player}}",
+      "Storming back, {{team}}"
+    ],
+    "endings": [
+      "{{yards}}, comeback alive!",
+      "{{team}} gets {{yards}}, here we go!",
+      "{{yards}}, don't count them out!",
+      "picks up {{yards}}, rally time!",
+      "{{yards}}, momentum building!",
+      "{{team}} takes {{yards}}, game on!",
+      "{{yards}}, they believe!",
+      "gains {{yards}}, comeback!",
+      "{{yards}}, crowd waking up!",
+      "{{team}} answers, {{yards}}!"
+    ]
+  }
+}

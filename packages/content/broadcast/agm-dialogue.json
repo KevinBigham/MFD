@@ -1,0 +1,434 @@
+{
+  "marcus_webb": {
+    "gameStart": {
+      "winning_record": [
+        "The numbers never lie. We're operating at 73% efficiency above league average.",
+        "Current trajectory projects 11.4 wins. Regression models favor us.",
+        "Cap allocation is optimized. We're getting 1.3 dollars of value per dollar spent.",
+        "Our point differential suggests this is sustainable, not variance.",
+        "I've run the simulations 10,000 times. We make playoffs in 84% of them."
+      ],
+      "losing_record": [
+        "The numbers never lie. We're underperforming expected wins by 2.7.",
+        "Point differential indicates we're better than our record, but not by much.",
+        "I've identified three roster inefficiencies costing us approximately 4.2 points per game.",
+        "Current cap utilization is at 91% with bottom-quartile return on investment.",
+        "We need to discuss reallocating resources before the trade deadline."
+      ],
+      "rebuilding": [
+        "The numbers never lie. This is a two-year process minimum.",
+        "I've modeled six different rebuild paths. The optimal one involves patience.",
+        "Dead money peaks next season at 18%. That's by design.",
+        "We're accumulating draft capital at 1.4x the league average rate.",
+        "Short-term pain for long-term cap flexibility. The math is clear."
+      ],
+      "contending": [
+        "The numbers never lie. Our championship window is currently open.",
+        "We have 14% cap space and all our premium picks. This is the time.",
+        "Win probability added suggests we should be buyers, not sellers.",
+        "I've identified three veterans on expiring deals who fit our timeline.",
+        "The model says go all-in. I concur with the model."
+      ],
+      "cap_hell": [
+        "The numbers never lie. We're 12 million over with 38 players under contract.",
+        "I've prepared four restructuring scenarios. All are painful.",
+        "Dead money will be 24% of our cap next year regardless of what we do.",
+        "We need to discuss June 1st designations and void years immediately.",
+        "This is what happens when you mortgage the future. The bill is due."
+      ]
+    },
+    "bigTrade": {
+      "good_value": [
+        "We acquired 2.3 wins above replacement for 60 cents on the dollar.",
+        "The numbers never lie. This is positive expected value.",
+        "Surplus value analysis shows we gained $14.2M in cap-adjusted talent.",
+        "His contract structure aligns perfectly with our competitive window.",
+        "I've already updated the models. Playoff probability increased 11%."
+      ],
+      "bad_value": [
+        "We paid premium price for depreciating asset. The numbers never lie.",
+        "This trade fails cost-benefit analysis at every level.",
+        "We surrendered 1.8 expected wins for 0.9 wins of production.",
+        "The contract has negative surplus value in years two and three.",
+        "I advised against this. The data was clear."
+      ],
+      "blockbuster": [
+        "This shifts our championship odds from 7% to 19%. Massive swing.",
+        "The numbers never lie. We just bought a two-year window.",
+        "Cap implications are severe but justifiable given the upside.",
+        "I've stress-tested this against three injury scenarios. Still positive EV.",
+        "This is the kind of move that gets GMs extended or fired. No middle ground."
+      ]
+    },
+    "draftNight": {
+      "first_round": [
+        "Our board had him at 11. We got him at 17. That's value.",
+        "The numbers never lie. His RAS score correlates with Pro Bowl probability.",
+        "Contract is slotted at $4.2M AAV. Excellent cost control for four years.",
+        "Positional value analysis confirms this was optimal allocation of capital.",
+        "I've already modeled his rookie contract surplus. It's significant."
+      ],
+      "steal_pick": [
+        "We just extracted maximum value. He was a top-15 player on our board.",
+        "The numbers never lie. This is a 2.4x return on draft capital.",
+        "Other teams will regret passing. The analytics are overwhelming.",
+        "His fall was due to market inefficiency, not talent evaluation.",
+        "This is why we trust the process over the noise."
+      ],
+      "reach_pick": [
+        "We reached by approximately 23 picks according to consensus board.",
+        "The numbers never lie. This fails value-over-replacement analysis.",
+        "I had three higher-graded players available at positions of need.",
+        "This appears to be a traits bet over production. Risky.",
+        "I've noted my objection for the record. Hope I'm wrong."
+      ]
+    },
+    "seasonMilestone": {
+      "playoff_clinch": [
+        "Probability reached 100%. We have officially clinched.",
+        "The numbers never lie. Home field advantage is worth 3.2 points.",
+        "I've begun modeling potential matchups. We match up well with the 3-seed.",
+        "Rest vs rust analysis suggests we should play starters week 18.",
+        "Cap bonuses for playoff games are already accounted for in our projections."
+      ],
+      "elimination": [
+        "Mathematically eliminated. Probability now zero percent.",
+        "The numbers never lie. We underperformed Pythagorean wins by 1.8.",
+        "I've initiated offseason modeling. We have 23% cap space projected.",
+        "Draft position currently projects to 8th overall. Valuable capital.",
+        "Time to evaluate young players and preserve veteran health."
+      ],
+      "record_broken": [
+        "New franchise record. Previous mark stood for 14 seasons.",
+        "The numbers never lie. This performance is 2.1 standard deviations above mean.",
+        "Historical comps suggest this level is sustainable for 2-3 more years.",
+        "His contract value just increased approximately 18% in surplus terms.",
+        "I've updated the record book and the valuation model."
+      ]
+    }
+  },
+  "coach_d_hardaway": {
+    "gameStart": {
+      "winning_record": [
+        "We are NOT giving up easy yards! That's why we're winning!",
+        "Defense travels! Defense wins! Look at the record!",
+        "They feel us out there! Every snap! Every play!",
+        "We hit, we swarm, we dominate! That's our identity!",
+        "You think this is luck? This is EFFORT! This is PHYSICALITY!"
+      ],
+      "losing_record": [
+        "We are NOT giving up easy yards! But we ARE giving up too many!",
+        "Soft! We're playing soft! I see it on tape!",
+        "Where's the dog? Where's the fight? I need DOGS out there!",
+        "Missed tackles! Blown coverages! Unacceptable!",
+        "We gotta get nasty! We gotta get mean! Right now!"
+      ],
+      "rebuilding": [
+        "We are NOT giving up easy yards! Even while we rebuild!",
+        "Young guys gotta learn to hit! Gotta learn to love contact!",
+        "This is where we build the foundation! Brick by brick!",
+        "Culture! We're building culture! Toughness! Physicality!",
+        "I don't care about the record! I care about the effort!"
+      ],
+      "contending": [
+        "We are NOT giving up easy yards! Not now! Not ever!",
+        "This is our time! Our window! Gotta seize it!",
+        "Championship defense! That's what we need! That's what we'll be!",
+        "Every play matters now! Every snap! Every inch!",
+        "They gotta go through US! Through THIS defense!"
+      ],
+      "cap_hell": [
+        "We are NOT giving up easy yards! Even if we're broke!",
+        "Don't matter who we got! Don't matter what we pay 'em!",
+        "Next man up! Always next man up! That's football!",
+        "We coach 'em up! We make 'em better! That's our job!",
+        "Money don't tackle! Money don't hit! Players do!"
+      ]
+    },
+    "bigTrade": {
+      "good_value": [
+        "We got a DOG! A real one! He hits!",
+        "This kid flies around! Loves contact! My kind of player!",
+        "We are NOT giving up easy yards with him out there!",
+        "Put him in the middle and let him eat!",
+        "Finally! Somebody who likes to hit people!"
+      ],
+      "bad_value": [
+        "We gave up WHAT for a coverage linebacker? Are you kidding me?",
+        "Soft! We traded for soft! I can see it on his tape!",
+        "He avoids contact! I watch the film! He AVOIDS it!",
+        "We need hitters! Not runners! Hitters!",
+        "This ain't gonna work! Not in my defense!"
+      ],
+      "blockbuster": [
+        "We are NOT giving up easy yards! Especially not now!",
+        "This changes everything! Whole defense gets better!",
+        "Put him on the edge and let him hunt! Let him EAT!",
+        "Offenses gonna feel this one! They gonna FEEL us!",
+        "Super Bowl defense! That's what we got now!"
+      ]
+    },
+    "draftNight": {
+      "first_round": [
+        "We got our guy! Our hitter! Look at this tape!",
+        "He EXPLODES through contact! That's what I want!",
+        "We are NOT giving up easy yards with this kid!",
+        "Put him in day one! Let him learn by hitting!",
+        "Physical! Violent! My kind of football player!"
+      ],
+      "steal_pick": [
+        "How'd he fall to us? How? They don't want hitters no more?",
+        "Steal of the draft! Absolute steal! Look at him hit!",
+        "Their loss! Our gain! We got a DOG!",
+        "I don't care why he fell! I care that he's ours!",
+        "Gonna make 31 teams regret passing on a hitter!"
+      ],
+      "reach_pick": [
+        "We reached? For THAT? He can't tackle my grandmother!",
+        "Soft! I see soft on tape! We drafted soft!",
+        "Where's the physicality? Where's the dog? I don't see it!",
+        "We are NOT giving up easy yards? Yes we are with him!",
+        "Gonna get us both fired drafting athletes over football players!"
+      ]
+    },
+    "seasonMilestone": {
+      "playoff_clinch": [
+        "We in! Now the real season starts!",
+        "Defense wins in January! Always has! Always will!",
+        "We are NOT giving up easy yards in the playoffs!",
+        "They gotta come through us! Through THIS!",
+        "One game at a time! One hit at a time!"
+      ],
+      "elimination": [
+        "Season's over! But the work ain't!",
+        "We gotta get tougher! Gotta get meaner!",
+        "This can't happen again! Not on my watch!",
+        "Everybody in that locker room better be angry!",
+        "We are NOT giving up easy yards next year! Promise you that!"
+      ],
+      "record_broken": [
+        "That's my guy! That's what I'm talking about!",
+        "Plays the game right! Physical! Violent!",
+        "We are NOT giving up easy yards? He doesn't give up ANY!",
+        "That's a football player! That's a DAWG!",
+        "Record book? He belongs in it! Earned it!"
+      ]
+    }
+  },
+  "sandra_chen": {
+    "gameStart": {
+      "winning_record": [
+        "Trust the tape. It's showing up on Sundays.",
+        "Our evaluations are translating. Good process, good results.",
+        "I've watched every snap three times. We're legit.",
+        "The young guys we bet on are hitting. Tape don't lie.",
+        "This is what happens when you draft football players."
+      ],
+      "losing_record": [
+        "Trust the tape. It's not pretty right now.",
+        "I've got concerns at three positions. Film shows it clearly.",
+        "We're getting beat on talent, not scheme. That's on us.",
+        "My board had warnings on two of these starters. Should've listened.",
+        "Need to go back to the tape and find answers."
+      ],
+      "rebuilding": [
+        "Trust the tape. These rookies flash.",
+        "Process over results right now. Development matters.",
+        "I've got 12 guys I'm excited to watch grow. That's the focus.",
+        "The film shows progress, even if the scoreboard doesn't.",
+        "This is about building the right way. Tape tells the story."
+      ],
+      "contending": [
+        "Trust the tape. We're built for this.",
+        "I've scouted the contenders. We match up.",
+        "Our roster has no holes. That's rare.",
+        "Film study says we're the most complete team.",
+        "This group is ready. Tape proves it."
+      ],
+      "cap_hell": [
+        "Trust the tape. We need cheaper talent that plays.",
+        "I've got Day 3 guys who can start. Need to find them.",
+        "Film doesn't care about your contract. Just your play.",
+        "Time to scout harder, not spend more.",
+        "The tape will show us who can play for less."
+      ]
+    },
+    "bigTrade": {
+      "good_value": [
+        "Trust the tape. He's a player.",
+        "I've watched 400 snaps. He fits us perfectly.",
+        "Good football player. Better person. We got better.",
+        "His film pops. Effort, technique, instincts.",
+        "This is a scout's dream. Tape matches the player."
+      ],
+      "bad_value": [
+        "Trust the tape. I don't love it.",
+        "I've got questions about his play speed. Film shows it.",
+        "We paid for potential, not production. Risky.",
+        "His best tape is two years old. That's concerning.",
+        "I had a fourth-round grade. We gave up a second."
+      ],
+      "blockbuster": [
+        "Trust the tape. He's elite.",
+        "I've never seen a player like this at his position.",
+        "Game-wrecker. Changes how offenses play us.",
+        "Worth every pick. Franchise-altering talent.",
+        "His film is art. Seriously, go watch it."
+      ]
+    },
+    "draftNight": {
+      "first_round": [
+        "Trust the tape. We got our guy.",
+        "I've watched him since sophomore year. He's special.",
+        "Clean evaluation. No character concerns, all football.",
+        "His pro day confirmed what the film showed.",
+        "This is why we scout. Right player, right spot."
+      ],
+      "steal_pick": [
+        "Trust the tape. How is he still here?",
+        "I've got a first-round grade on him. We got him in the third.",
+        "Other teams overthought it. We took the football player.",
+        "His tape is better than five guys already drafted.",
+        "Steal of the draft. Book it."
+      ],
+      "reach_pick": [
+        "Trust the tape. I had him two rounds later.",
+        "I don't see it. Film is average at best.",
+        "We fell in love with traits over tape. Dangerous.",
+        "I've got three better players still on my board.",
+        "Hope the coaches see something I don't."
+      ]
+    },
+    "seasonMilestone": {
+      "playoff_clinch": [
+        "Trust the tape. We earned this.",
+        "Film shows a playoff team. Has for weeks.",
+        "Our best players play their best in big moments.",
+        "This roster is built for January.",
+        "Tape don't lie. We're legit contenders."
+      ],
+      "elimination": [
+        "Trust the tape. We weren't good enough.",
+        "Film shows the truth. Need more talent.",
+        "Back to the board. Back to the tape.",
+        "Evaluation season starts now. Every snap matters.",
+        "We'll find the right guys. We always do."
+      ],
+      "record_broken": [
+        "Trust the tape. He's been this good all year.",
+        "I've got every catch on film. It's beautiful football.",
+        "Special player having a special season.",
+        "His tape this year belongs in a museum.",
+        "We knew he had it. Now everyone else does too."
+      ]
+    }
+  },
+  "tommy_obrien": {
+    "gameStart": {
+      "winning_record": [
+        "Football is simple. Block, tackle, execute. We're doing it.",
+        "Run the ball, stop the run. That's how you win games.",
+        "We've been physical. Physical teams win in December.",
+        "Keep it simple, stupid. That's my motto. It's working.",
+        "Good teams do the boring stuff well. We're doing the boring stuff."
+      ],
+      "losing_record": [
+        "Football is simple. Block, tackle, execute. We ain't doing it.",
+        "Can't run it, can't stop it. That's losing football.",
+        "Too cute. Too fancy. Get back to basics.",
+        "We need to line up and whip the guy across from us.",
+        "All this scheme stuff don't matter if you can't block nobody."
+      ],
+      "rebuilding": [
+        "Football is simple. Block, tackle, execute. Teach the kids that.",
+        "Rebuild or not, you still gotta be physical.",
+        "Young guys need to learn how to practice. How to work.",
+        "Can't skip steps. Gotta learn to block and tackle first.",
+        "I've seen rebuilds. The ones that work get tough first."
+      ],
+      "contending": [
+        "Football is simple. Block, tackle, execute. Do it now.",
+        "This is when it matters. Be the most physical team.",
+        "Run the damn ball. Control the clock. Win the game.",
+        "Championship teams run it when they know you're running it.",
+        "Keep it simple. Don't outsmart yourself."
+      ],
+      "cap_hell": [
+        "Football is simple. Block, tackle, execute. Don't need money for that.",
+        "I've coached broke teams before. Toughness is free.",
+        "Next man up. Always been that way.",
+        "Can't pay everybody. Gotta coach everybody.",
+        "Money don't block. Players block."
+      ]
+    },
+    "bigTrade": {
+      "good_value": [
+        "Football is simple. Block, tackle, execute. He does all three.",
+        "Good football player. Plays the game the right way.",
+        "He'll fit in. Tough kid. Likes contact.",
+        "We got better today. Simple as that.",
+        "Old school player. My kind of guy."
+      ],
+      "bad_value": [
+        "Football is simple. Block, tackle, execute. He don't do none of it well.",
+        "Soft. I watch the tape, he's soft.",
+        "We gave up too much for a fancy player.",
+        "Can't block, can't tackle, but he sure can run fast in shorts.",
+        "Another track guy. We need football players."
+      ],
+      "blockbuster": [
+        "Football is simple. Block, tackle, execute. He does it at an elite level.",
+        "Now we're talking. Got us a real one.",
+        "This changes things. Puts us over the top.",
+        "Championship move. That's what this is.",
+        "He's a football player. Plain and simple."
+      ]
+    },
+    "draftNight": {
+      "first_round": [
+        "Football is simple. Block, tackle, execute. He can do it.",
+        "Good pick. Solid player. Plays hard.",
+        "I like him. Tough, smart, dependable.",
+        "He'll help us. Day one.",
+        "That's a football player right there."
+      ],
+      "steal_pick": [
+        "How'd we get him? Don't care, we got him.",
+        "Steal. Absolute steal. Good football player.",
+        "Other teams are dumb. We ain't.",
+        "He fell to us. We'll take him.",
+        "Sometimes you get lucky. This is lucky."
+      ],
+      "reach_pick": [
+        "Football is simple. Block, tackle, execute. I ain't seen it on his tape.",
+        "Reached. We reached bad.",
+        "Fancy player. Not a football player.",
+        "Hope I'm wrong. Usually ain't.",
+        "They overthought this one."
+      ]
+    },
+    "seasonMilestone": {
+      "playoff_clinch": [
+        "Football is simple. Block, tackle, execute. Do it in January too.",
+        "We're in. Now the real work starts.",
+        "Playoff football is different. More physical.",
+        "Run the ball, stop the run. Still works in playoffs.",
+        "One game at a time. Same as always."
+      ],
+      "elimination": [
+        "Season's over. Back to work.",
+        "Football is simple. Block, tackle, execute. We didn't do it enough.",
+        "Gotta get tougher. Gotta get smarter.",
+        "Learn from it. Come back better.",
+        "This feeling stinks. Remember it."
+      ],
+      "record_broken": [
+        "Football is simple. Block, tackle, execute. He did it better than anyone.",
+        "Hell of a year. Hell of a player.",
+        "Earned it. Every bit of it.",
+        "That's how you play the game.",
+        "Record book looks good on him."
+      ]
+    }
+  }
+}

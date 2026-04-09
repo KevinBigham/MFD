@@ -1,0 +1,132 @@
+{
+  "routine_run": {
+    "openers": [
+      "{{player}} takes the handoff",
+      "Inside give to {{player}}",
+      "{{team}} runs it left",
+      "Straight ahead goes {{player}}",
+      "Handoff {{player}}",
+      "Off tackle, {{player}}",
+      "Power run for {{team}}",
+      "Simple dive to {{player}}",
+      "They feed {{player}}",
+      "Zone stretch, {{player}}"
+    ],
+    "endings": [
+      "picks up {{yards}}.",
+      "for {{yards}}, nothing fancy.",
+      "gains {{yards}} and that's it.",
+      "gets {{yards}}, stays on schedule.",
+      "{{yards}} on the play.",
+      "pushes ahead for {{yards}} against a stacked front.",
+      "{{yards}}, second and manageable.",
+      "finds {{yards}} behind good blocking.",
+      "{{team}} picks up {{yards}}.",
+      "grinds out {{yards}} off tackle."
+    ]
+  },
+  "big_play_run": {
+    "openers": [
+      "{{player}} bursts through",
+      "Explosive run by {{player}}",
+      "Watch {{player}} go",
+      "There goes {{player}}",
+      "{{team}} breaks one",
+      "Huge hole for {{player}}",
+      "Untouched, {{player}}",
+      "Breaking tackles, {{player}}",
+      "To the house, {{player}}",
+      "Speed to the edge, {{player}}"
+    ],
+    "endings": [
+      "for {{yards}} and more!",
+      "{{yards}} and he's gone!",
+      "races {{yards}} downfield with safety cheating up!",
+      "flips the field, {{yards}}!",
+      "{{yards}}, what a run!",
+      "takes it {{yards}}, crowd erupts!",
+      "{{yards}} and still going!",
+      "house call, {{yards}}!",
+      "{{team}} strikes for {{yards}} against light box!",
+      "breakaway {{yards}}!"
+    ]
+  },
+  "goal_line_run": {
+    "openers": [
+      "{{player}} at the goal line",
+      "Pile push for {{team}}",
+      "Fourth and inches, {{player}}",
+      "Goal line stand, {{player}}",
+      "They lean on {{player}}",
+      "Under center, {{player}}",
+      "Short yardage, {{team}}",
+      "Jumbo package, {{player}}",
+      "Everybody knows it's {{player}}",
+      "QB sneak? No, {{player}}"
+    ],
+    "endings": [
+      "punches it in from {{yards}} out.",
+      "{{yards}}, touchdown {{team}}!",
+      "denied at the {{yards}}, no gain.",
+      "gets stuffed, {{yards}} short.",
+      "{{yards}} and in!",
+      "plows ahead for {{yards}}.",
+      "{{team}} scores from {{yards}}!",
+      "stopped cold, {{yards}} to go.",
+      "leans in for {{yards}}, score!",
+      "nowhere to go, {{yards}} loss."
+    ]
+  },
+  "fourth_down_run": {
+    "openers": [
+      "{{team}} going for it",
+      "Gutsy call, {{player}}",
+      "Do or die, {{player}}",
+      "Fourth down, {{player}}",
+      "No punt team, {{team}}",
+      "All in on {{player}}",
+      "Coach rolls dice with {{player}}",
+      "They need this, {{player}}",
+      "Season on line, {{team}}",
+      "Ballsy, {{player}}"
+    ],
+    "endings": [
+      "converts for {{yards}}!",
+      "{{yards}}, first down {{team}}!",
+      "gets {{yards}}, moves chains!",
+      "stuffed for no gain, {{team}} turns it over.",
+      "{{yards}} short, defense holds.",
+      "picks up {{yards}}, gutsy payoff!",
+      "{{team}} fails, {{yards}} to go.",
+      "{{yards}} and the crowd erupts!",
+      "denied at {{yards}}, no good.",
+      "makes it, {{yards}} gain!"
+    ]
+  },
+  "two_minute_drill_run": {
+    "openers": [
+      "{{player}} in hurry-up",
+      "Clock running, {{team}}",
+      "Sideline dash, {{player}}",
+      "No huddle, {{player}}",
+      "Hurry to line, {{team}}",
+      "Timeout in pocket, {{player}}",
+      "Spike coming? No, {{player}}",
+      "Two-minute, {{player}}",
+      "Racing clock, {{team}}",
+      "Quick handoff to {{player}}"
+    ],
+    "endings": [
+      "gets {{yards}}, clock stops.",
+      "{{yards}} and out of bounds.",
+      "picks up {{yards}}, burns timeout.",
+      "{{yards}}, stays in bounds.",
+      "gains {{yards}}, hurries up.",
+      "{{team}} saves time, {{yards}}.",
+      "{{yards}}, clock keeps running.",
+      "smart {{yards}}, sideline.",
+      "{{yards}}, no timeout needed.",
+      "gets {{yards}}, spikes next."
+    ]
+  }
+}
