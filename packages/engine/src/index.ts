@@ -439,6 +439,39 @@ export {
   analyzeTeamNeeds,
   compareTeamNeeds,
 } from './systems/team-needs';
+// Systems — Franchise Setup (Sprint 32)
+export {
+  createSetupState,
+  advanceSetupPhase,
+  goBackSetupPhase,
+  applySetupDecision,
+  isPhaseComplete,
+  getPhaseRequirements,
+  finalizeSetup,
+  generateIntelBriefing,
+  generateRosterOverview,
+  generateCoachingReview,
+  generateSchemeContext,
+  generateDepthChartContext,
+  generateCapBriefing,
+  generateGoalContext,
+  generateBlueprint,
+} from './systems/franchise-setup';
+export type {
+  SetupPhase,
+  SetupState,
+  SetupDecisions,
+  FranchiseIntelBriefing,
+  RosterOverview,
+  CoachingStaffReview,
+  SchemeSelectionContext,
+  SchemeOption,
+  DepthChartContext,
+  CapStrategyBriefing,
+  GoalSelectionContext,
+  GoalOption,
+  FranchiseBlueprint,
+} from './systems/franchise-setup';
 export {
   addToWatchlist,
   removeFromWatchlist,

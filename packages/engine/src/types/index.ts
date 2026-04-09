@@ -3001,6 +3001,8 @@ export interface GameState {
   pendingPassedPickTargets?: PendingPassedPickTarget[];
   activeCallYourShot?: import('../systems/call-your-shot').ShotDeclaration;
   lastManualSaveYear?: number;
+  setupState?: import('../systems/franchise-setup').SetupState;
+  franchiseBlueprint?: import('../systems/franchise-setup').FranchiseBlueprint;
 }
 
 export type SeasonPhase =
