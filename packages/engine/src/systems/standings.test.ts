@@ -101,9 +101,38 @@ describe('standings helpers', () => {
     const leaders = getStatLeaders(game);
 
     expect(leaders.passYds[0]?.playerId).toBe(qb.id);
+    expect(leaders.passYds[0]?.teamName).toBe('AFCE1 Club');
     expect(leaders.rushYds[0]?.playerId).toBe(rb.id);
     expect(leaders.recYds[0]?.playerId).toBe(wr.id);
     expect(leaders.sacks[0]?.playerId).toBe(dl.id);
     expect(leaders.defINT[0]?.playerId).toBe(cb.id);
+  });
+
+  it('returns empty stat leader buckets when no players have positive totals', () => {
+    const game = makeLeagueState('regular_season', 10);
+
+    const leaders = getStatLeaders(game);
+
+    expect(leaders.passYds).toEqual([]);
+    expect(leaders.rushYds).toEqual([]);
+    expect(leaders.recYds).toEqual([]);
+    expect(leaders.sacks).toEqual([]);
+    expect(leaders.defINT).toEqual([]);
+  });
+
+  it('treats players with stale team ids as free agents in leader boards', () => {
+    const game = makeLeagueState('regular_season', 10);
+    const qb = game.teams.afce1.roster.find((player) => player.pos === 'QB')!;
+    qb.stats.passYds = 4200;
+    qb.teamId = 'ghost-team';
+
+    const leaders = getStatLeaders(game);
+
+    expect(leaders.passYds[0]).toMatchObject({
+      playerId: qb.id,
+      teamId: 'ghost-team',
+      teamName: 'Free Agent',
+      value: 4200,
+    });
   });
 });

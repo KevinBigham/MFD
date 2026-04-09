@@ -193,13 +193,16 @@ function leaderRows(game: GameState, stat: keyof Player['stats']): StatLeaderEnt
     .filter((player) => (player.stats[stat] ?? 0) > 0)
     .sort((a, b) => (b.stats[stat] ?? 0) - (a.stats[stat] ?? 0) || a.name.localeCompare(b.name))
     .slice(0, 5)
-    .map((player) => ({
-      playerId: player.id,
-      playerName: player.name,
-      teamId: player.teamId,
-      teamName: player.teamId ? teamName(game.teams[player.teamId]!) : 'Free Agent',
-      value: player.stats[stat] ?? 0,
-    }));
+    .map((player) => {
+      const team = player.teamId ? game.teams[player.teamId] : null;
+      return {
+        playerId: player.id,
+        playerName: player.name,
+        teamId: player.teamId,
+        teamName: team ? teamName(team) : 'Free Agent',
+        value: player.stats[stat] ?? 0,
+      };
+    });
 }
 
 export function getStatLeaders(game: GameState): {

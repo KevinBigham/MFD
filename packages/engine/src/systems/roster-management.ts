@@ -63,9 +63,10 @@ export function detectPositionBattles(roster: readonly Player[]): PositionBattle
     if (healthy.length < 2) continue;
 
     const slots = STARTER_SLOTS[pos] ?? 1;
+    const useStarterCompetition = pos === 'QB' && slots === 1;
 
     // Priority 1: Starter/backup boundary — the last starter vs first backup
-    if (healthy.length > slots) {
+    if (healthy.length > slots && !useStarterCompetition) {
       const lastStarter = healthy[slots - 1]!;
       const firstBackup = healthy[slots]!;
       const gap = lastStarter.ovr - firstBackup.ovr;
@@ -93,7 +94,7 @@ export function detectPositionBattles(roster: readonly Player[]): PositionBattle
     }
 
     // Priority 3: Within-starter competition — only for positions with 1 starter (QB)
-    if (slots === 1 && healthy.length >= 2) {
+    if (useStarterCompetition && healthy.length >= 2) {
       const gap = healthy[0]!.ovr - healthy[1]!.ovr;
       const isCompetitive = gap <= MAX_BATTLE_GAP
         || (healthy[1]!.age <= 24 && (healthy[1]!.pot ?? 0) >= healthy[0]!.ovr);

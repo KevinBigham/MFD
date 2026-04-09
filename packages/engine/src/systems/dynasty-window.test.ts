@@ -6,9 +6,11 @@ import {
   windowPhaseColor,
 } from './dynasty-window';
 
+let playerIdCounter = 0;
+
 function makePlayer(ovr: number, age: number, isStarter = true): Player {
   return {
-    id: `p-${ovr}-${age}-${Math.random()}`,
+    id: `p-${ovr}-${age}-${playerIdCounter++}`,
     firstName: 'Test',
     lastName: 'Player',
     name: 'Test Player',
