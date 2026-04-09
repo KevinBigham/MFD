@@ -132,6 +132,10 @@ import {
   submitReSignOffer as submitReSignOfferEngine,
   submitFreeAgentBid as submitFreeAgentBidEngine,
   signStreetFreeAgent as signStreetFreeAgentEngine,
+  advanceSetupPhase as advanceSetupPhaseEngine,
+  goBackSetupPhase as goBackSetupPhaseEngine,
+  applySetupDecision as applySetupDecisionEngine,
+  finalizeSetup as finalizeSetupEngine,
   runScoutingAction as runScoutingActionEngine,
   rejectCounterProposal as rejectCounterProposalEngine,
   submitWaiverClaim as submitWaiverClaimEngine,
@@ -151,6 +155,7 @@ import {
   upsertOpponentReport as upsertOpponentReportEngine,
   upgradeFacility as upgradeFacilityEngine,
 } from '@mfd/engine';
+import type { SetupDecisions } from '@mfd/engine';
 import { autosaveDynasty, loadLatestAutosaveGame } from './persistence';
 import {
   selectCapCandidates,
@@ -287,6 +292,12 @@ interface GameActions {
   fireMentor: (mentorId: string) => Promise<void>;
   setCallYourShot: (declaration: ShotDeclaration | null) => Promise<void>;
   recordManualSave: () => void;
+
+  // Franchise Setup
+  advanceSetup: () => Promise<void>;
+  goBackSetup: () => Promise<void>;
+  applySetupChoice: (decision: Partial<SetupDecisions>) => Promise<void>;
+  completeSetup: () => Promise<void>;
 
   // Undo
   undo: () => Promise<void>;
@@ -1983,6 +1994,34 @@ export const useGameStore = create<GameStore>()(
             (s.game as GameState & { lastManualSaveYear?: number }).lastManualSaveYear = s.game.year;
           }
         });
+      },
+
+      // ── Franchise Setup ────────────────────────────────
+      advanceSetup: async () => {
+        const game = get().game;
+        if (!game?.setupState) return;
+        const next = advanceSetupPhaseEngine(game.setupState);
+        set((s) => { s.game!.setupState = next; });
+      },
+      goBackSetup: async () => {
+        const game = get().game;
+        if (!game?.setupState) return;
+        const next = goBackSetupPhaseEngine(game.setupState);
+        set((s) => { s.game!.setupState = next; });
+      },
+      applySetupChoice: async (decision) => {
+        const game = get().game;
+        if (!game?.setupState) return;
+        const next = applySetupDecisionEngine(game.setupState, decision);
+        set((s) => { s.game!.setupState = next; });
+      },
+      completeSetup: async () => {
+        const game = get().game;
+        if (!game?.setupState) return;
+        const userTeam = Object.values(game.teams).find((t) => t.isUser);
+        if (!userTeam) return;
+        const nextGame = finalizeSetupEngine(game, userTeam.id, game.setupState);
+        await commitGame(nextGame);
       },
 
       // ── Undo ────────────────────────────────────────────

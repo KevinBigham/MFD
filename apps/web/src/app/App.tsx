@@ -32,6 +32,7 @@ import { computeNavBadges } from './navBadges';
 import { ErrorBoundary } from './ErrorBoundary';
 import { AutosaveToast } from './AutosaveToast';
 import { NewGameScreen } from './NewGameScreen';
+import { FranchiseSetupWizard } from '../features/franchise-setup/FranchiseSetupWizard';
 import { BootScreen } from './BootScreen';
 import { MondayBriefing } from '../features/monday-briefing/MondayBriefing';
 import { RosterManagement } from '../features/roster/RosterManagement';
@@ -1342,6 +1343,10 @@ const router = createRouter({ routeTree, history: hashHistory });
 export function App() {
   const boot = useBootSequence();
   const gameLoaded = useGameStore((s) => s.initialized);
+  const setupIncomplete = useGameStore((s) => {
+    if (!s.game?.setupState) return false;
+    return s.game.setupState.completedPhases.length < 8;
+  });
 
   if (boot.shouldShow && !boot.isComplete) {
     return <BootScreen lines={boot.visibleLines} onSkip={boot.skip} />;
@@ -1349,6 +1354,10 @@ export function App() {
 
   if (!gameLoaded) {
     return <NewGameScreen />;
+  }
+
+  if (setupIncomplete) {
+    return <FranchiseSetupWizard />;
   }
 
   return (

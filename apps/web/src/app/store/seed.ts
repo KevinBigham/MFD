@@ -22,6 +22,7 @@ import {
   createDefaultTutorialState,
   createDefaultAchievements,
   createDefaultDashboardState,
+  createSetupState,
   createDefaultFranchiseIdentity,
   createFacilityState,
   buildSeasonSchedule,
@@ -557,6 +558,7 @@ export function createSeedGameState(
     opponentReports: [],
     draftRecaps: [],
     tradeSuggestions: [],
+    setupState: createSetupState(),
   };
 
   ensureAgentsInitialized(gameState);

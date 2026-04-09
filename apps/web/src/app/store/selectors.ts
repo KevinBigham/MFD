@@ -107,6 +107,7 @@ import type {
   FilmRoomReport,
   StadiumDeal,
 } from '@mfd/engine';
+import type { SetupState, SetupPhase, SetupDecisions } from '@mfd/engine';
 import {
   analyzeTeamNeeds,
   buildFranchiseDashboard,
@@ -1458,3 +1459,24 @@ export const selectLeagueAverages = memoParamByGame((stat: string, state: GameSt
   state.game ? getLeagueAverages(state.game, stat) : EMPTY_LEAGUE_AVERAGES);
 export const selectPositionRankings = memoParamByGame((pos: Position, state: GameStoreState): PositionRanking[] =>
   state.game ? getPositionRankings(state.game, pos) : EMPTY_POSITION_RANKINGS);
+
+// ── Franchise Setup ──────────────────────────────────
+const SETUP_PHASES: readonly SetupPhase[] = [
+  'intel_briefing', 'meet_roster', 'coaching_review', 'set_scheme',
+  'depth_chart', 'cap_strategy', 'set_goals', 'blueprint',
+] as const;
+export const selectSetupState = (state: GameStoreState): SetupState | null =>
+  state.game?.setupState ?? null;
+export const selectSetupPhase = (state: GameStoreState): SetupPhase | null =>
+  state.game?.setupState?.currentPhase ?? null;
+export const selectSetupPhaseIndex = (state: GameStoreState): number => {
+  const phase = state.game?.setupState?.currentPhase;
+  if (!phase) return 0;
+  return SETUP_PHASES.indexOf(phase);
+};
+export const selectSetupDecisions = (state: GameStoreState): SetupDecisions | null =>
+  state.game?.setupState?.decisions ?? null;
+export const selectSetupIncomplete = (state: GameStoreState): boolean => {
+  if (!state.game?.setupState) return false;
+  return state.game.setupState.completedPhases.length < 8;
+};
