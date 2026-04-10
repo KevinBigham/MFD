@@ -109,7 +109,8 @@ export function FranchiseSetupWizard() {
 
   const decisions = setupState.decisions;
   const currentMeta = PHASE_META[phaseIndex] ?? PHASE_META[0]!;
-  const canAdvance = isPhaseComplete(setupState, setupState.currentPhase);
+  const READ_ONLY_PHASES = new Set(['intel_briefing', 'meet_roster', 'coaching_review', 'depth_chart', 'cap_strategy', 'blueprint']);
+  const canAdvance = READ_ONLY_PHASES.has(setupState.currentPhase) || isPhaseComplete(setupState, setupState.currentPhase);
   const isLastPhase = setupState.currentPhase === 'blueprint';
 
   const handleNext = useCallback(async () => {
