@@ -1,0 +1,157 @@
+{
+  "agm_characters": {
+    "elias_vance": {
+      "id": "elias_vance",
+      "name": "Elias Vance",
+      "gender": "male",
+      "age": 42,
+      "background": "Former aerospace engineer who left Boeing for the Browns analytics department in 2015. Built their draft model that found three starters in round four. Left to get closer to football decisions, not just spreadsheets.",
+      "personality_type": "analytical",
+      "expertise": "cap_management",
+      "secondary_expertise": "personnel",
+      "catchphrase": "Process over outcome, every time.",
+      "speech_pattern": {
+        "tone": "measured, curious",
+        "vocabulary_level": "advanced",
+        "sentence_length": "mixed",
+        "quirks": ["uses chess and poker metaphors constantly", "cites specific percentages mid-sentence", "pauses to check his tablet before answering"]
+      },
+      "visual_description": {
+        "build": "lean",
+        "style": "unbuttoned Oxford, dark cardigan, no tie",
+        "defining_feature": "wire-rim glasses he pushes up when thinking",
+        "avatar_letter": "E"
+      },
+      "philosophy": {
+        "gm_approach": "I build teams by finding market inefficiencies and compounding small edges. A dollar saved in March is a starter signed in August.",
+        "teaching_style": "I'll show you the model behind every decision, then we'll watch film to see if the model matches reality.",
+        "decision_framework": "Does this increase our expected wins over the next three seasons?"
+      },
+      "strengths_as_agm": ["Explaining cap mechanics and contract structures clearly", "Finding draft value in later rounds using data", "Long-term roster construction and succession planning"],
+      "weaknesses_as_agm": ["Can overanalyze simple decisions", "Sometimes undervalues locker-room intangibles that don't show up in data"],
+      "selection_pitch": {
+        "opening_line": "Let's skip the resume. You have a roster with 47 million in dead cap and a quarterback decision to make.",
+        "elevator_pitch": "I won't sell you on gut feelings. I'll give you a decision framework that's right 62 percent of the time, which is 12 percent better than league average. We'll build a sustainable winner by being patient when others panic and aggressive when the math says go. That's how you win consistently, not just once.",
+        "closing_line": "Hire me, and we'll make fewer mistakes than the other 31 teams."
+      },
+      "welcome_monologue": "Okay, first day. Deep breath. Your office is yours, but the decisions are ours. I've loaded your tablet with three dashboards: roster health, cap health, and draft capital. My job isn't to tell you what to do, it's to show you the probabilities. You make the call, I'll make sure you see the board clearly. Let's go meet the building.",
+      "phase_intros": {
+        "intel_briefing": "This is our base rates document. League-wide, teams with top-10 quarterbacks on rookie deals win 11.4 games on average. We are not that. Let's understand exactly where we stand before we spend a dollar.",
+        "meet_roster": "I graded every player on our roster on a 0-100 scale for current value and future value. Green is surplus value, red is dead money walking. We'll go position by position, and I'll tell you where the model disagrees with the tape.",
+        "coaching_review": "Coaching is a resource allocation problem. Do we have teachers or tacticians? I tracked play-call tendencies and timeout efficiency. The data says our staff is good at development, average at game management.",
+        "set_scheme": "Scheme should maximize the players we already pay, not the ones we wish we had. I ran our personnel through eight scheme fits. West Coast and Zone Run score highest for expected points added.",
+        "depth_chart": "Depth charts are probability distributions, not depth charts. I'll show you injury risk by position and where one twisted ankle sinks our season.",
+        "cap_strategy": "We have 18 million in effective space after rookie pool. I built three-year cash flow models. We can be aggressive now and pay later, or stay liquid. Both are defensible, the math just changes.",
+        "set_goals": "Vegas has us at 6.5 wins. The model has us at 7.2 if we stand pat. What do you want to optimize for, year one wins or year three ceiling? I'll build the plan either way.",
+        "blueprint": "Day one is information, not action. By tonight you'll have a clear picture of our assets, liabilities, and leverage points. Then we start making the decisions that compound."
+      }
+    },
+    "derrick_coleman": {
+      "id": "derrick_coleman",
+      "name": "Derrick Coleman",
+      "gender": "male",
+      "age": 38,
+      "background": "Eight-year NFL linebacker and two-time team captain. Retired after a neck stinger in 2019. Spent the last five years grinding as a southeast area scout, living out of rental cars and high school bleachers.",
+      "personality_type": "fiery",
+      "expertise": "personnel",
+      "secondary_expertise": "defense",
+      "catchphrase": "Talent gets you drafted, toughness gets you paid.",
+      "speech_pattern": {
+        "tone": "intense, direct",
+        "vocabulary_level": "simple",
+        "sentence_length": "short",
+        "quirks": ["starts sentences with 'Listen,'", "calls everyone by last name", "uses football war metaphors constantly"]
+      },
+      "visual_description": {
+        "build": "stocky",
+        "style": "team polo with sleeves rolled up, whistle around neck",
+        "defining_feature": "scar through left eyebrow from a college game",
+        "avatar_letter": "D"
+      },
+      "philosophy": {
+        "gm_approach": "Build from the inside out with grown men who love football. If they're soft in March, they'll be gone by November.",
+        "teaching_style": "We'll watch tape together. I'll pause it, you'll tell me what you see, I'll tell you what I see. You learn by reps.",
+        "decision_framework": "Would I put my paycheck on this guy in a fourth-and-one?"
+      },
+      "strengths_as_agm": ["Evaluating player toughness and competitive makeup", "Building authentic relationships with coaches and scouts", "Cutting through noise to make gut decisions under pressure"],
+      "weaknesses_as_agm": ["Impatient with detailed cap mechanics", "Can fall in love with high-motor players over more talented ones"],
+      "selection_pitch": {
+        "opening_line": "Listen, you want real or you want a PowerPoint?",
+        "elevator_pitch": "I've been in the foxhole. I know a dog when I see one, and I know a fraud faster. You hire me, you get truth, not analytics theater. We'll build a team that hits first, finishes, and doesn't flinch in December. That's how you win in this league. Period.",
+        "closing_line": "Pick me, and we'll build something opponents hate to play."
+      },
+      "welcome_monologue": "Alright, GM. Welcome to the grind. Forget the fancy title, we got work. First rule here, we watch tape before we check Twitter. Second rule, we protect the locker room like family. I'm not here to be your friend, I'm here to make sure we don't draft soft guys or pay the wrong dudes. Let's go meet your team, look them in the eye.",
+      "phase_intros": {
+        "intel_briefing": "Listen, intel is simple. Where are we soft? Where are we strong? I broke it down by position groups I trust and groups that need an attitude adjustment. Let's be honest about it.",
+        "meet_roster": "We're gonna watch three plays per guy. Not highlights, real plays. You tell me if he's a guy you'd run through a wall with. I'll tell you if the tape lies.",
+        "coaching_review": "Coaches either develop players or they don't. I sat in their meetings last week. Some of these guys teach, some just yell. We'll keep the teachers.",
+        "set_scheme": "Scheme don't matter if you got the wrong dudes. But since you asked, we need to run something physical that fits our linemen. I hate finesse football.",
+        "depth_chart": "Depth chart is about trust. Who do you trust when it's third-and-seven and their best rusher is coming? Let's mark the guys we trust in red.",
+        "cap_strategy": "Cap guy will bore you with numbers. Here's my version, pay the dogs, cut the cats. Don't pay for past production, pay for next year's hits.",
+        "set_goals": "Goals? Win the division. Everything else is talk. You set soft goals, you get soft results. What are we building here, GM?",
+        "blueprint": "Day one's over when we know who we are. Are we tough? Are we fast? Are we smart? Right now we're none of the three. Let's change that."
+      }
+    },
+    "maya_alvarez": {
+      "id": "maya_alvarez",
+      "name": "Maya Alvarez",
+      "gender": "female",
+      "age": 41,
+      "background": "Former NFLPA-certified agent who represented 30 players, then flipped to the team side as Director of Football Administration for two franchises. Known for turning fractured locker rooms into families.",
+      "personality_type": "empathetic",
+      "expertise": "personnel",
+      "secondary_expertise": "coaching",
+      "catchphrase": "Culture eats scheme for breakfast.",
+      "speech_pattern": {
+        "tone": "warm, direct",
+        "vocabulary_level": "moderate",
+        "sentence_length": "mixed",
+        "quirks": ["asks questions instead of giving orders", "remembers and uses personal details about people", "uses 'we' language constantly"]
+      },
+      "visual_description": {
+        "build": "average",
+        "style": "tailored blazer, dark jeans, clean white sneakers",
+        "defining_feature": "always carries a worn leather notebook filled with color-coded tabs",
+        "avatar_letter": "M"
+      },
+      "philosophy": {
+        "gm_approach": "Sustainable winning starts with clarity, trust, and the right people in the right seats. Talent wins games, culture wins seasons.",
+        "teaching_style": "I'll connect every decision to a person and a story, because rosters are people, not spreadsheets.",
+        "decision_framework": "Does this move make us healthier tomorrow and stronger in three years?"
+      },
+      "strengths_as_agm": ["Reading people and navigating difficult conversations", "Aligning coaches, scouts, and ownership around a shared vision", "Managing the human side of cuts, trades, and contracts"],
+      "weaknesses_as_agm": ["Can be too patient with struggling players she believes in", "Sometimes avoids the coldest financial decision to preserve relationships"],
+      "selection_pitch": {
+        "opening_line": "Congratulations. Toughest job in sports, and you just got it. How are you feeling?",
+        "elevator_pitch": "You've inherited a team that just fired a GM, which means trust is low. I specialize in that moment. I know the agents, I know the coaches, and I know how to get 53 different personalities pulling the same direction. We'll build a roster that's talented, yes, but also connected. That's what lasts. We do this together.",
+        "closing_line": "Choose me, and we'll build something people want to stay part of."
+      },
+      "welcome_monologue": "Okay, breathe. First day as GM is overwhelming by design. I put coffee on your desk, black, because I asked your assistant how you take it. That's how we do things here, details matter. My job is to make sure you never walk into a room unprepared. We'll meet the staff, we'll listen more than we talk, and we'll start building trust today. Ready to meet your team?",
+      "phase_intros": {
+        "intel_briefing": "Before we look at numbers, let's talk about narrative. What does the league think we are right now? Perception shapes trade value. I'll walk you through what I'm hearing from agents and other front offices.",
+        "meet_roster": "Let's meet your players as people first, players second. I have notes on who the leaders are, who's hurting, who needs a fresh start. The tape tells you what, the relationships tell you why.",
+        "coaching_review": "Coaches are teachers and connectors. I've sat with each one. I'll tell you who players run through walls for, and who has lost the room. That's more important than any playbook.",
+        "set_scheme": "Scheme has to fit your players, but also your coaches' strengths. What do we do well already? Let's build on that identity instead of forcing a system. What feels like us?",
+        "depth_chart": "This isn't just a depth chart, it's a development plan. Who needs reps, who needs a mentor, who's ready for more? We'll build roles that help people succeed.",
+        "cap_strategy": "Cap is about choices and values. Who do we reward? Who do we thank and move on from? I'll show you the numbers, but we'll make decisions based on who we want to be in two years.",
+        "set_goals": "What do we want this season to feel like for our players and fans? Wins matter, but culture is built daily. Let's set goals that reflect both the record and the standard.",
+        "blueprint": "Day one ends with alignment. You, me, coaches, on the same page about who we are. If we get that right, the rest gets easier. Let's go build that."
+      }
+    }
+  },
+  "day_one_narrative": {
+    "scene_setting": "You push through the glass doors at 7:13am. The security guard already knows your name. The building is quiet, too quiet for a team that just fired its GM yesterday. The weight of it hits you in the lobby, your face is on the wall now, next to a Lombardi from 1998.",
+    "office_description": "Your corner office smells like leather and old coffee. The previous GM left in a hurry, there's a half-empty playbook on the desk, a whiteboard with 'FIND A QB' underlined three times, and a framed photo of the stadium at night on the wall.",
+    "first_task": "The receptionist, Karen, who's been here 22 years, hands you a tablet. 'Your three AGM candidates are in the war room. They've been waiting since six. No pressure.'",
+    "after_selection": "You shake hands, make the call. The other two leave quietly. Your new AGM closes the door, turns to you, and the real work begins.",
+    "phase_transitions": {
+      "intel_to_roster": "Your AGM grabs two coffees and nods toward the film room down the hall.",
+      "roster_to_coaching": "You leave the tape running and head for the coaches' wing, where the real opinions live.",
+      "coaching_to_scheme": "Back in the war room, the big board is blank and waiting for your philosophy.",
+      "scheme_to_depth": "The depth chart lights up on the touchscreen, red holes everywhere.",
+      "depth_to_cap": "Your AGM opens the laptop, the salary cap spreadsheet glows like a warning light.",
+      "cap_to_goals": "You ride the elevator up to the owner's suite, the city skyline behind you.",
+      "goals_to_blueprint": "Back in your office, door closed, it's just you, your AGM, and the plan for the next 365 days."
+    }
+  }
+}
