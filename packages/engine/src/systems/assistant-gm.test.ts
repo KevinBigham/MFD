@@ -5,16 +5,28 @@ import * as engine from '../index';
 import { makeLeagueState, makePlayer } from './test-helpers';
 
 type AssistantApi = {
-  assignAssistantGM: (game: unknown, teamId: string, seed: number) => any;
+  getAGMProfiles: () => any[];
+  getSelectedAGM: (profileId: string) => any;
+  getCoachCandidates: () => any[];
+  getScoutCandidates: () => any[];
+  getSchemeReaction: (agmId: string, schemeId: string) => string;
+  getGoalReaction: (agmId: string, goalId: string) => string;
+  getTeachingTips: (agmId: string, topicKey: string) => string[];
+  getPhaseTransitionFlavor: (agmId: string, fromPhase: string, toPhase: string) => string;
+  getTransitionTip: (seed: number, fromPhase: string, toPhase: string) => string;
+  getBlueprintClosingMonologue: (agmId: string) => string;
   getAGMGreeting: (profile: any, teamName: string) => string;
   agmOnIntelBriefing: (data: unknown, agm: any) => any;
   agmOnRosterOverview: (data: unknown, agm: any) => any;
-  agmOnCoachingReview: (data: unknown, agm: any) => any;
+  agmOnHireCoach: (data: unknown, agm: any) => any;
+  agmOnHireScout: (data: unknown, agm: any) => any;
   agmOnSchemeSelection: (data: unknown, agm: any) => any;
   agmOnDepthChart: (data: unknown, agm: any) => any;
   agmOnCapStrategy: (data: unknown, agm: any) => any;
   agmOnGoalSelection: (data: unknown, agm: any) => any;
   agmOnBlueprint: (data: unknown, agm: any) => any;
+  getAGMCoachReaction: (agmId: string, coachId: string) => any;
+  getAGMScoutReaction: (agmId: string, scoutId: string) => any;
   agmReactsToSchemeChoice: (chosenOffense: string, chosenDefense: string, context: unknown, agm: any) => any;
   agmReactsToGoalChoice: (chosenGoals: string[], context: unknown, agm: any) => any;
   toneAdjust: (baseText: string, personality: string) => string;
@@ -27,9 +39,14 @@ const assistant = engine as typeof engine & Partial<AssistantApi>;
 const MARCUS = {
   id: 'marcus_webb',
   name: 'Marcus Webb',
-  background: 'Former cap analyst turned AGM. Cool-headed, data-first, explains cap like a professor.',
+  title: 'Director of Baseball Strategy',
+  background: 'Former cap analyst turned AGM. Cool-headed, data-first, explains roster math like a professor.',
   personality: 'analytical',
   expertise: 'cap_management',
+  selectionPitch: 'I will turn your roster decisions into repeatable edges. We can build a winner without losing control of the long game.',
+  strengths: ['Payroll modeling', 'Option valuation', 'Process discipline'],
+  cardAccent: 'cyan',
+  welcomeMonologue: 'Welcome to the {teamName}. I have the books, the projections, and the weak spots mapped out. Let us start with what this franchise really is.',
   catchphrase: 'The numbers never lie.',
   toneModifiers: { enthusiasm: 0.45, bluntness: 0.65, humor: 0.15 },
 };
@@ -37,9 +54,14 @@ const MARCUS = {
 const COACH_D = {
   id: 'coach_d_hardaway',
   name: "Deion 'Coach D' Hardaway",
-  background: 'Former defensive coordinator turned front office exec. Fifteen years in the league.',
+  title: 'Senior AGM, Competitive Edge',
+  background: 'Former clubhouse enforcer turned front office closer. Lives for urgency, standards, and winning every matchup.',
   personality: 'fiery',
   expertise: 'defense',
+  selectionPitch: 'You were hired to take control. I will keep the building loud, demanding, and impossible to out-compete when the pressure rises.',
+  strengths: ['Clubhouse intensity', 'Opponent pressure points', 'Accountability'],
+  cardAccent: 'red',
+  welcomeMonologue: 'Welcome to the {teamName}. The room is yours now. I will keep the staff sharp, the players honest, and the pressure pointed in the right direction.',
   catchphrase: 'We are NOT giving up easy yards.',
   toneModifiers: { enthusiasm: 0.95, bluntness: 0.85, humor: 0.25 },
 };
@@ -47,9 +69,14 @@ const COACH_D = {
 const SANDRA = {
   id: 'sandra_chen',
   name: 'Sandra Chen',
-  background: 'Former scout who can break down any player in ten seconds and lives for the draft.',
+  title: 'Senior AGM, Player Development',
+  background: 'Former scout and player liaison who reads a room as quickly as she reads a stat line. Trusted by players and evaluators alike.',
   personality: 'player_whisperer',
   expertise: 'personnel',
+  selectionPitch: 'The roster is a people problem before it is a spreadsheet problem. I will help you see who can grow, who can lead, and who needs a clearer role.',
+  strengths: ['Player evaluation', 'Development arcs', 'Relationship capital'],
+  cardAccent: 'green',
+  welcomeMonologue: 'Welcome to the {teamName}. I have already been through the roster, and there are a few people in this building we can unlock fast if we handle them the right way.',
   catchphrase: 'Trust the tape.',
   toneModifiers: { enthusiasm: 0.6, bluntness: 0.55, humor: 0.1 },
 };
@@ -57,9 +84,14 @@ const SANDRA = {
 const TOMMY = {
   id: 'tommy_obrien',
   name: "Tommy O'Brien",
+  title: 'Senior AGM, Field Operations',
   background: 'Thirty-year football lifer who believes in running the ball and keeping things grounded.',
   personality: 'old_school',
   expertise: 'offense',
+  selectionPitch: 'We will keep this simple, physical, and accountable.',
+  strengths: ['Practice rhythm', 'Staff habits', 'Physical identity'],
+  cardAccent: 'gold',
+  welcomeMonologue: 'Welcome to the {teamName}. We are going to start with the basics, get the room aligned, and build from there.',
   catchphrase: 'Football is simple. Block, tackle, execute.',
   toneModifiers: { enthusiasm: 0.55, bluntness: 0.75, humor: 0.2 },
 };
@@ -301,16 +333,28 @@ function expectDialogue(dialogue: any, phaseId: string) {
 
 describe('assistant gm exports', () => {
   it('exports the Sprint 33 assistant gm API from the engine barrel', () => {
-    expect(typeof assistant.assignAssistantGM).toBe('function');
+    expect(typeof assistant.getAGMProfiles).toBe('function');
+    expect(typeof assistant.getSelectedAGM).toBe('function');
+    expect(typeof assistant.getCoachCandidates).toBe('function');
+    expect(typeof assistant.getScoutCandidates).toBe('function');
+    expect(typeof assistant.getSchemeReaction).toBe('function');
+    expect(typeof assistant.getGoalReaction).toBe('function');
+    expect(typeof assistant.getTeachingTips).toBe('function');
+    expect(typeof assistant.getPhaseTransitionFlavor).toBe('function');
+    expect(typeof assistant.getTransitionTip).toBe('function');
+    expect(typeof assistant.getBlueprintClosingMonologue).toBe('function');
     expect(typeof assistant.getAGMGreeting).toBe('function');
     expect(typeof assistant.agmOnIntelBriefing).toBe('function');
     expect(typeof assistant.agmOnRosterOverview).toBe('function');
-    expect(typeof assistant.agmOnCoachingReview).toBe('function');
+    expect(typeof assistant.agmOnHireCoach).toBe('function');
+    expect(typeof assistant.agmOnHireScout).toBe('function');
     expect(typeof assistant.agmOnSchemeSelection).toBe('function');
     expect(typeof assistant.agmOnDepthChart).toBe('function');
     expect(typeof assistant.agmOnCapStrategy).toBe('function');
     expect(typeof assistant.agmOnGoalSelection).toBe('function');
     expect(typeof assistant.agmOnBlueprint).toBe('function');
+    expect(typeof assistant.getAGMCoachReaction).toBe('function');
+    expect(typeof assistant.getAGMScoutReaction).toBe('function');
     expect(typeof assistant.agmReactsToSchemeChoice).toBe('function');
     expect(typeof assistant.agmReactsToGoalChoice).toBe('function');
     expect(typeof assistant.toneAdjust).toBe('function');
@@ -319,34 +363,74 @@ describe('assistant gm exports', () => {
   });
 });
 
-describe('assistant gm assignment and helpers', () => {
-  it('assigns a valid preset profile for any seed', () => {
-    const assignAssistantGM = requiredFunction('assignAssistantGM');
-    const profile = assignAssistantGM(addBattleAndInjury(), 'afce1', 17);
+describe('assistant gm catalog and helpers', () => {
+  it('returns exactly three selectable AGM profiles', () => {
+    const getAGMProfiles = requiredFunction('getAGMProfiles');
+    const profiles = getAGMProfiles();
 
-    expect(['marcus_webb', 'coach_d_hardaway', 'sandra_chen', 'tommy_obrien']).toContain(profile.id);
-    expect(profile.name.length).toBeGreaterThan(5);
-    expect(profile.catchphrase.length).toBeGreaterThan(5);
+    expect(profiles).toHaveLength(3);
+    expect(profiles.map((profile) => profile.id)).toEqual([
+      'marcus_webb',
+      'coach_d_hardaway',
+      'sandra_chen',
+    ]);
   });
 
-  it('assigns the same AGM for the same game, team, and seed', () => {
-    const assignAssistantGM = requiredFunction('assignAssistantGM');
-    const game = capCrunchGame();
+  it('finds a selected AGM by id and returns null for unknown ids', () => {
+    const getSelectedAGM = requiredFunction('getSelectedAGM');
 
-    expect(assignAssistantGM(game, 'afce1', 7)).toEqual(assignAssistantGM(game, 'afce1', 7));
+    expect(getSelectedAGM('marcus_webb')?.id).toBe('marcus_webb');
+    expect(getSelectedAGM('not_real')).toBeNull();
   });
 
-  it('shows variety across seeds while remaining within the four presets', () => {
-    const assignAssistantGM = requiredFunction('assignAssistantGM');
-    const ids = new Set<string>();
-    const game = addBattleAndInjury();
+  it('includes selection screen fields on all selectable profiles', () => {
+    const getAGMProfiles = requiredFunction('getAGMProfiles');
 
-    for (let seed = 1; seed <= 10; seed += 1) {
-      ids.add(assignAssistantGM(game, 'afce1', seed).id);
+    for (const profile of getAGMProfiles()) {
+      expect(typeof profile.title).toBe('string');
+      expect(profile.title.length).toBeGreaterThan(5);
+      expect(typeof profile.selectionPitch).toBe('string');
+      expect(profile.selectionPitch.length).toBeGreaterThan(10);
+      expect(Array.isArray(profile.strengths)).toBe(true);
+      expect(profile.strengths.length).toBeGreaterThanOrEqual(3);
+      expect(typeof profile.cardAccent).toBe('string');
+      expect(profile.cardAccent.length).toBeGreaterThan(0);
+      expect(typeof profile.welcomeMonologue).toBe('string');
+      expect(profile.welcomeMonologue.length).toBeGreaterThan(10);
     }
+  });
 
-    expect(ids.size).toBeGreaterThanOrEqual(2);
-    expect(ids.size).toBeLessThanOrEqual(4);
+  it('returns three deterministic head coach candidates', () => {
+    const getCoachCandidates = requiredFunction('getCoachCandidates');
+    const candidates = getCoachCandidates();
+
+    expect(candidates).toHaveLength(3);
+    for (const candidate of candidates) {
+      expect(typeof candidate.id).toBe('string');
+      expect(typeof candidate.name).toBe('string');
+      expect(typeof candidate.background).toBe('string');
+      expect(Array.isArray(candidate.strengths)).toBe(true);
+      expect(Array.isArray(candidate.weaknesses)).toBe(true);
+      expect(candidate.strengths.length).toBeGreaterThan(0);
+      expect(candidate.weaknesses.length).toBeGreaterThan(0);
+      expect(typeof candidate.interviewQuote).toBe('string');
+    }
+  });
+
+  it('returns three deterministic scouting director candidates', () => {
+    const getScoutCandidates = requiredFunction('getScoutCandidates');
+    const candidates = getScoutCandidates();
+
+    expect(candidates).toHaveLength(3);
+    for (const candidate of candidates) {
+      expect(typeof candidate.id).toBe('string');
+      expect(typeof candidate.name).toBe('string');
+      expect(typeof candidate.specialty).toBe('string');
+      expect(typeof candidate.philosophy).toBe('string');
+      expect(Array.isArray(candidate.strengths)).toBe(true);
+      expect(Array.isArray(candidate.weaknesses)).toBe(true);
+      expect(typeof candidate.interviewQuote).toBe('string');
+    }
   });
 
   it('builds personality-specific greetings that include the team name', () => {
@@ -419,13 +503,21 @@ describe('assistant gm phase dialogue', () => {
     expect(dialogue.insights.join(' ')).not.toContain('undefined');
   });
 
-  it('builds a coaching review dialogue even when staff spots are vacant', () => {
-    const agmOnCoachingReview = requiredFunction('agmOnCoachingReview');
+  it('builds a hire-coach dialogue even when staff spots are vacant', () => {
+    const agmOnHireCoach = requiredFunction('agmOnHireCoach');
     const review = engine.generateCoachingReview(makeLeagueState('regular_season', 1), 'afce1');
-    const dialogue = agmOnCoachingReview(review, TOMMY);
+    const dialogue = agmOnHireCoach(review, TOMMY);
 
-    expectDialogue(dialogue, 'coaching_review');
+    expectDialogue(dialogue, 'hire_coach');
     expect(dialogue.intro.toLowerCase()).toContain('coach');
+  });
+
+  it('builds a hire-scout dialogue around scouting coverage', () => {
+    const agmOnHireScout = requiredFunction('agmOnHireScout');
+    const dialogue = agmOnHireScout(engine.generateIntelBriefing(addBattleAndInjury(), 'afce1'), MARCUS);
+
+    expectDialogue(dialogue, 'hire_scout');
+    expect(dialogue.intro.toLowerCase()).toContain('scout');
   });
 
   it('builds a scheme recommendation dialogue that references the best-fit schemes', () => {
@@ -473,7 +565,7 @@ describe('assistant gm phase dialogue', () => {
       defenseScheme: 'cover_3',
       seasonGoals: ['playoff_berth', 'draft_well', 'winning_record'],
       depthChartOverrides: {},
-      acknowledged: ['intel_briefing', 'meet_roster', 'coaching_review', 'depth_chart', 'cap_strategy', 'blueprint'],
+      acknowledged: ['intel_briefing', 'meet_roster', 'hire_coach', 'hire_scout', 'depth_chart', 'cap_strategy', 'blueprint'],
     });
     const dialogue = agmOnBlueprint(blueprint, COACH_D);
 
@@ -494,6 +586,40 @@ describe('assistant gm phase dialogue', () => {
 });
 
 describe('assistant gm reactions', () => {
+  it('returns valid coach reactions for every agm-candidate pairing', () => {
+    const getAGMProfiles = requiredFunction('getAGMProfiles');
+    const getCoachCandidates = requiredFunction('getCoachCandidates');
+    const getAGMCoachReaction = requiredFunction('getAGMCoachReaction');
+
+    for (const agm of getAGMProfiles()) {
+      for (const coach of getCoachCandidates()) {
+        const reaction = getAGMCoachReaction(agm.id, coach.id);
+        expect(['hire', 'consider', 'pass']).toContain(reaction.recommendation);
+        expect(typeof reaction.analysis).toBe('string');
+        expect(reaction.analysis.length).toBeGreaterThan(10);
+        expect(typeof reaction.oneLiner).toBe('string');
+        expect(reaction.oneLiner.length).toBeGreaterThan(5);
+      }
+    }
+  });
+
+  it('returns valid scout reactions for every agm-candidate pairing', () => {
+    const getAGMProfiles = requiredFunction('getAGMProfiles');
+    const getScoutCandidates = requiredFunction('getScoutCandidates');
+    const getAGMScoutReaction = requiredFunction('getAGMScoutReaction');
+
+    for (const agm of getAGMProfiles()) {
+      for (const scout of getScoutCandidates()) {
+        const reaction = getAGMScoutReaction(agm.id, scout.id);
+        expect(['hire', 'consider', 'pass']).toContain(reaction.recommendation);
+        expect(typeof reaction.analysis).toBe('string');
+        expect(reaction.analysis.length).toBeGreaterThan(10);
+        expect(typeof reaction.oneLiner).toBe('string');
+        expect(reaction.oneLiner.length).toBeGreaterThan(5);
+      }
+    }
+  });
+
   it('loves the top recommended scheme pairing', () => {
     const agmReactsToSchemeChoice = requiredFunction('agmReactsToSchemeChoice');
     const context = engine.generateSchemeContext(addBattleAndInjury(), 'afce1');
@@ -533,5 +659,59 @@ describe('assistant gm reactions', () => {
     expect(agmReactsToGoalChoice(recommended.slice(0, 2).concat([noneMatch[0]!]), context, TOMMY).sentiment).toBe('like_it');
     expect(agmReactsToGoalChoice(oneMatch, context, TOMMY).sentiment).toBe('concerned');
     expect(agmReactsToGoalChoice(noneMatch, context, TOMMY).sentiment).toBe('disagree');
+  });
+
+  it('returns scheme reaction copy for all live schemes across all live agms', () => {
+    const getAGMProfiles = requiredFunction('getAGMProfiles');
+    const getSchemeReaction = requiredFunction('getSchemeReaction');
+    const schemeIds = ['spread', 'west_coast', 'power_run', 'air_raid', 'balanced', '4-3', '3-4', 'cover_2', 'cover_3', 'man_press'];
+
+    for (const agm of getAGMProfiles()) {
+      for (const schemeId of schemeIds) {
+        const reaction = getSchemeReaction(agm.id, schemeId);
+        expect(typeof reaction).toBe('string');
+        expect(reaction.length).toBeGreaterThan(12);
+      }
+    }
+  });
+
+  it('returns goal reaction copy for all live goals across all live agms', () => {
+    const getAGMProfiles = requiredFunction('getAGMProfiles');
+    const getGoalReaction = requiredFunction('getGoalReaction');
+    const goalIds = ['win_division', 'playoff_berth', 'winning_record', 'rebuild_progress', 'cap_health', 'star_power', 'no_losing_streak', 'draft_well', 'championship'];
+
+    for (const agm of getAGMProfiles()) {
+      for (const goalId of goalIds) {
+        const reaction = getGoalReaction(agm.id, goalId);
+        expect(typeof reaction).toBe('string');
+        expect(reaction.length).toBeGreaterThan(12);
+      }
+    }
+  });
+
+  it('returns teaching tips, transition flavor, and a deterministic loading tip', () => {
+    const getTeachingTips = requiredFunction('getTeachingTips');
+    const getPhaseTransitionFlavor = requiredFunction('getPhaseTransitionFlavor');
+    const getTransitionTip = requiredFunction('getTransitionTip');
+
+    const tips = getTeachingTips('marcus_webb', 'roster_screen');
+    expect(tips.length).toBeGreaterThanOrEqual(3);
+    expect(tips[0]!.length).toBeGreaterThan(12);
+
+    const flavor = getPhaseTransitionFlavor('coach_d_hardaway', 'hire_coach', 'hire_scout');
+    expect(flavor.length).toBeGreaterThan(12);
+
+    expect(getTransitionTip(77, 'meet_roster', 'hire_coach')).toBe(getTransitionTip(77, 'meet_roster', 'hire_coach'));
+  });
+
+  it('returns a closing monologue for all live agms', () => {
+    const getAGMProfiles = requiredFunction('getAGMProfiles');
+    const getBlueprintClosingMonologue = requiredFunction('getBlueprintClosingMonologue');
+
+    for (const agm of getAGMProfiles()) {
+      const monologue = getBlueprintClosingMonologue(agm.id);
+      expect(typeof monologue).toBe('string');
+      expect(monologue.length).toBeGreaterThan(20);
+    }
   });
 });

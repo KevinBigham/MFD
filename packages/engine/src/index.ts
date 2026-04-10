@@ -441,6 +441,8 @@ export {
 } from './systems/team-needs';
 // Systems — Franchise Setup (Sprint 32)
 export {
+  PHASE_ORDER,
+  PHASE_META,
   createSetupState,
   advanceSetupPhase,
   goBackSetupPhase,
@@ -459,8 +461,11 @@ export {
 } from './systems/franchise-setup';
 export type {
   SetupPhase,
+  SetupPhaseMeta,
   SetupState,
   SetupDecisions,
+  CoachCandidate,
+  ScoutCandidate,
   FranchiseIntelBriefing,
   RosterOverview,
   CoachingStaffReview,
@@ -474,10 +479,17 @@ export type {
 } from './systems/franchise-setup';
 // Systems — Assistant GM (Sprint 33)
 export {
-  assignAssistantGM,
+  getAGMProfiles,
+  getSelectedAGM,
+  getCoachCandidates,
+  getScoutCandidates,
   getAGMGreeting,
   agmOnIntelBriefing,
   agmOnRosterOverview,
+  agmOnHireCoach,
+  agmOnHireScout,
+  getAGMCoachReaction,
+  getAGMScoutReaction,
   agmOnCoachingReview,
   agmOnSchemeSelection,
   agmOnDepthChart,
@@ -490,6 +502,14 @@ export {
   expertiseEmphasis,
   getExpertiseInsight,
 } from './systems/assistant-gm';
+export {
+  getSchemeReaction,
+  getGoalReaction,
+  getTeachingTips,
+  getPhaseTransitionFlavor,
+  getTransitionTip,
+  getBlueprintClosingMonologue,
+} from './systems/agm-setup-content';
 export type {
   AGMProfile,
   AGMPhaseDialogue,

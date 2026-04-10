@@ -71,18 +71,6 @@ export function BlueprintPhase({ data }: { data: FranchiseBlueprint }) {
           {data.blueprintNarrative}
         </div>
       </PixelPanel>
-
-      {/* AGM Closing Words */}
-      {data.agmClosingWords ? (
-        <div style={{
-          padding: '16px', border: '2px solid rgba(255, 215, 0, 0.3)',
-          background: 'rgba(255, 215, 0, 0.04)', textAlign: 'center',
-        }}>
-          <div style={{ ...monoSm, color: 'var(--mfd-gold)', lineHeight: 1.6, fontStyle: 'italic' }}>
-            &ldquo;{data.agmClosingWords}&rdquo;
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

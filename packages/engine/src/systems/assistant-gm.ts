@@ -1,15 +1,22 @@
-import { mulberry32 } from '../rng';
-import type { GameState, Position, Team } from '../types';
-import { getCapHealth } from './cap-laboratory';
-import { analyzeTeamNeeds, buildLeagueAverageByGroup } from './team-needs';
+import type { Position } from '../types';
+import {
+  getCoachCandidateCatalog,
+  getScoutCandidateCatalog,
+} from './setup-hiring-catalog';
+import {
+  getCoachHiringReaction,
+  getScoutHiringReaction,
+} from './agm-setup-content';
 import type {
   CapStrategyBriefing,
   CoachingStaffReview,
+  CoachCandidate,
   DepthChartContext,
   FranchiseBlueprint,
   FranchiseIntelBriefing,
   GoalSelectionContext,
   RosterOverview,
+  ScoutCandidate,
   SchemeOption,
   SchemeSelectionContext,
   SetupPhase,
@@ -18,9 +25,18 @@ import type {
 export interface AGMProfile {
   id: string;
   name: string;
+  title: string;
   background: string;
   personality: 'analytical' | 'fiery' | 'old_school' | 'player_whisperer';
   expertise: 'offense' | 'defense' | 'personnel' | 'cap_management';
+  selectionPitch: string;
+  strengths: string[];
+  cardAccent: 'default' | 'gold' | 'cyan' | 'green' | 'red';
+  welcomeMonologue: string;
+  teachingNarration: {
+    what_is_a_head_coach: string;
+    what_is_a_scouting_director: string;
+  };
   catchphrase: string;
   toneModifiers: {
     enthusiasm: number;
@@ -54,43 +70,58 @@ const ASSISTANT_GM_PRESETS: readonly AGMProfile[] = [
   {
     id: 'marcus_webb',
     name: 'Marcus Webb',
-    background: 'Former cap analyst turned AGM. Cool-headed, data-first, explains cap like a professor.',
+    title: 'Director of Baseball Strategy',
+    background: 'Former cap analyst turned AGM. Cool-headed, data-first, explains roster math like a professor.',
     personality: 'analytical',
     expertise: 'cap_management',
+    selectionPitch: 'I will turn your roster decisions into repeatable edges. We can build a winner without losing control of the long game.',
+    strengths: ['Payroll modeling', 'Option valuation', 'Process discipline'],
+    cardAccent: 'cyan',
+    welcomeMonologue: 'Welcome to the {teamName}. I have the books, the projections, and the weak spots mapped out. Let us start with what this franchise really is.',
+    teachingNarration: {
+      what_is_a_head_coach: 'Your head coach is the operating system for the roster. That hire sets the daily standard, shapes situational decisions, and tells us how fast the whole building can absorb change.',
+      what_is_a_scouting_director: 'Your scouting director decides where certainty comes from. That person organizes the board, tells us which evaluations we can trust, and keeps the draft room from chasing noise.',
+    },
     catchphrase: 'The numbers never lie.',
     toneModifiers: { enthusiasm: 0.45, bluntness: 0.65, humor: 0.15 },
   },
   {
     id: 'coach_d_hardaway',
     name: "Deion 'Coach D' Hardaway",
-    background: 'Former defensive coordinator turned front office exec. Fifteen years in the league.',
+    title: 'Senior AGM, Competitive Edge',
+    background: 'Former clubhouse enforcer turned front office closer. Lives for urgency, standards, and winning every matchup.',
     personality: 'fiery',
     expertise: 'defense',
+    selectionPitch: 'You were hired to take control. I will keep the building loud, demanding, and impossible to out-compete when the pressure rises.',
+    strengths: ['Clubhouse intensity', 'Opponent pressure points', 'Accountability'],
+    cardAccent: 'red',
+    welcomeMonologue: 'Welcome to the {teamName}. The room is yours now. I will keep the staff sharp, the players honest, and the pressure pointed in the right direction.',
+    teachingNarration: {
+      what_is_a_head_coach: 'Head coach is not just play sheet and speeches. That is the person who decides what the room tolerates when things get tight and who sets the edge for every staff meeting.',
+      what_is_a_scouting_director: 'Scouting director is your early-warning system. Good one tells you who can handle this league, who is fooling the stopwatch, and where the board is lying to you.',
+    },
     catchphrase: 'We are NOT giving up easy yards.',
     toneModifiers: { enthusiasm: 0.95, bluntness: 0.85, humor: 0.25 },
   },
   {
     id: 'sandra_chen',
     name: 'Sandra Chen',
-    background: 'Former scout who can break down any player in ten seconds and lives for the draft.',
+    title: 'Senior AGM, Player Development',
+    background: 'Former scout and player liaison who reads a room as quickly as she reads a stat line. Trusted by players and evaluators alike.',
     personality: 'player_whisperer',
     expertise: 'personnel',
+    selectionPitch: 'The roster is a people problem before it is a spreadsheet problem. I will help you see who can grow, who can lead, and who needs a clearer role.',
+    strengths: ['Player evaluation', 'Development arcs', 'Relationship capital'],
+    cardAccent: 'green',
+    welcomeMonologue: 'Welcome to the {teamName}. I have already been through the roster, and there are a few people in this building we can unlock fast if we handle them the right way.',
+    teachingNarration: {
+      what_is_a_head_coach: 'The head coach translates your plan into lived habits. Pick the right teacher and players grow into the system instead of surviving it.',
+      what_is_a_scouting_director: 'The scouting director tells you which people your building can believe in. That role matters because draft boards are about projection, trust, and context as much as raw talent.',
+    },
     catchphrase: 'Trust the tape.',
     toneModifiers: { enthusiasm: 0.6, bluntness: 0.55, humor: 0.1 },
   },
-  {
-    id: 'tommy_obrien',
-    name: "Tommy O'Brien",
-    background: 'Thirty-year football lifer who believes in running the ball and keeping things grounded.',
-    personality: 'old_school',
-    expertise: 'offense',
-    catchphrase: 'Football is simple. Block, tackle, execute.',
-    toneModifiers: { enthusiasm: 0.55, bluntness: 0.75, humor: 0.2 },
-  },
 ] as const;
-
-const OFFENSIVE_NEEDS = new Set(['QB', 'RB', 'WR', 'TE', 'OL']);
-const DEFENSIVE_NEEDS = new Set(['DL', 'LB', 'CB', 'S']);
 
 const POSITION_LABELS: Record<string, string> = {
   QB: 'quarterback',
@@ -105,15 +136,6 @@ const POSITION_LABELS: Record<string, string> = {
   K: 'kicker spot',
   P: 'punter spot',
 };
-
-function hashString(value: string): number {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
 
 function formatMoney(value: number): string {
   const rounded = Math.round(value * 10) / 10;
@@ -216,14 +238,6 @@ function makeDialogue(
   };
 }
 
-function teamOrThrow(game: GameState, teamId: string): Team {
-  const team = game.teams[teamId];
-  if (!team) {
-    throw new Error(`Missing team ${teamId} for assistant GM assignment.`);
-  }
-  return team;
-}
-
 function playerNameList(players: Array<{ name: string }>, limit = 3): string {
   return joinNames(players.slice(0, limit).map((player) => player.name));
 }
@@ -280,10 +294,6 @@ function bestRosterAnchor(data: RosterOverview): string | null {
   if (data.risingStars.length > 0) return data.risingStars[0]!.playerName;
   if (data.weakestStarters.length > 0) return data.weakestStarters[0]!.name;
   return null;
-}
-
-function countProjectedYoungStars(team: Team): number {
-  return team.roster.filter((player) => player.age <= 24 && player.pot - player.ovr >= 5).length;
 }
 
 function mentionPlayerCentricText(text: string): string {
@@ -524,50 +534,55 @@ function getSecondaryExpertiseInsight(
   return null;
 }
 
-export function assignAssistantGM(game: GameState, teamId: string, seed: number): AGMProfile {
-  const team = teamOrThrow(game, teamId);
-  const capHealth = getCapHealth(team, game);
-  const needs = analyzeTeamNeeds(team, buildLeagueAverageByGroup(Object.values(game.teams)));
-  const youngProjectables = countProjectedYoungStars(team);
-  const offensiveNeedCount = needs.criticalNeeds.filter((need) => OFFENSIVE_NEEDS.has(need)).length;
-  const defensiveNeedCount = needs.criticalNeeds.filter((need) => DEFENSIVE_NEEDS.has(need)).length;
-  const spansBothSides = offensiveNeedCount > 0 && defensiveNeedCount > 0;
+export function getAGMProfiles(): AGMProfile[] {
+  return ASSISTANT_GM_PRESETS.map((profile) => ({
+    ...profile,
+    strengths: [...profile.strengths],
+    teachingNarration: { ...profile.teachingNarration },
+    toneModifiers: { ...profile.toneModifiers },
+  }));
+}
 
-  const weights = new Map<string, number>(ASSISTANT_GM_PRESETS.map((profile) => [profile.id, 1]));
-  const marcusBoost = (capHealth.grade === 'D' || capHealth.grade === 'F' ? 2 : capHealth.grade === 'C' ? 1 : 0)
-    + (team.capSpace < 5 || capHealth.recommendations.length >= 2 ? 1 : 0);
-  const coachDBoost = Math.min(2, defensiveNeedCount);
-  const tommyBoost = Math.min(2, offensiveNeedCount);
-  const sandraBoost = (spansBothSides ? 1 : 0) + (youngProjectables >= 2 ? 1 : 0);
-
-  weights.set('marcus_webb', 1 + marcusBoost);
-  weights.set('coach_d_hardaway', 1 + coachDBoost);
-  weights.set('tommy_obrien', 1 + tommyBoost);
-  weights.set('sandra_chen', 1 + sandraBoost);
-
-  const rng = mulberry32((seed ^ game.seed ^ game.year ^ hashString(teamId)) >>> 0);
-  const totalWeight = ASSISTANT_GM_PRESETS.reduce((sum, profile) => sum + (weights.get(profile.id) ?? 1), 0);
-  let roll = rng() * totalWeight;
-
-  for (const profile of ASSISTANT_GM_PRESETS) {
-    roll -= weights.get(profile.id) ?? 1;
-    if (roll < 0) return profile;
-  }
-
-  return ASSISTANT_GM_PRESETS[ASSISTANT_GM_PRESETS.length - 1]!;
+export function getSelectedAGM(profileId: string): AGMProfile | null {
+  return getAGMProfiles().find((profile) => profile.id === profileId) ?? null;
 }
 
 export function getAGMGreeting(profile: AGMProfile, teamName: string): string {
-  if (profile.id === 'marcus_webb') {
-    return toneAdjust(`Coach, welcome to the ${teamName}. I've been through the books and the film. Let me walk you through what we're inheriting here.`, profile.personality);
+  return toneAdjust(profile.welcomeMonologue.replace('{teamName}', teamName), profile.personality);
+}
+
+export function getCoachCandidates(): CoachCandidate[] {
+  return getCoachCandidateCatalog();
+}
+
+export function getScoutCandidates(): ScoutCandidate[] {
+  return getScoutCandidateCatalog();
+}
+
+export function getAGMCoachReaction(agmId: string, coachId: string): { recommendation: string; analysis: string; oneLiner: string } {
+  const candidate = getCoachCandidates().find((entry) => entry.id === coachId);
+  if (!candidate) {
+    throw new Error(`Unknown coach candidate ${coachId}.`);
   }
-  if (profile.id === 'coach_d_hardaway') {
-    return toneAdjust(`Coach, day one with the ${teamName}. I've been up since 4 AM breaking this thing down. Let's get after it.`, profile.personality);
+  const reaction = getCoachHiringReaction(agmId, candidate.id);
+  return {
+    recommendation: reaction.recommendation,
+    analysis: reaction.analysis,
+    oneLiner: reaction.oneLiner,
+  };
+}
+
+export function getAGMScoutReaction(agmId: string, scoutId: string): { recommendation: string; analysis: string; oneLiner: string } {
+  const candidate = getScoutCandidates().find((entry) => entry.id === scoutId);
+  if (!candidate) {
+    throw new Error(`Unknown scout candidate ${scoutId}.`);
   }
-  if (profile.id === 'sandra_chen') {
-    return toneAdjust(`Coach, welcome to the ${teamName}. I've been living in the tape and there are already a few players I want to talk through with you.`, profile.personality);
-  }
-  return toneAdjust(`Coach, welcome to the ${teamName}. Football is still about blocking, tackling, and execution. Let's look at what we've got.`, profile.personality);
+  const reaction = getScoutHiringReaction(agmId, candidate.id);
+  return {
+    recommendation: reaction.recommendation,
+    analysis: reaction.analysis,
+    oneLiner: reaction.oneLiner,
+  };
 }
 
 export function agmOnIntelBriefing(data: FranchiseIntelBriefing, agm: AGMProfile): AGMPhaseDialogue {
@@ -654,12 +669,12 @@ export function agmOnRosterOverview(data: RosterOverview, agm: AGMProfile): AGMP
   );
 }
 
-export function agmOnCoachingReview(data: CoachingStaffReview, agm: AGMProfile): AGMPhaseDialogue {
+export function agmOnHireCoach(data: CoachingStaffReview, agm: AGMProfile): AGMPhaseDialogue {
   const vacancies = Number(data.headCoach.vacant) + data.coordinators.filter((coach) => coach.vacant).length;
   const tone: AGMPhaseDialogue['tone'] = vacancies > 0 ? 'concerned' : 'measured';
   const oc = data.coordinators.find((coach) => coach.role === 'OC');
   const dc = data.coordinators.find((coach) => coach.role === 'DC');
-  const insights = finalizeInsights('coaching_review', [
+  const insights = finalizeInsights('hire_coach', [
     data.headCoach.vacant
       ? buildInsight('warning', 'The head coach chair is vacant, which means identity has to come from the roster until that role is stabilized.', 'HC vacancy')
       : buildInsight(
@@ -684,12 +699,45 @@ export function agmOnCoachingReview(data: CoachingStaffReview, agm: AGMProfile):
   ], data, agm);
 
   return makeDialogue(
-    'coaching_review',
+    'hire_coach',
     agm,
-    `Before we call anything, I want to know whether the coaches in this building help or hurt the plan.`,
+    'The next head coach hire sets the temperature of the whole building. This is where process becomes identity.',
     insights,
-    `If we stay close to ${data.schemeRecommendation.offenseLabel} on offense and ${data.schemeRecommendation.defenseLabel} on defense, the staff gives us the best operational chance to execute.`,
-    'That brings us to the board. This is where scheme fit starts making money or losing games.',
+    `I want a head coach who can carry ${data.schemeRecommendation.offenseLabel} on offense and ${data.schemeRecommendation.defenseLabel} on defense without making the roster feel like it is learning a new language every week.`,
+    'Once the head coach is in place, we can decide who should be feeding the board next.',
+    tone,
+  );
+}
+
+export const agmOnCoachingReview = agmOnHireCoach;
+
+export function agmOnHireScout(data: FranchiseIntelBriefing, agm: AGMProfile): AGMPhaseDialogue {
+  const tone: AGMPhaseDialogue['tone'] = data.windowPhase === 'rebuilding' ? 'measured' : 'confident';
+  const insights = finalizeInsights('hire_scout', [
+    buildInsight(
+      'opportunity',
+      `${formatPositionGroup(data.criticalNeeds[0] ?? 'roster depth')} is the first place our scouting room has to beat consensus.`,
+      data.criticalNeeds[0] ?? null,
+    ),
+    buildInsight(
+      'strength',
+      `${formatPositionGroup(data.strengths[0] ?? 'the roster core')} gives us enough stability to draft for upside instead of pure panic.`,
+      data.strengths[0] ?? null,
+    ),
+    buildInsight(
+      data.capGrade === 'A' || data.capGrade === 'B' ? 'strength' : 'warning',
+      `The better our intel, the less money we waste solving the same need twice. That matters with a ${data.capGrade} cap picture.`,
+      data.capGrade,
+    ),
+  ], data, agm);
+
+  return makeDialogue(
+    'hire_scout',
+    agm,
+    'Scouting is how we buy tomorrow before the rest of the league knows the price.',
+    insights,
+    'I want a director who sharpens the board in the lane this franchise is most likely to exploit over the next three drafts.',
+    'After this hire, we can start deciding what brand of football these evaluations need to serve.',
     tone,
   );
 }

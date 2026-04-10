@@ -5,6 +5,7 @@ import {
   buildActionNote,
   buildInitialScoutingState,
   normalizeScoutingState,
+  resolveInterviewCharacterRead,
   resolvePrivateWorkout,
   tightenVisibleGrade,
 } from './advanced-scouting';
@@ -225,6 +226,7 @@ export function runScoutingAction(game: GameState, prospectId: string, action: S
         actions: [...current.actions, action],
         accuracy,
         assignedScoutId: scout?.id ?? current.assignedScoutId,
+        characterRead: action === 'interview' ? resolveInterviewCharacterRead(prospect, scout) : current.characterRead,
         visibleScoutGrade: scout
           ? applyScoutAccuracy(prospect, scout, randForAction(action, prospectId), scoutingBonus)
           : tightenVisibleGrade(current.visibleScoutGrade, prospect.trueGrade, accuracy),

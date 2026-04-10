@@ -19,6 +19,12 @@ import {
   analyzeTeamNeeds,
   buildLeagueAverageByGroup,
 } from './team-needs';
+import {
+  findCoachCandidate,
+  findScoutCandidate,
+  materializeHeadCoach,
+  seedScoutingStaff,
+} from './setup-hiring-catalog';
 import type {
   GameState,
   Player,
@@ -26,11 +32,17 @@ import type {
   Team,
   TeamNeedsReport,
 } from '../types';
+export type {
+  CoachCandidate,
+  ScoutCandidate,
+} from './setup-hiring-catalog';
 
-const PHASE_ORDER = [
+export const PHASE_ORDER = [
+  'choose_agm',
   'intel_briefing',
   'meet_roster',
-  'coaching_review',
+  'hire_coach',
+  'hire_scout',
   'set_scheme',
   'depth_chart',
   'cap_strategy',
@@ -119,6 +131,25 @@ const OWNER_TYPE_BOOSTS: Record<OwnerType, readonly string[]> = {
  */
 export type SetupPhase = (typeof PHASE_ORDER)[number];
 
+export interface SetupPhaseMeta {
+  id: SetupPhase;
+  label: string;
+  subtitle: string;
+}
+
+export const PHASE_META: readonly SetupPhaseMeta[] = [
+  { id: 'choose_agm', label: 'Choose Your AGM', subtitle: 'Hire your right hand' },
+  { id: 'intel_briefing', label: 'Franchise Intel', subtitle: "What you're inheriting" },
+  { id: 'meet_roster', label: 'Meet the Players', subtitle: 'Your roster at a glance' },
+  { id: 'hire_coach', label: 'Hire Your Coach', subtitle: 'Who leads this team?' },
+  { id: 'hire_scout', label: 'Build Your Intel', subtitle: 'Who finds the next star?' },
+  { id: 'set_scheme', label: 'Set the Identity', subtitle: 'Your offensive and defensive vision' },
+  { id: 'depth_chart', label: 'Starting Lineup', subtitle: 'Who takes the field Week 1' },
+  { id: 'cap_strategy', label: 'The Money', subtitle: 'Your financial reality' },
+  { id: 'set_goals', label: 'Set Your Goals', subtitle: 'What does year one look like?' },
+  { id: 'blueprint', label: 'Day 1 Complete', subtitle: 'Your plan is locked in' },
+] as const;
+
 /**
  * Mutable decisions captured while the user moves through setup.
  */
@@ -128,7 +159,9 @@ export interface SetupDecisions {
   seasonGoals: string[];
   depthChartOverrides: Record<string, string[]>;
   acknowledged: SetupPhase[];
-  agmProfileId?: string;
+  agmProfileId: string | null;
+  headCoachId: string | null;
+  scoutingDirectorId: string | null;
   agmClosingWords?: string;
 }
 
@@ -1303,7 +1336,7 @@ export function generateBlueprint(
       defense?.label ?? decisions.defenseScheme,
       goalLabels,
     ),
-    agmProfileId: decisions.agmProfileId,
+    agmProfileId: decisions.agmProfileId ?? undefined,
     agmClosingWords: decisions.agmClosingWords,
   };
 }
@@ -1313,7 +1346,7 @@ export function generateBlueprint(
  */
 export function createSetupState(): SetupState {
   return {
-    currentPhase: 'intel_briefing',
+    currentPhase: 'choose_agm',
     completedPhases: [],
     decisions: {
       offenseScheme: null,
@@ -1321,7 +1354,9 @@ export function createSetupState(): SetupState {
       seasonGoals: [],
       depthChartOverrides: {},
       acknowledged: [],
-      agmProfileId: undefined,
+      agmProfileId: null,
+      headCoachId: null,
+      scoutingDirectorId: null,
       agmClosingWords: undefined,
     },
     blueprint: null,
@@ -1333,13 +1368,18 @@ export function createSetupState(): SetupState {
  */
 export function getPhaseRequirements(phase: SetupPhase): { requiresDecision: boolean; decisionFields: string[] } {
   switch (phase) {
+    case 'choose_agm':
+      return { requiresDecision: true, decisionFields: ['agmProfileId'] };
+    case 'hire_coach':
+      return { requiresDecision: true, decisionFields: ['headCoachId'] };
+    case 'hire_scout':
+      return { requiresDecision: true, decisionFields: ['scoutingDirectorId'] };
     case 'set_scheme':
       return { requiresDecision: true, decisionFields: ['offenseScheme', 'defenseScheme'] };
     case 'set_goals':
       return { requiresDecision: true, decisionFields: ['seasonGoals'] };
     case 'intel_briefing':
     case 'meet_roster':
-    case 'coaching_review':
     case 'depth_chart':
     case 'cap_strategy':
     case 'blueprint':
@@ -1353,13 +1393,18 @@ export function getPhaseRequirements(phase: SetupPhase): { requiresDecision: boo
  */
 export function isPhaseComplete(state: SetupState, phase: SetupPhase): boolean {
   switch (phase) {
+    case 'choose_agm':
+      return state.decisions.agmProfileId !== null;
+    case 'hire_coach':
+      return state.decisions.headCoachId !== null;
+    case 'hire_scout':
+      return state.decisions.scoutingDirectorId !== null;
     case 'set_scheme':
       return Boolean(state.decisions.offenseScheme && state.decisions.defenseScheme);
     case 'set_goals':
       return uniqueStrings(state.decisions.seasonGoals).length === 3;
     case 'intel_briefing':
     case 'meet_roster':
-    case 'coaching_review':
     case 'depth_chart':
     case 'cap_strategy':
     case 'blueprint':
@@ -1402,21 +1447,44 @@ export function goBackSetupPhase(state: SetupState): SetupState {
  * Merge user decisions into setup state and invalidate downstream phases when needed.
  */
 export function applySetupDecision(state: SetupState, decision: Partial<SetupDecisions>): SetupState {
+  const nextHeadCoachId = decision.headCoachId !== undefined ? decision.headCoachId : state.decisions.headCoachId;
+  const nextCoachCandidate = nextHeadCoachId ? findCoachCandidate(nextHeadCoachId) : null;
+  const nextOffenseScheme = decision.offenseScheme !== undefined
+    ? decision.offenseScheme
+    : state.decisions.offenseScheme ?? nextCoachCandidate?.schemePreference.offense ?? null;
+  const nextDefenseScheme = decision.defenseScheme !== undefined
+    ? decision.defenseScheme
+    : state.decisions.defenseScheme ?? nextCoachCandidate?.schemePreference.defense ?? null;
   const nextState: SetupState = {
     ...state,
     decisions: {
-      offenseScheme: decision.offenseScheme !== undefined ? decision.offenseScheme : state.decisions.offenseScheme,
-      defenseScheme: decision.defenseScheme !== undefined ? decision.defenseScheme : state.decisions.defenseScheme,
+      offenseScheme: nextOffenseScheme,
+      defenseScheme: nextDefenseScheme,
       seasonGoals: decision.seasonGoals !== undefined ? uniqueStrings(decision.seasonGoals) : state.decisions.seasonGoals,
       depthChartOverrides: decision.depthChartOverrides !== undefined ? cloneGame(decision.depthChartOverrides) : state.decisions.depthChartOverrides,
       acknowledged: decision.acknowledged !== undefined ? normalizePhases(decision.acknowledged) : state.decisions.acknowledged,
       agmProfileId: decision.agmProfileId !== undefined ? decision.agmProfileId : state.decisions.agmProfileId,
+      headCoachId: nextHeadCoachId,
+      scoutingDirectorId: decision.scoutingDirectorId !== undefined ? decision.scoutingDirectorId : state.decisions.scoutingDirectorId,
       agmClosingWords: decision.agmClosingWords !== undefined ? decision.agmClosingWords : state.decisions.agmClosingWords,
     },
     blueprint: state.blueprint,
   };
 
   let invalidatedPhase: SetupPhase | null = null;
+  if (
+    decision.headCoachId !== undefined
+    && decision.headCoachId !== state.decisions.headCoachId
+  ) {
+    invalidatedPhase = 'hire_scout';
+  }
+  if (
+    !invalidatedPhase
+    && decision.scoutingDirectorId !== undefined
+    && decision.scoutingDirectorId !== state.decisions.scoutingDirectorId
+  ) {
+    invalidatedPhase = 'hire_scout';
+  }
   if (
     decision.offenseScheme !== undefined && decision.offenseScheme !== state.decisions.offenseScheme
     || decision.defenseScheme !== undefined && decision.defenseScheme !== state.decisions.defenseScheme
@@ -1453,11 +1521,34 @@ export function finalizeSetup(game: GameState, teamId: string, state: SetupState
   if (!state.decisions.offenseScheme || !state.decisions.defenseScheme) {
     throw new Error('Cannot finalize setup without selected schemes.');
   }
+  if (!state.decisions.agmProfileId) {
+    throw new Error('Cannot finalize setup without a hired assistant GM.');
+  }
+  if (!state.decisions.headCoachId) {
+    throw new Error('Cannot finalize setup without a hired head coach.');
+  }
+  if (!state.decisions.scoutingDirectorId) {
+    throw new Error('Cannot finalize setup without a hired scouting director.');
+  }
 
   const nextGame = cloneGame(game);
   const team = getTeam(nextGame, teamId);
   const offenseScheme = state.decisions.offenseScheme;
   const defenseScheme = state.decisions.defenseScheme;
+  const selectedCoach = findCoachCandidate(state.decisions.headCoachId);
+  const selectedScoutDirector = findScoutCandidate(state.decisions.scoutingDirectorId);
+
+  if (!selectedCoach) {
+    throw new Error(`Unknown setup head coach ${state.decisions.headCoachId}.`);
+  }
+  if (!selectedScoutDirector) {
+    throw new Error(`Unknown scouting director ${state.decisions.scoutingDirectorId}.`);
+  }
+
+  const { staffMember, coachRecord } = materializeHeadCoach(selectedCoach, nextGame.year);
+  team.staff.hc = staffMember;
+  team.coachingStaff.hc = coachRecord;
+  nextGame.scoutingDepartment.scouts = seedScoutingStaff(selectedScoutDirector, team);
 
   team.schemeOff = offenseScheme;
   team.offScheme = offenseScheme;

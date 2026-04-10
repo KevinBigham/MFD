@@ -27,7 +27,7 @@ import {
   useGameStore,
 } from './store/game-store';
 import { selectCanUndo, selectUndoLabel } from './store/selectors';
-import { generateDevelopmentReport, identifyBreakoutCandidates } from '@mfd/engine';
+import { generateDevelopmentReport, identifyBreakoutCandidates, PHASE_ORDER } from '@mfd/engine';
 import { computeNavBadges } from './navBadges';
 import { ErrorBoundary } from './ErrorBoundary';
 import { AutosaveToast } from './AutosaveToast';
@@ -1345,7 +1345,7 @@ export function App() {
   const gameLoaded = useGameStore((s) => s.initialized);
   const setupIncomplete = useGameStore((s) => {
     if (!s.game?.setupState) return false;
-    return s.game.setupState.completedPhases.length < 8;
+    return s.game.setupState.completedPhases.length < PHASE_ORDER.length;
   });
 
   if (boot.shouldShow && !boot.isComplete) {

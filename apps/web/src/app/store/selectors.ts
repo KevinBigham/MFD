@@ -138,6 +138,7 @@ import {
   getCareerLeaders,
   getDecadeNarrative,
   getFullSchedule,
+  PHASE_ORDER,
   getLeagueAverages,
   getPlayerComparables,
   getPlayerCareerTimeline,
@@ -1461,10 +1462,7 @@ export const selectPositionRankings = memoParamByGame((pos: Position, state: Gam
   state.game ? getPositionRankings(state.game, pos) : EMPTY_POSITION_RANKINGS);
 
 // ── Franchise Setup ──────────────────────────────────
-const SETUP_PHASES: readonly SetupPhase[] = [
-  'intel_briefing', 'meet_roster', 'coaching_review', 'set_scheme',
-  'depth_chart', 'cap_strategy', 'set_goals', 'blueprint',
-] as const;
+const SETUP_PHASES: readonly SetupPhase[] = PHASE_ORDER;
 export const selectSetupState = (state: GameStoreState): SetupState | null =>
   state.game?.setupState ?? null;
 export const selectSetupPhase = (state: GameStoreState): SetupPhase | null =>
@@ -1478,5 +1476,5 @@ export const selectSetupDecisions = (state: GameStoreState): SetupDecisions | nu
   state.game?.setupState?.decisions ?? null;
 export const selectSetupIncomplete = (state: GameStoreState): boolean => {
   if (!state.game?.setupState) return false;
-  return state.game.setupState.completedPhases.length < 8;
+  return state.game.setupState.completedPhases.length < PHASE_ORDER.length;
 };

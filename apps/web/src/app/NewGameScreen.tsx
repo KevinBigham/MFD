@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { MfdPanel, PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import { Gamepad2, Shield, Trophy } from 'lucide-react';
-import { getAvailableScenarios, mulberry32, startScenario, generateConventionSave, assignAssistantGM, CONVENTION_SAVE_METADATA, type DifficultyLevel } from '@mfd/engine';
+import { getAvailableScenarios, mulberry32, startScenario, generateConventionSave, CONVENTION_SAVE_METADATA, type DifficultyLevel } from '@mfd/engine';
 import { useGameStore } from './store/game-store';
 import { createSeedGameState, getTeamOptions } from './store/seed';
 import { TeamLogo } from '../features/shared/TeamLogo';
@@ -54,11 +54,6 @@ export function NewGameScreen() {
       delete state.setupState;
       await newGame(state);
     } else {
-      const userTeam = Object.values(baseState.teams).find((t) => t.isUser);
-      if (userTeam && baseState.setupState) {
-        const agm = assignAssistantGM(baseState, userTeam.id, seed);
-        baseState.setupState.decisions.agmProfileId = agm.id;
-      }
       await newGame(baseState);
     }
   };

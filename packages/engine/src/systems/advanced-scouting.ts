@@ -161,6 +161,14 @@ export function deriveCharacterRead(prospect: DraftProspect): ProspectCharacterR
   return 'steady';
 }
 
+export function resolveInterviewCharacterRead(prospect: DraftProspect, scout: Scout | null): ProspectCharacterRead {
+  if (!scout) return 'unknown';
+  const sameRegionBonus = scout.scope === 'regional' && scout.region === prospect.region ? 0.18 : 0;
+  const reliability = scout.accuracy + sameRegionBonus;
+  if (reliability < 0.82) return 'unknown';
+  return deriveCharacterRead(prospect);
+}
+
 export function buildInitialScoutingState(prospect: DraftProspect, scout: Scout | null): ProspectScoutingState {
   const baselineAccuracy = roundTenth((scout?.accuracy ?? 0.65) * 0.1);
   return normalizeScoutingState(prospect, {
@@ -200,7 +208,7 @@ export function normalizeScoutingState(
     assignedScoutId: state.assignedScoutId ?? null,
     riskBand: deriveRiskBand(prospect, confidence, hasInterview, hasPrivateWorkout),
     ceilingBand: deriveCeilingBand(prospect, confidence, hasPrivateWorkout),
-    characterRead: hasInterview ? deriveCharacterRead(prospect) : 'unknown',
+    characterRead: state.characterRead ?? (hasInterview ? deriveCharacterRead(prospect) : 'unknown'),
     privateWorkoutRatings: [...(state.privateWorkoutRatings ?? [])],
   };
 }

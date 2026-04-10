@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { StaffMember } from '../types';
 import {
+  PHASE_ORDER,
   advanceSetupPhase,
   applySetupDecision,
   createSetupState,
@@ -186,24 +187,79 @@ function addBattleAndInjury(game = enrichStaff()) {
   return game;
 }
 
+function hireAgmSetupState(agmProfileId = 'marcus_webb') {
+  return advanceSetupPhase(applySetupDecision(createSetupState(), {
+    agmProfileId,
+  }));
+}
+
+function hireCoachAndScoutSetupState() {
+  let state = hireAgmSetupState();
+  for (const phase of ['intel_briefing', 'meet_roster'] as const) {
+    state = applySetupDecision(state, {
+      acknowledged: [...state.decisions.acknowledged, phase],
+    });
+    state = advanceSetupPhase(state);
+  }
+
+  state = applySetupDecision(state, {
+    headCoachId: 'elias_rowe',
+  } as any);
+  state = advanceSetupPhase(state);
+  state = applySetupDecision(state, {
+    scoutingDirectorId: 'zoe_wilcox',
+  } as any);
+  state = advanceSetupPhase(state);
+  return state;
+}
+
 describe('franchise setup lifecycle', () => {
-  it('starts at intel briefing with blank decisions', () => {
+  it('starts at choose agm with blank decisions', () => {
     const state = createSetupState();
 
-    expect(state.currentPhase).toBe('intel_briefing');
+    expect(PHASE_ORDER).toEqual([
+      'choose_agm',
+      'intel_briefing',
+      'meet_roster',
+      'hire_coach',
+      'hire_scout',
+      'set_scheme',
+      'depth_chart',
+      'cap_strategy',
+      'set_goals',
+      'blueprint',
+    ]);
+    expect(PHASE_ORDER).toHaveLength(10);
+    expect(PHASE_ORDER[0]).toBe('choose_agm');
+    expect(state.currentPhase).toBe('choose_agm');
     expect(state.completedPhases).toEqual([]);
     expect(state.decisions.offenseScheme).toBeNull();
     expect(state.decisions.defenseScheme).toBeNull();
     expect(state.decisions.seasonGoals).toEqual([]);
     expect(state.decisions.depthChartOverrides).toEqual({});
     expect(state.decisions.acknowledged).toEqual([]);
+    expect(state.decisions.agmProfileId).toBeNull();
+    expect((state.decisions as any).headCoachId).toBeNull();
+    expect((state.decisions as any).scoutingDirectorId).toBeNull();
     expect(state.blueprint).toBeNull();
   });
 
   it('returns fixed phase requirements', () => {
+    expect(getPhaseRequirements('choose_agm')).toEqual({
+      requiresDecision: true,
+      decisionFields: ['agmProfileId'],
+    });
     expect(getPhaseRequirements('intel_briefing')).toEqual({
       requiresDecision: false,
       decisionFields: ['acknowledged'],
+    });
+    expect(getPhaseRequirements('hire_coach')).toEqual({
+      requiresDecision: true,
+      decisionFields: ['headCoachId'],
+    });
+    expect(getPhaseRequirements('hire_scout')).toEqual({
+      requiresDecision: true,
+      decisionFields: ['scoutingDirectorId'],
     });
     expect(getPhaseRequirements('set_scheme')).toEqual({
       requiresDecision: true,
@@ -222,6 +278,20 @@ describe('franchise setup lifecycle', () => {
   it('requires acknowledgement before advancing read-only phases', () => {
     const state = createSetupState();
 
+    expect(isPhaseComplete(state, 'choose_agm')).toBe(false);
+    expect(() => advanceSetupPhase(state)).toThrow(/choose_agm/i);
+
+    const hired = applySetupDecision(state, {
+      agmProfileId: 'marcus_webb',
+    });
+
+    expect(isPhaseComplete(hired, 'choose_agm')).toBe(true);
+    expect(advanceSetupPhase(hired).currentPhase).toBe('intel_briefing');
+  });
+
+  it('requires acknowledgement before advancing read-only phases after AGM selection', () => {
+    const state = hireAgmSetupState();
+
     expect(isPhaseComplete(state, 'intel_briefing')).toBe(false);
     expect(() => advanceSetupPhase(state)).toThrow(/intel_briefing/i);
 
@@ -234,18 +304,24 @@ describe('franchise setup lifecycle', () => {
   });
 
   it('requires both schemes before leaving set scheme', () => {
-    let state = createSetupState();
-    for (const phase of ['intel_briefing', 'meet_roster', 'coaching_review'] as const) {
+    let state = hireAgmSetupState();
+    for (const phase of ['intel_briefing', 'meet_roster'] as const) {
       state = applySetupDecision(state, {
         acknowledged: [...state.decisions.acknowledged, phase],
       });
       state = advanceSetupPhase(state);
     }
+    state = applySetupDecision(state, { headCoachId: 'elias_rowe' } as any);
+    state = advanceSetupPhase(state);
+    state = applySetupDecision(state, { scoutingDirectorId: 'zoe_wilcox' } as any);
+    state = advanceSetupPhase(state);
 
     expect(state.currentPhase).toBe('set_scheme');
-    expect(() => advanceSetupPhase(state)).toThrow(/set_scheme/i);
+    expect(isPhaseComplete(state, 'set_scheme')).toBe(true);
+    expect(state.decisions.offenseScheme).toBe('west_coast');
+    expect(state.decisions.defenseScheme).toBe('cover_3');
 
-    const partial = applySetupDecision(state, { offenseScheme: 'spread' });
+    const partial = applySetupDecision(state, { defenseScheme: null });
     expect(isPhaseComplete(partial, 'set_scheme')).toBe(false);
 
     const complete = applySetupDecision(partial, { defenseScheme: 'cover_3' });
@@ -255,14 +331,7 @@ describe('franchise setup lifecycle', () => {
   it('requires exactly three goals before leaving set goals', () => {
     const game = enrichStaff();
     const context = generateGoalContext(game, 'afce1');
-    let state = createSetupState();
-
-    for (const phase of ['intel_briefing', 'meet_roster', 'coaching_review'] as const) {
-      state = applySetupDecision(state, {
-        acknowledged: [...state.decisions.acknowledged, phase],
-      });
-      state = advanceSetupPhase(state);
-    }
+    let state = hireCoachAndScoutSetupState();
 
     state = applySetupDecision(state, {
       offenseScheme: 'spread',
@@ -291,7 +360,7 @@ describe('franchise setup lifecycle', () => {
   });
 
   it('goes back one phase without mutating choices', () => {
-    const state = applySetupDecision(createSetupState(), {
+    const state = applySetupDecision(hireAgmSetupState(), {
       acknowledged: ['intel_briefing'],
     });
     const advanced = advanceSetupPhase(state);
@@ -303,13 +372,7 @@ describe('franchise setup lifecycle', () => {
   });
 
   it('invalidates downstream completion when a scheme changes', () => {
-    let state = createSetupState();
-    for (const phase of ['intel_briefing', 'meet_roster', 'coaching_review'] as const) {
-      state = applySetupDecision(state, {
-        acknowledged: [...state.decisions.acknowledged, phase],
-      });
-      state = advanceSetupPhase(state);
-    }
+    let state = hireCoachAndScoutSetupState();
     state = applySetupDecision(state, {
       offenseScheme: 'spread',
       defenseScheme: 'cover_3',
@@ -328,27 +391,18 @@ describe('franchise setup lifecycle', () => {
 
     expect(invalidated.currentPhase).toBe('depth_chart');
     expect(invalidated.completedPhases).toEqual([
+      'choose_agm',
       'intel_briefing',
       'meet_roster',
-      'coaching_review',
+      'hire_coach',
+      'hire_scout',
       'set_scheme',
     ]);
     expect(invalidated.blueprint).toBeNull();
   });
 
   it('carries AGM metadata through setup decisions without invalidating progress', () => {
-    let state = createSetupState();
-    for (const phase of ['intel_briefing', 'meet_roster', 'coaching_review'] as const) {
-      state = applySetupDecision(state, {
-        acknowledged: [...state.decisions.acknowledged, phase],
-      });
-      state = advanceSetupPhase(state);
-    }
-    state = applySetupDecision(state, {
-      offenseScheme: 'spread',
-      defenseScheme: 'cover_3',
-    });
-    state = advanceSetupPhase(state);
+    let state = hireCoachAndScoutSetupState();
 
     const updated = applySetupDecision(state, {
       agmProfileId: 'marcus_webb',
@@ -360,6 +414,48 @@ describe('franchise setup lifecycle', () => {
     expect((updated.decisions as any).agmProfileId).toBe('marcus_webb');
     expect((updated.decisions as any).agmClosingWords).toContain('best shot');
   });
+
+  it('requires an explicit coach selection before leaving hire coach', () => {
+    let state = hireAgmSetupState();
+    for (const phase of ['intel_briefing', 'meet_roster'] as const) {
+      state = applySetupDecision(state, {
+        acknowledged: [...state.decisions.acknowledged, phase],
+      });
+      state = advanceSetupPhase(state);
+    }
+
+    expect(state.currentPhase).toBe('hire_coach');
+    expect(isPhaseComplete(state, 'hire_coach')).toBe(false);
+
+    const updated = applySetupDecision(state, {
+      headCoachId: 'elias_rowe',
+    } as any);
+
+    expect(isPhaseComplete(updated, 'hire_coach')).toBe(true);
+  });
+
+  it('requires an explicit scouting director selection before leaving hire scout', () => {
+    let state = hireAgmSetupState();
+    for (const phase of ['intel_briefing', 'meet_roster'] as const) {
+      state = applySetupDecision(state, {
+        acknowledged: [...state.decisions.acknowledged, phase],
+      });
+      state = advanceSetupPhase(state);
+    }
+    state = applySetupDecision(state, {
+      headCoachId: 'elias_rowe',
+    } as any);
+    state = advanceSetupPhase(state);
+
+    expect(state.currentPhase).toBe('hire_scout');
+    expect(isPhaseComplete(state, 'hire_scout')).toBe(false);
+
+    const updated = applySetupDecision(state, {
+      scoutingDirectorId: 'zoe_wilcox',
+    } as any);
+
+    expect(isPhaseComplete(updated, 'hire_scout')).toBe(true);
+  });
 });
 
 describe('franchise setup integration', () => {
@@ -369,14 +465,7 @@ describe('franchise setup integration', () => {
     const schemeContext = generateSchemeContext(game, team.id);
     const goalContext = generateGoalContext(game, team.id);
     const intel = generateIntelBriefing(game, team.id);
-    let state = createSetupState();
-
-    for (const phase of ['intel_briefing', 'meet_roster', 'coaching_review'] as const) {
-      state = applySetupDecision(state, {
-        acknowledged: [...state.decisions.acknowledged, phase],
-      });
-      state = advanceSetupPhase(state);
-    }
+    let state = hireCoachAndScoutSetupState();
 
     state = applySetupDecision(state, {
       offenseScheme: schemeContext.offenseOptions[0]!.schemeId,
@@ -413,6 +502,9 @@ describe('franchise setup integration', () => {
     expect(finalized).not.toBe(game);
     expect(finalized.teams[team.id]!.schemeOff).toBe(state.decisions.offenseScheme);
     expect(finalized.teams[team.id]!.schemeDef).toBe(state.decisions.defenseScheme);
+    expect(finalized.teams[team.id]!.staff.hc?.id).toBe((state.decisions as any).headCoachId);
+    expect(finalized.teams[team.id]!.coachingStaff.hc?.id).toBe((state.decisions as any).headCoachId);
+    expect(finalized.scoutingDepartment.scouts).toHaveLength(3);
     expect(finalized.franchiseBlueprint?.teamName).toContain(team.name);
     expect(finalized.setupState?.blueprint?.teamName).toContain(team.name);
     expect(finalized.owners[team.ownerId]!.goals.floor).toBeTruthy();
@@ -424,7 +516,7 @@ describe('franchise setup integration', () => {
     const game = enrichStaff();
     const state = createSetupState();
 
-    expect(() => finalizeSetup(game, 'afce1', state)).toThrow(/intel_briefing/i);
+    expect(() => finalizeSetup(game, 'afce1', state)).toThrow(/choose_agm/i);
   });
 
   it('applies depth chart overrides and mirrors them into game players', () => {
@@ -432,14 +524,7 @@ describe('franchise setup integration', () => {
     const team = game.teams.afce1!;
     const schemeContext = generateSchemeContext(game, team.id);
     const goalContext = generateGoalContext(game, team.id);
-    let state = createSetupState();
-
-    for (const phase of ['intel_briefing', 'meet_roster', 'coaching_review'] as const) {
-      state = applySetupDecision(state, {
-        acknowledged: [...state.decisions.acknowledged, phase],
-      });
-      state = advanceSetupPhase(state);
-    }
+    let state = hireCoachAndScoutSetupState();
 
     state = applySetupDecision(state, {
       offenseScheme: schemeContext.offenseOptions[0]!.schemeId,
@@ -476,14 +561,7 @@ describe('franchise setup integration', () => {
     const team = game.teams.afce1!;
     const schemeContext = generateSchemeContext(game, team.id);
     const goalContext = generateGoalContext(game, team.id);
-    let state = createSetupState();
-
-    for (const phase of ['intel_briefing', 'meet_roster', 'coaching_review'] as const) {
-      state = applySetupDecision(state, {
-        acknowledged: [...state.decisions.acknowledged, phase],
-      });
-      state = advanceSetupPhase(state);
-    }
+    let state = hireCoachAndScoutSetupState();
 
     state = applySetupDecision(state, {
       offenseScheme: schemeContext.offenseOptions[0]!.schemeId,
@@ -624,6 +702,9 @@ describe('franchise setup generators', () => {
   it('builds a narrative blueprint with scheme labels and selected goals', () => {
     const game = addBattleAndInjury();
     const blueprint = generateBlueprint(game, 'afce1', {
+      agmProfileId: 'marcus_webb',
+      headCoachId: 'elias_rowe',
+      scoutingDirectorId: 'zoe_wilcox',
       offenseScheme: 'spread',
       defenseScheme: 'cover_3',
       seasonGoals: ['playoff_berth', 'draft_well', 'winning_record'],
@@ -658,7 +739,8 @@ describe('franchise setup generators', () => {
 const PHASES_ALL = [
   'intel_briefing',
   'meet_roster',
-  'coaching_review',
+  'hire_coach',
+  'hire_scout',
   'depth_chart',
   'cap_strategy',
   'blueprint',

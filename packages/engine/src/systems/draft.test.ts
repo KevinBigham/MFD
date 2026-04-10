@@ -138,6 +138,53 @@ describe('draft direct coverage', () => {
     expect(result.nextState.offseasonState?.scoutingState['prospect-workout']?.actions).toContain('private_workout');
   });
 
+  it('lets better scout accuracy drive more precise visible grades on interviews', () => {
+    const game = makeLeagueState('offseason', 1);
+    game.draftClass = [makeProspect('prospect-interview-grade', 'WR', 84)];
+    game.offseasonState = initializeOffseasonState(game);
+    game.scoutingDepartment.scouts = [
+      { id: 'elite-scout', name: 'Elite Scout', tier: 'elite', specialty: 'WR', scope: 'national', region: null, salary: 2.4, accuracy: 0.95 },
+    ];
+
+    const eliteResult = runScoutingAction(game, 'prospect-interview-grade', 'combine');
+    const eliteDelta = Math.abs((eliteResult.nextState.offseasonState?.scoutingState['prospect-interview-grade']?.visibleScoutGrade ?? 0) - 84);
+
+    const worseGame = makeLeagueState('offseason', 1);
+    worseGame.draftClass = [makeProspect('prospect-interview-grade', 'WR', 84)];
+    worseGame.offseasonState = initializeOffseasonState(worseGame);
+    worseGame.scoutingDepartment.scouts = [
+      { id: 'poor-scout', name: 'Poor Scout', tier: 'poor', specialty: null, scope: 'national', region: null, salary: 0.4, accuracy: 0.6 },
+    ];
+
+    const poorResult = runScoutingAction(worseGame, 'prospect-interview-grade', 'combine');
+    const poorDelta = Math.abs((poorResult.nextState.offseasonState?.scoutingState['prospect-interview-grade']?.visibleScoutGrade ?? 0) - 84);
+
+    expect(eliteDelta).toBeLessThanOrEqual(poorDelta);
+  });
+
+  it('only reveals character intel on interviews when scout reliability clears the threshold', () => {
+    const tapeGame = makeLeagueState('offseason', 1);
+    tapeGame.draftClass = [makeProspect('prospect-character', 'WR', 84)];
+    tapeGame.offseasonState = initializeOffseasonState(tapeGame);
+    tapeGame.scoutingDepartment.scouts = [
+      { id: 'regional-tape', name: 'Regional Tape', tier: 'good', specialty: 'WR', scope: 'regional', region: 'south', salary: 1.8, accuracy: 0.9 },
+    ];
+
+    const tapeResult = runScoutingAction(tapeGame, 'prospect-character', 'interview');
+
+    const lowSignalGame = makeLeagueState('offseason', 1);
+    lowSignalGame.draftClass = [makeProspect('prospect-character', 'WR', 84,)];
+    lowSignalGame.offseasonState = initializeOffseasonState(lowSignalGame);
+    lowSignalGame.scoutingDepartment.scouts = [
+      { id: 'general-scout', name: 'General Scout', tier: 'poor', specialty: null, scope: 'national', region: null, salary: 0.4, accuracy: 0.6 },
+    ];
+
+    const lowSignalResult = runScoutingAction(lowSignalGame, 'prospect-character', 'interview');
+
+    expect(tapeResult.nextState.offseasonState?.scoutingState['prospect-character']?.characterRead).not.toBe('unknown');
+    expect(lowSignalResult.nextState.offseasonState?.scoutingState['prospect-character']?.characterRead).toBe('unknown');
+  });
+
   it('auto-drafts for ai teams until the user team is on the clock', () => {
     const game = makeLeagueState('draft', 1);
     game.teams.afce1.draftPicks = [addPick('afce1', game.year, 1, 2)];

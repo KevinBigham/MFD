@@ -1,0 +1,193 @@
+{
+  "scheme_reactions": {
+    "elias_vance": {
+      "spread": "Spread gives us cleaner spacing and faster answers. If the quarterback processes on time, the math likes it.",
+      "west_coast": "West Coast lowers volatility. It asks for timing and discipline, which is usually good business in year one.",
+      "power_run": "Power Run can steady a roster, but it narrows our margin if the line is not consistently winning first contact.",
+      "air_raid": "Air Raid raises the ceiling and the weekly variance. We should only live there if we trust protection and decision speed.",
+      "balanced": "Balanced is not passive if we are intentional. It keeps the offense multiple while we learn what the roster can actually sustain.",
+      "4-3": "Four-three lets the front do the expensive work. If our defensive line is good enough, this keeps the math simple.",
+      "3-4": "Three-four creates pressure angles, but it also asks more from linebacker depth. That is a roster tax worth pricing honestly.",
+      "cover_2": "Cover Two protects the explosive ball, but it demands disciplined tackling underneath. Missed assignments become hidden yardage.",
+      "cover_3": "Cover Three is a strong year-one answer. It keeps the structure clean and limits the number of impossible calls.",
+      "man_press": "Man Press can create takeaways fast, but the cost of one bad matchup is immediate. The corners have to justify it."
+    },
+    "derrick_coleman": {
+      "spread": "Spread is fine if we still play fast and mean. I do not want a soft offense living sideways all day.",
+      "west_coast": "West Coast can work if the quarterback is decisive and the receivers block. Precision is toughness too when it is done right.",
+      "power_run": "Power Run tells the room who we are. If we are serious about owning the line, this is a grown-man choice.",
+      "air_raid": "Air Raid better come with answers when the pocket gets muddy. I am not building a team that panics when it gets hit.",
+      "balanced": "Balanced keeps us from marrying a lie too early. We can still lean physical and find out what this team does best.",
+      "4-3": "Four-three lets defenders attack instead of think. Fast rules, clean fits, and fewer excuses.",
+      "3-4": "Three-four is nasty when your second level can pressure and cover. If not, it gets cute in a hurry.",
+      "cover_2": "Cover Two is solid when your safeties communicate and your corners tackle. If they do not, teams nickel-and-dime you to death.",
+      "cover_3": "Cover Three is sturdy football. Keep the ball in front, hit people, make them earn everything.",
+      "man_press": "Man Press is a challenge. If our corners want smoke every snap, I am good with it."
+    },
+    "maya_alvarez": {
+      "spread": "Spread can help skill players breathe. When people play fast and confident, the whole offense settles down.",
+      "west_coast": "West Coast rewards trust and detail. It is a good fit when you want the offense speaking the same language quickly.",
+      "power_run": "Power Run gives the line and backs a clear identity. Players usually respond well when their roles feel concrete.",
+      "air_raid": "Air Raid is exciting, but it can put stress on the wrong people if protection and tempo are not aligned.",
+      "balanced": "Balanced keeps more people involved. That matters early, because role clarity is one of the fastest ways to build buy-in.",
+      "4-3": "Four-three can simplify teaching for the front seven. Cleaner assignments usually mean faster confidence.",
+      "3-4": "Three-four works when the linebackers understand the story of every pressure. If they do, it can make the defense feel alive.",
+      "cover_2": "Cover Two can calm a secondary because the picture stays consistent. That helps communication grow faster.",
+      "cover_3": "Cover Three gives everyone a dependable structure. It is easier to build trust when players know where help is coming from.",
+      "man_press": "Man Press asks defenders to live on an island. That can be empowering for the right room and stressful for the wrong one."
+    }
+  },
+  "goal_reactions": {
+    "elias_vance": {
+      "win_division": "Winning the division is aggressive, but it gives the room a sharp benchmark instead of a vague one.",
+      "playoff_berth": "Playoff berth is a rational year-one target. It keeps us ambitious without pretending the build is finished.",
+      "winning_record": "A winning record is a clean signal that the baseline improved. That matters more than empty noise.",
+      "rebuild_progress": "Rebuild progress only works if we define the checkpoints clearly. Otherwise it becomes a story people tell themselves.",
+      "cap_health": "Cap health buys future options, and options are leverage. I rarely mind a goal that protects leverage.",
+      "star_power": "Star power is only worth chasing if the infrastructure can support the stars once we find them.",
+      "no_losing_streak": "No losing streak is a variance-management goal. It sounds modest, but it protects morale and owner patience.",
+      "draft_well": "Drafting well is compounding. One strong class changes the next three years more than a splashy March headline does.",
+      "championship": "Championship is a real target only if the roster and variance profile can survive that expectation."
+    },
+    "derrick_coleman": {
+      "win_division": "Win the division. That is a grown-up goal and the room will know you mean business.",
+      "playoff_berth": "Playoff berth is fine, but I do not want the team celebrating sneaking in.",
+      "winning_record": "Winning record is the floor, not the speech. We should expect more from ourselves than that.",
+      "rebuild_progress": "Rebuild progress matters if the young guys are taking jobs from veterans, not just talking about someday.",
+      "cap_health": "Cap health is useful, but I am not hanging a banner for balanced books.",
+      "star_power": "Star power is real when stars set the tone. If they do not, it is just marketing.",
+      "no_losing_streak": "No losing streak keeps the building from getting soft. Momentum matters when adversity shows up.",
+      "draft_well": "Draft well means find competitors, not workout heroes. If that is the plan, I am in.",
+      "championship": "Championship is the point. If that word scares the room, we have the wrong room."
+    },
+    "maya_alvarez": {
+      "win_division": "Winning the division gives everyone a shared destination. It can be powerful when the room needs alignment.",
+      "playoff_berth": "Playoff berth is ambitious and believable. Players respond well to goals they can picture themselves reaching.",
+      "winning_record": "A winning record can stabilize trust quickly. Sometimes the first real step matters more than the biggest one.",
+      "rebuild_progress": "Rebuild progress matters because people need proof the hard work is leading somewhere real.",
+      "cap_health": "Cap health protects future relationships too. It keeps us from making promises we cannot honor later.",
+      "star_power": "Star power can lift a whole building, but only if those stars feel connected to the culture around them.",
+      "no_losing_streak": "No losing streak keeps the room from spiraling. Stability is a real form of leadership in year one.",
+      "draft_well": "Draft well is how we keep the locker room healthy over time. Young contributors change the mood of a franchise.",
+      "championship": "Championship is bold, and bold can be good, but the room has to believe the standard comes with support."
+    }
+  },
+  "teaching_tips": {
+    "elias_vance": {
+      "roster_screen": [
+        "Start with surplus value. The players beating their contracts are the ones you protect first.",
+        "Age plus OVR plus contract length tells you who belongs in the three-year plan.",
+        "Do not confuse a recognizable name with a stable asset. Use age and trend together."
+      ],
+      "depth_chart_screen": [
+        "Depth chart decisions are really exposure decisions. Ask which weak spot opponents can force most easily.",
+        "If two players grade similarly, the younger player usually creates more future leverage.",
+        "Auto-set is a baseline, not a verdict. Override only when you can explain the tradeoff clearly."
+      ],
+      "cap_screen": [
+        "Cap space is optionality. Spend it only when the marginal win value beats the future cost.",
+        "Dead money is not just pain, it is lost flexibility. Track who is creating it before you restructure anyone.",
+        "A clean medium-sized move is usually better than one desperate all-in move."
+      ],
+      "game_plan_screen": [
+        "Pick the scheme that asks your best players to repeat what they already do well.",
+        "Transition penalties matter because installation time is finite. Simplicity is a competitive edge.",
+        "If staff alignment and player fit disagree, year one usually belongs to the players."
+      ]
+    },
+    "derrick_coleman": {
+      "roster_screen": [
+        "Find the guys you trust when the game gets ugly. Build from them outward.",
+        "Bad depth hides until somebody gets hurt. Look for the room that scares you most right now.",
+        "Pay attention to who finishes plays, not just who looks good in a column."
+      ],
+      "depth_chart_screen": [
+        "Starter reps are earned every week. If a backup is pushing, make the room feel that pressure.",
+        "Tie goes to the player who plays faster and more physical inside the scheme.",
+        "If you cannot trust a spot on third down, it is not settled."
+      ],
+      "cap_screen": [
+        "Pay the difference-makers. Do not get sentimental about the middle of the roster.",
+        "Every bad contract steals snaps from somebody hungrier later.",
+        "If a move makes the locker room harder to respect, it is the wrong move."
+      ],
+      "game_plan_screen": [
+        "Scheme is a promise about how we plan to win. Make sure the roster can keep that promise.",
+        "Physical answers travel. Cute answers disappear the first time somebody punches back.",
+        "If the players can explain the identity in one sentence, you picked well."
+      ]
+    },
+    "maya_alvarez": {
+      "roster_screen": [
+        "Look for where talent and confidence already reinforce each other. That is where momentum starts.",
+        "A roster screen is also a people map. Ask who needs support, who needs challenge, and who needs clarity.",
+        "The best early win is often putting a good player in a role that finally makes sense."
+      ],
+      "depth_chart_screen": [
+        "Depth charts should give players a fair story about why they are where they are.",
+        "Mentorship matters. Pairing the right backup with the right starter can change a season quietly.",
+        "If a young player is ready for more, small increases in responsibility can build trust fast."
+      ],
+      "cap_screen": [
+        "Cap choices send messages. Players notice who gets rewarded, protected, or moved on from.",
+        "Flexibility is not just financial. It gives you room to respond compassionately when the season changes.",
+        "When a contract decision feels cold, make sure the logic is still clear enough to explain honestly."
+      ],
+      "game_plan_screen": [
+        "The best scheme is the one your players can believe in by Sunday, not the one that sounds smartest on a clinic board.",
+        "Role clarity helps confidence. Confidence helps execution. The right identity should do both.",
+        "If the scheme highlights what your leaders already do well, the rest of the room usually follows."
+      ]
+    }
+  },
+  "phase_transition_flavor": {
+    "elias_vance": {
+      "choose_agm__intel_briefing": "I close the tablet, slide it under my arm, and point you toward the first dashboard that actually matters.",
+      "intel_briefing__meet_roster": "Numbers first, people second, then back to the numbers once the film tells us what is real.",
+      "meet_roster__hire_coach": "Once the roster questions are framed, the staff decision becomes a cleaner optimization problem.",
+      "hire_coach__hire_scout": "The head coach shapes the weekly edge. The scouting director shapes whether that edge survives next spring.",
+      "hire_scout__set_scheme": "With the information pipeline accounted for, we can finally talk about identity instead of guesswork.",
+      "set_scheme__depth_chart": "Scheme narrows the menu. Depth chart tells us who actually has to cook.",
+      "depth_chart__cap_strategy": "Once the lineup is honest, the cap sheet stops being abstract and starts becoming consequence.",
+      "cap_strategy__set_goals": "Budget, roster, and timeline are finally on the same page. That is when goals stop being slogans.",
+      "set_goals__blueprint": "Good. Now we condense the whole day into one plan the building can actually execute."
+    },
+    "derrick_coleman": {
+      "choose_agm__intel_briefing": "The door shuts behind the last candidate and now it feels like a football job, not an interview day.",
+      "intel_briefing__meet_roster": "Enough charts. Let us go see who can really help us win.",
+      "meet_roster__hire_coach": "Players are one thing. The coach decides what the whole room sounds like every morning.",
+      "hire_coach__hire_scout": "Now we pick who is feeding us the truth before the rest of the league sees it.",
+      "hire_scout__set_scheme": "We know who is building the board. Time to decide how we want this team to hit people.",
+      "set_scheme__depth_chart": "Identity is cheap until you put real names next to real snaps.",
+      "depth_chart__cap_strategy": "The lineup tells you who matters. The money tells you whether you actually mean it.",
+      "cap_strategy__set_goals": "If we know the cost, then we can stop talking safe and pick a target worth chasing.",
+      "set_goals__blueprint": "That is enough talking. Let us put the plan on the wall and own it."
+    },
+    "maya_alvarez": {
+      "choose_agm__intel_briefing": "The room gets quieter after the choice, but it feels calmer too. Now we can start building together.",
+      "intel_briefing__meet_roster": "The data gave us the outline. Meeting the players fills in the human part of the picture.",
+      "meet_roster__hire_coach": "Once you understand the room, the right teacher matters even more.",
+      "hire_coach__hire_scout": "A coach shapes daily habits. A scouting director shapes who gets invited into those habits next.",
+      "hire_scout__set_scheme": "Now that the voices are lined up, we can choose an identity people can actually grow inside.",
+      "set_scheme__depth_chart": "Systems matter, but roles make those systems feel real to players.",
+      "depth_chart__cap_strategy": "Depth decisions lead straight to resource decisions. They always do.",
+      "cap_strategy__set_goals": "Once the money and roster are honest, goals can become a promise instead of a wish.",
+      "set_goals__blueprint": "We have enough clarity now to turn a long day into one shared direction."
+    }
+  },
+  "loading_tips": [
+    "Scheme fit matters more in year one than theoretical upside.",
+    "Healthy cap space gives you more than money. It gives you timing.",
+    "The first honest depth chart tells you where the season can break.",
+    "A good year-one goal should stretch the room without lying to it.",
+    "The players who outperform their contracts usually define your margin.",
+    "Coaching fit is only real if the roster can absorb the teaching quickly.",
+    "Scouting process shows up months later. That is why it matters now.",
+    "A stable structure helps young players develop faster under pressure."
+  ],
+  "blueprint_closing_monologue": {
+    "elias_vance": "That is the board. We know the leverage points, the risks, and the probabilities. Nothing about this season is guaranteed, but this plan gives us the cleanest path to useful wins now and better options later. We do not need perfect. We need disciplined.",
+    "derrick_coleman": "There it is. We know who we are riding with, how we want to play, and what we are chasing. The building is going to feel different tomorrow because now it has a standard. Let everybody else talk. We are going to go prove it.",
+    "maya_alvarez": "This is the first day it starts feeling like our team. The plan is clear, the expectations are fair, and the people in this building know what we are asking from them. That matters. If we stay aligned, this can become the kind of season players remember for the right reasons."
+  }
+}
