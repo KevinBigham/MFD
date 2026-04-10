@@ -1,0 +1,146 @@
+{
+  "head_coach_candidates": [
+    {
+      "id": "marcus_whitaker",
+      "name": "Marcus Whitaker",
+      "age": 48,
+      "background": "Spent last six years as offensive coordinator in Seattle, turning a bottom-five unit into top-three in EPA per play. Former Division III quarterback who climbed through quality control ranks. Known for scripting first 15 plays with surgical precision.",
+      "archetype": "offensive_genius",
+      "scheme_preference": { "offense": "air_raid", "defense": "press_man" },
+      "strengths": ["Elite red zone creativity", "Quarterback development track record", "Tempo control that wears down defenses"],
+      "weaknesses": ["Delegates defense entirely to coordinator", "Clock management ranked 28th last two seasons"],
+      "interview_quote": "Give me a quarterback who processes fast and I'll give you 30 points a game.",
+      "agm_reactions": {
+        "elias_vance": { "recommendation": "hire", "analysis": "His offenses have averaged plus 0.18 EPA per dropback over three seasons, that's top five percentile. That's a 62 percent win probability boost when paired with even average defense. The clock management is a real leak, about minus 0.4 wins per year, but that's coachable. Process over outcome, every time.", "one_liner": "Checking my model, he adds 2.1 expected wins. That's a clear hire." },
+        "derrick_coleman": { "recommendation": "consider", "analysis": "Listen, Whitaker, smart as hell. Players love him, quarterbacks get better. But he runs a finesse spread, and he don't care about defense. You win in December by running the ball and stopping the run. I worry we get soft. He can coach, but we need dogs on both sides.", "one_liner": "Listen, he'll score points, but will his guys hit anybody?" },
+        "maya_alvarez": { "recommendation": "consider", "analysis": "Marcus connects beautifully with quarterbacks and skill players, I've heard that from three agents already. My concern is balance. Will the defensive staff feel empowered, or will they feel like second-class citizens? Culture has to be whole-team, not just offense. Can we build that together?", "one_liner": "He's brilliant, but how do we make sure everyone feels valued?" }
+      }
+    },
+    {
+      "id": "victor_ramos",
+      "name": "Victor Ramos",
+      "age": 54,
+      "background": "Twenty-year defensive coordinator, built top-five defenses in three different cities. Former Marine who brings that discipline to meetings. Never been a head coach, turned down two interviews waiting for right roster.",
+      "archetype": "defensive_mastermind",
+      "scheme_preference": { "offense": "power_run", "defense": "3_4_base" },
+      "strengths": ["Creates turnovers through disguise", "Develops linebackers into All-Pros", "Situational mastery on third down"],
+      "weaknesses": ["Wants to run ball 35 times a game", "History of clashing with offensive coordinators"],
+      "interview_quote": "We will be the most physical team in the league by Week 4, or I'll resign.",
+      "agm_reactions": {
+        "elias_vance": { "recommendation": "consider", "analysis": "His defenses allow minus 0.12 EPA per play, elite territory. That's a three-win floor. The problem is offensive conservatism, his preferred power run scheme ranks 22nd in efficiency league-wide. It's like playing chess and refusing to use your queen. We'd need to pair him with a strong OC.", "one_liner": "Defense is a 70 percent hit rate, offense is the variance." },
+        "derrick_coleman": { "recommendation": "hire", "analysis": "Listen, Ramos, that's my guy. Played linebacker, coaches like a linebacker. His players would run through a wall, I know three of them personally. He builds tough, smart defenses that hit. Yeah, he's stubborn on offense, but I'll take physical over pretty every Sunday.", "one_liner": "Listen, Ramos builds teams I want to play for." },
+        "maya_alvarez": { "recommendation": "pass", "analysis": "Victor is a tremendous teacher, but I've talked to two former offensive coordinators who worked for him. Both described a divided building. If we hire him, how do we ensure collaboration, not silos? Culture eats scheme for breakfast, and I'm worried about the room fracturing. We need alignment, not a turf war.", "one_liner": "Can we build one team with two different philosophies?" }
+      }
+    },
+    {
+      "id": "jamal_brooks",
+      "name": "Jamal Brooks",
+      "age": 45,
+      "background": "Former Pro Bowl running back turned running backs coach, then assistant head coach in Detroit. Players voted him most respected coach two years straight. Never called plays, but led culture turnaround.",
+      "archetype": "players_coach",
+      "scheme_preference": { "offense": "zone_run", "defense": "tampa_2" },
+      "strengths": ["Unmatched locker room buy-in", "Elite player development, especially young players", "Crisis management and communication"],
+      "weaknesses": ["Relies heavily on coordinators for scheme", "In-game adjustments have been slow in interim stints"],
+      "interview_quote": "I'll never ask a player to do something I wouldn't do myself. We win together.",
+      "agm_reactions": {
+        "elias_vance": { "recommendation": "pass", "analysis": "Players coaches without playcalling experience have a 44 percent success rate as first-time head coaches, that's below replacement. His scheme preferences are sound, zone run and Tampa 2 are efficient, but he's delegating the chess match. I'd rather hire the coordinator and keep Brooks as assistant head coach.", "one_liner": "The model says high variance, low control. That's a pass for me." },
+        "derrick_coleman": { "recommendation": "consider", "analysis": "Listen, Brooks, players love him, and that matters. I played for a guy like that, we went to war. But can he make the hard call on fourth down? Can he tell a coordinator his plan stinks? I don't know. I like him, but I need to see the fire when it counts.", "one_liner": "Listen, great leader, but is he a killer when we need one?" },
+        "maya_alvarez": { "recommendation": "hire", "analysis": "Jamal is exactly the kind of human we need after a GM firing. Players trust him instantly, coaches want to work for him, and he builds bridges, not walls. Yes, we'll need to surround him with strong tacticians, but culture is the multiplier. With him, we can attract free agents and keep our own. That's how we win sustainably.", "one_liner": "He's the connector who makes everyone better, including us." }
+      }
+    }
+  ],
+  "scouting_director_candidates": [
+    {
+      "id": "calvin_hendricks",
+      "name": "Calvin Hendricks",
+      "age": 58,
+      "background": "Thirty-four years scouting, started driving a Buick through the SEC in 1991. Found four Pro Bowlers after round four. Still grades players on paper, watches every snap three times.",
+      "specialty": "college",
+      "philosophy": "The tape don't lie, and neither do a player's eyes when he's tired.",
+      "strengths": ["Evaluates toughness and competitive stamina", "Deep relationships with college coaches", "Late-round sleeper identification"],
+      "weaknesses": ["Dismisses analytics as spreadsheet nonsense", "Slow to adopt new technology and data tools"],
+      "interview_quote": "I can tell you if a kid loves football in three plays.",
+      "agm_reactions": {
+        "elias_vance": { "recommendation": "pass", "analysis": "Cal is a legend, but his hit rate on day three picks is 18 percent, league average is 22. He actively ignores GPS data and RAS scores that correlate with injury. That's leaving money on the table.", "one_liner": "Great stories, but the process is stuck in 2005." },
+        "derrick_coleman": { "recommendation": "hire", "analysis": "Listen, Hendricks, that's a real scout. He lives in high school gyms, he knows who loves ball. He found my teammate in the sixth round, still starting. I trust his eyes over any computer.", "one_liner": "Listen, Cal finds dogs, not data points." },
+        "maya_alvarez": { "recommendation": "consider", "analysis": "Cal's relationships are invaluable, coaches tell him the truth about character. My question is, can he collaborate with our analytics team? We need both art and science, not either or. Can we build that bridge together?", "one_liner": "How do we honor his experience while modernizing our process?" }
+      }
+    },
+    {
+      "id": "priya_desai",
+      "name": "Priya Desai",
+      "age": 36,
+      "background": "Former quantitative analyst at a hedge fund, joined the league in 2019. Built a draft model that outperformed the market by 12 percent over three years. Never scouted on the road full-time.",
+      "specialty": "analytics",
+      "philosophy": "Find market inefficiencies before the market corrects.",
+      "strengths": ["Predictive modeling for draft success", "Combine data interpretation", "Contract value optimization"],
+      "weaknesses": ["Limited in-person evaluation experience", "Can undervalue intangibles and character flags"],
+      "interview_quote": "If we can't measure it, we probably shouldn't pay for it.",
+      "agm_reactions": {
+        "elias_vance": { "recommendation": "hire", "analysis": "Priya's model has a 0.71 correlation to second-contract AV, that's elite. Pairing her with our regional scouts gives us a 68 percent hit rate improvement on rounds two through four. It's exactly the edge we need.", "one_liner": "She turns uncertainty into probability. That's a hire." },
+        "derrick_coleman": { "recommendation": "pass", "analysis": "Listen, Desai, smart, real smart. But she's never sat in a living room with a mama at midnight. She can't tell me if a kid quits when he's tired. Football ain't a spreadsheet.", "one_liner": "Listen, numbers don't tackle." },
+        "maya_alvarez": { "recommendation": "consider", "analysis": "Priya brings rigor we need, and she asks great questions about people, not just data. I'd want to pair her with a veteran road scout to balance. Can she learn the human side as fast as she learned the math?", "one_liner": "Can we teach the art to go with her science?" }
+      }
+    },
+    {
+      "id": "theo_washington",
+      "name": "Theo Washington",
+      "age": 44,
+      "background": "Started as area scout, became director of pro personnel, then college director. Known as the translator between old school and new school in two front offices.",
+      "specialty": "pro",
+      "philosophy": "Balance the spreadsheet and the story.",
+      "strengths": ["Bridges analytics and traditional scouting", "Excellent communicator with coaches", "Pro free agency evaluation"],
+      "weaknesses": ["Not elite at either analytics or tape grinding", "Tends toward consensus, avoids bold swings"],
+      "interview_quote": "My job is to make sure the scout and the scientist are talking about the same player.",
+      "agm_reactions": {
+        "elias_vance": { "recommendation": "consider", "analysis": "Theo is a solid 55th percentile in both domains, which creates stability but not alpha. He'll reduce our bust rate by about 8 percent, but he won't find us the outlier star. He's a safe, collaborative choice.", "one_liner": "Low variance, moderate upside. That's a consider." },
+        "derrick_coleman": { "recommendation": "consider", "analysis": "Listen, Washington, good dude, players respect him, coaches like him. He ain't the best tape guy, ain't the best numbers guy, but he gets people talking. Might be what we need after the mess here.", "one_liner": "Listen, Theo keeps the room together." },
+        "maya_alvarez": { "recommendation": "hire", "analysis": "Theo is exactly the connector we need. He speaks both languages, he builds trust, and he makes decisions with people in mind. After a firing, we need someone who unites the building, not divides it. He helps us become who we say we want to be.", "one_liner": "He helps us build the culture while we build the roster." }
+      }
+    }
+  ],
+  "teaching_narration": {
+    "what_is_a_head_coach": {
+      "elias_vance": "Your head coach is your chief decision-maker on game day, responsible for about 120 high-leverage choices per game. We measure them on fourth-down aggressiveness, timeout efficiency, and challenge success rate, all of which correlate to roughly 0.8 wins per season. Think of them as the player moving the chess pieces, while you provide the pieces. Hire for process, not just personality.",
+      "derrick_coleman": "Listen, head coach sets the temperature every day. Players know in five minutes if he'll go to war for them. He runs practice, he calls the shots when it's loud, he decides who plays when it's fourth and one. You need a guy players run through walls for, not a guy who reads a script.",
+      "maya_alvarez": "What does a head coach really do? He sets the standard for how we treat each other when no one is watching. He manages 20 different personalities, from the quarterback to the practice squad. How does he build trust? How does he handle conflict? That's the job, wins follow that."
+    },
+    "what_is_a_scouting_director": {
+      "elias_vance": "The scouting director runs our information market. He turns 2,000 college players into a ranked board with confidence intervals. A good director improves our hit rate by 10 to 15 percent, which is worth about 12 million in surplus value per draft. He's your edge.",
+      "derrick_coleman": "Listen, scouting director finds the dogs. He lives on the road, watches tape till his eyes bleed, tells you who loves football. He builds the board, but more important, he tells you who to trust when the lights come on. That's your lifeline.",
+      "maya_alvarez": "Your scouting director shapes who we invite into our family. How do we evaluate character, not just 40 times? He has to align scouts, coaches, and your vision. When we get that right, we draft people who fit who we are, not just what we need."
+    },
+    "why_scheme_matters": {
+      "elias_vance": "Scheme is optimization. A west coast offense generates plus 0.05 EPA per play with an accurate quarterback but minus 0.03 with a strong arm and poor timing. You're matching player skill curves to play distributions. Get it right and you gain two wins for free.",
+      "derrick_coleman": "Listen, scheme is identity. Power run tells the other team we're gonna hit you for four quarters. Tampa 2 says we swarm. Players play faster when they know who they are. Pick a scheme your guys believe in, then go impose it.",
+      "maya_alvarez": "Why does scheme matter? Because it has to fit your people, not the other way around. What do our linemen do well? What does our quarterback love? When scheme fits people, confidence grows. That's when culture and performance connect."
+    },
+    "what_is_the_salary_cap": {
+      "elias_vance": "The cap is a 255 million dollar budget with complex accounting rules. Every dollar you push to future years costs 1.08 dollars due to dead money risk. Think of it as poker chips, you can go all in now, but you reduce your options later. We optimize for three-year win probability, not one-year headlines.",
+      "derrick_coleman": "Listen, cap is simple. Pay the guys who produce, don't pay for what they did three years ago. Keep money for your own dogs. Don't get stuck with dead money for guys who don't play. That's how bad teams stay bad.",
+      "maya_alvarez": "What is the cap really? It's how we show players what we value. Who do we invest in long term? Who do we thank and let go? Those decisions send messages through the locker room. We need to be clear, fair, and consistent, that's how trust compounds."
+    },
+    "what_are_season_goals": {
+      "elias_vance": "Goals are target functions. Do we maximize year one wins, or maximize the probability of a Super Bowl in years two through four? Vegas has us at 6.5 wins, the model says 7.2. Setting a goal of 9 wins changes our risk tolerance on trades and free agency. Let's choose intentionally.",
+      "derrick_coleman": "Listen, goals are simple. Win the division. Everything else is excuses. You set a goal to go 8-9, you'll go 8-9. You tell the team we're winning the North, now they practice different. Set the bar high.",
+      "maya_alvarez": "What do we want this season to feel like? Wins matter, but how do we want players to describe playing here? Do we want to be known for development, for toughness, for connection? Let's set goals for the record and for the standard, then we live them daily."
+    },
+    "how_the_draft_works": {
+      "elias_vance": "The draft is the most inefficient market in sports. Teams overvalue recent production by 23 percent and undervalue age by 18 percent. Our job is to exploit that. We trade back when the board is flat, trade up when our model shows a tier break. That's how you create surplus value.",
+      "derrick_coleman": "Listen, draft is about finding competitors. Watch the tape, does he quit on plays? Does he love football? Combine is underwear Olympics. Give me the kid who plays hard every snap from a small school over the workout warrior. That's how you build a roster.",
+      "maya_alvarez": "How does the draft work for us? It's not just picking players, it's inviting people into our culture. What is their story? How do they handle adversity? We interview for character as much as talent, because we're investing in a person for four years, not just a 40 time."
+    }
+  },
+  "hiring_celebration": {
+    "after_coach_hire": {
+      "elias_vance": ["Good process. The data supports this decision.", "His profile adds 1.8 expected wins over baseline.", "Now we optimize the staff around his strengths."],
+      "derrick_coleman": ["Listen, we got our coach. I respect the pick.", "Now we find players who fit how he wants to play.", "Time to go to work, GM."],
+      "maya_alvarez": ["I feel good about this fit for our people.", "He connects with players, that's our foundation.", "Let's make sure he feels supported from day one."]
+    },
+    "after_scout_hire": {
+      "elias_vance": ["Excellent. Our information edge just improved.", "This hire should lift our day-two hit rate by 10 percent.", "Now we integrate the model with the board."],
+      "derrick_coleman": ["Listen, we got a real evaluator. I like it.", "He finds football players, not just testers.", "Let's trust his eyes and go find dogs."],
+      "maya_alvarez": ["This person will help us stay aligned.", "I love how they think about people, not just prospects.", "We'll build a draft room where everyone is heard."]
+    }
+  }
+}
