@@ -1,8 +1,15 @@
 import pressConferenceTemplatesJson from '../../content/broadcast/press-conference-templates.json';
+import agmDialogueJson from '../../content/broadcast/agm-dialogue.json';
+import passingDefenseStTemplatesJson from '../../content/broadcast/passing-defense-st-templates.json';
+import rushingTemplatesJson from '../../content/broadcast/rushing-templates.json';
+import awardSpeechesJson from '../../content/ceremonies/award-speeches.json';
+import coachArchetypesJson from '../../content/coaching/coach-archetypes.json';
 import halftimePerformersJson from '../../content/halftime/halftime-performers.json';
 import playerNamesJson from '../../content/names/player-names.json';
 import storyArcTemplatesJson from '../../content/narrative/story-arc-templates.json';
 import leagueNewsTemplatesJson from '../../content/news/league-news-templates.json';
+import personalityFlavorJson from '../../content/personalities/personality-flavor.json';
+import scoutingReportTemplatesJson from '../../content/scouting/scouting-report-templates.json';
 import socialFeedTemplatesJson from '../../content/social/social-feed-templates.json';
 import team_atl_peaches_json from '../../content/teams/atl-peaches.json';
 import team_bal_crab_pickers_json from '../../content/teams/bal-crab-pickers.json';
@@ -202,12 +209,101 @@ interface TeamPAOverrides {
   touchdownCall?: string;
 }
 
+export type ScoutingTemplateTier =
+  | 'elite'
+  | 'solid'
+  | 'fixable'
+  | 'concerning'
+  | 'first_round'
+  | 'mid_round'
+  | 'late_round'
+  | 'comparison';
+
+interface ScoutingTemplateBucket {
+  strengths_elite: readonly string[];
+  strengths_solid: readonly string[];
+  weaknesses_fixable: readonly string[];
+  weaknesses_concerning: readonly string[];
+  projection_first_round: readonly string[];
+  projection_mid_round: readonly string[];
+  projection_late_round: readonly string[];
+  comparison_template: readonly string[];
+}
+
+interface ScoutingTemplatesContent {
+  scouting_templates: Record<string, ScoutingTemplateBucket>;
+}
+
+export interface CoachArchetypeContent {
+  id: string;
+  press_conference: readonly string[];
+  sideline_reaction_good: readonly string[];
+  sideline_reaction_bad: readonly string[];
+}
+
+interface CoachArchetypesContent {
+  coach_archetypes: Record<string, Omit<CoachArchetypeContent, 'id'>>;
+  scheme_descriptions: Record<string, Record<string, Record<string, string>>>;
+}
+
+interface AwardSpeechVariantBucket {
+  acceptance_humble?: readonly string[];
+  acceptance_confident?: readonly string[];
+  presenter_intro?: readonly string[];
+  induction_speech?: readonly string[];
+}
+
+interface AwardSpeechContent {
+  award_speeches: Record<string, AwardSpeechVariantBucket>;
+}
+
+type PersonalityFlavorScenario =
+  | 'socialPost'
+  | 'pressQuote'
+  | 'scoutReport'
+  | 'lockerRoomVibe'
+  | 'contractDemand';
+
+type PersonalityDimension = 'workEthic' | 'loyalty' | 'greed' | 'pressure' | 'ambition';
+type PersonalityTier = 'low' | 'mid' | 'high';
+
+type PersonalityFlavorContent = Record<PersonalityDimension, Record<PersonalityTier, Record<PersonalityFlavorScenario, readonly string[]>>>;
+
+type AgmDialogueContent = Record<string, Record<string, Record<string, readonly string[]>>>;
+
+interface BroadcastTemplateCategory {
+  openers: readonly string[];
+  endings: readonly string[];
+}
+
+export interface AwardSpeechResult {
+  presenterIntro: string;
+  acceptance: string;
+}
+
+export interface PersonalityInput {
+  workEthic: number;
+  loyalty: number;
+  greed: number;
+  pressure: number;
+  ambition: number;
+}
+
 const pressConferenceTemplates = pressConferenceTemplatesJson as Record<PressConferenceScenario, PressConferenceScenarioContent>;
 const storyArcTemplates = storyArcTemplatesJson as Record<StoryArcContentTemplate, Record<StoryArcContentPhase, StoryArcPhaseContent>>;
 const playerNames = playerNamesJson as PlayerNameContent;
 const socialFeedTemplates = socialFeedTemplatesJson as SocialFeedTemplateContent;
 const leagueNewsTemplates = leagueNewsTemplatesJson as Record<LeagueNewsEventType, LeagueNewsTemplateCategory>;
 const halftimeContent = halftimePerformersJson as HalftimeContent;
+const scoutingReportTemplates = scoutingReportTemplatesJson as ScoutingTemplatesContent;
+const coachArchetypeContent = coachArchetypesJson as CoachArchetypesContent;
+const awardSpeechContent = awardSpeechesJson as AwardSpeechContent;
+const personalityFlavorContent = personalityFlavorJson as PersonalityFlavorContent;
+const agmDialogueContent = agmDialogueJson as AgmDialogueContent;
+const broadcastTemplateContent = {
+  ...(passingDefenseStTemplatesJson as Record<string, BroadcastTemplateCategory>),
+  ...(rushingTemplatesJson as Record<string, BroadcastTemplateCategory>),
+} satisfies Record<string, BroadcastTemplateCategory>;
 const teamContentList = [
   team_atl_peaches_json,
   team_bal_crab_pickers_json,
@@ -258,6 +354,61 @@ function pickWithRng<T>(items: readonly T[], rng: () => number, label: string): 
   return items[Math.floor(rng() * items.length)]!;
 }
 
+const COACH_ARCHETYPE_NORMALIZATION: Record<string, string> = {
+  strategist: 'offensive_genius',
+  'qb guru': 'offensive_genius',
+  'air attack': 'offensive_genius',
+  innovator: 'analytics_innovator',
+  motivator: 'motivational_leader',
+  "player's coach": 'players_coach',
+  'players coach': 'players_coach',
+  'db whisperer': 'players_coach',
+  disciplinarian: 'old_school_disciplinarian',
+  'run stuffer': 'defensive_mastermind',
+  'blitz master': 'defensive_mastermind',
+  'run coordinator': 'defensive_mastermind',
+};
+
+const SCOUTING_TIER_MAP: Record<ScoutingTemplateTier, keyof ScoutingTemplateBucket> = {
+  elite: 'strengths_elite',
+  solid: 'strengths_solid',
+  fixable: 'weaknesses_fixable',
+  concerning: 'weaknesses_concerning',
+  first_round: 'projection_first_round',
+  mid_round: 'projection_mid_round',
+  late_round: 'projection_late_round',
+  comparison: 'comparison_template',
+};
+
+const PERSONALITY_DIMENSIONS: readonly PersonalityDimension[] = [
+  'workEthic',
+  'loyalty',
+  'greed',
+  'pressure',
+  'ambition',
+] as const;
+
+function normalizeCoachArchetypeId(id: string): string {
+  const normalized = id.trim().toLowerCase();
+  return COACH_ARCHETYPE_NORMALIZATION[normalized] ?? normalized.replace(/\s+/g, '_');
+}
+
+function tierForPersonalityValue(value: number): PersonalityTier {
+  if (value <= 3) return 'low';
+  if (value >= 8) return 'high';
+  return 'mid';
+}
+
+function dominantPersonalityDimension(personality: PersonalityInput): PersonalityDimension {
+  return [...PERSONALITY_DIMENSIONS]
+    .sort((left, right) => {
+      const rightDelta = Math.abs(personality[right] - 5);
+      const leftDelta = Math.abs(personality[left] - 5);
+      if (rightDelta !== leftDelta) return rightDelta - leftDelta;
+      return PERSONALITY_DIMENSIONS.indexOf(left) - PERSONALITY_DIMENSIONS.indexOf(right);
+    })[0]!;
+}
+
 function normalizeInterpolatedText(value: string): string {
   return value
     .replace(/\s+/g, ' ')
@@ -280,6 +431,111 @@ export function interpolateContentPlaceholders(
 
 export function getPressConferenceScenarioContent(scenario: string): PressConferenceScenarioContent | null {
   return pressConferenceTemplates[scenario as PressConferenceScenario] ?? null;
+}
+
+export function getScoutingReportTemplate(position: string, tier: ScoutingTemplateTier): readonly string[] | null {
+  const templates = scoutingReportTemplates.scouting_templates[position.toUpperCase()];
+  if (!templates) return null;
+  return templates[SCOUTING_TIER_MAP[tier]] ?? null;
+}
+
+export function getCoachArchetype(id: string): CoachArchetypeContent | null {
+  const normalizedId = normalizeCoachArchetypeId(id);
+  const content = coachArchetypeContent.coach_archetypes[normalizedId];
+  if (!content) return null;
+  return {
+    id: normalizedId,
+    ...content,
+  };
+}
+
+export function getAwardSpeech(
+  awardId: string,
+  player: {
+    name: string;
+    teamName?: string | null;
+    coachName?: string | null;
+    year?: number | null;
+    stat?: string | null;
+    personality?: PersonalityInput | null;
+  },
+  rng: () => number = () => 0,
+): AwardSpeechResult | null {
+  const content = awardSpeechContent.award_speeches[awardId];
+  if (!content) return null;
+
+  const ambition = player.personality?.ambition ?? 5;
+  const acceptancePool = ambition >= 8
+    ? (content.acceptance_confident ?? content.acceptance_humble)
+    : (content.acceptance_humble ?? content.acceptance_confident);
+  const presenterPool = content.presenter_intro ?? [];
+  if (!acceptancePool || acceptancePool.length === 0 || presenterPool.length === 0) return null;
+
+  const placeholders = {
+    playerName: player.name,
+    teamName: player.teamName ?? 'the club',
+    coachName: player.coachName ?? 'the staff',
+    year: player.year ?? '',
+    stat: player.stat ?? 'an outstanding season',
+  };
+
+  return {
+    presenterIntro: interpolateContentPlaceholders(
+      pickWithRng(presenterPool, rng, `award:${awardId}:presenter`),
+      placeholders,
+    ),
+    acceptance: interpolateContentPlaceholders(
+      pickWithRng(acceptancePool, rng, `award:${awardId}:acceptance`),
+      placeholders,
+    ),
+  };
+}
+
+export function getPersonalityLine(
+  personality: PersonalityInput,
+  scenario: PersonalityFlavorScenario,
+  rng: () => number = () => 0,
+): string {
+  const dominant = dominantPersonalityDimension(personality);
+  const tier = tierForPersonalityValue(personality[dominant]);
+  const bucket = personalityFlavorContent[dominant]?.[tier]?.[scenario];
+  if (!bucket || bucket.length === 0) {
+    throw new Error(`Missing personality content for ${dominant}:${tier}:${scenario}.`);
+  }
+  return pickWithRng(bucket, rng, `personality:${dominant}:${tier}:${scenario}`);
+}
+
+export function getAgmDialogueLine(
+  personaId: string,
+  eventKey: string,
+  contextKey: string,
+  rng: () => number = () => 0,
+): string {
+  const lines = agmDialogueContent[personaId]?.[eventKey]?.[contextKey];
+  if (!lines || lines.length === 0) {
+    throw new Error(`Missing AGM dialogue for ${personaId}:${eventKey}:${contextKey}.`);
+  }
+  return pickWithRng(lines, rng, `agm:${personaId}:${eventKey}:${contextKey}`);
+}
+
+export function getBroadcastTemplate(
+  playType: string,
+  bucket: keyof BroadcastTemplateCategory,
+  rng: () => number = () => 0,
+  placeholders: Record<string, string | number | null | undefined> = {},
+): string {
+  const category = broadcastTemplateContent[playType];
+  if (!category) {
+    throw new Error(`Missing broadcast template category for ${playType}.`);
+  }
+  const entries = category[bucket];
+  if (!entries || entries.length === 0) {
+    throw new Error(`Missing broadcast template bucket for ${playType}:${bucket}.`);
+  }
+  return interpolateContentPlaceholders(
+    pickWithRng(entries, rng, `broadcast:${playType}:${bucket}`),
+    placeholders,
+  );
 }
 
 export function getStoryArcPhaseContent(arcType: string, phase: string): StoryArcPhaseContent | null {

@@ -1,4 +1,5 @@
-import { DIFF_SETTINGS, type DifficultyLevel } from '@mfd/engine';
+import { useMemo } from 'react';
+import { DIFF_SETTINGS, validateGameState, type DifficultyLevel } from '@mfd/engine';
 import { useAudio } from '../audio/AudioManager';
 import {
   PixelBadge,
@@ -42,7 +43,20 @@ function facilityEffectCopy(type: string, level: number): string {
   return `Injury risk x${(1 - level * 0.05).toFixed(2)}`;
 }
 
+function isDebugModeEnabled(): boolean {
+  const locationRef = typeof window !== 'undefined'
+    ? window.location
+    : typeof globalThis.location !== 'undefined'
+      ? globalThis.location
+      : null;
+  if (!locationRef) return false;
+  if (new URLSearchParams(locationRef.search).get('debug') === '1') return true;
+  const hashQuery = locationRef.hash.includes('?') ? locationRef.hash.split('?')[1] ?? '' : '';
+  return new URLSearchParams(hashQuery).get('debug') === '1';
+}
+
 export function Settings() {
+  const game = useGameStore((state) => state.game);
   const team = useGameStore(selectUserTeam);
   const difficulty = useGameStore((state) => state.game?.difficulty ?? 'pro');
   const difficultyState = useGameStore(selectDifficultyState);
@@ -61,6 +75,11 @@ export function Settings() {
   const currentMedical = medicalStaff.current;
   const availableMedicalStaff = medicalStaff.available;
   const medicalHiringOpen = phase === 'offseason';
+  const debugModeEnabled = isDebugModeEnabled();
+  const invariantResult = useMemo(
+    () => (debugModeEnabled && game ? validateGameState(game) : null),
+    [debugModeEnabled, game],
+  );
 
   return (
     <div style={screenStackStyle}>
@@ -357,6 +376,53 @@ export function Settings() {
           </div>
         </PixelPanel>
       </div>
+
+      {debugModeEnabled && invariantResult ? (
+        <PixelPanel title="Invariant Debug" accent={invariantResult.valid ? 'green' : 'red'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant={invariantResult.valid ? 'green' : 'red'}>
+                {invariantResult.valid ? 'State Clean' : `${invariantResult.violations.length} Violations`}
+              </PixelBadge>
+              <PixelBadge variant="default">Developer only</PixelBadge>
+            </div>
+            {invariantResult.valid ? (
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                No invariant violations detected in the loaded save.
+              </div>
+            ) : (
+              invariantResult.violations.map((violation, index) => (
+                <div
+                  key={`${violation.rule}-${index}`}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    padding: '10px',
+                    border: '2px solid var(--mfd-border)',
+                    background: 'var(--mfd-bg-3)',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <PixelBadge variant={
+                      violation.severity === 'critical' || violation.severity === 'high'
+                        ? 'red'
+                        : violation.severity === 'medium'
+                          ? 'gold'
+                          : 'default'
+                    }
+                    >
+                      {violation.severity}
+                    </PixelBadge>
+                    <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{violation.rule}</span>
+                  </div>
+                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{violation.message}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </PixelPanel>
+      ) : null}
     </div>
   );
 }

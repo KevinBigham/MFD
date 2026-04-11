@@ -1522,6 +1522,7 @@ export interface GamePlan {
   keyMatchup: { playerA: string; playerB: string } | null;
   gamePlanBonus: number;
   contingencyRules?: import('../systems/contingency-plans').ContingencyRule[];
+  trickPlays?: string[];
 }
 
 export interface OpponentReport {
@@ -2123,6 +2124,8 @@ export interface WeeklyPrepPlan {
   keyMatchupPlayerId: string | null;
   snapManagement: WeeklyPrepSnapManagement;
   specialSituation: WeeklyPrepSpecialSituation;
+  contingencyRules?: import('../systems/contingency-plans').ContingencyRule[];
+  trickPlays?: string[];
 }
 
 export interface WeeklyPrepEffects {
@@ -2202,6 +2205,30 @@ export interface FilmRoomReport {
 export interface GameDayState {
   recentPackages: GameDayPackage[];
   latestPackageId: string | null;
+}
+
+export type PressConferenceResponseTier = 'high' | 'mid' | 'low';
+
+export interface PressConferenceQueueEntry {
+  conferenceId: string;
+  teamId: string | null;
+  year: number;
+  week: number;
+  speaker: string;
+  topic: string;
+  scenario: string;
+  responses: {
+    high: string[];
+    mid: string[];
+    low: string[];
+  };
+  selectedTier?: PressConferenceResponseTier;
+  selectedResponse?: string;
+}
+
+export interface PostGameUiState {
+  pressConferenceQueue: PressConferenceQueueEntry[];
+  audioCueQueue: import('../systems/audio-events').AudioCue[];
 }
 
 export type PlayoffRound = 'wild_card' | 'divisional' | 'conference' | 'super_bowl';
@@ -2995,6 +3022,10 @@ export interface GameState {
   draftRecaps?: DraftRecap[];
   tradeSuggestions?: TradeSuggestion[];
   trainingCampResults?: TrainingCampReport[];
+  postGameUi?: PostGameUiState;
+  breakingNewsQueue?: import('../systems/narrative-director').BreakingNewsEvent[];
+  ownerPersonalityInbox?: import('../systems/owner-personality').OwnerPersonalityEvent[];
+  commissionerDisciplineLog?: CommissionerRuling[];
   earnedDoctrines?: FranchiseDoctrine[];
   nearMissTracker?: import('../systems/near-miss-receipts').NearMissTracker;
   seasonNearMissReceipts?: import('../systems/near-miss-receipts').NearMissEntry[];

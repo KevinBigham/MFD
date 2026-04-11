@@ -1046,3 +1046,37 @@ registerMigration(24, (state) => {
   }
   return { ...state, players };
 });
+
+// v25→v26: Persist weekly prep wiring and dynasty bookkeeping defaults
+registerMigration(25, (state) => {
+  const weeklyPrepPlans = (state['weeklyPrepPlans'] && typeof state['weeklyPrepPlans'] === 'object')
+    ? { ...(state['weeklyPrepPlans'] as Record<string, Record<string, unknown>>) }
+    : {};
+
+  for (const plan of Object.values(weeklyPrepPlans)) {
+    plan['contingencyRules'] = Array.isArray(plan['contingencyRules']) ? plan['contingencyRules'] : [];
+    plan['trickPlays'] = Array.isArray(plan['trickPlays']) ? plan['trickPlays'] : [];
+  }
+
+  return {
+    ...state,
+    weeklyPrepPlans,
+    earnedDoctrines: Array.isArray(state['earnedDoctrines']) ? state['earnedDoctrines'] : [],
+    seasonNearMissReceipts: Array.isArray(state['seasonNearMissReceipts']) ? state['seasonNearMissReceipts'] : [],
+    activeCallYourShot: state['activeCallYourShot'],
+  };
+});
+
+// v26→v27: Postgame UX queues and inbox-driven narrative state
+registerMigration(26, (state) => ({
+  ...state,
+  postGameUi: (state['postGameUi'] && typeof state['postGameUi'] === 'object')
+    ? state['postGameUi']
+    : {
+      pressConferenceQueue: [],
+      audioCueQueue: [],
+    },
+  breakingNewsQueue: Array.isArray(state['breakingNewsQueue']) ? state['breakingNewsQueue'] : [],
+  ownerPersonalityInbox: Array.isArray(state['ownerPersonalityInbox']) ? state['ownerPersonalityInbox'] : [],
+  commissionerDisciplineLog: Array.isArray(state['commissionerDisciplineLog']) ? state['commissionerDisciplineLog'] : [],
+}));

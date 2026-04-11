@@ -297,6 +297,35 @@ export const GameDayStateSchema = z.object({
   latestPackageId: z.string().nullable(),
 });
 
+export const AudioCueSchema = z.object({
+  event: z.string(),
+  priority: z.enum(['low', 'medium', 'high', 'critical']),
+  timestamp: z.number().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const PressConferenceQueueEntrySchema = z.object({
+  conferenceId: z.string(),
+  teamId: z.string().nullable(),
+  year: z.number(),
+  week: z.number(),
+  speaker: z.string(),
+  topic: z.string(),
+  scenario: z.string(),
+  responses: z.object({
+    high: z.array(z.string()),
+    mid: z.array(z.string()),
+    low: z.array(z.string()),
+  }),
+  selectedTier: z.enum(['high', 'mid', 'low']).optional(),
+  selectedResponse: z.string().optional(),
+});
+
+export const PostGameUiStateSchema = z.object({
+  pressConferenceQueue: z.array(PressConferenceQueueEntrySchema).default([]),
+  audioCueQueue: z.array(AudioCueSchema).default([]),
+});
+
 export const RecordEntrySchema = z.object({
   category: z.enum(['singleGame', 'singleSeason', 'career', 'franchise']),
   stat: z.string(),
@@ -841,6 +870,21 @@ export const CommissionerStateSchema = z.object({
   lowApprovalYears: z.number(),
 });
 
+export const BreakingNewsEventSchema = z.object({
+  headline: z.string(),
+  detail: z.string(),
+  source: z.enum(['MFSN INSIDER', 'MFSN BREAKING', 'LEAGUE OFFICE', 'INJURY REPORT']),
+  priority: z.enum(['high', 'critical']),
+});
+
+export const OwnerPersonalityEventSchema = z.object({
+  archetypeId: z.enum(['win_now', 'patient_builder', 'profit_first', 'fan_favorite', 'legacy_builder']),
+  label: z.string(),
+  desc: z.string(),
+  moodDelta: z.number(),
+  moraleDelta: z.number(),
+});
+
 export const GrievanceSchema = z.object({
   playerId: z.string(),
   type: z.enum(['tag_dispute', 'salary_grievance', 'discipline_appeal']),
@@ -995,6 +1039,36 @@ export const GamePlanSchema = z.object({
     playerB: z.string(),
   }).nullable(),
   gamePlanBonus: z.number(),
+  contingencyRules: z.array(z.object({
+    id: z.string(),
+    trigger: z.enum([
+      'trailing_14_at_half',
+      'trailing_7_at_half',
+      'leading_14_at_half',
+      'opponent_scores_opening',
+      'turnover_deficit_2',
+      'wind_over_15',
+    ]),
+    action: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('switch_offense'),
+        scheme: z.enum(['balanced', 'pass_heavy', 'run_heavy', 'spread', 'power']),
+      }),
+      z.object({
+        type: z.literal('switch_defense'),
+        scheme: z.enum(['base', 'blitz_heavy', 'coverage', 'contain', 'aggressive']),
+      }),
+      z.object({
+        type: z.literal('go_aggressive'),
+      }),
+      z.object({
+        type: z.literal('go_conservative'),
+      }),
+    ]),
+    label: z.string(),
+    description: z.string(),
+  })).optional(),
+  trickPlays: z.array(z.string()).optional(),
 });
 
 export const OpponentReportSchema = z.object({
@@ -1229,6 +1303,8 @@ export const WeeklyPrepPlanSchema = z.object({
   keyMatchupPlayerId: z.string().nullable(),
   snapManagement: z.enum(['normal', 'protect_starters', 'ride_stars']),
   specialSituation: z.enum(['balanced', 'red_zone', 'third_down', 'two_minute', 'field_position']),
+  contingencyRules: GamePlanSchema.shape.contingencyRules.default([]),
+  trickPlays: z.array(z.string()).default([]),
 });
 
 export const WeeklyPrepOutcomeSchema = z.object({
@@ -1394,6 +1470,44 @@ export const DynastyEventSchema = z.object({
   playerIds: z.array(z.string()),
   teamIds: z.array(z.string()),
 });
+
+export const NearMissEntrySchema = z.object({
+  type: z.enum(['declined_trade', 'passed_pick', 'missed_fa']),
+  playerName: z.string(),
+  playerOvr: z.number(),
+  description: z.string(),
+  outcome: z.string(),
+});
+
+export const NearMissTrackerSchema = z.object({
+  declinedTrades: z.array(z.object({
+    playerName: z.string(),
+    playerOvr: z.number(),
+    partnerTeamName: z.string(),
+    week: z.number(),
+  })).default([]),
+  passedPicks: z.array(z.object({
+    playerName: z.string(),
+    playerOvr: z.number(),
+    round: z.number(),
+    pickNumber: z.number(),
+    draftedByTeam: z.string(),
+  })).default([]),
+  missedFAs: z.array(z.object({
+    playerName: z.string(),
+    playerOvr: z.number(),
+    signedWithTeam: z.string(),
+    position: z.string(),
+  })).default([]),
+});
+
+export const ShotDeclarationSchema = z.enum([
+  'run_dominant',
+  'air_attack',
+  'defensive_shutout',
+  'total_domination',
+  'underdog_special',
+]);
 
 export const TradeProposalSchema: z.ZodType = z.lazy(() => z.object({
   id: z.string(),
@@ -1600,6 +1714,17 @@ export const SaveStateSchema = z.object({
   opponentReports: z.array(OpponentReportSchema).default([]),
   draftRecaps: z.array(DraftRecapSchema).default([]),
   tradeSuggestions: z.array(TradeSuggestionSchema).default([]),
+  postGameUi: PostGameUiStateSchema.default({
+    pressConferenceQueue: [],
+    audioCueQueue: [],
+  }),
+  breakingNewsQueue: z.array(BreakingNewsEventSchema).default([]),
+  ownerPersonalityInbox: z.array(OwnerPersonalityEventSchema).default([]),
+  commissionerDisciplineLog: z.array(CommissionerRulingSchema).default([]),
+  earnedDoctrines: z.array(z.any()).default([]),
+  nearMissTracker: NearMissTrackerSchema.optional(),
+  seasonNearMissReceipts: z.array(NearMissEntrySchema).default([]),
+  activeCallYourShot: ShotDeclarationSchema.optional(),
   ceremonies: z.array(CeremonySchema).default([]),
   dynastyTimeline: z.array(DynastyEventSchema).default([]),
 });

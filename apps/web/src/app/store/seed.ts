@@ -558,6 +558,15 @@ export function createSeedGameState(
     opponentReports: [],
     draftRecaps: [],
     tradeSuggestions: [],
+    postGameUi: {
+      pressConferenceQueue: [],
+      audioCueQueue: [],
+    },
+    breakingNewsQueue: [],
+    ownerPersonalityInbox: [],
+    commissionerDisciplineLog: [],
+    earnedDoctrines: [],
+    seasonNearMissReceipts: [],
     setupState: createSetupState(),
   };
 

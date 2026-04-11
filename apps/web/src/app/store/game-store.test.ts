@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DraftProspect } from '@mfd/engine';
+import type { ContingencyRule, DraftProspect } from '@mfd/engine';
 import { initializeDeadline, initializeOffseasonState, mulberry32 } from '@mfd/engine';
 import { createSeedGameState } from './seed';
 import { selectLatestGameDayPackage, useGameStore } from './game-store';
@@ -205,6 +205,85 @@ describe('game store offseason actions', () => {
     expect(latestPackage).not.toBeNull();
     expect(latestPackage?.headline).toBe(nextState.game?.weekSummaries.at(-1)?.headline);
     expect(latestPackage?.autopsy.nextFocus.length).toBeGreaterThan(0);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('hydrates postgame UI queues after advancing the week', async () => {
+    const game = createSeedGameState(313, 0, 'pro');
+    game.phase = 'regular_season';
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.advanceWeek();
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.postGameUi?.audioCueQueue.length).toBeGreaterThan(0);
+    expect(nextGame.postGameUi?.audioCueQueue.some((cue) => cue.event === 'game_end')).toBe(true);
+    expect(nextGame.postGameUi?.pressConferenceQueue.length).toBeGreaterThan(0);
+    expect(nextGame.postGameUi?.pressConferenceQueue[0]?.conferenceId).toBe(nextGame.recentPressConferences[0]?.id);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('persists call your shot declarations through the store', async () => {
+    const game = createSeedGameState(777, 0, 'pro');
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.setCallYourShot('air_attack');
+
+    expect(useGameStore.getState().game?.activeCallYourShot).toBe('air_attack');
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('stores contingency rules and trick plays on weekly prep plans', async () => {
+    const game = createSeedGameState(888, 0, 'pro');
+    game.phase = 'regular_season';
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const matchup = game.schedule.find((week) => week.week === game.week)?.games
+      .find((entry) => entry.homeTeamId === userTeam.id || entry.awayTeamId === userTeam.id)!;
+    const opponentTeamId = matchup.homeTeamId === userTeam.id ? matchup.awayTeamId : matchup.homeTeamId;
+    const contingencyRule: ContingencyRule = {
+      id: 'contingency-1',
+      trigger: 'trailing_14_at_half',
+      action: { type: 'go_aggressive' },
+      label: 'IF: Trailing by 14+ at half → Go Aggressive',
+      description: 'If we are down big at halftime, empty the clip.',
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.saveWeeklyPrepPlan({
+      teamId: userTeam.id,
+      opponentTeamId,
+      year: game.year,
+      week: game.week,
+      offensiveFocus: 'balanced',
+      defensiveFocus: 'heat_qb',
+      practiceIntensity: 'normal',
+      keyMatchupPlayerId: null,
+      snapManagement: 'normal',
+      specialSituation: 'third_down',
+      contingencyRules: [contingencyRule],
+      trickPlays: ['flea_flicker', 'fake_punt'],
+    });
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.weeklyPrepPlans?.[userTeam.id]?.contingencyRules).toEqual([contingencyRule]);
+    expect(nextGame.weeklyPrepPlans?.[userTeam.id]?.trickPlays).toEqual(['flea_flicker', 'fake_punt']);
+    expect(nextGame.gamePlan?.contingencyRules).toEqual([contingencyRule]);
+    expect(nextGame.gamePlan?.trickPlays).toEqual(['flea_flicker', 'fake_punt']);
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 

@@ -8,8 +8,8 @@ import {
   Radio, MessageSquare, Crosshair, Building2, Award, Users2, Sparkles, Scale,
   ChevronDown, ChevronRight, Map as MapIcon, Film, Tent, Target, Loader,
 } from 'lucide-react';
-import { MfdTooltipProvider, MfdCommandPalette, type CommandItem } from '@mfd/design-system/components';
-import { useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
+import { MfdTooltipProvider, MfdCommandPalette, PixelModal, type CommandItem } from '@mfd/design-system/components';
+import { getRegisteredShortcuts, registerShortcut, useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
 import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
 import {
@@ -201,6 +201,10 @@ function RootLayout() {
   const undo = useGameStore((s) => s.actions.undo);
   const advanceTutorial = useGameStore((s) => s.actions.advanceTutorial);
   const dismissTutorial = useGameStore((s) => s.actions.dismissTutorial);
+  const clearAudioQueue = useGameStore((s) => s.actions.clearAudioQueue);
+  const dismissBreakingNews = useGameStore((s) => s.actions.dismissBreakingNews);
+  const audioCueQueue = useGameStore((s) => s.game?.postGameUi?.audioCueQueue ?? []);
+  const breakingNews = useGameStore((s) => s.game?.breakingNewsQueue?.[0] ?? null);
   const router = useRouter();
   const activePath = useRouterState({ select: (state) => state.location.pathname });
   const [seenCeremonies, setSeenCeremonies] = useState<string[]>([]);
@@ -210,22 +214,58 @@ function RootLayout() {
   const [seenReports, setSeenReports] = useState<number[]>([]);
   const [activeReportYear, setActiveReportYear] = useState<number | null>(null);
   const [activeMilestone, setActiveMilestone] = useState<{ type: MilestoneType; headline: string; detail: string } | null>(null);
-  const [activeBreakingNews, setActiveBreakingNews] = useState<{ headline: string; detail: string } | null>(null);
   const [lastMilestoneCheck, setLastMilestoneCheck] = useState('');
   const [showEraPrompt, setShowEraPrompt] = useState(false);
   const [showSaveReminder, setShowSaveReminder] = useState(false);
+  const [showHotkeyHelp, setShowHotkeyHelp] = useState(false);
   const [lastEraCheck, setLastEraCheck] = useState('');
   const prevWins = useRef(0);
   const [showSaveToast, setShowSaveToast] = useState(false);
   const prevWeek = useRef(0);
 
   useShortcut('k', () => setCommandPaletteOpen(true), 'Open command palette', { meta: true });
+  useShortcut('?', () => setShowHotkeyHelp(true), 'Open hotkey help', { shift: true });
 
   const currentTutorialStep = tutorial.steps[tutorial.currentStepIndex] ?? null;
   const activeCeremony = useMemo(
     () => ceremonies.find((ceremony) => ceremony.id === activeCeremonyId) ?? null,
     [activeCeremonyId, ceremonies],
   );
+  const shortcutRows = useMemo(() => {
+    const manualRows = NAV_ITEMS
+      .filter((item) => item.shortcut)
+      .map((item) => ({
+        combo: item.shortcut ?? '',
+        description: `Go to ${item.label}`,
+      }));
+    const registeredRows = getRegisteredShortcuts().map((shortcut) => ({
+      combo: `${shortcut.meta ? 'Cmd/Ctrl+' : ''}${shortcut.ctrl ? 'Ctrl+' : ''}${shortcut.shift ? 'Shift+' : ''}${shortcut.key.toUpperCase()}`,
+      description: shortcut.description,
+    }));
+    const seen = new Set<string>();
+    return [...manualRows, ...registeredRows].filter((row) => {
+      const key = `${row.combo}:${row.description}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [activePath, commandPaletteOpen, showHotkeyHelp]);
+
+  useEffect(() => {
+    const unregister = NAV_ITEMS
+      .filter((item): item is NavItem & { shortcut: string } => typeof item.shortcut === 'string')
+      .map((item) => registerShortcut({
+        key: item.shortcut,
+        description: `Go to ${item.label}`,
+        handler: () => { void router.navigate({ to: item.path }); },
+      }));
+
+    return () => {
+      for (const dispose of unregister) {
+        dispose();
+      }
+    };
+  }, [router]);
 
   useEffect(() => {
     if (!tutorial.active || tutorial.dismissed || !currentTutorialStep?.action?.startsWith('screen:')) {
@@ -256,6 +296,14 @@ function RootLayout() {
     setActiveCeremonyId(latest.id);
     playSound('notification');
   }, [activeCeremonyId, ceremonies, seenCeremonies]);
+
+  useEffect(() => {
+    if (audioCueQueue.length === 0) return;
+    for (const cue of audioCueQueue) {
+      playSound(cue as unknown as Parameters<typeof playSound>[0]);
+    }
+    void clearAudioQueue();
+  }, [audioCueQueue, clearAudioQueue]);
 
   useEffect(() => {
     if (activeAchievement) return;
@@ -370,7 +418,11 @@ function RootLayout() {
             100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
           }
         `}</style>
-        <TopNav highlightedPath={tutorial.active && !tutorial.dismissed ? currentTutorialStep?.targetScreen ?? null : null} activePath={activePath} />
+        <TopNav
+          highlightedPath={tutorial.active && !tutorial.dismissed ? currentTutorialStep?.targetScreen ?? null : null}
+          activePath={activePath}
+          onOpenHotkeyHelp={() => setShowHotkeyHelp(true)}
+        />
         <main style={{
           flex: 1,
           padding: 'var(--mfd-sp-lg) var(--mfd-sp-xl)',
@@ -416,13 +468,60 @@ function RootLayout() {
             onDismiss={() => setActiveMilestone(null)}
           />
         )}
-        {activeBreakingNews && (
+        {breakingNews && (
           <BreakingNews
-            headline={activeBreakingNews.headline}
-            detail={activeBreakingNews.detail}
-            onDismiss={() => setActiveBreakingNews(null)}
+            headline={breakingNews.headline}
+            detail={breakingNews.detail}
+            onDismiss={() => { void dismissBreakingNews(); }}
           />
         )}
+        <PixelModal
+          open={showHotkeyHelp}
+          onOpenChange={setShowHotkeyHelp}
+          title="Hotkey Help"
+          description="Keyboard navigation for your first ten minutes and beyond."
+          accent="cyan"
+          width={560}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {shortcutRows.map((row) => (
+              <div
+                key={`${row.combo}-${row.description}`}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  alignItems: 'center',
+                  padding: '8px 10px',
+                  border: '2px solid var(--mfd-border)',
+                  background: 'var(--mfd-bg-2)',
+                }}
+              >
+                <span style={{
+                  fontFamily: 'var(--mfd-font-mono)',
+                  fontSize: '11px',
+                  color: 'var(--mfd-text)',
+                  lineHeight: 1.5,
+                }}
+                >
+                  {row.description}
+                </span>
+                <kbd style={{
+                  padding: '4px 6px',
+                  border: '2px solid var(--mfd-cyan)',
+                  background: 'rgba(0, 229, 255, 0.08)',
+                  color: 'var(--mfd-cyan)',
+                  fontFamily: 'var(--mfd-font-mono)',
+                  fontSize: '11px',
+                  whiteSpace: 'nowrap',
+                }}
+                >
+                  {row.combo}
+                </kbd>
+              </div>
+            ))}
+          </div>
+        </PixelModal>
         <DynastyEraPrompt open={showEraPrompt} onClose={() => setShowEraPrompt(false)} />
         <ConfirmDialog
           open={showSaveReminder}
@@ -592,9 +691,11 @@ function UndoButton() {
 function TopNav({
   highlightedPath,
   activePath,
+  onOpenHotkeyHelp,
 }: {
   highlightedPath: string | null;
   activePath: string;
+  onOpenHotkeyHelp: () => void;
 }) {
   const badges = useNavBadges();
 
@@ -702,6 +803,27 @@ function TopNav({
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
         <UndoButton />
         <AudioToggle />
+        <button
+          type="button"
+          onClick={onOpenHotkeyHelp}
+          title="Hotkey help"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: '32px',
+            minHeight: '32px',
+            padding: '0 10px',
+            background: 'rgba(0, 229, 255, 0.08)',
+            border: '3px solid var(--mfd-cyan)',
+            color: 'var(--mfd-cyan)',
+            fontFamily: 'var(--mfd-font-pixel)',
+            fontSize: '12px',
+            cursor: 'pointer',
+          }}
+        >
+          ?
+        </button>
         <CommandPaletteTrigger />
       </div>
     </header>

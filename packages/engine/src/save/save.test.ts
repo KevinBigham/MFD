@@ -203,6 +203,90 @@ describe('SaveStateSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('adds v27 default UI wiring fields to minimal saves', () => {
+    const year = 2026;
+    const result = SaveStateSchema.safeParse({
+      version: SAVE_VERSION,
+      seed: 1,
+      year,
+      week: 1,
+      phase: 'preseason',
+      difficulty: 'pro',
+      players: {},
+      teams: {},
+      owners: {},
+      schedule: [],
+      draftClass: [],
+      freeAgents: [],
+      records: createEmptyRecordBook(),
+      awardsHistory: [],
+      hallOfFame: [],
+      powerRankings: [],
+      franchiseHistory: [],
+      playerArchive: [],
+      frontOffice: {
+        xp: 0,
+        level: 1,
+        achievements: [],
+        perks: [],
+        reputation: { players: 50, media: 50, owner: 50 },
+      },
+      eventLog: [],
+      narrativeState: {
+        activeArcs: [],
+        hooks: [],
+        recentHeadlines: [],
+      },
+      offFieldEvents: [],
+      recentPressConferences: [],
+      coachingHistory: [],
+      leagueRivalries: [],
+      activeEffects: [],
+      gameDayState: {
+        recentPackages: [],
+        latestPackageId: null,
+      },
+      weekSummaries: [],
+      playoffBracket: null,
+      offseasonState: null,
+      leagueNews: [],
+      activeProposals: [],
+      playerSeasonHistory: {},
+      faTargetBoard: {
+        teamId: null,
+        watchlist: [],
+        targets: [],
+      },
+      teamNeedsCache: {},
+      warRoomState: null,
+      contractExtensions: [],
+      leagueRules: initLeagueRules(year),
+      cbaState: initCBA(year),
+      commissionerState: initCommissioner(year),
+      laborState: initLaborState(),
+      difficultyState: {
+        enabled: true,
+        adaptiveSlider: 50,
+        recentUserResults: [],
+        currentStreak: 0,
+        adjustmentHistory: [],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.postGameUi).toEqual({
+      pressConferenceQueue: [],
+      audioCueQueue: [],
+    });
+    expect(result.data.breakingNewsQueue).toEqual([]);
+    expect(result.data.ownerPersonalityInbox).toEqual([]);
+    expect(result.data.commissionerDisciplineLog).toEqual([]);
+    expect(result.data.earnedDoctrines).toEqual([]);
+    expect(result.data.seasonNearMissReceipts).toEqual([]);
+  });
+
   it('migrates v19 saves to include governance defaults', () => {
     const migrated = migrate({
       version: 19,
@@ -221,6 +305,48 @@ describe('SaveStateSchema', () => {
     expect(migrated['commissionerState']).toBeTruthy();
     expect(migrated['laborState']).toBeTruthy();
     expect((migrated['teams'] as Record<string, { franchiseTags?: unknown[] }>).t1.franchiseTags).toEqual([]);
+  });
+
+  it('migrates v25 saves to v27 with dormant feature defaults', () => {
+    const migrated = migrate({
+      version: 25,
+      seed: 77,
+      year: 2032,
+      week: 8,
+      players: {},
+      teams: {},
+      weeklyPrepPlans: {
+        USER: {
+          teamId: 'USER',
+          opponentTeamId: 'OPP',
+          year: 2032,
+          week: 8,
+          offensiveFocus: 'balanced',
+          defensiveFocus: 'balanced',
+          practiceIntensity: 'normal',
+          keyMatchupPlayerId: null,
+          snapManagement: 'normal',
+          specialSituation: 'balanced',
+        },
+      },
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['postGameUi']).toEqual({
+      pressConferenceQueue: [],
+      audioCueQueue: [],
+    });
+    expect(migrated['breakingNewsQueue']).toEqual([]);
+    expect(migrated['ownerPersonalityInbox']).toEqual([]);
+    expect(migrated['commissionerDisciplineLog']).toEqual([]);
+    expect(migrated['earnedDoctrines']).toEqual([]);
+    expect(migrated['seasonNearMissReceipts']).toEqual([]);
+    expect(migrated['weeklyPrepPlans']).toEqual({
+      USER: expect.objectContaining({
+        contingencyRules: [],
+        trickPlays: [],
+      }),
+    });
   });
 });
 

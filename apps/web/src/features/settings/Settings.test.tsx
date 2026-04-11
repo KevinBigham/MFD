@@ -1,10 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Settings } from './Settings';
 
 const gameState = {
   phase: 'offseason',
+  week: 0,
   difficulty: 'allpro',
+  teams: {},
+  players: {},
   difficultyState: {
     enabled: true,
     adaptiveSlider: 58,
@@ -101,6 +104,20 @@ vi.mock('../../app/store/ui-store', () => ({
 }));
 
 describe('Settings', () => {
+  beforeEach(() => {
+    Object.defineProperty(globalThis, 'location', {
+      configurable: true,
+      value: new URL('http://localhost/'),
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(globalThis, 'location', {
+      configurable: true,
+      value: new URL('http://localhost/'),
+    });
+  });
+
   it('renders the difficulty and simulation preference controls', () => {
     const markup = renderToStaticMarkup(<Settings />);
 
@@ -114,5 +131,18 @@ describe('Settings', () => {
     expect(markup).toContain('--- FACILITIES ---');
     expect(markup).toContain('--- MEDICAL STAFF ---');
     expect(markup).toContain('Dr. Harper');
+  });
+
+  it('shows the invariant debug panel when debug mode is enabled', () => {
+    Object.defineProperty(globalThis, 'location', {
+      configurable: true,
+      value: new URL('http://localhost/?debug=1'),
+    });
+
+    const markup = renderToStaticMarkup(<Settings />);
+
+    expect(markup).toContain('INVARIANT DEBUG');
+    expect(markup).toContain('State Clean');
+    expect(markup).toContain('Developer only');
   });
 });

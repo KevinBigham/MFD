@@ -1,6 +1,17 @@
-import type { GameDayPackage, GameResult, PlayerGameLine, PlayoffMomentum, SeasonPhase, TeamGameStats } from '@mfd/engine';
+import { useEffect, useState } from 'react';
+import type {
+  GameDayPackage,
+  GameResult,
+  PlayerGameLine,
+  PlayoffMomentum,
+  PressConferenceQueueEntry,
+  PressConferenceResponseTier,
+  SeasonPhase,
+  TeamGameStats,
+} from '@mfd/engine';
 import { PixelPanel, PixelBadge, PixelButton, PixelDialog, PixelScoreboard, PixelStatBar } from '@mfd/design-system/components';
 import { navigateTo } from '../shared/pixelUi';
+import { PressConferenceModal } from './PressConferenceModal';
 import {
   selectLatestGameDayPackage,
   selectLatestGameResult,
@@ -575,6 +586,19 @@ export function GameDayRecap() {
   const packageData = useGameStore(selectLatestGameDayPackage);
   const gameResult = useGameStore(selectLatestGameResult);
   const playoffMomentum = useGameStore(selectPlayoffMomentum);
+  const pressConferenceQueue = useGameStore((state) => state.game?.postGameUi?.pressConferenceQueue ?? []);
+  const respondToPressConference = useGameStore((state) => state.actions.respondToPressConference);
+  const [pressModalOpen, setPressModalOpen] = useState(false);
+  const [activeTier, setActiveTier] = useState<PressConferenceResponseTier>('mid');
+
+  const latestPressConferenceEntry: PressConferenceQueueEntry | null = pressConferenceQueue[0] ?? null;
+  const pendingPressConference = pressConferenceQueue.find((entry) => !entry.selectedResponse) ?? null;
+
+  useEffect(() => {
+    if (!pendingPressConference) return;
+    setActiveTier(pendingPressConference.selectedTier ?? 'mid');
+    setPressModalOpen(true);
+  }, [pendingPressConference?.conferenceId]);
 
   if (!team) return null;
   return (
@@ -586,7 +610,42 @@ export function GameDayRecap() {
         packageData={packageData}
         playoffMomentum={playoffMomentum}
       />
+      {latestPressConferenceEntry ? (
+        <PixelPanel title="Podium Response" accent={pendingPressConference ? 'gold' : 'green'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                {latestPressConferenceEntry.speaker} // {latestPressConferenceEntry.topic}
+              </div>
+              <PixelButton accent={pendingPressConference ? 'gold' : 'cyan'} onClick={() => setPressModalOpen(true)}>
+                {pendingPressConference ? 'Answer Podium' : 'Review Podium'}
+              </PixelButton>
+            </div>
+            {latestPressConferenceEntry.selectedResponse ? (
+              <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>
+                {latestPressConferenceEntry.selectedResponse}
+              </div>
+            ) : (
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                Choose the ambition tier for the postgame message to lock in the podium tone for this week.
+              </div>
+            )}
+          </div>
+        </PixelPanel>
+      ) : null}
       {gameResult && <FullBoxScore gameResult={gameResult} userTeamId={team.id} />}
+      <PressConferenceModal
+        open={pressModalOpen && !!latestPressConferenceEntry}
+        entry={latestPressConferenceEntry}
+        activeTier={activeTier}
+        onTierChange={setActiveTier}
+        onRespond={(tier, response) => {
+          if (!latestPressConferenceEntry) return;
+          void respondToPressConference(latestPressConferenceEntry.conferenceId, tier, response);
+          setPressModalOpen(false);
+        }}
+        onOpenChange={setPressModalOpen}
+      />
     </div>
   );
 }

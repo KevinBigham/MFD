@@ -8,10 +8,13 @@ import { useCallback } from 'react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type {
+  AudioCue,
+  BreakingNewsEvent,
   CapCandidate,
   CapHealthReport,
   CapMove,
   CareerTimeline,
+  ContingencyRule,
   ContractOffer,
   DashboardWidget,
   DraftTradeOffer,
@@ -39,7 +42,9 @@ import type {
   WeeklySummary,
   BrokenRecord,
   MultiYearProjection,
-} from '@mfd/engine';
+  PressConferenceQueueEntry,
+  PressConferenceResponseTier,
+  } from '@mfd/engine';
 import type { ShotDeclaration, AlumniMentor, DynastyEra } from '@mfd/engine';
 import {
   acceptEndorsement as acceptEndorsementEngine,
@@ -110,6 +115,9 @@ import {
   restructureContract, backloadContract,
   calcCapHit, calcDeadMoney,
   promoteCoordinator,
+  mapGameResultToAudioCues,
+  generateBreakingNews,
+  getPressConferenceScenarioContent,
   runProDay as runProDayEngine,
   runPrivateWorkout as runPrivateWorkoutEngine,
   simulateBackload,
@@ -279,6 +287,13 @@ interface GameActions {
   clearGamePlan: () => Promise<void>;
   saveWeeklyPrepPlan: (plan: WeeklyPrepPlan, report?: OpponentReport | null) => Promise<void>;
   clearWeeklyPrepPlan: () => Promise<void>;
+  respondToPressConference: (
+    conferenceId: string,
+    tier: PressConferenceResponseTier,
+    response: string,
+  ) => Promise<void>;
+  clearAudioQueue: () => Promise<void>;
+  dismissBreakingNews: () => Promise<void>;
   pinWidget: (widgetType: DashboardWidget) => Promise<void>;
   unpinWidget: (widgetType: DashboardWidget) => Promise<void>;
   switchLayout: (layoutId: string) => Promise<void>;
@@ -346,7 +361,84 @@ export const useGameStore = create<GameStore>()(
       defensiveScheme: defensePlanFromPrep(plan.defensiveFocus),
       keyMatchup: plan.keyMatchupPlayerId ? { playerA: plan.keyMatchupPlayerId, playerB: plan.opponentTeamId } : null,
       gamePlanBonus: 0,
+      contingencyRules: plan.contingencyRules ?? [],
+      trickPlays: plan.trickPlays ?? [],
     });
+    const findUserGameResult = (game: GameState, playedWeek: number) => {
+      const team = Object.values(game.teams).find((entry) => entry.isUser) ?? null;
+      if (!team) return null;
+      const week = game.schedule.find((entry) => entry.week === playedWeek);
+      return week?.games.find((entry) =>
+        (entry.homeTeamId === team.id || entry.awayTeamId === team.id) && entry.result,
+      )?.result ?? null;
+    };
+    const parseScoreDiff = (finalScore: string): number => {
+      const [left = 0, right = 0] = finalScore.split('-').map((part) => Number(part.trim()));
+      if (!Number.isFinite(left) || !Number.isFinite(right)) return 0;
+      return Math.abs(left - right);
+    };
+    const resolvePressConferenceScenario = (game: GameState): string | null => {
+      const latestPackage = game.gameDayState.recentPackages.find((entry) => entry.id === game.gameDayState.latestPackageId) ?? null;
+      if (!latestPackage) return null;
+      if (latestPackage.phase === 'playoffs') {
+        return latestPackage.result === 'win' ? 'playoff_win' : latestPackage.result === 'loss' ? 'playoff_loss' : null;
+      }
+      if (latestPackage.rivalry) {
+        return latestPackage.result === 'win' ? 'rivalry_win' : latestPackage.result === 'loss' ? 'rivalry_loss' : null;
+      }
+      const diff = parseScoreDiff(latestPackage.finalScore);
+      if (latestPackage.result === 'win') return diff >= 14 ? 'win_blowout' : 'win_close';
+      if (latestPackage.result === 'loss') return diff >= 14 ? 'loss_blowout' : 'loss_close';
+      return null;
+    };
+    const buildPressConferenceQueueEntry = (game: GameState): PressConferenceQueueEntry | null => {
+      const conference = game.recentPressConferences[0];
+      if (!conference || conference.type !== 'postgame') return null;
+      const scenario = resolvePressConferenceScenario(game);
+      if (!scenario) return null;
+      const content = getPressConferenceScenarioContent(scenario);
+      if (!content) return null;
+      return {
+        conferenceId: conference.id,
+        teamId: conference.teamId,
+        year: conference.year,
+        week: conference.week,
+        speaker: conference.speaker,
+        topic: conference.topic,
+        scenario,
+        responses: {
+          high: [...content.answers_high_ambition],
+          mid: [...content.answers_mid],
+          low: [...content.answers_low_ambition],
+        },
+      };
+    };
+    const buildPostAdvanceAudioQueue = (game: GameState, playedWeek: number): AudioCue[] => {
+      const result = findUserGameResult(game, playedWeek);
+      if (!result) return [];
+      const teamStats = Object.values(result.stats);
+      const touchdowns = teamStats.reduce((sum, stats) => sum + stats.passTDs + stats.rushTDs, 0);
+      const fieldGoals = teamStats.reduce((sum, stats) => sum + stats.fgMade, 0);
+      const turnovers = teamStats.reduce((sum, stats) => sum + stats.turnovers, 0);
+      const sacks = teamStats.reduce((sum, stats) => sum + stats.sacks, 0);
+      const bigPlays = Math.min(3, result.broadcast?.highlights.filter((highlight) => highlight.isBigPlay).length ?? 0);
+      const cues = mapGameResultToAudioCues({
+        touchdowns,
+        fieldGoals,
+        turnovers,
+        sacks,
+        bigPlays,
+        overtime: result.overtime,
+      });
+      if (game.phase === 'offseason') {
+        cues.push({ event: 'season_end', priority: 'high' });
+      }
+      return cues;
+    };
+    const buildBreakingNewsQueue = (game: GameState): BreakingNewsEvent[] => {
+      const rng = mulberry32(buildIntelSeed(game, `breaking-news:${game.year}:${game.week}`));
+      return generateBreakingNews(game, rng);
+    };
     const applyPostJune1CutToGame = (game: GameState, teamId: string, playerId: string) => {
       const team = game.teams[teamId];
       const player = game.players[playerId];
@@ -915,6 +1007,23 @@ export const useGameStore = create<GameStore>()(
         if (userTeam) {
           updateSystemFit(userTeam);
         }
+
+        nextGame.postGameUi = nextGame.postGameUi ?? {
+          pressConferenceQueue: [],
+          audioCueQueue: [],
+        };
+        const pressConferenceQueueEntry = buildPressConferenceQueueEntry(nextGame);
+        if (pressConferenceQueueEntry && !nextGame.postGameUi.pressConferenceQueue.some((entry) => entry.conferenceId === pressConferenceQueueEntry.conferenceId)) {
+          nextGame.postGameUi.pressConferenceQueue = [
+            pressConferenceQueueEntry,
+            ...nextGame.postGameUi.pressConferenceQueue,
+          ].slice(0, 4);
+        }
+        nextGame.postGameUi.audioCueQueue = [
+          ...nextGame.postGameUi.audioCueQueue,
+          ...buildPostAdvanceAudioQueue(nextGame, current.week),
+        ].slice(-20);
+        nextGame.breakingNewsQueue = buildBreakingNewsQueue(nextGame).slice(0, 5);
 
         completeTutorialActionEngine(nextGame, 'week:advance');
         await commitGame(nextGame);
@@ -1891,6 +2000,37 @@ export const useGameStore = create<GameStore>()(
         await commitGame(nextGame);
       },
 
+      respondToPressConference: async (conferenceId, tier, response) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const entry = nextGame.postGameUi?.pressConferenceQueue.find((queueEntry) => queueEntry.conferenceId === conferenceId);
+        if (!entry) return;
+        entry.selectedTier = tier;
+        entry.selectedResponse = response;
+        await commitGame(nextGame);
+      },
+
+      clearAudioQueue: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.postGameUi = nextGame.postGameUi ?? {
+          pressConferenceQueue: [],
+          audioCueQueue: [],
+        };
+        nextGame.postGameUi.audioCueQueue = [];
+        await commitGame(nextGame);
+      },
+
+      dismissBreakingNews: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.breakingNewsQueue = [...(nextGame.breakingNewsQueue ?? [])].slice(1);
+        await commitGame(nextGame);
+      },
+
       pinWidget: async (widgetType) => {
         const current = get().game;
         if (!current) return;
@@ -1981,11 +2121,9 @@ export const useGameStore = create<GameStore>()(
       setCallYourShot: async (declaration: ShotDeclaration | null) => {
         const current = get().game;
         if (!current) return;
-        set((s) => {
-          if (s.game) {
-            (s.game as GameState & { activeCallYourShot?: ShotDeclaration }).activeCallYourShot = declaration ?? undefined;
-          }
-        });
+        const nextGame = cloneForMutation(current);
+        nextGame.activeCallYourShot = declaration ?? undefined;
+        await commitGame(nextGame);
       },
 
       recordManualSave: () => {

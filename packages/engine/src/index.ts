@@ -122,6 +122,29 @@ export {
   getTeamNews,
 } from './systems/league-news';
 export {
+  interpolateContentPlaceholders,
+  getPressConferenceScenarioContent,
+  getStoryArcPhaseContent,
+  getNamePool,
+  getSocialPost,
+  getNewsArticle,
+  getTeamPAOverrides,
+  getHalftimePerformers,
+  getPACall,
+  getScoutingReportTemplate,
+  getCoachArchetype,
+  getAwardSpeech,
+  getPersonalityLine,
+  getAgmDialogueLine,
+  getBroadcastTemplate,
+} from './content-loader';
+export type {
+  CoachArchetypeContent,
+  AwardSpeechResult,
+  PersonalityInput,
+  ScoutingTemplateTier,
+} from './content-loader';
+export {
   createTradeProposal,
   submitProposal,
   generateCounterOffer,

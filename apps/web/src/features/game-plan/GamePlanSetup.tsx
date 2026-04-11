@@ -1,7 +1,21 @@
 import { useMemo, useState } from 'react';
 import { PixelBadge, PixelButton, PixelPanel, PixelProgressBar, PixelSelect, MfdTooltip } from '@mfd/design-system/components';
-import type { WeeklyPrepPlan, ShotDeclaration } from '@mfd/engine';
-import { isCallYourShotEligible, getDeclarations } from '@mfd/engine';
+import type {
+  ContingencyAction,
+  ContingencyRule,
+  ContingencyTrigger,
+  ShotDeclaration,
+  WeeklyPrepPlan,
+} from '@mfd/engine';
+import {
+  CONTINGENCY_TRIGGERS,
+  DEFENSIVE_PLAYS,
+  getAvailableTrickPlays,
+  getDeclarations,
+  isCallYourShotEligible,
+  MAX_CONTINGENCIES,
+  OFFENSIVE_PLAYS,
+} from '@mfd/engine';
 import {
   selectCurrentOpponentIntel,
   selectCurrentOpponentReport,
@@ -59,6 +73,96 @@ const specialSituationOptions: Array<{ value: WeeklyPrepPlan['specialSituation']
   { value: 'field_position', label: 'Field Position' },
 ];
 
+type PrepExtrasTab = 'contingencies' | 'trick_plays' | 'playbook';
+type ContingencyActionKey =
+  | 'go_aggressive'
+  | 'go_conservative'
+  | 'offense_pass_heavy'
+  | 'offense_run_heavy'
+  | 'offense_spread'
+  | 'offense_power'
+  | 'defense_base'
+  | 'defense_blitz_heavy'
+  | 'defense_coverage'
+  | 'defense_contain'
+  | 'defense_aggressive';
+
+const PREP_EXTRA_TABS: Array<{ id: PrepExtrasTab; label: string; accent: 'gold' | 'cyan' | 'green' }> = [
+  { id: 'contingencies', label: 'Contingencies', accent: 'gold' },
+  { id: 'trick_plays', label: 'Trick Plays', accent: 'cyan' },
+  { id: 'playbook', label: 'Playbook', accent: 'green' },
+];
+
+const contingencyTriggerOptions = Object.entries(CONTINGENCY_TRIGGERS).map(([value, meta]) => ({
+  value,
+  label: meta.label,
+}));
+
+const contingencyActionOptions: Array<{ value: ContingencyActionKey; label: string; description: string }> = [
+  { value: 'go_aggressive', label: 'Go Aggressive', description: 'Shift to a pass-heavy and blitz-heavy posture.' },
+  { value: 'go_conservative', label: 'Go Conservative', description: 'Protect a lead with run-heavy and coverage looks.' },
+  { value: 'offense_pass_heavy', label: 'Offense: Pass Heavy', description: 'Lean into the passing game.' },
+  { value: 'offense_run_heavy', label: 'Offense: Run Heavy', description: 'Shrink the game and pound the front.' },
+  { value: 'offense_spread', label: 'Offense: Spread', description: 'Open the field and stress coverage width.' },
+  { value: 'offense_power', label: 'Offense: Power', description: 'Condense the set and play downhill.' },
+  { value: 'defense_base', label: 'Defense: Base', description: 'Return to a balanced shell.' },
+  { value: 'defense_blitz_heavy', label: 'Defense: Blitz Heavy', description: 'Force quick throws and negative plays.' },
+  { value: 'defense_coverage', label: 'Defense: Coverage', description: 'Protect against explosives.' },
+  { value: 'defense_contain', label: 'Defense: Contain', description: 'Squeeze the run and keep the quarterback in the cup.' },
+  { value: 'defense_aggressive', label: 'Defense: Aggressive', description: 'Challenge routes and win at the line.' },
+];
+
+const MAX_SELECTED_TRICK_PLAYS = 2;
+
+function buildContingencyAction(actionKey: ContingencyActionKey): ContingencyAction {
+  switch (actionKey) {
+    case 'go_aggressive':
+      return { type: 'go_aggressive' };
+    case 'go_conservative':
+      return { type: 'go_conservative' };
+    case 'offense_pass_heavy':
+      return { type: 'switch_offense', scheme: 'pass_heavy' };
+    case 'offense_run_heavy':
+      return { type: 'switch_offense', scheme: 'run_heavy' };
+    case 'offense_spread':
+      return { type: 'switch_offense', scheme: 'spread' };
+    case 'offense_power':
+      return { type: 'switch_offense', scheme: 'power' };
+    case 'defense_base':
+      return { type: 'switch_defense', scheme: 'base' };
+    case 'defense_blitz_heavy':
+      return { type: 'switch_defense', scheme: 'blitz_heavy' };
+    case 'defense_coverage':
+      return { type: 'switch_defense', scheme: 'coverage' };
+    case 'defense_contain':
+      return { type: 'switch_defense', scheme: 'contain' };
+    case 'defense_aggressive':
+      return { type: 'switch_defense', scheme: 'aggressive' };
+    default:
+      return { type: 'go_aggressive' };
+  }
+}
+
+function buildContingencyRule(
+  teamId: string,
+  year: number,
+  week: number,
+  index: number,
+  trigger: ContingencyTrigger,
+  actionKey: ContingencyActionKey,
+): ContingencyRule {
+  const triggerMeta = CONTINGENCY_TRIGGERS[trigger];
+  const actionMeta = contingencyActionOptions.find((option) => option.value === actionKey) ?? contingencyActionOptions[0]!;
+
+  return {
+    id: `prep-${teamId}-${year}-${week}-${trigger}-${index}`,
+    trigger,
+    action: buildContingencyAction(actionKey),
+    label: `IF ${triggerMeta.label.toUpperCase()} -> ${actionMeta.label.toUpperCase()}`,
+    description: `${triggerMeta.description} ${actionMeta.description}`,
+  };
+}
+
 export function GamePlanSetup() {
   const week = useGameStore(selectWeek);
   const year = useGameStore(selectYear);
@@ -67,7 +171,8 @@ export function GamePlanSetup() {
   const report = useGameStore(selectCurrentOpponentReport);
   const intel = useGameStore(selectCurrentOpponentIntel);
   const storedPlan = useGameStore(selectCurrentWeeklyPrepPlan);
-  const { advanceWeek, clearWeeklyPrepPlan, saveWeeklyPrepPlan } = useGameStore((state) => state.actions);
+  const activeCallYourShot = useGameStore((state) => state.game?.activeCallYourShot ?? null);
+  const { advanceWeek, clearWeeklyPrepPlan, saveWeeklyPrepPlan, setCallYourShot } = useGameStore((state) => state.actions);
 
   const defaultPlan = storedPlan ?? (team && intel ? {
     teamId: team.id,
@@ -88,7 +193,12 @@ export function GamePlanSetup() {
   const [snapManagement, setSnapManagement] = useState<WeeklyPrepPlan['snapManagement']>(defaultPlan?.snapManagement ?? 'normal');
   const [specialSituation, setSpecialSituation] = useState<WeeklyPrepPlan['specialSituation']>(defaultPlan?.specialSituation ?? 'balanced');
   const [keyMatchupPlayerId, setKeyMatchupPlayerId] = useState(defaultPlan?.keyMatchupPlayerId ?? '');
-  const [shotDeclaration, setShotDeclaration] = useState<ShotDeclaration | null>(null);
+  const [shotDeclaration, setShotDeclaration] = useState<ShotDeclaration | null>(activeCallYourShot);
+  const [prepExtrasTab, setPrepExtrasTab] = useState<PrepExtrasTab>('contingencies');
+  const [contingencyRules, setContingencyRules] = useState<ContingencyRule[]>(defaultPlan?.contingencyRules ?? []);
+  const [selectedTrigger, setSelectedTrigger] = useState<ContingencyTrigger>('trailing_14_at_half');
+  const [selectedActionKey, setSelectedActionKey] = useState<ContingencyActionKey>('go_aggressive');
+  const [selectedTrickPlays, setSelectedTrickPlays] = useState<string[]>(defaultPlan?.trickPlays ?? []);
 
   const shotEligibility = useMemo(() => {
     const isPlayoff = (phase as string) === 'playoffs' || (phase as string) === 'super_bowl';
@@ -96,6 +206,7 @@ export function GamePlanSetup() {
     return isCallYourShotEligible(isLateSeasonRivalry, false, isPlayoff, week);
   }, [phase, week]);
   const declarations = useMemo(() => getDeclarations(), []);
+  const availableTrickPlays = useMemo(() => (team ? getAvailableTrickPlays(team) : []), [team]);
 
   const matchupOptions = useMemo(() => (
     team?.roster.map((player) => ({ value: player.id, label: `${player.name} // ${player.pos}` })) ?? []
@@ -123,6 +234,64 @@ export function GamePlanSetup() {
     keyMatchupPlayerId: keyMatchupPlayerId || null,
     snapManagement,
     specialSituation,
+    contingencyRules,
+    trickPlays: selectedTrickPlays,
+  };
+
+  const filteredOffensivePlaybook = OFFENSIVE_PLAYS.filter((play) => play.planAffinity.includes(
+    currentPlan.offensiveFocus === 'attack_secondary'
+      ? 'pass_heavy'
+      : currentPlan.offensiveFocus === 'attack_front'
+        ? 'run_heavy'
+        : currentPlan.offensiveFocus === 'feed_star'
+          ? 'spread'
+          : currentPlan.offensiveFocus === 'protect_qb'
+            ? 'balanced'
+            : 'balanced',
+  ));
+  const filteredDefensivePlaybook = DEFENSIVE_PLAYS.filter((play) => play.planAffinity.includes(
+    currentPlan.defensiveFocus === 'heat_qb'
+      ? 'blitz_heavy'
+      : currentPlan.defensiveFocus === 'limit_explosive'
+        ? 'coverage'
+        : currentPlan.defensiveFocus === 'stop_run'
+          ? 'contain'
+          : currentPlan.defensiveFocus === 'erase_wr1'
+            ? 'aggressive'
+            : 'base',
+  ));
+
+  const addContingencyRule = () => {
+    if (contingencyRules.length >= MAX_CONTINGENCIES) return;
+    const nextRule = buildContingencyRule(
+      team.id,
+      year,
+      week,
+      contingencyRules.length + 1,
+      selectedTrigger,
+      selectedActionKey,
+    );
+    setContingencyRules((current) => [...current, nextRule]);
+  };
+
+  const removeContingencyRule = (ruleId: string) => {
+    setContingencyRules((current) => current.filter((rule) => rule.id !== ruleId));
+  };
+
+  const toggleTrickPlay = (playId: string) => {
+    setSelectedTrickPlays((current) => {
+      if (current.includes(playId)) {
+        return current.filter((id) => id !== playId);
+      }
+      if (current.length >= MAX_SELECTED_TRICK_PLAYS) {
+        return current;
+      }
+      return [...current, playId];
+    });
+  };
+
+  const persistShotDeclaration = async () => {
+    await setCallYourShot(shotDeclaration);
   };
 
   return (
@@ -280,7 +449,7 @@ export function GamePlanSetup() {
             valueLabel={defensiveFocus.replaceAll('_', ' ')}
           />
           <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-            Stored plan status: {storedPlan ? 'weekly prep locked' : 'no prep saved yet'}
+            Stored plan status: {storedPlan ? 'weekly prep locked' : 'no prep saved yet'} // contingencies {contingencyRules.length}/{MAX_CONTINGENCIES} // trick plays {selectedTrickPlays.length}/{MAX_SELECTED_TRICK_PLAYS}
           </div>
         </div>
       </PixelPanel>
@@ -321,12 +490,186 @@ export function GamePlanSetup() {
         </PixelPanel>
       )}
 
+      <PixelPanel title="Prep Extras" accent="cyan">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {PREP_EXTRA_TABS.map((tab) => (
+              <PixelButton
+                key={tab.id}
+                accent={prepExtrasTab === tab.id ? tab.accent : 'default'}
+                onClick={() => setPrepExtrasTab(tab.id)}
+              >
+                {tab.label}
+              </PixelButton>
+            ))}
+          </div>
+
+          {prepExtrasTab === 'contingencies' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <PixelBadge variant="gold">Rules {contingencyRules.length}/{MAX_CONTINGENCIES}</PixelBadge>
+                <PixelBadge variant="cyan">Auto-fire at runtime</PixelBadge>
+              </div>
+              {contingencyRules.length === 0 ? (
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+                  Build up to six if/then rules. These auto-adjust your plan during the game without opening another screen.
+                </div>
+              ) : (
+                contingencyRules.map((rule) => (
+                  <div
+                    key={rule.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      padding: '10px',
+                      border: '2px solid var(--mfd-border)',
+                      background: 'var(--mfd-bg-2)',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '220px' }}>
+                      <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{rule.label}</div>
+                      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{rule.description}</div>
+                    </div>
+                    <PixelButton accent="red" onClick={() => removeContingencyRule(rule.id)}>Remove</PixelButton>
+                  </div>
+                ))
+              )}
+
+              <div style={autoGrid(220)}>
+                <PixelPanel title="Trigger" accent="gold">
+                  <PixelSelect
+                    value={selectedTrigger}
+                    onChange={(event) => setSelectedTrigger(event.target.value as ContingencyTrigger)}
+                    options={contingencyTriggerOptions}
+                    accent="gold"
+                  />
+                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '8px' }}>
+                    {CONTINGENCY_TRIGGERS[selectedTrigger].description}
+                  </div>
+                </PixelPanel>
+                <PixelPanel title="Response" accent="cyan">
+                  <PixelSelect
+                    value={selectedActionKey}
+                    onChange={(event) => setSelectedActionKey(event.target.value as ContingencyActionKey)}
+                    options={contingencyActionOptions.map((option) => ({ value: option.value, label: option.label }))}
+                    accent="cyan"
+                  />
+                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '8px' }}>
+                    {contingencyActionOptions.find((option) => option.value === selectedActionKey)?.description}
+                  </div>
+                </PixelPanel>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <PixelButton
+                  accent="green"
+                  disabled={contingencyRules.length >= MAX_CONTINGENCIES}
+                  onClick={addContingencyRule}
+                >
+                  Add Contingency Rule
+                </PixelButton>
+              </div>
+            </div>
+          ) : null}
+
+          {prepExtrasTab === 'trick_plays' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <PixelBadge variant="cyan">Selected {selectedTrickPlays.length}/{MAX_SELECTED_TRICK_PLAYS}</PixelBadge>
+                <PixelBadge variant={availableTrickPlays.length > 0 ? 'green' : 'red'}>
+                  {availableTrickPlays.length > 0 ? 'Coach unlocked' : 'Coach locked'}
+                </PixelBadge>
+              </div>
+              {availableTrickPlays.length === 0 ? (
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+                  Your head coach does not currently have the gameplan rating or creativity traits needed to unlock the trick-play menu.
+                </div>
+              ) : (
+                availableTrickPlays.map((play) => {
+                  const selected = selectedTrickPlays.includes(play.id);
+                  const atLimit = !selected && selectedTrickPlays.length >= MAX_SELECTED_TRICK_PLAYS;
+                  return (
+                    <button
+                      key={play.id}
+                      type="button"
+                      disabled={atLimit}
+                      onClick={() => toggleTrickPlay(play.id)}
+                      style={{
+                        padding: '10px 12px',
+                        border: `2px solid ${selected ? 'var(--mfd-cyan)' : 'var(--mfd-border)'}`,
+                        background: selected ? 'rgba(34, 211, 238, 0.08)' : 'var(--mfd-bg-2)',
+                        color: selected ? 'var(--mfd-cyan)' : atLimit ? 'var(--mfd-text-dim)' : 'var(--mfd-text)',
+                        textAlign: 'left',
+                        cursor: atLimit ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ ...monoSm, color: 'inherit' }}>{play.name}</span>
+                        <PixelBadge variant={selected ? 'cyan' : 'default'}>
+                          Success {Math.round(play.successRate * 100)}%
+                        </PixelBadge>
+                      </div>
+                      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{play.commentary}</div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          ) : null}
+
+          {prepExtrasTab === 'playbook' ? (
+            <div style={autoGrid(280)}>
+              <PixelPanel title="Offense Menu" accent="gold">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <PixelBadge variant="gold">{currentPlan.offensiveFocus.replaceAll('_', ' ')}</PixelBadge>
+                    <PixelBadge variant="default">{filteredOffensivePlaybook.length} calls in package</PixelBadge>
+                  </div>
+                  {filteredOffensivePlaybook.map((play) => (
+                    <div key={play.id} style={{ paddingBottom: '8px', borderBottom: '1px solid var(--mfd-border)' }}>
+                      <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{play.name}</div>
+                      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                        {play.category.toUpperCase()} // {play.commentary.replace('{{player}}', 'Ball carrier').replace('{{target}}', 'target')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </PixelPanel>
+              <PixelPanel title="Defense Menu" accent="cyan">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <PixelBadge variant="cyan">{currentPlan.defensiveFocus.replaceAll('_', ' ')}</PixelBadge>
+                    <PixelBadge variant="default">{filteredDefensivePlaybook.length} calls in package</PixelBadge>
+                  </div>
+                  {filteredDefensivePlaybook.map((play) => (
+                    <div key={play.id} style={{ paddingBottom: '8px', borderBottom: '1px solid var(--mfd-border)' }}>
+                      <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{play.name}</div>
+                      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                        Cover {play.coverageBonus} // Run {play.runStopBonus} // Pressure {play.pressureBonus}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </PixelPanel>
+            </div>
+          ) : null}
+        </div>
+      </PixelPanel>
+
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
         <PixelButton
           accent="gold"
           onClick={() => {
-            void clearWeeklyPrepPlan();
-            void advanceWeek();
+            void (async () => {
+              await clearWeeklyPrepPlan();
+              await persistShotDeclaration();
+              await advanceWeek();
+            })();
           }}
         >
           Skip With Auto Prep
@@ -334,8 +677,11 @@ export function GamePlanSetup() {
         <PixelButton
           accent="green"
           onClick={() => {
-            void saveWeeklyPrepPlan(currentPlan, report);
-            void advanceWeek();
+            void (async () => {
+              await saveWeeklyPrepPlan(currentPlan, report);
+              await persistShotDeclaration();
+              await advanceWeek();
+            })();
           }}
         >
           Save Weekly Prep &amp; Sim
