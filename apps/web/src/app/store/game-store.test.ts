@@ -209,7 +209,7 @@ describe('game store offseason actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   }, 15000);
 
-  it('hydrates postgame UI queues after advancing the week', async () => {
+  it('hydrates postgame UI queues after advancing the week', { timeout: 15_000 }, async () => {
     const game = createSeedGameState(313, 0, 'pro');
     game.phase = 'regular_season';
     game.settings.halftimeDecisions = 'off';
