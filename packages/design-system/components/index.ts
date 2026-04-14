@@ -28,3 +28,4 @@ export { PixelScreenHeader } from './PixelScreenHeader';
 export { PixelMetricCard } from './PixelMetricCard';
 export { PixelConsequenceList } from './PixelConsequenceList';
 export { PixelPlayerLink } from './PixelPlayerLink';
+export { PixelEkg, type PixelEkgPoint } from './PixelEkg';

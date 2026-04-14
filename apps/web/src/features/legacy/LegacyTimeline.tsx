@@ -275,14 +275,30 @@ export function LegacyTimeline() {
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <span style={{ ...monoSm, color: '#fff' }}>{event.headline}</span>
-                        <PixelBadge variant={event.importance === 'landmark' ? 'gold' : event.importance === 'major' ? 'cyan' : 'default'}>
-                          {event.importance}
-                        </PixelBadge>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ ...monoSm, color: '#fff' }}>{event.headline}</span>
+                          {event.type === 'named_game' && event.namedGame ? (
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              <PixelBadge variant="gold">NAMED GAME</PixelBadge>
+                              <PixelBadge variant="gold">{event.namedGame.name}</PixelBadge>
+                            </div>
+                          ) : null}
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {event.type === 'named_game' ? <PixelBadge variant="gold">TROPHY FILED</PixelBadge> : null}
+                          <PixelBadge variant={event.importance === 'landmark' ? 'gold' : event.importance === 'major' ? 'cyan' : 'default'}>
+                            {event.importance}
+                          </PixelBadge>
+                        </div>
                       </div>
                       <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
                         {event.type.replaceAll('_', ' ')}{event.week !== null ? ` // Week ${event.week}` : ''}
                       </span>
+                      {event.type === 'named_game' && event.namedGame ? (
+                        <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>
+                          {event.namedGame.reason}
+                        </span>
+                      ) : null}
                     </div>
                   ))}
                 </div>

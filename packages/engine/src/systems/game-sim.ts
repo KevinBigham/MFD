@@ -16,6 +16,7 @@ import { simulateSpecialTeams } from './special-teams';
 import type { ContingencyCheckContext } from './contingency-plans';
 import type {
   GamePlan,
+  HalftimeDecisionModifier,
   MatchupHighlight,
   OpponentReport,
   Player,
@@ -34,6 +35,7 @@ export interface SimTeamContext {
   clutchPlayerBonuses?: Record<string, number>;
   gamePlan?: GamePlan | null;
   opponentReport?: OpponentReport | null;
+  halftimeModifier?: HalftimeDecisionModifier | null;
 }
 
 export interface SimGameContext {
@@ -743,15 +745,97 @@ export interface SimGameResult {
   matchupHighlight: MatchupHighlight | null;
   specialTeams: Record<string, SpecialTeamsGameSummary>;
   playerMatchupEvents: PlayerMatchupEvent[];
-  contingencyActivations: Array<{ teamId: string; ruleId: string; label: string; quarter: number }>;
+  contingencyActivations: Array<{
+    teamId: string;
+    ruleId: string;
+    label: string;
+    triggerLabel?: string;
+    responseLabel?: string;
+    quarter: number;
+    callout?: string | null;
+  }>;
 }
 
-function applySimContext(team: Team, context?: SimTeamContext): Team {
+function applyHalftimeGamePlan(
+  gamePlan: GamePlan | null | undefined,
+  modifier: HalftimeDecisionModifier | null | undefined,
+  quarter: number,
+): GamePlan | null | undefined {
+  if (!gamePlan || !modifier || quarter < 3 || quarter > 4) return gamePlan;
+
+  if (modifier.direction === 'more_pass') {
+    return {
+      ...gamePlan,
+      offensiveScheme: gamePlan.offensiveScheme === 'spread' ? 'spread' : 'pass_heavy',
+    };
+  }
+
+  if (modifier.direction === 'more_run') {
+    return {
+      ...gamePlan,
+      offensiveScheme: gamePlan.offensiveScheme === 'power' ? 'power' : 'run_heavy',
+    };
+  }
+
+  if (modifier.direction === 'more_aggressive') {
+    return {
+      ...gamePlan,
+      offensiveScheme: 'pass_heavy',
+      defensiveScheme: 'aggressive',
+    };
+  }
+
+  return {
+    ...gamePlan,
+    offensiveScheme: 'power',
+    defensiveScheme: 'coverage',
+  };
+}
+
+function resolveHalftimeDriveDelta(
+  modifier: HalftimeDecisionModifier | null | undefined,
+  quarter: number,
+  drivesSinceHalftime: number,
+): number {
+  if (!modifier || quarter < 3 || quarter > 4) return 0;
+
+  if (modifier.choice === 'switch') {
+    return drivesSinceHalftime === 0
+      ? modifier.firstDriveDelta
+      : modifier.sustainedBonus;
+  }
+
+  if (modifier.choice === 'gamble') {
+    return drivesSinceHalftime === 0
+      ? modifier.gambleDriveDelta
+      : modifier.gambleOtherDriveDelta;
+  }
+
+  return 0;
+}
+
+function applySimContext(
+  team: Team,
+  context?: SimTeamContext,
+  runtime?: {
+    quarter: number;
+    drivesSinceHalftime: number;
+  },
+): Team {
   if (!context) return team;
-  const teamOvrBonus = context.teamOvrBonus ?? 0;
+  const activeGamePlan = applyHalftimeGamePlan(
+    context.gamePlan,
+    context.halftimeModifier,
+    runtime?.quarter ?? 1,
+  );
+  const teamOvrBonus = (context.teamOvrBonus ?? 0) + resolveHalftimeDriveDelta(
+    context.halftimeModifier,
+    runtime?.quarter ?? 1,
+    runtime?.drivesSinceHalftime ?? 0,
+  );
   const basePlayerBonuses = context.playerOvrBonuses ?? {};
-  const gamePlanBonuses = context.gamePlan && context.opponentReport
-    ? applyGamePlan(context.gamePlan, context.opponentReport, team).playerOvrBonuses ?? {}
+  const gamePlanBonuses = activeGamePlan && context.opponentReport
+    ? applyGamePlan(activeGamePlan, context.opponentReport, team).playerOvrBonuses ?? {}
     : {};
   const playerBonuses = { ...basePlayerBonuses };
   for (const [playerId, bonus] of Object.entries(gamePlanBonuses)) {
@@ -784,6 +868,7 @@ function buildContingencyContext(params: {
   opponentTurnovers: number;
   opponentScoredOnOpening: boolean;
   windSpeed: number;
+  lateGameWindow?: boolean;
 }): ContingencyCheckContext {
   return {
     quarter: params.quarter,
@@ -792,6 +877,7 @@ function buildContingencyContext(params: {
     opponentTurnovers: params.opponentTurnovers,
     opponentScoredOnOpening: params.opponentScoredOnOpening,
     windSpeed: params.windSpeed,
+    lateGameWindow: params.lateGameWindow,
   };
 }
 
@@ -803,9 +889,18 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
   let activeAwayPlan = context?.away?.gamePlan ?? null;
   let adjustedHome = applySimContext(home, context?.home ? { ...context.home, gamePlan: activeHomePlan } : undefined);
   let adjustedAway = applySimContext(away, context?.away ? { ...context.away, gamePlan: activeAwayPlan } : undefined);
-  const contingencyActivations: Array<{ teamId: string; ruleId: string; label: string; quarter: number }> = [];
+  const contingencyActivations: Array<{
+    teamId: string;
+    ruleId: string;
+    label: string;
+    triggerLabel?: string;
+    responseLabel?: string;
+    quarter: number;
+    callout?: string | null;
+  }> = [];
   const homeFiredRules = new Set<string>();
   const awayFiredRules = new Set<string>();
+  let lateGameWindowEvaluated = false;
   let matchupHighlight = buildMatchupHighlight(adjustedHome, adjustedAway)
     ?? buildMatchupHighlight(adjustedAway, adjustedHome);
   const homeLines = new Map<string, PlayerGameLine>();
@@ -825,10 +920,14 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
   let awayOpeningTouchdown = false;
   let homeOpeningDriveComplete = false;
   let awayOpeningDriveComplete = false;
+  let homeSecondHalfDrives = 0;
+  let awaySecondHalfDrives = 0;
   let homePlayState: PlayCallState = { lastPlayType: null, streak: 0 };
   let awayPlayState: PlayCallState = { lastPlayType: null, streak: 0 };
 
-  const evaluateQuarterBreak = (quarter: number) => {
+  const evaluateQuarterBreak = (quarter: number, lateGameWindow = false) => {
+    activeHomePlan = applyHalftimeGamePlan(activeHomePlan, context?.home?.halftimeModifier, quarter) ?? activeHomePlan;
+    activeAwayPlan = applyHalftimeGamePlan(activeAwayPlan, context?.away?.halftimeModifier, quarter) ?? activeAwayPlan;
     const nextHomeRules = activeHomePlan?.contingencyRules?.filter((rule) => !homeFiredRules.has(rule.id)) ?? [];
     if (activeHomePlan && nextHomeRules.length > 0) {
       const homeContext = buildContingencyContext({
@@ -839,8 +938,12 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
         opponentTurnovers: awayTurnovers,
         opponentScoredOnOpening: awayOpeningTouchdown,
         windSpeed,
+        lateGameWindow,
       });
-      const evaluation = evaluateContingencies(nextHomeRules, homeContext, activeHomePlan);
+      const evaluation = evaluateContingencies(nextHomeRules, homeContext, activeHomePlan, {
+        teamName: adjustedHome.name,
+        rng: RNG.event,
+      });
       if (evaluation.firedRule) {
         activeHomePlan = evaluation.plan;
         homeFiredRules.add(evaluation.firedRule.id);
@@ -848,7 +951,10 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
           teamId: home.id,
           ruleId: evaluation.firedRule.id,
           label: evaluation.firedRule.label,
+          triggerLabel: evaluation.firedRule.label,
+          responseLabel: evaluation.adjustments.responseLabel,
           quarter,
+          callout: evaluation.callout,
         });
       }
     }
@@ -863,8 +969,12 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
         opponentTurnovers: homeTurnovers,
         opponentScoredOnOpening: homeOpeningTouchdown,
         windSpeed,
+        lateGameWindow,
       });
-      const evaluation = evaluateContingencies(nextAwayRules, awayContext, activeAwayPlan);
+      const evaluation = evaluateContingencies(nextAwayRules, awayContext, activeAwayPlan, {
+        teamName: adjustedAway.name,
+        rng: RNG.event,
+      });
       if (evaluation.firedRule) {
         activeAwayPlan = evaluation.plan;
         awayFiredRules.add(evaluation.firedRule.id);
@@ -872,13 +982,30 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
           teamId: away.id,
           ruleId: evaluation.firedRule.id,
           label: evaluation.firedRule.label,
+          triggerLabel: evaluation.firedRule.label,
+          responseLabel: evaluation.adjustments.responseLabel,
           quarter,
+          callout: evaluation.callout,
         });
       }
     }
 
-    adjustedHome = applySimContext(home, context?.home ? { ...context.home, gamePlan: activeHomePlan } : undefined);
-    adjustedAway = applySimContext(away, context?.away ? { ...context.away, gamePlan: activeAwayPlan } : undefined);
+    adjustedHome = applySimContext(
+      home,
+      context?.home ? { ...context.home, gamePlan: activeHomePlan } : undefined,
+      {
+        quarter,
+        drivesSinceHalftime: homeSecondHalfDrives,
+      },
+    );
+    adjustedAway = applySimContext(
+      away,
+      context?.away ? { ...context.away, gamePlan: activeAwayPlan } : undefined,
+      {
+        quarter,
+        drivesSinceHalftime: awaySecondHalfDrives,
+      },
+    );
     matchupHighlight = buildMatchupHighlight(adjustedHome, adjustedAway)
       ?? buildMatchupHighlight(adjustedAway, adjustedHome);
   };
@@ -894,21 +1021,43 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
       currentQuarter = quarterNumber;
       evaluateQuarterBreak(currentQuarter);
     }
+    if (quarterNumber === 4 && !lateGameWindowEvaluated && d >= totalDrives - 2) {
+      lateGameWindowEvaluated = true;
+      evaluateQuarterBreak(4, true);
+    }
     const homeCEdge = baseHomeCEdge + (homeScore > awayScore ? 1 : 0);
     const awayCEdge = baseAwayCEdge - (homeScore - awayScore >= 10 ? 1 : 0);
+    const effectiveHomePlan = applyHalftimeGamePlan(activeHomePlan, context?.home?.halftimeModifier, quarterNumber);
+    const effectiveAwayPlan = applyHalftimeGamePlan(activeAwayPlan, context?.away?.halftimeModifier, quarterNumber);
+    const activeHomeTeam = applySimContext(
+      home,
+      context?.home ? { ...context.home, gamePlan: activeHomePlan } : undefined,
+      {
+        quarter: quarterNumber,
+        drivesSinceHalftime: homeSecondHalfDrives,
+      },
+    );
+    const activeAwayTeam = applySimContext(
+      away,
+      context?.away ? { ...context.away, gamePlan: activeAwayPlan } : undefined,
+      {
+        quarter: quarterNumber,
+        drivesSinceHalftime: awaySecondHalfDrives,
+      },
+    );
 
     // Home drive
     const hDrive = simulateDrive(
-      adjustedHome,
-      adjustedAway,
+      activeHomeTeam,
+      activeAwayTeam,
       homeCEdge,
       homeScore - awayScore,
       quarter + 1,
       homeLines,
       homePlayState,
       weather,
-      activeHomePlan,
-      activeAwayPlan,
+      effectiveHomePlan,
+      effectiveAwayPlan,
       context?.home?.clutchPlayerBonuses ?? {},
       context?.away?.clutchPlayerBonuses ?? {},
       playerMatchupEvents,
@@ -925,19 +1074,39 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
     homePlayState = hDrive.playType === homePlayState.lastPlayType
       ? { lastPlayType: hDrive.playType, streak: homePlayState.streak + 1 }
       : { lastPlayType: hDrive.playType, streak: 1 };
+    if (quarterNumber >= 3 && quarterNumber <= 4) {
+      homeSecondHalfDrives += 1;
+    }
+
+    const activeAwayOffense = applySimContext(
+      away,
+      context?.away ? { ...context.away, gamePlan: activeAwayPlan } : undefined,
+      {
+        quarter: quarterNumber,
+        drivesSinceHalftime: awaySecondHalfDrives,
+      },
+    );
+    const activeHomeDefense = applySimContext(
+      home,
+      context?.home ? { ...context.home, gamePlan: activeHomePlan } : undefined,
+      {
+        quarter: quarterNumber,
+        drivesSinceHalftime: homeSecondHalfDrives,
+      },
+    );
 
     // Away drive
     const aDrive = simulateDrive(
-      adjustedAway,
-      adjustedHome,
+      activeAwayOffense,
+      activeHomeDefense,
       awayCEdge,
       awayScore - homeScore,
       quarter + 1,
       awayLines,
       awayPlayState,
       weather,
-      activeAwayPlan,
-      activeHomePlan,
+      effectiveAwayPlan,
+      effectiveHomePlan,
       context?.away?.clutchPlayerBonuses ?? {},
       context?.home?.clutchPlayerBonuses ?? {},
       playerMatchupEvents,
@@ -954,6 +1123,9 @@ export function simGame(home: Team, away: Team, context?: SimGameContext): SimGa
     awayPlayState = aDrive.playType === awayPlayState.lastPlayType
       ? { lastPlayType: aDrive.playType, streak: awayPlayState.streak + 1 }
       : { lastPlayType: aDrive.playType, streak: 1 };
+    if (quarterNumber >= 3 && quarterNumber <= 4) {
+      awaySecondHalfDrives += 1;
+    }
   }
 
   // Overtime if tied

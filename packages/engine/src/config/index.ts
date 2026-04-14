@@ -11,7 +11,7 @@ export type { Scheme, OffPlan, DefPlan, SchemeFxEntry } from './schemes';
 export { ARCHETYPES, ARCH_BOOST, COACH_TRAITS, ARCH_TRAIT_POOLS, CLIQUE_TYPES } from './coaching';
 export type { CoachRole, CoachTraitDef, CliqueType } from './coaching';
 
-export { DIFF_SETTINGS, SAVE_VERSION } from './difficulty';
+export { DIFF_SETTINGS, SAVE_VERSION, getDefaultHalftimeDecisionSetting } from './difficulty';
 export type { DifficultyConfig } from './difficulty';
 
 export {

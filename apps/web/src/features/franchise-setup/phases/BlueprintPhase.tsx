@@ -2,7 +2,19 @@ import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
 import type { FranchiseBlueprint } from '@mfd/engine';
 import { PixelMetricCard, autoGrid, monoSm, pixelSm, display } from '../../shared/pixelUi';
 
-export function BlueprintPhase({ data }: { data: FranchiseBlueprint }) {
+export function BlueprintPhase({
+  data,
+  runtimeCliffhanger,
+}: {
+  data: FranchiseBlueprint;
+  runtimeCliffhanger?: {
+    opponentIdentity: string;
+    ifThisWorks: string;
+    ifThisBreaks: string;
+    unresolvedDanger: string;
+    betSummary?: string[];
+  };
+}) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Header */}
@@ -41,6 +53,20 @@ export function BlueprintPhase({ data }: { data: FranchiseBlueprint }) {
         </div>
       </PixelPanel>
 
+      <PixelPanel title="Day 1 Diagnosis" accent="red">
+        <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.7 }}>{data.crisisHeadline}</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+          {data.pressureSnapshot.map((card) => (
+            <div key={card.id} style={{ padding: '6px 10px', border: '2px solid var(--mfd-border)', background: 'var(--mfd-bg-3)' }}>
+              <PixelBadge variant={card.severity === 'critical' ? 'red' : card.severity === 'warning' ? 'gold' : 'green'}>
+                {card.label}
+              </PixelBadge>
+              <span style={{ ...monoSm, color: '#bbb', marginLeft: '6px' }}>{card.diagnosis}</span>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
+
       {/* Key Players */}
       {data.keyPlayers.length > 0 ? (
         <PixelPanel title="Key Players" accent="green">
@@ -71,6 +97,50 @@ export function BlueprintPhase({ data }: { data: FranchiseBlueprint }) {
           {data.blueprintNarrative}
         </div>
       </PixelPanel>
+
+      <PixelPanel title="Day 1 Bets" accent="cyan">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {data.dayOneBets.map((bet) => (
+            <div key={bet} style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
+              {bet}
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
+
+      <PixelPanel title="Week 1 Cliffhanger" accent="gold">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>{data.weekOneCliffhanger.openerLabel}</div>
+          <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}><strong>Threat:</strong> {data.weekOneCliffhanger.threat}</div>
+          <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}><strong>Hope:</strong> {data.weekOneCliffhanger.hope}</div>
+          <div style={{ ...monoSm, color: '#aaa', lineHeight: 1.6 }}><strong>Unknown:</strong> {data.weekOneCliffhanger.unknown}</div>
+        </div>
+      </PixelPanel>
+
+      {runtimeCliffhanger ? (
+        <PixelPanel title="Week 1 War Room" accent="red">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...pixelSm, color: 'var(--mfd-red)' }}>{runtimeCliffhanger.opponentIdentity}</div>
+            <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
+              <strong>IF THIS WORKS</strong> {runtimeCliffhanger.ifThisWorks}
+            </div>
+            <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
+              <strong>IF THIS BREAKS</strong> {runtimeCliffhanger.ifThisBreaks}
+            </div>
+            <div style={{ ...monoSm, color: '#aaa', lineHeight: 1.6 }}>
+              <strong>TOP UNRESOLVED DANGER</strong> {runtimeCliffhanger.unresolvedDanger}
+            </div>
+            {runtimeCliffhanger.betSummary && runtimeCliffhanger.betSummary.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>DAY 1 BETS CARRIED INTO KICKOFF</div>
+                {runtimeCliffhanger.betSummary.map((bet) => (
+                  <div key={bet} style={{ ...monoSm, color: '#ddd', lineHeight: 1.5 }}>{bet}</div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </PixelPanel>
+      ) : null}
     </div>
   );
 }

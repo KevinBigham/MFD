@@ -29,6 +29,9 @@ const mockBroadcast: BroadcastOutput = {
   momentumSwings: [
     { quarter: 1, play: 2, description: 'Big touchdown shifts momentum' },
   ],
+  ghostLines: [
+    { commentatorName: 'Booth Alert', commentary: 'They hit the panic button and never looked back.', trigger: 'quarter_break' },
+  ],
   mvpPlayerIds: ['p1'],
   finalNarrative: 'A thrilling game from start to finish.',
   broadcastNetwork: 'MFN',
@@ -66,6 +69,14 @@ describe('PlayByPlayView', () => {
 
     expect(markup).toContain('MOMENTUM SWINGS');
     expect(markup).toContain('Big touchdown shifts momentum');
+  });
+
+  it('renders booth alerts from ghost commentary lines', () => {
+    const markup = renderToStaticMarkup(<PlayByPlayView broadcast={mockBroadcast} />);
+
+    expect(markup).toContain('BOOTH ALERTS');
+    expect(markup).toContain('They hit the panic button and never looked back.');
+    expect(markup).toContain('quarter break');
   });
 
   it('displays the final narrative', () => {

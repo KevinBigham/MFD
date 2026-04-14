@@ -1,8 +1,21 @@
 import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
-import type { CapStrategyBriefing } from '@mfd/engine';
+import type { CapPackage, CapPosture, CapStrategyBriefing, ChoiceForecastPreview } from '@mfd/engine';
 import { PixelMetricCard, autoGrid, monoSm } from '../../shared/pixelUi';
+import { ChoiceDeltaBadges } from '../ChoiceDeltaBadges';
 
-export function CapStrategyPhase({ data }: { data: CapStrategyBriefing }) {
+export function CapStrategyPhase({
+  data,
+  packages,
+  selectedPosture,
+  previewByPosture,
+  onSelectPosture,
+}: {
+  data: CapStrategyBriefing;
+  packages: CapPackage[];
+  selectedPosture: CapPosture | null;
+  previewByPosture?: Partial<Record<CapPosture, ChoiceForecastPreview>>;
+  onSelectPosture: (posture: CapPosture) => void;
+}) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={autoGrid(160)}>
@@ -57,6 +70,48 @@ export function CapStrategyPhase({ data }: { data: CapStrategyBriefing }) {
 
       <PixelPanel title="Cap Outlook" accent="default">
         <div style={{ ...monoSm, color: '#ccc', lineHeight: 1.7 }}>{data.capOutlook}</div>
+      </PixelPanel>
+
+      <PixelPanel title="Day 1 Cap Packages" accent="cyan">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+          {packages.map((pkg) => {
+            const selected = pkg.posture === selectedPosture;
+            return (
+              <div
+                key={pkg.posture}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelectPosture(pkg.posture)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') onSelectPosture(pkg.posture);
+                }}
+                style={{
+                  cursor: 'pointer',
+                  border: `3px solid ${selected ? 'var(--mfd-cyan)' : 'var(--mfd-border)'}`,
+                  background: selected ? 'rgba(0, 224, 255, 0.08)' : 'var(--mfd-bg-3)',
+                  padding: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text)', fontWeight: 700 }}>{pkg.label}</span>
+                  {selected ? <PixelBadge variant="cyan">SELECTED</PixelBadge> : null}
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{pkg.summary}</div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <PixelBadge variant="green">{`+$${pkg.capSpaceDelta}M`}</PixelBadge>
+                  <PixelBadge variant={pkg.weekOneDelta >= 1 ? 'gold' : 'default'}>
+                    {pkg.weekOneDelta >= 1 ? `+${pkg.weekOneDelta} Week 1` : 'No Week 1 bump'}
+                  </PixelBadge>
+                </div>
+                <ChoiceDeltaBadges preview={previewByPosture?.[pkg.posture]} />
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{pkg.rosterImpact}</div>
+              </div>
+            );
+          })}
+        </div>
       </PixelPanel>
     </div>
   );

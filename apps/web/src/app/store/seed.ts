@@ -27,6 +27,7 @@ import {
   createFacilityState,
   buildSeasonSchedule,
   buildSpecialTeamsState,
+  getDefaultHalftimeDecisionSetting,
   initCBA,
   initCommissioner,
   initLaborState,
@@ -354,6 +355,7 @@ function genTeam(
     ownerId: uid(),
     owner: ownerState,
     ownerMood: 70,
+    fanConfidence: 70,
     ownerPatience80: 80,
     gmStrategy: 'neutral',
     draftPicks: genDraftPicks(teamId, year + 1),
@@ -475,6 +477,9 @@ export function createSeedGameState(
     week: 1,
     phase: 'preseason',
     difficulty,
+    settings: {
+      halftimeDecisions: getDefaultHalftimeDecisionSetting(difficulty),
+    },
     players: allPlayers,
     teams: allTeams,
     owners: allOwners,
@@ -558,6 +563,16 @@ export function createSeedGameState(
     opponentReports: [],
     draftRecaps: [],
     tradeSuggestions: [],
+    postGameUi: {
+      pressConferenceQueue: [],
+      audioCueQueue: [],
+      pendingHalftimeDecision: null,
+    },
+    breakingNewsQueue: [],
+    ownerPersonalityInbox: [],
+    commissionerDisciplineLog: [],
+    earnedDoctrines: [],
+    seasonNearMissReceipts: [],
     setupState: createSetupState(),
   };
 

@@ -1,4 +1,4 @@
-import { v36CapHit } from './contract-helpers';
+import { restructureCascade, v36CapHit } from './contract-helpers';
 import { getCapHealth, identifyCapCandidates } from './cap-laboratory';
 import { buildCapVisualization } from './cap-visualization';
 import { getTeamRankings } from './analytics';
@@ -31,6 +31,7 @@ import type {
   Position,
   Team,
   TeamNeedsReport,
+  TimedEffect,
 } from '../types';
 export type {
   CoachCandidate,
@@ -162,6 +163,9 @@ export interface SetupDecisions {
   agmProfileId: string | null;
   headCoachId: string | null;
   scoutingDirectorId: string | null;
+  depthChartPhilosophy: DepthChartPhilosophy | null;
+  capPosture: CapPosture | null;
+  cultureMandate: CultureMandate | null;
   agmClosingWords?: string;
 }
 
@@ -172,7 +176,107 @@ export interface SetupState {
   currentPhase: SetupPhase;
   completedPhases: SetupPhase[];
   decisions: SetupDecisions;
+  crisisProfile: TeamCrisisProfile | null;
+  forecastBoard: ForecastBoard | null;
+  openedDrilldowns: PressureCard['id'][];
   blueprint: FranchiseBlueprint | null;
+}
+
+export type DepthChartPhilosophy = 'best_players' | 'veterans_first' | 'youth_bet';
+export type CapPosture = 'protect_future' | 'balanced' | 'push_chips';
+export type CultureMandate = 'accountability' | 'player_led' | 'development_first';
+
+export interface PressureDrilldown {
+  whyItMatters: string;
+  riskSource: string;
+  bestLever: string;
+  seasonOneConsequence: string;
+}
+
+export interface PressureCard {
+  id: 'roster' | 'cap' | 'culture';
+  label: string;
+  severity: 'stable' | 'warning' | 'critical';
+  score: number;
+  diagnosis: string;
+  signal: string;
+  drilldown: PressureDrilldown;
+}
+
+export interface TeamCrisisProfile {
+  headline: string;
+  ownerPressure: string;
+  mediaPressure: string;
+  pressureCards: PressureCard[];
+  weekOneThreat: string;
+  weekOneHope: string;
+  weekOneUnknown: string;
+}
+
+export interface ForecastCard {
+  id: 'week_one_readiness' | 'scheme_cohesion' | 'culture_stability' | 'cap_flexibility' | 'owner_heat';
+  label: string;
+  value: number;
+  delta: number;
+  direction: 'up' | 'down' | 'flat';
+  detail: string;
+}
+
+export interface ForecastBoard {
+  weekOneReadiness: number;
+  schemeCohesion: number;
+  cultureStability: number;
+  capFlexibility: number;
+  ownerHeat: number;
+  summary: string;
+  cards: ForecastCard[];
+}
+
+export interface CapPackage {
+  posture: CapPosture;
+  label: string;
+  summary: string;
+  capSpaceDelta: number;
+  deadCapDelta: number;
+  rosterImpact: string;
+  restructureTargets: string[];
+  weekOneDelta: number;
+  ownerApprovalDelta: number;
+}
+
+export interface WeekOneCliffhanger {
+  openerLabel: string;
+  threat: string;
+  hope: string;
+  unknown: string;
+}
+
+export interface SetupColdOpen {
+  ownerExpectation: string;
+  mediaNarrative: string;
+  lastSeasonScar: string;
+  crisisHeadline: string;
+  weekOneThreat: string;
+  openerLabel: string;
+  topPressureId: PressureCard['id'];
+}
+
+type ChoiceForecastSecondaryId = Extract<ForecastCard['id'], 'scheme_cohesion' | 'culture_stability' | 'cap_flexibility' | 'owner_heat'>;
+
+export interface ChoiceForecastPreview {
+  weekOneReadinessDelta: number;
+  weekOneVolatilityDelta: number;
+  summaryLine: string;
+  secondaryDelta: {
+    id: ChoiceForecastSecondaryId;
+    label: string;
+    delta: number;
+  };
+  bonusDelta?: {
+    id: 'owner_heat';
+    label: string;
+    delta: number;
+  };
 }
 
 /**
@@ -390,12 +494,25 @@ export interface FranchiseBlueprint {
   rosterStrength: string;
   capOutlook: string;
   blueprintNarrative: string;
+  crisisHeadline: string;
+  pressureSnapshot: Array<{
+    id: PressureCard['id'];
+    label: string;
+    severity: PressureCard['severity'];
+    diagnosis: string;
+  }>;
+  dayOneBets: string[];
+  weekOneCliffhanger: WeekOneCliffhanger;
   agmProfileId?: string;
   agmClosingWords?: string;
 }
 
 function round(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
 }
 
 function average(values: number[]): number {
@@ -454,6 +571,10 @@ function normalizePhases(phases: readonly SetupPhase[]): SetupPhase[] {
 
 function uniqueStrings(values: readonly string[]): string[] {
   return Array.from(new Set(values));
+}
+
+function currentStamp(game: Pick<GameState, 'year' | 'week'>): number {
+  return game.year * 100 + game.week;
 }
 
 function currentOffScheme(team: Team): string {
@@ -519,6 +640,243 @@ function getLeagueRank(rankings: ReturnType<typeof getTeamRankings>, teamId: str
   const defense = rankings.defense.findIndex((entry) => entry.teamId === teamId) + 1;
   const specialTeams = rankings.specialTeams.findIndex((entry) => entry.teamId === teamId) + 1;
   return Math.max(1, Math.round(average([offense, defense, specialTeams].filter((value) => value > 0))));
+}
+
+function pressureSeverity(score: number): PressureCard['severity'] {
+  if (score >= 70) return 'critical';
+  if (score >= 45) return 'warning';
+  return 'stable';
+}
+
+function pressureSignal(severity: PressureCard['severity']): string {
+  if (severity === 'critical') return 'High Alert';
+  if (severity === 'warning') return 'Watchlist';
+  return 'Stable';
+}
+
+function cultureSummary(team: Team): string {
+  const culture = team.lockerRoom?.culture ?? 'stable';
+  const score = team.lockerRoom?.cultureScore ?? 50;
+  if (culture === 'elite' || score >= 78) return 'The room already believes it can win ugly games.';
+  if (culture === 'strong' || score >= 64) return 'The locker room can absorb pressure if leadership stays consistent.';
+  if (culture === 'fragile' || score <= 42) return 'One bad month can split the room if the message is not clear.';
+  if (culture === 'toxic' || score <= 28) return 'The room is already unstable, and loose standards will make it worse fast.';
+  return 'The room is neither broken nor secure. Early signals will matter.';
+}
+
+function goalStress(decisions: SetupDecisions): number {
+  const goals = decisions.seasonGoals;
+  let score = 0;
+  if (goals.includes('championship')) score += 10;
+  if (goals.includes('win_division')) score += 8;
+  if (goals.includes('star_power')) score += 5;
+  if (goals.includes('playoff_berth')) score += 4;
+  if (goals.includes('winning_record')) score += 2;
+  if (goals.includes('cap_health')) score -= 2;
+  if (goals.includes('draft_well')) score -= 1;
+  if (goals.includes('rebuild_progress')) score -= 3;
+  return score;
+}
+
+function teamOpener(game: GameState, teamId: string): { label: string; opponent: Team | null; home: boolean } {
+  const weekOne = game.schedule.find((entry) => entry.week === 1) ?? game.schedule[0];
+  const opener = weekOne?.games.find((entry) => entry.homeTeamId === teamId || entry.awayTeamId === teamId);
+  if (!opener) {
+    return { label: 'Week 1 opener', opponent: null, home: true };
+  }
+  const home = opener.homeTeamId === teamId;
+  const opponentId = home ? opener.awayTeamId : opener.homeTeamId;
+  const opponent = game.teams[opponentId] ?? null;
+  const label = opponent ? `Week 1 ${home ? 'vs' : '@'} ${opponent.city} ${opponent.name}` : 'Week 1 opener';
+  return { label, opponent, home };
+}
+
+function defaultAgmForPressure(highest: PressureCard['id']): string {
+  if (highest === 'cap') return 'marcus_webb';
+  if (highest === 'culture') return 'sandra_chen';
+  return 'coach_d_hardaway';
+}
+
+function defaultCultureMandate(team: Team): CultureMandate {
+  const score = team.lockerRoom?.cultureScore ?? 50;
+  if (score <= 42) return 'accountability';
+  if (score >= 65) return 'player_led';
+  return 'development_first';
+}
+
+function cardDirection(id: ForecastCard['id'], delta: number): ForecastCard['direction'] {
+  if (delta === 0) return 'flat';
+  if (id === 'owner_heat') {
+    return delta < 0 ? 'up' : 'down';
+  }
+  return delta > 0 ? 'up' : 'down';
+}
+
+function safestCapPosture(team: Team): CapPosture {
+  const capHealth = getCapHealth(team, { year: 0 } as GameState);
+  if (capHealth.grade === 'D' || capHealth.grade === 'F') return 'balanced';
+  if (capHealth.grade === 'A' || capHealth.grade === 'B') return 'protect_future';
+  return 'balanced';
+}
+
+function philosophyStarterScore(
+  player: Player,
+  position: Position,
+  schemeId: string,
+  philosophy: DepthChartPhilosophy | null,
+): number {
+  const fit = calcSchemeFit(player, schemeId).score;
+  const experience = clamp(player.yearsExp * 1.5, 0, 12);
+  const youthUpside = clamp((player.pot - player.ovr) * 0.8 + Math.max(0, 26 - player.age) * 0.6, 0, 18);
+
+  if (philosophy === 'veterans_first') {
+    return player.ovr * 0.56 + fit * 0.24 + experience + Number(player.isStarter) * 4;
+  }
+  if (philosophy === 'youth_bet') {
+    return player.ovr * 0.4 + fit * 0.28 + youthUpside + Number(player.age <= 25) * 6;
+  }
+  return player.ovr * 0.62 + fit * 0.28 + Number(player.isStarter) * 2;
+}
+
+function topPressureId(profile: TeamCrisisProfile): PressureCard['id'] {
+  return [...profile.pressureCards]
+    .sort((left, right) => right.score - left.score || left.id.localeCompare(right.id))[0]?.id ?? 'roster';
+}
+
+export function getTopPressureCard(profile: TeamCrisisProfile): PressureCard {
+  return [...profile.pressureCards]
+    .sort((left, right) => right.score - left.score || left.id.localeCompare(right.id))[0]
+    ?? {
+      id: 'roster',
+      label: 'Roster Pressure',
+      severity: 'warning',
+      score: 50,
+      diagnosis: 'The roster still needs a clearer answer.',
+      signal: 'WATCH',
+      drilldown: {
+        whyItMatters: 'Week 1 exposes weak points quickly.',
+        riskSource: 'The roster still has unanswered questions.',
+        bestLever: 'Use Day 1 to clarify the roster.',
+        seasonOneConsequence: 'The wrong Week 1 answers can drag the season early.',
+      },
+    };
+}
+
+function forecastMetricLabel(id: ChoiceForecastSecondaryId): string {
+  switch (id) {
+    case 'scheme_cohesion':
+      return 'Scheme Cohesion';
+    case 'culture_stability':
+      return 'Culture Stability';
+    case 'cap_flexibility':
+      return 'Cap Flexibility';
+    case 'owner_heat':
+    default:
+      return 'Owner Heat';
+  }
+}
+
+function previewSummaryLine(
+  override: Partial<SetupDecisions>,
+  readinessDelta: number,
+  volatilityDelta: number,
+): string {
+  if (override.capPosture === 'push_chips') {
+    return 'Push chips buys room now, raises owner heat later.';
+  }
+  if (override.capPosture === 'protect_future') {
+    return 'Protect future keeps the books calmer, even if the opener stays tighter.';
+  }
+  if (override.capPosture === 'balanced') {
+    return 'Balanced posture keeps the room playable without forcing desperation.';
+  }
+  if (override.depthChartPhilosophy === 'youth_bet') {
+    return 'Youth bet raises ceiling but increases Week 1 error bars.';
+  }
+  if (override.depthChartPhilosophy === 'veterans_first') {
+    return 'Veterans first lowers chaos, even if it costs some upside.';
+  }
+  if (override.depthChartPhilosophy === 'best_players') {
+    return 'Best players puts raw talent on the field and asks the room to catch up.';
+  }
+  if (override.cultureMandate === 'accountability') {
+    return 'Accountability hardens the room quickly and asks everyone to handle it.';
+  }
+  if (override.cultureMandate === 'player_led') {
+    return 'Player-led culture works only if the right veterans own the room immediately.';
+  }
+  if (override.cultureMandate === 'development_first') {
+    return 'Development first buys long-term growth at the cost of short-term calm.';
+  }
+  if (override.headCoachId !== undefined) {
+    return readinessDelta >= 0
+      ? 'Coach fit calms the install and gives Week 1 cleaner answers.'
+      : 'This coach increases install friction before the opener.';
+  }
+  if (override.scoutingDirectorId !== undefined) {
+    return volatilityDelta <= 0
+      ? 'Cleaner scouting intel steadies the building fast.'
+      : 'This scouting bet widens uncertainty before it pays off.';
+  }
+  if (override.offenseScheme !== undefined || override.defenseScheme !== undefined) {
+    return volatilityDelta > 0
+      ? 'Transition risk shows up immediately if the install outruns the roster.'
+      : 'Scheme fit gives the opener cleaner, more repeatable answers.';
+  }
+  return 'This Day 1 bet shifts the shape of Week 1 immediately.';
+}
+
+function latestFranchiseScar(game: GameState, teamId: string): string | null {
+  const latestHistory = [...game.franchiseHistory]
+    .filter((entry) => entry.teamId === teamId)
+    .sort((left, right) => right.year - left.year)[0];
+  if (!latestHistory) return null;
+
+  const finish = latestHistory.playoffFinish?.trim();
+  if (finish) {
+    return `Last season ended at ${latestHistory.record}. ${finish} still hangs over this building.`;
+  }
+
+  return `Last season ended at ${latestHistory.record}. This building still feels that finish.`;
+}
+
+function currentRecordScar(team: Team, phase: WindowPhase, ownerType: OwnerType): string {
+  const gamesPlayed = team.wins + team.losses + team.ties;
+  if (gamesPlayed > 0) {
+    return `This room is carrying a ${team.wins}-${team.losses}${team.ties > 0 ? `-${team.ties}` : ''} record and an owner approval number of ${Math.round(team.owner.approval)}.`;
+  }
+  if (phase === 'peaking') {
+    return 'The roster says contender, but the margin for a sloppy opening is thin.';
+  }
+  if (phase === 'rebuilding') {
+    return ownerType === 'patient'
+      ? 'This is a stalled rebuild until the first month proves the foundation is real.'
+      : 'This is a rebuild with less patience than the public story suggests.';
+  }
+  return 'The building feels like a narrow opening, not a stable long-term runway.';
+}
+
+export function generateSetupColdOpen(game: GameState, teamId: string): SetupColdOpen {
+  const team = getTeam(game, teamId);
+  const window = calculateDynastyWindow(team, game.year, team.draftPicks.length || undefined);
+  const ownerType = getOwnerType(team);
+  const crisis = generateTeamCrisisProfile(game, teamId);
+  const opener = teamOpener(game, teamId);
+  const topPressure = getTopPressureCard(crisis);
+
+  return {
+    ownerExpectation: ownerExpectationsNarrative(team, ownerType, window.phase),
+    mediaNarrative: team.fanConfidence <= 42
+      ? 'The market is skeptical and waiting for proof this regime sees the problem clearly.'
+      : team.fanConfidence >= 68
+        ? 'The market is loud, impatient, and ready to magnify any sign that this team can break through quickly.'
+        : 'The market sees upside, but it also sees a team that can wobble if Day 1 misses the real problem.',
+    lastSeasonScar: latestFranchiseScar(game, teamId) ?? currentRecordScar(team, window.phase, ownerType),
+    crisisHeadline: crisis.headline,
+    weekOneThreat: crisis.weekOneThreat,
+    openerLabel: opener.label,
+    topPressureId: topPressure.id,
+  };
 }
 
 function buildIntelNarrative(
@@ -901,6 +1259,14 @@ function goalEntry(goalId: string) {
   return goal;
 }
 
+function selectedCoachLabel(coachId: string): string {
+  return findCoachCandidate(coachId)?.name ?? 'your head coach';
+}
+
+function selectedScoutLabel(scoutId: string): string {
+  return findScoutCandidate(scoutId)?.name ?? 'your scouting director';
+}
+
 function phaseIndex(phase: SetupPhase): number {
   return PHASE_ORDER.indexOf(phase);
 }
@@ -1116,6 +1482,7 @@ export function generateDepthChartContext(
   game: GameState,
   teamId: string,
   selectedSchemes?: { off: string; def: string },
+  philosophy: DepthChartPhilosophy | null = null,
 ): DepthChartContext {
   const team = getTeam(game, teamId);
   const selectedOffenseScheme = selectedSchemes?.off ?? currentOffScheme(team);
@@ -1129,16 +1496,15 @@ export function generateDepthChartContext(
       if (room.length === 0) return null;
 
       const sorted = [...room].sort((left, right) => {
-        const leftFit = calcSchemeFit(
-          left,
-          isOffensivePosition(position) ? selectedOffenseScheme : isDefensivePosition(position) ? selectedDefenseScheme : selectedOffenseScheme,
-        ).score;
-        const rightFit = calcSchemeFit(
-          right,
-          isOffensivePosition(position) ? selectedOffenseScheme : isDefensivePosition(position) ? selectedDefenseScheme : selectedOffenseScheme,
-        ).score;
-        const leftComposite = leftFit * 0.6 + left.ovr * 0.4;
-        const rightComposite = rightFit * 0.6 + right.ovr * 0.4;
+        const schemeId = isOffensivePosition(position)
+          ? selectedOffenseScheme
+          : isDefensivePosition(position)
+            ? selectedDefenseScheme
+            : selectedOffenseScheme;
+        const leftFit = calcSchemeFit(left, schemeId).score;
+        const rightFit = calcSchemeFit(right, schemeId).score;
+        const leftComposite = philosophyStarterScore(left, position, schemeId, philosophy);
+        const rightComposite = philosophyStarterScore(right, position, schemeId, philosophy);
         return Number(right.isStarter) - Number(left.isStarter)
           || rightComposite - leftComposite
           || right.ovr - left.ovr
@@ -1230,6 +1596,528 @@ export function generateCapBriefing(game: GameState, teamId: string): CapStrateg
 }
 
 /**
+ * Build the three day-one cap posture packages.
+ */
+export function generateCapPackages(game: GameState, teamId: string): CapPackage[] {
+  const briefing = generateCapBriefing(game, teamId);
+  const restructureTargets = briefing.restructureCandidates.map((candidate) => candidate.playerName);
+  const totalSavings = round(briefing.restructureCandidates.reduce((sum, candidate) => sum + candidate.restructureSavings, 0));
+  const balancedDelta = round(Math.min(totalSavings, Math.max(4, totalSavings * 0.45)));
+  const pushDelta = round(Math.min(totalSavings, Math.max(8, totalSavings * 0.85)));
+
+  return [
+    {
+      posture: 'protect_future',
+      label: 'Protect the Future',
+      summary: 'Leave the books clean and trust the current roster to answer Week 1 without borrowing from next spring.',
+      capSpaceDelta: 0,
+      deadCapDelta: 0,
+      rosterImpact: 'You keep future flexibility, but the current roster has to solve its own problems now.',
+      restructureTargets: [],
+      weekOneDelta: 0,
+      ownerApprovalDelta: 1,
+    },
+    {
+      posture: 'balanced',
+      label: 'Balanced Pressure Release',
+      summary: 'Create room with one controlled restructure so the roster can breathe without turning next offseason into a mess.',
+      capSpaceDelta: balancedDelta,
+      deadCapDelta: 0,
+      rosterImpact: 'You buy enough cap room to stabilize the opener without fully mortgaging future flexibility.',
+      restructureTargets: restructureTargets.slice(0, Math.min(1, restructureTargets.length)),
+      weekOneDelta: 1,
+      ownerApprovalDelta: 2,
+    },
+    {
+      posture: 'push_chips',
+      label: 'Push the Chips',
+      summary: 'Lean into restructures, protect this roster now, and accept that the bill gets louder later.',
+      capSpaceDelta: pushDelta,
+      deadCapDelta: 0,
+      rosterImpact: 'Week 1 gets cleaner, but the cap sheet gets less forgiving the moment the season turns.',
+      restructureTargets: restructureTargets.slice(0, Math.min(3, restructureTargets.length)),
+      weekOneDelta: 2,
+      ownerApprovalDelta: 4,
+    },
+  ];
+}
+
+/**
+ * Build the command-center crisis diagnosis for a team.
+ */
+export function generateTeamCrisisProfile(game: GameState, teamId: string): TeamCrisisProfile {
+  const team = getTeam(game, teamId);
+  const needs = analyzeTeamNeeds(team, buildLeagueAverageByGroup(Object.values(game.teams)));
+  const cap = getCapHealth(team, game);
+  const roster = generateRosterOverview(game, teamId);
+  const battles = detectPositionBattles(team.roster);
+  const tensions = team.lockerRoom?.tensions.filter((entry) => !entry.resolved).length ?? 0;
+  const lowMorale = team.roster.filter((player) => player.morale <= 52).length;
+  const overpayCount = generateCapBriefing(game, teamId).biggestContracts.filter((contract) => contract.value === 'Overpay').length;
+
+  const rosterPressure = clamp(Math.round(
+    56
+    - (averageStarterOvr(team) - 74) * 1.7
+    + roster.injuredPlayers.length * 6
+    + needs.criticalNeeds.length * 7
+    + battles.length * 4
+    + roster.weakestStarters.length * 3,
+  ), 18, 95);
+  const capPressure = clamp(Math.round(
+    54
+    - team.capSpace * 1.2
+    + team.deadCap * 0.7
+    + overpayCount * 8,
+  ), 12, 95);
+  const culturePressure = clamp(Math.round(
+    58
+    - (team.lockerRoom?.cultureScore ?? 50) * 0.6
+    - team.owner.approval * 0.08
+    - team.fanConfidence * 0.06
+    + tensions * 9
+    + lowMorale * 1.3,
+  ), 10, 95);
+
+  const rosterSeverity = pressureSeverity(rosterPressure);
+  const capSeverity = pressureSeverity(capPressure);
+  const cultureSeverity = pressureSeverity(culturePressure);
+  const worstNeed = needs.criticalNeeds[0] ?? 'depth';
+  const topInjury = roster.injuredPlayers[0];
+  const capTargets = generateCapBriefing(game, teamId).restructureCandidates;
+  const topBattle = battles[0];
+
+  const pressureCards: PressureCard[] = [
+    {
+      id: 'roster',
+      label: 'Roster Pressure',
+      severity: rosterSeverity,
+      score: rosterPressure,
+      signal: pressureSignal(rosterSeverity),
+      diagnosis: rosterSeverity === 'critical'
+        ? `The lineup is talented enough to compete, but ${worstNeed} can sink the opener fast.`
+        : rosterSeverity === 'warning'
+          ? `The roster has answers, but ${worstNeed} and Week 1 readiness still need attention.`
+          : 'The roster is mostly ready; your biggest job is choosing the right version of it.',
+      drilldown: {
+        whyItMatters: 'Bad Week 1 lineups turn small structural flaws into obvious losses before the season settles.',
+        riskSource: topInjury
+          ? `${topInjury.name} is already out for ${topInjury.gamesOut} game(s), and ${worstNeed} is thin behind the starters.`
+          : `${worstNeed} is the clearest weak point, and there are ${battles.length} active position battles still unsettled.`,
+        bestLever: topBattle
+          ? `Use the depth chart to settle ${topBattle.slotLabel} with intent instead of inertia.`
+          : 'Pick a depth-chart philosophy that matches the roster instead of defaulting to last year’s hierarchy.',
+        seasonOneConsequence: 'If the wrong players take Week 1 reps, your early record can slide before scheme install catches up.',
+      },
+    },
+    {
+      id: 'cap',
+      label: 'Cap Pressure',
+      severity: capSeverity,
+      score: capPressure,
+      signal: pressureSignal(capSeverity),
+      diagnosis: capSeverity === 'critical'
+        ? 'The cap sheet is already narrowing your moves, and one aggressive mistake can trap the season.'
+        : capSeverity === 'warning'
+          ? 'The books are manageable, but only if you decide which pain belongs now versus later.'
+          : 'The cap is a tool here, not a crisis, as long as you stay disciplined.',
+      drilldown: {
+        whyItMatters: 'Your Day 1 cap posture decides whether Week 1 flexibility exists at all.',
+        riskSource: cap.recommendations[0] ?? 'There is not much room for waste.',
+        bestLever: capTargets[0]
+          ? `Choose a cap package that treats ${capTargets[0].playerName} as a lever instead of pretending room will appear on its own.`
+          : 'Choose whether to protect the future or buy immediate breathing room.',
+        seasonOneConsequence: 'A cap squeeze shows up as slower roster answers, fewer pivots, and less tolerance for injuries.',
+      },
+    },
+    {
+      id: 'culture',
+      label: 'Culture Pressure',
+      severity: cultureSeverity,
+      score: culturePressure,
+      signal: pressureSignal(cultureSeverity),
+      diagnosis: cultureSeverity === 'critical'
+        ? 'The room is unstable enough that the wrong message can break trust early.'
+        : cultureSeverity === 'warning'
+          ? 'The locker room can go either way, and your first mandate will tilt it.'
+          : 'The room is stable, but it still needs a clear tone to survive a bad stretch.',
+      drilldown: {
+        whyItMatters: 'Culture pressure decides whether adversity sharpens the roster or fractures it.',
+        riskSource: cultureSummary(team),
+        bestLever: 'Pick a culture mandate that tells the room exactly what the first month is going to reward.',
+        seasonOneConsequence: 'If the room rejects the first standard you set, the standings feel heavier by October.',
+      },
+    },
+  ];
+
+  const topPressure = [...pressureCards].sort((left, right) => right.score - left.score || left.id.localeCompare(right.id))[0]!;
+  const opener = teamOpener(game, teamId);
+
+  return {
+    headline: topPressure.id === 'cap'
+      ? `${team.city} can compete, but the cap is deciding how bold you get on Day 1.`
+      : topPressure.id === 'culture'
+        ? `${team.city} has enough talent to matter, but the room can still turn on itself.`
+        : `${team.city} can be dangerous fast, but only if the right players and priorities win Day 1.`,
+    ownerPressure: team.owner.approval <= 38
+      ? 'Ownership is already impatient. They want proof this team looks more coherent immediately.'
+      : team.owner.approval >= 68
+        ? 'Ownership will support a real plan, but they still expect you to explain the bet.'
+        : 'Ownership is watchful. A messy start will make every Day 1 decision louder.',
+    mediaPressure: team.fanConfidence <= 42
+      ? 'The market is skeptical and waiting for the first sign this regime is different.'
+      : team.fanConfidence >= 68
+        ? 'The market is energized, which means every bold move gets amplified immediately.'
+        : 'The market sees both upside and fragility, so the opener will shape the story fast.',
+    pressureCards,
+    weekOneThreat: opener.opponent
+      ? `${opener.label} becomes dangerous if ${topPressure.label.toLowerCase()} is still unresolved by kickoff.`
+      : 'The opener gets dangerous if your biggest Day 1 flaw survives the first week.',
+    weekOneHope: opener.opponent
+      ? `${opener.label} is winnable if your first hires and scheme choices clarify the roster quickly.`
+      : 'The opener is winnable if the first week feels more coherent than the last season did.',
+    weekOneUnknown: topPressure.id === 'culture'
+      ? 'No spreadsheet knows how this room reacts once the first real punch lands.'
+      : topPressure.id === 'cap'
+        ? 'You can create room today, but the real question is whether that room buys calm or just delays pain.'
+        : 'The biggest unknown is whether your roster choices solve the right problem or just rearrange it.',
+  };
+}
+
+function forecastMetrics(
+  game: GameState,
+  teamId: string,
+  decisions: SetupDecisions,
+): Omit<ForecastBoard, 'summary' | 'cards'> {
+  const team = getTeam(game, teamId);
+  const coach = decisions.headCoachId ? findCoachCandidate(decisions.headCoachId) : null;
+  const scout = decisions.scoutingDirectorId ? findScoutCandidate(decisions.scoutingDirectorId) : null;
+  const schemes = generateSchemeContext(game, teamId);
+  const capHealth = getCapHealth(team, game);
+  const chosenOffense = decisions.offenseScheme ?? schemes.offenseOptions.find((entry) => entry.recommended)?.schemeId ?? currentOffScheme(team);
+  const chosenDefense = decisions.defenseScheme ?? schemes.defenseOptions.find((entry) => entry.recommended)?.schemeId ?? currentDefScheme(team);
+  const selectedOff = schemes.offenseOptions.find((entry) => entry.schemeId === chosenOffense)
+    ?? evaluateSchemeOption(team, 'off', chosenOffense);
+  const selectedDef = schemes.defenseOptions.find((entry) => entry.schemeId === chosenDefense)
+    ?? evaluateSchemeOption(team, 'def', chosenDefense);
+  const packages = generateCapPackages(game, teamId);
+  const capPackage = packages.find((entry) => entry.posture === (decisions.capPosture ?? 'balanced')) ?? packages[1]!;
+  const cultureScore = team.lockerRoom?.cultureScore ?? 50;
+  const pressure = generateTeamCrisisProfile(game, teamId);
+  const topPressure = topPressureId(pressure);
+
+  const schemeCohesion = clamp(Math.round(
+    42
+    + selectedOff.fitScore * 0.22
+    + selectedDef.fitScore * 0.22
+    + selectedOff.staffAlignmentBonus * 1.1
+    + selectedDef.staffAlignmentBonus * 1.1
+    - selectedOff.transitionPenalty * 0.9
+    - selectedDef.transitionPenalty * 0.9
+    + (coach?.archetype === 'strategist' ? 6 : coach?.archetype === 'disciplinarian' ? 3 : 1),
+  ), 20, 95);
+
+  const cultureMandate = decisions.cultureMandate ?? defaultCultureMandate(team);
+  const cultureBonus = cultureMandate === 'accountability'
+    ? (cultureScore <= 55 ? 8 : 4)
+    : cultureMandate === 'player_led'
+      ? (cultureScore >= 60 ? 9 : -4)
+      : team.roster.filter((player) => player.age <= 25).length >= 8 ? 7 : 3;
+  const scoutBonus = scout?.specialty === 'blend' ? 3 : scout?.specialty === 'analytics_director' ? 1 : 2;
+  const cultureStability = clamp(Math.round(
+    cultureScore
+    + cultureBonus
+    + scoutBonus
+    + (coach?.archetype === 'motivator' ? 6 : coach?.archetype === 'disciplinarian' ? 4 : 2)
+    - pressure.pressureCards.find((card) => card.id === 'culture')!.score * 0.12,
+  ), 18, 95);
+
+  const capFlexibility = clamp(Math.round(
+    44
+    + team.capSpace * 1.1
+    - team.deadCap * 0.3
+    + capPackage.capSpaceDelta * 1.2
+    - (capPackage.posture === 'push_chips' ? 9 : capPackage.posture === 'balanced' ? 3 : 0)
+    + (capHealth.grade === 'A' ? 12 : capHealth.grade === 'B' ? 8 : capHealth.grade === 'C' ? 0 : -8),
+  ), 8, 95);
+
+  const ownerHeat = clamp(Math.round(
+    100
+    - team.owner.approval
+    + goalStress(decisions)
+    + (capPackage.posture === 'push_chips' ? -4 : capPackage.posture === 'protect_future' ? 2 : -1)
+    + (topPressure === 'roster' ? 4 : 0),
+  ), 5, 95);
+
+  const depthPhilosophy = decisions.depthChartPhilosophy ?? 'best_players';
+  const depthDelta = depthPhilosophy === 'best_players' ? 5 : depthPhilosophy === 'veterans_first' ? 2 : 3;
+  const weekOneReadiness = clamp(Math.round(
+    28
+    + schemeCohesion * 0.32
+    + cultureStability * 0.16
+    + capPackage.weekOneDelta * 4
+    + depthDelta
+    + (coach?.archetype === 'strategist' ? 5 : coach?.archetype === 'motivator' ? 4 : 3)
+    - pressure.pressureCards.find((card) => card.id === 'roster')!.score * 0.12
+    - team.roster.filter((player) => (player.injury?.gamesOut ?? 0) > 0).length * 1.8,
+  ), 15, 95);
+
+  return {
+    weekOneReadiness,
+    schemeCohesion,
+    cultureStability,
+    capFlexibility,
+    ownerHeat,
+  };
+}
+
+/**
+ * Build the live forecast board for the current day-one decisions.
+ */
+export function generateSetupForecast(game: GameState, teamId: string, decisions: SetupDecisions): ForecastBoard {
+  const team = getTeam(game, teamId);
+  const crisis = generateTeamCrisisProfile(game, teamId);
+  const baselineDecisions: SetupDecisions = {
+    offenseScheme: currentOffScheme(team),
+    defenseScheme: currentDefScheme(team),
+    seasonGoals: ['winning_record', 'draft_well', 'cap_health'],
+    depthChartOverrides: {},
+    acknowledged: [],
+    agmProfileId: defaultAgmForPressure(topPressureId(crisis)),
+    headCoachId: 'elias_rowe',
+    scoutingDirectorId: 'celia_duarte',
+    depthChartPhilosophy: 'best_players',
+    capPosture: 'protect_future',
+    cultureMandate: defaultCultureMandate(team),
+    agmClosingWords: undefined,
+  };
+  const baseline = forecastMetrics(game, teamId, baselineDecisions);
+  const current = forecastMetrics(game, teamId, decisions);
+  const deltas = {
+    weekOneReadiness: round(current.weekOneReadiness - baseline.weekOneReadiness),
+    schemeCohesion: round(current.schemeCohesion - baseline.schemeCohesion),
+    cultureStability: round(current.cultureStability - baseline.cultureStability),
+    capFlexibility: round(current.capFlexibility - baseline.capFlexibility),
+    ownerHeat: round(current.ownerHeat - baseline.ownerHeat),
+  };
+
+  const cards: ForecastCard[] = [
+    {
+      id: 'week_one_readiness',
+      label: 'Week 1 Readiness',
+      value: current.weekOneReadiness,
+      delta: deltas.weekOneReadiness,
+      direction: cardDirection('week_one_readiness', deltas.weekOneReadiness),
+      detail: current.weekOneReadiness >= 70 ? 'The opening script feels coherent.' : 'The opener is still carrying risk.',
+    },
+    {
+      id: 'scheme_cohesion',
+      label: 'Scheme Cohesion',
+      value: current.schemeCohesion,
+      delta: deltas.schemeCohesion,
+      direction: cardDirection('scheme_cohesion', deltas.schemeCohesion),
+      detail: current.schemeCohesion >= 65 ? 'Staff fit improved.' : 'Install still needs time.',
+    },
+    {
+      id: 'culture_stability',
+      label: 'Culture Stability',
+      value: current.cultureStability,
+      delta: deltas.cultureStability,
+      direction: cardDirection('culture_stability', deltas.cultureStability),
+      detail: current.cultureStability >= 62 ? 'The room has a clearer standard.' : 'The room can still wobble under stress.',
+    },
+    {
+      id: 'cap_flexibility',
+      label: 'Cap Flexibility',
+      value: current.capFlexibility,
+      delta: deltas.capFlexibility,
+      direction: cardDirection('cap_flexibility', deltas.capFlexibility),
+      detail: current.capFlexibility >= 60 ? 'You bought breathing room.' : 'The books are still tight.',
+    },
+    {
+      id: 'owner_heat',
+      label: 'Owner Heat',
+      value: current.ownerHeat,
+      delta: deltas.ownerHeat,
+      direction: cardDirection('owner_heat', deltas.ownerHeat),
+      detail: current.ownerHeat <= 38 ? 'Ownership likes the direction.' : 'Ownership will demand proof early.',
+    },
+  ];
+
+  const averageScore = average([
+    current.weekOneReadiness,
+    current.schemeCohesion,
+    current.cultureStability,
+    current.capFlexibility,
+    100 - current.ownerHeat,
+  ]);
+  const volatility = crisis.pressureCards.filter((card) => card.severity !== 'stable').length;
+  const summary = averageScore >= 72
+    ? 'Week 1 looks dangerous in a good way. This team has real bite if the first bet holds.'
+    : averageScore >= 58
+      ? 'Week 1 is playable, but the room still feels volatile.'
+      : volatility >= 2
+        ? 'The opener is carrying real pressure. Your Day 1 decisions created a path, not safety.'
+        : 'The first month still looks unstable, and the roster will feel every unresolved weakness.';
+
+  return {
+    ...current,
+    summary,
+    cards,
+  };
+}
+
+export function generateWeekOneVolatility(
+  game: GameState,
+  teamId: string,
+  decisions: SetupDecisions,
+): number {
+  const team = getTeam(game, teamId);
+  const schemes = generateSchemeContext(game, teamId);
+  const chosenOffense = decisions.offenseScheme
+    ?? (decisions.headCoachId ? findCoachCandidate(decisions.headCoachId)?.schemePreference.offense : null)
+    ?? schemes.offenseOptions.find((entry) => entry.recommended)?.schemeId
+    ?? currentOffScheme(team);
+  const chosenDefense = decisions.defenseScheme
+    ?? (decisions.headCoachId ? findCoachCandidate(decisions.headCoachId)?.schemePreference.defense : null)
+    ?? schemes.defenseOptions.find((entry) => entry.recommended)?.schemeId
+    ?? currentDefScheme(team);
+  const selectedOff = schemes.offenseOptions.find((entry) => entry.schemeId === chosenOffense)
+    ?? evaluateSchemeOption(team, 'off', chosenOffense);
+  const selectedDef = schemes.defenseOptions.find((entry) => entry.schemeId === chosenDefense)
+    ?? evaluateSchemeOption(team, 'def', chosenDefense);
+  const capPackage = generateCapPackages(game, teamId).find((entry) => entry.posture === (decisions.capPosture ?? 'balanced'))
+    ?? generateCapPackages(game, teamId)[1]!;
+  const crisis = generateTeamCrisisProfile(game, teamId);
+  const culturePressure = crisis.pressureCards.find((card) => card.id === 'culture')?.score ?? 50;
+  const activeBattles = detectPositionBattles(team.roster).length;
+  const injuredStarters = team.roster.filter((player) => player.isStarter && (player.injury?.gamesOut ?? 0) > 0).length;
+  const depthVolatility = decisions.depthChartPhilosophy === 'youth_bet' ? 8 : decisions.depthChartPhilosophy === 'veterans_first' ? -4 : 0;
+  const capVolatility = capPackage.posture === 'push_chips' ? 6 : capPackage.posture === 'protect_future' ? -2 : 1;
+  const cultureVolatility = decisions.cultureMandate === 'development_first'
+    ? 5
+    : decisions.cultureMandate === 'player_led'
+      ? ((team.lockerRoom?.cultureScore ?? 50) >= 62 ? -3 : 4)
+      : 0;
+
+  return clamp(Math.round(
+    24
+    + (selectedOff.transitionPenalty + selectedDef.transitionPenalty) * 0.9
+    + activeBattles * 5
+    + injuredStarters * 7
+    + culturePressure * 0.14
+    + depthVolatility
+    + capVolatility
+    + cultureVolatility,
+  ), 0, 100);
+}
+
+function previewStateFromDecisions(decisions: SetupDecisions): SetupState {
+  return {
+    currentPhase: 'intel_briefing',
+    completedPhases: [],
+    decisions: cloneGame(decisions),
+    crisisProfile: null,
+    forecastBoard: null,
+    openedDrilldowns: [],
+    blueprint: null,
+  };
+}
+
+export function previewSetupForecastChange(
+  game: GameState,
+  teamId: string,
+  decisions: SetupDecisions,
+  override: Partial<SetupDecisions>,
+): ChoiceForecastPreview {
+  const currentForecast = generateSetupForecast(game, teamId, decisions);
+  const currentVolatility = generateWeekOneVolatility(game, teamId, decisions);
+  const nextDecisions = applySetupDecision(previewStateFromDecisions(decisions), override).decisions;
+  const nextForecast = generateSetupForecast(game, teamId, nextDecisions);
+  const nextVolatility = generateWeekOneVolatility(game, teamId, nextDecisions);
+
+  const secondaryId: ChoiceForecastSecondaryId = override.capPosture !== undefined
+    ? 'cap_flexibility'
+    : override.scoutingDirectorId !== undefined || override.cultureMandate !== undefined
+      ? 'culture_stability'
+      : override.headCoachId !== undefined || override.offenseScheme !== undefined || override.defenseScheme !== undefined || override.depthChartPhilosophy !== undefined
+        ? 'scheme_cohesion'
+        : 'owner_heat';
+
+  const secondaryDelta = secondaryId === 'cap_flexibility'
+    ? round(nextForecast.capFlexibility - currentForecast.capFlexibility)
+    : secondaryId === 'culture_stability'
+      ? round(nextForecast.cultureStability - currentForecast.cultureStability)
+      : secondaryId === 'scheme_cohesion'
+        ? round(nextForecast.schemeCohesion - currentForecast.schemeCohesion)
+        : round(nextForecast.ownerHeat - currentForecast.ownerHeat);
+  const ownerHeatDelta = round(nextForecast.ownerHeat - currentForecast.ownerHeat);
+
+  return {
+    weekOneReadinessDelta: round(nextForecast.weekOneReadiness - currentForecast.weekOneReadiness),
+    weekOneVolatilityDelta: round(nextVolatility - currentVolatility),
+    summaryLine: previewSummaryLine(
+      override,
+      round(nextForecast.weekOneReadiness - currentForecast.weekOneReadiness),
+      round(nextVolatility - currentVolatility),
+    ),
+    secondaryDelta: {
+      id: secondaryId,
+      label: forecastMetricLabel(secondaryId),
+      delta: secondaryDelta,
+    },
+    bonusDelta: override.capPosture === 'push_chips' && ownerHeatDelta !== 0
+      ? {
+        id: 'owner_heat',
+        label: 'Owner Heat',
+        delta: ownerHeatDelta,
+      }
+      : undefined,
+  };
+}
+
+/**
+ * Build the Week 1 cliffhanger shown at the end of Day 1.
+ */
+export function generateWeekOneCliffhanger(
+  game: GameState,
+  teamId: string,
+  decisions: SetupDecisions,
+): WeekOneCliffhanger {
+  const crisis = generateTeamCrisisProfile(game, teamId);
+  const forecast = generateSetupForecast(game, teamId, decisions);
+  const opener = teamOpener(game, teamId);
+  const topPressure = crisis.pressureCards.find((card) => card.id === topPressureId(crisis))!;
+
+  const threat = forecast.weekOneReadiness >= 68
+    ? `${opener.label} is ready to prove this plan right, but ${topPressure.label.toLowerCase()} can still sabotage the first real test.`
+    : `${opener.label} will expose ${topPressure.label.toLowerCase()} immediately if your Day 1 bet was wrong.`;
+  const hope = forecast.schemeCohesion >= 65
+    ? `Your new identity should show up right away in ${opener.label}, and that gives this team a real puncher's chance.`
+    : `There is enough here to survive ${opener.label} if the room buys into the plan before kickoff.`;
+  const unknown = forecast.cultureStability >= 60
+    ? 'The biggest unknown is whether this group responds to live pressure as well as it responded in the room.'
+    : 'The biggest unknown is whether the room trusts this new standard once the opener turns chaotic.';
+
+  return {
+    openerLabel: opener.label,
+    threat,
+    hope,
+    unknown,
+  };
+}
+
+export function toggleSetupDrilldown(state: SetupState, pressureId: PressureCard['id']): SetupState {
+  const opened = state.openedDrilldowns.includes(pressureId)
+    ? state.openedDrilldowns.filter((entry) => entry !== pressureId)
+    : [...state.openedDrilldowns, pressureId];
+
+  return {
+    ...state,
+    openedDrilldowns: opened,
+  };
+}
+
+/**
  * Build owner-goal recommendations for setup phase seven.
  */
 export function generateGoalContext(game: GameState, teamId: string): GoalSelectionContext {
@@ -1285,6 +2173,11 @@ export function generateBlueprint(
   const defense = DEFENSE_SCHEME_CATALOG.find((entry) => entry.schemeId === decisions.defenseScheme);
   const needs = analyzeTeamNeeds(team, buildLeagueAverageByGroup(Object.values(game.teams)));
   const window = calculateDynastyWindow(team, game.year, team.draftPicks.length || undefined);
+  const crisis = generateTeamCrisisProfile(game, teamId);
+  const cliffhanger = generateWeekOneCliffhanger(game, teamId, decisions);
+  const capPackage = decisions.capPosture
+    ? generateCapPackages(game, teamId).find((entry) => entry.posture === decisions.capPosture) ?? null
+    : null;
   const keyPlayers = uniqueStrings([
     ...roster.starPlayers.map((player) => player.playerId),
     ...roster.risingStars.map((player) => player.playerId),
@@ -1304,6 +2197,14 @@ export function generateBlueprint(
     }));
 
   const goalLabels = goalEntries.map((goal) => goal.label);
+  const dayOneBets = [
+    decisions.headCoachId ? `You hired ${selectedCoachLabel(decisions.headCoachId)} to define the building every day.` : null,
+    decisions.scoutingDirectorId ? `You put ${selectedScoutLabel(decisions.scoutingDirectorId)} in charge of what the room believes on talent.` : null,
+    `You set the football identity with ${offense?.label ?? decisions.offenseScheme} on offense and ${defense?.label ?? decisions.defenseScheme} on defense.`,
+    decisions.depthChartPhilosophy ? `You chose a ${decisions.depthChartPhilosophy.replace('_', ' ')} depth-chart philosophy for the opener.` : null,
+    capPackage ? `You chose the ${capPackage.label} cap package for Day 1.` : null,
+    decisions.cultureMandate ? `You told the room that ${decisions.cultureMandate.replace('_', ' ')} will define the first month.` : null,
+  ].filter((entry): entry is string => Boolean(entry));
 
   return {
     teamName: `${team.city} ${team.name}`,
@@ -1336,6 +2237,15 @@ export function generateBlueprint(
       defense?.label ?? decisions.defenseScheme,
       goalLabels,
     ),
+    crisisHeadline: crisis.headline,
+    pressureSnapshot: crisis.pressureCards.map((card) => ({
+      id: card.id,
+      label: card.label,
+      severity: card.severity,
+      diagnosis: card.diagnosis,
+    })),
+    dayOneBets,
+    weekOneCliffhanger: cliffhanger,
     agmProfileId: decisions.agmProfileId ?? undefined,
     agmClosingWords: decisions.agmClosingWords,
   };
@@ -1357,8 +2267,51 @@ export function createSetupState(): SetupState {
       agmProfileId: null,
       headCoachId: null,
       scoutingDirectorId: null,
+      depthChartPhilosophy: null,
+      capPosture: null,
+      cultureMandate: null,
       agmClosingWords: undefined,
     },
+    crisisProfile: null,
+    forecastBoard: null,
+    openedDrilldowns: [],
+    blueprint: null,
+  };
+}
+
+/**
+ * Preload a shortened setup run for repeat players.
+ */
+export function createFastLaneSetupState(game: GameState, teamId: string): SetupState {
+  const crisis = generateTeamCrisisProfile(game, teamId);
+  const team = getTeam(game, teamId);
+  const goalContext = generateGoalContext(game, teamId);
+  const schemeContext = generateSchemeContext(game, teamId);
+  const recommendedOffense = schemeContext.offenseOptions.find((entry) => entry.recommended)?.schemeId ?? currentOffScheme(team);
+  const recommendedDefense = schemeContext.defenseOptions.find((entry) => entry.recommended)?.schemeId ?? currentDefScheme(team);
+  const recommendedGoals = goalContext.recommendedGoals.slice(0, 3).map((goal) => goal.id);
+  const decisions: SetupDecisions = {
+    offenseScheme: recommendedOffense,
+    defenseScheme: recommendedDefense,
+    seasonGoals: recommendedGoals,
+    depthChartOverrides: {},
+    acknowledged: [],
+    agmProfileId: defaultAgmForPressure(topPressureId(crisis)),
+    headCoachId: 'elias_rowe',
+    scoutingDirectorId: 'celia_duarte',
+    depthChartPhilosophy: 'best_players',
+    capPosture: 'balanced',
+    cultureMandate: defaultCultureMandate(team),
+    agmClosingWords: undefined,
+  };
+
+  return {
+    currentPhase: 'intel_briefing',
+    completedPhases: ['choose_agm'],
+    decisions,
+    crisisProfile: crisis,
+    forecastBoard: generateSetupForecast(game, teamId, decisions),
+    openedDrilldowns: [],
     blueprint: null,
   };
 }
@@ -1376,12 +2329,14 @@ export function getPhaseRequirements(phase: SetupPhase): { requiresDecision: boo
       return { requiresDecision: true, decisionFields: ['scoutingDirectorId'] };
     case 'set_scheme':
       return { requiresDecision: true, decisionFields: ['offenseScheme', 'defenseScheme'] };
+    case 'depth_chart':
+      return { requiresDecision: true, decisionFields: ['depthChartPhilosophy'] };
+    case 'cap_strategy':
+      return { requiresDecision: true, decisionFields: ['capPosture'] };
     case 'set_goals':
-      return { requiresDecision: true, decisionFields: ['seasonGoals'] };
+      return { requiresDecision: true, decisionFields: ['seasonGoals', 'cultureMandate'] };
     case 'intel_briefing':
     case 'meet_roster':
-    case 'depth_chart':
-    case 'cap_strategy':
     case 'blueprint':
     default:
       return { requiresDecision: false, decisionFields: ['acknowledged'] };
@@ -1391,7 +2346,11 @@ export function getPhaseRequirements(phase: SetupPhase): { requiresDecision: boo
 /**
  * Return whether a phase has enough information to move past it.
  */
-export function isPhaseComplete(state: SetupState, phase: SetupPhase): boolean {
+export function isPhaseComplete(
+  state: SetupState,
+  phase: SetupPhase,
+  options?: { requireTopPressureOpened?: boolean },
+): boolean {
   switch (phase) {
     case 'choose_agm':
       return state.decisions.agmProfileId !== null;
@@ -1401,12 +2360,18 @@ export function isPhaseComplete(state: SetupState, phase: SetupPhase): boolean {
       return state.decisions.scoutingDirectorId !== null;
     case 'set_scheme':
       return Boolean(state.decisions.offenseScheme && state.decisions.defenseScheme);
-    case 'set_goals':
-      return uniqueStrings(state.decisions.seasonGoals).length === 3;
-    case 'intel_briefing':
-    case 'meet_roster':
     case 'depth_chart':
+      return state.decisions.depthChartPhilosophy !== null;
     case 'cap_strategy':
+      return state.decisions.capPosture !== null;
+    case 'set_goals':
+      return uniqueStrings(state.decisions.seasonGoals).length === 3 && state.decisions.cultureMandate !== null;
+    case 'intel_briefing':
+      return state.decisions.acknowledged.includes(phase)
+        && (!options?.requireTopPressureOpened
+          || state.crisisProfile === null
+          || state.openedDrilldowns.includes(getTopPressureCard(state.crisisProfile).id));
+    case 'meet_roster':
     case 'blueprint':
       return state.decisions.acknowledged.includes(phase);
     default:
@@ -1417,8 +2382,11 @@ export function isPhaseComplete(state: SetupState, phase: SetupPhase): boolean {
 /**
  * Advance to the next setup phase once the current phase is complete.
  */
-export function advanceSetupPhase(state: SetupState): SetupState {
-  if (!isPhaseComplete(state, state.currentPhase)) {
+export function advanceSetupPhase(
+  state: SetupState,
+  options?: { requireTopPressureOpened?: boolean },
+): SetupState {
+  if (!isPhaseComplete(state, state.currentPhase, options)) {
     throw new Error(`Cannot advance setup. Phase ${state.currentPhase} is incomplete.`);
   }
 
@@ -1466,6 +2434,9 @@ export function applySetupDecision(state: SetupState, decision: Partial<SetupDec
       agmProfileId: decision.agmProfileId !== undefined ? decision.agmProfileId : state.decisions.agmProfileId,
       headCoachId: nextHeadCoachId,
       scoutingDirectorId: decision.scoutingDirectorId !== undefined ? decision.scoutingDirectorId : state.decisions.scoutingDirectorId,
+      depthChartPhilosophy: decision.depthChartPhilosophy !== undefined ? decision.depthChartPhilosophy : state.decisions.depthChartPhilosophy,
+      capPosture: decision.capPosture !== undefined ? decision.capPosture : state.decisions.capPosture,
+      cultureMandate: decision.cultureMandate !== undefined ? decision.cultureMandate : state.decisions.cultureMandate,
       agmClosingWords: decision.agmClosingWords !== undefined ? decision.agmClosingWords : state.decisions.agmClosingWords,
     },
     blueprint: state.blueprint,
@@ -1500,13 +2471,83 @@ export function applySetupDecision(state: SetupState, decision: Partial<SetupDec
   }
   if (
     !invalidatedPhase &&
+    decision.depthChartPhilosophy !== undefined &&
+    decision.depthChartPhilosophy !== state.decisions.depthChartPhilosophy
+  ) {
+    invalidatedPhase = 'depth_chart';
+  }
+  if (
+    !invalidatedPhase &&
+    decision.capPosture !== undefined &&
+    decision.capPosture !== state.decisions.capPosture
+  ) {
+    invalidatedPhase = 'cap_strategy';
+  }
+  if (
+    !invalidatedPhase &&
     decision.seasonGoals !== undefined &&
     !shallowEqualStringArrays(uniqueStrings(decision.seasonGoals), state.decisions.seasonGoals)
   ) {
     invalidatedPhase = 'set_goals';
   }
+  if (
+    !invalidatedPhase &&
+    decision.cultureMandate !== undefined &&
+    decision.cultureMandate !== state.decisions.cultureMandate
+  ) {
+    invalidatedPhase = 'set_goals';
+  }
 
   return trimCompletedPhases(nextState, invalidatedPhase);
+}
+
+function applyCapPackageChoice(game: GameState, team: Team, posture: CapPosture | null): CapPackage {
+  const packages = generateCapPackages(game, team.id);
+  const selected = packages.find((entry) => entry.posture === posture) ?? packages[1]!;
+  if (selected.capSpaceDelta > 0) {
+    const result = restructureCascade(team, selected.capSpaceDelta);
+    team.capSpace = round(team.capSpace + result.totalSaved);
+    team.capUsed = round(Math.max(0, team.capUsed - result.totalSaved));
+  }
+  team.deadCap = round(team.deadCap + selected.deadCapDelta);
+  if (selected.ownerApprovalDelta !== 0) {
+    team.owner.approval = clamp(team.owner.approval + selected.ownerApprovalDelta, 0, 100);
+    team.ownerMood = team.owner.approval;
+  }
+  return selected;
+}
+
+function buildCultureMandateEffect(
+  game: GameState,
+  team: Team,
+  mandate: CultureMandate | null,
+): TimedEffect | null {
+  if (!mandate) return null;
+  const delta = mandate === 'accountability'
+    ? 1
+    : mandate === 'player_led'
+      ? (team.lockerRoom?.cultureScore ?? 50) >= 60 ? 2 : -1
+      : team.roster.filter((player) => player.age <= 25).length >= 8 ? 1 : 0;
+  if (delta === 0) return null;
+  const stamp = currentStamp(game);
+  return {
+    id: `setup:${team.id}:${mandate}`,
+    sourceType: 'off_field_event',
+    sourceId: `setup:${mandate}`,
+    teamId: team.id,
+    targetType: 'team',
+    targetId: null,
+    stat: 'ovr',
+    delta,
+    appliesToGame: true,
+    startStamp: stamp,
+    endStamp: game.year * 100 + 4,
+    summary: mandate === 'accountability'
+      ? 'Day 1 standards sharpened the building.'
+      : mandate === 'player_led'
+        ? 'Veteran leadership is carrying the opener.'
+        : 'Young-player momentum is lifting the opener.',
+  };
 }
 
 /**
@@ -1529,6 +2570,15 @@ export function finalizeSetup(game: GameState, teamId: string, state: SetupState
   }
   if (!state.decisions.scoutingDirectorId) {
     throw new Error('Cannot finalize setup without a hired scouting director.');
+  }
+  if (!state.decisions.depthChartPhilosophy) {
+    throw new Error('Cannot finalize setup without a depth chart philosophy.');
+  }
+  if (!state.decisions.capPosture) {
+    throw new Error('Cannot finalize setup without a cap posture.');
+  }
+  if (!state.decisions.cultureMandate) {
+    throw new Error('Cannot finalize setup without a culture mandate.');
   }
 
   const nextGame = cloneGame(game);
@@ -1558,8 +2608,11 @@ export function finalizeSetup(game: GameState, teamId: string, state: SetupState
   const depthChart = generateDepthChartContext(nextGame, teamId, {
     off: offenseScheme,
     def: defenseScheme,
-  });
+  }, state.decisions.depthChartPhilosophy);
   applyStarterSelections(team, depthChart.autoSetRecommendation, state.decisions.depthChartOverrides);
+  updatePlayersMirror(nextGame, team);
+
+  applyCapPackageChoice(nextGame, team, state.decisions.capPosture);
   updatePlayersMirror(nextGame, team);
 
   const owner = ensureOwnerRecord(nextGame, team);
@@ -1569,13 +2622,24 @@ export function finalizeSetup(game: GameState, teamId: string, state: SetupState
     target: selectedGoals[1]?.label ?? '',
     ceiling: selectedGoals[2]?.label ?? '',
   };
+  owner.patience = Math.max(owner.patience, team.ownerPatience80);
+
+  const cultureEffect = buildCultureMandateEffect(nextGame, team, state.decisions.cultureMandate);
+  nextGame.activeEffects ??= [];
+  if (cultureEffect) {
+    nextGame.activeEffects.push(cultureEffect);
+  }
 
   const blueprint = state.blueprint ?? generateBlueprint(nextGame, teamId, state.decisions);
+  const crisisProfile = generateTeamCrisisProfile(nextGame, teamId);
+  const forecastBoard = generateSetupForecast(nextGame, teamId, state.decisions);
   nextGame.franchiseBlueprint = blueprint;
   nextGame.setupState = {
     ...state,
     currentPhase: 'blueprint',
     completedPhases: [...PHASE_ORDER],
+    crisisProfile,
+    forecastBoard,
     blueprint,
   };
 

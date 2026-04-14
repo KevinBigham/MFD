@@ -16,6 +16,7 @@ import { initializeLockerRoom } from '../systems/locker-room';
 import { assignJerseyNumber } from '../systems/jersey-retirement';
 import { createEmptyRecordBook } from '../systems/records';
 import { buildSpecialTeamsState, createDefaultSpecialTeamsState } from '../systems/special-teams';
+import { getDefaultHalftimeDecisionSetting } from '../config';
 import type { Team } from '../types';
 
 type MigrationFn = (state: Record<string, unknown>) => Record<string, unknown>;
@@ -57,6 +58,11 @@ function emptyFacilityEffect() {
     moraleBonus: 1,
     fatigueGainBonus: 1,
   };
+}
+
+function clampPercentage(value: unknown, fallback = 50): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
+  return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 function defaultFacilityState(archetypeId: unknown): Record<string, unknown> {
@@ -1045,4 +1051,78 @@ registerMigration(24, (state) => {
     }
   }
   return { ...state, players };
+});
+
+// v25→v26: Persist weekly prep wiring and dynasty bookkeeping defaults
+registerMigration(25, (state) => {
+  const weeklyPrepPlans = (state['weeklyPrepPlans'] && typeof state['weeklyPrepPlans'] === 'object')
+    ? { ...(state['weeklyPrepPlans'] as Record<string, Record<string, unknown>>) }
+    : {};
+
+  for (const plan of Object.values(weeklyPrepPlans)) {
+    plan['contingencyRules'] = Array.isArray(plan['contingencyRules']) ? plan['contingencyRules'] : [];
+    plan['trickPlays'] = Array.isArray(plan['trickPlays']) ? plan['trickPlays'] : [];
+  }
+
+  return {
+    ...state,
+    weeklyPrepPlans,
+    earnedDoctrines: Array.isArray(state['earnedDoctrines']) ? state['earnedDoctrines'] : [],
+    seasonNearMissReceipts: Array.isArray(state['seasonNearMissReceipts']) ? state['seasonNearMissReceipts'] : [],
+    activeCallYourShot: state['activeCallYourShot'],
+  };
+});
+
+// v26→v27: Postgame UX queues and inbox-driven narrative state
+registerMigration(26, (state) => ({
+  ...state,
+  postGameUi: (state['postGameUi'] && typeof state['postGameUi'] === 'object')
+    ? state['postGameUi']
+    : {
+      pressConferenceQueue: [],
+      audioCueQueue: [],
+    },
+  breakingNewsQueue: Array.isArray(state['breakingNewsQueue']) ? state['breakingNewsQueue'] : [],
+  ownerPersonalityInbox: Array.isArray(state['ownerPersonalityInbox']) ? state['ownerPersonalityInbox'] : [],
+  commissionerDisciplineLog: Array.isArray(state['commissionerDisciplineLog']) ? state['commissionerDisciplineLog'] : [],
+}));
+
+// v27→v28: Finishing moves save fields (fan confidence, halftime setting, halftime prompt persistence)
+registerMigration(27, (state) => {
+  const teams = (state['teams'] && typeof state['teams'] === 'object')
+    ? { ...(state['teams'] as Record<string, Record<string, unknown>>) }
+    : {};
+
+  for (const team of Object.values(teams)) {
+    const franchiseIdentity = team['franchiseIdentity'];
+    const fanbase = franchiseIdentity && typeof franchiseIdentity === 'object'
+      ? (franchiseIdentity as Record<string, unknown>)['fanbase']
+      : undefined;
+    team['fanConfidence'] = clampPercentage(team['fanConfidence'] ?? fanbase, 50);
+  }
+
+  const postGameUi: Record<string, unknown> = (state['postGameUi'] && typeof state['postGameUi'] === 'object')
+    ? { ...(state['postGameUi'] as Record<string, unknown>) }
+    : {
+      pressConferenceQueue: [],
+      audioCueQueue: [],
+    };
+  postGameUi['pressConferenceQueue'] = Array.isArray(postGameUi['pressConferenceQueue']) ? postGameUi['pressConferenceQueue'] : [];
+  postGameUi['audioCueQueue'] = Array.isArray(postGameUi['audioCueQueue']) ? postGameUi['audioCueQueue'] : [];
+  postGameUi['pendingHalftimeDecision'] = postGameUi['pendingHalftimeDecision'] ?? null;
+
+  const difficulty = typeof state['difficulty'] === 'string' ? state['difficulty'] : 'pro';
+  const settings = (state['settings'] && typeof state['settings'] === 'object')
+    ? { ...(state['settings'] as Record<string, unknown>) }
+    : {};
+  settings['halftimeDecisions'] = settings['halftimeDecisions'] === 'on' || settings['halftimeDecisions'] === 'off'
+    ? settings['halftimeDecisions']
+    : getDefaultHalftimeDecisionSetting(difficulty as 'rookie' | 'pro' | 'allpro' | 'legend');
+
+  return {
+    ...state,
+    teams,
+    settings,
+    postGameUi,
+  };
 });

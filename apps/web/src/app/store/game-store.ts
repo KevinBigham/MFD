@@ -8,10 +8,13 @@ import { useCallback } from 'react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type {
+  AudioCue,
+  BreakingNewsEvent,
   CapCandidate,
   CapHealthReport,
   CapMove,
   CareerTimeline,
+  ContingencyRule,
   ContractOffer,
   DashboardWidget,
   DraftTradeOffer,
@@ -25,6 +28,7 @@ import type {
   MilestoneReached,
   OpponentReport,
   Position,
+  PressureCard,
   RelocationDestination,
   RecordChase,
   SeasonPhase,
@@ -39,7 +43,9 @@ import type {
   WeeklySummary,
   BrokenRecord,
   MultiYearProjection,
-} from '@mfd/engine';
+  PressConferenceQueueEntry,
+  PressConferenceResponseTier,
+  } from '@mfd/engine';
 import type { ShotDeclaration, AlumniMentor, DynastyEra } from '@mfd/engine';
 import {
   acceptEndorsement as acceptEndorsementEngine,
@@ -110,6 +116,10 @@ import {
   restructureContract, backloadContract,
   calcCapHit, calcDeadMoney,
   promoteCoordinator,
+  mapGameResultToAudioCues,
+  createAudioCue,
+  generateBreakingNews,
+  getPressConferenceScenarioContent,
   runProDay as runProDayEngine,
   runPrivateWorkout as runPrivateWorkoutEngine,
   simulateBackload,
@@ -129,6 +139,8 @@ import {
   createLayout as createDashboardLayout,
   pinWidget as pinDashboardWidget,
   reorderWidgets as reorderDashboardWidgets,
+  generateSetupForecast,
+  generateTeamCrisisProfile,
   submitReSignOffer as submitReSignOfferEngine,
   submitFreeAgentBid as submitFreeAgentBidEngine,
   signStreetFreeAgent as signStreetFreeAgentEngine,
@@ -136,6 +148,7 @@ import {
   goBackSetupPhase as goBackSetupPhaseEngine,
   applySetupDecision as applySetupDecisionEngine,
   finalizeSetup as finalizeSetupEngine,
+  toggleSetupDrilldown as toggleSetupDrilldownEngine,
   runScoutingAction as runScoutingActionEngine,
   rejectCounterProposal as rejectCounterProposalEngine,
   submitWaiverClaim as submitWaiverClaimEngine,
@@ -154,6 +167,7 @@ import {
   unpinWidget as unpinDashboardWidget,
   upsertOpponentReport as upsertOpponentReportEngine,
   upgradeFacility as upgradeFacilityEngine,
+  getDefaultHalftimeDecisionSetting,
 } from '@mfd/engine';
 import type { SetupDecisions } from '@mfd/engine';
 import { autosaveDynasty, loadLatestAutosaveGame } from './persistence';
@@ -167,7 +181,7 @@ import {
   selectRecordChases,
   type GameStoreState,
 } from './selectors';
-import { runAdvanceWeek } from './sim';
+import { runAdvanceWeek, runPreviewHalftimeDecision } from './sim';
 import { useUiStore } from './ui-store';
 import { createSeedGameState, getTeamOptions } from './seed';
 export * from './selectors';
@@ -205,6 +219,7 @@ interface GameActions {
 
   // Week advance
   advanceWeek: () => Promise<WeeklySummary | null>;
+  resolveHalftimeDecision: (choice: 'stick' | 'switch' | 'gamble') => Promise<WeeklySummary | null>;
   watchBroadcast: (gameId: string) => void;
   advanceDeadlineClock: (minutes: number) => Promise<void>;
   acceptDeadlineOffer: (offerId: string) => Promise<void>;
@@ -273,12 +288,20 @@ interface GameActions {
   // Season phase
   setPhase: (phase: SeasonPhase) => void;
   setDifficulty: (difficulty: GameState['difficulty']) => Promise<void>;
+  setHalftimeDecisions: (setting: GameState['settings']['halftimeDecisions']) => Promise<void>;
   setAdaptiveDifficultyEnabled: (enabled: boolean) => Promise<void>;
   startScenarioChallenge: (scenarioId: string) => Promise<void>;
   saveGamePlan: (plan: GamePlan, report?: OpponentReport | null) => Promise<void>;
   clearGamePlan: () => Promise<void>;
   saveWeeklyPrepPlan: (plan: WeeklyPrepPlan, report?: OpponentReport | null) => Promise<void>;
   clearWeeklyPrepPlan: () => Promise<void>;
+  respondToPressConference: (
+    conferenceId: string,
+    tier: PressConferenceResponseTier,
+    response: string,
+  ) => Promise<void>;
+  clearAudioQueue: () => Promise<void>;
+  dismissBreakingNews: () => Promise<void>;
   pinWidget: (widgetType: DashboardWidget) => Promise<void>;
   unpinWidget: (widgetType: DashboardWidget) => Promise<void>;
   switchLayout: (layoutId: string) => Promise<void>;
@@ -294,9 +317,10 @@ interface GameActions {
   recordManualSave: () => void;
 
   // Franchise Setup
-  advanceSetup: () => Promise<void>;
+  advanceSetup: (options?: { requireTopPressureOpened?: boolean }) => Promise<void>;
   goBackSetup: () => Promise<void>;
   applySetupChoice: (decision: Partial<SetupDecisions>) => Promise<void>;
+  toggleSetupDrilldown: (pressureId: PressureCard['id']) => Promise<void>;
   completeSetup: () => Promise<void>;
 
   // Undo
@@ -346,7 +370,96 @@ export const useGameStore = create<GameStore>()(
       defensiveScheme: defensePlanFromPrep(plan.defensiveFocus),
       keyMatchup: plan.keyMatchupPlayerId ? { playerA: plan.keyMatchupPlayerId, playerB: plan.opponentTeamId } : null,
       gamePlanBonus: 0,
+      contingencyRules: plan.contingencyRules ?? [],
+      trickPlays: plan.trickPlays ?? [],
     });
+    const findUserGameResult = (game: GameState, playedWeek: number) => {
+      const team = Object.values(game.teams).find((entry) => entry.isUser) ?? null;
+      if (!team) return null;
+      const week = game.schedule.find((entry) => entry.week === playedWeek);
+      return week?.games.find((entry) =>
+        (entry.homeTeamId === team.id || entry.awayTeamId === team.id) && entry.result,
+      )?.result ?? null;
+    };
+    const parseScoreDiff = (finalScore: string): number => {
+      const [left = 0, right = 0] = finalScore.split('-').map((part) => Number(part.trim()));
+      if (!Number.isFinite(left) || !Number.isFinite(right)) return 0;
+      return Math.abs(left - right);
+    };
+    const resolvePressConferenceScenario = (game: GameState): string | null => {
+      const latestPackage = game.gameDayState.recentPackages.find((entry) => entry.id === game.gameDayState.latestPackageId) ?? null;
+      if (!latestPackage) return null;
+      if (latestPackage.phase === 'playoffs') {
+        return latestPackage.result === 'win' ? 'playoff_win' : latestPackage.result === 'loss' ? 'playoff_loss' : null;
+      }
+      if (latestPackage.rivalry) {
+        return latestPackage.result === 'win' ? 'rivalry_win' : latestPackage.result === 'loss' ? 'rivalry_loss' : null;
+      }
+      const diff = parseScoreDiff(latestPackage.finalScore);
+      if (latestPackage.result === 'win') return diff >= 14 ? 'win_blowout' : 'win_close';
+      if (latestPackage.result === 'loss') return diff >= 14 ? 'loss_blowout' : 'loss_close';
+      return null;
+    };
+    const buildPressConferenceQueueEntry = (game: GameState): PressConferenceQueueEntry | null => {
+      const conference = game.recentPressConferences[0];
+      if (!conference || conference.type !== 'postgame') return null;
+      const scenario = resolvePressConferenceScenario(game);
+      if (!scenario) return null;
+      const content = getPressConferenceScenarioContent(scenario);
+      if (!content) return null;
+      return {
+        conferenceId: conference.id,
+        teamId: conference.teamId,
+        year: conference.year,
+        week: conference.week,
+        speaker: conference.speaker,
+        topic: conference.topic,
+        scenario,
+        responses: {
+          high: [...content.answers_high_ambition],
+          mid: [...content.answers_mid],
+          low: [...content.answers_low_ambition],
+        },
+      };
+    };
+    const buildPostAdvanceAudioQueue = (game: GameState, playedWeek: number): AudioCue[] => {
+      const result = findUserGameResult(game, playedWeek);
+      if (!result) return [];
+      const teamStats = Object.values(result.stats);
+      const touchdowns = teamStats.reduce((sum, stats) => sum + stats.passTDs + stats.rushTDs, 0);
+      const fieldGoals = teamStats.reduce((sum, stats) => sum + stats.fgMade, 0);
+      const turnovers = teamStats.reduce((sum, stats) => sum + stats.turnovers, 0);
+      const sacks = teamStats.reduce((sum, stats) => sum + stats.sacks, 0);
+      const bigPlays = Math.min(3, result.broadcast?.highlights.filter((highlight) => highlight.isBigPlay).length ?? 0);
+      const cues = mapGameResultToAudioCues({
+        touchdowns,
+        fieldGoals,
+        turnovers,
+        sacks,
+        bigPlays,
+        overtime: result.overtime,
+      });
+      if (result.callYourShotResult) {
+        const outcome = result.callYourShotResult.outcome;
+        cues.push({
+          event: outcome === 'hit' ? 'achievement_unlocked' : outcome === 'miss' ? 'turnover' : 'notification',
+          priority: outcome === 'hit' ? 'high' : outcome === 'miss' ? 'high' : 'medium',
+          metadata: {
+            source: 'call_your_shot',
+            // TODO Sprint 37: swap synth fallback for packaged cue assets when audio/cue/call-hit.ogg and call-miss.ogg land.
+            requestedAsset: outcome === 'hit' ? 'audio/cue/call-hit.ogg' : outcome === 'miss' ? 'audio/cue/call-miss.ogg' : 'audio/cue/call-partial.ogg',
+          },
+        });
+      }
+      if (game.phase === 'offseason') {
+        cues.push({ event: 'season_end', priority: 'high' });
+      }
+      return cues;
+    };
+    const buildBreakingNewsQueue = (game: GameState): BreakingNewsEvent[] => {
+      const rng = mulberry32(buildIntelSeed(game, `breaking-news:${game.year}:${game.week}`));
+      return generateBreakingNews(game, rng);
+    };
     const applyPostJune1CutToGame = (game: GameState, teamId: string, playerId: string) => {
       const team = game.teams[teamId];
       const player = game.players[playerId];
@@ -882,6 +995,38 @@ export const useGameStore = create<GameStore>()(
         if (!current) return null;
         clearUndo(); // Week advance is not undoable
 
+        if (current.postGameUi?.pendingHalftimeDecision) {
+          return null;
+        }
+
+        const deadlineWeek = Number(getActiveRule(current.leagueRules ?? initLeagueRules(current.year), 'trade_deadline_week', current.year));
+        const shouldPauseForHalftime = !(
+          current.phase === 'regular_season'
+          && current.week === deadlineWeek
+        );
+
+        const halftimePreview = shouldPauseForHalftime
+          ? await runPreviewHalftimeDecision(current)
+          : null;
+        if (halftimePreview) {
+          const nextGame = cloneForMutation(current);
+          nextGame.postGameUi = nextGame.postGameUi ?? {
+            pressConferenceQueue: [],
+            audioCueQueue: [],
+            pendingHalftimeDecision: null,
+          };
+          nextGame.postGameUi.pendingHalftimeDecision = halftimePreview;
+          nextGame.postGameUi.audioCueQueue = [
+            ...nextGame.postGameUi.audioCueQueue,
+            createAudioCue('halftime', 'medium', {
+              source: 'halftime-decision',
+              week: nextGame.week,
+            }),
+          ].slice(-20);
+          await commitGame(nextGame);
+          return null;
+        }
+
         const result = await runAdvanceWeek(current);
         const nextGame = result.nextState;
         ensureGovernanceState(nextGame);
@@ -915,6 +1060,94 @@ export const useGameStore = create<GameStore>()(
         if (userTeam) {
           updateSystemFit(userTeam);
         }
+
+        nextGame.postGameUi = nextGame.postGameUi ?? {
+          pressConferenceQueue: [],
+          audioCueQueue: [],
+          pendingHalftimeDecision: null,
+        };
+        const pressConferenceQueueEntry = buildPressConferenceQueueEntry(nextGame);
+        if (pressConferenceQueueEntry && !nextGame.postGameUi.pressConferenceQueue.some((entry) => entry.conferenceId === pressConferenceQueueEntry.conferenceId)) {
+          nextGame.postGameUi.pressConferenceQueue = [
+            pressConferenceQueueEntry,
+            ...nextGame.postGameUi.pressConferenceQueue,
+          ].slice(0, 4);
+        }
+        nextGame.postGameUi.audioCueQueue = [
+          ...nextGame.postGameUi.audioCueQueue,
+          ...buildPostAdvanceAudioQueue(nextGame, current.week),
+        ].slice(-20);
+        nextGame.breakingNewsQueue = buildBreakingNewsQueue(nextGame).slice(0, 5);
+
+        completeTutorialActionEngine(nextGame, 'week:advance');
+        await commitGame(nextGame);
+
+        return nextGame.weekSummaries.at(-1) ?? null;
+      },
+
+      resolveHalftimeDecision: async (choice) => {
+        const current = get().game;
+        const pending = current?.postGameUi?.pendingHalftimeDecision;
+        if (!current || !pending) return null;
+
+        const result = await runAdvanceWeek(current, {
+          halftimeDecision: {
+            choice,
+            suggestion: pending.suggestion,
+          },
+        });
+        const nextGame = result.nextState;
+        ensureGovernanceState(nextGame);
+
+        nextGame.postGameUi = nextGame.postGameUi ?? {
+          pressConferenceQueue: [],
+          audioCueQueue: [],
+          pendingHalftimeDecision: null,
+        };
+        nextGame.postGameUi.pendingHalftimeDecision = null;
+
+        const deadlineInterrupted = current.phase === 'regular_season'
+          && current.week === 9
+          && nextGame.week === current.week
+          && Boolean(nextGame.tradeDeadlineState?.isDeadlineWeek);
+        const cbaInterrupted = (nextGame.phase === 'offseason' || nextGame.phase === 'preseason')
+          && isCBAInterruptStatus(nextGame.cbaState.status);
+
+        if (deadlineInterrupted) {
+          await commitGame(nextGame);
+          navigateTo('/trade-deadline');
+          return null;
+        }
+
+        if (nextGame.expansionDraftState) {
+          await commitGame(nextGame);
+          navigateTo('/expansion-draft');
+          return null;
+        }
+
+        if (cbaInterrupted) {
+          await commitGame(nextGame);
+          navigateTo('/cba');
+          return null;
+        }
+
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (userTeam) {
+          updateSystemFit(userTeam);
+        }
+
+        const pressConferenceQueueEntry = buildPressConferenceQueueEntry(nextGame);
+        if (pressConferenceQueueEntry && !nextGame.postGameUi.pressConferenceQueue.some((entry) => entry.conferenceId === pressConferenceQueueEntry.conferenceId)) {
+          nextGame.postGameUi.pressConferenceQueue = [
+            pressConferenceQueueEntry,
+            ...nextGame.postGameUi.pressConferenceQueue,
+          ].slice(0, 4);
+        }
+        nextGame.postGameUi.audioCueQueue = [
+          ...nextGame.postGameUi.audioCueQueue,
+          ...buildPostAdvanceAudioQueue(nextGame, current.week),
+        ].slice(-20);
+        nextGame.breakingNewsQueue = buildBreakingNewsQueue(nextGame).slice(0, 5);
 
         completeTutorialActionEngine(nextGame, 'week:advance');
         await commitGame(nextGame);
@@ -1804,10 +2037,17 @@ export const useGameStore = create<GameStore>()(
       setDifficulty: async (difficulty) => {
         const current = get().game;
         if (!current) return;
-        const nextGame = {
-          ...current,
-          difficulty,
-        };
+        const nextGame = cloneForMutation(current);
+        nextGame.difficulty = difficulty;
+        nextGame.settings.halftimeDecisions = getDefaultHalftimeDecisionSetting(difficulty);
+        await commitGame(nextGame);
+      },
+
+      setHalftimeDecisions: async (setting) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.settings.halftimeDecisions = current.difficulty === 'rookie' ? 'off' : setting;
         await commitGame(nextGame);
       },
 
@@ -1888,6 +2128,38 @@ export const useGameStore = create<GameStore>()(
           delete nextGame.weeklyPrepPlans[userTeam.id];
         }
         resetGamePlanEngine(nextGame);
+        await commitGame(nextGame);
+      },
+
+      respondToPressConference: async (conferenceId, tier, response) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const entry = nextGame.postGameUi?.pressConferenceQueue.find((queueEntry) => queueEntry.conferenceId === conferenceId);
+        if (!entry) return;
+        entry.selectedTier = tier;
+        entry.selectedResponse = response;
+        await commitGame(nextGame);
+      },
+
+      clearAudioQueue: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.postGameUi = nextGame.postGameUi ?? {
+          pressConferenceQueue: [],
+          audioCueQueue: [],
+          pendingHalftimeDecision: null,
+        };
+        nextGame.postGameUi.audioCueQueue = [];
+        await commitGame(nextGame);
+      },
+
+      dismissBreakingNews: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.breakingNewsQueue = [...(nextGame.breakingNewsQueue ?? [])].slice(1);
         await commitGame(nextGame);
       },
 
@@ -1981,11 +2253,9 @@ export const useGameStore = create<GameStore>()(
       setCallYourShot: async (declaration: ShotDeclaration | null) => {
         const current = get().game;
         if (!current) return;
-        set((s) => {
-          if (s.game) {
-            (s.game as GameState & { activeCallYourShot?: ShotDeclaration }).activeCallYourShot = declaration ?? undefined;
-          }
-        });
+        const nextGame = cloneForMutation(current);
+        nextGame.activeCallYourShot = declaration ?? undefined;
+        await commitGame(nextGame);
       },
 
       recordManualSave: () => {
@@ -1997,22 +2267,40 @@ export const useGameStore = create<GameStore>()(
       },
 
       // ── Franchise Setup ────────────────────────────────
-      advanceSetup: async () => {
+      advanceSetup: async (options) => {
         const game = get().game;
         if (!game?.setupState) return;
-        const next = advanceSetupPhaseEngine(game.setupState);
+        const userTeam = Object.values(game.teams).find((t) => t.isUser);
+        if (!userTeam) return;
+        const next = advanceSetupPhaseEngine(game.setupState, options);
+        next.crisisProfile = generateTeamCrisisProfile(game, userTeam.id);
+        next.forecastBoard = generateSetupForecast(game, userTeam.id, next.decisions);
         set((s) => { s.game!.setupState = next; });
       },
       goBackSetup: async () => {
         const game = get().game;
         if (!game?.setupState) return;
+        const userTeam = Object.values(game.teams).find((t) => t.isUser);
+        if (!userTeam) return;
         const next = goBackSetupPhaseEngine(game.setupState);
+        next.crisisProfile = generateTeamCrisisProfile(game, userTeam.id);
+        next.forecastBoard = generateSetupForecast(game, userTeam.id, next.decisions);
         set((s) => { s.game!.setupState = next; });
       },
       applySetupChoice: async (decision) => {
         const game = get().game;
         if (!game?.setupState) return;
+        const userTeam = Object.values(game.teams).find((t) => t.isUser);
+        if (!userTeam) return;
         const next = applySetupDecisionEngine(game.setupState, decision);
+        next.crisisProfile = generateTeamCrisisProfile(game, userTeam.id);
+        next.forecastBoard = generateSetupForecast(game, userTeam.id, next.decisions);
+        set((s) => { s.game!.setupState = next; });
+      },
+      toggleSetupDrilldown: async (pressureId) => {
+        const game = get().game;
+        if (!game?.setupState) return;
+        const next = toggleSetupDrilldownEngine(game.setupState, pressureId);
         set((s) => { s.game!.setupState = next; });
       },
       completeSetup: async () => {

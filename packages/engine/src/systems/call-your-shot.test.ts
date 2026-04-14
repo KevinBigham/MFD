@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { mulberry32 } from '../rng';
 import type { GameResult } from '../types';
 import {
+  evaluateCallYourShotResult,
   isCallYourShotEligible,
   getDeclarations,
   resolveCallYourShot,
 } from './call-your-shot';
+import { makeLeagueState } from './test-helpers';
 
 function seededRng(seed = 42) {
   return mulberry32(seed);
@@ -73,45 +75,75 @@ describe('Call Your Shot', () => {
   });
 
   describe('resolveCallYourShot', () => {
-    it('run_dominant succeeds with 120+ rush yards', () => {
-      const result = resolveCallYourShot(seededRng(), 'run_dominant', makeResult(28, 14), 'team-a');
+    it('marks a hit when the declared target is clearly exceeded', () => {
+      const result = evaluateCallYourShotResult(seededRng(), 'run_dominant', makeResult(28, 14), 'team-a');
+
+      expect(result.outcome).toBe('hit');
       expect(result.success).toBe(true);
-      expect(result.moraleDelta).toBeGreaterThan(0);
-      expect(result.chemistryDelta).toBeGreaterThan(0);
-      expect(result.headline).toContain('BACKED IT UP');
+      expect(result.magnitude).toBeGreaterThan(0.2);
+      expect(result.reaction.outcome).toBe('hit');
+      expect(result.fanConfidenceDelta).toBeGreaterThanOrEqual(2);
     });
 
-    it('run_dominant fails with low rush yards', () => {
+    it('marks a miss when the declared target falls well short', () => {
       const lowRush = makeResult(14, 21);
-      (lowRush.stats['team-a'] as any).rushingYards = 60;
-      const result = resolveCallYourShot(seededRng(), 'run_dominant', lowRush, 'team-a');
+      (lowRush.stats['team-a'] as any).rushingYards = 44;
+
+      const result = evaluateCallYourShotResult(seededRng(), 'run_dominant', lowRush, 'team-a');
+
+      expect(result.outcome).toBe('miss');
       expect(result.success).toBe(false);
-      expect(result.moraleDelta).toBeLessThan(0);
+      expect(result.magnitude).toBeGreaterThan(0.5);
+      expect(result.reaction.outcome).toBe('miss');
+      expect(result.fanConfidenceDelta).toBeLessThanOrEqual(-3);
     });
 
-    it('total_domination succeeds with 14+ point win', () => {
-      const result = resolveCallYourShot(seededRng(), 'total_domination', makeResult(35, 10), 'team-a');
-      expect(result.success).toBe(true);
-    });
+    it('marks a partial when the team lands close enough to the promise', () => {
+      const nearHit = makeResult(24, 17);
+      (nearHit.stats['team-a'] as any).rushingYards = 110;
 
-    it('total_domination fails in close game', () => {
-      const result = resolveCallYourShot(seededRng(), 'total_domination', makeResult(21, 17), 'team-a');
+      const result = evaluateCallYourShotResult(seededRng(), 'run_dominant', nearHit, 'team-a');
+
+      expect(result.outcome).toBe('partial');
       expect(result.success).toBe(false);
+      expect(result.magnitude).toBeGreaterThan(0.8);
+      expect(Math.abs(result.fanConfidenceDelta)).toBeLessThanOrEqual(1);
     });
 
-    it('underdog_special succeeds with any win', () => {
-      const result = resolveCallYourShot(seededRng(), 'underdog_special', makeResult(14, 13), 'team-a');
-      expect(result.success).toBe(true);
+    it('does nothing when there is no active prediction on the game state', () => {
+      const game = makeLeagueState('regular_season', 1);
+      const baselineConfidence = game.teams.afce1!.fanConfidence;
+
+      const result = resolveCallYourShot(game, makeResult(21, 17, {
+        homeTeamId: 'afce1',
+        awayTeamId: 'afce2',
+      }));
+
+      expect(result).toBeUndefined();
+      expect(game.teams.afce1!.fanConfidence).toBe(baselineConfidence);
     });
 
-    it('success gives dev bonus > 1.0', () => {
-      const result = resolveCallYourShot(seededRng(), 'underdog_special', makeResult(28, 7), 'team-a');
-      expect(result.devBonusMultiplier).toBeGreaterThan(1.0);
+    it('selects the same reaction variant for the same seed and result', () => {
+      const result = makeResult(31, 24);
+
+      const first = evaluateCallYourShotResult(seededRng(9), 'air_attack', result, 'team-a');
+      const second = evaluateCallYourShotResult(seededRng(9), 'air_attack', result, 'team-a');
+
+      expect(first.reaction.id).toBe(second.reaction.id);
     });
 
-    it('failure gives dev penalty < 1.0', () => {
-      const result = resolveCallYourShot(seededRng(), 'total_domination', makeResult(10, 21), 'team-a');
-      expect(result.devBonusMultiplier).toBeLessThan(1.0);
+    it('applies the fan confidence swing to the user team when the shot resolves', () => {
+      const game = makeLeagueState('regular_season', 1);
+      game.activeCallYourShot = 'underdog_special';
+      game.teams.afce1!.fanConfidence = 50;
+
+      const result = resolveCallYourShot(game, makeResult(24, 21, {
+        homeTeamId: 'afce1',
+        awayTeamId: 'afce2',
+      }), seededRng(3));
+
+      expect(result).toBeDefined();
+      expect(game.teams.afce1!.fanConfidence).toBe(50 + (result?.fanConfidenceDelta ?? 0));
     });
   });
 });

@@ -141,6 +141,29 @@ const mockState = {
         playerIds: ['p1'],
         teamIds: ['user'],
       },
+      {
+        id: 'dyn-3',
+        year: 2030,
+        week: 16,
+        type: 'named_game',
+        headline: 'The Snow Bowl: Chicago Blaze vs Green Bay Forge',
+        importance: 'major',
+        playerIds: [],
+        teamIds: ['user', 'opp'],
+        namedGame: {
+          name: 'The Snow Bowl',
+          archetype: 'snow_bowl',
+          gameId: 'game-2030-16',
+          year: 2030,
+          week: 16,
+          homeTeamId: 'user',
+          awayTeamId: 'opp',
+          winnerTeamId: 'user',
+          homeScore: 14,
+          awayScore: 7,
+          reason: 'Snow and a low-scoring grind turned the game into trench warfare.',
+        },
+      },
     ],
     achievements: [
       {
@@ -264,6 +287,29 @@ const mockState = {
       playerIds: ['p1'],
       teamIds: ['user'],
     },
+    {
+      id: 'dyn-3',
+      year: 2030,
+      week: 16,
+      type: 'named_game',
+      headline: 'The Snow Bowl: Chicago Blaze vs Green Bay Forge',
+      importance: 'major',
+      playerIds: [],
+      teamIds: ['user', 'opp'],
+      namedGame: {
+        name: 'The Snow Bowl',
+        archetype: 'snow_bowl',
+        gameId: 'game-2030-16',
+        year: 2030,
+        week: 16,
+        homeTeamId: 'user',
+        awayTeamId: 'opp',
+        winnerTeamId: 'user',
+        homeScore: 14,
+        awayScore: 7,
+        reason: 'Snow and a low-scoring grind turned the game into trench warfare.',
+      },
+    },
   ],
   dynastyScore: 15,
   achievements: [
@@ -354,5 +400,8 @@ describe('LegacyTimeline', () => {
     expect(markup).toContain('--- MENTORING REPORT ---');
     expect(markup).toContain('Rick Mason -&gt; Jay Stone');
     expect(markup).toContain('Jay Stone');
+    expect(markup).toContain('NAMED GAME');
+    expect(markup).toContain('The Snow Bowl');
+    expect(markup).toContain('TROPHY FILED');
   });
 });

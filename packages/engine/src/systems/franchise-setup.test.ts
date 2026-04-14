@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { StaffMember } from '../types';
 import {
+  generateCapPackages,
   PHASE_ORDER,
   advanceSetupPhase,
   applySetupDecision,
@@ -13,11 +14,19 @@ import {
   generateDepthChartContext,
   generateGoalContext,
   generateIntelBriefing,
+  generateSetupColdOpen,
+  generateSetupForecast,
+  generateTeamCrisisProfile,
+  generateWeekOneVolatility,
+  generateWeekOneCliffhanger,
+  getTopPressureCard,
+  previewSetupForecastChange,
   generateRosterOverview,
   generateSchemeContext,
   goBackSetupPhase,
   getPhaseRequirements,
   isPhaseComplete,
+  toggleSetupDrilldown,
 } from '../index';
 import { makeLeagueState, makePlayer } from './test-helpers';
 
@@ -241,6 +250,12 @@ describe('franchise setup lifecycle', () => {
     expect(state.decisions.agmProfileId).toBeNull();
     expect((state.decisions as any).headCoachId).toBeNull();
     expect((state.decisions as any).scoutingDirectorId).toBeNull();
+    expect((state.decisions as any).depthChartPhilosophy).toBeNull();
+    expect((state.decisions as any).capPosture).toBeNull();
+    expect((state.decisions as any).cultureMandate).toBeNull();
+    expect((state as any).crisisProfile).toBeNull();
+    expect((state as any).forecastBoard).toBeNull();
+    expect((state as any).openedDrilldowns).toEqual([]);
     expect(state.blueprint).toBeNull();
   });
 
@@ -267,7 +282,7 @@ describe('franchise setup lifecycle', () => {
     });
     expect(getPhaseRequirements('set_goals')).toEqual({
       requiresDecision: true,
-      decisionFields: ['seasonGoals'],
+      decisionFields: ['seasonGoals', 'cultureMandate'],
     });
     expect(getPhaseRequirements('blueprint')).toEqual({
       requiresDecision: false,
@@ -339,22 +354,24 @@ describe('franchise setup lifecycle', () => {
     });
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
-      acknowledged: [...state.decisions.acknowledged, 'depth_chart'],
+      depthChartPhilosophy: 'best_players',
     });
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
-      acknowledged: [...state.decisions.acknowledged, 'cap_strategy'],
+      capPosture: 'balanced',
     });
     state = advanceSetupPhase(state);
 
     expect(state.currentPhase).toBe('set_goals');
     state = applySetupDecision(state, {
       seasonGoals: context.recommendedGoals.slice(0, 2).map((goal) => goal.id),
+      cultureMandate: 'accountability',
     });
     expect(isPhaseComplete(state, 'set_goals')).toBe(false);
 
     state = applySetupDecision(state, {
       seasonGoals: context.recommendedGoals.slice(0, 3).map((goal) => goal.id),
+      cultureMandate: 'accountability',
     });
     expect(isPhaseComplete(state, 'set_goals')).toBe(true);
   });
@@ -379,11 +396,11 @@ describe('franchise setup lifecycle', () => {
     });
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
-      acknowledged: [...state.decisions.acknowledged, 'depth_chart'],
+      depthChartPhilosophy: 'best_players',
     });
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
-      acknowledged: [...state.decisions.acknowledged, 'cap_strategy'],
+      capPosture: 'balanced',
     });
     state = advanceSetupPhase(state);
 
@@ -473,15 +490,16 @@ describe('franchise setup integration', () => {
     });
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
-      acknowledged: [...state.decisions.acknowledged, 'depth_chart'],
+      depthChartPhilosophy: 'best_players',
     });
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
-      acknowledged: [...state.decisions.acknowledged, 'cap_strategy'],
+      capPosture: 'balanced',
     });
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
       seasonGoals: goalContext.recommendedGoals.slice(0, 3).map((goal) => goal.id),
+      cultureMandate: 'accountability',
     });
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
@@ -532,18 +550,19 @@ describe('franchise setup integration', () => {
     });
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
-      acknowledged: [...state.decisions.acknowledged, 'depth_chart'],
+      depthChartPhilosophy: 'best_players',
       depthChartOverrides: {
         QB: ['afce1-qb2'],
       },
-    });
+    } as any);
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
-      acknowledged: [...state.decisions.acknowledged, 'cap_strategy'],
+      capPosture: 'balanced',
     });
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
       seasonGoals: goalContext.recommendedGoals.slice(0, 3).map((goal) => goal.id),
+      cultureMandate: 'accountability',
       acknowledged: [...state.decisions.acknowledged, 'blueprint'],
     });
     state = advanceSetupPhase(state);
@@ -569,15 +588,16 @@ describe('franchise setup integration', () => {
     });
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
-      acknowledged: [...state.decisions.acknowledged, 'depth_chart'],
+      depthChartPhilosophy: 'best_players',
     });
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
-      acknowledged: [...state.decisions.acknowledged, 'cap_strategy'],
+      capPosture: 'balanced',
     });
     state = advanceSetupPhase(state);
     state = applySetupDecision(state, {
       seasonGoals: goalContext.recommendedGoals.slice(0, 3).map((goal) => goal.id),
+      cultureMandate: 'accountability',
       agmProfileId: 'coach_d_hardaway',
       agmClosingWords: 'This is OUR year, Coach.',
     } as any);
@@ -733,6 +753,281 @@ describe('franchise setup generators', () => {
       .toEqual(generateDepthChartContext(game, 'afce1', { off: 'spread', def: 'cover_3' }));
     expect(generateCapBriefing(game, 'afce1')).toEqual(generateCapBriefing(game, 'afce1'));
     expect(generateGoalContext(game, 'afce1')).toEqual(generateGoalContext(game, 'afce1'));
+  });
+
+  it('builds a deterministic team crisis profile with three pressure cards', () => {
+    const game = addBattleAndInjury();
+
+    const crisis = generateTeamCrisisProfile(game, 'afce1');
+
+    expect(generateTeamCrisisProfile(game, 'afce1')).toEqual(crisis);
+    expect(crisis.pressureCards.map((card) => card.id)).toEqual(['roster', 'cap', 'culture']);
+    expect(crisis.headline.length).toBeGreaterThan(20);
+    expect(crisis.ownerPressure.length).toBeGreaterThan(10);
+    expect(crisis.mediaPressure.length).toBeGreaterThan(10);
+    expect(crisis.weekOneThreat.length).toBeGreaterThan(10);
+    expect(crisis.weekOneHope.length).toBeGreaterThan(10);
+    expect(crisis.weekOneUnknown.length).toBeGreaterThan(10);
+    expect(crisis.pressureCards.every((card) => card.drilldown.bestLever.length > 5)).toBe(true);
+  });
+
+  it('builds a deterministic cold open from live team state and recent franchise scars', () => {
+    const game = addBattleAndInjury();
+    game.franchiseHistory.push({
+      year: game.year - 1,
+      teamId: 'afce1',
+      wins: 10,
+      losses: 7,
+      ties: 0,
+      record: '10-7',
+      pointDifferential: 48,
+      playoffFinish: 'Lost in Divisional Round',
+      majorEvents: [],
+      awardsWon: [],
+      recordsBroken: [],
+    });
+
+    const coldOpen = generateSetupColdOpen(game, 'afce1');
+
+    expect(generateSetupColdOpen(game, 'afce1')).toEqual(coldOpen);
+    expect(coldOpen.lastSeasonScar).toContain('10-7');
+    expect(coldOpen.lastSeasonScar).toContain('Lost in Divisional Round');
+    expect(coldOpen.openerLabel).toContain('Week 1');
+    expect(coldOpen.crisisHeadline.length).toBeGreaterThan(15);
+  });
+
+  it('returns the highest-pressure card deterministically', () => {
+    const game = addBattleAndInjury();
+    const crisis = generateTeamCrisisProfile(game, 'afce1');
+
+    const top = getTopPressureCard(crisis);
+
+    expect(getTopPressureCard(crisis)).toEqual(top);
+    expect(crisis.pressureCards.some((card) => card.id === top.id)).toBe(true);
+    expect(top.score).toBe(
+      Math.max(...crisis.pressureCards.map((card) => card.score)),
+    );
+  });
+
+  it('toggles setup drilldowns without mutating unrelated setup decisions', () => {
+    const game = addBattleAndInjury();
+    const crisis = generateTeamCrisisProfile(game, 'afce1');
+    const initial = {
+      ...hireAgmSetupState(),
+      crisisProfile: crisis,
+    };
+    const topPressure = getTopPressureCard(crisis);
+
+    const opened = toggleSetupDrilldown(initial, topPressure.id);
+    const closed = toggleSetupDrilldown(opened, topPressure.id);
+
+    expect(opened.openedDrilldowns).toEqual([topPressure.id]);
+    expect(closed.openedDrilldowns).toEqual([]);
+    expect(closed.decisions).toEqual(initial.decisions);
+  });
+
+  it('builds three deterministic cap packages for day one posture choices', () => {
+    const game = enrichStaff();
+
+    const packages = generateCapPackages(game, 'afce1');
+
+    expect(generateCapPackages(game, 'afce1')).toEqual(packages);
+    expect(packages.map((entry) => entry.posture)).toEqual(['protect_future', 'balanced', 'push_chips']);
+    expect(packages.every((entry) => entry.label.length > 3)).toBe(true);
+    expect(packages.every((entry) => entry.rosterImpact.length > 10)).toBe(true);
+  });
+
+  it('updates the setup forecast when day one decisions change', () => {
+    const game = addBattleAndInjury();
+
+    const conservative = generateSetupForecast(game, 'afce1', {
+      agmProfileId: 'marcus_webb',
+      headCoachId: 'elias_rowe',
+      scoutingDirectorId: 'zoe_wilcox',
+      offenseScheme: 'balanced',
+      defenseScheme: 'cover_3',
+      seasonGoals: ['winning_record', 'cap_health', 'draft_well'],
+      depthChartOverrides: {},
+      acknowledged: [...PHASES_ALL],
+      depthChartPhilosophy: 'best_players',
+      capPosture: 'protect_future',
+      cultureMandate: 'accountability',
+    } as any);
+    const aggressive = generateSetupForecast(game, 'afce1', {
+      agmProfileId: 'coach_d_hardaway',
+      headCoachId: 'nico_morales',
+      scoutingDirectorId: 'marvin_tate',
+      offenseScheme: 'air_raid',
+      defenseScheme: 'man_press',
+      seasonGoals: ['championship', 'win_division', 'star_power'],
+      depthChartOverrides: {},
+      acknowledged: [...PHASES_ALL],
+      depthChartPhilosophy: 'youth_bet',
+      capPosture: 'push_chips',
+      cultureMandate: 'player_led',
+    } as any);
+
+    expect(conservative.weekOneReadiness).not.toBe(aggressive.weekOneReadiness);
+    expect(conservative.capFlexibility).not.toBe(aggressive.capFlexibility);
+    expect(conservative.cards).toHaveLength(5);
+    expect(aggressive.cards).toHaveLength(5);
+  });
+
+  it('blocks full-run intel completion until the highest pressure has been opened', () => {
+    const game = addBattleAndInjury();
+    const crisis = generateTeamCrisisProfile(game, 'afce1');
+    const topPressure = getTopPressureCard(crisis);
+    const state = applySetupDecision({
+      ...hireAgmSetupState(),
+      crisisProfile: crisis,
+    }, {
+      acknowledged: ['intel_briefing'],
+    });
+
+    expect(isPhaseComplete(state, 'intel_briefing')).toBe(true);
+    expect(isPhaseComplete(state, 'intel_briefing', { requireTopPressureOpened: true })).toBe(false);
+
+    const opened = toggleSetupDrilldown(state, topPressure.id);
+
+    expect(isPhaseComplete(opened, 'intel_briefing', { requireTopPressureOpened: true })).toBe(true);
+  });
+
+  it('previews readiness and volatility deltas for hypothetical day one choices', () => {
+    const game = addBattleAndInjury();
+    const baseDecisions = {
+      agmProfileId: 'marcus_webb',
+      headCoachId: 'elias_rowe',
+      scoutingDirectorId: 'zoe_wilcox',
+      offenseScheme: 'balanced',
+      defenseScheme: 'cover_3',
+      seasonGoals: ['winning_record', 'cap_health', 'draft_well'],
+      depthChartOverrides: {},
+      acknowledged: [...PHASES_ALL],
+      depthChartPhilosophy: 'best_players',
+      capPosture: 'protect_future',
+      cultureMandate: 'accountability',
+    } as any;
+
+    const aggressiveCap = previewSetupForecastChange(game, 'afce1', baseDecisions, {
+      capPosture: 'push_chips',
+    });
+    const youthDepth = previewSetupForecastChange(game, 'afce1', baseDecisions, {
+      depthChartPhilosophy: 'youth_bet',
+    });
+
+    expect(aggressiveCap.weekOneReadinessDelta).not.toBe(0);
+    expect(aggressiveCap.weekOneVolatilityDelta).not.toBe(0);
+    expect(aggressiveCap.secondaryDelta.id).toBe('cap_flexibility');
+    expect(aggressiveCap.summaryLine).toContain('Push chips');
+    expect(youthDepth.secondaryDelta.id).toBe('scheme_cohesion');
+    expect(youthDepth.summaryLine).toContain('Youth bet');
+  });
+
+  it('raises volatility for younger, more chaotic opening bets', () => {
+    const game = addBattleAndInjury();
+    const conservative = generateWeekOneVolatility(game, 'afce1', {
+      agmProfileId: 'marcus_webb',
+      headCoachId: 'elias_rowe',
+      scoutingDirectorId: 'zoe_wilcox',
+      offenseScheme: 'balanced',
+      defenseScheme: 'cover_3',
+      seasonGoals: ['winning_record', 'cap_health', 'draft_well'],
+      depthChartOverrides: {},
+      acknowledged: [...PHASES_ALL],
+      depthChartPhilosophy: 'best_players',
+      capPosture: 'protect_future',
+      cultureMandate: 'accountability',
+    } as any);
+    const aggressive = generateWeekOneVolatility(game, 'afce1', {
+      agmProfileId: 'coach_d_hardaway',
+      headCoachId: 'nico_morales',
+      scoutingDirectorId: 'marvin_tate',
+      offenseScheme: 'air_raid',
+      defenseScheme: 'man_press',
+      seasonGoals: ['championship', 'win_division', 'star_power'],
+      depthChartOverrides: {},
+      acknowledged: [...PHASES_ALL],
+      depthChartPhilosophy: 'youth_bet',
+      capPosture: 'push_chips',
+      cultureMandate: 'development_first',
+    } as any);
+
+    expect(aggressive).toBeGreaterThan(conservative);
+  });
+
+  it('finalizeSetup persists crisis-room blueprint details and new day one decisions', () => {
+    const game = addBattleAndInjury();
+    let state = hireCoachAndScoutSetupState();
+
+    state = applySetupDecision(state, {
+      offenseScheme: 'air_raid',
+      defenseScheme: 'man_press',
+      depthChartPhilosophy: 'youth_bet',
+      capPosture: 'push_chips',
+    } as any);
+    state = advanceSetupPhase(state);
+    state = applySetupDecision(state, {
+      acknowledged: [...state.decisions.acknowledged, 'depth_chart'],
+    });
+    state = advanceSetupPhase(state);
+    state = applySetupDecision(state, {
+      acknowledged: [...state.decisions.acknowledged, 'cap_strategy'],
+    });
+    state = advanceSetupPhase(state);
+    state = applySetupDecision(state, {
+      seasonGoals: ['championship', 'win_division', 'star_power'],
+      cultureMandate: 'player_led',
+    } as any);
+    state = advanceSetupPhase(state);
+    state = applySetupDecision(state, {
+      acknowledged: [...state.decisions.acknowledged, 'blueprint'],
+    });
+
+    const finalized = finalizeSetup(game, 'afce1', state);
+
+    expect((finalized.setupState?.decisions as any).depthChartPhilosophy).toBe('youth_bet');
+    expect((finalized.setupState?.decisions as any).capPosture).toBe('push_chips');
+    expect((finalized.setupState?.decisions as any).cultureMandate).toBe('player_led');
+    expect((finalized.setupState?.blueprint as any).crisisHeadline.length).toBeGreaterThan(10);
+    expect((finalized.setupState?.blueprint as any).pressureSnapshot).toHaveLength(3);
+    expect((finalized.setupState?.blueprint as any).dayOneBets.length).toBeGreaterThan(2);
+    expect((finalized.setupState?.blueprint as any).weekOneCliffhanger.threat.length).toBeGreaterThan(10);
+  });
+
+  it('builds a deterministic week one cliffhanger from the crisis-room setup', () => {
+    const game = addBattleAndInjury();
+
+    const cliffhanger = generateWeekOneCliffhanger(game, 'afce1', {
+      agmProfileId: 'sandra_chen',
+      headCoachId: 'elias_rowe',
+      scoutingDirectorId: 'zoe_wilcox',
+      offenseScheme: 'spread',
+      defenseScheme: 'cover_3',
+      seasonGoals: ['playoff_berth', 'draft_well', 'winning_record'],
+      depthChartOverrides: {},
+      acknowledged: [...PHASES_ALL],
+      depthChartPhilosophy: 'best_players',
+      capPosture: 'balanced',
+      cultureMandate: 'development_first',
+    } as any);
+
+    expect(generateWeekOneCliffhanger(game, 'afce1', {
+      agmProfileId: 'sandra_chen',
+      headCoachId: 'elias_rowe',
+      scoutingDirectorId: 'zoe_wilcox',
+      offenseScheme: 'spread',
+      defenseScheme: 'cover_3',
+      seasonGoals: ['playoff_berth', 'draft_well', 'winning_record'],
+      depthChartOverrides: {},
+      acknowledged: [...PHASES_ALL],
+      depthChartPhilosophy: 'best_players',
+      capPosture: 'balanced',
+      cultureMandate: 'development_first',
+    } as any)).toEqual(cliffhanger);
+    expect(cliffhanger.openerLabel.length).toBeGreaterThan(5);
+    expect(cliffhanger.threat.length).toBeGreaterThan(10);
+    expect(cliffhanger.hope.length).toBeGreaterThan(10);
+    expect(cliffhanger.unknown.length).toBeGreaterThan(10);
   });
 });
 

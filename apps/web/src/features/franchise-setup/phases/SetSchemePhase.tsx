@@ -1,8 +1,19 @@
-import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
-import type { SchemeSelectionContext, SchemeOption } from '@mfd/engine';
+import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
+import type { ChoiceForecastPreview, SchemeSelectionContext, SchemeOption } from '@mfd/engine';
 import { monoSm, pixelSm } from '../../shared/pixelUi';
+import { ChoiceDeltaBadges } from '../ChoiceDeltaBadges';
 
-function SchemeCard({ option, selected, onSelect }: { option: SchemeOption; selected: boolean; onSelect: () => void }) {
+function SchemeCard({
+  option,
+  selected,
+  preview,
+  onSelect,
+}: {
+  option: SchemeOption;
+  selected: boolean;
+  preview?: ChoiceForecastPreview;
+  onSelect: () => void;
+}) {
   const borderColor = selected ? 'var(--mfd-gold)' : option.recommended ? 'rgba(255, 215, 0, 0.3)' : 'var(--mfd-border)';
   return (
     <div
@@ -33,6 +44,7 @@ function SchemeCard({ option, selected, onSelect }: { option: SchemeOption; sele
         )}
         {option.staffAligned && <PixelBadge variant="cyan">Staff Aligned</PixelBadge>}
       </div>
+      <ChoiceDeltaBadges preview={preview} />
       {option.bestFitPlayers.length > 0 && (
         <div style={{ ...monoSm, color: '#777', marginTop: '6px' }}>
           Thrives: {option.bestFitPlayers.slice(0, 2).map((p) => `${p.name} (${p.ovr})`).join(', ')}
@@ -46,12 +58,16 @@ export function SetSchemePhase({
   data,
   selectedOffense,
   selectedDefense,
+  previewByOffenseSchemeId,
+  previewByDefenseSchemeId,
   onSelectOffense,
   onSelectDefense,
 }: {
   data: SchemeSelectionContext;
   selectedOffense: string | null;
   selectedDefense: string | null;
+  previewByOffenseSchemeId?: Record<string, ChoiceForecastPreview>;
+  previewByDefenseSchemeId?: Record<string, ChoiceForecastPreview>;
   onSelectOffense: (schemeId: string) => void;
   onSelectDefense: (schemeId: string) => void;
 }) {
@@ -64,6 +80,7 @@ export function SetSchemePhase({
               key={opt.schemeId}
               option={opt}
               selected={opt.schemeId === selectedOffense}
+              preview={previewByOffenseSchemeId?.[opt.schemeId]}
               onSelect={() => onSelectOffense(opt.schemeId)}
             />
           ))}
@@ -77,6 +94,7 @@ export function SetSchemePhase({
               key={opt.schemeId}
               option={opt}
               selected={opt.schemeId === selectedDefense}
+              preview={previewByDefenseSchemeId?.[opt.schemeId]}
               onSelect={() => onSelectDefense(opt.schemeId)}
             />
           ))}

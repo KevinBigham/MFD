@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { advanceFranchiseWeek } from './franchise-week';
-import { resolveCallYourShot, type CallYourShotResult, type ShotDeclaration } from './call-your-shot';
+import { evaluateCallYourShotResult, type CallYourShotResult, type ShotDeclaration } from './call-your-shot';
 import { makeLeagueState } from './test-helpers';
 import type { GameResult, GameState } from '../types';
 
@@ -34,7 +34,7 @@ function findDeclarationForOutcome(result: GameResult, expectedSuccess: boolean)
     'underdog_special',
   ];
   const declaration = declarations.find((entry) =>
-    resolveCallYourShot(() => 0.5, entry, result, 'afce1').success === expectedSuccess);
+    evaluateCallYourShotResult(() => 0.5, entry, result, 'afce1').success === expectedSuccess);
 
   expect(declaration).toBeDefined();
   return declaration!;
@@ -52,6 +52,11 @@ describe('call-your-shot wiring', () => {
     const result = advanceFranchiseWeek(game) as AdvanceWeekWithShot;
 
     expect(result.callYourShotResult).toBeDefined();
+    expect(getUserGameResult(result.nextState) as GameResult & { callYourShotResult?: CallYourShotResult }).toMatchObject({
+      callYourShotResult: expect.objectContaining({
+        outcome: expect.any(String),
+      }),
+    });
   });
 
   it('clears the active declaration after resolution', () => {
@@ -86,6 +91,8 @@ describe('call-your-shot wiring', () => {
 
     expect(result.callYourShotResult?.declaration).toBe(declaration);
     expect(result.callYourShotResult?.success).toBe(true);
+    const latestPackage = result.nextState.gameDayState.recentPackages.at(-1) as { callYourShotResult?: CallYourShotResult } | undefined;
+    expect(latestPackage?.callYourShotResult?.declaration).toBe(declaration);
   });
 
   it('returns a failure result when the declaration conditions are not met', () => {

@@ -3,6 +3,18 @@ import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/componen
 import type { TutorialStep } from '@mfd/engine';
 import { monoSm, pixelSm } from '../shared/pixelUi';
 
+const TUTORIAL_TIPS = [
+  'Hotkeys: 1-9 jump to core screens, Cmd/Ctrl+K opens the Cmd Deck, and Shift+? opens the hotkey board.',
+  'Save flow: Save/Load lives under SYSTEM. Autosave covers week advances and major state changes, but manual checkpoints are still the safest way to protect a long dynasty.',
+  'New wiring: Game Plan holds contingency rules, trick plays, and the live playbook. Game Day now carries the podium response flow after games.',
+];
+
+const WHATS_NEW = [
+  'Check Settings for the invariant debug readout when you launch with ?debug=1.',
+  'Use the new postgame press modal to pick your public tone after big results.',
+  'Look for story, intel, and breaking-news surfaces in Inbox, Social, and Game Day during the first week.',
+];
+
 function actionPrompt(step: TutorialStep): string {
   if (!step.action) {
     return step.id === 'you_are_ready'
@@ -153,6 +165,36 @@ export function TutorialOverlay({
             >
               <div style={{ ...pixelSm, color: '#f4d35e', marginBottom: '6px' }}>ACTION PROMPT</div>
               <div style={{ ...monoSm, color: '#cfcfcf', lineHeight: 1.6 }}>{actionPrompt(step)}</div>
+            </div>
+
+            <div style={{
+              padding: '10px',
+              border: '2px solid var(--mfd-border)',
+              background: 'var(--mfd-bg-2)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+            >
+              <div style={{ ...pixelSm, color: 'var(--mfd-cyan)' }}>TUTORIAL TIPS</div>
+              {TUTORIAL_TIPS.map((tip) => (
+                <div key={tip} style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{tip}</div>
+              ))}
+            </div>
+
+            <div style={{
+              padding: '10px',
+              border: '2px solid var(--mfd-border)',
+              background: 'var(--mfd-bg-2)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+            >
+              <div style={{ ...pixelSm, color: 'var(--mfd-green)' }}>WHAT&apos;S NEW</div>
+              {WHATS_NEW.map((tip) => (
+                <div key={tip} style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{tip}</div>
+              ))}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>

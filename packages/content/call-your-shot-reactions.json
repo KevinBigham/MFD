@@ -1,0 +1,166 @@
+{
+  "reactions": [
+    {
+      "id": "hit-fan-bleachers",
+      "outcome": "hit",
+      "speaker": "Bleachers North",
+      "speakerType": "fan",
+      "tone": "triumphant",
+      "headline": "Called It Down To The Yard",
+      "quote": "Coach talked big and the whole building got to watch it cash."
+    },
+    {
+      "id": "hit-beat-column",
+      "outcome": "hit",
+      "speaker": "Mara Voss",
+      "speakerType": "beat_writer",
+      "tone": "triumphant",
+      "headline": "A Rare Case Of Swagger Matching Tape",
+      "quote": "That prediction was reckless right up until it looked inevitable."
+    },
+    {
+      "id": "hit-fan-tailgate",
+      "outcome": "hit",
+      "speaker": "South Lot Tailgate",
+      "speakerType": "fan",
+      "tone": "triumphant",
+      "headline": "Receipts Printed In Real Time",
+      "quote": "If you say it out loud and then do it, the crowd never forgets."
+    },
+    {
+      "id": "hit-analyst-studio",
+      "outcome": "hit",
+      "speaker": "MFSN Studio Desk",
+      "speakerType": "analyst",
+      "tone": "triumphant",
+      "headline": "The Flex Was Earned",
+      "quote": "That was not empty noise. That was a game plan turning into theater."
+    },
+    {
+      "id": "hit-locker-room",
+      "outcome": "hit",
+      "speaker": "Locker Room Buzz",
+      "speakerType": "locker_room",
+      "tone": "triumphant",
+      "headline": "Room Bought In",
+      "quote": "You can feel the sideline believing a little faster after that one."
+    },
+    {
+      "id": "hit-beat-nightcap",
+      "outcome": "hit",
+      "speaker": "Late Edition Column",
+      "speakerType": "beat_writer",
+      "tone": "triumphant",
+      "headline": "Swagger, Then Proof",
+      "quote": "He put a target on the night and then walked right through it."
+    },
+    {
+      "id": "miss-beat-frontpage",
+      "outcome": "miss",
+      "speaker": "Mara Voss",
+      "speakerType": "beat_writer",
+      "tone": "sarcastic",
+      "headline": "Bold Words, Thin Follow-Through",
+      "quote": "The prediction aged like warm soda by the middle of the third."
+    },
+    {
+      "id": "miss-fan-radio",
+      "outcome": "miss",
+      "speaker": "Call-In Radio",
+      "speakerType": "fan",
+      "tone": "sarcastic",
+      "headline": "The Receipts Got Ugly",
+      "quote": "You do not make a promise like that unless the locker room can carry it."
+    },
+    {
+      "id": "miss-analyst-panel",
+      "outcome": "miss",
+      "speaker": "MFSN Night Panel",
+      "speakerType": "analyst",
+      "tone": "sarcastic",
+      "headline": "Fuel For The Meme Cycle",
+      "quote": "The quote won Tuesday. The opponent won the game."
+    },
+    {
+      "id": "miss-beat-snicker",
+      "outcome": "miss",
+      "speaker": "Press Row Whisper",
+      "speakerType": "beat_writer",
+      "tone": "sarcastic",
+      "headline": "Promised Fireworks, Delivered Static",
+      "quote": "That call now lives in the kind of headline a coach wants buried."
+    },
+    {
+      "id": "miss-fan-message-board",
+      "outcome": "miss",
+      "speaker": "Message Board Melt",
+      "speakerType": "fan",
+      "tone": "sarcastic",
+      "headline": "They Heard The Talk",
+      "quote": "Confidence is fun until the other sideline starts quoting it back at you."
+    },
+    {
+      "id": "miss-locker-room-sideeye",
+      "outcome": "miss",
+      "speaker": "Locker Room Murmur",
+      "speakerType": "locker_room",
+      "tone": "sarcastic",
+      "headline": "The Room Went Quiet",
+      "quote": "Miss a swing that loud and people start listening for eye rolls."
+    },
+    {
+      "id": "partial-analyst-grudging",
+      "outcome": "partial",
+      "speaker": "MFSN Studio Desk",
+      "speakerType": "analyst",
+      "tone": "measured",
+      "headline": "Close Enough To Argue About",
+      "quote": "He did not fully land it, but he made the prediction feel less silly."
+    },
+    {
+      "id": "partial-fan-forgiving",
+      "outcome": "partial",
+      "speaker": "Upper Deck Chant",
+      "speakerType": "fan",
+      "tone": "measured",
+      "headline": "Not A Total Whiff",
+      "quote": "That was one break away from becoming a legend line."
+    },
+    {
+      "id": "partial-beat-balanced",
+      "outcome": "partial",
+      "speaker": "Mara Voss",
+      "speakerType": "beat_writer",
+      "tone": "measured",
+      "headline": "Close, But Not Quite Canon",
+      "quote": "There was enough truth in the call to keep the jokes from landing clean."
+    },
+    {
+      "id": "partial-fan-shrug",
+      "outcome": "partial",
+      "speaker": "Postgame Concourse",
+      "speakerType": "fan",
+      "tone": "measured",
+      "headline": "Half Credit",
+      "quote": "You can squint and see the vision, even if the scoreboard would disagree."
+    },
+    {
+      "id": "partial-locker-room",
+      "outcome": "partial",
+      "speaker": "Locker Room Buzz",
+      "speakerType": "locker_room",
+      "tone": "measured",
+      "headline": "Room Stays Neutral",
+      "quote": "Nobody is hanging a banner for it, but nobody is tearing the poster down either."
+    },
+    {
+      "id": "partial-analyst-nod",
+      "outcome": "partial",
+      "speaker": "Film Room Desk",
+      "speakerType": "analyst",
+      "tone": "measured",
+      "headline": "The Process Showed Up",
+      "quote": "The promise missed on the technicality, not on the intent."
+    }
+  ]
+}
