@@ -467,6 +467,7 @@ export {
   PHASE_ORDER,
   PHASE_META,
   createSetupState,
+  createFastLaneSetupState,
   advanceSetupPhase,
   goBackSetupPhase,
   applySetupDecision,
@@ -479,7 +480,16 @@ export {
   generateSchemeContext,
   generateDepthChartContext,
   generateCapBriefing,
+  generateCapPackages,
   generateGoalContext,
+  generateSetupColdOpen,
+  generateTeamCrisisProfile,
+  generateSetupForecast,
+  generateWeekOneVolatility,
+  generateWeekOneCliffhanger,
+  getTopPressureCard,
+  previewSetupForecastChange,
+  toggleSetupDrilldown,
   generateBlueprint,
 } from './systems/franchise-setup';
 export type {
@@ -487,6 +497,10 @@ export type {
   SetupPhaseMeta,
   SetupState,
   SetupDecisions,
+  SetupColdOpen,
+  DepthChartPhilosophy,
+  CapPosture,
+  CultureMandate,
   CoachCandidate,
   ScoutCandidate,
   FranchiseIntelBriefing,
@@ -496,10 +510,26 @@ export type {
   SchemeOption,
   DepthChartContext,
   CapStrategyBriefing,
+  CapPackage,
   GoalSelectionContext,
   GoalOption,
+  PressureCard,
+  TeamCrisisProfile,
+  ForecastCard,
+  ForecastBoard,
+  ChoiceForecastPreview,
+  WeekOneCliffhanger,
   FranchiseBlueprint,
 } from './systems/franchise-setup';
+export { generateDayOneNarrativePack } from './systems/day-one-narrative';
+export type {
+  DayOneOwnerBand,
+  DayOneMediaBand,
+  DayOneOpenerContext,
+  DayOneNarrativeBeat,
+  DayOneAgmScene,
+  DayOneNarrativePack,
+} from './systems/day-one-narrative';
 // Systems — Assistant GM (Sprint 33)
 export {
   getAGMProfiles,

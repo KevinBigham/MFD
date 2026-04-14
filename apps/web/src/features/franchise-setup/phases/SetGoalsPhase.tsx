@@ -1,19 +1,32 @@
-import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
-import type { GoalSelectionContext, GoalOption } from '@mfd/engine';
+import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
+import type { ChoiceForecastPreview, CultureMandate, GoalSelectionContext, GoalOption } from '@mfd/engine';
 import { monoSm, pixelSm } from '../../shared/pixelUi';
+import { ChoiceDeltaBadges } from '../ChoiceDeltaBadges';
 
 const DIFFICULTY_ACCENT: Record<string, 'green' | 'gold' | 'red'> = {
   easy: 'green', medium: 'gold', hard: 'red',
 };
 
+const MANDATES: Array<{ id: CultureMandate; label: string; desc: string }> = [
+  { id: 'accountability', label: 'Accountability', desc: 'Tighten standards and make the room earn roles fast.' },
+  { id: 'player_led', label: 'Player Led', desc: 'Push leadership to the veterans and let the room police itself.' },
+  { id: 'development_first', label: 'Development First', desc: 'Accept short-term turbulence to accelerate young contributors.' },
+];
+
 export function SetGoalsPhase({
   data,
   selectedGoals,
   onToggleGoal,
+  selectedMandate,
+  mandatePreviewById,
+  onSelectMandate,
 }: {
   data: GoalSelectionContext;
   selectedGoals: string[];
   onToggleGoal: (goalId: string) => void;
+  selectedMandate: CultureMandate | null;
+  mandatePreviewById?: Partial<Record<CultureMandate, ChoiceForecastPreview>>;
+  onSelectMandate: (mandate: CultureMandate) => void;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -65,6 +78,43 @@ export function SetGoalsPhase({
           );
         })}
       </div>
+
+      <PixelPanel title="Culture Mandate" accent="cyan">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+          {MANDATES.map((mandate) => {
+            const selected = mandate.id === selectedMandate;
+            return (
+              <div
+                key={mandate.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelectMandate(mandate.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') onSelectMandate(mandate.id);
+                }}
+                style={{
+                  cursor: 'pointer',
+                  border: `3px solid ${selected ? 'var(--mfd-cyan)' : 'var(--mfd-border)'}`,
+                  background: selected ? 'rgba(0, 224, 255, 0.08)' : 'var(--mfd-bg-3)',
+                  padding: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                  <span style={{ ...pixelSm, color: selected ? 'var(--mfd-cyan)' : 'var(--mfd-text)' }}>
+                    {mandate.label.toUpperCase()}
+                  </span>
+                  {selected ? <PixelBadge variant="cyan">SELECTED</PixelBadge> : null}
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{mandate.desc}</div>
+                <ChoiceDeltaBadges preview={mandatePreviewById?.[mandate.id]} />
+              </div>
+            );
+          })}
+        </div>
+      </PixelPanel>
     </div>
   );
 }

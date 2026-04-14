@@ -1,71 +1,163 @@
 /**
  * FranchiseSetupWizard — The First 10 Minutes.
  *
- * Full-screen guided franchise onboarding that walks users through 8 phases
+ * Full-screen guided franchise onboarding that walks users through 10 phases
  * with an Assistant GM character providing data-driven commentary.
  */
-import { useMemo, useState, useCallback } from 'react';
-import { MfdStepper, PixelButton } from '@mfd/design-system/components';
+import { useCallback, useMemo, useState } from 'react';
+import { MfdStepper, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import {
-  getAGMGreeting,
-  getBlueprintClosingMonologue,
-  getGoalReaction,
-  getSelectedAGM,
-  getSchemeReaction,
-  getTeachingTips,
   PHASE_META,
-  generateIntelBriefing,
-  generateRosterOverview,
-  generateCoachingReview,
-  generateSchemeContext,
-  generateDepthChartContext,
-  generateCapBriefing,
-  generateGoalContext,
-  generateBlueprint,
-  isPhaseComplete,
-  agmOnIntelBriefing,
-  agmOnRosterOverview,
+  agmOnBlueprint,
+  agmOnCapStrategy,
+  agmOnDepthChart,
+  agmOnGoalSelection,
   agmOnHireCoach,
   agmOnHireScout,
+  agmOnIntelBriefing,
+  agmOnRosterOverview,
   agmOnSchemeSelection,
-  agmOnDepthChart,
-  agmOnCapStrategy,
-  agmOnGoalSelection,
-  agmOnBlueprint,
-  agmReactsToSchemeChoice,
   agmReactsToGoalChoice,
+  agmReactsToSchemeChoice,
+  generateBlueprint,
+  generateCapBriefing,
+  generateCapPackages,
+  generateCoachingReview,
+  generateDepthChartContext,
+  generateGoalContext,
+  generateIntelBriefing,
+  generateDayOneNarrativePack,
+  generateRosterOverview,
+  generateSchemeContext,
+  generateSetupColdOpen,
+  generateSetupForecast,
+  generateTeamCrisisProfile,
+  createSetupState,
+  getAGMGreeting,
+  getBlueprintClosingMonologue,
+  getCoachCandidates,
+  getGoalReaction,
+  getSchemeReaction,
+  getScoutCandidates,
+  getSelectedAGM,
+  getTeachingTips,
+  getTopPressureCard,
+  isPhaseComplete,
+  previewSetupForecastChange,
 } from '@mfd/engine';
-import type { AGMReaction, SetupPhase } from '@mfd/engine';
+import type { AGMReaction, CapPosture, CultureMandate, DepthChartPhilosophy, SetupPhase } from '@mfd/engine';
 import {
-  useGameStore,
-  selectSetupState,
   selectSetupPhaseIndex,
+  selectSetupState,
+  useGameStore,
 } from '../../app/store/game-store';
-import { pixelSm, monoSm } from '../shared/pixelUi';
-import { AGMPanel } from './AGMPanel';
+import { monoSm, pixelSm } from '../shared/pixelUi';
+import { AGMStage, type AGMStageState } from './AGMStage';
+import { DayOneBetLedger, type DayOneBetLedgerEntry } from './DayOneBetLedger';
+import { BlueprintPhase } from './phases/BlueprintPhase';
+import { CapStrategyPhase } from './phases/CapStrategyPhase';
+import { DepthChartPhase } from './phases/DepthChartPhase';
+import { IntelBriefingPhase } from './phases/IntelBriefingPhase';
+import { MeetRosterPhase } from './phases/MeetRosterPhase';
+import { SetGoalsPhase } from './phases/SetGoalsPhase';
+import { SetSchemePhase } from './phases/SetSchemePhase';
 import { ChooseAGMPhase } from './ChooseAGMPhase';
+import { ForecastBoard } from './ForecastBoard';
 import { HireCoachPhase } from './HireCoachPhase';
 import { HireScoutPhase } from './HireScoutPhase';
 import { PhaseTransitionOverlay } from './PhaseTransitionOverlay';
-import { IntelBriefingPhase } from './phases/IntelBriefingPhase';
-import { MeetRosterPhase } from './phases/MeetRosterPhase';
-import { SetSchemePhase } from './phases/SetSchemePhase';
-import { DepthChartPhase } from './phases/DepthChartPhase';
-import { CapStrategyPhase } from './phases/CapStrategyPhase';
-import { SetGoalsPhase } from './phases/SetGoalsPhase';
-import { BlueprintPhase } from './phases/BlueprintPhase';
-import { buildTransitionOverlayData, deriveGoalReactionSentiment, deriveSchemeReactionSentiment, getNextSetupPhase, getTeachingTipTopicForPhase } from './setupPolish';
+import { SetupColdOpen } from './SetupColdOpen';
+import {
+  finalizeSetupRun,
+  markPreludeDismissed,
+  readFirstTenMinutesCompleted,
+  readPreludeDismissed,
+  readSetupRunMode,
+  setupRunId,
+  type SetupRunMode,
+} from './setupPersistence';
+import {
+  buildTransitionOverlayData,
+  deriveGoalReactionSentiment,
+  deriveSchemeReactionSentiment,
+  getNextSetupPhase,
+  getTeachingTipTopicForPhase,
+} from './setupPolish';
+
+const READ_ONLY_PHASES = new Set<SetupPhase>(['intel_briefing', 'meet_roster', 'blueprint']);
+
+function formatChoiceLabel(value: string): string {
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
 export function FranchiseSetupWizard() {
   const game = useGameStore((s) => s.game!);
   const setupState = useGameStore(selectSetupState)!;
   const phaseIndex = useGameStore(selectSetupPhaseIndex);
-  const { advanceSetup, goBackSetup, applySetupChoice, completeSetup } = useGameStore((s) => s.actions);
+  const { advanceSetup, goBackSetup, applySetupChoice, toggleSetupDrilldown, completeSetup } = useGameStore((s) => s.actions);
 
-  const userTeam = useMemo(() => Object.values(game.teams).find((t) => t.isUser)!, [game.teams]);
+  const userTeam = useMemo(() => Object.values(game.teams).find((team) => team.isUser)!, [game.teams]);
   const teamId = userTeam.id;
   const teamName = `${userTeam.city} ${userTeam.name}`;
   const decisions = setupState.decisions;
+  const currentRunId = useMemo(() => setupRunId(game.seed, teamId, game.year), [game.seed, teamId, game.year]);
+
+  const [setupRunMode] = useState<SetupRunMode>(() => (
+    typeof window !== 'undefined' ? (readSetupRunMode(window.localStorage) ?? 'full') : 'full'
+  ));
+  const [firstTenMinutesCompleted] = useState<boolean>(() => (
+    typeof window !== 'undefined' ? readFirstTenMinutesCompleted(window.localStorage) : false
+  ));
+  const [coldOpenDismissed, setColdOpenDismissed] = useState<boolean>(() => (
+    typeof window !== 'undefined' ? readPreludeDismissed(window.localStorage, currentRunId) : false
+  ));
+  const [coldOpenBeatIndex, setColdOpenBeatIndex] = useState(0);
+  const [reducedMotion] = useState<boolean>(() => (
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false
+  ));
+  const [schemeReaction, setSchemeReaction] = useState<AGMReaction | null>(null);
+  const [goalReaction, setGoalReaction] = useState<AGMReaction | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionOverlay, setTransitionOverlay] = useState<{ flavorText: string; loadingTip: string } | null>(null);
+  const [isLaunchingSeason, setIsLaunchingSeason] = useState(false);
+
+  const isFastLaneRun = setupRunMode === 'fast_lane';
+
+  const phaseData = useMemo(() => {
+    switch (setupState.currentPhase) {
+      case 'choose_agm':
+        return null;
+      case 'intel_briefing':
+        return generateIntelBriefing(game, teamId);
+      case 'meet_roster':
+        return generateRosterOverview(game, teamId);
+      case 'hire_coach':
+        return generateCoachingReview(game, teamId);
+      case 'hire_scout':
+        return generateIntelBriefing(game, teamId);
+      case 'set_scheme':
+        return generateSchemeContext(game, teamId);
+      case 'depth_chart':
+        return generateDepthChartContext(
+          game,
+          teamId,
+          decisions.offenseScheme && decisions.defenseScheme
+            ? { off: decisions.offenseScheme, def: decisions.defenseScheme }
+            : undefined,
+          decisions.depthChartPhilosophy,
+        );
+      case 'cap_strategy':
+        return generateCapBriefing(game, teamId);
+      case 'set_goals':
+        return generateGoalContext(game, teamId);
+      case 'blueprint':
+        return generateBlueprint(game, teamId, decisions);
+      default:
+        return null;
+    }
+  }, [setupState.currentPhase, game, teamId, decisions]);
 
   const agmProfile = useMemo(
     () => (decisions.agmProfileId ? getSelectedAGM(decisions.agmProfileId) : null),
@@ -75,53 +167,274 @@ export function FranchiseSetupWizard() {
     () => (agmProfile ? getAGMGreeting(agmProfile, teamName) : null),
     [agmProfile, teamName],
   );
+  const crisisProfile = useMemo(
+    () => setupState.crisisProfile ?? generateTeamCrisisProfile(game, teamId),
+    [setupState.crisisProfile, game, teamId],
+  );
+  const forecastBoard = useMemo(
+    () => setupState.forecastBoard ?? generateSetupForecast(game, teamId, decisions),
+    [setupState.forecastBoard, game, teamId, decisions],
+  );
+  const coldOpen = useMemo(
+    () => generateSetupColdOpen(game, teamId),
+    [game, teamId],
+  );
+  const capPackages = useMemo(
+    () => generateCapPackages(game, teamId),
+    [game, teamId],
+  );
+  const schemeCatalog = useMemo(
+    () => generateSchemeContext(game, teamId),
+    [game, teamId],
+  );
+  const baseLedgerDecisions = useMemo(
+    () => createSetupState().decisions,
+    [],
+  );
+  const narrativePack = useMemo(
+    () => generateDayOneNarrativePack(game, teamId, decisions),
+    [game, teamId, decisions],
+  );
+  const topPressureCard = useMemo(
+    () => getTopPressureCard(crisisProfile),
+    [crisisProfile],
+  );
+  const topPressureOpened = useMemo(
+    () => setupState.openedDrilldowns.includes(topPressureCard.id),
+    [setupState.openedDrilldowns, topPressureCard.id],
+  );
+  const coachCandidates = useMemo(() => getCoachCandidates(), []);
+  const scoutCandidates = useMemo(() => getScoutCandidates(), []);
 
-  // Phase data (recomputed when phase changes)
-  const phaseData = useMemo(() => {
-    switch (setupState.currentPhase) {
-      case 'choose_agm': return null;
-      case 'intel_briefing': return generateIntelBriefing(game, teamId);
-      case 'meet_roster': return generateRosterOverview(game, teamId);
-      case 'hire_coach': return generateCoachingReview(game, teamId);
-      case 'hire_scout': return generateIntelBriefing(game, teamId);
-      case 'set_scheme': return generateSchemeContext(game, teamId);
-      case 'depth_chart': return generateDepthChartContext(game, teamId, decisions.offenseScheme && decisions.defenseScheme ? { off: decisions.offenseScheme, def: decisions.defenseScheme } : undefined);
-      case 'cap_strategy': return generateCapBriefing(game, teamId);
-      case 'set_goals': return generateGoalContext(game, teamId);
-      case 'blueprint': return generateBlueprint(game, teamId, decisions);
-      default: return null;
-    }
-  }, [setupState.currentPhase, setupState.decisions, game, teamId]);
+  const coachPreviewById = useMemo(
+    () => Object.fromEntries(
+      coachCandidates.map((candidate) => [
+        candidate.id,
+        previewSetupForecastChange(game, teamId, decisions, { headCoachId: candidate.id }),
+      ]),
+    ),
+    [coachCandidates, game, teamId, decisions],
+  );
+  const scoutPreviewById = useMemo(
+    () => Object.fromEntries(
+      scoutCandidates.map((candidate) => [
+        candidate.id,
+        previewSetupForecastChange(game, teamId, decisions, { scoutingDirectorId: candidate.id }),
+      ]),
+    ),
+    [scoutCandidates, game, teamId, decisions],
+  );
+  const offensePreviewBySchemeId = useMemo(() => {
+    if (setupState.currentPhase !== 'set_scheme' || !phaseData) return {};
+    return Object.fromEntries(
+      (phaseData as ReturnType<typeof generateSchemeContext>).offenseOptions.map((option) => [
+        option.schemeId,
+        previewSetupForecastChange(game, teamId, decisions, { offenseScheme: option.schemeId }),
+      ]),
+    );
+  }, [setupState.currentPhase, phaseData, game, teamId, decisions]);
+  const defensePreviewBySchemeId = useMemo(() => {
+    if (setupState.currentPhase !== 'set_scheme' || !phaseData) return {};
+    return Object.fromEntries(
+      (phaseData as ReturnType<typeof generateSchemeContext>).defenseOptions.map((option) => [
+        option.schemeId,
+        previewSetupForecastChange(game, teamId, decisions, { defenseScheme: option.schemeId }),
+      ]),
+    );
+  }, [setupState.currentPhase, phaseData, game, teamId, decisions]);
+  const depthPreviewByPhilosophy = useMemo(
+    () => ({
+      best_players: previewSetupForecastChange(game, teamId, decisions, { depthChartPhilosophy: 'best_players' }),
+      veterans_first: previewSetupForecastChange(game, teamId, decisions, { depthChartPhilosophy: 'veterans_first' }),
+      youth_bet: previewSetupForecastChange(game, teamId, decisions, { depthChartPhilosophy: 'youth_bet' }),
+    }),
+    [game, teamId, decisions],
+  );
+  const capPreviewByPosture = useMemo(
+    () => ({
+      protect_future: previewSetupForecastChange(game, teamId, decisions, { capPosture: 'protect_future' }),
+      balanced: previewSetupForecastChange(game, teamId, decisions, { capPosture: 'balanced' }),
+      push_chips: previewSetupForecastChange(game, teamId, decisions, { capPosture: 'push_chips' }),
+    }),
+    [game, teamId, decisions],
+  );
+  const mandatePreviewById = useMemo(
+    () => ({
+      accountability: previewSetupForecastChange(game, teamId, decisions, { cultureMandate: 'accountability' }),
+      player_led: previewSetupForecastChange(game, teamId, decisions, { cultureMandate: 'player_led' }),
+      development_first: previewSetupForecastChange(game, teamId, decisions, { cultureMandate: 'development_first' }),
+    }),
+    [game, teamId, decisions],
+  );
 
-  // AGM dialogue for current phase
   const agmDialogue = useMemo(() => {
     if (!phaseData || !agmProfile) return null;
     switch (setupState.currentPhase) {
-      case 'intel_briefing': return agmOnIntelBriefing(phaseData as ReturnType<typeof generateIntelBriefing>, agmProfile);
-      case 'meet_roster': return agmOnRosterOverview(phaseData as ReturnType<typeof generateRosterOverview>, agmProfile);
-      case 'hire_coach': return agmOnHireCoach(phaseData as ReturnType<typeof generateCoachingReview>, agmProfile);
-      case 'hire_scout': return agmOnHireScout(phaseData as ReturnType<typeof generateIntelBriefing>, agmProfile);
-      case 'set_scheme': return agmOnSchemeSelection(phaseData as ReturnType<typeof generateSchemeContext>, agmProfile);
-      case 'depth_chart': return agmOnDepthChart(phaseData as ReturnType<typeof generateDepthChartContext>, agmProfile);
-      case 'cap_strategy': return agmOnCapStrategy(phaseData as ReturnType<typeof generateCapBriefing>, agmProfile);
-      case 'set_goals': return agmOnGoalSelection(phaseData as ReturnType<typeof generateGoalContext>, agmProfile);
-      case 'blueprint': return agmOnBlueprint(phaseData as ReturnType<typeof generateBlueprint>, agmProfile);
-      default: return null;
+      case 'intel_briefing':
+        return agmOnIntelBriefing(phaseData as ReturnType<typeof generateIntelBriefing>, agmProfile);
+      case 'meet_roster':
+        return agmOnRosterOverview(phaseData as ReturnType<typeof generateRosterOverview>, agmProfile);
+      case 'hire_coach':
+        return agmOnHireCoach(phaseData as ReturnType<typeof generateCoachingReview>, agmProfile);
+      case 'hire_scout':
+        return agmOnHireScout(phaseData as ReturnType<typeof generateIntelBriefing>, agmProfile);
+      case 'set_scheme':
+        return agmOnSchemeSelection(phaseData as ReturnType<typeof generateSchemeContext>, agmProfile);
+      case 'depth_chart':
+        return agmOnDepthChart(phaseData as ReturnType<typeof generateDepthChartContext>, agmProfile);
+      case 'cap_strategy':
+        return agmOnCapStrategy(phaseData as ReturnType<typeof generateCapBriefing>, agmProfile);
+      case 'set_goals':
+        return agmOnGoalSelection(phaseData as ReturnType<typeof generateGoalContext>, agmProfile);
+      case 'blueprint':
+        return agmOnBlueprint(phaseData as ReturnType<typeof generateBlueprint>, agmProfile);
+      default:
+        return null;
     }
   }, [setupState.currentPhase, phaseData, agmProfile]);
 
-  // Reactions for interactive phases
-  const [schemeReaction, setSchemeReaction] = useState<AGMReaction | null>(null);
-  const [goalReaction, setGoalReaction] = useState<AGMReaction | null>(null);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [transitionOverlay, setTransitionOverlay] = useState<{ flavorText: string; loadingTip: string } | null>(null);
-  const [isLaunchingSeason, setIsLaunchingSeason] = useState(false);
-
   const currentMeta = PHASE_META.find((phase) => phase.id === setupState.currentPhase) ?? PHASE_META[0]!;
-  const READ_ONLY_PHASES = new Set<SetupPhase>(['intel_briefing', 'meet_roster', 'depth_chart', 'cap_strategy', 'blueprint']);
-  const canAdvance = READ_ONLY_PHASES.has(setupState.currentPhase) || isPhaseComplete(setupState, setupState.currentPhase);
   const isLastPhase = setupState.currentPhase === 'blueprint';
-  const showAgmPanel = setupState.currentPhase !== 'choose_agm' && agmProfile !== null;
+  const showColdOpen = setupState.currentPhase === 'choose_agm'
+    && !isFastLaneRun
+    && !firstTenMinutesCompleted
+    && !decisions.agmProfileId
+    && !coldOpenDismissed;
+  const showFastLaneIntel = isFastLaneRun && setupState.currentPhase === 'intel_briefing';
+  const requireTopPressureOpened = setupState.currentPhase === 'intel_briefing' && !isFastLaneRun;
+  const canAdvance = showColdOpen
+    ? true
+    : READ_ONLY_PHASES.has(setupState.currentPhase)
+      ? (setupState.currentPhase !== 'intel_briefing' || !requireTopPressureOpened || topPressureOpened)
+      : isPhaseComplete(setupState, setupState.currentPhase, { requireTopPressureOpened });
+  const showStage = setupState.currentPhase !== 'choose_agm' && agmProfile !== null && !showFastLaneIntel;
+  const defaultAgmPreviewId = narrativePack.recommendedAgmId;
+  const coldOpenLastBeatIndex = narrativePack.coldOpen.beats.length - 1;
+  const betLedgerEntries = useMemo<DayOneBetLedgerEntry[]>(() => {
+    const entries: DayOneBetLedgerEntry[] = [];
+
+    if (agmProfile) {
+      const scene = narrativePack.agmScenes[agmProfile.id];
+      entries.push({
+        id: 'agm',
+        label: 'AGM',
+        bet: agmProfile.name,
+        readinessDelta: 0,
+        volatilityDelta: 0,
+        summaryLine: scene?.dayOnePromise ?? agmProfile.selectionPitch,
+      });
+    }
+
+    if (decisions.headCoachId) {
+      const coach = coachCandidates.find((candidate) => candidate.id === decisions.headCoachId);
+      const preview = previewSetupForecastChange(game, teamId, baseLedgerDecisions, { headCoachId: decisions.headCoachId });
+      entries.push({
+        id: 'coach',
+        label: 'Head Coach',
+        bet: coach?.name ?? decisions.headCoachId,
+        readinessDelta: preview.weekOneReadinessDelta,
+        volatilityDelta: preview.weekOneVolatilityDelta,
+        summaryLine: preview.summaryLine,
+      });
+    }
+
+    if (decisions.scoutingDirectorId) {
+      const scout = scoutCandidates.find((candidate) => candidate.id === decisions.scoutingDirectorId);
+      const preview = previewSetupForecastChange(game, teamId, baseLedgerDecisions, { scoutingDirectorId: decisions.scoutingDirectorId });
+      entries.push({
+        id: 'scout',
+        label: 'Scouting Director',
+        bet: scout?.name ?? decisions.scoutingDirectorId,
+        readinessDelta: preview.weekOneReadinessDelta,
+        volatilityDelta: preview.weekOneVolatilityDelta,
+        summaryLine: preview.summaryLine,
+      });
+    }
+
+    if (decisions.offenseScheme) {
+      const scheme = schemeCatalog.offenseOptions.find((entry) => entry.schemeId === decisions.offenseScheme);
+      const preview = previewSetupForecastChange(game, teamId, baseLedgerDecisions, { offenseScheme: decisions.offenseScheme });
+      entries.push({
+        id: 'offense',
+        label: 'Offense Identity',
+        bet: scheme?.label ?? formatChoiceLabel(decisions.offenseScheme),
+        readinessDelta: preview.weekOneReadinessDelta,
+        volatilityDelta: preview.weekOneVolatilityDelta,
+        summaryLine: preview.summaryLine,
+      });
+    }
+
+    if (decisions.defenseScheme) {
+      const scheme = schemeCatalog.defenseOptions.find((entry) => entry.schemeId === decisions.defenseScheme);
+      const preview = previewSetupForecastChange(game, teamId, baseLedgerDecisions, { defenseScheme: decisions.defenseScheme });
+      entries.push({
+        id: 'defense',
+        label: 'Defense Identity',
+        bet: scheme?.label ?? formatChoiceLabel(decisions.defenseScheme),
+        readinessDelta: preview.weekOneReadinessDelta,
+        volatilityDelta: preview.weekOneVolatilityDelta,
+        summaryLine: preview.summaryLine,
+      });
+    }
+
+    if (decisions.depthChartPhilosophy) {
+      const preview = previewSetupForecastChange(game, teamId, baseLedgerDecisions, { depthChartPhilosophy: decisions.depthChartPhilosophy });
+      entries.push({
+        id: 'depth',
+        label: 'Depth Philosophy',
+        bet: formatChoiceLabel(decisions.depthChartPhilosophy),
+        readinessDelta: preview.weekOneReadinessDelta,
+        volatilityDelta: preview.weekOneVolatilityDelta,
+        summaryLine: preview.summaryLine,
+      });
+    }
+
+    if (decisions.capPosture) {
+      const packageOption = capPackages.find((entry) => entry.posture === decisions.capPosture);
+      const preview = previewSetupForecastChange(game, teamId, baseLedgerDecisions, { capPosture: decisions.capPosture });
+      entries.push({
+        id: 'cap',
+        label: 'Cap Package',
+        bet: packageOption?.label ?? formatChoiceLabel(decisions.capPosture),
+        readinessDelta: preview.weekOneReadinessDelta,
+        volatilityDelta: preview.weekOneVolatilityDelta,
+        summaryLine: preview.summaryLine,
+      });
+    }
+
+    if (decisions.cultureMandate) {
+      const preview = previewSetupForecastChange(game, teamId, baseLedgerDecisions, { cultureMandate: decisions.cultureMandate });
+      entries.push({
+        id: 'culture',
+        label: 'Culture Mandate',
+        bet: formatChoiceLabel(decisions.cultureMandate),
+        readinessDelta: preview.weekOneReadinessDelta,
+        volatilityDelta: preview.weekOneVolatilityDelta,
+        summaryLine: preview.summaryLine,
+      });
+    }
+
+    return entries;
+  }, [
+    agmProfile,
+    narrativePack.agmScenes,
+    coachCandidates,
+    scoutCandidates,
+    decisions.headCoachId,
+    decisions.scoutingDirectorId,
+    decisions.offenseScheme,
+    decisions.defenseScheme,
+    decisions.depthChartPhilosophy,
+    decisions.capPosture,
+    decisions.cultureMandate,
+    game,
+    teamId,
+    baseLedgerDecisions,
+    schemeCatalog.offenseOptions,
+    schemeCatalog.defenseOptions,
+    capPackages,
+  ]);
+
   const teachingNarration = useMemo(() => {
     if (!agmProfile) return null;
     if (setupState.currentPhase === 'hire_coach') {
@@ -146,14 +459,39 @@ export function FranchiseSetupWizard() {
       : null),
     [agmProfile, setupState.currentPhase, setupState.decisions.agmClosingWords],
   );
+  const runtimeCliffhanger = useMemo(() => {
+    if (setupState.currentPhase !== 'blueprint' || !phaseData) return undefined;
+    return {
+      opponentIdentity: narrativePack.blueprint.opponentIdentity,
+      ifThisWorks: narrativePack.blueprint.ifThisWorks,
+      ifThisBreaks: narrativePack.blueprint.ifThisBreaks,
+      unresolvedDanger: narrativePack.blueprint.unresolvedDanger,
+      betSummary: betLedgerEntries.map((entry) => `${entry.label}: ${entry.bet}. ${entry.summaryLine}`),
+    };
+  }, [setupState.currentPhase, phaseData, narrativePack.blueprint, betLedgerEntries]);
 
   const handleNext = useCallback(async () => {
+    if (showColdOpen) {
+      if (!reducedMotion && coldOpenBeatIndex < coldOpenLastBeatIndex) {
+        setColdOpenBeatIndex((index) => Math.min(index + 1, coldOpenLastBeatIndex));
+        return;
+      }
+      setColdOpenDismissed(true);
+      if (typeof window !== 'undefined') {
+        markPreludeDismissed(window.localStorage, currentRunId);
+      }
+      return;
+    }
+
     if (READ_ONLY_PHASES.has(setupState.currentPhase) && !decisions.acknowledged.includes(setupState.currentPhase)) {
       await applySetupChoice({ acknowledged: [...decisions.acknowledged, setupState.currentPhase] });
     }
 
     if (isLastPhase) {
       setIsLaunchingSeason(true);
+      if (typeof window !== 'undefined') {
+        finalizeSetupRun(window.localStorage, currentRunId);
+      }
       await new Promise((resolve) => window.setTimeout(resolve, 450));
       await completeSetup();
       return;
@@ -170,26 +508,58 @@ export function FranchiseSetupWizard() {
 
     setIsTransitioning(true);
     await new Promise((resolve) => window.setTimeout(resolve, 800));
-    await advanceSetup();
+    await advanceSetup({ requireTopPressureOpened });
     setSchemeReaction(null);
     setGoalReaction(null);
     setTransitionOverlay(null);
     setIsTransitioning(false);
-  }, [setupState.currentPhase, decisions.acknowledged, isLastPhase, READ_ONLY_PHASES, applySetupChoice, advanceSetup, completeSetup, agmProfile, game.seed]);
+  }, [
+    showColdOpen,
+    reducedMotion,
+    coldOpenBeatIndex,
+    coldOpenLastBeatIndex,
+    setupState.currentPhase,
+    decisions.acknowledged,
+    isLastPhase,
+    applySetupChoice,
+    completeSetup,
+    currentRunId,
+    agmProfile,
+    game.seed,
+    advanceSetup,
+    requireTopPressureOpened,
+  ]);
 
   const handleBack = useCallback(async () => {
+    if (showColdOpen && !reducedMotion && coldOpenBeatIndex > 0) {
+      setColdOpenBeatIndex((index) => Math.max(0, index - 1));
+      return;
+    }
     await goBackSetup();
     setSchemeReaction(null);
     setGoalReaction(null);
     setTransitionOverlay(null);
     setIsTransitioning(false);
-  }, [goBackSetup]);
+  }, [showColdOpen, reducedMotion, coldOpenBeatIndex, goBackSetup]);
 
-  // Scheme selection handlers
+  const handleSkipColdOpen = useCallback(() => {
+    setColdOpenDismissed(true);
+    if (typeof window !== 'undefined') {
+      markPreludeDismissed(window.localStorage, currentRunId);
+    }
+  }, [currentRunId]);
+
   const handleSelectOffense = useCallback(async (schemeId: string) => {
     await applySetupChoice({ offenseScheme: schemeId });
     if (decisions.defenseScheme && phaseData && agmProfile) {
-      setSchemeReaction(agmReactsToSchemeChoice(schemeId, decisions.defenseScheme, phaseData as ReturnType<typeof generateSchemeContext>, agmProfile));
+      setSchemeReaction(
+        agmReactsToSchemeChoice(
+          schemeId,
+          decisions.defenseScheme,
+          phaseData as ReturnType<typeof generateSchemeContext>,
+          agmProfile,
+        ),
+      );
       return;
     }
 
@@ -211,7 +581,14 @@ export function FranchiseSetupWizard() {
   const handleSelectDefense = useCallback(async (schemeId: string) => {
     await applySetupChoice({ defenseScheme: schemeId });
     if (decisions.offenseScheme && phaseData && agmProfile) {
-      setSchemeReaction(agmReactsToSchemeChoice(decisions.offenseScheme, schemeId, phaseData as ReturnType<typeof generateSchemeContext>, agmProfile));
+      setSchemeReaction(
+        agmReactsToSchemeChoice(
+          decisions.offenseScheme,
+          schemeId,
+          phaseData as ReturnType<typeof generateSchemeContext>,
+          agmProfile,
+        ),
+      );
       return;
     }
 
@@ -230,19 +607,26 @@ export function FranchiseSetupWizard() {
     }
   }, [applySetupChoice, decisions.offenseScheme, phaseData, agmProfile]);
 
-  // Goal selection handler
+  const handleSelectDepthPhilosophy = useCallback(async (philosophy: DepthChartPhilosophy) => {
+    await applySetupChoice({ depthChartPhilosophy: philosophy });
+  }, [applySetupChoice]);
+
+  const handleSelectCapPosture = useCallback(async (posture: CapPosture) => {
+    await applySetupChoice({ capPosture: posture });
+  }, [applySetupChoice]);
+
   const handleToggleGoal = useCallback(async (goalId: string) => {
     const current = [...decisions.seasonGoals];
-    const idx = current.indexOf(goalId);
-    if (idx >= 0) {
-      current.splice(idx, 1);
+    const index = current.indexOf(goalId);
+    if (index >= 0) {
+      current.splice(index, 1);
       setGoalReaction(null);
     } else if (current.length < 3) {
       current.push(goalId);
     }
     await applySetupChoice({ seasonGoals: current });
 
-    if (idx >= 0 || !phaseData || !agmProfile) {
+    if (index >= 0 || !phaseData || !agmProfile) {
       return;
     }
 
@@ -264,27 +648,78 @@ export function FranchiseSetupWizard() {
     });
   }, [applySetupChoice, decisions.seasonGoals, phaseData, agmProfile]);
 
-  // Current reaction (scheme reaction for scheme phase, goal for goals phase)
-  const activeReaction = setupState.currentPhase === 'set_scheme' ? schemeReaction
-    : setupState.currentPhase === 'set_goals' ? goalReaction
+  const handleSelectCultureMandate = useCallback(async (mandate: CultureMandate) => {
+    await applySetupChoice({ cultureMandate: mandate });
+    if (!agmProfile) return;
+    setGoalReaction({
+      sentiment: mandate === 'player_led' ? 'like_it' : mandate === 'accountability' ? 'love_it' : 'concerned',
+      reaction: mandate === 'player_led'
+        ? 'If the room has real leaders, this can make the opener feel older and calmer fast.'
+        : mandate === 'accountability'
+          ? 'Good. Standards travel faster than speeches.'
+          : 'That will help the young guys, but it might cost you some stability right away.',
+      followUp: 'The first month will tell you whether the room bought the mandate or just heard it.',
+    });
+  }, [applySetupChoice, agmProfile]);
+
+  const activeReaction = setupState.currentPhase === 'set_scheme'
+    ? schemeReaction
+    : setupState.currentPhase === 'set_goals'
+      ? goalReaction
       : null;
+  const stageState = useMemo<AGMStageState>(() => {
+    if (setupState.currentPhase === 'intel_briefing') return 'point';
+    if (setupState.currentPhase === 'meet_roster' || setupState.currentPhase === 'cap_strategy') return 'concern';
+    if (setupState.currentPhase === 'blueprint') return 'approve';
+    if (activeReaction?.sentiment === 'love_it' || activeReaction?.sentiment === 'like_it') return 'approve';
+    if (activeReaction?.sentiment === 'disagree' || activeReaction?.sentiment === 'concerned') return 'concern';
+    if (setupState.currentPhase === 'set_scheme' || setupState.currentPhase === 'set_goals') return 'talk';
+    return 'idle';
+  }, [setupState.currentPhase, activeReaction]);
+  const stageHeadline = useMemo(() => {
+    if (setupState.currentPhase === 'intel_briefing') return crisisProfile.headline;
+    if (setupState.currentPhase === 'blueprint' && phaseData) {
+      return (phaseData as ReturnType<typeof generateBlueprint>).weekOneCliffhanger.threat;
+    }
+    return panelDialogue?.intro ?? agmGreeting ?? currentMeta.label;
+  }, [setupState.currentPhase, crisisProfile.headline, phaseData, panelDialogue, agmGreeting, currentMeta.label]);
+  const stageSubhead = useMemo(() => {
+    if (setupState.currentPhase === 'intel_briefing') return crisisProfile.weekOneThreat;
+    if (setupState.currentPhase === 'blueprint' && phaseData) {
+      return (phaseData as ReturnType<typeof generateBlueprint>).weekOneCliffhanger.unknown;
+    }
+    return panelDialogue?.recommendation ?? currentMeta.subtitle;
+  }, [setupState.currentPhase, crisisProfile.weekOneThreat, phaseData, panelDialogue, currentMeta.subtitle]);
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 50, display: 'flex', flexDirection: 'column',
-      background: 'var(--mfd-bg)', color: 'var(--mfd-text)', overflow: 'hidden',
-    }}>
-      {/* Header with stepper */}
-      <div style={{
-        padding: '12px 20px', borderBottom: '2px solid var(--mfd-border)',
-        background: 'var(--mfd-bg-2)', display: 'flex', alignItems: 'center', gap: '20px',
-      }}>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 50,
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--mfd-bg)',
+        color: 'var(--mfd-text)',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          padding: '12px 20px',
+          borderBottom: '2px solid var(--mfd-border)',
+          background: 'var(--mfd-bg-2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '20px',
+        }}
+      >
         <div style={{ ...pixelSm, color: 'var(--mfd-gold)', whiteSpace: 'nowrap' }}>
           YOUR FIRST DAY
         </div>
         <div style={{ flex: 1 }}>
           <MfdStepper
-            steps={PHASE_META.map((p) => ({ label: p.label, description: p.subtitle }))}
+            steps={PHASE_META.map((phase) => ({ label: phase.label, description: phase.subtitle }))}
             activeStep={phaseIndex}
             orientation="horizontal"
           />
@@ -294,83 +729,196 @@ export function FranchiseSetupWizard() {
         </div>
       </div>
 
-      {/* Main content: AGM sidebar + phase content */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {showAgmPanel && agmProfile ? (
-          <AGMPanel
+      <div style={{ flex: 1, overflow: 'hidden', padding: '20px' }}>
+        {showColdOpen ? (
+          <div style={{ height: '100%', overflowY: 'auto' }}>
+            <SetupColdOpen
+              coldOpen={coldOpen}
+              beatIndex={coldOpenBeatIndex}
+              reducedMotion={reducedMotion}
+              onSkip={handleSkipColdOpen}
+            />
+          </div>
+        ) : setupState.currentPhase === 'choose_agm' ? (
+          <div style={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <ChooseAGMPhase
+              committedProfileId={decisions.agmProfileId}
+              initialPreviewProfileId={defaultAgmPreviewId}
+              topPressureId={topPressureCard.id}
+              teamName={teamName}
+              crisisHeadline={coldOpen.crisisHeadline}
+              weekOneThreat={coldOpen.weekOneThreat}
+              recommendedProfileId={narrativePack.recommendedAgmId}
+              narrativeScenes={narrativePack.agmScenes}
+              reducedMotion={reducedMotion}
+              onHire={async (profileId) => applySetupChoice({ agmProfileId: profileId })}
+            />
+            <DayOneBetLedger entries={betLedgerEntries} />
+          </div>
+        ) : showFastLaneIntel || !showStage || !agmProfile ? (
+          <div style={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <ForecastBoard forecast={forecastBoard} />
+            <DayOneBetLedger entries={betLedgerEntries} />
+            <PixelPanel title="Fast Lane Diagnosis" accent="cyan">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ ...pixelSm, color: 'var(--mfd-cyan)' }}>{teamName.toUpperCase()}</div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+                  {narrativePack.intelBriefing.fastLaneDiagnosis}
+                </div>
+              </div>
+            </PixelPanel>
+            {setupState.currentPhase === 'intel_briefing' && phaseData ? (
+              <IntelBriefingPhase
+                data={phaseData as ReturnType<typeof generateIntelBriefing>}
+                crisis={crisisProfile}
+                openedDrilldowns={setupState.openedDrilldowns}
+                requiredPressureId={null}
+                briefDiagnosis={coldOpen}
+                supportCopy={narrativePack.intelBriefing}
+                onToggleDrilldown={(pressureId) => { void toggleSetupDrilldown(pressureId); }}
+              />
+            ) : null}
+          </div>
+        ) : (
+          <AGMStage
             agm={agmProfile}
-            phase={setupState.currentPhase}
-            dialogue={panelDialogue}
-            reaction={activeReaction}
-            welcomeMonologue={setupState.currentPhase === 'intel_briefing' ? agmGreeting : null}
-            teachingNarration={teachingNarration}
-            teachingTips={teachingTips}
-            blueprintMonologue={blueprintMonologue}
-          />
-        ) : null}
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-          {setupState.currentPhase !== 'choose_agm' ? (
-            <div style={{ marginBottom: '16px' }}>
+            state={stageState}
+            headline={stageHeadline}
+            subhead={stageSubhead}
+            reducedMotion={reducedMotion}
+          >
+            <div style={{ marginBottom: '2px' }}>
               <div style={{ ...pixelSm, color: 'var(--mfd-gold)', fontSize: '10px', marginBottom: '4px' }}>
                 {currentMeta.label.toUpperCase()}
               </div>
               <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{currentMeta.subtitle}</div>
             </div>
-          ) : null}
 
-          {/* Phase content */}
-          <div key={setupState.currentPhase} style={{ animation: 'mfd-fadein 0.3s ease-out' }}>
-            {setupState.currentPhase === 'choose_agm' && (
-              <ChooseAGMPhase
-                committedProfileId={decisions.agmProfileId}
-                onHire={async (profileId) => applySetupChoice({ agmProfileId: profileId })}
-              />
-            )}
-            {setupState.currentPhase === 'intel_briefing' && phaseData && <IntelBriefingPhase data={phaseData as ReturnType<typeof generateIntelBriefing>} />}
-            {setupState.currentPhase === 'meet_roster' && phaseData && <MeetRosterPhase data={phaseData as ReturnType<typeof generateRosterOverview>} />}
-            {setupState.currentPhase === 'hire_coach' && agmProfile && (
-              <HireCoachPhase
-                agmId={agmProfile.id}
-                selectedCoachId={decisions.headCoachId}
-                onHire={async (coachId) => applySetupChoice({ headCoachId: coachId })}
-              />
-            )}
-            {setupState.currentPhase === 'hire_scout' && agmProfile && (
-              <HireScoutPhase
-                agmId={agmProfile.id}
-                selectedScoutId={decisions.scoutingDirectorId}
-                onHire={async (scoutId) => applySetupChoice({ scoutingDirectorId: scoutId })}
-              />
-            )}
-            {setupState.currentPhase === 'set_scheme' && phaseData && (
-              <SetSchemePhase
-                data={phaseData as ReturnType<typeof generateSchemeContext>}
-                selectedOffense={decisions.offenseScheme}
-                selectedDefense={decisions.defenseScheme}
-                onSelectOffense={handleSelectOffense}
-                onSelectDefense={handleSelectDefense}
-              />
-            )}
-            {setupState.currentPhase === 'depth_chart' && phaseData && <DepthChartPhase data={phaseData as ReturnType<typeof generateDepthChartContext>} />}
-            {setupState.currentPhase === 'cap_strategy' && phaseData && <CapStrategyPhase data={phaseData as ReturnType<typeof generateCapBriefing>} />}
-            {setupState.currentPhase === 'set_goals' && phaseData && (
-              <SetGoalsPhase
-                data={phaseData as ReturnType<typeof generateGoalContext>}
-                selectedGoals={decisions.seasonGoals}
-                onToggleGoal={handleToggleGoal}
-              />
-            )}
-            {setupState.currentPhase === 'blueprint' && phaseData && <BlueprintPhase data={phaseData as ReturnType<typeof generateBlueprint>} />}
-          </div>
-        </div>
+            <ForecastBoard forecast={forecastBoard} />
+            <DayOneBetLedger entries={betLedgerEntries} />
+
+            {(setupState.currentPhase === 'intel_briefing' || panelDialogue || teachingNarration || activeReaction || blueprintMonologue) ? (
+              <PixelPanel title="AGM Guidance" accent="gold">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {setupState.currentPhase === 'intel_briefing' && agmGreeting ? (
+                    <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>&ldquo;{agmGreeting}&rdquo;</div>
+                  ) : null}
+                  {panelDialogue?.intro ? (
+                    <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>{panelDialogue.intro}</div>
+                  ) : null}
+                  {panelDialogue?.recommendation ? (
+                    <div style={{ ...monoSm, color: 'var(--mfd-cyan)', lineHeight: 1.6 }}>{panelDialogue.recommendation}</div>
+                  ) : null}
+                  {teachingNarration ? (
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{teachingNarration}</div>
+                  ) : null}
+                  {activeReaction ? (
+                    <div style={{ ...monoSm, color: 'var(--mfd-gold)', lineHeight: 1.6 }}>{activeReaction.reaction}</div>
+                  ) : null}
+                  {activeReaction?.followUp ? (
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{activeReaction.followUp}</div>
+                  ) : null}
+                  {blueprintMonologue ? (
+                    <div style={{ ...monoSm, color: 'var(--mfd-green)', lineHeight: 1.6 }}>{blueprintMonologue}</div>
+                  ) : null}
+                  {teachingTips && teachingTips.length > 0 ? (
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-faint)', lineHeight: 1.6 }}>
+                      {teachingTips.join(' ')}
+                    </div>
+                  ) : null}
+                </div>
+              </PixelPanel>
+            ) : null}
+
+            <div key={setupState.currentPhase} style={{ animation: 'mfd-fadein 0.3s ease-out' }}>
+              {setupState.currentPhase === 'intel_briefing' && phaseData ? (
+                <IntelBriefingPhase
+                  data={phaseData as ReturnType<typeof generateIntelBriefing>}
+                  crisis={crisisProfile}
+                  openedDrilldowns={setupState.openedDrilldowns}
+                  requiredPressureId={requireTopPressureOpened ? topPressureCard.id : null}
+                  supportCopy={narrativePack.intelBriefing}
+                  onToggleDrilldown={(pressureId) => { void toggleSetupDrilldown(pressureId); }}
+                />
+              ) : null}
+              {setupState.currentPhase === 'meet_roster' && phaseData ? (
+                <MeetRosterPhase data={phaseData as ReturnType<typeof generateRosterOverview>} />
+              ) : null}
+              {setupState.currentPhase === 'hire_coach' && agmProfile ? (
+                <HireCoachPhase
+                  agmId={agmProfile.id}
+                  selectedCoachId={decisions.headCoachId}
+                  previewByCoachId={coachPreviewById}
+                  onHire={async (coachId) => applySetupChoice({ headCoachId: coachId })}
+                />
+              ) : null}
+              {setupState.currentPhase === 'hire_scout' && agmProfile ? (
+                <HireScoutPhase
+                  agmId={agmProfile.id}
+                  selectedScoutId={decisions.scoutingDirectorId}
+                  previewByScoutId={scoutPreviewById}
+                  onHire={async (scoutId) => applySetupChoice({ scoutingDirectorId: scoutId })}
+                />
+              ) : null}
+              {setupState.currentPhase === 'set_scheme' && phaseData ? (
+                <SetSchemePhase
+                  data={phaseData as ReturnType<typeof generateSchemeContext>}
+                  selectedOffense={decisions.offenseScheme}
+                  selectedDefense={decisions.defenseScheme}
+                  previewByOffenseSchemeId={offensePreviewBySchemeId}
+                  previewByDefenseSchemeId={defensePreviewBySchemeId}
+                  onSelectOffense={handleSelectOffense}
+                  onSelectDefense={handleSelectDefense}
+                />
+              ) : null}
+              {setupState.currentPhase === 'depth_chart' && phaseData ? (
+                <DepthChartPhase
+                  data={phaseData as ReturnType<typeof generateDepthChartContext>}
+                  selectedPhilosophy={decisions.depthChartPhilosophy}
+                  previewByPhilosophy={depthPreviewByPhilosophy}
+                  onSelectPhilosophy={handleSelectDepthPhilosophy}
+                />
+              ) : null}
+              {setupState.currentPhase === 'cap_strategy' && phaseData ? (
+                <CapStrategyPhase
+                  data={phaseData as ReturnType<typeof generateCapBriefing>}
+                  packages={capPackages}
+                  selectedPosture={decisions.capPosture}
+                  previewByPosture={capPreviewByPosture}
+                  onSelectPosture={handleSelectCapPosture}
+                />
+              ) : null}
+              {setupState.currentPhase === 'set_goals' && phaseData ? (
+                <SetGoalsPhase
+                  data={phaseData as ReturnType<typeof generateGoalContext>}
+                  selectedGoals={decisions.seasonGoals}
+                  onToggleGoal={handleToggleGoal}
+                  selectedMandate={decisions.cultureMandate}
+                  mandatePreviewById={mandatePreviewById}
+                  onSelectMandate={handleSelectCultureMandate}
+                />
+              ) : null}
+              {setupState.currentPhase === 'blueprint' && phaseData ? (
+                <BlueprintPhase
+                  data={phaseData as ReturnType<typeof generateBlueprint>}
+                  runtimeCliffhanger={runtimeCliffhanger}
+                />
+              ) : null}
+            </div>
+          </AGMStage>
+        )}
       </div>
 
-      {/* Footer navigation */}
-      <div style={{
-        padding: '12px 20px', borderTop: '2px solid var(--mfd-border)',
-        background: 'var(--mfd-bg-2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
+      <div
+        style={{
+          padding: '12px 20px',
+          borderTop: '2px solid var(--mfd-border)',
+          background: 'var(--mfd-bg-2)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <PixelButton
           accent="default"
           onClick={() => { void handleBack(); }}
@@ -386,7 +934,11 @@ export function FranchiseSetupWizard() {
           onClick={() => { void handleNext(); }}
           disabled={!canAdvance || isTransitioning || isLaunchingSeason}
         >
-          {isLastPhase ? 'START WEEK 1' : 'Next'}
+          {showColdOpen
+            ? (reducedMotion || coldOpenBeatIndex >= coldOpenLastBeatIndex ? narrativePack.coldOpen.entryCta : 'Continue Briefing')
+            : isLastPhase
+              ? 'START WEEK 1'
+              : 'Next'}
         </PixelButton>
       </div>
 

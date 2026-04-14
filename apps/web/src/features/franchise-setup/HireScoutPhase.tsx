@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
-import { getAGMScoutReaction, getScoutCandidates } from '@mfd/engine';
+import { getAGMScoutReaction, getScoutCandidates, type ChoiceForecastPreview } from '@mfd/engine';
 import { monoSm, pixelSm } from '../shared/pixelUi';
+import { ChoiceDeltaBadges } from './ChoiceDeltaBadges';
 
 function formatLabel(value: string): string {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
@@ -38,10 +39,12 @@ function recommendationHighlight(recommendation: string): { border: string; boxS
 export function HireScoutPhase({
   agmId,
   selectedScoutId,
+  previewByScoutId,
   onHire,
 }: {
   agmId: string;
   selectedScoutId: string | null;
+  previewByScoutId?: Record<string, ChoiceForecastPreview>;
   onHire: (scoutId: string) => Promise<void> | void;
 }) {
   const candidates = useMemo(() => getScoutCandidates(), []);
@@ -110,6 +113,8 @@ export function HireScoutPhase({
                 <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
                   &ldquo;{candidate.interviewQuote}&rdquo;
                 </div>
+
+                <ChoiceDeltaBadges preview={previewByScoutId?.[candidate.id]} />
 
                 <div
                   style={{
