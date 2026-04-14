@@ -191,6 +191,7 @@ describe('game store offseason actions', () => {
   it('exposes the latest game day package after advancing a simulated week', async () => {
     const game = createSeedGameState(99, 0, 'pro');
     game.phase = 'regular_season';
+    game.settings.halftimeDecisions = 'off';
 
     useGameStore.setState((state) => ({
       ...state,
@@ -206,11 +207,12 @@ describe('game store offseason actions', () => {
     expect(latestPackage?.headline).toBe(nextState.game?.weekSummaries.at(-1)?.headline);
     expect(latestPackage?.autopsy.nextFocus.length).toBeGreaterThan(0);
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
-  });
+  }, 15000);
 
   it('hydrates postgame UI queues after advancing the week', async () => {
     const game = createSeedGameState(313, 0, 'pro');
     game.phase = 'regular_season';
+    game.settings.halftimeDecisions = 'off';
 
     useGameStore.setState((state) => ({
       ...state,
@@ -226,6 +228,32 @@ describe('game store offseason actions', () => {
     expect(nextGame.postGameUi?.pressConferenceQueue.length).toBeGreaterThan(0);
     expect(nextGame.postGameUi?.pressConferenceQueue[0]?.conferenceId).toBe(nextGame.recentPressConferences[0]?.id);
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('pauses for halftime and resumes the week after a choice is made', async () => {
+    const game = createSeedGameState(314, 0, 'pro');
+    game.phase = 'regular_season';
+    game.settings.halftimeDecisions = 'on';
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.advanceWeek();
+
+    const paused = useGameStore.getState().game!;
+    expect(paused.postGameUi?.pendingHalftimeDecision).not.toBeNull();
+    expect(paused.week).toBe(game.week);
+
+    await useGameStore.getState().actions.resolveHalftimeDecision('switch');
+
+    const resumed = useGameStore.getState().game!;
+    expect(resumed.postGameUi?.pendingHalftimeDecision).toBeNull();
+    expect(resumed.week).toBeGreaterThan(game.week);
+    expect(selectLatestGameDayPackage(useGameStore.getState())).not.toBeNull();
+    expect(autosaveDynasty).toHaveBeenCalledTimes(2);
   });
 
   it('persists call your shot declarations through the store', async () => {

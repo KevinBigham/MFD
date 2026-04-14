@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Trophy } from 'lucide-react';
 import type {
   GameDayPackage,
   GameResult,
@@ -8,11 +9,15 @@ import type {
   PressConferenceResponseTier,
   SeasonPhase,
   TeamGameStats,
+  WinProbPoint,
 } from '@mfd/engine';
-import { PixelPanel, PixelBadge, PixelButton, PixelDialog, PixelScoreboard, PixelStatBar } from '@mfd/design-system/components';
+import { analyzeGameFlow } from '@mfd/engine';
+import { PixelPanel, PixelBadge, PixelButton, PixelDialog, PixelEkg, PixelScoreboard, PixelStatBar } from '@mfd/design-system/components';
 import { navigateTo } from '../shared/pixelUi';
+import { CallYourShotResult } from './CallYourShotResult';
 import { PressConferenceModal } from './PressConferenceModal';
 import {
+  selectLatestBroadcast,
   selectLatestGameDayPackage,
   selectLatestGameResult,
   selectPhase,
@@ -51,6 +56,14 @@ function safeRatio(a: number, b: number): number {
   return total === 0 ? 0.5 : a / total;
 }
 
+function classifyWinProbEvent(current: WinProbPoint, previous: WinProbPoint | null): string | undefined {
+  if (!previous) return undefined;
+  const delta = current.homeWinProb - previous.homeWinProb;
+  if (Math.abs(delta) >= 18) return delta > 0 ? 'touchdown' : 'turnover';
+  if (Math.abs(delta) >= 10) return 'big_play';
+  return undefined;
+}
+
 /* ── Main View: Game Day Center ─────────────────────────── */
 
 interface GameDayCenterViewProps {
@@ -59,6 +72,8 @@ interface GameDayCenterViewProps {
   year: number;
   packageData: GameDayPackage | null;
   playoffMomentum?: PlayoffMomentum | null;
+  namedGame?: GameDayPackage['namedGame'] | GameResult['namedGame'] | null;
+  namedGameEkgPoints?: Array<{ time: number; wp: number; event?: string }>;
 }
 
 export function GameDayCenterView({
@@ -67,6 +82,8 @@ export function GameDayCenterView({
   year,
   packageData,
   playoffMomentum = null,
+  namedGame = null,
+  namedGameEkgPoints = [],
 }: GameDayCenterViewProps) {
   if (!packageData) {
     return (
@@ -90,6 +107,34 @@ export function GameDayCenterView({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {namedGame ? (
+        <PixelPanel title="This Game Has A Name" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px' }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Trophy size={16} color="var(--mfd-gold)" />
+              <div style={{ ...display, fontSize: '22px', color: 'var(--mfd-gold)', letterSpacing: '1px' }}>
+                {namedGame.name.toUpperCase()}
+              </div>
+              <PixelBadge variant="gold">NAMED GAME</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+              {namedGame.reason}
+            </div>
+          </div>
+        </PixelPanel>
+      ) : null}
+
+      {namedGame && namedGameEkgPoints.length > 0 ? (
+        <PixelPanel title="Win Probability EKG" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px' }}>
+            <PixelEkg points={namedGameEkgPoints} style={{ minHeight: '220px' }} />
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              Long-press to screenshot on mobile.
+            </div>
+          </div>
+        </PixelPanel>
+      ) : null}
+
       {/* Header bar */}
       <div style={{
         display: 'flex',
@@ -585,6 +630,7 @@ export function GameDayRecap() {
   const year = useGameStore(selectYear);
   const packageData = useGameStore(selectLatestGameDayPackage);
   const gameResult = useGameStore(selectLatestGameResult);
+  const latestBroadcast = useGameStore(selectLatestBroadcast);
   const playoffMomentum = useGameStore(selectPlayoffMomentum);
   const pressConferenceQueue = useGameStore((state) => state.game?.postGameUi?.pressConferenceQueue ?? []);
   const respondToPressConference = useGameStore((state) => state.actions.respondToPressConference);
@@ -593,6 +639,20 @@ export function GameDayRecap() {
 
   const latestPressConferenceEntry: PressConferenceQueueEntry | null = pressConferenceQueue[0] ?? null;
   const pendingPressConference = pressConferenceQueue.find((entry) => !entry.selectedResponse) ?? null;
+  const namedGame = packageData?.namedGame ?? gameResult?.namedGame ?? null;
+  const namedGameEkgPoints = useMemo(() => {
+    if (!namedGame || !latestBroadcast) return [];
+    const analysis = analyzeGameFlow(
+      latestBroadcast.broadcast,
+      latestBroadcast.gameResult.homeTeamId,
+      latestBroadcast.gameResult.awayTeamId,
+    );
+    return analysis.winProbability.map((point, index) => ({
+      time: point.driveIndex,
+      wp: point.homeWinProb,
+      event: classifyWinProbEvent(point, analysis.winProbability[index - 1] ?? null),
+    }));
+  }, [latestBroadcast, namedGame]);
 
   useEffect(() => {
     if (!pendingPressConference) return;
@@ -609,6 +669,8 @@ export function GameDayRecap() {
         year={year}
         packageData={packageData}
         playoffMomentum={playoffMomentum}
+        namedGame={namedGame}
+        namedGameEkgPoints={namedGameEkgPoints}
       />
       {latestPressConferenceEntry ? (
         <PixelPanel title="Podium Response" accent={pendingPressConference ? 'gold' : 'green'}>
@@ -633,6 +695,7 @@ export function GameDayRecap() {
           </div>
         </PixelPanel>
       ) : null}
+      <CallYourShotResult result={packageData?.callYourShotResult ?? gameResult?.callYourShotResult ?? null} />
       {gameResult && <FullBoxScore gameResult={gameResult} userTeamId={team.id} />}
       <PressConferenceModal
         open={pressModalOpen && !!latestPressConferenceEntry}

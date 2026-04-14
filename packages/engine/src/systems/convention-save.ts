@@ -1,4 +1,4 @@
-import { SAVE_VERSION } from '../config';
+import { SAVE_VERSION, getDefaultHalftimeDecisionSetting } from '../config';
 import type { PrngFn } from '../rng';
 import { SaveStateSchema } from '../save/schema';
 import { initCBA } from './cba-engine';
@@ -196,6 +196,7 @@ function createTeam(definition: (typeof TEAM_DEFINITIONS)[number], isUser: boole
     ownerId: `${definition.id}-owner`,
     owner: { archetypeId: 'win_now', label: 'Win Now', approval: isUser ? USER_APPROVAL : 58, history: [] },
     ownerMood: isUser ? USER_APPROVAL : 58,
+    fanConfidence: isUser ? USER_APPROVAL : 58,
     ownerPatience80: OWNER_PATIENCE,
     gmStrategy: isUser ? 'neutral' : definition.ratingBase >= 79 ? 'buy' : definition.ratingBase <= 71 ? 'rebuild' : 'neutral',
     draftPicks: [],
@@ -297,6 +298,9 @@ function createBaseState(userTeamId: string, rng: PrngFn): GameState {
     week: SCENARIO_WEEK,
     phase: 'regular_season',
     difficulty: 'pro',
+    settings: {
+      halftimeDecisions: getDefaultHalftimeDecisionSetting('pro'),
+    },
     players,
     teams,
     owners,
@@ -402,6 +406,11 @@ function createBaseState(userTeamId: string, rng: PrngFn): GameState {
     opponentReports: [],
     draftRecaps: [],
     tradeSuggestions: [],
+    postGameUi: {
+      pressConferenceQueue: [],
+      audioCueQueue: [],
+      pendingHalftimeDecision: null,
+    },
   } as GameState;
 }
 

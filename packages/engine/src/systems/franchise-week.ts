@@ -2,11 +2,12 @@ import { cl } from '../utils';
 import { RNG, mulberry32, reseedSeason, reseedWeek, setSeed } from '../rng';
 import { getAdaptiveModifier, updateAdaptiveDifficulty } from './adaptive-difficulty';
 import { checkAchievements } from './achievements';
+import { applyHalftimeDecision, type AdvanceFranchiseWeekOptions } from './halftime-decision';
 import { advanceDraft, ensureDraftClass, finalizePostDraft } from './draft';
 import { resolveCallYourShot, type CallYourShotResult } from './call-your-shot';
 import { generateNearMissReceipts, hasNotableNearMisses } from './near-miss-receipts';
 import { runAllTrainingCamps } from './training-camp';
-import { checkForNamedGame } from './named-games';
+import { detectNamedGame } from './named-games';
 import { calculateDynastyWindow } from './dynasty-window';
 import {
   shouldIncludeGhostBroadcast,
@@ -114,6 +115,7 @@ import {
 } from './franchise-week-helpers';
 import { calculateAtmosphere, getAtmosphereBonus } from './atmosphere';
 import { generateRegionalWeather } from './regional-weather';
+import type { SimGameContext } from './game-sim';
 import type {
   Consequence,
   EngineOutput,
@@ -185,6 +187,7 @@ function appendGameDayPackage(
     filmRoomReport?: ReturnType<typeof buildFilmRoomReport> | null;
     recordsMoments?: GameState['recentBrokenRecords'];
     milestoneMoments?: GameState['recentMilestones'];
+    callYourShotResult?: CallYourShotResult;
   },
 ): void {
   refreshNarrative(nextState);
@@ -202,6 +205,7 @@ function appendGameDayPackage(
     activeEffectSummaries: options?.activeEffectSummaries ?? [],
     recordsMoments: options?.recordsMoments ?? [],
     milestoneMoments: options?.milestoneMoments ?? [],
+    callYourShotResult: options?.callYourShotResult,
   });
   if (options?.filmRoomReport) {
     packageData.prepGrade = options.filmRoomReport.grade;
@@ -237,9 +241,38 @@ function resolveActiveCallYourShot(
   if (!userTeamId || !game.activeCallYourShot) return undefined;
   if (result.homeTeamId !== userTeamId && result.awayTeamId !== userTeamId) return undefined;
 
-  const shotResult = resolveCallYourShot(RNG.event, game.activeCallYourShot, result, userTeamId);
-  delete game.activeCallYourShot;
-  return shotResult;
+  return resolveCallYourShot(game, result, RNG.event);
+}
+
+function applyUserHalftimeChoice(
+  simContext: SimGameContext,
+  params: {
+    startingUser: Team | null;
+    home: Team;
+    away: Team;
+    halftimeDecision?: AdvanceFranchiseWeekOptions['halftimeDecision'];
+  },
+): SimGameContext {
+  const { startingUser, home, away, halftimeDecision } = params;
+  if (!startingUser || !halftimeDecision) return simContext;
+  if (startingUser.id !== home.id && startingUser.id !== away.id) return simContext;
+
+  return applyHalftimeDecision(simContext, {
+    side: startingUser.id === home.id ? 'home' : 'away',
+    choice: halftimeDecision.choice,
+    suggestion: halftimeDecision.suggestion,
+  });
+}
+
+function halftimeDecisionSummary(halftimeDecision?: AdvanceFranchiseWeekOptions['halftimeDecision']): string | null {
+  if (!halftimeDecision) return null;
+  if (halftimeDecision.choice === 'stick') {
+    return 'Halftime hell: stayed with the original script after the break.';
+  }
+  if (halftimeDecision.choice === 'switch') {
+    return `Halftime hell: flipped the second-half plan to ${halftimeDecision.suggestion.responseLabel.toLowerCase()}.`;
+  }
+  return `Halftime hell: rolled the dice on ${halftimeDecision.suggestion.responseLabel.toLowerCase()}.`;
 }
 
 function deadlineAlreadyResolved(game: GameState): boolean {
@@ -402,7 +435,83 @@ function createFarewellPost(game: GameState, content: string): GameState['social
   };
 }
 
-export function advanceFranchiseWeek(game: GameState): EngineOutput {
+function appendContingencyGhostLines(result: GameResult): void {
+  if (!result.broadcast || !result.contingencyActivations?.length) return;
+
+  const contingencyLines = result.contingencyActivations
+    .filter((activation) => activation.callout)
+    .map((activation) => ({
+      commentatorName: 'Booth Alert',
+      commentary: activation.callout!,
+      trigger: 'quarter_break',
+    }));
+
+  if (contingencyLines.length === 0) return;
+  result.broadcast.ghostLines = [...(result.broadcast.ghostLines ?? []), ...contingencyLines];
+}
+
+function rankingForTeam(game: GameState, teamId: string): number | null {
+  return game.powerRankings.find((entry) => entry.teamId === teamId)?.rank ?? null;
+}
+
+function buildNamedGameContext(
+  game: GameState,
+  result: GameResult,
+  home: Team,
+  away: Team,
+  injuries: Record<string, WeeklyInjurySummary[]>,
+  isRivalry: boolean,
+  primetime: boolean,
+): Parameters<typeof detectNamedGame>[1] {
+  const homeStats = result.stats[home.id];
+  const awayStats = result.stats[away.id];
+  const homeLeadStartQ4 = (
+    (homeStats?.quarterScores[0] ?? 0)
+    + (homeStats?.quarterScores[1] ?? 0)
+    + (homeStats?.quarterScores[2] ?? 0)
+  ) - (
+    (awayStats?.quarterScores[0] ?? 0)
+    + (awayStats?.quarterScores[1] ?? 0)
+    + (awayStats?.quarterScores[2] ?? 0)
+  );
+  const analysisBroadcast = generateBroadcast(result, home, away, buildBroadcastRng(game, result));
+  const winnerId = result.homeScore > result.awayScore
+    ? result.homeTeamId
+    : result.awayScore > result.homeScore
+      ? result.awayTeamId
+      : null;
+  const winningDrive = winnerId
+    ? [...(analysisBroadcast.quarters[3] ?? [])].reverse().find((drive) =>
+      drive.teamId === winnerId
+      && (drive.endResult === 'touchdown' || drive.endResult === 'fieldGoal'))
+    : null;
+  const winningPlay = winningDrive?.plays.at(-1) ?? null;
+  const clutchTurnover = analysisBroadcast.highlights.some((play) => play.type === 'turnover' && play.isClutch);
+
+  return {
+    weather: result.weather ?? null,
+    isPlayoff: game.phase === 'playoffs',
+    isRivalry,
+    primetime,
+    homeRank: rankingForTeam(game, home.id),
+    awayRank: rankingForTeam(game, away.id),
+    homeLeadStartQ4,
+    homeLargestLeadQ4: homeLeadStartQ4,
+    winningPlayYards: winningPlay?.yardsGained ?? null,
+    winningPlayClutch: winningPlay?.isClutch ?? false,
+    winningPlayType: clutchTurnover && Math.abs(result.homeScore - result.awayScore) >= 7
+      ? 'defense'
+      : winningPlay?.type === 'fieldGoal'
+        ? 'field_goal'
+        : winningPlay
+          ? 'offense'
+          : null,
+    homeInjuries: injuries[home.id]?.length ?? 0,
+    awayInjuries: injuries[away.id]?.length ?? 0,
+  };
+}
+
+export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseWeekOptions = {}): EngineOutput {
   const nextState = cloneGame(game);
   ensureGovernanceState(nextState);
   const events: GameEvent[] = [];
@@ -435,6 +544,12 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
   nextState.activeRecordChases ??= [];
   nextState.recentBrokenRecords ??= [];
   nextState.recentMilestones ??= [];
+  nextState.postGameUi = nextState.postGameUi ?? {
+    pressConferenceQueue: [],
+    audioCueQueue: [],
+    pendingHalftimeDecision: null,
+  };
+  nextState.postGameUi.pendingHalftimeDecision = null;
   nextState.cbaState.status = checkCBAStatus(nextState.cbaState, nextState.year);
   if (nextState.leagueRivalries.length === 0) {
     seedLeagueRivalries(nextState);
@@ -566,7 +681,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       const atmosphere = calculateAtmosphere(nextState, home, away, nextState.week, false);
       const atmosphereBonus = getAtmosphereBonus(atmosphere);
 
-      const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, {
+      const simContext = applyUserHalftimeChoice({
         home: {
           teamOvrBonus: buildTeamOvrBonus(
             home,
@@ -612,13 +727,20 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         weather: matchup.weather ?? generateRegionalWeather(home, nextState.week, RNG.play),
         rivalryIntensity: rivalry?.intensity ?? 0,
         homeFieldBonus: (matchup.primetime ? 2 : 0) + getStadiumHomeFieldBonus(home.franchiseIdentity),
+      }, {
+        startingUser,
+        home,
+        away,
+        halftimeDecision: options.halftimeDecision,
       });
+      const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, simContext);
       outcome.result.broadcastNetwork = matchup.broadcastNetwork;
       outcome.result.primetime = matchup.primetime;
       outcome.result.flexed = matchup.flexed;
       callYourShotResult ??= resolveActiveCallYourShot(nextState, outcome.result, startingUser?.id ?? null);
       if (home.isUser || away.isUser) {
         outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
+        appendContingencyGhostLines(outcome.result);
         // Ghost broadcast lines from retired HOFers
         const hasHofers = (nextState.hallOfFame ?? []).length > 0;
         if (outcome.result.broadcast && shouldIncludeGhostBroadcast(RNG.ai, nextState.year - 2026, hasHofers)) {
@@ -661,22 +783,25 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       weeklyBrokenRecords.push(...brokenRecords);
       weeklyMilestones.push(...reachedMilestones);
 
-      // Named game detection
-      const isPlayoff = nextState.playoffBracket != null;
       const isRivalry = (nextState.leagueRivalries ?? []).some((r) =>
         (r.teamA === home.id && r.teamB === away.id) || (r.teamA === away.id && r.teamB === home.id),
       );
-      const namedGame = checkForNamedGame(RNG.ai, outcome.result, isPlayoff, isRivalry);
+      const namedGame = detectNamedGame(
+        outcome.result,
+        buildNamedGameContext(nextState, outcome.result, home, away, outcome.injuries, isRivalry, Boolean(matchup.primetime)),
+      );
       if (namedGame) {
+        outcome.result.namedGame = namedGame;
         recordDynastyEvent(nextState, {
           id: `named-game-${nextState.year}-${nextState.week}-${home.id}`,
           year: nextState.year,
           week: nextState.week,
-          type: 'milestone',
+          type: 'named_game',
           headline: `${namedGame.name}: ${home.name} vs ${away.name}`,
           importance: 'major',
           playerIds: [],
           teamIds: [home.id, away.id],
+          namedGame,
         });
       }
 
@@ -725,6 +850,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
           ...userEffects.summaries,
           ...(home.id === startingUser.id ? homePlanContext.prepOutcome?.reasoning ?? [] : awayPlanContext.prepOutcome?.reasoning ?? []),
           ...(rivalry ? [rivalry.headline] : []),
+          ...(options.halftimeDecision ? [halftimeDecisionSummary(options.halftimeDecision)!] : []),
           ...(matchup.primetime ? ['Primetime spotlight puts the game under a brighter microscope.'] : []),
         ].slice(0, 4);
       }
@@ -771,7 +897,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       const playoffAtmosphere = calculateAtmosphere(nextState, home, away, nextState.week, true, playoffRound);
       const playoffAtmosphereBonus = getAtmosphereBonus(playoffAtmosphere);
 
-      const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, {
+      const simContext = applyUserHalftimeChoice({
         home: {
           teamOvrBonus: buildTeamOvrBonus(
             home,
@@ -815,10 +941,17 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
         weather: generateRegionalWeather(home, nextState.week, RNG.play),
         rivalryIntensity: rivalry?.intensity ?? 0,
         homeFieldBonus: getStadiumHomeFieldBonus(home.franchiseIdentity),
+      }, {
+        startingUser,
+        home,
+        away,
+        halftimeDecision: options.halftimeDecision,
       });
+      const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, simContext);
       callYourShotResult ??= resolveActiveCallYourShot(nextState, outcome.result, startingUser?.id ?? null);
       if (home.isUser || away.isUser) {
         outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
+        appendContingencyGhostLines(outcome.result);
       }
       // Playoff snap counts — ride_stars in playoffs
       const playoffHomePrep = nextState.weeklyPrepPlans?.[home.id];
@@ -860,6 +993,27 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       const reachedMilestones = checkMilestones(nextState);
       weeklyBrokenRecords.push(...brokenRecords);
       weeklyMilestones.push(...reachedMilestones);
+      const isRivalry = (nextState.leagueRivalries ?? []).some((r) =>
+        (r.teamA === home.id && r.teamB === away.id) || (r.teamA === away.id && r.teamB === home.id),
+      );
+      const namedGame = detectNamedGame(
+        outcome.result,
+        buildNamedGameContext(nextState, outcome.result, home, away, outcome.injuries, isRivalry, false),
+      );
+      if (namedGame) {
+        outcome.result.namedGame = namedGame;
+        recordDynastyEvent(nextState, {
+          id: `named-game-${nextState.year}-${nextState.week}-${home.id}`,
+          year: nextState.year,
+          week: nextState.week,
+          type: 'named_game',
+          headline: `${namedGame.name}: ${home.name} vs ${away.name}`,
+          importance: 'major',
+          playerIds: [],
+          teamIds: [home.id, away.id],
+          namedGame,
+        });
+      }
       updateLeagueRivalriesFromGame(nextState, outcome.result, { playoffElimination: true });
       ownerDelta += updateOwner(home, nextState);
       ownerDelta += updateOwner(away, nextState);
@@ -882,6 +1036,7 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
           ...userEffects.summaries,
           ...(home.id === startingUser.id ? homePlanContext.prepOutcome?.reasoning ?? [] : awayPlanContext.prepOutcome?.reasoning ?? []),
           ...(rivalry ? [rivalry.headline] : []),
+          ...(options.halftimeDecision ? [halftimeDecisionSummary(options.halftimeDecision)!] : []),
         ].slice(0, 4);
         label = `Playoffs: ${nextState.week === 19 ? 'Wild Card' : nextState.week === 20 ? 'Divisional' : nextState.week === 21 ? 'Conference Final' : 'Championship'}`;
       }
@@ -1027,7 +1182,24 @@ export function advanceFranchiseWeek(game: GameState): EngineOutput {
       filmRoomReport,
       recordsMoments: userRecordMoments,
       milestoneMoments: userMilestoneMoments,
+      callYourShotResult,
     });
+    for (const activation of userResult.contingencyActivations?.filter((entry) => entry.teamId === currentUser.id) ?? []) {
+      const scoreDelta = userResult.homeTeamId === currentUser.id
+        ? userResult.homeScore - userResult.awayScore
+        : userResult.awayScore - userResult.homeScore;
+      recordNewsItem(nextState, {
+        id: `contingency-${nextState.year}-${playedWeek}-${activation.ruleId}`,
+        year: nextState.year,
+        week: playedWeek,
+        type: 'milestone',
+        headline: `Contingency fired: ${activation.responseLabel ?? activation.label}`,
+        body: `${activation.label} triggered in Q${activation.quarter}. Result: ${summary.result.toUpperCase()} with a ${scoreDelta >= 0 ? '+' : ''}${scoreDelta} point swing on the final scoreboard.`,
+        teamIds: [currentUser.id, ...(userOpponent ? [userOpponent.id] : [])],
+        playerIds: [],
+        importance: 'minor',
+      });
+    }
     recordPressConference(nextState, postGameConference);
     recordBeat(nextState, {
       week: playedWeek,

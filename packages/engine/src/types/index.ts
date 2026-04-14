@@ -435,6 +435,7 @@ export interface Team {
   ownerId: string;
   owner: OwnerState;
   ownerMood: number;
+  fanConfidence: number;
   ownerPatience80: number;
   gmStrategy: GmStrategy;
   draftPicks: DraftPick[];
@@ -1470,11 +1471,12 @@ export interface DynastyEvent {
   id: string;
   year: number;
   week: number | null;
-  type: 'championship' | 'draft_pick' | 'trade' | 'signing' | 'firing' | 'record' | 'award' | 'hof' | 'milestone';
+  type: 'championship' | 'draft_pick' | 'trade' | 'signing' | 'firing' | 'record' | 'award' | 'hof' | 'milestone' | 'named_game';
   headline: string;
   importance: 'landmark' | 'major' | 'minor';
   playerIds: string[];
   teamIds: string[];
+  namedGame?: import('../systems/named-games').NamedGameEvent;
 }
 
 export type TradeProposalStatus = 'draft' | 'sent' | 'countered' | 'accepted' | 'rejected';
@@ -1798,11 +1800,16 @@ export interface GameResult {
   flexed?: boolean;
   specialTeams?: Record<string, SpecialTeamsGameSummary>;
   playerMatchupEvents: PlayerMatchupEvent[];
+  callYourShotResult?: import('../systems/call-your-shot').CallYourShotResult;
+  namedGame?: import('../systems/named-games').NamedGameEvent;
   contingencyActivations?: Array<{
     teamId: string;
     ruleId: string;
     label: string;
+    triggerLabel?: string;
+    responseLabel?: string;
     quarter: number;
+    callout?: string | null;
   }>;
 }
 
@@ -2041,6 +2048,8 @@ export interface GameDayPackage {
   carryForwardRecommendations?: string[];
   recordsMoments: BrokenRecord[];
   milestoneMoments: MilestoneReached[];
+  callYourShotResult?: import('../systems/call-your-shot').CallYourShotResult;
+  namedGame?: import('../systems/named-games').NamedGameEvent;
 }
 
 export type StaffRole = StaffMember['role'];
@@ -2209,6 +2218,44 @@ export interface GameDayState {
 
 export type PressConferenceResponseTier = 'high' | 'mid' | 'low';
 
+export type HalftimeDecisionSetting = 'on' | 'off';
+export type HalftimeDecisionChoice = 'stick' | 'switch' | 'gamble';
+export type HalftimeSwitchDirection = 'more_pass' | 'more_run' | 'more_aggressive' | 'slow_down';
+
+export interface SwitchSuggestion {
+  direction: HalftimeSwitchDirection;
+  responseLabel: string;
+  summary: string;
+  reason: string;
+}
+
+export interface HalftimeDecisionModifier {
+  choice: HalftimeDecisionChoice;
+  direction: HalftimeSwitchDirection;
+  responseLabel: string;
+  summary: string;
+  sustainedBonus: number;
+  firstDriveDelta: number;
+  gambleDriveDelta: number;
+  gambleOtherDriveDelta: number;
+}
+
+export interface PendingHalftimeDecision {
+  teamId: string;
+  year: number;
+  week: number;
+  phase: SeasonPhase;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeScore: number;
+  awayScore: number;
+  suggestion: SwitchSuggestion;
+}
+
+export interface GameSettings {
+  halftimeDecisions: HalftimeDecisionSetting;
+}
+
 export interface PressConferenceQueueEntry {
   conferenceId: string;
   teamId: string | null;
@@ -2229,6 +2276,7 @@ export interface PressConferenceQueueEntry {
 export interface PostGameUiState {
   pressConferenceQueue: PressConferenceQueueEntry[];
   audioCueQueue: import('../systems/audio-events').AudioCue[];
+  pendingHalftimeDecision: PendingHalftimeDecision | null;
 }
 
 export type PlayoffRound = 'wild_card' | 'divisional' | 'conference' | 'super_bowl';
@@ -2943,6 +2991,7 @@ export interface GameState {
   week: number;
   phase: SeasonPhase;
   difficulty: DifficultyLevel;
+  settings: GameSettings;
   players: Record<string, Player>;
   teams: Record<string, Team>;
   owners: Record<string, Owner>;

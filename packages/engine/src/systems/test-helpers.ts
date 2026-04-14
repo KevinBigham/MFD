@@ -9,6 +9,7 @@ import {
   makeContract,
   SAVE_VERSION,
   emptyPlayerStats,
+  getDefaultHalftimeDecisionSetting,
 } from '../index';
 import { createEmptyRecordBook } from './records';
 import type { GameState, GameDayState, Player, Team } from '../types';
@@ -120,6 +121,7 @@ export function makeTeam(
     ownerId: `${id}-owner`,
     owner: { archetypeId: 'win_now', label: 'Win Now', approval: isUser ? 28 : 60, history: [] },
     ownerMood: isUser ? 28 : 60,
+    fanConfidence: isUser ? 28 : 60,
     ownerPatience80: isUser ? 24 : 60,
     gmStrategy: 'neutral',
     draftPicks: [],
@@ -257,6 +259,9 @@ export function makeLeagueState(
     week,
     phase,
     difficulty: 'pro',
+    settings: {
+      halftimeDecisions: getDefaultHalftimeDecisionSetting('pro'),
+    },
     players,
     teams,
     owners: {

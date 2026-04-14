@@ -8,6 +8,7 @@ import {
   initCommissioner,
   initLaborState,
   initLeagueRules,
+  getDefaultHalftimeDecisionSetting,
   makeDraftPick,
   initializeOffseasonState,
   makeContract,
@@ -161,6 +162,9 @@ function makeOffseasonGame(): GameState {
     week: 1,
     phase: 'offseason',
     difficulty: 'pro',
+    settings: {
+      halftimeDecisions: getDefaultHalftimeDecisionSetting('pro'),
+    },
     players,
     teams,
     owners: {},

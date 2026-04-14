@@ -5,7 +5,7 @@
 
 import { useMemo } from 'react';
 import { Activity, TrendingUp } from 'lucide-react';
-import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
+import { PixelBadge, PixelEkg, PixelPanel } from '@mfd/design-system/components';
 import { analyzeGameFlow } from '@mfd/engine';
 import type {
   GameFlowAnalysis,
@@ -20,12 +20,6 @@ import { PixelScreenHeader, autoGrid, mono, monoSm, pixel, screenStackStyle } fr
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function winProbColor(prob: number): string {
-  if (prob > 60) return 'var(--mfd-green)';
-  if (prob < 40) return 'var(--mfd-red)';
-  return 'var(--mfd-gold)';
-}
-
 function dominantAccent(dominant: 'home' | 'away' | 'even'): 'green' | 'red' | 'default' {
   if (dominant === 'home') return 'green';
   if (dominant === 'away') return 'red';
@@ -38,49 +32,39 @@ function dominantLabel(dominant: 'home' | 'away' | 'even', homeName: string, awa
   return 'EVEN';
 }
 
+function classifyWinProbEvent(current: WinProbPoint, previous: WinProbPoint | null): string | undefined {
+  if (!previous) return undefined;
+  const delta = current.homeWinProb - previous.homeWinProb;
+  if (Math.abs(delta) >= 18) return delta > 0 ? 'touchdown' : 'turnover';
+  if (Math.abs(delta) >= 10) return 'big_play';
+  return undefined;
+}
+
 // ── Sub-sections ─────────────────────────────────────────────
 
 function WinProbabilityChart({ points }: { points: WinProbPoint[] }) {
-  let currentQuarter = 0;
+  const ekgPoints = points.map((point, index) => ({
+    time: point.driveIndex,
+    wp: point.homeWinProb,
+    event: classifyWinProbEvent(point, points[index - 1] ?? null),
+  }));
 
   return (
     <PixelPanel title="Win Probability" accent="cyan">
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
         <Activity size={14} color="var(--mfd-cyan)" />
         <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-          Home win probability by drive
+          Home win probability heartbeat
         </span>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
-        {points.map((point, i) => {
-          const showQuarterLabel = point.quarter !== currentQuarter;
-          if (showQuarterLabel) currentQuarter = point.quarter;
-
-          return (
-            <div key={i}>
-              {showQuarterLabel && (
-                <div style={{ ...pixel, color: 'var(--mfd-text-dim)', marginTop: i > 0 ? '6px' : '0', marginBottom: '2px' }}>
-                  Q{point.quarter}
-                </div>
-              )}
-              <div
-                style={{ display: 'flex', height: '16px', marginBottom: '2px', background: 'var(--mfd-bg-alt, #111)' }}
-                title={`Home ${point.homeWinProb.toFixed(0)}% | ${point.scoreHome}-${point.scoreAway}`}
-              >
-                <div style={{
-                  width: `${point.homeWinProb}%`,
-                  background: winProbColor(point.homeWinProb),
-                  transition: 'width 0.2s',
-                }} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <PixelEkg points={ekgPoints} style={{ minHeight: '240px' }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
         <span style={{ ...monoSm, color: 'var(--mfd-red)' }}>Away</span>
         <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>50%</span>
         <span style={{ ...monoSm, color: 'var(--mfd-green)' }}>Home</span>
+      </div>
+      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '8px' }}>
+        Long-press to screenshot on mobile.
       </div>
     </PixelPanel>
   );

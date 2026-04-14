@@ -227,6 +227,33 @@ export const RecordChaseSchema = z.object({
   projected: z.number(),
 });
 
+export const NamedGameEventSchema = z.object({
+  name: z.string(),
+  archetype: z.enum([
+    'yard_miracle',
+    'dagger',
+    'comeback',
+    'collapse',
+    'heartbreaker',
+    'ghost_game',
+    'statement',
+    'gauntlet_game',
+    'snow_bowl',
+    'shootout',
+    'coin_flip',
+    'rout',
+  ]),
+  gameId: z.string(),
+  year: z.number(),
+  week: z.number(),
+  homeTeamId: z.string(),
+  awayTeamId: z.string(),
+  winnerTeamId: z.string().nullable(),
+  homeScore: z.number(),
+  awayScore: z.number(),
+  reason: z.string(),
+});
+
 export const GameDayPackageSchema = z.object({
   id: z.string(),
   year: z.number(),
@@ -290,6 +317,34 @@ export const GameDayPackageSchema = z.object({
   carryForwardRecommendations: z.array(z.string()).optional(),
   recordsMoments: z.array(BrokenRecordSchema).default([]),
   milestoneMoments: z.array(MilestoneReachedSchema).default([]),
+  callYourShotResult: z.object({
+    declaration: z.enum([
+      'run_dominant',
+      'air_attack',
+      'defensive_shutout',
+      'total_domination',
+      'underdog_special',
+    ]),
+    success: z.boolean(),
+    outcome: z.enum(['hit', 'miss', 'partial']),
+    magnitude: z.number(),
+    reaction: z.object({
+      id: z.string(),
+      outcome: z.enum(['hit', 'miss', 'partial']),
+      speaker: z.string(),
+      speakerType: z.enum(['fan', 'beat_writer', 'analyst', 'locker_room']),
+      tone: z.enum(['triumphant', 'sarcastic', 'measured']),
+      headline: z.string(),
+      quote: z.string(),
+    }),
+    fanConfidenceDelta: z.number(),
+    moraleDelta: z.number(),
+    chemistryDelta: z.number(),
+    devBonusMultiplier: z.number(),
+    headline: z.string(),
+    narrative: z.string(),
+  }).optional(),
+  namedGame: NamedGameEventSchema.optional(),
 });
 
 export const GameDayStateSchema = z.object({
@@ -321,9 +376,33 @@ export const PressConferenceQueueEntrySchema = z.object({
   selectedResponse: z.string().optional(),
 });
 
+export const SwitchSuggestionSchema = z.object({
+  direction: z.enum(['more_pass', 'more_run', 'more_aggressive', 'slow_down']),
+  responseLabel: z.string(),
+  summary: z.string(),
+  reason: z.string(),
+});
+
+export const PendingHalftimeDecisionSchema = z.object({
+  teamId: z.string(),
+  year: z.number(),
+  week: z.number(),
+  phase: z.enum(['preseason', 'regular_season', 'playoffs', 'offseason', 'free_agency', 'draft', 'post_draft', 'training_camp']),
+  homeTeamId: z.string(),
+  awayTeamId: z.string(),
+  homeScore: z.number(),
+  awayScore: z.number(),
+  suggestion: SwitchSuggestionSchema,
+});
+
+export const GameSettingsSchema = z.object({
+  halftimeDecisions: z.enum(['on', 'off']),
+});
+
 export const PostGameUiStateSchema = z.object({
   pressConferenceQueue: z.array(PressConferenceQueueEntrySchema).default([]),
   audioCueQueue: z.array(AudioCueSchema).default([]),
+  pendingHalftimeDecision: PendingHalftimeDecisionSchema.nullable().default(null),
 });
 
 export const RecordEntrySchema = z.object({
@@ -1048,7 +1127,21 @@ export const GamePlanSchema = z.object({
       'opponent_scores_opening',
       'turnover_deficit_2',
       'wind_over_15',
+      'down_by',
+      'up_by',
+      'end_of_q2_losing',
+      'two_minute_warning_one_score',
+      'opponent_td_lead_after_halftime',
     ]),
+    threshold: z.union([z.literal(7), z.literal(14), z.literal(21)]).optional(),
+    response: z.enum([
+      'go_air_raid',
+      'kill_clock',
+      'go_for_it_on_4th',
+      'run_heavy',
+      'pressure_every_down',
+      'prevent_defense_off',
+    ]).optional(),
     action: z.discriminatedUnion('type', [
       z.object({
         type: z.literal('switch_offense'),
@@ -1064,9 +1157,10 @@ export const GamePlanSchema = z.object({
       z.object({
         type: z.literal('go_conservative'),
       }),
-    ]),
+    ]).optional(),
     label: z.string(),
     description: z.string(),
+    legacy: z.boolean().optional(),
   })).optional(),
   trickPlays: z.array(z.string()).optional(),
 });
@@ -1464,11 +1558,12 @@ export const DynastyEventSchema = z.object({
   id: z.string(),
   year: z.number(),
   week: z.number().nullable(),
-  type: z.enum(['championship', 'draft_pick', 'trade', 'signing', 'firing', 'record', 'award', 'hof', 'milestone']),
+  type: z.enum(['championship', 'draft_pick', 'trade', 'signing', 'firing', 'record', 'award', 'hof', 'milestone', 'named_game']),
   headline: z.string(),
   importance: z.enum(['landmark', 'major', 'minor']),
   playerIds: z.array(z.string()),
   teamIds: z.array(z.string()),
+  namedGame: NamedGameEventSchema.optional(),
 });
 
 export const NearMissEntrySchema = z.object({
@@ -1575,6 +1670,9 @@ export const SaveStateSchema = z.object({
   week: z.number(),
   phase: z.enum(['preseason', 'regular_season', 'playoffs', 'offseason', 'free_agency', 'draft', 'post_draft', 'training_camp']),
   difficulty: z.enum(['rookie', 'pro', 'allpro', 'legend']),
+  settings: GameSettingsSchema.default({
+    halftimeDecisions: 'on',
+  }),
   players: z.record(PlayerSchema),
   teams: z.record(z.any()),
   owners: z.record(z.any()),
@@ -1717,6 +1815,7 @@ export const SaveStateSchema = z.object({
   postGameUi: PostGameUiStateSchema.default({
     pressConferenceQueue: [],
     audioCueQueue: [],
+    pendingHalftimeDecision: null,
   }),
   breakingNewsQueue: z.array(BreakingNewsEventSchema).default([]),
   ownerPersonalityInbox: z.array(OwnerPersonalityEventSchema).default([]),

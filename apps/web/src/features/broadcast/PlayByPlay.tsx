@@ -191,6 +191,24 @@ export function PlayByPlayView({ broadcast }: { broadcast: BroadcastOutput }) {
         </div>
       </PixelPanel>
 
+      <PixelPanel title="Booth Alerts" accent="gold">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {(broadcast.ghostLines ?? []).length === 0 ? (
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No booth alerts landed in this broadcast.</div>
+          ) : (
+            (broadcast.ghostLines ?? []).map((line, index) => (
+              <div key={`${line.commentatorName}-${index}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <PixelBadge variant="gold">{line.commentatorName.toUpperCase()}</PixelBadge>
+                  <PixelBadge variant="default">{line.trigger.replaceAll('_', ' ')}</PixelBadge>
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{line.commentary}</div>
+              </div>
+            ))
+          )}
+        </div>
+      </PixelPanel>
+
       {/* Final Narrative */}
       <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', fontStyle: 'italic', lineHeight: 1.7 }}>
         {broadcast.finalNarrative}

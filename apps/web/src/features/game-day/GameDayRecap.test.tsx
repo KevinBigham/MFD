@@ -73,4 +73,71 @@ describe('GameDayCenterView', () => {
     expect(markup).toContain('PREP A');
     expect(markup).toContain('Open Film Room');
   });
+
+  it('renders the named game banner and EKG when one is attached', () => {
+    const markup = renderToStaticMarkup(
+      <GameDayCenterView
+        teamLabel="Chicago Blaze"
+        phase="regular_season"
+        year={2026}
+        packageData={{
+          id: 'pkg-2',
+          year: 2026,
+          week: 4,
+          phase: 'regular_season',
+          teamId: 'team-1',
+          opponentTeamId: 'team-2',
+          headline: 'Chicago survives a chaos game',
+          result: 'win',
+          finalScore: '34-31',
+          stakes: [],
+          turningPoints: [],
+          topPerformers: [],
+          injuryNotes: [],
+          ceremony: null,
+          pressConference: {
+            theme: 'Chaos win',
+            opener: 'We kept punching.',
+            speaker: 'Head Coach',
+            tone: 'confident',
+            topic: 'postgame win',
+            reporterQuestions: [],
+            quotes: [],
+          },
+          rivalry: null,
+          activeEffectSummaries: [],
+          autopsy: {
+            diagnosis: 'Late execution saved the day.',
+            leverage: 'The final drive tilted everything.',
+            nextFocus: [],
+          },
+          specialTeamsHighlights: [],
+          recordsMoments: [],
+          milestoneMoments: [],
+        }}
+        namedGame={{
+          name: 'The Shootout',
+          archetype: 'shootout',
+          gameId: 'game-1',
+          year: 2026,
+          week: 4,
+          homeTeamId: 'team-1',
+          awayTeamId: 'team-2',
+          winnerTeamId: 'team-1',
+          homeScore: 34,
+          awayScore: 31,
+          reason: 'Both offenses broke the scoreboard.',
+        }}
+        namedGameEkgPoints={[
+          { time: 1, wp: 50 },
+          { time: 2, wp: 67, event: 'touchdown' },
+          { time: 3, wp: 42, event: 'turnover' },
+        ]}
+      />,
+    );
+
+    expect(markup).toContain('THIS GAME HAS A NAME');
+    expect(markup).toContain('THE SHOOTOUT');
+    expect(markup).toContain('Win probability EKG');
+  });
 });

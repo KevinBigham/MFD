@@ -75,13 +75,13 @@ describe('GameFlowView', () => {
     expect(markup).toContain('25.0% SWING');
   });
 
-  it('renders win probability visualization with quarter labels', () => {
+  it('renders the win probability heartbeat view', () => {
     const markup = renderToStaticMarkup(
       <GameFlowView analysis={mockAnalysis} homeName="Bears" awayName="Lions" />,
     );
 
     expect(markup).toContain('WIN PROBABILITY');
-    expect(markup).toContain('Q1');
+    expect(markup).toContain('Home win probability heartbeat');
     expect(markup).toContain('Home');
     expect(markup).toContain('Away');
   });

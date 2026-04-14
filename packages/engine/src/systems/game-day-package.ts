@@ -1,4 +1,5 @@
 import type { Hook } from './hooks-engine';
+import type { CallYourShotResult } from './call-your-shot';
 import type {
   BrokenRecord,
   GameDayPackage,
@@ -28,6 +29,8 @@ interface BuildGameDayPackageParams {
   activeEffectSummaries?: string[];
   recordsMoments?: BrokenRecord[];
   milestoneMoments?: MilestoneReached[];
+  callYourShotResult?: CallYourShotResult;
+  namedGame?: GameResult['namedGame'];
 }
 
 function findPlayer(team: Team, playerId: string | null): Player | null {
@@ -259,5 +262,7 @@ export function buildGameDayPackage(params: BuildGameDayPackageParams): GameDayP
     specialTeamsHighlights: result.specialTeams?.[team.id]?.highlights ?? [],
     recordsMoments,
     milestoneMoments,
+    callYourShotResult: params.callYourShotResult ?? result.callYourShotResult,
+    namedGame: params.namedGame ?? result.namedGame,
   };
 }

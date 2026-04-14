@@ -59,11 +59,13 @@ export function Settings() {
   const game = useGameStore((state) => state.game);
   const team = useGameStore(selectUserTeam);
   const difficulty = useGameStore((state) => state.game?.difficulty ?? 'pro');
+  const halftimeDecisions = useGameStore((state) => state.game?.settings.halftimeDecisions ?? (difficulty === 'rookie' ? 'off' : 'on'));
   const difficultyState = useGameStore(selectDifficultyState);
   const facilities = useGameStore(selectFacilities);
   const medicalStaff = useGameStore(selectMedicalStaff);
   const phase = useGameStore(selectPhase);
   const setDifficulty = useGameStore((state) => state.actions.setDifficulty);
+  const setHalftimeDecisions = useGameStore((state) => state.actions.setHalftimeDecisions);
   const setAdaptiveDifficultyEnabled = useGameStore((state) => state.actions.setAdaptiveDifficultyEnabled);
   const upgradeFacility = useGameStore((state) => state.actions.upgradeFacility);
   const hireMedicalStaff = useGameStore((state) => state.actions.hireMedicalStaff);
@@ -106,6 +108,7 @@ export function Settings() {
         <PixelMetricCard label="Difficulty" value={DIFF_SETTINGS[difficulty].name} accent="gold" detail={DIFF_SETTINGS[difficulty].desc} />
         <PixelMetricCard label="Autosave" value={autosaveEnabled ? 'ON' : 'OFF'} accent={autosaveEnabled ? 'green' : 'red'} detail="Apply to weekly advances and state-changing actions" />
         <PixelMetricCard label="Sim Speed" value={simSpeed.toUpperCase()} accent="cyan" detail="UI preference stored locally, outside the save file" />
+        <PixelMetricCard label="Halftime Hell" value={halftimeDecisions.toUpperCase()} accent={halftimeDecisions === 'on' ? 'gold' : 'default'} detail={difficulty === 'rookie' ? 'Locked off on rookie difficulty' : 'Saved with the dynasty and interrupts user games'} />
         <PixelMetricCard
           label="Adaptive Difficulty"
           value={difficultyState.enabled ? 'ON' : 'OFF'}
@@ -161,6 +164,17 @@ export function Settings() {
                 ? 'AI teams subtly adjust to your performance. Winning streaks get tougher, losing streaks get gentler.'
                 : 'Fixed difficulty — AI teams play at their natural level'}
               onChange={(checked) => { void setAdaptiveDifficultyEnabled(checked); }}
+            />
+
+            <PixelSwitch
+              checked={halftimeDecisions === 'on'}
+              disabled={difficulty === 'rookie'}
+              accent="gold"
+              label="Halftime Hell"
+              description={difficulty === 'rookie'
+                ? 'Rookie difficulty keeps halftime decisions off to avoid extra interruption.'
+                : 'Pause user games at halftime for a stick, switch, or gamble decision.'}
+              onChange={(checked) => { void setHalftimeDecisions(checked ? 'on' : 'off'); }}
             />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>

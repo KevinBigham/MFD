@@ -30,7 +30,7 @@ export {
   OFF_SCHEMES, DEF_SCHEMES, OFF_PLANS, DEF_PLANS, SCHEME_COUNTERS, SCHEME_FX,
   getSchemeFlavorLine, HOME_FIELD_ADV,
   ARCHETYPES, ARCH_BOOST, COACH_TRAITS, ARCH_TRAIT_POOLS, CLIQUE_TYPES,
-  DIFF_SETTINGS, SAVE_VERSION,
+  DIFF_SETTINGS, SAVE_VERSION, getDefaultHalftimeDecisionSetting,
   ROSTER_CAP, CAMP_CAP, PS_CAP, MIN_SALARY, CAP_MATH,
   getSalaryCap, getCapFloor, getMinSalary,
 } from './config';
@@ -137,12 +137,17 @@ export {
   getPersonalityLine,
   getAgmDialogueLine,
   getBroadcastTemplate,
+  getCallYourShotReactions,
+  getContingencyCallouts,
 } from './content-loader';
 export type {
   CoachArchetypeContent,
   AwardSpeechResult,
   PersonalityInput,
   ScoutingTemplateTier,
+  CallYourShotReactionContent,
+  CallYourShotReactionOutcome,
+  ContingencyCalloutKey,
 } from './content-loader';
 export {
   createTradeProposal,
@@ -835,6 +840,13 @@ export {
 } from './systems/trade-value';
 export { advanceFranchiseWeek } from './systems/franchise-week';
 export {
+  applyHalftimeDecision,
+  previewHalftimeDecision,
+  shouldOfferHalftimeDecision,
+  suggestHalftimeSwitch,
+} from './systems/halftime-decision';
+export type { AdvanceFranchiseWeekOptions } from './systems/halftime-decision';
+export {
   EXPANSION_CITIES,
   EXPANSION_CHANCE_PER_YEAR,
   EXPANSION_MIN_YEAR,
@@ -981,8 +993,8 @@ export {
 export type { WindowPhase, DynastyWindowResult } from './systems/dynasty-window';
 
 // Systems — Named Games (Sprint 27)
-export { checkForNamedGame, formatNamedGame } from './systems/named-games';
-export type { NamedGame } from './systems/named-games';
+export { detectNamedGame, checkForNamedGame, formatNamedGame, NAMED_GAME_PRIORITY } from './systems/named-games';
+export type { NamedGameArchetype, NamedGameContext, NamedGameEvent as NamedGame } from './systems/named-games';
 
 // Systems — Career Epilogues (Sprint 27)
 export { generateCareerEpilogue, isEpilogueWorthy } from './systems/career-epilogues';
@@ -997,14 +1009,22 @@ export type { NearMissEntry, NearMissTracker } from './systems/near-miss-receipt
 
 // Systems — Contingency Plans (Sprint 27)
 export {
-  CONTINGENCY_TRIGGERS, MAX_CONTINGENCIES,
+  CONTINGENCY_TRIGGERS, CONTINGENCY_RESPONSES, MAX_CONTINGENCIES,
+  limitContingencyRules, shouldFireContingency, applyContingency, getContingencyCallout,
   checkTrigger, applyContingencyAction, evaluateContingencies, createContingencyRule,
 } from './systems/contingency-plans';
-export type { ContingencyTrigger, ContingencyAction, ContingencyRule, ContingencyCheckContext } from './systems/contingency-plans';
+export type {
+  ContingencyTrigger,
+  ContingencyResponse,
+  LegacyContingencyAction as ContingencyAction,
+  ContingencyRule,
+  ContingencyCheckContext,
+  SimAdjustments,
+} from './systems/contingency-plans';
 
 // Systems — Call Your Shot (Sprint 27)
 export {
-  isCallYourShotEligible, getDeclarations, resolveCallYourShot,
+  isCallYourShotEligible, getDeclarations, evaluateCallYourShotResult, resolveCallYourShot,
 } from './systems/call-your-shot';
 export type { ShotDeclaration, CallYourShotResult, CallYourShotEligibility } from './systems/call-your-shot';
 

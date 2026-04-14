@@ -11,6 +11,7 @@ vi.mock('./persistence', () => ({
 
 vi.mock('./sim', () => ({
   runAdvanceWeek: (game: GameState) => Promise.resolve({ nextState: game, events: [], consequences: [] }),
+  runPreviewHalftimeDecision: () => Promise.resolve(null),
 }));
 
 function loadGame(game: GameState) {

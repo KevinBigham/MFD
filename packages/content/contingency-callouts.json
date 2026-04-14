@@ -1,0 +1,46 @@
+{
+  "callouts": {
+    "go_air_raid": [
+      "And here it comes: {responseLabel} from this point forward. {teamName} is done waiting.",
+      "{teamName} just hit the contingency switch. It is {responseLabel} and the ball is living in the air now.",
+      "That is the panic button in plain sight. {teamName} has chosen {responseLabel}.",
+      "You can feel the headset decision from up here. {responseLabel} for {teamName}, no hesitation.",
+      "The script just got thrown overboard. {teamName} is going straight to {responseLabel}."
+    ],
+    "kill_clock": [
+      "{teamName} is squeezing the game now. The call is {responseLabel} and every second matters.",
+      "That sideline wants fewer possessions. {responseLabel} is on for {teamName}.",
+      "You can see the intent instantly: {teamName} just shifted into {responseLabel}.",
+      "No more open throttle from this crew. {responseLabel} says they trust the scoreboard.",
+      "{teamName} is wrapping this game in bubble wrap. {responseLabel} is the move."
+    ],
+    "go_for_it_on_4th": [
+      "The math card is out. {teamName} is in full {responseLabel} mode now.",
+      "Fourth down just changed meaning for {teamName}. They have committed to {responseLabel}.",
+      "That is a clear message from the sideline: {responseLabel}, and the punter may stay cold.",
+      "{teamName} has crossed into {responseLabel}. Conservative football just left the booth.",
+      "Every short-yardage moment got louder. {responseLabel} is now active for {teamName}."
+    ],
+    "run_heavy": [
+      "{teamName} just narrowed the menu. It is {responseLabel} until somebody stops it.",
+      "That contingency leans right into muscle. {responseLabel} is on for {teamName}.",
+      "The sideline wants pads and patience. {teamName} has gone to {responseLabel}.",
+      "No mystery in the adjustment now: {responseLabel} for {teamName}, and they plan to lean on it.",
+      "That is a trench-first answer. {teamName} has chosen {responseLabel}."
+    ],
+    "pressure_every_down": [
+      "{teamName} has lit the fuse. {responseLabel} is active and the heat is coming every snap.",
+      "The defensive call sheet just got mean. {teamName} is dialing up {responseLabel}.",
+      "That contingency says attack. {responseLabel} for {teamName}, and the quarterback will feel it.",
+      "{teamName} does not want a patient drive here. They have gone to {responseLabel}.",
+      "You can hear the urgency in the booth. {responseLabel} is live for {teamName}."
+    ],
+    "prevent_defense_off": [
+      "{teamName} just tore up the soft shell. {responseLabel} means they are keeping the pressure on.",
+      "No backing off here. {teamName} has switched into {responseLabel}.",
+      "That is the opposite of bend-don't-break. {responseLabel} is active for {teamName}.",
+      "{teamName} wants this drive ended, not tolerated. {responseLabel} is the signal.",
+      "The cushion is gone. {teamName} just toggled {responseLabel} and stayed aggressive."
+    ]
+  }
+}

@@ -44,6 +44,7 @@ import { DepthChart } from '../features/depth-chart/DepthChart';
 import { WeekAdvance } from '../features/week-advance/WeekAdvance';
 import { HandshakeLedger } from '../features/handshake-ledger/HandshakeLedger';
 import { GameDayRecap } from '../features/game-day/GameDayRecap';
+import { HalftimeDecision } from '../features/game-day/HalftimeDecision';
 import { TradeCenter } from '../features/trades/TradeCenter';
 import { FreeAgencyHub } from '../features/free-agency/FreeAgencyHub';
 import { Settings as SettingsScreen } from '../features/settings/Settings';
@@ -475,6 +476,7 @@ function RootLayout() {
             onDismiss={() => { void dismissBreakingNews(); }}
           />
         )}
+        <HalftimeDecision />
         <PixelModal
           open={showHotkeyHelp}
           onOpenChange={setShowHotkeyHelp}

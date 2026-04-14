@@ -1,14 +1,11 @@
 import { useMemo, useState } from 'react';
 import { PixelBadge, PixelButton, PixelPanel, PixelProgressBar, PixelSelect, MfdTooltip } from '@mfd/design-system/components';
 import type {
-  ContingencyAction,
   ContingencyRule,
-  ContingencyTrigger,
   ShotDeclaration,
   WeeklyPrepPlan,
 } from '@mfd/engine';
 import {
-  CONTINGENCY_TRIGGERS,
   DEFENSIVE_PLAYS,
   getAvailableTrickPlays,
   getDeclarations,
@@ -27,6 +24,7 @@ import {
   useGameStore,
 } from '../../app/store/game-store';
 import { PixelScreenHeader, autoGrid, monoSm, screenStackStyle } from '../shared/pixelUi';
+import { ContingencyBuilder } from './ContingencyBuilder';
 
 const PLAN_TOOLTIPS: Record<string, string> = {
   'Offensive Focus': 'Choose how your offense attacks. "Attack Secondary" targets the passing game, "Attack Front" emphasizes the run, "Feed Star" gives your best player extra touches.',
@@ -74,18 +72,6 @@ const specialSituationOptions: Array<{ value: WeeklyPrepPlan['specialSituation']
 ];
 
 type PrepExtrasTab = 'contingencies' | 'trick_plays' | 'playbook';
-type ContingencyActionKey =
-  | 'go_aggressive'
-  | 'go_conservative'
-  | 'offense_pass_heavy'
-  | 'offense_run_heavy'
-  | 'offense_spread'
-  | 'offense_power'
-  | 'defense_base'
-  | 'defense_blitz_heavy'
-  | 'defense_coverage'
-  | 'defense_contain'
-  | 'defense_aggressive';
 
 const PREP_EXTRA_TABS: Array<{ id: PrepExtrasTab; label: string; accent: 'gold' | 'cyan' | 'green' }> = [
   { id: 'contingencies', label: 'Contingencies', accent: 'gold' },
@@ -93,75 +79,7 @@ const PREP_EXTRA_TABS: Array<{ id: PrepExtrasTab; label: string; accent: 'gold' 
   { id: 'playbook', label: 'Playbook', accent: 'green' },
 ];
 
-const contingencyTriggerOptions = Object.entries(CONTINGENCY_TRIGGERS).map(([value, meta]) => ({
-  value,
-  label: meta.label,
-}));
-
-const contingencyActionOptions: Array<{ value: ContingencyActionKey; label: string; description: string }> = [
-  { value: 'go_aggressive', label: 'Go Aggressive', description: 'Shift to a pass-heavy and blitz-heavy posture.' },
-  { value: 'go_conservative', label: 'Go Conservative', description: 'Protect a lead with run-heavy and coverage looks.' },
-  { value: 'offense_pass_heavy', label: 'Offense: Pass Heavy', description: 'Lean into the passing game.' },
-  { value: 'offense_run_heavy', label: 'Offense: Run Heavy', description: 'Shrink the game and pound the front.' },
-  { value: 'offense_spread', label: 'Offense: Spread', description: 'Open the field and stress coverage width.' },
-  { value: 'offense_power', label: 'Offense: Power', description: 'Condense the set and play downhill.' },
-  { value: 'defense_base', label: 'Defense: Base', description: 'Return to a balanced shell.' },
-  { value: 'defense_blitz_heavy', label: 'Defense: Blitz Heavy', description: 'Force quick throws and negative plays.' },
-  { value: 'defense_coverage', label: 'Defense: Coverage', description: 'Protect against explosives.' },
-  { value: 'defense_contain', label: 'Defense: Contain', description: 'Squeeze the run and keep the quarterback in the cup.' },
-  { value: 'defense_aggressive', label: 'Defense: Aggressive', description: 'Challenge routes and win at the line.' },
-];
-
 const MAX_SELECTED_TRICK_PLAYS = 2;
-
-function buildContingencyAction(actionKey: ContingencyActionKey): ContingencyAction {
-  switch (actionKey) {
-    case 'go_aggressive':
-      return { type: 'go_aggressive' };
-    case 'go_conservative':
-      return { type: 'go_conservative' };
-    case 'offense_pass_heavy':
-      return { type: 'switch_offense', scheme: 'pass_heavy' };
-    case 'offense_run_heavy':
-      return { type: 'switch_offense', scheme: 'run_heavy' };
-    case 'offense_spread':
-      return { type: 'switch_offense', scheme: 'spread' };
-    case 'offense_power':
-      return { type: 'switch_offense', scheme: 'power' };
-    case 'defense_base':
-      return { type: 'switch_defense', scheme: 'base' };
-    case 'defense_blitz_heavy':
-      return { type: 'switch_defense', scheme: 'blitz_heavy' };
-    case 'defense_coverage':
-      return { type: 'switch_defense', scheme: 'coverage' };
-    case 'defense_contain':
-      return { type: 'switch_defense', scheme: 'contain' };
-    case 'defense_aggressive':
-      return { type: 'switch_defense', scheme: 'aggressive' };
-    default:
-      return { type: 'go_aggressive' };
-  }
-}
-
-function buildContingencyRule(
-  teamId: string,
-  year: number,
-  week: number,
-  index: number,
-  trigger: ContingencyTrigger,
-  actionKey: ContingencyActionKey,
-): ContingencyRule {
-  const triggerMeta = CONTINGENCY_TRIGGERS[trigger];
-  const actionMeta = contingencyActionOptions.find((option) => option.value === actionKey) ?? contingencyActionOptions[0]!;
-
-  return {
-    id: `prep-${teamId}-${year}-${week}-${trigger}-${index}`,
-    trigger,
-    action: buildContingencyAction(actionKey),
-    label: `IF ${triggerMeta.label.toUpperCase()} -> ${actionMeta.label.toUpperCase()}`,
-    description: `${triggerMeta.description} ${actionMeta.description}`,
-  };
-}
 
 export function GamePlanSetup() {
   const week = useGameStore(selectWeek);
@@ -196,8 +114,6 @@ export function GamePlanSetup() {
   const [shotDeclaration, setShotDeclaration] = useState<ShotDeclaration | null>(activeCallYourShot);
   const [prepExtrasTab, setPrepExtrasTab] = useState<PrepExtrasTab>('contingencies');
   const [contingencyRules, setContingencyRules] = useState<ContingencyRule[]>(defaultPlan?.contingencyRules ?? []);
-  const [selectedTrigger, setSelectedTrigger] = useState<ContingencyTrigger>('trailing_14_at_half');
-  const [selectedActionKey, setSelectedActionKey] = useState<ContingencyActionKey>('go_aggressive');
   const [selectedTrickPlays, setSelectedTrickPlays] = useState<string[]>(defaultPlan?.trickPlays ?? []);
 
   const shotEligibility = useMemo(() => {
@@ -260,23 +176,6 @@ export function GamePlanSetup() {
             ? 'aggressive'
             : 'base',
   ));
-
-  const addContingencyRule = () => {
-    if (contingencyRules.length >= MAX_CONTINGENCIES) return;
-    const nextRule = buildContingencyRule(
-      team.id,
-      year,
-      week,
-      contingencyRules.length + 1,
-      selectedTrigger,
-      selectedActionKey,
-    );
-    setContingencyRules((current) => [...current, nextRule]);
-  };
-
-  const removeContingencyRule = (ruleId: string) => {
-    setContingencyRules((current) => current.filter((rule) => rule.id !== ruleId));
-  };
 
   const toggleTrickPlay = (playId: string) => {
     setSelectedTrickPlays((current) => {
@@ -505,73 +404,13 @@ export function GamePlanSetup() {
           </div>
 
           {prepExtrasTab === 'contingencies' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <PixelBadge variant="gold">Rules {contingencyRules.length}/{MAX_CONTINGENCIES}</PixelBadge>
-                <PixelBadge variant="cyan">Auto-fire at runtime</PixelBadge>
-              </div>
-              {contingencyRules.length === 0 ? (
-                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
-                  Build up to six if/then rules. These auto-adjust your plan during the game without opening another screen.
-                </div>
-              ) : (
-                contingencyRules.map((rule) => (
-                  <div
-                    key={rule.id}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      gap: '12px',
-                      padding: '10px',
-                      border: '2px solid var(--mfd-border)',
-                      background: 'var(--mfd-bg-2)',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '220px' }}>
-                      <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{rule.label}</div>
-                      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{rule.description}</div>
-                    </div>
-                    <PixelButton accent="red" onClick={() => removeContingencyRule(rule.id)}>Remove</PixelButton>
-                  </div>
-                ))
-              )}
-
-              <div style={autoGrid(220)}>
-                <PixelPanel title="Trigger" accent="gold">
-                  <PixelSelect
-                    value={selectedTrigger}
-                    onChange={(event) => setSelectedTrigger(event.target.value as ContingencyTrigger)}
-                    options={contingencyTriggerOptions}
-                    accent="gold"
-                  />
-                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '8px' }}>
-                    {CONTINGENCY_TRIGGERS[selectedTrigger].description}
-                  </div>
-                </PixelPanel>
-                <PixelPanel title="Response" accent="cyan">
-                  <PixelSelect
-                    value={selectedActionKey}
-                    onChange={(event) => setSelectedActionKey(event.target.value as ContingencyActionKey)}
-                    options={contingencyActionOptions.map((option) => ({ value: option.value, label: option.label }))}
-                    accent="cyan"
-                  />
-                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '8px' }}>
-                    {contingencyActionOptions.find((option) => option.value === selectedActionKey)?.description}
-                  </div>
-                </PixelPanel>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <PixelButton
-                  accent="green"
-                  disabled={contingencyRules.length >= MAX_CONTINGENCIES}
-                  onClick={addContingencyRule}
-                >
-                  Add Contingency Rule
-                </PixelButton>
-              </div>
-            </div>
+            <ContingencyBuilder
+              teamId={team.id}
+              year={year}
+              week={week}
+              rules={contingencyRules}
+              onChange={setContingencyRules}
+            />
           ) : null}
 
           {prepExtrasTab === 'trick_plays' ? (

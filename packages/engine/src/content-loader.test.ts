@@ -3,7 +3,9 @@ import {
   getAgmDialogueLine,
   getAwardSpeech,
   getBroadcastTemplate,
+  getCallYourShotReactions,
   getCoachArchetype,
+  getContingencyCallouts,
   getPersonalityLine,
   getScoutingReportTemplate,
 } from './content-loader';
@@ -73,5 +75,24 @@ describe('content loader dormant content accessors', () => {
 
     expect(opener).toBe('Jules Mercer quick throw');
     expect(ending).toBe('for 9, moves chains.');
+  });
+
+  it('returns authored Call Your Shot reaction pools by outcome', () => {
+    const hitReactions = getCallYourShotReactions('hit');
+    const missReactions = getCallYourShotReactions('miss');
+    const partialReactions = getCallYourShotReactions('partial');
+
+    expect(hitReactions.length).toBeGreaterThanOrEqual(3);
+    expect(missReactions.length).toBeGreaterThanOrEqual(3);
+    expect(partialReactions.length).toBeGreaterThanOrEqual(3);
+    expect(hitReactions[0]?.quote).toBeTruthy();
+    expect(missReactions[0]?.speaker).toBeTruthy();
+  });
+
+  it('returns contingency callout pools for sprint trigger types', () => {
+    const callouts = getContingencyCallouts('go_air_raid');
+
+    expect(callouts.length).toBeGreaterThanOrEqual(5);
+    expect(callouts[0]).toContain('{responseLabel}');
   });
 });

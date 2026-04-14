@@ -2,8 +2,10 @@ import pressConferenceTemplatesJson from '../../content/broadcast/press-conferen
 import agmDialogueJson from '../../content/broadcast/agm-dialogue.json';
 import passingDefenseStTemplatesJson from '../../content/broadcast/passing-defense-st-templates.json';
 import rushingTemplatesJson from '../../content/broadcast/rushing-templates.json';
+import callYourShotReactionsJson from '../../content/call-your-shot-reactions.json';
 import awardSpeechesJson from '../../content/ceremonies/award-speeches.json';
 import coachArchetypesJson from '../../content/coaching/coach-archetypes.json';
+import contingencyCalloutsJson from '../../content/contingency-callouts.json';
 import halftimePerformersJson from '../../content/halftime/halftime-performers.json';
 import playerNamesJson from '../../content/names/player-names.json';
 import storyArcTemplatesJson from '../../content/narrative/story-arc-templates.json';
@@ -43,6 +45,19 @@ import team_sea_grunge_json from '../../content/teams/sea-grunge.json';
 import team_sf_sourdoughs_json from '../../content/teams/sf-sourdoughs.json';
 import team_stl_toasted_raviolis_json from '../../content/teams/stl-toasted-raviolis.json';
 import team_tb_pirates_json from '../../content/teams/tb-pirates.json';
+import {
+  CallYourShotReactionsContentSchema,
+  ContingencyCalloutsContentSchema,
+  type CallYourShotReactionContent,
+  type CallYourShotReactionOutcome,
+  type ContingencyCalloutKey,
+} from './types/content-schemas';
+
+export type {
+  CallYourShotReactionContent,
+  CallYourShotReactionOutcome,
+  ContingencyCalloutKey,
+} from './types/content-schemas';
 
 export type PressConferenceScenario =
   | 'win_blowout'
@@ -289,6 +304,14 @@ export interface PersonalityInput {
   ambition: number;
 }
 
+type CallYourShotReactionsContent = {
+  reactions: CallYourShotReactionContent[];
+};
+
+type ContingencyCalloutsContent = {
+  callouts: Record<ContingencyCalloutKey, readonly string[]>;
+};
+
 const pressConferenceTemplates = pressConferenceTemplatesJson as Record<PressConferenceScenario, PressConferenceScenarioContent>;
 const storyArcTemplates = storyArcTemplatesJson as Record<StoryArcContentTemplate, Record<StoryArcContentPhase, StoryArcPhaseContent>>;
 const playerNames = playerNamesJson as PlayerNameContent;
@@ -300,6 +323,12 @@ const coachArchetypeContent = coachArchetypesJson as CoachArchetypesContent;
 const awardSpeechContent = awardSpeechesJson as AwardSpeechContent;
 const personalityFlavorContent = personalityFlavorJson as PersonalityFlavorContent;
 const agmDialogueContent = agmDialogueJson as AgmDialogueContent;
+const callYourShotReactionsContent = CallYourShotReactionsContentSchema.parse(
+  callYourShotReactionsJson,
+) as CallYourShotReactionsContent;
+const contingencyCalloutsContent = ContingencyCalloutsContentSchema.parse(
+  contingencyCalloutsJson,
+) as ContingencyCalloutsContent;
 const broadcastTemplateContent = {
   ...(passingDefenseStTemplatesJson as Record<string, BroadcastTemplateCategory>),
   ...(rushingTemplatesJson as Record<string, BroadcastTemplateCategory>),
@@ -536,6 +565,14 @@ export function getBroadcastTemplate(
     pickWithRng(entries, rng, `broadcast:${playType}:${bucket}`),
     placeholders,
   );
+}
+
+export function getCallYourShotReactions(outcome: CallYourShotReactionOutcome): CallYourShotReactionContent[] {
+  return callYourShotReactionsContent.reactions.filter((reaction) => reaction.outcome === outcome);
+}
+
+export function getContingencyCallouts(key: ContingencyCalloutKey): readonly string[] {
+  return contingencyCalloutsContent.callouts[key] ?? [];
 }
 
 export function getStoryArcPhaseContent(arcType: string, phase: string): StoryArcPhaseContent | null {

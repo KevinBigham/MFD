@@ -76,4 +76,8 @@ export const DIFF_SETTINGS: Record<DifficultyLevel, DifficultyConfig> = {
   },
 };
 
-export const SAVE_VERSION = 27;
+export function getDefaultHalftimeDecisionSetting(difficulty: DifficultyLevel): 'on' | 'off' {
+  return difficulty === 'rookie' ? 'off' : 'on';
+}
+
+export const SAVE_VERSION = 28;

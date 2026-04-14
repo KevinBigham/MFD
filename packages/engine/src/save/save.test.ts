@@ -84,6 +84,7 @@ describe('SaveStateSchema', () => {
     if (result.success) {
       expect(result.data.offseasonState).toBeNull();
       expect(result.data.playerSeasonHistory).toEqual({});
+      expect(result.data.settings).toEqual({ halftimeDecisions: 'on' });
       expect(result.data.faTargetBoard).toMatchObject({
         teamId: null,
         watchlist: [],
@@ -279,6 +280,7 @@ describe('SaveStateSchema', () => {
     expect(result.data.postGameUi).toEqual({
       pressConferenceQueue: [],
       audioCueQueue: [],
+      pendingHalftimeDecision: null,
     });
     expect(result.data.breakingNewsQueue).toEqual([]);
     expect(result.data.ownerPersonalityInbox).toEqual([]);
@@ -335,17 +337,47 @@ describe('SaveStateSchema', () => {
     expect(migrated['postGameUi']).toEqual({
       pressConferenceQueue: [],
       audioCueQueue: [],
+      pendingHalftimeDecision: null,
     });
     expect(migrated['breakingNewsQueue']).toEqual([]);
     expect(migrated['ownerPersonalityInbox']).toEqual([]);
     expect(migrated['commissionerDisciplineLog']).toEqual([]);
     expect(migrated['earnedDoctrines']).toEqual([]);
     expect(migrated['seasonNearMissReceipts']).toEqual([]);
+    expect(migrated['settings']).toEqual({ halftimeDecisions: 'on' });
     expect(migrated['weeklyPrepPlans']).toEqual({
       USER: expect.objectContaining({
         contingencyRules: [],
         trickPlays: [],
       }),
+    });
+  });
+
+  it('migrates v27 saves to v28 with fan confidence and halftime defaults', () => {
+    const migrated = migrate({
+      version: 27,
+      difficulty: 'rookie',
+      teams: {
+        USER: {
+          id: 'USER',
+          franchiseIdentity: {
+            fanbase: 64,
+          },
+        },
+      },
+      postGameUi: {
+        pressConferenceQueue: [],
+        audioCueQueue: [],
+      },
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect((migrated['teams'] as Record<string, Record<string, unknown>>).USER.fanConfidence).toBe(64);
+    expect(migrated['settings']).toEqual({ halftimeDecisions: 'off' });
+    expect(migrated['postGameUi']).toEqual({
+      pressConferenceQueue: [],
+      audioCueQueue: [],
+      pendingHalftimeDecision: null,
     });
   });
 });

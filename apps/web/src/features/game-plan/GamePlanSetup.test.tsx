@@ -138,7 +138,7 @@ describe('GamePlanSetup', () => {
     const markup = renderToStaticMarkup(<MfdTooltipProvider><GamePlanSetup /></MfdTooltipProvider>);
 
     expect(markup).toContain('weekly prep locked');
-    expect(markup).toContain('contingencies 1/6');
+    expect(markup).toContain('contingencies 1/3');
     expect(markup).toContain('trick plays 1/2');
   });
 
