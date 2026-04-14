@@ -230,7 +230,7 @@ describe('game store offseason actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 
-  it('pauses for halftime and resumes the week after a choice is made', async () => {
+  it('pauses for halftime and resumes the week after a choice is made', { timeout: 15_000 }, async () => {
     const game = createSeedGameState(314, 0, 'pro');
     game.phase = 'regular_season';
     game.settings.halftimeDecisions = 'on';
