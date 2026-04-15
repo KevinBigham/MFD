@@ -50,6 +50,37 @@ function makeProspect(id: string, pos: DraftProspect['pos'], trueGrade: number):
   };
 }
 
+function makeBloodlineProspect(id: string, parentTeamId = 'afce1'): DraftProspect {
+  return {
+    ...makeProspect(id, 'QB', 89),
+    bloodline: {
+      parentPlayerId: 'legend-qb',
+      parentName: 'Marcus Cole',
+      parentTeamId,
+      parentPosition: 'QB',
+      relationship: 'son',
+      legacyTag: 'franchise_royalty',
+    },
+  };
+}
+
+function addBloodlineArchive(game: GameState): void {
+  game.playerArchive = [{
+    playerId: 'legend-qb',
+    firstName: 'Marcus',
+    lastName: 'Cole',
+    name: 'Marcus Cole',
+    positions: ['QB'],
+    jerseyNumber: 12,
+    peakOvr: 92,
+    peakYear: 2025,
+    firstYear: 2020,
+    lastYear: 2028,
+    retirementYear: 2029,
+    teamHistory: [{ teamId: 'afce1', firstYear: 2020, lastYear: 2028 }],
+  }];
+}
+
 describe('draft direct coverage', () => {
   it('generates identical draft classes for the same seed and year', () => {
     const left = makeLeagueState('draft', 1);
@@ -90,6 +121,20 @@ describe('draft direct coverage', () => {
 
     expect(game.draftClass).toHaveLength(64);
     expect(new Set(game.draftClass.map((prospect) => prospect.id)).size).toBe(64);
+  });
+
+  it('assigns deterministic bloodlines during draft-class generation without changing grade sorting', () => {
+    const game = makeLeagueState('draft', 1);
+    game.seed = 1;
+    game.year = 2030;
+    addBloodlineArchive(game);
+
+    ensureDraftClass(game);
+
+    const bloodlines = game.draftClass.filter((prospect) => prospect.bloodline);
+    expect(bloodlines).toHaveLength(3);
+    expect(bloodlines.every((prospect) => prospect.bloodline?.parentName === 'Marcus Cole')).toBe(true);
+    expect(game.draftClass).toEqual([...game.draftClass].sort((a, b) => b.trueGrade - a.trueGrade || a.id.localeCompare(b.id)));
   });
 
   it('does not regenerate the draft class once prospects already exist', () => {
@@ -232,6 +277,37 @@ describe('draft direct coverage', () => {
     expect(result.nextState.offseasonState?.currentDraftPickIndex).toBe(1);
     expect(result.nextState.offseasonState?.completedDraftPickIds).toEqual([`afce1-${game.year}-1-1-afce1`]);
     expect(result.nextState.phase).toBe('post_draft');
+  });
+
+  it('copies bloodline context to the drafted player, nudges loyalty for the parent team, and records dynasty memory', () => {
+    const game = makeLeagueState('draft', 1);
+    game.teams.afce1.draftPicks = [addPick('afce1', game.year, 1, 1)];
+    game.offseasonState = {
+      ...initializeOffseasonState(game),
+      draftOrder: [makeDraftEntry('afce1', game.year, 1, 1, 1)],
+      currentDraftPickIndex: 0,
+      completedDraftPickIds: [],
+    };
+    game.draftClass = [makeBloodlineProspect('legacy-qb')];
+
+    const result = makeDraftPick(game, 'legacy-qb');
+    const rookie = result.nextState.teams.afce1.roster.find((player) => player.id === 'legacy-qb')!;
+
+    expect(rookie.bloodline).toMatchObject({
+      parentPlayerId: 'legend-qb',
+      parentName: 'Marcus Cole',
+      parentTeamId: 'afce1',
+      legacyTag: 'franchise_royalty',
+    });
+    expect(rookie.personality.loyalty).toBe(6);
+    expect(rookie.ovr).toBe(89);
+    expect(rookie.pot).toBe(95);
+    expect(result.nextState.dynastyTimeline.some((event) =>
+      event.type === 'draft_pick' &&
+      event.headline.includes('Marcus Cole') &&
+      event.playerIds.includes('legend-qb') &&
+      event.playerIds.includes('legacy-qb'),
+    )).toBe(true);
   });
 
   it('finalizes post-draft state by resetting the league for training camp', () => {

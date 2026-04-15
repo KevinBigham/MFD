@@ -7,8 +7,13 @@ import { initCommissioner } from '../systems/commissioner';
 import { initLaborState } from '../systems/labor-relations';
 import { initLeagueRules } from '../systems/league-rules';
 import { createEmptyRecordBook } from '../systems/records';
+import { makeLeagueState } from '../systems/test-helpers';
 
 describe('SaveStateSchema', () => {
+  it('uses save version 30 for Bloodlines persistence', () => {
+    expect(SAVE_VERSION).toBe(30);
+  });
+
   it('validates a minimal valid save', () => {
     const year = 2026;
     const minSave = {
@@ -383,15 +388,13 @@ describe('SaveStateSchema', () => {
   });
 
   it('migrates v28 saves to v29 with apology tour defaults', () => {
-    expect(SAVE_VERSION).toBe(29);
-
     const migrated = migrate({
       version: 28,
       teams: {},
       players: {},
-    }, SAVE_VERSION);
+    }, 29);
 
-    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['version']).toBe(29);
     expect(migrated['apologyTourThreads']).toEqual([]);
   });
 });
@@ -1677,5 +1680,58 @@ describe('migration pipeline', () => {
 
     const player = (migrated['players'] as Record<string, any>).p1;
     expect(player.contract).toBeNull();
+  });
+
+  it('v29→v30 migration defaults player and draft prospect bloodlines', () => {
+    const migrated = migrate({
+      version: 29,
+      players: {
+        p1: { id: 'p1', name: 'Legacy Player' },
+      },
+      draftClass: [{ id: 'prospect-1', firstName: 'Draft', lastName: 'Prospect' }],
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect((migrated['players'] as Record<string, Record<string, unknown>>).p1?.['bloodline']).toBeNull();
+    expect((migrated['draftClass'] as Array<Record<string, unknown>>)[0]?.['bloodline']).toBeNull();
+  });
+
+  it('round-trips player and draft prospect bloodline data through the save schema', () => {
+    const game = makeLeagueState('draft', 1);
+    const player = game.teams.afce1.roster[0]!;
+    player.bloodline = {
+      parentPlayerId: 'legend-qb',
+      parentName: 'Marcus Cole',
+      parentTeamId: 'afce1',
+      parentPosition: 'QB',
+      relationship: 'son',
+      legacyTag: 'franchise_royalty',
+    };
+    game.draftClass = [{
+      id: 'prospect-legacy',
+      firstName: 'Draft',
+      lastName: 'Cole',
+      pos: 'QB',
+      college: 'Test U',
+      region: 'south',
+      ratings: { awareness: 88, speed: 82, stamina: 85 },
+      projectedRound: 1,
+      scoutGrade: 84,
+      trueGrade: 88,
+      personality: { workEthic: 8, loyalty: 6, greed: 4, pressure: 7, ambition: 8 },
+      traits: [],
+      archetype: null,
+      characterArchetype: 'balanced',
+      bustProbability: 0.08,
+      stealProbability: 0.12,
+      scoutingReports: [],
+      combine: null,
+      bloodline: player.bloodline,
+    }];
+
+    const parsed = SaveStateSchema.parse(game);
+
+    expect(parsed.players[player.id]?.bloodline).toMatchObject({ parentName: 'Marcus Cole' });
+    expect((parsed.draftClass[0] as Record<string, unknown>)['bloodline']).toMatchObject({ parentName: 'Marcus Cole' });
   });
 });

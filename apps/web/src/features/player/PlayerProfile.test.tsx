@@ -14,6 +14,14 @@ const mockBundle = {
       teamId: 'user',
       draftPick: 12,
       jerseyNumber: 12,
+      bloodline: {
+        parentPlayerId: 'legend-qb',
+        parentName: 'Marcus Cole',
+        parentTeamId: 'user',
+        parentPosition: 'QB',
+        relationship: 'son',
+        legacyTag: 'franchise_royalty',
+      },
       endorsements: [{ id: 'deal-1', playerId: 'p-1', brandName: 'Apex Athletics', revenuePerYear: 6, yearsTotal: 3, yearsRemaining: 2, tier: 'global', moraleBonus: 6, requirement: { type: 'min_ovr', value: 90 }, active: true }],
     },
     contractDetails: {
@@ -73,6 +81,8 @@ describe('PlayerProfile', () => {
     expect(markup).toContain('JAY STONE');
     expect(markup).toContain('TRADE VALUE');
     expect(markup).toContain('2026 MVP');
+    expect(markup).toContain('BLOODLINE');
+    expect(markup).toContain('Son of Marcus Cole');
     expect(markup).toContain('Retirement Age');
     expect(markup).toContain('Open Endorsements');
     expect(markup).toContain('View Rivalries');

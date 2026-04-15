@@ -204,10 +204,16 @@ export function PlayerProfile() {
               {profile.personalityReport.traits.length > 0
                 ? profile.personalityReport.traits.map((trait) => <PixelBadge key={trait} variant="cyan">{trait}</PixelBadge>)
                 : <PixelBadge variant="default">No flagged traits</PixelBadge>}
+              {player.bloodline ? <PixelBadge variant="gold">BLOODLINE</PixelBadge> : null}
             </div>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Agent style: {profile.personalityReport.agentStyle}</div>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Media presence: {profile.personalityReport.mediaPresence}</div>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Locker room: {profile.personalityReport.lockerRoomImpact}</div>
+            {player.bloodline ? (
+              <div style={{ ...monoSm, color: 'var(--mfd-gold)' }}>
+                Son of {player.bloodline.parentName} // {player.bloodline.legacyTag.replace(/_/g, ' ')}
+              </div>
+            ) : null}
           </div>
         </PixelPanel>
 

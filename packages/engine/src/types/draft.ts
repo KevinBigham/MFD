@@ -4,6 +4,7 @@
 
 import type {
   Position,
+  BloodlineInfo,
   Personality,
   PlayerArchetype,
   PlayerRatings,
@@ -126,6 +127,7 @@ export interface DraftProspect {
   stealProbability: number;
   scoutingReports: ScoutingReport[];
   combine: CombineMeasurables | null;
+  bloodline?: BloodlineInfo | null;
 }
 
 export interface ScoutingReport {

@@ -12,6 +12,7 @@ const ProspectRiskBandSchema = z.enum(['unknown', 'safe', 'balanced', 'volatile'
 const ProspectCeilingBandSchema = z.enum(['unknown', 'starter', 'impact', 'star']);
 const ProspectCharacterReadSchema = z.enum(['unknown', 'leader', 'steady', 'mercurial', 'red_flag']);
 const MarketSizeSchema = z.enum(['small', 'medium', 'large', 'mega']);
+const PlayerPositionSchema = z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']);
 
 export const PersonalitySchema = z.object({
   workEthic: z.number().min(1).max(10),
@@ -19,6 +20,15 @@ export const PersonalitySchema = z.object({
   greed: z.number().min(1).max(10),
   pressure: z.number().min(1).max(10),
   ambition: z.number().min(1).max(10),
+});
+
+export const BloodlineInfoSchema = z.object({
+  parentPlayerId: z.string(),
+  parentName: z.string(),
+  parentTeamId: z.string(),
+  parentPosition: PlayerPositionSchema,
+  relationship: z.literal('son').default('son'),
+  legacyTag: z.enum(['franchise_royalty', 'famous_name', 'chip_on_shoulder', 'late_bloomer_family']),
 });
 
 export const BonusSliceSchema = z.object({
@@ -1648,7 +1658,7 @@ export const PlayerSchema = z.object({
   id: z.string(),
   firstName: z.string(),
   lastName: z.string(),
-  pos: z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']),
+  pos: PlayerPositionSchema,
   age: z.number(),
   ovr: z.number(),
   ratings: z.record(z.number()),
@@ -1676,6 +1686,7 @@ export const PlayerSchema = z.object({
   jerseyNumber: z.number().default(0),
   endorsements: z.array(z.any()).default([]),
   agentId: z.string().nullable().default(null),
+  bloodline: BloodlineInfoSchema.nullable().default(null),
 });
 
 export const SaveStateSchema = z.object({
