@@ -1,0 +1,44 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    "packages/engine": {
+      "entry": [
+        "src/index.ts!",
+        "src/rng/index.ts!",
+        "src/types/index.ts!",
+        "src/events/index.ts!",
+        "src/config/index.ts!",
+        "src/save/index.ts!",
+        "src/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/design-system": {
+      "entry": [
+        "components/index.ts!",
+        "components/**/*.stories.tsx"
+      ],
+      "project": ["components/**/*.{ts,tsx}"]
+    },
+    "apps/web": {
+      "entry": [
+        "src/main.tsx!",
+        "src/**/*.test.{ts,tsx}",
+        "src/**/*.stories.tsx"
+      ],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/analytics": {
+      "entry": ["src/index.ts!"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/content": {
+      "entry": ["index.ts!"],
+      "project": ["**/*.ts"]
+    },
+    "packages/testkit": {
+      "entry": ["src/index.ts!"],
+      "project": ["src/**/*.ts"]
+    }
+  }
+}
