@@ -20,3 +20,8 @@ export function sum(arr: readonly number[]): number {
 export function avg(arr: readonly number[]): number {
   return arr.length === 0 ? 0 : sum(arr) / arr.length;
 }
+
+/** Comparator for stat-leader ranking: higher value first, tiebreak by player name ASC. */
+export function compareStatLeaders<T extends { value: number; playerName: string }>(a: T, b: T): number {
+  return b.value - a.value || a.playerName.localeCompare(b.playerName);
+}

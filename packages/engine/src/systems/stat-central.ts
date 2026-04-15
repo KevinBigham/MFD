@@ -2,6 +2,7 @@ import { detectFranchiseEras } from './franchise-dashboard';
 import { buildCareerTimelineHighlights } from './record-tracker';
 import { emptyPlayerStats } from './season-stats';
 import { getPlayerValue } from './player-profile';
+import { compareStatLeaders } from '../utils';
 import type {
   CareerTimeline,
   ComparedPlayer,
@@ -175,7 +176,7 @@ function yearStatsFromHistory(game: GameState, stat: string, season: number, pos
     .filter((row) => row.value > 0);
 
   return rows
-    .sort((a, b) => b.value - a.value || a.playerName.localeCompare(b.playerName))
+    .sort(compareStatLeaders)
     .map((row, index) => ({
       rank: index + 1,
       ...row,
@@ -199,7 +200,7 @@ function currentYearStats(game: GameState, stat: string, pos?: Position): StatLe
       perGame: Number(player.stats.gamesPlayed ?? 0) > 0 ? round(Number(player.stats[stat] ?? 0) / Number(player.stats.gamesPlayed ?? 0)) : 0,
     }))
     .filter((row) => row.value > 0)
-    .sort((a, b) => b.value - a.value || a.playerName.localeCompare(b.playerName))
+    .sort(compareStatLeaders)
     .map((row, index) => ({
       ...row,
       rank: index + 1,
