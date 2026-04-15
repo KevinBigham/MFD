@@ -1,6 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
 import {
-  PixelBadge,
   PixelConsequenceList as DesignSystemPixelConsequenceList,
   PixelMetricCard as DesignSystemPixelMetricCard,
   PixelPanel,
@@ -68,38 +67,6 @@ export function PixelMetricCard({
   badge,
 }: PixelMetricCardProps) {
   return <DesignSystemPixelMetricCard label={label} value={value} detail={detail} accent={accent} badge={badge} />;
-}
-
-interface PixelKeyValueRowProps {
-  label: string;
-  value: ReactNode;
-  accent?: PixelAccent;
-  badge?: ReactNode;
-}
-
-export function PixelKeyValueRow({
-  label,
-  value,
-  accent = 'default',
-  badge,
-}: PixelKeyValueRowProps) {
-  const variant = accent === 'default' ? 'default' : accent;
-  return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '8px 0',
-      borderBottom: '1px solid #1a1a1a',
-    }}>
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={{ ...monoSm, color: '#ddd' }}>{label}</span>
-        {badge}
-      </div>
-      <PixelBadge variant={variant}>{value}</PixelBadge>
-    </div>
-  );
 }
 
 interface PixelConsequenceListProps {

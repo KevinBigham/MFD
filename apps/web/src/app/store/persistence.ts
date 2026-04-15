@@ -21,7 +21,7 @@ function getUserTeam(game: GameState) {
   return Object.values(game.teams).find((team) => team.isUser) ?? null;
 }
 
-export function normalizeImportedGame(raw: unknown): GameState {
+function normalizeImportedGame(raw: unknown): GameState {
   if (!raw || typeof raw !== 'object') {
     throw new Error('Save data is missing.');
   }
