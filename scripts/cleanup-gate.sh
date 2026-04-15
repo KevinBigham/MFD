@@ -31,7 +31,13 @@ echo "any count: $any_count (baseline: 113)"
 echo "try count: $try_count (baseline: 14)"
 echo "SAVE_VERSION: $save_version (frozen at: 28)"
 echo "engine/src/index.ts: $engine_index_lines LOC (baseline: 1046)"
-echo "engine/src/types/index.ts: $engine_types_lines LOC (baseline: 3180)"
+echo "engine/src/types/index.ts: $engine_types_lines LOC (baseline: 3180 pre-T2, 21 post-T2)"
+
+echo ""
+echo "=== madge circular deps (informational) ==="
+madge_out=$(pnpm exec madge --circular --extensions ts,tsx --ts-config packages/engine/tsconfig.json packages/engine/src 2>&1 || true)
+cycle_count=$(echo "$madge_out" | grep -oE 'Found [0-9]+ circular' | grep -oE '[0-9]+' || echo "0")
+echo "circular deps: $cycle_count (baseline 39 pre-T2, ~41 post-T2: mostly type-only via inline import() in types/franchise.ts; 1 runtime: game-plan <-> game-sim)"
 
 if [ "$save_version" != "28" ]; then
   echo "FAIL: SAVE_VERSION changed (expected 28, got $save_version). Halt and escalate to Kevin." >&2
