@@ -1,0 +1,29 @@
+{
+  "beats": {
+    "fan_letter": {
+      "from": "Fan Mail",
+      "title": "The Apology Tour Begins",
+      "body": "After {namedGameName}, the mailbag is not angry so much as wounded. Fans want to know the room understands what slipped away."
+    },
+    "beat_column": {
+      "from": "Beat Column",
+      "title": "Column: The Loss That Lingers",
+      "body": "{namedGameName} is becoming the shorthand for every old doubt about this franchise. The next answer has to come on the field."
+    },
+    "owner_email": {
+      "from": "Owner Email",
+      "title": "Owner Email: Explain the Plan",
+      "body": "I do not need theater after {namedGameName}. I need a clear response from the football operation and a team that looks prepared next week."
+    },
+    "resolution_resolved": {
+      "from": "Game Day Center",
+      "title": "Recovery Logged",
+      "body": "The response after {namedGameName} landed. One win does not erase it, but the room stopped the story from becoming a spiral."
+    },
+    "resolution_escalated": {
+      "from": "Game Day Center",
+      "title": "Pressure Escalates",
+      "body": "The follow-up to {namedGameName} only deepened the questions. The apology tour is now a pressure campaign."
+    }
+  }
+}

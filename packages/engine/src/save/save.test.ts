@@ -96,6 +96,7 @@ describe('SaveStateSchema', () => {
       expect(result.data.socialFeed).toEqual([]);
       expect(result.data.tradeDeadlineState).toBeUndefined();
       expect(result.data.scenarioState).toBeUndefined();
+      expect(result.data.apologyTourThreads).toEqual([]);
     }
   });
 
@@ -379,6 +380,19 @@ describe('SaveStateSchema', () => {
       audioCueQueue: [],
       pendingHalftimeDecision: null,
     });
+  });
+
+  it('migrates v28 saves to v29 with apology tour defaults', () => {
+    expect(SAVE_VERSION).toBe(29);
+
+    const migrated = migrate({
+      version: 28,
+      teams: {},
+      players: {},
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['apologyTourThreads']).toEqual([]);
   });
 });
 

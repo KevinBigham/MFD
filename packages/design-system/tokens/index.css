@@ -32,6 +32,9 @@
   --mfd-amber:       #fbbf24;
   --mfd-purple:      #a78bfa;
   --mfd-cyan:        #00e5ff;
+  --mfd-result-hit-bg:     linear-gradient(135deg, var(--mfd-bg), var(--mfd-gold-dim));
+  --mfd-result-miss-bg:    linear-gradient(135deg, var(--mfd-bg), rgba(248, 113, 113, 0.16));
+  --mfd-result-partial-bg: linear-gradient(135deg, var(--mfd-bg), rgba(0, 229, 255, 0.12));
 
   /* ── Pixel / 8-Bit Layer ────────────────────────────── */
   --mfd-pixel-border:      3px solid #333333;

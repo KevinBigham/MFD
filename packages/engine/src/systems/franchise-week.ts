@@ -8,6 +8,7 @@ import { resolveCallYourShot, type CallYourShotResult } from './call-your-shot';
 import { generateNearMissReceipts, hasNotableNearMisses } from './near-miss-receipts';
 import { runAllTrainingCamps } from './training-camp';
 import { detectNamedGame } from './named-games';
+import { syncApologyTourThreads } from './apology-tour';
 import { calculateDynastyWindow } from './dynasty-window';
 import {
   shouldIncludeGhostBroadcast,
@@ -1175,6 +1176,13 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
     if (filmRoomReport) {
       nextState.filmRoomHistory = [...(nextState.filmRoomHistory ?? []), filmRoomReport].slice(-24);
     }
+    syncApologyTourThreads(nextState, {
+      teamId: currentUser.id,
+      opponentTeamId: userOpponent?.id ?? (userResult.homeTeamId === currentUser.id ? userResult.awayTeamId : userResult.homeTeamId),
+      result: userResult,
+      currentYear: nextState.year,
+      currentWeek: nextState.week,
+    });
     appendGameDayPackage(nextState, currentUser, userOpponent, userResult, summary, {
       pressConference: postGameConference,
       rivalry: userRivalry,

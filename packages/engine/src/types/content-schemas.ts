@@ -31,6 +31,24 @@ export const ContingencyCalloutsContentSchema = z.object({
   callouts: z.record(ContingencyCalloutKeySchema, z.array(z.string()).min(5)),
 });
 
+export const ApologyTourBeatSchema = z.object({
+  from: z.string(),
+  title: z.string(),
+  body: z.string(),
+});
+
+export const ApologyTourContentSchema = z.object({
+  beats: z.object({
+    fan_letter: ApologyTourBeatSchema,
+    beat_column: ApologyTourBeatSchema,
+    owner_email: ApologyTourBeatSchema,
+    resolution_resolved: ApologyTourBeatSchema,
+    resolution_escalated: ApologyTourBeatSchema,
+  }),
+});
+
 export type CallYourShotReactionContent = z.infer<typeof CallYourShotReactionSchema>;
 export type CallYourShotReactionOutcome = z.infer<typeof CallYourShotReactionOutcomeSchema>;
 export type ContingencyCalloutKey = z.infer<typeof ContingencyCalloutKeySchema>;
+export type ApologyTourBeatContent = z.infer<typeof ApologyTourBeatSchema>;
+export type ApologyTourContent = z.infer<typeof ApologyTourContentSchema>;

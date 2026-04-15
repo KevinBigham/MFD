@@ -1,5 +1,7 @@
 import type {
   Achievement,
+  ApologyTourBeatKey,
+  ApologyTourThread,
   Ceremony,
   CoachingMarketState,
   ConditionalPick,
@@ -35,6 +37,7 @@ import type {
   MedicalStaff,
   FilmRoomReport,
 } from '@mfd/engine';
+import { getApologyTourBeat } from '@mfd/engine';
 
 export type MessageType = 'URGENT' | 'DECISION' | 'INTEL';
 
@@ -97,6 +100,7 @@ interface BuildInboxMessagesParams {
   coachingMarket: CoachingMarketState;
   currentWeeklyPrepPlan: WeeklyPrepPlan | null;
   latestFilmRoomReport: FilmRoomReport | null;
+  apologyTourThreads: ApologyTourThread[];
   upcomingGame: {
     week: number;
     opponentName: string;
@@ -105,6 +109,46 @@ interface BuildInboxMessagesParams {
     broadcastNetwork: string | null;
     bye: boolean;
   } | null;
+}
+
+const APOLOGY_BEAT_ORDER: ApologyTourBeatKey[] = ['fan_letter', 'beat_column', 'owner_email', 'resolution'];
+
+const APOLOGY_BEAT_WEEK_OFFSETS: Record<ApologyTourBeatKey, number> = {
+  fan_letter: 1,
+  beat_column: 2,
+  owner_email: 3,
+  resolution: 7,
+};
+
+function interpolateApologyCopy(template: string, thread: ApologyTourThread, teamName: string): string {
+  return template
+    .replaceAll('{namedGameName}', thread.namedGameName)
+    .replaceAll('{teamName}', teamName);
+}
+
+function buildApologyTourMessage(thread: ApologyTourThread, beat: ApologyTourBeatKey, teamName: string): InboxMessage {
+  const contentKey = beat === 'resolution'
+    ? thread.status === 'escalated' ? 'resolution_escalated' : 'resolution_resolved'
+    : beat;
+  const content = getApologyTourBeat(contentKey);
+  const type: MessageType = beat === 'fan_letter'
+    ? 'URGENT'
+    : beat === 'owner_email'
+      ? 'DECISION'
+      : beat === 'resolution' && thread.status === 'escalated'
+        ? 'URGENT'
+        : 'INTEL';
+
+  return {
+    id: `apology-${thread.id}-${beat}`,
+    type,
+    title: interpolateApologyCopy(content.title, thread, teamName),
+    body: interpolateApologyCopy(content.body, thread, teamName),
+    from: content.from,
+    week: thread.startedWeek + APOLOGY_BEAT_WEEK_OFFSETS[beat],
+    read: false,
+    actionRequired: beat === 'owner_email' || (beat === 'resolution' && thread.status === 'escalated'),
+  };
 }
 
 export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessage[] {
@@ -146,10 +190,21 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     coachingMarket,
     currentWeeklyPrepPlan,
     latestFilmRoomReport,
+    apologyTourThreads,
     upcomingGame,
   } = params;
   const msgs: InboxMessage[] = [];
   if (!team) return msgs;
+
+  const teamName = `${team.city} ${team.name}`.trim();
+  for (const thread of apologyTourThreads.filter((entry) => entry.teamId === team.id).slice(-3)) {
+    const delivered = new Set(thread.beatsDelivered);
+    for (const beat of APOLOGY_BEAT_ORDER) {
+      if (delivered.has(beat)) {
+        msgs.push(buildApologyTourMessage(thread, beat, teamName));
+      }
+    }
+  }
 
   if (latestPackage) {
     msgs.push({

@@ -8,6 +8,7 @@ import coachArchetypesJson from '../../content/coaching/coach-archetypes.json';
 import contingencyCalloutsJson from '../../content/contingency-callouts.json';
 import halftimePerformersJson from '../../content/halftime/halftime-performers.json';
 import playerNamesJson from '../../content/names/player-names.json';
+import apologyTourJson from '../../content/narrative/apology-tour.json';
 import storyArcTemplatesJson from '../../content/narrative/story-arc-templates.json';
 import leagueNewsTemplatesJson from '../../content/news/league-news-templates.json';
 import personalityFlavorJson from '../../content/personalities/personality-flavor.json';
@@ -48,15 +49,18 @@ import team_tb_pirates_json from '../../content/teams/tb-pirates.json';
 import {
   CallYourShotReactionsContentSchema,
   ContingencyCalloutsContentSchema,
+  ApologyTourContentSchema,
   type CallYourShotReactionContent,
   type CallYourShotReactionOutcome,
   type ContingencyCalloutKey,
+  type ApologyTourBeatContent,
 } from './types/content-schemas';
 
 export type {
   CallYourShotReactionContent,
   CallYourShotReactionOutcome,
   ContingencyCalloutKey,
+  ApologyTourBeatContent,
 } from './types/content-schemas';
 
 export type PressConferenceScenario =
@@ -329,6 +333,7 @@ const callYourShotReactionsContent = CallYourShotReactionsContentSchema.parse(
 const contingencyCalloutsContent = ContingencyCalloutsContentSchema.parse(
   contingencyCalloutsJson,
 ) as ContingencyCalloutsContent;
+const apologyTourContent = ApologyTourContentSchema.parse(apologyTourJson);
 const broadcastTemplateContent = {
   ...(passingDefenseStTemplatesJson as Record<string, BroadcastTemplateCategory>),
   ...(rushingTemplatesJson as Record<string, BroadcastTemplateCategory>),
@@ -573,6 +578,12 @@ export function getCallYourShotReactions(outcome: CallYourShotReactionOutcome): 
 
 export function getContingencyCallouts(key: ContingencyCalloutKey): readonly string[] {
   return contingencyCalloutsContent.callouts[key] ?? [];
+}
+
+export function getApologyTourBeat(
+  key: 'fan_letter' | 'beat_column' | 'owner_email' | 'resolution_resolved' | 'resolution_escalated',
+): ApologyTourBeatContent {
+  return apologyTourContent.beats[key];
 }
 
 export function getStoryArcPhaseContent(arcType: string, phase: string): StoryArcPhaseContent | null {

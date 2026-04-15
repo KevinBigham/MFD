@@ -201,6 +201,24 @@ export interface GameDayState {
   latestPackageId: string | null;
 }
 
+// ── Apology Tour ────────────────────────────────────────
+
+export type ApologyTourStatus = 'active' | 'resolved' | 'escalated';
+export type ApologyTourBeatKey = 'fan_letter' | 'beat_column' | 'owner_email' | 'resolution';
+
+export interface ApologyTourThread {
+  id: string;
+  gameId: string;
+  teamId: string;
+  opponentTeamId: string;
+  namedGameName: string;
+  archetype: Extract<import('../systems/named-games').NamedGameArchetype, 'collapse' | 'heartbreaker'>;
+  startedYear: number;
+  startedWeek: number;
+  status: ApologyTourStatus;
+  beatsDelivered: ApologyTourBeatKey[];
+}
+
 // ── Season Context ─────────────────────────────────────
 
 export interface SeasonContext {
@@ -1243,6 +1261,7 @@ export interface GameState {
   seasonNearMissReceipts?: import('../systems/near-miss-receipts').NearMissEntry[];
   pendingPassedPickTargets?: PendingPassedPickTarget[];
   activeCallYourShot?: import('../systems/call-your-shot').ShotDeclaration;
+  apologyTourThreads: ApologyTourThread[];
   lastManualSaveYear?: number;
   setupState?: import('../systems/franchise-setup').SetupState;
   franchiseBlueprint?: import('../systems/franchise-setup').FranchiseBlueprint;

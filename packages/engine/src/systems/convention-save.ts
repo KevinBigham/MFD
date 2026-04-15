@@ -397,6 +397,7 @@ function createBaseState(userTeamId: string, rng: PrngFn): GameState {
       recentBeats: [],
       cooldownWeeks: 0,
     },
+    apologyTourThreads: [],
     ceremonies: [],
     dynastyTimeline: [],
     achievements: [],

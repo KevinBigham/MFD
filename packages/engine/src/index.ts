@@ -139,6 +139,7 @@ export {
   getBroadcastTemplate,
   getCallYourShotReactions,
   getContingencyCallouts,
+  getApologyTourBeat,
 } from './content-loader';
 export type {
   CoachArchetypeContent,
@@ -148,6 +149,7 @@ export type {
   CallYourShotReactionContent,
   CallYourShotReactionOutcome,
   ContingencyCalloutKey,
+  ApologyTourBeatContent,
 } from './content-loader';
 export {
   createTradeProposal,
@@ -996,6 +998,9 @@ export type { WindowPhase, DynastyWindowResult } from './systems/dynasty-window'
 // Systems — Named Games (Sprint 27)
 export { detectNamedGame, checkForNamedGame, formatNamedGame, NAMED_GAME_PRIORITY } from './systems/named-games';
 export type { NamedGameArchetype, NamedGameContext, NamedGameEvent as NamedGame } from './systems/named-games';
+
+// Systems — Apology Tour (Sprint 38)
+export { syncApologyTourThreads } from './systems/apology-tour';
 
 // Systems — Career Epilogues (Sprint 27)
 export { generateCareerEpilogue, isEpilogueWorthy } from './systems/career-epilogues';

@@ -3,6 +3,7 @@ import type {
   AchievementProgress,
   AgentProfile,
   AllDecadeTeam,
+  ApologyTourThread,
   AwardsHistoryEntry,
   BrokenRecord,
   BroadcastOutput,
@@ -207,6 +208,7 @@ const EMPTY_LEAGUE_RIVALRIES: LeagueRivalry[] = [];
 const EMPTY_GAME_EVENTS: GameEvent[] = [];
 const EMPTY_PRACTICE_SQUAD: PracticeSquadPlayer[] = [];
 const EMPTY_ACHIEVEMENTS: Achievement[] = [];
+const EMPTY_APOLOGY_TOUR_THREADS: ApologyTourThread[] = [];
 const EMPTY_SEASON_REPORTS: SeasonReport[] = [];
 const EMPTY_WAIVER_WIRE: WaiverWireEntry[] = [];
 const EMPTY_WAIVER_CLAIMS: WaiverClaim[] = [];
@@ -717,6 +719,8 @@ export const selectOffFieldEvents = (state: GameStoreState): OffFieldEvent[] => 
 export const selectRecentPressConferences = (state: GameStoreState): PressConference[] => state.game?.recentPressConferences ?? EMPTY_PRESS_CONFERENCES;
 export const selectLeagueRivalries = (state: GameStoreState): LeagueRivalry[] => state.game?.leagueRivalries ?? EMPTY_LEAGUE_RIVALRIES;
 export const selectGameDayState = (state: GameStoreState): GameDayState | null => state.game?.gameDayState ?? null;
+export const selectApologyTourThreads = (state: GameStoreState): ApologyTourThread[] =>
+  state.game?.apologyTourThreads ?? EMPTY_APOLOGY_TOUR_THREADS;
 export const selectSocialFeed = (state: GameStoreState): SocialPost[] => state.game?.socialFeed ?? EMPTY_SOCIAL_FEED;
 export const selectTradeDeadlineState = (state: GameStoreState): TradeDeadlineState | null => state.game?.tradeDeadlineState ?? EMPTY_TRADE_DEADLINE_STATE;
 export const selectScenarioState = (state: GameStoreState): ScenarioState | null => state.game?.scenarioState ?? EMPTY_SCENARIO_STATE;
