@@ -38,8 +38,11 @@ export function NewGameScreen() {
       .then((game) => {
         if (active) setHasAutosave(Boolean(game));
       })
-      .catch(() => {
-        if (active) setHasAutosave(false);
+      .catch((err) => {
+        if (active) {
+          console.error('Failed to probe autosave:', err);
+          setHasAutosave(false);
+        }
       });
     return () => {
       active = false;
@@ -77,6 +80,7 @@ export function NewGameScreen() {
         setHasAutosave(false);
       }
     } catch (err) {
+      console.error('Autosave load error:', err);
       setAutosaveError(err instanceof Error ? err.message : 'Failed to load autosave. The save file may be corrupted.');
       setHasAutosave(false);
     } finally {

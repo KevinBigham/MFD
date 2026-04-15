@@ -157,13 +157,11 @@ export function generateHooks(state: HookState, lastShownCats: readonly string[]
   const hooks: Hook[] = [];
 
   for (const gen of generators) {
-    try {
-      const hook = gen(state);
-      if (hook) {
-        if (lastShownCats.includes(hook.cat)) hook.priority -= 20;
-        hooks.push(hook);
-      }
-    } catch { /* skip broken generator */ }
+    const hook = gen(state);
+    if (hook) {
+      if (lastShownCats.includes(hook.cat)) hook.priority -= 20;
+      hooks.push(hook);
+    }
   }
 
   hooks.sort((a, b) => b.priority - a.priority);
