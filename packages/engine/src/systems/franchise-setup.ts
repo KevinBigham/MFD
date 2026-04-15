@@ -578,11 +578,11 @@ function currentStamp(game: Pick<GameState, 'year' | 'week'>): number {
 }
 
 function currentOffScheme(team: Team): string {
-  return team.schemeOff ?? team.offScheme ?? 'balanced';
+  return team.schemeOff ?? 'balanced';
 }
 
 function currentDefScheme(team: Team): string {
-  return team.schemeDef ?? team.defScheme ?? '4-3';
+  return team.schemeDef ?? '4-3';
 }
 
 function isOffensivePosition(position: Position): boolean {
