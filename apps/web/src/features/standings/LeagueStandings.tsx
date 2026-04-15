@@ -1,4 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table';
+import type { StandingsRow } from '@mfd/engine';
 import { PixelBadge, PixelPanel, PixelTable } from '@mfd/design-system/components';
 import { selectPlayoffPicture, selectStandings, selectStatLeaders, selectUserTeam, useGameStore } from '../../app/store/game-store';
 import {
@@ -19,7 +20,7 @@ function streakLabel(streak: number): string {
   return 'EVEN';
 }
 
-function standingsColumns(userTeamId: string | null): ColumnDef<(ReturnType<typeof useGameStore.getState> extends never ? never : any), unknown>[] {
+function standingsColumns(userTeamId: string | null): ColumnDef<StandingsRow, unknown>[] {
   return [
     {
       accessorKey: 'rank',

@@ -27,7 +27,7 @@ save_version=$(grep -E 'export const SAVE_VERSION' packages/engine/src/config/di
 engine_index_lines=$(wc -l < packages/engine/src/index.ts | tr -d ' ')
 engine_types_lines=$(wc -l < packages/engine/src/types/index.ts | tr -d ' ')
 
-echo "any count: $any_count (baseline: 113)"
+echo "any count: $any_count (baseline: 113 pre-T5, 111 post-T5: all in test files, ESLint-exempt)"
 echo "try count: $try_count (baseline: 14)"
 echo "SAVE_VERSION: $save_version (frozen at: 28)"
 echo "engine/src/index.ts: $engine_index_lines LOC (baseline: 1046)"
