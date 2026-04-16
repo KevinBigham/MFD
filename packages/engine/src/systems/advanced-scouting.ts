@@ -171,11 +171,12 @@ export function resolveInterviewCharacterRead(prospect: DraftProspect, scout: Sc
 
 export function buildInitialScoutingState(prospect: DraftProspect, scout: Scout | null): ProspectScoutingState {
   const baselineAccuracy = roundTenth((scout?.accuracy ?? 0.65) * 0.1);
+  const bloodlineConfidenceBonus = prospect.bloodline ? 3 : 0;
   return normalizeScoutingState(prospect, {
     prospectId: prospect.id,
     actions: [],
     accuracy: baselineAccuracy,
-    confidence: deriveConfidence(baselineAccuracy),
+    confidence: clamp(deriveConfidence(baselineAccuracy) + bloodlineConfidenceBonus, 0, 95),
     visibleScoutGrade: prospect.scoutGrade,
     notes: [],
     proDayRating: null,

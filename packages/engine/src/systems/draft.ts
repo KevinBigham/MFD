@@ -9,6 +9,7 @@ import {
   resolvePrivateWorkout,
   tightenVisibleGrade,
 } from './advanced-scouting';
+import { assignBloodlinesToDraftClass } from './bloodlines';
 import { makeContract } from './contracts';
 import { rookieSlotContract } from '../config/rookie-slots';
 import { recordDynastyEvent } from './dynasty-timeline';
@@ -129,9 +130,18 @@ export function ensureDraftClass(game: GameState): void {
     .filter((pick) => pick.year === game.year).length;
   const rand = rngForClass(game.seed, game.year);
   const count = Math.max(64, pickCount + 24);
-  game.draftClass = Array.from({ length: count }, (_, index) => makeProspect(game, rand, index + 1))
+  const prospects = Array.from({ length: count }, (_, index) => makeProspect(game, rand, index + 1));
+  game.draftClass = assignBloodlinesToDraftClass(prospects, game)
     .sort((a, b) => b.trueGrade - a.trueGrade || a.id.localeCompare(b.id));
   runCombine(game, rand);
+}
+
+function personalityWithBloodlineLoyalty(prospect: DraftProspect, teamId: string): Player['personality'] {
+  if (prospect.bloodline?.parentTeamId !== teamId) return prospect.personality;
+  return {
+    ...prospect.personality,
+    loyalty: Math.min(10, prospect.personality.loyalty + 1),
+  };
 }
 
 function prospectToPlayer(prospect: DraftProspect, teamId: string, year: number, round: number, pick: number): Player {
@@ -147,7 +157,7 @@ function prospectToPlayer(prospect: DraftProspect, teamId: string, year: number,
     pot: Math.min(99, prospect.trueGrade + 6),
     ratings: prospect.ratings,
     devTrait: prospect.trueGrade >= 88 ? 'star' : 'normal',
-    personality: prospect.personality,
+    personality: personalityWithBloodlineLoyalty(prospect, teamId),
     traits: prospect.traits,
     archetype: prospect.archetype,
     contract: makeContract(
@@ -180,6 +190,7 @@ function prospectToPlayer(prospect: DraftProspect, teamId: string, year: number,
     tradeBlock: false,
     holdout: false,
     agentId: null,
+    bloodline: prospect.bloodline ?? null,
     stats: emptyPlayerStats(),
   };
 }
@@ -305,6 +316,18 @@ function applyDraftSelection(game: GameState, teamId: string, prospectId: string
       importance: draftEntry.round === 1 ? 'major' : 'minor',
       playerIds: [rookie.id],
       teamIds: [team.id],
+    });
+  }
+  if (rookie.bloodline) {
+    recordDynastyEvent(game, {
+      id: `draft-bloodline-${rookie.id}-${game.year}`,
+      year: game.year,
+      week: game.week,
+      type: 'draft_pick',
+      headline: `${team.city} drafts ${rookie.name}, son of ${rookie.bloodline.parentName}`,
+      importance: draftEntry.round === 1 ? 'major' : 'minor',
+      playerIds: [rookie.id, rookie.bloodline.parentPlayerId],
+      teamIds: [...new Set([team.id, rookie.bloodline.parentTeamId])],
     });
   }
 }

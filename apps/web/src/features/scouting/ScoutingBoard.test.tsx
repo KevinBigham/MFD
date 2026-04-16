@@ -14,6 +14,14 @@ const mockState = {
       scoutGrade: 82,
       combine: null,
       region: 'south',
+      bloodline: {
+        parentPlayerId: 'legend-wr',
+        parentName: 'Marcus North',
+        parentTeamId: 'user',
+        parentPosition: 'WR',
+        relationship: 'son',
+        legacyTag: 'famous_name',
+      },
     },
   ],
   offseasonState: {
@@ -75,6 +83,8 @@ describe('ScoutingBoard', () => {
     expect(markup).toContain('Watchlist Only');
     expect(markup).toContain('Critical Needs');
     expect(markup).toContain('south');
+    expect(markup).toContain('Bloodline');
+    expect(markup).toContain('Lineage: son of Marcus North');
     expect(markup).toContain('balanced');
     expect(markup).toContain('steady');
   });

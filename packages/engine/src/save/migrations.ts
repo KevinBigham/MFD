@@ -1132,3 +1132,38 @@ registerMigration(28, (state) => ({
   ...state,
   apologyTourThreads: Array.isArray(state['apologyTourThreads']) ? state['apologyTourThreads'] : [],
 }));
+
+function defaultBloodlineOnRecord(record: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...record,
+    bloodline: record['bloodline'] ?? null,
+  };
+}
+
+// v29→v30: Bloodlines persistence defaults for players and draft prospects
+registerMigration(29, (state) => {
+  const players = (state['players'] && typeof state['players'] === 'object')
+    ? Object.fromEntries(
+      Object.entries(state['players'] as Record<string, unknown>).map(([id, player]) => [
+        id,
+        player && typeof player === 'object'
+          ? defaultBloodlineOnRecord(player as Record<string, unknown>)
+          : player,
+      ]),
+    )
+    : {};
+
+  const draftClass = Array.isArray(state['draftClass'])
+    ? state['draftClass'].map((prospect) => (
+      prospect && typeof prospect === 'object'
+        ? defaultBloodlineOnRecord(prospect as Record<string, unknown>)
+        : prospect
+    ))
+    : [];
+
+  return {
+    ...state,
+    players,
+    draftClass,
+  };
+});

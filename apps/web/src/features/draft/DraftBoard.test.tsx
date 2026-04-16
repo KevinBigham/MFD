@@ -18,6 +18,14 @@ const mockState = {
       college: 'Texas',
       projectedRound: 1,
       scoutGrade: 81,
+      bloodline: {
+        parentPlayerId: 'legend-wr',
+        parentName: 'Marcus North',
+        parentTeamId: 'user',
+        parentPosition: 'WR',
+        relationship: 'son',
+        legacyTag: 'famous_name',
+      },
     },
   ],
   offseasonState: {
@@ -80,6 +88,7 @@ describe('DraftBoard', () => {
 
     expect(markup).toContain('DRAFT BOARD');
     expect(markup).toContain('51%');
+    expect(markup).toContain('Bloodline');
     expect(markup).toContain('balanced');
     expect(markup).toContain('steady');
   });

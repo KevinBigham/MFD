@@ -259,6 +259,7 @@ export function DraftBoard() {
                       <PixelBadge variant="gold">{scouting?.riskBand ?? 'unknown'}</PixelBadge>
                       <PixelBadge variant="green">{scouting?.ceilingBand ?? 'unknown'}</PixelBadge>
                       <PixelBadge variant="default">{scouting?.characterRead ?? 'unknown'}</PixelBadge>
+                      {prospect.bloodline ? <PixelBadge variant="gold">Bloodline</PixelBadge> : null}
                     </div>
                   </div>
 

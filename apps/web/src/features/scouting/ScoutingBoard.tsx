@@ -270,6 +270,7 @@ export function ScoutingBoard() {
               const combineVisible = Boolean(prospect.combine && scouting?.actions.includes('combine'));
               const privateWorkoutTaken = Boolean(scouting?.actions.includes('private_workout'));
               const isWatched = watchlist.has(prospect.id);
+              const showLineage = Boolean(prospect.bloodline && (confidence >= 50 || isWatched));
 
               return (
                 <div key={prospect.id} style={{
@@ -303,6 +304,7 @@ export function ScoutingBoard() {
                       <PixelBadge variant="gold">{scouting?.riskBand ?? 'unknown'}</PixelBadge>
                       <PixelBadge variant="green">{scouting?.ceilingBand ?? 'unknown'}</PixelBadge>
                       <PixelBadge variant="default">{scouting?.characterRead ?? 'unknown'}</PixelBadge>
+                      {prospect.bloodline ? <PixelBadge variant="gold">Bloodline</PixelBadge> : null}
                       {assignedScout ? (
                         <PixelBadge variant={assignedScout.tier === 'elite' ? 'gold' : assignedScout.tier === 'good' ? 'green' : assignedScout.tier === 'average' ? 'cyan' : 'red'}>
                           {assignedScout.scope === 'national' ? 'National' : assignedScout.region}
@@ -320,6 +322,12 @@ export function ScoutingBoard() {
                   {scouting?.proDayRating ? (
                     <div style={{ ...monoSm, color: 'var(--mfd-green)' }}>
                       Pro Day: {scouting.proDayRating}
+                    </div>
+                  ) : null}
+
+                  {showLineage && prospect.bloodline ? (
+                    <div style={{ ...monoSm, color: 'var(--mfd-gold)', lineHeight: 1.6 }}>
+                      Lineage: {prospect.bloodline.relationship} of {prospect.bloodline.parentName}
                     </div>
                   ) : null}
 

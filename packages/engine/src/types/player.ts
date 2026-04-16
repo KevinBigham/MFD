@@ -42,6 +42,18 @@ export interface PlayerArchetype {
   description: string;
 }
 
+export type BloodlineRelationship = 'son';
+export type BloodlineLegacyTag = 'franchise_royalty' | 'famous_name' | 'chip_on_shoulder' | 'late_bloomer_family';
+
+export interface BloodlineInfo {
+  parentPlayerId: string;
+  parentName: string;
+  parentTeamId: string;
+  parentPosition: Position;
+  relationship: BloodlineRelationship;
+  legacyTag: BloodlineLegacyTag;
+}
+
 export interface Player {
   id: string;
   firstName: string;
@@ -79,6 +91,7 @@ export interface Player {
   tradeBlock: boolean;
   holdout: boolean;
   agentId: string | null;
+  bloodline?: BloodlineInfo | null;
   stats: PlayerSeasonStats;
 }
 

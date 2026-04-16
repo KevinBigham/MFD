@@ -29,6 +29,7 @@ function makeProspect(overrides: Partial<DraftProspect> = {}): DraftProspect {
     stealProbability: overrides.stealProbability ?? 0.14,
     scoutingReports: overrides.scoutingReports ?? [],
     combine: overrides.combine ?? null,
+    bloodline: overrides.bloodline ?? null,
   } as DraftProspect;
 }
 
@@ -64,6 +65,28 @@ describe('advanced scouting', () => {
       privateWorkoutRatings: [],
     });
     expect(state.confidence).toBeGreaterThan(0);
+  });
+
+  it('adds a small initial confidence bonus for bloodline prospects without changing grades', () => {
+    const scout = makeScout();
+    const regular = makeProspect({ id: 'regular' });
+    const bloodline = makeProspect({
+      id: 'bloodline',
+      bloodline: {
+        parentPlayerId: 'legend-wr',
+        parentName: 'Marcus North',
+        parentTeamId: 'afce1',
+        parentPosition: 'WR',
+        relationship: 'son',
+        legacyTag: 'famous_name',
+      },
+    });
+
+    const regularState = buildInitialScoutingState(regular, scout);
+    const bloodlineState = buildInitialScoutingState(bloodline, scout);
+
+    expect(bloodlineState.confidence - regularState.confidence).toBe(3);
+    expect(bloodlineState.visibleScoutGrade).toBe(regularState.visibleScoutGrade);
   });
 
   it('derives character intel from personality and traits', () => {
