@@ -29,6 +29,7 @@ import {
 import { selectCanUndo, selectUndoLabel } from './store/selectors';
 import { generateDevelopmentReport, identifyBreakoutCandidates, PHASE_ORDER } from '@mfd/engine';
 import { computeNavBadges } from './navBadges';
+import { MobileBottomTabBar } from './MobileBottomTabBar';
 import { ErrorBoundary } from './ErrorBoundary';
 import { AutosaveToast } from './AutosaveToast';
 import { NewGameScreen } from './NewGameScreen';
@@ -424,13 +425,18 @@ function RootLayout() {
           activePath={activePath}
           onOpenHotkeyHelp={() => setShowHotkeyHelp(true)}
         />
-        <main style={{
-          flex: 1,
-          padding: 'var(--mfd-sp-lg) var(--mfd-sp-xl)',
-          overflow: 'auto',
-        }}>
+        <main
+          data-mfd-main-content="true"
+          style={{
+            flex: 1,
+            padding: 'var(--mfd-sp-lg) var(--mfd-sp-xl)',
+            overflow: 'auto',
+          }}
+        >
           <Outlet />
         </main>
+        <MobileBottomTabBarMount activePath={activePath} />
+
         <MfdCommandPalette
           open={commandPaletteOpen}
           onOpenChange={setCommandPaletteOpen}
@@ -657,6 +663,32 @@ function useNavBadges(): Record<string, number> {
   }), [tradeOffers, roster, hasGamePlan, phase, handshakes]);
 }
 
+/**
+ * Sprint 44 — Mounts the sticky bottom tab bar on phone widths.
+ * Builds `drawerGroups` from NAV_GROUPS + NAV_ITEMS so the "More" sheet
+ * mirrors the desktop grouping. Visibility is gated by CSS (tokens/index.css).
+ */
+function MobileBottomTabBarMount({ activePath }: { activePath: string }) {
+  const badges = useNavBadges();
+  const navItemMap = useMemo(() => {
+    const map = new Map<string, NavItem>();
+    for (const item of NAV_ITEMS) map.set(item.path, item);
+    return map;
+  }, []);
+  const drawerGroups = useMemo(() => {
+    return NAV_GROUPS.map((group) => ({
+      id: group.id,
+      label: group.label,
+      items: group.paths
+        .map((p) => navItemMap.get(p))
+        .filter((i): i is NavItem => !!i)
+        .map((i) => ({ path: i.path, shortLabel: i.shortLabel, icon: i.icon })),
+    }));
+  }, [navItemMap]);
+
+  return <MobileBottomTabBar activePath={activePath} drawerGroups={drawerGroups} badges={badges} />;
+}
+
 function UndoButton() {
   const canUndo = useGameStore(selectCanUndo);
   const undoLabel = useGameStore(selectUndoLabel);
@@ -739,16 +771,19 @@ function TopNav({
   }, []);
 
   return (
-    <header style={{
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: '12px',
-      padding: '10px 12px',
-      borderBottom: '3px solid var(--mfd-gold)',
-      background: 'linear-gradient(180deg, #080808 0%, #000 100%)',
-      flexShrink: 0,
-      overflowX: 'auto',
-    }}>
+    <header
+      data-mfd-top-nav="true"
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '12px',
+        padding: '10px 12px',
+        borderBottom: '3px solid var(--mfd-gold)',
+        background: 'linear-gradient(180deg, #080808 0%, #000 100%)',
+        flexShrink: 0,
+        overflowX: 'auto',
+      }}
+    >
       <div style={{
         display: 'flex',
         flexDirection: 'column',

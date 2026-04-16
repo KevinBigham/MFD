@@ -320,6 +320,7 @@ export function RosterManagement() {
       />
 
       <PixelTable
+        responsive="cards"
         data={filtered}
         columns={columns}
         density="compact"

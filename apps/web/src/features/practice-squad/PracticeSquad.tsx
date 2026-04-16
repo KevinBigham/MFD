@@ -161,6 +161,7 @@ export function PracticeSquad() {
 
       <PixelPanel title="Add To Practice Squad" accent="green">
         <PixelTable
+          responsive="cards"
           data={candidates}
           columns={[
             ...candidateColumns,

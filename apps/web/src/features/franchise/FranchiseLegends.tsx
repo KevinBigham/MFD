@@ -122,7 +122,7 @@ export function FranchiseLegends() {
       {activeTab === 'legends' ? (
         <div style={autoGrid(320)}>
           <PixelPanel title="Legend Board" accent="gold">
-            <PixelTable data={legends} columns={columns} accent="gold" emptyMessage="No franchise legends yet." />
+            <PixelTable responsive="cards" data={legends} columns={columns} accent="gold" emptyMessage="No franchise legends yet." />
           </PixelPanel>
 
           <PixelPanel title="Focused Legend" accent={focusedLegend?.hallOfFame ? 'gold' : 'cyan'}>

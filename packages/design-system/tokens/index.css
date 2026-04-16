@@ -158,6 +158,24 @@
     max-width: 100vw;
     overflow-x: hidden;
   }
+  /* Sprint 44 — Swap desktop top nav for sticky bottom tab bar. */
+  [data-mfd-top-nav="true"] {
+    display: none !important;
+  }
+  [data-mfd-mobile-nav="true"] {
+    display: block !important;
+  }
+  /* Leave room for the fixed bottom bar so content is never hidden under it. */
+  [data-mfd-main-content="true"] {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0)) !important;
+  }
+}
+
+/* Above the phone breakpoint, the mobile nav is hidden outright. */
+@media (min-width: 769px) {
+  [data-mfd-mobile-nav="true"] {
+    display: none !important;
+  }
 }
 
 /* Card-mode PixelTable at phone widths (<= 480px) — component opt-in

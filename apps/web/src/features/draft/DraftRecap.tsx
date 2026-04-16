@@ -85,6 +85,7 @@ export function DraftRecap() {
 
       <PixelPanel title="Pick By Pick" accent="cyan">
         <PixelTable
+          responsive="cards"
           data={activeRecap.picks}
           columns={pickColumns}
           accent="cyan"

@@ -113,6 +113,7 @@ export function WaiverWire() {
 
       <PixelPanel title="Waiver Board" accent={tab === 'board' ? 'cyan' : 'default'}>
         <PixelTable
+          responsive="cards"
           data={filteredBoard}
           columns={[
             ...boardColumns,
@@ -169,6 +170,7 @@ export function WaiverWire() {
 
         <PixelPanel title="Transaction Log" accent={tab === 'transactions' ? 'green' : 'default'}>
           <PixelTable
+            responsive="cards"
             data={transactionLog}
             columns={transactionColumns}
             accent="green"
