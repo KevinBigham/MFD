@@ -2,7 +2,7 @@ export type SetupRunMode = 'full' | 'fast_lane';
 
 export const FIRST_TEN_COMPLETED_KEY = 'mfd:first-ten-completed';
 export const SETUP_RUN_MODE_KEY = 'mfd:setup-run-mode';
-export const SETUP_PRELUDE_DISMISSED_PREFIX = 'mfd:setup-prelude-dismissed:';
+const SETUP_PRELUDE_DISMISSED_PREFIX = 'mfd:setup-prelude-dismissed:';
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 

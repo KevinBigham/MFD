@@ -1,4 +1,5 @@
 import { getActiveRule } from './league-rules';
+import { compareStatLeaders } from '../utils';
 import type {
   BrokenRecord,
   CareerLeader,
@@ -604,7 +605,7 @@ export function getLeagueLeaders(
       value: Number(player.stats[stat] ?? 0),
     }))
     .filter((leader) => leader.value > 0)
-    .sort((a, b) => b.value - a.value || a.playerName.localeCompare(b.playerName))
+    .sort(compareStatLeaders)
     .slice(0, limit)
     .map((leader, index) => ({
       ...leader,
@@ -652,7 +653,7 @@ export function getCareerLeaders(
   }
 
   return [...leaders.values()]
-    .sort((a, b) => b.value - a.value || a.playerName.localeCompare(b.playerName))
+    .sort(compareStatLeaders)
     .slice(0, limit)
     .map((leader, index) => ({
       ...leader,

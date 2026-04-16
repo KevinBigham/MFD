@@ -214,6 +214,7 @@ export {
   getClinchedStatus,
   getStatLeaders,
 } from './systems/standings';
+export type { StandingsRow } from './systems/standings';
 export {
   calculatePlayoffMomentum,
   getPlayoffMomentumBonus,

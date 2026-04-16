@@ -136,6 +136,4 @@ function ActionCenter(props: ActionCenterProps) {
   );
 }
 
-const ActionCenterView = ActionCenter;
-
-export { ActionCenter, ActionCenterView };
+export { ActionCenter };

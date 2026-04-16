@@ -20,7 +20,7 @@ export interface SaveSlot {
   version: number;
 }
 
-export class MfdDatabase extends Dexie {
+class MfdDatabase extends Dexie {
   saves!: EntityTable<SaveSlot, 'id'>;
 
   constructor() {
@@ -31,7 +31,7 @@ export class MfdDatabase extends Dexie {
   }
 }
 
-export const db = new MfdDatabase();
+const db = new MfdDatabase();
 
 /** Save game state to a slot. */
 export async function saveGame(slot: Omit<SaveSlot, 'id'>): Promise<number> {

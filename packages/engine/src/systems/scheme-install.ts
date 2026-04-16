@@ -59,7 +59,7 @@ function snapshotRoom(
   };
 }
 
-export function snapshotTeamIdentity(team: Team, offenseScheme = team.schemeOff ?? team.offScheme ?? 'balanced', defenseScheme = team.schemeDef ?? team.defScheme ?? '4-3'): TeamIdentitySnapshot {
+export function snapshotTeamIdentity(team: Team, offenseScheme = team.schemeOff ?? 'balanced', defenseScheme = team.schemeDef ?? '4-3'): TeamIdentitySnapshot {
   const rooms = ROOM_GROUPS.map((room) => snapshotRoom(team, room.group, room.positions, offenseScheme, defenseScheme));
   const overallFit = Math.round(average(rooms.map((room) => room.fitScore)));
   return {
@@ -88,8 +88,8 @@ function buildLane(current: string, next: string, snapshotFit: number, staffAlig
 }
 
 export function projectSchemeTransition(team: Team, nextOffense: string, nextDefense: string): SchemeInstallState {
-  const currentOffense = team.schemeOff ?? team.offScheme ?? 'balanced';
-  const currentDefense = team.schemeDef ?? team.defScheme ?? '4-3';
+  const currentOffense = team.schemeOff ?? 'balanced';
+  const currentDefense = team.schemeDef ?? '4-3';
   const snapshot = snapshotTeamIdentity(team, nextOffense, nextDefense);
   const offenseAlignment = (team.staff.oc?.schemeLean?.offense === nextOffense ? 12 : 0)
     + (team.staff.hc?.schemeLean?.offense === nextOffense ? 5 : 0);

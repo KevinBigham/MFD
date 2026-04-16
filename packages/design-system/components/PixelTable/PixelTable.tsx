@@ -6,6 +6,7 @@ import {
   getFilteredRowModel,
   flexRender,
   type ColumnDef,
+  type HeaderContext,
   type SortingState,
   type ColumnFiltersState,
   type RowSelectionState,
@@ -201,7 +202,7 @@ export function PixelTable<T>({
 
 function renderHeaderLabel<T>(
   header: ColumnDef<T, unknown>['header'],
-  context: any,
+  context: HeaderContext<T, unknown>,
 ) {
   if (typeof header === 'string') {
     return header.toUpperCase();

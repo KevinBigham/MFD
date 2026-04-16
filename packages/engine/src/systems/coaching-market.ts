@@ -71,8 +71,8 @@ function staffDefaults(member: StaffMember, team: Team, year: number, role = mem
     loyalty: member.loyalty ?? 6,
     ambition: member.ambition ?? 5,
     schemeLean: member.schemeLean ?? {
-      offense: team.schemeOff ?? team.offScheme ?? 'balanced',
-      defense: team.schemeDef ?? team.defScheme ?? '4-3',
+      offense: team.schemeOff ?? 'balanced',
+      defense: team.schemeDef ?? '4-3',
     },
     lastHiredYear: member.lastHiredYear ?? year,
   };
