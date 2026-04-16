@@ -41,6 +41,7 @@ export function PixelNav({
           <button
             key={item.key}
             type="button"
+            data-mfd-nav-item="true"
             data-active={active ? 'true' : 'false'}
             aria-pressed={active}
             disabled={item.disabled}

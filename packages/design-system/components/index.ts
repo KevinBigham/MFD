@@ -29,3 +29,12 @@ export { PixelMetricCard } from './PixelMetricCard';
 export { PixelConsequenceList } from './PixelConsequenceList';
 export { PixelPlayerLink } from './PixelPlayerLink';
 export { PixelEkg, type PixelEkgPoint } from './PixelEkg';
+
+// Responsive tokens (Sprint 42)
+export {
+  BREAKPOINTS,
+  TOUCH_MIN_PX,
+  maxWidthQuery,
+  minWidthQuery,
+  type BreakpointKey,
+} from '../tokens/breakpoints';

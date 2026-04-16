@@ -15,6 +15,13 @@ import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 
 type Density = 'compact' | 'comfortable';
 type Accent = 'default' | 'gold' | 'cyan' | 'green' | 'red';
+/**
+ * Sprint 42 responsive mode.
+ * - 'scroll': keep horizontal overflow (historical default).
+ * - 'cards':  below --mfd-bp-sm, rows stack into labeled cards.
+ *             Driven by data-mfd-table-mode in global tokens.css.
+ */
+type ResponsiveMode = 'scroll' | 'cards';
 
 interface PixelTableProps<T> {
   data: T[];
@@ -26,6 +33,7 @@ interface PixelTableProps<T> {
   emptyMessage?: string;
   maxHeight?: number | string;
   accent?: Accent;
+  responsive?: ResponsiveMode;
   className?: string;
   style?: CSSProperties;
 }
@@ -58,6 +66,7 @@ export function PixelTable<T>({
   emptyMessage = 'No data',
   maxHeight,
   accent = 'default',
+  responsive = 'scroll',
   className,
   style,
 }: PixelTableProps<T>) {
@@ -102,12 +111,15 @@ export function PixelTable<T>({
         ...style,
       }}
     >
-      <table style={{
-        width: '100%',
-        borderCollapse: 'collapse',
-        fontFamily: 'var(--mfd-font-mono)',
-        fontSize: densityFontSize[density],
-      }}>
+      <table
+        data-mfd-table-mode={responsive === 'cards' ? 'cards' : undefined}
+        style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          fontFamily: 'var(--mfd-font-mono)',
+          fontSize: densityFontSize[density],
+        }}
+      >
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
@@ -180,17 +192,22 @@ export function PixelTable<T>({
                   background: row.index % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
                 }}
               >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    style={{
-                      padding: densityPadding[density],
-                      color: 'var(--mfd-text)',
-                    }}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
+                {row.getVisibleCells().map((cell) => {
+                  const headerDef = cell.column.columnDef.header;
+                  const label = typeof headerDef === 'string' ? headerDef.toUpperCase() : cell.column.id.toUpperCase();
+                  return (
+                    <td
+                      key={cell.id}
+                      data-mfd-table-label={responsive === 'cards' ? label : undefined}
+                      style={{
+                        padding: densityPadding[density],
+                        color: 'var(--mfd-text)',
+                      }}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  );
+                })}
               </tr>
             ))
           )}

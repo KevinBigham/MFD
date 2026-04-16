@@ -96,6 +96,15 @@
 
   /* ── Focus ──────────────────────────────────────────── */
   --mfd-focus-ring: 0 0 0 2px var(--mfd-gold);
+
+  /* ── Responsive Breakpoints (Sprint 42) ─────────────── */
+  /* Tokens for documentation; media queries must use literal px. */
+  --mfd-bp-sm: 480px;   /* phone portrait */
+  --mfd-bp-md: 768px;   /* phone landscape / small tablet */
+  --mfd-bp-lg: 1024px;  /* tablet / small desktop */
+
+  /* ── Touch Target ───────────────────────────────────── */
+  --mfd-touch-min: 44px;   /* iOS HIG / WCAG 2.5.5 */
 }
 
 /* ── Reduced Motion ───────────────────────────────────── */
@@ -127,6 +136,72 @@
 @keyframes mfd-blink {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0; }
+}
+
+/* ── Mobile Responsive Overrides (Sprint 42) ─────────── */
+/*
+ * Bumps touch targets and relaxes layouts at phone widths.
+ * Components use inline styles; we target data-attributes with
+ * !important to win the cascade without rewriting every component.
+ */
+@media (max-width: 768px) {
+  [data-mfd-focusable="pixel-button"] {
+    min-height: var(--mfd-touch-min) !important;
+    padding: 10px 14px !important;
+  }
+  [data-mfd-nav-item="true"] {
+    min-height: var(--mfd-touch-min) !important;
+    padding: 10px 12px !important;
+  }
+  /* Prevent horizontal page scroll on phone widths. */
+  html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+}
+
+/* Card-mode PixelTable at phone widths (<= 480px) — component opt-in
+ * via responsive="cards". Rows stack into cards; cells become labeled
+ * rows using data-mfd-table-label. At wider widths the table renders
+ * normally; no behavior change. */
+@media (max-width: 480px) {
+  [data-mfd-table-mode="cards"] {
+    display: block;
+    width: 100%;
+  }
+  [data-mfd-table-mode="cards"] thead {
+    display: none;
+  }
+  [data-mfd-table-mode="cards"] tbody,
+  [data-mfd-table-mode="cards"] tr {
+    display: block;
+    width: 100%;
+  }
+  [data-mfd-table-mode="cards"] tr {
+    border: var(--mfd-pixel-border);
+    margin-bottom: var(--mfd-sp-md);
+    padding: var(--mfd-sp-sm);
+    background: var(--mfd-bg-2);
+  }
+  [data-mfd-table-mode="cards"] td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--mfd-sp-xs) 0;
+    border-bottom: 1px dashed var(--mfd-border);
+  }
+  [data-mfd-table-mode="cards"] td:last-child {
+    border-bottom: none;
+  }
+  [data-mfd-table-mode="cards"] td::before {
+    content: attr(data-mfd-table-label);
+    font-family: var(--mfd-font-pixel);
+    font-size: 8px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--mfd-text-dim);
+    margin-right: var(--mfd-sp-sm);
+  }
 }
 
 /* ── Scanline Overlay (opt-in via class) ─────────────── */
