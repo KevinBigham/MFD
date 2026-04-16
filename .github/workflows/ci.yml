@@ -25,3 +25,32 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+
+  determinism-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Math.random() lint ban
+        run: bash scripts/check-math-random.sh
+
+      - name: Save migration audit
+        run: |
+          SAVE_VERSION=$(grep -E 'export const SAVE_VERSION' packages/engine/src/config/difficulty.ts | grep -oE '[0-9]+')
+          echo "SAVE_VERSION: $SAVE_VERSION"
+          if [ -z "$SAVE_VERSION" ]; then
+            echo "FAIL: Could not read SAVE_VERSION from difficulty.ts" >&2
+            exit 1
+          fi
+          echo "Save version $SAVE_VERSION detected. Migration chain tested via golden-saves.test.ts in test job."

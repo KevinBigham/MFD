@@ -1,0 +1,360 @@
+{
+  "version": 20,
+  "seed": 42,
+  "year": 2030,
+  "week": 1,
+  "phase": "preseason",
+  "difficulty": "allpro",
+  "players": {
+    "p1": {
+      "id": "p1",
+      "firstName": "Golden",
+      "lastName": "Save",
+      "pos": "QB",
+      "age": 30,
+      "ovr": 88,
+      "pot": 90,
+      "ratings": { "arm": 90, "accuracy": 87, "awareness": 86, "speed": 74, "stamina": 79 },
+      "devTrait": "superstar",
+      "personality": { "workEthic": 8, "loyalty": 7, "greed": 4, "pressure": 9, "ambition": 8 },
+      "traits": ["captain", "clutch"],
+      "archetype": null,
+      "contract": {
+        "playerId": "p1",
+        "teamId": "t1",
+        "years": 3,
+        "totalValue": 150,
+        "yearlyBreakdown": [
+          { "year": 2030, "baseSalary": 40, "capHit": 50, "deadCap": 70, "guaranteed": true }
+        ],
+        "guaranteed": 90,
+        "signingBonus": 30,
+        "voidYears": 0,
+        "franchiseTag": null,
+        "incentives": [],
+        "slices": [],
+        "guaranteeSchedule": [],
+        "baseSalary": 40,
+        "prorated": 10,
+        "originalYears": 3,
+        "restructured": false
+      },
+      "teamId": "t1",
+      "draftYear": 2020,
+      "draftRound": 1,
+      "draftPick": 5,
+      "college": "Golden State U",
+      "yearsExp": 10,
+      "careerStats": { "seasons": 10, "gp": 160, "snaps": 9800 },
+      "traitMilestones": {},
+      "traitPowerLevel": {},
+      "injury": null,
+      "morale": 85,
+      "chemistry": 80,
+      "systemFit": 78,
+      "isStarter": true,
+      "role": "Starter",
+      "roleWeeks": 0,
+      "tradeBlock": false,
+      "holdout": false,
+      "agentId": null,
+      "endorsements": [],
+      "cliqueId": null,
+      "jerseyNumber": 12,
+      "stats": {
+        "gamesPlayed": 0,
+        "passYds": 0,
+        "passTD": 0,
+        "passINT": 0,
+        "passAtt": 0,
+        "passComp": 0,
+        "rushYds": 0,
+        "rushAtt": 0,
+        "rushTD": 0,
+        "fumbles": 0,
+        "rec": 0,
+        "recYds": 0,
+        "recTD": 0,
+        "targets": 0,
+        "sacks": 0,
+        "defINT": 0,
+        "tackles": 0,
+        "fgMade": 0,
+        "fgAtt": 0,
+        "yacYds": 0
+      }
+    }
+  },
+  "teams": {
+    "t1": {
+      "id": "t1",
+      "city": "Chicago",
+      "name": "Blaze",
+      "abbr": "CHI",
+      "conference": "AFC",
+      "division": "East",
+      "isUser": true,
+      "wins": 0,
+      "losses": 0,
+      "ties": 0,
+      "practiceSquad": [],
+      "stadiumType": "dome",
+      "mentoringPairs": [],
+      "trainingAssignments": {},
+      "medicalStaff": null,
+      "fatigueState": {},
+      "roster": [
+        {
+          "id": "p1",
+          "pos": "QB",
+          "ovr": 88,
+          "ratings": { "speed": 74, "awareness": 86 },
+          "injury": null
+        }
+      ],
+      "seasonStats": {
+        "gamesPlayed": 0,
+        "pointsFor": 0,
+        "pointsAgainst": 0,
+        "pointDifferential": 0,
+        "totalYards": 0,
+        "passingYards": 0,
+        "rushingYards": 0,
+        "turnoversLost": 0,
+        "turnoversForced": 0,
+        "sacksFor": 0,
+        "sacksAgainst": 0,
+        "drives": 0,
+        "thirdDownConversions": 0,
+        "thirdDownAttempts": 0,
+        "timeOfPossession": 0,
+        "fgMade": 0,
+        "fgAttempted": 0,
+        "punts": 0,
+        "pressuresAllowed": 0,
+        "yacYards": 0,
+        "redZoneTrips": 0,
+        "redZoneScores": 0
+      },
+      "owner": { "archetypeId": "win_now" },
+      "facilityState": {
+        "facilities": [
+          { "type": "training_complex", "level": 2, "effect": { "trainingXPBonus": 1.1, "recoveryBonus": 1, "injuryPreventionBonus": 1, "scoutingBonus": 1, "moraleBonus": 1, "fatigueGainBonus": 1 } },
+          { "type": "medical_center", "level": 1, "effect": { "trainingXPBonus": 1, "recoveryBonus": 1, "injuryPreventionBonus": 1, "scoutingBonus": 1, "moraleBonus": 1, "fatigueGainBonus": 1 } },
+          { "type": "film_room", "level": 1, "effect": { "trainingXPBonus": 1, "recoveryBonus": 1, "injuryPreventionBonus": 1, "scoutingBonus": 1, "moraleBonus": 1, "fatigueGainBonus": 1 } },
+          { "type": "weight_room", "level": 1, "effect": { "trainingXPBonus": 1, "recoveryBonus": 1, "injuryPreventionBonus": 1, "scoutingBonus": 1, "moraleBonus": 1, "fatigueGainBonus": 1 } },
+          { "type": "recovery_suite", "level": 1, "effect": { "trainingXPBonus": 1, "recoveryBonus": 1, "injuryPreventionBonus": 1, "scoutingBonus": 1, "moraleBonus": 1, "fatigueGainBonus": 1 } }
+        ],
+        "budget": 10,
+        "maxFacilities": 5,
+        "upgradeCosts": {
+          "training_complex": [4, 8, 12],
+          "medical_center": [4, 8, 12],
+          "film_room": [3, 6, 9],
+          "weight_room": [3, 6, 9],
+          "recovery_suite": [5, 10, 15]
+        }
+      },
+      "franchiseIdentity": {
+        "fanbase": 65,
+        "prestige": 60,
+        "marketSize": "large",
+        "marketModifier": 1.1,
+        "stadiumName": "Chicago Dome",
+        "stadiumDeal": null,
+        "stadiumLevel": 2,
+        "attendance": 82,
+        "relocationHistory": []
+      },
+      "lockerRoom": {
+        "culture": "balanced",
+        "cultureScore": 55,
+        "tensions": []
+      },
+      "retiredJerseys": [],
+      "fanConfidence": 65,
+      "txLog": [],
+      "staff": {
+        "hc": null,
+        "oc": null,
+        "dc": null
+      },
+      "coachingStaff": { "hc": null, "oc": null, "dc": null },
+      "schemeOff": "balanced",
+      "schemeDef": "balanced",
+      "offScheme": "balanced",
+      "defScheme": "balanced",
+      "specialTeams": {
+        "kickReturner": null,
+        "puntReturner": null,
+        "longSnapper": null
+      }
+    }
+  },
+  "owners": {},
+  "schedule": [],
+  "draftClass": [],
+  "freeAgents": [],
+  "records": {
+    "singleSeason": {
+      "wins": [],
+      "passingYards": [],
+      "rushingYards": [],
+      "touchdowns": [],
+      "interceptions": [],
+      "sacks": [],
+      "receptions": [],
+      "receivingYards": []
+    },
+    "career": {
+      "wins": [],
+      "passingYards": [],
+      "rushingYards": [],
+      "touchdowns": [],
+      "interceptions": [],
+      "sacks": [],
+      "receptions": [],
+      "receivingYards": []
+    },
+    "singleGame": {
+      "passingYards": [],
+      "rushingYards": [],
+      "touchdowns": [],
+      "interceptions": [],
+      "sacks": [],
+      "receptions": [],
+      "receivingYards": []
+    }
+  },
+  "awardsHistory": [],
+  "hallOfFame": [],
+  "powerRankings": [],
+  "franchiseHistory": [],
+  "playerArchive": [],
+  "playerSeasonHistory": {},
+  "frontOffice": {
+    "xp": 1200,
+    "level": 5,
+    "achievements": ["first_win", "playoff_berth", "division_champ"],
+    "perks": [],
+    "reputation": { "players": 72, "media": 64, "owner": 78 }
+  },
+  "eventLog": [],
+  "narrativeState": {
+    "activeArcs": [],
+    "hooks": [],
+    "recentHeadlines": ["Golden save fixture — v20"]
+  },
+  "offFieldEvents": [],
+  "recentPressConferences": [],
+  "coachingHistory": [],
+  "leagueRivalries": [],
+  "activeEffects": [],
+  "gameDayState": {
+    "recentPackages": [],
+    "latestPackageId": null
+  },
+  "weekSummaries": [],
+  "playoffBracket": null,
+  "offseasonState": null,
+  "leagueNews": [],
+  "socialFeed": [],
+  "activeProposals": [],
+  "faTargetBoard": { "teamId": null, "watchlist": [], "targets": [] },
+  "teamNeedsCache": {},
+  "warRoomState": null,
+  "contractExtensions": [],
+  "coachingMarket": {
+    "teamId": null,
+    "updatedYear": 2030,
+    "updatedWeek": 1,
+    "hotSeat": false,
+    "candidates": { "HC": [], "OC": [], "DC": [] }
+  },
+  "weeklyPrepPlans": {},
+  "weeklyPrepHistory": [],
+  "filmRoomHistory": [],
+  "difficultyState": {
+    "enabled": true,
+    "adaptiveSlider": 50,
+    "recentUserResults": [],
+    "currentStreak": 0,
+    "adjustmentHistory": []
+  },
+  "availableMedicalStaff": [],
+  "playoffMomentum": {},
+  "scoutingDepartment": {
+    "scouts": [],
+    "availableScouts": [],
+    "budget": 5,
+    "maxScouts": 5,
+    "privateWorkoutsRemaining": 3
+  },
+  "conditionalPicks": [],
+  "waiverOrder": [],
+  "waiverWire": [],
+  "waiverClaims": [],
+  "waiverResults": [],
+  "handshakes": [],
+  "tutorialState": {
+    "active": false,
+    "currentStepIndex": 0,
+    "steps": [],
+    "completedSteps": [],
+    "dismissed": false
+  },
+  "agents": [],
+  "narrativeIntensity": {
+    "current": 50,
+    "recentBeats": [],
+    "cooldownWeeks": 0
+  },
+  "ceremonies": [],
+  "dynastyTimeline": [],
+  "achievements": [],
+  "dashboardState": {
+    "activeLayoutId": "layout:default",
+    "layouts": [],
+    "pinnedWidgets": []
+  },
+  "seasonReports": [],
+  "gamePlan": null,
+  "opponentReports": [],
+  "draftRecaps": [],
+  "tradeSuggestions": [],
+  "allDecadeTeams": [],
+  "stadiumDealOffers": [],
+  "playerRivalries": [],
+  "farewellTours": [],
+  "endorsementOffers": [],
+  "leagueRules": {
+    "initializedYear": 2030,
+    "entries": {},
+    "history": []
+  },
+  "cbaState": {
+    "status": "active",
+    "currentDeal": null,
+    "negotiationState": null,
+    "history": [],
+    "lockoutRisk": 0,
+    "lastNegotiationYear": null
+  },
+  "commissionerState": {
+    "name": "Golden Commissioner",
+    "personality": "progressive",
+    "tenure": 1,
+    "approval": 60,
+    "activeProposals": [],
+    "history": [],
+    "rulings": [],
+    "lowApprovalYears": 0
+  },
+  "laborState": {
+    "unionSatisfaction": 65,
+    "playerRepId": null,
+    "grievances": [],
+    "activeStoppage": null,
+    "laborEvents": []
+  }
+}

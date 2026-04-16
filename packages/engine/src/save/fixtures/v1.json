@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "seed": 42,
+  "year": 2026,
+  "week": 1,
+  "phase": "preseason",
+  "difficulty": "pro",
+  "players": {
+    "p1": {
+      "id": "p1",
+      "firstName": "Golden",
+      "lastName": "Save",
+      "pos": "QB",
+      "age": 28,
+      "ovr": 85,
+      "ratings": { "arm": 88, "accuracy": 84, "awareness": 82, "speed": 76, "stamina": 80 },
+      "devTrait": "star",
+      "personality": { "workEthic": 7, "loyalty": 6, "greed": 4, "pressure": 8, "ambition": 7 },
+      "traits": ["captain"],
+      "archetype": null,
+      "contract": {
+        "playerId": "p1",
+        "teamId": "t1",
+        "years": 4,
+        "totalValue": 120,
+        "yearlyBreakdown": [
+          { "year": 2026, "baseSalary": 25, "capHit": 30, "deadCap": 50, "guaranteed": true }
+        ],
+        "guaranteed": 60,
+        "signingBonus": 20,
+        "voidYears": 0,
+        "franchiseTag": null,
+        "incentives": []
+      },
+      "teamId": "t1",
+      "draftYear": 2020,
+      "draftRound": 1,
+      "draftPick": 5,
+      "college": "Golden State U",
+      "yearsExp": 6,
+      "careerStats": { "seasons": 6, "gp": 96, "snaps": 5800 },
+      "traitMilestones": {},
+      "traitPowerLevel": {},
+      "injury": null,
+      "morale": 80
+    }
+  },
+  "teams": {
+    "t1": {
+      "wins": 10,
+      "losses": 7,
+      "ties": 0
+    }
+  },
+  "owners": {},
+  "schedule": [],
+  "draftClass": [],
+  "freeAgents": [],
+  "records": [],
+  "awardsHistory": [],
+  "hallOfFame": [],
+  "powerRankings": [],
+  "franchiseHistory": [],
+  "playerArchive": [],
+  "frontOffice": {
+    "xp": 500,
+    "level": 3,
+    "achievements": ["first_win"],
+    "perks": [],
+    "reputation": { "players": 65, "media": 55, "owner": 70 }
+  },
+  "eventLog": [],
+  "narrativeState": {
+    "activeArcs": [],
+    "hooks": [],
+    "recentHeadlines": ["Golden save fixture — v1"]
+  }
+}
