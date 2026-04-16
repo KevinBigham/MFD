@@ -147,3 +147,33 @@ export function getSchemeFlavorLine(schemeId: string, context?: string): string 
 }
 
 export const HOME_FIELD_ADV = 3;
+
+/**
+ * Canonical scheme + plan identifier registry (Sprint 41).
+ *
+ * Content JSONs under `packages/content/` must reference scheme/plan IDs from
+ * this set. Enforced by `scheme-ids.test.ts`.
+ *
+ * Four categories:
+ *   - OFF_SCHEMES: structural offensive identity (spread, west_coast, etc.)
+ *   - DEF_SCHEMES: structural defensive identity (4-3, 3-4, nickel, etc.)
+ *   - OFF_PLANS:   per-game offensive plan (air_raid, ground_pound, etc.)
+ *   - DEF_PLANS:   per-game defensive plan (blitz_heavy, zone_cov, etc.)
+ *
+ * NOTE: keep this aligned with the four constants above. If you add a new
+ * scheme, it auto-joins the registry.
+ */
+export const SCHEME_IDS: readonly string[] = Array.from(
+  new Set([
+    ...OFF_SCHEMES.map((s) => s.id),
+    ...DEF_SCHEMES.map((s) => s.id),
+    ...OFF_PLANS.map((p) => p.id),
+    ...DEF_PLANS.map((p) => p.id),
+  ]),
+);
+
+export const SCHEME_ID_SET: ReadonlySet<string> = new Set(SCHEME_IDS);
+
+export function isCanonicalSchemeId(id: string): boolean {
+  return SCHEME_ID_SET.has(id);
+}
