@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "description": "First-visit AGM tips — rendered once per screen via isFirstVisit(). Sprint 43.",
+  "tips": {
+    "/": {
+      "id": "tip_dashboard",
+      "title": "Your command center",
+      "body": "Everything that matters this week is surfaced here. When in doubt, start on the dashboard and work outward."
+    },
+    "/roster": {
+      "id": "tip_roster",
+      "title": "Know your 53",
+      "body": "Sort by overall, age, or contract status. The players you see here are the ones you ride with — or the ones you cut."
+    },
+    "/depth-chart": {
+      "id": "tip_depth_chart",
+      "title": "Who plays when it matters",
+      "body": "Order your starters by role. Injuries and fatigue will roll the backups in — if that scares you, fix it here first."
+    },
+    "/schedule": {
+      "id": "tip_schedule",
+      "title": "The year ahead",
+      "body": "Every opponent, every week. Tough stretches coming? Rest starters early. Easy stretch? Push for seeding."
+    },
+    "/standings": {
+      "id": "tip_standings",
+      "title": "Where you stack up",
+      "body": "Division first, conference second. The tie-breakers in week 17 are built on the decisions you make in weeks 1-16."
+    },
+    "/inbox": {
+      "id": "tip_inbox",
+      "title": "The league is talking",
+      "body": "Press conferences, front-office memos, rival moves — the inbox is how the league tells you what it thinks of your team."
+    },
+    "/game-plan": {
+      "id": "tip_game_plan",
+      "title": "Beat them before kickoff",
+      "body": "Your scheme vs. their personnel. Match strengths to weaknesses. A good plan turns a coin-flip into a two-score game."
+    },
+    "/contracts": {
+      "id": "tip_contracts",
+      "title": "The cap is a scoreboard too",
+      "body": "Every dollar in dead money is a dollar you can't spend on talent. Restructure when it helps; walk away when it doesn't."
+    },
+    "/trades": {
+      "id": "tip_trades",
+      "title": "Every team has needs",
+      "body": "The best trades make both sides better. Find a GM whose pain is your surplus, and don't be afraid to include a pick."
+    },
+    "/scouting": {
+      "id": "tip_scouting",
+      "title": "Know before you draft",
+      "body": "Scouting budget is finite. Spend it where your roster will be thin in three years, not where it's deep today."
+    },
+    "/draft": {
+      "id": "tip_draft",
+      "title": "The future gets drafted today",
+      "body": "Board vs. need. Best player available wins more championships than reaching for fit — but you still need a QB."
+    },
+    "/free-agency": {
+      "id": "tip_free_agency",
+      "title": "Spend with intention",
+      "body": "Free agents are expensive for a reason. Pay for scheme fits and role-specific skills, not name recognition."
+    },
+    "/training-camp": {
+      "id": "tip_training_camp",
+      "title": "Camp makes the team",
+      "body": "Reps build chemistry and catch injuries early. Cut decisions you make here live with you all season."
+    },
+    "/briefing": {
+      "id": "tip_briefing",
+      "title": "One screen, one week",
+      "body": "Your Monday Briefing is where the week begins. Read what your AGM flags before you click Advance."
+    },
+    "/broadcast": {
+      "id": "tip_broadcast",
+      "title": "Watch the story tell itself",
+      "body": "Game Day replays show the swing plays and key drives. Great for figuring out why you lost — or why you won."
+    },
+    "/franchise": {
+      "id": "tip_franchise",
+      "title": "The long game",
+      "body": "Owner mood, dynasty window, franchise doctrines. This is the pulse of everything you've built."
+    }
+  }
+}

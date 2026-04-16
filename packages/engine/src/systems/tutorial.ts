@@ -1,5 +1,68 @@
 import type { GameState, TutorialState, TutorialStep } from '../types';
 
+// ── Week 1 Guided Flow (Sprint 43) ─────────────────────────
+// Five focused steps that run during the first in-game week.
+// Exposed separately from TUTORIAL_STEPS so the UI can pick
+// this short flow during Week 1 and the long-form tour after.
+export const WEEK1_STEP_IDS = [
+  'week1-briefing',
+  'week1-depth-chart',
+  'week1-game-plan',
+  'week1-advance',
+  'week1-post-game',
+] as const;
+
+const WEEK1_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
+  {
+    id: 'week1-briefing',
+    title: 'Read the Monday Briefing',
+    description: 'Your AGM flags the week\'s priorities on the briefing screen. Read it before anything else.',
+    targetScreen: '/briefing',
+    targetElement: '[data-nav="/briefing"]',
+    action: 'screen:/briefing',
+  },
+  {
+    id: 'week1-depth-chart',
+    title: 'Lock in Week 1 Starters',
+    description: 'Open the depth chart and confirm the guys you want on the field. One starter change is enough to clear this step.',
+    targetScreen: '/depth-chart',
+    targetElement: '[data-nav="/depth-chart"]',
+    action: 'depth_chart:update',
+  },
+  {
+    id: 'week1-game-plan',
+    title: 'Pick Your Game Plan',
+    description: 'Match your scheme to your roster strengths on the Game Plan screen. You can tweak it every week.',
+    targetScreen: '/game-plan',
+    targetElement: '[data-nav="/game-plan"]',
+    action: 'screen:/game-plan',
+  },
+  {
+    id: 'week1-advance',
+    title: 'Advance to Kickoff',
+    description: 'You\'re ready. Hit Advance Week to simulate Week 1 and play your first game.',
+    targetScreen: '/week-advance',
+    targetElement: '[data-nav="/week-advance"]',
+    action: 'week:advance',
+  },
+  {
+    id: 'week1-post-game',
+    title: 'Review the Result',
+    description: 'Jump to Game Day to see what happened — the box score, swing plays, and what your AGM learned.',
+    targetScreen: '/game-day',
+    targetElement: '[data-nav="/game-day"]',
+    action: 'screen:/game-day',
+  },
+];
+
+/**
+ * Return a fresh array of Week 1 TutorialSteps (cloned, completed=false).
+ * Use this to seed `tutorialState.steps` for brand-new dynasties.
+ */
+export function getWeek1Steps(): TutorialStep[] {
+  return WEEK1_STEPS.map((step) => ({ ...step, completed: false }));
+}
+
 const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
   {
     id: 'welcome',
@@ -147,7 +210,31 @@ export function createDefaultTutorialState(active = true): TutorialState {
     steps: cloneSteps(),
     completedSteps: [],
     dismissed: false,
+    visitedScreens: [],
   };
+}
+
+/**
+ * Record that the user has landed on a screen for the first time.
+ * Idempotent — repeat visits are no-ops. Sprint 43.
+ */
+export function markScreenVisited(game: GameState, screenKey: string): TutorialState {
+  game.tutorialState ??= createDefaultTutorialState(false);
+  game.tutorialState.visitedScreens ??= [];
+  if (!game.tutorialState.visitedScreens.includes(screenKey)) {
+    game.tutorialState.visitedScreens.push(screenKey);
+  }
+  return game.tutorialState;
+}
+
+/**
+ * True the first time a screen is being shown. UI uses this to
+ * decide whether to render the AGM contextual tip card.
+ */
+export function isFirstVisit(game: GameState, screenKey: string): boolean {
+  game.tutorialState ??= createDefaultTutorialState(false);
+  const visited = game.tutorialState.visitedScreens ?? [];
+  return !visited.includes(screenKey);
 }
 
 function currentStep(state: TutorialState): TutorialStep | null {

@@ -5,7 +5,11 @@ import {
   createDefaultTutorialState,
   dismissTutorial,
   getTutorialHint,
+  getWeek1Steps,
+  isFirstVisit,
   isTutorialActive,
+  markScreenVisited,
+  WEEK1_STEP_IDS,
 } from './tutorial';
 import { makeLeagueState } from './test-helpers';
 
@@ -104,5 +108,38 @@ describe('tutorial', () => {
 
     completeTutorialAction(game, 'depth_chart:update');
     expect(game.tutorialState.currentStepIndex).toBe(4);
+  });
+
+  // ── Sprint 43 additions ───────────────────────────────────
+
+  it('createDefaultTutorialState seeds visitedScreens as empty array', () => {
+    const tutorial = createDefaultTutorialState();
+    expect(tutorial.visitedScreens).toEqual([]);
+  });
+
+  it('markScreenVisited appends a screen once and is idempotent', () => {
+    const game = makeLeagueState('preseason');
+    game.tutorialState = createDefaultTutorialState();
+
+    markScreenVisited(game, '/roster');
+    markScreenVisited(game, '/roster');
+    markScreenVisited(game, '/contracts');
+
+    expect(game.tutorialState.visitedScreens).toEqual(['/roster', '/contracts']);
+  });
+
+  it('isFirstVisit flips after markScreenVisited', () => {
+    const game = makeLeagueState('preseason');
+    game.tutorialState = createDefaultTutorialState();
+
+    expect(isFirstVisit(game, '/game-plan')).toBe(true);
+    markScreenVisited(game, '/game-plan');
+    expect(isFirstVisit(game, '/game-plan')).toBe(false);
+  });
+
+  it('getWeek1Steps returns exactly the 5 Week 1 step IDs in order', () => {
+    const steps = getWeek1Steps();
+    expect(steps.map((s) => s.id)).toEqual([...WEEK1_STEP_IDS]);
+    expect(steps.every((s) => s.completed === false)).toBe(true);
   });
 });

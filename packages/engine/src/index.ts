@@ -233,7 +233,26 @@ export {
   isTutorialActive,
   getTutorialHint,
   completeTutorialAction,
+  markScreenVisited,
+  isFirstVisit,
+  WEEK1_STEP_IDS,
+  getWeek1Steps,
 } from './systems/tutorial';
+export {
+  getAGMWeeklyRecommendations,
+  getScreenTip,
+  type AGMRecommendation,
+  type AGMRecommendationPriority,
+  type AGMScreenTip,
+} from './systems/agm';
+export {
+  NAV_UNLOCK_RULES,
+  MIDSEASON_UNLOCK_WEEK,
+  getNavUnlockStatus,
+  isNavItemUnlocked,
+  type NavUnlockRule,
+  type NavUnlockStatus,
+} from './config/navigation';
 export {
   createDefaultAchievements,
   getAchievementCatalog,

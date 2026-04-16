@@ -17,6 +17,7 @@ import v1Fixture from './fixtures/v1.json';
 import v10Fixture from './fixtures/v10.json';
 import v20Fixture from './fixtures/v20.json';
 import v30Fixture from './fixtures/v30.json';
+import v31Fixture from './fixtures/v31.json';
 
 describe('golden save fixtures', () => {
   it('migrates v1 fixture through full pipeline to current version', { timeout: 15_000 }, () => {
@@ -98,21 +99,33 @@ describe('golden save fixtures', () => {
     expect(migrated['settings']).toBeDefined();
   });
 
-  it('validates v30 fixture against current schema without migration', () => {
-    const result = SaveStateSchema.safeParse(v30Fixture);
+  it('migrates v30 fixture through v30→v31 to current version', { timeout: 15_000 }, () => {
+    const migrated = migrate(v30Fixture as Record<string, unknown>, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+
+    // Tutorial state gets visitedScreens on the v30→v31 hop
+    const tutorial = migrated['tutorialState'] as Record<string, unknown>;
+    expect(tutorial).toBeDefined();
+    expect(tutorial['visitedScreens']).toEqual([]);
+  });
+
+  it('validates v31 fixture against current schema without migration', () => {
+    const result = SaveStateSchema.safeParse(v31Fixture);
 
     if (!result.success) {
       // Surface Zod errors for debugging
       const errors = result.error.issues.map(
         (issue) => `${issue.path.join('.')}: ${issue.message}`,
       );
-      throw new Error(`v30 fixture failed schema validation:\n${errors.join('\n')}`);
+      throw new Error(`v31 fixture failed schema validation:\n${errors.join('\n')}`);
     }
 
     expect(result.success).toBe(true);
-    expect(result.data.version).toBe(30);
+    expect(result.data.version).toBe(31);
     expect(result.data.players['p1']?.bloodline).toBeNull();
     expect(result.data.apologyTourThreads).toEqual([]);
+    expect(result.data.tutorialState.visitedScreens).toEqual(['/', '/roster']);
   });
 
   it('verifies migration chain has no gaps from v1 to SAVE_VERSION', () => {

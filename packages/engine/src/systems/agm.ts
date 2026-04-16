@@ -1,0 +1,172 @@
+/**
+ * AGM — Assistant GM advisory helpers (Sprint 43).
+ *
+ * Provides weekly recommendation rollups for the Monday Briefing
+ * "What should I do?" modal. Pure, deterministic, no I/O.
+ *
+ * Ranking heuristics (in priority order):
+ *   1. Urgent injuries      — starters out for 2+ weeks
+ *   2. Cap trouble          — team capSpace below $1M
+ *   3. Upcoming opponent    — next opponent preview
+ *   4. Roster gaps          — positions with <2 healthy players
+ */
+
+import type { GameState, Player, Team } from '../types';
+import { findUserTeam } from './franchise-week-helpers';
+import screenTipsJson from '../../../content/agm/screen-tips.json';
+
+// ── Screen tips (Sprint 43) ───────────────────────────────
+
+export interface AGMScreenTip {
+  id: string;
+  title: string;
+  body: string;
+}
+
+interface ScreenTipsShape {
+  version: number;
+  description: string;
+  tips: Record<string, AGMScreenTip>;
+}
+
+const SCREEN_TIPS = screenTipsJson as ScreenTipsShape;
+
+/**
+ * Return the first-visit tip for a given route, or null if none defined.
+ * Pure lookup — no game-state mutation.
+ */
+export function getScreenTip(route: string): AGMScreenTip | null {
+  return SCREEN_TIPS.tips[route] ?? null;
+}
+
+// ── Weekly recommendations ────────────────────────────────
+
+export type AGMRecommendationPriority = 'urgent' | 'high' | 'medium' | 'low';
+
+export interface AGMRecommendation {
+  id: string;
+  priority: AGMRecommendationPriority;
+  title: string;
+  body: string;
+  /** Route/hash the UI may deep-link to. Optional. */
+  targetRoute?: string;
+}
+
+const CAP_TROUBLE_THRESHOLD = 1_000_000; // $1M — below this, flag cap trouble.
+const URGENT_INJURY_GAMES = 2; // 1 game ≈ 1 week in this sim
+const ROSTER_GAP_MIN = 2;
+
+/**
+ * Build a prioritized list of recommendations for the user team.
+ * Returns up to `limit` items (default 3). Deterministic — no RNG.
+ */
+export function getAGMWeeklyRecommendations(
+  game: GameState,
+  limit = 3,
+): AGMRecommendation[] {
+  const team = findUserTeam(game);
+  if (!team) return [];
+
+  const recommendations: AGMRecommendation[] = [];
+
+  // 1. Urgent injuries
+  const injuredStarters = collectUrgentInjuries(game, team);
+  if (injuredStarters.length > 0) {
+    const names = injuredStarters.slice(0, 2).map((p) => p.name).join(', ');
+    recommendations.push({
+      id: 'injury_watch',
+      priority: 'urgent',
+      title: `Injury watch: ${injuredStarters.length} starter${injuredStarters.length === 1 ? '' : 's'} sidelined`,
+      body: `${names}${injuredStarters.length > 2 ? ` and ${injuredStarters.length - 2} more` : ''} will miss ${URGENT_INJURY_GAMES}+ weeks. Check the depth chart and consider a free-agent signing.`,
+      targetRoute: '/roster',
+    });
+  }
+
+  // 2. Cap trouble
+  if (team.capSpace < CAP_TROUBLE_THRESHOLD) {
+    recommendations.push({
+      id: 'cap_trouble',
+      priority: team.capSpace < 0 ? 'urgent' : 'high',
+      title: team.capSpace < 0 ? 'Over the cap' : 'Cap space getting tight',
+      body: `You have $${Math.round(team.capSpace / 1000).toLocaleString()}K of cap space. Consider restructures or a post-June-1 cut before more bills hit.`,
+      targetRoute: '/contracts',
+    });
+  }
+
+  // 3. Upcoming opponent
+  const nextOpponent = findNextOpponent(game, team);
+  if (nextOpponent) {
+    recommendations.push({
+      id: 'next_opponent',
+      priority: 'medium',
+      title: `Scout next opponent: ${nextOpponent.city} ${nextOpponent.name}`,
+      body: `They are ${nextOpponent.wins}-${nextOpponent.losses}. Review their strengths on the Game Plan screen before kickoff.`,
+      targetRoute: '/game-plan',
+    });
+  }
+
+  // 4. Roster gaps
+  const gaps = collectRosterGaps(team);
+  if (gaps.length > 0) {
+    recommendations.push({
+      id: 'roster_gaps',
+      priority: 'medium',
+      title: `Depth concerns at ${gaps.slice(0, 3).join(', ')}`,
+      body: `You have fewer than ${ROSTER_GAP_MIN} healthy players at ${gaps.length > 3 ? 'several positions' : 'these spots'}. Practice squad or waiver wire can shore things up.`,
+      targetRoute: '/team-needs',
+    });
+  }
+
+  // Priority sort, then clip
+  const order: Record<AGMRecommendationPriority, number> = {
+    urgent: 0,
+    high: 1,
+    medium: 2,
+    low: 3,
+  };
+  recommendations.sort((a, b) => order[a.priority] - order[b.priority]);
+  return recommendations.slice(0, Math.max(0, limit));
+}
+
+function collectUrgentInjuries(game: GameState, team: Team): Player[] {
+  const injured: Player[] = [];
+  for (const player of team.roster) {
+    const full = game.players[player.id] ?? player;
+    if (full.injury && typeof full.injury.gamesOut === 'number' && full.injury.gamesOut >= URGENT_INJURY_GAMES) {
+      injured.push(full);
+    }
+  }
+  return injured;
+}
+
+function findNextOpponent(game: GameState, team: Team): Team | null {
+  const week = game.week;
+  for (let i = 0; i < game.schedule.length; i += 1) {
+    const scheduleWeek = game.schedule[i];
+    if (!scheduleWeek || scheduleWeek.week < week) continue;
+    for (const matchup of scheduleWeek.games ?? []) {
+      const isHome = matchup.homeTeamId === team.id;
+      const isAway = matchup.awayTeamId === team.id;
+      if (!isHome && !isAway) continue;
+      const opponentId = isHome ? matchup.awayTeamId : matchup.homeTeamId;
+      return game.teams[opponentId] ?? null;
+    }
+  }
+  return null;
+}
+
+function collectRosterGaps(team: Team): string[] {
+  const counts: Record<string, number> = {};
+  for (const player of team.roster) {
+    if (player.injury && typeof player.injury.gamesOut === 'number' && player.injury.gamesOut >= URGENT_INJURY_GAMES) continue;
+    counts[player.pos] = (counts[player.pos] ?? 0) + 1;
+  }
+  const keyPositions = ['QB', 'RB', 'WR', 'TE', 'OL', 'LT', 'RT', 'C', 'DL', 'DE', 'DT', 'LB', 'CB', 'S'];
+  const gaps: string[] = [];
+  for (const pos of keyPositions) {
+    if ((counts[pos] ?? 0) < ROSTER_GAP_MIN) {
+      gaps.push(pos);
+    }
+  }
+  return gaps;
+}

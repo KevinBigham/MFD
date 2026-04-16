@@ -1539,6 +1539,9 @@ export const TutorialStateSchema = z.object({
   steps: z.array(TutorialStepSchema),
   completedSteps: z.array(z.string()),
   dismissed: z.boolean(),
+  // Sprint 43: first-visit tracker for AGM contextual tips.
+  // Default [] keeps old (< v31) saves loading without shape errors.
+  visitedScreens: z.array(z.string()).default([]),
 });
 
 export const AgentProfileSchema = z.object({
@@ -1805,6 +1808,7 @@ export const SaveStateSchema = z.object({
     steps: [],
     completedSteps: [],
     dismissed: false,
+    visitedScreens: [],
   }),
   agents: z.array(AgentProfileSchema).default([]),
   narrativeIntensity: NarrativeIntensitySchema.default({

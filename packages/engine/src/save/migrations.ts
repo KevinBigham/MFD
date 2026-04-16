@@ -1167,3 +1167,28 @@ registerMigration(29, (state) => {
     draftClass,
   };
 });
+
+// v30→v31: Add tutorialState.visitedScreens (Sprint 43 "Rookie Card" onboarding)
+registerMigration(30, (state) => {
+  const tutorialRaw = (state['tutorialState'] && typeof state['tutorialState'] === 'object')
+    ? (state['tutorialState'] as Record<string, unknown>)
+    : {};
+
+  const existingVisited = Array.isArray(tutorialRaw['visitedScreens'])
+    ? (tutorialRaw['visitedScreens'] as unknown[]).filter((s): s is string => typeof s === 'string')
+    : [];
+
+  return {
+    ...state,
+    tutorialState: {
+      active: typeof tutorialRaw['active'] === 'boolean' ? tutorialRaw['active'] : false,
+      currentStepIndex: typeof tutorialRaw['currentStepIndex'] === 'number' ? tutorialRaw['currentStepIndex'] : 0,
+      steps: Array.isArray(tutorialRaw['steps']) ? tutorialRaw['steps'] : [],
+      completedSteps: Array.isArray(tutorialRaw['completedSteps'])
+        ? (tutorialRaw['completedSteps'] as unknown[]).filter((s): s is string => typeof s === 'string')
+        : [],
+      dismissed: typeof tutorialRaw['dismissed'] === 'boolean' ? tutorialRaw['dismissed'] : false,
+      visitedScreens: existingVisited,
+    },
+  };
+});

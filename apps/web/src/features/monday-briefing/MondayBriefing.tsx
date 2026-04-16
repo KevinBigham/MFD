@@ -822,6 +822,7 @@ export function MondayBriefing() {
         tradeOfferCount={tradeOffers.length}
         ownerApproval={ownerState?.approval ?? 100}
         injuredCount={injuredCount}
+        game={game}
       />
 
       <div style={autoGrid(220)}>

@@ -79,6 +79,11 @@ export interface TutorialState {
   steps: TutorialStep[];
   completedSteps: string[];
   dismissed: boolean;
+  /**
+   * Screens the user has visited at least once. Serialized as array (JSON-safe);
+   * UI layer may hydrate to Set for O(1) lookup. Sprint 43 / SAVE_VERSION 31.
+   */
+  visitedScreens: string[];
 }
 
 // ── Achievements ────────────────────────────────────────

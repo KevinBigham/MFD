@@ -1,0 +1,201 @@
+{
+  "version": 31,
+  "seed": 42,
+  "year": 2026,
+  "week": 1,
+  "phase": "preseason",
+  "difficulty": "pro",
+  "players": {
+    "p1": {
+      "id": "p1",
+      "firstName": "Golden",
+      "lastName": "Save",
+      "pos": "QB",
+      "age": 26,
+      "ovr": 82,
+      "pot": 90,
+      "ratings": {
+        "arm": 85,
+        "accuracy": 80,
+        "awareness": 78,
+        "speed": 80,
+        "stamina": 82
+      },
+      "devTrait": "star",
+      "personality": {
+        "workEthic": 8,
+        "loyalty": 6,
+        "greed": 3,
+        "pressure": 7,
+        "ambition": 8
+      },
+      "traits": [],
+      "archetype": null,
+      "contract": {
+        "playerId": "p1",
+        "teamId": "t1",
+        "years": 4,
+        "totalValue": 80,
+        "yearlyBreakdown": [
+          {
+            "year": 2026,
+            "baseSalary": 15,
+            "capHit": 20,
+            "deadCap": 35,
+            "guaranteed": true,
+            "guaranteeType": "GAS"
+          }
+        ],
+        "guaranteed": 40,
+        "signingBonus": 20,
+        "voidYears": 0,
+        "franchiseTag": null,
+        "incentives": [],
+        "slices": [],
+        "guaranteeSchedule": [],
+        "baseSalary": 15,
+        "prorated": 5,
+        "originalYears": 4,
+        "restructured": false
+      },
+      "teamId": "t1",
+      "draftYear": 2022,
+      "draftRound": 1,
+      "draftPick": 8,
+      "college": "Golden State U",
+      "yearsExp": 4,
+      "careerStats": {
+        "seasons": 4,
+        "gp": 64,
+        "snaps": 3800
+      },
+      "traitMilestones": {},
+      "traitPowerLevel": {},
+      "injury": null,
+      "morale": 78,
+      "chemistry": 70,
+      "systemFit": 68,
+      "isStarter": true,
+      "role": "Starter",
+      "roleWeeks": 0,
+      "tradeBlock": false,
+      "holdout": false,
+      "agentId": null,
+      "endorsements": [],
+      "cliqueId": null,
+      "jerseyNumber": 7,
+      "bloodline": null,
+      "stats": {
+        "gamesPlayed": 0,
+        "passYds": 0,
+        "passTD": 0,
+        "passINT": 0,
+        "passAtt": 0,
+        "passComp": 0,
+        "rushYds": 0,
+        "rushAtt": 0,
+        "rushTD": 0,
+        "fumbles": 0,
+        "rec": 0,
+        "recYds": 0,
+        "recTD": 0,
+        "targets": 0,
+        "sacks": 0,
+        "defINT": 0,
+        "tackles": 0,
+        "fgMade": 0,
+        "fgAtt": 0,
+        "yacYds": 0
+      }
+    }
+  },
+  "teams": {},
+  "owners": {},
+  "schedule": [],
+  "draftClass": [],
+  "freeAgents": [],
+  "records": {
+    "singleGame": {},
+    "singleSeason": {},
+    "career": {},
+    "franchise": {}
+  },
+  "awardsHistory": [],
+  "hallOfFame": [],
+  "powerRankings": [],
+  "franchiseHistory": [],
+  "playerArchive": [],
+  "frontOffice": {
+    "xp": 0,
+    "level": 1,
+    "achievements": [],
+    "perks": [],
+    "reputation": {
+      "players": 50,
+      "media": 50,
+      "owner": 50
+    }
+  },
+  "eventLog": [],
+  "narrativeState": {
+    "activeArcs": [],
+    "hooks": [],
+    "recentHeadlines": [
+      "Golden save fixture \u2014 v30"
+    ]
+  },
+  "offFieldEvents": [],
+  "recentPressConferences": [],
+  "coachingHistory": [],
+  "leagueRivalries": [],
+  "activeEffects": [],
+  "gameDayState": {
+    "recentPackages": [],
+    "latestPackageId": null
+  },
+  "weekSummaries": [],
+  "playoffBracket": null,
+  "offseasonState": null,
+  "leagueRules": {
+    "initializedYear": 2026,
+    "entries": {},
+    "history": []
+  },
+  "cbaState": {
+    "status": "active",
+    "currentDeal": null,
+    "negotiationState": null,
+    "history": [],
+    "lockoutRisk": 0,
+    "lastNegotiationYear": null
+  },
+  "commissionerState": {
+    "name": "Golden Commissioner",
+    "personality": "progressive",
+    "tenure": 1,
+    "approval": 60,
+    "activeProposals": [],
+    "history": [],
+    "rulings": [],
+    "lowApprovalYears": 0
+  },
+  "laborState": {
+    "unionSatisfaction": 65,
+    "playerRepId": null,
+    "grievances": [],
+    "activeStoppage": null,
+    "laborEvents": []
+  },
+  "apologyTourThreads": [],
+  "tutorialState": {
+    "active": false,
+    "currentStepIndex": 0,
+    "steps": [],
+    "completedSteps": [],
+    "dismissed": false,
+    "visitedScreens": [
+      "/",
+      "/roster"
+    ]
+  }
+}

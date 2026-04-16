@@ -10,8 +10,8 @@ import { createEmptyRecordBook } from '../systems/records';
 import { makeLeagueState } from '../systems/test-helpers';
 
 describe('SaveStateSchema', () => {
-  it('uses save version 30 for Bloodlines persistence', () => {
-    expect(SAVE_VERSION).toBe(30);
+  it('uses save version 31 for Rookie Card onboarding (Sprint 43)', () => {
+    expect(SAVE_VERSION).toBe(31);
   });
 
   it('validates a minimal valid save', () => {
