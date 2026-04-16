@@ -28,23 +28,11 @@ import type {
   TeamGameStats,
   WeatherCondition,
 } from '../types';
+import type { SimGameContext, SimTeamContext } from './game-sim-types';
 
-export interface SimTeamContext {
-  teamOvrBonus?: number;
-  playerOvrBonuses?: Record<string, number>;
-  clutchPlayerBonuses?: Record<string, number>;
-  gamePlan?: GamePlan | null;
-  opponentReport?: OpponentReport | null;
-  halftimeModifier?: HalftimeDecisionModifier | null;
-}
-
-export interface SimGameContext {
-  home?: SimTeamContext;
-  away?: SimTeamContext;
-  weather?: WeatherCondition;
-  rivalryIntensity?: number;
-  homeFieldBonus?: number;
-}
+// Re-export for backward compatibility. Types now live in game-sim-types.ts
+// (Sprint 40 — breaks game-plan ↔ game-sim circular dep).
+export type { SimGameContext, SimTeamContext } from './game-sim-types';
 
 // ── Helpers ─────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 import type { OpponentIntel, WeeklyPrepOutcome, WeeklyPrepPlan, Team, GameState } from '../types';
-import type { SimTeamContext } from './game-sim';
+import type { SimTeamContext } from './game-sim-types';
 import { getClinicMods } from './coaching-clinic';
 import { generateOpponentScouting } from './game-plan';
 

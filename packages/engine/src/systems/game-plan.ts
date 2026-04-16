@@ -1,5 +1,5 @@
 import type { GamePlan, GameState, OpponentReport, Player, Position, Team } from '../types';
-import type { SimTeamContext } from './game-sim';
+import type { SimTeamContext } from './game-sim-types';
 
 const OFFENSE_POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE', 'OL'];
 const DEFENSE_POSITIONS: Position[] = ['DL', 'LB', 'CB', 'S'];

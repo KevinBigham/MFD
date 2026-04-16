@@ -116,7 +116,7 @@ import {
 } from './franchise-week-helpers';
 import { calculateAtmosphere, getAtmosphereBonus } from './atmosphere';
 import { generateRegionalWeather } from './regional-weather';
-import type { SimGameContext } from './game-sim';
+import type { SimGameContext } from './game-sim-types';
 import type {
   Consequence,
   EngineOutput,

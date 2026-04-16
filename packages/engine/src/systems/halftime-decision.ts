@@ -1,4 +1,5 @@
-import { simGame, type SimGameContext } from './game-sim';
+import { simGame } from './game-sim';
+import type { SimGameContext } from './game-sim-types';
 import { generateAiGamePlan } from './game-plan';
 import { reseedSeason, reseedWeek, setSeed } from '../rng';
 import type {

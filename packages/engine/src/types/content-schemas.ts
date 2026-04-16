@@ -52,3 +52,72 @@ export type CallYourShotReactionOutcome = z.infer<typeof CallYourShotReactionOut
 export type ContingencyCalloutKey = z.infer<typeof ContingencyCalloutKeySchema>;
 export type ApologyTourBeatContent = z.infer<typeof ApologyTourBeatSchema>;
 export type ApologyTourContent = z.infer<typeof ApologyTourContentSchema>;
+
+// ── Team identity content (Sprint 40 — Tier A coverage) ───────────────
+// 32 files in packages/content/teams/*.json validated at load.
+//
+// TODO(sprint-41): Tier B — validate agm/, broadcast/, narrative/,
+// news/, social/, scouting/, coaching/ (15 files).
+
+export const TeamConferenceSchema = z.enum(['AFC', 'NFC']);
+export const TeamDivisionSchema = z.enum(['North', 'South', 'East', 'West']);
+
+export const TeamFightSongSchema = z.object({
+  title: z.string(),
+  lyrics: z.string(),
+  chant: z.string(),
+});
+
+export const TeamStadiumSchema = z.object({
+  name: z.string(),
+  capacity: z.number().int().positive(),
+  tradition: z.string(),
+  surface: z.string(),
+  roof: z.string(),
+});
+
+export const TeamFanCultureSchema = z.object({
+  nickname: z.string(),
+  description: z.string(),
+  tailgate: z.string(),
+  luckyCharm: z.string(),
+});
+
+export const TeamRivalrySchema = z.object({
+  opponentId: z.string(),
+  name: z.string(),
+  trophy: z.string(),
+  record: z.string(),
+  narrative: z.string(),
+});
+
+export const TeamPaAnnouncerSchema = z.object({
+  firstDownCall: z.string(),
+  touchdownCall: z.string(),
+});
+
+export const TeamContentSchema = z.object({
+  id: z.string(),
+  city: z.string(),
+  nickname: z.string(),
+  fullName: z.string(),
+  conference: TeamConferenceSchema,
+  division: TeamDivisionSchema,
+  primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  tertiaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  fightSong: TeamFightSongSchema,
+  stadium: TeamStadiumSchema,
+  fanCulture: TeamFanCultureSchema,
+  rivalries: z.array(TeamRivalrySchema),
+  paAnnouncer: TeamPaAnnouncerSchema,
+  cityFlavor: z.string(),
+  established: z.number().int().min(1900).max(2100),
+  motto: z.string(),
+});
+
+export type TeamContent = z.infer<typeof TeamContentSchema>;
+export type TeamFightSongContent = z.infer<typeof TeamFightSongSchema>;
+export type TeamStadiumContent = z.infer<typeof TeamStadiumSchema>;
+export type TeamFanCultureContent = z.infer<typeof TeamFanCultureSchema>;
+export type TeamRivalryContent = z.infer<typeof TeamRivalrySchema>;

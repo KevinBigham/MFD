@@ -17,7 +17,7 @@ import type {
   TeamGameStats,
   WeeklyInjurySummary,
 } from '../types';
-import type { SimGameContext } from './game-sim';
+import type { SimGameContext } from './game-sim-types';
 
 function applyResult(home: Team, away: Team, homeStats: TeamGameStats, awayStats: TeamGameStats, homeScore: number, awayScore: number): void {
   applyGameToSeasonStats(home, homeStats, awayStats, homeScore, awayScore);

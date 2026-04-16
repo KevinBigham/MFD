@@ -50,10 +50,12 @@ import {
   CallYourShotReactionsContentSchema,
   ContingencyCalloutsContentSchema,
   ApologyTourContentSchema,
+  TeamContentSchema,
   type CallYourShotReactionContent,
   type CallYourShotReactionOutcome,
   type ContingencyCalloutKey,
   type ApologyTourBeatContent,
+  type TeamContent as TeamContentFull,
 } from './types/content-schemas';
 
 export type {
@@ -215,14 +217,6 @@ interface HalftimeContent {
   pa_templates: Record<PAEventType, readonly string[]>;
 }
 
-interface TeamContent {
-  id: string;
-  paAnnouncer?: {
-    firstDownCall?: string;
-    touchdownCall?: string;
-  };
-}
-
 interface TeamPAOverrides {
   firstDownCall?: string;
   touchdownCall?: string;
@@ -338,7 +332,9 @@ const broadcastTemplateContent = {
   ...(passingDefenseStTemplatesJson as Record<string, BroadcastTemplateCategory>),
   ...(rushingTemplatesJson as Record<string, BroadcastTemplateCategory>),
 } satisfies Record<string, BroadcastTemplateCategory>;
-const teamContentList = [
+// Sprint 40 "The Straight Line": validate every team JSON via Zod at load.
+// Fail loud if a team file drifts from TeamContentSchema shape.
+const teamContentList: readonly TeamContentFull[] = [
   team_atl_peaches_json,
   team_bal_crab_pickers_json,
   team_bos_chowderheads_json,
@@ -371,7 +367,14 @@ const teamContentList = [
   team_sf_sourdoughs_json,
   team_stl_toasted_raviolis_json,
   team_tb_pirates_json,
-] as const satisfies readonly TeamContent[];
+].map((raw, index) => {
+  const parsed = TeamContentSchema.safeParse(raw);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+    throw new Error(`Invalid team content at index ${index} (${(raw as { id?: string }).id ?? '?'}): ${issues}`);
+  }
+  return parsed.data;
+});
 
 const teamPAOverrides = teamContentList.reduce<Record<string, TeamPAOverrides>>((map, team) => {
   map[team.id.toUpperCase()] = {
