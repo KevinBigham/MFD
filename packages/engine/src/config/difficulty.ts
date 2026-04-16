@@ -80,4 +80,4 @@ export function getDefaultHalftimeDecisionSetting(difficulty: DifficultyLevel): 
   return difficulty === 'rookie' ? 'off' : 'on';
 }
 
-export const SAVE_VERSION = 28;
+export const SAVE_VERSION = 29;

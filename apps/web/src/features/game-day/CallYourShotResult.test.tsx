@@ -40,6 +40,14 @@ describe('CallYourShotResult', () => {
     expect(markup).toContain('-4');
   });
 
+  it('uses design tokens instead of inline color literals for result backgrounds', () => {
+    const markup = (['hit', 'miss', 'partial'] as const)
+      .map((outcome) => renderToStaticMarkup(<CallYourShotResult result={makeResult(outcome)} />))
+      .join('\n');
+
+    expect(markup).not.toMatch(/background:linear-gradient\([^"]*(#050505|#000000|rgba\()/);
+  });
+
   it('renders nothing when no result is present', () => {
     const markup = renderToStaticMarkup(<CallYourShotResult result={null} />);
     expect(markup).toBe('');

@@ -210,8 +210,8 @@ const DETECTORS: Record<NamedGameArchetype, (result: GameResult, context: NamedG
 
 export function detectNamedGame(result: GameResult, context: NamedGameContext = {}): NamedGameEvent | null {
   const enrichedContext: NamedGameContext = {
-    weather: context.weather ?? result.weather ?? null,
     ...context,
+    weather: context.weather ?? result.weather ?? null,
   };
 
   for (const archetype of NAMED_GAME_PRIORITY) {

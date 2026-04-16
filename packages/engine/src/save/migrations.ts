@@ -1126,3 +1126,9 @@ registerMigration(27, (state) => {
     postGameUi,
   };
 });
+
+// v28→v29: Apology Tour continuity threads
+registerMigration(28, (state) => ({
+  ...state,
+  apologyTourThreads: Array.isArray(state['apologyTourThreads']) ? state['apologyTourThreads'] : [],
+}));

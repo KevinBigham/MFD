@@ -14,19 +14,19 @@ const THEMES: Record<NonNullable<CallYourShotResultPayload['outcome']>, {
   hit: {
     title: 'CALLED IT.',
     accent: 'gold',
-    background: 'linear-gradient(135deg, var(--mfd-surface-0, #050505), var(--mfd-gold-ink, rgba(255, 215, 0, 0.12)))',
+    background: 'var(--mfd-result-hit-bg)',
     badgeText: 'CONF +',
   },
   miss: {
     title: 'WHIFFED.',
     accent: 'red',
-    background: 'linear-gradient(135deg, #000000, rgba(194, 59, 34, 0.22))',
+    background: 'var(--mfd-result-miss-bg)',
     badgeText: 'CONF -',
   },
   partial: {
     title: 'CLOSE ENOUGH.',
     accent: 'cyan',
-    background: 'linear-gradient(135deg, var(--mfd-surface-0, #050505), rgba(0, 196, 255, 0.12))',
+    background: 'var(--mfd-result-partial-bg)',
     badgeText: 'CONF +/-',
   },
 };

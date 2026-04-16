@@ -352,6 +352,21 @@ export const GameDayStateSchema = z.object({
   latestPackageId: z.string().nullable(),
 });
 
+export const ApologyTourBeatKeySchema = z.enum(['fan_letter', 'beat_column', 'owner_email', 'resolution']);
+
+export const ApologyTourThreadSchema = z.object({
+  id: z.string(),
+  gameId: z.string(),
+  teamId: z.string(),
+  opponentTeamId: z.string(),
+  namedGameName: z.string(),
+  archetype: z.enum(['collapse', 'heartbreaker']),
+  startedYear: z.number(),
+  startedWeek: z.number(),
+  status: z.enum(['active', 'resolved', 'escalated']),
+  beatsDelivered: z.array(ApologyTourBeatKeySchema).default([]),
+});
+
 export const AudioCueSchema = z.object({
   event: z.string(),
   priority: z.enum(['low', 'medium', 'high', 'critical']),
@@ -1824,6 +1839,7 @@ export const SaveStateSchema = z.object({
   nearMissTracker: NearMissTrackerSchema.optional(),
   seasonNearMissReceipts: z.array(NearMissEntrySchema).default([]),
   activeCallYourShot: ShotDeclarationSchema.optional(),
+  apologyTourThreads: z.array(ApologyTourThreadSchema).default([]),
   ceremonies: z.array(CeremonySchema).default([]),
   dynastyTimeline: z.array(DynastyEventSchema).default([]),
 });

@@ -84,6 +84,12 @@ describe('Named Games', () => {
     expect(named?.name).toBe('The Snow Bowl');
   });
 
+  it('keeps the result weather fallback when context weather is explicitly undefined', () => {
+    const named = detectNamedGame(makeResult(13, 10, { weather: 'snow' }), { weather: undefined });
+
+    expect(named?.name).toBe('The Snow Bowl');
+  });
+
   it('detects The Shootout', () => {
     const named = detectNamedGame(makeResult(42, 35));
     expect(named?.name).toBe('The Shootout');

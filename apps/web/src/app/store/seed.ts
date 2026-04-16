@@ -554,6 +554,7 @@ export function createSeedGameState(
     tutorialState: createDefaultTutorialState(true),
     agents: [],
     narrativeIntensity: createDefaultNarrativeIntensity(),
+    apologyTourThreads: [],
     ceremonies: [],
     dynastyTimeline: [],
     achievements: createDefaultAchievements(),

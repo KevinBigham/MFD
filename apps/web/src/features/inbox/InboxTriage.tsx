@@ -6,7 +6,7 @@ import {
   useGameStore, selectUserTeam, selectRoster, selectWeek, selectNarrative, selectLatestSummary, selectPhase, selectLatestGameDayPackage, selectActiveStoryArcs,
   selectOffFieldEvents, selectRecentPressConferences, selectUpcomingRivalry, selectCoachingCarouselNews, selectCoachingMarket,
   selectConditionalPicks, selectHandshakes, selectWaiverWire, selectWeather,
-  selectActiveProposals, selectCeremonies, selectClaimResults, selectContractExtensions, selectCurrentWeeklyPrepPlan, selectDifficultyState, selectDraftRecaps, selectFATargetBoard, selectLatestFilmRoomReport, selectLeagueNews, selectMedicalStaff, selectNewlyUnlocked, selectOffseasonState, selectPlayoffMomentum, selectSeasonReports, selectTeamSchedule, selectTradeSuggestions, selectTrainingAssignments, selectTransactionLog, selectUserTeamNeeds, selectWarRoomState,
+  selectActiveProposals, selectApologyTourThreads, selectCeremonies, selectClaimResults, selectContractExtensions, selectCurrentWeeklyPrepPlan, selectDifficultyState, selectDraftRecaps, selectFATargetBoard, selectLatestFilmRoomReport, selectLeagueNews, selectMedicalStaff, selectNewlyUnlocked, selectOffseasonState, selectPlayoffMomentum, selectSeasonReports, selectTeamSchedule, selectTradeSuggestions, selectTrainingAssignments, selectTransactionLog, selectUserTeamNeeds, selectWarRoomState,
 } from '../../app/store/game-store';
 import { buildInboxMessages, type InboxMessage, type MessageType } from './buildInboxMessages';
 import {
@@ -62,6 +62,7 @@ export function InboxTriage() {
   const teamNeedsReport = useGameStore(selectUserTeamNeeds);
   const warRoomState = useGameStore(selectWarRoomState);
   const contractExtensions = useGameStore(selectContractExtensions);
+  const apologyTourThreads = useGameStore(selectApologyTourThreads);
 
   const [selectedMsg, setSelectedMsg] = useState<InboxMessage | null>(null);
   const [filter, setFilter] = useState<MessageType | 'ALL'>('ALL');
@@ -104,8 +105,9 @@ export function InboxTriage() {
     coachingMarket,
     currentWeeklyPrepPlan,
     latestFilmRoomReport,
+    apologyTourThreads,
     upcomingGame: teamSchedule.find((entry) => entry.week === week) ?? null,
-  }), [activeArcs, activeProposals, ceremonies, claimResults, coachingMarket, coachingNews, conditionalPicks, contractExtensions, currentWeeklyPrepPlan, difficultyState, draftRecaps, faTargetBoard, handshakes, latestFilmRoomReport, latestPackage, latestSummary, leagueNews, medicalStaff.available, narrative, newlyUnlockedAchievements, offFieldEvents, offseasonState, phase, playoffMomentum, recentPressConferences, roster, seasonReports, team, teamNeedsReport, teamSchedule, tradeSuggestions, trainingAssignments, transactionLog, upcomingRivalry, waiverWire, warRoomState, weather, week]);
+  }), [activeArcs, activeProposals, apologyTourThreads, ceremonies, claimResults, coachingMarket, coachingNews, conditionalPicks, contractExtensions, currentWeeklyPrepPlan, difficultyState, draftRecaps, faTargetBoard, handshakes, latestFilmRoomReport, latestPackage, latestSummary, leagueNews, medicalStaff.available, narrative, newlyUnlockedAchievements, offFieldEvents, offseasonState, phase, playoffMomentum, recentPressConferences, roster, seasonReports, team, teamNeedsReport, teamSchedule, tradeSuggestions, trainingAssignments, transactionLog, upcomingRivalry, waiverWire, warRoomState, weather, week]);
 
   const filtered = filter === 'ALL' ? messages : messages.filter((m) => m.type === filter);
   const urgentCount = messages.filter((m) => m.type === 'URGENT' && !m.read).length;

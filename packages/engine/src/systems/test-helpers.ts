@@ -396,6 +396,7 @@ export function makeLeagueState(
       recentBeats: [],
       cooldownWeeks: 0,
     },
+    apologyTourThreads: [],
     ceremonies: [],
     dynastyTimeline: [],
     achievements: [],
