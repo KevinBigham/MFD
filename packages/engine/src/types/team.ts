@@ -126,6 +126,11 @@ export interface StaffMember {
     defense: string;
   };
   lastHiredYear?: number;
+  // Sprint 45 "The Family Tree" — coaching lineage (optional so old
+  // saves load cleanly; migration v31→v32 fills defaults).
+  mentorCoachId?: string | null;
+  disciples?: string[];
+  yearsUnderMentor?: number;
 }
 
 export interface CoordinatorSpecialty {

@@ -39,6 +39,7 @@ import { MondayBriefing } from '../features/monday-briefing/MondayBriefing';
 import { RosterManagement } from '../features/roster/RosterManagement';
 import { ContractsCap } from '../features/contracts/ContractsCap';
 import { CoachingStaff } from '../features/coaching/CoachingStaff';
+import { CoachingTree } from '../features/coaching/CoachingTree';
 import { InboxTriage } from '../features/inbox/InboxTriage';
 import { OwnerMood } from '../features/owner/OwnerMood';
 import { DepthChart } from '../features/depth-chart/DepthChart';
@@ -1228,6 +1229,12 @@ const coachingRoute = createRoute({
   component: CoachingStaff,
 });
 
+const coachingTreeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/coaching/tree',
+  component: CoachingTree,
+});
+
 const filmRoomRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/film-room',
@@ -1488,7 +1495,7 @@ const routeTree = rootRoute.addChildren([
   rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, endorsementsRoute, tradesRoute,
   scoutingRoute, draftRoute, trainingCampRoute, freeAgencyRoute, faTargetsRoute,
   gameDayRoute, broadcastRoute, playByPlayRoute, gameFlowRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
-  scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, filmRoomRoute, tradeDeadlineRoute,
+  scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,

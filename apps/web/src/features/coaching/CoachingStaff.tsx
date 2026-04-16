@@ -31,6 +31,7 @@ import {
   PixelScreenHeader,
   autoGrid,
   monoSm,
+  navigateTo,
   pixelSm,
   screenStackStyle,
 } from '../shared/pixelUi';
@@ -231,7 +232,8 @@ export function CoachingStaff() {
             <CoachPanel coach={staff?.dc} role="DC" retention={retention.dc} onFire={() => { void fireStaff('DC'); }} onPromote={() => { void promoteStaff('DC'); }} />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
+            <PixelButton accent="gold" onClick={() => { navigateTo('/coaching/tree'); }}>View Coaching Tree</PixelButton>
             <PixelButton accent="cyan" onClick={() => { void refreshCoachingMarket(); }}>Refresh Market</PixelButton>
           </div>
 

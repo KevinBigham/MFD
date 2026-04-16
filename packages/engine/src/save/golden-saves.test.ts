@@ -18,6 +18,7 @@ import v10Fixture from './fixtures/v10.json';
 import v20Fixture from './fixtures/v20.json';
 import v30Fixture from './fixtures/v30.json';
 import v31Fixture from './fixtures/v31.json';
+import v32Fixture from './fixtures/v32.json';
 
 describe('golden save fixtures', () => {
   it('migrates v1 fixture through full pipeline to current version', { timeout: 15_000 }, () => {
@@ -126,6 +127,31 @@ describe('golden save fixtures', () => {
     expect(result.data.players['p1']?.bloodline).toBeNull();
     expect(result.data.apologyTourThreads).toEqual([]);
     expect(result.data.tutorialState.visitedScreens).toEqual(['/', '/roster']);
+  });
+
+  it('migrates v31 fixture through v31→v32 to current version', { timeout: 15_000 }, () => {
+    const migrated = migrate(v31Fixture as Record<string, unknown>, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    // Sprint 45 adds a top-level relationship graph, defaulting to empty.
+    expect(migrated['relationships']).toEqual([]);
+  });
+
+  it('validates v32 fixture against current schema without migration', () => {
+    const result = SaveStateSchema.safeParse(v32Fixture);
+
+    if (!result.success) {
+      const errors = result.error.issues.map(
+        (issue) => `${issue.path.join('.')}: ${issue.message}`,
+      );
+      throw new Error(`v32 fixture failed schema validation:\n${errors.join('\n')}`);
+    }
+
+    expect(result.success).toBe(true);
+    expect(result.data.version).toBe(32);
+    expect(result.data.relationships).toHaveLength(1);
+    expect(result.data.relationships[0]?.type).toBe('coach_tree');
+    expect(result.data.relationships[0]?.id).toBe('coach-a:coach-b:coach_tree:2024');
   });
 
   it('verifies migration chain has no gaps from v1 to SAVE_VERSION', () => {

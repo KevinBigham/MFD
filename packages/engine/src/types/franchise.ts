@@ -1265,6 +1265,9 @@ export interface GameState {
   lastManualSaveYear?: number;
   setupState?: import('../systems/franchise-setup').SetupState;
   franchiseBlueprint?: import('../systems/franchise-setup').FranchiseBlueprint;
+  // Sprint 45 "The Family Tree" — league-wide relationship graph.
+  // Stores coaching lineage, rivalries, and family ties in one flat list.
+  relationships?: import('../systems/relationship-graph').RelationshipEdge[];
 }
 
 // ── Commands / Engine Output ───────────────────────────

@@ -1168,6 +1168,61 @@ registerMigration(29, (state) => {
   };
 });
 
+// v31→v32: Sprint 45 "The Family Tree"
+// - Top-level `relationships: RelationshipEdge[]` (empty by default).
+// - Each team's HC/OC/DC gains `mentorCoachId`, `disciples`, `yearsUnderMentor`
+//   lineage fields. Defaults mean existing saves render with an empty tree.
+registerMigration(31, (state) => {
+  const patchCoach = (coach: unknown): unknown => {
+    if (!coach || typeof coach !== 'object') return coach;
+    const record = coach as Record<string, unknown>;
+    return {
+      ...record,
+      mentorCoachId: record['mentorCoachId'] ?? null,
+      disciples: Array.isArray(record['disciples']) ? record['disciples'] : [],
+      yearsUnderMentor: typeof record['yearsUnderMentor'] === 'number'
+        ? record['yearsUnderMentor']
+        : 0,
+    };
+  };
+
+  const teamsRaw = state['teams'];
+  let migratedTeams: unknown = teamsRaw;
+  if (teamsRaw && typeof teamsRaw === 'object' && !Array.isArray(teamsRaw)) {
+    const teamsRecord = teamsRaw as Record<string, unknown>;
+    const nextTeams: Record<string, unknown> = {};
+    for (const [teamId, team] of Object.entries(teamsRecord)) {
+      if (!team || typeof team !== 'object') {
+        nextTeams[teamId] = team;
+        continue;
+      }
+      const teamRecord = team as Record<string, unknown>;
+      const staff = teamRecord['staff'];
+      if (!staff || typeof staff !== 'object') {
+        nextTeams[teamId] = teamRecord;
+        continue;
+      }
+      const staffRecord = staff as Record<string, unknown>;
+      nextTeams[teamId] = {
+        ...teamRecord,
+        staff: {
+          ...staffRecord,
+          hc: patchCoach(staffRecord['hc']),
+          oc: patchCoach(staffRecord['oc']),
+          dc: patchCoach(staffRecord['dc']),
+        },
+      };
+    }
+    migratedTeams = nextTeams;
+  }
+
+  return {
+    ...state,
+    teams: migratedTeams,
+    relationships: Array.isArray(state['relationships']) ? state['relationships'] : [],
+  };
+});
+
 // v30→v31: Add tutorialState.visitedScreens (Sprint 43 "Rookie Card" onboarding)
 registerMigration(30, (state) => {
   const tutorialRaw = (state['tutorialState'] && typeof state['tutorialState'] === 'object')

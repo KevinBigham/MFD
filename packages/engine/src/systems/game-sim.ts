@@ -13,6 +13,7 @@ import { applyGamePlan } from './game-plan';
 import { evaluateContingencies } from './contingency-plans';
 import { determineSituation, selectOffensivePlay, selectDefensivePlay, playMatchupQuality } from './playbook';
 import { simulateSpecialTeams } from './special-teams';
+import { getCoachTraitMods } from './coach-trait-mods';
 import type { ContingencyCheckContext } from './contingency-plans';
 import type {
   GamePlan,
@@ -204,7 +205,14 @@ function simulateDrive(
   const bestCb = bestAvailable(defense.roster, 'CB', defenseClutchBonuses, quarter, scoreDiff);
   const weatherFx = weatherEffects(weather);
 
-  const pocket = (olOvr - dlOvr) * 0.15;
+  // Sprint 45 "The Family Tree" — coach-trait-mods were dormant before this
+  // sprint. Offense gets pocket + stall + qb boosts; defense contributes
+  // pocket pressure that suppresses the passing game.
+  const offenseTraitMods = getCoachTraitMods(offense);
+  const defenseTraitMods = getCoachTraitMods(defense);
+  const pocket = (olOvr - dlOvr) * 0.15
+    + offenseTraitMods.pocketBoost
+    - defenseTraitMods.pressureBoost;
   const runLanes = (olOvr - (dlOvr + lbOvr) / 2) * 0.12;
 
   // Playbook-driven play selection
@@ -231,8 +239,8 @@ function simulateDrive(
     : 0;
 
   const stallChance = isRun
-    ? cl(BASE_RUN_STALL_CHANCE - cEdge * 0.002 - runLanes * 0.008 + tendencyPenalty * 0.008, 0.08, 0.32)
-    : cl(BASE_PASS_STALL_CHANCE - cEdge * 0.002 - pocket * 0.008 + tendencyPenalty * 0.008, 0.08, 0.35);
+    ? cl(BASE_RUN_STALL_CHANCE - cEdge * 0.002 - runLanes * 0.008 + tendencyPenalty * 0.008 - offenseTraitMods.stallReduction, 0.08, 0.32)
+    : cl(BASE_PASS_STALL_CHANCE - cEdge * 0.002 - pocket * 0.008 + tendencyPenalty * 0.008 - offenseTraitMods.stallReduction, 0.08, 0.35);
   if (RNG.play() < stallChance) {
     if (!isRun && qb) {
       const ql = ensureLine(lines, qb);
@@ -278,9 +286,12 @@ function simulateDrive(
     const qbLateBonus = situationalBonus(qb, offenseClutchBonuses, quarter, scoreDiff);
     const targetLateBonus = situationalBonus(target, offenseClutchBonuses, quarter, scoreDiff);
     const cbLateBonus = situationalBonus(bestCb, defenseClutchBonuses, quarter, scoreDiff);
-    const qbOvr = qb.ovr + qbLateBonus;
-    const qbAcc = (qb.ratings.accuracy ?? qb.ovr) + qbLateBonus;
-    const qbAware = (qb.ratings.awareness ?? qb.ovr) + qbLateBonus;
+    // Sprint 45 — QB_WHISPERER + related traits add a small OVR nudge via
+    // a local bonus; we never mutate the stored player.ovr (engine rule).
+    const qbTraitBoost = offenseTraitMods.qbBoost;
+    const qbOvr = qb.ovr + qbLateBonus + qbTraitBoost;
+    const qbAcc = (qb.ratings.accuracy ?? qb.ovr) + qbLateBonus + qbTraitBoost;
+    const qbAware = (qb.ratings.awareness ?? qb.ovr) + qbLateBonus + qbTraitBoost;
     const coverage = (((bestCb?.ovr ?? 68) + cbLateBonus) * 0.7) + sOvr * 0.3;
     const matchupGap = (target.ovr + targetLateBonus) - ((bestCb?.ovr ?? 68) + cbLateBonus);
     const matchupBonus = matchupGap >= 8 ? 4 : matchupGap <= -8 ? -4 : 0;

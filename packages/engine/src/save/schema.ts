@@ -1692,6 +1692,17 @@ export const PlayerSchema = z.object({
   bloodline: BloodlineInfoSchema.nullable().default(null),
 });
 
+// Sprint 45 "The Family Tree" — league-wide relationship graph edge.
+export const RelationshipEdgeSchema = z.object({
+  id: z.string(),
+  fromId: z.string(),
+  toId: z.string(),
+  type: z.enum(['mentor', 'rival', 'teammate', 'family', 'coach_tree']),
+  year: z.number(),
+  strength: z.number(),
+  note: z.string().optional(),
+});
+
 export const SaveStateSchema = z.object({
   version: z.number(),
   seed: z.number(),
@@ -1857,6 +1868,8 @@ export const SaveStateSchema = z.object({
   apologyTourThreads: z.array(ApologyTourThreadSchema).default([]),
   ceremonies: z.array(CeremonySchema).default([]),
   dynastyTimeline: z.array(DynastyEventSchema).default([]),
+  // Sprint 45 "The Family Tree" — coaching lineage / rivalry graph.
+  relationships: z.array(RelationshipEdgeSchema).default([]),
 });
 
 export type SaveState = z.infer<typeof SaveStateSchema>;

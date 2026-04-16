@@ -10,8 +10,8 @@ import { createEmptyRecordBook } from '../systems/records';
 import { makeLeagueState } from '../systems/test-helpers';
 
 describe('SaveStateSchema', () => {
-  it('uses save version 31 for Rookie Card onboarding (Sprint 43)', () => {
-    expect(SAVE_VERSION).toBe(31);
+  it('uses save version 32 for The Family Tree coaching lineage (Sprint 45)', () => {
+    expect(SAVE_VERSION).toBe(32);
   });
 
   it('validates a minimal valid save', () => {

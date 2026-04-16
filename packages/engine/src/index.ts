@@ -905,6 +905,19 @@ export type { SkillTier, SkillBranch, SkillTree } from './systems/coach-skill-tr
 export { getCoachTraitMods } from './systems/coach-trait-mods';
 export type { CoachTraitMods } from './systems/coach-trait-mods';
 
+// Systems — Relationship Graph (Sprint 45 "The Family Tree")
+export {
+  addEdge as addRelationshipEdge,
+  edgeId as relationshipEdgeId,
+  getEdgesFor as getRelationshipEdgesFor,
+  findPath as findRelationshipPath,
+  pruneDeadEdges as pruneDeadRelationshipEdges,
+} from './systems/relationship-graph';
+export type {
+  RelationshipEdge,
+  RelationshipEdgeType,
+} from './systems/relationship-graph';
+
 export { OC_SPECIALTIES, DC_SPECIALTIES, assignCoordSpecialty, getSpecialtyById } from './systems/coordinator-specialties';
 
 // Systems — Hooks Engine (Phase 2)
