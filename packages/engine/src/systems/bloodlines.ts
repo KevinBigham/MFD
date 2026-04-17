@@ -5,9 +5,11 @@ import type {
   DraftProspect,
   GameState,
   HallOfFameEntry,
+  Player,
   PlayerArchiveEntry,
   Position,
 } from '../types';
+import { addEdge, type RelationshipEdge } from './relationship-graph';
 
 export const BLOODLINE_CLASS_CHANCE = 0.05;
 export const MAX_BLOODLINES_PER_CLASS = 3;
@@ -118,4 +120,58 @@ export function assignBloodlinesToDraftClass(
     assigned += 1;
     return { ...prospect, bloodline };
   });
+}
+
+/**
+ * Sprint 48 "The Reunion" — surface the bloodline flat field as graph edges.
+ *
+ * When a rookie with a bloodline enters the league, add:
+ *   - A `family` edge parent → rookie (strength 90; direct parent-child tie).
+ *   - A `family` edge between the rookie and every active player who already
+ *     has the same `bloodline.parentPlayerId` (strength 70; sibling/cousin).
+ *
+ * All edges go through `addEdge`, so calling this twice with the same rookie
+ * is a no-op. Does not mutate inputs.
+ */
+export function addBloodlineFamilyEdges(
+  edges: readonly RelationshipEdge[],
+  rookie: Pick<Player, 'id' | 'bloodline'>,
+  players: Record<string, Pick<Player, 'id' | 'bloodline'>>,
+  year: number,
+): RelationshipEdge[] {
+  if (!rookie.bloodline) return [...edges];
+  const parentId = rookie.bloodline.parentPlayerId;
+  const parentName = rookie.bloodline.parentName;
+
+  let next: RelationshipEdge[] = [...edges];
+  next = addEdge(next, {
+    fromId: parentId,
+    toId: rookie.id,
+    type: 'family',
+    year,
+    strength: 90,
+    note: `son via ${parentName}`,
+  });
+
+  const siblings = Object.values(players)
+    .filter((other) => other.id !== rookie.id)
+    .filter((other) => other.bloodline?.parentPlayerId === parentId)
+    .map((other) => other.id)
+    .sort();
+
+  for (const siblingId of siblings) {
+    const pair: [string, string] = rookie.id < siblingId
+      ? [rookie.id, siblingId]
+      : [siblingId, rookie.id];
+    next = addEdge(next, {
+      fromId: pair[0],
+      toId: pair[1],
+      type: 'family',
+      year,
+      strength: 70,
+      note: `siblings via ${parentName}`,
+    });
+  }
+
+  return next;
 }

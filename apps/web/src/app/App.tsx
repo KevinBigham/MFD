@@ -40,6 +40,7 @@ import { RosterManagement } from '../features/roster/RosterManagement';
 import { ContractsCap } from '../features/contracts/ContractsCap';
 import { CoachingStaff } from '../features/coaching/CoachingStaff';
 import { CoachingTree } from '../features/coaching/CoachingTree';
+import { RelationshipGraph } from '../features/coaching/RelationshipGraph';
 import { InboxTriage } from '../features/inbox/InboxTriage';
 import { OwnerMood } from '../features/owner/OwnerMood';
 import { DepthChart } from '../features/depth-chart/DepthChart';
@@ -1236,6 +1237,12 @@ const coachingTreeRoute = createRoute({
   component: CoachingTree,
 });
 
+const relationshipGraphRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/coaching/relationships',
+  component: RelationshipGraph,
+});
+
 const franchiseBookRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/franchise/book',
@@ -1506,7 +1513,7 @@ const routeTree = rootRoute.addChildren([
   rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, endorsementsRoute, tradesRoute,
   scoutingRoute, draftRoute, trainingCampRoute, freeAgencyRoute, faTargetsRoute,
   gameDayRoute, broadcastRoute, playByPlayRoute, gameFlowRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
-  scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, filmRoomRoute, tradeDeadlineRoute,
+  scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, franchiseBookRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,

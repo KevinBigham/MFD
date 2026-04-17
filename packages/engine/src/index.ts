@@ -939,6 +939,34 @@ export type {
   RelationshipEdgeType,
 } from './systems/relationship-graph';
 
+// Systems — Revenge Games (Sprint 48 "The Reunion")
+export {
+  getRevengeFlavorForMatchup,
+  scanRevengeMatchups,
+  hashMatchupSeed,
+  pickRevengeLine,
+} from './systems/revenge-games';
+export type {
+  RevengeFlavor,
+  RevengeProtagonist,
+  RevengeSubjectKind,
+  RevengeDeparture,
+  RevengeScanOptions,
+} from './systems/revenge-games';
+
+// Systems — Dev harnesses (Sprint 48 "The Reunion")
+export {
+  runAgeCurveHarness,
+  simulateCareer,
+  reportToCsv,
+} from './systems/dev/age-curve-harness';
+export type {
+  AgeCurveReport,
+  AgeCurveHarnessOptions,
+  CareerSample,
+  PositionStats,
+} from './systems/dev/age-curve-harness';
+
 export { OC_SPECIALTIES, DC_SPECIALTIES, assignCoordSpecialty, getSpecialtyById } from './systems/coordinator-specialties';
 
 // Systems — Hooks Engine (Phase 2)

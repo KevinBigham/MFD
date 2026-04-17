@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "description": "Sprint 48 — revenge-game flavor lines. Flavor only, no gameplay effect. Template vars: {{subjectName}}, {{subjectRole}}, {{formerTeam}}, {{currentTeam}}, {{yearsSince}}.",
+  "pregame": {
+    "agm": [
+      "{{subjectName}} has this one circled. Three years since the {{formerTeam}} showed him the door, and the tape hasn't lied since.",
+      "You know who spent all week staring at the {{formerTeam}} defense in the film room? {{subjectName}}. This is personal.",
+      "Every ex-{{formerTeam}} player in the league says the same thing when they see them on the schedule. Today it's {{subjectName}}'s turn to say it out loud.",
+      "I don't buy the 'same-old, same-old' line from the podium. {{subjectName}} wants this one more than the other fifteen.",
+      "The word in the locker room is {{subjectName}} showed up early three straight days. That's not a coincidence on {{formerTeam}} week.",
+      "Call it what you want — grudge match, reunion, statement game — {{subjectName}} just called it 'Sunday.' Sure he did.",
+      "They let {{subjectName}} walk {{yearsSince}} years ago. The league hasn't let them forget."
+    ]
+  },
+  "halftime": {
+    "commentary": [
+      "You can see it on {{subjectName}}'s face every series — it's a little extra against the team that moved on from them.",
+      "The {{formerTeam}} sideline hasn't looked {{subjectName}}'s way once. Silent treatment. They know exactly what this game is.",
+      "{{subjectName}} just ran past the {{formerTeam}} bench after that play. No words. No look. Just the jog back.",
+      "Every player on the {{currentTeam}} is pointing at {{subjectName}} in the huddle. They know who's leading this half.",
+      "Two possessions left in the half and {{subjectName}} has touched the ball on every one. That's not a coincidence — that's a message from the coordinator.",
+      "Whatever happened when {{subjectName}} left {{formerTeam}} {{yearsSince}} years back, the scoreboard's settling it right now."
+    ]
+  },
+  "postgame": {
+    "newsline": [
+      "{{subjectName}} Gets the Last Word — {{currentTeam}} Over {{formerTeam}}",
+      "Revenge Served: {{subjectName}} Hauls Off Against Former {{formerTeam}} Squad",
+      "Three Years Later, {{subjectName}} Answers the Question",
+      "{{subjectName}}'s Return Trip: A Cold Reminder for {{formerTeam}}",
+      "The Reunion Tour Stops in {{formerTeam}} — {{subjectName}} Doesn't Stay Long",
+      "{{subjectName}} Leaves {{formerTeam}} Thinking About What Could've Been"
+    ],
+    "agm": [
+      "Told you. {{subjectName}} had that one circled from minicamp. They always do.",
+      "The {{formerTeam}} won't say it in the presser — they never do — but they let {{subjectName}} beat them today.",
+      "Sometimes the league does the storyboarding for you. {{subjectName}} vs their old team, three years deep, and here we are.",
+      "Don't let the box score bury the subplot: {{subjectName}} got theirs against {{formerTeam}} today.",
+      "That's the kind of game you put in the highlight reel forever. {{subjectName}} will.",
+      "Whatever was left unsaid when {{subjectName}} left {{formerTeam}}, it got said today. Loud."
+    ]
+  }
+}

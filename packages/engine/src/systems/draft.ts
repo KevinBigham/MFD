@@ -9,7 +9,7 @@ import {
   resolvePrivateWorkout,
   tightenVisibleGrade,
 } from './advanced-scouting';
-import { assignBloodlinesToDraftClass } from './bloodlines';
+import { addBloodlineFamilyEdges, assignBloodlinesToDraftClass } from './bloodlines';
 import { makeContract } from './contracts';
 import { rookieSlotContract } from '../config/rookie-slots';
 import { recordDynastyEvent } from './dynasty-timeline';
@@ -329,6 +329,14 @@ function applyDraftSelection(game: GameState, teamId: string, prospectId: string
       playerIds: [rookie.id, rookie.bloodline.parentPlayerId],
       teamIds: [...new Set([team.id, rookie.bloodline.parentTeamId])],
     });
+    // Sprint 48 "The Reunion" — surface bloodline as parent→son + sibling edges
+    // so the Relationship Graph and lineage readers reflect the draft.
+    game.relationships = addBloodlineFamilyEdges(
+      game.relationships ?? [],
+      rookie,
+      game.players,
+      game.year,
+    );
   }
 }
 

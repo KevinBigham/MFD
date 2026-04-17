@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { PixelBadge, PixelButton, PixelPanel, PixelTable } from '@mfd/design-system/components';
-import type { PlayerCareerStatLine } from '@mfd/engine';
+import type { PlayerArchiveEntry, PlayerCareerStatLine } from '@mfd/engine';
 import {
   selectFarewellCandidates,
   selectFarewellTours,
@@ -84,6 +84,8 @@ const contractColumns: ColumnDef<ContractYearRow, unknown>[] = [
   { accessorKey: 'deadCap', header: 'Dead Cap', cell: ({ getValue }) => `$${getValue() as number}M` },
 ];
 
+const EMPTY_ARCHIVE: PlayerArchiveEntry[] = [];
+
 export function PlayerProfile() {
   const { playerId } = useParams({ from: '/player/$playerId' });
   const bundle = useGameStore(selectPlayerProfileBundle(playerId));
@@ -91,6 +93,8 @@ export function PlayerProfile() {
   const rivalries = useGameStore(selectPlayerRivalries(playerId));
   const farewellCandidates = useGameStore(selectFarewellCandidates);
   const farewellTours = useGameStore(selectFarewellTours);
+  const playerArchive = useGameStore((state) => state.game?.playerArchive ?? EMPTY_ARCHIVE);
+  const teamsById = useGameStore((state) => state.game?.teams ?? null);
   const navigate = useNavigate();
   const setFocusedPlayerContext = useUiStore((state) => state.setFocusedPlayerContext);
   const startFarewellTour = useGameStore((state) => state.actions.startFarewellTour);
@@ -109,6 +113,14 @@ export function PlayerProfile() {
   const player = profile.player;
   const hasFarewellTour = farewellTours.some((tour) => tour.playerId === player.id);
   const isFarewellCandidate = farewellCandidates.some((candidate) => candidate.id === player.id);
+
+  const parentEntry: PlayerArchiveEntry | null = player.bloodline
+    ? playerArchive.find((entry) => entry.playerId === player.bloodline?.parentPlayerId) ?? null
+    : null;
+  const parentPrimaryTeamId = parentEntry?.teamHistory[0]?.teamId ?? null;
+  const parentPrimaryTeam = parentEntry && teamsById
+    ? (parentPrimaryTeamId ? teamsById[parentPrimaryTeamId] ?? null : null)
+    : null;
 
   return (
     <div style={screenStackStyle}>
@@ -209,11 +221,6 @@ export function PlayerProfile() {
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Agent style: {profile.personalityReport.agentStyle}</div>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Media presence: {profile.personalityReport.mediaPresence}</div>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Locker room: {profile.personalityReport.lockerRoomImpact}</div>
-            {player.bloodline ? (
-              <div style={{ ...monoSm, color: 'var(--mfd-gold)' }}>
-                Son of {player.bloodline.parentName} // {player.bloodline.legacyTag.replace(/_/g, ' ')}
-              </div>
-            ) : null}
           </div>
         </PixelPanel>
 
@@ -235,6 +242,54 @@ export function PlayerProfile() {
             </PixelButton>
           </div>
         </PixelPanel>
+
+        {player.bloodline ? (
+          <PixelPanel title="Lineage" accent="gold">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <PixelBadge variant="gold">BLOODLINE</PixelBadge>
+                <PixelBadge variant="cyan">{player.bloodline.relationship.toUpperCase()}</PixelBadge>
+                <PixelBadge variant="default">{player.bloodline.legacyTag.replace(/_/g, ' ').toUpperCase()}</PixelBadge>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>PARENT</span>
+                {parentEntry ? (
+                  <PlayerNameLink
+                    playerId={parentEntry.playerId}
+                    name={player.bloodline.parentName}
+                    ovr={parentEntry.peakOvr}
+                    style={{ ...monoSm, color: 'var(--mfd-gold)' }}
+                  />
+                ) : (
+                  <span style={{ ...monoSm, color: 'var(--mfd-gold)' }}>{player.bloodline.parentName}</span>
+                )}
+                <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                  {player.bloodline.parentPosition}
+                  {parentPrimaryTeam ? ` // ${parentPrimaryTeam.city} ${parentPrimaryTeam.name}` : ''}
+                </span>
+              </div>
+              {parentEntry ? (
+                <div style={autoGrid(110)}>
+                  <PixelMetricCard label="Peak OVR" value={parentEntry.peakOvr} accent={parentEntry.peakOvr >= 90 ? 'gold' : 'cyan'} detail={`Peak ${parentEntry.peakYear}`} />
+                  <PixelMetricCard label="Career" value={`${parentEntry.firstYear}-${parentEntry.retirementYear ?? parentEntry.lastYear}`} accent="cyan" detail={`${Math.max(1, (parentEntry.retirementYear ?? parentEntry.lastYear) - parentEntry.firstYear + 1)} yr`} />
+                  <PixelMetricCard label="Teams" value={parentEntry.teamHistory.length} accent="green" detail={parentEntry.teamHistory.length === 1 ? 'One-franchise career' : 'Multi-team career'} />
+                </div>
+              ) : (
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                  Career archive not yet indexed for this era.
+                </div>
+              )}
+              <PixelButton
+                accent="gold"
+                onClick={() => {
+                  void navigate({ to: '/legacy' });
+                }}
+              >
+                Open Dynasty Legacy
+              </PixelButton>
+            </div>
+          </PixelPanel>
+        ) : null}
       </div>
 
       <PixelPanel title="Career Stats" accent="cyan">

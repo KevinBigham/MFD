@@ -60,6 +60,27 @@ vi.mock('../../app/store/game-store', () => ({
     farewellCandidates: [],
     farewellTours: [],
     actions: { startFarewellTour: () => Promise.resolve() },
+    game: {
+      playerArchive: [
+        {
+          playerId: 'legend-qb',
+          firstName: 'Marcus',
+          lastName: 'Cole',
+          name: 'Marcus Cole',
+          positions: ['QB'],
+          jerseyNumber: 7,
+          peakOvr: 96,
+          peakYear: 2012,
+          firstYear: 2002,
+          lastYear: 2018,
+          retirementYear: 2018,
+          teamHistory: [{ teamId: 'user', firstYear: 2002, lastYear: 2018 }],
+        },
+      ],
+      teams: {
+        user: { id: 'user', city: 'Chicago', name: 'Blaze' },
+      },
+    },
   }),
   selectPlayerProfileBundle: () => (state: any) => state.bundle,
   selectTeamById: () => (state: any) => state.team,
@@ -82,9 +103,22 @@ describe('PlayerProfile', () => {
     expect(markup).toContain('TRADE VALUE');
     expect(markup).toContain('2026 MVP');
     expect(markup).toContain('BLOODLINE');
-    expect(markup).toContain('Son of Marcus Cole');
     expect(markup).toContain('Retirement Age');
     expect(markup).toContain('Open Endorsements');
     expect(markup).toContain('View Rivalries');
+  });
+
+  it('renders the Lineage panel with parent archive data when a bloodline is present', () => {
+    const markup = renderToStaticMarkup(<PlayerProfile />);
+
+    expect(markup).toContain('LINEAGE');
+    // Relationship + legacy tag badges surface inside the Lineage panel.
+    expect(markup).toContain('SON');
+    expect(markup).toContain('FRANCHISE ROYALTY');
+    // Parent bio from playerArchive (peak OVR, career window, teams played).
+    expect(markup).toContain('Marcus Cole');
+    expect(markup).toContain('96'); // parent peakOvr
+    expect(markup).toContain('2002-2018'); // career window
+    expect(markup).toContain('Open Dynasty Legacy');
   });
 });
