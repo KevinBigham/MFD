@@ -1,0 +1,27 @@
+{
+  "broadcasting": [
+    "{name} joined the {team} broadcast booth and immediately sounded like a veteran analyst from the {era} years.",
+    "{name} is now part of the {team} studio rotation, turning the {era} era into television memory.",
+    "{name} found a second act behind the microphone, giving the {team} audience stories from the {era} run."
+  ],
+  "coaching": [
+    "{name} resurfaced as a coaching prospect, with teams chasing lessons from the {era} stretch in {team}.",
+    "{name} is drawing coordinator buzz after bringing old {team} standards from the {era} seasons onto a staff room whiteboard.",
+    "{name} is climbing the coaching ladder, selling the same {team} habits that defined the {era} era."
+  ],
+  "hof": [
+    "{name} hit the Hall of Fame lane after a signature {team} run in the {era} years.",
+    "{name} is back in the spotlight as Hall of Fame talk circles around the old {team} standard from the {era} era.",
+    "{name} moved from franchise memory into Hall of Fame conversation, with the {team} chapter from {era} leading the case."
+  ],
+  "milestone": [
+    "{name} is still a touchstone around {team}, with the {era} era remaining the comparison point for every new contender.",
+    "{name} keeps showing up in anniversary reels as {team} replays the {era} years for a new generation.",
+    "{name} remains part of the weekly franchise conversation whenever {team} tries to match the {era} standard."
+  ],
+  "legacy": [
+    "{name}'s legacy keeps widening inside {team} history, with the {era} era now talked about like a permanent landmark.",
+    "{name} has become shorthand for a whole {team} era, the kind of name younger fans learn before they see the clips.",
+    "{name} is now pure franchise mythology in {team}, with the {era} years carrying more weight every season."
+  ]
+}

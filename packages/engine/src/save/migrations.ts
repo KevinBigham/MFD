@@ -1223,6 +1223,33 @@ registerMigration(31, (state) => {
   };
 });
 
+// v32→v33: Sprint 46 "The Long Game"
+// - Top-level `storyArcs: LeagueStoryArc[]` (empty by default).
+// - Each team gains `philosophy`, defaulting to `maintain`.
+registerMigration(32, (state) => {
+  const teamsRaw = state['teams'];
+  let migratedTeams: unknown = teamsRaw;
+
+  if (teamsRaw && typeof teamsRaw === 'object' && !Array.isArray(teamsRaw)) {
+    migratedTeams = Object.fromEntries(
+      Object.entries(teamsRaw as Record<string, unknown>).map(([teamId, team]) => {
+        if (!team || typeof team !== 'object') return [teamId, team];
+        const teamRecord = team as Record<string, unknown>;
+        return [teamId, {
+          ...teamRecord,
+          philosophy: typeof teamRecord['philosophy'] === 'string' ? teamRecord['philosophy'] : 'maintain',
+        }];
+      }),
+    );
+  }
+
+  return {
+    ...state,
+    teams: migratedTeams,
+    storyArcs: Array.isArray(state['storyArcs']) ? state['storyArcs'] : [],
+  };
+});
+
 // v30→v31: Add tutorialState.visitedScreens (Sprint 43 "Rookie Card" onboarding)
 registerMigration(30, (state) => {
   const tutorialRaw = (state['tutorialState'] && typeof state['tutorialState'] === 'object')

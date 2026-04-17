@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { calculateTrainingXP, getAchievementProgress, calculateDynastyWindow, windowPhaseLabel, windowPhaseColor, type Achievement, type DashboardWidget } from '@mfd/engine';
+import { calculateTrainingXP, getAchievementProgress, calculateDynastyWindow, getAlumniUpdates, windowPhaseLabel, windowPhaseColor, type Achievement, type DashboardWidget } from '@mfd/engine';
 import {
   PixelBadge,
   PixelButton,
@@ -47,6 +47,7 @@ import {
   selectUserTeam,
 } from '../../app/store/game-store';
 import { ActionCenter } from './ActionCenter';
+import { AlumniTicker } from './AlumniTicker';
 import { PhaseIndicator } from './PhaseIndicator';
 import {
   PixelMetricCard,
@@ -183,6 +184,11 @@ export function MondayBriefing() {
   const pinnedWidgets = dashboardState.pinnedWidgets;
 
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [reducedMotion] = useState<boolean>(() => (
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false
+  ));
   const [draftName, setDraftName] = useState(activeLayout?.name ?? 'Command Center');
   const [draftColumns, setDraftColumns] = useState<2 | 3>(activeLayout?.columns ?? 3);
   const [draftWidgets, setDraftWidgets] = useState<DashboardWidget[]>(activeLayout?.widgets ?? []);
@@ -191,6 +197,7 @@ export function MondayBriefing() {
   const opponent = nextGame?.opponentTeamId && teams ? teams[nextGame.opponentTeamId] : null;
   const opponentName = nextGame?.opponentName ?? 'BYE';
   const teamName = team ? `${team.city} ${team.name}` : 'No Team';
+  const alumniUpdates = game ? getAlumniUpdates(game, year) : [];
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '0-0';
   const latestResult = latestPackage?.result ?? latestSummary?.result;
   const ownerMood = ownerState?.approval ?? 0;
@@ -814,6 +821,8 @@ export function MondayBriefing() {
           </>
         )}
       />
+
+      <AlumniTicker updates={alumniUpdates} reducedMotion={reducedMotion} />
 
       <ActionCenter
         phase={phase}

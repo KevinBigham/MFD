@@ -13,6 +13,7 @@ import { ensureDraftClass } from './draft';
 import { recordDynastyEvent } from './dynasty-timeline';
 import { generateEndorsementOffers, getEndorsementNarrative, tickEndorsements } from './endorsements';
 import { replenishFacilityBudget } from './facilities';
+import { applyTeamPhilosophies } from './ai-philosophy';
 import { reevaluateLeagueStrategies } from './gm-strategies';
 import { evaluateHandshakes } from './handshake-ledger';
 import { inductHallOfFame } from './hall-of-fame';
@@ -463,9 +464,23 @@ function createAiBid(player: Player, ask: ContractOffer, team: Team, round: numb
     .reduce((lowest, candidate) => Math.min(lowest, candidate.ovr), 99);
   const needBoost = Math.max(0, 78 - positionNeed);
   const difficultyMult = DIFF_SETTINGS[difficulty].aiBidMod;
-  const salary = Math.round((ask.salary * (0.88 + needBoost / 100) * difficultyMult) * 10) / 10;
-  const signingBonus = Math.round((ask.signingBonus * (0.8 + needBoost / 120)) * 10) / 10;
-  const guaranteed = Math.round((ask.guaranteed * (0.82 + needBoost / 150)) * 10) / 10;
+  const philosophy = team.philosophy ?? 'maintain';
+  const youngTarget = player.age <= 26;
+  const veteranTarget = player.age >= 29;
+  const salaryBias = philosophy === 'rebuild'
+    ? youngTarget ? 1.06 : veteranTarget ? 0.82 : 0.94
+    : philosophy === 'contend'
+      ? veteranTarget || player.ovr >= 80 ? 1.08 : 0.94
+      : philosophy === 'fire_sale'
+        ? youngTarget && ask.salary <= Math.max(8, team.capSpace * 0.6) ? 0.96 : 0.7
+        : 1;
+  if (philosophy === 'fire_sale' && (!youngTarget || ask.salary > Math.max(10, team.capSpace * 0.7))) {
+    return null;
+  }
+
+  const salary = Math.round((ask.salary * (0.88 + needBoost / 100) * difficultyMult * salaryBias) * 10) / 10;
+  const signingBonus = Math.round((ask.signingBonus * (0.8 + needBoost / 120) * salaryBias) * 10) / 10;
+  const guaranteed = Math.round((ask.guaranteed * (0.82 + needBoost / 150) * salaryBias) * 10) / 10;
   const franchiseAppeal = 1 + getFanbaseEffect(identity).faInterestBonus;
 
   return {
@@ -1068,6 +1083,7 @@ export function advanceOffseason(game: GameState): void {
   }
   const strategyEvents = reevaluateLeagueStrategies(game);
   game.eventLog.push(...strategyEvents);
+  applyTeamPhilosophies(game, currentSeasonYear(game));
   const previousCommissionerName = game.commissionerState.name;
   const previousProposalIds = game.commissionerState.activeProposals.map((proposal) => proposal.id);
   game.commissionerState = advanceCommissioner(game.commissionerState, game);

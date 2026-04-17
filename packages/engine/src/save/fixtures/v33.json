@@ -1,5 +1,5 @@
 {
-  "version": 32,
+  "version": 33,
   "seed": 42,
   "year": 2026,
   "week": 1,
@@ -110,7 +110,9 @@
     }
   },
   "teams": {
-    "t1": {}
+    "t1": {
+      "philosophy": "maintain"
+    }
   },
   "owners": {},
   "schedule": [],
@@ -210,5 +212,6 @@
       "strength": 60,
       "note": "Golden v32 seed edge"
     }
-  ]
+  ],
+  "storyArcs": []
 }

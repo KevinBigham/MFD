@@ -434,6 +434,30 @@ export interface StoryArc {
   data: Record<string, unknown>;
 }
 
+export type LeagueStoryArcType =
+  | 'rebuild'
+  | 'contender_window'
+  | 'collapse'
+  | 'dynasty_run'
+  | 'cinderella';
+
+export interface StoryArcBeat {
+  stage: string;
+  year: number;
+  note: string;
+  narrativeText: string;
+}
+
+export interface LeagueStoryArc {
+  id: string;
+  type: LeagueStoryArcType;
+  teamId: string;
+  startYear: number;
+  endYear: number | null;
+  currentStage: string;
+  stageHistory: StoryArcBeat[];
+}
+
 export interface NarrativeHook {
   id: string;
   type: string;
@@ -1093,6 +1117,14 @@ export interface NewsItem {
   importance: 'breaking' | 'major' | 'minor';
 }
 
+export interface AlumniUpdate {
+  subjectId: string;
+  subjectName: string;
+  text: string;
+  year: number;
+  category: 'coaching' | 'broadcasting' | 'hof' | 'milestone' | 'legacy';
+}
+
 export type SocialPostSource = 'player' | 'fan' | 'analyst' | 'reporter' | 'team';
 
 export type SocialTrigger =
@@ -1239,6 +1271,7 @@ export interface GameState {
   narrativeIntensity: NarrativeIntensity;
   ceremonies: Ceremony[];
   dynastyTimeline: DynastyEvent[];
+  storyArcs?: LeagueStoryArc[];
   coachingMarket?: CoachingMarketState;
   weeklyPrepPlans?: Record<string, WeeklyPrepPlan>;
   weeklyPrepHistory?: WeeklyPrepOutcome[];

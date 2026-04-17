@@ -72,4 +72,103 @@ describe('season report', () => {
 
     expect(finance?.grade).toBe('A');
   });
+
+  it('injects rebuild exit copy when a rebuild breaks through', () => {
+    const game = makeLeagueState('offseason', 1);
+    const team = game.teams.afce1!;
+    game.franchiseHistory.push({
+      year: 2026,
+      teamId: team.id,
+      wins: 9,
+      losses: 8,
+      ties: 0,
+      record: '9-8',
+      pointDifferential: 42,
+      playoffFinish: 'regular_season',
+      majorEvents: [],
+      awardsWon: [],
+      recordsBroken: [],
+    });
+    game.storyArcs = [{
+      id: `rebuild-${team.id}-2023`,
+      type: 'rebuild',
+      teamId: team.id,
+      startYear: 2023,
+      endYear: 2026,
+      currentStage: 'breakthrough',
+      stageHistory: [
+        { stage: 'breakthrough', year: 2026, note: 'Breakthrough', narrativeText: 'The rebuild hit daylight.' },
+      ],
+    }];
+
+    const report = generateSeasonReport(game, team.id);
+
+    expect(report.sections.some((section) => section.summary.includes('rebuild'))).toBe(true);
+  });
+
+  it('injects contender-window copy when the window extends', () => {
+    const game = makeLeagueState('offseason', 1);
+    const team = game.teams.afce1!;
+    game.franchiseHistory.push({
+      year: 2026,
+      teamId: team.id,
+      wins: 12,
+      losses: 5,
+      ties: 0,
+      record: '12-5',
+      pointDifferential: 96,
+      playoffFinish: 'conference_final_exit',
+      majorEvents: [],
+      awardsWon: [],
+      recordsBroken: [],
+    });
+    game.storyArcs = [{
+      id: `contender_window-${team.id}-2025`,
+      type: 'contender_window',
+      teamId: team.id,
+      startYear: 2025,
+      endYear: null,
+      currentStage: 'window_extended',
+      stageHistory: [
+        { stage: 'window_extended', year: 2026, note: 'Window extended', narrativeText: 'The window held open.' },
+      ],
+    }];
+
+    const report = generateSeasonReport(game, team.id);
+
+    expect(report.sections.some((section) => section.summary.includes('contention window'))).toBe(true);
+  });
+
+  it('injects dynasty-breakthrough copy when a run hardens into a dynasty', () => {
+    const game = makeLeagueState('offseason', 1);
+    const team = game.teams.afce1!;
+    game.franchiseHistory.push({
+      year: 2026,
+      teamId: team.id,
+      wins: 14,
+      losses: 3,
+      ties: 0,
+      record: '14-3',
+      pointDifferential: 142,
+      playoffFinish: 'champion',
+      majorEvents: [],
+      awardsWon: [],
+      recordsBroken: [],
+    });
+    game.storyArcs = [{
+      id: `dynasty_run-${team.id}-2024`,
+      type: 'dynasty_run',
+      teamId: team.id,
+      startYear: 2024,
+      endYear: null,
+      currentStage: 'dynasty_breakthrough',
+      stageHistory: [
+        { stage: 'dynasty_breakthrough', year: 2026, note: 'Dynasty breakthrough', narrativeText: 'The ring count changed the way the league talked about you.' },
+      ],
+    }];
+
+    const report = generateSeasonReport(game, team.id);
+
+    expect(report.sections.some((section) => section.summary.includes('dynasty'))).toBe(true);
+  });
 });

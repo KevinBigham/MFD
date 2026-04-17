@@ -21,6 +21,28 @@ function seasonYear(game: GameState, teamId: string): number {
   return historyYears.length > 0 ? Math.max(...historyYears) : game.year;
 }
 
+function activeArcSentence(game: GameState, team: Team, reportYear: number): string | null {
+  const activeArc = (game.storyArcs ?? [])
+    .filter((arc) => arc.teamId === team.id)
+    .find((arc) => arc.stageHistory.some((beat) => beat.year === reportYear));
+  if (!activeArc) return null;
+
+  if (activeArc.type === 'rebuild' && activeArc.currentStage === 'breakthrough') {
+    return 'You exited your rebuild one year ahead of schedule.';
+  }
+  if (activeArc.type === 'contender_window' && activeArc.currentStage === 'window_extended') {
+    return 'Your contention window widened instead of closing.';
+  }
+  if (activeArc.type === 'contender_window' && activeArc.currentStage === 'window_narrowed') {
+    return 'Your contention window narrowed under cap pressure.';
+  }
+  if (activeArc.type === 'dynasty_run' && activeArc.currentStage === 'dynasty_breakthrough') {
+    return 'The season hardened into the kind of run people call a dynasty.';
+  }
+
+  return activeArc.stageHistory.find((beat) => beat.year === reportYear)?.narrativeText ?? null;
+}
+
 function overallGrade(playoffFinish: string, wins: number, losses: number): Grade {
   if (playoffFinish === 'champion') return 'A+';
   if (playoffFinish === 'conference') return 'A';
@@ -125,6 +147,7 @@ export function generateSeasonReport(game: GameState, teamId: string): SeasonRep
   const team = findTeam(game, teamId);
   const reportYear = seasonYear(game, teamId);
   const history = latestHistory(game, teamId, reportYear);
+  const arcSentence = activeArcSentence(game, team, reportYear);
   const overall = overallGrade(history?.playoffFinish ?? 'missed', team.wins, team.losses);
   const gamesPlayed = Math.max(1, team.seasonStats.gamesPlayed || team.wins + team.losses + team.ties);
   const pointsPerGame = team.seasonStats.pointsFor / gamesPlayed;
@@ -141,8 +164,8 @@ export function generateSeasonReport(game: GameState, teamId: string): SeasonRep
       'Season Overview',
       overall,
       history
-        ? `${history.record} with a ${history.playoffFinish.replaceAll('_', ' ')} finish defined the year.`
-        : `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''} set the tone for the season.`,
+        ? `${history.record} with a ${history.playoffFinish.replaceAll('_', ' ')} finish defined the year.${arcSentence ? ` ${arcSentence}` : ''}`
+        : `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''} set the tone for the season.${arcSentence ? ` ${arcSentence}` : ''}`,
       [
         history ? `Point differential: ${history.pointDifferential >= 0 ? '+' : ''}${history.pointDifferential}.` : 'History entry pending.',
         history ? `Playoff finish: ${history.playoffFinish.replaceAll('_', ' ')}.` : 'Playoff finish unavailable.',
@@ -226,7 +249,9 @@ export function generateSeasonReport(game: GameState, teamId: string): SeasonRep
     reportSection(
       'Outlook',
       overall,
-      overall.startsWith('A') || overall.startsWith('B') ? 'The window is open. The next offseason should sharpen, not reset, the roster.' : 'The offseason needs decisive upgrades at the most stressed positions.',
+      overall.startsWith('A') || overall.startsWith('B')
+        ? `The window is open. The next offseason should sharpen, not reset, the roster.${arcSentence && !arcSentence.includes('rebuild') ? ` ${arcSentence}` : ''}`
+        : `The offseason needs decisive upgrades at the most stressed positions.${arcSentence && !arcSentence.includes('rebuild') ? ` ${arcSentence}` : ''}`,
       [
         `Biggest need: ${team.roster.sort((a, b) => a.ovr - b.ovr)[0]?.pos ?? 'depth'}.`,
         `Dynasty score trajectory: ${(game.dynastyTimeline ?? []).filter((entry) => entry.teamIds.includes(team.id)).length} legacy events logged.`,

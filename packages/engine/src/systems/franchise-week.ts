@@ -51,7 +51,7 @@ import {
   detectBrokenRecords,
   getLeagueLeaders,
 } from './record-tracker';
-import { advanceStoryArcs } from './story-arcs';
+import { advanceStoryArcs, advanceWeeklyStoryArcs } from './story-arcs';
 import { buildGameDayPackage } from './game-day-package';
 import { buildFilmRoomReport } from './film-room';
 import { evaluateHandshakes, generateOwnerDemands } from './handshake-ledger';
@@ -171,7 +171,7 @@ function applyNonGamePhase(nextState: GameState): void {
   refreshNarrative(nextState);
   const userTeam = findUserTeam(nextState);
   if (userTeam) {
-    nextState.narrativeState.activeArcs = advanceStoryArcs(nextState, { team: userTeam, opponent: null, summary: null });
+    nextState.narrativeState.activeArcs = advanceWeeklyStoryArcs(nextState, { team: userTeam, opponent: null, summary: null });
   }
 }
 
@@ -192,7 +192,7 @@ function appendGameDayPackage(
   },
 ): void {
   refreshNarrative(nextState);
-  nextState.narrativeState.activeArcs = advanceStoryArcs(nextState, { team, opponent, summary });
+  nextState.narrativeState.activeArcs = advanceWeeklyStoryArcs(nextState, { team, opponent, summary });
 
   const packageData = buildGameDayPackage({
     team,
@@ -1048,6 +1048,11 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
     if (nextState.playoffBracket.championTeamId) {
       archiveSeasonHistory(nextState);
       archivePlayerSeasonHistory(nextState, nextState.year);
+      const storyArcAdvance = advanceStoryArcs(nextState, nextState.year);
+      nextState.storyArcs = storyArcAdvance.arcs;
+      for (const item of storyArcAdvance.inboxEntries) {
+        recordNewsItem(nextState, item);
+      }
 
       // Doctrine detection at season end
       if (!nextState.earnedDoctrines) nextState.earnedDoctrines = [];
@@ -1239,7 +1244,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
   } else {
     refreshNarrative(nextState);
     if (currentUser) {
-      nextState.narrativeState.activeArcs = advanceStoryArcs(nextState, { team: currentUser, opponent: null, summary: null });
+      nextState.narrativeState.activeArcs = advanceWeeklyStoryArcs(nextState, { team: currentUser, opponent: null, summary: null });
     }
   }
 

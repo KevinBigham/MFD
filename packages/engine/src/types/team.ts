@@ -148,6 +148,7 @@ export interface TeamStaff {
 }
 
 export type GmStrategy = 'rebuild' | 'contend' | 'neutral';
+export type TeamPhilosophy = 'rebuild' | 'contend' | 'maintain' | 'fire_sale';
 
 export interface TradeState {
   gmTrustByTeam: Record<string, number>;
@@ -251,6 +252,7 @@ export interface Team {
   fanConfidence: number;
   ownerPatience80: number;
   gmStrategy: GmStrategy;
+  philosophy?: TeamPhilosophy;
   draftPicks: DraftPick[];
   rivalries: Rivalry[];
   rivals: Record<string, { heat: number }>;

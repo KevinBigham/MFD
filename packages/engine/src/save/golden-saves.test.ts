@@ -19,6 +19,7 @@ import v20Fixture from './fixtures/v20.json';
 import v30Fixture from './fixtures/v30.json';
 import v31Fixture from './fixtures/v31.json';
 import v32Fixture from './fixtures/v32.json';
+import v33Fixture from './fixtures/v33.json';
 
 describe('golden save fixtures', () => {
   it('migrates v1 fixture through full pipeline to current version', { timeout: 15_000 }, () => {
@@ -152,6 +153,31 @@ describe('golden save fixtures', () => {
     expect(result.data.relationships).toHaveLength(1);
     expect(result.data.relationships[0]?.type).toBe('coach_tree');
     expect(result.data.relationships[0]?.id).toBe('coach-a:coach-b:coach_tree:2024');
+  });
+
+  it('migrates v32 fixture through v32→v33 to current version', { timeout: 15_000 }, () => {
+    const migrated = migrate(v32Fixture as Record<string, unknown>, SAVE_VERSION);
+    const teams = migrated['teams'] as Record<string, Record<string, unknown>>;
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['storyArcs']).toEqual([]);
+    expect(teams['t1']?.['philosophy']).toBe('maintain');
+  });
+
+  it('validates v33 fixture against current schema without migration', () => {
+    const result = SaveStateSchema.safeParse(v33Fixture);
+
+    if (!result.success) {
+      const errors = result.error.issues.map(
+        (issue) => `${issue.path.join('.')}: ${issue.message}`,
+      );
+      throw new Error(`v33 fixture failed schema validation:\n${errors.join('\n')}`);
+    }
+
+    expect(result.success).toBe(true);
+    expect(result.data.version).toBe(33);
+    expect(result.data.storyArcs).toEqual([]);
+    expect(result.data.teams.t1?.philosophy).toBe('maintain');
   });
 
   it('verifies migration chain has no gaps from v1 to SAVE_VERSION', () => {

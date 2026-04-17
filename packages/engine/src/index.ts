@@ -805,7 +805,9 @@ export {
   seedLeagueRivalries,
   updateLeagueRivalriesFromGame,
 } from './systems/rivalries';
-export { advanceStoryArcs } from './systems/story-arcs';
+export { derivePhilosophy, applyTeamPhilosophies } from './systems/ai-philosophy';
+export { getAlumniUpdates } from './systems/legends';
+export { advanceStoryArcs, advanceWeeklyStoryArcs } from './systems/story-arcs';
 export { seedPlayoffBracket, advancePlayoffBracket } from './systems/playoff-bracket';
 export {
   initializeOffseasonState,

@@ -10,8 +10,8 @@ import { createEmptyRecordBook } from '../systems/records';
 import { makeLeagueState } from '../systems/test-helpers';
 
 describe('SaveStateSchema', () => {
-  it('uses save version 32 for The Family Tree coaching lineage (Sprint 45)', () => {
-    expect(SAVE_VERSION).toBe(32);
+  it('uses save version 33 for The Long Game (Sprint 46)', () => {
+    expect(SAVE_VERSION).toBe(33);
   });
 
   it('validates a minimal valid save', () => {
@@ -71,6 +71,7 @@ describe('SaveStateSchema', () => {
       teamNeedsCache: {},
       warRoomState: null,
       contractExtensions: [],
+      storyArcs: [],
       leagueRules: initLeagueRules(year),
       cbaState: initCBA(year),
       commissionerState: initCommissioner(year),
@@ -102,7 +103,23 @@ describe('SaveStateSchema', () => {
       expect(result.data.tradeDeadlineState).toBeUndefined();
       expect(result.data.scenarioState).toBeUndefined();
       expect(result.data.apologyTourThreads).toEqual([]);
+      expect(result.data.storyArcs).toEqual([]);
     }
+  });
+
+  it('migrates v32 saves by defaulting story arcs and team philosophies', () => {
+    const legacy = makeLeagueState();
+    legacy.version = 32;
+    delete legacy.storyArcs;
+    for (const team of Object.values(legacy.teams)) {
+      delete team.philosophy;
+    }
+
+    const migrated = migrate(legacy as unknown as Record<string, unknown>, SAVE_VERSION);
+    const teams = migrated['teams'] as Record<string, Record<string, unknown>>;
+
+    expect(migrated['storyArcs']).toEqual([]);
+    expect(Object.values(teams).every((team) => team['philosophy'] === 'maintain')).toBe(true);
   });
 
   it('rejects invalid phase', () => {

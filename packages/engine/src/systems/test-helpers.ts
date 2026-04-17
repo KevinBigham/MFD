@@ -124,6 +124,7 @@ export function makeTeam(
     fanConfidence: isUser ? 28 : 60,
     ownerPatience80: isUser ? 24 : 60,
     gmStrategy: 'neutral',
+    philosophy: 'maintain',
     draftPicks: [],
     rivalries: [],
     rivals: {},
@@ -399,6 +400,7 @@ export function makeLeagueState(
     apologyTourThreads: [],
     ceremonies: [],
     dynastyTimeline: [],
+    storyArcs: [],
     achievements: [],
     dashboardState: {
       activeLayoutId: 'layout:default',

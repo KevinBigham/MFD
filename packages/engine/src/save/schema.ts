@@ -1703,6 +1703,27 @@ export const RelationshipEdgeSchema = z.object({
   note: z.string().optional(),
 });
 
+export const StoryArcBeatSchema = z.object({
+  stage: z.string(),
+  year: z.number(),
+  note: z.string(),
+  narrativeText: z.string(),
+});
+
+export const LeagueStoryArcSchema = z.object({
+  id: z.string(),
+  type: z.enum(['rebuild', 'contender_window', 'collapse', 'dynasty_run', 'cinderella']),
+  teamId: z.string(),
+  startYear: z.number(),
+  endYear: z.number().nullable(),
+  currentStage: z.string(),
+  stageHistory: z.array(StoryArcBeatSchema).default([]),
+});
+
+export const TeamPersistedSchema = z.object({
+  philosophy: z.enum(['rebuild', 'contend', 'maintain', 'fire_sale']).default('maintain'),
+}).passthrough();
+
 export const SaveStateSchema = z.object({
   version: z.number(),
   seed: z.number(),
@@ -1714,7 +1735,7 @@ export const SaveStateSchema = z.object({
     halftimeDecisions: 'on',
   }),
   players: z.record(PlayerSchema),
-  teams: z.record(z.any()),
+  teams: z.record(TeamPersistedSchema),
   owners: z.record(z.any()),
   schedule: z.array(ScheduleWeekSchema),
   draftClass: z.array(z.any()),
@@ -1868,6 +1889,7 @@ export const SaveStateSchema = z.object({
   apologyTourThreads: z.array(ApologyTourThreadSchema).default([]),
   ceremonies: z.array(CeremonySchema).default([]),
   dynastyTimeline: z.array(DynastyEventSchema).default([]),
+  storyArcs: z.array(LeagueStoryArcSchema).default([]),
   // Sprint 45 "The Family Tree" — coaching lineage / rivalry graph.
   relationships: z.array(RelationshipEdgeSchema).default([]),
 });

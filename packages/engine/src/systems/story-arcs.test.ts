@@ -1,8 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { advanceStoryArcs, buildWeeklySummary } from '../index';
+import { buildWeeklySummary } from '../index';
+import { advanceStoryArcs, advanceWeeklyStoryArcs } from './story-arcs';
 import { makeLeagueState } from './test-helpers';
 
-describe('advanceStoryArcs', () => {
+function historyEntry(
+  teamId: string,
+  year: number,
+  wins: number,
+  losses: number,
+  playoffFinish = 'regular_season',
+) {
+  return {
+    year,
+    teamId,
+    wins,
+    losses,
+    ties: 0,
+    record: `${wins}-${losses}`,
+    pointDifferential: (wins - losses) * 9,
+    playoffFinish,
+    majorEvents: [],
+    awardsWon: [],
+    recordsBroken: [],
+  };
+}
+
+describe('advanceWeeklyStoryArcs', () => {
   it('starts and resolves a win streak arc from team momentum', () => {
     const game = makeLeagueState();
     const team = game.teams.afce1!;
@@ -11,7 +34,7 @@ describe('advanceStoryArcs', () => {
     team.losses = 1;
     team.streak = 3;
 
-    const started = advanceStoryArcs(game, {
+    const started = advanceWeeklyStoryArcs(game, {
       team,
       opponent,
       summary: buildWeeklySummary({
@@ -30,7 +53,10 @@ describe('advanceStoryArcs', () => {
     expect(started.some((arc) => arc.template === 'win_streak')).toBe(true);
 
     team.streak = 0;
-    const resolved = advanceStoryArcs({ ...game, narrativeState: { ...game.narrativeState, activeArcs: started } }, { team, opponent, summary: null });
+    const resolved = advanceWeeklyStoryArcs(
+      { ...game, narrativeState: { ...game.narrativeState, activeArcs: started } },
+      { team, opponent, summary: null },
+    );
     expect(resolved.some((arc) => arc.template === 'win_streak')).toBe(false);
   });
 
@@ -77,11 +103,133 @@ describe('advanceStoryArcs', () => {
     });
 
     team.rivals[opponent.id] = { heat: 6 };
-    const arcs = advanceStoryArcs(game, { team, opponent, summary });
+    const arcs = advanceWeeklyStoryArcs(game, { team, opponent, summary });
 
     expect(arcs.some((arc) => arc.template === 'hot_seat')).toBe(true);
     expect(arcs.some((arc) => arc.template === 'breakout_player' && arc.playerId === qb.id)).toBe(true);
     expect(arcs.some((arc) => arc.template === 'injury_crisis')).toBe(true);
     expect(arcs.some((arc) => arc.template === 'revenge_game' && arc.teamId === team.id)).toBe(true);
+  });
+});
+
+describe('advanceStoryArcs', () => {
+  it('is deterministic for the same state and year', () => {
+    const game = makeLeagueState('offseason');
+    const team = game.teams.afce2!;
+    game.franchiseHistory = [
+      historyEntry(team.id, 2023, 4, 13, 'missed_playoffs'),
+      historyEntry(team.id, 2024, 5, 12, 'missed_playoffs'),
+      historyEntry(team.id, 2025, 6, 11, 'missed_playoffs'),
+      historyEntry(team.id, 2026, 9, 8, 'regular_season'),
+    ];
+
+    const first = advanceStoryArcs(game, 2026);
+    const second = advanceStoryArcs(game, 2026);
+
+    expect(first).toEqual(second);
+  });
+
+  it('detects a rebuild breakthrough after three losing seasons', () => {
+    const game = makeLeagueState('offseason');
+    const team = game.teams.afce2!;
+    game.franchiseHistory = [
+      historyEntry(team.id, 2023, 3, 14, 'missed_playoffs'),
+      historyEntry(team.id, 2024, 5, 12, 'missed_playoffs'),
+      historyEntry(team.id, 2025, 6, 11, 'missed_playoffs'),
+      historyEntry(team.id, 2026, 9, 8, 'regular_season'),
+    ];
+
+    const result = advanceStoryArcs(game, 2026);
+    const rebuild = result.arcs.find((arc) => arc.type === 'rebuild' && arc.teamId === team.id);
+
+    expect(rebuild).toMatchObject({
+      teamId: team.id,
+      startYear: 2023,
+      endYear: 2026,
+      currentStage: 'breakthrough',
+    });
+    expect(rebuild?.stageHistory).toHaveLength(4);
+    expect(result.inboxEntries.some((item) => item.id.includes('rebuild') && item.year === 2026)).toBe(true);
+  });
+
+  it('detects a dynasty run after three straight 12-win seasons', () => {
+    const game = makeLeagueState('offseason');
+    const team = game.teams.afcn1!;
+    game.franchiseHistory = [
+      historyEntry(team.id, 2024, 12, 5, 'divisional_exit'),
+      historyEntry(team.id, 2025, 13, 4, 'conference_final_exit'),
+      historyEntry(team.id, 2026, 14, 3, 'champion'),
+    ];
+
+    const result = advanceStoryArcs(game, 2026);
+    const dynasty = result.arcs.find((arc) => arc.type === 'dynasty_run' && arc.teamId === team.id);
+
+    expect(dynasty).toMatchObject({
+      teamId: team.id,
+      startYear: 2024,
+      endYear: null,
+      currentStage: 'dynasty_breakthrough',
+    });
+    expect(dynasty?.stageHistory.map((beat) => beat.year)).toEqual([2024, 2025, 2026]);
+  });
+
+  it('tracks multiple teams independently in the same season', () => {
+    const game = makeLeagueState('offseason');
+    const contender = game.teams.afcw1!;
+    const cinderella = game.teams.nfcs2!;
+    game.franchiseHistory = [
+      historyEntry(contender.id, 2025, 11, 6, 'divisional_exit'),
+      historyEntry(contender.id, 2026, 12, 5, 'conference_final_exit'),
+      historyEntry(cinderella.id, 2026, 8, 9, 'divisional_exit'),
+    ];
+
+    const result = advanceStoryArcs(game, 2026);
+
+    expect(result.arcs.some((arc) => arc.type === 'contender_window' && arc.teamId === contender.id)).toBe(true);
+    expect(result.arcs.some((arc) => arc.type === 'cinderella' && arc.teamId === cinderella.id)).toBe(true);
+  });
+
+  it('closes an active contender arc when a dead-cap collapse hits', () => {
+    const game = makeLeagueState('offseason');
+    const team = game.teams.afcs1!;
+    team.deadCap = 31;
+    team.capSpace = -4;
+    game.storyArcs = [{
+      id: `contender_window-${team.id}-2024`,
+      type: 'contender_window',
+      teamId: team.id,
+      startYear: 2024,
+      endYear: null,
+      currentStage: 'window_extended',
+      stageHistory: [
+        { stage: 'window_opened', year: 2024, note: 'Window opened', narrativeText: 'The roster announced itself.' },
+        { stage: 'window_extended', year: 2025, note: 'Window extended', narrativeText: 'The core kept the pressure on.' },
+      ],
+    }];
+    game.franchiseHistory = [
+      historyEntry(team.id, 2024, 11, 6, 'divisional_exit'),
+      historyEntry(team.id, 2025, 12, 5, 'conference_final_exit'),
+      historyEntry(team.id, 2026, 8, 9, 'regular_season'),
+    ];
+
+    const result = advanceStoryArcs(game, 2026);
+    const contender = result.arcs.find((arc) => arc.type === 'contender_window' && arc.teamId === team.id);
+    const collapse = result.arcs.find((arc) => arc.type === 'collapse' && arc.teamId === team.id);
+
+    expect(contender?.endYear).toBe(2026);
+    expect(contender?.currentStage).toBe('window_narrowed');
+    expect(collapse).toMatchObject({
+      teamId: team.id,
+      currentStage: 'cap_overflow',
+    });
+  });
+
+  it('returns no multi-season arcs at league init', () => {
+    const game = makeLeagueState('preseason');
+
+    const result = advanceStoryArcs(game, game.year);
+
+    expect(result.arcs).toEqual([]);
+    expect(result.inboxEntries).toEqual([]);
   });
 });

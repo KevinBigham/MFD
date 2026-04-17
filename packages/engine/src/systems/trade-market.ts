@@ -150,10 +150,14 @@ function positionNeed(team: Team, pos: Player['pos']): number {
   return 90 - (bestAtPosition?.ovr ?? 60);
 }
 
+function teamPhilosophy(team: Team): NonNullable<Team['philosophy']> {
+  return team.philosophy ?? 'maintain';
+}
+
 function tradeablePlayers(team: Team, targetPos: Player['pos']): Player[] {
   return [...team.roster]
     .filter((player) => player.pos !== 'QB' || targetPos === 'QB')
-    .filter((player) => !(team.gmStrategy === 'contend' && player.age <= 26 && player.ovr >= 80))
+    .filter((player) => !((team.gmStrategy === 'contend' || teamPhilosophy(team) === 'contend') && player.age <= 26 && player.ovr >= 80))
     .sort((a, b) => b.ovr - a.ovr || a.id.localeCompare(b.id));
 }
 
@@ -170,6 +174,10 @@ function selectBestPick(picks: DraftPick[], remaining: number): DraftPick | null
 }
 
 function buildAssetsForTarget(game: GameState, aiTeam: Team, userTeam: Team, targetPlayer: Player): TradeOfferAsset[] {
+  const philosophy = teamPhilosophy(aiTeam);
+  if (philosophy === 'fire_sale') return [];
+  if (philosophy === 'rebuild' && targetPlayer.age >= 28) return [];
+
   const targetValue = Math.max(1, calcPlayerValue(game, targetPlayer, aiTeam));
   const assets: TradeOfferAsset[] = [];
   let totalValue = 0;
@@ -275,14 +283,25 @@ function buildPickOnlyFallback(game: GameState, userTeam: Team, aiTeam: Team, ta
 }
 
 function buildOutboundOffer(game: GameState, userTeam: Team, aiTeam: Team): TradeOffer | null {
+  const philosophy = teamPhilosophy(aiTeam);
   const targetPlayer = [...aiTeam.roster]
-    .filter((player) => player.tradeBlock || (aiTeam.gmStrategy === 'rebuild' && player.age >= 28 && player.ovr >= 76))
-    .sort((a, b) => b.ovr - a.ovr || a.id.localeCompare(b.id))[0];
+    .filter((player) => (
+      player.tradeBlock ||
+      ((aiTeam.gmStrategy === 'rebuild' || philosophy === 'rebuild' || philosophy === 'fire_sale') && player.age >= 28 && player.ovr >= 76)
+    ))
+    .sort((a, b) => {
+      if (philosophy === 'fire_sale') {
+        const leftScore = a.ovr + a.age * 2;
+        const rightScore = b.ovr + b.age * 2;
+        return (rightScore - leftScore) || (b.ovr - a.ovr) || a.id.localeCompare(b.id);
+      }
+      return b.ovr - a.ovr || a.id.localeCompare(b.id);
+    })[0];
   if (!targetPlayer) return null;
 
   const userPicks = userTeam.draftPicks
-    .filter((pick) => pick.year === game.year)
-    .sort((a, b) => a.round - b.round || a.pick - b.pick);
+    .filter((pick) => philosophy === 'fire_sale' ? pick.year >= game.year : pick.year === game.year)
+    .sort((a, b) => a.year - b.year || a.round - b.round || a.pick - b.pick);
 
   const send: TradeOfferAsset[] = [];
   let sentValue = 0;
@@ -294,11 +313,20 @@ function buildOutboundOffer(game: GameState, userTeam: Team, aiTeam: Team): Trad
     if (sentValue >= targetValue * 0.95) break;
   }
 
+  if (send.length === 0 && philosophy === 'fire_sale') {
+    const throwIn = [...userTeam.roster]
+      .sort((a, b) => a.ovr - b.ovr || b.age - a.age || a.id.localeCompare(b.id))[0];
+    if (throwIn) {
+      send.push(playerAsset(userTeam.id, throwIn));
+      sentValue += Math.max(1, calcPlayerValue(game, throwIn, aiTeam));
+    }
+  }
+
   if (send.length === 0) return null;
 
   const receive = [playerAsset(aiTeam.id, targetPlayer)];
   const evaluation = evaluateTradeOffer(game, aiTeam, send, receive);
-  if (!evaluation.accepted) return null;
+  if (!evaluation.accepted && !(philosophy === 'fire_sale' && sentValue >= targetValue * 0.2)) return null;
 
   return {
     id: `trade-offer-${userTeam.id}-${targetPlayer.id}`,
@@ -347,15 +375,23 @@ export function generateTradeOffers(game: GameState): TradeOffer[] {
     }
   }
 
+  for (const aiTeam of aiTeams.filter((team) => teamPhilosophy(team) === 'fire_sale')) {
+    const offer = buildOutboundOffer(game, userTeam, aiTeam);
+    if (offer && !offers.some((existing) => existing.id === offer.id)) {
+      offers.unshift(offer);
+      break;
+    }
+  }
+
   for (const aiTeam of aiTeams) {
     if (offers.length >= 6) break;
     const offer = buildOutboundOffer(game, userTeam, aiTeam);
-    if (offer) {
+    if (offer && !offers.some((existing) => existing.id === offer.id)) {
       offers.push(offer);
     }
   }
 
-  return offers;
+  return offers.slice(0, 6);
 }
 
 export function acceptTradeOffer(game: GameState, offerId: string): EngineOutput {

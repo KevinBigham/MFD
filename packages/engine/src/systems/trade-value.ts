@@ -35,6 +35,10 @@ const STRATEGY_THRESHOLD: Record<Team['gmStrategy'], number> = {
   contend: 1,
 };
 
+function teamPhilosophy(team: Team): NonNullable<Team['philosophy']> {
+  return team.philosophy ?? 'maintain';
+}
+
 function parsePickId(pickId: string): { round: number; pick: number } | null {
   const parts = pickId.split('-');
   if (parts.length < 5) return null;
@@ -126,6 +130,7 @@ export function calcPlayerValue(game: GameState, player: Player, acquiringTeam: 
   const devMultiplier = DEV_TRAIT_BONUS[player.devTrait] ?? 1;
   const positionMultiplier = POSITION_VALUE_MULTIPLIER[player.pos] ?? 1;
   const capPenalty = capAwareness(game, player);
+  const philosophy = teamPhilosophy(acquiringTeam);
   const raw = baseValue * ageMultiplier * contractMultiplier * devMultiplier * positionMultiplier * capPenalty;
 
   if (acquiringTeam.gmStrategy === 'contend' && player.age <= 27 && player.ovr >= 80) {
@@ -133,6 +138,18 @@ export function calcPlayerValue(game: GameState, player: Player, acquiringTeam: 
   }
   if (acquiringTeam.gmStrategy === 'rebuild' && player.age >= 29) {
     return raw * 0.9;
+  }
+  if (philosophy === 'contend' && player.age >= 28 && player.ovr >= 78) {
+    return raw * 1.08;
+  }
+  if (philosophy === 'rebuild' && player.age >= 29) {
+    return raw * 0.84;
+  }
+  if (philosophy === 'rebuild' && player.age <= 26) {
+    return raw * 1.06;
+  }
+  if (philosophy === 'fire_sale' && player.age >= 28) {
+    return raw * 0.78;
   }
   return raw;
 }
@@ -148,13 +165,14 @@ export function evaluateTradeOffer(
   outgoingValue: number;
   threshold: number;
 } {
+  const philosophy = teamPhilosophy(team);
   const incomingValue = incomingAssets.reduce((sum, asset) => {
     if (asset.type === 'player' && asset.playerId) {
       const player = game.players[asset.playerId];
       return sum + (player ? calcPlayerValue(game, player, team) : 0);
     }
     const pickValue = resolvePickValue(game, asset);
-    return sum + (team.gmStrategy === 'rebuild' ? pickValue * 1.1 : pickValue);
+    return sum + ((team.gmStrategy === 'rebuild' || philosophy === 'rebuild' || philosophy === 'fire_sale') ? pickValue * 1.12 : pickValue);
   }, 0);
 
   const outgoingValue = outgoingAssets.reduce((sum, asset) => {
@@ -165,12 +183,19 @@ export function evaluateTradeOffer(
       if (team.gmStrategy === 'rebuild' && player.age >= 28) {
         return sum + value * 0.9;
       }
+      if (philosophy === 'fire_sale' && player.age >= 28) {
+        return sum + value * 0.82;
+      }
       return sum + value;
     }
     return sum + resolvePickValue(game, asset);
   }, 0);
 
-  const threshold = STRATEGY_THRESHOLD[team.gmStrategy] ?? 0.95;
+  const threshold = philosophy === 'fire_sale'
+    ? 0.82
+    : philosophy === 'rebuild'
+      ? 0.88
+      : STRATEGY_THRESHOLD[team.gmStrategy] ?? 0.95;
 
   return {
     accepted: incomingValue >= outgoingValue * threshold,
