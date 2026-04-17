@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "description": "Narrative templates for FranchiseBook era chapters. Keyed by arc type + tense. Placeholders: {{teamName}}, {{teamCity}}, {{headCoach}}, {{startYear}}, {{endYear}}, {{wins}}, {{losses}}, {{winPct}}, {{titles}}, {{seasons}}, {{topPlayer}}.",
+  "eras": {
+    "ascent": {
+      "openings": [
+        "The {{teamName}} arrived in {{startYear}} not as favorites, but as believers.",
+        "Nothing about {{startYear}} foretold what the {{teamCity}} faithful were about to witness.",
+        "The climb began quietly in {{startYear}} — a few more wins, a few fewer collapses, a city daring to feel hopeful again.",
+        "In {{startYear}}, the {{teamName}} stopped losing and started meaning something."
+      ],
+      "signature": [
+        "{{headCoach}} kept saying the same three words in press conferences: keep stacking bricks.",
+        "By the end, {{topPlayer}} had become the face of the rise — the player who refused to accept {{teamCity}}'s old ceiling.",
+        "The {{wins}}-{{losses}} record understates the shift in posture: the {{teamName}} no longer walked into stadiums expecting to lose.",
+        "Front-office trust deepened. The scouts were right more often than they were wrong."
+      ],
+      "closers": [
+        "By {{endYear}}, the {{teamName}} were no longer the climb — they were the summit approach.",
+        "The ascent closed with {{titles}} parades still waiting, but the architecture was in place.",
+        "Chapter's end found {{teamCity}} believing again, and the league taking notes."
+      ]
+    },
+    "peak": {
+      "openings": [
+        "This was the window. Everyone in {{teamCity}} knew it in {{startYear}}, and nobody wanted to waste it.",
+        "The {{teamName}} did not stumble into contention — they engineered it, brick by brick, under {{headCoach}}.",
+        "From {{startYear}} on, every Sunday in {{teamCity}} felt like the kind of Sunday a franchise is built around."
+      ],
+      "signature": [
+        "{{topPlayer}} played like a man trying to pull a city onto his back, and often did.",
+        "The defense set the tone — disciplined, angry, unwilling to be outworked for four quarters.",
+        "Road crowds stopped laughing when the {{teamName}} came to town. That's how you know.",
+        "Internally, {{headCoach}} referred to this stretch as 'the ceiling we were always meant to hit.'"
+      ],
+      "closers": [
+        "The window closed, as windows do. But while it was open, {{teamCity}} had a real team — the kind you measure other eras by.",
+        "Peaks don't last. That's what makes them peaks. The {{teamName}} will spend the next era chasing this one.",
+        "{{wins}} wins, {{titles}} title-chase runs, one indelible era. The {{teamName}} had arrived."
+      ]
+    },
+    "golden": {
+      "openings": [
+        "Every franchise gets a chance like this. Most waste it. The {{teamName}} did not.",
+        "Dynasties are built in the boring weeks — practices no one watches, meetings no one covers. The {{teamName}} of {{startYear}}–{{endYear}} lived there.",
+        "They will call this the golden era of {{teamCity}} football, and they will be right."
+      ],
+      "signature": [
+        "Three words defined the stretch: standards, standards, standards. {{headCoach}} said it daily until the locker room lived it.",
+        "The {{teamName}} won {{titles}} titles — but what's remembered in {{teamCity}} is the expectation that came with every January.",
+        "{{topPlayer}} became the face, but the fingerprints are everywhere. This was a team.",
+        "Opponents didn't fear the {{teamName}} — they planned their entire years around them."
+      ],
+      "closers": [
+        "By {{endYear}}, {{teamCity}} had become synonymous with winning, and every child wearing the colors believed it was supposed to be this way.",
+        "Eras end. Banners don't. The {{teamName}} raised {{titles}} and a generation's worth of memory.",
+        "The Golden Era closed the only way eras like this ever do — slowly, then suddenly — and {{teamCity}} was never quite the same."
+      ]
+    },
+    "valley": {
+      "openings": [
+        "Nothing about {{startYear}}–{{endYear}} was easy in {{teamCity}}, and pretending otherwise would insult the fans who lived it.",
+        "The {{teamName}} spent this stretch in the wilderness, and the wilderness was unkind.",
+        "Every franchise has a valley. {{teamCity}}'s ran from {{startYear}} to {{endYear}}, and the fog rarely lifted."
+      ],
+      "signature": [
+        "{{headCoach}} took the job knowing it was a rebuild, and the first wave of losses was still worse than advertised.",
+        "Injuries, bad luck, and deeper structural problems conspired. The front office had stopped being in denial by {{endYear}}, which was its own kind of progress.",
+        "{{topPlayer}} was often the only reason to show up — a single bright note in a long minor-key season.",
+        "Attendance dipped. Ownership pretended not to notice. The beat writers did."
+      ],
+      "closers": [
+        "The valley was eventually survived, because all valleys are survived, but it left its mark on the roster and the city.",
+        "By {{endYear}}, the {{teamName}} had {{wins}} wins against {{losses}} losses — numbers that tell the story without embellishment.",
+        "The era closed with the team intact, the fanbase bruised, and a front office finally willing to tell the truth."
+      ]
+    },
+    "rebuild": {
+      "openings": [
+        "A teardown is never announced — it's confessed. The {{teamName}} made theirs in {{startYear}}, and {{teamCity}} braced.",
+        "The {{teamName}} entered {{startYear}} with one honest sentence: we are not ready to contend.",
+        "Rebuilds work when the plan is longer than the patience. {{teamCity}}'s patience, to its credit, held."
+      ],
+      "signature": [
+        "{{headCoach}} installed a culture first, a roster second. That was the bet.",
+        "Veterans were moved. Picks were stockpiled. The cap cleared. The playbook slimmed. The youth played.",
+        "Fans who had seen previous rebuilds fail waited — skeptical, exhausted, hopeful in rotation.",
+        "{{topPlayer}} was the hire of the era, brought in to anchor the next {{seasons}} seasons, not the current one."
+      ],
+      "closers": [
+        "By {{endYear}}, the teardown had ended. What stood in its place was still unfinished — but it was finally scaffolding.",
+        "The rebuild closed quietly, which is the only way a good rebuild ever closes.",
+        "The {{wins}} wins across these years mattered less than the {{seasons}} that followed. That was the point."
+      ]
+    },
+    "turbulent": {
+      "openings": [
+        "The {{teamName}} of {{startYear}}–{{endYear}} never settled. Never. That was the whole story.",
+        "Some eras find a rhythm. This one never did. {{teamCity}} rode every roller coaster the league could build.",
+        "From {{startYear}} on, the {{teamName}} were a different team every month."
+      ],
+      "signature": [
+        "Twelve-win seasons followed five-win seasons followed twelve-win seasons. {{headCoach}} eventually stopped trying to explain it.",
+        "The locker room cycled through identities — tough, soft, veteran, young, again. Nothing held.",
+        "{{topPlayer}} was the one constant, even when the schemes around him weren't.",
+        "Fans learned to brace for everything and expect nothing. A survival skill."
+      ],
+      "closers": [
+        "The era closed the way it had begun — unpredictably — and {{teamCity}} exhaled for no particular reason.",
+        "Turbulence eventually sorts itself into a pattern. By {{endYear}}, the {{teamName}} had one. Barely.",
+        "What this era lacked in consistency it made up for in incident. {{teamCity}} football was never boring."
+      ]
+    },
+    "steady": {
+      "openings": [
+        "Not every era screams. The {{teamName}} of {{startYear}}–{{endYear}} were a hum — steady, competent, unshowy.",
+        "The {{teamName}} did not dominate or collapse between {{startYear}} and {{endYear}}. They competed, and they kept competing.",
+        "Mid-pack is not a crime. It is not a story. But it is a franchise's most common honest ground."
+      ],
+      "signature": [
+        "{{headCoach}} ran a stable program. Nine wins most years. Wild Card most years. Nothing more, nothing less.",
+        "The {{teamName}} were the team nobody wanted to draw and nobody feared: a worthy opponent.",
+        "{{topPlayer}} did the job, every week. The roster was clean. The practices were clean. The cap was clean.",
+        "Ownership didn't fire anyone. The beat writers didn't have much to write. It was, in its way, a gift."
+      ],
+      "closers": [
+        "The era closed with the {{teamName}} still intact, still respectable, still waiting for the leap.",
+        "{{wins}} wins, {{losses}} losses, {{titles}} titles. The ledger balanced. {{teamCity}} exhaled.",
+        "Steady eras do not make the highlight reels. They make the next era possible."
+      ]
+    }
+  },
+  "milestone_coda": {
+    "three_peat_plus": "Three titles in this window. Three. The {{teamName}} stopped being a team and became a standard.",
+    "multi_title": "Two rings in one era puts you in a very small club. The {{teamName}} found that club, and made room.",
+    "first_title": "The first one. After everything, the {{teamName}} finally had the first one.",
+    "sustained_dominance": "A {{winPct}} win rate across an era isn't luck. It's a system, a culture, and a refusal to waste a Sunday.",
+    "deep_valley": "There is no sugar-coating {{wins}}-{{losses}}. The franchise bottomed out, and the only honest path was up.",
+    "dynasty_run": "Future generations will argue about where this team ranks all-time. That is what the {{teamName}} earned.",
+    "rollercoaster": "Even the highlight reel needed two different soundtracks for this stretch. It never made sense, and it was never dull."
+  }
+}

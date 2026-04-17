@@ -675,6 +675,25 @@ export {
   recordDynastyEvent,
   getDynastyHighlights,
   getDynastyByYear,
+  buildFranchiseBook,
+  detectNewEraChapter,
+  partitionEras,
+} from './systems/dynasty-timeline';
+export {
+  fireFranchiseBookChapterAlerts,
+} from './systems/franchise-book-hook';
+export type {
+  FranchiseBookChapterAlert,
+} from './systems/franchise-book-hook';
+export type {
+  EraArcType,
+  EraChapter,
+  EraRecord,
+  DefiningMoment,
+  DefiningMomentKind,
+  SignaturePlayer,
+  SignatureRole,
+  FranchiseBook,
 } from './systems/dynasty-timeline';
 
 // Systems — Contracts (Phase 2)

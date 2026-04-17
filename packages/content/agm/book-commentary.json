@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "description": "AGM commentary — margin voice for the Franchise Book. One selected per era chapter + one per milestone flag. The AGM speaks like an old-school broadcaster: terse, cliched on purpose, occasionally poetic.",
+  "byArcType": {
+    "ascent": [
+      "Football men will tell you an ascent is the rarest thing in this league. Winning is hard. Learning how to win is harder.",
+      "The arrow was pointing up for the first time in a long time. Everyone in the building could feel it, and most of them had stopped feeling anything at all.",
+      "This is the era a franchise decides to be serious. The wins were nice. The standards were better.",
+      "They call it the hardest record to beat in football — the jump from six wins to ten. This front office beat it."
+    ],
+    "peak": [
+      "I saw every Sunday of this stretch, and I'll tell you what I told anyone who asked: this was the real thing.",
+      "Ceilings get a bad reputation. Most franchises never see theirs. This one hit it square.",
+      "January became a month this team expected to work in. That's the marker.",
+      "Peak eras are measured less by titles and more by the weight of every home game. This team carried that weight."
+    ],
+    "golden": [
+      "Dynasties don't introduce themselves. They just stop leaving. That's what these years felt like.",
+      "Rings are one thing. A decade of rings is another language altogether.",
+      "You measure golden eras the way you measure earthquakes: by what they leave behind.",
+      "There are fifteen or so of these stretches in the entire history of the league. This was one of them."
+    ],
+    "valley": [
+      "Nobody wants to coach through a valley. Somebody has to. That's the job.",
+      "I don't romanticize losing. Nobody in that locker room did either. But they kept the standards, and that's not nothing.",
+      "The scoreboard was ugly. The foundation wasn't. Those are two different conversations.",
+      "A valley is the front office telling the truth to itself, one Sunday at a time."
+    ],
+    "rebuild": [
+      "Rebuilds are the bravest move in football. Admit it publicly, then actually do it. Almost nobody does both.",
+      "The record sheet says losses. The plan says assets. Those are different ledgers.",
+      "They traded today for tomorrow. That's the whole bet. Sometimes tomorrow arrives. Sometimes it doesn't.",
+      "You don't judge a rebuild by its middle. You judge it by what replaces it."
+    ],
+    "turbulent": [
+      "I've watched this league for a long time and I cannot tell you what this era was. Neither could they.",
+      "Consistency is the hardest thing in football. This team did not have it, and the schedule did not care.",
+      "Some eras have a single voice. This one had six, all arguing.",
+      "When everyone's a different team every October, somebody is lying in August."
+    ],
+    "steady": [
+      "Steady is underrated. It keeps the lights on. It keeps the fans coming back. It keeps the building professional.",
+      "Every franchise needs a stretch like this — competent, stable, unshowy, honest football.",
+      "You don't win a trophy for being a worthy opponent. But the league respects it, and I do too.",
+      "Nine wins most years. That's how you build the next era without burning this one."
+    ]
+  },
+  "byMilestoneFlag": {
+    "three_peat_plus": "Three rings in a single era is a monument. Everyone else is playing chess; this team was playing a different game.",
+    "multi_title": "Two parades. Different rosters, same fingerprint. That's the mark of a real organization.",
+    "first_title": "The first one is the hardest one. I've seen it break men who couldn't get there. This building earned it.",
+    "sustained_dominance": "Win rates don't lie. This was not luck. This was a system that kept working.",
+    "deep_valley": "The floor this team found is a floor I don't wish on any franchise. Credit to the people who didn't quit on the building.",
+    "dynasty_run": "This is the era other franchises are going to study for twenty years. Every pick, every handshake, every handoff.",
+    "rollercoaster": "Watch the schedule from this era in order and tell me what team it is. You can't. Neither can I."
+  },
+  "byTrigger": {
+    "championship": "The chapter closed with a parade. Not every era gets that. Every fanbase wants it.",
+    "collapse": "You don't close a chapter on a collapse unless the collapse was the whole chapter. In this case, it was.",
+    "era_gap": "There's a missing year here — a silence the franchise chose not to fill. The chapter ends, the reasons remain private.",
+    "rebuild": "The front office called it. That's the trigger. You can't sneak a rebuild past this league.",
+    "user_named": "The ownership titled this era themselves. That tells you everything about how they remember it.",
+    "origin": "Every franchise's book starts somewhere. This is where theirs does."
+  }
+}

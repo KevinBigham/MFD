@@ -93,6 +93,7 @@ const LazyFranchiseHub = lazy(async () => ({ default: (await import('../features
 const LazyRelocationScreen = lazy(async () => ({ default: (await import('../features/franchise/RelocationScreen')).RelocationScreen }));
 const LazyExpansionDraft = lazy(async () => ({ default: (await import('../features/franchise/ExpansionDraft')).ExpansionDraft }));
 const LazyFranchiseLegends = lazy(async () => ({ default: (await import('../features/franchise/FranchiseLegends')).FranchiseLegends }));
+const LazyFranchiseBook = lazy(async () => ({ default: (await import('../features/franchise/FranchiseBook')).FranchiseBookScreen }));
 const LazyLockerRoom = lazy(async () => ({ default: (await import('../features/locker-room/LockerRoom')).LockerRoom }));
 const LazyEndorsementCenter = lazy(async () => ({ default: (await import('../features/endorsements/EndorsementCenter')).EndorsementCenter }));
 const LazyCommissionerOffice = lazy(async () => ({ default: (await import('../features/league/CommissionerOffice')).CommissionerOffice }));
@@ -1235,6 +1236,16 @@ const coachingTreeRoute = createRoute({
   component: CoachingTree,
 });
 
+const franchiseBookRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/franchise/book',
+  component: () => (
+    <LazyRouteFrame label="franchise book">
+      <LazyFranchiseBook />
+    </LazyRouteFrame>
+  ),
+});
+
 const filmRoomRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/film-room',
@@ -1496,7 +1507,7 @@ const routeTree = rootRoute.addChildren([
   scoutingRoute, draftRoute, trainingCampRoute, freeAgencyRoute, faTargetsRoute,
   gameDayRoute, broadcastRoute, playByPlayRoute, gameFlowRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, filmRoomRoute, tradeDeadlineRoute,
-  ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
+  ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, franchiseBookRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
 ]);
