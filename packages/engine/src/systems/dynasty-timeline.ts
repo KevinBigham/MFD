@@ -175,9 +175,11 @@ function isChampion(entry: FranchiseHistoryEntry): boolean {
 function hasPlayoffFinish(entry: FranchiseHistoryEntry): boolean {
   const finish = (entry.playoffFinish ?? '').toLowerCase();
   if (!finish) return false;
-  // Canonical forms seen across the codebase: 'missed_playoffs' (underscore),
-  // 'missed playoffs' (space), 'missed', 'lost in divisional round', etc.
-  // Anything containing "missed" is treated as no playoff appearance.
+  // Canonical no-playoff values written by the engine:
+  //   'regular_season' — set by stat-central when a team's season ends in regular play
+  //   'missed_playoffs' / 'missed playoffs' / 'missed' — legacy and helper-test variants
+  // Sibling systems use the same predicate (franchise-dashboard.ts:20, ai-philosophy.ts:18).
+  if (finish === 'regular_season') return false;
   if (finish.includes('missed')) return false;
   return true;
 }
@@ -304,15 +306,18 @@ function classifyEraArc(
   playoffAppearances: number,
 ): EraArcType {
   if (championships >= DYNASTY_CHAMPIONSHIPS_THRESHOLD) return 'golden';
-  if (record.winPct >= PEAK_WIN_PCT && championships >= 1) return 'peak';
   if (record.winPct >= PEAK_WIN_PCT) return 'peak';
   if (record.winPct <= VALLEY_WIN_PCT) return 'valley';
 
-  // Variance check — turbulent if std across seasons is high
+  // Mid-tier classification: anything outside the narrow "steady band" around
+  // .4375 (≈7-9 in a 16-game season) that doesn't already fit rebuild/ascent
+  // gets labeled 'turbulent'. This is a band-distance check, not a true
+  // season-by-season variance measure — see GOAT roadmap for the variance upgrade.
   const winsBySeason = record.seasons > 0 ? record.wins / record.seasons : 0;
-  const expectedWinPctSteady = 0.4375; // ~7-9 in a 16-game season
-  const isBelowSteady = record.winPct < expectedWinPctSteady - 0.06;
-  const isAboveSteady = record.winPct > expectedWinPctSteady + 0.06;
+  const STEADY_BAND_CENTER = 0.4375;
+  const STEADY_BAND_HALFWIDTH = 0.06;
+  const isBelowSteady = record.winPct < STEADY_BAND_CENTER - STEADY_BAND_HALFWIDTH;
+  const isAboveSteady = record.winPct > STEADY_BAND_CENTER + STEADY_BAND_HALFWIDTH;
   if (winsBySeason < 3 && playoffAppearances === 0) return 'rebuild';
   if (record.winPct >= ASCENT_WIN_PCT && championships === 0) return 'ascent';
   if (isBelowSteady || isAboveSteady) return 'turbulent';

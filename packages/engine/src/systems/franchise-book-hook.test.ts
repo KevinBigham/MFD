@@ -85,6 +85,20 @@ describe('fireFranchiseBookChapterAlerts', () => {
     expect(secondCount).toBe(firstCount);
   });
 
+  it('does not fire on chapter 1 — suppresses inaugural-season alert spam', () => {
+    const game = makeLeagueState('offseason');
+    game.year = 2026;
+    // Single season of history — only chapter 1 exists, opens in current year.
+    addHistory(game, 'afce1', [
+      { year: 2026, wins: 9, losses: 8 },
+    ]);
+
+    const alerts = fireFranchiseBookChapterAlerts(game);
+
+    expect(alerts.find((a) => a.teamId === 'afce1')).toBeUndefined();
+    expect(game.leagueNews.find((item) => item.id.startsWith('franchise-book-chapter-afce1-1-'))).toBeUndefined();
+  });
+
   it('uses "major" importance for user team and "minor" for AI teams', () => {
     const game = makeLeagueState('offseason');
     game.year = 2029;

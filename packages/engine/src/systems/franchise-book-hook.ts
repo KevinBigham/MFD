@@ -36,9 +36,10 @@ export function fireFranchiseBookChapterAlerts(game: GameState): FranchiseBookCh
 
     const latest = book.eras[book.eras.length - 1]!;
     if (latest.startYear !== game.year) continue;
-    // Only fire once a chapter has some substance — an era of one season that
-    // just opened isn't yet worth a headline.
-    if (latest.record.seasons < 1) continue;
+    // Suppress the inaugural "Chapter 1 begins" alert — every team would fire
+    // one on the first season-end of a fresh league (32-alert spam). A "new
+    // chapter begins" headline implies a prior chapter existed.
+    if (latest.chapterNumber === 1) continue;
 
     const newsId = `franchise-book-chapter-${team.id}-${latest.chapterNumber}-${latest.startYear}`;
     const alreadyFired = (game.leagueNews ?? []).some((item) => item.id === newsId);

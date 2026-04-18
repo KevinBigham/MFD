@@ -269,6 +269,28 @@ describe('buildFranchiseBook', () => {
     expect(titles).toBe(2);
   });
 
+  it('treats canonical "regular_season" finish as no playoff appearance', () => {
+    // Regression: pre-fix, hasPlayoffFinish() only filtered strings containing
+    // "missed", so 'regular_season' (the canonical no-playoff value written by
+    // stat-central.ts) was counted as a playoff appearance — inflating
+    // playoffAppearances on every era and breaking classifyEraArc's rebuild
+    // detection (which requires playoffAppearances === 0).
+    const game = makeLeagueState('offseason');
+    seedHistory(game, 'afce1', [
+      { year: 2026, wins: 8, losses: 9, playoffFinish: 'regular_season' },
+      { year: 2027, wins: 9, losses: 8, playoffFinish: 'regular_season' },
+      { year: 2028, wins: 7, losses: 10, playoffFinish: 'regular_season' },
+    ]);
+
+    const book = buildFranchiseBook(game, 'afce1');
+
+    expect(book).not.toBeNull();
+    expect(book!.totals.seasons).toBe(3);
+    expect(book!.totals.championships).toBe(0);
+    expect(book!.totals.playoffAppearances).toBe(0);
+    expect(book!.eras[0]?.playoffAppearances).toBe(0);
+  });
+
   it('classifies a back-to-back champion era as "golden"', () => {
     const game = makeLeagueState('offseason');
     seedHistory(game, 'afce1', [
