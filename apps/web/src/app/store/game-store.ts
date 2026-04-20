@@ -318,7 +318,7 @@ interface GameActions {
   hireMentor: (mentorId: string) => Promise<void>;
   fireMentor: (mentorId: string) => Promise<void>;
   setCallYourShot: (declaration: ShotDeclaration | null) => Promise<void>;
-  recordManualSave: () => void;
+  recordPortableExport: () => void;
 
   // Franchise Setup
   advanceSetup: (options?: { requireTopPressureOpened?: boolean }) => Promise<void>;
@@ -2357,10 +2357,10 @@ export const useGameStore = create<GameStore>()(
         await commitGame(nextGame);
       },
 
-      recordManualSave: () => {
+      recordPortableExport: () => {
         set((s) => {
           if (s.game) {
-            (s.game as GameState & { lastManualSaveYear?: number }).lastManualSaveYear = s.game.year;
+            s.game.lastPortableExportYear = s.game.year;
           }
         });
       },

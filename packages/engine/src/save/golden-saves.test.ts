@@ -20,6 +20,7 @@ import v30Fixture from './fixtures/v30.json';
 import v31Fixture from './fixtures/v31.json';
 import v32Fixture from './fixtures/v32.json';
 import v33Fixture from './fixtures/v33.json';
+import v34Fixture from './fixtures/v34.json';
 
 describe('golden save fixtures', () => {
   it('migrates v1 fixture through full pipeline to current version', { timeout: 15_000 }, () => {
@@ -178,6 +179,30 @@ describe('golden save fixtures', () => {
     expect(result.data.version).toBe(33);
     expect(result.data.storyArcs).toEqual([]);
     expect(result.data.teams.t1?.philosophy).toBe('maintain');
+    expect(result.data.lastPortableExportYear).toBeNull();
+  });
+
+  it('migrates v33 fixture through v33→v34 to current version', () => {
+    const migrated = migrate(v33Fixture as Record<string, unknown>, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['lastPortableExportYear']).toBeNull();
+  });
+
+  it('validates v34 fixture against current schema without migration', () => {
+    const result = SaveStateSchema.safeParse(v34Fixture);
+
+    if (!result.success) {
+      const errors = result.error.issues.map(
+        (issue) => `${issue.path.join('.')}: ${issue.message}`,
+      );
+      throw new Error(`v34 fixture failed schema validation:\n${errors.join('\n')}`);
+    }
+
+    expect(result.success).toBe(true);
+    expect(result.data.version).toBe(34);
+    expect(result.data.storyArcs).toEqual([]);
+    expect(result.data.lastPortableExportYear).toBe(2025);
   });
 
   it('verifies migration chain has no gaps from v1 to SAVE_VERSION', () => {

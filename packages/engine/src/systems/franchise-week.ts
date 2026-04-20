@@ -1098,7 +1098,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
         delete nextState.nearMissTracker;
       }
       nextState.year += 1;
-      showSaveReminder = shouldShowSaveReminder(nextState.year, nextState.lastManualSaveYear ?? null);
+      showSaveReminder = shouldShowSaveReminder(nextState.year, nextState.lastPortableExportYear ?? null);
       nextState.week = 1;
       ensureDraftClass(nextState);
       nextState.offseasonState = initializeOffseasonState(nextState);

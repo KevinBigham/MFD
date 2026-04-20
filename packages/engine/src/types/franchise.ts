@@ -1295,7 +1295,7 @@ export interface GameState {
   pendingPassedPickTargets?: PendingPassedPickTarget[];
   activeCallYourShot?: import('../systems/call-your-shot').ShotDeclaration;
   apologyTourThreads: ApologyTourThread[];
-  lastManualSaveYear?: number;
+  lastPortableExportYear?: number | null;
   setupState?: import('../systems/franchise-setup').SetupState;
   franchiseBlueprint?: import('../systems/franchise-setup').FranchiseBlueprint;
   // Sprint 45 "The Family Tree" — league-wide relationship graph.

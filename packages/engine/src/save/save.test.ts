@@ -10,8 +10,8 @@ import { createEmptyRecordBook } from '../systems/records';
 import { makeLeagueState } from '../systems/test-helpers';
 
 describe('SaveStateSchema', () => {
-  it('uses save version 33 for The Long Game (Sprint 46)', () => {
-    expect(SAVE_VERSION).toBe(33);
+  it('uses save version 34 for Vault backup UX', () => {
+    expect(SAVE_VERSION).toBe(34);
   });
 
   it('validates a minimal valid save', () => {
@@ -104,6 +104,7 @@ describe('SaveStateSchema', () => {
       expect(result.data.scenarioState).toBeUndefined();
       expect(result.data.apologyTourThreads).toEqual([]);
       expect(result.data.storyArcs).toEqual([]);
+      expect(result.data.lastPortableExportYear).toBeNull();
     }
   });
 
@@ -1711,6 +1712,19 @@ describe('migration pipeline', () => {
     expect(migrated['version']).toBe(SAVE_VERSION);
     expect((migrated['players'] as Record<string, Record<string, unknown>>).p1?.['bloodline']).toBeNull();
     expect((migrated['draftClass'] as Array<Record<string, unknown>>)[0]?.['bloodline']).toBeNull();
+  });
+
+  it('v33→v34 migration promotes the legacy manual-save marker into portable export metadata', () => {
+    const migrated = migrate({
+      version: 33,
+      lastManualSaveYear: 9,
+      teams: {},
+      players: {},
+    }, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['lastPortableExportYear']).toBe(9);
+    expect(migrated['lastManualSaveYear']).toBe(9);
   });
 
   it('round-trips player and draft prospect bloodline data through the save schema', () => {

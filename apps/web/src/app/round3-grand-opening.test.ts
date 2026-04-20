@@ -80,7 +80,7 @@ describe('Round 3 — Grand Opening', () => {
     it('renders save reminder ConfirmDialog', () => {
       expect(content).toContain('Save Reminder');
       expect(content).toContain('showSaveReminder');
-      expect(content).toContain('Open Save Screen');
+      expect(content).toContain('Open Backup Screen');
     });
 
     it('has mentors route and nav item', () => {
@@ -113,9 +113,9 @@ describe('Round 3 — Grand Opening', () => {
       expect(content).toContain('activeCallYourShot');
     });
 
-    it('has recordManualSave action', () => {
-      expect(content).toContain('recordManualSave');
-      expect(content).toContain('lastManualSaveYear');
+    it('has recordPortableExport action', () => {
+      expect(content).toContain('recordPortableExport');
+      expect(content).toContain('lastPortableExportYear');
     });
   });
 });

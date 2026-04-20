@@ -46,7 +46,7 @@ describe('save reminder wiring', () => {
     expect(result.showSaveReminder).toBe(false);
   });
 
-  it('fires the reminder at year ten when there is no manual save', () => {
+  it('fires the reminder at year ten when there is no portable export', () => {
     const game = makeSeasonFinale(9);
 
     const result = advanceFranchiseWeek(game) as AdvanceWeekWithReminder;
@@ -54,9 +54,9 @@ describe('save reminder wiring', () => {
     expect(result.showSaveReminder).toBe(true);
   });
 
-  it('does not fire when the user made a recent manual save', () => {
+  it('does not fire when the user made a recent portable export', () => {
     const game = makeSeasonFinale(9);
-    (game as GameState & { lastManualSaveYear?: number }).lastManualSaveYear = 8;
+    (game as GameState & { lastPortableExportYear?: number }).lastPortableExportYear = 8;
 
     const result = advanceFranchiseWeek(game) as AdvanceWeekWithReminder;
 

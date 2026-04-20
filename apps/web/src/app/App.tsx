@@ -61,7 +61,7 @@ import { MilestoneCard, type MilestoneType } from '../features/shared/MilestoneC
 import { BreakingNews } from '../features/shared/BreakingNews';
 import { DynastyEraPrompt } from '../features/dynasty-era/DynastyEraPrompt';
 import { RouteTransition } from '../features/shared/transitions/RouteTransition';
-import { shouldPromptEraNaming, shouldShowSaveReminder } from '@mfd/engine';
+import { getSaveReminderMessage, shouldPromptEraNaming, shouldShowSaveReminder } from '@mfd/engine';
 import { ConfirmDialog } from '../features/shared/ConfirmDialog';
 
 const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
@@ -386,8 +386,7 @@ function RootLayout() {
       setShowEraPrompt(true);
     }
 
-    const lastSaveYear = (game as unknown as Record<string, unknown>).lastManualSaveYear as number | undefined;
-    if (shouldShowSaveReminder(currentYear, lastSaveYear ?? null)) {
+    if (shouldShowSaveReminder(currentYear, game.lastPortableExportYear ?? null)) {
       setShowSaveReminder(true);
     }
   }, [currentYear, currentWeek, game, lastEraCheck]);
@@ -546,8 +545,8 @@ function RootLayout() {
         <ConfirmDialog
           open={showSaveReminder}
           title="Save Reminder"
-          message={`Season ${currentYear} complete. Your dynasty is ${currentYear} seasons deep — consider creating a manual save to protect your progress.`}
-          confirmLabel="Open Save Screen"
+          message={getSaveReminderMessage(currentYear)}
+          confirmLabel="Open Backup Screen"
           cancelLabel="Dismiss"
           accent="gold"
           onConfirm={() => { setShowSaveReminder(false); void router.navigate({ to: '/dynasty' }); }}

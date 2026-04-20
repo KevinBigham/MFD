@@ -21,4 +21,14 @@ describe('NewGameScreen', () => {
     expect(content).toContain("border: '1px solid var(--mfd-red)'");
     expect(content).toContain('{autosaveError}');
   });
+
+  it('adds a file-first dynasty import path', () => {
+    expect(content).toContain("type=\"file\"");
+    expect(content).toContain('loadImportedCartridgeFile');
+  });
+
+  it('keeps a paste-code fallback next to file import', () => {
+    expect(content).toContain('Paste backup code');
+    expect(content).toContain('loadImportedCartridge(importText.trim())');
+  });
 });

@@ -102,3 +102,11 @@ export function loadImportedCartridge(text: string): GameState {
   }
   return normalizeImportedGame(parsed.save);
 }
+
+export interface PortableBackupFile {
+  text: () => Promise<string>;
+}
+
+export async function loadImportedCartridgeFile(file: PortableBackupFile): Promise<GameState> {
+  return loadImportedCartridge(await file.text());
+}
