@@ -43,11 +43,22 @@ function activeArcSentence(game: GameState, team: Team, reportYear: number): str
   return activeArc.stageHistory.find((beat) => beat.year === reportYear)?.narrativeText ?? null;
 }
 
+// Canonical playoffFinish values written by stat-central.ts:325 + postseason
+// finalizers: 'champion' | 'conference' | 'divisional' | 'wild_card'
+// | 'playoff_team' | 'missed_playoffs' | 'regular_season'. The literal
+// 'missed' is never written. Any team that didn't reach the postseason
+// shows up as 'missed_playoffs' (resolved) or 'regular_season' (in-progress).
+// Keep this aligned with the sibling predicates in franchise-dashboard.ts:20,
+// story-arcs.ts:179, and ai-philosophy.ts:18.
+function madeThePlayoffs(playoffFinish: string): boolean {
+  return playoffFinish !== 'missed_playoffs' && playoffFinish !== 'regular_season';
+}
+
 function overallGrade(playoffFinish: string, wins: number, losses: number): Grade {
   if (playoffFinish === 'champion') return 'A+';
   if (playoffFinish === 'conference') return 'A';
   if (playoffFinish === 'divisional' || playoffFinish === 'wild_card') return 'B+';
-  if (playoffFinish !== 'missed') return 'B';
+  if (madeThePlayoffs(playoffFinish)) return 'B';
   if (wins > losses) return 'C+';
   if (wins === losses) return 'C';
   if (wins <= 4) return 'F';
@@ -148,7 +159,7 @@ export function generateSeasonReport(game: GameState, teamId: string): SeasonRep
   const reportYear = seasonYear(game, teamId);
   const history = latestHistory(game, teamId, reportYear);
   const arcSentence = activeArcSentence(game, team, reportYear);
-  const overall = overallGrade(history?.playoffFinish ?? 'missed', team.wins, team.losses);
+  const overall = overallGrade(history?.playoffFinish ?? 'missed_playoffs', team.wins, team.losses);
   const gamesPlayed = Math.max(1, team.seasonStats.gamesPlayed || team.wins + team.losses + team.ties);
   const pointsPerGame = team.seasonStats.pointsFor / gamesPlayed;
   const pointsAllowed = team.seasonStats.pointsAgainst / gamesPlayed;
@@ -172,7 +183,7 @@ export function generateSeasonReport(game: GameState, teamId: string): SeasonRep
       ],
       {
         record: history?.record ?? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}`,
-        playoffFinish: history?.playoffFinish ?? 'missed',
+        playoffFinish: history?.playoffFinish ?? 'missed_playoffs',
         pointDifferential: history?.pointDifferential ?? team.seasonStats.pointDifferential,
       },
     ),

@@ -150,11 +150,20 @@ function sameCoachTenure(game: GameState, team: Team): number {
   return Math.max(0, stint.endYear - stint.startYear + 1);
 }
 
+// Canonical playoffFinish values written by stat-central.ts:325 + postseason
+// finalizers: 'champion' | 'conference' | 'divisional' | 'wild_card'
+// | 'playoff_team' | 'missed_playoffs' | 'regular_season'. The literal
+// 'missed' is never written. Aligned with franchise-dashboard.ts:20,
+// story-arcs.ts:179, ai-philosophy.ts:18, season-report.ts.
+function madeThePlayoffs(playoffFinish: string): boolean {
+  return playoffFinish !== 'missed_playoffs' && playoffFinish !== 'regular_season';
+}
+
 function dynastyScore(game: GameState, teamId: string): number {
   const history = game.franchiseHistory ?? [];
   const timeline = game.dynastyTimeline ?? [];
   const championships = history.filter((entry) => entry.teamId === teamId && entry.playoffFinish === 'champion').length;
-  const playoffAppearances = history.filter((entry) => entry.teamId === teamId && entry.playoffFinish !== 'missed').length;
+  const playoffAppearances = history.filter((entry) => entry.teamId === teamId && madeThePlayoffs(entry.playoffFinish)).length;
   const awards = timeline.filter((entry) => entry.teamIds.includes(teamId) && entry.type === 'award').length;
   const records = timeline.filter((entry) => entry.teamIds.includes(teamId) && entry.type === 'record').length;
   return championships * 10 + playoffAppearances * 3 + awards * 2 + records;
@@ -223,7 +232,7 @@ const metricMap: Record<string, MetricFn> = {
       .sort((a, b) => a.year - b.year);
     const current = seasons.some((entry, index) => {
       const previous = seasons[index - 1];
-      return Boolean(previous && previous.wins < 8 && entry.wins >= 10 && entry.playoffFinish !== 'missed');
+      return Boolean(previous && previous.wins < 8 && entry.wins >= 10 && madeThePlayoffs(entry.playoffFinish));
     }) ? 1 : 0;
     return progress(achievement, current, current ? 'Worst-to-first complete' : '0/1 turnarounds');
   },
@@ -243,7 +252,7 @@ const metricMap: Record<string, MetricFn> = {
   },
   playoff_appearances: (game, team, achievement) => {
     const current = (game.franchiseHistory ?? []).filter((entry) =>
-      entry.teamId === team.id && entry.playoffFinish !== 'missed').length;
+      entry.teamId === team.id && madeThePlayoffs(entry.playoffFinish)).length;
     return progress(achievement, current, `${current}/${thresholdValue(achievement)} playoff berths`);
   },
   young_starters: (_game, team, achievement) => {
