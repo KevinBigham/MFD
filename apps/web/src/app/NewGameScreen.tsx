@@ -1,14 +1,14 @@
 /**
  * New Game screen — team selection + difficulty → creates seed state.
  */
-import { useEffect, useState } from 'react';
+import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import { MfdPanel, PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import { Gamepad2, Shield, Trophy } from 'lucide-react';
 import { getAvailableScenarios, mulberry32, startScenario, generateConventionSave, CONVENTION_SAVE_METADATA, type DifficultyLevel } from '@mfd/engine';
 import { useGameStore } from './store/game-store';
 import { createSeedGameState, getTeamOptions } from './store/seed';
 import { TeamLogo } from '../features/shared/TeamLogo';
-import { loadLatestAutosaveGame } from './store/persistence';
+import { loadImportedCartridge, loadImportedCartridgeFile, loadLatestAutosaveGame } from './store/persistence';
 import { AttractMode } from '../features/title/AttractMode';
 
 const DIFFICULTIES: { id: DifficultyLevel; label: string; desc: string; guide: string }[] = [
@@ -29,7 +29,10 @@ export function NewGameScreen() {
   const [selectedScenarioId, setSelectedScenarioId] = useState(getAvailableScenarios()[0]?.id ?? 'rebuild');
   const [hasAutosave, setHasAutosave] = useState(false);
   const [loadingAutosave, setLoadingAutosave] = useState(false);
+  const [loadingImport, setLoadingImport] = useState(false);
   const [autosaveError, setAutosaveError] = useState<string | null>(null);
+  const [importText, setImportText] = useState('');
+  const importFileRef = useRef<HTMLInputElement>(null);
   const newGame = useGameStore((s) => s.actions.newGame);
   const loadGame = useGameStore((s) => s.actions.loadGame);
 
@@ -89,6 +92,47 @@ export function NewGameScreen() {
     }
   };
 
+  const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setLoadingImport(true);
+    setAutosaveError(null);
+
+    try {
+      const imported = await loadImportedCartridgeFile(file);
+      setImportText('');
+      loadGame(imported);
+    } catch (err) {
+      console.error('Dynasty file import error:', err);
+      setAutosaveError(err instanceof Error ? err.message : 'Failed to import dynasty backup file.');
+    } finally {
+      event.target.value = '';
+      setLoadingImport(false);
+    }
+  };
+
+  const handleImportText = () => {
+    if (!importText.trim()) {
+      setAutosaveError('Paste backup code before importing.');
+      return;
+    }
+
+    setLoadingImport(true);
+    setAutosaveError(null);
+
+    try {
+      const imported = loadImportedCartridge(importText.trim());
+      setImportText('');
+      loadGame(imported);
+    } catch (err) {
+      console.error('Dynasty text import error:', err);
+      setAutosaveError(err instanceof Error ? err.message : 'Failed to import backup code.');
+    } finally {
+      setLoadingImport(false);
+    }
+  };
+
   const selected = teams[selectedTeam]!;
   const scenarios = getAvailableScenarios();
 
@@ -139,6 +183,66 @@ export function NewGameScreen() {
           scenarios={scenarios}
           conventionHeadline={CONVENTION_SAVE_METADATA.headline}
         />
+
+        <PixelPanel title="Recovery" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Lost browser storage or opening this dynasty on a new machine? Import a portable backup first, then fall back to pasted backup code if the file is unavailable.
+            </div>
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".mfd,.json,application/json"
+              onChange={(event) => { void handleImportFile(event); }}
+              style={{ display: 'none' }}
+            />
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelButton
+                accent="cyan"
+                disabled={loadingImport}
+                onClick={() => importFileRef.current?.click()}
+              >
+                {loadingImport ? 'Importing Backup...' : 'Import Dynasty'}
+              </PixelButton>
+            </div>
+            <label
+              htmlFor="dynasty-import-text"
+              style={{
+                fontFamily: 'var(--mfd-font-mono)',
+                fontSize: '0.6875rem',
+                color: 'var(--mfd-text-dim)',
+              }}
+            >
+              Paste backup code
+            </label>
+            <textarea
+              id="dynasty-import-text"
+              value={importText}
+              onChange={(event) => setImportText(event.target.value)}
+              placeholder="Paste backup code here..."
+              style={{
+                minHeight: '120px',
+                padding: '10px',
+                background: 'var(--mfd-bg)',
+                border: '1px solid var(--mfd-border)',
+                borderRadius: 'var(--mfd-rad-md)',
+                color: 'var(--mfd-text)',
+                fontFamily: 'var(--mfd-font-mono)',
+                fontSize: '0.75rem',
+                resize: 'vertical',
+              }}
+            />
+            <div>
+              <PixelButton
+                accent="green"
+                disabled={loadingImport || !importText.trim()}
+                onClick={handleImportText}
+              >
+                Import Backup Code
+              </PixelButton>
+            </div>
+          </div>
+        </PixelPanel>
 
         {/* Convention Demo Quick-Start */}
         <PixelPanel title="Convention Demo" accent="green">

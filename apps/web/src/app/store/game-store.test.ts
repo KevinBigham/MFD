@@ -369,6 +369,22 @@ describe('game store offseason actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 
+  it('records the current season as the last portable export year without autosaving', () => {
+    const game = createSeedGameState(778, 0, 'pro');
+    game.year = 2034;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    useGameStore.getState().actions.recordPortableExport();
+
+    expect(useGameStore.getState().game?.lastPortableExportYear).toBe(2034);
+    expect(autosaveDynasty).not.toHaveBeenCalled();
+  });
+
   it('stores contingency rules and trick plays on weekly prep plans', async () => {
     const game = createSeedGameState(888, 0, 'pro');
     game.phase = 'regular_season';

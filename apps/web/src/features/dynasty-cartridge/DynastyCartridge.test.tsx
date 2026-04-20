@@ -31,6 +31,7 @@ const mockState = {
   },
   actions: {
     loadGame: vi.fn(),
+    recordPortableExport: vi.fn(),
   },
 };
 
@@ -47,6 +48,7 @@ vi.mock('../../app/store/persistence', () => ({
   loadSaveSlot: vi.fn().mockResolvedValue(null),
   deleteSaveSlot: vi.fn().mockResolvedValue(undefined),
   loadImportedCartridge: vi.fn(),
+  loadImportedCartridgeFile: vi.fn(),
 }));
 
 vi.mock('@mfd/engine', () => ({
@@ -71,5 +73,23 @@ describe('DynastyCartridge', () => {
     expect(markup).toContain('Download .mfd');
     expect(markup).toContain('IMPORT CARTRIDGE');
     expect(markup).toContain('LOCAL SAVE SLOTS');
+  });
+
+  it('promotes portable backup messaging', () => {
+    const markup = renderToStaticMarkup(<DynastyCartridge />);
+
+    expect(markup).toContain('portable backup');
+  });
+
+  it('renders an upload backup action', () => {
+    const markup = renderToStaticMarkup(<DynastyCartridge />);
+
+    expect(markup).toContain('Upload .mfd Backup');
+  });
+
+  it('renders paste-backup fallback copy', () => {
+    const markup = renderToStaticMarkup(<DynastyCartridge />);
+
+    expect(markup).toContain('Paste backup code');
   });
 });

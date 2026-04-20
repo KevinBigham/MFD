@@ -1887,6 +1887,7 @@ export const SaveStateSchema = z.object({
   seasonNearMissReceipts: z.array(NearMissEntrySchema).default([]),
   activeCallYourShot: ShotDeclarationSchema.optional(),
   apologyTourThreads: z.array(ApologyTourThreadSchema).default([]),
+  lastPortableExportYear: z.number().nullable().default(null),
   ceremonies: z.array(CeremonySchema).default([]),
   dynastyTimeline: z.array(DynastyEventSchema).default([]),
   storyArcs: z.array(LeagueStoryArcSchema).default([]),

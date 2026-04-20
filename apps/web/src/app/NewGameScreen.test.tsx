@@ -14,6 +14,8 @@ vi.mock('./store/game-store', () => ({
 
 vi.mock('./store/persistence', () => ({
   loadLatestAutosaveGame: vi.fn().mockResolvedValue(null),
+  loadImportedCartridge: vi.fn(),
+  loadImportedCartridgeFile: vi.fn(),
 }));
 
 vi.mock('./store/seed', () => ({
@@ -61,5 +63,17 @@ describe('NewGameScreen', () => {
     const markup = renderToStaticMarkup(<NewGameScreen />);
 
     expect(markup).toContain('Start Dynasty');
+  });
+
+  it('renders an Import Dynasty recovery action', () => {
+    const markup = renderToStaticMarkup(<NewGameScreen />);
+
+    expect(markup).toContain('Import Dynasty');
+  });
+
+  it('renders paste-backup fallback copy', () => {
+    const markup = renderToStaticMarkup(<NewGameScreen />);
+
+    expect(markup).toContain('Paste backup code');
   });
 });

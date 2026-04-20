@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   PixelBadge,
   PixelButton,
@@ -11,6 +11,7 @@ import {
   deleteSaveSlot,
   listSaveSlots,
   loadImportedCartridge,
+  loadImportedCartridgeFile,
   loadSaveSlot,
   saveDynastyToSlot,
 } from '../../app/store/persistence';
@@ -58,7 +59,7 @@ export function DynastyCartridge() {
   const team = useGameStore(selectUserTeam);
   const week = useGameStore(selectWeek);
   const year = useGameStore(selectYear);
-  const { loadGame } = useGameStore((state) => state.actions);
+  const { loadGame, recordPortableExport } = useGameStore((state) => state.actions);
 
   const [slots, setSlots] = useState<SaveSlot[]>([]);
   const [status, setStatus] = useState<string | null>(null);
@@ -66,6 +67,7 @@ export function DynastyCartridge() {
   const [importError, setImportError] = useState<string | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ type: 'load' | 'delete'; slotId: number; label: string } | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   const teamName = team ? `${team.city} ${team.name}` : 'Unknown';
   const meta = { teamName, season: year, week };
@@ -90,9 +92,10 @@ export function DynastyCartridge() {
     if (!result.ok) return;
 
     navigator.clipboard.writeText(result.json).then(() => {
+      recordPortableExport();
       setTransientStatus(`${fileName} copied to clipboard`);
     });
-  }, [fileName, game, meta, setTransientStatus]);
+  }, [fileName, game, meta, recordPortableExport, setTransientStatus]);
 
   const handleDownload = useCallback(() => {
     if (!game) return;
@@ -105,8 +108,9 @@ export function DynastyCartridge() {
     anchor.download = fileName;
     anchor.click();
     URL.revokeObjectURL(url);
+    recordPortableExport();
     setTransientStatus(`${fileName} downloaded`);
-  }, [fileName, game, meta, setTransientStatus]);
+  }, [fileName, game, meta, recordPortableExport, setTransientStatus]);
 
   const handleManualSave = useCallback(async () => {
     if (!game) return;
@@ -141,6 +145,24 @@ export function DynastyCartridge() {
     }
   }, [importText, loadGame, setTransientStatus]);
 
+  const handleImportFile = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImportError(null);
+
+    try {
+      const loaded = await loadImportedCartridgeFile(file);
+      loadGame(loaded);
+      setImportText('');
+      setTransientStatus('Imported dynasty loaded');
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'Import failed.');
+    } finally {
+      event.target.value = '';
+    }
+  }, [loadGame, setTransientStatus]);
+
   const slotSummary = useMemo(() => slots.map((slot) => ({
     ...slot,
     label: `${slot.teamName} // S${slot.year} W${slot.week}`,
@@ -152,7 +174,7 @@ export function DynastyCartridge() {
     <div style={screenStackStyle}>
       <PixelScreenHeader
         title="Dynasty Cartridge"
-        subtitle="Create local save slots, export portable cartridges, and load a dynasty back into the studio."
+        subtitle="Create local save slots, export portable backups, and load a dynasty back into the studio."
         badges={(
           <>
             <PixelBadge variant="gold">{slotSummary.length} local slots</PixelBadge>
@@ -171,7 +193,15 @@ export function DynastyCartridge() {
         <PixelButton type="button" accent="gold" onClick={() => void handleManualSave()}>Create Save Slot</PixelButton>
         <PixelButton type="button" accent="cyan" onClick={handleExport}>Copy Cartridge</PixelButton>
         <PixelButton type="button" accent="green" onClick={handleDownload}>Download .mfd</PixelButton>
+        <PixelButton type="button" accent="green" onClick={() => importFileRef.current?.click()}>Upload .mfd Backup</PixelButton>
       </div>
+      <input
+        ref={importFileRef}
+        type="file"
+        accept=".mfd,.json,application/json"
+        onChange={(event) => { void handleImportFile(event); }}
+        style={{ display: 'none' }}
+      />
 
       {status ? (
         <PixelPanel title="Broadcast" accent="green">
@@ -193,6 +223,17 @@ export function DynastyCartridge() {
           </div>
         </PixelPanel>
       ) : null}
+
+      <PixelPanel title="Portable Backup" accent="green">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>
+            Portable backup exports survive browser storage loss. Local save slots are convenient, but only copied or downloaded cartridges protect a dynasty outside this machine.
+          </span>
+          <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+            Use Download .mfd or Copy Cartridge above for your canonical backup, then recover with Upload .mfd Backup or pasted backup code below.
+          </span>
+        </div>
+      </PixelPanel>
 
       <div style={autoGrid(340)}>
         <PixelPanel title="Local Save Slots" accent="cyan">
@@ -224,10 +265,22 @@ export function DynastyCartridge() {
 
         <PixelPanel title="Import Cartridge" accent="green">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelButton type="button" accent="green" onClick={() => importFileRef.current?.click()}>
+                Upload .mfd Backup
+              </PixelButton>
+            </div>
+            <label
+              htmlFor="dynasty-backup-import"
+              style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}
+            >
+              Paste backup code
+            </label>
             <textarea
+              id="dynasty-backup-import"
               value={importText}
               onChange={(event) => setImportText(event.target.value)}
-              placeholder="Paste cartridge JSON here..."
+              placeholder="Paste backup code here..."
               style={{
                 minHeight: '160px',
                 padding: '10px',
@@ -241,7 +294,7 @@ export function DynastyCartridge() {
             />
             {importError ? <span style={{ ...monoSm, color: 'var(--mfd-red)' }}>{importError}</span> : null}
             <PixelButton type="button" accent="green" disabled={!importText.trim()} onClick={handleImport}>
-              Import Save
+              Import Backup Code
             </PixelButton>
           </div>
         </PixelPanel>

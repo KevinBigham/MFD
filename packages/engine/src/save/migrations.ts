@@ -1250,6 +1250,22 @@ registerMigration(32, (state) => {
   };
 });
 
+// v33→v34: Vault backup UX
+// - Persist the last successful portable export season.
+// - Promote legacy `lastManualSaveYear` if it exists in already-exported saves.
+registerMigration(33, (state) => {
+  const portableExportYear = typeof state['lastPortableExportYear'] === 'number'
+    ? state['lastPortableExportYear']
+    : typeof state['lastManualSaveYear'] === 'number'
+      ? state['lastManualSaveYear']
+      : null;
+
+  return {
+    ...state,
+    lastPortableExportYear: portableExportYear,
+  };
+});
+
 // v30→v31: Add tutorialState.visitedScreens (Sprint 43 "Rookie Card" onboarding)
 registerMigration(30, (state) => {
   const tutorialRaw = (state['tutorialState'] && typeof state['tutorialState'] === 'object')
