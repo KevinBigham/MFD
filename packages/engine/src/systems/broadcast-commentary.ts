@@ -237,7 +237,9 @@ function recapLine(
 
   const winner = result.homeScore > result.awayScore ? homeTeam : awayTeam;
   const loser = winner.id === homeTeam.id ? awayTeam : homeTeam;
-  const score = `${result.awayScore}-${result.homeScore}`;
+  const winnerScore = winner.id === homeTeam.id ? result.homeScore : result.awayScore;
+  const loserScore = winner.id === homeTeam.id ? result.awayScore : result.homeScore;
+  const score = `${winnerScore}-${loserScore}`;
   const rivalry = getTeamRivalryContent(homeTeam.id, awayTeam.id) ?? getTeamRivalryContent(awayTeam.id, homeTeam.id);
   const winnerTitles = titleCount(game, winner.id);
 

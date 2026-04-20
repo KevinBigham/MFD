@@ -139,7 +139,23 @@ describe('broadcast-commentary', () => {
     });
 
     expect(commentary.recap[0]).toContain('The Cookout');
-    expect(commentary.recap[0]).toContain('24-27');
+    // Winner score first, regardless of home/away — KC won 27-24.
+    expect(commentary.recap[0]).toContain('27-24');
+    expect(commentary.recap[0]).not.toContain('24-27');
+  });
+
+  it('formats recap score winner-first when the away team wins', () => {
+    const commentary = buildBroadcastCommentary(buildGame(), {
+      homeTeamId: 'KC',
+      awayTeamId: 'DEN',
+      seed: 81,
+      // DEN (away) wins 31-17.
+      result: { awayScore: 31, homeScore: 17 },
+    });
+
+    // Winner score (31) precedes loser score (17), no matter which side won.
+    expect(commentary.recap[0]).toContain('31-17');
+    expect(commentary.recap[0]).not.toContain('17-31');
   });
 
   it('stays deterministic for the same seed and matchup', () => {

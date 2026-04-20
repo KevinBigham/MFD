@@ -29,10 +29,21 @@ if [ ! -d "$DIST_DIR" ]; then
   exit 1
 fi
 
-engine_chunk=$(find "$DIST_DIR" -maxdepth 1 -name 'engine-*.js' | head -n1)
+# Only the shared engine chunk counts toward the ceiling.
+# Sprint 51 split off `engine-content-*.js` (Muse Spark content + commentary)
+# which loads lazily; counting it here would conflate two unrelated budgets.
+engine_chunk=$(find "$DIST_DIR" -maxdepth 1 -name 'engine-*.js' ! -name 'engine-content-*.js' | sort | head -n1)
 
 if [ -z "$engine_chunk" ]; then
-  echo "FAIL: No engine-*.js chunk in $DIST_DIR." >&2
+  echo "FAIL: No engine-*.js chunk in $DIST_DIR (excluding engine-content)." >&2
+  exit 1
+fi
+
+extra_engine_chunks=$(find "$DIST_DIR" -maxdepth 1 -name 'engine-*.js' ! -name 'engine-content-*.js' | wc -l | tr -d ' ')
+if [ "$extra_engine_chunks" -gt 1 ]; then
+  echo "FAIL: Expected exactly one shared engine chunk, found ${extra_engine_chunks}." >&2
+  echo "Update this script's glob or the vite manualChunks config." >&2
+  find "$DIST_DIR" -maxdepth 1 -name 'engine-*.js' ! -name 'engine-content-*.js' >&2
   exit 1
 fi
 
