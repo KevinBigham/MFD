@@ -279,6 +279,16 @@ export function buildBroadcastCommentary(
   const seed = matchupSeed(game, input);
   const relationship = strongestCrossTeamRelationship(game.relationships ?? [], homeTeam, awayTeam);
   const labels = buildEntityLabels(homeTeam, awayTeam);
+  // Sprint 53 fix: a single cross-team edge previously emitted at all three
+  // stages, so the same family/mentor/rivalry thread became a thread the
+  // booth hammered in pregame, in-game, and recap. Pick exactly one stage per
+  // game (deterministic on seed) so each edge surfaces once and varies across
+  // the league.
+  const relationshipStage: CommentaryStage = relationship
+    ? (RELATIONSHIP_STAGES[seed % RELATIONSHIP_STAGES.length] ?? 'pregame')
+    : 'pregame';
+  const relationshipFor = (stage: CommentaryStage): string | null =>
+    relationship && stage === relationshipStage ? relationshipLine(relationship, labels, stage) : null;
 
   return {
     pregame: dedupe([
@@ -286,18 +296,20 @@ export function buildBroadcastCommentary(
       stadiumLine(homeTeam),
       historyLine(game, homeTeam, awayTeam, seed),
       revengeLine(game, homeTeam, awayTeam, seed, 'pregame'),
-      relationshipLine(relationship, labels, 'pregame'),
+      relationshipFor('pregame'),
     ]),
     inGame: dedupe([
       inGamePALine(homeTeam, awayTeam, seed),
       fanCultureLine(homeTeam),
-      relationshipLine(relationship, labels, 'inGame'),
+      relationshipFor('inGame'),
       revengeLine(game, homeTeam, awayTeam, seed, 'inGame'),
     ]),
     recap: dedupe([
       recapLine(game, homeTeam, awayTeam, seed, input.result),
       revengeLine(game, homeTeam, awayTeam, seed, 'recap'),
-      relationshipLine(relationship, labels, 'recap'),
+      relationshipFor('recap'),
     ]),
   };
 }
+
+const RELATIONSHIP_STAGES: readonly CommentaryStage[] = ['pregame', 'inGame', 'recap'] as const;

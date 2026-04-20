@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { mulberry32 } from '../rng';
 import {
   getSuperBowlNumber,
   generateHalftimeShow,
@@ -6,6 +7,7 @@ import {
   generateChampionParade,
   generateSuperBowlNarrative,
 } from './super-bowl';
+import { hashMatchupSeed } from './revenge-games';
 
 describe('super bowl system', () => {
   // ── getSuperBowlNumber ────────────────────────────────
@@ -31,6 +33,31 @@ describe('super bowl system', () => {
     const show = generateHalftimeShow(1, () => 0.3);
     expect(show.rating).toBeGreaterThanOrEqual(1);
     expect(show.rating).toBeLessThanOrEqual(5);
+  });
+
+  it('seeds halftime independently for same-length champion ids (sprint-53 regression)', () => {
+    // Pre-fix `mulberry32(year ^ champion.id.length ^ 50)` only mixed the id
+    // *length*, so every two-letter franchise (KC, LA, SF, NE, GB, NO, NY)
+    // hashed to the same seed and got the same halftime show. Post-fix we hash
+    // the full champion id with djb2 — distinct ids must produce distinct seeds.
+    const year = 2030;
+    const seedFor = (championId: string) => hashMatchupSeed(`halftime:${year}:${championId}`);
+    expect(seedFor('KC')).not.toBe(seedFor('LA'));
+    expect(seedFor('SF')).not.toBe(seedFor('NE'));
+    expect(seedFor('GB')).not.toBe(seedFor('NO'));
+
+    // And the downstream show output must vary across same-length ids in the
+    // same year. Cross-year drift (KC year 2030 vs KC year 2031) was not the
+    // bug, but is also asserted as a sanity check.
+    const showFor = (championId: string, y: number = year) =>
+      generateHalftimeShow(y, mulberry32(hashMatchupSeed(`halftime:${y}:${championId}`)));
+    const kc2030 = showFor('KC');
+    const la2030 = showFor('LA');
+    const kc2031 = showFor('KC', 2031);
+    const distinct = new Set([kc2030.performer, la2030.performer, kc2031.performer]);
+    // At least two of the three must differ — three identical performers would
+    // mean the seed is collapsing exactly the way the pre-fix code did.
+    expect(distinct.size).toBeGreaterThan(1);
   });
 
   // ── generateSuperBowlMVP ─────────────────────────────

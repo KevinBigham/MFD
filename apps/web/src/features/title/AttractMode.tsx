@@ -67,8 +67,10 @@ export function buildAttractMoments(
   scenarios: Array<{ name: string; tagline: string; seasonLimit: number }>,
   conventionHeadline: string,
 ): AttractMoment[] {
-  const seeded = mulberry32(ATTRACT_MODE_SEED);
-  const rng = typeof seeded === 'function' ? seeded : () => 0.42;
+  // Sprint 53: mulberry32 always returns a function; the prior `typeof seeded === 'function' ? ... : () => 0.42`
+  // ternary was unreachable dead code, and the unreachable arm would have silently
+  // defeated seeding by always returning the same value.
+  const rng = mulberry32(ATTRACT_MODE_SEED);
   const firstTeam = teams[Math.floor(rng() * teams.length)] ?? teams[0];
   const secondTeam = teams[Math.floor(rng() * teams.length)] ?? teams[1] ?? teams[0];
   const scenario = scenarios[Math.floor(rng() * scenarios.length)] ?? scenarios[0];
