@@ -64,13 +64,55 @@ function formatPerformerLine(player: Player, teamStats: GameResult['stats'][stri
   return `${player.ovr} OVR`;
 }
 
+// Pick the actual top performer by stat output for the given position group.
+// Mirrors the findTopLine pattern in broadcast.ts:115. Falls back to the
+// highest-OVR player in the position group when no playerLines stats exist
+// (e.g., a fixture build or pre-sim state). Returns null if nothing matches.
+function pickPerformer(
+  team: Team,
+  positions: ReadonlyArray<Player['pos']>,
+  teamStats: GameResult['stats'][string],
+  metric: (line: NonNullable<GameResult['stats'][string]['playerLines']>[number]) => number,
+): Player | null {
+  const positionSet = new Set(positions);
+  // Try to find the top performer by stat output first.
+  const lines = (teamStats.playerLines ?? [])
+    .filter((line) => positionSet.has(line.pos))
+    .map((line) => ({ line, score: metric(line) }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.line.playerId.localeCompare(b.line.playerId));
+  for (const { line } of lines) {
+    const player = findPlayer(team, line.playerId);
+    if (player) return player;
+  }
+  // Fallback: highest-OVR roster player in the group (deterministic tiebreak by id).
+  return [...team.roster]
+    .filter((player) => positionSet.has(player.pos))
+    .sort((a, b) => b.ovr - a.ovr || a.id.localeCompare(b.id))[0] ?? null;
+}
+
 function buildTopPerformers(team: Team, result: GameResult): GameDayTopPerformer[] {
   const teamStats = result.stats[team.id];
   if (!teamStats) return [];
 
-  const mvp = findPlayer(team, result.mvpPlayerId) ?? team.roster.find((player) => player.pos === 'QB') ?? null;
-  const skill = team.roster.find((player) => player.pos === 'RB' || player.pos === 'WR' || player.pos === 'TE') ?? null;
-  const defender = team.roster.find((player) => player.pos === 'DL' || player.pos === 'LB' || player.pos === 'CB' || player.pos === 'S') ?? null;
+  const mvp = findPlayer(team, result.mvpPlayerId)
+    ?? pickPerformer(team, ['QB'], teamStats, (line) => (line.passYds ?? 0) + (line.passTD ?? 0) * 50);
+  const skill = pickPerformer(
+    team,
+    ['RB', 'WR', 'TE'],
+    teamStats,
+    (line) =>
+      (line.rushYds ?? 0)
+      + (line.rushTD ?? 0) * 30
+      + (line.recYds ?? 0)
+      + (line.recTD ?? 0) * 40,
+  );
+  const defender = pickPerformer(
+    team,
+    ['DL', 'LB', 'CB', 'S'],
+    teamStats,
+    (line) => (line.sacks ?? 0) * 30 + (line.defINT ?? 0) * 40 + (line.tackles ?? 0),
+  );
   const group = [mvp, skill, defender].filter((player, index, arr): player is Player =>
     !!player && arr.findIndex((candidate) => candidate?.id === player.id) === index);
 

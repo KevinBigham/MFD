@@ -27,6 +27,49 @@ describe('season report', () => {
     expect(report.overallGrade).toBe('A+');
   });
 
+  it('grades a 4-13 missed-playoffs season as F, not B', () => {
+    // Regression: pre-fix the predicate was `playoffFinish !== 'missed'`, and
+    // since the canonical missed string is 'missed_playoffs', every team that
+    // missed the postseason silently fell through to the 'B' branch. The same
+    // bug applied to the default sentinel, which used 'missed' and triggered
+    // the bogus 'B' for any team without a franchiseHistory entry.
+    const game = makeLeagueState('offseason', 1);
+    const team = game.teams.afce1!;
+    team.wins = 4;
+    team.losses = 13;
+    game.franchiseHistory.push({
+      year: 2026,
+      teamId: team.id,
+      wins: 4,
+      losses: 13,
+      ties: 0,
+      record: '4-13',
+      pointDifferential: -150,
+      playoffFinish: 'missed_playoffs',
+      majorEvents: [],
+      awardsWon: [],
+      recordsBroken: [],
+    });
+
+    const report = generateSeasonReport(game, team.id);
+
+    expect(report.overallGrade).toBe('F');
+  });
+
+  it('uses the missed_playoffs default sentinel when no history exists', () => {
+    // Regression: the default sentinel was 'missed' which never matched the
+    // canonical schema and fell through to the bogus 'B'. Default must be
+    // 'missed_playoffs' so a 3-14 team with no history still grades as 'F'.
+    const game = makeLeagueState('offseason', 1);
+    const team = game.teams.afce1!;
+    team.wins = 3;
+    team.losses = 14;
+
+    const report = generateSeasonReport(game, team.id);
+
+    expect(report.overallGrade).toBe('F');
+  });
+
   it('creates all 10 report sections', () => {
     const game = makeLeagueState('offseason', 1);
 

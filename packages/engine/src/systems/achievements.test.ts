@@ -137,6 +137,87 @@ describe('achievements', () => {
     });
   });
 
+  it('does not count regular-season finishes toward playoff appearances', () => {
+    // Regression: pre-fix the predicate was `playoffFinish !== 'missed'`, which
+    // incorrectly counted 'regular_season' and 'missed_playoffs' as playoff
+    // berths. Canonical missed-playoff strings are 'missed_playoffs' (resolved)
+    // and 'regular_season' (in-progress). Three regular-season finishes should
+    // count as zero playoff appearances.
+    const game = makeLeagueState('regular_season', 6);
+    game.franchiseHistory.push(
+      ...([2026, 2027, 2028].map((year) => ({
+        year,
+        teamId: 'afce1',
+        wins: 8,
+        losses: 9,
+        ties: 0,
+        record: '8-9',
+        pointDifferential: -10,
+        playoffFinish: 'regular_season' as const,
+        majorEvents: [],
+        awardsWon: [],
+        recordsBroken: [],
+      }))),
+    );
+    game.achievements = createDefaultAchievements();
+
+    const progress = getAchievementProgress(game, 'dynasty:playoff_staple');
+
+    expect(progress).toMatchObject({
+      current: 0,
+      target: 5,
+      label: '0/5 playoff berths',
+    });
+  });
+
+  it('requires an actual playoff appearance for worst-to-first', () => {
+    // Regression: pre-fix a 4-12 → 11-7 turnaround unlocked the achievement
+    // even when the 11-7 season finished as 'regular_season' (no playoffs),
+    // because the predicate was `playoffFinish !== 'missed'` which everything
+    // satisfies. After fix, the breakthrough season must reach the postseason.
+    const game = makeLeagueState('offseason', 1);
+    game.year = 2028;
+    game.franchiseHistory.push(
+      {
+        year: 2026,
+        teamId: 'afce1',
+        wins: 4,
+        losses: 13,
+        ties: 0,
+        record: '4-13',
+        pointDifferential: -120,
+        playoffFinish: 'missed_playoffs',
+        majorEvents: [],
+        awardsWon: [],
+        recordsBroken: [],
+      },
+      {
+        year: 2027,
+        teamId: 'afce1',
+        wins: 11,
+        losses: 6,
+        ties: 0,
+        record: '11-6',
+        pointDifferential: 70,
+        playoffFinish: 'regular_season',
+        majorEvents: [],
+        awardsWon: [],
+        recordsBroken: [],
+      },
+    );
+    game.achievements = createDefaultAchievements();
+
+    const unlocked = checkAchievements(game);
+
+    expect(unlocked.map((achievement) => achievement.id)).not.toContain('dynasty:worst_to_first');
+
+    // Sanity check: same turnaround with a real playoff finish should unlock.
+    game.franchiseHistory[1]!.playoffFinish = 'wild_card';
+    game.achievements = createDefaultAchievements();
+    const reunlocked = checkAchievements(game);
+    expect(reunlocked.map((achievement) => achievement.id)).toContain('dynasty:worst_to_first');
+  });
+
   it('returns only newly unlocked achievements', () => {
     const game = makeLeagueState('offseason', 1);
     game.year = 2030;
