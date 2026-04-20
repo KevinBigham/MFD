@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { NewsItem } from '@mfd/engine';
-import { BreakingNewsTickerView, selectTickerItems } from './BreakingNewsTicker';
+import { BreakingNewsTickerView, selectTickerItems, shouldAutoRotateTicker } from './BreakingNewsTicker';
 
 const newsItems: NewsItem[] = [
   {
@@ -50,5 +50,18 @@ describe('BreakingNewsTicker', () => {
     );
 
     expect(markup).toContain('animation:none');
+  });
+
+  it('skips auto-rotation when reduced motion is preferred (WCAG SC 2.2.2)', () => {
+    expect(shouldAutoRotateTicker(4, true)).toBe(false);
+    expect(shouldAutoRotateTicker(1, true)).toBe(false);
+    expect(shouldAutoRotateTicker(0, true)).toBe(false);
+  });
+
+  it('auto-rotates only when there are multiple items and motion is allowed', () => {
+    expect(shouldAutoRotateTicker(2, false)).toBe(true);
+    expect(shouldAutoRotateTicker(4, false)).toBe(true);
+    expect(shouldAutoRotateTicker(1, false)).toBe(false);
+    expect(shouldAutoRotateTicker(0, false)).toBe(false);
   });
 });

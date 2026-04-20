@@ -19,6 +19,16 @@ export function selectTickerItems(newsItems: NewsItem[]): NewsItem[] {
   return newsItems.filter((item) => item.importance !== 'minor').slice(0, 4);
 }
 
+/**
+ * Decides whether the breaking news ticker should auto-rotate between items.
+ * Honors `prefers-reduced-motion` (WCAG SC 2.2.2) — when set, the user must
+ * advance items manually rather than have them slide on a timer.
+ */
+export function shouldAutoRotateTicker(itemCount: number, reducedMotion: boolean): boolean {
+  if (reducedMotion) return false;
+  return itemCount > 1;
+}
+
 interface BreakingNewsTickerViewProps {
   item: NewsItem | null;
   reducedMotion: boolean;
@@ -73,14 +83,14 @@ export function BreakingNewsTicker({ items }: BreakingNewsTickerProps) {
   }, [tickerItems]);
 
   useEffect(() => {
-    if (tickerItems.length <= 1) return undefined;
+    if (!shouldAutoRotateTicker(tickerItems.length, reducedMotion)) return undefined;
 
     const interval = window.setInterval(() => {
       setIndex((current) => (current + 1) % tickerItems.length);
     }, 4200);
 
     return () => window.clearInterval(interval);
-  }, [tickerItems.length]);
+  }, [tickerItems.length, reducedMotion]);
 
   const item = tickerItems[index] ?? tickerItems[0] ?? null;
 
