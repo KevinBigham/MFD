@@ -10,14 +10,15 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
+        // Note: a previous sprint-51 attempt split content-loader + broadcast-commentary
+        // + /packages/content/ into a separate `engine-content` chunk to reclaim
+        // ~71 KB gzip from the shared engine chunk. That chunking produced a runtime
+        // TDZ ("Cannot access '$' before initialization") because the engine barrel
+        // re-exports content-loader symbols, creating a cross-chunk circular import
+        // that doesn't surface in unit tests or the static build report. Keeping all
+        // engine code (including content) in a single `engine` chunk for now.
         manualChunks(id) {
-          if (
-            id.includes('/packages/content/') ||
-            id.includes('/packages/engine/src/content-loader.ts') ||
-            id.includes('/packages/engine/src/systems/broadcast-commentary.ts')
-          ) {
-            return 'engine-content';
-          }
+          if (id.includes('/packages/content/')) return 'engine';
           if (id.includes('/packages/engine/')) return 'engine';
           if (id.includes('/packages/design-system/')) return 'design-system';
           if (
