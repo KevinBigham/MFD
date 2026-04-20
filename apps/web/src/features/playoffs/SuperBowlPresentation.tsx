@@ -5,19 +5,32 @@
  * Accessible after Super Bowl resolves.
  */
 
+import { useEffect, useMemo, useState } from 'react';
 import type {
+  GameResult,
   SuperBowlContext,
   HalftimeShow,
   SuperBowlMVPAward,
   ChampionParade,
 } from '@mfd/engine';
+import {
+  generateChampionParade,
+  generateHalftimeShow,
+  generateSuperBowlContext,
+  generateSuperBowlMVP,
+  generateSuperBowlNarrative,
+  mulberry32,
+} from '@mfd/engine';
 import { PixelPanel, PixelBadge } from '@mfd/design-system/components';
 import {
   selectPlayoffBracket,
+  selectUserTeam,
   selectTeams,
   selectYear,
   useGameStore,
 } from '../../app/store/game-store';
+import { CelebrationOverlay } from '../shared/CelebrationOverlay';
+import { useReducedMotionPreference } from '../shared/transitions/RouteTransition';
 
 /* ── Shared styles ──────────────────────────────────────── */
 const pixel = { fontFamily: 'var(--mfd-font-pixel)', fontSize: '8px' } as const;
@@ -174,27 +187,104 @@ export function SuperBowlPresentationView({
 /* ── Connected Screen ───────────────────────────────────── */
 
 export function SuperBowlPresentation() {
+  const game = useGameStore((state) => state.game);
   const bracket = useGameStore(selectPlayoffBracket);
   const teams = useGameStore(selectTeams);
-  const _year = useGameStore(selectYear);
+  const year = useGameStore(selectYear);
+  const userTeam = useGameStore(selectUserTeam);
+  const reducedMotion = useReducedMotionPreference();
 
   // Extract Super Bowl data from bracket
   const sbMatchup = bracket?.matchups.find((m) => m.round === 'super_bowl');
-  const sbResult = sbMatchup?.result;
+  const sbResult = sbMatchup?.result ?? null;
   const championId = bracket?.championTeamId;
   const champion = championId && teams ? teams[championId] : null;
   const championName = champion ? `${champion.city} ${champion.name}` : null;
+  const context = useMemo(
+    () => (game && bracket ? generateSuperBowlContext(game, bracket) : null),
+    [bracket, game],
+  );
+  const halftimeShow = useMemo(
+    () => (champion ? generateHalftimeShow(year, mulberry32(year ^ champion.id.length ^ 50)) : null),
+    [champion, year],
+  );
+  const mvp = useMemo(
+    () => (sbResult ? generateSuperBowlMVP(sbResult as GameResult) : null),
+    [sbResult],
+  );
+  const parade = useMemo(
+    () => (game && champion ? generateChampionParade(game, champion) : null),
+    [champion, game],
+  );
+  const narrative = useMemo(
+    () => (context && sbResult && champion ? generateSuperBowlNarrative(context, sbResult as GameResult, champion) : null),
+    [champion, context, sbResult],
+  );
+  const celebrationKey = champion ? `mfd-celebration-dismissed:${champion.id}:${year}` : null;
+  const [celebrationDismissed, setCelebrationDismissed] = useState(false);
 
-  // These would be stored on GameState in a full integration
-  // For now, return the view with available data
+  useEffect(() => {
+    if (!celebrationKey || typeof window === 'undefined') {
+      setCelebrationDismissed(false);
+      return;
+    }
+    setCelebrationDismissed(window.localStorage.getItem(celebrationKey) === '1');
+  }, [celebrationKey]);
+
+  const showCelebration = Boolean(
+    champion
+      && userTeam
+      && champion.id === userTeam.id
+      && !celebrationDismissed,
+  );
+  const playoffMatchups = bracket?.matchups.filter((matchup) =>
+    matchup.homeTeamId === champion?.id || matchup.awayTeamId === champion?.id,
+  ) ?? [];
+  const playoffWins = playoffMatchups.filter((matchup) => matchup.winnerTeamId === champion?.id).length;
+  const playoffLosses = playoffMatchups.filter((matchup) =>
+    matchup.result && matchup.winnerTeamId && matchup.winnerTeamId !== champion?.id,
+  ).length;
+  const signaturePlays = sbResult?.broadcast?.highlights
+    ?.filter((highlight) => highlight.isBigPlay || highlight.isClutch)
+    .slice(0, 3)
+    .map((highlight) => highlight.commentary) ?? [];
+  const championships = champion
+    ? game?.franchiseHistory.filter((entry) => entry.teamId === champion.id && entry.playoffFinish === 'champion').length ?? 0
+    : 0;
+
   return (
-    <SuperBowlPresentationView
-      context={null}
-      halftimeShow={null}
-      mvp={null}
-      parade={null}
-      championName={championName}
-      narrative={sbResult ? `Championship game final.` : null}
-    />
+    <>
+      <SuperBowlPresentationView
+        context={context}
+        halftimeShow={halftimeShow}
+        mvp={mvp}
+        parade={parade}
+        championName={championName}
+        narrative={narrative}
+      />
+      {showCelebration && champion ? (
+        <CelebrationOverlay
+          teamCity={champion.city}
+          teamName={champion.name}
+          teamAbbrev={champion.icon}
+          year={year}
+          seasonRecord={`${champion.wins}-${champion.losses}${champion.ties ? `-${champion.ties}` : ''}`}
+          mvpName={mvp?.playerName}
+          dynastyTotals={{
+            championships,
+            playoffRecord: `${playoffWins}-${playoffLosses}`,
+          }}
+          signaturePlays={signaturePlays}
+          ctaLabel="CONTINUE TO PRESENTATION"
+          reducedMotion={reducedMotion}
+          onDismiss={() => {
+            if (celebrationKey && typeof window !== 'undefined') {
+              window.localStorage.setItem(celebrationKey, '1');
+            }
+            setCelebrationDismissed(true);
+          }}
+        />
+      ) : null}
+    </>
   );
 }

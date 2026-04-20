@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PixelBadge, PixelButton, PixelPanel, PixelProgressBar, PixelSelect } from '@mfd/design-system/components';
-import { calcPickValue } from '@mfd/engine';
+import { calcPickValue, getAgmDialogueLine, mulberry32 } from '@mfd/engine';
 import {
   selectCurrentDraftEntry,
   selectDraftClass,
@@ -21,6 +21,7 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 import { playSound } from '../audio/AudioManager';
+import { DraftPickReveal } from './DraftPickReveal';
 
 function needAccent(matchesNeed: boolean): 'gold' | 'default' {
   return matchesNeed ? 'gold' : 'default';
@@ -41,6 +42,16 @@ export function DraftBoard() {
   const { acceptDraftTradeOffer, advanceWeek, makeDraftPick, refreshWarRoom, rejectDraftTradeOffer } = useGameStore((state) => state.actions);
   const [pending, setPending] = useState<string | null>(null);
   const [tradeUpTarget, setTradeUpTarget] = useState('');
+  const [draftReveal, setDraftReveal] = useState<{
+    overall: number;
+    round: number;
+    pick: number;
+    playerName: string;
+    position: string;
+    college: string;
+    teamAbbrev: string;
+    reaction: string;
+  } | null>(null);
 
   const userOnClock = Boolean(userTeam && currentEntry && currentEntry.teamId === userTeam.id);
   const visibleProspects = useMemo(() => draftClass.slice(0, 20), [draftClass]);
@@ -71,6 +82,24 @@ export function DraftBoard() {
       await run();
     } finally {
       setPending(null);
+    }
+  };
+
+  const buildDraftReaction = (projectedRound: number, selectedRound: number) => {
+    const contextKey = projectedRound < selectedRound
+      ? 'steal_pick'
+      : projectedRound > selectedRound
+        ? 'reach_pick'
+        : 'first_round';
+
+    try {
+      return getAgmDialogueLine('marcus_webb', 'draftNight', contextKey, mulberry32(selectedRound * 97 + projectedRound * 13));
+    } catch {
+      return contextKey === 'steal_pick'
+        ? 'Value held. The board came to us.'
+        : contextKey === 'reach_pick'
+          ? 'Traits bet. We trust the profile.'
+          : 'We turned the card in without blinking.';
     }
   };
 
@@ -271,7 +300,18 @@ export function DraftBoard() {
                         accent={matchesNeed ? 'gold' : 'cyan'}
                         disabled={pending === prospect.id}
                         onClick={() => void handleAction(prospect.id, async () => {
+                          const reaction = buildDraftReaction(prospect.projectedRound, currentEntry?.round ?? prospect.projectedRound);
                           await makeDraftPick(prospect.id);
+                          setDraftReveal({
+                            overall: currentEntry?.overall ?? prospect.projectedRound,
+                            round: currentEntry?.round ?? prospect.projectedRound,
+                            pick: currentEntry?.pick ?? 1,
+                            playerName: `${prospect.firstName} ${prospect.lastName}`,
+                            position: prospect.pos,
+                            college: prospect.college,
+                            teamAbbrev: userTeam?.icon ?? userTeam?.abbr ?? 'mfd',
+                            reaction,
+                          });
                         })}
                       >
                         Draft Player
@@ -286,6 +326,19 @@ export function DraftBoard() {
           </div>
         )}
       </PixelPanel>
+
+      <DraftPickReveal
+        open={!!draftReveal}
+        overall={draftReveal?.overall ?? 0}
+        round={draftReveal?.round ?? 0}
+        pick={draftReveal?.pick ?? 0}
+        playerName={draftReveal?.playerName ?? ''}
+        position={draftReveal?.position ?? ''}
+        college={draftReveal?.college ?? ''}
+        teamAbbrev={draftReveal?.teamAbbrev ?? 'mfd'}
+        reaction={draftReveal?.reaction ?? ''}
+        onDismiss={() => setDraftReveal(null)}
+      />
     </div>
   );
 }

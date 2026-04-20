@@ -56,9 +56,11 @@ import { AchievementUnlockToast } from '../features/legacy/AchievementGallery';
 import { SeasonReportViewer } from '../features/legacy/SeasonReportViewer';
 import { TutorialOverlay } from '../features/onboarding/TutorialOverlay';
 import { AudioController, AudioToggle, playAudioCueQueue, playSound } from '../features/audio/AudioManager';
+import { BreakingNewsTicker, selectTickerItems } from '../features/monday-briefing/BreakingNewsTicker';
 import { MilestoneCard, type MilestoneType } from '../features/shared/MilestoneCard';
 import { BreakingNews } from '../features/shared/BreakingNews';
 import { DynastyEraPrompt } from '../features/dynasty-era/DynastyEraPrompt';
+import { RouteTransition } from '../features/shared/transitions/RouteTransition';
 import { shouldPromptEraNaming, shouldShowSaveReminder } from '@mfd/engine';
 import { ConfirmDialog } from '../features/shared/ConfirmDialog';
 
@@ -210,6 +212,7 @@ function RootLayout() {
   const dismissBreakingNews = useGameStore((s) => s.actions.dismissBreakingNews);
   const audioCueQueue = useGameStore((s) => s.game?.postGameUi?.audioCueQueue ?? []);
   const breakingNews = useGameStore((s) => s.game?.breakingNewsQueue?.[0] ?? null);
+  const leagueNews = useGameStore((s) => s.game?.leagueNews ?? []);
   const router = useRouter();
   const activePath = useRouterState({ select: (state) => state.location.pathname });
   const [seenCeremonies, setSeenCeremonies] = useState<string[]>([]);
@@ -255,6 +258,10 @@ function RootLayout() {
       return true;
     });
   }, [activePath, commandPaletteOpen, showHotkeyHelp]);
+  const tickerItems = useMemo(() => selectTickerItems(leagueNews), [leagueNews]);
+  const showTicker = tickerItems.length > 0
+    && !breakingNews
+    && ['/', '/broadcast', '/play-by-play', '/game-day', '/game-flow'].includes(activePath);
 
   useEffect(() => {
     const unregister = NAV_ITEMS
@@ -427,6 +434,7 @@ function RootLayout() {
           activePath={activePath}
           onOpenHotkeyHelp={() => setShowHotkeyHelp(true)}
         />
+        {showTicker ? <BreakingNewsTicker items={tickerItems} /> : null}
         <main
           data-mfd-main-content="true"
           style={{
@@ -435,7 +443,9 @@ function RootLayout() {
             overflow: 'auto',
           }}
         >
-          <Outlet />
+          <RouteTransition pathname={activePath}>
+            <Outlet />
+          </RouteTransition>
         </main>
         <MobileBottomTabBarMount activePath={activePath} />
 

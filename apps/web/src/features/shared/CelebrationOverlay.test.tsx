@@ -40,8 +40,27 @@ describe('CelebrationOverlay', () => {
     expect(html).toContain('CONTINUE TO OFFSEASON');
   });
 
+  it('renders dynasty totals and signature plays when provided', () => {
+    const html = renderToStaticMarkup(
+      <CelebrationOverlay
+        {...defaultProps}
+        dynastyTotals={{ championships: 3, playoffRecord: '11-2' }}
+        signaturePlays={['Fourth-quarter dagger over the top.', 'Goal-line stand to close the title game.']}
+      />,
+    );
+
+    expect(html).toContain('DYNASTY TOTALS');
+    expect(html).toContain('Championships // 3');
+    expect(html).toContain('Goal-line stand');
+  });
+
   it('renders confetti elements', () => {
     const html = renderToStaticMarkup(<CelebrationOverlay {...defaultProps} />);
     expect(html).toContain('confettiFall');
+  });
+
+  it('disables motion-heavy animation when reduced motion is enabled', () => {
+    const html = renderToStaticMarkup(<CelebrationOverlay {...defaultProps} reducedMotion />);
+    expect(html).toContain('animation:none');
   });
 });

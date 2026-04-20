@@ -16,6 +16,13 @@ export interface CelebrationOverlayProps {
   seasonRecord: string;
   mvpName?: string;
   eraName?: string;
+  dynastyTotals?: {
+    championships: number;
+    playoffRecord: string;
+  };
+  signaturePlays?: string[];
+  ctaLabel?: string;
+  reducedMotion?: boolean;
   onDismiss: () => void;
 }
 
@@ -114,23 +121,31 @@ export function CelebrationOverlay({
   seasonRecord,
   mvpName,
   eraName,
+  dynastyTotals,
+  signaturePlays = [],
+  ctaLabel = 'CONTINUE TO OFFSEASON',
+  reducedMotion = false,
   onDismiss,
 }: CelebrationOverlayProps) {
   const [confettiPieces] = useState(() => generateConfettiPieces());
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(reducedMotion);
 
   useEffect(() => {
+    if (reducedMotion) {
+      setVisible(true);
+      return undefined;
+    }
     // Fade in after mount
     const timer = setTimeout(() => setVisible(true), 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [reducedMotion]);
 
   return (
     <div
       style={{
         ...overlayStyle,
         opacity: visible ? 1 : 0,
-        transition: 'opacity 0.8s ease-in',
+        transition: reducedMotion ? 'none' : 'opacity 0.8s ease-in',
       }}
       role="dialog"
       aria-label="Championship Celebration"
@@ -139,11 +154,15 @@ export function CelebrationOverlay({
 
       {/* Confetti */}
       {confettiPieces.map((style, i) => (
-        <div key={i} style={style} aria-hidden="true" />
+        <div
+          key={i}
+          style={reducedMotion ? { ...style, animation: 'none', opacity: 0.4 } : style}
+          aria-hidden="true"
+        />
       ))}
 
       {/* Content */}
-      <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', animation: 'celebrationPulse 3s ease-in-out infinite' }}>
+      <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', animation: reducedMotion ? 'none' : 'celebrationPulse 3s ease-in-out infinite' }}>
         <TeamLogo icon={teamAbbrev} size={120} />
 
         <div style={{ marginTop: '16px' }}>
@@ -161,6 +180,31 @@ export function CelebrationOverlay({
           </PixelPanel>
         )}
 
+        {dynastyTotals ? (
+          <PixelPanel title="DYNASTY TOTALS" accent="cyan" style={{ maxWidth: '360px', margin: '0 auto 12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ ...pixel, fontSize: '9px', color: '#fff' }}>
+                Championships // {dynastyTotals.championships}
+              </div>
+              <div style={{ ...pixel, fontSize: '9px', color: '#fff' }}>
+                Playoff Record // {dynastyTotals.playoffRecord}
+              </div>
+            </div>
+          </PixelPanel>
+        ) : null}
+
+        {signaturePlays.length > 0 ? (
+          <PixelPanel title="SIGNATURE PLAYS" accent="green" style={{ maxWidth: '440px', margin: '0 auto 12px', textAlign: 'left' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {signaturePlays.slice(0, 3).map((play) => (
+                <div key={play} style={{ ...pixel, fontSize: '9px', color: '#fff', lineHeight: 1.7 }}>
+                  {play}
+                </div>
+              ))}
+            </div>
+          </PixelPanel>
+        ) : null}
+
         {eraName ? (
           <div style={eraStyle}>
             THE {eraName.toUpperCase()} CONTINUES
@@ -169,7 +213,7 @@ export function CelebrationOverlay({
 
         <div style={{ marginTop: '24px' }}>
           <PixelButton accent="gold" onClick={onDismiss}>
-            CONTINUE TO OFFSEASON
+            {ctaLabel}
           </PixelButton>
         </div>
       </div>

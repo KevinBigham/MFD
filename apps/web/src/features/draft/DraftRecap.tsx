@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { DraftRecap as DraftRecapRecord } from '@mfd/engine';
 import { selectDraftRecaps, selectUserTeam, useGameStore } from '../../app/store/game-store';
 import { PixelScreenHeader, autoGrid, monoSm, screenStackStyle } from '../shared/pixelUi';
+import { DraftPickRevealCard } from './DraftPickReveal';
 
 const pickColumns: ColumnDef<DraftRecapRecord['picks'][number]>[] = [
   { accessorKey: 'round', header: 'Round' },
@@ -53,6 +54,22 @@ export function DraftRecap() {
       />
 
       <div style={autoGrid(240)}>
+        <DraftPickRevealCard
+          title="Reveal Card"
+          overall={activeRecap.bestValue.pick}
+          round={activeRecap.bestValue.round}
+          pick={activeRecap.bestValue.pick}
+          playerName={activeRecap.bestValue.playerName}
+          position={activeRecap.bestValue.position}
+          college="Scouting Archive"
+          teamAbbrev={team?.icon ?? team?.abbr ?? 'mfd'}
+          reaction={activeRecap.bestValue.verdict === 'steal'
+            ? 'Value held. The room loved the board.'
+            : activeRecap.bestValue.verdict === 'reach'
+              ? 'Traits over consensus. The room stood on the conviction.'
+              : 'Clean value and a fast card turn-in.'}
+        />
+
         <PixelPanel title="Class Grade" accent="gold">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '40px', color: 'var(--mfd-gold)', lineHeight: 1 }}>
