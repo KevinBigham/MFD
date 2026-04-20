@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ContingencyRule, DraftProspect } from '@mfd/engine';
+import type { ContingencyRule, ContractOffer, DraftProspect, TradeOffer } from '@mfd/engine';
 import { initializeDeadline, initializeOffseasonState, mulberry32 } from '@mfd/engine';
 import { createSeedGameState } from './seed';
 import { selectLatestGameDayPackage, useGameStore } from './game-store';
@@ -31,6 +31,40 @@ function makeProspect(id: string): DraftProspect {
     stealProbability: 0.08,
     scoutingReports: [],
     combine: null,
+  };
+}
+
+function buildTradeOffer(game: ReturnType<typeof createSeedGameState>): TradeOffer {
+  const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+  const aiTeam = Object.values(game.teams).find((team) => !team.isUser)!;
+  const userPlayer = userTeam.roster[0]!;
+  const aiPlayer = aiTeam.roster[0]!;
+
+  return {
+    id: 'trade-store-offer',
+    fromTeamId: aiTeam.id,
+    toTeamId: userTeam.id,
+    direction: 'inbound',
+    summary: 'Swap starting pieces to shake up the roster.',
+    status: 'pending',
+    send: [
+      {
+        type: 'player',
+        teamId: userTeam.id,
+        playerId: userPlayer.id,
+        pickId: null,
+        description: userPlayer.name,
+      },
+    ],
+    receive: [
+      {
+        type: 'player',
+        teamId: aiTeam.id,
+        playerId: aiPlayer.id,
+        pickId: null,
+        description: aiPlayer.name,
+      },
+    ],
   };
 }
 
@@ -185,7 +219,71 @@ describe('game store offseason actions', () => {
     const nextGame = useGameStore.getState().game!;
     expect(nextGame.teams[userTeam.id]!.roster.some((player) => player.id === 'draft-store-prospect')).toBe(true);
     expect(nextGame.offseasonState?.currentDraftPickIndex).toBe(1);
+    expect(nextGame.postGameUi?.audioCueQueue.at(-1)?.event).toBe('draft_pick');
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('queues a trade-complete cue when the user accepts an offer', async () => {
+    const game = createSeedGameState(22, 0, 'pro');
+    game.phase = 'offseason';
+    game.offseasonState = initializeOffseasonState(game);
+    game.offseasonState.tradeOffers = [buildTradeOffer(game)];
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.acceptTradeOffer('trade-store-offer');
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.offseasonState?.tradeOffers[0]?.status).toBe('accepted');
+    expect(nextGame.postGameUi?.audioCueQueue.at(-1)?.event).toBe('trade_complete');
+  });
+
+  it('queues a trade-rejected cue when the user declines an offer', async () => {
+    const game = createSeedGameState(23, 0, 'pro');
+    game.phase = 'offseason';
+    game.offseasonState = initializeOffseasonState(game);
+    game.offseasonState.tradeOffers = [buildTradeOffer(game)];
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.rejectTradeOffer('trade-store-offer');
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.offseasonState?.tradeOffers[0]?.status).toBe('rejected');
+    expect(nextGame.postGameUi?.audioCueQueue.at(-1)?.event).toBe('trade_rejected');
+  });
+
+  it('queues a free-agent signing cue when a street free agent signs', async () => {
+    const game = createSeedGameState(24, 0, 'pro');
+    game.phase = 'offseason';
+    game.offseasonState = initializeOffseasonState(game);
+    const playerId = game.freeAgents[0]!;
+    const offer: ContractOffer = {
+      years: 1,
+      salary: 1.1,
+      signingBonus: 0.2,
+      guaranteed: 0.6,
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.signStreetFreeAgent(playerId, offer);
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.players[playerId]?.teamId).not.toBeNull();
+    expect(nextGame.postGameUi?.audioCueQueue.at(-1)?.event).toBe('free_agent_signed');
   });
 
   it('exposes the latest game day package after advancing a simulated week', async () => {

@@ -20,6 +20,7 @@ import {
   pixelSm,
   screenStackStyle,
 } from '../shared/pixelUi';
+import { playSound } from '../audio/AudioManager';
 
 function needAccent(matchesNeed: boolean): 'gold' | 'default' {
   return matchesNeed ? 'gold' : 'default';
@@ -117,6 +118,7 @@ export function DraftBoard() {
                     accent="green"
                     disabled={pending === 'advance-draft'}
                     onClick={() => void handleAction('advance-draft', async () => {
+                      playSound('week_advance_start', { debounceMs: 0, debounceKey: `draft-advance:${currentEntry.overall}` });
                       await advanceWeek();
                     })}
                   >

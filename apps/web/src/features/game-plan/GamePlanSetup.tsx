@@ -24,6 +24,7 @@ import {
   useGameStore,
 } from '../../app/store/game-store';
 import { PixelScreenHeader, autoGrid, monoSm, screenStackStyle } from '../shared/pixelUi';
+import { playSound } from '../audio/AudioManager';
 import { ContingencyBuilder } from './ContingencyBuilder';
 
 const PLAN_TOOLTIPS: Record<string, string> = {
@@ -507,6 +508,7 @@ export function GamePlanSetup() {
             void (async () => {
               await clearWeeklyPrepPlan();
               await persistShotDeclaration();
+              playSound('week_advance_start', { debounceMs: 0, debounceKey: `game-plan:${year}:${week}:skip` });
               await advanceWeek();
             })();
           }}
@@ -519,6 +521,7 @@ export function GamePlanSetup() {
             void (async () => {
               await saveWeeklyPrepPlan(currentPlan, report);
               await persistShotDeclaration();
+              playSound('week_advance_start', { debounceMs: 0, debounceKey: `game-plan:${year}:${week}:save` });
               await advanceWeek();
             })();
           }}

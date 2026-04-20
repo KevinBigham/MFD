@@ -1,5 +1,12 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import {
+  DEFAULT_AUDIO_PREFERENCES,
+  clampAudioVolume,
+  normalizeAudioPreferences,
+  type AudioCategory,
+  type AudioPreferences,
+} from './audio-preferences';
 
 type SimSpeed = 'fast' | 'normal' | 'detailed';
 
@@ -25,6 +32,12 @@ interface UiState {
 
   simSpeed: SimSpeed;
   setSimSpeed: (speed: SimSpeed) => void;
+
+  audioPreferences: AudioPreferences;
+  setAudioMasterEnabled: (enabled: boolean) => void;
+  toggleAudioMasterEnabled: () => void;
+  setAudioCategoryEnabled: (category: AudioCategory, enabled: boolean) => void;
+  setAudioCategoryVolume: (category: AudioCategory, volume: number) => void;
 
   focusedPlayerId: string | null;
   focusedPlayerScreen: 'contracts' | 'trades' | null;
@@ -55,6 +68,44 @@ export const useUiStore = create<UiState>()(
       simSpeed: 'normal',
       setSimSpeed: (simSpeed) => set({ simSpeed }),
 
+      audioPreferences: DEFAULT_AUDIO_PREFERENCES,
+      setAudioMasterEnabled: (enabled) => set((state) => ({
+        audioPreferences: {
+          ...state.audioPreferences,
+          masterEnabled: enabled,
+        },
+      })),
+      toggleAudioMasterEnabled: () => set((state) => ({
+        audioPreferences: {
+          ...state.audioPreferences,
+          masterEnabled: !state.audioPreferences.masterEnabled,
+        },
+      })),
+      setAudioCategoryEnabled: (category, enabled) => set((state) => ({
+        audioPreferences: {
+          ...state.audioPreferences,
+          categories: {
+            ...state.audioPreferences.categories,
+            [category]: {
+              ...state.audioPreferences.categories[category],
+              enabled,
+            },
+          },
+        },
+      })),
+      setAudioCategoryVolume: (category, volume) => set((state) => ({
+        audioPreferences: {
+          ...state.audioPreferences,
+          categories: {
+            ...state.audioPreferences.categories,
+            [category]: {
+              ...state.audioPreferences.categories[category],
+              volume: clampAudioVolume(volume),
+            },
+          },
+        },
+      })),
+
       focusedPlayerId: null,
       focusedPlayerScreen: null,
       setFocusedPlayerContext: (focusedPlayerId, focusedPlayerScreen = null) => set({ focusedPlayerId, focusedPlayerScreen }),
@@ -72,7 +123,17 @@ export const useUiStore = create<UiState>()(
         density: state.density,
         autosaveEnabled: state.autosaveEnabled,
         simSpeed: state.simSpeed,
+        audioPreferences: state.audioPreferences,
       }),
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState ?? {}) as Partial<UiState>;
+
+        return {
+          ...currentState,
+          ...persisted,
+          audioPreferences: normalizeAudioPreferences(persisted.audioPreferences),
+        };
+      },
     },
   ),
 );

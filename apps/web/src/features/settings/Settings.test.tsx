@@ -90,10 +90,18 @@ vi.mock('../../app/store/game-store', () => ({
 vi.mock('../audio/AudioManager', () => ({
   useAudio: () => ({
     play: vi.fn(),
+    playCueQueue: vi.fn(),
     muted: false,
+    masterEnabled: true,
     toggleMute: vi.fn(),
-    volume: 0.5,
-    setVolume: vi.fn(),
+    categories: {
+      ui: { enabled: true, volume: 80 },
+      sfx: { enabled: true, volume: 85 },
+      ambient: { enabled: true, volume: 55 },
+    },
+    setAudioMasterEnabled: vi.fn(),
+    setAudioCategoryEnabled: vi.fn(),
+    setAudioCategoryVolume: vi.fn(),
   }),
 }));
 
@@ -134,6 +142,8 @@ describe('Settings', () => {
     expect(markup).toContain('Halftime Hell');
     expect(markup).toContain('Adaptive Difficulty');
     expect(markup).toContain('Winning streaks get tougher');
+    expect(markup).toContain('Broadcast Mix');
+    expect(markup).toContain('AMBIENT');
     expect(markup).toContain('--- FACILITIES ---');
     expect(markup).toContain('--- MEDICAL STAFF ---');
     expect(markup).toContain('Dr. Harper');

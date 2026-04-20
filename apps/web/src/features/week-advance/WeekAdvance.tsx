@@ -20,6 +20,7 @@ import {
   pixelSm,
   screenStackStyle,
 } from '../shared/pixelUi';
+import { playSound } from '../audio/AudioManager';
 
 interface ChecklistItem {
   id: string;
@@ -133,6 +134,7 @@ export function WeekAdvance() {
     }
     setAdvancing(true);
     try {
+      playSound('week_advance_start', { debounceMs: 0, debounceKey: `week-advance:${phase}:${week}` });
       await advanceWeek();
     } finally {
       setAdvancing(false);

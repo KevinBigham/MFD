@@ -21,6 +21,7 @@ import {
   monoSm,
   screenStackStyle,
 } from '../shared/pixelUi';
+import { playSound } from '../audio/AudioManager';
 
 interface AgentSummary {
   id: string;
@@ -235,6 +236,7 @@ export function FreeAgencyHub() {
               accent="green"
               disabled={pending === 'advance-offseason'}
               onClick={() => void handleOffer('advance-offseason', async () => {
+                playSound('week_advance_start', { debounceMs: 0, debounceKey: `free-agency:${phase}:market` });
                 await advanceWeek();
               })}
             >
@@ -321,6 +323,7 @@ export function FreeAgencyHub() {
               accent="green"
               disabled={pending === 'resolve-fa'}
               onClick={() => void handleOffer('resolve-fa', async () => {
+                playSound('week_advance_start', { debounceMs: 0, debounceKey: `free-agency:${phase}:resolve` });
                 await advanceWeek();
               })}
             >

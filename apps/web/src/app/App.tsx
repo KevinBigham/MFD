@@ -55,7 +55,7 @@ import { CeremonyViewer } from '../features/legacy/CeremonyViewer';
 import { AchievementUnlockToast } from '../features/legacy/AchievementGallery';
 import { SeasonReportViewer } from '../features/legacy/SeasonReportViewer';
 import { TutorialOverlay } from '../features/onboarding/TutorialOverlay';
-import { AudioToggle, playSound } from '../features/audio/AudioManager';
+import { AudioController, AudioToggle, playAudioCueQueue, playSound } from '../features/audio/AudioManager';
 import { MilestoneCard, type MilestoneType } from '../features/shared/MilestoneCard';
 import { BreakingNews } from '../features/shared/BreakingNews';
 import { DynastyEraPrompt } from '../features/dynasty-era/DynastyEraPrompt';
@@ -304,9 +304,7 @@ function RootLayout() {
 
   useEffect(() => {
     if (audioCueQueue.length === 0) return;
-    for (const cue of audioCueQueue) {
-      playSound(cue as unknown as Parameters<typeof playSound>[0]);
-    }
+    playAudioCueQueue(audioCueQueue);
     void clearAudioQueue();
   }, [audioCueQueue, clearAudioQueue]);
 
@@ -416,6 +414,7 @@ function RootLayout() {
         color: 'var(--mfd-text)',
         fontFamily: 'var(--mfd-font-sans)',
       }}>
+        <AudioController />
         <style>{`
           @keyframes mfdTutorialPulse {
             0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.55); }

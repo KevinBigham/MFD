@@ -425,6 +425,8 @@ export const useGameStore = create<GameStore>()(
     const buildPostAdvanceAudioQueue = (game: GameState, playedWeek: number): AudioCue[] => {
       const result = findUserGameResult(game, playedWeek);
       if (!result) return [];
+      const userTeam = Object.values(game.teams).find((entry) => entry.isUser) ?? null;
+      const latestSummary = game.weekSummaries.find((entry) => entry.week === playedWeek) ?? game.weekSummaries.at(-1) ?? null;
       const teamStats = Object.values(result.stats);
       const touchdowns = teamStats.reduce((sum, stats) => sum + stats.passTDs + stats.rushTDs, 0);
       const fieldGoals = teamStats.reduce((sum, stats) => sum + stats.fgMade, 0);
@@ -439,6 +441,13 @@ export const useGameStore = create<GameStore>()(
         bigPlays,
         overtime: result.overtime,
       });
+      if ((latestSummary?.injuries.length ?? 0) > 0) {
+        cues.push(createAudioCue('injury', 'high', {
+          source: 'weekly-summary',
+          week: latestSummary?.week ?? playedWeek,
+          injuries: latestSummary?.injuries.length ?? 0,
+        }));
+      }
       if (result.callYourShotResult) {
         const outcome = result.callYourShotResult.outcome;
         cues.push({
@@ -451,8 +460,29 @@ export const useGameStore = create<GameStore>()(
           },
         });
       }
+      const latestHistory = userTeam
+        ? [...game.franchiseHistory]
+          .reverse()
+          .find((entry) => entry.teamId === userTeam.id && entry.year === game.year)
+        : null;
+      if (latestHistory?.playoffFinish === 'champion') {
+        cues.push(createAudioCue('super_bowl_win', 'critical', {
+          source: 'championship',
+          year: game.year,
+          teamId: latestHistory.teamId,
+        }));
+      } else if (latestHistory?.playoffFinish === 'super_bowl_runner_up') {
+        cues.push(createAudioCue('super_bowl_loss', 'critical', {
+          source: 'championship',
+          year: game.year,
+          teamId: latestHistory.teamId,
+        }));
+      }
       if (game.phase === 'offseason') {
-        cues.push({ event: 'season_end', priority: 'high' });
+        cues.push(createAudioCue('season_end', 'high', {
+          source: 'season-transition',
+          year: game.year,
+        }));
       }
       return cues;
     };
@@ -502,6 +532,26 @@ export const useGameStore = create<GameStore>()(
       if (!current) return;
       const result = submitReSignOfferEngine(current, playerId, offer);
       await commitGame(result.nextState);
+    };
+    const ensurePostGameUi = (game: GameState) => {
+      game.postGameUi = game.postGameUi ?? {
+        pressConferenceQueue: [],
+        audioCueQueue: [],
+        pendingHalftimeDecision: null,
+      };
+      return game.postGameUi;
+    };
+    const appendAudioCue = (
+      game: GameState,
+      event: AudioCue['event'],
+      priority?: AudioCue['priority'],
+      metadata?: AudioCue['metadata'],
+    ) => {
+      const postGameUi = ensurePostGameUi(game);
+      postGameUi.audioCueQueue = [
+        ...postGameUi.audioCueQueue,
+        createAudioCue(event, priority, metadata),
+      ].slice(-20);
     };
     const navigateTo = (path: string) => {
       if (typeof window === 'undefined') return;
@@ -1248,6 +1298,10 @@ export const useGameStore = create<GameStore>()(
         const current = get().game;
         if (!current) return;
         const result = signStreetFreeAgentEngine(current, playerId, offer);
+        appendAudioCue(result.nextState, 'free_agent_signed', 'high', {
+          source: 'street-free-agent',
+          playerId,
+        });
         await commitGame(result.nextState);
       },
 
@@ -1801,6 +1855,10 @@ export const useGameStore = create<GameStore>()(
         if (!current) return;
         snapshotForUndo('Accept Trade');
         const result = acceptTradeOfferEngine(current, offerId);
+        appendAudioCue(result.nextState, 'trade_complete', 'high', {
+          source: 'trade-center',
+          offerId,
+        });
         await commitGame(result.nextState);
       },
 
@@ -1808,6 +1866,10 @@ export const useGameStore = create<GameStore>()(
         const current = get().game;
         if (!current) return;
         const result = rejectTradeOfferEngine(current, offerId);
+        appendAudioCue(result.nextState, 'trade_rejected', 'medium', {
+          source: 'trade-center',
+          offerId,
+        });
         await commitGame(result.nextState);
       },
 
@@ -1852,6 +1914,11 @@ export const useGameStore = create<GameStore>()(
         if (!current) return;
         const nextGame = applyDraftTradeOffer(current, offer);
         nextGame.warRoomState = buildDraftWarRoomState(nextGame, intelRng(nextGame, `war-room:${offer.targetPick}`));
+        appendAudioCue(nextGame, 'trade_complete', 'high', {
+          source: 'draft-trade',
+          targetPick: offer.targetPick,
+          from: offer.from,
+        });
         await commitGame(nextGame);
       },
 
@@ -1863,6 +1930,11 @@ export const useGameStore = create<GameStore>()(
           nextGame.warRoomState.incomingOffers = nextGame.warRoomState.incomingOffers.filter((entry) =>
             !(entry.from === offer.from && entry.targetPick === offer.targetPick && entry.reasoning === offer.reasoning));
         }
+        appendAudioCue(nextGame, 'trade_rejected', 'medium', {
+          source: 'draft-trade',
+          targetPick: offer.targetPick,
+          from: offer.from,
+        });
         await commitGame(nextGame);
       },
 
@@ -1878,6 +1950,10 @@ export const useGameStore = create<GameStore>()(
         const current = get().game;
         if (!current) return;
         const result = makeDraftPickEngine(current, prospectId);
+        appendAudioCue(result.nextState, 'draft_pick', 'high', {
+          source: 'draft-board',
+          prospectId,
+        });
         await commitGame(result.nextState);
       },
 

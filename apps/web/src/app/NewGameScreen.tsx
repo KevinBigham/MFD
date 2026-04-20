@@ -9,6 +9,7 @@ import { useGameStore } from './store/game-store';
 import { createSeedGameState, getTeamOptions } from './store/seed';
 import { TeamLogo } from '../features/shared/TeamLogo';
 import { loadLatestAutosaveGame } from './store/persistence';
+import { AttractMode } from '../features/title/AttractMode';
 
 const DIFFICULTIES: { id: DifficultyLevel; label: string; desc: string; guide: string }[] = [
   { id: 'rookie', label: 'Rookie', desc: 'Forgiving cap, patient owners', guide: 'Best for new players. Patient owners, forgiving cap, room to experiment.' },
@@ -132,6 +133,12 @@ export function NewGameScreen() {
             Scenario Challenge
           </PixelButton>
         </div>
+
+        <AttractMode
+          teams={teams}
+          scenarios={scenarios}
+          conventionHeadline={CONVENTION_SAVE_METADATA.headline}
+        />
 
         {/* Convention Demo Quick-Start */}
         <PixelPanel title="Convention Demo" accent="green">
