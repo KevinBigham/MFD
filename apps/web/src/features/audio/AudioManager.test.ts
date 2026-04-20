@@ -125,4 +125,22 @@ describe('AudioManager', () => {
 
     expect(() => playSound('ui_click', { debounceMs: 0 })).not.toThrow();
   });
+
+  it('bounds recentPlayback map size with FIFO eviction (sprint-53 regression)', () => {
+    // Pre-fix: recentPlayback grew one entry per unique debounceKey for the
+    // tab's lifetime. The audio cue queue mixes per-cue ids into the key
+    // (`source:id`), so on a long play session this slowly leaked memory.
+    // Post-fix: cap at RECENT_PLAYBACK_MAX_KEYS with FIFO eviction.
+    syncAudioPreferences(DEFAULT_AUDIO_PREFERENCES);
+    const { recentPlaybackMaxKeys } = getAudioControllerSnapshot();
+    const overshoot = recentPlaybackMaxKeys + 50;
+
+    for (let i = 0; i < overshoot; i += 1) {
+      playSound('ui_click', { debounceKey: `unique-key-${i}`, debounceMs: 1_000 });
+    }
+
+    const snap = getAudioControllerSnapshot();
+    expect(snap.recentPlaybackSize).toBeLessThanOrEqual(recentPlaybackMaxKeys);
+    expect(snap.recentPlaybackSize).toBe(recentPlaybackMaxKeys);
+  });
 });

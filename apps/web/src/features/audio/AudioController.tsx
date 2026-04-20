@@ -132,7 +132,15 @@ const OFFICE_PATH_PREFIXES = ['/roster', '/scouting'];
 const DEFAULT_DEBOUNCE_MS = 180;
 const CROWD_LOOP_MS = 3200;
 const OFFICE_LOOP_MS = 4600;
+// Sprint 53: cap the debounce-tracking map so it can't grow unbounded over a
+// long-lived tab. The web app emits ~30 distinct cue keys today; 256 leaves
+// generous headroom while still bounding worst-case memory.
+const RECENT_PLAYBACK_MAX_KEYS = 256;
 
+// Module-scoped audio singletons by design — the AudioContext, ambient loop
+// handle, and current-mode flags are tab-lifetime resources. The lazy `if
+// (!audioGraph)` guard in ensureAudioGraph correctly handles React strict-mode
+// double-mount, and ambientLoopHandle is always cleared before re-set.
 let audioGraph: AudioGraph | null = null;
 let currentPreferences: AudioPreferences = DEFAULT_AUDIO_PREFERENCES;
 let currentAmbientMode: AmbientMode = 'off';
@@ -204,6 +212,16 @@ function shouldDebounce(key: string, debounceMs: number): boolean {
   const now = Date.now();
   if (typeof lastPlayedAt === 'number' && now - lastPlayedAt < debounceMs) {
     return true;
+  }
+  // Sprint 53: bound map size with FIFO eviction to prevent unbounded growth
+  // across long-lived tabs. Map preserves insertion order, so deleting the
+  // first key drops the oldest entry. We delete on hit-replace too (delete +
+  // set) so the touched key moves to the back of the queue.
+  if (recentPlayback.has(key)) {
+    recentPlayback.delete(key);
+  } else if (recentPlayback.size >= RECENT_PLAYBACK_MAX_KEYS) {
+    const oldestKey = recentPlayback.keys().next().value;
+    if (oldestKey !== undefined) recentPlayback.delete(oldestKey);
   }
   recentPlayback.set(key, now);
   return false;
@@ -356,11 +374,15 @@ export function getAudioControllerSnapshot(): {
   ambientMode: AmbientMode;
   activeAmbientMode: AmbientMode;
   preferences: AudioPreferences;
+  recentPlaybackSize: number;
+  recentPlaybackMaxKeys: number;
 } {
   return {
     ambientMode: currentAmbientMode,
     activeAmbientMode,
     preferences: currentPreferences,
+    recentPlaybackSize: recentPlayback.size,
+    recentPlaybackMaxKeys: RECENT_PLAYBACK_MAX_KEYS,
   };
 }
 

@@ -28,7 +28,9 @@ vi.mock('./store/seed', () => ({
 
 vi.mock('@mfd/engine', () => ({
   getAvailableScenarios: () => [{ id: 'rebuild', name: 'Rebuild', tagline: 'Start over', description: 'Rebuild a franchise', difficulty: 'pro', seasonLimit: 5 }],
-  mulberry32: vi.fn(),
+  // Sprint 53: returns a deterministic prng function so AttractMode's
+  // `mulberry32(seed)()` calls work without test-mock guards in production code.
+  mulberry32: vi.fn(() => () => 0.42),
   startScenario: vi.fn(),
   generateConventionSave: vi.fn(),
   CONVENTION_SAVE_METADATA: { headline: 'Test headline', week: 14, description: 'Test', team: 'Test' },

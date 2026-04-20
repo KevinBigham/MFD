@@ -20,6 +20,7 @@ import {
   generateSuperBowlContext,
   generateSuperBowlMVP,
   generateSuperBowlNarrative,
+  hashMatchupSeed,
   mulberry32,
 } from '@mfd/engine';
 import { PixelPanel, PixelBadge } from '@mfd/design-system/components';
@@ -222,8 +223,14 @@ export function SuperBowlPresentation() {
     () => (game && bracket ? generateSuperBowlContext(game, bracket) : null),
     [bracket, game],
   );
+  // Sprint 53 fix: previously seeded by `year ^ champion.id.length ^ 50` which
+  // collided for every same-length team ID (KC/LA/SF/NE/GB/NO/NY all hash to
+  // the same value). Use djb2 of the full champion ID so two-letter franchises
+  // get distinct halftime shows year over year.
   const halftimeShow = useMemo(
-    () => (champion ? generateHalftimeShow(year, mulberry32(year ^ champion.id.length ^ 50)) : null),
+    () => (champion
+      ? generateHalftimeShow(year, mulberry32(hashMatchupSeed(`halftime:${year}:${champion.id}`)))
+      : null),
     [champion, year],
   );
   const mvp = useMemo(

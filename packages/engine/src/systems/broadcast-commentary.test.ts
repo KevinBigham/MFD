@@ -119,15 +119,30 @@ describe('broadcast-commentary', () => {
     expect(commentary.pregame.some((line) => line.includes('Denver Wall Street'))).toBe(true);
   });
 
-  it('turns active cross-team relationship edges into commentary lines', () => {
-    const commentary = buildBroadcastCommentary(buildGame(), {
-      homeTeamId: 'KC',
-      awayTeamId: 'DEN',
-      seed: 50,
-    });
+  it('turns an active cross-team relationship edge into commentary at exactly one stage', () => {
+    // Sprint 53 regression: previously the same edge fired in pregame, in-game,
+    // AND recap — so a single family thread became a thread the booth hammered
+    // three times. After the fix, each edge surfaces once per game; the chosen
+    // stage rotates deterministically off seed % 3.
+    const family = (line: string) => line.includes('family');
 
-    expect(commentary.pregame.some((line) => line.includes('family on both sidelines'))).toBe(true);
-    expect(commentary.inGame.some((line) => line.includes('family thread'))).toBe(true);
+    // seed 51 % 3 === 0 → pregame
+    const pregameOnly = buildBroadcastCommentary(buildGame(), { homeTeamId: 'KC', awayTeamId: 'DEN', seed: 51 });
+    expect(pregameOnly.pregame.some(family)).toBe(true);
+    expect(pregameOnly.inGame.some(family)).toBe(false);
+    expect(pregameOnly.recap.some(family)).toBe(false);
+
+    // seed 49 % 3 === 1 → inGame
+    const inGameOnly = buildBroadcastCommentary(buildGame(), { homeTeamId: 'KC', awayTeamId: 'DEN', seed: 49 });
+    expect(inGameOnly.pregame.some(family)).toBe(false);
+    expect(inGameOnly.inGame.some(family)).toBe(true);
+    expect(inGameOnly.recap.some(family)).toBe(false);
+
+    // seed 50 % 3 === 2 → recap
+    const recapOnly = buildBroadcastCommentary(buildGame(), { homeTeamId: 'KC', awayTeamId: 'DEN', seed: 50 });
+    expect(recapOnly.pregame.some(family)).toBe(false);
+    expect(recapOnly.inGame.some(family)).toBe(false);
+    expect(recapOnly.recap.some(family)).toBe(true);
   });
 
   it('writes recap lines from rivalry context and the final score', () => {
