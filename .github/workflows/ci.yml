@@ -29,6 +29,9 @@ jobs:
       - name: Engine bundle size gate
         run: bash scripts/check-bundle-size.sh
 
+      - name: Built-page smoke test
+        run: bash scripts/smoke-test-built-page.sh
+
   determinism-gate:
     runs-on: ubuntu-latest
     steps:
