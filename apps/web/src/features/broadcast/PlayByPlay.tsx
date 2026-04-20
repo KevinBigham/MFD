@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { BroadcastCommentaryGame } from '@mfd/engine';
+import { buildBroadcastCommentary } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import type { BroadcastOutput, DriveNarrative, PlayDescription } from '@mfd/engine/types';
 import { selectLatestBroadcast, useGameStore } from '../../app/store/game-store';
@@ -47,7 +49,13 @@ const TOP_HIGHLIGHTS = 5;
 
 // ── PlayByPlayView (props-based) ───────────────────────
 
-export function PlayByPlayView({ broadcast }: { broadcast: BroadcastOutput }) {
+export function PlayByPlayView({
+  broadcast,
+  commentaryLines = [],
+}: {
+  broadcast: BroadcastOutput;
+  commentaryLines?: readonly string[];
+}) {
   const [activeQuarter, setActiveQuarter] = useState(0);
   const [expandedDrive, setExpandedDrive] = useState<number | null>(null);
 
@@ -209,6 +217,18 @@ export function PlayByPlayView({ broadcast }: { broadcast: BroadcastOutput }) {
         </div>
       </PixelPanel>
 
+      {commentaryLines.length > 0 ? (
+        <PixelPanel title="Broadcast Texture" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {commentaryLines.map((line) => (
+              <div key={line} style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+                {line}
+              </div>
+            ))}
+          </div>
+        </PixelPanel>
+      ) : null}
+
       {/* Final Narrative */}
       <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', fontStyle: 'italic', lineHeight: 1.7 }}>
         {broadcast.finalNarrative}
@@ -220,7 +240,18 @@ export function PlayByPlayView({ broadcast }: { broadcast: BroadcastOutput }) {
 // ── PlayByPlay (connected) ─────────────────────────────
 
 export function PlayByPlay() {
+  const game = useGameStore((state) => state.game);
   const broadcast = useGameStore(selectLatestBroadcast);
+  const commentaryLines = useMemo(() => {
+    if (!game || !broadcast) return [];
+    const commentary = buildBroadcastCommentary(game as BroadcastCommentaryGame, {
+      homeTeamId: broadcast.gameResult.homeTeamId,
+      awayTeamId: broadcast.gameResult.awayTeamId,
+      result: broadcast.gameResult,
+      seed: game.year * 100 + broadcast.gameResult.week,
+    });
+    return [...commentary.pregame, ...commentary.inGame].slice(0, 4);
+  }, [game, broadcast]);
 
   if (!broadcast) {
     return (
@@ -233,5 +264,5 @@ export function PlayByPlay() {
     );
   }
 
-  return <PlayByPlayView broadcast={broadcast.broadcast} />;
+  return <PlayByPlayView broadcast={broadcast.broadcast} commentaryLines={commentaryLines} />;
 }

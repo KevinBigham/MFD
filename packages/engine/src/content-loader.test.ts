@@ -8,6 +8,10 @@ import {
   getContingencyCallouts,
   getPersonalityLine,
   getScoutingReportTemplate,
+  getTeamContent,
+  getTeamFanCulture,
+  getTeamStadiumTradition,
+  getTeamRivalryContent,
 } from './content-loader';
 
 describe('content loader dormant content accessors', () => {
@@ -94,5 +98,29 @@ describe('content loader dormant content accessors', () => {
 
     expect(callouts.length).toBeGreaterThanOrEqual(5);
     expect(callouts[0]).toContain('{responseLabel}');
+  });
+
+  it('loads full team identity content by team id', () => {
+    const team = getTeamContent('KC');
+
+    expect(team).not.toBeNull();
+    expect(team?.stadium.name).toBe('The Smokehouse');
+    expect(team?.fanCulture.nickname).toBe('Burnt End Brigade');
+  });
+
+  it('returns stadium tradition and fan-culture accessors', () => {
+    const tradition = getTeamStadiumTradition('DEN');
+    const fanCulture = getTeamFanCulture('DEN');
+
+    expect(tradition).toContain('Opening Bell');
+    expect(fanCulture?.nickname).toBe('The Brokers');
+  });
+
+  it('looks up authored rivalry content between two teams', () => {
+    const rivalry = getTeamRivalryContent('KC', 'DEN');
+
+    expect(rivalry).not.toBeNull();
+    expect(rivalry?.name).toBe('The Cookout');
+    expect(rivalry?.narrative).toContain('Sauce');
   });
 });

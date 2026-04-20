@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import type { BroadcastCommentaryGame } from '@mfd/engine';
+import { buildBroadcastCommentary } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import { selectBroadcastByGameId, useGameStore } from '../../app/store/game-store';
 import { useUiStore } from '../../app/store/ui-store';
@@ -25,8 +27,20 @@ function playAccent(play: { type: string; isBigPlay: boolean; isClutch: boolean 
 
 export function GameBroadcast() {
   const broadcastGameId = useUiStore((state) => state.broadcastGameId);
+  const game = useGameStore((state) => state.game);
   const latestBroadcast = useGameStore(useMemo(() => selectBroadcastByGameId(broadcastGameId), [broadcastGameId]));
   const [activeTab, setActiveTab] = useState<BroadcastTab>('q1');
+  const broadcastNotes = useMemo(() => {
+    if (!game || !latestBroadcast) {
+      return { pregame: [], inGame: [], recap: [] };
+    }
+    return buildBroadcastCommentary(game as BroadcastCommentaryGame, {
+      homeTeamId: latestBroadcast.gameResult.homeTeamId,
+      awayTeamId: latestBroadcast.gameResult.awayTeamId,
+      result: latestBroadcast.gameResult,
+      seed: game.year * 100 + latestBroadcast.gameResult.week,
+    });
+  }, [game, latestBroadcast]);
 
   if (!latestBroadcast) {
     return (
@@ -88,6 +102,18 @@ export function GameBroadcast() {
           </div>
         </div>
       </div>
+
+      {broadcastNotes.pregame.length > 0 || broadcastNotes.inGame.length > 0 ? (
+        <PixelPanel title="Broadcast Notes" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {[...broadcastNotes.pregame, ...broadcastNotes.inGame].map((line) => (
+              <div key={line} style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+                {line}
+              </div>
+            ))}
+          </div>
+        </PixelPanel>
+      ) : null}
 
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {TABS.map((tab) => (

@@ -386,6 +386,8 @@ describe('LegacyTimeline', () => {
     expect(markup).toContain('Chicago Blaze championship ceremony');
     expect(markup).toContain('--- AWARDS HISTORY ---');
     expect(markup).toContain('Jay Stone');
+    expect(markup).toContain('--- AWARDS NIGHT MIC CHECK ---');
+    expect(markup).toContain('First, thank God.');
     expect(markup).toContain('--- HALL OF FAME ---');
     expect(markup).toContain('Legend One');
     expect(markup).toContain('--- RECORDS BOOK ---');

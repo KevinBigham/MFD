@@ -58,6 +58,9 @@ describe('GameDayCenterView', () => {
           coachingNotes: ['Protection emphasis kept the quarterback clean.'],
           carryForwardRecommendations: ['Keep the successful plan family available next week.'],
         }}
+        boothRecap={[
+          'There is family on both sidelines tonight: Marcus Webb and Theo Price.',
+        ]}
       />,
     );
 
@@ -72,6 +75,8 @@ describe('GameDayCenterView', () => {
     expect(markup).toContain('Keenan Ward ripped off a 74-yard kick return that flipped the field.');
     expect(markup).toContain('PREP A');
     expect(markup).toContain('Open Film Room');
+    expect(markup).toContain('BROADCAST BOOTH');
+    expect(markup).toContain('There is family on both sidelines tonight: Marcus Webb and Theo Price.');
   });
 
   it('renders the named game banner and EKG when one is attached', () => {

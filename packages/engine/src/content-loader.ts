@@ -56,6 +56,9 @@ import {
   type ContingencyCalloutKey,
   type ApologyTourBeatContent,
   type TeamContent as TeamContentFull,
+  type TeamFanCultureContent,
+  type TeamStadiumContent,
+  type TeamRivalryContent,
 } from './types/content-schemas';
 
 export type {
@@ -64,6 +67,8 @@ export type {
   ContingencyCalloutKey,
   ApologyTourBeatContent,
 } from './types/content-schemas';
+export type TeamIdentityContent = TeamContentFull;
+export type { TeamFanCultureContent, TeamStadiumContent, TeamRivalryContent } from './types/content-schemas';
 
 export type PressConferenceScenario =
   | 'win_blowout'
@@ -383,6 +388,10 @@ const teamPAOverrides = teamContentList.reduce<Record<string, TeamPAOverrides>>(
   };
   return map;
 }, {});
+const teamContentById = teamContentList.reduce<Record<string, TeamIdentityContent>>((map, team) => {
+  map[team.id.toUpperCase()] = team;
+  return map;
+}, {});
 
 function pickWithRng<T>(items: readonly T[], rng: () => number, label: string): T {
   if (items.length === 0) {
@@ -637,6 +646,26 @@ export function getNewsArticle(
 
 export function getTeamPAOverrides(teamAbbr: string): TeamPAOverrides | null {
   return teamPAOverrides[teamAbbr.toUpperCase()] ?? null;
+}
+
+export function getTeamContent(teamId: string): TeamIdentityContent | null {
+  return teamContentById[teamId.toUpperCase()] ?? null;
+}
+
+export function getTeamStadiumContent(teamId: string): TeamStadiumContent | null {
+  return getTeamContent(teamId)?.stadium ?? null;
+}
+
+export function getTeamStadiumTradition(teamId: string): string | null {
+  return getTeamStadiumContent(teamId)?.tradition ?? null;
+}
+
+export function getTeamFanCulture(teamId: string): TeamFanCultureContent | null {
+  return getTeamContent(teamId)?.fanCulture ?? null;
+}
+
+export function getTeamRivalryContent(teamId: string, opponentTeamId: string): TeamRivalryContent | null {
+  return getTeamContent(teamId)?.rivalries.find((rivalry) => rivalry.opponentId.toUpperCase() === opponentTeamId.toUpperCase()) ?? null;
 }
 
 export function getHalftimePerformers(): readonly HalftimePerformerContent[] {

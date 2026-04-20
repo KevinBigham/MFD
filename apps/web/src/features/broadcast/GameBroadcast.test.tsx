@@ -6,11 +6,13 @@ const broadcastState = {
   broadcastGameId: 'game-1',
 };
 
-let gameStoreState: { broadcastView: any | null } = {
+let gameStoreState: { broadcastView: any | null; game: any } = {
   broadcastView: {
     gameResult: {
       id: 'game-1',
       week: 9,
+      homeTeamId: 'CHI',
+      awayTeamId: 'DET',
       awayScore: 24,
       homeScore: 27,
       overtime: false,
@@ -42,8 +44,44 @@ let gameStoreState: { broadcastView: any | null } = {
       momentumSwings: [{ quarter: 4, play: 6, description: 'Chicago seized the late lead.' }],
       finalNarrative: 'In a thriller at Soldier Field, Chicago finished the job late.',
     },
-    homeTeam: { city: 'Chicago', name: 'City of Broad Shoulders Deep-Dish', roster: [{ id: 'p1', name: 'Marcus Cole' }] },
-    awayTeam: { city: 'Detroit', name: 'Motown Music Machine', roster: [] },
+    homeTeam: {
+      id: 'CHI',
+      city: 'Chicago',
+      name: 'City of Broad Shoulders Deep-Dish',
+      roster: [{ id: 'p1', name: 'Marcus Cole' }],
+      staff: { hc: { id: 'hc-chi', name: 'Marcus Reed' }, oc: null, dc: null },
+    },
+    awayTeam: {
+      id: 'DET',
+      city: 'Detroit',
+      name: 'Motown Music Machine',
+      roster: [],
+      staff: { hc: { id: 'hc-det', name: 'Nate Fields' }, oc: null, dc: null },
+    },
+  },
+  game: {
+    year: 2031,
+    week: 9,
+    teams: {
+      CHI: {
+        id: 'CHI',
+        city: 'Chicago',
+        name: 'City of Broad Shoulders Deep-Dish',
+        roster: [{ id: 'p1', name: 'Marcus Cole', pos: 'QB' }],
+        staff: { hc: { id: 'hc-chi', name: 'Marcus Reed' }, oc: null, dc: null },
+      },
+      DET: {
+        id: 'DET',
+        city: 'Detroit',
+        name: 'Motown Music Machine',
+        roster: [{ id: 'p2', name: 'Theo Watts', pos: 'WR' }],
+        staff: { hc: { id: 'hc-det', name: 'Nate Fields' }, oc: null, dc: null },
+      },
+    },
+    relationships: [],
+    franchiseHistory: [],
+    playerArchive: [],
+    players: {},
   },
 };
 
@@ -74,10 +112,12 @@ describe('GameBroadcast', () => {
     expect(markup).toContain('24');
     expect(markup).toContain('Chicago');
     expect(markup).toContain('In a thriller at Soldier Field');
+    expect(markup).toContain('BROADCAST NOTES');
+    expect(markup).toContain('PA flavor');
   });
 
   it('renders the empty state when no broadcast is available', () => {
-    gameStoreState = { broadcastView: null };
+    gameStoreState = { broadcastView: null, game: gameStoreState.game };
 
     const markup = renderToStaticMarkup(<GameBroadcast />);
 
@@ -89,6 +129,8 @@ describe('GameBroadcast', () => {
         gameResult: {
           id: 'game-1',
           week: 9,
+          homeTeamId: 'CHI',
+          awayTeamId: 'DET',
           awayScore: 24,
           homeScore: 27,
           overtime: false,
@@ -120,8 +162,44 @@ describe('GameBroadcast', () => {
           momentumSwings: [{ quarter: 4, play: 6, description: 'Chicago seized the late lead.' }],
           finalNarrative: 'In a thriller at Soldier Field, Chicago finished the job late.',
         },
-        homeTeam: { city: 'Chicago', name: 'City of Broad Shoulders Deep-Dish', roster: [{ id: 'p1', name: 'Marcus Cole' }] },
-        awayTeam: { city: 'Detroit', name: 'Motown Music Machine', roster: [] },
+        homeTeam: {
+          id: 'CHI',
+          city: 'Chicago',
+          name: 'City of Broad Shoulders Deep-Dish',
+          roster: [{ id: 'p1', name: 'Marcus Cole' }],
+          staff: { hc: { id: 'hc-chi', name: 'Marcus Reed' }, oc: null, dc: null },
+        },
+        awayTeam: {
+          id: 'DET',
+          city: 'Detroit',
+          name: 'Motown Music Machine',
+          roster: [],
+          staff: { hc: { id: 'hc-det', name: 'Nate Fields' }, oc: null, dc: null },
+        },
+      },
+      game: {
+        year: 2031,
+        week: 9,
+        teams: {
+          CHI: {
+            id: 'CHI',
+            city: 'Chicago',
+            name: 'City of Broad Shoulders Deep-Dish',
+            roster: [{ id: 'p1', name: 'Marcus Cole', pos: 'QB' }],
+            staff: { hc: { id: 'hc-chi', name: 'Marcus Reed' }, oc: null, dc: null },
+          },
+          DET: {
+            id: 'DET',
+            city: 'Detroit',
+            name: 'Motown Music Machine',
+            roster: [{ id: 'p2', name: 'Theo Watts', pos: 'WR' }],
+            staff: { hc: { id: 'hc-det', name: 'Nate Fields' }, oc: null, dc: null },
+          },
+        },
+        relationships: [],
+        franchiseHistory: [],
+        playerArchive: [],
+        players: {},
       },
     };
   });

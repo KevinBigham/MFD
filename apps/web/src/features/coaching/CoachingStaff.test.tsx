@@ -122,5 +122,7 @@ describe('CoachingStaff', () => {
     expect(markup).toContain('STAFF MARKET');
     expect(markup).toContain('SCHEME LAB');
     expect(markup).toContain('DEVELOPMENT');
+    expect(markup).toContain('Profile Tape');
+    expect(markup).toContain('creating leverage. We got the leverage we wanted tonight.');
   });
 });

@@ -12,6 +12,7 @@ describe('SuperBowlPresentationView', () => {
         parade={null}
         championName={null}
         narrative={null}
+        awardSpeech={null}
       />,
     );
     expect(markup).toContain('not yet been played');
@@ -31,6 +32,7 @@ describe('SuperBowlPresentationView', () => {
         parade={null}
         championName="Kansas City Chiefs"
         narrative="Super Bowl LVIII: Kansas City Chiefs win 25-22."
+        awardSpeech={null}
       />,
     );
     expect(markup).toContain('Super Bowl LVIII');
@@ -57,6 +59,7 @@ describe('SuperBowlPresentationView', () => {
         parade={null}
         championName={null}
         narrative={null}
+        awardSpeech={null}
       />,
     );
     expect(markup).toContain('Nova Eclipse');
@@ -84,6 +87,7 @@ describe('SuperBowlPresentationView', () => {
         parade={null}
         championName={null}
         narrative={null}
+        awardSpeech={null}
       />,
     );
     expect(markup).toContain('Patrick Starfish');
@@ -111,10 +115,37 @@ describe('SuperBowlPresentationView', () => {
         }}
         championName="Kansas City Chiefs"
         narrative={null}
+        awardSpeech={null}
       />,
     );
     expect(markup).toContain('CHAMPIONSHIP PARADE');
     expect(markup).toContain('2.5M');
     expect(markup).toContain('key to the city');
+  });
+
+  it('renders the podium speech excerpt when present', () => {
+    const markup = renderToStaticMarkup(
+      <SuperBowlPresentationView
+        context={{
+          number: 'LX',
+          matchup: 'Team A vs Team B',
+          venue: 'Test Venue',
+          storylines: [],
+        }}
+        halftimeShow={null}
+        mvp={null}
+        parade={null}
+        championName="Team A"
+        narrative={null}
+        awardSpeech={{
+          presenterIntro: 'Leadership, production, and wins. Please welcome your MVP, Patrick Starfish!',
+          acceptance: "I'm honored, but I'm also hungry. One MVP doesn't define a career.",
+        }}
+      />,
+    );
+
+    expect(markup).toContain('CHAMPION PODIUM');
+    expect(markup).toContain('Patrick Starfish');
+    expect(markup).toContain('One MVP doesn&#x27;t define a career.');
   });
 });

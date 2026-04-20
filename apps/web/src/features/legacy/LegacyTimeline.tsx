@@ -13,6 +13,7 @@ import type {
   RecordBook,
   RecordEntry,
 } from '@mfd/engine';
+import { getAwardSpeech } from '@mfd/engine';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
   selectAwardsHistory,
@@ -120,6 +121,20 @@ const playerColumns: ColumnDef<PlayerArchiveEntry, unknown>[] = [
   },
 ];
 
+function humanizeStatLabel(label: string): string {
+  return label
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/_/g, ' ')
+    .toLowerCase();
+}
+
+function summarizeAwardStat(entry: AwardsHistoryEntry['awards'][number]): string {
+  const [label, value] = Object.entries(entry.winnerStats)[0] ?? [];
+  if (value === undefined) return 'an outstanding season';
+  if (!label) return String(value);
+  return `${value} ${humanizeStatLabel(label)}`;
+}
+
 export function LegacyTimeline() {
   const game = useGameStore((state) => state.game);
   const userTeam = useGameStore(selectUserTeam);
@@ -173,6 +188,29 @@ export function LegacyTimeline() {
   }, [game, userTeam]);
 
   const awardRows = useMemo(() => [...awardsHistory].sort((a, b) => b.year - a.year), [awardsHistory]);
+  const awardsMicCheck = useMemo(() => {
+    const latestAwards = awardRows[0];
+    if (!latestAwards) return [];
+
+    return latestAwards.awards.slice(0, 2)
+      .map((award) => {
+        const speech = getAwardSpeech(award.awardId, {
+          name: award.winnerName,
+          teamName: award.winnerTeam,
+          coachName: userTeam?.staff?.hc?.name ?? null,
+          year: latestAwards.year,
+          stat: summarizeAwardStat(award),
+        });
+        if (!speech) return null;
+        return {
+          key: `${latestAwards.year}-${award.awardId}`,
+          label: award.label,
+          winnerName: award.winnerName,
+          acceptance: speech.acceptance,
+        };
+      })
+      .filter((entry): entry is { key: string; label: string; winnerName: string; acceptance: string } => Boolean(entry));
+  }, [awardRows, userTeam]);
   const recordPanels = useMemo(() => buildRecordPanels(records), [records]);
 
   const titleCount = teamHistory.filter((entry) => entry.playoffFinish === 'champion').length;
@@ -237,6 +275,24 @@ export function LegacyTimeline() {
           )}
         </PixelPanel>
       </div>
+
+      {awardsMicCheck.length > 0 ? (
+        <PixelPanel title="Awards Night Mic Check" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {awardsMicCheck.map((entry) => (
+              <div key={entry.key} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <PixelBadge variant="gold">{entry.label}</PixelBadge>
+                  <PixelBadge variant="cyan">{entry.winnerName}</PixelBadge>
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+                  {entry.acceptance}
+                </div>
+              </div>
+            ))}
+          </div>
+        </PixelPanel>
+      ) : null}
 
       <div style={autoGrid(360)}>
         <PixelPanel title="Dynasty Timeline" accent="cyan">

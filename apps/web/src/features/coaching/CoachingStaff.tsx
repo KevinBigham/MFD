@@ -11,6 +11,7 @@ import {
   buildCoachRetentionDecision,
   CLINIC_TRACKS,
   DEF_SCHEMES,
+  getCoachArchetype,
   getTreeKey,
   OFF_SCHEMES,
   projectSchemeTransition,
@@ -76,6 +77,8 @@ function CoachPanel({
   }
 
   const ratings = Object.entries(coach.ratings).sort(([left], [right]) => left.localeCompare(right));
+  const archetypeContent = getCoachArchetype(coach.archetype);
+  const archetypeLine = archetypeContent?.press_conference[0] ?? null;
 
   return (
     <PixelPanel title={`${role}: ${coach.name}`} accent={role === 'HC' ? 'gold' : 'cyan'}>
@@ -93,6 +96,18 @@ function CoachPanel({
           {' // '}
           Lean {coach.schemeLean?.offense ?? 'balanced'} / {coach.schemeLean?.defense ?? 'cover_3'}
         </div>
+        {archetypeLine ? (
+          <div style={{
+            ...monoSm,
+            color: 'var(--mfd-text)',
+            lineHeight: 1.6,
+            paddingLeft: '10px',
+            borderLeft: '3px solid var(--mfd-cyan)',
+          }}
+          >
+            Profile Tape: {archetypeLine}
+          </div>
+        ) : null}
         {retention ? (
           <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{retention.reasoning}</div>
         ) : null}
@@ -128,6 +143,9 @@ function CandidateCard({
   candidate: StaffCandidate;
   onHire: () => void;
 }) {
+  const archetypeContent = getCoachArchetype(candidate.archetype);
+  const archetypeLine = archetypeContent?.press_conference[0] ?? null;
+
   return (
     <PixelPanel title={`${candidate.name} // ${role}`} accent={accentForFit(candidate.fitScore)}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -146,6 +164,11 @@ function CandidateCard({
             <div key={line} style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{line}</div>
           ))}
         </div>
+        {archetypeLine ? (
+          <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+            Profile Tape: {archetypeLine}
+          </div>
+        ) : null}
         <PixelButton accent="green" onClick={onHire}>Hire</PixelButton>
       </div>
     </PixelPanel>

@@ -172,6 +172,10 @@ import {
 import type { SetupDecisions } from '@mfd/engine';
 import { autosaveDynasty, loadLatestAutosaveGame } from './persistence';
 import {
+  buildPressConferenceTemplateContext,
+  interpolatePressConferencePool,
+} from '../../lib/pressConferenceContent';
+import {
   selectCapCandidates,
   selectCapHealth,
   selectMultiYearProjection,
@@ -386,10 +390,20 @@ export const useGameStore = create<GameStore>()(
       if (!Number.isFinite(left) || !Number.isFinite(right)) return 0;
       return Math.abs(left - right);
     };
+    const findLatestGameDayPackage = (game: GameState) =>
+      game.gameDayState.recentPackages.find((entry) => entry.id === game.gameDayState.latestPackageId) ?? null;
     const resolvePressConferenceScenario = (game: GameState): string | null => {
-      const latestPackage = game.gameDayState.recentPackages.find((entry) => entry.id === game.gameDayState.latestPackageId) ?? null;
+      const latestPackage = findLatestGameDayPackage(game);
       if (!latestPackage) return null;
       if (latestPackage.phase === 'playoffs') {
+        const userTeam = Object.values(game.teams).find((entry) => entry.isUser) ?? null;
+        const latestHistory = userTeam
+          ? [...game.franchiseHistory]
+            .reverse()
+            .find((entry) => entry.teamId === userTeam.id && entry.year === game.year)
+          : null;
+        if (latestHistory?.playoffFinish === 'champion') return 'super_bowl_win';
+        if (latestHistory?.playoffFinish === 'super_bowl_runner_up') return 'super_bowl_loss';
         return latestPackage.result === 'win' ? 'playoff_win' : latestPackage.result === 'loss' ? 'playoff_loss' : null;
       }
       if (latestPackage.rivalry) {
@@ -407,6 +421,15 @@ export const useGameStore = create<GameStore>()(
       if (!scenario) return null;
       const content = getPressConferenceScenarioContent(scenario);
       if (!content) return null;
+      const latestPackage = findLatestGameDayPackage(game);
+      const team = conference.teamId ? game.teams[conference.teamId] ?? null : null;
+      const opponent = latestPackage?.opponentTeamId ? game.teams[latestPackage.opponentTeamId] ?? null : null;
+      const context = buildPressConferenceTemplateContext({
+        packageData: latestPackage,
+        teamName: team ? `${team.city} ${team.name}` : null,
+        opponentName: opponent ? `${opponent.city} ${opponent.name}` : null,
+        speaker: conference.speaker,
+      });
       return {
         conferenceId: conference.id,
         teamId: conference.teamId,
@@ -416,9 +439,9 @@ export const useGameStore = create<GameStore>()(
         topic: conference.topic,
         scenario,
         responses: {
-          high: [...content.answers_high_ambition],
-          mid: [...content.answers_mid],
-          low: [...content.answers_low_ambition],
+          high: interpolatePressConferencePool(content.answers_high_ambition, context),
+          mid: interpolatePressConferencePool(content.answers_mid, context),
+          low: interpolatePressConferencePool(content.answers_low_ambition, context),
         },
       };
     };

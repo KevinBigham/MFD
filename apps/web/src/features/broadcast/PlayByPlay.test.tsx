@@ -79,6 +79,22 @@ describe('PlayByPlayView', () => {
     expect(markup).toContain('quarter break');
   });
 
+  it('renders authored broadcast texture when commentary lines are provided', () => {
+    const markup = renderToStaticMarkup(
+      <PlayByPlayView
+        broadcast={mockBroadcast}
+        commentaryLines={[
+          "Tonight's backdrop is The Oven: The Cheese Pull sets the tone before kickoff.",
+          'PA flavor: First down Chicago! That slice is hot!',
+        ]}
+      />,
+    );
+
+    expect(markup).toContain('BROADCAST TEXTURE');
+    expect(markup).toContain('The Oven: The Cheese Pull sets the tone before kickoff.');
+    expect(markup).toContain('PA flavor');
+  });
+
   it('displays the final narrative', () => {
     const markup = renderToStaticMarkup(<PlayByPlayView broadcast={mockBroadcast} />);
 

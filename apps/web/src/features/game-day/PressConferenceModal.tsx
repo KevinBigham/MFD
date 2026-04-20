@@ -18,6 +18,7 @@ export function PressConferenceModal({
   open,
   entry,
   activeTier,
+  promptBank = [],
   onTierChange,
   onRespond,
   onOpenChange,
@@ -25,6 +26,7 @@ export function PressConferenceModal({
   open: boolean;
   entry: PressConferenceQueueEntry | null;
   activeTier: PressConferenceResponseTier;
+  promptBank?: readonly string[];
   onTierChange: (tier: PressConferenceResponseTier) => void;
   onRespond: (tier: PressConferenceResponseTier, response: string) => void;
   onOpenChange: (open: boolean) => void;
@@ -66,6 +68,18 @@ export function PressConferenceModal({
             ))}
           </div>
         </PixelPanel>
+
+        {promptBank.length > 0 ? (
+          <PixelPanel title="Prompt Bank" accent="cyan">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {promptBank.slice(0, 3).map((prompt) => (
+                <div key={prompt} style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+                  Q: {prompt}
+                </div>
+              ))}
+            </div>
+          </PixelPanel>
+        ) : null}
 
         <PixelPanel title="Response Options" accent={TIER_ACCENTS[activeTier]}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

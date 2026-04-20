@@ -11,6 +11,13 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (
+            id.includes('/packages/content/') ||
+            id.includes('/packages/engine/src/content-loader.ts') ||
+            id.includes('/packages/engine/src/systems/broadcast-commentary.ts')
+          ) {
+            return 'engine-content';
+          }
           if (id.includes('/packages/engine/')) return 'engine';
           if (id.includes('/packages/design-system/')) return 'design-system';
           if (

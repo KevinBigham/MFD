@@ -128,7 +128,12 @@ export {
   getNamePool,
   getSocialPost,
   getNewsArticle,
+  getTeamContent,
+  getTeamFanCulture,
+  getTeamRivalryContent,
   getTeamPAOverrides,
+  getTeamStadiumContent,
+  getTeamStadiumTradition,
   getHalftimePerformers,
   getPACall,
   getScoutingReportTemplate,
@@ -150,6 +155,10 @@ export type {
   CallYourShotReactionOutcome,
   ContingencyCalloutKey,
   ApologyTourBeatContent,
+  TeamIdentityContent,
+  TeamFanCultureContent,
+  TeamRivalryContent,
+  TeamStadiumContent,
 } from './content-loader';
 export {
   createTradeProposal,
@@ -953,6 +962,12 @@ export type {
   RevengeDeparture,
   RevengeScanOptions,
 } from './systems/revenge-games';
+export { buildBroadcastCommentary } from './systems/broadcast-commentary';
+export type {
+  BroadcastCommentaryGame,
+  BroadcastCommentaryInput,
+  BroadcastCommentaryOutput,
+} from './systems/broadcast-commentary';
 
 // Systems — Dev harnesses (Sprint 48 "The Reunion")
 export {

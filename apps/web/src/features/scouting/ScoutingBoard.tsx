@@ -7,6 +7,10 @@ import {
   PixelSwitch,
 } from '@mfd/design-system/components';
 import {
+  getScoutingReportTemplate,
+  interpolateContentPlaceholders,
+} from '@mfd/engine';
+import {
   selectDraftClass,
   selectOffseasonState,
   selectScoutingDepartment,
@@ -29,6 +33,42 @@ const REGION_OPTIONS = [
   { value: 'midwest', label: 'midwest' },
   { value: 'west', label: 'west' },
 ];
+
+function scoutingStrengthTier(grade: number): 'elite' | 'solid' {
+  return grade >= 85 ? 'elite' : 'solid';
+}
+
+function scoutingProjectionTier(projectedRound: number): 'first_round' | 'mid_round' | 'late_round' {
+  if (projectedRound <= 1) return 'first_round';
+  if (projectedRound <= 3) return 'mid_round';
+  return 'late_round';
+}
+
+function buildScoutingFlavor(params: {
+  playerName: string;
+  position: string;
+  college: string;
+  projectedRound: number;
+  visibleGrade: number;
+  fortyTime?: number | null;
+}): string[] {
+  const placeholders = {
+    playerName: params.playerName,
+    college: params.college,
+    fortyTime: params.fortyTime ? `${params.fortyTime.toFixed(2)}` : '4.55',
+    height: 'prototype size',
+    weight: '205',
+    stat: `${Math.round(params.visibleGrade)}`,
+    year: 'this class',
+  };
+
+  const strength = getScoutingReportTemplate(params.position, scoutingStrengthTier(params.visibleGrade))?.[0] ?? null;
+  const projection = getScoutingReportTemplate(params.position, scoutingProjectionTier(params.projectedRound))?.[0] ?? null;
+
+  return [strength, projection]
+    .filter((line): line is string => Boolean(line))
+    .map((line) => interpolateContentPlaceholders(line, placeholders));
+}
 
 export function ScoutingBoard() {
   const draftClass = useGameStore(selectDraftClass);
@@ -271,6 +311,14 @@ export function ScoutingBoard() {
               const privateWorkoutTaken = Boolean(scouting?.actions.includes('private_workout'));
               const isWatched = watchlist.has(prospect.id);
               const showLineage = Boolean(prospect.bloodline && (confidence >= 50 || isWatched));
+              const scoutingFlavor = buildScoutingFlavor({
+                playerName: `${prospect.firstName} ${prospect.lastName}`,
+                position: prospect.pos,
+                college: prospect.college,
+                projectedRound: prospect.projectedRound,
+                visibleGrade,
+                fortyTime: prospect.combine?.fortyYard ?? null,
+              });
 
               return (
                 <div key={prospect.id} style={{
@@ -334,6 +382,24 @@ export function ScoutingBoard() {
                   {scouting?.privateWorkoutRatings.length ? (
                     <div style={{ ...monoSm, color: 'var(--mfd-gold)', lineHeight: 1.6 }}>
                       Private workout: {scouting.privateWorkoutRatings.join(' // ')}
+                    </div>
+                  ) : null}
+
+                  {scoutingFlavor.length > 0 ? (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      padding: '8px 10px',
+                      borderLeft: '3px solid var(--mfd-cyan)',
+                      background: 'rgba(34, 211, 238, 0.08)',
+                    }}>
+                      <div style={{ ...monoSm, color: 'var(--mfd-cyan)' }}>Scout Desk // Authored Read</div>
+                      {scoutingFlavor.map((line) => (
+                        <div key={line} style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+                          {line}
+                        </div>
+                      ))}
                     </div>
                   ) : null}
 

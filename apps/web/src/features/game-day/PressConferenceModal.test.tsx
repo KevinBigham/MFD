@@ -104,6 +104,25 @@ describe('PressConferenceModal', () => {
     expect(lowMarkup).toContain('We did our jobs and move on to next week.');
   });
 
+  it('renders the authored prompt bank when prompts are provided', () => {
+    const markup = renderToStaticMarkup(
+      <PressConferenceModal
+        open
+        entry={entry}
+        activeTier="mid"
+        promptBank={[
+          'How did Marcus Webb keep the room composed after the statement win?',
+        ]}
+        onTierChange={vi.fn()}
+        onRespond={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(markup).toContain('PROMPT BANK');
+    expect(markup).toContain('How did Marcus Webb keep the room composed after the statement win?');
+  });
+
   it('shows the previously selected response when present', () => {
     const markup = renderToStaticMarkup(
       <PressConferenceModal

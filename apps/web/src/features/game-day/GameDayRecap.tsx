@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Trophy } from 'lucide-react';
 import type {
+  BroadcastCommentaryGame,
   GameDayPackage,
   GameResult,
   PlayerGameLine,
@@ -11,11 +12,12 @@ import type {
   TeamGameStats,
   WinProbPoint,
 } from '@mfd/engine';
-import { analyzeGameFlow } from '@mfd/engine';
+import { analyzeGameFlow, buildBroadcastCommentary } from '@mfd/engine';
 import { PixelPanel, PixelBadge, PixelButton, PixelDialog, PixelEkg, PixelScoreboard, PixelStatBar } from '@mfd/design-system/components';
 import { navigateTo } from '../shared/pixelUi';
 import { CallYourShotResult } from './CallYourShotResult';
 import { PressConferenceModal } from './PressConferenceModal';
+import { buildPressConferencePromptBank, buildPressConferenceTemplateContext } from '../../lib/pressConferenceContent';
 import {
   selectLatestBroadcast,
   selectLatestGameDayPackage,
@@ -74,6 +76,7 @@ interface GameDayCenterViewProps {
   playoffMomentum?: PlayoffMomentum | null;
   namedGame?: GameDayPackage['namedGame'] | GameResult['namedGame'] | null;
   namedGameEkgPoints?: Array<{ time: number; wp: number; event?: string }>;
+  boothRecap?: string[];
 }
 
 export function GameDayCenterView({
@@ -84,6 +87,7 @@ export function GameDayCenterView({
   playoffMomentum = null,
   namedGame = null,
   namedGameEkgPoints = [],
+  boothRecap = [],
 }: GameDayCenterViewProps) {
   if (!packageData) {
     return (
@@ -359,6 +363,18 @@ export function GameDayCenterView({
         </PixelPanel>
       ) : null}
 
+      {boothRecap.length > 0 ? (
+        <PixelPanel title="Broadcast Booth" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px' }}>
+            {boothRecap.map((line) => (
+              <div key={line} style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+                {line}
+              </div>
+            ))}
+          </div>
+        </PixelPanel>
+      ) : null}
+
       {/* Injury notes */}
       {packageData.injuryNotes.length > 0 && (
         <PixelPanel title="Injury Report" accent="red">
@@ -625,7 +641,9 @@ function FullBoxScore({ gameResult, userTeamId }: { gameResult: GameResult; user
 }
 
 export function GameDayRecap() {
+  const game = useGameStore((state) => state.game);
   const team = useGameStore(selectUserTeam);
+  const teams = useGameStore(selectTeams);
   const phase = useGameStore(selectPhase);
   const year = useGameStore(selectYear);
   const packageData = useGameStore(selectLatestGameDayPackage);
@@ -653,6 +671,26 @@ export function GameDayRecap() {
       event: classifyWinProbEvent(point, analysis.winProbability[index - 1] ?? null),
     }));
   }, [latestBroadcast, namedGame]);
+  const boothRecap = useMemo(() => {
+    if (!game || !latestBroadcast) return [];
+    return buildBroadcastCommentary(game as BroadcastCommentaryGame, {
+      homeTeamId: latestBroadcast.gameResult.homeTeamId,
+      awayTeamId: latestBroadcast.gameResult.awayTeamId,
+      result: latestBroadcast.gameResult,
+      seed: year * 100 + latestBroadcast.gameResult.week,
+    }).recap;
+  }, [game, latestBroadcast, year]);
+  const promptBank = useMemo(() => {
+    if (!latestPressConferenceEntry) return [];
+    const opponent = packageData?.opponentTeamId ? teams?.[packageData.opponentTeamId] ?? null : null;
+    const context = buildPressConferenceTemplateContext({
+      packageData,
+      teamName: team ? `${team.city} ${team.name}` : null,
+      opponentName: opponent ? `${opponent.city} ${opponent.name}` : null,
+      speaker: latestPressConferenceEntry.speaker,
+    });
+    return buildPressConferencePromptBank(latestPressConferenceEntry.scenario, context);
+  }, [latestPressConferenceEntry, packageData, team, teams]);
 
   useEffect(() => {
     if (!pendingPressConference) return;
@@ -671,6 +709,7 @@ export function GameDayRecap() {
         playoffMomentum={playoffMomentum}
         namedGame={namedGame}
         namedGameEkgPoints={namedGameEkgPoints}
+        boothRecap={boothRecap}
       />
       {latestPressConferenceEntry ? (
         <PixelPanel title="Podium Response" accent={pendingPressConference ? 'gold' : 'green'}>
@@ -701,6 +740,7 @@ export function GameDayRecap() {
         open={pressModalOpen && !!latestPressConferenceEntry}
         entry={latestPressConferenceEntry}
         activeTier={activeTier}
+        promptBank={promptBank}
         onTierChange={setActiveTier}
         onRespond={(tier, response) => {
           if (!latestPressConferenceEntry) return;

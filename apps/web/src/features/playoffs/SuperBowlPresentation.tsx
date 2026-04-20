@@ -14,6 +14,7 @@ import type {
   ChampionParade,
 } from '@mfd/engine';
 import {
+  getAwardSpeech,
   generateChampionParade,
   generateHalftimeShow,
   generateSuperBowlContext,
@@ -147,6 +148,10 @@ export interface SuperBowlPresentationViewProps {
   parade: ChampionParade | null;
   championName: string | null;
   narrative: string | null;
+  awardSpeech: {
+    presenterIntro: string;
+    acceptance: string;
+  } | null;
 }
 
 export function SuperBowlPresentationView({
@@ -156,6 +161,7 @@ export function SuperBowlPresentationView({
   parade,
   championName,
   narrative,
+  awardSpeech,
 }: SuperBowlPresentationViewProps) {
   if (!context) {
     return (
@@ -179,6 +185,18 @@ export function SuperBowlPresentationView({
       )}
       {halftimeShow && <HalftimeShowCard show={halftimeShow} />}
       {mvp && <MVPCard mvp={mvp} />}
+      {awardSpeech ? (
+        <PixelPanel title="Champion Podium" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px' }}>
+            <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
+              {awardSpeech.presenterIntro}
+            </div>
+            <div style={{ ...monoSm, color: '#fff', lineHeight: 1.7 }}>
+              {awardSpeech.acceptance}
+            </div>
+          </div>
+        </PixelPanel>
+      ) : null}
       {parade && <ParadeCard parade={parade} />}
     </div>
   );
@@ -215,6 +233,16 @@ export function SuperBowlPresentation() {
   const parade = useMemo(
     () => (game && champion ? generateChampionParade(game, champion) : null),
     [champion, game],
+  );
+  const awardSpeech = useMemo(
+    () => (champion && mvp ? getAwardSpeech('mvp', {
+      name: mvp.playerName,
+      teamName: championName,
+      coachName: champion.staff.hc?.name ?? null,
+      year,
+      stat: mvp.stats,
+    }) : null),
+    [champion, championName, mvp, year],
   );
   const narrative = useMemo(
     () => (context && sbResult && champion ? generateSuperBowlNarrative(context, sbResult as GameResult, champion) : null),
@@ -261,6 +289,7 @@ export function SuperBowlPresentation() {
         parade={parade}
         championName={championName}
         narrative={narrative}
+        awardSpeech={awardSpeech}
       />
       {showCelebration && champion ? (
         <CelebrationOverlay
