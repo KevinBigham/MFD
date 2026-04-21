@@ -1020,6 +1020,8 @@ export type { StaffChemistry, ChemistryBonus, FitScore } from './systems/coordin
 export { coachRetirementChance } from './systems/coach-aging';
 export { applyCoachRetirement } from './systems/coach-retirement';
 export type { RetirementEpilogue } from './systems/coach-retirement';
+export { buildCoachingLegacy } from './systems/coaching-legacy';
+export type { CoachingLegacy } from './systems/coaching-legacy';
 
 // Systems — Archetype Progression (Sprint 23)
 export {
