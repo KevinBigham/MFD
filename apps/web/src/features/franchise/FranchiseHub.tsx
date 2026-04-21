@@ -305,17 +305,6 @@ export function FranchiseHub() {
           </div>
         </PixelPanel>
 
-        <PixelPanel title="Dynasty Scrapbook" accent="cyan">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
-              Every completed season becomes a scrapbook page in your dynasty archive.
-            </div>
-            <PixelButton accent="cyan" onClick={() => navigateTo('/franchise/scrapbook')}>
-              View Dynasty Scrapbook
-            </PixelButton>
-          </div>
-        </PixelPanel>
-
         <PixelPanel title="Hall of Fame" accent="red">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
@@ -323,6 +312,28 @@ export function FranchiseHub() {
             </div>
             <PixelButton accent="red" onClick={() => navigateTo('/franchise/hall')}>
               Open Hall of Fame
+            </PixelButton>
+          </div>
+        </PixelPanel>
+
+        <PixelPanel title="Playoff Lore" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Every postseason moment, across every dynasty.
+            </div>
+            <PixelButton accent="cyan" onClick={() => navigateTo('/franchise/playoff-lore')}>
+              Open Playoff Lore
+            </PixelButton>
+          </div>
+        </PixelPanel>
+
+        <PixelPanel title="Dynasty Scrapbook" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Every completed season becomes a scrapbook page in your dynasty archive.
+            </div>
+            <PixelButton accent="cyan" onClick={() => navigateTo('/franchise/scrapbook')}>
+              View Dynasty Scrapbook
             </PixelButton>
           </div>
         </PixelPanel>
