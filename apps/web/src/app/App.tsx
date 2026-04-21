@@ -106,6 +106,7 @@ const LazyFranchiseBook = lazy(async () => ({ default: (await import('../feature
 const LazyScrapbook = lazy(async () => ({ default: (await import('../features/franchise/Scrapbook')).Scrapbook }));
 const LazyHallOfFameDirectory = lazy(async () => ({ default: (await import('../features/franchise/HallOfFameDirectory')).HallOfFameDirectory }));
 const LazyPlayoffLoreDirectory = lazy(async () => ({ default: (await import('../features/playoffs/PlayoffLoreDirectory')).PlayoffLoreDirectory }));
+const LazyDynastyChronicle = lazy(async () => ({ default: (await import('../features/franchise/DynastyChronicle')).DynastyChronicle }));
 const LazyLockerRoom = lazy(async () => ({ default: (await import('../features/locker-room/LockerRoom')).LockerRoom }));
 const LazyEndorsementCenter = lazy(async () => ({ default: (await import('../features/endorsements/EndorsementCenter')).EndorsementCenter }));
 const LazyCommissionerOffice = lazy(async () => ({ default: (await import('../features/league/CommissionerOffice')).CommissionerOffice }));
@@ -1537,6 +1538,16 @@ const playoffLoreDirectoryRoute = createRoute({
   ),
 });
 
+const dynastyChronicleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/franchise/chronicle',
+  component: () => (
+    <LazyRouteFrame label="dynasty chronicle">
+      <LazyDynastyChronicle />
+    </LazyRouteFrame>
+  ),
+});
+
 function PlayerDevRouteWrapper() {
   const roster = useGameStore(selectRoster);
   const team = useGameStore(selectUserTeam);
@@ -1602,7 +1613,7 @@ const routeTree = rootRoute.addChildren([
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, franchiseBookRoute, legendsRoute, seasonRecapRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
-  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, playoffLoreDirectoryRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
+  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, playoffLoreDirectoryRoute, dynastyChronicleRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
 ]);
 
 const hashHistory = createHashHistory();

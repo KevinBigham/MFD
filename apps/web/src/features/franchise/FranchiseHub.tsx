@@ -331,6 +331,17 @@ export function FranchiseHub() {
           </div>
         </PixelPanel>
 
+        <PixelPanel title="Dynasty Chronicle" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Franchise history, Hall of Fame, scrapbook notes, and playoff lore in one chronological scroll.
+            </div>
+            <PixelButton accent="gold" onClick={() => navigateTo('/franchise/chronicle')}>
+              Open Dynasty Chronicle
+            </PixelButton>
+          </div>
+        </PixelPanel>
+
         <PixelPanel title="Dynasty Scrapbook" accent="cyan">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
