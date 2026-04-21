@@ -1,7 +1,6 @@
 import { useRef } from 'react';
 import type { HallOfFameEntry } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelModal, PixelPanel } from '@mfd/design-system/components';
-import { exportRecapAsPng } from '../season/recap-share';
 import { PixelMetricCard, autoGrid, display, monoSm } from '../shared/pixelUi';
 
 interface HallOfFamerDetailModalProps {
@@ -22,6 +21,7 @@ function slugifyHallOfFamerName(name: string): string {
 }
 
 async function exportHallOfFamerAsPng(target: HTMLElement, entry: HallOfFameEntry): Promise<string> {
+  const { exportRecapAsPng } = await import('../season/recap-share');
   const dataUrl = await exportRecapAsPng(target);
   if (typeof document !== 'undefined') {
     const link = document.createElement('a');

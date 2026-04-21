@@ -13,7 +13,6 @@ import {
   pixelSm,
   screenStackStyle,
 } from '../shared/pixelUi';
-import { copyRecapAsText, exportRecapAsPng } from './recap-share';
 
 function playoffLabel(playoffResult: SeasonRecap['playoffResult']): string {
   switch (playoffResult) {
@@ -217,6 +216,7 @@ export function SeasonRecapScreen() {
 
   const handleExportPng = async () => {
     if (!recapRef.current) return;
+    const { exportRecapAsPng } = await import('./recap-share');
     const dataUrl = await exportRecapAsPng(recapRef.current);
     const link = document.createElement('a');
     link.href = dataUrl;
@@ -226,6 +226,7 @@ export function SeasonRecapScreen() {
   };
 
   const handleCopyText = async () => {
+    const { copyRecapAsText } = await import('./recap-share');
     await copyRecapAsText(recap);
     setStatus('Plain-text recap copied.');
   };
