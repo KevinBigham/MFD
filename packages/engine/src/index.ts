@@ -1017,6 +1017,11 @@ export type { SuperBowlContext, HalftimeShow, ChampionParade, SuperBowlMVPAward 
 // Systems — Coordinator Chemistry (Sprint 22)
 export { calculateStaffChemistry, getChemistryBonus, evaluateCoordinatorFit } from './systems/coordinator-chemistry';
 export type { StaffChemistry, ChemistryBonus, FitScore } from './systems/coordinator-chemistry';
+export { coachRetirementChance } from './systems/coach-aging';
+export { applyCoachRetirement } from './systems/coach-retirement';
+export type { RetirementEpilogue } from './systems/coach-retirement';
+export { buildCoachingLegacy } from './systems/coaching-legacy';
+export type { CoachingLegacy } from './systems/coaching-legacy';
 
 // Systems — Archetype Progression (Sprint 23)
 export {

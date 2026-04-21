@@ -1,3 +1,4 @@
+import { buildCoachingLegacy } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import {
   useGameStore,
@@ -38,6 +39,7 @@ function stadiumLevelLabel(level: 1 | 2 | 3): string {
 }
 
 export function FranchiseHub() {
+  const game = useGameStore((state) => state.game);
   const team = useGameStore(selectUserTeam);
   const dashboard = useGameStore(selectFranchiseDashboard);
   const eras = useGameStore(selectFranchiseEras);
@@ -62,6 +64,7 @@ export function FranchiseHub() {
     personnel: [],
   };
   const hasDoctrines = dashboard.earnedDoctrines.length > 0;
+  const coachingDepth = game && team?.staff?.hc ? buildCoachingLegacy(game, team.staff.hc.id).treeDepth : 0;
 
   return (
     <div style={screenStackStyle}>
@@ -268,6 +271,20 @@ export function FranchiseHub() {
             </div>
             <PixelButton accent="gold" onClick={() => navigateTo('/franchise/career')}>
               View GM Career
+            </PixelButton>
+          </div>
+        </PixelPanel>
+
+        <PixelPanel title="Coaching Tree" accent="green">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Follow your head coach&apos;s lineage and see how far the tree reaches across the league.
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-green)' }}>
+              Depth: {coachingDepth}
+            </div>
+            <PixelButton accent="green" onClick={() => navigateTo('/coaching/tree')}>
+              View Coaching Tree
             </PixelButton>
           </div>
         </PixelPanel>

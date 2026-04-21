@@ -4,7 +4,9 @@ import { checkAchievements } from './achievements';
 import { generateAwards } from './awards';
 import { applyCBADealToRules, checkCBAStatus, getLockoutRisk, initCBA } from './cba-engine';
 import { recordCeremony, generateAwardsNight, generateChampionshipCeremony, generateHOFInduction } from './ceremonies';
+import { applyCoachRetirement } from './coach-retirement';
 import { runCoachingCarousel } from './coaching-carousel';
+import { buildCoachingMarket, hireStaffCandidate } from './coaching-market';
 import { calculateCompPicks } from './comp-picks';
 import { advanceCommissioner, initCommissioner } from './commissioner';
 import { makeContract } from './contracts';
@@ -565,6 +567,28 @@ function currentSeasonYear(game: GameState): number {
   return game.year - 1;
 }
 
+function processCoachRetirements(game: GameState): void {
+  for (const team of Object.values(game.teams)) {
+    for (const role of ['HC', 'OC', 'DC'] as const) {
+      applyCoachRetirement(game, team.id, role, RNG.ai);
+    }
+  }
+}
+
+function fillOpenStaffVacancies(game: GameState): void {
+  for (const team of Object.values(game.teams)) {
+    for (const role of ['HC', 'OC', 'DC'] as const) {
+      const key = role === 'HC' ? 'hc' : role === 'OC' ? 'oc' : 'dc';
+      if (team.staff[key]) continue;
+
+      const market = buildCoachingMarket(game, team.id);
+      const candidate = market.candidates[role][0];
+      if (!candidate) continue;
+      hireStaffCandidate(game, team.id, candidate, role);
+    }
+  }
+}
+
 function findSeasonHistoryEntry(game: GameState, seasonYear: number, teamId: string): FranchiseHistoryEntry | null {
   return game.franchiseHistory.find((entry) => entry.year === seasonYear && entry.teamId === teamId) ?? null;
 }
@@ -1018,7 +1042,9 @@ export function advanceOffseason(game: GameState): void {
   }
   decayLeagueRivalries(game);
   game.playerRivalries = decayRivalries(game.playerRivalries ?? [], game.year);
+  processCoachRetirements(game);
   const carousel = runCoachingCarousel(game, seasonYear);
+  fillOpenStaffVacancies(game);
   const hireEvents = carousel.events.filter((event) => event.type === 'coach_hired');
   for (const event of hireEvents) {
     const teamId = String(event.data['teamId'] ?? '');
