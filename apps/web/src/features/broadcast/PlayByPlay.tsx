@@ -199,23 +199,55 @@ export function PlayByPlayView({
         </div>
       </PixelPanel>
 
-      <PixelPanel title="Booth Alerts" accent="gold">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {(broadcast.ghostLines ?? []).length === 0 ? (
-            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No booth alerts landed in this broadcast.</div>
-          ) : (
-            (broadcast.ghostLines ?? []).map((line, index) => (
-              <div key={`${line.commentatorName}-${index}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <PixelBadge variant="gold">{line.commentatorName.toUpperCase()}</PixelBadge>
-                  <PixelBadge variant="default">{line.trigger.replaceAll('_', ' ')}</PixelBadge>
+      {(() => {
+        const lines = broadcast.ghostLines ?? [];
+        const hofLines = lines.filter((line) => line.source === 'hof' || (!line.source && line.commentatorName !== 'Booth Alert'));
+        const calloutLines = lines.filter((line) => line.source === 'callout' || (!line.source && line.commentatorName === 'Booth Alert'));
+
+        if (hofLines.length === 0 && calloutLines.length === 0) {
+          return (
+            <PixelPanel title="Booth Alerts" accent="gold">
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No booth alerts landed in this broadcast.</div>
+            </PixelPanel>
+          );
+        }
+
+        return (
+          <>
+            {hofLines.length > 0 ? (
+              <PixelPanel title="Hall of Fame Voices" accent="gold">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {hofLines.map((line, index) => (
+                    <div key={`hof-${line.commentatorName}-${index}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <PixelBadge variant="gold">{line.commentatorName.toUpperCase()}</PixelBadge>
+                        <PixelBadge variant="default">HOF</PixelBadge>
+                        <PixelBadge variant="default">{line.trigger.replaceAll('_', ' ')}</PixelBadge>
+                      </div>
+                      <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{line.commentary}</div>
+                    </div>
+                  ))}
                 </div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{line.commentary}</div>
-              </div>
-            ))
-          )}
-        </div>
-      </PixelPanel>
+              </PixelPanel>
+            ) : null}
+            {calloutLines.length > 0 ? (
+              <PixelPanel title="Booth Alerts" accent="cyan">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {calloutLines.map((line, index) => (
+                    <div key={`callout-${line.commentatorName}-${index}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <PixelBadge variant="default">{line.commentatorName.toUpperCase()}</PixelBadge>
+                        <PixelBadge variant="default">{line.trigger.replaceAll('_', ' ')}</PixelBadge>
+                      </div>
+                      <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{line.commentary}</div>
+                    </div>
+                  ))}
+                </div>
+              </PixelPanel>
+            ) : null}
+          </>
+        );
+      })()}
 
       {commentaryLines.length > 0 ? (
         <PixelPanel title="Broadcast Texture" accent="cyan">

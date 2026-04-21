@@ -25,6 +25,22 @@ export interface GhostBroadcastLine {
   commentary: string;
   /** When to insert: after a TD, turnover, big play, or quarter break */
   trigger: 'touchdown' | 'turnover' | 'big_play' | 'quarter_break' | 'game_end';
+  /** 'hof' = retired Hall of Famer guest commentary, 'callout' = booth/contingency alert */
+  source?: 'hof' | 'callout';
+}
+
+export interface HallOfFamerCommentaryProfile {
+  championships: number;
+  mvps: number;
+  allPros: number;
+  careerYears: number;
+}
+
+export interface GhostTriggerContext {
+  homeScore: number;
+  awayScore: number;
+  overtime: boolean;
+  hasMvp: boolean;
 }
 
 // ── Commentary Templates ───────────────────────────────
@@ -161,4 +177,61 @@ export function shouldIncludeGhostBroadcast(
   if (currentYear < 10) return false;
   // ~15% chance per game after year 10
   return rng() < 0.15;
+}
+
+/**
+ * Derive commentary style from a Hall of Famer's career profile.
+ * Multi-time champions tell stories; MVPs hype; longevity/all-pro types analyze.
+ */
+export function styleFromHallOfFamerProfile(
+  profile: HallOfFamerCommentaryProfile,
+): GhostCommentator['style'] {
+  if (profile.championships >= 2) return 'storyteller';
+  if (profile.mvps >= 1) return 'hype';
+  if (profile.careerYears >= 12 || profile.allPros >= 5) return 'analyst';
+  return 'technical';
+}
+
+/**
+ * Pick a sensible broadcast trigger from a game's outcome.
+ * Overtime → game_end drama. Close games → big plays. Blowouts → quarter break filler.
+ */
+export function triggerFromGameContext(
+  context: GhostTriggerContext,
+): GhostBroadcastLine['trigger'] {
+  if (context.overtime) return 'game_end';
+  const margin = Math.abs(context.homeScore - context.awayScore);
+  if (margin <= 3) return 'big_play';
+  if (margin >= 21) return 'quarter_break';
+  if (context.hasMvp) return 'touchdown';
+  return 'turnover';
+}
+
+/**
+ * Build a GhostCommentator from a Hall of Fame entry.
+ * Uses the standard 5-year HOF eligibility gap to estimate retirement year,
+ * and derives style from career awards rather than a random pick.
+ */
+export function buildHallOfFamerCommentator(hofer: {
+  playerId: string;
+  name: string;
+  position: Position;
+  peakOvr: number;
+  inductionYear: number;
+  careerYears: number;
+  awards: { championships: number; mvps: number; allPros: number; proBowls: number };
+}): GhostCommentator {
+  return {
+    id: hofer.playerId,
+    name: hofer.name,
+    position: hofer.position,
+    peakOvr: hofer.peakOvr,
+    retiredYear: hofer.inductionYear - 5,
+    style: styleFromHallOfFamerProfile({
+      championships: hofer.awards.championships,
+      mvps: hofer.awards.mvps,
+      allPros: hofer.awards.allPros,
+      careerYears: hofer.careerYears,
+    }),
+  };
 }

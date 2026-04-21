@@ -93,7 +93,7 @@ export interface BroadcastOutput {
   }>;
   broadcastNetwork: string;
   finalNarrative: string;
-  ghostLines?: Array<{ commentatorName: string; commentary: string; trigger: string }>;
+  ghostLines?: Array<{ commentatorName: string; commentary: string; trigger: string; source?: 'hof' | 'callout' }>;
 }
 
 export type BroadcastNetwork = 'MFN' | 'ESPN8' | 'FOX8' | 'CBS8' | 'NBC8';

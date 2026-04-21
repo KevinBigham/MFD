@@ -11,10 +11,11 @@ import { detectNamedGame } from './named-games';
 import { syncApologyTourThreads } from './apology-tour';
 import { calculateDynastyWindow } from './dynasty-window';
 import {
-  shouldIncludeGhostBroadcast,
+  buildHallOfFamerCommentator,
   generateGhostLine,
+  shouldIncludeGhostBroadcast,
+  triggerFromGameContext,
 } from './ghost-broadcasts';
-import type { GhostCommentator } from './ghost-broadcasts';
 import { awardDoctrine, checkDoctrineEligibility, type DoctrineId } from './franchise-doctrines';
 import { checkCBAStatus, initCBA } from './cba-engine';
 import { recordCeremony, generateRingCeremony } from './ceremonies';
@@ -445,10 +446,29 @@ function appendContingencyGhostLines(result: GameResult): void {
       commentatorName: 'Booth Alert',
       commentary: activation.callout!,
       trigger: 'quarter_break',
+      source: 'callout' as const,
     }));
 
   if (contingencyLines.length === 0) return;
   result.broadcast.ghostLines = [...(result.broadcast.ghostLines ?? []), ...contingencyLines];
+}
+
+function appendHallOfFamerGhostLine(result: GameResult, hallOfFame: GameState['hallOfFame'], year: number): void {
+  if (!result.broadcast) return;
+  if (!shouldIncludeGhostBroadcast(RNG.ai, year - 2026, hallOfFame.length > 0)) return;
+
+  const hofer = hallOfFame[Math.floor(RNG.ai() * hallOfFame.length)];
+  if (!hofer) return;
+
+  const commentator = buildHallOfFamerCommentator(hofer);
+  const trigger = triggerFromGameContext({
+    homeScore: result.homeScore,
+    awayScore: result.awayScore,
+    overtime: result.overtime,
+    hasMvp: result.mvpPlayerId !== null,
+  });
+  const line = { ...generateGhostLine(RNG.ai, commentator, trigger), source: 'hof' as const };
+  result.broadcast.ghostLines = [...(result.broadcast.ghostLines ?? []), line];
 }
 
 function rankingForTeam(game: GameState, teamId: string): number | null {
@@ -742,24 +762,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
       if (home.isUser || away.isUser) {
         outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
         appendContingencyGhostLines(outcome.result);
-        // Ghost broadcast lines from retired HOFers
-        const hasHofers = (nextState.hallOfFame ?? []).length > 0;
-        if (outcome.result.broadcast && shouldIncludeGhostBroadcast(RNG.ai, nextState.year - 2026, hasHofers)) {
-          const hofer = nextState.hallOfFame[Math.floor(RNG.ai() * nextState.hallOfFame.length)];
-          if (hofer) {
-            const GHOST_STYLES = ['analyst', 'hype', 'storyteller', 'technical'] as const;
-            const commentator: GhostCommentator = {
-              id: hofer.playerId,
-              name: hofer.name,
-              position: hofer.position,
-              peakOvr: hofer.peakOvr,
-              retiredYear: hofer.inductionYear - 1,
-              style: GHOST_STYLES[Math.floor(RNG.ai() * GHOST_STYLES.length)]!,
-            };
-            const line = generateGhostLine(RNG.ai, commentator, 'touchdown');
-            outcome.result.broadcast.ghostLines = [line];
-          }
-        }
+        appendHallOfFamerGhostLine(outcome.result, nextState.hallOfFame ?? [], nextState.year);
       }
       // Snap count allocation
       const homePrep = nextState.weeklyPrepPlans?.[home.id];
@@ -953,6 +956,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
       if (home.isUser || away.isUser) {
         outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
         appendContingencyGhostLines(outcome.result);
+        appendHallOfFamerGhostLine(outcome.result, nextState.hallOfFame ?? [], nextState.year);
       }
       // Playoff snap counts — ride_stars in playoffs
       const playoffHomePrep = nextState.weeklyPrepPlans?.[home.id];
