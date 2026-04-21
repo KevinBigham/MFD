@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { mulberry32 } from '../rng';
-import type { CoachCareerHistory, StaffMember } from '../types';
+import { RNG, mulberry32 } from '../rng';
+import type { CoachCareerHistory, StaffMember, StaffRole, Team } from '../types';
 import { applyCoachRetirement } from './coach-retirement';
+import { advanceOffseason } from './offseason';
 import { makeLeagueState } from './test-helpers';
 
 function makeCoach(overrides: Partial<StaffMember> = {}): StaffMember {
@@ -52,9 +53,17 @@ function setCoach(gameRole: 'HC' | 'OC' | 'DC' = 'HC') {
   game.week = 1;
   const team = game.teams.afce1!;
   const coach = makeCoach({ role: gameRole, age: 70 });
-  if (gameRole === 'HC') team.staff.hc = coach;
-  if (gameRole === 'OC') team.staff.oc = coach;
-  if (gameRole === 'DC') team.staff.dc = coach;
+  assignTeamCoach(team, coach, gameRole);
+  team.wins = 10;
+  team.losses = 7;
+  return { game, team, coach };
+}
+
+function assignTeamCoach(team: Team, coach: StaffMember, role: StaffRole): void {
+  if (role === 'HC') team.staff.hc = coach;
+  if (role === 'OC') team.staff.oc = coach;
+  if (role === 'DC') team.staff.dc = coach;
+
   team.coachingStaff.hc = team.staff.hc ? {
     id: team.staff.hc.id,
     firstName: 'Coach',
@@ -91,9 +100,58 @@ function setCoach(gameRole: 'HC' | 'OC' | 'DC' = 'HC') {
     reputation: 60,
     tenure: 1,
   } : null;
-  team.wins = 10;
-  team.losses = 7;
-  return { game, team, coach };
+}
+
+function seedLeagueStaff(game: ReturnType<typeof makeLeagueState>): void {
+  for (const team of Object.values(game.teams)) {
+    assignTeamCoach(team, makeCoach({ id: `${team.id}-hc`, name: `${team.city} HC`, role: 'HC', age: 49 }), 'HC');
+    assignTeamCoach(team, makeCoach({ id: `${team.id}-oc`, name: `${team.city} OC`, role: 'OC', age: 44 }), 'OC');
+    assignTeamCoach(team, makeCoach({ id: `${team.id}-dc`, name: `${team.city} DC`, role: 'DC', age: 45 }), 'DC');
+  }
+}
+
+function setLosingHistory(game: ReturnType<typeof makeLeagueState>, teamId: string): void {
+  game.franchiseHistory = [
+    {
+      year: 2024,
+      teamId,
+      wins: 4,
+      losses: 13,
+      ties: 0,
+      record: '4-13',
+      pointDifferential: -102,
+      playoffFinish: 'missed',
+      majorEvents: [],
+      awardsWon: [],
+      recordsBroken: [],
+    },
+    {
+      year: 2025,
+      teamId,
+      wins: 5,
+      losses: 12,
+      ties: 0,
+      record: '5-12',
+      pointDifferential: -88,
+      playoffFinish: 'missed',
+      majorEvents: [],
+      awardsWon: [],
+      recordsBroken: [],
+    },
+    {
+      year: 2026,
+      teamId,
+      wins: 3,
+      losses: 14,
+      ties: 0,
+      record: '3-14',
+      pointDifferential: -131,
+      playoffFinish: 'missed',
+      majorEvents: [],
+      awardsWon: [],
+      recordsBroken: [],
+    },
+  ];
 }
 
 function latestRetirementEvent(game: ReturnType<typeof makeLeagueState>) {
@@ -219,5 +277,85 @@ describe('applyCoachRetirement', () => {
 
     expect(game.teams.afce1!.staff.oc).toBeNull();
     expect(game.teams.afce1!.coachingStaff.oc).toBeNull();
+  });
+
+  it('advanceOffseason retires an old head coach and fills the vacancy in the same pass', () => {
+    const game = makeLeagueState('offseason', 1);
+    game.year = 2027;
+    seedLeagueStaff(game);
+    setLosingHistory(game, 'afce2');
+
+    const oldCoach = makeCoach({
+      id: 'old-hc',
+      name: 'Old Head Coach',
+      role: 'HC',
+      age: 85,
+      archetype: 'strategist',
+    });
+    assignTeamCoach(game.teams.afce2!, oldCoach, 'HC');
+    game.coachingHistory = [
+      makeHistory({
+        coachId: oldCoach.id,
+        name: oldCoach.name,
+        age: 85,
+        seasonsCoached: 12,
+        wins: 51,
+        losses: 110,
+      }),
+    ];
+
+    const originalAi = RNG.ai;
+    RNG.ai = () => 0;
+    try {
+      advanceOffseason(game);
+    } finally {
+      RNG.ai = originalAi;
+    }
+
+    expect(game.eventLog.some((event) =>
+      event.type === 'coach_retirement' && event.data['coachId'] === oldCoach.id
+    )).toBe(true);
+    expect(game.teams.afce2!.staff.hc).not.toBeNull();
+    expect(game.teams.afce2!.staff.hc?.id).not.toBe(oldCoach.id);
+  });
+
+  it('advanceOffseason backfills coordinator retirements from the coaching market', () => {
+    const game = makeLeagueState('offseason', 1);
+    game.year = 2027;
+    seedLeagueStaff(game);
+    setLosingHistory(game, 'afcn1');
+
+    const oldCoordinator = makeCoach({
+      id: 'old-oc',
+      name: 'Old Coordinator',
+      role: 'OC',
+      age: 85,
+      archetype: 'strategist',
+    });
+    assignTeamCoach(game.teams.afcn1!, oldCoordinator, 'OC');
+    game.coachingHistory = [
+      makeHistory({
+        coachId: oldCoordinator.id,
+        name: oldCoordinator.name,
+        age: 85,
+        seasonsCoached: 10,
+        wins: 42,
+        losses: 99,
+      }),
+    ];
+
+    const originalAi = RNG.ai;
+    RNG.ai = () => 0;
+    try {
+      advanceOffseason(game);
+    } finally {
+      RNG.ai = originalAi;
+    }
+
+    expect(game.eventLog.some((event) =>
+      event.type === 'coach_retirement' && event.data['coachId'] === oldCoordinator.id
+    )).toBe(true);
+    expect(game.teams.afcn1!.staff.oc).not.toBeNull();
+    expect(game.teams.afcn1!.staff.oc?.id).not.toBe(oldCoordinator.id);
   });
 });
