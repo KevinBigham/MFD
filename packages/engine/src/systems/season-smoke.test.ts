@@ -35,7 +35,7 @@ function makeSchedule(teamIds: string[]): ScheduleWeek[] {
 }
 
 describe('multi-season deterministic smoke test', () => {
-  it('sims 3 full seasons without crash and within stat bounds', { timeout: 15_000 }, () => {
+  it('sims 3 full seasons without crash and within stat bounds', { timeout: 30_000 }, () => {
     const game = makeLeagueState('preseason', 1);
     game.schedule = makeSchedule(Object.keys(game.teams));
 

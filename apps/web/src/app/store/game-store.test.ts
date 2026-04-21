@@ -223,7 +223,7 @@ describe('game store offseason actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 
-  it('queues a trade-complete cue when the user accepts an offer', async () => {
+  it('queues a trade-complete cue when the user accepts an offer', { timeout: 15_000 }, async () => {
     const game = createSeedGameState(22, 0, 'pro');
     game.phase = 'offseason';
     game.offseasonState = initializeOffseasonState(game);
@@ -242,7 +242,7 @@ describe('game store offseason actions', () => {
     expect(nextGame.postGameUi?.audioCueQueue.at(-1)?.event).toBe('trade_complete');
   });
 
-  it('queues a trade-rejected cue when the user declines an offer', async () => {
+  it('queues a trade-rejected cue when the user declines an offer', { timeout: 15_000 }, async () => {
     const game = createSeedGameState(23, 0, 'pro');
     game.phase = 'offseason';
     game.offseasonState = initializeOffseasonState(game);

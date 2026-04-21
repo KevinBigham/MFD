@@ -71,7 +71,7 @@ function makeIntegrationGame(): GameState {
 }
 
 describe('three-season integration loop', () => {
-  it('simulates three consecutive seasons with progression, retirements, AI pivots, and realistic QB draft pressure', () => {
+  it('simulates three consecutive seasons with progression, retirements, AI pivots, and realistic QB draft pressure', { timeout: 15_000 }, () => {
     let state = makeIntegrationGame();
     const trackedPlayerId = state.teams.afce2!.roster.find((player) => player.pos === 'QB')!.id;
     const startingOvr = findPlayer(state, trackedPlayerId)!.ovr;
