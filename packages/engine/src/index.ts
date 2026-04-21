@@ -1018,6 +1018,8 @@ export type { SuperBowlContext, HalftimeShow, ChampionParade, SuperBowlMVPAward 
 export { calculateStaffChemistry, getChemistryBonus, evaluateCoordinatorFit } from './systems/coordinator-chemistry';
 export type { StaffChemistry, ChemistryBonus, FitScore } from './systems/coordinator-chemistry';
 export { coachRetirementChance } from './systems/coach-aging';
+export { applyCoachRetirement } from './systems/coach-retirement';
+export type { RetirementEpilogue } from './systems/coach-retirement';
 
 // Systems — Archetype Progression (Sprint 23)
 export {
