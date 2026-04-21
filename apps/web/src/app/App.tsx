@@ -60,6 +60,7 @@ import { BreakingNewsTicker, selectTickerItems } from '../features/monday-briefi
 import { MilestoneCard, type MilestoneType } from '../features/shared/MilestoneCard';
 import { BreakingNews } from '../features/shared/BreakingNews';
 import { DynastyEraPrompt } from '../features/dynasty-era/DynastyEraPrompt';
+import { SeasonRecapPrompt, shouldOpenSeasonRecapPrompt } from '../features/season/SeasonRecapPrompt';
 import { RouteTransition } from '../features/shared/transitions/RouteTransition';
 import { getSaveReminderMessage, shouldPromptEraNaming, shouldShowSaveReminder } from '@mfd/engine';
 import { ConfirmDialog } from '../features/shared/ConfirmDialog';
@@ -107,6 +108,8 @@ const LazyAlumniMentors = lazy(async () => ({ default: (await import('../feature
 const LazyPlayerDevelopmentInner = lazy(async () => ({ default: (await import('../features/player/PlayerDevelopment')).PlayerDevelopmentView }));
 const LazyPlayByPlay = lazy(async () => ({ default: (await import('../features/broadcast/PlayByPlay')).PlayByPlay }));
 const LazyGameFlow = lazy(async () => ({ default: (await import('../features/broadcast/GameFlow')).GameFlow }));
+const LazySeasonRecapScreen = lazy(async () => ({ default: (await import('../features/season/SeasonRecapCard')).SeasonRecapScreen }));
+const LazyGmCareer = lazy(async () => ({ default: (await import('../features/franchise/GmCareer')).GmCareer }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -196,8 +199,10 @@ function RootLayout() {
   const seasonReports = useGameStore(selectSeasonReports);
   const expansionDraftState = useGameStore(selectExpansionDraftState);
   const game = useGameStore((s) => s.game);
+  const userTeam = useGameStore(selectUserTeam);
   const currentWeek = useGameStore((s) => s.game?.week ?? 0);
   const currentYear = useGameStore((s) => s.game?.year ?? 0);
+  const recapPromptSeenThisSession = useGameStore((s) => s.recapPromptSeenThisSession);
   const userTeamWins = useGameStore((s) => {
     if (!s.game) return 0;
     const team = Object.values(s.game.teams).find((t) => t.isUser);
@@ -224,10 +229,12 @@ function RootLayout() {
   const [activeMilestone, setActiveMilestone] = useState<{ type: MilestoneType; headline: string; detail: string } | null>(null);
   const [lastMilestoneCheck, setLastMilestoneCheck] = useState('');
   const [showEraPrompt, setShowEraPrompt] = useState(false);
+  const [showRecapPrompt, setShowRecapPrompt] = useState(false);
   const [showSaveReminder, setShowSaveReminder] = useState(false);
   const [showHotkeyHelp, setShowHotkeyHelp] = useState(false);
   const [lastEraCheck, setLastEraCheck] = useState('');
   const prevWins = useRef(0);
+  const prevYear = useRef<number | null>(null);
   const [showSaveToast, setShowSaveToast] = useState(false);
   const prevWeek = useRef(0);
 
@@ -386,10 +393,16 @@ function RootLayout() {
       setShowEraPrompt(true);
     }
 
+    if (shouldOpenSeasonRecapPrompt(prevYear.current, game, userTeam?.id ?? null, recapPromptSeenThisSession)) {
+      setShowRecapPrompt(true);
+    }
+
     if (shouldShowSaveReminder(currentYear, game.lastPortableExportYear ?? null)) {
       setShowSaveReminder(true);
     }
-  }, [currentYear, currentWeek, game, lastEraCheck]);
+
+    prevYear.current = currentYear;
+  }, [currentYear, currentWeek, game, lastEraCheck, recapPromptSeenThisSession, userTeam]);
 
   const commandItems: CommandItem[] = [
     ...NAV_ITEMS.map((nav): CommandItem => ({
@@ -541,6 +554,7 @@ function RootLayout() {
             ))}
           </div>
         </PixelModal>
+        <SeasonRecapPrompt open={showRecapPrompt} onClose={() => setShowRecapPrompt(false)} />
         <DynastyEraPrompt open={showEraPrompt} onClose={() => setShowEraPrompt(false)} />
         <ConfirmDialog
           open={showSaveReminder}
@@ -1357,6 +1371,16 @@ const legendsRoute = createRoute({
   ),
 });
 
+const seasonRecapRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/season/recap',
+  component: () => (
+    <LazyRouteFrame label="season recap">
+      <LazySeasonRecapScreen />
+    </LazyRouteFrame>
+  ),
+});
+
 const weekAdvanceRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/week-advance',
@@ -1459,6 +1483,16 @@ const dynastyRoute = createRoute({
   ),
 });
 
+const gmCareerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/franchise/career',
+  component: () => (
+    <LazyRouteFrame label="gm career">
+      <LazyGmCareer />
+    </LazyRouteFrame>
+  ),
+});
+
 function PlayerDevRouteWrapper() {
   const roster = useGameStore(selectRoster);
   const team = useGameStore(selectUserTeam);
@@ -1522,9 +1556,9 @@ const routeTree = rootRoute.addChildren([
   scoutingRoute, draftRoute, trainingCampRoute, freeAgencyRoute, faTargetsRoute,
   gameDayRoute, broadcastRoute, playByPlayRoute, gameFlowRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,
-  ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, franchiseBookRoute, legendsRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
+  ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, franchiseBookRoute, legendsRoute, seasonRecapRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
-  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
+  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, gmCareerRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
 ]);
 
 const hashHistory = createHashHistory();
