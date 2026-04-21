@@ -233,4 +233,45 @@ describe('HallOfFameDirectory', () => {
     expect(markup).not.toContain('Team Chronology');
     expect(markup).not.toContain('Export PNG');
   });
+
+  it('renders group controls alongside the sort and filter controls', () => {
+    upsertHallOfFameDynasty(makeDynasty({
+      entries: [makeEntry({ playerId: 'p-1', teams: ['team-1'] })],
+    }));
+
+    const markup = renderToStaticMarkup(<HallOfFameDirectory />);
+
+    expect(markup).toContain('Group:');
+    expect(markup).toContain('Flat');
+    expect(markup).toContain('By Era');
+  });
+
+  it('renders decade badges when the initial group mode is era and entries span multiple decades', () => {
+    upsertHallOfFameDynasty(makeDynasty({
+      entries: [
+        makeEntry({ playerId: 'p-1', inductionYear: 2042, name: 'Forties Star' }),
+        makeEntry({ playerId: 'p-2', inductionYear: 2038, name: 'Thirties Star' }),
+      ],
+    }));
+
+    const markup = renderToStaticMarkup(<HallOfFameDirectory initialGroupMode="era" />);
+
+    expect(markup).toContain('2040s');
+    expect(markup).toContain('2030s');
+  });
+
+  it('renders the correct hall of famer count for each decade group in era mode', () => {
+    upsertHallOfFameDynasty(makeDynasty({
+      entries: [
+        makeEntry({ playerId: 'p-1', inductionYear: 2047, name: 'First Forty' }),
+        makeEntry({ playerId: 'p-2', inductionYear: 2042, name: 'Second Forty' }),
+        makeEntry({ playerId: 'p-3', inductionYear: 2038, name: 'Thirty Star' }),
+      ],
+    }));
+
+    const markup = renderToStaticMarkup(<HallOfFameDirectory initialGroupMode="era" />);
+
+    expect(markup).toMatch(/2040s[\s\S]*?2 HOFers/);
+    expect(markup).toMatch(/2030s[\s\S]*?1 HOFer/);
+  });
 });

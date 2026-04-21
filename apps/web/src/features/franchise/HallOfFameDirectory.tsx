@@ -21,6 +21,7 @@ import { HallOfFamerDetailModal } from './HallOfFamerDetailModal';
 
 type SortMode = 'induction' | 'peakOvr' | 'careerScore' | 'name';
 type FilterMode = 'all' | 'homegrown' | 'current';
+type GroupMode = 'flat' | 'era';
 
 const SORT_MODES: Array<{ id: SortMode; label: string }> = [
   { id: 'induction', label: 'Induction ↓' },
@@ -33,6 +34,11 @@ const FILTER_MODES: Array<{ id: FilterMode; label: string }> = [
   { id: 'all', label: 'All Dynasties' },
   { id: 'homegrown', label: 'Homegrown Only' },
   { id: 'current', label: 'Current Dynasty' },
+];
+
+const GROUP_MODES: Array<{ id: GroupMode; label: string }> = [
+  { id: 'flat', label: 'Flat' },
+  { id: 'era', label: 'By Era' },
 ];
 
 function sortEntries(entries: HallOfFameEntry[], mode: SortMode): HallOfFameEntry[] {
@@ -70,6 +76,33 @@ function dynastyThemeVars(teamId: string): CSSProperties {
     '--mfd-hall-secondary': content?.secondaryColor ?? 'var(--mfd-cyan)',
     '--mfd-hall-tertiary': content?.tertiaryColor ?? 'var(--mfd-red)',
   } as CSSProperties;
+}
+
+function inductionDecade(entry: HallOfFameEntry): number {
+  return Math.floor(entry.inductionYear / 10) * 10;
+}
+
+function groupEntriesByEra(entries: HallOfFameEntry[]): Array<{
+  decade: number;
+  entries: HallOfFameEntry[];
+}> {
+  const buckets = new Map<number, HallOfFameEntry[]>();
+  for (const entry of entries) {
+    const decade = inductionDecade(entry);
+    const bucket = buckets.get(decade);
+    if (bucket) {
+      bucket.push(entry);
+      continue;
+    }
+    buckets.set(decade, [entry]);
+  }
+
+  return [...buckets.entries()]
+    .sort((left, right) => right[0] - left[0])
+    .map(([decade, groupedEntries]) => ({
+      decade,
+      entries: groupedEntries,
+    }));
 }
 
 interface HallOfFamerRowProps {
@@ -138,15 +171,17 @@ interface DynastySectionProps {
   dynasty: HallOfFameArchiveDynasty;
   sort: SortMode;
   filter: FilterMode;
+  groupMode: GroupMode;
   isCurrent: boolean;
   onSelect: (entry: HallOfFameEntry, dynastyTeamId: string) => void;
 }
 
-function DynastySection({ dynasty, sort, filter, isCurrent, onSelect }: DynastySectionProps) {
+function DynastySection({ dynasty, sort, filter, groupMode, isCurrent, onSelect }: DynastySectionProps) {
   const entries = useMemo(
     () => sortEntries(applyFilter(dynasty.entries, dynasty.teamId, filter), sort),
     [dynasty.entries, dynasty.teamId, filter, sort],
   );
+  const eraGroups = useMemo(() => groupEntriesByEra(entries), [entries]);
 
   if (entries.length === 0) return null;
 
@@ -169,26 +204,62 @@ function DynastySection({ dynasty, sort, filter, isCurrent, onSelect }: DynastyS
             </span>
             {isCurrent ? <PixelBadge variant="cyan">ACTIVE</PixelBadge> : null}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {entries.map((entry) => (
-              <HallOfFamerRow
-                key={`${dynasty.dynastyId}-${entry.playerId}-${entry.inductionYear}`}
-                entry={entry}
-                dynastyTeamId={dynasty.teamId}
-                onSelect={onSelect}
-              />
-            ))}
-          </div>
+          {groupMode === 'era' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {eraGroups.map((group, index) => (
+                <div
+                  key={`${dynasty.dynastyId}-${group.decade}`}
+                  style={index === 0 ? undefined : {
+                    borderTop: '2px solid var(--mfd-hall-secondary)',
+                    paddingTop: '8px',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
+                    <PixelBadge variant="gold">{group.decade}s</PixelBadge>
+                    <PixelBadge variant="default">
+                      {group.entries.length} HOFer{group.entries.length === 1 ? '' : 's'}
+                    </PixelBadge>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {group.entries.map((entry) => (
+                      <HallOfFamerRow
+                        key={`${dynasty.dynastyId}-${entry.playerId}-${entry.inductionYear}`}
+                        entry={entry}
+                        dynastyTeamId={dynasty.teamId}
+                        onSelect={onSelect}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {entries.map((entry) => (
+                <HallOfFamerRow
+                  key={`${dynasty.dynastyId}-${entry.playerId}-${entry.inductionYear}`}
+                  entry={entry}
+                  dynastyTeamId={dynasty.teamId}
+                  onSelect={onSelect}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </PixelPanel>
     </div>
   );
 }
 
-export function HallOfFameDirectory() {
+export function HallOfFameDirectory({
+  initialGroupMode = 'flat',
+}: {
+  initialGroupMode?: GroupMode;
+} = {}) {
   const game = useGameStore((state) => state.game);
   const [sort, setSort] = useState<SortMode>('induction');
   const [filter, setFilter] = useState<FilterMode>('all');
+  const [groupMode, setGroupMode] = useState<GroupMode>(initialGroupMode);
   const [selectedEntry, setSelectedEntry] = useState<{
     entry: HallOfFameEntry;
     dynastyTeamId: string;
@@ -251,6 +322,18 @@ export function HallOfFameDirectory() {
               </PixelButton>
             ))}
           </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Group:</span>
+            {GROUP_MODES.map((mode) => (
+              <PixelButton
+                key={mode.id}
+                accent={mode.id === groupMode ? 'gold' : 'default'}
+                onClick={() => setGroupMode(mode.id)}
+              >
+                {mode.label}
+              </PixelButton>
+            ))}
+          </div>
         </div>
       </PixelPanel>
 
@@ -274,6 +357,7 @@ export function HallOfFameDirectory() {
               dynasty={dynasty}
               sort={sort}
               filter={filter}
+              groupMode={groupMode}
               isCurrent={dynasty.dynastyId === currentDynastyId}
               onSelect={(entry, dynastyTeamId) => setSelectedEntry({ entry, dynastyTeamId })}
             />
