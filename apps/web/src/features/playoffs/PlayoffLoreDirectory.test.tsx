@@ -2,6 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { PlayoffLoreCard } from '../../lib/playoff-lore';
 
+const { teamThemeVarsMock } = vi.hoisted(() => ({
+  teamThemeVarsMock: vi.fn(() => ({
+    '--mfd-team-primary': '#dd4400',
+    '--mfd-team-secondary': '#44dd00',
+    '--mfd-team-tertiary': '#0044dd',
+  })),
+}));
+
 type AggregateEntry = {
   dynastyId: string;
   seasonYear: number;
@@ -72,6 +80,7 @@ vi.mock('../shared/pixelUi', async (importOriginal) => {
       </div>
     ),
     autoGrid: () => ({}),
+    teamThemeVars: teamThemeVarsMock,
   };
 });
 
@@ -166,5 +175,17 @@ describe('PlayoffLoreDirectory', () => {
 
     expect(markup).toContain('Current dynasty win');
     expect(markup).not.toContain('Other dynasty win');
+  });
+
+  it('applies team theme vars to each dynasty group wrapper', () => {
+    aggregateCards = [
+      { dynastyId: '123:team-1:2030', seasonYear: 2026, card: makeCard({ headline: 'Current dynasty win' }), source: 'archived' },
+    ];
+    teamThemeVarsMock.mockClear();
+
+    const markup = renderToStaticMarkup(<PlayoffLoreDirectory />);
+
+    expect(teamThemeVarsMock).toHaveBeenCalledWith('team-1');
+    expect(markup).toContain('--mfd-team-primary:#dd4400');
   });
 });

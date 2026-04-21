@@ -1,9 +1,27 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { StoredScrapbookEntry } from '../../lib/scrapbook-store';
 
 const { exportRecapAsPngMock } = vi.hoisted(() => ({
   exportRecapAsPngMock: vi.fn(async () => 'data:image/png;base64,stub'),
+}));
+
+const {
+  createExportFrameMock,
+  exportCleanupMock,
+  framedNode,
+} = vi.hoisted(() => ({
+  createExportFrameMock: vi.fn(),
+  exportCleanupMock: vi.fn(),
+  framedNode: {} as HTMLElement,
+}));
+
+const { teamThemeVarsMock } = vi.hoisted(() => ({
+  teamThemeVarsMock: vi.fn(() => ({
+    '--mfd-team-primary': '#aa1100',
+    '--mfd-team-secondary': '#00aa11',
+    '--mfd-team-tertiary': '#1100aa',
+  })),
 }));
 
 vi.mock('@mfd/engine', async (importOriginal) => {
@@ -34,6 +52,7 @@ vi.mock('../shared/pixelUi', async (importOriginal) => {
   return {
     ...actual,
     autoGrid: () => ({}),
+    teamThemeVars: teamThemeVarsMock,
   };
 });
 
@@ -47,6 +66,10 @@ vi.mock('../season/SeasonRecapCard', () => ({
 
 vi.mock('../season/recap-share', () => ({
   exportRecapAsPng: exportRecapAsPngMock,
+}));
+
+vi.mock('../season/export-frame', () => ({
+  createExportFrame: createExportFrameMock,
 }));
 
 function makeEntry(overrides: Partial<StoredScrapbookEntry> = {}): StoredScrapbookEntry {
@@ -118,6 +141,15 @@ function makeEntry(overrides: Partial<StoredScrapbookEntry> = {}): StoredScrapbo
 import { ScrapbookEntryCard, exportScrapbookEntryAsPng } from './ScrapbookEntry';
 
 describe('ScrapbookEntryCard', () => {
+  beforeEach(() => {
+    createExportFrameMock.mockReset();
+    exportCleanupMock.mockReset();
+    createExportFrameMock.mockReturnValue({
+      frame: framedNode,
+      cleanup: exportCleanupMock,
+    });
+  });
+
   it('renders year, record, playoff result, and era tag in compact mode', () => {
     const markup = renderToStaticMarkup(<ScrapbookEntryCard entry={makeEntry()} />);
 
@@ -133,6 +165,15 @@ describe('ScrapbookEntryCard', () => {
     expect(markup).toContain('--mfd-scrapbook-primary:#112233');
     expect(markup).toContain('--mfd-scrapbook-secondary:#445566');
     expect(markup).toContain('--mfd-scrapbook-tertiary:#778899');
+  });
+
+  it('applies the shared team theme vars to the root scrapbook entry shell', () => {
+    teamThemeVarsMock.mockClear();
+
+    const markup = renderToStaticMarkup(<ScrapbookEntryCard entry={makeEntry()} />);
+
+    expect(teamThemeVarsMock).toHaveBeenCalledWith('afce1');
+    expect(markup).toContain('--mfd-team-primary:#aa1100');
   });
 
   it('renders the imported SeasonRecapCard body in expanded mode', () => {
@@ -226,7 +267,9 @@ describe('ScrapbookEntryCard', () => {
     expect(markup).toContain('Export as PNG');
     await exportScrapbookEntryAsPng(exportNode, makeEntry());
 
-    expect(exportRecapAsPngMock).toHaveBeenCalledWith(exportNode);
+    expect(createExportFrameMock).toHaveBeenCalled();
+    expect(exportRecapAsPngMock).toHaveBeenCalledWith(framedNode);
+    expect(exportCleanupMock).toHaveBeenCalledTimes(1);
   });
 
   it('renders without emoji characters', () => {

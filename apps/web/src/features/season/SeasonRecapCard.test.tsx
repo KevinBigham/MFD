@@ -2,6 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { SeasonRecap } from '@mfd/engine';
 
+const { teamThemeVarsMock } = vi.hoisted(() => ({
+  teamThemeVarsMock: vi.fn(() => ({
+    '--mfd-team-primary': '#bb3300',
+    '--mfd-team-secondary': '#33bb00',
+    '--mfd-team-tertiary': '#0033bb',
+  })),
+}));
+
 const mockRecap: SeasonRecap = {
   teamId: 'afce1',
   teamName: 'Blaze',
@@ -97,6 +105,7 @@ vi.mock('../shared/pixelUi', () => ({
   monoSm: {},
   pixelSm: {},
   screenStackStyle: {},
+  teamThemeVars: teamThemeVarsMock,
 }));
 
 vi.mock('../shared/EmptyState', () => ({
@@ -127,6 +136,15 @@ describe('SeasonRecapCard', () => {
     expect(markup).toContain('--mfd-recap-primary:#112233');
     expect(markup).toContain('--mfd-recap-secondary:#445566');
     expect(markup).toContain('--mfd-recap-tertiary:#778899');
+  });
+
+  it('applies the shared team theme vars to the recap card root shell', () => {
+    teamThemeVarsMock.mockClear();
+
+    const markup = renderToStaticMarkup(<SeasonRecapCard recap={mockRecap} />);
+
+    expect(teamThemeVarsMock).toHaveBeenCalledWith('afce1');
+    expect(markup).toContain('--mfd-team-primary:#bb3300');
   });
 
   it('shows the team motto in the subheader', () => {

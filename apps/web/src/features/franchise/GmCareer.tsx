@@ -1,7 +1,8 @@
 import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
 import { selectUserTeam, useGameStore } from '../../app/store/game-store';
 import { PixelMetricCard, PixelScreenHeader, autoGrid, monoSm, screenStackStyle, teamThemeVars } from '../shared/pixelUi';
-import { readCareerMeta, type CareerMeta, type DynastySummary } from '../../lib/career-meta';
+import { deriveDynastyId, readCareerMeta, type CareerMeta, type DynastySummary } from '../../lib/career-meta';
+import { RookieOfYearHistory } from './RookieOfYearHistory';
 
 function formatRecord(summary: DynastySummary | CareerMeta['careerTotals']): string {
   return `${summary.wins}-${summary.losses}${summary.ties ? `-${summary.ties}` : ''}`;
@@ -31,8 +32,10 @@ function legacyStats(dynasties: DynastySummary[]) {
 }
 
 export function GmCareer() {
+  const game = useGameStore((state) => state.game);
   const userTeam = useGameStore(selectUserTeam);
   const meta = readCareerMeta();
+  const currentDynastyId = game ? deriveDynastyId(game) : null;
   const dynasties = [...meta.dynasties].sort((left, right) =>
     dynastySortKey(right) - dynastySortKey(left)
     || right.startYear - left.startYear
@@ -146,6 +149,8 @@ export function GmCareer() {
           />
         </div>
       </PixelPanel>
+
+      <RookieOfYearHistory dynastyId={currentDynastyId} />
     </div>
   );
 }

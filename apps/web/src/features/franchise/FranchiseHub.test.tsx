@@ -223,12 +223,20 @@ describe('FranchiseHub', () => {
     expect(markup.indexOf('GM Career')).toBeLessThan(markup.indexOf('Dynasty Scrapbook'));
   });
 
-  it('renders the Playoff Lore tile between Hall of Fame and Dynasty Scrapbook', () => {
+  it('renders the Playoff Lore and Dynasty Chronicle tiles before Dynasty Scrapbook', () => {
     const markup = renderToStaticMarkup(<FranchiseHub />);
 
     expect(markup).toContain('Playoff Lore');
+    expect(markup).toContain('Dynasty Chronicle');
     expect(markup.indexOf('Hall of Fame')).toBeLessThan(markup.indexOf('Playoff Lore'));
-    expect(markup.indexOf('Playoff Lore')).toBeLessThan(markup.indexOf('Dynasty Scrapbook'));
+    expect(markup.indexOf('Playoff Lore')).toBeLessThan(markup.indexOf('Dynasty Chronicle'));
+    expect(markup.indexOf('Dynasty Chronicle')).toBeLessThan(markup.indexOf('Dynasty Scrapbook'));
+  });
+
+  it('renders the Rivalries panel', () => {
+    const markup = renderToStaticMarkup(<FranchiseHub />);
+
+    expect(markup).toContain('RIVALRIES');
   });
 
   it('navigates to the scrapbook route from the Dynasty Scrapbook tile', () => {
@@ -247,5 +255,14 @@ describe('FranchiseHub', () => {
     button?.props?.onClick?.();
 
     expect(navigateToMock).toHaveBeenCalledWith('/franchise/playoff-lore');
+  });
+
+  it('navigates to the chronicle route from the Dynasty Chronicle tile', () => {
+    const button = findButtonByText(<FranchiseHub />, 'Open Dynasty Chronicle');
+
+    expect(button).not.toBeNull();
+    button?.props?.onClick?.();
+
+    expect(navigateToMock).toHaveBeenCalledWith('/franchise/chronicle');
   });
 });

@@ -12,6 +12,7 @@ import {
   monoSm,
   pixelSm,
   screenStackStyle,
+  teamThemeVars,
 } from '../shared/pixelUi';
 
 function playoffLabel(playoffResult: SeasonRecap['playoffResult']): string {
@@ -100,6 +101,7 @@ export function SeasonRecapCard({
   return (
     <section
       style={{
+        ...teamThemeVars(recap.teamId),
         ...themeVars,
         display: 'flex',
         flexDirection: 'column',

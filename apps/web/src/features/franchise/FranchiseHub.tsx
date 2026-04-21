@@ -26,6 +26,8 @@ import {
   TrendSparkline,
 } from './franchiseUi';
 import { HomegrownMeter } from './HomegrownMeter';
+import { ContinuityMeter } from './ContinuityMeter';
+import { RivalryHeatMap } from './RivalryHeatMap';
 
 const DOCTRINE_ACCENTS = {
   culture: 'green',
@@ -94,6 +96,8 @@ export function FranchiseHub() {
       />
 
       <HomegrownMeter game={game} />
+      <ContinuityMeter game={game} />
+      <RivalryHeatMap />
 
       <div style={autoGrid(220)}>
         <PixelMetricCard
@@ -323,6 +327,17 @@ export function FranchiseHub() {
             </div>
             <PixelButton accent="cyan" onClick={() => navigateTo('/franchise/playoff-lore')}>
               Open Playoff Lore
+            </PixelButton>
+          </div>
+        </PixelPanel>
+
+        <PixelPanel title="Dynasty Chronicle" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Franchise history, Hall of Fame, scrapbook notes, and playoff lore in one chronological scroll.
+            </div>
+            <PixelButton accent="gold" onClick={() => navigateTo('/franchise/chronicle')}>
+              Open Dynasty Chronicle
             </PixelButton>
           </div>
         </PixelPanel>

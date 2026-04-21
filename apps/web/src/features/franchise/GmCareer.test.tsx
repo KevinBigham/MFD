@@ -7,10 +7,19 @@ const { navigateToMock } = vi.hoisted(() => ({
 }));
 
 const franchiseState = {
+  game: {
+    seed: 123,
+    year: 2033,
+    teams: {
+      'team-1': { id: 'team-1', isUser: true, city: 'Chicago', name: 'Blaze', abbr: 'CHI', roster: [] },
+    },
+    franchiseHistory: [{ teamId: 'team-1', year: 2029 }],
+  },
   team: {
     id: 'team-1',
     city: 'Chicago',
     name: 'Blaze',
+    roster: [],
   },
   dashboard: {
     identity: {
@@ -68,6 +77,7 @@ let mockMeta: CareerMeta = {
 
 vi.mock('../../lib/career-meta', () => ({
   readCareerMeta: () => mockMeta,
+  deriveDynastyId: () => '123:team-1:2029',
 }));
 
 vi.mock('../../app/store/game-store', () => ({
@@ -88,6 +98,12 @@ vi.mock('@mfd/design-system/components', () => ({
     </section>
   ),
   PixelButton: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
+}));
+
+vi.mock('./RookieOfYearHistory', () => ({
+  RookieOfYearHistory: ({ dynastyId }: { dynastyId: string | null }) => (
+    <section data-mock="roy-history">{dynastyId}</section>
+  ),
 }));
 
 vi.mock('../shared/pixelUi', async (importOriginal) => {
@@ -392,6 +408,13 @@ describe('GmCareer', () => {
 
     expect(markup).toContain('data-mock="screen-header"');
     expect(markup).toContain('data-mock="metric-card"');
+  });
+
+  it('wires the rookie-of-the-year history panel to the current dynasty id', () => {
+    const markup = renderToStaticMarkup(<GmCareer />);
+
+    expect(markup).toContain('data-mock="roy-history"');
+    expect(markup).toContain('123:team-1:2029');
   });
 
   it('FranchiseHub wires the GM Career tile to /franchise/career', () => {

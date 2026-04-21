@@ -53,6 +53,12 @@ export function teamThemeVars(teamId: string | undefined): CSSProperties {
   } as CSSProperties;
 }
 
+export function teamIdFromDynastyId(dynastyId: string): string | null {
+  const [, teamId, startYear] = dynastyId.split(':');
+  if (!teamId || !startYear) return null;
+  return teamId;
+}
+
 interface PixelScreenHeaderProps {
   title: string;
   subtitle?: string;

@@ -21,7 +21,7 @@ vi.mock('@mfd/engine', () => ({
   },
 }));
 
-import { autoGrid, navigateTo, teamThemeVars } from './pixelUi';
+import { autoGrid, navigateTo, teamIdFromDynastyId, teamThemeVars } from './pixelUi';
 
 describe('pixelUi helpers', () => {
   afterEach(() => {
@@ -62,5 +62,13 @@ describe('pixelUi helpers', () => {
       '--mfd-team-secondary': 'var(--brand-secondary)',
       '--mfd-team-tertiary': 'var(--brand-tertiary)',
     });
+  });
+
+  it('extracts the team id from a canonical dynasty id', () => {
+    expect(teamIdFromDynastyId('123:team-1:2030')).toBe('team-1');
+  });
+
+  it('returns null when the dynasty id does not match the canonical format', () => {
+    expect(teamIdFromDynastyId('not-a-dynasty-id')).toBeNull();
   });
 });

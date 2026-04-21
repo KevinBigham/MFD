@@ -1,8 +1,9 @@
 import { useRef } from 'react';
 import { PixelButton, PixelModal } from '@mfd/design-system/components';
-import { useGameStore } from '../../app/store/game-store';
+import { selectUserTeam, useGameStore } from '../../app/store/game-store';
 import type { PlayoffLoreCard } from '../../lib/playoff-lore';
-import { monoSm } from '../shared/pixelUi';
+import { monoSm, teamThemeVars } from '../shared/pixelUi';
+import { createExportFrame } from '../season/export-frame';
 import { PlayoffLoreCardView } from './PlayoffLoreCard';
 
 export interface PlayoffLorePromptProps {
@@ -22,20 +23,43 @@ export function dismissPlayoffLorePrompt(
   onClose();
 }
 
-export async function exportPlayoffLoreAsPng(target: HTMLElement, card: PlayoffLoreCard): Promise<string> {
+function titleCase(value: string): string {
+  return value
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part[0] ? `${part[0].toUpperCase()}${part.slice(1)}` : part)
+    .join(' ');
+}
+
+export async function exportPlayoffLoreAsPng(
+  target: HTMLElement,
+  card: PlayoffLoreCard,
+  teamId?: string | null,
+): Promise<string> {
   const { exportRecapAsPng } = await import('../season/recap-share');
-  const dataUrl = await exportRecapAsPng(target);
-  if (typeof document !== 'undefined') {
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = `playoff-lore-${card.seasonYear}-${slugifyRound(card.round)}.png`;
-    link.click();
+  const { frame, cleanup } = createExportFrame(target, {
+    title: 'Playoff Lore',
+    subtitle: `${card.seasonYear} ${titleCase(card.round)}`,
+    footer: `${card.seasonYear} • ${titleCase(card.round)} • MFD`,
+    themeVars: teamThemeVars(teamId ?? undefined),
+  });
+  try {
+    const dataUrl = await exportRecapAsPng(frame);
+    if (typeof document !== 'undefined') {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `playoff-lore-${card.seasonYear}-${slugifyRound(card.round)}.png`;
+      link.click();
+    }
+    return dataUrl;
+  } finally {
+    cleanup();
   }
-  return dataUrl;
 }
 
 export function PlayoffLorePrompt({ open, onClose }: PlayoffLorePromptProps) {
   const card = useGameStore((state) => state.pendingPlayoffLoreReveal);
+  const userTeam = useGameStore(selectUserTeam);
   const clearReveal = useGameStore((state) => state.actions.clearPendingPlayoffLoreReveal);
   const exportRef = useRef<HTMLDivElement | null>(null);
 
@@ -44,7 +68,7 @@ export function PlayoffLorePrompt({ open, onClose }: PlayoffLorePromptProps) {
   const dismiss = () => dismissPlayoffLorePrompt(clearReveal, onClose);
   const exportCard = async () => {
     if (!exportRef.current) return;
-    await exportPlayoffLoreAsPng(exportRef.current, card);
+    await exportPlayoffLoreAsPng(exportRef.current, card, userTeam?.id);
   };
 
   return (

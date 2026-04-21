@@ -4,7 +4,8 @@ import { getTeamContent } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import type { StoredScrapbookEntry } from '../../lib/scrapbook-store';
 import { SeasonRecapCard } from '../season/SeasonRecapCard';
-import { autoGrid, display, monoSm } from '../shared/pixelUi';
+import { createExportFrame } from '../season/export-frame';
+import { autoGrid, display, monoSm, teamThemeVars } from '../shared/pixelUi';
 import { PlayoffLoreCardView } from '../playoffs/PlayoffLoreCard';
 
 function playoffLabel(playoffResult: StoredScrapbookEntry['recap']['playoffResult']): string {
@@ -57,14 +58,24 @@ export async function exportScrapbookEntryAsPng(
   entry: StoredScrapbookEntry,
 ): Promise<string> {
   const { exportRecapAsPng } = await import('../season/recap-share');
-  const dataUrl = await exportRecapAsPng(target);
-  if (typeof document !== 'undefined') {
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = `${entry.recap.teamAbbr}-${entry.year}-scrapbook.png`;
-    link.click();
+  const { frame, cleanup } = createExportFrame(target, {
+    title: `${entry.recap.teamAbbr} ${entry.year} Scrapbook`,
+    subtitle: entry.seasonHighlightLine,
+    footer: `${entry.recap.teamCity} ${entry.recap.teamName} • ${entry.year} • MFD`,
+    themeVars: teamThemeVars(entry.recap.teamId),
+  });
+  try {
+    const dataUrl = await exportRecapAsPng(frame);
+    if (typeof document !== 'undefined') {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `${entry.recap.teamAbbr}-${entry.year}-scrapbook.png`;
+      link.click();
+    }
+    return dataUrl;
+  } finally {
+    cleanup();
   }
-  return dataUrl;
 }
 
 export function ScrapbookEntryCard({
@@ -90,6 +101,7 @@ export function ScrapbookEntryCard({
     <section
       ref={exportNode ? undefined : cardRef}
       style={{
+        ...teamThemeVars(entry.recap.teamId),
         ...themeVars,
         display: 'flex',
         flexDirection: 'column',

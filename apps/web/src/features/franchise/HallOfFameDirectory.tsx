@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { HallOfFameEntry } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import { useGameStore } from '../../app/store/game-store';
@@ -19,10 +19,19 @@ import {
   teamThemeVars,
 } from '../shared/pixelUi';
 import { HallOfFamerDetailModal } from './HallOfFamerDetailModal';
+import { createExportFrame } from '../season/export-frame';
 
 type SortMode = 'induction' | 'peakOvr' | 'careerScore' | 'name';
 type FilterMode = 'all' | 'homegrown' | 'current';
 type GroupMode = 'flat' | 'era';
+
+interface HallOfFameDirectoryExportOptions {
+  sort: SortMode;
+  filter: FilterMode;
+  exportedAt?: Date;
+  entryCount?: number;
+  teamId?: string | null;
+}
 
 const SORT_MODES: Array<{ id: SortMode; label: string }> = [
   { id: 'induction', label: 'Induction ↓' },
@@ -95,6 +104,43 @@ function groupEntriesByEra(entries: HallOfFameEntry[]): Array<{
       decade,
       entries: groupedEntries,
     }));
+}
+
+function hallOfFameDirectoryExportDate(exportedAt: Date): string {
+  return exportedAt.toISOString().slice(0, 10).replace(/-/g, '');
+}
+
+function hallOfFameDirectoryFileName({ sort, filter, exportedAt = new Date() }: HallOfFameDirectoryExportOptions): string {
+  return `hall-of-fame-${sort}-${filter}-${hallOfFameDirectoryExportDate(exportedAt)}.png`;
+}
+
+export async function exportHallOfFameDirectoryAsPng(
+  target: HTMLElement,
+  options: HallOfFameDirectoryExportOptions,
+): Promise<{ dataUrl: string; fileName: string }> {
+  const { exportRecapAsPng } = await import('../season/recap-share');
+  const { frame, cleanup } = createExportFrame(target, {
+    title: 'Hall of Fame Directory',
+    subtitle: `Filtered export // ${options.entryCount ?? 0} inductees`,
+    footer: `${hallOfFameDirectoryExportDate(options.exportedAt ?? new Date())} • Hall of Fame • MFD`,
+    themeVars: teamThemeVars(options.teamId ?? undefined),
+  });
+  const fileName = hallOfFameDirectoryFileName(options);
+
+  try {
+    const dataUrl = await exportRecapAsPng(frame);
+
+    if (typeof document !== 'undefined') {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = fileName;
+      link.click();
+    }
+
+    return { dataUrl, fileName };
+  } finally {
+    cleanup();
+  }
 }
 
 interface HallOfFamerRowProps {
@@ -262,6 +308,7 @@ export function HallOfFameDirectory({
   initialGroupMode?: GroupMode;
 } = {}) {
   const game = useGameStore((state) => state.game);
+  const exportRef = useRef<HTMLDivElement | null>(null);
   const [sort, setSort] = useState<SortMode>('induction');
   const [filter, setFilter] = useState<FilterMode>('all');
   const [groupMode, setGroupMode] = useState<GroupMode>(initialGroupMode);
@@ -274,6 +321,7 @@ export function HallOfFameDirectory({
   const payload = readHallOfFameArchive();
   const summary = summarizeHallOfFameArchive(payload);
   const currentDynastyId = game ? deriveDynastyId(game) : null;
+  const currentUserTeamId = Object.values(game?.teams ?? {}).find((team) => team.isUser)?.id ?? null;
   const allDynasties = listDynastiesByStartYear(payload);
   const dynasties = filter === 'current' && currentDynastyId
     ? allDynasties.filter((dynasty) => dynasty.dynastyId === currentDynastyId)
@@ -285,13 +333,43 @@ export function HallOfFameDirectory({
     0,
   );
 
+  const handleExport = async () => {
+    if (!exportRef.current || visibleEntryCount === 0) return;
+    await exportHallOfFameDirectoryAsPng(exportRef.current, {
+      sort,
+      filter,
+      entryCount: visibleEntryCount,
+      teamId: currentUserTeamId,
+    });
+  };
+
   return (
     <div style={screenStackStyle}>
-      <PixelScreenHeader
-        title="Hall of Fame Directory"
-        subtitle="Every inductee across every dynasty you have ever coached."
-        badges={<PixelBadge variant="gold">CANTON</PixelBadge>}
-      />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '12px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ flex: '1 1 360px' }}>
+          <PixelScreenHeader
+            title="Hall of Fame Directory"
+            subtitle="Every inductee across every dynasty you have ever coached."
+            badges={<PixelBadge variant="gold">CANTON</PixelBadge>}
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+          <PixelButton accent="gold" onClick={() => { void handleExport(); }} disabled={visibleEntryCount === 0}>
+            Export Hall of Fame
+          </PixelButton>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+            Exports all {visibleEntryCount} inductees matching current filter.
+          </div>
+        </div>
+      </div>
 
       <div style={autoGrid(180)}>
         <PixelMetricCard label="Total HOFers" value={summary.totalInductees} accent="gold" detail="Across all dynasties" />
@@ -356,7 +434,7 @@ export function HallOfFameDirectory({
           </div>
         </PixelPanel>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div ref={exportRef} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {dynasties.map((dynasty) => (
             <DynastySection
               key={dynasty.dynastyId}
