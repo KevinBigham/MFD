@@ -1,7 +1,8 @@
 import { useRef } from 'react';
 import type { HallOfFameEntry } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelModal, PixelPanel } from '@mfd/design-system/components';
-import { PixelMetricCard, autoGrid, display, monoSm } from '../shared/pixelUi';
+import { PixelMetricCard, autoGrid, display, monoSm, teamThemeVars } from '../shared/pixelUi';
+import { createExportFrame } from '../season/export-frame';
 
 interface HallOfFamerDetailModalProps {
   entry: HallOfFameEntry | null;
@@ -22,14 +23,24 @@ function slugifyHallOfFamerName(name: string): string {
 
 async function exportHallOfFamerAsPng(target: HTMLElement, entry: HallOfFameEntry): Promise<string> {
   const { exportRecapAsPng } = await import('../season/recap-share');
-  const dataUrl = await exportRecapAsPng(target);
-  if (typeof document !== 'undefined') {
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = `hof-${slugifyHallOfFamerName(entry.name)}-${entry.inductionYear}.png`;
-    link.click();
+  const { frame, cleanup } = createExportFrame(target, {
+    title: entry.name,
+    subtitle: `${entry.inductionYear} Hall of Fame profile`,
+    footer: `${entry.inductionYear} • Hall of Fame • MFD`,
+    themeVars: teamThemeVars(entry.teams[0]),
+  });
+  try {
+    const dataUrl = await exportRecapAsPng(frame);
+    if (typeof document !== 'undefined') {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `hof-${slugifyHallOfFamerName(entry.name)}-${entry.inductionYear}.png`;
+      link.click();
+    }
+    return dataUrl;
+  } finally {
+    cleanup();
   }
-  return dataUrl;
 }
 
 export function HallOfFamerDetailModal({

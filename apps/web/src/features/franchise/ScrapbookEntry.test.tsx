@@ -1,9 +1,19 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { StoredScrapbookEntry } from '../../lib/scrapbook-store';
 
 const { exportRecapAsPngMock } = vi.hoisted(() => ({
   exportRecapAsPngMock: vi.fn(async () => 'data:image/png;base64,stub'),
+}));
+
+const {
+  createExportFrameMock,
+  exportCleanupMock,
+  framedNode,
+} = vi.hoisted(() => ({
+  createExportFrameMock: vi.fn(),
+  exportCleanupMock: vi.fn(),
+  framedNode: {} as HTMLElement,
 }));
 
 const { teamThemeVarsMock } = vi.hoisted(() => ({
@@ -56,6 +66,10 @@ vi.mock('../season/SeasonRecapCard', () => ({
 
 vi.mock('../season/recap-share', () => ({
   exportRecapAsPng: exportRecapAsPngMock,
+}));
+
+vi.mock('../season/export-frame', () => ({
+  createExportFrame: createExportFrameMock,
 }));
 
 function makeEntry(overrides: Partial<StoredScrapbookEntry> = {}): StoredScrapbookEntry {
@@ -127,6 +141,15 @@ function makeEntry(overrides: Partial<StoredScrapbookEntry> = {}): StoredScrapbo
 import { ScrapbookEntryCard, exportScrapbookEntryAsPng } from './ScrapbookEntry';
 
 describe('ScrapbookEntryCard', () => {
+  beforeEach(() => {
+    createExportFrameMock.mockReset();
+    exportCleanupMock.mockReset();
+    createExportFrameMock.mockReturnValue({
+      frame: framedNode,
+      cleanup: exportCleanupMock,
+    });
+  });
+
   it('renders year, record, playoff result, and era tag in compact mode', () => {
     const markup = renderToStaticMarkup(<ScrapbookEntryCard entry={makeEntry()} />);
 
@@ -244,7 +267,9 @@ describe('ScrapbookEntryCard', () => {
     expect(markup).toContain('Export as PNG');
     await exportScrapbookEntryAsPng(exportNode, makeEntry());
 
-    expect(exportRecapAsPngMock).toHaveBeenCalledWith(exportNode);
+    expect(createExportFrameMock).toHaveBeenCalled();
+    expect(exportRecapAsPngMock).toHaveBeenCalledWith(framedNode);
+    expect(exportCleanupMock).toHaveBeenCalledTimes(1);
   });
 
   it('renders without emoji characters', () => {

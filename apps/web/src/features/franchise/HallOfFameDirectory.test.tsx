@@ -6,6 +6,16 @@ const { exportRecapAsPngMock } = vi.hoisted(() => ({
   exportRecapAsPngMock: vi.fn(async () => 'data:image/png;base64,hof-directory'),
 }));
 
+const {
+  createExportFrameMock,
+  exportCleanupMock,
+  framedNode,
+} = vi.hoisted(() => ({
+  createExportFrameMock: vi.fn(),
+  exportCleanupMock: vi.fn(),
+  framedNode: {} as HTMLElement,
+}));
+
 class MemoryStorage implements Storage {
   private readonly backing = new Map<string, string>();
   get length() { return this.backing.size; }
@@ -43,6 +53,10 @@ vi.mock('../../app/store/game-store', () => ({
 
 vi.mock('../season/recap-share', () => ({
   exportRecapAsPng: exportRecapAsPngMock,
+}));
+
+vi.mock('../season/export-frame', () => ({
+  createExportFrame: createExportFrameMock,
 }));
 
 vi.mock('@mfd/design-system/components', () => ({
@@ -118,6 +132,12 @@ function makeDynasty(overrides: Partial<HallOfFameArchiveDynasty> = {}): HallOfF
 describe('HallOfFameDirectory', () => {
   beforeEach(() => {
     vi.stubGlobal('localStorage', new MemoryStorage());
+    createExportFrameMock.mockReset();
+    exportCleanupMock.mockReset();
+    createExportFrameMock.mockReturnValue({
+      frame: framedNode,
+      cleanup: exportCleanupMock,
+    });
   });
 
   afterEach(() => {
@@ -342,7 +362,9 @@ describe('HallOfFameDirectory', () => {
       exportedAt: new Date('2026-04-21T12:00:00.000Z'),
     });
 
-    expect(exportRecapAsPngMock).toHaveBeenCalledWith(target);
+    expect(createExportFrameMock).toHaveBeenCalled();
+    expect(exportRecapAsPngMock).toHaveBeenCalledWith(framedNode);
+    expect(exportCleanupMock).toHaveBeenCalledTimes(1);
     expect(result.fileName).toBe('hall-of-fame-induction-all-20260421.png');
   });
 });

@@ -19,6 +19,7 @@ import {
   teamThemeVars,
 } from '../shared/pixelUi';
 import { HallOfFamerDetailModal } from './HallOfFamerDetailModal';
+import { createExportFrame } from '../season/export-frame';
 
 type SortMode = 'induction' | 'peakOvr' | 'careerScore' | 'name';
 type FilterMode = 'all' | 'homegrown' | 'current';
@@ -28,6 +29,8 @@ interface HallOfFameDirectoryExportOptions {
   sort: SortMode;
   filter: FilterMode;
   exportedAt?: Date;
+  entryCount?: number;
+  teamId?: string | null;
 }
 
 const SORT_MODES: Array<{ id: SortMode; label: string }> = [
@@ -116,17 +119,28 @@ export async function exportHallOfFameDirectoryAsPng(
   options: HallOfFameDirectoryExportOptions,
 ): Promise<{ dataUrl: string; fileName: string }> {
   const { exportRecapAsPng } = await import('../season/recap-share');
-  const dataUrl = await exportRecapAsPng(target);
+  const { frame, cleanup } = createExportFrame(target, {
+    title: 'Hall of Fame Directory',
+    subtitle: `Filtered export // ${options.entryCount ?? 0} inductees`,
+    footer: `${hallOfFameDirectoryExportDate(options.exportedAt ?? new Date())} • Hall of Fame • MFD`,
+    themeVars: teamThemeVars(options.teamId ?? undefined),
+  });
   const fileName = hallOfFameDirectoryFileName(options);
 
-  if (typeof document !== 'undefined') {
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = fileName;
-    link.click();
-  }
+  try {
+    const dataUrl = await exportRecapAsPng(frame);
 
-  return { dataUrl, fileName };
+    if (typeof document !== 'undefined') {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = fileName;
+      link.click();
+    }
+
+    return { dataUrl, fileName };
+  } finally {
+    cleanup();
+  }
 }
 
 interface HallOfFamerRowProps {
@@ -307,6 +321,7 @@ export function HallOfFameDirectory({
   const payload = readHallOfFameArchive();
   const summary = summarizeHallOfFameArchive(payload);
   const currentDynastyId = game ? deriveDynastyId(game) : null;
+  const currentUserTeamId = Object.values(game?.teams ?? {}).find((team) => team.isUser)?.id ?? null;
   const allDynasties = listDynastiesByStartYear(payload);
   const dynasties = filter === 'current' && currentDynastyId
     ? allDynasties.filter((dynasty) => dynasty.dynastyId === currentDynastyId)
@@ -320,7 +335,12 @@ export function HallOfFameDirectory({
 
   const handleExport = async () => {
     if (!exportRef.current || visibleEntryCount === 0) return;
-    await exportHallOfFameDirectoryAsPng(exportRef.current, { sort, filter });
+    await exportHallOfFameDirectoryAsPng(exportRef.current, {
+      sort,
+      filter,
+      entryCount: visibleEntryCount,
+      teamId: currentUserTeamId,
+    });
   };
 
   return (

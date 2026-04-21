@@ -59,7 +59,6 @@ export async function exportRecapAsPng(node: HTMLElement): Promise<string> {
   return toPng(node, {
     cacheBust: true,
     pixelRatio: 2,
-    backgroundColor: '#000000',
   });
 }
 

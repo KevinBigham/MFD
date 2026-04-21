@@ -1,9 +1,19 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { PlayoffLoreCard } from '../../lib/playoff-lore';
 
 const { exportRecapAsPngMock } = vi.hoisted(() => ({
   exportRecapAsPngMock: vi.fn(async () => 'data:image/png;base64,stub'),
+}));
+
+const {
+  createExportFrameMock,
+  exportCleanupMock,
+  framedNode,
+} = vi.hoisted(() => ({
+  createExportFrameMock: vi.fn(),
+  exportCleanupMock: vi.fn(),
+  framedNode: {} as HTMLElement,
 }));
 
 const baseCard: PlayoffLoreCard = {
@@ -26,6 +36,7 @@ const baseCard: PlayoffLoreCard = {
 };
 
 const mockStore = {
+  team: { id: 'team-1' as string | null },
   pendingPlayoffLoreReveal: baseCard as PlayoffLoreCard | null,
   actions: {
     clearPendingPlayoffLoreReveal: vi.fn(),
@@ -34,6 +45,7 @@ const mockStore = {
 
 vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: typeof mockStore) => unknown) => selector(mockStore),
+  selectUserTeam: (state: typeof mockStore) => state.team,
 }));
 
 vi.mock('@mfd/design-system/components', () => ({
@@ -57,6 +69,10 @@ vi.mock('../season/recap-share', () => ({
   exportRecapAsPng: exportRecapAsPngMock,
 }));
 
+vi.mock('../season/export-frame', () => ({
+  createExportFrame: createExportFrameMock,
+}));
+
 import {
   dismissPlayoffLorePrompt,
   exportPlayoffLoreAsPng,
@@ -64,6 +80,15 @@ import {
 } from './PlayoffLorePrompt';
 
 describe('PlayoffLorePrompt', () => {
+  beforeEach(() => {
+    createExportFrameMock.mockReset();
+    exportCleanupMock.mockReset();
+    createExportFrameMock.mockReturnValue({
+      frame: framedNode,
+      cleanup: exportCleanupMock,
+    });
+  });
+
   it('renders the scoreboard-led playoff lore modal when a reveal card exists', () => {
     const markup = renderToStaticMarkup(<PlayoffLorePrompt open onClose={() => undefined} />);
 
@@ -105,6 +130,8 @@ describe('PlayoffLorePrompt', () => {
     expect(markup).not.toMatch(/\p{Extended_Pictographic}/u);
     await exportPlayoffLoreAsPng(target, mockStore.pendingPlayoffLoreReveal!);
 
-    expect(exportRecapAsPngMock).toHaveBeenCalledWith(target);
+    expect(createExportFrameMock).toHaveBeenCalled();
+    expect(exportRecapAsPngMock).toHaveBeenCalledWith(framedNode);
+    expect(exportCleanupMock).toHaveBeenCalledTimes(1);
   });
 });
