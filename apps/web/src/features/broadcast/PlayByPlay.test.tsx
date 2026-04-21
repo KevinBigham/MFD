@@ -79,6 +79,30 @@ describe('PlayByPlayView', () => {
     expect(markup).toContain('quarter break');
   });
 
+  it('renders Hall of Fame voices in their own panel with HOF badge', () => {
+    const broadcast: BroadcastOutput = {
+      ...mockBroadcast,
+      ghostLines: [
+        { commentatorName: 'Jet Stream', commentary: 'I scored a touchdown just like that back in \'2031.', trigger: 'touchdown', source: 'hof' },
+        { commentatorName: 'Booth Alert', commentary: 'They hit the panic button and never looked back.', trigger: 'quarter_break', source: 'callout' },
+      ],
+    };
+    const markup = renderToStaticMarkup(<PlayByPlayView broadcast={broadcast} />);
+
+    expect(markup).toContain('HALL OF FAME VOICES');
+    expect(markup).toContain('JET STREAM');
+    expect(markup).toContain('HOF');
+    expect(markup).toContain('I scored a touchdown just like that back in &#x27;2031.');
+    expect(markup).toContain('BOOTH ALERTS');
+    expect(markup).toContain('They hit the panic button and never looked back.');
+  });
+
+  it('omits Hall of Fame Voices panel when no HOF lines are present', () => {
+    const markup = renderToStaticMarkup(<PlayByPlayView broadcast={mockBroadcast} />);
+
+    expect(markup).not.toContain('HALL OF FAME VOICES');
+  });
+
   it('renders authored broadcast texture when commentary lines are provided', () => {
     const markup = renderToStaticMarkup(
       <PlayByPlayView
