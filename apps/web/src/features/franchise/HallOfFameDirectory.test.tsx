@@ -274,4 +274,39 @@ describe('HallOfFameDirectory', () => {
     expect(markup).toMatch(/2040s[\s\S]*?2 HOFers/);
     expect(markup).toMatch(/2030s[\s\S]*?1 HOFer/);
   });
+
+  it('renders the PANTHEON badge exactly once per non-empty dynasty', () => {
+    upsertHallOfFameDynasty(makeDynasty({
+      dynastyId: 'd1',
+      teamId: 'team-1',
+      entries: [
+        makeEntry({ playerId: 'top-1', name: 'Top One', score: 150 }),
+        makeEntry({ playerId: 'other-1', name: 'Other One', score: 120 }),
+      ],
+    }));
+    upsertHallOfFameDynasty(makeDynasty({
+      dynastyId: 'd2',
+      teamId: 'team-2',
+      teamAbbr: 'HOU',
+      teamCity: 'Houston',
+      teamName: 'Orbit',
+      entries: [
+        makeEntry({ playerId: 'top-2', name: 'Top Two', score: 160, teams: ['team-2'] }),
+        makeEntry({ playerId: 'other-2', name: 'Other Two', score: 110, teams: ['GB', 'team-2'] }),
+      ],
+    }));
+
+    const markup = renderToStaticMarkup(<HallOfFameDirectory />);
+    const pantheonCount = markup.match(/PANTHEON/g)?.length ?? 0;
+
+    expect(pantheonCount).toBe(2);
+  });
+
+  it('does not render a PANTHEON badge when the archive contains only empty dynasties', () => {
+    upsertHallOfFameDynasty(makeDynasty({ dynastyId: 'empty', entries: [] }));
+
+    const markup = renderToStaticMarkup(<HallOfFameDirectory />);
+
+    expect(markup).not.toContain('PANTHEON');
+  });
 });

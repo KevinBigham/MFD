@@ -8,6 +8,7 @@ import {
   listDynastiesByStartYear,
   readHallOfFameArchive,
   summarizeHallOfFameArchive,
+  topHallOfFamerByScore,
   type HallOfFameArchiveDynasty,
 } from '../../lib/hall-of-fame-archive';
 import {
@@ -108,16 +109,21 @@ function groupEntriesByEra(entries: HallOfFameEntry[]): Array<{
 interface HallOfFamerRowProps {
   entry: HallOfFameEntry;
   dynastyTeamId: string;
-  onSelect: (entry: HallOfFameEntry, dynastyTeamId: string) => void;
+  isPantheon?: boolean;
+  onSelect: (selection: {
+    entry: HallOfFameEntry;
+    dynastyTeamId: string;
+    isPantheon: boolean;
+  }) => void;
 }
 
-function HallOfFamerRow({ entry, dynastyTeamId, onSelect }: HallOfFamerRowProps) {
+function HallOfFamerRow({ entry, dynastyTeamId, isPantheon = false, onSelect }: HallOfFamerRowProps) {
   const isHomegrown = entry.teams[0] === dynastyTeamId;
   return (
     <button
       type="button"
       aria-label={`View Hall of Famer ${entry.name}`}
-      onClick={() => onSelect(entry, dynastyTeamId)}
+      onClick={() => onSelect({ entry, dynastyTeamId, isPantheon })}
       style={{
         appearance: 'none',
         width: '100%',
@@ -147,6 +153,7 @@ function HallOfFamerRow({ entry, dynastyTeamId, onSelect }: HallOfFamerRowProps)
             <span style={{ ...monoSm, color: '#fff', fontWeight: 700 }}>{entry.name}</span>
             <PixelBadge variant="default">{entry.position}</PixelBadge>
             <PixelBadge variant="gold">{entry.inductionYear}</PixelBadge>
+            {isPantheon ? <PixelBadge variant="gold">PANTHEON</PixelBadge> : null}
             {isHomegrown ? <PixelBadge variant="cyan">HOMEGROWN</PixelBadge> : null}
           </div>
           <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
@@ -173,7 +180,11 @@ interface DynastySectionProps {
   filter: FilterMode;
   groupMode: GroupMode;
   isCurrent: boolean;
-  onSelect: (entry: HallOfFameEntry, dynastyTeamId: string) => void;
+  onSelect: (selection: {
+    entry: HallOfFameEntry;
+    dynastyTeamId: string;
+    isPantheon: boolean;
+  }) => void;
 }
 
 function DynastySection({ dynasty, sort, filter, groupMode, isCurrent, onSelect }: DynastySectionProps) {
@@ -182,6 +193,7 @@ function DynastySection({ dynasty, sort, filter, groupMode, isCurrent, onSelect 
     [dynasty.entries, dynasty.teamId, filter, sort],
   );
   const eraGroups = useMemo(() => groupEntriesByEra(entries), [entries]);
+  const topEntry = useMemo(() => topHallOfFamerByScore(dynasty), [dynasty]);
 
   if (entries.length === 0) return null;
 
@@ -226,6 +238,7 @@ function DynastySection({ dynasty, sort, filter, groupMode, isCurrent, onSelect 
                         key={`${dynasty.dynastyId}-${entry.playerId}-${entry.inductionYear}`}
                         entry={entry}
                         dynastyTeamId={dynasty.teamId}
+                        isPantheon={entry.playerId === topEntry?.playerId}
                         onSelect={onSelect}
                       />
                     ))}
@@ -240,6 +253,7 @@ function DynastySection({ dynasty, sort, filter, groupMode, isCurrent, onSelect 
                   key={`${dynasty.dynastyId}-${entry.playerId}-${entry.inductionYear}`}
                   entry={entry}
                   dynastyTeamId={dynasty.teamId}
+                  isPantheon={entry.playerId === topEntry?.playerId}
                   onSelect={onSelect}
                 />
               ))}
@@ -263,6 +277,7 @@ export function HallOfFameDirectory({
   const [selectedEntry, setSelectedEntry] = useState<{
     entry: HallOfFameEntry;
     dynastyTeamId: string;
+    isPantheon: boolean;
   } | null>(null);
 
   const payload = readHallOfFameArchive();
@@ -359,7 +374,7 @@ export function HallOfFameDirectory({
               filter={filter}
               groupMode={groupMode}
               isCurrent={dynasty.dynastyId === currentDynastyId}
-              onSelect={(entry, dynastyTeamId) => setSelectedEntry({ entry, dynastyTeamId })}
+              onSelect={(selection) => setSelectedEntry(selection)}
             />
           ))}
         </div>
@@ -371,6 +386,7 @@ export function HallOfFameDirectory({
         onClose={() => setSelectedEntry(null)}
         teams={game?.teams ?? {}}
         dynastyTeamId={selectedEntry?.dynastyTeamId ?? null}
+        isPantheon={selectedEntry?.isPantheon ?? false}
       />
     </div>
   );
