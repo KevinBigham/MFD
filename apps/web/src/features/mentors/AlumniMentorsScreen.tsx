@@ -36,8 +36,8 @@ export function AlumniMentorsScreen() {
   const hireMentor = useGameStore((s) => s.actions.hireMentor);
   const fireMentor = useGameStore((s) => s.actions.fireMentor);
 
-  const activeMentors: AlumniMentor[] = (game as unknown as Record<string, unknown>)?.activeMentors as AlumniMentor[] ?? [];
-  const mentorBudget: number = ((game as unknown as Record<string, unknown>)?.mentorBudget as number) ?? 2.5;
+  const activeMentors: AlumniMentor[] = game?.activeMentors ?? [];
+  const mentorBudget: number = game?.mentorBudget ?? 2.5;
 
   const availableMentors = useMemo(() => {
     if (!game) return [];

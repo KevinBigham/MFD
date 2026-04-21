@@ -64,7 +64,7 @@ export function generateDevelopmentReport(
   const coachBonus = getPositionCoachBonus(team?.positionCoaches, player);
 
   // Get rating deltas from most recent snapshot
-  const snapshots = (player as unknown as Record<string, unknown>)['devSnapshots'] as DevelopmentSnapshot[] | undefined;
+  const snapshots = player.devSnapshots;
   const latest = snapshots?.[snapshots.length - 1];
   const topGrowthRatings = latest
     ? Object.entries(latest.ratingDeltas)
@@ -174,7 +174,7 @@ export function identifyBreakoutCandidates(
 // ── Development History ───────────────────────────────
 
 export function getDevelopmentHistory(player: Player): DevelopmentSnapshot[] {
-  return ((player as unknown as Record<string, unknown>)['devSnapshots'] as DevelopmentSnapshot[] | undefined) ?? [];
+  return player.devSnapshots ?? [];
 }
 
 // ── Development Comparison ────────────────────────────

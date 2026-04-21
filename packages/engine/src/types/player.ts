@@ -92,6 +92,13 @@ export interface Player {
   holdout: boolean;
   agentId: string | null;
   bloodline?: BloodlineInfo | null;
+  /**
+   * Optional per-year rating-delta history. Not persisted by `PlayerSchema` —
+   * populated in-memory only when a consumer calls `createDevelopmentSnapshot`
+   * and attaches the result. Declared here so the dev-insights accessors can
+   * read it without `as unknown as Record<string, unknown>` casts.
+   */
+  devSnapshots?: import('../systems/development-insights').DevelopmentSnapshot[];
   stats: PlayerSeasonStats;
 }
 
