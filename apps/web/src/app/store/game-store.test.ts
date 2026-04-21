@@ -11,6 +11,10 @@ import {
   readPendingPlayoffLoreCards,
   readScrapbookForDynasty,
 } from '../../lib/scrapbook-store';
+import {
+  readDynastyStarters,
+  upsertDynastyStarters,
+} from '../../lib/roster-continuity-store';
 
 vi.mock('./persistence', () => ({
   autosaveDynasty: vi.fn().mockResolvedValue(1),
@@ -288,6 +292,22 @@ describe('game store offseason actions', () => {
 
     expect(readScrapbookForDynasty(dynastyId)).toEqual([]);
     expect(readScrapbookForDynasty('other-dynasty')).toHaveLength(1);
+  });
+
+  it('clears only the new dynasty continuity snapshot when starting a new game', async () => {
+    const game = createSeedGameState(42, 0, 'pro');
+    const dynastyId = deriveDynastyId(game);
+
+    upsertDynastyStarters(dynastyId, 2026, ['qb-1', 'rb-1']);
+    upsertDynastyStarters('other-dynasty', 2025, ['qb-9']);
+
+    await useGameStore.getState().actions.newGame(game);
+
+    expect(readDynastyStarters(dynastyId)).toBeNull();
+    expect(readDynastyStarters('other-dynasty')).toEqual({
+      lastSyncedYear: 2025,
+      starterIds: ['qb-9'],
+    });
   });
 
   it('runs a private workout and spends one scouting workout slot', async () => {

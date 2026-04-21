@@ -187,6 +187,7 @@ import {
   stagePendingPlayoffLoreCard,
 } from '../../lib/scrapbook-store';
 import { clearHallOfFameForDynasty } from '../../lib/hall-of-fame-archive';
+import { clearRosterContinuityForDynasty } from '../../lib/roster-continuity-store';
 import { buildPlayoffLoreCard, type PlayoffLoreCard } from '../../lib/playoff-lore';
 import {
   selectCapCandidates,
@@ -833,6 +834,7 @@ export const useGameStore = create<GameStore>()(
         finalizeCurrentDynasty(get().game);
         clearScrapbookForDynasty(deriveDynastyId(initial));
         clearHallOfFameForDynasty(deriveDynastyId(initial));
+        clearRosterContinuityForDynasty(deriveDynastyId(initial));
         syncCareerMeta(initial);
         set((s) => {
           s.game = initial;
