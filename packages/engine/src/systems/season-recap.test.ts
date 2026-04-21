@@ -235,4 +235,58 @@ describe('buildSeasonRecap', () => {
 
     expect(left).toEqual(right);
   });
+
+  // ── Defensive regressions for scrapbook integration ─────
+  // Sprint-56 "The Scrapbook" persists SeasonRecap objects as-is under the
+  // key `${seed}:${teamId}:${seasonYear}`. These tests pin down the
+  // invariants the scrapbook store depends on: unknown teams are skipped,
+  // missing awards history doesn't crash, different teams produce distinct
+  // but still-valid recaps, and the full payload survives JSON round-trip
+  // (otherwise reading from localStorage would yield a drifted value).
+
+  it('returns null for an unknown team id', () => {
+    const game = makeLeagueState('offseason', 1);
+    game.year = 2027;
+    seedCompletedSeason(game, 2026);
+
+    expect(buildSeasonRecap(game, 'not-a-real-team')).toBeNull();
+  });
+
+  it('handles an empty awards history for the recap year without throwing', () => {
+    const game = makeLeagueState('offseason', 1);
+    game.year = 2027;
+    const { team } = seedCompletedSeason(game, 2026);
+    game.awardsHistory = [];
+
+    const recap = buildSeasonRecap(game, team.id);
+
+    expect(recap).not.toBeNull();
+    expect(recap?.teamAwards).toEqual([]);
+  });
+
+  it('builds distinct but equally-valid recaps for two teams from the same game state', () => {
+    const game = makeLeagueState('offseason', 1);
+    game.year = 2027;
+    seedCompletedSeason(game, 2026);
+
+    const contender = buildSeasonRecap(game, 'afce1');
+    const champion = buildSeasonRecap(game, 'afcn1');
+
+    expect(contender).not.toBeNull();
+    expect(champion).not.toBeNull();
+    expect(contender?.teamId).toBe('afce1');
+    expect(champion?.teamId).toBe('afcn1');
+    expect(contender?.playoffResult).not.toBe(champion?.playoffResult);
+  });
+
+  it('survives JSON round-trip unchanged (safe for localStorage persistence)', () => {
+    const game = makeLeagueState('offseason', 1);
+    game.year = 2027;
+    seedCompletedSeason(game, 2026);
+
+    const original = buildSeasonRecap(game, 'afce1');
+    const roundTripped = JSON.parse(JSON.stringify(original));
+
+    expect(roundTripped).toEqual(original);
+  });
 });

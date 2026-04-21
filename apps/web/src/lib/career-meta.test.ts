@@ -306,4 +306,241 @@ describe('career-meta', () => {
 
     expect(readCareerMeta().dynasties[0]?.dynastyId).toBe(deriveDynastyId(loaded));
   });
+
+  // ── Defensive regressions ───────────────────────────────
+  // Sprint-56 "The Scrapbook" compounds on these invariants: the scrapbook
+  // groups entries by the same dynastyId produced here and trusts writes to
+  // dedupe, so any regression in dedup or storage-fallback behavior would
+  // surface as duplicate or lost entries in the scrapbook timeline.
+
+  it('appendDynastySummary replaces an existing entry with the same dynastyId (no duplicates)', () => {
+    const base = {
+      dynastyId: '1:team:2026',
+      teamId: 'team',
+      teamCity: 'Chicago',
+      teamName: 'Blaze',
+      teamAbbr: 'CHI',
+      startYear: 2026,
+      endYear: null,
+      seasonsCoached: 1,
+      wins: 10,
+      losses: 7,
+      ties: 0,
+      championships: 0,
+      playoffAppearances: 0,
+      breakoutsDeveloped: 0,
+    } as const;
+
+    appendDynastySummary(base);
+    appendDynastySummary({
+      ...base,
+      seasonsCoached: 2,
+      wins: 23,
+      losses: 11,
+      championships: 1,
+      playoffAppearances: 2,
+      breakoutsDeveloped: 1,
+    });
+
+    const meta = readCareerMeta();
+    expect(meta.dynasties).toHaveLength(1);
+    expect(meta.dynasties[0]).toMatchObject({
+      dynastyId: '1:team:2026',
+      seasonsCoached: 2,
+      wins: 23,
+      championships: 1,
+    });
+    expect(meta.careerTotals.dynasties).toBe(1);
+    expect(meta.careerTotals.wins).toBe(23);
+  });
+
+  it('finalizeDynasty with an unknown dynastyId is a no-op (all entries unchanged)', () => {
+    appendDynastySummary({
+      dynastyId: '1:team:2026',
+      teamId: 'team',
+      teamCity: 'Chicago',
+      teamName: 'Blaze',
+      teamAbbr: 'CHI',
+      startYear: 2026,
+      endYear: null,
+      seasonsCoached: 2,
+      wins: 23,
+      losses: 11,
+      ties: 0,
+      championships: 1,
+      playoffAppearances: 2,
+      breakoutsDeveloped: 1,
+    });
+
+    finalizeDynasty('does-not-exist', 2099);
+
+    expect(readCareerMeta().dynasties).toHaveLength(1);
+    expect(readCareerMeta().dynasties[0]?.endYear).toBeNull();
+  });
+
+  it('readCareerMeta falls back to defaults on non-JSON payloads', () => {
+    localStorage.setItem('mfd.careerMeta.v1', 'not-even-json{{{');
+
+    const meta = readCareerMeta();
+    expect(meta.dynasties).toEqual([]);
+    expect(meta.careerTotals.dynasties).toBe(0);
+  });
+
+  it('readCareerMeta recomputes career totals from dynasties (ignores stale persisted totals)', () => {
+    localStorage.setItem('mfd.careerMeta.v1', JSON.stringify({
+      schemaVersion: 1,
+      dynasties: [
+        {
+          dynastyId: '1:team:2026',
+          teamId: 'team',
+          teamCity: 'Chicago',
+          teamName: 'Blaze',
+          teamAbbr: 'CHI',
+          startYear: 2026,
+          endYear: null,
+          seasonsCoached: 2,
+          wins: 23,
+          losses: 11,
+          ties: 0,
+          championships: 1,
+          playoffAppearances: 2,
+          breakoutsDeveloped: 1,
+        },
+      ],
+      careerTotals: {
+        dynasties: 99,
+        seasonsCoached: 99,
+        wins: 99,
+        losses: 99,
+        ties: 99,
+        championships: 99,
+        playoffAppearances: 99,
+        breakoutsDeveloped: 99,
+      },
+    }));
+
+    const meta = readCareerMeta();
+    expect(meta.careerTotals).toEqual({
+      dynasties: 1,
+      seasonsCoached: 2,
+      wins: 23,
+      losses: 11,
+      ties: 0,
+      championships: 1,
+      playoffAppearances: 2,
+      breakoutsDeveloped: 1,
+    });
+  });
+
+  it('writeCareerMeta + readCareerMeta survive a multi-dynasty round-trip with accurate totals', () => {
+    const blaze = {
+      dynastyId: '1:blaze:2026',
+      teamId: 'blaze',
+      teamCity: 'Chicago',
+      teamName: 'Blaze',
+      teamAbbr: 'CHI',
+      startYear: 2026,
+      endYear: 2028,
+      seasonsCoached: 3,
+      wins: 30,
+      losses: 21,
+      ties: 0,
+      championships: 1,
+      playoffAppearances: 3,
+      breakoutsDeveloped: 4,
+    };
+    const peaches = {
+      dynastyId: '2:peaches:2029',
+      teamId: 'peaches',
+      teamCity: 'Atlanta',
+      teamName: 'Peaches',
+      teamAbbr: 'ATL',
+      startYear: 2029,
+      endYear: null,
+      seasonsCoached: 2,
+      wins: 17,
+      losses: 17,
+      ties: 0,
+      championships: 0,
+      playoffAppearances: 1,
+      breakoutsDeveloped: 2,
+    };
+
+    writeCareerMeta({
+      schemaVersion: 1,
+      dynasties: [blaze, peaches],
+      careerTotals: {
+        dynasties: 0,
+        seasonsCoached: 0,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        championships: 0,
+        playoffAppearances: 0,
+        breakoutsDeveloped: 0,
+      },
+    });
+
+    const meta = readCareerMeta();
+    expect(meta.dynasties).toHaveLength(2);
+    expect(meta.careerTotals).toEqual({
+      dynasties: 2,
+      seasonsCoached: 5,
+      wins: 47,
+      losses: 38,
+      ties: 0,
+      championships: 1,
+      playoffAppearances: 4,
+      breakoutsDeveloped: 6,
+    });
+  });
+
+  it('buildDynastySummary returns null when no user team is present', () => {
+    const game = createSeedGameState(10);
+    for (const team of Object.values(game.teams)) {
+      (team as { isUser: boolean }).isUser = false;
+    }
+
+    expect(buildDynastySummary(game)).toBeNull();
+  });
+
+  it('readCareerMeta rejects payloads with negative counters', () => {
+    localStorage.setItem('mfd.careerMeta.v1', JSON.stringify({
+      schemaVersion: 1,
+      dynasties: [
+        {
+          dynastyId: '1:team:2026',
+          teamId: 'team',
+          teamCity: 'Chicago',
+          teamName: 'Blaze',
+          teamAbbr: 'CHI',
+          startYear: 2026,
+          endYear: null,
+          seasonsCoached: -1,
+          wins: 0,
+          losses: 0,
+          ties: 0,
+          championships: 0,
+          playoffAppearances: 0,
+          breakoutsDeveloped: 0,
+        },
+      ],
+      careerTotals: defaultTotalsForTest(),
+    }));
+
+    expect(readCareerMeta().dynasties).toEqual([]);
+  });
 });
+
+function defaultTotalsForTest() {
+  return {
+    dynasties: 0,
+    seasonsCoached: 0,
+    wins: 0,
+    losses: 0,
+    ties: 0,
+    championships: 0,
+    playoffAppearances: 0,
+    breakoutsDeveloped: 0,
+  };
+}
