@@ -67,6 +67,7 @@ import { ConfirmDialog } from '../features/shared/ConfirmDialog';
 import { syncScrapbookAtYearRollover } from './scrapbook-rollover';
 import { syncHallOfFameArchiveAtYearRollover } from './hall-of-fame-rollover';
 import { syncRosterContinuityAtYearRollover } from './roster-continuity-rollover';
+import { syncRookieOfYearAtYearRollover } from './rookie-of-year-rollover';
 import { PlayoffLorePrompt } from '../features/playoffs/PlayoffLorePrompt';
 
 const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
@@ -407,6 +408,7 @@ function RootLayout() {
 
     syncHallOfFameArchiveAtYearRollover(prevYear.current, game, userTeam?.id ?? null);
     syncRosterContinuityAtYearRollover(prevYear.current, game, userTeam?.id ?? null);
+    syncRookieOfYearAtYearRollover(prevYear.current, game, userTeam?.id ?? null);
 
     if (shouldShowSaveReminder(currentYear, game.lastPortableExportYear ?? null)) {
       setShowSaveReminder(true);

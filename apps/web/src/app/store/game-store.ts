@@ -188,6 +188,7 @@ import {
 } from '../../lib/scrapbook-store';
 import { clearHallOfFameForDynasty } from '../../lib/hall-of-fame-archive';
 import { clearRosterContinuityForDynasty } from '../../lib/roster-continuity-store';
+import { clearRookieOfYearForDynasty } from '../../lib/rookie-of-year-store';
 import { buildPlayoffLoreCard, type PlayoffLoreCard } from '../../lib/playoff-lore';
 import {
   selectCapCandidates,
@@ -835,6 +836,7 @@ export const useGameStore = create<GameStore>()(
         clearScrapbookForDynasty(deriveDynastyId(initial));
         clearHallOfFameForDynasty(deriveDynastyId(initial));
         clearRosterContinuityForDynasty(deriveDynastyId(initial));
+        clearRookieOfYearForDynasty(deriveDynastyId(initial));
         syncCareerMeta(initial);
         set((s) => {
           s.game = initial;

@@ -15,6 +15,10 @@ import {
   readDynastyStarters,
   upsertDynastyStarters,
 } from '../../lib/roster-continuity-store';
+import {
+  readRookieOfYearEntries,
+  upsertRookieOfYearEntry,
+} from '../../lib/rookie-of-year-store';
 
 vi.mock('./persistence', () => ({
   autosaveDynasty: vi.fn().mockResolvedValue(1),
@@ -308,6 +312,39 @@ describe('game store offseason actions', () => {
       lastSyncedYear: 2025,
       starterIds: ['qb-9'],
     });
+  });
+
+  it('clears only the new dynasty rookie award archive when starting a new game', async () => {
+    const game = createSeedGameState(43, 0, 'pro');
+    const dynastyId = deriveDynastyId(game);
+
+    upsertRookieOfYearEntry(dynastyId, {
+      playerId: 'rookie-1',
+      playerName: 'Jalen Banks',
+      teamId: 'team-1',
+      teamAbbr: 'CHI',
+      position: 'WR',
+      compositeScore: 121.5,
+      headline: 'Jalen Banks: CHI rookie WR takes ROY honors',
+      highlights: ['Strong rookie season'],
+      season: 2026,
+    });
+    upsertRookieOfYearEntry('other-dynasty', {
+      playerId: 'rookie-9',
+      playerName: 'Other Rookie',
+      teamId: 'team-9',
+      teamAbbr: 'HOU',
+      position: 'QB',
+      compositeScore: 119.4,
+      headline: 'Other Rookie: HOU rookie QB takes ROY honors',
+      highlights: ['Strong rookie season'],
+      season: 2025,
+    });
+
+    await useGameStore.getState().actions.newGame(game);
+
+    expect(readRookieOfYearEntries(dynastyId)).toEqual([]);
+    expect(readRookieOfYearEntries('other-dynasty')).toHaveLength(1);
   });
 
   it('runs a private workout and spends one scouting workout slot', async () => {
