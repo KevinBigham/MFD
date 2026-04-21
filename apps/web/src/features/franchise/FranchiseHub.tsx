@@ -299,6 +299,17 @@ export function FranchiseHub() {
             </PixelButton>
           </div>
         </PixelPanel>
+
+        <PixelPanel title="Hall of Fame" accent="red">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Every Hall of Famer you ever developed, across every dynasty you ever coached.
+            </div>
+            <PixelButton accent="red" onClick={() => navigateTo('/franchise/hall')}>
+              Open Hall of Fame
+            </PixelButton>
+          </div>
+        </PixelPanel>
       </div>
     </div>
   );
