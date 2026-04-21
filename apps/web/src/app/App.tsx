@@ -98,6 +98,7 @@ const LazyRelocationScreen = lazy(async () => ({ default: (await import('../feat
 const LazyExpansionDraft = lazy(async () => ({ default: (await import('../features/franchise/ExpansionDraft')).ExpansionDraft }));
 const LazyFranchiseLegends = lazy(async () => ({ default: (await import('../features/franchise/FranchiseLegends')).FranchiseLegends }));
 const LazyFranchiseBook = lazy(async () => ({ default: (await import('../features/franchise/FranchiseBook')).FranchiseBookScreen }));
+const LazyScrapbook = lazy(async () => ({ default: (await import('../features/franchise/Scrapbook')).Scrapbook }));
 const LazyLockerRoom = lazy(async () => ({ default: (await import('../features/locker-room/LockerRoom')).LockerRoom }));
 const LazyEndorsementCenter = lazy(async () => ({ default: (await import('../features/endorsements/EndorsementCenter')).EndorsementCenter }));
 const LazyCommissionerOffice = lazy(async () => ({ default: (await import('../features/league/CommissionerOffice')).CommissionerOffice }));
@@ -1493,6 +1494,16 @@ const gmCareerRoute = createRoute({
   ),
 });
 
+const scrapbookRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/franchise/scrapbook',
+  component: () => (
+    <LazyRouteFrame label="dynasty scrapbook">
+      <LazyScrapbook />
+    </LazyRouteFrame>
+  ),
+});
+
 function PlayerDevRouteWrapper() {
   const roster = useGameStore(selectRoster);
   const team = useGameStore(selectUserTeam);
@@ -1558,7 +1569,7 @@ const routeTree = rootRoute.addChildren([
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, franchiseBookRoute, legendsRoute, seasonRecapRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
-  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, gmCareerRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
+  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
 ]);
 
 const hashHistory = createHashHistory();
