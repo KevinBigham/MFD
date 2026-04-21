@@ -10,6 +10,8 @@ import {
   autoGrid,
   monoSm,
   screenStackStyle,
+  teamIdFromDynastyId,
+  teamThemeVars,
 } from '../shared/pixelUi';
 import { PlayoffLoreCardView } from './PlayoffLoreCard';
 
@@ -220,17 +222,18 @@ export function PlayoffLoreDirectory({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {groupedCards.map((group) => (
-            <PixelPanel
-              key={group.dynastyId}
-              title={dynastyTitle(group.dynastyId, currentDynastyId, currentTeamName)}
-              accent={group.dynastyId === currentDynastyId ? 'gold' : 'default'}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {group.entries.map((entry) => (
-                  <PlayoffLoreCardView key={`${entry.source}-${entry.card.gameId}`} card={entry.card} />
-                ))}
-              </div>
-            </PixelPanel>
+            <div key={group.dynastyId} style={teamThemeVars(teamIdFromDynastyId(group.dynastyId) ?? userTeam?.id)}>
+              <PixelPanel
+                title={dynastyTitle(group.dynastyId, currentDynastyId, currentTeamName)}
+                accent={group.dynastyId === currentDynastyId ? 'gold' : 'default'}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {group.entries.map((entry) => (
+                    <PlayoffLoreCardView key={`${entry.source}-${entry.card.gameId}`} card={entry.card} />
+                  ))}
+                </div>
+              </PixelPanel>
+            </div>
           ))}
         </div>
       )}

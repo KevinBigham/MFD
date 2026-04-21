@@ -4,7 +4,7 @@ import { getTeamContent } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import type { StoredScrapbookEntry } from '../../lib/scrapbook-store';
 import { SeasonRecapCard } from '../season/SeasonRecapCard';
-import { autoGrid, display, monoSm } from '../shared/pixelUi';
+import { autoGrid, display, monoSm, teamThemeVars } from '../shared/pixelUi';
 import { PlayoffLoreCardView } from '../playoffs/PlayoffLoreCard';
 
 function playoffLabel(playoffResult: StoredScrapbookEntry['recap']['playoffResult']): string {
@@ -90,6 +90,7 @@ export function ScrapbookEntryCard({
     <section
       ref={exportNode ? undefined : cardRef}
       style={{
+        ...teamThemeVars(entry.recap.teamId),
         ...themeVars,
         display: 'flex',
         flexDirection: 'column',

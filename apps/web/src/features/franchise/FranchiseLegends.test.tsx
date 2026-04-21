@@ -2,6 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { FranchiseLegends } from './FranchiseLegends';
 
+const { teamThemeVarsMock } = vi.hoisted(() => ({
+  teamThemeVarsMock: vi.fn(() => ({
+    '--mfd-team-primary': '#cc2200',
+    '--mfd-team-secondary': '#22cc00',
+    '--mfd-team-tertiary': '#0022cc',
+  })),
+}));
+
 const baseState = () => ({
   game: {
     franchiseHistory: [
@@ -42,6 +50,14 @@ vi.mock('../../app/store/game-store', () => ({
   selectUserTeam: (state: typeof mockState) => state.team,
 }));
 
+vi.mock('../shared/pixelUi', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../shared/pixelUi')>();
+  return {
+    ...actual,
+    teamThemeVars: teamThemeVarsMock,
+  };
+});
+
 describe('FranchiseLegends', () => {
   beforeEach(() => {
     mockState = baseState();
@@ -76,5 +92,14 @@ describe('FranchiseLegends', () => {
   it('shows retired jersey totals in the header badges', () => {
     const markup = renderToStaticMarkup(<FranchiseLegends />);
     expect(markup).toContain('1 RETIRED JERSEYS');
+  });
+
+  it('applies team theme vars to the franchise legends root container', () => {
+    teamThemeVarsMock.mockClear();
+
+    const markup = renderToStaticMarkup(<FranchiseLegends />);
+
+    expect(teamThemeVarsMock).toHaveBeenCalledWith('team-1');
+    expect(markup).toContain('--mfd-team-primary:#cc2200');
   });
 });

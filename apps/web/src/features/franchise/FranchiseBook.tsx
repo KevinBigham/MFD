@@ -31,6 +31,7 @@ import {
   pixel,
   pixelSm,
   screenStackStyle,
+  teamThemeVars,
 } from '../shared/pixelUi';
 import eraTemplates from '../../../../../packages/content/narrative/era-templates.json';
 import bookCommentary from '../../../../../packages/content/agm/book-commentary.json';
@@ -362,7 +363,7 @@ export function FranchiseBookScreen() {
 
   if (!game || !userTeam || !book) {
     return (
-      <div style={screenStackStyle}>
+      <div style={{ ...screenStackStyle, ...teamThemeVars(userTeam?.id) }}>
         <PixelScreenHeader
           title="FRANCHISE BOOK"
           subtitle="The definitive dynasty reader"
@@ -379,7 +380,7 @@ export function FranchiseBookScreen() {
 
   if (book.eras.length === 0) {
     return (
-      <div style={screenStackStyle}>
+      <div style={{ ...screenStackStyle, ...teamThemeVars(userTeam?.id) }}>
         <PixelScreenHeader
           title={`${book.teamCity} ${book.teamName}`.toUpperCase()}
           subtitle="The Franchise Book"
@@ -405,7 +406,7 @@ export function FranchiseBookScreen() {
   };
 
   return (
-    <div style={screenStackStyle}>
+    <div style={{ ...screenStackStyle, ...teamThemeVars(userTeam.id) }}>
       <style>{printStyles}</style>
       <PixelScreenHeader
         title={`${book.teamCity} ${book.teamName}`.toUpperCase()}

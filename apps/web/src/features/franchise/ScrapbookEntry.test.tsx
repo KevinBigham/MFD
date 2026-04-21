@@ -6,6 +6,14 @@ const { exportRecapAsPngMock } = vi.hoisted(() => ({
   exportRecapAsPngMock: vi.fn(async () => 'data:image/png;base64,stub'),
 }));
 
+const { teamThemeVarsMock } = vi.hoisted(() => ({
+  teamThemeVarsMock: vi.fn(() => ({
+    '--mfd-team-primary': '#aa1100',
+    '--mfd-team-secondary': '#00aa11',
+    '--mfd-team-tertiary': '#1100aa',
+  })),
+}));
+
 vi.mock('@mfd/engine', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@mfd/engine')>();
   return {
@@ -34,6 +42,7 @@ vi.mock('../shared/pixelUi', async (importOriginal) => {
   return {
     ...actual,
     autoGrid: () => ({}),
+    teamThemeVars: teamThemeVarsMock,
   };
 });
 
@@ -133,6 +142,15 @@ describe('ScrapbookEntryCard', () => {
     expect(markup).toContain('--mfd-scrapbook-primary:#112233');
     expect(markup).toContain('--mfd-scrapbook-secondary:#445566');
     expect(markup).toContain('--mfd-scrapbook-tertiary:#778899');
+  });
+
+  it('applies the shared team theme vars to the root scrapbook entry shell', () => {
+    teamThemeVarsMock.mockClear();
+
+    const markup = renderToStaticMarkup(<ScrapbookEntryCard entry={makeEntry()} />);
+
+    expect(teamThemeVarsMock).toHaveBeenCalledWith('afce1');
+    expect(markup).toContain('--mfd-team-primary:#aa1100');
   });
 
   it('renders the imported SeasonRecapCard body in expanded mode', () => {

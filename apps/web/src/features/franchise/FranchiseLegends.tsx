@@ -9,7 +9,7 @@ import {
   selectRetiredJerseys,
   selectUserTeam,
 } from '../../app/store/game-store';
-import { PixelScreenHeader, autoGrid, display, monoSm, screenStackStyle } from '../shared/pixelUi';
+import { PixelScreenHeader, autoGrid, display, monoSm, screenStackStyle, teamThemeVars } from '../shared/pixelUi';
 import { JerseyRetirementViewer } from './JerseyRetirementViewer';
 import { LegendCard } from './franchiseUi';
 
@@ -87,14 +87,14 @@ export function FranchiseLegends() {
 
   if (!team) {
     return (
-      <div style={screenStackStyle}>
+      <div style={{ ...screenStackStyle, ...teamThemeVars(undefined) }}>
         <PixelScreenHeader title="Franchise Legends" subtitle="No franchise is loaded." />
       </div>
     );
   }
 
   return (
-    <div style={screenStackStyle}>
+    <div style={{ ...screenStackStyle, ...teamThemeVars(team.id) }}>
       <PixelScreenHeader
         title="Franchise Legends"
         subtitle={`${team.city} ${team.name} // top 25 legacy scores`}

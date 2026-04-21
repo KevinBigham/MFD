@@ -10,6 +10,7 @@ import {
   autoGrid,
   monoSm,
   screenStackStyle,
+  teamThemeVars,
 } from '../shared/pixelUi';
 import { ScrapbookEntryCard } from './ScrapbookEntry';
 
@@ -62,7 +63,7 @@ export function Scrapbook() {
   };
 
   return (
-    <div style={screenStackStyle}>
+    <div style={{ ...screenStackStyle, ...teamThemeVars(team?.id) }}>
       <PixelScreenHeader
         title="Dynasty Scrapbook"
         subtitle={`${dynastyName} archive across every completed season.`}

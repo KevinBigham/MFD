@@ -6,6 +6,7 @@ const {
   mockEntries,
   mockState,
   exportRecapAsPngMock,
+  teamThemeVarsMock,
 } = vi.hoisted(() => ({
   mockEntries: [] as StoredScrapbookEntry[],
   mockState: {
@@ -21,6 +22,11 @@ const {
     },
   },
   exportRecapAsPngMock: vi.fn(async () => 'data:image/png;base64,full'),
+  teamThemeVarsMock: vi.fn(() => ({
+    '--mfd-team-primary': '#991111',
+    '--mfd-team-secondary': '#119911',
+    '--mfd-team-tertiary': '#111199',
+  })),
 }));
 
 vi.mock('../../lib/scrapbook-store', () => ({
@@ -70,6 +76,7 @@ vi.mock('../shared/pixelUi', async (importOriginal) => {
       </div>
     ),
     autoGrid: () => ({}),
+    teamThemeVars: teamThemeVarsMock,
   };
 });
 
@@ -174,6 +181,16 @@ describe('Scrapbook', () => {
     const markup = renderToStaticMarkup(<Scrapbook />);
 
     expect(markup).toContain('data-mock="screen-header"');
+  });
+
+  it('applies team theme vars to the scrapbook root container', () => {
+    mockEntries.splice(0, mockEntries.length, makeEntry(2026));
+    teamThemeVarsMock.mockClear();
+
+    const markup = renderToStaticMarkup(<Scrapbook />);
+
+    expect(teamThemeVarsMock).toHaveBeenCalledWith('team-1');
+    expect(markup).toContain('--mfd-team-primary:#991111');
   });
 
   it('renders without emoji characters', () => {
