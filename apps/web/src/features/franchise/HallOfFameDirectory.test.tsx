@@ -2,6 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { HallOfFameEntry } from '@mfd/engine';
 
+const { exportRecapAsPngMock } = vi.hoisted(() => ({
+  exportRecapAsPngMock: vi.fn(async () => 'data:image/png;base64,hof-directory'),
+}));
+
 class MemoryStorage implements Storage {
   private readonly backing = new Map<string, string>();
   get length() { return this.backing.size; }
@@ -35,6 +39,10 @@ const gameState = {
 
 vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: typeof gameState) => unknown) => selector(gameState),
+}));
+
+vi.mock('../season/recap-share', () => ({
+  exportRecapAsPng: exportRecapAsPngMock,
 }));
 
 vi.mock('@mfd/design-system/components', () => ({
@@ -74,7 +82,7 @@ vi.mock('../shared/pixelUi', async (importOriginal) => {
   };
 });
 
-import { HallOfFameDirectory } from './HallOfFameDirectory';
+import { HallOfFameDirectory, exportHallOfFameDirectoryAsPng } from './HallOfFameDirectory';
 import { upsertHallOfFameDynasty, type HallOfFameArchiveDynasty } from '../../lib/hall-of-fame-archive';
 
 function makeEntry(overrides: Partial<HallOfFameEntry> = {}): HallOfFameEntry {
@@ -136,6 +144,20 @@ describe('HallOfFameDirectory', () => {
     expect(markup).toContain('Alpha Carter');
     expect(markup).toContain('Bravo Stone');
     expect(markup).toContain('Chicago Blaze');
+  });
+
+  it('renders the hall-wide export button and current filtered-count note', () => {
+    upsertHallOfFameDynasty(makeDynasty({
+      entries: [
+        makeEntry({ playerId: 'p-1', name: 'Alpha Carter', teams: ['team-1'] }),
+        makeEntry({ playerId: 'p-2', name: 'Bravo Stone', teams: ['GB', 'team-1'] }),
+      ],
+    }));
+
+    const markup = renderToStaticMarkup(<HallOfFameDirectory />);
+
+    expect(markup).toContain('Export Hall of Fame');
+    expect(markup).toContain('Exports all 2 inductees matching current filter.');
   });
 
   it('marks homegrown inductees with the HOMEGROWN badge', () => {
@@ -308,5 +330,19 @@ describe('HallOfFameDirectory', () => {
     const markup = renderToStaticMarkup(<HallOfFameDirectory />);
 
     expect(markup).not.toContain('PANTHEON');
+  });
+
+  it('exports the full directory with the sort and filter slug in the filename', async () => {
+    exportRecapAsPngMock.mockClear();
+    const target = {} as HTMLElement;
+
+    const result = await exportHallOfFameDirectoryAsPng(target, {
+      sort: 'induction',
+      filter: 'all',
+      exportedAt: new Date('2026-04-21T12:00:00.000Z'),
+    });
+
+    expect(exportRecapAsPngMock).toHaveBeenCalledWith(target);
+    expect(result.fileName).toBe('hall-of-fame-induction-all-20260421.png');
   });
 });
