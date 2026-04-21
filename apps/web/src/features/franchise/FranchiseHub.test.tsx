@@ -231,6 +231,12 @@ describe('FranchiseHub', () => {
     expect(markup.indexOf('Playoff Lore')).toBeLessThan(markup.indexOf('Dynasty Scrapbook'));
   });
 
+  it('renders the Rivalries panel', () => {
+    const markup = renderToStaticMarkup(<FranchiseHub />);
+
+    expect(markup).toContain('RIVALRIES');
+  });
+
   it('navigates to the scrapbook route from the Dynasty Scrapbook tile', () => {
     const button = findButtonByText(<FranchiseHub />, 'View Dynasty Scrapbook');
 

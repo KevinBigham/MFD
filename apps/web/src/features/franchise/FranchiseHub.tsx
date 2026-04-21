@@ -27,6 +27,7 @@ import {
 } from './franchiseUi';
 import { HomegrownMeter } from './HomegrownMeter';
 import { ContinuityMeter } from './ContinuityMeter';
+import { RivalryHeatMap } from './RivalryHeatMap';
 
 const DOCTRINE_ACCENTS = {
   culture: 'green',
@@ -96,6 +97,7 @@ export function FranchiseHub() {
 
       <HomegrownMeter game={game} />
       <ContinuityMeter game={game} />
+      <RivalryHeatMap />
 
       <div style={autoGrid(220)}>
         <PixelMetricCard
