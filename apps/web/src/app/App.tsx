@@ -65,6 +65,7 @@ import { RouteTransition } from '../features/shared/transitions/RouteTransition'
 import { getSaveReminderMessage, shouldPromptEraNaming, shouldShowSaveReminder } from '@mfd/engine';
 import { ConfirmDialog } from '../features/shared/ConfirmDialog';
 import { syncScrapbookAtYearRollover } from './scrapbook-rollover';
+import { syncHallOfFameArchiveAtYearRollover } from './hall-of-fame-rollover';
 import { PlayoffLorePrompt } from '../features/playoffs/PlayoffLorePrompt';
 
 const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
@@ -101,6 +102,7 @@ const LazyExpansionDraft = lazy(async () => ({ default: (await import('../featur
 const LazyFranchiseLegends = lazy(async () => ({ default: (await import('../features/franchise/FranchiseLegends')).FranchiseLegends }));
 const LazyFranchiseBook = lazy(async () => ({ default: (await import('../features/franchise/FranchiseBook')).FranchiseBookScreen }));
 const LazyScrapbook = lazy(async () => ({ default: (await import('../features/franchise/Scrapbook')).Scrapbook }));
+const LazyHallOfFameDirectory = lazy(async () => ({ default: (await import('../features/franchise/HallOfFameDirectory')).HallOfFameDirectory }));
 const LazyLockerRoom = lazy(async () => ({ default: (await import('../features/locker-room/LockerRoom')).LockerRoom }));
 const LazyEndorsementCenter = lazy(async () => ({ default: (await import('../features/endorsements/EndorsementCenter')).EndorsementCenter }));
 const LazyCommissionerOffice = lazy(async () => ({ default: (await import('../features/league/CommissionerOffice')).CommissionerOffice }));
@@ -400,6 +402,8 @@ function RootLayout() {
     if (syncScrapbookAtYearRollover(prevYear.current, game, userTeam?.id ?? null, recapPromptSeenThisSession)) {
       setShowRecapPrompt(true);
     }
+
+    syncHallOfFameArchiveAtYearRollover(prevYear.current, game, userTeam?.id ?? null);
 
     if (shouldShowSaveReminder(currentYear, game.lastPortableExportYear ?? null)) {
       setShowSaveReminder(true);
@@ -1508,6 +1512,16 @@ const scrapbookRoute = createRoute({
   ),
 });
 
+const hallOfFameDirectoryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/franchise/hall',
+  component: () => (
+    <LazyRouteFrame label="hall of fame directory">
+      <LazyHallOfFameDirectory />
+    </LazyRouteFrame>
+  ),
+});
+
 function PlayerDevRouteWrapper() {
   const roster = useGameStore(selectRoster);
   const team = useGameStore(selectUserTeam);
@@ -1573,7 +1587,7 @@ const routeTree = rootRoute.addChildren([
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, franchiseBookRoute, legendsRoute, seasonRecapRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
-  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
+  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
 ]);
 
 const hashHistory = createHashHistory();

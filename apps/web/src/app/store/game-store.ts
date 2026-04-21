@@ -186,6 +186,7 @@ import {
   clearScrapbookForDynasty,
   stagePendingPlayoffLoreCard,
 } from '../../lib/scrapbook-store';
+import { clearHallOfFameForDynasty } from '../../lib/hall-of-fame-archive';
 import { buildPlayoffLoreCard, type PlayoffLoreCard } from '../../lib/playoff-lore';
 import {
   selectCapCandidates,
@@ -831,6 +832,7 @@ export const useGameStore = create<GameStore>()(
       newGame: async (initial) => {
         finalizeCurrentDynasty(get().game);
         clearScrapbookForDynasty(deriveDynastyId(initial));
+        clearHallOfFameForDynasty(deriveDynastyId(initial));
         syncCareerMeta(initial);
         set((s) => {
           s.game = initial;
