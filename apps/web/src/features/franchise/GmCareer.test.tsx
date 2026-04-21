@@ -266,6 +266,72 @@ describe('GmCareer', () => {
     expect(markup).toContain('1 dynasty');
   });
 
+  it('renders HOFers Developed and Coaches Developed tallies from career totals', () => {
+    mockMeta = {
+      schemaVersion: 1,
+      dynasties: [
+        {
+          dynastyId: 'first',
+          teamId: 't1',
+          teamCity: 'Chicago',
+          teamName: 'Blaze',
+          teamAbbr: 'CHI',
+          startYear: 2026,
+          endYear: 2030,
+          seasonsCoached: 5,
+          wins: 60,
+          losses: 25,
+          ties: 0,
+          championships: 2,
+          playoffAppearances: 4,
+          breakoutsDeveloped: 3,
+          coachesDeveloped: 2,
+          hallOfFamersDeveloped: 4,
+        },
+      ],
+      careerTotals: {
+        dynasties: 1,
+        seasonsCoached: 5,
+        wins: 60,
+        losses: 25,
+        ties: 0,
+        championships: 2,
+        playoffAppearances: 4,
+        breakoutsDeveloped: 3,
+        coachesDeveloped: 2,
+        hallOfFamersDeveloped: 4,
+      },
+    };
+
+    const markup = renderToStaticMarkup(<GmCareer />);
+
+    expect(markup).toContain('HOFers Developed');
+    expect(markup).toContain('Coaches Developed');
+    expect(markup).toContain('First team was yours at induction');
+    expect(markup).toContain('Assistants promoted to HC');
+  });
+
+  it('falls back to 0 for legacy totals missing the new counters', () => {
+    mockMeta = {
+      schemaVersion: 1,
+      dynasties: [],
+      careerTotals: {
+        dynasties: 0,
+        seasonsCoached: 0,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        championships: 0,
+        playoffAppearances: 0,
+        breakoutsDeveloped: 0,
+      },
+    };
+
+    const markup = renderToStaticMarkup(<GmCareer />);
+
+    expect(markup).toContain('No dynasties yet');
+  });
+
   it('computes the longest dynasty legacy stat correctly', () => {
     mockMeta = {
       schemaVersion: 1,
