@@ -1,14 +1,3 @@
-/**
- * Sprint 45 "The Family Tree" — CoachingTree screen at /coaching/tree.
- *
- * Surfaces the user team's head coach alongside a mentor chain walking
- * upward through `mentorCoachId` references and a disciples fan walking
- * downward through `disciples[]` references. Edges are resolved by
- * scanning every team's staff in the current game state.
- *
- * When no lineage data exists (fresh save), the screen renders a
- * friendly empty state so the route is still reachable.
- */
 import { useMemo, useRef, useState } from 'react';
 import {
   PixelBadge,

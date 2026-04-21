@@ -154,6 +154,7 @@ describe('career-meta', () => {
         championships: 0,
         playoffAppearances: 0,
         breakoutsDeveloped: 0,
+        coachesDeveloped: 0,
       },
     });
   });
@@ -429,6 +430,7 @@ describe('career-meta', () => {
       championships: 1,
       playoffAppearances: 2,
       breakoutsDeveloped: 1,
+      coachesDeveloped: 0,
     });
   });
 
@@ -492,6 +494,7 @@ describe('career-meta', () => {
       championships: 1,
       playoffAppearances: 4,
       breakoutsDeveloped: 6,
+      coachesDeveloped: 0,
     });
   });
 
