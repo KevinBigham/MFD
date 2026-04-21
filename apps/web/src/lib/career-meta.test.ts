@@ -155,6 +155,7 @@ describe('career-meta', () => {
         playoffAppearances: 0,
         breakoutsDeveloped: 0,
         coachesDeveloped: 0,
+        hallOfFamersDeveloped: 0,
       },
     });
   });
@@ -431,6 +432,7 @@ describe('career-meta', () => {
       playoffAppearances: 2,
       breakoutsDeveloped: 1,
       coachesDeveloped: 0,
+      hallOfFamersDeveloped: 0,
     });
   });
 
@@ -495,6 +497,7 @@ describe('career-meta', () => {
       playoffAppearances: 4,
       breakoutsDeveloped: 6,
       coachesDeveloped: 0,
+      hallOfFamersDeveloped: 0,
     });
   });
 
@@ -532,6 +535,135 @@ describe('career-meta', () => {
     }));
 
     expect(readCareerMeta().dynasties).toEqual([]);
+  });
+
+  // ── Sprint 61 "The Legacy" — HOFer development counter ──
+  it('buildDynastySummary counts HOFers whose first career team is the user team', () => {
+    const game = seedSummaryGame(42, 2028);
+    const team = userTeam(game);
+
+    game.hallOfFame = [
+      {
+        playerId: 'hof-1',
+        name: 'Homegrown Hero',
+        position: 'QB',
+        inductionYear: 2027,
+        peakOvr: 97,
+        careerYears: 14,
+        score: 220,
+        awards: { mvps: 3, allPros: 6, proBowls: 10, championships: 2 },
+        highlights: ['Peak 97 OVR', '14 seasons'],
+        teams: [team.id, 'other-team'],
+      },
+      {
+        playerId: 'hof-2',
+        name: 'Late-Career Pickup',
+        position: 'LB',
+        inductionYear: 2027,
+        peakOvr: 92,
+        careerYears: 12,
+        score: 180,
+        awards: { mvps: 0, allPros: 4, proBowls: 7, championships: 1 },
+        highlights: ['Peak 92 OVR', '12 seasons'],
+        teams: ['some-other-team', team.id],
+      },
+      {
+        playerId: 'hof-3',
+        name: 'Different Franchise HOFer',
+        position: 'WR',
+        inductionYear: 2027,
+        peakOvr: 94,
+        careerYears: 13,
+        score: 200,
+        awards: { mvps: 0, allPros: 5, proBowls: 8, championships: 1 },
+        highlights: ['Peak 94 OVR', '13 seasons'],
+        teams: ['some-other-team', 'another-team'],
+      },
+    ];
+
+    const summary = buildDynastySummary(game);
+
+    expect(summary?.hallOfFamersDeveloped).toBe(1);
+  });
+
+  it('recomputeCareerTotals sums hallOfFamersDeveloped across dynasties', () => {
+    writeCareerMeta({
+      schemaVersion: 1,
+      dynasties: [
+        {
+          dynastyId: '1:blaze:2026',
+          teamId: 'blaze',
+          teamCity: 'Chicago',
+          teamName: 'Blaze',
+          teamAbbr: 'CHI',
+          startYear: 2026,
+          endYear: 2029,
+          seasonsCoached: 4,
+          wins: 45,
+          losses: 23,
+          ties: 0,
+          championships: 2,
+          playoffAppearances: 3,
+          breakoutsDeveloped: 2,
+          coachesDeveloped: 1,
+          hallOfFamersDeveloped: 2,
+        },
+        {
+          dynastyId: '2:orbit:2030',
+          teamId: 'orbit',
+          teamCity: 'Houston',
+          teamName: 'Orbit',
+          teamAbbr: 'HOU',
+          startYear: 2030,
+          endYear: null,
+          seasonsCoached: 2,
+          wins: 19,
+          losses: 15,
+          ties: 0,
+          championships: 0,
+          playoffAppearances: 1,
+          breakoutsDeveloped: 1,
+          coachesDeveloped: 0,
+          hallOfFamersDeveloped: 3,
+        },
+      ],
+      careerTotals: defaultTotalsForTest(),
+    });
+
+    const meta = readCareerMeta();
+
+    expect(meta.careerTotals.hallOfFamersDeveloped).toBe(5);
+    expect(meta.careerTotals.coachesDeveloped).toBe(1);
+  });
+
+  it('readCareerMeta defaults hallOfFamersDeveloped to 0 on legacy payloads without the field', () => {
+    localStorage.setItem('mfd.careerMeta.v1', JSON.stringify({
+      schemaVersion: 1,
+      dynasties: [
+        {
+          dynastyId: '1:team:2026',
+          teamId: 'team',
+          teamCity: 'Chicago',
+          teamName: 'Blaze',
+          teamAbbr: 'CHI',
+          startYear: 2026,
+          endYear: null,
+          seasonsCoached: 2,
+          wins: 23,
+          losses: 11,
+          ties: 0,
+          championships: 1,
+          playoffAppearances: 2,
+          breakoutsDeveloped: 1,
+        },
+      ],
+      careerTotals: defaultTotalsForTest(),
+    }));
+
+    const meta = readCareerMeta();
+
+    expect(meta.dynasties[0]?.hallOfFamersDeveloped).toBe(0);
+    expect(meta.careerTotals.hallOfFamersDeveloped).toBe(0);
   });
 });
 

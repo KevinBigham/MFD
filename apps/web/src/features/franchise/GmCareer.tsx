@@ -70,6 +70,8 @@ export function GmCareer() {
         <PixelMetricCard label="Career Record" value={formatRecord(meta.careerTotals)} accent="cyan" detail={`${meta.careerTotals.championships} titles`} />
         <PixelMetricCard label="Playoff Trips" value={meta.careerTotals.playoffAppearances} accent="green" detail="Completed seasons only" />
         <PixelMetricCard label="Breakouts Developed" value={meta.careerTotals.breakoutsDeveloped} accent="default" detail="Unique players across dynasties" />
+        <PixelMetricCard label="HOFers Developed" value={meta.careerTotals.hallOfFamersDeveloped ?? 0} accent="gold" detail="First team was yours at induction" />
+        <PixelMetricCard label="Coaches Developed" value={meta.careerTotals.coachesDeveloped ?? 0} accent="cyan" detail="Assistants promoted to HC" />
       </div>
 
       <PixelPanel title="Dynasties" accent="cyan">

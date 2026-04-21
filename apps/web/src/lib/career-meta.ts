@@ -18,6 +18,7 @@ export interface DynastySummary {
   playoffAppearances: number;
   breakoutsDeveloped: number;
   coachesDeveloped?: number;
+  hallOfFamersDeveloped?: number;
 }
 
 export interface CareerTotals {
@@ -30,6 +31,7 @@ export interface CareerTotals {
   playoffAppearances: number;
   breakoutsDeveloped: number;
   coachesDeveloped?: number;
+  hallOfFamersDeveloped?: number;
 }
 
 export interface CareerMeta {
@@ -57,6 +59,7 @@ const DynastySummarySchema = z.object({
   playoffAppearances: z.number().int().min(0),
   breakoutsDeveloped: z.number().int().min(0),
   coachesDeveloped: z.number().int().min(0).default(0),
+  hallOfFamersDeveloped: z.number().int().min(0).default(0),
 });
 
 const CareerTotalsSchema = z.object({
@@ -69,6 +72,7 @@ const CareerTotalsSchema = z.object({
   playoffAppearances: z.number().int().min(0),
   breakoutsDeveloped: z.number().int().min(0),
   coachesDeveloped: z.number().int().min(0).default(0),
+  hallOfFamersDeveloped: z.number().int().min(0).default(0),
 });
 
 const CareerMetaSchema = z.object({
@@ -88,6 +92,7 @@ function defaultCareerTotals(): CareerTotals {
     playoffAppearances: 0,
     breakoutsDeveloped: 0,
     coachesDeveloped: 0,
+    hallOfFamersDeveloped: 0,
   };
 }
 
@@ -142,6 +147,7 @@ function recomputeCareerTotals(dynasties: DynastySummary[]): CareerTotals {
     playoffAppearances: totals.playoffAppearances + dynasty.playoffAppearances,
     breakoutsDeveloped: totals.breakoutsDeveloped + dynasty.breakoutsDeveloped,
     coachesDeveloped: (totals.coachesDeveloped ?? 0) + (dynasty.coachesDeveloped ?? 0),
+    hallOfFamersDeveloped: (totals.hallOfFamersDeveloped ?? 0) + (dynasty.hallOfFamersDeveloped ?? 0),
   }), defaultCareerTotals());
 }
 
@@ -202,6 +208,12 @@ function countDevelopedCoaches(game: GameState): number {
   return buildCoachingLegacy(game, headCoach.id).headCoachesProduced;
 }
 
+function countDevelopedHallOfFamers(game: GameState): number {
+  const team = currentUserTeam(game);
+  if (!team) return 0;
+  return (game.hallOfFame ?? []).filter((entry) => entry.teams[0] === team.id).length;
+}
+
 export function buildDynastySummary(game: GameState): DynastySummary | null {
   const team = currentUserTeam(game);
   if (!team) return null;
@@ -228,6 +240,7 @@ export function buildDynastySummary(game: GameState): DynastySummary | null {
     playoffAppearances: history.filter((entry) => isPlayoffAppearance(entry.playoffFinish)).length,
     breakoutsDeveloped: countHistoricalBreakouts(game, team.id, startYear),
     coachesDeveloped: countDevelopedCoaches(game),
+    hallOfFamersDeveloped: countDevelopedHallOfFamers(game),
   };
 }
 
