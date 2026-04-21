@@ -414,10 +414,10 @@ const rushingTemplates = parseContent(
   rushingTemplatesJson,
   'broadcast/rushing-templates.json',
 );
-const broadcastTemplateContent = {
+const broadcastTemplateContent: Record<string, BroadcastTemplateCategory> = {
   ...passingDefenseStTemplates,
   ...rushingTemplates,
-} satisfies Record<string, BroadcastTemplateCategory>;
+};
 // Sprint 40 "The Straight Line": validate every team JSON via Zod at load.
 // Fail loud if a team file drifts from TeamContentSchema shape.
 const teamContentList: readonly TeamContentFull[] = [

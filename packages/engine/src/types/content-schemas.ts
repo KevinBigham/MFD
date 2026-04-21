@@ -94,10 +94,10 @@ export const TeamPaAnnouncerSchema = z.object({
 });
 
 export const TeamContentSchema = z.object({
-  id: z.string(),
-  city: z.string(),
-  nickname: z.string(),
-  fullName: z.string(),
+  id: z.string().regex(/^[A-Z]{2,4}$/),
+  city: z.string().min(1),
+  nickname: z.string().min(1),
+  fullName: z.string().min(1),
   conference: TeamConferenceSchema,
   division: TeamDivisionSchema,
   primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
@@ -106,11 +106,11 @@ export const TeamContentSchema = z.object({
   fightSong: TeamFightSongSchema,
   stadium: TeamStadiumSchema,
   fanCulture: TeamFanCultureSchema,
-  rivalries: z.array(TeamRivalrySchema),
+  rivalries: z.array(TeamRivalrySchema).min(1),
   paAnnouncer: TeamPaAnnouncerSchema,
-  cityFlavor: z.string(),
+  cityFlavor: z.string().min(1),
   established: z.number().int().min(1900).max(2100),
-  motto: z.string(),
+  motto: z.string().min(1),
 });
 
 export type TeamContent = z.infer<typeof TeamContentSchema>;
@@ -130,6 +130,97 @@ export type TeamRivalryContent = z.infer<typeof TeamRivalrySchema>;
 
 const NonEmptyStringSchema = z.string().min(1);
 const NonEmptyStringArraySchema = z.array(NonEmptyStringSchema).min(1);
+
+// ── Tier C key enums (post-59 cleanup) ────────────────────────────────
+// Key-space bounding for schemas that previously accepted any string key.
+// Catches typos + silent drops at load-time instead of runtime throws
+// deep inside game loops.
+
+export const BroadcastPlayTypeSchema = z.enum([
+  'routine_pass',
+  'big_play_pass',
+  'screen_pass',
+  'sack',
+  'interception',
+  'fumble',
+  'touchdown_pass',
+  'touchdown_run',
+  'field_goal',
+  'field_goal_miss',
+  'punt',
+  'punt_return',
+  'kickoff_return',
+  'safety',
+  'penalty',
+  'clutch',
+  'rivalry',
+  'overtime',
+  'blowout',
+  'comeback',
+  'routine_run',
+  'big_play_run',
+  'goal_line_run',
+  'fourth_down_run',
+  'two_minute_drill_run',
+]);
+
+export const CoachArchetypeKeySchema = z.enum([
+  'offensive_genius',
+  'defensive_mastermind',
+  'players_coach',
+  'old_school_disciplinarian',
+  'analytics_innovator',
+  'motivational_leader',
+]);
+
+export const CoachSchemeSideSchema = z.enum(['offense', 'defense']);
+
+export const ScoutingPositionSchema = z.enum([
+  'QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S',
+]);
+
+export const AgmPersonaIdSchema = z.enum([
+  'marcus_webb',
+  'coach_d_hardaway',
+  'sandra_chen',
+  'tommy_obrien',
+]);
+
+export const PlayerSocialScenarioSchema = z.enum([
+  'after_big_win',
+  'after_tough_loss',
+  'after_personal_best',
+  'trade_rumors',
+  'contract_holdout',
+  'rivalry_week',
+  'playoff_hype',
+  'retirement_announcement',
+  'injury_update',
+  'offseason_grind',
+]);
+
+export const FanSocialScenarioSchema = z.enum([
+  'after_big_win',
+  'after_tough_loss',
+  'fire_coach',
+  'draft_night',
+  'trade_reaction',
+  'rivalry_trash_talk',
+]);
+
+export const AnalystSocialScenarioSchema = z.enum([
+  'hot_take',
+  'stat_drop',
+  'trade_grade',
+  'power_rankings',
+]);
+
+export const ReporterSocialScenarioSchema = z.enum([
+  'breaking_news',
+  'injury_report',
+  'source_says',
+  'rumor_mill',
+]);
 
 // 1. Press conference templates — Record<scenario, { questions, answers_* }>
 export const PressConferenceScenarioKeySchema = z.enum([
@@ -158,20 +249,23 @@ export const PressConferenceTemplatesContentSchema = z.record(
 );
 
 // 2. AGM dialogue — 3-level nested: Record<personaId, Record<eventKey, Record<contextKey, string[]>>>
+// Tier C: persona IDs bounded to the 4 authored GMs. Inner event/context
+// keys stay free-form because each persona uses its own scenario vocabulary.
 export const AgmDialogueContentSchema = z.record(
-  z.string(),
+  AgmPersonaIdSchema,
   z.record(z.string(), z.record(z.string(), NonEmptyStringArraySchema)),
 );
 
 // 3. Broadcast play-by-play templates (rushing + passing-defense-st)
 // Shared shape: Record<playType, { openers, endings }>
+// Tier C: play-type keys bounded. Split across two JSON files, union enforced.
 export const BroadcastTemplateCategorySchema = z.object({
   openers: NonEmptyStringArraySchema,
   endings: NonEmptyStringArraySchema,
 });
 
 export const BroadcastTemplatesContentSchema = z.record(
-  z.string(),
+  BroadcastPlayTypeSchema,
   BroadcastTemplateCategorySchema,
 );
 
@@ -194,11 +288,13 @@ export const CoachArchetypeEntrySchema = z.object({
   sideline_reaction_bad: NonEmptyStringArraySchema,
 });
 
+// Tier C: archetype keys + scheme side bounded. Inner scheme names/archetype
+// names stay free-form (authored per side) but top-level structure is pinned.
 export const CoachArchetypesContentSchema = z.object({
-  coach_archetypes: z.record(z.string(), CoachArchetypeEntrySchema),
+  coach_archetypes: z.record(CoachArchetypeKeySchema, CoachArchetypeEntrySchema),
   scheme_descriptions: z.record(
-    z.string(),
-    z.record(z.string(), z.record(z.string(), z.string())),
+    CoachSchemeSideSchema,
+    z.record(z.string(), z.record(z.string(), NonEmptyStringSchema)),
   ),
 });
 
@@ -341,16 +437,19 @@ export const ScoutingTemplateBucketSchema = z.object({
   comparison_template: NonEmptyStringArraySchema,
 });
 
+// Tier C: position keys bounded to the 9 scouted positions.
 export const ScoutingTemplatesContentSchema = z.object({
-  scouting_templates: z.record(z.string(), ScoutingTemplateBucketSchema),
+  scouting_templates: z.record(ScoutingPositionSchema, ScoutingTemplateBucketSchema),
 });
 
 // 12. Social feed templates — four source buckets, each scenario → lines
+// Tier C: scenario keys bounded per source. Mismatch between authored JSON
+// and gameplay scenario constants now fails at load, not at line lookup.
 export const SocialFeedTemplatesContentSchema = z.object({
-  player_posts: z.record(z.string(), NonEmptyStringArraySchema),
-  fan_posts: z.record(z.string(), NonEmptyStringArraySchema),
-  analyst_posts: z.record(z.string(), NonEmptyStringArraySchema),
-  reporter_posts: z.record(z.string(), NonEmptyStringArraySchema),
+  player_posts: z.record(PlayerSocialScenarioSchema, NonEmptyStringArraySchema),
+  fan_posts: z.record(FanSocialScenarioSchema, NonEmptyStringArraySchema),
+  analyst_posts: z.record(AnalystSocialScenarioSchema, NonEmptyStringArraySchema),
+  reporter_posts: z.record(ReporterSocialScenarioSchema, NonEmptyStringArraySchema),
 });
 
 // Inferred types exported for content-loader consumers
@@ -381,3 +480,14 @@ export type PersonalityFlavorContent = z.infer<typeof PersonalityFlavorContentSc
 export type ScoutingTemplateBucket = z.infer<typeof ScoutingTemplateBucketSchema>;
 export type ScoutingTemplatesContent = z.infer<typeof ScoutingTemplatesContentSchema>;
 export type SocialFeedTemplatesContent = z.infer<typeof SocialFeedTemplatesContentSchema>;
+
+// Tier C — key-space enums
+export type BroadcastPlayType = z.infer<typeof BroadcastPlayTypeSchema>;
+export type CoachArchetypeKey = z.infer<typeof CoachArchetypeKeySchema>;
+export type CoachSchemeSide = z.infer<typeof CoachSchemeSideSchema>;
+export type ScoutingPosition = z.infer<typeof ScoutingPositionSchema>;
+export type AgmPersonaId = z.infer<typeof AgmPersonaIdSchema>;
+export type PlayerSocialScenario = z.infer<typeof PlayerSocialScenarioSchema>;
+export type FanSocialScenario = z.infer<typeof FanSocialScenarioSchema>;
+export type AnalystSocialScenario = z.infer<typeof AnalystSocialScenarioSchema>;
+export type ReporterSocialScenario = z.infer<typeof ReporterSocialScenarioSchema>;
