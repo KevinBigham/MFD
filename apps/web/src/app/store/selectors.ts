@@ -177,6 +177,7 @@ import {
   mulberry32,
   projectSchemeTransition,
 } from '@mfd/engine';
+import type { PlayoffLoreCard } from '../../lib/playoff-lore';
 
 export interface GameStoreState {
   game: GameState | null;
@@ -184,6 +185,7 @@ export interface GameStoreState {
   undoSnapshot: GameState | null;
   undoLabel: string | null;
   recapPromptSeenThisSession: boolean;
+  pendingPlayoffLoreReveal: PlayoffLoreCard | null;
 }
 
 // Stable empty arrays — prevents infinite re-renders when selectors

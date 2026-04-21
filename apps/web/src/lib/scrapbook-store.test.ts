@@ -3,8 +3,12 @@ import type { ScrapbookEntry } from '@mfd/engine';
 import {
   appendScrapbookEntry,
   clearScrapbookForDynasty,
+  readPendingPlayoffLoreCards,
   readScrapbookForDynasty,
+  stagePendingPlayoffLoreCard,
+  type StoredScrapbookEntry,
 } from './scrapbook-store';
+import type { PlayoffLoreCard } from './playoff-lore';
 
 class MemoryStorage implements Storage {
   private readonly backing = new Map<string, string>();
@@ -34,7 +38,7 @@ class MemoryStorage implements Storage {
   }
 }
 
-function makeEntry(year: number, overrides: Partial<ScrapbookEntry> = {}): ScrapbookEntry {
+function makeEntry(year: number, overrides: Partial<StoredScrapbookEntry> = {}): StoredScrapbookEntry {
   return {
     year,
     eraTag: `Era ${year}`,
@@ -91,6 +95,29 @@ function makeEntry(year: number, overrides: Partial<ScrapbookEntry> = {}): Scrap
         reason: 'Strong offseason leap.',
       }],
     },
+    playoffLoreCards: [],
+    ...overrides,
+  };
+}
+
+function makeCard(year: number, week: number, overrides: Partial<PlayoffLoreCard> = {}): PlayoffLoreCard {
+  return {
+    gameId: `playoff-${year}-${week}`,
+    seasonYear: year,
+    week,
+    round: week === 22 ? 'super_bowl' : week === 21 ? 'conference' : week === 20 ? 'divisional' : 'wild_card',
+    outcome: 'win',
+    headline: 'Chicago survives and advances',
+    finalScore: '27-24',
+    opponentTeamId: 'opp',
+    loreHook: 'A late takeaway ended the panic.',
+    heroBlocks: [
+      { label: 'Spotlight', value: 'Cole Stone // 288 yds, 2 TD' },
+      { label: 'Swing', value: 'Turnover edge swung the leverage battle.' },
+      { label: 'Tagline', value: 'The season kept its pulse.' },
+    ],
+    tags: ['Cinderella', 'Named Game'],
+    namedGameName: 'The Comeback',
     ...overrides,
   };
 }
@@ -112,6 +139,26 @@ describe('scrapbook-store', () => {
     localStorage.setItem('mfd.scrapbook.v1', '{"schemaVersion":99,"entriesByDynastyId":[]}');
 
     expect(readScrapbookForDynasty('dynasty-a')).toEqual([]);
+  });
+
+  it('migrates schema version 1 payloads without losing scrapbook entries', () => {
+    const legacyEntry: ScrapbookEntry = makeEntry(2026);
+    localStorage.setItem('mfd.scrapbook.v1', JSON.stringify({
+      schemaVersion: 1,
+      entriesByDynastyId: {
+        'dynasty-a': [{
+          ...legacyEntry,
+          playoffLoreCards: undefined,
+        }],
+      },
+    }));
+
+    const entries = readScrapbookForDynasty('dynasty-a');
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.year).toBe(2026);
+    expect(entries[0]?.seasonHighlightLine).toBe('Highlight 2026');
+    expect(entries[0]?.playoffLoreCards).toEqual([]);
   });
 
   it('appends an entry and round-trips it cleanly', () => {
@@ -139,14 +186,41 @@ describe('scrapbook-store', () => {
     expect(readScrapbookForDynasty('dynasty-b').map((entry) => entry.year)).toEqual([2025]);
   });
 
+  it('stages pending playoff lore cards under the correct dynasty and season bucket', () => {
+    const first = makeCard(2026, 19);
+    const second = makeCard(2025, 22, { gameId: 'other-card' });
+
+    stagePendingPlayoffLoreCard('dynasty-a', 2026, first);
+    stagePendingPlayoffLoreCard('dynasty-b', 2025, second);
+
+    expect(readPendingPlayoffLoreCards('dynasty-a', 2026)).toEqual([first]);
+    expect(readPendingPlayoffLoreCards('dynasty-a', 2025)).toEqual([]);
+    expect(readPendingPlayoffLoreCards('dynasty-b', 2025)).toEqual([second]);
+  });
+
+  it('merges staged playoff lore into the final scrapbook entry and clears the pending bucket', () => {
+    const card = makeCard(2026, 19);
+    stagePendingPlayoffLoreCard('dynasty-a', 2026, card);
+
+    appendScrapbookEntry('dynasty-a', makeEntry(2026));
+
+    const entries = readScrapbookForDynasty('dynasty-a');
+    expect(entries[0]?.playoffLoreCards).toEqual([card]);
+    expect(readPendingPlayoffLoreCards('dynasty-a', 2026)).toEqual([]);
+  });
+
   it('clears only the target dynasty entries', () => {
     appendScrapbookEntry('dynasty-a', makeEntry(2026));
     appendScrapbookEntry('dynasty-b', makeEntry(2025));
+    stagePendingPlayoffLoreCard('dynasty-a', 2026, makeCard(2026, 19));
+    stagePendingPlayoffLoreCard('dynasty-b', 2025, makeCard(2025, 22));
 
     clearScrapbookForDynasty('dynasty-a');
 
     expect(readScrapbookForDynasty('dynasty-a')).toEqual([]);
     expect(readScrapbookForDynasty('dynasty-b').map((entry) => entry.year)).toEqual([2025]);
+    expect(readPendingPlayoffLoreCards('dynasty-a', 2026)).toEqual([]);
+    expect(readPendingPlayoffLoreCards('dynasty-b', 2025)).toHaveLength(1);
   });
 
   it('returns entries newest first regardless of storage order', () => {
