@@ -24,24 +24,6 @@ function bestRecordLabel(entry: ReturnType<typeof summarizeScrapbook>['bestSingl
   return `${entry.record} (${entry.year})`;
 }
 
-function playoffLabel(playoffResult: ScrapbookEntry['recap']['playoffResult']): string {
-  switch (playoffResult) {
-    case 'champion':
-      return 'Champion';
-    case 'championship-loss':
-      return 'Final Loss';
-    case 'conf-loss':
-      return 'Conference Loss';
-    case 'division-loss':
-      return 'Division Loss';
-    case 'wild-card-loss':
-      return 'Wild Card Loss';
-    case 'missed':
-    default:
-      return 'Missed Playoffs';
-  }
-}
-
 function slugifyDynastyName(dynastyName: string): string {
   const slug = dynastyName
     .trim()
