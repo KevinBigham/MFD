@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { ScrapbookEntry } from '@mfd/engine';
+import type { StoredScrapbookEntry } from '../../lib/scrapbook-store';
 
 const {
   mockEntries,
   mockState,
   exportRecapAsPngMock,
 } = vi.hoisted(() => ({
-  mockEntries: [] as ScrapbookEntry[],
+  mockEntries: [] as StoredScrapbookEntry[],
   mockState: {
     game: {
       seed: 7,
@@ -75,8 +75,8 @@ vi.mock('../shared/pixelUi', async (importOriginal) => {
 
 function makeEntry(
   year: number,
-  playoffResult: ScrapbookEntry['recap']['playoffResult'] = 'wild-card-loss',
-): ScrapbookEntry {
+  playoffResult: StoredScrapbookEntry['recap']['playoffResult'] = 'wild-card-loss',
+): StoredScrapbookEntry {
   return {
     year,
     eraTag: `Era ${year}`,
@@ -133,6 +133,7 @@ function makeEntry(
         reason: 'Strong offseason leap.',
       }],
     },
+    playoffLoreCards: [],
   };
 }
 

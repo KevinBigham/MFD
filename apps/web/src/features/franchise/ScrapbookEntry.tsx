@@ -1,12 +1,14 @@
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { getTeamContent, type ScrapbookEntry as ScrapbookEntryRecord } from '@mfd/engine';
+import { getTeamContent } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
+import type { StoredScrapbookEntry } from '../../lib/scrapbook-store';
 import { SeasonRecapCard } from '../season/SeasonRecapCard';
 import { exportRecapAsPng } from '../season/recap-share';
 import { autoGrid, display, monoSm } from '../shared/pixelUi';
+import { PlayoffLoreCardView } from '../playoffs/PlayoffLoreCard';
 
-function playoffLabel(playoffResult: ScrapbookEntryRecord['recap']['playoffResult']): string {
+function playoffLabel(playoffResult: StoredScrapbookEntry['recap']['playoffResult']): string {
   switch (playoffResult) {
     case 'champion':
       return 'Champion';
@@ -33,27 +35,27 @@ function scrapbookThemeVars(teamId: string): CSSProperties {
   } as CSSProperties;
 }
 
-function importanceAccent(importance: ScrapbookEntryRecord['notableMoments'][number]['importance']) {
+function importanceAccent(importance: StoredScrapbookEntry['notableMoments'][number]['importance']) {
   if (importance === 'breaking') return 'gold' as const;
   if (importance === 'major') return 'cyan' as const;
   return 'default' as const;
 }
 
-function playoffAccent(playoffResult: ScrapbookEntryRecord['recap']['playoffResult']) {
+function playoffAccent(playoffResult: StoredScrapbookEntry['recap']['playoffResult']) {
   if (playoffResult === 'champion') return 'gold' as const;
   if (playoffResult === 'missed') return 'red' as const;
   return 'cyan' as const;
 }
 
 interface ScrapbookEntryCardProps {
-  entry: ScrapbookEntryRecord;
+  entry: StoredScrapbookEntry;
   defaultExpanded?: boolean;
   exportNode?: HTMLElement | null;
 }
 
 export async function exportScrapbookEntryAsPng(
   target: HTMLElement,
-  entry: ScrapbookEntryRecord,
+  entry: StoredScrapbookEntry,
 ): Promise<string> {
   const dataUrl = await exportRecapAsPng(target);
   if (typeof document !== 'undefined') {
@@ -74,6 +76,7 @@ export function ScrapbookEntryCard({
   const [status, setStatus] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const themeVars = scrapbookThemeVars(entry.recap.teamId);
+  const playoffLoreCards = entry.playoffLoreCards ?? [];
 
   const handleExport = async () => {
     const target = exportNode ?? cardRef.current;
@@ -107,6 +110,9 @@ export function ScrapbookEntryCard({
             <PixelBadge variant={playoffAccent(entry.recap.playoffResult)}>
               {playoffLabel(entry.recap.playoffResult)}
             </PixelBadge>
+            {playoffLoreCards.length > 0 ? (
+              <PixelBadge variant="gold">{playoffLoreCards.length} PLAYOFF CARDS</PixelBadge>
+            ) : null}
           </div>
           <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>
             {entry.recap.teamCity} {entry.recap.teamName} // {entry.recap.record}
@@ -137,6 +143,15 @@ export function ScrapbookEntryCard({
           <SeasonRecapCard recap={entry.recap} />
 
           <div style={autoGrid(260)}>
+            {playoffLoreCards.length > 0 ? (
+              <PixelPanel title="Playoff Lore" accent="gold">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {playoffLoreCards.map((card) => (
+                    <PlayoffLoreCardView key={card.gameId} card={card} />
+                  ))}
+                </div>
+              </PixelPanel>
+            ) : null}
             <PixelPanel title="Notable Moments" accent="cyan">
               {entry.notableMoments.length === 0 ? (
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>

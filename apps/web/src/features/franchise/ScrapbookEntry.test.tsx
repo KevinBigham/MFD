@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { ScrapbookEntry } from '@mfd/engine';
+import type { StoredScrapbookEntry } from '../../lib/scrapbook-store';
 
 const { exportRecapAsPngMock } = vi.hoisted(() => ({
   exportRecapAsPngMock: vi.fn(async () => 'data:image/png;base64,stub'),
@@ -49,7 +49,7 @@ vi.mock('../season/recap-share', () => ({
   exportRecapAsPng: exportRecapAsPngMock,
 }));
 
-function makeEntry(): ScrapbookEntry {
+function makeEntry(overrides: Partial<StoredScrapbookEntry> = {}): StoredScrapbookEntry {
   return {
     year: 2026,
     eraTag: 'Dynasty Era',
@@ -110,6 +110,8 @@ function makeEntry(): ScrapbookEntry {
         },
       ],
     },
+    playoffLoreCards: [],
+    ...overrides,
   };
 }
 
@@ -138,6 +140,82 @@ describe('ScrapbookEntryCard', () => {
 
     expect(markup).toContain('data-mock="season-recap-card"');
     expect(markup).toContain('Statement win');
+  });
+
+  it('renders the playoff lore section in expanded mode when postseason cards exist', () => {
+    const markup = renderToStaticMarkup(<ScrapbookEntryCard
+      entry={makeEntry({
+        playoffLoreCards: [{
+          gameId: 'playoff-2026-19',
+          seasonYear: 2026,
+          week: 19,
+          round: 'wild_card',
+          outcome: 'win',
+          headline: 'Chicago survives the knife fight',
+          finalScore: '27-24',
+          opponentTeamId: 'opp',
+          loreHook: 'Won after trailing by 14+ entering the fourth quarter.',
+          heroBlocks: [
+            { label: 'Spotlight', value: 'Cole Stone // 23/34, 288 yds, 2 TD' },
+            { label: 'Swing', value: 'Turnover edge turned the quarter.' },
+            { label: 'Tagline', value: 'The season stayed alive.' },
+          ],
+          tags: ['Cinderella', 'Named Game'],
+          namedGameName: 'The Comeback',
+        }],
+      })}
+      defaultExpanded
+    />);
+
+    expect(markup).toContain('Playoff Lore');
+    expect(markup).toContain('Wild Card');
+    expect(markup).toContain('27-24');
+    expect(markup).toContain('The Comeback');
+  });
+
+  it('shows a postseason card-count badge in compact mode when playoff lore exists', () => {
+    const markup = renderToStaticMarkup(<ScrapbookEntryCard
+      entry={makeEntry({
+        playoffLoreCards: [
+          {
+            gameId: 'playoff-2026-19',
+            seasonYear: 2026,
+            week: 19,
+            round: 'wild_card',
+            outcome: 'win',
+            headline: 'Wild card survive',
+            finalScore: '27-24',
+            opponentTeamId: 'opp',
+            loreHook: 'Stayed alive.',
+            heroBlocks: [
+              { label: 'Spotlight', value: 'Cole Stone // 23/34, 288 yds, 2 TD' },
+              { label: 'Swing', value: 'Turnover edge turned the quarter.' },
+              { label: 'Tagline', value: 'The season stayed alive.' },
+            ],
+            tags: ['Cinderella'],
+          },
+          {
+            gameId: 'playoff-2026-20',
+            seasonYear: 2026,
+            week: 20,
+            round: 'divisional',
+            outcome: 'win',
+            headline: 'Divisional survive',
+            finalScore: '31-20',
+            opponentTeamId: 'opp-2',
+            loreHook: 'The defense finished it.',
+            heroBlocks: [
+              { label: 'Spotlight', value: 'Jay Mercer // 129 rush yds, 2 TD' },
+              { label: 'Swing', value: 'Fourth-quarter stop closed the door.' },
+              { label: 'Tagline', value: 'The run kept rolling.' },
+            ],
+            tags: ['Milestone'],
+          },
+        ],
+      })}
+    />);
+
+    expect(markup).toContain('2 PLAYOFF CARDS');
   });
 
   it('invokes exportRecapAsPng for the expanded entry export path', async () => {

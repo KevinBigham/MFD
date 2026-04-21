@@ -3,7 +3,12 @@ import { buildSeasonRecap, type GameState } from '@mfd/engine';
 import { createSeedGameState } from './store/seed';
 import { syncScrapbookAtYearRollover } from './scrapbook-rollover';
 import { deriveDynastyId } from '../lib/career-meta';
-import { readScrapbookForDynasty } from '../lib/scrapbook-store';
+import {
+  readPendingPlayoffLoreCards,
+  readScrapbookForDynasty,
+  stagePendingPlayoffLoreCard,
+} from '../lib/scrapbook-store';
+import type { PlayoffLoreCard } from '../lib/playoff-lore';
 
 class MemoryStorage implements Storage {
   private readonly backing = new Map<string, string>();
@@ -131,6 +136,27 @@ function seedCompletedSeason(game: GameState, year: number, teamId: string) {
   return team;
 }
 
+function makeCard(year: number, week: number): PlayoffLoreCard {
+  return {
+    gameId: `playoff-${year}-${week}`,
+    seasonYear: year,
+    week,
+    round: week === 22 ? 'super_bowl' : week === 21 ? 'conference' : week === 20 ? 'divisional' : 'wild_card',
+    outcome: 'win',
+    headline: 'Chicago survives and advances',
+    finalScore: '27-24',
+    opponentTeamId: 'opp',
+    loreHook: 'A late takeaway ended the panic.',
+    heroBlocks: [
+      { label: 'Spotlight', value: 'Cole Stone // 288 yds, 2 TD' },
+      { label: 'Swing', value: 'Turnover edge swung the leverage battle.' },
+      { label: 'Tagline', value: 'The season kept its pulse.' },
+    ],
+    tags: ['Cinderella', 'Named Game'],
+    namedGameName: 'The Comeback',
+  };
+}
+
 describe('syncScrapbookAtYearRollover', () => {
   beforeEach(() => {
     vi.stubGlobal('localStorage', new MemoryStorage());
@@ -167,5 +193,20 @@ describe('syncScrapbookAtYearRollover', () => {
     const entries = readScrapbookForDynasty(deriveDynastyId(game));
     expect(entries).toHaveLength(1);
     expect(entries[0]?.year).toBe(2026);
+  });
+
+  it('merges staged playoff lore cards into the rollover entry and clears the pending season bucket', () => {
+    const game = createSeedGameState(88, 0, 'pro');
+    const team = Object.values(game.teams).find((entry) => entry.isUser)!;
+    const dynastyId = deriveDynastyId(game);
+    seedCompletedSeason(game, 2026, team.id);
+    stagePendingPlayoffLoreCard(dynastyId, 2026, makeCard(2026, 19));
+
+    expect(syncScrapbookAtYearRollover(2026, game, team.id, false)).toBe(true);
+
+    const entries = readScrapbookForDynasty(dynastyId);
+    expect(entries[0]?.playoffLoreCards).toHaveLength(1);
+    expect(entries[0]?.playoffLoreCards[0]?.round).toBe('wild_card');
+    expect(readPendingPlayoffLoreCards(dynastyId, 2026)).toEqual([]);
   });
 });

@@ -6,7 +6,11 @@ import { selectLatestGameDayPackage, useGameStore } from './game-store';
 import { autosaveDynasty } from './persistence';
 import { useUiStore } from './ui-store';
 import { deriveDynastyId } from '../../lib/career-meta';
-import { appendScrapbookEntry, readScrapbookForDynasty } from '../../lib/scrapbook-store';
+import {
+  appendScrapbookEntry,
+  readPendingPlayoffLoreCards,
+  readScrapbookForDynasty,
+} from '../../lib/scrapbook-store';
 
 vi.mock('./persistence', () => ({
   autosaveDynasty: vi.fn().mockResolvedValue(1),
@@ -158,12 +162,44 @@ function makeScrapbookEntry(year: number): ScrapbookEntry {
   };
 }
 
+function seedSuperBowlWeek(
+  game: ReturnType<typeof createSeedGameState>,
+  matchup: { homeTeamId: string; awayTeamId: string },
+) {
+  game.phase = 'playoffs';
+  game.week = 22;
+  game.settings.halftimeDecisions = 'off';
+  game.playoffMomentum[matchup.homeTeamId] = {
+    teamId: matchup.homeTeamId,
+    momentum: 82,
+    narrativeTag: 'cinderella',
+    winStreak: 3,
+  };
+  game.playoffBracket = {
+    season: game.year,
+    afc: [],
+    nfc: [],
+    championTeamId: null,
+    matchups: [{
+      id: `super-bowl-${game.year}`,
+      round: 'super_bowl',
+      conference: 'NFL',
+      week: 22,
+      homeTeamId: matchup.homeTeamId,
+      awayTeamId: matchup.awayTeamId,
+      winnerTeamId: null,
+      result: null,
+    }],
+  };
+}
+
 describe('game store offseason actions', () => {
   beforeEach(() => {
     useGameStore.setState((state) => ({
       ...state,
       game: null,
       initialized: false,
+      pendingPlayoffLoreReveal: null,
     }));
     useUiStore.setState((state) => ({
       ...state,
@@ -187,6 +223,7 @@ describe('game store offseason actions', () => {
       ...state,
       game: null,
       initialized: false,
+      pendingPlayoffLoreReveal: null,
     }));
     useUiStore.setState((state) => ({
       ...state,
@@ -456,6 +493,114 @@ describe('game store offseason actions', () => {
     expect(resumed.week).toBeGreaterThan(game.week);
     expect(selectLatestGameDayPackage(useGameStore.getState())).not.toBeNull();
     expect(autosaveDynasty).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not stage playoff lore for regular-season user games', { timeout: 15_000 }, async () => {
+    const game = createSeedGameState(401, 0, 'pro');
+    game.phase = 'regular_season';
+    game.settings.halftimeDecisions = 'off';
+    const dynastyId = deriveDynastyId(game);
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.advanceWeek();
+
+    expect(useGameStore.getState().pendingPlayoffLoreReveal).toBeNull();
+    expect(readPendingPlayoffLoreCards(dynastyId, game.year)).toEqual([]);
+  });
+
+  it('does not stage playoff lore for cpu-only playoff weeks', { timeout: 15_000 }, async () => {
+    const game = createSeedGameState(402, 0, 'pro');
+    const cpuTeams = Object.values(game.teams).filter((team) => !team.isUser);
+    seedSuperBowlWeek(game, {
+      homeTeamId: cpuTeams[0]!.id,
+      awayTeamId: cpuTeams[1]!.id,
+    });
+    const dynastyId = deriveDynastyId(game);
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.advanceWeek();
+
+    expect(useGameStore.getState().pendingPlayoffLoreReveal).toBeNull();
+    expect(readPendingPlayoffLoreCards(dynastyId, game.year)).toEqual([]);
+  });
+
+  it('stages one playoff lore card and an immediate reveal for user-team playoff advances', { timeout: 15_000 }, async () => {
+    const game = createSeedGameState(403, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const opponent = Object.values(game.teams).find((team) => !team.isUser)!;
+    const dynastyId = deriveDynastyId(game);
+    seedSuperBowlWeek(game, {
+      homeTeamId: userTeam.id,
+      awayTeamId: opponent.id,
+    });
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.advanceWeek();
+
+    const reveal = useGameStore.getState().pendingPlayoffLoreReveal;
+    const pendingCards = readPendingPlayoffLoreCards(dynastyId, game.year);
+
+    expect(reveal).not.toBeNull();
+    expect(reveal?.round).toBe('super_bowl');
+    expect(pendingCards).toHaveLength(1);
+    expect(pendingCards[0]?.gameId).toBe(reveal?.gameId);
+  });
+
+  it('stages playoff lore after the halftime decision resume path too', { timeout: 15_000 }, async () => {
+    const game = createSeedGameState(404, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const opponent = Object.values(game.teams).find((team) => !team.isUser)!;
+    const dynastyId = deriveDynastyId(game);
+    seedSuperBowlWeek(game, {
+      homeTeamId: userTeam.id,
+      awayTeamId: opponent.id,
+    });
+    game.postGameUi = {
+      pressConferenceQueue: [],
+      audioCueQueue: [],
+      pendingHalftimeDecision: {
+        teamId: userTeam.id,
+        year: game.year,
+        week: game.week,
+        phase: game.phase,
+        homeTeamId: userTeam.id,
+        awayTeamId: opponent.id,
+        homeScore: 14,
+        awayScore: 17,
+        suggestion: {
+          direction: 'more_pass',
+          responseLabel: 'Lean into the air game',
+          summary: 'The pivot opens up the throw menu.',
+          reason: 'The box is overloaded and the throw game is there.',
+        },
+      },
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.resolveHalftimeDecision('switch');
+
+    expect(useGameStore.getState().pendingPlayoffLoreReveal).not.toBeNull();
+    expect(readPendingPlayoffLoreCards(dynastyId, game.year)).toHaveLength(1);
   });
 
   it('persists call your shot declarations through the store', async () => {

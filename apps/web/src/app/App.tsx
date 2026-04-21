@@ -65,6 +65,7 @@ import { RouteTransition } from '../features/shared/transitions/RouteTransition'
 import { getSaveReminderMessage, shouldPromptEraNaming, shouldShowSaveReminder } from '@mfd/engine';
 import { ConfirmDialog } from '../features/shared/ConfirmDialog';
 import { syncScrapbookAtYearRollover } from './scrapbook-rollover';
+import { PlayoffLorePrompt } from '../features/playoffs/PlayoffLorePrompt';
 
 const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
 const LazyDraftBoard = lazy(async () => ({ default: (await import('../features/draft/DraftBoard')).DraftBoard }));
@@ -205,6 +206,7 @@ function RootLayout() {
   const currentWeek = useGameStore((s) => s.game?.week ?? 0);
   const currentYear = useGameStore((s) => s.game?.year ?? 0);
   const recapPromptSeenThisSession = useGameStore((s) => s.recapPromptSeenThisSession);
+  const pendingPlayoffLoreReveal = useGameStore((s) => s.pendingPlayoffLoreReveal);
   const userTeamWins = useGameStore((s) => {
     if (!s.game) return 0;
     const team = Object.values(s.game.teams).find((t) => t.isUser);
@@ -556,7 +558,8 @@ function RootLayout() {
             ))}
           </div>
         </PixelModal>
-        <SeasonRecapPrompt open={showRecapPrompt} onClose={() => setShowRecapPrompt(false)} />
+        <PlayoffLorePrompt open={pendingPlayoffLoreReveal !== null} onClose={() => undefined} />
+        <SeasonRecapPrompt open={showRecapPrompt && pendingPlayoffLoreReveal === null} onClose={() => setShowRecapPrompt(false)} />
         <DynastyEraPrompt open={showEraPrompt} onClose={() => setShowEraPrompt(false)} />
         <ConfirmDialog
           open={showSaveReminder}

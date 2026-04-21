@@ -182,7 +182,11 @@ import {
   finalizedEndYearForGame,
   finalizeDynasty,
 } from '../../lib/career-meta';
-import { clearScrapbookForDynasty } from '../../lib/scrapbook-store';
+import {
+  clearScrapbookForDynasty,
+  stagePendingPlayoffLoreCard,
+} from '../../lib/scrapbook-store';
+import { buildPlayoffLoreCard, type PlayoffLoreCard } from '../../lib/playoff-lore';
 import {
   selectCapCandidates,
   selectCapHealth,
@@ -328,6 +332,7 @@ interface GameActions {
   setCallYourShot: (declaration: ShotDeclaration | null) => Promise<void>;
   recordPortableExport: () => void;
   setRecapPromptSeenThisSession: (seen: boolean) => void;
+  clearPendingPlayoffLoreReveal: () => void;
 
   // Franchise Setup
   advanceSetup: (options?: { requireTopPressureOpened?: boolean }) => Promise<void>;
@@ -390,8 +395,14 @@ export const useGameStore = create<GameStore>()(
       const team = Object.values(game.teams).find((entry) => entry.isUser) ?? null;
       if (!team) return null;
       const week = game.schedule.find((entry) => entry.week === playedWeek);
-      return week?.games.find((entry) =>
+      const scheduleResult = week?.games.find((entry) =>
         (entry.homeTeamId === team.id || entry.awayTeamId === team.id) && entry.result,
+      )?.result ?? null;
+      if (scheduleResult) return scheduleResult;
+      return game.playoffBracket?.matchups.find((entry) =>
+        entry.week === playedWeek
+        && entry.result
+        && (entry.homeTeamId === team.id || entry.awayTeamId === team.id),
       )?.result ?? null;
     };
     const parseScoreDiff = (finalScore: string): number => {
@@ -401,6 +412,30 @@ export const useGameStore = create<GameStore>()(
     };
     const findLatestGameDayPackage = (game: GameState) =>
       game.gameDayState.recentPackages.find((entry) => entry.id === game.gameDayState.latestPackageId) ?? null;
+    const maybeStagePlayoffLoreCard = (
+      nextGame: GameState,
+      previousGame: GameState,
+      playedWeek: number,
+    ): PlayoffLoreCard | null => {
+      const userTeam = Object.values(nextGame.teams).find((entry) => entry.isUser) ?? null;
+      if (!userTeam) return null;
+      const latestPackage = findLatestGameDayPackage(nextGame);
+      const result = findUserGameResult(nextGame, playedWeek);
+      if (!latestPackage || !result) return null;
+
+      const card = buildPlayoffLoreCard({
+        packageData: latestPackage,
+        result,
+        userTeamId: userTeam.id,
+        momentumTag: nextGame.playoffMomentum[userTeam.id]?.narrativeTag
+          ?? previousGame.playoffMomentum[userTeam.id]?.narrativeTag
+          ?? null,
+      });
+      if (!card) return null;
+
+      stagePendingPlayoffLoreCard(deriveDynastyId(nextGame), card.seasonYear, card);
+      return card;
+    };
     const resolvePressConferenceScenario = (game: GameState): string | null => {
       const latestPackage = findLatestGameDayPackage(game);
       if (!latestPackage) return null;
@@ -790,6 +825,7 @@ export const useGameStore = create<GameStore>()(
     undoSnapshot: null,
     undoLabel: null,
     recapPromptSeenThisSession: false,
+    pendingPlayoffLoreReveal: null,
 
     actions: {
       newGame: async (initial) => {
@@ -800,6 +836,7 @@ export const useGameStore = create<GameStore>()(
           s.game = initial;
           s.initialized = true;
           s.recapPromptSeenThisSession = false;
+          s.pendingPlayoffLoreReveal = null;
         });
         await autosaveDynasty(initial);
       },
@@ -810,6 +847,7 @@ export const useGameStore = create<GameStore>()(
           s.game = loaded;
           s.initialized = true;
           s.recapPromptSeenThisSession = false;
+          s.pendingPlayoffLoreReveal = null;
         });
       },
 
@@ -822,6 +860,7 @@ export const useGameStore = create<GameStore>()(
           s.game = latest;
           s.initialized = true;
           s.recapPromptSeenThisSession = false;
+          s.pendingPlayoffLoreReveal = null;
         });
         return true;
       },
@@ -1190,12 +1229,19 @@ export const useGameStore = create<GameStore>()(
           ...buildPostAdvanceAudioQueue(nextGame, current.week),
         ].slice(-20);
         nextGame.breakingNewsQueue = buildBreakingNewsQueue(nextGame).slice(0, 5);
+        const pendingPlayoffLoreReveal = maybeStagePlayoffLoreCard(nextGame, current, current.week);
 
         if (nextGame.year > current.year) {
           set((s) => {
             s.recapPromptSeenThisSession = false;
           });
           syncCareerMeta(nextGame);
+        }
+
+        if (pendingPlayoffLoreReveal) {
+          set((s) => {
+            s.pendingPlayoffLoreReveal = pendingPlayoffLoreReveal;
+          });
         }
 
         completeTutorialActionEngine(nextGame, 'week:advance');
@@ -1267,12 +1313,19 @@ export const useGameStore = create<GameStore>()(
           ...buildPostAdvanceAudioQueue(nextGame, current.week),
         ].slice(-20);
         nextGame.breakingNewsQueue = buildBreakingNewsQueue(nextGame).slice(0, 5);
+        const pendingPlayoffLoreReveal = maybeStagePlayoffLoreCard(nextGame, current, current.week);
 
         if (nextGame.year > current.year) {
           set((s) => {
             s.recapPromptSeenThisSession = false;
           });
           syncCareerMeta(nextGame);
+        }
+
+        if (pendingPlayoffLoreReveal) {
+          set((s) => {
+            s.pendingPlayoffLoreReveal = pendingPlayoffLoreReveal;
+          });
         }
 
         completeTutorialActionEngine(nextGame, 'week:advance');
@@ -2421,6 +2474,12 @@ export const useGameStore = create<GameStore>()(
       setRecapPromptSeenThisSession: (seen) => {
         set((s) => {
           s.recapPromptSeenThisSession = seen;
+        });
+      },
+
+      clearPendingPlayoffLoreReveal: () => {
+        set((s) => {
+          s.pendingPlayoffLoreReveal = null;
         });
       },
 
