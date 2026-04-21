@@ -46,11 +46,24 @@ import team_sea_grunge_json from '../../content/teams/sea-grunge.json';
 import team_sf_sourdoughs_json from '../../content/teams/sf-sourdoughs.json';
 import team_stl_toasted_raviolis_json from '../../content/teams/stl-toasted-raviolis.json';
 import team_tb_pirates_json from '../../content/teams/tb-pirates.json';
+import { z } from 'zod';
 import {
   CallYourShotReactionsContentSchema,
   ContingencyCalloutsContentSchema,
   ApologyTourContentSchema,
   TeamContentSchema,
+  PressConferenceTemplatesContentSchema,
+  AgmDialogueContentSchema,
+  BroadcastTemplatesContentSchema,
+  AwardSpeechesContentSchema,
+  CoachArchetypesContentSchema,
+  HalftimeContentSchema,
+  PlayerNamesContentSchema,
+  StoryArcTemplatesContentSchema,
+  LeagueNewsTemplatesContentSchema,
+  PersonalityFlavorContentSchema,
+  ScoutingTemplatesContentSchema,
+  SocialFeedTemplatesContentSchema,
   type CallYourShotReactionContent,
   type CallYourShotReactionOutcome,
   type ContingencyCalloutKey,
@@ -315,17 +328,75 @@ type ContingencyCalloutsContent = {
   callouts: Record<ContingencyCalloutKey, readonly string[]>;
 };
 
-const pressConferenceTemplates = pressConferenceTemplatesJson as Record<PressConferenceScenario, PressConferenceScenarioContent>;
-const storyArcTemplates = storyArcTemplatesJson as Record<StoryArcContentTemplate, Record<StoryArcContentPhase, StoryArcPhaseContent>>;
-const playerNames = playerNamesJson as PlayerNameContent;
-const socialFeedTemplates = socialFeedTemplatesJson as SocialFeedTemplateContent;
-const leagueNewsTemplates = leagueNewsTemplatesJson as Record<LeagueNewsEventType, LeagueNewsTemplateCategory>;
-const halftimeContent = halftimePerformersJson as HalftimeContent;
-const scoutingReportTemplates = scoutingReportTemplatesJson as ScoutingTemplatesContent;
-const coachArchetypeContent = coachArchetypesJson as CoachArchetypesContent;
-const awardSpeechContent = awardSpeechesJson as AwardSpeechContent;
-const personalityFlavorContent = personalityFlavorJson as PersonalityFlavorContent;
-const agmDialogueContent = agmDialogueJson as AgmDialogueContent;
+// Tier B content validation (cleanup sprint post-55): every content JSON
+// passes through Zod at import time. Silent drift is caught before the
+// game loop reads the content — matching the Tier A team-file pattern.
+function parseContent<T>(schema: z.ZodType<T>, raw: unknown, label: string): T {
+  const result = schema.safeParse(raw);
+  if (!result.success) {
+    const issues = result.error.issues
+      .map((issue) => `  ${issue.path.join('.') || '<root>'}: ${issue.message}`)
+      .join('\n');
+    throw new Error(`Invalid content for ${label}:\n${issues}`);
+  }
+  return result.data;
+}
+
+const pressConferenceTemplates = parseContent(
+  PressConferenceTemplatesContentSchema,
+  pressConferenceTemplatesJson,
+  'broadcast/press-conference-templates.json',
+) as Record<PressConferenceScenario, PressConferenceScenarioContent>;
+const storyArcTemplates = parseContent(
+  StoryArcTemplatesContentSchema,
+  storyArcTemplatesJson,
+  'narrative/story-arc-templates.json',
+) as Record<StoryArcContentTemplate, Record<StoryArcContentPhase, StoryArcPhaseContent>>;
+const playerNames = parseContent(
+  PlayerNamesContentSchema,
+  playerNamesJson,
+  'names/player-names.json',
+) as PlayerNameContent;
+const socialFeedTemplates = parseContent(
+  SocialFeedTemplatesContentSchema,
+  socialFeedTemplatesJson,
+  'social/social-feed-templates.json',
+) as SocialFeedTemplateContent;
+const leagueNewsTemplates = parseContent(
+  LeagueNewsTemplatesContentSchema,
+  leagueNewsTemplatesJson,
+  'news/league-news-templates.json',
+) as Record<LeagueNewsEventType, LeagueNewsTemplateCategory>;
+const halftimeContent = parseContent(
+  HalftimeContentSchema,
+  halftimePerformersJson,
+  'halftime/halftime-performers.json',
+) as HalftimeContent;
+const scoutingReportTemplates = parseContent(
+  ScoutingTemplatesContentSchema,
+  scoutingReportTemplatesJson,
+  'scouting/scouting-report-templates.json',
+) as ScoutingTemplatesContent;
+const coachArchetypeContent = parseContent(
+  CoachArchetypesContentSchema,
+  coachArchetypesJson,
+  'coaching/coach-archetypes.json',
+) as CoachArchetypesContent;
+const awardSpeechContent = parseContent(
+  AwardSpeechesContentSchema,
+  awardSpeechesJson,
+  'ceremonies/award-speeches.json',
+) as AwardSpeechContent;
+const personalityFlavorContent = parseContent(
+  PersonalityFlavorContentSchema,
+  personalityFlavorJson,
+  'personalities/personality-flavor.json',
+) as PersonalityFlavorContent;
+const agmDialogueContent = parseContent(
+  AgmDialogueContentSchema,
+  agmDialogueJson,
+  'broadcast/agm-dialogue.json',
+) as AgmDialogueContent;
 const callYourShotReactionsContent = CallYourShotReactionsContentSchema.parse(
   callYourShotReactionsJson,
 ) as CallYourShotReactionsContent;
@@ -333,9 +404,19 @@ const contingencyCalloutsContent = ContingencyCalloutsContentSchema.parse(
   contingencyCalloutsJson,
 ) as ContingencyCalloutsContent;
 const apologyTourContent = ApologyTourContentSchema.parse(apologyTourJson);
+const passingDefenseStTemplates = parseContent(
+  BroadcastTemplatesContentSchema,
+  passingDefenseStTemplatesJson,
+  'broadcast/passing-defense-st-templates.json',
+);
+const rushingTemplates = parseContent(
+  BroadcastTemplatesContentSchema,
+  rushingTemplatesJson,
+  'broadcast/rushing-templates.json',
+);
 const broadcastTemplateContent = {
-  ...(passingDefenseStTemplatesJson as Record<string, BroadcastTemplateCategory>),
-  ...(rushingTemplatesJson as Record<string, BroadcastTemplateCategory>),
+  ...passingDefenseStTemplates,
+  ...rushingTemplates,
 } satisfies Record<string, BroadcastTemplateCategory>;
 // Sprint 40 "The Straight Line": validate every team JSON via Zod at load.
 // Fail loud if a team file drifts from TeamContentSchema shape.
