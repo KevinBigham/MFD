@@ -24,6 +24,7 @@ import {
   LegendCard,
   TrendSparkline,
 } from './franchiseUi';
+import { HomegrownMeter } from './HomegrownMeter';
 
 const DOCTRINE_ACCENTS = {
   culture: 'green',
@@ -78,6 +79,8 @@ export function FranchiseHub() {
           </>
         )}
       />
+
+      <HomegrownMeter game={game} />
 
       <div style={autoGrid(220)}>
         <PixelMetricCard
