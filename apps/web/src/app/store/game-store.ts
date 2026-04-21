@@ -178,9 +178,11 @@ import {
 import {
   appendDynastySummary,
   buildDynastySummary,
+  deriveDynastyId,
   finalizedEndYearForGame,
   finalizeDynasty,
 } from '../../lib/career-meta';
+import { clearScrapbookForDynasty } from '../../lib/scrapbook-store';
 import {
   selectCapCandidates,
   selectCapHealth,
@@ -792,6 +794,7 @@ export const useGameStore = create<GameStore>()(
     actions: {
       newGame: async (initial) => {
         finalizeCurrentDynasty(get().game);
+        clearScrapbookForDynasty(deriveDynastyId(initial));
         syncCareerMeta(initial);
         set((s) => {
           s.game = initial;

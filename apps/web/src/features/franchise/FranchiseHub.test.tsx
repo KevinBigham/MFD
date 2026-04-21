@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { FranchiseHub } from './FranchiseHub';
 
+const { navigateToMock } = vi.hoisted(() => ({
+  navigateToMock: vi.fn(),
+}));
+
 const baseState = () => ({
   team: {
     id: 'team-1',
@@ -109,9 +113,52 @@ vi.mock('../../app/store/game-store', () => ({
   selectUserTeam: (state: typeof mockState) => state.team,
 }));
 
+vi.mock('../shared/pixelUi', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../shared/pixelUi')>();
+  return {
+    ...actual,
+    navigateTo: navigateToMock,
+  };
+});
+
+function flattenText(children: unknown): string {
+  if (Array.isArray(children)) {
+    return children.map((child) => flattenText(child)).join('');
+  }
+  if (children == null || typeof children === 'boolean') return '';
+  if (typeof children === 'string' || typeof children === 'number') return String(children);
+  if (typeof children === 'object' && children && 'props' in children) {
+    return flattenText((children as { props?: { children?: unknown } }).props?.children);
+  }
+  return '';
+}
+
+function findButtonByText(node: unknown, text: string): { props?: { onClick?: () => void; children?: unknown } } | null {
+  if (!node || typeof node !== 'object') return null;
+  const element = node as { type?: unknown; props?: { children?: unknown; onClick?: () => void } };
+  if (typeof element.type === 'function') {
+    return findButtonByText(element.type(element.props ?? {}), text);
+  }
+  if (element.type === 'button' && flattenText(element.props?.children).includes(text)) {
+    return element;
+  }
+
+  const children = element.props?.children;
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      const found = findButtonByText(child, text);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  return findButtonByText(children, text);
+}
+
 describe('FranchiseHub', () => {
   beforeEach(() => {
     mockState = baseState();
+    navigateToMock.mockReset();
   });
 
   it('renders the franchise header with current stadium identity', () => {
@@ -168,5 +215,20 @@ describe('FranchiseHub', () => {
     const markup = renderToStaticMarkup(<FranchiseHub />);
     expect(markup).toContain('FRANCHISE DOCTRINES');
     expect(markup).toContain('No doctrines unlocked yet');
+  });
+
+  it('renders the Dynasty Scrapbook tile after GM Career', () => {
+    const markup = renderToStaticMarkup(<FranchiseHub />);
+
+    expect(markup.indexOf('GM Career')).toBeLessThan(markup.indexOf('Dynasty Scrapbook'));
+  });
+
+  it('navigates to the scrapbook route from the Dynasty Scrapbook tile', () => {
+    const button = findButtonByText(<FranchiseHub />, 'View Dynasty Scrapbook');
+
+    expect(button).not.toBeNull();
+    button?.props?.onClick?.();
+
+    expect(navigateToMock).toHaveBeenCalledWith('/franchise/scrapbook');
   });
 });

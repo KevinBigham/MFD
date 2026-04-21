@@ -475,6 +475,8 @@ export {
 export { buildSeasonSchedule } from './systems/season-schedule';
 export { buildSeasonRecap } from './systems/season-recap';
 export type { SeasonRecap, SeasonRecapLeader, SeasonRecapPlayoffResult } from './systems/season-recap';
+export { buildScrapbookEntry, summarizeScrapbook } from './systems/scrapbook';
+export type { ScrapbookEntry, ScrapbookMoment, ScrapbookSummary } from './systems/scrapbook';
 export { generateSeasonReport } from './systems/season-report';
 export {
   applyGamePlan,

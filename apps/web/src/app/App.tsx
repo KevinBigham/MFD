@@ -60,10 +60,11 @@ import { BreakingNewsTicker, selectTickerItems } from '../features/monday-briefi
 import { MilestoneCard, type MilestoneType } from '../features/shared/MilestoneCard';
 import { BreakingNews } from '../features/shared/BreakingNews';
 import { DynastyEraPrompt } from '../features/dynasty-era/DynastyEraPrompt';
-import { SeasonRecapPrompt, shouldOpenSeasonRecapPrompt } from '../features/season/SeasonRecapPrompt';
+import { SeasonRecapPrompt } from '../features/season/SeasonRecapPrompt';
 import { RouteTransition } from '../features/shared/transitions/RouteTransition';
 import { getSaveReminderMessage, shouldPromptEraNaming, shouldShowSaveReminder } from '@mfd/engine';
 import { ConfirmDialog } from '../features/shared/ConfirmDialog';
+import { syncScrapbookAtYearRollover } from './scrapbook-rollover';
 
 const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
 const LazyDraftBoard = lazy(async () => ({ default: (await import('../features/draft/DraftBoard')).DraftBoard }));
@@ -98,6 +99,7 @@ const LazyRelocationScreen = lazy(async () => ({ default: (await import('../feat
 const LazyExpansionDraft = lazy(async () => ({ default: (await import('../features/franchise/ExpansionDraft')).ExpansionDraft }));
 const LazyFranchiseLegends = lazy(async () => ({ default: (await import('../features/franchise/FranchiseLegends')).FranchiseLegends }));
 const LazyFranchiseBook = lazy(async () => ({ default: (await import('../features/franchise/FranchiseBook')).FranchiseBookScreen }));
+const LazyScrapbook = lazy(async () => ({ default: (await import('../features/franchise/Scrapbook')).Scrapbook }));
 const LazyLockerRoom = lazy(async () => ({ default: (await import('../features/locker-room/LockerRoom')).LockerRoom }));
 const LazyEndorsementCenter = lazy(async () => ({ default: (await import('../features/endorsements/EndorsementCenter')).EndorsementCenter }));
 const LazyCommissionerOffice = lazy(async () => ({ default: (await import('../features/league/CommissionerOffice')).CommissionerOffice }));
@@ -393,7 +395,7 @@ function RootLayout() {
       setShowEraPrompt(true);
     }
 
-    if (shouldOpenSeasonRecapPrompt(prevYear.current, game, userTeam?.id ?? null, recapPromptSeenThisSession)) {
+    if (syncScrapbookAtYearRollover(prevYear.current, game, userTeam?.id ?? null, recapPromptSeenThisSession)) {
       setShowRecapPrompt(true);
     }
 
@@ -1493,6 +1495,16 @@ const gmCareerRoute = createRoute({
   ),
 });
 
+const scrapbookRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/franchise/scrapbook',
+  component: () => (
+    <LazyRouteFrame label="dynasty scrapbook">
+      <LazyScrapbook />
+    </LazyRouteFrame>
+  ),
+});
+
 function PlayerDevRouteWrapper() {
   const roster = useGameStore(selectRoster);
   const team = useGameStore(selectUserTeam);
@@ -1558,7 +1570,7 @@ const routeTree = rootRoute.addChildren([
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, franchiseBookRoute, legendsRoute, seasonRecapRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
-  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, gmCareerRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
+  powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
 ]);
 
 const hashHistory = createHashHistory();
