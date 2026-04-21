@@ -5,6 +5,7 @@ import type { ScrapbookEntry } from '@mfd/engine';
 const {
   mockEntries,
   mockState,
+  exportRecapAsPngMock,
 } = vi.hoisted(() => ({
   mockEntries: [] as ScrapbookEntry[],
   mockState: {
@@ -19,6 +20,7 @@ const {
       abbr: 'CHI',
     },
   },
+  exportRecapAsPngMock: vi.fn(async () => 'data:image/png;base64,full'),
 }));
 
 vi.mock('../../lib/scrapbook-store', () => ({
@@ -32,6 +34,10 @@ vi.mock('../../lib/career-meta', () => ({
 vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: typeof mockState) => unknown) => selector(mockState),
   selectUserTeam: (state: typeof mockState) => state.team,
+}));
+
+vi.mock('../season/recap-share', () => ({
+  exportRecapAsPng: exportRecapAsPngMock,
 }));
 
 vi.mock('@mfd/design-system/components', () => ({
@@ -130,7 +136,7 @@ function makeEntry(
   };
 }
 
-import { Scrapbook } from './Scrapbook';
+import { Scrapbook, exportFullScrapbookAsPng } from './Scrapbook';
 
 describe('Scrapbook', () => {
   it('renders the empty state without crashing', () => {
@@ -175,5 +181,14 @@ describe('Scrapbook', () => {
     const markup = renderToStaticMarkup(<Scrapbook />);
 
     expect(markup).not.toMatch(/\p{Extended_Pictographic}/u);
+  });
+
+  it('uses the recap-share PNG helper for full scrapbook export', async () => {
+    exportRecapAsPngMock.mockClear();
+    const exportNode = {} as HTMLElement;
+
+    await exportFullScrapbookAsPng(exportNode, 'Chicago Blaze');
+
+    expect(exportRecapAsPngMock).toHaveBeenCalledWith(exportNode);
   });
 });

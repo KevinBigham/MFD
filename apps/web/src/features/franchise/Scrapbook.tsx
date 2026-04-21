@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { summarizeScrapbook, type ScrapbookEntry } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import { useGameStore, selectUserTeam } from '../../app/store/game-store';
@@ -41,13 +42,42 @@ function playoffLabel(playoffResult: ScrapbookEntry['recap']['playoffResult']): 
   }
 }
 
+function slugifyDynastyName(dynastyName: string): string {
+  const slug = dynastyName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug || 'dynasty-scrapbook';
+}
+
+export async function exportFullScrapbookAsPng(target: HTMLElement, dynastyName: string): Promise<string> {
+  const { exportRecapAsPng } = await import('../season/recap-share');
+  const dataUrl = await exportRecapAsPng(target);
+  if (typeof document !== 'undefined') {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `${slugifyDynastyName(dynastyName)}-scrapbook.png`;
+    link.click();
+  }
+  return dataUrl;
+}
+
 export function Scrapbook() {
   const game = useGameStore((state) => state.game);
   const team = useGameStore(selectUserTeam);
+  const [status, setStatus] = useState<string | null>(null);
+  const timelineRef = useRef<HTMLDivElement | null>(null);
   const dynastyId = game ? deriveDynastyId(game) : 'unknown-dynasty';
   const entries = readScrapbookForDynasty(dynastyId).sort(compareEntriesNewestFirst);
   const summary = summarizeScrapbook(entries);
   const dynastyName = team ? `${team.city} ${team.name}` : 'Current Dynasty';
+
+  const handleExport = async () => {
+    if (!timelineRef.current) return;
+    await exportFullScrapbookAsPng(timelineRef.current, dynastyName);
+    setStatus('PNG export ready.');
+  };
 
   return (
     <div style={screenStackStyle}>
@@ -57,40 +87,45 @@ export function Scrapbook() {
         badges={<PixelBadge variant="gold">SCRAPBOOK</PixelBadge>}
       />
 
-      <div style={autoGrid(180)}>
-        <PixelMetricCard label="Total Seasons" value={summary.totalSeasons} accent="gold" detail="Completed seasons saved to this dynasty" />
-        <PixelMetricCard label="Championships" value={summary.totalChampionships} accent="green" detail="Titles captured in the archive" />
-        <PixelMetricCard label="Winning Streak" value={summary.longestWinStreak} accent="cyan" detail="Consecutive winning seasons" />
-        <PixelMetricCard label="Best Record" value={bestRecordLabel(summary.bestSingleSeasonRecord)} accent="default" detail="Best single-season mark" />
-        <PixelMetricCard label="Breakouts" value={summary.totalBreakouts} accent="gold" detail="Unique breakout players recorded" />
-      </div>
-
       <PixelPanel title="Archive Controls" accent="cyan">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
-            Export Full Scrapbook unlocks in the next slice. The timeline is already being assembled in newest-first order.
+            Export the full dynasty timeline as one shareable PNG image.
           </div>
-          <PixelButton accent="gold" disabled>
-            Export Full Scrapbook
-          </PixelButton>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <PixelButton accent="gold" disabled={entries.length === 0} onClick={() => { void handleExport(); }}>
+              Export Full Scrapbook
+            </PixelButton>
+            {status ? <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{status}</div> : null}
+          </div>
         </div>
       </PixelPanel>
 
-      {entries.length === 0 ? (
-        <PixelPanel title="Timeline" accent="default">
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
-            No seasons recorded yet. Complete a season to start your scrapbook.
-          </div>
-        </PixelPanel>
-      ) : (
-        <PixelPanel title="Timeline" accent="gold">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {entries.map((entry) => (
-              <ScrapbookEntryCard key={`${entry.recap.teamId}-${entry.year}`} entry={entry} />
-            ))}
-          </div>
-        </PixelPanel>
-      )}
+      <div ref={timelineRef} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={autoGrid(180)}>
+          <PixelMetricCard label="Total Seasons" value={summary.totalSeasons} accent="gold" detail="Completed seasons saved to this dynasty" />
+          <PixelMetricCard label="Championships" value={summary.totalChampionships} accent="green" detail="Titles captured in the archive" />
+          <PixelMetricCard label="Winning Streak" value={summary.longestWinStreak} accent="cyan" detail="Consecutive winning seasons" />
+          <PixelMetricCard label="Best Record" value={bestRecordLabel(summary.bestSingleSeasonRecord)} accent="default" detail="Best single-season mark" />
+          <PixelMetricCard label="Breakouts" value={summary.totalBreakouts} accent="gold" detail="Unique breakout players recorded" />
+        </div>
+
+        {entries.length === 0 ? (
+          <PixelPanel title="Timeline" accent="default">
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              No seasons recorded yet. Complete a season to start your scrapbook.
+            </div>
+          </PixelPanel>
+        ) : (
+          <PixelPanel title="Timeline" accent="gold">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {entries.map((entry) => (
+                <ScrapbookEntryCard key={`${entry.recap.teamId}-${entry.year}`} entry={entry} />
+              ))}
+            </div>
+          </PixelPanel>
+        )}
+      </div>
     </div>
   );
 }

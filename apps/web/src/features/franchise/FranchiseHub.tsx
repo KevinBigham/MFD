@@ -271,6 +271,17 @@ export function FranchiseHub() {
             </PixelButton>
           </div>
         </PixelPanel>
+
+        <PixelPanel title="Dynasty Scrapbook" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Every completed season becomes a scrapbook page in your dynasty archive.
+            </div>
+            <PixelButton accent="cyan" onClick={() => navigateTo('/franchise/scrapbook')}>
+              View Dynasty Scrapbook
+            </PixelButton>
+          </div>
+        </PixelPanel>
       </div>
     </div>
   );

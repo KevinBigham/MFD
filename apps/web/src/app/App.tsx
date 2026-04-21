@@ -60,10 +60,11 @@ import { BreakingNewsTicker, selectTickerItems } from '../features/monday-briefi
 import { MilestoneCard, type MilestoneType } from '../features/shared/MilestoneCard';
 import { BreakingNews } from '../features/shared/BreakingNews';
 import { DynastyEraPrompt } from '../features/dynasty-era/DynastyEraPrompt';
-import { SeasonRecapPrompt, shouldOpenSeasonRecapPrompt } from '../features/season/SeasonRecapPrompt';
+import { SeasonRecapPrompt } from '../features/season/SeasonRecapPrompt';
 import { RouteTransition } from '../features/shared/transitions/RouteTransition';
 import { getSaveReminderMessage, shouldPromptEraNaming, shouldShowSaveReminder } from '@mfd/engine';
 import { ConfirmDialog } from '../features/shared/ConfirmDialog';
+import { syncScrapbookAtYearRollover } from './scrapbook-rollover';
 
 const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
 const LazyDraftBoard = lazy(async () => ({ default: (await import('../features/draft/DraftBoard')).DraftBoard }));
@@ -394,7 +395,7 @@ function RootLayout() {
       setShowEraPrompt(true);
     }
 
-    if (shouldOpenSeasonRecapPrompt(prevYear.current, game, userTeam?.id ?? null, recapPromptSeenThisSession)) {
+    if (syncScrapbookAtYearRollover(prevYear.current, game, userTeam?.id ?? null, recapPromptSeenThisSession)) {
       setShowRecapPrompt(true);
     }
 

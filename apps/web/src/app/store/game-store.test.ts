@@ -1,15 +1,45 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ContingencyRule, ContractOffer, DraftProspect, TradeOffer } from '@mfd/engine';
+import type { ContingencyRule, ContractOffer, DraftProspect, ScrapbookEntry, TradeOffer } from '@mfd/engine';
 import { initializeDeadline, initializeOffseasonState, mulberry32 } from '@mfd/engine';
 import { createSeedGameState } from './seed';
 import { selectLatestGameDayPackage, useGameStore } from './game-store';
 import { autosaveDynasty } from './persistence';
 import { useUiStore } from './ui-store';
+import { deriveDynastyId } from '../../lib/career-meta';
+import { appendScrapbookEntry, readScrapbookForDynasty } from '../../lib/scrapbook-store';
 
 vi.mock('./persistence', () => ({
   autosaveDynasty: vi.fn().mockResolvedValue(1),
   loadLatestAutosaveGame: vi.fn().mockResolvedValue(null),
 }));
+
+class MemoryStorage implements Storage {
+  private readonly backing = new Map<string, string>();
+
+  get length() {
+    return this.backing.size;
+  }
+
+  clear(): void {
+    this.backing.clear();
+  }
+
+  getItem(key: string): string | null {
+    return this.backing.get(key) ?? null;
+  }
+
+  key(index: number): string | null {
+    return [...this.backing.keys()][index] ?? null;
+  }
+
+  removeItem(key: string): void {
+    this.backing.delete(key);
+  }
+
+  setItem(key: string, value: string): void {
+    this.backing.set(key, value);
+  }
+}
 
 function makeProspect(id: string): DraftProspect {
   return {
@@ -68,6 +98,66 @@ function buildTradeOffer(game: ReturnType<typeof createSeedGameState>): TradeOff
   };
 }
 
+function makeScrapbookEntry(year: number): ScrapbookEntry {
+  return {
+    year,
+    eraTag: `Era ${year}`,
+    seasonHighlightLine: `Highlight ${year}`,
+    notableMoments: [{
+      headline: `Moment ${year}`,
+      detail: 'A notable season detail.',
+      week: 8,
+      importance: 'major',
+    }],
+    recap: {
+      teamId: 'afce1',
+      teamName: 'Blaze',
+      teamCity: 'Chicago',
+      teamAbbr: 'CHI',
+      seasonYear: year,
+      record: '10-7',
+      wins: 10,
+      losses: 7,
+      ties: 0,
+      division: 'East',
+      conference: 'AFC',
+      divisionFinish: 1,
+      conferenceFinish: 2,
+      playoffResult: 'wild-card-loss',
+      teamAwards: [],
+      topPerformers: {
+        passingLeader: {
+          playerId: `qb-${year}`,
+          playerName: `QB ${year}`,
+          pos: 'QB',
+          value: 4100,
+          gamesPlayed: 17,
+          perGame: 241.2,
+        },
+        rushingLeader: {
+          playerId: `rb-${year}`,
+          playerName: `RB ${year}`,
+          pos: 'RB',
+          value: 1200,
+          gamesPlayed: 17,
+          perGame: 70.6,
+        },
+      },
+      seasonStory: `Season story ${year}`,
+      teamMotto: 'Keep climbing.',
+      breakoutCandidates: [{
+        playerId: `breakout-${year}`,
+        playerName: `Breakout ${year}`,
+        pos: 'WR',
+        age: 24,
+        ovr: 82,
+        ovrDelta: 4,
+        reason: 'Strong offseason leap.',
+      }],
+    },
+  };
+}
+
 describe('game store offseason actions', () => {
   beforeEach(() => {
     useGameStore.setState((state) => ({
@@ -88,6 +178,7 @@ describe('game store offseason actions', () => {
         this.type = type;
       }
     });
+    vi.stubGlobal('localStorage', new MemoryStorage());
     vi.clearAllMocks();
   });
 
@@ -147,6 +238,19 @@ describe('game store offseason actions', () => {
     expect(scouting?.actions).toEqual(['film']);
     expect(scouting?.accuracy).toBeGreaterThan(0);
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears only the new dynasty scrapbook bucket when starting a new game', async () => {
+    const game = createSeedGameState(41, 0, 'pro');
+    const dynastyId = deriveDynastyId(game);
+
+    appendScrapbookEntry(dynastyId, makeScrapbookEntry(2026));
+    appendScrapbookEntry('other-dynasty', makeScrapbookEntry(2025));
+
+    await useGameStore.getState().actions.newGame(game);
+
+    expect(readScrapbookForDynasty(dynastyId)).toEqual([]);
+    expect(readScrapbookForDynasty('other-dynasty')).toHaveLength(1);
   });
 
   it('runs a private workout and spends one scouting workout slot', async () => {
