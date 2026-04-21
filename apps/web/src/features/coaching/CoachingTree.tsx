@@ -14,6 +14,7 @@ import {
   monoSm,
   pixelSm,
   screenStackStyle,
+  teamThemeVars,
 } from '../shared/pixelUi';
 
 interface ResolvedCoach {
@@ -311,7 +312,13 @@ export function CoachingTree() {
   };
 
   return (
-    <div style={screenStackStyle}>
+    <div style={{
+      ...screenStackStyle,
+      ...teamThemeVars(userTeam?.id),
+      borderTop: '3px solid var(--mfd-team-primary)',
+      paddingTop: '8px',
+    }}
+    >
       <PixelScreenHeader
         title="COACHING TREE"
         subtitle="Lineage chain through your head coach"

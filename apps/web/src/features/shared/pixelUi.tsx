@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { getTeamContent } from '@mfd/engine';
 import {
   PixelConsequenceList as DesignSystemPixelConsequenceList,
   PixelMetricCard as DesignSystemPixelMetricCard,
@@ -33,6 +34,23 @@ export function autoGrid(minWidth = 280): CSSProperties {
     gridTemplateColumns: `repeat(auto-fit, minmax(${minWidth}px, 1fr))`,
     gap: '12px',
   };
+}
+
+export function teamThemeVars(teamId: string | undefined): CSSProperties {
+  if (!teamId) {
+    return {
+      '--mfd-team-primary': 'var(--mfd-gold)',
+      '--mfd-team-secondary': 'var(--mfd-cyan)',
+      '--mfd-team-tertiary': 'var(--mfd-red)',
+    } as CSSProperties;
+  }
+
+  const content = getTeamContent(teamId);
+  return {
+    '--mfd-team-primary': content?.primaryColor ?? 'var(--mfd-gold)',
+    '--mfd-team-secondary': content?.secondaryColor ?? 'var(--mfd-cyan)',
+    '--mfd-team-tertiary': content?.tertiaryColor ?? 'var(--mfd-red)',
+  } as CSSProperties;
 }
 
 interface PixelScreenHeaderProps {

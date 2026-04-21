@@ -16,6 +16,7 @@ import {
   monoSm,
   navigateTo,
   screenStackStyle,
+  teamThemeVars,
 } from '../shared/pixelUi';
 import {
   DetailStripe,
@@ -50,7 +51,13 @@ export function FranchiseHub() {
 
   if (!team || !dashboard) {
     return (
-      <div style={screenStackStyle}>
+      <div style={{
+        ...screenStackStyle,
+        ...teamThemeVars(team?.id),
+        borderTop: '3px solid var(--mfd-team-primary)',
+        paddingTop: '8px',
+      }}
+      >
         <PixelScreenHeader title="Your Franchise" subtitle="No franchise record is loaded." />
       </div>
     );
@@ -68,7 +75,13 @@ export function FranchiseHub() {
   const coachingDepth = game && team?.staff?.hc ? buildCoachingLegacy(game, team.staff.hc.id).treeDepth : 0;
 
   return (
-    <div style={screenStackStyle}>
+    <div style={{
+      ...screenStackStyle,
+      ...teamThemeVars(team.id),
+      borderTop: '3px solid var(--mfd-team-primary)',
+      paddingTop: '8px',
+    }}
+    >
       <PixelScreenHeader
         title="Your Franchise"
         subtitle={`${team.city} ${team.name} // ${identity.stadiumName} // ${dashboard.currentEra.name}`}

@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { CSSProperties } from 'react';
-import { getTeamContent, type HallOfFameEntry } from '@mfd/engine';
+import type { HallOfFameEntry } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import { useGameStore } from '../../app/store/game-store';
 import { deriveDynastyId } from '../../lib/career-meta';
@@ -17,6 +16,7 @@ import {
   autoGrid,
   monoSm,
   screenStackStyle,
+  teamThemeVars,
 } from '../shared/pixelUi';
 import { HallOfFamerDetailModal } from './HallOfFamerDetailModal';
 
@@ -68,15 +68,6 @@ function applyFilter(
     return entries.filter((entry) => entry.teams[0] === dynastyTeamId);
   }
   return entries;
-}
-
-function dynastyThemeVars(teamId: string): CSSProperties {
-  const content = getTeamContent(teamId);
-  return {
-    '--mfd-hall-primary': content?.primaryColor ?? 'var(--mfd-gold)',
-    '--mfd-hall-secondary': content?.secondaryColor ?? 'var(--mfd-cyan)',
-    '--mfd-hall-tertiary': content?.tertiaryColor ?? 'var(--mfd-red)',
-  } as CSSProperties;
 }
 
 function inductionDecade(entry: HallOfFameEntry): number {
@@ -143,7 +134,7 @@ function HallOfFamerRow({ entry, dynastyTeamId, isPantheon = false, onSelect }: 
           alignItems: 'flex-start',
           gap: '12px',
           padding: '12px',
-          borderLeft: '3px solid var(--mfd-hall-primary)',
+          borderLeft: '3px solid var(--mfd-team-primary)',
           background: 'var(--mfd-bg-elevated)',
           width: '100%',
         }}
@@ -198,14 +189,14 @@ function DynastySection({ dynasty, sort, filter, groupMode, isCurrent, onSelect 
   if (entries.length === 0) return null;
 
   return (
-    <div style={dynastyThemeVars(dynasty.teamId)}>
+    <div style={teamThemeVars(dynasty.teamId)}>
       <PixelPanel title={`${dynasty.teamCity} ${dynasty.teamName}`} accent="gold">
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
-            borderTop: '2px solid var(--mfd-hall-secondary)',
+            borderTop: '2px solid var(--mfd-team-secondary)',
             paddingTop: '10px',
           }}
         >
@@ -222,7 +213,7 @@ function DynastySection({ dynasty, sort, filter, groupMode, isCurrent, onSelect 
                 <div
                   key={`${dynasty.dynastyId}-${group.decade}`}
                   style={index === 0 ? undefined : {
-                    borderTop: '2px solid var(--mfd-hall-secondary)',
+                    borderTop: '2px solid var(--mfd-team-secondary)',
                     paddingTop: '8px',
                   }}
                 >
