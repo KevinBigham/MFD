@@ -17,6 +17,7 @@ import {
   monoSm,
   screenStackStyle,
 } from '../shared/pixelUi';
+import { HallOfFamerDetailModal } from './HallOfFamerDetailModal';
 
 type SortMode = 'induction' | 'peakOvr' | 'careerScore' | 'name';
 type FilterMode = 'all' | 'homegrown' | 'current';
@@ -74,43 +75,62 @@ function dynastyThemeVars(teamId: string): CSSProperties {
 interface HallOfFamerRowProps {
   entry: HallOfFameEntry;
   dynastyTeamId: string;
+  onSelect: (entry: HallOfFameEntry, dynastyTeamId: string) => void;
 }
 
-function HallOfFamerRow({ entry, dynastyTeamId }: HallOfFamerRowProps) {
+function HallOfFamerRow({ entry, dynastyTeamId, onSelect }: HallOfFamerRowProps) {
   const isHomegrown = entry.teams[0] === dynastyTeamId;
   return (
-    <div
+    <button
+      type="button"
+      aria-label={`View Hall of Famer ${entry.name}`}
+      onClick={() => onSelect(entry, dynastyTeamId)}
       style={{
+        appearance: 'none',
+        width: '100%',
+        margin: 0,
+        padding: 0,
+        background: 'transparent',
+        border: 'none',
+        textAlign: 'left',
+        cursor: 'pointer',
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        gap: '12px',
-        padding: '12px',
-        borderLeft: '3px solid var(--mfd-hall-primary)',
-        background: 'var(--mfd-bg-elevated)',
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ ...monoSm, color: '#fff', fontWeight: 700 }}>{entry.name}</span>
-          <PixelBadge variant="default">{entry.position}</PixelBadge>
-          <PixelBadge variant="gold">{entry.inductionYear}</PixelBadge>
-          {isHomegrown ? <PixelBadge variant="cyan">HOMEGROWN</PixelBadge> : null}
-        </div>
-        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
-          Peak {entry.peakOvr} OVR // {entry.careerYears} seasons // score {Math.round(entry.score)}
-        </div>
-        {entry.awards.championships > 0 || entry.awards.mvps > 0 || entry.awards.allPros > 0 ? (
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-            {entry.awards.championships ? `${entry.awards.championships}x Champ` : null}
-            {entry.awards.championships && (entry.awards.mvps || entry.awards.allPros) ? ' // ' : null}
-            {entry.awards.mvps ? `${entry.awards.mvps}x MVP` : null}
-            {entry.awards.mvps && entry.awards.allPros ? ' // ' : null}
-            {entry.awards.allPros ? `${entry.awards.allPros}x All-Pro` : null}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '12px',
+          padding: '12px',
+          borderLeft: '3px solid var(--mfd-hall-primary)',
+          background: 'var(--mfd-bg-elevated)',
+          width: '100%',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ ...monoSm, color: '#fff', fontWeight: 700 }}>{entry.name}</span>
+            <PixelBadge variant="default">{entry.position}</PixelBadge>
+            <PixelBadge variant="gold">{entry.inductionYear}</PixelBadge>
+            {isHomegrown ? <PixelBadge variant="cyan">HOMEGROWN</PixelBadge> : null}
           </div>
-        ) : null}
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+            Peak {entry.peakOvr} OVR // {entry.careerYears} seasons // score {Math.round(entry.score)}
+          </div>
+          {entry.awards.championships > 0 || entry.awards.mvps > 0 || entry.awards.allPros > 0 ? (
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              {entry.awards.championships ? `${entry.awards.championships}x Champ` : null}
+              {entry.awards.championships && (entry.awards.mvps || entry.awards.allPros) ? ' // ' : null}
+              {entry.awards.mvps ? `${entry.awards.mvps}x MVP` : null}
+              {entry.awards.mvps && entry.awards.allPros ? ' // ' : null}
+              {entry.awards.allPros ? `${entry.awards.allPros}x All-Pro` : null}
+            </div>
+          ) : null}
+        </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -119,9 +139,10 @@ interface DynastySectionProps {
   sort: SortMode;
   filter: FilterMode;
   isCurrent: boolean;
+  onSelect: (entry: HallOfFameEntry, dynastyTeamId: string) => void;
 }
 
-function DynastySection({ dynasty, sort, filter, isCurrent }: DynastySectionProps) {
+function DynastySection({ dynasty, sort, filter, isCurrent, onSelect }: DynastySectionProps) {
   const entries = useMemo(
     () => sortEntries(applyFilter(dynasty.entries, dynasty.teamId, filter), sort),
     [dynasty.entries, dynasty.teamId, filter, sort],
@@ -154,6 +175,7 @@ function DynastySection({ dynasty, sort, filter, isCurrent }: DynastySectionProp
                 key={`${dynasty.dynastyId}-${entry.playerId}-${entry.inductionYear}`}
                 entry={entry}
                 dynastyTeamId={dynasty.teamId}
+                onSelect={onSelect}
               />
             ))}
           </div>
@@ -167,6 +189,10 @@ export function HallOfFameDirectory() {
   const game = useGameStore((state) => state.game);
   const [sort, setSort] = useState<SortMode>('induction');
   const [filter, setFilter] = useState<FilterMode>('all');
+  const [selectedEntry, setSelectedEntry] = useState<{
+    entry: HallOfFameEntry;
+    dynastyTeamId: string;
+  } | null>(null);
 
   const payload = readHallOfFameArchive();
   const summary = summarizeHallOfFameArchive(payload);
@@ -249,10 +275,19 @@ export function HallOfFameDirectory() {
               sort={sort}
               filter={filter}
               isCurrent={dynasty.dynastyId === currentDynastyId}
+              onSelect={(entry, dynastyTeamId) => setSelectedEntry({ entry, dynastyTeamId })}
             />
           ))}
         </div>
       )}
+
+      <HallOfFamerDetailModal
+        entry={selectedEntry?.entry ?? null}
+        open={selectedEntry !== null}
+        onClose={() => setSelectedEntry(null)}
+        teams={game?.teams ?? {}}
+        dynastyTeamId={selectedEntry?.dynastyTeamId ?? null}
+      />
     </div>
   );
 }

@@ -208,4 +208,29 @@ describe('HallOfFameDirectory', () => {
     // 2 dynasties represented
     expect(markup).toMatch(/Dynasties[\s\S]*?2/);
   });
+
+  it('renders semantic row buttons for each hall of famer entry', () => {
+    upsertHallOfFameDynasty(makeDynasty({
+      entries: [
+        makeEntry({ playerId: 'p-1', name: 'Alpha Carter' }),
+        makeEntry({ playerId: 'p-2', name: 'Bravo Stone' }),
+      ],
+    }));
+
+    const markup = renderToStaticMarkup(<HallOfFameDirectory />);
+
+    expect(markup).toContain('aria-label="View Hall of Famer Alpha Carter"');
+    expect(markup).toContain('aria-label="View Hall of Famer Bravo Stone"');
+  });
+
+  it('does not render the hall of famer detail modal by default', () => {
+    upsertHallOfFameDynasty(makeDynasty({
+      entries: [makeEntry({ playerId: 'p-1', name: 'Alpha Carter' })],
+    }));
+
+    const markup = renderToStaticMarkup(<HallOfFameDirectory />);
+
+    expect(markup).not.toContain('Team Chronology');
+    expect(markup).not.toContain('Export PNG');
+  });
 });
