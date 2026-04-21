@@ -10,6 +10,7 @@ import {
   monoSm,
   screenStackStyle,
 } from '../shared/pixelUi';
+import { ScrapbookEntryCard } from './ScrapbookEntry';
 
 function compareEntriesNewestFirst(left: ScrapbookEntry, right: ScrapbookEntry): number {
   return right.year - left.year
@@ -85,30 +86,7 @@ export function Scrapbook() {
         <PixelPanel title="Timeline" accent="gold">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {entries.map((entry) => (
-              <div
-                key={`${entry.recap.teamId}-${entry.year}`}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  padding: '12px',
-                  border: '2px solid var(--mfd-border)',
-                  background: 'var(--mfd-bg-2)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>Year {entry.year}</div>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <PixelBadge variant="cyan">{entry.eraTag}</PixelBadge>
-                    <PixelBadge variant={entry.recap.playoffResult === 'champion' ? 'gold' : 'default'}>
-                      {playoffLabel(entry.recap.playoffResult)}
-                    </PixelBadge>
-                  </div>
-                </div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-                  {entry.recap.record} // {entry.seasonHighlightLine}
-                </div>
-              </div>
+              <ScrapbookEntryCard key={`${entry.recap.teamId}-${entry.year}`} entry={entry} />
             ))}
           </div>
         </PixelPanel>

@@ -146,8 +146,8 @@ describe('Scrapbook', () => {
 
     const markup = renderToStaticMarkup(<Scrapbook />);
 
-    expect(markup.indexOf('Year 2026')).toBeLessThan(markup.indexOf('Year 2025'));
-    expect(markup.indexOf('Year 2025')).toBeLessThan(markup.indexOf('Year 2024'));
+    expect(markup.indexOf('2026')).toBeLessThan(markup.indexOf('2025'));
+    expect(markup.indexOf('2025')).toBeLessThan(markup.indexOf('2024'));
   });
 
   it('shows summary metrics sourced from summarizeScrapbook', () => {
