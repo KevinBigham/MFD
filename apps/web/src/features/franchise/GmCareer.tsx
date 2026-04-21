@@ -1,5 +1,6 @@
 import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
-import { PixelMetricCard, PixelScreenHeader, autoGrid, monoSm, screenStackStyle } from '../shared/pixelUi';
+import { selectUserTeam, useGameStore } from '../../app/store/game-store';
+import { PixelMetricCard, PixelScreenHeader, autoGrid, monoSm, screenStackStyle, teamThemeVars } from '../shared/pixelUi';
 import { readCareerMeta, type CareerMeta, type DynastySummary } from '../../lib/career-meta';
 
 function formatRecord(summary: DynastySummary | CareerMeta['careerTotals']): string {
@@ -30,6 +31,7 @@ function legacyStats(dynasties: DynastySummary[]) {
 }
 
 export function GmCareer() {
+  const userTeam = useGameStore(selectUserTeam);
   const meta = readCareerMeta();
   const dynasties = [...meta.dynasties].sort((left, right) =>
     dynastySortKey(right) - dynastySortKey(left)
@@ -39,7 +41,13 @@ export function GmCareer() {
 
   if (dynasties.length === 0) {
     return (
-      <div style={screenStackStyle}>
+      <div style={{
+        ...screenStackStyle,
+        ...teamThemeVars(userTeam?.id),
+        borderTop: '3px solid var(--mfd-team-primary)',
+        paddingTop: '8px',
+      }}
+      >
         <PixelScreenHeader
           title="GM Career"
           subtitle="Persistent local legacy across every dynasty."
@@ -58,7 +66,13 @@ export function GmCareer() {
   const dynastyLabel = meta.careerTotals.dynasties === 1 ? 'dynasty' : 'dynasties';
 
   return (
-    <div style={screenStackStyle}>
+    <div style={{
+      ...screenStackStyle,
+      ...teamThemeVars(userTeam?.id),
+      borderTop: '3px solid var(--mfd-team-primary)',
+      paddingTop: '8px',
+    }}
+    >
       <PixelScreenHeader
         title="GM Career"
         subtitle="Cross-dynasty coaching ledger stored in this browser."

@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { CSSProperties } from 'react';
-import { getTeamContent, type HallOfFameEntry } from '@mfd/engine';
+import type { HallOfFameEntry } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import { useGameStore } from '../../app/store/game-store';
 import { deriveDynastyId } from '../../lib/career-meta';
@@ -8,6 +7,7 @@ import {
   listDynastiesByStartYear,
   readHallOfFameArchive,
   summarizeHallOfFameArchive,
+  topHallOfFamerByScore,
   type HallOfFameArchiveDynasty,
 } from '../../lib/hall-of-fame-archive';
 import {
@@ -16,10 +16,13 @@ import {
   autoGrid,
   monoSm,
   screenStackStyle,
+  teamThemeVars,
 } from '../shared/pixelUi';
+import { HallOfFamerDetailModal } from './HallOfFamerDetailModal';
 
 type SortMode = 'induction' | 'peakOvr' | 'careerScore' | 'name';
 type FilterMode = 'all' | 'homegrown' | 'current';
+type GroupMode = 'flat' | 'era';
 
 const SORT_MODES: Array<{ id: SortMode; label: string }> = [
   { id: 'induction', label: 'Induction ↓' },
@@ -32,6 +35,11 @@ const FILTER_MODES: Array<{ id: FilterMode; label: string }> = [
   { id: 'all', label: 'All Dynasties' },
   { id: 'homegrown', label: 'Homegrown Only' },
   { id: 'current', label: 'Current Dynasty' },
+];
+
+const GROUP_MODES: Array<{ id: GroupMode; label: string }> = [
+  { id: 'flat', label: 'Flat' },
+  { id: 'era', label: 'By Era' },
 ];
 
 function sortEntries(entries: HallOfFameEntry[], mode: SortMode): HallOfFameEntry[] {
@@ -62,55 +70,98 @@ function applyFilter(
   return entries;
 }
 
-function dynastyThemeVars(teamId: string): CSSProperties {
-  const content = getTeamContent(teamId);
-  return {
-    '--mfd-hall-primary': content?.primaryColor ?? 'var(--mfd-gold)',
-    '--mfd-hall-secondary': content?.secondaryColor ?? 'var(--mfd-cyan)',
-    '--mfd-hall-tertiary': content?.tertiaryColor ?? 'var(--mfd-red)',
-  } as CSSProperties;
+function inductionDecade(entry: HallOfFameEntry): number {
+  return Math.floor(entry.inductionYear / 10) * 10;
+}
+
+function groupEntriesByEra(entries: HallOfFameEntry[]): Array<{
+  decade: number;
+  entries: HallOfFameEntry[];
+}> {
+  const buckets = new Map<number, HallOfFameEntry[]>();
+  for (const entry of entries) {
+    const decade = inductionDecade(entry);
+    const bucket = buckets.get(decade);
+    if (bucket) {
+      bucket.push(entry);
+      continue;
+    }
+    buckets.set(decade, [entry]);
+  }
+
+  return [...buckets.entries()]
+    .sort((left, right) => right[0] - left[0])
+    .map(([decade, groupedEntries]) => ({
+      decade,
+      entries: groupedEntries,
+    }));
 }
 
 interface HallOfFamerRowProps {
   entry: HallOfFameEntry;
   dynastyTeamId: string;
+  isPantheon?: boolean;
+  onSelect: (selection: {
+    entry: HallOfFameEntry;
+    dynastyTeamId: string;
+    isPantheon: boolean;
+  }) => void;
 }
 
-function HallOfFamerRow({ entry, dynastyTeamId }: HallOfFamerRowProps) {
+function HallOfFamerRow({ entry, dynastyTeamId, isPantheon = false, onSelect }: HallOfFamerRowProps) {
   const isHomegrown = entry.teams[0] === dynastyTeamId;
   return (
-    <div
+    <button
+      type="button"
+      aria-label={`View Hall of Famer ${entry.name}`}
+      onClick={() => onSelect({ entry, dynastyTeamId, isPantheon })}
       style={{
+        appearance: 'none',
+        width: '100%',
+        margin: 0,
+        padding: 0,
+        background: 'transparent',
+        border: 'none',
+        textAlign: 'left',
+        cursor: 'pointer',
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        gap: '12px',
-        padding: '12px',
-        borderLeft: '3px solid var(--mfd-hall-primary)',
-        background: 'var(--mfd-bg-elevated)',
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ ...monoSm, color: '#fff', fontWeight: 700 }}>{entry.name}</span>
-          <PixelBadge variant="default">{entry.position}</PixelBadge>
-          <PixelBadge variant="gold">{entry.inductionYear}</PixelBadge>
-          {isHomegrown ? <PixelBadge variant="cyan">HOMEGROWN</PixelBadge> : null}
-        </div>
-        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
-          Peak {entry.peakOvr} OVR // {entry.careerYears} seasons // score {Math.round(entry.score)}
-        </div>
-        {entry.awards.championships > 0 || entry.awards.mvps > 0 || entry.awards.allPros > 0 ? (
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-            {entry.awards.championships ? `${entry.awards.championships}x Champ` : null}
-            {entry.awards.championships && (entry.awards.mvps || entry.awards.allPros) ? ' // ' : null}
-            {entry.awards.mvps ? `${entry.awards.mvps}x MVP` : null}
-            {entry.awards.mvps && entry.awards.allPros ? ' // ' : null}
-            {entry.awards.allPros ? `${entry.awards.allPros}x All-Pro` : null}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '12px',
+          padding: '12px',
+          borderLeft: '3px solid var(--mfd-team-primary)',
+          background: 'var(--mfd-bg-elevated)',
+          width: '100%',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ ...monoSm, color: '#fff', fontWeight: 700 }}>{entry.name}</span>
+            <PixelBadge variant="default">{entry.position}</PixelBadge>
+            <PixelBadge variant="gold">{entry.inductionYear}</PixelBadge>
+            {isPantheon ? <PixelBadge variant="gold">PANTHEON</PixelBadge> : null}
+            {isHomegrown ? <PixelBadge variant="cyan">HOMEGROWN</PixelBadge> : null}
           </div>
-        ) : null}
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+            Peak {entry.peakOvr} OVR // {entry.careerYears} seasons // score {Math.round(entry.score)}
+          </div>
+          {entry.awards.championships > 0 || entry.awards.mvps > 0 || entry.awards.allPros > 0 ? (
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              {entry.awards.championships ? `${entry.awards.championships}x Champ` : null}
+              {entry.awards.championships && (entry.awards.mvps || entry.awards.allPros) ? ' // ' : null}
+              {entry.awards.mvps ? `${entry.awards.mvps}x MVP` : null}
+              {entry.awards.mvps && entry.awards.allPros ? ' // ' : null}
+              {entry.awards.allPros ? `${entry.awards.allPros}x All-Pro` : null}
+            </div>
+          ) : null}
+        </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -118,26 +169,34 @@ interface DynastySectionProps {
   dynasty: HallOfFameArchiveDynasty;
   sort: SortMode;
   filter: FilterMode;
+  groupMode: GroupMode;
   isCurrent: boolean;
+  onSelect: (selection: {
+    entry: HallOfFameEntry;
+    dynastyTeamId: string;
+    isPantheon: boolean;
+  }) => void;
 }
 
-function DynastySection({ dynasty, sort, filter, isCurrent }: DynastySectionProps) {
+function DynastySection({ dynasty, sort, filter, groupMode, isCurrent, onSelect }: DynastySectionProps) {
   const entries = useMemo(
     () => sortEntries(applyFilter(dynasty.entries, dynasty.teamId, filter), sort),
     [dynasty.entries, dynasty.teamId, filter, sort],
   );
+  const eraGroups = useMemo(() => groupEntriesByEra(entries), [entries]);
+  const topEntry = useMemo(() => topHallOfFamerByScore(dynasty), [dynasty]);
 
   if (entries.length === 0) return null;
 
   return (
-    <div style={dynastyThemeVars(dynasty.teamId)}>
+    <div style={teamThemeVars(dynasty.teamId)}>
       <PixelPanel title={`${dynasty.teamCity} ${dynasty.teamName}`} accent="gold">
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
-            borderTop: '2px solid var(--mfd-hall-secondary)',
+            borderTop: '2px solid var(--mfd-team-secondary)',
             paddingTop: '10px',
           }}
         >
@@ -148,25 +207,69 @@ function DynastySection({ dynasty, sort, filter, isCurrent }: DynastySectionProp
             </span>
             {isCurrent ? <PixelBadge variant="cyan">ACTIVE</PixelBadge> : null}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {entries.map((entry) => (
-              <HallOfFamerRow
-                key={`${dynasty.dynastyId}-${entry.playerId}-${entry.inductionYear}`}
-                entry={entry}
-                dynastyTeamId={dynasty.teamId}
-              />
-            ))}
-          </div>
+          {groupMode === 'era' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {eraGroups.map((group, index) => (
+                <div
+                  key={`${dynasty.dynastyId}-${group.decade}`}
+                  style={index === 0 ? undefined : {
+                    borderTop: '2px solid var(--mfd-team-secondary)',
+                    paddingTop: '8px',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
+                    <PixelBadge variant="gold">{group.decade}s</PixelBadge>
+                    <PixelBadge variant="default">
+                      {group.entries.length} HOFer{group.entries.length === 1 ? '' : 's'}
+                    </PixelBadge>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {group.entries.map((entry) => (
+                      <HallOfFamerRow
+                        key={`${dynasty.dynastyId}-${entry.playerId}-${entry.inductionYear}`}
+                        entry={entry}
+                        dynastyTeamId={dynasty.teamId}
+                        isPantheon={entry.playerId === topEntry?.playerId}
+                        onSelect={onSelect}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {entries.map((entry) => (
+                <HallOfFamerRow
+                  key={`${dynasty.dynastyId}-${entry.playerId}-${entry.inductionYear}`}
+                  entry={entry}
+                  dynastyTeamId={dynasty.teamId}
+                  isPantheon={entry.playerId === topEntry?.playerId}
+                  onSelect={onSelect}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </PixelPanel>
     </div>
   );
 }
 
-export function HallOfFameDirectory() {
+export function HallOfFameDirectory({
+  initialGroupMode = 'flat',
+}: {
+  initialGroupMode?: GroupMode;
+} = {}) {
   const game = useGameStore((state) => state.game);
   const [sort, setSort] = useState<SortMode>('induction');
   const [filter, setFilter] = useState<FilterMode>('all');
+  const [groupMode, setGroupMode] = useState<GroupMode>(initialGroupMode);
+  const [selectedEntry, setSelectedEntry] = useState<{
+    entry: HallOfFameEntry;
+    dynastyTeamId: string;
+    isPantheon: boolean;
+  } | null>(null);
 
   const payload = readHallOfFameArchive();
   const summary = summarizeHallOfFameArchive(payload);
@@ -225,6 +328,18 @@ export function HallOfFameDirectory() {
               </PixelButton>
             ))}
           </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Group:</span>
+            {GROUP_MODES.map((mode) => (
+              <PixelButton
+                key={mode.id}
+                accent={mode.id === groupMode ? 'gold' : 'default'}
+                onClick={() => setGroupMode(mode.id)}
+              >
+                {mode.label}
+              </PixelButton>
+            ))}
+          </div>
         </div>
       </PixelPanel>
 
@@ -248,11 +363,22 @@ export function HallOfFameDirectory() {
               dynasty={dynasty}
               sort={sort}
               filter={filter}
+              groupMode={groupMode}
               isCurrent={dynasty.dynastyId === currentDynastyId}
+              onSelect={(selection) => setSelectedEntry(selection)}
             />
           ))}
         </div>
       )}
+
+      <HallOfFamerDetailModal
+        entry={selectedEntry?.entry ?? null}
+        open={selectedEntry !== null}
+        onClose={() => setSelectedEntry(null)}
+        teams={game?.teams ?? {}}
+        dynastyTeamId={selectedEntry?.dynastyTeamId ?? null}
+        isPantheon={selectedEntry?.isPantheon ?? false}
+      />
     </div>
   );
 }

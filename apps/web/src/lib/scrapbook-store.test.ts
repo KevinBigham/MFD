@@ -3,6 +3,7 @@ import type { ScrapbookEntry } from '@mfd/engine';
 import {
   appendScrapbookEntry,
   clearScrapbookForDynasty,
+  listAllPlayoffLoreCards,
   readPendingPlayoffLoreCards,
   readScrapbookForDynasty,
   stagePendingPlayoffLoreCard,
@@ -232,5 +233,32 @@ describe('scrapbook-store', () => {
     }));
 
     expect(readScrapbookForDynasty('dynasty-a').map((entry) => entry.year)).toEqual([2026, 2025, 2024]);
+  });
+
+  it('returns an empty array from listAllPlayoffLoreCards when storage is empty', () => {
+    expect(listAllPlayoffLoreCards()).toEqual([]);
+  });
+
+  it('aggregates archived and pending playoff lore cards across dynasties', () => {
+    const archivedCard = makeCard(2026, 19, { gameId: 'archived-card' });
+    const pendingCard = makeCard(2027, 21, { gameId: 'pending-card' });
+
+    appendScrapbookEntry('dynasty-a', makeEntry(2026, { playoffLoreCards: [archivedCard] }));
+    stagePendingPlayoffLoreCard('dynasty-b', 2027, pendingCard);
+
+    expect(listAllPlayoffLoreCards()).toEqual([
+      {
+        dynastyId: 'dynasty-a',
+        seasonYear: 2026,
+        card: archivedCard,
+        source: 'archived',
+      },
+      {
+        dynastyId: 'dynasty-b',
+        seasonYear: 2027,
+        card: pendingCard,
+        source: 'pending',
+      },
+    ]);
   });
 });

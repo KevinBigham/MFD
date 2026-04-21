@@ -223,6 +223,14 @@ describe('FranchiseHub', () => {
     expect(markup.indexOf('GM Career')).toBeLessThan(markup.indexOf('Dynasty Scrapbook'));
   });
 
+  it('renders the Playoff Lore tile between Hall of Fame and Dynasty Scrapbook', () => {
+    const markup = renderToStaticMarkup(<FranchiseHub />);
+
+    expect(markup).toContain('Playoff Lore');
+    expect(markup.indexOf('Hall of Fame')).toBeLessThan(markup.indexOf('Playoff Lore'));
+    expect(markup.indexOf('Playoff Lore')).toBeLessThan(markup.indexOf('Dynasty Scrapbook'));
+  });
+
   it('navigates to the scrapbook route from the Dynasty Scrapbook tile', () => {
     const button = findButtonByText(<FranchiseHub />, 'View Dynasty Scrapbook');
 
@@ -230,5 +238,14 @@ describe('FranchiseHub', () => {
     button?.props?.onClick?.();
 
     expect(navigateToMock).toHaveBeenCalledWith('/franchise/scrapbook');
+  });
+
+  it('navigates to the playoff lore route from the Playoff Lore tile', () => {
+    const button = findButtonByText(<FranchiseHub />, 'Open Playoff Lore');
+
+    expect(button).not.toBeNull();
+    button?.props?.onClick?.();
+
+    expect(navigateToMock).toHaveBeenCalledWith('/franchise/playoff-lore');
   });
 });

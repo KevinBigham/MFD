@@ -16,6 +16,7 @@ import {
   monoSm,
   navigateTo,
   screenStackStyle,
+  teamThemeVars,
 } from '../shared/pixelUi';
 import {
   DetailStripe,
@@ -24,6 +25,7 @@ import {
   LegendCard,
   TrendSparkline,
 } from './franchiseUi';
+import { HomegrownMeter } from './HomegrownMeter';
 
 const DOCTRINE_ACCENTS = {
   culture: 'green',
@@ -49,7 +51,13 @@ export function FranchiseHub() {
 
   if (!team || !dashboard) {
     return (
-      <div style={screenStackStyle}>
+      <div style={{
+        ...screenStackStyle,
+        ...teamThemeVars(team?.id),
+        borderTop: '3px solid var(--mfd-team-primary)',
+        paddingTop: '8px',
+      }}
+      >
         <PixelScreenHeader title="Your Franchise" subtitle="No franchise record is loaded." />
       </div>
     );
@@ -67,7 +75,13 @@ export function FranchiseHub() {
   const coachingDepth = game && team?.staff?.hc ? buildCoachingLegacy(game, team.staff.hc.id).treeDepth : 0;
 
   return (
-    <div style={screenStackStyle}>
+    <div style={{
+      ...screenStackStyle,
+      ...teamThemeVars(team.id),
+      borderTop: '3px solid var(--mfd-team-primary)',
+      paddingTop: '8px',
+    }}
+    >
       <PixelScreenHeader
         title="Your Franchise"
         subtitle={`${team.city} ${team.name} // ${identity.stadiumName} // ${dashboard.currentEra.name}`}
@@ -78,6 +92,8 @@ export function FranchiseHub() {
           </>
         )}
       />
+
+      <HomegrownMeter game={game} />
 
       <div style={autoGrid(220)}>
         <PixelMetricCard
@@ -289,17 +305,6 @@ export function FranchiseHub() {
           </div>
         </PixelPanel>
 
-        <PixelPanel title="Dynasty Scrapbook" accent="cyan">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
-              Every completed season becomes a scrapbook page in your dynasty archive.
-            </div>
-            <PixelButton accent="cyan" onClick={() => navigateTo('/franchise/scrapbook')}>
-              View Dynasty Scrapbook
-            </PixelButton>
-          </div>
-        </PixelPanel>
-
         <PixelPanel title="Hall of Fame" accent="red">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
@@ -307,6 +312,28 @@ export function FranchiseHub() {
             </div>
             <PixelButton accent="red" onClick={() => navigateTo('/franchise/hall')}>
               Open Hall of Fame
+            </PixelButton>
+          </div>
+        </PixelPanel>
+
+        <PixelPanel title="Playoff Lore" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Every postseason moment, across every dynasty.
+            </div>
+            <PixelButton accent="cyan" onClick={() => navigateTo('/franchise/playoff-lore')}>
+              Open Playoff Lore
+            </PixelButton>
+          </div>
+        </PixelPanel>
+
+        <PixelPanel title="Dynasty Scrapbook" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Every completed season becomes a scrapbook page in your dynasty archive.
+            </div>
+            <PixelButton accent="cyan" onClick={() => navigateTo('/franchise/scrapbook')}>
+              View Dynasty Scrapbook
             </PixelButton>
           </div>
         </PixelPanel>

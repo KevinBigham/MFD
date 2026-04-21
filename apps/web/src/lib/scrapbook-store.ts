@@ -33,6 +33,13 @@ type ScrapbookPayload = {
   pendingPlayoffLoreByDynastyId: Record<string, Record<string, PlayoffLoreCard[]>>;
 };
 
+export interface PlayoffLoreAggregateEntry {
+  dynastyId: string;
+  seasonYear: number;
+  card: PlayoffLoreCard;
+  source: 'archived' | 'pending';
+}
+
 const PositionSchema: z.ZodType<Position> = z.enum(POSITION_VALUES);
 
 const ScrapbookMomentSchema = z.object({
@@ -253,6 +260,39 @@ export function readScrapbookForDynasty(dynastyId: string): StoredScrapbookEntry
 export function readPendingPlayoffLoreCards(dynastyId: string, seasonYear: number): PlayoffLoreCard[] {
   const payload = readPayload();
   return payload.pendingPlayoffLoreByDynastyId[dynastyId]?.[seasonKey(seasonYear)] ?? [];
+}
+
+export function listAllPlayoffLoreCards(): PlayoffLoreAggregateEntry[] {
+  const payload = readPayload();
+  const aggregate: PlayoffLoreAggregateEntry[] = [];
+
+  for (const [dynastyId, entries] of Object.entries(payload.entriesByDynastyId)) {
+    for (const entry of entries) {
+      for (const card of entry.playoffLoreCards ?? []) {
+        aggregate.push({
+          dynastyId,
+          seasonYear: card.seasonYear,
+          card,
+          source: 'archived',
+        });
+      }
+    }
+  }
+
+  for (const [dynastyId, seasonBuckets] of Object.entries(payload.pendingPlayoffLoreByDynastyId)) {
+    for (const [seasonYear, cards] of Object.entries(seasonBuckets)) {
+      for (const card of cards) {
+        aggregate.push({
+          dynastyId,
+          seasonYear: Number(seasonYear) || card.seasonYear,
+          card,
+          source: 'pending',
+        });
+      }
+    }
+  }
+
+  return aggregate;
 }
 
 export function stagePendingPlayoffLoreCard(

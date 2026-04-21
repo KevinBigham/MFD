@@ -2,7 +2,6 @@ import { useRef } from 'react';
 import { PixelButton, PixelModal } from '@mfd/design-system/components';
 import { useGameStore } from '../../app/store/game-store';
 import type { PlayoffLoreCard } from '../../lib/playoff-lore';
-import { exportRecapAsPng } from '../season/recap-share';
 import { monoSm } from '../shared/pixelUi';
 import { PlayoffLoreCardView } from './PlayoffLoreCard';
 
@@ -24,6 +23,7 @@ export function dismissPlayoffLorePrompt(
 }
 
 export async function exportPlayoffLoreAsPng(target: HTMLElement, card: PlayoffLoreCard): Promise<string> {
+  const { exportRecapAsPng } = await import('../season/recap-share');
   const dataUrl = await exportRecapAsPng(target);
   if (typeof document !== 'undefined') {
     const link = document.createElement('a');

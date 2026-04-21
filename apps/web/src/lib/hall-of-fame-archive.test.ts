@@ -6,6 +6,7 @@ import {
   readHallOfFameArchive,
   readHallOfFameDynasty,
   summarizeHallOfFameArchive,
+  topHallOfFamerByScore,
   upsertHallOfFameDynasty,
   type HallOfFameArchiveDynasty,
 } from './hall-of-fame-archive';
@@ -164,5 +165,22 @@ describe('hall-of-fame-archive', () => {
     upsertHallOfFameDynasty(makeDynasty({ dynastyId: 'a' }));
     clearHallOfFameForDynasty('does-not-exist');
     expect(Object.keys(readHallOfFameArchive().dynastiesById)).toEqual(['a']);
+  });
+
+  it('returns null for topHallOfFamerByScore when a dynasty has no entries', () => {
+    expect(topHallOfFamerByScore(makeDynasty({ entries: [] }))).toBeNull();
+  });
+
+  it('returns the highest-score hall of famer and breaks ties by induction year then name', () => {
+    const top = topHallOfFamerByScore(makeDynasty({
+      entries: [
+        makeEntry({ playerId: 'later', name: 'Zeta Star', score: 140, inductionYear: 2044 }),
+        makeEntry({ playerId: 'earlier', name: 'Bravo Star', score: 140, inductionYear: 2042 }),
+        makeEntry({ playerId: 'alpha', name: 'Alpha Star', score: 140, inductionYear: 2042 }),
+        makeEntry({ playerId: 'lower', name: 'Lower Star', score: 130, inductionYear: 2041 }),
+      ],
+    }));
+
+    expect(top?.playerId).toBe('alpha');
   });
 });

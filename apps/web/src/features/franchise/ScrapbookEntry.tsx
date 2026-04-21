@@ -4,7 +4,6 @@ import { getTeamContent } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import type { StoredScrapbookEntry } from '../../lib/scrapbook-store';
 import { SeasonRecapCard } from '../season/SeasonRecapCard';
-import { exportRecapAsPng } from '../season/recap-share';
 import { autoGrid, display, monoSm } from '../shared/pixelUi';
 import { PlayoffLoreCardView } from '../playoffs/PlayoffLoreCard';
 
@@ -57,6 +56,7 @@ export async function exportScrapbookEntryAsPng(
   target: HTMLElement,
   entry: StoredScrapbookEntry,
 ): Promise<string> {
+  const { exportRecapAsPng } = await import('../season/recap-share');
   const dataUrl = await exportRecapAsPng(target);
   if (typeof document !== 'undefined') {
     const link = document.createElement('a');

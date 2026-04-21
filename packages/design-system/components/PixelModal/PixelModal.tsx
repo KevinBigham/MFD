@@ -44,6 +44,7 @@ export function PixelModal({
       role="dialog"
       aria-modal="true"
       aria-label={title}
+      onClick={() => onOpenChange(false)}
       style={{
         position: 'fixed',
         inset: 0,
@@ -56,6 +57,9 @@ export function PixelModal({
       }}
     >
       <div
+        onClick={(event) => {
+          event.stopPropagation();
+        }}
         style={{
           width,
           maxWidth: 'calc(100vw - 32px)',

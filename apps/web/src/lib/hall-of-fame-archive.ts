@@ -194,3 +194,13 @@ export function listDynastiesByStartYear(payload: HallOfFameArchivePayload): Hal
     .slice()
     .sort((left, right) => left.startYear - right.startYear || left.teamAbbr.localeCompare(right.teamAbbr));
 }
+
+export function topHallOfFamerByScore(
+  dynasty: HallOfFameArchiveDynasty,
+): HallOfFameEntry | null {
+  if (dynasty.entries.length === 0) return null;
+  return [...dynasty.entries].sort((a, b) =>
+    b.score - a.score
+    || a.inductionYear - b.inductionYear
+    || a.name.localeCompare(b.name))[0] ?? null;
+}
