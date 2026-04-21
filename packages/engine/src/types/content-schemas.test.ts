@@ -30,10 +30,24 @@ import {
   PersonalityFlavorContentSchema,
   ScoutingTemplatesContentSchema,
   SocialFeedTemplatesContentSchema,
+  BroadcastPlayTypeSchema,
+  CoachArchetypeKeySchema,
+  CoachSchemeSideSchema,
+  ScoutingPositionSchema,
+  AgmPersonaIdSchema,
+  PlayerSocialScenarioSchema,
+  FanSocialScenarioSchema,
+  AnalystSocialScenarioSchema,
+  ReporterSocialScenarioSchema,
 } from './content-schemas';
 
 const CONTENT_ROOT = path.resolve(__dirname, '../../../content');
 const TEAMS_DIR = path.join(CONTENT_ROOT, 'teams');
+
+const teamFiles = fs
+  .readdirSync(TEAMS_DIR)
+  .filter((name) => name.endsWith('.json'))
+  .sort();
 
 function readJson(relative: string): unknown {
   return JSON.parse(fs.readFileSync(path.join(CONTENT_ROOT, relative), 'utf8'));
@@ -51,10 +65,7 @@ function expectSchemaPass<T>(schema: z.ZodType<T>, raw: unknown, label: string) 
 }
 
 describe('content schemas — teams/ (Tier A)', () => {
-  const files = fs
-    .readdirSync(TEAMS_DIR)
-    .filter((name) => name.endsWith('.json'))
-    .sort();
+  const files = teamFiles;
 
   it('discovers team JSON files on disk', () => {
     expect(files.length).toBeGreaterThanOrEqual(32);
@@ -352,3 +363,132 @@ describe('content schemas — Tier B drift guard', () => {
 function BroadcastTemplateCategorySchemaCheck(raw: unknown): boolean {
   return BroadcastTemplatesContentSchema.safeParse({ fake_play: raw }).success;
 }
+
+// ── Tier C — key-space bounding (post-59 cleanup) ─────────────────────
+// Previously `z.record(z.string(), ValueSchema)` accepted any key. Typos
+// in content JSON → silent misses at runtime. Tier C pins the key sets
+// against the shipped gameplay constants.
+
+describe('content schemas — Tier C key-space bounding', () => {
+  it('BroadcastPlayTypeSchema covers every authored play type across both broadcast files', () => {
+    const passing = readJson('broadcast/passing-defense-st-templates.json') as Record<string, unknown>;
+    const rushing = readJson('broadcast/rushing-templates.json') as Record<string, unknown>;
+    const authored = new Set([...Object.keys(passing), ...Object.keys(rushing)]);
+    for (const key of authored) {
+      expect(BroadcastPlayTypeSchema.safeParse(key).success, `play type ${key}`).toBe(true);
+    }
+  });
+
+  it('BroadcastTemplatesContentSchema rejects an unknown play-type key', () => {
+    const bad = { not_a_real_play: { openers: ['x'], endings: ['y'] } };
+    expect(BroadcastTemplatesContentSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it('CoachArchetypeKeySchema covers every archetype authored under coach_archetypes', () => {
+    const parsed = CoachArchetypesContentSchema.parse(readJson('coaching/coach-archetypes.json'));
+    for (const key of Object.keys(parsed.coach_archetypes)) {
+      expect(CoachArchetypeKeySchema.safeParse(key).success, `archetype ${key}`).toBe(true);
+    }
+  });
+
+  it('CoachArchetypesContentSchema rejects an unknown archetype key', () => {
+    const base = readJson('coaching/coach-archetypes.json') as { coach_archetypes: Record<string, unknown>; scheme_descriptions: Record<string, unknown> };
+    const bad = {
+      ...base,
+      coach_archetypes: {
+        ...base.coach_archetypes,
+        made_up_archetype: {
+          press_conference: ['x'],
+          sideline_reaction_good: ['x'],
+          sideline_reaction_bad: ['x'],
+        },
+      },
+    };
+    expect(CoachArchetypesContentSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it('CoachSchemeSideSchema is limited to offense and defense', () => {
+    expect(CoachSchemeSideSchema.safeParse('offense').success).toBe(true);
+    expect(CoachSchemeSideSchema.safeParse('defense').success).toBe(true);
+    expect(CoachSchemeSideSchema.safeParse('special_teams').success).toBe(false);
+  });
+
+  it('ScoutingPositionSchema covers every authored scouting-template position', () => {
+    const parsed = ScoutingTemplatesContentSchema.parse(readJson('scouting/scouting-report-templates.json'));
+    for (const key of Object.keys(parsed.scouting_templates)) {
+      expect(ScoutingPositionSchema.safeParse(key).success, `position ${key}`).toBe(true);
+    }
+  });
+
+  it('ScoutingTemplatesContentSchema rejects an unknown position key', () => {
+    const base = readJson('scouting/scouting-report-templates.json') as { scouting_templates: Record<string, unknown> };
+    const bad = {
+      scouting_templates: {
+        ...base.scouting_templates,
+        PUNTER_COACH: base.scouting_templates['QB'],
+      },
+    };
+    expect(ScoutingTemplatesContentSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it('AgmPersonaIdSchema covers every authored persona in agm-dialogue.json', () => {
+    const raw = readJson('broadcast/agm-dialogue.json') as Record<string, unknown>;
+    for (const key of Object.keys(raw)) {
+      expect(AgmPersonaIdSchema.safeParse(key).success, `persona ${key}`).toBe(true);
+    }
+  });
+
+  it('AgmDialogueContentSchema rejects an unknown persona id', () => {
+    const base = readJson('broadcast/agm-dialogue.json') as Record<string, unknown>;
+    const bad = { ...base, someone_who_doesnt_exist: base['marcus_webb'] };
+    expect(AgmDialogueContentSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it('social scenario schemas cover every authored bucket scenario', () => {
+    const parsed = SocialFeedTemplatesContentSchema.parse(readJson('social/social-feed-templates.json'));
+    for (const key of Object.keys(parsed.player_posts)) {
+      expect(PlayerSocialScenarioSchema.safeParse(key).success, `player scenario ${key}`).toBe(true);
+    }
+    for (const key of Object.keys(parsed.fan_posts)) {
+      expect(FanSocialScenarioSchema.safeParse(key).success, `fan scenario ${key}`).toBe(true);
+    }
+    for (const key of Object.keys(parsed.analyst_posts)) {
+      expect(AnalystSocialScenarioSchema.safeParse(key).success, `analyst scenario ${key}`).toBe(true);
+    }
+    for (const key of Object.keys(parsed.reporter_posts)) {
+      expect(ReporterSocialScenarioSchema.safeParse(key).success, `reporter scenario ${key}`).toBe(true);
+    }
+  });
+
+  it('SocialFeedTemplatesContentSchema rejects an unknown scenario in any bucket', () => {
+    const base = readJson('social/social-feed-templates.json') as {
+      player_posts: Record<string, string[]>;
+      fan_posts: Record<string, string[]>;
+      analyst_posts: Record<string, string[]>;
+      reporter_posts: Record<string, string[]>;
+    };
+    const bad = {
+      ...base,
+      player_posts: { ...base.player_posts, bogus_scenario: ['one'] },
+    };
+    expect(SocialFeedTemplatesContentSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it('TeamContentSchema rejects an empty-string motto (Tier C .min(1) bite)', () => {
+    const sample = JSON.parse(fs.readFileSync(path.join(TEAMS_DIR, teamFiles[0]!), 'utf8'));
+    const bad = { ...sample, motto: '' };
+    expect(TeamContentSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it('TeamContentSchema rejects a rivalries-free team (Tier C .min(1) bite)', () => {
+    const sample = JSON.parse(fs.readFileSync(path.join(TEAMS_DIR, teamFiles[0]!), 'utf8'));
+    const bad = { ...sample, rivalries: [] };
+    expect(TeamContentSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it('TeamContentSchema rejects a malformed team id that fails the abbreviation regex', () => {
+    const sample = JSON.parse(fs.readFileSync(path.join(TEAMS_DIR, teamFiles[0]!), 'utf8'));
+    const bad = { ...sample, id: 'lowercase-slug' };
+    expect(TeamContentSchema.safeParse(bad).success).toBe(false);
+  });
+});
