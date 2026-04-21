@@ -473,6 +473,8 @@ export {
   getFanbaseEffect,
 } from './systems/franchise-identity';
 export { buildSeasonSchedule } from './systems/season-schedule';
+export { buildSeasonRecap } from './systems/season-recap';
+export type { SeasonRecap, SeasonRecapLeader, SeasonRecapPlayoffResult } from './systems/season-recap';
 export { generateSeasonReport } from './systems/season-report';
 export {
   applyGamePlan,

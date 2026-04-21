@@ -183,6 +183,7 @@ export interface GameStoreState {
   initialized: boolean;
   undoSnapshot: GameState | null;
   undoLabel: string | null;
+  recapPromptSeenThisSession: boolean;
 }
 
 // Stable empty arrays — prevents infinite re-renders when selectors

@@ -176,6 +176,12 @@ import {
   interpolatePressConferencePool,
 } from '../../lib/pressConferenceContent';
 import {
+  appendDynastySummary,
+  buildDynastySummary,
+  finalizedEndYearForGame,
+  finalizeDynasty,
+} from '../../lib/career-meta';
+import {
   selectCapCandidates,
   selectCapHealth,
   selectMultiYearProjection,
@@ -319,6 +325,7 @@ interface GameActions {
   fireMentor: (mentorId: string) => Promise<void>;
   setCallYourShot: (declaration: ShotDeclaration | null) => Promise<void>;
   recordPortableExport: () => void;
+  setRecapPromptSeenThisSession: (seen: boolean) => void;
 
   // Franchise Setup
   advanceSetup: (options?: { requireTopPressureOpened?: boolean }) => Promise<void>;
@@ -578,8 +585,14 @@ export const useGameStore = create<GameStore>()(
     };
     const navigateTo = (path: string) => {
       if (typeof window === 'undefined') return;
-      window.history.pushState({}, '', path);
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      if (window.location) {
+        window.location.hash = path;
+        return;
+      }
+      if (window.history?.pushState) {
+        window.history.pushState({}, '', path);
+        window.dispatchEvent?.(new PopStateEvent('popstate'));
+      }
     };
     const adjustFranchiseCap = (team: Team, amount: number) => {
       team.capSpace = Math.round((team.capSpace + amount) * 10) / 10;
@@ -615,6 +628,20 @@ export const useGameStore = create<GameStore>()(
     const clampMeter = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
     const getUserTeam = (game: GameState): Team | null =>
       Object.values(game.teams).find((team) => team.isUser) ?? null;
+    const syncCareerMeta = (game: GameState | null) => {
+      if (!game) return;
+      const summary = buildDynastySummary(game);
+      if (summary) {
+        appendDynastySummary(summary);
+      }
+    };
+    const finalizeCurrentDynasty = (game: GameState | null) => {
+      if (!game) return;
+      const summary = buildDynastySummary(game);
+      if (!summary) return;
+      appendDynastySummary(summary);
+      finalizeDynasty(summary.dynastyId, finalizedEndYearForGame(game));
+    };
     const majorityThreshold = (game: GameState) => Math.floor(Object.keys(game.teams).length / 2) + 1;
     const isCBAInterruptStatus = (status: GameState['cbaState']['status']) =>
       status === 'negotiating' || status === 'awaiting_owner_vote' || status === 'lockout';
@@ -760,29 +787,38 @@ export const useGameStore = create<GameStore>()(
     initialized: false,
     undoSnapshot: null,
     undoLabel: null,
+    recapPromptSeenThisSession: false,
 
     actions: {
       newGame: async (initial) => {
+        finalizeCurrentDynasty(get().game);
+        syncCareerMeta(initial);
         set((s) => {
           s.game = initial;
           s.initialized = true;
+          s.recapPromptSeenThisSession = false;
         });
         await autosaveDynasty(initial);
       },
 
-      loadGame: (loaded) =>
+      loadGame: (loaded) => {
+        syncCareerMeta(loaded);
         set((s) => {
           s.game = loaded;
           s.initialized = true;
-        }),
+          s.recapPromptSeenThisSession = false;
+        });
+      },
 
       loadLatestAutosave: async () => {
         const latest = await loadLatestAutosaveGame();
         if (!latest) return false;
 
+        syncCareerMeta(latest);
         set((s) => {
           s.game = latest;
           s.initialized = true;
+          s.recapPromptSeenThisSession = false;
         });
         return true;
       },
@@ -1152,6 +1188,13 @@ export const useGameStore = create<GameStore>()(
         ].slice(-20);
         nextGame.breakingNewsQueue = buildBreakingNewsQueue(nextGame).slice(0, 5);
 
+        if (nextGame.year > current.year) {
+          set((s) => {
+            s.recapPromptSeenThisSession = false;
+          });
+          syncCareerMeta(nextGame);
+        }
+
         completeTutorialActionEngine(nextGame, 'week:advance');
         await commitGame(nextGame);
 
@@ -1221,6 +1264,13 @@ export const useGameStore = create<GameStore>()(
           ...buildPostAdvanceAudioQueue(nextGame, current.week),
         ].slice(-20);
         nextGame.breakingNewsQueue = buildBreakingNewsQueue(nextGame).slice(0, 5);
+
+        if (nextGame.year > current.year) {
+          set((s) => {
+            s.recapPromptSeenThisSession = false;
+          });
+          syncCareerMeta(nextGame);
+        }
 
         completeTutorialActionEngine(nextGame, 'week:advance');
         await commitGame(nextGame);
@@ -2362,6 +2412,12 @@ export const useGameStore = create<GameStore>()(
           if (s.game) {
             s.game.lastPortableExportYear = s.game.year;
           }
+        });
+      },
+
+      setRecapPromptSeenThisSession: (seen) => {
+        set((s) => {
+          s.recapPromptSeenThisSession = seen;
         });
       },
 

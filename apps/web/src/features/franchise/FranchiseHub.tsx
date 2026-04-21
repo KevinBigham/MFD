@@ -13,6 +13,7 @@ import {
   autoGrid,
   display,
   monoSm,
+  navigateTo,
   screenStackStyle,
 } from '../shared/pixelUi';
 import {
@@ -29,11 +30,6 @@ const DOCTRINE_ACCENTS = {
   reputation: 'cyan',
   personnel: 'default',
 } as const;
-
-function navigateTo(path: string) {
-  if (typeof window === 'undefined') return;
-  window.location.hash = path;
-}
 
 function stadiumLevelLabel(level: 1 | 2 | 3): string {
   if (level === 3) return 'Elite';
@@ -263,6 +259,17 @@ export function FranchiseHub() {
               ))}
             </div>
           )}
+        </PixelPanel>
+
+        <PixelPanel title="GM Career" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Every dynasty you coach lives here, even after wipes and fresh starts.
+            </div>
+            <PixelButton accent="gold" onClick={() => navigateTo('/franchise/career')}>
+              View GM Career
+            </PixelButton>
+          </div>
         </PixelPanel>
       </div>
     </div>

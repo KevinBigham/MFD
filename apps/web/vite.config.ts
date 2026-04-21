@@ -42,7 +42,8 @@ export default defineConfig({
             id.includes('/node_modules/react') ||
             id.includes('/node_modules/react-dom') ||
             id.includes('/node_modules/@tanstack/') ||
-            id.includes('/node_modules/zustand')
+            id.includes('/node_modules/zustand') ||
+            id.includes('/node_modules/html-to-image')
           ) {
             return 'vendor';
           }
