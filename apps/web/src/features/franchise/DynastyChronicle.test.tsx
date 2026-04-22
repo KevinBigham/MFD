@@ -1,6 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DynastyChronicle } from './DynastyChronicle';
+
+const { exportRecapAsPngMock } = vi.hoisted(() => ({
+  exportRecapAsPngMock: vi.fn(async () => 'data:image/png;base64,dynasty-chronicle'),
+}));
+
+const {
+  createExportFrameMock,
+  exportCleanupMock,
+  framedNode,
+} = vi.hoisted(() => ({
+  createExportFrameMock: vi.fn(),
+  exportCleanupMock: vi.fn(),
+  framedNode: {} as HTMLElement,
+}));
+
+vi.mock('../season/recap-share', () => ({
+  exportRecapAsPng: exportRecapAsPngMock,
+}));
+
+vi.mock('../season/export-frame', () => ({
+  createExportFrame: createExportFrameMock,
+}));
+
+import { DynastyChronicle, exportDynastyChronicleAsPng } from './DynastyChronicle';
 
 let chronicleEvents = [
   { id: 'champ-2032', type: 'championship_win', year: 2032, teamAbbr: 'CHI', record: '13-4' },
@@ -11,7 +34,7 @@ let chronicleEvents = [
 
 const baseState = () => ({
   game: { seed: 'seed-1', year: 2033 },
-  team: { id: 'team-1', city: 'Chicago', name: 'Blaze' },
+  team: { id: 'team-1', city: 'Chicago', name: 'Blaze', abbr: 'CHI' },
 });
 
 type MockState = Omit<ReturnType<typeof baseState>, 'team'> & {
@@ -42,6 +65,13 @@ describe('DynastyChronicle', () => {
       { id: 'season-2031', type: 'season_end', year: 2031, teamAbbr: 'CHI', record: '11-6', playoffFinish: 'conference' },
       { id: 'coach-2031', type: 'coach_hire', year: 2031, coachName: 'Terry Vale' },
     ];
+    createExportFrameMock.mockReset();
+    exportCleanupMock.mockReset();
+    exportRecapAsPngMock.mockClear();
+    createExportFrameMock.mockReturnValue({
+      frame: framedNode,
+      cleanup: exportCleanupMock,
+    });
   });
 
   it('renders the chronicle screen header', () => {
@@ -95,5 +125,80 @@ describe('DynastyChronicle', () => {
     const markup = renderToStaticMarkup(<DynastyChronicle />);
 
     expect(markup).toContain('No dynasty is loaded.');
+  });
+
+  it('renders the filter chip row when the chronicle has events', () => {
+    const markup = renderToStaticMarkup(<DynastyChronicle />);
+
+    expect(markup).toMatch(/data-testid="chronicle-filters"/);
+    expect(markup.match(/data-testid="chronicle-filter-chip"/g)).toHaveLength(8);
+  });
+
+  it('does not render the filter chip row when the chronicle is empty', () => {
+    chronicleEvents = [];
+
+    const markup = renderToStaticMarkup(<DynastyChronicle />);
+
+    expect(markup).not.toMatch(/data-testid="chronicle-filters"/);
+  });
+
+  it('surfaces per-type counts on the chips based on the live chronicle', () => {
+    const markup = renderToStaticMarkup(<DynastyChronicle />);
+
+    expect(markup).toMatch(/data-filter-type="championship_win"[^>]*data-filter-count="1"/);
+    expect(markup).toMatch(/data-filter-type="hof_induction"[^>]*data-filter-count="1"/);
+    expect(markup).toMatch(/data-filter-type="season_end"[^>]*data-filter-count="1"/);
+    expect(markup).toMatch(/data-filter-type="coach_hire"[^>]*data-filter-count="1"/);
+    expect(markup).toMatch(/data-filter-type="playoff_round"[^>]*data-filter-count="0"/);
+  });
+
+  it('renders the export button with a visible event-count note', () => {
+    const markup = renderToStaticMarkup(<DynastyChronicle />);
+
+    expect(markup).toContain('Export Chronicle');
+    expect(markup).toContain('Exports 4 event(s) from the filtered timeline.');
+  });
+
+  it('disables the export button when the chronicle has no events', () => {
+    chronicleEvents = [];
+
+    const markup = renderToStaticMarkup(<DynastyChronicle />);
+
+    expect(markup).toMatch(/<button[^>]*disabled[^>]*>Export Chronicle/);
+    expect(markup).toContain('Exports 0 event(s) from the filtered timeline.');
+  });
+
+  it('exports the chronicle with the team abbr and date stamp in the filename', async () => {
+    const target = {} as HTMLElement;
+
+    const result = await exportDynastyChronicleAsPng(target, {
+      teamAbbr: 'CHI',
+      teamCity: 'Chicago',
+      teamName: 'Blaze',
+      teamId: 'team-1',
+      year: 2033,
+      eventCount: 4,
+      exportedAt: new Date('2026-04-22T12:00:00.000Z'),
+    });
+
+    expect(createExportFrameMock).toHaveBeenCalledTimes(1);
+    expect(exportRecapAsPngMock).toHaveBeenCalledWith(framedNode);
+    expect(exportCleanupMock).toHaveBeenCalledTimes(1);
+    expect(result.fileName).toBe('dynasty-chronicle-chi-20260422.png');
+  });
+
+  it('renders each chronicle event as an accessible open-detail button', () => {
+    const markup = renderToStaticMarkup(<DynastyChronicle />);
+
+    expect(markup).toContain('aria-label="Open Championship Won detail for 2032"');
+    expect(markup).toContain('aria-label="Open Hall of Fame detail for 2032"');
+    expect(markup).toContain('aria-label="Open Season End detail for 2031"');
+    expect(markup).toContain('aria-label="Open Coach Hire detail for 2031"');
+  });
+
+  it('does not render the event detail modal on initial load', () => {
+    const markup = renderToStaticMarkup(<DynastyChronicle />);
+
+    expect(markup).not.toContain('data-testid="chronicle-event-detail"');
   });
 });
