@@ -9,79 +9,16 @@ import {
   filterChronicleEvents,
   toggleActiveType,
 } from '../../lib/dynasty-chronicle-filter';
+import {
+  chronicleAccent,
+  chronicleBody,
+  chronicleTitle,
+  titleCase,
+} from '../../lib/dynasty-chronicle-presenter';
 import { PixelScreenHeader, monoSm, screenStackStyle, teamThemeVars } from '../shared/pixelUi';
 import { ChronicleFilters } from './ChronicleFilters';
+import { ChronicleEventDetailModal } from './ChronicleEventDetailModal';
 import { createExportFrame } from '../season/export-frame';
-
-function titleCase(value: string): string {
-  return value
-    .split('_')
-    .filter(Boolean)
-    .map((part) => part[0] ? `${part[0].toUpperCase()}${part.slice(1)}` : part)
-    .join(' ');
-}
-
-function chronicleAccent(event: ChronicleEvent): 'default' | 'gold' | 'cyan' | 'green' {
-  switch (event.type) {
-    case 'championship_win':
-    case 'hof_induction':
-      return 'gold';
-    case 'playoff_round':
-      return 'cyan';
-    case 'coach_championship':
-    case 'coach_hire':
-    case 'coach_retire':
-      return 'green';
-    case 'season_end':
-    case 'scrapbook_note':
-    default:
-      return 'default';
-  }
-}
-
-function chronicleTitle(event: ChronicleEvent): string {
-  switch (event.type) {
-    case 'championship_win':
-      return 'Championship Won';
-    case 'hof_induction':
-      return 'Hall of Fame';
-    case 'playoff_round':
-      return `${titleCase(event.round)} Round`;
-    case 'season_end':
-      return 'Season End';
-    case 'coach_championship':
-      return 'Coach Championship';
-    case 'coach_hire':
-      return 'Coach Hire';
-    case 'coach_retire':
-      return 'Coach Retirement';
-    case 'scrapbook_note':
-    default:
-      return 'Scrapbook Note';
-  }
-}
-
-function chronicleBody(event: ChronicleEvent): string {
-  switch (event.type) {
-    case 'championship_win':
-      return `${event.teamAbbr} finished ${event.record} and closed the year with a title.`;
-    case 'hof_induction':
-      return `${event.playerName} entered the Hall of Fame as a ${event.position}.`;
-    case 'playoff_round':
-      return `${titleCase(event.outcome)} // ${event.finalScore} // ${event.headline}`;
-    case 'season_end':
-      return `${event.teamAbbr} wrapped the season at ${event.record} with a ${titleCase(event.playoffFinish)} finish.`;
-    case 'coach_championship':
-      return `${event.coachName} guided the franchise to a championship season.`;
-    case 'coach_hire':
-      return `${event.coachName} took over the sideline.`;
-    case 'coach_retire':
-      return `${event.coachName} closed the coaching run.`;
-    case 'scrapbook_note':
-    default:
-      return event.headline;
-  }
-}
 
 interface DynastyChronicleExportOptions {
   teamAbbr: string;
@@ -148,6 +85,7 @@ export function DynastyChronicle({
   );
 
   const [activeTypes, setActiveTypes] = useState(() => createDefaultActiveTypes());
+  const [selectedEvent, setSelectedEvent] = useState<ChronicleEvent | null>(null);
   const counts = useMemo(() => countEventsByType(chronicle), [chronicle]);
   const filteredChronicle = useMemo(
     () => filterChronicleEvents(chronicle, activeTypes),
@@ -249,11 +187,24 @@ export function DynastyChronicle({
                 {filteredChronicle.filter((event) => event.year === year).map((event) => {
                   const accent = chronicleAccent(event);
                   return (
-                    <div
+                    <button
                       key={event.id}
+                      type="button"
                       data-testid="chronicle-event"
                       data-chronicle-kind={event.type}
                       data-chronicle-accent={accent}
+                      aria-label={`Open ${chronicleTitle(event)} detail for ${event.year}`}
+                      onClick={() => setSelectedEvent(event)}
+                      style={{
+                        appearance: 'none',
+                        background: 'transparent',
+                        border: 'none',
+                        padding: 0,
+                        margin: 0,
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        width: '100%',
+                      }}
                     >
                       <PixelPanel title={chronicleTitle(event)} accent={accent}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -265,7 +216,7 @@ export function DynastyChronicle({
                           </div>
                         </div>
                       </PixelPanel>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -273,6 +224,13 @@ export function DynastyChronicle({
           ))}
         </div>
       )}
+
+      <ChronicleEventDetailModal
+        event={selectedEvent}
+        open={selectedEvent !== null}
+        onClose={() => setSelectedEvent(null)}
+        teamId={userTeam.id}
+      />
     </div>
   );
 }

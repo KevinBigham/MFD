@@ -186,4 +186,19 @@ describe('DynastyChronicle', () => {
     expect(exportCleanupMock).toHaveBeenCalledTimes(1);
     expect(result.fileName).toBe('dynasty-chronicle-chi-20260422.png');
   });
+
+  it('renders each chronicle event as an accessible open-detail button', () => {
+    const markup = renderToStaticMarkup(<DynastyChronicle />);
+
+    expect(markup).toContain('aria-label="Open Championship Won detail for 2032"');
+    expect(markup).toContain('aria-label="Open Hall of Fame detail for 2032"');
+    expect(markup).toContain('aria-label="Open Season End detail for 2031"');
+    expect(markup).toContain('aria-label="Open Coach Hire detail for 2031"');
+  });
+
+  it('does not render the event detail modal on initial load', () => {
+    const markup = renderToStaticMarkup(<DynastyChronicle />);
+
+    expect(markup).not.toContain('data-testid="chronicle-event-detail"');
+  });
 });
