@@ -818,6 +818,7 @@ export {
   seedLeagueRivalries,
   updateLeagueRivalriesFromGame,
 } from './systems/rivalries';
+export * from './rivalries';
 export { derivePhilosophy, applyTeamPhilosophies } from './systems/ai-philosophy';
 export { getAlumniUpdates } from './systems/legends';
 export { advanceStoryArcs, advanceWeeklyStoryArcs } from './systems/story-arcs';
