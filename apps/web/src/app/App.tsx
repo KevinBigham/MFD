@@ -78,6 +78,7 @@ const LazyDynastyCartridge = lazy(async () => ({ default: (await import('../feat
 const LazyLegacyTimeline = lazy(async () => ({ default: (await import('../features/legacy/LegacyTimeline')).LegacyTimeline }));
 const LazyPowerRankings = lazy(async () => ({ default: (await import('../features/power-rankings/PowerRankings')).PowerRankings }));
 const LazyLeagueNews = lazy(async () => ({ default: (await import('../features/league-news/LeagueNews')).LeagueNews }));
+const LazyNewsroomDigest = lazy(async () => ({ default: (await import('../features/newsroom/NewsroomDigest')).NewsroomDigest }));
 const LazyLeagueStandings = lazy(async () => ({ default: (await import('../features/standings/LeagueStandings')).LeagueStandings }));
 const LazyAnalyticsDashboard = lazy(async () => ({ default: (await import('../features/analytics/AnalyticsDashboard')).AnalyticsDashboard }));
 const LazyTeamSchedule = lazy(async () => ({ default: (await import('../features/schedule/TeamSchedule')).TeamSchedule }));
@@ -167,6 +168,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/week-advance',  label: 'Advance Week',     shortLabel: 'Advance',  icon: <Play size={16} /> },
   { path: '/handshakes',    label: 'Handshakes',       shortLabel: 'Promises', icon: <ScrollText size={16} /> },
   { path: '/news',          label: 'News',             shortLabel: 'News',     icon: <Newspaper size={16} /> },
+  { path: '/newsroom',     label: 'Newsroom',         shortLabel: 'Digest',   icon: <Newspaper size={16} /> },
   { path: '/records',       label: 'Record Book',      shortLabel: 'Records',  icon: <ScrollText size={16} /> },
   { path: '/stat-central',  label: 'Stat Central',     shortLabel: 'Stats',    icon: <BarChart3 size={16} /> },
   { path: '/standings',     label: 'Standings',        shortLabel: 'Stand',    icon: <BarChart3 size={16} /> },
@@ -191,7 +193,7 @@ const NAV_GROUPS: NavGroup[] = [
   { id: 'money',    label: 'MONEY',    paths: ['/contracts', '/cap-lab', '/endorsements'] },
   { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/scouting', '/draft', '/free-agency', '/fa-targets', '/waivers', '/practice-squad', '/team-needs'] },
   { id: 'gameday',  label: 'GAMEDAY',  paths: ['/game-day', '/game-plan', '/broadcast', '/play-by-play', '/game-flow', '/film-room', '/schedule', '/super-bowl'] },
-  { id: 'league',   label: 'LEAGUE',   paths: ['/standings', '/power-rankings', '/news', '/social', '/commissioner', '/analytics', '/records', '/stat-central'] },
+  { id: 'league',   label: 'LEAGUE',   paths: ['/standings', '/power-rankings', '/newsroom', '/news', '/social', '/commissioner', '/analytics', '/records', '/stat-central'] },
   { id: 'dynasty',  label: 'DYNASTY',  paths: ['/franchise', '/owner', '/legends', '/legacy', '/scenarios'] },
   { id: 'meta',     label: 'SYSTEM',   paths: ['/dynasty', '/settings'] },
 ];
@@ -1418,6 +1420,16 @@ const newsRoute = createRoute({
   ),
 });
 
+const newsroomRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/newsroom',
+  component: () => (
+    <LazyRouteFrame label="newsroom digest">
+      <LazyNewsroomDigest />
+    </LazyRouteFrame>
+  ),
+});
+
 const recordsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/records',
@@ -1612,7 +1624,7 @@ const routeTree = rootRoute.addChildren([
   gameDayRoute, broadcastRoute, playByPlayRoute, gameFlowRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, franchiseBookRoute, legendsRoute, seasonRecapRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
-  newsRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
+  newsRoute, newsroomRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, scenarioRoute, legacyRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, playoffLoreDirectoryRoute, dynastyChronicleRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
 ]);
 

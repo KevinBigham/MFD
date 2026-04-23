@@ -87,6 +87,8 @@ vi.mock('../../app/store/game-store', () => ({
   selectFranchiseEras: (state: typeof franchiseState) => state.eras,
   selectStadiumDealOffers: (state: typeof franchiseState) => state.offers,
   selectUserTeam: (state: typeof franchiseState) => state.team,
+  selectPowerRankings: () => [],
+  selectUserTeamId: (state: typeof franchiseState) => state.team?.id ?? null,
 }));
 
 vi.mock('@mfd/design-system/components', () => ({

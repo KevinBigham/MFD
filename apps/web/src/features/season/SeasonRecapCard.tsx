@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
-import { buildSeasonRecap, getTeamContent, type SeasonRecap } from '@mfd/engine';
+import { buildSeasonRecap, type SeasonRecap } from '@mfd/engine';
 import { selectUserTeam, useGameStore } from '../../app/store/game-store';
+import { resolveTeamContentFromStore } from '../../lib/team-content-resolver';
 import { EmptyState } from '../shared/EmptyState';
 import {
   PixelMetricCard,
@@ -49,8 +50,8 @@ function accentForPlayoffResult(playoffResult: SeasonRecap['playoffResult']) {
   return 'cyan' as const;
 }
 
-function recapThemeVars(teamId: string): CSSProperties {
-  const content = getTeamContent(teamId);
+function recapThemeVars(teamIdOrAbbr: string): CSSProperties {
+  const content = resolveTeamContentFromStore(teamIdOrAbbr);
   return {
     '--mfd-recap-primary': content?.primaryColor ?? 'var(--mfd-gold)',
     '--mfd-recap-secondary': content?.secondaryColor ?? 'var(--mfd-cyan)',
