@@ -84,6 +84,7 @@ import {
 } from './player-rivalries';
 import { updateRecordsFromGameResult } from './records';
 import { getRivalryGameContext, seedLeagueRivalries, updateLeagueRivalriesFromGame } from './rivalries';
+import { createRivalryHeatSpikePost, detectRivalryTierAscension } from './league-pulse';
 import { getActiveRule, initLeagueRules } from './league-rules';
 import { generateTradeOffers } from './trade-market';
 import { findTradeTargets } from './trade-finder';
@@ -820,7 +821,31 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
         });
       }
 
+      const leagueRivalryId = [home.id, away.id].sort().join('::');
+      const previousLeagueRivalryIntensity =
+        nextState.leagueRivalries.find((entry) => entry.id === leagueRivalryId)?.intensity ?? 0;
       updateLeagueRivalriesFromGame(nextState, outcome.result);
+      const updatedLeagueRivalry = nextState.leagueRivalries.find((entry) => entry.id === leagueRivalryId);
+      if (updatedLeagueRivalry) {
+        const ascendedTier = detectRivalryTierAscension(
+          previousLeagueRivalryIntensity,
+          updatedLeagueRivalry.intensity,
+        );
+        if (ascendedTier) {
+          const teamNameMap: Record<string, string> = {};
+          for (const team of Object.values(nextState.teams)) {
+            teamNameMap[team.id] = team.name;
+          }
+          const heatSpikePost = createRivalryHeatSpikePost(
+            updatedLeagueRivalry,
+            ascendedTier,
+            teamNameMap,
+            nextState.week,
+            RNG.ai,
+          );
+          if (heatSpikePost) ambientSocialPosts.push(heatSpikePost);
+        }
+      }
       for (const rivalryEntry of nextState.playerRivalries.filter((entry) => {
         const ids = [entry.teamAId, entry.teamBId];
         return ids.includes(home.id) && ids.includes(away.id);
@@ -1030,7 +1055,33 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
           namedGame,
         });
       }
+      const playoffLeagueRivalryId = [home.id, away.id].sort().join('::');
+      const previousPlayoffLeagueIntensity =
+        nextState.leagueRivalries.find((entry) => entry.id === playoffLeagueRivalryId)?.intensity ?? 0;
       updateLeagueRivalriesFromGame(nextState, outcome.result, { playoffElimination: true });
+      const updatedPlayoffLeagueRivalry = nextState.leagueRivalries.find(
+        (entry) => entry.id === playoffLeagueRivalryId,
+      );
+      if (updatedPlayoffLeagueRivalry) {
+        const ascendedPlayoffTier = detectRivalryTierAscension(
+          previousPlayoffLeagueIntensity,
+          updatedPlayoffLeagueRivalry.intensity,
+        );
+        if (ascendedPlayoffTier) {
+          const playoffTeamNameMap: Record<string, string> = {};
+          for (const team of Object.values(nextState.teams)) {
+            playoffTeamNameMap[team.id] = team.name;
+          }
+          const playoffHeatSpikePost = createRivalryHeatSpikePost(
+            updatedPlayoffLeagueRivalry,
+            ascendedPlayoffTier,
+            playoffTeamNameMap,
+            nextState.week,
+            RNG.ai,
+          );
+          if (playoffHeatSpikePost) ambientSocialPosts.push(playoffHeatSpikePost);
+        }
+      }
       ownerDelta += updateOwner(home, nextState);
       ownerDelta += updateOwner(away, nextState);
       const event = makeEvent(nextState, 'playoff_result', `${home.name} ${outcome.result.homeScore}, ${away.name} ${outcome.result.awayScore}`, { gameId: outcome.result.id });

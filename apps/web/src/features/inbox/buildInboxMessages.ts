@@ -51,6 +51,10 @@ export interface InboxMessage {
   read: boolean;
   actionRequired: boolean;
   consequences?: { id: string; label: string; delta: string; direction: 'positive' | 'negative' | 'neutral' | 'warning' }[];
+  /** Optional deeplink path (e.g. "/presentation") for a primary CTA button. */
+  link?: string;
+  /** Optional label for the deeplink button. Defaults to "Open Related Screen". */
+  linkLabel?: string;
 }
 
 interface ClaimResultDigest {
@@ -216,6 +220,8 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       week: latestPackage.week,
       read: false,
       actionRequired: latestPackage.result === 'loss',
+      link: '/presentation',
+      linkLabel: 'Watch Replay',
     });
   } else if (latestSummary) {
     msgs.push({

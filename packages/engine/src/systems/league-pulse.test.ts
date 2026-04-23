@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { buildLeaguePulse, getLeaguePulseRivalry } from './league-pulse';
+import {
+  buildLeaguePulse,
+  createRivalryHeatSpikePost,
+  detectRivalryTierAscension,
+  getLeaguePulseRivalry,
+} from './league-pulse';
+import { mulberry32 } from '../rng';
 import type { LeagueRivalry, PowerRanking } from '../types';
 
 function mkRivalry(overrides: Partial<LeagueRivalry>): LeagueRivalry {
@@ -202,5 +208,89 @@ describe('league-pulse / getLeaguePulseRivalry', () => {
       teamNames: {},
     });
     expect(getLeaguePulseRivalry(pulse, 'missing')).toBeNull();
+  });
+});
+
+describe('league-pulse / detectRivalryTierAscension', () => {
+  it('returns null when intensity stays in the same tier', () => {
+    expect(detectRivalryTierAscension(30, 40)).toBeNull(); // budding -> budding
+    expect(detectRivalryTierAscension(55, 60)).toBeNull(); // heated -> heated
+    expect(detectRivalryTierAscension(80, 90)).toBeNull(); // blood_feud -> blood_feud
+  });
+
+  it('returns null when intensity drops into a lower tier', () => {
+    expect(detectRivalryTierAscension(80, 60)).toBeNull(); // blood_feud -> heated
+    expect(detectRivalryTierAscension(55, 30)).toBeNull(); // heated -> budding
+  });
+
+  it('returns the new tier on budding -> heated ascension at the 51 threshold', () => {
+    expect(detectRivalryTierAscension(50, 51)).toBe('heated');
+    expect(detectRivalryTierAscension(30, 55)).toBe('heated');
+  });
+
+  it('returns blood_feud on heated -> blood_feud ascension at the 76 threshold', () => {
+    expect(detectRivalryTierAscension(70, 76)).toBe('blood_feud');
+    expect(detectRivalryTierAscension(60, 88)).toBe('blood_feud');
+  });
+
+  it('returns the new tier for quiet -> budding ascension', () => {
+    expect(detectRivalryTierAscension(10, 25)).toBe('budding');
+  });
+
+  it('can leap across multiple tiers and returns the final landing tier', () => {
+    expect(detectRivalryTierAscension(10, 90)).toBe('blood_feud');
+  });
+});
+
+describe('league-pulse / createRivalryHeatSpikePost', () => {
+  const rivalry: LeagueRivalry = mkRivalry({
+    id: 'HOME::AWAY',
+    teamA: 'HOME',
+    teamB: 'AWAY',
+    intensity: 55,
+  });
+  const teamNames = { HOME: 'Blaze', AWAY: 'Thunder' };
+
+  it('returns null for quiet and budding ascensions', () => {
+    const rng = mulberry32(42);
+    expect(createRivalryHeatSpikePost(rivalry, 'quiet', teamNames, 5, rng)).toBeNull();
+    expect(createRivalryHeatSpikePost(rivalry, 'budding', teamNames, 5, rng)).toBeNull();
+  });
+
+  it('returns a heated post with both team names interpolated', () => {
+    const rng = mulberry32(42);
+    const post = createRivalryHeatSpikePost(rivalry, 'heated', teamNames, 5, rng);
+    expect(post).not.toBeNull();
+    expect(post!.content).toContain('Blaze');
+    expect(post!.content).toContain('Thunder');
+    expect(post!.trigger).toBe('rivalry');
+    expect(post!.sentiment).toBe('hype');
+    expect(post!.timestamp).toBe(5);
+    expect(post!.id).toBe('social-rivalry-heat-HOME::AWAY-5-heated');
+  });
+
+  it('returns a blood_feud post with different copy than heated', () => {
+    const rngA = mulberry32(99);
+    const rngB = mulberry32(99);
+    const heated = createRivalryHeatSpikePost(rivalry, 'heated', teamNames, 7, rngA);
+    const feud = createRivalryHeatSpikePost(rivalry, 'blood_feud', teamNames, 7, rngB);
+    expect(feud).not.toBeNull();
+    expect(feud!.content).toMatch(/BLOOD FEUD/i);
+    expect(feud!.id).toContain('blood_feud');
+    // Same seed, different tier = different content
+    expect(feud!.content).not.toBe(heated!.content);
+  });
+
+  it('falls back to the team id when no team name is supplied', () => {
+    const rng = mulberry32(1);
+    const post = createRivalryHeatSpikePost(rivalry, 'heated', {}, 3, rng);
+    expect(post!.content).toContain('HOME');
+    expect(post!.content).toContain('AWAY');
+  });
+
+  it('is deterministic for the same rng seed', () => {
+    const postA = createRivalryHeatSpikePost(rivalry, 'heated', teamNames, 9, mulberry32(777));
+    const postB = createRivalryHeatSpikePost(rivalry, 'heated', teamNames, 9, mulberry32(777));
+    expect(postA).toEqual(postB);
   });
 });
