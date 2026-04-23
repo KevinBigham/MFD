@@ -1057,6 +1057,8 @@ export type {
   CareerSample,
   PositionStats,
 } from './systems/dev/age-curve-harness';
+export { PLAYTEST_PERSONAS, buildPlaytestReport, runPlaytest } from './playtesting';
+export type { PlaytestReport } from './playtesting';
 
 export { OC_SPECIALTIES, DC_SPECIALTIES, assignCoordSpecialty, getSpecialtyById } from './systems/coordinator-specialties';
 

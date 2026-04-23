@@ -2,6 +2,7 @@ import { simGame } from './game-sim';
 import type { SimGameContext } from './game-sim-types';
 import { generateAiGamePlan } from './game-plan';
 import { reseedSeason, reseedWeek, setSeed } from '../rng';
+import type { PlaytestAIBias } from '../playtesting/types';
 import type {
   GameState,
   HalftimeDecisionChoice,
@@ -25,6 +26,7 @@ export interface AdvanceFranchiseWeekOptions {
     choice: HalftimeDecisionChoice;
     suggestion: SwitchSuggestion;
   } | null;
+  playtestBias?: PlaytestAIBias;
 }
 
 function approximateYardsPerPlay(totalYards: number, plays: number): number {

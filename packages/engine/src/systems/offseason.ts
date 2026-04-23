@@ -67,6 +67,7 @@ import type {
   ReSignDecision,
   Team,
 } from '../types';
+import type { PlaytestAIBias } from '../playtesting/types';
 
 function cloneGame(game: GameState): GameState {
   return structuredClone(game);
@@ -184,6 +185,10 @@ function updateCap(team: Team, delta: number): void {
 
 function roundMoney(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+function normalizedBias(value: number | undefined, fallback: number): number {
+  return Math.max(0, Math.min(1, value ?? fallback));
 }
 
 function isCBAInterruptStatus(status: GameState['cbaState']['status']): boolean {
@@ -375,8 +380,16 @@ function resolveUserOffer(player: Player, decision: ReSignDecision): boolean {
   return scoreOffer(decision.lastOffer, decision.askingPrice) >= acceptThreshold(player);
 }
 
-function resolveAiReSigns(game: GameState, offseason: OffseasonState): void {
+function resolveAiReSigns(game: GameState, offseason: OffseasonState, aiBias?: PlaytestAIBias): void {
   const userTeamId = findUserTeam(game)?.id ?? null;
+  // Per-field undefined short-circuits to original hardcoded behavior to preserve
+  // the "no-bias = pre-Sprint-69 behavior" contract. A single fallback can't
+  // reproduce both 1.25 and 72 from one extensionAggression value, so we branch.
+  const hasExtBias = aiBias?.extensionAggression !== undefined;
+  const extensionAggression = hasExtBias ? normalizedBias(aiBias?.extensionAggression, 0) : 0;
+  const udfaReliance = normalizedBias(aiBias?.udfaReliance, 0);
+  const requiredCapCoverage = hasExtBias ? 1.35 - extensionAggression * 0.35 : 1.25;
+  const minimumOvr = hasExtBias ? Math.round(78 - extensionAggression * 14) : 72;
 
   for (const playerId of offseason.expiringPlayerIds) {
     const player = getPlayer(game, playerId);
@@ -387,8 +400,13 @@ function resolveAiReSigns(game: GameState, offseason: OffseasonState): void {
     const team = game.teams[decision.teamId];
     if (!team) continue;
 
-    const canAfford = team.capSpace >= decision.agentDemand.salary * 1.25;
-    const wantsPlayer = player.ovr >= 72 || player.pos === 'QB' || player.personality.loyalty >= 7;
+    const cheapReplacement = udfaReliance >= 0.75 && player.pos !== 'QB' && player.ovr < 74;
+    const canAfford = team.capSpace >= decision.agentDemand.salary * requiredCapCoverage;
+    const wantsPlayer = !cheapReplacement && (
+      player.ovr >= minimumOvr
+      || player.pos === 'QB'
+      || player.personality.loyalty >= 7
+    );
 
     if (canAfford && wantsPlayer) {
       applyOfferToPlayer(game, team, player, decision.agentDemand);
@@ -458,8 +476,21 @@ function finalizeUnsignedExpiringPlayers(game: GameState, offseason: OffseasonSt
   }
 }
 
-function createAiBid(player: Player, ask: ContractOffer, team: Team, round: number, difficulty: GameState['difficulty']): FreeAgencyBid | null {
-  if (team.capSpace < ask.salary) return null;
+function createAiBid(
+  player: Player,
+  ask: ContractOffer,
+  team: Team,
+  round: number,
+  difficulty: GameState['difficulty'],
+  aiBias?: PlaytestAIBias,
+): FreeAgencyBid | null {
+  // Per-field undefined short-circuits to original hardcoded behavior (spendTolerance=1.0)
+  // to preserve the "no-bias = pre-Sprint-69 behavior" contract.
+  const hasFaBias = aiBias?.faAggression !== undefined;
+  const faAggression = hasFaBias ? normalizedBias(aiBias?.faAggression, 0) : 0.5;
+  const udfaReliance = normalizedBias(aiBias?.udfaReliance, 0);
+  const spendTolerance = hasFaBias ? 1.15 - faAggression * 0.25 : 1.0;
+  if (team.capSpace < ask.salary * spendTolerance) return null;
   const identity = team.franchiseIdentity ?? createDefaultFranchiseIdentity(team);
   const positionNeed = team.roster
     .filter((candidate) => candidate.pos === player.pos)
@@ -469,6 +500,15 @@ function createAiBid(player: Player, ask: ContractOffer, team: Team, round: numb
   const philosophy = team.philosophy ?? 'maintain';
   const youngTarget = player.age <= 26;
   const veteranTarget = player.age >= 29;
+  if (faAggression <= 0.1 && player.pos !== 'QB' && player.ovr < 78) {
+    return null;
+  }
+  if (udfaReliance >= 0.8 && player.pos !== 'QB' && (
+    player.ovr < 74
+    || ask.salary > Math.max(6, team.capSpace * 0.45)
+  )) {
+    return null;
+  }
   const salaryBias = philosophy === 'rebuild'
     ? youngTarget ? 1.06 : veteranTarget ? 0.82 : 0.94
     : philosophy === 'contend'
@@ -480,9 +520,18 @@ function createAiBid(player: Player, ask: ContractOffer, team: Team, round: numb
     return null;
   }
 
-  const salary = Math.round((ask.salary * (0.88 + needBoost / 100) * difficultyMult * salaryBias) * 10) / 10;
-  const signingBonus = Math.round((ask.signingBonus * (0.8 + needBoost / 120) * salaryBias) * 10) / 10;
-  const guaranteed = Math.round((ask.guaranteed * (0.82 + needBoost / 150) * salaryBias) * 10) / 10;
+  const aggressionMult = 0.7 + faAggression * 0.6;
+  const udfaSpendMult = 1 - udfaReliance * (
+    player.pos === 'QB'
+      ? 0.1
+      : player.ovr >= 80
+        ? 0.2
+        : 0.35
+  );
+  const aiSpendMult = aggressionMult * udfaSpendMult;
+  const salary = Math.round((ask.salary * (0.88 + needBoost / 100) * difficultyMult * salaryBias * aiSpendMult) * 10) / 10;
+  const signingBonus = Math.round((ask.signingBonus * (0.8 + needBoost / 120) * salaryBias * aiSpendMult) * 10) / 10;
+  const guaranteed = Math.round((ask.guaranteed * (0.82 + needBoost / 150) * salaryBias * aiSpendMult) * 10) / 10;
   const franchiseAppeal = 1 + getFanbaseEffect(identity).faInterestBonus;
 
   return {
@@ -493,12 +542,12 @@ function createAiBid(player: Player, ask: ContractOffer, team: Team, round: numb
     signingBonus,
     guaranteed,
     round,
-    score: scoreOffer({ years: ask.years, salary, signingBonus, guaranteed }, ask) * franchiseAppeal,
+    score: scoreOffer({ years: ask.years, salary, signingBonus, guaranteed }, ask) * franchiseAppeal * aggressionMult,
     status: 'pending',
   };
 }
 
-function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState): void {
+function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState, aiBias?: PlaytestAIBias): void {
   const userTeam = findUserTeam(game);
 
   for (const playerId of [...game.freeAgents]) {
@@ -509,7 +558,7 @@ function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState): voi
     const userBids = (offseason.freeAgencyBids[playerId] ?? []).filter((bid) => bid.round === offseason.round);
     const aiBids = Object.values(game.teams)
       .filter((team) => !team.isUser)
-      .map((team) => createAiBid(player, ask, team, offseason.round, game.difficulty))
+      .map((team) => createAiBid(player, ask, team, offseason.round, game.difficulty, aiBias))
       .filter((bid): bid is FreeAgencyBid => bid !== null)
       .slice(0, 3);
 
@@ -930,7 +979,7 @@ export function signStreetFreeAgent(
   return { nextState, events: [], consequences: [] };
 }
 
-export function advanceOffseason(game: GameState): void {
+export function advanceOffseason(game: GameState, aiBias?: PlaytestAIBias): void {
   ensureGovernanceState(game);
   if (!game.offseasonState) {
     ensureDraftClass(game);
@@ -1011,7 +1060,7 @@ export function advanceOffseason(game: GameState): void {
   }, existingReports);
   decrementCarryoverContracts(game, game.offseasonState);
   resolveUserReSigns(game, game.offseasonState);
-  resolveAiReSigns(game, game.offseasonState);
+  resolveAiReSigns(game, game.offseasonState, aiBias);
   finalizeUnsignedExpiringPlayers(game, game.offseasonState);
   const hofClass = inductHallOfFame(game, seasonYear);
   if (hofClass.length > 0) {
@@ -1043,7 +1092,7 @@ export function advanceOffseason(game: GameState): void {
   decayLeagueRivalries(game);
   game.playerRivalries = decayRivalries(game.playerRivalries ?? [], game.year);
   processCoachRetirements(game);
-  const carousel = runCoachingCarousel(game, seasonYear);
+  const carousel = runCoachingCarousel(game, seasonYear, aiBias);
   fillOpenStaffVacancies(game);
   const hireEvents = carousel.events.filter((event) => event.type === 'coach_hired');
   for (const event of hireEvents) {
@@ -1124,12 +1173,12 @@ export function advanceOffseason(game: GameState): void {
   game.week = 1;
 }
 
-export function advanceFreeAgency(game: GameState): void {
+export function advanceFreeAgency(game: GameState, aiBias?: PlaytestAIBias): void {
   if (!game.offseasonState) {
     game.offseasonState = initializeOffseasonState(game);
   }
 
-  resolveFreeAgencyRound(game, game.offseasonState);
+  resolveFreeAgencyRound(game, game.offseasonState, aiBias);
   game.offseasonState.tradeOffers = generateTradeOffers(game);
 
   if (game.offseasonState.round >= 3) {

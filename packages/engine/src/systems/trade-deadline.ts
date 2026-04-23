@@ -12,6 +12,7 @@ import type {
   TradeOffer,
 } from '../types';
 import type { PrngFn } from '../rng';
+import type { PlaytestAIBias } from '../playtesting/types';
 
 function cloneGame(game: GameState): GameState {
   return structuredClone(game);
@@ -61,9 +62,19 @@ function contractCost(player: Player): number {
   return (player.contract.baseSalary ?? 0) + (player.contract.prorated ?? 0);
 }
 
-function veteranCandidates(team: Team): Player[] {
+function normalizedTradeWillingness(aiBias?: PlaytestAIBias): number | null {
+  if (typeof aiBias?.tradeWillingness !== 'number') {
+    return null;
+  }
+  return Math.max(0, Math.min(1, aiBias.tradeWillingness));
+}
+
+function veteranCandidates(team: Team, aiBias?: PlaytestAIBias): Player[] {
+  const tradeWillingness = normalizedTradeWillingness(aiBias);
+  const minimumAge = tradeWillingness !== null && tradeWillingness >= 0.8 ? 26 : 28;
+  const minimumOvr = tradeWillingness !== null && tradeWillingness >= 0.8 ? 78 : 82;
   return [...team.roster]
-    .filter((player) => player.age >= 28 || player.ovr >= 82)
+    .filter((player) => player.age >= minimumAge || player.ovr >= minimumOvr)
     .sort((left, right) => right.ovr - left.ovr || right.age - left.age || left.id.localeCompare(right.id));
 }
 
@@ -182,6 +193,7 @@ export function generateDeadlineDeal(
   sellerIds: string[],
   players: Player[],
   rng: PrngFn,
+  aiBias?: PlaytestAIBias,
 ): DeadlineDeal {
   const mappedPlayers = playerMap(players);
   const fallbackTeamIds = Object.values(teams)
@@ -199,7 +211,7 @@ export function generateDeadlineDeal(
     const sellerId = pickWithRng(validSellers.filter((teamId) => teamId !== buyerId), rng);
     const buyer = teams[buyerId]!;
     const seller = teams[sellerId]!;
-    const target = veteranCandidates(seller)
+    const target = veteranCandidates(seller, aiBias)
       .filter((player) => player.teamId === seller.id)
       .filter((player) => buyer.capSpace + 5 >= contractCost(player))[0];
     if (!target) continue;
@@ -229,7 +241,7 @@ export function generateDeadlineDeal(
 
   const fallbackBuyer = teams[validContenders[0]!]!;
   const fallbackSeller = teams[validSellers[0]!]!;
-  const fallbackPlayer = veteranCandidates(fallbackSeller)[0] ?? fallbackSeller.roster[0]!;
+  const fallbackPlayer = veteranCandidates(fallbackSeller, aiBias)[0] ?? fallbackSeller.roster[0]!;
   const fallbackPicks = selectCompensation(fallbackBuyer, 250, rng);
   const fallback: DeadlineDeal = {
     id: `deadline-${fallbackBuyer.id}-${fallbackSeller.id}-${fallbackPlayer.id}`,
@@ -246,28 +258,49 @@ export function generateDeadlineDeal(
   return fallback;
 }
 
-export function initializeDeadline(gameState: GameState, rng: PrngFn): TradeDeadlineState {
+export function initializeDeadline(gameState: GameState, rng: PrngFn, aiBias?: PlaytestAIBias): TradeDeadlineState {
   const aiTeams = Object.values(gameState.teams).filter((team) => !team.isUser);
+  const tradeWillingness = normalizedTradeWillingness(aiBias);
   const contenderIds = aiTeams.filter(isContender).map((team) => team.id);
   const sellerIds = aiTeams.filter(isSeller).map((team) => team.id);
+  const contenderQuota = tradeWillingness === null
+    ? 0
+    : Math.max(1, Math.round(aiTeams.length * (0.25 + tradeWillingness * 0.4)));
+  const sellerQuota = tradeWillingness === null
+    ? 0
+    : Math.max(1, Math.round(aiTeams.length * (0.25 + tradeWillingness * 0.4)));
+  const rankedContenders = tradeWillingness === null
+    ? []
+    : [...aiTeams]
+      .sort((left, right) => right.wins - left.wins || left.id.localeCompare(right.id))
+      .slice(0, contenderQuota)
+      .map((team) => team.id);
+  const rankedSellers = tradeWillingness === null
+    ? []
+    : [...aiTeams]
+      .sort((left, right) => left.wins - right.wins || left.id.localeCompare(right.id))
+      .slice(0, sellerQuota)
+      .map((team) => team.id);
   const derivedContenders = contenderIds.length > 0
-    ? contenderIds
+    ? [...new Set([...contenderIds, ...rankedContenders])]
     : [...aiTeams]
       .sort((left, right) => right.wins - left.wins || left.id.localeCompare(right.id))
       .slice(0, Math.max(1, Math.floor(aiTeams.length / 2)))
       .map((team) => team.id);
   const derivedSellers = sellerIds.length > 0
-    ? sellerIds
+    ? [...new Set([...sellerIds, ...rankedSellers])]
     : [...aiTeams]
       .sort((left, right) => left.wins - right.wins || left.id.localeCompare(right.id))
       .slice(0, Math.max(1, Math.floor(aiTeams.length / 2)))
       .map((team) => team.id);
-  const dealCount = Math.max(3, Math.min(8, 3 + Math.floor(rng() * 6)));
+  const dealCount = tradeWillingness === null
+    ? Math.max(3, Math.min(8, 3 + Math.floor(rng() * 6)))
+    : Math.max(1, Math.min(8, 2 + Math.round(tradeWillingness * 6) + Math.floor(rng() * 2)));
   const scheduledDeals: DeadlineDeal[] = [];
   const usedPlayers = new Set<string>();
 
   for (let index = 0; index < dealCount; index += 1) {
-    const deal = generateDeadlineDeal(gameState.teams, derivedContenders, derivedSellers, Object.values(gameState.players), rng);
+    const deal = generateDeadlineDeal(gameState.teams, derivedContenders, derivedSellers, Object.values(gameState.players), rng, aiBias);
     if (usedPlayers.has(deal.players[0]!)) continue;
     usedPlayers.add(deal.players[0]!);
     scheduledDeals.push({
