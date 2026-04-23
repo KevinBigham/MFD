@@ -28,6 +28,7 @@ import {
 import { HomegrownMeter } from './HomegrownMeter';
 import { ContinuityMeter } from './ContinuityMeter';
 import { RivalryHeatMap } from './RivalryHeatMap';
+import { PowerRankingsTicker } from '../newsroom/PowerRankingsTicker';
 
 const DOCTRINE_ACCENTS = {
   culture: 'green',
@@ -95,6 +96,7 @@ export function FranchiseHub() {
         )}
       />
 
+      <PowerRankingsTicker limit={12} />
       <HomegrownMeter game={game} />
       <ContinuityMeter game={game} />
       <RivalryHeatMap />

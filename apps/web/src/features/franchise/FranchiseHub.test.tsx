@@ -111,6 +111,8 @@ vi.mock('../../app/store/game-store', () => ({
   selectFranchiseEras: (state: typeof mockState) => state.eras,
   selectStadiumDealOffers: (state: typeof mockState) => state.offers,
   selectUserTeam: (state: typeof mockState) => state.team,
+  selectPowerRankings: () => [],
+  selectUserTeamId: (state: typeof mockState) => state.team?.id ?? null,
 }));
 
 vi.mock('../shared/pixelUi', async (importOriginal) => {
