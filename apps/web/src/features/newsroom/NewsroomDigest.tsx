@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import type { NewsItem, PowerRanking } from '@mfd/engine';
+import type { NewsItem, PowerRanking, StorylineThread } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import {
   useGameStore,
   selectLeagueNews,
   selectPowerRankings,
+  selectStorylineThreads,
   selectUserPowerRanking,
   selectUserTeam,
 } from '../../app/store/game-store';
@@ -22,7 +23,6 @@ import {
 import { HeadlineModal } from './HeadlineModal';
 import { PowerRankingsTicker } from './PowerRankingsTicker';
 import { StorylineThreadCard } from './StorylineThreadCard';
-import type { StorylineThread } from './types';
 
 type Accent = 'default' | 'gold' | 'cyan' | 'green' | 'red';
 
@@ -67,9 +67,8 @@ function importanceAccent(importance: NewsItem['importance']): Accent {
 
 interface NewsroomDigestProps {
   /**
-   * Injected by tests and also used by the route wrapper once Codex's
-   * engine storyline selector lands. When undefined, the digest reads from the
-   * store via `selectStorylineThreads` (optional chain — defaults to empty).
+   * Optional override, primarily for tests. When undefined, the digest reads
+   * the active storyline threads from the game store via `selectStorylineThreads`.
    */
   storylines?: StorylineThread[];
 }
@@ -88,6 +87,7 @@ export function NewsroomDigest({ storylines }: NewsroomDigestProps = {}) {
   const leagueNews = useGameStore(selectLeagueNews);
   const rankings = useGameStore(selectPowerRankings);
   const userRanking = useGameStore(selectUserPowerRanking);
+  const storeThreads = useGameStore(selectStorylineThreads);
   const [selectedStory, setSelectedStory] = useState<NewsItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -99,7 +99,7 @@ export function NewsroomDigest({ storylines }: NewsroomDigestProps = {}) {
     [...rankings].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta) || a.rank - b.rank)[0] ?? null,
   [rankings]);
 
-  const threads = storylines ?? [];
+  const threads = storylines ?? storeThreads;
   const activeThreads = threads.filter((thread) => thread.status === 'active');
 
   if (!team) {

@@ -17,12 +17,13 @@ const mockState = {
   userTeamId: 'team-home',
 };
 
+import type { StorylineThread } from '@mfd/engine';
 import { StorylineThreadCard } from './StorylineThreadCard';
-import type { StorylineThread } from './types';
 
 const activeThread: StorylineThread = {
   id: 'thread-1',
-  archetype: 'qb_controversy',
+  key: 'qb-chicago-2030',
+  archetype: 'qb-controversy',
   title: 'Who leads the huddle in Chicago?',
   summary: 'Starter benched after two turnovers, backup ignites the crowd, and the locker room is split.',
   teamIds: ['team-home'],
@@ -33,20 +34,25 @@ const activeThread: StorylineThread = {
   status: 'active',
   beats: [
     {
-      week: 3,
+      weekNumber: 3,
       year: 2030,
-      headline: 'Starter pulled at halftime',
-      body: 'Home Team yanks the veteran QB with the team down 17 at the break.',
+      label: 'Starter pulled at halftime',
+      summary: 'Home Team yanks the veteran QB with the team down 17 at the break.',
     },
     {
-      week: 4,
+      weekNumber: 4,
       year: 2030,
-      headline: 'Backup earns a second start',
-      body: 'A Week 4 spark has the staff leaning toward a change.',
+      label: 'Backup earns a second start',
+      summary: 'A Week 4 spark has the staff leaning toward a change.',
     },
   ],
-  nextBeatHint: 'A presser Tuesday could make the switch permanent.',
   heat: 72,
+  nextBeatHint: 'A presser Tuesday could make the switch permanent.',
+  beatIndex: 1,
+  updatedWeek: 4,
+  updatedYear: 2030,
+  closeReason: null,
+  metadata: {},
 };
 
 describe('StorylineThreadCard', () => {
@@ -100,9 +106,9 @@ describe('StorylineThreadCard', () => {
   });
 
   it('renders the status badge in upper case', () => {
-    const resolved: StorylineThread = { ...activeThread, status: 'resolved' };
-    const html = renderToStaticMarkup(<StorylineThreadCard thread={resolved} />);
-    expect(html).toContain('RESOLVED');
+    const closed: StorylineThread = { ...activeThread, status: 'closed' };
+    const html = renderToStaticMarkup(<StorylineThreadCard thread={closed} />);
+    expect(html).toContain('CLOSED');
   });
 
   it('renders without a next-beat line when nextBeatHint is null', () => {

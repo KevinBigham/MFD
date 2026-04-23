@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { NewsItem, PowerRanking } from '@mfd/engine';
+import type { NewsItem, PowerRanking, StorylineThread } from '@mfd/engine';
 
 vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: typeof mockState) => unknown) => selector(mockState),
   selectUserTeam: (state: typeof mockState) => state.team,
   selectLeagueNews: (state: typeof mockState) => state.news,
   selectPowerRankings: (state: typeof mockState) => state.rankings,
+  selectStorylineThreads: (state: typeof mockState) => state.storylines,
   selectUserPowerRanking: (state: typeof mockState) => {
     const userId = state.team?.id;
     return userId ? state.rankings.find((r) => r.teamId === userId) ?? null : null;
@@ -19,11 +20,13 @@ const mockState: {
   team: { id: string; city: string; name: string } | null;
   news: NewsItem[];
   rankings: PowerRanking[];
+  storylines: StorylineThread[];
   teamsById: Record<string, { id: string; abbr: string; city: string; name: string }>;
 } = {
   team: { id: 'team-me', city: 'Chicago', name: 'Blaze' },
   news: [],
   rankings: [],
+  storylines: [],
   teamsById: {
     'team-me': { id: 'team-me', abbr: 'CHI', city: 'Chicago', name: 'Blaze' },
     'team-rival': { id: 'team-rival', abbr: 'RIV', city: 'Rival', name: 'Squad' },
@@ -31,7 +34,6 @@ const mockState: {
 };
 
 import { NewsroomDigest } from './NewsroomDigest';
-import type { StorylineThread } from './types';
 
 function makeNews(overrides: Partial<NewsItem> = {}): NewsItem {
   return {
@@ -67,6 +69,7 @@ describe('NewsroomDigest', () => {
     mockState.team = null;
     mockState.news = [];
     mockState.rankings = [];
+    mockState.storylines = [];
     const html = renderToStaticMarkup(<NewsroomDigest />);
     expect(html).toContain('No active franchise is loaded.');
   });
@@ -75,6 +78,7 @@ describe('NewsroomDigest', () => {
     mockState.team = { id: 'team-me', city: 'Chicago', name: 'Blaze' };
     mockState.news = [];
     mockState.rankings = [];
+    mockState.storylines = [];
     const html = renderToStaticMarkup(<NewsroomDigest />);
     expect(html).toContain('No breaking or major stories hit the wire this cycle.');
     expect(html).toContain('Nothing else broke this week.');
@@ -89,6 +93,7 @@ describe('NewsroomDigest', () => {
       makeNews({ id: 'c', headline: 'Breaking coup', importance: 'breaking', week: 6 }),
     ];
     mockState.rankings = [];
+    mockState.storylines = [];
     const html = renderToStaticMarkup(<NewsroomDigest />);
     // Lead story body
     expect(html).toContain('BREAKING COUP');
@@ -104,6 +109,7 @@ describe('NewsroomDigest', () => {
       makeNews({ id: 'b', headline: 'Newer major', importance: 'major', year: 2030, week: 9 }),
     ];
     mockState.rankings = [];
+    mockState.storylines = [];
     const html = renderToStaticMarkup(<NewsroomDigest />);
     // NEWER MAJOR should appear in the Top panel headline (size 32px), OLDER MAJOR in Rest
     const leadIndex = html.indexOf('NEWER MAJOR');
@@ -119,6 +125,7 @@ describe('NewsroomDigest', () => {
       makeRanking({ rank: 1, teamId: 'team-rival', teamName: 'Rivals', delta: 1 }),
       makeRanking({ rank: 2, teamId: 'team-me', teamName: 'Blaze', delta: -1 }),
     ];
+    mockState.storylines = [];
     const html = renderToStaticMarkup(<NewsroomDigest />);
     expect(html).toContain('RIVALS');
     expect(html).toContain('BLAZE');
@@ -132,6 +139,7 @@ describe('NewsroomDigest', () => {
       makeRanking({ rank: 1, teamId: 'team-1', teamName: 'Alpha', delta: 1 }),
       makeRanking({ rank: 12, teamId: 'team-3', teamName: 'Third', delta: -9 }),
     ];
+    mockState.storylines = [];
     const html = renderToStaticMarkup(<NewsroomDigest />);
     expect(html).toContain('BIGGEST MOVER');
     expect(html).toContain('Third');
@@ -142,9 +150,11 @@ describe('NewsroomDigest', () => {
     mockState.team = { id: 'team-me', city: 'Chicago', name: 'Blaze' };
     mockState.news = [];
     mockState.rankings = [];
+    mockState.storylines = [];
     const thread: StorylineThread = {
       id: 'thread-a',
-      archetype: 'coach_hot_seat',
+      key: 'hot-seat-chicago-2030',
+      archetype: 'hot-seat-coach',
       title: 'Chicago heat check',
       summary: 'Two losing weeks put the seat on fire.',
       teamIds: ['team-me'],
@@ -153,9 +163,14 @@ describe('NewsroomDigest', () => {
       startYear: 2030,
       weeksActive: 2,
       status: 'active',
-      beats: [{ week: 4, year: 2030, headline: 'Seat warms', body: 'Owner spotted leaving practice early.' }],
-      nextBeatHint: 'Presser Tuesday could set the tone.',
+      beats: [{ weekNumber: 4, year: 2030, label: 'Seat warms', summary: 'Owner spotted leaving practice early.' }],
       heat: 60,
+      nextBeatHint: 'Presser Tuesday could set the tone.',
+      beatIndex: 0,
+      updatedWeek: 4,
+      updatedYear: 2030,
+      closeReason: null,
+      metadata: {},
     };
     const html = renderToStaticMarkup(<NewsroomDigest storylines={[thread]} />);
     expect(html).toContain('COACH HOT SEAT');
@@ -164,28 +179,68 @@ describe('NewsroomDigest', () => {
     expect(html).not.toContain('NO ACTIVE THREADS');
   });
 
-  it('filters out resolved threads from the active panel', () => {
+  it('filters out closed threads from the active panel', () => {
     mockState.team = { id: 'team-me', city: 'Chicago', name: 'Blaze' };
     mockState.news = [];
     mockState.rankings = [];
+    mockState.storylines = [];
     const thread: StorylineThread = {
       id: 'thread-b',
-      archetype: 'rookie_breakout',
+      key: 'rookie-blaze-2030',
+      archetype: 'rookie-of-year-chase',
       title: 'Rookie runs the table',
-      summary: 'Resolved thread.',
+      summary: 'Closed thread.',
       teamIds: ['team-me'],
       playerIds: [],
       startWeek: 1,
       startYear: 2030,
       weeksActive: 4,
-      status: 'resolved',
+      status: 'closed',
       beats: [],
-      nextBeatHint: null,
       heat: 20,
+      nextBeatHint: null,
+      beatIndex: 0,
+      updatedWeek: 5,
+      updatedYear: 2030,
+      closeReason: 'Award season closed the thread.',
+      metadata: {},
     };
     const html = renderToStaticMarkup(<NewsroomDigest storylines={[thread]} />);
     expect(html).toContain('NO ACTIVE THREADS');
     expect(html).not.toContain('ROOKIE RUNS THE TABLE');
+  });
+
+  it('reads storylines from the store when no override prop is supplied', () => {
+    mockState.team = { id: 'team-me', city: 'Chicago', name: 'Blaze' };
+    mockState.news = [];
+    mockState.rankings = [];
+    mockState.storylines = [
+      {
+        id: 'thread-c',
+        key: 'records-blaze-2030',
+        archetype: 'records-chase',
+        title: 'Blaze chases the all-time mark',
+        summary: 'Chicago is 200 yards from the single-season rushing record.',
+        teamIds: ['team-me'],
+        playerIds: ['p-rb1'],
+        startWeek: 10,
+        startYear: 2030,
+        weeksActive: 3,
+        status: 'active',
+        beats: [],
+        heat: 85,
+        nextBeatHint: 'A 150-yard game locks it up.',
+        beatIndex: 0,
+        updatedWeek: 12,
+        updatedYear: 2030,
+        closeReason: null,
+        metadata: {},
+      },
+    ];
+    const html = renderToStaticMarkup(<NewsroomDigest />);
+    expect(html).toContain('RECORDS CHASE');
+    expect(html).toContain('BLAZE CHASES THE ALL-TIME MARK');
+    expect(html).not.toContain('NO ACTIVE THREADS');
   });
 
   it('renders the breaking badge count in the screen header', () => {
@@ -196,6 +251,7 @@ describe('NewsroomDigest', () => {
       makeNews({ id: 'c' }),
     ];
     mockState.rankings = [];
+    mockState.storylines = [];
     const html = renderToStaticMarkup(<NewsroomDigest />);
     expect(html).toContain('3 stories');
   });
@@ -207,6 +263,7 @@ describe('NewsroomDigest', () => {
       makeRanking({ rank: 1, teamId: 'team-1', teamName: 'Alpha', delta: 1 }),
       makeRanking({ rank: 7, teamId: 'team-me', teamName: 'Blaze', delta: -2 }),
     ];
+    mockState.storylines = [];
     const html = renderToStaticMarkup(<NewsroomDigest />);
     expect(html).toContain('YOU #7');
   });
