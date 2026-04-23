@@ -309,6 +309,10 @@ export function makeLeagueState(
     hallOfFame: [],
     allDecadeTeams: [],
     powerRankings: [],
+    mediaCycle: {
+      weeklyDigests: [],
+      powerRankingHistory: [],
+    },
     franchiseHistory: [],
     playerArchive: [],
     playerSeasonHistory: {},
@@ -400,6 +404,7 @@ export function makeLeagueState(
     apologyTourThreads: [],
     ceremonies: [],
     dynastyTimeline: [],
+    storylineThreads: [],
     storyArcs: [],
     achievements: [],
     dashboardState: {

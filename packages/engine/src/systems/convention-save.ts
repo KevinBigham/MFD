@@ -316,6 +316,10 @@ function createBaseState(userTeamId: string, rng: PrngFn): GameState {
     hallOfFame: [],
     allDecadeTeams: [],
     powerRankings: [],
+    mediaCycle: {
+      weeklyDigests: [],
+      powerRankingHistory: [],
+    },
     franchiseHistory: [],
     playerArchive: [],
     playerSeasonHistory: {},
@@ -401,6 +405,7 @@ function createBaseState(userTeamId: string, rng: PrngFn): GameState {
     apologyTourThreads: [],
     ceremonies: [],
     dynastyTimeline: [],
+    storylineThreads: [],
     storyArcs: [],
     achievements: [],
     dashboardState: createDefaultDashboardState(),

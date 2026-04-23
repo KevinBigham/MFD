@@ -517,6 +517,106 @@ export const PowerRankingSchema = z.object({
   record: z.string(),
 });
 
+export const MediaPowerRankingSchema = z.object({
+  teamId: z.string(),
+  teamName: z.string(),
+  rank: z.number(),
+  rankDelta: z.number(),
+  score: z.number(),
+  blurb: z.string(),
+  record: z.string(),
+  weekNumber: z.number(),
+});
+
+export const PowerRankingSnapshotSchema = z.object({
+  weekNumber: z.number(),
+  rankings: z.array(MediaPowerRankingSchema).default([]),
+});
+
+export const HeadlineSchema = z.object({
+  id: z.string(),
+  category: z.enum([
+    'UPSET',
+    'BLOWOUT',
+    'COMEBACK',
+    'RIVALRY_WIN',
+    'INDIVIDUAL_PERFORMANCE',
+    'MILESTONE',
+    'ROOKIE_BREAKOUT',
+  ]),
+  weekNumber: z.number(),
+  title: z.string(),
+  summary: z.string(),
+  teamIds: z.array(z.string()).default([]),
+  playerId: z.string().nullable(),
+  gameId: z.string().nullable(),
+  importance: z.number(),
+});
+
+export const HotTakeSchema = z.object({
+  id: z.string(),
+  weekNumber: z.number(),
+  headlineId: z.string(),
+  analyst: z.string(),
+  angle: z.string(),
+  quote: z.string(),
+  sentiment: z.enum(['supportive', 'skeptical', 'combative']),
+});
+
+export const WeeklyDigestSchema = z.object({
+  weekNumber: z.number(),
+  powerRankings: z.array(MediaPowerRankingSchema).default([]),
+  headlines: z.array(HeadlineSchema).default([]),
+  hotTakes: z.array(HotTakeSchema).default([]),
+});
+
+export const MediaCycleStateSchema = z.object({
+  weeklyDigests: z.array(WeeklyDigestSchema).default([]),
+  powerRankingHistory: z.array(PowerRankingSnapshotSchema).default([]),
+});
+
+export const StorylineMetadataValueSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+]);
+
+export const StorylineBeatSchema = z.object({
+  label: z.string(),
+  summary: z.string(),
+  weekNumber: z.number(),
+  year: z.number(),
+});
+
+export const StorylineThreadSchema = z.object({
+  id: z.string(),
+  key: z.string(),
+  archetype: z.enum([
+    'hot-seat-coach',
+    'qb-controversy',
+    'rookie-of-year-chase',
+    'records-chase',
+    'comeback-player',
+  ]),
+  title: z.string(),
+  summary: z.string(),
+  teamIds: z.array(z.string()).default([]),
+  playerIds: z.array(z.string()).default([]),
+  startWeek: z.number(),
+  startYear: z.number(),
+  weeksActive: z.number(),
+  status: z.enum(['active', 'closed']),
+  beats: z.array(StorylineBeatSchema).default([]),
+  heat: z.number(),
+  nextBeatHint: z.string().nullable(),
+  beatIndex: z.number(),
+  updatedWeek: z.number(),
+  updatedYear: z.number(),
+  closeReason: z.string().nullable(),
+  metadata: z.record(z.string(), StorylineMetadataValueSchema).default({}),
+});
+
 export const ContractOfferSchema = z.object({
   years: z.number(),
   salary: z.number(),
@@ -1748,6 +1848,10 @@ export const SaveStateSchema = z.object({
   hallOfFame: z.array(HallOfFameEntrySchema),
   allDecadeTeams: z.array(AllDecadeTeamSchema).default([]),
   powerRankings: z.array(PowerRankingSchema),
+  mediaCycle: MediaCycleStateSchema.default({
+    weeklyDigests: [],
+    powerRankingHistory: [],
+  }),
   franchiseHistory: z.array(z.any()),
   playerArchive: z.array(z.any()),
   playerSeasonHistory: z.record(z.string(), z.array(PlayerSeasonHistoryEntrySchema)).default({}),
@@ -1890,6 +1994,7 @@ export const SaveStateSchema = z.object({
   lastPortableExportYear: z.number().nullable().default(null),
   ceremonies: z.array(CeremonySchema).default([]),
   dynastyTimeline: z.array(DynastyEventSchema).default([]),
+  storylineThreads: z.array(StorylineThreadSchema).default([]),
   storyArcs: z.array(LeagueStoryArcSchema).default([]),
   // Sprint 45 "The Family Tree" — coaching lineage / rivalry graph.
   relationships: z.array(RelationshipEdgeSchema).default([]),

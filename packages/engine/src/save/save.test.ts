@@ -10,8 +10,8 @@ import { createEmptyRecordBook } from '../systems/records';
 import { makeLeagueState } from '../systems/test-helpers';
 
 describe('SaveStateSchema', () => {
-  it('uses save version 34 for Vault backup UX', () => {
-    expect(SAVE_VERSION).toBe(34);
+  it('uses save version 35 for Sprint 67 newsroom persistence', () => {
+    expect(SAVE_VERSION).toBe(35);
   });
 
   it('validates a minimal valid save', () => {
@@ -103,6 +103,11 @@ describe('SaveStateSchema', () => {
       expect(result.data.tradeDeadlineState).toBeUndefined();
       expect(result.data.scenarioState).toBeUndefined();
       expect(result.data.apologyTourThreads).toEqual([]);
+      expect(result.data.mediaCycle).toEqual({
+        weeklyDigests: [],
+        powerRankingHistory: [],
+      });
+      expect(result.data.storylineThreads).toEqual([]);
       expect(result.data.storyArcs).toEqual([]);
       expect(result.data.lastPortableExportYear).toBeNull();
     }

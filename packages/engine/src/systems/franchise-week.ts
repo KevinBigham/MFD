@@ -1,5 +1,11 @@
 import { cl } from '../utils';
+import { generateWeeklyMediaCycle } from '../media-cycle';
 import { RNG, mulberry32, reseedSeason, reseedWeek, setSeed } from '../rng';
+import {
+  advanceStorylineThreads,
+  closeCompletedThreads,
+  seedThreadsForWeek,
+} from '../storyline-threads';
 import { getAdaptiveModifier, updateAdaptiveDifficulty } from './adaptive-difficulty';
 import { checkAchievements } from './achievements';
 import { applyHalftimeDecision, type AdvanceFranchiseWeekOptions } from './halftime-decision';
@@ -565,6 +571,11 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
   nextState.activeRecordChases ??= [];
   nextState.recentBrokenRecords ??= [];
   nextState.recentMilestones ??= [];
+  nextState.mediaCycle ??= {
+    weeklyDigests: [],
+    powerRankingHistory: [],
+  };
+  nextState.storylineThreads ??= [];
   nextState.postGameUi = nextState.postGameUi ?? {
     pressConferenceQueue: [],
     audioCueQueue: [],
@@ -1136,6 +1147,20 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
   nextState.activeRecordChases = nextState.phase === 'regular_season'
     ? checkRecordChases(nextState)
     : [];
+  if (completedRegularSeasonWeek) {
+    const digest = generateWeeklyMediaCycle(nextState, playedWeek);
+    nextState.mediaCycle.weeklyDigests = [...nextState.mediaCycle.weeklyDigests, digest];
+    nextState.mediaCycle.powerRankingHistory = [
+      ...nextState.mediaCycle.powerRankingHistory,
+      {
+        weekNumber: playedWeek,
+        rankings: digest.powerRankings,
+      },
+    ];
+    nextState.storylineThreads = advanceStorylineThreads(nextState, playedWeek);
+    nextState.storylineThreads = closeCompletedThreads(nextState);
+    nextState.storylineThreads = seedThreadsForWeek(nextState, playedWeek);
+  }
   const currentUser = findUserTeam(nextState);
   if (currentUser && userResult) {
     const userOutcome = userResult.homeTeamId === currentUser.id

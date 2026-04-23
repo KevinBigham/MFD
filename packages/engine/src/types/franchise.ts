@@ -82,6 +82,8 @@ import type {
   RecordEntry,
   YearProjection,
 } from './records.js';
+import type { MediaCycleState } from '../media-cycle/types.js';
+import type { StorylineThread } from '../storyline-threads/types.js';
 
 // ── Scenarios ───────────────────────────────────────────
 
@@ -1221,6 +1223,7 @@ export interface GameState {
   ballotEliminatedIds?: string[];
   allDecadeTeams: AllDecadeTeam[];
   powerRankings: PowerRanking[];
+  mediaCycle?: MediaCycleState;
   franchiseHistory: FranchiseHistoryEntry[];
   userDynastyEras?: import('../systems/dynasty-era').DynastyEra[];
   playerArchive: PlayerArchiveEntry[];
@@ -1271,6 +1274,7 @@ export interface GameState {
   narrativeIntensity: NarrativeIntensity;
   ceremonies: Ceremony[];
   dynastyTimeline: DynastyEvent[];
+  storylineThreads?: StorylineThread[];
   storyArcs?: LeagueStoryArc[];
   coachingMarket?: CoachingMarketState;
   weeklyPrepPlans?: Record<string, WeeklyPrepPlan>;
