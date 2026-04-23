@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ApologyTourThread, Team } from '@mfd/engine';
+import type { ApologyTourThread, GameDayPackage, Team } from '@mfd/engine';
 import { buildInboxMessages } from './buildInboxMessages';
 
 type BuildParams = Parameters<typeof buildInboxMessages>[0];
@@ -121,5 +121,56 @@ describe('buildInboxMessages Apology Tour', () => {
       'apology-apology-2026-5-game-collapse-1-fan_letter',
       'apology-apology-2026-5-game-collapse-1-owner_email',
     ]);
+  });
+});
+
+describe('buildInboxMessages gameday deeplink', () => {
+  const gameDayPackage = {
+    id: 'gd-2026-5',
+    week: 5,
+    year: 2026,
+    headline: 'Bills survive Miami in a shootout',
+    result: 'win',
+    autopsy: {
+      diagnosis: 'Explosive plays covered for a leaky middle.',
+      leverage: 'Red zone offense flipped the script late.',
+      nextFocus: ['Run defense', 'Third-down passing'],
+    },
+  } as unknown as GameDayPackage;
+
+  it('attaches the presentation deeplink to the latest gameday message', () => {
+    const messages = buildInboxMessages(makeParams({ latestPackage: gameDayPackage }));
+    const gameday = messages.find((message) => message.id === 'gameday-gd-2026-5');
+    expect(gameday).toBeDefined();
+    expect(gameday!.link).toBe('/presentation');
+    expect(gameday!.linkLabel).toBe('Watch Replay');
+  });
+
+  it('does not attach a deeplink when there is no gameday package (fallback summary)', () => {
+    const messages = buildInboxMessages(makeParams({
+      latestPackage: null,
+      latestSummary: {
+        id: 'ws-2026-5',
+        week: 5,
+        result: 'loss',
+        headline: 'Rough Monday — regress everywhere',
+        record: '3-2',
+        ownerDelta: -3,
+        notes: ['O-line broke down'],
+      } as unknown as Parameters<typeof buildInboxMessages>[0]['latestSummary'],
+    }));
+    const summary = messages.find((message) => message.id === 'weekly-summary-ws-2026-5');
+    expect(summary).toBeDefined();
+    expect(summary!.link).toBeUndefined();
+    expect(summary!.linkLabel).toBeUndefined();
+  });
+
+  it('flags a loss gameday as URGENT and still deeplinks to the replay', () => {
+    const loss = { ...gameDayPackage, id: 'gd-loss', result: 'loss' } as unknown as GameDayPackage;
+    const messages = buildInboxMessages(makeParams({ latestPackage: loss }));
+    const gameday = messages.find((message) => message.id === 'gameday-gd-loss');
+    expect(gameday!.type).toBe('URGENT');
+    expect(gameday!.actionRequired).toBe(true);
+    expect(gameday!.link).toBe('/presentation');
   });
 });

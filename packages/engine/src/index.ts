@@ -334,6 +334,8 @@ export type {
 // Sprint 68 — League Pulse (league-wide rivalry heat + rank momentum aggregator)
 export {
   buildLeaguePulse,
+  createRivalryHeatSpikePost,
+  detectRivalryTierAscension,
   getLeaguePulseRivalry,
 } from './systems/league-pulse';
 export type {

@@ -112,13 +112,15 @@ export function InboxTriage() {
   const filtered = filter === 'ALL' ? messages : messages.filter((m) => m.type === filter);
   const urgentCount = messages.filter((m) => m.type === 'URGENT' && !m.read).length;
   const decisionCount = messages.filter((m) => m.type === 'DECISION' && m.actionRequired).length;
-  const selectedRoute = selectedMsg?.from === 'Film Room'
-    ? '/film-room'
-    : selectedMsg?.from === 'Prep Desk'
-      ? '/game-plan'
-      : selectedMsg?.from === 'Ownership'
-        ? '/coaching'
-        : null;
+  const selectedRoute = selectedMsg?.link
+    ?? (selectedMsg?.from === 'Film Room'
+      ? '/film-room'
+      : selectedMsg?.from === 'Prep Desk'
+        ? '/game-plan'
+        : selectedMsg?.from === 'Ownership'
+          ? '/coaching'
+          : null);
+  const selectedRouteLabel = selectedMsg?.linkLabel ?? 'Open Related Screen';
 
   return (
     <div style={screenStackStyle}>
@@ -232,7 +234,7 @@ export function InboxTriage() {
                   accent="cyan"
                   onClick={() => navigateTo(selectedRoute)}
                 >
-                  Open Related Screen
+                  {selectedRouteLabel}
                 </PixelButton>
               </div>
             ) : null}

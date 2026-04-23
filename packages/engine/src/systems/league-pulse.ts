@@ -6,7 +6,8 @@
  * Sprint 68 — Track D. Complements RivalryHeatMap (which is
  * user-team-centric) with a league-wide, at-a-glance pulse.
  */
-import type { LeagueRivalry, PowerRanking } from '../types';
+import type { PrngFn } from '../rng';
+import type { LeagueRivalry, PowerRanking, SocialPost } from '../types';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -236,4 +237,74 @@ export function getLeaguePulseRivalry(
   rivalryId: string,
 ): LeaguePulseRivalryEntry | null {
   return pulse.hottestRivalries.find((entry) => entry.id === rivalryId) ?? null;
+}
+
+// ── Heat-spike detection (rivalry tier ascension) ──────
+
+const TIER_ORDER: LeaguePulseTier[] = ['quiet', 'budding', 'heated', 'blood_feud'];
+
+function tierRank(tier: LeaguePulseTier): number {
+  return TIER_ORDER.indexOf(tier);
+}
+
+/**
+ * Detects when a rivalry's intensity crossed into a higher tier.
+ * Returns the new tier if ascended (e.g., budding → heated or heated → blood_feud);
+ * returns null if the tier stayed the same or dropped.
+ */
+export function detectRivalryTierAscension(
+  previousIntensity: number,
+  currentIntensity: number,
+): LeaguePulseTier | null {
+  const before = classifyTier(previousIntensity);
+  const after = classifyTier(currentIntensity);
+  if (tierRank(after) <= tierRank(before)) return null;
+  return after;
+}
+
+// ── Heat-spike social post ─────────────────────────────
+
+const HEATED_TEMPLATES = [
+  (a: string, b: string) => `BREAKING: ${a} vs ${b} officially crosses into HEATED territory. This one has bite now.`,
+  (a: string, b: string) => `The ${a}-${b} file keeps getting thicker. Officially a HEATED rivalry after this one.`,
+  (a: string, b: string) => `Circle the calendar — ${a} and ${b} are no longer just a matchup. They're a rivalry.`,
+];
+
+const BLOOD_FEUD_TEMPLATES = [
+  (a: string, b: string) => `BLOOD FEUD. ${a} and ${b} have crossed every line. This isn't a game anymore.`,
+  (a: string, b: string) => `Call it what it is: ${a} vs ${b} is a BLOOD FEUD. Years of receipts, and they just added another.`,
+  (a: string, b: string) => `${a} and ${b} just graduated to a full-blown BLOOD FEUD. Whoever drew this schedule next time better duck.`,
+];
+
+function pickTemplate<T>(templates: T[], rng: PrngFn): T {
+  const index = Math.min(templates.length - 1, Math.max(0, Math.floor(rng() * templates.length)));
+  return templates[index]!;
+}
+
+/**
+ * Creates a social-feed post announcing a rivalry's ascension into a
+ * higher tier. Determinstic given the same rng input.
+ */
+export function createRivalryHeatSpikePost(
+  rivalry: LeagueRivalry,
+  newTier: LeaguePulseTier,
+  teamNames: Record<string, string>,
+  week: number,
+  rng: PrngFn,
+): SocialPost | null {
+  if (newTier !== 'heated' && newTier !== 'blood_feud') return null;
+  const teamAName = teamNames[rivalry.teamA] ?? rivalry.teamA;
+  const teamBName = teamNames[rivalry.teamB] ?? rivalry.teamB;
+  const templates = newTier === 'blood_feud' ? BLOOD_FEUD_TEMPLATES : HEATED_TEMPLATES;
+  const content = pickTemplate(templates, rng)(teamAName, teamBName);
+  return {
+    id: `social-rivalry-heat-${rivalry.id}-${week}-${newTier}`,
+    source: 'reporter',
+    authorName: 'MFSN League Desk',
+    content,
+    trigger: 'rivalry',
+    sentiment: 'hype',
+    likes: 220 + Math.floor(rng() * 240),
+    timestamp: week,
+  };
 }
