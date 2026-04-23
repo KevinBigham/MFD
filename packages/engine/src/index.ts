@@ -100,6 +100,17 @@ export {
   buildStatSnapshot,
 } from './systems/stat-central';
 export { createPowerRankings, updatePowerRankings } from './systems/power-rankings';
+export {
+  computePowerRankings,
+  generateHeadlines,
+  generateHotTakes,
+  generateWeeklyMediaCycle,
+} from './media-cycle';
+export {
+  seedThreadsForWeek,
+  advanceStorylineThreads,
+  closeCompletedThreads,
+} from './storyline-threads';
 export { formMentoringPairs, applyMentoringBonuses } from './systems/mentoring';
 export { generateAwards } from './systems/awards';
 export {

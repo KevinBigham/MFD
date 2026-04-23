@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildCartridge } from '@mfd/engine';
+import { buildCartridge, SAVE_VERSION } from '@mfd/engine';
 import { createSeedGameState } from './seed';
 import { loadImportedCartridge, loadImportedCartridgeFile } from './persistence';
 
@@ -42,7 +42,7 @@ describe('persistence import helpers', () => {
     if (!built.ok) throw new Error(built.error);
     const loaded = loadImportedCartridge(built.json);
 
-    expect(loaded.version).toBe(34);
+    expect(loaded.version).toBe(SAVE_VERSION);
     expect(loaded.lastPortableExportYear).toBe(8);
   });
 

@@ -1266,6 +1266,16 @@ registerMigration(33, (state) => {
   };
 });
 
+// v34→v35: Sprint 67 media cycle + storyline threads.
+registerMigration(34, (state) => ({
+  ...state,
+  mediaCycle: {
+    weeklyDigests: [],
+    powerRankingHistory: [],
+  },
+  storylineThreads: [],
+}));
+
 // v30→v31: Add tutorialState.visitedScreens (Sprint 43 "Rookie Card" onboarding)
 registerMigration(30, (state) => {
   const tutorialRaw = (state['tutorialState'] && typeof state['tutorialState'] === 'object')

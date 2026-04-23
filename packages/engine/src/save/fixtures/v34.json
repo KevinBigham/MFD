@@ -2,8 +2,8 @@
   "version": 34,
   "seed": 42,
   "year": 2026,
-  "week": 1,
-  "phase": "preseason",
+  "week": 8,
+  "phase": "regular_season",
   "difficulty": "pro",
   "players": {
     "p1": {
@@ -29,7 +29,9 @@
         "pressure": 7,
         "ambition": 8
       },
-      "traits": [],
+      "traits": [
+        "clutch"
+      ],
       "archetype": null,
       "contract": {
         "playerId": "p1",
@@ -67,7 +69,11 @@
       "careerStats": {
         "seasons": 4,
         "gp": 64,
-        "snaps": 3800
+        "snaps": 3800,
+        "passYds": 16680,
+        "passTD": 122,
+        "previousSeasonOvr": 79,
+        "seasonStartOvr": 81
       },
       "traitMilestones": {},
       "traitPowerLevel": {},
@@ -86,16 +92,16 @@
       "jerseyNumber": 7,
       "bloodline": null,
       "stats": {
-        "gamesPlayed": 0,
-        "passYds": 0,
-        "passTD": 0,
-        "passINT": 0,
-        "passAtt": 0,
-        "passComp": 0,
-        "rushYds": 0,
-        "rushAtt": 0,
-        "rushTD": 0,
-        "fumbles": 0,
+        "gamesPlayed": 7,
+        "passYds": 2245,
+        "passTD": 18,
+        "passINT": 7,
+        "passAtt": 312,
+        "passComp": 207,
+        "rushYds": 148,
+        "rushAtt": 28,
+        "rushTD": 2,
+        "fumbles": 3,
         "rec": 0,
         "recYds": 0,
         "recTD": 0,
@@ -111,6 +117,9 @@
   },
   "teams": {
     "t1": {
+      "philosophy": "contend"
+    },
+    "t2": {
       "philosophy": "maintain"
     }
   },
@@ -124,9 +133,48 @@
     "career": {},
     "franchise": {}
   },
+  "activeRecordChases": [
+    {
+      "playerId": "p1",
+      "playerName": "Golden Save",
+      "teamId": "t1",
+      "stat": "passYds",
+      "currentValue": 2245,
+      "recordValue": 5038,
+      "recordHolder": "Legend Holder",
+      "pace": 320.7,
+      "category": "franchise",
+      "weeksRemaining": 10,
+      "projected": 5451.9
+    }
+  ],
+  "recentBrokenRecords": [],
+  "recentMilestones": [
+    {
+      "playerId": "p1",
+      "playerName": "Golden Save",
+      "stat": "passTD",
+      "value": 100,
+      "milestoneLabel": "100th career TD",
+      "narrative": "Golden Save hit the 100-touchdown mark in a rivalry win.",
+      "year": 2026,
+      "week": 7
+    }
+  ],
   "awardsHistory": [],
   "hallOfFame": [],
-  "powerRankings": [],
+  "powerRankings": [
+    {
+      "rank": 2,
+      "teamId": "t1",
+      "teamName": "Golden Club",
+      "score": 0.742,
+      "previousRank": 3,
+      "delta": 1,
+      "blurb": "Golden Club stayed in the national conversation with a big road win.",
+      "record": "5-2"
+    }
+  ],
   "franchiseHistory": [],
   "playerArchive": [],
   "frontOffice": {
@@ -145,19 +193,41 @@
     "activeArcs": [],
     "hooks": [],
     "recentHeadlines": [
-      "Golden save fixture \u2014 v30"
+      "Golden Save keeps the record chase alive entering Week 8",
+      "T1 and T2 renewed a budding rivalry in Week 7"
     ]
   },
   "offFieldEvents": [],
   "recentPressConferences": [],
   "coachingHistory": [],
-  "leagueRivalries": [],
+  "leagueRivalries": [
+    {
+      "id": "t1::t2",
+      "teamA": "t1",
+      "teamB": "t2",
+      "intensity": 58,
+      "isDivision": true,
+      "history": [
+        "2026 Week 7: close game 31-27"
+      ],
+      "lastMetYear": 2026,
+      "lastMetWeek": 7
+    }
+  ],
   "activeEffects": [],
   "gameDayState": {
     "recentPackages": [],
     "latestPackageId": null
   },
-  "weekSummaries": [],
+  "weekSummaries": [
+    {
+      "year": 2026,
+      "week": 7,
+      "teamId": "t1",
+      "headline": "Golden Save throws for 318 in a rivalry win",
+      "result": "win"
+    }
+  ],
   "playoffBracket": null,
   "offseasonState": null,
   "leagueRules": {

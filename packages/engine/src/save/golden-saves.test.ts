@@ -201,8 +201,24 @@ describe('golden save fixtures', () => {
 
     expect(result.success).toBe(true);
     expect(result.data.version).toBe(34);
+    expect(result.data.mediaCycle).toEqual({
+      weeklyDigests: [],
+      powerRankingHistory: [],
+    });
+    expect(result.data.storylineThreads).toEqual([]);
     expect(result.data.storyArcs).toEqual([]);
     expect(result.data.lastPortableExportYear).toBe(2025);
+  });
+
+  it('migrates v34 fixture through v34→v35 to current version', () => {
+    const migrated = migrate(v34Fixture as Record<string, unknown>, SAVE_VERSION);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(migrated['mediaCycle']).toEqual({
+      weeklyDigests: [],
+      powerRankingHistory: [],
+    });
+    expect(migrated['storylineThreads']).toEqual([]);
   });
 
   it('verifies migration chain has no gaps from v1 to SAVE_VERSION', () => {
