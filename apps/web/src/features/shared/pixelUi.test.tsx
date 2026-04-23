@@ -8,18 +8,22 @@ vi.mock('@mfd/design-system/components', () => ({
   PixelScreenHeader: () => null,
 }));
 
-vi.mock('@mfd/engine', () => ({
-  getTeamContent: (teamId: string) => {
-    if (teamId === 'team-1') {
-      return {
-        primaryColor: 'var(--brand-primary)',
-        secondaryColor: 'var(--brand-secondary)',
-        tertiaryColor: 'var(--brand-tertiary)',
-      };
-    }
-    return null;
-  },
-}));
+vi.mock('@mfd/engine', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@mfd/engine')>();
+  return {
+    ...actual,
+    getTeamContent: (teamId: string) => {
+      if (teamId === 'team-1') {
+        return {
+          primaryColor: 'var(--brand-primary)',
+          secondaryColor: 'var(--brand-secondary)',
+          tertiaryColor: 'var(--brand-tertiary)',
+        };
+      }
+      return null;
+    },
+  };
+});
 
 import { autoGrid, navigateTo, teamIdFromDynastyId, teamThemeVars } from './pixelUi';
 

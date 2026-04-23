@@ -2,26 +2,30 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { ChoiceForecastPreview } from '@mfd/engine';
 
-vi.mock('@mfd/engine', () => ({
-  getCoachCandidates: () => [
-    {
-      id: 'elias_rowe',
-      name: 'Elias Rowe',
-      age: 52,
-      background: 'Strategist.',
-      archetype: 'strategist',
-      schemePreference: { offense: 'west_coast', defense: 'cover_3' },
-      strengths: ['Planning'],
-      weaknesses: ['Rigid'],
-      interviewQuote: 'We will be ready.',
-    },
-  ],
-  getAGMCoachReaction: () => ({
-    recommendation: 'hire',
-    analysis: 'Best fit for the room.',
-    oneLiner: 'The room needs this.',
-  }),
-}));
+vi.mock('@mfd/engine', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@mfd/engine')>();
+  return {
+    ...actual,
+    getCoachCandidates: () => [
+      {
+        id: 'elias_rowe',
+        name: 'Elias Rowe',
+        age: 52,
+        background: 'Strategist.',
+        archetype: 'strategist',
+        schemePreference: { offense: 'west_coast', defense: 'cover_3' },
+        strengths: ['Planning'],
+        weaknesses: ['Rigid'],
+        interviewQuote: 'We will be ready.',
+      },
+    ],
+    getAGMCoachReaction: () => ({
+      recommendation: 'hire',
+      analysis: 'Best fit for the room.',
+      oneLiner: 'The room needs this.',
+    }),
+  };
+});
 
 import { HireCoachPhase } from './HireCoachPhase';
 

@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-vi.mock('@mfd/engine', () => ({
-  getAGMProfiles: () => [
+vi.mock('@mfd/engine', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@mfd/engine')>();
+  return {
+    ...actual,
+    getAGMProfiles: () => [
     {
       id: 'marcus_webb',
       name: 'Marcus Webb',
@@ -57,8 +60,9 @@ vi.mock('@mfd/engine', () => ({
       catchphrase: 'People are the edge.',
       toneModifiers: { enthusiasm: 0.6, bluntness: 0.4, humor: 0.2 },
     },
-  ],
-}));
+    ],
+  };
+});
 
 import { ChooseAGMPhase } from './ChooseAGMPhase';
 

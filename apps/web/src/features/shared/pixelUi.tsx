@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { getTeamContent } from '@mfd/engine';
 import {
   PixelConsequenceList as DesignSystemPixelConsequenceList,
   PixelMetricCard as DesignSystemPixelMetricCard,
@@ -7,6 +6,7 @@ import {
   PixelPlayerLink as DesignSystemPixelPlayerLink,
   PixelScreenHeader as DesignSystemPixelScreenHeader,
 } from '@mfd/design-system/components';
+import { resolveTeamContentFromStore } from '../../lib/team-content-resolver';
 
 export type PixelAccent = 'default' | 'gold' | 'cyan' | 'green' | 'red';
 
@@ -36,8 +36,8 @@ export function autoGrid(minWidth = 280): CSSProperties {
   };
 }
 
-export function teamThemeVars(teamId: string | undefined): CSSProperties {
-  if (!teamId) {
+export function teamThemeVars(teamIdOrAbbr: string | undefined): CSSProperties {
+  if (!teamIdOrAbbr) {
     return {
       '--mfd-team-primary': 'var(--mfd-gold)',
       '--mfd-team-secondary': 'var(--mfd-cyan)',
@@ -45,7 +45,9 @@ export function teamThemeVars(teamId: string | undefined): CSSProperties {
     } as CSSProperties;
   }
 
-  const content = getTeamContent(teamId);
+  // Resolver bridges runtime uid → canonical abbr via the live game store, so call sites
+  // that pass `userTeam.id` (a uid) stop silently falling back to default colors.
+  const content = resolveTeamContentFromStore(teamIdOrAbbr);
   return {
     '--mfd-team-primary': content?.primaryColor ?? 'var(--mfd-gold)',
     '--mfd-team-secondary': content?.secondaryColor ?? 'var(--mfd-cyan)',

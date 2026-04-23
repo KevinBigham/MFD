@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { getTeamContent } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import type { StoredScrapbookEntry } from '../../lib/scrapbook-store';
+import { resolveTeamContentFromStore } from '../../lib/team-content-resolver';
 import { SeasonRecapCard } from '../season/SeasonRecapCard';
 import { createExportFrame } from '../season/export-frame';
 import { autoGrid, display, monoSm, teamThemeVars } from '../shared/pixelUi';
@@ -26,8 +26,8 @@ function playoffLabel(playoffResult: StoredScrapbookEntry['recap']['playoffResul
   }
 }
 
-function scrapbookThemeVars(teamId: string): CSSProperties {
-  const content = getTeamContent(teamId);
+function scrapbookThemeVars(teamIdOrAbbr: string): CSSProperties {
+  const content = resolveTeamContentFromStore(teamIdOrAbbr);
   return {
     '--mfd-scrapbook-primary': content?.primaryColor ?? 'var(--mfd-gold)',
     '--mfd-scrapbook-secondary': content?.secondaryColor ?? 'var(--mfd-cyan)',
