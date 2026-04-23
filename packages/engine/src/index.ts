@@ -753,6 +753,23 @@ export {
 } from './systems/contract-helpers';
 export type { DeadCapSplit, TradeImpact, VoidYearResult, CascadeResult, DeadMoneyExplanation } from './systems/contract-helpers';
 
+// Systems — Contract Tools (Sprint 68) — pure preview API for front-office UI
+export {
+  evaluateRestructureEligibility,
+  evaluateBackloadEligibility,
+  evaluateStandardCutImpact,
+  evaluatePostJune1CutImpact,
+  projectContractCap,
+  CONTRACT_TOOLS_MIN_SALARY,
+} from './systems/contract-tools';
+export type {
+  RestructureEligibility,
+  BackloadEligibility,
+  CutImpact,
+  PostJune1Impact,
+  ContractCapProjectionYear,
+} from './systems/contract-tools';
+
 export {
   FRANCHISE_TAG_TYPES, getFranchiseTagSalary, applyFranchiseTag,
 } from './systems/franchise-tag';
