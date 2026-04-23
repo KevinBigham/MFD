@@ -1,4 +1,5 @@
 import { RNG, uid } from '../rng';
+import type { PlaytestAIBias } from '../playtesting/types';
 import type { GameEvent, GameState, StaffMember, Team } from '../types';
 import { recordNewsItem } from './league-news';
 import { ensureLivingWorldState } from './off-field-events';
@@ -30,9 +31,10 @@ function lastSeasons(game: GameState, teamId: string, count: number): Array<{ ye
     }));
 }
 
-function shouldFireCoach(game: GameState, team: Team): boolean {
+function shouldFireCoach(game: GameState, team: Team, aiBias?: PlaytestAIBias): boolean {
   if (team.isUser) return false;
   if (!team.staff.hc) return false;
+  if (aiBias?.fireCoachEverySeason) return true;
   if (team.ownerPatience80 <= 20) return true;
 
   const recentThree = lastSeasons(game, team.id, 3);
@@ -155,12 +157,12 @@ function growIncumbentCoach(team: Team): void {
   }
 }
 
-export function runCoachingCarousel(game: GameState, seasonYear: number): { events: GameEvent[] } {
+export function runCoachingCarousel(game: GameState, seasonYear: number, aiBias?: PlaytestAIBias): { events: GameEvent[] } {
   ensureLivingWorldState(game);
   const events: GameEvent[] = [];
 
   for (const team of Object.values(game.teams)) {
-    if (!shouldFireCoach(game, team)) {
+    if (!shouldFireCoach(game, team, aiBias)) {
       growIncumbentCoach(team);
       continue;
     }

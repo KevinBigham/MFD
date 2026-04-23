@@ -100,7 +100,7 @@ import {
   generateWeeklyBuzz,
 } from './social-feed';
 import { generateBroadcast } from './broadcast';
-import { allocateGameSnaps, applySnapCounts } from './snap-counts';
+import { allocateGameSnaps, applySnapCounts, type SnapManagement } from './snap-counts';
 import { advanceScenarioSeason, checkScenarioProgress } from './scenario-challenge';
 import { initializeDeadline } from './trade-deadline';
 import { applyWeeklyPrepToSim, buildOpponentIntel, evaluateWeeklyPrep } from './weekly-prep';
@@ -125,6 +125,7 @@ import {
 import { calculateAtmosphere, getAtmosphereBonus } from './atmosphere';
 import { generateRegionalWeather } from './regional-weather';
 import type { SimGameContext } from './game-sim-types';
+import type { PlaytestAIBias } from '../playtesting/types';
 import type {
   Consequence,
   EngineOutput,
@@ -169,9 +170,28 @@ function buildSimPlanContext(nextState: GameState, team: Team, opponent: Team) {
   };
 }
 
-function applyNonGamePhase(nextState: GameState): void {
-  if (nextState.phase === 'offseason') advanceOffseason(nextState);
-  else if (nextState.phase === 'free_agency') advanceFreeAgency(nextState);
+function resolvePlaytestSnapManagement(
+  team: Team,
+  fallback: SnapManagement,
+  aiBias?: PlaytestAIBias,
+): SnapManagement {
+  if (team.isUser) return fallback;
+  return aiBias?.snapManagement ?? fallback;
+}
+
+function shouldIgnorePlaytestFatigue(team: Team, aiBias?: PlaytestAIBias): boolean {
+  return Boolean(!team.isUser && aiBias?.fatigueIgnore);
+}
+
+function playtestFatigueIgnoreIds(teams: Team[], aiBias?: PlaytestAIBias): string[] {
+  return teams
+    .filter((team) => shouldIgnorePlaytestFatigue(team, aiBias))
+    .map((team) => team.id);
+}
+
+function applyNonGamePhase(nextState: GameState, aiBias?: PlaytestAIBias): void {
+  if (nextState.phase === 'offseason') advanceOffseason(nextState, aiBias);
+  else if (nextState.phase === 'free_agency') advanceFreeAgency(nextState, aiBias);
   else if (nextState.phase === 'draft') advanceDraft(nextState);
   else if (nextState.phase === 'post_draft') finalizePostDraft(nextState);
 
@@ -641,7 +661,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
     return { nextState, events, consequences: [] };
   }
   if (['offseason', 'free_agency', 'draft', 'post_draft'].includes(nextState.phase)) {
-    applyNonGamePhase(nextState);
+    applyNonGamePhase(nextState, options.playtestBias);
     return { nextState, events, consequences: [] };
   }
   expireTimedEffects(nextState);
@@ -649,7 +669,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
 
   if (nextState.phase === 'regular_season' && nextState.week === getTradeDeadlineWeek(nextState) && !deadlineAlreadyResolved(nextState)) {
     if (!nextState.tradeDeadlineState) {
-      nextState.tradeDeadlineState = initializeDeadline(nextState, RNG.trade);
+      nextState.tradeDeadlineState = initializeDeadline(nextState, RNG.trade, options.playtestBias);
     }
     return { nextState, events, consequences: [] };
   }
@@ -707,8 +727,12 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
       const awayLockerBonus = getLockerRoomGameBonus(away.lockerRoom);
       processInjuryRecovery(nextState, home.id, RNG.injury);
       processInjuryRecovery(nextState, away.id, RNG.injury);
-      const homeFatigueBonuses = buildFatiguePlayerBonuses(nextState, home.id);
-      const awayFatigueBonuses = buildFatiguePlayerBonuses(nextState, away.id);
+      const homeFatigueBonuses = shouldIgnorePlaytestFatigue(home, options.playtestBias)
+        ? undefined
+        : buildFatiguePlayerBonuses(nextState, home.id);
+      const awayFatigueBonuses = shouldIgnorePlaytestFatigue(away, options.playtestBias)
+        ? undefined
+        : buildFatiguePlayerBonuses(nextState, away.id);
       const homePlanContext = buildSimPlanContext(nextState, home, away);
       const awayPlanContext = buildSimPlanContext(nextState, away, home);
       const atmosphere = calculateAtmosphere(nextState, home, away, nextState.week, false);
@@ -766,7 +790,16 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
         away,
         halftimeDecision: options.halftimeDecision,
       });
-      const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, simContext);
+      const outcome = simulateGame(
+        nextState,
+        home,
+        away,
+        nextState.year,
+        nextState.week,
+        nextState.difficulty,
+        simContext,
+        { fatigueIgnoreTeamIds: playtestFatigueIgnoreIds([home, away], options.playtestBias) },
+      );
       outcome.result.broadcastNetwork = matchup.broadcastNetwork;
       outcome.result.primetime = matchup.primetime;
       outcome.result.flexed = matchup.flexed;
@@ -778,10 +811,11 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
       }
       // Snap count allocation
       const homePrep = nextState.weeklyPrepPlans?.[home.id];
-      const homeSnapMgmt = homePrep?.snapManagement ?? 'normal';
+      const homeSnapMgmt = resolvePlaytestSnapManagement(home, homePrep?.snapManagement ?? 'normal', options.playtestBias);
       const homeSnaps = allocateGameSnaps(home, homeSnapMgmt, outcome.result.stats?.[home.id]?.playerLines ?? [], RNG.play);
       applySnapCounts(home, homeSnaps);
-      const awaySnaps = allocateGameSnaps(away, 'normal', outcome.result.stats?.[away.id]?.playerLines ?? [], RNG.play);
+      const awaySnapMgmt = resolvePlaytestSnapManagement(away, 'normal', options.playtestBias);
+      const awaySnaps = allocateGameSnaps(away, awaySnapMgmt, outcome.result.stats?.[away.id]?.playerLines ?? [], RNG.play);
       applySnapCounts(away, awaySnaps);
       matchup.result = outcome.result;
       matchup.weather = outcome.result.weather ?? matchup.weather ?? null;
@@ -925,8 +959,12 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
       const awayLockerBonus = getLockerRoomGameBonus(away.lockerRoom);
       processInjuryRecovery(nextState, home.id, RNG.injury);
       processInjuryRecovery(nextState, away.id, RNG.injury);
-      const homeFatigueBonuses = buildFatiguePlayerBonuses(nextState, home.id);
-      const awayFatigueBonuses = buildFatiguePlayerBonuses(nextState, away.id);
+      const homeFatigueBonuses = shouldIgnorePlaytestFatigue(home, options.playtestBias)
+        ? undefined
+        : buildFatiguePlayerBonuses(nextState, home.id);
+      const awayFatigueBonuses = shouldIgnorePlaytestFatigue(away, options.playtestBias)
+        ? undefined
+        : buildFatiguePlayerBonuses(nextState, away.id);
       const homePlanContext = buildSimPlanContext(nextState, home, away);
       const awayPlanContext = buildSimPlanContext(nextState, away, home);
       nextState.playoffMomentum[home.id] = nextState.playoffMomentum[home.id] ?? calculatePlayoffMomentum(nextState, home.id);
@@ -987,7 +1025,16 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
         away,
         halftimeDecision: options.halftimeDecision,
       });
-      const outcome = simulateGame(nextState, home, away, nextState.year, nextState.week, nextState.difficulty, simContext);
+      const outcome = simulateGame(
+        nextState,
+        home,
+        away,
+        nextState.year,
+        nextState.week,
+        nextState.difficulty,
+        simContext,
+        { fatigueIgnoreTeamIds: playtestFatigueIgnoreIds([home, away], options.playtestBias) },
+      );
       callYourShotResult ??= resolveActiveCallYourShot(nextState, outcome.result, startingUser?.id ?? null);
       if (home.isUser || away.isUser) {
         outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
@@ -996,10 +1043,11 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
       }
       // Playoff snap counts — ride_stars in playoffs
       const playoffHomePrep = nextState.weeklyPrepPlans?.[home.id];
-      const playoffHomeSnapMgmt = playoffHomePrep?.snapManagement ?? 'ride_stars';
+      const playoffHomeSnapMgmt = resolvePlaytestSnapManagement(home, playoffHomePrep?.snapManagement ?? 'ride_stars', options.playtestBias);
       const playoffHomeSnaps = allocateGameSnaps(home, playoffHomeSnapMgmt, outcome.result.stats?.[home.id]?.playerLines ?? [], RNG.play);
       applySnapCounts(home, playoffHomeSnaps);
-      const playoffAwaySnaps = allocateGameSnaps(away, 'ride_stars', outcome.result.stats?.[away.id]?.playerLines ?? [], RNG.play);
+      const playoffAwaySnapMgmt = resolvePlaytestSnapManagement(away, 'ride_stars', options.playtestBias);
+      const playoffAwaySnaps = allocateGameSnaps(away, playoffAwaySnapMgmt, outcome.result.stats?.[away.id]?.playerLines ?? [], RNG.play);
       applySnapCounts(away, playoffAwaySnaps);
       const winnerTeamId = outcome.result.homeScore >= outcome.result.awayScore ? outcome.result.homeTeamId : outcome.result.awayTeamId;
       const loserTeamId = winnerTeamId === outcome.result.homeTeamId ? outcome.result.awayTeamId : outcome.result.homeTeamId;

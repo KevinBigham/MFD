@@ -37,7 +37,7 @@ function applyResult(home: Team, away: Team, homeStats: TeamGameStats, awayStats
   home.streak = home.streak <= 0 ? home.streak - 1 : -1;
 }
 
-function maybeInjure(game: GameState, team: Team, injMod: number): WeeklyInjurySummary[] {
+function maybeInjure(game: GameState, team: Team, injMod: number, ignoreFatigue = false): WeeklyInjurySummary[] {
   const injuries: WeeklyInjurySummary[] = [];
   const eligible = team.roster.filter((player) =>
     player.isStarter &&
@@ -47,7 +47,7 @@ function maybeInjure(game: GameState, team: Team, injMod: number): WeeklyInjuryS
   );
 
   for (const player of eligible) {
-    const fatigueLevel = team.fatigueState[player.id]?.fatigue ?? 0;
+    const fatigueLevel = ignoreFatigue ? 0 : (team.fatigueState[player.id]?.fatigue ?? 0);
     const injury = maybeGenerateTeamInjury(game, team.id, player, fatigueLevel, injMod, RNG.injury);
     if (!injury) continue;
 
@@ -80,10 +80,14 @@ export function simulateGame(
   week: number,
   difficulty: GameState['difficulty'],
   context?: SimGameContext,
+  options?: {
+    fatigueIgnoreTeamIds?: readonly string[];
+  },
 ): {
   result: GameResult;
   injuries: Record<string, WeeklyInjurySummary[]>;
 } {
+  const fatigueIgnoreIds = new Set(options?.fatigueIgnoreTeamIds ?? []);
   const sim = simGame(home, away, context);
   const {
     homeScore,
@@ -127,8 +131,8 @@ export function simulateGame(
       contingencyActivations,
     },
     injuries: {
-      [home.id]: maybeInjure(game, home, diff.injMod),
-      [away.id]: maybeInjure(game, away, diff.injMod),
+      [home.id]: maybeInjure(game, home, diff.injMod, fatigueIgnoreIds.has(home.id)),
+      [away.id]: maybeInjure(game, away, diff.injMod, fatigueIgnoreIds.has(away.id)),
     },
   };
 }

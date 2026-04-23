@@ -9,7 +9,9 @@
     "test": "pnpm -r test",
     "test:engine": "pnpm --filter @mfd/engine test",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "playtest": "pnpm --filter @mfd/engine playtest",
+    "playtest:all": "pnpm --filter @mfd/engine playtest:all"
   },
   "engines": {
     "node": ">=20",
