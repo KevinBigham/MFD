@@ -320,6 +320,31 @@ export {
   generateFinalNarrative,
   getWpLeverageCallout,
 } from './systems/broadcast';
+// Sprint 68 — Broadcast Presentation (cinematic beat curator)
+export {
+  buildBroadcastPresentation,
+  getBroadcastBeat,
+} from './systems/broadcast-presentation';
+export type {
+  BroadcastBeat,
+  BroadcastBeatKind,
+  BroadcastPresentation,
+  BuildBroadcastPresentationOptions,
+} from './systems/broadcast-presentation';
+// Sprint 68 — League Pulse (league-wide rivalry heat + rank momentum aggregator)
+export {
+  buildLeaguePulse,
+  getLeaguePulseRivalry,
+} from './systems/league-pulse';
+export type {
+  BuildLeaguePulseOptions,
+  LeaguePulse,
+  LeaguePulseInputs,
+  LeaguePulseRankMover,
+  LeaguePulseRivalryEntry,
+  LeaguePulseSummary,
+  LeaguePulseTier,
+} from './systems/league-pulse';
 export {
   CRITICAL_LEVERAGE_TEMPLATES,
   HIGH_LEVERAGE_TEMPLATES,
