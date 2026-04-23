@@ -6,7 +6,7 @@ import {
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
   Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity, CalendarRange,
   Radio, MessageSquare, Crosshair, Building2, Award, Users2, Sparkles, Scale,
-  ChevronDown, ChevronRight, Map as MapIcon, Film, Tent, Target, Loader,
+  ChevronDown, ChevronRight, Map as MapIcon, Film, Tent, Target, Loader, Briefcase,
 } from 'lucide-react';
 import { MfdTooltipProvider, MfdCommandPalette, PixelModal, type CommandItem } from '@mfd/design-system/components';
 import { getRegisteredShortcuts, registerShortcut, useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
@@ -93,6 +93,7 @@ const LazyRecordBook = lazy(async () => ({ default: (await import('../features/s
 const LazyStatCentral = lazy(async () => ({ default: (await import('../features/stats/StatCentral')).default }));
 const LazyTeamNeeds = lazy(async () => ({ default: (await import('../features/team-needs/TeamNeeds')).TeamNeeds }));
 const LazyCapLaboratory = lazy(async () => ({ default: (await import('../features/contracts/CapLaboratory')).default }));
+const LazyContractTools = lazy(async () => ({ default: (await import('../features/front-office/ContractTools')).default }));
 const LazyFATargetBoard = lazy(async () => ({ default: (await import('../features/free-agency/FATargetBoard')).FATargetBoard }));
 const LazyFilmRoom = lazy(async () => ({ default: (await import('../features/film-room/FilmRoom')).FilmRoom }));
 const LazyGameBroadcast = lazy(async () => ({ default: (await import('../features/broadcast/GameBroadcast')).GameBroadcast }));
@@ -138,6 +139,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/locker-room',  label: 'Locker Room',     shortLabel: 'Locker',   icon: <Users2 size={16} /> },
   { path: '/contracts',    label: 'Contracts',        shortLabel: 'Cap',      icon: <DollarSign size={16} />,     shortcut: '3' },
   { path: '/cap-lab',      label: 'Cap Lab',          shortLabel: 'Cap Lab',  icon: <DollarSign size={16} /> },
+  { path: '/front-office', label: 'Front Office',     shortLabel: 'Front Office', icon: <Briefcase size={16} /> },
   { path: '/endorsements', label: 'Endorsements',     shortLabel: 'Deals',    icon: <Sparkles size={16} /> },
   { path: '/trades',       label: 'Trades',           shortLabel: 'Trades',   icon: <ArrowLeftRight size={16} />, shortcut: '4' },
   { path: '/team-needs',   label: 'Team Needs',       shortLabel: 'Needs',    icon: <BarChart3 size={16} /> },
@@ -190,7 +192,7 @@ interface NavGroup {
 const NAV_GROUPS: NavGroup[] = [
   { id: 'core',     label: 'CORE',     paths: ['/', '/week-advance', '/inbox'] },
   { id: 'team',     label: 'TEAM',     paths: ['/roster', '/depth-chart', '/locker-room', '/coaching', '/handshakes', '/training-camp', '/mentors'] },
-  { id: 'money',    label: 'MONEY',    paths: ['/contracts', '/cap-lab', '/endorsements'] },
+  { id: 'money',    label: 'MONEY',    paths: ['/contracts', '/cap-lab', '/front-office', '/endorsements'] },
   { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/scouting', '/draft', '/free-agency', '/fa-targets', '/waivers', '/practice-squad', '/team-needs'] },
   { id: 'gameday',  label: 'GAMEDAY',  paths: ['/game-day', '/game-plan', '/broadcast', '/play-by-play', '/game-flow', '/film-room', '/schedule', '/super-bowl'] },
   { id: 'league',   label: 'LEAGUE',   paths: ['/standings', '/power-rankings', '/newsroom', '/news', '/social', '/commissioner', '/analytics', '/records', '/stat-central'] },
@@ -1034,6 +1036,16 @@ const capLabRoute = createRoute({
   ),
 });
 
+const frontOfficeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/front-office',
+  component: () => (
+    <LazyRouteFrame label="contract tools">
+      <LazyContractTools />
+    </LazyRouteFrame>
+  ),
+});
+
 const lockerRoomRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/locker-room',
@@ -1619,7 +1631,7 @@ const settingsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, endorsementsRoute, tradesRoute,
+  rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, frontOfficeRoute, endorsementsRoute, tradesRoute,
   scoutingRoute, draftRoute, trainingCampRoute, freeAgencyRoute, faTargetsRoute,
   gameDayRoute, broadcastRoute, playByPlayRoute, gameFlowRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,
