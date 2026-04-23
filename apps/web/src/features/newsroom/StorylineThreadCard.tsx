@@ -1,36 +1,29 @@
 import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
+import type { StorylineArchetype, StorylineStatus, StorylineThread } from '@mfd/engine';
 import { useGameStore, selectTeams, selectUserTeamId } from '../../app/store/game-store';
 import { display, monoSm, pixelSm } from '../shared/pixelUi';
-import type { StorylineArchetype, StorylineStatus, StorylineThread } from './types';
 
 type Accent = 'default' | 'gold' | 'cyan' | 'green' | 'red';
 
 const ARCHETYPE_LABELS: Record<StorylineArchetype, string> = {
-  qb_controversy: 'QB CONTROVERSY',
-  coach_hot_seat: 'COACH HOT SEAT',
-  contract_year_push: 'CONTRACT YEAR',
-  rookie_breakout: 'ROOKIE BREAKOUT',
-  rivalry_revenge: 'RIVALRY REVENGE',
-  dynasty_defense: 'DYNASTY DEFENSE',
-  rebuild_milestone: 'REBUILD MILESTONE',
-  locker_room_fracture: 'LOCKER ROOM FRACTURE',
+  'hot-seat-coach': 'COACH HOT SEAT',
+  'qb-controversy': 'QB CONTROVERSY',
+  'rookie-of-year-chase': 'ROOKIE OF THE YEAR',
+  'records-chase': 'RECORDS CHASE',
+  'comeback-player': 'COMEBACK PLAYER',
 };
 
 const ARCHETYPE_ACCENTS: Record<StorylineArchetype, Accent> = {
-  qb_controversy: 'gold',
-  coach_hot_seat: 'red',
-  contract_year_push: 'cyan',
-  rookie_breakout: 'green',
-  rivalry_revenge: 'red',
-  dynasty_defense: 'gold',
-  rebuild_milestone: 'cyan',
-  locker_room_fracture: 'red',
+  'hot-seat-coach': 'red',
+  'qb-controversy': 'gold',
+  'rookie-of-year-chase': 'green',
+  'records-chase': 'gold',
+  'comeback-player': 'cyan',
 };
 
 const STATUS_ACCENTS: Record<StorylineStatus, Accent> = {
   active: 'cyan',
-  resolved: 'green',
-  abandoned: 'default',
+  closed: 'green',
 };
 
 function heatBlock(heat: number): string {
@@ -125,13 +118,13 @@ export function StorylineThreadCard({ thread, onOpen }: StorylineThreadCardProps
       </div>
 
       {latestBeat ? (
-        <PixelPanel title={`WEEK ${latestBeat.week} BEAT`} accent={archetypeAccent}>
+        <PixelPanel title={`WEEK ${latestBeat.weekNumber} BEAT`} accent={archetypeAccent}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ ...display, fontSize: '16px', color: 'var(--mfd-text)', lineHeight: 1.2 }}>
-              {latestBeat.headline.toUpperCase()}
+              {latestBeat.label.toUpperCase()}
             </div>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
-              {latestBeat.body}
+              {latestBeat.summary}
             </div>
           </div>
         </PixelPanel>

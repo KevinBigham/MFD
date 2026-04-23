@@ -85,6 +85,7 @@ import type {
   SpecialTeamsState,
   SchemeInstallState,
   StoryArc,
+  StorylineThread,
   StatLeaderEntry,
   Team,
   TeamNeedsComparisonEntry,
@@ -204,6 +205,7 @@ const EMPTY_CEREMONIES: Ceremony[] = [];
 const EMPTY_DYNASTY_EVENTS: DynastyEvent[] = [];
 const EMPTY_HALL_OF_FAME: HallOfFameEntry[] = [];
 const EMPTY_POWER_RANKINGS: PowerRanking[] = [];
+const EMPTY_STORYLINE_THREADS: StorylineThread[] = [];
 const EMPTY_MENTORING: MentoringPair[] = [];
 const EMPTY_OFF_FIELD_EVENTS: OffFieldEvent[] = [];
 const EMPTY_PRESS_CONFERENCES: PressConference[] = [];
@@ -718,6 +720,7 @@ export const selectAwardsHistory = (state: GameStoreState): AwardsHistoryEntry[]
 export const selectHallOfFame = (state: GameStoreState): HallOfFameEntry[] => state.game?.hallOfFame ?? EMPTY_HALL_OF_FAME;
 export const selectRecords = (state: GameStoreState): RecordBook => state.game?.records ?? EMPTY_RECORD_BOOK;
 export const selectPowerRankings = (state: GameStoreState): PowerRanking[] => state.game?.powerRankings ?? EMPTY_POWER_RANKINGS;
+export const selectStorylineThreads = (state: GameStoreState): StorylineThread[] => state.game?.storylineThreads ?? EMPTY_STORYLINE_THREADS;
 export const selectOffFieldEvents = (state: GameStoreState): OffFieldEvent[] => state.game?.offFieldEvents ?? EMPTY_OFF_FIELD_EVENTS;
 export const selectRecentPressConferences = (state: GameStoreState): PressConference[] => state.game?.recentPressConferences ?? EMPTY_PRESS_CONFERENCES;
 export const selectLeagueRivalries = (state: GameStoreState): LeagueRivalry[] => state.game?.leagueRivalries ?? EMPTY_LEAGUE_RIVALRIES;
