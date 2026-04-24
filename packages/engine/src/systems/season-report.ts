@@ -264,11 +264,11 @@ export function generateSeasonReport(game: GameState, teamId: string): SeasonRep
         ? `The window is open. The next offseason should sharpen, not reset, the roster.${arcSentence && !arcSentence.includes('rebuild') ? ` ${arcSentence}` : ''}`
         : `The offseason needs decisive upgrades at the most stressed positions.${arcSentence && !arcSentence.includes('rebuild') ? ` ${arcSentence}` : ''}`,
       [
-        `Biggest need: ${team.roster.sort((a, b) => a.ovr - b.ovr)[0]?.pos ?? 'depth'}.`,
+        `Biggest need: ${[...team.roster].sort((a, b) => a.ovr - b.ovr)[0]?.pos ?? 'depth'}.`,
         `Dynasty score trajectory: ${(game.dynastyTimeline ?? []).filter((entry) => entry.teamIds.includes(team.id)).length} legacy events logged.`,
       ],
       {
-        weakestPosition: team.roster.sort((a, b) => a.ovr - b.ovr)[0]?.pos ?? 'N/A',
+        weakestPosition: [...team.roster].sort((a, b) => a.ovr - b.ovr)[0]?.pos ?? 'N/A',
         dynastyEvents: (game.dynastyTimeline ?? []).filter((entry) => entry.teamIds.includes(team.id)).length,
       },
     ),

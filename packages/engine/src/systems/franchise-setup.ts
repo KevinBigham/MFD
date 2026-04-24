@@ -1354,8 +1354,8 @@ function blueprintNarrative(
 ): string {
   const window = calculateDynastyWindow(team, game.year, team.draftPicks.length || undefined);
   const topPlayer = roster.starPlayers[0]
-    ?? roster.weakestStarters.sort((left, right) => right.ovr - left.ovr)[0]
-    ?? toPlayerCard(team.roster.sort((left, right) => right.ovr - left.ovr)[0]!);
+    ?? [...roster.weakestStarters].sort((left, right) => right.ovr - left.ovr)[0]
+    ?? toPlayerCard([...team.roster].sort((left, right) => right.ovr - left.ovr)[0]!);
   const capState = capPosture(cap);
 
   if (window.phase === 'peaking') {
@@ -2181,7 +2181,7 @@ export function generateBlueprint(
   const keyPlayers = uniqueStrings([
     ...roster.starPlayers.map((player) => player.playerId),
     ...roster.risingStars.map((player) => player.playerId),
-    ...team.roster
+    ...[...team.roster]
       .sort((left, right) => right.ovr - left.ovr || left.id.localeCompare(right.id))
       .slice(0, 5)
       .map((player) => player.id),
