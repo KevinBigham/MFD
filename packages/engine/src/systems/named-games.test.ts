@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GameResult } from '../types';
-import { detectNamedGame, formatNamedGame, NAMED_GAME_PRIORITY } from './named-games';
+import { mulberry32 } from '../rng';
+import { checkForNamedGame, detectNamedGame, formatNamedGame, NAMED_GAME_PRIORITY } from './named-games';
 
 function makeResult(homeScore: number, awayScore: number, overrides: Partial<GameResult> = {}): GameResult {
   return {
@@ -211,5 +212,74 @@ describe('Named Games', () => {
     expect(text).toContain('The Snow Bowl');
     expect(text).toContain('Week 12');
     expect(text).toContain('17-14');
+  });
+
+  it('falls back to result weather when context is omitted', () => {
+    const named = detectNamedGame(makeResult(13, 10, { weather: 'snow' }));
+
+    expect(named?.name).toBe('The Snow Bowl');
+  });
+
+  it('treats null context weather as no override for result weather', () => {
+    const named = detectNamedGame(makeResult(13, 10, { weather: 'snow' }), { weather: null });
+
+    expect(named?.name).toBe('The Snow Bowl');
+  });
+
+  it('lets explicit non-snow context weather override snow result weather', () => {
+    const named = detectNamedGame(makeResult(13, 10, { weather: 'snow' }), { weather: 'rain' });
+
+    expect(named).toBeNull();
+  });
+
+  it('detects snow from context weather when result weather is absent', () => {
+    const named = detectNamedGame(makeResult(13, 10), { weather: 'snow' });
+
+    expect(named?.name).toBe('The Snow Bowl');
+  });
+
+  it('does not create a snow bowl from clear weather and a low score', () => {
+    const named = detectNamedGame(makeResult(13, 10, { weather: 'clear' }), { weather: 'clear' });
+
+    expect(named).toBeNull();
+  });
+
+  it('threads result weather through checkForNamedGame', () => {
+    const named = checkForNamedGame(mulberry32(42), makeResult(13, 10, { weather: 'snow' }), false, false);
+
+    expect(named?.archetype).toBe('snow_bowl');
+  });
+
+  it('does not invent ranking context for primetime checkForNamedGame calls', () => {
+    const named = checkForNamedGame(
+      mulberry32(42),
+      makeResult(21, 24, { primetime: true }),
+      false,
+      false,
+    );
+
+    expect(named).toBeNull();
+  });
+
+  it('keeps weather fallback lower priority than yard miracles', () => {
+    const named = detectNamedGame(makeResult(17, 14, { weather: 'snow' }), {
+      winningPlayYards: 64,
+      winningPlayClutch: true,
+      winningPlayType: 'offense',
+    });
+
+    expect(named?.archetype).toBe('yard_miracle');
+  });
+
+  it('preserves the fallback weather reason on snow bowls', () => {
+    const named = detectNamedGame(makeResult(13, 10, { weather: 'snow' }), { weather: undefined });
+
+    expect(named?.reason).toContain('Snow');
+  });
+
+  it('returns null for tied low-scoring non-weather games', () => {
+    const named = detectNamedGame(makeResult(10, 10), {});
+
+    expect(named).toBeNull();
   });
 });

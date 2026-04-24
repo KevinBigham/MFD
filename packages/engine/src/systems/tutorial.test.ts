@@ -13,6 +13,19 @@ import {
 } from './tutorial';
 import { makeLeagueState } from './test-helpers';
 
+const LAUNCH_STEP_EXPECTATIONS = [
+  ['check_game_plan', '/game-plan', '[data-nav="/game-plan"]'],
+  ['call_your_shot', '/game-plan', '[data-nav="/game-plan"]'],
+  ['contingency_gambit', '/game-plan', '[data-nav="/game-plan"]'],
+  ['review_broadcast', '/broadcast', '[data-nav="/broadcast"]'],
+  ['review_film_room', '/film-room', '[data-nav="/film-room"]'],
+  ['explore_trades', '/trades', '[data-nav="/trades"]'],
+  ['read_media_cycle', '/newsroom', '[data-nav="/newsroom"]'],
+  ['track_storyline_threads', '/newsroom', '[data-nav="/newsroom"]'],
+  ['check_rivalry_heat', '/league-pulse', '[data-nav="/league-pulse"]'],
+  ['check_franchise', '/franchise', '[data-nav="/franchise"]'],
+] as const;
+
 describe('tutorial', () => {
   it('starts with twenty-four active steps on a new tutorial state', () => {
     const tutorial = createDefaultTutorialState();
@@ -154,5 +167,47 @@ describe('tutorial', () => {
     const steps = getWeek1Steps();
     expect(steps.map((s) => s.id)).toEqual([...WEEK1_STEP_IDS]);
     expect(steps.every((s) => s.completed === false)).toBe(true);
+  });
+
+  it.each(LAUNCH_STEP_EXPECTATIONS)('contains launch-era step %s', (stepId) => {
+    const tutorial = createDefaultTutorialState();
+
+    expect(tutorial.steps.some((step) => step.id === stepId)).toBe(true);
+  });
+
+  it.each(LAUNCH_STEP_EXPECTATIONS)('routes launch-era step %s to its source screen', (stepId, targetScreen) => {
+    const tutorial = createDefaultTutorialState();
+    const step = tutorial.steps.find((candidate) => candidate.id === stepId);
+
+    expect(step?.targetScreen).toBe(targetScreen);
+  });
+
+  it.each(LAUNCH_STEP_EXPECTATIONS)('uses nav selector for launch-era step %s', (stepId, _targetScreen, targetElement) => {
+    const tutorial = createDefaultTutorialState();
+    const step = tutorial.steps.find((candidate) => candidate.id === stepId);
+
+    expect(step?.targetElement).toBe(targetElement);
+  });
+
+  it.each(LAUNCH_STEP_EXPECTATIONS)('completes route-driven launch step %s from its screen action', (stepId, targetScreen) => {
+    const game = makeLeagueState('preseason');
+    game.tutorialState = createDefaultTutorialState();
+    const index = game.tutorialState.steps.findIndex((step) => step.id === stepId);
+    game.tutorialState.currentStepIndex = index;
+
+    completeTutorialAction(game, `screen:${targetScreen}`);
+
+    expect(game.tutorialState.completedSteps).toContain(stepId);
+    expect(game.tutorialState.currentStepIndex).toBe(index + 1);
+  });
+
+  it('keeps launch-era tutorial steps in stable narrative order', () => {
+    const ids = createDefaultTutorialState().steps.map((step) => step.id);
+
+    expect(ids.indexOf('check_game_plan')).toBeLessThan(ids.indexOf('call_your_shot'));
+    expect(ids.indexOf('call_your_shot')).toBeLessThan(ids.indexOf('contingency_gambit'));
+    expect(ids.indexOf('review_broadcast')).toBeLessThan(ids.indexOf('review_film_room'));
+    expect(ids.indexOf('read_media_cycle')).toBeLessThan(ids.indexOf('track_storyline_threads'));
+    expect(ids.indexOf('check_franchise')).toBeLessThan(ids.indexOf('you_are_ready'));
   });
 });
