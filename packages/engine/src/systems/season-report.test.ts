@@ -214,4 +214,16 @@ describe('season report', () => {
 
     expect(report.sections.some((section) => section.summary.includes('dynasty'))).toBe(true);
   });
+
+  it('builds the outlook section without mutating a frozen team roster', () => {
+    const game = makeLeagueState('offseason', 1);
+    const team = game.teams.afce1!;
+    team.wins = 8;
+    team.losses = 9;
+    const originalOrder = team.roster.map((player) => player.id);
+    Object.freeze(team.roster);
+
+    expect(() => generateSeasonReport(game, team.id)).not.toThrow();
+    expect(team.roster.map((player) => player.id)).toEqual(originalOrder);
+  });
 });

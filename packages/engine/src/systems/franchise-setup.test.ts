@@ -742,6 +742,28 @@ describe('franchise setup generators', () => {
     expect(blueprint.blueprintNarrative).toContain('Cover 3');
   });
 
+  it('generates a blueprint without mutating a frozen team roster', () => {
+    const game = addBattleAndInjury();
+    const team = game.teams.afce1!;
+    const originalOrder = team.roster.map((player) => player.id);
+    Object.freeze(team.roster);
+
+    expect(() =>
+      generateBlueprint(game, 'afce1', {
+        agmProfileId: 'marcus_webb',
+        headCoachId: 'elias_rowe',
+        scoutingDirectorId: 'zoe_wilcox',
+        offenseScheme: 'spread',
+        defenseScheme: 'cover_3',
+        seasonGoals: ['playoff_berth', 'draft_well', 'winning_record'],
+        depthChartOverrides: {},
+        acknowledged: PHASES_ALL,
+      }),
+    ).not.toThrow();
+
+    expect(team.roster.map((player) => player.id)).toEqual(originalOrder);
+  });
+
   it('returns deterministic generator output for the same fixture', () => {
     const game = addBattleAndInjury();
 
