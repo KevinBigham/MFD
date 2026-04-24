@@ -32,6 +32,9 @@ const TUTORIAL_ROUTE_ALLOWLIST = new Set([
   '/power-rankings',
   '/scenarios',
   '/legacy',
+  '/about',
+  '/credits',
+  '/faq',
   '/dynasty',
   '/settings',
 ]);

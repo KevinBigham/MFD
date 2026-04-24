@@ -123,6 +123,9 @@ const LazyPlayByPlay = lazy(async () => ({ default: (await import('../features/b
 const LazyGameFlow = lazy(async () => ({ default: (await import('../features/broadcast/GameFlow')).GameFlow }));
 const LazySeasonRecapScreen = lazy(async () => ({ default: (await import('../features/season/SeasonRecapCard')).SeasonRecapScreen }));
 const LazyGmCareer = lazy(async () => ({ default: (await import('../features/franchise/GmCareer')).GmCareer }));
+const LazyAboutScreen = lazy(async () => ({ default: (await import('../features/launch/AboutScreen')).AboutScreen }));
+const LazyCreditsScreen = lazy(async () => ({ default: (await import('../features/launch/CreditsScreen')).CreditsScreen }));
+const LazyFaqScreen = lazy(async () => ({ default: (await import('../features/launch/FaqScreen')).FaqScreen }));
 
 // ── Nav items ────────────────────────────────────────────────
 
@@ -182,6 +185,9 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/league-pulse',  label: 'League Pulse',     shortLabel: 'Pulse',    icon: <Activity size={16} /> },
   { path: '/scenarios',    label: 'Scenarios',        shortLabel: 'Challenge', icon: <Crosshair size={16} /> },
   { path: '/legacy',        label: 'Legacy',           shortLabel: 'Legacy',   icon: <Trophy size={16} /> },
+  { path: '/about',         label: 'About',            shortLabel: 'About',    icon: <FileText size={16} /> },
+  { path: '/credits',       label: 'Credits',          shortLabel: 'Credits',  icon: <Award size={16} /> },
+  { path: '/faq',           label: 'FAQ',              shortLabel: 'FAQ',      icon: <ScrollText size={16} /> },
   { path: '/dynasty',       label: 'Save/Load',        shortLabel: 'Save',     icon: <Save size={16} /> },
   { path: '/settings',      label: 'Settings',         shortLabel: 'Config',   icon: <Settings size={16} /> },
 ];
@@ -201,7 +207,7 @@ const NAV_GROUPS: NavGroup[] = [
   { id: 'gameday',  label: 'GAMEDAY',  paths: ['/game-day', '/game-plan', '/broadcast', '/presentation', '/play-by-play', '/game-flow', '/film-room', '/schedule', '/super-bowl'] },
   { id: 'league',   label: 'LEAGUE',   paths: ['/standings', '/power-rankings', '/league-pulse', '/newsroom', '/news', '/social', '/commissioner', '/analytics', '/records', '/stat-central'] },
   { id: 'dynasty',  label: 'DYNASTY',  paths: ['/franchise', '/owner', '/legends', '/legacy', '/scenarios'] },
-  { id: 'meta',     label: 'SYSTEM',   paths: ['/dynasty', '/settings'] },
+  { id: 'meta',     label: 'SYSTEM',   paths: ['/about', '/credits', '/faq', '/dynasty', '/settings'] },
 ];
 
 // ── Root Layout ─────────────────────────────────────────────
@@ -1647,6 +1653,36 @@ const mentorsRoute = createRoute({
   ),
 });
 
+const aboutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/about',
+  component: () => (
+    <LazyRouteFrame label="about">
+      <LazyAboutScreen />
+    </LazyRouteFrame>
+  ),
+});
+
+const creditsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/credits',
+  component: () => (
+    <LazyRouteFrame label="credits">
+      <LazyCreditsScreen />
+    </LazyRouteFrame>
+  ),
+});
+
+const faqRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/faq',
+  component: () => (
+    <LazyRouteFrame label="faq">
+      <LazyFaqScreen />
+    </LazyRouteFrame>
+  ),
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
@@ -1661,7 +1697,7 @@ const routeTree = rootRoute.addChildren([
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, franchiseBookRoute, legendsRoute, seasonRecapRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, newsroomRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
-  powerRankingsRoute, leaguePulseRoute, scenarioRoute, legacyRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, playoffLoreDirectoryRoute, dynastyChronicleRoute, superBowlRoute, playerDevRoute, mentorsRoute, settingsRoute,
+  powerRankingsRoute, leaguePulseRoute, scenarioRoute, legacyRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, playoffLoreDirectoryRoute, dynastyChronicleRoute, superBowlRoute, playerDevRoute, mentorsRoute, aboutRoute, creditsRoute, faqRoute, settingsRoute,
 ]);
 
 const hashHistory = createHashHistory();

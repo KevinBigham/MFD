@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ErrorBoundary } from './ErrorBoundary';
 
@@ -60,5 +60,67 @@ describe('ErrorBoundary', () => {
 
     expect(markup).toContain('RETURN TO BRIEFING');
     expect(markup).toContain('error-return-button');
+  });
+
+  it('fallback includes current route and save version context', () => {
+    vi.stubGlobal('window', {
+      location: { hash: '#/faq', pathname: '/MFD/' },
+    });
+    try {
+      const instance = new ErrorBoundary({ children: null });
+      instance.state = {
+        hasError: true,
+        error: new Error('Crash'),
+      };
+      const element = instance.render();
+      const markup = renderToStaticMarkup(element as React.ReactElement);
+
+      expect(markup).toContain('/faq');
+      expect(markup).toContain('SAVE VERSION');
+      expect(markup).toContain('35');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('fallback includes the last five dev log messages when present', () => {
+    vi.stubGlobal('window', {
+      location: { hash: '#/settings', pathname: '/MFD/' },
+      __MFD_DEV_LOGS__: ['log-1', 'log-2', 'log-3', 'log-4', 'log-5', 'log-6'],
+    });
+    try {
+      const instance = new ErrorBoundary({ children: null });
+      instance.state = {
+        hasError: true,
+        error: new Error('Crash'),
+      };
+      const element = instance.render();
+      const markup = renderToStaticMarkup(element as React.ReactElement);
+
+      expect(markup).not.toContain('log-1');
+      expect(markup).toContain('log-2');
+      expect(markup).toContain('log-6');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('fallback handles missing dev logs explicitly', () => {
+    vi.stubGlobal('window', {
+      location: { hash: '', pathname: '/MFD/' },
+    });
+    try {
+      const instance = new ErrorBoundary({ children: null });
+      instance.state = {
+        hasError: true,
+        error: new Error('Crash'),
+      };
+      const element = instance.render();
+      const markup = renderToStaticMarkup(element as React.ReactElement);
+
+      expect(markup).toContain('No dev logs captured.');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

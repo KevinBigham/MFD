@@ -1,5 +1,8 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RotateCcw, Home } from 'lucide-react';
+import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
+import { SAVE_VERSION } from '@mfd/engine';
+import { PixelScreenHeader, monoSm } from '../features/shared/pixelUi';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -24,14 +27,7 @@ const styles = {
   },
   icon: {
     color: 'var(--mfd-red)',
-    marginBottom: '1.5rem',
-  },
-  header: {
-    fontFamily: 'var(--mfd-font-pixel)',
-    fontSize: '1.5rem',
-    color: 'var(--mfd-gold)',
-    marginBottom: '1rem',
-    letterSpacing: '0.05em',
+    marginBottom: '0.5rem',
   },
   message: {
     fontFamily: 'var(--mfd-font-mono)',
@@ -41,6 +37,25 @@ const styles = {
     marginBottom: '2rem',
     lineHeight: 1.6,
     wordBreak: 'break-word' as const,
+  },
+  content: {
+    width: 'min(760px, 100%)',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '16px',
+  },
+  contextGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: '12px',
+    textAlign: 'left' as const,
+  },
+  contextItem: {
+    border: '1px solid var(--mfd-border)',
+    padding: '10px',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '6px',
   },
   buttonRow: {
     display: 'flex',
@@ -62,6 +77,21 @@ const styles = {
     transition: 'background-color 0.2s',
   },
 } as const;
+
+type DevLogWindow = typeof window & { __MFD_DEV_LOGS__?: unknown };
+
+export function getCurrentErrorRoute(): string {
+  if (typeof window === 'undefined') return 'server-render';
+  const hashRoute = window.location.hash.replace(/^#/, '');
+  return hashRoute || window.location.pathname || '/';
+}
+
+export function getRecentDevLogMessages(): string[] {
+  if (typeof window === 'undefined') return [];
+  const logs = (window as DevLogWindow).__MFD_DEV_LOGS__;
+  if (!Array.isArray(logs)) return [];
+  return logs.slice(-5).map((entry) => String(entry));
+}
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
@@ -89,30 +119,67 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   render(): ReactNode {
     if (this.state.hasError) {
+      const route = getCurrentErrorRoute();
+      const logs = getRecentDevLogMessages();
+
       return (
         <div style={styles.container} data-testid="error-boundary-fallback">
-          <AlertTriangle size={48} style={styles.icon} />
-          <h1 style={styles.header}>TECHNICAL TIMEOUT</h1>
-          <p style={styles.message}>
-            {this.state.error?.message ?? 'An unexpected error occurred.'}
-          </p>
-          <div style={styles.buttonRow}>
-            <button
-              style={styles.button}
-              onClick={this.handleRetry}
-              data-testid="error-retry-button"
-            >
-              <RotateCcw size={14} />
-              RETRY
-            </button>
-            <button
-              style={styles.button}
-              onClick={this.handleReturn}
-              data-testid="error-return-button"
-            >
-              <Home size={14} />
-              RETURN TO BRIEFING
-            </button>
+          <div style={styles.content}>
+            <AlertTriangle size={48} style={styles.icon} />
+            <PixelScreenHeader
+              title="Technical Timeout"
+              subtitle="The app hit an unrecoverable render error."
+              badges={<PixelBadge variant="red">SAVE v{SAVE_VERSION}</PixelBadge>}
+            />
+            <p style={styles.message}>
+              {this.state.error?.message ?? 'An unexpected error occurred.'}
+            </p>
+
+            <PixelPanel title="Error Context" accent="red">
+              <div style={styles.contextGrid}>
+                <div style={styles.contextItem}>
+                  <span style={{ ...monoSm, color: 'var(--mfd-muted)' }}>ROUTE</span>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{route}</span>
+                </div>
+                <div style={styles.contextItem}>
+                  <span style={{ ...monoSm, color: 'var(--mfd-muted)' }}>SAVE VERSION</span>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{SAVE_VERSION}</span>
+                </div>
+              </div>
+            </PixelPanel>
+
+            <PixelPanel title="Recent Dev Logs" accent="default">
+              {logs.length > 0 ? (
+                <ol style={{ margin: 0, paddingLeft: '18px', ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7, textAlign: 'left' }}>
+                  {logs.map((log, index) => (
+                    <li key={`${index}-${log}`}>{log}</li>
+                  ))}
+                </ol>
+              ) : (
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', textAlign: 'left' }}>
+                  No dev logs captured.
+                </div>
+              )}
+            </PixelPanel>
+
+            <div style={styles.buttonRow}>
+              <button
+                style={styles.button}
+                onClick={this.handleRetry}
+                data-testid="error-retry-button"
+              >
+                <RotateCcw size={14} />
+                RETRY
+              </button>
+              <button
+                style={styles.button}
+                onClick={this.handleReturn}
+                data-testid="error-return-button"
+              >
+                <Home size={14} />
+                RETURN TO BRIEFING
+              </button>
+            </div>
           </div>
         </div>
       );
