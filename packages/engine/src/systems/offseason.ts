@@ -67,7 +67,7 @@ import type {
   ReSignDecision,
   Team,
 } from '../types';
-import type { PlaytestAIBias } from '../playtesting/types';
+import type { AIBiasConfig } from './ai-bias';
 
 function cloneGame(game: GameState): GameState {
   return structuredClone(game);
@@ -380,7 +380,7 @@ function resolveUserOffer(player: Player, decision: ReSignDecision): boolean {
   return scoreOffer(decision.lastOffer, decision.askingPrice) >= acceptThreshold(player);
 }
 
-function resolveAiReSigns(game: GameState, offseason: OffseasonState, aiBias?: PlaytestAIBias): void {
+function resolveAiReSigns(game: GameState, offseason: OffseasonState, aiBias?: AIBiasConfig): void {
   const userTeamId = findUserTeam(game)?.id ?? null;
   // Per-field undefined short-circuits to original hardcoded behavior to preserve
   // the "no-bias = pre-Sprint-69 behavior" contract. A single fallback can't
@@ -482,7 +482,7 @@ function createAiBid(
   team: Team,
   round: number,
   difficulty: GameState['difficulty'],
-  aiBias?: PlaytestAIBias,
+  aiBias?: AIBiasConfig,
 ): FreeAgencyBid | null {
   // Per-field undefined short-circuits to original hardcoded behavior (spendTolerance=1.0)
   // to preserve the "no-bias = pre-Sprint-69 behavior" contract.
@@ -547,7 +547,7 @@ function createAiBid(
   };
 }
 
-function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState, aiBias?: PlaytestAIBias): void {
+function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState, aiBias?: AIBiasConfig): void {
   const userTeam = findUserTeam(game);
 
   for (const playerId of [...game.freeAgents]) {
@@ -979,7 +979,7 @@ export function signStreetFreeAgent(
   return { nextState, events: [], consequences: [] };
 }
 
-export function advanceOffseason(game: GameState, aiBias?: PlaytestAIBias): void {
+export function advanceOffseason(game: GameState, aiBias?: AIBiasConfig): void {
   ensureGovernanceState(game);
   if (!game.offseasonState) {
     ensureDraftClass(game);
@@ -1173,7 +1173,7 @@ export function advanceOffseason(game: GameState, aiBias?: PlaytestAIBias): void
   game.week = 1;
 }
 
-export function advanceFreeAgency(game: GameState, aiBias?: PlaytestAIBias): void {
+export function advanceFreeAgency(game: GameState, aiBias?: AIBiasConfig): void {
   if (!game.offseasonState) {
     game.offseasonState = initializeOffseasonState(game);
   }

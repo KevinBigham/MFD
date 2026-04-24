@@ -125,7 +125,7 @@ import {
 import { calculateAtmosphere, getAtmosphereBonus } from './atmosphere';
 import { generateRegionalWeather } from './regional-weather';
 import type { SimGameContext } from './game-sim-types';
-import type { PlaytestAIBias } from '../playtesting/types';
+import type { AIBiasConfig } from './ai-bias';
 import type {
   Consequence,
   EngineOutput,
@@ -173,23 +173,23 @@ function buildSimPlanContext(nextState: GameState, team: Team, opponent: Team) {
 function resolvePlaytestSnapManagement(
   team: Team,
   fallback: SnapManagement,
-  aiBias?: PlaytestAIBias,
+  aiBias?: AIBiasConfig,
 ): SnapManagement {
   if (team.isUser) return fallback;
   return aiBias?.snapManagement ?? fallback;
 }
 
-function shouldIgnorePlaytestFatigue(team: Team, aiBias?: PlaytestAIBias): boolean {
+function shouldIgnorePlaytestFatigue(team: Team, aiBias?: AIBiasConfig): boolean {
   return Boolean(!team.isUser && aiBias?.fatigueIgnore);
 }
 
-function playtestFatigueIgnoreIds(teams: Team[], aiBias?: PlaytestAIBias): string[] {
+function playtestFatigueIgnoreIds(teams: Team[], aiBias?: AIBiasConfig): string[] {
   return teams
     .filter((team) => shouldIgnorePlaytestFatigue(team, aiBias))
     .map((team) => team.id);
 }
 
-function applyNonGamePhase(nextState: GameState, aiBias?: PlaytestAIBias): void {
+function applyNonGamePhase(nextState: GameState, aiBias?: AIBiasConfig): void {
   if (nextState.phase === 'offseason') advanceOffseason(nextState, aiBias);
   else if (nextState.phase === 'free_agency') advanceFreeAgency(nextState, aiBias);
   else if (nextState.phase === 'draft') advanceDraft(nextState);

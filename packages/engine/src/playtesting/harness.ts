@@ -23,6 +23,9 @@ import type {
   PlaytestReport,
 } from './types';
 
+export const MAX_PLAYTEST_STEPS = 800;
+const ELAPSED_HISTORY_LIMIT = 32;
+
 function createEmptyGameDayState(): GameDayState {
   return {
     recentPackages: [],
@@ -526,6 +529,13 @@ function roundElapsedMs(value: number): number {
   return Math.round(value * 1000) / 1000;
 }
 
+function recordElapsedDuration(history: number[], elapsedMs: number): void {
+  history.push(elapsedMs);
+  if (history.length > ELAPSED_HISTORY_LIMIT) {
+    history.splice(0, history.length - ELAPSED_HISTORY_LIMIT);
+  }
+}
+
 function captureFrame(state: GameState): PlaytestFrame {
   return {
     year: state.year,
@@ -593,7 +603,7 @@ export function runPlaytest(
   const anomalies: PlaytestAnomaly[] = [];
   const elapsedHistoryMs: number[] = [];
 
-  while (completedSeasons < seasons && step < 800) {
+  while (completedSeasons < seasons && step < MAX_PLAYTEST_STEPS) {
     if (state.tradeDeadlineState) {
       const resolved = finalizeDeadline(state, state.tradeDeadlineState);
       resolved.eventLog.push({
@@ -632,7 +642,7 @@ export function runPlaytest(
     }
 
     const elapsedMs = roundElapsedMs(nowMs() - startedAt);
-    elapsedHistoryMs.push(elapsedMs);
+    recordElapsedDuration(elapsedHistoryMs, elapsedMs);
     weeksAdvanced += 1;
     step += 1;
 
