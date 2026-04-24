@@ -95,7 +95,7 @@ function makeResultWithPlayerLines(): GameResult {
 }
 
 describe('buildGameDayPackage', () => {
-  it('builds a deterministic postgame package without using Math.random', () => {
+  it('builds a deterministic postgame package without ambient random calls', () => {
     const game = makeLeagueState();
     const team = game.teams.afce1!;
     const opponent = game.teams.afce2!;
@@ -122,7 +122,7 @@ describe('buildGameDayPackage', () => {
     ];
 
     const randomSpy = vi.spyOn(Math, 'random').mockImplementation(() => {
-      throw new Error('Math.random is forbidden');
+      throw new Error('ambient random is forbidden');
     });
 
     const first = buildGameDayPackage({

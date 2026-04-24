@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MAX_CONTINGENCIES, createContingencyRule } from '@mfd/engine';
-import { ContingencyBuilder } from './ContingencyBuilder';
+import { ContingencyBuilder, removeContingencyRule } from './ContingencyBuilder';
 
 describe('ContingencyBuilder', () => {
   it('renders the sprint trigger and response controls', () => {
@@ -96,5 +96,41 @@ describe('ContingencyBuilder', () => {
 
     expect(markup).toContain(`Rules ${MAX_CONTINGENCIES}/${MAX_CONTINGENCIES}`);
     expect(markup).toMatch(/disabled=""/);
+  });
+
+  it('removes only the requested contingency rule', () => {
+    const kept = createContingencyRule('down_by', 'go_air_raid', {
+      id: 'keep-me',
+      threshold: 14,
+    });
+    const removed = createContingencyRule('up_by', 'kill_clock', {
+      id: 'remove-me',
+      threshold: 21,
+    });
+
+    expect(removeContingencyRule([kept, removed], 'remove-me')).toEqual([kept]);
+  });
+
+  it('renders rules after a JSON persistence round-trip', () => {
+    const rule = createContingencyRule('down_by', 'pressure_every_down', {
+      id: 'persisted-1',
+      threshold: 7,
+    });
+    const persistedRules = JSON.parse(JSON.stringify([rule]));
+
+    const markup = renderToStaticMarkup(
+      <ContingencyBuilder
+        teamId="team-1"
+        year={2029}
+        week={11}
+        rules={persistedRules}
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(markup).toContain('LIVE');
+    expect(markup).toContain('7+');
+    expect(markup).toContain('Rules 1/3');
+    expect(markup).toContain('PRESSURE EVERY DOWN');
   });
 });

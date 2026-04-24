@@ -32,9 +32,11 @@
   --mfd-amber:       #fbbf24;
   --mfd-purple:      #a78bfa;
   --mfd-cyan:        #00e5ff;
+  --mfd-red-dim:     rgba(248, 113, 113, 0.16);
+  --mfd-cyan-dim:    rgba(0, 229, 255, 0.12);
   --mfd-result-hit-bg:     linear-gradient(135deg, var(--mfd-bg), var(--mfd-gold-dim));
-  --mfd-result-miss-bg:    linear-gradient(135deg, var(--mfd-bg), rgba(248, 113, 113, 0.16));
-  --mfd-result-partial-bg: linear-gradient(135deg, var(--mfd-bg), rgba(0, 229, 255, 0.12));
+  --mfd-result-miss-bg:    linear-gradient(135deg, var(--mfd-bg), var(--mfd-red-dim));
+  --mfd-result-partial-bg: linear-gradient(135deg, var(--mfd-bg), var(--mfd-cyan-dim));
 
   /* ── Pixel / 8-Bit Layer ────────────────────────────── */
   --mfd-pixel-border:      3px solid #333333;

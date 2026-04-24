@@ -30,6 +30,10 @@ function nextRuleId(teamId: string, year: number, week: number, trigger: Conting
   return `prep-${teamId}-${year}-${week}-${trigger}-${response}-${count}`;
 }
 
+export function removeContingencyRule(rules: ContingencyRule[], ruleId: string): ContingencyRule[] {
+  return rules.filter((rule) => rule.id !== ruleId);
+}
+
 export function ContingencyBuilder({
   teamId,
   year,
@@ -62,7 +66,7 @@ export function ContingencyBuilder({
   };
 
   const removeRule = (ruleId: string) => {
-    onChange(rules.filter((rule) => rule.id !== ruleId));
+    onChange(removeContingencyRule(rules, ruleId));
   };
 
   return (
