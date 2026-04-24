@@ -626,6 +626,7 @@ function NavGroupSection({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
       <button
         type="button"
+        data-mfd-nav-item="true"
         onClick={onToggle}
         style={{
           display: 'flex',
@@ -661,6 +662,7 @@ function NavGroupSection({
                 <button
                   type="button"
                   data-nav={item.path}
+                  data-mfd-nav-item="true"
                   onClick={() => { void router.navigate({ to: item.path }); }}
                   style={{
                     display: 'inline-flex',
