@@ -18,8 +18,8 @@ const DIFFICULTIES: { id: DifficultyLevel; label: string; desc: string; guide: s
     id: 'rookie',
     label: 'Rookie',
     desc: 'Forgiving cap, patient owners',
-    guide: rookieDefaults.skipHalftimeDecision && rookieDefaults.skipCpuGames
-      ? 'Best for new players. Patient owners, forgiving cap, halftime decisions auto-skip, and CPU games stay on the fast path.'
+    guide: rookieDefaults.skipHalftimeDecision
+      ? 'Best for new players. Patient owners, forgiving cap, halftime decisions auto-skip.'
       : 'Best for new players. Patient owners, forgiving cap, room to experiment.',
   },
   { id: 'pro', label: 'Pro', desc: 'Balanced challenge', guide: 'Standard experience. Balanced across all systems.' },

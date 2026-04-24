@@ -36,7 +36,7 @@ vi.mock('@mfd/engine', () => ({
   startScenario: vi.fn(),
   generateConventionSave: vi.fn(),
   CONVENTION_SAVE_METADATA: { headline: 'Test headline', week: 14, description: 'Test', team: 'Test' },
-  getDefaultDifficultyFlags: vi.fn(() => ({ skipHalftimeDecision: true, skipCpuGames: true })),
+  getDefaultDifficultyFlags: vi.fn(() => ({ skipHalftimeDecision: true })),
 }));
 
 import { NewGameScreen } from './NewGameScreen';
@@ -82,6 +82,6 @@ describe('NewGameScreen', () => {
     const markup = renderToStaticMarkup(<NewGameScreen />);
 
     expect(markup).toContain('halftime decisions auto-skip');
-    expect(markup).toContain('CPU games stay on the fast path');
+    expect(markup).not.toContain('CPU games stay on the fast path');
   });
 });

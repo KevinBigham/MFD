@@ -76,12 +76,10 @@ describe('difficulty', () => {
   it('sets rookie-only default skip flags without changing save settings shape', () => {
     expect(getDefaultDifficultyFlags('rookie')).toEqual({
       skipHalftimeDecision: true,
-      skipCpuGames: true,
     });
     for (const difficulty of ['pro', 'allpro', 'legend'] as const) {
       expect(getDefaultDifficultyFlags(difficulty)).toEqual({
         skipHalftimeDecision: false,
-        skipCpuGames: false,
       });
     }
   });
