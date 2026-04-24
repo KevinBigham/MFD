@@ -14,14 +14,14 @@ import {
 import { makeLeagueState } from './test-helpers';
 
 describe('tutorial', () => {
-  it('starts with sixteen active steps on a new tutorial state', () => {
+  it('starts with twenty-four active steps on a new tutorial state', () => {
     const tutorial = createDefaultTutorialState();
 
     expect(tutorial.active).toBe(true);
     expect(tutorial.currentStepIndex).toBe(0);
-    expect(tutorial.steps).toHaveLength(16);
+    expect(tutorial.steps).toHaveLength(24);
     expect(tutorial.steps[0]?.title).toBe('Welcome');
-    expect(tutorial.steps[15]?.title).toBe("You're Ready!");
+    expect(tutorial.steps[23]?.title).toBe("You're Ready!");
   });
 
   it('advanceTutorial progresses correctly', () => {
@@ -81,6 +81,19 @@ describe('tutorial', () => {
     expect(ids).toContain('explore_trades');
     expect(ids).toContain('check_franchise');
     expect(ids.indexOf('check_franchise')).toBeLessThan(ids.indexOf('you_are_ready'));
+  });
+
+  it('covers launch-era systems with route-driven steps', () => {
+    const tutorial = createDefaultTutorialState();
+    const stepsById = new Map(tutorial.steps.map((step) => [step.id, step]));
+
+    expect(stepsById.get('call_your_shot')?.targetScreen).toBe('/game-plan');
+    expect(stepsById.get('contingency_gambit')?.targetScreen).toBe('/game-plan');
+    expect(stepsById.get('review_halftime_decision')?.targetScreen).toBe('/game-day');
+    expect(stepsById.get('spot_named_games')?.targetScreen).toBe('/game-day');
+    expect(stepsById.get('check_rivalry_heat')?.targetScreen).toBe('/league-pulse');
+    expect(stepsById.get('read_media_cycle')?.targetScreen).toBe('/newsroom');
+    expect(stepsById.get('track_storyline_threads')?.targetScreen).toBe('/newsroom');
   });
 
   it('updates the final readiness copy and demo-step selectors', () => {

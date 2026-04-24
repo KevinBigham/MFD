@@ -129,6 +129,22 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     action: 'screen:/game-day',
   },
   {
+    id: 'review_halftime_decision',
+    title: 'Understand Halftime',
+    description: 'When a user game is close, Game Day can ask whether to stick with the plan or make a second-half adjustment.',
+    targetScreen: '/game-day',
+    targetElement: '[data-nav="/game-day"]',
+    action: 'screen:/game-day',
+  },
+  {
+    id: 'spot_named_games',
+    title: 'Spot Named Games',
+    description: 'Game Day calls out rivalry games, weather games, revenge spots, and other named matchups that change the story around a week.',
+    targetScreen: '/game-day',
+    targetElement: '[data-nav="/game-day"]',
+    action: 'screen:/game-day',
+  },
+  {
     id: 'check_standings',
     title: 'Check Standings',
     description: 'Open standings and place your team inside the league context.',
@@ -162,6 +178,22 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     action: 'screen:/game-plan',
   },
   {
+    id: 'call_your_shot',
+    title: 'Call Your Shot',
+    description: 'On Game Plan, declare one weekly bet on what your team will do. Hit, miss, or partial credit can shape the postgame story.',
+    targetScreen: '/game-plan',
+    targetElement: '[data-nav="/game-plan"]',
+    action: 'screen:/game-plan',
+  },
+  {
+    id: 'contingency_gambit',
+    title: 'Set a Contingency',
+    description: 'Use Contingency Gambit rules to tell the staff what to change when the game script turns against you.',
+    targetScreen: '/game-plan',
+    targetElement: '[data-nav="/game-plan"]',
+    action: 'screen:/game-plan',
+  },
+  {
     id: 'review_broadcast',
     title: 'Watch the Broadcast',
     description:
@@ -171,6 +203,14 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     action: 'screen:/broadcast',
   },
   {
+    id: 'review_film_room',
+    title: 'Read the Film Room',
+    description: 'Open Film Room after a result to see whether your weekly plan, Call Your Shot, and contingency calls actually landed.',
+    targetScreen: '/film-room',
+    targetElement: '[data-nav="/film-room"]',
+    action: 'screen:/film-room',
+  },
+  {
     id: 'explore_trades',
     title: 'Explore the Trade Market',
     description:
@@ -178,6 +218,30 @@ const TUTORIAL_STEPS: Array<Omit<TutorialStep, 'completed'>> = [
     targetScreen: '/trades',
     targetElement: '[data-nav="/trades"]',
     action: 'screen:/trades',
+  },
+  {
+    id: 'read_media_cycle',
+    title: 'Read the Media Cycle',
+    description: 'Newsroom turns power rankings, hot takes, and weekly digest notes into the league narrative between games.',
+    targetScreen: '/newsroom',
+    targetElement: '[data-nav="/newsroom"]',
+    action: 'screen:/newsroom',
+  },
+  {
+    id: 'track_storyline_threads',
+    title: 'Track Storylines',
+    description: 'Newsroom also carries storyline threads so injuries, streaks, promises, and breakouts can build across multiple weeks.',
+    targetScreen: '/newsroom',
+    targetElement: '[data-nav="/newsroom"]',
+    action: 'screen:/newsroom',
+  },
+  {
+    id: 'check_rivalry_heat',
+    title: 'Check Rivalry Heat',
+    description: 'League Pulse shows rivalry heat spikes after tense results, promise drama, and playoff collisions.',
+    targetScreen: '/league-pulse',
+    targetElement: '[data-nav="/league-pulse"]',
+    action: 'screen:/league-pulse',
   },
   {
     id: 'check_franchise',

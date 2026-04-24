@@ -4,15 +4,24 @@
 import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import { MfdPanel, PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import { Gamepad2, Shield, Trophy } from 'lucide-react';
-import { getAvailableScenarios, mulberry32, startScenario, generateConventionSave, CONVENTION_SAVE_METADATA, type DifficultyLevel } from '@mfd/engine';
+import { getAvailableScenarios, mulberry32, startScenario, generateConventionSave, CONVENTION_SAVE_METADATA, getDefaultDifficultyFlags, type DifficultyLevel } from '@mfd/engine';
 import { useGameStore } from './store/game-store';
 import { createSeedGameState, getTeamOptions } from './store/seed';
 import { TeamLogo } from '../features/shared/TeamLogo';
 import { loadImportedCartridge, loadImportedCartridgeFile, loadLatestAutosaveGame } from './store/persistence';
 import { AttractMode } from '../features/title/AttractMode';
 
+const rookieDefaults = getDefaultDifficultyFlags('rookie');
+
 const DIFFICULTIES: { id: DifficultyLevel; label: string; desc: string; guide: string }[] = [
-  { id: 'rookie', label: 'Rookie', desc: 'Forgiving cap, patient owners', guide: 'Best for new players. Patient owners, forgiving cap, room to experiment.' },
+  {
+    id: 'rookie',
+    label: 'Rookie',
+    desc: 'Forgiving cap, patient owners',
+    guide: rookieDefaults.skipHalftimeDecision && rookieDefaults.skipCpuGames
+      ? 'Best for new players. Patient owners, forgiving cap, halftime decisions auto-skip, and CPU games stay on the fast path.'
+      : 'Best for new players. Patient owners, forgiving cap, room to experiment.',
+  },
   { id: 'pro', label: 'Pro', desc: 'Balanced challenge', guide: 'Standard experience. Balanced across all systems.' },
   { id: 'allpro', label: 'All-Pro', desc: 'Tight cap, demanding owners', guide: 'For veterans. Tight cap, demanding owners, injuries hit harder.' },
   { id: 'legend', label: 'Legend', desc: 'Maximum pressure on every decision', guide: 'Maximum pressure. Not recommended for first playthrough.' },

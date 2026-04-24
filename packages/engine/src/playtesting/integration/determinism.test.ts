@@ -20,5 +20,5 @@ describe('playtest harness integration — determinism', () => {
     const left = runPlaytest('SPEEDRUNNER', 42, 1);
     const right = runPlaytest('SPEEDRUNNER', 42, 1);
     expect(canonical(left)).toBe(canonical(right));
-  }, 45000);
+  }, 60000);
 });

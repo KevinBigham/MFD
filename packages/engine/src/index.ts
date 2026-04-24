@@ -30,7 +30,7 @@ export {
   OFF_SCHEMES, DEF_SCHEMES, OFF_PLANS, DEF_PLANS, SCHEME_COUNTERS, SCHEME_FX,
   getSchemeFlavorLine, HOME_FIELD_ADV,
   ARCHETYPES, ARCH_BOOST, COACH_TRAITS, ARCH_TRAIT_POOLS, CLIQUE_TYPES,
-  DIFF_SETTINGS, SAVE_VERSION, getDefaultHalftimeDecisionSetting,
+  DIFF_SETTINGS, SAVE_VERSION, getDefaultDifficultyFlags, getDefaultHalftimeDecisionSetting,
   ROSTER_CAP, CAMP_CAP, PS_CAP, MIN_SALARY, CAP_MATH,
   getSalaryCap, getCapFloor, getMinSalary,
 } from './config';
