@@ -205,6 +205,43 @@ import { useUiStore } from './ui-store';
 import { createSeedGameState, getTeamOptions } from './seed';
 export * from './selectors';
 
+const AUDIO_ASSETS = {
+  callHit: 'audio/cue/call-hit.ogg',
+  callMiss: 'audio/cue/call-miss.ogg',
+  callPartial: 'audio/cue/call-partial.ogg',
+  tradeAccepted: 'audio/event/trade-accepted.ogg',
+  draftPickConfirmed: 'audio/event/draft-pick-confirmed.ogg',
+  injuryMajorStarter: 'audio/event/injury-major-starter.ogg',
+  recordBroken: 'audio/event/record-broken.ogg',
+  rivalryHeatSpike: 'audio/event/rivalry-heat-spike.ogg',
+  championshipWin: 'audio/event/championship-win.ogg',
+} as const;
+
+function hasMajorStarterInjury(
+  game: GameState,
+  userTeam: Team | null,
+  injuries: WeeklySummary['injuries'],
+): boolean {
+  if (!userTeam || injuries.length === 0) return false;
+
+  return injuries.some((injury) => {
+    const player = userTeam.roster.find((entry) => entry.id === injury.playerId)
+      ?? game.players[injury.playerId]
+      ?? null;
+    const isStarter = Boolean(player && 'isStarter' in player && player.isStarter);
+    const isMajor = injury.severity === 'out' || injury.severity === 'ir' || injury.gamesOut >= 4;
+    return isStarter && isMajor;
+  });
+}
+
+function hasRivalryHeatSpike(game: GameState, playedWeek: number): boolean {
+  const heatSpikeSuffix = new RegExp(`-${playedWeek}-(heated|blood_feud)$`);
+  return (game.socialFeed ?? []).some((post) =>
+    post.trigger === 'rivalry'
+    && post.id.startsWith('social-rivalry-heat-')
+    && heatSpikeSuffix.test(post.id));
+}
+
 // ── Store shape ────────────────────────────────────────────
 
 interface GameActions {
@@ -511,12 +548,17 @@ export const useGameStore = create<GameStore>()(
         bigPlays,
         overtime: result.overtime,
       });
-      if ((latestSummary?.injuries.length ?? 0) > 0) {
-        cues.push(createAudioCue('injury', 'high', {
+      const injuries = latestSummary?.injuries ?? [];
+      if (injuries.length > 0) {
+        const injuryMetadata: Record<string, unknown> = {
           source: 'weekly-summary',
           week: latestSummary?.week ?? playedWeek,
-          injuries: latestSummary?.injuries.length ?? 0,
-        }));
+          injuries: injuries.length,
+        };
+        if (hasMajorStarterInjury(game, userTeam, injuries)) {
+          injuryMetadata.requestedAsset = AUDIO_ASSETS.injuryMajorStarter;
+        }
+        cues.push(createAudioCue('injury', 'high', injuryMetadata));
       }
       if (result.callYourShotResult) {
         const outcome = result.callYourShotResult.outcome;
@@ -525,10 +567,24 @@ export const useGameStore = create<GameStore>()(
           priority: outcome === 'hit' ? 'high' : outcome === 'miss' ? 'high' : 'medium',
           metadata: {
             source: 'call_your_shot',
-            // TODO Sprint 37: swap synth fallback for packaged cue assets when audio/cue/call-hit.ogg and call-miss.ogg land.
-            requestedAsset: outcome === 'hit' ? 'audio/cue/call-hit.ogg' : outcome === 'miss' ? 'audio/cue/call-miss.ogg' : 'audio/cue/call-partial.ogg',
+            requestedAsset: outcome === 'hit' ? AUDIO_ASSETS.callHit : outcome === 'miss' ? AUDIO_ASSETS.callMiss : AUDIO_ASSETS.callPartial,
           },
         });
+      }
+      const latestPackage = findLatestGameDayPackage(game);
+      if ((latestPackage?.recordsMoments.length ?? 0) > 0) {
+        cues.push(createAudioCue('record_broken', 'critical', {
+          source: 'game-day-package',
+          records: latestPackage?.recordsMoments.length ?? 0,
+          requestedAsset: AUDIO_ASSETS.recordBroken,
+        }));
+      }
+      if (hasRivalryHeatSpike(game, playedWeek)) {
+        cues.push(createAudioCue('notification', 'high', {
+          source: 'rivalry_heat_spike',
+          week: playedWeek,
+          requestedAsset: AUDIO_ASSETS.rivalryHeatSpike,
+        }));
       }
       const latestHistory = userTeam
         ? [...game.franchiseHistory]
@@ -540,6 +596,7 @@ export const useGameStore = create<GameStore>()(
           source: 'championship',
           year: game.year,
           teamId: latestHistory.teamId,
+          requestedAsset: AUDIO_ASSETS.championshipWin,
         }));
       } else if (latestHistory?.playoffFinish === 'super_bowl_runner_up') {
         cues.push(createAudioCue('super_bowl_loss', 'critical', {
@@ -1374,6 +1431,11 @@ export const useGameStore = create<GameStore>()(
           ].slice(-20);
         }
         result.nextState.offseasonState = null;
+        appendAudioCue(result.nextState, 'trade_complete', 'high', {
+          source: 'trade-deadline',
+          offerId,
+          requestedAsset: AUDIO_ASSETS.tradeAccepted,
+        });
         await commitGame(result.nextState);
       },
 
@@ -1993,6 +2055,7 @@ export const useGameStore = create<GameStore>()(
         appendAudioCue(result.nextState, 'trade_complete', 'high', {
           source: 'trade-center',
           offerId,
+          requestedAsset: AUDIO_ASSETS.tradeAccepted,
         });
         await commitGame(result.nextState);
       },
@@ -2053,6 +2116,7 @@ export const useGameStore = create<GameStore>()(
           source: 'draft-trade',
           targetPick: offer.targetPick,
           from: offer.from,
+          requestedAsset: AUDIO_ASSETS.tradeAccepted,
         });
         await commitGame(nextGame);
       },
@@ -2088,6 +2152,7 @@ export const useGameStore = create<GameStore>()(
         appendAudioCue(result.nextState, 'draft_pick', 'high', {
           source: 'draft-board',
           prospectId,
+          requestedAsset: AUDIO_ASSETS.draftPickConfirmed,
         });
         await commitGame(result.nextState);
       },

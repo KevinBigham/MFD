@@ -146,10 +146,10 @@ describe('playtest anomaly detectors', () => {
     expect(verdict.ok ? null : verdict.severity).toBe('high');
   });
 
-  it('detectRngChannel fails when Math.random is observed', () => {
+  it('detectRngChannel fails when ambient global random is observed', () => {
     const verdict = detectRngChannel(makeContext({ mathRandomCalls: 2 }));
     expect(verdict.ok).toBe(false);
-    expect(verdict.ok ? null : verdict.detail).toContain('Math.random');
+    expect(verdict.ok ? null : verdict.detail).toContain('was invoked');
   });
 
   it('detectPerfBudget flags p99 latency overruns', () => {

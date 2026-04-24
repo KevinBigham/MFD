@@ -12,7 +12,7 @@ import type {
   TradeOffer,
 } from '../types';
 import type { PrngFn } from '../rng';
-import type { PlaytestAIBias } from '../playtesting/types';
+import type { AIBiasConfig } from './ai-bias';
 
 function cloneGame(game: GameState): GameState {
   return structuredClone(game);
@@ -62,14 +62,14 @@ function contractCost(player: Player): number {
   return (player.contract.baseSalary ?? 0) + (player.contract.prorated ?? 0);
 }
 
-function normalizedTradeWillingness(aiBias?: PlaytestAIBias): number | null {
+function normalizedTradeWillingness(aiBias?: AIBiasConfig): number | null {
   if (typeof aiBias?.tradeWillingness !== 'number') {
     return null;
   }
   return Math.max(0, Math.min(1, aiBias.tradeWillingness));
 }
 
-function veteranCandidates(team: Team, aiBias?: PlaytestAIBias): Player[] {
+function veteranCandidates(team: Team, aiBias?: AIBiasConfig): Player[] {
   const tradeWillingness = normalizedTradeWillingness(aiBias);
   const minimumAge = tradeWillingness !== null && tradeWillingness >= 0.8 ? 26 : 28;
   const minimumOvr = tradeWillingness !== null && tradeWillingness >= 0.8 ? 78 : 82;
@@ -193,7 +193,7 @@ export function generateDeadlineDeal(
   sellerIds: string[],
   players: Player[],
   rng: PrngFn,
-  aiBias?: PlaytestAIBias,
+  aiBias?: AIBiasConfig,
 ): DeadlineDeal {
   const mappedPlayers = playerMap(players);
   const fallbackTeamIds = Object.values(teams)
@@ -258,7 +258,7 @@ export function generateDeadlineDeal(
   return fallback;
 }
 
-export function initializeDeadline(gameState: GameState, rng: PrngFn, aiBias?: PlaytestAIBias): TradeDeadlineState {
+export function initializeDeadline(gameState: GameState, rng: PrngFn, aiBias?: AIBiasConfig): TradeDeadlineState {
   const aiTeams = Object.values(gameState.teams).filter((team) => !team.isUser);
   const tradeWillingness = normalizedTradeWillingness(aiBias);
   const contenderIds = aiTeams.filter(isContender).map((team) => team.id);

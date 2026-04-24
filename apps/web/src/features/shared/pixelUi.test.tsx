@@ -35,8 +35,17 @@ describe('pixelUi helpers', () => {
   it('returns the expected auto-fit grid for the provided minimum width', () => {
     expect(autoGrid(140)).toEqual({
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(min(140px, 100%), 1fr))',
       gap: '12px',
+      '--mfd-auto-grid-min': '140px',
+      '--mfd-auto-grid-min-columns': '1',
+    });
+  });
+
+  it('records a minimum column fallback for responsive grids', () => {
+    expect(autoGrid(220, 2)).toMatchObject({
+      '--mfd-auto-grid-min': '220px',
+      '--mfd-auto-grid-min-columns': '2',
     });
   });
 

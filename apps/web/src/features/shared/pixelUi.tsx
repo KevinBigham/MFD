@@ -28,12 +28,14 @@ export const screenStackStyle = {
   gap: '16px',
 } as const;
 
-export function autoGrid(minWidth = 280): CSSProperties {
+export function autoGrid(minWidth = 280, minColumns = 1): CSSProperties {
   return {
     display: 'grid',
-    gridTemplateColumns: `repeat(auto-fit, minmax(${minWidth}px, 1fr))`,
+    gridTemplateColumns: `repeat(auto-fit, minmax(min(${minWidth}px, 100%), 1fr))`,
     gap: '12px',
-  };
+    '--mfd-auto-grid-min': `${minWidth}px`,
+    '--mfd-auto-grid-min-columns': String(Math.max(1, minColumns)),
+  } as CSSProperties;
 }
 
 export function teamThemeVars(teamIdOrAbbr: string | undefined): CSSProperties {

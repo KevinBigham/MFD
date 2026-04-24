@@ -50,6 +50,7 @@ describe('AudioManager', () => {
     resetAudioControllerForTests();
     vi.clearAllMocks();
     vi.stubGlobal('AudioContext', vi.fn(() => mockCtx));
+    vi.stubGlobal('Audio', undefined);
     mockCtx.state = 'running';
   });
 
@@ -90,6 +91,26 @@ describe('AudioManager', () => {
     expect(mockCtx.createOscillator).not.toHaveBeenCalled();
   });
 
+  it('does not play the trade-complete asset when SFX is muted', () => {
+    const audioCtor = vi.fn(() => ({ play: vi.fn(), volume: 1 }));
+    vi.stubGlobal('Audio', audioCtor);
+    syncAudioPreferences({
+      ...DEFAULT_AUDIO_PREFERENCES,
+      categories: {
+        ...DEFAULT_AUDIO_PREFERENCES.categories,
+        sfx: {
+          enabled: false,
+          volume: 85,
+        },
+      },
+    });
+
+    playSound('trade_complete', { debounceMs: 0 });
+
+    expect(audioCtor).not.toHaveBeenCalled();
+    expect(mockCtx.createOscillator).not.toHaveBeenCalled();
+  });
+
   it('dedupes identical queued cues when the same queue replays immediately', () => {
     syncAudioPreferences(DEFAULT_AUDIO_PREFERENCES);
     const cues = [createAudioCue('notification', 'medium', { source: 'breaking-news', id: 'story-1' })];
@@ -100,6 +121,26 @@ describe('AudioManager', () => {
 
     expect(firstPassCount).toBeGreaterThan(0);
     expect(mockCtx.createOscillator.mock.calls.length).toBe(firstPassCount);
+  });
+
+  it('uses the call-hit OGG asset path when requested by the cue metadata', () => {
+    const play = vi.fn().mockResolvedValue(undefined);
+    const audioCtor = vi.fn((src: string) => ({ src, play, volume: 1 }));
+    vi.stubGlobal('Audio', audioCtor);
+    syncAudioPreferences(DEFAULT_AUDIO_PREFERENCES);
+
+    playAudioCueQueue([
+      createAudioCue('achievement_unlocked', 'high', {
+        source: 'call_your_shot',
+        requestedAsset: 'audio/cue/call-hit.ogg',
+      }),
+    ]);
+
+    expect(audioCtor).toHaveBeenCalledTimes(1);
+    const audioSrc = audioCtor.mock.calls[0]?.[0];
+    expect(audioSrc).toContain('audio/cue/call-hit.ogg');
+    expect(play).toHaveBeenCalled();
+    expect(mockCtx.createOscillator).not.toHaveBeenCalled();
   });
 
   it('switches ambient modes based on routed screens', () => {

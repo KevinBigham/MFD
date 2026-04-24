@@ -36,6 +36,7 @@ vi.mock('@mfd/engine', () => ({
   startScenario: vi.fn(),
   generateConventionSave: vi.fn(),
   CONVENTION_SAVE_METADATA: { headline: 'Test headline', week: 14, description: 'Test', team: 'Test' },
+  getDefaultDifficultyFlags: vi.fn(() => ({ skipHalftimeDecision: true })),
 }));
 
 import { NewGameScreen } from './NewGameScreen';
@@ -75,5 +76,12 @@ describe('NewGameScreen', () => {
     const markup = renderToStaticMarkup(<NewGameScreen />);
 
     expect(markup).toContain('Paste backup code');
+  });
+
+  it('renders rookie defaults in the REC recommendation copy', () => {
+    const markup = renderToStaticMarkup(<NewGameScreen />);
+
+    expect(markup).toContain('halftime decisions auto-skip');
+    expect(markup).not.toContain('CPU games stay on the fast path');
   });
 });

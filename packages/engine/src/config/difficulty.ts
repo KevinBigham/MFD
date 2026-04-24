@@ -21,6 +21,10 @@ export interface DifficultyConfig {
   foBudget: number;
 }
 
+export interface DifficultyDefaultFlags {
+  skipHalftimeDecision: boolean;
+}
+
 export const DIFF_SETTINGS: Record<DifficultyLevel, DifficultyConfig> = {
   rookie: {
     name: 'Rookie',
@@ -76,8 +80,14 @@ export const DIFF_SETTINGS: Record<DifficultyLevel, DifficultyConfig> = {
   },
 };
 
+export function getDefaultDifficultyFlags(difficulty: DifficultyLevel): DifficultyDefaultFlags {
+  return {
+    skipHalftimeDecision: difficulty === 'rookie',
+  };
+}
+
 export function getDefaultHalftimeDecisionSetting(difficulty: DifficultyLevel): 'on' | 'off' {
-  return difficulty === 'rookie' ? 'off' : 'on';
+  return getDefaultDifficultyFlags(difficulty).skipHalftimeDecision ? 'off' : 'on';
 }
 
 export const SAVE_VERSION = 35;

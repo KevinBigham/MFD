@@ -4,7 +4,7 @@ import {
   RATING_LABELS,
 } from './positions';
 import { getSalaryCap, getCapFloor, getMinSalary, ROSTER_CAP } from './cap-math';
-import { DIFF_SETTINGS } from './difficulty';
+import { DIFF_SETTINGS, getDefaultDifficultyFlags, getDefaultHalftimeDecisionSetting } from './difficulty';
 import { OFF_SCHEMES, DEF_SCHEMES, OFF_PLANS, DEF_PLANS, SCHEME_COUNTERS } from './schemes';
 import { ARCHETYPES, COACH_TRAITS, ARCH_TRAIT_POOLS } from './coaching';
 
@@ -71,6 +71,24 @@ describe('difficulty', () => {
 
   it('legend is hardest', () => {
     expect(DIFF_SETTINGS.legend.tradeMod).toBeGreaterThan(DIFF_SETTINGS.allpro.tradeMod);
+  });
+
+  it('sets rookie-only default skip flags without changing save settings shape', () => {
+    expect(getDefaultDifficultyFlags('rookie')).toEqual({
+      skipHalftimeDecision: true,
+    });
+    for (const difficulty of ['pro', 'allpro', 'legend'] as const) {
+      expect(getDefaultDifficultyFlags(difficulty)).toEqual({
+        skipHalftimeDecision: false,
+      });
+    }
+  });
+
+  it('derives halftime decision defaults from difficulty flags', () => {
+    expect(getDefaultHalftimeDecisionSetting('rookie')).toBe('off');
+    expect(getDefaultHalftimeDecisionSetting('pro')).toBe('on');
+    expect(getDefaultHalftimeDecisionSetting('allpro')).toBe('on');
+    expect(getDefaultHalftimeDecisionSetting('legend')).toBe('on');
   });
 });
 

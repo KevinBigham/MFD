@@ -4,7 +4,7 @@
  * Mulberry32 PRNG with isolated channels for deterministic simulation.
  * Channels: play, injury, draft, ai, dev, trade, ui, event
  *
- * Rule 7: No Math.random() — ALL randomness flows through this module.
+ * Rule 7: No ambient global random calls — ALL randomness flows through this module.
  */
 
 /** Channel identifiers for the RNG streams. */

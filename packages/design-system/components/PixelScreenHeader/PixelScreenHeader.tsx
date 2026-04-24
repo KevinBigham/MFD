@@ -14,7 +14,7 @@ export function PixelScreenHeader({
   kicker = 'MFD NETWORK',
 }: PixelScreenHeaderProps) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+    <div data-mfd-pixel-screen-header="true" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -41,7 +41,7 @@ export function PixelScreenHeader({
         ) : null}
       </div>
       <div>
-        <div style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '28px', color: '#fff', lineHeight: 1 }}>
+        <div data-mfd-pixel-screen-title="true" style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '28px', color: '#fff', lineHeight: 1 }}>
           {title.toUpperCase()}
         </div>
         {subtitle ? (

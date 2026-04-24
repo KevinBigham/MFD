@@ -32,9 +32,11 @@
   --mfd-amber:       #fbbf24;
   --mfd-purple:      #a78bfa;
   --mfd-cyan:        #00e5ff;
+  --mfd-red-dim:     rgba(248, 113, 113, 0.16);
+  --mfd-cyan-dim:    rgba(0, 229, 255, 0.12);
   --mfd-result-hit-bg:     linear-gradient(135deg, var(--mfd-bg), var(--mfd-gold-dim));
-  --mfd-result-miss-bg:    linear-gradient(135deg, var(--mfd-bg), rgba(248, 113, 113, 0.16));
-  --mfd-result-partial-bg: linear-gradient(135deg, var(--mfd-bg), rgba(0, 229, 255, 0.12));
+  --mfd-result-miss-bg:    linear-gradient(135deg, var(--mfd-bg), var(--mfd-red-dim));
+  --mfd-result-partial-bg: linear-gradient(135deg, var(--mfd-bg), var(--mfd-cyan-dim));
 
   /* ── Pixel / 8-Bit Layer ────────────────────────────── */
   --mfd-pixel-border:      3px solid #333333;
@@ -138,13 +140,37 @@
   50%      { opacity: 0; }
 }
 
-/* ── Mobile Responsive Overrides (Sprint 42) ─────────── */
+/* ── Responsive Overrides (Sprint 70) ────────────────── */
 /*
- * Bumps touch targets and relaxes layouts at phone widths.
+ * Bumps touch targets and relaxes layouts at tablet/phone widths.
  * Components use inline styles; we target data-attributes with
  * !important to win the cascade without rewriting every component.
  */
+@media (max-width: 1024px) {
+  [data-mfd-top-nav="true"] {
+    flex-wrap: wrap !important;
+    align-items: stretch !important;
+    overflow-x: visible !important;
+    gap: var(--mfd-sp-sm) !important;
+  }
+  [data-mfd-main-content="true"] {
+    padding: var(--mfd-sp-md) !important;
+  }
+  [data-mfd-nav-item="true"] {
+    min-height: var(--mfd-touch-min) !important;
+    padding: 10px 12px !important;
+  }
+  [data-mfd-pixel-screen-title="true"] {
+    font-size: 24px !important;
+    line-height: 1.05 !important;
+  }
+}
+
 @media (max-width: 768px) {
+  button,
+  [role="button"] {
+    min-height: var(--mfd-touch-min) !important;
+  }
   [data-mfd-focusable="pixel-button"] {
     min-height: var(--mfd-touch-min) !important;
     padding: 10px 14px !important;
@@ -165,9 +191,15 @@
   [data-mfd-mobile-nav="true"] {
     display: block !important;
   }
+  [data-mfd-pixel-screen-header="true"] {
+    gap: var(--mfd-sp-sm) !important;
+  }
+  [data-mfd-pixel-screen-title="true"] {
+    font-size: 22px !important;
+  }
   /* Leave room for the fixed bottom bar so content is never hidden under it. */
   [data-mfd-main-content="true"] {
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0)) !important;
+    padding: var(--mfd-sp-sm) var(--mfd-sp-sm) calc(64px + env(safe-area-inset-bottom, 0)) !important;
   }
 }
 

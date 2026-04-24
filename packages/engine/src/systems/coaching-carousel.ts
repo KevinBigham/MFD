@@ -1,5 +1,5 @@
 import { RNG, uid } from '../rng';
-import type { PlaytestAIBias } from '../playtesting/types';
+import type { AIBiasConfig } from './ai-bias';
 import type { GameEvent, GameState, StaffMember, Team } from '../types';
 import { recordNewsItem } from './league-news';
 import { ensureLivingWorldState } from './off-field-events';
@@ -31,7 +31,7 @@ function lastSeasons(game: GameState, teamId: string, count: number): Array<{ ye
     }));
 }
 
-function shouldFireCoach(game: GameState, team: Team, aiBias?: PlaytestAIBias): boolean {
+function shouldFireCoach(game: GameState, team: Team, aiBias?: AIBiasConfig): boolean {
   if (team.isUser) return false;
   if (!team.staff.hc) return false;
   if (aiBias?.fireCoachEverySeason) return true;
@@ -157,7 +157,7 @@ function growIncumbentCoach(team: Team): void {
   }
 }
 
-export function runCoachingCarousel(game: GameState, seasonYear: number, aiBias?: PlaytestAIBias): { events: GameEvent[] } {
+export function runCoachingCarousel(game: GameState, seasonYear: number, aiBias?: AIBiasConfig): { events: GameEvent[] } {
   ensureLivingWorldState(game);
   const events: GameEvent[] = [];
 

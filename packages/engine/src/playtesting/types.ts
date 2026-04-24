@@ -1,24 +1,16 @@
-import type { SnapManagement } from '../systems/snap-counts';
+import type { AIBiasConfig } from '../systems/ai-bias';
 import type { GameState, SeasonPhase } from '../types';
 
 export type PlaytestSeverity = 'low' | 'medium' | 'high';
 
-export interface PlaytestAIBias {
-  faAggression?: number;
-  extensionAggression?: number;
-  tradeWillingness?: number;
-  udfaReliance?: number;
-  fireCoachEverySeason?: boolean;
-  snapManagement?: SnapManagement;
-  fatigueIgnore?: boolean;
-  advanceOnly?: boolean;
-}
+export type { AIBiasConfig } from '../systems/ai-bias';
+export type PlaytestAIBias = AIBiasConfig;
 
 export interface PlaytestPersona {
   id: string;
   label: string;
   description: string;
-  aiBias: Readonly<PlaytestAIBias>;
+  aiBias: Readonly<AIBiasConfig>;
 }
 
 export interface PlaytestFrame {

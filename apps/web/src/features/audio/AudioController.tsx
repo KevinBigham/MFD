@@ -49,6 +49,7 @@ interface AudioGraph {
 interface PlaySoundOptions {
   debounceKey?: string;
   debounceMs?: number;
+  assetPath?: string | null;
 }
 
 type SoundFn = (ctx: AudioContext, output?: AudioNode) => void;
@@ -125,6 +126,13 @@ const SOUND_MAP: Record<SoundEvent, SoundFn> = {
   roster_cut: playPlayerCut,
   coaching_hire: playTradeComplete,
   coaching_fire: playTradeRejected,
+};
+
+const SOUND_EVENT_ASSETS: Partial<Record<SoundEvent, string>> = {
+  trade_complete: 'audio/event/trade-accepted.ogg',
+  draft_pick: 'audio/event/draft-pick-confirmed.ogg',
+  record_broken: 'audio/event/record-broken.ogg',
+  super_bowl_win: 'audio/event/championship-win.ogg',
 };
 
 const CROWD_PATHS = new Set(['/broadcast', '/play-by-play', '/game-flow', '/game-day', '/super-bowl']);
@@ -225,6 +233,27 @@ function shouldDebounce(key: string, debounceMs: number): boolean {
   }
   recentPlayback.set(key, now);
   return false;
+}
+
+function resolvePublicAudioAssetPath(assetPath: string): string | null {
+  const normalized = assetPath.trim().replace(/^\/+/, '');
+  if (!/^audio\/[a-z0-9/_-]+\.ogg$/i.test(normalized)) return null;
+  const base = import.meta.env.BASE_URL || '/';
+  return `${base.endsWith('/') ? base : `${base}/`}${normalized}`;
+}
+
+function playAudioAsset(assetPath: string, category: AudioCategory): boolean {
+  if (typeof Audio === 'undefined') return false;
+  const src = resolvePublicAudioAssetPath(assetPath);
+  if (!src) return false;
+
+  const asset = new Audio(src);
+  asset.volume = currentPreferences.categories[category].volume / 100;
+  const result = asset.play();
+  if (result && typeof result.catch === 'function') {
+    void result.catch(() => undefined);
+  }
+  return true;
 }
 
 function playAmbientLayer(
@@ -339,6 +368,9 @@ export function playSound(event: SoundEvent, options?: PlaySoundOptions): void {
   if (shouldDebounce(debounceKey, debounceMs)) return;
 
   try {
+    const assetPath = options?.assetPath ?? SOUND_EVENT_ASSETS[event];
+    if (assetPath && playAudioAsset(assetPath, category)) return;
+
     const { ctx, categoryGains } = ensureAudioGraph();
     SOUND_MAP[event](ctx, categoryGains[category]);
   } catch {
@@ -354,7 +386,12 @@ export function playAudioCueQueue(cues: AudioCue[]): void {
     .join('>');
 
   cues.forEach((cue, index) => {
+    const requestedAsset = typeof cue.metadata?.requestedAsset === 'string'
+      ? cue.metadata.requestedAsset
+      : undefined;
+
     playSound(cue.event, {
+      assetPath: requestedAsset,
       debounceKey: `${queueKey}:${index}`,
       debounceMs: cue.priority === 'critical' ? 0 : DEFAULT_DEBOUNCE_MS,
     });
