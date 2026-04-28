@@ -14,7 +14,9 @@
     "grade-season": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/grade-season.ts",
     "grade-season-baseline": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/grade-season-baseline.ts",
     "playtest": "pnpm --filter @mfd/engine playtest",
-    "playtest:all": "pnpm --filter @mfd/engine playtest:all"
+    "playtest:all": "pnpm --filter @mfd/engine playtest:all",
+    "test:perft": "pnpm --filter @mfd/engine playtest:all",
+    "test:shadow": "bash scripts/shadow-regression.sh"
   },
   "engines": {
     "node": ">=20",
