@@ -690,6 +690,30 @@ export function FranchiseSetupWizard() {
     }
     return panelDialogue?.recommendation ?? currentMeta.subtitle;
   }, [setupState.currentPhase, crisisProfile.weekOneThreat, phaseData, panelDialogue, currentMeta.subtitle]);
+  const advanceHint = useMemo(() => {
+    if (isLaunchingSeason) return 'Loading Week 1.';
+    if (isTransitioning) return 'Moving to the next room.';
+    if (canAdvance) {
+      if (showColdOpen) return 'Briefing ready.';
+      if (isLastPhase) return 'Ready to start Week 1.';
+      return 'Ready for the next decision.';
+    }
+    if (setupState.currentPhase === 'choose_agm') return 'Decision needed: hire your Assistant GM.';
+    if (setupState.currentPhase === 'intel_briefing' && requireTopPressureOpened) {
+      return `Decision needed: open ${topPressureCard.label}.`;
+    }
+    return `Decision needed: ${currentMeta.subtitle}.`;
+  }, [
+    canAdvance,
+    currentMeta.subtitle,
+    isLastPhase,
+    isLaunchingSeason,
+    isTransitioning,
+    requireTopPressureOpened,
+    setupState.currentPhase,
+    showColdOpen,
+    topPressureCard.label,
+  ]);
 
   return (
     <div
@@ -705,31 +729,69 @@ export function FranchiseSetupWizard() {
       }}
     >
       <div
+        data-mfd-setup-header="true"
         style={{
-          padding: '12px 20px',
+          padding: '12px clamp(12px, 1.5vw, 20px)',
           borderBottom: '2px solid var(--mfd-border)',
           background: 'var(--mfd-bg-2)',
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: 'minmax(220px, 320px) minmax(0, 1fr) auto',
           alignItems: 'center',
-          gap: '20px',
+          gap: '14px',
         }}
       >
-        <div style={{ ...pixelSm, color: 'var(--mfd-gold)', whiteSpace: 'nowrap' }}>
-          YOUR FIRST DAY
+        <div style={{ display: 'grid', gap: '6px', minWidth: 0 }}>
+          <div style={{ ...pixelSm, color: 'var(--mfd-gold)', whiteSpace: 'nowrap' }}>
+            YOUR FIRST DAY
+          </div>
+          <div style={{ ...pixelSm, color: 'var(--mfd-text)', lineHeight: 1.35 }}>
+            {currentMeta.label.toUpperCase()}
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.4 }}>
+            {currentMeta.subtitle}
+          </div>
         </div>
-        <div style={{ flex: 1 }}>
+        <div
+          data-mfd-setup-stepper="true"
+          style={{
+            minWidth: 0,
+            overflowX: 'auto',
+            paddingBottom: '4px',
+            scrollbarColor: 'var(--mfd-gold) var(--mfd-bg-2)',
+          }}
+        >
           <MfdStepper
-            steps={PHASE_META.map((phase) => ({ label: phase.label, description: phase.subtitle }))}
+            steps={PHASE_META.map((phase) => ({ label: phase.label }))}
             activeStep={phaseIndex}
             orientation="horizontal"
+            style={{ minWidth: '700px' }}
           />
         </div>
-        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', whiteSpace: 'nowrap' }}>
-          {phaseIndex + 1} / {PHASE_META.length}
+        <div style={{ display: 'grid', gap: '6px', justifyItems: 'end', minWidth: '88px' }}>
+          <div style={{ ...monoSm, color: 'var(--mfd-text)', whiteSpace: 'nowrap' }}>
+            {phaseIndex + 1} / {PHASE_META.length}
+          </div>
+          <div
+            aria-hidden="true"
+            style={{
+              width: '72px',
+              height: '6px',
+              border: '1px solid var(--mfd-border)',
+              background: 'var(--mfd-bg)',
+            }}
+          >
+            <div
+              style={{
+                width: `${((phaseIndex + 1) / PHASE_META.length) * 100}%`,
+                height: '100%',
+                background: 'var(--mfd-gold)',
+              }}
+            />
+          </div>
         </div>
       </div>
 
-      <div style={{ flex: 1, overflow: 'hidden', padding: '20px' }}>
+      <div style={{ flex: 1, overflow: 'hidden', padding: 'clamp(12px, 1.5vw, 20px)' }}>
         {showColdOpen ? (
           <div style={{ height: '100%', overflowY: 'auto' }}>
             <SetupColdOpen
@@ -911,11 +973,12 @@ export function FranchiseSetupWizard() {
 
       <div
         style={{
-          padding: '12px 20px',
+          padding: '12px clamp(12px, 1.5vw, 20px)',
           borderTop: '2px solid var(--mfd-border)',
           background: 'var(--mfd-bg-2)',
-          display: 'flex',
-          justifyContent: 'space-between',
+          display: 'grid',
+          gridTemplateColumns: 'minmax(88px, auto) minmax(0, 1fr) minmax(120px, auto)',
+          gap: '12px',
           alignItems: 'center',
         }}
       >
@@ -926,8 +989,21 @@ export function FranchiseSetupWizard() {
         >
           Back
         </PixelButton>
-        <div style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>
-          {teamName}
+        <div style={{ display: 'grid', gap: '4px', justifyItems: 'center', minWidth: 0 }}>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-faint)', textAlign: 'center' }}>
+            {teamName}
+          </div>
+          <div
+            data-mfd-setup-advance-hint="true"
+            style={{
+              ...monoSm,
+              color: canAdvance ? 'var(--mfd-cyan)' : 'var(--mfd-gold)',
+              lineHeight: 1.35,
+              textAlign: 'center',
+            }}
+          >
+            {advanceHint}
+          </div>
         </div>
         <PixelButton
           accent={isLastPhase ? 'green' : 'gold'}

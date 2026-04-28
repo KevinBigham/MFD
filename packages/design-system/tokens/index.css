@@ -54,6 +54,17 @@
   --mfd-home-bg:     rgba(0, 80, 180, 0.15);
   --mfd-away-bg:     rgba(200, 0, 0, 0.15);
 
+  /* ── Character Art Palette ─────────────────────────── */
+  --mfd-avatar-skin:        #f2b28a;
+  --mfd-avatar-skin-shadow: #c97b59;
+  --mfd-avatar-hair:        #d96822;
+  --mfd-avatar-hair-dark:   #7c3418;
+  --mfd-avatar-suit:        #182432;
+  --mfd-avatar-shirt:       #edf2f7;
+  --mfd-avatar-eye:         #050508;
+  --mfd-avatar-mouth:       #7f1d1d;
+  --mfd-avatar-board:       #1f2937;
+
   /* ── Glass / Atmospheric ────────────────────────────── */
   --mfd-glass:       #0a0a0a;
   --mfd-glass-border: #222222;

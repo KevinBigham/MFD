@@ -110,4 +110,156 @@ describe('ChooseAGMPhase', () => {
     expect(html).toContain('RECOMMENDED FOR THIS CRISIS');
     expect(html).toContain('I will buy back breathing room before kickoff.');
   });
+
+  it('renders the active candidate in a candidate spotlight region', () => {
+    const html = renderToStaticMarkup(
+      <ChooseAGMPhase
+        committedProfileId={null}
+        initialPreviewProfileId="marcus_webb"
+        topPressureId="cap"
+        teamName="Kansas City BBQ Fountains"
+        crisisHeadline="The cap is deciding how bold you get."
+        weekOneThreat="Week 1 gets ugly if the books still run the room."
+        recommendedProfileId="marcus_webb"
+        narrativeScenes={{
+          marcus_webb: {
+            whyThisFits: 'The books are the problem and he speaks that language.',
+            dayOnePromise: 'I will buy back breathing room before kickoff.',
+            seasonBet: 'We win by staying aggressive without getting desperate.',
+            recommended: true,
+          },
+          coach_d_hardaway: {
+            whyThisFits: 'He can harden the room even if the books stay tight.',
+            dayOnePromise: 'I will make the building sharper immediately.',
+            seasonBet: 'We force the opener into a street fight.',
+            recommended: false,
+          },
+          sandra_chen: {
+            whyThisFits: 'She can stabilize trust around the roster.',
+            dayOnePromise: 'I will make the room believe its roles.',
+            seasonBet: 'We gain edge by unlocking better versions of our own players.',
+            recommended: false,
+          },
+        }}
+        onHire={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('data-mfd-agm-spotlight="true"');
+    expect(html).toContain('CANDIDATE SPOTLIGHT');
+  });
+
+  it('keeps the hire command prominent in the spotlight', () => {
+    const html = renderToStaticMarkup(
+      <ChooseAGMPhase
+        committedProfileId={null}
+        initialPreviewProfileId="marcus_webb"
+        topPressureId="cap"
+        teamName="Kansas City BBQ Fountains"
+        crisisHeadline="The cap is deciding how bold you get."
+        weekOneThreat="Week 1 gets ugly if the books still run the room."
+        recommendedProfileId="marcus_webb"
+        narrativeScenes={{
+          marcus_webb: {
+            whyThisFits: 'The books are the problem and he speaks that language.',
+            dayOnePromise: 'I will buy back breathing room before kickoff.',
+            seasonBet: 'We win by staying aggressive without getting desperate.',
+            recommended: true,
+          },
+          coach_d_hardaway: {
+            whyThisFits: 'He can harden the room even if the books stay tight.',
+            dayOnePromise: 'I will make the building sharper immediately.',
+            seasonBet: 'We force the opener into a street fight.',
+            recommended: false,
+          },
+          sandra_chen: {
+            whyThisFits: 'She can stabilize trust around the roster.',
+            dayOnePromise: 'I will make the room believe its roles.',
+            seasonBet: 'We gain edge by unlocking better versions of our own players.',
+            recommended: false,
+          },
+        }}
+        onHire={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('data-mfd-agm-hire-command="true"');
+    expect(html).toContain('MAKE THIS YOUR AGM');
+  });
+
+  it('labels dossier cards as preview actions', () => {
+    const html = renderToStaticMarkup(
+      <ChooseAGMPhase
+        committedProfileId={null}
+        initialPreviewProfileId="marcus_webb"
+        topPressureId="cap"
+        teamName="Kansas City BBQ Fountains"
+        crisisHeadline="The cap is deciding how bold you get."
+        weekOneThreat="Week 1 gets ugly if the books still run the room."
+        recommendedProfileId="marcus_webb"
+        narrativeScenes={{
+          marcus_webb: {
+            whyThisFits: 'The books are the problem and he speaks that language.',
+            dayOnePromise: 'I will buy back breathing room before kickoff.',
+            seasonBet: 'We win by staying aggressive without getting desperate.',
+            recommended: true,
+          },
+          coach_d_hardaway: {
+            whyThisFits: 'He can harden the room even if the books stay tight.',
+            dayOnePromise: 'I will make the building sharper immediately.',
+            seasonBet: 'We force the opener into a street fight.',
+            recommended: false,
+          },
+          sandra_chen: {
+            whyThisFits: 'She can stabilize trust around the roster.',
+            dayOnePromise: 'I will make the room believe its roles.',
+            seasonBet: 'We gain edge by unlocking better versions of our own players.',
+            recommended: false,
+          },
+        }}
+        onHire={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('aria-label="Preview Deion &#x27;Coach D&#x27; Hardaway on the Assistant GM stage"');
+    expect(html).toContain('aria-label="Preview Sandra Chen on the Assistant GM stage"');
+  });
+
+  it('shows the locked-in state after hiring an AGM', () => {
+    const html = renderToStaticMarkup(
+      <ChooseAGMPhase
+        committedProfileId="marcus_webb"
+        initialPreviewProfileId="marcus_webb"
+        topPressureId="cap"
+        teamName="Kansas City BBQ Fountains"
+        crisisHeadline="The cap is deciding how bold you get."
+        weekOneThreat="Week 1 gets ugly if the books still run the room."
+        recommendedProfileId="marcus_webb"
+        narrativeScenes={{
+          marcus_webb: {
+            whyThisFits: 'The books are the problem and he speaks that language.',
+            dayOnePromise: 'I will buy back breathing room before kickoff.',
+            seasonBet: 'We win by staying aggressive without getting desperate.',
+            recommended: true,
+          },
+          coach_d_hardaway: {
+            whyThisFits: 'He can harden the room even if the books stay tight.',
+            dayOnePromise: 'I will make the building sharper immediately.',
+            seasonBet: 'We force the opener into a street fight.',
+            recommended: false,
+          },
+          sandra_chen: {
+            whyThisFits: 'She can stabilize trust around the roster.',
+            dayOnePromise: 'I will make the room believe its roles.',
+            seasonBet: 'We gain edge by unlocking better versions of our own players.',
+            recommended: false,
+          },
+        }}
+        onHire={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('SELECTED FOR DAY 1');
+    expect(html).toContain('data-mfd-agm-hire-command="true"');
+  });
 });

@@ -34,6 +34,37 @@ describe('AGMStage', () => {
     expect(html).toContain('POINT');
   });
 
+  it('renders the assistant as an animated character portrait', () => {
+    const html = renderToStaticMarkup(
+      <AGMStage agm={agm} state="talk" headline="The room is moving." subhead="Keep the staff aligned." />,
+    );
+
+    expect(html).toContain('data-mfd-agm-character="true"');
+    expect(html).toContain('role="img"');
+    expect(html).toContain('Animated Assistant GM character: Marcus Webb');
+  });
+
+  it('maps stage state into a visible character pose', () => {
+    const html = renderToStaticMarkup(
+      <AGMStage agm={agm} state="approve" headline="The room bought in." subhead="The opener has a plan." />,
+    );
+
+    expect(html).toContain('data-mfd-agm-pose="approve"');
+    expect(html).toContain('data-mfd-agm-state="approve"');
+  });
+
+  it('keeps the character card separate from scrollable guidance content', () => {
+    const html = renderToStaticMarkup(
+      <AGMStage agm={agm} state="idle" headline="Start with the room." subhead="Then make the call.">
+        <div>Candidate board</div>
+      </AGMStage>,
+    );
+
+    expect(html).toContain('data-mfd-agm-stage-card="true"');
+    expect(html).toContain('data-mfd-agm-stage-content="true"');
+    expect(html).toContain('Candidate board');
+  });
+
   it('renders reduced-motion friendly stage content without interactive children', () => {
     const html = renderToStaticMarkup(
       <AGMStage agm={agm} state="concern" headline="Cap pressure is real." subhead="The next move matters." reducedMotion />,
@@ -42,5 +73,6 @@ describe('AGMStage', () => {
     expect(html).toContain('Cap pressure is real.');
     expect(html).toContain('The next move matters.');
     expect(html).toContain('CONCERN');
+    expect(html).toContain('data-mfd-agm-motion="reduced"');
   });
 });

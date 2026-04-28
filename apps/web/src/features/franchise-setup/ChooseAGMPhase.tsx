@@ -109,69 +109,87 @@ export function ChooseAGMPhase({
         </PixelPanel>
 
         {selectedProfile ? (
-          <PixelPanel accent="gold" padding="lg">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>{selectedProfile.name.toUpperCase()}</div>
-                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '4px' }}>{selectedProfile.title}</div>
+          <div data-mfd-agm-spotlight="true">
+            <PixelPanel accent="gold" padding="lg" title="Candidate Spotlight">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
+                    <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>{selectedProfile.name.toUpperCase()}</div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{selectedProfile.title}</div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+                      {selectedProfile.background}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    {selectedNarrative?.recommended ? (
+                      <PixelBadge variant="gold">RECOMMENDED FOR THIS CRISIS</PixelBadge>
+                    ) : null}
+                    <PixelBadge variant={PERSONALITY_BADGE[selectedProfile.personality]}>
+                      {selectedProfile.personality.replace('_', ' ')}
+                    </PixelBadge>
+                    <PixelBadge variant={EXPERTISE_BADGE[selectedProfile.expertise]}>
+                      {selectedProfile.expertise.replace('_', ' ')}
+                    </PixelBadge>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {selectedNarrative?.recommended ? (
-                    <PixelBadge variant="gold">RECOMMENDED FOR THIS CRISIS</PixelBadge>
-                  ) : null}
-                  <PixelBadge variant={PERSONALITY_BADGE[selectedProfile.personality]}>
-                    {selectedProfile.personality.replace('_', ' ')}
-                  </PixelBadge>
-                  <PixelBadge variant={EXPERTISE_BADGE[selectedProfile.expertise]}>
-                    {selectedProfile.expertise.replace('_', ' ')}
-                  </PixelBadge>
-                </div>
-              </div>
 
-              <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
-                {selectedProfile.background}
-              </div>
+                <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
+                  <div style={{ padding: '10px', border: '1px solid var(--mfd-border)', background: 'var(--mfd-bg-3)' }}>
+                    <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)', marginBottom: '6px' }}>WHY THIS FITS</div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+                      {selectedNarrative?.whyThisFits ?? selectedProfile.selectionPitch}
+                    </div>
+                  </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>WHY THIS FITS</div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
-                  {selectedNarrative?.whyThisFits ?? selectedProfile.selectionPitch}
+                  <div style={{ padding: '10px', border: '1px solid var(--mfd-gold)', background: 'var(--mfd-bg-3)' }}>
+                    <div style={{ ...pixelSm, color: 'var(--mfd-gold)', marginBottom: '6px' }}>DAY 1 PROMISE</div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+                      {selectedNarrative?.dayOnePromise ?? selectedProfile.selectionPitch}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '10px', border: '1px solid var(--mfd-cyan)', background: 'var(--mfd-bg-3)' }}>
+                    <div style={{ ...pixelSm, color: 'var(--mfd-cyan)', marginBottom: '6px' }}>SEASON 1 BET</div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+                      {selectedNarrative?.seasonBet ?? selectedProfile.selectionPitch}
+                    </div>
+                  </div>
                 </div>
+
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {selectedProfile.strengths.map((strength) => (
                     <PixelBadge key={strength} variant="default">{strength}</PixelBadge>
                   ))}
                 </div>
-              </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>FIRST DAY 1 PROMISE</div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
-                  {selectedNarrative?.dayOnePromise ?? selectedProfile.selectionPitch}
+                <div style={{ ...monoSm, color: 'var(--mfd-cyan)', lineHeight: 1.6 }}>
+                  &ldquo;{selectedProfile.catchphrase}&rdquo;
+                </div>
+
+                <div
+                  data-mfd-agm-hire-command="true"
+                  style={{
+                    display: 'grid',
+                    gap: '8px',
+                    padding: '10px',
+                    border: `2px solid ${committedProfileId === selectedProfile.id ? 'var(--mfd-gold)' : CARD_ACCENT_COLOR[selectedProfile.cardAccent]}`,
+                    background: 'var(--mfd-bg-3)',
+                  }}
+                >
+                  <div style={{ ...pixelSm, color: committedProfileId === selectedProfile.id ? 'var(--mfd-gold)' : CARD_ACCENT_COLOR[selectedProfile.cardAccent] }}>
+                    {committedProfileId === selectedProfile.id ? 'LOCKED IN' : 'DAY 1 DECISION'}
+                  </div>
+                  <PixelButton
+                    accent={committedProfileId === selectedProfile.id ? 'gold' : selectedProfile.cardAccent}
+                    onClick={() => { void onHire(selectedProfile.id); }}
+                    style={{ width: '100%' }}
+                  >
+                    {committedProfileId === selectedProfile.id ? 'SELECTED FOR DAY 1' : 'MAKE THIS YOUR AGM'}
+                  </PixelButton>
                 </div>
               </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>SEASON 1 BET</div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
-                  {selectedNarrative?.seasonBet ?? selectedProfile.selectionPitch}
-                </div>
-              </div>
-
-              <div style={{ ...monoSm, color: 'var(--mfd-cyan)', lineHeight: 1.6 }}>
-                &ldquo;{selectedProfile.catchphrase}&rdquo;
-              </div>
-
-              <PixelButton
-                accent={committedProfileId === selectedProfile.id ? 'gold' : selectedProfile.cardAccent}
-                onClick={() => { void onHire(selectedProfile.id); }}
-                style={{ width: '100%' }}
-              >
-                {committedProfileId === selectedProfile.id ? 'Selected for Day 1' : `Hire ${selectedProfile.name}`}
-              </PixelButton>
-            </div>
-          </PixelPanel>
+            </PixelPanel>
+          </div>
         ) : null}
 
         <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
@@ -182,6 +200,7 @@ export function ChooseAGMPhase({
               <button
                 key={profile.id}
                 type="button"
+                aria-label={`Preview ${profile.name} on the Assistant GM stage`}
                 onClick={() => setPreviewProfileId(profile.id)}
                 style={{
                   padding: 0,
