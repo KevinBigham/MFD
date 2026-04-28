@@ -8,8 +8,11 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "test:engine": "pnpm --filter @mfd/engine test",
+    "test:grading": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/__tests__/grade-season.test.ts",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
+    "grade-season": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/grade-season.ts",
+    "grade-season-baseline": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/grade-season-baseline.ts",
     "playtest": "pnpm --filter @mfd/engine playtest",
     "playtest:all": "pnpm --filter @mfd/engine playtest:all"
   },
