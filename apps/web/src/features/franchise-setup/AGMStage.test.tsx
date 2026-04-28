@@ -44,6 +44,16 @@ describe('AGMStage', () => {
     expect(html).toContain('Animated Assistant GM character: Marcus Webb');
   });
 
+  it('uses a full illustrated SVG cartoon instead of the old CSS box puppet', () => {
+    const html = renderToStaticMarkup(
+      <AGMStage agm={agm} state="point" headline="The room has a real character." subhead="No block puppet." />,
+    );
+
+    expect(html).toContain('data-mfd-agm-illustration="cartoon-svg"');
+    expect(html).toContain('mfd-agm-svg__face');
+    expect(html).not.toContain('mfd-agm-character__torso');
+  });
+
   it('maps stage state into a visible character pose', () => {
     const html = renderToStaticMarkup(
       <AGMStage agm={agm} state="approve" headline="The room bought in." subhead="The opener has a plan." />,
