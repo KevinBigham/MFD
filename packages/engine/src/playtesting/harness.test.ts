@@ -194,6 +194,18 @@ describe('playtest harness', () => {
     expect(report.anomalyCount).toBe(3);
   });
 
+  it('excludes perf-budget anomalies from canonical report counts', () => {
+    const report = reportWith([
+      makeAnomaly({ detectorId: 'roster-minimums', severity: 'medium' }),
+      makeAnomaly({ detectorId: 'perf-budget', severity: 'medium' }),
+      makeAnomaly({ detectorId: 'rng-channel', severity: 'high' }),
+    ]);
+
+    expect(report.anomalies.map((entry) => entry.detectorId)).toEqual(['rng-channel', 'roster-minimums']);
+    expect(report.anomalyCount).toBe(2);
+    expect(report.highSeverityCount).toBe(1);
+  });
+
   it('counts only high-severity anomalies as high severity', () => {
     const report = reportWith([
       makeAnomaly({ severity: 'low' }),

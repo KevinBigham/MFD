@@ -1,97 +1,74 @@
 # Mr. Football Dynasty
 
-A browser-based football franchise management simulation with deep roster, salary cap, coaching, narrative, and dynasty play. Built with TypeScript, React, and a seeded simulation engine.
+Browser-based football franchise dynasty simulation. Build a team, manage the cap, survive the media cycle, and carry one save across seasons.
 
-## Play Now
+**Version:** v1.0.0  
+**Play:** [kevinbigham.github.io/MFD](https://kevinbigham.github.io/MFD/)
 
-**[Play Mr. Football Dynasty](https://kevinbigham.github.io/MFD/)**
+## Screenshots
 
-> **First time?** To enable deployment: Go to [repo Settings > Pages](https://github.com/KevinBigham/MFD/settings/pages) and set Source to **GitHub Actions**.
+| Dashboard | Standings |
+|---|---|
+| ![MFD dashboard](apps/web/public/screenshots/v1/dashboard-desktop.png) | ![MFD standings](apps/web/public/screenshots/v1/standings.png) |
 
-## What Is This?
+| Game Flow | Play-by-Play |
+|---|---|
+| ![MFD game flow](apps/web/public/screenshots/v1/game-flow.png) | ![MFD play-by-play](apps/web/public/screenshots/v1/play-by-play.png) |
 
-MFD is a franchise sim where you manage every aspect of a football team across multiple seasons:
+More release shots:
 
-- **Draft & develop** players with 28 position archetypes and archetype-driven progression
-- **Manage the salary cap** with restructures, extensions, void years, and franchise tags
-- **Coach your team** with coordinators, position coaches, and scheme chemistry
-- **Game day decisions** with weekly prep plans, game plans, and snap management
-- **Watch the action** with play-by-play broadcasts, game flow analysis, and film room review
-- **Build a dynasty** across seasons with legacy tracking, Hall of Fame, and franchise legends
-- **Navigate the league** with CBA negotiations, commissioner votes, expansion drafts, and relocations
+- [GM career](apps/web/public/screenshots/v1/franchise-career.png)
+- [Mobile dashboard](apps/web/public/screenshots/v1/dashboard-mobile.png)
 
-55+ screens, 830+ tests, 120+ engine systems. Entirely client-side with no server required.
+## What It Is
+
+MFD is a single-player franchise sim with deterministic seasons, seeded RNG, stable saves, and a client-side TypeScript engine.
+
+- Draft, develop, extend, trade, and cut players across long-running dynasties.
+- Manage cap space, dead money, restructures, extensions, franchise tags, CBA pressure, and owner patience.
+- Build coaching staffs, weekly prep, game plans, locker room chemistry, facilities, and scouting departments.
+- Watch games through broadcast packages, game flow, play-by-play, standings, records, awards, and media-cycle fallout.
+- Preserve careers through Hall of Fame, franchise legends, bloodlines, timelines, scrapbook entries, and GM career history.
+
+What it is not: a multiplayer service, a card collector, or a server-backed live-ops game. Everything runs in the browser.
+
+## Start A Dynasty
+
+1. Open [MFD](https://kevinbigham.github.io/MFD/).
+2. Pick a franchise and difficulty, or launch the convention demo.
+3. Finish setup, advance weeks, and make decisions when the dashboard flags them.
+4. Use Save/Load to export portable dynasty backups before switching browsers or machines.
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Engine | TypeScript (pure, no DOM/React dependencies) |
-| UI | React 19 + TanStack Router + Zustand |
-| Design | 8-Bit ESPN pixel art system (Press Start 2P + Bebas Neue + JetBrains Mono) |
-| Build | Vite 6 + pnpm monorepo |
-| Testing | Vitest + React Testing Library |
-| Storage | IndexedDB (Dexie) for saves, fully offline |
-| Deploy | GitHub Pages via GitHub Actions |
+TypeScript monorepo, pure engine package, React 19 web app, Zustand state, Dexie/IndexedDB saves, Vite build, Vitest coverage, GitHub Pages deploy.
 
-## Local Development
+## Contributor Setup
 
 ```bash
-# Prerequisites: Node.js 20+, pnpm 9+
-
-# Clone and install
 git clone git@github.com:KevinBigham/MFD.git
 cd MFD/mfd
 pnpm install
 
-# Development
-pnpm dev              # Start dev server
-pnpm test             # Run all tests
-pnpm typecheck        # TypeScript strict check
-pnpm build            # Production build
-
-# Package-specific
-pnpm --filter @mfd/engine test    # Engine tests only
-pnpm --filter @mfd/web test      # Web tests only
-pnpm --filter @mfd/web build     # Build web app
+pnpm dev
+pnpm --filter @mfd/engine test
+pnpm --filter @mfd/web test
+pnpm -r typecheck
+pnpm --filter @mfd/web build
 ```
 
-## Release Grading
+Launch gates:
 
-Before release tags, MFD can run a tri-judge season grading harness against a final-season fixture: `pnpm grade-season-baseline -- --seed 42 --tag rc2 --fixture /path/to/final-season.json` seeds the comparison baseline, and `pnpm grade-season -- --seed 42 --tag rc2 --fixture /path/to/final-season.json` writes the judged verdict to `scripts/grading-results/` and exits nonzero on rubric regression.
-
-## Project Structure
-
-```
-mfd/
-  packages/
-    engine/        Game simulation engine (120+ systems, pure TypeScript)
-    design-system/ 26 UI components (Pixel* + Mfd*)
-  apps/
-    web/           React web app (55+ screens)
+```bash
+bash scripts/check-math-random.sh
+bash scripts/check-bundle-size.sh
+bash scripts/smoke-full-season.sh
+pnpm playtest:all
 ```
 
-## Sprint History
+## Release Notes
 
-24 development sprints building from zero to a fully playable franchise sim. Key milestones:
-
-| Sprint | Theme | Highlights |
-|--------|-------|-----------|
-| 0-4 | Foundation | Engine, types, config, roster, contracts |
-| 5-11 | Opening Night | Full game sim, draft, free agency, season loop |
-| 12 | Hall of Champions | Awards, HOF, ceremonies |
-| 13 | The War Room | Draft board, trade evaluation |
-| 14 | Scout Report | Scouting staff, prospect evaluation |
-| 15 | Coach's Corner | Coaching market, skill trees |
-| 16 | Advanced Scouting | Regions, combine, pro days |
-| 17 | Prime Time | Broadcast engine, social feed, story arcs |
-| 18 | The Franchise | Identity, stadiums, endorsements, relocation |
-| 19 | Under the Helmet | Hooks engine, dynasty cartridge, narrative |
-| 20 | The Commissioner | CBA, labor relations, league governance |
-| 21 | The Historian | Records, milestones, franchise legends |
-| 22 | The Big Stage | Atmosphere, Super Bowl, regional weather |
-| 23 | The Specialist | Archetype progression, position coaches |
-| 24 | The Broadcast Booth | Play-by-play viewer, game flow, snap counts, deploy |
+See [CHANGELOG.md](CHANGELOG.md). v1.0.0 ships with save schema v35 and the Sprint 72 deterministic playtest-report cleanup.
 
 ## License
 
