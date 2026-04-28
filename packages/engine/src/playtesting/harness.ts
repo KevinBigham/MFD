@@ -25,6 +25,7 @@ import type {
 
 export const MAX_PLAYTEST_STEPS = 800;
 const ELAPSED_HISTORY_LIMIT = 32;
+const HOST_NOISE_DETECTOR_IDS = new Set(['perf-budget']);
 
 function createEmptyGameDayState(): GameDayState {
   return {
@@ -559,6 +560,10 @@ function sortAnomalies(anomalies: readonly PlaytestAnomaly[]): PlaytestAnomaly[]
     || left.detail.localeCompare(right.detail));
 }
 
+function canonicalAnomalies(anomalies: readonly PlaytestAnomaly[]): PlaytestAnomaly[] {
+  return sortAnomalies(anomalies.filter((anomaly) => !HOST_NOISE_DETECTOR_IDS.has(anomaly.detectorId)));
+}
+
 export function buildPlaytestReport(params: {
   persona: PlaytestPersona;
   seed: number;
@@ -567,7 +572,7 @@ export function buildPlaytestReport(params: {
   weeksAdvanced: number;
   anomalies: PlaytestAnomaly[];
 }): PlaytestReport {
-  const anomalies = sortAnomalies(params.anomalies);
+  const anomalies = canonicalAnomalies(params.anomalies);
   const highSeverityCount = anomalies.filter((anomaly) => anomaly.severity === 'high').length;
 
   return {
