@@ -56,6 +56,10 @@ pnpm --filter @mfd/web test      # Web tests only
 pnpm --filter @mfd/web build     # Build web app
 ```
 
+## Release Grading
+
+Before release tags, MFD can run a tri-judge season grading harness against a final-season fixture: `pnpm grade-season-baseline -- --seed 42 --tag rc2 --fixture /path/to/final-season.json` seeds the comparison baseline, and `pnpm grade-season -- --seed 42 --tag rc2 --fixture /path/to/final-season.json` writes the judged verdict to `scripts/grading-results/` and exits nonzero on rubric regression.
+
 ## Project Structure
 
 ```
