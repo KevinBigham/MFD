@@ -21,7 +21,7 @@ describe('AboutScreen', () => {
   it('shows version and save stability context', () => {
     const markup = renderToStaticMarkup(<AboutScreen />);
 
-    expect(markup).toContain('v0.0.1');
+    expect(markup).toContain('v1.0.0');
     expect(markup).toContain('v35');
   });
 

@@ -10,16 +10,16 @@ describe('useBootSequence config', () => {
     expect(content).not.toContain('PHASE 1');
   });
 
-  it('contains updated convention version string', () => {
-    expect(content).toContain('v1.0.0-beta');
-    expect(content).toContain('CONVENTION EDITION');
+  it('contains launch version string', () => {
+    expect(content).toContain('v1.0.0 // LAUNCH BUILD');
+    expect(content).not.toContain('v1.0.0-beta');
   });
 
   it('boot lines reflect current system counts', () => {
-    expect(content).toContain('140+');
-    expect(content).toContain('1,125 tests');
+    expect(content).toContain('145+');
+    expect(content).toContain('2,650+ tests');
     expect(content).toContain('8-BIT ESPN');
-    expect(content).toContain('31 components');
+    expect(content).toContain('v35 migration chain');
   });
 
   it('has 14 boot lines including blanks', () => {
