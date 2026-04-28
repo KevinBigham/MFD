@@ -91,10 +91,81 @@ describe('IntelBriefingPhase', () => {
       />,
     );
 
-    expect(html).toContain('Brief Diagnosis');
+    expect(html).toContain('BRIEF DIAGNOSIS');
     expect(html).toContain('REQUIRED');
     expect(html).toContain('Cap Pressure');
     expect(html).toContain('One bad contract is holding the room hostage.');
     expect(html).toContain('Choose a Day 1 cap package.');
+  });
+
+  it('leads with one open-this-first pressure card instead of a full board', () => {
+    const html = renderToStaticMarkup(
+      <IntelBriefingPhase
+        data={data}
+        crisis={crisis}
+        requiredPressureId="cap"
+        briefDiagnosis={briefDiagnosis}
+        onToggleDrilldown={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('OPEN THIS FIRST');
+    expect(html).toContain('Cap Pressure');
+    expect(html).not.toContain('Three-Pressure Board');
+  });
+
+  it('shows a clear unlock prompt when the required pressure has not been opened', () => {
+    const html = renderToStaticMarkup(
+      <IntelBriefingPhase
+        data={data}
+        crisis={crisis}
+        openedDrilldowns={[]}
+        requiredPressureId="cap"
+        briefDiagnosis={briefDiagnosis}
+        onToggleDrilldown={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('Open this pressure card to unlock Next.');
+    expect(html).not.toContain('One bad contract is holding the room hostage.');
+  });
+
+  it('keeps secondary pressure signals compact below the required card', () => {
+    const html = renderToStaticMarkup(
+      <IntelBriefingPhase
+        data={data}
+        crisis={crisis}
+        openedDrilldowns={['cap']}
+        requiredPressureId="cap"
+        briefDiagnosis={briefDiagnosis}
+        onToggleDrilldown={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('SECONDARY SIGNALS');
+    expect(html).toContain('Roster Pressure');
+    expect(html).toContain('Culture Pressure');
+    expect(html).toContain('Set the right starters.');
+    expect(html).not.toContain('Thin secondary.');
+  });
+
+  it('compresses roster facts into one snapshot panel', () => {
+    const html = renderToStaticMarkup(
+      <IntelBriefingPhase
+        data={data}
+        crisis={crisis}
+        openedDrilldowns={['cap']}
+        requiredPressureId="cap"
+        briefDiagnosis={briefDiagnosis}
+        onToggleDrilldown={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('FRANCHISE SNAPSHOT');
+    expect(html).toContain('Window');
+    expect(html).toContain('opening');
+    expect(html).toContain('Needs');
+    expect(html).not.toContain('Dynasty Window');
+    expect(html).not.toContain('Scouting Report');
   });
 });

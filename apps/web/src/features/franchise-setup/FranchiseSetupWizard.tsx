@@ -294,18 +294,19 @@ export function FranchiseSetupWizard() {
   }, [setupState.currentPhase, phaseData, agmProfile]);
 
   const currentMeta = PHASE_META.find((phase) => phase.id === setupState.currentPhase) ?? PHASE_META[0]!;
+  const isIntelBriefingPhase = setupState.currentPhase === 'intel_briefing';
   const isLastPhase = setupState.currentPhase === 'blueprint';
   const showColdOpen = setupState.currentPhase === 'choose_agm'
     && !isFastLaneRun
     && !firstTenMinutesCompleted
     && !decisions.agmProfileId
     && !coldOpenDismissed;
-  const showFastLaneIntel = isFastLaneRun && setupState.currentPhase === 'intel_briefing';
-  const requireTopPressureOpened = setupState.currentPhase === 'intel_briefing' && !isFastLaneRun;
+  const showFastLaneIntel = isFastLaneRun && isIntelBriefingPhase;
+  const requireTopPressureOpened = isIntelBriefingPhase && !isFastLaneRun;
   const canAdvance = showColdOpen
     ? true
     : READ_ONLY_PHASES.has(setupState.currentPhase)
-      ? (setupState.currentPhase !== 'intel_briefing' || !requireTopPressureOpened || topPressureOpened)
+      ? (!isIntelBriefingPhase || !requireTopPressureOpened || topPressureOpened)
       : isPhaseComplete(setupState, setupState.currentPhase, { requireTopPressureOpened });
   const showStage = setupState.currentPhase !== 'choose_agm' && agmProfile !== null && !showFastLaneIntel;
   const defaultAgmPreviewId = narrativePack.recommendedAgmId;
@@ -690,6 +691,9 @@ export function FranchiseSetupWizard() {
     }
     return panelDialogue?.recommendation ?? currentMeta.subtitle;
   }, [setupState.currentPhase, crisisProfile.weekOneThreat, phaseData, panelDialogue, currentMeta.subtitle]);
+  const showStageContextPanels = !isIntelBriefingPhase;
+  const showStageGuidancePanel = !isIntelBriefingPhase
+    && (panelDialogue || teachingNarration || activeReaction || blueprintMonologue);
   const advanceHint = useMemo(() => {
     if (isLaunchingSeason) return 'Loading Week 1.';
     if (isTransitioning) return 'Moving to the next room.';
@@ -699,7 +703,7 @@ export function FranchiseSetupWizard() {
       return 'Ready for the next decision.';
     }
     if (setupState.currentPhase === 'choose_agm') return 'Decision needed: hire your Assistant GM.';
-    if (setupState.currentPhase === 'intel_briefing' && requireTopPressureOpened) {
+    if (isIntelBriefingPhase && requireTopPressureOpened) {
       return `Decision needed: open ${topPressureCard.label}.`;
     }
     return `Decision needed: ${currentMeta.subtitle}.`;
@@ -707,6 +711,7 @@ export function FranchiseSetupWizard() {
     canAdvance,
     currentMeta.subtitle,
     isLastPhase,
+    isIntelBriefingPhase,
     isLaunchingSeason,
     isTransitioning,
     requireTopPressureOpened,
@@ -856,10 +861,10 @@ export function FranchiseSetupWizard() {
               <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{currentMeta.subtitle}</div>
             </div>
 
-            <ForecastBoard forecast={forecastBoard} />
-            <DayOneBetLedger entries={betLedgerEntries} />
+            {showStageContextPanels ? <ForecastBoard forecast={forecastBoard} /> : null}
+            {showStageContextPanels ? <DayOneBetLedger entries={betLedgerEntries} /> : null}
 
-            {(setupState.currentPhase === 'intel_briefing' || panelDialogue || teachingNarration || activeReaction || blueprintMonologue) ? (
+            {showStageGuidancePanel ? (
               <PixelPanel title="AGM Guidance" accent="gold">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {setupState.currentPhase === 'intel_briefing' && agmGreeting ? (
