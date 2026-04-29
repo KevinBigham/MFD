@@ -5,7 +5,7 @@ export const MAX_CHIP_DIALOGUE_CHARS = 240;
 export const CHIP_CONTEXTS = ['onboarding', 'idle', 'event', 'dismissed'] as const;
 export type ChipContext = (typeof CHIP_CONTEXTS)[number];
 
-export type DialogueArchetype = 'host';
+export type DialogueArchetype = 'host' | 'weekly';
 
 export interface DialogueCatalogEntry {
   id: string;
@@ -13,7 +13,9 @@ export interface DialogueCatalogEntry {
   pose: ChipPose;
   text: string;
   archetype: DialogueArchetype;
+  reducedMotionPose?: ChipPose;
   cooldownMs?: number;
+  priority?: 1 | 2 | 3 | 4 | 5;
   anchor?: boolean;
 }
 
@@ -39,14 +41,25 @@ function isChipPose(value: unknown): value is ChipPose {
 
 export function assertDialogueEntry(entry: DialogueCatalogEntry): DialogueCatalogEntry {
   if (!entry.id) throw new Error('Chip dialogue entries require a stable id.');
-  if (!Number.isInteger(entry.beat) || entry.beat < 1) {
+  if (entry.archetype !== 'host' && entry.archetype !== 'weekly') {
+    throw new Error(`Unsupported Chip archetype: ${entry.archetype}`);
+  }
+  if (entry.archetype === 'host' && (!Number.isInteger(entry.beat) || entry.beat < 1)) {
     throw new Error('Chip dialogue entries require a one-based beat number.');
   }
+  if (entry.archetype !== 'host' && (!Number.isInteger(entry.beat) || entry.beat < 0)) {
+    throw new Error('Chip non-onboarding dialogue entries require a zero-based beat number.');
+  }
   if (!isChipPose(entry.pose)) throw new Error(`Unsupported Chip pose: ${String(entry.pose)}`);
+  if (entry.reducedMotionPose !== undefined && !isChipPose(entry.reducedMotionPose)) {
+    throw new Error(`Unsupported Chip reduced-motion pose: ${String(entry.reducedMotionPose)}`);
+  }
   if (entry.text.length > MAX_CHIP_DIALOGUE_CHARS) {
     throw new Error(`Chip dialogue text must be ${MAX_CHIP_DIALOGUE_CHARS} characters or fewer.`);
   }
-  if (entry.archetype !== 'host') throw new Error(`Unsupported Chip archetype: ${entry.archetype}`);
+  if (entry.priority !== undefined && (!Number.isInteger(entry.priority) || entry.priority < 1 || entry.priority > 5)) {
+    throw new Error('Chip dialogue priority must be an integer from 1 to 5.');
+  }
   return entry;
 }
 
