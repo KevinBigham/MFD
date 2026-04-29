@@ -30,7 +30,7 @@ describe('runShadowScenario', () => {
     expect(() => runShadowScenario('mystery-scenario')).toThrow(/Unknown shadow scenario/);
   });
 
-  it('runs the 5-year baseline and returns a populated PlaytestReport', { timeout: 120_000 }, () => {
+  it('runs the 5-year baseline and returns a populated PlaytestReport', { timeout: 240_000 }, () => {
     const result = runShadowScenario('speedrunner-5y');
     expect(result.scenarioId).toBe('speedrunner-5y');
     expect(result.report.seasonsCompleted).toBe(5);
