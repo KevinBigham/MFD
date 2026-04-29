@@ -1,3 +1,26 @@
+/**
+ * MFD verification — FAST TIER ("perft").
+ *
+ * This file is the engine for `pnpm test:perft` (alias: `pnpm playtest:all`).
+ * Quick, deterministic, run-on-every-Stop-hook regression suite.
+ *
+ * Contract:
+ *   - 5 personas (CHEAPSKATE, CHURN_ARTIST, GLUTTON, INJURY_MAGNET, SPEEDRUNNER)
+ *     each advance N seasons at a fixed seed. Per-persona anomaly counts are
+ *     normalized via canonicalAnomalies() (host-noise detectors stripped) and
+ *     must stay byte-identical run-to-run on identical engine code.
+ *   - host-noise detectors (currently `perf-budget`) live in
+ *     HOST_NOISE_DETECTOR_IDS and are excluded from canonical counts. They
+ *     remain available for diagnostic runs but never gate the perft signature.
+ *   - SLOW TIER lives in `./shadow/` — multi-decade baselines for engine drift.
+ *
+ * Adding a new perft scenario: extend PLAYTEST_PERSONAS (personas.ts) with a
+ * deterministic AIBiasConfig. Adding a new anomaly detector: register in
+ * PLAYTEST_DETECTORS (anomaly-detectors.ts); if the detector is timing- or
+ * host-dependent, also add its id to HOST_NOISE_DETECTOR_IDS below.
+ *
+ * Documented in docs/verification/fast-tier.md.
+ */
 import { SAVE_VERSION, getDefaultHalftimeDecisionSetting } from '../config/difficulty';
 import { initCBA } from '../systems/cba-engine';
 import { initCommissioner } from '../systems/commissioner';

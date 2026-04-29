@@ -1,0 +1,15 @@
+{
+  "scenarioId": "speedrunner-20y",
+  "corpusVersion": "1",
+  "schemaVersion": 35,
+  "engineCommit": "f523cc3697ce59e2f178e815da508fb74ec35777",
+  "generatedAt": "2026-04-28T17:03:15.097Z",
+  "generationCommand": "pnpm test:shadow -- --update",
+  "persona": "SPEEDRUNNER",
+  "seed": 42,
+  "seasonsRequested": 20,
+  "seasonsCompleted": 10,
+  "weeksAdvanced": 800,
+  "anomalyCount": 1252,
+  "highSeverityCount": 508
+}
