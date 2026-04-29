@@ -527,4 +527,22 @@
   .mfd-chip .mfd-chip-svg__mic-tip-flash {
     opacity: 0.72;
   }
+
+  .mfd-chip[data-chip-pose='point-left'] .mfd-chip-svg__arm--left,
+  .mfd-chip[data-chip-pose='point-right'] .mfd-chip-svg__arm--right,
+  .mfd-chip[data-chip-pose='wave'] .mfd-chip-svg__arm--right,
+  .mfd-chip[data-chip-pose='think'] .mfd-chip-svg__arm--right,
+  .mfd-chip[data-chip-pose='think'] .mfd-chip-svg__head,
+  .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__arm--left,
+  .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__arm--right,
+  .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__figure,
+  .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__head,
+  .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__brow--left,
+  .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__brow--right,
+  .mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__headset-pad--left,
+  .mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__mic-tip {
+    animation: none;
+    transform: none;
+    transition: opacity 80ms ease-out;
+  }
 }

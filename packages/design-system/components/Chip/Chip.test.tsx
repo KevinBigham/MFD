@@ -181,9 +181,11 @@ describe('Chip', () => {
     expect(chipCss).toContain('@keyframes mfd-chip-idle-breathe');
     expect(chipCss).toContain('@keyframes mfd-chip-mic-check-tap');
     expect(reducedMotionBlock).toContain('opacity');
+    expect(reducedMotionBlock).toContain(".mfd-chip[data-chip-pose='wave'] .mfd-chip-svg__arm--right");
+    expect(reducedMotionBlock).toContain(".mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__mic-tip");
     const reducedTransforms = [...reducedMotionBlock.matchAll(/transform:\s*([^;]+);/g)].map((match) =>
       (match[1] ?? '').trim(),
     );
-    expect(reducedTransforms).toEqual(['none']);
+    expect(reducedTransforms.every((value) => value === 'none')).toBe(true);
   });
 });
