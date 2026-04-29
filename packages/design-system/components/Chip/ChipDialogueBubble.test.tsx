@@ -7,6 +7,7 @@ import {
   computeTypewriterRevealCount,
   createTypewriterController,
   normalizeBubbleText,
+  resolveTypewriterTimingMode,
 } from './ChipDialogueBubble';
 
 describe('ChipDialogueBubble', () => {
@@ -113,5 +114,39 @@ describe('ChipDialogueBubble', () => {
     expect(css).toContain('max-width: 360px');
     expect(css).toContain('width: 100%');
     expect(css).toContain('mfd-chip-bubble-typewriter-caret');
+  });
+
+  it('returns a non-recursive no-op timing mode when rAF is unavailable (PR #18 P2 fix)', () => {
+    // Regression guard: the previous fallback `(cb) => cb(0)` recursed
+    // synchronously and stack-overflowed in environments without rAF.
+    const result = resolveTypewriterTimingMode({} as unknown as Window);
+    expect(result.hasRAF).toBe(false);
+
+    let callbackInvocations = 0;
+    const handle = result.requestFrame(() => {
+      callbackInvocations += 1;
+    });
+    // The no-op MUST NOT invoke the callback — that's what caused the recursion.
+    expect(callbackInvocations).toBe(0);
+    expect(typeof handle).toBe('number');
+    // cancelFrame is a safe no-op
+    expect(() => result.cancelFrame(handle)).not.toThrow();
+  });
+
+  it('binds rAF helpers when the host window provides them', () => {
+    const requestSpy = vi.fn(() => 99);
+    const cancelSpy = vi.fn();
+    const fakeWindow = {
+      requestAnimationFrame: requestSpy,
+      cancelAnimationFrame: cancelSpy,
+    } as unknown as Window;
+
+    const result = resolveTypewriterTimingMode(fakeWindow);
+    expect(result.hasRAF).toBe(true);
+    const cb: FrameRequestCallback = () => undefined;
+    result.requestFrame(cb);
+    expect(requestSpy).toHaveBeenCalledWith(cb);
+    result.cancelFrame(99);
+    expect(cancelSpy).toHaveBeenCalledWith(99);
   });
 });

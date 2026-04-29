@@ -43,15 +43,18 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain('return !readFirstTenMinutesCompleted(storage);');
   });
 
-  it('memoizes the localStorage read and passes the result as ChipHost newGame', () => {
-    expect(content).toContain('const chipSetupStorage = useMemo(() => resolveChipSetupStorage(), []);');
-    expect(content).toContain('const chipNewGame = useMemo(() => isChipNewGameSetup(chipSetupStorage), [chipSetupStorage]);');
-    expect(content).toContain('<ChipHost newGame={chipNewGame} stages={CHIP_FRANCHISE_SETUP_STAGES}>');
+  it('reads the first-ten marker fresh on every render (PR #18 P2 fix — no stale memo)', () => {
+    // Stale-memo regression guard: chipNewGame must NOT be cached across the
+    // App lifetime, otherwise a user finishing setup and starting another
+    // franchise in the same SPA session would see Chip onboarding twice.
+    expect(content).not.toMatch(/useMemo\(\(\) => isChipNewGameSetup/);
+    expect(content).not.toMatch(/const chipNewGame = useMemo/);
+    expect(content).toContain('<ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>');
   });
 
   it('wraps FranchiseSetupWizard in ChipHost at the setup gate', () => {
     expect(content).toContain("import { ChipHost, type ChipHostStage } from '../features/companion'");
-    expect(content).toContain('<ChipHost newGame={chipNewGame} stages={CHIP_FRANCHISE_SETUP_STAGES}>');
+    expect(content).toContain('<ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>');
     expect(content).toContain('<FranchiseSetupWizard />');
     expect(content).toContain('</ChipHost>');
   });

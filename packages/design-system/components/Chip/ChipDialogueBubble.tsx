@@ -65,6 +65,40 @@ export function computeTypewriterRevealCount({
   return Math.min(textLength, Math.floor((elapsedMs * speed) / 1000));
 }
 
+export interface TypewriterTimingMode {
+  hasRAF: boolean;
+  requestFrame: (callback: FrameRequestCallback) => number;
+  cancelFrame: (handle: number) => void;
+}
+
+type TimingHostWindow = Pick<Window, 'requestAnimationFrame' | 'cancelAnimationFrame'>;
+
+export function resolveTypewriterTimingMode(
+  hostWindow: TimingHostWindow | undefined = typeof window !== 'undefined' ? window : undefined,
+): TypewriterTimingMode {
+  const hasRAF =
+    !!hostWindow && typeof hostWindow.requestAnimationFrame === 'function';
+
+  if (!hasRAF || !hostWindow) {
+    // No-op stand-ins. The controller never invokes these when reducedMotion is
+    // true, but we keep them safe in case a caller bypasses the early-flush path.
+    return {
+      hasRAF: false,
+      requestFrame: () => 0,
+      cancelFrame: () => undefined,
+    };
+  }
+
+  return {
+    hasRAF: true,
+    requestFrame: hostWindow.requestAnimationFrame.bind(hostWindow),
+    cancelFrame:
+      typeof hostWindow.cancelAnimationFrame === 'function'
+        ? hostWindow.cancelAnimationFrame.bind(hostWindow)
+        : () => undefined,
+  };
+}
+
 export function createTypewriterController({
   textLength,
   speed,
@@ -150,19 +184,17 @@ export function ChipDialogueBubble({
   useEffect(() => {
     setVisibleCount(reducedMotion ? normalizedText.length : 0);
 
-    const requestFrame =
-      typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
-        ? window.requestAnimationFrame.bind(window)
-        : (callback: FrameRequestCallback) => callback(0) as unknown as number;
-    const cancelFrame =
-      typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function'
-        ? window.cancelAnimationFrame.bind(window)
-        : () => undefined;
+    // Resolve frame helpers once per effect. When rAF is unavailable (SSR, exotic
+    // test envs), force the controller into the reduced-motion early-flush path
+    // and use a true no-op `requestFrame`. The previous fallback `(cb) => cb(0)`
+    // recursed synchronously with elapsed=0 and stack-overflowed (PR #18 P2 fix).
+    const { hasRAF, requestFrame, cancelFrame } = resolveTypewriterTimingMode();
+    const effectiveReducedMotion = reducedMotion || !hasRAF;
 
     const controller = createTypewriterController({
       textLength: normalizedText.length,
       speed,
-      reducedMotion,
+      reducedMotion: effectiveReducedMotion,
       requestFrame,
       cancelFrame,
       onRevealCount: setVisibleCount,

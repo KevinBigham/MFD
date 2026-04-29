@@ -1739,8 +1739,6 @@ export function App() {
     if (!s.game?.setupState) return false;
     return s.game.setupState.completedPhases.length < PHASE_ORDER.length;
   });
-  const chipSetupStorage = useMemo(() => resolveChipSetupStorage(), []);
-  const chipNewGame = useMemo(() => isChipNewGameSetup(chipSetupStorage), [chipSetupStorage]);
 
   if (boot.shouldShow && !boot.isComplete) {
     return <BootScreen lines={boot.visibleLines} onSkip={boot.skip} />;
@@ -1751,8 +1749,11 @@ export function App() {
   }
 
   if (setupIncomplete) {
+    // Read first-ten marker fresh on each render (PR #18 P2 fix): a memoized
+    // chipNewGame would go stale if a user finishes setup and starts another
+    // franchise within the same SPA session.
     return (
-      <ChipHost newGame={chipNewGame} stages={CHIP_FRANCHISE_SETUP_STAGES}>
+      <ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>
         <FranchiseSetupWizard />
       </ChipHost>
     );
