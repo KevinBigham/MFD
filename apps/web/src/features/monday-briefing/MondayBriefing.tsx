@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { calculateTrainingXP, getAchievementProgress, calculateDynastyWindow, getAlumniUpdates, windowPhaseLabel, windowPhaseColor, type Achievement, type DashboardWidget } from '@mfd/engine';
 import {
+  ChipDialogueBubble,
   PixelBadge,
   PixelButton,
   PixelModal,
@@ -61,6 +62,9 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 import { TeamLogo } from '../shared/TeamLogo';
+import { isChipFeatureEnabled } from '../companion';
+import { selectWeeklyDialogue, type WeeklyDialogueVariant } from '../companion/dialogue/weekly';
+import type { DialogueCatalogEntry } from '../companion/dialogue/types';
 
 const facilityLabels: Record<string, string> = {
   training_complex: 'Training Complex',
@@ -104,6 +108,83 @@ function rankingDeltaLabel(delta: number): string {
   if (delta > 0) return `UP ${delta}`;
   if (delta < 0) return `DOWN ${Math.abs(delta)}`;
   return 'EVEN';
+}
+
+export interface MondayBriefingChipInput {
+  phase: string;
+  week: number;
+  dynastySeed: number;
+  latestResult?: 'win' | 'loss' | 'tie' | 'pending' | string | null;
+  latestTeamScore?: number | null;
+  latestOpponentScore?: number | null;
+  recentResults?: ReadonlyArray<'win' | 'loss' | 'tie' | 'pending' | string | null | undefined>;
+}
+
+const BLOWOUT_MARGIN = 21;
+const UGLY_WIN_MARGIN = 3;
+
+function isLossStreak(results: ReadonlyArray<string | null | undefined>, length: number): boolean {
+  const streak = results.slice(-length);
+  return streak.length === length && streak.every((result) => result === 'loss');
+}
+
+function selectMondayBriefingVariant(input: MondayBriefingChipInput): WeeklyDialogueVariant {
+  if (input.phase === 'preseason' || input.phase === 'training_camp') return 'preseason';
+  if (input.phase === 'playoffs') return 'playoffs';
+
+  const result = input.latestResult;
+  const teamScore = input.latestTeamScore;
+  const opponentScore = input.latestOpponentScore;
+  const margin = typeof teamScore === 'number' && typeof opponentScore === 'number'
+    ? teamScore - opponentScore
+    : null;
+
+  if (result === 'win') {
+    return margin !== null && margin <= UGLY_WIN_MARGIN ? 'uglyWin' : 'cleanWin';
+  }
+
+  if (result === 'loss') {
+    if (isLossStreak(input.recentResults ?? [], 3)) return 'threeLossStreak';
+    return margin !== null && margin <= -BLOWOUT_MARGIN ? 'blowoutLoss' : 'loss';
+  }
+
+  if (input.week >= 8 && input.phase === 'regular_season') return 'midseason';
+  return 'preseason';
+}
+
+export function selectMondayBriefingChipDialogue(input: MondayBriefingChipInput): DialogueCatalogEntry {
+  return selectWeeklyDialogue({
+    gameOutcome: selectMondayBriefingVariant(input),
+    currentWeek: input.week,
+    dynastySeed: input.dynastySeed,
+  });
+}
+
+function parseFinalScore(finalScore: string | null | undefined): { teamScore: number | null; opponentScore: number | null } {
+  if (!finalScore) return { teamScore: null, opponentScore: null };
+  const [teamRaw, opponentRaw] = finalScore.split('-');
+  const teamScore = Number(teamRaw?.trim());
+  const opponentScore = Number(opponentRaw?.trim());
+  return {
+    teamScore: Number.isFinite(teamScore) ? teamScore : null,
+    opponentScore: Number.isFinite(opponentScore) ? opponentScore : null,
+  };
+}
+
+function chipBriefingOutro(entry: DialogueCatalogEntry): string {
+  if (entry.id === 'chip.weekly.threeLossStreak') {
+    return 'Desk note: one clean decision beats three loud corrections. Start there.';
+  }
+  if (entry.id === 'chip.weekly.uglyWin') {
+    return 'Desk note: bank the win, fix the wobble, keep the receipts short.';
+  }
+  if (entry.id === 'chip.weekly.cleanWin') {
+    return 'Desk note: repeatable beats dramatic. Let the next plan copy the useful parts.';
+  }
+  if (entry.id === 'chip.weekly.blowoutLoss' || entry.id === 'chip.weekly.darkMoment') {
+    return 'Desk note: stabilize the room before you chase the scoreboard.';
+  }
+  return 'Desk note: briefing logged. The next clean choice gets the loudest microphone.';
 }
 
 function tierAccent(tier: Achievement['tier']): 'default' | 'gold' | 'cyan' | 'green' | 'red' {
@@ -200,6 +281,19 @@ export function MondayBriefing() {
   const alumniUpdates = game ? getAlumniUpdates(game, year) : [];
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '0-0';
   const latestResult = latestPackage?.result ?? latestSummary?.result;
+  const packageScore = parseFinalScore(latestPackage?.finalScore);
+  const chipBriefingEnabled = isChipFeatureEnabled();
+  const chipBriefingEntry = chipBriefingEnabled
+    ? selectMondayBriefingChipDialogue({
+      phase,
+      week,
+      dynastySeed: game?.seed ?? year,
+      latestResult,
+      latestTeamScore: latestSummary?.teamScore ?? packageScore.teamScore,
+      latestOpponentScore: latestSummary?.opponentScore ?? packageScore.opponentScore,
+      recentResults: (game?.weekSummaries ?? []).map((summary) => summary.result),
+    })
+    : null;
   const ownerMood = ownerState?.approval ?? 0;
   const ownerLabel = ownerMood >= 70 ? 'Pleased' : ownerMood >= 50 ? 'Neutral' : ownerMood >= 30 ? 'Unhappy' : 'Furious';
   const injuries = roster
@@ -824,6 +918,23 @@ export function MondayBriefing() {
 
       <AlumniTicker updates={alumniUpdates} reducedMotion={reducedMotion} />
 
+      {chipBriefingEntry ? (
+        <div
+          data-chip-monday-briefing="intro"
+          style={{
+            display: 'grid',
+            maxWidth: '760px',
+          }}
+        >
+          <ChipDialogueBubble
+            text={chipBriefingEntry.text}
+            pose={chipBriefingEntry.pose}
+            pointer="right"
+            reducedMotion={reducedMotion}
+          />
+        </div>
+      ) : null}
+
       <ActionCenter
         phase={phase}
         hasGamePlan={!!currentWeeklyPrepPlan}
@@ -960,6 +1071,24 @@ export function MondayBriefing() {
           </div>
         </div>
       </PixelPanel>
+
+      {chipBriefingEntry ? (
+        <div
+          data-chip-monday-briefing="outro"
+          style={{
+            display: 'grid',
+            maxWidth: '760px',
+            justifySelf: 'end',
+          }}
+        >
+          <ChipDialogueBubble
+            text={chipBriefingOutro(chipBriefingEntry)}
+            pose={chipBriefingEntry.reducedMotionPose ?? chipBriefingEntry.pose}
+            pointer="right"
+            reducedMotion={reducedMotion}
+          />
+        </div>
+      ) : null}
 
       <PixelModal
         open={customizeOpen}

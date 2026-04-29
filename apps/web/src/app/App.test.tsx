@@ -53,9 +53,32 @@ describe('App Chip setup wiring', () => {
   });
 
   it('wraps FranchiseSetupWizard in ChipHost at the setup gate', () => {
-    expect(content).toContain("import { ChipHost, type ChipHostStage } from '../features/companion'");
+    expect(content).toContain('ChipHost');
     expect(content).toContain('<ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>');
     expect(content).toContain('<FranchiseSetupWizard />');
     expect(content).toContain('</ChipHost>');
+  });
+
+  it('renders the post-setup shell through a dedicated Chip dock host', () => {
+    expect(content).toContain('function PostSetupApp()');
+    expect(content).toContain('return <PostSetupApp />;');
+    expect(content).toContain('<ChipDock');
+    expect(content).toContain('<RouterProvider router={router} />');
+  });
+
+  it('starts Chip events only inside the post-setup shell', () => {
+    const postSetupStart = content.indexOf('function PostSetupApp()');
+    const setupBranchStart = content.indexOf('if (setupIncomplete)');
+    const setupBranchEnd = content.indexOf('return <PostSetupApp />;');
+
+    expect(content.slice(postSetupStart)).toContain('useChipEvents();');
+    expect(content.slice(setupBranchStart, setupBranchEnd)).not.toContain('useChipEvents();');
+  });
+
+  it('passes game week context and active dialogue text into ChipDock', () => {
+    expect(content).toContain('currentWeek={chipDockWeek}');
+    expect(content).toContain('currentSeason={chipDockSeason}');
+    expect(content).toContain('currentRoute={chipDockRoute}');
+    expect(content).toContain('chipDialogueText ?');
   });
 });
