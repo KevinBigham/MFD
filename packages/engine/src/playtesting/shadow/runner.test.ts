@@ -30,23 +30,14 @@ describe('runShadowScenario', () => {
     expect(() => runShadowScenario('mystery-scenario')).toThrow(/Unknown shadow scenario/);
   });
 
-  // CI-skip rationale: the 5y baseline takes ~150-160s in CI, which exceeds
-  // Vitest 3.x's internal worker-RPC `onTaskUpdate` timeout (~120s, hardcoded,
-  // not configurable via testTimeout/hookTimeout/teardownTimeout/pool options).
-  // Even with `pool: 'forks'` already set in vitest.config.ts, the RPC channel
-  // bails on tests that exceed this internal threshold. The same scenario is
-  // covered comprehensively by `pnpm test:shadow` via a dedicated non-vitest
-  // harness (mfd/scripts/shadow-regression.ts), which has no IPC timeout.
-  // This smoke test stays alive for local fast sanity checks but skips on CI.
-  it.skipIf(process.env.CI === 'true')('runs the 5-year baseline and returns a populated PlaytestReport', { timeout: 240_000 }, () => {
-    const result = runShadowScenario('speedrunner-5y');
-    expect(result.scenarioId).toBe('speedrunner-5y');
-    expect(result.report.seasonsCompleted).toBe(5);
-    expect(result.report.personaId).toBe('SPEEDRUNNER');
-    expect(result.report.seed).toBe(42);
-    expect(result.report.weeksAdvanced).toBeGreaterThan(100);
-    expect(result.canonicalJson.length).toBeGreaterThan(0);
-    // Deeper determinism (multi-run byte-equality) is verified end-to-end by
-    // `pnpm test:shadow`, which compares against the frozen baseline JSON.
-  });
+  // The 5y baseline smoke that USED to live here ran the full 5-year sim
+  // (~120-160s) and tripped Vitest 3.x's internal worker-RPC `onTaskUpdate`
+  // timeout (~120s, hardcoded, not configurable). The verification it provided
+  // — that runShadowScenario returns a populated PlaytestReport for
+  // `speedrunner-5y` — is fully covered by `pnpm test:shadow`, which runs all
+  // three baselines (5y / 10y / 20y) through `mfd/scripts/shadow-regression.ts`
+  // and asserts byte-identical match to frozen golden JSON. That's strictly
+  // stronger than this smoke ever was, and it doesn't use vitest's worker IPC.
+  // Lookup/error-path tests above stay here; full-sim verification stays in
+  // `pnpm test:shadow`. See .codex/MFD/changelog.md 2026-04-29 for context.
 });
