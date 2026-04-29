@@ -391,6 +391,100 @@
   }
 }
 
+.mfd-chip-bubble {
+  position: relative;
+  width: min(100%, 360px);
+  max-width: 360px;
+  padding: 12px 14px 10px;
+  background: var(--mfd-bg);
+  border: 2px solid var(--mfd-gold);
+  color: var(--mfd-text);
+  box-shadow: 0 0 0 2px var(--mfd-bg), 0 0 0 4px var(--mfd-cyan);
+  font-family: var(--mfd-font-mono);
+  line-height: 1.45;
+}
+
+.mfd-chip-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  width: 18px;
+  height: 18px;
+  background: var(--mfd-bg);
+  border-right: 2px solid var(--mfd-gold);
+  border-bottom: 2px solid var(--mfd-gold);
+}
+
+.mfd-chip-bubble[data-chip-bubble-pointer='left']::after {
+  left: 28px;
+}
+
+.mfd-chip-bubble[data-chip-bubble-pointer='right']::after {
+  right: 28px;
+}
+
+.mfd-chip-bubble__stamp {
+  font-family: var(--mfd-font-pixel);
+  font-size: 8px;
+  line-height: 1.4;
+  color: var(--mfd-gold);
+}
+
+.mfd-chip-bubble__rule {
+  height: 2px;
+  margin: 8px 0 10px;
+  background: var(--mfd-gold);
+}
+
+.mfd-chip-bubble__text {
+  min-height: 3lh;
+  margin: 0;
+  color: var(--mfd-text);
+  font-size: 13px;
+}
+
+.mfd-chip-bubble__caret {
+  display: inline-block;
+  width: 8px;
+  height: 1em;
+  margin-left: 3px;
+  background: var(--mfd-cyan);
+  vertical-align: -2px;
+  animation: mfd-chip-bubble-typewriter-caret 680ms steps(2, end) infinite;
+}
+
+.mfd-chip-bubble__skip {
+  margin-top: 10px;
+  padding: 5px 8px;
+  border: 2px solid var(--mfd-cyan);
+  background: var(--mfd-bg);
+  color: var(--mfd-cyan);
+  font-family: var(--mfd-font-pixel);
+  font-size: 8px;
+  cursor: pointer;
+}
+
+.mfd-chip-bubble__skip:focus-visible {
+  outline: 2px solid var(--mfd-gold);
+  outline-offset: 2px;
+}
+
+@keyframes mfd-chip-bubble-typewriter-caret {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .mfd-chip-bubble {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg,
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__figure,
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__head,

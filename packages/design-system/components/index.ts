@@ -29,6 +29,21 @@ export { PixelMetricCard } from './PixelMetricCard';
 export { PixelConsequenceList } from './PixelConsequenceList';
 export { PixelPlayerLink } from './PixelPlayerLink';
 export { PixelEkg, type PixelEkgPoint } from './PixelEkg';
+export {
+  Chip,
+  ChipDialogueBubble,
+  CHIP_POSES,
+  computeTypewriterRevealCount,
+  createTypewriterController,
+  normalizeBubbleText,
+  type ChipDialogueBubbleProps,
+  type ChipPose,
+  type ChipProps,
+  type ChipSize,
+  type TypewriterController,
+  type TypewriterControllerOptions,
+  type TypewriterRevealInput,
+} from './Chip';
 
 // Responsive tokens (Sprint 42)
 export {
