@@ -5,11 +5,7 @@ import './Chip.css';
 const MAX_BUBBLE_TEXT_LENGTH = 240;
 const DEFAULT_TYPEWRITER_SPEED = 28;
 
-interface ImportMetaWithEnv extends ImportMeta {
-  env?: {
-    PROD?: boolean;
-  };
-}
+type ImportMetaWithEnv = ImportMeta & { env?: { PROD?: boolean } };
 
 export interface ChipDialogueBubbleProps {
   text: string;
