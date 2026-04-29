@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import type { ChipPose } from '@mfd/design-system/components';
-import type { ChipContext } from './dialogue/types';
+import type { ChipContext, DialogueCatalogEntry } from './dialogue/types';
 
 export interface ChipState {
   pose: ChipPose;
   currentDialogueId: string | null;
+  currentDialogueText: string | null;
   dismissed: boolean;
   beat: number;
   context: ChipContext;
@@ -18,6 +19,7 @@ export interface ShowDialogueOptions {
 export interface ChipActions {
   setPose: (pose: ChipPose) => void;
   showDialogue: (dialogueId: string, options?: ShowDialogueOptions) => void;
+  showWeeklyDialogue: (entry: DialogueCatalogEntry) => void;
   advance: () => void;
   dismiss: () => void;
   reset: () => void;
@@ -28,6 +30,7 @@ export type ChipStore = ChipState & ChipActions;
 const initialState: ChipState = {
   pose: 'idle',
   currentDialogueId: null,
+  currentDialogueText: null,
   dismissed: false,
   beat: 0,
   context: 'idle',
@@ -39,10 +42,19 @@ export const useChipStore = create<ChipStore>((set) => ({
   showDialogue: (dialogueId, options = {}) =>
     set((state) => ({
       currentDialogueId: dialogueId,
+      currentDialogueText: null,
       pose: options.pose ?? state.pose,
       context: options.context ?? 'event',
       dismissed: false,
     })),
+  showWeeklyDialogue: (entry) =>
+    set({
+      currentDialogueId: entry.id,
+      currentDialogueText: entry.text,
+      pose: entry.pose,
+      context: 'event',
+      dismissed: false,
+    }),
   advance: () =>
     set((state) => ({
       beat: state.beat + 1,
@@ -51,6 +63,7 @@ export const useChipStore = create<ChipStore>((set) => ({
   dismiss: () =>
     set({
       currentDialogueId: null,
+      currentDialogueText: null,
       dismissed: true,
       context: 'dismissed',
     }),
