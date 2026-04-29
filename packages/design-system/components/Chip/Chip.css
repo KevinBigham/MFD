@@ -1,0 +1,548 @@
+.mfd-chip {
+  --chip-pose-transition: 180ms ease-out;
+  display: inline-grid;
+  place-items: center;
+  line-height: 0;
+  isolation: isolate;
+}
+
+.mfd-chip-svg {
+  display: block;
+  overflow: visible;
+  animation: mfd-chip-pose-enter var(--chip-pose-transition);
+}
+
+.mfd-chip[data-chip-size='sm'] .mfd-chip-svg {
+  --chip-outline: 3;
+}
+
+.mfd-chip[data-chip-size='md'],
+.mfd-chip[data-chip-size='lg'] {
+  --chip-outline: 4;
+}
+
+.mfd-chip-svg__floor-shadow {
+  fill: var(--mfd-bg);
+  opacity: 0.7;
+}
+
+.mfd-chip-svg__figure {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: mfd-chip-idle-breathe 2s steps(12, end) infinite;
+}
+
+.mfd-chip-svg__head,
+.mfd-chip-svg__arm,
+.mfd-chip-svg__brow,
+.mfd-chip-svg__mouth,
+.mfd-chip-svg__tablet,
+.mfd-chip-svg__pose-fragment,
+.mfd-chip-svg__headset-pad,
+.mfd-chip-svg__mic-tip,
+.mfd-chip-svg__mic-tip-flash {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform var(--chip-pose-transition),
+    opacity var(--chip-pose-transition);
+}
+
+.mfd-chip-svg__pants,
+.mfd-chip-svg__shoe,
+.mfd-chip-svg__jacket,
+.mfd-chip-svg__jacket-panel,
+.mfd-chip-svg__shirt,
+.mfd-chip-svg__collar,
+.mfd-chip-svg__sleeve,
+.mfd-chip-svg__hand,
+.mfd-chip-svg__neck,
+.mfd-chip-svg__ear,
+.mfd-chip-svg__face,
+.mfd-chip-svg__hair,
+.mfd-chip-svg__hair-lock,
+.mfd-chip-svg__headset-pad,
+.mfd-chip-svg__tablet-frame,
+.mfd-chip-svg__tablet-screen,
+.mfd-chip-svg__trophy,
+.mfd-chip-svg__confetti,
+.mfd-chip-svg__warning-card,
+.mfd-chip-svg__mic-tap,
+.mfd-chip-svg__mic-tip-flash {
+  stroke: var(--mfd-bg);
+  stroke-width: var(--chip-outline, 4);
+  stroke-linejoin: round;
+}
+
+.mfd-chip-svg__headset-band,
+.mfd-chip-svg__mic-boom,
+.mfd-chip-svg__zipper,
+.mfd-chip-svg__tablet-pixel,
+.mfd-chip-svg__brow,
+.mfd-chip-svg__nose,
+.mfd-chip-svg__mouth,
+.mfd-chip-svg__signal,
+.mfd-chip-svg__sound-wave,
+.mfd-chip-svg__wave-line,
+.mfd-chip-svg__trophy-handle,
+.mfd-chip-svg__warning-mark {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mfd-chip-svg__pants,
+.mfd-chip-svg__shirt {
+  fill: var(--mfd-bg);
+  stroke: var(--mfd-gold);
+}
+
+.mfd-chip-svg__shoe {
+  fill: var(--mfd-bg);
+  stroke: var(--mfd-cyan);
+}
+
+.mfd-chip-svg__jacket {
+  fill: var(--mfd-red);
+}
+
+.mfd-chip-svg__jacket-panel--left,
+.mfd-chip-svg__collar--right {
+  fill: var(--mfd-gold);
+}
+
+.mfd-chip-svg__jacket-panel--right,
+.mfd-chip-svg__collar--left {
+  fill: var(--mfd-cyan);
+}
+
+.mfd-chip-svg__zipper {
+  stroke: var(--mfd-bg);
+  stroke-width: 3;
+}
+
+.mfd-chip-svg__sleeve {
+  fill: var(--mfd-red);
+}
+
+.mfd-chip-svg__hand,
+.mfd-chip-svg__neck,
+.mfd-chip-svg__ear,
+.mfd-chip-svg__face {
+  fill: var(--mfd-text);
+}
+
+.mfd-chip-svg__ear,
+.mfd-chip-svg__neck {
+  opacity: 0.82;
+}
+
+.mfd-chip-svg__hair,
+.mfd-chip-svg__hair-lock {
+  fill: var(--mfd-gold);
+}
+
+.mfd-chip-svg__headset-band,
+.mfd-chip-svg__mic-boom {
+  stroke: var(--mfd-cyan);
+  stroke-width: 5;
+}
+
+.mfd-chip-svg__headset-pad,
+.mfd-chip-svg__mic-tip,
+.mfd-chip-svg__mic-tip-flash {
+  fill: var(--mfd-cyan);
+}
+
+.mfd-chip-svg__eye {
+  fill: var(--mfd-bg);
+  animation: mfd-chip-eye-blink 4s steps(12, end) infinite;
+}
+
+.mfd-chip-svg__brow,
+.mfd-chip-svg__nose,
+.mfd-chip-svg__mouth {
+  stroke: var(--mfd-bg);
+  stroke-width: 4;
+}
+
+.mfd-chip-svg__mouth--talk,
+.mfd-chip-svg__mouth--smile,
+.mfd-chip-svg__mouth--concern {
+  display: none;
+}
+
+.mfd-chip-svg__mouth--talk {
+  fill: var(--mfd-red);
+  stroke: var(--mfd-bg);
+  animation: mfd-chip-mouth-talk 560ms steps(4, end) infinite;
+}
+
+.mfd-chip-svg__tablet-frame,
+.mfd-chip-svg__warning-card {
+  fill: var(--mfd-bg);
+}
+
+.mfd-chip-svg__tablet-screen {
+  fill: var(--mfd-cyan);
+  opacity: 0.78;
+}
+
+.mfd-chip-svg__tablet-pixel,
+.mfd-chip-svg__signal,
+.mfd-chip-svg__sound-wave,
+.mfd-chip-svg__wave-line,
+.mfd-chip-svg__trophy-handle,
+.mfd-chip-svg__warning-mark {
+  stroke: var(--mfd-gold);
+  stroke-width: 4;
+}
+
+.mfd-chip-svg__ui-arrow,
+.mfd-chip-svg__thought-dot,
+.mfd-chip-svg__trophy {
+  fill: var(--mfd-gold);
+  stroke: var(--mfd-bg);
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+
+.mfd-chip-svg__confetti {
+  fill: var(--mfd-cyan);
+}
+
+.mfd-chip-svg__warning-mark {
+  stroke: var(--mfd-red);
+}
+
+.mfd-chip-svg__mic-tap {
+  fill: var(--mfd-cyan);
+  opacity: 0;
+  animation: mfd-chip-mic-check-tap 920ms steps(2, end) infinite;
+}
+
+.mfd-chip-svg__mic-tap--right {
+  animation-delay: 220ms;
+}
+
+.mfd-chip-svg__mic-tip-flash {
+  opacity: 0;
+  animation: mfd-chip-mic-tip-flash 920ms steps(2, end) infinite;
+}
+
+.mfd-chip-svg__scanline-stripe {
+  fill: var(--mfd-text);
+}
+
+.mfd-chip-svg__scanline-overlay {
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.mfd-chip[data-chip-pose='talk'] .mfd-chip-svg__mouth--line,
+.mfd-chip[data-chip-pose='point-left'] .mfd-chip-svg__mouth--line,
+.mfd-chip[data-chip-pose='point-right'] .mfd-chip-svg__mouth--line,
+.mfd-chip[data-chip-pose='wave'] .mfd-chip-svg__mouth--line,
+.mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__mouth--line,
+.mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__mouth--line {
+  display: none;
+}
+
+.mfd-chip[data-chip-pose='talk'] .mfd-chip-svg__mouth--talk,
+.mfd-chip[data-chip-pose='point-left'] .mfd-chip-svg__mouth--talk,
+.mfd-chip[data-chip-pose='point-right'] .mfd-chip-svg__mouth--talk {
+  display: block;
+}
+
+.mfd-chip[data-chip-pose='wave'] .mfd-chip-svg__mouth--smile,
+.mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__mouth--smile {
+  display: block;
+}
+
+.mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__mouth--concern {
+  display: block;
+}
+
+.mfd-chip[data-chip-pose='point-left'] .mfd-chip-svg__arm--left {
+  transform: rotate(-28deg) translate(-12px, -18px);
+}
+
+.mfd-chip[data-chip-pose='point-right'] .mfd-chip-svg__arm--right {
+  transform: rotate(26deg) translate(13px, -18px);
+}
+
+.mfd-chip[data-chip-pose='wave'] .mfd-chip-svg__arm--right {
+  transform: rotate(-36deg) translate(4px, -31px);
+  animation: mfd-chip-wave 900ms steps(4, end) infinite;
+}
+
+.mfd-chip[data-chip-pose='think'] .mfd-chip-svg__arm--right {
+  transform: rotate(-18deg) translate(-11px, -13px);
+}
+
+.mfd-chip[data-chip-pose='think'] .mfd-chip-svg__head {
+  transform: rotate(-4deg) translate(-2px, 2px);
+}
+
+.mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__arm--left,
+.mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__arm--right {
+  transform: translateY(-28px);
+}
+
+.mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__figure {
+  animation: mfd-chip-celebrate-bounce 1s steps(6, end) infinite;
+}
+
+.mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__head {
+  transform: rotate(3deg) translateY(4px);
+}
+
+.mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__brow--left {
+  transform: rotate(14deg) translateY(2px);
+}
+
+.mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__brow--right {
+  transform: rotate(-14deg) translateY(2px);
+}
+
+.mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__headset-pad--left {
+  animation: mfd-chip-mic-check-tap 920ms steps(2, end) infinite;
+}
+
+.mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__mic-tip {
+  animation: mfd-chip-mic-tip-flash 920ms steps(2, end) infinite;
+}
+
+@keyframes mfd-chip-pose-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mfd-chip-idle-breathe {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes mfd-chip-eye-blink {
+  0%, 92%, 100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.08);
+  }
+}
+
+@keyframes mfd-chip-mouth-talk {
+  0%, 100% {
+    transform: scaleY(0.75);
+  }
+  50% {
+    transform: scaleY(1.08);
+  }
+}
+
+@keyframes mfd-chip-wave {
+  0%, 100% {
+    transform: rotate(-36deg) translate(4px, -31px);
+  }
+  50% {
+    transform: rotate(-22deg) translate(6px, -27px);
+  }
+}
+
+@keyframes mfd-chip-celebrate-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes mfd-chip-mic-check-tap {
+  0%, 100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  30%, 42% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+  62%, 74% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes mfd-chip-mic-tip-flash {
+  0%, 100% {
+    opacity: 0;
+  }
+  30%, 42%, 62%, 74% {
+    opacity: 1;
+  }
+}
+
+.mfd-chip-bubble {
+  position: relative;
+  width: min(100%, 360px);
+  max-width: 360px;
+  padding: 12px 14px 10px;
+  background: var(--mfd-bg);
+  border: 2px solid var(--mfd-gold);
+  color: var(--mfd-text);
+  box-shadow: 0 0 0 2px var(--mfd-bg), 0 0 0 4px var(--mfd-cyan);
+  font-family: var(--mfd-font-mono);
+  line-height: 1.45;
+}
+
+.mfd-chip-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  width: 18px;
+  height: 18px;
+  background: var(--mfd-bg);
+  border-right: 2px solid var(--mfd-gold);
+  border-bottom: 2px solid var(--mfd-gold);
+}
+
+.mfd-chip-bubble[data-chip-bubble-pointer='left']::after {
+  left: 28px;
+}
+
+.mfd-chip-bubble[data-chip-bubble-pointer='right']::after {
+  right: 28px;
+}
+
+.mfd-chip-bubble__stamp {
+  font-family: var(--mfd-font-pixel);
+  font-size: 8px;
+  line-height: 1.4;
+  color: var(--mfd-gold);
+}
+
+.mfd-chip-bubble__rule {
+  height: 2px;
+  margin: 8px 0 10px;
+  background: var(--mfd-gold);
+}
+
+.mfd-chip-bubble__text {
+  min-height: 3lh;
+  margin: 0;
+  color: var(--mfd-text);
+  font-size: 13px;
+}
+
+.mfd-chip-bubble__caret {
+  display: inline-block;
+  width: 8px;
+  height: 1em;
+  margin-left: 3px;
+  background: var(--mfd-cyan);
+  vertical-align: -2px;
+  animation: mfd-chip-bubble-typewriter-caret 680ms steps(2, end) infinite;
+}
+
+.mfd-chip-bubble__skip {
+  margin-top: 10px;
+  padding: 5px 8px;
+  border: 2px solid var(--mfd-cyan);
+  background: var(--mfd-bg);
+  color: var(--mfd-cyan);
+  font-family: var(--mfd-font-pixel);
+  font-size: 8px;
+  cursor: pointer;
+}
+
+.mfd-chip-bubble__skip:focus-visible {
+  outline: 2px solid var(--mfd-gold);
+  outline-offset: 2px;
+}
+
+@keyframes mfd-chip-bubble-typewriter-caret {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .mfd-chip-bubble {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__figure,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__head,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__arm,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__brow,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__mouth,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__headset-pad--left,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__mic-tap,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__mic-tip,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__mic-tip-flash,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__eye {
+  animation: none;
+  transform: none;
+  transition: opacity 80ms ease-out;
+}
+
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__mic-tap,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__mic-tip-flash {
+  opacity: 0.72;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mfd-chip .mfd-chip-svg,
+  .mfd-chip .mfd-chip-svg__figure,
+  .mfd-chip .mfd-chip-svg__head,
+  .mfd-chip .mfd-chip-svg__arm,
+  .mfd-chip .mfd-chip-svg__brow,
+  .mfd-chip .mfd-chip-svg__mouth,
+  .mfd-chip .mfd-chip-svg__headset-pad--left,
+  .mfd-chip .mfd-chip-svg__mic-tap,
+  .mfd-chip .mfd-chip-svg__mic-tip,
+  .mfd-chip .mfd-chip-svg__mic-tip-flash,
+  .mfd-chip .mfd-chip-svg__eye {
+    animation: none;
+    transform: none;
+    transition: opacity 80ms ease-out;
+  }
+
+  .mfd-chip .mfd-chip-svg__mic-tap,
+  .mfd-chip .mfd-chip-svg__mic-tip-flash {
+    opacity: 0.72;
+  }
+
+  .mfd-chip[data-chip-pose='point-left'] .mfd-chip-svg__arm--left,
+  .mfd-chip[data-chip-pose='point-right'] .mfd-chip-svg__arm--right,
+  .mfd-chip[data-chip-pose='wave'] .mfd-chip-svg__arm--right,
+  .mfd-chip[data-chip-pose='think'] .mfd-chip-svg__arm--right,
+  .mfd-chip[data-chip-pose='think'] .mfd-chip-svg__head,
+  .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__arm--left,
+  .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__arm--right,
+  .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__figure,
+  .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__head,
+  .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__brow--left,
+  .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__brow--right,
+  .mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__headset-pad--left,
+  .mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__mic-tip {
+    animation: none;
+    transform: none;
+    transition: opacity 80ms ease-out;
+  }
+}

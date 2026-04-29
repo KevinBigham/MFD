@@ -34,6 +34,8 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { AutosaveToast } from './AutosaveToast';
 import { NewGameScreen } from './NewGameScreen';
 import { FranchiseSetupWizard } from '../features/franchise-setup/FranchiseSetupWizard';
+import { readFirstTenMinutesCompleted } from '../features/franchise-setup/setupPersistence';
+import { ChipHost, type ChipHostStage } from '../features/companion';
 import { BootScreen } from './BootScreen';
 import { MondayBriefing } from '../features/monday-briefing/MondayBriefing';
 import { RosterManagement } from '../features/roster/RosterManagement';
@@ -1707,6 +1709,29 @@ const router = createRouter({ routeTree, history: hashHistory });
 
 // ── App entry ───────────────────────────────────────────────
 
+export const CHIP_FRANCHISE_SETUP_STAGES: ChipHostStage[] = [
+  { id: 'chip.onboarding.beat-1', label: 'Cold Open', content: null },
+  { id: 'chip.onboarding.beat-2', label: 'Team Select', content: null },
+  { id: 'chip.onboarding.beat-3', label: 'AGM Hire', content: null },
+  { id: 'chip.onboarding.beat-4', label: 'Depth Philosophy', content: null },
+  { id: 'chip.onboarding.beat-5', label: 'Season Goals', content: null },
+  { id: 'chip.onboarding.beat-6', label: 'Culture Mandate', content: null },
+  { id: 'chip.onboarding.beat-7', label: 'Blueprint Reveal', content: null },
+  { id: 'chip.onboarding.beat-8', label: 'Kickoff', content: null },
+  { id: 'chip.onboarding.beat-9', label: 'Dashboard Handoff', content: null },
+];
+
+type ChipSetupStorage = Parameters<typeof readFirstTenMinutesCompleted>[0];
+
+function resolveChipSetupStorage(): ChipSetupStorage {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage;
+}
+
+export function isChipNewGameSetup(storage: ChipSetupStorage = resolveChipSetupStorage()): boolean {
+  return !readFirstTenMinutesCompleted(storage);
+}
+
 export function App() {
   const boot = useBootSequence();
   const gameLoaded = useGameStore((s) => s.initialized);
@@ -1724,7 +1749,14 @@ export function App() {
   }
 
   if (setupIncomplete) {
-    return <FranchiseSetupWizard />;
+    // Read first-ten marker fresh on each render (PR #18 P2 fix): a memoized
+    // chipNewGame would go stale if a user finishes setup and starts another
+    // franchise within the same SPA session.
+    return (
+      <ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>
+        <FranchiseSetupWizard />
+      </ChipHost>
+    );
   }
 
   return (
