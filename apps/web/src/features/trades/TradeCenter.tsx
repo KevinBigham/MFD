@@ -291,16 +291,19 @@ export function TradeCenter() {
 
       <TradeFinder suggestions={tradeSuggestions} onLoadSuggestion={loadSuggestion} />
 
-      <PixelNav
-        activeKey={tab}
-        items={[
-          { key: 'incoming', label: `Incoming (${offers.length})` },
-          { key: 'propose', label: 'Propose Trade' },
-        ]}
-        onSelect={(value) => setTab(value as typeof tab)}
-      />
+      <div data-spotlight-target="chip.route.trade-center.beat-1">
+        <PixelNav
+          activeKey={tab}
+          items={[
+            { key: 'incoming', label: `Incoming (${offers.length})` },
+            { key: 'propose', label: 'Propose Trade' },
+          ]}
+          onSelect={(value) => setTab(value as typeof tab)}
+        />
+      </div>
 
       {tab === 'incoming' ? (
+        <div data-spotlight-target="chip.route.trade-center.beat-2">
         <PixelPanel title="Incoming Offers" accent={pendingOffers > 0 ? 'gold' : 'cyan'}>
           {offers.length === 0 ? (
             <div style={{ ...monoSm, color: '#999' }}>
@@ -374,6 +377,7 @@ export function TradeCenter() {
             </div>
           )}
         </PixelPanel>
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <PixelPanel title="Step 1 // Trade Partner" accent="cyan">

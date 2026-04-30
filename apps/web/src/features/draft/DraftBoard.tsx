@@ -236,19 +236,21 @@ export function DraftBoard() {
           </div>
         </PixelPanel>
 
-        <PixelPanel title="Needs-Aware Suggestions" accent="green">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {suggestedProspects.length > 0 ? suggestedProspects.map((prospect) => (
-              <div key={`suggested-${prospect.id}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
-                <div>
-                  <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{prospect.firstName} {prospect.lastName}</div>
-                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{prospect.pos} // need fit // {prospect.college}</div>
+        <div data-spotlight-target="chip.route.draft-board.beat-2">
+          <PixelPanel title="Needs-Aware Suggestions" accent="green">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {suggestedProspects.length > 0 ? suggestedProspects.map((prospect) => (
+                <div key={`suggested-${prospect.id}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{prospect.firstName} {prospect.lastName}</div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{prospect.pos} // need fit // {prospect.college}</div>
+                  </div>
+                  <PixelBadge variant="green">{prospect.scoutGrade.toFixed(1)}</PixelBadge>
                 </div>
-                <PixelBadge variant="green">{prospect.scoutGrade.toFixed(1)}</PixelBadge>
-              </div>
-            )) : <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No top-board player cleanly matches your biggest holes.</div>}
-          </div>
-        </PixelPanel>
+              )) : <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No top-board player cleanly matches your biggest holes.</div>}
+            </div>
+          </PixelPanel>
+        </div>
 
         <PixelPanel title="Your Remaining Picks" accent="cyan">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -263,6 +265,7 @@ export function DraftBoard() {
       </div>
 
       <PixelPanel title="Big Board" accent="cyan">
+        <div data-spotlight-target="chip.route.draft-board.beat-1">
         {visibleProspects.length === 0 ? (
           <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No prospects remain on the board.</div>
         ) : (
@@ -325,6 +328,7 @@ export function DraftBoard() {
             })}
           </div>
         )}
+        </div>
       </PixelPanel>
 
       <DraftPickReveal

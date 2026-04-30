@@ -249,7 +249,7 @@ export function CoachingStaff() {
 
       {tab === 'staff' ? (
         <>
-          <div style={autoGrid(300)}>
+          <div data-spotlight-target="chip.route.staff.beat-1" style={autoGrid(300)}>
             <CoachPanel coach={staff?.hc} role="HC" retention={retention.hc} onFire={() => { void fireStaff('HC'); }} />
             <CoachPanel coach={staff?.oc} role="OC" retention={retention.oc} onFire={() => { void fireStaff('OC'); }} onPromote={() => { void promoteStaff('OC'); }} />
             <CoachPanel coach={staff?.dc} role="DC" retention={retention.dc} onFire={() => { void fireStaff('DC'); }} onPromote={() => { void promoteStaff('DC'); }} />
@@ -260,20 +260,22 @@ export function CoachingStaff() {
             <PixelButton accent="cyan" onClick={() => { void refreshCoachingMarket(); }}>Refresh Market</PixelButton>
           </div>
 
-          {(['HC', 'OC', 'DC'] as const).map((role) => (
-            <PixelPanel key={role} title={`${role} Candidate Board`} accent={role === 'HC' ? 'gold' : 'cyan'}>
-              <div style={autoGrid(240)}>
-                {coachingMarket.candidates[role].slice(0, 3).map((candidate) => (
-                  <CandidateCard
-                    key={candidate.id}
-                    role={role}
-                    candidate={candidate}
-                    onHire={() => { void hireStaff(role, candidate); }}
-                  />
-                ))}
-              </div>
-            </PixelPanel>
-          ))}
+          <div data-spotlight-target="chip.route.staff.beat-2">
+            {(['HC', 'OC', 'DC'] as const).map((role) => (
+              <PixelPanel key={role} title={`${role} Candidate Board`} accent={role === 'HC' ? 'gold' : 'cyan'}>
+                <div style={autoGrid(240)}>
+                  {coachingMarket.candidates[role].slice(0, 3).map((candidate) => (
+                    <CandidateCard
+                      key={candidate.id}
+                      role={role}
+                      candidate={candidate}
+                      onHire={() => { void hireStaff(role, candidate); }}
+                    />
+                  ))}
+                </div>
+              </PixelPanel>
+            ))}
+          </div>
         </>
       ) : null}
 

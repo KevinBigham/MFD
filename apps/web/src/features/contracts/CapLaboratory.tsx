@@ -211,7 +211,7 @@ export default function CapLaboratory() {
         </PixelPanel>
 
         <PixelPanel title="Sandbox" accent="gold">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div data-spotlight-target="chip.route.cap-laboratory.beat-1" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {selectedCandidate ? (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -331,9 +331,11 @@ export default function CapLaboratory() {
         </PixelPanel>
       </div>
 
-      <PixelPanel title="Multi-Year Projection" accent="green">
-        <PixelTable data={projectionYears} columns={projectionColumns} accent="green" emptyMessage="Projection unavailable." />
-      </PixelPanel>
+      <div data-spotlight-target="chip.route.cap-laboratory.beat-2">
+        <PixelPanel title="Multi-Year Projection" accent="green">
+          <PixelTable data={projectionYears} columns={projectionColumns} accent="green" emptyMessage="Projection unavailable." />
+        </PixelPanel>
+      </div>
 
       <PixelModal
         open={confirmOpen}

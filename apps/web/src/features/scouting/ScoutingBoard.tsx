@@ -191,7 +191,7 @@ export function ScoutingBoard() {
         </PixelPanel>
 
         <PixelPanel title="Coverage Map" accent="cyan">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div data-spotlight-target="chip.route.scouting-board.beat-1" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
               Regional coverage: {regionalCoverage.length > 0 ? regionalCoverage.join(', ') : 'none yet'}.
             </div>
@@ -212,6 +212,7 @@ export function ScoutingBoard() {
         </PixelPanel>
 
         <PixelPanel title="WATCHLIST // Focus Board" accent="green">
+          <div data-spotlight-target="chip.route.scouting-board.beat-2">
           {focusBoard.length === 0 ? (
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
               No prospects on the watchlist yet. Mark targets from the board below to keep them on your front burner.
@@ -233,6 +234,7 @@ export function ScoutingBoard() {
               })}
             </div>
           )}
+          </div>
         </PixelPanel>
       </div>
 

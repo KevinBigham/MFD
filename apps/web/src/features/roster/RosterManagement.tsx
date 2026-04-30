@@ -309,7 +309,9 @@ export function RosterManagement() {
         <PixelMetricCard label="Starters" value={starters} accent={starters >= 22 ? 'green' : 'gold'} detail="Projected first unit" />
         <PixelMetricCard label="Avg Age" value={avgAge} accent="cyan" detail="Current roster age curve" />
         <PixelMetricCard label="Training Plans" value={playersInTraining} accent="gold" detail="Players with an active weekly focus" />
-        <PixelMetricCard label="Fatigue Watch" value={fatiguedPlayers + exhaustedPlayers} accent={exhaustedPlayers > 0 ? 'red' : fatiguedPlayers > 0 ? 'gold' : 'green'} detail={exhaustedPlayers > 0 ? `${exhaustedPlayers} exhausted` : fatiguedPlayers > 0 ? `${fatiguedPlayers} fatigued` : 'No red-zone workloads'} />
+        <div data-spotlight-target="chip.route.roster.beat-2">
+          <PixelMetricCard label="Fatigue Watch" value={fatiguedPlayers + exhaustedPlayers} accent={exhaustedPlayers > 0 ? 'red' : fatiguedPlayers > 0 ? 'gold' : 'green'} detail={exhaustedPlayers > 0 ? `${exhaustedPlayers} exhausted` : fatiguedPlayers > 0 ? `${fatiguedPlayers} fatigued` : 'No red-zone workloads'} />
+        </div>
       </div>
 
       <PixelNav
@@ -319,14 +321,16 @@ export function RosterManagement() {
         onSelect={setPosFilter}
       />
 
-      <PixelTable
-        responsive="cards"
-        data={filtered}
-        columns={columns}
-        density="compact"
-        accent="cyan"
-        onRowClick={(row) => setSelectedPlayer(row)}
-      />
+      <div data-spotlight-target="chip.route.roster.beat-1">
+        <PixelTable
+          responsive="cards"
+          data={filtered}
+          columns={columns}
+          density="compact"
+          accent="cyan"
+          onRowClick={(row) => setSelectedPlayer(row)}
+        />
+      </div>
 
       <PixelModal
         open={!!liveSelectedPlayer}
