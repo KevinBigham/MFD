@@ -1,4 +1,5 @@
-import { PixelBadge, PixelButton, PixelModal, PixelPanel } from '@mfd/design-system/components';
+import { useState } from 'react';
+import { Chip, ChipDialogueBubble, PixelBadge, PixelButton, PixelModal, PixelPanel, type ChipPose } from '@mfd/design-system/components';
 import type { HalftimeDecisionChoice, PendingHalftimeDecision } from '@mfd/engine';
 import { useGameStore } from '../../app/store/game-store';
 
@@ -27,12 +28,25 @@ function switchCopy(pending: PendingHalftimeDecision): string {
   return `${optionDescriptions.switch.detail} ${pending.suggestion.summary}`;
 }
 
+export function getHalftimeChipPose(
+  previewChoice: HalftimeDecisionChoice | null,
+  lockedIn: boolean,
+  reducedMotion = false,
+): ChipPose {
+  if (lockedIn) return 'thumbs-up';
+  if (reducedMotion || !previewChoice) return 'mic-check';
+  if (previewChoice === 'stick') return 'point-left';
+  if (previewChoice === 'switch') return 'point-right';
+  return 'concern';
+}
+
 interface HalftimeDecisionViewProps {
   pending: PendingHalftimeDecision | null;
   homeLabel: string;
   awayLabel: string;
   onChoose: (choice: HalftimeDecisionChoice) => void;
   onOpenChange?: (open: boolean) => void;
+  reducedMotion?: boolean;
 }
 
 export function HalftimeDecisionView({
@@ -41,8 +55,17 @@ export function HalftimeDecisionView({
   awayLabel,
   onChoose,
   onOpenChange = () => undefined,
+  reducedMotion = false,
 }: HalftimeDecisionViewProps) {
+  const [previewChoice, setPreviewChoice] = useState<HalftimeDecisionChoice | null>(null);
+  const [lockedIn, setLockedIn] = useState(false);
+
   if (!pending) return null;
+
+  const chipPose = getHalftimeChipPose(previewChoice, lockedIn, reducedMotion);
+  const setPreview = (choice: HalftimeDecisionChoice | null) => {
+    if (!reducedMotion) setPreviewChoice(choice);
+  };
 
   return (
     <PixelModal
@@ -54,6 +77,26 @@ export function HalftimeDecisionView({
       width={720}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div
+          data-halftime-chip-host="true"
+          data-halftime-chip-pose={chipPose}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto minmax(0, 1fr)',
+            gap: '12px',
+            alignItems: 'center',
+          }}
+        >
+          <Chip pose={chipPose} size="md" reducedMotion={reducedMotion} ariaLabel="Chip hosts the halftime decision" />
+          <ChipDialogueBubble
+            text="Second half is a choice. Pick the risk you can defend."
+            pose={chipPose}
+            pointer="left"
+            reducedMotion={reducedMotion}
+            monoBody
+          />
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <PixelBadge variant="gold">HALFTIME</PixelBadge>
@@ -107,7 +150,17 @@ export function HalftimeDecisionView({
                 >
                   {choice === 'switch' ? switchCopy(pending) : optionDescriptions[choice].detail}
                 </div>
-                <PixelButton accent={choice === 'gamble' ? 'gold' : choice === 'switch' ? 'cyan' : 'default'} onClick={() => onChoose(choice)}>
+                <PixelButton
+                  accent={choice === 'gamble' ? 'gold' : choice === 'switch' ? 'cyan' : 'default'}
+                  onMouseEnter={() => setPreview(choice)}
+                  onFocus={() => setPreview(choice)}
+                  onMouseLeave={() => setPreview(null)}
+                  onBlur={() => setPreview(null)}
+                  onClick={() => {
+                    setLockedIn(true);
+                    onChoose(choice);
+                  }}
+                >
                   {optionDescriptions[choice].title}
                 </PixelButton>
               </div>
