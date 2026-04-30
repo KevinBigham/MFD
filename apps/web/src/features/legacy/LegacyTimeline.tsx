@@ -17,6 +17,7 @@ import { getAwardSpeech } from '@mfd/engine';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
   selectAwardsHistory,
+  selectBloodlineFamilies,
   selectCeremonies,
   selectDraftRecaps,
   selectDynastyScore,
@@ -146,6 +147,7 @@ export function LegacyTimeline() {
   const dynastyTimeline = useGameStore(selectDynastyTimeline);
   const hallOfFame = useGameStore(selectHallOfFame);
   const namedGames = useGameStore(selectNamedGames);
+  const bloodlineFamilies = useGameStore(selectBloodlineFamilies);
   const records = useGameStore(selectRecords);
   const seasonReports = useGameStore(selectSeasonReports);
   const activeMentoringPairs = useGameStore(selectUserMentoringPairs);
@@ -501,6 +503,32 @@ export function LegacyTimeline() {
           </div>
         )}
       </PixelPanel>
+
+      {bloodlineFamilies.length > 0 ? (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: '12px',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          padding: '10px 12px',
+          border: '3px solid var(--mfd-cyan)',
+          background: 'var(--mfd-bg-2)',
+        }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ ...monoSm, color: '#fff' }}>
+              {bloodlineFamilies.length} bloodline {bloodlineFamilies.length === 1 ? 'family' : 'families'} active
+            </span>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              Sons and rookies carrying franchise legacies forward.
+            </span>
+          </div>
+          <PixelButton accent="cyan" onClick={() => navigateTo('/legacy/bloodlines')}>
+            Open Bloodlines
+          </PixelButton>
+        </div>
+      ) : null}
 
       <PixelPanel title="Hall of Fame" accent="red">
         {hallOfFame.length === 0 ? (
