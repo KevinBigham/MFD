@@ -196,6 +196,65 @@ describe('ChipDock', () => {
     expect(markup).not.toContain('data-chip-route-beat');
   });
 
+  it('persists a mid-sequence dock dismissal to the read receipt key', () => {
+    const storage = new MemoryStorage();
+
+    persistRouteBeatProgress({
+      storage,
+      beatIds: ['chip.route.roster.beat-1'],
+    });
+
+    expect(readChipReadReceipts(storage)).toEqual(new Set(['chip.route.roster.beat-1']));
+  });
+
+  it('does not replay the same route after every route beat is read', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem(CHIP_READ_RECEIPTS_STORAGE_KEY, JSON.stringify([
+      'chip.route.roster.beat-1',
+      'chip.route.roster.beat-2',
+    ]));
+
+    const markup = renderDock(
+      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY.roster} storage={storage} />,
+    );
+
+    expect(markup).toContain('data-chip-dock-state="collapsed"');
+    expect(markup).not.toContain('data-chip-route-beat');
+  });
+
+  it('still shows a different route when that route has unseen beats', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem(CHIP_READ_RECEIPTS_STORAGE_KEY, JSON.stringify([
+      'chip.route.roster.beat-1',
+      'chip.route.roster.beat-2',
+    ]));
+
+    const markup = renderDock(
+      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY.staff} storage={storage} />,
+    );
+
+    expect(markup).toContain('data-chip-dock-state="expanded"');
+    expect(markup).toContain('data-chip-route-beat="chip.route.staff.beat-1"');
+  });
+
+  it('keeps route replay suppressed when global skip is set even if receipts are empty', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_ONBOARDING_STORAGE_KEY,
+      JSON.stringify({ skipped: true, lastBeat: 9, timestamp: '2026-04-30T04:00:00.000Z' }),
+    );
+
+    const markup = renderDock(
+      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY['trade-center']} storage={storage} />,
+    );
+
+    expect(markup).toContain('data-chip-dock-state="collapsed"');
+    expect(markup).not.toContain('data-chip-route-beat');
+  });
+
   it('forwards reduced motion to Chip and the dock data attribute', () => {
     vi.stubEnv('VITE_CHIP_ENABLED', 'true');
 

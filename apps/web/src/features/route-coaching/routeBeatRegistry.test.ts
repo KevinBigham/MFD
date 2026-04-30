@@ -3,10 +3,14 @@ import {
   CHIP_ROUTE_POSES,
   ROUTE_BEAT_REGISTRY,
   ROUTE_KEYS,
+  type RouteBeat,
   type RouteKey,
 } from './routeBeatRegistry';
 
-const allBeats = ROUTE_KEYS.flatMap((routeKey) => ROUTE_BEAT_REGISTRY[routeKey]);
+const allBeats: readonly RouteBeat[] = ROUTE_KEYS.reduce<RouteBeat[]>(
+  (beats, routeKey) => [...beats, ...ROUTE_BEAT_REGISTRY[routeKey]],
+  [],
+);
 
 describe('route beat registry', () => {
   it('keeps total route beats inside the locked sprint range', () => {

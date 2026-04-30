@@ -9,7 +9,7 @@ export interface PendingDecisionCounts {
 
 type LooseRecord = Record<string, unknown>;
 
-const DEPTH_SLOT_POSITIONS = [
+const DEPTH_SLOT_POSITIONS: readonly (readonly string[])[] = [
   ['QB'],
   ['RB'],
   ['WR'],
