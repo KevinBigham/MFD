@@ -1,4 +1,5 @@
-import { PixelBadge, PixelButton, PixelModal, PixelPanel } from '@mfd/design-system/components';
+import { useState } from 'react';
+import { Chip, ChipDialogueBubble, PixelBadge, PixelButton, PixelModal, PixelPanel, type ChipPose } from '@mfd/design-system/components';
 import type { PressConferenceQueueEntry, PressConferenceResponseTier } from '@mfd/engine';
 import { monoSm } from '../shared/pixelUi';
 
@@ -14,6 +15,18 @@ const TIER_ACCENTS: Record<PressConferenceResponseTier, 'gold' | 'cyan' | 'green
   low: 'green',
 };
 
+export function getPressConferenceChipPose(
+  tier: PressConferenceResponseTier,
+  lockedIn: boolean,
+  reducedMotion = false,
+): ChipPose {
+  if (lockedIn) return 'thumbs-up';
+  if (reducedMotion) return 'think';
+  if (tier === 'high') return 'concern';
+  if (tier === 'low') return 'thumbs-up';
+  return 'think';
+}
+
 export function PressConferenceModal({
   open,
   entry,
@@ -22,6 +35,7 @@ export function PressConferenceModal({
   onTierChange,
   onRespond,
   onOpenChange,
+  reducedMotion = false,
 }: {
   open: boolean;
   entry: PressConferenceQueueEntry | null;
@@ -30,7 +44,11 @@ export function PressConferenceModal({
   onTierChange: (tier: PressConferenceResponseTier) => void;
   onRespond: (tier: PressConferenceResponseTier, response: string) => void;
   onOpenChange: (open: boolean) => void;
+  reducedMotion?: boolean;
 }) {
+  const [previewTier, setPreviewTier] = useState<PressConferenceResponseTier | null>(null);
+  const [lockedIn, setLockedIn] = useState(false);
+
   if (!open || !entry) return null;
 
   const responses = activeTier === 'high'
@@ -38,6 +56,11 @@ export function PressConferenceModal({
     : activeTier === 'low'
       ? entry.responses.low
       : entry.responses.mid;
+  const chipTier = previewTier ?? activeTier;
+  const chipPose = getPressConferenceChipPose(chipTier, lockedIn, reducedMotion);
+  const setPreview = (tier: PressConferenceResponseTier | null) => {
+    if (!reducedMotion) setPreviewTier(tier);
+  };
 
   return (
     <PixelModal
@@ -49,6 +72,26 @@ export function PressConferenceModal({
       width={720}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div
+          data-press-chip-host="true"
+          data-press-chip-pose={chipPose}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto minmax(0, 1fr)',
+            gap: '12px',
+            alignItems: 'center',
+          }}
+        >
+          <Chip pose={chipPose} size="md" reducedMotion={reducedMotion} ariaLabel="Chip hosts the postgame press conference" />
+          <ChipDialogueBubble
+            text="Podium tone travels. Pick the answer you want quoted tomorrow."
+            pose={chipPose}
+            pointer="left"
+            reducedMotion={reducedMotion}
+            monoBody
+          />
+        </div>
+
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant="cyan">{entry.speaker}</PixelBadge>
           <PixelBadge variant="gold">{entry.topic}</PixelBadge>
@@ -61,7 +104,14 @@ export function PressConferenceModal({
               <PixelButton
                 key={tier}
                 accent={activeTier === tier ? TIER_ACCENTS[tier] : 'default'}
-                onClick={() => onTierChange(tier)}
+                onMouseEnter={() => setPreview(tier)}
+                onFocus={() => setPreview(tier)}
+                onMouseLeave={() => setPreview(null)}
+                onBlur={() => setPreview(null)}
+                onClick={() => {
+                  setPreview(null);
+                  onTierChange(tier);
+                }}
               >
                 {TIER_LABELS[tier]}
               </PixelButton>
@@ -87,7 +137,10 @@ export function PressConferenceModal({
               <button
                 key={response}
                 type="button"
-                onClick={() => onRespond(activeTier, response)}
+                onClick={() => {
+                  setLockedIn(true);
+                  onRespond(activeTier, response);
+                }}
                 style={{
                   border: `2px solid var(--mfd-border)`,
                   background: 'var(--mfd-bg-2)',
