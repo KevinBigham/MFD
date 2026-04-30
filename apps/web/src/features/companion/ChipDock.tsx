@@ -15,6 +15,7 @@ import {
   readChipReadReceipts,
   writeChipReadReceipts,
 } from './readReceipts';
+import { formatDynastyIndicatorLabel, type DynastyIndicator } from './dynastyIndicator';
 import { createWhereAmIBeat, type WhereAmIState } from './whereAmI';
 import type { ChipRoutePose, RouteBeat } from '../route-coaching/routeBeatRegistry';
 import './ChipDock.css';
@@ -59,6 +60,7 @@ export interface ChipDockProps {
   routeBeats?: readonly RouteBeat[];
   pendingDecisions?: { total?: number };
   whereAmI?: WhereAmIState;
+  dynastyIndicator?: DynastyIndicator;
 }
 
 interface DockControlButton {
@@ -252,6 +254,7 @@ export function ChipDock({
   routeBeats = [],
   pendingDecisions,
   whereAmI,
+  dynastyIndicator,
 }: ChipDockProps) {
   const backingStorage = storage === undefined ? resolveDockStorage() : storage;
   const initialPrefs = useMemo(() => readDockPrefs(backingStorage), [backingStorage]);
@@ -373,6 +376,9 @@ export function ChipDock({
       {pendingDecisionTotal}
     </button>
   ) : null;
+  const dynastyLabel = dynastyIndicator
+    ? formatDynastyIndicatorLabel(dynastyIndicator.seasonYear, dynastyIndicator.coachName)
+    : null;
 
   if (effectiveCollapsed) {
     return (
@@ -384,6 +390,7 @@ export function ChipDock({
         aria-label="Chip dock"
       >
         {pendingBadge}
+        {dynastyLabel ? <div className="mfd-chip-dock__dynasty-label">{dynastyLabel}</div> : null}
         <button
           type="button"
           className="mfd-chip-dock__collapsed"
@@ -405,6 +412,7 @@ export function ChipDock({
       aria-label="Chip dock"
     >
       {pendingBadge}
+      {dynastyLabel ? <div className="mfd-chip-dock__dynasty-label">{dynastyLabel}</div> : null}
       <section className="mfd-chip-dock__panel">
         <div className="mfd-chip-dock__portrait">
           <Chip pose={portraitPose} size="lg" reducedMotion={motionMode === 'reduced'} />

@@ -1748,6 +1748,8 @@ function PostSetupApp() {
   const chipDockEnabled = isChipFeatureEnabled();
   const chipDockWeek = useGameStore((s) => s.game?.week ?? 0);
   const chipDockSeason = useGameStore((s) => s.game?.year ?? 0);
+  const chipUserTeam = useGameStore(selectUserTeam);
+  const chipCoachName = chipUserTeam?.staff.hc?.name ?? 'Coach';
   const chipDialogueText = useChipStore((s) => s.currentDialogueText);
   const chipDialoguePose = useChipStore((s) => s.pose);
   const chipDockRoute = currentAppRoute();
@@ -1766,6 +1768,7 @@ function PostSetupApp() {
           routeBeats={chipRouteBeats}
           pendingDecisions={chipPendingDecisions}
           whereAmI={chipWhereAmI}
+          dynastyIndicator={{ seasonYear: chipDockSeason, coachName: chipCoachName }}
         >
           {chipDialogueText ? (
             <ChipDialogueBubble

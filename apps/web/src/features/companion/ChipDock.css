@@ -26,6 +26,23 @@
   cursor: pointer;
 }
 
+.mfd-chip-dock__dynasty-label {
+  position: absolute;
+  top: -10px;
+  left: 0;
+  max-width: 220px;
+  overflow: hidden;
+  padding: 3px 8px;
+  border: 1px solid var(--mfd-cyan);
+  background: var(--mfd-bg);
+  color: var(--mfd-cyan);
+  font-family: var(--mfd-font-pixel);
+  font-size: 10px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mfd-chip-dock__collapsed {
   display: grid;
   place-items: center;

@@ -100,4 +100,10 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain('const chipWhereAmI = useGameStore((state) => resolveWhereAmIState(state, chipPendingDecisions.total));');
     expect(content).toContain('whereAmI={chipWhereAmI}');
   });
+
+  it('passes dynasty-year indicator context into the post-setup ChipDock', () => {
+    expect(content).toContain('const chipUserTeam = useGameStore(selectUserTeam);');
+    expect(content).toContain("const chipCoachName = chipUserTeam?.staff.hc?.name ?? 'Coach';");
+    expect(content).toContain('dynastyIndicator={{ seasonYear: chipDockSeason, coachName: chipCoachName }}');
+  });
 });
