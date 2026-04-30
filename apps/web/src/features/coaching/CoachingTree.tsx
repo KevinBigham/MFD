@@ -16,6 +16,7 @@ import {
   screenStackStyle,
   teamThemeVars,
 } from '../shared/pixelUi';
+import { CoachArchetypeGlyphSvg } from './coachArchetypeGlyphSvg';
 
 interface ResolvedCoach {
   coachId: string;
@@ -209,11 +210,14 @@ function CoachCard({
     ? `${labelPrefix} ${entry.roleLabel}: ${entry.name}`
     : `${entry.roleLabel}: ${entry.name}`;
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', zIndex: 1 }}>
       <PixelPanel title={title} accent={accent}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: entry.retired ? '18px' : 0 }}>
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-            Team: {entry.teamAbbr} | Archetype: {entry.archetype}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            <CoachArchetypeGlyphSvg archetype={entry.archetype} label={`${entry.archetype} archetype`} />
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              Team: {entry.teamAbbr} | Archetype: {entry.archetype}
+            </div>
           </div>
           {typeof entry.yearsUnderMentor === 'number' && entry.yearsUnderMentor > 0 ? (
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
@@ -235,6 +239,66 @@ function CoachCard({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function lineWidth(entry: ResolvedCoach): number {
+  const years = entry.yearsUnderMentor ?? 1;
+  return Math.max(1, Math.min(3, 1 + Math.floor(years / 3)));
+}
+
+function CoachingTreeConnectionLines({
+  mentorChain,
+  disciples,
+}: {
+  mentorChain: ResolvedCoach[];
+  disciples: ResolvedCoach[];
+}) {
+  if (mentorChain.length === 0 && disciples.length === 0) return null;
+  return (
+    <svg
+      data-coaching-tree-connection-lines="true"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      style={{
+        position: 'absolute',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        opacity: 0.78,
+      }}
+    >
+      {mentorChain.map((entry, idx) => {
+        const direct = idx === 0;
+        return (
+          <path
+            key={`mentor-line-${entry.coachId}`}
+            data-coaching-tree-line="true"
+            data-line-kind={direct ? 'direct-mentor' : 'indirect-mentor'}
+            d={direct ? 'M34 34 C42 36 46 45 50 52' : `M22 ${24 + idx * 12} C34 ${28 + idx * 10} 41 ${38 + idx * 4} 50 52`}
+            fill="none"
+            stroke={direct ? 'var(--mfd-gold)' : 'var(--mfd-text-dim)'}
+            strokeWidth={lineWidth(entry)}
+            strokeLinecap="round"
+            strokeDasharray={direct ? undefined : '5 5'}
+          />
+        );
+      })}
+      {disciples.map((entry, idx) => (
+        <path
+          key={`disciple-line-${entry.coachId}`}
+          data-coaching-tree-line="true"
+          data-line-kind="direct-disciple"
+          d={`M50 52 C60 ${44 + idx * 9} 68 ${37 + idx * 10} 78 ${31 + idx * 10}`}
+          fill="none"
+          stroke="var(--mfd-cyan)"
+          strokeWidth={lineWidth(entry)}
+          strokeLinecap="round"
+        />
+      ))}
+    </svg>
   );
 }
 
@@ -350,54 +414,57 @@ export function CoachingTree() {
             <PixelMetricCard label="Notable Proteges" value={legacy.notableProteges.length} accent="default" detail="Top five active branches ranked by titles and tenure" />
           </div>
 
-          <div style={layoutStyle}>
-            {/* Mentor chain upward */}
-            <div style={{ ...columnStyle, flexBasis: '320px' }}>
-              <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>MENTOR CHAIN</div>
-              {mentorChain.length === 0 ? (
-                <PixelPanel title="NO MENTOR ON RECORD" accent="default">
-                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-                    Your head coach has no recorded mentor.
-                  </div>
-                </PixelPanel>
-              ) : (
-                mentorChain.map((entry, idx) => (
-                  <CoachCard
-                    key={entry.coachId}
-                    entry={entry}
-                    accent="cyan"
-                    labelPrefix={`Mentor ${idx + 1}`}
-                  />
-                ))
-              )}
-            </div>
+          <div style={{ position: 'relative' }}>
+            <CoachingTreeConnectionLines mentorChain={mentorChain} disciples={disciples} />
+            <div style={layoutStyle}>
+              {/* Mentor chain upward */}
+              <div style={{ ...columnStyle, flexBasis: '320px' }}>
+                <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>MENTOR CHAIN</div>
+                {mentorChain.length === 0 ? (
+                  <PixelPanel title="NO MENTOR ON RECORD" accent="default">
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                      Your head coach has no recorded mentor.
+                    </div>
+                  </PixelPanel>
+                ) : (
+                  mentorChain.map((entry, idx) => (
+                    <CoachCard
+                      key={entry.coachId}
+                      entry={entry}
+                      accent="cyan"
+                      labelPrefix={`Mentor ${idx + 1}`}
+                    />
+                  ))
+                )}
+              </div>
 
-            {/* User head coach centered */}
-            <div style={{ ...columnStyle, flexBasis: '320px' }}>
-              <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>YOUR HEAD COACH</div>
-              <CoachCard entry={root} accent="gold" labelPrefix="" />
-              {!hasLineage ? <EmptyState /> : null}
-            </div>
+              {/* User head coach centered */}
+              <div style={{ ...columnStyle, flexBasis: '320px' }}>
+                <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>YOUR HEAD COACH</div>
+                <CoachCard entry={root} accent="gold" labelPrefix="" />
+                {!hasLineage ? <EmptyState /> : null}
+              </div>
 
-            {/* Disciples fan downward */}
-            <div style={{ ...columnStyle, flexBasis: '320px' }}>
-              <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>DISCIPLES</div>
-              {disciples.length === 0 ? (
-                <PixelPanel title="NO DISCIPLES YET" accent="default">
-                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-                    No coaches have come up under this tree.
-                  </div>
-                </PixelPanel>
-              ) : (
-                disciples.map((entry) => (
-                  <CoachCard
-                    key={entry.coachId}
-                    entry={entry}
-                    accent="cyan"
-                    labelPrefix="Disciple"
-                  />
-                ))
-              )}
+              {/* Disciples fan downward */}
+              <div style={{ ...columnStyle, flexBasis: '320px' }}>
+                <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>DISCIPLES</div>
+                {disciples.length === 0 ? (
+                  <PixelPanel title="NO DISCIPLES YET" accent="default">
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                      No coaches have come up under this tree.
+                    </div>
+                  </PixelPanel>
+                ) : (
+                  disciples.map((entry) => (
+                    <CoachCard
+                      key={entry.coachId}
+                      entry={entry}
+                      accent="cyan"
+                      labelPrefix="Disciple"
+                    />
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>
