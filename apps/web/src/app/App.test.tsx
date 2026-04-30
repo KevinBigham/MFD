@@ -113,4 +113,12 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain("const chipCoachName = chipUserTeam?.staff.hc?.name ?? 'Coach';");
     expect(content).toContain('dynastyIndicator={{ seasonYear: chipDockSeason, coachName: chipCoachName }}');
   });
+
+  it('mounts Sprint 46 atmosphere emitters beside the app shell controllers', () => {
+    expect(content).toContain("import { EraTransitionEmitter } from '../features/dynasty-era/EraTransitionEmitter'");
+    expect(content).toContain("import { ChampionshipParadeEmitter } from '../features/playoffs/ChampionshipParadeEmitter'");
+    expect(content).toContain('<AudioController />');
+    expect(content).toContain('<EraTransitionEmitter />');
+    expect(content).toContain('<ChampionshipParadeEmitter />');
+  });
 });
