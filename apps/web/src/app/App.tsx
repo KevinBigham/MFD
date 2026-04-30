@@ -111,6 +111,7 @@ const LazyGameBroadcast = lazy(async () => ({ default: (await import('../feature
 const LazyBroadcastPresentation = lazy(async () => ({ default: (await import('../features/broadcast/BroadcastPresentation')).default }));
 const LazyLeaguePulse = lazy(async () => ({ default: (await import('../features/league/LeaguePulse')).default }));
 const LazySocialFeed = lazy(async () => ({ default: (await import('../features/social/SocialFeed')).SocialFeed }));
+const LazyTradeBlockTicker = lazy(async () => ({ default: (await import('../features/trades/TradeBlockTicker')).TradeBlockTicker }));
 const LazyTradeDeadline = lazy(async () => ({ default: (await import('../features/trades/TradeDeadline')).TradeDeadline }));
 const LazyScenarioSelect = lazy(async () => ({ default: (await import('../features/scenario/ScenarioSelect')).ScenarioSelect }));
 const LazyFranchiseHub = lazy(async () => ({ default: (await import('../features/franchise/FranchiseHub')).FranchiseHub }));
@@ -158,6 +159,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/front-office', label: 'Front Office',     shortLabel: 'Front Office', icon: <Briefcase size={16} /> },
   { path: '/endorsements', label: 'Endorsements',     shortLabel: 'Deals',    icon: <Sparkles size={16} /> },
   { path: '/trades',       label: 'Trades',           shortLabel: 'Trades',   icon: <ArrowLeftRight size={16} />, shortcut: '4' },
+  { path: '/trade-block',  label: 'Trade Block',      shortLabel: 'Block',    icon: <ArrowLeftRight size={16} /> },
   { path: '/team-needs',   label: 'Team Needs',       shortLabel: 'Needs',    icon: <BarChart3 size={16} /> },
   { path: '/scouting',     label: 'Scouting',         shortLabel: 'Scout',    icon: <Search size={16} />,         shortcut: '5' },
   { path: '/draft',        label: 'Draft',            shortLabel: 'Draft',    icon: <FileText size={16} />,       shortcut: '6' },
@@ -215,7 +217,7 @@ const NAV_GROUPS: NavGroup[] = [
   { id: 'core',     label: 'CORE',     paths: ['/', '/week-advance', '/inbox'] },
   { id: 'team',     label: 'TEAM',     paths: ['/roster', '/depth-chart', '/locker-room', '/coaching', '/handshakes', '/training-camp', '/mentors'] },
   { id: 'money',    label: 'MONEY',    paths: ['/contracts', '/cap-lab', '/front-office', '/endorsements'] },
-  { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/scouting', '/draft', '/free-agency', '/fa-targets', '/waivers', '/practice-squad', '/team-needs'] },
+  { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/trade-block', '/scouting', '/draft', '/free-agency', '/fa-targets', '/waivers', '/practice-squad', '/team-needs'] },
   { id: 'gameday',  label: 'GAMEDAY',  paths: ['/game-day', '/game-plan', '/broadcast', '/presentation', '/play-by-play', '/game-flow', '/film-room', '/schedule', '/super-bowl'] },
   { id: 'league',   label: 'LEAGUE',   paths: ['/standings', '/power-rankings', '/league-pulse', '/newsroom', '/news', '/social', '/commissioner', '/analytics', '/records', '/stat-central'] },
   { id: 'dynasty',  label: 'DYNASTY',  paths: ['/franchise', '/owner', '/legends', '/legacy', '/awards', '/scenarios'] },
@@ -1096,6 +1098,16 @@ const tradesRoute = createRoute({
   component: TradeCenter,
 });
 
+const tradeBlockRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/trade-block',
+  component: () => (
+    <LazyRouteFrame label="trade block">
+      <LazyTradeBlockTicker />
+    </LazyRouteFrame>
+  ),
+});
+
 const scoutingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/scouting',
@@ -1735,7 +1747,7 @@ const settingsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, frontOfficeRoute, endorsementsRoute, tradesRoute,
+  rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, frontOfficeRoute, endorsementsRoute, tradesRoute, tradeBlockRoute,
   scoutingRoute, draftRoute, trainingCampRoute, freeAgencyRoute, faTargetsRoute,
   gameDayRoute, broadcastRoute, broadcastPresentationRoute, playByPlayRoute, gameFlowRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,

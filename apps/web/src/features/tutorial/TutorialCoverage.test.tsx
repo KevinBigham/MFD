@@ -30,6 +30,7 @@ const TUTORIAL_ROUTE_ALLOWLIST = new Set([
   '/stat-central',
   '/analytics',
   '/power-rankings',
+  '/trade-block',
   '/scenarios',
   '/legacy',
   '/awards',
