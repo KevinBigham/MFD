@@ -78,6 +78,8 @@ import { syncHallOfFameArchiveAtYearRollover } from './hall-of-fame-rollover';
 import { syncRosterContinuityAtYearRollover } from './roster-continuity-rollover';
 import { syncRookieOfYearAtYearRollover } from './rookie-of-year-rollover';
 import { PlayoffLorePrompt } from '../features/playoffs/PlayoffLorePrompt';
+import { EraTransitionEmitter } from '../features/dynasty-era/EraTransitionEmitter';
+import { ChampionshipParadeEmitter } from '../features/playoffs/ChampionshipParadeEmitter';
 
 const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
 const LazyDraftBoard = lazy(async () => ({ default: (await import('../features/draft/DraftBoard')).DraftBoard }));
@@ -482,6 +484,8 @@ function RootLayout() {
         fontFamily: 'var(--mfd-font-sans)',
       }}>
         <AudioController />
+        <EraTransitionEmitter />
+        <ChampionshipParadeEmitter />
         <style>{`
           @keyframes mfdTutorialPulse {
             0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.55); }
