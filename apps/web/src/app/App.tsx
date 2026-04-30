@@ -128,6 +128,7 @@ const LazyHallOfFameDirectory = lazy(async () => ({ default: (await import('../f
 const LazyTrophyRoom = lazy(async () => ({ default: (await import('../features/franchise/TrophyRoom')).TrophyRoom }));
 const LazyEraHall = lazy(async () => ({ default: (await import('../features/franchise/EraHall')).EraHall }));
 const LazyMvpPlaqueWall = lazy(async () => ({ default: (await import('../features/franchise/MvpPlaqueWall')).MvpPlaqueWall }));
+const LazyAchievementsGallery = lazy(async () => ({ default: (await import('../features/franchise/AchievementsGallery')).AchievementsGallery }));
 const LazyPlayoffLoreDirectory = lazy(async () => ({ default: (await import('../features/playoffs/PlayoffLoreDirectory')).PlayoffLoreDirectory }));
 const LazyDynastyChronicle = lazy(async () => ({ default: (await import('../features/franchise/DynastyChronicle')).DynastyChronicle }));
 const LazyLockerRoom = lazy(async () => ({ default: (await import('../features/locker-room/LockerRoom')).LockerRoom }));
@@ -1795,6 +1796,16 @@ const settingsRoute = createRoute({
   component: SettingsScreen,
 });
 
+const achievementsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/franchise/achievements',
+  component: () => (
+    <LazyRouteFrame label="achievements">
+      <LazyAchievementsGallery />
+    </LazyRouteFrame>
+  ),
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, frontOfficeRoute, endorsementsRoute, tradesRoute, tradeBlockRoute, watchListRoute,
@@ -1808,6 +1819,8 @@ const routeTree = rootRoute.addChildren([
 routeTree.addChildren([...(routeTree.children ?? []), trophyRoomRoute, eraHallRoute]);
 
 routeTree.addChildren([...(routeTree.children ?? []), mvpPlaqueWallRoute]);
+
+routeTree.addChildren([...(routeTree.children ?? []), achievementsRoute]);
 
 const hashHistory = createHashHistory();
 const router = createRouter({ routeTree, history: hashHistory });
