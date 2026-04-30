@@ -6,6 +6,7 @@ import { selectBroadcastByGameId, useGameStore } from '../../app/store/game-stor
 import { useUiStore } from '../../app/store/ui-store';
 import { PixelScreenHeader, autoGrid, monoSm, pixelSm, screenStackStyle } from '../shared/pixelUi';
 import { EmptyState } from '../shared/EmptyState';
+import { GhostBroadcastsPanel } from './GhostBroadcastsPanel';
 
 type BroadcastTab = 'q1' | 'q2' | 'q3' | 'q4' | 'highlights';
 
@@ -223,6 +224,8 @@ export function GameBroadcast() {
           </div>
         </PixelPanel>
       </div>
+
+      <GhostBroadcastsPanel lines={broadcast.ghostLines ?? []} />
 
       <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', fontStyle: 'italic', lineHeight: 1.7 }}>
         {broadcast.finalNarrative}
