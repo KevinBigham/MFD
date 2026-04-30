@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Users } from 'lucide-react';
 import {
   PixelBadge,
   PixelButton,
@@ -25,6 +26,7 @@ import {
   monoSm,
   screenStackStyle,
 } from '../shared/pixelUi';
+import { ComparePlayersModal } from '../player/ComparePlayersModal';
 
 const REGION_OPTIONS = [
   { value: 'all', label: 'All Regions' },
@@ -88,6 +90,7 @@ export function ScoutingBoard() {
   const [regionFilter, setRegionFilter] = useState('all');
   const [watchlistOnly, setWatchlistOnly] = useState(false);
   const [criticalNeedsOnly, setCriticalNeedsOnly] = useState(false);
+  const [compareProspectId, setCompareProspectId] = useState<string | null>(null);
 
   const handleAction = async (key: string, run: () => Promise<void>) => {
     setPending(key);
@@ -413,6 +416,9 @@ export function ScoutingBoard() {
                     >
                       {isWatched ? 'Unwatch' : 'Watch'}
                     </PixelButton>
+                    <PixelButton accent="cyan" onClick={() => setCompareProspectId(prospect.id)}>
+                      <Users size={14} aria-hidden="true" /> Compare
+                    </PixelButton>
                     {(['film', 'combine', 'interview'] as const).map((action) => {
                       const taken = scouting?.actions.includes(action);
                       return (
@@ -447,6 +453,13 @@ export function ScoutingBoard() {
           </div>
         )}
       </PixelPanel>
+      <ComparePlayersModal
+        open={compareProspectId !== null}
+        leftPlayerId={compareProspectId}
+        onOpenChange={(open) => {
+          if (!open) setCompareProspectId(null);
+        }}
+      />
     </div>
   );
 }

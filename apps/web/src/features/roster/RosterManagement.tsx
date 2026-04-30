@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { Users } from 'lucide-react';
 import {
   PixelPanel, PixelTable, PixelBadge, PixelModal, PixelNav, PixelButton, PixelSelect,
 } from '@mfd/design-system/components';
@@ -9,6 +10,7 @@ import {
   useGameStore, selectFatigueReport, selectFreeAgentPlayers, selectPracticeSquad, selectRoster, selectTrainingAssignments, selectUserTeam, selectUserTeamId, selectWaiverWirePlayers,
 } from '../../app/store/game-store';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { ComparePlayersModal } from '../player/ComparePlayersModal';
 import {
   PixelConsequenceList,
   PixelMetricCard,
@@ -215,6 +217,7 @@ export function RosterManagement() {
   } = useGameStore((s) => s.actions);
 
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [comparePlayerId, setComparePlayerId] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<string>('ALL');
 
   const positions = ['ALL', 'QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P'];
@@ -412,6 +415,9 @@ export function RosterManagement() {
                 <PixelButton accent="cyan" onClick={() => handleRestructure(liveSelectedPlayer)}>
                   Restructure
                 </PixelButton>
+                <PixelButton accent="cyan" onClick={() => setComparePlayerId(liveSelectedPlayer.id)}>
+                  <Users size={14} aria-hidden="true" /> Compare
+                </PixelButton>
                 <PixelButton accent="gold" onClick={() => handleTradeBlock(liveSelectedPlayer)}>
                   {liveSelectedPlayer.tradeBlock ? 'Remove Block' : 'Trade Block'}
                 </PixelButton>
@@ -440,6 +446,13 @@ export function RosterManagement() {
           </div>
         ) : null}
       </PixelModal>
+      <ComparePlayersModal
+        open={comparePlayerId !== null}
+        leftPlayerId={comparePlayerId}
+        onOpenChange={(open) => {
+          if (!open) setComparePlayerId(null);
+        }}
+      />
 
       <div style={autoGrid(320)}>
         <PixelPanel title={`Practice Squad (${practiceSquad.length}/16)`} accent="green">

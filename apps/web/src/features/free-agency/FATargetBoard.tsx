@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Users } from 'lucide-react';
 import { PixelBadge, PixelButton, PixelPanel, PixelProgressBar } from '@mfd/design-system/components';
 import {
   selectFATargetBoard,
@@ -16,6 +17,7 @@ import {
   pixelSm,
   screenStackStyle,
 } from '../shared/pixelUi';
+import { ComparePlayersModal } from '../player/ComparePlayersModal';
 
 function demandAccent(demand: 'high' | 'medium' | 'low'): 'red' | 'gold' | 'green' {
   return demand === 'high' ? 'red' : demand === 'medium' ? 'gold' : 'green';
@@ -28,6 +30,7 @@ function sectionTargets(
   watchlist: Set<string>,
   pendingId: string | null,
   onToggle: (playerId: string) => Promise<void>,
+  onCompare: (playerId: string) => void,
 ) {
   return (
     <PixelPanel title={title} accent={accent}>
@@ -65,6 +68,9 @@ function sectionTargets(
               >
                 {watchlist.has(target.player.id) ? 'Unwatch' : 'Watch'}
               </PixelButton>
+              <PixelButton accent="cyan" onClick={() => onCompare(target.player.id)}>
+                <Users size={14} aria-hidden="true" /> Compare
+              </PixelButton>
             </div>
           </div>
         ))}
@@ -80,6 +86,7 @@ export function FATargetBoard() {
   const watchlistTargets = useGameStore(selectWatchlistTargets);
   const { refreshFATargetBoard, toggleFATargetWatchlist } = useGameStore((state) => state.actions);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [comparePlayerId, setComparePlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (board.targets.length === 0) {
@@ -119,10 +126,17 @@ export function FATargetBoard() {
         <PixelMetricCard label="Bargains" value={board.bargains.length} accent="gold" detail="Value targets below expected cost" />
       </div>
 
-      {sectionTargets('Watchlist', 'gold', watchlistTargets, watchlist, pendingId, handleToggle)}
-      {sectionTargets('Top Available', 'cyan', board.topAvailable, watchlist, pendingId, handleToggle)}
-      {sectionTargets('Best Fits', 'green', board.bestFits, watchlist, pendingId, handleToggle)}
-      {sectionTargets('Bargains', 'gold', board.bargains, watchlist, pendingId, handleToggle)}
+      {sectionTargets('Watchlist', 'gold', watchlistTargets, watchlist, pendingId, handleToggle, setComparePlayerId)}
+      {sectionTargets('Top Available', 'cyan', board.topAvailable, watchlist, pendingId, handleToggle, setComparePlayerId)}
+      {sectionTargets('Best Fits', 'green', board.bestFits, watchlist, pendingId, handleToggle, setComparePlayerId)}
+      {sectionTargets('Bargains', 'gold', board.bargains, watchlist, pendingId, handleToggle, setComparePlayerId)}
+      <ComparePlayersModal
+        open={comparePlayerId !== null}
+        leftPlayerId={comparePlayerId}
+        onOpenChange={(open) => {
+          if (!open) setComparePlayerId(null);
+        }}
+      />
     </div>
   );
 }

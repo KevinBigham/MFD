@@ -53,5 +53,6 @@ describe('FATargetBoard', () => {
     expect(markup).toContain('WATCHLIST');
     expect(markup).toContain('Cole Hart');
     expect(markup).toContain('62%');
+    expect(markup).toContain('Compare');
   });
 });
