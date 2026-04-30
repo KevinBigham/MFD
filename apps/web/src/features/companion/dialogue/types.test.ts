@@ -30,6 +30,42 @@ describe('companion dialogue types', () => {
     expect(entry.id).toBe('chip.onboarding.beat-1');
   });
 
+  it('keeps onboarding entries on one-based beats', () => {
+    expect(() =>
+      assertDialogueEntry({
+        id: 'chip.onboarding.beat-0',
+        beat: 0,
+        pose: 'talk',
+        text: 'Onboarding cannot use beat zero.',
+        archetype: 'host',
+      }),
+    ).toThrow(/one-based beat/);
+  });
+
+  it('allows weekly entries to use beat zero', () => {
+    const entry = assertDialogueEntry({
+      id: 'chip.weekly.cleanWin',
+      beat: 0,
+      pose: 'talk',
+      text: 'Weekly entries are selected by game state instead of onboarding beat.',
+      archetype: 'weekly',
+    });
+
+    expect(entry.beat).toBe(0);
+  });
+
+  it('rejects negative weekly beats', () => {
+    expect(() =>
+      assertDialogueEntry({
+        id: 'chip.weekly.bad',
+        beat: -1,
+        pose: 'idle',
+        text: 'Negative beats still fail.',
+        archetype: 'weekly',
+      }),
+    ).toThrow(/zero-based beat/);
+  });
+
   it('rejects dialogue over 240 characters', () => {
     expect(() =>
       assertDialogueEntry({

@@ -36,6 +36,24 @@ describe('useChipStore', () => {
     });
   });
 
+  it('shows weekly dialogue entries with text for dock rendering', () => {
+    useChipStore.getState().showWeeklyDialogue({
+      id: 'chip.weekly.cleanWin',
+      beat: 0,
+      pose: 'celebrate',
+      text: 'That was a grown-up win.',
+      archetype: 'weekly',
+    });
+
+    expect(useChipStore.getState()).toMatchObject({
+      pose: 'celebrate',
+      currentDialogueId: 'chip.weekly.cleanWin',
+      currentDialogueText: 'That was a grown-up win.',
+      dismissed: false,
+      context: 'event',
+    });
+  });
+
   it('advances beats without changing the current dialogue id', () => {
     useChipStore.getState().showDialogue('chip.onboarding.beat-2', { context: 'onboarding' });
     useChipStore.getState().advance();

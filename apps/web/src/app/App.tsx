@@ -8,7 +8,7 @@ import {
   Radio, MessageSquare, Crosshair, Building2, Award, Users2, Sparkles, Scale,
   ChevronDown, ChevronRight, Map as MapIcon, Film, Tent, Target, Loader, Briefcase,
 } from 'lucide-react';
-import { MfdTooltipProvider, MfdCommandPalette, PixelModal, type CommandItem } from '@mfd/design-system/components';
+import { ChipDialogueBubble, MfdTooltipProvider, MfdCommandPalette, PixelModal, type CommandItem } from '@mfd/design-system/components';
 import { getRegisteredShortcuts, registerShortcut, useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
 import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
@@ -35,7 +35,10 @@ import { AutosaveToast } from './AutosaveToast';
 import { NewGameScreen } from './NewGameScreen';
 import { FranchiseSetupWizard } from '../features/franchise-setup/FranchiseSetupWizard';
 import { readFirstTenMinutesCompleted } from '../features/franchise-setup/setupPersistence';
-import { ChipHost, type ChipHostStage } from '../features/companion';
+import { ChipHost, isChipFeatureEnabled, type ChipHostStage } from '../features/companion';
+import { ChipDock } from '../features/companion/ChipDock';
+import { useChipEvents } from '../features/companion/useChipEvents';
+import { useChipStore } from '../features/companion/store';
 import { BootScreen } from './BootScreen';
 import { MondayBriefing } from '../features/monday-briefing/MondayBriefing';
 import { RosterManagement } from '../features/roster/RosterManagement';
@@ -1732,6 +1735,42 @@ export function isChipNewGameSetup(storage: ChipSetupStorage = resolveChipSetupS
   return !readFirstTenMinutesCompleted(storage);
 }
 
+function currentAppRoute(): string {
+  if (typeof window === 'undefined') return '/';
+  return window.location.hash.replace(/^#/, '') || window.location.pathname || '/';
+}
+
+function PostSetupApp() {
+  useChipEvents();
+  const chipDockEnabled = isChipFeatureEnabled();
+  const chipDockWeek = useGameStore((s) => s.game?.week ?? 0);
+  const chipDockSeason = useGameStore((s) => s.game?.year ?? 0);
+  const chipDialogueText = useChipStore((s) => s.currentDialogueText);
+  const chipDialoguePose = useChipStore((s) => s.pose);
+  const chipDockRoute = currentAppRoute();
+
+  return (
+    <ErrorBoundary>
+      <RouterProvider router={router} />
+      {chipDockEnabled ? (
+        <ChipDock
+          currentWeek={chipDockWeek}
+          currentSeason={chipDockSeason}
+          currentRoute={chipDockRoute}
+        >
+          {chipDialogueText ? (
+            <ChipDialogueBubble
+              text={chipDialogueText}
+              pose={chipDialoguePose}
+              pointer="right"
+            />
+          ) : null}
+        </ChipDock>
+      ) : null}
+    </ErrorBoundary>
+  );
+}
+
 export function App() {
   const boot = useBootSequence();
   const gameLoaded = useGameStore((s) => s.initialized);
@@ -1759,9 +1798,5 @@ export function App() {
     );
   }
 
-  return (
-    <ErrorBoundary>
-      <RouterProvider router={router} />
-    </ErrorBoundary>
-  );
+  return <PostSetupApp />;
 }
