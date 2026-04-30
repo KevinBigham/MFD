@@ -32,6 +32,20 @@ describe('companion dialogue types', () => {
     expect(entry.contextDetails).toEqual(['Your first morning is not a tutorial. It is a diagnosis.']);
   });
 
+  it('accepts Sprint 43 pose-atlas poses in dialogue entries', () => {
+    const entry = assertDialogueEntry({
+      id: 'chip.event.cap-warning',
+      beat: 0,
+      pose: 'warning',
+      reducedMotionPose: 'thumbs-up',
+      text: 'Cap sheet needs your eyes.',
+      archetype: 'weekly',
+    });
+
+    expect(entry.pose).toBe('warning');
+    expect(entry.reducedMotionPose).toBe('thumbs-up');
+  });
+
   it('keeps onboarding entries on one-based beats', () => {
     expect(() =>
       assertDialogueEntry({
