@@ -116,6 +116,59 @@ describe('ChipDialogueBubble', () => {
     expect(css).toContain('mfd-chip-bubble-typewriter-caret');
   });
 
+  it('renders the gold rule as a horizontal separator', () => {
+    const markup = renderToStaticMarkup(
+      <ChipDialogueBubble text="Cap table says breathe first." reducedMotion />,
+    );
+
+    expect(markup).toContain('class="mfd-chip-bubble__rule"');
+    expect(markup).toContain('role="separator"');
+    expect(markup).toContain('aria-orientation="horizontal"');
+  });
+
+  it('marks the body copy as mono when monoBody is enabled', () => {
+    const markup = renderToStaticMarkup(
+      <ChipDialogueBubble text="Run the numbers before the parade." monoBody reducedMotion />,
+    );
+
+    expect(markup).toContain('data-chip-bubble-body="mono"');
+    expect(markup).toContain('mfd-chip-bubble__text mfd-chip-bubble__text--mono');
+  });
+
+  it('renders the opt-in pose tag with the current pose name', () => {
+    const markup = renderToStaticMarkup(
+      <ChipDialogueBubble
+        text="I like this call."
+        pose="thumbs-up"
+        showPoseTag
+        reducedMotion
+      />,
+    );
+
+    expect(markup).toContain('class="mfd-chip-bubble__pose-tag"');
+    expect(markup).toContain('thumbs-up');
+  });
+
+  it('keeps the pose tag hidden by default while retaining pose data', () => {
+    const markup = renderToStaticMarkup(
+      <ChipDialogueBubble text="Clock management is not a rumor." pose="warning" reducedMotion />,
+    );
+
+    expect(markup).toContain('data-chip-bubble-pose="warning"');
+    expect(markup).not.toContain('mfd-chip-bubble__pose-tag');
+  });
+
+  it('defines the broadcast-card frame, mono body, and gold divider CSS', () => {
+    const css = readFileSync(join(__dirname, 'Chip.css'), 'utf8');
+
+    expect(css).toContain('padding: 12px 16px;');
+    expect(css).toContain('border: 3px solid var(--mfd-gold);');
+    expect(css).toContain('border-top: 1px solid var(--mfd-gold);');
+    expect(css).toContain('font-size: 14px;');
+    expect(css).toContain('line-height: 1.6;');
+    expect(css).toContain('.mfd-chip-bubble__pose-tag');
+  });
+
   it('returns a non-recursive no-op timing mode when rAF is unavailable (PR #18 P2 fix)', () => {
     // Regression guard: the previous fallback `(cb) => cb(0)` recursed
     // synchronously and stack-overflowed in environments without rAF.

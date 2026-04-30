@@ -668,13 +668,13 @@
   position: relative;
   width: min(100%, 360px);
   max-width: 360px;
-  padding: 12px 14px 10px;
+  padding: 12px 16px;
   background: var(--mfd-bg);
-  border: 2px solid var(--mfd-gold);
+  border: 3px solid var(--mfd-gold);
   color: var(--mfd-text);
   box-shadow: 0 0 0 2px var(--mfd-bg), 0 0 0 4px var(--mfd-cyan);
   font-family: var(--mfd-font-mono);
-  line-height: 1.45;
+  line-height: 1.6;
 }
 
 .mfd-chip-bubble::after {
@@ -684,8 +684,8 @@
   width: 18px;
   height: 18px;
   background: var(--mfd-bg);
-  border-right: 2px solid var(--mfd-gold);
-  border-bottom: 2px solid var(--mfd-gold);
+  border-right: 3px solid var(--mfd-gold);
+  border-bottom: 3px solid var(--mfd-gold);
 }
 
 .mfd-chip-bubble[data-chip-bubble-pointer='left']::after {
@@ -698,22 +698,36 @@
 
 .mfd-chip-bubble__stamp {
   font-family: var(--mfd-font-pixel);
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1.4;
   color: var(--mfd-gold);
 }
 
 .mfd-chip-bubble__rule {
-  height: 2px;
+  height: 0;
   margin: 8px 0 10px;
-  background: var(--mfd-gold);
+  border-top: 1px solid var(--mfd-gold);
 }
 
 .mfd-chip-bubble__text {
   min-height: 3lh;
   margin: 0;
   color: var(--mfd-text);
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.mfd-chip-bubble__text--mono {
+  font-family: var(--mfd-font-mono);
+}
+
+.mfd-chip-bubble__pose-tag {
+  margin-top: 10px;
+  color: var(--mfd-text-dim);
+  font-family: var(--mfd-font-pixel);
+  font-size: 8px;
+  line-height: 1.4;
+  text-transform: uppercase;
 }
 
 .mfd-chip-bubble__caret {
