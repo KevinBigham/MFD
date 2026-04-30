@@ -204,6 +204,30 @@ describe('Chip', () => {
     expect(root.props['data-chip-pose']).toBe('wave');
   });
 
+  it('wraps the active pose in a keyed fade layer for animated renders', () => {
+    const elements = renderChipElements({ pose: 'thumbs-up' });
+    const layer = findElement(elements, 'g', 'data-chip-pose-layer', 'thumbs-up');
+
+    expect(layer.props.className).toBe('mfd-chip-svg__pose-layer mfd-chip-svg__pose-fade-in');
+  });
+
+  it('keeps reduced-motion pose changes to a single hard-cut layer', () => {
+    const layers = renderChipElements({ pose: 'surprised', reducedMotion: true }).filter(
+      (element) => element.props['data-chip-pose-layer'],
+    );
+
+    expect(layers).toHaveLength(1);
+    expect(layers[0]?.props['data-chip-pose-layer']).toBe('surprised');
+  });
+
+  it('does not accumulate pose layers across rapid render changes', () => {
+    for (const pose of ['wave', 'mic-check', 'idle'] satisfies ChipPose[]) {
+      const layers = renderChipElements({ pose }).filter((element) => element.props['data-chip-pose-layer']);
+      expect(layers).toHaveLength(1);
+      expect(layers[0]?.props['data-chip-pose-layer']).toBe(pose);
+    }
+  });
+
   it('renders the Mic Check signature tap targets and cyan mic tip', () => {
     const elements = renderChipElements({ pose: 'mic-check' });
     const pixelSparkles = elements.filter((element) => element.props['data-chip-mic-sparkle']);
@@ -231,6 +255,9 @@ describe('Chip', () => {
     const reducedMotionBlock = chipCss.slice(chipCss.indexOf('@media (prefers-reduced-motion: reduce)'));
 
     expect(chipCss).toContain('--chip-pose-transition: 180ms ease-out');
+    expect(chipCss).toContain('--chip-pose-crossfade: 200ms ease-out');
+    expect(chipCss).toContain('@keyframes mfd-chip-pose-crossfade');
+    expect(chipCss).toContain(".mfd-chip[data-chip-motion='animated'] .mfd-chip-svg__pose-fade-in");
     expect(chipCss).toContain('@keyframes mfd-chip-idle-breathe');
     expect(chipCss).toContain('@keyframes mfd-chip-mic-check-tap');
     expect(reducedMotionBlock).toContain('opacity');
