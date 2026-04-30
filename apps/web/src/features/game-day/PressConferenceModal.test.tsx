@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { PressConferenceQueueEntry } from '@mfd/engine';
-import { PressConferenceModal } from './PressConferenceModal';
+import { PressConferenceModal, getPressConferenceChipPose } from './PressConferenceModal';
 
 const entry: PressConferenceQueueEntry = {
   conferenceId: 'press-1',
@@ -59,6 +59,49 @@ describe('PressConferenceModal', () => {
     expect(markup).toContain('Marcus Webb');
     expect(markup).toContain('statement win');
     expect(markup).toContain('win blowout');
+  });
+
+  it('renders Chip as the podium host', () => {
+    const markup = renderToStaticMarkup(
+      <PressConferenceModal
+        open
+        entry={entry}
+        activeTier="mid"
+        onTierChange={vi.fn()}
+        onRespond={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(markup).toContain('data-press-chip-host="true"');
+    expect(markup).toContain('data-press-chip-pose="think"');
+    expect(markup).toContain('Podium tone travels. Pick the answer you want quoted tomorrow.');
+  });
+
+  it('maps press tier severity to deterministic Chip poses', () => {
+    expect(getPressConferenceChipPose('high', false)).toBe('concern');
+    expect(getPressConferenceChipPose('mid', false)).toBe('think');
+    expect(getPressConferenceChipPose('low', false)).toBe('thumbs-up');
+    expect(getPressConferenceChipPose('high', true)).toBe('thumbs-up');
+  });
+
+  it('keeps the Chip portrait static under reduced motion', () => {
+    const markup = renderToStaticMarkup(
+      <PressConferenceModal
+        open
+        entry={entry}
+        activeTier="high"
+        reducedMotion
+        onTierChange={vi.fn()}
+        onRespond={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(markup).toContain('data-press-chip-host="true"');
+    expect(markup).toContain('data-press-chip-pose="think"');
+    expect(markup).toContain('data-chip-motion="reduced"');
+    expect(getPressConferenceChipPose('low', false, true)).toBe('think');
   });
 
   it('renders all three ambition tier controls', () => {
@@ -141,5 +184,9 @@ describe('PressConferenceModal', () => {
 
     expect(markup).toContain('LAST ANSWER');
     expect(markup).toContain('The room trusted the plan and executed cleanly.');
+  });
+
+  it('renders the lock-in pose helper for submitted responses', () => {
+    expect(getPressConferenceChipPose('mid', true, true)).toBe('thumbs-up');
   });
 });
