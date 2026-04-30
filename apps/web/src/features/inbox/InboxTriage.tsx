@@ -8,7 +8,9 @@ import {
   selectConditionalPicks, selectHandshakes, selectWaiverWire, selectWeather,
   selectActiveProposals, selectApologyTourThreads, selectCeremonies, selectClaimResults, selectContractExtensions, selectCurrentWeeklyPrepPlan, selectDifficultyState, selectDraftRecaps, selectFATargetBoard, selectLatestFilmRoomReport, selectLeagueNews, selectMedicalStaff, selectNewlyUnlocked, selectOffseasonState, selectPlayoffMomentum, selectSeasonReports, selectTeamSchedule, selectTradeSuggestions, selectTrainingAssignments, selectTransactionLog, selectUserTeamNeeds, selectWarRoomState,
 } from '../../app/store/game-store';
+import type { ApologyTourThread } from '@mfd/engine';
 import { buildInboxMessages, type InboxMessage, type MessageType } from './buildInboxMessages';
+import { ApologyTourModal } from './ApologyTourModal';
 import {
   PixelConsequenceList,
   PixelScreenHeader,
@@ -66,6 +68,13 @@ export function InboxTriage() {
 
   const [selectedMsg, setSelectedMsg] = useState<InboxMessage | null>(null);
   const [filter, setFilter] = useState<MessageType | 'ALL'>('ALL');
+  const [tourThread, setTourThread] = useState<ApologyTourThread | null>(null);
+
+  const userApologyThreads = useMemo(
+    () => (team ? apologyTourThreads.filter((thread) => thread.teamId === team.id) : []),
+    [apologyTourThreads, team],
+  );
+  const tourTeamName = team ? `${team.city} ${team.name}`.trim() : '';
 
   const messages = useMemo(() => buildInboxMessages({
     team,
@@ -146,6 +155,52 @@ export function InboxTriage() {
         ]}
         onSelect={(key) => setFilter(key as MessageType | 'ALL')}
       />
+
+      {userApologyThreads.length > 0 ? (
+        <PixelPanel title="Active Apology Tours" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {userApologyThreads.map((thread) => {
+              const statusAccent = thread.status === 'escalated'
+                ? 'red'
+                : thread.status === 'resolved'
+                  ? 'green'
+                  : 'gold';
+              return (
+                <div
+                  key={thread.id}
+                  data-testid={`apology-thread-${thread.id}`}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    padding: '10px',
+                    border: '3px solid var(--mfd-gold)',
+                    background: 'var(--mfd-bg-2)',
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ ...monoSm, color: '#fff' }}>{thread.namedGameName}</span>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <PixelBadge variant={statusAccent}>{thread.status.toUpperCase()}</PixelBadge>
+                      <PixelBadge variant="default">{thread.beatsDelivered.length}/4 beats</PixelBadge>
+                      <PixelBadge variant="default">Started Y{thread.startedYear} W{thread.startedWeek}</PixelBadge>
+                    </div>
+                  </div>
+                  <PixelButton
+                    accent="gold"
+                    onClick={() => setTourThread(thread)}
+                    data-testid={`apology-thread-${thread.id}-replay`}
+                  >
+                    Replay Tour
+                  </PixelButton>
+                </div>
+              );
+            })}
+          </div>
+        </PixelPanel>
+      ) : null}
 
       <PixelPanel title="Message Queue" accent={urgentCount > 0 ? 'red' : 'cyan'}>
         {filtered.length === 0 ? (
@@ -241,6 +296,15 @@ export function InboxTriage() {
           </div>
         ) : null}
       </PixelModal>
+
+      <ApologyTourModal
+        thread={tourThread}
+        teamName={tourTeamName}
+        open={tourThread !== null}
+        onOpenChange={(open) => {
+          if (!open) setTourThread(null);
+        }}
+      />
     </div>
   );
 }
