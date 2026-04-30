@@ -114,11 +114,18 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain('dynastyIndicator={{ seasonYear: chipDockSeason, coachName: chipCoachName }}');
   });
 
+<<<<<<< HEAD
   it('mounts Sprint 46 atmosphere emitters beside the app shell controllers', () => {
     expect(content).toContain("import { EraTransitionEmitter } from '../features/dynasty-era/EraTransitionEmitter'");
     expect(content).toContain("import { ChampionshipParadeEmitter } from '../features/playoffs/ChampionshipParadeEmitter'");
     expect(content).toContain('<AudioController />');
     expect(content).toContain('<EraTransitionEmitter />');
     expect(content).toContain('<ChampionshipParadeEmitter />');
+=======
+  it('registers the Sprint 46 achievements gallery route additively', () => {
+    expect(content).toContain("const LazyAchievementsGallery = lazy(async () => ({ default: (await import('../features/franchise/AchievementsGallery')).AchievementsGallery }));");
+    expect(content).toContain("path: '/franchise/achievements'");
+    expect(content).toContain('routeTree.addChildren([achievementsRoute]);');
+>>>>>>> 9ca31c9 (Sprint 46: Add achievements gallery)
   });
 });
