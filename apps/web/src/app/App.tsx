@@ -123,6 +123,7 @@ const LazyFranchiseLegends = lazy(async () => ({ default: (await import('../feat
 const LazyFranchiseBook = lazy(async () => ({ default: (await import('../features/franchise/FranchiseBook')).FranchiseBookScreen }));
 const LazyScrapbook = lazy(async () => ({ default: (await import('../features/franchise/Scrapbook')).Scrapbook }));
 const LazyHallOfFameDirectory = lazy(async () => ({ default: (await import('../features/franchise/HallOfFameDirectory')).HallOfFameDirectory }));
+const LazyTrophyRoom = lazy(async () => ({ default: (await import('../features/franchise/TrophyRoom')).TrophyRoom }));
 const LazyPlayoffLoreDirectory = lazy(async () => ({ default: (await import('../features/playoffs/PlayoffLoreDirectory')).PlayoffLoreDirectory }));
 const LazyDynastyChronicle = lazy(async () => ({ default: (await import('../features/franchise/DynastyChronicle')).DynastyChronicle }));
 const LazyLockerRoom = lazy(async () => ({ default: (await import('../features/locker-room/LockerRoom')).LockerRoom }));
@@ -1651,6 +1652,16 @@ const hallOfFameDirectoryRoute = createRoute({
   ),
 });
 
+const trophyRoomRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/franchise/trophy-room',
+  component: () => (
+    <LazyRouteFrame label="trophy room">
+      <LazyTrophyRoom />
+    </LazyRouteFrame>
+  ),
+});
+
 const playoffLoreDirectoryRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/franchise/playoff-lore',
@@ -1768,6 +1779,7 @@ const routeTree = rootRoute.addChildren([
   newsRoute, newsroomRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, leaguePulseRoute, scenarioRoute, legacyRoute, namedGamesRoute, bloodlinesRoute, awardsRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, playoffLoreDirectoryRoute, dynastyChronicleRoute, superBowlRoute, playerDevRoute, mentorsRoute, aboutRoute, creditsRoute, faqRoute, settingsRoute,
 ]);
+routeTree.addChildren([...(routeTree.children ?? []), trophyRoomRoute]);
 
 const hashHistory = createHashHistory();
 const router = createRouter({ routeTree, history: hashHistory });
