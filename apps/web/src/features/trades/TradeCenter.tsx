@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { ArrowLeftRight } from 'lucide-react';
 import {
   PixelBadge, PixelButton, PixelNav, PixelPanel, PixelProgressBar, PixelSelect,
 } from '@mfd/design-system/components';
@@ -288,6 +289,23 @@ export function TradeCenter() {
           detail={phase === 'regular_season' ? `Regular season week ${week}` : 'Offseason trade market'}
         />
       </div>
+
+      <PixelPanel title="League Trade Block" accent="cyan">
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>
+              League-wide target ticker for teams shopping players now.
+            </span>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              Filter by conference or division before building a user-side offer.
+            </span>
+          </div>
+          <PixelButton accent="gold" onClick={() => navigateTo('/trade-block')}>
+            <ArrowLeftRight size={14} aria-hidden="true" />
+            View League Trade Block
+          </PixelButton>
+        </div>
+      </PixelPanel>
 
       <TradeFinder suggestions={tradeSuggestions} onLoadSuggestion={loadSuggestion} />
 

@@ -179,6 +179,7 @@ import {
   getStatLeaders,
   getTeamNews,
   getRetiredJerseys,
+  findTradeTargets,
   mulberry32,
   projectSchemeTransition,
 } from '@mfd/engine';
@@ -322,6 +323,7 @@ const EMPTY_WEEK_SCHEDULE = [] as ReturnType<typeof getWeekScheduleEntries>;
 const EMPTY_TRANSACTION_LOG: TransactionLogEntry[] = [];
 const EMPTY_DRAFT_RECAPS: DraftRecap[] = [];
 const EMPTY_TRADE_SUGGESTIONS: TradeSuggestion[] = [];
+const EMPTY_LEAGUE_TRADE_BLOCK: LeagueTradeBlockEntry[] = [];
 const EMPTY_PLAYOFF_PICTURE = { afc: [], nfc: [] };
 const EMPTY_TEAM_NEEDS_REPORT: TeamNeedsReport = {
   overall: 'No report available',
@@ -428,6 +430,23 @@ const EMPTY_SCOUTING_DEPARTMENT: ScoutingDepartment = {
 };
 const EMPTY_RECORD_BOOK: RecordBook = createEmptyRecordBook();
 const EMPTY_CAP = { capSpace: 0, capUsed: 0, deadCap: 0 };
+
+export interface LeagueTradeBlockEntry {
+  teamId: string;
+  teamName: string;
+  teamConference: Team['conference'];
+  teamDivision: string;
+  playerId: string;
+  playerName: string;
+  position: Position;
+  ovr: number;
+  seekerTeamId: string;
+  seekerTeamName: string;
+  seekerNeed: Position | null;
+  acceptanceLikelihood: number;
+  valueGap: number;
+  reasoning: string;
+}
 
 const SEASON_LENGTH = 17;
 const RECORD_WATCH_STATS = ['passYds', 'rushYds', 'recYds', 'passTD', 'rushTD', 'sacks', 'defINT'] as const;
@@ -1188,6 +1207,69 @@ export const selectTradeSuggestions = memoByGame((state: GameStoreState) => {
       ? `${state.game!.teams[suggestion.partner]!.city} ${state.game!.teams[suggestion.partner]!.name}`
       : suggestion.partner,
   }));
+});
+
+export const selectLeagueTradeBlock: (state: GameStoreState) => LeagueTradeBlockEntry[] = memoByGame((state) => {
+  if (!state.game) return EMPTY_LEAGUE_TRADE_BLOCK;
+  const game = state.game;
+  const userTeam = selectUserTeam(state);
+  const entries = new Map<string, LeagueTradeBlockEntry>();
+  const teams = Object.values(game.teams).sort((a, b) =>
+    `${a.city} ${a.name}`.localeCompare(`${b.city} ${b.name}`) || a.id.localeCompare(b.id));
+
+  for (const seeker of teams) {
+    if (seeker.id === userTeam?.id) continue;
+    for (const suggestion of findTradeTargets(game, seeker.id)) {
+      const target = suggestion.offer.requesting.find((asset) => asset.type === 'player' && asset.playerId);
+      if (!target?.playerId) continue;
+      const blockTeam = game.teams[target.teamId];
+      if (!blockTeam || blockTeam.id === userTeam?.id) continue;
+      const player = game.players[target.playerId];
+      if (!player) continue;
+
+      const key = `${blockTeam.id}:${player.id}`;
+      const nextEntry: LeagueTradeBlockEntry = {
+        teamId: blockTeam.id,
+        teamName: `${blockTeam.city} ${blockTeam.name}`,
+        teamConference: blockTeam.conference,
+        teamDivision: blockTeam.division,
+        playerId: player.id,
+        playerName: player.name,
+        position: player.pos,
+        ovr: player.ovr,
+        seekerTeamId: seeker.id,
+        seekerTeamName: `${seeker.city} ${seeker.name}`,
+        seekerNeed: suggestion.need,
+        acceptanceLikelihood: suggestion.acceptanceLikelihood,
+        valueGap: suggestion.valueGap,
+        reasoning: suggestion.reasoning,
+      };
+      const existing = entries.get(key);
+      if (
+        !existing
+        || nextEntry.acceptanceLikelihood > existing.acceptanceLikelihood
+        || (
+          nextEntry.acceptanceLikelihood === existing.acceptanceLikelihood
+          && Math.abs(nextEntry.valueGap) < Math.abs(existing.valueGap)
+        )
+        || (
+          nextEntry.acceptanceLikelihood === existing.acceptanceLikelihood
+          && Math.abs(nextEntry.valueGap) === Math.abs(existing.valueGap)
+          && nextEntry.seekerTeamName.localeCompare(existing.seekerTeamName) < 0
+        )
+      ) {
+        entries.set(key, nextEntry);
+      }
+    }
+  }
+
+  const resolved = [...entries.values()].sort((a, b) =>
+    a.teamName.localeCompare(b.teamName)
+    || b.ovr - a.ovr
+    || a.playerName.localeCompare(b.playerName)
+    || a.seekerTeamName.localeCompare(b.seekerTeamName));
+
+  return resolved.length > 0 ? resolved : EMPTY_LEAGUE_TRADE_BLOCK;
 });
 export const selectLatestGameResult = (state: GameStoreState): GameResult | null => {
   if (!state.game) return null;
