@@ -304,7 +304,12 @@ export function ChipDock({
     if (routeQuieted) return [];
     const seenBeatIds = readChipReadReceipts(backingStorage);
     return routeBeats.filter((beat) => !seenBeatIds.has(beat.id));
-  }, [backingStorage, globalRouteSkip, routeBeatSignature, routeBeats, routeQuieted]);
+    // Sprint 41 perf fix [12]: routeBeatSignature already captures the content
+    // of routeBeats; including routeBeats here would re-trigger the memo on
+    // every parent render even when the beat list is identical. We
+    // intentionally read routeBeats by closure but key the memo on signature.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backingStorage, globalRouteSkip, routeBeatSignature, routeQuieted]);
   const [routeBeatIndex, setRouteBeatIndex] = useState(0);
   const [dismissedRouteBeatSignature, setDismissedRouteBeatSignature] = useState<string | null>(null);
   const [activeLiveBeat, setActiveLiveBeat] = useState<DockLiveBeat | null>(null);

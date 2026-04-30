@@ -2,12 +2,33 @@ import { useMemo } from 'react';
 import { useChipStore } from '../companion/store';
 import {
   ROUTE_BEAT_REGISTRY,
+  ROUTE_KEYS,
   type RouteBeat,
   type RouteKey,
 } from './routeBeatRegistry';
 
 const EMPTY_ROUTE_BEATS: readonly RouteBeat[] = [];
-const activeRouteBeatCache = new Map<string, readonly RouteBeat[]>();
+
+// Cache is bounded at ROUTE_KEYS.length (currently 6). Each entry stores the
+// route-specific seen-beat signature so cache hits are content-equality not
+// identity. Earlier revisions keyed on the global seenBeatIds set, which grew
+// unboundedly as the user explored across routes; switching to a per-route
+// signature caps the cache at one entry per route.
+interface CacheEntry {
+  readonly signature: string;
+  readonly beats: readonly RouteBeat[];
+}
+const activeRouteBeatCache = new Map<RouteKey, CacheEntry>();
+
+/** @internal Test-only helper for cache instrumentation. */
+export function __resetActiveRouteBeatCacheForTests(): void {
+  activeRouteBeatCache.clear();
+}
+
+/** @internal Test-only helper for cache instrumentation. */
+export function __getActiveRouteBeatCacheSize(): number {
+  return activeRouteBeatCache.size;
+}
 
 export function resolveRouteKey(currentRoute: string): RouteKey | null {
   const normalized = currentRoute.replace(/^#/, '').split('?')[0] || '/';
@@ -24,8 +45,16 @@ export function resolveRouteKey(currentRoute: string): RouteKey | null {
   return null;
 }
 
-function cacheKey(routeKey: RouteKey, seenBeatIds: ReadonlySet<string>): string {
-  return `${routeKey}|${[...seenBeatIds].sort().join(',')}`;
+function routeSignature(routeKey: RouteKey, seenBeatIds: ReadonlySet<string>): string {
+  const routeBeats = ROUTE_BEAT_REGISTRY[routeKey];
+  // Walk in registry order so signature is stable without an extra sort.
+  let sig = '';
+  for (const beat of routeBeats) {
+    if (seenBeatIds.has(beat.id)) {
+      sig += sig.length === 0 ? beat.id : `,${beat.id}`;
+    }
+  }
+  return sig;
 }
 
 export function selectActiveRouteBeats(
@@ -39,12 +68,18 @@ export function selectActiveRouteBeats(
   if (routeBeats.every((beat) => !seenBeatIds.has(beat.id))) return routeBeats;
   if (routeBeats.every((beat) => seenBeatIds.has(beat.id))) return EMPTY_ROUTE_BEATS;
 
-  const key = cacheKey(routeKey, seenBeatIds);
-  const cached = activeRouteBeatCache.get(key);
-  if (cached) return cached;
+  const signature = routeSignature(routeKey, seenBeatIds);
+  const cached = activeRouteBeatCache.get(routeKey);
+  if (cached && cached.signature === signature) return cached.beats;
 
   const activeBeats = routeBeats.filter((beat) => !seenBeatIds.has(beat.id));
-  activeRouteBeatCache.set(key, activeBeats);
+  activeRouteBeatCache.set(routeKey, { signature, beats: activeBeats });
+  // Defensive: theoretical max is ROUTE_KEYS.length, but if an unknown route
+  // ever resolves into the cache via a future regression, evict the oldest.
+  if (activeRouteBeatCache.size > ROUTE_KEYS.length) {
+    const oldest = activeRouteBeatCache.keys().next().value;
+    if (oldest) activeRouteBeatCache.delete(oldest);
+  }
   return activeBeats;
 }
 
