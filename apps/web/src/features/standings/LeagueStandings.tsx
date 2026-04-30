@@ -13,6 +13,11 @@ import {
   PlayerNameLink,
 } from '../shared/pixelUi';
 import { TeamLogo } from '../shared/TeamLogo';
+import { StandingsSignalSvg, StreakSignalSvg, type StandingsSignalKind } from './standingsSignalSvg';
+
+type SeedSignalKind = Extract<StandingsSignalKind, 'seed_locked' | 'seed_bubble' | 'seed_out'>;
+type PlayoffSeed = { seed: number; teamId: string; indicator?: string };
+type PlayoffPicture = { afc: PlayoffSeed[]; nfc: PlayoffSeed[] };
 
 function streakLabel(streak: number): string {
   if (streak > 0) return `W${streak}`;
@@ -20,7 +25,27 @@ function streakLabel(streak: number): string {
   return 'EVEN';
 }
 
-function standingsColumns(userTeamId: string | null): ColumnDef<StandingsRow, unknown>[] {
+function buildSeedSignals(playoffPicture: PlayoffPicture): Map<string, SeedSignalKind> {
+  const signals = new Map<string, SeedSignalKind>();
+
+  for (const seed of [...playoffPicture.afc, ...playoffPicture.nfc]) {
+    if (seed.indicator === 'X' || seed.indicator === 'Y' || seed.seed <= 3) {
+      signals.set(seed.teamId, 'seed_locked');
+    } else if (seed.seed <= 7) {
+      signals.set(seed.teamId, 'seed_bubble');
+    }
+  }
+
+  return signals;
+}
+
+function seedSignalTitle(kind: SeedSignalKind): string {
+  if (kind === 'seed_locked') return 'Playoff seed locked';
+  if (kind === 'seed_bubble') return 'Playoff bubble';
+  return 'Outside playoff picture';
+}
+
+function standingsColumns(userTeamId: string | null, seedSignals: Map<string, SeedSignalKind>): ColumnDef<StandingsRow, unknown>[] {
   return [
     {
       accessorKey: 'rank',
@@ -30,21 +55,32 @@ function standingsColumns(userTeamId: string | null): ColumnDef<StandingsRow, un
     {
       accessorKey: 'teamName',
       header: 'Team',
-      cell: ({ row }) => (
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: row.original.teamId === userTeamId ? '2px 6px' : 0,
-          border: row.original.teamId === userTeamId ? '3px solid var(--mfd-gold)' : 'none',
-        }}
-        >
-          <TeamLogo icon={row.original.teamIcon} size={22} />
-          <span style={{ ...mono, color: row.original.teamId === userTeamId ? 'var(--mfd-gold)' : '#fff' }}>
-            {row.original.teamName}
-          </span>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const isUserTeam = row.original.teamId === userTeamId;
+        const isDivisionLeader = row.original.rank === 1;
+        const seedSignal = seedSignals.get(row.original.teamId) ?? 'seed_out';
+        return (
+          <div
+            data-division-leader-row={isDivisionLeader ? 'true' : undefined}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: isUserTeam || isDivisionLeader ? '2px 6px' : 0,
+              border: isUserTeam ? '3px solid var(--mfd-gold)' : 'none',
+              boxShadow: isDivisionLeader ? 'inset 0 0 0 1px var(--mfd-gold)' : undefined,
+              borderRadius: isDivisionLeader ? 'var(--mfd-rad-sm)' : undefined,
+            }}
+          >
+            {isDivisionLeader ? <StandingsSignalSvg kind="division_leader" title="Division leader" /> : null}
+            <StandingsSignalSvg kind={seedSignal} title={seedSignalTitle(seedSignal)} />
+            <TeamLogo icon={row.original.teamIcon} size={22} />
+            <span style={{ ...mono, color: isUserTeam ? 'var(--mfd-gold)' : 'var(--mfd-text)' }}>
+              {row.original.teamName}
+            </span>
+          </div>
+        );
+      },
     },
     {
       id: 'record',
@@ -75,7 +111,15 @@ function standingsColumns(userTeamId: string | null): ColumnDef<StandingsRow, un
     {
       accessorKey: 'streak',
       header: 'Strk',
-      cell: ({ getValue }) => streakLabel(getValue() as number),
+      cell: ({ getValue }) => {
+        const streak = getValue() as number;
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span>{streakLabel(streak)}</span>
+            <StreakSignalSvg streak={streak} />
+          </span>
+        );
+      },
     },
     {
       accessorKey: 'homeRecord',
@@ -93,7 +137,8 @@ export function LeagueStandings() {
   const playoffPicture = useGameStore(selectPlayoffPicture);
   const statLeaders = useGameStore(selectStatLeaders);
   const userTeam = useGameStore(selectUserTeam);
-  const columns = standingsColumns(userTeam?.id ?? null);
+  const seedSignals = buildSeedSignals(playoffPicture);
+  const columns = standingsColumns(userTeam?.id ?? null, seedSignals);
 
   return (
     <div style={screenStackStyle}>
@@ -130,7 +175,7 @@ export function LeagueStandings() {
                 { label: 'NFC', seeds: playoffPicture.nfc },
               ].map((conference) => (
                 <div key={conference.label} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ ...display, fontSize: '22px', color: '#fff', lineHeight: 1 }}>
+                  <div style={{ ...display, fontSize: '22px', color: 'var(--mfd-text)', lineHeight: 1 }}>
                     {conference.label}
                   </div>
                   {conference.seeds.map((seed) => (
@@ -138,10 +183,10 @@ export function LeagueStandings() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <TeamLogo icon={seed.teamIcon} size={24} />
                         <div>
-                        <div style={{ ...mono, color: seed.teamId === userTeam?.id ? 'var(--mfd-gold)' : '#fff' }}>
+                        <div style={{ ...mono, color: seed.teamId === userTeam?.id ? 'var(--mfd-gold)' : 'var(--mfd-text)' }}>
                           #{seed.seed} {seed.teamName}
                         </div>
-                        <div style={{ ...monoSm, color: '#999' }}>
+                        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
                           {seed.divisionWinner ? 'Division winner' : 'Wildcard'}
                         </div>
                         </div>
@@ -165,7 +210,7 @@ export function LeagueStandings() {
               ['INTs', statLeaders.defINT],
             ] as const).map(([label, leaders]) => (
               <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
-                <div style={{ ...pixelSm, color: '#666' }}>{label.toUpperCase()}</div>
+                <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>{label.toUpperCase()}</div>
                 {leaders.map((leader, index) => (
                   <div key={leader.playerId} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
                     <div>
@@ -173,7 +218,7 @@ export function LeagueStandings() {
                         <span style={{ ...mono, color: 'var(--mfd-text)' }}>{index + 1}.</span>
                         <PlayerNameLink playerId={leader.playerId} name={leader.playerName} style={{ ...mono }} />
                       </div>
-                      <div style={{ ...monoSm, color: '#999' }}>{leader.teamName}</div>
+                      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{leader.teamName}</div>
                     </div>
                     <PixelBadge variant="green">{leader.value}</PixelBadge>
                   </div>
