@@ -37,11 +37,13 @@ export function DepthChartPhase({
 
       <PixelPanel title="Depth Chart Philosophy" accent="gold">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-          {(Object.keys(PHILOSOPHY_COPY) as DepthChartPhilosophy[]).map((philosophy) => {
+          {(Object.keys(PHILOSOPHY_COPY) as DepthChartPhilosophy[]).map((philosophy, index) => {
             const selected = philosophy === selectedPhilosophy;
+            const isSpotlightTarget = !selectedPhilosophy && index === 0;
             return (
               <div
                 key={philosophy}
+                data-spotlight-target={isSpotlightTarget ? 'wizard.depth-chart.confirm' : undefined}
                 role="button"
                 tabIndex={0}
                 onClick={() => onSelectPhilosophy(philosophy)}

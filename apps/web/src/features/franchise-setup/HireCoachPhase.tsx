@@ -68,8 +68,9 @@ export function HireCoachPhase({
           alignItems: 'stretch',
         }}
       >
-        {candidates.map((candidate) => {
+        {candidates.map((candidate, index) => {
           const selected = selectedCoachId === candidate.id;
+          const isSpotlightTarget = !selectedCoachId && index === 0;
           const reaction = getAGMCoachReaction(agmId, candidate.id);
           const highlight = recommendationHighlight(reaction.recommendation);
           return (
@@ -135,6 +136,7 @@ export function HireCoachPhase({
 
                 <PixelButton
                   accent={selected ? 'gold' : 'default'}
+                  data-spotlight-target={isSpotlightTarget ? 'wizard.coach-hire.confirm' : undefined}
                   onClick={() => { void onHire(candidate.id); }}
                   style={{ width: '100%', marginTop: 'auto' }}
                 >

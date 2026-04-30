@@ -83,6 +83,12 @@ import {
   getNextSetupPhase,
   getTeachingTipTopicForPhase,
 } from './setupPolish';
+import {
+  buildPrimaryActionProps,
+  getPrimaryActionDisabledReason,
+  useStageActionRegistry,
+  type SetupStageActionId,
+} from './stageActionRegistry';
 
 const READ_ONLY_PHASES = new Set<SetupPhase>(['intel_briefing', 'meet_roster', 'blueprint']);
 
@@ -90,7 +96,11 @@ function formatChoiceLabel(value: string): string {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export function FranchiseSetupWizard() {
+export function FranchiseSetupWizard({
+  onStageAdvance,
+}: {
+  onStageAdvance?: (stageId: SetupStageActionId) => void;
+} = {}) {
   const game = useGameStore((s) => s.game!);
   const setupState = useGameStore(selectSetupState)!;
   const phaseIndex = useGameStore(selectSetupPhaseIndex);
@@ -719,6 +729,16 @@ export function FranchiseSetupWizard() {
     showColdOpen,
     topPressureCard.label,
   ]);
+  const primaryActionDisabled = !canAdvance || isTransitioning || isLaunchingSeason;
+  const stageActionRegistration = useStageActionRegistry({
+    showColdOpen,
+    currentPhase: setupState.currentPhase,
+    seasonGoalCount: decisions.seasonGoals.length,
+    cultureMandateSelected: Boolean(decisions.cultureMandate),
+    isLaunchingSeason,
+  }, onStageAdvance);
+  const primaryActionDisabledReason = getPrimaryActionDisabledReason(!primaryActionDisabled, advanceHint);
+  const primaryActionProps = buildPrimaryActionProps(stageActionRegistration, primaryActionDisabledReason);
 
   return (
     <div
@@ -999,7 +1019,9 @@ export function FranchiseSetupWizard() {
             {teamName}
           </div>
           <div
+            id="mfd-setup-advance-reason"
             data-mfd-setup-advance-hint="true"
+            data-mfd-primary-action-reason={primaryActionDisabledReason ?? undefined}
             style={{
               ...monoSm,
               color: canAdvance ? 'var(--mfd-cyan)' : 'var(--mfd-gold)',
@@ -1011,9 +1033,11 @@ export function FranchiseSetupWizard() {
           </div>
         </div>
         <PixelButton
-          accent={isLastPhase ? 'green' : 'gold'}
+          {...primaryActionProps}
+          accent="gold"
           onClick={() => { void handleNext(); }}
-          disabled={!canAdvance || isTransitioning || isLaunchingSeason}
+          disabled={primaryActionDisabled}
+          style={{ minWidth: '148px' }}
         >
           {showColdOpen
             ? (reducedMotion || coldOpenBeatIndex >= coldOpenLastBeatIndex ? narrativePack.coldOpen.entryCta : 'Continue Briefing')
@@ -1048,6 +1072,27 @@ export function FranchiseSetupWizard() {
           0% { opacity: 0; }
           35% { opacity: 0.18; }
           100% { opacity: 0; }
+        }
+
+        @keyframes mfd-setup-primary-action-pulse {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-2px); }
+        }
+
+        .mfd-setup-primary-action--spotlight:not(:disabled) {
+          animation: mfd-setup-primary-action-pulse 1.1s steps(4, end) infinite;
+        }
+
+        .mfd-setup-primary-action--spotlight:focus-visible {
+          outline: 3px solid var(--mfd-cyan);
+          outline-offset: 3px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .mfd-setup-primary-action--spotlight {
+            animation: none !important;
+            transform: none !important;
+          }
         }
       `}</style>
     </div>

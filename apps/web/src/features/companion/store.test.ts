@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useChipStore } from './store';
 
 describe('useChipStore', () => {
@@ -13,7 +13,47 @@ describe('useChipStore', () => {
       dismissed: false,
       beat: 0,
       context: 'idle',
+      spotlightTargetId: null,
     });
+  });
+
+  it('sets and reads the spotlight target synchronously', () => {
+    useChipStore.getState().setSpotlightTarget('wizard.cold-open.continue');
+
+    expect(useChipStore.getState().spotlightTargetId).toBe('wizard.cold-open.continue');
+  });
+
+  it('clears the spotlight target synchronously', () => {
+    useChipStore.getState().setSpotlightTarget('wizard.team-select.confirm');
+    useChipStore.getState().setSpotlightTarget(null);
+
+    expect(useChipStore.getState().spotlightTargetId).toBeNull();
+  });
+
+  it('does not notify subscribers for an idempotent spotlight target set', () => {
+    const listener = vi.fn();
+    const unsubscribe = useChipStore.subscribe(listener);
+
+    useChipStore.getState().setSpotlightTarget('wizard.agm-hire.confirm');
+    useChipStore.getState().setSpotlightTarget('wizard.agm-hire.confirm');
+
+    unsubscribe();
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the spotlight target across dialogue changes', () => {
+    useChipStore.getState().setSpotlightTarget('wizard.depth-chart.confirm');
+    useChipStore.getState().showDialogue('chip.onboarding.beat-4', { context: 'onboarding' });
+    useChipStore.getState().advance();
+    useChipStore.getState().showWeeklyDialogue({
+      id: 'chip.weekly.cleanWin',
+      beat: 0,
+      pose: 'celebrate',
+      text: 'That was a grown-up win.',
+      archetype: 'weekly',
+    });
+
+    expect(useChipStore.getState().spotlightTargetId).toBe('wizard.depth-chart.confirm');
   });
 
   it('sets pose synchronously', () => {
@@ -49,6 +89,7 @@ describe('useChipStore', () => {
       pose: 'celebrate',
       currentDialogueId: 'chip.weekly.cleanWin',
       currentDialogueText: 'That was a grown-up win.',
+      lastWeeklyDialogue: expect.objectContaining({ id: 'chip.weekly.cleanWin' }),
       dismissed: false,
       context: 'event',
     });

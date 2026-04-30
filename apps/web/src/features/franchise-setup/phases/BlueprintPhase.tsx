@@ -18,7 +18,10 @@ export function BlueprintPhase({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Header */}
-      <div style={{ textAlign: 'center', padding: '20px 0', borderBottom: '2px solid var(--mfd-gold)' }}>
+      <div
+        data-spotlight-target="wizard.blueprint.mic-check"
+        style={{ textAlign: 'center', padding: '20px 0', borderBottom: '2px solid var(--mfd-gold)' }}
+      >
         <div style={{ ...display, fontSize: '28px', color: 'var(--mfd-gold)', lineHeight: 1.2 }}>
           {data.teamName.toUpperCase()}
         </div>

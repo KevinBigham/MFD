@@ -6,6 +6,7 @@ import {
   type ChipDockControl,
   type ChipDockControlStore,
 } from './ChipDock';
+import type { DialogueCatalogEntry } from './dialogue/types';
 import { CHIP_DOCK_STORAGE_KEY, createDefaultDockPrefs, readDockPrefs } from './dockPersistence';
 
 class MemoryStorage implements Storage {
@@ -41,10 +42,19 @@ function renderDock(markup: React.ReactElement): string {
 }
 
 function applyControl(control: ChipDockControl, storage = new MemoryStorage()) {
+  const lastWeeklyDialogue: DialogueCatalogEntry = {
+    id: 'chip.weekly.cleanWin',
+    beat: 0,
+    pose: 'celebrate',
+    text: 'That was a grown-up win.',
+    archetype: 'weekly',
+  };
   const store: ChipDockControlStore = {
     setPose: vi.fn(),
     dismiss: vi.fn(),
     reset: vi.fn(),
+    showWeeklyDialogue: vi.fn(),
+    lastWeeklyDialogue,
   };
   const prefs = applyDockControl(control, {
     storage,
@@ -73,6 +83,7 @@ describe('ChipDock', () => {
 
     expect(markup).toContain('data-app-shell="true"');
     expect(markup).not.toContain('data-chip-dock');
+    expect(markup).not.toContain('What now?');
   });
 
   it('renders a collapsed dock as a quiet Chip portrait without controls or bubble', () => {
@@ -103,6 +114,7 @@ describe('ChipDock', () => {
     expect(markup).toContain('Quiet this season');
     expect(markup).toContain('Reduce guidance');
     expect(markup).toContain('Disable animations');
+    expect(markup).toContain('What now?');
     expect(markup).toContain('Monday briefing: we survived the road game.');
   });
 
@@ -154,6 +166,17 @@ describe('ChipDock', () => {
     expect(prefs.animationsDisabled).toBe(true);
     expect(readDockPrefs(storage).animationsDisabled).toBe(true);
     expect(store.setPose).toHaveBeenCalledWith('idle');
+  });
+
+  it('what-now replays the most recent weekly dialogue without changing prefs', () => {
+    const { prefs, store, storage } = applyControl('whatNow');
+
+    expect(store.showWeeklyDialogue).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'chip.weekly.cleanWin',
+      text: 'That was a grown-up win.',
+    }));
+    expect(readDockPrefs(storage)).toEqual(prefs);
+    expect(prefs).toEqual(createDefaultDockPrefs());
   });
 
   it('persists collapsed state at the single dock localStorage key', () => {

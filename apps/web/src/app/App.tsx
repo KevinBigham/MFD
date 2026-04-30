@@ -1793,7 +1793,9 @@ export function App() {
     // franchise within the same SPA session.
     return (
       <ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>
-        <FranchiseSetupWizard />
+        {({ onStageAdvance }) => (
+          <FranchiseSetupWizard onStageAdvance={onStageAdvance} />
+        )}
       </ChipHost>
     );
   }
