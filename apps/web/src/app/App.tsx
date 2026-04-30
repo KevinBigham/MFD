@@ -86,6 +86,7 @@ const LazyDynastyCartridge = lazy(async () => ({ default: (await import('../feat
 const LazyLegacyTimeline = lazy(async () => ({ default: (await import('../features/legacy/LegacyTimeline')).LegacyTimeline }));
 const LazyNamedGamesBrowser = lazy(async () => ({ default: (await import('../features/legacy/NamedGamesBrowser')).NamedGamesBrowser }));
 const LazyBloodlinesViewer = lazy(async () => ({ default: (await import('../features/legacy/BloodlinesViewer')).BloodlinesViewer }));
+const LazyAwardsHub = lazy(async () => ({ default: (await import('../features/legacy/AwardsHub')).AwardsHub }));
 const LazyPowerRankings = lazy(async () => ({ default: (await import('../features/power-rankings/PowerRankings')).PowerRankings }));
 const LazyLeagueNews = lazy(async () => ({ default: (await import('../features/league-news/LeagueNews')).LeagueNews }));
 const LazyNewsroomDigest = lazy(async () => ({ default: (await import('../features/newsroom/NewsroomDigest')).NewsroomDigest }));
@@ -195,6 +196,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/league-pulse',  label: 'League Pulse',     shortLabel: 'Pulse',    icon: <Activity size={16} /> },
   { path: '/scenarios',    label: 'Scenarios',        shortLabel: 'Challenge', icon: <Crosshair size={16} /> },
   { path: '/legacy',        label: 'Legacy',           shortLabel: 'Legacy',   icon: <Trophy size={16} /> },
+  { path: '/awards',        label: 'Awards Hub',       shortLabel: 'Awards',   icon: <Trophy size={16} /> },
   { path: '/about',         label: 'About',            shortLabel: 'About',    icon: <FileText size={16} /> },
   { path: '/credits',       label: 'Credits',          shortLabel: 'Credits',  icon: <Award size={16} /> },
   { path: '/faq',           label: 'FAQ',              shortLabel: 'FAQ',      icon: <ScrollText size={16} /> },
@@ -216,7 +218,7 @@ const NAV_GROUPS: NavGroup[] = [
   { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/scouting', '/draft', '/free-agency', '/fa-targets', '/waivers', '/practice-squad', '/team-needs'] },
   { id: 'gameday',  label: 'GAMEDAY',  paths: ['/game-day', '/game-plan', '/broadcast', '/presentation', '/play-by-play', '/game-flow', '/film-room', '/schedule', '/super-bowl'] },
   { id: 'league',   label: 'LEAGUE',   paths: ['/standings', '/power-rankings', '/league-pulse', '/newsroom', '/news', '/social', '/commissioner', '/analytics', '/records', '/stat-central'] },
-  { id: 'dynasty',  label: 'DYNASTY',  paths: ['/franchise', '/owner', '/legends', '/legacy', '/scenarios'] },
+  { id: 'dynasty',  label: 'DYNASTY',  paths: ['/franchise', '/owner', '/legends', '/legacy', '/awards', '/scenarios'] },
   { id: 'meta',     label: 'SYSTEM',   paths: ['/about', '/credits', '/faq', '/dynasty', '/settings'] },
 ];
 
@@ -1554,6 +1556,16 @@ const bloodlinesRoute = createRoute({
   ),
 });
 
+const awardsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/awards',
+  component: () => (
+    <LazyRouteFrame label="awards hub">
+      <LazyAwardsHub />
+    </LazyRouteFrame>
+  ),
+});
+
 const powerRankingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/power-rankings',
@@ -1729,7 +1741,7 @@ const routeTree = rootRoute.addChildren([
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, franchiseBookRoute, legendsRoute, seasonRecapRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, newsroomRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
-  powerRankingsRoute, leaguePulseRoute, scenarioRoute, legacyRoute, namedGamesRoute, bloodlinesRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, playoffLoreDirectoryRoute, dynastyChronicleRoute, superBowlRoute, playerDevRoute, mentorsRoute, aboutRoute, creditsRoute, faqRoute, settingsRoute,
+  powerRankingsRoute, leaguePulseRoute, scenarioRoute, legacyRoute, namedGamesRoute, bloodlinesRoute, awardsRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, playoffLoreDirectoryRoute, dynastyChronicleRoute, superBowlRoute, playerDevRoute, mentorsRoute, aboutRoute, creditsRoute, faqRoute, settingsRoute,
 ]);
 
 const hashHistory = createHashHistory();
@@ -1768,6 +1780,7 @@ function currentAppRoute(): string {
 function PostSetupApp() {
   useChipEvents();
   const chipDockEnabled = isChipFeatureEnabled();
+  const chipGame = useGameStore((s) => s.game);
   const chipDockWeek = useGameStore((s) => s.game?.week ?? 0);
   const chipDockSeason = useGameStore((s) => s.game?.year ?? 0);
   const chipUserTeam = useGameStore(selectUserTeam);
@@ -1776,8 +1789,14 @@ function PostSetupApp() {
   const chipDialoguePose = useChipStore((s) => s.pose);
   const chipDockRoute = currentAppRoute();
   const chipRouteBeats = useActiveRouteBeats(chipDockRoute);
-  const chipPendingDecisions = useGameStore(countPendingDecisions);
-  const chipWhereAmI = useGameStore((state) => resolveWhereAmIState(state, chipPendingDecisions.total));
+  const chipPendingDecisions = useMemo(
+    () => countPendingDecisions({ game: chipGame }),
+    [chipGame],
+  );
+  const chipWhereAmI = useMemo(
+    () => resolveWhereAmIState({ game: chipGame }, chipPendingDecisions.total),
+    [chipGame, chipPendingDecisions.total],
+  );
 
   return (
     <ErrorBoundary>
