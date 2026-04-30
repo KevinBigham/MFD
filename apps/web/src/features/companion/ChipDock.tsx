@@ -9,6 +9,7 @@ import {
   readDockPrefs,
   resolveDockStorage,
   updateDockPrefs,
+  createDefaultDockPrefs,
   type DockPrefs,
 } from './dockPersistence';
 import {
@@ -85,6 +86,32 @@ const ROUTE_BEAT_DISMISS_CONTROLS = new Set<ChipDockControl>([
   'quietThisSeason',
   'collapse',
 ]);
+
+const LIVE_BEAT_DISMISS_CONTROLS = new Set<ChipDockControl>([
+  'quietForScreen',
+  'quietUntilNextWeek',
+  'quietThisSeason',
+  'collapse',
+]);
+
+export interface RouteBeatQuietGateOptions {
+  prefs: Pick<DockPrefs, 'quietForScreen' | 'quietUntilWeek' | 'quietForSeason'>;
+  currentRoute: string;
+  currentWeek: number;
+  currentSeason: number;
+}
+
+export function isRouteCoachingQuieted({
+  prefs,
+  currentRoute,
+  currentWeek,
+  currentSeason,
+}: RouteBeatQuietGateOptions): boolean {
+  if (prefs.quietForScreen && prefs.quietForScreen === currentRoute) return true;
+  if (prefs.quietForSeason !== null && prefs.quietForSeason === currentSeason) return true;
+  if (prefs.quietUntilWeek !== null && currentWeek <= prefs.quietUntilWeek) return true;
+  return false;
+}
 
 export interface RouteBeatProgressOptions {
   storage: Storage | null;
@@ -257,17 +284,27 @@ export function ChipDock({
   dynastyIndicator,
 }: ChipDockProps) {
   const backingStorage = storage === undefined ? resolveDockStorage() : storage;
-  const initialPrefs = useMemo(() => readDockPrefs(backingStorage), [backingStorage]);
-  const [localCollapsed, setLocalCollapsed] = useState(initialPrefs.collapsed);
-  const storeState = useChipStore();
-  const motionMode = reducedMotion || initialPrefs.animationsDisabled ? 'reduced' : 'animated';
+  const [prefs, setPrefs] = useState<DockPrefs>(() =>
+    backingStorage === null ? createDefaultDockPrefs() : readDockPrefs(backingStorage),
+  );
+  const [localCollapsed, setLocalCollapsed] = useState(prefs.collapsed);
+  const storePose = useChipStore((state) => state.pose);
+  const motionMode = reducedMotion || prefs.animationsDisabled ? 'reduced' : 'animated';
   const routeBeatSignature = routeBeats.map((beat) => beat.id).join('|');
   const globalRouteSkip = readOnboardingSkipState(backingStorage)?.skipped === true;
+  const resolvedRoute = resolveCurrentRoute(currentRoute);
+  const routeQuieted = isRouteCoachingQuieted({
+    prefs,
+    currentRoute: resolvedRoute,
+    currentWeek,
+    currentSeason,
+  });
   const eligibleRouteBeats = useMemo(() => {
     if (globalRouteSkip) return [];
+    if (routeQuieted) return [];
     const seenBeatIds = readChipReadReceipts(backingStorage);
     return routeBeats.filter((beat) => !seenBeatIds.has(beat.id));
-  }, [backingStorage, globalRouteSkip, routeBeatSignature, routeBeats]);
+  }, [backingStorage, globalRouteSkip, routeBeatSignature, routeBeats, routeQuieted]);
   const [routeBeatIndex, setRouteBeatIndex] = useState(0);
   const [dismissedRouteBeatSignature, setDismissedRouteBeatSignature] = useState<string | null>(null);
   const [activeLiveBeat, setActiveLiveBeat] = useState<DockLiveBeat | null>(null);
@@ -289,7 +326,7 @@ export function ChipDock({
     ? routeBeatPoseToChipPose(activeRouteBeat.pose)
     : activeLiveBeat
       ? routeBeatPoseToChipPose(activeLiveBeat.pose)
-      : storeState.pose;
+      : storePose;
 
   useEffect(() => {
     setRouteBeatIndex(0);
@@ -331,33 +368,42 @@ export function ChipDock({
     setLocalCollapsed(false);
   }, [whereAmI]);
 
+  const dismissLiveBeat = useCallback(() => {
+    setActiveLiveBeat(null);
+  }, []);
+
   const applyControl = useCallback(
     (control: ChipDockControl) => {
       if (activeRouteBeat && ROUTE_BEAT_DISMISS_CONTROLS.has(control)) {
         dismissRouteBeatSequence();
       }
-      const prefs = applyDockControl(control, {
+      if (activeLiveBeat && LIVE_BEAT_DISMISS_CONTROLS.has(control)) {
+        setActiveLiveBeat(null);
+      }
+      const nextPrefs = applyDockControl(control, {
         storage: backingStorage,
         chipStore: useChipStore.getState(),
-        currentRoute: resolveCurrentRoute(currentRoute),
+        currentRoute: resolvedRoute,
         currentWeek,
         currentSeason,
         now,
       });
+      setPrefs(nextPrefs);
       if (control === 'collapse') setLocalCollapsed(true);
       if (control === 'expand') setLocalCollapsed(false);
-      if (control === 'disableAnimations') setLocalCollapsed(prefs.collapsed);
+      if (control === 'disableAnimations') setLocalCollapsed(nextPrefs.collapsed);
       onCollapseToggle?.();
     },
     [
+      activeLiveBeat,
       activeRouteBeat,
       backingStorage,
-      currentRoute,
       currentSeason,
       currentWeek,
       dismissRouteBeatSequence,
       now,
       onCollapseToggle,
+      resolvedRoute,
     ],
   );
 
@@ -455,6 +501,19 @@ export function ChipDock({
                 skippable={false}
                 reducedMotion={motionMode === 'reduced'}
               />
+              <div className="mfd-chip-dock__beat-actions">
+                <PixelButton
+                  accent="gold"
+                  className="mfd-chip-dock__control"
+                  onClick={dismissLiveBeat}
+                  aria-label="Got it"
+                  title="Got it"
+                  data-chip-live-beat-dismiss="true"
+                >
+                  <Check aria-hidden="true" />
+                  <span className="mfd-chip-dock__control-label">Got it</span>
+                </PixelButton>
+              </div>
             </div>
           ) : children && <div className="mfd-chip-dock__bubble">{children}</div>}
           <div className="mfd-chip-dock__controls" data-chip-dock-controls="true">

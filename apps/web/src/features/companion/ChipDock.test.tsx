@@ -4,6 +4,7 @@ import {
   ChipDock,
   applyDockControl,
   createPendingDecisionsBeat,
+  isRouteCoachingQuieted,
   persistRouteBeatProgress,
   resolveEffectiveDockCollapsed,
   resolveNextRouteBeatIndex,
@@ -366,6 +367,162 @@ describe('ChipDock', () => {
       ...createDefaultDockPrefs(),
       collapsed: true,
       lastUpdated: '2026-04-29T19:05:00.000Z',
+    });
+  });
+
+  describe('quiet preference enforcement (5-pass review fix [3])', () => {
+    it('isRouteCoachingQuieted returns true when quietForScreen matches the current route', () => {
+      expect(
+        isRouteCoachingQuieted({
+          prefs: { quietForScreen: '/roster', quietUntilWeek: null, quietForSeason: null },
+          currentRoute: '/roster',
+          currentWeek: 5,
+          currentSeason: 2032,
+        }),
+      ).toBe(true);
+    });
+
+    it('isRouteCoachingQuieted returns true when quietForSeason matches the current season', () => {
+      expect(
+        isRouteCoachingQuieted({
+          prefs: { quietForScreen: null, quietUntilWeek: null, quietForSeason: 2032 },
+          currentRoute: '/roster',
+          currentWeek: 5,
+          currentSeason: 2032,
+        }),
+      ).toBe(true);
+    });
+
+    it('isRouteCoachingQuieted returns true while currentWeek <= quietUntilWeek', () => {
+      expect(
+        isRouteCoachingQuieted({
+          prefs: { quietForScreen: null, quietUntilWeek: 7, quietForSeason: null },
+          currentRoute: '/roster',
+          currentWeek: 7,
+          currentSeason: 2032,
+        }),
+      ).toBe(true);
+      expect(
+        isRouteCoachingQuieted({
+          prefs: { quietForScreen: null, quietUntilWeek: 7, quietForSeason: null },
+          currentRoute: '/roster',
+          currentWeek: 8,
+          currentSeason: 2032,
+        }),
+      ).toBe(false);
+    });
+
+    it('isRouteCoachingQuieted returns false when no quiet preference applies', () => {
+      expect(
+        isRouteCoachingQuieted({
+          prefs: { quietForScreen: '/cap-laboratory', quietUntilWeek: null, quietForSeason: null },
+          currentRoute: '/roster',
+          currentWeek: 5,
+          currentSeason: 2032,
+        }),
+      ).toBe(false);
+    });
+
+    it('keeps the dock collapsed when quietForScreen suppresses the active route', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(
+        CHIP_DOCK_STORAGE_KEY,
+        JSON.stringify({
+          ...createDefaultDockPrefs(),
+          quietForScreen: '/roster',
+        }),
+      );
+
+      const markup = renderDock(
+        <ChipDock
+          collapsed
+          currentRoute="/roster"
+          routeBeats={ROUTE_BEAT_REGISTRY.roster}
+          storage={storage}
+        />,
+      );
+
+      expect(markup).toContain('data-chip-dock-state="collapsed"');
+      expect(markup).not.toContain('data-chip-route-beat');
+    });
+
+    it('keeps the dock collapsed when quietForSeason suppresses route beats', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(
+        CHIP_DOCK_STORAGE_KEY,
+        JSON.stringify({
+          ...createDefaultDockPrefs(),
+          quietForSeason: 2032,
+        }),
+      );
+
+      const markup = renderDock(
+        <ChipDock
+          collapsed
+          currentRoute="/roster"
+          currentSeason={2032}
+          routeBeats={ROUTE_BEAT_REGISTRY.roster}
+          storage={storage}
+        />,
+      );
+
+      expect(markup).toContain('data-chip-dock-state="collapsed"');
+      expect(markup).not.toContain('data-chip-route-beat');
+    });
+
+    it('keeps the dock collapsed while currentWeek <= quietUntilWeek', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(
+        CHIP_DOCK_STORAGE_KEY,
+        JSON.stringify({
+          ...createDefaultDockPrefs(),
+          quietUntilWeek: 7,
+        }),
+      );
+
+      const markup = renderDock(
+        <ChipDock
+          collapsed
+          currentRoute="/roster"
+          currentWeek={7}
+          routeBeats={ROUTE_BEAT_REGISTRY.roster}
+          storage={storage}
+        />,
+      );
+
+      expect(markup).toContain('data-chip-dock-state="collapsed"');
+      expect(markup).not.toContain('data-chip-route-beat');
+    });
+  });
+
+  describe('animations preference propagation (5-pass review fix [2])', () => {
+    it('renders reduced motion when animationsDisabled is persisted in storage', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(
+        CHIP_DOCK_STORAGE_KEY,
+        JSON.stringify({
+          ...createDefaultDockPrefs(),
+          animationsDisabled: true,
+        }),
+      );
+
+      const markup = renderDock(<ChipDock collapsed={false} storage={storage} />);
+
+      expect(markup).toContain('data-chip-dock-motion="reduced"');
+    });
+
+    it('renders animated motion when animationsDisabled is false in storage', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(CHIP_DOCK_STORAGE_KEY, JSON.stringify(createDefaultDockPrefs()));
+
+      const markup = renderDock(<ChipDock collapsed={false} storage={storage} />);
+
+      expect(markup).toContain('data-chip-dock-motion="animated"');
     });
   });
 });
