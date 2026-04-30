@@ -364,6 +364,11 @@ vi.mock('../../app/store/game-store', () => ({
   selectCeremonies: (state: typeof mockState) => state.ceremonies,
   selectDynastyScore: (state: typeof mockState) => state.dynastyScore,
   selectDynastyTimeline: (state: typeof mockState) => state.dynastyTimeline,
+  selectNamedGames: (state: typeof mockState) =>
+    state.dynastyTimeline
+      .filter((event): event is typeof event & { namedGame: NonNullable<typeof event.namedGame> } =>
+        event.type === 'named_game' && Boolean(event.namedGame))
+      .map((event) => event.namedGame),
   selectHallOfFame: (state: typeof mockState) => state.hallOfFame,
   selectRecords: (state: typeof mockState) => state.records,
   selectSeasonReports: (state: typeof mockState) => state.seasonReports,
@@ -405,5 +410,7 @@ describe('LegacyTimeline', () => {
     expect(markup).toContain('NAMED GAME');
     expect(markup).toContain('The Snow Bowl');
     expect(markup).toContain('TROPHY FILED');
+    expect(markup).toContain('Open Named Games');
+    expect(markup).toContain('1 named games filed');
   });
 });

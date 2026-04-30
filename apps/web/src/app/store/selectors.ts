@@ -52,6 +52,8 @@ import type {
   MedicalStaff,
   MilestoneReached,
   MultiYearProjection,
+  NamedGame,
+  NamedGameArchetype,
   NewsItem,
   OffseasonState,
   OffFieldEvent,
@@ -936,6 +938,36 @@ export const selectDynastyTimeline: (state: GameStoreState) => DynastyEvent[] = 
       weighted(b.importance) - weighted(a.importance) ||
       a.id.localeCompare(b.id));
 });
+export const selectNamedGames: (state: GameStoreState) => readonly NamedGame[] = memoByGame((state) => {
+  const events = selectDynastyTimeline(state);
+  const games: NamedGame[] = [];
+  for (const event of events) {
+    if (event.type === 'named_game' && event.namedGame) {
+      games.push(event.namedGame);
+    }
+  }
+  // selectDynastyTimeline already sorts year/week desc; named games inherit
+  // that ordering. Re-sort defensively in case a future selector changes the
+  // upstream contract.
+  games.sort((a, b) => b.year - a.year || b.week - a.week);
+  return games;
+});
+
+export const NAMED_GAME_ARCHETYPES: readonly NamedGameArchetype[] = [
+  'yard_miracle',
+  'dagger',
+  'comeback',
+  'collapse',
+  'heartbreaker',
+  'ghost_game',
+  'statement',
+  'gauntlet_game',
+  'snow_bowl',
+  'shootout',
+  'coin_flip',
+  'rout',
+];
+
 export const selectDynastyScore = (state: GameStoreState): number => {
   const team = selectUserTeam(state);
   if (!state.game || !team) return 0;

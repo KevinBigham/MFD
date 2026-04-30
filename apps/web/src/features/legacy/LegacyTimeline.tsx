@@ -23,6 +23,7 @@ import {
   selectDynastyTimeline,
   selectHallOfFame,
   selectHistoricalMentoringChains,
+  selectNamedGames,
   selectRecords,
   selectSeasonReports,
   selectUserMentoringPairs,
@@ -144,6 +145,7 @@ export function LegacyTimeline() {
   const dynastyScore = useGameStore(selectDynastyScore);
   const dynastyTimeline = useGameStore(selectDynastyTimeline);
   const hallOfFame = useGameStore(selectHallOfFame);
+  const namedGames = useGameStore(selectNamedGames);
   const records = useGameStore(selectRecords);
   const seasonReports = useGameStore(selectSeasonReports);
   const activeMentoringPairs = useGameStore(selectUserMentoringPairs);
@@ -292,6 +294,30 @@ export function LegacyTimeline() {
             ))}
           </div>
         </PixelPanel>
+      ) : null}
+
+      {namedGames.length > 0 ? (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: '12px',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          padding: '10px 12px',
+          border: '3px solid var(--mfd-gold)',
+          background: 'var(--mfd-bg-2)',
+        }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ ...monoSm, color: '#fff' }}>{namedGames.length} named games filed</span>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              Trophy-tier results the league will retell.
+            </span>
+          </div>
+          <PixelButton accent="gold" onClick={() => navigateTo('/legacy/named-games')}>
+            Open Named Games
+          </PixelButton>
+        </div>
       ) : null}
 
       <div style={autoGrid(360)}>
