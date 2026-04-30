@@ -720,7 +720,10 @@ export const selectCeremonies: (state: GameStoreState) => Ceremony[] = memoByGam
     : EMPTY_CEREMONIES);
 export const selectTeams = (state: GameStoreState) => state.game?.teams ?? null;
 export const selectOwners = (state: GameStoreState) => state.game?.owners ?? null;
-export const selectAwardsHistory = (state: GameStoreState): AwardsHistoryEntry[] => state.game?.awardsHistory ?? EMPTY_AWARDS;
+export const selectAwardsHistory: (state: GameStoreState) => AwardsHistoryEntry[] = memoByGame((state) =>
+  state.game
+    ? [...state.game.awardsHistory].sort((a, b) => b.year - a.year)
+    : EMPTY_AWARDS);
 export const selectHallOfFame = (state: GameStoreState): HallOfFameEntry[] => state.game?.hallOfFame ?? EMPTY_HALL_OF_FAME;
 export const selectRecords = (state: GameStoreState): RecordBook => state.game?.records ?? EMPTY_RECORD_BOOK;
 export const selectPowerRankings = (state: GameStoreState): PowerRanking[] => state.game?.powerRankings ?? EMPTY_POWER_RANKINGS;

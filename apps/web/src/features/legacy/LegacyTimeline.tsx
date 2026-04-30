@@ -5,6 +5,7 @@ import {
   PixelPanel,
   PixelTable,
 } from '@mfd/design-system/components';
+import { Trophy } from 'lucide-react';
 import type {
   AwardsHistoryEntry,
   FranchiseHistoryEntry,
@@ -243,6 +244,25 @@ export function LegacyTimeline() {
         <PixelMetricCard label="Legends" value={legendCount} accent="cyan" detail="Players who peaked at 85+ overall" />
         <PixelMetricCard label="Dynasty Score" value={dynastyScore} accent="gold" detail="Championships, playoff trips, awards, and records blended" />
       </div>
+
+      {awardsHistory.length > 0 ? (
+        <PixelPanel title="Awards Hub" accent="gold">
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>
+                Browse every MVP race, rookie breakout, and awards-night class in one place.
+              </span>
+              <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                {awardsHistory.length} archived class{awardsHistory.length === 1 ? '' : 'es'} ready.
+              </span>
+            </div>
+            <PixelButton accent="gold" onClick={() => navigateTo('/awards')}>
+              <Trophy size={14} aria-hidden="true" />
+              Awards Hub
+            </PixelButton>
+          </div>
+        </PixelPanel>
+      ) : null}
 
       <AchievementGallery />
 

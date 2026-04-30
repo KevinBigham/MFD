@@ -91,13 +91,18 @@ describe('App Chip setup wiring', () => {
 
   it('passes pending decision counts into the post-setup ChipDock', () => {
     expect(content).toContain("import { countPendingDecisions } from '../features/companion/decisionsPending'");
-    expect(content).toContain('const chipPendingDecisions = useGameStore(countPendingDecisions);');
+    expect(content).toContain('const chipGame = useGameStore((s) => s.game);');
+    expect(content).toContain('const chipPendingDecisions = useMemo(');
+    expect(content).toContain('() => countPendingDecisions({ game: chipGame }),');
+    expect(content).toContain('[chipGame],');
     expect(content).toContain('pendingDecisions={chipPendingDecisions}');
   });
 
   it('passes Where Am I season context into the post-setup ChipDock', () => {
     expect(content).toContain("import { resolveWhereAmIState } from '../features/companion/whereAmI'");
-    expect(content).toContain('const chipWhereAmI = useGameStore((state) => resolveWhereAmIState(state, chipPendingDecisions.total));');
+    expect(content).toContain('const chipWhereAmI = useMemo(');
+    expect(content).toContain('() => resolveWhereAmIState({ game: chipGame }, chipPendingDecisions.total),');
+    expect(content).toContain('[chipGame, chipPendingDecisions.total],');
     expect(content).toContain('whereAmI={chipWhereAmI}');
   });
 

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createEmptyRecordBook } from '@mfd/engine';
 import { LegacyTimeline } from './LegacyTimeline';
@@ -357,6 +357,8 @@ const mockState = {
   ],
 };
 
+const baseAwardsHistory = mockState.awardsHistory;
+
 vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: typeof mockState) => unknown) => selector(mockState),
   selectUserTeam: (state: typeof mockState) => Object.values(state.game.teams)[0],
@@ -380,6 +382,10 @@ vi.mock('../../app/store/game-store', () => ({
 }));
 
 describe('LegacyTimeline', () => {
+  beforeEach(() => {
+    mockState.awardsHistory = baseAwardsHistory;
+  });
+
   it('renders season history plus awards, hall of fame, records, and mentoring sections', () => {
     const markup = renderToStaticMarkup(<LegacyTimeline />);
 
@@ -413,5 +419,39 @@ describe('LegacyTimeline', () => {
     expect(markup).toContain('TROPHY FILED');
     expect(markup).toContain('Open Named Games');
     expect(markup).toContain('1 named games filed');
+  });
+
+  it('renders the Awards Hub CTA when awards exist', () => {
+    const markup = renderToStaticMarkup(<LegacyTimeline />);
+
+    expect(markup).toContain('--- AWARDS HUB ---');
+    expect(markup).toContain('Browse every MVP race, rookie breakout, and awards-night class in one place.');
+    expect(markup).toContain('1 archived class ready.');
+  });
+
+  it('hides the Awards Hub CTA when no awards are archived', () => {
+    mockState.awardsHistory = [];
+
+    const markup = renderToStaticMarkup(<LegacyTimeline />);
+
+    expect(markup).not.toContain('--- AWARDS HUB ---');
+    expect(markup).not.toContain('Browse every MVP race');
+  });
+
+  it('keeps the inline awards history empty state when the CTA is hidden', () => {
+    mockState.awardsHistory = [];
+
+    const markup = renderToStaticMarkup(<LegacyTimeline />);
+
+    expect(markup).toContain('--- AWARDS HISTORY ---');
+    expect(markup).toContain('Award classes will appear once the first season is completed.');
+  });
+
+  it('keeps the legacy metric row at the top of the screen', () => {
+    const markup = renderToStaticMarkup(<LegacyTimeline />);
+
+    expect(markup.indexOf('Seasons Tracked')).toBeLessThan(markup.indexOf('--- AWARDS HUB ---'));
+    expect(markup.indexOf('Championships')).toBeLessThan(markup.indexOf('--- AWARDS HUB ---'));
+    expect(markup.indexOf('Dynasty Score')).toBeLessThan(markup.indexOf('--- AWARDS HUB ---'));
   });
 });
