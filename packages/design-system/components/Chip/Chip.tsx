@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import './Chip.css';
 import IdlePose from './poses/idle';
+import GreetingPose from './poses/greeting';
 import TalkPose from './poses/talk';
 import PointLeftPose from './poses/point-left';
 import PointRightPose from './poses/point-right';
@@ -8,10 +9,14 @@ import WavePose from './poses/wave';
 import ThinkPose from './poses/think';
 import CelebratePose from './poses/celebrate';
 import ConcernPose from './poses/concern';
+import WarningPose from './poses/warning';
+import SurprisedPose from './poses/surprised';
 import MicCheckPose from './poses/mic-check';
+import ThumbsUpPose from './poses/thumbs-up';
 
 export const CHIP_POSES = [
   'idle',
+  'greeting',
   'talk',
   'point-left',
   'point-right',
@@ -19,7 +24,10 @@ export const CHIP_POSES = [
   'think',
   'celebrate',
   'concern',
+  'warning',
+  'surprised',
   'mic-check',
+  'thumbs-up',
 ] as const;
 
 export type ChipPose = (typeof CHIP_POSES)[number];
@@ -42,6 +50,7 @@ const CHIP_SIZE_PX: Record<ChipSize, number> = {
 
 const poseComponents: Record<ChipPose, ComponentType> = {
   idle: IdlePose,
+  greeting: GreetingPose,
   talk: TalkPose,
   'point-left': PointLeftPose,
   'point-right': PointRightPose,
@@ -49,7 +58,10 @@ const poseComponents: Record<ChipPose, ComponentType> = {
   think: ThinkPose,
   celebrate: CelebratePose,
   concern: ConcernPose,
+  warning: WarningPose,
+  surprised: SurprisedPose,
   'mic-check': MicCheckPose,
+  'thumbs-up': ThumbsUpPose,
 };
 
 export function Chip({
