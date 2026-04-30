@@ -362,6 +362,7 @@ vi.mock('../../app/store/game-store', () => ({
   selectUserTeam: (state: typeof mockState) => Object.values(state.game.teams)[0],
   selectAwardsHistory: (state: typeof mockState) => state.awardsHistory,
   selectCeremonies: (state: typeof mockState) => state.ceremonies,
+  selectBloodlineFamilies: () => [],
   selectDynastyScore: (state: typeof mockState) => state.dynastyScore,
   selectDynastyTimeline: (state: typeof mockState) => state.dynastyTimeline,
   selectNamedGames: (state: typeof mockState) =>

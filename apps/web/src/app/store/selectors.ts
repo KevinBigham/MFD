@@ -54,6 +54,8 @@ import type {
   MultiYearProjection,
   NamedGame,
   NamedGameArchetype,
+  BloodlineInfo,
+  BloodlineLegacyTag,
   NewsItem,
   OffseasonState,
   OffFieldEvent,
@@ -967,6 +969,94 @@ export const NAMED_GAME_ARCHETYPES: readonly NamedGameArchetype[] = [
   'coin_flip',
   'rout',
 ];
+
+export interface BloodlineFamilyChild {
+  playerId: string;
+  name: string;
+  position: string;
+  ovr: number;
+  age: number;
+  teamId: string | null;
+  source: 'roster' | 'draft';
+  isUserPlayer: boolean;
+}
+
+export interface BloodlineFamily {
+  parentPlayerId: string;
+  parentName: string;
+  parentTeamId: string;
+  parentPosition: string;
+  legacyTag: BloodlineLegacyTag;
+  children: BloodlineFamilyChild[];
+}
+
+export const selectBloodlineFamilies: (state: GameStoreState) => readonly BloodlineFamily[] = memoByGame((state) => {
+  if (!state.game) return [];
+  const userTeamId = selectUserTeamId(state);
+  const families = new Map<string, BloodlineFamily>();
+
+  const recordChild = (
+    bloodline: BloodlineInfo,
+    child: Omit<BloodlineFamilyChild, 'isUserPlayer'> & { teamId: string | null },
+  ) => {
+    let family = families.get(bloodline.parentPlayerId);
+    if (!family) {
+      family = {
+        parentPlayerId: bloodline.parentPlayerId,
+        parentName: bloodline.parentName,
+        parentTeamId: bloodline.parentTeamId,
+        parentPosition: bloodline.parentPosition,
+        legacyTag: bloodline.legacyTag,
+        children: [],
+      };
+      families.set(bloodline.parentPlayerId, family);
+    }
+    family.children.push({
+      ...child,
+      isUserPlayer: userTeamId !== null && child.teamId === userTeamId,
+    });
+  };
+
+  for (const player of Object.values(state.game.players)) {
+    if (!player.bloodline) continue;
+    recordChild(player.bloodline, {
+      playerId: player.id,
+      name: player.name,
+      position: player.pos,
+      ovr: player.ovr,
+      age: player.age,
+      teamId: player.teamId,
+      source: 'roster',
+    });
+  }
+
+  for (const prospect of state.game.draftClass) {
+    if (!prospect.bloodline) continue;
+    recordChild(prospect.bloodline, {
+      playerId: prospect.id,
+      name: `${prospect.firstName} ${prospect.lastName}`,
+      position: prospect.pos,
+      // Draft prospects don't carry an `ovr` until they're drafted; surface the
+      // public-facing scout grade so users have a comparable signal.
+      ovr: prospect.scoutGrade,
+      // Prospect age isn't tracked on the prospect record; 21 is the canonical
+      // college-eligible age the engine uses as a default in regen paths.
+      age: 21,
+      teamId: null,
+      source: 'draft',
+    });
+  }
+
+  for (const family of families.values()) {
+    family.children.sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name));
+  }
+
+  return [...families.values()].sort((a, b) => {
+    const aPeak = a.children[0]?.ovr ?? 0;
+    const bPeak = b.children[0]?.ovr ?? 0;
+    return bPeak - aPeak || b.children.length - a.children.length || a.parentName.localeCompare(b.parentName);
+  });
+});
 
 export const selectDynastyScore = (state: GameStoreState): number => {
   const team = selectUserTeam(state);
