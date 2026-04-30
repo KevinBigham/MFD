@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   createChipEventBridge,
   type ChipEvent,
+  type ChipPoseEventTrigger,
+  type ChipPosePriority,
   type ChipStoreSnapshot,
   type GameStoreSnapshot,
   type SubscribableStore,
@@ -50,6 +52,10 @@ function makeGame(overrides: Partial<GameStoreSnapshot> = {}): GameStoreSnapshot
   };
 }
 
+function makePoseEvent(trigger: ChipPoseEventTrigger, id = `chip.pose.${trigger}`) {
+  return { id, trigger };
+}
+
 function makeChip(overrides: Partial<ChipStoreSnapshot> = {}): ChipStoreSnapshot {
   return {
     dismissed: false,
@@ -68,15 +74,30 @@ function setupBridge({
   const gameStore = new FakeStore(makeGame());
   const chipStore = new FakeStore(makeChip());
   const events: ChipEvent[] = [];
+  const poseSets: Array<{
+    pose: string;
+    durationMs: number;
+    nowMs: number;
+    priority: ChipPosePriority;
+  }> = [];
   const bridge = createChipEventBridge({
     gameStore,
     chipStore,
     dockPrefs: () => prefs,
     currentRoute: () => route,
     now: () => new Date('2026-04-29T20:00:00.000Z'),
+    setPose: (pose, options) => {
+      const normalized = typeof options === 'number' ? { durationMs: options } : options;
+      poseSets.push({
+        pose,
+        durationMs: normalized?.durationMs ?? 0,
+        nowMs: normalized?.nowMs ?? 0,
+        priority: normalized?.priority ?? 'routine',
+      });
+    },
     onEvent: (event) => events.push(event),
   });
-  return { bridge, gameStore, chipStore, events };
+  return { bridge, gameStore, chipStore, events, poseSets };
 }
 
 describe('createChipEventBridge', () => {
@@ -147,6 +168,51 @@ describe('createChipEventBridge', () => {
     gameStore.setState(makeGame({ currentWeek: 4 }));
 
     expect(events.map((event) => event.currentWeek)).toEqual([2, 3]);
+  });
+
+  it.each([
+    ['USER_TEAM_TOUCHDOWN', 'celebrate', 4000, 'celebrate'],
+    ['USER_TEAM_FIRST_LAUNCH', 'greeting', 5000, 'routine'],
+    ['CAP_PROJECTION_OVER_LIMIT', 'warning', 3500, 'warning'],
+    ['USER_TEAM_LOSS_BIG', 'sad', 6000, 'sad'],
+    ['PLAYOFF_UPSET_WIN', 'surprised', 4000, 'routine'],
+    ['TRADE_RUMOR_FOR_USER_PLAYER', 'whispering', 3500, 'routine'],
+    ['PLAYER_RETIREMENT_USER_HOF', 'disappointed', 4000, 'sad'],
+    ['USER_DECISION_LOCKED_IN', 'thumbs-up', 1500, 'routine'],
+  ] as const)(
+    'maps %s pose events to %s for %dms',
+    (trigger, pose, durationMs, priority) => {
+      const { bridge, gameStore, poseSets } = setupBridge();
+      bridge.start();
+
+      gameStore.setState(makeGame({
+        poseEvents: [makePoseEvent(trigger)],
+      }));
+
+      expect(poseSets).toEqual([
+        {
+          pose,
+          durationMs,
+          nowMs: Date.parse('2026-04-29T20:00:00.000Z'),
+          priority,
+        },
+      ]);
+    },
+  );
+
+  it('dedupes pose event ids across repeated snapshots', () => {
+    const { bridge, gameStore, poseSets } = setupBridge();
+    bridge.start();
+
+    gameStore.setState(makeGame({
+      poseEvents: [makePoseEvent('CAP_PROJECTION_OVER_LIMIT', 'cap-warning-1')],
+    }));
+    gameStore.setState(makeGame({
+      currentWeek: 2,
+      poseEvents: [makePoseEvent('CAP_PROJECTION_OVER_LIMIT', 'cap-warning-1')],
+    }));
+
+    expect(poseSets).toHaveLength(1);
   });
 
   it('start and stop manage subscriptions without import-time side effects', () => {

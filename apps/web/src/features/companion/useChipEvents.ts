@@ -208,6 +208,7 @@ export function useChipEvents(opts: UseChipEventsOptions = {}): void {
         dockPrefs: () => readDockPrefs(resolveDockStorage()),
         currentRoute,
         now: () => new Date(),
+        setPose: (pose, options) => useChipStore.getState().setPose(pose, options),
         onEvent: (event) => controller.handleEvent(event),
       }),
       chipStore,

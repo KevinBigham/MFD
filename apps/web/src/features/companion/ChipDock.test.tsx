@@ -16,6 +16,7 @@ import { CHIP_DOCK_STORAGE_KEY, createDefaultDockPrefs, readDockPrefs } from './
 import { CHIP_ONBOARDING_STORAGE_KEY } from './ChipHost';
 import { CHIP_READ_RECEIPTS_STORAGE_KEY, readChipReadReceipts } from './readReceipts';
 import { ROUTE_BEAT_REGISTRY } from '../route-coaching/routeBeatRegistry';
+import { useChipStore } from './store';
 
 class MemoryStorage implements Storage {
   private readonly backing = new Map<string, string>();
@@ -78,6 +79,7 @@ function applyControl(control: ChipDockControl, storage = new MemoryStorage()) {
 describe('ChipDock', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+    useChipStore.getState().reset();
   });
 
   it('returns children only when the Chip feature flag is disabled', () => {
@@ -124,6 +126,15 @@ describe('ChipDock', () => {
     expect(markup).toContain('Disable animations');
     expect(markup).toContain('What now?');
     expect(markup).toContain('Monday briefing: we survived the road game.');
+  });
+
+  it('uses the store currentPose for the portrait when no live beat overrides it', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    useChipStore.getState().setPose('warning');
+
+    const markup = renderDock(<ChipDock collapsed={false} storage={new MemoryStorage()} />);
+
+    expect(markup).toContain('data-chip-pose="warning"');
   });
 
   it('auto-expands and renders the first unseen route beat', () => {
