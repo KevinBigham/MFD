@@ -37,6 +37,7 @@ import { FranchiseSetupWizard } from '../features/franchise-setup/FranchiseSetup
 import { readFirstTenMinutesCompleted } from '../features/franchise-setup/setupPersistence';
 import { ChipHost, isChipFeatureEnabled, type ChipHostStage } from '../features/companion';
 import { ChipDock } from '../features/companion/ChipDock';
+import { PoseEventEmitter } from '../features/companion/PoseEventEmitter';
 import { useChipEvents } from '../features/companion/useChipEvents';
 import { useChipStore } from '../features/companion/store';
 import { countPendingDecisions } from '../features/companion/decisionsPending';
@@ -1869,13 +1870,21 @@ export function App() {
     // chipNewGame would go stale if a user finishes setup and starts another
     // franchise within the same SPA session.
     return (
-      <ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>
-        {({ onStageAdvance }) => (
-          <FranchiseSetupWizard onStageAdvance={onStageAdvance} />
-        )}
-      </ChipHost>
+      <>
+        <PoseEventEmitter firstLaunchActive={isChipNewGameSetup()} />
+        <ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>
+          {({ onStageAdvance }) => (
+            <FranchiseSetupWizard onStageAdvance={onStageAdvance} />
+          )}
+        </ChipHost>
+      </>
     );
   }
 
-  return <PostSetupApp />;
+  return (
+    <>
+      <PoseEventEmitter />
+      <PostSetupApp />
+    </>
+  );
 }
