@@ -3,7 +3,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import {
   ChipDock,
   applyDockControl,
+  createPendingDecisionsBeat,
   persistRouteBeatProgress,
+  resolveEffectiveDockCollapsed,
   resolveNextRouteBeatIndex,
   type ChipDockControl,
   type ChipDockControlStore,
@@ -201,6 +203,41 @@ describe('ChipDock', () => {
 
     expect(markup).toContain('data-chip-dock-motion="reduced"');
     expect(markup).toContain('data-chip-motion="reduced"');
+  });
+
+  it('hides the pending-decisions badge at zero', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(<ChipDock collapsed={false} pendingDecisions={{ total: 0 }} />);
+
+    expect(markup).not.toContain('data-chip-pending-decisions');
+  });
+
+  it('shows a gold pending-decisions count badge when positive', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(<ChipDock collapsed pendingDecisions={{ total: 7 }} />);
+
+    expect(markup).toContain('data-chip-pending-decisions="true"');
+    expect(markup).toContain('aria-label="7 decisions pending"');
+    expect(markup).toContain('>7</button>');
+  });
+
+  it('treats the pending-decisions beat as an active dock expansion', () => {
+    expect(resolveEffectiveDockCollapsed({
+      activeRouteBeat: false,
+      activeLiveBeat: true,
+      controlledCollapsed: true,
+      localCollapsed: true,
+    })).toBe(false);
+  });
+
+  it('creates pending-decisions dock copy with the live count', () => {
+    expect(createPendingDecisionsBeat(1)).toEqual({
+      id: 'chip.dock.pending',
+      pose: 'thinking',
+      text: '1 decisions waiting.',
+    });
   });
 
   it('quiet-for-screen writes the current route and dismisses the active dialogue', () => {

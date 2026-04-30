@@ -39,6 +39,7 @@ import { ChipHost, isChipFeatureEnabled, type ChipHostStage } from '../features/
 import { ChipDock } from '../features/companion/ChipDock';
 import { useChipEvents } from '../features/companion/useChipEvents';
 import { useChipStore } from '../features/companion/store';
+import { countPendingDecisions } from '../features/companion/decisionsPending';
 import { useActiveRouteBeats } from '../features/route-coaching/useActiveRouteBeats';
 import { BootScreen } from './BootScreen';
 import { MondayBriefing } from '../features/monday-briefing/MondayBriefing';
@@ -1750,6 +1751,7 @@ function PostSetupApp() {
   const chipDialoguePose = useChipStore((s) => s.pose);
   const chipDockRoute = currentAppRoute();
   const chipRouteBeats = useActiveRouteBeats(chipDockRoute);
+  const chipPendingDecisions = useGameStore(countPendingDecisions);
 
   return (
     <ErrorBoundary>
@@ -1760,6 +1762,7 @@ function PostSetupApp() {
           currentSeason={chipDockSeason}
           currentRoute={chipDockRoute}
           routeBeats={chipRouteBeats}
+          pendingDecisions={chipPendingDecisions}
         >
           {chipDialogueText ? (
             <ChipDialogueBubble

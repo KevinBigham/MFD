@@ -56,6 +56,7 @@ export interface ChipDockProps {
   currentWeek?: number;
   currentSeason?: number;
   routeBeats?: readonly RouteBeat[];
+  pendingDecisions?: { total?: number };
 }
 
 interface DockControlButton {
@@ -85,6 +86,37 @@ export interface RouteBeatProgressOptions {
   storage: Storage | null;
   beatIds: Iterable<string>;
   markBeatSeen?: (id: string) => void;
+}
+
+interface DockLiveBeat {
+  id: 'chip.dock.pending';
+  pose: ChipRoutePose;
+  text: string;
+}
+
+export interface EffectiveDockCollapsedOptions {
+  activeRouteBeat: boolean;
+  activeLiveBeat: boolean;
+  controlledCollapsed?: boolean;
+  localCollapsed: boolean;
+}
+
+export function resolveEffectiveDockCollapsed({
+  activeRouteBeat,
+  activeLiveBeat,
+  controlledCollapsed,
+  localCollapsed,
+}: EffectiveDockCollapsedOptions): boolean {
+  if (activeRouteBeat || activeLiveBeat) return false;
+  return controlledCollapsed ?? localCollapsed;
+}
+
+export function createPendingDecisionsBeat(count: number): DockLiveBeat {
+  return {
+    id: 'chip.dock.pending',
+    pose: 'thinking',
+    text: `${count} decisions waiting.`,
+  };
 }
 
 export function persistRouteBeatProgress({
@@ -216,6 +248,7 @@ export function ChipDock({
   currentWeek = 0,
   currentSeason = 0,
   routeBeats = [],
+  pendingDecisions,
 }: ChipDockProps) {
   const backingStorage = storage === undefined ? resolveDockStorage() : storage;
   const initialPrefs = useMemo(() => readDockPrefs(backingStorage), [backingStorage]);
@@ -231,6 +264,8 @@ export function ChipDock({
   }, [backingStorage, globalRouteSkip, routeBeatSignature, routeBeats]);
   const [routeBeatIndex, setRouteBeatIndex] = useState(0);
   const [dismissedRouteBeatSignature, setDismissedRouteBeatSignature] = useState<string | null>(null);
+  const [activeLiveBeat, setActiveLiveBeat] = useState<DockLiveBeat | null>(null);
+  const pendingDecisionTotal = Math.max(0, Math.trunc(Number(pendingDecisions?.total ?? 0)));
   const routeBeatActive =
     routeBeatSignature.length > 0
     && dismissedRouteBeatSignature !== routeBeatSignature
@@ -238,8 +273,17 @@ export function ChipDock({
   const activeRouteBeat = routeBeatActive
     ? eligibleRouteBeats[Math.min(routeBeatIndex, eligibleRouteBeats.length - 1)] ?? null
     : null;
-  const effectiveCollapsed = activeRouteBeat ? false : collapsed ?? localCollapsed;
-  const portraitPose = activeRouteBeat ? routeBeatPoseToChipPose(activeRouteBeat.pose) : storeState.pose;
+  const effectiveCollapsed = resolveEffectiveDockCollapsed({
+    activeRouteBeat: activeRouteBeat !== null,
+    activeLiveBeat: activeLiveBeat !== null,
+    controlledCollapsed: collapsed,
+    localCollapsed,
+  });
+  const portraitPose = activeRouteBeat
+    ? routeBeatPoseToChipPose(activeRouteBeat.pose)
+    : activeLiveBeat
+      ? routeBeatPoseToChipPose(activeLiveBeat.pose)
+      : storeState.pose;
 
   useEffect(() => {
     setRouteBeatIndex(0);
@@ -268,6 +312,12 @@ export function ChipDock({
     }
     setRouteBeatIndex(result.nextIndex);
   }, [dismissRouteBeatSequence, eligibleRouteBeats, routeBeatIndex]);
+
+  const showPendingDecisionsBeat = useCallback(() => {
+    if (pendingDecisionTotal <= 0) return;
+    setActiveLiveBeat(createPendingDecisionsBeat(pendingDecisionTotal));
+    setLocalCollapsed(false);
+  }, [pendingDecisionTotal]);
 
   const applyControl = useCallback(
     (control: ChipDockControl) => {
@@ -303,6 +353,18 @@ export function ChipDock({
     return <>{children}</>;
   }
 
+  const pendingBadge = pendingDecisionTotal > 0 ? (
+    <button
+      type="button"
+      className="mfd-chip-dock__pending-badge"
+      data-chip-pending-decisions="true"
+      aria-label={`${pendingDecisionTotal} decisions pending`}
+      onClick={showPendingDecisionsBeat}
+    >
+      {pendingDecisionTotal}
+    </button>
+  ) : null;
+
   if (effectiveCollapsed) {
     return (
       <aside
@@ -312,6 +374,7 @@ export function ChipDock({
         data-chip-dock-motion={motionMode}
         aria-label="Chip dock"
       >
+        {pendingBadge}
         <button
           type="button"
           className="mfd-chip-dock__collapsed"
@@ -332,6 +395,7 @@ export function ChipDock({
       data-chip-dock-motion={motionMode}
       aria-label="Chip dock"
     >
+      {pendingBadge}
       <section className="mfd-chip-dock__panel">
         <div className="mfd-chip-dock__portrait">
           <Chip pose={portraitPose} size="lg" reducedMotion={motionMode === 'reduced'} />
@@ -361,6 +425,19 @@ export function ChipDock({
                   <span className="mfd-chip-dock__control-label">Got it</span>
                 </PixelButton>
               </div>
+            </div>
+          ) : activeLiveBeat ? (
+            <div
+              className="mfd-chip-dock__bubble"
+              data-chip-live-beat={activeLiveBeat.id}
+            >
+              <ChipDialogueBubble
+                text={activeLiveBeat.text}
+                pose={routeBeatPoseToChipPose(activeLiveBeat.pose)}
+                pointer="right"
+                skippable={false}
+                reducedMotion={motionMode === 'reduced'}
+              />
             </div>
           ) : children && <div className="mfd-chip-dock__bubble">{children}</div>}
           <div className="mfd-chip-dock__controls" data-chip-dock-controls="true">

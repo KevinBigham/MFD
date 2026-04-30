@@ -88,4 +88,10 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain('const chipRouteBeats = useActiveRouteBeats(chipDockRoute);');
     expect(content).toContain('routeBeats={chipRouteBeats}');
   });
+
+  it('passes pending decision counts into the post-setup ChipDock', () => {
+    expect(content).toContain("import { countPendingDecisions } from '../features/companion/decisionsPending'");
+    expect(content).toContain('const chipPendingDecisions = useGameStore(countPendingDecisions);');
+    expect(content).toContain('pendingDecisions={chipPendingDecisions}');
+  });
 });
