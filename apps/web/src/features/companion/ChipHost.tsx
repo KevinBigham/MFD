@@ -87,16 +87,26 @@ export function ChipHost({
   const currentDialogue = onboardingDialogue[beatIndex] ?? onboardingDialogue[0];
   const currentStage = stages[beatIndex] ?? stages[0];
 
+  // FranchiseSetupWizard renders as a full-viewport `position: fixed` overlay
+  // (see FranchiseSetupWizard.tsx — z-index 50 inset:0). A side-by-side grid
+  // host gets covered. Chip lives as its own fixed overlay above the wizard.
   const hostStyle = useMemo(
     () => ({
-      display: 'grid',
-      gridTemplateColumns: 'minmax(180px, 240px) minmax(0, 1fr)',
-      gap: 'var(--mfd-sp-lg)',
-      alignItems: 'start',
-      padding: 'var(--mfd-sp-lg)',
+      position: 'fixed' as const,
+      bottom: 'var(--mfd-sp-lg)',
+      left: 'var(--mfd-sp-lg)',
+      zIndex: 100,
+      width: 'min(320px, calc(100vw - (var(--mfd-sp-lg) * 2)))',
+      maxHeight: 'calc(100vh - (var(--mfd-sp-lg) * 2))',
+      display: 'flex',
+      flexDirection: 'column' as const,
+      gap: 'var(--mfd-sp-md)',
+      padding: 'var(--mfd-sp-md)',
       border: '2px solid var(--mfd-gold)',
       background: 'var(--mfd-bg)',
       color: 'var(--mfd-text)',
+      boxShadow: 'var(--mfd-shadow-lg)',
+      overflowY: 'auto' as const,
     }),
     [],
   );
@@ -105,7 +115,8 @@ export function ChipHost({
     () => ({
       display: 'flex',
       flexDirection: 'column' as const,
-      gap: 'var(--mfd-sp-md)',
+      alignItems: 'center' as const,
+      gap: 'var(--mfd-sp-sm)',
       minWidth: 0,
     }),
     [],
@@ -117,6 +128,7 @@ export function ChipHost({
       flexWrap: 'wrap' as const,
       gap: 'var(--mfd-sp-sm)',
       alignItems: 'center',
+      justifyContent: 'center' as const,
     }),
     [],
   );
@@ -137,28 +149,35 @@ export function ChipHost({
   }
 
   return (
-    <section data-chip-host="true" data-chip-host-stage-id={currentStage?.id} style={hostStyle}>
-      <div data-chip-host-companion="true" style={stageStyle}>
-        <Chip pose={currentDialogue.pose} reducedMotion={reducedMotion} size="lg" />
-        <ChipDialogueBubble
-          text={currentDialogue.text}
-          pose={currentDialogue.pose}
-          reducedMotion={reducedMotion}
-          skippable={false}
-          pointer="left"
-        />
-        <div data-chip-host-controls="true" style={controlsStyle}>
-          <PixelButton accent="gold" onClick={advance}>
-            Continue
-          </PixelButton>
-          <PixelButton accent="cyan" onClick={skip}>
-            Skip
-          </PixelButton>
-        </div>
-      </div>
+    <>
       <div data-chip-host-content="true" aria-label={currentStage?.label}>
         {children}
       </div>
-    </section>
+      <aside
+        data-chip-host="true"
+        data-chip-host-stage-id={currentStage?.id}
+        style={hostStyle}
+        aria-label="Chip onboarding companion"
+      >
+        <div data-chip-host-companion="true" style={stageStyle}>
+          <Chip pose={currentDialogue.pose} reducedMotion={reducedMotion} size="md" />
+          <ChipDialogueBubble
+            text={currentDialogue.text}
+            pose={currentDialogue.pose}
+            reducedMotion={reducedMotion}
+            skippable={false}
+            pointer="left"
+          />
+          <div data-chip-host-controls="true" style={controlsStyle}>
+            <PixelButton accent="gold" onClick={advance}>
+              Continue
+            </PixelButton>
+            <PixelButton accent="cyan" onClick={skip}>
+              Skip
+            </PixelButton>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }
