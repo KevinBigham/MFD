@@ -239,6 +239,41 @@
   fill: var(--mfd-cyan);
 }
 
+.mfd-chip-svg__prop-pixel,
+.mfd-chip-svg__confetti-bit,
+.mfd-chip-svg__mic-sparkle,
+.mfd-chip-svg__telestrator-x-segment {
+  stroke: none;
+}
+
+.mfd-chip-svg__tablet-pixel,
+.mfd-chip-svg__confetti-bit--gold,
+.mfd-chip-svg__mic-sparkle--gold {
+  fill: var(--mfd-gold);
+}
+
+.mfd-chip-svg__confetti-bit--cyan,
+.mfd-chip-svg__mic-sparkle--cyan,
+.mfd-chip-svg__telestrator-x-segment {
+  fill: var(--mfd-cyan);
+}
+
+.mfd-chip-svg__confetti-bit--green {
+  fill: var(--mfd-green);
+}
+
+.mfd-chip[data-chip-motion='animated'][data-chip-pose='celebrate'] .mfd-chip-svg__confetti-bit {
+  animation: mfd-chip-confetti-fall 8s steps(12, end) infinite;
+}
+
+.mfd-chip[data-chip-motion='animated'][data-chip-pose='mic-check'] .mfd-chip-svg__mic-sparkle {
+  animation: mfd-chip-pixel-sparkle-twinkle 800ms steps(2, end) infinite;
+}
+
+.mfd-chip[data-chip-motion='animated'] .mfd-chip-svg__telestrator-x--drawing .mfd-chip-svg__telestrator-x-segment {
+  animation: mfd-chip-telestrator-x-draw 1.2s steps(5, end) infinite;
+}
+
 .mfd-chip-svg__warning-mark {
   stroke: var(--mfd-red);
 }
@@ -598,6 +633,33 @@
     opacity: 0;
   }
   30%, 42%, 62%, 74% {
+    opacity: 1;
+  }
+}
+
+@keyframes mfd-chip-confetti-fall {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(12px);
+  }
+}
+
+@keyframes mfd-chip-pixel-sparkle-twinkle {
+  0%, 100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes mfd-chip-telestrator-x-draw {
+  0% {
+    opacity: 0;
+  }
+  100% {
     opacity: 1;
   }
 }

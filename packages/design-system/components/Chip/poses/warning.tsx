@@ -1,3 +1,5 @@
+import { TelestratorX } from '../props/TelestratorX';
+
 export default function WarningPose() {
   return (
     <g className="mfd-chip-svg__pose-fragment mfd-chip-svg__pose-fragment--warning" data-chip-pose-art="warning">
@@ -15,6 +17,7 @@ export default function WarningPose() {
         <rect className="mfd-chip-svg__watch-pixel mfd-chip-svg__watch-pixel--warning" x="42" y="128" width="4" height="8" shapeRendering="crispEdges" />
         <rect className="mfd-chip-svg__watch-pixel mfd-chip-svg__watch-pixel--warning" x="36" y="136" width="8" height="4" shapeRendering="crispEdges" />
       </g>
+      <TelestratorX x={123} y={108} drawing className="mfd-chip-svg__telestrator-x--warning" />
     </g>
   );
 }

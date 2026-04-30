@@ -139,8 +139,20 @@ export function Chip({
             <g className="mfd-chip-svg__tablet">
               <path className="mfd-chip-svg__tablet-frame" d="M17 119 L47 113 L55 156 L24 162 Z" />
               <path className="mfd-chip-svg__tablet-screen" d="M23 123 L43 119 L49 151 L28 155 Z" />
-              <path className="mfd-chip-svg__tablet-pixel" d="M29 132 L39 130" />
-              <path className="mfd-chip-svg__tablet-pixel" d="M31 140 L44 138" />
+              {[0, 1, 2, 3].flatMap((row) =>
+                [0, 1, 2, 3, 4, 5].map((col) => (
+                  <rect
+                    key={`${row}-${col}`}
+                    className="mfd-chip-svg__tablet-pixel mfd-chip-svg__prop-pixel"
+                    data-chip-tablet-pixel={`${row}-${col}`}
+                    x={28 + col * 3}
+                    y={127 + row * 6}
+                    width="4"
+                    height="4"
+                    shapeRendering="crispEdges"
+                  />
+                )),
+              )}
             </g>
           </g>
 
