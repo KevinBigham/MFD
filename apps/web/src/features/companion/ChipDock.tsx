@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Calendar, CalendarOff, Check, EyeOff, Lightbulb, MessageSquare, VolumeX, X } from 'lucide-react';
+import { Calendar, CalendarOff, Check, EyeOff, Lightbulb, MapPin, MessageSquare, VolumeX, X } from 'lucide-react';
 import { Chip, ChipDialogueBubble, PixelButton, Spotlight } from '@mfd/design-system/components';
 import type { ChipPose } from '@mfd/design-system/components';
 import { isChipFeatureEnabled, readOnboardingSkipState } from './ChipHost';
@@ -15,6 +15,7 @@ import {
   readChipReadReceipts,
   writeChipReadReceipts,
 } from './readReceipts';
+import { createWhereAmIBeat, type WhereAmIState } from './whereAmI';
 import type { ChipRoutePose, RouteBeat } from '../route-coaching/routeBeatRegistry';
 import './ChipDock.css';
 
@@ -57,6 +58,7 @@ export interface ChipDockProps {
   currentSeason?: number;
   routeBeats?: readonly RouteBeat[];
   pendingDecisions?: { total?: number };
+  whereAmI?: WhereAmIState;
 }
 
 interface DockControlButton {
@@ -89,7 +91,7 @@ export interface RouteBeatProgressOptions {
 }
 
 interface DockLiveBeat {
-  id: 'chip.dock.pending';
+  id: 'chip.dock.pending' | 'chip.dock.summary';
   pose: ChipRoutePose;
   text: string;
 }
@@ -249,6 +251,7 @@ export function ChipDock({
   currentSeason = 0,
   routeBeats = [],
   pendingDecisions,
+  whereAmI,
 }: ChipDockProps) {
   const backingStorage = storage === undefined ? resolveDockStorage() : storage;
   const initialPrefs = useMemo(() => readDockPrefs(backingStorage), [backingStorage]);
@@ -318,6 +321,12 @@ export function ChipDock({
     setActiveLiveBeat(createPendingDecisionsBeat(pendingDecisionTotal));
     setLocalCollapsed(false);
   }, [pendingDecisionTotal]);
+
+  const showWhereAmIBeat = useCallback(() => {
+    if (!whereAmI) return;
+    setActiveLiveBeat(createWhereAmIBeat(whereAmI));
+    setLocalCollapsed(false);
+  }, [whereAmI]);
 
   const applyControl = useCallback(
     (control: ChipDockControl) => {
@@ -441,6 +450,18 @@ export function ChipDock({
             </div>
           ) : children && <div className="mfd-chip-dock__bubble">{children}</div>}
           <div className="mfd-chip-dock__controls" data-chip-dock-controls="true">
+            {whereAmI ? (
+              <PixelButton
+                accent="gold"
+                className="mfd-chip-dock__control"
+                onClick={showWhereAmIBeat}
+                aria-label="Where am I?"
+                title="Where am I?"
+              >
+                <MapPin aria-hidden="true" />
+                <span className="mfd-chip-dock__control-label">Where am I?</span>
+              </PixelButton>
+            ) : null}
             {DOCK_CONTROL_BUTTONS.map(({ id, label, icon: Icon, accent }) => (
               <PixelButton
                 key={id}

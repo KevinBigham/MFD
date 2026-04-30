@@ -40,6 +40,7 @@ import { ChipDock } from '../features/companion/ChipDock';
 import { useChipEvents } from '../features/companion/useChipEvents';
 import { useChipStore } from '../features/companion/store';
 import { countPendingDecisions } from '../features/companion/decisionsPending';
+import { resolveWhereAmIState } from '../features/companion/whereAmI';
 import { useActiveRouteBeats } from '../features/route-coaching/useActiveRouteBeats';
 import { BootScreen } from './BootScreen';
 import { MondayBriefing } from '../features/monday-briefing/MondayBriefing';
@@ -1752,6 +1753,7 @@ function PostSetupApp() {
   const chipDockRoute = currentAppRoute();
   const chipRouteBeats = useActiveRouteBeats(chipDockRoute);
   const chipPendingDecisions = useGameStore(countPendingDecisions);
+  const chipWhereAmI = useGameStore((state) => resolveWhereAmIState(state, chipPendingDecisions.total));
 
   return (
     <ErrorBoundary>
@@ -1763,6 +1765,7 @@ function PostSetupApp() {
           currentRoute={chipDockRoute}
           routeBeats={chipRouteBeats}
           pendingDecisions={chipPendingDecisions}
+          whereAmI={chipWhereAmI}
         >
           {chipDialogueText ? (
             <ChipDialogueBubble
