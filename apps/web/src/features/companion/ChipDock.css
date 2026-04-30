@@ -48,6 +48,12 @@
   min-width: 0;
 }
 
+.mfd-chip-dock__beat-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--mfd-sp-xs);
+}
+
 .mfd-chip-dock__controls {
   display: flex;
   flex-wrap: wrap;

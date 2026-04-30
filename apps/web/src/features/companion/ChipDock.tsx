@@ -1,8 +1,8 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { Calendar, CalendarOff, EyeOff, Lightbulb, MessageSquare, VolumeX, X } from 'lucide-react';
-import { Chip, PixelButton } from '@mfd/design-system/components';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Calendar, CalendarOff, Check, EyeOff, Lightbulb, MessageSquare, VolumeX, X } from 'lucide-react';
+import { Chip, ChipDialogueBubble, PixelButton, Spotlight } from '@mfd/design-system/components';
 import type { ChipPose } from '@mfd/design-system/components';
-import { isChipFeatureEnabled } from './ChipHost';
+import { isChipFeatureEnabled, readOnboardingSkipState } from './ChipHost';
 import { useChipStore } from './store';
 import type { DialogueCatalogEntry } from './dialogue/types';
 import {
@@ -11,6 +11,11 @@ import {
   updateDockPrefs,
   type DockPrefs,
 } from './dockPersistence';
+import {
+  readChipReadReceipts,
+  writeChipReadReceipts,
+} from './readReceipts';
+import type { ChipRoutePose, RouteBeat } from '../route-coaching/routeBeatRegistry';
 import './ChipDock.css';
 
 export type ChipDockControl =
@@ -50,6 +55,7 @@ export interface ChipDockProps {
   currentRoute?: string;
   currentWeek?: number;
   currentSeason?: number;
+  routeBeats?: readonly RouteBeat[];
 }
 
 interface DockControlButton {
@@ -67,6 +73,57 @@ const DOCK_CONTROL_BUTTONS: readonly DockControlButton[] = [
   { id: 'reduceGuidance', label: 'Reduce guidance', icon: Lightbulb, accent: 'green' },
   { id: 'disableAnimations', label: 'Disable animations', icon: EyeOff, accent: 'default' },
 ] as const;
+
+const ROUTE_BEAT_DISMISS_CONTROLS = new Set<ChipDockControl>([
+  'quietForScreen',
+  'quietUntilNextWeek',
+  'quietThisSeason',
+  'collapse',
+]);
+
+export interface RouteBeatProgressOptions {
+  storage: Storage | null;
+  beatIds: Iterable<string>;
+  markBeatSeen?: (id: string) => void;
+}
+
+export function persistRouteBeatProgress({
+  storage,
+  beatIds,
+  markBeatSeen,
+}: RouteBeatProgressOptions): Set<string> {
+  const ids = [...beatIds].filter((id) => id.length > 0);
+  const persisted = writeChipReadReceipts(storage, ids);
+  for (const id of ids) {
+    markBeatSeen?.(id);
+  }
+  return persisted;
+}
+
+export function resolveNextRouteBeatIndex(
+  currentIndex: number,
+  routeBeats: readonly RouteBeat[],
+): { nextIndex: number; complete: boolean } {
+  const nextIndex = Math.min(currentIndex + 1, Math.max(routeBeats.length - 1, 0));
+  return {
+    nextIndex,
+    complete: currentIndex >= routeBeats.length - 1,
+  };
+}
+
+export function routeBeatPoseToChipPose(pose: ChipRoutePose): ChipPose {
+  switch (pose) {
+    case 'idle':
+      return 'idle';
+    case 'point-down':
+    case 'point-side':
+      return 'point-right';
+    case 'cheer':
+      return 'celebrate';
+    case 'thinking':
+      return 'think';
+  }
+}
 
 export function applyDockControl(control: ChipDockControl, options: ApplyDockControlOptions): DockPrefs {
   const prefs = readDockPrefs(options.storage);
@@ -158,16 +215,65 @@ export function ChipDock({
   currentRoute = '',
   currentWeek = 0,
   currentSeason = 0,
+  routeBeats = [],
 }: ChipDockProps) {
   const backingStorage = storage === undefined ? resolveDockStorage() : storage;
   const initialPrefs = useMemo(() => readDockPrefs(backingStorage), [backingStorage]);
   const [localCollapsed, setLocalCollapsed] = useState(initialPrefs.collapsed);
-  const effectiveCollapsed = collapsed ?? localCollapsed;
   const storeState = useChipStore();
   const motionMode = reducedMotion || initialPrefs.animationsDisabled ? 'reduced' : 'animated';
+  const routeBeatSignature = routeBeats.map((beat) => beat.id).join('|');
+  const globalRouteSkip = readOnboardingSkipState(backingStorage)?.skipped === true;
+  const eligibleRouteBeats = useMemo(() => {
+    if (globalRouteSkip) return [];
+    const seenBeatIds = readChipReadReceipts(backingStorage);
+    return routeBeats.filter((beat) => !seenBeatIds.has(beat.id));
+  }, [backingStorage, globalRouteSkip, routeBeatSignature, routeBeats]);
+  const [routeBeatIndex, setRouteBeatIndex] = useState(0);
+  const [dismissedRouteBeatSignature, setDismissedRouteBeatSignature] = useState<string | null>(null);
+  const routeBeatActive =
+    routeBeatSignature.length > 0
+    && dismissedRouteBeatSignature !== routeBeatSignature
+    && eligibleRouteBeats.length > 0;
+  const activeRouteBeat = routeBeatActive
+    ? eligibleRouteBeats[Math.min(routeBeatIndex, eligibleRouteBeats.length - 1)] ?? null
+    : null;
+  const effectiveCollapsed = activeRouteBeat ? false : collapsed ?? localCollapsed;
+  const portraitPose = activeRouteBeat ? routeBeatPoseToChipPose(activeRouteBeat.pose) : storeState.pose;
+
+  useEffect(() => {
+    setRouteBeatIndex(0);
+    setDismissedRouteBeatSignature(null);
+  }, [routeBeatSignature]);
+
+  const persistShownRouteBeats = useCallback(() => {
+    if (!activeRouteBeat) return;
+    persistRouteBeatProgress({
+      storage: backingStorage,
+      beatIds: eligibleRouteBeats.slice(0, routeBeatIndex + 1).map((beat) => beat.id),
+      markBeatSeen: useChipStore.getState().markBeatSeen,
+    });
+  }, [activeRouteBeat, backingStorage, eligibleRouteBeats, routeBeatIndex]);
+
+  const dismissRouteBeatSequence = useCallback(() => {
+    persistShownRouteBeats();
+    setDismissedRouteBeatSignature(routeBeatSignature);
+  }, [persistShownRouteBeats, routeBeatSignature]);
+
+  const advanceRouteBeat = useCallback(() => {
+    const result = resolveNextRouteBeatIndex(routeBeatIndex, eligibleRouteBeats);
+    if (result.complete) {
+      dismissRouteBeatSequence();
+      return;
+    }
+    setRouteBeatIndex(result.nextIndex);
+  }, [dismissRouteBeatSequence, eligibleRouteBeats, routeBeatIndex]);
 
   const applyControl = useCallback(
     (control: ChipDockControl) => {
+      if (activeRouteBeat && ROUTE_BEAT_DISMISS_CONTROLS.has(control)) {
+        dismissRouteBeatSequence();
+      }
       const prefs = applyDockControl(control, {
         storage: backingStorage,
         chipStore: useChipStore.getState(),
@@ -181,7 +287,16 @@ export function ChipDock({
       if (control === 'disableAnimations') setLocalCollapsed(prefs.collapsed);
       onCollapseToggle?.();
     },
-    [backingStorage, currentRoute, currentSeason, currentWeek, now, onCollapseToggle],
+    [
+      activeRouteBeat,
+      backingStorage,
+      currentRoute,
+      currentSeason,
+      currentWeek,
+      dismissRouteBeatSequence,
+      now,
+      onCollapseToggle,
+    ],
   );
 
   if (!isChipFeatureEnabled()) {
@@ -202,7 +317,7 @@ export function ChipDock({
           className="mfd-chip-dock__collapsed"
           onClick={() => applyControl('expand')}
           aria-label="Open Chip dock"
-        >
+      >
           <Chip pose="idle" size="sm" reducedMotion={motionMode === 'reduced'} />
         </button>
       </aside>
@@ -219,10 +334,35 @@ export function ChipDock({
     >
       <section className="mfd-chip-dock__panel">
         <div className="mfd-chip-dock__portrait">
-          <Chip pose={storeState.pose} size="lg" reducedMotion={motionMode === 'reduced'} />
+          <Chip pose={portraitPose} size="lg" reducedMotion={motionMode === 'reduced'} />
         </div>
         <div className="mfd-chip-dock__content">
-          {children && <div className="mfd-chip-dock__bubble">{children}</div>}
+          {activeRouteBeat ? (
+            <div
+              className="mfd-chip-dock__bubble"
+              data-chip-route-beat={activeRouteBeat.id}
+            >
+              <ChipDialogueBubble
+                text={activeRouteBeat.text}
+                pose={routeBeatPoseToChipPose(activeRouteBeat.pose)}
+                pointer="right"
+                skippable={false}
+                reducedMotion={motionMode === 'reduced'}
+              />
+              <div className="mfd-chip-dock__beat-actions">
+                <PixelButton
+                  accent="gold"
+                  className="mfd-chip-dock__control"
+                  onClick={advanceRouteBeat}
+                  aria-label="Got it"
+                  title="Got it"
+                >
+                  <Check aria-hidden="true" />
+                  <span className="mfd-chip-dock__control-label">Got it</span>
+                </PixelButton>
+              </div>
+            </div>
+          ) : children && <div className="mfd-chip-dock__bubble">{children}</div>}
           <div className="mfd-chip-dock__controls" data-chip-dock-controls="true">
             {DOCK_CONTROL_BUTTONS.map(({ id, label, icon: Icon, accent }) => (
               <PixelButton
@@ -250,6 +390,9 @@ export function ChipDock({
           </div>
         </div>
       </section>
+      {activeRouteBeat?.spotlightTarget ? (
+        <Spotlight targetId={activeRouteBeat.spotlightTarget} reducedMotion={motionMode === 'reduced'} />
+      ) : null}
     </aside>
   );
 }

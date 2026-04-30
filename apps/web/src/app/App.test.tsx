@@ -82,4 +82,10 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain('currentRoute={chipDockRoute}');
     expect(content).toContain('chipDialogueText ?');
   });
+
+  it('passes active route coaching beats into the post-setup ChipDock', () => {
+    expect(content).toContain("import { useActiveRouteBeats } from '../features/route-coaching/useActiveRouteBeats'");
+    expect(content).toContain('const chipRouteBeats = useActiveRouteBeats(chipDockRoute);');
+    expect(content).toContain('routeBeats={chipRouteBeats}');
+  });
 });

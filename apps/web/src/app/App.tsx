@@ -39,6 +39,7 @@ import { ChipHost, isChipFeatureEnabled, type ChipHostStage } from '../features/
 import { ChipDock } from '../features/companion/ChipDock';
 import { useChipEvents } from '../features/companion/useChipEvents';
 import { useChipStore } from '../features/companion/store';
+import { useActiveRouteBeats } from '../features/route-coaching/useActiveRouteBeats';
 import { BootScreen } from './BootScreen';
 import { MondayBriefing } from '../features/monday-briefing/MondayBriefing';
 import { RosterManagement } from '../features/roster/RosterManagement';
@@ -1748,6 +1749,7 @@ function PostSetupApp() {
   const chipDialogueText = useChipStore((s) => s.currentDialogueText);
   const chipDialoguePose = useChipStore((s) => s.pose);
   const chipDockRoute = currentAppRoute();
+  const chipRouteBeats = useActiveRouteBeats(chipDockRoute);
 
   return (
     <ErrorBoundary>
@@ -1757,6 +1759,7 @@ function PostSetupApp() {
           currentWeek={chipDockWeek}
           currentSeason={chipDockSeason}
           currentRoute={chipDockRoute}
+          routeBeats={chipRouteBeats}
         >
           {chipDialogueText ? (
             <ChipDialogueBubble
