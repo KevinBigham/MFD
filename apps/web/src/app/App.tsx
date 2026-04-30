@@ -39,6 +39,9 @@ import { ChipHost, isChipFeatureEnabled, type ChipHostStage } from '../features/
 import { ChipDock } from '../features/companion/ChipDock';
 import { useChipEvents } from '../features/companion/useChipEvents';
 import { useChipStore } from '../features/companion/store';
+import { countPendingDecisions } from '../features/companion/decisionsPending';
+import { resolveWhereAmIState } from '../features/companion/whereAmI';
+import { useActiveRouteBeats } from '../features/route-coaching/useActiveRouteBeats';
 import { BootScreen } from './BootScreen';
 import { MondayBriefing } from '../features/monday-briefing/MondayBriefing';
 import { RosterManagement } from '../features/roster/RosterManagement';
@@ -1745,9 +1748,14 @@ function PostSetupApp() {
   const chipDockEnabled = isChipFeatureEnabled();
   const chipDockWeek = useGameStore((s) => s.game?.week ?? 0);
   const chipDockSeason = useGameStore((s) => s.game?.year ?? 0);
+  const chipUserTeam = useGameStore(selectUserTeam);
+  const chipCoachName = chipUserTeam?.staff.hc?.name ?? 'Coach';
   const chipDialogueText = useChipStore((s) => s.currentDialogueText);
   const chipDialoguePose = useChipStore((s) => s.pose);
   const chipDockRoute = currentAppRoute();
+  const chipRouteBeats = useActiveRouteBeats(chipDockRoute);
+  const chipPendingDecisions = useGameStore(countPendingDecisions);
+  const chipWhereAmI = useGameStore((state) => resolveWhereAmIState(state, chipPendingDecisions.total));
 
   return (
     <ErrorBoundary>
@@ -1757,6 +1765,10 @@ function PostSetupApp() {
           currentWeek={chipDockWeek}
           currentSeason={chipDockSeason}
           currentRoute={chipDockRoute}
+          routeBeats={chipRouteBeats}
+          pendingDecisions={chipPendingDecisions}
+          whereAmI={chipWhereAmI}
+          dynastyIndicator={{ seasonYear: chipDockSeason, coachName: chipCoachName }}
         >
           {chipDialogueText ? (
             <ChipDialogueBubble

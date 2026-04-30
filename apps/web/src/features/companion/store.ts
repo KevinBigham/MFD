@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ChipPose } from '@mfd/design-system/components';
 import type { ChipContext, DialogueCatalogEntry } from './dialogue/types';
+import { readChipReadReceipts } from './readReceipts';
 
 export interface ChipState {
   pose: ChipPose;
@@ -8,6 +9,7 @@ export interface ChipState {
   currentDialogueText: string | null;
   lastWeeklyDialogue: DialogueCatalogEntry | null;
   spotlightTargetId: string | null;
+  seenBeats: Set<string>;
   dismissed: boolean;
   beat: number;
   context: ChipContext;
@@ -21,6 +23,8 @@ export interface ShowDialogueOptions {
 export interface ChipActions {
   setPose: (pose: ChipPose) => void;
   setSpotlightTarget: (id: string | null) => void;
+  markBeatSeen: (id: string) => void;
+  hasSeenBeat: (id: string) => boolean;
   showDialogue: (dialogueId: string, options?: ShowDialogueOptions) => void;
   showWeeklyDialogue: (entry: DialogueCatalogEntry) => void;
   advance: () => void;
@@ -30,22 +34,28 @@ export interface ChipActions {
 
 export type ChipStore = ChipState & ChipActions;
 
-const initialState: ChipState = {
-  pose: 'idle',
-  currentDialogueId: null,
-  currentDialogueText: null,
-  lastWeeklyDialogue: null,
-  spotlightTargetId: null,
-  dismissed: false,
-  beat: 0,
-  context: 'idle',
-};
+function createInitialChipState(): ChipState {
+  return {
+    pose: 'idle',
+    currentDialogueId: null,
+    currentDialogueText: null,
+    lastWeeklyDialogue: null,
+    spotlightTargetId: null,
+    seenBeats: readChipReadReceipts(),
+    dismissed: false,
+    beat: 0,
+    context: 'idle',
+  };
+}
 
-export const useChipStore = create<ChipStore>((set) => ({
-  ...initialState,
+export const useChipStore = create<ChipStore>((set, get) => ({
+  ...createInitialChipState(),
   setPose: (pose) => set({ pose }),
   setSpotlightTarget: (spotlightTargetId) =>
     set((state) => (state.spotlightTargetId === spotlightTargetId ? state : { spotlightTargetId })),
+  markBeatSeen: (id) =>
+    set((state) => (state.seenBeats.has(id) ? state : { seenBeats: new Set([...state.seenBeats, id]) })),
+  hasSeenBeat: (id) => get().seenBeats.has(id),
   showDialogue: (dialogueId, options = {}) =>
     set((state) => ({
       currentDialogueId: dialogueId,
@@ -75,5 +85,5 @@ export const useChipStore = create<ChipStore>((set) => ({
       dismissed: true,
       context: 'dismissed',
     }),
-  reset: () => set(initialState),
+  reset: () => set(createInitialChipState()),
 }));

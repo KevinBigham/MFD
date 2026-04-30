@@ -3,11 +3,19 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import {
   ChipDock,
   applyDockControl,
+  createPendingDecisionsBeat,
+  isRouteCoachingQuieted,
+  persistRouteBeatProgress,
+  resolveEffectiveDockCollapsed,
+  resolveNextRouteBeatIndex,
   type ChipDockControl,
   type ChipDockControlStore,
 } from './ChipDock';
 import type { DialogueCatalogEntry } from './dialogue/types';
 import { CHIP_DOCK_STORAGE_KEY, createDefaultDockPrefs, readDockPrefs } from './dockPersistence';
+import { CHIP_ONBOARDING_STORAGE_KEY } from './ChipHost';
+import { CHIP_READ_RECEIPTS_STORAGE_KEY, readChipReadReceipts } from './readReceipts';
+import { ROUTE_BEAT_REGISTRY } from '../route-coaching/routeBeatRegistry';
 
 class MemoryStorage implements Storage {
   private readonly backing = new Map<string, string>();
@@ -118,6 +126,136 @@ describe('ChipDock', () => {
     expect(markup).toContain('Monday briefing: we survived the road game.');
   });
 
+  it('auto-expands and renders the first unseen route beat', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(
+      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY.roster} storage={new MemoryStorage()} />,
+    );
+
+    expect(markup).toContain('data-chip-dock-state="expanded"');
+    expect(markup).toContain('data-chip-route-beat="chip.route.roster.beat-1"');
+    expect(markup).toContain('Start with the highlighted player.');
+    expect(markup).toContain('Got it');
+  });
+
+  it('does not auto-expand when there are no active route beats', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(<ChipDock collapsed routeBeats={[]} storage={new MemoryStorage()} />);
+
+    expect(markup).toContain('data-chip-dock-state="collapsed"');
+    expect(markup).not.toContain('data-chip-route-beat');
+  });
+
+  it('advances route beat index from Got it until the sequence is complete', () => {
+    expect(resolveNextRouteBeatIndex(0, ROUTE_BEAT_REGISTRY.roster)).toEqual({
+      nextIndex: 1,
+      complete: false,
+    });
+    expect(resolveNextRouteBeatIndex(1, ROUTE_BEAT_REGISTRY.roster)).toEqual({
+      nextIndex: 1,
+      complete: true,
+    });
+  });
+
+  it('persists final route beat dismissal to the read-receipt key and store', () => {
+    const storage = new MemoryStorage();
+    const markBeatSeen = vi.fn();
+
+    persistRouteBeatProgress({
+      storage,
+      beatIds: ['chip.route.roster.beat-1', 'chip.route.roster.beat-2'],
+      markBeatSeen,
+    });
+
+    expect(readChipReadReceipts(storage)).toEqual(new Set([
+      'chip.route.roster.beat-1',
+      'chip.route.roster.beat-2',
+    ]));
+    expect(storage.getItem(CHIP_READ_RECEIPTS_STORAGE_KEY)).toBe(JSON.stringify([
+      'chip.route.roster.beat-1',
+      'chip.route.roster.beat-2',
+    ]));
+    expect(markBeatSeen).toHaveBeenCalledWith('chip.route.roster.beat-1');
+    expect(markBeatSeen).toHaveBeenCalledWith('chip.route.roster.beat-2');
+  });
+
+  it('lets the global onboarding skip suppress route-beat auto expansion', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_ONBOARDING_STORAGE_KEY,
+      JSON.stringify({ skipped: true, lastBeat: 9, timestamp: '2026-04-30T03:00:00.000Z' }),
+    );
+
+    const markup = renderDock(
+      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY.staff} storage={storage} />,
+    );
+
+    expect(markup).toContain('data-chip-dock-state="collapsed"');
+    expect(markup).not.toContain('data-chip-route-beat');
+  });
+
+  it('persists a mid-sequence dock dismissal to the read receipt key', () => {
+    const storage = new MemoryStorage();
+
+    persistRouteBeatProgress({
+      storage,
+      beatIds: ['chip.route.roster.beat-1'],
+    });
+
+    expect(readChipReadReceipts(storage)).toEqual(new Set(['chip.route.roster.beat-1']));
+  });
+
+  it('does not replay the same route after every route beat is read', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem(CHIP_READ_RECEIPTS_STORAGE_KEY, JSON.stringify([
+      'chip.route.roster.beat-1',
+      'chip.route.roster.beat-2',
+    ]));
+
+    const markup = renderDock(
+      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY.roster} storage={storage} />,
+    );
+
+    expect(markup).toContain('data-chip-dock-state="collapsed"');
+    expect(markup).not.toContain('data-chip-route-beat');
+  });
+
+  it('still shows a different route when that route has unseen beats', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem(CHIP_READ_RECEIPTS_STORAGE_KEY, JSON.stringify([
+      'chip.route.roster.beat-1',
+      'chip.route.roster.beat-2',
+    ]));
+
+    const markup = renderDock(
+      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY.staff} storage={storage} />,
+    );
+
+    expect(markup).toContain('data-chip-dock-state="expanded"');
+    expect(markup).toContain('data-chip-route-beat="chip.route.staff.beat-1"');
+  });
+
+  it('keeps route replay suppressed when global skip is set even if receipts are empty', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_ONBOARDING_STORAGE_KEY,
+      JSON.stringify({ skipped: true, lastBeat: 9, timestamp: '2026-04-30T04:00:00.000Z' }),
+    );
+
+    const markup = renderDock(
+      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY['trade-center']} storage={storage} />,
+    );
+
+    expect(markup).toContain('data-chip-dock-state="collapsed"');
+    expect(markup).not.toContain('data-chip-route-beat');
+  });
+
   it('forwards reduced motion to Chip and the dock data attribute', () => {
     vi.stubEnv('VITE_CHIP_ENABLED', 'true');
 
@@ -125,6 +263,41 @@ describe('ChipDock', () => {
 
     expect(markup).toContain('data-chip-dock-motion="reduced"');
     expect(markup).toContain('data-chip-motion="reduced"');
+  });
+
+  it('hides the pending-decisions badge at zero', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(<ChipDock collapsed={false} pendingDecisions={{ total: 0 }} />);
+
+    expect(markup).not.toContain('data-chip-pending-decisions');
+  });
+
+  it('shows a gold pending-decisions count badge when positive', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(<ChipDock collapsed pendingDecisions={{ total: 7 }} />);
+
+    expect(markup).toContain('data-chip-pending-decisions="true"');
+    expect(markup).toContain('aria-label="7 decisions pending"');
+    expect(markup).toContain('>7</button>');
+  });
+
+  it('treats the pending-decisions beat as an active dock expansion', () => {
+    expect(resolveEffectiveDockCollapsed({
+      activeRouteBeat: false,
+      activeLiveBeat: true,
+      controlledCollapsed: true,
+      localCollapsed: true,
+    })).toBe(false);
+  });
+
+  it('creates pending-decisions dock copy with the live count', () => {
+    expect(createPendingDecisionsBeat(1)).toEqual({
+      id: 'chip.dock.pending',
+      pose: 'thinking',
+      text: '1 decisions waiting.',
+    });
   });
 
   it('quiet-for-screen writes the current route and dismisses the active dialogue', () => {
@@ -194,6 +367,162 @@ describe('ChipDock', () => {
       ...createDefaultDockPrefs(),
       collapsed: true,
       lastUpdated: '2026-04-29T19:05:00.000Z',
+    });
+  });
+
+  describe('quiet preference enforcement (5-pass review fix [3])', () => {
+    it('isRouteCoachingQuieted returns true when quietForScreen matches the current route', () => {
+      expect(
+        isRouteCoachingQuieted({
+          prefs: { quietForScreen: '/roster', quietUntilWeek: null, quietForSeason: null },
+          currentRoute: '/roster',
+          currentWeek: 5,
+          currentSeason: 2032,
+        }),
+      ).toBe(true);
+    });
+
+    it('isRouteCoachingQuieted returns true when quietForSeason matches the current season', () => {
+      expect(
+        isRouteCoachingQuieted({
+          prefs: { quietForScreen: null, quietUntilWeek: null, quietForSeason: 2032 },
+          currentRoute: '/roster',
+          currentWeek: 5,
+          currentSeason: 2032,
+        }),
+      ).toBe(true);
+    });
+
+    it('isRouteCoachingQuieted returns true while currentWeek <= quietUntilWeek', () => {
+      expect(
+        isRouteCoachingQuieted({
+          prefs: { quietForScreen: null, quietUntilWeek: 7, quietForSeason: null },
+          currentRoute: '/roster',
+          currentWeek: 7,
+          currentSeason: 2032,
+        }),
+      ).toBe(true);
+      expect(
+        isRouteCoachingQuieted({
+          prefs: { quietForScreen: null, quietUntilWeek: 7, quietForSeason: null },
+          currentRoute: '/roster',
+          currentWeek: 8,
+          currentSeason: 2032,
+        }),
+      ).toBe(false);
+    });
+
+    it('isRouteCoachingQuieted returns false when no quiet preference applies', () => {
+      expect(
+        isRouteCoachingQuieted({
+          prefs: { quietForScreen: '/cap-laboratory', quietUntilWeek: null, quietForSeason: null },
+          currentRoute: '/roster',
+          currentWeek: 5,
+          currentSeason: 2032,
+        }),
+      ).toBe(false);
+    });
+
+    it('keeps the dock collapsed when quietForScreen suppresses the active route', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(
+        CHIP_DOCK_STORAGE_KEY,
+        JSON.stringify({
+          ...createDefaultDockPrefs(),
+          quietForScreen: '/roster',
+        }),
+      );
+
+      const markup = renderDock(
+        <ChipDock
+          collapsed
+          currentRoute="/roster"
+          routeBeats={ROUTE_BEAT_REGISTRY.roster}
+          storage={storage}
+        />,
+      );
+
+      expect(markup).toContain('data-chip-dock-state="collapsed"');
+      expect(markup).not.toContain('data-chip-route-beat');
+    });
+
+    it('keeps the dock collapsed when quietForSeason suppresses route beats', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(
+        CHIP_DOCK_STORAGE_KEY,
+        JSON.stringify({
+          ...createDefaultDockPrefs(),
+          quietForSeason: 2032,
+        }),
+      );
+
+      const markup = renderDock(
+        <ChipDock
+          collapsed
+          currentRoute="/roster"
+          currentSeason={2032}
+          routeBeats={ROUTE_BEAT_REGISTRY.roster}
+          storage={storage}
+        />,
+      );
+
+      expect(markup).toContain('data-chip-dock-state="collapsed"');
+      expect(markup).not.toContain('data-chip-route-beat');
+    });
+
+    it('keeps the dock collapsed while currentWeek <= quietUntilWeek', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(
+        CHIP_DOCK_STORAGE_KEY,
+        JSON.stringify({
+          ...createDefaultDockPrefs(),
+          quietUntilWeek: 7,
+        }),
+      );
+
+      const markup = renderDock(
+        <ChipDock
+          collapsed
+          currentRoute="/roster"
+          currentWeek={7}
+          routeBeats={ROUTE_BEAT_REGISTRY.roster}
+          storage={storage}
+        />,
+      );
+
+      expect(markup).toContain('data-chip-dock-state="collapsed"');
+      expect(markup).not.toContain('data-chip-route-beat');
+    });
+  });
+
+  describe('animations preference propagation (5-pass review fix [2])', () => {
+    it('renders reduced motion when animationsDisabled is persisted in storage', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(
+        CHIP_DOCK_STORAGE_KEY,
+        JSON.stringify({
+          ...createDefaultDockPrefs(),
+          animationsDisabled: true,
+        }),
+      );
+
+      const markup = renderDock(<ChipDock collapsed={false} storage={storage} />);
+
+      expect(markup).toContain('data-chip-dock-motion="reduced"');
+    });
+
+    it('renders animated motion when animationsDisabled is false in storage', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(CHIP_DOCK_STORAGE_KEY, JSON.stringify(createDefaultDockPrefs()));
+
+      const markup = renderDock(<ChipDock collapsed={false} storage={storage} />);
+
+      expect(markup).toContain('data-chip-dock-motion="animated"');
     });
   });
 });

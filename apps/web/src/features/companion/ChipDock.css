@@ -7,6 +7,42 @@
   font-family: var(--mfd-font-mono);
 }
 
+.mfd-chip-dock__pending-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 2;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 8px;
+  border: 2px solid var(--mfd-bg);
+  border-radius: 999px;
+  background: var(--mfd-gold);
+  color: var(--mfd-bg);
+  font-family: var(--mfd-font-pixel);
+  font-size: 12px;
+  line-height: 18px;
+  box-shadow: var(--mfd-shadow-gold-strong);
+  cursor: pointer;
+}
+
+.mfd-chip-dock__dynasty-label {
+  position: absolute;
+  top: -10px;
+  left: 0;
+  max-width: 220px;
+  overflow: hidden;
+  padding: 3px 8px;
+  border: 1px solid var(--mfd-cyan);
+  background: var(--mfd-bg);
+  color: var(--mfd-cyan);
+  font-family: var(--mfd-font-pixel);
+  font-size: 10px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mfd-chip-dock__collapsed {
   display: grid;
   place-items: center;
@@ -46,6 +82,12 @@
 
 .mfd-chip-dock__bubble {
   min-width: 0;
+}
+
+.mfd-chip-dock__beat-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--mfd-sp-xs);
 }
 
 .mfd-chip-dock__controls {

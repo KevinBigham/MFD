@@ -23,6 +23,24 @@ describe('useChipStore', () => {
     expect(useChipStore.getState().spotlightTargetId).toBe('wizard.cold-open.continue');
   });
 
+  it('marks and reads route beat receipts without mutating the previous set', () => {
+    const before = useChipStore.getState().seenBeats;
+
+    useChipStore.getState().markBeatSeen('chip.route.roster.beat-1');
+
+    expect(useChipStore.getState().hasSeenBeat('chip.route.roster.beat-1')).toBe(true);
+    expect(useChipStore.getState().seenBeats).toEqual(new Set(['chip.route.roster.beat-1']));
+    expect(useChipStore.getState().seenBeats).not.toBe(before);
+    expect(before.size).toBe(0);
+  });
+
+  it('resets route read receipts back to an empty set', () => {
+    useChipStore.getState().markBeatSeen('chip.route.roster.beat-1');
+    useChipStore.getState().reset();
+
+    expect(useChipStore.getState().seenBeats).toEqual(new Set());
+  });
+
   it('clears the spotlight target synchronously', () => {
     useChipStore.getState().setSpotlightTarget('wizard.team-select.confirm');
     useChipStore.getState().setSpotlightTarget(null);

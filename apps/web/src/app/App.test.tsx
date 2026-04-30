@@ -82,4 +82,28 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain('currentRoute={chipDockRoute}');
     expect(content).toContain('chipDialogueText ?');
   });
+
+  it('passes active route coaching beats into the post-setup ChipDock', () => {
+    expect(content).toContain("import { useActiveRouteBeats } from '../features/route-coaching/useActiveRouteBeats'");
+    expect(content).toContain('const chipRouteBeats = useActiveRouteBeats(chipDockRoute);');
+    expect(content).toContain('routeBeats={chipRouteBeats}');
+  });
+
+  it('passes pending decision counts into the post-setup ChipDock', () => {
+    expect(content).toContain("import { countPendingDecisions } from '../features/companion/decisionsPending'");
+    expect(content).toContain('const chipPendingDecisions = useGameStore(countPendingDecisions);');
+    expect(content).toContain('pendingDecisions={chipPendingDecisions}');
+  });
+
+  it('passes Where Am I season context into the post-setup ChipDock', () => {
+    expect(content).toContain("import { resolveWhereAmIState } from '../features/companion/whereAmI'");
+    expect(content).toContain('const chipWhereAmI = useGameStore((state) => resolveWhereAmIState(state, chipPendingDecisions.total));');
+    expect(content).toContain('whereAmI={chipWhereAmI}');
+  });
+
+  it('passes dynasty-year indicator context into the post-setup ChipDock', () => {
+    expect(content).toContain('const chipUserTeam = useGameStore(selectUserTeam);');
+    expect(content).toContain("const chipCoachName = chipUserTeam?.staff.hc?.name ?? 'Coach';");
+    expect(content).toContain('dynastyIndicator={{ seasonYear: chipDockSeason, coachName: chipCoachName }}');
+  });
 });
