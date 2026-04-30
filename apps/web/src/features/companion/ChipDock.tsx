@@ -3,7 +3,7 @@ import { Calendar, CalendarOff, Check, EyeOff, Lightbulb, MapPin, MessageSquare,
 import { Chip, ChipDialogueBubble, PixelButton, Spotlight } from '@mfd/design-system/components';
 import type { ChipPose } from '@mfd/design-system/components';
 import { isChipFeatureEnabled, readOnboardingSkipState } from './ChipHost';
-import { useChipStore } from './store';
+import { useChipStore, useResolvedChipPose } from './store';
 import type { DialogueCatalogEntry } from './dialogue/types';
 import {
   readDockPrefs,
@@ -288,8 +288,8 @@ export function ChipDock({
     backingStorage === null ? createDefaultDockPrefs() : readDockPrefs(backingStorage),
   );
   const [localCollapsed, setLocalCollapsed] = useState(prefs.collapsed);
-  const storePose = useChipStore((state) => state.pose);
   const motionMode = reducedMotion || prefs.animationsDisabled ? 'reduced' : 'animated';
+  const storePose = useResolvedChipPose();
   const routeBeatSignature = routeBeats.map((beat) => beat.id).join('|');
   const globalRouteSkip = readOnboardingSkipState(backingStorage)?.skipped === true;
   const resolvedRoute = resolveCurrentRoute(currentRoute);
