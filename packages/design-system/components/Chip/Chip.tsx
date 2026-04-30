@@ -192,7 +192,13 @@ export function Chip({
           </g>
         </g>
 
-        <Pose />
+        <g
+          key={pose}
+          className="mfd-chip-svg__pose-layer mfd-chip-svg__pose-fade-in"
+          data-chip-pose-layer={pose}
+        >
+          <Pose />
+        </g>
 
         <rect
           className="mfd-chip-svg__scanline-overlay"
