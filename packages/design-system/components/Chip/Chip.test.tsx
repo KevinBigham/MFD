@@ -74,9 +74,10 @@ function findElement(elements: ElementRecord[], type: string, propName?: string,
 }
 
 describe('Chip', () => {
-  it('exports the nine Slice A poses in a stable order', () => {
+  it('exports the Sprint 43 pose atlas in a stable order', () => {
     expect(CHIP_POSES).toEqual([
       'idle',
+      'greeting',
       'talk',
       'point-left',
       'point-right',
@@ -84,7 +85,10 @@ describe('Chip', () => {
       'think',
       'celebrate',
       'concern',
+      'warning',
+      'surprised',
       'mic-check',
+      'thumbs-up',
     ]);
   });
 
@@ -107,6 +111,9 @@ describe('Chip', () => {
         "idle:sm:64",
         "idle:md:96",
         "idle:lg:144",
+        "greeting:sm:64",
+        "greeting:md:96",
+        "greeting:lg:144",
         "talk:sm:64",
         "talk:md:96",
         "talk:lg:144",
@@ -128,9 +135,18 @@ describe('Chip', () => {
         "concern:sm:64",
         "concern:md:96",
         "concern:lg:144",
+        "warning:sm:64",
+        "warning:md:96",
+        "warning:lg:144",
+        "surprised:sm:64",
+        "surprised:md:96",
+        "surprised:lg:144",
         "mic-check:sm:64",
         "mic-check:md:96",
         "mic-check:lg:144",
+        "thumbs-up:sm:64",
+        "thumbs-up:md:96",
+        "thumbs-up:lg:144",
       ]
     `);
   });
@@ -183,6 +199,8 @@ describe('Chip', () => {
     expect(reducedMotionBlock).toContain('opacity');
     expect(reducedMotionBlock).toContain(".mfd-chip[data-chip-pose='wave'] .mfd-chip-svg__arm--right");
     expect(reducedMotionBlock).toContain(".mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__mic-tip");
+    expect(reducedMotionBlock).toContain(".mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__headset");
+    expect(reducedMotionBlock).toContain(".mfd-chip[data-chip-pose='thumbs-up'] .mfd-chip-svg__thumb-group--thumbs-up");
     const reducedTransforms = [...reducedMotionBlock.matchAll(/transform:\s*([^;]+);/g)].map((match) =>
       (match[1] ?? '').trim(),
     );

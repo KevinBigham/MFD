@@ -32,8 +32,14 @@
   animation: mfd-chip-idle-breathe 2s steps(12, end) infinite;
 }
 
+.mfd-chip-svg__headset,
 .mfd-chip-svg__head,
 .mfd-chip-svg__arm,
+.mfd-chip-svg__arm-overlay,
+.mfd-chip-svg__hand-overlay,
+.mfd-chip-svg__surprise-hand,
+.mfd-chip-svg__thumb-group,
+.mfd-chip-svg__warning-watch,
 .mfd-chip-svg__brow,
 .mfd-chip-svg__mouth,
 .mfd-chip-svg__tablet,
@@ -67,6 +73,9 @@
 .mfd-chip-svg__trophy,
 .mfd-chip-svg__confetti,
 .mfd-chip-svg__warning-card,
+.mfd-chip-svg__arm-overlay,
+.mfd-chip-svg__hand-overlay,
+.mfd-chip-svg__surprise-hand,
 .mfd-chip-svg__mic-tap,
 .mfd-chip-svg__mic-tip-flash {
   stroke: var(--mfd-bg);
@@ -85,7 +94,9 @@
 .mfd-chip-svg__sound-wave,
 .mfd-chip-svg__wave-line,
 .mfd-chip-svg__trophy-handle,
-.mfd-chip-svg__warning-mark {
+.mfd-chip-svg__warning-mark,
+.mfd-chip-svg__finger-line,
+.mfd-chip-svg__shock-line {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -125,10 +136,16 @@
   fill: var(--mfd-red);
 }
 
+.mfd-chip-svg__arm-overlay {
+  fill: var(--mfd-red);
+}
+
 .mfd-chip-svg__hand,
 .mfd-chip-svg__neck,
 .mfd-chip-svg__ear,
-.mfd-chip-svg__face {
+.mfd-chip-svg__face,
+.mfd-chip-svg__hand-overlay,
+.mfd-chip-svg__surprise-hand {
   fill: var(--mfd-text);
 }
 
@@ -215,6 +232,19 @@
   stroke: var(--mfd-red);
 }
 
+.mfd-chip-svg__finger-line,
+.mfd-chip-svg__shock-line {
+  stroke: var(--mfd-bg);
+  stroke-width: 3;
+}
+
+.mfd-chip-svg__thumb-pixel--thumbs-up,
+.mfd-chip-svg__watch-pixel--warning {
+  fill: var(--mfd-gold);
+  stroke: var(--mfd-bg);
+  stroke-width: 2;
+}
+
 .mfd-chip-svg__mic-tap {
   fill: var(--mfd-cyan);
   opacity: 0;
@@ -240,11 +270,15 @@
 }
 
 .mfd-chip[data-chip-pose='talk'] .mfd-chip-svg__mouth--line,
+.mfd-chip[data-chip-pose='greeting'] .mfd-chip-svg__mouth--line,
 .mfd-chip[data-chip-pose='point-left'] .mfd-chip-svg__mouth--line,
 .mfd-chip[data-chip-pose='point-right'] .mfd-chip-svg__mouth--line,
 .mfd-chip[data-chip-pose='wave'] .mfd-chip-svg__mouth--line,
 .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__mouth--line,
-.mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__mouth--line {
+.mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__mouth--line,
+.mfd-chip[data-chip-pose='warning'] .mfd-chip-svg__mouth--line,
+.mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__mouth--line,
+.mfd-chip[data-chip-pose='thumbs-up'] .mfd-chip-svg__mouth--line {
   display: none;
 }
 
@@ -254,13 +288,28 @@
   display: block;
 }
 
-.mfd-chip[data-chip-pose='wave'] .mfd-chip-svg__mouth--smile,
-.mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__mouth--smile {
+.mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__mouth--talk {
   display: block;
 }
 
-.mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__mouth--concern {
+.mfd-chip[data-chip-pose='greeting'] .mfd-chip-svg__mouth--smile,
+.mfd-chip[data-chip-pose='wave'] .mfd-chip-svg__mouth--smile,
+.mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__mouth--smile,
+.mfd-chip[data-chip-pose='thumbs-up'] .mfd-chip-svg__mouth--smile {
   display: block;
+}
+
+.mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__mouth--concern,
+.mfd-chip[data-chip-pose='warning'] .mfd-chip-svg__mouth--concern {
+  display: block;
+}
+
+.mfd-chip[data-chip-pose='greeting'] .mfd-chip-svg__figure {
+  transform: translate(1px, -2px) skewX(-2deg);
+}
+
+.mfd-chip[data-chip-motion='animated'][data-chip-pose='greeting'] .mfd-chip-svg__arm-overlay--greeting {
+  animation: mfd-chip-greeting-point 2s steps(6, end) infinite;
 }
 
 .mfd-chip[data-chip-pose='point-left'] .mfd-chip-svg__arm--left {
@@ -305,12 +354,48 @@
   transform: rotate(-14deg) translateY(2px);
 }
 
+.mfd-chip[data-chip-pose='warning'] .mfd-chip-svg__brow--left {
+  transform: rotate(20deg) translate(1px, 3px);
+}
+
+.mfd-chip[data-chip-pose='warning'] .mfd-chip-svg__brow--right {
+  transform: rotate(-20deg) translate(-1px, 3px);
+}
+
+.mfd-chip[data-chip-motion='animated'][data-chip-pose='warning'] .mfd-chip-svg__warning-watch {
+  animation: mfd-chip-warning-watch-tap 1.2s steps(4, end) infinite;
+}
+
+.mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__head {
+  transform: rotate(-7deg) translate(-3px, -2px);
+}
+
+.mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__headset {
+  transform: rotate(8deg) translate(2px, -2px);
+}
+
+.mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__eye {
+  transform: scale(1.24);
+}
+
+.mfd-chip[data-chip-motion='animated'][data-chip-pose='surprised'] .mfd-chip-svg__figure {
+  animation: mfd-chip-surprised-jolt 1.8s steps(6, end) infinite;
+}
+
 .mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__headset-pad--left {
   animation: mfd-chip-mic-check-tap 920ms steps(2, end) infinite;
 }
 
 .mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__mic-tip {
   animation: mfd-chip-mic-tip-flash 920ms steps(2, end) infinite;
+}
+
+.mfd-chip[data-chip-pose='thumbs-up'] .mfd-chip-svg__arm--right {
+  transform: rotate(-18deg) translate(0, -12px);
+}
+
+.mfd-chip[data-chip-motion='animated'][data-chip-pose='thumbs-up'] .mfd-chip-svg__thumb-group--thumbs-up {
+  animation: mfd-chip-thumbs-up-pop 1.6s steps(5, end) infinite;
 }
 
 @keyframes mfd-chip-pose-enter {
@@ -358,12 +443,51 @@
   }
 }
 
+@keyframes mfd-chip-greeting-point {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(4px, -2px);
+  }
+}
+
 @keyframes mfd-chip-celebrate-bounce {
   0%, 100% {
     transform: translateY(0);
   }
   50% {
     transform: translateY(-6px);
+  }
+}
+
+@keyframes mfd-chip-surprised-jolt {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-5px);
+  }
+  45% {
+    transform: translateY(2px);
+  }
+}
+
+@keyframes mfd-chip-warning-watch-tap {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  40%, 55% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes mfd-chip-thumbs-up-pop {
+  0%, 100% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.12);
   }
 }
 
@@ -487,8 +611,14 @@
 
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg,
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__figure,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__headset,
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__head,
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__arm,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__arm-overlay,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__hand-overlay,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__surprise-hand,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__thumb-group,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__warning-watch,
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__brow,
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__mouth,
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__headset-pad--left,
@@ -509,8 +639,14 @@
 @media (prefers-reduced-motion: reduce) {
   .mfd-chip .mfd-chip-svg,
   .mfd-chip .mfd-chip-svg__figure,
+  .mfd-chip .mfd-chip-svg__headset,
   .mfd-chip .mfd-chip-svg__head,
   .mfd-chip .mfd-chip-svg__arm,
+  .mfd-chip .mfd-chip-svg__arm-overlay,
+  .mfd-chip .mfd-chip-svg__hand-overlay,
+  .mfd-chip .mfd-chip-svg__surprise-hand,
+  .mfd-chip .mfd-chip-svg__thumb-group,
+  .mfd-chip .mfd-chip-svg__warning-watch,
   .mfd-chip .mfd-chip-svg__brow,
   .mfd-chip .mfd-chip-svg__mouth,
   .mfd-chip .mfd-chip-svg__headset-pad--left,
@@ -539,6 +675,16 @@
   .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__head,
   .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__brow--left,
   .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__brow--right,
+  .mfd-chip[data-chip-pose='greeting'] .mfd-chip-svg__figure,
+  .mfd-chip[data-chip-pose='greeting'] .mfd-chip-svg__arm-overlay--greeting,
+  .mfd-chip[data-chip-pose='warning'] .mfd-chip-svg__brow--left,
+  .mfd-chip[data-chip-pose='warning'] .mfd-chip-svg__brow--right,
+  .mfd-chip[data-chip-pose='warning'] .mfd-chip-svg__warning-watch,
+  .mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__head,
+  .mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__headset,
+  .mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__figure,
+  .mfd-chip[data-chip-pose='thumbs-up'] .mfd-chip-svg__arm--right,
+  .mfd-chip[data-chip-pose='thumbs-up'] .mfd-chip-svg__thumb-group--thumbs-up,
   .mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__headset-pad--left,
   .mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__mic-tip {
     animation: none;

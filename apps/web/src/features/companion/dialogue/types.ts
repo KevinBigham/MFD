@@ -22,6 +22,7 @@ export interface DialogueCatalogEntry {
 
 const CHIP_DIALOGUE_POSES = [
   'idle',
+  'greeting',
   'talk',
   'point-left',
   'point-right',
@@ -29,7 +30,10 @@ const CHIP_DIALOGUE_POSES = [
   'think',
   'celebrate',
   'concern',
+  'warning',
+  'surprised',
   'mic-check',
+  'thumbs-up',
 ] as const satisfies readonly ChipPose[];
 
 export function isChipContext(value: unknown): value is ChipContext {
