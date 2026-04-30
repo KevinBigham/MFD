@@ -6,6 +6,7 @@ export interface ChipState {
   pose: ChipPose;
   currentDialogueId: string | null;
   currentDialogueText: string | null;
+  lastWeeklyDialogue: DialogueCatalogEntry | null;
   spotlightTargetId: string | null;
   dismissed: boolean;
   beat: number;
@@ -33,6 +34,7 @@ const initialState: ChipState = {
   pose: 'idle',
   currentDialogueId: null,
   currentDialogueText: null,
+  lastWeeklyDialogue: null,
   spotlightTargetId: null,
   dismissed: false,
   beat: 0,
@@ -56,6 +58,7 @@ export const useChipStore = create<ChipStore>((set) => ({
     set({
       currentDialogueId: entry.id,
       currentDialogueText: entry.text,
+      lastWeeklyDialogue: entry,
       pose: entry.pose,
       context: 'event',
       dismissed: false,

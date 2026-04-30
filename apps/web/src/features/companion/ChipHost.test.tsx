@@ -6,10 +6,12 @@ import {
   advanceOnboardingBeat,
   isChipFeatureEnabled,
   readOnboardingSkipState,
+  replayOnboardingBeat,
   resolveBeatIndexForStageAdvance,
   resolveChipHostSpotlightTarget,
   writeOnboardingSkipState,
 } from './ChipHost';
+import { onboardingDialogue } from './dialogue/onboarding';
 import { useChipStore } from './store';
 
 const stages = [
@@ -100,10 +102,24 @@ describe('ChipHost', () => {
     expect(markup).toContain('data-chip-host="true"');
     expect(markup).toContain('Chip, your assistant');
     expect(markup).toContain('DYNASTY DESK // CHIP');
+    expect(markup).toContain('data-chip-host-portrait="true"');
+    expect(markup).toContain('Your first morning is not a tutorial. It is a diagnosis.');
+    expect(markup).toContain('Each reveal should make the franchise problem clearer');
     expect(markup).toContain('Click the gold button when ready.');
     expect(markup).not.toContain('Continue</button>');
     expect(markup).toContain('Skip');
     expect(markup).toContain('data-wizard="setup"');
+  });
+
+  it('replays the current onboarding beat from the portrait handler', () => {
+    const showDialogue = vi.fn();
+
+    replayOnboardingBeat(onboardingDialogue[0]!, { showDialogue });
+
+    expect(showDialogue).toHaveBeenCalledWith('chip.onboarding.beat-1', {
+      pose: 'wave',
+      context: 'onboarding',
+    });
   });
 
   it('resolves beat 1 spotlight to the cold-open target', () => {

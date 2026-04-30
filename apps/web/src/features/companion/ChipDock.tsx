@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { Calendar, CalendarOff, EyeOff, Lightbulb, VolumeX, X } from 'lucide-react';
+import { Calendar, CalendarOff, EyeOff, Lightbulb, MessageSquare, VolumeX, X } from 'lucide-react';
 import { Chip, PixelButton } from '@mfd/design-system/components';
 import type { ChipPose } from '@mfd/design-system/components';
 import { isChipFeatureEnabled } from './ChipHost';
 import { useChipStore } from './store';
+import type { DialogueCatalogEntry } from './dialogue/types';
 import {
   readDockPrefs,
   resolveDockStorage,
@@ -16,6 +17,7 @@ export type ChipDockControl =
   | 'quietForScreen'
   | 'quietUntilNextWeek'
   | 'quietThisSeason'
+  | 'whatNow'
   | 'reduceGuidance'
   | 'disableAnimations'
   | 'collapse'
@@ -25,6 +27,8 @@ export interface ChipDockControlStore {
   setPose?: (pose: ChipPose) => void;
   dismiss?: () => void;
   reset?: () => void;
+  showWeeklyDialogue?: (entry: DialogueCatalogEntry) => void;
+  lastWeeklyDialogue?: DialogueCatalogEntry | null;
 }
 
 export interface ApplyDockControlOptions {
@@ -56,6 +60,7 @@ interface DockControlButton {
 }
 
 const DOCK_CONTROL_BUTTONS: readonly DockControlButton[] = [
+  { id: 'whatNow', label: 'What now?', icon: MessageSquare, accent: 'gold' },
   { id: 'quietForScreen', label: 'Quiet for screen', icon: VolumeX, accent: 'cyan' },
   { id: 'quietUntilNextWeek', label: 'Quiet until next week', icon: Calendar, accent: 'gold' },
   { id: 'quietThisSeason', label: 'Quiet this season', icon: CalendarOff, accent: 'red' },
@@ -68,6 +73,11 @@ export function applyDockControl(control: ChipDockControl, options: ApplyDockCon
   const chipStore = options.chipStore;
 
   switch (control) {
+    case 'whatNow':
+      if (chipStore?.lastWeeklyDialogue) {
+        chipStore.showWeeklyDialogue?.(chipStore.lastWeeklyDialogue);
+      }
+      return prefs;
     case 'quietForScreen':
       chipStore?.setPose?.('idle');
       chipStore?.dismiss?.();

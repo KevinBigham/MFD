@@ -25,9 +25,11 @@ describe('companion dialogue types', () => {
       pose: 'talk',
       text: "I'm Chip. Your desk is live.",
       archetype: 'host',
+      contextDetails: ['Your first morning is not a tutorial. It is a diagnosis.'],
     });
 
     expect(entry.id).toBe('chip.onboarding.beat-1');
+    expect(entry.contextDetails).toEqual(['Your first morning is not a tutorial. It is a diagnosis.']);
   });
 
   it('keeps onboarding entries on one-based beats', () => {
@@ -76,6 +78,19 @@ describe('companion dialogue types', () => {
         archetype: 'host',
       }),
     ).toThrow(/240 characters/);
+  });
+
+  it('rejects invalid context detail copy', () => {
+    expect(() =>
+      assertDialogueEntry({
+        id: 'chip.onboarding.bad-context',
+        beat: 1,
+        pose: 'idle',
+        text: 'Valid text.',
+        archetype: 'host',
+        contextDetails: [''],
+      }),
+    ).toThrow(/context details/);
   });
 
   it('guards unknown runtime values', () => {

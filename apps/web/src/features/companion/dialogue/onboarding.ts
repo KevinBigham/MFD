@@ -10,6 +10,10 @@ const onboardingDialogueEntries: DialogueCatalogEntry[] = [
     beat: 1,
     pose: 'wave',
     text: "Okay. Good. You're here. I'm Chip. Personal assistant, schedule defender, bad-contract spotter, and the guy who keeps the coffee away from the draft board.",
+    contextDetails: [
+      'Your first morning is not a tutorial. It is a diagnosis.',
+      'Each reveal should make the franchise problem clearer before you walk into the war room.',
+    ],
     archetype: 'host',
   },
   {

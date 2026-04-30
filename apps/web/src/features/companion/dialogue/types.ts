@@ -12,6 +12,7 @@ export interface DialogueCatalogEntry {
   beat: number;
   pose: ChipPose;
   text: string;
+  contextDetails?: string[];
   archetype: DialogueArchetype;
   reducedMotionPose?: ChipPose;
   cooldownMs?: number;
@@ -56,6 +57,15 @@ export function assertDialogueEntry(entry: DialogueCatalogEntry): DialogueCatalo
   }
   if (entry.text.length > MAX_CHIP_DIALOGUE_CHARS) {
     throw new Error(`Chip dialogue text must be ${MAX_CHIP_DIALOGUE_CHARS} characters or fewer.`);
+  }
+  if (
+    entry.contextDetails !== undefined
+    && (
+      !Array.isArray(entry.contextDetails)
+      || entry.contextDetails.some((detail) => typeof detail !== 'string' || detail.trim().length === 0)
+    )
+  ) {
+    throw new Error('Chip dialogue context details must be non-empty strings.');
   }
   if (entry.priority !== undefined && (!Number.isInteger(entry.priority) || entry.priority < 1 || entry.priority > 5)) {
     throw new Error('Chip dialogue priority must be an integer from 1 to 5.');

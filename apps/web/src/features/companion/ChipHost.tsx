@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Chip, ChipDialogueBubble, PixelButton, Spotlight } from '@mfd/design-system/components';
 import { onboardingDialogue } from './dialogue/onboarding';
+import type { DialogueCatalogEntry } from './dialogue/types';
 import { useChipStore } from './store';
 import {
   createSpotlightController,
@@ -27,6 +28,10 @@ export interface ChipOnboardingSkipState {
   skipped: true;
   lastBeat: number;
   timestamp: string;
+}
+
+export interface ChipOnboardingReplayStore {
+  showDialogue: (dialogueId: string, options?: { pose?: DialogueCatalogEntry['pose']; context?: 'onboarding' }) => void;
 }
 
 export interface ChipHostProps {
@@ -116,6 +121,16 @@ export function writeOnboardingSkipState(storage: Storage | null, lastBeat: numb
   storage.setItem(CHIP_ONBOARDING_STORAGE_KEY, JSON.stringify(payload));
 }
 
+export function replayOnboardingBeat(
+  entry: DialogueCatalogEntry,
+  chipStore: ChipOnboardingReplayStore = useChipStore.getState(),
+): void {
+  chipStore.showDialogue(entry.id, {
+    pose: entry.pose,
+    context: 'onboarding',
+  });
+}
+
 function resolveStageSpotlightId(stage: ChipHostStage | undefined): string | null {
   if (!stage) return null;
   if (stage.spotlightStageId) return stage.spotlightStageId;
@@ -142,7 +157,7 @@ export function ChipHost({
   const subscribedStoreDismissed = useChipStore((state) => state.dismissed);
   const storeDismissed = subscribedStoreDismissed || useChipStore.getState().dismissed;
   const hostDismissed = dismissed || storeDismissed;
-  const currentDialogue = onboardingDialogue[beatIndex] ?? onboardingDialogue[0];
+  const currentDialogue = onboardingDialogue[beatIndex] ?? onboardingDialogue[0]!;
   const currentStage = stages[beatIndex] ?? stages[0];
   const spotlightTargetId = resolveChipHostSpotlightTarget({
     beatIndex,
@@ -198,6 +213,35 @@ export function ChipHost({
     [],
   );
 
+  const portraitButtonStyle = useMemo(
+    () => ({
+      display: 'grid',
+      placeItems: 'center',
+      padding: 0,
+      border: '2px solid transparent',
+      background: 'transparent',
+      color: 'inherit',
+      cursor: 'pointer',
+    }),
+    [],
+  );
+
+  const contextDetailsStyle = useMemo(
+    () => ({
+      display: 'grid',
+      gap: 'var(--mfd-sp-xs)',
+      width: '100%',
+      padding: 'var(--mfd-sp-sm)',
+      border: '2px solid var(--mfd-border)',
+      background: 'var(--mfd-bg-2)',
+      color: 'var(--mfd-text-dim)',
+      fontFamily: 'var(--mfd-font-mono)',
+      fontSize: '11px',
+      lineHeight: 1.55,
+    }),
+    [],
+  );
+
   useEffect(() => {
     useChipStore.getState().setSpotlightTarget(spotlightTargetId);
   }, [spotlightTargetId]);
@@ -219,6 +263,10 @@ export function ChipHost({
     useChipStore.getState().dismiss();
     setDismissed(true);
   }, [backingStorage, beatIndex, now]);
+
+  const replayCurrentBeat = useCallback(() => {
+    replayOnboardingBeat(currentDialogue);
+  }, [currentDialogue]);
 
   const renderedChildren = typeof children === 'function'
     ? children({
@@ -245,7 +293,15 @@ export function ChipHost({
         aria-label="Chip onboarding companion"
       >
         <div data-chip-host-companion="true" style={stageStyle}>
-          <Chip pose={currentDialogue.pose} reducedMotion={reducedMotion} size="md" />
+          <button
+            type="button"
+            data-chip-host-portrait="true"
+            onClick={replayCurrentBeat}
+            aria-label="Replay Chip briefing"
+            style={portraitButtonStyle}
+          >
+            <Chip pose={currentDialogue.pose} reducedMotion={reducedMotion} size="md" />
+          </button>
           <ChipDialogueBubble
             text={currentDialogue.text}
             pose={currentDialogue.pose}
@@ -253,6 +309,13 @@ export function ChipHost({
             skippable={false}
             pointer="left"
           />
+          {currentDialogue.contextDetails?.length ? (
+            <div data-chip-host-context-details="true" style={contextDetailsStyle}>
+              {currentDialogue.contextDetails.map((detail) => (
+                <div key={detail}>{detail}</div>
+              ))}
+            </div>
+          ) : null}
           <div data-chip-host-controls="true" style={controlsStyle}>
             <div style={{ color: 'var(--mfd-gold)', fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', lineHeight: 1.45 }}>
               Click the gold button when ready.

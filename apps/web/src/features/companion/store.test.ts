@@ -89,6 +89,7 @@ describe('useChipStore', () => {
       pose: 'celebrate',
       currentDialogueId: 'chip.weekly.cleanWin',
       currentDialogueText: 'That was a grown-up win.',
+      lastWeeklyDialogue: expect.objectContaining({ id: 'chip.weekly.cleanWin' }),
       dismissed: false,
       context: 'event',
     });

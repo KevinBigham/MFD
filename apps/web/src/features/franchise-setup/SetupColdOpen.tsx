@@ -35,9 +35,6 @@ export function SetupColdOpen({
               <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.7 }}>
                 {coldOpen.openerLabel}
               </div>
-              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
-                Your first morning is not a tutorial. It is a diagnosis.
-              </div>
             </div>
           </PixelPanel>
           {onSkip ? <PixelButton accent="default" onClick={onSkip}>Skip Intro</PixelButton> : null}
@@ -93,20 +90,7 @@ export function SetupColdOpen({
         ))}
       </div>
 
-      <PixelPanel accent="default" padding="md">
-        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
-          Your first morning is not a tutorial. It is a diagnosis. Each reveal should make the franchise problem clearer before you walk into the war room.
-        </div>
-      </PixelPanel>
-
-      <PixelPanel accent="default" padding="md">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ ...pixelSm, color: activeBeat.accent }}>{`Beat ${clampedBeatIndex + 1} of ${COLD_OPEN_BEATS.length}`}</div>
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
-            The next reveal lands only after you continue the briefing.
-          </div>
-        </div>
-      </PixelPanel>
+      <div style={{ ...pixelSm, color: activeBeat.accent }}>{`Beat ${clampedBeatIndex + 1} of ${COLD_OPEN_BEATS.length}`}</div>
     </div>
   );
 }

@@ -47,6 +47,21 @@ describe('SetupColdOpen', () => {
     expect(html).not.toContain('LAST SEASON SCAR');
   });
 
+  it('keeps exposition out of the wizard panel so Chip carries the why', () => {
+    const html = renderToStaticMarkup(
+      <SetupColdOpen
+        coldOpen={coldOpen}
+        beatIndex={0}
+        reducedMotion={false}
+        onSkip={() => undefined}
+      />,
+    );
+
+    expect(html).not.toContain('Your first morning is not a tutorial. It is a diagnosis.');
+    expect(html).not.toContain('Each reveal should make the franchise problem clearer');
+    expect(html).not.toContain('The next reveal lands only after you continue the briefing.');
+  });
+
   it('collapses to the stacked diagnosis layout in reduced-motion mode', () => {
     const html = renderToStaticMarkup(
       <SetupColdOpen
@@ -60,5 +75,6 @@ describe('SetupColdOpen', () => {
     expect(html).toContain('COMMAND CENTER CRISIS ROOM');
     expect(html).toContain('OWNER EXPECTATION');
     expect(html).toContain('WEEK 1 THREAT');
+    expect(html).not.toContain('Your first morning is not a tutorial. It is a diagnosis.');
   });
 });
