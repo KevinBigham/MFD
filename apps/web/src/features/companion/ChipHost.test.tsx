@@ -90,11 +90,11 @@ describe('ChipHost', () => {
     expect(markup).not.toContain('DYNASTY DESK // CHIP');
   });
 
-  it('renders Chip, a broadcast bubble, controls, and children for a new game', () => {
+  it('renders Chip, a broadcast bubble, controls, and children after the reveal completes', () => {
     vi.stubEnv('VITE_CHIP_ENABLED', 'true');
 
     const markup = renderToStaticMarkup(
-      <ChipHost newGame stages={stages}>
+      <ChipHost newGame stages={stages} reducedMotion>
         <div data-wizard="setup">Wizard</div>
       </ChipHost>,
     );
@@ -109,6 +109,23 @@ describe('ChipHost', () => {
     expect(markup).not.toContain('Continue</button>');
     expect(markup).toContain('Skip');
     expect(markup).toContain('data-wizard="setup"');
+  });
+
+  it('starts the onboarding hero reveal before the locked onboarding lines', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderToStaticMarkup(
+      <ChipHost newGame stages={stages}>
+        <div data-wizard="setup">Wizard</div>
+      </ChipHost>,
+    );
+
+    expect(markup).toContain('data-chip-host-reveal="hidden"');
+    expect(markup).toContain('data-chip-host-reveal-portrait="true"');
+    expect(markup).toContain('data-chip-pose="wave"');
+    expect(markup).not.toContain('Your first morning is not a tutorial. It is a diagnosis.');
+    expect(markup).not.toContain('Click the gold button when ready.');
+    expect(markup).not.toContain('data-mfd-spotlight');
   });
 
   it('replays the current onboarding beat from the portrait handler', () => {
@@ -170,6 +187,8 @@ describe('ChipHost', () => {
     );
 
     expect(markup).toContain('data-chip-motion="reduced"');
+    expect(markup).not.toContain('data-chip-host-reveal=');
+    expect(markup).toContain('Your first morning is not a tutorial. It is a diagnosis.');
     expect(markup).not.toContain('mfd-chip-bubble__caret');
   });
 
