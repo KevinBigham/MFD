@@ -189,6 +189,14 @@ describe('Chip', () => {
     expect(overlay.props.fill).toBe('url(#chip-crt-scanline)');
   });
 
+  it('renders the tablet screen as chunky crisp pixel chart rects', () => {
+    const tabletPixels = renderChipElements().filter((element) => element.props['data-chip-tablet-pixel']);
+
+    expect(tabletPixels).toHaveLength(24);
+    expect(tabletPixels.every((element) => element.type === 'rect')).toBe(true);
+    expect(tabletPixels.every((element) => element.props.shapeRendering === 'crispEdges')).toBe(true);
+  });
+
   it('marks reduced-motion renders without dropping the requested pose', () => {
     const root = findElement(renderChipElements({ pose: 'wave', reducedMotion: true }), 'span');
 
@@ -198,11 +206,24 @@ describe('Chip', () => {
 
   it('renders the Mic Check signature tap targets and cyan mic tip', () => {
     const elements = renderChipElements({ pose: 'mic-check' });
+    const pixelSparkles = elements.filter((element) => element.props['data-chip-mic-sparkle']);
 
     expect(findElement(elements, 'circle', 'data-chip-mic-tap', 'left')).toBeTruthy();
     expect(findElement(elements, 'circle', 'data-chip-mic-tap', 'right')).toBeTruthy();
-    expect(findElement(elements, 'path', 'data-chip-mic-tip', 'signature')).toBeTruthy();
+    expect(findElement(elements, 'rect', 'data-chip-mic-tip', 'signature')).toBeTruthy();
     expect(elements.some((element) => element.props.className === 'mfd-chip-svg__mic-tip')).toBe(true);
+    expect(pixelSparkles).toHaveLength(5);
+    expect(pixelSparkles.every((element) => element.type === 'rect')).toBe(true);
+  });
+
+  it('renders celebration confetti as chunky pixel-art rects', () => {
+    const confettiBits = renderChipElements({ pose: 'celebrate' }).filter(
+      (element) => element.props['data-chip-confetti-bit'],
+    );
+
+    expect(confettiBits.length).toBeGreaterThanOrEqual(16);
+    expect(confettiBits.every((element) => element.type === 'rect')).toBe(true);
+    expect(confettiBits.every((element) => element.props.shapeRendering === 'crispEdges')).toBe(true);
   });
 
   it('defines pose transition and reduced-motion CSS fallbacks', () => {
