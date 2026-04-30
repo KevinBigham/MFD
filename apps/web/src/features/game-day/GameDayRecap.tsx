@@ -17,6 +17,7 @@ import { PixelPanel, PixelBadge, PixelButton, PixelDialog, PixelEkg, PixelScoreb
 import { navigateTo } from '../shared/pixelUi';
 import { CallYourShotResult } from './CallYourShotResult';
 import { PressConferenceModal } from './PressConferenceModal';
+import { RecapChipReaction, deriveRecapChipOutcome } from './RecapChipReaction';
 import { buildPressConferencePromptBank, buildPressConferenceTemplateContext } from '../../lib/pressConferenceContent';
 import {
   selectLatestBroadcast,
@@ -671,6 +672,47 @@ export function GameDayRecap() {
       event: classifyWinProbEvent(point, analysis.winProbability[index - 1] ?? null),
     }));
   }, [latestBroadcast, namedGame]);
+  const recapUserWinProbPoints = useMemo(() => {
+    if (!latestBroadcast || !team) return [];
+    const analysis = analyzeGameFlow(
+      latestBroadcast.broadcast,
+      latestBroadcast.gameResult.homeTeamId,
+      latestBroadcast.gameResult.awayTeamId,
+    );
+    const userIsHome = latestBroadcast.gameResult.homeTeamId === team.id;
+    return analysis.winProbability.map((point) => (
+      userIsHome ? point.homeWinProb : 100 - point.homeWinProb
+    ));
+  }, [latestBroadcast, team]);
+  const recapChipContext = useMemo(() => {
+    if (!team || !gameResult) {
+      return {
+        outcome: deriveRecapChipOutcome({ result: packageData?.result ?? null }),
+        opponentName: null,
+        userScore: null,
+        opponentScore: null,
+      };
+    }
+
+    const userIsHome = gameResult.homeTeamId === team.id;
+    const opponentTeamId = userIsHome ? gameResult.awayTeamId : gameResult.homeTeamId;
+    const opponent = teams?.[opponentTeamId] ?? null;
+    const userScore = userIsHome ? gameResult.homeScore : gameResult.awayScore;
+    const opponentScore = userIsHome ? gameResult.awayScore : gameResult.homeScore;
+    const result = userScore > opponentScore ? 'win' : userScore < opponentScore ? 'loss' : 'tie';
+
+    return {
+      outcome: deriveRecapChipOutcome({
+        result: packageData?.result ?? result,
+        margin: Math.abs(userScore - opponentScore),
+        overtime: gameResult.overtime,
+        userWinProbPoints: recapUserWinProbPoints,
+      }),
+      opponentName: opponent ? `${opponent.city} ${opponent.name}` : null,
+      userScore,
+      opponentScore,
+    };
+  }, [gameResult, packageData?.result, recapUserWinProbPoints, team, teams]);
   const boothRecap = useMemo(() => {
     if (!game || !latestBroadcast) return [];
     return buildBroadcastCommentary(game as BroadcastCommentaryGame, {
@@ -701,6 +743,13 @@ export function GameDayRecap() {
   if (!team) return null;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <RecapChipReaction
+        outcome={recapChipContext.outcome}
+        teamName={`${team.city} ${team.name}`}
+        opponentName={recapChipContext.opponentName}
+        userScore={recapChipContext.userScore}
+        opponentScore={recapChipContext.opponentScore}
+      />
       <GameDayCenterView
         teamLabel={`${team.city} ${team.name}`}
         phase={phase}
