@@ -11,6 +11,7 @@ import {
 } from '../../app/store/game-store';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { ComparePlayersModal } from '../player/ComparePlayersModal';
+import { WatchListPinButton } from '../watch-list/WatchListPinButton';
 import {
   PixelConsequenceList,
   PixelMetricCard,
@@ -94,6 +95,12 @@ const columns: ColumnDef<Player, unknown>[] = [
         style={{ fontWeight: 500 }}
       />
     ),
+  },
+  {
+    id: 'watch',
+    header: 'Watch',
+    cell: ({ row }) => <WatchListPinButton playerId={row.original.id} />,
+    size: 82,
   },
   {
     accessorKey: 'pos',

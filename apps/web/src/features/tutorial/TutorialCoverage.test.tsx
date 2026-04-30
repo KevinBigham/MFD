@@ -4,6 +4,7 @@ import appSource from '../../app/App.tsx?raw';
 
 const TUTORIAL_ROUTE_ALLOWLIST = new Set([
   '/locker-room',
+  '/watch-list',
   '/cap-lab',
   '/front-office',
   '/endorsements',
