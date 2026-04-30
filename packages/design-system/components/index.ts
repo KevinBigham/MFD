@@ -44,6 +44,7 @@ export {
   type TypewriterControllerOptions,
   type TypewriterRevealInput,
 } from './Chip';
+export { Spotlight, type SpotlightProps } from './Spotlight';
 
 // Responsive tokens (Sprint 42)
 export {
