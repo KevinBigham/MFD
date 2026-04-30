@@ -127,4 +127,10 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain("path: '/franchise/achievements'");
     expect(content).toContain('routeTree.addChildren([...(routeTree.children ?? []), achievementsRoute]);');
   });
+
+  it('registers the Sprint 46 weather forecast route additively', () => {
+    expect(content).toContain("const LazyWeatherForecast = lazy(async () => ({ default: (await import('../features/league/WeatherForecast')).WeatherForecast }));");
+    expect(content).toContain("path: '/league/weather'");
+    expect(content).toContain('routeTree.addChildren([...(routeTree.children ?? []), weatherForecastRoute]);');
+  });
 });

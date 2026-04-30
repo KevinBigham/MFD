@@ -114,6 +114,7 @@ const LazyFilmRoom = lazy(async () => ({ default: (await import('../features/fil
 const LazyGameBroadcast = lazy(async () => ({ default: (await import('../features/broadcast/GameBroadcast')).GameBroadcast }));
 const LazyBroadcastPresentation = lazy(async () => ({ default: (await import('../features/broadcast/BroadcastPresentation')).default }));
 const LazyLeaguePulse = lazy(async () => ({ default: (await import('../features/league/LeaguePulse')).default }));
+const LazyWeatherForecast = lazy(async () => ({ default: (await import('../features/league/WeatherForecast')).WeatherForecast }));
 const LazySocialFeed = lazy(async () => ({ default: (await import('../features/social/SocialFeed')).SocialFeed }));
 const LazyTradeBlockTicker = lazy(async () => ({ default: (await import('../features/trades/TradeBlockTicker')).TradeBlockTicker }));
 const LazyTradeDeadline = lazy(async () => ({ default: (await import('../features/trades/TradeDeadline')).TradeDeadline }));
@@ -1806,6 +1807,16 @@ const achievementsRoute = createRoute({
   ),
 });
 
+const weatherForecastRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/league/weather',
+  component: () => (
+    <LazyRouteFrame label="weather">
+      <LazyWeatherForecast />
+    </LazyRouteFrame>
+  ),
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, frontOfficeRoute, endorsementsRoute, tradesRoute, tradeBlockRoute, watchListRoute,
@@ -1821,6 +1832,8 @@ routeTree.addChildren([...(routeTree.children ?? []), trophyRoomRoute, eraHallRo
 routeTree.addChildren([...(routeTree.children ?? []), mvpPlaqueWallRoute]);
 
 routeTree.addChildren([...(routeTree.children ?? []), achievementsRoute]);
+
+routeTree.addChildren([...(routeTree.children ?? []), weatherForecastRoute]);
 
 const hashHistory = createHashHistory();
 const router = createRouter({ routeTree, history: hashHistory });
