@@ -25,6 +25,10 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+        env:
+          # Match production deploy: Chip features must be live in the build the
+          # smoke test loads, otherwise CI verifies a different artifact than ships.
+          VITE_CHIP_ENABLED: 'true'
 
       - name: Engine bundle size gate
         run: bash scripts/check-bundle-size.sh

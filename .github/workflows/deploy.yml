@@ -33,6 +33,11 @@ jobs:
       - run: pnpm -r typecheck
       - run: pnpm test
       - run: pnpm --filter @mfd/web build
+        env:
+          # Personal Assistant Chip — Slice A (onboarding) + Slice B (dock + Monday Briefing).
+          # Kill switch lives in apps/web/src/features/companion/ChipHost.tsx::isChipFeatureEnabled.
+          # Without this, the production build ships with Chip invisible.
+          VITE_CHIP_ENABLED: 'true'
 
       - uses: actions/upload-pages-artifact@v3
         with:
