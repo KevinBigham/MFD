@@ -15,6 +15,8 @@ export interface ChipDialogueBubbleProps {
   skippable?: boolean;
   reducedMotion?: boolean;
   pointer?: 'left' | 'right';
+  monoBody?: boolean;
+  showPoseTag?: boolean;
 }
 
 export interface TypewriterRevealInput {
@@ -172,6 +174,8 @@ export function ChipDialogueBubble({
   skippable = true,
   reducedMotion = false,
   pointer = 'left',
+  monoBody = true,
+  showPoseTag = false,
 }: ChipDialogueBubbleProps) {
   const normalizedText = useMemo(() => normalizeBubbleText(text), [text]);
   const [visibleCount, setVisibleCount] = useState(reducedMotion ? normalizedText.length : 0);
@@ -222,17 +226,32 @@ export function ChipDialogueBubble({
       data-chip-bubble="broadcast-card"
       data-chip-bubble-pointer={pointer}
       data-chip-bubble-pose={pose}
+      data-chip-bubble-body={monoBody ? 'mono' : undefined}
       aria-label={normalizedText}
       onClick={handleSkip}
     >
       <div className="mfd-chip-bubble__stamp">DYNASTY DESK // CHIP</div>
-      <div className="mfd-chip-bubble__rule" />
-      <p className="mfd-chip-bubble__text" aria-hidden="true">
+      <div
+        className="mfd-chip-bubble__rule"
+        role="separator"
+        aria-orientation="horizontal"
+      />
+      <p
+        className={
+          monoBody
+            ? 'mfd-chip-bubble__text mfd-chip-bubble__text--mono'
+            : 'mfd-chip-bubble__text'
+        }
+        aria-hidden="true"
+      >
         {visibleText}
         {!reducedMotion && visibleCount < normalizedText.length && (
           <span className="mfd-chip-bubble__caret" aria-hidden="true" />
         )}
       </p>
+      {showPoseTag && pose && (
+        <div className="mfd-chip-bubble__pose-tag">{pose}</div>
+      )}
       {skippable && (
         <button className="mfd-chip-bubble__skip" type="button" onClick={handleSkip}>
           SKIP
