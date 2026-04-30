@@ -55,7 +55,8 @@ describe('App Chip setup wiring', () => {
   it('wraps FranchiseSetupWizard in ChipHost at the setup gate', () => {
     expect(content).toContain('ChipHost');
     expect(content).toContain('<ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>');
-    expect(content).toContain('<FranchiseSetupWizard />');
+    expect(content).toContain('{({ onStageAdvance }) => (');
+    expect(content).toContain('<FranchiseSetupWizard onStageAdvance={onStageAdvance} />');
     expect(content).toContain('</ChipHost>');
   });
 

@@ -1,7 +1,12 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { Chip, ChipDialogueBubble, PixelButton } from '@mfd/design-system/components';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Chip, ChipDialogueBubble, PixelButton, Spotlight } from '@mfd/design-system/components';
 import { onboardingDialogue } from './dialogue/onboarding';
 import { useChipStore } from './store';
+import {
+  createSpotlightController,
+  SPOTLIGHT_TARGETS_BY_BEAT,
+  type SpotlightWizardStageId,
+} from './spotlightController';
 
 export const CHIP_ONBOARDING_STORAGE_KEY = 'mfd.chip.onboarding';
 
@@ -9,6 +14,13 @@ export interface ChipHostStage {
   id: string;
   label: string;
   content: ReactNode;
+  spotlightStageId?: SpotlightWizardStageId | string;
+}
+
+export interface ChipHostRenderControls {
+  onStageAdvance: (stageId: string) => void;
+  spotlightTargetId: string | null;
+  currentBeat: number;
 }
 
 export interface ChipOnboardingSkipState {
@@ -20,7 +32,7 @@ export interface ChipOnboardingSkipState {
 export interface ChipHostProps {
   newGame: boolean;
   stages: ChipHostStage[];
-  children: ReactNode;
+  children: ReactNode | ((controls: ChipHostRenderControls) => ReactNode);
   reducedMotion?: boolean;
   storage?: Storage | null;
   now?: () => Date;
@@ -33,6 +45,39 @@ export function isChipFeatureEnabled(env: Record<string, string | boolean | unde
 export function advanceOnboardingBeat(currentBeatIndex: number, totalBeats: number): number {
   if (totalBeats <= 0) return 0;
   return Math.min(currentBeatIndex + 1, totalBeats - 1);
+}
+
+export function resolveBeatIndexForStageAdvance(
+  currentBeatIndex: number,
+  stageId: string | null | undefined,
+  totalBeats: number,
+): number {
+  if (!stageId || totalBeats <= 0) return currentBeatIndex;
+  const matchingTarget = SPOTLIGHT_TARGETS_BY_BEAT.find((entry) => entry.stageId === stageId);
+  if (!matchingTarget) return currentBeatIndex;
+  return Math.max(0, Math.min(matchingTarget.beat - 1, totalBeats - 1));
+}
+
+export function resolveChipHostSpotlightTarget({
+  beatIndex,
+  stageId,
+  enabled,
+  skipped,
+  dismissed,
+}: {
+  beatIndex: number;
+  stageId: string | null | undefined;
+  enabled: boolean;
+  skipped: boolean;
+  dismissed: boolean;
+}): string | null {
+  return createSpotlightController({
+    getCurrentBeat: () => beatIndex + 1,
+    getCurrentStage: () => stageId,
+    isEnabled: () => enabled,
+    isSkipped: () => skipped,
+    isDismissed: () => dismissed,
+  }).getTargetId();
 }
 
 function resolveStorage(): Storage | null {
@@ -71,6 +116,15 @@ export function writeOnboardingSkipState(storage: Storage | null, lastBeat: numb
   storage.setItem(CHIP_ONBOARDING_STORAGE_KEY, JSON.stringify(payload));
 }
 
+function resolveStageSpotlightId(stage: ChipHostStage | undefined): string | null {
+  if (!stage) return null;
+  if (stage.spotlightStageId) return stage.spotlightStageId;
+  const beatMatch = stage.id.match(/beat-(\d+)$/);
+  if (!beatMatch) return null;
+  const beat = Number(beatMatch[1]);
+  return SPOTLIGHT_TARGETS_BY_BEAT.find((entry) => entry.beat === beat)?.stageId ?? null;
+}
+
 export function ChipHost({
   newGame,
   stages,
@@ -81,11 +135,22 @@ export function ChipHost({
 }: ChipHostProps) {
   const [beatIndex, setBeatIndex] = useState(0);
   const [dismissed, setDismissed] = useState(false);
+  const [activeStageId, setActiveStageId] = useState<string | null>(() => resolveStageSpotlightId(stages[0]));
   const backingStorage = storage === undefined ? resolveStorage() : storage;
   const skipped = readOnboardingSkipState(backingStorage)?.skipped === true;
   const enabled = isChipFeatureEnabled();
+  const subscribedStoreDismissed = useChipStore((state) => state.dismissed);
+  const storeDismissed = subscribedStoreDismissed || useChipStore.getState().dismissed;
+  const hostDismissed = dismissed || storeDismissed;
   const currentDialogue = onboardingDialogue[beatIndex] ?? onboardingDialogue[0];
   const currentStage = stages[beatIndex] ?? stages[0];
+  const spotlightTargetId = resolveChipHostSpotlightTarget({
+    beatIndex,
+    stageId: activeStageId,
+    enabled,
+    skipped,
+    dismissed: hostDismissed,
+  });
 
   // FranchiseSetupWizard renders as a full-viewport `position: fixed` overlay
   // (see FranchiseSetupWizard.tsx — z-index 50 inset:0). A side-by-side grid
@@ -133,9 +198,20 @@ export function ChipHost({
     [],
   );
 
-  const advance = useCallback(() => {
-    useChipStore.getState().advance();
-    setBeatIndex((current) => advanceOnboardingBeat(current, onboardingDialogue.length));
+  useEffect(() => {
+    useChipStore.getState().setSpotlightTarget(spotlightTargetId);
+  }, [spotlightTargetId]);
+
+  const handleStageAdvance = useCallback((stageId: string) => {
+    setActiveStageId(stageId);
+    setBeatIndex((current) => {
+      const next = resolveBeatIndexForStageAdvance(current, stageId, onboardingDialogue.length);
+      const delta = Math.max(0, next - current);
+      for (let index = 0; index < delta; index += 1) {
+        useChipStore.getState().advance();
+      }
+      return next;
+    });
   }, []);
 
   const skip = useCallback(() => {
@@ -144,14 +220,23 @@ export function ChipHost({
     setDismissed(true);
   }, [backingStorage, beatIndex, now]);
 
-  if (!enabled || !newGame || skipped || dismissed || !currentDialogue) {
-    return <>{children}</>;
+  const renderedChildren = typeof children === 'function'
+    ? children({
+      onStageAdvance: handleStageAdvance,
+      spotlightTargetId,
+      currentBeat: beatIndex + 1,
+    })
+    : children;
+
+  if (!enabled || !newGame || skipped || hostDismissed || !currentDialogue) {
+    return <>{renderedChildren}</>;
   }
 
   return (
     <>
+      <Spotlight targetId={spotlightTargetId} reducedMotion={reducedMotion} />
       <div data-chip-host-content="true" aria-label={currentStage?.label}>
-        {children}
+        {renderedChildren}
       </div>
       <aside
         data-chip-host="true"
@@ -169,9 +254,9 @@ export function ChipHost({
             pointer="left"
           />
           <div data-chip-host-controls="true" style={controlsStyle}>
-            <PixelButton accent="gold" onClick={advance}>
-              Continue
-            </PixelButton>
+            <div style={{ color: 'var(--mfd-gold)', fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', lineHeight: 1.45 }}>
+              Click the gold button when ready.
+            </div>
             <PixelButton accent="cyan" onClick={skip}>
               Skip
             </PixelButton>

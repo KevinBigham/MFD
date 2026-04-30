@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
   CHIP_ONBOARDING_STORAGE_KEY,
@@ -6,8 +6,11 @@ import {
   advanceOnboardingBeat,
   isChipFeatureEnabled,
   readOnboardingSkipState,
+  resolveBeatIndexForStageAdvance,
+  resolveChipHostSpotlightTarget,
   writeOnboardingSkipState,
 } from './ChipHost';
+import { useChipStore } from './store';
 
 const stages = [
   { id: 'chip.onboarding.beat-1', label: 'Cold Open', content: <div>Cold stage</div> },
@@ -44,6 +47,10 @@ class MemoryStorage implements Storage {
 }
 
 describe('ChipHost', () => {
+  beforeEach(() => {
+    useChipStore.getState().reset();
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -65,6 +72,7 @@ describe('ChipHost', () => {
 
     expect(markup).toContain('data-wizard="setup"');
     expect(markup).not.toContain('data-chip-host');
+    expect(markup).not.toContain('data-mfd-spotlight');
   });
 
   it('renders children unwrapped for existing dynasty loads', () => {
@@ -92,9 +100,26 @@ describe('ChipHost', () => {
     expect(markup).toContain('data-chip-host="true"');
     expect(markup).toContain('Chip, your assistant');
     expect(markup).toContain('DYNASTY DESK // CHIP');
-    expect(markup).toContain('Continue');
+    expect(markup).toContain('Click the gold button when ready.');
+    expect(markup).not.toContain('Continue</button>');
     expect(markup).toContain('Skip');
     expect(markup).toContain('data-wizard="setup"');
+  });
+
+  it('resolves beat 1 spotlight to the cold-open target', () => {
+    expect(resolveChipHostSpotlightTarget({
+      beatIndex: 0,
+      stageId: 'cold-open',
+      enabled: true,
+      skipped: false,
+      dismissed: false,
+    })).toBe('wizard.cold-open.continue');
+  });
+
+  it('advances beats only when a matching wizard stage advances', () => {
+    expect(resolveBeatIndexForStageAdvance(0, 'intel-briefing', 9)).toBe(0);
+    expect(resolveBeatIndexForStageAdvance(0, 'agm-hire', 9)).toBe(2);
+    expect(resolveBeatIndexForStageAdvance(2, 'depth-chart', 9)).toBe(3);
   });
 
   it('advances onboarding beats by user action boundaries only', () => {
@@ -130,5 +155,20 @@ describe('ChipHost', () => {
 
     expect(markup).toContain('data-chip-motion="reduced"');
     expect(markup).not.toContain('mfd-chip-bubble__caret');
+  });
+
+  it('renders children unwrapped after Chip is dismissed', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    useChipStore.getState().dismiss();
+
+    const markup = renderToStaticMarkup(
+      <ChipHost newGame stages={stages}>
+        <div data-wizard="setup">Wizard</div>
+      </ChipHost>,
+    );
+
+    expect(markup).toContain('data-wizard="setup"');
+    expect(markup).not.toContain('data-chip-host');
+    expect(markup).not.toContain('data-mfd-spotlight');
   });
 });
