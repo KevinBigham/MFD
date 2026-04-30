@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useChipStore } from './store';
+import { resolveCurrentChipPose, useChipStore } from './store';
 
 describe('useChipStore', () => {
   beforeEach(() => {
@@ -78,6 +78,83 @@ describe('useChipStore', () => {
     useChipStore.getState().setPose('wave');
 
     expect(useChipStore.getState().pose).toBe('wave');
+  });
+
+  it('sets a timed current pose window without scheduling timers', () => {
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+
+    useChipStore.getState().setPose('warning', {
+      durationMs: 3500,
+      nowMs: 1_000,
+      priority: 'warning',
+    });
+
+    expect(useChipStore.getState()).toMatchObject({
+      pose: 'warning',
+      currentPose: 'warning',
+      poseSetAt: 1_000,
+      poseDurationMs: 3500,
+      poseUntil: 4_500,
+      fallbackPose: 'idle',
+      posePriority: 'warning',
+    });
+    expect(setTimeoutSpy).not.toHaveBeenCalled();
+    setTimeoutSpy.mockRestore();
+  });
+
+  it('resolves a timed current pose back to idle after the pose window expires', () => {
+    useChipStore.getState().setPose('celebrate', {
+      durationMs: 4000,
+      nowMs: 10_000,
+      priority: 'celebrate',
+    });
+
+    expect(resolveCurrentChipPose(useChipStore.getState(), 13_999)).toBe('celebrate');
+    expect(resolveCurrentChipPose(useChipStore.getState(), 14_000)).toBe('idle');
+  });
+
+  it('resolves expired poses to a custom fallback pose', () => {
+    useChipStore.getState().setPose('whispering', {
+      durationMs: 3500,
+      nowMs: 2_000,
+      fallbackPose: 'think',
+    });
+
+    expect(resolveCurrentChipPose(useChipStore.getState(), 5_501)).toBe('think');
+  });
+
+  it('keeps an active higher-priority warning pose over lower-priority reactions', () => {
+    useChipStore.getState().setPose('warning', {
+      durationMs: 3500,
+      nowMs: 1_000,
+      priority: 'warning',
+    });
+    useChipStore.getState().setPose('celebrate', {
+      durationMs: 4000,
+      nowMs: 1_500,
+      priority: 'celebrate',
+    });
+
+    expect(useChipStore.getState().currentPose).toBe('warning');
+    expect(resolveCurrentChipPose(useChipStore.getState(), 2_000)).toBe('warning');
+  });
+
+  it('lets a sticky pose clear an active timed pose window', () => {
+    useChipStore.getState().setPose('sad', {
+      durationMs: 6000,
+      nowMs: 1_000,
+      priority: 'sad',
+    });
+    useChipStore.getState().setPose('wave');
+
+    expect(useChipStore.getState()).toMatchObject({
+      pose: 'wave',
+      currentPose: 'wave',
+      poseSetAt: null,
+      poseDurationMs: 0,
+      poseUntil: null,
+      posePriority: 'routine',
+    });
   });
 
   it('shows dialogue with pose and onboarding context', () => {

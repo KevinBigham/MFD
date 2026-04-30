@@ -1,8 +1,31 @@
+import type { ChipPose } from '@mfd/design-system/components';
 import type { DockPrefs } from './dockPersistence';
+import type { SetChipPoseOptions } from './store';
 import type { WeeklyDialogueVariant } from './dialogue/weekly';
 
 export type ChipEventTrigger = 'weekRollover' | 'gameComplete' | 'seasonEnd';
 export type ChipEventCategory = ChipEventTrigger;
+export type ChipPoseEventTrigger =
+  | 'USER_TEAM_TOUCHDOWN'
+  | 'USER_TEAM_FIRST_LAUNCH'
+  | 'CAP_PROJECTION_OVER_LIMIT'
+  | 'USER_TEAM_LOSS_BIG'
+  | 'PLAYOFF_UPSET_WIN'
+  | 'TRADE_RUMOR_FOR_USER_PLAYER'
+  | 'PLAYER_RETIREMENT_USER_HOF'
+  | 'USER_DECISION_LOCKED_IN';
+export type ChipPosePriority = NonNullable<SetChipPoseOptions['priority']>;
+
+export interface ChipPoseEvent {
+  id: string;
+  trigger: ChipPoseEventTrigger;
+}
+
+export interface ChipPoseReaction {
+  pose: ChipPose;
+  durationMs: number;
+  priority: ChipPosePriority;
+}
 
 export interface ChipEvent {
   id: string;
@@ -21,6 +44,7 @@ export interface GameStoreSnapshot {
   currentSeason: number;
   dynastySeed: number;
   weeklyOutcome?: WeeklyDialogueVariant;
+  poseEvents?: readonly ChipPoseEvent[];
 }
 
 export interface ChipStoreSnapshot {
@@ -39,6 +63,7 @@ export interface CreateChipEventBridgeDeps {
   dockPrefs: () => DockPrefs;
   currentRoute: () => string;
   now: () => Date;
+  setPose?: (pose: ChipPose, options?: number | SetChipPoseOptions) => void;
   onEvent: (event: ChipEvent) => void;
 }
 
@@ -48,6 +73,20 @@ export interface ChipEventBridge {
 }
 
 const DISMISSALS_TO_SESSION_MUTE = 2;
+const POSE_REACTIONS: Record<ChipPoseEventTrigger, ChipPoseReaction> = {
+  USER_TEAM_TOUCHDOWN: { pose: 'celebrate', durationMs: 4000, priority: 'celebrate' },
+  USER_TEAM_FIRST_LAUNCH: { pose: 'greeting', durationMs: 5000, priority: 'routine' },
+  CAP_PROJECTION_OVER_LIMIT: { pose: 'warning', durationMs: 3500, priority: 'warning' },
+  USER_TEAM_LOSS_BIG: { pose: 'sad', durationMs: 6000, priority: 'sad' },
+  PLAYOFF_UPSET_WIN: { pose: 'surprised', durationMs: 4000, priority: 'routine' },
+  TRADE_RUMOR_FOR_USER_PLAYER: { pose: 'whispering', durationMs: 3500, priority: 'routine' },
+  PLAYER_RETIREMENT_USER_HOF: { pose: 'disappointed', durationMs: 4000, priority: 'sad' },
+  USER_DECISION_LOCKED_IN: { pose: 'thumbs-up', durationMs: 1500, priority: 'routine' },
+};
+
+export function resolveChipPoseReaction(trigger: ChipPoseEventTrigger): ChipPoseReaction {
+  return POSE_REACTIONS[trigger];
+}
 
 export function createChipEventBridge(deps: CreateChipEventBridgeDeps): ChipEventBridge {
   let stopGameSubscription: (() => void) | null = null;
@@ -56,6 +95,7 @@ export function createChipEventBridge(deps: CreateChipEventBridgeDeps): ChipEven
   const consecutiveDismissalsByCategory = new Map<ChipEventCategory, number>();
   const sessionMutedCategories = new Set<ChipEventCategory>();
   const categoryByDialogueId = new Map<string, ChipEventCategory>();
+  const emittedPoseEventIds = new Set<string>();
   let lastEmittedCategory: ChipEventCategory | null = null;
 
   function canEmit(category: ChipEventCategory, game: GameStoreSnapshot): boolean {
@@ -94,13 +134,36 @@ export function createChipEventBridge(deps: CreateChipEventBridgeDeps): ChipEven
     deps.onEvent(event);
   }
 
+  function emitPoseReaction(event: ChipPoseEvent): void {
+    if (emittedPoseEventIds.has(event.id)) return;
+
+    const reaction = resolveChipPoseReaction(event.trigger);
+    emittedPoseEventIds.add(event.id);
+    deps.setPose?.(reaction.pose, {
+      durationMs: reaction.durationMs,
+      nowMs: deps.now().getTime(),
+      priority: reaction.priority,
+    });
+  }
+
+  function emitNewPoseEvents(state: GameStoreSnapshot, previousState: GameStoreSnapshot): void {
+    const previousIds = new Set((previousState.poseEvents ?? []).map((event) => event.id));
+    for (const event of state.poseEvents ?? []) {
+      if (previousIds.has(event.id)) continue;
+      emitPoseReaction(event);
+    }
+  }
+
   function handleGameTransition(state: GameStoreSnapshot, previousState: GameStoreSnapshot): void {
     if (state.currentWeek > previousState.currentWeek || state.currentSeason > previousState.currentSeason) {
       emitWeekRollover(state);
     }
+    emitNewPoseEvents(state, previousState);
 
     // Slice C will wire `gameComplete` once the broader event catalog exists.
     // Slice C will wire `seasonEnd` after season-summary dialogue variants exist.
+    // The high-stakes pose reactions above are intentionally fed by explicit
+    // web-side poseEvents until the engine event spine exposes those signals.
   }
 
   function handleChipTransition(state: ChipStoreSnapshot, previousState: ChipStoreSnapshot): void {
