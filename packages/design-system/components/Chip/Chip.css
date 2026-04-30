@@ -38,6 +38,8 @@
 .mfd-chip-svg__arm-overlay,
 .mfd-chip-svg__hand-overlay,
 .mfd-chip-svg__surprise-hand,
+.mfd-chip-svg__hand-over-mouth,
+.mfd-chip-svg__fist,
 .mfd-chip-svg__thumb-group,
 .mfd-chip-svg__warning-watch,
 .mfd-chip-svg__brow,
@@ -76,6 +78,8 @@
 .mfd-chip-svg__arm-overlay,
 .mfd-chip-svg__hand-overlay,
 .mfd-chip-svg__surprise-hand,
+.mfd-chip-svg__hand-over-mouth,
+.mfd-chip-svg__fist,
 .mfd-chip-svg__mic-tap,
 .mfd-chip-svg__mic-tip-flash {
   stroke: var(--mfd-bg);
@@ -96,7 +100,12 @@
 .mfd-chip-svg__trophy-handle,
 .mfd-chip-svg__warning-mark,
 .mfd-chip-svg__finger-line,
-.mfd-chip-svg__shock-line {
+.mfd-chip-svg__shock-line,
+.mfd-chip-svg__sad-shoulder,
+.mfd-chip-svg__disappointed-eye,
+.mfd-chip-svg__flat-mouth,
+.mfd-chip-svg__whisper-brow,
+.mfd-chip-svg__excitement-line {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -145,7 +154,9 @@
 .mfd-chip-svg__ear,
 .mfd-chip-svg__face,
 .mfd-chip-svg__hand-overlay,
-.mfd-chip-svg__surprise-hand {
+.mfd-chip-svg__surprise-hand,
+.mfd-chip-svg__hand-over-mouth,
+.mfd-chip-svg__fist {
   fill: var(--mfd-text);
 }
 
@@ -233,9 +244,19 @@
 }
 
 .mfd-chip-svg__finger-line,
-.mfd-chip-svg__shock-line {
+.mfd-chip-svg__shock-line,
+.mfd-chip-svg__sad-shoulder,
+.mfd-chip-svg__disappointed-eye,
+.mfd-chip-svg__flat-mouth,
+.mfd-chip-svg__whisper-brow,
+.mfd-chip-svg__excitement-line {
   stroke: var(--mfd-bg);
   stroke-width: 3;
+}
+
+.mfd-chip-svg__mic-tip--sad {
+  fill: var(--mfd-red);
+  opacity: 0.9;
 }
 
 .mfd-chip-svg__thumb-pixel--thumbs-up,
@@ -278,6 +299,10 @@
 .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__mouth--line,
 .mfd-chip[data-chip-pose='warning'] .mfd-chip-svg__mouth--line,
 .mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__mouth--line,
+.mfd-chip[data-chip-pose='sad'] .mfd-chip-svg__mouth--line,
+.mfd-chip[data-chip-pose='disappointed'] .mfd-chip-svg__mouth--line,
+.mfd-chip[data-chip-pose='whispering'] .mfd-chip-svg__mouth--line,
+.mfd-chip[data-chip-pose='excited'] .mfd-chip-svg__mouth--line,
 .mfd-chip[data-chip-pose='thumbs-up'] .mfd-chip-svg__mouth--line {
   display: none;
 }
@@ -295,12 +320,14 @@
 .mfd-chip[data-chip-pose='greeting'] .mfd-chip-svg__mouth--smile,
 .mfd-chip[data-chip-pose='wave'] .mfd-chip-svg__mouth--smile,
 .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__mouth--smile,
+.mfd-chip[data-chip-pose='excited'] .mfd-chip-svg__mouth--smile,
 .mfd-chip[data-chip-pose='thumbs-up'] .mfd-chip-svg__mouth--smile {
   display: block;
 }
 
 .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__mouth--concern,
-.mfd-chip[data-chip-pose='warning'] .mfd-chip-svg__mouth--concern {
+.mfd-chip[data-chip-pose='warning'] .mfd-chip-svg__mouth--concern,
+.mfd-chip[data-chip-pose='sad'] .mfd-chip-svg__mouth--concern {
   display: block;
 }
 
@@ -333,6 +360,14 @@
   transform: rotate(-4deg) translate(-2px, 2px);
 }
 
+.mfd-chip[data-chip-pose='whispering'] .mfd-chip-svg__figure {
+  transform: translate(2px, -2px) skewX(-2deg);
+}
+
+.mfd-chip[data-chip-pose='whispering'] .mfd-chip-svg__tablet {
+  opacity: 0;
+}
+
 .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__arm--left,
 .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__arm--right {
   transform: translateY(-28px);
@@ -340,6 +375,15 @@
 
 .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__figure {
   animation: mfd-chip-celebrate-bounce 1s steps(6, end) infinite;
+}
+
+.mfd-chip[data-chip-pose='excited'] .mfd-chip-svg__arm--left,
+.mfd-chip[data-chip-pose='excited'] .mfd-chip-svg__arm--right {
+  transform: translateY(-32px);
+}
+
+.mfd-chip[data-chip-motion='animated'][data-chip-pose='excited'] .mfd-chip-svg__figure {
+  animation: mfd-chip-excited-bounce 400ms steps(4, end) 4;
 }
 
 .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__head {
@@ -380,6 +424,31 @@
 
 .mfd-chip[data-chip-motion='animated'][data-chip-pose='surprised'] .mfd-chip-svg__figure {
   animation: mfd-chip-surprised-jolt 1.8s steps(6, end) infinite;
+}
+
+.mfd-chip[data-chip-pose='sad'] .mfd-chip-svg__figure {
+  transform: translateY(5px) rotate(-2deg);
+}
+
+.mfd-chip[data-chip-pose='sad'] .mfd-chip-svg__head {
+  transform: rotate(-6deg) translate(-2px, 7px);
+}
+
+.mfd-chip[data-chip-pose='sad'] .mfd-chip-svg__mic-tip {
+  fill: var(--mfd-red);
+}
+
+.mfd-chip[data-chip-motion='animated'][data-chip-pose='sad'] .mfd-chip-svg__mic-tip--sad {
+  animation: mfd-chip-sad-mic-pulse 1.5s steps(4, end) infinite;
+}
+
+.mfd-chip[data-chip-pose='disappointed'] .mfd-chip-svg__head {
+  transform-origin: 50% 80%;
+  transform: rotate(10deg) translate(3px, 2px);
+}
+
+.mfd-chip[data-chip-pose='disappointed'] .mfd-chip-svg__eye {
+  opacity: 0;
 }
 
 .mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__headset-pad--left {
@@ -461,6 +530,15 @@
   }
 }
 
+@keyframes mfd-chip-excited-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
 @keyframes mfd-chip-surprised-jolt {
   0%, 100% {
     transform: translateY(0);
@@ -470,6 +548,15 @@
   }
   45% {
     transform: translateY(2px);
+  }
+}
+
+@keyframes mfd-chip-sad-mic-pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
   }
 }
 
@@ -617,6 +704,8 @@
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__arm-overlay,
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__hand-overlay,
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__surprise-hand,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__hand-over-mouth,
+.mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__fist,
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__thumb-group,
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__warning-watch,
 .mfd-chip[data-chip-motion='reduced'] .mfd-chip-svg__brow,
@@ -645,6 +734,8 @@
   .mfd-chip .mfd-chip-svg__arm-overlay,
   .mfd-chip .mfd-chip-svg__hand-overlay,
   .mfd-chip .mfd-chip-svg__surprise-hand,
+  .mfd-chip .mfd-chip-svg__hand-over-mouth,
+  .mfd-chip .mfd-chip-svg__fist,
   .mfd-chip .mfd-chip-svg__thumb-group,
   .mfd-chip .mfd-chip-svg__warning-watch,
   .mfd-chip .mfd-chip-svg__brow,
@@ -669,9 +760,14 @@
   .mfd-chip[data-chip-pose='wave'] .mfd-chip-svg__arm--right,
   .mfd-chip[data-chip-pose='think'] .mfd-chip-svg__arm--right,
   .mfd-chip[data-chip-pose='think'] .mfd-chip-svg__head,
+  .mfd-chip[data-chip-pose='whispering'] .mfd-chip-svg__figure,
+  .mfd-chip[data-chip-pose='whispering'] .mfd-chip-svg__tablet,
   .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__arm--left,
   .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__arm--right,
   .mfd-chip[data-chip-pose='celebrate'] .mfd-chip-svg__figure,
+  .mfd-chip[data-chip-pose='excited'] .mfd-chip-svg__arm--left,
+  .mfd-chip[data-chip-pose='excited'] .mfd-chip-svg__arm--right,
+  .mfd-chip[data-chip-pose='excited'] .mfd-chip-svg__figure,
   .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__head,
   .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__brow--left,
   .mfd-chip[data-chip-pose='concern'] .mfd-chip-svg__brow--right,
@@ -683,6 +779,11 @@
   .mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__head,
   .mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__headset,
   .mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__figure,
+  .mfd-chip[data-chip-pose='sad'] .mfd-chip-svg__figure,
+  .mfd-chip[data-chip-pose='sad'] .mfd-chip-svg__head,
+  .mfd-chip[data-chip-pose='sad'] .mfd-chip-svg__mic-tip--sad,
+  .mfd-chip[data-chip-pose='disappointed'] .mfd-chip-svg__head,
+  .mfd-chip[data-chip-pose='disappointed'] .mfd-chip-svg__eye,
   .mfd-chip[data-chip-pose='thumbs-up'] .mfd-chip-svg__arm--right,
   .mfd-chip[data-chip-pose='thumbs-up'] .mfd-chip-svg__thumb-group--thumbs-up,
   .mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__headset-pad--left,
