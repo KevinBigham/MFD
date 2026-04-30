@@ -23,6 +23,7 @@ export interface CelebrationOverlayProps {
   signaturePlays?: string[];
   ctaLabel?: string;
   reducedMotion?: boolean;
+  onParadeRequest?: () => void;
   onDismiss: () => void;
 }
 
@@ -125,6 +126,7 @@ export function CelebrationOverlay({
   signaturePlays = [],
   ctaLabel = 'CONTINUE TO OFFSEASON',
   reducedMotion = false,
+  onParadeRequest,
   onDismiss,
 }: CelebrationOverlayProps) {
   const [confettiPieces] = useState(() => generateConfettiPieces());
@@ -211,10 +213,15 @@ export function CelebrationOverlay({
           </div>
         ) : null}
 
-        <div style={{ marginTop: '24px' }}>
+        <div style={{ marginTop: '24px', display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <PixelButton accent="gold" onClick={onDismiss}>
             {ctaLabel}
           </PixelButton>
+          {onParadeRequest ? (
+            <PixelButton accent="cyan" onClick={onParadeRequest}>
+              WATCH PARADE
+            </PixelButton>
+          ) : null}
         </div>
       </div>
     </div>
