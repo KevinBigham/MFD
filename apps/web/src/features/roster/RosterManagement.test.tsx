@@ -95,6 +95,13 @@ vi.mock('../../app/store/game-store', () => ({
 vi.mock('@mfd/engine', () => ({
   calcCapHit: (contract: { totalValue: number; years: number }) => contract.totalValue / contract.years,
   calculateTrainingXP: () => ({ totalXp: 2.5 }),
+  getPlayerComparables: () => [],
+  getPlayerProjection: (player: { ovr: number; age: number }) => ({
+    nextYearOvr: player.ovr,
+    peakOvr: player.ovr,
+    peakAge: player.age,
+    retirementAge: player.age + 5,
+  }),
 }));
 
 import { RosterManagement } from './RosterManagement';

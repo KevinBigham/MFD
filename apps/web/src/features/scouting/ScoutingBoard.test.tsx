@@ -87,6 +87,7 @@ describe('ScoutingBoard', () => {
     expect(markup).toContain('Lineage: son of Marcus North');
     expect(markup).toContain('balanced');
     expect(markup).toContain('steady');
+    expect(markup).toContain('Compare');
     expect(markup).toContain('Scout Desk // Authored Read');
     expect(markup).toContain('Good route runner on three-level tree. Sharp on slants, digs, outs.');
   });

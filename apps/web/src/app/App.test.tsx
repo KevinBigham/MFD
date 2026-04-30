@@ -95,6 +95,7 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain('const chipPendingDecisions = useMemo(');
     expect(content).toContain('() => countPendingDecisions({ game: chipGame }),');
     expect(content).toContain('[chipGame],');
+    expect(content).not.toContain('useGameStore(countPendingDecisions)');
     expect(content).toContain('pendingDecisions={chipPendingDecisions}');
   });
 
