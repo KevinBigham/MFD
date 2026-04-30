@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Chip, ChipDialogueBubble, PixelButton, Spotlight } from '@mfd/design-system/components';
 import { onboardingDialogue } from './dialogue/onboarding';
 import type { DialogueCatalogEntry } from './dialogue/types';
@@ -8,6 +8,10 @@ import {
   SPOTLIGHT_TARGETS_BY_BEAT,
   type SpotlightWizardStageId,
 } from './spotlightController';
+import {
+  ONBOARDING_REVEAL_TOTAL_MS,
+  getOnboardingRevealFrame,
+} from './onboardingReveal';
 
 export const CHIP_ONBOARDING_STORAGE_KEY = 'mfd.chip.onboarding';
 
@@ -151,6 +155,8 @@ export function ChipHost({
   const [beatIndex, setBeatIndex] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const [activeStageId, setActiveStageId] = useState<string | null>(() => resolveStageSpotlightId(stages[0]));
+  const [revealElapsedMs, setRevealElapsedMs] = useState(reducedMotion ? ONBOARDING_REVEAL_TOTAL_MS : 0);
+  const revealStartMs = useRef<number | null>(null);
   const backingStorage = storage === undefined ? resolveStorage() : storage;
   const skipped = readOnboardingSkipState(backingStorage)?.skipped === true;
   const enabled = isChipFeatureEnabled();
@@ -159,12 +165,18 @@ export function ChipHost({
   const hostDismissed = dismissed || storeDismissed;
   const currentDialogue = onboardingDialogue[beatIndex] ?? onboardingDialogue[0]!;
   const currentStage = stages[beatIndex] ?? stages[0];
+  const shouldPlayReveal = enabled && newGame && !skipped && !hostDismissed && !reducedMotion;
+  const revealFrame = getOnboardingRevealFrame({
+    elapsedMs: shouldPlayReveal ? revealElapsedMs : ONBOARDING_REVEAL_TOTAL_MS,
+    reducedMotion,
+  });
+  const revealComplete = !shouldPlayReveal || revealFrame.complete;
   const spotlightTargetId = resolveChipHostSpotlightTarget({
     beatIndex,
     stageId: activeStageId,
     enabled,
     skipped,
-    dismissed: hostDismissed,
+    dismissed: hostDismissed || !revealComplete,
   });
 
   // FranchiseSetupWizard renders as a full-viewport `position: fixed` overlay
@@ -226,6 +238,17 @@ export function ChipHost({
     [],
   );
 
+  const revealStyle = useMemo(
+    () => ({
+      display: 'grid',
+      placeItems: 'center',
+      opacity: revealFrame.opacity,
+      transform: revealFrame.phase === 'hidden' ? 'translateY(8px)' : 'translateY(0)',
+      transition: reducedMotion ? 'none' : 'opacity 240ms ease, transform 240ms ease',
+    }),
+    [reducedMotion, revealFrame.opacity, revealFrame.phase],
+  );
+
   const contextDetailsStyle = useMemo(
     () => ({
       display: 'grid',
@@ -245,6 +268,43 @@ export function ChipHost({
   useEffect(() => {
     useChipStore.getState().setSpotlightTarget(spotlightTargetId);
   }, [spotlightTargetId]);
+
+  useEffect(() => {
+    if (!shouldPlayReveal) {
+      revealStartMs.current = null;
+      setRevealElapsedMs(ONBOARDING_REVEAL_TOTAL_MS);
+      return undefined;
+    }
+
+    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+      setRevealElapsedMs(ONBOARDING_REVEAL_TOTAL_MS);
+      return undefined;
+    }
+
+    setRevealElapsedMs(0);
+    revealStartMs.current = null;
+    let frameId = 0;
+    let cancelled = false;
+
+    const tick = (timestamp: number) => {
+      if (cancelled) return;
+      if (revealStartMs.current === null) {
+        revealStartMs.current = timestamp;
+      }
+      const elapsed = Math.min(ONBOARDING_REVEAL_TOTAL_MS, timestamp - revealStartMs.current);
+      setRevealElapsedMs(elapsed);
+      if (elapsed < ONBOARDING_REVEAL_TOTAL_MS) {
+        frameId = window.requestAnimationFrame(tick);
+      }
+    };
+
+    frameId = window.requestAnimationFrame(tick);
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame?.(frameId);
+    };
+  }, [shouldPlayReveal]);
 
   const handleStageAdvance = useCallback((stageId: string) => {
     setActiveStageId(stageId);
@@ -278,6 +338,29 @@ export function ChipHost({
 
   if (!enabled || !newGame || skipped || hostDismissed || !currentDialogue) {
     return <>{renderedChildren}</>;
+  }
+
+  if (!revealComplete) {
+    return (
+      <>
+        <div data-chip-host-content="true" aria-label={currentStage?.label}>
+          {renderedChildren}
+        </div>
+        <aside
+          data-chip-host="true"
+          data-chip-host-reveal={revealFrame.phase}
+          data-chip-host-stage-id={currentStage?.id}
+          style={hostStyle}
+          aria-label="Chip onboarding companion"
+        >
+          <div data-chip-host-companion="true" style={stageStyle}>
+            <div data-chip-host-reveal-portrait="true" style={revealStyle}>
+              <Chip pose={revealFrame.pose} reducedMotion={reducedMotion} size="md" />
+            </div>
+          </div>
+        </aside>
+      </>
+    );
   }
 
   return (
