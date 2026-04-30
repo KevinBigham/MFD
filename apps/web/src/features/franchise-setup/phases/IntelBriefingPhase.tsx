@@ -71,6 +71,7 @@ export function IntelBriefingPhase({
           <PixelPanel title="Open This First" accent={primaryAccent}>
             <button
               type="button"
+              data-spotlight-target={primaryOpened ? undefined : 'wizard.intel-briefing.confirm'}
               disabled={!onToggleDrilldown}
               onClick={() => onToggleDrilldown?.(primaryPressure.id)}
               style={{

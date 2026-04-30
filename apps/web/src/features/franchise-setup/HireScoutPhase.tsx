@@ -68,8 +68,9 @@ export function HireScoutPhase({
           alignItems: 'stretch',
         }}
       >
-        {candidates.map((candidate) => {
+        {candidates.map((candidate, index) => {
           const selected = selectedScoutId === candidate.id;
+          const isSpotlightTarget = !selectedScoutId && index === 0;
           const reaction = getAGMScoutReaction(agmId, candidate.id);
           const highlight = recommendationHighlight(reaction.recommendation);
           return (
@@ -134,6 +135,7 @@ export function HireScoutPhase({
 
                 <PixelButton
                   accent={selected ? 'gold' : 'default'}
+                  data-spotlight-target={isSpotlightTarget ? 'wizard.scout-hire.confirm' : undefined}
                   onClick={() => { void onHire(candidate.id); }}
                   style={{ width: '100%', marginTop: 'auto' }}
                 >

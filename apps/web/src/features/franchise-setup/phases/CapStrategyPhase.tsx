@@ -74,11 +74,13 @@ export function CapStrategyPhase({
 
       <PixelPanel title="Day 1 Cap Packages" accent="cyan">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
-          {packages.map((pkg) => {
+          {packages.map((pkg, index) => {
             const selected = pkg.posture === selectedPosture;
+            const isSpotlightTarget = !selectedPosture && index === 0;
             return (
               <div
                 key={pkg.posture}
+                data-spotlight-target={isSpotlightTarget ? 'wizard.cap-strategy.confirm' : undefined}
                 role="button"
                 tabIndex={0}
                 onClick={() => onSelectPosture(pkg.posture)}

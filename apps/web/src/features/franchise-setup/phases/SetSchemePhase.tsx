@@ -7,16 +7,19 @@ function SchemeCard({
   option,
   selected,
   preview,
+  spotlightTargetId,
   onSelect,
 }: {
   option: SchemeOption;
   selected: boolean;
   preview?: ChoiceForecastPreview;
+  spotlightTargetId?: string;
   onSelect: () => void;
 }) {
   const borderColor = selected ? 'var(--mfd-gold)' : option.recommended ? 'rgba(255, 215, 0, 0.3)' : 'var(--mfd-border)';
   return (
     <div
+      data-spotlight-target={spotlightTargetId}
       style={{
         padding: '12px', border: `3px solid ${borderColor}`,
         background: selected ? 'rgba(255, 215, 0, 0.08)' : 'var(--mfd-bg-3)',
@@ -75,12 +78,13 @@ export function SetSchemePhase({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <PixelPanel title="Offensive Identity" accent="gold">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {data.offenseOptions.map((opt) => (
+          {data.offenseOptions.map((opt, index) => (
             <SchemeCard
               key={opt.schemeId}
               option={opt}
               selected={opt.schemeId === selectedOffense}
               preview={previewByOffenseSchemeId?.[opt.schemeId]}
+              spotlightTargetId={!selectedOffense && index === 0 ? 'wizard.scheme.confirm' : undefined}
               onSelect={() => onSelectOffense(opt.schemeId)}
             />
           ))}
@@ -89,12 +93,13 @@ export function SetSchemePhase({
 
       <PixelPanel title="Defensive Identity" accent="cyan">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {data.defenseOptions.map((opt) => (
+          {data.defenseOptions.map((opt, index) => (
             <SchemeCard
               key={opt.schemeId}
               option={opt}
               selected={opt.schemeId === selectedDefense}
               preview={previewByDefenseSchemeId?.[opt.schemeId]}
+              spotlightTargetId={Boolean(selectedOffense) && !selectedDefense && index === 0 ? 'wizard.scheme.confirm' : undefined}
               onSelect={() => onSelectDefense(opt.schemeId)}
             />
           ))}

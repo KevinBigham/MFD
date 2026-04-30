@@ -42,13 +42,16 @@ export function SetGoalsPhase({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {data.availableGoals.map((goal) => {
+        {data.availableGoals.map((goal, index) => {
           const isSelected = selectedGoals.includes(goal.id);
           const canSelect = isSelected || selectedGoals.length < 3;
           const difficulty = (goal as GoalOption & { difficulty?: string }).difficulty ?? 'medium';
+          const firstAvailableGoalIndex = data.availableGoals.findIndex((entry) => !selectedGoals.includes(entry.id));
+          const isSpotlightTarget = selectedGoals.length < 3 && canSelect && !isSelected && index === firstAvailableGoalIndex;
           return (
             <div
               key={goal.id}
+              data-spotlight-target={isSpotlightTarget ? 'wizard.goals.confirm' : undefined}
               onClick={() => { if (canSelect) onToggleGoal(goal.id); }}
               role="button"
               tabIndex={0}
@@ -81,11 +84,13 @@ export function SetGoalsPhase({
 
       <PixelPanel title="Culture Mandate" accent="cyan">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-          {MANDATES.map((mandate) => {
+          {MANDATES.map((mandate, index) => {
             const selected = mandate.id === selectedMandate;
+            const isSpotlightTarget = selectedGoals.length >= 3 && !selectedMandate && index === 0;
             return (
               <div
                 key={mandate.id}
+                data-spotlight-target={isSpotlightTarget ? 'wizard.culture.confirm' : undefined}
                 role="button"
                 tabIndex={0}
                 onClick={() => onSelectMandate(mandate.id)}

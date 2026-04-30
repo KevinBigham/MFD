@@ -181,6 +181,7 @@ export function ChooseAGMPhase({
                   </div>
                   <PixelButton
                     accent={committedProfileId === selectedProfile.id ? 'gold' : selectedProfile.cardAccent}
+                    data-spotlight-target={committedProfileId ? undefined : 'wizard.agm-hire.confirm'}
                     onClick={() => { void onHire(selectedProfile.id); }}
                     style={{ width: '100%' }}
                   >
