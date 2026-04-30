@@ -18,6 +18,7 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 import { ComparePlayersModal } from '../player/ComparePlayersModal';
+import { WatchListPinButton } from '../watch-list/WatchListPinButton';
 
 function demandAccent(demand: 'high' | 'medium' | 'low'): 'red' | 'gold' | 'green' {
   return demand === 'high' ? 'red' : demand === 'medium' ? 'gold' : 'green';
@@ -71,6 +72,7 @@ function sectionTargets(
               <PixelButton accent="cyan" onClick={() => onCompare(target.player.id)}>
                 <Users size={14} aria-hidden="true" /> Compare
               </PixelButton>
+              <WatchListPinButton playerId={target.player.id} />
             </div>
           </div>
         ))}

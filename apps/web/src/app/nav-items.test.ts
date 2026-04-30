@@ -11,12 +11,14 @@ describe('navigation completeness', () => {
     expect(content).toContain("path: '/game-plan'");
     expect(content).toContain("path: '/film-room'");
     expect(content).toContain("path: '/fa-targets'");
+    expect(content).toContain("path: '/watch-list'");
   });
 
   it('NAV_GROUPS includes the new paths', () => {
     expect(content).toContain("'/training-camp'");
     expect(content).toContain("'/super-bowl'");
     expect(content).toContain("'/fa-targets'");
+    expect(content).toContain("'/watch-list'");
   });
 
   it('command palette Advance Week navigates to /week-advance', () => {

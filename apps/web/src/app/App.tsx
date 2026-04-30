@@ -6,7 +6,7 @@ import {
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
   Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity, CalendarRange,
   Radio, MessageSquare, Crosshair, Building2, Award, Users2, Sparkles, Scale,
-  ChevronDown, ChevronRight, Map as MapIcon, Film, Tent, Target, Loader, Briefcase,
+  ChevronDown, ChevronRight, Map as MapIcon, Film, Tent, Target, Loader, Briefcase, Star,
 } from 'lucide-react';
 import { ChipDialogueBubble, MfdTooltipProvider, MfdCommandPalette, PixelModal, type CommandItem } from '@mfd/design-system/components';
 import { getRegisteredShortcuts, registerShortcut, useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
@@ -106,6 +106,7 @@ const LazyTeamNeeds = lazy(async () => ({ default: (await import('../features/te
 const LazyCapLaboratory = lazy(async () => ({ default: (await import('../features/contracts/CapLaboratory')).default }));
 const LazyContractTools = lazy(async () => ({ default: (await import('../features/front-office/ContractTools')).default }));
 const LazyFATargetBoard = lazy(async () => ({ default: (await import('../features/free-agency/FATargetBoard')).FATargetBoard }));
+const LazyWatchListScreen = lazy(async () => ({ default: (await import('../features/watch-list/WatchListScreen')).WatchListScreen }));
 const LazyFilmRoom = lazy(async () => ({ default: (await import('../features/film-room/FilmRoom')).FilmRoom }));
 const LazyGameBroadcast = lazy(async () => ({ default: (await import('../features/broadcast/GameBroadcast')).GameBroadcast }));
 const LazyBroadcastPresentation = lazy(async () => ({ default: (await import('../features/broadcast/BroadcastPresentation')).default }));
@@ -153,6 +154,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { path: '/',             label: 'Monday Briefing', shortLabel: 'Briefing', icon: <LayoutDashboard size={16} />, shortcut: '1' },
   { path: '/roster',       label: 'Roster',          shortLabel: 'Roster',   icon: <Users size={16} />,          shortcut: '2' },
+  { path: '/watch-list',   label: 'Watch List',      shortLabel: 'Watch',    icon: <Star size={16} /> },
   { path: '/locker-room',  label: 'Locker Room',     shortLabel: 'Locker',   icon: <Users2 size={16} /> },
   { path: '/contracts',    label: 'Contracts',        shortLabel: 'Cap',      icon: <DollarSign size={16} />,     shortcut: '3' },
   { path: '/cap-lab',      label: 'Cap Lab',          shortLabel: 'Cap Lab',  icon: <DollarSign size={16} /> },
@@ -214,7 +216,7 @@ interface NavGroup {
 }
 
 const NAV_GROUPS: NavGroup[] = [
-  { id: 'core',     label: 'CORE',     paths: ['/', '/week-advance', '/inbox'] },
+  { id: 'core',     label: 'CORE',     paths: ['/', '/week-advance', '/watch-list', '/inbox'] },
   { id: 'team',     label: 'TEAM',     paths: ['/roster', '/depth-chart', '/locker-room', '/coaching', '/handshakes', '/training-camp', '/mentors'] },
   { id: 'money',    label: 'MONEY',    paths: ['/contracts', '/cap-lab', '/front-office', '/endorsements'] },
   { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/trade-block', '/scouting', '/draft', '/free-agency', '/fa-targets', '/waivers', '/practice-squad', '/team-needs'] },
@@ -1108,6 +1110,16 @@ const tradeBlockRoute = createRoute({
   ),
 });
 
+const watchListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/watch-list',
+  component: () => (
+    <LazyRouteFrame label="watch list">
+      <LazyWatchListScreen />
+    </LazyRouteFrame>
+  ),
+});
+
 const scoutingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/scouting',
@@ -1747,7 +1759,7 @@ const settingsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, frontOfficeRoute, endorsementsRoute, tradesRoute, tradeBlockRoute,
+  rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, frontOfficeRoute, endorsementsRoute, tradesRoute, tradeBlockRoute, watchListRoute,
   scoutingRoute, draftRoute, trainingCampRoute, freeAgencyRoute, faTargetsRoute,
   gameDayRoute, broadcastRoute, broadcastPresentationRoute, playByPlayRoute, gameFlowRoute, inboxRoute, socialRoute, waiverWireRoute, practiceSquadRoute, gamePlanRoute, draftRecapRoute,
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,

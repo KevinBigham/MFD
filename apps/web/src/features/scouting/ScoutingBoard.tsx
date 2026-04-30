@@ -27,6 +27,7 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 import { ComparePlayersModal } from '../player/ComparePlayersModal';
+import { WatchListPinButton } from '../watch-list/WatchListPinButton';
 
 const REGION_OPTIONS = [
   { value: 'all', label: 'All Regions' },
@@ -419,6 +420,7 @@ export function ScoutingBoard() {
                     <PixelButton accent="cyan" onClick={() => setCompareProspectId(prospect.id)}>
                       <Users size={14} aria-hidden="true" /> Compare
                     </PixelButton>
+                    <WatchListPinButton playerId={prospect.id} />
                     {(['film', 'combine', 'interview'] as const).map((action) => {
                       const taken = scouting?.actions.includes(action);
                       return (
