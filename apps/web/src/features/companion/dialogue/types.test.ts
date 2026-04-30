@@ -36,13 +36,13 @@ describe('companion dialogue types', () => {
     const entry = assertDialogueEntry({
       id: 'chip.event.cap-warning',
       beat: 0,
-      pose: 'warning',
+      pose: 'sad',
       reducedMotionPose: 'thumbs-up',
       text: 'Cap sheet needs your eyes.',
       archetype: 'weekly',
     });
 
-    expect(entry.pose).toBe('warning');
+    expect(entry.pose).toBe('sad');
     expect(entry.reducedMotionPose).toBe('thumbs-up');
   });
 

@@ -7,10 +7,14 @@ import PointLeftPose from './poses/point-left';
 import PointRightPose from './poses/point-right';
 import WavePose from './poses/wave';
 import ThinkPose from './poses/think';
+import WhisperingPose from './poses/whispering';
 import CelebratePose from './poses/celebrate';
+import ExcitedPose from './poses/excited';
 import ConcernPose from './poses/concern';
 import WarningPose from './poses/warning';
 import SurprisedPose from './poses/surprised';
+import SadPose from './poses/sad';
+import DisappointedPose from './poses/disappointed';
 import MicCheckPose from './poses/mic-check';
 import ThumbsUpPose from './poses/thumbs-up';
 
@@ -22,10 +26,14 @@ export const CHIP_POSES = [
   'point-right',
   'wave',
   'think',
+  'whispering',
   'celebrate',
+  'excited',
   'concern',
   'warning',
   'surprised',
+  'sad',
+  'disappointed',
   'mic-check',
   'thumbs-up',
 ] as const;
@@ -56,10 +64,14 @@ const poseComponents: Record<ChipPose, ComponentType> = {
   'point-right': PointRightPose,
   wave: WavePose,
   think: ThinkPose,
+  whispering: WhisperingPose,
   celebrate: CelebratePose,
+  excited: ExcitedPose,
   concern: ConcernPose,
   warning: WarningPose,
   surprised: SurprisedPose,
+  sad: SadPose,
+  disappointed: DisappointedPose,
   'mic-check': MicCheckPose,
   'thumbs-up': ThumbsUpPose,
 };
@@ -76,6 +88,7 @@ export function Chip({
   const pixelSize = CHIP_SIZE_PX[size];
   const label = ariaLabelProp ?? ariaLabel ?? 'Chip, your assistant';
   const classes = ['mfd-chip', className].filter(Boolean).join(' ');
+  const headClasses = `mfd-chip-svg__head mfd-chip-svg__head--${pose}`;
 
   return (
     <span
@@ -138,7 +151,7 @@ export function Chip({
 
           <path className="mfd-chip-svg__neck" d="M68 62 L91 62 L94 76 C88 82 72 82 66 76 Z" />
 
-          <g className="mfd-chip-svg__head">
+          <g className={headClasses}>
             <path className="mfd-chip-svg__ear mfd-chip-svg__ear--left" d="M47 43 C39 45 36 57 43 64 C48 70 55 66 55 59 C55 51 52 45 47 43 Z" />
             <path className="mfd-chip-svg__ear mfd-chip-svg__ear--right" d="M110 43 C118 45 122 57 115 64 C110 70 103 66 104 59 C104 51 106 45 110 43 Z" />
             <path className="mfd-chip-svg__face" d="M51 34 C54 15 67 7 82 8 C101 9 112 22 112 43 C113 65 101 78 82 79 C62 78 50 63 51 34 Z" />

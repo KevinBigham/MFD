@@ -83,10 +83,14 @@ describe('Chip', () => {
       'point-right',
       'wave',
       'think',
+      'whispering',
       'celebrate',
+      'excited',
       'concern',
       'warning',
       'surprised',
+      'sad',
+      'disappointed',
       'mic-check',
       'thumbs-up',
     ]);
@@ -129,9 +133,15 @@ describe('Chip', () => {
         "think:sm:64",
         "think:md:96",
         "think:lg:144",
+        "whispering:sm:64",
+        "whispering:md:96",
+        "whispering:lg:144",
         "celebrate:sm:64",
         "celebrate:md:96",
         "celebrate:lg:144",
+        "excited:sm:64",
+        "excited:md:96",
+        "excited:lg:144",
         "concern:sm:64",
         "concern:md:96",
         "concern:lg:144",
@@ -141,6 +151,12 @@ describe('Chip', () => {
         "surprised:sm:64",
         "surprised:md:96",
         "surprised:lg:144",
+        "sad:sm:64",
+        "sad:md:96",
+        "sad:lg:144",
+        "disappointed:sm:64",
+        "disappointed:md:96",
+        "disappointed:lg:144",
         "mic-check:sm:64",
         "mic-check:md:96",
         "mic-check:lg:144",
@@ -200,6 +216,8 @@ describe('Chip', () => {
     expect(reducedMotionBlock).toContain(".mfd-chip[data-chip-pose='wave'] .mfd-chip-svg__arm--right");
     expect(reducedMotionBlock).toContain(".mfd-chip[data-chip-pose='mic-check'] .mfd-chip-svg__mic-tip");
     expect(reducedMotionBlock).toContain(".mfd-chip[data-chip-pose='surprised'] .mfd-chip-svg__headset");
+    expect(reducedMotionBlock).toContain(".mfd-chip[data-chip-pose='sad'] .mfd-chip-svg__mic-tip--sad");
+    expect(reducedMotionBlock).toContain(".mfd-chip[data-chip-pose='excited'] .mfd-chip-svg__figure");
     expect(reducedMotionBlock).toContain(".mfd-chip[data-chip-pose='thumbs-up'] .mfd-chip-svg__thumb-group--thumbs-up");
     const reducedTransforms = [...reducedMotionBlock.matchAll(/transform:\s*([^;]+);/g)].map((match) =>
       (match[1] ?? '').trim(),
