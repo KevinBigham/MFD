@@ -4,11 +4,17 @@ export const ROUTE_KEYS = [
   'depth-chart',
   'game-plan',
   'week-advance',
+  'inbox',
   'staff',
   'cap-laboratory',
   'draft-board',
   'trade-center',
   'scouting-board',
+  'standings',
+  'power-rankings',
+  'league-pulse',
+  'record-book',
+  'settings-save-load',
 ] as const;
 
 export type RouteKey = (typeof ROUTE_KEYS)[number];
@@ -101,6 +107,20 @@ export const ROUTE_BEAT_REGISTRY = {
       spotlightTarget: 'chip.route.week-advance.beat-2',
     },
   ],
+  inbox: [
+    {
+      id: 'chip.route.inbox.beat-1',
+      pose: 'point-side',
+      text: 'Treat Inbox like the owner decision desk. Clear yes, no, or later prompts before the week moves.',
+      spotlightTarget: null,
+    },
+    {
+      id: 'chip.route.inbox.beat-2',
+      pose: 'thinking',
+      text: 'If the board is quiet, that is permission to get back to roster, plan, and advance.',
+      spotlightTarget: null,
+    },
+  ],
   staff: [
     {
       id: 'chip.route.staff.beat-1',
@@ -169,6 +189,76 @@ export const ROUTE_BEAT_REGISTRY = {
       pose: 'idle',
       text: 'Watchlist the player before the grade moves. A marked board is easier to defend later.',
       spotlightTarget: 'chip.route.scouting-board.beat-2',
+    },
+  ],
+  standings: [
+    {
+      id: 'chip.route.standings.beat-1',
+      pose: 'thinking',
+      text: 'Use standings after a result, not before Week 1. Division math changes buy, sell, or hold.',
+      spotlightTarget: null,
+    },
+    {
+      id: 'chip.route.standings.beat-2',
+      pose: 'point-side',
+      text: 'Near the deadline, one game back and buried at 2-6 are different jobs.',
+      spotlightTarget: null,
+    },
+  ],
+  'power-rankings': [
+    {
+      id: 'chip.route.power-rankings.beat-1',
+      pose: 'thinking',
+      text: 'Rankings are league temperature, not marching orders. Read reputation after weekly work is clean.',
+      spotlightTarget: null,
+    },
+    {
+      id: 'chip.route.power-rankings.beat-2',
+      pose: 'point-side',
+      text: 'If record and ranking disagree, check injuries, point margin, and schedule before reacting.',
+      spotlightTarget: null,
+    },
+  ],
+  'league-pulse': [
+    {
+      id: 'chip.route.league-pulse.beat-1',
+      pose: 'idle',
+      text: 'League Pulse is outside noise with football value. Read it after your own fires are contained.',
+      spotlightTarget: null,
+    },
+    {
+      id: 'chip.route.league-pulse.beat-2',
+      pose: 'thinking',
+      text: 'News can flag market windows, rival pressure, and injury runs without becoming your weekly checklist.',
+      spotlightTarget: null,
+    },
+  ],
+  'record-book': [
+    {
+      id: 'chip.route.record-book.beat-1',
+      pose: 'cheer',
+      text: 'Records and legacy systems are season memory. Visit them once the save has history worth protecting.',
+      spotlightTarget: null,
+    },
+    {
+      id: 'chip.route.record-book.beat-2',
+      pose: 'thinking',
+      text: "Use legacy context for long-term decisions, not as a distraction from this week's lineup.",
+      spotlightTarget: null,
+    },
+  ],
+  'settings-save-load': [
+    {
+      id: 'chip.route.settings-save-load.beat-1',
+      pose: 'point-down',
+      text: 'Save/Load is franchise insurance. Export a cartridge before big experiments or machine changes.',
+      spotlightTarget: null,
+    },
+    {
+      id: 'chip.route.settings-save-load.beat-2',
+      pose: 'thinking',
+      text: 'Settings tunes pace, audio, and Chip guidance without changing the football engine.',
+      spotlightTarget: null,
     },
   ],
 } as const satisfies Record<RouteKey, readonly RouteBeat[]>;

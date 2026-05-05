@@ -13,7 +13,7 @@ import {
 
 const EMPTY_ROUTE_BEATS: readonly RouteBeat[] = [];
 
-// Cache is bounded at ROUTE_KEYS.length (currently 6). Each entry stores the
+// Cache is bounded at ROUTE_KEYS.length. Each entry stores the
 // route-specific seen-beat signature so cache hits are content-equality not
 // identity. Earlier revisions keyed on the global seenBeatIds set, which grew
 // unboundedly as the user explored across routes; switching to a per-route
@@ -42,6 +42,7 @@ export function resolveRouteKey(currentRoute: string): RouteKey | null {
   if (normalized === 'depth-chart' || normalized === '/depth-chart') return 'depth-chart';
   if (normalized === 'game-plan' || normalized === '/game-plan') return 'game-plan';
   if (normalized === 'week-advance' || normalized === '/week-advance') return 'week-advance';
+  if (normalized === 'inbox' || normalized === '/inbox') return 'inbox';
   if (normalized === 'staff' || normalized === '/coaching' || normalized.startsWith('/coaching/')) return 'staff';
   if (normalized === 'cap-laboratory' || normalized === '/cap-lab' || normalized === '/contracts') {
     return 'cap-laboratory';
@@ -49,6 +50,28 @@ export function resolveRouteKey(currentRoute: string): RouteKey | null {
   if (normalized === 'draft-board' || normalized === '/draft') return 'draft-board';
   if (normalized === 'trade-center' || normalized === '/trades') return 'trade-center';
   if (normalized === 'scouting-board' || normalized === '/scouting') return 'scouting-board';
+  if (normalized === 'standings' || normalized === '/standings') return 'standings';
+  if (normalized === 'power-rankings' || normalized === '/power-rankings') return 'power-rankings';
+  if (
+    normalized === 'league-pulse'
+    || normalized === '/league-pulse'
+    || normalized === '/news'
+    || normalized === '/newsroom'
+  ) {
+    return 'league-pulse';
+  }
+  if (
+    normalized === 'record-book'
+    || normalized === '/records'
+    || normalized === '/legacy'
+    || normalized.startsWith('/legacy/')
+    || normalized.startsWith('/franchise/')
+  ) {
+    return 'record-book';
+  }
+  if (normalized === 'settings-save-load' || normalized === '/settings' || normalized === '/dynasty') {
+    return 'settings-save-load';
+  }
 
   return null;
 }

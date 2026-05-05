@@ -68,6 +68,12 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain('<RouterProvider router={router} />');
   });
 
+  it('keeps the legacy tutorial overlay out of the Chip-enabled shell', () => {
+    expect(content).toContain('const chipFeatureEnabled = isChipFeatureEnabled();');
+    expect(content).toContain('highlightedPath={!chipFeatureEnabled && tutorial.active && !tutorial.dismissed ? currentTutorialStep?.targetScreen ?? null : null}');
+    expect(content).toContain('{!chipFeatureEnabled && tutorial.active && !tutorial.dismissed && currentTutorialStep ? (');
+  });
+
   it('starts Chip events only inside the post-setup shell', () => {
     const postSetupStart = content.indexOf('function PostSetupApp()');
     const setupBranchStart = content.indexOf('if (setupIncomplete)');

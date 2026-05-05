@@ -120,6 +120,20 @@ describe('standings helpers', () => {
     expect(leaders.defINT).toEqual([]);
   });
 
+  it('treats players with missing season stats as zero for leader boards', () => {
+    const game = makeLeagueState('regular_season', 10);
+    const player = game.teams.afce1.roster[0] as { stats?: unknown };
+    delete player.stats;
+
+    const leaders = getStatLeaders(game);
+
+    expect(leaders.passYds).toEqual([]);
+    expect(leaders.rushYds).toEqual([]);
+    expect(leaders.recYds).toEqual([]);
+    expect(leaders.sacks).toEqual([]);
+    expect(leaders.defINT).toEqual([]);
+  });
+
   it('treats players with stale team ids as free agents in leader boards', () => {
     const game = makeLeagueState('regular_season', 10);
     const qb = game.teams.afce1.roster.find((player) => player.pos === 'QB')!;

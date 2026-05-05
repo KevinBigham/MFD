@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { readFileSync } from 'fs';
 
 const mockRoster = [
   {
@@ -107,6 +108,8 @@ vi.mock('@mfd/engine', () => ({
 import { RosterManagement } from './RosterManagement';
 
 describe('RosterManagement', () => {
+  const source = readFileSync(new URL('./RosterManagement.tsx', import.meta.url), 'utf-8');
+
   it('renders screen header with Roster Management title', () => {
     const markup = renderToStaticMarkup(<RosterManagement />);
 
@@ -122,5 +125,13 @@ describe('RosterManagement', () => {
     expect(markup).toContain('ROSTER SIZE');
     expect(markup).toContain('Pat Mahomes');
     expect(markup).toContain('Travis Kelce');
+  });
+
+  it('uses explicit manage controls instead of clickable table rows', () => {
+    const markup = renderToStaticMarkup(<RosterManagement />);
+
+    expect(markup).toContain('Manage');
+    expect(source).not.toContain('onRowClick={(row) => setSelectedPlayer(row)}');
+    expect(source).toContain("aria-label={`Manage ${row.original.name}`}");
   });
 });

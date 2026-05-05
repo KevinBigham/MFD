@@ -1,6 +1,6 @@
 # MFD Public Release + Chip Recovery Goal
 
-Updated: 2026-05-05 17:34:29 CDT
+Updated: 2026-05-05 18:24:09 CDT
 Original repo path: `/Users/tkevinbigham/Documents/GitHub/MFD`
 Clean clone path: `/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery`
 Current branch: `codex/chip-public-release-recovery`
@@ -49,6 +49,84 @@ Baseline commit in clean clone: `dc7740a Sprint 46: Polish standings signals (#5
 - Moved Cap Lab tables to responsive card mode on phone widths and raised PixelSelect plus Chip pending-badge controls to the shared 44px touch target.
 - Fixed release HTML asset URLs so the `/MFD/` Vite base no longer double-prefixes the manifest/favicon/OG image paths.
 - Kept save compatibility intact: no engine/schema/save-version changes were made, and sim determinism was not touched.
+
+## Release Candidate Lock-In Sprint — Resume
+
+Timestamp: 2026-05-05 17:52:39 CDT
+Repo path: `/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery`
+Branch: `codex/chip-public-release-recovery`
+Checkpoint evidence folder: `.codex/MFD/evidence/release-candidate-lockin-20260505-175132/`
+Checkpoint commit: `8516b05 Checkpoint Chip public-release hardening`
+
+### Safety Notes
+
+- Confirmed active repo and git root are the clean recovery clone.
+- Confirmed branch is `codex/chip-public-release-recovery`.
+- Original corrupt checkout at `/Users/tkevinbigham/Documents/GitHub/MFD` was not used for work.
+- Preserved the pre-lock-in worktree state with git status, diff stat, name-only list, tracked full diff, and untracked full diff.
+- Pre-lock-in diff inspection found only MFD web/design-system and `.codex/MFD` documentation changes; no `dist`, deploy, non-MFD, production secret, engine save-version, or dynasty save-schema changes were found.
+
+### Planned Slices
+
+1. Save/load/settings/import-export current-code browser runtime pass.
+2. Later-season Chip feature-introduction audit and focused P0/P1 fixes only.
+3. Broader accessibility basics review across core routes.
+4. Broader blank/loading/error state review across core routes.
+5. Bundle/public delivery risk review and production preview check.
+6. Multi-week smoke playthrough with Chip enabled.
+
+### Commands Run In This Resume So Far
+
+- `pwd`
+- `git rev-parse --show-toplevel`
+- `git branch --show-current`
+- `git log -1 --oneline`
+- `git status --short --branch`
+- `rg --files -g 'AGENTS.md' -g 'CLAUDE.md'`
+- Evidence capture commands for status, diff stat, diff name-only, tracked full diff, and untracked full diff.
+- `git diff --check` — passed before checkpoint commit.
+- `git add ...` — explicit file staging only; no `git add -A`.
+- `git commit -m "Checkpoint Chip public-release hardening" ...` — created local checkpoint `8516b05`.
+
+### Browser Verification Notes
+
+- Current-code dev verification used Chip enabled with TTS/share disabled on `http://localhost:5173/MFD/`.
+- Save/load/settings/import-export smoke passed from a Week 2 dynasty:
+  - manual save slot created
+  - `.mfd` export downloaded
+  - bad pasted import showed safe error copy
+  - exported file imported successfully
+  - browser reload preserved Week 2/team state through `Continue Latest Autosave`
+  - manual slot loaded successfully
+  - Settings and Chip controls remained usable after reload
+- Broad route accessibility/blank-state sweep passed on desktop and phone routes with no console errors, unnamed visible buttons, nested interactive controls, bad blank copy, or page-level overflow failures.
+- Multi-week smoke advanced from Week 3 to Week 9 with Chip visible across core routes and no console/runtime errors.
+- Production preview used a fresh Chip-enabled build at `http://localhost:4173/MFD/`; Chip appeared in setup, `/MFD/` manifest fields were correct, and TTS/share controls were absent under disabled flags.
+
+### P0/P1/P2 Findings
+
+- P0 fixed: standings/stat-leader views no longer crash when legacy or sparse player records lack season stats.
+- P0 fixed: record-tracker paths no longer crash during week advance when sparse player records lack season stats.
+- P1 fixed: Roster no longer relies on a clickable table row around nested player/watch controls; the route now uses an explicit `Manage` action.
+- P1 fixed: legacy tutorial overlay is gated off when Chip is enabled, avoiding setup/control overlap.
+- P1 fixed: Chip dock pointer-hit area no longer blocks underlying route controls outside actual dock controls.
+- P1 improved: later-season route beats now cover Inbox, Standings, Power Rankings, League Pulse/News, Record Book/Legacy, and Settings/Save Load.
+- P1 documented: Vite chunk-size warnings remain pre-existing public-delivery risk, not a lock-in blocker.
+- P2 deferred: TTS/share polish remains intentionally behind disabled flags.
+
+### Final Release-Candidate Audit
+
+- Baseline and final gates passed:
+  - `git diff --check`
+  - `npx --yes pnpm@9.15.9 typecheck`
+  - `npx --yes pnpm@9.15.9 --filter @mfd/design-system test` — 14 files / 88 tests
+  - `npx --yes pnpm@9.15.9 --filter @mfd/web test` — 209 files / 1292 tests
+  - `npx --yes pnpm@9.15.9 --filter @mfd/engine test` — 201 files / 1852 tests
+  - `npx --yes pnpm@9.15.9 build` — passed with existing chunk-size warnings
+- Focused tests passed for ChipDock/App/MilestoneCard, route coaching, Roster, standings, and record-tracker.
+- Save/load/settings/import-export, broad accessibility/blank states, production preview, and multi-week smoke were runtime-checked with current code.
+- `SAVE_VERSION` remains `35`; no save schema, migration, deployment, or production secret changes were made.
+- Completion rubric: 96/100 with no P0s and no category below 4.
 
 ## Commands Run
 
@@ -211,14 +289,15 @@ Baseline commit in clean clone: `dc7740a Sprint 46: Polish standings signals (#5
 - Weekly loop clear: yes
 - Post-week guidance clear: yes
 - Decision impact clear: yes
-- Feature visibility improved: yes
-- Replay/reset/snooze available: yes
+- Feature visibility improved: yes, including later-season route beats
+- Replay/reset/snooze available after reload: yes
+- Save/load/import-export confidence: yes, current-code runtime checked
 - Mobile route controls usable with Chip expanded: yes
 - Trade Center current-browser pass: yes
 - Cap Lab current-browser pass: yes
-- Accessibility/blank-state spot check: yes
+- Accessibility/blank-state broad sweep: yes
 - Tone acceptable: yes
-- No spam or annoying repetition in the 3-week run: yes
+- No spam or annoying repetition in the 3-week and Week 3-to-9 runs: yes
 
 ## Engineering Audit
 
@@ -226,28 +305,28 @@ Baseline commit in clean clone: `dc7740a Sprint 46: Polish standings signals (#5
 - Reliable git status/diff in clean clone: yes
 - Install: yes
 - Typecheck: yes
-- Tests: yes, including full web and design-system suites
+- Tests: yes, including full web, design-system, and engine suites
 - Build: yes
+- Current-code dev browser verification: yes
+- Production preview verification: yes
 - Live onboarding/state-machine integration: yes
-- Persistence/resume path: yes by state tests and local-storage-backed dock/onboarding state
+- Persistence/resume path: yes by runtime smoke and tests
 - Idempotent triggers/read receipts: yes by route-beat/read-receipt tests
 - Feature flags: yes for Chip, TTS scaffold, and share scaffold
-- P1 browser hardening: yes, current-code phone/desktop route pass completed
-- Save compatibility: yes; no save schema/version/engine changes
-- Deterministic sim behavior preserved: yes; no RNG/sim-path edits
+- Save compatibility: yes; no save schema/version changes
+- Deterministic sim behavior preserved: yes; no RNG edits
+- Public delivery: `/MFD/` manifest preview verified; chunk warnings documented
 
 ## Remaining Issues
 
 ### P0
 
-- None confirmed after clean-clone recovery, full test/build verification, and current-code browser playthrough.
+- None remaining after clean-clone recovery, final gates, current-code browser checks, save/load/import-export smoke, production preview, and multi-week playthrough.
 
 ### P1
 
-- Later-season feature-introduction coverage remains lighter than the first-three-week core loop and should remain the next release-confidence sweep.
-- Save/load/settings import-export should still get a focused current-build runtime pass before broad public push.
 - Bundle chunk-size warnings remain from the current app build output and should be addressed in a later performance slice if public web delivery becomes sensitive to initial load.
-- Root lint remains a baseline issue outside this Chip slice in untouched engine files; it was not reopened here.
+- Later-season Chip coverage is now materially better, but a full trade-deadline/playoff/offseason hands-on pass is still the next best product-confidence sweep.
 
 ### P2
 
@@ -260,5 +339,5 @@ Baseline commit in clean clone: `dc7740a Sprint 46: Polish standings signals (#5
 1. Work in `/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery`, not the corrupt original checkout.
 2. Re-read this file and `.codex/MFD/public-release-readiness-matrix.md`.
 3. If continuing release work, keep scope to MFD only and preserve `SAVE_VERSION 35`.
-4. Treat the current Chip recovery plus P1 hardening slice as green on targeted tests and browser verification unless a new regression appears.
-5. Next sprint should target later-season feature-introduction and save/load/settings runtime confidence, not new unrelated features.
+4. Treat the current Chip recovery plus release-candidate lock-in slice as green on full tests, focused tests, current-code browser verification, and production preview unless a new regression appears.
+5. Next sprint should target a deeper trade-deadline/playoff/offseason playthrough and bundle delivery, not unrelated new systems.

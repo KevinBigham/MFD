@@ -189,9 +189,11 @@ export function buildPlayoffPicture(game: GameState): { afc: PlayoffPictureEntry
 }
 
 function leaderRows(game: GameState, stat: keyof Player['stats']): StatLeaderEntry[] {
+  const statValue = (player: Player): number => Number(player.stats?.[stat] ?? 0);
+
   return Object.values(game.players)
-    .filter((player) => (player.stats[stat] ?? 0) > 0)
-    .sort((a, b) => (b.stats[stat] ?? 0) - (a.stats[stat] ?? 0) || a.name.localeCompare(b.name))
+    .filter((player) => statValue(player) > 0)
+    .sort((a, b) => statValue(b) - statValue(a) || a.name.localeCompare(b.name))
     .slice(0, 5)
     .map((player) => {
       const team = player.teamId ? game.teams[player.teamId] : null;
@@ -200,7 +202,7 @@ function leaderRows(game: GameState, stat: keyof Player['stats']): StatLeaderEnt
         playerName: player.name,
         teamId: player.teamId,
         teamName: team ? teamName(team) : 'Free Agent',
-        value: player.stats[stat] ?? 0,
+        value: statValue(player),
       };
     });
 }

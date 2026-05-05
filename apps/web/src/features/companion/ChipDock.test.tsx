@@ -599,6 +599,34 @@ describe('ChipDock', () => {
   });
 
   describe('mobile route tolerance', () => {
+    it('lets desktop route controls receive clicks behind non-control dock content', () => {
+      const baseDockBlock = chipDockCss
+        .slice(chipDockCss.indexOf('.mfd-chip-dock {'))
+        .split('}')[0];
+      const panelBlock = chipDockCss
+        .slice(chipDockCss.indexOf('.mfd-chip-dock__panel {'))
+        .split('}')[0];
+      const contentBlock = chipDockCss
+        .slice(chipDockCss.indexOf('.mfd-chip-dock__content {'))
+        .split('}')[0];
+      const bubbleBlock = chipDockCss
+        .slice(chipDockCss.indexOf('.mfd-chip-dock__bubble {'))
+        .split('}')[0];
+      const controlsBlock = chipDockCss
+        .slice(chipDockCss.indexOf('.mfd-chip-dock__controls {'))
+        .split('}')[0];
+      const beatActionsBlock = chipDockCss
+        .slice(chipDockCss.indexOf('.mfd-chip-dock__beat-actions {'))
+        .split('}')[0];
+
+      expect(baseDockBlock).toContain('pointer-events: none;');
+      expect(panelBlock).toContain('pointer-events: none;');
+      expect(contentBlock).toContain('pointer-events: none;');
+      expect(bubbleBlock).toContain('pointer-events: none;');
+      expect(controlsBlock).toContain('pointer-events: auto;');
+      expect(beatActionsBlock).toContain('pointer-events: auto;');
+    });
+
     it('keeps the expanded dock from becoming a full-height phone overlay', () => {
       const mobileBlock = chipDockCss.slice(chipDockCss.indexOf('@media (max-width: 720px)'));
       const pendingBadgeBlock = chipDockCss

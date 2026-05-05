@@ -290,6 +290,7 @@ function RootLayout() {
   useShortcut('?', () => setShowHotkeyHelp(true), 'Open hotkey help', { shift: true });
 
   const currentTutorialStep = tutorial.steps[tutorial.currentStepIndex] ?? null;
+  const chipFeatureEnabled = isChipFeatureEnabled();
   const activeCeremony = useMemo(
     () => ceremonies.find((ceremony) => ceremony.id === activeCeremonyId) ?? null,
     [activeCeremonyId, ceremonies],
@@ -496,7 +497,7 @@ function RootLayout() {
           }
         `}</style>
         <TopNav
-          highlightedPath={tutorial.active && !tutorial.dismissed ? currentTutorialStep?.targetScreen ?? null : null}
+          highlightedPath={!chipFeatureEnabled && tutorial.active && !tutorial.dismissed ? currentTutorialStep?.targetScreen ?? null : null}
           activePath={activePath}
           onOpenHotkeyHelp={() => setShowHotkeyHelp(true)}
         />
@@ -520,7 +521,7 @@ function RootLayout() {
           onOpenChange={setCommandPaletteOpen}
           items={commandItems}
         />
-        {tutorial.active && !tutorial.dismissed && currentTutorialStep ? (
+        {!chipFeatureEnabled && tutorial.active && !tutorial.dismissed && currentTutorialStep ? (
           <TutorialOverlay
             step={currentTutorialStep}
             stepIndex={Math.min(tutorial.currentStepIndex + 1, tutorial.steps.length)}

@@ -1,85 +1,70 @@
 # MFD Public Release Readiness Matrix
 
-Updated: 2026-05-05 17:34:29 CDT
+Updated: 2026-05-05 18:24:09 CDT
 Repo: `/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery`
 Branch: `codex/chip-public-release-recovery`
 
 ## Summary
 
-- Recovery status: green in clean clone
-- P0 blockers: none confirmed
-- Primary release strength: Chip now owns live onboarding clarity across the first playable weeks
-- Highest remaining risks: later-season feature-introduction coverage, save/load/settings runtime coverage, bundle weight, and broader release polish outside the first-week critical path
+- Recovery status: green in clean clone; checkpoint commit `8516b05` preserves the Chip/public-release hardening baseline.
+- P0 blockers: none remaining.
+- Primary release strength: first-start and weekly Chip guidance now survive current-code browser play, reload, save/load, route sweep, and production preview.
+- Remaining risk: bundle size warnings and deeper hands-on trade-deadline/playoff/offseason confidence.
 
-| Feature | Wired? | Understandable? | Chip introduces it? | Runtime verified? | Risk | P0/P1/P2 next action |
-| --- | --- | --- | --- | --- | --- | --- |
-| Start / new game flow | Yes | Yes | Yes | Yes | Low | P0 none |
-| First week shell | Yes | Yes | Yes | Yes | Low | P0 none |
-| Week advance | Yes | Yes | Yes | Yes | Low | P0 none |
-| Monday Briefing | Yes | Yes | Yes | Yes | Low | P0 none |
-| Roster | Yes | Yes | Yes | Yes | Low | P0 none |
-| Depth Chart | Yes | Yes | Yes | Yes | Low after nested-button fix | P0 none |
-| Game Plan / coaching prep | Yes | Yes | Yes | Yes | Low after selector/runtime fix | P0 none |
-| Trades | Yes | Yes | Yes | Yes | Low | P0 none after current-browser phone/desktop pass |
-| Contracts / Cap Lab | Yes | Yes | Yes | Yes | Low | P0 none after current-browser phone/desktop pass |
-| Team needs / analytics / supporting desks | Yes | Mostly | Partially | Partial | Medium | P1 continue progressive Chip introduction outside first-week critical path |
-| Scouting / draft / offseason teaser | Yes | Mostly | Partially | No in this pass | Medium | P1 verify later-season intros in a follow-up release sweep |
-| News / league pulse | Yes | Yes | Partially | Yes | Low | P1 expand Chip tie-ins only if repetition stays controlled |
-| Save / load / settings | Yes | Mostly | Partially | Partial | Medium | P1 add a focused runtime pass for import/export/settings on current build |
-| TTS scaffold | Yes, behind flag | Yes | No by default | Partial | Low | P2 keep behind `VITE_CHIP_TTS_ENABLED` until deliberate polish pass |
-| Share scaffold | Yes, behind flag | Yes | No by default | Partial | Low | P2 keep behind `VITE_MFD_SHARE_ENABLED` until deliberate polish pass |
-| Mobile tolerance | Yes | Yes | N/A | Yes | Low | P0 none after 390x844 Trade/Cap pass |
-| Accessibility basics | Improved | Mostly | N/A | Yes for Trade/Cap P1 sweep | Low/Medium | P1 continue broader semantic audit later, but no Trade/Cap blocker found |
-| Error / blank states | Mostly | Mostly | Partial | Yes for Trade/Cap P1 sweep | Low/Medium | P1 save/load/settings spot-check remains |
-| Public release blockers | None confirmed | N/A | N/A | Yes for core recovery gates | Low | P0 none |
+| Feature | Status | Route / file | Evidence | Risk | P0/P1/P2 next action |
+| --- | --- | --- | --- | --- | --- |
+| Start / new game flow | Pass | `NewGameScreen`, setup wizard | Production preview and dev setup showed Chip onboarding and no console errors | Low | P0 none |
+| First week shell | Pass | `/` Monday Briefing | Prior playthrough plus final route sweep | Low | P0 none |
+| Week advance | Pass | `/week-advance` | Week 3-to-9 smoke advanced 6 weeks with no console/runtime errors | Low | P0 none |
+| Monday Briefing | Pass | `/` | Desktop/mobile route sweep, multi-week smoke | Low | P0 none |
+| Roster | Pass | `/roster`, `RosterManagement.tsx` | Explicit `Manage` action removed nested row/button interaction; focused and full web tests passed | Low | P0 none |
+| Depth Chart | Pass | `/depth-chart` | Desktop/mobile sweep retained prior nested-button fix | Low | P0 none |
+| Game Plan / coaching prep | Pass | `/game-plan` | Multi-week smoke repeatedly used Game Plan before advancing | Low | P0 none |
+| Trades | Pass | `/trades` | Phone/desktop hardening pass and broad route sweep | Low | P0 none |
+| Contracts / Cap Lab | Pass | `/cap-lab` | Phone/desktop hardening pass and broad route sweep | Low | P0 none |
+| Save / load | Pass | `/dynasty` | Runtime smoke created manual save, reloaded browser, continued latest autosave, and loaded manual slot | Low | P0 none |
+| Import / export | Pass | `/dynasty` | Runtime smoke downloaded `.mfd`, imported file, and showed safe copy for bad pasted import | Low | P0 none |
+| Settings | Pass | `/settings` | Runtime smoke verified Settings after reload; route sweep found no blocking controls/errors | Low | P0 none |
+| Chip controls in settings/dock | Pass | Chip dock/settings path | Runtime smoke clicked `Where am I?`, `What now?`, `Replay`, `Snooze`, and `Enable` after reload | Low | P0 none |
+| Later-season feature introduction | Pass with P1 follow-up | route-coaching registry | Added beats for Inbox, Standings, Power Rankings, League Pulse/News, Record Book/Legacy, and Settings/Save Load; route-coaching tests passed | Medium | P1 deeper trade-deadline/playoff/offseason hands-on pass |
+| News / league pulse | Pass | `/league-pulse`, `/news`, `/newsroom` | Route aliases and route beats added; broad route sweep passed | Low | P0 none |
+| Standings / power rankings | Pass | `/standings`, `/power-rankings` | Sparse-stat standings crash fixed; route sweep passed | Low | P0 none |
+| Record book / legacy | Pass | `/records`, `/legacy`, `/franchise` | Route beats added; record tracker sparse-stat crash fixed; engine tests passed | Low | P0 none |
+| Accessibility basics | Pass | core routes | Desktop/mobile sweep found no unnamed visible buttons, nested interactive failures, page overflow failures, or route-blocking traps | Low | P0 none |
+| Blank / loading / error states | Pass | core routes | Route sweep found no high-impact bad blank copy on checked routes; bad import uses safe player-facing copy | Low | P0 none |
+| Bundle / build delivery | Pass with warning | Vite build | Final build passed; large chunk warnings persist and are documented as existing risk | Medium | P1 bundle pass if public delivery metrics require it |
+| Multi-season playthrough | Pass for lock-in smoke | core routes | Current-code smoke advanced Week 3 to Week 9 and sampled 12 routes with Chip visible | Medium | P1 deeper late-season/offseason playthrough |
+| Production preview | Pass | `http://localhost:4173/MFD/` | Chip-enabled fresh preview loaded, manifest `start_url`/`scope` were `/MFD/`, no console messages, TTS/share absent | Low | P0 none |
+| Public release blockers | Pass | repo | Final diff check, typecheck, design-system/web/engine tests, build, browser verification all green | Low | P0 none |
 
-## Notes
+## Command Evidence
 
-- Runtime-verified core loop in this pass:
-  - fresh dynasty setup
-  - live Week 1 shell
-  - Monday Briefing
-  - Roster
-  - Depth Chart
-  - Game Plan
-  - Week Advance
-  - advance through Week 3
-- Runtime-verified P1 hardening in this pass:
-  - phone viewport `390x844`
-  - desktop viewport `1366x900`
-  - Trade Center incoming blank state and `Propose Trade` tab
-  - Cap Lab card-mode candidate/projection tables
-  - Cap Lab add/apply/cancel sandbox path
-  - no phone overflow offenders, unnamed controls, or undersized controls in Trade/Cap pass
-  - manifest served as JSON at `/MFD/manifest.json` with no browser console errors/warnings
-- Engineering gates verified in clean clone:
-  - `git diff --check`
-  - install
-  - typecheck
-  - full design-system tests
-  - full web tests at 209 files / 1282 tests
-  - production build
-  - save/RNG audit confirmed `SAVE_VERSION 35` was unchanged and no new sim randomness was introduced
-- Save safety remained intact:
-  - no save schema bump
-  - no engine changes
-  - no RNG-path edits
+- `git diff --check` — passed.
+- `npx --yes pnpm@9.15.9 typecheck` — passed.
+- `npx --yes pnpm@9.15.9 --filter @mfd/design-system test` — 14 files / 88 tests passed.
+- `npx --yes pnpm@9.15.9 --filter @mfd/web test` — 209 files / 1292 tests passed.
+- `npx --yes pnpm@9.15.9 --filter @mfd/engine test` — 201 files / 1852 tests passed.
+- `npx --yes pnpm@9.15.9 build` — passed with existing chunk-size warnings.
+
+## Save Safety
+
+- `SAVE_VERSION` remains `35`.
+- No save schema, migration, sample save fixture, deployment, production secret, or sim RNG changes were made.
+- Save/load/import/export behavior was runtime-checked in the current dev build.
 
 ## Priority Readout
 
 ### P0
 
-- None confirmed.
+- None remaining.
 
 ### P1
 
-- Broader later-season Chip introduction audit
-- Save/load/settings runtime pass
-- Broader accessibility and blank-state sweep outside Trade/Cap
-- Bundle-weight follow-up if public web delivery becomes sensitive
+- Deeper trade-deadline/playoff/offseason runtime pass.
+- Bundle-splitting/performance pass only if public delivery metrics require it.
 
 ### P2
 
-- TTS polish
-- Share payload expansion
-- Additional copy variants and release flavor
+- TTS polish.
+- Share payload expansion.
+- Additional later-season Chip variants and copy flavor.

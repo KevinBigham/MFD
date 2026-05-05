@@ -5,6 +5,7 @@
   z-index: 40;
   color: var(--mfd-text);
   font-family: var(--mfd-font-mono);
+  pointer-events: none;
 }
 
 .mfd-chip-dock__pending-badge {
@@ -24,6 +25,7 @@
   line-height: 40px;
   box-shadow: var(--mfd-shadow-gold-strong);
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .mfd-chip-dock__dynasty-label {
@@ -54,6 +56,7 @@
   color: var(--mfd-gold);
   box-shadow: var(--mfd-shadow-md);
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .mfd-chip-dock__panel {
@@ -66,6 +69,7 @@
   background: var(--mfd-bg);
   box-shadow: var(--mfd-shadow-lg);
   padding: var(--mfd-sp-md);
+  pointer-events: none;
 }
 
 .mfd-chip-dock__portrait {
@@ -78,16 +82,19 @@
   display: grid;
   gap: var(--mfd-sp-sm);
   min-width: 0;
+  pointer-events: none;
 }
 
 .mfd-chip-dock__bubble {
   min-width: 0;
+  pointer-events: none;
 }
 
 .mfd-chip-dock__beat-actions {
   display: flex;
   justify-content: flex-end;
   margin-top: var(--mfd-sp-xs);
+  pointer-events: auto;
 }
 
 .mfd-chip-dock__controls {
@@ -95,6 +102,7 @@
   flex-wrap: wrap;
   gap: var(--mfd-sp-xs);
   align-items: center;
+  pointer-events: auto;
 }
 
 .mfd-chip-dock__control {

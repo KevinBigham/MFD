@@ -83,7 +83,7 @@ export const CHIP_FEATURE_VISIBILITY_MATRIX: readonly ChipFeatureVisibilityEntry
     bestMoment: 'weekly_loop',
     firstTimePlayerAction: 'Clear urgent decisions before advancing the week.',
     advancedPlayerNote: 'Use inbox timing to decide what can safely wait.',
-    testStatus: 'manual_check',
+    testStatus: 'route_beat',
   },
   {
     id: 'roster',
@@ -292,7 +292,7 @@ export const CHIP_FEATURE_VISIBILITY_MATRIX: readonly ChipFeatureVisibilityEntry
     bestMoment: 'deep_dive',
     firstTimePlayerAction: 'Use it after the weekly loop makes sense.',
     advancedPlayerNote: 'Treat rankings as league narrative, not a perfect team grade.',
-    testStatus: 'manual_check',
+    testStatus: 'route_beat',
   },
   {
     id: 'league-pulse',
@@ -325,7 +325,7 @@ export const CHIP_FEATURE_VISIBILITY_MATRIX: readonly ChipFeatureVisibilityEntry
     bestMoment: 'deep_dive',
     firstTimePlayerAction: 'Visit records after the first season starts creating history.',
     advancedPlayerNote: 'Use legacy context to make long saves feel authored.',
-    testStatus: 'manual_check',
+    testStatus: 'route_beat',
   },
   {
     id: 'settings-save-load',

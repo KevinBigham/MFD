@@ -91,11 +91,17 @@ describe('useActiveRouteBeats selectors', () => {
       'chip.route.depth-chart.beat-1',
       'chip.route.game-plan.beat-1',
       'chip.route.week-advance.beat-1',
+      'chip.route.inbox.beat-1',
       'chip.route.staff.beat-1',
       'chip.route.cap-laboratory.beat-1',
       'chip.route.draft-board.beat-1',
       'chip.route.trade-center.beat-1',
       'chip.route.scouting-board.beat-1',
+      'chip.route.standings.beat-1',
+      'chip.route.power-rankings.beat-1',
+      'chip.route.league-pulse.beat-1',
+      'chip.route.record-book.beat-1',
+      'chip.route.settings-save-load.beat-1',
     ]);
 
     selectActiveRouteBeats('/', seen);
@@ -103,11 +109,17 @@ describe('useActiveRouteBeats selectors', () => {
     selectActiveRouteBeats('/depth-chart', seen);
     selectActiveRouteBeats('/game-plan', seen);
     selectActiveRouteBeats('/week-advance', seen);
+    selectActiveRouteBeats('/inbox', seen);
     selectActiveRouteBeats('/coaching', seen);
     selectActiveRouteBeats('/cap-lab', seen);
     selectActiveRouteBeats('/draft', seen);
     selectActiveRouteBeats('/trades', seen);
     selectActiveRouteBeats('/scouting', seen);
+    selectActiveRouteBeats('/standings', seen);
+    selectActiveRouteBeats('/power-rankings', seen);
+    selectActiveRouteBeats('/league-pulse', seen);
+    selectActiveRouteBeats('/records', seen);
+    selectActiveRouteBeats('/settings', seen);
 
     expect(__getActiveRouteBeatCacheSize()).toBe(ROUTE_KEYS.length);
   });
@@ -118,10 +130,19 @@ describe('useActiveRouteBeats selectors', () => {
     expect(resolveRouteKey('/depth-chart')).toBe('depth-chart');
     expect(resolveRouteKey('/game-plan')).toBe('game-plan');
     expect(resolveRouteKey('/week-advance')).toBe('week-advance');
+    expect(resolveRouteKey('/inbox')).toBe('inbox');
     expect(resolveRouteKey('/coaching/tree')).toBe('staff');
     expect(resolveRouteKey('/cap-lab')).toBe('cap-laboratory');
     expect(resolveRouteKey('/draft')).toBe('draft-board');
     expect(resolveRouteKey('/trades')).toBe('trade-center');
     expect(resolveRouteKey('/scouting')).toBe('scouting-board');
+    expect(resolveRouteKey('/standings')).toBe('standings');
+    expect(resolveRouteKey('/power-rankings')).toBe('power-rankings');
+    expect(resolveRouteKey('/news')).toBe('league-pulse');
+    expect(resolveRouteKey('/newsroom')).toBe('league-pulse');
+    expect(resolveRouteKey('/records')).toBe('record-book');
+    expect(resolveRouteKey('/legacy/named-games')).toBe('record-book');
+    expect(resolveRouteKey('/dynasty')).toBe('settings-save-load');
+    expect(resolveRouteKey('/settings')).toBe('settings-save-load');
   });
 });
