@@ -2,6 +2,7 @@ import type { ChipPose } from '@mfd/design-system/components';
 import type { DockPrefs } from './dockPersistence';
 import type { SetChipPoseOptions } from './store';
 import type { WeeklyDialogueVariant } from './dialogue/weekly';
+import { buildWeeklyGuidance, type WeeklyGuidance, type WeeklyGuidanceInput } from './weeklyGuidance';
 
 export type ChipEventTrigger = 'weekRollover' | 'gameComplete' | 'seasonEnd';
 export type ChipEventCategory = ChipEventTrigger;
@@ -36,6 +37,7 @@ export interface ChipEvent {
   dynastySeed: number;
   gameOutcome: WeeklyDialogueVariant;
   dialogueId: string;
+  guidance?: WeeklyGuidance;
   occurredAt: string;
 }
 
@@ -44,6 +46,7 @@ export interface GameStoreSnapshot {
   currentSeason: number;
   dynastySeed: number;
   weeklyOutcome?: WeeklyDialogueVariant;
+  weeklyGuidance?: Omit<WeeklyGuidanceInput, 'outcome' | 'currentWeek'>;
   poseEvents?: readonly ChipPoseEvent[];
 }
 
@@ -116,6 +119,11 @@ export function createChipEventBridge(deps: CreateChipEventBridgeDeps): ChipEven
 
     const gameOutcome = game.weeklyOutcome ?? 'midseason';
     const dialogueId = `chip.weekly.${gameOutcome}`;
+    const guidance = buildWeeklyGuidance({
+      outcome: gameOutcome,
+      currentWeek: game.currentWeek,
+      ...game.weeklyGuidance,
+    });
     const event: ChipEvent = {
       id: `chip.event.weekRollover.${game.currentSeason}.${game.currentWeek}`,
       trigger: 'weekRollover',
@@ -125,6 +133,7 @@ export function createChipEventBridge(deps: CreateChipEventBridgeDeps): ChipEven
       dynastySeed: game.dynastySeed,
       gameOutcome,
       dialogueId,
+      guidance,
       occurredAt: deps.now().toISOString(),
     };
 

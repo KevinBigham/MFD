@@ -117,6 +117,10 @@ describe('createChipEventBridge', () => {
         dynastySeed: 42,
         gameOutcome: 'cleanWin',
         dialogueId: 'chip.weekly.cleanWin',
+        guidance: expect.objectContaining({
+          topAction: 'Start with the Monday Briefing.',
+          whatChanged: 'Week 2: a clean win.',
+        }),
         occurredAt: '2026-04-29T20:00:00.000Z',
       },
     ]);

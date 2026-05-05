@@ -86,7 +86,11 @@ describe('useActiveRouteBeats selectors', () => {
   it('caches one entry per route across all post-setup screens', () => {
     __resetActiveRouteBeatCacheForTests();
     const seen = new Set([
+      'chip.route.monday-briefing.beat-1',
       'chip.route.roster.beat-1',
+      'chip.route.depth-chart.beat-1',
+      'chip.route.game-plan.beat-1',
+      'chip.route.week-advance.beat-1',
       'chip.route.staff.beat-1',
       'chip.route.cap-laboratory.beat-1',
       'chip.route.draft-board.beat-1',
@@ -94,7 +98,11 @@ describe('useActiveRouteBeats selectors', () => {
       'chip.route.scouting-board.beat-1',
     ]);
 
+    selectActiveRouteBeats('/', seen);
     selectActiveRouteBeats('/roster', seen);
+    selectActiveRouteBeats('/depth-chart', seen);
+    selectActiveRouteBeats('/game-plan', seen);
+    selectActiveRouteBeats('/week-advance', seen);
     selectActiveRouteBeats('/coaching', seen);
     selectActiveRouteBeats('/cap-lab', seen);
     selectActiveRouteBeats('/draft', seen);
@@ -105,7 +113,11 @@ describe('useActiveRouteBeats selectors', () => {
   });
 
   it('normalizes app route paths to route coaching keys', () => {
+    expect(resolveRouteKey('/')).toBe('monday-briefing');
     expect(resolveRouteKey('#/roster')).toBe('roster');
+    expect(resolveRouteKey('/depth-chart')).toBe('depth-chart');
+    expect(resolveRouteKey('/game-plan')).toBe('game-plan');
+    expect(resolveRouteKey('/week-advance')).toBe('week-advance');
     expect(resolveRouteKey('/coaching/tree')).toBe('staff');
     expect(resolveRouteKey('/cap-lab')).toBe('cap-laboratory');
     expect(resolveRouteKey('/draft')).toBe('draft-board');

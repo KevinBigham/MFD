@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Calendar, CalendarOff, Check, EyeOff, Lightbulb, MapPin, MessageSquare, VolumeX, X } from 'lucide-react';
+import { Bell, Calendar, CalendarOff, Check, EyeOff, Lightbulb, MapPin, MessageSquare, RotateCcw, VolumeX, X } from 'lucide-react';
 import { Chip, ChipDialogueBubble, PixelButton, Spotlight } from '@mfd/design-system/components';
 import type { ChipPose } from '@mfd/design-system/components';
 import { isChipFeatureEnabled, readOnboardingSkipState } from './ChipHost';
@@ -13,9 +13,18 @@ import {
   type DockPrefs,
 } from './dockPersistence';
 import {
+  clearChipReadReceipts,
   readChipReadReceipts,
   writeChipReadReceipts,
 } from './readReceipts';
+import { CHIP_ONBOARDING_STORAGE_KEY } from './ChipHost';
+import {
+  enableChipOnboarding,
+  isFirstTenMinuteBeatId,
+  recordChipOnboardingBeat,
+  resetChipOnboardingState,
+  snoozeChipOnboarding,
+} from './onboardingMachine';
 import { formatDynastyIndicatorLabel, type DynastyIndicator } from './dynastyIndicator';
 import { createWhereAmIBeat, type WhereAmIState } from './whereAmI';
 import type { ChipRoutePose, RouteBeat } from '../route-coaching/routeBeatRegistry';
@@ -26,6 +35,9 @@ export type ChipDockControl =
   | 'quietUntilNextWeek'
   | 'quietThisSeason'
   | 'whatNow'
+  | 'resetOnboarding'
+  | 'snoozeOnboarding'
+  | 'enableGuidance'
   | 'reduceGuidance'
   | 'disableAnimations'
   | 'collapse'
@@ -73,6 +85,9 @@ interface DockControlButton {
 
 const DOCK_CONTROL_BUTTONS: readonly DockControlButton[] = [
   { id: 'whatNow', label: 'What now?', icon: MessageSquare, accent: 'gold' },
+  { id: 'resetOnboarding', label: 'Replay', icon: RotateCcw, accent: 'cyan' },
+  { id: 'snoozeOnboarding', label: 'Snooze', icon: CalendarOff, accent: 'gold' },
+  { id: 'enableGuidance', label: 'Enable', icon: Bell, accent: 'green' },
   { id: 'quietForScreen', label: 'Quiet for screen', icon: VolumeX, accent: 'cyan' },
   { id: 'quietUntilNextWeek', label: 'Quiet until next week', icon: Calendar, accent: 'gold' },
   { id: 'quietThisSeason', label: 'Quiet this season', icon: CalendarOff, accent: 'red' },
@@ -159,6 +174,7 @@ export function persistRouteBeatProgress({
   const persisted = writeChipReadReceipts(storage, ids);
   for (const id of ids) {
     markBeatSeen?.(id);
+    recordChipOnboardingBeat(storage, id);
   }
   return persisted;
 }
@@ -198,6 +214,28 @@ export function applyDockControl(control: ChipDockControl, options: ApplyDockCon
         chipStore.showWeeklyDialogue?.(chipStore.lastWeeklyDialogue);
       }
       return prefs;
+    case 'resetOnboarding':
+      resetChipOnboardingState(options.storage);
+      clearChipReadReceipts(options.storage, isFirstTenMinuteBeatId);
+      options.storage?.removeItem(CHIP_ONBOARDING_STORAGE_KEY);
+      chipStore?.reset?.();
+      return prefs;
+    case 'snoozeOnboarding':
+      snoozeChipOnboarding(options.storage, options.currentWeek, options.now);
+      chipStore?.dismiss?.();
+      return prefs;
+    case 'enableGuidance':
+      enableChipOnboarding(options.storage, options.now);
+      options.storage?.removeItem(CHIP_ONBOARDING_STORAGE_KEY);
+      return updateDockPrefs(
+        options.storage,
+        {
+          quietForScreen: null,
+          quietUntilWeek: null,
+          quietForSeason: null,
+        },
+        options.now,
+      );
     case 'quietForScreen':
       chipStore?.setPose?.('idle');
       chipStore?.dismiss?.();

@@ -239,6 +239,8 @@
     width: 100%;
   }
   [data-mfd-table-mode="cards"] tr {
+    box-sizing: border-box;
+    min-width: 100%;
     border: var(--mfd-pixel-border);
     margin-bottom: var(--mfd-sp-md);
     padding: var(--mfd-sp-sm);

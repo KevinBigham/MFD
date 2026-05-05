@@ -13,9 +13,9 @@ const allBeats: readonly RouteBeat[] = ROUTE_KEYS.reduce<RouteBeat[]>(
 );
 
 describe('route beat registry', () => {
-  it('keeps total route beats inside the locked sprint range', () => {
-    expect(allBeats.length).toBeGreaterThanOrEqual(12);
-    expect(allBeats.length).toBeLessThanOrEqual(18);
+  it('keeps total route beats inside the public-release range', () => {
+    expect(allBeats.length).toBeGreaterThanOrEqual(20);
+    expect(allBeats.length).toBeLessThanOrEqual(28);
   });
 
   it('gives every coached route at least two beats', () => {
@@ -50,9 +50,13 @@ describe('route beat registry', () => {
     }
   });
 
-  it('uses the exact six-route coaching key set', () => {
+  it('uses the public-release route coaching key set', () => {
     const expected: RouteKey[] = [
+      'monday-briefing',
       'roster',
+      'depth-chart',
+      'game-plan',
+      'week-advance',
       'staff',
       'cap-laboratory',
       'draft-board',
@@ -66,7 +70,11 @@ describe('route beat registry', () => {
 
   it('keeps beat order stable by route and beat number', () => {
     expect(ROUTE_KEYS.map((routeKey) => ROUTE_BEAT_REGISTRY[routeKey].map((beat) => beat.id))).toEqual([
+      ['chip.route.monday-briefing.beat-1', 'chip.route.monday-briefing.beat-2'],
       ['chip.route.roster.beat-1', 'chip.route.roster.beat-2'],
+      ['chip.route.depth-chart.beat-1', 'chip.route.depth-chart.beat-2'],
+      ['chip.route.game-plan.beat-1', 'chip.route.game-plan.beat-2'],
+      ['chip.route.week-advance.beat-1', 'chip.route.week-advance.beat-2'],
       ['chip.route.staff.beat-1', 'chip.route.staff.beat-2'],
       ['chip.route.cap-laboratory.beat-1', 'chip.route.cap-laboratory.beat-2'],
       ['chip.route.draft-board.beat-1', 'chip.route.draft-board.beat-2'],

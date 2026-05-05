@@ -1868,6 +1868,23 @@ function currentAppRoute(): string {
   return window.location.hash.replace(/^#/, '') || window.location.pathname || '/';
 }
 
+function useCurrentAppRoute(): string {
+  const [route, setRoute] = useState(currentAppRoute);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const updateRoute = () => setRoute(currentAppRoute());
+    window.addEventListener('hashchange', updateRoute);
+    window.addEventListener('popstate', updateRoute);
+    return () => {
+      window.removeEventListener('hashchange', updateRoute);
+      window.removeEventListener('popstate', updateRoute);
+    };
+  }, []);
+
+  return route;
+}
+
 function PostSetupApp() {
   useChipEvents();
   const chipDockEnabled = isChipFeatureEnabled();
@@ -1878,8 +1895,8 @@ function PostSetupApp() {
   const chipCoachName = chipUserTeam?.staff.hc?.name ?? 'Coach';
   const chipDialogueText = useChipStore((s) => s.currentDialogueText);
   const chipDialoguePose = useChipStore((s) => s.pose);
-  const chipDockRoute = currentAppRoute();
-  const chipRouteBeats = useActiveRouteBeats(chipDockRoute);
+  const chipDockRoute = useCurrentAppRoute();
+  const chipRouteBeats = useActiveRouteBeats(chipDockRoute, { currentWeek: chipDockWeek });
   const chipPendingDecisions = useMemo(
     () => countPendingDecisions({ game: chipGame }),
     [chipGame],

@@ -1,6 +1,10 @@
 import { useMemo } from 'react';
 import { useChipStore } from '../companion/store';
 import {
+  readChipOnboardingState,
+  selectChipOnboardingRouteBeats,
+} from '../companion/onboardingMachine';
+import {
   ROUTE_BEAT_REGISTRY,
   ROUTE_KEYS,
   type RouteBeat,
@@ -33,7 +37,11 @@ export function __getActiveRouteBeatCacheSize(): number {
 export function resolveRouteKey(currentRoute: string): RouteKey | null {
   const normalized = currentRoute.replace(/^#/, '').split('?')[0] || '/';
 
+  if (normalized === '/' || normalized === '/briefing') return 'monday-briefing';
   if (normalized === 'roster' || normalized === '/roster') return 'roster';
+  if (normalized === 'depth-chart' || normalized === '/depth-chart') return 'depth-chart';
+  if (normalized === 'game-plan' || normalized === '/game-plan') return 'game-plan';
+  if (normalized === 'week-advance' || normalized === '/week-advance') return 'week-advance';
   if (normalized === 'staff' || normalized === '/coaching' || normalized.startsWith('/coaching/')) return 'staff';
   if (normalized === 'cap-laboratory' || normalized === '/cap-lab' || normalized === '/contracts') {
     return 'cap-laboratory';
@@ -83,11 +91,22 @@ export function selectActiveRouteBeats(
   return activeBeats;
 }
 
-export function useActiveRouteBeats(currentRoute: string): readonly RouteBeat[] {
+export function useActiveRouteBeats(
+  currentRoute: string,
+  context: { currentWeek?: number } = {},
+): readonly RouteBeat[] {
   const seenBeats = useChipStore((state) => state.seenBeats);
 
   return useMemo(
-    () => selectActiveRouteBeats(currentRoute, seenBeats),
-    [currentRoute, seenBeats],
+    () => {
+      const storage = typeof window === 'undefined' ? null : window.localStorage;
+      const onboardingBeats = selectChipOnboardingRouteBeats(
+        currentRoute,
+        readChipOnboardingState(storage),
+        { currentWeek: context.currentWeek ?? 0 },
+      ).filter((beat) => !seenBeats.has(beat.id));
+      return [...onboardingBeats, ...selectActiveRouteBeats(currentRoute, seenBeats)];
+    },
+    [context.currentWeek, currentRoute, seenBeats],
   );
 }

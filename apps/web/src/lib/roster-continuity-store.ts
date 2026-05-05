@@ -30,9 +30,16 @@ function defaultPayload(): RosterContinuityPayload {
   };
 }
 
+function isStorageLike(value: unknown): value is Storage {
+  return !!value
+    && typeof value === 'object'
+    && typeof (value as Storage).getItem === 'function'
+    && typeof (value as Storage).setItem === 'function';
+}
+
 function storage(): Storage | null {
-  if (typeof window !== 'undefined' && window.localStorage) return window.localStorage;
-  if (typeof globalThis !== 'undefined' && 'localStorage' in globalThis && globalThis.localStorage) {
+  if (typeof window !== 'undefined' && isStorageLike(window.localStorage)) return window.localStorage;
+  if (typeof globalThis !== 'undefined' && 'localStorage' in globalThis && isStorageLike(globalThis.localStorage)) {
     return globalThis.localStorage;
   }
   return null;

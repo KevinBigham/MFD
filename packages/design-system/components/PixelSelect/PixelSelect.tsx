@@ -56,7 +56,7 @@ export function PixelSelect({
       data-mfd-focusable="pixel-select"
       disabled={disabled}
       style={{
-        minHeight: '34px',
+        minHeight: 'var(--mfd-touch-min)',
         padding: '8px 10px',
         border: `3px solid ${accentStyle.border}`,
         background: disabled ? 'var(--mfd-bg-3)' : accentStyle.background,

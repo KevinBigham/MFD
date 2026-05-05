@@ -160,4 +160,10 @@ describe('CapLaboratory', () => {
     expect(markup).toContain('$280M');
     expect(markup).toContain('$103M');
   });
+
+  it('opts cap tables into responsive card mode for phone viewports', () => {
+    const markup = renderToStaticMarkup(<CapLaboratory />);
+
+    expect(markup.match(/data-mfd-table-mode="cards"/g)).toHaveLength(2);
+  });
 });

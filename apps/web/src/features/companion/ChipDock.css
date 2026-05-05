@@ -12,16 +12,16 @@
   top: -10px;
   right: -10px;
   z-index: 2;
-  min-width: 26px;
-  height: 22px;
-  padding: 0 8px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
   border: 2px solid var(--mfd-bg);
   border-radius: 999px;
   background: var(--mfd-gold);
   color: var(--mfd-bg);
   font-family: var(--mfd-font-pixel);
   font-size: 12px;
-  line-height: 18px;
+  line-height: 40px;
   box-shadow: var(--mfd-shadow-gold-strong);
   cursor: pointer;
 }
@@ -152,14 +152,55 @@
     right: 0;
     bottom: 0;
     left: 0;
+    pointer-events: none;
+  }
+
+  .mfd-chip-dock__pending-badge,
+  .mfd-chip-dock__collapsed {
+    pointer-events: auto;
   }
 
   .mfd-chip-dock__panel {
-    grid-template-columns: 96px minmax(0, 1fr);
+    grid-template-columns: 72px minmax(0, 1fr);
     max-width: none;
+    max-height: min(46vh, 360px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     border-right: 0;
     border-bottom: 0;
     border-left: 0;
+    padding: var(--mfd-sp-sm);
+  }
+
+  .mfd-chip-dock__panel,
+  .mfd-chip-dock__content,
+  .mfd-chip-dock__bubble {
+    pointer-events: none;
+  }
+
+  .mfd-chip-dock .mfd-chip-bubble {
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .mfd-chip-dock__beat-actions,
+  .mfd-chip-dock__controls {
+    pointer-events: auto;
+  }
+
+  .mfd-chip-dock__controls {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mfd-chip-dock__control {
+    flex: 0 0 auto;
+  }
+
+  .mfd-chip-dock__control-label {
+    display: none;
   }
 
   .mfd-chip-dock__collapsed {

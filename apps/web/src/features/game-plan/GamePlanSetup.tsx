@@ -208,22 +208,24 @@ export function GamePlanSetup() {
       />
 
       <div style={autoGrid(260)}>
-        <PixelPanel title="Opponent Intel" accent="gold">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{report.teamName}</div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <PixelBadge variant="default">{report.record}</PixelBadge>
-              <PixelBadge variant="cyan">OFF #{report.offenseRank}</PixelBadge>
-              <PixelBadge variant="red">DEF #{report.defenseRank}</PixelBadge>
+        <div data-spotlight-target="chip.route.game-plan.beat-1">
+          <PixelPanel title="Opponent Intel" accent="gold">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{report.teamName}</div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <PixelBadge variant="default">{report.record}</PixelBadge>
+                <PixelBadge variant="cyan">OFF #{report.offenseRank}</PixelBadge>
+                <PixelBadge variant="red">DEF #{report.defenseRank}</PixelBadge>
+              </div>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                Danger: {intel.dangerPlayers.map((player) => player.name).join(' | ')}
+              </div>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                Weak links: {intel.weakLinks.map((player) => `${player.name} (${player.pos})`).join(' | ')}
+              </div>
             </div>
-            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-              Danger: {intel.dangerPlayers.map((player) => player.name).join(' | ')}
-            </div>
-            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-              Weak links: {intel.weakLinks.map((player) => `${player.name} (${player.pos})`).join(' | ')}
-            </div>
-          </div>
-        </PixelPanel>
+          </PixelPanel>
+        </div>
 
         <PixelPanel title="Recommended Prep" accent="green">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -247,112 +249,126 @@ export function GamePlanSetup() {
 
       <div style={autoGrid(260)}>
         <MfdTooltip content={PLAN_TOOLTIPS['Offensive Focus']} side="bottom">
-          <PixelPanel title="Offensive Focus" accent="gold">
-            <PixelSelect
-              value={offensiveFocus}
-              onChange={(event) => setOffensiveFocus(event.target.value as WeeklyPrepPlan['offensiveFocus'])}
-              options={offensiveOptions}
-              accent="gold"
-            />
-            {intel && (
-              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                Intel says: {intel.attackLane === 'passing' ? 'Attack Secondary' : 'Attack Front'}
-                {offensiveFocus === (intel.attackLane === 'passing' ? 'attack_secondary' : 'attack_front') && <PixelBadge variant="green">REC</PixelBadge>}
-              </div>
-            )}
-          </PixelPanel>
+          <div style={{ height: '100%' }}>
+            <PixelPanel title="Offensive Focus" accent="gold" style={{ height: '100%' }}>
+              <PixelSelect
+                value={offensiveFocus}
+                onChange={(event) => setOffensiveFocus(event.target.value as WeeklyPrepPlan['offensiveFocus'])}
+                options={offensiveOptions}
+                accent="gold"
+              />
+              {intel && (
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Intel says: {intel.attackLane === 'passing' ? 'Attack Secondary' : 'Attack Front'}
+                  {offensiveFocus === (intel.attackLane === 'passing' ? 'attack_secondary' : 'attack_front') && <PixelBadge variant="green">REC</PixelBadge>}
+                </div>
+              )}
+            </PixelPanel>
+          </div>
         </MfdTooltip>
         <MfdTooltip content={PLAN_TOOLTIPS['Defensive Focus']} side="bottom">
-          <PixelPanel title="Defensive Focus" accent="cyan">
-            <PixelSelect
-              value={defensiveFocus}
-              onChange={(event) => setDefensiveFocus(event.target.value as WeeklyPrepPlan['defensiveFocus'])}
-              options={defensiveOptions}
-              accent="cyan"
-            />
-            {intel && (
-              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                Intel says: {intel.defendLane === 'passing' ? 'Limit Explosive' : 'Stop Run'}
-                {defensiveFocus === (intel.defendLane === 'passing' ? 'limit_explosive' : 'stop_run') && <PixelBadge variant="green">REC</PixelBadge>}
-              </div>
-            )}
-          </PixelPanel>
+          <div style={{ height: '100%' }}>
+            <PixelPanel title="Defensive Focus" accent="cyan" style={{ height: '100%' }}>
+              <PixelSelect
+                value={defensiveFocus}
+                onChange={(event) => setDefensiveFocus(event.target.value as WeeklyPrepPlan['defensiveFocus'])}
+                options={defensiveOptions}
+                accent="cyan"
+              />
+              {intel && (
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Intel says: {intel.defendLane === 'passing' ? 'Limit Explosive' : 'Stop Run'}
+                  {defensiveFocus === (intel.defendLane === 'passing' ? 'limit_explosive' : 'stop_run') && <PixelBadge variant="green">REC</PixelBadge>}
+                </div>
+              )}
+            </PixelPanel>
+          </div>
         </MfdTooltip>
         <MfdTooltip content={PLAN_TOOLTIPS['Practice Intensity']} side="bottom">
-          <PixelPanel title="Practice Intensity" accent="default">
-            <PixelSelect
-              value={practiceIntensity}
-              onChange={(event) => setPracticeIntensity(event.target.value as WeeklyPrepPlan['practiceIntensity'])}
-              options={intensityOptions}
-              accent="default"
-            />
-          </PixelPanel>
+          <div style={{ height: '100%' }}>
+            <PixelPanel title="Practice Intensity" accent="default" style={{ height: '100%' }}>
+              <PixelSelect
+                value={practiceIntensity}
+                onChange={(event) => setPracticeIntensity(event.target.value as WeeklyPrepPlan['practiceIntensity'])}
+                options={intensityOptions}
+                accent="default"
+              />
+            </PixelPanel>
+          </div>
         </MfdTooltip>
         <MfdTooltip content={PLAN_TOOLTIPS['Snap Management']} side="bottom">
-          <PixelPanel title="Snap Management" accent="default">
-            <PixelSelect
-              value={snapManagement}
-              onChange={(event) => setSnapManagement(event.target.value as WeeklyPrepPlan['snapManagement'])}
-              options={snapOptions}
-              accent="default"
-            />
-          </PixelPanel>
+          <div style={{ height: '100%' }}>
+            <PixelPanel title="Snap Management" accent="default" style={{ height: '100%' }}>
+              <PixelSelect
+                value={snapManagement}
+                onChange={(event) => setSnapManagement(event.target.value as WeeklyPrepPlan['snapManagement'])}
+                options={snapOptions}
+                accent="default"
+              />
+            </PixelPanel>
+          </div>
         </MfdTooltip>
         <MfdTooltip content={PLAN_TOOLTIPS['Special Situation']} side="bottom">
-          <PixelPanel title="Special Situation" accent="default">
-            <PixelSelect
-              value={specialSituation}
-              onChange={(event) => setSpecialSituation(event.target.value as WeeklyPrepPlan['specialSituation'])}
-              options={specialSituationOptions}
-              accent="default"
-            />
-          </PixelPanel>
+          <div style={{ height: '100%' }}>
+            <PixelPanel title="Special Situation" accent="default" style={{ height: '100%' }}>
+              <PixelSelect
+                value={specialSituation}
+                onChange={(event) => setSpecialSituation(event.target.value as WeeklyPrepPlan['specialSituation'])}
+                options={specialSituationOptions}
+                accent="default"
+              />
+            </PixelPanel>
+          </div>
         </MfdTooltip>
         <MfdTooltip content={PLAN_TOOLTIPS['Key Matchup']} side="bottom">
-          <PixelPanel title="Key Matchup" accent="green">
-            <PixelSelect
-              value={keyMatchupPlayerId}
-              onChange={(event) => setKeyMatchupPlayerId(event.target.value)}
-              options={[{ value: '', label: 'No matchup emphasis' }, ...matchupOptions]}
-              accent="green"
-            />
-          </PixelPanel>
+          <div style={{ height: '100%' }}>
+            <PixelPanel title="Key Matchup" accent="green" style={{ height: '100%' }}>
+              <PixelSelect
+                value={keyMatchupPlayerId}
+                onChange={(event) => setKeyMatchupPlayerId(event.target.value)}
+                options={[{ value: '', label: 'No matchup emphasis' }, ...matchupOptions]}
+                accent="green"
+              />
+            </PixelPanel>
+          </div>
         </MfdTooltip>
       </div>
 
-      <PixelPanel title="Prep Board Readout" accent="green">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <PixelProgressBar
-            label="Offensive alignment"
-            value={offensiveFocus === 'attack_secondary' && intel.attackLane === 'passing'
-              ? 88
-              : offensiveFocus === 'attack_front' && intel.attackLane === 'rushing'
+      <div data-spotlight-target="chip.route.game-plan.beat-2">
+        <PixelPanel title="Prep Board Readout" accent="green">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <PixelProgressBar
+              label="Offensive alignment"
+              value={offensiveFocus === 'attack_secondary' && intel.attackLane === 'passing'
                 ? 88
-                : offensiveFocus === 'balanced'
-                  ? 70
-                  : 62}
-            max={100}
-            accent="gold"
-            valueLabel={offensiveFocus.replaceAll('_', ' ')}
-          />
-          <PixelProgressBar
-            label="Defensive alignment"
-            value={defensiveFocus === 'limit_explosive' && intel.defendLane === 'passing'
-              ? 88
-              : defensiveFocus === 'stop_run' && intel.defendLane === 'rushing'
+                : offensiveFocus === 'attack_front' && intel.attackLane === 'rushing'
+                  ? 88
+                  : offensiveFocus === 'balanced'
+                    ? 70
+                    : 62}
+              max={100}
+              accent="gold"
+              valueLabel={offensiveFocus.replaceAll('_', ' ')}
+            />
+            <PixelProgressBar
+              label="Defensive alignment"
+              value={defensiveFocus === 'limit_explosive' && intel.defendLane === 'passing'
                 ? 88
-                : defensiveFocus === 'balanced'
-                  ? 70
-                  : 62}
-            max={100}
-            accent="cyan"
-            valueLabel={defensiveFocus.replaceAll('_', ' ')}
-          />
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-            Stored plan status: {storedPlan ? 'weekly prep locked' : 'no prep saved yet'} // contingencies {contingencyRules.length}/{MAX_CONTINGENCIES} // trick plays {selectedTrickPlays.length}/{MAX_SELECTED_TRICK_PLAYS}
+                : defensiveFocus === 'stop_run' && intel.defendLane === 'rushing'
+                  ? 88
+                  : defensiveFocus === 'balanced'
+                    ? 70
+                    : 62}
+              max={100}
+              accent="cyan"
+              valueLabel={defensiveFocus.replaceAll('_', ' ')}
+            />
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              Stored plan status: {storedPlan ? 'weekly prep locked' : 'no prep saved yet'} // contingencies {contingencyRules.length}/{MAX_CONTINGENCIES} // trick plays {selectedTrickPlays.length}/{MAX_SELECTED_TRICK_PLAYS}
+            </div>
           </div>
-        </div>
-      </PixelPanel>
+        </PixelPanel>
+      </div>
 
       {shotEligibility.eligible && (
         <PixelPanel title="Call Your Shot" accent="gold">

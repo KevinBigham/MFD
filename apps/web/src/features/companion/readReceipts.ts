@@ -38,3 +38,20 @@ export function writeChipReadReceipts(
   }
   return merged;
 }
+
+export function clearChipReadReceipts(
+  storage: Storage | null,
+  shouldClear: (beatId: string) => boolean,
+): Set<string> {
+  const remaining = [...readChipReadReceipts(storage)].filter((beatId) => !shouldClear(beatId));
+
+  if (storage) {
+    if (remaining.length === 0) {
+      storage.removeItem(CHIP_READ_RECEIPTS_STORAGE_KEY);
+    } else {
+      storage.setItem(CHIP_READ_RECEIPTS_STORAGE_KEY, JSON.stringify(remaining.sort()));
+    }
+  }
+
+  return new Set(remaining);
+}

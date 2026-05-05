@@ -21,6 +21,7 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 import { playSound } from '../audio/AudioManager';
+import { buildDecisionImpactExplanation, decisionImpactToConsequenceItems } from '../companion/decisionImpact';
 
 interface ChecklistItem {
   id: string;
@@ -123,6 +124,15 @@ export function WeekAdvance() {
   const issueCount = checklist.filter((c) => c.status !== 'done').length;
   const starters = roster.filter((p) => p.isStarter).length;
   const injuredCount = roster.filter((p) => p.injury).length;
+  const advanceImpact = useMemo(
+    () => buildDecisionImpactExplanation({
+      surface: 'week-advance',
+      label: 'Week advance',
+      issueCount,
+      difficulty: 'standard',
+    }),
+    [issueCount],
+  );
 
   const teams = useGameStore(selectTeams);
   const opponent = matchup?.opponentId && teams ? teams[matchup.opponentId] : null;
@@ -198,35 +208,37 @@ export function WeekAdvance() {
       </div>
 
       <div style={autoGrid(320)}>
-        <PixelPanel title="Pre-Advance Checklist" accent={allClear ? 'green' : 'gold'}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {checklist.map((item) => (
-              <div key={item.id} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: '12px',
-                alignItems: 'center',
-                paddingBottom: '8px',
-                borderBottom: '1px solid #1a1a1a',
-              }}>
-                <div>
-                  <div style={{ ...mono, color: '#fff' }}>{item.label}</div>
-                  <div style={{ ...monoSm, color: '#888', marginTop: '4px' }}>{item.detail}</div>
+        <div data-spotlight-target="chip.route.week-advance.beat-1">
+          <PixelPanel title="Pre-Advance Checklist" accent={allClear ? 'green' : 'gold'}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {checklist.map((item) => (
+                <div key={item.id} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  alignItems: 'center',
+                  paddingBottom: '8px',
+                  borderBottom: '1px solid #1a1a1a',
+                }}>
+                  <div>
+                    <div style={{ ...mono, color: '#fff' }}>{item.label}</div>
+                    <div style={{ ...monoSm, color: '#888', marginTop: '4px' }}>{item.detail}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {item.status !== 'done' && item.fixRoute && (
+                      <PixelButton accent="gold" onClick={() => navigateTo(item.fixRoute!)}>
+                        {item.fixLabel}
+                      </PixelButton>
+                    )}
+                    <PixelBadge variant={statusAccent(item.status)}>
+                      {item.status}
+                    </PixelBadge>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {item.status !== 'done' && item.fixRoute && (
-                    <PixelButton accent="gold" onClick={() => navigateTo(item.fixRoute!)}>
-                      {item.fixLabel}
-                    </PixelButton>
-                  )}
-                  <PixelBadge variant={statusAccent(item.status)}>
-                    {item.status}
-                  </PixelBadge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </PixelPanel>
+              ))}
+            </div>
+          </PixelPanel>
+        </div>
 
         <PixelPanel title="Matchup Radar" accent="cyan">
           {opponent ? (
@@ -264,6 +276,12 @@ export function WeekAdvance() {
           ]}
         />
       </PixelPanel>
+
+      <div data-spotlight-target="chip.route.week-advance.beat-2">
+        <PixelPanel title="Decision Impact" accent={advanceImpact.severity === 'high' ? 'red' : 'gold'}>
+          <PixelConsequenceList items={decisionImpactToConsequenceItems(advanceImpact)} />
+        </PixelPanel>
+      </div>
 
       {advancing ? (
         <div style={{

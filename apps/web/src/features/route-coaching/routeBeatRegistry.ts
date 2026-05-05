@@ -1,5 +1,9 @@
 export const ROUTE_KEYS = [
+  'monday-briefing',
   'roster',
+  'depth-chart',
+  'game-plan',
+  'week-advance',
   'staff',
   'cap-laboratory',
   'draft-board',
@@ -27,6 +31,20 @@ export interface RouteBeat {
 }
 
 export const ROUTE_BEAT_REGISTRY = {
+  'monday-briefing': [
+    {
+      id: 'chip.route.monday-briefing.beat-1',
+      pose: 'point-side',
+      text: 'Start here every week. The briefing tells you what changed and which decision needs your desk first.',
+      spotlightTarget: 'chip.route.monday-briefing.beat-1',
+    },
+    {
+      id: 'chip.route.monday-briefing.beat-2',
+      pose: 'thinking',
+      text: 'If nothing is urgent, use the briefing to choose roster, plan, or advance. Do not wander the building.',
+      spotlightTarget: 'chip.route.monday-briefing.beat-2',
+    },
+  ],
   roster: [
     {
       id: 'chip.route.roster.beat-1',
@@ -39,6 +57,48 @@ export const ROUTE_BEAT_REGISTRY = {
       pose: 'thinking',
       text: 'Use contract and morale clues together. Cheap depth matters when injuries start stacking.',
       spotlightTarget: 'chip.route.roster.beat-2',
+    },
+  ],
+  'depth-chart': [
+    {
+      id: 'chip.route.depth-chart.beat-1',
+      pose: 'point-side',
+      text: 'This is the real Sunday lineup. Check starters and first backups before you trust the roster screen.',
+      spotlightTarget: 'chip.route.depth-chart.beat-1',
+    },
+    {
+      id: 'chip.route.depth-chart.beat-2',
+      pose: 'thinking',
+      text: 'Injuries make backup order matter. Fix the thin room before the game plan asks too much of it.',
+      spotlightTarget: 'chip.route.depth-chart.beat-2',
+    },
+  ],
+  'game-plan': [
+    {
+      id: 'chip.route.game-plan.beat-1',
+      pose: 'point-side',
+      text: 'Set a plan your roster can execute. A perfect counter is useless if your players cannot carry it.',
+      spotlightTarget: 'chip.route.game-plan.beat-1',
+    },
+    {
+      id: 'chip.route.game-plan.beat-2',
+      pose: 'thinking',
+      text: 'Use opponent shape and injury context together. The weekly bet should have a football reason.',
+      spotlightTarget: 'chip.route.game-plan.beat-2',
+    },
+  ],
+  'week-advance': [
+    {
+      id: 'chip.route.week-advance.beat-1',
+      pose: 'thinking',
+      text: 'This screen turns choices into consequences. Read the checklist before you advance.',
+      spotlightTarget: 'chip.route.week-advance.beat-1',
+    },
+    {
+      id: 'chip.route.week-advance.beat-2',
+      pose: 'thinking',
+      text: 'Red items are not flavor. Fix them or accept the risk before the league moves forward.',
+      spotlightTarget: 'chip.route.week-advance.beat-2',
     },
   ],
   staff: [

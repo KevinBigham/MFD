@@ -84,4 +84,11 @@ describe('DepthChart accessibility', () => {
     expect(markup).toContain('type="button"');
     expect(markup).toContain('--- SPECIAL TEAMS ---');
   });
+
+  it('keeps the room card as the only interactive control in each slot preview', () => {
+    const markup = renderToStaticMarkup(<DepthChart />);
+
+    expect(markup).toContain('Jay Stone');
+    expect(markup).not.toContain('title="Open Jay Stone"');
+  });
 });
