@@ -42,7 +42,7 @@ Branch: `codex/chip-public-release-recovery`
 - `git diff --check` — passed.
 - `npx --yes pnpm@9.15.9 typecheck` — passed.
 - `npx --yes pnpm@9.15.9 --filter @mfd/design-system test` — 14 files / 88 tests passed.
-- `npx --yes pnpm@9.15.9 --filter @mfd/web test` — 209 files / 1292 tests passed.
+- `npx --yes pnpm@9.15.9 --filter @mfd/web test` — 209 files / 1293 tests passed in the final rerun.
 - `npx --yes pnpm@9.15.9 --filter @mfd/engine test` — 201 files / 1852 tests passed.
 - `npx --yes pnpm@9.15.9 build` — passed with existing chunk-size warnings.
 
@@ -68,3 +68,23 @@ Branch: `codex/chip-public-release-recovery`
 - TTS polish.
 - Share payload expansion.
 - Additional later-season Chip variants and copy flavor.
+
+## Late-Season Release Rehearsal Matrix — 2026-05-05
+
+| Feature | Status | Route / file | Evidence | Risk | P0/P1/P2 next action |
+| --- | --- | --- | --- | --- | --- |
+| Trade deadline | Pass with P1 follow-up | `/trades`, `/trade-deadline`, `TradeCenter.tsx` | Week 14 convention demo showed `Deadline Passed`, closed trade window, direct proposal shell, empty offers, idle deadline route, Chip visible, no crash | Medium | P1: test a live Week 9 countdown in a future hands-on pass |
+| Playoff race | Pass | `/`, `/standings`, `/league-pulse`, `/week-advance` | Week 14 demo loaded 9-4 race, division chase copy, standings, pulse, and Week Advance stakes | Low | P0 none |
+| Postseason entry | Pass | `/week-advance`, `/franchise/playoff-lore` | Advanced from Week 18 to Week 19 playoffs, then through one playoff game; no transition crash | Low | P2 deeper postseason presentation |
+| Offseason teaser | Pass with P2 follow-up | `/draft`, `/scouting`, `/super-bowl` | Draft/scouting loaded safely before offseason; Super Bowl placeholder explained not-yet-played state | Medium | P2 deeper offseason/draft playable pass |
+| Scouting | Pass | `/scouting` | Route loaded with board-size, actions, workouts, scout budget, filters, and no crash | Low | P0 none |
+| Draft | Pass | `/draft` | Route loaded during regular-season/playoff phase with phase-gated empty state and no crash | Low | P0 none |
+| Standings | Pass | `/standings`, `standings.ts` | Late-season and playoff samples loaded division tables and playoff picture; no sparse-stat crash | Low | P0 none |
+| Power Rankings | Pass | `/power-rankings` | Empty/not-yet-generated state was clear and stable | Low | P0 none |
+| League Pulse / News | Pass | `/league-pulse` | Rivalry heat and post-playoff rivalry movement loaded without console errors | Low | P0 none |
+| Record Book / Legacy | Pass | `/records`, `/legacy`, `record-tracker.ts` | Record Book and Legacy loaded with empty states and no crash | Low | P0 none |
+| Save/load/import-export | Pass with P1 fixed | `/dynasty`, `DynastyCartridge.tsx` | Manual save slot created; clipboard export fallback patched and focused test passed | Medium | P1: recheck invalid paste copy in a clean browser pass |
+| Production preview | Pass | `/MFD/` | Fresh flagged build and preview loaded `http://localhost:4173/MFD/`; Chip dock appeared on sampled late-season routes; manifest returned JSON; no `localhost:4173` console warnings/errors | Low | P0 none; document that Chip flag must be set at build time |
+| Bundle delivery | Pass with warning | `apps/web/vite.config.ts` | Baseline build passed; existing `index` and `engine` chunk warnings persist | Medium | P1 only if public metrics require bundle work |
+| Kevin playtest script | Pass | `docs/release/KEVIN_PLAYTEST_SCRIPT.md` | New practical playtest path added | Low | P0 none |
+| Public release handoff | Pass | `docs/release/MFD_RELEASE_CANDIDATE_HANDOFF.md` | New handoff added with branch, commands, risks, and no-push/no-deploy notes | Low | P0 none |

@@ -56,7 +56,7 @@ vi.mock('@mfd/engine', () => ({
   generateFileName: vi.fn().mockReturnValue('CHI_S2026_W5.mfd'),
 }));
 
-import { DynastyCartridge } from './DynastyCartridge';
+import { DynastyCartridge, portableCopyFallbackMessage } from './DynastyCartridge';
 
 describe('DynastyCartridge', () => {
   it('renders screen header with Dynasty Cartridge title', () => {
@@ -91,5 +91,11 @@ describe('DynastyCartridge', () => {
     const markup = renderToStaticMarkup(<DynastyCartridge />);
 
     expect(markup).toContain('Paste backup code');
+  });
+
+  it('points blocked clipboard exports to the download fallback', () => {
+    expect(portableCopyFallbackMessage('CHI_S2026_W5.mfd')).toBe(
+      'Clipboard blocked. Use Download .mfd for CHI_S2026_W5.mfd.',
+    );
   });
 });

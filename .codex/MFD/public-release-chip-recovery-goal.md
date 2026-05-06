@@ -128,6 +128,93 @@ Checkpoint commit: `8516b05 Checkpoint Chip public-release hardening`
 - `SAVE_VERSION` remains `35`; no save schema, migration, deployment, or production secret changes were made.
 - Completion rubric: 96/100 with no P0s and no category below 4.
 
+## Late-Season Release Rehearsal + Public Ship Prep
+
+Timestamp: 2026-05-05 18:56:55 CDT
+Repo path: `/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery`
+Branch: `codex/chip-public-release-recovery`
+Starting commit: `0eed2cf Polish MFD release-candidate readiness`
+Evidence folder: `.codex/MFD/evidence/late-season-release-rehearsal-20260505-184434/`
+
+### Safety Notes
+
+- Confirmed active `pwd` and git root were the clean recovery clone before edits.
+- Confirmed branch `codex/chip-public-release-recovery`.
+- Confirmed latest starting commit `0eed2cf`; prior local checkpoint `8516b05` remains in history.
+- Original corrupt checkout at `/Users/tkevinbigham/Documents/GitHub/MFD` was not used.
+- Pre-rehearsal evidence captured: git status, git log, diff stat, and diff name-only.
+- Prior untracked evidence inspected; large `.mfd` export and full diff snapshots remain uncommitted evidence only.
+
+### Planned Slices
+
+1. Baseline gates before behavioral changes.
+2. Built-in late-season demo path for trade/playoff/offseason rehearsal.
+3. Trade Center and deadline-state audit.
+4. Standings, power rankings, league pulse, records, and legacy stability audit.
+5. Postseason entry and playoff-lore audit.
+6. Scouting/draft/offseason teaser audit.
+7. Save/load/export/import audit.
+8. Production preview and public `/MFD/` delivery audit.
+9. Kevin playtest and release handoff package.
+
+### Commands Run
+
+- `pwd` — clean clone path confirmed.
+- `git rev-parse --show-toplevel` — clean clone root confirmed.
+- `git branch --show-current` — `codex/chip-public-release-recovery`.
+- `git log --oneline -5` — latest `0eed2cf`.
+- `git status --short --branch` — source clean except prior untracked evidence before this sprint edits.
+- `git diff --check` — baseline passed.
+- `npx --yes pnpm@9.15.9 typecheck` — baseline passed.
+- `npx --yes pnpm@9.15.9 --filter @mfd/design-system test` — baseline passed, 14 files / 88 tests.
+- `npx --yes pnpm@9.15.9 --filter @mfd/web test` — baseline passed, 209 files / 1292 tests; existing `--localstorage-file` warning only.
+- `npx --yes pnpm@9.15.9 --filter @mfd/engine test` — baseline passed, 201 files / 1852 tests; existing `--localstorage-file` warning only.
+- `npx --yes pnpm@9.15.9 build` — baseline passed with existing Vite chunk-size warnings.
+- `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/dynasty-cartridge/DynastyCartridge.test.tsx --reporter=verbose` — passed, 1 file / 6 tests after clipboard fallback patch.
+- `git diff --check` — final rerun passed.
+- `npx --yes pnpm@9.15.9 typecheck` — final rerun passed.
+- `npx --yes pnpm@9.15.9 --filter @mfd/design-system test` — final rerun passed, 14 files / 88 tests.
+- `npx --yes pnpm@9.15.9 --filter @mfd/web test` — final rerun passed, 209 files / 1293 tests; existing `--localstorage-file` warning only.
+- `npx --yes pnpm@9.15.9 --filter @mfd/engine test` — final rerun passed, 201 files / 1852 tests; existing `--localstorage-file` warning only.
+- `npx --yes pnpm@9.15.9 build` — final rerun passed with existing Vite chunk-size warnings.
+- `VITE_CHIP_ENABLED=true VITE_CHIP_TTS_ENABLED=false VITE_MFD_SHARE_ENABLED=false npx --yes pnpm@9.15.9 build` — flagged public preview build passed with the same existing chunk-size warnings.
+
+### Browser Verification Notes
+
+- Dev command: `VITE_CHIP_ENABLED=true VITE_CHIP_TTS_ENABLED=false VITE_MFD_SHARE_ENABLED=false npx --yes pnpm@9.15.9 --filter @mfd/web dev -- --host 127.0.0.1 --port 5173`.
+- Vite served `http://localhost:5173/MFD/`.
+- Secondary fresh-origin server used for setup isolation: `VITE_CHIP_ENABLED=true VITE_CHIP_TTS_ENABLED=false VITE_MFD_SHARE_ENABLED=false npx --yes pnpm@9.15.9 --filter @mfd/web exec vite --host 127.0.0.1 --port 5174`.
+- Fresh setup reached the Week 1 shell with Chip visible and Monday Briefing present.
+- Built-in convention demo provided the safe late-season fast path at Week 14, 9-4, one game behind the division leader.
+- Late-season routes checked with Chip enabled: Monday Briefing, Trade Center, Trade Deadline, Cap Lab, Standings, Power Rankings, League Pulse, Record Book, Legacy, Scouting, Draft, Week Advance, Game Plan, Save/Load, Settings, Playoff Lore, and Super Bowl.
+- Trade Center loaded in Week 14 with `Deadline Passed`, `TRADE WINDOW CLOSED`, direct proposal UI, empty-offer state, and no crash.
+- Standings loaded with playoff picture and stat leaders; no sparse-stat or record-tracking crash appeared.
+- Playoff entry reached Week 19 with `PLAYOFFS // 1 ISSUE(S)` and no route crash.
+- One playoff game was advanced; Playoff Lore then showed one current-dynasty Wild Card win card.
+- Super Bowl route correctly showed the not-yet-played empty state.
+- Scouting and Draft routes loaded in regular-season/playoff context with clear empty/phase-gated states and Chip visible.
+- Save slot creation worked. Clipboard export initially logged a browser permission error; patched to catch clipboard denial and direct the user to `Download .mfd`. After patch, current browser clipboard copy showed the normal copied status.
+- Production preview command: `VITE_CHIP_ENABLED=true VITE_CHIP_TTS_ENABLED=false VITE_MFD_SHARE_ENABLED=false npx --yes pnpm@9.15.9 --filter @mfd/web preview -- --host 127.0.0.1`.
+- Production preview URL: `http://localhost:4173/MFD/`.
+- Production preview detail: the first preview after an unflagged build correctly showed that `VITE_CHIP_ENABLED` is build-time for Vite. The final preview therefore used a fresh flagged build plus flagged preview command.
+- Final production preview loaded `/MFD/`, `manifest.json` returned `application/json`, asset paths used `/MFD/assets/...`, no source maps or `.mfd` files were present in `apps/web/dist`, Chip dock appeared on every sampled late-season route, and no `localhost:4173` console warnings/errors were reported.
+
+### P0/P1/P2 Findings
+
+- P0: none found.
+- P1 fixed: `Copy Cartridge` no longer leaves an uncaught clipboard permission denial; blocked clipboard writes now fall back to player-facing Download `.mfd` guidance.
+- P1 documented: active trade-deadline countdown was not reached in this pass; the built-in safe path starts Week 14 after the deadline, while Week 9 countdown coverage remains test-backed.
+- P1 documented: one browser attempt to paste invalid backup code did not surface visible error copy before the clipboard fallback patch; prior lock-in had verified valid/invalid import through the same route, and no runtime crash occurred.
+- P2 documented: postseason package beyond playoff-lore entry and Super Bowl placeholder remains a deeper cinematic slice.
+
+### Final Ship-Readiness Audit
+
+- Final gate rerun passed: diff check, typecheck, design-system tests, web tests, engine tests, standard build, flagged public preview build, and production preview.
+- `SAVE_VERSION` remains `35`.
+- No save schema, migration, engine RNG, production secret, deploy, or push changes were made.
+- No broad Chip rebuild or new game system was added.
+- No P0s remain from this rehearsal.
+
 ## Commands Run
 
 ### Install / recovery baseline

@@ -54,6 +54,10 @@ const slotColumns: ColumnDef<SaveSlot & { label: string }, unknown>[] = [
   },
 ];
 
+export function portableCopyFallbackMessage(fileName: string): string {
+  return `Clipboard blocked. Use Download .mfd for ${fileName}.`;
+}
+
 export function DynastyCartridge() {
   const game = useGameStore((state) => state.game);
   const team = useGameStore(selectUserTeam);
@@ -91,9 +95,16 @@ export function DynastyCartridge() {
     const result = buildCartridge(game, meta);
     if (!result.ok) return;
 
+    if (!navigator.clipboard?.writeText) {
+      setTransientStatus(portableCopyFallbackMessage(fileName));
+      return;
+    }
+
     navigator.clipboard.writeText(result.json).then(() => {
       recordPortableExport();
       setTransientStatus(`${fileName} copied to clipboard`);
+    }).catch(() => {
+      setTransientStatus(portableCopyFallbackMessage(fileName));
     });
   }, [fileName, game, meta, recordPortableExport, setTransientStatus]);
 
