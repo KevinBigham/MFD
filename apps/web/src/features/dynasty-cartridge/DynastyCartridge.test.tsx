@@ -56,7 +56,11 @@ vi.mock('@mfd/engine', () => ({
   generateFileName: vi.fn().mockReturnValue('CHI_S2026_W5.mfd'),
 }));
 
-import { DynastyCartridge, portableCopyFallbackMessage } from './DynastyCartridge';
+import {
+  DynastyCartridge,
+  importFailureMessage,
+  portableCopyFallbackMessage,
+} from './DynastyCartridge';
 
 describe('DynastyCartridge', () => {
   it('renders screen header with Dynasty Cartridge title', () => {
@@ -96,6 +100,12 @@ describe('DynastyCartridge', () => {
   it('points blocked clipboard exports to the download fallback', () => {
     expect(portableCopyFallbackMessage('CHI_S2026_W5.mfd')).toBe(
       'Clipboard blocked. Use Download .mfd for CHI_S2026_W5.mfd.',
+    );
+  });
+
+  it('keeps invalid import errors player-facing and save-safe', () => {
+    expect(importFailureMessage()).toBe(
+      'That file does not look like a valid MFD save. Your current dynasty was not changed. Try exporting again or choose a different file.',
     );
   });
 });

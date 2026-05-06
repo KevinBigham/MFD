@@ -11,6 +11,8 @@ Status: ship candidate, ready for Kevin playtest.
 
 The release candidate passed baseline typecheck, design-system tests, web tests, engine tests, and build before the late-season rehearsal edits. Runtime rehearsal used Chip enabled with TTS/share disabled. No P0 blockers were found.
 
+Final ship-decision pass: ship candidate after Kevin playtest. The pass verified the live Week 9 trade-deadline countdown in the running app, fixed clean-browser invalid import copy, reran focused Dynasty Cartridge coverage, rebuilt standard and flagged production bundles, and previewed `/MFD/` from the flagged build.
+
 Do not use, repair, clean, delete, or edit the corrupt original checkout at `/Users/tkevinbigham/Documents/GitHub/MFD`.
 
 ## What Changed In This Rehearsal
@@ -58,10 +60,18 @@ Note: `VITE_CHIP_ENABLED` is a Vite build-time flag. Set it on the build command
 
 ## Known P1/P2
 
-- P1: active Week 9 trade-deadline countdown was not reached in browser; Week 14 demo verifies the post-deadline closed state.
-- P1: invalid pasted import copy should get one more clean-browser check.
+- P1: none open from the final ship-decision pass.
 - P2: postseason can be richer beyond playoff-lore cards and the Super Bowl placeholder.
-- P2: larger bundle splitting remains deferred; current Vite chunk-size warnings are existing.
+- P2: offseason and draft can support a deeper playable package after release.
+- P2: TTS/share polish and more Chip variants remain behind later slices.
+- P2: larger bundle splitting remains deferred; current Vite chunk-size warnings are existing and should be revisited only if public delivery metrics require it.
+
+## Final Ship-Decision Package
+
+- Final doc: `docs/release/MFD_FINAL_SHIP_DECISION.md`
+- Playtest script: `docs/release/KEVIN_PLAYTEST_SCRIPT.md`
+- Readiness matrix: `.codex/MFD/public-release-readiness-matrix.md`
+- Evidence folder: `.codex/MFD/evidence/final-ship-decision-20260505-193901/`
 
 ## Push / Deploy
 

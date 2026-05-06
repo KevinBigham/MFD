@@ -2,6 +2,8 @@
 
 Goal: decide ship / no-ship for the MFD public release candidate.
 
+Use this alongside `docs/release/MFD_FINAL_SHIP_DECISION.md`.
+
 Use only:
 
 `/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery`
@@ -66,7 +68,8 @@ Fast path: launch the Convention Demo from the title screen.
 1. Create Save Slot.
 2. Click Copy Cartridge.
 3. If the browser blocks clipboard, use Download `.mfd`.
-4. Try Upload `.mfd Backup` or paste a backup code in a clean browser session.
+4. Try invalid pasted backup text and confirm the message says: `That file does not look like a valid MFD save. Your current dynasty was not changed. Try exporting again or choose a different file.`
+5. Try Upload `.mfd Backup` or paste a valid backup code in a clean browser session.
 
 ## Review Checklist
 

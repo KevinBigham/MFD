@@ -428,3 +428,71 @@ Evidence folder: `.codex/MFD/evidence/late-season-release-rehearsal-20260505-184
 3. If continuing release work, keep scope to MFD only and preserve `SAVE_VERSION 35`.
 4. Treat the current Chip recovery plus release-candidate lock-in slice as green on full tests, focused tests, current-code browser verification, and production preview unless a new regression appears.
 5. Next sprint should target a deeper trade-deadline/playoff/offseason playthrough and bundle delivery, not unrelated new systems.
+
+## Final Ship-Decision Pass
+
+Timestamp: 2026-05-05 19:49:59 CDT
+Repo path: `/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery`
+Branch: `codex/chip-public-release-recovery`
+Starting commit: `ea1d7a2 test: rehearse late-season mfd release candidate`
+Evidence folder: `.codex/MFD/evidence/final-ship-decision-20260505-193901/`
+
+### Known P1/P2s Entering Pass
+
+- P1: live Week 9 trade-deadline countdown browser pass.
+- P1: clean-browser invalid pasted import copy.
+- P1: bundle/public delivery sanity review only if metrics require it.
+- P2: deeper postseason/offseason/draft play, more Chip variants, TTS polish, and share payload expansion.
+
+### Commands Run
+
+- `pwd` / `git rev-parse --show-toplevel` / `git branch --show-current` / `git log --oneline -8` / `git status --short --branch` - clean recovery clone confirmed; `ea1d7a2` at HEAD before edits.
+- Pre-final evidence capture commands wrote git status, git log, diff stat, diff name-only, and untracked-evidence notes under the evidence folder.
+- Baseline gates with bundled Node v24:
+  - `git diff --check` - passed.
+  - `npx --yes pnpm@9.15.9 typecheck` - passed.
+  - `npx --yes pnpm@9.15.9 --filter @mfd/design-system test` - passed, 14 files / 88 tests.
+  - `npx --yes pnpm@9.15.9 --filter @mfd/web test` - passed, 209 files / 1293 tests.
+  - `npx --yes pnpm@9.15.9 --filter @mfd/engine test` - passed, 201 files / 1852 tests.
+  - `npx --yes pnpm@9.15.9 build` - passed with existing Vite chunk-size warnings.
+- Focused invalid-import copy TDD:
+  - `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/dynasty-cartridge/DynastyCartridge.test.tsx --reporter=verbose` - red first because `importFailureMessage` was missing.
+  - Same focused command - green after the UI-layer copy fix, 1 file / 7 tests.
+- Bundle sanity:
+  - `npx --yes pnpm@9.15.9 build` - passed with existing Vite chunk-size warnings.
+  - `VITE_CHIP_ENABLED=true VITE_CHIP_TTS_ENABLED=false VITE_MFD_SHARE_ENABLED=false npx --yes pnpm@9.15.9 build` - passed with existing Vite chunk-size warnings.
+- Final gates after code/docs:
+  - `git diff --check` - passed.
+  - `npx --yes pnpm@9.15.9 typecheck` - passed.
+  - `npx --yes pnpm@9.15.9 --filter @mfd/design-system test` - passed, 14 files / 88 tests.
+  - `npx --yes pnpm@9.15.9 --filter @mfd/web test` - passed, 209 files / 1294 tests.
+  - `npx --yes pnpm@9.15.9 --filter @mfd/engine test` - passed, 201 files / 1852 tests.
+  - `npx --yes pnpm@9.15.9 build` - passed with existing Vite chunk-size warnings.
+  - `VITE_CHIP_ENABLED=true VITE_CHIP_TTS_ENABLED=false VITE_MFD_SHARE_ENABLED=false npx --yes pnpm@9.15.9 build` - passed with existing Vite chunk-size warnings.
+
+### Browser Verification Notes
+
+- Dev command: `VITE_CHIP_ENABLED=true VITE_CHIP_TTS_ENABLED=false VITE_MFD_SHARE_ENABLED=false npx --yes pnpm@9.15.9 --filter @mfd/web dev -- --host 127.0.0.1`.
+- Dev URL: `http://localhost:5173/MFD/`.
+- Live Week 9 deadline verification used a deterministic in-browser Week 9 fixture created from current app modules; no public cheat UI was added.
+- `/trade-deadline` showed Week 9 regular season, 4:00 remaining, `CALM`, one pending offer, zero completed deals, ticker copy, Accept/Reject controls, and no console warnings/errors.
+- `/trades` showed `Deadline Live`, open trade window, clear no-offer state, `Propose Trade`, `Decision Impact`, future pick/contract cost copy, and Chip route guidance that was trade-specific rather than generic Week 1 copy.
+- Invalid import clean-browser pass on `/dynasty`:
+  - empty import left the button disabled;
+  - malformed text left the dynasty unchanged;
+  - wrong-format JSON now shows: `That file does not look like a valid MFD save. Your current dynasty was not changed. Try exporting again or choose a different file.`;
+  - a valid cartridge imported successfully after invalid attempts.
+- Production preview command: `VITE_CHIP_ENABLED=true VITE_CHIP_TTS_ENABLED=false VITE_MFD_SHARE_ENABLED=false npx --yes pnpm@9.15.9 --filter @mfd/web preview -- --host 127.0.0.1`.
+- Preview URL: `http://localhost:4173/MFD/`.
+- Preview loaded `/MFD/`, `manifest.json` returned `application/json`, `/MFD/assets/...` script paths were present, the Week 14 demo launched, release routes loaded, Chip dock/action buttons appeared, TTS/share controls were absent under disabled flags, mobile `390x844` spot checks passed, and console warning/error count was zero.
+- Public artifact scan found no `.map`, `.mfd`, `.env`, obvious secret-named files, or obvious secret tokens in `apps/web/dist`.
+
+### Final Ship Recommendation
+
+Ship candidate after Kevin playtest.
+
+- P0 blockers: none found in this pass.
+- P1s: live Week 9 deadline verified; invalid import copy fixed and browser-verified; bundle warning documented as non-blocking.
+- P2s: deeper postseason/offseason/draft content, more Chip variants, TTS polish, share expansion, and broader mobile parity remain post-release work.
+- Push/deploy: none.
+- Save safety: `SAVE_VERSION` remains `35`; no save schema, migration, engine RNG, or deterministic sim behavior changed.

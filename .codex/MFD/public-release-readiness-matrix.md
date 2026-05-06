@@ -1,6 +1,6 @@
 # MFD Public Release Readiness Matrix
 
-Updated: 2026-05-05 18:24:09 CDT
+Updated: 2026-05-05 19:49:59 CDT
 Repo: `/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery`
 Branch: `codex/chip-public-release-recovery`
 
@@ -8,8 +8,8 @@ Branch: `codex/chip-public-release-recovery`
 
 - Recovery status: green in clean clone; checkpoint commit `8516b05` preserves the Chip/public-release hardening baseline.
 - P0 blockers: none remaining.
-- Primary release strength: first-start and weekly Chip guidance now survive current-code browser play, reload, save/load, route sweep, and production preview.
-- Remaining risk: bundle size warnings and deeper hands-on trade-deadline/playoff/offseason confidence.
+- Primary release strength: first-start, weekly Chip guidance, save/load/import/export trust, live Week 9 trade-deadline state, and production preview all survived current-code verification.
+- Remaining risk: existing bundle size warnings and deeper postseason/offseason content depth.
 
 | Feature | Status | Route / file | Evidence | Risk | P0/P1/P2 next action |
 | --- | --- | --- | --- | --- | --- |
@@ -42,7 +42,7 @@ Branch: `codex/chip-public-release-recovery`
 - `git diff --check` — passed.
 - `npx --yes pnpm@9.15.9 typecheck` — passed.
 - `npx --yes pnpm@9.15.9 --filter @mfd/design-system test` — 14 files / 88 tests passed.
-- `npx --yes pnpm@9.15.9 --filter @mfd/web test` — 209 files / 1293 tests passed in the final rerun.
+- `npx --yes pnpm@9.15.9 --filter @mfd/web test` — 209 files / 1294 tests passed in the final rerun.
 - `npx --yes pnpm@9.15.9 --filter @mfd/engine test` — 201 files / 1852 tests passed.
 - `npx --yes pnpm@9.15.9 build` — passed with existing chunk-size warnings.
 
@@ -88,3 +88,24 @@ Branch: `codex/chip-public-release-recovery`
 | Bundle delivery | Pass with warning | `apps/web/vite.config.ts` | Baseline build passed; existing `index` and `engine` chunk warnings persist | Medium | P1 only if public metrics require bundle work |
 | Kevin playtest script | Pass | `docs/release/KEVIN_PLAYTEST_SCRIPT.md` | New practical playtest path added | Low | P0 none |
 | Public release handoff | Pass | `docs/release/MFD_RELEASE_CANDIDATE_HANDOFF.md` | New handoff added with branch, commands, risks, and no-push/no-deploy notes | Low | P0 none |
+
+## Final Ship-Decision Matrix — 2026-05-05
+
+| Feature | Status | Evidence | Risk | Next action | Ship impact |
+| --- | --- | --- | --- | --- | --- |
+| Live Week 9 trade-deadline countdown | Pass | Dev browser reached deterministic Week 9 regular season with active deadline state: 4:00 remaining, `CALM`, one pending offer, ticker copy, Accept/Reject controls, no console warnings/errors | Low | Kevin can spot-check Trade Deadline during playtest if desired | Non-blocker |
+| Trade Center live deadline context | Pass | `/trades` showed `Deadline Live`, open trade window, no-offer empty state, `Propose Trade`, Decision Impact, and future pick/contract cost copy | Low | None before Kevin playtest | Non-blocker |
+| Invalid import copy | Pass | Wrong-format JSON now shows `That file does not look like a valid MFD save. Your current dynasty was not changed. Try exporting again or choose a different file.` | Low | Keep exact copy in Kevin playtest | Non-blocker |
+| Save/load/import/export | Pass | Invalid attempts left seed `808` / Week `9` unchanged; valid cartridge imported successfully afterward; focused test added | Low | Kevin should export/import once in 45-minute playtest | Non-blocker |
+| Flagged production build | Pass with warning | `VITE_CHIP_ENABLED=true VITE_CHIP_TTS_ENABLED=false VITE_MFD_SHARE_ENABLED=false npx --yes pnpm@9.15.9 build` passed with existing chunk warning | Medium | Bundle work only if real delivery metrics demand it | Non-blocker |
+| Production preview `/MFD/` | Pass | `http://localhost:4173/MFD/` loaded after flagged build; clean first-run screen rendered; Week 14 demo launched; release routes, invalid import copy, Chip dock/actions, mobile spot checks, and console checks passed | Low | Recheck before any deploy | Non-blocker |
+| Bundle warnings | Pass with warning | Vite warns about `index` and `engine` chunks above 500 kB; no new blocker found | Medium | Defer bundle splitting to post-release metrics slice | Non-blocker |
+| Public manifest/assets | Pass | `/MFD/manifest.json` returned `application/json`; asset scripts used `/MFD/assets/...`; no `.map`, `.mfd`, `.env`, or obvious secret tokens found in `apps/web/dist` | Low | Recheck from final deploy target later | Non-blocker |
+| Chip enabled at build time | Pass | Flagged build plus preview showed Chip; docs state `VITE_CHIP_ENABLED` must be set during build | Low | Kevin/deploy operator must use flagged build command | Required deploy step |
+| TTS/share disabled flags | Pass | Preview found no TTS/share button labels with disabled flags | Low | Keep disabled until dedicated polish | Non-blocker |
+| Kevin playtest script | Pass | `docs/release/MFD_FINAL_SHIP_DECISION.md` contains 45-minute path; existing script remains available | Low | Kevin runs playtest before ship/no-ship call | Required human gate |
+| Final ship-decision doc | Pass | `docs/release/MFD_FINAL_SHIP_DECISION.md` created with recommendation, commands, checklist, deploy checklist, rollback notes | Low | Kevin reads before playtest | Required human gate |
+| Release handoff | Pass | Handoff notes updated by final pass docs and this matrix | Low | Claude Code review can focus on docs + tiny import copy patch | Non-blocker |
+| Deploy checklist | Pass | Final doc includes verify/build/preview/no-secrets/push-after-approval/deploy-after-approval checklist | Low | Use only after Kevin approval | Required deploy step |
+| Remaining P1s | Pass | No unresolved P1s remain from this final pass; bundle review remains metrics-driven only | Low | None before Kevin playtest | Non-blocker |
+| Remaining P2s | Documented | More Chip variants, TTS polish, share expansion, deeper postseason/offseason/draft, broader mobile parity | Medium | Post-release sprint backlog | Non-blocker |
