@@ -45,6 +45,8 @@ export interface ChipPoseArt {
   src: string;
   alt: string;
   objectPosition?: string;
+  inlineSrc?: string;
+  inlineObjectPosition?: string;
 }
 
 export interface ChipProps {
@@ -58,29 +60,48 @@ export interface ChipProps {
 
 const CHIP_SIZE_PX: Record<ChipSize, { width: number; height: number; legacy: number }> = {
   sm: { width: 64, height: 64, legacy: 64 },
-  md: { width: 96, height: 118, legacy: 96 },
+  md: { width: 96, height: 96, legacy: 96 },
   lg: { width: 144, height: 176, legacy: 144 },
 };
 
+function withInlineArt(art: Omit<ChipPoseArt, 'inlineSrc'>): ChipPoseArt {
+  const fileName = art.src.split('/').pop();
+  return {
+    ...art,
+    inlineSrc: fileName ? `assets/chip/inline/${fileName}` : art.src,
+    inlineObjectPosition: 'center center',
+  };
+}
+
 export const CHIP_POSE_ART: Record<ChipPose, ChipPoseArt> = {
-  idle: { src: 'assets/chip/chip-coach.png', alt: 'Chip studies the field with a clipboard', objectPosition: 'center 28%' },
-  greeting: { src: 'assets/chip/pose-greeting.png', alt: 'Chip leans in with both hands forward' },
-  talk: { src: 'assets/chip/chip-broadcast.png', alt: 'Chip explains the next football decision', objectPosition: 'center 26%' },
-  'point-left': { src: 'assets/chip/pose-point-left.png', alt: 'Chip points to the left with his clipboard ready' },
-  'point-right': { src: 'assets/chip/pose-point-right.png', alt: 'Chip points toward the next control' },
-  wave: { src: 'assets/chip/pose-wave.png', alt: 'Chip opens his hand to move the player forward' },
-  think: { src: 'assets/chip/pose-think.png', alt: 'Chip thinks through the next call' },
-  whispering: { src: 'assets/chip/pose-whispering.png', alt: 'Chip lowers his voice with sideline advice' },
-  celebrate: { src: 'assets/chip/pose-celebrate.png', alt: 'Chip celebrates a good result' },
-  excited: { src: 'assets/chip/pose-excited.png', alt: 'Chip gets fired up about the decision' },
-  concern: { src: 'assets/chip/pose-concern.png', alt: 'Chip folds his arms with concern' },
-  warning: { src: 'assets/chip/pose-warning.png', alt: 'Chip raises a warning finger' },
-  surprised: { src: 'assets/chip/pose-surprised.png', alt: 'Chip reacts with both hands open' },
-  sad: { src: 'assets/chip/pose-sad.png', alt: 'Chip reacts to a rough outcome' },
-  disappointed: { src: 'assets/chip/pose-disappointed.png', alt: 'Chip looks disappointed after a miss' },
-  'mic-check': { src: 'assets/chip/pose-mic-check.png', alt: 'Chip checks the mic before the next call' },
-  'thumbs-up': { src: 'assets/chip/pose-thumbs-up.png', alt: 'Chip gives a thumbs up' },
+  idle: withInlineArt({ src: 'assets/chip/chip-coach.png', alt: 'Chip studies the field with a clipboard', objectPosition: 'center 28%' }),
+  greeting: withInlineArt({ src: 'assets/chip/pose-greeting.png', alt: 'Chip leans in with both hands forward' }),
+  talk: withInlineArt({ src: 'assets/chip/chip-broadcast.png', alt: 'Chip explains the next football decision', objectPosition: 'center 26%' }),
+  'point-left': withInlineArt({ src: 'assets/chip/pose-point-left.png', alt: 'Chip points to the left with his clipboard ready' }),
+  'point-right': withInlineArt({ src: 'assets/chip/pose-point-right.png', alt: 'Chip points toward the next control' }),
+  wave: withInlineArt({ src: 'assets/chip/pose-wave.png', alt: 'Chip opens his hand to move the player forward' }),
+  think: withInlineArt({ src: 'assets/chip/pose-think.png', alt: 'Chip thinks through the next call' }),
+  whispering: withInlineArt({ src: 'assets/chip/pose-whispering.png', alt: 'Chip lowers his voice with sideline advice' }),
+  celebrate: withInlineArt({ src: 'assets/chip/pose-celebrate.png', alt: 'Chip celebrates a good result' }),
+  excited: withInlineArt({ src: 'assets/chip/pose-excited.png', alt: 'Chip gets fired up about the decision' }),
+  concern: withInlineArt({ src: 'assets/chip/pose-concern.png', alt: 'Chip folds his arms with concern' }),
+  warning: withInlineArt({ src: 'assets/chip/pose-warning.png', alt: 'Chip raises a warning finger' }),
+  surprised: withInlineArt({ src: 'assets/chip/pose-surprised.png', alt: 'Chip reacts with both hands open' }),
+  sad: withInlineArt({ src: 'assets/chip/pose-sad.png', alt: 'Chip reacts to a rough outcome' }),
+  disappointed: withInlineArt({ src: 'assets/chip/pose-disappointed.png', alt: 'Chip looks disappointed after a miss' }),
+  'mic-check': withInlineArt({ src: 'assets/chip/pose-mic-check.png', alt: 'Chip checks the mic before the next call' }),
+  'thumbs-up': withInlineArt({ src: 'assets/chip/pose-thumbs-up.png', alt: 'Chip gives a thumbs up' }),
 };
+
+export function resolveChipPoseArt(pose: ChipPose, size: ChipSize): ChipPoseArt {
+  const art = CHIP_POSE_ART[pose];
+  if (size === 'lg') return art;
+  return {
+    ...art,
+    src: art.inlineSrc ?? art.src,
+    objectPosition: art.inlineObjectPosition ?? art.objectPosition,
+  };
+}
 
 const poseComponents: Record<ChipPose, ComponentType> = {
   idle: IdlePose,
@@ -112,7 +133,8 @@ export function Chip({
 }: ChipProps) {
   const Pose = poseComponents[pose];
   const pixelSize = CHIP_SIZE_PX[size];
-  const art = CHIP_POSE_ART[pose];
+  const fullArt = CHIP_POSE_ART[pose];
+  const art = resolveChipPoseArt(pose, size);
   const label = ariaLabelProp ?? ariaLabel ?? 'Chip, your assistant';
   const classes = ['mfd-chip', className].filter(Boolean).join(' ');
   const headClasses = `mfd-chip-svg__head mfd-chip-svg__head--${pose}`;
@@ -129,6 +151,7 @@ export function Chip({
       data-chip-size={size}
       data-chip-motion={reducedMotion ? 'reduced' : 'animated'}
       data-chip-art-src={art.src}
+      data-chip-full-art-src={fullArt.src}
       role="img"
       aria-label={label}
       style={style}

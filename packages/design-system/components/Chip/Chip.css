@@ -2,7 +2,7 @@
   --chip-pose-transition: 180ms ease-out;
   --chip-pose-crossfade: 200ms ease-out;
   --chip-art-width: 96px;
-  --chip-art-height: 118px;
+  --chip-art-height: 96px;
   --chip-object-position: center bottom;
   display: inline-grid;
   place-items: center;

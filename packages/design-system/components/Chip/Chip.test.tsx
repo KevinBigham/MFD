@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { isValidElement, type ReactElement, type ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
-import { Chip, CHIP_POSES, CHIP_POSE_ART, type ChipPose } from './index';
+import { Chip, CHIP_POSES, CHIP_POSE_ART, resolveChipPoseArt, type ChipPose } from './index';
 
 const sizePixels = {
   sm: 64,
@@ -173,6 +173,7 @@ describe('Chip', () => {
     for (const pose of CHIP_POSES) {
       const art = CHIP_POSE_ART[pose];
       expect(art.src).toMatch(/^assets\/chip\/.+\.png$/);
+      expect(art.inlineSrc).toMatch(/^assets\/chip\/inline\/.+\.png$/);
       expect(art.alt).toContain('Chip');
       sources.add(art.src);
     }
@@ -182,6 +183,23 @@ describe('Chip', () => {
     expect(CHIP_POSE_ART.warning.src).toBe('assets/chip/pose-warning.png');
     expect(CHIP_POSE_ART['thumbs-up'].src).toBe('assets/chip/pose-thumbs-up.png');
     expect(sources.size).toBeGreaterThanOrEqual(12);
+  });
+
+  it('uses square inline crops for small and medium Chip art', () => {
+    const mdElements = renderChipElements({ pose: 'warning', size: 'md' });
+    const mdRoot = findElement(mdElements, 'span');
+    const mdImage = findElement(mdElements, 'img', 'data-chip-image-pose', 'warning');
+    const smImage = findElement(renderChipElements({ pose: 'warning', size: 'sm' }), 'img', 'data-chip-image-pose', 'warning');
+
+    expect(resolveChipPoseArt('warning', 'md').src).toBe('assets/chip/inline/pose-warning.png');
+    expect(resolveChipPoseArt('warning', 'lg').src).toBe('assets/chip/pose-warning.png');
+    expect(mdRoot.props['data-chip-art-src']).toBe('assets/chip/inline/pose-warning.png');
+    expect(mdRoot.props['data-chip-full-art-src']).toBe('assets/chip/pose-warning.png');
+    expect(mdImage.props.src).toBe('assets/chip/inline/pose-warning.png');
+    expect(mdImage.props.width).toBe(96);
+    expect(mdImage.props.height).toBe(96);
+    expect(smImage.props.width).toBe(64);
+    expect(smImage.props.height).toBe(64);
   });
 
   it('renders the PNG art as the visible Chip layer while preserving pose metadata', () => {

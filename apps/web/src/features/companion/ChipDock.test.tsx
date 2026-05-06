@@ -634,6 +634,7 @@ describe('ChipDock', () => {
         .split('}')[0];
 
       expect(mobileBlock).toContain('max-height: min(46vh, 360px);');
+      expect(mobileBlock).toContain('grid-template-columns: 144px minmax(0, 1fr);');
       expect(mobileBlock).toContain('overflow-y: auto;');
       expect(mobileBlock).toContain('flex-wrap: nowrap;');
       expect(mobileBlock).toContain('overflow-x: auto;');

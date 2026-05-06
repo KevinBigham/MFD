@@ -169,7 +169,7 @@
   }
 
   .mfd-chip-dock__panel {
-    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-columns: 144px minmax(0, 1fr);
     max-width: none;
     max-height: min(46vh, 360px);
     overflow-y: auto;
