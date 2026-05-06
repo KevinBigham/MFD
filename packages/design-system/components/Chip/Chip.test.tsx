@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { isValidElement, type ReactElement, type ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
-import { Chip, CHIP_POSES, type ChipPose } from './index';
+import { Chip, CHIP_POSES, CHIP_POSE_ART, type ChipPose } from './index';
 
 const sizePixels = {
   sm: 64,
@@ -165,6 +165,35 @@ describe('Chip', () => {
         "thumbs-up:lg:144",
       ]
     `);
+  });
+
+  it('maps every pose to a concrete Chip PNG asset', () => {
+    const sources = new Set<string>();
+
+    for (const pose of CHIP_POSES) {
+      const art = CHIP_POSE_ART[pose];
+      expect(art.src).toMatch(/^assets\/chip\/.+\.png$/);
+      expect(art.alt).toContain('Chip');
+      sources.add(art.src);
+    }
+
+    expect(CHIP_POSE_ART.idle.src).toBe('assets/chip/chip-coach.png');
+    expect(CHIP_POSE_ART.talk.src).toBe('assets/chip/chip-broadcast.png');
+    expect(CHIP_POSE_ART.warning.src).toBe('assets/chip/pose-warning.png');
+    expect(CHIP_POSE_ART['thumbs-up'].src).toBe('assets/chip/pose-thumbs-up.png');
+    expect(sources.size).toBeGreaterThanOrEqual(12);
+  });
+
+  it('renders the PNG art as the visible Chip layer while preserving pose metadata', () => {
+    const elements = renderChipElements({ pose: 'warning', size: 'lg' });
+    const root = findElement(elements, 'span');
+    const image = findElement(elements, 'img', 'data-chip-image-pose', 'warning');
+
+    expect(root.props['data-chip-art-src']).toBe('assets/chip/pose-warning.png');
+    expect(image.props.src).toBe('assets/chip/pose-warning.png');
+    expect(image.props.alt).toBe('');
+    expect(image.props.width).toBe(144);
+    expect(image.props.height).toBe(176);
   });
 
   it('uses an accessible default name and accepts a custom aria label', () => {
