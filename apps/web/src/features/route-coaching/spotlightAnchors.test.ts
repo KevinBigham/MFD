@@ -24,6 +24,9 @@ const ROUTE_SCREEN_FILES: Record<(typeof ROUTE_KEYS)[number], string> = {
   'league-pulse': 'apps/web/src/features/league/LeaguePulse.tsx',
   'record-book': 'apps/web/src/features/stats/RecordBook.tsx',
   'settings-save-load': 'apps/web/src/features/dynasty-cartridge/DynastyCartridge.tsx',
+  'training-camp': 'apps/web/src/features/training-camp/TrainingCamp.tsx',
+  'trade-deadline': 'apps/web/src/features/trades/TradeDeadline.tsx',
+  'expansion-draft': 'apps/web/src/features/franchise/ExpansionDraft.tsx',
 };
 
 function readScreen(relativePath: string): string {

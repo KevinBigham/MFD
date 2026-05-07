@@ -40,17 +40,17 @@ const COMEBACK_LOW_WP = 25;
 const CHOKE_HIGH_WP = 75;
 
 const OUTCOME_POSES: Record<RecapChipOutcome, ChipPose> = {
-  BLOWOUT_WIN: 'celebrate',
-  CLOSE_WIN: 'thumbs-up',
-  WIN: 'thumbs-up',
-  OT_WIN: 'surprised',
-  COMEBACK_WIN: 'excited',
-  CLOSE_LOSS: 'concern',
-  BLOWOUT_LOSS: 'sad',
-  CHOKE_LOSS: 'disappointed',
-  LOSS: 'sad',
-  OT_LOSS: 'concern',
-  UNKNOWN: 'think',
+  BLOWOUT_WIN: 'rallying',
+  CLOSE_WIN: 'fist-bump',
+  WIN: 'proud',
+  OT_WIN: 'laughing',
+  COMEBACK_WIN: 'rallying',
+  CLOSE_LOSS: 'frustrated',
+  BLOWOUT_LOSS: 'head-in-hands',
+  CHOKE_LOSS: 'facepalm',
+  LOSS: 'tired',
+  OT_LOSS: 'head-in-hands',
+  UNKNOWN: 'reviewing-tablet',
 };
 
 export function getRecapChipPose(outcome: RecapChipOutcome): ChipPose {

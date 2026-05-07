@@ -49,11 +49,16 @@ function outcomeLabel(outcome: WeeklyDialogueVariant): string {
 }
 
 function poseFor(outcome: WeeklyDialogueVariant): DialogueCatalogEntry['pose'] {
-  if (outcome === 'cleanWin' || outcome === 'championship') return 'celebrate';
-  if (outcome === 'loss' || outcome === 'blowoutLoss' || outcome === 'threeLossStreak' || outcome === 'darkMoment') {
-    return 'concern';
+  if (outcome === 'cleanWin' || outcome === 'championship') return 'proud';
+  if (outcome === 'uglyWin') return 'pointing-at-tape';
+  if (outcome === 'playoffs') return 'rallying';
+  if (outcome === 'preseason') return 'coffee-sip';
+  if (outcome === 'loss') return 'frustrated';
+  if (outcome === 'blowoutLoss' || outcome === 'threeLossStreak') {
+    return 'head-in-hands';
   }
-  return 'mic-check';
+  if (outcome === 'darkMoment') return 'facepalm';
+  return 'reviewing-tablet';
 }
 
 export function buildWeeklyGuidance(input: WeeklyGuidanceInput): WeeklyGuidance {

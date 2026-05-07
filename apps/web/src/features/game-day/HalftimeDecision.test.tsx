@@ -47,16 +47,16 @@ describe('HalftimeDecisionView', () => {
     );
 
     expect(markup).toContain('data-halftime-chip-host="true"');
-    expect(markup).toContain('data-halftime-chip-pose="mic-check"');
+    expect(markup).toContain('data-halftime-chip-pose="time-out"');
     expect(markup).toContain('Second half is a choice. Pick the risk you can defend.');
   });
 
   it('maps halftime choice previews to deterministic Chip poses', () => {
-    expect(getHalftimeChipPose(null, false)).toBe('mic-check');
-    expect(getHalftimeChipPose('stick', false)).toBe('point-left');
-    expect(getHalftimeChipPose('switch', false)).toBe('point-right');
-    expect(getHalftimeChipPose('gamble', false)).toBe('concern');
-    expect(getHalftimeChipPose('gamble', true)).toBe('thumbs-up');
+    expect(getHalftimeChipPose(null, false)).toBe('time-out');
+    expect(getHalftimeChipPose('stick', false)).toBe('coaching-crouch');
+    expect(getHalftimeChipPose('switch', false)).toBe('calling-play');
+    expect(getHalftimeChipPose('gamble', false)).toBe('frustrated');
+    expect(getHalftimeChipPose('gamble', true)).toBe('fist-bump');
   });
 
   it('keeps the Chip portrait static under reduced motion', () => {
@@ -71,9 +71,9 @@ describe('HalftimeDecisionView', () => {
     );
 
     expect(markup).toContain('data-halftime-chip-host="true"');
-    expect(markup).toContain('data-halftime-chip-pose="mic-check"');
+    expect(markup).toContain('data-halftime-chip-pose="time-out"');
     expect(markup).toContain('data-chip-motion="reduced"');
-    expect(getHalftimeChipPose('switch', false, true)).toBe('mic-check');
+    expect(getHalftimeChipPose('switch', false, true)).toBe('time-out');
   });
 
   it('shows stick, switch, and gamble choices', () => {
@@ -106,6 +106,6 @@ describe('HalftimeDecisionView', () => {
   });
 
   it('renders the lock-in pose helper for completed actions', () => {
-    expect(getHalftimeChipPose(null, true, true)).toBe('thumbs-up');
+    expect(getHalftimeChipPose(null, true, true)).toBe('fist-bump');
   });
 });

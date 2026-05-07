@@ -1,4 +1,4 @@
-import type { ChipPose } from '@mfd/design-system/components';
+import { CHIP_POSES, type ChipPose } from '@mfd/design-system/components';
 
 export const MAX_CHIP_DIALOGUE_CHARS = 240;
 
@@ -20,25 +20,7 @@ export interface DialogueCatalogEntry {
   anchor?: boolean;
 }
 
-const CHIP_DIALOGUE_POSES = [
-  'idle',
-  'greeting',
-  'talk',
-  'point-left',
-  'point-right',
-  'wave',
-  'think',
-  'whispering',
-  'celebrate',
-  'excited',
-  'concern',
-  'warning',
-  'surprised',
-  'sad',
-  'disappointed',
-  'mic-check',
-  'thumbs-up',
-] as const satisfies readonly ChipPose[];
+const CHIP_DIALOGUE_POSES = CHIP_POSES satisfies readonly ChipPose[];
 
 export function isChipContext(value: unknown): value is ChipContext {
   return typeof value === 'string' && CHIP_CONTEXTS.includes(value as ChipContext);

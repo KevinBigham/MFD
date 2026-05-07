@@ -49,6 +49,9 @@ export function resolveRouteKey(currentRoute: string): RouteKey | null {
   }
   if (normalized === 'draft-board' || normalized === '/draft') return 'draft-board';
   if (normalized === 'trade-center' || normalized === '/trades') return 'trade-center';
+  if (normalized === 'training-camp' || normalized === '/training-camp') return 'training-camp';
+  if (normalized === 'trade-deadline' || normalized === '/trade-deadline') return 'trade-deadline';
+  if (normalized === 'expansion-draft' || normalized === '/expansion-draft') return 'expansion-draft';
   if (normalized === 'scouting-board' || normalized === '/scouting') return 'scouting-board';
   if (normalized === 'standings' || normalized === '/standings') return 'standings';
   if (normalized === 'power-rankings' || normalized === '/power-rankings') return 'power-rankings';

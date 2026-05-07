@@ -314,7 +314,7 @@ describe('ChipDock', () => {
   it('creates pending-decisions dock copy with the live count', () => {
     expect(createPendingDecisionsBeat(1)).toEqual({
       id: 'chip.dock.pending',
-      pose: 'thinking',
+      pose: 'reviewing-tablet',
       text: '1 decisions waiting.',
     });
   });

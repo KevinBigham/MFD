@@ -20,11 +20,11 @@ export function getPressConferenceChipPose(
   lockedIn: boolean,
   reducedMotion = false,
 ): ChipPose {
-  if (lockedIn) return 'thumbs-up';
-  if (reducedMotion) return 'think';
-  if (tier === 'high') return 'concern';
-  if (tier === 'low') return 'thumbs-up';
-  return 'think';
+  if (lockedIn) return 'fist-bump';
+  if (reducedMotion) return 'reviewing-tablet';
+  if (tier === 'high') return 'skeptical';
+  if (tier === 'low') return 'coffee-sip';
+  return 'reviewing-tablet';
 }
 
 export function PressConferenceModal({

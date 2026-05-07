@@ -102,6 +102,9 @@ describe('useActiveRouteBeats selectors', () => {
       'chip.route.league-pulse.beat-1',
       'chip.route.record-book.beat-1',
       'chip.route.settings-save-load.beat-1',
+      'chip.route.training-camp.beat-1',
+      'chip.route.trade-deadline.beat-1',
+      'chip.route.expansion-draft.beat-1',
     ]);
 
     selectActiveRouteBeats('/', seen);
@@ -120,6 +123,9 @@ describe('useActiveRouteBeats selectors', () => {
     selectActiveRouteBeats('/league-pulse', seen);
     selectActiveRouteBeats('/records', seen);
     selectActiveRouteBeats('/settings', seen);
+    selectActiveRouteBeats('/training-camp', seen);
+    selectActiveRouteBeats('/trade-deadline', seen);
+    selectActiveRouteBeats('/expansion-draft', seen);
 
     expect(__getActiveRouteBeatCacheSize()).toBe(ROUTE_KEYS.length);
   });
@@ -144,5 +150,8 @@ describe('useActiveRouteBeats selectors', () => {
     expect(resolveRouteKey('/legacy/named-games')).toBe('record-book');
     expect(resolveRouteKey('/dynasty')).toBe('settings-save-load');
     expect(resolveRouteKey('/settings')).toBe('settings-save-load');
+    expect(resolveRouteKey('/training-camp')).toBe('training-camp');
+    expect(resolveRouteKey('/trade-deadline')).toBe('trade-deadline');
+    expect(resolveRouteKey('/expansion-draft')).toBe('expansion-draft');
   });
 });

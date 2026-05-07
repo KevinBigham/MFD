@@ -14,8 +14,8 @@ const allBeats: readonly RouteBeat[] = ROUTE_KEYS.reduce<RouteBeat[]>(
 
 describe('route beat registry', () => {
   it('keeps total route beats inside the public-release range', () => {
-    expect(allBeats.length).toBeGreaterThanOrEqual(32);
-    expect(allBeats.length).toBeLessThanOrEqual(36);
+    expect(allBeats.length).toBeGreaterThanOrEqual(38);
+    expect(allBeats.length).toBeLessThanOrEqual(42);
   });
 
   it('gives every coached route at least two beats', () => {
@@ -68,6 +68,9 @@ describe('route beat registry', () => {
       'league-pulse',
       'record-book',
       'settings-save-load',
+      'training-camp',
+      'trade-deadline',
+      'expansion-draft',
     ];
 
     expect(ROUTE_KEYS).toEqual(expected);
@@ -92,6 +95,9 @@ describe('route beat registry', () => {
       ['chip.route.league-pulse.beat-1', 'chip.route.league-pulse.beat-2'],
       ['chip.route.record-book.beat-1', 'chip.route.record-book.beat-2'],
       ['chip.route.settings-save-load.beat-1', 'chip.route.settings-save-load.beat-2'],
+      ['chip.route.training-camp.beat-1', 'chip.route.training-camp.beat-2'],
+      ['chip.route.trade-deadline.beat-1', 'chip.route.trade-deadline.beat-2'],
+      ['chip.route.expansion-draft.beat-1', 'chip.route.expansion-draft.beat-2'],
     ]);
   });
 });

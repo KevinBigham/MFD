@@ -77,14 +77,14 @@ export interface ChipEventBridge {
 
 const DISMISSALS_TO_SESSION_MUTE = 2;
 const POSE_REACTIONS: Record<ChipPoseEventTrigger, ChipPoseReaction> = {
-  USER_TEAM_TOUCHDOWN: { pose: 'celebrate', durationMs: 4000, priority: 'celebrate' },
+  USER_TEAM_TOUCHDOWN: { pose: 'rallying', durationMs: 4000, priority: 'celebrate' },
   USER_TEAM_FIRST_LAUNCH: { pose: 'greeting', durationMs: 5000, priority: 'routine' },
-  CAP_PROJECTION_OVER_LIMIT: { pose: 'warning', durationMs: 3500, priority: 'warning' },
-  USER_TEAM_LOSS_BIG: { pose: 'sad', durationMs: 6000, priority: 'sad' },
-  PLAYOFF_UPSET_WIN: { pose: 'surprised', durationMs: 4000, priority: 'routine' },
-  TRADE_RUMOR_FOR_USER_PLAYER: { pose: 'whispering', durationMs: 3500, priority: 'routine' },
-  PLAYER_RETIREMENT_USER_HOF: { pose: 'disappointed', durationMs: 4000, priority: 'sad' },
-  USER_DECISION_LOCKED_IN: { pose: 'thumbs-up', durationMs: 1500, priority: 'routine' },
+  CAP_PROJECTION_OVER_LIMIT: { pose: 'head-in-hands', durationMs: 3500, priority: 'warning' },
+  USER_TEAM_LOSS_BIG: { pose: 'facepalm', durationMs: 6000, priority: 'sad' },
+  PLAYOFF_UPSET_WIN: { pose: 'laughing', durationMs: 4000, priority: 'routine' },
+  TRADE_RUMOR_FOR_USER_PLAYER: { pose: 'on-phone', durationMs: 3500, priority: 'routine' },
+  PLAYER_RETIREMENT_USER_HOF: { pose: 'head-in-hands', durationMs: 4000, priority: 'sad' },
+  USER_DECISION_LOCKED_IN: { pose: 'fist-bump', durationMs: 1500, priority: 'routine' },
 };
 
 export function resolveChipPoseReaction(trigger: ChipPoseEventTrigger): ChipPoseReaction {

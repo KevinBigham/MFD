@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { getAchievementProgress, type Achievement, type AchievementCategory } from '@mfd/engine';
 import {
+  Chip,
+  ChipDialogueBubble,
   PixelBadge,
   PixelButton,
   PixelPanel,
@@ -158,6 +160,26 @@ export function AchievementUnlockToast({
     >
       <PixelPanel title="Achievement Unlocked" accent="gold">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div
+            data-achievement-chip-host="true"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'auto minmax(0, 1fr)',
+              gap: '10px',
+              alignItems: 'center',
+              minWidth: '220px',
+              flex: '1 1 280px',
+            }}
+          >
+            <Chip pose="proud" size="sm" reducedMotion ariaLabel="Chip celebrates the unlocked achievement" />
+            <ChipDialogueBubble
+              text="Hang the receipt. This one goes in the building."
+              pose="proud"
+              pointer="left"
+              reducedMotion
+              monoBody
+            />
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ ...monoSm, color: '#fff', fontSize: '13px' }}>{achievement.title}</div>
             <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>{achievement.description}</div>

@@ -160,7 +160,7 @@ export function resolveEffectiveDockCollapsed({
 export function createPendingDecisionsBeat(count: number): DockLiveBeat {
   return {
     id: 'chip.dock.pending',
-    pose: 'thinking',
+    pose: 'reviewing-tablet',
     text: `${count} decisions waiting.`,
   };
 }
@@ -201,6 +201,19 @@ export function routeBeatPoseToChipPose(pose: ChipRoutePose): ChipPose {
       return 'celebrate';
     case 'thinking':
       return 'think';
+    case 'reviewing-tablet':
+    case 'calling-play':
+    case 'note-taking':
+    case 'skeptical':
+    case 'on-phone':
+    case 'pointing-at-tape':
+    case 'proud':
+    case 'coffee-sip':
+    case 'whistle-blow':
+    case 'coaching-crouch':
+    case 'time-out':
+    case 'football-in-hand':
+      return pose;
   }
 }
 
