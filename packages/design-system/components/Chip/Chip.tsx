@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react';
+import type { ComponentType, CSSProperties } from 'react';
 import './Chip.css';
 import IdlePose from './poses/idle';
 import GreetingPose from './poses/greeting';
@@ -41,6 +41,12 @@ export const CHIP_POSES = [
 export type ChipPose = (typeof CHIP_POSES)[number];
 export type ChipSize = 'sm' | 'md' | 'lg';
 
+export interface ChipPoseArt {
+  src: string;
+  alt: string;
+  objectPosition?: string;
+}
+
 export interface ChipProps {
   pose: ChipPose;
   size?: ChipSize;
@@ -50,10 +56,30 @@ export interface ChipProps {
   'aria-label'?: string;
 }
 
-const CHIP_SIZE_PX: Record<ChipSize, number> = {
-  sm: 64,
-  md: 96,
-  lg: 144,
+const CHIP_SIZE_PX: Record<ChipSize, { width: number; height: number; legacy: number }> = {
+  sm: { width: 64, height: 64, legacy: 64 },
+  md: { width: 96, height: 118, legacy: 96 },
+  lg: { width: 144, height: 176, legacy: 144 },
+};
+
+export const CHIP_POSE_ART: Record<ChipPose, ChipPoseArt> = {
+  idle: { src: 'assets/chip/chip-coach.png', alt: 'Chip studies the field with a clipboard', objectPosition: 'center 28%' },
+  greeting: { src: 'assets/chip/pose-greeting.png', alt: 'Chip leans in with both hands forward' },
+  talk: { src: 'assets/chip/chip-broadcast.png', alt: 'Chip explains the next football decision', objectPosition: 'center 26%' },
+  'point-left': { src: 'assets/chip/pose-point-left.png', alt: 'Chip points to the left with his clipboard ready' },
+  'point-right': { src: 'assets/chip/pose-point-right.png', alt: 'Chip points toward the next control' },
+  wave: { src: 'assets/chip/pose-wave.png', alt: 'Chip opens his hand to move the player forward' },
+  think: { src: 'assets/chip/pose-think.png', alt: 'Chip thinks through the next call' },
+  whispering: { src: 'assets/chip/pose-whispering.png', alt: 'Chip lowers his voice with sideline advice' },
+  celebrate: { src: 'assets/chip/pose-celebrate.png', alt: 'Chip celebrates a good result' },
+  excited: { src: 'assets/chip/pose-excited.png', alt: 'Chip gets fired up about the decision' },
+  concern: { src: 'assets/chip/pose-concern.png', alt: 'Chip folds his arms with concern' },
+  warning: { src: 'assets/chip/pose-warning.png', alt: 'Chip raises a warning finger' },
+  surprised: { src: 'assets/chip/pose-surprised.png', alt: 'Chip reacts with both hands open' },
+  sad: { src: 'assets/chip/pose-sad.png', alt: 'Chip reacts to a rough outcome' },
+  disappointed: { src: 'assets/chip/pose-disappointed.png', alt: 'Chip looks disappointed after a miss' },
+  'mic-check': { src: 'assets/chip/pose-mic-check.png', alt: 'Chip checks the mic before the next call' },
+  'thumbs-up': { src: 'assets/chip/pose-thumbs-up.png', alt: 'Chip gives a thumbs up' },
 };
 
 const poseComponents: Record<ChipPose, ComponentType> = {
@@ -86,9 +112,15 @@ export function Chip({
 }: ChipProps) {
   const Pose = poseComponents[pose];
   const pixelSize = CHIP_SIZE_PX[size];
+  const art = CHIP_POSE_ART[pose];
   const label = ariaLabelProp ?? ariaLabel ?? 'Chip, your assistant';
   const classes = ['mfd-chip', className].filter(Boolean).join(' ');
   const headClasses = `mfd-chip-svg__head mfd-chip-svg__head--${pose}`;
+  const style = {
+    '--chip-art-width': `${pixelSize.width}px`,
+    '--chip-art-height': `${pixelSize.height}px`,
+    '--chip-object-position': art.objectPosition ?? 'center bottom',
+  } as CSSProperties;
 
   return (
     <span
@@ -96,14 +128,30 @@ export function Chip({
       data-chip-pose={pose}
       data-chip-size={size}
       data-chip-motion={reducedMotion ? 'reduced' : 'animated'}
+      data-chip-art-src={art.src}
       role="img"
       aria-label={label}
+      style={style}
     >
+      <span className="mfd-chip__art-frame" data-chip-pose-art={pose}>
+        <img
+          className="mfd-chip__art-img"
+          data-chip-image-pose={pose}
+          src={art.src}
+          alt=""
+          width={pixelSize.width}
+          height={pixelSize.height}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+        />
+        <span className="mfd-chip__scanline" aria-hidden="true" />
+      </span>
       <svg
-        className="mfd-chip-svg"
+        className="mfd-chip-svg mfd-chip-svg--legacy-contract"
         viewBox="0 0 160 220"
-        width={pixelSize}
-        height={pixelSize}
+        width={pixelSize.legacy}
+        height={pixelSize.legacy}
         aria-hidden="true"
         focusable="false"
       >

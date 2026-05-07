@@ -13,6 +13,8 @@ import { isChipFeatureEnabled } from './ChipHost';
 import { useChipStore } from './store';
 import { selectWeeklyDialogue, type WeeklyDialogueVariant } from './dialogue/weekly';
 import type { DialogueCatalogEntry } from './dialogue/types';
+import { countPendingDecisions } from './decisionsPending';
+import { buildWeeklyGuidanceFromGame, formatChipWeeklyGuidanceText } from './weeklyGuidance';
 
 interface AppWeeklySummaryLike {
   result: 'win' | 'loss' | 'tie' | 'pending';
@@ -91,11 +93,15 @@ export function deriveWeeklyOutcome(game: AppGameLike | null): WeeklyDialogueVar
 
 function toGameSnapshot(state: AppGameStoreState): GameStoreSnapshot {
   const game = state.game;
+  const weeklyGuidance = game
+    ? buildWeeklyGuidanceFromGame(game, countPendingDecisions({ game }).total)
+    : undefined;
   return {
     currentWeek: game?.week ?? 0,
     currentSeason: game?.year ?? 0,
     dynastySeed: game?.seed ?? 0,
     weeklyOutcome: deriveWeeklyOutcome(game),
+    ...(weeklyGuidance ? { weeklyGuidance } : {}),
   };
 }
 
@@ -143,11 +149,17 @@ export function createChipEventsController({
     start: () => bridge.start(),
     stop: () => bridge.stop(),
     handleEvent: (event) => {
-      const entry = selectWeeklyDialogue({
+      const baseEntry = selectWeeklyDialogue({
         gameOutcome: event.gameOutcome,
         currentWeek: event.currentWeek,
         dynastySeed: event.dynastySeed,
       });
+      const entry = event.weeklyGuidance
+        ? {
+          ...baseEntry,
+          text: formatChipWeeklyGuidanceText(event.weeklyGuidance),
+        }
+        : baseEntry;
       chipStore.showWeeklyDialogue(entry);
       onEvent?.(event);
     },

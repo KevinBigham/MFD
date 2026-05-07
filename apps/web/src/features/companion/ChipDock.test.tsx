@@ -14,6 +14,7 @@ import {
 import type { DialogueCatalogEntry } from './dialogue/types';
 import { CHIP_DOCK_STORAGE_KEY, createDefaultDockPrefs, readDockPrefs } from './dockPersistence';
 import { CHIP_ONBOARDING_STORAGE_KEY } from './ChipHost';
+import { CHIP_ONBOARDING_PROGRESS_KEY, readChipOnboardingProgress } from './onboardingMachine';
 import { CHIP_READ_RECEIPTS_STORAGE_KEY, readChipReadReceipts } from './readReceipts';
 import { ROUTE_BEAT_REGISTRY } from '../route-coaching/routeBeatRegistry';
 import { useChipStore } from './store';
@@ -361,6 +362,61 @@ describe('ChipDock', () => {
     }));
     expect(readDockPrefs(storage)).toEqual(prefs);
     expect(prefs).toEqual(createDefaultDockPrefs());
+  });
+
+  it('replay-guide clears the legacy skip flag and writes replayable onboarding progress', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_ONBOARDING_STORAGE_KEY,
+      JSON.stringify({ skipped: true, lastBeat: 9, timestamp: '2026-04-30T04:00:00.000Z' }),
+    );
+
+    const { store } = applyControl('replayOnboarding', storage);
+    const progress = readChipOnboardingProgress(storage);
+
+    expect(storage.getItem(CHIP_ONBOARDING_STORAGE_KEY)).toBeNull();
+    expect(progress.status).toBe('intro_seen');
+    expect(progress.shownBeatIds).toEqual(['chip.first10.welcome']);
+    expect(store.showWeeklyDialogue).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'chip.first10.welcome',
+      text: expect.stringContaining('Welcome to the chair.'),
+      archetype: 'host',
+    }));
+  });
+
+  it('reset-guide clears new and legacy onboarding progress and resets the Chip store', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(CHIP_ONBOARDING_PROGRESS_KEY, JSON.stringify({ stale: true }));
+    storage.setItem(
+      CHIP_ONBOARDING_STORAGE_KEY,
+      JSON.stringify({ skipped: true, lastBeat: 9, timestamp: '2026-04-30T04:00:00.000Z' }),
+    );
+
+    const { store } = applyControl('resetOnboarding', storage);
+
+    expect(storage.getItem(CHIP_ONBOARDING_PROGRESS_KEY)).toBeNull();
+    expect(storage.getItem(CHIP_ONBOARDING_STORAGE_KEY)).toBeNull();
+    expect(store.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it('enable-guidance clears quiet preferences and reduced guidance without touching animation prefs', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(CHIP_DOCK_STORAGE_KEY, JSON.stringify({
+      ...createDefaultDockPrefs(),
+      quietForScreen: '/roster',
+      quietUntilWeek: 9,
+      quietForSeason: 2032,
+      reducedGuidance: true,
+      animationsDisabled: true,
+    }));
+
+    const { prefs } = applyControl('enableGuidance', storage);
+
+    expect(prefs.quietForScreen).toBeNull();
+    expect(prefs.quietUntilWeek).toBeNull();
+    expect(prefs.quietForSeason).toBeNull();
+    expect(prefs.reducedGuidance).toBe(false);
+    expect(prefs.animationsDisabled).toBe(true);
   });
 
   it('persists collapsed state at the single dock localStorage key', () => {

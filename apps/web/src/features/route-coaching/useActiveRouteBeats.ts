@@ -33,14 +33,24 @@ export function __getActiveRouteBeatCacheSize(): number {
 export function resolveRouteKey(currentRoute: string): RouteKey | null {
   const normalized = currentRoute.replace(/^#/, '').split('?')[0] || '/';
 
+  if (normalized === '/' || normalized === '/briefing' || normalized === '/monday-briefing') return 'briefing';
   if (normalized === 'roster' || normalized === '/roster') return 'roster';
+  if (normalized === 'depth-chart' || normalized === '/depth-chart') return 'depth-chart';
   if (normalized === 'staff' || normalized === '/coaching' || normalized.startsWith('/coaching/')) return 'staff';
-  if (normalized === 'cap-laboratory' || normalized === '/cap-lab' || normalized === '/contracts') {
+  if (normalized === 'game-plan' || normalized === '/game-plan') return 'game-plan';
+  if (normalized === 'week-advance' || normalized === '/week-advance') return 'week-advance';
+  if (normalized === 'inbox' || normalized === '/inbox') return 'inbox';
+  if (normalized === 'contracts' || normalized === '/contracts') return 'contracts';
+  if (normalized === 'cap-laboratory' || normalized === '/cap-lab') {
     return 'cap-laboratory';
   }
-  if (normalized === 'draft-board' || normalized === '/draft') return 'draft-board';
   if (normalized === 'trade-center' || normalized === '/trades') return 'trade-center';
+  if (normalized === 'draft-board' || normalized === '/draft') return 'draft-board';
   if (normalized === 'scouting-board' || normalized === '/scouting') return 'scouting-board';
+  if (normalized === 'league-pulse' || normalized === '/league-pulse') return 'league-pulse';
+  if (normalized === 'standings' || normalized === '/standings') return 'standings';
+  if (normalized === 'film-room' || normalized === '/film-room') return 'film-room';
+  if (normalized === 'settings' || normalized === '/settings') return 'settings';
 
   return null;
 }

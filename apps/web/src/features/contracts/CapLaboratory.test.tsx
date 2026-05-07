@@ -150,6 +150,8 @@ describe('CapLaboratory', () => {
     expect(markup).toContain('QUEUED MOVES');
     expect(markup).toContain('No moves queued yet.');
     expect(markup).toContain('Apply Sandbox');
+    expect(markup).toContain('CAP IMPACT');
+    expect(markup).toContain('Immediate');
   });
 
   it('renders the multi-year projection table', () => {

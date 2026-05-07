@@ -1,14 +1,24 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Calendar, CalendarOff, Check, EyeOff, Lightbulb, MapPin, MessageSquare, VolumeX, X } from 'lucide-react';
+import {
+  Bell,
+  Calendar,
+  CalendarOff,
+  Check,
+  EyeOff,
+  Lightbulb,
+  MapPin,
+  MessageSquare,
+  RotateCcw,
+  VolumeX,
+  X,
+} from 'lucide-react';
 import { Chip, ChipDialogueBubble, PixelButton, Spotlight } from '@mfd/design-system/components';
 import type { ChipPose } from '@mfd/design-system/components';
 import { isChipFeatureEnabled, readOnboardingSkipState } from './ChipHost';
 import { useChipStore, useResolvedChipPose } from './store';
-import type { DialogueCatalogEntry } from './dialogue/types';
 import {
   readDockPrefs,
   resolveDockStorage,
-  updateDockPrefs,
   createDefaultDockPrefs,
   type DockPrefs,
 } from './dockPersistence';
@@ -19,34 +29,16 @@ import {
 import { formatDynastyIndicatorLabel, type DynastyIndicator } from './dynastyIndicator';
 import { createWhereAmIBeat, type WhereAmIState } from './whereAmI';
 import type { ChipRoutePose, RouteBeat } from '../route-coaching/routeBeatRegistry';
+import {
+  applyDockControl,
+  type ApplyDockControlOptions,
+  type ChipDockControl,
+  type ChipDockControlStore,
+} from './dockControls';
 import './ChipDock.css';
 
-export type ChipDockControl =
-  | 'quietForScreen'
-  | 'quietUntilNextWeek'
-  | 'quietThisSeason'
-  | 'whatNow'
-  | 'reduceGuidance'
-  | 'disableAnimations'
-  | 'collapse'
-  | 'expand';
-
-export interface ChipDockControlStore {
-  setPose?: (pose: ChipPose) => void;
-  dismiss?: () => void;
-  reset?: () => void;
-  showWeeklyDialogue?: (entry: DialogueCatalogEntry) => void;
-  lastWeeklyDialogue?: DialogueCatalogEntry | null;
-}
-
-export interface ApplyDockControlOptions {
-  storage: Storage | null;
-  chipStore?: ChipDockControlStore;
-  currentRoute: string;
-  currentWeek: number;
-  currentSeason: number;
-  now: () => Date;
-}
+export { applyDockControl };
+export type { ApplyDockControlOptions, ChipDockControl, ChipDockControlStore };
 
 export interface ChipDockProps {
   collapsed?: boolean;
@@ -73,6 +65,9 @@ interface DockControlButton {
 
 const DOCK_CONTROL_BUTTONS: readonly DockControlButton[] = [
   { id: 'whatNow', label: 'What now?', icon: MessageSquare, accent: 'gold' },
+  { id: 'replayOnboarding', label: 'Replay guide', icon: RotateCcw, accent: 'cyan' },
+  { id: 'resetOnboarding', label: 'Reset guide', icon: RotateCcw, accent: 'red' },
+  { id: 'enableGuidance', label: 'Enable guidance', icon: Bell, accent: 'green' },
   { id: 'quietForScreen', label: 'Quiet for screen', icon: VolumeX, accent: 'cyan' },
   { id: 'quietUntilNextWeek', label: 'Quiet until next week', icon: Calendar, accent: 'gold' },
   { id: 'quietThisSeason', label: 'Quiet this season', icon: CalendarOff, accent: 'red' },
@@ -120,7 +115,7 @@ export interface RouteBeatProgressOptions {
 }
 
 interface DockLiveBeat {
-  id: 'chip.dock.pending' | 'chip.dock.summary';
+  id: 'chip.dock.pending' | 'chip.dock.summary' | 'chip.dock.onboarding-replay' | 'chip.dock.onboarding-reset' | 'chip.dock.guidance-enabled';
   pose: ChipRoutePose;
   text: string;
 }
@@ -147,6 +142,30 @@ export function createPendingDecisionsBeat(count: number): DockLiveBeat {
     id: 'chip.dock.pending',
     pose: 'thinking',
     text: `${count} decisions waiting.`,
+  };
+}
+
+export function createOnboardingReplayBeat(): DockLiveBeat {
+  return {
+    id: 'chip.dock.onboarding-replay',
+    pose: 'thinking',
+    text: 'Guide replay started. We will begin with the chair, then walk the weekly loop route by route.',
+  };
+}
+
+export function createOnboardingResetBeat(): DockLiveBeat {
+  return {
+    id: 'chip.dock.onboarding-reset',
+    pose: 'thinking',
+    text: 'Chip tutorial progress reset. The next routes will teach the weekly loop again.',
+  };
+}
+
+export function createGuidanceEnabledBeat(): DockLiveBeat {
+  return {
+    id: 'chip.dock.guidance-enabled',
+    pose: 'cheer',
+    text: 'Guidance is back on. Ask What now? when you want the next football decision.',
   };
 }
 
@@ -185,80 +204,6 @@ export function routeBeatPoseToChipPose(pose: ChipRoutePose): ChipPose {
       return 'celebrate';
     case 'thinking':
       return 'think';
-  }
-}
-
-export function applyDockControl(control: ChipDockControl, options: ApplyDockControlOptions): DockPrefs {
-  const prefs = readDockPrefs(options.storage);
-  const chipStore = options.chipStore;
-
-  switch (control) {
-    case 'whatNow':
-      if (chipStore?.lastWeeklyDialogue) {
-        chipStore.showWeeklyDialogue?.(chipStore.lastWeeklyDialogue);
-      }
-      return prefs;
-    case 'quietForScreen':
-      chipStore?.setPose?.('idle');
-      chipStore?.dismiss?.();
-      return updateDockPrefs(
-        options.storage,
-        {
-          quietForScreen: options.currentRoute,
-        },
-        options.now,
-      );
-    case 'quietUntilNextWeek':
-      chipStore?.dismiss?.();
-      return updateDockPrefs(
-        options.storage,
-        {
-          quietUntilWeek: options.currentWeek,
-        },
-        options.now,
-      );
-    case 'quietThisSeason':
-      chipStore?.dismiss?.();
-      return updateDockPrefs(
-        options.storage,
-        {
-          quietForSeason: options.currentSeason,
-        },
-        options.now,
-      );
-    case 'reduceGuidance':
-      return updateDockPrefs(
-        options.storage,
-        {
-          reducedGuidance: !prefs.reducedGuidance,
-        },
-        options.now,
-      );
-    case 'disableAnimations':
-      chipStore?.setPose?.('idle');
-      return updateDockPrefs(
-        options.storage,
-        {
-          animationsDisabled: !prefs.animationsDisabled,
-        },
-        options.now,
-      );
-    case 'collapse':
-      return updateDockPrefs(
-        options.storage,
-        {
-          collapsed: true,
-        },
-        options.now,
-      );
-    case 'expand':
-      return updateDockPrefs(
-        options.storage,
-        {
-          collapsed: false,
-        },
-        options.now,
-      );
   }
 }
 
@@ -394,6 +339,18 @@ export function ChipDock({
         now,
       });
       setPrefs(nextPrefs);
+      if (control === 'replayOnboarding') {
+        setActiveLiveBeat(createOnboardingReplayBeat());
+        setLocalCollapsed(false);
+      }
+      if (control === 'resetOnboarding') {
+        setActiveLiveBeat(createOnboardingResetBeat());
+        setLocalCollapsed(false);
+      }
+      if (control === 'enableGuidance') {
+        setActiveLiveBeat(createGuidanceEnabledBeat());
+        setLocalCollapsed(false);
+      }
       if (control === 'collapse') setLocalCollapsed(true);
       if (control === 'expand') setLocalCollapsed(false);
       if (control === 'disableAnimations') setLocalCollapsed(nextPrefs.collapsed);
@@ -526,6 +483,7 @@ export function ChipDock({
               <PixelButton
                 accent="gold"
                 className="mfd-chip-dock__control"
+                data-chip-control="whereAmI"
                 onClick={showWhereAmIBeat}
                 aria-label="Where am I?"
                 title="Where am I?"
@@ -539,6 +497,7 @@ export function ChipDock({
                 key={id}
                 accent={accent}
                 className="mfd-chip-dock__control"
+                data-chip-control={id}
                 onClick={() => applyControl(id)}
                 aria-label={label}
                 title={label}
@@ -550,6 +509,7 @@ export function ChipDock({
             <PixelButton
               accent="default"
               className="mfd-chip-dock__control"
+              data-chip-control="collapse"
               onClick={() => applyControl('collapse')}
               aria-label="Collapse Chip dock"
               title="Collapse Chip dock"
