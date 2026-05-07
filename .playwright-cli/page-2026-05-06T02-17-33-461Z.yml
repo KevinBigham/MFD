@@ -1,0 +1,59 @@
+- generic [active]:
+  - generic:
+    - generic "Cold Open":
+      - generic [ref=e299]:
+        - generic [ref=e300]:
+          - generic [ref=e301]:
+            - generic [ref=e302]: YOUR FIRST DAY
+            - generic [ref=e303]: CHOOSE YOUR AGM
+            - generic [ref=e304]: Hire your right hand
+          - generic [ref=e306]:
+            - generic [ref=e307]:
+              - generic [ref=e308]: "1"
+              - generic [ref=e310]: Choose Your AGM
+            - generic [ref=e311]:
+              - generic [ref=e312]: "2"
+              - generic [ref=e314]: Franchise Intel
+            - generic [ref=e315]:
+              - generic [ref=e316]: "3"
+              - generic [ref=e318]: Meet the Players
+            - generic [ref=e319]:
+              - generic [ref=e320]: "4"
+              - generic [ref=e322]: Hire Your Coach
+            - generic [ref=e323]:
+              - generic [ref=e324]: "5"
+              - generic [ref=e326]: Build Your Intel
+            - generic [ref=e327]:
+              - generic [ref=e328]: "6"
+              - generic [ref=e330]: Set the Identity
+            - generic [ref=e331]:
+              - generic [ref=e332]: "7"
+              - generic [ref=e334]: Starting Lineup
+            - generic [ref=e335]:
+              - generic [ref=e336]: "8"
+              - generic [ref=e338]: The Money
+            - generic [ref=e339]:
+              - generic [ref=e340]: "9"
+              - generic [ref=e342]: Set Your Goals
+            - generic [ref=e343]:
+              - generic [ref=e344]: "10"
+              - generic [ref=e346]: Day 1 Complete
+          - generic [ref=e348]: 1 / 10
+        - generic [ref=e353]:
+          - generic [ref=e354]:
+            - generic [ref=e355]: COMMAND CENTER CRISIS ROOM
+            - button "Skip Intro" [ref=e356] [cursor=pointer]
+          - generic [ref=e359]:
+            - generic [ref=e360]: OWNER EXPECTATION
+            - generic [ref=e361]: Ownership values discipline and efficiency. Results matter, but so does how responsibly you build them.
+            - generic [ref=e362]: Week 1 @ Washington Bi-Partisan Filibusters
+          - generic [ref=e369]: Beat 1 of 5
+        - generic [ref=e370]:
+          - button "Back" [disabled] [ref=e371]
+          - generic [ref=e372]:
+            - generic [ref=e373]: New York Concrete Jungle Cabbies
+            - generic [ref=e374]: Briefing ready.
+          - button "Continue Briefing" [ref=e375] [cursor=pointer]
+    - complementary "Chip onboarding companion" [ref=e376]:
+      - img "Chip, your assistant" [ref=e379]:
+        - img [ref=e381]

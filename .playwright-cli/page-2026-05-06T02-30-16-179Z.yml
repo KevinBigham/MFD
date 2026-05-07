@@ -1,0 +1,58 @@
+- generic [active]:
+  - generic:
+    - generic "Cold Open":
+      - generic [ref=e296]:
+        - generic [ref=e297]:
+          - generic [ref=e298]:
+            - generic [ref=e299]: YOUR FIRST DAY
+            - generic [ref=e300]: CHOOSE YOUR AGM
+            - generic [ref=e301]: Hire your right hand
+          - generic [ref=e303]:
+            - generic [ref=e304]:
+              - generic [ref=e305]: "1"
+              - generic [ref=e307]: Choose Your AGM
+            - generic [ref=e308]:
+              - generic [ref=e309]: "2"
+              - generic [ref=e311]: Franchise Intel
+            - generic [ref=e312]:
+              - generic [ref=e313]: "3"
+              - generic [ref=e315]: Meet the Players
+            - generic [ref=e316]:
+              - generic [ref=e317]: "4"
+              - generic [ref=e319]: Hire Your Coach
+            - generic [ref=e320]:
+              - generic [ref=e321]: "5"
+              - generic [ref=e323]: Build Your Intel
+            - generic [ref=e324]:
+              - generic [ref=e325]: "6"
+              - generic [ref=e327]: Set the Identity
+            - generic [ref=e328]:
+              - generic [ref=e329]: "7"
+              - generic [ref=e331]: Starting Lineup
+            - generic [ref=e332]:
+              - generic [ref=e333]: "8"
+              - generic [ref=e335]: The Money
+            - generic [ref=e336]:
+              - generic [ref=e337]: "9"
+              - generic [ref=e339]: Set Your Goals
+            - generic [ref=e340]:
+              - generic [ref=e341]: "10"
+              - generic [ref=e343]: Day 1 Complete
+          - generic [ref=e345]: 1 / 10
+        - generic [ref=e350]:
+          - generic [ref=e351]:
+            - generic [ref=e352]: COMMAND CENTER CRISIS ROOM
+            - button "Skip Intro" [ref=e353] [cursor=pointer]
+          - generic [ref=e356]:
+            - generic [ref=e357]: OWNER EXPECTATION
+            - generic [ref=e358]: Ownership is willing to stay patient if the team keeps trending the right way.
+            - generic [ref=e359]: Week 1 @ Washington Bi-Partisan Filibusters
+          - generic [ref=e366]: Beat 1 of 5
+        - generic [ref=e367]:
+          - button "Back" [disabled] [ref=e368]
+          - generic [ref=e369]:
+            - generic [ref=e370]: New York Concrete Jungle Cabbies
+            - generic [ref=e371]: Briefing ready.
+          - button "Continue Briefing" [ref=e372] [cursor=pointer]
+    - complementary "Chip onboarding companion" [ref=e373]:
+      - img "Chip, your assistant" [ref=e376]

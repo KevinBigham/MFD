@@ -1,0 +1,4 @@
+[   53276ms] [ERROR] Manifest: Line: 1, column: 1, Syntax error. @ http://localhost:5174/MFD/MFD/manifest.json:0
+[   53526ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5174/MFD/node_modules/.vite/deps/react-dom_client.js?v=4f4526ea:20102
+[   53751ms] [ERROR] Manifest: Line: 1, column: 1, Syntax error. @ http://localhost:5174/MFD/MFD/manifest.json:0
+[   53751ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ http://localhost:5174/MFD/:0

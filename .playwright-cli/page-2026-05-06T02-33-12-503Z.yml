@@ -1,0 +1,267 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - heading "Mr. Football Dynasty" [level=1] [ref=e6]
+    - paragraph [ref=e7]: Select your franchise // Choose your difficulty // Pick your mode
+  - generic [ref=e8]:
+    - button "New Dynasty" [ref=e9] [cursor=pointer]
+    - button "Scenario Challenge" [ref=e10] [cursor=pointer]
+  - generic [ref=e11]:
+    - generic [ref=e13]: "--- RECOVERY ---"
+    - generic [ref=e15]:
+      - generic [ref=e16]: Lost browser storage or opening this dynasty on a new machine? Import a portable backup first, then fall back to pasted backup code if the file is unavailable.
+      - button "Import Dynasty" [ref=e18] [cursor=pointer]
+      - generic [ref=e19]: Paste backup code
+      - textbox "Paste backup code" [ref=e20]:
+        - /placeholder: Paste backup code here...
+      - button "Import Backup Code" [disabled] [ref=e22]
+  - generic [ref=e23]:
+    - generic [ref=e25]: "--- CONVENTION DEMO ---"
+    - generic [ref=e27]:
+      - generic [ref=e28]: One game back. Four weeks left. The division still runs through tonight.
+      - generic [ref=e29]:
+        - generic [ref=e30]: Week 14
+        - generic [ref=e31]: Playoff Race
+      - button "Launch Demo Scenario" [ref=e32] [cursor=pointer]
+  - generic [ref=e33]:
+    - generic [ref=e35]:
+      - img [ref=e37]
+      - generic [ref=e39]: Select Franchise
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - generic [ref=e42]: AFC
+        - generic [ref=e43]:
+          - button "New York Concrete Jungle Cabbies NYC New York" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]:
+              - img "New York Concrete Jungle Cabbies" [ref=e46]
+              - generic [ref=e47]:
+                - generic [ref=e48]: NYC
+                - generic [ref=e49]: New York
+          - button "Boston Hub of the Universe Chowderheads BOS Boston" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]:
+              - img "Boston Hub of the Universe Chowderheads" [ref=e52]
+              - generic [ref=e53]:
+                - generic [ref=e54]: BOS
+                - generic [ref=e55]: Boston
+          - button "Philadelphia City of Brotherly Love Bell-Ringers PHI Philadelphia" [ref=e56] [cursor=pointer]:
+            - generic [ref=e57]:
+              - img "Philadelphia City of Brotherly Love Bell-Ringers" [ref=e58]
+              - generic [ref=e59]:
+                - generic [ref=e60]: PHI
+                - generic [ref=e61]: Philadelphia
+          - button "Baltimore Charm City Crab Pickers BAL Baltimore" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]:
+              - img "Baltimore Charm City Crab Pickers" [ref=e64]
+              - generic [ref=e65]:
+                - generic [ref=e66]: BAL
+                - generic [ref=e67]: Baltimore
+          - button "Pittsburgh Steel City Iron Smelters PIT Pittsburgh" [ref=e68] [cursor=pointer]:
+            - generic [ref=e69]:
+              - img "Pittsburgh Steel City Iron Smelters" [ref=e70]
+              - generic [ref=e71]:
+                - generic [ref=e72]: PIT
+                - generic [ref=e73]: Pittsburgh
+          - button "Cleveland Forest City Rockers CLE Cleveland" [ref=e74] [cursor=pointer]:
+            - generic [ref=e75]:
+              - img "Cleveland Forest City Rockers" [ref=e76]
+              - generic [ref=e77]:
+                - generic [ref=e78]: CLE
+                - generic [ref=e79]: Cleveland
+          - button "Cincinnati Porkopolis Flying Pigs CIN Cincinnati" [ref=e80] [cursor=pointer]:
+            - generic [ref=e81]:
+              - img "Cincinnati Porkopolis Flying Pigs" [ref=e82]
+              - generic [ref=e83]:
+                - generic [ref=e84]: CIN
+                - generic [ref=e85]: Cincinnati
+          - button "Columbus Cowtown Astronauts COL Columbus" [ref=e86] [cursor=pointer]:
+            - generic [ref=e87]:
+              - img "Columbus Cowtown Astronauts" [ref=e88]
+              - generic [ref=e89]:
+                - generic [ref=e90]: COL
+                - generic [ref=e91]: Columbus
+          - button "Houston Brisket Spaceships HOU Houston" [ref=e92] [cursor=pointer]:
+            - generic [ref=e93]:
+              - img "Houston Brisket Spaceships" [ref=e94]
+              - generic [ref=e95]:
+                - generic [ref=e96]: HOU
+                - generic [ref=e97]: Houston
+          - button "Dallas Pegasus Rodeos DAL Dallas" [ref=e98] [cursor=pointer]:
+            - generic [ref=e99]:
+              - img "Dallas Pegasus Rodeos" [ref=e100]
+              - generic [ref=e101]:
+                - generic [ref=e102]: DAL
+                - generic [ref=e103]: Dallas
+          - button "San Antonio Puroville Rivers SA San Antonio" [ref=e104] [cursor=pointer]:
+            - generic [ref=e105]:
+              - img "San Antonio Puroville Rivers" [ref=e106]
+              - generic [ref=e107]:
+                - generic [ref=e108]: SA
+                - generic [ref=e109]: San Antonio
+          - button "Nashville Buckle of the Bible Belt NSH Nashville" [ref=e110] [cursor=pointer]:
+            - generic [ref=e111]:
+              - img "Nashville Buckle of the Bible Belt" [ref=e112]
+              - generic [ref=e113]:
+                - generic [ref=e114]: NSH
+                - generic [ref=e115]: Nashville
+          - button "Kansas City BBQ Fountains KC Kansas City" [ref=e116] [cursor=pointer]:
+            - generic [ref=e117]:
+              - img "Kansas City BBQ Fountains" [ref=e118]
+              - generic [ref=e119]:
+                - generic [ref=e120]: KC
+                - generic [ref=e121]: Kansas City
+          - button "Denver Wall Street of the West DEN Denver" [ref=e122] [cursor=pointer]:
+            - generic [ref=e123]:
+              - img "Denver Wall Street of the West" [ref=e124]
+              - generic [ref=e125]:
+                - generic [ref=e126]: DEN
+                - generic [ref=e127]: Denver
+          - button "Las Vegas Sin City Cardsharks LV Las Vegas" [ref=e128] [cursor=pointer]:
+            - generic [ref=e129]:
+              - img "Las Vegas Sin City Cardsharks" [ref=e130]
+              - generic [ref=e131]:
+                - generic [ref=e132]: LV
+                - generic [ref=e133]: Las Vegas
+          - button "Phoenix Valley of the Sun Grand Canyons PHX Phoenix" [ref=e134] [cursor=pointer]:
+            - generic [ref=e135]:
+              - img "Phoenix Valley of the Sun Grand Canyons" [ref=e136]
+              - generic [ref=e137]:
+                - generic [ref=e138]: PHX
+                - generic [ref=e139]: Phoenix
+      - generic [ref=e140]:
+        - generic [ref=e141]: NFC
+        - generic [ref=e142]:
+          - button "Washington Bi-Partisan Filibusters DC Washington" [ref=e143] [cursor=pointer]:
+            - generic [ref=e144]:
+              - img "Washington Bi-Partisan Filibusters" [ref=e145]
+              - generic [ref=e146]:
+                - generic [ref=e147]: DC
+                - generic [ref=e148]: Washington
+          - button "Charlotte Queen City Bootleggers CLT Charlotte" [ref=e149] [cursor=pointer]:
+            - generic [ref=e150]:
+              - img "Charlotte Queen City Bootleggers" [ref=e151]
+              - generic [ref=e152]:
+                - generic [ref=e153]: CLT
+                - generic [ref=e154]: Charlotte
+          - button "Atlanta Empire City of the South Peaches ATL Atlanta" [ref=e155] [cursor=pointer]:
+            - generic [ref=e156]:
+              - img "Atlanta Empire City of the South Peaches" [ref=e157]
+              - generic [ref=e158]:
+                - generic [ref=e159]: ATL
+                - generic [ref=e160]: Atlanta
+          - button "Miami Sunny Place for Shady People MIA Miami" [ref=e161] [cursor=pointer]:
+            - generic [ref=e162]:
+              - img "Miami Sunny Place for Shady People" [ref=e163]
+              - generic [ref=e164]:
+                - generic [ref=e165]: MIA
+                - generic [ref=e166]: Miami
+          - button "Chicago City of Broad Shoulders Deep-Dish CHI Chicago" [ref=e167] [cursor=pointer]:
+            - generic [ref=e168]:
+              - img "Chicago City of Broad Shoulders Deep-Dish" [ref=e169]
+              - generic [ref=e170]:
+                - generic [ref=e171]: CHI
+                - generic [ref=e172]: Chicago
+          - button "Detroit Motown Music Machine DET Detroit" [ref=e173] [cursor=pointer]:
+            - generic [ref=e174]:
+              - img "Detroit Motown Music Machine" [ref=e175]
+              - generic [ref=e176]:
+                - generic [ref=e177]: DET
+                - generic [ref=e178]: Detroit
+          - button "Minneapolis Juicy-Lucy Lakers MIN Minneapolis" [ref=e179] [cursor=pointer]:
+            - generic [ref=e180]:
+              - img "Minneapolis Juicy-Lucy Lakers" [ref=e181]
+              - generic [ref=e182]:
+                - generic [ref=e183]: MIN
+                - generic [ref=e184]: Minneapolis
+          - button "St. Louis Gateway to the West Toasted Raviolis STL St. Louis" [ref=e185] [cursor=pointer]:
+            - generic [ref=e186]:
+              - img "St. Louis Gateway to the West Toasted Raviolis" [ref=e187]
+              - generic [ref=e188]:
+                - generic [ref=e189]: STL
+                - generic [ref=e190]: St. Louis
+          - button "Tampa Bay The Big Guava Pirates TB Tampa Bay" [ref=e191] [cursor=pointer]:
+            - generic [ref=e192]:
+              - img "Tampa Bay The Big Guava Pirates" [ref=e193]
+              - generic [ref=e194]:
+                - generic [ref=e195]: TB
+                - generic [ref=e196]: Tampa Bay
+          - button "Orlando Theme Park Capital Rollercoasters ORL Orlando" [ref=e197] [cursor=pointer]:
+            - generic [ref=e198]:
+              - img "Orlando Theme Park Capital Rollercoasters" [ref=e199]
+              - generic [ref=e200]:
+                - generic [ref=e201]: ORL
+                - generic [ref=e202]: Orlando
+          - button "Jacksonville Bold New City Swamps JAX Jacksonville" [ref=e203] [cursor=pointer]:
+            - generic [ref=e204]:
+              - img "Jacksonville Bold New City Swamps" [ref=e205]
+              - generic [ref=e206]:
+                - generic [ref=e207]: JAX
+                - generic [ref=e208]: Jacksonville
+          - button "Indianapolis Nap Town Speed Racers IND Indianapolis" [ref=e209] [cursor=pointer]:
+            - generic [ref=e210]:
+              - img "Indianapolis Nap Town Speed Racers" [ref=e211]
+              - generic [ref=e212]:
+                - generic [ref=e213]: IND
+                - generic [ref=e214]: Indianapolis
+          - button "Los Angeles La-La Land Traffic Jams LA Los Angeles" [ref=e215] [cursor=pointer]:
+            - generic [ref=e216]:
+              - img "Los Angeles La-La Land Traffic Jams" [ref=e217]
+              - generic [ref=e218]:
+                - generic [ref=e219]: LA
+                - generic [ref=e220]: Los Angeles
+          - button "San Francisco City by the Bay Sourdoughs SF San Francisco" [ref=e221] [cursor=pointer]:
+            - generic [ref=e222]:
+              - img "San Francisco City by the Bay Sourdoughs" [ref=e223]
+              - generic [ref=e224]:
+                - generic [ref=e225]: SF
+                - generic [ref=e226]: San Francisco
+          - button "Seattle Emerald City Grunge SEA Seattle" [ref=e227] [cursor=pointer]:
+            - generic [ref=e228]:
+              - img "Seattle Emerald City Grunge" [ref=e229]
+              - generic [ref=e230]:
+                - generic [ref=e231]: SEA
+                - generic [ref=e232]: Seattle
+          - button "San Diego America's Finest City Surfers SD San Diego" [ref=e233] [cursor=pointer]:
+            - generic [ref=e234]:
+              - img "San Diego America's Finest City Surfers" [ref=e235]
+              - generic [ref=e236]:
+                - generic [ref=e237]: SD
+                - generic [ref=e238]: San Diego
+  - generic [ref=e239]:
+    - img "New York Concrete Jungle Cabbies" [ref=e240]
+    - generic [ref=e241]: New York Concrete Jungle Cabbies
+    - generic [ref=e242]: AFC East
+  - generic [ref=e243]:
+    - generic [ref=e245]:
+      - img [ref=e247]
+      - generic [ref=e249]: Difficulty
+    - generic [ref=e250]:
+      - generic [ref=e251]:
+        - button "Rookie REC Forgiving cap, patient owners" [ref=e252] [cursor=pointer]:
+          - generic [ref=e253]:
+            - generic [ref=e254]: Rookie
+            - generic [ref=e255]: REC
+          - generic [ref=e256]: Forgiving cap, patient owners
+        - button "Pro Balanced challenge" [ref=e257] [cursor=pointer]:
+          - generic [ref=e259]: Pro
+          - generic [ref=e260]: Balanced challenge
+        - button "All-Pro Tight cap, demanding owners" [ref=e261] [cursor=pointer]:
+          - generic [ref=e263]: All-Pro
+          - generic [ref=e264]: Tight cap, demanding owners
+        - button "Legend Maximum pressure on every decision" [ref=e265] [cursor=pointer]:
+          - generic [ref=e267]: Legend
+          - generic [ref=e268]: Maximum pressure on every decision
+      - generic [ref=e269]:
+        - generic [ref=e271]: "--- DIFFICULTY GUIDE ---"
+        - generic [ref=e273]:
+          - generic [ref=e274]:
+            - strong [ref=e275]: "Rookie:"
+            - text: Best for new players. Patient owners, forgiving cap, halftime decisions auto-skip.
+          - generic [ref=e276]:
+            - strong [ref=e277]: "Pro:"
+            - text: Standard experience. Balanced across all systems.
+          - generic [ref=e278]:
+            - strong [ref=e279]: "All-Pro:"
+            - text: For veterans. Tight cap, demanding owners, injuries hit harder.
+          - generic [ref=e280]:
+            - strong [ref=e281]: "Legend:"
+            - text: Maximum pressure. Not recommended for first playthrough.
+  - button "Start Dynasty" [ref=e282] [cursor=pointer]
