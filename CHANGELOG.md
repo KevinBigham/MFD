@@ -1,5 +1,22 @@
 # Changelog
 
+## Post-Launch Polish (unversioned, on `main`)
+
+### Chip companion rebuild - 2026-05-07 (PR #62)
+
+- Chip's portrait set rebuilt on a unified procedural retro-broadcast cartoon rig in `scripts/generate-chip-v3-art.cjs`. Single source-of-truth, consistent character across every pose.
+- Pose atlas expanded 17 → 36. New poses: rallying, calling-play, on-phone, head-in-hands, reviewing-tablet, pointing-at-tape, time-out, whistle-blow, coaching-crouch, coffee-sip, fist-bump, note-taking, laughing, skeptical, proud, facepalm, frustrated, tired, football-in-hand.
+- 11 previously-generic surfaces wired to specific semantic poses: high-stakes events (TD/cap/trade-rumor/HOF-retirement/decision-lock), `/training-camp`, `/trade-deadline`, `/expansion-draft` route beats, halftime, recap, press, weekly dialogue, and a brand-new Chip cameo on the achievement-unlock toast.
+- Cold-open CONTINUE BRIEFING button moved into Chip's column for a tighter host-and-action layout.
+- Save schema, `SAVE_VERSION`, deterministic engine behavior, RNG, and deploy surfaces unchanged.
+
+### Sprint 46 series - 2026-04-30
+
+- Weather forecast hub (PR #52).
+- Coaching tree visual polish (PR #53).
+- Standings signal polish (PR #54).
+- App-test conflict marker fix (PR #61).
+
 ## v1.0.0 - 2026-04-28
 
 Launch build for the TypeScript rebuild.
