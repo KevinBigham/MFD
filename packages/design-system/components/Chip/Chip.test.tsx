@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { isValidElement, type ReactElement, type ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
-import { Chip, CHIP_POSES, type ChipPose } from './index';
+import { Chip, CHIP_POSES, CHIP_POSE_ART, resolveChipPoseArt, type ChipPose } from './index';
 
 const sizePixels = {
   sm: 64,
@@ -93,6 +93,25 @@ describe('Chip', () => {
       'disappointed',
       'mic-check',
       'thumbs-up',
+      'rallying',
+      'coaching-crouch',
+      'calling-play',
+      'time-out',
+      'whistle-blow',
+      'coffee-sip',
+      'on-phone',
+      'reviewing-tablet',
+      'head-in-hands',
+      'fist-bump',
+      'note-taking',
+      'laughing',
+      'skeptical',
+      'proud',
+      'facepalm',
+      'frustrated',
+      'tired',
+      'football-in-hand',
+      'pointing-at-tape',
     ]);
   });
 
@@ -163,8 +182,114 @@ describe('Chip', () => {
         "thumbs-up:sm:64",
         "thumbs-up:md:96",
         "thumbs-up:lg:144",
+        "rallying:sm:64",
+        "rallying:md:96",
+        "rallying:lg:144",
+        "coaching-crouch:sm:64",
+        "coaching-crouch:md:96",
+        "coaching-crouch:lg:144",
+        "calling-play:sm:64",
+        "calling-play:md:96",
+        "calling-play:lg:144",
+        "time-out:sm:64",
+        "time-out:md:96",
+        "time-out:lg:144",
+        "whistle-blow:sm:64",
+        "whistle-blow:md:96",
+        "whistle-blow:lg:144",
+        "coffee-sip:sm:64",
+        "coffee-sip:md:96",
+        "coffee-sip:lg:144",
+        "on-phone:sm:64",
+        "on-phone:md:96",
+        "on-phone:lg:144",
+        "reviewing-tablet:sm:64",
+        "reviewing-tablet:md:96",
+        "reviewing-tablet:lg:144",
+        "head-in-hands:sm:64",
+        "head-in-hands:md:96",
+        "head-in-hands:lg:144",
+        "fist-bump:sm:64",
+        "fist-bump:md:96",
+        "fist-bump:lg:144",
+        "note-taking:sm:64",
+        "note-taking:md:96",
+        "note-taking:lg:144",
+        "laughing:sm:64",
+        "laughing:md:96",
+        "laughing:lg:144",
+        "skeptical:sm:64",
+        "skeptical:md:96",
+        "skeptical:lg:144",
+        "proud:sm:64",
+        "proud:md:96",
+        "proud:lg:144",
+        "facepalm:sm:64",
+        "facepalm:md:96",
+        "facepalm:lg:144",
+        "frustrated:sm:64",
+        "frustrated:md:96",
+        "frustrated:lg:144",
+        "tired:sm:64",
+        "tired:md:96",
+        "tired:lg:144",
+        "football-in-hand:sm:64",
+        "football-in-hand:md:96",
+        "football-in-hand:lg:144",
+        "pointing-at-tape:sm:64",
+        "pointing-at-tape:md:96",
+        "pointing-at-tape:lg:144",
       ]
     `);
+  });
+
+  it('maps every pose to a concrete Chip PNG asset', () => {
+    const sources = new Set<string>();
+
+    for (const pose of CHIP_POSES) {
+      const art = CHIP_POSE_ART[pose];
+      expect(art.src).toMatch(/^assets\/chip\/.+\.png$/);
+      expect(art.inlineSrc).toMatch(/^assets\/chip\/inline\/.+\.png$/);
+      expect(art.alt).toContain('Chip');
+      sources.add(art.src);
+    }
+
+    expect(CHIP_POSE_ART.idle.src).toBe('assets/chip/chip-coach.png');
+    expect(CHIP_POSE_ART.talk.src).toBe('assets/chip/chip-broadcast.png');
+    expect(CHIP_POSE_ART.warning.src).toBe('assets/chip/pose-warning.png');
+    expect(CHIP_POSE_ART['thumbs-up'].src).toBe('assets/chip/pose-thumbs-up.png');
+    expect(CHIP_POSE_ART.rallying.src).toBe('assets/chip/pose-rallying.png');
+    expect(CHIP_POSE_ART['pointing-at-tape'].inlineSrc).toBe('assets/chip/inline/pose-pointing-at-tape.png');
+    expect(sources.size).toBeGreaterThanOrEqual(12);
+  });
+
+  it('uses square inline crops for small and medium Chip art', () => {
+    const mdElements = renderChipElements({ pose: 'warning', size: 'md' });
+    const mdRoot = findElement(mdElements, 'span');
+    const mdImage = findElement(mdElements, 'img', 'data-chip-image-pose', 'warning');
+    const smImage = findElement(renderChipElements({ pose: 'warning', size: 'sm' }), 'img', 'data-chip-image-pose', 'warning');
+
+    expect(resolveChipPoseArt('warning', 'md').src).toBe('assets/chip/inline/pose-warning.png');
+    expect(resolveChipPoseArt('warning', 'lg').src).toBe('assets/chip/pose-warning.png');
+    expect(mdRoot.props['data-chip-art-src']).toBe('assets/chip/inline/pose-warning.png');
+    expect(mdRoot.props['data-chip-full-art-src']).toBe('assets/chip/pose-warning.png');
+    expect(mdImage.props.src).toBe('assets/chip/inline/pose-warning.png');
+    expect(mdImage.props.width).toBe(96);
+    expect(mdImage.props.height).toBe(96);
+    expect(smImage.props.width).toBe(64);
+    expect(smImage.props.height).toBe(64);
+  });
+
+  it('renders the PNG art as the visible Chip layer while preserving pose metadata', () => {
+    const elements = renderChipElements({ pose: 'warning', size: 'lg' });
+    const root = findElement(elements, 'span');
+    const image = findElement(elements, 'img', 'data-chip-image-pose', 'warning');
+
+    expect(root.props['data-chip-art-src']).toBe('assets/chip/pose-warning.png');
+    expect(image.props.src).toBe('assets/chip/pose-warning.png');
+    expect(image.props.alt).toBe('');
+    expect(image.props.width).toBe(144);
+    expect(image.props.height).toBe(176);
   });
 
   it('uses an accessible default name and accepts a custom aria label', () => {

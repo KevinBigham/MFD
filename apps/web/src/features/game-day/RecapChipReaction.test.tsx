@@ -13,16 +13,16 @@ import {
 
 describe('RecapChipReaction outcome mapping', () => {
   it.each([
-    ['BLOWOUT_WIN', 'celebrate'],
-    ['CLOSE_WIN', 'thumbs-up'],
-    ['WIN', 'thumbs-up'],
-    ['OT_WIN', 'surprised'],
-    ['COMEBACK_WIN', 'excited'],
-    ['CLOSE_LOSS', 'concern'],
-    ['BLOWOUT_LOSS', 'sad'],
-    ['CHOKE_LOSS', 'disappointed'],
-    ['LOSS', 'sad'],
-    ['OT_LOSS', 'concern'],
+    ['BLOWOUT_WIN', 'rallying'],
+    ['CLOSE_WIN', 'fist-bump'],
+    ['WIN', 'proud'],
+    ['OT_WIN', 'laughing'],
+    ['COMEBACK_WIN', 'rallying'],
+    ['CLOSE_LOSS', 'frustrated'],
+    ['BLOWOUT_LOSS', 'head-in-hands'],
+    ['CHOKE_LOSS', 'facepalm'],
+    ['LOSS', 'tired'],
+    ['OT_LOSS', 'head-in-hands'],
   ] satisfies Array<[RecapChipOutcome, string]>)('maps %s to %s', (outcome, pose) => {
     expect(getRecapChipPose(outcome)).toBe(pose);
   });
@@ -46,7 +46,7 @@ describe('RecapChipReaction outcome mapping', () => {
   it('falls back to unknown when the package result is missing or tied', () => {
     expect(deriveRecapChipOutcome({ result: null, margin: 0 })).toBe('UNKNOWN');
     expect(deriveRecapChipOutcome({ result: 'tie', margin: 0 })).toBe('UNKNOWN');
-    expect(getRecapChipPose('UNKNOWN')).toBe('think');
+    expect(getRecapChipPose('UNKNOWN')).toBe('reviewing-tablet');
   });
 });
 
@@ -66,7 +66,7 @@ describe('RecapChipReaction rendering', () => {
     expect(markup).toContain('aria-live="polite"');
     expect(markup).toContain('data-recap-chip-reaction="COMEBACK_WIN"');
     expect(markup).toContain('Chicago Blaze climbed off the mat and stole it over Detroit Iron 31-28.');
-    expect(markup).toContain('data-chip-pose="excited"');
+    expect(markup).toContain('data-chip-pose="rallying"');
   });
 
   it('renders deterministic one-line copy for losses without hardcoded team names', () => {

@@ -4,7 +4,7 @@
  * Full-screen guided franchise onboarding that walks users through 10 phases
  * with an Assistant GM character providing data-driven commentary.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { MfdStepper, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import {
   PHASE_META,
@@ -97,8 +97,12 @@ function formatChoiceLabel(value: string): string {
 }
 
 export function FranchiseSetupWizard({
+  companionPrimaryActionActive = false,
+  onCompanionActionChange,
   onStageAdvance,
 }: {
+  companionPrimaryActionActive?: boolean;
+  onCompanionActionChange?: (action: ReactNode | null) => void;
   onStageAdvance?: (stageId: SetupStageActionId) => void;
 } = {}) {
   const game = useGameStore((s) => s.game!);
@@ -738,7 +742,43 @@ export function FranchiseSetupWizard({
     isLaunchingSeason,
   }, onStageAdvance);
   const primaryActionDisabledReason = getPrimaryActionDisabledReason(!primaryActionDisabled, advanceHint);
-  const primaryActionProps = buildPrimaryActionProps(stageActionRegistration, primaryActionDisabledReason);
+  const primaryActionProps = useMemo(
+    () => buildPrimaryActionProps(stageActionRegistration, primaryActionDisabledReason),
+    [primaryActionDisabledReason, stageActionRegistration],
+  );
+  const primaryActionLabel = showColdOpen
+    ? (reducedMotion || coldOpenBeatIndex >= coldOpenLastBeatIndex ? narrativePack.coldOpen.entryCta : 'Continue Briefing')
+    : isLastPhase
+      ? 'START WEEK 1'
+      : 'Next';
+  const showCompanionPrimaryAction = showColdOpen && companionPrimaryActionActive;
+  const companionPrimaryAction = useMemo(() => {
+    if (!showCompanionPrimaryAction) return null;
+    return (
+      <PixelButton
+        {...primaryActionProps}
+        accent="gold"
+        onClick={() => { void handleNext(); }}
+        disabled={primaryActionDisabled}
+        style={{ width: '100%' }}
+      >
+        {primaryActionLabel}
+      </PixelButton>
+    );
+  }, [
+    handleNext,
+    primaryActionDisabled,
+    primaryActionLabel,
+    primaryActionProps,
+    showCompanionPrimaryAction,
+  ]);
+
+  useEffect(() => {
+    onCompanionActionChange?.(companionPrimaryAction);
+    return () => {
+      onCompanionActionChange?.(null);
+    };
+  }, [companionPrimaryAction, onCompanionActionChange]);
 
   return (
     <div
@@ -1002,7 +1042,9 @@ export function FranchiseSetupWizard({
           borderTop: '2px solid var(--mfd-border)',
           background: 'var(--mfd-bg-2)',
           display: 'grid',
-          gridTemplateColumns: 'minmax(88px, auto) minmax(0, 1fr) minmax(120px, auto)',
+          gridTemplateColumns: showCompanionPrimaryAction
+            ? 'minmax(88px, auto) minmax(0, 1fr)'
+            : 'minmax(88px, auto) minmax(0, 1fr) minmax(120px, auto)',
           gap: '12px',
           alignItems: 'center',
         }}
@@ -1032,19 +1074,17 @@ export function FranchiseSetupWizard({
             {advanceHint}
           </div>
         </div>
-        <PixelButton
-          {...primaryActionProps}
-          accent="gold"
-          onClick={() => { void handleNext(); }}
-          disabled={primaryActionDisabled}
-          style={{ minWidth: '148px' }}
-        >
-          {showColdOpen
-            ? (reducedMotion || coldOpenBeatIndex >= coldOpenLastBeatIndex ? narrativePack.coldOpen.entryCta : 'Continue Briefing')
-            : isLastPhase
-              ? 'START WEEK 1'
-              : 'Next'}
-        </PixelButton>
+        {showCompanionPrimaryAction ? null : (
+          <PixelButton
+            {...primaryActionProps}
+            accent="gold"
+            onClick={() => { void handleNext(); }}
+            disabled={primaryActionDisabled}
+            style={{ minWidth: '148px' }}
+          >
+            {primaryActionLabel}
+          </PixelButton>
+        )}
       </div>
 
       {isTransitioning && transitionOverlay ? (

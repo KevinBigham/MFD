@@ -13,6 +13,8 @@ import { isChipFeatureEnabled } from './ChipHost';
 import { useChipStore } from './store';
 import { selectWeeklyDialogue, type WeeklyDialogueVariant } from './dialogue/weekly';
 import type { DialogueCatalogEntry } from './dialogue/types';
+import { weeklyGuidanceToDialogueEntry } from './weeklyGuidance';
+import { countPendingDecisions } from './decisionsPending';
 
 interface AppWeeklySummaryLike {
   result: 'win' | 'loss' | 'tie' | 'pending';
@@ -25,6 +27,9 @@ interface AppGameLike {
   year: number;
   seed: number;
   phase: string;
+  teams?: Record<string, { id: string; city?: string; name?: string; isUser?: boolean; wins?: number; losses?: number; capSpace?: number }>;
+  players?: Record<string, { teamId?: string | null; injury?: unknown }>;
+  schedule?: readonly { week: number; games: readonly { homeTeamId: string; awayTeamId: string }[] }[];
   weekSummaries?: readonly AppWeeklySummaryLike[];
   franchiseHistory?: readonly { playoffFinish?: string | null }[];
 }
@@ -91,11 +96,42 @@ export function deriveWeeklyOutcome(game: AppGameLike | null): WeeklyDialogueVar
 
 function toGameSnapshot(state: AppGameStoreState): GameStoreSnapshot {
   const game = state.game;
+  const userTeam = game?.teams ? Object.values(game.teams).find((team) => team.isUser) : null;
+  const injuries = game?.players && userTeam
+    ? Object.values(game.players).filter((player) => player.teamId === userTeam.id && player.injury).length
+    : undefined;
+  const matchup = game?.schedule?.find((week) => week.week === game.week)?.games.find((scheduledGame) =>
+    scheduledGame.homeTeamId === userTeam?.id || scheduledGame.awayTeamId === userTeam?.id,
+  );
+  const opponentId = matchup && userTeam
+    ? matchup.homeTeamId === userTeam.id ? matchup.awayTeamId : matchup.homeTeamId
+    : null;
+  const opponent = opponentId && game?.teams ? game.teams[opponentId] : null;
+  const record = userTeam && typeof userTeam.wins === 'number' && typeof userTeam.losses === 'number'
+    ? `${userTeam.wins}-${userTeam.losses}`
+    : undefined;
+  const pendingDecisionCount = game ? countPendingDecisions({ game }).total : undefined;
+  const weeklyGuidance = game && (
+    record !== undefined
+    || opponent !== null
+    || injuries !== undefined
+    || (pendingDecisionCount ?? 0) > 0
+    || userTeam?.capSpace !== undefined
+  )
+    ? {
+      record,
+      opponentName: opponent ? `${opponent.city ?? ''} ${opponent.name ?? ''}`.trim() || undefined : undefined,
+      injuryCount: injuries,
+      pendingDecisionCount,
+      capSpace: userTeam?.capSpace,
+    }
+    : undefined;
   return {
     currentWeek: game?.week ?? 0,
     currentSeason: game?.year ?? 0,
     dynastySeed: game?.seed ?? 0,
     weeklyOutcome: deriveWeeklyOutcome(game),
+    weeklyGuidance,
   };
 }
 
@@ -143,11 +179,26 @@ export function createChipEventsController({
     start: () => bridge.start(),
     stop: () => bridge.stop(),
     handleEvent: (event) => {
-      const entry = selectWeeklyDialogue({
+      const fallbackEntry = selectWeeklyDialogue({
         gameOutcome: event.gameOutcome,
         currentWeek: event.currentWeek,
         dynastySeed: event.dynastySeed,
       });
+      const guidance = event.guidance ?? {
+        id: `chip.weekly.guidance.${event.currentWeek}`,
+        pose: fallbackEntry.pose,
+        whatChanged: `Week ${event.currentWeek}: ${event.gameOutcome}.`,
+        whyItMatters: fallbackEntry.text,
+        topAction: 'Start with the Monday Briefing.',
+        urgent: 'No single fire is louder than the weekly briefing yet.',
+        canWait: 'Deep legacy screens can wait until the weekly loop is clear.',
+        risk: 'Uncertainty is normal; make one football decision at a time.',
+      };
+      const entry = {
+        ...fallbackEntry,
+        ...weeklyGuidanceToDialogueEntry(guidance),
+        id: fallbackEntry.id,
+      };
       chipStore.showWeeklyDialogue(entry);
       onEvent?.(event);
     },

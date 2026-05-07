@@ -224,7 +224,7 @@ function careerValueFor(player: Player, stat: string): number {
 }
 
 function seasonValueFor(player: Player, stat: string): number {
-  return Number(player.stats[stat] ?? 0);
+  return Number(player.stats?.[stat] ?? 0);
 }
 
 function regularSeasonGames(game: GameState): number {
@@ -233,8 +233,8 @@ function regularSeasonGames(game: GameState): number {
 }
 
 function playerGamesPlayed(game: GameState, player: Player): number {
-  if ((player.stats.gamesPlayed ?? 0) > 0) {
-    return Number(player.stats.gamesPlayed ?? 0);
+  if ((player.stats?.gamesPlayed ?? 0) > 0) {
+    return Number(player.stats?.gamesPlayed ?? 0);
   }
   if (!player.teamId) return 0;
   const team = game.teams[player.teamId];
@@ -450,7 +450,7 @@ export function getSeasonPaceProjection(
   totalWeeks: number,
 ): PaceProjection {
   return buildPaceProjection(
-    Number(player.stats[stat] ?? 0),
+    seasonValueFor(player, stat),
     0,
     '',
     weeksPlayed,
@@ -602,7 +602,7 @@ export function getLeagueLeaders(
       teamId: player.teamId!,
       teamAbbr: teamAbbr(game, player.teamId),
       pos: player.pos,
-      value: Number(player.stats[stat] ?? 0),
+      value: seasonValueFor(player, stat),
     }))
     .filter((leader) => leader.value > 0)
     .sort(compareStatLeaders)

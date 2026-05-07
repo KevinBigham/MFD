@@ -83,7 +83,7 @@ function FatigueCell({ playerId }: { playerId: string }) {
   );
 }
 
-const columns: ColumnDef<Player, unknown>[] = [
+const baseColumns: ColumnDef<Player, unknown>[] = [
   {
     accessorKey: 'name',
     header: 'Name',
@@ -226,6 +226,24 @@ export function RosterManagement() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [comparePlayerId, setComparePlayerId] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<string>('ALL');
+  const rosterColumns = useMemo<ColumnDef<Player, unknown>[]>(() => [
+    {
+      id: 'manage',
+      header: 'Manage',
+      cell: ({ row }) => (
+        <PixelButton
+          type="button"
+          accent="gold"
+          aria-label={`Manage ${row.original.name}`}
+          onClick={() => setSelectedPlayer(row.original)}
+        >
+          Manage
+        </PixelButton>
+      ),
+      size: 96,
+    },
+    ...baseColumns,
+  ], []);
 
   const positions = ['ALL', 'QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P'];
 
@@ -335,10 +353,9 @@ export function RosterManagement() {
         <PixelTable
           responsive="cards"
           data={filtered}
-          columns={columns}
+          columns={rosterColumns}
           density="compact"
           accent="cyan"
-          onRowClick={(row) => setSelectedPlayer(row)}
         />
       </div>
 

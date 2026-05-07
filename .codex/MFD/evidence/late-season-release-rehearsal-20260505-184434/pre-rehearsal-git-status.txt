@@ -1,0 +1,5 @@
+## codex/chip-public-release-recovery
+?? .codex/MFD/evidence/late-season-release-rehearsal-20260505-184434/
+?? .codex/MFD/evidence/release-candidate-lockin-20260505-175132/dev-exported-week2.mfd
+?? .codex/MFD/evidence/release-candidate-lockin-20260505-175132/pre-lockin-full.diff
+?? .codex/MFD/evidence/release-candidate-lockin-20260505-175132/pre-lockin-untracked-full.diff

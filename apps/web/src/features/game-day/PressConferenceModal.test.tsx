@@ -74,15 +74,15 @@ describe('PressConferenceModal', () => {
     );
 
     expect(markup).toContain('data-press-chip-host="true"');
-    expect(markup).toContain('data-press-chip-pose="think"');
+    expect(markup).toContain('data-press-chip-pose="reviewing-tablet"');
     expect(markup).toContain('Podium tone travels. Pick the answer you want quoted tomorrow.');
   });
 
   it('maps press tier severity to deterministic Chip poses', () => {
-    expect(getPressConferenceChipPose('high', false)).toBe('concern');
-    expect(getPressConferenceChipPose('mid', false)).toBe('think');
-    expect(getPressConferenceChipPose('low', false)).toBe('thumbs-up');
-    expect(getPressConferenceChipPose('high', true)).toBe('thumbs-up');
+    expect(getPressConferenceChipPose('high', false)).toBe('skeptical');
+    expect(getPressConferenceChipPose('mid', false)).toBe('reviewing-tablet');
+    expect(getPressConferenceChipPose('low', false)).toBe('coffee-sip');
+    expect(getPressConferenceChipPose('high', true)).toBe('fist-bump');
   });
 
   it('keeps the Chip portrait static under reduced motion', () => {
@@ -99,9 +99,9 @@ describe('PressConferenceModal', () => {
     );
 
     expect(markup).toContain('data-press-chip-host="true"');
-    expect(markup).toContain('data-press-chip-pose="think"');
+    expect(markup).toContain('data-press-chip-pose="reviewing-tablet"');
     expect(markup).toContain('data-chip-motion="reduced"');
-    expect(getPressConferenceChipPose('low', false, true)).toBe('think');
+    expect(getPressConferenceChipPose('low', false, true)).toBe('reviewing-tablet');
   });
 
   it('renders all three ambition tier controls', () => {
@@ -187,6 +187,6 @@ describe('PressConferenceModal', () => {
   });
 
   it('renders the lock-in pose helper for submitted responses', () => {
-    expect(getPressConferenceChipPose('mid', true, true)).toBe('thumbs-up');
+    expect(getPressConferenceChipPose('mid', true, true)).toBe('fist-bump');
   });
 });

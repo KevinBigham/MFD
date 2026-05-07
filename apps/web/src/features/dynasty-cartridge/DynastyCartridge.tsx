@@ -54,6 +54,14 @@ const slotColumns: ColumnDef<SaveSlot & { label: string }, unknown>[] = [
   },
 ];
 
+export function portableCopyFallbackMessage(fileName: string): string {
+  return `Clipboard blocked. Use Download .mfd for ${fileName}.`;
+}
+
+export function importFailureMessage(): string {
+  return 'That file does not look like a valid MFD save. Your current dynasty was not changed. Try exporting again or choose a different file.';
+}
+
 export function DynastyCartridge() {
   const game = useGameStore((state) => state.game);
   const team = useGameStore(selectUserTeam);
@@ -91,9 +99,16 @@ export function DynastyCartridge() {
     const result = buildCartridge(game, meta);
     if (!result.ok) return;
 
+    if (!navigator.clipboard?.writeText) {
+      setTransientStatus(portableCopyFallbackMessage(fileName));
+      return;
+    }
+
     navigator.clipboard.writeText(result.json).then(() => {
       recordPortableExport();
       setTransientStatus(`${fileName} copied to clipboard`);
+    }).catch(() => {
+      setTransientStatus(portableCopyFallbackMessage(fileName));
     });
   }, [fileName, game, meta, recordPortableExport, setTransientStatus]);
 
@@ -140,8 +155,8 @@ export function DynastyCartridge() {
       loadGame(loaded);
       setImportText('');
       setTransientStatus('Imported dynasty loaded');
-    } catch (error) {
-      setImportError(error instanceof Error ? error.message : 'Import failed.');
+    } catch {
+      setImportError(importFailureMessage());
     }
   }, [importText, loadGame, setTransientStatus]);
 
@@ -156,8 +171,8 @@ export function DynastyCartridge() {
       loadGame(loaded);
       setImportText('');
       setTransientStatus('Imported dynasty loaded');
-    } catch (error) {
-      setImportError(error instanceof Error ? error.message : 'Import failed.');
+    } catch {
+      setImportError(importFailureMessage());
     } finally {
       event.target.value = '';
     }

@@ -30,7 +30,7 @@ const weeklyDialogueEntries: Record<WeeklyDialogueVariant, DialogueCatalogEntry[
     {
       id: 'chip.weekly.cleanWin',
       beat: 0,
-      pose: 'celebrate',
+      pose: 'proud',
       reducedMotionPose: 'talk',
       text: 'That was a grown-up win. Not perfect. Better than perfect, actually — repeatable.',
       archetype: 'weekly',
@@ -42,7 +42,7 @@ const weeklyDialogueEntries: Record<WeeklyDialogueVariant, DialogueCatalogEntry[
     {
       id: 'chip.weekly.uglyWin',
       beat: 0,
-      pose: 'think',
+      pose: 'pointing-at-tape',
       reducedMotionPose: 'talk',
       text: "Win column says yes. Film room says please don't make me watch the third quarter twice.",
       archetype: 'weekly',
@@ -54,7 +54,7 @@ const weeklyDialogueEntries: Record<WeeklyDialogueVariant, DialogueCatalogEntry[
     {
       id: 'chip.weekly.loss',
       beat: 0,
-      pose: 'concern',
+      pose: 'frustrated',
       reducedMotionPose: 'idle',
       text: 'Bad tape, useful tape. The scoreboard gets one sentence. The correction gets the week.',
       archetype: 'weekly',
@@ -66,7 +66,7 @@ const weeklyDialogueEntries: Record<WeeklyDialogueVariant, DialogueCatalogEntry[
     {
       id: 'chip.weekly.blowoutLoss',
       beat: 0,
-      pose: 'concern',
+      pose: 'head-in-hands',
       reducedMotionPose: 'idle',
       text: 'That one changed the room temperature. Start with the position group that had no answers after halftime.',
       archetype: 'weekly',
@@ -78,7 +78,7 @@ const weeklyDialogueEntries: Record<WeeklyDialogueVariant, DialogueCatalogEntry[
     {
       id: 'chip.weekly.threeLossStreak',
       beat: 0,
-      pose: 'concern',
+      pose: 'head-in-hands',
       reducedMotionPose: 'idle',
       text: "Three straight. We don't need a miracle today. We need one clean decision.",
       archetype: 'weekly',
@@ -90,7 +90,7 @@ const weeklyDialogueEntries: Record<WeeklyDialogueVariant, DialogueCatalogEntry[
     {
       id: 'chip.weekly.midseason',
       beat: 0,
-      pose: 'mic-check',
+      pose: 'reviewing-tablet',
       reducedMotionPose: 'talk',
       text: 'Midseason checkpoint. The standings are talking, but the roster health is using the indoor voice.',
       archetype: 'weekly',
@@ -102,7 +102,7 @@ const weeklyDialogueEntries: Record<WeeklyDialogueVariant, DialogueCatalogEntry[
     {
       id: 'chip.weekly.preseason',
       beat: 0,
-      pose: 'wave',
+      pose: 'coffee-sip',
       reducedMotionPose: 'idle',
       text: 'Preseason desk is live. Everybody looks undefeated until the depth chart starts asking follow-up questions.',
       archetype: 'weekly',
@@ -114,7 +114,7 @@ const weeklyDialogueEntries: Record<WeeklyDialogueVariant, DialogueCatalogEntry[
     {
       id: 'chip.weekly.playoffs',
       beat: 0,
-      pose: 'mic-check',
+      pose: 'rallying',
       reducedMotionPose: 'talk',
       text: 'Different room now. Mistakes echo. Let us make the boring checks before the big lights find us.',
       archetype: 'weekly',
@@ -126,7 +126,7 @@ const weeklyDialogueEntries: Record<WeeklyDialogueVariant, DialogueCatalogEntry[
     {
       id: 'chip.weekly.championship',
       beat: 0,
-      pose: 'celebrate',
+      pose: 'proud',
       reducedMotionPose: 'talk',
       text: 'The trophy changes the questions. Good. Dynasties are supposed to get heavier after the parade.',
       archetype: 'weekly',
@@ -138,7 +138,7 @@ const weeklyDialogueEntries: Record<WeeklyDialogueVariant, DialogueCatalogEntry[
     {
       id: 'chip.weekly.darkMoment',
       beat: 0,
-      pose: 'concern',
+      pose: 'facepalm',
       reducedMotionPose: 'idle',
       text: 'Bad night. Do not make a permanent decision while the scoreboard is still yelling.',
       archetype: 'weekly',

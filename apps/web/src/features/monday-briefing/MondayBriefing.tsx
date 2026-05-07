@@ -935,15 +935,17 @@ export function MondayBriefing() {
         </div>
       ) : null}
 
-      <ActionCenter
-        phase={phase}
-        hasGamePlan={!!currentWeeklyPrepPlan}
-        starterCount={starterCount}
-        tradeOfferCount={tradeOffers.length}
-        ownerApproval={ownerState?.approval ?? 100}
-        injuredCount={injuredCount}
-        game={game}
-      />
+      <div data-spotlight-target="chip.route.monday-briefing.beat-1">
+        <ActionCenter
+          phase={phase}
+          hasGamePlan={!!currentWeeklyPrepPlan}
+          starterCount={starterCount}
+          tradeOfferCount={tradeOffers.length}
+          ownerApproval={ownerState?.approval ?? 100}
+          injuredCount={injuredCount}
+          game={game}
+        />
+      </div>
 
       <div style={autoGrid(220)}>
         <PixelMetricCard
@@ -990,33 +992,35 @@ export function MondayBriefing() {
         />
       </div>
 
-      <PixelPanel title="Coaching Loop" accent="cyan">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-            Move straight from the Monday board into weekly prep, coaching decisions, or the latest film review.
+      <div data-spotlight-target="chip.route.monday-briefing.beat-2">
+        <PixelPanel title="Coaching Loop" accent="cyan">
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              Move straight from the Monday board into weekly prep, coaching decisions, or the latest film review.
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelButton
+                accent={currentWeeklyPrepPlan ? 'green' : 'gold'}
+                onClick={() => navigateTo('/game-plan')}
+              >
+                Open Game Plan
+              </PixelButton>
+              <PixelButton
+                accent={latestFilmRoomReport ? 'cyan' : 'default'}
+                onClick={() => navigateTo('/film-room')}
+              >
+                Open Film Room
+              </PixelButton>
+              <PixelButton
+                accent={coachingMarket.hotSeat ? 'red' : 'gold'}
+                onClick={() => navigateTo('/coaching')}
+              >
+                Open Coaching
+              </PixelButton>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <PixelButton
-              accent={currentWeeklyPrepPlan ? 'green' : 'gold'}
-              onClick={() => navigateTo('/game-plan')}
-            >
-              Open Game Plan
-            </PixelButton>
-            <PixelButton
-              accent={latestFilmRoomReport ? 'cyan' : 'default'}
-              onClick={() => navigateTo('/film-room')}
-            >
-              Open Film Room
-            </PixelButton>
-            <PixelButton
-              accent={coachingMarket.hotSeat ? 'red' : 'gold'}
-              onClick={() => navigateTo('/coaching')}
-            >
-              Open Coaching
-            </PixelButton>
-          </div>
-        </div>
-      </PixelPanel>
+        </PixelPanel>
+      </div>
 
       <PixelPanel title="Dashboard Control" accent="cyan">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>

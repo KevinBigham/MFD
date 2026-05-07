@@ -5,6 +5,15 @@ import { readFileSync } from 'fs';
 describe('App Chip setup wiring', () => {
   const content = readFileSync(new URL('./App.tsx', import.meta.url), 'utf-8');
 
+  it('loads the app-shell stylesheet and exposes shell landmarks for layout CSS', () => {
+    expect(content).toContain("import './app-shell.css';");
+    expect(content).toContain('data-mfd-app-shell="true"');
+    expect(content).toContain('data-mfd-main-content="true"');
+    expect(content).toContain('data-mfd-brand-lockup="true"');
+    expect(content).toContain('data-mfd-nav-group={group.id}');
+    expect(content).toContain('data-mfd-nav-actions="true"');
+  });
+
   it('defines the 9 Chip onboarding stages in beat order', () => {
     const ids = Array.from(content.matchAll(/id: '(chip\.onboarding\.beat-\d)'/g), (match) => match[1]);
 
@@ -49,14 +58,20 @@ describe('App Chip setup wiring', () => {
     // franchise in the same SPA session would see Chip onboarding twice.
     expect(content).not.toMatch(/useMemo\(\(\) => isChipNewGameSetup/);
     expect(content).not.toMatch(/const chipNewGame = useMemo/);
-    expect(content).toContain('<ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>');
+    expect(content).toContain('const chipNewGameSetup = isChipNewGameSetup();');
+    expect(content).toContain('newGame={chipNewGameSetup}');
   });
 
   it('wraps FranchiseSetupWizard in ChipHost at the setup gate', () => {
     expect(content).toContain('ChipHost');
-    expect(content).toContain('<ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>');
+    expect(content).toContain('<ChipHost');
+    expect(content).toContain('stages={CHIP_FRANCHISE_SETUP_STAGES}');
+    expect(content).toContain('companionAction={setupCompanionAction}');
+    expect(content).toContain('onCompanionVisibleChange={setSetupCompanionVisible}');
     expect(content).toContain('{({ onStageAdvance }) => (');
-    expect(content).toContain('<FranchiseSetupWizard onStageAdvance={onStageAdvance} />');
+    expect(content).toContain('companionPrimaryActionActive={setupCompanionVisible}');
+    expect(content).toContain('onCompanionActionChange={(action) => setSetupCompanionAction(action)}');
+    expect(content).toContain('onStageAdvance={onStageAdvance}');
     expect(content).toContain('</ChipHost>');
   });
 
@@ -66,6 +81,12 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain('<PostSetupApp />');
     expect(content).toContain('<ChipDock');
     expect(content).toContain('<RouterProvider router={router} />');
+  });
+
+  it('keeps the legacy tutorial overlay out of the Chip-enabled shell', () => {
+    expect(content).toContain('const chipFeatureEnabled = isChipFeatureEnabled();');
+    expect(content).toContain('highlightedPath={!chipFeatureEnabled && tutorial.active && !tutorial.dismissed ? currentTutorialStep?.targetScreen ?? null : null}');
+    expect(content).toContain('{!chipFeatureEnabled && tutorial.active && !tutorial.dismissed && currentTutorialStep ? (');
   });
 
   it('starts Chip events only inside the post-setup shell', () => {
@@ -86,7 +107,7 @@ describe('App Chip setup wiring', () => {
 
   it('passes active route coaching beats into the post-setup ChipDock', () => {
     expect(content).toContain("import { useActiveRouteBeats } from '../features/route-coaching/useActiveRouteBeats'");
-    expect(content).toContain('const chipRouteBeats = useActiveRouteBeats(chipDockRoute);');
+    expect(content).toContain('const chipRouteBeats = useActiveRouteBeats(chipDockRoute, { currentWeek: chipDockWeek });');
     expect(content).toContain('routeBeats={chipRouteBeats}');
   });
 

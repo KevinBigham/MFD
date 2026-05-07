@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeftRight } from 'lucide-react';
 import {
-  PixelBadge, PixelButton, PixelNav, PixelPanel, PixelProgressBar, PixelSelect,
+  PixelBadge, PixelButton, PixelConsequenceList, PixelNav, PixelPanel, PixelProgressBar, PixelSelect,
 } from '@mfd/design-system/components';
 import {
   calcPickValue,
@@ -34,6 +34,7 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 import { TradeFinder } from './TradeFinder';
+import { buildDecisionImpactExplanation, decisionImpactToConsequenceItems } from '../companion/decisionImpact';
 
 function offerAccent(status: string): 'cyan' | 'green' | 'gold' | 'red' {
   if (status === 'accepted') return 'green';
@@ -204,6 +205,16 @@ export function TradeCenter() {
   const fairness = Math.max(offeringValue, requestingValue, 1) === 0
     ? 0
     : (Math.min(offeringValue, requestingValue) / Math.max(offeringValue, requestingValue, 1)) * 100;
+  const tradeImpact = useMemo(
+    () => buildDecisionImpactExplanation({
+      surface: 'trade',
+      label: 'Trade package',
+      outgoingAssets: selectedOffering.length,
+      incomingAssets: selectedRequesting.length,
+      valueDelta: requestingValue - offeringValue,
+    }),
+    [offeringValue, requestingValue, selectedOffering.length, selectedRequesting.length],
+  );
   const currentProposal = proposals.find((proposal) => proposal.id === activeProposalId)
     ?? proposals.filter((proposal) => proposal.fromTeamId === userTeam?.id).at(-1)
     ?? null;
@@ -479,6 +490,10 @@ export function TradeCenter() {
                 label="Value Comparison"
                 valueLabel={valueLabel(offeringValue, requestingValue)}
               />
+
+              <PixelPanel title="Decision Impact" accent={tradeImpact.severity === 'high' ? 'red' : 'gold'}>
+                <PixelConsequenceList items={decisionImpactToConsequenceItems(tradeImpact)} />
+              </PixelPanel>
 
               <div style={autoGrid(220)}>
                 <div>

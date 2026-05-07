@@ -142,7 +142,7 @@ describe('PoseEventEmitter event derivation', () => {
     });
 
     expect(setPose).toHaveBeenCalledTimes(1);
-    expect(setPose).toHaveBeenCalledWith('warning', {
+    expect(setPose).toHaveBeenCalledWith('head-in-hands', {
       durationMs: 3500,
       nowMs: 10_000,
       priority: 'warning',
@@ -152,14 +152,14 @@ describe('PoseEventEmitter event derivation', () => {
   it('dispatches every Sprint 43 pose trigger through the bridge mapping', () => {
     const setPose = vi.fn();
     const triggers = [
-      ['USER_TEAM_TOUCHDOWN', 'celebrate', 4000, 'celebrate'],
+      ['USER_TEAM_TOUCHDOWN', 'rallying', 4000, 'celebrate'],
       ['USER_TEAM_FIRST_LAUNCH', 'greeting', 5000, 'routine'],
-      ['CAP_PROJECTION_OVER_LIMIT', 'warning', 3500, 'warning'],
-      ['USER_TEAM_LOSS_BIG', 'sad', 6000, 'sad'],
-      ['PLAYOFF_UPSET_WIN', 'surprised', 4000, 'routine'],
-      ['TRADE_RUMOR_FOR_USER_PLAYER', 'whispering', 3500, 'routine'],
-      ['PLAYER_RETIREMENT_USER_HOF', 'disappointed', 4000, 'sad'],
-      ['USER_DECISION_LOCKED_IN', 'thumbs-up', 1500, 'routine'],
+      ['CAP_PROJECTION_OVER_LIMIT', 'head-in-hands', 3500, 'warning'],
+      ['USER_TEAM_LOSS_BIG', 'facepalm', 6000, 'sad'],
+      ['PLAYOFF_UPSET_WIN', 'laughing', 4000, 'routine'],
+      ['TRADE_RUMOR_FOR_USER_PLAYER', 'on-phone', 3500, 'routine'],
+      ['PLAYER_RETIREMENT_USER_HOF', 'head-in-hands', 4000, 'sad'],
+      ['USER_DECISION_LOCKED_IN', 'fist-bump', 1500, 'routine'],
     ] satisfies Array<[ChipPoseEventTrigger, string, number, string | undefined]>;
 
     dispatchPoseEvents(

@@ -168,7 +168,7 @@ export function DepthChart() {
         </PixelPanel>
       ) : null}
 
-      <div style={autoGrid(220)}>
+      <div style={autoGrid(220)} data-spotlight-target="chip.route.depth-chart.beat-1">
         {slots.map((slot) => {
           const players = slotPlayers.get(slot.label) ?? [];
           const starter = players[0] ?? null;
@@ -199,7 +199,9 @@ export function DepthChart() {
               <div>
                 <div style={{ ...display, fontSize: '24px', color: '#fff', lineHeight: 1 }}>
                   {starter ? (
-                    <PlayerNameLink playerId={starter.id} name={starter.name} ovr={starter.ovr} style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '24px', lineHeight: 1 }} />
+                    <span style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '24px', lineHeight: 1 }}>
+                      {starter.name}
+                    </span>
                   ) : 'OPEN'}
                 </div>
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px' }}>
@@ -215,80 +217,82 @@ export function DepthChart() {
         })}
       </div>
 
-      <PixelPanel title="Special Teams" accent="gold">
-        <div style={autoGrid(260)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ ...monoSm, color: '#fff' }}>Kick Returner</div>
-            <PixelSelect
-              aria-label="Kick returner"
-              value={specialTeams.kickReturner ?? ''}
-              onChange={(event) => {
-                if (!teamId || !event.target.value) return;
-                void assignKickReturner(teamId, event.target.value);
-              }}
-              options={eligibleReturners.length > 0
-                ? eligibleReturners.map((player) => ({
-                  value: player.id,
-                  label: `${player.name} // SPD ${Math.round(player.ratings.speed ?? player.ovr)}`,
-                }))
-                : [{ value: '', label: 'No eligible returners', disabled: true }]}
-              accent="gold"
-            />
-            <div style={{ ...monoSm, color: '#999' }}>
-              {kickReturner
-                ? `${kickReturner.name} // speed ${Math.round(kickReturner.ratings.speed ?? kickReturner.ovr)}`
-                : 'Assign your best burst threat.'}
+      <div data-spotlight-target="chip.route.depth-chart.beat-2">
+        <PixelPanel title="Special Teams" accent="gold">
+          <div style={autoGrid(260)}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ ...monoSm, color: '#fff' }}>Kick Returner</div>
+              <PixelSelect
+                aria-label="Kick returner"
+                value={specialTeams.kickReturner ?? ''}
+                onChange={(event) => {
+                  if (!teamId || !event.target.value) return;
+                  void assignKickReturner(teamId, event.target.value);
+                }}
+                options={eligibleReturners.length > 0
+                  ? eligibleReturners.map((player) => ({
+                    value: player.id,
+                    label: `${player.name} // SPD ${Math.round(player.ratings.speed ?? player.ovr)}`,
+                  }))
+                  : [{ value: '', label: 'No eligible returners', disabled: true }]}
+                accent="gold"
+              />
+              <div style={{ ...monoSm, color: '#999' }}>
+                {kickReturner
+                  ? `${kickReturner.name} // speed ${Math.round(kickReturner.ratings.speed ?? kickReturner.ovr)}`
+                  : 'Assign your best burst threat.'}
+              </div>
             </div>
-          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ ...monoSm, color: '#fff' }}>Punt Returner</div>
-            <PixelSelect
-              aria-label="Punt returner"
-              value={specialTeams.puntReturner ?? ''}
-              onChange={(event) => {
-                if (!teamId || !event.target.value) return;
-                void assignPuntReturner(teamId, event.target.value);
-              }}
-              options={eligibleReturners.length > 0
-                ? eligibleReturners.map((player) => ({
-                  value: player.id,
-                  label: `${player.name} // SPD ${Math.round(player.ratings.speed ?? player.ovr)}`,
-                }))
-                : [{ value: '', label: 'No eligible returners', disabled: true }]}
-              accent="gold"
-            />
-            <div style={{ ...monoSm, color: '#999' }}>
-              {puntReturner
-                ? `${puntReturner.name} // speed ${Math.round(puntReturner.ratings.speed ?? puntReturner.ovr)}`
-                : 'Punt return role is still open.'}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ ...monoSm, color: '#fff' }}>Punt Returner</div>
+              <PixelSelect
+                aria-label="Punt returner"
+                value={specialTeams.puntReturner ?? ''}
+                onChange={(event) => {
+                  if (!teamId || !event.target.value) return;
+                  void assignPuntReturner(teamId, event.target.value);
+                }}
+                options={eligibleReturners.length > 0
+                  ? eligibleReturners.map((player) => ({
+                    value: player.id,
+                    label: `${player.name} // SPD ${Math.round(player.ratings.speed ?? player.ovr)}`,
+                  }))
+                  : [{ value: '', label: 'No eligible returners', disabled: true }]}
+                accent="gold"
+              />
+              <div style={{ ...monoSm, color: '#999' }}>
+                {puntReturner
+                  ? `${puntReturner.name} // speed ${Math.round(puntReturner.ratings.speed ?? puntReturner.ovr)}`
+                  : 'Punt return role is still open.'}
+              </div>
             </div>
-          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ ...monoSm, color: '#fff' }}>Long Snapper</div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <PixelBadge variant="cyan">{longSnapper?.name ?? 'Unassigned'}</PixelBadge>
-              {longSnapper ? <PixelBadge variant="default">{longSnapper.pos}</PixelBadge> : null}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ ...monoSm, color: '#fff' }}>Long Snapper</div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <PixelBadge variant="cyan">{longSnapper?.name ?? 'Unassigned'}</PixelBadge>
+                {longSnapper ? <PixelBadge variant="default">{longSnapper.pos}</PixelBadge> : null}
+              </div>
+              <div style={{ ...monoSm, color: '#999' }}>Auto-assigned from the best OL/TE awareness profile.</div>
             </div>
-            <div style={{ ...monoSm, color: '#999' }}>Auto-assigned from the best OL/TE awareness profile.</div>
-          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ ...monoSm, color: '#fff' }}>Kicking Battery</div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <PixelBadge variant="green">{kicker ? `${kicker.name} // OVR ${kicker.ovr}` : 'No kicker'}</PixelBadge>
-              <PixelBadge variant="cyan">{punter ? `${punter.name} // OVR ${punter.ovr}` : 'No punter'}</PixelBadge>
-            </div>
-            <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
-              FG accuracy: {kickerAccuracy}
-            </div>
-            <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
-              Net punt average: {punterNetAverage} yards
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ ...monoSm, color: '#fff' }}>Kicking Battery</div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <PixelBadge variant="green">{kicker ? `${kicker.name} // OVR ${kicker.ovr}` : 'No kicker'}</PixelBadge>
+                <PixelBadge variant="cyan">{punter ? `${punter.name} // OVR ${punter.ovr}` : 'No punter'}</PixelBadge>
+              </div>
+              <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
+                FG accuracy: {kickerAccuracy}
+              </div>
+              <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
+                Net punt average: {punterNetAverage} yards
+              </div>
             </div>
           </div>
-        </div>
-      </PixelPanel>
+        </PixelPanel>
+      </div>
 
       <PixelModal
         open={!!selectedSlot}

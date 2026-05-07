@@ -33,11 +33,11 @@ export function getHalftimeChipPose(
   lockedIn: boolean,
   reducedMotion = false,
 ): ChipPose {
-  if (lockedIn) return 'thumbs-up';
-  if (reducedMotion || !previewChoice) return 'mic-check';
-  if (previewChoice === 'stick') return 'point-left';
-  if (previewChoice === 'switch') return 'point-right';
-  return 'concern';
+  if (lockedIn) return 'fist-bump';
+  if (reducedMotion || !previewChoice) return 'time-out';
+  if (previewChoice === 'stick') return 'coaching-crouch';
+  if (previewChoice === 'switch') return 'calling-play';
+  return 'frustrated';
 }
 
 interface HalftimeDecisionViewProps {

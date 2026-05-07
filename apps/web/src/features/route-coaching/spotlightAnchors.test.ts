@@ -8,12 +8,25 @@ import { ROUTE_BEAT_REGISTRY, ROUTE_KEYS } from './routeBeatRegistry';
 // route table in apps/web/src/app/App.tsx — see resolveRouteKey in
 // useActiveRouteBeats.ts for the routing source of truth.
 const ROUTE_SCREEN_FILES: Record<(typeof ROUTE_KEYS)[number], string> = {
+  'monday-briefing': 'apps/web/src/features/monday-briefing/MondayBriefing.tsx',
   roster: 'apps/web/src/features/roster/RosterManagement.tsx',
+  'depth-chart': 'apps/web/src/features/depth-chart/DepthChart.tsx',
+  'game-plan': 'apps/web/src/features/game-plan/GamePlanSetup.tsx',
+  'week-advance': 'apps/web/src/features/week-advance/WeekAdvance.tsx',
+  inbox: 'apps/web/src/features/inbox/InboxTriage.tsx',
   staff: 'apps/web/src/features/coaching/CoachingStaff.tsx',
   'cap-laboratory': 'apps/web/src/features/contracts/CapLaboratory.tsx',
   'draft-board': 'apps/web/src/features/draft/DraftBoard.tsx',
   'trade-center': 'apps/web/src/features/trades/TradeCenter.tsx',
   'scouting-board': 'apps/web/src/features/scouting/ScoutingBoard.tsx',
+  standings: 'apps/web/src/features/standings/LeagueStandings.tsx',
+  'power-rankings': 'apps/web/src/features/power-rankings/PowerRankings.tsx',
+  'league-pulse': 'apps/web/src/features/league/LeaguePulse.tsx',
+  'record-book': 'apps/web/src/features/stats/RecordBook.tsx',
+  'settings-save-load': 'apps/web/src/features/dynasty-cartridge/DynastyCartridge.tsx',
+  'training-camp': 'apps/web/src/features/training-camp/TrainingCamp.tsx',
+  'trade-deadline': 'apps/web/src/features/trades/TradeDeadline.tsx',
+  'expansion-draft': 'apps/web/src/features/franchise/ExpansionDraft.tsx',
 };
 
 function readScreen(relativePath: string): string {

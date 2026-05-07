@@ -159,6 +159,17 @@ describe('record tracker', () => {
     expect(game.records.singleSeason.passYds[0]?.value).toBe(4300);
   });
 
+  it('treats players missing season stats as zero in record checks', () => {
+    const game = makeLeagueState('regular_season', 4);
+    game.records = createEmptyRecordBook();
+    const qb = game.teams.afce1.roster.find((player) => player.pos === 'QB') as { stats?: unknown };
+    delete qb.stats;
+
+    expect(() => detectBrokenRecords(game, [makeResult(game, 451)])).not.toThrow();
+    expect(() => checkRecordChases(game)).not.toThrow();
+    expect(getLeagueLeaders(game, 'passYds')).toEqual([]);
+  });
+
   it('checks milestones once and stores durable milestone flags', () => {
     const game = makeLeagueState('regular_season', 7);
     const qb = game.teams.afce1.roster.find((player) => player.pos === 'QB')!;

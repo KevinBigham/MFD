@@ -1293,14 +1293,14 @@ export const selectBroadcastByGameId = memoParamByGame((gameId: string | null, s
 });
 export const selectLatestBroadcast = (state: GameStoreState): BroadcastViewModel | null =>
   selectBroadcastByGameId(null)(state);
-export const selectCurrentOpponentIntel = (state: GameStoreState): OpponentIntel | null => {
+export const selectCurrentOpponentIntel: (state: GameStoreState) => OpponentIntel | null = memoByGame((state) => {
   if (!state.game) return null;
   const team = selectUserTeam(state);
   const matchup = selectCurrentMatchup(state);
   if (!team || !matchup) return null;
   const opponentId = matchup.homeTeamId === team.id ? matchup.awayTeamId : matchup.homeTeamId;
   return buildOpponentIntel(state.game, team.id, opponentId);
-};
+});
 export const selectCurrentDraftEntry = (state: GameStoreState): DraftOrderEntry | null => {
   const offseasonState = state.game?.offseasonState;
   return offseasonState ? offseasonState.draftOrder[offseasonState.currentDraftPickIndex] ?? null : null;

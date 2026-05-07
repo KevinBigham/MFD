@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import {
   ChipDock,
   applyDockControl,
@@ -14,9 +16,15 @@ import {
 import type { DialogueCatalogEntry } from './dialogue/types';
 import { CHIP_DOCK_STORAGE_KEY, createDefaultDockPrefs, readDockPrefs } from './dockPersistence';
 import { CHIP_ONBOARDING_STORAGE_KEY } from './ChipHost';
-import { CHIP_READ_RECEIPTS_STORAGE_KEY, readChipReadReceipts } from './readReceipts';
+import { CHIP_READ_RECEIPTS_STORAGE_KEY, readChipReadReceipts, writeChipReadReceipts } from './readReceipts';
 import { ROUTE_BEAT_REGISTRY } from '../route-coaching/routeBeatRegistry';
 import { useChipStore } from './store';
+import { CHIP_ONBOARDING_STATE_STORAGE_KEY, readChipOnboardingState } from './onboardingMachine';
+
+const chipDockCss = readFileSync(
+  fileURLToPath(new URL('./ChipDock.css', import.meta.url)),
+  'utf8',
+);
 
 class MemoryStorage implements Storage {
   private readonly backing = new Map<string, string>();
@@ -306,7 +314,7 @@ describe('ChipDock', () => {
   it('creates pending-decisions dock copy with the live count', () => {
     expect(createPendingDecisionsBeat(1)).toEqual({
       id: 'chip.dock.pending',
-      pose: 'thinking',
+      pose: 'reviewing-tablet',
       text: '1 decisions waiting.',
     });
   });
@@ -361,6 +369,59 @@ describe('ChipDock', () => {
     }));
     expect(readDockPrefs(storage)).toEqual(prefs);
     expect(prefs).toEqual(createDefaultDockPrefs());
+  });
+
+  it('reset-onboarding clears first-ten progress, receipts, and legacy skip state', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_ONBOARDING_STATE_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        completedBeatIds: ['chip.first10.roster'],
+        snoozedUntilWeek: null,
+        disabled: false,
+        lastUpdated: '2026-05-05T16:00:00.000Z',
+      }),
+    );
+    storage.setItem(
+      CHIP_ONBOARDING_STORAGE_KEY,
+      JSON.stringify({ skipped: true, lastBeat: 9, timestamp: '2026-05-05T16:00:00.000Z' }),
+    );
+    writeChipReadReceipts(storage, ['chip.first10.roster', 'chip.route.roster.beat-1']);
+
+    const { store } = applyControl('resetOnboarding', storage);
+
+    expect(readChipOnboardingState(storage).completedBeatIds).toEqual([]);
+    expect(readChipReadReceipts(storage).has('chip.first10.roster')).toBe(false);
+    expect(readChipReadReceipts(storage).has('chip.route.roster.beat-1')).toBe(true);
+    expect(storage.getItem(CHIP_ONBOARDING_STORAGE_KEY)).toBeNull();
+    expect(store.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it('snooze-onboarding stores a one-week onboarding snooze', () => {
+    const { storage } = applyControl('snoozeOnboarding');
+
+    expect(readChipOnboardingState(storage).snoozedUntilWeek).toBe(7);
+  });
+
+  it('enable-guidance clears quiet prefs and reenables the onboarding machine', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_DOCK_STORAGE_KEY,
+      JSON.stringify({
+        ...createDefaultDockPrefs(),
+        quietForScreen: '/roster',
+        quietUntilWeek: 7,
+        quietForSeason: 2032,
+      }),
+    );
+
+    const { prefs } = applyControl('enableGuidance', storage);
+
+    expect(prefs.quietForScreen).toBeNull();
+    expect(prefs.quietUntilWeek).toBeNull();
+    expect(prefs.quietForSeason).toBeNull();
+    expect(readChipOnboardingState(storage).disabled).toBe(false);
   });
 
   it('persists collapsed state at the single dock localStorage key', () => {
@@ -534,6 +595,54 @@ describe('ChipDock', () => {
       const markup = renderDock(<ChipDock collapsed={false} storage={storage} />);
 
       expect(markup).toContain('data-chip-dock-motion="animated"');
+    });
+  });
+
+  describe('mobile route tolerance', () => {
+    it('lets desktop route controls receive clicks behind non-control dock content', () => {
+      const baseDockBlock = chipDockCss
+        .slice(chipDockCss.indexOf('.mfd-chip-dock {'))
+        .split('}')[0];
+      const panelBlock = chipDockCss
+        .slice(chipDockCss.indexOf('.mfd-chip-dock__panel {'))
+        .split('}')[0];
+      const contentBlock = chipDockCss
+        .slice(chipDockCss.indexOf('.mfd-chip-dock__content {'))
+        .split('}')[0];
+      const bubbleBlock = chipDockCss
+        .slice(chipDockCss.indexOf('.mfd-chip-dock__bubble {'))
+        .split('}')[0];
+      const controlsBlock = chipDockCss
+        .slice(chipDockCss.indexOf('.mfd-chip-dock__controls {'))
+        .split('}')[0];
+      const beatActionsBlock = chipDockCss
+        .slice(chipDockCss.indexOf('.mfd-chip-dock__beat-actions {'))
+        .split('}')[0];
+
+      expect(baseDockBlock).toContain('pointer-events: none;');
+      expect(panelBlock).toContain('pointer-events: none;');
+      expect(contentBlock).toContain('pointer-events: none;');
+      expect(bubbleBlock).toContain('pointer-events: none;');
+      expect(controlsBlock).toContain('pointer-events: auto;');
+      expect(beatActionsBlock).toContain('pointer-events: auto;');
+    });
+
+    it('keeps the expanded dock from becoming a full-height phone overlay', () => {
+      const mobileBlock = chipDockCss.slice(chipDockCss.indexOf('@media (max-width: 720px)'));
+      const pendingBadgeBlock = chipDockCss
+        .slice(chipDockCss.indexOf('.mfd-chip-dock__pending-badge'))
+        .split('}')[0];
+
+      expect(mobileBlock).toContain('max-height: min(46vh, 360px);');
+      expect(mobileBlock).toContain('grid-template-columns: 144px minmax(0, 1fr);');
+      expect(mobileBlock).toContain('overflow-y: auto;');
+      expect(mobileBlock).toContain('flex-wrap: nowrap;');
+      expect(mobileBlock).toContain('overflow-x: auto;');
+      expect(mobileBlock).toContain('.mfd-chip-dock__panel,\n  .mfd-chip-dock__content,\n  .mfd-chip-dock__bubble {\n    pointer-events: none;');
+      expect(mobileBlock).toContain('.mfd-chip-dock__beat-actions,\n  .mfd-chip-dock__controls {\n    pointer-events: auto;');
+      expect(mobileBlock).toContain('.mfd-chip-dock .mfd-chip-bubble {\n    box-sizing: border-box;');
+      expect(mobileBlock).toContain('width: 100%;');
+      expect(pendingBadgeBlock).toContain('min-width: 44px;');
     });
   });
 });

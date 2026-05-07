@@ -20,6 +20,7 @@ import {
   useGameStore,
   useMultiYearProjection,
 } from '../../app/store/game-store';
+import { buildDecisionImpactExplanation, decisionImpactToConsequenceItems } from '../companion/decisionImpact';
 
 const screenStyle = {
   display: 'flex',
@@ -99,6 +100,16 @@ export default function CapLaboratory() {
   const deadCapPct = preview
     ? Math.round(((preview.scenario.currentDeadCap ?? userTeam?.deadCap ?? 0) / Math.max(1, capHealth.capUsed + capHealth.capSpace)) * 100)
     : capHealth.deadCapPct;
+  const capImpact = useMemo(
+    () => buildDecisionImpactExplanation({
+      surface: 'cap-lab',
+      label: 'Cap sandbox',
+      queuedMoves: sandbox.length,
+      netCapChange,
+      deadCapPct,
+    }),
+    [deadCapPct, netCapChange, sandbox.length],
+  );
 
   const candidateColumns = useMemo<ColumnDef<(typeof candidates)[number], unknown>[]>(() => [
     {
@@ -207,6 +218,7 @@ export default function CapLaboratory() {
             accent="cyan"
             onRowClick={(row) => setSelectedPlayerId(row.playerId)}
             emptyMessage="No cap candidates match this filter."
+            responsive="cards"
           />
         </PixelPanel>
 
@@ -318,6 +330,10 @@ export default function CapLaboratory() {
               ]}
             />
 
+            <PixelPanel title="Decision Impact" accent={capImpact.severity === 'high' ? 'red' : 'gold'} padding="sm">
+              <PixelConsequenceList items={decisionImpactToConsequenceItems(capImpact)} />
+            </PixelPanel>
+
             {preview?.warnings?.length ? (
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {preview.warnings.map((warning) => <PixelBadge key={warning} variant="red">{warning}</PixelBadge>)}
@@ -333,7 +349,7 @@ export default function CapLaboratory() {
 
       <div data-spotlight-target="chip.route.cap-laboratory.beat-2">
         <PixelPanel title="Multi-Year Projection" accent="green">
-          <PixelTable data={projectionYears} columns={projectionColumns} accent="green" emptyMessage="Projection unavailable." />
+          <PixelTable data={projectionYears} columns={projectionColumns} accent="green" emptyMessage="Projection unavailable." responsive="cards" />
         </PixelPanel>
       </div>
 

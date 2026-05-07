@@ -57,6 +57,15 @@ describe('weekly dialogue catalog', () => {
     }
   });
 
+  it('uses the expanded Chip pose atlas for high-value weekly moments', () => {
+    expect(selectWeeklyDialogue(baseContext('cleanWin')).pose).toBe('proud');
+    expect(selectWeeklyDialogue(baseContext('uglyWin')).pose).toBe('pointing-at-tape');
+    expect(selectWeeklyDialogue(baseContext('blowoutLoss')).pose).toBe('head-in-hands');
+    expect(selectWeeklyDialogue(baseContext('playoffs')).pose).toBe('rallying');
+    expect(selectWeeklyDialogue(baseContext('preseason')).pose).toBe('coffee-sip');
+    expect(selectWeeklyDialogue(baseContext('darkMoment')).pose).toBe('facepalm');
+  });
+
   it('is deterministic across 1000 identical selections', () => {
     const context = baseContext('midseason');
     const first = selectWeeklyDialogue(context);
