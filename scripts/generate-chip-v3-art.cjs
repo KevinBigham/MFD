@@ -1,5 +1,5 @@
 const { chromium } = require('playwright');
-const { mkdir, readFile } = require('node:fs/promises');
+const { access, mkdir, readFile } = require('node:fs/promises');
 const { resolve } = require('node:path');
 
 const ROOT = resolve(__dirname, '..');
@@ -29,7 +29,28 @@ const POSES = [
   ['warning', 'pose-warning.png'],
   ['wave', 'pose-wave.png'],
   ['whispering', 'pose-whispering.png'],
+  ['rallying', 'pose-rallying.png'],
+  ['coaching-crouch', 'pose-coaching-crouch.png'],
+  ['calling-play', 'pose-calling-play.png'],
+  ['time-out', 'pose-time-out.png'],
+  ['whistle-blow', 'pose-whistle-blow.png'],
+  ['coffee-sip', 'pose-coffee-sip.png'],
+  ['on-phone', 'pose-on-phone.png'],
+  ['reviewing-tablet', 'pose-reviewing-tablet.png'],
+  ['head-in-hands', 'pose-head-in-hands.png'],
+  ['fist-bump', 'pose-fist-bump.png'],
+  ['note-taking', 'pose-note-taking.png'],
+  ['laughing', 'pose-laughing.png'],
+  ['skeptical', 'pose-skeptical.png'],
+  ['proud', 'pose-proud.png'],
+  ['facepalm', 'pose-facepalm.png'],
+  ['frustrated', 'pose-frustrated.png'],
+  ['tired', 'pose-tired.png'],
+  ['football-in-hand', 'pose-football-in-hand.png'],
+  ['pointing-at-tape', 'pose-pointing-at-tape.png'],
 ];
+
+const REGENERATE_EXISTING = process.env.CHIP_ART_REGENERATE_EXISTING === 'true';
 
 const colors = {
   ink: '#171920',
@@ -109,13 +130,115 @@ function clipboard(x = 165, y = 332, rotate = -9) {
   `;
 }
 
+function tablet(x = 300, y = 338, rotate = 0, scale = 1) {
+  return `
+    <g transform="rotate(${rotate} ${x} ${y}) scale(${scale}) translate(${x * (1 / scale - 1)} ${y * (1 / scale - 1)})">
+      <rect x="${x - 70}" y="${y - 52}" width="140" height="104" rx="12" fill="${colors.softInk}" stroke="${colors.ink}" stroke-width="8"/>
+      <rect x="${x - 56}" y="${y - 38}" width="112" height="76" rx="5" fill="#102434" stroke="${colors.cyan}" stroke-width="4"/>
+      <path d="M ${x - 42} ${y - 18} L ${x - 10} ${y - 18} M ${x - 42} ${y + 2} L ${x + 36} ${y + 2} M ${x - 42} ${y + 22} L ${x + 18} ${y + 22}" stroke="${colors.gold}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M ${x + 18} ${y - 26} l 24 18 l -34 23" fill="none" stroke="${colors.cyan}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${circle(x, y + 45, 5, colors.cyan)}
+    </g>
+  `;
+}
+
+function mug(x, y, rotate = 0) {
+  return `
+    <g transform="rotate(${rotate} ${x} ${y})">
+      <rect x="${x - 25}" y="${y - 30}" width="52" height="55" rx="8" fill="${colors.paper}" stroke="${colors.ink}" stroke-width="7"/>
+      <path d="M ${x + 24} ${y - 18} Q ${x + 58} ${y - 14} ${x + 41} ${y + 14} Q ${x + 31} ${y + 28} ${x + 25} ${y + 13}" fill="none" stroke="${colors.ink}" stroke-width="7" stroke-linecap="round"/>
+      <path d="M ${x - 9} ${y - 48} q 9 -17 0 -32 M ${x + 12} ${y - 46} q 9 -17 0 -32" fill="none" stroke="${colors.cyan}" stroke-width="5" stroke-linecap="round" opacity="0.75"/>
+      <path d="M ${x - 11} ${y - 4} L ${x + 12} ${y - 4}" stroke="${colors.gold}" stroke-width="5" stroke-linecap="round"/>
+    </g>
+  `;
+}
+
+function phone(x, y, rotate = 0) {
+  return `
+    <g transform="rotate(${rotate} ${x} ${y})">
+      <rect x="${x - 17}" y="${y - 40}" width="34" height="82" rx="9" fill="${colors.softInk}" stroke="${colors.ink}" stroke-width="6"/>
+      <rect x="${x - 10}" y="${y - 27}" width="20" height="43" rx="3" fill="#102434" stroke="${colors.cyan}" stroke-width="3"/>
+      ${circle(x, y + 29, 4, colors.gold)}
+    </g>
+  `;
+}
+
+function football(x, y, rotate = -18) {
+  return `
+    <g transform="rotate(${rotate} ${x} ${y})">
+      <ellipse cx="${x}" cy="${y}" rx="47" ry="27" fill="#7a4329" stroke="${colors.ink}" stroke-width="8"/>
+      <path d="M ${x - 35} ${y} Q ${x} ${y - 17} ${x + 35} ${y}" fill="none" stroke="${colors.paper}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M ${x - 7} ${y - 11} L ${x + 8} ${y + 11}" stroke="${colors.paper}" stroke-width="4" stroke-linecap="round"/>
+      <path d="M ${x - 17} ${y - 3} L ${x - 8} ${y + 5} M ${x - 3} ${y - 7} L ${x + 6} ${y + 2} M ${x + 11} ${y - 10} L ${x + 20} ${y - 1}" stroke="${colors.paper}" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  `;
+}
+
+function whistle(x, y, rotate = 0) {
+  return `
+    <g transform="rotate(${rotate} ${x} ${y})">
+      <path d="M ${x - 18} ${y - 7} L ${x + 10} ${y - 16} Q ${x + 25} ${y - 8} ${x + 20} ${y + 7} Q ${x + 5} ${y + 23} ${x - 18} ${y + 9} Z" fill="${colors.gold}" stroke="${colors.ink}" stroke-width="5"/>
+      ${circle(x + 10, y + 2, 7, colors.ink)}
+      <path d="M ${x - 19} ${y - 8} L ${x - 40} ${y - 24}" stroke="${colors.ink}" stroke-width="5" stroke-linecap="round"/>
+    </g>
+  `;
+}
+
+function pen(x, y, rotate = -28) {
+  return `
+    <g transform="rotate(${rotate} ${x} ${y})">
+      <rect x="${x - 6}" y="${y - 48}" width="12" height="82" rx="4" fill="${colors.cyan}" stroke="${colors.ink}" stroke-width="4"/>
+      <path d="M ${x - 6} ${y + 34} L ${x + 6} ${y + 34} L ${x} ${y + 52} Z" fill="${colors.ink}"/>
+      <path d="M ${x - 6} ${y - 31} L ${x + 6} ${y - 31}" stroke="${colors.gold}" stroke-width="4"/>
+    </g>
+  `;
+}
+
+function tapeBoard(x = 452, y = 300) {
+  return `
+    <g transform="rotate(3 ${x} ${y})">
+      <rect x="${x - 74}" y="${y - 58}" width="148" height="116" rx="8" fill="#102434" stroke="${colors.ink}" stroke-width="8"/>
+      <path d="M ${x - 55} ${y - 25} H ${x + 55} M ${x - 55} ${y + 25} H ${x + 55} M ${x} ${y - 47} V ${y + 47}" stroke="${colors.cyan}" stroke-width="4" opacity="0.85"/>
+      <path d="M ${x - 39} ${y + 18} C ${x - 7} ${y - 8}, ${x + 17} ${y + 11}, ${x + 38} ${y - 19}" fill="none" stroke="${colors.gold}" stroke-width="5" stroke-linecap="round"/>
+      ${circle(x - 45, y - 30, 6, colors.gold)}
+      ${circle(x + 45, y + 30, 6, colors.cyan)}
+      ${circle(x + 12, y - 3, 5, colors.paper)}
+    </g>
+  `;
+}
+
+function frontFist(x, y) {
+  return `
+    <g>
+      ${ellipse(x, y, 48, 39, colors.skinLight, `stroke="${colors.ink}" stroke-width="9"`)}
+      <path d="M ${x - 34} ${y - 3} L ${x + 35} ${y - 3} M ${x - 22} ${y - 29} L ${x - 22} ${y + 21} M ${x} ${y - 33} L ${x} ${y + 23} M ${x + 22} ${y - 27} L ${x + 22} ${y + 20}" stroke="${colors.ink}" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+    </g>
+  `;
+}
+
 function faceExpression(pose) {
-  const lookLeft = pose === 'point-left';
-  const lookRight = ['point-right', 'think'].includes(pose);
+  const lookLeft = ['point-left', 'pointing-at-tape', 'skeptical'].includes(pose);
+  const lookRight = ['point-right', 'think', 'reviewing-tablet', 'note-taking', 'calling-play'].includes(pose);
   const pupilShift = lookLeft ? -4 : lookRight ? 4 : 0;
   const brows = {
     concern: ['M 253 128 Q 268 116 283 123', 'M 318 123 Q 333 116 348 128'],
     warning: ['M 253 126 Q 270 114 285 124', 'M 318 124 Q 334 114 349 126'],
+    rallying: ['M 251 118 Q 269 106 287 116', 'M 313 116 Q 333 106 351 118'],
+    'coaching-crouch': ['M 253 126 Q 270 116 286 123', 'M 316 123 Q 333 116 349 126'],
+    'calling-play': ['M 252 123 Q 270 112 288 121', 'M 313 121 Q 333 112 352 123'],
+    'time-out': ['M 253 127 Q 270 113 286 123', 'M 316 123 Q 333 113 349 127'],
+    'whistle-blow': ['M 253 121 Q 270 113 286 119', 'M 316 119 Q 333 113 349 121'],
+    'reviewing-tablet': ['M 253 124 Q 270 118 286 122', 'M 316 122 Q 333 118 349 124'],
+    'head-in-hands': ['M 254 121 Q 270 134 286 128', 'M 316 128 Q 332 134 348 121'],
+    'fist-bump': ['M 251 118 Q 270 106 288 116', 'M 313 116 Q 333 106 352 118'],
+    'note-taking': ['M 253 123 Q 270 116 286 121', 'M 316 121 Q 333 116 349 123'],
+    laughing: ['M 252 119 Q 270 109 288 117', 'M 313 117 Q 333 109 351 119'],
+    skeptical: ['M 251 115 Q 270 103 289 116', 'M 315 128 Q 333 121 350 129'],
+    proud: ['M 253 118 Q 270 110 286 116', 'M 316 116 Q 333 110 349 118'],
+    facepalm: ['M 254 122 Q 270 132 286 128', 'M 316 128 Q 332 132 348 122'],
+    frustrated: ['M 253 132 Q 270 116 286 126', 'M 316 126 Q 333 116 349 132'],
+    tired: ['M 254 122 Q 270 131 286 127', 'M 316 127 Q 332 131 348 122'],
+    'pointing-at-tape': ['M 253 124 Q 270 112 286 121', 'M 316 121 Q 333 112 349 124'],
     sad: ['M 254 120 Q 270 132 286 126', 'M 316 126 Q 332 132 348 120'],
     disappointed: ['M 254 122 Q 270 132 286 128', 'M 316 128 Q 332 132 348 122'],
     surprised: ['M 252 112 Q 270 101 288 111', 'M 314 111 Q 333 101 351 112'],
@@ -125,6 +248,23 @@ function faceExpression(pose) {
     talk: `<path d="M 270 184 Q 300 203 330 184 Q 318 219 300 219 Q 281 219 270 184 Z" fill="${colors.ink}"/><path d="M 286 206 Q 300 214 314 206" stroke="${colors.skinShade}" stroke-width="4" fill="none"/>`,
     celebrate: `<path d="M 266 181 Q 300 224 334 181" fill="none" stroke="${colors.ink}" stroke-width="8" stroke-linecap="round"/>`,
     excited: `<path d="M 264 181 Q 300 220 336 181" fill="none" stroke="${colors.ink}" stroke-width="8" stroke-linecap="round"/>`,
+    rallying: `<path d="M 268 181 Q 300 203 332 181 Q 323 225 300 225 Q 277 225 268 181 Z" fill="${colors.ink}"/><path d="M 286 209 Q 300 218 314 209" stroke="${colors.skinShade}" stroke-width="4" fill="none"/>`,
+    'coaching-crouch': `<path d="M 274 193 Q 300 184 326 193" fill="none" stroke="${colors.ink}" stroke-width="7" stroke-linecap="round"/>`,
+    'calling-play': `<path d="M 270 184 Q 300 203 330 184 Q 318 214 300 214 Q 281 214 270 184 Z" fill="${colors.ink}"/>`,
+    'time-out': `<path d="M 276 194 Q 300 198 324 194" fill="none" stroke="${colors.ink}" stroke-width="7" stroke-linecap="round"/>`,
+    'whistle-blow': `<ellipse cx="300" cy="192" rx="11" ry="9" fill="${colors.ink}"/>`,
+    'coffee-sip': `<path d="M 276 189 Q 300 203 324 189" fill="none" stroke="${colors.ink}" stroke-width="6" stroke-linecap="round"/>`,
+    'on-phone': `<path d="M 276 194 Q 300 189 324 194" fill="none" stroke="${colors.ink}" stroke-width="6" stroke-linecap="round"/>`,
+    'reviewing-tablet': `<path d="M 276 194 Q 300 198 324 194" fill="none" stroke="${colors.ink}" stroke-width="6" stroke-linecap="round"/>`,
+    'head-in-hands': `<path d="M 274 201 Q 300 184 326 201" fill="none" stroke="${colors.ink}" stroke-width="7" stroke-linecap="round"/>`,
+    'fist-bump': `<path d="M 266 181 Q 300 218 334 181" fill="none" stroke="${colors.ink}" stroke-width="8" stroke-linecap="round"/>`,
+    'note-taking': `<path d="M 276 193 Q 300 198 324 193" fill="none" stroke="${colors.ink}" stroke-width="6" stroke-linecap="round"/>`,
+    laughing: `<path d="M 264 181 Q 300 224 336 181 Q 323 231 300 231 Q 277 231 264 181 Z" fill="${colors.ink}"/><path d="M 281 213 Q 300 224 319 213" stroke="${colors.skinShade}" stroke-width="5" fill="none"/>`,
+    skeptical: `<path d="M 274 199 Q 300 188 326 199" fill="none" stroke="${colors.ink}" stroke-width="7" stroke-linecap="round"/>`,
+    proud: `<path d="M 270 186 Q 300 207 330 186" fill="none" stroke="${colors.ink}" stroke-width="7" stroke-linecap="round"/>`,
+    facepalm: `<path d="M 274 201 Q 300 185 326 201" fill="none" stroke="${colors.ink}" stroke-width="7" stroke-linecap="round"/>`,
+    frustrated: `<path d="M 276 196 L 324 196" fill="none" stroke="${colors.ink}" stroke-width="7" stroke-linecap="round"/>`,
+    tired: `<path d="M 276 198 Q 300 190 324 198" fill="none" stroke="${colors.ink}" stroke-width="6" stroke-linecap="round"/>`,
     sad: `<path d="M 274 201 Q 300 184 326 201" fill="none" stroke="${colors.ink}" stroke-width="7" stroke-linecap="round"/>`,
     disappointed: `<path d="M 274 198 Q 300 187 326 198" fill="none" stroke="${colors.ink}" stroke-width="7" stroke-linecap="round"/>`,
     surprised: `<ellipse cx="300" cy="193" rx="15" ry="23" fill="${colors.ink}"/>`,
@@ -146,7 +286,7 @@ function faceExpression(pose) {
 }
 
 function baseBody(pose) {
-  const slumped = pose === 'sad';
+  const slumped = ['sad', 'tired', 'facepalm', 'head-in-hands'].includes(pose);
   const shoulderY = slumped ? 248 : 228;
   const headY = slumped ? 142 : 128;
 
@@ -244,6 +384,57 @@ function armLayer(pose) {
       return `${arm([leftShoulder, [162, 318], [184, 385]])}${clipboard(170, 345)}${arm([rightShoulder, [455, 244], [498, 218]], 'open', true)}`;
     case 'whispering':
       return `${arm([leftShoulder, [162, 318], [184, 385]])}${clipboard(170, 345)}${arm([rightShoulder, [400, 220], [366, 178]], 'open', true)}`;
+    case 'rallying':
+      return `${arm([leftShoulder, [168, 134], [181, 58]], 'fist')}${arm([rightShoulder, [432, 134], [419, 58]], 'fist', true)}`;
+    case 'coaching-crouch':
+      return `${arm([[198, 262], [162, 360], [200, 430]], 'fist')}${arm([[402, 262], [438, 360], [400, 430]], 'fist', true)}`;
+    case 'calling-play':
+      return `${arm([leftShoulder, [176, 254], [225, 307]], 'open')}${arm([rightShoulder, [424, 240], [380, 302]], 'open', true)}${clipboard(300, 322, -2)}`;
+    case 'time-out':
+      return `
+        ${stroke([[198, 250], [250, 210], [300, 210]], colors.polo, 35)}
+        ${stroke([[402, 250], [350, 210], [300, 210]], colors.polo, 35)}
+        ${stroke([[250, 210], [300, 210]], colors.skinLight, 27)}
+        ${stroke([[350, 210], [300, 210]], colors.skinLight, 27)}
+        ${hand(300, 210, 'open')}
+        ${stroke([[300, 175], [300, 247]], colors.skinLight, 23)}
+        ${hand(300, 171, 'open')}
+      `;
+    case 'whistle-blow':
+      return `${arm([leftShoulder, [162, 318], [184, 385]])}${clipboard(170, 345)}${arm([rightShoulder, [424, 220], [363, 181]], 'open', true)}${whistle(314, 190, -8)}`;
+    case 'coffee-sip':
+      return `${arm([leftShoulder, [162, 318], [184, 385]])}${clipboard(170, 345)}${arm([rightShoulder, [424, 238], [366, 190]], 'fist', true)}${mug(365, 184, -12)}`;
+    case 'on-phone':
+      return `${arm([leftShoulder, [162, 318], [184, 385]])}${clipboard(170, 345)}${arm([rightShoulder, [435, 216], [382, 136]], 'fist', true)}${phone(390, 136, 12)}`;
+    case 'reviewing-tablet':
+      return `${arm([leftShoulder, [214, 316], [240, 382]], 'fist')}${arm([rightShoulder, [386, 316], [360, 382]], 'fist', true)}${tablet(300, 363, 0, 1.05)}`;
+    case 'head-in-hands':
+      return `${arm([[198, 268], [217, 214], [246, 156]], 'open')}${arm([[402, 268], [383, 214], [354, 156]], 'open', true)}`;
+    case 'fist-bump':
+      return `${arm([leftShoulder, [162, 318], [184, 385]])}${clipboard(170, 345)}${stroke([[400, 252], [455, 250], [500, 258]], colors.polo, 35)}${stroke([[455, 250], [500, 258]], colors.skinLight, 29)}${frontFist(511, 260)}`;
+    case 'note-taking':
+      return `${arm([leftShoulder, [158, 320], [190, 386]])}${clipboard(186, 364, -6)}${arm([rightShoulder, [385, 312], [252, 352]], 'fist', true)}${pen(268, 343, -62)}`;
+    case 'laughing':
+      return `${arm([leftShoulder, [154, 300], [210, 366]], 'open')}${arm([rightShoulder, [446, 300], [390, 366]], 'open', true)}`;
+    case 'skeptical':
+      return `
+        ${stroke([[198, 265], [265, 322], [360, 303]], colors.polo, 36)}
+        ${stroke([[225, 326], [318, 304], [402, 336]], colors.skinLight, 27)}
+        ${hand(365, 304, 'fist')}
+        ${hand(230, 336, 'fist')}
+      `;
+    case 'proud':
+      return `${arm([leftShoulder, [170, 320], [202, 420]], 'fist')}${arm([rightShoulder, [430, 320], [398, 420]], 'fist', true)}`;
+    case 'facepalm':
+      return `${arm([[198, 268], [224, 225], [280, 158]], 'open')}${arm([[402, 268], [438, 374], [430, 474]], 'fist', true)}`;
+    case 'frustrated':
+      return `${arm([leftShoulder, [150, 330], [146, 430]], 'fist')}${arm([rightShoulder, [450, 330], [454, 430]], 'fist', true)}`;
+    case 'tired':
+      return `${arm([[198, 268], [170, 344], [178, 444]], 'fist')}${arm([[402, 268], [388, 220], [348, 166]], 'open', true)}${mug(178, 443, 5)}`;
+    case 'football-in-hand':
+      return `${arm([leftShoulder, [162, 318], [184, 385]])}${clipboard(170, 345)}${arm([rightShoulder, [440, 300], [470, 382]], 'fist', true)}${football(477, 378, -16)}`;
+    case 'pointing-at-tape':
+      return `${tapeBoard(452, 305)}${arm([leftShoulder, [162, 318], [184, 385]])}${clipboard(170, 345)}${arm([rightShoulder, [462, 270], [510, 302]], 'open', true)}`;
     case 'idle':
     default:
       return `${arm([leftShoulder, [162, 318], [184, 385]])}${clipboard(170, 345)}${arm([rightShoulder, [424, 337], [398, 420]], 'fist', true)}`;
@@ -254,6 +445,12 @@ function poseExtras(pose) {
   const marks = {
     celebrate: `<path d="M 120 88 L 92 56 M 472 84 L 506 52" stroke="${colors.gold}" stroke-width="10" stroke-linecap="round"/>`,
     excited: `<path d="M 104 178 L 70 152 M 497 178 L 530 152" stroke="${colors.cyan}" stroke-width="8" stroke-linecap="round"/>`,
+    rallying: `<path d="M 101 112 L 68 83 M 499 112 L 532 83 M 300 64 L 300 28" stroke="${colors.gold}" stroke-width="9" stroke-linecap="round"/>`,
+    'time-out': `<path d="M 280 112 L 320 112 M 300 92 L 300 136" stroke="${colors.gold}" stroke-width="8" stroke-linecap="round"/>`,
+    'whistle-blow': `<path d="M 382 185 L 420 162 M 389 207 L 431 208" stroke="${colors.cyan}" stroke-width="6" stroke-linecap="round"/>`,
+    laughing: `<path d="M 136 132 L 104 105 M 465 132 L 498 105" stroke="${colors.cyan}" stroke-width="7" stroke-linecap="round"/>`,
+    proud: `<path d="M 118 183 L 90 170 M 482 183 L 510 170" stroke="${colors.gold}" stroke-width="7" stroke-linecap="round"/>`,
+    frustrated: `<path d="M 96 248 L 68 238 M 504 248 L 532 238" stroke="#e85f5f" stroke-width="8" stroke-linecap="round"/>`,
     warning: `<path d="M 505 174 L 526 143 M 523 205 L 560 194" stroke="${colors.gold}" stroke-width="7" stroke-linecap="round"/>`,
     surprised: `<path d="M 144 128 L 112 96 M 455 128 L 488 96" stroke="${colors.cyan}" stroke-width="8" stroke-linecap="round"/>`,
   };
@@ -262,9 +459,14 @@ function poseExtras(pose) {
 
 function svgForPose(pose, variant) {
   const spec = variant === 'inline' ? INLINE : FULL;
+  const transform = pose === 'coaching-crouch'
+    ? 'translate(0 58) scale(1 0.92)'
+    : ['sad', 'tired', 'facepalm', 'head-in-hands'].includes(pose)
+      ? 'translate(0 10)'
+      : '';
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${spec.width}" height="${spec.height}" viewBox="${spec.viewBox}">
-  <g transform="${pose === 'sad' ? 'translate(0 10)' : ''}">
+  <g transform="${transform}">
     ${baseBody(pose)}
     ${armLayer(pose)}
     ${poseExtras(pose)}
@@ -280,6 +482,15 @@ async function renderSvg(page, svg, outPath, spec) {
     omitBackground: true,
     animations: 'disabled',
   });
+}
+
+async function fileExists(filePath) {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function dataUrl(filePath) {
@@ -353,8 +564,14 @@ async function main() {
   const page = await browser.newPage({ deviceScaleFactor: 1 });
   try {
     for (const [pose, fileName] of POSES) {
-      await renderSvg(page, svgForPose(pose, 'full'), resolve(CHIP_DIR, fileName), FULL);
-      await renderSvg(page, svgForPose(pose, 'inline'), resolve(INLINE_DIR, fileName), INLINE);
+      const fullPath = resolve(CHIP_DIR, fileName);
+      const inlinePath = resolve(INLINE_DIR, fileName);
+      if (REGENERATE_EXISTING || !(await fileExists(fullPath))) {
+        await renderSvg(page, svgForPose(pose, 'full'), fullPath, FULL);
+      }
+      if (REGENERATE_EXISTING || !(await fileExists(inlinePath))) {
+        await renderSvg(page, svgForPose(pose, 'inline'), inlinePath, INLINE);
+      }
     }
     if (CONTACT_SHEET) {
       await mkdir(resolve(CONTACT_SHEET, '..'), { recursive: true });
