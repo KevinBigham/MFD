@@ -190,6 +190,16 @@ async function expectNoOverlap(first, second, label) {
   expect(overlap, label).toBe(false);
 }
 
+async function advanceColdOpenToAgmHire(page) {
+  for (let index = 0; index < 5; index += 1) {
+    await primaryColdOpenAction(page).click();
+  }
+  await expect(page.getByRole('button', { name: 'MAKE THIS YOUR AGM' })).toBeVisible();
+  await expect(page.locator('[data-chip-host-portrait="true"] img[data-chip-image-pose="talk"]')).toBeVisible({
+    timeout: 6_000,
+  });
+}
+
 test('cold-open primary action stays in Chip column at all v3 viewports', async ({ page }) => {
   await mkdir(evidenceDir, { recursive: true });
 
@@ -225,12 +235,20 @@ test('Chip PNG art is readable across cold-open and dock surfaces', async ({ pag
     );
     metrics.push(hostMetric);
 
+    if (viewport.name === 'desktop') {
+      await advanceColdOpenToAgmHire(page);
+      await screenshot(hostPortrait, 'desktop-setup-portrait-talk.png');
+      const talkMetric = await measureChip(hostPortrait, 'setup portrait talk', viewport.name);
+      await expectReadableChip(talkMetric, { squareInline: true });
+      metrics.push(talkMetric);
+    }
+
     await openDemoDock(page, viewport);
 
     const expandedDock = page.locator('[data-chip-dock-state="expanded"]');
     await expect(expandedDock).toBeVisible();
-    await screenshot(expandedDock, `${viewport.name}-dock-expanded-route-pose.png`);
-    const expandedMetric = await measureChip(expandedDock.locator('.mfd-chip-dock__portrait'), 'expanded dock', viewport.name);
+    await screenshot(expandedDock, `${viewport.name}-dock-expanded-idle.png`);
+    const expandedMetric = await measureChip(expandedDock.locator('.mfd-chip-dock__portrait'), 'expanded dock idle', viewport.name);
     await expectReadableChip(expandedMetric);
     await expectNoOverlap(
       expandedDock.locator('.mfd-chip-dock__portrait .mfd-chip__art-frame'),
@@ -238,6 +256,13 @@ test('Chip PNG art is readable across cold-open and dock surfaces', async ({ pag
       `${viewport.name} expanded dock portrait does not overlap text content`,
     );
     metrics.push(expandedMetric);
+
+    await expandedDock.getByRole('button', { name: 'Where am I?' }).click();
+    await expect(expandedDock.locator('[data-chip-live-beat="chip.dock.summary"]')).toBeVisible();
+    await screenshot(expandedDock, `${viewport.name}-dock-expanded-think.png`);
+    const thinkMetric = await measureChip(expandedDock.locator('.mfd-chip-dock__portrait'), 'expanded dock think', viewport.name);
+    await expectReadableChip(thinkMetric);
+    metrics.push(thinkMetric);
 
     await expandedDock.getByRole('button', { name: 'Collapse Chip dock' }).click();
     const collapsedDock = page.locator('[data-chip-dock-state="collapsed"]');
