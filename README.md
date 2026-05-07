@@ -2,8 +2,9 @@
 
 Browser-based football franchise dynasty simulation. Build a team, manage the cap, survive the media cycle, and carry one save across seasons.
 
-**Version:** v1.0.0  
-**Play:** [kevinbigham.github.io/MFD](https://kevinbigham.github.io/MFD/)
+### ▶︎ [Play Now → kevinbigham.github.io/MFD](https://kevinbigham.github.io/MFD/)
+
+**Version:** v1.0.0 · **Save schema:** v35
 
 ## Screenshots
 
@@ -29,8 +30,21 @@ MFD is a single-player franchise sim with deterministic seasons, seeded RNG, sta
 - Build coaching staffs, weekly prep, game plans, locker room chemistry, facilities, and scouting departments.
 - Watch games through broadcast packages, game flow, play-by-play, standings, records, awards, and media-cycle fallout.
 - Preserve careers through Hall of Fame, franchise legends, bloodlines, timelines, scrapbook entries, and GM career history.
+- Get coached by Chip — your in-game companion — across the cold open, weekly briefings, route guidance, halftime, recap, press, achievements, and high-stakes moments.
 
 What it is not: a multiplayer service, a card collector, or a server-backed live-ops game. Everything runs in the browser.
+
+## Meet Chip
+
+Chip is your franchise's permanent sideline voice. He shows up across 36 distinct poses tied to in-game context — calling plays at halftime, working the phones at the trade deadline, rallying after a touchdown, head-in-hands when the cap projection breaks, fist-bumping when you lock in a decision, proud after an achievement unlock.
+
+<p>
+  <img src="apps/web/public/assets/chip/pose-rallying.png" alt="Chip rallying" height="180" />
+  <img src="apps/web/public/assets/chip/pose-calling-play.png" alt="Chip calling a play" height="180" />
+  <img src="apps/web/public/assets/chip/pose-on-phone.png" alt="Chip on the phone" height="180" />
+  <img src="apps/web/public/assets/chip/pose-proud.png" alt="Chip proud" height="180" />
+  <img src="apps/web/public/assets/chip/pose-head-in-hands.png" alt="Chip stressed" height="180" />
+</p>
 
 ## Start A Dynasty
 
@@ -41,13 +55,13 @@ What it is not: a multiplayer service, a card collector, or a server-backed live
 
 ## Tech Stack
 
-TypeScript monorepo, pure engine package, React 19 web app, Zustand state, Dexie/IndexedDB saves, Vite build, Vitest coverage, GitHub Pages deploy.
+TypeScript monorepo, pure engine package, React 19 web app, Zustand state, Dexie/IndexedDB saves, Vite build, Vitest coverage, GitHub Pages deploy. Chip's portrait set is generated procedurally from a single rig (`scripts/generate-chip-v3-art.cjs`), so the cast stays visually consistent across all poses.
 
 ## Contributor Setup
 
 ```bash
 git clone git@github.com:KevinBigham/MFD.git
-cd MFD/mfd
+cd MFD
 pnpm install
 
 pnpm dev
@@ -66,9 +80,15 @@ bash scripts/smoke-full-season.sh
 pnpm playtest:all
 ```
 
+Regenerate Chip's portrait atlas (only needed if you add or change a pose):
+
+```bash
+node scripts/generate-chip-v3-art.cjs
+```
+
 ## Release Notes
 
-See [CHANGELOG.md](CHANGELOG.md). v1.0.0 ships with save schema v35 and the Sprint 72 deterministic playtest-report cleanup.
+See [CHANGELOG.md](CHANGELOG.md). v1.0.0 ships with save schema v35 and the Sprint 72 deterministic playtest-report cleanup. Recent post-launch polish: the Chip companion has been rebuilt on a unified procedural rig, expanded from 17 → 36 poses, and wired into 11 previously-generic surfaces (training camp, trade deadline, expansion draft, halftime, recap, press, achievement-unlock toast, and more).
 
 ## License
 
