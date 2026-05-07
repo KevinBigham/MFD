@@ -58,14 +58,20 @@ describe('App Chip setup wiring', () => {
     // franchise in the same SPA session would see Chip onboarding twice.
     expect(content).not.toMatch(/useMemo\(\(\) => isChipNewGameSetup/);
     expect(content).not.toMatch(/const chipNewGame = useMemo/);
-    expect(content).toContain('<ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>');
+    expect(content).toContain('const chipNewGameSetup = isChipNewGameSetup();');
+    expect(content).toContain('newGame={chipNewGameSetup}');
   });
 
   it('wraps FranchiseSetupWizard in ChipHost at the setup gate', () => {
     expect(content).toContain('ChipHost');
-    expect(content).toContain('<ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>');
+    expect(content).toContain('<ChipHost');
+    expect(content).toContain('stages={CHIP_FRANCHISE_SETUP_STAGES}');
+    expect(content).toContain('companionAction={setupCompanionAction}');
+    expect(content).toContain('onCompanionVisibleChange={setSetupCompanionVisible}');
     expect(content).toContain('{({ onStageAdvance }) => (');
-    expect(content).toContain('<FranchiseSetupWizard onStageAdvance={onStageAdvance} />');
+    expect(content).toContain('companionPrimaryActionActive={setupCompanionVisible}');
+    expect(content).toContain('onCompanionActionChange={(action) => setSetupCompanionAction(action)}');
+    expect(content).toContain('onStageAdvance={onStageAdvance}');
     expect(content).toContain('</ChipHost>');
   });
 

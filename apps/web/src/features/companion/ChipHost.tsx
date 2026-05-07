@@ -42,6 +42,8 @@ export interface ChipHostProps {
   newGame: boolean;
   stages: ChipHostStage[];
   children: ReactNode | ((controls: ChipHostRenderControls) => ReactNode);
+  companionAction?: ReactNode;
+  onCompanionVisibleChange?: (visible: boolean) => void;
   reducedMotion?: boolean;
   storage?: Storage | null;
   now?: () => Date;
@@ -148,6 +150,8 @@ export function ChipHost({
   newGame,
   stages,
   children,
+  companionAction,
+  onCompanionVisibleChange,
   reducedMotion = false,
   storage,
   now = () => new Date(),
@@ -171,6 +175,7 @@ export function ChipHost({
     reducedMotion,
   });
   const revealComplete = !shouldPlayReveal || revealFrame.complete;
+  const companionVisible = Boolean(enabled && newGame && !skipped && !hostDismissed && currentDialogue);
   const spotlightTargetId = resolveChipHostSpotlightTarget({
     beatIndex,
     stageId: activeStageId,
@@ -225,6 +230,16 @@ export function ChipHost({
     [],
   );
 
+  const primaryActionStyle = useMemo(
+    () => ({
+      display: 'grid',
+      gap: 'var(--mfd-sp-xs)',
+      justifyItems: 'stretch',
+      width: '100%',
+    }),
+    [],
+  );
+
   const portraitButtonStyle = useMemo(
     () => ({
       display: 'grid',
@@ -264,6 +279,10 @@ export function ChipHost({
     }),
     [],
   );
+
+  useEffect(() => {
+    onCompanionVisibleChange?.(companionVisible);
+  }, [companionVisible, onCompanionVisibleChange]);
 
   useEffect(() => {
     useChipStore.getState().setSpotlightTarget(spotlightTargetId);
@@ -400,9 +419,15 @@ export function ChipHost({
             </div>
           ) : null}
           <div data-chip-host-controls="true" style={controlsStyle}>
-            <div style={{ color: 'var(--mfd-gold)', fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', lineHeight: 1.45 }}>
-              Click the gold button when ready.
-            </div>
+            {companionAction ? (
+              <div data-chip-host-primary-action="true" style={primaryActionStyle}>
+                {companionAction}
+              </div>
+            ) : (
+              <div style={{ color: 'var(--mfd-gold)', fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', lineHeight: 1.45 }}>
+                Click the gold button when ready.
+              </div>
+            )}
             <PixelButton accent="cyan" onClick={skip}>
               Skip
             </PixelButton>

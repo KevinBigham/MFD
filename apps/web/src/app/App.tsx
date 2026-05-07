@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { RouterProvider, createRouter, createRootRoute, createRoute, createHashHistory, Outlet, useRouter, useRouterState } from '@tanstack/react-router';
 import {
   LayoutDashboard, Users, DollarSign, ArrowLeftRight,
@@ -1952,6 +1952,8 @@ function PostSetupApp() {
 export function App() {
   const boot = useBootSequence();
   const gameLoaded = useGameStore((s) => s.initialized);
+  const [setupCompanionAction, setSetupCompanionAction] = useState<ReactNode | null>(null);
+  const [setupCompanionVisible, setSetupCompanionVisible] = useState(false);
   const setupIncomplete = useGameStore((s) => {
     if (!s.game?.setupState) return false;
     return s.game.setupState.completedPhases.length < PHASE_ORDER.length;
@@ -1969,12 +1971,22 @@ export function App() {
     // Read first-ten marker fresh on each render (PR #18 P2 fix): a memoized
     // chipNewGame would go stale if a user finishes setup and starts another
     // franchise within the same SPA session.
+    const chipNewGameSetup = isChipNewGameSetup();
     return (
       <>
-        <PoseEventEmitter firstLaunchActive={isChipNewGameSetup()} />
-        <ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>
+        <PoseEventEmitter firstLaunchActive={chipNewGameSetup} />
+        <ChipHost
+          newGame={chipNewGameSetup}
+          stages={CHIP_FRANCHISE_SETUP_STAGES}
+          companionAction={setupCompanionAction}
+          onCompanionVisibleChange={setSetupCompanionVisible}
+        >
           {({ onStageAdvance }) => (
-            <FranchiseSetupWizard onStageAdvance={onStageAdvance} />
+            <FranchiseSetupWizard
+              companionPrimaryActionActive={setupCompanionVisible}
+              onCompanionActionChange={(action) => setSetupCompanionAction(action)}
+              onStageAdvance={onStageAdvance}
+            />
           )}
         </ChipHost>
       </>
