@@ -80,6 +80,7 @@ import { syncRookieOfYearAtYearRollover } from './rookie-of-year-rollover';
 import { PlayoffLorePrompt } from '../features/playoffs/PlayoffLorePrompt';
 import { EraTransitionEmitter } from '../features/dynasty-era/EraTransitionEmitter';
 import { ChampionshipParadeEmitter } from '../features/playoffs/ChampionshipParadeEmitter';
+import './app-shell.css';
 
 const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
 const LazyDraftBoard = lazy(async () => ({ default: (await import('../features/draft/DraftBoard')).DraftBoard }));
@@ -477,14 +478,18 @@ function RootLayout() {
 
   return (
     <MfdTooltipProvider>
-      <div style={{
+      <div
+        className="mfd-app-shell"
+        data-mfd-app-shell="true"
+        style={{
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--mfd-bg)',
         color: 'var(--mfd-text)',
         fontFamily: 'var(--mfd-font-sans)',
-      }}>
+      }}
+      >
         <AudioController />
         <EraTransitionEmitter />
         <ChampionshipParadeEmitter />
@@ -502,6 +507,7 @@ function RootLayout() {
         />
         {showTicker ? <BreakingNewsTicker items={tickerItems} /> : null}
         <main
+          className="mfd-app-main"
           data-mfd-main-content="true"
           style={{
             flex: 1,
@@ -649,9 +655,10 @@ function NavGroupSection({
   const hasActive = items.some((i) => i.path === activePath);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+    <div className="mfd-app-nav-group" data-mfd-nav-group={group.id} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
       <button
         type="button"
+        className="mfd-app-nav-group-toggle"
         data-mfd-nav-item="true"
         onClick={onToggle}
         style={{
@@ -673,13 +680,14 @@ function NavGroupSection({
         {group.label}
       </button>
       {expanded && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', paddingLeft: '4px' }}>
+        <div className="mfd-app-nav-items" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', paddingLeft: '4px' }}>
           {items.map((item) => {
             const active = item.path === activePath;
             const highlighted = item.path === highlightedPath;
             return (
               <div
                 key={item.path}
+                className="mfd-app-nav-item-frame"
                 style={{
                   animation: highlighted ? 'mfdTutorialPulse 1.2s infinite' : undefined,
                   border: highlighted ? '2px solid rgba(255, 215, 0, 0.85)' : '2px solid transparent',
@@ -687,8 +695,11 @@ function NavGroupSection({
               >
                 <button
                   type="button"
+                  className="mfd-app-nav-button"
                   data-nav={item.path}
                   data-mfd-nav-item="true"
+                  data-active={active ? 'true' : 'false'}
+                  data-highlighted={highlighted ? 'true' : 'false'}
                   onClick={() => { void router.navigate({ to: item.path }); }}
                   style={{
                     display: 'inline-flex',
@@ -709,9 +720,9 @@ function NavGroupSection({
                   }}
                 >
                   {item.icon}
-                  <span>{item.shortLabel.toUpperCase()}</span>
+                  <span className="mfd-app-nav-button-label">{item.shortLabel.toUpperCase()}</span>
                   {(badges[item.path] ?? 0) > 0 && (
-                    <span style={{
+                    <span className="mfd-app-nav-badge" style={{
                       width: '8px',
                       height: '8px',
                       borderRadius: '50%',
@@ -854,6 +865,7 @@ function TopNav({
 
   return (
     <header
+      className="mfd-app-top-nav"
       data-mfd-top-nav="true"
       style={{
         display: 'flex',
@@ -866,13 +878,17 @@ function TopNav({
         overflowX: 'auto',
       }}
     >
-      <div style={{
+      <div
+        className="mfd-app-brand-lockup"
+        data-mfd-brand-lockup="true"
+        style={{
         display: 'flex',
         flexDirection: 'column',
         gap: '4px',
         paddingRight: '8px',
         flexShrink: 0,
-      }}>
+      }}
+      >
         <span style={{
           fontFamily: 'var(--mfd-font-pixel)',
           fontSize: '8px',
@@ -892,7 +908,7 @@ function TopNav({
         </span>
       </div>
 
-      <div style={{
+      <div className="mfd-app-nav-groups" style={{
         flex: 1,
         minWidth: '280px',
         display: 'flex',
@@ -919,7 +935,7 @@ function TopNav({
         })}
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+      <div className="mfd-app-nav-actions" data-mfd-nav-actions="true" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
         <UndoButton />
         <AudioToggle />
         <button

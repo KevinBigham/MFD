@@ -9,6 +9,7 @@ import {
   type SubscribableStore,
 } from './eventBridge';
 import { createDefaultDockPrefs, type DockPrefs } from './dockPersistence';
+import { buildWeeklyGuidance } from './weeklyGuidance';
 
 class FakeStore<TState> implements SubscribableStore<TState> {
   private state: TState;
@@ -120,6 +121,30 @@ describe('createChipEventBridge', () => {
         occurredAt: '2026-04-29T20:00:00.000Z',
       },
     ]);
+  });
+
+  it('attaches ranked weekly guidance to weekRollover events when available', () => {
+    const { bridge, gameStore, events } = setupBridge();
+    const weeklyGuidance = buildWeeklyGuidance({
+      currentWeek: 6,
+      currentSeason: 2026,
+      phase: 'regular_season',
+      outcome: 'loss',
+      record: '2-4',
+      injuredStarterCount: 0,
+      injuryCount: 0,
+      capSpace: -4,
+      ownerMood: 50,
+      chemistry: 50,
+      pendingDecisions: 0,
+      hasGamePlan: true,
+      difficulty: 'standard',
+    });
+    bridge.start();
+
+    gameStore.setState(makeGame({ currentWeek: 2, weeklyOutcome: 'loss', weeklyGuidance }));
+
+    expect(events[0]?.weeklyGuidance).toEqual(weeklyGuidance);
   });
 
   it('frequency-caps duplicate emissions for the same week', () => {

@@ -21,6 +21,7 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 import { playSound } from '../audio/AudioManager';
+import { buildDecisionImpactExplanation, decisionImpactToConsequenceItems } from '../companion/decisionImpact';
 
 interface ChecklistItem {
   id: string;
@@ -123,6 +124,15 @@ export function WeekAdvance() {
   const issueCount = checklist.filter((c) => c.status !== 'done').length;
   const starters = roster.filter((p) => p.isStarter).length;
   const injuredCount = roster.filter((p) => p.injury).length;
+  const advanceImpact = useMemo(
+    () => buildDecisionImpactExplanation({
+      surface: 'week-advance',
+      label: 'Week advance',
+      issueCount,
+      difficulty: 'standard',
+    }),
+    [issueCount],
+  );
 
   const teams = useGameStore(selectTeams);
   const opponent = matchup?.opponentId && teams ? teams[matchup.opponentId] : null;
@@ -263,6 +273,10 @@ export function WeekAdvance() {
             { id: 'c3', label: 'System Fit', delta: '+1 weekly reps', accent: 'cyan' },
           ]}
         />
+      </PixelPanel>
+
+      <PixelPanel title="Decision Impact" accent={advanceImpact.severity === 'high' ? 'red' : 'gold'}>
+        <PixelConsequenceList items={decisionImpactToConsequenceItems(advanceImpact)} />
       </PixelPanel>
 
       {advancing ? (

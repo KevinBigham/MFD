@@ -13,9 +13,9 @@ const allBeats: readonly RouteBeat[] = ROUTE_KEYS.reduce<RouteBeat[]>(
 );
 
 describe('route beat registry', () => {
-  it('keeps total route beats inside the locked sprint range', () => {
-    expect(allBeats.length).toBeGreaterThanOrEqual(12);
-    expect(allBeats.length).toBeLessThanOrEqual(18);
+  it('keeps total route beats inside the Chip marathon range', () => {
+    expect(allBeats.length).toBeGreaterThanOrEqual(30);
+    expect(allBeats.length).toBeLessThanOrEqual(34);
   });
 
   it('gives every coached route at least two beats', () => {
@@ -50,14 +50,24 @@ describe('route beat registry', () => {
     }
   });
 
-  it('uses the exact six-route coaching key set', () => {
+  it('uses the expanded first-season coaching key set', () => {
     const expected: RouteKey[] = [
+      'briefing',
       'roster',
+      'depth-chart',
       'staff',
+      'game-plan',
+      'week-advance',
+      'inbox',
+      'contracts',
       'cap-laboratory',
-      'draft-board',
       'trade-center',
+      'draft-board',
       'scouting-board',
+      'league-pulse',
+      'standings',
+      'film-room',
+      'settings',
     ];
 
     expect(ROUTE_KEYS).toEqual(expected);
@@ -66,12 +76,22 @@ describe('route beat registry', () => {
 
   it('keeps beat order stable by route and beat number', () => {
     expect(ROUTE_KEYS.map((routeKey) => ROUTE_BEAT_REGISTRY[routeKey].map((beat) => beat.id))).toEqual([
+      ['chip.route.briefing.beat-1', 'chip.route.briefing.beat-2'],
       ['chip.route.roster.beat-1', 'chip.route.roster.beat-2'],
+      ['chip.route.depth-chart.beat-1', 'chip.route.depth-chart.beat-2'],
       ['chip.route.staff.beat-1', 'chip.route.staff.beat-2'],
+      ['chip.route.game-plan.beat-1', 'chip.route.game-plan.beat-2'],
+      ['chip.route.week-advance.beat-1', 'chip.route.week-advance.beat-2'],
+      ['chip.route.inbox.beat-1', 'chip.route.inbox.beat-2'],
+      ['chip.route.contracts.beat-1', 'chip.route.contracts.beat-2'],
       ['chip.route.cap-laboratory.beat-1', 'chip.route.cap-laboratory.beat-2'],
-      ['chip.route.draft-board.beat-1', 'chip.route.draft-board.beat-2'],
       ['chip.route.trade-center.beat-1', 'chip.route.trade-center.beat-2'],
+      ['chip.route.draft-board.beat-1', 'chip.route.draft-board.beat-2'],
       ['chip.route.scouting-board.beat-1', 'chip.route.scouting-board.beat-2'],
+      ['chip.route.league-pulse.beat-1', 'chip.route.league-pulse.beat-2'],
+      ['chip.route.standings.beat-1', 'chip.route.standings.beat-2'],
+      ['chip.route.film-room.beat-1', 'chip.route.film-room.beat-2'],
+      ['chip.route.settings.beat-1', 'chip.route.settings.beat-2'],
     ]);
   });
 });

@@ -56,5 +56,7 @@ describe('WeekAdvance', () => {
     expect(markup).toContain('GAME PLAN');
     expect(markup).toContain('Plan Needed');
     expect(markup).toContain('Prepare Game Plan');
+    expect(markup).toContain('DECISION IMPACT');
+    expect(markup).toContain('2 open checks travel into the sim.');
   });
 });

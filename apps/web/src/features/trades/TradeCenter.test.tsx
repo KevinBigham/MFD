@@ -74,5 +74,7 @@ describe('TradeCenter', () => {
     expect(markup).toContain('Austin Armadillos');
     expect(markup).toContain('Cole Hart');
     expect(markup).toContain('0.9');
+    expect(markup).toContain('TRADE IMPACT');
+    expect(markup).toContain('Immediate');
   });
 });

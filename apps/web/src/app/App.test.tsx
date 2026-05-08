@@ -5,6 +5,15 @@ import { readFileSync } from 'fs';
 describe('App Chip setup wiring', () => {
   const content = readFileSync(new URL('./App.tsx', import.meta.url), 'utf-8');
 
+  it('loads the app-shell stylesheet and exposes shell landmarks for layout CSS', () => {
+    expect(content).toContain("import './app-shell.css';");
+    expect(content).toContain('data-mfd-app-shell="true"');
+    expect(content).toContain('data-mfd-main-content="true"');
+    expect(content).toContain('data-mfd-brand-lockup="true"');
+    expect(content).toContain('data-mfd-nav-group={group.id}');
+    expect(content).toContain('data-mfd-nav-actions="true"');
+  });
+
   it('defines the 9 Chip onboarding stages in beat order', () => {
     const ids = Array.from(content.matchAll(/id: '(chip\.onboarding\.beat-\d)'/g), (match) => match[1]);
 

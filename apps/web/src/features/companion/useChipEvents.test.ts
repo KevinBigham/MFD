@@ -7,6 +7,7 @@ import {
 } from './useChipEvents';
 import type { ChipEvent, ChipEventBridge } from './eventBridge';
 import { createDefaultDockPrefs } from './dockPersistence';
+import { buildWeeklyGuidance } from './weeklyGuidance';
 
 function makeWeekEvent(overrides: Partial<ChipEvent> = {}): ChipEvent {
   return {
@@ -67,6 +68,38 @@ describe('useChipEvents adapter', () => {
     expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ gameOutcome: 'uglyWin' }));
   });
 
+  it('uses weekly guidance text when the event carries a ranked post-advance digest', () => {
+    const showWeeklyDialogue = vi.fn();
+    const guidance = buildWeeklyGuidance({
+      currentWeek: 7,
+      currentSeason: 2027,
+      phase: 'regular_season',
+      outcome: 'loss',
+      record: '3-4',
+      injuredStarterCount: 0,
+      injuryCount: 0,
+      capSpace: -3,
+      ownerMood: 50,
+      chemistry: 50,
+      pendingDecisions: 0,
+      hasGamePlan: true,
+      difficulty: 'standard',
+    });
+    const controller = createChipEventsController({
+      bridge: { start: vi.fn(), stop: vi.fn() },
+      chipStore: { showWeeklyDialogue },
+    });
+
+    controller.handleEvent(makeWeekEvent({ gameOutcome: 'loss', weeklyGuidance: guidance }));
+
+    expect(showWeeklyDialogue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'chip.weekly.loss',
+        text: expect.stringContaining('Next: Get cap compliant.'),
+      }),
+    );
+  });
+
   it('adapts app game store state into bridge snapshots', () => {
     const unsubscribe = vi.fn();
     const listener = vi.fn();
@@ -105,26 +138,34 @@ describe('useChipEvents adapter', () => {
       },
     });
 
-    expect(adapter.getState()).toEqual({
+    expect(adapter.getState()).toMatchObject({
       currentWeek: 4,
       currentSeason: 2028,
       dynastySeed: 101,
       weeklyOutcome: 'loss',
+      weeklyGuidance: expect.objectContaining({
+        record: '0-0',
+        recommendedActions: expect.arrayContaining([
+          expect.objectContaining({ route: '/game-plan' }),
+        ]),
+      }),
     });
     expect(adapter.subscribe(listener)).toBe(unsubscribe);
     expect(listener).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         currentWeek: 5,
         currentSeason: 2028,
         dynastySeed: 101,
         weeklyOutcome: 'cleanWin',
-      },
-      {
+        weeklyGuidance: expect.objectContaining({ headline: 'Win banked, keep the week honest' }),
+      }),
+      expect.objectContaining({
         currentWeek: 4,
         currentSeason: 2028,
         dynastySeed: 101,
         weeklyOutcome: 'loss',
-      },
+        weeklyGuidance: expect.objectContaining({ headline: 'Loss logged, correction week starts now' }),
+      }),
     );
   });
 

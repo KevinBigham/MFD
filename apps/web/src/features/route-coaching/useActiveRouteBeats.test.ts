@@ -86,30 +86,60 @@ describe('useActiveRouteBeats selectors', () => {
   it('caches one entry per route across all post-setup screens', () => {
     __resetActiveRouteBeatCacheForTests();
     const seen = new Set([
+      'chip.route.briefing.beat-1',
       'chip.route.roster.beat-1',
+      'chip.route.depth-chart.beat-1',
       'chip.route.staff.beat-1',
+      'chip.route.game-plan.beat-1',
+      'chip.route.week-advance.beat-1',
+      'chip.route.inbox.beat-1',
+      'chip.route.contracts.beat-1',
       'chip.route.cap-laboratory.beat-1',
-      'chip.route.draft-board.beat-1',
       'chip.route.trade-center.beat-1',
+      'chip.route.draft-board.beat-1',
       'chip.route.scouting-board.beat-1',
+      'chip.route.league-pulse.beat-1',
+      'chip.route.standings.beat-1',
+      'chip.route.film-room.beat-1',
+      'chip.route.settings.beat-1',
     ]);
 
+    selectActiveRouteBeats('/', seen);
     selectActiveRouteBeats('/roster', seen);
+    selectActiveRouteBeats('/depth-chart', seen);
     selectActiveRouteBeats('/coaching', seen);
+    selectActiveRouteBeats('/game-plan', seen);
+    selectActiveRouteBeats('/week-advance', seen);
+    selectActiveRouteBeats('/inbox', seen);
+    selectActiveRouteBeats('/contracts', seen);
     selectActiveRouteBeats('/cap-lab', seen);
-    selectActiveRouteBeats('/draft', seen);
     selectActiveRouteBeats('/trades', seen);
+    selectActiveRouteBeats('/draft', seen);
     selectActiveRouteBeats('/scouting', seen);
+    selectActiveRouteBeats('/league-pulse', seen);
+    selectActiveRouteBeats('/standings', seen);
+    selectActiveRouteBeats('/film-room', seen);
+    selectActiveRouteBeats('/settings', seen);
 
     expect(__getActiveRouteBeatCacheSize()).toBe(ROUTE_KEYS.length);
   });
 
   it('normalizes app route paths to route coaching keys', () => {
+    expect(resolveRouteKey('#/')).toBe('briefing');
     expect(resolveRouteKey('#/roster')).toBe('roster');
+    expect(resolveRouteKey('/depth-chart')).toBe('depth-chart');
     expect(resolveRouteKey('/coaching/tree')).toBe('staff');
+    expect(resolveRouteKey('/game-plan')).toBe('game-plan');
+    expect(resolveRouteKey('/week-advance')).toBe('week-advance');
+    expect(resolveRouteKey('/inbox')).toBe('inbox');
+    expect(resolveRouteKey('/contracts')).toBe('contracts');
     expect(resolveRouteKey('/cap-lab')).toBe('cap-laboratory');
-    expect(resolveRouteKey('/draft')).toBe('draft-board');
     expect(resolveRouteKey('/trades')).toBe('trade-center');
+    expect(resolveRouteKey('/draft')).toBe('draft-board');
     expect(resolveRouteKey('/scouting')).toBe('scouting-board');
+    expect(resolveRouteKey('/league-pulse')).toBe('league-pulse');
+    expect(resolveRouteKey('/standings')).toBe('standings');
+    expect(resolveRouteKey('/film-room')).toBe('film-room');
+    expect(resolveRouteKey('/settings')).toBe('settings');
   });
 });

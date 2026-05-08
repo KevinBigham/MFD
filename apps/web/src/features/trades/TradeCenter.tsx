@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeftRight } from 'lucide-react';
 import {
-  PixelBadge, PixelButton, PixelNav, PixelPanel, PixelProgressBar, PixelSelect,
+  PixelBadge, PixelButton, PixelConsequenceList, PixelNav, PixelPanel, PixelProgressBar, PixelSelect,
 } from '@mfd/design-system/components';
 import {
   calcPickValue,
@@ -34,6 +34,7 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 import { TradeFinder } from './TradeFinder';
+import { buildDecisionImpactExplanation, decisionImpactToConsequenceItems } from '../companion/decisionImpact';
 
 function offerAccent(status: string): 'cyan' | 'green' | 'gold' | 'red' {
   if (status === 'accepted') return 'green';
@@ -207,6 +208,17 @@ export function TradeCenter() {
   const currentProposal = proposals.find((proposal) => proposal.id === activeProposalId)
     ?? proposals.filter((proposal) => proposal.fromTeamId === userTeam?.id).at(-1)
     ?? null;
+  const tradeImpact = useMemo(
+    () => buildDecisionImpactExplanation({
+      surface: 'trade',
+      label: 'Trade package',
+      valueDelta: tradeSuggestions[0]?.valueGap ?? Math.round((requestingValue - offeringValue) * 10) / 10,
+      capDelta: 0,
+      chemistryDelta: selectedOffering.length + selectedRequesting.length > 0 ? -2 : 0,
+      difficulty: 'standard',
+    }),
+    [offeringValue, requestingValue, selectedOffering.length, selectedRequesting.length, tradeSuggestions],
+  );
 
   const toggleAsset = (
     asset: TradeOfferAsset,
@@ -308,6 +320,10 @@ export function TradeCenter() {
       </PixelPanel>
 
       <TradeFinder suggestions={tradeSuggestions} onLoadSuggestion={loadSuggestion} />
+
+      <PixelPanel title="Trade Impact" accent={tradeImpact.severity === 'high' ? 'red' : 'gold'}>
+        <PixelConsequenceList items={decisionImpactToConsequenceItems(tradeImpact)} />
+      </PixelPanel>
 
       <div data-spotlight-target="chip.route.trade-center.beat-1">
         <PixelNav
