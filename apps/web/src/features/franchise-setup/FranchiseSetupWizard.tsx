@@ -856,7 +856,15 @@ export function FranchiseSetupWizard({
         </div>
       </div>
 
-      <div style={{ flex: 1, overflow: 'hidden', padding: 'clamp(12px, 1.5vw, 20px)' }}>
+      <div
+        data-mfd-setup-content="true"
+        data-mfd-setup-companion-active={companionPrimaryActionActive ? 'true' : 'false'}
+        style={{
+          flex: 1,
+          overflow: 'hidden',
+          padding: 'clamp(12px, 1.5vw, 20px)',
+        }}
+      >
         {showColdOpen ? (
           <div style={{ height: '100%', overflowY: 'auto' }}>
             <SetupColdOpen
@@ -1132,6 +1140,22 @@ export function FranchiseSetupWizard({
           .mfd-setup-primary-action--spotlight {
             animation: none !important;
             transform: none !important;
+          }
+        }
+
+        /* Reserve space on the left for Chip's fixed bottom-left companion overlay
+           (320px wide, anchored at left = var(--mfd-sp-lg)) so wizard copy never
+           gets clipped behind the panel. Only applies at desktop widths where the
+           layout has room; on smaller viewports Chip sits above the scrollable
+           content instead. */
+        [data-mfd-setup-content][data-mfd-setup-companion-active='true'] {
+          padding-bottom: clamp(180px, 28vh, 280px);
+        }
+
+        @media (min-width: 1024px) {
+          [data-mfd-setup-content][data-mfd-setup-companion-active='true'] {
+            padding-left: calc(320px + var(--mfd-sp-lg) * 2 + 8px);
+            padding-bottom: clamp(12px, 1.5vw, 20px);
           }
         }
       `}</style>

@@ -9,3 +9,7 @@ coverage/
 playwright-report/
 storybook-static/
 tmp/
+
+# Local-only Claude/Codex agent state
+.claude/settings.local.json
+.claude/worktrees/
