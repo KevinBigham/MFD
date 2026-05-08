@@ -1,0 +1,148 @@
+Final dev browser smoke: 2026-05-06T00:51:54Z
+### Browser `default` opened with pid 83379.
+### Ran Playwright code
+```js
+await page.goto('http://localhost:5173/MFD/');
+```
+### Page
+- Page URL: http://localhost:5173/MFD/
+- Page Title: Mr. Football Dynasty v1.0.0
+### Snapshot
+- [Snapshot](.playwright-cli/page-2026-05-06T00-51-58-407Z.yml)
+### Events
+- New console entries: .playwright-cli/console-2026-05-06T00-51-57-979Z.log#L1
+### Result
+{
+  "url": "http://localhost:5173/MFD/#/dynasty",
+  "flags": {
+    "chip": true,
+    "tts": false,
+    "share": false
+  },
+  "week": 9,
+  "phase": "regular_season",
+  "tradeDeadlineMinutes": 240,
+  "routeResults": [
+    {
+      "route": "/",
+      "ok": true,
+      "sample": "> MR. FOOTBALL DYNASTY\n> v1.0.0 // LAUNCH BUILD\n> Initializing engine core...\n> RNG channels: 8 seeded [OK]\n> 145+ simulation systems loaded [OK]\n> Config loaded: positions, schemes, coaching, cap-math [OK]\n> Systems onl"
+    },
+    {
+      "route": "/roster",
+      "ok": true,
+      "sample": "> MR. FOOTBALL DYNASTY\n> v1.0.0 // LAUNCH BUILD\n> Initializing engine core...\n> RNG channels: 8 seeded [OK]\n> 145+ simulation systems loaded [OK]\n> Config loaded: positions, schemes, coaching, cap-math [OK]\n> Systems onl"
+    },
+    {
+      "route": "/depth-chart",
+      "ok": true,
+      "sample": "> MR. FOOTBALL DYNASTY\n> v1.0.0 // LAUNCH BUILD\n> Initializing engine core...\n> RNG channels: 8 seeded [OK]\n> 145+ simulation systems loaded [OK]\n> Config loaded: positions, schemes, coaching, cap-math [OK]\n> Systems onl"
+    },
+    {
+      "route": "/game-plan",
+      "ok": true,
+      "sample": "> MR. FOOTBALL DYNASTY\n> v1.0.0 // LAUNCH BUILD\n> Initializing engine core...\n> RNG channels: 8 seeded [OK]\n> 145+ simulation systems loaded [OK]\n> Config loaded: positions, schemes, coaching, cap-math [OK]\n> Systems onl"
+    },
+    {
+      "route": "/week-advance",
+      "ok": true,
+      "sample": "> MR. FOOTBALL DYNASTY\n> v1.0.0 // LAUNCH BUILD\n> Initializing engine core...\n> RNG channels: 8 seeded [OK]\n> 145+ simulation systems loaded [OK]\n> Config loaded: positions, schemes, coaching, cap-math [OK]\n> Systems onl"
+    },
+    {
+      "route": "/trades",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nDYNASTY\nSYSTEM\nS\n?\nCMD DECK\n⌘K\nMFD NETWORK\n0 pending\n0 accepted\nDEADLINE LIVE\nTRADE"
+    },
+    {
+      "route": "/trade-deadline",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nDYNASTY\nSYSTEM\nS\n?\nCMD DECK\n⌘K\nMFD NETWORK\nCALM\n0 deals\nTRADE DEADLINE\nThe market i"
+    },
+    {
+      "route": "/cap-lab",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nDYNASTY\nSYSTEM\nS\n?\nCMD DECK\n⌘K\nMFD NETWORK\nB Cap Hea"
+    },
+    {
+      "route": "/dynasty",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nDYNASTY\nSYSTEM\nABOUT\nCREDITS\nFAQ\nSAVE\nCONFIG\nS\n?\nCMD"
+    },
+    {
+      "route": "/standings",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS\nSOCIAL\nCOMMISH\nDATA"
+    },
+    {
+      "route": "/power-rankings",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS\nSOCIAL\nCOMMISH\nDATA"
+    },
+    {
+      "route": "/league-pulse",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS\nSOCIAL\nCOMMISH\nDATA"
+    },
+    {
+      "route": "/records",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS\nSOCIAL\nCOMMISH\nDATA"
+    },
+    {
+      "route": "/legacy",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS\nSOCIAL\nCOMMISH\nDATA"
+    },
+    {
+      "route": "/scouting",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS\nSOCIAL\nCOMMISH\nDATA"
+    },
+    {
+      "route": "/draft",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS\nSOCIAL\nCOMMISH\nDATA"
+    },
+    {
+      "route": "/settings",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS\nSOCIAL\nCOMMISH\nDATA"
+    }
+  ],
+  "invalidImportCopy": true,
+  "chipDock": true
+}
+### Ran Playwright code
+```js
+await page.evaluate('async () => { localStorage.setItem(\'mfd:first-ten-completed\', \'true\'); localStorage.setItem(\'mfd.chip.onboarding\', JSON.stringify({ skipped: true })); const { createSeedGameState } = await import(\'/MFD/src/app/store/seed.ts\'); const { useGameStore } = await import(\'/MFD/src/app/store/game-store.ts\'); const { initializeDeadline, mulberry32, PHASE_ORDER } = await import(\'/MFD/@id/@mfd/engine\'); const game = createSeedGameState(808, 0, \'pro\'); game.phase = \'regular_season\'; game.week = 9; game.settings.halftimeDecisions = \'off\'; if (game.setupState) { game.setupState.currentPhase = \'blueprint\'; game.setupState.completedPhases = [...PHASE_ORDER]; } const userTeam = Object.values(game.teams).find((team) => team.isUser); if (userTeam && userTeam.roster[0]) userTeam.roster[0].tradeBlock = true; game.tradeDeadlineState = initializeDeadline(game, mulberry32(17)); useGameStore.getState().actions.loadGame(game); const routes = [\'/\', \'/roster\', \'/depth-chart\', \'/game-plan\', \'/week-advance\', \'/trades\', \'/trade-deadline\', \'/cap-lab\', \'/dynasty\', \'/standings\', \'/power-rankings\', \'/league-pulse\', \'/records\', \'/legacy\', \'/scouting\', \'/draft\', \'/settings\']; const results = []; for (const route of routes) { window.location.hash = route; window.dispatchEvent(new HashChangeEvent(\'hashchange\')); await new Promise((resolve) => setTimeout(resolve, 350)); const text = document.body.innerText; results.push({ route, ok: text.length > 200 && !/Application error|Something went wrong|Maximum update depth|Cannot read properties/i.test(text), sample: text.slice(0, 220) }); } window.location.hash = \'/dynasty\'; window.dispatchEvent(new HashChangeEvent(\'hashchange\')); await new Promise((resolve) => setTimeout(resolve, 350)); const textarea = document.querySelector(\'#dynasty-backup-import\'); const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, \'value\').set; setter.call(textarea, \'{"save":{"version":35}}\'); textarea.dispatchEvent(new Event(\'input\', { bubbles: true })); await new Promise((resolve) => setTimeout(resolve, 100)); const button = Array.from(document.querySelectorAll(\'button\')).find((entry) => entry.textContent?.toLowerCase().includes(\'import backup code\')); button.click(); await new Promise((resolve) => setTimeout(resolve, 350)); const invalidText = document.body.innerText.includes(\'That file does not look like a valid MFD save. Your current dynasty was not changed. Try exporting again or choose a different file.\'); const state = useGameStore.getState().game; return { url: location.href, flags: { chip: true, tts: false, share: false }, week: state?.week, phase: state?.phase, tradeDeadlineMinutes: state?.tradeDeadlineState?.minutesRemaining, routeResults: results, invalidImportCopy: invalidText, chipDock: document.body.innerText.includes(\'WHERE AM I?\') }; }');
+```
+### Page
+- Page URL: http://localhost:5173/MFD/#/dynasty
+- Page Title: Mr. Football Dynasty v1.0.0
+### Ran Playwright code
+```js
+await page.setViewportSize({ width: 390, height: 844 });
+```
+### Result
+[
+  {
+    "route": "/trades",
+    "width": 390,
+    "ok": true,
+    "sample": "MFD NETWORK\n0 pending\n0 accepted\nDEADLINE LIVE\nTRADE CENTER\nIncoming offers remain intact. Direct negotiation lets you build and submit your own package.\n--- INCOMING OFFERS ---\n0\n"
+  },
+  {
+    "route": "/dynasty",
+    "width": 390,
+    "ok": true,
+    "sample": "MFD NETWORK\n0 local slots\nNewYorkConcreteJungleCabbies-S2026-W9\nDYNASTY CARTRIDGE\nCreate local save slots, export portable backups, and load a dynasty back into the studio.\n--- CUR"
+  }
+]
+### Ran Playwright code
+```js
+await page.evaluate('async () => { const routes = [\'/trades\', \'/dynasty\']; const results = []; for (const route of routes) { window.location.hash = route; window.dispatchEvent(new HashChangeEvent(\'hashchange\')); await new Promise((resolve) => setTimeout(resolve, 300)); const text = document.body.innerText; results.push({ route, width: window.innerWidth, ok: text.length > 200 && !/Application error|Something went wrong|Cannot read properties/i.test(text), sample: text.slice(0, 180) }); } return results; }');
+```
+### Result
+Total messages: 3 (Errors: 0, Warnings: 0)
+Returning 0 messages for level "warning"
+

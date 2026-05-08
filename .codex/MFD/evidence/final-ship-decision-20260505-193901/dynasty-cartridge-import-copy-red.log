@@ -1,0 +1,35 @@
+
+ RUN  v3.2.4 /Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery/apps/web
+
+ ✓ src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > renders screen header with Dynasty Cartridge title 6ms
+ ✓ src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > renders save/load related UI elements 4ms
+ ✓ src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > promotes portable backup messaging 4ms
+ ✓ src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > renders an upload backup action 1ms
+ ✓ src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > renders paste-backup fallback copy 2ms
+ ✓ src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > points blocked clipboard exports to the download fallback 0ms
+ × src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > keeps invalid import errors player-facing and save-safe 2ms
+   → importFailureMessage is not a function
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > keeps invalid import errors player-facing and save-safe
+TypeError: importFailureMessage is not a function
+ ❯ src/features/dynasty-cartridge/DynastyCartridge.test.tsx:107:12
+    105| 
+    106|   it('keeps invalid import errors player-facing and save-safe', () => {
+    107|     expect(importFailureMessage()).toBe(
+       |            ^
+    108|       'That file does not look like a valid MFD save. Your current dyn…
+    109|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 passed (7)
+   Start at  19:47:06
+   Duration  776ms (transform 214ms, setup 0ms, collect 484ms, tests 20ms, environment 0ms, prepare 55ms)
+
+undefined
+/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery/apps/web:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vitest run src/features/dynasty-cartridge/DynastyCartridge.test.tsx --reporter=verbose

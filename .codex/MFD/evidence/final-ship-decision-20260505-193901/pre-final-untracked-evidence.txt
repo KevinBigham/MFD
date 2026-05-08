@@ -1,0 +1,30 @@
+Generated: 2026-05-06T00:39:01Z
+Working tree untracked evidence before final pass:
+?? .codex/MFD/evidence/.latest-final-ship-decision-dir
+?? .codex/MFD/evidence/final-ship-decision-20260505-193901/
+?? .codex/MFD/evidence/release-candidate-lockin-20260505-175132/dev-exported-week2.mfd
+?? .codex/MFD/evidence/release-candidate-lockin-20260505-175132/pre-lockin-full.diff
+?? .codex/MFD/evidence/release-candidate-lockin-20260505-175132/pre-lockin-untracked-full.diff
+
+Evidence file sizes:
+-rw-r--r--@ 1 tkevinbigham  staff    56B May  5 19:39 .codex/MFD/evidence/.latest-final-ship-decision-dir
+-rw-r--r--@ 1 tkevinbigham  staff     0B May  5 19:39 .codex/MFD/evidence/final-ship-decision-20260505-193901/pre-final-diff-name-only.txt
+-rw-r--r--@ 1 tkevinbigham  staff     0B May  5 19:39 .codex/MFD/evidence/final-ship-decision-20260505-193901/pre-final-diff-stat.txt
+-rw-r--r--@ 1 tkevinbigham  staff   467B May  5 19:39 .codex/MFD/evidence/final-ship-decision-20260505-193901/pre-final-git-log.txt
+-rw-r--r--@ 1 tkevinbigham  staff   420B May  5 19:39 .codex/MFD/evidence/final-ship-decision-20260505-193901/pre-final-git-status.txt
+-rw-r--r--@ 1 tkevinbigham  staff   1.1K May  5 19:39 .codex/MFD/evidence/final-ship-decision-20260505-193901/pre-final-untracked-evidence.txt
+-rw-r--r--@ 1 tkevinbigham  staff     0B May  5 18:44 .codex/MFD/evidence/late-season-release-rehearsal-20260505-184434/pre-rehearsal-diff-name-only.txt
+-rw-r--r--@ 1 tkevinbigham  staff     0B May  5 18:44 .codex/MFD/evidence/late-season-release-rehearsal-20260505-184434/pre-rehearsal-diff-stat.txt
+-rw-r--r--@ 1 tkevinbigham  staff   250B May  5 18:44 .codex/MFD/evidence/late-season-release-rehearsal-20260505-184434/pre-rehearsal-git-log.txt
+-rw-r--r--@ 1 tkevinbigham  staff   375B May  5 18:44 .codex/MFD/evidence/late-season-release-rehearsal-20260505-184434/pre-rehearsal-git-status.txt
+-rw-r--r--@ 1 tkevinbigham  staff   8.1M May  5 18:06 .codex/MFD/evidence/release-candidate-lockin-20260505-175132/dev-exported-week2.mfd
+-rw-r--r--@ 1 tkevinbigham  staff   1.6K May  5 17:57 .codex/MFD/evidence/release-candidate-lockin-20260505-175132/dev-finish-setup-from-depth.js
+-rw-r--r--@ 1 tkevinbigham  staff   2.3K May  5 17:57 .codex/MFD/evidence/release-candidate-lockin-20260505-175132/dev-finish-setup.js
+-rw-r--r--@ 1 tkevinbigham  staff   4.0K May  5 18:15 .codex/MFD/evidence/release-candidate-lockin-20260505-175132/dev-multi-week-smoke.js
+-rw-r--r--@ 1 tkevinbigham  staff   3.9K May  5 18:10 .codex/MFD/evidence/release-candidate-lockin-20260505-175132/dev-route-accessibility-blank-sweep.js
+-rw-r--r--@ 1 tkevinbigham  staff   5.5K May  5 18:06 .codex/MFD/evidence/release-candidate-lockin-20260505-175132/dev-save-load-import-smoke.js
+-rw-r--r--@ 1 tkevinbigham  staff   1.4K May  5 17:51 .codex/MFD/evidence/release-candidate-lockin-20260505-175132/pre-lockin-diff-name-only.txt
+-rw-r--r--@ 1 tkevinbigham  staff   1.8K May  5 17:51 .codex/MFD/evidence/release-candidate-lockin-20260505-175132/pre-lockin-diff-stat.txt
+-rw-r--r--@ 1 tkevinbigham  staff    73K May  5 17:51 .codex/MFD/evidence/release-candidate-lockin-20260505-175132/pre-lockin-full.diff
+-rw-r--r--@ 1 tkevinbigham  staff   2.5K May  5 17:51 .codex/MFD/evidence/release-candidate-lockin-20260505-175132/pre-lockin-git-status.txt
+-rw-r--r--@ 1 tkevinbigham  staff    93K May  5 17:51 .codex/MFD/evidence/release-candidate-lockin-20260505-175132/pre-lockin-untracked-full.diff

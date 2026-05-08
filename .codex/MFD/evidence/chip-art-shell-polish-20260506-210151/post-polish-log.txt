@@ -1,0 +1,3 @@
+cd53065 polish: layer chip png art and app shell landmarks on release candidate
+a9cd1e2 polish: close final mfd release-candidate follow-ups
+ea1d7a2 test: rehearse late-season mfd release candidate

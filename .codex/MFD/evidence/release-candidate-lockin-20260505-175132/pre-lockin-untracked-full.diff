@@ -1,0 +1,2106 @@
+
+--- UNTRACKED .codex/MFD/chip-onboarding-goal.md ---
+diff --git a/.codex/MFD/chip-onboarding-goal.md b/.codex/MFD/chip-onboarding-goal.md
+new file mode 100644
+index 0000000..54456ba
+--- /dev/null
++++ b/.codex/MFD/chip-onboarding-goal.md
+@@ -0,0 +1,260 @@
++# MFD Chip Onboarding Goal Checkpoint
++
++Date: 2026-05-05
++Repo: `/Users/tkevinbigham/Documents/GitHub/MFD`
++Branch: `main`
++Baseline: `dc7740a Sprint 46: Polish standings signals (#54)`
++
++## Active Goal Summary
++
++Perfect the Chip-guided onboarding and weekly guidance loop so Chip becomes the main player-facing guide layer for Mr. Football Dynasty. The work must improve first-time orientation, weekly next-action guidance, decision-impact clarity, replay/reset/snooze controls, and safe TTS/share scaffolding behind feature flags.
++
++## Resume 2026-05-05 09:45:09 CDT
++
++Current objective: finish Slice 9 honestly by verifying the current Chip implementation, diagnosing local blockers, fixing P0/P1 issues found in the continuation, and completing the first-3-week onboarding audit against actual runtime behavior.
++
++Verification plan:
++
++1. Reconfirm repo rules, package scripts, current branch, and safe git state without destructive git operations.
++2. Diagnose the `git status` / `git diff` hang using time-boxed read-only commands.
++3. Inspect Chip onboarding, weekly guidance, decision-impact, dock controls, TTS, share, route coaching, feature flags, and mount paths.
++4. Reproduce the hanging targeted tests one file at a time with explicit timeouts and verbose output.
++5. Diagnose typecheck hangs with repo-standard and targeted package commands before attempting fixes.
++6. Start the app with Chip enabled and complete browser/manual or equivalent runtime verification; document exact blocker if browser tooling fails.
++7. Update this checkpoint with commands, results, blocker root causes, and remaining P0/P1/P2 issues.
++
++Blocker diagnosis:
++
++- `git status` / `git diff`: reproduced. `git rev-parse --show-toplevel`, branch, and inside-work-tree checks return immediately, and no `.git/index.lock` exists. Both `git -c core.fsmonitor=false status --short --untracked-files=no` and `git -c core.fsmonitor=false diff --stat` time out after 30s. Follow-up read-only checks show `.git/objects/pack/pack-7e55b47cf628dd9df812d78dfb6410f37d6f870f.pack` repeatedly errors as `far too short to be a packfile`, and `git diff --cached --stat --no-ext-diff --no-renames` exits 128 with `fatal: unable to read 39cbc7bc99415d388a173e44d4cad585f3519bf9`. No `.git` repair has been attempted.
++- `dockControls.test.ts`: blocked before file-specific execution. Direct Vitest bootstrap via bundled Node (`node .../vitest/vitest.mjs run ...`) produced no runner output after 180s and sat at 0% CPU inside Node dependency loading; killed only that spawned process.
++- TSX/component suites: root cause is at least partly filesystem/local install level. `apps/web/src/features/week-advance/WeekAdvance.tsx` was a regular 14 KB file by `stat`, but `sed`, `wc`, and `dd` all blocked trying to read the working-tree inode. The unreadable inode was moved to `.codex/MFD/evidence/WeekAdvance.tsx.unreadable-20260505-1008`, the source was recreated from `git show HEAD:...`, and the Chip decision-impact panel was reapplied. `WeekAdvance.test.tsx` is now readable and still expects the panel copy.
++- `tsc --noEmit`: still blocked after WeekAdvance repair. Direct bundled Node command `node .../typescript/lib/tsc.js --noEmit --project apps/web/tsconfig.json --pretty false` produced no diagnostics after 180s; `ps` showed 0% CPU and `lsof` showed Node blocked while reading dependency declarations such as `vite/types/hmrPayload.d.ts`.
++- Browser/manual playthrough: fresh Vite build/dev is blocked before startup. Existing stale `apps/web/dist` can be served only by stripping the `/MFD` base path; the stale build loads with no console errors but has Chip disabled and cannot count as current Chip verification.
++
++Commands run during resume:
++
++- `pwd`: `/Users/tkevinbigham/Documents/GitHub/MFD`.
++- `git rev-parse --show-toplevel`: `/Users/tkevinbigham/Documents/GitHub/MFD`.
++- `git branch --show-current`: `main`.
++- `git rev-parse --is-inside-work-tree`: `true`.
++- `ls -la .git/index.lock 2>/dev/null || true`: no lock file output.
++- `git -c core.fsmonitor=false status --short --untracked-files=no`: timeout after 30s.
++- `git -c core.fsmonitor=false diff --stat`: timeout after 30s.
++- `git config --show-origin --get-regexp 'core.fsmonitor|core.untrackedCache|diff.external|filter|lfs'`: only LFS filter config found.
++- `ls -lh .git/index`: 133K.
++- `git count-objects -vH`: one pack, reported 89.05 MiB.
++- `git -c core.fsmonitor=false -c core.untrackedCache=false status --porcelain=v1 --untracked-files=no --no-renames`: timeout after 20s.
++- `git -c core.fsmonitor=false -c core.untrackedCache=false diff --name-only --no-ext-diff --no-renames`: timeout after 20s with repeated corrupt-pack errors.
++- `git diff --cached --stat --no-ext-diff --no-renames`: exit 128 after corrupt-pack errors.
++- `git ls-files -m`: timeout after 20s.
++- `git show HEAD:apps/web/src/features/week-advance/WeekAdvance.tsx`: succeeds in subprocess capture and was used only to recover the unreadable working-tree file.
++- `dd if=apps/web/src/features/week-advance/WeekAdvance.tsx of=/dev/null bs=1048576`: blocked before file recovery.
++- `wc -l apps/web/src/features/week-advance/WeekAdvance.tsx`: after recovery, succeeds with 352 lines.
++- `git diff -- apps/web/src/features/week-advance/WeekAdvance.tsx .codex/MFD/chip-onboarding-goal.md --stat`: targeted diff succeeds and shows the WeekAdvance decision-impact patch; full diff still blocks.
++- `git fsck --no-progress`: timeout after 30s.
++- `node .../vitest/vitest.mjs run src/features/week-advance/WeekAdvance.test.tsx --reporter=verbose --pool=forks`: no runner output after 180s; process sampled at 0% CPU while loading Node dependencies.
++- `node .../typescript/lib/tsc.js --noEmit --project apps/web/tsconfig.json --pretty false`: no diagnostics after 180s; process sampled at 0% CPU while reading dependency declarations.
++- `node .../vite/bin/vite.js build --mode production`: produced no output and exited/killed with code -1 before Vite startup output in this desktop shell.
++- Static stale preview: `python3` server mapping `/MFD/` to `apps/web/dist` plus in-app browser loaded the old build with no console errors, but Chip was not enabled in that build.
++
++## Preflight Repo State
++
++- `git status --short`: clean at start.
++- `git branch --show-current`: `main`.
++- `git log -1 --oneline`: `dc7740a Sprint 46: Polish standings signals (#54)`.
++- Repo rules: no checked-in `AGENTS.md` or `CLAUDE.md` found in this checkout; applying Kevin's supplied AGENTS instructions from the prompt.
++- Existing `.codex/MFD`: `sprint71-resume-audit.md` only.
++- `pnpm --version`: unavailable (`pnpm: command not found`).
++- `node_modules`: missing.
++- Fallback expected for test commands: `npx --yes pnpm@9.15.9 ...`.
++- Save schema baseline: `packages/engine/src/config/difficulty.ts` exports `SAVE_VERSION = 35`.
++- Initial dirty files: none.
++
++## Existing Chip / Guidance Audit
++
++### Components and Stores
++
++- `packages/design-system/components/Chip/`: Chip SVG primitive, poses, dialogue bubble, reduced-motion behavior.
++- `apps/web/src/features/companion/ChipHost.tsx`: setup/onboarding overlay, `VITE_CHIP_ENABLED` gate, legacy localStorage skip key `mfd.chip.onboarding`.
++- `apps/web/src/features/companion/ChipDock.tsx`: persistent post-setup dock, controls, route beat/live beat rendering, quiet controls, `What now?`, `Where am I?`, pending decision badge.
++- `apps/web/src/features/companion/store.ts`: Zustand Chip state, pose priority windows, dialogue fields, read receipts, basic `advance/dismiss/reset`.
++- `apps/web/src/features/companion/dockPersistence.ts`: local dock preferences at `mfd.chip.local`.
++- `apps/web/src/features/companion/readReceipts.ts`: additive web-only read receipts at `mfd.chip.read.v1`.
++- `apps/web/src/features/companion/useChipEvents.ts` and `eventBridge.ts`: week rollover Chip events, weekly dialogue selection, pose reactions, quiet and spam guards.
++- `apps/web/src/features/route-coaching/routeBeatRegistry.ts`: route coaching beats for roster, staff, cap lab, draft, trade center, scouting.
++- `apps/web/src/features/route-coaching/useActiveRouteBeats.ts`: resolves route beat eligibility using store receipts.
++
++### Dialogue and Onboarding
++
++- `apps/web/src/features/companion/dialogue/onboarding.ts`: 9 setup beats oriented around franchise setup. Current copy is stronger for setup identity than post-setup weekly play.
++- `apps/web/src/features/companion/dialogue/weekly.ts`: short deterministic weekly dialogue variants by outcome.
++- `apps/web/src/features/monday-briefing/MondayBriefing.tsx`: existing Chip commentary around briefing.
++- `apps/web/src/features/onboarding/TutorialOverlay.tsx` and `packages/engine/src/systems/tutorial.ts`: older generic tutorial/help surfaces.
++
++### Decision and Weekly Surfaces
++
++- `apps/web/src/features/week-advance/WeekAdvance.tsx`: readiness checklist, matchup radar, stakes panel, advance button.
++- `apps/web/src/features/contracts/ContractsCap.tsx`: contract detail modal with consequence list for cuts.
++- `apps/web/src/features/contracts/CapLaboratory.tsx`: cap sandbox, queued moves, projection, consequence list.
++- `apps/web/src/features/trades/TradeCenter.tsx`: incoming/proposal trade workflow with value comparison and confirmation.
++- `apps/web/src/features/depth-chart/DepthChart.tsx` and `apps/web/src/features/game-plan/GamePlanSetup.tsx`: high-priority route targets for first-ten-minute guidance.
++
++### Feature Flags and Persistence
++
++- Existing Chip gate: `VITE_CHIP_ENABLED === 'true'`.
++- No TTS scaffold found.
++- Existing share/export helpers exist for season recap and scrapbook via `apps/web/src/features/season/recap-share.ts`, but no Chip share-event scaffold found.
++- Chip persistence is browser-local only and does not touch dynasty save schema.
++
++### Existing Tests
++
++- Companion: `ChipHost.test.tsx`, `ChipDock.test.tsx`, `store.test.ts`, `eventBridge.test.ts`, `useChipEvents.test.ts`, `readReceipts.test.ts`, route coaching tests.
++- Weekly dialogue determinism: `dialogue/weekly.test.ts`.
++- Onboarding dialogue validation: `dialogue/onboarding.test.ts`.
++- Week advance, contracts, cap lab, trades each have focused component tests.
++
++## Current Journey vs Target Journey
++
++Current:
++- Setup Chip is present and visually strong, but it is mostly a setup companion.
++- Post-setup Chip gives short weekly outcome remarks and route coaching on a few routes.
++- `What now?` replays the last weekly line instead of producing a ranked next action.
++- Decision impact exists in isolated UI pieces, but there is no common immediate/season/future/risk language.
++- Skip/read receipts suppress repetition, but there is no formal onboarding progress state machine or clear reset/replay/snooze workflow.
++- TTS and share-card scaffolding are absent.
++
++Target:
++- Chip has explicit onboarding progress, beat IDs, route/context gates, idempotent trigger handling, resume, reset, replay, and snooze.
++- First-time players get a concise first-10-minute arc: chair framing, weekly loop, briefing, roster/depth, game plan, advance, post-advance debrief, decision impact, and advanced-system map.
++- After week advance, Chip explains what changed, why it matters, top next actions, risks, feature links, and confidence.
++- Major decision surfaces share concise impact explainers: immediate, this season, future, risk/uncertainty, and difficulty/severity where available.
++- Player can replay/reset onboarding, snooze Chip temporarily, and ask what to do now without being trapped.
++- TTS/share scaffolds are feature-flagged and default safe.
++
++## Slice Checklist
++
++- [x] Slice 1: Preflight safety check, repo rule scan, current Chip audit.
++- [x] Slice 1: Create checkpoint file.
++- [x] Slice 2: Formal Chip onboarding state machine and tests.
++- [x] Slice 3: First-10-minute arc copy/context upgrades and tests.
++- [x] Slice 4: Deterministic weekly guidance ranking and tests.
++- [x] Slice 5: Decision impact explainers on highest-impact surfaces and tests.
++- [x] Slice 6: Replay/reset/snooze/re-enable controls and tests.
++- [x] Slice 7: TTS scaffold behind `VITE_CHIP_TTS_ENABLED` and tests.
++- [x] Slice 8: Share scaffold behind `VITE_MFD_SHARE_ENABLED` and tests.
++- [ ] Slice 9: QA, targeted/full verification, manual playthrough, final completion audit.
++
++## Files Touched Per Slice
++
++- Slice 1:
++  - `.codex/MFD/chip-onboarding-goal.md`
++- Slice 2:
++  - `apps/web/src/features/companion/onboardingMachine.ts`
++  - `apps/web/src/features/companion/onboardingMachine.test.ts`
++- Slice 3:
++  - `apps/web/src/features/companion/dialogue/onboarding.ts`
++  - `apps/web/src/features/companion/dialogue/onboarding.test.ts`
++  - `apps/web/src/features/route-coaching/routeBeatRegistry.ts`
++  - `apps/web/src/features/route-coaching/routeBeatRegistry.test.ts`
++  - `apps/web/src/features/route-coaching/useActiveRouteBeats.ts`
++  - `apps/web/src/features/route-coaching/useActiveRouteBeats.test.ts`
++  - `apps/web/src/features/companion/featureVisibilityMatrix.ts`
++  - `apps/web/src/features/companion/featureVisibilityMatrix.test.ts`
++- Slice 4:
++  - `apps/web/src/features/companion/weeklyGuidance.ts`
++  - `apps/web/src/features/companion/weeklyGuidance.test.ts`
++  - `apps/web/src/features/companion/eventBridge.ts`
++  - `apps/web/src/features/companion/eventBridge.test.ts`
++  - `apps/web/src/features/companion/useChipEvents.ts`
++  - `apps/web/src/features/companion/useChipEvents.test.ts`
++- Slice 5:
++  - `apps/web/src/features/companion/decisionImpact.ts`
++  - `apps/web/src/features/companion/decisionImpact.test.ts`
++  - `apps/web/src/features/week-advance/WeekAdvance.tsx`
++  - `apps/web/src/features/week-advance/WeekAdvance.test.tsx`
++  - `apps/web/src/features/contracts/CapLaboratory.tsx`
++  - `apps/web/src/features/contracts/CapLaboratory.test.tsx`
++  - `apps/web/src/features/trades/TradeCenter.tsx`
++  - `apps/web/src/features/trades/TradeCenter.test.tsx`
++- Slice 6:
++  - `apps/web/src/features/companion/dockControls.ts`
++  - `apps/web/src/features/companion/dockControls.test.ts`
++  - `apps/web/src/features/companion/ChipDock.tsx`
++  - `apps/web/src/features/companion/ChipDock.test.tsx`
++- Slice 7:
++  - `apps/web/src/features/companion/chipVoice.ts`
++  - `apps/web/src/features/companion/chipVoice.test.ts`
++- Slice 8:
++  - `apps/web/src/features/companion/chipShare.ts`
++  - `apps/web/src/features/companion/chipShare.test.ts`
++
++## Tests Run Per Slice
++
++- Slice 1:
++  - Not applicable; audit/checkpoint only.
++- Slice 2:
++  - `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/companion/onboardingMachine.test.ts`
++  - Result: PASS, 4 tests.
++- Slice 3:
++  - `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/route-coaching/routeBeatRegistry.test.ts src/features/route-coaching/useActiveRouteBeats.test.ts`
++  - Result: PASS, 18 tests.
++  - `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/companion/dialogue/onboarding.test.ts`
++  - Result: PASS, 8 tests.
++- Slice 4:
++  - `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/companion/weeklyGuidance.test.ts`
++  - Result: PASS, 4 tests.
++  - `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/companion/useChipEvents.test.ts src/features/companion/eventBridge.test.ts`
++  - Result: PASS, 24 tests.
++- Slice 5:
++  - `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/companion/decisionImpact.test.ts`
++  - Result: PASS, 3 tests.
++  - `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/week-advance/WeekAdvance.test.tsx src/features/contracts/CapLaboratory.test.tsx src/features/trades/TradeCenter.test.tsx`
++  - Result: BLOCKED/HUNG locally before output; killed only the spawned Vitest worker/npm process after no runner output.
++- Slice 6:
++  - `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/companion/ChipDock.test.tsx`
++  - Result: BLOCKED/HUNG locally before output; killed only the spawned Vitest worker/npm process after no runner output.
++  - `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/companion/dockControls.test.ts`
++  - Result: BLOCKED locally. After removing a TSX import from the control reducer, this isolated suite still exits/hangs without diagnostics in this shell. Production build covers the module syntactically, but this test file has not produced a clean pass locally.
++- Slice 7:
++  - `./node_modules/.bin/vitest run src/features/companion/dockControls.test.ts src/features/companion/chipVoice.test.ts src/features/companion/chipShare.test.ts src/features/companion/featureVisibilityMatrix.test.ts --reporter=verbose`
++  - Partial result before manual stop: `chipVoice.test.ts` PASS, 4 tests. Combined command then stalled on `dockControls.test.ts`.
++- Slice 8:
++  - `./node_modules/.bin/vitest run src/features/companion/dockControls.test.ts src/features/companion/chipVoice.test.ts src/features/companion/chipShare.test.ts src/features/companion/featureVisibilityMatrix.test.ts --reporter=verbose`
++  - Partial result before manual stop: `chipShare.test.ts` PASS, 4 tests; `featureVisibilityMatrix.test.ts` PASS, 4 tests. Combined command then stalled on `dockControls.test.ts`.
++- Slice 9:
++  - `./node_modules/.bin/vite build --mode production`
++  - Result: PASS. Built 2,511 modules and completed in 11m 22s; existing large-chunk warning remains.
++  - `./node_modules/.bin/tsc --noEmit --project tsconfig.json --pretty false`
++  - Result: BLOCKED/HUNG locally; no diagnostics after >150s, killed only that MFD `tsc` process.
++  - Dev server smoke: `VITE_CHIP_ENABLED=true ./node_modules/.bin/vite --host 127.0.0.1 --port 5173`
++  - Result: server reached ready state at `http://127.0.0.1:5173/MFD/`, but browser tooling blocked. Playwright connector returned `Transport closed`; Playwright CLI wrapper stalled under `npm exec`; HTTP `curl` requests hung while Vite repeatedly restarted on watched config/package files. Manual browser playthrough not completed.
++
++## Feature Visibility Matrix
++
++Implemented as `apps/web/src/features/companion/featureVisibilityMatrix.ts`.
++
++- First-ten-minute features: Monday Briefing, Roster, Depth Chart, Game Plan, Week Advance.
++- Weekly/post-result features: Inbox, Schedule, Standings, League Pulse, Film Room, Team Needs.
++- Pressure-window features: Injuries, Contracts, Cap Lab, Trades, Waivers, Practice Squad.
++- Offseason/draft features: Scouting, Draft, Free Agency.
++- Deep-dive/legacy features: Coaching, Power Rankings, Analytics, Record Book, Settings/Save Load.
++
++The matrix records route/entry point, purpose, why it matters, best introduction moment, first-time action, advanced note, and verification status.
++
++## Completion Audit Status
++
++- Product audit: partially passing by code inspection and build. First-10-minute arc, weekly loop, route coaching expansion, decision-impact model, replay/reset/re-enable controls, feature matrix, TTS scaffold, and share scaffold are implemented. Browser/manual confirmation is blocked.
++- Engineering audit: partially passing. State machine, idempotent progress, browser-local persistence, reset/replay/snooze controls, weekly guidance tests, decision-impact pure tests, safe flags, and production build are present. `dockControls.test.ts`, TSX component tests, typecheck, git status/diff, and browser manual pass remain blocked locally.
++- Commands/evidence audit: build passed; many targeted tests passed before the local runner instability. Latest `git status`/`git diff` attempts hang with no output in this desktop session, while a GitHub Desktop git status process is also present in the repo.
++- Manual playthrough: blocked. Dev server reached ready state but HTTP/browser inspection did not complete because Vite repeatedly restarted under watcher activity and both Playwright connector/CLI paths were unavailable.
++
++## Resume Instructions
++
++If context compacts or the run pauses:
++
++1. Re-read this file.
++2. Re-run `git status --short`.
++3. Continue from the highest-priority incomplete slice above.
++4. Keep persistence browser-local unless a save-schema change becomes unavoidable.
++5. Use `npx --yes pnpm@9.15.9 ...` if global `pnpm` is still unavailable.
++6. Do not mark complete until the final completion audit passes against current repo state.
+
+--- UNTRACKED .codex/MFD/public-release-chip-recovery-goal.md ---
+diff --git a/.codex/MFD/public-release-chip-recovery-goal.md b/.codex/MFD/public-release-chip-recovery-goal.md
+new file mode 100644
+index 0000000..9312825
+--- /dev/null
++++ b/.codex/MFD/public-release-chip-recovery-goal.md
+@@ -0,0 +1,264 @@
++# MFD Public Release + Chip Recovery Goal
++
++Updated: 2026-05-05 17:34:29 CDT
++Original repo path: `/Users/tkevinbigham/Documents/GitHub/MFD`
++Clean clone path: `/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery`
++Current branch: `codex/chip-public-release-recovery`
++Checkout classification: clean recovery clone built from remote after the original checkout failed safe git inspection
++Salvage folder: `/Users/tkevinbigham/Documents/GitHub/MFD-chip-salvage-20260505-111937`
++Salvage manifest: `/Users/tkevinbigham/Documents/GitHub/MFD-chip-salvage-20260505-111937/MFD_CHIP_SALVAGE_MANIFEST.md`
++Baseline commit in clean clone: `dc7740a Sprint 46: Polish standings signals (#54)`
++
++## Prior Blocker Summary
++
++- Previous Chip marathon work existed, but the original checkout was not trustworthy enough to mark MFD release-ready.
++- `git status` hung in the original checkout and `git diff --stat` failed with `fatal: mmap failed: Operation canceled`.
++- Earlier browser work only reached stale `dist`, and Chip was not proven in a current build.
++- Recovery goals were: preserve Chip work, move into a clean clone, reapply, verify, then finish live Chip/public-release P0s.
++
++## Corrupt Repo Diagnosis
++
++- Original checkout identity was confirmed as MFD from `README.md` and `package.json`.
++- Safe git inspection in `/Users/tkevinbigham/Documents/GitHub/MFD`:
++  - `git rev-parse --show-toplevel`: passed
++  - `git remote -v`: passed
++  - `git branch --show-current`: `main`
++  - `git log -1 --oneline`: `dc7740a Sprint 46: Polish standings signals (#54)`
++  - `git -c core.fsmonitor=false status --short --untracked-files=no`: timed out after 30s
++  - `git -c core.fsmonitor=false diff --stat`: failed with `fatal: mmap failed: Operation canceled`
++- Conclusion: original repo stayed unsafe for build/test work. No destructive git repair was attempted.
++
++## Salvage + Recovery Result
++
++- Chip-related files and `.codex/MFD` notes were salvaged to the timestamped recovery folder above.
++- Clean clone created at `/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery`.
++- Recovery branch created: `codex/chip-public-release-recovery`.
++- All build, test, and browser verification work below was done only in the clean clone.
++
++## Implementation Summary
++
++- Reapplied and completed the Chip onboarding/weekly-guidance/decision-impact slice in the clean clone.
++- Wired the formal onboarding state into the live shell and route-beat system instead of leaving guidance as isolated copy beats.
++- Added guarded TTS/share scaffolds behind `VITE_CHIP_TTS_ENABLED` and `VITE_MFD_SHARE_ENABLED`.
++- Added weekly guidance generation, decision-impact summaries, feature visibility sequencing, and replay/reset/snooze controls.
++- Surfaced Chip guidance inside Monday Briefing, Week Advance, Game Plan, Depth Chart, Trade Center, and Cap Lab.
++- Fixed a live Game Plan runtime P0 caused by an unstable selector result reference.
++- Fixed a live Depth Chart DOM-nesting warning caused by rendering a player-link button inside a depth-slot button.
++- Completed the P1 hardening pass for mobile tolerance, Trade Center, Cap Lab, accessibility basics, blank states, and release metadata.
++- Fixed the mobile Chip dock so expanded route guidance no longer blocks underlying route controls, while dock controls remain reachable.
++- Moved Cap Lab tables to responsive card mode on phone widths and raised PixelSelect plus Chip pending-badge controls to the shared 44px touch target.
++- Fixed release HTML asset URLs so the `/MFD/` Vite base no longer double-prefixes the manifest/favicon/OG image paths.
++- Kept save compatibility intact: no engine/schema/save-version changes were made, and sim determinism was not touched.
++
++## Commands Run
++
++### Install / recovery baseline
++
++- `npx --yes pnpm@9.15.9 install`
++  - Result: passed
++
++### Targeted regression proof before Game Plan selector fix
++
++- `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/app/store/selectors.test.ts --reporter=verbose`
++  - Result before fix: failed
++  - Root cause: repeated `selectCurrentOpponentIntel(state)` calls returned different object references on unchanged state
++
++### Targeted verification after selector + tooltip fix
++
++- `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/app/store/selectors.test.ts src/features/game-plan/GamePlanSetup.test.tsx --reporter=verbose`
++  - Result: passed
++  - Duration: 3.06s
++
++### Targeted verification after Depth Chart nesting fix
++
++- `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/depth-chart/DepthChart.test.tsx src/app/store/selectors.test.ts src/features/game-plan/GamePlanSetup.test.tsx --reporter=verbose`
++  - Result: 3 files / 9 tests passed
++
++### P1 hardening targeted verification
++
++- `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/contracts/CapLaboratory.test.tsx --reporter=verbose`
++  - Result: passed, 1 file / 5 tests
++- `npx --yes pnpm@9.15.9 --filter @mfd/design-system exec vitest run components/PixelSelect/PixelSelect.test.tsx --reporter=verbose`
++  - Result: passed, 1 file / 1 test
++- `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/features/companion/ChipDock.test.tsx --reporter=verbose`
++  - Result: passed, 1 file / 38 tests
++- `npx --yes pnpm@9.15.9 --filter @mfd/design-system exec vitest run tokens/index.test.ts components/PixelSelect/PixelSelect.test.tsx --reporter=verbose`
++  - Result: passed, 2 files / 2 tests
++- `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/app/indexDocument.test.ts src/features/companion/ChipDock.test.tsx src/features/contracts/CapLaboratory.test.tsx --reporter=verbose`
++  - Result: passed, 3 files / 44 tests
++- `npx --yes pnpm@9.15.9 --filter @mfd/web exec vitest run src/app/indexDocument.test.ts --reporter=verbose`
++  - Result: passed, 1 file / 2 tests
++
++### Full repo gates in clean clone
++
++- `git diff --check`
++  - Result: passed
++- `rg -n "SAVE_VERSION = 35|SAVE_VERSION =|Math\\.random\\(" packages/engine apps/web packages/design-system`
++  - Result: save version remained `35`; only existing non-sim audio `Math.random()` usage was reported
++- `npx --yes pnpm@9.15.9 typecheck`
++  - Result: passed
++- `npx --yes pnpm@9.15.9 --filter @mfd/design-system test`
++  - Result: passed
++  - Evidence: 14 test files / 88 tests passed
++- `npx --yes pnpm@9.15.9 --filter @mfd/web test`
++  - Result: passed
++  - Evidence: 209 test files / 1282 tests passed
++  - Duration: 28.95s
++- `npx --yes pnpm@9.15.9 build`
++  - Result: passed
++  - Evidence: production build completed, Vite reported chunk-size warnings only
++  - Build time: 5.90s
++
++### Earlier full-suite checkpoint from the same clean clone
++
++- `npx --yes pnpm@9.15.9 --filter @mfd/web test`
++  - Result: previously passed at 207 files / 1275 tests before final regression additions
++- `npx --yes pnpm@9.15.9 typecheck`
++  - Result: previously passed
++- `npx --yes pnpm@9.15.9 build`
++  - Result: previously passed
++
++## Browser Verification
++
++### Launch path
++
++- Dev server command:
++  - `env PATH="/Users/tkevinbigham/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" VITE_CHIP_ENABLED=true VITE_CHIP_TTS_ENABLED=false VITE_MFD_SHARE_ENABLED=false npx --yes pnpm@9.15.9 --filter @mfd/web dev -- --host 127.0.0.1 --port 4173`
++- Served URL used in browser verification:
++  - `http://localhost:5174/MFD/`
++  - Note: `5173` was already occupied, so Vite served this current-code pass on `5174`.
++
++### Current-code first-3-week playthrough
++
++- Started a fresh dynasty from current source with Chip enabled.
++- Completed setup flow:
++  - AGM: Deion "Coach D" Hardaway
++  - Head Coach: Dorian Cross
++  - Scouting Director: Marvin Tate
++  - Offense: Power Run
++  - Defense: 4-3
++  - Depth philosophy: Best Players
++  - Cap package: Balanced Pressure Release
++  - Goals: Win Division, Cap Health, No Losing Streaks
++  - Culture mandate: Player Led
++- Week 1 verified:
++  - Chip appeared in the live shell
++  - Monday Briefing copy clearly explained the weekly loop
++  - Dock controls present: `Where am I?`, `What now?`, `Replay`, `Snooze`, `Enable`, `Quiet for screen`, `Quiet until next week`, `Quiet this season`, `Reduce guidance`, `Disable animations`
++  - Route guidance verified on Monday Briefing, Roster, Depth Chart, Game Plan, and Week Advance
++  - Week Advance decision-impact UI showed `Immediate`, `This season`, `Future`, and `Risk`
++- Week 1 advance:
++  - Game Plan required before advancing
++  - Halftime decision path was exercised
++  - Halftime modal: `Halftime Hell`, Jacksonville 0 - 14 New York, chose `Switch`
++- Week 2 verified:
++  - Record updated to `0-1`
++  - Briefing surfaced the Week 1 result and injury notes
++  - Chip weekly copy changed appropriately and stayed contextual
++- Week 3 verified:
++  - Record updated to `1-1`
++  - Briefing surfaced injuries, power-ranking movement, and next opponent
++  - Chip copy changed again and reduced repetition instead of replaying the same Week 1 text
++- Replay was verified in the live Week 3 shell: replay restored the current weekly guidance after dismissal.
++- TTS disabled path produced no autoplay voice or crash.
++- Share disabled path produced no visible regression.
++
++### Runtime fixes verified in browser
++
++- Game Plan P0 before fix:
++  - `The result of getSnapshot should be cached to avoid an infinite loop`
++  - `Maximum update depth exceeded`
++- Fix applied:
++  - `apps/web/src/app/store/selectors.ts` memoized `selectCurrentOpponentIntel`
++  - `apps/web/src/features/game-plan/GamePlanSetup.tsx` stopped passing `PixelPanel` directly as the tooltip child in the crashing surface
++- Result:
++  - `#/game-plan` rendered normally with Chip route guidance and prep controls
++- Depth Chart warning before fix:
++  - nested `<button>` inside the slot card due to `PlayerNameLink` rendering a button inside the room button
++- Fix applied:
++  - `apps/web/src/features/depth-chart/DepthChart.tsx` now renders plain starter text inside the slot card and keeps player linking in the modal
++- Result:
++  - `#/depth-chart` rendered with no fresh console warnings after the fix
++
++### Additional demo-shell check
++
++- The Week 14 demo scenario was launched from current code.
++- Monday Briefing, Depth Chart, and Chip dock were inspected again after the fixes.
++- The demo shell currently loads with dock controls available but no active route/live beat once the dock is expanded, so replay/quiet controls are present but inert in that state. Replay/reset/snooze reliability remains covered by direct ChipDock state tests.
++
++### P1 hardening browser pass
++
++- Current-code browser pass launched the Week 14 demo scenario on `http://localhost:5174/MFD/`.
++- Phone viewport `390x844` verified:
++  - Trade Center route rendered with `0 pending`, `0 accepted`, `No high-confidence suggestions this week`, and `No active offers`.
++  - Trade Center `Propose Trade` tab was clickable with the expanded Chip route beat visible.
++  - Cap Lab rendered in responsive card mode with 17 card rows and no page-level horizontal overflow.
++  - Cap Lab `Add Move`, enabled `Apply Sandbox`, modal open, and `Cancel` path all worked.
++  - No unnamed visible controls were found in the Trade/Cap pass.
++  - No undersized phone controls were found after the PixelSelect and Chip pending-badge fixes.
++  - No page-level overflow offenders remained; Chip dock controls use an intentional internal horizontal scroller on phone widths.
++- Desktop viewport `1366x900` verified:
++  - Trade Center and Cap Lab routes rendered without page-level overflow offenders.
++  - Trade Center and Cap Lab blank/low-data states remained visible.
++- Release metadata verified in browser:
++  - Manifest resolved to `http://localhost:5174/MFD/manifest.json`.
++  - Manifest response was `application/json`.
++  - Browser console had no errors or warnings after the manifest and mobile-web-app metadata fix.
++
++## Product Audit
++
++- First 10 minutes guided: yes
++- Weekly loop clear: yes
++- Post-week guidance clear: yes
++- Decision impact clear: yes
++- Feature visibility improved: yes
++- Replay/reset/snooze available: yes
++- Mobile route controls usable with Chip expanded: yes
++- Trade Center current-browser pass: yes
++- Cap Lab current-browser pass: yes
++- Accessibility/blank-state spot check: yes
++- Tone acceptable: yes
++- No spam or annoying repetition in the 3-week run: yes
++
++## Engineering Audit
++
++- Clean recovery path established: yes
++- Reliable git status/diff in clean clone: yes
++- Install: yes
++- Typecheck: yes
++- Tests: yes, including full web and design-system suites
++- Build: yes
++- Live onboarding/state-machine integration: yes
++- Persistence/resume path: yes by state tests and local-storage-backed dock/onboarding state
++- Idempotent triggers/read receipts: yes by route-beat/read-receipt tests
++- Feature flags: yes for Chip, TTS scaffold, and share scaffold
++- P1 browser hardening: yes, current-code phone/desktop route pass completed
++- Save compatibility: yes; no save schema/version/engine changes
++- Deterministic sim behavior preserved: yes; no RNG/sim-path edits
++
++## Remaining Issues
++
++### P0
++
++- None confirmed after clean-clone recovery, full test/build verification, and current-code browser playthrough.
++
++### P1
++
++- Later-season feature-introduction coverage remains lighter than the first-three-week core loop and should remain the next release-confidence sweep.
++- Save/load/settings import-export should still get a focused current-build runtime pass before broad public push.
++- Bundle chunk-size warnings remain from the current app build output and should be addressed in a later performance slice if public web delivery becomes sensitive to initial load.
++- Root lint remains a baseline issue outside this Chip slice in untouched engine files; it was not reopened here.
++
++### P2
++
++- TTS scaffold remains intentionally conservative behind `VITE_CHIP_TTS_ENABLED`.
++- Share scaffold remains intentionally conservative behind `VITE_MFD_SHARE_ENABLED`.
++- Additional feature-introduction variants and copy polish can continue after release recovery.
++
++## Resume Instructions
++
++1. Work in `/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery`, not the corrupt original checkout.
++2. Re-read this file and `.codex/MFD/public-release-readiness-matrix.md`.
++3. If continuing release work, keep scope to MFD only and preserve `SAVE_VERSION 35`.
++4. Treat the current Chip recovery plus P1 hardening slice as green on targeted tests and browser verification unless a new regression appears.
++5. Next sprint should target later-season feature-introduction and save/load/settings runtime confidence, not new unrelated features.
+
+--- UNTRACKED .codex/MFD/public-release-readiness-matrix.md ---
+diff --git a/.codex/MFD/public-release-readiness-matrix.md b/.codex/MFD/public-release-readiness-matrix.md
+new file mode 100644
+index 0000000..9eee08b
+--- /dev/null
++++ b/.codex/MFD/public-release-readiness-matrix.md
+@@ -0,0 +1,85 @@
++# MFD Public Release Readiness Matrix
++
++Updated: 2026-05-05 17:34:29 CDT
++Repo: `/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery`
++Branch: `codex/chip-public-release-recovery`
++
++## Summary
++
++- Recovery status: green in clean clone
++- P0 blockers: none confirmed
++- Primary release strength: Chip now owns live onboarding clarity across the first playable weeks
++- Highest remaining risks: later-season feature-introduction coverage, save/load/settings runtime coverage, bundle weight, and broader release polish outside the first-week critical path
++
++| Feature | Wired? | Understandable? | Chip introduces it? | Runtime verified? | Risk | P0/P1/P2 next action |
++| --- | --- | --- | --- | --- | --- | --- |
++| Start / new game flow | Yes | Yes | Yes | Yes | Low | P0 none |
++| First week shell | Yes | Yes | Yes | Yes | Low | P0 none |
++| Week advance | Yes | Yes | Yes | Yes | Low | P0 none |
++| Monday Briefing | Yes | Yes | Yes | Yes | Low | P0 none |
++| Roster | Yes | Yes | Yes | Yes | Low | P0 none |
++| Depth Chart | Yes | Yes | Yes | Yes | Low after nested-button fix | P0 none |
++| Game Plan / coaching prep | Yes | Yes | Yes | Yes | Low after selector/runtime fix | P0 none |
++| Trades | Yes | Yes | Yes | Yes | Low | P0 none after current-browser phone/desktop pass |
++| Contracts / Cap Lab | Yes | Yes | Yes | Yes | Low | P0 none after current-browser phone/desktop pass |
++| Team needs / analytics / supporting desks | Yes | Mostly | Partially | Partial | Medium | P1 continue progressive Chip introduction outside first-week critical path |
++| Scouting / draft / offseason teaser | Yes | Mostly | Partially | No in this pass | Medium | P1 verify later-season intros in a follow-up release sweep |
++| News / league pulse | Yes | Yes | Partially | Yes | Low | P1 expand Chip tie-ins only if repetition stays controlled |
++| Save / load / settings | Yes | Mostly | Partially | Partial | Medium | P1 add a focused runtime pass for import/export/settings on current build |
++| TTS scaffold | Yes, behind flag | Yes | No by default | Partial | Low | P2 keep behind `VITE_CHIP_TTS_ENABLED` until deliberate polish pass |
++| Share scaffold | Yes, behind flag | Yes | No by default | Partial | Low | P2 keep behind `VITE_MFD_SHARE_ENABLED` until deliberate polish pass |
++| Mobile tolerance | Yes | Yes | N/A | Yes | Low | P0 none after 390x844 Trade/Cap pass |
++| Accessibility basics | Improved | Mostly | N/A | Yes for Trade/Cap P1 sweep | Low/Medium | P1 continue broader semantic audit later, but no Trade/Cap blocker found |
++| Error / blank states | Mostly | Mostly | Partial | Yes for Trade/Cap P1 sweep | Low/Medium | P1 save/load/settings spot-check remains |
++| Public release blockers | None confirmed | N/A | N/A | Yes for core recovery gates | Low | P0 none |
++
++## Notes
++
++- Runtime-verified core loop in this pass:
++  - fresh dynasty setup
++  - live Week 1 shell
++  - Monday Briefing
++  - Roster
++  - Depth Chart
++  - Game Plan
++  - Week Advance
++  - advance through Week 3
++- Runtime-verified P1 hardening in this pass:
++  - phone viewport `390x844`
++  - desktop viewport `1366x900`
++  - Trade Center incoming blank state and `Propose Trade` tab
++  - Cap Lab card-mode candidate/projection tables
++  - Cap Lab add/apply/cancel sandbox path
++  - no phone overflow offenders, unnamed controls, or undersized controls in Trade/Cap pass
++  - manifest served as JSON at `/MFD/manifest.json` with no browser console errors/warnings
++- Engineering gates verified in clean clone:
++  - `git diff --check`
++  - install
++  - typecheck
++  - full design-system tests
++  - full web tests at 209 files / 1282 tests
++  - production build
++  - save/RNG audit confirmed `SAVE_VERSION 35` was unchanged and no new sim randomness was introduced
++- Save safety remained intact:
++  - no save schema bump
++  - no engine changes
++  - no RNG-path edits
++
++## Priority Readout
++
++### P0
++
++- None confirmed.
++
++### P1
++
++- Broader later-season Chip introduction audit
++- Save/load/settings runtime pass
++- Broader accessibility and blank-state sweep outside Trade/Cap
++- Bundle-weight follow-up if public web delivery becomes sensitive
++
++### P2
++
++- TTS polish
++- Share payload expansion
++- Additional copy variants and release flavor
+
+--- UNTRACKED apps/web/src/app/indexDocument.test.ts ---
+diff --git a/apps/web/src/app/indexDocument.test.ts b/apps/web/src/app/indexDocument.test.ts
+new file mode 100644
+index 0000000..23ac0d7
+--- /dev/null
++++ b/apps/web/src/app/indexDocument.test.ts
+@@ -0,0 +1,20 @@
++import { describe, expect, it } from 'vitest';
++import { readFileSync } from 'node:fs';
++import { fileURLToPath } from 'node:url';
++
++const indexHtml = readFileSync(fileURLToPath(new URL('../../index.html', import.meta.url)), 'utf8');
++
++describe('index document release metadata', () => {
++  it('uses current mobile web app metadata alongside the iOS legacy flag', () => {
++    expect(indexHtml).toContain('<meta name="mobile-web-app-capable" content="yes" />');
++    expect(indexHtml).toContain('<meta name="apple-mobile-web-app-capable" content="yes" />');
++  });
++
++  it('lets Vite apply the configured base path to release assets', () => {
++    expect(indexHtml).toContain('content="screenshots/v1/dashboard-desktop.png"');
++    expect(indexHtml).toContain('href="manifest.json"');
++    expect(indexHtml).toContain('href="favicon.svg"');
++    expect(indexHtml).not.toContain('href="/MFD/manifest.json"');
++    expect(indexHtml).not.toContain('%BASE_URL%manifest.json');
++  });
++});
+
+--- UNTRACKED apps/web/src/app/store/selectors.test.ts ---
+diff --git a/apps/web/src/app/store/selectors.test.ts b/apps/web/src/app/store/selectors.test.ts
+new file mode 100644
+index 0000000..7f17495
+--- /dev/null
++++ b/apps/web/src/app/store/selectors.test.ts
+@@ -0,0 +1,45 @@
++import { describe, expect, it } from 'vitest';
++import { createSeedGameState } from './seed';
++import {
++  selectCurrentOpponentIntel,
++  type GameStoreState,
++} from './selectors';
++
++function buildState(game = createSeedGameState(42, 0, 'pro')): GameStoreState {
++  game.phase = 'regular_season';
++  game.week = 1;
++
++  return {
++    game,
++    initialized: true,
++    undoSnapshot: null,
++    undoLabel: null,
++    recapPromptSeenThisSession: false,
++    pendingPlayoffLoreReveal: null,
++  };
++}
++
++describe('selectCurrentOpponentIntel', () => {
++  it('returns the same reference for repeated reads on an unchanged game state', () => {
++    const state = buildState();
++
++    const first = selectCurrentOpponentIntel(state);
++    const second = selectCurrentOpponentIntel(state);
++
++    expect(first).not.toBeNull();
++    expect(second).toBe(first);
++  });
++
++  it('recomputes the intel when the game reference changes', () => {
++    const state = buildState();
++    const first = selectCurrentOpponentIntel(state);
++    const nextGame = structuredClone(state.game!);
++    nextGame.week = 2;
++
++    const second = selectCurrentOpponentIntel(buildState(nextGame));
++
++    expect(first).not.toBeNull();
++    expect(second).not.toBeNull();
++    expect(second).not.toBe(first);
++  });
++});
+
+--- UNTRACKED apps/web/src/features/companion/chipShare.test.ts ---
+diff --git a/apps/web/src/features/companion/chipShare.test.ts b/apps/web/src/features/companion/chipShare.test.ts
+new file mode 100644
+index 0000000..a3e6b2d
+--- /dev/null
++++ b/apps/web/src/features/companion/chipShare.test.ts
+@@ -0,0 +1,63 @@
++import { describe, expect, it } from 'vitest';
++import {
++  CHIP_SHARE_EVENT_TYPES,
++  createChipShareService,
++  generateChipShareEvent,
++  isMfdShareEnabled,
++} from './chipShare';
++
++describe('Chip share scaffold', () => {
++  it('defaults share work off unless the explicit feature flag is true', () => {
++    expect(isMfdShareEnabled({})).toBe(false);
++    expect(isMfdShareEnabled({ VITE_MFD_SHARE_ENABLED: 'false' })).toBe(false);
++    expect(isMfdShareEnabled({ VITE_MFD_SHARE_ENABLED: 'true' })).toBe(true);
++  });
++
++  it('defines the future share-card event surface', () => {
++    expect(CHIP_SHARE_EVENT_TYPES).toEqual([
++      'weekly_recap',
++      'big_trade',
++      'draft_steal',
++      'rivalry_win',
++      'playoff_clinch',
++      'championship',
++      'hall_of_fame',
++      'record_milestone',
++    ]);
++  });
++
++  it('generates deterministic local payloads without external posting fields', () => {
++    const payload = generateChipShareEvent({
++      type: 'weekly_recap',
++      teamName: 'Chicago Knights',
++      season: 2032,
++      week: 7,
++      headline: 'Road win with a cost',
++      summary: 'The win bought breathing room, but the right tackle injury changes next week.',
++      occurredAt: '2026-05-05T14:00:00.000Z',
++    });
++
++    expect(payload).toMatchObject({
++      id: 'mfd-share:weekly_recap:2032:7:road-win-with-a-cost',
++      type: 'weekly_recap',
++      title: 'Chicago Knights // Week 7',
++      copyText: expect.stringContaining('Road win with a cost'),
++    });
++    expect(payload.externalTargets).toEqual([]);
++  });
++
++  it('returns null from the service while the flag is disabled', () => {
++    const service = createChipShareService({ env: { VITE_MFD_SHARE_ENABLED: 'false' } });
++
++    expect(service.isEnabled()).toBe(false);
++    expect(service.create({
++      type: 'big_trade',
++      teamName: 'Chicago Knights',
++      season: 2032,
++      week: 8,
++      headline: 'Veteran tackle acquired',
++      summary: 'A Sunday answer with a February bill.',
++      occurredAt: '2026-05-05T14:00:00.000Z',
++    })).toBeNull();
++  });
++});
+
+--- UNTRACKED apps/web/src/features/companion/chipShare.ts ---
+diff --git a/apps/web/src/features/companion/chipShare.ts b/apps/web/src/features/companion/chipShare.ts
+new file mode 100644
+index 0000000..dddb7f7
+--- /dev/null
++++ b/apps/web/src/features/companion/chipShare.ts
+@@ -0,0 +1,87 @@
++export const CHIP_SHARE_FLAG = 'VITE_MFD_SHARE_ENABLED';
++
++type ChipShareEnv = Record<string, string | boolean | undefined>;
++
++export const CHIP_SHARE_EVENT_TYPES = [
++  'weekly_recap',
++  'big_trade',
++  'draft_steal',
++  'rivalry_win',
++  'playoff_clinch',
++  'championship',
++  'hall_of_fame',
++  'record_milestone',
++] as const;
++
++export type ChipShareEventType = (typeof CHIP_SHARE_EVENT_TYPES)[number];
++
++export interface ChipShareEventInput {
++  type: ChipShareEventType;
++  teamName: string;
++  season: number;
++  week: number;
++  headline: string;
++  summary: string;
++  occurredAt: string;
++  result?: string;
++  stakes?: string[];
++  metadata?: Record<string, string | number | boolean | null>;
++}
++
++export interface ChipShareEventPayload extends ChipShareEventInput {
++  id: string;
++  title: string;
++  copyText: string;
++  cardLines: string[];
++  externalTargets: [];
++}
++
++export interface ChipShareService {
++  isEnabled: () => boolean;
++  create: (input: ChipShareEventInput) => ChipShareEventPayload | null;
++}
++
++function slug(value: string): string {
++  return value
++    .trim()
++    .toLowerCase()
++    .replace(/[^a-z0-9]+/g, '-')
++    .replace(/^-+|-+$/g, '')
++    .slice(0, 48) || 'franchise-moment';
++}
++
++function weekLabel(input: Pick<ChipShareEventInput, 'week'>): string {
++  return input.week > 0 ? `Week ${input.week}` : 'Offseason';
++}
++
++export function isMfdShareEnabled(env: ChipShareEnv = import.meta.env): boolean {
++  return env[CHIP_SHARE_FLAG] === 'true' || env[CHIP_SHARE_FLAG] === true;
++}
++
++export function generateChipShareEvent(input: ChipShareEventInput): ChipShareEventPayload {
++  const title = `${input.teamName} // ${weekLabel(input)}`;
++  const stakes = input.stakes?.filter((line) => line.trim().length > 0) ?? [];
++  const cardLines = [
++    title,
++    input.headline,
++    input.summary,
++    ...stakes.slice(0, 3),
++  ];
++
++  return {
++    ...input,
++    id: `mfd-share:${input.type}:${input.season}:${input.week}:${slug(input.headline)}`,
++    title,
++    copyText: `${title}\n${input.headline}\n${input.summary}`,
++    cardLines,
++    externalTargets: [],
++  };
++}
++
++export function createChipShareService(options: { env?: ChipShareEnv } = {}): ChipShareService {
++  const enabled = isMfdShareEnabled(options.env ?? import.meta.env);
++  return {
++    isEnabled: () => enabled,
++    create: (input) => (enabled ? generateChipShareEvent(input) : null),
++  };
++}
+
+--- UNTRACKED apps/web/src/features/companion/chipVoice.test.ts ---
+diff --git a/apps/web/src/features/companion/chipVoice.test.ts b/apps/web/src/features/companion/chipVoice.test.ts
+new file mode 100644
+index 0000000..90935c7
+--- /dev/null
++++ b/apps/web/src/features/companion/chipVoice.test.ts
+@@ -0,0 +1,67 @@
++import { describe, expect, it, vi } from 'vitest';
++import { createChipVoiceService, isChipTtsEnabled } from './chipVoice';
++
++describe('Chip voice service', () => {
++  it('defaults TTS off unless the explicit feature flag is true', () => {
++    expect(isChipTtsEnabled({})).toBe(false);
++    expect(isChipTtsEnabled({ VITE_CHIP_TTS_ENABLED: 'false' })).toBe(false);
++    expect(isChipTtsEnabled({ VITE_CHIP_TTS_ENABLED: 'true' })).toBe(true);
++  });
++
++  it('noops safely when disabled even if speech synthesis exists', () => {
++    const synthesis = { speak: vi.fn(), cancel: vi.fn() };
++    const service = createChipVoiceService({
++      env: { VITE_CHIP_TTS_ENABLED: 'false' },
++      synthesis,
++      utteranceFactory: (text) => ({ text, rate: 1, pitch: 1, volume: 1 }),
++    });
++
++    expect(service.isAvailable()).toBe(false);
++    expect(service.speak('Welcome to the chair.', { userInitiated: true })).toEqual({
++      spoken: false,
++      reason: 'disabled',
++    });
++    expect(synthesis.speak).not.toHaveBeenCalled();
++  });
++
++  it('requires a user-initiated call before speaking when enabled', () => {
++    const synthesis = { speak: vi.fn(), cancel: vi.fn() };
++    const service = createChipVoiceService({
++      env: { VITE_CHIP_TTS_ENABLED: 'true' },
++      synthesis,
++      utteranceFactory: (text) => ({ text, rate: 1, pitch: 1, volume: 1 }),
++    });
++
++    expect(service.isAvailable()).toBe(true);
++    expect(service.speak('No autoplay surprises.')).toEqual({
++      spoken: false,
++      reason: 'not_user_initiated',
++    });
++    expect(synthesis.speak).not.toHaveBeenCalled();
++  });
++
++  it('builds and queues a speech utterance when enabled and user initiated', () => {
++    const synthesis = { speak: vi.fn(), cancel: vi.fn() };
++    const utterance = { text: '', rate: 0, pitch: 0, volume: 0 };
++    const service = createChipVoiceService({
++      env: { VITE_CHIP_TTS_ENABLED: 'true' },
++      synthesis,
++      utteranceFactory: (text) => ({ ...utterance, text }),
++    });
++
++    expect(service.speak('Read the briefing first.', {
++      userInitiated: true,
++      interrupt: true,
++      rate: 0.95,
++      pitch: 0.9,
++      volume: 0.75,
++    })).toEqual({ spoken: true, reason: 'queued' });
++    expect(synthesis.cancel).toHaveBeenCalledTimes(1);
++    expect(synthesis.speak).toHaveBeenCalledWith(expect.objectContaining({
++      text: 'Read the briefing first.',
++      rate: 0.95,
++      pitch: 0.9,
++      volume: 0.75,
++    }));
++  });
++});
+
+--- UNTRACKED apps/web/src/features/companion/chipVoice.ts ---
+diff --git a/apps/web/src/features/companion/chipVoice.ts b/apps/web/src/features/companion/chipVoice.ts
+new file mode 100644
+index 0000000..cb51929
+--- /dev/null
++++ b/apps/web/src/features/companion/chipVoice.ts
+@@ -0,0 +1,102 @@
++export const CHIP_TTS_FLAG = 'VITE_CHIP_TTS_ENABLED';
++
++type ChipTtsEnv = Record<string, string | boolean | undefined>;
++
++export type ChipVoiceSpeakReason =
++  | 'queued'
++  | 'disabled'
++  | 'unavailable'
++  | 'empty'
++  | 'not_user_initiated';
++
++export interface ChipVoiceSpeakOptions {
++  userInitiated?: boolean;
++  interrupt?: boolean;
++  rate?: number;
++  pitch?: number;
++  volume?: number;
++}
++
++export interface ChipVoiceSpeakResult {
++  spoken: boolean;
++  reason: ChipVoiceSpeakReason;
++}
++
++interface ChipSpeechSynthesisLike {
++  speak: (utterance: ChipSpeechUtteranceLike) => void;
++  cancel: () => void;
++}
++
++interface ChipSpeechUtteranceLike {
++  text: string;
++  rate: number;
++  pitch: number;
++  volume: number;
++}
++
++type ChipUtteranceFactory = (text: string) => ChipSpeechUtteranceLike;
++
++export interface CreateChipVoiceServiceOptions {
++  env?: ChipTtsEnv;
++  synthesis?: ChipSpeechSynthesisLike | null;
++  utteranceFactory?: ChipUtteranceFactory | null;
++}
++
++export interface ChipVoiceService {
++  isEnabled: () => boolean;
++  isAvailable: () => boolean;
++  speak: (text: string, options?: ChipVoiceSpeakOptions) => ChipVoiceSpeakResult;
++  stop: () => void;
++}
++
++function resolveSpeechSynthesis(): ChipSpeechSynthesisLike | null {
++  if (typeof window === 'undefined') return null;
++  return (window.speechSynthesis as unknown as ChipSpeechSynthesisLike | undefined) ?? null;
++}
++
++function resolveUtteranceFactory(): ChipUtteranceFactory | null {
++  if (typeof SpeechSynthesisUtterance === 'undefined') return null;
++  return (text: string) => new SpeechSynthesisUtterance(text);
++}
++
++function clamp(value: number | undefined, fallback: number, min: number, max: number): number {
++  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
++  return Math.max(min, Math.min(max, value));
++}
++
++export function isChipTtsEnabled(env: ChipTtsEnv = import.meta.env): boolean {
++  return env[CHIP_TTS_FLAG] === 'true' || env[CHIP_TTS_FLAG] === true;
++}
++
++export function createChipVoiceService(options: CreateChipVoiceServiceOptions = {}): ChipVoiceService {
++  const env = options.env ?? import.meta.env;
++  const enabled = isChipTtsEnabled(env);
++  const synthesis = options.synthesis === undefined ? resolveSpeechSynthesis() : options.synthesis;
++  const utteranceFactory = options.utteranceFactory === undefined ? resolveUtteranceFactory() : options.utteranceFactory;
++
++  return {
++    isEnabled: () => enabled,
++    isAvailable: () => enabled && synthesis !== null && utteranceFactory !== null,
++    speak: (text, speakOptions = {}) => {
++      if (!enabled) return { spoken: false, reason: 'disabled' };
++      if (!synthesis || !utteranceFactory) return { spoken: false, reason: 'unavailable' };
++      const trimmed = text.trim();
++      if (!trimmed) return { spoken: false, reason: 'empty' };
++      if (speakOptions.userInitiated !== true) return { spoken: false, reason: 'not_user_initiated' };
++
++      if (speakOptions.interrupt) {
++        synthesis.cancel();
++      }
++
++      const utterance = utteranceFactory(trimmed);
++      utterance.rate = clamp(speakOptions.rate, 0.92, 0.5, 1.5);
++      utterance.pitch = clamp(speakOptions.pitch, 0.9, 0, 2);
++      utterance.volume = clamp(speakOptions.volume, 1, 0, 1);
++      synthesis.speak(utterance);
++      return { spoken: true, reason: 'queued' };
++    },
++    stop: () => {
++      if (enabled && synthesis) synthesis.cancel();
++    },
++  };
++}
+
+--- UNTRACKED apps/web/src/features/companion/decisionImpact.test.ts ---
+diff --git a/apps/web/src/features/companion/decisionImpact.test.ts b/apps/web/src/features/companion/decisionImpact.test.ts
+new file mode 100644
+index 0000000..3c454f6
+--- /dev/null
++++ b/apps/web/src/features/companion/decisionImpact.test.ts
+@@ -0,0 +1,43 @@
++import { describe, expect, it } from 'vitest';
++import {
++  buildDecisionImpactExplanation,
++  decisionImpactToConsequenceItems,
++} from './decisionImpact';
++
++describe('decision impact explanations', () => {
++  it('frames week advance risk across immediate, season, future, and uncertainty windows', () => {
++    const impact = buildDecisionImpactExplanation({
++      surface: 'week-advance',
++      label: 'Week advance',
++      issueCount: 2,
++      difficulty: 'hard',
++    });
++
++    expect(impact.severity).toBe('high');
++    expect(impact.immediateImpact).toContain('2 readiness issues');
++    expect(impact.thisSeasonImpact).toContain('weekly result');
++    expect(impact.futureImpact).toContain('injuries, morale, and standings');
++    expect(impact.risk).toContain('Hard difficulty');
++    expect(decisionImpactToConsequenceItems(impact).map((item) => item.label)).toEqual([
++      'Immediate',
++      'This season',
++      'Future',
++      'Risk',
++    ]);
++  });
++
++  it('uses trade-specific consequence language', () => {
++    const impact = buildDecisionImpactExplanation({
++      surface: 'trade',
++      label: 'Trade package',
++      outgoingAssets: 2,
++      incomingAssets: 1,
++      valueDelta: -4,
++    });
++
++    expect(impact.immediateImpact).toContain('send 2 assets');
++    expect(impact.thisSeasonImpact).toContain('depth');
++    expect(impact.futureImpact).toContain('pick');
++    expect(impact.risk).toContain('market');
++  });
++});
+
+--- UNTRACKED apps/web/src/features/companion/decisionImpact.ts ---
+diff --git a/apps/web/src/features/companion/decisionImpact.ts b/apps/web/src/features/companion/decisionImpact.ts
+new file mode 100644
+index 0000000..f8078ee
+--- /dev/null
++++ b/apps/web/src/features/companion/decisionImpact.ts
+@@ -0,0 +1,136 @@
++type PixelAccent = 'default' | 'green' | 'gold' | 'red' | 'cyan';
++
++export type DecisionImpactSurface =
++  | 'week-advance'
++  | 'trade'
++  | 'cap-lab'
++  | 'game-plan'
++  | 'roster';
++
++export type DecisionImpactSeverity = 'low' | 'medium' | 'high';
++
++export interface DecisionImpactInput {
++  surface: DecisionImpactSurface;
++  label: string;
++  issueCount?: number;
++  difficulty?: string;
++  outgoingAssets?: number;
++  incomingAssets?: number;
++  valueDelta?: number;
++  queuedMoves?: number;
++  netCapChange?: number;
++  deadCapPct?: number;
++}
++
++export interface DecisionImpactExplanation {
++  surface: DecisionImpactSurface;
++  label: string;
++  severity: DecisionImpactSeverity;
++  immediateImpact: string;
++  thisSeasonImpact: string;
++  futureImpact: string;
++  risk: string;
++}
++
++function difficultyRisk(difficulty: string | undefined, fallback: string): string {
++  if (difficulty?.toLowerCase() === 'hard') {
++    return `Hard difficulty gives mistakes less cushion. ${fallback}`;
++  }
++  return fallback;
++}
++
++export function buildDecisionImpactExplanation(input: DecisionImpactInput): DecisionImpactExplanation {
++  switch (input.surface) {
++    case 'week-advance': {
++      const issueCount = Math.max(0, Math.trunc(input.issueCount ?? 0));
++      const severity: DecisionImpactSeverity = issueCount >= 2 ? 'high' : issueCount === 1 ? 'medium' : 'low';
++      return {
++        surface: input.surface,
++        label: input.label,
++        severity,
++        immediateImpact: issueCount > 0
++          ? `${issueCount} readiness issues can travel straight into Sunday.`
++          : 'Clean checklist means the week can advance without obvious desk fires.',
++        thisSeasonImpact: 'The weekly result can shift owner patience, morale, standings, and injury pressure.',
++        futureImpact: 'Repeatedly advancing through issues compounds injuries, morale, and standings damage.',
++        risk: difficultyRisk(input.difficulty, 'Uncertainty stays real until the sim resolves matchup variance.'),
++      };
++    }
++    case 'trade': {
++      const outgoing = Math.max(0, Math.trunc(input.outgoingAssets ?? 0));
++      const incoming = Math.max(0, Math.trunc(input.incomingAssets ?? 0));
++      const valueDelta = input.valueDelta ?? 0;
++      const severity: DecisionImpactSeverity = Math.abs(valueDelta) >= 5 || outgoing >= 3 ? 'high' : outgoing > 0 || incoming > 0 ? 'medium' : 'low';
++      return {
++        surface: input.surface,
++        label: input.label,
++        severity,
++        immediateImpact: `You send ${outgoing} assets and receive ${incoming}; the roster changes the moment the trade posts.`,
++        thisSeasonImpact: 'depth, chemistry, and role clarity can move faster than the ratings screen suggests.',
++        futureImpact: 'pick and contract costs can follow this franchise into the next team-building window.',
++        risk: valueDelta < 0
++          ? 'The market is charging you a premium, so be sure the roster hole is urgent.'
++          : 'Even a favorable market price can create a new hole if timing is wrong.',
++      };
++    }
++    case 'cap-lab': {
++      const queuedMoves = Math.max(0, Math.trunc(input.queuedMoves ?? 0));
++      const deadCapPct = Math.max(0, Math.trunc(input.deadCapPct ?? 0));
++      const severity: DecisionImpactSeverity = deadCapPct > 20 || queuedMoves >= 3 ? 'high' : queuedMoves > 0 ? 'medium' : 'low';
++      return {
++        surface: input.surface,
++        label: input.label,
++        severity,
++        immediateImpact: queuedMoves > 0
++          ? `${queuedMoves} queued cap moves change today's room by ${input.netCapChange?.toFixed(1) ?? '0.0'}M.`
++          : 'No queued move has hit the live ledger yet.',
++        thisSeasonImpact: 'Cap room decides whether injuries and late-season needs can be answered.',
++        futureImpact: 'Dead money and pushed charges decide how expensive today feels next spring.',
++        risk: deadCapPct > 15
++          ? 'Dead-cap pressure is already high; flexibility can disappear quickly.'
++          : 'The sandbox lowers risk, but the confirmed move is permanent for this save.',
++      };
++    }
++    case 'game-plan':
++      return {
++        surface: input.surface,
++        label: input.label,
++        severity: 'medium',
++        immediateImpact: 'The plan changes how your roster attacks this opponent.',
++        thisSeasonImpact: 'Repeated plan misses can turn close matchups into pattern losses.',
++        futureImpact: 'Plan identity teaches you which roster traits are actually missing.',
++        risk: 'Opponent variance still matters, but bad fit makes the variance harsher.',
++      };
++    case 'roster':
++      return {
++        surface: input.surface,
++        label: input.label,
++        severity: 'medium',
++        immediateImpact: 'Roster and depth choices decide who takes real snaps this week.',
++        thisSeasonImpact: 'Thin rooms become injury problems before they become headlines.',
++        futureImpact: 'Age, contract, and role clusters point to the next acquisition window.',
++        risk: 'The ratings screen can hide matchup and backup risk until Sunday exposes it.',
++      };
++  }
++}
++
++function severityAccent(severity: DecisionImpactSeverity): PixelAccent {
++  if (severity === 'high') return 'red';
++  if (severity === 'medium') return 'gold';
++  return 'cyan';
++}
++
++export function decisionImpactToConsequenceItems(impact: DecisionImpactExplanation): Array<{
++  id: string;
++  label: string;
++  delta: string;
++  accent: PixelAccent;
++}> {
++  const accent = severityAccent(impact.severity);
++  return [
++    { id: `${impact.surface}-immediate`, label: 'Immediate', delta: impact.immediateImpact, accent },
++    { id: `${impact.surface}-season`, label: 'This season', delta: impact.thisSeasonImpact, accent: impact.severity === 'high' ? 'red' : 'gold' },
++    { id: `${impact.surface}-future`, label: 'Future', delta: impact.futureImpact, accent: 'cyan' },
++    { id: `${impact.surface}-risk`, label: 'Risk', delta: impact.risk, accent },
++  ];
++}
+
+--- UNTRACKED apps/web/src/features/companion/featureVisibilityMatrix.ts ---
+diff --git a/apps/web/src/features/companion/featureVisibilityMatrix.ts b/apps/web/src/features/companion/featureVisibilityMatrix.ts
+new file mode 100644
+index 0000000..dd62554
+--- /dev/null
++++ b/apps/web/src/features/companion/featureVisibilityMatrix.ts
+@@ -0,0 +1,345 @@
++export const REQUIRED_CHIP_FEATURES = [
++  'monday-briefing',
++  'week-advance',
++  'inbox',
++  'roster',
++  'depth-chart',
++  'injuries',
++  'game-plan',
++  'coaching',
++  'contracts',
++  'cap-lab',
++  'trades',
++  'team-needs',
++  'scouting',
++  'draft',
++  'free-agency',
++  'waiver-wire',
++  'practice-squad',
++  'film-room',
++  'schedule',
++  'standings',
++  'power-rankings',
++  'league-pulse',
++  'analytics',
++  'record-book',
++  'settings-save-load',
++] as const;
++
++export type ChipFeatureId = (typeof REQUIRED_CHIP_FEATURES)[number];
++
++export type ChipFeatureIntroductionMoment =
++  | 'first_ten_minutes'
++  | 'weekly_loop'
++  | 'post_result'
++  | 'decision_pressure'
++  | 'cap_pressure'
++  | 'roster_pressure'
++  | 'deadline_window'
++  | 'offseason'
++  | 'draft_window'
++  | 'deep_dive';
++
++export type ChipFeatureTestStatus = 'route_beat' | 'state_machine' | 'manual_check' | 'scaffolded' | 'missing';
++
++export interface ChipFeatureVisibilityEntry {
++  id: ChipFeatureId;
++  feature: string;
++  entryPoint: string;
++  whatItDoes: string;
++  whyItMatters: string;
++  bestMoment: ChipFeatureIntroductionMoment;
++  firstTimePlayerAction: string;
++  advancedPlayerNote: string;
++  testStatus: ChipFeatureTestStatus;
++}
++
++export const FIRST_TEN_MINUTE_FEATURES: readonly ChipFeatureId[] = [
++  'monday-briefing',
++  'roster',
++  'depth-chart',
++  'game-plan',
++  'week-advance',
++] as const;
++
++export const CHIP_FEATURE_VISIBILITY_MATRIX: readonly ChipFeatureVisibilityEntry[] = [
++  {
++    id: 'monday-briefing',
++    feature: 'Monday Briefing',
++    entryPoint: '/',
++    whatItDoes: 'Summarizes the current week, latest result, risks, and most urgent context.',
++    whyItMatters: 'It gives the player a football reason to choose the next screen.',
++    bestMoment: 'first_ten_minutes',
++    firstTimePlayerAction: 'Read the briefing before touching the roster or advance button.',
++    advancedPlayerNote: 'Use it as the weekly triage board, not a full report.',
++    testStatus: 'state_machine',
++  },
++  {
++    id: 'inbox',
++    feature: 'Inbox',
++    entryPoint: '/inbox',
++    whatItDoes: 'Collects urgent team decisions and league prompts.',
++    whyItMatters: 'Unresolved items can travel into the sim and change outcomes.',
++    bestMoment: 'weekly_loop',
++    firstTimePlayerAction: 'Clear urgent decisions before advancing the week.',
++    advancedPlayerNote: 'Use inbox timing to decide what can safely wait.',
++    testStatus: 'manual_check',
++  },
++  {
++    id: 'roster',
++    feature: 'Roster',
++    entryPoint: '/roster',
++    whatItDoes: 'Shows the player group, roles, health, age, and roster quality.',
++    whyItMatters: 'A strategy only works if the bodies can execute it.',
++    bestMoment: 'first_ten_minutes',
++    firstTimePlayerAction: 'Find injured starters and thin positions before setting the plan.',
++    advancedPlayerNote: 'Use age and role clusters to anticipate future replacement needs.',
++    testStatus: 'route_beat',
++  },
++  {
++    id: 'depth-chart',
++    feature: 'Depth Chart',
++    entryPoint: '/depth-chart',
++    whatItDoes: 'Turns roster talent into the actual Sunday lineup.',
++    whyItMatters: 'One bad backup slot can turn a good plan into a bad game.',
++    bestMoment: 'first_ten_minutes',
++    firstTimePlayerAction: 'Check starters and first backups at vulnerable positions.',
++    advancedPlayerNote: 'Tune depth before aggressive game plans or injury-heavy weeks.',
++    testStatus: 'route_beat',
++  },
++  {
++    id: 'injuries',
++    feature: 'Injuries',
++    entryPoint: '/roster',
++    whatItDoes: 'Shows who is limited, out, or forcing a lineup adjustment.',
++    whyItMatters: 'Injuries change both the depth chart and the game-plan risk.',
++    bestMoment: 'roster_pressure',
++    firstTimePlayerAction: 'Treat injured starters as the first roster question.',
++    advancedPlayerNote: 'Plan around clusters, not just the highest-rated injured player.',
++    testStatus: 'manual_check',
++  },
++  {
++    id: 'game-plan',
++    feature: 'Game Plan',
++    entryPoint: '/game-plan',
++    whatItDoes: 'Sets the weekly offensive and defensive approach.',
++    whyItMatters: 'It converts scouting and roster reality into a bet against the opponent.',
++    bestMoment: 'first_ten_minutes',
++    firstTimePlayerAction: 'Pick a plan your roster can survive, not just one that attacks the opponent.',
++    advancedPlayerNote: 'Use opponent shape and injury context to accept or avoid tradeoffs.',
++    testStatus: 'route_beat',
++  },
++  {
++    id: 'week-advance',
++    feature: 'Week Advance',
++    entryPoint: '/week-advance',
++    whatItDoes: 'Runs the league forward after readiness checks and game-plan gates.',
++    whyItMatters: 'It is where decisions become consequences.',
++    bestMoment: 'first_ten_minutes',
++    firstTimePlayerAction: 'Read the checklist and fix any red item before simming.',
++    advancedPlayerNote: 'Veterans can intentionally advance with risk when the window justifies it.',
++    testStatus: 'route_beat',
++  },
++  {
++    id: 'coaching',
++    feature: 'Coaching',
++    entryPoint: '/staff',
++    whatItDoes: 'Frames staff identity, scheme support, and development pressure.',
++    whyItMatters: 'Staff choices explain why players improve, stall, or fit a system.',
++    bestMoment: 'deep_dive',
++    firstTimePlayerAction: 'Skim staff strengths after the weekly loop is understood.',
++    advancedPlayerNote: 'Use staff fit to guide roster construction over multiple seasons.',
++    testStatus: 'route_beat',
++  },
++  {
++    id: 'contracts',
++    feature: 'Contracts',
++    entryPoint: '/contracts',
++    whatItDoes: 'Shows player deals, cuts, extensions, and cap obligations.',
++    whyItMatters: 'The football window is constrained by the money window.',
++    bestMoment: 'cap_pressure',
++    firstTimePlayerAction: 'Open contracts when Chip flags cap pressure or expiring core players.',
++    advancedPlayerNote: 'Read future commitments before solving one week with a costly move.',
++    testStatus: 'manual_check',
++  },
++  {
++    id: 'cap-lab',
++    feature: 'Cap Lab',
++    entryPoint: '/cap-lab',
++    whatItDoes: 'Lets the player sandbox restructures, cuts, and extensions.',
++    whyItMatters: 'It makes the future bill visible before the player commits.',
++    bestMoment: 'cap_pressure',
++    firstTimePlayerAction: 'Preview a cap move and read immediate, season, future, and risk impact.',
++    advancedPlayerNote: 'Use it to compare room today against dead money tomorrow.',
++    testStatus: 'route_beat',
++  },
++  {
++    id: 'trades',
++    feature: 'Trades',
++    entryPoint: '/trades',
++    whatItDoes: 'Shows incoming offers and lets the player build proposals.',
++    whyItMatters: 'Trades solve roster problems but create cap, chemistry, and future-asset bills.',
++    bestMoment: 'deadline_window',
++    firstTimePlayerAction: 'Read the trade impact panel before accepting or proposing.',
++    advancedPlayerNote: 'Use contender/rebuild timing to judge whether the risk belongs now.',
++    testStatus: 'route_beat',
++  },
++  {
++    id: 'team-needs',
++    feature: 'Team Needs',
++    entryPoint: '/team-needs',
++    whatItDoes: 'Ranks roster holes and pressure points.',
++    whyItMatters: 'It connects weekly pain to offseason priorities.',
++    bestMoment: 'post_result',
++    firstTimePlayerAction: 'Check needs after a loss exposes the same weakness twice.',
++    advancedPlayerNote: 'Pair needs with cap and draft capital before making a major move.',
++    testStatus: 'manual_check',
++  },
++  {
++    id: 'scouting',
++    feature: 'Scouting',
++    entryPoint: '/scouting',
++    whatItDoes: 'Surfaces prospect information before the draft window.',
++    whyItMatters: 'It connects today’s weaknesses to tomorrow’s replacements.',
++    bestMoment: 'draft_window',
++    firstTimePlayerAction: 'Wait for Chip to introduce scouting when team needs or calendar timing point there.',
++    advancedPlayerNote: 'Track traits that match staff and scheme instead of chasing board noise.',
++    testStatus: 'route_beat',
++  },
++  {
++    id: 'draft',
++    feature: 'Draft',
++    entryPoint: '/draft',
++    whatItDoes: 'Turns scouting and team needs into rookie acquisition.',
++    whyItMatters: 'It is the cheapest path to changing a franchise arc.',
++    bestMoment: 'draft_window',
++    firstTimePlayerAction: 'Use needs, scouting, and cap context before making the pick.',
++    advancedPlayerNote: 'Balance immediate starter value against contract-window planning.',
++    testStatus: 'manual_check',
++  },
++  {
++    id: 'free-agency',
++    feature: 'Free Agency',
++    entryPoint: '/free-agency',
++    whatItDoes: 'Lets the team buy veteran solutions on the open market.',
++    whyItMatters: 'It fills holes quickly but can distort the cap window.',
++    bestMoment: 'offseason',
++    firstTimePlayerAction: 'Use free agency after team needs and cap pressure are clear.',
++    advancedPlayerNote: 'Avoid turning every gap into a long-term veteran bill.',
++    testStatus: 'manual_check',
++  },
++  {
++    id: 'waiver-wire',
++    feature: 'Waiver Wire',
++    entryPoint: '/waivers',
++    whatItDoes: 'Offers short-term roster repairs and depth options.',
++    whyItMatters: 'It keeps a season alive when injuries hit the wrong position.',
++    bestMoment: 'roster_pressure',
++    firstTimePlayerAction: 'Use waivers when Chip flags an injury or depth emergency.',
++    advancedPlayerNote: 'Treat waivers as leverage for depth, not a franchise reset.',
++    testStatus: 'manual_check',
++  },
++  {
++    id: 'practice-squad',
++    feature: 'Practice Squad',
++    entryPoint: '/practice-squad',
++    whatItDoes: 'Stores developmental depth outside the active lineup.',
++    whyItMatters: 'It gives the player cheap answers to injuries and future churn.',
++    bestMoment: 'roster_pressure',
++    firstTimePlayerAction: 'Check it when depth chart injuries create a backup problem.',
++    advancedPlayerNote: 'Use it to protect scheme-fit developmental players.',
++    testStatus: 'manual_check',
++  },
++  {
++    id: 'film-room',
++    feature: 'Film Room',
++    entryPoint: '/film-room',
++    whatItDoes: 'Explains performance trends and matchup lessons after results.',
++    whyItMatters: 'It separates bad process from football variance.',
++    bestMoment: 'post_result',
++    firstTimePlayerAction: 'Open film after Chip says the result exposed a plan or roster issue.',
++    advancedPlayerNote: 'Use repeated tells to adjust scheme before changing personnel.',
++    testStatus: 'route_beat',
++  },
++  {
++    id: 'schedule',
++    feature: 'Schedule',
++    entryPoint: '/schedule',
++    whatItDoes: 'Shows upcoming opponents and calendar pressure.',
++    whyItMatters: 'The next three weeks change how aggressive a move should be.',
++    bestMoment: 'weekly_loop',
++    firstTimePlayerAction: 'Check the next opponent after reading the briefing.',
++    advancedPlayerNote: 'Plan roster and rest risk around stretches, not single games.',
++    testStatus: 'manual_check',
++  },
++  {
++    id: 'standings',
++    feature: 'Standings',
++    entryPoint: '/standings',
++    whatItDoes: 'Shows playoff race, division context, and league position.',
++    whyItMatters: 'A 3-4 team in a weak division makes different decisions than a buried one.',
++    bestMoment: 'post_result',
++    firstTimePlayerAction: 'Check standings when Chip mentions playoff or division pressure.',
++    advancedPlayerNote: 'Use standings to decide buy, sell, or hold near the deadline.',
++    testStatus: 'route_beat',
++  },
++  {
++    id: 'power-rankings',
++    feature: 'Power Rankings',
++    entryPoint: '/power-rankings',
++    whatItDoes: 'Frames perception and team strength relative to the league.',
++    whyItMatters: 'It makes momentum and reputation visible without replacing standings.',
++    bestMoment: 'deep_dive',
++    firstTimePlayerAction: 'Use it after the weekly loop makes sense.',
++    advancedPlayerNote: 'Treat rankings as league narrative, not a perfect team grade.',
++    testStatus: 'manual_check',
++  },
++  {
++    id: 'league-pulse',
++    feature: 'League Pulse / News',
++    entryPoint: '/league-pulse',
++    whatItDoes: 'Shows league stories, news, and outside context.',
++    whyItMatters: 'It makes the franchise feel embedded in a living league.',
++    bestMoment: 'weekly_loop',
++    firstTimePlayerAction: 'Read it after clearing your own urgent team work.',
++    advancedPlayerNote: 'Use league context to spot market and rivalry timing.',
++    testStatus: 'route_beat',
++  },
++  {
++    id: 'analytics',
++    feature: 'Analytics',
++    entryPoint: '/analytics',
++    whatItDoes: 'Turns team and player trends into deeper evidence.',
++    whyItMatters: 'It helps the player validate whether a weakness is real.',
++    bestMoment: 'deep_dive',
++    firstTimePlayerAction: 'Open analytics after Chip flags a repeated problem.',
++    advancedPlayerNote: 'Use trends to challenge surface ratings and recent bias.',
++    testStatus: 'manual_check',
++  },
++  {
++    id: 'record-book',
++    feature: 'Record Book / Legacy Systems',
++    entryPoint: '/records',
++    whatItDoes: 'Preserves history, milestones, and franchise memory.',
++    whyItMatters: 'It gives multi-season play emotional weight.',
++    bestMoment: 'deep_dive',
++    firstTimePlayerAction: 'Visit records after the first season starts creating history.',
++    advancedPlayerNote: 'Use legacy context to make long saves feel authored.',
++    testStatus: 'manual_check',
++  },
++  {
++    id: 'settings-save-load',
++    feature: 'Settings / Save Load',
++    entryPoint: '/settings',
++    whatItDoes: 'Controls preferences, save/load, and guidance behavior.',
++    whyItMatters: 'It keeps players in control of Chip, persistence, and accessibility.',
++    bestMoment: 'decision_pressure',
++    firstTimePlayerAction: 'Use settings to replay, reset, reduce, or re-enable Chip guidance.',
++    advancedPlayerNote: 'Tune guidance without disabling the underlying game depth.',
++    testStatus: 'route_beat',
++  },
++] as const;
++
++export function getFeatureVisibilityEntry(id: string): ChipFeatureVisibilityEntry | null {
++  return CHIP_FEATURE_VISIBILITY_MATRIX.find((entry) => entry.id === id) ?? null;
++}
+
+--- UNTRACKED apps/web/src/features/companion/onboardingMachine.test.ts ---
+diff --git a/apps/web/src/features/companion/onboardingMachine.test.ts b/apps/web/src/features/companion/onboardingMachine.test.ts
+new file mode 100644
+index 0000000..5616325
+--- /dev/null
++++ b/apps/web/src/features/companion/onboardingMachine.test.ts
+@@ -0,0 +1,76 @@
++import { describe, expect, it } from 'vitest';
++import {
++  CHIP_ONBOARDING_STATE_STORAGE_KEY,
++  FIRST_TEN_MINUTE_ONBOARDING_BEATS,
++  createInitialChipOnboardingState,
++  readChipOnboardingState,
++  recordChipOnboardingBeat,
++  resetChipOnboardingState,
++  selectChipOnboardingRouteBeats,
++  snoozeChipOnboarding,
++  writeChipOnboardingState,
++} from './onboardingMachine';
++
++class MemoryStorage implements Storage {
++  private readonly backing = new Map<string, string>();
++  get length() { return this.backing.size; }
++  clear(): void { this.backing.clear(); }
++  getItem(key: string): string | null { return this.backing.get(key) ?? null; }
++  key(index: number): string | null { return [...this.backing.keys()][index] ?? null; }
++  removeItem(key: string): void { this.backing.delete(key); }
++  setItem(key: string, value: string): void { this.backing.set(key, value); }
++}
++
++describe('Chip onboarding machine', () => {
++  it('defines a stable first-ten-minute arc for the core live routes', () => {
++    expect(FIRST_TEN_MINUTE_ONBOARDING_BEATS.map((beat) => [beat.id, beat.route])).toEqual([
++      ['chip.first10.monday-briefing', '/'],
++      ['chip.first10.roster', '/roster'],
++      ['chip.first10.depth-chart', '/depth-chart'],
++      ['chip.first10.game-plan', '/game-plan'],
++      ['chip.first10.week-advance', '/week-advance'],
++    ]);
++  });
++
++  it('selects only the first unseen eligible beat and persists completion', () => {
++    const storage = new MemoryStorage();
++    const state = createInitialChipOnboardingState();
++
++    expect(selectChipOnboardingRouteBeats('/roster', state, { currentWeek: 1 })).toEqual([
++      expect.objectContaining({
++        id: 'chip.first10.roster',
++        text: expect.stringContaining('injured starters'),
++      }),
++    ]);
++
++    const nextState = recordChipOnboardingBeat(storage, 'chip.first10.roster');
++    expect(nextState.completedBeatIds).toContain('chip.first10.roster');
++    expect(readChipOnboardingState(storage).completedBeatIds).toContain('chip.first10.roster');
++    expect(selectChipOnboardingRouteBeats('/roster', nextState, { currentWeek: 1 })).toEqual([]);
++  });
++
++  it('snoozes live guidance without deleting completed progress', () => {
++    const storage = new MemoryStorage();
++    writeChipOnboardingState(storage, {
++      ...createInitialChipOnboardingState(),
++      completedBeatIds: ['chip.first10.monday-briefing'],
++    });
++
++    const snoozed = snoozeChipOnboarding(storage, 2, () => new Date('2026-05-05T16:00:00.000Z'));
++
++    expect(snoozed.snoozedUntilWeek).toBe(2);
++    expect(selectChipOnboardingRouteBeats('/roster', snoozed, { currentWeek: 2 })).toEqual([]);
++    expect(selectChipOnboardingRouteBeats('/roster', snoozed, { currentWeek: 3 })).toHaveLength(1);
++    expect(readChipOnboardingState(storage).completedBeatIds).toEqual(['chip.first10.monday-briefing']);
++  });
++
++  it('reset clears the persisted machine state', () => {
++    const storage = new MemoryStorage();
++    recordChipOnboardingBeat(storage, 'chip.first10.roster');
++
++    resetChipOnboardingState(storage);
++
++    expect(storage.getItem(CHIP_ONBOARDING_STATE_STORAGE_KEY)).toBeNull();
++    expect(readChipOnboardingState(storage).completedBeatIds).toEqual([]);
++  });
++});
+
+--- UNTRACKED apps/web/src/features/companion/onboardingMachine.ts ---
+diff --git a/apps/web/src/features/companion/onboardingMachine.ts b/apps/web/src/features/companion/onboardingMachine.ts
+new file mode 100644
+index 0000000..b3b5dd8
+--- /dev/null
++++ b/apps/web/src/features/companion/onboardingMachine.ts
+@@ -0,0 +1,183 @@
++import type { RouteBeat } from '../route-coaching/routeBeatRegistry';
++
++export const CHIP_ONBOARDING_STATE_STORAGE_KEY = 'mfd.chip.onboarding.v2';
++
++export interface ChipOnboardingBeat extends RouteBeat {
++  route: string;
++}
++
++export interface ChipOnboardingState {
++  version: 1;
++  completedBeatIds: string[];
++  snoozedUntilWeek: number | null;
++  disabled: boolean;
++  lastUpdated: string;
++}
++
++export interface ChipOnboardingContext {
++  currentWeek: number;
++}
++
++export const FIRST_TEN_MINUTE_ONBOARDING_BEATS: readonly ChipOnboardingBeat[] = [
++  {
++    id: 'chip.first10.monday-briefing',
++    route: '/',
++    pose: 'point-side',
++    text: 'Start with the Monday Briefing. It shows what changed, what can hurt you this week, and which decision needs attention first.',
++    spotlightTarget: 'chip.route.monday-briefing.beat-1',
++  },
++  {
++    id: 'chip.first10.roster',
++    route: '/roster',
++    pose: 'thinking',
++    text: 'Check injured starters and thin rooms first. A game plan only works if the roster can survive it.',
++    spotlightTarget: 'chip.route.roster.beat-1',
++  },
++  {
++    id: 'chip.first10.depth-chart',
++    route: '/depth-chart',
++    pose: 'point-side',
++    text: 'Set the actual Sunday lineup here. One bad backup slot can turn a good roster into a bad week.',
++    spotlightTarget: 'chip.route.depth-chart.beat-1',
++  },
++  {
++    id: 'chip.first10.game-plan',
++    route: '/game-plan',
++    pose: 'thinking',
++    text: 'Pick a plan your roster can execute, not just one that attacks the opponent. That tradeoff is the job.',
++    spotlightTarget: 'chip.route.game-plan.beat-1',
++  },
++  {
++    id: 'chip.first10.week-advance',
++    route: '/week-advance',
++    pose: 'thinking',
++    text: 'This button turns choices into consequences. Read the checklist, fix red items, then advance with intent.',
++    spotlightTarget: 'chip.route.week-advance.beat-1',
++  },
++] as const;
++
++const FIRST_TEN_IDS = new Set(FIRST_TEN_MINUTE_ONBOARDING_BEATS.map((beat) => beat.id));
++
++function nowIso(now: () => Date): string {
++  return now().toISOString();
++}
++
++export function isFirstTenMinuteBeatId(beatId: string): boolean {
++  return FIRST_TEN_IDS.has(beatId);
++}
++
++export function createInitialChipOnboardingState(now: () => Date = () => new Date()): ChipOnboardingState {
++  return {
++    version: 1,
++    completedBeatIds: [],
++    snoozedUntilWeek: null,
++    disabled: false,
++    lastUpdated: nowIso(now),
++  };
++}
++
++function normalizeState(value: unknown): ChipOnboardingState | null {
++  if (!value || typeof value !== 'object') return null;
++  const candidate = value as Partial<ChipOnboardingState>;
++  if (candidate.version !== 1) return null;
++  if (!Array.isArray(candidate.completedBeatIds)) return null;
++  if (!candidate.completedBeatIds.every((id) => typeof id === 'string')) return null;
++  if (candidate.snoozedUntilWeek !== null && typeof candidate.snoozedUntilWeek !== 'number') return null;
++  if (typeof candidate.disabled !== 'boolean') return null;
++  if (typeof candidate.lastUpdated !== 'string') return null;
++  return {
++    version: 1,
++    completedBeatIds: [...new Set(candidate.completedBeatIds)].filter(isFirstTenMinuteBeatId),
++    snoozedUntilWeek: candidate.snoozedUntilWeek,
++    disabled: candidate.disabled,
++    lastUpdated: candidate.lastUpdated,
++  };
++}
++
++export function readChipOnboardingState(storage: Storage | null = null): ChipOnboardingState {
++  if (!storage) return createInitialChipOnboardingState();
++  const raw = storage.getItem(CHIP_ONBOARDING_STATE_STORAGE_KEY);
++  if (!raw) return createInitialChipOnboardingState();
++
++  try {
++    return normalizeState(JSON.parse(raw) as unknown) ?? createInitialChipOnboardingState();
++  } catch {
++    return createInitialChipOnboardingState();
++  }
++}
++
++export function writeChipOnboardingState(storage: Storage | null, state: ChipOnboardingState): ChipOnboardingState {
++  const normalized = normalizeState(state) ?? createInitialChipOnboardingState();
++  if (storage) {
++    storage.setItem(CHIP_ONBOARDING_STATE_STORAGE_KEY, JSON.stringify(normalized));
++  }
++  return normalized;
++}
++
++export function recordChipOnboardingBeat(
++  storage: Storage | null,
++  beatId: string,
++  now: () => Date = () => new Date(),
++): ChipOnboardingState {
++  const state = readChipOnboardingState(storage);
++  if (!isFirstTenMinuteBeatId(beatId)) return state;
++  const completedBeatIds = [...new Set([...state.completedBeatIds, beatId])];
++  return writeChipOnboardingState(storage, {
++    ...state,
++    completedBeatIds,
++    lastUpdated: nowIso(now),
++  });
++}
++
++export function snoozeChipOnboarding(
++  storage: Storage | null,
++  currentWeek: number,
++  now: () => Date = () => new Date(),
++): ChipOnboardingState {
++  return writeChipOnboardingState(storage, {
++    ...readChipOnboardingState(storage),
++    snoozedUntilWeek: Math.max(0, Math.trunc(currentWeek)),
++    lastUpdated: nowIso(now),
++  });
++}
++
++export function enableChipOnboarding(
++  storage: Storage | null,
++  now: () => Date = () => new Date(),
++): ChipOnboardingState {
++  return writeChipOnboardingState(storage, {
++    ...readChipOnboardingState(storage),
++    disabled: false,
++    snoozedUntilWeek: null,
++    lastUpdated: nowIso(now),
++  });
++}
++
++export function resetChipOnboardingState(storage: Storage | null): void {
++  storage?.removeItem(CHIP_ONBOARDING_STATE_STORAGE_KEY);
++}
++
++function normalizeRoute(route: string): string {
++  const normalized = route.replace(/^#/, '').split('?')[0] || '/';
++  return normalized === '' ? '/' : normalized;
++}
++
++function routeMatches(beatRoute: string, route: string): boolean {
++  const normalized = normalizeRoute(route);
++  if (beatRoute === '/') return normalized === '/';
++  return normalized === beatRoute;
++}
++
++export function selectChipOnboardingRouteBeats(
++  currentRoute: string,
++  state: ChipOnboardingState,
++  context: ChipOnboardingContext,
++): readonly RouteBeat[] {
++  if (state.disabled) return [];
++  if (state.snoozedUntilWeek !== null && context.currentWeek <= state.snoozedUntilWeek) return [];
++  const completed = new Set(state.completedBeatIds);
++  const beat = FIRST_TEN_MINUTE_ONBOARDING_BEATS.find((entry) =>
++    routeMatches(entry.route, currentRoute) && !completed.has(entry.id),
++  );
++  return beat ? [beat] : [];
++}
+
+--- UNTRACKED apps/web/src/features/companion/weeklyGuidance.test.ts ---
+diff --git a/apps/web/src/features/companion/weeklyGuidance.test.ts b/apps/web/src/features/companion/weeklyGuidance.test.ts
+new file mode 100644
+index 0000000..8e319e2
+--- /dev/null
++++ b/apps/web/src/features/companion/weeklyGuidance.test.ts
+@@ -0,0 +1,44 @@
++import { describe, expect, it } from 'vitest';
++import {
++  buildWeeklyGuidance,
++  weeklyGuidanceToDialogueEntry,
++} from './weeklyGuidance';
++
++describe('weekly guidance', () => {
++  it('turns a post-loss injury week into one clear next action', () => {
++    const guidance = buildWeeklyGuidance({
++      outcome: 'loss',
++      currentWeek: 4,
++      record: '1-3',
++      opponentName: 'Austin Armadillos',
++      injuryCount: 3,
++      pendingDecisionCount: 2,
++      capSpace: 6,
++      difficulty: 'hard',
++    });
++
++    expect(guidance.whatChanged).toContain('loss');
++    expect(guidance.topAction).toBe('Open the Inbox before touching the advance button.');
++    expect(guidance.urgent).toContain('2 decisions waiting');
++    expect(guidance.canWait).toContain('Deep legacy screens can wait');
++    expect(guidance.risk).toContain('Hard difficulty');
++  });
++
++  it('degrades to Monday Briefing when deeper context is unavailable', () => {
++    const guidance = buildWeeklyGuidance({
++      outcome: 'midseason',
++      currentWeek: 2,
++    });
++
++    expect(guidance.topAction).toBe('Start with the Monday Briefing.');
++    expect(guidance.whyItMatters).toContain('weekly triage');
++    expect(weeklyGuidanceToDialogueEntry(guidance)).toEqual(expect.objectContaining({
++      id: 'chip.weekly.guidance.2',
++      text: expect.stringContaining('Start with the Monday Briefing.'),
++      contextDetails: expect.arrayContaining([
++        expect.stringContaining('What changed:'),
++        expect.stringContaining('Can wait:'),
++      ]),
++    }));
++  });
++});
+
+--- UNTRACKED apps/web/src/features/companion/weeklyGuidance.ts ---
+diff --git a/apps/web/src/features/companion/weeklyGuidance.ts b/apps/web/src/features/companion/weeklyGuidance.ts
+new file mode 100644
+index 0000000..1c96512
+--- /dev/null
++++ b/apps/web/src/features/companion/weeklyGuidance.ts
+@@ -0,0 +1,109 @@
++import type { DialogueCatalogEntry } from './dialogue/types';
++import type { WeeklyDialogueVariant } from './dialogue/weekly';
++
++export interface WeeklyGuidanceInput {
++  outcome: WeeklyDialogueVariant;
++  currentWeek: number;
++  record?: string;
++  opponentName?: string;
++  injuryCount?: number;
++  pendingDecisionCount?: number;
++  capSpace?: number;
++  difficulty?: string;
++}
++
++export interface WeeklyGuidance {
++  id: string;
++  pose: DialogueCatalogEntry['pose'];
++  whatChanged: string;
++  whyItMatters: string;
++  topAction: string;
++  urgent: string;
++  canWait: string;
++  risk: string;
++}
++
++function outcomeLabel(outcome: WeeklyDialogueVariant): string {
++  switch (outcome) {
++    case 'cleanWin':
++      return 'a clean win';
++    case 'uglyWin':
++      return 'a win with bad tape';
++    case 'loss':
++      return 'a loss';
++    case 'blowoutLoss':
++      return 'a blowout loss';
++    case 'threeLossStreak':
++      return 'a three-game skid';
++    case 'preseason':
++      return 'preseason setup';
++    case 'playoffs':
++      return 'playoff pressure';
++    case 'championship':
++      return 'a championship reset';
++    case 'darkMoment':
++      return 'a bad night';
++    case 'midseason':
++      return 'the weekly board';
++  }
++}
++
++function poseFor(outcome: WeeklyDialogueVariant): DialogueCatalogEntry['pose'] {
++  if (outcome === 'cleanWin' || outcome === 'championship') return 'celebrate';
++  if (outcome === 'loss' || outcome === 'blowoutLoss' || outcome === 'threeLossStreak' || outcome === 'darkMoment') {
++    return 'concern';
++  }
++  return 'mic-check';
++}
++
++export function buildWeeklyGuidance(input: WeeklyGuidanceInput): WeeklyGuidance {
++  const pending = Math.max(0, Math.trunc(input.pendingDecisionCount ?? 0));
++  const injuries = Math.max(0, Math.trunc(input.injuryCount ?? 0));
++  const capSpace = input.capSpace;
++  const hard = input.difficulty?.toLowerCase() === 'hard';
++  const topAction = pending > 0
++    ? 'Open the Inbox before touching the advance button.'
++    : injuries > 0
++      ? 'Check the roster and depth chart before setting the game plan.'
++      : 'Start with the Monday Briefing.';
++  const urgent = pending > 0
++    ? `${pending} decisions waiting need a yes, no, or later.`
++    : injuries > 0
++      ? `${injuries} injured players can change the depth chart.`
++      : 'No single fire is louder than the weekly briefing yet.';
++  const risk = hard
++    ? 'Hard difficulty punishes unresolved roster and plan mistakes faster.'
++    : capSpace !== undefined && capSpace < 8
++      ? 'Cap room is tight, so short-term fixes need a future bill check.'
++      : 'Uncertainty is normal; make the next football decision before chasing every screen.';
++
++  return {
++    id: `chip.weekly.guidance.${Math.max(0, Math.trunc(input.currentWeek))}`,
++    pose: poseFor(input.outcome),
++    whatChanged: `Week ${input.currentWeek}: ${outcomeLabel(input.outcome)}${input.record ? `, record ${input.record}` : ''}.`,
++    whyItMatters: input.opponentName
++      ? `${input.opponentName} is next, so weekly triage has to become a game-plan choice.`
++      : 'The Monday Briefing is the weekly triage board before deeper screens matter.',
++    topAction,
++    urgent,
++    canWait: 'Deep legacy screens can wait until the briefing, roster, plan, and advance checks are clean.',
++    risk,
++  };
++}
++
++export function weeklyGuidanceToDialogueEntry(guidance: WeeklyGuidance): DialogueCatalogEntry {
++  return {
++    id: guidance.id,
++    beat: 0,
++    pose: guidance.pose,
++    text: `${guidance.topAction} ${guidance.whyItMatters}`,
++    contextDetails: [
++      `What changed: ${guidance.whatChanged}`,
++      `Urgent: ${guidance.urgent}`,
++      `Can wait: ${guidance.canWait}`,
++      `Risk: ${guidance.risk}`,
++    ],
++    archetype: 'weekly',
++    priority: 4,
++  };
++}
+
+--- UNTRACKED packages/design-system/components/PixelSelect/PixelSelect.test.tsx ---
+diff --git a/packages/design-system/components/PixelSelect/PixelSelect.test.tsx b/packages/design-system/components/PixelSelect/PixelSelect.test.tsx
+new file mode 100644
+index 0000000..82b9bad
+--- /dev/null
++++ b/packages/design-system/components/PixelSelect/PixelSelect.test.tsx
+@@ -0,0 +1,19 @@
++import { describe, expect, it } from 'vitest';
++import { renderToStaticMarkup } from 'react-dom/server';
++import { PixelSelect } from './PixelSelect';
++
++describe('PixelSelect', () => {
++  it('uses the shared touch target minimum', () => {
++    const markup = renderToStaticMarkup(
++      <PixelSelect
++        aria-label="Depth sort"
++        options={[
++          { value: 'capHit', label: 'Cap Hit' },
++          { value: 'savings', label: 'Cut Savings' },
++        ]}
++      />,
++    );
++
++    expect(markup).toContain('min-height:var(--mfd-touch-min)');
++  });
++});
+
+--- UNTRACKED packages/design-system/tokens/index.test.ts ---
+diff --git a/packages/design-system/tokens/index.test.ts b/packages/design-system/tokens/index.test.ts
+new file mode 100644
+index 0000000..49bf58b
+--- /dev/null
++++ b/packages/design-system/tokens/index.test.ts
+@@ -0,0 +1,14 @@
++import { describe, expect, it } from 'vitest';
++import { readFileSync } from 'node:fs';
++import { fileURLToPath } from 'node:url';
++
++const tokensCss = readFileSync(fileURLToPath(new URL('./index.css', import.meta.url)), 'utf8');
++
++describe('design tokens responsive table rules', () => {
++  it('sizes card-mode rows as full-width touch targets', () => {
++    const cardModeBlock = tokensCss.slice(tokensCss.indexOf('@media (max-width: 480px)'));
++
++    expect(cardModeBlock).toContain('min-width: 100%;');
++    expect(cardModeBlock).toContain('box-sizing: border-box;');
++  });
++});

@@ -1,0 +1,155 @@
+Corrected final preview browser smoke v2: 2026-05-06T00:56:05Z
+### Browser `default` opened with pid 86075.
+### Ran Playwright code
+```js
+await page.goto('http://localhost:4173/MFD/');
+```
+### Page
+- Page URL: http://localhost:4173/MFD/
+- Page Title: Mr. Football Dynasty v1.0.0
+### Snapshot
+- [Snapshot](.playwright-cli/page-2026-05-06T00-56-25-297Z.yml)
+### Result
+{
+  "cleared": true,
+  "url": "http://localhost:4173/MFD/"
+}
+### Ran Playwright code
+```js
+await page.evaluate('async () => { localStorage.clear(); return { cleared: true, url: location.href }; }');
+```
+### Browser `default` opened with pid 86196.
+### Ran Playwright code
+```js
+await page.goto('http://localhost:4173/MFD/');
+```
+### Page
+- Page URL: http://localhost:4173/MFD/
+- Page Title: Mr. Football Dynasty v1.0.0
+### Snapshot
+- [Snapshot](.playwright-cli/page-2026-05-06T00-56-31-524Z.yml)
+### Result
+{
+  "cleanStart": {
+    "url": "http://localhost:4173/MFD/",
+    "title": "Mr. Football Dynasty v1.0.0",
+    "text": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynasty on a new machine? Import a portable backup first, then fall back to pasted backup code if the file is unavailable.\nIMPORT DYNASTY\nPaste backup code\nIMPORT BACKUP CODE\n--- CONVENTION DEMO ---\nOne game back. Four weeks left. The division still runs through tonight.\nWeek 14\nPlayoff Race\nLAUNCH DEMO SCENARIO\nSELECT FRANC",
+    "hasLaunchDemo": true,
+    "hasRecoveryImport": true
+  },
+  "clickedDemo": true,
+  "url": "http://localhost:4173/MFD/#/dynasty",
+  "flags": {
+    "chip": true,
+    "tts": false,
+    "share": false
+  },
+  "routeResults": [
+    {
+      "route": "/",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nACQUIRE\nGAMEDAY\nLEAGUE\nDYNASTY\nSYSTEM\nS\n?\nCMD DECK\n⌘K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at "
+    },
+    {
+      "route": "/trades",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nDYNASTY\nSYSTEM\nS\n?\nCMD DECK\n⌘K\nMFD NETWORK\n0 pending\n0 accepted"
+    },
+    {
+      "route": "/trade-deadline",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nDYNASTY\nSYSTEM\nS\n?\nCMD DECK\n⌘K\nMFD NETWORK\nTRADE DEADLINE\nNo ac"
+    },
+    {
+      "route": "/cap-lab",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nDYNASTY\nSYSTEM\nS\n?\nCMD DECK\n⌘K\nM"
+    },
+    {
+      "route": "/dynasty",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nDYNASTY\nSYSTEM\nABOUT\nCREDITS\nFAQ"
+    },
+    {
+      "route": "/standings",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS"
+    },
+    {
+      "route": "/power-rankings",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS"
+    },
+    {
+      "route": "/league-pulse",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS"
+    },
+    {
+      "route": "/records",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS"
+    },
+    {
+      "route": "/legacy",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS"
+    },
+    {
+      "route": "/scouting",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS"
+    },
+    {
+      "route": "/draft",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS"
+    },
+    {
+      "route": "/settings",
+      "ok": true,
+      "sample": "MFD NETWORK\nMFD\nCORE\nBRIEFING\nADVANCE\nWATCH\nINBOX\nTEAM\nMONEY\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nACQUIRE\nTRADES\nBLOCK\nSCOUT\nDRAFT\nFA\nTARGETS\nWAIVERS\nPS\nNEEDS\nGAMEDAY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nDIGEST\nNEWS"
+    }
+  ],
+  "invalidImportCopy": true,
+  "chipDock": true,
+  "chipActions": [
+    "Where am I?",
+    "What now?",
+    "Collapse"
+  ],
+  "ttsShareButtons": []
+}
+### Ran Playwright code
+```js
+await page.evaluate('async () => { for (let i = 0; i < 40; i += 1) { if (Array.from(document.querySelectorAll("button")).some((button) => /launch demo scenario/i.test(button.textContent || ""))) break; await new Promise((resolve) => setTimeout(resolve, 100)); } const cleanStart = { url: location.href, title: document.title, text: document.body.innerText.slice(0, 500), hasLaunchDemo: Array.from(document.querySelectorAll("button")).some((button) => /launch demo scenario/i.test(button.textContent || "")), hasRecoveryImport: document.body.innerText.includes("IMPORT BACKUP CODE") }; const demo = Array.from(document.querySelectorAll("button")).find((button) => /launch demo scenario/i.test(button.textContent || "")); if (demo) demo.click(); await new Promise((resolve) => setTimeout(resolve, 1800)); const routes = ["/", "/trades", "/trade-deadline", "/cap-lab", "/dynasty", "/standings", "/power-rankings", "/league-pulse", "/records", "/legacy", "/scouting", "/draft", "/settings"]; const routeResults = []; for (const route of routes) { window.location.hash = route; window.dispatchEvent(new HashChangeEvent("hashchange")); await new Promise((resolve) => setTimeout(resolve, 450)); const text = document.body.innerText; routeResults.push({ route, ok: text.length > 200 && !/Application error|Something went wrong|Maximum update depth|Cannot read properties/i.test(text), sample: text.slice(0, 200) }); } window.location.hash = "/dynasty"; window.dispatchEvent(new HashChangeEvent("hashchange")); await new Promise((resolve) => setTimeout(resolve, 350)); const textarea = document.querySelector("#dynasty-backup-import"); let invalidImportCopy = false; if (textarea) { const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set; setter.call(textarea, JSON.stringify({ save: { version: 35 } })); textarea.dispatchEvent(new Event("input", { bubbles: true })); await new Promise((resolve) => setTimeout(resolve, 100)); const button = Array.from(document.querySelectorAll("button")).find((entry) => entry.textContent?.toLowerCase().includes("import backup code")); if (button) button.click(); await new Promise((resolve) => setTimeout(resolve, 350)); invalidImportCopy = document.body.innerText.includes("That file does not look like a valid MFD save. Your current dynasty was not changed. Try exporting again or choose a different file."); } return { cleanStart, clickedDemo: Boolean(demo), url: location.href, flags: { chip: true, tts: false, share: false }, routeResults, invalidImportCopy, chipDock: Array.from(document.querySelectorAll("[aria-label]")).some((element) => element.getAttribute("aria-label") === "Chip dock"), chipActions: Array.from(document.querySelectorAll("button")).map((button) => button.textContent?.trim()).filter((text) => /where am i|what now|collapse/i.test(text || "")), ttsShareButtons: Array.from(document.querySelectorAll("button")).map((button) => button.textContent || "").filter((text) => /tts|share|voice|speak|speech/i.test(text)) }; }');
+```
+### Page
+- Page URL: http://localhost:4173/MFD/#/dynasty
+- Page Title: Mr. Football Dynasty v1.0.0
+### Ran Playwright code
+```js
+await page.setViewportSize({ width: 390, height: 844 });
+```
+### Result
+[
+  {
+    "route": "/trades",
+    "width": 390,
+    "ok": true,
+    "sample": "MFD NETWORK\n0 pending\n0 accepted\nDeadline Passed\nTRADE CENTER\nIncoming offers remain intact. Direct negotiation lets you build and submit your own package.\n--- INCOMING OFFERS ---\n"
+  },
+  {
+    "route": "/dynasty",
+    "width": 390,
+    "ok": true,
+    "sample": "MFD NETWORK\n1 local slots\nLakeviewCaps-S2026-W14\nDYNASTY CARTRIDGE\nCreate local save slots, export portable backups, and load a dynasty back into the studio.\n--- CURRENT SEASON ---"
+  }
+]
+### Ran Playwright code
+```js
+await page.evaluate('async () => { const routes = ["/trades", "/dynasty"]; const results = []; for (const route of routes) { window.location.hash = route; window.dispatchEvent(new HashChangeEvent("hashchange")); await new Promise((resolve) => setTimeout(resolve, 300)); const text = document.body.innerText; results.push({ route, width: window.innerWidth, ok: text.length > 200 && !/Application error|Something went wrong|Cannot read properties/i.test(text), sample: text.slice(0, 180) }); } return results; }');
+```
+### Result
+Total messages: 0 (Errors: 0, Warnings: 0)
+

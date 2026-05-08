@@ -1,0 +1,41 @@
+commit cd5306512a269d8851c30335c0f906c7d235c67d
+Author: KevinBigham <tkb1230@gmail.com>
+Date:   Wed May 6 16:12:34 2026 -0500
+
+    polish: layer chip png art and app shell landmarks on release candidate
+    
+    Bring real Chip character art (17 PNGs) into the design system as the visible Chip layer while keeping the legacy SVG hidden as a test/animation contract, so existing pose, reduced-motion, and Chip data contracts continue to hold. CHIP_POSE_ART maps every existing pose to a PNG so dialogue, route coaching, and dock surfaces inherit the art without per-surface code changes.
+    
+    Adds app-shell.css plus landmark data attributes (data-mfd-app-shell, -main-content, -brand-lockup, -nav-group, -nav-actions) so the top nav, grouped scan area, action cluster, and main content can be polished from CSS without rewriting App.tsx. Main content gets a 1580px cap with safe-area-aware mobile padding; the nav-group grid stays scannable at narrower widths.
+    
+    ChipDock layout polish from the same source patch is intentionally deferred — it conflicted with release-candidate hardening already on this branch and reconciling those competing border/shadow/label choices belongs in a focused follow-up. Dock keeps its release-candidate-verified version.
+    
+    Save schema, SAVE_VERSION, deterministic engine behavior, and deploy surfaces remain untouched.
+
+ .../pre-polish-log.txt                             |   8 ++
+ .../pre-polish-status.txt                          |   7 +
+ apps/web/public/assets/chip/chip-broadcast.png     | Bin 0 -> 597177 bytes
+ apps/web/public/assets/chip/chip-coach.png         | Bin 0 -> 557255 bytes
+ apps/web/public/assets/chip/pose-celebrate.png     | Bin 0 -> 401335 bytes
+ apps/web/public/assets/chip/pose-concern.png       | Bin 0 -> 202672 bytes
+ apps/web/public/assets/chip/pose-disappointed.png  | Bin 0 -> 342702 bytes
+ apps/web/public/assets/chip/pose-excited.png       | Bin 0 -> 401335 bytes
+ apps/web/public/assets/chip/pose-greeting.png      | Bin 0 -> 200334 bytes
+ apps/web/public/assets/chip/pose-mic-check.png     | Bin 0 -> 305412 bytes
+ apps/web/public/assets/chip/pose-point-left.png    | Bin 0 -> 206185 bytes
+ apps/web/public/assets/chip/pose-point-right.png   | Bin 0 -> 211344 bytes
+ apps/web/public/assets/chip/pose-sad.png           | Bin 0 -> 342702 bytes
+ apps/web/public/assets/chip/pose-surprised.png     | Bin 0 -> 308304 bytes
+ apps/web/public/assets/chip/pose-think.png         | Bin 0 -> 201461 bytes
+ apps/web/public/assets/chip/pose-thumbs-up.png     | Bin 0 -> 342213 bytes
+ apps/web/public/assets/chip/pose-warning.png       | Bin 0 -> 210255 bytes
+ apps/web/public/assets/chip/pose-wave.png          | Bin 0 -> 201926 bytes
+ apps/web/public/assets/chip/pose-whispering.png    | Bin 0 -> 331192 bytes
+ apps/web/src/app/App.test.tsx                      |   9 ++
+ apps/web/src/app/App.tsx                           |  36 ++++--
+ apps/web/src/app/app-shell.css                     | 142 +++++++++++++++++++++
+ packages/design-system/components/Chip/Chip.css    |  68 ++++++++++
+ .../design-system/components/Chip/Chip.test.tsx    |  31 ++++-
+ packages/design-system/components/Chip/Chip.tsx    |  64 ++++++++--
+ packages/design-system/components/Chip/index.ts    |   4 +-
+ 26 files changed, 348 insertions(+), 21 deletions(-)

@@ -1,0 +1,61 @@
+Corrected final preview browser smoke: 2026-05-06T00:55:31Z
+### Browser `default` opened with pid 85502.
+### Ran Playwright code
+```js
+await page.goto('http://localhost:4173/MFD/');
+```
+### Page
+- Page URL: http://localhost:4173/MFD/
+- Page Title: Mr. Football Dynasty v1.0.0
+### Snapshot
+- [Snapshot](.playwright-cli/page-2026-05-06T00-55-35-032Z.yml)
+### Result
+{
+  "cleared": true,
+  "url": "http://localhost:4173/MFD/"
+}
+### Ran Playwright code
+```js
+await page.evaluate('async () => { localStorage.clear(); return { cleared: true, url: location.href }; }');
+```
+### Browser `default` opened with pid 85560.
+### Ran Playwright code
+```js
+await page.goto('http://localhost:4173/MFD/');
+```
+### Page
+- Page URL: http://localhost:4173/MFD/
+- Page Title: Mr. Football Dynasty v1.0.0
+### Snapshot
+- [Snapshot](.playwright-cli/page-2026-05-06T00-55-38-278Z.yml)
+### Error
+Error: Unexpected token "" while parsing css selector "". Did you mean to CSS.escape it?
+### Ran Playwright code
+```js
+await page.setViewportSize({ width: 390, height: 844 });
+```
+### Result
+[
+  {
+    "route": "/trades",
+    "width": 390,
+    "ok": true,
+    "sample": "> MR. FOOTBALL DYNASTY\n> v1.0.0 // LAUNCH BUILD\n> Initializing engine core...\n> RNG channels: 8 seeded [OK]\n> 145+ simulation systems loaded [OK]\n> Config loaded: positions, scheme"
+  },
+  {
+    "route": "/dynasty",
+    "width": 390,
+    "ok": true,
+    "sample": "> MR. FOOTBALL DYNASTY\n> v1.0.0 // LAUNCH BUILD\n> Initializing engine core...\n> RNG channels: 8 seeded [OK]\n> 145+ simulation systems loaded [OK]\n> Config loaded: positions, scheme"
+  }
+]
+### Ran Playwright code
+```js
+await page.evaluate('async () => { const routes = [\'/trades\', \'/dynasty\']; const results = []; for (const route of routes) { window.location.hash = route; window.dispatchEvent(new HashChangeEvent(\'hashchange\')); await new Promise((resolve) => setTimeout(resolve, 300)); const text = document.body.innerText; results.push({ route, width: window.innerWidth, ok: text.length > 200 && !/Application error|Something went wrong|Cannot read properties/i.test(text), sample: text.slice(0, 180) }); } return results; }');
+```
+### Page
+- Page URL: http://localhost:4173/MFD/#/dynasty
+- Page Title: Mr. Football Dynasty v1.0.0
+### Result
+Total messages: 0 (Errors: 0, Warnings: 0)
+

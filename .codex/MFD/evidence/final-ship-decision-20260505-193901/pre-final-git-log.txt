@@ -1,0 +1,8 @@
+ea1d7a2 test: rehearse late-season mfd release candidate
+0eed2cf Polish MFD release-candidate readiness
+8516b05 Checkpoint Chip public-release hardening
+dc7740a Sprint 46: Polish standings signals (#54)
+f6c6b44 Sprint 46: Polish coaching tree visuals (#53)
+ce40769 Sprint 46: Add weather forecast hub (#52)
+dacda0a fix(app-test): resolve App.test.tsx conflict markers leaked from Sprint 46 Slice 2 squash merge (#61)
+6795c9f Sprint 46: Add achievements gallery (#51)

@@ -1,0 +1,207 @@
+Bundle sanity run: 2026-05-06T00:48:30Z
+
+===== standard build after import-copy fix =====
+Command: npx --yes pnpm@9.15.9 build
+
+> mfd@0.0.1 build /Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery
+> pnpm -r build
+
+Scope: 3 of 4 workspace projects
+packages/engine build$ tsc
+packages/engine build: Done
+apps/web build$ vite build
+apps/web build: vite v6.4.1 building for production...
+apps/web build: transforming...
+apps/web build: ✓ 2510 modules transformed.
+apps/web build: rendering chunks...
+apps/web build: computing gzip size...
+apps/web build: dist/index.html                                   2.07 kB │ gzip:   0.81 kB
+apps/web build: dist/assets/index-HMCKOQS0.css                   12.01 kB │ gzip:   2.66 kB
+apps/web build: dist/assets/design-system-Ca2I3M1D.css           26.00 kB │ gzip:   4.90 kB
+apps/web build: dist/assets/EmptyState-0jLNlZrT.js                0.57 kB │ gzip:   0.37 kB
+apps/web build: dist/assets/CreditsScreen-DaXM8TYZ.js             1.08 kB │ gzip:   0.63 kB
+apps/web build: dist/assets/AboutScreen-BJIJyjih.js               1.62 kB │ gzip:   0.85 kB
+apps/web build: dist/assets/recap-share-BSB0lv6p.js               1.75 kB │ gzip:   0.80 kB
+apps/web build: dist/assets/FaqScreen-DkR1VgwD.js                 2.05 kB │ gzip:   1.09 kB
+apps/web build: dist/assets/SocialFeed-zxcgJF0P.js                2.17 kB │ gzip:   1.00 kB
+apps/web build: dist/assets/PowerRankingsTicker-DuaxZ42H.js       2.40 kB │ gzip:   1.05 kB
+apps/web build: dist/assets/FilmRoom-7MfRA8NE.js                  2.54 kB │ gzip:   0.95 kB
+apps/web build: dist/assets/DraftPickReveal-ZrO8_yFS.js           2.77 kB │ gzip:   1.16 kB
+apps/web build: dist/assets/TrainingCamp-BURFo3Lo.js              2.87 kB │ gzip:   1.16 kB
+apps/web build: dist/assets/LeagueNews-DGf3hpyH.js                3.02 kB │ gzip:   1.31 kB
+apps/web build: dist/assets/LeagueRulesViewer-DpjXNptm.js         3.17 kB │ gzip:   1.16 kB
+apps/web build: dist/assets/DraftRecap-Di6M56xf.js                3.29 kB │ gzip:   1.30 kB
+apps/web build: dist/assets/HallOfFamerDetailModal-D1EHKlwL.js    3.42 kB │ gzip:   1.43 kB
+apps/web build: dist/assets/PracticeSquad-DSFF0sUG.js             3.70 kB │ gzip:   1.49 kB
+apps/web build: dist/assets/PowerRankings-BIxxmwyE.js             3.81 kB │ gzip:   1.50 kB
+apps/web build: dist/assets/FATargetBoard-NI9W39SY.js             3.88 kB │ gzip:   1.59 kB
+apps/web build: dist/assets/PlayerRivalries-BrW5GOZM.js           4.05 kB │ gzip:   1.39 kB
+apps/web build: dist/assets/WatchListScreen-BWfWBwoq.js           4.15 kB │ gzip:   1.72 kB
+apps/web build: dist/assets/TeamSchedule-CifcAiuX.js              4.19 kB │ gzip:   1.39 kB
+apps/web build: dist/assets/WaiverWire-BeDH_xw6.js                4.33 kB │ gzip:   1.71 kB
+apps/web build: dist/assets/AlumniMentorsScreen-DMJPcs8M.js       4.46 kB │ gzip:   1.59 kB
+apps/web build: dist/assets/TradeDeadline-CQyu_tpw.js             4.55 kB │ gzip:   1.61 kB
+apps/web build: dist/assets/PlayoffLoreDirectory-q_2swjGM.js      4.55 kB │ gzip:   1.70 kB
+apps/web build: dist/assets/RelocationScreen-Ia4HQ2L0.js          4.57 kB │ gzip:   1.77 kB
+apps/web build: dist/assets/franchiseUi-CmkAut-f.js               4.59 kB │ gzip:   1.49 kB
+apps/web build: dist/assets/ScenarioSelect-CxGN-N5H.js            4.67 kB │ gzip:   1.32 kB
+apps/web build: dist/assets/ExpansionDraft-CnNrwCe4.js            4.78 kB │ gzip:   1.70 kB
+apps/web build: dist/assets/EndorsementCenter-BqIErzc1.js         4.92 kB │ gzip:   1.81 kB
+apps/web build: dist/assets/PlayerDevelopment-CkM4E3wG.js         4.95 kB │ gzip:   1.40 kB
+apps/web build: dist/assets/PlayerTimeline-CLdKdehv.js            4.97 kB │ gzip:   1.84 kB
+apps/web build: dist/assets/NamedGamesBrowser-Kao7UnoE.js         5.08 kB │ gzip:   1.91 kB
+apps/web build: dist/assets/BloodlinesViewer--_8dsNqK.js          5.09 kB │ gzip:   1.82 kB
+apps/web build: dist/assets/AwardsHub-DqWDHFDX.js                 5.37 kB │ gzip:   1.78 kB
+apps/web build: dist/assets/TradeBlockTicker-85c69G5-.js          5.52 kB │ gzip:   1.86 kB
+apps/web build: dist/assets/LeaguePulse-C-7nh2Gl.js               5.62 kB │ gzip:   1.89 kB
+apps/web build: dist/assets/GmCareer-CLKjf4fe.js                  5.71 kB │ gzip:   1.93 kB
+apps/web build: dist/assets/BroadcastPresentation--1OMJkin.js     5.81 kB │ gzip:   1.81 kB
+apps/web build: dist/assets/AchievementsGallery-SoXXl71o.js       5.97 kB │ gzip:   2.21 kB
+apps/web build: dist/assets/CBANegotiation-CFi-2jFr.js            6.08 kB │ gzip:   2.07 kB
+apps/web build: dist/assets/SeasonRecapCard-BR6yqwbY.js           6.11 kB │ gzip:   2.31 kB
+apps/web build: dist/assets/PlayerComparison-TnIRKAPy.js          6.26 kB │ gzip:   2.30 kB
+apps/web build: dist/assets/EraHall-DS9G-eLI.js                   6.65 kB │ gzip:   2.66 kB
+apps/web build: dist/assets/PlayByPlay-DU6g3AZA.js                6.70 kB │ gzip:   1.98 kB
+apps/web build: dist/assets/GameFlow-Dofmpfrg.js                  6.95 kB │ gzip:   1.91 kB
+apps/web build: dist/assets/ContractTools-DA8Po4oC.js             6.96 kB │ gzip:   2.36 kB
+apps/web build: dist/assets/MvpPlaqueWall-Dln951l5.js             6.97 kB │ gzip:   2.65 kB
+apps/web build: dist/assets/TeamNeeds-CQKuVpoS.js                 7.01 kB │ gzip:   1.90 kB
+apps/web build: dist/assets/TrophyRoom-CK-rTgxW.js                7.30 kB │ gzip:   2.98 kB
+apps/web build: dist/assets/LockerRoom-BcD8DY83.js                7.34 kB │ gzip:   2.33 kB
+apps/web build: dist/assets/DynastyCartridge-B_51YJqD.js          7.48 kB │ gzip:   2.81 kB
+apps/web build: dist/assets/WeatherForecast-DxTvRr2v.js           7.71 kB │ gzip:   2.67 kB
+apps/web build: dist/assets/LeagueStandings-BtTMULzi.js           7.92 kB │ gzip:   2.80 kB
+apps/web build: dist/assets/Scrapbook-7665aw_d.js                 8.02 kB │ gzip:   2.64 kB
+apps/web build: dist/assets/CommissionerOffice-CaSJVy96.js        8.65 kB │ gzip:   2.79 kB
+apps/web build: dist/assets/AnalyticsDashboard-Bp0wME54.js        9.20 kB │ gzip:   2.73 kB
+apps/web build: dist/assets/SuperBowlPresentation-gdqKhnJc.js     9.43 kB │ gzip:   3.33 kB
+apps/web build: dist/assets/HallOfFameDirectory-C6zzfHM2.js       9.63 kB │ gzip:   3.21 kB
+apps/web build: dist/assets/RecordBook-qZXMYyph.js                9.90 kB │ gzip:   2.91 kB
+apps/web build: dist/assets/CapLaboratory-C0SFQT9h.js            10.14 kB │ gzip:   3.30 kB
+apps/web build: dist/assets/DraftBoard-DczW8CGw.js               10.34 kB │ gzip:   3.23 kB
+apps/web build: dist/assets/NewsroomDigest-DWXLj3sJ.js           10.39 kB │ gzip:   3.37 kB
+apps/web build: dist/assets/GameBroadcast-DAQUWd-a.js            10.68 kB │ gzip:   3.21 kB
+apps/web build: dist/assets/FranchiseLegends-CLYzzQJL.js         11.06 kB │ gzip:   3.15 kB
+apps/web build: dist/assets/StatCentral-BUDK0JuC.js              11.65 kB │ gzip:   3.30 kB
+apps/web build: dist/assets/FranchiseBook-DLt76TbB.js            12.16 kB │ gzip:   3.87 kB
+apps/web build: dist/assets/ScoutingBoard-C6LxJquI.js            12.34 kB │ gzip:   3.73 kB
+apps/web build: dist/assets/PlayerProfile-Lo_6dEEP.js            12.34 kB │ gzip:   3.41 kB
+apps/web build: dist/assets/DynastyChronicle-BcAcwfJg.js         12.62 kB │ gzip:   4.16 kB
+apps/web build: dist/assets/FranchiseHub-BeWiQNKc.js             15.38 kB │ gzip:   4.28 kB
+apps/web build: dist/assets/GamePlanSetup-CGV2ikF_.js            17.33 kB │ gzip:   4.93 kB
+apps/web build: dist/assets/LegacyTimeline-CGe3FK_Q.js           19.38 kB │ gzip:   4.87 kB
+apps/web build: dist/assets/design-system-DlrlJ3IE.js           151.20 kB │ gzip:  44.37 kB
+apps/web build: dist/assets/vendor-Davs_N_S.js                  373.91 kB │ gzip: 116.92 kB
+apps/web build: dist/assets/engine-content-8EYS9NQy.js          387.93 kB │ gzip: 127.81 kB
+apps/web build: dist/assets/index-RgdqkMjk.js                   677.70 kB │ gzip: 190.14 kB
+apps/web build: dist/assets/engine-BZP_mQkL.js                  820.46 kB │ gzip: 263.87 kB
+apps/web build: ✓ built in 3.96s
+apps/web build: (!) Some chunks are larger than 500 kB after minification. Consider:
+apps/web build: - Using dynamic import() to code-split the application
+apps/web build: - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+apps/web build: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+apps/web build: Done
+Result: exit 0, duration 9s
+
+===== flagged build after import-copy fix =====
+Command: env VITE_CHIP_ENABLED=true VITE_CHIP_TTS_ENABLED=false VITE_MFD_SHARE_ENABLED=false npx --yes pnpm@9.15.9 build
+
+> mfd@0.0.1 build /Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery
+> pnpm -r build
+
+Scope: 3 of 4 workspace projects
+packages/engine build$ tsc
+packages/engine build: Done
+apps/web build$ vite build
+apps/web build: vite v6.4.1 building for production...
+apps/web build: transforming...
+apps/web build: ✓ 2510 modules transformed.
+apps/web build: rendering chunks...
+apps/web build: computing gzip size...
+apps/web build: dist/index.html                                   2.07 kB │ gzip:   0.81 kB
+apps/web build: dist/assets/index-HMCKOQS0.css                   12.01 kB │ gzip:   2.66 kB
+apps/web build: dist/assets/design-system-Ca2I3M1D.css           26.00 kB │ gzip:   4.90 kB
+apps/web build: dist/assets/EmptyState-Bo89DVh4.js                0.57 kB │ gzip:   0.36 kB
+apps/web build: dist/assets/CreditsScreen-DczZnnbW.js             1.08 kB │ gzip:   0.63 kB
+apps/web build: dist/assets/AboutScreen-I4Uq72ks.js               1.62 kB │ gzip:   0.85 kB
+apps/web build: dist/assets/recap-share-Cc5VGKI0.js               1.75 kB │ gzip:   0.80 kB
+apps/web build: dist/assets/FaqScreen-NjdgfWpA.js                 2.05 kB │ gzip:   1.09 kB
+apps/web build: dist/assets/SocialFeed-Cvc8DWjC.js                2.17 kB │ gzip:   1.00 kB
+apps/web build: dist/assets/PowerRankingsTicker-C5WWeq1o.js       2.40 kB │ gzip:   1.05 kB
+apps/web build: dist/assets/FilmRoom-CND2BFRc.js                  2.54 kB │ gzip:   0.95 kB
+apps/web build: dist/assets/DraftPickReveal-BD5IKdXU.js           2.77 kB │ gzip:   1.16 kB
+apps/web build: dist/assets/TrainingCamp-D1FnPcn8.js              2.87 kB │ gzip:   1.16 kB
+apps/web build: dist/assets/LeagueNews-CmIfoBLx.js                3.02 kB │ gzip:   1.31 kB
+apps/web build: dist/assets/LeagueRulesViewer-BbFV_S4w.js         3.17 kB │ gzip:   1.16 kB
+apps/web build: dist/assets/DraftRecap-B_hXGosD.js                3.29 kB │ gzip:   1.30 kB
+apps/web build: dist/assets/HallOfFamerDetailModal-B10VRAh0.js    3.42 kB │ gzip:   1.43 kB
+apps/web build: dist/assets/PracticeSquad-Cbfefsbb.js             3.70 kB │ gzip:   1.49 kB
+apps/web build: dist/assets/PowerRankings-IKCGWrME.js             3.81 kB │ gzip:   1.50 kB
+apps/web build: dist/assets/FATargetBoard-C0HC1AJC.js             3.88 kB │ gzip:   1.59 kB
+apps/web build: dist/assets/PlayerRivalries-ehcs-Eb9.js           4.05 kB │ gzip:   1.39 kB
+apps/web build: dist/assets/WatchListScreen-CPBKwIgr.js           4.15 kB │ gzip:   1.72 kB
+apps/web build: dist/assets/TeamSchedule-1YH1gLs9.js              4.19 kB │ gzip:   1.39 kB
+apps/web build: dist/assets/WaiverWire-BBWj2C81.js                4.33 kB │ gzip:   1.71 kB
+apps/web build: dist/assets/AlumniMentorsScreen-BMsq4ggp.js       4.46 kB │ gzip:   1.59 kB
+apps/web build: dist/assets/TradeDeadline-Bc-Z5GSj.js             4.55 kB │ gzip:   1.60 kB
+apps/web build: dist/assets/PlayoffLoreDirectory-DxQlzkGC.js      4.55 kB │ gzip:   1.70 kB
+apps/web build: dist/assets/RelocationScreen-BJCX70ix.js          4.57 kB │ gzip:   1.77 kB
+apps/web build: dist/assets/franchiseUi-Yri41AEo.js               4.59 kB │ gzip:   1.49 kB
+apps/web build: dist/assets/ScenarioSelect-DM69LcQe.js            4.67 kB │ gzip:   1.32 kB
+apps/web build: dist/assets/ExpansionDraft-BGYBWOY-.js            4.78 kB │ gzip:   1.70 kB
+apps/web build: dist/assets/EndorsementCenter-DhuvKr0z.js         4.92 kB │ gzip:   1.81 kB
+apps/web build: dist/assets/PlayerDevelopment-CkM4E3wG.js         4.95 kB │ gzip:   1.40 kB
+apps/web build: dist/assets/PlayerTimeline-Dx56EI1f.js            4.97 kB │ gzip:   1.84 kB
+apps/web build: dist/assets/NamedGamesBrowser-DpzDpZWg.js         5.08 kB │ gzip:   1.91 kB
+apps/web build: dist/assets/BloodlinesViewer-B-eIomx1.js          5.09 kB │ gzip:   1.82 kB
+apps/web build: dist/assets/AwardsHub-CBd_9p-T.js                 5.37 kB │ gzip:   1.78 kB
+apps/web build: dist/assets/TradeBlockTicker-C4jx-J6z.js          5.52 kB │ gzip:   1.86 kB
+apps/web build: dist/assets/LeaguePulse-DXZtNaBP.js               5.62 kB │ gzip:   1.89 kB
+apps/web build: dist/assets/GmCareer-DoubNGnX.js                  5.71 kB │ gzip:   1.93 kB
+apps/web build: dist/assets/BroadcastPresentation-B2a0PcbO.js     5.81 kB │ gzip:   1.81 kB
+apps/web build: dist/assets/AchievementsGallery-Ce5whyrQ.js       5.97 kB │ gzip:   2.21 kB
+apps/web build: dist/assets/CBANegotiation-DsIDL9Gd.js            6.08 kB │ gzip:   2.07 kB
+apps/web build: dist/assets/SeasonRecapCard-CBJYskrZ.js           6.11 kB │ gzip:   2.32 kB
+apps/web build: dist/assets/PlayerComparison-CY1S0OQI.js          6.26 kB │ gzip:   2.30 kB
+apps/web build: dist/assets/EraHall-CO1XYsIU.js                   6.65 kB │ gzip:   2.66 kB
+apps/web build: dist/assets/PlayByPlay-D0z5lKaz.js                6.70 kB │ gzip:   1.98 kB
+apps/web build: dist/assets/GameFlow-CHKQJ4BN.js                  6.95 kB │ gzip:   1.91 kB
+apps/web build: dist/assets/ContractTools-Cule1yMD.js             6.96 kB │ gzip:   2.35 kB
+apps/web build: dist/assets/MvpPlaqueWall-Bp-MUiD5.js             6.97 kB │ gzip:   2.64 kB
+apps/web build: dist/assets/TeamNeeds-DeHQEr56.js                 7.01 kB │ gzip:   1.90 kB
+apps/web build: dist/assets/TrophyRoom-SprbNzCE.js                7.30 kB │ gzip:   2.97 kB
+apps/web build: dist/assets/LockerRoom-Dn_tRxir.js                7.34 kB │ gzip:   2.32 kB
+apps/web build: dist/assets/DynastyCartridge-5NClM5O6.js          7.48 kB │ gzip:   2.81 kB
+apps/web build: dist/assets/WeatherForecast-CBM49sf7.js           7.71 kB │ gzip:   2.67 kB
+apps/web build: dist/assets/LeagueStandings-BOYWsTxx.js           7.92 kB │ gzip:   2.79 kB
+apps/web build: dist/assets/Scrapbook-DNXb1HSE.js                 8.02 kB │ gzip:   2.64 kB
+apps/web build: dist/assets/CommissionerOffice-KzflOLzV.js        8.65 kB │ gzip:   2.79 kB
+apps/web build: dist/assets/AnalyticsDashboard-QEYJFnsh.js        9.20 kB │ gzip:   2.73 kB
+apps/web build: dist/assets/SuperBowlPresentation-C7liM130.js     9.43 kB │ gzip:   3.33 kB
+apps/web build: dist/assets/HallOfFameDirectory-BMg-GGmK.js       9.63 kB │ gzip:   3.22 kB
+apps/web build: dist/assets/RecordBook-1ir0TFeX.js                9.90 kB │ gzip:   2.91 kB
+apps/web build: dist/assets/CapLaboratory-D83M4LTs.js            10.14 kB │ gzip:   3.30 kB
+apps/web build: dist/assets/DraftBoard-Bd9dgYpU.js               10.34 kB │ gzip:   3.23 kB
+apps/web build: dist/assets/NewsroomDigest-IspEsUax.js           10.39 kB │ gzip:   3.37 kB
+apps/web build: dist/assets/GameBroadcast--Xi5f134.js            10.68 kB │ gzip:   3.21 kB
+apps/web build: dist/assets/FranchiseLegends-C4xtx1kF.js         11.06 kB │ gzip:   3.15 kB
+apps/web build: dist/assets/StatCentral-Dw_jD2az.js              11.65 kB │ gzip:   3.30 kB
+apps/web build: dist/assets/FranchiseBook-B9R4lnkC.js            12.16 kB │ gzip:   3.87 kB
+apps/web build: dist/assets/ScoutingBoard-DzcMYcDn.js            12.34 kB │ gzip:   3.73 kB
+apps/web build: dist/assets/PlayerProfile-BF-Rzv53.js            12.34 kB │ gzip:   3.41 kB
+apps/web build: dist/assets/DynastyChronicle-Da4CWB88.js         12.62 kB │ gzip:   4.16 kB
+apps/web build: dist/assets/FranchiseHub-H1kE2Q9a.js             15.38 kB │ gzip:   4.27 kB
+apps/web build: dist/assets/GamePlanSetup-DOYU-kqt.js            17.33 kB │ gzip:   4.92 kB
+apps/web build: dist/assets/LegacyTimeline-CpAvwHEm.js           19.38 kB │ gzip:   4.87 kB
+apps/web build: dist/assets/design-system-DlrlJ3IE.js           151.20 kB │ gzip:  44.37 kB
+apps/web build: dist/assets/vendor-Davs_N_S.js                  373.91 kB │ gzip: 116.92 kB
+apps/web build: dist/assets/engine-content-8EYS9NQy.js          387.93 kB │ gzip: 127.81 kB
+apps/web build: dist/assets/index-BuPESpeo.js                   677.87 kB │ gzip: 190.19 kB
+apps/web build: dist/assets/engine-BZP_mQkL.js                  820.46 kB │ gzip: 263.87 kB
+apps/web build: ✓ built in 3.28s
+apps/web build: (!) Some chunks are larger than 500 kB after minification. Consider:
+apps/web build: - Using dynamic import() to code-split the application
+apps/web build: - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+apps/web build: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+apps/web build: Done
+Result: exit 0, duration 7s

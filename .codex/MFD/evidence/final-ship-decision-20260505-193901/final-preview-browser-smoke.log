@@ -1,0 +1,127 @@
+Final preview browser smoke: 2026-05-06T00:54:16Z
+### Browser `default` opened with pid 84424.
+### Ran Playwright code
+```js
+await page.goto('http://localhost:4173/MFD/');
+```
+### Page
+- Page URL: http://localhost:4173/MFD/
+- Page Title: Mr. Football Dynasty v1.0.0
+### Snapshot
+- [Snapshot](.playwright-cli/page-2026-05-06T00-54-20-144Z.yml)
+### Error
+Execution context was destroyed, most likely because of a navigation.
+### Result
+{
+  "url": "http://localhost:4173/MFD/#/dynasty",
+  "flags": {
+    "chip": true,
+    "tts": false,
+    "share": false
+  },
+  "routeResults": [
+    {
+      "route": "/",
+      "ok": true,
+      "sample": "> MR. FOOTBALL DYNASTY\n> v1.0.0 // LAUNCH BUILD\n> Initializing engine core...\n> RNG channels: 8 seeded [OK]\n> 145+ simulation systems loaded [OK]\n> Config loaded: positions, schemes, coaching, cap-mat"
+    },
+    {
+      "route": "/trades",
+      "ok": true,
+      "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynasty on a new machine? "
+    },
+    {
+      "route": "/trade-deadline",
+      "ok": true,
+      "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynasty on a new machine? "
+    },
+    {
+      "route": "/cap-lab",
+      "ok": true,
+      "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynasty on a new machine? "
+    },
+    {
+      "route": "/dynasty",
+      "ok": true,
+      "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynasty on a new machine? "
+    },
+    {
+      "route": "/standings",
+      "ok": true,
+      "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynasty on a new machine? "
+    },
+    {
+      "route": "/power-rankings",
+      "ok": true,
+      "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynasty on a new machine? "
+    },
+    {
+      "route": "/league-pulse",
+      "ok": true,
+      "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynasty on a new machine? "
+    },
+    {
+      "route": "/records",
+      "ok": true,
+      "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynasty on a new machine? "
+    },
+    {
+      "route": "/legacy",
+      "ok": true,
+      "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynasty on a new machine? "
+    },
+    {
+      "route": "/scouting",
+      "ok": true,
+      "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynasty on a new machine? "
+    },
+    {
+      "route": "/draft",
+      "ok": true,
+      "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynasty on a new machine? "
+    },
+    {
+      "route": "/settings",
+      "ok": true,
+      "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynasty on a new machine? "
+    }
+  ],
+  "invalidImportCopy": false,
+  "chipDock": false,
+  "ttsShareButtons": [
+    "PITPittsburgh"
+  ]
+}
+### Ran Playwright code
+```js
+await page.evaluate('async () => { const demo = Array.from(document.querySelectorAll(\'button\')).find((button) => /launch demo scenario/i.test(button.textContent || \'\')); if (demo) demo.click(); await new Promise((resolve) => setTimeout(resolve, 1200)); const routes = [\'/\', \'/trades\', \'/trade-deadline\', \'/cap-lab\', \'/dynasty\', \'/standings\', \'/power-rankings\', \'/league-pulse\', \'/records\', \'/legacy\', \'/scouting\', \'/draft\', \'/settings\']; const results = []; for (const route of routes) { window.location.hash = route; window.dispatchEvent(new HashChangeEvent(\'hashchange\')); await new Promise((resolve) => setTimeout(resolve, 450)); const text = document.body.innerText; results.push({ route, ok: text.length > 200 && !/Application error|Something went wrong|Maximum update depth|Cannot read properties/i.test(text), sample: text.slice(0, 200) }); } window.location.hash = \'/dynasty\'; window.dispatchEvent(new HashChangeEvent(\'hashchange\')); await new Promise((resolve) => setTimeout(resolve, 350)); const textarea = document.querySelector(\'#dynasty-backup-import\'); let invalidImportCopy = false; if (textarea) { const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, \'value\').set; setter.call(textarea, \'{"save":{"version":35}}\'); textarea.dispatchEvent(new Event(\'input\', { bubbles: true })); await new Promise((resolve) => setTimeout(resolve, 100)); const button = Array.from(document.querySelectorAll(\'button\')).find((entry) => entry.textContent?.toLowerCase().includes(\'import backup code\')); if (button) button.click(); await new Promise((resolve) => setTimeout(resolve, 350)); invalidImportCopy = document.body.innerText.includes(\'That file does not look like a valid MFD save. Your current dynasty was not changed. Try exporting again or choose a different file.\'); } return { url: location.href, flags: { chip: true, tts: false, share: false }, routeResults: results, invalidImportCopy, chipDock: document.body.innerText.includes(\'WHERE AM I?\'), ttsShareButtons: Array.from(document.querySelectorAll(\'button\')).map((button) => button.textContent || \'\').filter((text) => /tts|share|voice|speak|speech/i.test(text)) }; }');
+```
+### Page
+- Page URL: http://localhost:4173/MFD/#/dynasty
+- Page Title: Mr. Football Dynasty v1.0.0
+### Ran Playwright code
+```js
+await page.setViewportSize({ width: 390, height: 844 });
+```
+### Result
+[
+  {
+    "route": "/trades",
+    "width": 390,
+    "ok": true,
+    "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynast"
+  },
+  {
+    "route": "/dynasty",
+    "width": 390,
+    "ok": true,
+    "sample": "Mr. Football Dynasty\n\nSelect your franchise // Choose your difficulty // Pick your mode\n\nNEW DYNASTY\nSCENARIO CHALLENGE\n--- RECOVERY ---\nLost browser storage or opening this dynast"
+  }
+]
+### Ran Playwright code
+```js
+await page.evaluate('async () => { const routes = [\'/trades\', \'/dynasty\']; const results = []; for (const route of routes) { window.location.hash = route; window.dispatchEvent(new HashChangeEvent(\'hashchange\')); await new Promise((resolve) => setTimeout(resolve, 300)); const text = document.body.innerText; results.push({ route, width: window.innerWidth, ok: text.length > 200 && !/Application error|Something went wrong|Cannot read properties/i.test(text), sample: text.slice(0, 180) }); } return results; }');
+```
+### Result
+Total messages: 0 (Errors: 0, Warnings: 0)
+

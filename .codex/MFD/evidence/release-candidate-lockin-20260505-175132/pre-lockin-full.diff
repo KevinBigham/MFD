@@ -1,0 +1,1646 @@
+diff --git a/apps/web/index.html b/apps/web/index.html
+index 538c4c6..e20b2cc 100644
+--- a/apps/web/index.html
++++ b/apps/web/index.html
+@@ -7,13 +7,14 @@
+   <meta property="og:type" content="website" />
+   <meta property="og:title" content="Mr. Football Dynasty v1.0.0" />
+   <meta property="og:description" content="Build a deterministic football dynasty across seasons with roster economics, coaching, media pressure, and stable browser saves." />
+-  <meta property="og:image" content="/MFD/screenshots/v1/dashboard-desktop.png" />
++  <meta property="og:image" content="screenshots/v1/dashboard-desktop.png" />
+   <meta name="theme-color" content="#FFD700" />
++  <meta name="mobile-web-app-capable" content="yes" />
+   <meta name="apple-mobile-web-app-capable" content="yes" />
+   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+   <title>Mr. Football Dynasty v1.0.0</title>
+-  <link rel="manifest" href="/MFD/manifest.json" />
+-  <link rel="icon" type="image/svg+xml" href="/MFD/favicon.svg" />
++  <link rel="manifest" href="manifest.json" />
++  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+   <link rel="preconnect" href="https://fonts.googleapis.com" />
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&family=Press+Start+2P&family=Bebas+Neue&display=swap" rel="stylesheet" />
+diff --git a/apps/web/src/app/App.test.tsx b/apps/web/src/app/App.test.tsx
+index 122b1f0..c352fab 100644
+--- a/apps/web/src/app/App.test.tsx
++++ b/apps/web/src/app/App.test.tsx
+@@ -86,7 +86,7 @@ describe('App Chip setup wiring', () => {
+ 
+   it('passes active route coaching beats into the post-setup ChipDock', () => {
+     expect(content).toContain("import { useActiveRouteBeats } from '../features/route-coaching/useActiveRouteBeats'");
+-    expect(content).toContain('const chipRouteBeats = useActiveRouteBeats(chipDockRoute);');
++    expect(content).toContain('const chipRouteBeats = useActiveRouteBeats(chipDockRoute, { currentWeek: chipDockWeek });');
+     expect(content).toContain('routeBeats={chipRouteBeats}');
+   });
+ 
+diff --git a/apps/web/src/app/App.tsx b/apps/web/src/app/App.tsx
+index 2e2820f..feba5a2 100644
+--- a/apps/web/src/app/App.tsx
++++ b/apps/web/src/app/App.tsx
+@@ -1868,6 +1868,23 @@ function currentAppRoute(): string {
+   return window.location.hash.replace(/^#/, '') || window.location.pathname || '/';
+ }
+ 
++function useCurrentAppRoute(): string {
++  const [route, setRoute] = useState(currentAppRoute);
++
++  useEffect(() => {
++    if (typeof window === 'undefined') return undefined;
++    const updateRoute = () => setRoute(currentAppRoute());
++    window.addEventListener('hashchange', updateRoute);
++    window.addEventListener('popstate', updateRoute);
++    return () => {
++      window.removeEventListener('hashchange', updateRoute);
++      window.removeEventListener('popstate', updateRoute);
++    };
++  }, []);
++
++  return route;
++}
++
+ function PostSetupApp() {
+   useChipEvents();
+   const chipDockEnabled = isChipFeatureEnabled();
+@@ -1878,8 +1895,8 @@ function PostSetupApp() {
+   const chipCoachName = chipUserTeam?.staff.hc?.name ?? 'Coach';
+   const chipDialogueText = useChipStore((s) => s.currentDialogueText);
+   const chipDialoguePose = useChipStore((s) => s.pose);
+-  const chipDockRoute = currentAppRoute();
+-  const chipRouteBeats = useActiveRouteBeats(chipDockRoute);
++  const chipDockRoute = useCurrentAppRoute();
++  const chipRouteBeats = useActiveRouteBeats(chipDockRoute, { currentWeek: chipDockWeek });
+   const chipPendingDecisions = useMemo(
+     () => countPendingDecisions({ game: chipGame }),
+     [chipGame],
+diff --git a/apps/web/src/app/store/selectors.ts b/apps/web/src/app/store/selectors.ts
+index 6fe3c0c..3f19b94 100644
+--- a/apps/web/src/app/store/selectors.ts
++++ b/apps/web/src/app/store/selectors.ts
+@@ -1293,14 +1293,14 @@ export const selectBroadcastByGameId = memoParamByGame((gameId: string | null, s
+ });
+ export const selectLatestBroadcast = (state: GameStoreState): BroadcastViewModel | null =>
+   selectBroadcastByGameId(null)(state);
+-export const selectCurrentOpponentIntel = (state: GameStoreState): OpponentIntel | null => {
++export const selectCurrentOpponentIntel: (state: GameStoreState) => OpponentIntel | null = memoByGame((state) => {
+   if (!state.game) return null;
+   const team = selectUserTeam(state);
+   const matchup = selectCurrentMatchup(state);
+   if (!team || !matchup) return null;
+   const opponentId = matchup.homeTeamId === team.id ? matchup.awayTeamId : matchup.homeTeamId;
+   return buildOpponentIntel(state.game, team.id, opponentId);
+-};
++});
+ export const selectCurrentDraftEntry = (state: GameStoreState): DraftOrderEntry | null => {
+   const offseasonState = state.game?.offseasonState;
+   return offseasonState ? offseasonState.draftOrder[offseasonState.currentDraftPickIndex] ?? null : null;
+diff --git a/apps/web/src/features/companion/ChipDock.css b/apps/web/src/features/companion/ChipDock.css
+index b87ac62..06be255 100644
+--- a/apps/web/src/features/companion/ChipDock.css
++++ b/apps/web/src/features/companion/ChipDock.css
+@@ -12,16 +12,16 @@
+   top: -10px;
+   right: -10px;
+   z-index: 2;
+-  min-width: 26px;
+-  height: 22px;
+-  padding: 0 8px;
++  min-width: 44px;
++  height: 44px;
++  padding: 0 10px;
+   border: 2px solid var(--mfd-bg);
+   border-radius: 999px;
+   background: var(--mfd-gold);
+   color: var(--mfd-bg);
+   font-family: var(--mfd-font-pixel);
+   font-size: 12px;
+-  line-height: 18px;
++  line-height: 40px;
+   box-shadow: var(--mfd-shadow-gold-strong);
+   cursor: pointer;
+ }
+@@ -152,14 +152,55 @@
+     right: 0;
+     bottom: 0;
+     left: 0;
++    pointer-events: none;
++  }
++
++  .mfd-chip-dock__pending-badge,
++  .mfd-chip-dock__collapsed {
++    pointer-events: auto;
+   }
+ 
+   .mfd-chip-dock__panel {
+-    grid-template-columns: 96px minmax(0, 1fr);
++    grid-template-columns: 72px minmax(0, 1fr);
+     max-width: none;
++    max-height: min(46vh, 360px);
++    overflow-y: auto;
++    overscroll-behavior: contain;
+     border-right: 0;
+     border-bottom: 0;
+     border-left: 0;
++    padding: var(--mfd-sp-sm);
++  }
++
++  .mfd-chip-dock__panel,
++  .mfd-chip-dock__content,
++  .mfd-chip-dock__bubble {
++    pointer-events: none;
++  }
++
++  .mfd-chip-dock .mfd-chip-bubble {
++    box-sizing: border-box;
++    width: 100%;
++  }
++
++  .mfd-chip-dock__beat-actions,
++  .mfd-chip-dock__controls {
++    pointer-events: auto;
++  }
++
++  .mfd-chip-dock__controls {
++    flex-wrap: nowrap;
++    overflow-x: auto;
++    padding-bottom: 2px;
++    -webkit-overflow-scrolling: touch;
++  }
++
++  .mfd-chip-dock__control {
++    flex: 0 0 auto;
++  }
++
++  .mfd-chip-dock__control-label {
++    display: none;
+   }
+ 
+   .mfd-chip-dock__collapsed {
+diff --git a/apps/web/src/features/companion/ChipDock.test.tsx b/apps/web/src/features/companion/ChipDock.test.tsx
+index 0cf49d6..0464ca4 100644
+--- a/apps/web/src/features/companion/ChipDock.test.tsx
++++ b/apps/web/src/features/companion/ChipDock.test.tsx
+@@ -1,5 +1,7 @@
+ import { afterEach, describe, expect, it, vi } from 'vitest';
+ import { renderToStaticMarkup } from 'react-dom/server';
++import { readFileSync } from 'node:fs';
++import { fileURLToPath } from 'node:url';
+ import {
+   ChipDock,
+   applyDockControl,
+@@ -14,9 +16,15 @@ import {
+ import type { DialogueCatalogEntry } from './dialogue/types';
+ import { CHIP_DOCK_STORAGE_KEY, createDefaultDockPrefs, readDockPrefs } from './dockPersistence';
+ import { CHIP_ONBOARDING_STORAGE_KEY } from './ChipHost';
+-import { CHIP_READ_RECEIPTS_STORAGE_KEY, readChipReadReceipts } from './readReceipts';
++import { CHIP_READ_RECEIPTS_STORAGE_KEY, readChipReadReceipts, writeChipReadReceipts } from './readReceipts';
+ import { ROUTE_BEAT_REGISTRY } from '../route-coaching/routeBeatRegistry';
+ import { useChipStore } from './store';
++import { CHIP_ONBOARDING_STATE_STORAGE_KEY, readChipOnboardingState } from './onboardingMachine';
++
++const chipDockCss = readFileSync(
++  fileURLToPath(new URL('./ChipDock.css', import.meta.url)),
++  'utf8',
++);
+ 
+ class MemoryStorage implements Storage {
+   private readonly backing = new Map<string, string>();
+@@ -363,6 +371,59 @@ describe('ChipDock', () => {
+     expect(prefs).toEqual(createDefaultDockPrefs());
+   });
+ 
++  it('reset-onboarding clears first-ten progress, receipts, and legacy skip state', () => {
++    const storage = new MemoryStorage();
++    storage.setItem(
++      CHIP_ONBOARDING_STATE_STORAGE_KEY,
++      JSON.stringify({
++        version: 1,
++        completedBeatIds: ['chip.first10.roster'],
++        snoozedUntilWeek: null,
++        disabled: false,
++        lastUpdated: '2026-05-05T16:00:00.000Z',
++      }),
++    );
++    storage.setItem(
++      CHIP_ONBOARDING_STORAGE_KEY,
++      JSON.stringify({ skipped: true, lastBeat: 9, timestamp: '2026-05-05T16:00:00.000Z' }),
++    );
++    writeChipReadReceipts(storage, ['chip.first10.roster', 'chip.route.roster.beat-1']);
++
++    const { store } = applyControl('resetOnboarding', storage);
++
++    expect(readChipOnboardingState(storage).completedBeatIds).toEqual([]);
++    expect(readChipReadReceipts(storage).has('chip.first10.roster')).toBe(false);
++    expect(readChipReadReceipts(storage).has('chip.route.roster.beat-1')).toBe(true);
++    expect(storage.getItem(CHIP_ONBOARDING_STORAGE_KEY)).toBeNull();
++    expect(store.reset).toHaveBeenCalledTimes(1);
++  });
++
++  it('snooze-onboarding stores a one-week onboarding snooze', () => {
++    const { storage } = applyControl('snoozeOnboarding');
++
++    expect(readChipOnboardingState(storage).snoozedUntilWeek).toBe(7);
++  });
++
++  it('enable-guidance clears quiet prefs and reenables the onboarding machine', () => {
++    const storage = new MemoryStorage();
++    storage.setItem(
++      CHIP_DOCK_STORAGE_KEY,
++      JSON.stringify({
++        ...createDefaultDockPrefs(),
++        quietForScreen: '/roster',
++        quietUntilWeek: 7,
++        quietForSeason: 2032,
++      }),
++    );
++
++    const { prefs } = applyControl('enableGuidance', storage);
++
++    expect(prefs.quietForScreen).toBeNull();
++    expect(prefs.quietUntilWeek).toBeNull();
++    expect(prefs.quietForSeason).toBeNull();
++    expect(readChipOnboardingState(storage).disabled).toBe(false);
++  });
++
+   it('persists collapsed state at the single dock localStorage key', () => {
+     const storage = new MemoryStorage();
+ 
+@@ -536,4 +597,23 @@ describe('ChipDock', () => {
+       expect(markup).toContain('data-chip-dock-motion="animated"');
+     });
+   });
++
++  describe('mobile route tolerance', () => {
++    it('keeps the expanded dock from becoming a full-height phone overlay', () => {
++      const mobileBlock = chipDockCss.slice(chipDockCss.indexOf('@media (max-width: 720px)'));
++      const pendingBadgeBlock = chipDockCss
++        .slice(chipDockCss.indexOf('.mfd-chip-dock__pending-badge'))
++        .split('}')[0];
++
++      expect(mobileBlock).toContain('max-height: min(46vh, 360px);');
++      expect(mobileBlock).toContain('overflow-y: auto;');
++      expect(mobileBlock).toContain('flex-wrap: nowrap;');
++      expect(mobileBlock).toContain('overflow-x: auto;');
++      expect(mobileBlock).toContain('.mfd-chip-dock__panel,\n  .mfd-chip-dock__content,\n  .mfd-chip-dock__bubble {\n    pointer-events: none;');
++      expect(mobileBlock).toContain('.mfd-chip-dock__beat-actions,\n  .mfd-chip-dock__controls {\n    pointer-events: auto;');
++      expect(mobileBlock).toContain('.mfd-chip-dock .mfd-chip-bubble {\n    box-sizing: border-box;');
++      expect(mobileBlock).toContain('width: 100%;');
++      expect(pendingBadgeBlock).toContain('min-width: 44px;');
++    });
++  });
+ });
+diff --git a/apps/web/src/features/companion/ChipDock.tsx b/apps/web/src/features/companion/ChipDock.tsx
+index 737d8e9..428f0f7 100644
+--- a/apps/web/src/features/companion/ChipDock.tsx
++++ b/apps/web/src/features/companion/ChipDock.tsx
+@@ -1,5 +1,5 @@
+ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+-import { Calendar, CalendarOff, Check, EyeOff, Lightbulb, MapPin, MessageSquare, VolumeX, X } from 'lucide-react';
++import { Bell, Calendar, CalendarOff, Check, EyeOff, Lightbulb, MapPin, MessageSquare, RotateCcw, VolumeX, X } from 'lucide-react';
+ import { Chip, ChipDialogueBubble, PixelButton, Spotlight } from '@mfd/design-system/components';
+ import type { ChipPose } from '@mfd/design-system/components';
+ import { isChipFeatureEnabled, readOnboardingSkipState } from './ChipHost';
+@@ -13,9 +13,18 @@ import {
+   type DockPrefs,
+ } from './dockPersistence';
+ import {
++  clearChipReadReceipts,
+   readChipReadReceipts,
+   writeChipReadReceipts,
+ } from './readReceipts';
++import { CHIP_ONBOARDING_STORAGE_KEY } from './ChipHost';
++import {
++  enableChipOnboarding,
++  isFirstTenMinuteBeatId,
++  recordChipOnboardingBeat,
++  resetChipOnboardingState,
++  snoozeChipOnboarding,
++} from './onboardingMachine';
+ import { formatDynastyIndicatorLabel, type DynastyIndicator } from './dynastyIndicator';
+ import { createWhereAmIBeat, type WhereAmIState } from './whereAmI';
+ import type { ChipRoutePose, RouteBeat } from '../route-coaching/routeBeatRegistry';
+@@ -26,6 +35,9 @@ export type ChipDockControl =
+   | 'quietUntilNextWeek'
+   | 'quietThisSeason'
+   | 'whatNow'
++  | 'resetOnboarding'
++  | 'snoozeOnboarding'
++  | 'enableGuidance'
+   | 'reduceGuidance'
+   | 'disableAnimations'
+   | 'collapse'
+@@ -73,6 +85,9 @@ interface DockControlButton {
+ 
+ const DOCK_CONTROL_BUTTONS: readonly DockControlButton[] = [
+   { id: 'whatNow', label: 'What now?', icon: MessageSquare, accent: 'gold' },
++  { id: 'resetOnboarding', label: 'Replay', icon: RotateCcw, accent: 'cyan' },
++  { id: 'snoozeOnboarding', label: 'Snooze', icon: CalendarOff, accent: 'gold' },
++  { id: 'enableGuidance', label: 'Enable', icon: Bell, accent: 'green' },
+   { id: 'quietForScreen', label: 'Quiet for screen', icon: VolumeX, accent: 'cyan' },
+   { id: 'quietUntilNextWeek', label: 'Quiet until next week', icon: Calendar, accent: 'gold' },
+   { id: 'quietThisSeason', label: 'Quiet this season', icon: CalendarOff, accent: 'red' },
+@@ -159,6 +174,7 @@ export function persistRouteBeatProgress({
+   const persisted = writeChipReadReceipts(storage, ids);
+   for (const id of ids) {
+     markBeatSeen?.(id);
++    recordChipOnboardingBeat(storage, id);
+   }
+   return persisted;
+ }
+@@ -198,6 +214,28 @@ export function applyDockControl(control: ChipDockControl, options: ApplyDockCon
+         chipStore.showWeeklyDialogue?.(chipStore.lastWeeklyDialogue);
+       }
+       return prefs;
++    case 'resetOnboarding':
++      resetChipOnboardingState(options.storage);
++      clearChipReadReceipts(options.storage, isFirstTenMinuteBeatId);
++      options.storage?.removeItem(CHIP_ONBOARDING_STORAGE_KEY);
++      chipStore?.reset?.();
++      return prefs;
++    case 'snoozeOnboarding':
++      snoozeChipOnboarding(options.storage, options.currentWeek, options.now);
++      chipStore?.dismiss?.();
++      return prefs;
++    case 'enableGuidance':
++      enableChipOnboarding(options.storage, options.now);
++      options.storage?.removeItem(CHIP_ONBOARDING_STORAGE_KEY);
++      return updateDockPrefs(
++        options.storage,
++        {
++          quietForScreen: null,
++          quietUntilWeek: null,
++          quietForSeason: null,
++        },
++        options.now,
++      );
+     case 'quietForScreen':
+       chipStore?.setPose?.('idle');
+       chipStore?.dismiss?.();
+diff --git a/apps/web/src/features/companion/eventBridge.test.ts b/apps/web/src/features/companion/eventBridge.test.ts
+index aae4bbc..dc0e4de 100644
+--- a/apps/web/src/features/companion/eventBridge.test.ts
++++ b/apps/web/src/features/companion/eventBridge.test.ts
+@@ -117,6 +117,10 @@ describe('createChipEventBridge', () => {
+         dynastySeed: 42,
+         gameOutcome: 'cleanWin',
+         dialogueId: 'chip.weekly.cleanWin',
++        guidance: expect.objectContaining({
++          topAction: 'Start with the Monday Briefing.',
++          whatChanged: 'Week 2: a clean win.',
++        }),
+         occurredAt: '2026-04-29T20:00:00.000Z',
+       },
+     ]);
+diff --git a/apps/web/src/features/companion/eventBridge.ts b/apps/web/src/features/companion/eventBridge.ts
+index 388a5ba..2f5f908 100644
+--- a/apps/web/src/features/companion/eventBridge.ts
++++ b/apps/web/src/features/companion/eventBridge.ts
+@@ -2,6 +2,7 @@ import type { ChipPose } from '@mfd/design-system/components';
+ import type { DockPrefs } from './dockPersistence';
+ import type { SetChipPoseOptions } from './store';
+ import type { WeeklyDialogueVariant } from './dialogue/weekly';
++import { buildWeeklyGuidance, type WeeklyGuidance, type WeeklyGuidanceInput } from './weeklyGuidance';
+ 
+ export type ChipEventTrigger = 'weekRollover' | 'gameComplete' | 'seasonEnd';
+ export type ChipEventCategory = ChipEventTrigger;
+@@ -36,6 +37,7 @@ export interface ChipEvent {
+   dynastySeed: number;
+   gameOutcome: WeeklyDialogueVariant;
+   dialogueId: string;
++  guidance?: WeeklyGuidance;
+   occurredAt: string;
+ }
+ 
+@@ -44,6 +46,7 @@ export interface GameStoreSnapshot {
+   currentSeason: number;
+   dynastySeed: number;
+   weeklyOutcome?: WeeklyDialogueVariant;
++  weeklyGuidance?: Omit<WeeklyGuidanceInput, 'outcome' | 'currentWeek'>;
+   poseEvents?: readonly ChipPoseEvent[];
+ }
+ 
+@@ -116,6 +119,11 @@ export function createChipEventBridge(deps: CreateChipEventBridgeDeps): ChipEven
+ 
+     const gameOutcome = game.weeklyOutcome ?? 'midseason';
+     const dialogueId = `chip.weekly.${gameOutcome}`;
++    const guidance = buildWeeklyGuidance({
++      outcome: gameOutcome,
++      currentWeek: game.currentWeek,
++      ...game.weeklyGuidance,
++    });
+     const event: ChipEvent = {
+       id: `chip.event.weekRollover.${game.currentSeason}.${game.currentWeek}`,
+       trigger: 'weekRollover',
+@@ -125,6 +133,7 @@ export function createChipEventBridge(deps: CreateChipEventBridgeDeps): ChipEven
+       dynastySeed: game.dynastySeed,
+       gameOutcome,
+       dialogueId,
++      guidance,
+       occurredAt: deps.now().toISOString(),
+     };
+ 
+diff --git a/apps/web/src/features/companion/readReceipts.ts b/apps/web/src/features/companion/readReceipts.ts
+index 668ffdd..203cd33 100644
+--- a/apps/web/src/features/companion/readReceipts.ts
++++ b/apps/web/src/features/companion/readReceipts.ts
+@@ -38,3 +38,20 @@ export function writeChipReadReceipts(
+   }
+   return merged;
+ }
++
++export function clearChipReadReceipts(
++  storage: Storage | null,
++  shouldClear: (beatId: string) => boolean,
++): Set<string> {
++  const remaining = [...readChipReadReceipts(storage)].filter((beatId) => !shouldClear(beatId));
++
++  if (storage) {
++    if (remaining.length === 0) {
++      storage.removeItem(CHIP_READ_RECEIPTS_STORAGE_KEY);
++    } else {
++      storage.setItem(CHIP_READ_RECEIPTS_STORAGE_KEY, JSON.stringify(remaining.sort()));
++    }
++  }
++
++  return new Set(remaining);
++}
+diff --git a/apps/web/src/features/companion/useChipEvents.ts b/apps/web/src/features/companion/useChipEvents.ts
+index 7b50729..f58f806 100644
+--- a/apps/web/src/features/companion/useChipEvents.ts
++++ b/apps/web/src/features/companion/useChipEvents.ts
+@@ -13,6 +13,8 @@ import { isChipFeatureEnabled } from './ChipHost';
+ import { useChipStore } from './store';
+ import { selectWeeklyDialogue, type WeeklyDialogueVariant } from './dialogue/weekly';
+ import type { DialogueCatalogEntry } from './dialogue/types';
++import { weeklyGuidanceToDialogueEntry } from './weeklyGuidance';
++import { countPendingDecisions } from './decisionsPending';
+ 
+ interface AppWeeklySummaryLike {
+   result: 'win' | 'loss' | 'tie' | 'pending';
+@@ -25,6 +27,9 @@ interface AppGameLike {
+   year: number;
+   seed: number;
+   phase: string;
++  teams?: Record<string, { id: string; city?: string; name?: string; isUser?: boolean; wins?: number; losses?: number; capSpace?: number }>;
++  players?: Record<string, { teamId?: string | null; injury?: unknown }>;
++  schedule?: readonly { week: number; games: readonly { homeTeamId: string; awayTeamId: string }[] }[];
+   weekSummaries?: readonly AppWeeklySummaryLike[];
+   franchiseHistory?: readonly { playoffFinish?: string | null }[];
+ }
+@@ -91,11 +96,42 @@ export function deriveWeeklyOutcome(game: AppGameLike | null): WeeklyDialogueVar
+ 
+ function toGameSnapshot(state: AppGameStoreState): GameStoreSnapshot {
+   const game = state.game;
++  const userTeam = game?.teams ? Object.values(game.teams).find((team) => team.isUser) : null;
++  const injuries = game?.players && userTeam
++    ? Object.values(game.players).filter((player) => player.teamId === userTeam.id && player.injury).length
++    : undefined;
++  const matchup = game?.schedule?.find((week) => week.week === game.week)?.games.find((scheduledGame) =>
++    scheduledGame.homeTeamId === userTeam?.id || scheduledGame.awayTeamId === userTeam?.id,
++  );
++  const opponentId = matchup && userTeam
++    ? matchup.homeTeamId === userTeam.id ? matchup.awayTeamId : matchup.homeTeamId
++    : null;
++  const opponent = opponentId && game?.teams ? game.teams[opponentId] : null;
++  const record = userTeam && typeof userTeam.wins === 'number' && typeof userTeam.losses === 'number'
++    ? `${userTeam.wins}-${userTeam.losses}`
++    : undefined;
++  const pendingDecisionCount = game ? countPendingDecisions({ game }).total : undefined;
++  const weeklyGuidance = game && (
++    record !== undefined
++    || opponent !== null
++    || injuries !== undefined
++    || (pendingDecisionCount ?? 0) > 0
++    || userTeam?.capSpace !== undefined
++  )
++    ? {
++      record,
++      opponentName: opponent ? `${opponent.city ?? ''} ${opponent.name ?? ''}`.trim() || undefined : undefined,
++      injuryCount: injuries,
++      pendingDecisionCount,
++      capSpace: userTeam?.capSpace,
++    }
++    : undefined;
+   return {
+     currentWeek: game?.week ?? 0,
+     currentSeason: game?.year ?? 0,
+     dynastySeed: game?.seed ?? 0,
+     weeklyOutcome: deriveWeeklyOutcome(game),
++    weeklyGuidance,
+   };
+ }
+ 
+@@ -143,11 +179,26 @@ export function createChipEventsController({
+     start: () => bridge.start(),
+     stop: () => bridge.stop(),
+     handleEvent: (event) => {
+-      const entry = selectWeeklyDialogue({
++      const fallbackEntry = selectWeeklyDialogue({
+         gameOutcome: event.gameOutcome,
+         currentWeek: event.currentWeek,
+         dynastySeed: event.dynastySeed,
+       });
++      const guidance = event.guidance ?? {
++        id: `chip.weekly.guidance.${event.currentWeek}`,
++        pose: fallbackEntry.pose,
++        whatChanged: `Week ${event.currentWeek}: ${event.gameOutcome}.`,
++        whyItMatters: fallbackEntry.text,
++        topAction: 'Start with the Monday Briefing.',
++        urgent: 'No single fire is louder than the weekly briefing yet.',
++        canWait: 'Deep legacy screens can wait until the weekly loop is clear.',
++        risk: 'Uncertainty is normal; make one football decision at a time.',
++      };
++      const entry = {
++        ...fallbackEntry,
++        ...weeklyGuidanceToDialogueEntry(guidance),
++        id: fallbackEntry.id,
++      };
+       chipStore.showWeeklyDialogue(entry);
+       onEvent?.(event);
+     },
+diff --git a/apps/web/src/features/contracts/CapLaboratory.test.tsx b/apps/web/src/features/contracts/CapLaboratory.test.tsx
+index 2dbf0fe..5be899f 100644
+--- a/apps/web/src/features/contracts/CapLaboratory.test.tsx
++++ b/apps/web/src/features/contracts/CapLaboratory.test.tsx
+@@ -160,4 +160,10 @@ describe('CapLaboratory', () => {
+     expect(markup).toContain('$280M');
+     expect(markup).toContain('$103M');
+   });
++
++  it('opts cap tables into responsive card mode for phone viewports', () => {
++    const markup = renderToStaticMarkup(<CapLaboratory />);
++
++    expect(markup.match(/data-mfd-table-mode="cards"/g)).toHaveLength(2);
++  });
+ });
+diff --git a/apps/web/src/features/contracts/CapLaboratory.tsx b/apps/web/src/features/contracts/CapLaboratory.tsx
+index 3278c4d..7f33617 100644
+--- a/apps/web/src/features/contracts/CapLaboratory.tsx
++++ b/apps/web/src/features/contracts/CapLaboratory.tsx
+@@ -20,6 +20,7 @@ import {
+   useGameStore,
+   useMultiYearProjection,
+ } from '../../app/store/game-store';
++import { buildDecisionImpactExplanation, decisionImpactToConsequenceItems } from '../companion/decisionImpact';
+ 
+ const screenStyle = {
+   display: 'flex',
+@@ -99,6 +100,16 @@ export default function CapLaboratory() {
+   const deadCapPct = preview
+     ? Math.round(((preview.scenario.currentDeadCap ?? userTeam?.deadCap ?? 0) / Math.max(1, capHealth.capUsed + capHealth.capSpace)) * 100)
+     : capHealth.deadCapPct;
++  const capImpact = useMemo(
++    () => buildDecisionImpactExplanation({
++      surface: 'cap-lab',
++      label: 'Cap sandbox',
++      queuedMoves: sandbox.length,
++      netCapChange,
++      deadCapPct,
++    }),
++    [deadCapPct, netCapChange, sandbox.length],
++  );
+ 
+   const candidateColumns = useMemo<ColumnDef<(typeof candidates)[number], unknown>[]>(() => [
+     {
+@@ -207,6 +218,7 @@ export default function CapLaboratory() {
+             accent="cyan"
+             onRowClick={(row) => setSelectedPlayerId(row.playerId)}
+             emptyMessage="No cap candidates match this filter."
++            responsive="cards"
+           />
+         </PixelPanel>
+ 
+@@ -318,6 +330,10 @@ export default function CapLaboratory() {
+               ]}
+             />
+ 
++            <PixelPanel title="Decision Impact" accent={capImpact.severity === 'high' ? 'red' : 'gold'} padding="sm">
++              <PixelConsequenceList items={decisionImpactToConsequenceItems(capImpact)} />
++            </PixelPanel>
++
+             {preview?.warnings?.length ? (
+               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                 {preview.warnings.map((warning) => <PixelBadge key={warning} variant="red">{warning}</PixelBadge>)}
+@@ -333,7 +349,7 @@ export default function CapLaboratory() {
+ 
+       <div data-spotlight-target="chip.route.cap-laboratory.beat-2">
+         <PixelPanel title="Multi-Year Projection" accent="green">
+-          <PixelTable data={projectionYears} columns={projectionColumns} accent="green" emptyMessage="Projection unavailable." />
++          <PixelTable data={projectionYears} columns={projectionColumns} accent="green" emptyMessage="Projection unavailable." responsive="cards" />
+         </PixelPanel>
+       </div>
+ 
+diff --git a/apps/web/src/features/depth-chart/DepthChart.test.tsx b/apps/web/src/features/depth-chart/DepthChart.test.tsx
+index 97f0aa3..e09d24a 100644
+--- a/apps/web/src/features/depth-chart/DepthChart.test.tsx
++++ b/apps/web/src/features/depth-chart/DepthChart.test.tsx
+@@ -84,4 +84,11 @@ describe('DepthChart accessibility', () => {
+     expect(markup).toContain('type="button"');
+     expect(markup).toContain('--- SPECIAL TEAMS ---');
+   });
++
++  it('keeps the room card as the only interactive control in each slot preview', () => {
++    const markup = renderToStaticMarkup(<DepthChart />);
++
++    expect(markup).toContain('Jay Stone');
++    expect(markup).not.toContain('title="Open Jay Stone"');
++  });
+ });
+diff --git a/apps/web/src/features/depth-chart/DepthChart.tsx b/apps/web/src/features/depth-chart/DepthChart.tsx
+index 4337d3b..f9f2096 100644
+--- a/apps/web/src/features/depth-chart/DepthChart.tsx
++++ b/apps/web/src/features/depth-chart/DepthChart.tsx
+@@ -168,7 +168,7 @@ export function DepthChart() {
+         </PixelPanel>
+       ) : null}
+ 
+-      <div style={autoGrid(220)}>
++      <div style={autoGrid(220)} data-spotlight-target="chip.route.depth-chart.beat-1">
+         {slots.map((slot) => {
+           const players = slotPlayers.get(slot.label) ?? [];
+           const starter = players[0] ?? null;
+@@ -199,7 +199,9 @@ export function DepthChart() {
+               <div>
+                 <div style={{ ...display, fontSize: '24px', color: '#fff', lineHeight: 1 }}>
+                   {starter ? (
+-                    <PlayerNameLink playerId={starter.id} name={starter.name} ovr={starter.ovr} style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '24px', lineHeight: 1 }} />
++                    <span style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '24px', lineHeight: 1 }}>
++                      {starter.name}
++                    </span>
+                   ) : 'OPEN'}
+                 </div>
+                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px' }}>
+@@ -215,80 +217,82 @@ export function DepthChart() {
+         })}
+       </div>
+ 
+-      <PixelPanel title="Special Teams" accent="gold">
+-        <div style={autoGrid(260)}>
+-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+-            <div style={{ ...monoSm, color: '#fff' }}>Kick Returner</div>
+-            <PixelSelect
+-              aria-label="Kick returner"
+-              value={specialTeams.kickReturner ?? ''}
+-              onChange={(event) => {
+-                if (!teamId || !event.target.value) return;
+-                void assignKickReturner(teamId, event.target.value);
+-              }}
+-              options={eligibleReturners.length > 0
+-                ? eligibleReturners.map((player) => ({
+-                  value: player.id,
+-                  label: `${player.name} // SPD ${Math.round(player.ratings.speed ?? player.ovr)}`,
+-                }))
+-                : [{ value: '', label: 'No eligible returners', disabled: true }]}
+-              accent="gold"
+-            />
+-            <div style={{ ...monoSm, color: '#999' }}>
+-              {kickReturner
+-                ? `${kickReturner.name} // speed ${Math.round(kickReturner.ratings.speed ?? kickReturner.ovr)}`
+-                : 'Assign your best burst threat.'}
++      <div data-spotlight-target="chip.route.depth-chart.beat-2">
++        <PixelPanel title="Special Teams" accent="gold">
++          <div style={autoGrid(260)}>
++            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
++              <div style={{ ...monoSm, color: '#fff' }}>Kick Returner</div>
++              <PixelSelect
++                aria-label="Kick returner"
++                value={specialTeams.kickReturner ?? ''}
++                onChange={(event) => {
++                  if (!teamId || !event.target.value) return;
++                  void assignKickReturner(teamId, event.target.value);
++                }}
++                options={eligibleReturners.length > 0
++                  ? eligibleReturners.map((player) => ({
++                    value: player.id,
++                    label: `${player.name} // SPD ${Math.round(player.ratings.speed ?? player.ovr)}`,
++                  }))
++                  : [{ value: '', label: 'No eligible returners', disabled: true }]}
++                accent="gold"
++              />
++              <div style={{ ...monoSm, color: '#999' }}>
++                {kickReturner
++                  ? `${kickReturner.name} // speed ${Math.round(kickReturner.ratings.speed ?? kickReturner.ovr)}`
++                  : 'Assign your best burst threat.'}
++              </div>
+             </div>
+-          </div>
+ 
+-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+-            <div style={{ ...monoSm, color: '#fff' }}>Punt Returner</div>
+-            <PixelSelect
+-              aria-label="Punt returner"
+-              value={specialTeams.puntReturner ?? ''}
+-              onChange={(event) => {
+-                if (!teamId || !event.target.value) return;
+-                void assignPuntReturner(teamId, event.target.value);
+-              }}
+-              options={eligibleReturners.length > 0
+-                ? eligibleReturners.map((player) => ({
+-                  value: player.id,
+-                  label: `${player.name} // SPD ${Math.round(player.ratings.speed ?? player.ovr)}`,
+-                }))
+-                : [{ value: '', label: 'No eligible returners', disabled: true }]}
+-              accent="gold"
+-            />
+-            <div style={{ ...monoSm, color: '#999' }}>
+-              {puntReturner
+-                ? `${puntReturner.name} // speed ${Math.round(puntReturner.ratings.speed ?? puntReturner.ovr)}`
+-                : 'Punt return role is still open.'}
++            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
++              <div style={{ ...monoSm, color: '#fff' }}>Punt Returner</div>
++              <PixelSelect
++                aria-label="Punt returner"
++                value={specialTeams.puntReturner ?? ''}
++                onChange={(event) => {
++                  if (!teamId || !event.target.value) return;
++                  void assignPuntReturner(teamId, event.target.value);
++                }}
++                options={eligibleReturners.length > 0
++                  ? eligibleReturners.map((player) => ({
++                    value: player.id,
++                    label: `${player.name} // SPD ${Math.round(player.ratings.speed ?? player.ovr)}`,
++                  }))
++                  : [{ value: '', label: 'No eligible returners', disabled: true }]}
++                accent="gold"
++              />
++              <div style={{ ...monoSm, color: '#999' }}>
++                {puntReturner
++                  ? `${puntReturner.name} // speed ${Math.round(puntReturner.ratings.speed ?? puntReturner.ovr)}`
++                  : 'Punt return role is still open.'}
++              </div>
+             </div>
+-          </div>
+ 
+-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+-            <div style={{ ...monoSm, color: '#fff' }}>Long Snapper</div>
+-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+-              <PixelBadge variant="cyan">{longSnapper?.name ?? 'Unassigned'}</PixelBadge>
+-              {longSnapper ? <PixelBadge variant="default">{longSnapper.pos}</PixelBadge> : null}
++            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
++              <div style={{ ...monoSm, color: '#fff' }}>Long Snapper</div>
++              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
++                <PixelBadge variant="cyan">{longSnapper?.name ?? 'Unassigned'}</PixelBadge>
++                {longSnapper ? <PixelBadge variant="default">{longSnapper.pos}</PixelBadge> : null}
++              </div>
++              <div style={{ ...monoSm, color: '#999' }}>Auto-assigned from the best OL/TE awareness profile.</div>
+             </div>
+-            <div style={{ ...monoSm, color: '#999' }}>Auto-assigned from the best OL/TE awareness profile.</div>
+-          </div>
+ 
+-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+-            <div style={{ ...monoSm, color: '#fff' }}>Kicking Battery</div>
+-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+-              <PixelBadge variant="green">{kicker ? `${kicker.name} // OVR ${kicker.ovr}` : 'No kicker'}</PixelBadge>
+-              <PixelBadge variant="cyan">{punter ? `${punter.name} // OVR ${punter.ovr}` : 'No punter'}</PixelBadge>
+-            </div>
+-            <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
+-              FG accuracy: {kickerAccuracy}
+-            </div>
+-            <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
+-              Net punt average: {punterNetAverage} yards
++            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
++              <div style={{ ...monoSm, color: '#fff' }}>Kicking Battery</div>
++              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
++                <PixelBadge variant="green">{kicker ? `${kicker.name} // OVR ${kicker.ovr}` : 'No kicker'}</PixelBadge>
++                <PixelBadge variant="cyan">{punter ? `${punter.name} // OVR ${punter.ovr}` : 'No punter'}</PixelBadge>
++              </div>
++              <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
++                FG accuracy: {kickerAccuracy}
++              </div>
++              <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
++                Net punt average: {punterNetAverage} yards
++              </div>
+             </div>
+           </div>
+-        </div>
+-      </PixelPanel>
++        </PixelPanel>
++      </div>
+ 
+       <PixelModal
+         open={!!selectedSlot}
+diff --git a/apps/web/src/features/game-plan/GamePlanSetup.tsx b/apps/web/src/features/game-plan/GamePlanSetup.tsx
+index 0be1405..19c1274 100644
+--- a/apps/web/src/features/game-plan/GamePlanSetup.tsx
++++ b/apps/web/src/features/game-plan/GamePlanSetup.tsx
+@@ -208,22 +208,24 @@ export function GamePlanSetup() {
+       />
+ 
+       <div style={autoGrid(260)}>
+-        <PixelPanel title="Opponent Intel" accent="gold">
+-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+-            <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{report.teamName}</div>
+-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+-              <PixelBadge variant="default">{report.record}</PixelBadge>
+-              <PixelBadge variant="cyan">OFF #{report.offenseRank}</PixelBadge>
+-              <PixelBadge variant="red">DEF #{report.defenseRank}</PixelBadge>
+-            </div>
+-            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+-              Danger: {intel.dangerPlayers.map((player) => player.name).join(' | ')}
+-            </div>
+-            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+-              Weak links: {intel.weakLinks.map((player) => `${player.name} (${player.pos})`).join(' | ')}
++        <div data-spotlight-target="chip.route.game-plan.beat-1">
++          <PixelPanel title="Opponent Intel" accent="gold">
++            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
++              <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>{report.teamName}</div>
++              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
++                <PixelBadge variant="default">{report.record}</PixelBadge>
++                <PixelBadge variant="cyan">OFF #{report.offenseRank}</PixelBadge>
++                <PixelBadge variant="red">DEF #{report.defenseRank}</PixelBadge>
++              </div>
++              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
++                Danger: {intel.dangerPlayers.map((player) => player.name).join(' | ')}
++              </div>
++              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
++                Weak links: {intel.weakLinks.map((player) => `${player.name} (${player.pos})`).join(' | ')}
++              </div>
+             </div>
+-          </div>
+-        </PixelPanel>
++          </PixelPanel>
++        </div>
+ 
+         <PixelPanel title="Recommended Prep" accent="green">
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+@@ -247,112 +249,126 @@ export function GamePlanSetup() {
+ 
+       <div style={autoGrid(260)}>
+         <MfdTooltip content={PLAN_TOOLTIPS['Offensive Focus']} side="bottom">
+-          <PixelPanel title="Offensive Focus" accent="gold">
+-            <PixelSelect
+-              value={offensiveFocus}
+-              onChange={(event) => setOffensiveFocus(event.target.value as WeeklyPrepPlan['offensiveFocus'])}
+-              options={offensiveOptions}
+-              accent="gold"
+-            />
+-            {intel && (
+-              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+-                Intel says: {intel.attackLane === 'passing' ? 'Attack Secondary' : 'Attack Front'}
+-                {offensiveFocus === (intel.attackLane === 'passing' ? 'attack_secondary' : 'attack_front') && <PixelBadge variant="green">REC</PixelBadge>}
+-              </div>
+-            )}
+-          </PixelPanel>
++          <div style={{ height: '100%' }}>
++            <PixelPanel title="Offensive Focus" accent="gold" style={{ height: '100%' }}>
++              <PixelSelect
++                value={offensiveFocus}
++                onChange={(event) => setOffensiveFocus(event.target.value as WeeklyPrepPlan['offensiveFocus'])}
++                options={offensiveOptions}
++                accent="gold"
++              />
++              {intel && (
++                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
++                  Intel says: {intel.attackLane === 'passing' ? 'Attack Secondary' : 'Attack Front'}
++                  {offensiveFocus === (intel.attackLane === 'passing' ? 'attack_secondary' : 'attack_front') && <PixelBadge variant="green">REC</PixelBadge>}
++                </div>
++              )}
++            </PixelPanel>
++          </div>
+         </MfdTooltip>
+         <MfdTooltip content={PLAN_TOOLTIPS['Defensive Focus']} side="bottom">
+-          <PixelPanel title="Defensive Focus" accent="cyan">
+-            <PixelSelect
+-              value={defensiveFocus}
+-              onChange={(event) => setDefensiveFocus(event.target.value as WeeklyPrepPlan['defensiveFocus'])}
+-              options={defensiveOptions}
+-              accent="cyan"
+-            />
+-            {intel && (
+-              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+-                Intel says: {intel.defendLane === 'passing' ? 'Limit Explosive' : 'Stop Run'}
+-                {defensiveFocus === (intel.defendLane === 'passing' ? 'limit_explosive' : 'stop_run') && <PixelBadge variant="green">REC</PixelBadge>}
+-              </div>
+-            )}
+-          </PixelPanel>
++          <div style={{ height: '100%' }}>
++            <PixelPanel title="Defensive Focus" accent="cyan" style={{ height: '100%' }}>
++              <PixelSelect
++                value={defensiveFocus}
++                onChange={(event) => setDefensiveFocus(event.target.value as WeeklyPrepPlan['defensiveFocus'])}
++                options={defensiveOptions}
++                accent="cyan"
++              />
++              {intel && (
++                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
++                  Intel says: {intel.defendLane === 'passing' ? 'Limit Explosive' : 'Stop Run'}
++                  {defensiveFocus === (intel.defendLane === 'passing' ? 'limit_explosive' : 'stop_run') && <PixelBadge variant="green">REC</PixelBadge>}
++                </div>
++              )}
++            </PixelPanel>
++          </div>
+         </MfdTooltip>
+         <MfdTooltip content={PLAN_TOOLTIPS['Practice Intensity']} side="bottom">
+-          <PixelPanel title="Practice Intensity" accent="default">
+-            <PixelSelect
+-              value={practiceIntensity}
+-              onChange={(event) => setPracticeIntensity(event.target.value as WeeklyPrepPlan['practiceIntensity'])}
+-              options={intensityOptions}
+-              accent="default"
+-            />
+-          </PixelPanel>
++          <div style={{ height: '100%' }}>
++            <PixelPanel title="Practice Intensity" accent="default" style={{ height: '100%' }}>
++              <PixelSelect
++                value={practiceIntensity}
++                onChange={(event) => setPracticeIntensity(event.target.value as WeeklyPrepPlan['practiceIntensity'])}
++                options={intensityOptions}
++                accent="default"
++              />
++            </PixelPanel>
++          </div>
+         </MfdTooltip>
+         <MfdTooltip content={PLAN_TOOLTIPS['Snap Management']} side="bottom">
+-          <PixelPanel title="Snap Management" accent="default">
+-            <PixelSelect
+-              value={snapManagement}
+-              onChange={(event) => setSnapManagement(event.target.value as WeeklyPrepPlan['snapManagement'])}
+-              options={snapOptions}
+-              accent="default"
+-            />
+-          </PixelPanel>
++          <div style={{ height: '100%' }}>
++            <PixelPanel title="Snap Management" accent="default" style={{ height: '100%' }}>
++              <PixelSelect
++                value={snapManagement}
++                onChange={(event) => setSnapManagement(event.target.value as WeeklyPrepPlan['snapManagement'])}
++                options={snapOptions}
++                accent="default"
++              />
++            </PixelPanel>
++          </div>
+         </MfdTooltip>
+         <MfdTooltip content={PLAN_TOOLTIPS['Special Situation']} side="bottom">
+-          <PixelPanel title="Special Situation" accent="default">
+-            <PixelSelect
+-              value={specialSituation}
+-              onChange={(event) => setSpecialSituation(event.target.value as WeeklyPrepPlan['specialSituation'])}
+-              options={specialSituationOptions}
+-              accent="default"
+-            />
+-          </PixelPanel>
++          <div style={{ height: '100%' }}>
++            <PixelPanel title="Special Situation" accent="default" style={{ height: '100%' }}>
++              <PixelSelect
++                value={specialSituation}
++                onChange={(event) => setSpecialSituation(event.target.value as WeeklyPrepPlan['specialSituation'])}
++                options={specialSituationOptions}
++                accent="default"
++              />
++            </PixelPanel>
++          </div>
+         </MfdTooltip>
+         <MfdTooltip content={PLAN_TOOLTIPS['Key Matchup']} side="bottom">
+-          <PixelPanel title="Key Matchup" accent="green">
+-            <PixelSelect
+-              value={keyMatchupPlayerId}
+-              onChange={(event) => setKeyMatchupPlayerId(event.target.value)}
+-              options={[{ value: '', label: 'No matchup emphasis' }, ...matchupOptions]}
+-              accent="green"
+-            />
+-          </PixelPanel>
++          <div style={{ height: '100%' }}>
++            <PixelPanel title="Key Matchup" accent="green" style={{ height: '100%' }}>
++              <PixelSelect
++                value={keyMatchupPlayerId}
++                onChange={(event) => setKeyMatchupPlayerId(event.target.value)}
++                options={[{ value: '', label: 'No matchup emphasis' }, ...matchupOptions]}
++                accent="green"
++              />
++            </PixelPanel>
++          </div>
+         </MfdTooltip>
+       </div>
+ 
+-      <PixelPanel title="Prep Board Readout" accent="green">
+-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+-          <PixelProgressBar
+-            label="Offensive alignment"
+-            value={offensiveFocus === 'attack_secondary' && intel.attackLane === 'passing'
+-              ? 88
+-              : offensiveFocus === 'attack_front' && intel.attackLane === 'rushing'
++      <div data-spotlight-target="chip.route.game-plan.beat-2">
++        <PixelPanel title="Prep Board Readout" accent="green">
++          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
++            <PixelProgressBar
++              label="Offensive alignment"
++              value={offensiveFocus === 'attack_secondary' && intel.attackLane === 'passing'
+                 ? 88
+-                : offensiveFocus === 'balanced'
+-                  ? 70
+-                  : 62}
+-            max={100}
+-            accent="gold"
+-            valueLabel={offensiveFocus.replaceAll('_', ' ')}
+-          />
+-          <PixelProgressBar
+-            label="Defensive alignment"
+-            value={defensiveFocus === 'limit_explosive' && intel.defendLane === 'passing'
+-              ? 88
+-              : defensiveFocus === 'stop_run' && intel.defendLane === 'rushing'
++                : offensiveFocus === 'attack_front' && intel.attackLane === 'rushing'
++                  ? 88
++                  : offensiveFocus === 'balanced'
++                    ? 70
++                    : 62}
++              max={100}
++              accent="gold"
++              valueLabel={offensiveFocus.replaceAll('_', ' ')}
++            />
++            <PixelProgressBar
++              label="Defensive alignment"
++              value={defensiveFocus === 'limit_explosive' && intel.defendLane === 'passing'
+                 ? 88
+-                : defensiveFocus === 'balanced'
+-                  ? 70
+-                  : 62}
+-            max={100}
+-            accent="cyan"
+-            valueLabel={defensiveFocus.replaceAll('_', ' ')}
+-          />
+-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+-            Stored plan status: {storedPlan ? 'weekly prep locked' : 'no prep saved yet'} // contingencies {contingencyRules.length}/{MAX_CONTINGENCIES} // trick plays {selectedTrickPlays.length}/{MAX_SELECTED_TRICK_PLAYS}
++                : defensiveFocus === 'stop_run' && intel.defendLane === 'rushing'
++                  ? 88
++                  : defensiveFocus === 'balanced'
++                    ? 70
++                    : 62}
++              max={100}
++              accent="cyan"
++              valueLabel={defensiveFocus.replaceAll('_', ' ')}
++            />
++            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
++              Stored plan status: {storedPlan ? 'weekly prep locked' : 'no prep saved yet'} // contingencies {contingencyRules.length}/{MAX_CONTINGENCIES} // trick plays {selectedTrickPlays.length}/{MAX_SELECTED_TRICK_PLAYS}
++            </div>
+           </div>
+-        </div>
+-      </PixelPanel>
++        </PixelPanel>
++      </div>
+ 
+       {shotEligibility.eligible && (
+         <PixelPanel title="Call Your Shot" accent="gold">
+diff --git a/apps/web/src/features/monday-briefing/MondayBriefing.tsx b/apps/web/src/features/monday-briefing/MondayBriefing.tsx
+index 1f9a9d6..353e44e 100644
+--- a/apps/web/src/features/monday-briefing/MondayBriefing.tsx
++++ b/apps/web/src/features/monday-briefing/MondayBriefing.tsx
+@@ -935,15 +935,17 @@ export function MondayBriefing() {
+         </div>
+       ) : null}
+ 
+-      <ActionCenter
+-        phase={phase}
+-        hasGamePlan={!!currentWeeklyPrepPlan}
+-        starterCount={starterCount}
+-        tradeOfferCount={tradeOffers.length}
+-        ownerApproval={ownerState?.approval ?? 100}
+-        injuredCount={injuredCount}
+-        game={game}
+-      />
++      <div data-spotlight-target="chip.route.monday-briefing.beat-1">
++        <ActionCenter
++          phase={phase}
++          hasGamePlan={!!currentWeeklyPrepPlan}
++          starterCount={starterCount}
++          tradeOfferCount={tradeOffers.length}
++          ownerApproval={ownerState?.approval ?? 100}
++          injuredCount={injuredCount}
++          game={game}
++        />
++      </div>
+ 
+       <div style={autoGrid(220)}>
+         <PixelMetricCard
+@@ -990,33 +992,35 @@ export function MondayBriefing() {
+         />
+       </div>
+ 
+-      <PixelPanel title="Coaching Loop" accent="cyan">
+-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+-            Move straight from the Monday board into weekly prep, coaching decisions, or the latest film review.
+-          </div>
+-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+-            <PixelButton
+-              accent={currentWeeklyPrepPlan ? 'green' : 'gold'}
+-              onClick={() => navigateTo('/game-plan')}
+-            >
+-              Open Game Plan
+-            </PixelButton>
+-            <PixelButton
+-              accent={latestFilmRoomReport ? 'cyan' : 'default'}
+-              onClick={() => navigateTo('/film-room')}
+-            >
+-              Open Film Room
+-            </PixelButton>
+-            <PixelButton
+-              accent={coachingMarket.hotSeat ? 'red' : 'gold'}
+-              onClick={() => navigateTo('/coaching')}
+-            >
+-              Open Coaching
+-            </PixelButton>
++      <div data-spotlight-target="chip.route.monday-briefing.beat-2">
++        <PixelPanel title="Coaching Loop" accent="cyan">
++          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
++            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
++              Move straight from the Monday board into weekly prep, coaching decisions, or the latest film review.
++            </div>
++            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
++              <PixelButton
++                accent={currentWeeklyPrepPlan ? 'green' : 'gold'}
++                onClick={() => navigateTo('/game-plan')}
++              >
++                Open Game Plan
++              </PixelButton>
++              <PixelButton
++                accent={latestFilmRoomReport ? 'cyan' : 'default'}
++                onClick={() => navigateTo('/film-room')}
++              >
++                Open Film Room
++              </PixelButton>
++              <PixelButton
++                accent={coachingMarket.hotSeat ? 'red' : 'gold'}
++                onClick={() => navigateTo('/coaching')}
++              >
++                Open Coaching
++              </PixelButton>
++            </div>
+           </div>
+-        </div>
+-      </PixelPanel>
++        </PixelPanel>
++      </div>
+ 
+       <PixelPanel title="Dashboard Control" accent="cyan">
+         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+diff --git a/apps/web/src/features/route-coaching/routeBeatRegistry.test.ts b/apps/web/src/features/route-coaching/routeBeatRegistry.test.ts
+index bc95784..7434459 100644
+--- a/apps/web/src/features/route-coaching/routeBeatRegistry.test.ts
++++ b/apps/web/src/features/route-coaching/routeBeatRegistry.test.ts
+@@ -13,9 +13,9 @@ const allBeats: readonly RouteBeat[] = ROUTE_KEYS.reduce<RouteBeat[]>(
+ );
+ 
+ describe('route beat registry', () => {
+-  it('keeps total route beats inside the locked sprint range', () => {
+-    expect(allBeats.length).toBeGreaterThanOrEqual(12);
+-    expect(allBeats.length).toBeLessThanOrEqual(18);
++  it('keeps total route beats inside the public-release range', () => {
++    expect(allBeats.length).toBeGreaterThanOrEqual(20);
++    expect(allBeats.length).toBeLessThanOrEqual(28);
+   });
+ 
+   it('gives every coached route at least two beats', () => {
+@@ -50,9 +50,13 @@ describe('route beat registry', () => {
+     }
+   });
+ 
+-  it('uses the exact six-route coaching key set', () => {
++  it('uses the public-release route coaching key set', () => {
+     const expected: RouteKey[] = [
++      'monday-briefing',
+       'roster',
++      'depth-chart',
++      'game-plan',
++      'week-advance',
+       'staff',
+       'cap-laboratory',
+       'draft-board',
+@@ -66,7 +70,11 @@ describe('route beat registry', () => {
+ 
+   it('keeps beat order stable by route and beat number', () => {
+     expect(ROUTE_KEYS.map((routeKey) => ROUTE_BEAT_REGISTRY[routeKey].map((beat) => beat.id))).toEqual([
++      ['chip.route.monday-briefing.beat-1', 'chip.route.monday-briefing.beat-2'],
+       ['chip.route.roster.beat-1', 'chip.route.roster.beat-2'],
++      ['chip.route.depth-chart.beat-1', 'chip.route.depth-chart.beat-2'],
++      ['chip.route.game-plan.beat-1', 'chip.route.game-plan.beat-2'],
++      ['chip.route.week-advance.beat-1', 'chip.route.week-advance.beat-2'],
+       ['chip.route.staff.beat-1', 'chip.route.staff.beat-2'],
+       ['chip.route.cap-laboratory.beat-1', 'chip.route.cap-laboratory.beat-2'],
+       ['chip.route.draft-board.beat-1', 'chip.route.draft-board.beat-2'],
+diff --git a/apps/web/src/features/route-coaching/routeBeatRegistry.ts b/apps/web/src/features/route-coaching/routeBeatRegistry.ts
+index 9330c7d..f997ce8 100644
+--- a/apps/web/src/features/route-coaching/routeBeatRegistry.ts
++++ b/apps/web/src/features/route-coaching/routeBeatRegistry.ts
+@@ -1,5 +1,9 @@
+ export const ROUTE_KEYS = [
++  'monday-briefing',
+   'roster',
++  'depth-chart',
++  'game-plan',
++  'week-advance',
+   'staff',
+   'cap-laboratory',
+   'draft-board',
+@@ -27,6 +31,20 @@ export interface RouteBeat {
+ }
+ 
+ export const ROUTE_BEAT_REGISTRY = {
++  'monday-briefing': [
++    {
++      id: 'chip.route.monday-briefing.beat-1',
++      pose: 'point-side',
++      text: 'Start here every week. The briefing tells you what changed and which decision needs your desk first.',
++      spotlightTarget: 'chip.route.monday-briefing.beat-1',
++    },
++    {
++      id: 'chip.route.monday-briefing.beat-2',
++      pose: 'thinking',
++      text: 'If nothing is urgent, use the briefing to choose roster, plan, or advance. Do not wander the building.',
++      spotlightTarget: 'chip.route.monday-briefing.beat-2',
++    },
++  ],
+   roster: [
+     {
+       id: 'chip.route.roster.beat-1',
+@@ -41,6 +59,48 @@ export const ROUTE_BEAT_REGISTRY = {
+       spotlightTarget: 'chip.route.roster.beat-2',
+     },
+   ],
++  'depth-chart': [
++    {
++      id: 'chip.route.depth-chart.beat-1',
++      pose: 'point-side',
++      text: 'This is the real Sunday lineup. Check starters and first backups before you trust the roster screen.',
++      spotlightTarget: 'chip.route.depth-chart.beat-1',
++    },
++    {
++      id: 'chip.route.depth-chart.beat-2',
++      pose: 'thinking',
++      text: 'Injuries make backup order matter. Fix the thin room before the game plan asks too much of it.',
++      spotlightTarget: 'chip.route.depth-chart.beat-2',
++    },
++  ],
++  'game-plan': [
++    {
++      id: 'chip.route.game-plan.beat-1',
++      pose: 'point-side',
++      text: 'Set a plan your roster can execute. A perfect counter is useless if your players cannot carry it.',
++      spotlightTarget: 'chip.route.game-plan.beat-1',
++    },
++    {
++      id: 'chip.route.game-plan.beat-2',
++      pose: 'thinking',
++      text: 'Use opponent shape and injury context together. The weekly bet should have a football reason.',
++      spotlightTarget: 'chip.route.game-plan.beat-2',
++    },
++  ],
++  'week-advance': [
++    {
++      id: 'chip.route.week-advance.beat-1',
++      pose: 'thinking',
++      text: 'This screen turns choices into consequences. Read the checklist before you advance.',
++      spotlightTarget: 'chip.route.week-advance.beat-1',
++    },
++    {
++      id: 'chip.route.week-advance.beat-2',
++      pose: 'thinking',
++      text: 'Red items are not flavor. Fix them or accept the risk before the league moves forward.',
++      spotlightTarget: 'chip.route.week-advance.beat-2',
++    },
++  ],
+   staff: [
+     {
+       id: 'chip.route.staff.beat-1',
+diff --git a/apps/web/src/features/route-coaching/spotlightAnchors.test.ts b/apps/web/src/features/route-coaching/spotlightAnchors.test.ts
+index 726fe19..73b7f27 100644
+--- a/apps/web/src/features/route-coaching/spotlightAnchors.test.ts
++++ b/apps/web/src/features/route-coaching/spotlightAnchors.test.ts
+@@ -8,7 +8,11 @@ import { ROUTE_BEAT_REGISTRY, ROUTE_KEYS } from './routeBeatRegistry';
+ // route table in apps/web/src/app/App.tsx — see resolveRouteKey in
+ // useActiveRouteBeats.ts for the routing source of truth.
+ const ROUTE_SCREEN_FILES: Record<(typeof ROUTE_KEYS)[number], string> = {
++  'monday-briefing': 'apps/web/src/features/monday-briefing/MondayBriefing.tsx',
+   roster: 'apps/web/src/features/roster/RosterManagement.tsx',
++  'depth-chart': 'apps/web/src/features/depth-chart/DepthChart.tsx',
++  'game-plan': 'apps/web/src/features/game-plan/GamePlanSetup.tsx',
++  'week-advance': 'apps/web/src/features/week-advance/WeekAdvance.tsx',
+   staff: 'apps/web/src/features/coaching/CoachingStaff.tsx',
+   'cap-laboratory': 'apps/web/src/features/contracts/CapLaboratory.tsx',
+   'draft-board': 'apps/web/src/features/draft/DraftBoard.tsx',
+diff --git a/apps/web/src/features/route-coaching/useActiveRouteBeats.test.ts b/apps/web/src/features/route-coaching/useActiveRouteBeats.test.ts
+index 5bee40b..1ca8469 100644
+--- a/apps/web/src/features/route-coaching/useActiveRouteBeats.test.ts
++++ b/apps/web/src/features/route-coaching/useActiveRouteBeats.test.ts
+@@ -86,7 +86,11 @@ describe('useActiveRouteBeats selectors', () => {
+   it('caches one entry per route across all post-setup screens', () => {
+     __resetActiveRouteBeatCacheForTests();
+     const seen = new Set([
++      'chip.route.monday-briefing.beat-1',
+       'chip.route.roster.beat-1',
++      'chip.route.depth-chart.beat-1',
++      'chip.route.game-plan.beat-1',
++      'chip.route.week-advance.beat-1',
+       'chip.route.staff.beat-1',
+       'chip.route.cap-laboratory.beat-1',
+       'chip.route.draft-board.beat-1',
+@@ -94,7 +98,11 @@ describe('useActiveRouteBeats selectors', () => {
+       'chip.route.scouting-board.beat-1',
+     ]);
+ 
++    selectActiveRouteBeats('/', seen);
+     selectActiveRouteBeats('/roster', seen);
++    selectActiveRouteBeats('/depth-chart', seen);
++    selectActiveRouteBeats('/game-plan', seen);
++    selectActiveRouteBeats('/week-advance', seen);
+     selectActiveRouteBeats('/coaching', seen);
+     selectActiveRouteBeats('/cap-lab', seen);
+     selectActiveRouteBeats('/draft', seen);
+@@ -105,7 +113,11 @@ describe('useActiveRouteBeats selectors', () => {
+   });
+ 
+   it('normalizes app route paths to route coaching keys', () => {
++    expect(resolveRouteKey('/')).toBe('monday-briefing');
+     expect(resolveRouteKey('#/roster')).toBe('roster');
++    expect(resolveRouteKey('/depth-chart')).toBe('depth-chart');
++    expect(resolveRouteKey('/game-plan')).toBe('game-plan');
++    expect(resolveRouteKey('/week-advance')).toBe('week-advance');
+     expect(resolveRouteKey('/coaching/tree')).toBe('staff');
+     expect(resolveRouteKey('/cap-lab')).toBe('cap-laboratory');
+     expect(resolveRouteKey('/draft')).toBe('draft-board');
+diff --git a/apps/web/src/features/route-coaching/useActiveRouteBeats.ts b/apps/web/src/features/route-coaching/useActiveRouteBeats.ts
+index 9da0550..628ea2a 100644
+--- a/apps/web/src/features/route-coaching/useActiveRouteBeats.ts
++++ b/apps/web/src/features/route-coaching/useActiveRouteBeats.ts
+@@ -1,5 +1,9 @@
+ import { useMemo } from 'react';
+ import { useChipStore } from '../companion/store';
++import {
++  readChipOnboardingState,
++  selectChipOnboardingRouteBeats,
++} from '../companion/onboardingMachine';
+ import {
+   ROUTE_BEAT_REGISTRY,
+   ROUTE_KEYS,
+@@ -33,7 +37,11 @@ export function __getActiveRouteBeatCacheSize(): number {
+ export function resolveRouteKey(currentRoute: string): RouteKey | null {
+   const normalized = currentRoute.replace(/^#/, '').split('?')[0] || '/';
+ 
++  if (normalized === '/' || normalized === '/briefing') return 'monday-briefing';
+   if (normalized === 'roster' || normalized === '/roster') return 'roster';
++  if (normalized === 'depth-chart' || normalized === '/depth-chart') return 'depth-chart';
++  if (normalized === 'game-plan' || normalized === '/game-plan') return 'game-plan';
++  if (normalized === 'week-advance' || normalized === '/week-advance') return 'week-advance';
+   if (normalized === 'staff' || normalized === '/coaching' || normalized.startsWith('/coaching/')) return 'staff';
+   if (normalized === 'cap-laboratory' || normalized === '/cap-lab' || normalized === '/contracts') {
+     return 'cap-laboratory';
+@@ -83,11 +91,22 @@ export function selectActiveRouteBeats(
+   return activeBeats;
+ }
+ 
+-export function useActiveRouteBeats(currentRoute: string): readonly RouteBeat[] {
++export function useActiveRouteBeats(
++  currentRoute: string,
++  context: { currentWeek?: number } = {},
++): readonly RouteBeat[] {
+   const seenBeats = useChipStore((state) => state.seenBeats);
+ 
+   return useMemo(
+-    () => selectActiveRouteBeats(currentRoute, seenBeats),
+-    [currentRoute, seenBeats],
++    () => {
++      const storage = typeof window === 'undefined' ? null : window.localStorage;
++      const onboardingBeats = selectChipOnboardingRouteBeats(
++        currentRoute,
++        readChipOnboardingState(storage),
++        { currentWeek: context.currentWeek ?? 0 },
++      ).filter((beat) => !seenBeats.has(beat.id));
++      return [...onboardingBeats, ...selectActiveRouteBeats(currentRoute, seenBeats)];
++    },
++    [context.currentWeek, currentRoute, seenBeats],
+   );
+ }
+diff --git a/apps/web/src/features/trades/TradeCenter.tsx b/apps/web/src/features/trades/TradeCenter.tsx
+index b7d56ad..62a3927 100644
+--- a/apps/web/src/features/trades/TradeCenter.tsx
++++ b/apps/web/src/features/trades/TradeCenter.tsx
+@@ -1,7 +1,7 @@
+ import { useMemo, useState } from 'react';
+ import { ArrowLeftRight } from 'lucide-react';
+ import {
+-  PixelBadge, PixelButton, PixelNav, PixelPanel, PixelProgressBar, PixelSelect,
++  PixelBadge, PixelButton, PixelConsequenceList, PixelNav, PixelPanel, PixelProgressBar, PixelSelect,
+ } from '@mfd/design-system/components';
+ import {
+   calcPickValue,
+@@ -34,6 +34,7 @@ import {
+   screenStackStyle,
+ } from '../shared/pixelUi';
+ import { TradeFinder } from './TradeFinder';
++import { buildDecisionImpactExplanation, decisionImpactToConsequenceItems } from '../companion/decisionImpact';
+ 
+ function offerAccent(status: string): 'cyan' | 'green' | 'gold' | 'red' {
+   if (status === 'accepted') return 'green';
+@@ -204,6 +205,16 @@ export function TradeCenter() {
+   const fairness = Math.max(offeringValue, requestingValue, 1) === 0
+     ? 0
+     : (Math.min(offeringValue, requestingValue) / Math.max(offeringValue, requestingValue, 1)) * 100;
++  const tradeImpact = useMemo(
++    () => buildDecisionImpactExplanation({
++      surface: 'trade',
++      label: 'Trade package',
++      outgoingAssets: selectedOffering.length,
++      incomingAssets: selectedRequesting.length,
++      valueDelta: requestingValue - offeringValue,
++    }),
++    [offeringValue, requestingValue, selectedOffering.length, selectedRequesting.length],
++  );
+   const currentProposal = proposals.find((proposal) => proposal.id === activeProposalId)
+     ?? proposals.filter((proposal) => proposal.fromTeamId === userTeam?.id).at(-1)
+     ?? null;
+@@ -480,6 +491,10 @@ export function TradeCenter() {
+                 valueLabel={valueLabel(offeringValue, requestingValue)}
+               />
+ 
++              <PixelPanel title="Decision Impact" accent={tradeImpact.severity === 'high' ? 'red' : 'gold'}>
++                <PixelConsequenceList items={decisionImpactToConsequenceItems(tradeImpact)} />
++              </PixelPanel>
++
+               <div style={autoGrid(220)}>
+                 <div>
+                   <div style={{ ...pixelSm, color: '#666', marginBottom: '6px' }}>OFFERING</div>
+diff --git a/apps/web/src/features/week-advance/WeekAdvance.test.tsx b/apps/web/src/features/week-advance/WeekAdvance.test.tsx
+index 3055c31..a7c6e9d 100644
+--- a/apps/web/src/features/week-advance/WeekAdvance.test.tsx
++++ b/apps/web/src/features/week-advance/WeekAdvance.test.tsx
+@@ -56,5 +56,8 @@ describe('WeekAdvance', () => {
+     expect(markup).toContain('GAME PLAN');
+     expect(markup).toContain('Plan Needed');
+     expect(markup).toContain('Prepare Game Plan');
++    expect(markup).toContain('DECISION IMPACT');
++    expect(markup).toContain('Immediate');
++    expect(markup).toContain('2 readiness issues');
+   });
+ });
+diff --git a/apps/web/src/features/week-advance/WeekAdvance.tsx b/apps/web/src/features/week-advance/WeekAdvance.tsx
+index 0ee4258..2277c03 100644
+--- a/apps/web/src/features/week-advance/WeekAdvance.tsx
++++ b/apps/web/src/features/week-advance/WeekAdvance.tsx
+@@ -21,6 +21,7 @@ import {
+   screenStackStyle,
+ } from '../shared/pixelUi';
+ import { playSound } from '../audio/AudioManager';
++import { buildDecisionImpactExplanation, decisionImpactToConsequenceItems } from '../companion/decisionImpact';
+ 
+ interface ChecklistItem {
+   id: string;
+@@ -123,6 +124,15 @@ export function WeekAdvance() {
+   const issueCount = checklist.filter((c) => c.status !== 'done').length;
+   const starters = roster.filter((p) => p.isStarter).length;
+   const injuredCount = roster.filter((p) => p.injury).length;
++  const advanceImpact = useMemo(
++    () => buildDecisionImpactExplanation({
++      surface: 'week-advance',
++      label: 'Week advance',
++      issueCount,
++      difficulty: 'standard',
++    }),
++    [issueCount],
++  );
+ 
+   const teams = useGameStore(selectTeams);
+   const opponent = matchup?.opponentId && teams ? teams[matchup.opponentId] : null;
+@@ -198,35 +208,37 @@ export function WeekAdvance() {
+       </div>
+ 
+       <div style={autoGrid(320)}>
+-        <PixelPanel title="Pre-Advance Checklist" accent={allClear ? 'green' : 'gold'}>
+-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+-            {checklist.map((item) => (
+-              <div key={item.id} style={{
+-                display: 'flex',
+-                justifyContent: 'space-between',
+-                gap: '12px',
+-                alignItems: 'center',
+-                paddingBottom: '8px',
+-                borderBottom: '1px solid #1a1a1a',
+-              }}>
+-                <div>
+-                  <div style={{ ...mono, color: '#fff' }}>{item.label}</div>
+-                  <div style={{ ...monoSm, color: '#888', marginTop: '4px' }}>{item.detail}</div>
+-                </div>
+-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+-                  {item.status !== 'done' && item.fixRoute && (
+-                    <PixelButton accent="gold" onClick={() => navigateTo(item.fixRoute!)}>
+-                      {item.fixLabel}
+-                    </PixelButton>
+-                  )}
+-                  <PixelBadge variant={statusAccent(item.status)}>
+-                    {item.status}
+-                  </PixelBadge>
++        <div data-spotlight-target="chip.route.week-advance.beat-1">
++          <PixelPanel title="Pre-Advance Checklist" accent={allClear ? 'green' : 'gold'}>
++            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
++              {checklist.map((item) => (
++                <div key={item.id} style={{
++                  display: 'flex',
++                  justifyContent: 'space-between',
++                  gap: '12px',
++                  alignItems: 'center',
++                  paddingBottom: '8px',
++                  borderBottom: '1px solid #1a1a1a',
++                }}>
++                  <div>
++                    <div style={{ ...mono, color: '#fff' }}>{item.label}</div>
++                    <div style={{ ...monoSm, color: '#888', marginTop: '4px' }}>{item.detail}</div>
++                  </div>
++                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
++                    {item.status !== 'done' && item.fixRoute && (
++                      <PixelButton accent="gold" onClick={() => navigateTo(item.fixRoute!)}>
++                        {item.fixLabel}
++                      </PixelButton>
++                    )}
++                    <PixelBadge variant={statusAccent(item.status)}>
++                      {item.status}
++                    </PixelBadge>
++                  </div>
+                 </div>
+-              </div>
+-            ))}
+-          </div>
+-        </PixelPanel>
++              ))}
++            </div>
++          </PixelPanel>
++        </div>
+ 
+         <PixelPanel title="Matchup Radar" accent="cyan">
+           {opponent ? (
+@@ -265,6 +277,12 @@ export function WeekAdvance() {
+         />
+       </PixelPanel>
+ 
++      <div data-spotlight-target="chip.route.week-advance.beat-2">
++        <PixelPanel title="Decision Impact" accent={advanceImpact.severity === 'high' ? 'red' : 'gold'}>
++          <PixelConsequenceList items={decisionImpactToConsequenceItems(advanceImpact)} />
++        </PixelPanel>
++      </div>
++
+       {advancing ? (
+         <div style={{
+           display: 'flex',
+diff --git a/apps/web/src/lib/roster-continuity-store.test.ts b/apps/web/src/lib/roster-continuity-store.test.ts
+index e680422..131686f 100644
+--- a/apps/web/src/lib/roster-continuity-store.test.ts
++++ b/apps/web/src/lib/roster-continuity-store.test.ts
+@@ -118,4 +118,13 @@ describe('roster-continuity-store', () => {
+   it('returns null when reading an unknown dynasty id', () => {
+     expect(readDynastyStarters('unknown')).toBeNull();
+   });
++
++  it('falls back to the default payload when global localStorage is not Storage-like', () => {
++    vi.stubGlobal('localStorage', {} as Storage);
++
++    expect(readRosterContinuity()).toEqual({
++      schemaVersion: 1,
++      byDynastyId: {},
++    });
++  });
+ });
+diff --git a/apps/web/src/lib/roster-continuity-store.ts b/apps/web/src/lib/roster-continuity-store.ts
+index 6a48840..c4dc494 100644
+--- a/apps/web/src/lib/roster-continuity-store.ts
++++ b/apps/web/src/lib/roster-continuity-store.ts
+@@ -30,9 +30,16 @@ function defaultPayload(): RosterContinuityPayload {
+   };
+ }
+ 
++function isStorageLike(value: unknown): value is Storage {
++  return !!value
++    && typeof value === 'object'
++    && typeof (value as Storage).getItem === 'function'
++    && typeof (value as Storage).setItem === 'function';
++}
++
+ function storage(): Storage | null {
+-  if (typeof window !== 'undefined' && window.localStorage) return window.localStorage;
+-  if (typeof globalThis !== 'undefined' && 'localStorage' in globalThis && globalThis.localStorage) {
++  if (typeof window !== 'undefined' && isStorageLike(window.localStorage)) return window.localStorage;
++  if (typeof globalThis !== 'undefined' && 'localStorage' in globalThis && isStorageLike(globalThis.localStorage)) {
+     return globalThis.localStorage;
+   }
+   return null;
+diff --git a/packages/design-system/components/PixelSelect/PixelSelect.tsx b/packages/design-system/components/PixelSelect/PixelSelect.tsx
+index 00204fc..c5b04ad 100644
+--- a/packages/design-system/components/PixelSelect/PixelSelect.tsx
++++ b/packages/design-system/components/PixelSelect/PixelSelect.tsx
+@@ -56,7 +56,7 @@ export function PixelSelect({
+       data-mfd-focusable="pixel-select"
+       disabled={disabled}
+       style={{
+-        minHeight: '34px',
++        minHeight: 'var(--mfd-touch-min)',
+         padding: '8px 10px',
+         border: `3px solid ${accentStyle.border}`,
+         background: disabled ? 'var(--mfd-bg-3)' : accentStyle.background,
+diff --git a/packages/design-system/tokens/index.css b/packages/design-system/tokens/index.css
+index 625708f..637d4b0 100644
+--- a/packages/design-system/tokens/index.css
++++ b/packages/design-system/tokens/index.css
+@@ -239,6 +239,8 @@
+     width: 100%;
+   }
+   [data-mfd-table-mode="cards"] tr {
++    box-sizing: border-box;
++    min-width: 100%;
+     border: var(--mfd-pixel-border);
+     margin-bottom: var(--mfd-sp-md);
+     padding: var(--mfd-sp-sm);

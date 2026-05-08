@@ -1,0 +1,16 @@
+
+ RUN  v3.2.4 /Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery/apps/web
+
+ ✓ src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > renders screen header with Dynasty Cartridge title 5ms
+ ✓ src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > renders save/load related UI elements 1ms
+ ✓ src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > promotes portable backup messaging 1ms
+ ✓ src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > renders an upload backup action 1ms
+ ✓ src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > renders paste-backup fallback copy 1ms
+ ✓ src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > points blocked clipboard exports to the download fallback 0ms
+ ✓ src/features/dynasty-cartridge/DynastyCartridge.test.tsx > DynastyCartridge > keeps invalid import errors player-facing and save-safe 0ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  19:47:20
+   Duration  663ms (transform 181ms, setup 0ms, collect 413ms, tests 11ms, environment 0ms, prepare 47ms)
+

@@ -1,0 +1,8 @@
+?? .codex/MFD/evidence/.latest-final-ship-decision-dir
+?? .codex/MFD/evidence/chip-art-shell-polish-20260506-210151/post-polish-commit.txt
+?? .codex/MFD/evidence/chip-art-shell-polish-20260506-210151/post-polish-log.txt
+?? .codex/MFD/evidence/chip-art-shell-polish-20260506-210151/post-polish-status.txt
+?? .codex/MFD/evidence/final-ship-decision-20260505-193901/
+?? .codex/MFD/evidence/release-candidate-lockin-20260505-175132/dev-exported-week2.mfd
+?? .codex/MFD/evidence/release-candidate-lockin-20260505-175132/pre-lockin-full.diff
+?? .codex/MFD/evidence/release-candidate-lockin-20260505-175132/pre-lockin-untracked-full.diff
