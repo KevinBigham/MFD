@@ -78,10 +78,11 @@ describe('NewGameScreen', () => {
     expect(markup).toContain('Paste backup code');
   });
 
-  it('renders rookie defaults in the REC recommendation copy', () => {
+  it('renders rookie as the recommended difficulty without stale fast-path copy', () => {
     const markup = renderToStaticMarkup(<NewGameScreen />);
 
-    expect(markup).toContain('halftime decisions auto-skip');
+    expect(markup).toContain('Rookie');
+    expect(markup).toContain('REC');
     expect(markup).not.toContain('CPU games stay on the fast path');
   });
 });
