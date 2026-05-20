@@ -88,6 +88,8 @@ describe('GamePlanSetup', () => {
     expect(markup).toContain('Austin Armadillos');
     expect(markup).toContain('7-3');
     expect(markup).toContain('Attack lane: passing');
+    expect(markup).toContain('NEXT CALL');
+    expect(markup).toContain('Primary decision');
     expect(markup).toContain('Stress the secondary early.');
     expect(markup).toContain('Save Weekly Prep &amp; Sim');
     expect(markup).toContain('Skip With Auto Prep');

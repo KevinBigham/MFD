@@ -128,8 +128,8 @@ function ActionCenter(props: ActionCenterProps) {
   const recommendations = props.game ? getAGMWeeklyRecommendations(props.game, 3) : [];
 
   return (
-    <PixelPanel title="YOUR NEXT MOVE" accent={panelAccent}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <PixelPanel title="Command Queue" accent={panelAccent}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {props.game && (
           <div
             style={{
@@ -137,8 +137,11 @@ function ActionCenter(props: ActionCenterProps) {
               justifyContent: 'space-between',
               alignItems: 'center',
               gap: '12px',
-              paddingBottom: '8px',
-              borderBottom: '1px solid var(--mfd-gold-mid)',
+              padding: '12px',
+              border: '1px solid var(--mfd-gold-mid)',
+              borderRadius: 'var(--mfd-rad-lg)',
+              background: 'linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent 70%)',
+              flexWrap: 'wrap',
             }}
           >
             <div>
@@ -160,17 +163,19 @@ function ActionCenter(props: ActionCenterProps) {
           <div
             key={i}
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 1fr) auto',
               alignItems: 'center',
               gap: '12px',
-              paddingBottom: '8px',
-              borderBottom: '1px solid #1a1a1a',
+              padding: '12px',
+              border: `1px solid var(--mfd-${item.accent})`,
+              borderRadius: 'var(--mfd-rad-lg)',
+              background: 'rgba(255, 255, 255, 0.025)',
             }}
           >
-            <div>
-              <div style={{ ...monoSm, color: '#fff' }}>{item.label}</div>
-              <div style={{ ...monoSm, color: '#888', marginTop: '2px' }}>{item.detail}</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ ...monoSm, color: 'var(--mfd-text)', fontWeight: 700 }}>{item.label}</div>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '3px' }}>{item.detail}</div>
             </div>
             <PixelButton accent={item.accent} onClick={() => navigateTo(item.route)}>
               <ArrowRight size={12} />

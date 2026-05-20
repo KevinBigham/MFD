@@ -75,4 +75,12 @@ describe('TradeCenter', () => {
     expect(markup).toContain('Cole Hart');
     expect(markup).toContain('0.9');
   });
+
+  it('renders a guided empty state for incoming offers', () => {
+    const markup = renderToStaticMarkup(<TradeCenter />);
+
+    expect(markup).toContain('No offers on the desk');
+    expect(markup).toContain('Build Offer');
+    expect(markup).toContain('Scan Block');
+  });
 });

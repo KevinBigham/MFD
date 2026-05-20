@@ -34,11 +34,13 @@ export function MfdPanel({
 
   return (
     <section
+      data-mfd-panel="true"
       className={className}
       style={{
-        background: bg,
-        border: '1px solid var(--mfd-border)',
+        background: variant === 'glass' ? 'var(--mfd-glass)' : bg,
+        border: variant === 'bordered' ? '1px solid var(--mfd-border-strong)' : '1px solid var(--mfd-border)',
         borderRadius: 'var(--mfd-rad-lg)',
+        boxShadow: 'var(--mfd-shadow-panel)',
         overflow: 'hidden',
         ...style,
       }}
@@ -48,8 +50,10 @@ export function MfdPanel({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          minHeight: 42,
           padding: `var(--mfd-sp-sm) ${paddingMap[padding]}`,
           borderBottom: '1px solid var(--mfd-border)',
+          background: 'linear-gradient(90deg, rgba(0, 229, 255, 0.08), transparent 70%)',
         }}>
           <div style={{
             display: 'flex',

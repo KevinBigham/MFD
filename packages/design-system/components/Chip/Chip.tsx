@@ -59,6 +59,15 @@ export const CHIP_POSES = [
 
 export type ChipPose = (typeof CHIP_POSES)[number];
 export type ChipSize = 'sm' | 'md' | 'lg';
+export type ChipMotionProfile =
+  | 'settled'
+  | 'conversational'
+  | 'gesture'
+  | 'victory'
+  | 'urgent'
+  | 'downbeat'
+  | 'focused'
+  | 'prop';
 
 export interface ChipPoseArt {
   src: string;
@@ -79,8 +88,47 @@ export interface ChipProps {
 
 const CHIP_SIZE_PX: Record<ChipSize, { width: number; height: number; legacy: number }> = {
   sm: { width: 64, height: 64, legacy: 64 },
-  md: { width: 96, height: 96, legacy: 96 },
-  lg: { width: 144, height: 176, legacy: 144 },
+  md: { width: 112, height: 112, legacy: 112 },
+  lg: { width: 224, height: 260, legacy: 176 },
+};
+
+export const CHIP_POSE_MOTION_PROFILE: Record<ChipPose, ChipMotionProfile> = {
+  idle: 'settled',
+  greeting: 'conversational',
+  talk: 'conversational',
+  'point-left': 'gesture',
+  'point-right': 'gesture',
+  wave: 'gesture',
+  think: 'focused',
+  whispering: 'conversational',
+  celebrate: 'victory',
+  excited: 'victory',
+  concern: 'urgent',
+  warning: 'urgent',
+  surprised: 'urgent',
+  sad: 'downbeat',
+  disappointed: 'downbeat',
+  'mic-check': 'conversational',
+  'thumbs-up': 'victory',
+  rallying: 'victory',
+  'coaching-crouch': 'urgent',
+  'calling-play': 'conversational',
+  'time-out': 'urgent',
+  'whistle-blow': 'urgent',
+  'coffee-sip': 'prop',
+  'on-phone': 'conversational',
+  'reviewing-tablet': 'focused',
+  'head-in-hands': 'downbeat',
+  'fist-bump': 'victory',
+  'note-taking': 'focused',
+  laughing: 'victory',
+  skeptical: 'urgent',
+  proud: 'victory',
+  facepalm: 'downbeat',
+  frustrated: 'urgent',
+  tired: 'downbeat',
+  'football-in-hand': 'prop',
+  'pointing-at-tape': 'gesture',
 };
 
 function withInlineArt(art: Omit<ChipPoseArt, 'inlineSrc'>): ChipPoseArt {
@@ -195,6 +243,7 @@ export function Chip({
   const label = ariaLabelProp ?? ariaLabel ?? 'Chip, your assistant';
   const classes = ['mfd-chip', className].filter(Boolean).join(' ');
   const headClasses = `mfd-chip-svg__head mfd-chip-svg__head--${pose}`;
+  const motionProfile = CHIP_POSE_MOTION_PROFILE[pose];
   const style = {
     '--chip-art-width': `${pixelSize.width}px`,
     '--chip-art-height': `${pixelSize.height}px`,
@@ -207,6 +256,7 @@ export function Chip({
       data-chip-pose={pose}
       data-chip-size={size}
       data-chip-motion={reducedMotion ? 'reduced' : 'animated'}
+      data-chip-motion-profile={motionProfile}
       data-chip-art-src={art.src}
       data-chip-full-art-src={fullArt.src}
       role="img"
@@ -214,17 +264,29 @@ export function Chip({
       style={style}
     >
       <span className="mfd-chip__art-frame" data-chip-pose-art={pose}>
-        <img
-          className="mfd-chip__art-img"
-          data-chip-image-pose={pose}
-          src={art.src}
-          alt=""
-          width={pixelSize.width}
-          height={pixelSize.height}
-          loading="lazy"
-          decoding="async"
-          draggable={false}
-        />
+        <span className="mfd-chip__backplate" aria-hidden="true" />
+        <span className="mfd-chip__scoreboard-bars" aria-hidden="true" />
+        <span className="mfd-chip__sideline-glow" aria-hidden="true" />
+        <span className="mfd-chip__stage-shadow" aria-hidden="true" />
+        <span className="mfd-chip__motion-rig" data-chip-motion-rig={motionProfile}>
+          <span className="mfd-chip__image-rig">
+            <img
+              key={`${pose}-${size}-${art.src}`}
+              className="mfd-chip__art-img"
+              data-chip-image-pose={pose}
+              src={art.src}
+              alt=""
+              width={pixelSize.width}
+              height={pixelSize.height}
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+            />
+          </span>
+        </span>
+        <span className="mfd-chip__rim-light" aria-hidden="true" />
+        <span className="mfd-chip__pose-flash" aria-hidden="true" />
+        <span className="mfd-chip__shine" aria-hidden="true" />
         <span className="mfd-chip__scanline" aria-hidden="true" />
       </span>
       <svg

@@ -1,6 +1,6 @@
 import { PixelBadge, PixelButton, PixelPanel, PixelProgressBar } from '@mfd/design-system/components';
 import type { TradeSuggestion } from '@mfd/engine';
-import { monoSm } from '../shared/pixelUi';
+import { CommandCallout, monoSm } from '../shared/pixelUi';
 
 interface TradeFinderProps {
   suggestions: Array<TradeSuggestion & { partnerName?: string }>;
@@ -11,7 +11,13 @@ export function TradeFinder({ suggestions, onLoadSuggestion }: TradeFinderProps)
   return (
     <PixelPanel title="Trade Finder" accent="gold">
       {suggestions.length === 0 ? (
-        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No high-confidence suggestions this week.</div>
+        <CommandCallout
+          eyebrow="Trade Finder"
+          title="No high-confidence matches"
+          body="The model does not like a ready-made package this week. Use the proposal tab if you still need to force a roster swing."
+          accent="gold"
+          framed={false}
+        />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {suggestions.map((suggestion) => (

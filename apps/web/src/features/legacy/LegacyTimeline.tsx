@@ -36,6 +36,7 @@ import { AchievementGallery } from './AchievementGallery';
 import { CeremonyViewer } from './CeremonyViewer';
 import { SeasonReportViewer } from './SeasonReportViewer';
 import {
+  CommandCallout,
   PixelMetricCard,
   PixelScreenHeader,
   autoGrid,
@@ -244,6 +245,27 @@ export function LegacyTimeline() {
         <PixelMetricCard label="Legends" value={legendCount} accent="cyan" detail="Players who peaked at 85+ overall" />
         <PixelMetricCard label="Dynasty Score" value={dynastyScore} accent="gold" detail="Championships, playoff trips, awards, and records blended" />
       </div>
+
+      <CommandCallout
+        eyebrow="Archive Command"
+        title={teamHistory.length > 0 ? 'Turn the record into a story' : 'Start filing the first chapter'}
+        body={teamHistory.length > 0
+          ? 'Jump from the ledger into the chronicle, scrapbook, or award room before the archive turns into a wall of rows.'
+          : 'Once the first season closes, this hub will become the control room for banners, records, named games, and player legacies.'}
+        accent={titleCount > 0 ? 'gold' : 'cyan'}
+        meta={(
+          <>
+            <PixelBadge variant="gold">{teamHistory.length} seasons filed</PixelBadge>
+            <PixelBadge variant="cyan">{namedGames.length} named games</PixelBadge>
+            <PixelBadge variant="green">{awardRows.length} award classes</PixelBadge>
+          </>
+        )}
+        actions={[
+          { label: 'Open Chronicle', accent: 'gold', onClick: () => navigateTo('/franchise/chronicle') },
+          { label: 'Scrapbook', accent: 'cyan', onClick: () => navigateTo('/franchise/scrapbook') },
+          { label: 'Awards Hub', accent: 'green', onClick: () => navigateTo('/awards'), disabled: awardRows.length === 0 },
+        ]}
+      />
 
       {awardsHistory.length > 0 ? (
         <PixelPanel title="Awards Hub" accent="gold">

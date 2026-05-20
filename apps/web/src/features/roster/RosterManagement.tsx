@@ -331,7 +331,7 @@ export function RosterManagement() {
         )}
       />
 
-      <div style={autoGrid(210)}>
+      <div className="mfd-roster-summary-grid" style={autoGrid(155)}>
         <PixelMetricCard label="Roster Size" value={`${activeRosterCount}/53`} accent={activeRosterCount > 53 ? 'red' : 'green'} detail="IR players do not count against the 53-man cap" />
         <PixelMetricCard label="Avg OVR" value={avgOvr} accent={avgOvr >= 80 ? 'green' : avgOvr >= 72 ? 'cyan' : 'gold'} detail="Overall team strength" />
         <PixelMetricCard label="Starters" value={starters} accent={starters >= 22 ? 'green' : 'gold'} detail="Projected first unit" />

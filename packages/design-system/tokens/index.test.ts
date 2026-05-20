@@ -10,5 +10,7 @@ describe('design tokens responsive table rules', () => {
 
     expect(cardModeBlock).toContain('min-width: 100%;');
     expect(cardModeBlock).toContain('box-sizing: border-box;');
+    expect(cardModeBlock).toContain('display: flex;');
+    expect(cardModeBlock).toContain('data-mfd-table-cell-id="name"');
   });
 });

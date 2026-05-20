@@ -24,6 +24,7 @@ import {
   useGameStore,
 } from '../../app/store/game-store';
 import {
+  CommandCallout,
   PixelMetricCard,
   PixelScreenHeader,
   autoGrid,
@@ -335,9 +336,19 @@ export function TradeCenter() {
         <div data-spotlight-target="chip.route.trade-center.beat-2">
         <PixelPanel title="Incoming Offers" accent={pendingOffers > 0 ? 'gold' : 'cyan'}>
           {offers.length === 0 ? (
-            <div style={{ ...monoSm, color: '#999' }}>
-              No active offers. Put veterans on the block or advance the market.
-            </div>
+            <CommandCallout
+              eyebrow="Incoming Offers"
+              title={deadlineClosed ? 'Deadline room is closed' : 'No offers on the desk'}
+              body={deadlineClosed
+                ? 'Incoming packages are quiet and the regular-season deadline has passed. Review your block, then move the week from the command center.'
+                : 'No AI packages are waiting. Build your own offer, scan the league block, or flag veterans so the market has a reason to call.'}
+              accent={deadlineClosed ? 'red' : 'cyan'}
+              framed={false}
+              actions={[
+                { label: 'Build Offer', accent: 'gold', disabled: deadlineClosed, onClick: () => setTab('propose') },
+                { label: 'Scan Block', accent: 'cyan', onClick: () => navigateTo('/trade-block') },
+              ]}
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {offers.map((offer) => (

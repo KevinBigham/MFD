@@ -81,18 +81,19 @@ interface DockControlButton {
   label: string;
   icon: typeof VolumeX;
   accent: 'default' | 'gold' | 'cyan' | 'green' | 'red';
+  weight: 'primary' | 'quiet' | 'utility';
 }
 
 const DOCK_CONTROL_BUTTONS: readonly DockControlButton[] = [
-  { id: 'whatNow', label: 'What now?', icon: MessageSquare, accent: 'gold' },
-  { id: 'resetOnboarding', label: 'Replay', icon: RotateCcw, accent: 'cyan' },
-  { id: 'snoozeOnboarding', label: 'Snooze', icon: CalendarOff, accent: 'gold' },
-  { id: 'enableGuidance', label: 'Enable', icon: Bell, accent: 'green' },
-  { id: 'quietForScreen', label: 'Quiet for screen', icon: VolumeX, accent: 'cyan' },
-  { id: 'quietUntilNextWeek', label: 'Quiet until next week', icon: Calendar, accent: 'gold' },
-  { id: 'quietThisSeason', label: 'Quiet this season', icon: CalendarOff, accent: 'red' },
-  { id: 'reduceGuidance', label: 'Reduce guidance', icon: Lightbulb, accent: 'green' },
-  { id: 'disableAnimations', label: 'Disable animations', icon: EyeOff, accent: 'default' },
+  { id: 'whatNow', label: 'What now?', icon: MessageSquare, accent: 'gold', weight: 'primary' },
+  { id: 'resetOnboarding', label: 'Replay', icon: RotateCcw, accent: 'cyan', weight: 'utility' },
+  { id: 'snoozeOnboarding', label: 'Snooze', icon: CalendarOff, accent: 'gold', weight: 'quiet' },
+  { id: 'enableGuidance', label: 'Enable', icon: Bell, accent: 'green', weight: 'utility' },
+  { id: 'quietForScreen', label: 'Quiet for screen', icon: VolumeX, accent: 'cyan', weight: 'quiet' },
+  { id: 'quietUntilNextWeek', label: 'Quiet until next week', icon: Calendar, accent: 'gold', weight: 'quiet' },
+  { id: 'quietThisSeason', label: 'Quiet this season', icon: CalendarOff, accent: 'red', weight: 'quiet' },
+  { id: 'reduceGuidance', label: 'Reduce guidance', icon: Lightbulb, accent: 'green', weight: 'utility' },
+  { id: 'disableAnimations', label: 'Disable animations', icon: EyeOff, accent: 'default', weight: 'utility' },
 ] as const;
 
 const ROUTE_BEAT_DISMISS_CONTROLS = new Set<ChipDockControl>([
@@ -383,6 +384,7 @@ export function ChipDock({
     : activeLiveBeat
       ? routeBeatPoseToChipPose(activeLiveBeat.pose)
       : storePose;
+  const activeBeatMode = activeRouteBeat ? 'route' : activeLiveBeat ? 'live' : 'idle';
 
   useEffect(() => {
     setRouteBeatIndex(0);
@@ -489,6 +491,7 @@ export function ChipDock({
         data-chip-dock="true"
         data-chip-dock-state="collapsed"
         data-chip-dock-motion={motionMode}
+        data-chip-dock-beat="idle"
         aria-label="Chip dock"
       >
         {pendingBadge}
@@ -499,7 +502,9 @@ export function ChipDock({
           onClick={() => applyControl('expand')}
           aria-label="Open Chip dock"
       >
+          <span className="mfd-chip-dock__collapsed-ring" aria-hidden="true" />
           <Chip pose="idle" size="sm" reducedMotion={motionMode === 'reduced'} />
+          <span className="mfd-chip-dock__collapsed-label" aria-hidden="true">CHIP</span>
         </button>
       </aside>
     );
@@ -511,13 +516,21 @@ export function ChipDock({
       data-chip-dock="true"
       data-chip-dock-state="expanded"
       data-chip-dock-motion={motionMode}
+      data-chip-dock-beat={activeBeatMode}
       aria-label="Chip dock"
     >
       {pendingBadge}
       {dynastyLabel ? <div className="mfd-chip-dock__dynasty-label">{dynastyLabel}</div> : null}
-      <section className="mfd-chip-dock__panel">
+      <section className="mfd-chip-dock__panel" data-chip-dock-layout="sideline-broadcast">
         <div className="mfd-chip-dock__portrait">
-          <Chip pose={portraitPose} size="lg" reducedMotion={motionMode === 'reduced'} />
+          <div className="mfd-chip-dock__portrait-stage">
+            <div className="mfd-chip-dock__portrait-callout" aria-hidden="true">SIDELINE</div>
+            <Chip pose={portraitPose} size="lg" reducedMotion={motionMode === 'reduced'} />
+            <div className="mfd-chip-dock__nameplate" aria-hidden="true">
+              <span>CHIP</span>
+              <span>FIELD GENERAL</span>
+            </div>
+          </div>
         </div>
         <div className="mfd-chip-dock__content">
           {activeRouteBeat ? (
@@ -528,7 +541,7 @@ export function ChipDock({
               <ChipDialogueBubble
                 text={activeRouteBeat.text}
                 pose={routeBeatPoseToChipPose(activeRouteBeat.pose)}
-                pointer="right"
+                pointer="left"
                 skippable={false}
                 reducedMotion={motionMode === 'reduced'}
               />
@@ -553,7 +566,7 @@ export function ChipDock({
               <ChipDialogueBubble
                 text={activeLiveBeat.text}
                 pose={routeBeatPoseToChipPose(activeLiveBeat.pose)}
-                pointer="right"
+                pointer="left"
                 skippable={false}
                 reducedMotion={motionMode === 'reduced'}
               />
@@ -577,6 +590,8 @@ export function ChipDock({
               <PixelButton
                 accent="gold"
                 className="mfd-chip-dock__control"
+                data-chip-control-id="whereAmI"
+                data-chip-control-weight="primary"
                 onClick={showWhereAmIBeat}
                 aria-label="Where am I?"
                 title="Where am I?"
@@ -585,11 +600,20 @@ export function ChipDock({
                 <span className="mfd-chip-dock__control-label">Where am I?</span>
               </PixelButton>
             ) : null}
-            {DOCK_CONTROL_BUTTONS.map(({ id, label, icon: Icon, accent }) => (
+            {DOCK_CONTROL_BUTTONS.map(({ id, label, icon: Icon, accent, weight }) => (
               <PixelButton
                 key={id}
                 accent={accent}
                 className="mfd-chip-dock__control"
+                data-chip-control-id={id}
+                data-chip-control-weight={weight}
+                aria-pressed={
+                  id === 'reduceGuidance'
+                    ? prefs.reducedGuidance
+                    : id === 'disableAnimations'
+                      ? prefs.animationsDisabled
+                      : undefined
+                }
                 onClick={() => applyControl(id)}
                 aria-label={label}
                 title={label}
@@ -601,6 +625,8 @@ export function ChipDock({
             <PixelButton
               accent="default"
               className="mfd-chip-dock__control"
+              data-chip-control-id="collapse"
+              data-chip-control-weight="utility"
               onClick={() => applyControl('collapse')}
               aria-label="Collapse Chip dock"
               title="Collapse Chip dock"

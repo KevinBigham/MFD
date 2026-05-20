@@ -194,6 +194,24 @@ export function GamePlanSetup() {
     await setCallYourShot(shotDeclaration);
   };
 
+  const handleSkipWithAutoPrep = () => {
+    void (async () => {
+      await clearWeeklyPrepPlan();
+      await persistShotDeclaration();
+      playSound('week_advance_start', { debounceMs: 0, debounceKey: `game-plan:${year}:${week}:skip` });
+      await advanceWeek();
+    })();
+  };
+
+  const handleSaveWeeklyPrepAndSim = () => {
+    void (async () => {
+      await saveWeeklyPrepPlan(currentPlan, report);
+      await persistShotDeclaration();
+      playSound('week_advance_start', { debounceMs: 0, debounceKey: `game-plan:${year}:${week}:save` });
+      await advanceWeek();
+    })();
+  };
+
   return (
     <div style={screenStackStyle}>
       <PixelScreenHeader
@@ -206,6 +224,44 @@ export function GamePlanSetup() {
           </>
         )}
       />
+
+      <div data-mfd-next-call="weekly-prep">
+      <PixelPanel title="Next Call" accent={storedPlan ? 'green' : 'gold'}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))',
+          gap: '16px',
+          alignItems: 'center',
+        }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <PixelBadge variant={storedPlan ? 'green' : 'gold'}>
+                {storedPlan ? 'Prep locked' : 'Prep open'}
+              </PixelBadge>
+              <PixelBadge variant="cyan">Contingencies {contingencyRules.length}/{MAX_CONTINGENCIES}</PixelBadge>
+              <PixelBadge variant="gold">Tricks {selectedTrickPlays.length}/{MAX_SELECTED_TRICK_PLAYS}</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              Primary decision: lock your staff board and sim, or let the staff auto-prep so the week can move.
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <PixelButton accent="gold" onClick={handleSkipWithAutoPrep} style={{ minWidth: 126 }}>
+              Auto Prep
+            </PixelButton>
+            <PixelButton
+              accent="green"
+              onClick={handleSaveWeeklyPrepAndSim}
+              data-mfd-primary-action="weekly-prep"
+              style={{ minWidth: 138, boxShadow: 'var(--mfd-shadow-gold-strong), 0 0 0 1px rgba(74, 222, 128, 0.16) inset' }}
+            >
+              Save &amp; Sim
+            </PixelButton>
+          </div>
+        </div>
+      </PixelPanel>
+      </div>
 
       <div style={autoGrid(260)}>
         <div data-spotlight-target="chip.route.game-plan.beat-1">
@@ -520,27 +576,13 @@ export function GamePlanSetup() {
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
         <PixelButton
           accent="gold"
-          onClick={() => {
-            void (async () => {
-              await clearWeeklyPrepPlan();
-              await persistShotDeclaration();
-              playSound('week_advance_start', { debounceMs: 0, debounceKey: `game-plan:${year}:${week}:skip` });
-              await advanceWeek();
-            })();
-          }}
+          onClick={handleSkipWithAutoPrep}
         >
           Skip With Auto Prep
         </PixelButton>
         <PixelButton
           accent="green"
-          onClick={() => {
-            void (async () => {
-              await saveWeeklyPrepPlan(currentPlan, report);
-              await persistShotDeclaration();
-              playSound('week_advance_start', { debounceMs: 0, debounceKey: `game-plan:${year}:${week}:save` });
-              await advanceWeek();
-            })();
-          }}
+          onClick={handleSaveWeeklyPrepAndSim}
         >
           Save Weekly Prep &amp; Sim
         </PixelButton>

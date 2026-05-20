@@ -154,6 +154,7 @@ const columns: ColumnDef<ContractRow, unknown>[] = [
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
         {row.original.holdout ? <PixelBadge variant="red">Holdout</PixelBadge> : null}
         {getValue() ? <PixelBadge variant="cyan">Restructured</PixelBadge> : null}
+        {!row.original.holdout && !getValue() ? <PixelBadge variant="green">Clear</PixelBadge> : null}
       </div>
     ),
     size: 132,
@@ -367,6 +368,7 @@ export function ContractsCap() {
         columns={columns}
         density="compact"
         accent="gold"
+        responsive="cards"
         onRowClick={(row) => setSelectedContract(row)}
       />
 

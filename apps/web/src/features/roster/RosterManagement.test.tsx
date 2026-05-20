@@ -120,9 +120,9 @@ describe('RosterManagement', () => {
   it('renders roster metrics and player data', () => {
     const markup = renderToStaticMarkup(<RosterManagement />);
 
-    expect(markup).toContain('AVG OVR');
-    expect(markup).toContain('STARTERS');
-    expect(markup).toContain('ROSTER SIZE');
+    expect(markup).toContain('Avg OVR');
+    expect(markup).toContain('Starters');
+    expect(markup).toContain('Roster Size');
     expect(markup).toContain('Pat Mahomes');
     expect(markup).toContain('Travis Kelce');
   });

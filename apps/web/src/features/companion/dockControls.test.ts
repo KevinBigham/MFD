@@ -6,7 +6,8 @@ import {
   type ChipDockControlStore,
 } from './dockControls';
 import { CHIP_DOCK_STORAGE_KEY, createDefaultDockPrefs, readDockPrefs } from './dockPersistence';
-import { CHIP_ONBOARDING_PROGRESS_KEY, readChipOnboardingProgress } from './onboardingMachine';
+import { CHIP_ONBOARDING_STATE_STORAGE_KEY, readChipOnboardingState } from './onboardingMachine';
+import { writeChipReadReceipts, readChipReadReceipts } from './readReceipts';
 import type { DialogueCatalogEntry } from './dialogue/types';
 
 class MemoryStorage implements Storage {
@@ -75,43 +76,41 @@ describe('dock controls', () => {
     expect(prefs).toEqual(createDefaultDockPrefs());
   });
 
-  it('clears the legacy skip flag and writes replayable onboarding progress', () => {
+  it('resets first-ten onboarding progress and legacy skip state without touching route receipts', () => {
     const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_ONBOARDING_STATE_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        completedBeatIds: ['chip.first10.roster'],
+        snoozedUntilWeek: null,
+        disabled: false,
+        lastUpdated: '2026-04-30T04:00:00.000Z',
+      }),
+    );
     storage.setItem(
       CHIP_LEGACY_ONBOARDING_STORAGE_KEY,
       JSON.stringify({ skipped: true, lastBeat: 9, timestamp: '2026-04-30T04:00:00.000Z' }),
     );
-
-    const { store } = applyControl('replayOnboarding', storage);
-    const progress = readChipOnboardingProgress(storage);
-
-    expect(storage.getItem(CHIP_LEGACY_ONBOARDING_STORAGE_KEY)).toBeNull();
-    expect(progress.status).toBe('intro_seen');
-    expect(progress.shownBeatIds).toEqual(['chip.first10.welcome']);
-    expect(store.showWeeklyDialogue).toHaveBeenCalledWith(expect.objectContaining({
-      id: 'chip.first10.welcome',
-      text: expect.stringContaining('Welcome to the chair.'),
-      archetype: 'host',
-    }));
-  });
-
-  it('resets new and legacy onboarding progress without touching dock prefs', () => {
-    const storage = new MemoryStorage();
-    storage.setItem(CHIP_ONBOARDING_PROGRESS_KEY, JSON.stringify({ stale: true }));
-    storage.setItem(
-      CHIP_LEGACY_ONBOARDING_STORAGE_KEY,
-      JSON.stringify({ skipped: true, lastBeat: 9, timestamp: '2026-04-30T04:00:00.000Z' }),
-    );
+    writeChipReadReceipts(storage, ['chip.first10.roster', 'chip.route.roster.beat-1']);
 
     const { prefs, store } = applyControl('resetOnboarding', storage);
 
-    expect(storage.getItem(CHIP_ONBOARDING_PROGRESS_KEY)).toBeNull();
+    expect(readChipOnboardingState(storage).completedBeatIds).toEqual([]);
+    expect(readChipReadReceipts(storage).has('chip.first10.roster')).toBe(false);
+    expect(readChipReadReceipts(storage).has('chip.route.roster.beat-1')).toBe(true);
     expect(storage.getItem(CHIP_LEGACY_ONBOARDING_STORAGE_KEY)).toBeNull();
     expect(store.reset).toHaveBeenCalledTimes(1);
     expect(prefs).toEqual(createDefaultDockPrefs());
   });
 
-  it('re-enables guidance by clearing quiet prefs while preserving animation prefs', () => {
+  it('snoozes first-ten onboarding at the current week', () => {
+    const { storage } = applyControl('snoozeOnboarding');
+
+    expect(readChipOnboardingState(storage).snoozedUntilWeek).toBe(7);
+  });
+
+  it('re-enables guidance by clearing quiet prefs while preserving guidance cadence prefs', () => {
     const storage = new MemoryStorage();
     storage.setItem(CHIP_DOCK_STORAGE_KEY, JSON.stringify({
       ...createDefaultDockPrefs(),
@@ -127,7 +126,7 @@ describe('dock controls', () => {
     expect(prefs.quietForScreen).toBeNull();
     expect(prefs.quietUntilWeek).toBeNull();
     expect(prefs.quietForSeason).toBeNull();
-    expect(prefs.reducedGuidance).toBe(false);
+    expect(prefs.reducedGuidance).toBe(true);
     expect(prefs.animationsDisabled).toBe(true);
   });
 });

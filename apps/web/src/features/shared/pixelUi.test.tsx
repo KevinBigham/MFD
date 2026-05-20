@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@mfd/design-system/components', () => ({
+  PixelButton: () => null,
   PixelConsequenceList: () => null,
   PixelMetricCard: () => null,
   PixelPanel: () => null,
@@ -36,7 +37,7 @@ describe('pixelUi helpers', () => {
     expect(autoGrid(140)).toEqual({
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(min(140px, 100%), 1fr))',
-      gap: '12px',
+      gap: '16px',
       '--mfd-auto-grid-min': '140px',
       '--mfd-auto-grid-min-columns': '1',
     });

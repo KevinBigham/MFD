@@ -52,6 +52,8 @@ export function PixelButton({
     <button
       type={type}
       data-mfd-focusable="pixel-button"
+      data-mfd-button-accent={accent}
+      data-mfd-button-state={disabled ? 'disabled' : 'enabled'}
       className={className}
       disabled={disabled}
       style={{
@@ -59,18 +61,25 @@ export function PixelButton({
         alignItems: 'center',
         justifyContent: 'center',
         gap: '8px',
-        minHeight: '34px',
-        padding: '8px 12px',
-        border: `3px solid ${accentStyle.border}`,
-        background: disabled ? 'var(--mfd-bg-3)' : accentStyle.background,
+        minHeight: '38px',
+        padding: '9px 13px',
+        border: `2px solid ${disabled ? 'var(--mfd-border-strong)' : accentStyle.border}`,
+        borderRadius: 'var(--mfd-rad-md)',
+        background: disabled
+          ? 'linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 46%), var(--mfd-bg-3)'
+          : `linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 46%), ${accentStyle.background}`,
         color: disabled ? 'var(--mfd-text-faint)' : accentStyle.color,
         fontFamily: 'var(--mfd-font-pixel)',
         fontSize: '8px',
-        letterSpacing: '0.8px',
+        lineHeight: 1.25,
+        letterSpacing: 0,
         textTransform: 'uppercase',
-        cursor: disabled ? 'default' : 'pointer',
-        boxShadow: disabled ? 'none' : 'var(--mfd-shadow-sm)',
-        transition: 'transform var(--mfd-motion-fast), box-shadow var(--mfd-motion-fast)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.68 : 1,
+        boxShadow: disabled
+          ? '0 0 0 1px rgba(174, 184, 195, 0.05) inset'
+          : 'var(--mfd-shadow-sm), 0 0 0 1px rgba(255, 255, 255, 0.04) inset',
+        transition: 'filter var(--mfd-motion-fast), transform var(--mfd-motion-fast), box-shadow var(--mfd-motion-fast)',
         ...style,
       }}
       {...props}

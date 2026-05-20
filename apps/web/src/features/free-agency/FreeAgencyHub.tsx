@@ -13,6 +13,7 @@ import {
   useGameStore,
 } from '../../app/store/game-store';
 import {
+  CommandCallout,
   PixelMetricCard,
   PixelScreenHeader,
   PlayerNameLink,
@@ -117,12 +118,35 @@ export function FreeAgencyHub() {
         </PixelButton>
       </div>
 
+      {expiringPlayers.length === 0 && freeAgents.length === 0 ? (
+        <CommandCallout
+          eyebrow="Market Read"
+          title={phase === 'regular_season' ? 'Street market is quiet' : 'No free agents on the board'}
+          body={phase === 'regular_season'
+            ? 'No unsigned players are clear this week. Use the target board to stage names before the next market window, or check team needs before spending cap.'
+            : 'The board is empty right now. Keep your cap plan warm and use the target board to mark fits before the next cycle opens.'}
+          accent="cyan"
+          actions={[
+            { label: 'Target Board', accent: 'cyan', onClick: () => { void navigate({ to: '/fa-targets' }); } },
+            { label: 'Team Needs', accent: 'gold', onClick: () => { void navigate({ to: '/team-needs' }); } },
+          ]}
+        />
+      ) : null}
+
       {phase === 'offseason' ? (
         <PixelPanel title="Re-Sign Window" accent="gold">
           {expiringPlayers.length === 0 ? (
-            <div style={{ ...monoSm, color: '#999' }}>
-              No expiring contracts on your roster.
-            </div>
+            <CommandCallout
+              eyebrow="Re-Sign Window"
+              title="No in-house deadlines"
+              body="Your own expiring list is clean. Keep the cap sheet ready and use the target board to avoid panic spending when the market opens."
+              accent="gold"
+              framed={false}
+              actions={[
+                { label: 'Cap Sheet', accent: 'cyan', onClick: () => { void navigate({ to: '/contracts' }); } },
+                { label: 'Target Board', accent: 'gold', onClick: () => { void navigate({ to: '/fa-targets' }); } },
+              ]}
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {expiringPlayers.map((player) => {
@@ -249,9 +273,17 @@ export function FreeAgencyHub() {
       {phase === 'free_agency' ? (
         <PixelPanel title="Open Market" accent="cyan">
           {freeAgents.length === 0 ? (
-            <div style={{ ...monoSm, color: '#999' }}>
-              No unsigned players remain this round.
-            </div>
+            <CommandCallout
+              eyebrow="Open Market"
+              title="Round is picked clean"
+              body="No unsigned players remain in this round. Resolve the market or pivot to trades and waiver depth before the next roster squeeze."
+              accent="cyan"
+              framed={false}
+              actions={[
+                { label: `Resolve R${freeAgencyRound}`, accent: 'green', disabled: pending === 'resolve-fa', onClick: () => void handleOffer('resolve-fa', async () => { await advanceWeek(); }) },
+                { label: 'Waivers', accent: 'gold', onClick: () => { void navigate({ to: '/waivers' }); } },
+              ]}
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {freeAgents.slice(0, 18).map((player) => {
@@ -336,9 +368,17 @@ export function FreeAgencyHub() {
       {phase !== 'offseason' && phase !== 'free_agency' ? (
         <PixelPanel title="Street Free Agents" accent="cyan">
           {freeAgents.length === 0 ? (
-            <div style={{ ...monoSm, color: '#999' }}>
-              No unsigned players available.
-            </div>
+            <CommandCallout
+              eyebrow="Street Free Agents"
+              title="No emergency signings"
+              body="The street list is empty. If a room feels thin, scan team needs, prep waiver claims, or build a trade offer before advancing."
+              accent="cyan"
+              framed={false}
+              actions={[
+                { label: 'Team Needs', accent: 'gold', onClick: () => { void navigate({ to: '/team-needs' }); } },
+                { label: 'Waiver Wire', accent: 'cyan', onClick: () => { void navigate({ to: '/waivers' }); } },
+              ]}
+            />
           ) : (
             <>
               <div style={{ ...monoSm, color: '#bbb', marginBottom: '12px' }}>

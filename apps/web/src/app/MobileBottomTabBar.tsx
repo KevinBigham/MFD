@@ -11,7 +11,7 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from '@tanstack/react-router';
-import { LayoutDashboard, Users, CalendarRange, Play, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, Map as MapIcon, Play, Menu, X } from 'lucide-react';
 
 interface PrimaryItem {
   path: string;
@@ -23,14 +23,14 @@ interface PrimaryItem {
 const PRIMARY_ITEMS: ReadonlyArray<Omit<PrimaryItem, 'icon'>> = [
   { path: '/',             label: 'Briefing' },
   { path: '/roster',       label: 'Roster' },
-  { path: '/schedule',     label: 'Schedule' },
+  { path: '/game-plan',    label: 'Plan' },
   { path: '/week-advance', label: 'Advance' },
 ];
 
 const PRIMARY_ICON: Record<string, React.ReactNode> = {
   '/':             <LayoutDashboard size={16} />,
   '/roster':       <Users size={16} />,
-  '/schedule':     <CalendarRange size={16} />,
+  '/game-plan':    <MapIcon size={16} />,
   '/week-advance': <Play size={16} />,
 };
 
@@ -52,6 +52,15 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
 
   const primaryPaths = useMemo(() => new Set(PRIMARY_ITEMS.map((i) => i.path)), []);
   const moreActive = !primaryPaths.has(activePath);
+  const activeLabel = useMemo(() => {
+    const primary = PRIMARY_ITEMS.find((item) => item.path === activePath);
+    if (primary) return primary.label;
+    for (const group of drawerGroups) {
+      const item = group.items.find((candidate) => candidate.path === activePath);
+      if (item) return item.shortLabel;
+    }
+    return 'Current route';
+  }, [activePath, drawerGroups]);
 
   const go = useCallback((path: string) => {
     void router.navigate({ to: path });
@@ -69,9 +78,10 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
           right: 0,
           bottom: 0,
           display: 'none', /* enabled via media query */
-          zIndex: 40,
-          background: 'linear-gradient(0deg, #000 0%, #080808 100%)',
-          borderTop: '3px solid var(--mfd-gold)',
+          zIndex: 52,
+          background: 'linear-gradient(0deg, rgba(3, 4, 5, 0.98) 0%, rgba(17, 24, 32, 0.98) 100%)',
+          borderTop: '1px solid rgba(255, 215, 0, 0.62)',
+          boxShadow: '0 -18px 36px rgba(0, 0, 0, 0.46)',
           paddingBottom: 'env(safe-area-inset-bottom, 0)',
         }}
       >
@@ -89,6 +99,7 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
                 type="button"
                 data-nav={item.path}
                 data-mfd-nav-item="true"
+                aria-current={active ? 'page' : undefined}
                 onClick={() => go(item.path)}
                 style={{
                   position: 'relative',
@@ -98,14 +109,15 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
                   justifyContent: 'center',
                   gap: '4px',
                   minHeight: 'var(--mfd-touch-min)',
-                  padding: '8px 4px',
+                  padding: '9px 4px',
                   background: active ? 'rgba(255, 215, 0, 0.12)' : 'transparent',
                   border: 'none',
                   borderTop: active ? '2px solid var(--mfd-gold)' : '2px solid transparent',
                   color: active ? 'var(--mfd-gold)' : 'var(--mfd-text-dim)',
                   fontFamily: 'var(--mfd-font-pixel)',
                   fontSize: '7px',
-                  letterSpacing: '0.6px',
+                  lineHeight: 1.2,
+                  letterSpacing: 0,
                   textTransform: 'uppercase',
                   cursor: 'pointer',
                 }}
@@ -134,6 +146,8 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
           <button
             type="button"
             data-mfd-nav-item="true"
+            data-selected={drawerOpen || moreActive ? 'true' : 'false'}
+            aria-current={moreActive ? 'page' : undefined}
             aria-expanded={drawerOpen}
             aria-controls="mfd-mobile-drawer"
             onClick={() => setDrawerOpen((v) => !v)}
@@ -144,14 +158,15 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
               justifyContent: 'center',
               gap: '4px',
               minHeight: 'var(--mfd-touch-min)',
-              padding: '8px 4px',
+              padding: '9px 4px',
               background: drawerOpen || moreActive ? 'rgba(255, 215, 0, 0.12)' : 'transparent',
               border: 'none',
               borderTop: drawerOpen || moreActive ? '2px solid var(--mfd-gold)' : '2px solid transparent',
               color: drawerOpen || moreActive ? 'var(--mfd-gold)' : 'var(--mfd-text-dim)',
               fontFamily: 'var(--mfd-font-pixel)',
               fontSize: '7px',
-              letterSpacing: '0.6px',
+              lineHeight: 1.2,
+              letterSpacing: 0,
               textTransform: 'uppercase',
               cursor: 'pointer',
             }}
@@ -169,7 +184,7 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
             position: 'fixed',
             inset: 0,
             display: 'none', /* enabled via media query */
-            zIndex: 50,
+            zIndex: 70,
           }}
         >
           {/* Scrim */}
@@ -199,8 +214,8 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
               bottom: 0,
               maxHeight: '82vh',
               overflowY: 'auto',
-              background: 'var(--mfd-bg-2)',
-              borderTop: '3px solid var(--mfd-gold)',
+              background: 'var(--mfd-surface-raised)',
+              borderTop: '1px solid rgba(255, 215, 0, 0.64)',
               padding: '12px 12px calc(12px + env(safe-area-inset-bottom, 0))',
               boxShadow: 'var(--mfd-shadow-lg)',
             }}
@@ -209,16 +224,30 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              marginBottom: 12,
+              gap: 10,
+              marginBottom: 10,
             }}>
-              <span style={{
-                fontFamily: 'var(--mfd-font-pixel)',
-                fontSize: 9,
-                letterSpacing: 1.2,
-                color: 'var(--mfd-gold)',
-              }}>
-                ALL DESTINATIONS
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                <span style={{
+                  fontFamily: 'var(--mfd-font-pixel)',
+                  fontSize: 9,
+                  letterSpacing: 0,
+                  color: 'var(--mfd-gold)',
+                }}>
+                  ALL DESTINATIONS
+                </span>
+                <span style={{
+                  overflow: 'hidden',
+                  color: 'var(--mfd-text-dim)',
+                  fontFamily: 'var(--mfd-font-mono)',
+                  fontSize: 11,
+                  lineHeight: 1.35,
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  Current: {activeLabel}
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={closeDrawer}
@@ -249,7 +278,7 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
                       margin: '0 0 6px 0',
                       fontFamily: 'var(--mfd-font-pixel)',
                       fontSize: 7,
-                      letterSpacing: 1,
+                      letterSpacing: 0,
                       color: 'var(--mfd-text-faint)',
                       textTransform: 'uppercase',
                     }}>
@@ -269,6 +298,8 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
                             type="button"
                             data-nav={item.path}
                             data-mfd-nav-item="true"
+                            data-selected={active ? 'true' : 'false'}
+                            aria-current={active ? 'page' : undefined}
                             onClick={() => go(item.path)}
                             style={{
                               position: 'relative',
@@ -279,10 +310,12 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
                               padding: '8px 10px',
                               background: active ? 'rgba(255, 215, 0, 0.12)' : 'var(--mfd-bg-3)',
                               border: `2px solid ${active ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
+                              borderRadius: 'var(--mfd-rad-md)',
                               color: active ? 'var(--mfd-gold)' : 'var(--mfd-text)',
                               fontFamily: 'var(--mfd-font-pixel)',
                               fontSize: 8,
-                              letterSpacing: 0.8,
+                              lineHeight: 1.25,
+                              letterSpacing: 0,
                               textTransform: 'uppercase',
                               textAlign: 'left',
                               cursor: 'pointer',
@@ -290,6 +323,21 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
                           >
                             {item.icon}
                             <span style={{ flex: 1 }}>{item.shortLabel}</span>
+                            {active ? (
+                              <span
+                                aria-hidden="true"
+                                style={{
+                                  padding: '2px 4px',
+                                  border: '1px solid var(--mfd-gold)',
+                                  color: 'var(--mfd-gold)',
+                                  fontSize: 6,
+                                  lineHeight: 1,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                ACTIVE
+                              </span>
+                            ) : null}
                             {badge > 0 ? (
                               <span
                                 aria-hidden="true"

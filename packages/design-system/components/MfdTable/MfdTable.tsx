@@ -82,6 +82,8 @@ export function MfdTable<T>({
   return (
     <div
       className={className}
+      data-mfd-table="true"
+      data-mfd-table-density={density}
       style={{
         overflow: 'auto',
         maxHeight,
@@ -99,40 +101,66 @@ export function MfdTable<T>({
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th
-                  key={header.id}
-                  onClick={header.column.getToggleSortingHandler()}
-                  style={{
-                    padding: densityPadding[density],
-                    textAlign: 'left',
-                    fontWeight: 600,
-                    fontSize: '0.6875rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    color: 'var(--mfd-text-dim)',
-                    background: 'var(--mfd-bg-2)',
-                    borderBottom: '1px solid var(--mfd-border)',
-                    cursor: header.column.getCanSort() ? 'pointer' : 'default',
-                    userSelect: 'none',
-                    whiteSpace: 'nowrap',
-                    ...(stickyHeader ? {
-                      position: 'sticky' as const,
-                      top: 0,
-                      zIndex: 1,
-                    } : {}),
-                  }}
-                >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                    {header.column.getCanSort() && (
-                      <SortIcon direction={header.column.getIsSorted()} />
-                    )}
-                  </span>
-                </th>
-              ))}
+              {headerGroup.headers.map((header) => {
+                const canSort = header.column.getCanSort();
+                const sortDirection = header.column.getIsSorted();
+                const sortHandler = header.column.getToggleSortingHandler();
+                const ariaSort = sortDirection === 'asc'
+                  ? 'ascending'
+                  : sortDirection === 'desc'
+                    ? 'descending'
+                    : canSort
+                      ? 'none'
+                      : undefined;
+
+                return (
+                  <th
+                    key={header.id}
+                    onClick={canSort ? sortHandler : undefined}
+                    onKeyDown={(event) => {
+                      if (!canSort || (event.key !== 'Enter' && event.key !== ' ')) return;
+                      event.preventDefault();
+                      sortHandler?.(event);
+                    }}
+                    tabIndex={canSort ? 0 : undefined}
+                    aria-sort={ariaSort}
+                    aria-label={canSort ? `Sort by ${typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header : header.column.id}` : undefined}
+                    data-mfd-table-sortable={canSort ? 'true' : 'false'}
+                    data-mfd-table-sorted={sortDirection || 'false'}
+                    style={{
+                      padding: densityPadding[density],
+                      textAlign: 'left',
+                      fontWeight: 600,
+                      fontSize: '0.6875rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      color: sortDirection ? 'var(--mfd-gold)' : 'var(--mfd-text-dim)',
+                      background: sortDirection
+                        ? 'linear-gradient(180deg, rgba(255, 215, 0, 0.13), var(--mfd-bg-2))'
+                        : 'var(--mfd-bg-2)',
+                      borderBottom: `1px solid ${sortDirection ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
+                      cursor: canSort ? 'pointer' : 'default',
+                      outline: 'none',
+                      userSelect: 'none',
+                      whiteSpace: 'nowrap',
+                      ...(stickyHeader ? {
+                        position: 'sticky' as const,
+                        top: 0,
+                        zIndex: 1,
+                      } : {}),
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      {canSort && (
+                        <SortIcon direction={sortDirection} />
+                      )}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           ))}
         </thead>
@@ -171,15 +199,18 @@ export function MfdTable<T>({
                   e.currentTarget.style.background = 'transparent';
                 }}
                 onFocus={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 215, 0, 0.08)';
                   e.currentTarget.style.boxShadow = 'var(--mfd-focus-ring)';
                 }}
                 onBlur={(e) => {
+                  e.currentTarget.style.background = 'transparent';
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
+                    data-mfd-table-cell-id={cell.column.id}
                     style={{
                       padding: densityPadding[density],
                       color: 'var(--mfd-text)',

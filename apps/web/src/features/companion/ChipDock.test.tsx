@@ -126,6 +126,7 @@ describe('ChipDock', () => {
     );
 
     expect(markup).toContain('data-chip-dock-state="expanded"');
+    expect(markup).toContain('data-chip-dock-beat="idle"');
     expect(markup).toContain('data-chip-dock-controls="true"');
     expect(markup).toContain('Quiet for screen');
     expect(markup).toContain('Quiet until next week');
@@ -133,6 +134,10 @@ describe('ChipDock', () => {
     expect(markup).toContain('Reduce guidance');
     expect(markup).toContain('Disable animations');
     expect(markup).toContain('What now?');
+    expect(markup).toContain('data-chip-control-id="whatNow"');
+    expect(markup).toContain('data-chip-control-weight="primary"');
+    expect(markup).toContain('data-chip-control-id="quietForScreen"');
+    expect(markup).toContain('data-chip-control-weight="quiet"');
     expect(markup).toContain('Monday briefing: we survived the road game.');
   });
 
@@ -282,6 +287,19 @@ describe('ChipDock', () => {
 
     expect(markup).toContain('data-chip-dock-motion="reduced"');
     expect(markup).toContain('data-chip-motion="reduced"');
+  });
+
+  it('defines smooth dock entrance motion with reduced-motion cutouts', () => {
+    expect(chipDockCss).toContain('@keyframes mfd-chip-dock-panel-enter');
+    expect(chipDockCss).toContain('@keyframes mfd-chip-dock-bubble-enter');
+    expect(chipDockCss).toContain('@keyframes mfd-chip-dock-portrait-ready');
+    expect(chipDockCss).toContain(".mfd-chip-dock[data-chip-dock-motion='animated'] .mfd-chip-dock__panel");
+    expect(chipDockCss).toContain(".mfd-chip-dock[data-chip-dock-motion='reduced'] .mfd-chip-dock__bubble");
+    expect(chipDockCss).toContain('.mfd-chip-dock .mfd-chip-dock__portrait .mfd-chip');
+    expect(chipDockCss).toContain('grid-template-columns: repeat(4, minmax(44px, 1fr));');
+    expect(chipDockCss).toContain(".mfd-chip-dock[data-chip-dock-beat='route'] .mfd-chip-dock__controls");
+    expect(chipDockCss).toContain(".mfd-chip-dock__control[data-chip-control-weight='utility']");
+    expect(chipDockCss).toContain(".mfd-chip-dock__control[data-chip-control-weight='quiet'] .mfd-chip-dock__control-label");
   });
 
   it('hides the pending-decisions badge at zero', () => {
@@ -596,10 +614,29 @@ describe('ChipDock', () => {
 
       expect(markup).toContain('data-chip-dock-motion="animated"');
     });
+
+    it('marks dock toggle controls with pressed state for assistive tech and styling', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(
+        CHIP_DOCK_STORAGE_KEY,
+        JSON.stringify({
+          ...createDefaultDockPrefs(),
+          reducedGuidance: true,
+          animationsDisabled: true,
+        }),
+      );
+
+      const markup = renderDock(<ChipDock collapsed={false} storage={storage} />);
+
+      expect(markup).toContain('data-chip-control-id="reduceGuidance"');
+      expect(markup).toContain('data-chip-control-id="disableAnimations"');
+      expect(markup).toContain('aria-pressed="true"');
+    });
   });
 
   describe('mobile route tolerance', () => {
-    it('lets desktop route controls receive clicks behind non-control dock content', () => {
+    it('keeps the staged dock and control layers clickable', () => {
       const baseDockBlock = chipDockCss
         .slice(chipDockCss.indexOf('.mfd-chip-dock {'))
         .split('}')[0];
@@ -620,9 +657,9 @@ describe('ChipDock', () => {
         .split('}')[0];
 
       expect(baseDockBlock).toContain('pointer-events: none;');
-      expect(panelBlock).toContain('pointer-events: none;');
-      expect(contentBlock).toContain('pointer-events: none;');
-      expect(bubbleBlock).toContain('pointer-events: none;');
+      expect(panelBlock).toContain('pointer-events: auto;');
+      expect(contentBlock).toContain('pointer-events: auto;');
+      expect(bubbleBlock).toContain('pointer-events: auto;');
       expect(controlsBlock).toContain('pointer-events: auto;');
       expect(beatActionsBlock).toContain('pointer-events: auto;');
     });
@@ -633,16 +670,23 @@ describe('ChipDock', () => {
         .slice(chipDockCss.indexOf('.mfd-chip-dock__pending-badge'))
         .split('}')[0];
 
-      expect(mobileBlock).toContain('max-height: min(46vh, 360px);');
-      expect(mobileBlock).toContain('grid-template-columns: 144px minmax(0, 1fr);');
+      expect(mobileBlock).toContain('bottom: calc(var(--mfd-mobile-nav-height) + 6px + env(safe-area-inset-bottom));');
+      expect(mobileBlock).toContain('max-height: min(26vh, 218px);');
+      expect(mobileBlock).toContain('grid-template-columns: minmax(0, 1fr);');
+      expect(mobileBlock).toContain('grid-template-areas:');
       expect(mobileBlock).toContain('overflow-y: auto;');
-      expect(mobileBlock).toContain('flex-wrap: nowrap;');
+      expect(mobileBlock).toContain('display: none;');
+      expect(mobileBlock).toContain('display: contents;');
+      expect(mobileBlock).toContain('grid-auto-flow: column;');
+      expect(mobileBlock).toContain('grid-auto-columns: 48px;');
+      expect(mobileBlock).toContain('width: 100%;');
       expect(mobileBlock).toContain('overflow-x: auto;');
-      expect(mobileBlock).toContain('.mfd-chip-dock__panel,\n  .mfd-chip-dock__content,\n  .mfd-chip-dock__bubble {\n    pointer-events: none;');
+      expect(mobileBlock).toContain('top: -38px;');
       expect(mobileBlock).toContain('.mfd-chip-dock__beat-actions,\n  .mfd-chip-dock__controls {\n    pointer-events: auto;');
       expect(mobileBlock).toContain('.mfd-chip-dock .mfd-chip-bubble {\n    box-sizing: border-box;');
       expect(mobileBlock).toContain('width: 100%;');
-      expect(pendingBadgeBlock).toContain('min-width: 44px;');
+      expect(pendingBadgeBlock).toContain('box-sizing: border-box;');
+      expect(pendingBadgeBlock).toContain('min-width: 60px;');
     });
   });
 });

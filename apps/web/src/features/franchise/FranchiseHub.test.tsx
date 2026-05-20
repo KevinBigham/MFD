@@ -168,6 +168,8 @@ describe('FranchiseHub', () => {
     expect(markup).toContain('YOUR FRANCHISE');
     expect(markup).toContain('Nexus Dome');
     expect(markup).toContain('LARGE MARKET');
+    expect(markup).toContain('Protect the standard');
+    expect(markup).toContain('Chronicle');
   });
 
   it('shows fanbase, prestige, and attendance gauges', () => {

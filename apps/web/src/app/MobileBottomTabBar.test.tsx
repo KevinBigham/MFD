@@ -40,7 +40,7 @@ describe('MobileBottomTabBar', () => {
     );
     expect(markup).toContain('Briefing');
     expect(markup).toContain('Roster');
-    expect(markup).toContain('Schedule');
+    expect(markup).toContain('Plan');
     expect(markup).toContain('Advance');
     expect(markup).toContain('More');
   });
@@ -84,5 +84,22 @@ describe('MobileBottomTabBar', () => {
     // When More is "active", its button wears the gold border-top — so the
     // gold color token must appear in the markup.
     expect(markup).toContain('--mfd-gold');
+  });
+
+  it('marks the active primary route with aria-current', () => {
+    const markup = renderToStaticMarkup(
+      <MobileBottomTabBar activePath="/roster" drawerGroups={drawerGroups} badges={{}} />,
+    );
+
+    expect(markup).toContain('aria-current="page"');
+  });
+
+  it('marks the More trigger as current for secondary routes', () => {
+    const markup = renderToStaticMarkup(
+      <MobileBottomTabBar activePath="/owner" drawerGroups={drawerGroups} badges={{}} />,
+    );
+
+    expect(markup).toContain('aria-current="page"');
+    expect(markup).toContain('data-selected="true"');
   });
 });

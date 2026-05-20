@@ -111,7 +111,7 @@ describe('ChipDialogueBubble', () => {
   it('defines the desktop and mobile broadcast-card clamps in CSS', () => {
     const css = readFileSync(join(__dirname, 'Chip.css'), 'utf8');
 
-    expect(css).toContain('max-width: 360px');
+    expect(css).toContain('max-width: 416px');
     expect(css).toContain('width: 100%');
     expect(css).toContain('mfd-chip-bubble-typewriter-caret');
   });
@@ -161,11 +161,13 @@ describe('ChipDialogueBubble', () => {
   it('defines the broadcast-card frame, mono body, and gold divider CSS', () => {
     const css = readFileSync(join(__dirname, 'Chip.css'), 'utf8');
 
-    expect(css).toContain('padding: 12px 16px;');
-    expect(css).toContain('border: 3px solid var(--mfd-gold);');
-    expect(css).toContain('border-top: 1px solid var(--mfd-gold);');
-    expect(css).toContain('font-size: 14px;');
-    expect(css).toContain('line-height: 1.6;');
+    expect(css).toContain('padding: 14px 17px 16px;');
+    expect(css).toContain('border: 2px solid rgba(255, 215, 0, 0.88);');
+    expect(css).toContain('border-top: 1px solid rgba(255, 215, 0, 0.5);');
+    expect(css).toContain('font-size: 15px;');
+    expect(css).toContain('line-height: 1.56;');
+    expect(css).toContain('text-wrap: pretty;');
+    expect(css).toContain('.mfd-chip-bubble__signal');
     expect(css).toContain('.mfd-chip-bubble__pose-tag');
   });
 

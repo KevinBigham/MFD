@@ -49,6 +49,7 @@ const mockState = {
     advanceWeek: async () => null,
     submitFreeAgentBid: async () => undefined,
     negotiateContract: async () => undefined,
+    signStreetFreeAgent: async () => undefined,
   },
 };
 
@@ -75,5 +76,26 @@ describe('FreeAgencyHub', () => {
     expect(markup).toContain('Jordan Bishop counters for a middle ground on Jay Stone.');
     expect(markup).toContain('Accept Counter');
     expect(markup).toContain('Holdout');
+  });
+
+  it('renders command guidance when the regular-season street market is empty', () => {
+    const originalPhase = mockState.phase;
+    const originalOffseasonState = mockState.offseasonState;
+    const originalRoster = mockState.roster;
+    try {
+      mockState.phase = 'regular_season';
+      mockState.offseasonState = null as never;
+      mockState.roster = [];
+
+      const markup = renderToStaticMarkup(<FreeAgencyHub />);
+
+      expect(markup).toContain('Street market is quiet');
+      expect(markup).toContain('Team Needs');
+      expect(markup).toContain('Waiver Wire');
+    } finally {
+      mockState.phase = originalPhase;
+      mockState.offseasonState = originalOffseasonState;
+      mockState.roster = originalRoster;
+    }
   });
 });

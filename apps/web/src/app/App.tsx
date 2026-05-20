@@ -6,7 +6,7 @@ import {
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
   Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity, CalendarRange,
   Radio, MessageSquare, Crosshair, Building2, Award, Users2, Sparkles, Scale,
-  ChevronDown, ChevronRight, Map as MapIcon, Film, Tent, Target, Loader, Briefcase, Star,
+  Map as MapIcon, Film, Tent, Target, Loader, Briefcase, Star,
 } from 'lucide-react';
 import { ChipDialogueBubble, MfdTooltipProvider, MfdCommandPalette, PixelModal, type CommandItem } from '@mfd/design-system/components';
 import { getRegisteredShortcuts, registerShortcut, useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
@@ -482,6 +482,7 @@ function RootLayout() {
       <div
         className="mfd-app-shell"
         data-mfd-app-shell="true"
+        data-mfd-chip-enabled={chipFeatureEnabled ? 'true' : 'false'}
         style={{
         minHeight: '100vh',
         display: 'flex',
@@ -635,108 +636,76 @@ function RootLayout() {
 
 // ── Top Nav ─────────────────────────────────────────────────
 
-function NavGroupSection({
-  group,
+function NavItemStrip({
   items,
   activePath,
   highlightedPath,
-  expanded,
-  onToggle,
   badges,
 }: {
-  group: NavGroup;
   items: NavItem[];
   activePath: string;
   highlightedPath: string | null;
-  expanded: boolean;
-  onToggle: () => void;
   badges: Record<string, number>;
 }) {
   const router = useRouter();
-  const hasActive = items.some((i) => i.path === activePath);
 
   return (
-    <div className="mfd-app-nav-group" data-mfd-nav-group={group.id} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-      <button
-        type="button"
-        className="mfd-app-nav-group-toggle"
-        data-mfd-nav-item="true"
-        onClick={onToggle}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-          padding: '3px 6px',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          fontFamily: 'var(--mfd-font-pixel)',
-          fontSize: '6px',
-          letterSpacing: '1px',
-          color: hasActive ? 'var(--mfd-gold)' : 'var(--mfd-text-faint)',
-          textTransform: 'uppercase',
-        }}
-      >
-        {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-        {group.label}
-      </button>
-      {expanded && (
-        <div className="mfd-app-nav-items" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', paddingLeft: '4px' }}>
-          {items.map((item) => {
-            const active = item.path === activePath;
-            const highlighted = item.path === highlightedPath;
-            return (
-              <div
-                key={item.path}
-                className="mfd-app-nav-item-frame"
-                style={{
-                  animation: highlighted ? 'mfdTutorialPulse 1.2s infinite' : undefined,
-                  border: highlighted ? '2px solid rgba(255, 215, 0, 0.85)' : '2px solid transparent',
-                }}
-              >
-                <button
-                  type="button"
-                  className="mfd-app-nav-button"
-                  data-nav={item.path}
-                  data-mfd-nav-item="true"
-                  data-active={active ? 'true' : 'false'}
-                  data-highlighted={highlighted ? 'true' : 'false'}
-                  onClick={() => { void router.navigate({ to: item.path }); }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    minHeight: '28px',
-                    padding: '5px 8px',
-                    border: `2px solid ${active ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
-                    background: active ? 'rgba(255, 215, 0, 0.1)' : 'var(--mfd-bg-2)',
-                    color: active ? 'var(--mfd-gold)' : highlighted ? '#ffe27a' : 'var(--mfd-text-dim)',
-                    fontFamily: 'var(--mfd-font-pixel)',
-                    fontSize: '7px',
-                    letterSpacing: '0.8px',
-                    textTransform: 'uppercase',
-                    whiteSpace: 'nowrap',
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                  }}
-                >
-                  {item.icon}
-                  <span className="mfd-app-nav-button-label">{item.shortLabel.toUpperCase()}</span>
-                  {(badges[item.path] ?? 0) > 0 && (
-                    <span className="mfd-app-nav-badge" style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: 'var(--mfd-red)',
-                      flexShrink: 0,
-                    }} />
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
+    <div className="mfd-app-nav-items" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+      {items.map((item) => {
+        const active = item.path === activePath;
+        const highlighted = item.path === highlightedPath;
+        return (
+          <div
+            key={item.path}
+            className="mfd-app-nav-item-frame"
+            style={{
+              animation: highlighted ? 'mfdTutorialPulse 1.2s infinite' : undefined,
+              borderRadius: 'var(--mfd-rad-md)',
+            }}
+          >
+            <button
+              type="button"
+              className="mfd-app-nav-button"
+              data-nav={item.path}
+              data-mfd-nav-item="true"
+              data-active={active ? 'true' : 'false'}
+              data-highlighted={highlighted ? 'true' : 'false'}
+              onClick={() => { void router.navigate({ to: item.path }); }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                minHeight: '44px',
+                padding: '9px 12px',
+                border: `1px solid ${active ? 'var(--mfd-gold)' : highlighted ? 'var(--mfd-gold-strong)' : 'var(--mfd-border)'}`,
+                borderRadius: 'var(--mfd-rad-md)',
+                background: active ? 'rgba(255, 215, 0, 0.13)' : 'var(--mfd-bg-2)',
+                color: active ? 'var(--mfd-gold)' : highlighted ? '#ffe27a' : 'var(--mfd-text-dim)',
+                fontFamily: 'var(--mfd-font-pixel)',
+                fontSize: '8px',
+                lineHeight: 1.2,
+                letterSpacing: 0,
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              {item.icon}
+              <span className="mfd-app-nav-button-label">{item.shortLabel.toUpperCase()}</span>
+              {(badges[item.path] ?? 0) > 0 && (
+                <span className="mfd-app-nav-badge" style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: 'var(--mfd-red)',
+                  flexShrink: 0,
+                }} />
+              )}
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -798,8 +767,10 @@ function UndoButton() {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: '4px',
-        padding: '4px 8px',
+        minHeight: '44px',
+        padding: '6px 10px',
         background: 'rgba(255, 215, 0, 0.1)',
         border: '2px solid var(--mfd-gold)',
         color: 'var(--mfd-gold)',
@@ -826,8 +797,10 @@ function TopNav({
   onOpenHotkeyHelp: () => void;
 }) {
   const badges = useNavBadges();
+  const team = useGameStore(selectUserTeam);
+  const week = useGameStore((s) => s.game?.week ?? 0);
+  const year = useGameStore((s) => s.game?.year ?? 0);
 
-  // Auto-expand the group containing the active path, plus always expand 'core'
   const activeGroupId = useMemo(() => {
     for (const g of NAV_GROUPS) {
       if (g.paths.includes(activePath)) return g.id;
@@ -835,34 +808,24 @@ function TopNav({
     return 'core';
   }, [activePath]);
 
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    () => new Set(['core', activeGroupId]),
-  );
+  const [selectedGroupId, setSelectedGroupId] = useState(activeGroupId);
 
-  // Auto-expand group when navigating to a new section
   useEffect(() => {
-    setExpandedGroups((prev) => {
-      if (prev.has(activeGroupId)) return prev;
-      const next = new Set(prev);
-      next.add(activeGroupId);
-      return next;
-    });
+    setSelectedGroupId(activeGroupId);
   }, [activeGroupId]);
 
-  const toggleGroup = useCallback((id: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); }
-      return next;
-    });
-  }, []);
-
-  // Build grouped items lookup
   const navItemMap = useMemo(() => {
     const map = new Map<string, NavItem>();
     for (const item of NAV_ITEMS) map.set(item.path, item);
     return map;
   }, []);
+  const selectedGroup = NAV_GROUPS.find((group) => group.id === selectedGroupId) ?? NAV_GROUPS[0]!;
+  const selectedItems = selectedGroup.paths
+    .map((path) => navItemMap.get(path))
+    .filter((item): item is NavItem => !!item);
+  const activeItem = navItemMap.get(activePath);
+  const teamName = team ? `${team.city} ${team.name}` : 'No active dynasty';
+  const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '--';
 
   return (
     <header
@@ -883,9 +846,8 @@ function TopNav({
         className="mfd-app-brand-lockup"
         data-mfd-brand-lockup="true"
         style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
+        display: 'grid',
+        gap: '6px',
         paddingRight: '8px',
         flexShrink: 0,
       }}
@@ -894,46 +856,63 @@ function TopNav({
           fontFamily: 'var(--mfd-font-pixel)',
           fontSize: '8px',
           color: 'var(--mfd-green)',
-          letterSpacing: '1px',
+          letterSpacing: 0,
         }}>
           MFD NETWORK
         </span>
         <span style={{
           fontFamily: 'var(--mfd-font-display)',
-          fontSize: '28px',
+          fontSize: '34px',
           lineHeight: 1,
           color: 'var(--mfd-gold)',
-          letterSpacing: '1px',
+          letterSpacing: 0,
         }}>
           MFD
         </span>
+        <span className="mfd-app-brand-subtitle">{teamName}</span>
       </div>
 
       <div className="mfd-app-nav-groups" style={{
         flex: 1,
         minWidth: '280px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
+        display: 'grid',
+        gap: '10px',
       }}>
-        {NAV_GROUPS.map((group) => {
-          const items = group.paths
-            .map((p) => navItemMap.get(p))
-            .filter((i): i is NavItem => !!i);
-          if (items.length === 0) return null;
-          return (
-            <NavGroupSection
-              key={group.id}
-              group={group}
-              items={items}
-              activePath={activePath}
-              highlightedPath={highlightedPath}
-              expanded={expandedGroups.has(group.id)}
-              onToggle={() => toggleGroup(group.id)}
-              badges={badges}
-            />
-          );
-        })}
+        <div className="mfd-app-context-strip">
+          <span>{activeItem?.label ?? 'Command Center'}</span>
+          <span>{record}</span>
+          <span>Week {week}</span>
+          <span>Season {year || '--'}</span>
+        </div>
+        <nav className="mfd-app-nav-group-rail" aria-label="Franchise command groups">
+          {NAV_GROUPS.map((group) => {
+            const active = group.id === activeGroupId;
+            const selected = group.id === selectedGroupId;
+            return (
+              <button
+                key={group.id}
+                type="button"
+                className="mfd-app-nav-group-toggle"
+                data-mfd-nav-group={group.id}
+                data-mfd-nav-item="true"
+                data-active={active ? 'true' : 'false'}
+                data-selected={selected ? 'true' : 'false'}
+                onClick={() => setSelectedGroupId(group.id)}
+              >
+                {group.label}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="mfd-app-nav-active-strip">
+          <span className="mfd-app-nav-active-label">{selectedGroup.label}</span>
+          <NavItemStrip
+            items={selectedItems}
+            activePath={activePath}
+            highlightedPath={highlightedPath}
+            badges={badges}
+          />
+        </div>
       </div>
 
       <div className="mfd-app-nav-actions" data-mfd-nav-actions="true" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
@@ -947,8 +926,8 @@ function TopNav({
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: '32px',
-            minHeight: '32px',
+            minWidth: '44px',
+            minHeight: '44px',
             padding: '0 10px',
             background: 'rgba(0, 229, 255, 0.08)',
             border: '3px solid var(--mfd-cyan)',
@@ -977,7 +956,8 @@ function CommandPaletteTrigger() {
         display: 'flex',
         alignItems: 'center',
         gap: '6px',
-        padding: '7px 10px',
+        minHeight: '44px',
+        padding: '8px 11px',
         fontSize: '8px',
         fontFamily: 'var(--mfd-font-pixel)',
         color: 'var(--mfd-cyan)',
@@ -1019,7 +999,7 @@ function LazyRouteFrame({
         justifyContent: 'center',
         minHeight: 300,
         gap: '16px',
-      }}>
+      }} data-mfd-route-loading="true">
         <Loader size={24} style={{ color: 'var(--mfd-gold)', animation: 'spin 1.2s linear infinite' }} />
         <div style={{
           fontFamily: 'var(--mfd-font-pixel)',
@@ -1049,6 +1029,13 @@ function LazyRouteFrame({
           @keyframes mfdLoadSlide {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(350%); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            [data-mfd-route-loading="true"] *,
+            [data-mfd-route-loading="true"] {
+              animation: none !important;
+              transform: none !important;
+            }
           }
         `}</style>
       </div>
@@ -1940,7 +1927,7 @@ function PostSetupApp() {
             <ChipDialogueBubble
               text={chipDialogueText}
               pose={chipDialoguePose}
-              pointer="right"
+              pointer="left"
             />
           ) : null}
         </ChipDock>

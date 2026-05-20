@@ -9,6 +9,7 @@ import {
   selectUserTeam,
 } from '../../app/store/game-store';
 import {
+  CommandCallout,
   PixelMetricCard,
   PixelScreenHeader,
   autoGrid,
@@ -97,6 +98,22 @@ export function FranchiseHub() {
       />
 
       <PowerRankingsTicker limit={12} />
+      <CommandCallout
+        eyebrow="Dynasty Desk"
+        title={dashboard.championships > 0 ? 'Protect the standard' : 'Write the first defining chapter'}
+        body={`Current mark ${dashboard.allTimeRecord.wins}-${dashboard.allTimeRecord.losses}${dashboard.allTimeRecord.ties ? `-${dashboard.allTimeRecord.ties}` : ''}. ${dashboard.currentEra.description} Next useful move: secure the venue, review the archive, or turn this roster core into a season milestone.`}
+        accent="gold"
+        meta={(
+          <>
+            <PixelBadge variant="cyan">{dashboard.currentEra.name}</PixelBadge>
+            <PixelBadge variant={activeDeal ? 'green' : 'red'}>{activeDeal ? `${activeDeal.yearsRemaining}Y stadium deal` : 'naming rights open'}</PixelBadge>
+          </>
+        )}
+        actions={[
+          { label: 'Chronicle', accent: 'gold', onClick: () => navigateTo('/franchise/chronicle') },
+          { label: 'GM Career', accent: 'cyan', onClick: () => navigateTo('/franchise/career') },
+        ]}
+      />
       <HomegrownMeter game={game} />
       <ContinuityMeter game={game} />
       <RivalryHeatMap />

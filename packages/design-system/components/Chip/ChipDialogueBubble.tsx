@@ -224,13 +224,21 @@ export function ChipDialogueBubble({
     <section
       className="mfd-chip-bubble"
       data-chip-bubble="broadcast-card"
+      data-chip-bubble-stage="sideline"
       data-chip-bubble-pointer={pointer}
       data-chip-bubble-pose={pose}
       data-chip-bubble-body={monoBody ? 'mono' : undefined}
       aria-label={normalizedText}
       onClick={handleSkip}
     >
-      <div className="mfd-chip-bubble__stamp">DYNASTY DESK // CHIP</div>
+      <div className="mfd-chip-bubble__header">
+        <div className="mfd-chip-bubble__stamp">DYNASTY DESK // CHIP</div>
+        <div className="mfd-chip-bubble__signal" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
       <div
         className="mfd-chip-bubble__rule"
         role="separator"
