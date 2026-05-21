@@ -7,7 +7,11 @@ import {
   calculateDynastyWindow,
   type WindowPhase,
 } from './dynasty-window';
-import { OWNER_GOALS, type OwnerType } from './owner-goals';
+import {
+  OWNER_GOALS,
+  installOwnerMandates,
+  type OwnerType,
+} from './owner-goals';
 import {
   STARTER_SLOTS,
   detectPositionBattles,
@@ -2546,8 +2550,71 @@ function buildCultureMandateEffect(
       ? 'Day 1 standards sharpened the building.'
       : mandate === 'player_led'
         ? 'Veteran leadership is carrying the opener.'
-        : 'Young-player momentum is lifting the opener.',
+      : 'Young-player momentum is lifting the opener.',
   };
+}
+
+function appendAgmImpact(
+  game: GameState,
+  agmProfileId: string,
+  category: 'cap' | 'competitive' | 'personnel' | 'mandate',
+  summary: string,
+): void {
+  game.frontOffice.agmImpactLog ??= [];
+  game.frontOffice.agmImpactLog = [
+    ...game.frontOffice.agmImpactLog,
+    {
+      id: `setup-agm:${agmProfileId}:${game.year}:${game.week}:${game.frontOffice.agmImpactLog.length}`,
+      year: game.year,
+      week: game.week,
+      agmProfileId,
+      category,
+      summary,
+    },
+  ].slice(-20);
+}
+
+function applyAgmSetupEffect(game: GameState, team: Team, decisions: SetupDecisions): void {
+  const agmProfileId = decisions.agmProfileId;
+  if (!agmProfileId) return;
+
+  game.frontOffice.agmProfileId = agmProfileId;
+  game.frontOffice.agmImpactLog ??= [];
+
+  if (agmProfileId === 'marcus_webb') {
+    const capGoalSelected = decisions.seasonGoals.includes('cap_health');
+    if (capGoalSelected || decisions.capPosture === 'protect_future') {
+      team.owner.approval = clamp(team.owner.approval + 1, 0, 100);
+      team.ownerMood = team.owner.approval;
+      if (team.isUser) {
+        game.frontOffice.reputation.owner = clamp(game.frontOffice.reputation.owner + 1, 0, 100);
+      }
+      appendAgmImpact(
+        game,
+        agmProfileId,
+        'cap',
+        'Marcus Webb translated the Day 1 cap plan into a small owner-trust edge.',
+      );
+    }
+  }
+
+  if (agmProfileId === 'sandra_chen') {
+    const developmentPath = decisions.cultureMandate === 'development_first'
+      || decisions.seasonGoals.some((goalId) => goalId === 'rebuild_progress' || goalId === 'draft_well');
+    if (developmentPath) {
+      for (const player of team.roster) {
+        if (player.age > 25 && player.yearsExp > 3) continue;
+        player.morale = clamp(player.morale + 2, 0, 100);
+        player.chemistry = clamp(player.chemistry + 2, 0, 100);
+      }
+      appendAgmImpact(
+        game,
+        agmProfileId,
+        'personnel',
+        'Sandra Chen gave the young core a visible morale and chemistry lift from the development plan.',
+      );
+    }
+  }
 }
 
 /**
@@ -2623,6 +2690,10 @@ export function finalizeSetup(game: GameState, teamId: string, state: SetupState
     ceiling: selectedGoals[2]?.label ?? '',
   };
   owner.patience = Math.max(owner.patience, team.ownerPatience80);
+  nextGame.frontOffice.agmProfileId = state.decisions.agmProfileId;
+  installOwnerMandates(nextGame, teamId, state.decisions.seasonGoals, state.decisions.agmProfileId);
+  applyAgmSetupEffect(nextGame, team, state.decisions);
+  updatePlayersMirror(nextGame, team);
 
   const cultureEffect = buildCultureMandateEffect(nextGame, team, state.decisions.cultureMandate);
   nextGame.activeEffects ??= [];

@@ -78,7 +78,9 @@ describe('ScoutingBoard', () => {
     const markup = renderToStaticMarkup(<ScoutingBoard />);
 
     expect(markup).toContain('SCOUTING BOARD');
-    expect(markup).toContain('PRIVATE WORKOUTS');
+    expect(markup).toContain('NEXT CALL');
+    expect(markup).toContain('Work the watchlist');
+    expect(markup).toContain('Private Workouts');
     expect(markup).toContain('WATCHLIST');
     expect(markup).toContain('Watchlist Only');
     expect(markup).toContain('Critical Needs');

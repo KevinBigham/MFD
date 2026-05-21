@@ -189,10 +189,10 @@ export function createChipEventsController({
         pose: fallbackEntry.pose,
         whatChanged: `Week ${event.currentWeek}: ${event.gameOutcome}.`,
         whyItMatters: fallbackEntry.text,
-        topAction: 'Start with the Monday Briefing.',
-        urgent: 'No single fire is louder than the weekly briefing yet.',
-        canWait: 'Deep legacy screens can wait until the weekly loop is clear.',
-        risk: 'Uncertainty is normal; make one football decision at a time.',
+        topAction: 'Monday Briefing sets the board.',
+        urgent: 'No single fire outranks the briefing.',
+        canWait: 'Legacy rooms can wait until the weekly loop is clean.',
+        risk: 'Make one football decision at a time.',
       };
       const entry = {
         ...fallbackEntry,

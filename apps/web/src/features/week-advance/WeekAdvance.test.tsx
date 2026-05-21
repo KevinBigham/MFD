@@ -54,6 +54,8 @@ describe('WeekAdvance', () => {
     const markup = renderToStaticMarkup(<WeekAdvance />);
 
     expect(markup).toContain('GAME PLAN');
+    expect(markup).toContain('NEXT CALL');
+    expect(markup).toContain('Game plan before the sim');
     expect(markup).toContain('Plan Needed');
     expect(markup).toContain('Prepare Game Plan');
     expect(markup).toContain('DECISION IMPACT');

@@ -11,7 +11,7 @@ import { makeLeagueState } from '../systems/test-helpers';
 
 describe('SaveStateSchema', () => {
   it('uses save version 35 for Sprint 67 newsroom persistence', () => {
-    expect(SAVE_VERSION).toBe(35);
+    expect(SAVE_VERSION).toBe(36);
   });
 
   it('validates a minimal valid save', () => {

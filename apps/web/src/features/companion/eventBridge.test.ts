@@ -118,7 +118,7 @@ describe('createChipEventBridge', () => {
         gameOutcome: 'cleanWin',
         dialogueId: 'chip.weekly.cleanWin',
         guidance: expect.objectContaining({
-          topAction: 'Start with the Monday Briefing.',
+          topAction: 'Monday Briefing sets the board.',
           whatChanged: 'Week 2: a clean win.',
         }),
         occurredAt: '2026-04-29T20:00:00.000Z',

@@ -120,6 +120,8 @@ describe('RosterManagement', () => {
   it('renders roster metrics and player data', () => {
     const markup = renderToStaticMarkup(<RosterManagement />);
 
+    expect(markup).toContain('NEXT CALL');
+    expect(markup).toContain('Find the missing starters');
     expect(markup).toContain('Avg OVR');
     expect(markup).toContain('Starters');
     expect(markup).toContain('Roster Size');

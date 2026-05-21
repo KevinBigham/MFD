@@ -100,6 +100,8 @@
 
 .mfd-new-game-builder,
 .mfd-new-game-sidecar,
+.mfd-launch-primary-command,
+.mfd-launch-support-stack,
 .mfd-recovery-card,
 .mfd-convention-card,
 .mfd-launch-actions {
@@ -119,6 +121,96 @@
   width: 100%;
   min-width: 0;
   white-space: normal;
+}
+
+.mfd-team-picker-toolbar {
+  display: grid;
+  gap: var(--mfd-sp-sm);
+  margin-bottom: var(--mfd-sp-lg);
+  padding: 12px;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  background:
+    linear-gradient(90deg, rgba(0, 229, 255, 0.06), transparent 42%),
+    rgba(255, 255, 255, 0.025);
+}
+
+.mfd-team-search-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mfd-sp-sm);
+  color: var(--mfd-cyan);
+  font-family: var(--mfd-font-pixel);
+  font-size: 8px;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.mfd-team-search-input {
+  width: 100%;
+  min-height: var(--mfd-touch-min);
+  padding: 10px 12px;
+  border: 1px solid var(--mfd-border);
+  border-radius: var(--mfd-rad-md);
+  background: var(--mfd-bg);
+  color: var(--mfd-text);
+  font-family: var(--mfd-font-mono);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.mfd-team-search-input:focus-visible,
+.mfd-team-filter-chip:focus-visible,
+.mfd-team-filter-status button:focus-visible {
+  outline: none;
+  box-shadow: var(--mfd-focus-ring);
+}
+
+.mfd-team-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfd-sp-xs);
+}
+
+.mfd-team-filter-chip,
+.mfd-team-filter-status button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--mfd-border);
+  border-radius: var(--mfd-rad-md);
+  background: var(--mfd-bg-2);
+  color: var(--mfd-text-dim);
+  font-family: var(--mfd-font-pixel);
+  font-size: 7px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.mfd-team-filter-chip[data-selected='true'] {
+  border-color: var(--mfd-gold);
+  background: rgba(255, 215, 0, 0.12);
+  color: var(--mfd-gold);
+}
+
+.mfd-team-filter-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mfd-sp-sm);
+  color: var(--mfd-text-faint);
+  font-family: var(--mfd-font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.mfd-team-filter-status button {
+  min-height: 30px;
+  border-color: rgba(248, 113, 113, 0.4);
+  color: var(--mfd-red);
 }
 
 .mfd-team-board {
@@ -248,6 +340,16 @@
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.mfd-team-empty-state {
+  padding: 14px;
+  border: 1px dashed var(--mfd-border-strong);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--mfd-text-dim);
+  font-family: var(--mfd-font-mono);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .mfd-difficulty-grid {
@@ -481,6 +583,41 @@
     grid-template-columns: 1fr;
   }
 
+  .mfd-new-game-sidecar {
+    display: contents;
+  }
+
+  .mfd-launch-primary-command {
+    order: -1;
+  }
+
+  .mfd-new-game-builder {
+    order: 0;
+  }
+
+  .mfd-launch-support-stack {
+    order: 1;
+  }
+
+  .mfd-team-picker-toolbar {
+    margin-bottom: var(--mfd-sp-md);
+    padding: 10px;
+  }
+
+  .mfd-team-filter-row {
+    flex-wrap: nowrap;
+    margin-inline: -2px;
+    overflow-x: auto;
+    padding: 2px;
+    scroll-padding-inline: 8px;
+  }
+
+  .mfd-team-filter-chip {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding-inline: 12px;
+  }
+
   .mfd-team-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -513,6 +650,26 @@
 
   .mfd-new-game-hero-badges > * {
     max-width: 100%;
+  }
+
+  .mfd-selected-team-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    text-align: left;
+  }
+
+  .mfd-selected-team-logo {
+    min-height: 76px;
+    padding: 8px;
+  }
+
+  .mfd-selected-team-logo img {
+    width: auto;
+    height: 64px;
+  }
+
+  .mfd-selected-team-summary {
+    grid-column: 1 / -1;
   }
 }
 

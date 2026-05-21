@@ -47,6 +47,40 @@ const mockState = {
       },
     ],
     players: {},
+    frontOffice: {
+      agmProfileId: 'marcus_webb',
+      agmImpactLog: [{
+        id: 'impact-1',
+        year: 2026,
+        week: 1,
+        agmProfileId: 'marcus_webb',
+        category: 'cap',
+        summary: 'Marcus Webb translated the Day 1 cap plan into a small owner-trust edge.',
+      }],
+    },
+    ownerMandates: [{
+      id: 'mandate-1',
+      teamId: 'team-1',
+      year: 2026,
+      goalId: 'cap_health',
+      label: 'Cap Health',
+      description: 'Maintain healthy salary cap position.',
+      slot: 'target',
+      selectedIndex: 1,
+      createdWeek: 1,
+      createdByAGMProfileId: 'marcus_webb',
+      status: 'active',
+      progress: {
+        value: 22,
+        target: 20,
+        percent: 88,
+        label: '$22.0M cap space',
+        detail: '$4.0M dead cap; target is $20M+ space and <= $10M dead.',
+        status: 'on_track',
+        agmNote: 'Marcus Webb is giving ownership a clearer cap-health readout.',
+      },
+      evaluation: null,
+    }],
   },
 };
 
@@ -56,6 +90,7 @@ vi.mock('../../app/store/game-store', () => ({
   selectOwnerState: (state: typeof mockState) => state.game.teams['team-1'].owner,
   selectLatestSummary: (state: typeof mockState) => state.game.weekSummaries[state.game.weekSummaries.length - 1] ?? null,
   selectOwners: (state: typeof mockState) => state.game.owners,
+  selectOwnerMandates: (state: typeof mockState) => state.game.ownerMandates,
 }));
 
 describe('OwnerMood', () => {
@@ -76,5 +111,15 @@ describe('OwnerMood', () => {
     expect(markup).toContain('PATIENCE');
     expect(markup).toContain('CONFIDENCE');
     expect(markup).toContain('PATIENT');
+  });
+
+  it('renders durable AGM identity and mandate progress', async () => {
+    const { OwnerMood } = await import('./OwnerMood');
+    const markup = renderToStaticMarkup(<OwnerMood />);
+
+    expect(markup).toContain('FRONT OFFICE IDENTITY');
+    expect(markup).toContain('MARCUS WEBB');
+    expect(markup).toContain('CAP HEALTH');
+    expect(markup).toContain('Marcus Webb is giving ownership');
   });
 });

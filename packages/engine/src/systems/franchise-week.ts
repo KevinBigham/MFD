@@ -62,6 +62,7 @@ import { advanceStoryArcs, advanceWeeklyStoryArcs } from './story-arcs';
 import { buildGameDayPackage } from './game-day-package';
 import { buildFilmRoomReport } from './film-room';
 import { evaluateHandshakes, generateOwnerDemands } from './handshake-ledger';
+import { evaluateOwnerMandates, refreshOwnerMandates } from './owner-goals';
 import {
   ensureLivingWorldState,
   expireTimedEffects,
@@ -148,7 +149,7 @@ function buildSimPlanContext(nextState: GameState, team: Team, opponent: Team) {
     && storedPrep.opponentTeamId === opponent.id,
   );
   const prepIntel = hasStoredPrep ? buildOpponentIntel(nextState, team.id, opponent.id) : null;
-  const prepOutcome = storedPrep && prepIntel ? evaluateWeeklyPrep(team, prepIntel, storedPrep) : null;
+  const prepOutcome = storedPrep && prepIntel ? evaluateWeeklyPrep(team, prepIntel, storedPrep, nextState) : null;
   const prepContext = prepOutcome ? applyWeeklyPrepToSim(team, prepOutcome) : {};
   if (team.isUser) {
     const storedReport = upsertOpponentReport(nextState, report);
@@ -1161,6 +1162,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
 
     if (nextState.playoffBracket.championTeamId) {
       archiveSeasonHistory(nextState);
+      evaluateOwnerMandates(nextState);
       archivePlayerSeasonHistory(nextState, nextState.year);
       const storyArcAdvance = advanceStoryArcs(nextState, nextState.year);
       nextState.storyArcs = storyArcAdvance.arcs;
@@ -1228,6 +1230,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
 
   aiWaiverLogic(nextState);
   processWaiverClaims(nextState);
+  refreshOwnerMandates(nextState);
   evaluateHandshakes(nextState);
 
   syncPlayers(nextState);

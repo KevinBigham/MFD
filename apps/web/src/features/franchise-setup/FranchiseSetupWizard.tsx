@@ -89,6 +89,7 @@ import {
   useStageActionRegistry,
   type SetupStageActionId,
 } from './stageActionRegistry';
+import './FranchiseSetupWizard.css';
 
 const READ_ONLY_PHASES = new Set<SetupPhase>(['intel_briefing', 'meet_roster', 'blueprint']);
 
@@ -97,10 +98,12 @@ function formatChoiceLabel(value: string): string {
 }
 
 export function FranchiseSetupWizard({
+  companionPanel = null,
   companionPrimaryActionActive = false,
   onCompanionActionChange,
   onStageAdvance,
 }: {
+  companionPanel?: ReactNode | null;
   companionPrimaryActionActive?: boolean;
   onCompanionActionChange?: (action: ReactNode | null) => void;
   onStageAdvance?: (stageId: SetupStageActionId) => void;
@@ -708,6 +711,7 @@ export function FranchiseSetupWizard({
   const showStageContextPanels = !isIntelBriefingPhase;
   const showStageGuidancePanel = !isIntelBriefingPhase
     && (panelDialogue || teachingNarration || activeReaction || blueprintMonologue);
+  const showSetupStageRail = Boolean(showStageContextPanels || showStageGuidancePanel);
   const advanceHint = useMemo(() => {
     if (isLaunchingSeason) return 'Loading Week 1.';
     if (isTransitioning) return 'Moving to the next room.';
@@ -751,27 +755,8 @@ export function FranchiseSetupWizard({
     : isLastPhase
       ? 'START WEEK 1'
       : 'Next';
-  const showCompanionPrimaryAction = showColdOpen && companionPrimaryActionActive;
-  const companionPrimaryAction = useMemo(() => {
-    if (!showCompanionPrimaryAction) return null;
-    return (
-      <PixelButton
-        {...primaryActionProps}
-        accent="gold"
-        onClick={() => { void handleNext(); }}
-        disabled={primaryActionDisabled}
-        style={{ width: '100%' }}
-      >
-        {primaryActionLabel}
-      </PixelButton>
-    );
-  }, [
-    handleNext,
-    primaryActionDisabled,
-    primaryActionLabel,
-    primaryActionProps,
-    showCompanionPrimaryAction,
-  ]);
+  const showCompanionPrimaryAction = false;
+  const companionPrimaryAction = null;
 
   useEffect(() => {
     onCompanionActionChange?.(companionPrimaryAction);
@@ -782,6 +767,7 @@ export function FranchiseSetupWizard({
 
   return (
     <div
+      className="mfd-setup-shell"
       style={{
         position: 'fixed',
         inset: 0,
@@ -794,6 +780,7 @@ export function FranchiseSetupWizard({
       }}
     >
       <div
+        className="mfd-setup-header"
         data-mfd-setup-header="true"
         style={{
           padding: '12px clamp(12px, 1.5vw, 20px)',
@@ -857,8 +844,9 @@ export function FranchiseSetupWizard({
       </div>
 
       <div
+        className="mfd-setup-content"
         data-mfd-setup-content="true"
-        data-mfd-setup-companion-active={companionPrimaryActionActive ? 'true' : 'false'}
+        data-mfd-setup-companion-active={companionPanel || companionPrimaryActionActive ? 'true' : 'false'}
         style={{
           flex: 1,
           overflow: 'hidden',
@@ -866,53 +854,85 @@ export function FranchiseSetupWizard({
         }}
       >
         {showColdOpen ? (
-          <div style={{ height: '100%', overflowY: 'auto' }}>
-            <SetupColdOpen
-              coldOpen={coldOpen}
-              beatIndex={coldOpenBeatIndex}
-              reducedMotion={reducedMotion}
-              onSkip={handleSkipColdOpen}
-            />
+          <div
+            className="mfd-setup-dashboard mfd-setup-dashboard--cold-open"
+            data-mfd-setup-has-companion={companionPanel ? 'true' : 'false'}
+          >
+            {companionPanel ? (
+              <aside className="mfd-setup-dashboard__companion">
+                {companionPanel}
+              </aside>
+            ) : null}
+            <main className="mfd-setup-dashboard__primary">
+              <SetupColdOpen
+                coldOpen={coldOpen}
+                beatIndex={coldOpenBeatIndex}
+                reducedMotion={reducedMotion}
+                onSkip={handleSkipColdOpen}
+              />
+            </main>
+            <aside className="mfd-setup-dashboard__summary">
+              <ForecastBoard forecast={forecastBoard} />
+              <DayOneBetLedger entries={betLedgerEntries} />
+            </aside>
           </div>
         ) : setupState.currentPhase === 'choose_agm' ? (
-          <div style={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <ChooseAGMPhase
-              committedProfileId={decisions.agmProfileId}
-              initialPreviewProfileId={defaultAgmPreviewId}
-              topPressureId={topPressureCard.id}
-              teamName={teamName}
-              crisisHeadline={coldOpen.crisisHeadline}
-              weekOneThreat={coldOpen.weekOneThreat}
-              recommendedProfileId={narrativePack.recommendedAgmId}
-              narrativeScenes={narrativePack.agmScenes}
-              reducedMotion={reducedMotion}
-              onHire={async (profileId) => applySetupChoice({ agmProfileId: profileId })}
-            />
-            <DayOneBetLedger entries={betLedgerEntries} />
+          <div className="mfd-setup-choice-grid">
+            <main className="mfd-setup-choice-grid__primary">
+              <ChooseAGMPhase
+                committedProfileId={decisions.agmProfileId}
+                initialPreviewProfileId={defaultAgmPreviewId}
+                topPressureId={topPressureCard.id}
+                teamName={teamName}
+                crisisHeadline={coldOpen.crisisHeadline}
+                weekOneThreat={coldOpen.weekOneThreat}
+                recommendedProfileId={narrativePack.recommendedAgmId}
+                narrativeScenes={narrativePack.agmScenes}
+                reducedMotion={reducedMotion}
+                railAddon={companionPanel}
+                onHire={async (profileId) => applySetupChoice({ agmProfileId: profileId })}
+              />
+            </main>
+            <aside className="mfd-setup-decision-rail">
+              <ForecastBoard forecast={forecastBoard} />
+              <DayOneBetLedger entries={betLedgerEntries} />
+            </aside>
           </div>
         ) : showFastLaneIntel || !showStage || !agmProfile ? (
-          <div style={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <ForecastBoard forecast={forecastBoard} />
-            <DayOneBetLedger entries={betLedgerEntries} />
-            <PixelPanel title="Fast Lane Diagnosis" accent="cyan">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ ...pixelSm, color: 'var(--mfd-cyan)' }}>{teamName.toUpperCase()}</div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
-                  {narrativePack.intelBriefing.fastLaneDiagnosis}
-                </div>
-              </div>
-            </PixelPanel>
-            {setupState.currentPhase === 'intel_briefing' && phaseData ? (
-              <IntelBriefingPhase
-                data={phaseData as ReturnType<typeof generateIntelBriefing>}
-                crisis={crisisProfile}
-                openedDrilldowns={setupState.openedDrilldowns}
-                requiredPressureId={null}
-                briefDiagnosis={coldOpen}
-                supportCopy={narrativePack.intelBriefing}
-                onToggleDrilldown={(pressureId) => { void toggleSetupDrilldown(pressureId); }}
-              />
+          <div
+            className="mfd-setup-dashboard"
+            data-mfd-setup-has-companion={companionPanel ? 'true' : 'false'}
+          >
+            {companionPanel ? (
+              <aside className="mfd-setup-dashboard__companion">
+                {companionPanel}
+              </aside>
             ) : null}
+            <main className="mfd-setup-dashboard__primary">
+              {setupState.currentPhase === 'intel_briefing' && phaseData ? (
+                <IntelBriefingPhase
+                  data={phaseData as ReturnType<typeof generateIntelBriefing>}
+                  crisis={crisisProfile}
+                  openedDrilldowns={setupState.openedDrilldowns}
+                  requiredPressureId={null}
+                  briefDiagnosis={coldOpen}
+                  supportCopy={narrativePack.intelBriefing}
+                  onToggleDrilldown={(pressureId) => { void toggleSetupDrilldown(pressureId); }}
+                />
+              ) : null}
+            </main>
+            <aside className="mfd-setup-dashboard__summary">
+              <ForecastBoard forecast={forecastBoard} />
+              <DayOneBetLedger entries={betLedgerEntries} />
+              <PixelPanel title="Fast Lane Diagnosis" accent="cyan">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ ...pixelSm, color: 'var(--mfd-cyan)' }}>{teamName.toUpperCase()}</div>
+                  <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+                    {narrativePack.intelBriefing.fastLaneDiagnosis}
+                  </div>
+                </div>
+              </PixelPanel>
+            </aside>
           </div>
         ) : (
           <AGMStage
@@ -921,123 +941,132 @@ export function FranchiseSetupWizard({
             headline={stageHeadline}
             subhead={stageSubhead}
             reducedMotion={reducedMotion}
+            railAddon={companionPanel}
           >
-            <div style={{ marginBottom: '2px' }}>
+            <div className="mfd-setup-phase-kicker">
               <div style={{ ...pixelSm, color: 'var(--mfd-gold)', fontSize: '10px', marginBottom: '4px' }}>
                 {currentMeta.label.toUpperCase()}
               </div>
               <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{currentMeta.subtitle}</div>
             </div>
 
-            {showStageContextPanels ? <ForecastBoard forecast={forecastBoard} /> : null}
-            {showStageContextPanels ? <DayOneBetLedger entries={betLedgerEntries} /> : null}
-
-            {showStageGuidancePanel ? (
-              <PixelPanel title="AGM Guidance" accent="gold">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {setupState.currentPhase === 'intel_briefing' && agmGreeting ? (
-                    <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>&ldquo;{agmGreeting}&rdquo;</div>
+            <div className="mfd-setup-stage-grid" data-mfd-setup-has-rail={showSetupStageRail ? 'true' : 'false'}>
+              <main className="mfd-setup-stage-grid__primary">
+                <div key={setupState.currentPhase} style={{ animation: 'mfd-fadein 0.3s ease-out' }}>
+                  {setupState.currentPhase === 'intel_briefing' && phaseData ? (
+                    <IntelBriefingPhase
+                      data={phaseData as ReturnType<typeof generateIntelBriefing>}
+                      crisis={crisisProfile}
+                      openedDrilldowns={setupState.openedDrilldowns}
+                      requiredPressureId={requireTopPressureOpened ? topPressureCard.id : null}
+                      supportCopy={narrativePack.intelBriefing}
+                      onToggleDrilldown={(pressureId) => { void toggleSetupDrilldown(pressureId); }}
+                    />
                   ) : null}
-                  {panelDialogue?.intro ? (
-                    <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>{panelDialogue.intro}</div>
+                  {setupState.currentPhase === 'meet_roster' && phaseData ? (
+                    <MeetRosterPhase data={phaseData as ReturnType<typeof generateRosterOverview>} />
                   ) : null}
-                  {panelDialogue?.recommendation ? (
-                    <div style={{ ...monoSm, color: 'var(--mfd-cyan)', lineHeight: 1.6 }}>{panelDialogue.recommendation}</div>
+                  {setupState.currentPhase === 'hire_coach' && agmProfile ? (
+                    <HireCoachPhase
+                      agmId={agmProfile.id}
+                      selectedCoachId={decisions.headCoachId}
+                      previewByCoachId={coachPreviewById}
+                      onHire={async (coachId) => applySetupChoice({ headCoachId: coachId })}
+                    />
                   ) : null}
-                  {teachingNarration ? (
-                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{teachingNarration}</div>
+                  {setupState.currentPhase === 'hire_scout' && agmProfile ? (
+                    <HireScoutPhase
+                      agmId={agmProfile.id}
+                      selectedScoutId={decisions.scoutingDirectorId}
+                      previewByScoutId={scoutPreviewById}
+                      onHire={async (scoutId) => applySetupChoice({ scoutingDirectorId: scoutId })}
+                    />
                   ) : null}
-                  {activeReaction ? (
-                    <div style={{ ...monoSm, color: 'var(--mfd-gold)', lineHeight: 1.6 }}>{activeReaction.reaction}</div>
+                  {setupState.currentPhase === 'set_scheme' && phaseData ? (
+                    <SetSchemePhase
+                      data={phaseData as ReturnType<typeof generateSchemeContext>}
+                      selectedOffense={decisions.offenseScheme}
+                      selectedDefense={decisions.defenseScheme}
+                      previewByOffenseSchemeId={offensePreviewBySchemeId}
+                      previewByDefenseSchemeId={defensePreviewBySchemeId}
+                      onSelectOffense={handleSelectOffense}
+                      onSelectDefense={handleSelectDefense}
+                    />
                   ) : null}
-                  {activeReaction?.followUp ? (
-                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{activeReaction.followUp}</div>
+                  {setupState.currentPhase === 'depth_chart' && phaseData ? (
+                    <DepthChartPhase
+                      data={phaseData as ReturnType<typeof generateDepthChartContext>}
+                      selectedPhilosophy={decisions.depthChartPhilosophy}
+                      previewByPhilosophy={depthPreviewByPhilosophy}
+                      onSelectPhilosophy={handleSelectDepthPhilosophy}
+                    />
                   ) : null}
-                  {blueprintMonologue ? (
-                    <div style={{ ...monoSm, color: 'var(--mfd-green)', lineHeight: 1.6 }}>{blueprintMonologue}</div>
+                  {setupState.currentPhase === 'cap_strategy' && phaseData ? (
+                    <CapStrategyPhase
+                      data={phaseData as ReturnType<typeof generateCapBriefing>}
+                      packages={capPackages}
+                      selectedPosture={decisions.capPosture}
+                      previewByPosture={capPreviewByPosture}
+                      onSelectPosture={handleSelectCapPosture}
+                    />
                   ) : null}
-                  {teachingTips && teachingTips.length > 0 ? (
-                    <div style={{ ...monoSm, color: 'var(--mfd-text-faint)', lineHeight: 1.6 }}>
-                      {teachingTips.join(' ')}
-                    </div>
+                  {setupState.currentPhase === 'set_goals' && phaseData ? (
+                    <SetGoalsPhase
+                      data={phaseData as ReturnType<typeof generateGoalContext>}
+                      selectedGoals={decisions.seasonGoals}
+                      onToggleGoal={handleToggleGoal}
+                      selectedMandate={decisions.cultureMandate}
+                      mandatePreviewById={mandatePreviewById}
+                      onSelectMandate={handleSelectCultureMandate}
+                    />
+                  ) : null}
+                  {setupState.currentPhase === 'blueprint' && phaseData ? (
+                    <BlueprintPhase
+                      data={phaseData as ReturnType<typeof generateBlueprint>}
+                      runtimeCliffhanger={runtimeCliffhanger}
+                    />
                   ) : null}
                 </div>
-              </PixelPanel>
-            ) : null}
+              </main>
 
-            <div key={setupState.currentPhase} style={{ animation: 'mfd-fadein 0.3s ease-out' }}>
-              {setupState.currentPhase === 'intel_briefing' && phaseData ? (
-                <IntelBriefingPhase
-                  data={phaseData as ReturnType<typeof generateIntelBriefing>}
-                  crisis={crisisProfile}
-                  openedDrilldowns={setupState.openedDrilldowns}
-                  requiredPressureId={requireTopPressureOpened ? topPressureCard.id : null}
-                  supportCopy={narrativePack.intelBriefing}
-                  onToggleDrilldown={(pressureId) => { void toggleSetupDrilldown(pressureId); }}
-                />
-              ) : null}
-              {setupState.currentPhase === 'meet_roster' && phaseData ? (
-                <MeetRosterPhase data={phaseData as ReturnType<typeof generateRosterOverview>} />
-              ) : null}
-              {setupState.currentPhase === 'hire_coach' && agmProfile ? (
-                <HireCoachPhase
-                  agmId={agmProfile.id}
-                  selectedCoachId={decisions.headCoachId}
-                  previewByCoachId={coachPreviewById}
-                  onHire={async (coachId) => applySetupChoice({ headCoachId: coachId })}
-                />
-              ) : null}
-              {setupState.currentPhase === 'hire_scout' && agmProfile ? (
-                <HireScoutPhase
-                  agmId={agmProfile.id}
-                  selectedScoutId={decisions.scoutingDirectorId}
-                  previewByScoutId={scoutPreviewById}
-                  onHire={async (scoutId) => applySetupChoice({ scoutingDirectorId: scoutId })}
-                />
-              ) : null}
-              {setupState.currentPhase === 'set_scheme' && phaseData ? (
-                <SetSchemePhase
-                  data={phaseData as ReturnType<typeof generateSchemeContext>}
-                  selectedOffense={decisions.offenseScheme}
-                  selectedDefense={decisions.defenseScheme}
-                  previewByOffenseSchemeId={offensePreviewBySchemeId}
-                  previewByDefenseSchemeId={defensePreviewBySchemeId}
-                  onSelectOffense={handleSelectOffense}
-                  onSelectDefense={handleSelectDefense}
-                />
-              ) : null}
-              {setupState.currentPhase === 'depth_chart' && phaseData ? (
-                <DepthChartPhase
-                  data={phaseData as ReturnType<typeof generateDepthChartContext>}
-                  selectedPhilosophy={decisions.depthChartPhilosophy}
-                  previewByPhilosophy={depthPreviewByPhilosophy}
-                  onSelectPhilosophy={handleSelectDepthPhilosophy}
-                />
-              ) : null}
-              {setupState.currentPhase === 'cap_strategy' && phaseData ? (
-                <CapStrategyPhase
-                  data={phaseData as ReturnType<typeof generateCapBriefing>}
-                  packages={capPackages}
-                  selectedPosture={decisions.capPosture}
-                  previewByPosture={capPreviewByPosture}
-                  onSelectPosture={handleSelectCapPosture}
-                />
-              ) : null}
-              {setupState.currentPhase === 'set_goals' && phaseData ? (
-                <SetGoalsPhase
-                  data={phaseData as ReturnType<typeof generateGoalContext>}
-                  selectedGoals={decisions.seasonGoals}
-                  onToggleGoal={handleToggleGoal}
-                  selectedMandate={decisions.cultureMandate}
-                  mandatePreviewById={mandatePreviewById}
-                  onSelectMandate={handleSelectCultureMandate}
-                />
-              ) : null}
-              {setupState.currentPhase === 'blueprint' && phaseData ? (
-                <BlueprintPhase
-                  data={phaseData as ReturnType<typeof generateBlueprint>}
-                  runtimeCliffhanger={runtimeCliffhanger}
-                />
+              {showSetupStageRail ? (
+                <aside className="mfd-setup-stage-grid__rail">
+                  {showStageContextPanels ? <ForecastBoard forecast={forecastBoard} /> : null}
+                  {showStageContextPanels ? <DayOneBetLedger entries={betLedgerEntries} /> : null}
+
+                  {showStageGuidancePanel ? (
+                    <PixelPanel title="AGM Guidance" accent="gold">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {setupState.currentPhase === 'intel_briefing' && agmGreeting ? (
+                          <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>&ldquo;{agmGreeting}&rdquo;</div>
+                        ) : null}
+                        {panelDialogue?.intro ? (
+                          <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>{panelDialogue.intro}</div>
+                        ) : null}
+                        {panelDialogue?.recommendation ? (
+                          <div style={{ ...monoSm, color: 'var(--mfd-cyan)', lineHeight: 1.6 }}>{panelDialogue.recommendation}</div>
+                        ) : null}
+                        {teachingNarration ? (
+                          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{teachingNarration}</div>
+                        ) : null}
+                        {activeReaction ? (
+                          <div style={{ ...monoSm, color: 'var(--mfd-gold)', lineHeight: 1.6 }}>{activeReaction.reaction}</div>
+                        ) : null}
+                        {activeReaction?.followUp ? (
+                          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{activeReaction.followUp}</div>
+                        ) : null}
+                        {blueprintMonologue ? (
+                          <div style={{ ...monoSm, color: 'var(--mfd-green)', lineHeight: 1.6 }}>{blueprintMonologue}</div>
+                        ) : null}
+                        {teachingTips && teachingTips.length > 0 ? (
+                          <div style={{ ...monoSm, color: 'var(--mfd-text-faint)', lineHeight: 1.6 }}>
+                            {teachingTips.join(' ')}
+                          </div>
+                        ) : null}
+                      </div>
+                    </PixelPanel>
+                  ) : null}
+                </aside>
               ) : null}
             </div>
           </AGMStage>
@@ -1045,6 +1074,7 @@ export function FranchiseSetupWizard({
       </div>
 
       <div
+        className="mfd-setup-command-bar"
         style={{
           padding: '12px clamp(12px, 1.5vw, 20px)',
           borderTop: '2px solid var(--mfd-border)',
@@ -1140,22 +1170,6 @@ export function FranchiseSetupWizard({
           .mfd-setup-primary-action--spotlight {
             animation: none !important;
             transform: none !important;
-          }
-        }
-
-        /* Reserve space on the left for Chip's fixed bottom-left companion overlay
-           (320px wide, anchored at left = var(--mfd-sp-lg)) so wizard copy never
-           gets clipped behind the panel. Only applies at desktop widths where the
-           layout has room; on smaller viewports Chip sits above the scrollable
-           content instead. */
-        [data-mfd-setup-content][data-mfd-setup-companion-active='true'] {
-          padding-bottom: clamp(180px, 28vh, 280px);
-        }
-
-        @media (min-width: 1024px) {
-          [data-mfd-setup-content][data-mfd-setup-companion-active='true'] {
-            padding-left: calc(320px + var(--mfd-sp-lg) * 2 + 8px);
-            padding-bottom: clamp(12px, 1.5vw, 20px);
           }
         }
       `}</style>

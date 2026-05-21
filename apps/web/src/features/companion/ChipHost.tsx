@@ -26,6 +26,7 @@ export interface ChipHostRenderControls {
   onStageAdvance: (stageId: string) => void;
   spotlightTargetId: string | null;
   currentBeat: number;
+  companionPanel: ReactNode | null;
 }
 
 export interface ChipOnboardingSkipState {
@@ -184,36 +185,28 @@ export function ChipHost({
     dismissed: hostDismissed || !revealComplete,
   });
 
-  // FranchiseSetupWizard renders as a full-viewport `position: fixed` overlay
-  // (see FranchiseSetupWizard.tsx — z-index 50 inset:0). A side-by-side grid
-  // host gets covered. Chip lives as its own fixed overlay above the wizard.
   const hostStyle = useMemo(
     () => ({
-      position: 'fixed' as const,
-      bottom: 'var(--mfd-sp-lg)',
-      left: 'var(--mfd-sp-lg)',
-      zIndex: 100,
-      width: 'min(320px, calc(100vw - (var(--mfd-sp-lg) * 2)))',
-      maxHeight: 'calc(100vh - (var(--mfd-sp-lg) * 2))',
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: 'var(--mfd-sp-md)',
-      padding: 'var(--mfd-sp-md)',
-      border: '2px solid var(--mfd-gold)',
-      background: 'var(--mfd-bg)',
+      boxSizing: 'border-box' as const,
+      width: '100%',
+      minWidth: 0,
+      display: 'grid',
+      gap: 'var(--mfd-sp-sm)',
+      padding: '12px',
+      border: '1px solid rgba(255, 215, 0, 0.72)',
+      borderLeft: '4px solid var(--mfd-gold)',
+      background: 'linear-gradient(180deg, rgba(255, 215, 0, 0.09), rgba(0, 0, 0, 0.22)), var(--mfd-bg-2)',
       color: 'var(--mfd-text)',
-      boxShadow: 'var(--mfd-shadow-lg)',
-      overflowY: 'auto' as const,
+      boxShadow: '0 0 0 1px rgba(0, 0, 0, 0.58), 0 18px 34px rgba(0, 0, 0, 0.32)',
+      overflow: 'hidden' as const,
     }),
     [],
   );
 
   const stageStyle = useMemo(
     () => ({
-      display: 'flex',
-      flexDirection: 'column' as const,
-      alignItems: 'center' as const,
-      gap: 'var(--mfd-sp-sm)',
+      display: 'grid',
+      gap: '10px',
       minWidth: 0,
     }),
     [],
@@ -225,7 +218,7 @@ export function ChipHost({
       flexWrap: 'wrap' as const,
       gap: 'var(--mfd-sp-sm)',
       alignItems: 'center',
-      justifyContent: 'center' as const,
+      justifyContent: 'space-between' as const,
     }),
     [],
   );
@@ -245,8 +238,8 @@ export function ChipHost({
       display: 'grid',
       placeItems: 'center',
       padding: 0,
-      border: '2px solid transparent',
-      background: 'transparent',
+      border: '1px solid rgba(0, 229, 255, 0.32)',
+      background: 'rgba(0, 229, 255, 0.06)',
       color: 'inherit',
       cursor: 'pointer',
     }),
@@ -269,13 +262,38 @@ export function ChipHost({
       display: 'grid',
       gap: 'var(--mfd-sp-xs)',
       width: '100%',
-      padding: 'var(--mfd-sp-sm)',
-      border: '2px solid var(--mfd-border)',
-      background: 'var(--mfd-bg-2)',
+      padding: '8px',
+      border: '1px solid rgba(0, 229, 255, 0.26)',
+      background: 'rgba(0, 229, 255, 0.05)',
       color: 'var(--mfd-text-dim)',
       fontFamily: 'var(--mfd-font-mono)',
       fontSize: '11px',
       lineHeight: 1.55,
+    }),
+    [],
+  );
+
+  const railMetaStyle = useMemo(
+    () => ({
+      display: 'flex',
+      justifyContent: 'space-between',
+      gap: '8px',
+      alignItems: 'center',
+      color: 'var(--mfd-gold)',
+      fontFamily: 'var(--mfd-font-pixel)',
+      fontSize: '8px',
+      lineHeight: 1.25,
+      textTransform: 'uppercase' as const,
+    }),
+    [],
+  );
+
+  const quietNoteStyle = useMemo(
+    () => ({
+      color: 'var(--mfd-text-dim)',
+      fontFamily: 'var(--mfd-font-mono)',
+      fontSize: '11px',
+      lineHeight: 1.45,
     }),
     [],
   );
@@ -347,40 +365,99 @@ export function ChipHost({
     replayOnboardingBeat(currentDialogue);
   }, [currentDialogue]);
 
-  const renderedChildren = typeof children === 'function'
+  const renderChildren = (companionPanel: ReactNode | null) => (typeof children === 'function'
     ? children({
       onStageAdvance: handleStageAdvance,
       spotlightTargetId,
       currentBeat: beatIndex + 1,
+      companionPanel,
     })
-    : children;
+    : children);
 
   if (!enabled || !newGame || skipped || hostDismissed || !currentDialogue) {
-    return <>{renderedChildren}</>;
+    return <>{renderChildren(null)}</>;
   }
 
-  if (!revealComplete) {
-    return (
-      <>
-        <div data-chip-host-content="true" aria-label={currentStage?.label}>
-          {renderedChildren}
+  const companionPanel = !revealComplete ? (
+    <aside
+      data-chip-host="true"
+      data-chip-host-reveal={revealFrame.phase}
+      data-chip-host-stage-id={currentStage?.id}
+      style={hostStyle}
+      aria-label="Chip operations rail"
+    >
+      <div style={railMetaStyle}>
+        <span>Operations Chief</span>
+        <span>{currentStage?.label}</span>
+      </div>
+      <div data-chip-host-companion="true" style={stageStyle}>
+        <div data-chip-host-reveal-portrait="true" style={revealStyle}>
+          <Chip pose={revealFrame.pose} reducedMotion={reducedMotion} size="sm" ariaLabel="Chip, franchise operations chief" />
         </div>
-        <aside
-          data-chip-host="true"
-          data-chip-host-reveal={revealFrame.phase}
-          data-chip-host-stage-id={currentStage?.id}
-          style={hostStyle}
-          aria-label="Chip onboarding companion"
+      </div>
+    </aside>
+  ) : (
+    <aside
+      data-chip-host="true"
+      data-chip-host-stage-id={currentStage?.id}
+      style={hostStyle}
+      aria-label="Chip operations rail"
+    >
+      <div style={railMetaStyle}>
+        <span>Operations Chief</span>
+        <span>{currentStage?.label}</span>
+      </div>
+      <div data-chip-host-companion="true" style={stageStyle}>
+        <button
+          type="button"
+          data-chip-host-portrait="true"
+          onClick={replayCurrentBeat}
+          aria-label="Replay Chip briefing"
+          style={portraitButtonStyle}
         >
-          <div data-chip-host-companion="true" style={stageStyle}>
-            <div data-chip-host-reveal-portrait="true" style={revealStyle}>
-              <Chip pose={revealFrame.pose} reducedMotion={reducedMotion} size="md" />
+          <Chip pose={currentDialogue.pose} reducedMotion={reducedMotion} size="sm" ariaLabel="Chip, franchise operations chief" />
+        </button>
+        <ChipDialogueBubble
+          text={currentDialogue.text}
+          pose={currentDialogue.pose}
+          reducedMotion={reducedMotion}
+          skippable={false}
+          pointer="left"
+        />
+        {currentDialogue.contextDetails?.length ? (
+          <details
+            data-chip-host-context-details="true"
+            style={contextDetailsStyle}
+          >
+            <summary style={{ color: 'var(--mfd-cyan)', cursor: 'pointer', fontFamily: 'var(--mfd-font-pixel)', fontSize: '8px' }}>
+              Board Notes
+            </summary>
+            {currentDialogue.contextDetails.map((detail) => (
+              <div key={detail}>{detail}</div>
+            ))}
+          </details>
+        ) : null}
+        <div data-chip-host-controls="true" style={controlsStyle}>
+          {companionAction ? (
+            <div data-chip-host-primary-action="true" style={primaryActionStyle}>
+              {companionAction}
             </div>
-          </div>
-        </aside>
-      </>
-    );
-  }
+          ) : (
+            <div style={quietNoteStyle}>
+              No note. Work the board.
+            </div>
+          )}
+          <PixelButton accent="cyan" onClick={skip}>
+            Quiet
+          </PixelButton>
+        </div>
+      </div>
+    </aside>
+  );
+
+  const renderedChildren = renderChildren(companionPanel);
+
+  const renderPropChildren = typeof children === 'function';
 
   return (
     <>
@@ -388,52 +465,7 @@ export function ChipHost({
       <div data-chip-host-content="true" aria-label={currentStage?.label}>
         {renderedChildren}
       </div>
-      <aside
-        data-chip-host="true"
-        data-chip-host-stage-id={currentStage?.id}
-        style={hostStyle}
-        aria-label="Chip onboarding companion"
-      >
-        <div data-chip-host-companion="true" style={stageStyle}>
-          <button
-            type="button"
-            data-chip-host-portrait="true"
-            onClick={replayCurrentBeat}
-            aria-label="Replay Chip briefing"
-            style={portraitButtonStyle}
-          >
-            <Chip pose={currentDialogue.pose} reducedMotion={reducedMotion} size="md" />
-          </button>
-          <ChipDialogueBubble
-            text={currentDialogue.text}
-            pose={currentDialogue.pose}
-            reducedMotion={reducedMotion}
-            skippable={false}
-            pointer="left"
-          />
-          {currentDialogue.contextDetails?.length ? (
-            <div data-chip-host-context-details="true" style={contextDetailsStyle}>
-              {currentDialogue.contextDetails.map((detail) => (
-                <div key={detail}>{detail}</div>
-              ))}
-            </div>
-          ) : null}
-          <div data-chip-host-controls="true" style={controlsStyle}>
-            {companionAction ? (
-              <div data-chip-host-primary-action="true" style={primaryActionStyle}>
-                {companionAction}
-              </div>
-            ) : (
-              <div style={{ color: 'var(--mfd-gold)', fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', lineHeight: 1.45 }}>
-                Click the gold button when ready.
-              </div>
-            )}
-            <PixelButton accent="cyan" onClick={skip}>
-              Skip
-            </PixelButton>
-          </div>
-        </div>
-      </aside>
+      {renderPropChildren ? null : companionPanel}
     </>
   );
 }

@@ -3,8 +3,9 @@ import {
   PixelPanel, PixelBadge, PixelProgressBar,
 } from '@mfd/design-system/components';
 import {
-  useGameStore, selectUserTeam, selectOwnerState, selectLatestSummary, selectOwners,
+  useGameStore, selectUserTeam, selectOwnerState, selectLatestSummary, selectOwners, selectOwnerMandates,
 } from '../../app/store/game-store';
+import { getSelectedAGM } from '@mfd/engine';
 import {
   PixelMetricCard,
   PixelScreenHeader,
@@ -24,6 +25,13 @@ const STAGE_CONFIG: Record<OwnerStage, { accent: 'green' | 'cyan' | 'gold' | 're
   ULTIMATUM: { accent: 'red', label: 'Ultimatum' },
 };
 
+const MANDATE_ACCENT: Record<string, 'green' | 'gold' | 'red' | 'cyan'> = {
+  complete: 'green',
+  on_track: 'cyan',
+  at_risk: 'gold',
+  failed: 'red',
+};
+
 function getStage(approval: number): OwnerStage {
   if (approval >= 70) return 'PATIENT';
   if (approval >= 50) return 'RESTLESS';
@@ -36,6 +44,8 @@ export function OwnerMood() {
   const ownerState = useGameStore(selectOwnerState);
   const latestSummary = useGameStore(selectLatestSummary);
   const owners = useGameStore(selectOwners);
+  const mandates = useGameStore(selectOwnerMandates);
+  const frontOffice = useGameStore((state) => state.game?.frontOffice ?? null);
   const owner = team && owners ? owners[team.ownerId] : null;
 
   const approval = ownerState?.approval ?? 60;
@@ -47,37 +57,15 @@ export function OwnerMood() {
 
   const ownerName = owner?.name ?? 'Unknown Owner';
   const archetype = ownerState?.label ?? 'Unknown';
+  const agm = frontOffice?.agmProfileId ? getSelectedAGM(frontOffice.agmProfileId) : null;
+  const agmImpacts = (frontOffice?.agmImpactLog ?? []).slice(-3).reverse();
 
   const approvalHistory = useMemo(() => {
     if (!ownerState?.history?.length) return [approval];
     return ownerState.history.slice(-6).map((h) => h.approval);
   }, [ownerState, approval]);
 
-  const goals = useMemo(() => {
-    if (!owner || !team) return [];
-    const wins = team.wins;
-    const losses = team.losses;
-    return [
-      {
-        id: 'g1',
-        label: 'Winning Record',
-        status: wins > losses ? 'met' as const : wins === losses ? 'at_risk' as const : 'failing' as const,
-        progress: `${wins}-${losses}`,
-      },
-      {
-        id: 'g2',
-        label: 'Playoff Contention',
-        status: wins >= 7 ? 'met' as const : wins >= 4 ? 'at_risk' as const : 'failing' as const,
-        progress: wins >= 7 ? 'On track' : 'Bubble',
-      },
-      {
-        id: 'g3',
-        label: 'Cap Health',
-        status: team.capSpace > 20 ? 'met' as const : team.capSpace > 0 ? 'at_risk' as const : 'failing' as const,
-        progress: `$${Math.round(team.capSpace)}M free`,
-      },
-    ];
-  }, [owner, team]);
+  const goals = useMemo(() => [...mandates].sort((a, b) => a.selectedIndex - b.selectedIndex), [mandates]);
 
   return (
     <div style={screenStackStyle}>
@@ -99,6 +87,35 @@ export function OwnerMood() {
           </div>
         </PixelPanel>
       )}
+
+      {agm ? (
+        <PixelPanel title="Front Office Identity" accent={agm.cardAccent === 'red' ? 'red' : agm.cardAccent === 'green' ? 'green' : agm.cardAccent === 'cyan' ? 'cyan' : 'gold'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ ...display, fontSize: '20px', color: '#fff', lineHeight: 1 }}>
+                  {agm.name.toUpperCase()}
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '4px' }}>
+                  {agm.title} // {agm.expertise.replace('_', ' ')}
+                </div>
+              </div>
+              <PixelBadge variant={agm.cardAccent === 'red' ? 'red' : agm.cardAccent === 'green' ? 'green' : agm.cardAccent === 'cyan' ? 'cyan' : 'gold'}>
+                Durable AGM
+              </PixelBadge>
+            </div>
+            {agmImpacts.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {agmImpacts.map((impact) => (
+                  <div key={impact.id} style={{ ...monoSm, color: '#bbb', lineHeight: 1.5 }}>
+                    W{impact.week}: {impact.summary}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </PixelPanel>
+      ) : null}
 
       <div style={autoGrid(210)}>
         <PixelMetricCard
@@ -171,12 +188,16 @@ export function OwnerMood() {
 
       <PixelPanel title="Owner Goals" accent="gold">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {goals.map((goal) => (
+          {goals.length === 0 ? (
+            <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
+              No active owner mandates yet. Setup season goals will lock in here with progress and consequences.
+            </div>
+          ) : goals.map((goal) => (
             <div key={goal.id} style={{
-              display: 'flex',
-              justifyContent: 'space-between',
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 1fr) auto',
               gap: '12px',
-              alignItems: 'center',
+              alignItems: 'start',
               paddingBottom: '8px',
               borderBottom: '1px solid #1a1a1a',
             }}>
@@ -185,11 +206,27 @@ export function OwnerMood() {
                   {goal.label.toUpperCase()}
                 </div>
                 <div style={{ ...monoSm, color: '#888', marginTop: '4px' }}>
-                  {goal.progress}
+                  {goal.slot.toUpperCase()} // {goal.progress.label}
                 </div>
+                <PixelProgressBar
+                  value={goal.progress.percent}
+                  accent={MANDATE_ACCENT[goal.progress.status] ?? 'gold'}
+                  label={goal.progress.detail}
+                  valueLabel={`${goal.progress.percent}%`}
+                />
+                {goal.progress.agmNote ? (
+                  <div style={{ ...monoSm, color: 'var(--mfd-cyan)', marginTop: '6px', lineHeight: 1.4 }}>
+                    {goal.progress.agmNote}
+                  </div>
+                ) : null}
+                {goal.evaluation ? (
+                  <div style={{ ...monoSm, color: goal.evaluation.met ? 'var(--mfd-green)' : 'var(--mfd-red)', marginTop: '6px', lineHeight: 1.4 }}>
+                    {goal.evaluation.summary} Owner approval {goal.evaluation.approvalDelta >= 0 ? '+' : ''}{goal.evaluation.approvalDelta}.
+                  </div>
+                ) : null}
               </div>
-              <PixelBadge variant={goal.status === 'met' ? 'green' : goal.status === 'at_risk' ? 'gold' : 'red'}>
-                {goal.status === 'met' ? 'Met' : goal.status === 'at_risk' ? 'At Risk' : 'Failing'}
+              <PixelBadge variant={goal.status === 'met' || goal.status === 'exceeded' ? 'green' : goal.status === 'missed' ? 'red' : MANDATE_ACCENT[goal.progress.status] ?? 'gold'}>
+                {goal.status === 'active' ? goal.progress.status.replace('_', ' ') : goal.status}
               </PixelBadge>
             </div>
           ))}

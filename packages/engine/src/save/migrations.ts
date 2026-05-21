@@ -1276,6 +1276,23 @@ registerMigration(34, (state) => ({
   storylineThreads: [],
 }));
 
+// v35→v36: AGM + owner mandate persistence.
+registerMigration(35, (state) => {
+  const frontOffice = (state['frontOffice'] && typeof state['frontOffice'] === 'object')
+    ? { ...(state['frontOffice'] as Record<string, unknown>) }
+    : {};
+
+  return {
+    ...state,
+    frontOffice: {
+      ...frontOffice,
+      agmProfileId: typeof frontOffice['agmProfileId'] === 'string' ? frontOffice['agmProfileId'] : null,
+      agmImpactLog: Array.isArray(frontOffice['agmImpactLog']) ? frontOffice['agmImpactLog'] : [],
+    },
+    ownerMandates: Array.isArray(state['ownerMandates']) ? state['ownerMandates'] : [],
+  };
+});
+
 // v30→v31: Add tutorialState.visitedScreens (Sprint 43 "Rookie Card" onboarding)
 registerMigration(30, (state) => {
   const tutorialRaw = (state['tutorialState'] && typeof state['tutorialState'] === 'object')

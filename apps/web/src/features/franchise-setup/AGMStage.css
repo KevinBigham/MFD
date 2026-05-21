@@ -1,9 +1,10 @@
 .mfd-agm-stage {
   --agm-accent: var(--mfd-cyan);
   display: grid;
-  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
   min-height: 0;
-  gap: var(--mfd-sp-lg);
+  height: 100%;
+  gap: 14px;
   align-items: stretch;
 }
 
@@ -16,11 +17,13 @@
 
 .mfd-agm-stage__card {
   position: relative;
-  overflow: hidden;
-  padding: var(--mfd-sp-xl) 18px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 12px;
+  justify-content: flex-start;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--agm-accent) 12%, var(--mfd-bg-2)) 0%, var(--mfd-bg-2) 52%, var(--mfd-bg) 100%);
   box-shadow:
@@ -42,14 +45,14 @@
 
 .mfd-agm-stage__identity {
   flex-direction: column;
-  padding-top: var(--mfd-sp-md);
+  padding-top: 0;
 }
 
 .mfd-agm-stage__portrait {
   position: relative;
-  flex: 1;
-  min-height: 270px;
-  margin: var(--mfd-sp-md) 0 10px;
+  flex: 0 0 auto;
+  min-height: 170px;
+  margin: 0;
   display: grid;
   place-items: end center;
   isolation: isolate;
@@ -68,11 +71,11 @@
 }
 
 .mfd-agm-stage__content {
-  padding: var(--mfd-sp-lg);
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  overflow: auto;
+  gap: 12px;
+  overflow: hidden;
 }
 
 .mfd-agm-character {
@@ -81,11 +84,15 @@
   --agm-hair: var(--mfd-avatar-hair);
   --agm-tie: var(--agm-accent);
   position: relative;
-  width: 232px;
-  height: 304px;
+  width: 170px;
+  height: 224px;
   transform-origin: 50% 100%;
   transform: scale(var(--agm-scale));
   animation: mfd-agm-character-breathe 3.2s ease-in-out infinite;
+}
+
+.mfd-agm-stage__rail-addon {
+  min-width: 0;
 }
 
 .mfd-agm-character[data-mfd-agm-motion='reduced'] {
@@ -358,14 +365,20 @@
 @media (max-width: 1024px) {
   .mfd-agm-stage {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: auto;
   }
 
   .mfd-agm-stage__card {
-    min-height: 440px;
+    min-height: 0;
   }
 
   .mfd-agm-stage__portrait {
-    min-height: 252px;
+    min-height: 150px;
+  }
+
+  .mfd-agm-stage__content {
+    overflow: visible;
   }
 }
 
@@ -373,6 +386,15 @@
   .mfd-agm-stage__card,
   .mfd-agm-stage__content {
     padding: var(--mfd-sp-md);
+  }
+
+  .mfd-agm-stage__card {
+    gap: 8px;
+  }
+
+  .mfd-agm-stage__portrait,
+  .mfd-agm-stage__identity {
+    display: none !important;
   }
 
   .mfd-agm-character {

@@ -4,9 +4,11 @@ import { PixelBadge, PixelPanel, PixelTable } from '@mfd/design-system/component
 import { selectPlayoffPicture, selectStandings, selectStatLeaders, selectUserTeam, useGameStore } from '../../app/store/game-store';
 import {
   autoGrid,
+  CommandCallout,
   display,
   mono,
   monoSm,
+  navigateTo,
   pixelSm,
   screenStackStyle,
   PixelScreenHeader,
@@ -139,6 +141,9 @@ export function LeagueStandings() {
   const userTeam = useGameStore(selectUserTeam);
   const seedSignals = buildSeedSignals(playoffPicture);
   const columns = standingsColumns(userTeam?.id ?? null, seedSignals);
+  const userDivision = standings
+    .flatMap((section) => section.rows)
+    .find((row) => row.teamId === userTeam?.id);
 
   return (
     <div style={screenStackStyle}>
@@ -153,7 +158,25 @@ export function LeagueStandings() {
         )}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2.4fr) minmax(280px, 1fr)', gap: '12px' }}>
+      <CommandCallout
+        title={userDivision ? 'Read the division math first' : 'Use this after a result'}
+        body={userDivision
+          ? `${userTeam?.city ?? 'Your club'} sits ${userDivision.wins}-${userDivision.losses}-${userDivision.ties}. Let that record decide whether the next move is buy, hold, or develop.`
+          : 'Standings are a diagnosis screen. After Week 1, use the table to decide if the roster needs aggression or patience.'}
+        accent="gold"
+        meta={(
+          <>
+            <PixelBadge variant="cyan">8 divisions</PixelBadge>
+            {userDivision ? <PixelBadge variant="gold">User rank {userDivision.rank}</PixelBadge> : null}
+          </>
+        )}
+        actions={[
+          { label: 'Power Board', accent: 'cyan', onClick: () => navigateTo('/power-rankings') },
+          { label: 'Trade Desk', accent: 'gold', onClick: () => navigateTo('/trades') },
+        ]}
+      />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={autoGrid(520)}>
             {standings.map((section) => (
@@ -163,6 +186,7 @@ export function LeagueStandings() {
                   columns={columns}
                   accent="cyan"
                   density="compact"
+                  responsive="cards"
                 />
               </PixelPanel>
             ))}
@@ -200,33 +224,33 @@ export function LeagueStandings() {
           </PixelPanel>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <PixelPanel title="Stat Leaders" accent="green">
-            {([
-              ['Passing Yards', statLeaders.passYds],
-              ['Rushing Yards', statLeaders.rushYds],
-              ['Receiving Yards', statLeaders.recYds],
-              ['Sacks', statLeaders.sacks],
-              ['INTs', statLeaders.defINT],
-            ] as const).map(([label, leaders]) => (
-              <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
-                <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>{label.toUpperCase()}</div>
-                {leaders.map((leader, index) => (
-                  <div key={leader.playerId} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <span style={{ ...mono, color: 'var(--mfd-text)' }}>{index + 1}.</span>
-                        <PlayerNameLink playerId={leader.playerId} name={leader.playerName} style={{ ...mono }} />
-                      </div>
-                      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{leader.teamName}</div>
+        <PixelPanel title="Stat Leaders" accent="green">
+          <div style={autoGrid(260)}>
+          {([
+            ['Passing Yards', statLeaders.passYds],
+            ['Rushing Yards', statLeaders.rushYds],
+            ['Receiving Yards', statLeaders.recYds],
+            ['Sacks', statLeaders.sacks],
+            ['INTs', statLeaders.defINT],
+          ] as const).map(([label, leaders]) => (
+            <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+              <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>{label.toUpperCase()}</div>
+              {leaders.map((leader, index) => (
+                <div key={leader.playerId} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ ...mono, color: 'var(--mfd-text)' }}>{index + 1}.</span>
+                      <PlayerNameLink playerId={leader.playerId} name={leader.playerName} style={{ ...mono }} />
                     </div>
-                    <PixelBadge variant="green">{leader.value}</PixelBadge>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{leader.teamName}</div>
                   </div>
-                ))}
-              </div>
-            ))}
-          </PixelPanel>
-        </div>
+                  <PixelBadge variant="green">{leader.value}</PixelBadge>
+                </div>
+              ))}
+            </div>
+          ))}
+          </div>
+        </PixelPanel>
       </div>
     </div>
   );

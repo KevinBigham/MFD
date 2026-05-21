@@ -122,6 +122,33 @@ describe('getAGMWeeklyRecommendations', () => {
     expect(recs.length).toBeLessThanOrEqual(2);
     expect(recs[0]?.priority).toBe('urgent');
   });
+
+  it('makes recommendations profile-aware for durable AGM identity', () => {
+    const team = makeTeam({ id: 't_user', capSpace: 25_000_000 });
+    const opponent = makeTeam({ id: 't_opp', city: 'Rival', name: 'Rivals', isUser: false, wins: 4, losses: 0 });
+    const game = makeGame(team, {
+      teams: { [team.id]: team, [opponent.id]: opponent },
+      frontOffice: {
+        xp: 0,
+        level: 1,
+        achievements: [],
+        perks: [],
+        reputation: { players: 50, media: 50, owner: 50 },
+        agmProfileId: 'coach_d_hardaway',
+        agmImpactLog: [],
+      },
+      schedule: [{
+        week: 5,
+        games: [{ homeTeamId: team.id, awayTeamId: opponent.id, result: null }],
+      }],
+    } as Partial<GameState>);
+
+    const recs = getAGMWeeklyRecommendations(game, 3);
+    const opponentRec = recs.find((rec) => rec.id === 'next_opponent');
+
+    expect(opponentRec?.priority).toBe('high');
+    expect(opponentRec?.body).toContain("Coach D's game-week edge");
+  });
 });
 
 describe('getScreenTip', () => {

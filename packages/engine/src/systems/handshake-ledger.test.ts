@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Handshake } from '../types';
-import { makeLeagueState, makePlayer } from './test-helpers';
+import { makeLeagueState } from './test-helpers';
 import {
   evaluateHandshakes,
   generateOwnerDemands,
@@ -53,6 +53,21 @@ describe('handshake ledger', () => {
     expect(game.teams.afce1.owner.approval).toBe(approvalBefore - 10);
     expect(player.morale).toBe(moraleBefore - 15);
     expect(player.chemistry).toBe(chemistryBefore - 5);
+  });
+
+  it('makes Sandra Chen accountable for broken player promises', () => {
+    const game = makeLeagueState('regular_season', 9);
+    game.frontOffice.agmProfileId = 'sandra_chen';
+    const player = game.teams.afce1.roster[0]!;
+    player.isStarter = false;
+    const playerRepBefore = game.frontOffice.reputation.players;
+    game.handshakes = [makeHandshake({ targetId: player.id, teamId: 'afce1', deadline: { year: game.year, week: 8 } })];
+
+    evaluateHandshakes(game);
+
+    expect(game.handshakes[0]!.status).toBe('broken');
+    expect(game.frontOffice.reputation.players).toBe(playerRepBefore - 12);
+    expect(game.frontOffice.agmImpactLog?.[0]?.summary).toContain('Sandra Chen');
   });
 
   it('generates owner-appropriate demands by archetype', () => {

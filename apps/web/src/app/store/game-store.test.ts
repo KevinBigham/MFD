@@ -394,8 +394,14 @@ describe('game store offseason actions', () => {
     const game = createSeedGameState(888, 0, 'pro');
     game.phase = 'regular_season';
     const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
-    const matchup = game.schedule.find((week) => week.week === game.week)?.games
-      .find((entry) => entry.homeTeamId === userTeam.id || entry.awayTeamId === userTeam.id)!;
+    const matchingWeek = game.schedule.find((week) => week.week === game.week);
+    const matchup = matchingWeek?.games
+      .find((entry) => entry.homeTeamId === userTeam.id || entry.awayTeamId === userTeam.id);
+
+    if (matchup === undefined) {
+      throw new Error('Expected a scheduled user matchup for weekly prep plan persistence.');
+    }
+
     const opponentTeamId = matchup.homeTeamId === userTeam.id ? matchup.awayTeamId : matchup.homeTeamId;
     const contingencyRule: ContingencyRule = {
       id: 'contingency-1',

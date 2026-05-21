@@ -89,6 +89,9 @@ describe('LeagueStandings', () => {
     const markup = renderToStaticMarkup(<LeagueStandings />);
 
     expect(markup).toContain('LEAGUE STANDINGS');
+    expect(markup).toContain('NEXT CALL');
+    expect(markup).toContain('Read the division math first');
+    expect(markup).toContain('data-mfd-table-responsive="cards"');
     expect(markup).toContain('AFC EAST');
     expect(markup).toContain('Chicago City of Broad Shoulders Deep-Dish');
     expect(markup).toContain('PLAYOFF PICTURE');

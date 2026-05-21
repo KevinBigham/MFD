@@ -78,7 +78,7 @@ export function DynastyCartridge() {
   const importFileRef = useRef<HTMLInputElement>(null);
 
   const teamName = team ? `${team.city} ${team.name}` : 'Unknown';
-  const meta = { teamName, season: year, week };
+  const meta = useMemo(() => ({ teamName, season: year, week }), [teamName, week, year]);
   const fileName = team ? generateFileName(meta) : 'save.mfd';
 
   const refreshSlots = useCallback(async () => {

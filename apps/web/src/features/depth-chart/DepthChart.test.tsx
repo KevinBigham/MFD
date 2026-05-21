@@ -81,8 +81,10 @@ describe('DepthChart accessibility', () => {
     const markup = renderToStaticMarkup(<DepthChart />);
 
     expect(markup).toContain('DEPTH CHART');
+    expect(markup).toContain('NEXT CALL');
+    expect(markup).toContain('Fill every starting slot');
     expect(markup).toContain('type="button"');
-    expect(markup).toContain('--- SPECIAL TEAMS ---');
+    expect(markup).toContain('SPECIAL TEAMS');
   });
 
   it('keeps the room card as the only interactive control in each slot preview', () => {

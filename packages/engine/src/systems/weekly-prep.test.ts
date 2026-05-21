@@ -86,4 +86,21 @@ describe('weekly prep', () => {
 
     expect(outcome.effects.playerBonuses[featured.id]).toBeGreaterThan(0);
   });
+
+  it('adds Coach D game-week edge only when prep aligns with scouting and pressure standards', () => {
+    const game = makeLeagueState('regular_season', 1);
+    game.frontOffice.agmProfileId = 'coach_d_hardaway';
+    for (const player of game.teams.afce2!.roster) {
+      if (player.pos === 'CB' || player.pos === 'S') player.ovr = 60;
+    }
+    const intel = buildOpponentIntel(game, 'afce1', 'afce2');
+    const alignedPlan = { ...basePlan(), practiceIntensity: 'full_pads' as const, specialSituation: 'third_down' as const };
+
+    const normal = evaluateWeeklyPrep(game.teams.afce1!, intel, alignedPlan);
+    const coachD = evaluateWeeklyPrep(game.teams.afce1!, intel, alignedPlan, game);
+
+    expect(coachD.readiness).toBeGreaterThan(normal.readiness);
+    expect(coachD.effects.teamOvrBonus).toBeGreaterThan(normal.effects.teamOvrBonus);
+    expect(coachD.reasoning.some((line) => line.includes('Coach D edge'))).toBe(true);
+  });
 });

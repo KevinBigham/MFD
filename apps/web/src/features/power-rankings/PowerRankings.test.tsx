@@ -65,8 +65,11 @@ describe('PowerRankings', () => {
     const markup = renderToStaticMarkup(<PowerRankings />);
 
     expect(markup).toContain('POWER RANKINGS');
+    expect(markup).toContain('NEXT CALL');
+    expect(markup).toContain('Treat ranking as temperature');
+    expect(markup).toContain('data-mfd-table-responsive="cards"');
     expect(markup).toContain('USER #2');
-    expect(markup).toContain('--- LEAGUE LADDER ---');
+    expect(markup).toContain('LEAGUE LADDER');
     expect(markup).toContain('CHICAGO BLAZE');
     expect(markup).toContain('Chicago is closing fast behind a streaking offense.');
   });

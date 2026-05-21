@@ -1,4 +1,3 @@
-// @ts-nocheck - test-only file, vitest provides node APIs.
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'fs';
 import { ROUTE_BEAT_REGISTRY, ROUTE_KEYS } from './routeBeatRegistry';

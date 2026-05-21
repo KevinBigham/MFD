@@ -291,6 +291,26 @@ export function TradeCenter() {
         )}
       />
 
+      <CommandCallout
+        title={pendingOffers > 0 ? 'Answer the live offers' : deadlineClosed ? 'Market is closed' : 'Choose build, block, or hold'}
+        body={pendingOffers > 0
+          ? `${pendingOffers} offer${pendingOffers === 1 ? '' : 's'} need an accept/reject call before you build another package.`
+          : deadlineClosed
+            ? 'The regular-season deadline has passed. Use this screen for receipts, not new market moves.'
+            : 'No offer is forcing your hand. Build a targeted proposal, scan the league block, or leave the roster alone.'}
+        accent={pendingOffers > 0 ? 'gold' : deadlineClosed ? 'red' : 'cyan'}
+        meta={(
+          <>
+            <PixelBadge variant="cyan">{offers.length} offers</PixelBadge>
+            <PixelBadge variant={deadlineClosed ? 'red' : 'green'}>{deadlineClosed ? 'Closed' : 'Open'}</PixelBadge>
+          </>
+        )}
+        actions={[
+          { label: 'Build Offer', accent: 'gold', disabled: deadlineClosed, onClick: () => setTab('propose') },
+          { label: 'Scan Block', accent: 'cyan', onClick: () => navigateTo('/trade-block') },
+        ]}
+      />
+
       <div style={autoGrid(210)}>
         <PixelMetricCard label="Incoming Offers" value={offers.length} accent="cyan" detail="AI packages waiting for your call" />
         <PixelMetricCard label="Active Proposals" value={proposals.length} accent="gold" detail="User-initiated trade conversations" />

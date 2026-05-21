@@ -56,6 +56,13 @@ const CAP_TROUBLE_THRESHOLD = 1_000_000; // $1M — below this, flag cap trouble
 const URGENT_INJURY_GAMES = 2; // 1 game ≈ 1 week in this sim
 const ROSTER_GAP_MIN = 2;
 
+function selectedAgmProfileId(game: GameState): string | null {
+  return game.frontOffice?.agmProfileId
+    ?? game.franchiseBlueprint?.agmProfileId
+    ?? game.setupState?.decisions.agmProfileId
+    ?? null;
+}
+
 /**
  * Build a prioritized list of recommendations for the user team.
  * Returns up to `limit` items (default 3). Deterministic — no RNG.
@@ -68,6 +75,7 @@ export function getAGMWeeklyRecommendations(
   if (!team) return [];
 
   const recommendations: AGMRecommendation[] = [];
+  const agmProfileId = selectedAgmProfileId(game);
 
   // 1. Urgent injuries
   const injuredStarters = collectUrgentInjuries(game, team);
@@ -98,9 +106,13 @@ export function getAGMWeeklyRecommendations(
   if (nextOpponent) {
     recommendations.push({
       id: 'next_opponent',
-      priority: 'medium',
-      title: `Scout next opponent: ${nextOpponent.city} ${nextOpponent.name}`,
-      body: `They are ${nextOpponent.wins}-${nextOpponent.losses}. Review their strengths on the Game Plan screen before kickoff.`,
+      priority: agmProfileId === 'coach_d_hardaway' ? 'high' : 'medium',
+      title: agmProfileId === 'coach_d_hardaway'
+        ? `Coach D matchup standard: ${nextOpponent.city} ${nextOpponent.name}`
+        : `Scout next opponent: ${nextOpponent.city} ${nextOpponent.name}`,
+      body: agmProfileId === 'coach_d_hardaway'
+        ? `They are ${nextOpponent.wins}-${nextOpponent.losses}. Align the weekly prep board with the scouting report and pressure standard to unlock Coach D's game-week edge.`
+        : `They are ${nextOpponent.wins}-${nextOpponent.losses}. Review their strengths on the Game Plan screen before kickoff.`,
       targetRoute: '/game-plan',
     });
   }
@@ -110,10 +122,39 @@ export function getAGMWeeklyRecommendations(
   if (gaps.length > 0) {
     recommendations.push({
       id: 'roster_gaps',
-      priority: 'medium',
-      title: `Depth concerns at ${gaps.slice(0, 3).join(', ')}`,
-      body: `You have fewer than ${ROSTER_GAP_MIN} healthy players at ${gaps.length > 3 ? 'several positions' : 'these spots'}. Practice squad or waiver wire can shore things up.`,
+      priority: agmProfileId === 'sandra_chen' ? 'high' : 'medium',
+      title: agmProfileId === 'sandra_chen'
+        ? `Sandra's depth audit: ${gaps.slice(0, 3).join(', ')}`
+        : `Depth concerns at ${gaps.slice(0, 3).join(', ')}`,
+      body: agmProfileId === 'sandra_chen'
+        ? `You have fewer than ${ROSTER_GAP_MIN} healthy players at ${gaps.length > 3 ? 'several positions' : 'these spots'}. Role clarity matters more with Sandra accountable for personnel promises.`
+        : `You have fewer than ${ROSTER_GAP_MIN} healthy players at ${gaps.length > 3 ? 'several positions' : 'these spots'}. Practice squad or waiver wire can shore things up.`,
       targetRoute: '/team-needs',
+    });
+  }
+
+  const activeMandates = (game.ownerMandates ?? []).filter((mandate) =>
+    mandate.teamId === team.id && mandate.status === 'active');
+  const capMandate = activeMandates.find((mandate) => mandate.goalId === 'cap_health');
+  if (agmProfileId === 'marcus_webb' && capMandate && !recommendations.some((rec) => rec.id === 'cap_trouble')) {
+    recommendations.push({
+      id: 'marcus_cap_mandate',
+      priority: capMandate.progress.status === 'at_risk' ? 'high' : 'medium',
+      title: `Cap mandate: ${capMandate.progress.label}`,
+      body: `${capMandate.progress.detail} Marcus Webb gives this mandate clearer owner-facing progress and consequence tuning at season end.`,
+      targetRoute: '/owner',
+    });
+  }
+
+  const developmentMandate = activeMandates.find((mandate) =>
+    mandate.goalId === 'rebuild_progress' || mandate.goalId === 'draft_well');
+  if (agmProfileId === 'sandra_chen' && developmentMandate) {
+    recommendations.push({
+      id: 'sandra_development_mandate',
+      priority: developmentMandate.progress.status === 'at_risk' ? 'high' : 'medium',
+      title: `Development mandate: ${developmentMandate.progress.label}`,
+      body: `${developmentMandate.progress.detail} Keep young roles stable so Sandra's personnel edge turns into proof, not just optimism.`,
+      targetRoute: '/roster',
     });
   }
 

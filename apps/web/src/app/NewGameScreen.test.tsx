@@ -60,6 +60,14 @@ describe('NewGameScreen', () => {
     expect(markup).toContain('DAL');
   });
 
+  it('renders compact team finder controls for narrowing the franchise board', () => {
+    const markup = renderToStaticMarkup(<NewGameScreen />);
+
+    expect(markup).toContain('Find franchise');
+    expect(markup).toContain('Search city, name, or abbreviation');
+    expect(markup).toContain('4 teams shown');
+  });
+
   it('renders the Start Dynasty button', () => {
     const markup = renderToStaticMarkup(<NewGameScreen />);
 

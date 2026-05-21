@@ -3,7 +3,7 @@
  */
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { MfdPanel, PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
-import { Clock3, FileUp, Gamepad2, Play, Shield, Trophy, Upload } from 'lucide-react';
+import { Clock3, FileUp, Gamepad2, Play, Search, Shield, Trophy, Upload } from 'lucide-react';
 import {
   CONVENTION_SAVE_METADATA,
   generateConventionSave,
@@ -38,13 +38,21 @@ const DIFFICULTIES: { id: DifficultyLevel; label: string; desc: string; guide: s
 
 const teams = getTeamOptions();
 const conferences = ['AFC', 'NFC'] as const;
-const divisions = ['East', 'North', 'South', 'West'];
+const divisions = ['East', 'North', 'South', 'West'] as const;
+const conferenceFilters = ['ALL', ...conferences] as const;
+const divisionFilters = ['ALL', ...divisions] as const;
+
+type ConferenceFilter = (typeof conferenceFilters)[number];
+type DivisionFilter = (typeof divisionFilters)[number];
 
 export function NewGameScreen() {
   const [selectedTeam, setSelectedTeam] = useState(0);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('pro');
   const [mode, setMode] = useState<'dynasty' | 'scenario'>('dynasty');
   const [selectedScenarioId, setSelectedScenarioId] = useState(getAvailableScenarios()[0]?.id ?? 'rebuild');
+  const [teamQuery, setTeamQuery] = useState('');
+  const [conferenceFilter, setConferenceFilter] = useState<ConferenceFilter>('ALL');
+  const [divisionFilter, setDivisionFilter] = useState<DivisionFilter>('ALL');
   const [hasAutosave, setHasAutosave] = useState(false);
   const [loadingAutosave, setLoadingAutosave] = useState(false);
   const [loadingImport, setLoadingImport] = useState(false);
@@ -155,18 +163,38 @@ export function NewGameScreen() {
   const selected = teams.find((team) => team.index === selectedTeam) ?? teams[0]!;
   const selectedDifficulty = DIFFICULTIES.find((item) => item.id === difficulty) ?? DIFFICULTIES[1]!;
   const selectedScenario = scenarios.find((scenario) => scenario.id === selectedScenarioId) ?? scenarios[0] ?? null;
-  const teamGroups = useMemo(
-    () => conferences.map((conference) => ({
-      conference,
-      divisions: divisions
-        .map((division) => ({
-          division,
-          teams: teams.filter((team) => team.conference === conference && team.division === division),
-        }))
-        .filter((group) => group.teams.length > 0),
-    })),
-    [],
+  const normalizedTeamQuery = teamQuery.trim().toLowerCase();
+  const filteredTeams = useMemo(
+    () => teams.filter((team) => {
+      const matchesConference = conferenceFilter === 'ALL' || team.conference === conferenceFilter;
+      const matchesDivision = divisionFilter === 'ALL' || team.division === divisionFilter;
+      const searchHaystack = `${team.abbr} ${team.city} ${team.name} ${team.fullName}`.toLowerCase();
+      const matchesSearch = normalizedTeamQuery.length === 0 || searchHaystack.includes(normalizedTeamQuery);
+      return matchesConference && matchesDivision && matchesSearch;
+    }),
+    [conferenceFilter, divisionFilter, normalizedTeamQuery],
   );
+  const teamGroups = useMemo(
+    () => conferences
+      .map((conference) => ({
+        conference,
+        divisions: divisions
+          .map((division) => ({
+            division,
+            teams: filteredTeams.filter((team) => team.conference === conference && team.division === division),
+          }))
+          .filter((group) => group.teams.length > 0),
+      }))
+      .filter((group) => group.divisions.length > 0),
+    [filteredTeams],
+  );
+  const hasTeamFilters = normalizedTeamQuery.length > 0 || conferenceFilter !== 'ALL' || divisionFilter !== 'ALL';
+
+  const clearTeamFilters = () => {
+    setTeamQuery('');
+    setConferenceFilter('ALL');
+    setDivisionFilter('ALL');
+  };
 
   const startLabel = mode === 'scenario' ? 'Start Challenge' : 'Start Dynasty';
   const launchSummary = mode === 'scenario'
@@ -223,8 +251,58 @@ export function NewGameScreen() {
             </div>
 
             <MfdPanel title="Select Franchise" icon={<Shield size={14} />}>
+              <div className="mfd-team-picker-toolbar">
+                <label className="mfd-team-search-label" htmlFor="mfd-team-search">
+                  <Search size={14} />
+                  Find franchise
+                </label>
+                <input
+                  id="mfd-team-search"
+                  className="mfd-team-search-input"
+                  value={teamQuery}
+                  onChange={(event) => setTeamQuery(event.target.value)}
+                  placeholder="Search city, name, or abbreviation"
+                />
+                <div className="mfd-team-filter-row" role="group" aria-label="Conference filter">
+                  {conferenceFilters.map((filter) => (
+                    <button
+                      key={filter}
+                      type="button"
+                      className="mfd-team-filter-chip"
+                      data-selected={conferenceFilter === filter ? 'true' : 'false'}
+                      aria-pressed={conferenceFilter === filter}
+                      onClick={() => setConferenceFilter(filter)}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
+                <div className="mfd-team-filter-row" role="group" aria-label="Division filter">
+                  {divisionFilters.map((filter) => (
+                    <button
+                      key={filter}
+                      type="button"
+                      className="mfd-team-filter-chip"
+                      data-selected={divisionFilter === filter ? 'true' : 'false'}
+                      aria-pressed={divisionFilter === filter}
+                      onClick={() => setDivisionFilter(filter)}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
+                <div className="mfd-team-filter-status">
+                  <span>{filteredTeams.length} teams shown</span>
+                  {hasTeamFilters ? (
+                    <button type="button" onClick={clearTeamFilters}>
+                      Clear
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
               <div className="mfd-team-board">
-                {teamGroups.map((conferenceGroup) => (
+                {teamGroups.length > 0 ? teamGroups.map((conferenceGroup) => (
                   <section key={conferenceGroup.conference} className="mfd-team-conference">
                     <div className="mfd-team-conference-header">{conferenceGroup.conference}</div>
                     <div className="mfd-team-division-grid">
@@ -256,7 +334,11 @@ export function NewGameScreen() {
                       ))}
                     </div>
                   </section>
-                ))}
+                )) : (
+                  <div className="mfd-team-empty-state">
+                    No franchises match this command filter.
+                  </div>
+                )}
               </div>
             </MfdPanel>
 
@@ -323,104 +405,108 @@ export function NewGameScreen() {
           </section>
 
           <aside className="mfd-new-game-sidecar" aria-label="Launch command card">
-            <PixelPanel title="Command Card" accent="gold">
-              <div className="mfd-selected-team-card">
-                <div className="mfd-selected-team-logo">
-                  <TeamLogo icon={selected.icon} size={92} alt={selected.fullName} />
+            <div className="mfd-launch-primary-command">
+              <PixelPanel title="Next Snap" accent="gold">
+                <div className="mfd-selected-team-card">
+                  <div className="mfd-selected-team-logo">
+                    <TeamLogo icon={selected.icon} size={92} alt={selected.fullName} />
+                  </div>
+                  <div className="mfd-selected-team-copy">
+                    <div className="mfd-selected-team-name">{selected.fullName}</div>
+                    <div className="mfd-selected-team-meta">{selected.conference} {selected.division} // {selectedDifficulty.label}</div>
+                  </div>
+                  <div className="mfd-selected-team-summary">{launchSummary}</div>
                 </div>
-                <div className="mfd-selected-team-copy">
-                  <div className="mfd-selected-team-name">{selected.fullName}</div>
-                  <div className="mfd-selected-team-meta">{selected.conference} {selected.division} // {selectedDifficulty.label}</div>
-                </div>
-                <div className="mfd-selected-team-summary">{launchSummary}</div>
-              </div>
 
-              <div className="mfd-launch-actions">
-                {hasAutosave ? (
+                <div className="mfd-launch-actions">
                   <button
                     type="button"
-                    className="mfd-secondary-launch-button"
-                    disabled={loadingAutosave}
-                    onClick={handleContinue}
+                    className="mfd-primary-launch-button"
+                    onClick={handleStart}
                   >
-                    <Clock3 size={16} />
-                    {loadingAutosave ? 'Loading Latest Autosave...' : 'Continue Latest Autosave'}
+                    <Play size={18} />
+                    {startLabel}
                   </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="mfd-primary-launch-button"
-                  onClick={handleStart}
-                >
-                  <Play size={18} />
-                  {startLabel}
-                </button>
-                <button
-                  type="button"
-                  className="mfd-demo-launch-button"
-                  onClick={handleConventionDemo}
-                >
-                  <Trophy size={16} />
-                  Launch Demo Scenario
-                </button>
-              </div>
-            </PixelPanel>
-
-            <PixelPanel title="Convention Demo" accent="green">
-              <div className="mfd-convention-card">
-                <p>{CONVENTION_SAVE_METADATA.headline}</p>
-                <div className="mfd-new-game-badge-row">
-                  <PixelBadge variant="green">Week {CONVENTION_SAVE_METADATA.week}</PixelBadge>
-                  <PixelBadge variant="gold">Playoff Race</PixelBadge>
+                  {hasAutosave ? (
+                    <button
+                      type="button"
+                      className="mfd-secondary-launch-button"
+                      disabled={loadingAutosave}
+                      onClick={handleContinue}
+                    >
+                      <Clock3 size={16} />
+                      {loadingAutosave ? 'Loading Latest Autosave...' : 'Continue Latest Autosave'}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="mfd-demo-launch-button"
+                    onClick={handleConventionDemo}
+                  >
+                    <Trophy size={16} />
+                    Launch Demo Scenario
+                  </button>
                 </div>
-              </div>
-            </PixelPanel>
+              </PixelPanel>
+            </div>
 
-            <PixelPanel title="Recovery" accent="cyan">
-              <div className="mfd-recovery-card">
-                <p>
-                  Lost browser storage or opening this dynasty on a new machine? Import a portable backup first, then use pasted backup code if the file is unavailable.
-                </p>
-                <input
-                  ref={importFileRef}
-                  type="file"
-                  accept=".mfd,.json,application/json"
-                  onChange={(event) => { void handleImportFile(event); }}
-                  className="mfd-sr-only"
-                  tabIndex={-1}
-                />
-                <PixelButton
-                  accent="cyan"
-                  disabled={loadingImport}
-                  onClick={() => importFileRef.current?.click()}
-                >
-                  <Upload size={14} />
-                  {loadingImport ? 'Importing Backup...' : 'Import Dynasty'}
-                </PixelButton>
-                <label htmlFor="dynasty-import-text" className="mfd-import-label">
-                  Paste backup code
-                </label>
-                <textarea
-                  id="dynasty-import-text"
-                  value={importText}
-                  onChange={(event) => setImportText(event.target.value)}
-                  placeholder="Paste backup code here..."
-                  className="mfd-import-textarea"
-                  aria-describedby="dynasty-import-help"
-                />
-                <div id="dynasty-import-help" className="mfd-import-help">
-                  Current dynasty changes only after the backup validates.
+            <div className="mfd-launch-support-stack">
+              <PixelPanel title="Convention Demo" accent="green">
+                <div className="mfd-convention-card">
+                  <p>{CONVENTION_SAVE_METADATA.headline}</p>
+                  <div className="mfd-new-game-badge-row">
+                    <PixelBadge variant="green">Week {CONVENTION_SAVE_METADATA.week}</PixelBadge>
+                    <PixelBadge variant="gold">Playoff Race</PixelBadge>
+                  </div>
                 </div>
-                <PixelButton
-                  accent="green"
-                  disabled={loadingImport || !importText.trim()}
-                  onClick={handleImportText}
-                >
-                  <FileUp size={14} />
-                  Import Backup Code
-                </PixelButton>
-              </div>
-            </PixelPanel>
+              </PixelPanel>
+
+              <PixelPanel title="Recovery" accent="cyan">
+                <div className="mfd-recovery-card">
+                  <p>
+                    Lost browser storage or opening this dynasty on a new machine? Import a portable backup first, then use pasted backup code if the file is unavailable.
+                  </p>
+                  <input
+                    ref={importFileRef}
+                    type="file"
+                    accept=".mfd,.json,application/json"
+                    onChange={(event) => { void handleImportFile(event); }}
+                    className="mfd-sr-only"
+                    tabIndex={-1}
+                  />
+                  <PixelButton
+                    accent="cyan"
+                    disabled={loadingImport}
+                    onClick={() => importFileRef.current?.click()}
+                  >
+                    <Upload size={14} />
+                    {loadingImport ? 'Importing Backup...' : 'Import Dynasty'}
+                  </PixelButton>
+                  <label htmlFor="dynasty-import-text" className="mfd-import-label">
+                    Paste backup code
+                  </label>
+                  <textarea
+                    id="dynasty-import-text"
+                    value={importText}
+                    onChange={(event) => setImportText(event.target.value)}
+                    placeholder="Paste backup code here..."
+                    className="mfd-import-textarea"
+                    aria-describedby="dynasty-import-help"
+                  />
+                  <div id="dynasty-import-help" className="mfd-import-help">
+                    Current dynasty changes only after the backup validates.
+                  </div>
+                  <PixelButton
+                    accent="green"
+                    disabled={loadingImport || !importText.trim()}
+                    onClick={handleImportText}
+                  >
+                    <FileUp size={14} />
+                    Import Backup Code
+                  </PixelButton>
+                </div>
+              </PixelPanel>
+            </div>
           </aside>
         </div>
       </div>

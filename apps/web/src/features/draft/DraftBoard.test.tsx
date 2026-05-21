@@ -87,6 +87,8 @@ describe('DraftBoard', () => {
     const markup = renderToStaticMarkup(<DraftBoard />);
 
     expect(markup).toContain('DRAFT BOARD');
+    expect(markup).toContain('NEXT CALL');
+    expect(markup).toContain('Make the board pick');
     expect(markup).toContain('51%');
     expect(markup).toContain('Bloodline');
     expect(markup).toContain('balanced');

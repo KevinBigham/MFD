@@ -18,6 +18,8 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 
+const EMPTY_MENTORS: AlumniMentor[] = [];
+
 function specialtyColor(spec: string): string {
   if (spec === 'technique') return 'var(--mfd-gold)';
   if (spec === 'leadership') return 'var(--mfd-cyan)';
@@ -36,7 +38,7 @@ export function AlumniMentorsScreen() {
   const hireMentor = useGameStore((s) => s.actions.hireMentor);
   const fireMentor = useGameStore((s) => s.actions.fireMentor);
 
-  const activeMentors: AlumniMentor[] = game?.activeMentors ?? [];
+  const activeMentors: AlumniMentor[] = game?.activeMentors ?? EMPTY_MENTORS;
   const mentorBudget: number = game?.mentorBudget ?? 2.5;
 
   const availableMentors = useMemo(() => {

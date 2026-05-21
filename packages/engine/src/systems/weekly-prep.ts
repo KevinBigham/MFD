@@ -32,6 +32,14 @@ function addPositionBonus(playerBonuses: Record<string, number>, team: Team, pos
   }
 }
 
+function selectedAgmProfileId(game?: GameState): string | null {
+  if (!game) return null;
+  return game.frontOffice.agmProfileId
+    ?? game.franchiseBlueprint?.agmProfileId
+    ?? game.setupState?.decisions.agmProfileId
+    ?? null;
+}
+
 export function buildOpponentIntel(game: GameState, teamId: string, opponentTeamId: string): OpponentIntel {
   const opponent = game.teams[opponentTeamId];
   if (!opponent) {
@@ -73,7 +81,7 @@ export function buildOpponentIntel(game: GameState, teamId: string, opponentTeam
   };
 }
 
-export function evaluateWeeklyPrep(team: Team, intel: OpponentIntel, plan: WeeklyPrepPlan): WeeklyPrepOutcome {
+export function evaluateWeeklyPrep(team: Team, intel: OpponentIntel, plan: WeeklyPrepPlan, game?: GameState): WeeklyPrepOutcome {
   const clinicMods = getClinicMods(team.clinic);
   const playerBonuses: Record<string, number> = {};
   const reasoning: string[] = [];
@@ -183,6 +191,27 @@ export function evaluateWeeklyPrep(team: Team, intel: OpponentIntel, plan: Weekl
   } else if (plan.specialSituation === 'field_position') {
     readiness += 2;
     teamOvrBonus += 1;
+  }
+
+  if (selectedAgmProfileId(game) === 'coach_d_hardaway') {
+    const offenseAligned = (
+      (plan.offensiveFocus === 'attack_secondary' && intel.attackLane === 'passing')
+      || (plan.offensiveFocus === 'attack_front' && intel.attackLane === 'rushing')
+      || plan.offensiveFocus === 'feed_star'
+    );
+    const defenseAligned = (
+      (plan.defensiveFocus === 'limit_explosive' && intel.defendLane === 'passing')
+      || (plan.defensiveFocus === 'heat_qb' && intel.defendLane === 'passing')
+      || (plan.defensiveFocus === 'stop_run' && intel.defendLane === 'rushing')
+      || plan.defensiveFocus === 'erase_wr1'
+    );
+    const pressureStandard = plan.practiceIntensity === 'full_pads' || plan.specialSituation === 'third_down';
+    if ((offenseAligned || defenseAligned) && pressureStandard) {
+      readiness += 3;
+      teamOvrBonus += 1;
+      addPositionBonus(playerBonuses, team, ['DL', 'LB', 'CB', 'S'], 1);
+      reasoning.push('Coach D edge: aligned scouting plus pressure standards added a modest game-week boost.');
+    }
   }
 
   const outcome: WeeklyPrepOutcome = {

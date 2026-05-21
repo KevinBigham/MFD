@@ -70,6 +70,8 @@ describe('TradeCenter', () => {
     const markup = renderToStaticMarkup(<TradeCenter />);
 
     expect(markup).toContain('TRADE CENTER');
+    expect(markup).toContain('NEXT CALL');
+    expect(markup).toContain('Choose build, block, or hold');
     expect(markup).toContain('TRADE FINDER');
     expect(markup).toContain('Austin Armadillos');
     expect(markup).toContain('Cole Hart');

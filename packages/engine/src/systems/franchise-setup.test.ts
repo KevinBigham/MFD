@@ -419,7 +419,7 @@ describe('franchise setup lifecycle', () => {
   });
 
   it('carries AGM metadata through setup decisions without invalidating progress', () => {
-    let state = hireCoachAndScoutSetupState();
+    const state = hireCoachAndScoutSetupState();
 
     const updated = applySetupDecision(state, {
       agmProfileId: 'marcus_webb',
@@ -619,6 +619,13 @@ describe('franchise setup integration', () => {
     expect((finalized.franchiseBlueprint as any)?.agmProfileId).toBe('coach_d_hardaway');
     expect((finalized.franchiseBlueprint as any)?.agmClosingWords).toContain('OUR year');
     expect((finalized.setupState?.blueprint as any)?.agmProfileId).toBe('coach_d_hardaway');
+    expect(finalized.frontOffice.agmProfileId).toBe('coach_d_hardaway');
+    expect(finalized.ownerMandates?.map((mandate) => [mandate.goalId, mandate.slot])).toEqual([
+      [goalContext.recommendedGoals[0]!.id, 'floor'],
+      [goalContext.recommendedGoals[1]!.id, 'target'],
+      [goalContext.recommendedGoals[2]!.id, 'ceiling'],
+    ]);
+    expect(finalized.handshakes.some((handshake) => handshake.condition.metric === 'owner_mandate')).toBe(true);
   });
 });
 

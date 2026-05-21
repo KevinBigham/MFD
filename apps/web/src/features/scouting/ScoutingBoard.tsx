@@ -19,11 +19,13 @@ import {
   useGameStore,
 } from '../../app/store/game-store';
 import {
+  CommandCallout,
   PixelMetricCard,
   PixelScreenHeader,
   autoGrid,
   display,
   monoSm,
+  navigateTo,
   screenStackStyle,
 } from '../shared/pixelUi';
 import { ComparePlayersModal } from '../player/ComparePlayersModal';
@@ -150,6 +152,24 @@ export function ScoutingBoard() {
             <PixelBadge variant="green">{scoutingDepartment.scouts.length} scouts hired</PixelBadge>
           </>
         )}
+      />
+
+      <CommandCallout
+        title={watchlist.size > 0 ? 'Work the watchlist' : 'Find one need-fit target'}
+        body={watchlist.size > 0
+          ? 'Your board has a focus list. Spend actions where confidence is low before opening the full prospect stack.'
+          : `${needsReport.criticalNeeds.join(', ') || 'No critical needs'} is the first filter. Mark targets before the draft room gets loud.`}
+        accent={watchlist.size > 0 ? 'gold' : 'cyan'}
+        meta={(
+          <>
+            <PixelBadge variant="gold">{scoutingDepartment.privateWorkoutsRemaining} workouts</PixelBadge>
+            <PixelBadge variant="cyan">{watchlist.size} watched</PixelBadge>
+          </>
+        )}
+        actions={[
+          { label: 'Critical Needs', accent: 'green', onClick: () => setCriticalNeedsOnly(true) },
+          { label: 'Draft Board', accent: 'gold', onClick: () => navigateTo('/draft') },
+        ]}
       />
 
       <div style={autoGrid(210)}>

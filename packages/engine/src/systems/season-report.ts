@@ -154,6 +154,51 @@ function financialGrade(team: Team): string {
   return 'D';
 }
 
+function mandateSection(game: GameState, team: Team, year: number): ReportSection | null {
+  const mandates = (game.ownerMandates ?? [])
+    .filter((mandate) => mandate.teamId === team.id && mandate.year === year)
+    .sort((left, right) => left.selectedIndex - right.selectedIndex);
+  if (mandates.length === 0) return null;
+
+  const floor = mandates.find((mandate) => mandate.slot === 'floor');
+  const target = mandates.find((mandate) => mandate.slot === 'target');
+  const ceiling = mandates.find((mandate) => mandate.slot === 'ceiling');
+  const metCount = mandates.filter((mandate) => mandate.status === 'met' || mandate.status === 'exceeded').length;
+  const grade = floor?.status === 'missed'
+    ? 'F'
+    : ceiling?.status === 'exceeded'
+      ? 'A+'
+      : target?.status === 'met' || target?.status === 'exceeded'
+        ? 'A'
+        : metCount >= 2
+          ? 'B+'
+          : 'C';
+  const highlights = mandates.flatMap((mandate) => [
+    mandate.evaluation?.summary ?? `${mandate.label}: ${mandate.progress.label}.`,
+    ...(mandate.evaluation?.agmAdjustment ? [mandate.evaluation.agmAdjustment] : []),
+  ]).slice(0, 6);
+
+  return reportSection(
+    'Owner Mandates',
+    grade,
+    floor?.status === 'missed'
+      ? 'The promised floor was missed, and ownership treated it as a real failure.'
+      : ceiling?.status === 'exceeded'
+        ? 'The season cleared the ceiling mandate and turned the setup promise into a headline.'
+        : target?.status === 'met' || target?.status === 'exceeded'
+          ? 'The target mandate landed and strengthened front-office trust.'
+          : 'The floor survived, but the larger promises still need a stronger follow-through.',
+    highlights,
+    {
+      floor: floor ? `${floor.label}: ${floor.status}` : 'N/A',
+      target: target ? `${target.label}: ${target.status}` : 'N/A',
+      ceiling: ceiling ? `${ceiling.label}: ${ceiling.status}` : 'N/A',
+      ownerApprovalDelta: mandates.reduce((sum, mandate) => sum + (mandate.evaluation?.approvalDelta ?? 0), 0),
+      ownerReputationDelta: mandates.reduce((sum, mandate) => sum + (mandate.evaluation?.ownerReputationDelta ?? 0), 0),
+    },
+  );
+}
+
 export function generateSeasonReport(game: GameState, teamId: string): SeasonReport {
   const team = findTeam(game, teamId);
   const reportYear = seasonYear(game, teamId);
@@ -169,6 +214,7 @@ export function generateSeasonReport(game: GameState, teamId: string): SeasonRep
   const promiseRate = teamHandshakes.length === 0
     ? 100
     : Math.round((teamHandshakes.filter((entry) => entry.status === 'fulfilled').length / Math.max(1, teamHandshakes.length)) * 100);
+  const ownerMandateSection = mandateSection(game, team, reportYear);
 
   const sections: ReportSection[] = [
     reportSection(
@@ -243,6 +289,7 @@ export function generateSeasonReport(game: GameState, teamId: string): SeasonRep
         deadCap: Number(team.deadCap.toFixed(1)),
       },
     ),
+    ...(ownerMandateSection ? [ownerMandateSection] : []),
     reportSection(
       'Fan Engagement',
       bucketGrade(team.owner.approval, [[75, 'A'], [65, 'B+'], [55, 'B'], [45, 'C+'], [35, 'C']], 'D'),

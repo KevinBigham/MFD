@@ -738,7 +738,7 @@ export function GameDayRecap() {
     if (!pendingPressConference) return;
     setActiveTier(pendingPressConference.selectedTier ?? 'mid');
     setPressModalOpen(true);
-  }, [pendingPressConference?.conferenceId]);
+  }, [pendingPressConference]);
 
   if (!team) return null;
   return (

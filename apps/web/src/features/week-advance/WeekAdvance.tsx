@@ -10,6 +10,7 @@ import {
 } from '../../app/store/game-store';
 import {
   PixelConsequenceList,
+  CommandCallout,
   PixelMetricCard,
   PixelScreenHeader,
   autoGrid,
@@ -149,7 +150,7 @@ export function WeekAdvance() {
     } finally {
       setAdvancing(false);
     }
-  }, [advanceWeek, needsGamePlan]);
+  }, [advanceWeek, needsGamePlan, phase, week]);
 
   const advanceLabel = needsGamePlan
     ? 'Prepare Game Plan'
@@ -178,6 +179,29 @@ export function WeekAdvance() {
             <PixelBadge variant={allClear ? 'green' : 'red'}>{allClear ? 'READY' : `${issueCount} FLAGS`}</PixelBadge>
           </>
         )}
+      />
+
+      <CommandCallout
+        title={needsGamePlan ? 'Game plan before the sim' : allClear ? 'Ready to move the league' : 'Own the red flags'}
+        body={needsGamePlan
+          ? 'Weekly prep is the blocking call. Open the plan, save it, then the advance button becomes a clean commit.'
+          : allClear
+            ? 'Checklist is clean. This click turns the current board into standings, injuries, and the next media cycle.'
+            : `${issueCount} review item${issueCount === 1 ? '' : 's'} remain. Fix what matters, or advance with the risk in view.`}
+        accent={needsGamePlan ? 'red' : allClear ? 'green' : 'gold'}
+        meta={(
+          <>
+            <PixelBadge variant={needsGamePlan ? 'red' : 'green'}>
+              {needsGamePlan ? 'Plan missing' : 'Plan ready'}
+            </PixelBadge>
+            <PixelBadge variant={allClear ? 'green' : 'gold'}>{issueCount} flags</PixelBadge>
+          </>
+        )}
+        actions={[
+          needsGamePlan
+            ? { label: 'Open Plan', accent: 'gold' as const, onClick: () => navigateTo('/game-plan') }
+            : { label: advanceLabel, accent: allClear ? 'green' as const : 'gold' as const, onClick: () => void handleAdvance() },
+        ]}
       />
 
       <div style={autoGrid(210)}>

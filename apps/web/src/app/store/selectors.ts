@@ -22,7 +22,6 @@ import type {
   FATargetBoard,
   DashboardState,
   DifficultyState,
-  DraftTradeOffer,
   ExpansionDraftState,
   DraftRecap,
   DraftOrderEntry,
@@ -61,6 +60,7 @@ import type {
   OffFieldEvent,
   OpponentIntel,
   OpponentReport,
+  OwnerMandate,
   NarrativeIntensity,
   PracticeSquadPlayer,
   Player,
@@ -224,6 +224,7 @@ const EMPTY_WAIVER_WIRE: WaiverWireEntry[] = [];
 const EMPTY_WAIVER_CLAIMS: WaiverClaim[] = [];
 const EMPTY_WAIVER_RESULTS: WaiverRunResult[] = [];
 const EMPTY_HANDSHAKES: Handshake[] = [];
+const EMPTY_OWNER_MANDATES: OwnerMandate[] = [];
 const EMPTY_CONDITIONAL_PICKS: ConditionalPick[] = [];
 const EMPTY_STADIUM_DEALS: StadiumDeal[] = [];
 const EMPTY_ALL_DECADE_TEAMS: AllDecadeTeam[] = [];
@@ -812,6 +813,11 @@ export const selectClaimResults = memoByGame((state: GameStoreState) => {
     .filter((result) => result.successfulClaims.length > 0 || result.lostClaims.length > 0 || result.clearedPlayers.length > 0);
 });
 export const selectHandshakes = (state: GameStoreState): Handshake[] => state.game?.handshakes ?? EMPTY_HANDSHAKES;
+export const selectOwnerMandates = (state: GameStoreState): OwnerMandate[] => {
+  const teamId = selectUserTeamId(state);
+  if (!teamId) return EMPTY_OWNER_MANDATES;
+  return (state.game?.ownerMandates ?? EMPTY_OWNER_MANDATES).filter((mandate) => mandate.teamId === teamId);
+};
 export const selectLeagueNews: (state: GameStoreState) => NewsItem[] = memoByGame((state) =>
   state.game ? getRecentNews(state.game, state.game.leagueNews.length) : EMPTY_NEWS);
 export const selectTeamNews: (state: GameStoreState) => NewsItem[] = memoByGame((state) => {

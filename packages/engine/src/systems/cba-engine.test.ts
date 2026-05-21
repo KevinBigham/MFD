@@ -49,7 +49,7 @@ describe('cba engine', () => {
 
   it('narrows the negotiation gap each round deterministically', () => {
     const game = makeLeagueState('offseason', 1);
-    let cba = initCBA(game.year);
+    const cba = initCBA(game.year);
     cba.status = 'negotiating';
     cba.negotiationState = {
       round: 0,

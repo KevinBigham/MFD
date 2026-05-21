@@ -3,8 +3,8 @@ import { ONBOARDING_ANCHOR_LINE, onboardingDialogue } from './onboarding';
 import { MAX_CHIP_DIALOGUE_CHARS, assertDialogueEntry } from './types';
 
 describe('onboardingDialogue', () => {
-  it('contains exactly nine stable onboarding beats', () => {
-    expect(onboardingDialogue).toHaveLength(9);
+  it('contains exactly ten stable onboarding beats', () => {
+    expect(onboardingDialogue).toHaveLength(10);
     expect(onboardingDialogue.map((entry) => entry.id)).toEqual([
       'chip.onboarding.beat-1',
       'chip.onboarding.beat-2',
@@ -15,45 +15,47 @@ describe('onboardingDialogue', () => {
       'chip.onboarding.beat-7',
       'chip.onboarding.beat-8',
       'chip.onboarding.beat-9',
+      'chip.onboarding.beat-10',
     ]);
   });
 
   it('uses one-based beat numbers in order', () => {
-    expect(onboardingDialogue.map((entry) => entry.beat)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(onboardingDialogue.map((entry) => entry.beat)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   });
 
-  it('introduces the companion as Chip', () => {
-    expect(onboardingDialogue[0]?.text).toContain("I'm Chip");
+  it('opens with a restrained operations-chief line', () => {
+    expect(onboardingDialogue[0]?.text).toBe("Doors closed. Board's yours.");
   });
 
-  it('preserves all nine Slice A onboarding lines verbatim', () => {
+  it('preserves the ten phase-mapped onboarding lines verbatim', () => {
     expect(onboardingDialogue.map((entry) => entry.text)).toEqual([
-      "Okay. Good. You're here. I'm Chip. Personal assistant, schedule defender, bad-contract spotter, and the guy who keeps the coffee away from the draft board.",
-      "You're not just picking colors. You're picking your first problem.",
-      ONBOARDING_ANCHOR_LINE,
-      "This is the part nobody sees on Sunday until it's too late. Depth is where a plan becomes a roster.",
-      'A dynasty needs ambition. It also needs a definition of not panicking.',
-      "Culture is easy when you're winning. Pick the rule we follow when the room gets tense.",
-      'There it is. Not a form. A blueprint. Let me run a quick mic check before we put it on the board.',
-      "After this, the game stops asking who you are and starts testing it. I'll check in when something deserves your attention.",
-      "Three places matter right now: the briefing, the roster, and the big button that makes consequences happen. I'm going quiet.",
+      "Doors closed. Board's yours.",
+      'Start with the damage report. Then the leverage.',
+      'This is who you have. Not who you wish.',
+      'Coach sets Sundays. Choose the install you can defend.',
+      'Scouts buy certainty. Spend it where the board is dark.',
+      'Scheme fit beats big name. Every time.',
+      'Depth chart tells the truth before injuries do.',
+      'Cap is strategy, not accounting.',
+      'Owner wants wins. Locker room wants proof.',
+      'Franchise saved. Timestamped.',
     ]);
   });
 
   it('relocates cold-open exposition into Chip context details', () => {
     expect(onboardingDialogue[0]?.contextDetails).toEqual([
-      'Your first morning is not a tutorial. It is a diagnosis.',
-      'Each reveal should make the franchise problem clearer before you walk into the war room.',
+      'First morning is a diagnosis.',
+      'Every reveal should change the board.',
     ]);
   });
 
-  it('contains the locked architectural anchor line on Beat 3', () => {
-    const beat3 = onboardingDialogue[2];
+  it('contains the locked architectural anchor line on the identity beat', () => {
+    const beat6 = onboardingDialogue[5];
 
-    expect(beat3?.anchor).toBe(true);
-    expect(beat3?.text).toContain(ONBOARDING_ANCHOR_LINE);
+    expect(beat6?.anchor).toBe(true);
+    expect(beat6?.contextDetails).toContain(ONBOARDING_ANCHOR_LINE);
     expect(ONBOARDING_ANCHOR_LINE).toBe(
-      'I run your desk. The Assistant GM runs player evaluation. You make the calls.',
+      'Board stays clean. Personnel grades stay separate. Final call stays yours.',
     );
   });
 

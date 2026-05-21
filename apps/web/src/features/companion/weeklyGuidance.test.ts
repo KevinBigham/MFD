@@ -18,9 +18,9 @@ describe('weekly guidance', () => {
     });
 
     expect(guidance.whatChanged).toContain('loss');
-    expect(guidance.topAction).toBe('Open the Inbox before touching the advance button.');
+    expect(guidance.topAction).toBe('Owner-desk decisions come before the advance.');
     expect(guidance.urgent).toContain('2 decisions waiting');
-    expect(guidance.canWait).toContain('Deep legacy screens can wait');
+    expect(guidance.canWait).toContain('Legacy rooms can wait');
     expect(guidance.risk).toContain('Hard difficulty');
     expect(guidance.pose).toBe('frustrated');
   });
@@ -31,13 +31,13 @@ describe('weekly guidance', () => {
       currentWeek: 2,
     });
 
-    expect(guidance.topAction).toBe('Start with the Monday Briefing.');
-    expect(guidance.whyItMatters).toContain('weekly triage');
+    expect(guidance.topAction).toBe('Monday Briefing sets the board.');
+    expect(guidance.whyItMatters).toContain('Briefing is triage');
     expect(guidance.pose).toBe('reviewing-tablet');
     expect(weeklyGuidanceToDialogueEntry(guidance)).toEqual(expect.objectContaining({
       id: 'chip.weekly.guidance.2',
       pose: 'reviewing-tablet',
-      text: expect.stringContaining('Start with the Monday Briefing.'),
+      text: expect.stringContaining('Monday Briefing sets the board.'),
       contextDetails: expect.arrayContaining([
         expect.stringContaining('What changed:'),
         expect.stringContaining('Can wait:'),

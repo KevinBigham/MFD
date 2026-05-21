@@ -240,7 +240,7 @@ export function Chip({
   const pixelSize = CHIP_SIZE_PX[size];
   const fullArt = CHIP_POSE_ART[pose];
   const art = resolveChipPoseArt(pose, size);
-  const label = ariaLabelProp ?? ariaLabel ?? 'Chip, your assistant';
+  const label = ariaLabelProp ?? ariaLabel ?? 'Chip, franchise operations chief';
   const classes = ['mfd-chip', className].filter(Boolean).join(' ');
   const headClasses = `mfd-chip-svg__head mfd-chip-svg__head--${pose}`;
   const motionProfile = CHIP_POSE_MOTION_PROFILE[pose];

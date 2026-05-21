@@ -2,6 +2,7 @@
   "name": "mfd",
   "version": "0.0.1",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "description": "Mr. Football Dynasty - Browser-based football franchise management simulation",
   "scripts": {
     "dev": "pnpm --filter @mfd/web dev",
@@ -27,6 +28,7 @@
     "@typescript-eslint/parser": "^7.18.0",
     "depcheck": "^1.4.7",
     "eslint": "^8.57.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-unused-imports": "^3.2.0",
     "knip": "^6.4.1",
     "madge": "^8.0.0",

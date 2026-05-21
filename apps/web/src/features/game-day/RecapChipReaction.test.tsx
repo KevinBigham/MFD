@@ -65,7 +65,7 @@ describe('RecapChipReaction rendering', () => {
 
     expect(markup).toContain('aria-live="polite"');
     expect(markup).toContain('data-recap-chip-reaction="COMEBACK_WIN"');
-    expect(markup).toContain('Chicago Blaze climbed off the mat and stole it over Detroit Iron 31-28.');
+    expect(markup).toContain('Chicago Blaze stayed in the fight and took it over Detroit Iron 31-28.');
     expect(markup).toContain('data-chip-pose="rallying"');
   });
 
@@ -75,7 +75,7 @@ describe('RecapChipReaction rendering', () => {
       teamName: 'Oakland Anchors',
       userScore: 20,
       opponentScore: 24,
-    })).toBe('Oakland Anchors let the door stay open too long 20-24.');
+    })).toBe('Oakland Anchors left the door open too long 20-24.');
   });
 
   it('compacts after five seconds by default and two seconds in reduced motion', () => {

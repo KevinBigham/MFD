@@ -14,6 +14,7 @@ import { ComparePlayersModal } from '../player/ComparePlayersModal';
 import { WatchListPinButton } from '../watch-list/WatchListPinButton';
 import {
   PixelConsequenceList,
+  CommandCallout,
   PixelMetricCard,
   PlayerNameLink,
   PixelScreenHeader,
@@ -21,6 +22,7 @@ import {
   display,
   mono,
   monoSm,
+  navigateTo,
   screenStackStyle,
 } from '../shared/pixelUi';
 
@@ -329,6 +331,28 @@ export function RosterManagement() {
             <PixelBadge variant="cyan">{starters} starters</PixelBadge>
           </>
         )}
+      />
+
+      <CommandCallout
+        title={exhaustedPlayers > 0 ? 'Clear red-zone workloads first' : starters < 22 ? 'Find the missing starters' : 'Work from the player rows'}
+        body={exhaustedPlayers > 0
+          ? `${exhaustedPlayers} exhausted player${exhaustedPlayers === 1 ? '' : 's'} need a training or role call before Sunday prep.`
+          : starters < 22
+            ? `The roster only has ${starters}/22 starters marked. Fix the lineup before reading every contract cell.`
+            : 'Roster is legal enough to scan by exception: fatigue, training focus, then one player action at a time.'}
+        accent={exhaustedPlayers > 0 ? 'red' : starters < 22 ? 'gold' : 'cyan'}
+        meta={(
+          <>
+            <PixelBadge variant="gold">{activeRosterCount}/53 active</PixelBadge>
+            <PixelBadge variant={fatiguedPlayers + exhaustedPlayers > 0 ? 'gold' : 'green'}>
+              {fatiguedPlayers + exhaustedPlayers} fatigue flags
+            </PixelBadge>
+          </>
+        )}
+        actions={[
+          { label: 'Open Depth', accent: 'gold', onClick: () => navigateTo('/depth-chart') },
+          { label: 'Open Plan', accent: 'cyan', onClick: () => navigateTo('/game-plan') },
+        ]}
       />
 
       <div className="mfd-roster-summary-grid" style={autoGrid(155)}>

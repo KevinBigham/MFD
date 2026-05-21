@@ -4,19 +4,25 @@ import { getRegisteredVersions, migrate } from './migrations';
 import { SaveStateSchema } from './schema';
 import v34Fixture from './fixtures/v34.json';
 
-function stripSprint67Additions(state: Record<string, unknown>): Record<string, unknown> {
+function stripCurrentAdditions(state: Record<string, unknown>): Record<string, unknown> {
   const clone = structuredClone(state);
   delete clone['version'];
   delete clone['mediaCycle'];
   delete clone['storylineThreads'];
+  delete clone['ownerMandates'];
+  const frontOffice = clone['frontOffice'];
+  if (frontOffice && typeof frontOffice === 'object') {
+    delete (frontOffice as Record<string, unknown>)['agmProfileId'];
+    delete (frontOffice as Record<string, unknown>)['agmImpactLog'];
+  }
   return clone;
 }
 
 describe('save migrations', () => {
-  it('migrates the v34 fixture to save version 35', () => {
+  it('migrates the v34 fixture to the current save version', () => {
     const migrated = migrate(structuredClone(v34Fixture) as Record<string, unknown>, SAVE_VERSION);
 
-    expect(migrated['version']).toBe(35);
+    expect(migrated['version']).toBe(SAVE_VERSION);
     expect(migrated['mediaCycle']).toEqual({
       weeklyDigests: [],
       powerRankingHistory: [],
@@ -36,7 +42,7 @@ describe('save migrations', () => {
   it('preserves every pre-existing v34 fixture field byte-identically', () => {
     const migrated = migrate(structuredClone(v34Fixture) as Record<string, unknown>, SAVE_VERSION);
 
-    expect(stripSprint67Additions(migrated)).toEqual({
+    expect(stripCurrentAdditions(migrated)).toEqual({
       ...structuredClone(v34Fixture),
       version: undefined,
     });
@@ -48,13 +54,15 @@ describe('save migrations', () => {
 
     expect(parsed.success).toBe(true);
     if (parsed.success) {
-      expect(parsed.data.version).toBe(35);
+      expect(parsed.data.version).toBe(SAVE_VERSION);
       expect(parsed.data.mediaCycle.weeklyDigests).toEqual([]);
       expect(parsed.data.storylineThreads).toEqual([]);
+      expect(parsed.data.ownerMandates).toEqual([]);
+      expect(parsed.data.frontOffice.agmProfileId).toBeNull();
     }
   });
 
-  it('keeps the migration chain continuous from 1 through 34', () => {
-    expect(getRegisteredVersions()).toEqual(Array.from({ length: 34 }, (_, index) => index + 1));
+  it('keeps the migration chain continuous from 1 through current version minus one', () => {
+    expect(getRegisteredVersions()).toEqual(Array.from({ length: SAVE_VERSION - 1 }, (_, index) => index + 1));
   });
 });

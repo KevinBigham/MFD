@@ -220,7 +220,7 @@ describe('Chip', () => {
     );
 
     expect(defaultRoot.props.role).toBe('img');
-    expect(defaultRoot.props['aria-label']).toBe('Chip, your assistant');
+    expect(defaultRoot.props['aria-label']).toBe('Chip, franchise operations chief');
     expect(customRoot.props['aria-label']).toBe('Chip points at the team picker');
   });
 

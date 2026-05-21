@@ -23,7 +23,7 @@ export function getPressConferenceChipPose(
   if (lockedIn) return 'fist-bump';
   if (reducedMotion) return 'reviewing-tablet';
   if (tier === 'high') return 'skeptical';
-  if (tier === 'low') return 'coffee-sip';
+  if (tier === 'low') return 'note-taking';
   return 'reviewing-tablet';
 }
 

@@ -232,7 +232,7 @@ export function ChipDialogueBubble({
       onClick={handleSkip}
     >
       <div className="mfd-chip-bubble__header">
-        <div className="mfd-chip-bubble__stamp">DYNASTY DESK // CHIP</div>
+        <div className="mfd-chip-bubble__stamp">FRANCHISE OPS // CHIP</div>
         <div className="mfd-chip-bubble__signal" aria-hidden="true">
           <span />
           <span />

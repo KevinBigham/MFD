@@ -9,10 +9,15 @@ type AdvanceWeekWithShot = ReturnType<typeof advanceFranchiseWeek> & {
 };
 
 function getUserGameResult(nextState: GameState): GameResult {
-  return nextState.schedule
+  const userGame = nextState.schedule
     .flatMap((entry) => entry.games)
-    .find((game) => game.homeTeamId === 'afce1' || game.awayTeamId === 'afce1')
-    ?.result!;
+    .find((game) => game.homeTeamId === 'afce1' || game.awayTeamId === 'afce1');
+
+  if (userGame?.result === undefined) {
+    throw new Error('Expected the user game to have a result after advancing the week.');
+  }
+
+  return userGame.result;
 }
 
 function setTeamStrength(game: GameState, teamId: string, ovr: number): void {

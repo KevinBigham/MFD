@@ -52,7 +52,7 @@ function poseFor(outcome: WeeklyDialogueVariant): DialogueCatalogEntry['pose'] {
   if (outcome === 'cleanWin' || outcome === 'championship') return 'proud';
   if (outcome === 'uglyWin') return 'pointing-at-tape';
   if (outcome === 'playoffs') return 'rallying';
-  if (outcome === 'preseason') return 'coffee-sip';
+  if (outcome === 'preseason') return 'reviewing-tablet';
   if (outcome === 'loss') return 'frustrated';
   if (outcome === 'blowoutLoss' || outcome === 'threeLossStreak') {
     return 'head-in-hands';
@@ -67,31 +67,31 @@ export function buildWeeklyGuidance(input: WeeklyGuidanceInput): WeeklyGuidance 
   const capSpace = input.capSpace;
   const hard = input.difficulty?.toLowerCase() === 'hard';
   const topAction = pending > 0
-    ? 'Open the Inbox before touching the advance button.'
+    ? 'Owner-desk decisions come before the advance.'
     : injuries > 0
-      ? 'Check the roster and depth chart before setting the game plan.'
-      : 'Start with the Monday Briefing.';
+      ? 'Roster and depth chart come before the game plan.'
+      : 'Monday Briefing sets the board.';
   const urgent = pending > 0
     ? `${pending} decisions waiting need a yes, no, or later.`
     : injuries > 0
-      ? `${injuries} injured players can change the depth chart.`
-      : 'No single fire is louder than the weekly briefing yet.';
+      ? `${injuries} injuries can change Sunday.`
+      : 'No single fire outranks the briefing.';
   const risk = hard
-    ? 'Hard difficulty punishes unresolved roster and plan mistakes faster.'
+    ? 'Hard difficulty punishes loose roster and plan work.'
     : capSpace !== undefined && capSpace < 8
-      ? 'Cap room is tight, so short-term fixes need a future bill check.'
-      : 'Uncertainty is normal; make the next football decision before chasing every screen.';
+      ? 'Cap room is tight. Short-term fixes need contract-year math.'
+      : 'Make the next football decision before chasing every screen.';
 
   return {
     id: `chip.weekly.guidance.${Math.max(0, Math.trunc(input.currentWeek))}`,
     pose: poseFor(input.outcome),
     whatChanged: `Week ${input.currentWeek}: ${outcomeLabel(input.outcome)}${input.record ? `, record ${input.record}` : ''}.`,
     whyItMatters: input.opponentName
-      ? `${input.opponentName} is next, so weekly triage has to become a game-plan choice.`
-      : 'The Monday Briefing is the weekly triage board before deeper screens matter.',
+      ? `${input.opponentName} is next. Triage becomes a game-plan choice.`
+      : 'Briefing is triage before deeper rooms matter.',
     topAction,
     urgent,
-    canWait: 'Deep legacy screens can wait until the briefing, roster, plan, and advance checks are clean.',
+    canWait: 'Legacy rooms can wait until briefing, roster, plan, and advance are clean.',
     risk,
   };
 }

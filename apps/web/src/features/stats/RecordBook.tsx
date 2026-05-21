@@ -10,7 +10,7 @@ import {
   PixelSelect,
   PixelTable,
 } from '@mfd/design-system/components';
-import type { Position, RecordBook as RecordBookType, RecordCategory, RecordEntry } from '@mfd/engine';
+import type { Player, Position, RecordBook as RecordBookType, RecordCategory, RecordEntry, Team } from '@mfd/engine';
 import {
   selectRecords,
   useGameStore,
@@ -24,6 +24,9 @@ const screenStyle = {
   flexDirection: 'column',
   gap: '16px',
 } as const;
+
+const EMPTY_TEAMS: Record<string, Team> = {};
+const EMPTY_PLAYERS: Record<string, Player> = {};
 
 const tabOptions: Array<{ id: RecordCategory; label: string }> = [
   { id: 'singleGame', label: 'Single Game' },
@@ -117,8 +120,8 @@ export default function RecordBook() {
   const [positionFilter, setPositionFilter] = useState('ALL');
   const [selectedStat, setSelectedStat] = useState<string | null>(null);
 
-  const teams = game?.teams ?? {};
-  const players = game?.players ?? {};
+  const teams = game?.teams ?? EMPTY_TEAMS;
+  const players = game?.players ?? EMPTY_PLAYERS;
   const currentYear = game?.year ?? 0;
   const teamAbbrs = useMemo(
     () => Object.fromEntries(Object.values(teams).map((team) => [team.id, team.abbr])),

@@ -27,7 +27,7 @@ export function SetupColdOpen({
 
   if (showRecap) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', justifyContent: 'center' }}>
+      <div className="mfd-setup-cold-open mfd-setup-cold-open--recap">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <PixelPanel accent="gold" padding="lg" style={{ flex: 1 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -52,12 +52,21 @@ export function SetupColdOpen({
             </PixelPanel>
           ))}
         </div>
+
+        <PixelPanel accent="cyan" padding="md">
+          <div className="mfd-setup-cold-open__next">
+            <div style={{ ...pixelSm, color: 'var(--mfd-cyan)' }}>DECISION UP NEXT</div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.55 }}>
+              Hire the Assistant GM who best matches the first fire in the room.
+            </div>
+          </div>
+        </PixelPanel>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', height: '100%', justifyContent: 'center' }}>
+    <div className="mfd-setup-cold-open">
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>COMMAND CENTER CRISIS ROOM</div>
         {onSkip ? <PixelButton accent="default" onClick={onSkip}>Skip Intro</PixelButton> : null}
@@ -71,6 +80,15 @@ export function SetupColdOpen({
           </div>
           <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
             {coldOpen.openerLabel}
+          </div>
+        </div>
+      </PixelPanel>
+
+      <PixelPanel accent="cyan" padding="md">
+        <div className="mfd-setup-cold-open__next">
+          <div style={{ ...pixelSm, color: 'var(--mfd-cyan)' }}>DECISION UP NEXT</div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.55 }}>
+            The AGM hire comes next; every beat is pressure you will assign to that room.
           </div>
         </div>
       </PixelPanel>

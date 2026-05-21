@@ -1,0 +1,294 @@
+[
+  {
+    "bottomNavRect": null,
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": false,
+    "chipRect": {
+      "bottom": 698,
+      "height": 325,
+      "right": 1243,
+      "width": 328,
+      "x": 915,
+      "y": 373
+    },
+    "chipState": "expanded",
+    "commandQueueRect": null,
+    "hasHorizontalOverflow": false,
+    "nextCallRect": {
+      "bottom": 529,
+      "height": 183,
+      "right": 911,
+      "width": 865,
+      "x": 46,
+      "y": 346
+    },
+    "route": "/power-rankings",
+    "routeKey": "power-rankings",
+    "scrollHeight": 1174,
+    "scrollWidth": 1265,
+    "title": "POWER RANKINGS",
+    "url": "http://127.0.0.1:5173/MFD/#/power-rankings",
+    "viewportName": "desktop",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-power-rankings-desktop.png",
+    "signalFound": true
+  },
+  {
+    "bottomNavRect": {
+      "bottom": 844,
+      "height": 51,
+      "right": 375,
+      "width": 375,
+      "x": 0,
+      "y": 793
+    },
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": false,
+    "chipRect": {
+      "bottom": 780,
+      "height": 70,
+      "right": 365,
+      "width": 70,
+      "x": 295,
+      "y": 710
+    },
+    "chipState": "collapsed",
+    "commandQueueRect": null,
+    "hasHorizontalOverflow": false,
+    "nextCallRect": {
+      "bottom": 453,
+      "height": 258,
+      "right": 359,
+      "width": 343,
+      "x": 16,
+      "y": 195
+    },
+    "route": "/power-rankings",
+    "routeKey": "power-rankings",
+    "scrollHeight": 1250,
+    "scrollWidth": 375,
+    "title": "POWER RANKINGS",
+    "url": "http://127.0.0.1:5173/MFD/#/power-rankings",
+    "viewportName": "mobile",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-power-rankings-mobile.png",
+    "signalFound": true
+  },
+  {
+    "bottomNavRect": null,
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": false,
+    "chipRect": {
+      "bottom": 698,
+      "height": 325,
+      "right": 1243,
+      "width": 328,
+      "x": 915,
+      "y": 373
+    },
+    "chipState": "expanded",
+    "commandQueueRect": null,
+    "hasHorizontalOverflow": false,
+    "nextCallRect": {
+      "bottom": 529,
+      "height": 183,
+      "right": 911,
+      "width": 865,
+      "x": 46,
+      "y": 346
+    },
+    "route": "/scouting",
+    "routeKey": "scouting",
+    "scrollHeight": 1986,
+    "scrollWidth": 1265,
+    "title": "SCOUTING BOARD",
+    "url": "http://127.0.0.1:5173/MFD/#/scouting",
+    "viewportName": "desktop",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-scouting-desktop.png",
+    "signalFound": true
+  },
+  {
+    "bottomNavRect": {
+      "bottom": 844,
+      "height": 51,
+      "right": 375,
+      "width": 375,
+      "x": 0,
+      "y": 793
+    },
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": false,
+    "chipRect": {
+      "bottom": 780,
+      "height": 70,
+      "right": 365,
+      "width": 70,
+      "x": 295,
+      "y": 710
+    },
+    "chipState": "collapsed",
+    "commandQueueRect": null,
+    "hasHorizontalOverflow": false,
+    "nextCallRect": {
+      "bottom": 496,
+      "height": 241,
+      "right": 359,
+      "width": 343,
+      "x": 16,
+      "y": 255
+    },
+    "route": "/scouting",
+    "routeKey": "scouting",
+    "scrollHeight": 2532,
+    "scrollWidth": 375,
+    "title": "SCOUTING BOARD",
+    "url": "http://127.0.0.1:5173/MFD/#/scouting",
+    "viewportName": "mobile",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-scouting-mobile.png",
+    "signalFound": true
+  },
+  {
+    "bottomNavRect": null,
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": false,
+    "chipRect": {
+      "bottom": 698,
+      "height": 325,
+      "right": 1243,
+      "width": 328,
+      "x": 915,
+      "y": 373
+    },
+    "chipState": "expanded",
+    "commandQueueRect": null,
+    "hasHorizontalOverflow": false,
+    "nextCallRect": {
+      "bottom": 529,
+      "height": 183,
+      "right": 911,
+      "width": 865,
+      "x": 46,
+      "y": 346
+    },
+    "route": "/draft",
+    "routeKey": "draft",
+    "scrollHeight": 1782,
+    "scrollWidth": 1265,
+    "title": "DRAFT BOARD",
+    "url": "http://127.0.0.1:5173/MFD/#/draft",
+    "viewportName": "desktop",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-draft-desktop.png",
+    "signalFound": true
+  },
+  {
+    "bottomNavRect": {
+      "bottom": 844,
+      "height": 51,
+      "right": 375,
+      "width": 375,
+      "x": 0,
+      "y": 793
+    },
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": false,
+    "chipRect": {
+      "bottom": 780,
+      "height": 70,
+      "right": 365,
+      "width": 70,
+      "x": 295,
+      "y": 710
+    },
+    "chipState": "collapsed",
+    "commandQueueRect": null,
+    "hasHorizontalOverflow": false,
+    "nextCallRect": {
+      "bottom": 416,
+      "height": 258,
+      "right": 359,
+      "width": 343,
+      "x": 16,
+      "y": 158
+    },
+    "route": "/draft",
+    "routeKey": "draft",
+    "scrollHeight": 2016,
+    "scrollWidth": 375,
+    "title": "DRAFT BOARD",
+    "url": "http://127.0.0.1:5173/MFD/#/draft",
+    "viewportName": "mobile",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-draft-mobile.png",
+    "signalFound": true
+  },
+  {
+    "bottomNavRect": null,
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": false,
+    "chipRect": {
+      "bottom": 698,
+      "height": 325,
+      "right": 1243,
+      "width": 328,
+      "x": 915,
+      "y": 373
+    },
+    "chipState": "expanded",
+    "commandQueueRect": null,
+    "hasHorizontalOverflow": false,
+    "nextCallRect": {
+      "bottom": 529,
+      "height": 183,
+      "right": 911,
+      "width": 865,
+      "x": 46,
+      "y": 346
+    },
+    "route": "/trades",
+    "routeKey": "trades",
+    "scrollHeight": 1656,
+    "scrollWidth": 1265,
+    "title": "TRADE CENTER",
+    "url": "http://127.0.0.1:5173/MFD/#/trades",
+    "viewportName": "desktop",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-trades-desktop.png",
+    "signalFound": true
+  },
+  {
+    "bottomNavRect": {
+      "bottom": 844,
+      "height": 51,
+      "right": 375,
+      "width": 375,
+      "x": 0,
+      "y": 793
+    },
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": false,
+    "chipRect": {
+      "bottom": 780,
+      "height": 70,
+      "right": 365,
+      "width": 70,
+      "x": 295,
+      "y": 710
+    },
+    "chipState": "collapsed",
+    "commandQueueRect": null,
+    "hasHorizontalOverflow": false,
+    "nextCallRect": {
+      "bottom": 496,
+      "height": 241,
+      "right": 359,
+      "width": 343,
+      "x": 16,
+      "y": 255
+    },
+    "route": "/trades",
+    "routeKey": "trades",
+    "scrollHeight": 1942,
+    "scrollWidth": 375,
+    "title": "TRADE CENTER",
+    "url": "http://127.0.0.1:5173/MFD/#/trades",
+    "viewportName": "mobile",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-trades-mobile.png",
+    "signalFound": true
+  }
+]

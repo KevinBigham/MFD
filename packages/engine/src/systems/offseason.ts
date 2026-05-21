@@ -18,6 +18,7 @@ import { replenishFacilityBudget } from './facilities';
 import { applyTeamPhilosophies } from './ai-philosophy';
 import { reevaluateLeagueStrategies } from './gm-strategies';
 import { evaluateHandshakes } from './handshake-ledger';
+import { evaluateOwnerMandates } from './owner-goals';
 import { inductHallOfFame } from './hall-of-fame';
 import { syncPlayerArchiveEntry } from './history';
 import { generateMedicalStaffPool } from './injury-system';
@@ -1048,6 +1049,7 @@ export function advanceOffseason(game: GameState, aiBias?: AIBiasConfig): void {
     });
   }
   resolveConditions(game);
+  evaluateOwnerMandates(game);
   evaluateHandshakes(game);
   updateSeasonRecords(game, seasonYear);
   updateCareerRecords(game, seasonYear);

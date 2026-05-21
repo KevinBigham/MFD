@@ -81,7 +81,7 @@ describe('PressConferenceModal', () => {
   it('maps press tier severity to deterministic Chip poses', () => {
     expect(getPressConferenceChipPose('high', false)).toBe('skeptical');
     expect(getPressConferenceChipPose('mid', false)).toBe('reviewing-tablet');
-    expect(getPressConferenceChipPose('low', false)).toBe('coffee-sip');
+    expect(getPressConferenceChipPose('low', false)).toBe('note-taking');
     expect(getPressConferenceChipPose('high', true)).toBe('fist-bump');
   });
 

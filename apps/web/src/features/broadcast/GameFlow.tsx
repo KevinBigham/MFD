@@ -253,6 +253,16 @@ export function GameFlowView({
 
 export function GameFlow() {
   const latestBroadcast = useGameStore(selectLatestBroadcast);
+  const analysis = useMemo(
+    () => (latestBroadcast
+      ? analyzeGameFlow(
+        latestBroadcast.broadcast,
+        latestBroadcast.gameResult.homeTeamId,
+        latestBroadcast.gameResult.awayTeamId,
+      )
+      : null),
+    [latestBroadcast],
+  );
 
   if (!latestBroadcast) {
     return (
@@ -265,12 +275,9 @@ export function GameFlow() {
     );
   }
 
-  const { broadcast, gameResult, homeTeam, awayTeam } = latestBroadcast;
+  if (analysis === null) return null;
 
-  const analysis = useMemo(
-    () => analyzeGameFlow(broadcast, gameResult.homeTeamId, gameResult.awayTeamId),
-    [broadcast, gameResult.homeTeamId, gameResult.awayTeamId],
-  );
+  const { homeTeam, awayTeam } = latestBroadcast;
 
   return (
     <GameFlowView

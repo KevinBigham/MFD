@@ -20,7 +20,7 @@ describe('ChipDialogueBubble', () => {
       />,
     );
 
-    expect(markup).toContain('DYNASTY DESK // CHIP');
+    expect(markup).toContain('FRANCHISE OPS // CHIP');
     expect(markup).toContain('Clipboard says this roster can win now.');
     expect(markup).toContain('aria-label="Clipboard says this roster can win now. My stomach says check the cap first."');
     expect(markup).toContain('data-chip-bubble-pointer="right"');

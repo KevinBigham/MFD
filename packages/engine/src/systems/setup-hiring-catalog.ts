@@ -32,7 +32,7 @@ const COACH_CANDIDATES: readonly CoachCandidate[] = [
     id: 'elias_rowe',
     name: 'Elias Rowe',
     age: 52,
-    background: 'Former playoff bench boss who scripts three innings ahead and treats matchup prep like an operations manual.',
+    background: 'Former playoff head coach who scripts three series ahead and treats matchup prep like an operations manual.',
     archetype: 'strategist',
     schemePreference: { offense: 'west_coast', defense: 'cover_3' },
     strengths: ['Weekly game planning', 'Situational discipline', 'Coordinator alignment'],

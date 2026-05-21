@@ -15,9 +15,9 @@ import { onboardingDialogue } from './dialogue/onboarding';
 import { useChipStore } from './store';
 
 const stages = [
-  { id: 'chip.onboarding.beat-1', label: 'Cold Open', content: <div>Cold stage</div> },
-  { id: 'chip.onboarding.beat-2', label: 'Team Select', content: <div>Team stage</div> },
-  { id: 'chip.onboarding.beat-3', label: 'AGM Hire', content: <div>AGM stage</div> },
+  { id: 'chip.onboarding.beat-1', label: 'Choose AGM', content: <div>Cold stage</div>, spotlightStageId: 'cold-open' },
+  { id: 'chip.onboarding.beat-2', label: 'Franchise Intel', content: <div>Intel stage</div>, spotlightStageId: 'intel-briefing' },
+  { id: 'chip.onboarding.beat-3', label: 'Meet Players', content: <div>Roster stage</div>, spotlightStageId: 'roster-overview' },
 ];
 
 class MemoryStorage implements Storage {
@@ -87,7 +87,7 @@ describe('ChipHost', () => {
     );
 
     expect(markup).toContain('data-wizard="setup"');
-    expect(markup).not.toContain('DYNASTY DESK // CHIP');
+    expect(markup).not.toContain('FRANCHISE OPS // CHIP');
   });
 
   it('renders Chip, a broadcast bubble, controls, and children after the reveal completes', () => {
@@ -100,14 +100,15 @@ describe('ChipHost', () => {
     );
 
     expect(markup).toContain('data-chip-host="true"');
-    expect(markup).toContain('Chip, your assistant');
-    expect(markup).toContain('DYNASTY DESK // CHIP');
+    expect(markup).toContain('Chip, franchise operations chief');
+    expect(markup).toContain('FRANCHISE OPS // CHIP');
     expect(markup).toContain('data-chip-host-portrait="true"');
-    expect(markup).toContain('Your first morning is not a tutorial. It is a diagnosis.');
-    expect(markup).toContain('Each reveal should make the franchise problem clearer');
-    expect(markup).toContain('Click the gold button when ready.');
+    expect(markup).toContain("Doors closed. Board&#x27;s yours.");
+    expect(markup).toContain('First morning is a diagnosis.');
+    expect(markup).toContain('Every reveal should change the board.');
+    expect(markup).toContain('No note. Work the board.');
     expect(markup).not.toContain('Continue</button>');
-    expect(markup).toContain('Skip');
+    expect(markup).toContain('Quiet');
     expect(markup).toContain('data-wizard="setup"');
   });
 
@@ -123,8 +124,8 @@ describe('ChipHost', () => {
     expect(markup).toContain('data-chip-host-reveal="hidden"');
     expect(markup).toContain('data-chip-host-reveal-portrait="true"');
     expect(markup).toContain('data-chip-pose="wave"');
-    expect(markup).not.toContain('Your first morning is not a tutorial. It is a diagnosis.');
-    expect(markup).not.toContain('Click the gold button when ready.');
+    expect(markup).not.toContain('First morning is a diagnosis.');
+    expect(markup).not.toContain('No note. Work the board.');
     expect(markup).not.toContain('data-mfd-spotlight');
   });
 
@@ -134,7 +135,7 @@ describe('ChipHost', () => {
     replayOnboardingBeat(onboardingDialogue[0]!, { showDialogue });
 
     expect(showDialogue).toHaveBeenCalledWith('chip.onboarding.beat-1', {
-      pose: 'wave',
+      pose: 'reviewing-tablet',
       context: 'onboarding',
     });
   });
@@ -150,15 +151,16 @@ describe('ChipHost', () => {
   });
 
   it('advances beats only when a matching wizard stage advances', () => {
-    expect(resolveBeatIndexForStageAdvance(0, 'intel-briefing', 9)).toBe(0);
-    expect(resolveBeatIndexForStageAdvance(0, 'agm-hire', 9)).toBe(2);
-    expect(resolveBeatIndexForStageAdvance(2, 'depth-chart', 9)).toBe(3);
+    expect(resolveBeatIndexForStageAdvance(0, 'agm-hire', 10)).toBe(0);
+    expect(resolveBeatIndexForStageAdvance(0, 'intel-briefing', 10)).toBe(1);
+    expect(resolveBeatIndexForStageAdvance(1, 'roster-overview', 10)).toBe(2);
+    expect(resolveBeatIndexForStageAdvance(2, 'depth-chart', 10)).toBe(6);
   });
 
   it('advances onboarding beats by user action boundaries only', () => {
-    expect(advanceOnboardingBeat(0, 9)).toBe(1);
-    expect(advanceOnboardingBeat(7, 9)).toBe(8);
-    expect(advanceOnboardingBeat(8, 9)).toBe(8);
+    expect(advanceOnboardingBeat(0, 10)).toBe(1);
+    expect(advanceOnboardingBeat(8, 10)).toBe(9);
+    expect(advanceOnboardingBeat(9, 10)).toBe(9);
   });
 
   it('persists skip state in localStorage-compatible storage', () => {
@@ -188,7 +190,7 @@ describe('ChipHost', () => {
 
     expect(markup).toContain('data-chip-motion="reduced"');
     expect(markup).not.toContain('data-chip-host-reveal=');
-    expect(markup).toContain('Your first morning is not a tutorial. It is a diagnosis.');
+    expect(markup).toContain('First morning is a diagnosis.');
     expect(markup).not.toContain('mfd-chip-bubble__caret');
   });
 

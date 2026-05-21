@@ -9,7 +9,7 @@ import {
   PixelSelect,
   PixelTable,
 } from '@mfd/design-system/components';
-import type { Position } from '@mfd/engine';
+import type { Position, Team } from '@mfd/engine';
 import {
   selectCareerStatLeaders,
   selectLeagueAverages,
@@ -27,6 +27,8 @@ const screenStyle = {
   flexDirection: 'column',
   gap: '16px',
 } as const;
+
+const EMPTY_TEAMS: Record<string, Team> = {};
 
 const tabOptions = [
   { value: 'leaders', label: 'League Leaders' },
@@ -76,7 +78,7 @@ function currentSeasonYear(gameYear: number, phase: string | undefined): number 
 
 export default function StatCentral() {
   const game = useGameStore((state) => state.game);
-  const teams = useGameStore(selectTeams) ?? {};
+  const teams = useGameStore(selectTeams) ?? EMPTY_TEAMS;
   const userTeamId = useGameStore(selectUserTeamId);
   const [activeTab, setActiveTab] = useState<(typeof tabOptions)[number]['value']>('leaders');
   const [selectedStat, setSelectedStat] = useState('passYds');

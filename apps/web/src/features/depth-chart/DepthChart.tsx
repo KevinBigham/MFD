@@ -15,10 +15,12 @@ import {
 import {
   PixelMetricCard,
   PixelScreenHeader,
+  CommandCallout,
   PlayerNameLink,
   autoGrid,
   display,
   monoSm,
+  navigateTo,
   pixel,
   screenStackStyle,
 } from '../shared/pixelUi';
@@ -141,6 +143,27 @@ export function DepthChart() {
             <PixelBadge variant={injuryCount > 0 ? 'red' : 'green'}>{injuryCount} injuries</PixelBadge>
           </>
         )}
+      />
+
+      <CommandCallout
+        title={starters < 22 ? 'Fill every starting slot' : battles.length > 0 ? 'Settle the live battles' : 'Confirm return roles'}
+        body={starters < 22
+          ? `${starters}/22 starters are marked. Start with the side toggle, then open the thinnest room.`
+          : battles.length > 0
+            ? `${battles.length} room${battles.length === 1 ? '' : 's'} still have a live competition. Pick the battle before changing the whole board.`
+            : 'The first unit is set. Check special teams, then carry the lineup into weekly prep.'}
+        accent={starters < 22 ? 'red' : battles.length > 0 ? 'gold' : 'green'}
+        meta={(
+          <>
+            <PixelBadge variant="gold">{starters}/22 starters</PixelBadge>
+            <PixelBadge variant={battles.length > 0 ? 'gold' : 'green'}>{battles.length} battles</PixelBadge>
+          </>
+        )}
+        actions={[
+          { label: 'Offense Rooms', accent: 'cyan', onClick: () => setSide('OFF') },
+          { label: 'Defense Rooms', accent: 'green', onClick: () => setSide('DEF') },
+          { label: 'Open Plan', accent: 'gold', onClick: () => navigateTo('/game-plan') },
+        ]}
       />
 
       <div style={autoGrid(220)}>

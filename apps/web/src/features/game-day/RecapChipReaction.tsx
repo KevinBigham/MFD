@@ -120,25 +120,25 @@ export function buildRecapChipCopy({
 
   switch (outcome) {
     case 'BLOWOUT_WIN':
-      return `${teamName} turned it into a statement${opponent}${score}`;
+      return `${teamName} made the standard visible${opponent}${score}`;
     case 'CLOSE_WIN':
-      return `${teamName} survived the final snap${opponent}${score}`;
+      return `${teamName} held the final snap${opponent}${score}`;
     case 'OT_WIN':
-      return `${teamName} needed bonus football and cashed it${opponent}${score}`;
+      return `${teamName} handled overtime leverage${opponent}${score}`;
     case 'COMEBACK_WIN':
-      return `${teamName} climbed off the mat and stole it${opponent}${score}`;
+      return `${teamName} stayed in the fight and took it${opponent}${score}`;
     case 'BLOWOUT_LOSS':
-      return `${teamName} took a hard one${score}`;
+      return `${teamName} has ugly film waiting${score}`;
     case 'CLOSE_LOSS':
-      return `${teamName} had it within reach${score}`;
+      return `${teamName} lost the leverage late${score}`;
     case 'OT_LOSS':
       return `${teamName} ran out of answers in overtime${score}`;
     case 'CHOKE_LOSS':
-      return `${teamName} let the door stay open too long${score}`;
+      return `${teamName} left the door open too long${score}`;
     case 'WIN':
-      return `${teamName} handled the job${opponent}${score}`;
+      return `${teamName} handled Sunday${opponent}${score}`;
     case 'LOSS':
-      return `${teamName} has cleanup waiting${score}`;
+      return `${teamName} has corrections waiting${score}`;
     default:
       return `${teamName} has the tape ready.`;
   }

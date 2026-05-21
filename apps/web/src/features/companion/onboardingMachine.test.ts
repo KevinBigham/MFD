@@ -39,7 +39,7 @@ describe('Chip onboarding machine', () => {
     expect(selectChipOnboardingRouteBeats('/roster', state, { currentWeek: 1 })).toEqual([
       expect.objectContaining({
         id: 'chip.first10.roster',
-        text: expect.stringContaining('injured starters'),
+        text: expect.stringContaining('Injuries and thin rooms'),
       }),
     ]);
 

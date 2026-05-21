@@ -107,7 +107,7 @@ export function CommissionerOffice() {
   const currentValue = leagueRules ? leagueRules.entries[ruleKey].value : null;
   const petitionOptions = useMemo(
     () => buildPetitionOptions(selectedDefinition, currentValue ?? selectedDefinition.options?.[0]?.value ?? 0),
-    [currentValue, selectedDefinition, ruleKey],
+    [currentValue, selectedDefinition],
   );
   const [petitionValue, setPetitionValue] = useState<string>(petitionOptions[0]?.value ?? '');
   const cbaYearsRemaining = cbaState?.currentDeal ? Math.max(0, cbaState.currentDeal.endYear - cbaState.currentDeal.startYear) : 0;

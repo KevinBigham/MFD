@@ -70,12 +70,12 @@ const ASSISTANT_GM_PRESETS: readonly AGMProfile[] = [
   {
     id: 'marcus_webb',
     name: 'Marcus Webb',
-    title: 'Director of Baseball Strategy',
+    title: 'Director of Football Strategy',
     background: 'Former cap analyst turned AGM. Cool-headed, data-first, explains roster math like a professor.',
     personality: 'analytical',
     expertise: 'cap_management',
     selectionPitch: 'I will turn your roster decisions into repeatable edges. We can build a winner without losing control of the long game.',
-    strengths: ['Payroll modeling', 'Option valuation', 'Process discipline'],
+    strengths: ['Cap modeling', 'Option valuation', 'Process discipline'],
     cardAccent: 'cyan',
     welcomeMonologue: 'Welcome to the {teamName}. I have the books, the projections, and the weak spots mapped out. Let us start with what this franchise really is.',
     teachingNarration: {
@@ -89,11 +89,11 @@ const ASSISTANT_GM_PRESETS: readonly AGMProfile[] = [
     id: 'coach_d_hardaway',
     name: "Deion 'Coach D' Hardaway",
     title: 'Senior AGM, Competitive Edge',
-    background: 'Former clubhouse enforcer turned front office closer. Lives for urgency, standards, and winning every matchup.',
+    background: 'Former locker-room enforcer turned front office closer. Lives for urgency, standards, and winning every matchup.',
     personality: 'fiery',
     expertise: 'defense',
     selectionPitch: 'You were hired to take control. I will keep the building loud, demanding, and impossible to out-compete when the pressure rises.',
-    strengths: ['Clubhouse intensity', 'Opponent pressure points', 'Accountability'],
+    strengths: ['Locker-room intensity', 'Opponent pressure points', 'Accountability'],
     cardAccent: 'red',
     welcomeMonologue: 'Welcome to the {teamName}. The room is yours now. I will keep the staff sharp, the players honest, and the pressure pointed in the right direction.',
     teachingNarration: {
@@ -325,7 +325,7 @@ export function toneAdjust(baseText: string, personality: AGMProfile['personalit
 
   if (personality === 'fiery') {
     const pumped = emphasizedFragment(text);
-    return pumped.endsWith('!') ? pumped : `${pumped}!`;
+    return /[.!?]$/.test(pumped) ? pumped : `${pumped}.`;
   }
 
   if (personality === 'old_school') {

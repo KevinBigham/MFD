@@ -41,13 +41,13 @@ describe('weekly dialogue catalog', () => {
 
   it('contains the locked design-doc example lines verbatim', () => {
     expect(selectWeeklyDialogue(baseContext('cleanWin')).text).toContain(
-      'That was a grown-up win. Not perfect. Better than perfect, actually — repeatable.',
+      'Win travels. Standards stay.',
     );
     expect(selectWeeklyDialogue(baseContext('uglyWin')).text).toContain(
-      "Win column says yes. Film room says please don't make me watch the third quarter twice.",
+      'Win column held. Film has questions.',
     );
     expect(selectWeeklyDialogue(baseContext('threeLossStreak')).text).toContain(
-      "Three straight. We don't need a miracle today. We need one clean decision.",
+      'Three straight. No miracle. One clean decision.',
     );
   });
 
@@ -62,7 +62,7 @@ describe('weekly dialogue catalog', () => {
     expect(selectWeeklyDialogue(baseContext('uglyWin')).pose).toBe('pointing-at-tape');
     expect(selectWeeklyDialogue(baseContext('blowoutLoss')).pose).toBe('head-in-hands');
     expect(selectWeeklyDialogue(baseContext('playoffs')).pose).toBe('rallying');
-    expect(selectWeeklyDialogue(baseContext('preseason')).pose).toBe('coffee-sip');
+    expect(selectWeeklyDialogue(baseContext('preseason')).pose).toBe('reviewing-tablet');
     expect(selectWeeklyDialogue(baseContext('darkMoment')).pose).toBe('facepalm');
   });
 

@@ -85,7 +85,7 @@ interface DockControlButton {
 }
 
 const DOCK_CONTROL_BUTTONS: readonly DockControlButton[] = [
-  { id: 'whatNow', label: 'What now?', icon: MessageSquare, accent: 'gold', weight: 'primary' },
+  { id: 'whatNow', label: 'Board check', icon: MessageSquare, accent: 'gold', weight: 'primary' },
   { id: 'resetOnboarding', label: 'Replay', icon: RotateCcw, accent: 'cyan', weight: 'utility' },
   { id: 'snoozeOnboarding', label: 'Snooze', icon: CalendarOff, accent: 'gold', weight: 'quiet' },
   { id: 'enableGuidance', label: 'Enable', icon: Bell, accent: 'green', weight: 'utility' },
@@ -146,6 +146,7 @@ export interface EffectiveDockCollapsedOptions {
   activeLiveBeat: boolean;
   controlledCollapsed?: boolean;
   localCollapsed: boolean;
+  preferRouteBeatCollapsed?: boolean;
 }
 
 export function resolveEffectiveDockCollapsed({
@@ -153,7 +154,9 @@ export function resolveEffectiveDockCollapsed({
   activeLiveBeat,
   controlledCollapsed,
   localCollapsed,
+  preferRouteBeatCollapsed = false,
 }: EffectiveDockCollapsedOptions): boolean {
+  if (activeRouteBeat && preferRouteBeatCollapsed && !activeLiveBeat) return true;
   if (activeRouteBeat || activeLiveBeat) return false;
   return controlledCollapsed ?? localCollapsed;
 }
@@ -162,7 +165,7 @@ export function createPendingDecisionsBeat(count: number): DockLiveBeat {
   return {
     id: 'chip.dock.pending',
     pose: 'reviewing-tablet',
-    text: `${count} decisions waiting.`,
+    text: count === 1 ? 'Decision waiting.' : `${count} decisions waiting.`,
   };
 }
 
@@ -365,6 +368,8 @@ export function ChipDock({
   const [routeBeatIndex, setRouteBeatIndex] = useState(0);
   const [dismissedRouteBeatSignature, setDismissedRouteBeatSignature] = useState<string | null>(null);
   const [activeLiveBeat, setActiveLiveBeat] = useState<DockLiveBeat | null>(null);
+  const [mobileRouteCoach, setMobileRouteCoach] = useState(false);
+  const [routeCoachOpened, setRouteCoachOpened] = useState(false);
   const pendingDecisionTotal = Math.max(0, Math.trunc(Number(pendingDecisions?.total ?? 0)));
   const routeBeatActive =
     routeBeatSignature.length > 0
@@ -373,11 +378,13 @@ export function ChipDock({
   const activeRouteBeat = routeBeatActive
     ? eligibleRouteBeats[Math.min(routeBeatIndex, eligibleRouteBeats.length - 1)] ?? null
     : null;
+  const preferRouteBeatCollapsed = activeRouteBeat !== null && mobileRouteCoach && !routeCoachOpened;
   const effectiveCollapsed = resolveEffectiveDockCollapsed({
     activeRouteBeat: activeRouteBeat !== null,
     activeLiveBeat: activeLiveBeat !== null,
     controlledCollapsed: collapsed,
     localCollapsed,
+    preferRouteBeatCollapsed,
   });
   const portraitPose = activeRouteBeat
     ? routeBeatPoseToChipPose(activeRouteBeat.pose)
@@ -389,7 +396,19 @@ export function ChipDock({
   useEffect(() => {
     setRouteBeatIndex(0);
     setDismissedRouteBeatSignature(null);
+    setRouteCoachOpened(false);
   }, [routeBeatSignature]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const media = window.matchMedia('(max-width: 720px)');
+    const sync = () => setMobileRouteCoach(media.matches);
+    sync();
+    media.addEventListener?.('change', sync);
+    return () => {
+      media.removeEventListener?.('change', sync);
+    };
+  }, []);
 
   const persistShownRouteBeats = useCallback(() => {
     if (!activeRouteBeat) return;
@@ -447,8 +466,14 @@ export function ChipDock({
         now,
       });
       setPrefs(nextPrefs);
-      if (control === 'collapse') setLocalCollapsed(true);
-      if (control === 'expand') setLocalCollapsed(false);
+      if (control === 'collapse') {
+        setLocalCollapsed(true);
+        setRouteCoachOpened(false);
+      }
+      if (control === 'expand') {
+        setLocalCollapsed(false);
+        setRouteCoachOpened(true);
+      }
       if (control === 'disableAnimations') setLocalCollapsed(nextPrefs.collapsed);
       onCollapseToggle?.();
     },
@@ -491,8 +516,8 @@ export function ChipDock({
         data-chip-dock="true"
         data-chip-dock-state="collapsed"
         data-chip-dock-motion={motionMode}
-        data-chip-dock-beat="idle"
-        aria-label="Chip dock"
+        data-chip-dock-beat={activeBeatMode}
+        aria-label={activeRouteBeat ? 'Chip route guidance' : 'Chip dock'}
       >
         {pendingBadge}
         {dynastyLabel ? <div className="mfd-chip-dock__dynasty-label">{dynastyLabel}</div> : null}
@@ -500,11 +525,11 @@ export function ChipDock({
           type="button"
           className="mfd-chip-dock__collapsed"
           onClick={() => applyControl('expand')}
-          aria-label="Open Chip dock"
-      >
+          aria-label={activeRouteBeat ? 'Open Chip route guidance' : 'Open Chip dock'}
+        >
           <span className="mfd-chip-dock__collapsed-ring" aria-hidden="true" />
-          <Chip pose="idle" size="sm" reducedMotion={motionMode === 'reduced'} />
-          <span className="mfd-chip-dock__collapsed-label" aria-hidden="true">CHIP</span>
+          <Chip pose={portraitPose} size="sm" reducedMotion={motionMode === 'reduced'} />
+          <span className="mfd-chip-dock__collapsed-label" aria-hidden="true">{activeRouteBeat ? 'TIP' : 'CHIP'}</span>
         </button>
       </aside>
     );
@@ -524,11 +549,11 @@ export function ChipDock({
       <section className="mfd-chip-dock__panel" data-chip-dock-layout="sideline-broadcast">
         <div className="mfd-chip-dock__portrait">
           <div className="mfd-chip-dock__portrait-stage">
-            <div className="mfd-chip-dock__portrait-callout" aria-hidden="true">SIDELINE</div>
+            <div className="mfd-chip-dock__portrait-callout" aria-hidden="true">OPS</div>
             <Chip pose={portraitPose} size="lg" reducedMotion={motionMode === 'reduced'} />
             <div className="mfd-chip-dock__nameplate" aria-hidden="true">
               <span>CHIP</span>
-              <span>FIELD GENERAL</span>
+              <span>OPS CHIEF</span>
             </div>
           </div>
         </div>
@@ -550,11 +575,11 @@ export function ChipDock({
                   accent="gold"
                   className="mfd-chip-dock__control"
                   onClick={advanceRouteBeat}
-                  aria-label="Got it"
-                  title="Got it"
+                  aria-label="Logged"
+                  title="Logged"
                 >
                   <Check aria-hidden="true" />
-                  <span className="mfd-chip-dock__control-label">Got it</span>
+                  <span className="mfd-chip-dock__control-label">Logged</span>
                 </PixelButton>
               </div>
             </div>
@@ -575,12 +600,12 @@ export function ChipDock({
                   accent="gold"
                   className="mfd-chip-dock__control"
                   onClick={dismissLiveBeat}
-                  aria-label="Got it"
-                  title="Got it"
+                  aria-label="Logged"
+                  title="Logged"
                   data-chip-live-beat-dismiss="true"
                 >
                   <Check aria-hidden="true" />
-                  <span className="mfd-chip-dock__control-label">Got it</span>
+                  <span className="mfd-chip-dock__control-label">Logged</span>
                 </PixelButton>
               </div>
             </div>
@@ -593,11 +618,11 @@ export function ChipDock({
                 data-chip-control-id="whereAmI"
                 data-chip-control-weight="primary"
                 onClick={showWhereAmIBeat}
-                aria-label="Where am I?"
-                title="Where am I?"
+                aria-label="Current board"
+                title="Current board"
               >
                 <MapPin aria-hidden="true" />
-                <span className="mfd-chip-dock__control-label">Where am I?</span>
+                <span className="mfd-chip-dock__control-label">Current board</span>
               </PixelButton>
             ) : null}
             {DOCK_CONTROL_BUTTONS.map(({ id, label, icon: Icon, accent, weight }) => (

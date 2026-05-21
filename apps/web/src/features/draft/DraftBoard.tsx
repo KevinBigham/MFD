@@ -12,11 +12,13 @@ import {
   useGameStore,
 } from '../../app/store/game-store';
 import {
+  CommandCallout,
   PixelMetricCard,
   PixelScreenHeader,
   autoGrid,
   display,
   monoSm,
+  navigateTo,
   pixelSm,
   screenStackStyle,
 } from '../shared/pixelUi';
@@ -115,6 +117,35 @@ export function DraftBoard() {
             {currentEntry ? <PixelBadge variant="default">R{currentEntry.round} P{currentEntry.pick}</PixelBadge> : null}
           </>
         )}
+      />
+
+      <CommandCallout
+        title={userOnClock ? 'Make the board pick' : phase === 'draft' ? 'Move to your next live slot' : 'Build the board before draft night'}
+        body={userOnClock
+          ? 'You are on the clock. Check needs-aware suggestions, then turn in the highest-conviction player.'
+          : phase === 'draft'
+            ? 'The league clock is moving. Advance through AI picks until your card is live.'
+            : 'No live clock yet. Use scouting and needs fit so the first draft decision is not a panic read.'}
+        accent={userOnClock ? 'gold' : phase === 'draft' ? 'cyan' : 'green'}
+        meta={(
+          <>
+            <PixelBadge variant="cyan">{visibleProspects.length} prospects</PixelBadge>
+            <PixelBadge variant="gold">{suggestedProspects.length} need fits</PixelBadge>
+          </>
+        )}
+        actions={[
+          phase === 'draft' && !userOnClock
+            ? {
+              label: 'Next Pick',
+              accent: 'green' as const,
+              onClick: () => void handleAction('advance-draft-callout', async () => {
+                playSound('week_advance_start', { debounceMs: 0, debounceKey: `draft-callout:${currentEntry?.overall ?? 0}` });
+                await advanceWeek();
+              }),
+            }
+            : { label: 'Scouting', accent: 'cyan' as const, onClick: () => navigateTo('/scouting') },
+          { label: 'Refresh Room', accent: 'gold', onClick: () => void refreshWarRoom() },
+        ]}
       />
 
       <div style={autoGrid(210)}>

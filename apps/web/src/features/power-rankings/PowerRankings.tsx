@@ -9,11 +9,13 @@ import {
   selectUserTeam,
 } from '../../app/store/game-store';
 import {
+  CommandCallout,
   PixelMetricCard,
   PixelScreenHeader,
   autoGrid,
   display,
   monoSm,
+  navigateTo,
   pixelSm,
   screenStackStyle,
 } from '../shared/pixelUi';
@@ -109,6 +111,24 @@ export function PowerRankings() {
         )}
       />
 
+      <CommandCallout
+        title={userRanking ? 'Treat ranking as temperature' : 'Wait for the first table'}
+        body={userRanking
+          ? `${userTeam?.city ?? 'Your club'} is ranked #${userRanking.rank}. If record and reputation disagree, confirm the standings before changing the roster.`
+          : 'Power rankings publish after regular-season movement. Until then, the Monday board and standings carry the next call.'}
+        accent={userRanking ? rankAccent(userRanking, userTeam?.id ?? null, rankings.length) : 'cyan'}
+        meta={(
+          <>
+            <PixelBadge variant="gold">{rankings.length} tracked</PixelBadge>
+            {userRanking ? <PixelBadge variant={deltaAccent(userRanking.delta)}>{deltaLabel(userRanking.delta)}</PixelBadge> : null}
+          </>
+        )}
+        actions={[
+          { label: 'Standings', accent: 'cyan', onClick: () => navigateTo('/standings') },
+          { label: 'Briefing', accent: 'gold', onClick: () => navigateTo('/') },
+        ]}
+      />
+
       <div style={autoGrid(220)}>
         <PixelMetricCard
           label="No. 1 Team"
@@ -147,6 +167,7 @@ export function PowerRankings() {
             columns={columns}
             accent="gold"
             maxHeight={720}
+            responsive="cards"
           />
         )}
       </PixelPanel>

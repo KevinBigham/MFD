@@ -918,6 +918,18 @@ export function MondayBriefing() {
 
       <AlumniTicker updates={alumniUpdates} reducedMotion={reducedMotion} />
 
+      <div data-spotlight-target="chip.route.monday-briefing.beat-1">
+        <ActionCenter
+          phase={phase}
+          hasGamePlan={!!currentWeeklyPrepPlan}
+          starterCount={starterCount}
+          tradeOfferCount={tradeOffers.length}
+          ownerApproval={ownerState?.approval ?? 100}
+          injuredCount={injuredCount}
+          game={game}
+        />
+      </div>
+
       {chipBriefingEntry ? (
         <div
           data-chip-monday-briefing="intro"
@@ -934,18 +946,6 @@ export function MondayBriefing() {
           />
         </div>
       ) : null}
-
-      <div data-spotlight-target="chip.route.monday-briefing.beat-1">
-        <ActionCenter
-          phase={phase}
-          hasGamePlan={!!currentWeeklyPrepPlan}
-          starterCount={starterCount}
-          tradeOfferCount={tradeOffers.length}
-          ownerApproval={ownerState?.approval ?? 100}
-          injuredCount={injuredCount}
-          game={game}
-        />
-      </div>
 
       <div style={autoGrid(220)}>
         <PixelMetricCard

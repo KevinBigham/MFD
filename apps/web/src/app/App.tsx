@@ -296,25 +296,23 @@ function RootLayout() {
     () => ceremonies.find((ceremony) => ceremony.id === activeCeremonyId) ?? null,
     [activeCeremonyId, ceremonies],
   );
-  const shortcutRows = useMemo(() => {
-    const manualRows = NAV_ITEMS
-      .filter((item) => item.shortcut)
-      .map((item) => ({
-        combo: item.shortcut ?? '',
-        description: `Go to ${item.label}`,
-      }));
-    const registeredRows = getRegisteredShortcuts().map((shortcut) => ({
-      combo: `${shortcut.meta ? 'Cmd/Ctrl+' : ''}${shortcut.ctrl ? 'Ctrl+' : ''}${shortcut.shift ? 'Shift+' : ''}${shortcut.key.toUpperCase()}`,
-      description: shortcut.description,
+  const manualShortcutRows = NAV_ITEMS
+    .filter((item) => item.shortcut)
+    .map((item) => ({
+      combo: item.shortcut ?? '',
+      description: `Go to ${item.label}`,
     }));
-    const seen = new Set<string>();
-    return [...manualRows, ...registeredRows].filter((row) => {
-      const key = `${row.combo}:${row.description}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [activePath, commandPaletteOpen, showHotkeyHelp]);
+  const registeredShortcutRows = getRegisteredShortcuts().map((shortcut) => ({
+    combo: `${shortcut.meta ? 'Cmd/Ctrl+' : ''}${shortcut.ctrl ? 'Ctrl+' : ''}${shortcut.shift ? 'Shift+' : ''}${shortcut.key.toUpperCase()}`,
+    description: shortcut.description,
+  }));
+  const seenShortcuts = new Set<string>();
+  const shortcutRows = [...manualShortcutRows, ...registeredShortcutRows].filter((row) => {
+    const key = `${row.combo}:${row.description}`;
+    if (seenShortcuts.has(key)) return false;
+    seenShortcuts.add(key);
+    return true;
+  });
   const tickerItems = useMemo(() => selectTickerItems(leagueNews), [leagueNews]);
   const showTicker = tickerItems.length > 0
     && !breakingNews
@@ -951,6 +949,7 @@ function CommandPaletteTrigger() {
 
   return (
     <button
+      type="button"
       onClick={() => setOpen(true)}
       style={{
         display: 'flex',
@@ -1845,15 +1844,16 @@ const router = createRouter({ routeTree, history: hashHistory });
 // ── App entry ───────────────────────────────────────────────
 
 export const CHIP_FRANCHISE_SETUP_STAGES: ChipHostStage[] = [
-  { id: 'chip.onboarding.beat-1', label: 'Cold Open', content: null },
-  { id: 'chip.onboarding.beat-2', label: 'Team Select', content: null },
-  { id: 'chip.onboarding.beat-3', label: 'AGM Hire', content: null },
-  { id: 'chip.onboarding.beat-4', label: 'Depth Philosophy', content: null },
-  { id: 'chip.onboarding.beat-5', label: 'Season Goals', content: null },
-  { id: 'chip.onboarding.beat-6', label: 'Culture Mandate', content: null },
-  { id: 'chip.onboarding.beat-7', label: 'Blueprint Reveal', content: null },
-  { id: 'chip.onboarding.beat-8', label: 'Kickoff', content: null },
-  { id: 'chip.onboarding.beat-9', label: 'Dashboard Handoff', content: null },
+  { id: 'chip.onboarding.beat-1', label: 'Choose AGM', content: null, spotlightStageId: 'cold-open' },
+  { id: 'chip.onboarding.beat-2', label: 'Franchise Intel', content: null, spotlightStageId: 'intel-briefing' },
+  { id: 'chip.onboarding.beat-3', label: 'Meet Players', content: null, spotlightStageId: 'roster-overview' },
+  { id: 'chip.onboarding.beat-4', label: 'Hire Coach', content: null, spotlightStageId: 'coach-hire' },
+  { id: 'chip.onboarding.beat-5', label: 'Build Intel', content: null, spotlightStageId: 'scout-hire' },
+  { id: 'chip.onboarding.beat-6', label: 'Set Identity', content: null, spotlightStageId: 'scheme' },
+  { id: 'chip.onboarding.beat-7', label: 'Starting Lineup', content: null, spotlightStageId: 'depth-chart' },
+  { id: 'chip.onboarding.beat-8', label: 'The Money', content: null, spotlightStageId: 'cap-strategy' },
+  { id: 'chip.onboarding.beat-9', label: 'Set Goals', content: null, spotlightStageId: 'goals' },
+  { id: 'chip.onboarding.beat-10', label: 'Day 1 Complete', content: null, spotlightStageId: 'blueprint' },
 ];
 
 type ChipSetupStorage = Parameters<typeof readFirstTenMinutesCompleted>[0];
@@ -1968,8 +1968,9 @@ export function App() {
           companionAction={setupCompanionAction}
           onCompanionVisibleChange={setSetupCompanionVisible}
         >
-          {({ onStageAdvance }) => (
+          {({ onStageAdvance, companionPanel }) => (
             <FranchiseSetupWizard
+              companionPanel={companionPanel}
               companionPrimaryActionActive={setupCompanionVisible}
               onCompanionActionChange={(action) => setSetupCompanionAction(action)}
               onStageAdvance={onStageAdvance}

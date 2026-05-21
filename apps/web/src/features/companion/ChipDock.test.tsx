@@ -101,7 +101,7 @@ describe('ChipDock', () => {
 
     expect(markup).toContain('data-app-shell="true"');
     expect(markup).not.toContain('data-chip-dock');
-    expect(markup).not.toContain('What now?');
+    expect(markup).not.toContain('Board check');
   });
 
   it('renders a collapsed dock as a quiet Chip portrait without controls or bubble', () => {
@@ -113,7 +113,7 @@ describe('ChipDock', () => {
     expect(markup).toContain('data-chip-dock-state="collapsed"');
     expect(markup).toContain('data-chip-pose="idle"');
     expect(markup).not.toContain('data-chip-dock-controls');
-    expect(markup).not.toContain('DYNASTY DESK // CHIP');
+    expect(markup).not.toContain('FRANCHISE OPS // CHIP');
   });
 
   it('renders expanded dock controls and supplied broadcast-card dialogue', () => {
@@ -133,7 +133,7 @@ describe('ChipDock', () => {
     expect(markup).toContain('Quiet this season');
     expect(markup).toContain('Reduce guidance');
     expect(markup).toContain('Disable animations');
-    expect(markup).toContain('What now?');
+    expect(markup).toContain('Board check');
     expect(markup).toContain('data-chip-control-id="whatNow"');
     expect(markup).toContain('data-chip-control-weight="primary"');
     expect(markup).toContain('data-chip-control-id="quietForScreen"');
@@ -160,7 +160,7 @@ describe('ChipDock', () => {
     expect(markup).toContain('data-chip-dock-state="expanded"');
     expect(markup).toContain('data-chip-route-beat="chip.route.roster.beat-1"');
     expect(markup).toContain('Start with the highlighted player.');
-    expect(markup).toContain('Got it');
+    expect(markup).toContain('Logged');
   });
 
   it('does not auto-expand when there are no active route beats', () => {
@@ -172,7 +172,7 @@ describe('ChipDock', () => {
     expect(markup).not.toContain('data-chip-route-beat');
   });
 
-  it('advances route beat index from Got it until the sequence is complete', () => {
+  it('advances route beat index from Logged until the sequence is complete', () => {
     expect(resolveNextRouteBeatIndex(0, ROUTE_BEAT_REGISTRY.roster)).toEqual({
       nextIndex: 1,
       complete: false,
@@ -296,7 +296,7 @@ describe('ChipDock', () => {
     expect(chipDockCss).toContain(".mfd-chip-dock[data-chip-dock-motion='animated'] .mfd-chip-dock__panel");
     expect(chipDockCss).toContain(".mfd-chip-dock[data-chip-dock-motion='reduced'] .mfd-chip-dock__bubble");
     expect(chipDockCss).toContain('.mfd-chip-dock .mfd-chip-dock__portrait .mfd-chip');
-    expect(chipDockCss).toContain('grid-template-columns: repeat(4, minmax(44px, 1fr));');
+    expect(chipDockCss).toContain('grid-template-columns: repeat(4, minmax(40px, 1fr));');
     expect(chipDockCss).toContain(".mfd-chip-dock[data-chip-dock-beat='route'] .mfd-chip-dock__controls");
     expect(chipDockCss).toContain(".mfd-chip-dock__control[data-chip-control-weight='utility']");
     expect(chipDockCss).toContain(".mfd-chip-dock__control[data-chip-control-weight='quiet'] .mfd-chip-dock__control-label");
@@ -329,11 +329,31 @@ describe('ChipDock', () => {
     })).toBe(false);
   });
 
+  it('can keep a route beat collapsed for narrow first-load coaching', () => {
+    expect(resolveEffectiveDockCollapsed({
+      activeRouteBeat: true,
+      activeLiveBeat: false,
+      controlledCollapsed: false,
+      localCollapsed: false,
+      preferRouteBeatCollapsed: true,
+    })).toBe(true);
+  });
+
+  it('lets live beats override route-beat auto-collapse', () => {
+    expect(resolveEffectiveDockCollapsed({
+      activeRouteBeat: true,
+      activeLiveBeat: true,
+      controlledCollapsed: true,
+      localCollapsed: true,
+      preferRouteBeatCollapsed: true,
+    })).toBe(false);
+  });
+
   it('creates pending-decisions dock copy with the live count', () => {
     expect(createPendingDecisionsBeat(1)).toEqual({
       id: 'chip.dock.pending',
       pose: 'reviewing-tablet',
-      text: '1 decisions waiting.',
+      text: 'Decision waiting.',
     });
   });
 

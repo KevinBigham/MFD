@@ -139,7 +139,7 @@ export default function CapLaboratory() {
     { accessorKey: 'committed', header: 'Committed', cell: ({ getValue }) => `$${getValue() as number}M` },
     { accessorKey: 'deadCap', header: 'Dead Cap', cell: ({ getValue }) => `$${getValue() as number}M` },
     { accessorKey: 'available', header: 'Available', cell: ({ getValue }) => `$${getValue() as number}M` },
-  ], [projectionYears]);
+  ], []);
 
   const addMove = () => {
     if (!selectedCandidate) return;

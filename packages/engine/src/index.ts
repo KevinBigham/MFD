@@ -825,8 +825,17 @@ export type { PatienceTick, ConfidenceStage, ConfidenceArc, Ultimatum, FuriousPe
 export { checkOwnerPersonality } from './systems/owner-personality';
 export type { OwnerPersonalityEvent, OwnerEventResult } from './systems/owner-personality';
 
-export { OWNER_TYPES, OWNER_GOALS, evaluateGoals } from './systems/owner-goals';
-export type { OwnerType, OwnerGoal, GoalResult } from './systems/owner-goals';
+export {
+  OWNER_TYPES,
+  OWNER_GOALS,
+  evaluateGoals,
+  buildOwnerMandates,
+  installOwnerMandates,
+  refreshOwnerMandates,
+  evaluateOwnerMandates,
+  upsertOwnerMandateHandshakes,
+} from './systems/owner-goals';
+export type { OwnerType, OwnerGoal, OwnerGoalId, GoalResult } from './systems/owner-goals';
 
 // Systems — Trust & Aging (Phase 2)
 export {

@@ -56,13 +56,13 @@ export const ROUTE_BEAT_REGISTRY = {
     {
       id: 'chip.route.monday-briefing.beat-1',
       pose: 'reviewing-tablet',
-      text: 'Start here every week. The briefing tells you what changed and which decision needs your desk first.',
+      text: 'Monday board is triage: injuries, owner heat, next opponent.',
       spotlightTarget: 'chip.route.monday-briefing.beat-1',
     },
     {
       id: 'chip.route.monday-briefing.beat-2',
       pose: 'calling-play',
-      text: 'If nothing is urgent, use the briefing to choose roster, plan, or advance. Do not wander the building.',
+      text: 'Briefing first. Roster, plan, advance after the board is clean.',
       spotlightTarget: 'chip.route.monday-briefing.beat-2',
     },
   ],
@@ -112,13 +112,13 @@ export const ROUTE_BEAT_REGISTRY = {
     {
       id: 'chip.route.week-advance.beat-1',
       pose: 'reviewing-tablet',
-      text: 'This screen turns choices into consequences. Read the checklist before you advance.',
+      text: 'This button turns judgment into standings.',
       spotlightTarget: 'chip.route.week-advance.beat-1',
     },
     {
       id: 'chip.route.week-advance.beat-2',
       pose: 'time-out',
-      text: 'Red items are not flavor. Fix them or accept the risk before the league moves forward.',
+      text: 'Red items are risk. Own them before Sunday moves.',
       spotlightTarget: 'chip.route.week-advance.beat-2',
     },
   ],
@@ -154,13 +154,13 @@ export const ROUTE_BEAT_REGISTRY = {
     {
       id: 'chip.route.cap-laboratory.beat-1',
       pose: 'skeptical',
-      text: 'Build the move in the sandbox first. The real ledger should never be your scratch pad.',
+      text: 'Sandbox first. Ledger second.',
       spotlightTarget: 'chip.route.cap-laboratory.beat-1',
     },
     {
       id: 'chip.route.cap-laboratory.beat-2',
       pose: 'reviewing-tablet',
-      text: 'Watch dead money and future cap together. Winning this year still has a bill next spring.',
+      text: 'Dead money is future leverage already spent.',
       spotlightTarget: 'chip.route.cap-laboratory.beat-2',
     },
   ],
@@ -168,13 +168,13 @@ export const ROUTE_BEAT_REGISTRY = {
     {
       id: 'chip.route.draft-board.beat-1',
       pose: 'football-in-hand',
-      text: 'Sort the board before you trade up. Need, grade, and pick cost all have to agree.',
+      text: 'Board before phone calls. Need, grade, price.',
       spotlightTarget: 'chip.route.draft-board.beat-1',
     },
     {
       id: 'chip.route.draft-board.beat-2',
       pose: 'calling-play',
-      text: 'Save your favorite targets now. Draft night rewards a board you already trust.',
+      text: 'Mark targets now. Draft night punishes improvisation.',
       spotlightTarget: 'chip.route.draft-board.beat-2',
     },
   ],
@@ -182,13 +182,13 @@ export const ROUTE_BEAT_REGISTRY = {
     {
       id: 'chip.route.trade-center.beat-1',
       pose: 'on-phone',
-      text: 'Start with your side of the offer. If you do not know the pain point, the market will price it for you.',
+      text: 'Know your pain point before the market prices it.',
       spotlightTarget: 'chip.route.trade-center.beat-1',
     },
     {
       id: 'chip.route.trade-center.beat-2',
       pose: 'reviewing-tablet',
-      text: 'Pending offers need a yes or no. Silence burns leverage after the league moves on.',
+      text: 'Leverage expires. Pending offers need a number and a nerve.',
       spotlightTarget: 'chip.route.trade-center.beat-2',
     },
   ],
@@ -196,13 +196,13 @@ export const ROUTE_BEAT_REGISTRY = {
     {
       id: 'chip.route.scouting-board.beat-1',
       pose: 'pointing-at-tape',
-      text: 'Spend scouting actions where uncertainty is highest. Do not pay to confirm what you already know.',
+      text: 'Spend scout work where the board is dark.',
       spotlightTarget: 'chip.route.scouting-board.beat-1',
     },
     {
       id: 'chip.route.scouting-board.beat-2',
       pose: 'note-taking',
-      text: 'Watchlist the player before the grade moves. A marked board is easier to defend later.',
+      text: 'Watchlist conviction. Guessing is how draft rooms lie.',
       spotlightTarget: 'chip.route.scouting-board.beat-2',
     },
   ],
@@ -237,7 +237,7 @@ export const ROUTE_BEAT_REGISTRY = {
   'league-pulse': [
     {
       id: 'chip.route.league-pulse.beat-1',
-      pose: 'coffee-sip',
+      pose: 'reviewing-tablet',
       text: 'League Pulse is outside noise with football value. Read it after your own fires are contained.',
       spotlightTarget: null,
     },
@@ -265,14 +265,14 @@ export const ROUTE_BEAT_REGISTRY = {
   'settings-save-load': [
     {
       id: 'chip.route.settings-save-load.beat-1',
-      pose: 'coffee-sip',
-      text: 'Save/Load is franchise insurance. Export a cartridge before big experiments or machine changes.',
+      pose: 'reviewing-tablet',
+      text: 'Save is franchise insurance. Export before big swings.',
       spotlightTarget: null,
     },
     {
       id: 'chip.route.settings-save-load.beat-2',
       pose: 'reviewing-tablet',
-      text: 'Settings tunes pace, audio, and Chip guidance without changing the football engine.',
+      text: 'Settings adjust pace. They do not move the engine.',
       spotlightTarget: null,
     },
   ],

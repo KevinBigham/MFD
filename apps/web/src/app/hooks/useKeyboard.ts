@@ -63,13 +63,18 @@ export function useShortcut(
 ) {
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
+  const meta = modifiers?.meta;
+  const ctrl = modifiers?.ctrl;
+  const shift = modifiers?.shift;
 
   useEffect(() => {
     return registerShortcut({
       key,
-      ...modifiers,
+      meta,
+      ctrl,
+      shift,
       handler: () => handlerRef.current(),
       description,
     });
-  }, [key, description, modifiers?.meta, modifiers?.ctrl, modifiers?.shift]);
+  }, [key, description, meta, ctrl, shift]);
 }

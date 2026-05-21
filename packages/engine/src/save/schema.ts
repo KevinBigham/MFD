@@ -820,7 +820,7 @@ export const WaiverRunResultSchema = z.object({
 });
 
 export const HandshakeConditionSchema = z.object({
-  metric: z.enum(['wins', 'playoff', 'starter', 'trade_block', 'spending', 'draft_position', 'on_roster', 'restructure']),
+  metric: z.enum(['wins', 'playoff', 'starter', 'trade_block', 'spending', 'draft_position', 'on_roster', 'restructure', 'owner_mandate']),
   target: z.union([z.number(), z.string(), z.boolean()]),
 });
 
@@ -1233,6 +1233,45 @@ export const SeasonReportSchema = z.object({
   teamId: z.string(),
   overallGrade: z.enum(['A+', 'A', 'B+', 'B', 'C+', 'C', 'D', 'F']),
   sections: z.array(ReportSectionSchema),
+});
+
+export const OwnerMandateProgressSchema = z.object({
+  value: z.number(),
+  target: z.number(),
+  percent: z.number(),
+  label: z.string(),
+  detail: z.string(),
+  status: z.enum(['on_track', 'at_risk', 'complete', 'failed']),
+  agmNote: z.string().nullable().optional(),
+});
+
+export const OwnerMandateEvaluationSchema = z.object({
+  evaluatedYear: z.number(),
+  met: z.boolean(),
+  exceeded: z.boolean(),
+  outcomeLabel: z.string(),
+  summary: z.string(),
+  approvalDelta: z.number(),
+  patienceDelta: z.number(),
+  ownerReputationDelta: z.number(),
+  applied: z.boolean(),
+  agmAdjustment: z.string().nullable().optional(),
+});
+
+export const OwnerMandateSchema = z.object({
+  id: z.string(),
+  teamId: z.string(),
+  year: z.number(),
+  goalId: z.string(),
+  label: z.string(),
+  description: z.string(),
+  slot: z.enum(['floor', 'target', 'ceiling']),
+  selectedIndex: z.number(),
+  createdWeek: z.number(),
+  createdByAGMProfileId: z.string().nullable().optional(),
+  status: z.enum(['active', 'met', 'exceeded', 'missed']),
+  progress: OwnerMandateProgressSchema,
+  evaluation: OwnerMandateEvaluationSchema.nullable().optional(),
 });
 
 export const GamePlanSchema = z.object({
@@ -1872,6 +1911,15 @@ export const SaveStateSchema = z.object({
       media: z.number(),
       owner: z.number(),
     }),
+    agmProfileId: z.string().nullable().default(null),
+    agmImpactLog: z.array(z.object({
+      id: z.string(),
+      year: z.number(),
+      week: z.number(),
+      agmProfileId: z.string(),
+      category: z.enum(['cap', 'competitive', 'personnel', 'mandate']),
+      summary: z.string(),
+    })).default([]),
   }),
   eventLog: z.array(z.any()),
   narrativeState: z.object({
@@ -1938,6 +1986,7 @@ export const SaveStateSchema = z.object({
   waiverWire: z.array(WaiverWireEntrySchema).default([]),
   waiverClaims: z.array(WaiverClaimSchema).default([]),
   handshakes: z.array(HandshakeSchema).default([]),
+  ownerMandates: z.array(OwnerMandateSchema).default([]),
   tutorialState: TutorialStateSchema.default({
     active: false,
     currentStepIndex: 0,

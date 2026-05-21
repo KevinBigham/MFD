@@ -1,4 +1,3 @@
-// @ts-nocheck - test-only file, vitest provides node APIs.
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'fs';
 
@@ -14,8 +13,8 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain('data-mfd-nav-actions="true"');
   });
 
-  it('defines the 9 Chip onboarding stages in beat order', () => {
-    const ids = Array.from(content.matchAll(/id: '(chip\.onboarding\.beat-\d)'/g), (match) => match[1]);
+  it('defines the 10 Chip onboarding stages in beat order', () => {
+    const ids = Array.from(content.matchAll(/id: '(chip\.onboarding\.beat-\d+)'/g), (match) => match[1]);
 
     expect(ids).toEqual([
       'chip.onboarding.beat-1',
@@ -27,22 +26,24 @@ describe('App Chip setup wiring', () => {
       'chip.onboarding.beat-7',
       'chip.onboarding.beat-8',
       'chip.onboarding.beat-9',
+      'chip.onboarding.beat-10',
     ]);
   });
 
-  it('maps Chip stage labels to the Slice A setup beats', () => {
+  it('maps Chip stage labels to the first-day setup phases', () => {
     const labels = Array.from(content.matchAll(/label: '([^']+)', content: null/g), (match) => match[1]);
 
     expect(labels).toEqual([
-      'Cold Open',
-      'Team Select',
-      'AGM Hire',
-      'Depth Philosophy',
-      'Season Goals',
-      'Culture Mandate',
-      'Blueprint Reveal',
-      'Kickoff',
-      'Dashboard Handoff',
+      'Choose AGM',
+      'Franchise Intel',
+      'Meet Players',
+      'Hire Coach',
+      'Build Intel',
+      'Set Identity',
+      'Starting Lineup',
+      'The Money',
+      'Set Goals',
+      'Day 1 Complete',
     ]);
   });
 
@@ -68,7 +69,8 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain('stages={CHIP_FRANCHISE_SETUP_STAGES}');
     expect(content).toContain('companionAction={setupCompanionAction}');
     expect(content).toContain('onCompanionVisibleChange={setSetupCompanionVisible}');
-    expect(content).toContain('{({ onStageAdvance }) => (');
+    expect(content).toContain('{({ onStageAdvance, companionPanel }) => (');
+    expect(content).toContain('companionPanel={companionPanel}');
     expect(content).toContain('companionPrimaryActionActive={setupCompanionVisible}');
     expect(content).toContain('onCompanionActionChange={(action) => setSetupCompanionAction(action)}');
     expect(content).toContain('onStageAdvance={onStageAdvance}');
