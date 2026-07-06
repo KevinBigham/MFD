@@ -1,193 +1,193 @@
 {
   "scheme_reactions": {
     "elias_vance": {
-      "spread": "Spread gives us cleaner spacing and faster answers. If the quarterback processes on time, the math likes it.",
-      "west_coast": "West Coast lowers volatility. It asks for timing and discipline, which is usually good business in year one.",
-      "smashmouth": "Power Run can steady a roster, but it narrows our margin if the line is not consistently winning first contact.",
-      "air_raid": "Air Raid raises the ceiling and the weekly variance. We should only live there if we trust protection and decision speed.",
-      "balanced": "Balanced is not passive if we are intentional. It keeps the offense multiple while we learn what the roster can actually sustain.",
-      "4-3": "Four-three lets the front do the expensive work. If our defensive line is good enough, this keeps the math simple.",
-      "3-4": "Three-four creates pressure angles, but it also asks more from linebacker depth. That is a roster tax worth pricing honestly.",
-      "zone_cov": "Cover Two protects the explosive ball, but it demands disciplined tackling underneath. Missed assignments become hidden yardage.",
-      "balanced_d": "Cover Three is a strong year-one answer. It keeps the structure clean and limits the number of impossible calls.",
-      "man_press": "Man Press can create takeaways fast, but the cost of one bad matchup is immediate. The corners have to justify it."
+      "spread": "Choose Spread when quick throws match your quarterback and receivers. Late decisions give pass rushers free shots by Week 1 and turn quick throws into interceptions.",
+      "west_coast": "Choose West Coast when your quarterback decides fast and receivers reach their landmarks; slow reads stall drives before routes finish.",
+      "smashmouth": "Choose Power Run when linemen and backs have first-contact jobs. Miss those jobs, and drives stall while early downs get wasted.",
+      "air_raid": "Choose Air Raid when protection calls and quarterback hot reads are assigned before Week 1. Otherwise bigger pass plays become sacks and interceptions.",
+      "balanced": "Choose Balanced when run, pass, and protection all need starter assignments. Miss one role, and Week 1 prep slows.",
+      "4-3": "Choose Four-three when defensive linemen have run-defense jobs assigned before Week 1. Miss those jobs, and rushing lanes open.",
+      "3-4": "Three-four asks linebackers to rush, cover, and stop the run. Set backup linebackers before committing, or one injury breaks the front.",
+      "zone_cov": "Choose Cover Two to protect deep passes. Missed tackling underneath becomes free yards and longer drives.",
+      "balanced_d": "Choose Cover Three to assign deep zones and flats now. It limits calls that leave defenders late to zones by Week 1.",
+      "man_press": "Choose Man Press when corners have speed and the safety plan covers deep misses. Lost one-on-ones become immediate explosive plays."
     },
     "derrick_coleman": {
-      "spread": "Spread is fine if we still play fast and mean. I do not want a soft offense living sideways all day.",
-      "west_coast": "West Coast can work if the quarterback is decisive and the receivers block. Precision is toughness too when it is done right.",
-      "smashmouth": "Power Run tells the room who we are. If we are serious about owning the line, this is a grown-man choice.",
-      "air_raid": "Air Raid better come with answers when the pocket gets muddy. I am not building a team that panics when it gets hit.",
-      "balanced": "Balanced keeps us from marrying a lie too early. We can still lean physical and find out what this team does best.",
-      "4-3": "Four-three lets defenders attack instead of think. Fast rules, clean fits, and fewer excuses.",
-      "3-4": "Three-four is nasty when your second level can pressure and cover. If not, it gets cute in a hurry.",
-      "zone_cov": "Cover Two is solid when your safeties communicate and your corners tackle. If they do not, teams nickel-and-dime you to death.",
-      "balanced_d": "Cover Three is sturdy football. Keep the ball in front, hit people, make them earn everything.",
-      "man_press": "Man Press is a challenge. If our corners want smoke every snap, I am good with it."
+      "spread": "Choose Spread when short throws still force tackles. If yards after catch fail, drives waste possessions.",
+      "west_coast": "Choose West Coast when the quarterback decides fast and receivers block. Late throws or missed blocks turn precision into Week 1 stalled drives.",
+      "smashmouth": "Choose Power Run when the line and backs own first contact. Miss that contact, and the plan gets predictable by Week 1.",
+      "air_raid": "Choose Air Raid when blitz pickup and quarterback hot throws are assigned by Week 1. Otherwise pressure turns tempo into sacks and turnovers.",
+      "balanced": "Choose Balanced when run, pass, and protection roles all need shared game-plan decisions. Name each starter role, or Week 1 prep slows.",
+      "4-3": "Choose Four-three to let defenders attack assigned gaps and zones. If gap and coverage jobs are unassigned, Week 1 mistakes arrive fast.",
+      "3-4": "Choose Three-four when linebackers have pressure and coverage jobs. Miss either job, and blitzers leave easy throws behind them.",
+      "zone_cov": "Choose Cover Two when safeties communicate and corners tackle. Poor communication turns short completions into long drives.",
+      "balanced_d": "Choose Cover Three to keep the ball in front. Missed tackling turns long drives into points.",
+      "man_press": "Choose Man Press when corners have press assignments and safeties are assigned deep coverage. Miss deep help, and one beaten corner gives up a long touchdown."
     },
     "maya_alvarez": {
-      "spread": "Spread can help skill players breathe. When people play fast and confident, the whole offense settles down.",
-      "west_coast": "West Coast rewards trust and detail. It is a good fit when you want the offense speaking the same language quickly.",
-      "smashmouth": "Power Run gives the line and backs a clear identity. Players usually respond well when their roles feel concrete.",
-      "air_raid": "Air Raid is exciting, but it can put stress on the wrong people if protection and tempo are not aligned.",
-      "balanced": "Balanced keeps more people involved. That matters early, because role clarity is one of the fastest ways to build buy-in.",
-      "4-3": "Four-three can simplify teaching for the front seven. Cleaner assignments usually mean faster confidence.",
-      "3-4": "Three-four works when the linebackers understand the story of every pressure. If they do, it can make the defense feel alive.",
-      "zone_cov": "Cover Two can calm a secondary because the picture stays consistent. That helps communication grow faster.",
-      "balanced_d": "Cover Three gives everyone a dependable structure. It is easier to build trust when players know where help is coming from.",
-      "man_press": "Man Press asks defenders to live on an island. That can be empowering for the right room and stressful for the wrong one."
+      "spread": "Choose Spread to give skill players easier touches. If route and protection jobs are unassigned, players guess by Week 1.",
+      "west_coast": "Choose West Coast when quarterback and receivers share the same quick reads. Late throws or routes stall Week 1 drives.",
+      "smashmouth": "Choose Power Run when the line and backs need assigned run-game jobs. Assignments must hold up by Week 1 or early downs stall.",
+      "air_raid": "Choose Air Raid when protection calls, quarterback hot reads, and receiver jobs are assigned before Week 1. Otherwise extra tempo magnifies mistakes.",
+      "balanced": "Choose Balanced when several starters need touches. Assign roles now, or Week 1 calls create missed assignments.",
+      "4-3": "Choose Four-three to simplify the front seven. If linemen and linebackers do not know their run lanes, Week 1 cutback runs get free yards.",
+      "3-4": "Choose Three-four when linebackers have rush, coverage, and run-defense jobs. Miss one job, and Week 1 calls leave open rushing lanes.",
+      "zone_cov": "Choose Cover Two to assign each safety a deep half. Missed communication still turns underneath throws into longer drives.",
+      "balanced_d": "Choose Cover Three to give every defender assigned coverage rules. Missed communication still leaves free yards.",
+      "man_press": "Choose Man Press when defenders own coverage without extra safety protection. Fast corners with assigned deep help get takeaway chances; without that help by Week 1, beaten corners give up long gains."
     }
   },
   "goal_reactions": {
     "elias_vance": {
-      "win_division": "Winning the division is aggressive, but it gives the room a sharp benchmark instead of a vague one.",
-      "playoff_berth": "Playoff berth is a rational year-one target. It keeps us ambitious without pretending the build is finished.",
-      "winning_record": "A winning record is a clean signal that the baseline improved. That matters more than empty noise.",
-      "rebuild_progress": "Rebuild progress only works if we define the checkpoints clearly. Otherwise it becomes a story people tell themselves.",
-      "cap_health": "Cap health buys future options, and options are leverage. I rarely mind a goal that protects leverage.",
-      "star_power": "Star power is only worth chasing if the infrastructure can support the stars once we find them.",
-      "no_losing_streak": "No losing streak is a variance-management goal. It sounds modest, but it protects morale and owner patience.",
-      "draft_well": "Drafting well is compounding. One strong class changes the next three years more than a splashy March headline does.",
-      "championship": "Championship is a real target only if the roster and variance profile can survive that expectation."
+      "win_division": "Choose Win Division when you will fund veteran upgrades and protect division-game starters in September. Miss early, and owner patience drops.",
+      "playoff_berth": "Choose Playoff Berth when you will fix injuries, backup order, and trade targets before the standings gap widens. Miss early, and depth or trade questions arrive.",
+      "winning_record": "Choose Winning Record to protect owner patience while you fix starters, injuries, and cap. Early losses shrink that patience.",
+      "rebuild_progress": "Choose Rebuild Progress to protect young-player snaps, overpaid-contract exits, and depth growth. If snaps and exits do not happen, owner patience still falls.",
+      "cap_health": "Choose Cap Health to protect injury replacements, extensions, trades, and next-offseason cap space.",
+      "star_power": "Choose the high-end talent goal when staff roles, cap space, and weekly usage protect the star. Otherwise cap hits block depth and extensions.",
+      "no_losing_streak": "Choose No Losing Streak when you will open Recap, injuries, and Game Plan after every loss. Skip that work and morale or owner patience drops.",
+      "draft_well": "Choose Draft Well when cheap starters must replace veteran spending over the next three seasons. Miss picks, and one veteran signing cannot cover the cost.",
+      "championship": "Championship raises every weekly deadline. Choose it when depth, cap space, and starter health cover late-season injuries and fixes without rushed trades."
     },
     "derrick_coleman": {
-      "win_division": "Win the division. That is a grown-up goal and the room will know you mean business.",
-      "playoff_berth": "Playoff berth is fine, but I do not want the team celebrating sneaking in.",
-      "winning_record": "Winning record is the floor, not the speech. We should expect more from ourselves than that.",
-      "rebuild_progress": "Rebuild progress matters if the young guys are taking jobs from veterans, not just talking about someday.",
-      "cap_health": "Cap health is useful, but I am not hanging a banner for balanced books.",
-      "star_power": "Star power is real when stars set the tone. If they do not, it is just marketing.",
-      "no_losing_streak": "No losing streak keeps the building from getting soft. Momentum matters when adversity shows up.",
-      "draft_well": "Draft well means find competitors, not workout heroes. If that is the plan, I am in.",
-      "championship": "Championship is the point. If that word scares the room, we have the wrong room."
+      "win_division": "Choose Win Division when early losses will trigger veteran-upgrade decisions instead of rushed lineup churn. Expect less patience for rookie mistakes.",
+      "playoff_berth": "Choose Playoff Berth to chase weekly wins before rebuilding the roster. Miss early, and depth-chart or trade questions arrive fast.",
+      "winning_record": "Choose Winning Record when starters need time before owner patience drops. Miss it, and owner questions hit lineup and plan choices.",
+      "rebuild_progress": "Choose Rebuild Progress when young players are ready to take jobs from veterans. If no jobs change, owner patience fades.",
+      "cap_health": "Choose Cap Health to keep injury replacements, extensions, and trade options open.",
+      "star_power": "Choose the high-end talent goal when those players earn practice reps and game-day jobs. Otherwise their cap hits block depth moves and extensions.",
+      "no_losing_streak": "No losing streak protects morale and owner patience. After one loss, open Recap, injuries, and Game Plan before the next kickoff.",
+      "draft_well": "Choose Draft Well to find competitors with clear roles. Miss those role reports, and testing numbers still waste picks.",
+      "championship": "Championship is the highest ownership bar. Choose it when starters, injury depth, and late-season cap space cover fixes without rushed cuts or trades."
     },
     "maya_alvarez": {
-      "win_division": "Winning the division gives everyone a shared destination. It can be powerful when the room needs alignment.",
-      "playoff_berth": "Playoff berth is ambitious and believable. Players respond well to goals they can picture themselves reaching.",
-      "winning_record": "A winning record can stabilize trust quickly. Sometimes the first real step matters more than the biggest one.",
-      "rebuild_progress": "Rebuild progress matters because people need proof the hard work is leading somewhere real.",
-      "cap_health": "Cap health protects future relationships too. It keeps us from making promises we cannot honor later.",
-      "star_power": "Star power can lift a whole building, but only if those stars feel connected to the culture around them.",
-      "no_losing_streak": "No losing streak keeps the room from spiraling. Stability is a real form of leadership in year one.",
-      "draft_well": "Draft well is how we keep the locker room healthy over time. Young contributors change the mood of a franchise.",
-      "championship": "Championship is bold, and bold can be good, but the room has to believe the standard comes with support."
+      "win_division": "Winning the division makes owner expectations immediate. Choose it when the plan includes veteran upgrades, protected starters, and division games as early checkpoints.",
+      "playoff_berth": "Choose Playoff Berth to chase weekly wins before rebuilding the roster. Miss early, and trade or depth-chart questions arrive fast.",
+      "winning_record": "Choose Winning Record to protect owner patience early. Miss early, and lineup and trade questions get louder by October.",
+      "rebuild_progress": "Choose Rebuild Progress when young players earn roles and overpaid contracts have exits. Visible snaps protect owner patience through losses.",
+      "cap_health": "Choose Cap Health to protect future extensions and injury replacements. Spend past that limit, and later promises force cuts, trades, or restructures.",
+      "star_power": "Choose the high-end talent goal when staff roles, cap space, and weekly usage protect those players; otherwise cap hits block depth moves and extensions.",
+      "no_losing_streak": "Choose No Losing Streak when you will fix Recap, injuries, and Game Plan after each loss. Miss twice and morale meetings turn into owner-patience penalties.",
+      "draft_well": "Choose Draft Well when cheap starters over the next three seasons beat quick veteran fixes. Missed picks force expensive replacements.",
+      "championship": "Championship sets owner expectations immediately. Choose it when starters, injuries, and late-season depth have depth-chart and medical protection."
     }
   },
   "teaching_tips": {
     "elias_vance": {
       "roster_screen": [
-        "Start with surplus value. The players beating their contracts are the ones you protect first.",
-        "Age plus OVR plus contract length tells you who belongs in the three-year plan.",
-        "Do not confuse a recognizable name with a stable asset. Use age and trend together."
+        "Start with production against cap cost. Protect players who outperform their deals, or future extensions and injury fixes get tighter.",
+        "Name age, starter strength, and contract length before naming a three-year core; old money blocks future starters.",
+        "Name recent performance before keeping a familiar name; paying decline creates cap squeeze and uncovered depth."
       ],
       "depth_chart_screen": [
-        "Depth chart decisions are really exposure decisions. Ask which weak spot opponents can force most easily.",
-        "If two players grade similarly, the younger player usually creates more future leverage.",
-        "Auto-set is a baseline, not a verdict. Override only when you can explain the tradeoff clearly."
+        "Identify which starter or backup opponents attack first; fix that role before Game Plan or cap work distracts you.",
+        "Name age and contract before choosing between close players; the older choice costs later cap space.",
+        "Start with Auto-set as a baseline, then override when the tradeoff protects snaps, development, or Week 1 prep."
       ],
       "cap_screen": [
-        "Cap space is optionality. Spend it only when the marginal win value beats the future cost.",
-        "Dead money is not just pain, it is lost flexibility. Track who is creating it before you restructure anyone.",
-        "A clean medium-sized move is usually better than one desperate all-in move."
+        "Cap space pays for later fixes. Tie each win-now spend to a named starter, injury, trade, or extension need before those options shrink.",
+        "Preview dead money before any restructure; it removes future injury, trade, and extension options.",
+        "Choose one move that fixes a starter or backup job without draining future cap space."
       ],
       "game_plan_screen": [
-        "Pick the scheme that asks your best players to repeat what they already do well.",
-        "Transition penalties matter because installation time is finite. Simplicity is a competitive edge.",
-        "If staff alignment and player fit disagree, year one usually belongs to the players."
+        "Pick calls that put assigned blockers, receivers, or defenders in repeatable jobs; unsupported jobs create Week 1 mistakes.",
+        "Keep the install narrow when calls do not match current player roles; extra complexity creates Week 1 missed assignments.",
+        "When coach preference and current player roles disagree, protect this year's players; forcing the install creates Week 1 mistakes."
       ]
     },
     "derrick_coleman": {
       "roster_screen": [
-        "Find the guys you trust when the game gets ugly. Build from them outward.",
-        "Bad depth hides until somebody gets hurt. Look for the room that scares you most right now.",
-        "Pay attention to who finishes plays, not just who looks good in a column."
+        "Find the players who stay effective through contact and fatigue; protect them with backups before injuries put replacements into those jobs.",
+        "Identify the thinnest backup group now; injuries turn that player into the next starter.",
+        "Name finish, effort, cap cost, and role production before keeping a player; a label without a playable role wastes snaps."
       ],
       "depth_chart_screen": [
-        "Starter reps are earned every week. If a backup is pushing, make the room feel that pressure.",
-        "Tie goes to the player who plays faster and more physical inside the scheme.",
-        "If you cannot trust a spot on third down, it is not settled."
+        "Set starter reps for players who earn them every week; skipped backup order puts an unassigned player in after injuries.",
+        "Start the close-call player with fewer missed assignments; a starter with more missed assignments creates blown calls.",
+        "If a backup lacks a third-down job, fix that order before Advance Week."
       ],
       "cap_screen": [
-        "Pay the difference-makers. Do not get sentimental about the middle of the roster.",
-        "Every bad contract steals snaps from somebody hungrier later.",
-        "If a move makes the locker room harder to respect, it is the wrong move."
+        "Pay the difference-makers, then name the middle-of-roster deals that block cap space for starters.",
+        "Name every contract that costs more than its role before adding another player; overpaying role players steals future snaps from hungrier depth.",
+        "Preview cap savings and role snaps before cutting a contributing backup; a cut without role replacement hits morale and depth."
       ],
       "game_plan_screen": [
-        "Scheme is a promise about how we plan to win. Make sure the roster can keep that promise.",
-        "Physical answers travel. Cute answers disappear the first time somebody punches back.",
-        "If the players can explain the identity in one sentence, you picked well."
+        "Pick the plan that repeats starter assignments already saved on the depth chart; ignored assignments create missed calls by kickoff.",
+        "Call power when the line and backs own first contact; otherwise pick quicker throws before missed-protection sacks rise.",
+        "Name player assignments and the first call in one sentence; if not, Week 1 speed breaks calls."
       ]
     },
     "maya_alvarez": {
       "roster_screen": [
-        "Look for where talent and confidence already reinforce each other. That is where momentum starts.",
-        "A roster screen is also a people map. Ask who needs support, who needs challenge, and who needs clarity.",
-        "The best early win is often putting a good player in a role that finally makes sense."
+        "Keep productive players in assigned jobs; moving one without a named replacement job drops morale and wastes Week 1 snaps.",
+        "Open the roster screen to decide who needs fewer snaps, a harder role, or a new job before development stalls.",
+        "Move a productive player into a defined role; leaving him misplaced wastes snaps and slows development."
       ],
       "depth_chart_screen": [
-        "Depth charts should give players a fair story about why they are where they are.",
-        "Mentorship matters. Pairing the right backup with the right starter can change a season quietly.",
-        "If a young player is ready for more, small increases in responsibility can build trust fast."
+        "Set every depth-chart role with a reason; unassigned jobs cost morale and development snaps.",
+        "Pair the right backup with the right starter when development snaps are the plan; an unassigned role slows a young player.",
+        "Assign small role increases after giving the young player a package, backup, or starter job; too much too soon slows development and hurts depth."
       ],
       "cap_screen": [
-        "Cap choices send messages. Players notice who gets rewarded, protected, or moved on from.",
-        "Flexibility is not just financial. It gives you room to respond compassionately when the season changes.",
-        "When a contract decision feels cold, make sure the logic is still clear enough to explain honestly."
+        "Name the player who gets extended, cut, or moved; a surprise cap move drops morale and blocks later injury or extension fixes.",
+        "Protect cap space for when the season changes; spending it too early limits injury and trade answers.",
+        "Name cap, role, and morale logic before moving a familiar player; no explanation hurts morale and owner patience."
       ],
       "game_plan_screen": [
-        "The best scheme is the one your players can believe in by Sunday, not the one that sounds smartest on a clinic board.",
-        "Role clarity helps confidence. Confidence helps execution. The right identity should do both.",
-        "If the scheme highlights what your leaders already do well, the rest of the room usually follows."
+        "Choose the scheme that fits Week 1 roles; the longest install creates mistakes when assignments lag.",
+        "Set roles the scheme explains by Week 1; unassigned jobs create missed assignments and slow drives.",
+        "Choose a scheme that names the leaders' jobs first; backups get defined jobs and fewer missed assignments."
       ]
     }
   },
   "phase_transition_flavor": {
     "elias_vance": {
-      "choose_agm__intel_briefing": "I close the tablet, slide it under my arm, and point you toward the first dashboard that actually matters.",
-      "intel_briefing__meet_roster": "Numbers first, people second, then back to the numbers once the film tells us what is real.",
-      "meet_roster__hire_coach": "Once the roster questions are framed, the staff decision becomes a cleaner optimization problem.",
-      "hire_coach__hire_scout": "The head coach shapes the weekly edge. The scouting director shapes whether that edge survives next spring.",
-      "hire_scout__set_scheme": "With the information pipeline accounted for, we can finally talk about identity instead of guesswork.",
-      "set_scheme__depth_chart": "Scheme narrows the menu. Depth chart tells us who actually has to cook.",
-      "depth_chart__cap_strategy": "Once the lineup is honest, the cap sheet stops being abstract and starts becoming consequence.",
-      "cap_strategy__set_goals": "Budget, roster, and timeline are finally on the same page. That is when goals stop being slogans.",
-      "set_goals__blueprint": "Good. Now we condense the whole day into one plan the building can actually execute."
+      "choose_agm__intel_briefing": "AGM choice is locked. Now open Franchise Intel and choose whether roster roles, cap space, game plan, or owner patience needs fixing first.",
+      "intel_briefing__meet_roster": "Open the roster next; name the injured starter, overpaid contract, or uncovered first-backup job before a fix spends cap space or creates a new hole.",
+      "meet_roster__hire_coach": "Name roster questions, then hire the coach whose practice plan fixes the starter job, depth gap, or staff ownership gap you found.",
+      "hire_coach__hire_scout": "Hire the scout who names medical limits, assigned-role gaps, and coachability warnings for the coach's scheme; incomplete reports waste future-starter picks.",
+      "hire_scout__set_scheme": "With scouting questions covered, choose schemes that protect current starter assignments by Week 1.",
+      "set_scheme__depth_chart": "Save schemes after naming who plays each role; unsupported depth choices expose Week 1 starter or backup assignments.",
+      "depth_chart__cap_strategy": "Preview cap after the depth chart; lineup choices decide which injuries, trades, or extensions fit under the budget.",
+      "cap_strategy__set_goals": "Choose goals that match budget, roster, and timeline; missed promises cut owner patience.",
+      "set_goals__blueprint": "Open the blueprint to lock staff, roster, cap, and goal deadlines; missed weekly tasks cut owner patience."
     },
     "derrick_coleman": {
-      "choose_agm__intel_briefing": "The door shuts behind the last candidate and now it feels like a football job, not an interview day.",
-      "intel_briefing__meet_roster": "Enough charts. Let us go see who can really help us win.",
-      "meet_roster__hire_coach": "Players are one thing. The coach decides what the whole room sounds like every morning.",
-      "hire_coach__hire_scout": "Now we pick who is feeding us the truth before the rest of the league sees it.",
-      "hire_scout__set_scheme": "We know who is building the board. Time to decide how we want this team to hit people.",
-      "set_scheme__depth_chart": "Identity is cheap until you put real names next to real snaps.",
-      "depth_chart__cap_strategy": "The lineup tells you who matters. The money tells you whether you actually mean it.",
-      "cap_strategy__set_goals": "If we know the cost, then we can stop talking safe and pick a target worth chasing.",
-      "set_goals__blueprint": "That is enough talking. Let us put the plan on the wall and own it."
+      "choose_agm__intel_briefing": "AGM choice is locked. Open Franchise Intel and choose the first fix: roster roles, cap space, game plan, or owner patience.",
+      "intel_briefing__meet_roster": "Open the roster now; if one injury changes the Week 1 lineup, fix depth before Advance Week.",
+      "meet_roster__hire_coach": "After injured starters and first-backup jobs are named, choose the coach who controls practice reps; missing accountability costs Week 1 prep.",
+      "hire_coach__hire_scout": "Pick the scout who answers draft questions before deadlines; missing scout info turns picks into uncovered roster jobs.",
+      "hire_scout__set_scheme": "Choose how this roster plays next; unsupported scheme calls will create Week 1 assignment mistakes.",
+      "set_scheme__depth_chart": "Set starters and backups for the snaps the scheme requires; unsupported roles create Week 1 mistakes.",
+      "depth_chart__cap_strategy": "Preview cap space after the lineup; injuries and extensions need cap space later.",
+      "cap_strategy__set_goals": "Pick a target that matches cost, roster, and owner patience; missed goals shrink patience.",
+      "set_goals__blueprint": "Name the first weekly tasks now; missed prep, uncovered backup jobs, or cap mistakes cost owner patience after Week 1."
     },
     "maya_alvarez": {
-      "choose_agm__intel_briefing": "The room gets quieter after the choice, but it feels calmer too. Now we can start building together.",
-      "intel_briefing__meet_roster": "The data gave us the outline. Meeting the players fills in the human part of the picture.",
-      "meet_roster__hire_coach": "Once you understand the room, the right teacher matters even more.",
-      "hire_coach__hire_scout": "A coach shapes daily habits. A scouting director shapes who gets invited into those habits next.",
-      "hire_scout__set_scheme": "Now that the voices are lined up, we can choose an identity people can actually grow inside.",
-      "set_scheme__depth_chart": "Systems matter, but roles make those systems feel real to players.",
-      "depth_chart__cap_strategy": "Depth decisions lead straight to resource decisions. They always do.",
-      "cap_strategy__set_goals": "Once the money and roster are honest, goals can become a promise instead of a wish.",
-      "set_goals__blueprint": "We have enough clarity now to turn a long day into one shared direction."
+      "choose_agm__intel_briefing": "AGM choice is locked. Match starter, backup, cap, and owner warnings to staff, depth-chart, cap, or goal decisions before Week 1.",
+      "intel_briefing__meet_roster": "Name injured starters, role conflicts, and unhappy veterans next before Depth Chart or Contracts fixes.",
+      "meet_roster__hire_coach": "After injured starters, undefined roles, and contract cost are named, choose the coach who teaches the roles Week 1 needs.",
+      "hire_coach__hire_scout": "Hire the scout who names assigned roles and medical limits for the coach's scheme; missing answers waste picks and slow future development.",
+      "hire_scout__set_scheme": "Choose schemes that match player skills; calls without backup protection create Week 1 mistakes and morale loss.",
+      "set_scheme__depth_chart": "Set starters, backups, and package jobs before Week 1; unassigned jobs create missed assignments and morale loss.",
+      "depth_chart__cap_strategy": "Preview cap space after depth decisions; roster spots and injury replacements need cap space later.",
+      "cap_strategy__set_goals": "Choose goals after the money and roster are honest; unsupported targets force deadline overpays and shorten owner patience.",
+      "set_goals__blueprint": "Set the plan, deadlines, and miss consequences now; otherwise owner patience drops fast."
     }
   },
   "loading_tips": [
-    "Scheme fit matters more in year one than theoretical upside.",
-    "Healthy cap space gives you more than money. It gives you timing.",
-    "The first honest depth chart tells you where the season can break.",
-    "A good year-one goal should stretch the room without lying to it.",
-    "The players who outperform their contracts usually define your margin.",
-    "Coaching fit is only real if the roster can absorb the teaching quickly.",
-    "Scouting process shows up months later. That is why it matters now.",
-    "A stable structure helps young players develop faster under pressure."
+    "Choose schemes that protect Week 1 prep; a plan needing different players creates Week 1 mistakes.",
+    "Save healthy cap space for injuries, trades, and core extensions.",
+    "Save the first depth chart carefully; it decides which starter loses backup cover after an injury.",
+    "Choose a season goal the current starters back; unsupported goals force deadline overpays or shorten owner patience.",
+    "Protect players who outperform contracts; losing cheap production spends cap space on expensive replacements.",
+    "Choose a coach and scheme pair that matches current starter assignments before Week 1; forcing calls that current starters cannot handle slows prep.",
+    "Open scouting reports before draft weekend; missing reports turn a pick into a four-year roster cost.",
+    "Set practice roles clearly; unassigned reps slow development and expose players on game day."
   ],
   "blueprint_closing_monologue": {
-    "elias_vance": "That is the board. We know the leverage points, the risks, and the probabilities. Nothing about this season is guaranteed, but this plan gives us the cleanest path to useful wins now and better options later. We do not need perfect. We need disciplined.",
-    "derrick_coleman": "There it is. We know who we are riding with, how we want to play, and what we are chasing. The building is going to feel different tomorrow because now it has a standard. Let everybody else talk. We are going to go prove it.",
-    "maya_alvarez": "This is the first day it starts feeling like our team. The plan is clear, the expectations are fair, and the people in this building know what we are asking from them. That matters. If we stay aligned, this can become the kind of season players remember for the right reasons."
+    "elias_vance": "Plan set: open roster cost, cap tradeoffs, and first deadlines every week. Miss those fixes, and the next injury, extension, or uncovered backup job erases a win streak.",
+    "derrick_coleman": "Plan set: assign staff, scheme, goals, and next-week tasks. Miss prep, depth, or cap choices and Week 1 starts with missed assignments, uncovered backup jobs, or blocked fixes.",
+    "maya_alvarez": "Plan set: name who plays, what must be fixed each week, and which owner promises are live. If jobs stay unassigned, morale drops and owner patience falls by midseason."
   }
 }

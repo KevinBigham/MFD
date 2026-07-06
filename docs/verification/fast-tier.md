@@ -12,7 +12,7 @@ Equivalent to: `pnpm --filter @mfd/engine playtest:all`, which invokes `mfd/scri
 
 ## Contract
 
-Five personas each advance 10 seasons at seed `42`. The canonical signature (host-noise detectors stripped) must be byte-identical run-to-run on identical engine code:
+Five personas each advance 10 seasons at seed `42`. The serialized `PlaytestReport` is already canonical, with host-noise detectors stripped, and must be byte-identical run-to-run on identical engine code:
 
 | Persona        | Anomalies | High severity |
 |----------------|-----------|---------------|
@@ -29,7 +29,7 @@ All anomalies at the v1.0.0 baseline are `roster-minimums` (medium severity). An
 - **Harness** — `mfd/packages/engine/src/playtesting/harness.ts`. `runPlaytest(persona, seed, seasons)` wraps `advanceFranchiseWeek` in a deterministic loop, captures per-step frames, runs every detector, and returns a `PlaytestReport`.
 - **Personas** — `mfd/packages/engine/src/playtesting/personas.ts`. Each is a frozen `AIBiasConfig`. Add via `createPersona(...)` in `PLAYTEST_PERSONAS`.
 - **Detectors** — `mfd/packages/engine/src/playtesting/anomaly-detectors.ts`. Each detector is a pure function `PlaytestDetectorContext -> PlaytestDetectorVerdict`. Registered in `PLAYTEST_DETECTORS`.
-- **Host-noise** — `HOST_NOISE_DETECTOR_IDS` in `harness.ts`. Detector ids in this set are excluded from canonical counts. Currently: `perf-budget` (wall-clock p99). Add new timing- or host-dependent detectors to this set so they don't gate the perft signature.
+- **Host-noise** — exported `HOST_NOISE_DETECTOR_IDS` in `harness.ts` and the playtesting/root engine barrels. Detector ids in this set are excluded from canonical counts. Currently: `['perf-budget']` (wall-clock p99). Add new timing- or host-dependent detectors to this set so they don't gate the perft signature.
 - **Reporter** — `mfd/scripts/playtest-report.ts` runs each persona and writes `mfd/tmp/playtest-report-<persona>-<seed>.json`.
 
 ## Adding a new persona scenario
@@ -43,7 +43,7 @@ All anomalies at the v1.0.0 baseline are `roster-minimums` (medium severity). An
 
 1. Implement in `anomaly-detectors.ts` as a pure `PlaytestDetector`.
 2. Register in `PLAYTEST_DETECTORS`.
-3. If the detector is wall-clock or host-dependent, add its id to `HOST_NOISE_DETECTOR_IDS` in `harness.ts` so it stays diagnostic, not signature-gating.
+3. If the detector is wall-clock or host-dependent, add its id to `HOST_NOISE_DETECTOR_IDS` in `harness.ts` so it stays diagnostic, not signature-gating. Keep diagnostic timing fields out of serialized `PlaytestReport` JSON.
 4. Add co-located tests in `anomaly-detectors.test.ts` (5 minimum per CLAUDE.md).
 5. Run `pnpm test:perft`. The new detector may shift the canonical anomaly counts for some personas — if so, classify per §5.5 baseline_update_protocol before rebaselining.
 
@@ -51,7 +51,7 @@ All anomalies at the v1.0.0 baseline are `roster-minimums` (medium severity). An
 
 Determinism is a public contract in MFD: `same seed + same inputs -> identical output`. The fast tier is the proof. v1.0.0 (Sprint 72) ratified the canonical signature; every subsequent sprint inherits it.
 
-The slow tier (`test:shadow`) runs the same engine over multi-decade horizons (5 / 10 / 20 years) to catch drift the 10-season run misses. See `shadow-tier.md`.
+The slow tier (`test:shadow`) runs the same engine over multi-decade horizons (5 / 10 / 20 years) to catch drift the 10-season run misses. Downstream determinism tests should compare canonical `PlaytestReport` JSON directly rather than re-filtering it. See `shadow-tier.md`.
 
 ## Stop-hook integration
 

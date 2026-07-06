@@ -26,10 +26,67 @@ const STATUS_ACCENTS: Record<StorylineStatus, Accent> = {
   closed: 'green',
 };
 
+interface StorylineReceiptRow {
+  id: string;
+  label: string;
+  value: string;
+  detail: string;
+  accent: Accent;
+}
+
 function heatBlock(heat: number): string {
   const clamped = Math.max(0, Math.min(100, heat));
   const cells = Math.round(clamped / 10);
   return '█'.repeat(cells).padEnd(10, '░');
+}
+
+function weekLabel(year: number, week: number): string {
+  return `Y${year} W${week}`;
+}
+
+function pluralizeBeat(count: number): string {
+  return `${count} beat${count === 1 ? '' : 's'}`;
+}
+
+export function buildStorylineReceiptRows(thread: StorylineThread): StorylineReceiptRow[] {
+  const latestBeat = thread.beats[thread.beats.length - 1] ?? null;
+  return [
+    {
+      id: 'source',
+      label: 'Saved Source',
+      value: 'storylineThreads',
+      detail: `${ARCHETYPE_LABELS[thread.archetype]} // ${thread.key}`,
+      accent: 'cyan',
+    },
+    {
+      id: 'timeline',
+      label: 'Thread Clock',
+      value: `${weekLabel(thread.startYear, thread.startWeek)} -> ${weekLabel(thread.updatedYear, thread.updatedWeek)}`,
+      detail: `${thread.weeksActive} weeks active // ${thread.status}`,
+      accent: thread.status === 'active' ? 'gold' : 'green',
+    },
+    {
+      id: 'beats',
+      label: 'Beat Ledger',
+      value: pluralizeBeat(thread.beats.length),
+      detail: latestBeat ? `Latest: ${latestBeat.label}` : 'No saved beat rows yet.',
+      accent: 'green',
+    },
+    {
+      id: 'lifecycle',
+      label: 'Lifecycle Owner',
+      value: 'week advance',
+      detail: 'advanceStorylineThreads -> closeCompletedThreads -> seedThreadsForWeek after completed regular-season weeks.',
+      accent: 'default',
+    },
+    {
+      id: 'boundary',
+      label: 'Just viewing',
+      value: 'no thread writes',
+      detail: 'This card does not advance, close, seed, write news, or change storyline metadata.',
+      accent: 'default',
+    },
+  ];
 }
 
 interface StorylineThreadCardProps {
@@ -54,6 +111,7 @@ export function StorylineThreadCard({ thread, onOpen }: StorylineThreadCardProps
   const statusAccent = STATUS_ACCENTS[thread.status];
   const involvesUser = thread.teamIds.includes(userTeamId ?? '__none__');
   const latestBeat = thread.beats[thread.beats.length - 1] ?? null;
+  const receiptRows = buildStorylineReceiptRows(thread);
 
   const teamChips = thread.teamIds.slice(0, 3).map((teamId) => {
     const team = teams?.[teamId];
@@ -135,6 +193,32 @@ export function StorylineThreadCard({ thread, onOpen }: StorylineThreadCardProps
           Next: {thread.nextBeatHint}
         </div>
       ) : null}
+
+      <PixelPanel title="Thread Receipt" accent="cyan">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {receiptRows.map((row) => (
+            <div
+              key={row.id}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '112px minmax(0, 1fr)',
+                gap: '8px',
+                alignItems: 'start',
+              }}
+            >
+              <PixelBadge variant={row.accent}>{row.label}</PixelBadge>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0 }}>
+                <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.35 }}>
+                  {row.value}
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                  {row.detail}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
 
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
         <PixelBadge variant="default">{`${thread.weeksActive}W`}</PixelBadge>

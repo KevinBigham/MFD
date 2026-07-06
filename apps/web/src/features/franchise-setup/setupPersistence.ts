@@ -45,7 +45,8 @@ export function clearPreludeDismissed(storage: StorageLike | null | undefined, r
 export function finalizeSetupRun(storage: StorageLike | null | undefined, runId?: string | null): void {
   if (!storage) return;
 
-  if (storage.getItem(SETUP_RUN_MODE_KEY) === 'full') {
+  const mode = readSetupRunMode(storage) ?? 'full';
+  if (mode === 'full') {
     storage.setItem(FIRST_TEN_COMPLETED_KEY, 'true');
   }
 

@@ -60,7 +60,9 @@ describe('DraftPickReveal', () => {
       <DraftPickRevealCard {...draftPickProps} title="Reveal Card" />,
     );
 
-    expect(markup).toContain('--- REVEAL CARD ---');
+    expect(markup).toContain('data-mfd-pixel-panel="true"');
+    expect(markup).toContain('REVEAL CARD');
+    expect(markup).toContain('JORDAN VELOCITY');
     expect(markup).toContain('AGM: Value held. The board came to us.');
   });
 });

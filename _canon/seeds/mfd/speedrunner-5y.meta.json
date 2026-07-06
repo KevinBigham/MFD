@@ -1,15 +1,18 @@
 {
   "scenarioId": "speedrunner-5y",
-  "corpusVersion": "1",
-  "schemaVersion": 35,
-  "engineCommit": "f523cc3697ce59e2f178e815da508fb74ec35777",
-  "generatedAt": "2026-04-28T16:51:41.714Z",
+  "corpusVersion": "2",
+  "classification": "intended",
+  "specCitation": "_canon/seeds/mfd/README.md:25",
+  "updateReason": "Synthetic playtest fixtures now build truthful synced cap totals from scaled contract inputs before benchmark/shadow runs. The regenerated reports remove fixture-only cap-sanity drift and preserve the frozen shadow-tier determinism contract.",
+  "schemaVersion": 36,
+  "engineCommit": "unknown",
+  "generatedAt": "2026-06-19T04:03:05.077Z",
   "generationCommand": "pnpm test:shadow -- --update",
   "persona": "SPEEDRUNNER",
   "seed": 42,
   "seasonsRequested": 5,
   "seasonsCompleted": 5,
   "weeksAdvanced": 143,
-  "anomalyCount": 87,
+  "anomalyCount": 85,
   "highSeverityCount": 0
 }

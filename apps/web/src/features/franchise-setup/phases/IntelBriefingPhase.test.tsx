@@ -12,20 +12,20 @@ const data: FranchiseIntelBriefing = {
   leagueRank: 11,
   criticalNeeds: ['CB'],
   strengths: ['QB'],
-  overallAssessment: 'This roster can compete if Day 1 solves the right pressure.',
+  overallAssessment: 'This roster can compete if setup fixes the right roster and cap choices.',
 };
 
 const crisis: TeamCrisisProfile = {
   headline: 'The cap is narrowing your moves.',
   ownerPressure: 'Ownership wants coherence.',
   mediaPressure: 'The market is skeptical.',
-  weekOneThreat: 'Week 1 will expose cap pressure immediately.',
-  weekOneHope: 'The opener is winnable with a clean plan.',
-  weekOneUnknown: 'The room still has to buy it.',
+  weekOneThreat: 'Week 1 will expose tight cap space immediately.',
+  weekOneHope: 'The opener is winnable when roles are assigned.',
+  weekOneUnknown: 'Players still need clear accountability.',
   pressureCards: [
     {
       id: 'roster',
-      label: 'Roster Pressure',
+      label: 'Roster Needs',
       severity: 'warning',
       score: 64,
       diagnosis: 'Thin secondary.',
@@ -39,30 +39,30 @@ const crisis: TeamCrisisProfile = {
     },
     {
       id: 'cap',
-      label: 'Cap Pressure',
+      label: 'Cap Space',
       severity: 'critical',
       score: 82,
       diagnosis: 'The books are tight.',
       signal: 'CRITICAL',
       drilldown: {
         whyItMatters: 'Cap room decides whether you can pivot.',
-        riskSource: 'One bad contract is holding the room hostage.',
-        bestLever: 'Choose a Day 1 cap package.',
+        riskSource: 'One bad contract is limiting every recovery move.',
+        bestLever: 'Choose a cap plan before Week 1.',
         seasonOneConsequence: 'A tight cap slows every recovery move.',
       },
     },
     {
       id: 'culture',
-      label: 'Culture Pressure',
+      label: 'Team Morale',
       severity: 'warning',
       score: 58,
-      diagnosis: 'The room can wobble.',
+      diagnosis: 'Choose captains and assign backup roles before Week 1; missing accountability splits morale after early losses.',
       signal: 'WATCH',
       drilldown: {
-        whyItMatters: 'The room still needs a tone.',
-        riskSource: 'Veterans do not trust the current standard.',
-        bestLever: 'Set a clear mandate.',
-        seasonOneConsequence: 'A split room makes bad weeks heavier.',
+        whyItMatters: 'Players need assigned roles before losses pile up.',
+        riskSource: 'Veterans are not enforcing current roles.',
+        bestLever: 'Name the player mandate.',
+        seasonOneConsequence: 'A split locker room makes bad weeks heavier.',
       },
     },
   ],
@@ -92,13 +92,16 @@ describe('IntelBriefingPhase', () => {
     );
 
     expect(html).toContain('BRIEF DIAGNOSIS');
-    expect(html).toContain('REQUIRED');
-    expect(html).toContain('Cap Pressure');
-    expect(html).toContain('One bad contract is holding the room hostage.');
-    expect(html).toContain('Choose a Day 1 cap package.');
+    expect(html).toContain('OPEN TO CONTINUE');
+    expect(html).toContain('FIX BEFORE WEEK 1');
+    expect(html).toContain('Cap Space');
+    expect(html).toContain('One bad contract is limiting every recovery move.');
+    expect(html).toContain('Choose a cap plan before Week 1.');
+    expect(html).not.toMatch(/>WATCH<|>CRITICAL<|>High Alert<|>Watchlist</i);
+    expect(html).not.toMatch(/Day 1 cap package/i);
   });
 
-  it('leads with one open-this-first pressure card instead of a full board', () => {
+  it('leads with one open-this-first Intel card instead of a full board', () => {
     const html = renderToStaticMarkup(
       <IntelBriefingPhase
         data={data}
@@ -110,7 +113,7 @@ describe('IntelBriefingPhase', () => {
     );
 
     expect(html).toContain('OPEN THIS FIRST');
-    expect(html).toContain('Cap Pressure');
+    expect(html).toContain('Cap Space');
     expect(html).not.toContain('Three-Pressure Board');
   });
 
@@ -126,11 +129,16 @@ describe('IntelBriefingPhase', () => {
       />,
     );
 
-    expect(html).toContain('Open this pressure card to unlock Next.');
+    expect(html).toContain('Open this Intel card to continue.');
+    expect(html).toContain('FIX BEFORE WEEK 1');
+    expect(html).toContain('WATCH BEFORE WEEK 1');
+    expect(html).not.toContain('Open this Intel card to unlock Next.');
+    expect(html).not.toContain('Open this pressure card');
+    expect(html).not.toContain('Open this risk card');
     expect(html).not.toContain('One bad contract is holding the room hostage.');
   });
 
-  it('keeps secondary pressure signals compact below the required card', () => {
+  it('keeps other Week 1 costs compact below the required card', () => {
     const html = renderToStaticMarkup(
       <IntelBriefingPhase
         data={data}
@@ -142,10 +150,13 @@ describe('IntelBriefingPhase', () => {
       />,
     );
 
-    expect(html).toContain('SECONDARY SIGNALS');
-    expect(html).toContain('Roster Pressure');
-    expect(html).toContain('Culture Pressure');
+    expect(html).toContain('OTHER WEEK 1 COSTS');
+    expect(html).toContain('Roster Needs');
+    expect(html).toContain('Team Morale');
     expect(html).toContain('Set the right starters.');
+    expect(html).not.toContain('OTHER SETUP RISKS');
+    expect(html).not.toContain('SECONDARY SIGNALS');
+    expect(html).not.toContain('Culture Pressure');
     expect(html).not.toContain('Thin secondary.');
   });
 
@@ -161,11 +172,20 @@ describe('IntelBriefingPhase', () => {
       />,
     );
 
-    expect(html).toContain('FRANCHISE SNAPSHOT');
-    expect(html).toContain('Window');
+    expect(html).toContain('ROSTER / CAP SNAPSHOT');
+    expect(html).toContain('Timeline');
     expect(html).toContain('opening');
+    expect(html).toContain('Pressure 71');
+    expect(html).toContain('Cap Space');
+    expect(html).toContain('$18M');
+    expect(html).toContain('B status');
+    expect(html).toContain('Best Rooms');
     expect(html).toContain('Needs');
+    expect(html).not.toContain('FRANCHISE SNAPSHOT');
+    expect(html).not.toContain('Secondary Signals');
     expect(html).not.toContain('Dynasty Window');
     expect(html).not.toContain('Scouting Report');
+    expect(html).not.toContain('>Cap</div><div');
+    expect(html).not.toContain('B</span><span');
   });
 });

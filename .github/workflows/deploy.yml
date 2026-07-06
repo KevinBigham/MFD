@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [codex/phase4a-season-loop, main]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 9.15.9
 
       - uses: actions/setup-node@v4
         with:
@@ -38,6 +38,8 @@ jobs:
           # Kill switch lives in apps/web/src/features/companion/ChipHost.tsx::isChipFeatureEnabled.
           # Without this, the production build ships with Chip invisible.
           VITE_CHIP_ENABLED: 'true'
+      - run: bash scripts/check-bundle-size.sh
+      - run: bash scripts/smoke-test-built-page.sh
 
       - uses: actions/upload-pages-artifact@v3
         with:

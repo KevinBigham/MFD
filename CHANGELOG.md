@@ -2,6 +2,38 @@
 
 ## Post-Launch Polish (unversioned, on `main`)
 
+### Team window read-model - 2026-07-06
+
+- Added a web-only `computeTeamWindow` read-model that explains CPU clubs as `ALL IN`, `CONTEND`, `RETOOL`, or `REBUILD` from saved roster, cap space, picks, strategy, and results.
+- `/team-needs` now shows the selected CPU team's competitive-window badge and receipted drivers beside the existing intent ledger.
+- Trade Finder rows now show compact partner window badges with expandable drivers; no CPU behavior, offers, bids, draft logic, save schema, RNG, dependencies, or engine source changed.
+
+### Previously-on session opener - 2026-07-06
+
+- Monday Briefing now opens returning players with a browser-local `Previously on your dynasty` recap when Chip is enabled, with a dismissible Pixel banner fallback when Chip is disabled.
+- New `buildSessionRecap` read-model derives deterministic recap beats from saved week summaries, league news, standings context, next opponent, and existing pending-item receipts.
+- Last-seen state stays in browser-local convenience storage under `mfd.sessionRecap.lastSeen.v1:<dynastyId>`; no save schema, sim math, RNG, dependencies, or engine source changed.
+
+### Dynasty callbacks read-model - 2026-07-06
+
+- Monday Briefing now shows a read-only `This Week in Dynasty History` panel when saved history can produce callback cards.
+- New `buildWeeklyCallbacks` read-model derives deterministic anniversary, draft follow-through, and milestone echo cards from existing saved receipts only.
+- Sparse or young saves stay quiet; no save schema, sim math, RNG, dependencies, or engine source changed.
+
+### Backup trust import preview - 2026-07-06
+
+- Combined Backup is now the primary Dynasty Cartridge export/import path.
+- Classic `.mfd` actions are labeled as advanced current-save-only recovery.
+- Combined and sidecar imports now show a summary preview with dynasty coverage and missing-store warnings before any autosave, active-game load, or sidecar replacement.
+- Older sidecar archives that do not carry rivalry heat no longer wipe existing local rivalry history.
+
+### Publication integrity release gate - 2026-07-05
+
+- 36-step `pnpm release:gate` is the public release contract and CI `release-gate` job.
+- One-Click Combined Backup exists for the normal `.mfd` cartridge plus dynasty sidecar archive export/import.
+- GitHub Pages deploy workflow now triggers only from `main` or manual dispatch, pins pnpm 9.15.9, and runs bundle-size plus built-page smoke checks after the web build.
+- Release docs updated to match current release-gate, Combined Backup, and deploy-hardening truth.
+
 ### Chip companion rebuild - 2026-05-07 (PR #62)
 
 - Chip's portrait set rebuilt on a unified procedural retro-broadcast cartoon rig in `scripts/generate-chip-v3-art.cjs`. Single source-of-truth, consistent character across every pose.
@@ -49,9 +81,9 @@ Launch build for the TypeScript rebuild.
 
 ### Save Compatibility
 
-- Save schema remains v35.
-- No Sprint 72 schema bump.
-- Existing v1 -> v35 migration chain remains the public compatibility contract.
+- Save schema is v36 in the current working copy.
+- Sprint 72 itself did not require a schema bump.
+- Existing v1 -> v36 migration chain remains the public compatibility contract.
 
 ### Test Count
 

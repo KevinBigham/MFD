@@ -64,6 +64,28 @@ export function PlayerRivalries() {
         )}
       />
 
+      <PixelPanel title="Rivalry Sources" accent="gold">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <PixelBadge variant="cyan">Saved playerRivalries</PixelBadge>
+            <PixelBadge variant="gold">Week-advance receipts</PixelBadge>
+            <PixelBadge variant="default">Social feed projection</PixelBadge>
+            <PixelBadge variant="red">Sim bonus source</PixelBadge>
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+            This route reads saved game.playerRivalries through selectAllPlayerRivalries, resolves team
+            labels from game.teams, and projects rivalry trash talk from saved socialFeed posts. Franchise
+            week owns creation and updates from GameResult.playerMatchupEvents: two interceptions, three
+            sacks, or one forced fumble can seed a feud, and repeat meetings can raise intensity.
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+            Opening this screen does not create or decay rivalries, write social posts, apply player OVR
+            bonuses, edit history rows, or wire the derived mfd.rivalries.v1 sidecar. Live sim bonuses still
+            come from the saved player-rivalry model during game context construction.
+          </div>
+        </div>
+      </PixelPanel>
+
       {rivalries.length === 0 ? (
         <PixelPanel title="No Rivalries Yet" accent="cyan">
           <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>

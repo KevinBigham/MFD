@@ -2,7 +2,7 @@
  * AGM — Assistant GM advisory helpers (Sprint 43).
  *
  * Provides weekly recommendation rollups for the Monday Briefing
- * "What should I do?" modal. Pure, deterministic, no I/O.
+ * "Show AGM advice" modal. Pure, deterministic, no I/O.
  *
  * Ranking heuristics (in priority order):
  *   1. Urgent injuries      — starters out for 2+ weeks
@@ -84,8 +84,8 @@ export function getAGMWeeklyRecommendations(
     recommendations.push({
       id: 'injury_watch',
       priority: 'urgent',
-      title: `Injury watch: ${injuredStarters.length} starter${injuredStarters.length === 1 ? '' : 's'} sidelined`,
-      body: `${names}${injuredStarters.length > 2 ? ` and ${injuredStarters.length - 2} more` : ''} will miss ${URGENT_INJURY_GAMES}+ weeks. Check the depth chart and consider a free-agent signing.`,
+      title: `Injury fix: ${injuredStarters.length} starter${injuredStarters.length === 1 ? '' : 's'} sidelined`,
+      body: `${names}${injuredStarters.length > 2 ? ` and ${injuredStarters.length - 2} more` : ''} will miss ${URGENT_INJURY_GAMES}+ weeks. Fix the Depth Chart and add a free agent, waiver claim, or practice-squad player if the backup is not playable.`,
       targetRoute: '/roster',
     });
   }
@@ -96,7 +96,7 @@ export function getAGMWeeklyRecommendations(
       id: 'cap_trouble',
       priority: team.capSpace < 0 ? 'urgent' : 'high',
       title: team.capSpace < 0 ? 'Over the cap' : 'Cap space getting tight',
-      body: `You have $${Math.round(team.capSpace / 1000).toLocaleString()}K of cap space. Consider restructures or a post-June-1 cut before more bills hit.`,
+      body: `You have $${Math.round(team.capSpace / 1000).toLocaleString()}K of cap space. Open Contracts or Cap Lab before signing, trading, or extending; otherwise injury replacements and extensions lose the cap space they need.`,
       targetRoute: '/contracts',
     });
   }
@@ -111,8 +111,8 @@ export function getAGMWeeklyRecommendations(
         ? `Coach D matchup standard: ${nextOpponent.city} ${nextOpponent.name}`
         : `Scout next opponent: ${nextOpponent.city} ${nextOpponent.name}`,
       body: agmProfileId === 'coach_d_hardaway'
-        ? `They are ${nextOpponent.wins}-${nextOpponent.losses}. Align the weekly prep board with the scouting report and pressure standard to unlock Coach D's game-week edge.`
-        : `They are ${nextOpponent.wins}-${nextOpponent.losses}. Review their strengths on the Game Plan screen before kickoff.`,
+        ? `They are ${nextOpponent.wins}-${nextOpponent.losses}. Set protection, coverage, and run-defense answers before Advance Week; skipping it lets their top matchup attack an exposed starter.`
+        : `They are ${nextOpponent.wins}-${nextOpponent.losses}. Open Game Plan before Advance Week to set protection, coverage, and run-defense answers; skipping matchup work leaves a starter exposed where they attack first.`,
       targetRoute: '/game-plan',
     });
   }
@@ -127,8 +127,8 @@ export function getAGMWeeklyRecommendations(
         ? `Sandra's depth audit: ${gaps.slice(0, 3).join(', ')}`
         : `Depth concerns at ${gaps.slice(0, 3).join(', ')}`,
       body: agmProfileId === 'sandra_chen'
-        ? `You have fewer than ${ROSTER_GAP_MIN} healthy players at ${gaps.length > 3 ? 'several positions' : 'these spots'}. Role clarity matters more with Sandra accountable for personnel promises.`
-        : `You have fewer than ${ROSTER_GAP_MIN} healthy players at ${gaps.length > 3 ? 'several positions' : 'these spots'}. Practice squad or waiver wire can shore things up.`,
+        ? `You have fewer than ${ROSTER_GAP_MIN} healthy players at ${gaps.length > 3 ? 'several positions' : 'these spots'}. Add depth or lower the starter workload before one injury puts an unplanned starter on the field.`
+        : `You have fewer than ${ROSTER_GAP_MIN} healthy players at ${gaps.length > 3 ? 'several positions' : 'these spots'}. Open Team Needs, waivers, or practice squad before Advance Week; one injury puts an unassigned backup in the next game.`,
       targetRoute: '/team-needs',
     });
   }
@@ -141,7 +141,7 @@ export function getAGMWeeklyRecommendations(
       id: 'marcus_cap_mandate',
       priority: capMandate.progress.status === 'at_risk' ? 'high' : 'medium',
       title: `Cap mandate: ${capMandate.progress.label}`,
-      body: `${capMandate.progress.detail} Marcus Webb gives this mandate clearer owner-facing progress and consequence tuning at season end.`,
+      body: `${capMandate.progress.detail} Open Contracts or Cap Lab before Advance Week; missing this mandate cuts owner patience at season end.`,
       targetRoute: '/owner',
     });
   }
@@ -153,7 +153,7 @@ export function getAGMWeeklyRecommendations(
       id: 'sandra_development_mandate',
       priority: developmentMandate.progress.status === 'at_risk' ? 'high' : 'medium',
       title: `Development mandate: ${developmentMandate.progress.label}`,
-      body: `${developmentMandate.progress.detail} Keep young roles stable so Sandra's personnel edge turns into proof, not just optimism.`,
+      body: `${developmentMandate.progress.detail} Keep young players in assigned weekly jobs before Advance Week; changing snaps too often fails the development goal.`,
       targetRoute: '/roster',
     });
   }

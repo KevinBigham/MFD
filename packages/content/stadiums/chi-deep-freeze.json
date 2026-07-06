@@ -1,0 +1,13 @@
+{
+  "teamId": "CHI",
+  "name": "The Deep Freeze",
+  "capacity": 61500,
+  "tradition": "The First Slice now starts every Deep-Dish home kickoff: a local pizzeria captain carves a six-foot pie at midfield, the Casserole Crew watches the cheese pull hit the yard marker, and the lake-wind roar tells the visiting sideline the crust is holding.",
+  "surface": "Grass",
+  "roof": "Open",
+  "cue": {
+    "label": "The First Slice",
+    "pregameLine": "The six-foot pie is rolling to midfield at The Deep Freeze, and the cheese pull is stretching into kickoff weather.",
+    "crowdResponse": "The Casserole Crew answers with a DEEP! DISH! chant that lands like an oven door in January."
+  }
+}

@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import type { HallOfFameEntry } from '@mfd/engine';
+import type { CareerEpilogue, HallOfFameEntry } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelModal, PixelPanel } from '@mfd/design-system/components';
 import { PixelMetricCard, autoGrid, display, monoSm, teamThemeVars } from '../shared/pixelUi';
 import { createExportFrame } from '../season/export-frame';
@@ -19,6 +19,25 @@ function slugifyHallOfFamerName(name: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
   return slug || 'unknown';
+}
+
+function isDisplayableCareerEpilogue(epilogue: unknown): epilogue is CareerEpilogue {
+  if (!epilogue || typeof epilogue !== 'object') return false;
+  const candidate = epilogue as Partial<Record<keyof CareerEpilogue, unknown>>;
+  return typeof candidate.headline === 'string'
+    && candidate.headline.trim().length > 0
+    && typeof candidate.story === 'string'
+    && candidate.story.trim().length > 0
+    && typeof candidate.category === 'string'
+    && candidate.category.trim().length > 0;
+}
+
+function formatEpilogueCategory(category: string): string {
+  return category
+    .split('_')
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
 }
 
 async function exportHallOfFamerAsPng(target: HTMLElement, entry: HallOfFameEntry): Promise<string> {
@@ -56,6 +75,7 @@ export function HallOfFamerDetailModal({
   if (!open || !entry) return null;
 
   const isHomegrown = entry.teams[0] === dynastyTeamId;
+  const epilogue = isDisplayableCareerEpilogue(entry.epilogue) ? entry.epilogue : null;
 
   const handleExport = async () => {
     if (!exportRef.current) return;
@@ -105,6 +125,23 @@ export function HallOfFamerDetailModal({
               ))}
             </div>
           </PixelPanel>
+
+          {epilogue ? (
+            <PixelPanel title="Career Epilogue" accent="gold">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <PixelBadge variant="gold">SAVED EPILOGUE</PixelBadge>
+                  <PixelBadge variant="default">{formatEpilogueCategory(epilogue.category)}</PixelBadge>
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6, fontWeight: 700 }}>
+                  {epilogue.headline}
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+                  {epilogue.story}
+                </div>
+              </div>
+            </PixelPanel>
+          ) : null}
 
           {entry.highlights.length > 0 ? (
             <PixelPanel title="Highlights" accent="cyan">

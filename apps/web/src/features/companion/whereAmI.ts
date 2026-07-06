@@ -2,6 +2,7 @@ import type { ChipRoutePose } from '../route-coaching/routeBeatRegistry';
 
 export interface WhereAmIState {
   week: number;
+  seasonWeeks: number;
   wins: number;
   losses: number;
   divisionRank: number;
@@ -22,6 +23,11 @@ function asRecord(value: unknown): LooseRecord | null {
 
 function numberValue(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function seasonWeeks(game: LooseRecord | null): number {
+  const schedule = Array.isArray(game?.schedule) ? game.schedule : null;
+  return schedule && schedule.length > 0 ? schedule.length : 18;
 }
 
 function userTeamFromGame(game: LooseRecord | null): LooseRecord | null {
@@ -61,6 +67,7 @@ export function resolveWhereAmIState(state: unknown, pendingTotal: number): Wher
 
   return {
     week: numberValue(game?.week, 0),
+    seasonWeeks: seasonWeeks(game),
     wins: numberValue(userTeam?.wins, 0),
     losses: numberValue(userTeam?.losses, 0),
     divisionRank: divisionRank(game, userTeam),
@@ -69,10 +76,12 @@ export function resolveWhereAmIState(state: unknown, pendingTotal: number): Wher
 }
 
 export function createWhereAmIBeat(state: WhereAmIState): WhereAmIBeat {
-  const pendingSuffix = state.pendingTotal > 0 ? ` — ${state.pendingTotal} decisions waiting` : '';
+  const pendingSentence = state.pendingTotal > 0
+    ? ` Must Do: choose or defer ${state.pendingTotal} decision${state.pendingTotal === 1 ? '' : 's'} before Advance Week. Where: Inbox, Action Center, or highlighted screen badges. Consequence: offers, promises, votes, cap, lineup, and morale expire or lock at Advance Week.`
+    : ' Must Do: none right now. Recommended: open Monday Briefing. Where: Action Center, then any legal team screen: roster, depth, cap, market, staff, scouting, medical, or Game Plan. Consequence: Advance Week locks saved lineups, cap, morale, and matchup calls.';
   return {
     id: 'chip.dock.summary',
     pose: 'thinking',
-    text: `Week ${state.week} / 17 — Record ${state.wins}-${state.losses} — Division ${state.divisionRank}${pendingSuffix}`,
+    text: `Week ${state.week}/${state.seasonWeeks}, ${state.wins}-${state.losses}, Division ${state.divisionRank}.${pendingSentence}`,
   };
 }

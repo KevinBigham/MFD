@@ -6,35 +6,35 @@ import { AGMPanel } from './AGMPanel';
 const agm: AGMProfile = {
   id: 'marcus_webb',
   name: 'Marcus Webb',
-  title: 'Director of Baseball Strategy',
+  title: 'Director of Football Strategy',
   background: 'Numbers-first operator.',
   personality: 'analytical',
   expertise: 'cap_management',
-  selectionPitch: 'Steady process.',
-  strengths: ['Payroll modeling'],
+  selectionPitch: 'Check cap cost before Week 1 choices lock.',
+  strengths: ['Payroll cost checks'],
   cardAccent: 'cyan',
   welcomeMonologue: 'Welcome aboard.',
   teachingNarration: {
     what_is_a_head_coach: 'Coach lesson.',
     what_is_a_scouting_director: 'Scout lesson.',
   },
-  catchphrase: 'The numbers never lie.',
+  catchphrase: 'Cost, deadline, consequence.',
   toneModifiers: { enthusiasm: 0.4, bluntness: 0.6, humor: 0.1 },
 };
 
 const dialogue: AGMPhaseDialogue = {
   phaseId: 'meet_roster',
   intro: 'Here is the room.',
-  insights: [{ category: 'strength', text: 'There is talent here.', dataPoint: '83 OVR' }],
-  recommendation: 'Build around the core.',
-  closingRemark: 'We can work with this.',
+  insights: [{ category: 'strength', text: 'Protect the top starter and first backup before Week 1.', dataPoint: 'starter grade' }],
+  recommendation: 'Check the top starter, first backup, and cap cost before changing roles.',
+  closingRemark: 'Review roster, depth, and cap before Advance Week.',
   tone: 'confident',
 };
 
 const reaction: AGMReaction = {
   sentiment: 'love_it',
-  reaction: 'I like the direction.',
-  followUp: 'Keep the pressure on.',
+  reaction: 'This protects the starter and backup order.',
+  followUp: 'Check the cap cost before adding a contract.',
 };
 
 describe('AGMPanel', () => {
@@ -55,6 +55,10 @@ describe('AGMPanel', () => {
     expect(html).toContain('Confident');
     expect(html).toContain('MARCUS WEBB SAYS:');
     expect(html).toContain('Start with your best players.');
+    expect(html).toContain('Cost Checks');
+    expect(html).toContain('Cap Space');
+    expect(html).toContain('STRONG MATCH');
+    expect(html).not.toMatch(/cap management|love it|player whisperer/i);
   });
 
   it('renders blueprint chrome and begin season prompt', () => {
@@ -71,8 +75,9 @@ describe('AGMPanel', () => {
       />,
     );
 
-    expect(html).toContain('END OF DAY 1');
+    expect(html).toContain('SETUP WRAP');
     expect(html).toContain('We have the plan. Now we live it.');
     expect(html).toContain('BEGIN SEASON');
+    expect(html).not.toContain('END OF DAY 1');
   });
 });

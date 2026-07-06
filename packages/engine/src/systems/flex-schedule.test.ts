@@ -50,12 +50,22 @@ describe('flex schedule', () => {
     expect(game.schedule[0]!.games.every((gameEntry) => gameEntry.broadcastNetwork !== null)).toBe(true);
   });
 
-  it('returns a full 18-week team schedule', () => {
+  it('returns a full generated-length team schedule', () => {
     const game = makeLeagueState('regular_season', 5);
 
     const schedule = getFullSchedule(game, 'afce1');
 
     expect(schedule).toHaveLength(18);
+  });
+
+  it('returns 19 team schedule rows when the generated schedule has 19 weeks', () => {
+    const game = makeLeagueState('regular_season', 5);
+    game.schedule = Array.from({ length: 19 }, (_, index) => ({ week: index + 1, games: [] }));
+
+    const schedule = getFullSchedule(game, 'afce1');
+
+    expect(schedule).toHaveLength(19);
+    expect(schedule.at(-1)?.week).toBe(19);
   });
 
   it('returns the week schedule with broadcast metadata', () => {

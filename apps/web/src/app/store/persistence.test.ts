@@ -16,6 +16,22 @@ describe('persistence import helpers', () => {
     expect(loaded.lastPortableExportYear).toBeNull();
   });
 
+  it('defaults hall of fame ballot state on cartridge import when older payloads omit it', () => {
+    const game = createSeedGameState(44, 0, 'pro') as ReturnType<typeof createSeedGameState> & {
+      ballotWaitlist?: unknown;
+      ballotEliminatedIds?: unknown;
+    };
+    delete game.ballotWaitlist;
+    delete game.ballotEliminatedIds;
+    const built = buildCartridge(game, { teamName: 'Ballot Import', season: game.year, week: game.week });
+
+    if (!built.ok) throw new Error(built.error);
+    const loaded = loadImportedCartridge(built.json);
+
+    expect(loaded.ballotWaitlist).toEqual([]);
+    expect(loaded.ballotEliminatedIds).toEqual([]);
+  });
+
   it('loads a dynasty cartridge from a file-like object', async () => {
     const game = createSeedGameState(7, 1, 'legend');
     const built = buildCartridge(game, { teamName: 'File Test', season: game.year, week: game.week });
@@ -56,5 +72,19 @@ describe('persistence import helpers', () => {
 
     expect(loaded.lastPortableExportYear).toBe(11);
     expect(loaded.version).toBe(game.version);
+  });
+
+  it('normalizes legacy CPU GM strategy values on current-version cartridge import', () => {
+    const game = createSeedGameState(123, 0, 'pro');
+    const cpuTeam = Object.values(game.teams).find((team) => !team.isUser);
+    if (!cpuTeam) throw new Error('Expected a CPU team in seed game');
+    cpuTeam.gmStrategy = 'buy' as typeof cpuTeam.gmStrategy;
+    const built = buildCartridge(game, { teamName: 'Legacy CPU Import', season: game.year, week: game.week });
+
+    if (!built.ok) throw new Error(built.error);
+    const loaded = loadImportedCartridge(built.json);
+
+    expect(loaded.version).toBe(SAVE_VERSION);
+    expect(loaded.teams[cpuTeam.id]?.gmStrategy).toBe('contend');
   });
 });

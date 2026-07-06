@@ -1,0 +1,13 @@
+{
+  "teamId": "DET",
+  "name": "The Assembly Line",
+  "capacity": 65000,
+  "tradition": "The Motor City Bass Drop now opens every Music Machine home game: the scoreboard runs a four-count down the assembly belt, the Sound System pounds the rail in time, and the final pulse tells the dome the first drive is already on beat.",
+  "surface": "Turf",
+  "roof": "Dome",
+  "cue": {
+    "label": "Motor City Bass Drop",
+    "pregameLine": "The assembly-belt countdown is rolling across the board, and The Assembly Line is waiting on the final pulse.",
+    "crowdResponse": "The Sound System answers with a HIT! THE! BEAT! chant that lands before the visiting huddle can settle."
+  }
+}

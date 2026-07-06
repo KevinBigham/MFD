@@ -13,6 +13,29 @@ function defaultProtectedIds(playerIds: string[], limit: number): string[] {
   return playerIds.slice(0, limit);
 }
 
+function ExpansionSourcesPanel({ active }: { active: boolean }) {
+  return (
+    <PixelPanel title="Expansion Sources" accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant={active ? 'gold' : 'default'}>{active ? 'Saved expansion state' : 'No active state'}</PixelBadge>
+          <PixelBadge variant="cyan">Protection commit</PixelBadge>
+          <PixelBadge variant="default">League finalizer</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+          Source: `selectExpansionDraftState` reads saved `game.expansionDraftState`, while this route keeps the protection checkbox list in React state until Finalize Protection is clicked.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+          Commit boundary: Finalize Protection calls `protectExpansionPlayers`, then the store completes the expansion preview from the saved available-player pool. The preview feed is still not a league mutation.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-faint)', lineHeight: 1.5 }}>
+          Finalize Expansion Draft is the league mutation path. It calls the engine finalizer, creates the new non-user team, moves selected players and contracts, rebuilds the schedule, clears expansion state, commits, and routes back to Franchise Hub.
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function ExpansionDraft() {
   const state = useGameStore(selectExpansionDraftState);
   const userTeam = useGameStore(selectUserTeam);
@@ -36,6 +59,7 @@ export function ExpansionDraft() {
     return (
       <div style={screenStackStyle}>
         <PixelScreenHeader title="Expansion Draft" subtitle="No expansion draft is active." />
+        <ExpansionSourcesPanel active={false} />
       </div>
     );
   }
@@ -55,6 +79,8 @@ export function ExpansionDraft() {
           </>
         )}
       />
+
+      <ExpansionSourcesPanel active />
 
       <div style={autoGrid(360)}>
         <PixelPanel title="Protection Board" accent={state.phase === 'protection' ? 'gold' : 'cyan'}>

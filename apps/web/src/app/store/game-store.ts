@@ -20,6 +20,7 @@ import type {
   DraftTradeOffer,
   ExtensionEvaluation,
   ExtensionOffer,
+  FranchiseTagType,
   GameEvent,
   GamePlan,
   GameState,
@@ -35,6 +36,7 @@ import type {
   StaffCandidate,
   StaffRole,
   StatLeaderEntry,
+  TagResult,
   Team,
   TradeOfferAsset,
   TradeProposal,
@@ -45,6 +47,7 @@ import type {
   MultiYearProjection,
   PressConferenceQueueEntry,
   PressConferenceResponseTier,
+  PositionCoachRole,
   } from '@mfd/engine';
 import type { ShotDeclaration, AlumniMentor, DynastyEra } from '@mfd/engine';
 import {
@@ -54,6 +57,7 @@ import {
   activateFromIR as activateFromIREngine,
   acceptStadiumDeal as acceptStadiumDealEngine,
   advanceTutorial as advanceTutorialEngine,
+  applyFranchiseTag as applyFranchiseTagEngine,
   applyCBADealToRules,
   applyDraftTradeOffer,
   applyRuleChange,
@@ -84,6 +88,8 @@ import {
   buildDraftWarRoomState,
   finalizeDeadline as finalizeDeadlineEngine,
   getActiveRule,
+  canRelocate,
+  getScenarioConstraints,
   hireMedicalStaff as hireMedicalStaffEngine,
   hireStaffCandidate,
   hireScout as hireScoutEngine,
@@ -91,6 +97,7 @@ import {
   initCommissioner,
   initLaborState,
   initLeagueRules,
+  initializePositionCoaches,
   initializeLockerRoom,
   initializeOffseasonState,
   LEAGUE_RULE_DEFINITIONS,
@@ -160,13 +167,16 @@ import {
   submitProposal as submitTradeProposalEngine,
   acceptTradeOffer as acceptTradeOfferEngine,
   rejectTradeOffer as rejectTradeOfferEngine,
+  analyzeTeamNeeds,
   upgradeStadium as upgradeStadiumEngine,
+  buildLeagueAverageByGroup,
   makeDraftPick as makeDraftPickEngine,
   resetGamePlan as resetGamePlanEngine,
   setGamePlan as setGamePlanEngine,
   unpinWidget as unpinDashboardWidget,
   upsertOpponentReport as upsertOpponentReportEngine,
   upgradeFacility as upgradeFacilityEngine,
+  upgradePositionCoach,
   getDefaultHalftimeDecisionSetting,
 } from '@mfd/engine';
 import type { SetupDecisions } from '@mfd/engine';
@@ -189,6 +199,7 @@ import {
 import { clearHallOfFameForDynasty } from '../../lib/hall-of-fame-archive';
 import { clearRosterContinuityForDynasty } from '../../lib/roster-continuity-store';
 import { clearRookieOfYearForDynasty } from '../../lib/rookie-of-year-store';
+import { syncRivalriesForGame } from '../rivalry-rollover';
 import { buildPlayoffLoreCard, type PlayoffLoreCard } from '../../lib/playoff-lore';
 import {
   selectCapCandidates,
@@ -204,6 +215,8 @@ import { runAdvanceWeek, runPreviewHalftimeDecision } from './sim';
 import { useUiStore } from './ui-store';
 import { createSeedGameState, getTeamOptions } from './seed';
 export * from './selectors';
+
+type CBAOwnerVote = 'approve' | 'reject' | 'abstain';
 
 const AUDIO_ASSETS = {
   callHit: 'audio/cue/call-hit.ogg',
@@ -244,6 +257,13 @@ function hasRivalryHeatSpike(game: GameState, playedWeek: number): boolean {
 
 // ── Store shape ────────────────────────────────────────────
 
+export interface LockerRoomActionReceipt {
+  kind: 'meeting' | 'rally';
+  title: string;
+  detail: string;
+  source: string;
+}
+
 interface GameActions {
   // Initialization
   newGame: (state: GameState) => Promise<void>;
@@ -252,8 +272,9 @@ interface GameActions {
 
   // Roster actions
   cutPlayer: (teamId: string, playerId: string, options?: { postJune1?: boolean }) => Promise<void>;
-  toggleTradeBlock: (teamId: string, playerId: string) => void;
-  setStarter: (teamId: string, playerId: string, isStarter: boolean) => void;
+  toggleTradeBlock: (teamId: string, playerId: string) => Promise<void>;
+  refreshTeamNeedsReport: (teamId?: string) => Promise<void>;
+  setStarter: (teamId: string, playerId: string, isStarter: boolean) => Promise<void>;
   addToPracticeSquad: (teamId: string, playerId: string) => Promise<void>;
   removeFromPracticeSquad: (teamId: string, playerId: string) => Promise<void>;
   elevatePracticeSquadPlayer: (teamId: string, playerId: string) => Promise<void>;
@@ -267,10 +288,11 @@ interface GameActions {
   dismissTutorial: () => Promise<void>;
 
   // Contract actions
-  restructure: (teamId: string, playerId: string) => void;
-  backload: (teamId: string, playerId: string, voidYears?: number) => void;
+  restructure: (teamId: string, playerId: string) => Promise<void>;
+  backload: (teamId: string, playerId: string, voidYears?: number) => Promise<void>;
   executeCapMoves: (moves: CapMove[]) => Promise<void>;
   executeCapMove: (move: CapMove) => Promise<void>;
+  applyFranchiseTag: (teamId: string, playerId: string, tagType?: FranchiseTagType) => Promise<TagResult | null>;
   negotiateContract: (playerId: string, offer: ContractOffer) => Promise<void>;
 
   // Week advance
@@ -299,15 +321,15 @@ interface GameActions {
   toggleScoutingWatchlist: (prospectId: string) => Promise<void>;
   hireScout: (scoutId: string) => Promise<void>;
   fireScout: (scoutId: string) => Promise<void>;
-  callTeamMeeting: () => Promise<void>;
-  triggerCaptainRally: (captainId: string) => Promise<void>;
+  callTeamMeeting: () => Promise<LockerRoomActionReceipt | null>;
+  triggerCaptainRally: (captainId: string) => Promise<LockerRoomActionReceipt | null>;
   acceptEndorsement: (dealId: string) => Promise<void>;
   declineEndorsement: (dealId: string) => Promise<void>;
   startFarewellTour: (playerId: string) => Promise<void>;
   electCaptain: (playerId: string) => Promise<void>;
   voteOnProposal: (proposalId: string, vote: 'yes' | 'no' | 'abstain') => Promise<void>;
   petitionRuleChange: (ruleKey: LeagueRuleKey, proposedValue: LeagueRuleValue) => Promise<void>;
-  voteOnCBA: (vote: 'approve' | 'reject') => Promise<void>;
+  voteOnCBA: (vote: CBAOwnerVote) => Promise<void>;
   advanceCBANegotiation: () => Promise<void>;
   upgradeFacility: (teamId: string, facilityType: 'training_complex' | 'medical_center' | 'film_room' | 'weight_room' | 'recovery_suite') => Promise<void>;
   hireMedicalStaff: (teamId: string, staffId: string) => Promise<void>;
@@ -330,19 +352,21 @@ interface GameActions {
   makePromise: (teamId: string, playerId: string, promiseType: 'starter' | 'no_trade' | 'restructure') => Promise<void>;
 
   // Owner
-  refreshOwner: (teamId: string) => void;
+  refreshOwner: (teamId: string) => Promise<void>;
 
   // Coaching
-  addClinicXP: (teamId: string, track: string, amount: number) => void;
+  addClinicXP: (teamId: string, track: string, amount: number) => Promise<void>;
   refreshCoachingMarket: () => Promise<void>;
   hireStaff: (role: StaffRole, candidate: StaffCandidate) => Promise<void>;
   fireStaff: (role: StaffRole) => Promise<void>;
   promoteStaff: (fromRole: 'OC' | 'DC') => Promise<void>;
+  initializePositionCoachesForTeam: (teamId: string) => Promise<Team['positionCoaches'] | null>;
+  upgradePositionCoachRole: (teamId: string, role: PositionCoachRole) => Promise<Team['positionCoaches'] | null>;
   applyTeamSchemeChange: (offenseScheme: string, defenseScheme: string) => Promise<void>;
   setHeadCoachSkillSelection: (branch: string, tier: number) => Promise<void>;
 
   // Season phase
-  setPhase: (phase: SeasonPhase) => void;
+  setPhase: (phase: SeasonPhase) => Promise<void>;
   setDifficulty: (difficulty: GameState['difficulty']) => Promise<void>;
   setHalftimeDecisions: (setting: GameState['settings']['halftimeDecisions']) => Promise<void>;
   setAdaptiveDifficultyEnabled: (enabled: boolean) => Promise<void>;
@@ -370,7 +394,7 @@ interface GameActions {
   hireMentor: (mentorId: string) => Promise<void>;
   fireMentor: (mentorId: string) => Promise<void>;
   setCallYourShot: (declaration: ShotDeclaration | null) => Promise<void>;
-  recordPortableExport: () => void;
+  recordPortableExport: () => Promise<void>;
   setRecapPromptSeenThisSession: (seen: boolean) => void;
   clearPendingPlayoffLoreReveal: () => void;
 
@@ -393,7 +417,50 @@ interface GameStore extends GameStoreState {
 
 export const useGameStore = create<GameStore>()(
   immer((set, get) => {
+    const teamNeedsRosterSignature = (team: Team): string =>
+      team.roster
+        .map((player) => [
+          player.id,
+          player.pos,
+          player.ovr,
+          player.age,
+          player.isStarter ? 1 : 0,
+        ].join(':'))
+        .sort()
+        .join('|');
+
+    const teamNeedsCapSignature = (team: Team): number =>
+      Math.round(team.capSpace * 10) / 10;
+
+    const invalidateStaleTeamNeedsCache = (previous: GameState | null, nextGame: GameState) => {
+      if (!previous || Object.keys(nextGame.teamNeedsCache).length === 0) return;
+
+      const teamIds = new Set([
+        ...Object.keys(previous.teams),
+        ...Object.keys(nextGame.teams),
+      ]);
+
+      for (const teamId of teamIds) {
+        const previousTeam = previous.teams[teamId];
+        const nextTeam = nextGame.teams[teamId];
+        if (!previousTeam || !nextTeam || teamNeedsRosterSignature(previousTeam) !== teamNeedsRosterSignature(nextTeam)) {
+          nextGame.teamNeedsCache = {};
+          return;
+        }
+      }
+
+      for (const teamId of teamIds) {
+        const previousTeam = previous.teams[teamId];
+        const nextTeam = nextGame.teams[teamId];
+        if (!previousTeam || !nextTeam) continue;
+        if (teamNeedsCapSignature(previousTeam) !== teamNeedsCapSignature(nextTeam)) {
+          delete nextGame.teamNeedsCache[teamId];
+        }
+      }
+    };
+
     const commitGame = async (nextGame: GameState) => {
+      invalidateStaleTeamNeedsCache(get().game, nextGame);
       set((s) => {
         s.game = nextGame;
         s.initialized = true;
@@ -445,6 +512,15 @@ export const useGameStore = create<GameStore>()(
         && (entry.homeTeamId === team.id || entry.awayTeamId === team.id),
       )?.result ?? null;
     };
+    const findUserPlayoffMatchup = (game: GameState, playedWeek: number) => {
+      const team = Object.values(game.teams).find((entry) => entry.isUser) ?? null;
+      if (!team) return null;
+      return game.playoffBracket?.matchups.find((entry) =>
+        entry.week === playedWeek
+        && entry.result
+        && (entry.homeTeamId === team.id || entry.awayTeamId === team.id),
+      ) ?? null;
+    };
     const parseScoreDiff = (finalScore: string): number => {
       const [left = 0, right = 0] = finalScore.split('-').map((part) => Number(part.trim()));
       if (!Number.isFinite(left) || !Number.isFinite(right)) return 0;
@@ -462,6 +538,9 @@ export const useGameStore = create<GameStore>()(
       const latestPackage = findLatestGameDayPackage(nextGame);
       const result = findUserGameResult(nextGame, playedWeek);
       if (!latestPackage || !result) return null;
+      const playoffMatchup = latestPackage.phase === 'playoffs'
+        ? findUserPlayoffMatchup(nextGame, playedWeek)
+        : null;
 
       const card = buildPlayoffLoreCard({
         packageData: latestPackage,
@@ -470,6 +549,7 @@ export const useGameStore = create<GameStore>()(
         momentumTag: nextGame.playoffMomentum[userTeam.id]?.narrativeTag
           ?? previousGame.playoffMomentum[userTeam.id]?.narrativeTag
           ?? null,
+        playoffRound: playoffMatchup?.round ?? null,
       });
       if (!card) return null;
 
@@ -529,6 +609,15 @@ export const useGameStore = create<GameStore>()(
         },
       };
     };
+    const tradeDeadlineWeekFor = (game: GameState): number =>
+      Number(getActiveRule(game.leagueRules ?? initLeagueRules(game.year), 'trade_deadline_week', game.year));
+
+    const isTradeDeadlineInterrupted = (current: GameState, nextGame: GameState): boolean =>
+      current.phase === 'regular_season'
+      && current.week === tradeDeadlineWeekFor(current)
+      && nextGame.week === current.week
+      && Boolean(nextGame.tradeDeadlineState?.isDeadlineWeek);
+
     const buildPostAdvanceAudioQueue = (game: GameState, playedWeek: number): AudioCue[] => {
       const result = findUserGameResult(game, playedWeek);
       if (!result) return [];
@@ -839,7 +928,7 @@ export const useGameStore = create<GameStore>()(
       game: GameState,
       teamId: string,
       proposal: NonNullable<GameState['cbaState']['negotiationState']>['currentProposal'],
-    ): 'approve' | 'reject' => {
+    ): CBAOwnerVote => {
       const team = game.teams[teamId];
       const currentTerms = game.cbaState.currentDeal?.terms;
       if (!team || !proposal || !currentTerms) return 'approve';
@@ -859,7 +948,20 @@ export const useGameStore = create<GameStore>()(
       score += proposal.terms.franchiseTagLimit > currentTerms.franchiseTagLimit && team.gmStrategy === 'contend' ? -1 : 0;
       score += proposal.terms.rosterLimit >= currentTerms.rosterLimit ? 1 : 0;
 
-      return score >= 0 ? 'approve' : 'reject';
+      if (score > 0) return 'approve';
+      if (score < 0) return 'reject';
+      return 'abstain';
+    };
+    const summarizeCBAOwnerVotes = (ownerVotes: Record<string, CBAOwnerVote>) => {
+      const counts = Object.values(ownerVotes).reduce<Record<CBAOwnerVote, number>>((acc, entry) => {
+        acc[entry] += 1;
+        return acc;
+      }, { approve: 0, reject: 0, abstain: 0 });
+
+      return {
+        ...counts,
+        line: `${counts.approve}-${counts.reject}-${counts.abstain}`,
+      };
     };
 
     const snapshotForUndo = (label: string) => {
@@ -895,6 +997,7 @@ export const useGameStore = create<GameStore>()(
         clearRosterContinuityForDynasty(deriveDynastyId(initial));
         clearRookieOfYearForDynasty(deriveDynastyId(initial));
         syncCareerMeta(initial);
+        syncRivalriesForGame(initial);
         set((s) => {
           s.game = initial;
           s.initialized = true;
@@ -906,6 +1009,7 @@ export const useGameStore = create<GameStore>()(
 
       loadGame: (loaded) => {
         syncCareerMeta(loaded);
+        syncRivalriesForGame(loaded);
         set((s) => {
           s.game = loaded;
           s.initialized = true;
@@ -919,6 +1023,7 @@ export const useGameStore = create<GameStore>()(
         if (!latest) return false;
 
         syncCareerMeta(latest);
+        syncRivalriesForGame(latest);
         set((s) => {
           s.game = latest;
           s.initialized = true;
@@ -942,32 +1047,61 @@ export const useGameStore = create<GameStore>()(
         await commitGame(result.nextState);
       },
 
-      toggleTradeBlock: (teamId, playerId) =>
-        set((s) => {
-          if (!s.game) return;
-          const team = s.game.teams[teamId];
-          if (!team) return;
-          const player = team.roster.find((p) => p.id === playerId);
-          if (player) player.tradeBlock = !player.tradeBlock;
-        }),
+      toggleTradeBlock: async (teamId, playerId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const team = nextGame.teams[teamId];
+        if (!team) return;
+        const player = team.roster.find((p) => p.id === playerId);
+        if (!player) return;
+        player.tradeBlock = !player.tradeBlock;
+        if (nextGame.players[playerId]) {
+          nextGame.players[playerId]!.tradeBlock = player.tradeBlock;
+        }
+        await commitGame(nextGame);
+      },
 
-      setStarter: (teamId, playerId, isStarter) =>
-        set((s) => {
-          if (!s.game) return;
-          const team = s.game.teams[teamId];
-          if (!team) return;
-          const player = team.roster.find((p) => p.id === playerId);
-          if (player) {
-            player.isStarter = isStarter;
-            if (isStarter) {
-              completeTutorialActionEngine(s.game, 'depth_chart:update');
-            }
-          }
-        }),
+      refreshTeamNeedsReport: async (teamId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const targetTeam = teamId
+          ? nextGame.teams[teamId] ?? null
+          : Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!targetTeam) return;
+        nextGame.teamNeedsCache = {
+          ...nextGame.teamNeedsCache,
+          [targetTeam.id]: analyzeTeamNeeds(targetTeam, buildLeagueAverageByGroup(Object.values(nextGame.teams))),
+        };
+        await commitGame(nextGame);
+      },
+
+      setStarter: async (teamId, playerId, isStarter) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const team = nextGame.teams[teamId];
+        if (!team) return;
+        const player = team.roster.find((p) => p.id === playerId);
+        if (!player) return;
+
+        player.isStarter = isStarter;
+        const globalPlayer = nextGame.players[playerId];
+        if (globalPlayer) {
+          globalPlayer.isStarter = isStarter;
+        }
+        if (isStarter) {
+          completeTutorialActionEngine(nextGame, 'depth_chart:update');
+        }
+
+        await commitGame(nextGame);
+      },
 
       addToPracticeSquad: async (teamId, playerId) => {
         const current = get().game;
         if (!current) return;
+        if (getScenarioConstraints(current)?.blockFreeAgency) return;
         const result = addToPracticeSquadEngine(cloneForMutation(current), teamId, playerId);
         await commitGame(result.nextState);
       },
@@ -1003,6 +1137,7 @@ export const useGameStore = create<GameStore>()(
       submitWaiverClaim: async (teamId, playerId) => {
         const current = get().game;
         if (!current) return;
+        if (getScenarioConstraints(current)?.blockFreeAgency) return;
         const result = submitWaiverClaimEngine(cloneForMutation(current), teamId, playerId);
         await commitGame(result.nextState);
       },
@@ -1020,7 +1155,13 @@ export const useGameStore = create<GameStore>()(
         const current = get().game;
         if (!current) return;
         const nextGame = cloneForMutation(current);
-        placeOnIREngine(nextGame, teamId, playerId);
+        const placed = placeOnIREngine(nextGame, teamId, playerId);
+        if (placed) {
+          const rosterPlayer = nextGame.teams[teamId]?.roster.find((player) => player.id === playerId);
+          if (rosterPlayer && nextGame.players[playerId]) {
+            nextGame.players[playerId]!.injury = rosterPlayer.injury ? structuredClone(rosterPlayer.injury) : null;
+          }
+        }
         await commitGame(nextGame);
       },
 
@@ -1028,7 +1169,13 @@ export const useGameStore = create<GameStore>()(
         const current = get().game;
         if (!current) return;
         const nextGame = cloneForMutation(current);
-        activateFromIREngine(nextGame, teamId, playerId);
+        const activated = activateFromIREngine(nextGame, teamId, playerId);
+        if (activated) {
+          const rosterPlayer = nextGame.teams[teamId]?.roster.find((player) => player.id === playerId);
+          if (rosterPlayer && nextGame.players[playerId]) {
+            nextGame.players[playerId]!.injury = rosterPlayer.injury ? structuredClone(rosterPlayer.injury) : null;
+          }
+        }
         await commitGame(nextGame);
       },
 
@@ -1052,40 +1199,40 @@ export const useGameStore = create<GameStore>()(
         await commitGame(nextGame);
       },
 
-      restructure: (teamId, playerId) => {
+      restructure: async (teamId, playerId) => {
         snapshotForUndo('Restructure');
-        set((s) => {
-          if (!s.game) return;
-          const team = s.game.teams[teamId];
-          if (!team) return;
-          const player = team.roster.find((p) => p.id === playerId);
-          if (!player?.contract) return;
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const team = nextGame.teams[teamId];
+        if (!team) return;
+        const player = team.roster.find((p) => p.id === playerId);
+        if (!player?.contract) return;
 
-          // restructureContract takes { contract } wrapper
-          const result = restructureContract({ contract: player.contract });
-          if (result.ok) {
-            // The engine mutates the contract in-place; update cap numbers
-            team.capUsed -= result.savings;
-            team.capSpace += result.savings;
-          }
-        });
+        const result = restructureContract({ contract: player.contract });
+        if (!result.ok) return;
+        syncPlayerContractReference(nextGame, teamId, playerId);
+        syncTeamCapTotals(nextGame, team);
+        refreshLeagueCapSpace(nextGame);
+        await commitGame(nextGame);
       },
 
-      backload: (teamId, playerId, voidYears = 2) => {
+      backload: async (teamId, playerId, voidYears = 2) => {
         snapshotForUndo('Backload');
-        set((s) => {
-          if (!s.game) return;
-          const team = s.game.teams[teamId];
-          if (!team) return;
-          const player = team.roster.find((p) => p.id === playerId);
-          if (!player?.contract) return;
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const team = nextGame.teams[teamId];
+        if (!team) return;
+        const player = team.roster.find((p) => p.id === playerId);
+        if (!player?.contract) return;
 
-          const result = backloadContract({ contract: player.contract }, voidYears);
-          if (result.ok) {
-            team.capUsed -= result.savings;
-            team.capSpace += result.savings;
-          }
-        });
+        const result = backloadContract({ contract: player.contract }, voidYears);
+        if (!result.ok) return;
+        syncPlayerContractReference(nextGame, teamId, playerId);
+        syncTeamCapTotals(nextGame, team);
+        refreshLeagueCapSpace(nextGame);
+        await commitGame(nextGame);
       },
 
       executeCapMoves: async (moves) => {
@@ -1204,6 +1351,51 @@ export const useGameStore = create<GameStore>()(
         await get().actions.executeCapMoves([move]);
       },
 
+      applyFranchiseTag: async (teamId, playerId, tagType = 'non-exclusive') => {
+        const current = get().game;
+        if (!current) return null;
+
+        const nextGame = cloneForMutation(current);
+        const team = nextGame.teams[teamId];
+        const player = team?.roster.find((entry) => entry.id === playerId) ?? null;
+        if (!team || !player) return null;
+
+        if (!player.contract || player.contract.years > 1) {
+          return {
+            ok: false,
+            salary: 0,
+            reaction: 'neutral',
+            msg: 'Only expiring contracted players can receive a franchise tag.',
+          };
+        }
+        const existingTags = team.franchiseTags ?? (team.franchiseTag973 ? [team.franchiseTag973] : []);
+        if (player.contract.franchiseTag || existingTags.some((tag) => tag.playerId === playerId)) {
+          return {
+            ok: false,
+            salary: 0,
+            reaction: 'neutral',
+            msg: 'This player already has a franchise tag tender.',
+          };
+        }
+
+        const result = applyFranchiseTagEngine(
+          team,
+          player,
+          Object.values(nextGame.teams),
+          nextGame.year,
+          tagType,
+          nextGame,
+        );
+        if (!result.ok) return result;
+
+        snapshotForUndo('Franchise Tag');
+        nextGame.players[player.id] = player;
+        syncTeamCapTotals(nextGame, team);
+        refreshLeagueCapSpace(nextGame);
+        await commitGame(nextGame);
+        return result;
+      },
+
       advanceWeek: async () => {
         const current = get().game;
         if (!current) return null;
@@ -1213,7 +1405,7 @@ export const useGameStore = create<GameStore>()(
           return null;
         }
 
-        const deadlineWeek = Number(getActiveRule(current.leagueRules ?? initLeagueRules(current.year), 'trade_deadline_week', current.year));
+        const deadlineWeek = tradeDeadlineWeekFor(current);
         const shouldPauseForHalftime = !(
           current.phase === 'regular_season'
           && current.week === deadlineWeek
@@ -1244,11 +1436,8 @@ export const useGameStore = create<GameStore>()(
         const result = await runAdvanceWeek(current);
         const nextGame = result.nextState;
         ensureGovernanceState(nextGame);
-        const deadlineInterrupted = current.phase === 'regular_season'
-          && current.week === 9
-          && nextGame.week === current.week
-          && Boolean(nextGame.tradeDeadlineState?.isDeadlineWeek);
-        const cbaInterrupted = (nextGame.phase === 'offseason' || nextGame.phase === 'preseason')
+        const deadlineInterrupted = isTradeDeadlineInterrupted(current, nextGame);
+        const cbaInterrupted = (nextGame.phase === 'offseason' || nextGame.phase === 'training_camp' || nextGame.phase === 'preseason')
           && isCBAInterruptStatus(nextGame.cbaState.status);
 
         if (deadlineInterrupted) {
@@ -1334,11 +1523,8 @@ export const useGameStore = create<GameStore>()(
         };
         nextGame.postGameUi.pendingHalftimeDecision = null;
 
-        const deadlineInterrupted = current.phase === 'regular_season'
-          && current.week === 9
-          && nextGame.week === current.week
-          && Boolean(nextGame.tradeDeadlineState?.isDeadlineWeek);
-        const cbaInterrupted = (nextGame.phase === 'offseason' || nextGame.phase === 'preseason')
+        const deadlineInterrupted = isTradeDeadlineInterrupted(current, nextGame);
+        const cbaInterrupted = (nextGame.phase === 'offseason' || nextGame.phase === 'training_camp' || nextGame.phase === 'preseason')
           && isCBAInterruptStatus(nextGame.cbaState.status);
 
         if (deadlineInterrupted) {
@@ -1415,6 +1601,7 @@ export const useGameStore = create<GameStore>()(
         const current = get().game;
         const deadlineState = current?.tradeDeadlineState;
         if (!current || !deadlineState) return;
+        if (getScenarioConstraints(current)?.blockTrades) return;
         const pendingOffer = deadlineState.pendingOffers.find((offer) => offer.id === offerId);
         if (!pendingOffer) return;
 
@@ -1494,7 +1681,21 @@ export const useGameStore = create<GameStore>()(
       signStreetFreeAgent: async (playerId, offer) => {
         const current = get().game;
         if (!current) return;
+        const wasFreeAgent = current.freeAgents.includes(playerId);
         const result = signStreetFreeAgentEngine(current, playerId, offer);
+        const signedPlayer = result.nextState.players[playerId] ?? null;
+        const signedTeam = signedPlayer?.teamId ? result.nextState.teams[signedPlayer.teamId] : null;
+        const committedToUserRoster = Boolean(
+          wasFreeAgent
+          && signedPlayer
+          && signedTeam?.isUser
+          && signedPlayer.contract?.teamId === signedTeam.id
+          && !result.nextState.freeAgents.includes(playerId)
+          && signedTeam.roster.some((player) => player.id === playerId && player.teamId === signedTeam.id),
+        );
+
+        if (!committedToUserRoster) return;
+
         appendAudioCue(result.nextState, 'free_agent_signed', 'high', {
           source: 'street-free-agent',
           playerId,
@@ -1558,6 +1759,8 @@ export const useGameStore = create<GameStore>()(
         if (!userTeam) return;
         const destination = resolveRelocationDestination(userTeam, destinationId);
         if (!destination) return;
+        if (!canRelocate(userTeam.franchiseIdentity, userTeam, nextGame.year)) return;
+        if (userTeam.capSpace < destination.cost) return;
         const relocated = relocateTeamEngine(
           userTeam,
           userTeam.franchiseIdentity,
@@ -1651,10 +1854,10 @@ export const useGameStore = create<GameStore>()(
 
       callTeamMeeting: async () => {
         const current = get().game;
-        if (!current) return;
+        if (!current) return null;
         const nextGame = cloneForMutation(current);
         const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
-        if (!userTeam) return;
+        if (!userTeam) return null;
         userTeam.lockerRoom = userTeam.lockerRoom ?? initializeLockerRoom(userTeam, intelRng(nextGame, `locker:init:${userTeam.id}`));
         const outcome = callTeamMeetingEngine(
           userTeam,
@@ -1664,17 +1867,34 @@ export const useGameStore = create<GameStore>()(
         );
         userTeam.lockerRoom = outcome.lockerRoom;
         await commitGame(nextGame);
+        return {
+          kind: 'meeting',
+          title: 'Team Meeting Receipt',
+          detail: outcome.narrative,
+          source: 'callTeamMeeting committed saved team.lockerRoom through the store; this confirmation appears here only.',
+        };
       },
 
       triggerCaptainRally: async (captainId) => {
         const current = get().game;
-        if (!current) return;
+        if (!current) return null;
         const nextGame = cloneForMutation(current);
         const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
-        if (!userTeam) return;
+        if (!userTeam) return null;
         userTeam.lockerRoom = userTeam.lockerRoom ?? initializeLockerRoom(userTeam, intelRng(nextGame, `locker:init:${userTeam.id}`));
-        userTeam.lockerRoom = triggerCaptainRallyEngine(userTeam.lockerRoom, captainId, userTeam, nextGame.week);
+        const beforeRoom = userTeam.lockerRoom;
+        const beforeCaptain = beforeRoom.captains.find((captain) => captain.playerId === captainId) ?? null;
+        const nextRoom = triggerCaptainRallyEngine(beforeRoom, captainId, userTeam, nextGame.week);
+        userTeam.lockerRoom = nextRoom;
         await commitGame(nextGame);
+        if (!beforeCaptain || nextRoom === beforeRoom) return null;
+        const afterCaptain = nextRoom.captains.find((captain) => captain.playerId === captainId) ?? beforeCaptain;
+        return {
+          kind: 'rally',
+          title: 'Captain Rally Receipt',
+          detail: `${beforeCaptain.playerName} triggered rally_cry; clique cohesion, captain moments, and rally cooldown were updated on saved team.lockerRoom.`,
+          source: `triggerCaptainRally committed through the store; ${afterCaptain.playerName}'s rally cooldown is ${afterCaptain.rallyCooldown} week${afterCaptain.rallyCooldown === 1 ? '' : 's'}.`,
+        };
       },
 
       acceptEndorsement: async (dealId) => {
@@ -1683,9 +1903,13 @@ export const useGameStore = create<GameStore>()(
         const nextGame = cloneForMutation(current);
         const deal = nextGame.endorsementOffers.find((entry) => entry.id === dealId);
         if (!deal) return;
-        const player = nextGame.players[deal.playerId];
+        const rosterPlayer = Object.values(nextGame.teams)
+          .flatMap((team) => team.roster)
+          .find((entry) => entry.id === deal.playerId) ?? null;
+        const player = rosterPlayer ?? nextGame.players[deal.playerId];
         if (!player) return;
         acceptEndorsementEngine(player, deal);
+        nextGame.players[player.id] = player;
         nextGame.endorsementOffers = nextGame.endorsementOffers.filter((entry) => entry.id !== dealId);
         await commitGame(nextGame);
       },
@@ -1864,16 +2088,21 @@ export const useGameStore = create<GameStore>()(
           ...negotiationState.ownerVotes,
           [userTeam.id]: vote,
         };
+        const votedNegotiationState = {
+          ...negotiationState,
+          ownerVotes,
+          userVote: vote,
+        };
 
         for (const team of Object.values(nextGame.teams).sort((a, b) => a.id.localeCompare(b.id))) {
           if (team.id === userTeam.id) continue;
           ownerVotes[team.id] = cbaOwnerVoteForTeam(nextGame, team.id, proposal);
         }
 
-        const yesVotes = Object.values(ownerVotes).filter((entry) => entry === 'approve').length;
+        const voteSummary = summarizeCBAOwnerVotes(ownerVotes);
         const threshold = majorityThreshold(nextGame);
 
-        if (yesVotes >= threshold) {
+        if (voteSummary.approve >= threshold) {
           const beforeRules = structuredClone(nextGame.leagueRules);
           nextGame.cbaState = ratifyCBA(nextGame.cbaState, proposal, nextGame.year);
           applyCBADealToRules(nextGame, nextGame.cbaState.currentDeal!);
@@ -1885,7 +2114,7 @@ export const useGameStore = create<GameStore>()(
           addGovernanceNarrative(
             nextGame,
             `New CBA ratified`,
-            `Owners approved the new agreement ${yesVotes}-${Object.keys(nextGame.teams).length - yesVotes}. ${summary}`,
+            `Owners approved the new agreement ${voteSummary.line} (approve-reject-abstain). ${summary}`,
             {
               sentiment: 'positive',
               idSuffix: `cba-ratified-${nextGame.year}`,
@@ -1907,7 +2136,7 @@ export const useGameStore = create<GameStore>()(
             status: nextStatus,
             lockoutRisk: Math.min(100, nextGame.cbaState.lockoutRisk + 15),
             negotiationState: {
-              ...negotiationState,
+              ...votedNegotiationState,
               currentProposal: null,
               ownerVotes: {},
               userVote: null,
@@ -1927,7 +2156,7 @@ export const useGameStore = create<GameStore>()(
             addLaborNarrative(
               nextGame,
               `League enters a lockout`,
-              `Owners rejected the latest CBA ${yesVotes}-${Object.keys(nextGame.teams).length - yesVotes}, and league operations are now frozen.`,
+              `Owners did not ratify the latest CBA ${voteSummary.line} (approve-reject-abstain), and league operations are now frozen.`,
               {
                 sentiment: 'negative',
                 importance: 'breaking',
@@ -1938,7 +2167,7 @@ export const useGameStore = create<GameStore>()(
             addGovernanceNarrative(
               nextGame,
               `Owners reject the current CBA offer`,
-              `The latest agreement failed ${yesVotes}-${Object.keys(nextGame.teams).length - yesVotes}. Negotiations will continue.`,
+              `The latest agreement failed ${voteSummary.line} (approve-reject-abstain). Negotiations will continue.`,
               {
                 sentiment: 'negative',
                 idSuffix: `cba-rejected-${nextGame.year}-${negotiationState.round}`,
@@ -2050,6 +2279,7 @@ export const useGameStore = create<GameStore>()(
       acceptTradeOffer: async (offerId) => {
         const current = get().game;
         if (!current) return;
+        if (getScenarioConstraints(current)?.blockTrades) return;
         snapshotForUndo('Accept Trade');
         const result = acceptTradeOfferEngine(current, offerId);
         appendAudioCue(result.nextState, 'trade_complete', 'high', {
@@ -2074,6 +2304,7 @@ export const useGameStore = create<GameStore>()(
       createTradeProposal: async (fromTeamId, toTeamId, offering, requesting) => {
         const current = get().game;
         if (!current) return null;
+        if (getScenarioConstraints(current)?.blockTrades) return null;
         const nextGame = cloneForMutation(current);
         const proposal = createTradeProposalEngine(nextGame, fromTeamId, toTeamId, offering, requesting);
         await commitGame(nextGame);
@@ -2083,6 +2314,7 @@ export const useGameStore = create<GameStore>()(
       submitTradeProposal: async (proposalId) => {
         const current = get().game;
         if (!current) return null;
+        if (getScenarioConstraints(current)?.blockTrades) return null;
         const nextGame = cloneForMutation(current);
         const { proposal } = submitTradeProposalEngine(nextGame, proposalId);
         await commitGame(nextGame);
@@ -2092,6 +2324,7 @@ export const useGameStore = create<GameStore>()(
       acceptCounter: async (proposalId) => {
         const current = get().game;
         if (!current) return null;
+        if (getScenarioConstraints(current)?.blockTrades) return null;
         const nextGame = cloneForMutation(current);
         const proposal = acceptCounterProposalEngine(nextGame, proposalId);
         await commitGame(nextGame);
@@ -2110,7 +2343,9 @@ export const useGameStore = create<GameStore>()(
       acceptDraftTradeOffer: async (offer) => {
         const current = get().game;
         if (!current) return;
+        if (getScenarioConstraints(current)?.blockTrades) return;
         const nextGame = applyDraftTradeOffer(current, offer);
+        if (nextGame === current) return;
         nextGame.warRoomState = buildDraftWarRoomState(nextGame, intelRng(nextGame, `war-room:${offer.targetPick}`));
         appendAudioCue(nextGame, 'trade_complete', 'high', {
           source: 'draft-trade',
@@ -2148,6 +2383,7 @@ export const useGameStore = create<GameStore>()(
       makeDraftPick: async (prospectId) => {
         const current = get().game;
         if (!current) return;
+        if (getScenarioConstraints(current)?.blockDraft) return;
         const result = makeDraftPickEngine(current, prospectId);
         appendAudioCue(result.nextState, 'draft_pick', 'high', {
           source: 'draft-board',
@@ -2207,34 +2443,32 @@ export const useGameStore = create<GameStore>()(
         await commitGame(result.nextState);
       },
 
-      refreshOwner: (teamId) =>
-        set((s) => {
-          if (!s.game) return;
-          const team = s.game.teams[teamId];
-          if (!team) return;
+      refreshOwner: async (teamId) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const team = nextGame.teams[teamId];
+        if (!team) return;
 
-          const result = updateOwnerApproval(
-            team.owner as unknown as import('@mfd/engine').OwnerState,
-            team as unknown as Team,
-            { year: s.game.year, week: s.game.week, phase: s.game.phase },
-          );
-          team.owner.approval = result.approval;
-          team.owner.history.push({
-            year: s.game.year,
-            week: s.game.week,
-            approval: result.approval,
-            delta: result.delta,
-          });
-        }),
+        updateOwnerApproval(
+          team.owner as unknown as import('@mfd/engine').OwnerState,
+          team as unknown as Team,
+          { year: nextGame.year, week: nextGame.week, phase: nextGame.phase },
+        );
+        await commitGame(nextGame);
+      },
 
-      addClinicXP: (teamId, track, amount) =>
-        set((s) => {
-          if (!s.game) return;
-          const team = s.game.teams[teamId];
-          if (!team) return;
-          const result = earnXP(team.clinic, track, amount);
-          team.clinic = result;
-        }),
+      addClinicXP: async (teamId, track, amount) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const team = nextGame.teams[teamId];
+        if (!team) return;
+        const result = earnXP(team.clinic, track, amount);
+        if (result === team.clinic) return;
+        team.clinic = result;
+        await commitGame(nextGame);
+      },
 
       refreshCoachingMarket: async () => {
         const current = get().game;
@@ -2279,6 +2513,44 @@ export const useGameStore = create<GameStore>()(
         await commitGame(nextGame);
       },
 
+      initializePositionCoachesForTeam: async (teamId) => {
+        const current = get().game;
+        if (!current) return null;
+        const nextGame = cloneForMutation(current);
+        const team = nextGame.teams[teamId];
+        if (!team || team.positionCoaches?.coaches.length) return null;
+        const baseLevel = team.staff.hc?.level ?? 5;
+        team.positionCoaches = initializePositionCoaches(
+          baseLevel,
+          intelRng(nextGame, `position-coaches:init:${teamId}`),
+        );
+        await commitGame(nextGame);
+        return team.positionCoaches;
+      },
+
+      upgradePositionCoachRole: async (teamId, role) => {
+        const current = get().game;
+        if (!current) return null;
+        const nextGame = cloneForMutation(current);
+        const team = nextGame.teams[teamId];
+        if (!team) return null;
+        if (!team.positionCoaches?.coaches.length) {
+          const baseLevel = team.staff.hc?.level ?? 5;
+          team.positionCoaches = initializePositionCoaches(
+            baseLevel,
+            intelRng(nextGame, `position-coaches:init:${teamId}`),
+          );
+        }
+        const currentCoach = team.positionCoaches.coaches.find((coach) => coach.role === role);
+        team.positionCoaches = upgradePositionCoach(
+          team.positionCoaches,
+          role,
+          intelRng(nextGame, `position-coaches:upgrade:${teamId}:${role}:${currentCoach?.id ?? 'none'}:${currentCoach?.quality ?? 0}`),
+        );
+        await commitGame(nextGame);
+        return team.positionCoaches;
+      },
+
       applyTeamSchemeChange: async (offenseScheme, defenseScheme) => {
         const current = get().game;
         if (!current) return;
@@ -2304,11 +2576,13 @@ export const useGameStore = create<GameStore>()(
         await commitGame(nextGame);
       },
 
-      setPhase: (phase) =>
-        set((s) => {
-          if (!s.game) return;
-          s.game.phase = phase;
-        }),
+      setPhase: async (phase) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.phase = phase;
+        await commitGame(nextGame);
+      },
 
       setDifficulty: async (difficulty) => {
         const current = get().game;
@@ -2352,6 +2626,7 @@ export const useGameStore = create<GameStore>()(
           };
         }
         const nextGame = startScenarioEngine(scenarioId, baseGame, mulberry32(seed ^ (scenarioId.length * 97)));
+        delete nextGame.setupState;
         await commitGame(nextGame);
         navigateTo('/');
       },
@@ -2534,12 +2809,12 @@ export const useGameStore = create<GameStore>()(
         await commitGame(nextGame);
       },
 
-      recordPortableExport: () => {
-        set((s) => {
-          if (s.game) {
-            s.game.lastPortableExportYear = s.game.year;
-          }
-        });
+      recordPortableExport: async () => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.lastPortableExportYear = nextGame.year;
+        await commitGame(nextGame);
       },
 
       setRecapPromptSeenThisSession: (seen) => {
@@ -2556,40 +2831,55 @@ export const useGameStore = create<GameStore>()(
 
       // ── Franchise Setup ────────────────────────────────
       advanceSetup: async (options) => {
-        const game = get().game;
-        if (!game?.setupState) return;
-        const userTeam = Object.values(game.teams).find((t) => t.isUser);
+        const current = get().game;
+        if (!current?.setupState) return;
+        const nextGame = cloneForMutation(current);
+        const setupState = nextGame.setupState;
+        if (!setupState) return;
+        const userTeam = Object.values(nextGame.teams).find((t) => t.isUser);
         if (!userTeam) return;
-        const next = advanceSetupPhaseEngine(game.setupState, options);
-        next.crisisProfile = generateTeamCrisisProfile(game, userTeam.id);
-        next.forecastBoard = generateSetupForecast(game, userTeam.id, next.decisions);
-        set((s) => { s.game!.setupState = next; });
+        const next = advanceSetupPhaseEngine(setupState, options);
+        next.crisisProfile = generateTeamCrisisProfile(nextGame, userTeam.id);
+        next.forecastBoard = generateSetupForecast(nextGame, userTeam.id, next.decisions);
+        nextGame.setupState = next;
+        await commitGame(nextGame);
       },
       goBackSetup: async () => {
-        const game = get().game;
-        if (!game?.setupState) return;
-        const userTeam = Object.values(game.teams).find((t) => t.isUser);
+        const current = get().game;
+        if (!current?.setupState) return;
+        const nextGame = cloneForMutation(current);
+        const setupState = nextGame.setupState;
+        if (!setupState) return;
+        const userTeam = Object.values(nextGame.teams).find((t) => t.isUser);
         if (!userTeam) return;
-        const next = goBackSetupPhaseEngine(game.setupState);
-        next.crisisProfile = generateTeamCrisisProfile(game, userTeam.id);
-        next.forecastBoard = generateSetupForecast(game, userTeam.id, next.decisions);
-        set((s) => { s.game!.setupState = next; });
+        const next = goBackSetupPhaseEngine(setupState);
+        next.crisisProfile = generateTeamCrisisProfile(nextGame, userTeam.id);
+        next.forecastBoard = generateSetupForecast(nextGame, userTeam.id, next.decisions);
+        nextGame.setupState = next;
+        await commitGame(nextGame);
       },
       applySetupChoice: async (decision) => {
-        const game = get().game;
-        if (!game?.setupState) return;
-        const userTeam = Object.values(game.teams).find((t) => t.isUser);
+        const current = get().game;
+        if (!current?.setupState) return;
+        const nextGame = cloneForMutation(current);
+        const setupState = nextGame.setupState;
+        if (!setupState) return;
+        const userTeam = Object.values(nextGame.teams).find((t) => t.isUser);
         if (!userTeam) return;
-        const next = applySetupDecisionEngine(game.setupState, decision);
-        next.crisisProfile = generateTeamCrisisProfile(game, userTeam.id);
-        next.forecastBoard = generateSetupForecast(game, userTeam.id, next.decisions);
-        set((s) => { s.game!.setupState = next; });
+        const next = applySetupDecisionEngine(setupState, decision);
+        next.crisisProfile = generateTeamCrisisProfile(nextGame, userTeam.id);
+        next.forecastBoard = generateSetupForecast(nextGame, userTeam.id, next.decisions);
+        nextGame.setupState = next;
+        await commitGame(nextGame);
       },
       toggleSetupDrilldown: async (pressureId) => {
-        const game = get().game;
-        if (!game?.setupState) return;
-        const next = toggleSetupDrilldownEngine(game.setupState, pressureId);
-        set((s) => { s.game!.setupState = next; });
+        const current = get().game;
+        if (!current?.setupState) return;
+        const nextGame = cloneForMutation(current);
+        const setupState = nextGame.setupState;
+        if (!setupState) return;
+        nextGame.setupState = toggleSetupDrilldownEngine(setupState, pressureId);
+        await commitGame(nextGame);
       },
       completeSetup: async () => {
         const game = get().game;

@@ -3,7 +3,14 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PLAYTEST_PERSONAS, runPlaytest } from '../packages/engine/src/index.ts';
+import {
+  LONG_HORIZON_QUALITY_BENCHMARKS,
+  PLAYTEST_PERSONAS,
+  getLongHorizonQualityBenchmark,
+  runLongHorizonQualityBenchmark,
+  runPlaytest,
+} from '../packages/engine/src/index.ts';
+import type { LongHorizonQualityBenchmarkResult } from '../packages/engine/src/index.ts';
 
 function hasFlag(name: string): boolean {
   return process.argv.includes(name);
@@ -13,6 +20,12 @@ function parseStringFlag(name: string, fallback: string): string {
   const index = process.argv.indexOf(name);
   if (index === -1) return fallback;
   return process.argv[index + 1] ?? fallback;
+}
+
+function parseOptionalStringFlag(name: string): string | null {
+  const index = process.argv.indexOf(name);
+  if (index === -1) return null;
+  return process.argv[index + 1] ?? null;
 }
 
 function parseNumberFlag(name: string, fallback: number): number {
@@ -32,6 +45,8 @@ function pad(value: string | number, width: number): string {
 
 const DEFAULT_PERSONA_ID = 'SPEEDRUNNER';
 const all = hasFlag('--all');
+const dryRun = hasFlag('--dry-run');
+const benchmarkId = parseOptionalStringFlag('--benchmark');
 const personaId = parseStringFlag('--persona', DEFAULT_PERSONA_ID).toUpperCase();
 const seed = parseNumberFlag('--seed', 42);
 const seasons = parseNumberFlag('--seasons', all ? 10 : 3);
@@ -40,7 +55,66 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..');
 const outDir = resolve(repoRoot, 'tmp');
 
+function formatBenchmarkBudgetRows(result: LongHorizonQualityBenchmarkResult): string[] {
+  const rows = [
+    `${pad('area', 18)} ${pad('anomalies', 10)} ${pad('high', 6)} ${pad('budget', 12)} ${pad('status', 8)}`,
+    `${pad('----', 18)} ${pad('---------', 10)} ${pad('----', 6)} ${pad('------', 12)} ${pad('------', 8)}`,
+  ];
+  for (const check of result.checks) {
+    rows.push(
+      `${pad(check.area, 18)} ${pad(check.anomalyCount, 10)} ${pad(check.highSeverityCount, 6)} ${pad(`${check.maxAnomalies}/${check.maxHighSeverity}`, 12)} ${pad(check.passed ? 'PASS' : 'FAIL', 8)}`,
+    );
+  }
+  return rows;
+}
+
+async function runBenchmark(id: string): Promise<void> {
+  const benchmark = getLongHorizonQualityBenchmark(id);
+  if (!benchmark) {
+    throw new Error(`Unknown benchmark "${id}". Available: ${LONG_HORIZON_QUALITY_BENCHMARKS.map((entry) => entry.id).join(', ')}`);
+  }
+
+  process.stdout.write([
+    `Benchmark ${benchmark.id}: ${benchmark.label}`,
+    `persona=${benchmark.personaId} seed=${benchmark.seed} seasons=${benchmark.seasons} maxSteps=${benchmark.maxSteps} saveRoundTripEvery=${benchmark.saveRoundTripEvery}`,
+    `budgets=${benchmark.budgets.map((budget) => `${budget.area}:${budget.maxAnomalies}/${budget.maxHighSeverity}`).join(', ')}`,
+  ].join('\n') + '\n');
+
+  if (dryRun) {
+    process.stdout.write('Dry run only; no seasons advanced.\n');
+    return;
+  }
+
+  process.stdout.write(`Running long-horizon benchmark ${benchmark.id}...\n`);
+  const result = runLongHorizonQualityBenchmark(benchmark, {
+    onProgress: (event) => {
+      process.stdout.write(
+        `  progress ${benchmark.id}: season ${event.seasonsCompleted}/${event.seasonsRequested} `
+        + `weeks=${event.weeksAdvanced} step=${event.step} `
+        + `frame=Y${event.currentFrame.year} W${event.currentFrame.week} ${event.currentFrame.phase}\n`,
+      );
+    },
+  });
+  const outPath = resolve(outDir, `long-horizon-quality-${benchmark.id}-${benchmark.seed}.json`);
+  await writeFile(outPath, JSON.stringify(result, null, 2) + '\n', 'utf8');
+
+  process.stdout.write(`Wrote ${outPath}\n`);
+  process.stdout.write(`completed=${result.report.seasonsCompleted}/${result.benchmark.seasons} weeks=${result.report.weeksAdvanced} anomalies=${result.report.anomalyCount} high=${result.report.highSeverityCount}\n`);
+  process.stdout.write(`${formatBenchmarkBudgetRows(result).join('\n')}\n`);
+
+  if (!result.passed) {
+    process.exitCode = 1;
+  }
+}
+
 async function main(): Promise<void> {
+  await mkdir(outDir, { recursive: true });
+
+  if (benchmarkId) {
+    await runBenchmark(benchmarkId);
+    return;
+  }
+
   const personas = all
     ? PLAYTEST_PERSONAS
     : [PLAYTEST_PERSONAS.find((persona) => persona.id === personaId)]
@@ -49,8 +123,6 @@ async function main(): Promise<void> {
   if (personas.length === 0) {
     throw new Error(`Unknown playtest persona "${personaId}". Available: ${PLAYTEST_PERSONAS.map((persona) => persona.id).join(', ')}`);
   }
-
-  await mkdir(outDir, { recursive: true });
 
   const rows = [
     `${pad('persona', 14)} ${pad('seasons', 8)} ${pad('weeks', 8)} ${pad('anomalies', 10)} ${pad('high', 6)}`,

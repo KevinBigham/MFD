@@ -1,4 +1,17 @@
-import { buildPlaytestReport, MAX_PLAYTEST_STEPS, runPlaytest } from './harness';
+import {
+  buildPlaytestReport,
+  HOST_NOISE_DETECTOR_IDS,
+  makePlaytestLeagueState,
+  MAX_PLAYTEST_STEPS,
+  PLAYTEST_ROUNDTRIP_SKIPPED,
+  resolvePlaytestCBAActions,
+  resolvePlaytestExpansionDraft,
+  runPlaytest,
+} from './harness';
+import { getSalaryCap } from '../config';
+import { checkCBAStatus } from '../systems/cba-engine';
+import { calcCapHit } from '../systems/contracts';
+import { initializeExpansionDraft } from '../systems/expansion-draft';
 import { PLAYTEST_PERSONAS } from './personas';
 import type { PlaytestAnomaly } from './types';
 
@@ -25,6 +38,10 @@ function reportWith(anomalies: PlaytestAnomaly[]) {
     weeksAdvanced: 20,
     anomalies,
   });
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 10) / 10;
 }
 
 describe('playtest harness', () => {
@@ -126,8 +143,129 @@ describe('playtest harness', () => {
     expect(report.anomalies.some((anomaly) => anomaly.detectorId === 'harness-guard')).toBe(false);
   });
 
+  it('starts synthetic playtest teams with truthful cap totals', () => {
+    const game = makePlaytestLeagueState(42);
+    const salaryCap = getSalaryCap(game.year, game);
+
+    for (const team of Object.values(game.teams)) {
+      const expectedCapUsed = roundMoney(
+        team.roster.reduce((sum, player) => sum + calcCapHit(player.contract), 0) + team.deadCap,
+      );
+      expect(team.capUsed).toBe(expectedCapUsed);
+      expect(team.capSpace).toBe(roundMoney(salaryCap - expectedCapUsed));
+      expect(team.capSpace).toBeGreaterThanOrEqual(0);
+    }
+  });
+
   it('exports the launch guard step ceiling', () => {
     expect(MAX_PLAYTEST_STEPS).toBe(800);
+  });
+
+  it('exports the round-trip skipped marker used for sampled long-horizon profiles', () => {
+    expect(PLAYTEST_ROUNDTRIP_SKIPPED).toBe('__PLAYTEST_ROUNDTRIP_SKIPPED__');
+  });
+
+  it('honors a custom max step ceiling without changing the default fast-tier cap', () => {
+    const report = runPlaytest('SPEEDRUNNER', 42, 1, { maxSteps: 1 });
+
+    expect(MAX_PLAYTEST_STEPS).toBe(800);
+    expect(report.seasonsCompleted).toBe(0);
+    expect(report.anomalies.some((anomaly) =>
+      anomaly.detectorId === 'harness-guard'
+      && anomaly.detail.includes('1-step guard'),
+    )).toBe(true);
+  });
+
+  it('requires a positive integer save round-trip cadence', () => {
+    expect(() => runPlaytest('SPEEDRUNNER', 42, 0, { saveRoundTripEvery: 0 }))
+      .toThrow('saveRoundTripEvery must be a positive integer');
+  });
+
+  it('emits progress when a requested season completes', () => {
+    const events: Array<{ seasonsCompleted: number; seasonsRequested: number; weeksAdvanced: number }> = [];
+    const report = runPlaytest('SPEEDRUNNER', 42, 1, {
+      onProgress: (event) => {
+        events.push({
+          seasonsCompleted: event.seasonsCompleted,
+          seasonsRequested: event.seasonsRequested,
+          weeksAdvanced: event.weeksAdvanced,
+        });
+      },
+    });
+
+    expect(report.seasonsCompleted).toBe(1);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      seasonsCompleted: 1,
+      seasonsRequested: 1,
+      weeksAdvanced: report.weeksAdvanced,
+    });
+  });
+
+  it('auto-ratifies owner-vote CBA blockers for playtest progression', () => {
+    const game = makePlaytestLeagueState(42);
+    game.year = 2036;
+    game.phase = 'offseason';
+    const currentDeal = game.cbaState.currentDeal!;
+    game.cbaState.status = 'awaiting_owner_vote';
+    game.cbaState.negotiationState = {
+      round: 3,
+      ownersProposal: null,
+      playersProposal: null,
+      currentProposal: {
+        id: 'playtest-cba-compromise',
+        side: 'owners',
+        year: game.year,
+        round: 3,
+        rationale: 'Playtest compromise.',
+        terms: {
+          ...currentDeal.terms,
+          practiceSquadSize: currentDeal.terms.practiceSquadSize + 1,
+        },
+      },
+      gap: 0,
+      mediator: true,
+      publicPressure: 70,
+      ownerVotes: {},
+      userVote: null,
+    };
+
+    const resolved = resolvePlaytestCBAActions(game);
+
+    expect(resolved.cbaState.status).toBe('active');
+    expect(resolved.cbaState.currentDeal?.startYear).toBe(2036);
+    expect(resolved.cbaState.currentDeal?.terms.practiceSquadSize).toBe(currentDeal.terms.practiceSquadSize + 1);
+    expect(checkCBAStatus(resolved.cbaState, resolved.year)).toBe('active');
+  });
+
+  it('auto-resolves expiring CBA windows without leaving the playtest frame blocked', () => {
+    const game = makePlaytestLeagueState(42);
+    game.year = game.cbaState.currentDeal!.endYear;
+    game.phase = 'offseason';
+
+    const resolved = resolvePlaytestCBAActions(game);
+
+    expect(checkCBAStatus(resolved.cbaState, resolved.year)).toBe('active');
+    expect(resolved.cbaState.currentDeal?.startYear).toBe(game.year);
+    expect(resolved.laborState.activeStoppage).toBeNull();
+  });
+
+  it('auto-finalizes expansion draft blockers for playtest progression', () => {
+    const game = makePlaytestLeagueState(42);
+    game.year = 2041;
+    game.phase = 'offseason';
+    game.expansionDraftState = initializeExpansionDraft(game, () => 0.1);
+    const teamCount = Object.keys(game.teams).length;
+
+    const resolved = resolvePlaytestExpansionDraft(game);
+
+    expect(resolved).toBe(game);
+    expect(resolved.expansionDraftState).toBeUndefined();
+    expect(Object.keys(resolved.teams)).toHaveLength(teamCount + 1);
+  });
+
+  it('exports the host-noise detector ids that are stripped from canonical reports', () => {
+    expect(HOST_NOISE_DETECTOR_IDS).toEqual(['perf-budget']);
   });
 
   it('sorts anomalies by step before other tie-breakers', () => {
@@ -202,6 +340,9 @@ describe('playtest harness', () => {
     ]);
 
     expect(report.anomalies.map((entry) => entry.detectorId)).toEqual(['rng-channel', 'roster-minimums']);
+    expect(report.anomalies.some((anomaly) =>
+      HOST_NOISE_DETECTOR_IDS.some((detectorId) => detectorId === anomaly.detectorId),
+    )).toBe(false);
     expect(report.anomalyCount).toBe(2);
     expect(report.highSeverityCount).toBe(1);
   });

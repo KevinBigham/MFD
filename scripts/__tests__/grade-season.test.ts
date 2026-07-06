@@ -6,8 +6,11 @@ import test from 'node:test';
 import {
   aggregateVerdicts,
   baselinePathFor,
+  buildGradeSeasonCliPreflight,
   collectJudgeRunResults,
   evaluateReleaseGate,
+  formatGradeSeasonHelp,
+  isGradeSeasonHelpRequested,
   reportPathFor,
   requestJudgeVerdict,
   runGradeSeason,
@@ -53,6 +56,60 @@ test('schema validation rejects malformed judge verdicts', () => {
     }),
     /category_scores.realism/i,
   );
+});
+
+test('grade-season help documents required flags, API keys, quorum, and baseline behavior', () => {
+  const help = formatGradeSeasonHelp('grade-season');
+
+  assert.match(help, /--seed <integer>/);
+  assert.match(help, /--tag, --releaseTag <id>/);
+  assert.match(help, /--fixture <path>/);
+  assert.match(help, /ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY/);
+  assert.match(help, /--allow-quorum-drop/);
+  assert.match(help, /Missing or unreadable baselines are gate failures/);
+  assert.equal(isGradeSeasonHelpRequested(['--help']), true);
+  assert.equal(isGradeSeasonHelpRequested(['-h']), true);
+});
+
+test('grade-season preflight shows paths, strict quorum, missing keys, and baseline input', () => {
+  const preflight = buildGradeSeasonCliPreflight({
+    seed: 42,
+    releaseTag: 'rc3',
+    fixturePath: '/tmp/mfd-fixture.json',
+    allowQuorumDrop: false,
+    outputDir: '/tmp/mfd-grading-results',
+    baselinePath: '/tmp/custom-baseline.json',
+  }, {
+    env: { ANTHROPIC_API_KEY: 'anthropic-test' },
+  });
+
+  assert.match(preflight, /Release grading preflight \(gate\)/);
+  assert.match(preflight, /season report: \/tmp\/mfd-grading-results\/rc3-42-report\.json/);
+  assert.match(preflight, /verdict output: \/tmp\/mfd-grading-results\/rc3-42\.json/);
+  assert.match(preflight, /baseline input: \/tmp\/custom-baseline\.json/);
+  assert.match(preflight, /strict tri-judge/);
+  assert.match(preflight, /OPENAI_API_KEY, GOOGLE_API_KEY/);
+  assert.match(preflight, /command will fail before judge calls/);
+});
+
+test('baseline preflight shows baseline output and development quorum drop semantics', () => {
+  const preflight = buildGradeSeasonCliPreflight({
+    seed: 7,
+    releaseTag: 'rc4',
+    fixturePath: '/tmp/mfd-fixture.json',
+    allowQuorumDrop: true,
+    outputDir: '/tmp/mfd-grading-results',
+    baselinePath: null,
+  }, {
+    baselineMode: true,
+    env: { OPENAI_API_KEY: 'openai-test', GOOGLE_API_KEY: 'google-test' },
+  });
+
+  assert.match(preflight, /Release grading preflight \(baseline\)/);
+  assert.match(preflight, /baseline output: \/tmp\/mfd-grading-results\/baselines\/rc4-baseline-7\.json/);
+  assert.match(preflight, /release gate: skipped while writing baseline/);
+  assert.match(preflight, /development quorum drop allowed/);
+  assert.match(preflight, /ANTHROPIC_API_KEY \(corresponding judges will be skipped/);
 });
 
 test('requestJudgeVerdict retries one schema mismatch and returns the second valid response', async () => {

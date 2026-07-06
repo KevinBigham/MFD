@@ -101,6 +101,22 @@ export {
 } from './systems/stat-central';
 export { createPowerRankings, updatePowerRankings } from './systems/power-rankings';
 export {
+  deriveRivalries,
+  intensityScore,
+  RIVALRIES_SCHEMA_VERSION,
+  tagMatchup,
+} from './rivalries';
+export type {
+  DramaTag,
+  RivalryHeadToHeadRecent,
+  RivalryLastMatchup,
+  RivalryPayload,
+  RivalryRecord,
+  RivalryRelationship,
+  RivalryScoreInput,
+  TaggedRivalryMatchup,
+} from './rivalries';
+export {
   computePowerRankings,
   generateHeadlines,
   generateHotTakes,
@@ -172,6 +188,7 @@ export {
   getCallYourShotReactions,
   getContingencyCallouts,
   getApologyTourBeat,
+  getRevengeLineTemplates,
 } from './content-loader';
 export type {
   CoachArchetypeContent,
@@ -182,6 +199,7 @@ export type {
   CallYourShotReactionOutcome,
   ContingencyCalloutKey,
   ApologyTourBeatContent,
+  RevengeLineBucket,
   TeamIdentityContent,
   TeamFanCultureContent,
   TeamRivalryContent,
@@ -369,6 +387,15 @@ export {
   hireMentor,
 } from './systems/alumni-mentors';
 export type { AlumniMentor, MentorEffect, MentorSpecialty } from './systems/alumni-mentors';
+export { buildTeamOpsImpactReceipt } from './systems/team-ops-impact';
+export type {
+  TeamOpsCampImpact,
+  TeamOpsImpactItem,
+  TeamOpsImpactReceipt,
+  TeamOpsImpactTone,
+  TeamOpsMedicalImpact,
+  TeamOpsMentorImpact,
+} from './systems/team-ops-impact';
 export { getSaveReminderMessage, shouldShowSaveReminder } from './systems/save-reminder';
 export {
   DEFAULT_AUDIO_QUEUE_CONFIG,
@@ -427,6 +454,7 @@ export {
   LEAGUE_RULE_DEFAULTS,
   initLeagueRules,
   getActiveRule,
+  getRosterLimit,
   applyRuleChange,
   getRuleHistory,
   diffRules,
@@ -494,6 +522,12 @@ export {
   gradeScenarioCompletion,
   advanceScenarioSeason,
   getScenarioConstraints,
+  getScenarioConstraintCoverage,
+} from './systems/scenario-challenge';
+export type {
+  ScenarioConstraintCoverage,
+  ScenarioConstraintCoverageItem,
+  ScenarioConstraintCoverageStatus,
 } from './systems/scenario-challenge';
 export {
   createDefaultSpecialTeamsState,
@@ -526,7 +560,7 @@ export {
   relocateTeam,
   getFanbaseEffect,
 } from './systems/franchise-identity';
-export { buildSeasonSchedule } from './systems/season-schedule';
+export { buildSeasonSchedule, getConfiguredScheduleWeekCount, getRegularSeasonWeekCount } from './systems/season-schedule';
 export { buildSeasonRecap } from './systems/season-recap';
 export type { SeasonRecap, SeasonRecapLeader, SeasonRecapPlayoffResult } from './systems/season-recap';
 export { buildScrapbookEntry, summarizeScrapbook } from './systems/scrapbook';
@@ -787,6 +821,7 @@ export {
   evaluateStandardCutImpact,
   evaluatePostJune1CutImpact,
   projectContractCap,
+  buildContractDecisionForecast,
   CONTRACT_TOOLS_MIN_SALARY,
 } from './systems/contract-tools';
 export type {
@@ -795,6 +830,10 @@ export type {
   CutImpact,
   PostJune1Impact,
   ContractCapProjectionYear,
+  ContractDecisionAction,
+  ContractDecisionSeverity,
+  ContractDecisionForecastOptions,
+  ContractDecisionForecast,
 } from './systems/contract-tools';
 
 export {
@@ -879,6 +918,33 @@ export { simGame, applyPlayerLines } from './systems/game-sim';
 export type { SimGameContext, SimGameResult, SimTeamContext } from './systems/game-sim';
 export { buildWeeklySummary } from './systems/weekly-summary';
 export { buildGameDayPackage } from './systems/game-day-package';
+export { buildPostWeekMoment } from './systems/post-week-moment';
+export type {
+  PostWeekMoment,
+  PostWeekMomentItem,
+  PostWeekMomentTone,
+} from './systems/post-week-moment';
+export {
+  PREP_ALIGNMENT_BALANCED_SCORE,
+  PREP_ALIGNMENT_MAX_SCORE,
+  PREP_ALIGNMENT_OFF_SCRIPT_SCORE,
+  PREP_ALIGNMENT_RECOMMENDED_SCORE,
+  buildPrepDecisionForecast,
+  prepAlignmentScore,
+} from './systems/prep-decision-forecast';
+export type {
+  PrepConsequenceItem,
+  PrepDecisionForecast,
+  PrepDecisionForecastAccent,
+  PrepDecisionForecastInput,
+} from './systems/prep-decision-forecast';
+export { buildTradeDecisionForecast } from './systems/trade-decision-forecast';
+export type {
+  TradeDecisionForecast,
+  TradeDecisionForecastAccent,
+  TradeDecisionForecastInput,
+  TradeDecisionForecastItem,
+} from './systems/trade-decision-forecast';
 export {
   clearSeasonLivingWorldState,
   expireTimedEffects,
@@ -905,11 +971,17 @@ export { advanceStoryArcs, advanceWeeklyStoryArcs } from './systems/story-arcs';
 export { seedPlayoffBracket, advancePlayoffBracket } from './systems/playoff-bracket';
 export {
   initializeOffseasonState,
+  buildFreeAgencyDecisionForecast,
   submitReSignOffer,
   submitFreeAgentBid,
   signStreetFreeAgent,
   advanceOffseason,
   advanceFreeAgency,
+} from './systems/offseason';
+export type {
+  FreeAgencyDecisionForecast,
+  FreeAgencyForecastMode,
+  FreeAgencyForecastStatus,
 } from './systems/offseason';
 export { runCoachingCarousel } from './systems/coaching-carousel';
 export {
@@ -954,6 +1026,7 @@ export type { InvariantViolation, InvariantResult } from './systems/invariants';
 export { resolveConditions, conditionalPickExpectedValue } from './systems/conditional-picks';
 export {
   addToPracticeSquad,
+  getPracticeSquadLimit,
   removeFromPracticeSquad,
   elevateFromPracticeSquad,
   cutPlayerToWaivers,
@@ -1053,6 +1126,11 @@ export type {
   BroadcastCommentaryInput,
   BroadcastCommentaryOutput,
 } from './systems/broadcast-commentary';
+export { buildHalftimeDecisionReceipt } from './systems/halftime-receipts';
+export type {
+  HalftimeDecisionReceipt,
+  HalftimeDecisionReceiptChoice,
+} from './systems/halftime-receipts';
 
 // Systems — Dev harnesses (Sprint 48 "The Reunion")
 export {
@@ -1066,8 +1144,26 @@ export type {
   CareerSample,
   PositionStats,
 } from './systems/dev/age-curve-harness';
-export { PLAYTEST_PERSONAS, buildPlaytestReport, runPlaytest } from './playtesting';
-export type { PlaytestReport } from './playtesting';
+export {
+  PLAYTEST_PERSONAS,
+  HOST_NOISE_DETECTOR_IDS,
+  LONG_HORIZON_QUALITY_BENCHMARKS,
+  buildPlaytestReport,
+  evaluateLongHorizonQualityBenchmark,
+  getLongHorizonQualityBenchmark,
+  runLongHorizonQualityBenchmark,
+  runPlaytest,
+} from './playtesting';
+export type {
+  LongHorizonAnomalyBudget,
+  LongHorizonBudgetCheck,
+  LongHorizonQualityArea,
+  LongHorizonQualityBenchmark,
+  LongHorizonQualityBenchmarkId,
+  LongHorizonQualityBenchmarkResult,
+  LongHorizonQualityBenchmarkRunOptions,
+  PlaytestReport,
+} from './playtesting';
 
 export { OC_SPECIALTIES, DC_SPECIALTIES, assignCoordSpecialty, getSpecialtyById } from './systems/coordinator-specialties';
 

@@ -169,7 +169,7 @@ export function buildFilmRoomReport(
   const executionNotes = [
     `${team.city} finished with ${scoreForTeam(result, teamId)} points and ${teamStats?.totalYards ?? 0} total yards.`,
     `${intel.baseReport.teamName} answered with ${scoreForTeam(result, prep.opponentTeamId)} points and ${opponentStats?.totalYards ?? 0} yards.`,
-    prep.reasoning[0] ?? 'Weekly prep created a measurable plan edge.',
+    prep.reasoning[0] ?? 'Weekly prep created a matchup advantage; open Game Plan before changing calls for the next opponent.',
   ];
   const recommendations = grade.missedCalls.length > 0
     ? grade.missedCalls.map((line) => `Adjust: ${line}`)

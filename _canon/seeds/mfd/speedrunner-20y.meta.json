@@ -1,15 +1,18 @@
 {
   "scenarioId": "speedrunner-20y",
-  "corpusVersion": "1",
-  "schemaVersion": 35,
-  "engineCommit": "f523cc3697ce59e2f178e815da508fb74ec35777",
-  "generatedAt": "2026-04-28T17:03:15.097Z",
-  "generationCommand": "pnpm test:shadow -- --update",
+  "corpusVersion": "3",
+  "classification": "intended",
+  "specCitation": "_canon/seeds/mfd/README.md:25",
+  "updateReason": "The speedrunner-20y shadow report now completes the requested 20 seasons under the default 800-step guard. The regenerated report replaces the stale truncated v2 baseline that carried post-year-10 phase-boundary high anomalies while preserving the frozen shadow-tier determinism contract.",
+  "schemaVersion": 36,
+  "engineCommit": "unknown",
+  "generatedAt": "2026-06-24T04:27:52.071Z",
+  "generationCommand": "pnpm test:shadow -- --update speedrunner-20y",
   "persona": "SPEEDRUNNER",
   "seed": 42,
   "seasonsRequested": 20,
-  "seasonsCompleted": 10,
-  "weeksAdvanced": 800,
-  "anomalyCount": 1252,
-  "highSeverityCount": 508
+  "seasonsCompleted": 20,
+  "weeksAdvanced": 593,
+  "anomalyCount": 376,
+  "highSeverityCount": 0
 }

@@ -4,7 +4,7 @@
  * Phases: Opening → Peaking → Closing → Rebuilding
  * Based on team OVR distribution, cap space, draft capital, and age curve.
  */
-import type { Player, Team } from '../types';
+import type { GameState, Player, Team } from '../types';
 import { getSalaryCap } from '../config';
 
 // ── Types ──────────────────────────────────────────────
@@ -63,8 +63,8 @@ function youthScore(roster: Player[]): number {
   return Math.max(0, Math.min(100, (score / maxPossible) * 100));
 }
 
-function capHealthScore(team: Team, year: number): number {
-  const cap = getSalaryCap(year);
+function capHealthScore(team: Team, year: number, gameState?: GameState | null): number {
+  const cap = getSalaryCap(year, gameState);
   const totalSalary = team.roster.reduce((sum, p) => {
     if (!p.contract) return sum;
     return sum + (p.contract.baseSalary ?? 0);
@@ -119,10 +119,11 @@ export function calculateDynastyWindow(
   team: Team,
   year: number,
   draftPicks?: number,
+  gameState?: GameState | null,
 ): DynastyWindowResult {
   const rosterStr = rosterStrengthScore(team.roster);
   const youth = youthScore(team.roster);
-  const cap = capHealthScore(team, year);
+  const cap = capHealthScore(team, year, gameState);
   const draft = draftCapitalScore(draftPicks ?? 7);
 
   // Weighted composite score

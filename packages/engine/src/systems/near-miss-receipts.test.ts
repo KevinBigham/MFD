@@ -60,6 +60,8 @@ describe('Near-Miss Receipts', () => {
     const receipts = generateNearMissReceipts(seededRng(), tracker);
     expect(receipts.length).toBe(1);
     expect(receipts[0]!.type).toBe('missed_fa');
+    expect(receipts[0]!.description).toContain('missed out on Free Agent Star');
+    expect(receipts[0]!.outcome).toContain('after the market closed');
   });
 
   it('filters out low-OVR near misses', () => {

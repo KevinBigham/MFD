@@ -3,7 +3,10 @@ import type { HallOfFameEntry } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import { useGameStore } from '../../app/store/game-store';
 import { deriveDynastyId } from '../../lib/career-meta';
+import { syncHallOfFameArchiveSnapshot } from '../../lib/hall-of-fame-archive-sync';
 import {
+  exportHallOfFameArchiveJson,
+  importHallOfFameArchiveJson,
   listDynastiesByStartYear,
   readHallOfFameArchive,
   summarizeHallOfFameArchive,
@@ -112,6 +115,10 @@ function hallOfFameDirectoryExportDate(exportedAt: Date): string {
 
 function hallOfFameDirectoryFileName({ sort, filter, exportedAt = new Date() }: HallOfFameDirectoryExportOptions): string {
   return `hall-of-fame-${sort}-${filter}-${hallOfFameDirectoryExportDate(exportedAt)}.png`;
+}
+
+function hallOfFameArchiveJsonFileName(exportedAt: Date = new Date()): string {
+  return `hall-of-fame-archive-${hallOfFameDirectoryExportDate(exportedAt)}.json`;
 }
 
 export async function exportHallOfFameDirectoryAsPng(
@@ -317,11 +324,18 @@ export function HallOfFameDirectory({
     dynastyTeamId: string;
     isPantheon: boolean;
   } | null>(null);
+  const [archiveRevision, setArchiveRevision] = useState(0);
+  const [archiveImportText, setArchiveImportText] = useState('');
+  const [archiveTransferStatus, setArchiveTransferStatus] = useState<string | null>(null);
+  const [archiveTransferError, setArchiveTransferError] = useState<string | null>(null);
 
-  const payload = readHallOfFameArchive();
+  const payload = useMemo(() => readHallOfFameArchive(), [archiveRevision]);
   const summary = summarizeHallOfFameArchive(payload);
   const currentDynastyId = game ? deriveDynastyId(game) : null;
   const currentUserTeamId = Object.values(game?.teams ?? {}).find((team) => team.isUser)?.id ?? null;
+  const currentSnapshot = currentDynastyId ? payload.dynastiesById[currentDynastyId] ?? null : null;
+  const currentSaveInducteeCount = game?.hallOfFame?.length ?? 0;
+  const currentSnapshotInducteeCount = currentSnapshot?.entries.length ?? 0;
   const allDynasties = listDynastiesByStartYear(payload);
   const dynasties = filter === 'current' && currentDynastyId
     ? allDynasties.filter((dynasty) => dynasty.dynastyId === currentDynastyId)
@@ -332,6 +346,13 @@ export function HallOfFameDirectory({
     (total, dynasty) => total + applyFilter(dynasty.entries, dynasty.teamId, filter).length,
     0,
   );
+  const canSyncCurrentSnapshot = Boolean(game && currentUserTeamId && currentSaveInducteeCount > 0);
+
+  const handleSyncCurrentSnapshot = () => {
+    const wrote = syncHallOfFameArchiveSnapshot(game, currentUserTeamId);
+    if (!wrote) return;
+    setArchiveRevision((revision) => revision + 1);
+  };
 
   const handleExport = async () => {
     if (!exportRef.current || visibleEntryCount === 0) return;
@@ -341,6 +362,40 @@ export function HallOfFameDirectory({
       entryCount: visibleEntryCount,
       teamId: currentUserTeamId,
     });
+  };
+
+  const handleExportArchiveJson = () => {
+    const exportedAt = new Date();
+    const json = exportHallOfFameArchiveJson(payload, exportedAt);
+
+    if (typeof document === 'undefined' || typeof Blob === 'undefined' || typeof URL === 'undefined') {
+      setArchiveTransferStatus('Archive JSON is ready, but this browser cannot start a download.');
+      setArchiveTransferError(null);
+      return;
+    }
+
+    const href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = href;
+    link.download = hallOfFameArchiveJsonFileName(exportedAt);
+    link.click();
+    URL.revokeObjectURL(href);
+    setArchiveTransferStatus(`Exported ${summary.totalInductees} HOFers from ${Object.keys(payload.dynastiesById).length} dynasties.`);
+    setArchiveTransferError(null);
+  };
+
+  const handleImportArchiveJson = () => {
+    const result = importHallOfFameArchiveJson(archiveImportText);
+    if (!result.ok) {
+      setArchiveTransferError(result.reason);
+      setArchiveTransferStatus(null);
+      return;
+    }
+
+    setArchiveRevision((revision) => revision + 1);
+    setArchiveImportText('');
+    setArchiveTransferStatus(`Imported ${result.inductees} HOFers from ${result.dynasties} dynasties into mfd.hallOfFame.v1.`);
+    setArchiveTransferError(null);
   };
 
   return (
@@ -357,8 +412,13 @@ export function HallOfFameDirectory({
         <div style={{ flex: '1 1 360px' }}>
           <PixelScreenHeader
             title="Hall of Fame Directory"
-            subtitle="Every inductee across every dynasty you have ever coached."
-            badges={<PixelBadge variant="gold">CANTON</PixelBadge>}
+            subtitle="Browser-local cross-dynasty snapshots for every archived Hall of Fame class on this device."
+            badges={(
+              <>
+                <PixelBadge variant="gold">CANTON</PixelBadge>
+                <PixelBadge variant="cyan">BROWSER ARCHIVE</PixelBadge>
+              </>
+            )}
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
@@ -378,6 +438,119 @@ export function HallOfFameDirectory({
         <PixelMetricCard label="MVPs" value={summary.totalMvps} accent="red" detail="Inductee MVP totals" />
         <PixelMetricCard label="Dynasties" value={summary.dynastiesRepresented} accent="default" detail="Represented in the Hall" />
       </div>
+
+      <PixelPanel title="Archive Source" accent="cyan">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <PixelBadge variant="cyan">mfd.hallOfFame.v1</PixelBadge>
+            <PixelBadge variant="gold">Year rollover snapshot</PixelBadge>
+            <PixelBadge variant={currentDynastyId ? 'green' : 'default'}>
+              {currentDynastyId ? 'Current dynasty comparable' : 'No active dynasty'}
+            </PixelBadge>
+          </div>
+          <div style={autoGrid(180)}>
+            <PixelMetricCard
+              label="Live Save HOFers"
+              value={currentSaveInducteeCount}
+              accent="gold"
+              detail="game.hallOfFame now"
+            />
+            <PixelMetricCard
+              label="Sidecar Snapshot"
+              value={currentSnapshotInducteeCount}
+              accent="cyan"
+              detail={currentSnapshot ? `last synced ${currentSnapshot.lastSyncedYear}` : 'No current snapshot'}
+            />
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+            This directory reads the browser-local Hall of Fame sidecar through readHallOfFameArchive(). The
+            Current Dynasty filter uses the active save only to select the matching deriveDynastyId(game) snapshot
+            and compare the live game.hallOfFame count. Opening Hall of Fame does not run
+            syncHallOfFameArchiveAtYearRollover, import older snapshots, write GameState, change the sidecar,
+            autosave, or play games or reroll saved outcomes.
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <PixelButton
+              accent="cyan"
+              onClick={handleSyncCurrentSnapshot}
+              disabled={!canSyncCurrentSnapshot}
+            >
+              Sync Current Save
+            </PixelButton>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+              Explicitly writes this current dynasty's saved game.hallOfFame snapshot to mfd.hallOfFame.v1.
+            </span>
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+            Sync Current Save never imports sidecar entries back into GameState, autosaves, changes HOF induction
+            logic, or plays games or rerolls saved outcomes. A count mismatch means the sidecar is stale until app-shell year rollover or
+            this explicit sync writes the current full snapshot.
+          </div>
+        </div>
+      </PixelPanel>
+
+      <PixelPanel title="Archive Portability" accent="gold">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <PixelBadge variant="gold">JSON SIDECAR</PixelBadge>
+            <PixelBadge variant="cyan">mfd.hallOfFame.v1 only</PixelBadge>
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+            Export and import move only the Hall of Fame sidecar archive. They do not create a save cartridge,
+            write GameState, import sidecar entries into a live save, autosave, or play games or reroll saved outcomes.
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <PixelButton accent="gold" onClick={handleExportArchiveJson}>
+              Export Archive JSON
+            </PixelButton>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+              Downloads the current mfd.hallOfFame.v1 payload in a versioned archive envelope.
+            </span>
+          </div>
+          <textarea
+            aria-label="Paste Hall of Fame archive JSON"
+            placeholder="Paste Hall of Fame archive JSON"
+            value={archiveImportText}
+            onChange={(event) => setArchiveImportText(event.target.value)}
+            style={{
+              minHeight: '96px',
+              width: '100%',
+              boxSizing: 'border-box',
+              resize: 'vertical',
+              background: 'var(--mfd-bg-elevated)',
+              color: 'var(--mfd-text)',
+              border: '1px solid var(--mfd-border)',
+              borderRadius: '4px',
+              padding: '10px',
+              fontFamily: 'inherit',
+              fontSize: '12px',
+              lineHeight: 1.5,
+            }}
+          />
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <PixelButton
+              accent="cyan"
+              onClick={handleImportArchiveJson}
+              disabled={archiveImportText.trim().length === 0}
+            >
+              Import Archive JSON
+            </PixelButton>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+              Validates the archive before replacing this browser's mfd.hallOfFame.v1 sidecar.
+            </span>
+          </div>
+          {archiveTransferStatus ? (
+            <div style={{ ...monoSm, color: 'var(--mfd-accent-green, #53d18a)', lineHeight: 1.6 }}>
+              {archiveTransferStatus}
+            </div>
+          ) : null}
+          {archiveTransferError ? (
+            <div style={{ ...monoSm, color: 'var(--mfd-accent-red, #ff6b6b)', lineHeight: 1.6 }}>
+              {archiveTransferError}
+            </div>
+          ) : null}
+        </div>
+      </PixelPanel>
 
       <PixelPanel title="Controls" accent="cyan">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

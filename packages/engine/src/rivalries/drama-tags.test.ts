@@ -45,6 +45,22 @@ describe('tagMatchup', () => {
     }))).toEqual(['divisional-implications']);
   });
 
+  it('tags expanded-schedule week 19 regular-season divisional games with implications', () => {
+    expect(tagMatchup(makeMatchup({
+      week: 19,
+      isDivisional: true,
+      isRegularSeason: true,
+    }))).toEqual(['divisional-implications']);
+  });
+
+  it('does not tag playoff divisional games as regular-season implications', () => {
+    expect(tagMatchup(makeMatchup({
+      week: 19,
+      isDivisional: true,
+      isRegularSeason: false,
+    }))).toEqual([]);
+  });
+
   it('does not emit false positives for neutral games', () => {
     expect(tagMatchup(makeMatchup())).toEqual([]);
   });

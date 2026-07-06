@@ -139,6 +139,27 @@ describe('FranchiseBookScreen', () => {
     expect(markup).toContain('1 CHAPTERS');
   });
 
+  it('renders franchise book source context and separates print controls from writes', () => {
+    buildFranchiseBookMock.mockReturnValue(makeBook());
+
+    const markup = renderToStaticMarkup(<FranchiseBookScreen />);
+
+    expect(markup).toContain('Franchise Book Sources');
+    expect(markup).toContain('BOOK READ MODEL');
+    expect(markup).toContain('PRINT CONTROL ONLY');
+    expect(markup).toContain('buildFranchiseBook(game, userTeam.id)');
+    expect(markup).toContain('game.franchiseHistory');
+    expect(markup).toContain('game.userDynastyEras');
+    expect(markup).toContain('game.dynastyTimeline');
+    expect(markup).toContain('game.playerArchive');
+    expect(markup).toContain('game.playerSeasonHistory');
+    expect(markup).toContain('era-templates.json');
+    expect(markup).toContain('book-commentary.json');
+    expect(markup).toContain('Opening Franchise Book does not write dynasty events');
+    expect(markup).toContain('update franchise history');
+    expect(markup).toContain('play scheduled games');
+  });
+
   it('renders the table of contents and the first chapter body', () => {
     buildFranchiseBookMock.mockReturnValue(makeBook());
 
@@ -148,6 +169,8 @@ describe('FranchiseBookScreen', () => {
     expect(markup).toContain('CHAPTER 1');
     expect(markup).toContain('The Blaze Ascend'.toUpperCase());
     expect(markup).toContain('Cole Stone');
+    expect(markup).toContain('WIN %');
+    expect(markup).toContain('68.2%');
   });
 
   it('applies team theme vars to the franchise book root container', () => {

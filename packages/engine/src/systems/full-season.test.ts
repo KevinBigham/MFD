@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { advanceFranchiseWeek, finalizeDeadline, syncAllPlayerArchiveEntries } from '../index';
 import { makeLeagueState } from './test-helpers';
-import type { GameState, Player, ScheduleWeek } from '../types';
+import type { DraftProspect, GameState, Player, ScheduleWeek } from '../types';
 
 function makeSchedule(teamIds: string[]): ScheduleWeek[] {
   const teams = [...teamIds].sort();
@@ -27,6 +27,50 @@ function makeSchedule(teamIds: string[]): ScheduleWeek[] {
 
 function findPlayer(game: GameState, playerId: string): Player | null {
   return game.players[playerId] ?? null;
+}
+
+function makeQuarterbackPressureProspect(year: number): DraftProspect {
+  return {
+    id: `integration-pressure-qb-${year}`,
+    firstName: 'Pressure',
+    lastName: `QB${year}`,
+    pos: 'QB',
+    college: 'Texas',
+    region: 'south',
+    ratings: { awareness: 92, speed: 83, stamina: 88 },
+    projectedRound: 1,
+    scoutGrade: 88,
+    trueGrade: 92,
+    personality: { workEthic: 8, loyalty: 5, greed: 5, pressure: 9, ambition: 8 },
+    traits: [],
+    archetype: null,
+    characterArchetype: 'ceiling',
+    bustProbability: 0.08,
+    stealProbability: 0.12,
+    scoutingReports: [],
+    combine: null,
+  };
+}
+
+function seedQuarterbackDraftPressure(game: GameState, teamIds: string[]): void {
+  for (const teamId of teamIds) {
+    const team = game.teams[teamId];
+    if (!team) continue;
+    team.roster
+      .filter((player) => player.pos === 'QB')
+      .forEach((player, index) => {
+        player.ovr = Math.min(player.ovr, 54 - index);
+        player.ratings.awareness = Math.min(player.ratings.awareness, 54 - index);
+      });
+  }
+
+  const prospectId = `integration-pressure-qb-${game.year}`;
+  if (game.draftClass.some((prospect) => prospect.id === prospectId)) return;
+
+  game.draftClass = [
+    ...game.draftClass,
+    makeQuarterbackPressureProspect(game.year),
+  ].sort((a, b) => b.trueGrade - a.trueGrade || a.id.localeCompare(b.id));
 }
 
 function makeIntegrationGame(): GameState {
@@ -94,6 +138,7 @@ describe('three-season integration loop', () => {
       } else if (state.phase === 'draft' && state.offseasonState) {
         const draftYear = state.year;
         const topFiveTeams = state.offseasonState.draftOrder.slice(0, 5).map((entry) => entry.teamId);
+        seedQuarterbackDraftPressure(state, topFiveTeams);
         state = advanceFranchiseWeek(state).nextState;
         const topFiveSelections = topFiveTeams.flatMap((teamId) =>
           state.teams[teamId]!.roster.filter((player) => player.draftYear === draftYear && player.draftRound === 1),

@@ -1,11 +1,14 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import type { StaffMember } from '../types';
 import {
   generateCapPackages,
+  PHASE_META,
   PHASE_ORDER,
   advanceSetupPhase,
   applySetupDecision,
+  createFastLaneSetupState,
   createSetupState,
   finalizeSetup,
   generateBlueprint,
@@ -29,6 +32,49 @@ import {
   toggleSetupDrilldown,
 } from '../index';
 import { makeLeagueState, makePlayer } from './test-helpers';
+
+const FRANCHISE_SETUP_SOURCE = readFileSync(new URL('./franchise-setup.ts', import.meta.url), 'utf8');
+const SETUP_HIRING_CATALOG_SOURCE = readFileSync(new URL('./setup-hiring-catalog.ts', import.meta.url), 'utf8');
+const STALE_FIRST_RUN_SETUP_COPY = /\b(?:foundation is real|clean long-term plan|Energy, momentum|locker-room buy-in|clear north star|season story|foundation is moving|coherent identity|looks more coherent|shape the story fast|first week feels|opening script feels|books are still tight|will feel every unresolved weakness|new identity should|trust the new standard|football identity with|owner-trust edge|Young-player momentum|public story|competitive window|peaking window|clean benchmark|trust the current roster|break trust early|Locker-room leadership|roster context|real upside|cap picture|trajectory|trust your corners to travel|market sees upside|market sees both upside|set the tone|chasing upside|chasing expensive upgrades|ready to chase wins|chase veteran upgrades|chasing results|chasing quick fixes|while chasing wins|roster need|roster problem|margin for error|books are manageable|has enough talent to matter|The market is skeptical|The market is energized|prove this plan right|just delays pain|Fans and media see talent|misses the real problem|real plan|real question|real pressure|first real test|sabotage the first)\b/i;
+const STALE_GENERATED_SETUP_COPY = /(?:This setup choice changes Week 1 readiness and pressure|The opening plan matches the current roster|The opener is still carrying risk|Install should be easier|Install still needs time|Standards are clearer|Culture can still crack under stress|You created short-term cap space|The cap sheet is still tight|Ownership likes the direction|Ownership will demand proof early|proof in the first month|player-led culture|development-first culture|locker-room leaders|who owns mistakes, snaps, and standards|Run-blocking and tackling standards|The biggest unknown is whether this group handles live pressure|the opener gets messy|Week 1 is winnable if the setup choices match|Week 1 is playable, but unresolved|The first month still looks unstable|The opening script is cleaner|Ownership likes the aggression|The roster is mostly ready|The unknown is whether|Ownership is willing to stay patient|A patient ownership profile|This goal keeps young-player progress|This roster is built to contend now|Fans and media are energized|Ownership is watchful|The cap sheet is already narrowing your moves|Team culture is unstable enough|The roster has answers, but|You can be aggressive|The cap is manageable, but not forgiving|cap sheet supports|The cap sheet gives you cap space to be proactive|Financially, you can compete|Cap pressure will limit how aggressive|proactive moves|You can make moves|smart early-season choices|real win-now pressure|can show this plan works|should show up|enough here to survive|legitimate chance|Week 1 pressure can still|first messy drive can|are built to win now|championship track|mission is simple|should protect development snaps|offense can grow|This season is about|Week 1 choices should protect|push forward immediately|The focus is|believe they can win ugly games|can handle pressure|One bad month can split leaders|Early roles and accountability will matter|patience matters|development matters|install speed matters|can accept install friction|roster can execute|Day 1 diagnosis|Day 1 cap plan|Day 1 cap priorities|Day 1 signal|Day 1 decisions|Day 1 flaw|cap package for Day 1|Day 1 assigned|it can change Week 1 readiness|and Week 1 readiness|trust to handle ugly wins|practice energy|ideological lane|young-player roles matter|roles stable|roles clarified|roles are clearer|clearer team rules|Protect owner trust by fixing|expose every gap|clarify weak positions|clearer answer|Use Day 1 to clarify|wrong Week 1 answers can drag|weekly calls get clearer|early losses can raise pressure|raise pressure if moves ignore it|missed reads can raise pressure|pressure games|weekly pressure|energized fans and media raise pressure|Week 1 pressure hits|Week 1 exposes weak points quickly|clearest weak point|small structural flaws|intent instead of inertia|defaulting to last year’s hierarchy|cap space will appear on its own|first month will reward|clear plan but punish surprises|vague setup choices|vague roster shaping|shapes owner and fan expectations|players know the plan|loose moves|loose roles|loose spending|Choose star power|missed support|weakest position|unresolved weakness|bad Week 1 plan|bad Week 1 choices|bad money|Culture Pressure|culture mandate|first mandate|support named fixes|decision advisor|next offseason cleaner|Hire Your Coach|Build Your Intel|Set Your Goals|Who leads this team|Who finds the next star|What does year one look like|Your roster at a glance|Your plan is locked in|Day 1 Complete|position-room conflict|splits the room|wrong standard|clear standard|unclear standards|standards must change|let standards slip|daily standards|Day 1 standards|Pick who watches|stale starter order|Open owner, roster, cap|opener threats|protect later fixes|Pick owner promises|Verify locked choices)/i;
+const RECENT_STALE_DIRECT_SETUP_COPY =
+  /(?:This staff should|should be restructured|clear weekly assignments|early mistakes may cost points|younger players develop more slowly)/i;
+const RECENT_STALE_VAGUE_CONSEQUENCE_COPY = /\b(?:bad protection|job approval|lower job approval)\b/i;
+const RECENT_STALE_SETUP_SOFT_CONSEQUENCE_COPY =
+  /\b(?:can trigger role complaints|can lower morale|can reach the opener|can cost early games|future cap hits can limit|wrong roles can still create|wrong roles create early mistakes|stricter rules can hurt|informal leadership can let|early losses can cut|early record can slide|missing rule owners can fracture|can waste picks|transition risk can cost|missed warnings can hurt|wrong veteran spending can block|spending on a player without a defined game-day job can block|cost without a starter, backup, or extension plan can block|tight space can block|owner patience can still fall|spending without a named role can block|missed usage or blocked depth can waste|missed division games can cost|lineup, staff, and Game Plan can reach|ownership can punish|ownership will tolerate fewer early mistakes|depth before kickoff; it can sink|missed depth answers can cost|stale starter order can still cost|one aggressive spend can block|contracts without a named player role can block|contracts without a role can block|a harsh rule can drop|two losses can still test|one wrong spend can shrink|wrong spend shrinks|losses can turn into morale problems|problem can reach the opener|can punish it|opener can punish|first loss can trigger|empty savings can push|wrong fixes can leave|wrong fixes leave|wrong pairings can still cost|wrong pairings cost the opener|opener can expose|late changes can create|slow install can create|missing accountability can split|extra spending can block|ignoring it can cut|owner patience can drop|opener can expose the thinnest|opponents can attack|proof you can identify|roster can defend)\b/i;
+const RECENT_STALE_OWNER_PRESSURE_SETUP_COPY =
+  /\b(?:owner pressure|raise owner pressure|owner pressure rises|owner pressure can rise|extra owner pressure)\b/i;
+const RECENT_STALE_SETUP_WEAKNESS_SHORTHAND =
+  /\b(?:weak leaders|weak positions|weak depth|thin depth|thin backups?|thin backup groups?|thinnest starter|thin starter|thin starter or backup groups?|top weakness|weakest starter|weak spots?)\b/i;
+const STALE_SETUP_METRIC_LABELS = /Week 1 Readiness|Scheme Cohesion|Culture Stability|Cap Flexibility|\bWK1\b|\bVOL\b/i;
+const STALE_CAP_PLAN_COPY = /Protect the Future|Balanced Pressure Release|Aggressive Cap Push|future flexibility|mortgaging future flexibility|balanced cap posture|aggressive cap posture|cap posture is|protect future space|cap flexibility|extension flexibility|Week 1 readiness, cap flexibility|missed picks can cost cap flexibility/i;
+const RECENT_STALE_SETUP_SHORTHAND_COPY =
+  /\b(?:staff profile is balanced|single scheme priority|roster-upgrade room|missed discipline|cap discipline|wasted spending|without extra help|early choices need to help the next game|wasting cap space|one aggressive spend can trap the season|low-confidence|scout confidence|scouting confidence|Week 1 install speed is the priority|upside justifies|opener is winnable|Use cap space only|Use targeted moves only|name-only spending|spending without a role|name-only upgrades|costs only time)\b/i;
+const RECENT_STALE_UNCLEAR_SETUP_COPY =
+  /\b(?:unclear roles|unclear jobs|unclear rules|harsh or unclear rule|assignments are clear|clear roles|clear role|hot reads ready by Week 1)\b/i;
+const RECENT_STALE_STAFF_PHILOSOPHY_COPY =
+  /\b(?:offensive answers|quarterback-driven control|physicality, detail|practice tempo|clear communication|morale protection|situational control)\b/i;
+const RECENT_STALE_SETUP_GRADE_SHORTHAND_COPY =
+  /\b(?:missed grades|roster grade|grade alone|compare grades|grade shows talent|film disagrees with the grade|I graded every player|current cap grade)\b/i;
+const RECENT_STALE_SETUP_MORALE_PATIENCE_SHORTHAND =
+  /\b(?:morale risk|leaders will copy|one bad month|losses hide development|owner expectations rise fast|owner patience tight|slow first month|Team morale is already unstable; unassigned roles|loses patience when losses|first bad stretch|one bad stretch)\b/i;
+const RECENT_STALE_SETUP_GENERIC_PROBLEM_COPY =
+  /(?:biggest roster risk|roster or cap risk|starter, backup, cap, or staff problem|weekly roster, cap, or staff problem|biggest depth, cap, or morale problem|starter or staff problems|roster, cap, or Week 1 problem|role-complaint problem|setup flaw|starter, scheme, or cap problem|starter, cap, or staff problem|roster, cap, or staff problem|unresolved setup issue|carry more risk)/i;
+const STALE_SETUP_SCHEME_DESCRIPTION_COPY =
+  /\b(?:Space and pace|playmakers in space|Pound the rock|Air it out|Stay multiple|defend every answer|Sound and simple|play fast|Flexible pressure|Keep the roof|Bend without breaking|squeeze explosive plays|position group should own|weekly plan work|safety[- ]help answers|safety answers|fast rules|bad timing|explosive-play risk|risk explosives|pressure arrives|leak easy yards|easy yards|can make quick decisions|can avoid stalled drives|can protect leads|can pick up blitzes|can stop the run|can rush, cover, and fit the run|can tackle short completions|can stop short completions|can press)\b/i;
+const RESTRICTIVE_FIRST_RUN_CHIP_COPY =
+  /\b(?:change|choose|hire|spend|use)\b[^.!?;]*(?:only if|only when|only after|only with|only where)\b|\bownership stays patient only if\b|\bworth\b/i;
+const SETUP_SCHEME_ROSTER_DEMAND_COPY =
+  /\b(?:if|when|without|avoid|protect|pressure arrives|blitzes|weekly plan|safety-help|easy yards)\b/i;
+const FIRST_RUN_CHIP_ACTION_CUE =
+  /\b(advance|apply|assign|build|choose|find|fix|give|identify|inspect|keep|lock|make|name|open|pick|preview|prioritize|protect|read|set|spend)\b/i;
+const FIRST_RUN_CHIP_CONSEQUENCE_CUE =
+  /\b(before|block|cap|cost|deadline|expose|hurt|injur\w*|later|morale|opener|owner|pressure|risk|week|wrong)\b/i;
+
+function expectActionableFirstRunCopy(label: string, copy: string): void {
+  expect(copy, `${label} needs a clear player action: ${copy}`).toMatch(FIRST_RUN_CHIP_ACTION_CUE);
+  expect(copy, `${label} needs a consequence, limit, or deadline: ${copy}`).toMatch(FIRST_RUN_CHIP_CONSEQUENCE_CUE);
+}
 
 function enrichStaff(game = makeLeagueState('regular_season', 1)) {
   const team = game.teams.afce1!;
@@ -240,6 +286,50 @@ describe('franchise setup lifecycle', () => {
     ]);
     expect(PHASE_ORDER).toHaveLength(10);
     expect(PHASE_ORDER[0]).toBe('choose_agm');
+    expect(PHASE_META.map(({ id, label }) => [id, label])).toEqual([
+      ['choose_agm', 'Hire Assistant GM'],
+      ['intel_briefing', 'Franchise Intel'],
+      ['meet_roster', 'Meet the Roster'],
+      ['hire_coach', 'Hire Head Coach'],
+      ['hire_scout', 'Hire Scouting Director'],
+      ['set_scheme', 'Pick Schemes'],
+      ['depth_chart', 'Starting Lineup'],
+      ['cap_strategy', 'Choose Cap Plan'],
+      ['set_goals', 'Set Owner Goals'],
+      ['blueprint', 'Open Blueprint'],
+    ]);
+    expect(PHASE_META.map(({ subtitle }) => subtitle).join(' ')).not.toMatch(STALE_GENERATED_SETUP_COPY);
+    expect(PHASE_META.map(({ subtitle }) => subtitle).join(' ')).not.toMatch(/Week 1 risks|draft and roster risks|flags roster, cap|Read owner patience/i);
+    expect(PHASE_META.find((phase) => phase.id === 'intel_briefing')?.subtitle).toBe(
+      'Open Intel for owner patience, injuries, cap space, and Week 1 matchup threats',
+    );
+    expect(PHASE_META.find((phase) => phase.id === 'meet_roster')?.subtitle).toBe(
+      'Find starters, injuries, and uncovered backup jobs',
+    );
+    expect(PHASE_META.find((phase) => phase.id === 'hire_coach')?.subtitle).toBe(
+      'Pick who installs the Week 1 plan',
+    );
+    expect(PHASE_META.find((phase) => phase.id === 'hire_scout')?.subtitle).toBe(
+      'Pick who names draft roles and medical warnings',
+    );
+    expect(PHASE_META.find((phase) => phase.id === 'cap_strategy')?.subtitle).toBe(
+      'Choose restructures now or save injury, trade, and extension cap space',
+    );
+    expect(PHASE_META.find((phase) => phase.id === 'choose_agm')?.subtitle).toBe(
+      "Choose Chip's first setup priority: cap space, starter jobs, staff plan, or owner patience",
+    );
+    expect(PHASE_META.find((phase) => phase.id === 'set_scheme')?.subtitle).toBe(
+      'Choose Week 1 calls that avoid unassigned starter jobs',
+    );
+    expect(PHASE_META.find((phase) => phase.id === 'set_goals')?.subtitle).toBe(
+      'Choose goals ownership judges and rules that change morale after losses',
+    );
+    expect(PHASE_META.find((phase) => phase.id === 'blueprint')?.subtitle).toBe(
+      'Preview staff, scheme, lineup, cap space, and goals before Week 1 locks',
+    );
+    expect(FRANCHISE_SETUP_SOURCE).not.toContain('Choose cap space now or later');
+    expect(FRANCHISE_SETUP_SOURCE).not.toContain('Choose the roster fit for Week 1');
+    expect(FRANCHISE_SETUP_SOURCE).not.toContain('Choose Week 1 calls that fit the roster');
     expect(state.currentPhase).toBe('choose_agm');
     expect(state.completedPhases).toEqual([]);
     expect(state.decisions.offenseScheme).toBeNull();
@@ -288,6 +378,28 @@ describe('franchise setup lifecycle', () => {
       requiresDecision: false,
       decisionFields: ['acknowledged'],
     });
+  });
+
+  it('preloads fast-lane setup scaffolding without completing the live launch flow', () => {
+    const game = enrichStaff();
+
+    const state = createFastLaneSetupState(game, 'afce1');
+
+    expect(state.currentPhase).toBe('intel_briefing');
+    expect(state.completedPhases).toEqual(['choose_agm']);
+    expect(state.decisions.agmProfileId).toBeTruthy();
+    expect(state.decisions.headCoachId).toBe('elias_rowe');
+    expect(state.decisions.scoutingDirectorId).toBe('celia_duarte');
+    expect(state.decisions.offenseScheme).toBeTruthy();
+    expect(state.decisions.defenseScheme).toBeTruthy();
+    expect(state.decisions.seasonGoals).toHaveLength(3);
+    expect(state.decisions.depthChartPhilosophy).toBe('best_players');
+    expect(state.decisions.capPosture).toBe('balanced');
+    expect(state.decisions.cultureMandate).toBeTruthy();
+    expect(state.crisisProfile).not.toBeNull();
+    expect(state.forecastBoard).not.toBeNull();
+    expect(state.openedDrilldowns).toEqual([]);
+    expect(state.blueprint).toBeNull();
   });
 
   it('requires acknowledgement before advancing read-only phases', () => {
@@ -643,6 +755,8 @@ describe('franchise setup generators', () => {
     expect(intel.criticalNeeds).toHaveLength(3);
     expect(intel.strengths).toHaveLength(3);
     expect(intel.overallAssessment.length).toBeGreaterThan(30);
+    expectActionableFirstRunCopy('intel overall assessment', intel.overallAssessment);
+    expect(intel.overallAssessment).not.toMatch(STALE_GENERATED_SETUP_COPY);
   });
 
   it('builds roster overview with stars, battles, breakouts, and injuries', () => {
@@ -681,6 +795,29 @@ describe('franchise setup generators', () => {
     expect(context.defenseOptions[0]!.recommendationScore).toBeGreaterThanOrEqual(context.defenseOptions[1]!.recommendationScore);
   });
 
+  it('keeps setup scheme descriptions decision-first instead of slogan-first', () => {
+    const game = addBattleAndInjury();
+    const context = generateSchemeContext(game, 'afce1');
+    const options = [...context.offenseOptions, ...context.defenseOptions];
+
+    expect(options).toHaveLength(10);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(STALE_SETUP_SCHEME_DESCRIPTION_COPY);
+    for (const option of options) {
+      expect(option.description, option.label).not.toMatch(STALE_SETUP_SCHEME_DESCRIPTION_COPY);
+      expect(option.description, option.label).toMatch(/\bchoose\b/i);
+      expect(option.description, option.label).toMatch(SETUP_SCHEME_ROSTER_DEMAND_COPY);
+    }
+    expect(context.defenseOptions.find((option) => option.schemeId === 'man_press')?.description).toContain(
+      'safeties are assigned deep coverage',
+    );
+    expect(context.offenseOptions.find((option) => option.schemeId === 'air_raid')?.description).toContain(
+      'blitz pickup, hot reads, and quick throws are assigned',
+    );
+    expect(context.defenseOptions.find((option) => option.schemeId === 'cover_3')?.description).toContain(
+      'underneath tacklers have short-zone jobs',
+    );
+  });
+
   it('changes depth chart recommendations when the selected scheme changes', () => {
     const game = addBattleAndInjury();
     const spread = generateDepthChartContext(game, 'afce1', { off: 'spread', def: 'cover_3' });
@@ -710,6 +847,8 @@ describe('franchise setup generators', () => {
     expect(briefing.restructureCandidates.length).toBeLessThanOrEqual(3);
     expect(briefing.cutCandidates.length).toBeLessThanOrEqual(3);
     expect(briefing.capOutlook.length).toBeGreaterThan(25);
+    expectActionableFirstRunCopy('cap briefing outlook', briefing.capOutlook);
+    expect(briefing.capOutlook).not.toMatch(STALE_GENERATED_SETUP_COPY);
   });
 
   it('recommends goals based on owner profile and dynasty window', () => {
@@ -718,12 +857,23 @@ describe('franchise setup generators', () => {
     team.owner.archetypeId = 'profit_first';
     team.capSpace = 6;
     const context = generateGoalContext(game, 'afce1');
+    team.owner.archetypeId = 'win_now';
+    team.capSpace = 24;
+    team.wins = 13;
+    team.losses = 4;
+    const peakingContext = generateGoalContext(game, 'afce1');
 
     expect(context.ownerType).toBe('penny');
     expect(context.availableGoals).toHaveLength(9);
     expect(context.recommendedGoals).toHaveLength(3);
     expect(context.recommendedGoals.some((goal) => goal.id === 'cap_health')).toBe(true);
     expect(context.availableGoals.every((goal) => goal.reason.length > 10)).toBe(true);
+    expect(peakingContext.availableGoals.find((goal) => goal.id === 'championship')?.reason).toContain(
+      'current starters, first backups, and cap space already support a title target',
+    );
+    expect(peakingContext.availableGoals.find((goal) => goal.id === 'championship')?.reason).not.toContain(
+      'roster can defend',
+    );
   });
 
   it('builds a narrative blueprint with scheme labels and selected goals', () => {
@@ -747,6 +897,9 @@ describe('franchise setup generators', () => {
     expect(blueprint.blueprintNarrative).toContain(String(game.year));
     expect(blueprint.blueprintNarrative).toContain('Spread');
     expect(blueprint.blueprintNarrative).toContain('Cover 3');
+    expect(blueprint.blueprintNarrative).toMatch(/Week 1|tight cap space|cap plan/i);
+    expect(blueprint.blueprintNarrative).not.toMatch(/press your edge|center of gravity|narrowing window|make it count/i);
+    expect(blueprint.blueprintNarrative).not.toMatch(STALE_CAP_PLAN_COPY);
   });
 
   it('generates a blueprint without mutating a frozen team roster', () => {
@@ -782,6 +935,139 @@ describe('franchise setup generators', () => {
       .toEqual(generateDepthChartContext(game, 'afce1', { off: 'spread', def: 'cover_3' }));
     expect(generateCapBriefing(game, 'afce1')).toEqual(generateCapBriefing(game, 'afce1'));
     expect(generateGoalContext(game, 'afce1')).toEqual(generateGoalContext(game, 'afce1'));
+  });
+
+  it('keeps generated first-run setup copy concrete and consequence-first', () => {
+    const game = addBattleAndInjury();
+    const decisions = {
+      agmProfileId: 'marcus_webb',
+      headCoachId: 'elias_rowe',
+      scoutingDirectorId: 'zoe_wilcox',
+      offenseScheme: 'spread',
+      defenseScheme: 'cover_3',
+      seasonGoals: ['playoff_berth', 'draft_well', 'winning_record'],
+      depthChartOverrides: {},
+      acknowledged: [...PHASES_ALL],
+      depthChartPhilosophy: 'best_players',
+      capPosture: 'protect_future',
+      cultureMandate: 'development_first',
+    } as any;
+    const crisis = generateTeamCrisisProfile(game, 'afce1');
+    const coldOpen = generateSetupColdOpen(game, 'afce1');
+    const forecast = generateSetupForecast(game, 'afce1', decisions);
+    const cliffhanger = generateWeekOneCliffhanger(game, 'afce1', decisions);
+    const defaultPreview = previewSetupForecastChange(game, 'afce1', decisions, {
+      seasonGoals: ['winning_record', 'cap_health', 'draft_well'],
+    });
+    const goals = generateGoalContext(game, 'afce1');
+    const blueprint = generateBlueprint(game, 'afce1', decisions);
+    const visibleCopy = [
+      crisis.headline,
+      crisis.ownerPressure,
+      crisis.mediaPressure,
+      crisis.weekOneThreat,
+      crisis.weekOneHope,
+      crisis.weekOneUnknown,
+      ...crisis.pressureCards.flatMap((card) => [
+        card.diagnosis,
+        card.drilldown.whyItMatters,
+        card.drilldown.riskSource,
+        card.drilldown.bestLever,
+        card.drilldown.seasonOneConsequence,
+      ]),
+      coldOpen.ownerExpectation,
+      coldOpen.mediaNarrative,
+      coldOpen.lastSeasonScar,
+      coldOpen.crisisHeadline,
+      coldOpen.weekOneThreat,
+      generateIntelBriefing(game, 'afce1').overallAssessment,
+      forecast.summary,
+      ...forecast.cards.map((card) => card.detail),
+      cliffhanger.threat,
+      cliffhanger.hope,
+      cliffhanger.unknown,
+      goals.ownerExpectations,
+      ...goals.availableGoals.map((goal) => goal.reason),
+      blueprint.blueprintNarrative,
+      ...blueprint.dayOneBets,
+    ].join(' ');
+
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(STALE_FIRST_RUN_SETUP_COPY);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(STALE_GENERATED_SETUP_COPY);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(RECENT_STALE_OWNER_PRESSURE_SETUP_COPY);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(RECENT_STALE_SETUP_WEAKNESS_SHORTHAND);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(RECENT_STALE_SETUP_SHORTHAND_COPY);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(RECENT_STALE_UNCLEAR_SETUP_COPY);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(RECENT_STALE_STAFF_PHILOSOPHY_COPY);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(RECENT_STALE_SETUP_GRADE_SHORTHAND_COPY);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(RECENT_STALE_SETUP_MORALE_PATIENCE_SHORTHAND);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(RECENT_STALE_SETUP_GENERIC_PROBLEM_COPY);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(RECENT_STALE_DIRECT_SETUP_COPY);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(RECENT_STALE_VAGUE_CONSEQUENCE_COPY);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(RECENT_STALE_SETUP_SOFT_CONSEQUENCE_COPY);
+    expect(SETUP_HIRING_CATALOG_SOURCE).not.toMatch(STALE_GENERATED_SETUP_COPY);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(RESTRICTIVE_FIRST_RUN_CHIP_COPY);
+    expect(FRANCHISE_SETUP_SOURCE).not.toMatch(/\bUse\b/);
+    expect([
+      ...forecast.cards.map((card) => card.label),
+      defaultPreview.secondaryDelta.label,
+      defaultPreview.bonusDelta?.label ?? '',
+    ].join(' ')).not.toMatch(STALE_SETUP_METRIC_LABELS);
+    expect(visibleCopy).not.toMatch(STALE_FIRST_RUN_SETUP_COPY);
+    expect(visibleCopy).not.toMatch(STALE_GENERATED_SETUP_COPY);
+    expect(visibleCopy).not.toMatch(RECENT_STALE_SETUP_WEAKNESS_SHORTHAND);
+    expect(visibleCopy).not.toMatch(RECENT_STALE_SETUP_GRADE_SHORTHAND_COPY);
+    expect(visibleCopy).not.toMatch(RECENT_STALE_SETUP_MORALE_PATIENCE_SHORTHAND);
+    expect(visibleCopy).not.toMatch(RECENT_STALE_SETUP_GENERIC_PROBLEM_COPY);
+    expect(visibleCopy).not.toMatch(RECENT_STALE_DIRECT_SETUP_COPY);
+    expect(visibleCopy).not.toMatch(RECENT_STALE_VAGUE_CONSEQUENCE_COPY);
+    expect(visibleCopy).not.toMatch(RECENT_STALE_SETUP_SOFT_CONSEQUENCE_COPY);
+    expect(visibleCopy).not.toMatch(RESTRICTIVE_FIRST_RUN_CHIP_COPY);
+    expect(visibleCopy).not.toMatch(/Cap plan is (?:flush|tight|dire)\b/i);
+    expect(visibleCopy).toMatch(/\b(?:roles|assignments|Week 1|cap|owner|pressure|depth|spending|development|mistakes|accountability)\b/i);
+    expect(crisis.pressureCards.find((card) => card.id === 'culture')?.diagnosis).toMatch(/captains|backup expectations|accountability/i);
+    expect(FRANCHISE_SETUP_SOURCE).toContain('Set captains and backup expectations before Week 1 or the first loss triggers role complaints.');
+    expect(FRANCHISE_SETUP_SOURCE).toContain('Choose this scout to identify exposed starter or first-backup jobs before draft and roster moves; missed role or medical-limit answers waste picks or force veteran overpays.');
+    expect(FRANCHISE_SETUP_SOURCE).toContain('Fix unresolved roster, Week 1 game-plan, and cap choices before kickoff or the opener exposes an unprotected starter or uncovered first-backup job.');
+    expect(FRANCHISE_SETUP_SOURCE).toContain('Choose best-player depth for the strongest current lineup; a mismatched scheme role breaks protection or coverage in Week 1.');
+    expect(FRANCHISE_SETUP_SOURCE).toContain("one extra spend removes ${team.city}'s injury, trade, or extension fix");
+    expect(FRANCHISE_SETUP_SOURCE).toContain('a mismatched signing, trade, or depth change leaves that starter exposed.');
+    expect(goals.availableGoals.find((goal) => goal.id === 'winning_record')?.reason).toContain('lineup, trade, and cap questions');
+
+    const actionableCopy = [
+      ['crisis headline', crisis.headline],
+      ['crisis owner pressure', crisis.ownerPressure],
+      ['crisis media pressure', crisis.mediaPressure],
+      ['crisis week one threat', crisis.weekOneThreat],
+      ['crisis week one hope', crisis.weekOneHope],
+      ['crisis week one unknown', crisis.weekOneUnknown],
+      ...crisis.pressureCards.map((card) => [
+        `pressure card ${card.id}`,
+        [
+          card.diagnosis,
+          card.drilldown.whyItMatters,
+          card.drilldown.bestLever,
+          card.drilldown.seasonOneConsequence,
+        ].join(' '),
+      ] as const),
+      ['cold-open owner expectation', coldOpen.ownerExpectation],
+      ['cold-open media narrative', coldOpen.mediaNarrative],
+      ['cold-open crisis headline', coldOpen.crisisHeadline],
+      ['cold-open week one threat', coldOpen.weekOneThreat],
+      ['forecast summary', forecast.summary],
+      ...forecast.cards.map((card) => [`forecast ${card.id}`, card.detail] as const),
+      ['week one threat', cliffhanger.threat],
+      ['week one hope', cliffhanger.hope],
+      ['week one unknown', cliffhanger.unknown],
+      ['default preview summary', defaultPreview.summaryLine],
+      ['goal owner expectations', goals.ownerExpectations],
+      ...goals.availableGoals.map((goal) => [`goal ${goal.id}`, goal.reason] as const),
+      ['blueprint narrative', blueprint.blueprintNarrative],
+    ] as const;
+
+    for (const [label, copy] of actionableCopy) {
+      expectActionableFirstRunCopy(label, copy);
+    }
   });
 
   it('builds a deterministic team crisis profile with three pressure cards', () => {
@@ -862,8 +1148,18 @@ describe('franchise setup generators', () => {
 
     expect(generateCapPackages(game, 'afce1')).toEqual(packages);
     expect(packages.map((entry) => entry.posture)).toEqual(['protect_future', 'balanced', 'push_chips']);
+    expect(packages.map((entry) => entry.label)).toEqual([
+      'Protect Future Cap',
+      'Restructure One Contract',
+      'Restructure Multiple Contracts',
+    ]);
     expect(packages.every((entry) => entry.label.length > 3)).toBe(true);
     expect(packages.every((entry) => entry.rosterImpact.length > 10)).toBe(true);
+    expect(packages.map((entry) => `${entry.summary} ${entry.rosterImpact}`).join(' ')).not.toMatch(
+      /books clean|bill gets louder|gets cleaner|less forgiving/i,
+    );
+    expect(packages.map((entry) => `${entry.label} ${entry.summary} ${entry.rosterImpact}`).join(' ')).not.toMatch(STALE_CAP_PLAN_COPY);
+    expect(packages.find((entry) => entry.posture === 'push_chips')?.rosterImpact).toContain('future cap hits');
   });
 
   it('updates the setup forecast when day one decisions change', () => {
@@ -947,9 +1243,28 @@ describe('franchise setup generators', () => {
     expect(aggressiveCap.weekOneReadinessDelta).not.toBe(0);
     expect(aggressiveCap.weekOneVolatilityDelta).not.toBe(0);
     expect(aggressiveCap.secondaryDelta.id).toBe('cap_flexibility');
-    expect(aggressiveCap.summaryLine).toContain('Push chips');
+    expect(aggressiveCap.secondaryDelta.label).toBe('Cap Space');
+    expect(aggressiveCap.summaryLine).toContain('Choose multiple restructures when Week 1 needs a roster upgrade now');
+    expect(aggressiveCap.bonusDelta?.label).toBe('Owner Patience');
     expect(youthDepth.secondaryDelta.id).toBe('scheme_cohesion');
-    expect(youthDepth.summaryLine).toContain('Youth bet');
+    expect(youthDepth.secondaryDelta.label).toBe('Scheme Fit');
+    expect(youthDepth.summaryLine).toContain('Choose youth-first depth when development snaps are the priority');
+    expect(youthDepth.summaryLine).toContain('missed blocks, coverage, or run-defense assignments cost Week 1 points');
+    expectActionableFirstRunCopy('aggressive cap preview', aggressiveCap.summaryLine);
+    expectActionableFirstRunCopy('youth depth preview', youthDepth.summaryLine);
+    expect([
+      aggressiveCap.summaryLine,
+      youthDepth.summaryLine,
+      aggressiveCap.secondaryDelta.label,
+      aggressiveCap.bonusDelta?.label ?? '',
+    ].join(' ')).not.toMatch(/push chips|owner heat|first bet|real bite|room still|room playable/i);
+    expect(aggressiveCap.summaryLine).not.toMatch(STALE_CAP_PLAN_COPY);
+    expect(youthDepth.summaryLine).not.toMatch(RECENT_STALE_DIRECT_SETUP_COPY);
+    expect([
+      aggressiveCap.secondaryDelta.label,
+      youthDepth.secondaryDelta.label,
+      aggressiveCap.bonusDelta?.label ?? '',
+    ].join(' ')).not.toMatch(STALE_SETUP_METRIC_LABELS);
   });
 
   it('raises volatility for younger, more chaotic opening bets', () => {

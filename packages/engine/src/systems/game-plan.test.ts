@@ -7,6 +7,9 @@ import {
   resetGamePlan,
   setGamePlan,
 } from './game-plan';
+import { buildOpponentIntel } from './weekly-prep';
+
+const STALE_SCOUTING_COPY = /\b(?:can stress the secondary|can control tempo|can muddy|Front can be moved|Execution will matter more than leverage|Attack the weak secondary|Stress the secondary|control tempo|leverage|run fits?|run-fit jobs|missed fits|gap jobs|gashing us|calls starters cannot handle)\b/i;
 
 describe('game plan system', () => {
   it('generates a scouting report for a valid opponent', () => {
@@ -17,6 +20,7 @@ describe('game plan system', () => {
     expect(report.teamName).toContain('Club');
     expect(report.strengths.length + report.weaknesses.length).toBeGreaterThan(0);
     expect(report.schemeRecommendation.reasoning.length).toBeGreaterThan(0);
+    expect(JSON.stringify(report)).not.toMatch(STALE_SCOUTING_COPY);
   });
 
   it('recommends a pass-heavy attack against a weak secondary', () => {
@@ -33,6 +37,46 @@ describe('game plan system', () => {
     const report = generateOpponentScouting(game, 'afce1', 'afce2');
 
     expect(report.schemeRecommendation.offense).toBe('pass_heavy');
+    expect(report.weaknesses.join(' ')).toContain('assign QB, WR, and TE timing reps before kickoff');
+    expect(JSON.stringify(report)).not.toMatch(STALE_SCOUTING_COPY);
+  });
+
+  it('names run-defense assignments when the opponent run game is the threat', () => {
+    const game = makeLeagueState('regular_season', 6);
+    const opponent = game.teams.afce2;
+
+    for (const player of opponent.roster) {
+      if (player.pos === 'RB' || player.pos === 'OL') {
+        player.ovr = 88;
+      }
+    }
+
+    const report = generateOpponentScouting(game, 'afce1', 'afce2');
+
+    expect(report.strengths).toContain('RB and OL group shortens drives; assign run-defense jobs and defensive rotation before kickoff.');
+    expect(JSON.stringify(report)).not.toMatch(STALE_SCOUTING_COPY);
+  });
+
+  it('explains opponent intel recommendations with concrete assignments and consequences', () => {
+    const game = makeLeagueState('regular_season', 6);
+    const opponent = game.teams.afce2;
+
+    for (const player of opponent.roster) {
+      if (player.pos === 'CB' || player.pos === 'S') {
+        player.ovr = 60;
+        player.ratings.awareness = 58;
+      }
+      if (player.pos === 'QB' || player.pos === 'WR' || player.pos === 'TE') {
+        player.ovr = 86;
+      }
+    }
+
+    const intel = buildOpponentIntel(game, 'afce1', 'afce2');
+
+    expect(intel.recommendations.offense.join(' ')).toContain('missed timing turns those calls into punts');
+    expect(intel.recommendations.defense.join(' ')).toContain('missed pressure leaves explosive throws open');
+    expect(intel.tendencies.join(' ')).toContain('safeties and corners need help rules before kickoff');
+    expect(JSON.stringify(intel)).not.toMatch(STALE_SCOUTING_COPY);
   });
 
   it('gives positive player bonuses for the recommended schemes', () => {

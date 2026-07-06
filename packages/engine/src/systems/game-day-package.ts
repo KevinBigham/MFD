@@ -171,7 +171,7 @@ function hookText(hook: Hook | NarrativeHook): string {
 function buildStakes(team: Team, summary: WeeklySummary, hooks: Array<Hook | NarrativeHook>, activeArcs: StoryArc[]) {
   const stakes = [];
   stakes.push({
-    label: summary.phase === 'playoffs' ? 'Playoff leverage' : 'Season pressure',
+    label: summary.phase === 'playoffs' ? 'Playoff survival' : 'Season pressure',
     detail: summary.phase === 'playoffs'
       ? 'Every snap now shapes whether the season survives.'
       : `Current record ${summary.record} keeps the weekly margin for error thin.`,
@@ -218,10 +218,10 @@ function buildAutopsy(team: Team, summary: WeeklySummary, result: GameResult) {
       ? 'Controlled passing rhythm kept the offense ahead of schedule.'
       : 'The offense never fully solved down-to-down efficiency.';
   const leverage = !teamStats || !opponentStats
-    ? 'Field position and sequencing will decide the rematch.'
+    ? 'Field position and late-down sequence will decide the rematch.'
     : opponentStats.turnovers > teamStats.turnovers
-      ? 'Turnover margin plus situational stops tilted the leverage battle.'
-      : 'Third-down execution and pocket integrity were the leverage points.';
+      ? 'Turnover margin and situational stops decided which drives ended in points.'
+      : 'Third-down execution and pocket integrity decided which drives stayed alive.';
   const nextFocus = [
     team.ownerMood < 40 ? 'Stabilize owner confidence with a cleaner follow-up week' : 'Carry the clean situational football forward',
     summary.injuries.length > 0 ? 'Protect the injured depth chart before the next kickoff' : 'Protect the current health advantage',

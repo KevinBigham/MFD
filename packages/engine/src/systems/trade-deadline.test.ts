@@ -7,16 +7,18 @@ import {
   initializeDeadline,
   mulberry32,
 } from '../index';
-import type { DeadlineDeal, DraftPick, GameState } from '../types';
+import { getSalaryCap } from '../config';
+import type { DeadlineDeal, DraftPick, GameState, Team } from '../types';
+import { calcCapHit } from './contracts';
 import { makeLeagueState } from './test-helpers';
 
-function makePick(teamId: string, round: number, pick: number): DraftPick {
+function makePick(teamId: string, round: number, pick: number, year = 2026): DraftPick {
   return {
     round,
     pick,
     originalTeamId: teamId,
     currentTeamId: teamId,
-    year: 2026,
+    year,
     isCompPick: false,
   };
 }
@@ -73,6 +75,20 @@ function makeDeadlineGame(): GameState {
   return game;
 }
 
+function roundMoney(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+function expectedCapUsed(team: Team): number {
+  return roundMoney(team.roster.reduce((sum, player) => sum + calcCapHit(player.contract ?? null), 0) + team.deadCap);
+}
+
+function expectCapTotalsSynced(game: GameState, teamId: string): void {
+  const team = game.teams[teamId];
+  expect(team.capUsed).toBe(expectedCapUsed(team));
+  expect(team.capSpace).toBe(roundMoney(getSalaryCap(game.year, game) - team.capUsed));
+}
+
 describe('trade deadline', () => {
   it('initializes deadline state with contenders, sellers, and pending offers', () => {
     const game = makeDeadlineGame();
@@ -105,6 +121,27 @@ describe('trade deadline', () => {
     expect((game.players[deal.players[0]!]!.age >= 28) || (game.players[deal.players[0]!]!.ovr >= 82)).toBe(true);
   });
 
+  it('uses the current dynasty draft inventory instead of hard-coded launch-year picks', () => {
+    const game = makeDeadlineGame();
+    game.year = 2034;
+    game.teams.afce1.draftPicks = [
+      makePick('afce1', 1, 12, 2026),
+      makePick('afce1', 2, 17, 2035),
+    ];
+
+    const deal = generateDeadlineDeal(
+      game.teams,
+      ['afce1'],
+      ['afce2'],
+      Object.values(game.players),
+      mulberry32(9),
+      undefined,
+      game.year,
+    );
+
+    expect(deal.pickIds).toEqual(['afce1-2035-2-17-afce1']);
+  });
+
   it('ramps urgency through all countdown tiers', () => {
     const game = makeDeadlineGame();
     let state = initializeDeadline(game, mulberry32(12));
@@ -127,6 +164,65 @@ describe('trade deadline', () => {
     });
 
     expect(nextState.tradeDeadlineState).toBeUndefined();
+  });
+
+  it('synchronizes cap totals when finalized completed deals move players', () => {
+    const game = makeDeadlineGame();
+    const buyer = game.teams.afce1;
+    const seller = game.teams.afce2;
+    const player = seller.roster[0]!;
+    const pick = buyer.draftPicks[1]!;
+    player.contract!.baseSalary = 18;
+    player.contract!.prorated = 2;
+    buyer.deadCap = 2.5;
+    seller.deadCap = 1.5;
+    buyer.capUsed = 999;
+    buyer.capSpace = -999;
+    seller.capUsed = 888;
+    seller.capSpace = -888;
+    game.playerArchive.push({
+      playerId: player.id,
+      firstName: player.firstName,
+      lastName: player.lastName,
+      name: player.name,
+      positions: [player.pos],
+      jerseyNumber: player.jerseyNumber,
+      peakOvr: player.ovr,
+      peakYear: game.year,
+      firstYear: game.year - 1,
+      lastYear: game.year,
+      retirementYear: null,
+      teamHistory: [{ teamId: seller.id, firstYear: game.year - 1, lastYear: game.year }],
+      careerStats: { ...player.careerStats },
+    });
+    const deal: DeadlineDeal = {
+      id: 'deadline-cap-sync',
+      teams: [buyer.id, seller.id],
+      players: [player.id],
+      picks: [`Round ${pick.round} pick`],
+      pickIds: [`${pick.currentTeamId}-${pick.year}-${pick.round}-${pick.pick}-${pick.originalTeamId}`],
+      timestamp: 60,
+      grade: 'B',
+      splash: false,
+      narrative: 'Cap sync move',
+    };
+
+    const nextState = finalizeDeadline(game, {
+      isDeadlineWeek: true,
+      minutesRemaining: 0,
+      urgencyLevel: 'buzzer_beater',
+      pendingOffers: [],
+      completedDeals: [deal],
+      scheduledDeals: [],
+      tickerMessages: [],
+    });
+
+    expect(nextState.teams.afce1.roster.some((entry) => entry.id === player.id)).toBe(true);
+    expect(nextState.teams.afce2.roster.some((entry) => entry.id === player.id)).toBe(false);
+    expect(nextState.teams.afce2.draftPicks.some((entry) => entry.originalTeamId === buyer.id && entry.round === pick.round)).toBe(true);
+    expect(nextState.playerArchive.find((entry) => entry.playerId === player.id)?.teamHistory.at(-1)).toMatchObject({ teamId: buyer.id });
+    expectCapTotalsSynced(nextState, buyer.id);
+    expectCapTotalsSynced(nextState, seller.id);
   });
 
   it('grades splash deals higher for contenders landing stars', () => {

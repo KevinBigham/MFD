@@ -13,33 +13,33 @@ vi.mock('@mfd/engine', async (importOriginal) => {
       background: 'Cap-first operator.',
       personality: 'analytical',
       expertise: 'cap_management',
-      selectionPitch: 'Win with clarity.',
-      strengths: ['Cap discipline'],
+      selectionPitch: 'Protect cap space before Week 1 choices lock.',
+      strengths: ['Cap cost checks'],
       cardAccent: 'cyan',
       welcomeMonologue: 'Welcome.',
       teachingNarration: {
         what_is_a_head_coach: 'Coach',
         what_is_a_scouting_director: 'Scout',
       },
-      catchphrase: 'The numbers never lie.',
+      catchphrase: 'Cost, deadline, consequence.',
       toneModifiers: { enthusiasm: 0.4, bluntness: 0.6, humor: 0.1 },
     },
     {
       id: 'coach_d_hardaway',
       name: "Deion 'Coach D' Hardaway",
-      title: 'Senior AGM, Competitive Edge',
+      title: 'Senior AGM, Defensive Planning',
       background: 'Urgency-first operator.',
       personality: 'fiery',
       expertise: 'defense',
-      selectionPitch: 'Compete louder.',
-      strengths: ['Standards'],
+      selectionPitch: 'Fix the exposed starter or backup before kickoff.',
+      strengths: ['Exposed starter checks'],
       cardAccent: 'red',
       welcomeMonologue: 'Welcome.',
       teachingNarration: {
         what_is_a_head_coach: 'Coach',
         what_is_a_scouting_director: 'Scout',
       },
-      catchphrase: 'No easy yards.',
+      catchphrase: 'Fix the exposed position before kickoff.',
       toneModifiers: { enthusiasm: 0.8, bluntness: 0.8, humor: 0.2 },
     },
     {
@@ -49,15 +49,15 @@ vi.mock('@mfd/engine', async (importOriginal) => {
       background: 'People-first operator.',
       personality: 'player_whisperer',
       expertise: 'personnel',
-      selectionPitch: 'Unlock the roster.',
-      strengths: ['Development arcs'],
+      selectionPitch: 'Define player roles before development stalls.',
+      strengths: ['Protect development snaps before October'],
       cardAccent: 'green',
       welcomeMonologue: 'Welcome.',
       teachingNarration: {
         what_is_a_head_coach: 'Coach',
         what_is_a_scouting_director: 'Scout',
       },
-      catchphrase: 'People are the edge.',
+      catchphrase: 'Role, snaps, consequence.',
       toneModifiers: { enthusiasm: 0.6, bluntness: 0.4, humor: 0.2 },
     },
     ],
@@ -75,25 +75,25 @@ describe('ChooseAGMPhase', () => {
         topPressureId="cap"
         teamName="Kansas City BBQ Fountains"
         crisisHeadline="The cap is deciding how bold you get."
-        weekOneThreat="Week 1 gets ugly if the books still run the room."
+        weekOneThreat="Week 1 gets harder if cap pressure still limits fixes."
         recommendedProfileId="marcus_webb"
         narrativeScenes={{
           marcus_webb: {
-            whyThisFits: 'The books are the problem and he speaks that language.',
-            dayOnePromise: 'I will buy back breathing room before kickoff.',
-            seasonBet: 'We win by staying aggressive without getting desperate.',
+            whyThisFits: 'Cap space is the first Week 1 danger, and he names the cost before we spend.',
+            dayOnePromise: 'I will protect injury, trade, and extension money before kickoff.',
+            seasonBet: 'We upgrade only where the cost protects Week 1.',
             recommended: true,
           },
           coach_d_hardaway: {
-            whyThisFits: 'He can harden the room even if the books stay tight.',
-            dayOnePromise: 'I will make the building sharper immediately.',
-            seasonBet: 'We force the opener into a street fight.',
+            whyThisFits: 'He flags exposed starters and backup groups even when cap space is tight.',
+            dayOnePromise: 'I will name the exposed starter or backup before kickoff.',
+            seasonBet: 'We protect the thinnest position before kickoff.',
             recommended: false,
           },
           sandra_chen: {
-            whyThisFits: 'She can stabilize trust around the roster.',
-            dayOnePromise: 'I will make the room believe its roles.',
-            seasonBet: 'We gain edge by unlocking better versions of our own players.',
+            whyThisFits: 'She defines player roles before snaps are wasted.',
+            dayOnePromise: 'I will make player roles clear before kickoff.',
+            seasonBet: 'We protect development snaps without exposing Week 1.',
             recommended: false,
           },
         }}
@@ -103,12 +103,64 @@ describe('ChooseAGMPhase', () => {
 
     expect(html).toContain('KANSAS CITY BBQ FOUNTAINS');
     expect(html).toContain('The cap is deciding how bold you get.');
-    expect(html).toContain('Week 1 gets ugly if the books still run the room.');
+    expect(html).toContain('Week 1 gets harder if cap pressure still limits fixes.');
+    expect(html).toContain('Cap Space');
+    expect(html).not.toContain('>cap<');
+    expect(html).not.toContain('>CAP<');
     expect(html).toContain('MARCUS WEBB');
+    expect(html).toContain('Cost Checks');
+    expect(html).toContain('Defense Calls');
+    expect(html).toContain('Roster Roles');
+    expect(html).not.toMatch(/cap management|player whisperer|personnel/i);
     expect(html).toContain("Deion &#x27;Coach D&#x27; Hardaway");
     expect(html).toContain('Sandra Chen');
-    expect(html).toContain('RECOMMENDED FOR THIS CRISIS');
-    expect(html).toContain('I will buy back breathing room before kickoff.');
+    expect(html).toContain('Choose the Assistant GM whose strength protects the first Week 1 danger.');
+    expect(html).toContain('RECOMMENDED FOR THIS DANGER');
+    expect(html).not.toContain('RECOMMENDED FOR THIS CRISIS');
+    expect(html).not.toMatch(/biggest Week 1 consequence|first Week 1 consequence|Week 1 matchup risk|RECOMMENDED FOR THIS CONSEQUENCE/i);
+    expect(html).not.toMatch(/>REC</);
+    expect(html).toContain('I will protect injury, trade, and extension money before kickoff.');
+  });
+
+  it('uses plain setup-pressure labels instead of internal pressure ids', () => {
+    const html = renderToStaticMarkup(
+      <ChooseAGMPhase
+        committedProfileId={null}
+        initialPreviewProfileId="sandra_chen"
+        topPressureId="culture"
+        teamName="Kansas City BBQ Fountains"
+        crisisHeadline="Players need clear jobs before kickoff."
+        weekOneThreat="Week 1 gets harder if captains and backups are not assigned."
+        recommendedProfileId="sandra_chen"
+        narrativeScenes={{
+          marcus_webb: {
+            whyThisFits: 'Cap space is the problem, and he names the cost before we spend.',
+            dayOnePromise: 'I will protect injury, trade, and extension money before kickoff.',
+            seasonBet: 'We upgrade only where the cost protects Week 1.',
+            recommended: false,
+          },
+          coach_d_hardaway: {
+            whyThisFits: 'He flags exposed starters and backup groups before kickoff.',
+            dayOnePromise: 'I will name the exposed starter or backup before kickoff.',
+            seasonBet: 'We protect the thinnest position before kickoff.',
+            recommended: false,
+          },
+          sandra_chen: {
+            whyThisFits: 'She defines player roles before snaps are wasted.',
+            dayOnePromise: 'I will make player roles clear before kickoff.',
+            seasonBet: 'We protect development snaps without exposing Week 1.',
+            recommended: true,
+          },
+        }}
+        onHire={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('FIRST WEEK 1 DANGER');
+    expect(html).toContain('Captains and Roles');
+    expect(html).not.toMatch(/BIGGEST WEEK 1 CONSEQUENCE|Week 1 matchup risk|RECOMMENDED FOR THIS CONSEQUENCE/i);
+    expect(html).not.toContain('>culture<');
+    expect(html).not.toContain('>CULTURE<');
   });
 
   it('renders the active candidate in a candidate spotlight region', () => {
@@ -119,25 +171,25 @@ describe('ChooseAGMPhase', () => {
         topPressureId="cap"
         teamName="Kansas City BBQ Fountains"
         crisisHeadline="The cap is deciding how bold you get."
-        weekOneThreat="Week 1 gets ugly if the books still run the room."
+        weekOneThreat="Week 1 gets harder if cap pressure still limits fixes."
         recommendedProfileId="marcus_webb"
         narrativeScenes={{
           marcus_webb: {
-            whyThisFits: 'The books are the problem and he speaks that language.',
-            dayOnePromise: 'I will buy back breathing room before kickoff.',
-            seasonBet: 'We win by staying aggressive without getting desperate.',
+            whyThisFits: 'Cap space is the problem, and he names the cost before we spend.',
+            dayOnePromise: 'I will protect injury, trade, and extension money before kickoff.',
+            seasonBet: 'We upgrade only where the cost protects Week 1.',
             recommended: true,
           },
           coach_d_hardaway: {
-            whyThisFits: 'He can harden the room even if the books stay tight.',
-            dayOnePromise: 'I will make the building sharper immediately.',
-            seasonBet: 'We force the opener into a street fight.',
+            whyThisFits: 'He can flag exposed starters and backup groups even if cap space is tight.',
+            dayOnePromise: 'I will name the exposed starter or backup before kickoff.',
+            seasonBet: 'We protect the thinnest position before kickoff.',
             recommended: false,
           },
           sandra_chen: {
-            whyThisFits: 'She can stabilize trust around the roster.',
-            dayOnePromise: 'I will make the room believe its roles.',
-            seasonBet: 'We gain edge by unlocking better versions of our own players.',
+            whyThisFits: 'She can define player roles before snaps are wasted.',
+            dayOnePromise: 'I will make player roles clear before kickoff.',
+            seasonBet: 'We protect development snaps without exposing Week 1.',
             recommended: false,
           },
         }}
@@ -157,25 +209,25 @@ describe('ChooseAGMPhase', () => {
         topPressureId="cap"
         teamName="Kansas City BBQ Fountains"
         crisisHeadline="The cap is deciding how bold you get."
-        weekOneThreat="Week 1 gets ugly if the books still run the room."
+        weekOneThreat="Week 1 gets harder if cap pressure still limits fixes."
         recommendedProfileId="marcus_webb"
         narrativeScenes={{
           marcus_webb: {
-            whyThisFits: 'The books are the problem and he speaks that language.',
-            dayOnePromise: 'I will buy back breathing room before kickoff.',
-            seasonBet: 'We win by staying aggressive without getting desperate.',
+            whyThisFits: 'Cap space is the problem, and he names the cost before we spend.',
+            dayOnePromise: 'I will protect injury, trade, and extension money before kickoff.',
+            seasonBet: 'We upgrade only where the cost protects Week 1.',
             recommended: true,
           },
           coach_d_hardaway: {
-            whyThisFits: 'He can harden the room even if the books stay tight.',
-            dayOnePromise: 'I will make the building sharper immediately.',
-            seasonBet: 'We force the opener into a street fight.',
+            whyThisFits: 'He can flag exposed starters and backup groups even if cap space is tight.',
+            dayOnePromise: 'I will name the exposed starter or backup before kickoff.',
+            seasonBet: 'We protect the thinnest position before kickoff.',
             recommended: false,
           },
           sandra_chen: {
-            whyThisFits: 'She can stabilize trust around the roster.',
-            dayOnePromise: 'I will make the room believe its roles.',
-            seasonBet: 'We gain edge by unlocking better versions of our own players.',
+            whyThisFits: 'She can define player roles before snaps are wasted.',
+            dayOnePromise: 'I will make player roles clear before kickoff.',
+            seasonBet: 'We protect development snaps without exposing Week 1.',
             recommended: false,
           },
         }}
@@ -195,25 +247,25 @@ describe('ChooseAGMPhase', () => {
         topPressureId="cap"
         teamName="Kansas City BBQ Fountains"
         crisisHeadline="The cap is deciding how bold you get."
-        weekOneThreat="Week 1 gets ugly if the books still run the room."
+        weekOneThreat="Week 1 gets harder if cap pressure still limits fixes."
         recommendedProfileId="marcus_webb"
         narrativeScenes={{
           marcus_webb: {
-            whyThisFits: 'The books are the problem and he speaks that language.',
-            dayOnePromise: 'I will buy back breathing room before kickoff.',
-            seasonBet: 'We win by staying aggressive without getting desperate.',
+            whyThisFits: 'Cap space is the problem, and he names the cost before we spend.',
+            dayOnePromise: 'I will protect injury, trade, and extension money before kickoff.',
+            seasonBet: 'We upgrade only where the cost protects Week 1.',
             recommended: true,
           },
           coach_d_hardaway: {
-            whyThisFits: 'He can harden the room even if the books stay tight.',
-            dayOnePromise: 'I will make the building sharper immediately.',
-            seasonBet: 'We force the opener into a street fight.',
+            whyThisFits: 'He can flag exposed starters and backup groups even if cap space is tight.',
+            dayOnePromise: 'I will name the exposed starter or backup before kickoff.',
+            seasonBet: 'We protect the thinnest position before kickoff.',
             recommended: false,
           },
           sandra_chen: {
-            whyThisFits: 'She can stabilize trust around the roster.',
-            dayOnePromise: 'I will make the room believe its roles.',
-            seasonBet: 'We gain edge by unlocking better versions of our own players.',
+            whyThisFits: 'She can define player roles before snaps are wasted.',
+            dayOnePromise: 'I will make player roles clear before kickoff.',
+            seasonBet: 'We protect development snaps without exposing Week 1.',
             recommended: false,
           },
         }}
@@ -233,25 +285,25 @@ describe('ChooseAGMPhase', () => {
         topPressureId="cap"
         teamName="Kansas City BBQ Fountains"
         crisisHeadline="The cap is deciding how bold you get."
-        weekOneThreat="Week 1 gets ugly if the books still run the room."
+        weekOneThreat="Week 1 gets harder if cap pressure still limits fixes."
         recommendedProfileId="marcus_webb"
         narrativeScenes={{
           marcus_webb: {
-            whyThisFits: 'The books are the problem and he speaks that language.',
-            dayOnePromise: 'I will buy back breathing room before kickoff.',
-            seasonBet: 'We win by staying aggressive without getting desperate.',
+            whyThisFits: 'Cap space is the problem, and he names the cost before we spend.',
+            dayOnePromise: 'I will protect injury, trade, and extension money before kickoff.',
+            seasonBet: 'We upgrade only where the cost protects Week 1.',
             recommended: true,
           },
           coach_d_hardaway: {
-            whyThisFits: 'He can harden the room even if the books stay tight.',
-            dayOnePromise: 'I will make the building sharper immediately.',
-            seasonBet: 'We force the opener into a street fight.',
+            whyThisFits: 'He can flag exposed starters and backup groups even if cap space is tight.',
+            dayOnePromise: 'I will name the exposed starter or backup before kickoff.',
+            seasonBet: 'We protect the thinnest position before kickoff.',
             recommended: false,
           },
           sandra_chen: {
-            whyThisFits: 'She can stabilize trust around the roster.',
-            dayOnePromise: 'I will make the room believe its roles.',
-            seasonBet: 'We gain edge by unlocking better versions of our own players.',
+            whyThisFits: 'She can define player roles before snaps are wasted.',
+            dayOnePromise: 'I will make player roles clear before kickoff.',
+            seasonBet: 'We protect development snaps without exposing Week 1.',
             recommended: false,
           },
         }}
@@ -259,7 +311,8 @@ describe('ChooseAGMPhase', () => {
       />,
     );
 
-    expect(html).toContain('SELECTED FOR DAY 1');
+    expect(html).toContain('SELECTED FOR SETUP');
     expect(html).toContain('data-mfd-agm-hire-command="true"');
+    expect(html).not.toMatch(/DAY 1 DECISION|DAY 1 PROMISE|SELECTED FOR DAY 1/i);
   });
 });

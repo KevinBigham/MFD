@@ -111,6 +111,25 @@ describe('LeaguePulse', () => {
     expect(markup).toContain('DIVISION');
   });
 
+  it('labels pulse sources without implying render-time writes', () => {
+    const markup = renderToStaticMarkup(<LeaguePulse />);
+
+    expect(markup).toContain('PULSE SOURCES');
+    expect(markup).toContain('Rivalry source');
+    expect(markup).toContain('leagueRivalries');
+    expect(markup).toContain('Movement source');
+    expect(markup).toContain('game.powerRankings');
+    expect(markup).toContain('Aggregator owner');
+    expect(markup).toContain('buildLeaguePulse');
+    expect(markup).toContain('Heat-spike posts');
+    expect(markup).toContain('explicit caller only');
+    expect(markup).toContain('Route presentation');
+    expect(markup).toContain('local display');
+    expect(markup).toContain('Just viewing');
+    expect(markup).toContain('display only');
+    expect(markup).toContain('Opening League Pulse does not write rivalries, rankings, news, social posts, storyline threads, or history rows.');
+  });
+
   it('renders the summary metric grid (rivalries / avg / top / divisional)', () => {
     const markup = renderToStaticMarkup(<LeaguePulse />);
     expect(markup).toContain('RIVALRIES');

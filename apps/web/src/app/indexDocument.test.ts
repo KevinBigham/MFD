@@ -3,6 +3,19 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const indexHtml = readFileSync(fileURLToPath(new URL('../../index.html', import.meta.url)), 'utf8');
+const activeManifest = JSON.parse(
+  readFileSync(fileURLToPath(new URL('../../public/manifest.json', import.meta.url)), 'utf8'),
+) as {
+  start_url?: string;
+  scope?: string;
+  icons?: Array<{ src?: string; type?: string }>;
+};
+const legacyRootManifest = JSON.parse(
+  readFileSync(fileURLToPath(new URL('../../../../public/manifest.json', import.meta.url)), 'utf8'),
+) as {
+  start_url?: string;
+  scope?: string;
+};
 
 describe('index document release metadata', () => {
   it('uses current mobile web app metadata alongside the iOS legacy flag', () => {
@@ -16,5 +29,18 @@ describe('index document release metadata', () => {
     expect(indexHtml).toContain('href="favicon.svg"');
     expect(indexHtml).not.toContain('href="/MFD/manifest.json"');
     expect(indexHtml).not.toContain('%BASE_URL%manifest.json');
+  });
+
+  it('uses the web public manifest as the active PWA manifest', () => {
+    expect(activeManifest.start_url).toBe('/MFD/');
+    expect(activeManifest.scope).toBe('/MFD/');
+    expect(activeManifest.icons?.map((icon) => icon.src).sort()).toEqual(['icon-192.svg', 'icon-512.svg']);
+    expect(JSON.stringify(activeManifest)).not.toContain('/mr-football-dynasty/');
+  });
+
+  it('keeps the root public manifest distinguishable as legacy unwired metadata', () => {
+    expect(legacyRootManifest.start_url).toBe('/mr-football-dynasty/');
+    expect(legacyRootManifest.scope).toBe('/mr-football-dynasty/');
+    expect(indexHtml).not.toContain('/mr-football-dynasty/');
   });
 });

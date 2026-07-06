@@ -1,6 +1,6 @@
 import type { GameState, Player, Team } from '../types';
-
-const REGULAR_SEASON_GAMES = 17;
+import { getRuleValueForYear } from './league-rules';
+import { getRegularSeasonWeekCount } from './season-schedule';
 
 function gamesPlayed(team: Team): number {
   return team.wins + team.losses + team.ties;
@@ -51,8 +51,8 @@ function homeAwayRecord(game: GameState, teamId: string): { home: string; away: 
   return { home, away };
 }
 
-function remainingGames(team: Team): number {
-  return Math.max(0, REGULAR_SEASON_GAMES - gamesPlayed(team));
+function remainingGames(game: GameState, team: Team): number {
+  return Math.max(0, getRegularSeasonWeekCount(game) - gamesPlayed(team));
 }
 
 function divisionLeader(game: GameState, team: Team): Team {
@@ -61,9 +61,15 @@ function divisionLeader(game: GameState, team: Team): Team {
     .sort(sortTeams)[0]!;
 }
 
+function playoffSeedsPerConference(game: GameState): number {
+  if (!game.leagueRules) return 7;
+  return Number(getRuleValueForYear(game.leagueRules, 'playoff_seeds_per_conf', game.year));
+}
+
 function conferenceSeeds(game: GameState, conference: Team['conference']): Team[] {
   const teams = Object.values(game.teams).filter((team) => team.conference === conference).sort(sortTeams);
   const divisionWinners = new Map<string, Team>();
+  const seedCount = playoffSeedsPerConference(game);
 
   for (const team of teams) {
     const current = divisionWinners.get(team.division);
@@ -73,8 +79,10 @@ function conferenceSeeds(game: GameState, conference: Team['conference']): Team[
   }
 
   const orderedWinners = [...divisionWinners.values()].sort(sortTeams);
-  const wildcards = teams.filter((team) => divisionWinners.get(team.division)?.id !== team.id).slice(0, 3);
-  return [...orderedWinners, ...wildcards].slice(0, 7);
+  const wildcards = teams
+    .filter((team) => divisionWinners.get(team.division)?.id !== team.id)
+    .slice(0, Math.max(0, seedCount - orderedWinners.length));
+  return [...orderedWinners, ...wildcards].slice(0, seedCount);
 }
 
 export interface StandingsRow {
@@ -151,19 +159,20 @@ export function getClinchedStatus(game: GameState, teamId: string): '' | 'X' | '
 
   const divisionOpponents = Object.values(game.teams)
     .filter((candidate) => candidate.id !== team.id && candidate.conference === team.conference && candidate.division === team.division);
-  const maxDivisionWins = Math.max(...divisionOpponents.map((candidate) => candidate.wins + remainingGames(candidate)), 0);
+  const maxDivisionWins = Math.max(...divisionOpponents.map((candidate) => candidate.wins + remainingGames(game, candidate)), 0);
   if (team.wins > maxDivisionWins) return 'X';
 
   const seeds = conferenceSeeds(game, team.conference);
-  const bubble = seeds[6];
-  const maxWins = team.wins + remainingGames(team);
-  if (remainingGames(team) === 0 && !seeds.some((seed) => seed.id === team.id)) return 'E';
+  const seedCount = playoffSeedsPerConference(game);
+  const bubble = seeds[seedCount - 1];
+  const maxWins = team.wins + remainingGames(game, team);
+  if (remainingGames(game, team) === 0 && !seeds.some((seed) => seed.id === team.id)) return 'E';
   if (bubble && maxWins < bubble.wins) return 'E';
 
   if (seeds.some((seed) => seed.id === team.id) && bubble && team.id !== divisionLeader(game, team).id) {
     const chasers = Object.values(game.teams)
-      .filter((candidate) => candidate.conference === team.conference && !seeds.slice(0, 7).some((seed) => seed.id === candidate.id))
-      .map((candidate) => candidate.wins + remainingGames(candidate));
+      .filter((candidate) => candidate.conference === team.conference && !seeds.slice(0, seedCount).some((seed) => seed.id === candidate.id))
+      .map((candidate) => candidate.wins + remainingGames(game, candidate));
     if (chasers.length === 0 || team.wins > Math.max(...chasers)) return 'Y';
   }
 

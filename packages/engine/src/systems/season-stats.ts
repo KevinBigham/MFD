@@ -1,4 +1,4 @@
-import type { PlayerSeasonStats, Team, TeamGameStats, TeamSeasonStats } from '../types';
+import type { Player, PlayerSeasonStats, Team, TeamGameStats, TeamSeasonStats } from '../types';
 
 export function emptyPlayerStats(): PlayerSeasonStats {
   return {
@@ -9,6 +9,20 @@ export function emptyPlayerStats(): PlayerSeasonStats {
     sacks: 0, defINT: 0, tackles: 0,
     fgMade: 0, fgAtt: 0,
     yacYds: 0,
+  };
+}
+
+export function ensurePlayerStatBuckets(player: Player): void {
+  player.stats = {
+    ...emptyPlayerStats(),
+    ...(player.stats ?? {}),
+  };
+  const careerStats = (player.careerStats ?? {}) as Partial<Player['careerStats']>;
+  player.careerStats = {
+    ...careerStats,
+    seasons: careerStats.seasons ?? 0,
+    gp: careerStats.gp ?? 0,
+    snaps: careerStats.snaps ?? 0,
   };
 }
 

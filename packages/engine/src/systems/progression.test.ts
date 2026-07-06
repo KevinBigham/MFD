@@ -126,4 +126,17 @@ describe('progression system', () => {
     expect(game.teams.afce1.roster.some((player) => player.id === rb.id)).toBe(false);
     expect(game.playerArchive.find((entry) => entry.playerId === rb.id)?.retirementYear).toBe(game.year);
   });
+
+  it('retires high-OVR specialists before they exceed the active age bound', () => {
+    const game = makeLeagueState('offseason');
+    const kicker = game.teams.afce1.roster.find((player) => player.pos === 'K')!;
+    kicker.age = 55;
+    kicker.ovr = 88;
+
+    const result = progressPlayers(game);
+
+    expect(result.retiredPlayerIds).toContain(kicker.id);
+    expect(game.teams.afce1.roster.some((player) => player.id === kicker.id)).toBe(false);
+    expect(game.players[kicker.id]?.teamId).toBeNull();
+  });
 });

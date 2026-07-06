@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MfdTooltipProvider } from '@mfd/design-system/components';
-import { GamePlanSetup } from './GamePlanSetup';
+import { GamePlanSetup, PLAN_TOOLTIPS, buildWeeklyPrepSourceRows } from './GamePlanSetup';
 
 function createMockState(): any {
   return {
@@ -33,13 +33,13 @@ function createMockState(): any {
       record: '7-3',
       offenseRank: 5,
       defenseRank: 21,
-      strengths: ['Vertical passing game can stress the secondary.'],
-      weaknesses: ['Secondary is vulnerable to sustained passing pressure.'],
+      strengths: ['QB, WR, and TE group wins deep routes; safeties and corners need help rules before kickoff.'],
+      weaknesses: ['Secondary gives up repeated throws; assign QB, WR, and TE timing reps before kickoff.'],
       keyPlayers: [{ id: 'opp-1', name: 'Rex Cole', pos: 'CB', ovr: 72 }],
       schemeRecommendation: {
         offense: 'pass_heavy',
         defense: 'coverage',
-        reasoning: 'Attack the weak secondary and keep the lid on their pass game.',
+        reasoning: 'Set pass heavy and coverage before Advance Week; bad calls give Austin Armadillos the matchup they already want.',
       },
     },
     currentOpponentIntel: {
@@ -50,10 +50,11 @@ function createMockState(): any {
       weakLinks: [{ id: 'opp-3', name: 'Rex Cole', pos: 'CB', ovr: 72 }],
       tendencies: ['Austin leans on explosive pass game.'],
       recommendations: {
-        offense: ['Stress the secondary early.'],
-        defense: ['Disrupt the quarterback and close explosives.'],
+        offense: ['Throw at their secondary early; missed timing turns those calls into punts.'],
+        defense: ['Hit the quarterback before deep routes develop; missed pressure leaves explosive throws open.'],
       },
     },
+    upcomingRivalry: null,
     actions: {
       saveWeeklyPrepPlan: () => Promise.resolve(),
       clearWeeklyPrepPlan: () => Promise.resolve(),
@@ -74,6 +75,7 @@ vi.mock('../../app/store/game-store', () => ({
   selectCurrentWeeklyPrepPlan: (state: typeof mockState) => state.currentWeeklyPrepPlan,
   selectCurrentOpponentReport: (state: typeof mockState) => state.currentOpponentReport,
   selectCurrentOpponentIntel: (state: typeof mockState) => state.currentOpponentIntel,
+  selectUpcomingRivalry: (state: typeof mockState) => state.upcomingRivalry,
 }));
 
 describe('GamePlanSetup', () => {
@@ -88,11 +90,36 @@ describe('GamePlanSetup', () => {
     expect(markup).toContain('Austin Armadillos');
     expect(markup).toContain('7-3');
     expect(markup).toContain('Attack lane: passing');
+    expect(markup).toContain('WEEKLY PREP SOURCES');
+    expect(markup).toContain('OPPONENT INTEL');
+    expect(markup).toContain('selectCurrentOpponentReport');
+    expect(markup).toContain('DECISION FORECAST');
+    expect(markup).toContain('Save Weekly Prep &amp; Sim writes the plan');
+    expect(markup).toContain('TRICK PLAY BOUNDARY');
+    expect(markup).toContain('Selected trick plays are saved in the weekly prep plan');
+    expect(markup).toContain('current game does not call trick-play helper outcomes');
+    expect(markup).toContain('Opening Game Plan does not click Advance Week');
+    expect(markup).toContain('create Film Room entries');
     expect(markup).toContain('NEXT CALL');
     expect(markup).toContain('Primary decision');
-    expect(markup).toContain('Stress the secondary early.');
+    expect(markup).toContain('save the weekly prep plan before advancing');
+    expect(markup).toContain('accept the staff&#x27;s default calls');
+    expect(markup).toContain('DECISION FORECAST');
+    expect(PLAN_TOOLTIPS['Practice Intensity']).toContain('Set practice contact before Save Weekly Prep');
+    expect(PLAN_TOOLTIPS['Practice Intensity']).toContain('Light lowers injury-report chances but leaves fewer reps');
+    expect(PLAN_TOOLTIPS['Practice Intensity']).toContain('Full Pads raises install gains and injury-report chances before Advance Week');
+    expect(PLAN_TOOLTIPS['Practice Intensity']).not.toContain('maximum readiness');
+    expect(markup).toContain('OFFENSE VS SCOUT REPORT');
+    expect(markup).toContain('DEFENSE VS SCOUT REPORT');
+    expect(markup).toContain('Immediate');
+    expect(markup).toContain('Uncertainty');
+    expect(markup).toContain('Scout report matched');
+    expect(markup).toContain('SCOUT MATCH');
+    expect(markup).toContain('missed timing turns those calls into punts');
+    expect(markup).toContain('missed pressure leaves explosive throws open');
     expect(markup).toContain('Save Weekly Prep &amp; Sim');
     expect(markup).toContain('Skip With Auto Prep');
+    expect(markup).not.toMatch(/\b(?:REC|Off-script bet|Balanced hedge|sim gets|variance|less signal|film-room receipts|tricks|staff board|auto-prep|can stress the secondary|control tempo|leverage|Stress the secondary|maximum readiness|Offensive alignment|Defensive alignment)\b/i);
   });
 
   it('shows the call your shot panel on eligible late-season weeks', () => {
@@ -101,8 +128,29 @@ describe('GamePlanSetup', () => {
     const markup = renderToStaticMarkup(<MfdTooltipProvider><GamePlanSetup /></MfdTooltipProvider>);
 
     expect(markup).toContain('CALL YOUR SHOT');
-    expect(markup).toContain('Rivalry week');
+    expect(markup).toContain('Late-season push');
+    expect(markup).toContain('Choose one promise before Save &amp; Sim or Auto Prep');
+    expect(markup).toContain('hit it for fan-confidence gain');
+    expect(markup).toContain('fan confidence drops in the recap receipt');
     expect(markup).toContain('We&#x27;ll Dominate the Air');
+    expect(markup).toContain('Promise 250+ passing yards');
+    expect(markup).not.toMatch(/\b(?:Make a bold prediction|bonus morale|Declare aerial supremacy|High risk, huge reward|no matter how)\b/i);
+  });
+
+  it('uses live rivalry context instead of a week-number proxy for call your shot eligibility', () => {
+    mockState.week = 8;
+    mockState.upcomingRivalry = {
+      rivalryId: 'team-1::team-2',
+      intensity: 67,
+      tier: 'heated',
+      ovrBoost: 3,
+      headline: 'The Blaze and Armadillos are circling this matchup.',
+    };
+
+    const markup = renderToStaticMarkup(<MfdTooltipProvider><GamePlanSetup /></MfdTooltipProvider>);
+
+    expect(markup).toContain('CALL YOUR SHOT');
+    expect(markup).toContain('Rivalry week');
   });
 
   it('renders contingency, trick-play, and playbook tabs in the prep extras panel', () => {
@@ -142,6 +190,29 @@ describe('GamePlanSetup', () => {
     expect(markup).toContain('weekly prep locked');
     expect(markup).toContain('contingencies 1/3');
     expect(markup).toContain('trick plays 1/2');
+    expect(markup).toContain('SAVED BOARD');
+  });
+
+  it('labels selected trick plays as planned weekly-prep data, not live sim execution', () => {
+    const rows = buildWeeklyPrepSourceRows({
+      reportTeamName: 'Austin Armadillos',
+      week: 11,
+      storedPlan: true,
+      alignmentLabel: 'Intel matched',
+      loadLabel: 'Balanced load',
+      extrasLabel: 'Extras ready',
+      contingencyCount: 1,
+      trickPlayCount: 2,
+    });
+
+    const trickBoundary = rows.find((row) => row.id === 'trick-play-boundary');
+    expect(trickBoundary).toMatchObject({
+      label: 'Trick play boundary',
+      value: '2 planned',
+      accent: 'cyan',
+    });
+    expect(trickBoundary?.detail).toContain('saved in the weekly prep plan');
+    expect(trickBoundary?.detail).toContain('current game does not call trick-play helper outcomes');
   });
 
   it('falls back to the scouting pending empty state when intel is unavailable', () => {

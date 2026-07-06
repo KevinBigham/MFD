@@ -44,6 +44,7 @@ vi.mock('../../app/store/game-store', () => ({
 
 vi.mock('../../app/store/persistence', () => ({
   listSaveSlots: vi.fn().mockResolvedValue([]),
+  autosaveDynasty: vi.fn().mockResolvedValue(1),
   saveDynastyToSlot: vi.fn().mockResolvedValue(undefined),
   loadSaveSlot: vi.fn().mockResolvedValue(null),
   deleteSaveSlot: vi.fn().mockResolvedValue(undefined),
@@ -52,12 +53,18 @@ vi.mock('../../app/store/persistence', () => ({
 }));
 
 vi.mock('@mfd/engine', () => ({
+  RIVALRIES_SCHEMA_VERSION: 1,
   buildCartridge: vi.fn().mockReturnValue({ ok: true, json: '{}' }),
   generateFileName: vi.fn().mockReturnValue('CHI_S2026_W5.mfd'),
 }));
 
 import {
   DynastyCartridge,
+  DynastyImportPreview,
+  DynastyImportError,
+  DynastyStatusPanel,
+  combinedBackupCopyFallbackMessage,
+  combinedImportFailureMessage,
   importFailureMessage,
   portableCopyFallbackMessage,
 } from './DynastyCartridge';
@@ -73,39 +80,116 @@ describe('DynastyCartridge', () => {
     const markup = renderToStaticMarkup(<DynastyCartridge />);
 
     expect(markup).toContain('Create Save Slot');
-    expect(markup).toContain('Copy Cartridge');
-    expect(markup).toContain('Download .mfd');
-    expect(markup).toContain('IMPORT CARTRIDGE');
+    expect(markup).toContain('Advanced: Copy .mfd');
+    expect(markup).toContain('Advanced: Download .mfd');
+    expect(markup).toContain('Download Combined Backup');
+    expect(markup).toContain('ADVANCED .MFD CARTRIDGE');
     expect(markup).toContain('LOCAL SAVE SLOTS');
+    expect(markup).toContain('Rivalries');
   });
 
   it('promotes portable backup messaging', () => {
     const markup = renderToStaticMarkup(<DynastyCartridge />);
 
-    expect(markup).toContain('portable backup');
+    expect(markup).toContain('Portable backup exports');
+    expect(markup).toContain('data-spotlight-target="chip.route.dynasty-save-load.beat-1"');
   });
 
   it('renders an upload backup action', () => {
     const markup = renderToStaticMarkup(<DynastyCartridge />);
 
-    expect(markup).toContain('Upload .mfd Backup');
+    expect(markup).toContain('Advanced: Upload .mfd');
+    expect(markup).toContain('Upload Combined Backup');
+  });
+
+  it('renders one-click combined backup copy and import controls', () => {
+    const markup = renderToStaticMarkup(<DynastyCartridge />);
+
+    expect(markup).toContain('ONE-CLICK COMBINED BACKUP');
+    expect(markup).toContain('mfd.dynastyCombinedBackup.v1');
+    expect(markup).toContain('.mfd cartridge');
+    expect(markup).toContain('Complete sidecars');
+    expect(markup).toContain('Old .mfd import unchanged');
+    expect(markup).toContain('Paste combined backup JSON');
+    expect(markup).toContain('Preview Combined Backup');
   });
 
   it('renders paste-backup fallback copy', () => {
     const markup = renderToStaticMarkup(<DynastyCartridge />);
 
-    expect(markup).toContain('Paste backup code');
+    expect(markup).toContain('Paste current-save-only .mfd code');
+    expect(markup).toContain('data-spotlight-target="chip.route.dynasty-save-load.beat-2"');
+  });
+
+  it('labels classic .mfd import/export as advanced current-save-only recovery', () => {
+    const markup = renderToStaticMarkup(<DynastyCartridge />);
+
+    expect(markup).toContain('Combined Backup is the primary portable path');
+    expect(markup).toContain('Classic .mfd import/export is current-save-only');
+    expect(markup).toContain('excludes Hall of Fame archive');
+  });
+
+  it('renders import preview counts, missing-store warnings, and explicit confirmation controls', () => {
+    const markup = renderToStaticMarkup(
+      <DynastyImportPreview
+        title="Combined Backup Import Preview"
+        confirmLabel="Confirm Combined Import"
+        summary={{
+          dynasties: 2,
+          hallOfFameInductees: 3,
+          scrapbookEntries: 4,
+          pendingPlayoffLoreCards: 1,
+          rookieOfYearEntries: 2,
+          rosterContinuityDynasties: 1,
+          careerMetaDynasties: 2,
+          rivalryTeams: 0,
+          rivalryRecords: 0,
+          dynastyIds: ['dynasty-a', 'dynasty-b'],
+          includedStores: ['hallOfFame', 'scrapbook', 'rookieOfYear', 'rosterContinuity', 'careerMeta'],
+          missingStores: ['rivalries'],
+        }}
+        onConfirm={() => undefined}
+        onCancel={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain('COMBINED BACKUP IMPORT PREVIEW');
+    expect(markup).toContain('dynasty-a, dynasty-b');
+    expect(markup).toContain('Rivalry heat missing');
+    expect(markup).toContain('existing local data for missing stores will not be replaced');
+    expect(markup).toContain('Cancel Import');
+    expect(markup).toContain('Confirm Combined Import');
   });
 
   it('points blocked clipboard exports to the download fallback', () => {
     expect(portableCopyFallbackMessage('CHI_S2026_W5.mfd')).toBe(
-      'Clipboard blocked. Use Download .mfd for CHI_S2026_W5.mfd.',
+      'Clipboard blocked. Use Advanced: Download .mfd for CHI_S2026_W5.mfd.',
     );
+    expect(combinedBackupCopyFallbackMessage()).toBe('Clipboard blocked. Use Download Combined Backup.');
   });
 
   it('keeps invalid import errors player-facing and save-safe', () => {
     expect(importFailureMessage()).toBe(
-      'That file does not look like a valid MFD save. Your current dynasty was not changed. Try exporting again or choose a different file.',
+      'That file does not look like a valid MFD save, or it could not be written to local saves. Your current dynasty was not changed. Try exporting again or choose a different file.',
     );
+    expect(combinedImportFailureMessage()).toBe(
+      'That file does not look like a valid combined dynasty backup, or it could not be written to local saves. Your current dynasty was not changed. Try exporting again or choose a different file.',
+    );
+  });
+
+  it('announces save/import success status politely', () => {
+    const markup = renderToStaticMarkup(<DynastyStatusPanel status="Manual save slot created" />);
+
+    expect(markup).toContain('Manual save slot created');
+    expect(markup).toContain('role="status"');
+    expect(markup).toContain('aria-live="polite"');
+  });
+
+  it('announces import failures assertively', () => {
+    const markup = renderToStaticMarkup(<DynastyImportError message={importFailureMessage()} />);
+
+    expect(markup).toContain('That file does not look like a valid MFD save');
+    expect(markup).toContain('role="alert"');
+    expect(markup).toContain('aria-live="assertive"');
   });
 });

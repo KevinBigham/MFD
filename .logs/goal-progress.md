@@ -2,6 +2,169 @@
 
 Date: 2026-05-21
 
+# Goal Progress - UI/UX Convergence Marathon
+
+Date: 2026-07-05
+
+## Milestone 1 - Mission packet and live state verification
+
+Files changed:
+- `.logs/goal-progress.md`
+
+Checks run:
+- Read `/Users/kevin/Downloads/MFD/MISSION.md`, `AGENTS.md`, `CODEX_GOAT_MARATHON_PROMPT.md`, `CODEX_FINISH_GAME_MARATHON_PROMPT.md`, `CODEX_RELEASE_CONVERGENCE_GOAL_PROMPT.md`, `RELEASE_CONVERGENCE.md`, `CODEX_GAME_GUIDE.md`, `STATUS.md`, `DESIGN.md`, and `docs/release/KEVIN_PLAYTEST_SCRIPT.md:74-91`.
+- Confirmed the mission file lives one directory above the repo at `/Users/kevin/Downloads/MFD/MISSION.md`; assumption: use that file as the complete spec and keep repo edits under `/Users/kevin/Downloads/MFD/MFD-main`.
+- Confirmed `SAVE_VERSION = 36` in `packages/engine/src/config/difficulty.ts`; no save/schema/RNG/engine edits are allowed for this run.
+- Confirmed this extracted checkout has no `.git` directory, so commit/PR ceremony is unavailable but implementation and verification can continue.
+- Confirmed root `package.json` pins `pnpm@9.15.9` and `corepack pnpm --version` returns `9.15.9`.
+- Confirmed `apps/web/dist/index.html` exists.
+- Confirmed `RELEASE_CONVERGENCE.md` currently lists G1-G5 GREEN, G6 GREEN with 48-route DOM/console visual diagnostics rather than real screenshot review, and G7 YELLOW for full release-gate/remote CI proof.
+- Confirmed no Tailwind or PostCSS config files are present; `packages/design-system/tokens/index.css` is a single `:root` 8-bit ESPN token palette imported by `apps/web/src/main.tsx`.
+- Recounted navigation live from `apps/web/src/app/App.tsx`: 81 registered routes, 56 `NAV_ITEMS`, and 25 direct-only routes. This drifts from the mission paragraph's older 86/54 wording but preserves the same direct-only route count and navigation-overload problem.
+
+Result:
+- Verification complete. Phase 1 will consume the existing exported engine navigation-unlock helpers in the web shell, remove the 32-player command-palette cap, and make every current direct-only route either discoverable in an existing nav group or explicitly documented as contextual-only without changing `packages/engine`, `GameState`, `SAVE_VERSION`, or RNG.
+
+## Milestone 2 - Phase 1 navigation and onboarding convergence
+
+Files changed:
+- `apps/web/src/app/App.tsx`
+- `apps/web/src/app/App.test.tsx`
+- `apps/web/src/app/nav-items.test.ts`
+- `apps/web/src/features/tutorial/TutorialCoverage.test.tsx`
+- `apps/web/src/features/route-coaching/useActiveRouteBeats.test.ts`
+- `.logs/goal-progress.md`
+
+Changes shipped:
+- Added existing nav homes for every static route that was previously direct-only: coaching tree/relationships, player development/compare/rivalries, trade deadline, draft recap, expansion draft, franchise archive routes, legacy named games/bloodlines, season recap, relocation, and league weather.
+- Left only `/player/$playerId` and `/player/$playerId/timeline` direct-only, with documented reasons: they require a concrete saved player id from a roster/search/profile link.
+- Wired `getNavUnlockStatus` from `@mfd/engine/config` into desktop nav, mobile drawer, route shortcuts, hotkey help, and command-palette screen results. Existing engine unlock metadata now hides locked routes from ordinary navigation until week/phase context opens them, while active direct-link routes still remain navigable.
+- Removed the command-palette roster-player cap by deleting the old `.slice(0, 32)`, so all rostered players can be found.
+- Added a compact desktop `LATER` row for the selected group when engine-locked routes are hidden.
+- Updated source guards, tutorial allowlists, and route-coaching coverage to match the new discoverability contract.
+
+Checks run:
+- Passed: `corepack pnpm --filter @mfd/web test -- --run src/app/nav-items.test.ts src/features/tutorial/TutorialCoverage.test.tsx src/features/route-coaching/useActiveRouteBeats.test.ts` (3 files / 32 tests).
+- Passed after updating intentional source guards: `corepack pnpm --filter @mfd/web test -- --run src/app/App.test.tsx src/app/nav-items.test.ts src/features/tutorial/TutorialCoverage.test.tsx src/features/route-coaching/useActiveRouteBeats.test.ts` (4 files / 88 tests).
+- Passed: `corepack pnpm --filter @mfd/web typecheck`.
+- Passed: `VITE_CHIP_ENABLED=true corepack pnpm --filter @mfd/web build` with the existing non-blocking Vite large-chunk warning.
+- Passed after rerun with Vite-bin fallback: `VITE_CHIP_ENABLED=true PNPM_BIN=__missing_pnpm__ SMOKE_FULL_SETUP_COMPLETE=1 SMOKE_TIMEOUT_MS=180000 node scripts/smoke-test-post-setup-route.mjs`; it completed normal Full Setup from cleared storage, reached playable Year 1 preseason Week 1, persisted the first-ten marker, and saw no browser errors.
+- Failed environmental first attempt: the same full-setup smoke without `PNPM_BIN=__missing_pnpm__` exited before app launch because the harness-selected bundled `pnpm` tried an interactive `node_modules` purge. No app code failed in that attempt.
+- Recounted current navigation after the patch: 81 registered routes, 79 `NAV_ITEMS`, and 2 direct-only dynamic player routes.
+
+Result:
+- Phase 1 complete. The nav surface now consumes existing engine unlock status, the command palette searches all roster players, and all static routes have an in-app discovery path. No engine, save schema, `SAVE_VERSION`, RNG, or `GameState` changes were made.
+
+## Milestone 3 - Phase 2 component and copy consolidation
+
+Files changed:
+- `packages/design-system/components/MfdBadge/MfdBadge.tsx`
+- `packages/design-system/components/MfdDialog/MfdDialog.tsx`
+- `packages/design-system/components/MfdTable/MfdTable.tsx`
+- `apps/web/src/features/monday-briefing/ActionCenter.tsx`
+- `apps/web/src/app/store/game-store.ts`
+- `apps/web/src/features/team-needs/TeamNeeds.tsx`
+- `apps/web/src/features/team-needs/TeamNeeds.test.tsx`
+- `apps/web/src/features/coaching/CoachingStaff.tsx`
+- `apps/web/src/features/coaching/CoachingStaff.test.tsx`
+- `apps/web/src/features/depth-chart/DepthChart.tsx`
+- `apps/web/src/features/depth-chart/DepthChart.test.tsx`
+- `.logs/goal-progress.md`
+
+Changes shipped:
+- Collapsed duplicate design-system implementations for badge, dialog, and table. The public `MfdBadge`, `MfdDialog`, and `MfdTable` export names remain as compatibility wrappers, but they now render through `PixelBadge`, `PixelModal`, and `PixelTable`.
+- Migrated the last app call site from `MfdDialog` to `PixelModal` in Monday Briefing's AGM recommendations modal.
+- Added `actions.refreshTeamNeedsReport(teamId?)` in `apps/web` to rebuild an existing `teamNeedsCache` entry from current roster/team context without engine edits, save-schema changes, RNG, or `SAVE_VERSION` movement.
+- Added Team Needs `Refresh Board` and `Refresh Compare` controls and replaced cache/source-provenance paragraphs with player-facing command-center copy.
+- Rewrote the named Coaching and Depth Chart source-copy panels into in-world command-center language while keeping explicit action boundaries.
+- Replaced Depth Chart's naive total-starter indicator with a position-by-position readout from existing engine `STARTER_SLOTS`; decision note: use the engine-owned slot map as the formation-validity source rather than inventing web-only football rules.
+
+Checks run:
+- Passed: `corepack pnpm --filter @mfd/web test -- --run src/features/team-needs/TeamNeeds.test.tsx src/features/coaching/CoachingStaff.test.tsx src/features/depth-chart/DepthChart.test.tsx src/features/monday-briefing/ActionCenter.test.tsx` (4 files / 29 tests).
+- Passed: `corepack pnpm --filter @mfd/design-system test -- --run components/PixelTable/PixelTable.test.tsx components/MfdCommandPalette/MfdCommandPalette.test.tsx` (2 files / 9 tests).
+- Passed: `corepack pnpm --filter @mfd/web typecheck`.
+
+Result:
+- Phase 2 complete. Component duplication is consolidated behind Pixel implementations, Team Needs has a real refresh path, and the named technical/source-copy surfaces now read like usable football UI. No `packages/engine`, `GameState`, save-schema, RNG, or `SAVE_VERSION` changes were made.
+
+## Milestone 4 - Phase 3 passive-screen activation and inbox convergence
+
+Files changed:
+- `apps/web/src/features/legacy/LegacyTimeline.tsx`
+- `apps/web/src/features/legacy/LegacyTimeline.test.tsx`
+- `apps/web/src/features/franchise/TrophyRoom.tsx`
+- `apps/web/src/features/franchise/TrophyRoom.test.tsx`
+- `apps/web/src/features/playoffs/PlayoffLoreDirectory.tsx`
+- `apps/web/src/features/playoffs/PlayoffLoreDirectory.test.tsx`
+- `apps/web/src/features/franchise/RookieOfYearHistory.tsx`
+- `apps/web/src/features/franchise/RookieOfYearHistory.test.tsx`
+- `apps/web/src/features/inbox/buildInboxMessages.ts`
+- `apps/web/src/features/inbox/buildInboxMessages.test.ts`
+- `apps/web/src/features/inbox/InboxTriage.tsx`
+- `apps/web/src/features/inbox/InboxTriage.test.tsx`
+- `.logs/goal-progress.md`
+
+Changes shipped:
+- Added living-game CTAs to passive archive routes: Legacy now routes to current standings, Trophy Room routes to standings/schedule/game plan in empty and populated states, Playoff Lore routes to standings/schedule/game plan, and Rookie of the Year history routes to scouting/draft/player development.
+- Consumed existing saved `game.ownerPersonalityInbox` in `/inbox` by projecting recent owner personality events into Ownership messages with owner-room CTAs, signed mood/morale deltas, consequences, unread display state, and action-required classification for negative deltas.
+- Updated Inbox source rows so they no longer claim owner personality events are unused. They now state the actual boundary: owner events are saved and consumed, while generated read flags are display hints only.
+- Audited localStorage-only state under `apps/web`: Chip onboarding/read receipts/dock state and route-coaching receipts are UI assistant preferences; first-ten/setup prelude markers are setup UX markers; ghost broadcast preferences are view preferences; dynasty sidecars are export/import-backed archive sidecars; global Watch List pins use `mfd.watchlist.v1`.
+
+Scope-fenced decisions:
+- Skipped durable Inbox read-receipt persistence because no saved `GameState` field exists for generated inbox message read state; adding it would require engine/save-schema migration and violates this mission's scope fence.
+- Skipped moving the global Watch List pin board into save-backed state because the existing saved watchlists are semantically narrower (`offseasonState.scoutingWatchlist` and `faTargetBoard.watchlist`). A true cross-roster/free-agent/prospect/archive pin list would require a new `GameState` field, so the browser-local board remains explicit sidecar UI state.
+
+Checks run:
+- Passed: `corepack pnpm --filter @mfd/web test -- --run src/features/inbox/InboxTriage.test.tsx src/features/inbox/buildInboxMessages.test.ts src/features/legacy/LegacyTimeline.test.tsx src/features/franchise/TrophyRoom.test.tsx src/features/playoffs/PlayoffLoreDirectory.test.tsx src/features/franchise/RookieOfYearHistory.test.tsx` (6 files / 46 tests).
+- Passed: `corepack pnpm --filter @mfd/web typecheck`.
+
+Result:
+- Phase 3 complete. Passive archive screens now point back into live gameplay, Inbox consumes the existing saved owner mailbox, and schema-crossing persistence requests were deliberately skipped rather than smuggled into `localStorage` or `packages/engine`. No `packages/engine`, `GameState`, save-schema, RNG, or `SAVE_VERSION` changes were made.
+
+## Milestone 5 - Phase 4 full-route visual sweep
+
+Files changed:
+- `.logs/g6-visual-sweep.mjs`
+- `.logs/screenshots/g6-full-route-sweep/*.png`
+- `.logs/screenshots/g6-full-route-sweep/summary.json`
+- `.logs/screenshots/g6-full-route-sweep/review.md`
+- `.logs/goal-progress.md`
+
+Changes shipped:
+- Added a `.logs`-scoped visual sweep runner instead of changing out-of-scope `scripts/`. The runner launches the built production preview, clears browser storage/IndexedDB, opens the convention demo save, emulates `prefers-reduced-motion: reduce`, and captures the full current registered route set.
+- Covered all 79 static `NAV_ITEMS` routes plus the 2 dynamic player routes by discovering `/player/afce1-qb-1` from the demo roster and deriving `/player/afce1-qb-1/timeline`.
+- Generated raw screenshots and contact sheets for 1366x900 desktop and 480x900 (`BREAKPOINTS.sm`) review.
+
+Checks run:
+- Passed: `VITE_CHIP_ENABLED=true corepack pnpm --filter @mfd/web build` with the existing non-blocking Vite large-chunk warning.
+- Passed: `SMOKE_TIMEOUT_MS=60000 node .logs/g6-visual-sweep.mjs` (162 route screenshots, 81/81 registered routes, 0 browser errors, 0px max horizontal overflow, reduced-motion emulated on every route).
+- Reviewed: `.logs/screenshots/g6-full-route-sweep/contact-desktop.png` and `.logs/screenshots/g6-full-route-sweep/contact-sm-480.png`.
+- Passed after environmental reruns: `corepack pnpm -r typecheck`. The initial `corepack pnpm typecheck` root script failed because its nested bare `pnpm` resolved to the bundled pnpm 11 runtime and attempted an interactive/no-build install; direct project-pinned pnpm 9.15.9 recursive typecheck passed.
+
+Result:
+- Phase 4 complete. G6 now has real screenshot evidence across the current 81/81 registered-route set at desktop and 480px, including the previously contextual dynamic player routes. No app visual defect was found that required an `apps/web` or `packages/design-system` patch.
+
+## Milestone 6 - Final wrap-up gates and release docs
+
+Files changed:
+- `.logs/goal-progress.md`
+- `STATUS.md`
+- `RELEASE_CONVERGENCE.md`
+
+Checks run:
+- Passed: `corepack pnpm -r --workspace-concurrency=1 typecheck` across `@mfd/design-system`, `@mfd/engine`, and `@mfd/web`.
+- Passed: `G4_SOAK_LOG=1 corepack pnpm --filter @mfd/web test` (247 files / 1902 tests). The G4 multi-year trust test completed the full deterministic 10-season replay in the suite after 868.7s.
+- Passed: `corepack pnpm --filter @mfd/engine test` (226 files / 2245 tests).
+- Passed: `corepack pnpm --filter @mfd/design-system test` (17 files / 105 tests).
+- Passed: `VITE_CHIP_ENABLED=true corepack pnpm --filter @mfd/web build` with the existing Vite large-chunk warning only.
+- Passed: `bash scripts/check-math-random.sh`.
+- Root-script environmental failure: `corepack pnpm test:perft` did not reach the playtest gate because the root script shells out to bare `pnpm`, which resolves here to the bundled pnpm 11 runtime and fails dependency-status install with `ERR_PNPM_IGNORED_BUILDS` for `esbuild@0.25.12`.
+- Passed direct underlying performance gate: `corepack pnpm --filter @mfd/engine playtest:all`. Reports were written for SPEEDRUNNER, GLUTTON, CHEAPSKATE, CHURN_ARTIST, and INJURY_MAGNET with 10 seasons / 293 weeks each and `high = 0` for every persona.
+- Previously passed and now documented: `SMOKE_TIMEOUT_MS=60000 node .logs/g6-visual-sweep.mjs` captured 162 screenshots for 81/81 registered routes, with zero browser errors, 0px max horizontal overflow, no tiny visible interactive controls, and reduced motion emulated on every route.
+
+Result:
+- Mission complete. All four phases were executed in order, final gates were run with direct project-pinned Corepack commands where root nested bare-`pnpm` wrappers were environmental blockers, and `STATUS.md` plus the `RELEASE_CONVERGENCE.md` G6 row now carry the actual evidence. No `packages/engine` source files, save schema, `GameState`, RNG, migrations, or `SAVE_VERSION` were changed.
+
 ## Milestone 1 - Baseline inspection
 
 Files changed: none.

@@ -108,8 +108,27 @@ function writePayload(payload: RosterContinuityPayload): RosterContinuityPayload
   return next;
 }
 
+export function parseRosterContinuityPayload(candidate: unknown): RosterContinuityPayload | null {
+  const validated = PayloadSchema.safeParse(candidate);
+  if (!validated.success) return null;
+
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    byDynastyId: Object.fromEntries(
+      Object.entries(validated.data.byDynastyId).map(([dynastyId, snapshot]) => [
+        dynastyId,
+        normalizeSnapshot(snapshot),
+      ]),
+    ),
+  };
+}
+
 export function readRosterContinuity(): RosterContinuityPayload {
   return readPayload();
+}
+
+export function replaceRosterContinuity(payload: RosterContinuityPayload): RosterContinuityPayload {
+  return writePayload(payload);
 }
 
 export function readDynastyStarters(dynastyId: string): RosterContinuitySnapshot | null {

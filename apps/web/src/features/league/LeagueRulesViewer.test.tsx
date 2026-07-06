@@ -85,6 +85,18 @@ describe('LeagueRulesViewer', () => {
     expect(markup).toContain('EFFECTIVE 2032');
   });
 
+  it('renders rule registry source context and read-only boundaries', () => {
+    const markup = renderToStaticMarkup(<LeagueRulesViewer />);
+    expect(markup).toContain('RULE REGISTRY SOURCES');
+    expect(markup).toContain('selectLeagueRulesByCategory groups saved game.leagueRules');
+    expect(markup).toContain('selectLeagueRuleDiffs compares the active display values');
+    expect(markup).toContain('selectLeagueRuleHistory reads saved rule-change history');
+    expect(markup).toContain('Rule petitions and proposal votes commit on /commissioner');
+    expect(markup).toContain('CBA bargaining and ratification commit on /cba');
+    expect(markup).toContain('Gameplay systems use the active rule for the correct year');
+    expect(markup).toContain('does not recalculate seasons, playoffs, caps, rosters, or deadlines');
+  });
+
   it('renders the rule change timeline with before and after values', () => {
     const markup = renderToStaticMarkup(<LeagueRulesViewer />);
     expect(markup).toContain('RULE CHANGE TIMELINE');

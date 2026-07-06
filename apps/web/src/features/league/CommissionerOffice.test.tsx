@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { applyRuleChange, initLeagueRules } from '@mfd/engine';
-import { CommissionerOffice } from './CommissionerOffice';
+import { CommissionerOffice, GovernanceActionReceiptPanel, buildGovernanceActionReceipt } from './CommissionerOffice';
 
 const baseState = () => {
   const rules = applyRuleChange(initLeagueRules(2031), {
@@ -157,6 +157,17 @@ describe('CommissionerOffice', () => {
     expect(markup).toContain('View League Rules');
   });
 
+  it('renders governance source context and commit boundaries', () => {
+    const markup = renderToStaticMarkup(<CommissionerOffice />);
+    expect(markup).toContain('GOVERNANCE SOURCES');
+    expect(markup).toContain('selectCommissionerState, selectCommissionerAgenda, and selectCommissionerVoteHistory');
+    expect(markup).toContain('File Petition commits through petitionRuleChange');
+    expect(markup).toContain('Vote Yes, Vote No, and Abstain commit through voteOnProposal');
+    expect(markup).toContain('Open CBA Negotiation routes to /cba');
+    expect(markup).toContain('legacy description/approvalImpact imports');
+    expect(markup).toContain('this route does not issue rulings');
+  });
+
   it('renders the owner petition controls and warning copy', () => {
     const markup = renderToStaticMarkup(<CommissionerOffice />);
     expect(markup).toContain('OWNER PETITION');
@@ -169,5 +180,49 @@ describe('CommissionerOffice', () => {
     mockState.agenda = [];
     const markup = renderToStaticMarkup(<CommissionerOffice />);
     expect(markup).toContain('No governance votes are pending this offseason');
+  });
+
+  it('builds and renders route-local governance action receipts', () => {
+    const petitionReceipt = buildGovernanceActionReceipt({
+      type: 'petition',
+      definition: {
+        key: 'practice_squad_size',
+        label: 'Practice Squad Size',
+        category: 'roster',
+        inputKind: 'number',
+        min: 8,
+        max: 16,
+        step: 1,
+        petitionable: true,
+      },
+      currentValue: 10,
+      proposedValue: 12,
+      teamName: 'Chicago Blaze',
+    });
+
+    expect(petitionReceipt.title).toBe('Rule Petition Receipt');
+    expect(petitionReceipt.result).toContain('10 -> 12');
+    expect(petitionReceipt.source).toContain('Saved by the rule-petition action');
+    expect(petitionReceipt.source).toContain('active proposal is updated');
+    expect(petitionReceipt.detail).toContain('Chicago Blaze ownership');
+
+    const voteReceipt = buildGovernanceActionReceipt({
+      type: 'vote',
+      proposal: mockState.agenda[0]!,
+      vote: 'abstain',
+    });
+
+    expect(voteReceipt.title).toBe('Rule Vote Receipt');
+    expect(voteReceipt.result).toContain('Abstain vote sent');
+    expect(voteReceipt.source).toContain('Saved by the rule-vote action');
+    expect(voteReceipt.source).toContain('proposal history is updated');
+    expect(voteReceipt.detail).toContain('Abstain adds no yes vote');
+
+    const markup = renderToStaticMarkup(<GovernanceActionReceiptPanel receipt={voteReceipt} />);
+    expect(markup).toContain('RULE VOTE RECEIPT');
+    expect(markup).toContain('PLAYOFF SEEDS / CONFERENCE');
+    expect(markup).toContain('SAVED BY');
+    expect(markup).toContain('Saved by the rule-vote action');
+    expect(markup).toContain('On-screen confirmation only');
   });
 });

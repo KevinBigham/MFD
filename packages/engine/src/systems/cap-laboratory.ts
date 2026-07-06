@@ -407,11 +407,11 @@ export function getCapHealth(team: Team, game: GameState): CapHealthReport {
   const futureDeadCap = round(((team.deadCapByYear?.[game.year + 1] ?? 0) + (team.deadCapByYear?.[game.year + 2] ?? 0)) / capTotal * 100);
   const score = capScoreFromMetrics(capSpacePct, deadCapPct, topFivePct, futureDeadCap);
   const recommendations: string[] = [];
-  if (team.capSpace < capTotal * 0.05) recommendations.push('Create room before extension season.');
-  if (deadCapPct > 10) recommendations.push('Dead money is crowding flexibility.');
-  if (topFivePct > 45) recommendations.push('Roster is too top-heavy.');
+  if (team.capSpace < capTotal * 0.05) recommendations.push('Create cap space before extension season.');
+  if (deadCapPct > 10) recommendations.push('Dead money is reducing later flexibility.');
+  if (topFivePct > 45) recommendations.push('Top-heavy contracts need a starter-value review.');
   if (futureDeadCap > 8) recommendations.push('Future dead cap needs to come down.');
-  if (recommendations.length === 0) recommendations.push('Cap sheet is in stable shape.');
+  if (recommendations.length === 0) recommendations.push('Current cap space is stable; protect money for injuries and extensions.');
 
   return {
     grade: gradeFor(score),

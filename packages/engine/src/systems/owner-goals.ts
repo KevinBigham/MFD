@@ -264,13 +264,13 @@ function progressStatus(met: boolean, failed: boolean, percent: number): OwnerMa
 function withAgmNote(game: GameState, goalId: string, progress: OwnerMandateProgress): OwnerMandateProgress {
   const agmId = selectedAgmProfileId(game);
   if (agmId === 'marcus_webb' && goalId === 'cap_health') {
-    return { ...progress, agmNote: 'Marcus Webb is giving ownership a clearer cap-health readout.' };
+    return { ...progress, agmNote: 'Marcus Webb is comparing cap space against injury, extension, and trade fixes before ownership judges the goal.' };
   }
   if (agmId === 'coach_d_hardaway' && COMPETITIVE_GOALS.has(goalId)) {
-    return { ...progress, agmNote: "Coach D is tying this promise directly to weekly standards." };
+    return { ...progress, agmNote: 'Coach D is tying this promise to weekly practice reps and saved Game Plan calls before missed wins cut owner patience.' };
   }
   if (agmId === 'sandra_chen' && PERSONNEL_GOALS.has(goalId)) {
-    return { ...progress, agmNote: 'Sandra Chen is tracking the player-development proof behind this mandate.' };
+    return { ...progress, agmNote: 'Sandra Chen is tracking which young players are earning snaps, roles, and development time.' };
   }
   return progress;
 }
@@ -465,9 +465,9 @@ function goalSnapshot(game: GameState, team: Team, goalId: string, year: number,
 }
 
 function slotLabel(slot: OwnerMandateSlot): string {
-  if (slot === 'floor') return 'Floor';
-  if (slot === 'target') return 'Target';
-  return 'Ceiling';
+  if (slot === 'floor') return 'Minimum promise';
+  if (slot === 'target') return 'Main promise';
+  return 'Stretch promise';
 }
 
 function categoryForGoal(goalId: string): 'cap' | 'competitive' | 'personnel' | 'mandate' {
@@ -522,8 +522,8 @@ function applyAgmConsequenceAdjustment(
       patienceDelta: deltas.patienceDelta,
       ownerReputationDelta: deltas.ownerReputationDelta + (snapshot.met ? 2 : -2),
       note: snapshot.met
-        ? 'Marcus Webb converted cap discipline into extra owner trust.'
-        : 'Marcus Webb made the cap-health miss harder to excuse.',
+        ? 'Marcus Webb showed ownership the cap plan funded injuries, extensions, and trade fixes.'
+        : 'Marcus Webb showed the cap plan did not leave enough space for promised fixes.',
     };
   }
   if (agmId === 'coach_d_hardaway' && COMPETITIVE_GOALS.has(mandate.goalId)) {
@@ -532,8 +532,8 @@ function applyAgmConsequenceAdjustment(
       patienceDelta: deltas.patienceDelta,
       ownerReputationDelta: deltas.ownerReputationDelta + (snapshot.met ? 1 : -2),
       note: snapshot.met
-        ? 'Coach D sold the competitive standard and ownership noticed.'
-        : 'Coach D raised the accountability bar on competitive promises.',
+        ? 'Coach D connected the win target to weekly practice reps and saved Game Plan calls.'
+        : 'Coach D made the missed competitive promise cost more owner patience.',
     };
   }
   if (agmId === 'sandra_chen' && PERSONNEL_GOALS.has(mandate.goalId)) {
@@ -542,8 +542,8 @@ function applyAgmConsequenceAdjustment(
       patienceDelta: deltas.patienceDelta + (snapshot.met ? 1 : -1),
       ownerReputationDelta: deltas.ownerReputationDelta + (snapshot.met ? 2 : -2),
       note: snapshot.met
-        ? 'Sandra Chen turned player-development proof into extra patience.'
-        : 'Sandra Chen made the personnel-development miss more visible.',
+        ? 'Sandra Chen showed young-player snaps and roles protected owner patience.'
+        : 'Sandra Chen made the missed personnel-development roles more visible.',
     };
   }
   return { ...deltas, note: null };
@@ -720,10 +720,10 @@ export function upsertOwnerMandateHandshakes(game: GameState, mandates: readonly
     condition: { metric: 'owner_mandate', target: mandate.id },
     status: 'active',
     consequence: mandate.slot === 'floor'
-      ? 'Missing this floor will hit owner approval, patience, and owner reputation.'
+      ? 'Missing this minimum promise cuts owner approval, owner patience, and front-office reputation.'
       : mandate.slot === 'target'
-        ? 'Meeting this target rewards owner approval and front-office reputation.'
-        : 'Delivering this ceiling creates the largest owner reward and report highlight.',
+        ? 'Meeting this main promise raises owner approval and front-office reputation.'
+        : 'Delivering this stretch promise creates the largest owner reward and season-report highlight.',
   }));
   game.handshakes.push(...handshakes);
   return handshakes;

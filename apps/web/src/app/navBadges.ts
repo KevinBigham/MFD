@@ -1,3 +1,5 @@
+import { getDepthChartStarterReadout } from '../lib/depth-chart-starters';
+
 export interface NavBadgeInput {
   tradeOfferCount: number;
   starterCount: number;
@@ -8,13 +10,14 @@ export interface NavBadgeInput {
 
 export function computeNavBadges(input: NavBadgeInput): Record<string, number> {
   const badges: Record<string, number> = {};
+  const starterReadout = getDepthChartStarterReadout(input.starterCount);
 
   if (input.tradeOfferCount > 0) {
     badges['/trades'] = input.tradeOfferCount;
   }
 
-  if (input.starterCount < 22) {
-    badges['/depth-chart'] = 22 - input.starterCount;
+  if (!starterReadout.complete) {
+    badges['/depth-chart'] = starterReadout.missing;
   }
 
   if ((input.phase === 'regular_season' || input.phase === 'playoffs') && !input.hasGamePlan) {

@@ -62,4 +62,16 @@ describe('LeagueNews', () => {
     expect(markup).toContain('MY TEAM');
     expect(markup).toContain('Expand');
   });
+
+  it('explains the saved wire source and local filter boundary', () => {
+    const markup = renderToStaticMarkup(<LeagueNews />);
+
+    expect(markup).toContain('WIRE SOURCE');
+    expect(markup).toContain('Saved leagueNews');
+    expect(markup).toContain('Route-local filters');
+    expect(markup).toContain('Ticker separate');
+    expect(markup).toContain('reads the saved league wire newest-first');
+    expect(markup).toContain('are local to this screen');
+    expect(markup).toContain('are not consumed or dismissed here');
+  });
 });

@@ -38,6 +38,51 @@ const TIER_LABEL: Record<LeaguePulseTier, string> = {
   quiet: 'QUIET',
 };
 
+const pulseSourceRows = [
+  {
+    id: 'rivalry-source',
+    label: 'Rivalry source',
+    badge: 'leagueRivalries',
+    accent: 'red',
+    detail: 'Summary cards and hottest-rivalry rows read saved league rivalry intensity, division flags, last-met labels, and history snippets.',
+  },
+  {
+    id: 'ranking-source',
+    label: 'Movement source',
+    badge: 'game.powerRankings',
+    accent: 'gold',
+    detail: 'Risers and fallers read saved power-ranking deltas. This screen does not generate or rewrite rankings.',
+  },
+  {
+    id: 'aggregator',
+    label: 'Aggregator owner',
+    badge: 'buildLeaguePulse',
+    accent: 'cyan',
+    detail: 'The engine read model owns intensity tiers, highlight thresholds, mover caps, and team-name fallback behavior.',
+  },
+  {
+    id: 'social-boundary',
+    label: 'Heat-spike posts',
+    badge: 'explicit caller only',
+    accent: 'default',
+    detail: 'Rivalry social posts require a separate engine caller with the post generator. Reading this route does not create posts.',
+  },
+  {
+    id: 'route-presentation',
+    label: 'Route presentation',
+    badge: 'local display',
+    accent: 'default',
+    detail: 'Cards, bars, arrow glyphs, and the 12-rivalry / 5-mover display caps are presentation over the read model.',
+  },
+  {
+    id: 'render-boundary',
+    label: 'Just viewing',
+    badge: 'display only',
+    accent: 'default',
+    detail: 'Opening League Pulse does not write rivalries, rankings, news, social posts, storyline threads, or history rows.',
+  },
+] as const;
+
 function intensityBarColor(tier: LeaguePulseTier): string {
   if (tier === 'blood_feud') return 'var(--mfd-red)';
   if (tier === 'heated') return 'var(--mfd-gold)';
@@ -158,6 +203,38 @@ function MoverRow({ mover, kind }: { mover: LeaguePulseRankMover; kind: 'riser' 
   );
 }
 
+function PulseSourcesPanel() {
+  return (
+    <PixelPanel title="Pulse Sources" accent="cyan">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+        {pulseSourceRows.map((row) => (
+          <div
+            key={row.id}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              padding: '10px',
+              border: '2px solid var(--mfd-border)',
+              background: 'var(--mfd-bg-2)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ ...monoSm, color: '#fff' }}>
+                {row.label}
+              </span>
+              <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
+            </div>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+              {row.detail}
+            </span>
+          </div>
+        ))}
+      </div>
+    </PixelPanel>
+  );
+}
+
 // ── Connected screen ───────────────────────────────────
 
 export function LeaguePulse() {
@@ -193,6 +270,7 @@ export function LeaguePulse() {
           title="LEAGUE PULSE"
           subtitle="Rivalry heat and rank momentum across the league."
         />
+        <PulseSourcesPanel />
         <PixelPanel title="NO LEAGUE DATA" accent="default">
           <div style={monoSm}>Advance a week to populate rivalries and power rankings.</div>
         </PixelPanel>
@@ -213,6 +291,8 @@ export function LeaguePulse() {
           </>
         }
       />
+
+      <PulseSourcesPanel />
 
       <div style={autoGrid(160)}>
         <SummaryCard label="RIVALRIES" value={summary.totalRivalries} accent="var(--mfd-text)" />

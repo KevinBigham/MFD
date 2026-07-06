@@ -55,7 +55,7 @@ const mockState = {
         week: 1,
         agmProfileId: 'marcus_webb',
         category: 'cap',
-        summary: 'Marcus Webb translated the Day 1 cap plan into a small owner-trust edge.',
+        summary: 'Marcus Webb tied the Day 1 cap plan to injury, extension, and trade money.',
       }],
     },
     ownerMandates: [{
@@ -77,7 +77,7 @@ const mockState = {
         label: '$22.0M cap space',
         detail: '$4.0M dead cap; target is $20M+ space and <= $10M dead.',
         status: 'on_track',
-        agmNote: 'Marcus Webb is giving ownership a clearer cap-health readout.',
+        agmNote: 'Marcus Webb compares cap space against injury, extension, and trade fixes before ownership judges the goal.',
       },
       evaluation: null,
     }],
@@ -117,9 +117,26 @@ describe('OwnerMood', () => {
     const { OwnerMood } = await import('./OwnerMood');
     const markup = renderToStaticMarkup(<OwnerMood />);
 
-    expect(markup).toContain('FRONT OFFICE IDENTITY');
+    expect(markup).toContain('ASSISTANT GM IMPACT');
     expect(markup).toContain('MARCUS WEBB');
     expect(markup).toContain('CAP HEALTH');
-    expect(markup).toContain('Marcus Webb is giving ownership');
+    expect(markup).toContain('MAIN PROMISE');
+    expect(markup).toContain('Approval plus patience');
+    expect(markup).toContain('cap space against injury, extension, and trade fixes');
+    expect(markup).not.toContain('FRONT OFFICE IDENTITY');
+    expect(markup).not.toContain('Weighted trust score');
+    expect(markup).not.toContain('owner-trust');
+    expect(markup).not.toContain('cap space can cover');
+  });
+
+  it('explains owner-pressure source ownership without claiming extra writes', async () => {
+    const { OwnerMood } = await import('./OwnerMood');
+    const markup = renderToStaticMarkup(<OwnerMood />);
+
+    expect(markup).toContain('OWNER PRESSURE SOURCES');
+    expect(markup).toContain('Owner Goals read saved ownerMandates');
+    expect(markup).toContain('owner_mandate mirrors follow mandate met/exceeded/missed status');
+    expect(markup).toContain('consequences are not double-applied');
+    expect(markup).toContain('Latest Reaction reads saved weekSummaries');
   });
 });

@@ -27,6 +27,9 @@ const CATEGORY_TABS: Array<{ key: AchievementCategory | 'all'; label: string }> 
   { key: 'hidden', label: 'Hidden' },
 ];
 
+export const ACHIEVEMENT_UNLOCK_CHIP_COPY =
+  'Achievement recorded in Legacy. Optional: open Legacy after Must Do tasks. Where: Legacy. Consequence: roster, cap space, owner patience, and next-week state do not change.';
+
 function tierAccent(tier: Achievement['tier']): 'gold' | 'cyan' | 'green' | 'red' | 'default' {
   if (tier === 'platinum') return 'gold';
   if (tier === 'gold') return 'gold';
@@ -173,7 +176,7 @@ export function AchievementUnlockToast({
           >
             <Chip pose="proud" size="sm" reducedMotion ariaLabel="Chip celebrates the unlocked achievement" />
             <ChipDialogueBubble
-              text="Hang the receipt. This one goes in the building."
+              text={ACHIEVEMENT_UNLOCK_CHIP_COPY}
               pose="proud"
               pointer="left"
               reducedMotion

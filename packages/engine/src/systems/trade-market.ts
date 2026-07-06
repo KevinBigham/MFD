@@ -7,11 +7,20 @@ import { recordNewsItem } from './league-news';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { getScenarioConstraints } from './scenario-challenge';
 import { appendToSocialFeed, generateTransactionPosts } from './social-feed';
+import { getActiveRule } from './league-rules';
+import { syncTeamCapTotals } from './team-cap';
 import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
 import type { DraftPick, EngineOutput, GameState, Player, Team, TradeOffer, TradeOfferAsset } from '../types';
 
 function cloneGame(game: GameState): GameState {
   return structuredClone(game);
+}
+
+function isTradeWindowClosed(game: GameState): boolean {
+  const deadlineWeek = game.leagueRules
+    ? Number(getActiveRule(game.leagueRules, 'trade_deadline_week', game.year))
+    : 9;
+  return game.phase === 'regular_season' && game.week > deadlineWeek;
 }
 
 function refreshRosterState(team: Team): void {
@@ -399,7 +408,7 @@ export function acceptTradeOffer(game: GameState, offerId: string): EngineOutput
   if (getScenarioConstraints(nextState)?.blockTrades) {
     return { nextState, events: [], consequences: [] };
   }
-  if (nextState.phase === 'regular_season' && nextState.week > 12) {
+  if (isTradeWindowClosed(nextState)) {
     return { nextState, events: [], consequences: [] };
   }
   const offer = nextState.offseasonState?.tradeOffers.find((entry) => entry.id === offerId);
@@ -407,6 +416,10 @@ export function acceptTradeOffer(game: GameState, offerId: string): EngineOutput
 
   for (const asset of offer.send) applyAsset(nextState, asset, offer.fromTeamId);
   for (const asset of offer.receive) applyAsset(nextState, asset, offer.toTeamId);
+  const fromTeam = nextState.teams[offer.fromTeamId];
+  const toTeam = nextState.teams[offer.toTeamId];
+  if (fromTeam) syncTeamCapTotals(nextState, fromTeam);
+  if (toTeam) syncTeamCapTotals(nextState, toTeam);
   offer.status = 'accepted';
 
   for (const asset of [...offer.send, ...offer.receive]) {

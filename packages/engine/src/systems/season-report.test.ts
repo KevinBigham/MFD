@@ -103,7 +103,9 @@ describe('season report', () => {
     const report = generateSeasonReport(game, team.id);
     const section = report.sections.find((entry) => entry.title === 'Owner Mandates');
 
-    expect(section?.highlights.some((line) => line.includes('Target mandate'))).toBe(true);
+    expect(section?.highlights.some((line) => line.includes('Main promise mandate'))).toBe(true);
+    expect(section?.summary).toContain('stretch promise');
+    expect(section?.summary).not.toMatch(/promised floor|ceiling mandate|target mandate|front-office trust/i);
     expect(section?.stats.floor).toContain('Winning Record');
   });
 

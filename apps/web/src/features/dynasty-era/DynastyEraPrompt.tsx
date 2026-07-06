@@ -14,6 +14,29 @@ export interface DynastyEraPromptProps {
   onClose: () => void;
 }
 
+function EraNamingSourcesPanel() {
+  return (
+    <PixelPanel title="Era Naming Sources" accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="gold">App prompt gate</PixelBadge>
+          <PixelBadge variant="cyan">Seeded suggestions</PixelBadge>
+          <PixelBadge variant="default">Explicit save write</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+          Source: App opens this modal only after the era prompt gate passes. Suggestions are read from `generateEraSuggestions(game, mulberry32(game.seed ^ game.year ^ 0xEEEE))`.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+          Commit boundary: Name This Era calls `actions.nameDynastyEra(finalName)`, which owns the saved `userDynastyEras` and `team.era` write. Skip closes this prompt only.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-faint)', lineHeight: 1.5 }}>
+          Rendering this prompt does not detect new eras, start or end eras, update franchise history, award titles, change the live save, play scheduled games, or reroll saved outcomes.
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function DynastyEraPrompt({ open, onClose }: DynastyEraPromptProps) {
   const game = useGameStore((s) => s.game);
   const team = useGameStore(selectUserTeam);
@@ -102,6 +125,8 @@ export function DynastyEraPrompt({ open, onClose }: DynastyEraPromptProps) {
             <span style={{ ...monoSm, color: 'var(--mfd-gold)', fontWeight: 600 }}>{finalName}</span>
           </div>
         )}
+
+        <EraNamingSourcesPanel />
 
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           <PixelButton accent="default" onClick={onClose}>

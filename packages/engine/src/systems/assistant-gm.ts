@@ -71,76 +71,133 @@ const ASSISTANT_GM_PRESETS: readonly AGMProfile[] = [
     id: 'marcus_webb',
     name: 'Marcus Webb',
     title: 'Director of Football Strategy',
-    background: 'Former cap analyst turned AGM. Cool-headed, data-first, explains roster math like a professor.',
+    background: 'Former cap analyst turned AGM. Cap-cost focused, shows which cuts, restructures, or promises spend future cap space.',
     personality: 'analytical',
     expertise: 'cap_management',
-    selectionPitch: 'I will turn your roster decisions into repeatable edges. We can build a winner without losing control of the long game.',
-    strengths: ['Cap modeling', 'Option valuation', 'Process discipline'],
+    selectionPitch: 'Choose me when cap mistakes are the first threat. I will show the roster cost before you cut, restructure, trade, or promise wins.',
+    strengths: ['Cap-space choices before cuts', 'Dead-money tradeoffs before contracts', 'Promise deadlines before commitments'],
     cardAccent: 'cyan',
-    welcomeMonologue: 'Welcome to the {teamName}. I have the books, the projections, and the weak spots mapped out. Let us start with what this franchise really is.',
+    welcomeMonologue: 'Welcome to the {teamName}. Start with Week 1 blockers: cap space, uncovered first-backup jobs, and expensive veterans. I will show what each choice costs before Advance Week.',
     teachingNarration: {
-      what_is_a_head_coach: 'Your head coach is the operating system for the roster. That hire sets the daily standard, shapes situational decisions, and tells us how fast the whole building can absorb change.',
-      what_is_a_scouting_director: 'Your scouting director decides where certainty comes from. That person organizes the board, tells us which evaluations we can trust, and keeps the draft room from chasing noise.',
+      what_is_a_head_coach: 'Hire the head coach who sets scheme, practice priorities, player development, and late-game habits. Calls that do not match current starters slow install and make young players harder to develop.',
+      what_is_a_scouting_director: 'Hire a scouting director who names medical limits, expected role, and coachability warnings before picks are spent. A hire without role discipline misses future starters, overpays veterans, or wastes picks on players without defined draft-day roles.',
     },
-    catchphrase: 'The numbers never lie.',
+    catchphrase: 'Cost, deadline, consequence.',
     toneModifiers: { enthusiasm: 0.45, bluntness: 0.65, humor: 0.15 },
   },
   {
     id: 'coach_d_hardaway',
     name: "Deion 'Coach D' Hardaway",
-    title: 'Senior AGM, Competitive Edge',
-    background: 'Former locker-room enforcer turned front office closer. Lives for urgency, standards, and winning every matchup.',
+    title: 'Senior AGM, Defensive Planning',
+    background: 'Former defensive leader turned front office closer. Focuses on exposed positions, practice accountability, and opponent matchups.',
     personality: 'fiery',
     expertise: 'defense',
-    selectionPitch: 'You were hired to take control. I will keep the building loud, demanding, and impossible to out-compete when the pressure rises.',
-    strengths: ['Locker-room intensity', 'Opponent pressure points', 'Accountability'],
+    selectionPitch: 'Choose me when starter or backup jobs need immediate fixes. I will flag Week 1 game-plan misses and matchup attacks before they cost games.',
+    strengths: ['Find exposed starters before Week 1', 'Set opponent matchup targets', 'Set practice roles before kickoff'],
     cardAccent: 'red',
-    welcomeMonologue: 'Welcome to the {teamName}. The room is yours now. I will keep the staff sharp, the players honest, and the pressure pointed in the right direction.',
+    welcomeMonologue: 'Welcome to the {teamName}. Identify exposed starters, uncovered first-backup jobs, Week 1 game-plan misses, and matchup calls first; if they wait, mistakes cost games.',
     teachingNarration: {
-      what_is_a_head_coach: 'Head coach is not just play sheet and speeches. That is the person who decides what the room tolerates when things get tight and who sets the edge for every staff meeting.',
-      what_is_a_scouting_director: 'Scouting director is your early-warning system. Good one tells you who can handle this league, who is fooling the stopwatch, and where the board is lying to you.',
+      what_is_a_head_coach: 'Hire the head coach who owns scheme, accountability, and tight-game reactions. Poor practice roles create missed assignments, morale damage, and lost fourth-quarter chances.',
+      what_is_a_scouting_director: 'Hire a scouting director who separates players with Week 1 or development roles from prospects without a defined job before draft deadlines, or picks get wasted.',
     },
-    catchphrase: 'We are NOT giving up easy yards.',
+    catchphrase: 'Fix the exposed position before kickoff.',
     toneModifiers: { enthusiasm: 0.95, bluntness: 0.85, humor: 0.25 },
   },
   {
     id: 'sandra_chen',
     name: 'Sandra Chen',
     title: 'Senior AGM, Player Development',
-    background: 'Former scout and player liaison who reads a room as quickly as she reads a stat line. Trusted by players and evaluators alike.',
+    background: 'Former scout and player liaison who flags role conflicts before morale or development stalls.',
     personality: 'player_whisperer',
     expertise: 'personnel',
-    selectionPitch: 'The roster is a people problem before it is a spreadsheet problem. I will help you see who can grow, who can lead, and who needs a clearer role.',
-    strengths: ['Player evaluation', 'Development arcs', 'Relationship capital'],
+    selectionPitch: 'Choose me when player roles and development snaps must be settled first. I will identify who needs development snaps, leadership work, or a new job before stalled development costs wins.',
+    strengths: ['Assign player jobs before snaps change', 'Protect development snaps before October', 'Flag morale fallout before cuts'],
     cardAccent: 'green',
-    welcomeMonologue: 'Welcome to the {teamName}. I have already been through the roster, and there are a few people in this building we can unlock fast if we handle them the right way.',
+    welcomeMonologue: 'Welcome to the {teamName}. Start by naming which players need defined roles, earned snaps, or depth protection now; ignore that and development stalls before October.',
     teachingNarration: {
-      what_is_a_head_coach: 'The head coach translates your plan into lived habits. Pick the right teacher and players grow into the system instead of surviving it.',
-      what_is_a_scouting_director: 'The scouting director tells you which people your building can believe in. That role matters because draft boards are about projection, trust, and context as much as raw talent.',
+      what_is_a_head_coach: 'Hire the head coach who turns your plan into practice reps, roles, and weekly assignments. A poor teacher slows development and leaves young players exposed.',
+      what_is_a_scouting_director: 'Hire the scouting director who names each prospect role, medical limit, and coachability warning. Missing role, medical, or coachability detail turns talent into expensive mistakes.',
     },
-    catchphrase: 'Trust the tape.',
+    catchphrase: 'Role, snaps, consequence.',
     toneModifiers: { enthusiasm: 0.6, bluntness: 0.55, humor: 0.1 },
   },
 ] as const;
 
 const POSITION_LABELS: Record<string, string> = {
   QB: 'quarterback',
-  RB: 'running back room',
-  WR: 'receiver room',
-  TE: 'tight end room',
+  RB: 'running backs',
+  WR: 'receivers',
+  TE: 'tight ends',
   OL: 'offensive line',
   DL: 'defensive line',
-  LB: 'linebacker room',
-  CB: 'corner room',
-  S: 'safety room',
-  K: 'kicker spot',
-  P: 'punter spot',
+  LB: 'linebackers',
+  CB: 'corners',
+  S: 'safeties',
+  K: 'kicker',
+  P: 'punter',
 };
 
 function formatMoney(value: number): string {
   const rounded = Math.round(value * 10) / 10;
   if (Number.isInteger(rounded)) return `$${rounded}M`;
   return `$${rounded.toFixed(1)}M`;
+}
+
+function ordinal(value: number): string {
+  const abs = Math.abs(value);
+  const teen = abs % 100;
+  if (teen >= 11 && teen <= 13) return `${value}th`;
+  switch (abs % 10) {
+    case 1:
+      return `${value}st`;
+    case 2:
+      return `${value}nd`;
+    case 3:
+      return `${value}rd`;
+    default:
+      return `${value}th`;
+  }
+}
+
+function schemeFitLabel(score: number): string {
+  if (score >= 75) return 'Week 1 jobs named';
+  if (score >= 55) return 'name jobs before Week 1';
+  return 'protect those jobs before Week 1';
+}
+
+function installRiskLabel(penalty: number): string {
+  if (penalty >= 18) return 'major Week 1 missed-assignment danger';
+  if (penalty >= 10) return 'extra Week 1 prep';
+  if (penalty > 0) return 'minor prep work';
+  return 'no extra prep';
+}
+
+function playerRoleLabel(ovr: number): string {
+  if (ovr >= 90) return 'elite starter';
+  if (ovr >= 85) return 'cornerstone starter';
+  if (ovr >= 80) return 'quality starter';
+  if (ovr >= 74) return 'playable starter';
+  if (ovr >= 68) return 'starter needing backup cover';
+  return 'first-backup job is uncovered';
+}
+
+function developmentGainLabel(delta: number): string {
+  if (delta >= 5) return 'major development jump';
+  if (delta >= 3) return 'development snaps increased';
+  if (delta > 0) return 'small development gain';
+  return 'no recent development gain';
+}
+
+function ownerTypeLabel(ownerType: GoalSelectionContext['ownerType']): string {
+  if (ownerType === 'win_now') return 'win-now';
+  if (ownerType === 'penny') return 'cost-conscious';
+  return 'patient';
+}
+
+function coachCommandLabel(level: number): string {
+  if (level >= 6) return 'veteran staff command';
+  if (level >= 4) return 'steady staff command';
+  return 'unproven staff command';
 }
 
 function joinNames(values: string[]): string {
@@ -171,6 +228,32 @@ function toneForWindow(windowPhase: FranchiseIntelBriefing['windowPhase']): AGMP
   if (windowPhase === 'peaking') return 'excited';
   if (windowPhase === 'opening') return 'measured';
   return 'concerned';
+}
+
+function windowPhaseSetupLine(windowPhase: FranchiseIntelBriefing['windowPhase']): string {
+  switch (windowPhase) {
+    case 'peaking':
+      return 'Ownership expects wins now; protect healthy starters, first backups, and cap space before spending picks.';
+    case 'opening':
+      return 'Young starters need protected roles before Week 1; save cap space for depth or injury fixes.';
+    case 'closing':
+      return 'Aging starters and tight cap space make early losses expensive; cover depth and cap answers before Week 1.';
+    case 'rebuilding':
+      return 'Young-player snaps and cap space decide the season; quick veteran fixes block development and later repairs.';
+  }
+}
+
+function windowPhasePlanLabel(windowPhase: FranchiseIntelBriefing['windowPhase']): string {
+  switch (windowPhase) {
+    case 'peaking':
+      return 'win-now';
+    case 'opening':
+      return 'young-roster';
+    case 'closing':
+      return 'aging-roster';
+    case 'rebuilding':
+      return 'development-first';
+  }
 }
 
 function buildInsight(category: AGMInsight['category'], text: string, dataPoint: string | null = null): AGMInsight {
@@ -242,8 +325,8 @@ function playerNameList(players: Array<{ name: string }>, limit = 3): string {
   return joinNames(players.slice(0, limit).map((player) => player.name));
 }
 
-function namesWithRatings(players: Array<{ name: string; ovr: number }>, limit = 3): string {
-  return joinNames(players.slice(0, limit).map((player) => `${player.name} (${player.ovr} OVR)`));
+function namesWithRoleLabels(players: Array<{ name: string; ovr: number }>, limit = 3): string {
+  return joinNames(players.slice(0, limit).map((player) => `${player.name} (${playerRoleLabel(player.ovr)})`));
 }
 
 function optionPlayers(option: SchemeOption): string {
@@ -314,14 +397,7 @@ export function toneAdjust(baseText: string, personality: AGMProfile['personalit
   const text = baseText.trim();
   if (text.length === 0) return text;
 
-  if (personality === 'analytical') {
-    if (/[0-9$%]/.test(text) || /\b[A-F][+]? grade\b/i.test(text)) {
-      return text.startsWith('The data') || text.startsWith('Numerically')
-        ? text
-        : `The data says ${text.charAt(0).toLowerCase()}${text.slice(1)}`;
-    }
-    return text.startsWith('The data') ? text : `Measuredly, ${text.charAt(0).toLowerCase()}${text.slice(1)}`;
-  }
+  if (personality === 'analytical') return text;
 
   if (personality === 'fiery') {
     const pumped = emphasizedFragment(text);
@@ -369,18 +445,18 @@ export function getExpertiseInsight(
     const data = phaseData as CapStrategyBriefing;
     const candidate = data.restructureCandidates[0] ?? data.cutCandidates[0];
     if (!candidate) {
-      return buildInsight('strength', 'There is no emergency cap move staring us in the face, which lets us stay disciplined.', data.capGrade);
+      return buildInsight('strength', 'Save cuts and restructures for a named starter, backup, or injury job; early cap moves remove injury-depth, extension, or deadline options.', data.capGrade);
     }
     if ('restructureSavings' in candidate) {
       return buildInsight(
         'opportunity',
-        `${candidate.playerName} is the cleanest lever on the board. A restructure opens room without blowing up the roster spine.`,
+      `Preview ${candidate.playerName}'s restructure before cutting players; it creates cap space while cuts force dead-money or depth loss.`,
         formatMoney(candidate.restructureSavings),
       );
     }
     return buildInsight(
       'warning',
-      `${candidate.playerName} is a hard value question. Cutting that deal creates relief, but only if we are ready to absorb the dead-money hit.`,
+      `${candidate.playerName} is a hard cap-cost question. Cutting that deal creates relief when the lineup or cap fix outweighs the dead-money hit.`,
       formatMoney(candidate.savingsIfCut),
     );
   }
@@ -390,8 +466,8 @@ export function getExpertiseInsight(
     const option = pickTopOption(data.offenseOptions);
     return buildInsight(
       'strength',
-      `${option.label} lets ${optionPlayers(option)} operate in the concepts they already execute cleanly.`,
-      `${option.fitScore} fit`,
+      `Choose ${option.label} to keep ${optionPlayers(option)} in roles they already run well before Week 1.`,
+      schemeFitLabel(option.fitScore),
     );
   }
 
@@ -399,18 +475,18 @@ export function getExpertiseInsight(
     const data = phaseData as SchemeSelectionContext;
     const option = pickTopOption(data.defenseOptions);
     const concept = option.schemeId === 'cover_3'
-      ? 'three-deep spacing and downhill pursuit'
+      ? 'three deep zones and quick tackling after short throws'
       : option.schemeId === 'man_press'
-        ? 'tight press technique and contested throws'
+        ? 'corners pressing receivers without extra safety protection'
         : option.schemeId === '4-3'
-          ? 'front-four pressure and clean linebacker fits'
+          ? 'four linemen rushing and linebackers owning run lanes'
           : option.schemeId === '3-4'
-            ? 'pressure from the second level'
-            : 'two-high discipline';
+            ? 'linebackers rushing, covering, and fitting the run'
+            : 'two deep safeties and tackling underneath';
     return buildInsight(
       'strength',
-      `${option.label} gives us ${concept}, and ${optionPlayers(option)} are the players most ready to execute it.`,
-      `${option.fitScore} fit`,
+      `Choose ${option.label} because it asks for ${concept}; keep ${optionPlayers(option)} in those jobs or Week 1 missed assignments start there.`,
+      schemeFitLabel(option.fitScore),
     );
   }
 
@@ -420,16 +496,16 @@ export function getExpertiseInsight(
     if (breakout) {
       return buildInsight(
         'opportunity',
-        `${breakout.playerName} is exactly the kind of player you bet on before the rest of the league catches up. The age curve and last-year jump both say arrow up.`,
-        `Age ${breakout.age}, +${breakout.ovrDelta} OVR`,
+        `Protect ${breakout.playerName}'s role before Week 1. Assign extra snaps through a defined scheme role, or the breakout turns into wasted development weeks.`,
+        `Age ${breakout.age}, ${developmentGainLabel(breakout.ovrDelta)}`,
       );
     }
     const anchor = data.starPlayers[0];
     if (!anchor) return null;
     return buildInsight(
       'strength',
-      `${anchor.name} is a clean personnel anchor. When your best player is this bankable, roster decisions get clearer around him.`,
-      `${anchor.ovr} OVR`,
+      `Protect ${anchor.name}'s weekly job before major roster moves; taking snaps, cap space, or practice reps away from his position group creates a Week 1 lineup or development miss.`,
+      playerRoleLabel(anchor.ovr),
     );
   }
 
@@ -440,8 +516,8 @@ export function getExpertiseInsight(
     if (!qbRoom || !receiverRoom) return null;
     return buildInsight(
       'strength',
-      `${autoSetNames(data, 'QB')} throwing into a ${data.selectedOffenseScheme} structure with ${receiverRoom.players[0]?.name ?? 'the receiver room'} is the cleanest version of this offense.`,
-      `${qbRoom.players[0]?.fitScore ?? 0} QB fit`,
+      `${autoSetNames(data, 'QB')} throwing into a ${data.selectedOffenseScheme} structure with ${receiverRoom.players[0]?.name ?? 'the receivers'} is the Week 1 passing order with the fewest missed-protection sacks.`,
+      schemeFitLabel(qbRoom.players[0]?.fitScore ?? 0),
     );
   }
 
@@ -453,8 +529,8 @@ export function getExpertiseInsight(
     if (!youngPlayer) return null;
     return buildInsight(
       'opportunity',
-      `${youngPlayer.name} is exactly the kind of player you create runway for during setup. The fit is good enough to justify more snaps right away.`,
-      `${youngPlayer.fitScore} fit`,
+      `Give ${youngPlayer.name} controlled setup snaps in a package named by down, distance, or formation; otherwise development slows or starter-level mistakes arrive too early.`,
+      schemeFitLabel(youngPlayer.fitScore),
     );
   }
 
@@ -465,8 +541,8 @@ export function getExpertiseInsight(
     if (!defender) return null;
     return buildInsight(
       defender.ovr >= 85 ? 'strength' : 'warning',
-      `${defender.name} is setting the tone for the defense right now. That position group will look like him, for better or worse.`,
-      `${defender.ovr} OVR`,
+      `Set ${defender.name} as the defensive reference point. If opponents target that role, protect it with scheme or depth before Week 1.`,
+      playerRoleLabel(defender.ovr),
     );
   }
 
@@ -476,7 +552,7 @@ export function getExpertiseInsight(
     if (!capGoal) return null;
     return buildInsight(
       capGoal.recommended ? 'opportunity' : 'warning',
-      `${capGoal.label} is not a throwaway checkbox. It changes how aggressive we can be once extension season hits.`,
+      `Choose ${capGoal.label} when you are willing to limit extension and veteran-add aggression once cap decisions arrive.`,
       capGoal.difficulty,
     );
   }
@@ -495,7 +571,7 @@ function getSecondaryExpertiseInsight(
     if (!biggest) return null;
     return buildInsight(
       biggest.value === 'Overpay' ? 'warning' : 'strength',
-      `${biggest.name} sets the tone for the whole cap sheet. If that contract is right, the structure works. If it is wrong, every other move gets tighter.`,
+      `Compare ${biggest.name}'s role, production, and ${formatMoney(biggest.salary)} cap hit before adding contracts; an inefficient deal shrinks injury, trade, and extension money.`,
       formatMoney(biggest.salary),
     );
   }
@@ -505,8 +581,8 @@ function getSecondaryExpertiseInsight(
     const bottom = pickBottomOption(data.offenseOptions);
     return buildInsight(
       'warning',
-      `${bottom.label} asks the offense to live somewhere this roster is not built to live. ${playerNameList(bottom.worstFitPlayers)} would feel that mismatch immediately.`,
-      `${bottom.transitionPenalty}-point penalty`,
+      `${bottom.label} asks the offense to run roles this roster is not built to handle. Protect ${playerNameList(bottom.worstFitPlayers)} or Week 1 missed assignments start there.`,
+      installRiskLabel(bottom.transitionPenalty),
     );
   }
 
@@ -515,8 +591,8 @@ function getSecondaryExpertiseInsight(
     const bottom = pickBottomOption(data.defenseOptions);
     return buildInsight(
       'warning',
-      `${bottom.label} would put ${playerNameList(bottom.worstFitPlayers)} in uncomfortable spots snap after snap.`,
-      `${bottom.transitionPenalty}-point penalty`,
+      `Avoid ${bottom.label} when ${playerNameList(bottom.worstFitPlayers)} lack depth protection; otherwise the same unprotected assignment repeats snap after snap.`,
+      installRiskLabel(bottom.transitionPenalty),
     );
   }
 
@@ -526,8 +602,8 @@ function getSecondaryExpertiseInsight(
     if (!weakStarter) return null;
     return buildInsight(
       'warning',
-      `${weakStarter.name} is the kind of starter you monitor from the first day of camp. If that room slips, we need a succession plan fast.`,
-      `${weakStarter.ovr} OVR`,
+      `Name ${weakStarter.name}'s Week 1 job and backup order now. If that position slips, start a succession plan before the lineup costs games.`,
+      playerRoleLabel(weakStarter.ovr),
     );
   }
 
@@ -588,29 +664,35 @@ export function getAGMScoutReaction(agmId: string, scoutId: string): { recommend
 export function agmOnIntelBriefing(data: FranchiseIntelBriefing, agm: AGMProfile): AGMPhaseDialogue {
   const tone = toneForWindow(data.windowPhase);
   const strength = data.strengths[0] ? formatPositionGroup(data.strengths[0]) : 'the roster core';
-  const concern = data.criticalNeeds[0] ? formatPositionGroup(data.criticalNeeds[0]) : 'the margin for error';
+  const concern = data.criticalNeeds[0] ? formatPositionGroup(data.criticalNeeds[0]) : 'the first uncovered starter or first-backup job';
   const insights = finalizeInsights('intel_briefing', [
-    buildInsight('strength', `${strength} is carrying the cleanest grade on the team right now. That is where the roster can dictate games early.`, data.strengths[0] ?? null),
-    buildInsight('concern', `${concern} is the first leak opponents will test. If we do nothing there, the division will find it.`, data.criticalNeeds[0] ?? null),
+    buildInsight('strength', `${strength} has Week 1 starters and first backups already set. Keep that order, then spend picks or cap space where weaker starters or backups cost Week 1 possessions.`, data.strengths[0] ?? null),
+    buildInsight('concern', `${concern} is the first starter or backup group opponents will attack. Address depth, protection, or Game Plan calls there before Week 1.`, data.criticalNeeds[0] ?? null),
     buildInsight(
       data.capGrade === 'A' || data.capGrade === 'B' ? 'opportunity' : 'warning',
-      `The cap picture comes in at a ${data.capGrade} grade with ${formatMoney(data.capSpace)} in space. That either gives us flexibility or forces restraint.`,
-      `${data.capGrade} / ${formatMoney(data.capSpace)}`,
+      data.capGrade === 'A' || data.capGrade === 'B'
+        ? `Cap space is ${formatMoney(data.capSpace)}. Spend it on injury depth, extensions, or one starter upgrade with a named Week 1 job.`
+        : `Cap space is ${formatMoney(data.capSpace)}. Preview a cut, restructure, or delayed move before new spending.`,
+      formatMoney(data.capSpace),
     ),
     buildInsight(
       data.leagueRank <= 8 ? 'strength' : data.leagueRank >= 20 ? 'warning' : 'opportunity',
-      `League-wide, we are walking in around ${data.leagueRank} right now. That gives us a clean benchmark for how urgent this climb is.`,
-      `${data.leagueRank}th`,
+      data.leagueRank <= 8
+        ? `The ${ordinal(data.leagueRank)} league rank supports win-now moves; name starter and backup cover first or one mistake wastes that advantage.`
+        : data.leagueRank >= 20
+        ? `Treat the ${ordinal(data.leagueRank)} league rank as an owner-patience warning. Overpromised wins spend picks or contracts before the roster is ready.`
+          : `Treat the ${ordinal(data.leagueRank)} league rank as the reason to choose one starter fix now; one depth mistake costs a playoff game or division tiebreaker.`,
+      ordinal(data.leagueRank),
     ),
   ], data, agm);
 
   return makeDialogue(
     'intel_briefing',
     agm,
-    `We are opening this build in a ${data.windowPhase} window with a ${data.windowScore}-point trajectory marker.`,
+    `${windowPhaseSetupLine(data.windowPhase)} Depth, cap space, and scheme choices decide whether Week 1 starts with backups covered or injury fixes blocked.`,
     insights,
     null,
-    'Next, let me show you the roster and where the real pressure points live.',
+    'Next, name which starter jobs, first-backup jobs, and cap choices must be handled before Week 1.',
     tone,
   );
 }
@@ -622,49 +704,49 @@ export function agmOnRosterOverview(data: RosterOverview, agm: AGMProfile): AGMP
     data.starPlayers.length > 0
       ? buildInsight(
         'strength',
-        `${namesWithRatings(data.starPlayers)} give this roster real top-end juice. Those are the names opponents will build the scouting report around.`,
+        `Build scheme, snaps, and protection around ${namesWithRoleLabels(data.starPlayers)}; opponents will try to take those players away first.`,
         `${data.starPlayers.length} star players`,
       )
       : buildInsight(
         'warning',
-        'There is not a single 85-plus cornerstone on the board yet. That means we have to win with structure and development instead of raw star power.',
+        'No 85-plus cornerstone is carrying this roster. Set legal starters, protect development snaps, and cover the first uncovered starter or first-backup job, or Week 1 mistakes force emergency veteran fixes.',
         '0 star players',
       ),
     data.risingStars.length > 0
       ? buildInsight(
         'opportunity',
-        `${data.risingStars[0]!.playerName} is the breakout I keep circling. That kind of age-and-growth profile changes the timetable fast.`,
-        `Age ${data.risingStars[0]!.age}, +${data.risingStars[0]!.ovrDelta} OVR`,
+        `Prioritize ${data.risingStars[0]!.playerName} as the breakout candidate. Protect his role now, or recent growth turns into wasted development weeks.`,
+        `Age ${data.risingStars[0]!.age}, ${developmentGainLabel(data.risingStars[0]!.ovrDelta)}`,
       )
       : buildInsight(
         'warning',
-        'I do not see an obvious breakout candidate from last year’s data. That raises the importance of getting the scheme and snaps right.',
+        'I do not see an obvious breakout candidate from last year’s data. Set scheme and snaps deliberately, or an unassigned role wastes development weeks.',
         null,
       ),
     data.injuredPlayers.length > 0
       ? buildInsight(
         'concern',
-        `${data.injuredPlayers[0]!.name} is already unavailable, so the depth picture is stressed before we even hit the first checkpoint.`,
+        `${data.injuredPlayers[0]!.name} is already unavailable. Name the replacement before saving depth, or Week 1 uses an uncovered backup.`,
         `${data.injuredPlayers[0]!.gamesOut} games out`,
       )
       : buildInsight(
         'strength',
-        'Health is not screaming at us right now. That gives the staff a clean runway to install the plan.',
+        'No major injury is flagged yet. Assign practice reps to scheme responsibilities and set the first backups.',
         null,
       ),
   ], data, agm);
 
   const recommendation = anchor
-    ? `${anchor} is the franchise touchpoint for me. Every major setup decision should make that player harder to defend or easier to support.`
-    : 'We do not have a single franchise tentpole yet, so the recommendation is to build the cleanest collective fit possible.';
+    ? `${anchor} is the first player to protect. Before any major setup decision, name his role, backup cover, and cap cost; taking snaps, cap space, or practice reps away from his position group creates a Week 1 lineup or development miss.`
+    : 'When no star anchors setup, set legal starters, first backups, development snaps, and the first uncovered starter or first-backup job before Week 1; otherwise first-game mistakes force emergency fixes.';
 
   return makeDialogue(
     'meet_roster',
     agm,
-    `We are looking at ${data.rosterSize} players, and I already know which rooms feel like answers and which ones feel like conversations.`,
+    `Name starters, first backups, and protected stars across all ${data.rosterSize} players now; uncovered jobs decide which positions need a depth-chart change, signing, trade, or cap move before Week 1.`,
     insights,
     recommendation,
-    'Now let’s see whether the staff in the building matches what this roster needs.',
+    'Now choose the coach who owns play calls and protects the roles this roster must run before Week 1.',
     tone,
   );
 }
@@ -676,24 +758,24 @@ export function agmOnHireCoach(data: CoachingStaffReview, agm: AGMProfile): AGMP
   const dc = data.coordinators.find((coach) => coach.role === 'DC');
   const insights = finalizeInsights('hire_coach', [
     data.headCoach.vacant
-      ? buildInsight('warning', 'The head coach chair is vacant, which means identity has to come from the roster until that role is stabilized.', 'HC vacancy')
+      ? buildInsight('warning', 'The head coach job is vacant. Until we hire one, scheme calls, practice roles, and player development stay unresolved.', 'HC vacancy')
       : buildInsight(
         'strength',
-        `${data.headCoach.name} brings a ${data.headCoach.archetype} profile with level ${data.headCoach.level}. That gives us a real point of view at the top.`,
-        `Level ${data.headCoach.level}`,
+        `${data.headCoach.name} is a ${data.headCoach.archetype} coach with ${coachCommandLabel(data.headCoach.level)}. Match coordinator roles to his scheme before Week 1, or practice install slows and young-player snaps get wasted.`,
+        coachCommandLabel(data.headCoach.level),
       ),
     oc?.vacant
-      ? buildInsight('warning', 'Offensive coordination is unsettled. That puts more pressure on us to choose something simple and executable.', 'OC vacancy')
+      ? buildInsight('warning', 'The offensive coordinator job is open. Choose protection, tempo, and receiver calls that fit current blockers and receivers now; complex calls create Week 1 missed assignments.', 'OC vacancy')
       : buildInsight(
         'opportunity',
-        `${oc!.name} gives the offense its cleanest lean with ${oc!.specialty ?? 'generalist'} seasoning. That matters when we pick the menu.`,
+        `${oc!.name} gives the offense a ${oc!.specialty ?? 'generalist'} base. Build Game Plan calls from that base before kickoff.`,
         oc!.specialty,
       ),
     dc?.vacant
-      ? buildInsight('warning', 'The defensive staff is missing a real organizer right now. Any aggressive shift on that side carries more risk.', 'DC vacancy')
+      ? buildInsight('warning', 'The defensive coordinator job is open. Avoid blitz or man-coverage changes until roles are assigned, or the least protected defenders get isolated before Week 1.', 'DC vacancy')
       : buildInsight(
         'strength',
-        `${dc!.name} can actually support the recommended defensive identity instead of fighting it. That is a good place to start.`,
+        `${dc!.name} gives the defense a ${dc!.specialty ?? 'generalist'} base. Assign each defender a run, coverage, or blitz job before kickoff.`,
         dc!.specialty,
       ),
   ], data, agm);
@@ -701,10 +783,10 @@ export function agmOnHireCoach(data: CoachingStaffReview, agm: AGMProfile): AGMP
   return makeDialogue(
     'hire_coach',
     agm,
-    'The next head coach hire sets the temperature of the whole building. This is where process becomes identity.',
+    'The next head coach hire sets scheme calls, practice roles, and player development. Calls that do not match current starters slow every setup choice after this.',
     insights,
-    `I want a head coach who can carry ${data.schemeRecommendation.offenseLabel} on offense and ${data.schemeRecommendation.defenseLabel} on defense without making the roster feel like it is learning a new language every week.`,
-    'Once the head coach is in place, we can decide who should be feeding the board next.',
+    `Hire a head coach whose playbook installs ${data.schemeRecommendation.offenseLabel} and ${data.schemeRecommendation.defenseLabel} without forcing current players into weekly roles outside their assignments.`,
+    'After the head coach is in place, hire the scout who names medical limits, assigned-role warnings, and coachability warnings for that scheme before picks become roster costs.',
     tone,
   );
 }
@@ -716,28 +798,28 @@ export function agmOnHireScout(data: FranchiseIntelBriefing, agm: AGMProfile): A
   const insights = finalizeInsights('hire_scout', [
     buildInsight(
       'opportunity',
-      `${formatPositionGroup(data.criticalNeeds[0] ?? 'roster depth')} is the first place our scouting room has to beat consensus.`,
+      `${formatPositionGroup(data.criticalNeeds[0] ?? 'roster depth')} is the first position where scouting must identify draftable starters before we spend picks or cap space.`,
       data.criticalNeeds[0] ?? null,
     ),
     buildInsight(
       'strength',
-      `${formatPositionGroup(data.strengths[0] ?? 'the roster core')} gives us enough stability to draft for upside instead of pure panic.`,
+      `${formatPositionGroup(data.strengths[0] ?? 'the roster core')} has Week 1 starters covered. Scout that position for next-year starter succession before injuries, age, or contracts force an expensive emergency patch.`,
       data.strengths[0] ?? null,
     ),
     buildInsight(
       data.capGrade === 'A' || data.capGrade === 'B' ? 'strength' : 'warning',
-      `The better our intel, the less money we waste solving the same need twice. That matters with a ${data.capGrade} cap picture.`,
-      data.capGrade,
+      `Hire scouting that names the starter or backup job before picks or free-agent money pay twice for the same fix; current cap space is ${formatMoney(data.capSpace)}.`,
+      formatMoney(data.capSpace),
     ),
   ], data, agm);
 
   return makeDialogue(
     'hire_scout',
     agm,
-    'Scouting is how we buy tomorrow before the rest of the league knows the price.',
+    'Scouting finds future starters before missed medical limits, unnamed player jobs, or coachability warnings force a draft reach or free-agent overpay.',
     insights,
-    'I want a director who sharpens the board in the lane this franchise is most likely to exploit over the next three drafts.',
-    'After this hire, we can start deciding what brand of football these evaluations need to serve.',
+    'Hire a director who names medical limits, coachability warnings, and the assigned player job for the biggest uncovered starter or backup spot before the next three drafts spend picks.',
+    'After this hire, choose schemes that match the roles scouting has named before draft picks become roster costs.',
     tone,
   );
 }
@@ -751,28 +833,28 @@ export function agmOnSchemeSelection(data: SchemeSelectionContext, agm: AGMProfi
   const insights = finalizeInsights('set_scheme', [
     buildInsight(
       'strength',
-      `${bestOffense.label} is the cleanest offensive fit on the board. ${optionPlayers(bestOffense)} are the names that make it feel natural instead of forced.`,
-      `${bestOffense.fitScore} fit`,
+      `${bestOffense.label} protects the offense now. Keep ${optionPlayers(bestOffense)} in calls they already know, or Week 1 missed assignments start in protection and timing.`,
+      schemeFitLabel(bestOffense.fitScore),
     ),
     buildInsight(
       'strength',
-      `${bestDefense.label} is the best defensive answer for the personnel we actually have. ${optionPlayers(bestDefense)} give it real teeth.`,
-      `${bestDefense.fitScore} fit`,
+      `Choose ${bestDefense.label} for the current defenders. Keep ${optionPlayers(bestDefense)} in roles with coverage or run-defense protection, or Week 1 mistakes start there.`,
+      schemeFitLabel(bestDefense.fitScore),
     ),
     buildInsight(
       'warning',
-      `${worstOffense.label} with ${worstDefense.label} is the pairing I would keep furthest from the call sheet. ${playerNameList([...worstOffense.worstFitPlayers, ...worstDefense.worstFitPlayers])} would feel that mismatch immediately.`,
-      `${worstOffense.transitionPenalty + worstDefense.transitionPenalty}-point transition hit`,
+      `${worstOffense.label} with ${worstDefense.label} is the pairing I would keep furthest from the game plan. Protect ${playerNameList([...worstOffense.worstFitPlayers, ...worstDefense.worstFitPlayers])} or Week 1 missed assignments start there.`,
+      installRiskLabel(worstOffense.transitionPenalty + worstDefense.transitionPenalty),
     ),
   ], data, agm);
 
   return makeDialogue(
     'set_scheme',
     agm,
-    'This is the phase that decides whether our roster is playing fast or swimming upstream.',
+    'This phase decides whether Week 1 calls match current assignments or cost preparation time adapting.',
     insights,
-    `If it were up to me, I would run ${bestOffense.label} with ${bestDefense.label}. We are talking about ${bestOffense.fitScore}/${bestDefense.fitScore} fit scores, a manageable ${bestOffense.transitionPenalty + bestDefense.transitionPenalty}-point transition hit, and core players like ${optionPlayers(bestOffense)} and ${optionPlayers(bestDefense)} living where they should.`,
-    'Set the schemes, then we can clean up who earns the first snaps inside them.',
+    `Choose ${bestOffense.label} with ${bestDefense.label} because the current starters already match those run, pass, coverage, and run-defense jobs. Keep ${optionPlayers(bestOffense)} and ${optionPlayers(bestDefense)} in those jobs; late scheme changes create missed assignments before Week 1.`,
+    'Set the schemes, then decide who earns the first snaps inside them.',
     tone,
   );
 }
@@ -784,16 +866,16 @@ export function agmOnDepthChart(data: DepthChartContext, agm: AGMProfile): AGMPh
   const tone: AGMPhaseDialogue['tone'] = data.activeBattles.length > 0 ? 'measured' : 'confident';
   const insights = finalizeInsights('depth_chart', [
     battleLine
-      ? buildInsight('opportunity', `${battleLine} That one deserves a real look before we call it settled.`, null)
-      : buildInsight('strength', 'There are not many real starter-level battles here, which means the top of the depth chart is relatively clear.', null),
+      ? buildInsight('opportunity', `${battleLine} Name current ability, assigned role, and the Week 1 snap consequence before saving that order.`, null)
+      : buildInsight('strength', 'Starter order has fewer conflicts. Name backups, third-down roles, and injury cover before saving the order.', null),
     buildInsight(
       'strength',
-      `If we auto-set this board right now, the offense starts with ${qbNames} and the main receiver group is ${wrNames}. That gives the install a coherent first picture.`,
+      `If we auto-set this depth chart right now, the offense starts with ${qbNames} and the main receiver group is ${wrNames}. That gives Week 1 a legal starting order to edit before it locks.`,
       data.selectedOffenseScheme,
     ),
     buildInsight(
       'opportunity',
-      `${data.selectedOffenseScheme} on offense and ${data.selectedDefenseScheme} on defense will change who earns tie-breakers. Fit score matters more than familiarity in the last couple of slots.`,
+      `Apply ${data.selectedOffenseScheme} and ${data.selectedDefenseScheme} role demands to break close backup and package-role ties before saving the lineup.`,
       `${data.activeBattles.length} active battles`,
     ),
   ], data, agm);
@@ -801,10 +883,10 @@ export function agmOnDepthChart(data: DepthChartContext, agm: AGMProfile): AGMPh
   return makeDialogue(
     'depth_chart',
     agm,
-    'Now we stop talking in generalities and start deciding who actually runs out there first.',
+    'Now we choose starters, backups, and the first players who lose snaps if the saved order leaves a backup uncovered.',
     insights,
-    `My default move is to auto-set the board, then manually revisit the rooms with true competition. The first audit for me would be ${data.activeBattles[0]?.slotLabel ?? 'the fringe starter spots'}.`,
-    'Once the depth chart is honest, the cap conversation gets a lot clearer.',
+    `Auto-set gives a legal starting order, not the final lineup. Save it, then set ${data.activeBattles[0]?.slotLabel ?? 'backup roles, third-down spots, and injury cover'} before Advance Week locks the lineup.`,
+    'Once the depth chart matches the roster, the cap plan targets the exact contracts, injuries, or depth spots where a contract, injury replacement, or roster move still protects the lineup.',
     tone,
   );
 }
@@ -818,50 +900,50 @@ export function agmOnCapStrategy(data: CapStrategyBriefing, agm: AGMProfile): AG
   const insights = finalizeInsights('cap_strategy', [
     buildInsight(
       data.capGrade === 'A' || data.capGrade === 'B' ? 'strength' : 'warning',
-      `The cap sheet grades out at ${data.capGrade} with ${formatMoney(data.capSpace)} in room and ${formatMoney(data.deadCap)} in dead money. That sets the boundary for everything else.`,
-      `${data.capGrade} / ${formatMoney(data.capSpace)}`,
+      `Cap space is ${formatMoney(data.capSpace)} with ${formatMoney(data.deadCap)} in dead money. Adding players now forces a tradeoff: cut, restructure, or save fewer moves for later injuries and extensions.`,
+      `${formatMoney(data.capSpace)} space`,
     ),
     biggest
       ? buildInsight(
         biggest.value === 'Overpay' ? 'warning' : 'strength',
-        `${biggest.name} is carrying one of the defining contracts on this roster at ${formatMoney(biggest.salary)}. The value tag says ${biggest.value}.`,
-        `${formatMoney(biggest.salary)} for ${biggest.ovr} OVR`,
+        `${biggest.name} carries one of the largest cap commitments at ${formatMoney(biggest.salary)}. Compare his role and production before adding another contract; otherwise cap space for injuries, trades, and extensions shrinks.`,
+        `${formatMoney(biggest.salary)} for ${playerRoleLabel(biggest.ovr)}`,
       )
-      : buildInsight('strength', 'There is no single contract distorting the whole picture right now.', null),
+      : buildInsight('strength', 'No contract demands an emergency move right now; save cap space for the next starter fix, backup fix, injury, or extension deadline.', null),
     restructure
       ? buildInsight(
         'opportunity',
-        `${restructure.playerName} is the first restructure I would model. There is real relief there without immediately losing the player.`,
+        `${restructure.playerName} is the first restructure to test. Run it when the new cap space pays for a needed starter, injury replacement, or deadline move.`,
         formatMoney(restructure.restructureSavings),
       )
       : cut
         ? buildInsight(
           'warning',
-          `${cut.playerName} is the cleanest release valve if we have to make a hard cap move.`,
+          `Cut ${cut.playerName} first when a hard cap move is required; the move creates cap space and removes lineup or first-backup protection.`,
           formatMoney(cut.savingsIfCut),
         )
         : buildInsight(
           expiring ? 'opportunity' : 'strength',
           expiring
-            ? `${expiring.name} is the first expiring deal I would calendar. That negotiation will shape the season’s flexibility.`
-            : 'There is no immediate contract fire here, which buys us patience.',
+            ? `${expiring.name} is the first expiring deal I would schedule. That negotiation affects future cap space and whether the player reaches free agency.`
+            : 'No immediate contract emergency is forcing a move. Save that cap action until injury, loss, or an extension deadline identifies the starter, backup, or contract fix.',
           expiring ? formatMoney(expiring.capHit) : null,
         ),
   ], data, agm);
 
   const recommendation = restructure
-    ? `The first cap study for me is ${restructure.playerName}. If we need instant room, that is the lever I pull before I start subtracting good players.`
+    ? `The first cap study is ${restructure.playerName}. Run that restructure before a cut when the new cap space protects a needed starter or replacement plan.`
     : cut
-      ? `If we need to create room right now, ${cut.playerName} is the uncomfortable but cleanest conversation on the board.`
-      : 'My recommendation is restraint. The right move might be doing nothing until the season gives us more information.';
+      ? `If cap space must be created today, cut ${cut.playerName} first when the cap-space fix outweighs weakening the lineup or first backup group.`
+      : 'Save cap space until injuries, losses, or an extension deadline names the starter, backup, or contract fix; early spending blocks that fix.';
 
   return makeDialogue(
     'cap_strategy',
     agm,
-    'This is where we decide whether the books are helping the roster or quietly dragging it down.',
+    'This is where we decide whether cap space pays for injury replacements, extensions, and trades, or forces cuts and delayed upgrades.',
     insights,
     recommendation,
-    'Cap plan is set. Let’s make sure the goals match the roster and the owner.',
+    'Cap plan is set. Now choose goals the roster is built to defend without spending cap space on contracts that block later fixes or shorten owner patience.',
     tone,
   );
 }
@@ -872,17 +954,17 @@ export function agmOnGoalSelection(data: GoalSelectionContext, agm: AGMProfile):
   const insights = finalizeInsights('set_goals', [
     buildInsight(
       data.ownerType === 'win_now' ? 'warning' : 'opportunity',
-      `Ownership is coming in as ${data.ownerType}. ${data.ownerExpectations}`,
-      data.ownerType,
+      `Open the ${ownerTypeLabel(data.ownerType)} owner reaction before choosing promises. ${data.ownerExpectations}`,
+      ownerTypeLabel(data.ownerType),
     ),
     buildInsight(
       'strength',
-      `${labels[0] ?? 'The top goal'} is recommended for a reason: ${data.recommendedGoals[0]?.reason ?? 'it is the best fit for this roster state.'}`,
+      `Choose ${labels[0] ?? 'the top goal'} to protect the season plan: ${data.recommendedGoals[0]?.reason ?? 'it matches starter strength, cap space, and owner patience.'}`,
       data.recommendedGoals[0]?.difficulty ?? null,
     ),
     buildInsight(
       'opportunity',
-      `The full recommended stack is ${joinNames(labels)}. That combination matches the roster stage without pretending we are a different team than we are.`,
+      `Choose the full recommended goal set: ${joinNames(labels)}. That keeps owner expectations tied to current starters, cap space, and Week 1 lineup jobs.`,
       `${labels.length} goals`,
     ),
   ], data, agm);
@@ -890,10 +972,10 @@ export function agmOnGoalSelection(data: GoalSelectionContext, agm: AGMProfile):
   return makeDialogue(
     'set_goals',
     agm,
-    'Goals sound soft until they start driving owner pressure, roster timing, and what counts as a successful season.',
+    'Owner goals decide what ownership judges, when roster upgrades are expected, and how losses affect patience.',
     insights,
-    `My recommendation is ${joinNames(labels)}. That set of goals fits the current roster, the owner profile, and the risk profile we are walking into.`,
-    'One last thing after this: I’ll put the whole franchise blueprint in one place.',
+    `My recommendation is ${joinNames(labels)}. That set protects the current roster, owner patience, cap limits, and Week 1 lineup jobs.`,
+    'After goals, open the blueprint so staff, scheme, depth, cap, and owner promises are in one place before Week 1.',
     tone,
   );
 }
@@ -902,31 +984,31 @@ export function agmOnBlueprint(data: FranchiseBlueprint, agm: AGMProfile): AGMPh
   const keyNames = joinNames(data.keyPlayers.map((player) => player.name));
   const goalNames = joinNames(data.seasonGoals.map((goal) => goal.label));
   const closingByPersonality: Record<AGMProfile['personality'], string> = {
-    analytical: 'The data says this plan gives us the best probability of success. Now let’s execute.',
-    fiery: 'This is OUR year, Coach. I can feel it. Let’s go get that trophy.',
-    old_school: 'Good plan. Now the hard part is playing the games. One week at a time.',
-    player_whisperer: 'The roster is set, the direction is clear, and now we find out what these players are made of.',
+    analytical: 'This plan names the cost, deadline, and Week 1 starter job, cap move, or Game Plan call. Now set weekly roster, cap, and Game Plan choices before Advance Week locks them.',
+    fiery: 'Week 1 starts from this plan. Set prep, depth, and cap choices every week or one uncovered starter or first-backup job costs games.',
+    old_school: 'Plan set. Now save the legal lineup, prep the opponent, and spend cap space on a starter, depth, or injury need.',
+    player_whisperer: 'Roles are assigned now. Set snaps, morale, and development choices every week or young players stall and veterans lose morale.',
   };
   const tone: AGMPhaseDialogue['tone'] = data.windowPhase === 'peaking' ? 'excited' : 'confident';
   const insights = finalizeInsights('blueprint', [
     buildInsight(
       'strength',
-      `${data.selectedSchemes.offenseLabel} on offense and ${data.selectedSchemes.defenseLabel} on defense give the team a real identity instead of a placeholder one.`,
+      `${data.selectedSchemes.offenseLabel} on offense and ${data.selectedSchemes.defenseLabel} on defense give the team a Week 1 plan instead of a placeholder install.`,
       `${data.selectedSchemes.offenseLabel} / ${data.selectedSchemes.defenseLabel}`,
     ),
     buildInsight(
       'strength',
-      `${keyNames} are the players this whole plan is built around. If they hit, the blueprint breathes.`,
+      `${keyNames} are the players this plan leans on. If they are hurt, overloaded, or missing depth protection, fix roles, backups, or cap before Advance Week.`,
       `${data.keyPlayers.length} key players`,
     ),
     buildInsight(
       'opportunity',
-      `${goalNames} is the standard we are putting on the wall. That is ambitious enough to matter and grounded enough to track.`,
-      data.windowPhase,
+      `${goalNames} are the goals we are committing to. Missing them affects owner patience; protect them weekly with roster, cap, and depth-chart decisions.`,
+      windowPhasePlanLabel(data.windowPhase),
     ),
     buildInsight(
       'warning',
-      `${joinNames(data.criticalNeeds.map((need) => formatPositionGroup(need)))} remain the parts of the roster we cannot stop watching.`,
+      `Before Advance Week, set depth-chart order and preview cap options for ${joinNames(data.criticalNeeds.map((need) => formatPositionGroup(need)))}; those starter and backup groups cost games if backups or money are left unresolved.`,
       data.capOutlook,
     ),
   ], data, agm);
@@ -934,9 +1016,9 @@ export function agmOnBlueprint(data: FranchiseBlueprint, agm: AGMProfile): AGMPh
   return makeDialogue(
     'blueprint',
     agm,
-    `${data.teamName} now has a plan: ${data.selectedSchemes.offenseLabel}, ${data.selectedSchemes.defenseLabel}, and a window labeled ${data.windowPhase}.`,
+    `Open ${data.teamName}'s Week 1 plan now: ${data.selectedSchemes.offenseLabel}, ${data.selectedSchemes.defenseLabel}, and ${windowPhasePlanLabel(data.windowPhase)} priorities.`,
     insights,
-    `If I had to summarize the blueprint in one line, it is this: support ${keyNames}, keep the critical needs from caving in, and chase ${goalNames}.`,
+    `Protect ${keyNames} and fix starter and backup groups before they cost games; ${goalNames} stay realistic only if weekly roster and cap choices preserve that plan before Advance Week.`,
     closingByPersonality[agm.personality],
     tone,
   );
@@ -953,38 +1035,37 @@ export function agmReactsToSchemeChoice(
   const { offense, defense, weakest } = weakerSchemeSide(context, chosenOffense, chosenDefense);
   const avgFit = Math.round((offense.fitScore + defense.fitScore) / 2);
   const minFit = Math.min(offense.fitScore, defense.fitScore);
-  const totalTransitionPenalty = offense.transitionPenalty + defense.transitionPenalty;
   const weakerSide = weakest === offense ? 'offense' : 'defense';
   const worstFitNames = playerNameList(weakest.worstFitPlayers);
 
   if (offense.schemeId === bestOffense.schemeId && defense.schemeId === bestDefense.schemeId) {
     return {
       sentiment: 'love_it',
-      reaction: withTone(`That is exactly the pairing I would have called. Our personnel is built for ${offense.label} and ${defense.label}.`, agm),
-      followUp: withTone(`Now we get to coach the roster we have instead of apologizing for it.`, agm),
+      reaction: withTone(`Lock ${offense.label} with ${defense.label}; current players have the fewest immediate role conflicts for that Week 1 install.`, agm),
+      followUp: withTone('Assign prep days to protection, coverage, and run-defense jobs; missed assignments become Week 1 mistakes by kickoff.', agm),
     };
   }
 
   if (avgFit > 70 && minFit >= 50) {
     return {
       sentiment: 'like_it',
-      reaction: withTone(`Not my first call, but I can see the vision. ${offense.label} with ${defense.label} still gives us enough fit to operate.`, agm),
-      followUp: withTone(`The weaker side is ${weakerSide}, so that is the room I would monitor first.`, agm),
+      reaction: withTone(`Run ${offense.label} with ${defense.label} after naming the ${weakerSide} starters and calls before Week 1.`, agm),
+      followUp: withTone(`Name the ${weakerSide} starters and calls first; a role without enough player skill or backup protection turns this pairing into drive-costing mistakes.`, agm),
     };
   }
 
   if (avgFit < 35 || minFit < 35) {
     return {
       sentiment: 'disagree',
-      reaction: withTone(`I will back your call, but the tape says this is going to be rough. The ${weakerSide} side is carrying only a ${minFit} fit and the roster would need real turnover.`, agm),
-      followUp: withTone(`That pairing brings a ${totalTransitionPenalty}-point transition hit, and ${worstFitNames} are the first players I would worry about.`, agm),
+      reaction: withTone(`Name the Depth Chart or Game Plan protection before lock-in. The ${weakerSide} side lacks protected roles and costs drives immediately.`, agm),
+      followUp: withTone(`Protect ${worstFitNames} before saving; late install changes hit their assignments first.`, agm),
     };
   }
 
   return {
     sentiment: 'concerned',
-    reaction: withTone(`Coach, I have to be honest: this pairing asks for a lot of adaptation. The ${weakerSide} side is the one that will feel it first.`, agm),
-    followUp: withTone(`We are taking a ${totalTransitionPenalty}-point transition hit, and ${worstFitNames} are the players most likely to strain under it.`, agm),
+    reaction: withTone(`Name the exposed ${weakerSide} side before locking it. That side carries the first Week 1 assignment gap and needs Depth Chart or Game Plan protection.`, agm),
+    followUp: withTone(`Protect ${worstFitNames} with Depth Chart or Game Plan calls, because late install changes hit their assignments first.`, agm),
   };
 }
 
@@ -1002,7 +1083,7 @@ export function agmReactsToGoalChoice(
   if (matches === 3) {
     return {
       sentiment: 'love_it',
-      reaction: withTone(`That is exactly the goal stack I would put in front of ownership. ${joinNames(matchedLabels)} fits the team we actually have.`, agm),
+      reaction: withTone(`Lock ${joinNames(matchedLabels)}; those promises match current starters, cap space, and development timing, so early losses cost less owner patience.`, agm),
       followUp: null,
     };
   }
@@ -1010,22 +1091,22 @@ export function agmReactsToGoalChoice(
   if (matches === 2) {
     return {
       sentiment: 'like_it',
-      reaction: withTone(`I can work with that. We kept ${joinNames(matchedLabels)} in the stack, which preserves most of the logic behind the plan.`, agm),
-      followUp: missedLabels.length > 0 ? withTone(`The piece I would keep an eye on is ${missedLabels[0]}.`, agm) : null,
+      reaction: withTone(`${joinNames(matchedLabels)} match current starters, but name the skipped promise before locking goals; missing it turns early losses into owner-patience cuts or budget pressure.`, agm),
+      followUp: missedLabels.length > 0 ? withTone(`Plan for ${missedLabels[0]} before October; leaving it out shortens owner patience or pushes a roster spend after losses.`, agm) : null,
     };
   }
 
   if (matches === 1) {
     return {
       sentiment: 'concerned',
-      reaction: withTone(`I see the angle, but we only kept one of the three recommendations. That changes the season’s risk profile in a real way.`, agm),
-      followUp: missedLabels.length > 0 ? withTone(`The goals we left behind are ${joinNames(missedLabels)}.`, agm) : null,
+      reaction: withTone('Preview this goal set before locking it; leaving two advised goals out shortens owner patience and pushes roster spending after losses.', agm),
+      followUp: missedLabels.length > 0 ? withTone(`Plan for ${joinNames(missedLabels)} before October; leaving them out shortens owner patience after losses.`, agm) : null,
     };
   }
 
   return {
     sentiment: 'disagree',
-    reaction: withTone(`I respect that you are the boss, but none of those goals line up with the path I would have mapped for this roster.`, agm),
-    followUp: missedLabels.length > 0 ? withTone(`The recommended stack was ${joinNames(missedLabels)} for a reason.`, agm) : null,
+    reaction: withTone('Plan this goal set again before lock-in; missing starter strength, cap space, or development timing makes early losses cut owner patience and push roster spending.', agm),
+    followUp: missedLabels.length > 0 ? withTone(`Rebuild around ${joinNames(missedLabels)}; leaving them out makes early losses cut owner patience and trigger spending pressure.`, agm) : null,
   };
 }

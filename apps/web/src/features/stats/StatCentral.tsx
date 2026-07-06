@@ -70,6 +70,44 @@ const alignmentOptions = [
   { value: 'calendar', label: 'Calendar Year' },
 ];
 
+const statCentralSourceRows = [
+  {
+    id: 'current-season',
+    label: 'Current season source',
+    badge: 'game.players',
+    accent: 'cyan',
+    detail: 'Current leaderboards, league averages, and position rankings read live saved player stats for the active season.',
+  },
+  {
+    id: 'season-history',
+    label: 'Historical source',
+    badge: 'playerSeasonHistory',
+    accent: 'gold',
+    detail: 'Past-season leaderboards, career timelines, and comparison seasons read archived player-season rows.',
+  },
+  {
+    id: 'archive-fallback',
+    label: 'Archive fallback',
+    badge: 'playerArchive',
+    accent: 'green',
+    detail: 'Retired-player names, positions, and championship context can fall back to archived player records when the live roster no longer has the player.',
+  },
+  {
+    id: 'local-controls',
+    label: 'Local controls',
+    badge: 'route state',
+    accent: 'default',
+    detail: 'Tabs, stat filters, season filters, comparison slots, and selected team history rows are local display state only.',
+  },
+  {
+    id: 'render-boundary',
+    label: 'Just viewing',
+    badge: 'display only',
+    accent: 'default',
+    detail: 'Opening Stat Central does not write stats, records, news, social posts, history rows, or player-archive entries.',
+  },
+] as const;
+
 function currentSeasonYear(gameYear: number, phase: string | undefined): number {
   return phase === 'offseason' || phase === 'free_agency' || phase === 'draft' || phase === 'post_draft'
     ? gameYear - 1
@@ -213,6 +251,34 @@ export default function StatCentral() {
         subtitle="League leaders, career ladders, and historical context from every era of the save."
         badges={<PixelBadge variant="cyan">{leagueLeaders.length} Rows Loaded</PixelBadge>}
       />
+
+      <PixelPanel title="Stat Sources" accent="cyan">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+          {statCentralSourceRows.map((row) => (
+            <div
+              key={row.id}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '10px',
+                border: '2px solid var(--mfd-border)',
+                background: 'var(--mfd-bg-2)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: '#fff' }}>
+                  {row.label}
+                </span>
+                <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
+              </div>
+              <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                {row.detail}
+              </span>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
 
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {tabOptions.map((tab) => (

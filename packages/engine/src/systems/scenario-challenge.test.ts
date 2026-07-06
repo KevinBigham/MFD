@@ -7,6 +7,7 @@ import {
   startScenario,
   checkScenarioProgress,
   getAvailableScenarios,
+  getScenarioConstraintCoverage,
   getScenarioConstraints,
   mulberry32,
   submitFreeAgentBid,
@@ -101,6 +102,66 @@ describe('scenario challenges', () => {
     expect(tradeAttempt.nextState.teams[userTeam.id]!.roster.some((player) => player.id === started.teams.afce2.roster[0]!.id)).toBe(false);
     expect(faAttempt.nextState.offseasonState?.freeAgencyBids[started.freeAgents[0]!] ?? []).toHaveLength(0);
     expect(getScenarioConstraints(started)?.blockTrades).toBe(true);
+  });
+
+  it('describes the scenario constraint coverage that is actually enforced today', () => {
+    const savant = getAvailableScenarios().find((scenario) => scenario.id === 'the_savant')!;
+    const coverage = getScenarioConstraintCoverage(savant.constraints);
+
+    expect(coverage.hasRestrictions).toBe(true);
+    expect(coverage.items.map((item) => item.id)).toEqual(['trade_market', 'offseason_free_agency']);
+    expect(coverage.items[0]).toMatchObject({
+      label: 'Trade Actions',
+      status: 'enforced',
+      enforcedPaths: ['Generated trade-market offers', 'Accepted Trade Center market offers', 'Direct proposals and counters', 'Accepted Trade Deadline user offers', 'Draft war-room trades'],
+      allowedPlanningPaths: ['Team-needs reports', 'Trade-block scouting', 'Depth chart and cap planning', 'Draft board review without trade accepts'],
+      uncoveredPaths: [],
+    });
+    expect(coverage.items[1]).toMatchObject({
+      label: 'Offseason Free Agency',
+      status: 'enforced',
+      enforcedPaths: ['Submit free-agent bids', 'Sign street free agents', 'Waiver claims', 'Practice-squad acquisitions'],
+      allowedPlanningPaths: ['FA target-board refresh and watchlist', 'Team-needs reports', 'Waiver and practice-squad review without acquisition', 'Internal development planning'],
+      uncoveredPaths: [],
+    });
+  });
+
+  it('keeps every shipped scenario constraint represented by enforced coverage rows', () => {
+    const constraintCoverageIds = {
+      blockTrades: 'trade_market',
+      blockFreeAgency: 'offseason_free_agency',
+      blockDraft: 'draft',
+    } as const;
+    const constraintKeys = Object.keys(constraintCoverageIds) as Array<keyof typeof constraintCoverageIds>;
+
+    for (const scenario of getAvailableScenarios()) {
+      const enabledConstraints = constraintKeys.filter((key) => scenario.constraints?.[key]);
+      const coverage = getScenarioConstraintCoverage(scenario.constraints);
+
+      expect(coverage.hasRestrictions).toBe(enabledConstraints.length > 0);
+      expect(coverage.items.map((item) => item.id)).toEqual(
+        enabledConstraints.map((key) => constraintCoverageIds[key]),
+      );
+      for (const item of coverage.items) {
+        expect(item.status).toBe('enforced');
+        expect(item.enforcedPaths.length).toBeGreaterThan(0);
+        expect(item.uncoveredPaths).toEqual([]);
+      }
+    }
+  });
+
+  it('marks user draft-pick constraints as enforced when a real draft gate exists', () => {
+    const coverage = getScenarioConstraintCoverage({ blockDraft: true });
+
+    expect(coverage.items).toEqual([{
+      id: 'draft',
+      label: 'User Draft Picks',
+      status: 'enforced',
+      summary: 'User draft-pick submissions are blocked today.',
+      enforcedPaths: ['User draft picks'],
+      allowedPlanningPaths: ['Scouting reports', 'Draft board rankings', 'War-room review without Make Pick', 'Team-needs planning'],
+      uncoveredPaths: [],
+    }]);
   });
 
   it('awards an S rank for completing every objective quickly', () => {

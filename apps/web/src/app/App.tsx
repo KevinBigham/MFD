@@ -9,6 +9,7 @@ import {
   Map as MapIcon, Film, Tent, Target, Loader, Briefcase, Star,
 } from 'lucide-react';
 import { ChipDialogueBubble, MfdTooltipProvider, MfdCommandPalette, PixelModal, type CommandItem } from '@mfd/design-system/components';
+import { getNavUnlockStatus } from '@mfd/engine/config';
 import { getRegisteredShortcuts, registerShortcut, useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
 import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
@@ -27,8 +28,9 @@ import {
   useGameStore,
 } from './store/game-store';
 import { selectCanUndo, selectUndoLabel } from './store/selectors';
-import { generateDevelopmentReport, identifyBreakoutCandidates, PHASE_ORDER } from '@mfd/engine';
+import { generateDevelopmentReport, identifyBreakoutCandidates, PHASE_ORDER, projectDevelopmentCurve } from '@mfd/engine';
 import { computeNavBadges } from './navBadges';
+import { countDepthChartStarterFlags } from '../lib/depth-chart-starters';
 import { MobileBottomTabBar } from './MobileBottomTabBar';
 import { ErrorBoundary } from './ErrorBoundary';
 import { AutosaveToast } from './AutosaveToast';
@@ -77,6 +79,9 @@ import { syncScrapbookAtYearRollover } from './scrapbook-rollover';
 import { syncHallOfFameArchiveAtYearRollover } from './hall-of-fame-rollover';
 import { syncRosterContinuityAtYearRollover } from './roster-continuity-rollover';
 import { syncRookieOfYearAtYearRollover } from './rookie-of-year-rollover';
+import { syncRivalriesAtYearRollover } from './rivalry-rollover';
+import { resolveCurrentAppRoute } from './currentAppRoute';
+import { resolveAutosaveToastStep } from './appShellLifecycle';
 import { PlayoffLorePrompt } from '../features/playoffs/PlayoffLorePrompt';
 import { EraTransitionEmitter } from '../features/dynasty-era/EraTransitionEmitter';
 import { ChampionshipParadeEmitter } from '../features/playoffs/ChampionshipParadeEmitter';
@@ -159,6 +164,35 @@ interface NavItem {
   shortcut?: string;
 }
 
+interface NavUnlockContext {
+  week: number;
+  phase: ReturnType<typeof selectPhase>;
+}
+
+interface ResolvedNavItem extends NavItem {
+  unlockLabel: string | null;
+  unlocked: boolean;
+}
+
+function resolveNavItem(item: NavItem, context: NavUnlockContext): ResolvedNavItem {
+  const status = getNavUnlockStatus(item.path, context);
+  return {
+    ...item,
+    unlockLabel: status.unlockLabel,
+    unlocked: status.unlocked,
+  };
+}
+
+function resolveVisibleNavItems(
+  items: readonly NavItem[],
+  context: NavUnlockContext,
+  activePath: string,
+): ResolvedNavItem[] {
+  return items
+    .map((item) => resolveNavItem(item, context))
+    .filter((item) => item.unlocked || item.path === activePath);
+}
+
 /** Flat list of all nav items — used by command palette and keyboard shortcuts */
 const NAV_ITEMS: NavItem[] = [
   { path: '/',             label: 'Monday Briefing', shortLabel: 'Briefing', icon: <LayoutDashboard size={16} />, shortcut: '1' },
@@ -171,9 +205,12 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/endorsements', label: 'Endorsements',     shortLabel: 'Deals',    icon: <Sparkles size={16} /> },
   { path: '/trades',       label: 'Trades',           shortLabel: 'Trades',   icon: <ArrowLeftRight size={16} />, shortcut: '4' },
   { path: '/trade-block',  label: 'Trade Block',      shortLabel: 'Block',    icon: <ArrowLeftRight size={16} /> },
+  { path: '/trade-deadline', label: 'Trade Deadline', shortLabel: 'Deadline', icon: <CalendarRange size={16} /> },
   { path: '/team-needs',   label: 'Team Needs',       shortLabel: 'Needs',    icon: <BarChart3 size={16} /> },
   { path: '/scouting',     label: 'Scouting',         shortLabel: 'Scout',    icon: <Search size={16} />,         shortcut: '5' },
   { path: '/draft',        label: 'Draft',            shortLabel: 'Draft',    icon: <FileText size={16} />,       shortcut: '6' },
+  { path: '/draft-recap',  label: 'Draft Recap',      shortLabel: 'Recap',    icon: <FileText size={16} /> },
+  { path: '/expansion-draft', label: 'Expansion Draft', shortLabel: 'Expansion', icon: <Users size={16} /> },
   { path: '/free-agency',  label: 'Free Agency',      shortLabel: 'FA',       icon: <Handshake size={16} />,      shortcut: '7' },
   { path: '/fa-targets',  label: 'FA Targets',       shortLabel: 'Targets',  icon: <Target size={16} /> },
   { path: '/game-day',     label: 'Game Day',         shortLabel: 'Game',     icon: <Gamepad2 size={16} />,       shortcut: '8' },
@@ -191,12 +228,33 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/schedule',      label: 'Schedule',         shortLabel: 'Schedule', icon: <CalendarRange size={16} /> },
   { path: '/depth-chart',   label: 'Depth Chart',      shortLabel: 'Depth',    icon: <ListOrdered size={16} /> },
   { path: '/coaching',      label: 'Coaching',         shortLabel: 'Coach',    icon: <GraduationCap size={16} /> },
+  { path: '/coaching/tree', label: 'Coaching Tree',    shortLabel: 'Tree',     icon: <GraduationCap size={16} /> },
+  { path: '/coaching/relationships', label: 'Staff Relationships', shortLabel: 'Relations', icon: <Users2 size={16} /> },
   { path: '/training-camp', label: 'Training Camp',    shortLabel: 'Camp',     icon: <Tent size={16} /> },
   { path: '/mentors',       label: 'Alumni Mentors',   shortLabel: 'Mentors',  icon: <Award size={16} /> },
+  { path: '/player-development', label: 'Player Development', shortLabel: 'Develop', icon: <TrendingUp size={16} /> },
+  { path: '/compare',       label: 'Player Compare',   shortLabel: 'Compare',  icon: <BarChart3 size={16} /> },
+  { path: '/rivalries',     label: 'Player Rivalries', shortLabel: 'Rivalries', icon: <Crosshair size={16} /> },
   { path: '/owner',         label: 'Owner',            shortLabel: 'Owner',    icon: <Crown size={16} /> },
   { path: '/commissioner',  label: 'Commissioner',     shortLabel: 'Commish',  icon: <Scale size={16} /> },
+  { path: '/cba',           label: 'CBA Negotiation',  shortLabel: 'CBA',      icon: <Handshake size={16} /> },
+  { path: '/league-rules',  label: 'League Rules',     shortLabel: 'Rules',    icon: <Scale size={16} /> },
   { path: '/franchise',     label: 'Franchise',        shortLabel: 'Franchise', icon: <Building2 size={16} /> },
   { path: '/legends',       label: 'Legends',          shortLabel: 'Legends',  icon: <Award size={16} /> },
+  { path: '/franchise/career', label: 'GM Career',     shortLabel: 'Career',   icon: <Briefcase size={16} /> },
+  { path: '/franchise/book', label: 'Franchise Book',  shortLabel: 'Book',     icon: <ScrollText size={16} /> },
+  { path: '/franchise/chronicle', label: 'Chronicle',  shortLabel: 'Chronicle', icon: <ScrollText size={16} /> },
+  { path: '/franchise/scrapbook', label: 'Scrapbook',  shortLabel: 'Scrap',    icon: <FileText size={16} /> },
+  { path: '/franchise/hall', label: 'Hall of Fame',    shortLabel: 'Hall',     icon: <Award size={16} /> },
+  { path: '/franchise/trophy-room', label: 'Trophy Room', shortLabel: 'Trophies', icon: <Trophy size={16} /> },
+  { path: '/franchise/eras', label: 'Era Hall',        shortLabel: 'Eras',     icon: <Crown size={16} /> },
+  { path: '/franchise/mvps', label: 'MVP Plaques',     shortLabel: 'MVPs',     icon: <Star size={16} /> },
+  { path: '/franchise/playoff-lore', label: 'Playoff Lore', shortLabel: 'Lore', icon: <Trophy size={16} /> },
+  { path: '/franchise/achievements', label: 'Achievements', shortLabel: 'Achieve', icon: <Trophy size={16} /> },
+  { path: '/legacy/named-games', label: 'Named Games', shortLabel: 'Named',    icon: <Gamepad2 size={16} /> },
+  { path: '/legacy/bloodlines', label: 'Bloodlines',   shortLabel: 'Bloodlines', icon: <Users2 size={16} /> },
+  { path: '/season/recap', label: 'Season Recap',      shortLabel: 'Recap',    icon: <FileText size={16} /> },
+  { path: '/relocate',      label: 'Relocation',       shortLabel: 'Relocate', icon: <Building2 size={16} /> },
   { path: '/week-advance',  label: 'Advance Week',     shortLabel: 'Advance',  icon: <Play size={16} /> },
   { path: '/handshakes',    label: 'Handshakes',       shortLabel: 'Promises', icon: <ScrollText size={16} /> },
   { path: '/news',          label: 'News',             shortLabel: 'News',     icon: <Newspaper size={16} /> },
@@ -207,6 +265,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/analytics',     label: 'Analytics',        shortLabel: 'Data',     icon: <Activity size={16} /> },
   { path: '/power-rankings',label: 'Power Rankings',   shortLabel: 'Rankings', icon: <TrendingUp size={16} /> },
   { path: '/league-pulse',  label: 'League Pulse',     shortLabel: 'Pulse',    icon: <Activity size={16} /> },
+  { path: '/league/weather', label: 'Weather',         shortLabel: 'Weather',  icon: <Activity size={16} /> },
   { path: '/scenarios',    label: 'Scenarios',        shortLabel: 'Challenge', icon: <Crosshair size={16} /> },
   { path: '/legacy',        label: 'Legacy',           shortLabel: 'Legacy',   icon: <Trophy size={16} /> },
   { path: '/awards',        label: 'Awards Hub',       shortLabel: 'Awards',   icon: <Trophy size={16} /> },
@@ -226,12 +285,12 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   { id: 'core',     label: 'CORE',     paths: ['/', '/week-advance', '/watch-list', '/inbox'] },
-  { id: 'team',     label: 'TEAM',     paths: ['/roster', '/depth-chart', '/locker-room', '/coaching', '/handshakes', '/training-camp', '/mentors'] },
+  { id: 'team',     label: 'TEAM',     paths: ['/roster', '/depth-chart', '/locker-room', '/coaching', '/coaching/tree', '/coaching/relationships', '/handshakes', '/training-camp', '/mentors', '/player-development', '/compare', '/rivalries'] },
   { id: 'money',    label: 'MONEY',    paths: ['/contracts', '/cap-lab', '/front-office', '/endorsements'] },
-  { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/trade-block', '/scouting', '/draft', '/free-agency', '/fa-targets', '/waivers', '/practice-squad', '/team-needs'] },
+  { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/trade-block', '/trade-deadline', '/scouting', '/draft', '/draft-recap', '/expansion-draft', '/free-agency', '/fa-targets', '/waivers', '/practice-squad', '/team-needs'] },
   { id: 'gameday',  label: 'GAMEDAY',  paths: ['/game-day', '/game-plan', '/broadcast', '/presentation', '/play-by-play', '/game-flow', '/film-room', '/schedule', '/super-bowl'] },
-  { id: 'league',   label: 'LEAGUE',   paths: ['/standings', '/power-rankings', '/league-pulse', '/newsroom', '/news', '/social', '/commissioner', '/analytics', '/records', '/stat-central'] },
-  { id: 'dynasty',  label: 'DYNASTY',  paths: ['/franchise', '/owner', '/legends', '/legacy', '/awards', '/scenarios'] },
+  { id: 'league',   label: 'LEAGUE',   paths: ['/standings', '/power-rankings', '/league-pulse', '/league/weather', '/newsroom', '/news', '/social', '/commissioner', '/cba', '/league-rules', '/analytics', '/records', '/stat-central'] },
+  { id: 'dynasty',  label: 'DYNASTY',  paths: ['/franchise', '/owner', '/legends', '/franchise/career', '/franchise/book', '/franchise/chronicle', '/franchise/scrapbook', '/franchise/hall', '/franchise/trophy-room', '/franchise/eras', '/franchise/mvps', '/franchise/playoff-lore', '/franchise/achievements', '/legacy', '/legacy/named-games', '/legacy/bloodlines', '/awards', '/season/recap', '/relocate', '/scenarios'] },
   { id: 'meta',     label: 'SYSTEM',   paths: ['/about', '/credits', '/faq', '/dynasty', '/settings'] },
 ];
 
@@ -241,6 +300,7 @@ function RootLayout() {
   useGlobalKeyboard();
   const commandPaletteOpen = useUiStore((s) => s.commandPaletteOpen);
   const setCommandPaletteOpen = useUiStore((s) => s.setCommandPaletteOpen);
+  const toggleCommandPalette = useUiStore((s) => s.toggleCommandPalette);
   const tutorial = useGameStore(selectTutorial);
   const ceremonies = useGameStore(selectCeremonies);
   const newlyUnlocked = useGameStore(selectNewlyUnlocked);
@@ -248,7 +308,9 @@ function RootLayout() {
   const expansionDraftState = useGameStore(selectExpansionDraftState);
   const game = useGameStore((s) => s.game);
   const userTeam = useGameStore(selectUserTeam);
+  const roster = useGameStore(selectRoster);
   const currentWeek = useGameStore((s) => s.game?.week ?? 0);
+  const currentPhase = useGameStore(selectPhase);
   const currentYear = useGameStore((s) => s.game?.year ?? 0);
   const recapPromptSeenThisSession = useGameStore((s) => s.recapPromptSeenThisSession);
   const pendingPlayoffLoreReveal = useGameStore((s) => s.pendingPlayoffLoreReveal);
@@ -269,6 +331,14 @@ function RootLayout() {
   const leagueNews = useGameStore((s) => s.game?.leagueNews ?? []);
   const router = useRouter();
   const activePath = useRouterState({ select: (state) => state.location.pathname });
+  const navUnlockContext = useMemo(
+    () => ({ week: currentWeek, phase: currentPhase }),
+    [currentPhase, currentWeek],
+  );
+  const visibleNavItems = useMemo(
+    () => resolveVisibleNavItems(NAV_ITEMS, navUnlockContext, activePath),
+    [activePath, navUnlockContext],
+  );
   const [seenCeremonies, setSeenCeremonies] = useState<string[]>([]);
   const [activeCeremonyId, setActiveCeremonyId] = useState<string | null>(null);
   const [seenAchievements, setSeenAchievements] = useState<string[]>([]);
@@ -282,12 +352,13 @@ function RootLayout() {
   const [showSaveReminder, setShowSaveReminder] = useState(false);
   const [showHotkeyHelp, setShowHotkeyHelp] = useState(false);
   const [lastEraCheck, setLastEraCheck] = useState('');
+  const mainContentRef = useRef<HTMLElement | null>(null);
   const prevWins = useRef(0);
   const prevYear = useRef<number | null>(null);
   const [showSaveToast, setShowSaveToast] = useState(false);
   const prevWeek = useRef(0);
 
-  useShortcut('k', () => setCommandPaletteOpen(true), 'Open command palette', { meta: true });
+  useShortcut('k', () => toggleCommandPalette(), 'Toggle command palette', { meta: true });
   useShortcut('?', () => setShowHotkeyHelp(true), 'Open hotkey help', { shift: true });
 
   const currentTutorialStep = tutorial.steps[tutorial.currentStepIndex] ?? null;
@@ -296,7 +367,7 @@ function RootLayout() {
     () => ceremonies.find((ceremony) => ceremony.id === activeCeremonyId) ?? null,
     [activeCeremonyId, ceremonies],
   );
-  const manualShortcutRows = NAV_ITEMS
+  const manualShortcutRows = visibleNavItems
     .filter((item) => item.shortcut)
     .map((item) => ({
       combo: item.shortcut ?? '',
@@ -319,8 +390,15 @@ function RootLayout() {
     && ['/', '/broadcast', '/play-by-play', '/game-day', '/game-flow'].includes(activePath);
 
   useEffect(() => {
-    const unregister = NAV_ITEMS
-      .filter((item): item is NavItem & { shortcut: string } => typeof item.shortcut === 'string')
+    const frame = window.requestAnimationFrame(() => {
+      mainContentRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activePath]);
+
+  useEffect(() => {
+    const unregister = visibleNavItems
+      .filter((item): item is ResolvedNavItem & { shortcut: string } => typeof item.shortcut === 'string')
       .map((item) => registerShortcut({
         key: item.shortcut,
         description: `Go to ${item.label}`,
@@ -332,7 +410,7 @@ function RootLayout() {
         dispose();
       }
     };
-  }, [router]);
+  }, [router, visibleNavItems]);
 
   useEffect(() => {
     if (!tutorial.active || tutorial.dismissed || !currentTutorialStep?.action?.startsWith('screen:')) {
@@ -403,13 +481,15 @@ function RootLayout() {
 
   // Autosave toast — triggers when week changes (indicating advanceWeek completed + autosaved)
   useEffect(() => {
-    if (prevWeek.current !== 0 && currentWeek !== prevWeek.current) {
+    const toastStep = resolveAutosaveToastStep(prevWeek.current, currentWeek);
+    prevWeek.current = toastStep.nextPreviousWeek;
+
+    if (toastStep.showToast) {
       setShowSaveToast(true);
       playSound('week_advance_complete');
       const t = window.setTimeout(() => setShowSaveToast(false), 3000);
       return () => window.clearTimeout(t);
     }
-    prevWeek.current = currentWeek;
   }, [currentWeek]);
 
   // Milestone detection — check for first win, 100 wins, etc.
@@ -448,6 +528,7 @@ function RootLayout() {
     syncHallOfFameArchiveAtYearRollover(prevYear.current, game, userTeam?.id ?? null);
     syncRosterContinuityAtYearRollover(prevYear.current, game, userTeam?.id ?? null);
     syncRookieOfYearAtYearRollover(prevYear.current, game, userTeam?.id ?? null);
+    syncRivalriesAtYearRollover(prevYear.current, game);
 
     if (shouldShowSaveReminder(currentYear, game.lastPortableExportYear ?? null)) {
       setShowSaveReminder(true);
@@ -456,8 +537,26 @@ function RootLayout() {
     prevYear.current = currentYear;
   }, [currentYear, currentWeek, game, lastEraCheck, recapPromptSeenThisSession, userTeam]);
 
+  const playerCommandName = (player: (typeof roster)[number]): string => {
+    const legacyName = typeof player.name === 'string' ? player.name.trim() : '';
+    if (legacyName) return legacyName;
+    return [player.firstName, player.lastName].filter(Boolean).join(' ').trim() || player.id;
+  };
+
+  const rosterCommandItems: CommandItem[] = roster
+    .slice()
+    .sort((left, right) => right.ovr - left.ovr || playerCommandName(left).localeCompare(playerCommandName(right)))
+    .map((player): CommandItem => ({
+      id: `player-${player.id}`,
+      label: `${playerCommandName(player)} (${player.pos})`,
+      category: 'player',
+      icon: <Users size={16} />,
+      keywords: [player.pos, `${player.ovr} OVR`, userTeam?.abbr ?? 'roster'],
+      onSelect: () => router.navigate({ to: '/player/$playerId', params: { playerId: player.id } }),
+    }));
+
   const commandItems: CommandItem[] = [
-    ...NAV_ITEMS.map((nav): CommandItem => ({
+    ...visibleNavItems.map((nav): CommandItem => ({
       id: `screen-${nav.path}`,
       label: nav.label,
       category: 'screen',
@@ -465,6 +564,7 @@ function RootLayout() {
       keywords: [nav.shortLabel],
       onSelect: () => router.navigate({ to: nav.path }),
     })),
+    ...rosterCommandItems,
     {
       id: 'action-advance-week',
       label: 'Advance Week',
@@ -507,8 +607,11 @@ function RootLayout() {
         />
         {showTicker ? <BreakingNewsTicker items={tickerItems} /> : null}
         <main
+          ref={mainContentRef}
           className="mfd-app-main"
           data-mfd-main-content="true"
+          tabIndex={-1}
+          aria-label="Franchise command center content"
           style={{
             flex: 1,
             padding: 'var(--mfd-sp-lg) var(--mfd-sp-xl)',
@@ -525,6 +628,8 @@ function RootLayout() {
           open={commandPaletteOpen}
           onOpenChange={setCommandPaletteOpen}
           items={commandItems}
+          placeholder="Search screens, actions, roster players..."
+          globalShortcutEnabled={false}
         />
         {!chipFeatureEnabled && tutorial.active && !tutorial.dismissed && currentTutorialStep ? (
           <TutorialOverlay
@@ -563,6 +668,7 @@ function RootLayout() {
           <BreakingNews
             headline={breakingNews.headline}
             detail={breakingNews.detail}
+            source={breakingNews.source}
             onDismiss={() => { void dismissBreakingNews(); }}
           />
         )}
@@ -640,7 +746,7 @@ function NavItemStrip({
   highlightedPath,
   badges,
 }: {
-  items: NavItem[];
+  items: ResolvedNavItem[];
   activePath: string;
   highlightedPath: string | null;
   badges: Record<string, number>;
@@ -717,7 +823,7 @@ function useNavBadges(): Record<string, number> {
 
   return useMemo(() => computeNavBadges({
     tradeOfferCount: tradeOffers.length,
-    starterCount: roster.filter((p) => p.isStarter).length,
+    starterCount: countDepthChartStarterFlags(roster),
     hasGamePlan,
     phase,
     activeHandshakeCount: handshakes.filter((h) => h.status === 'active').length,
@@ -731,6 +837,9 @@ function useNavBadges(): Record<string, number> {
  */
 function MobileBottomTabBarMount({ activePath }: { activePath: string }) {
   const badges = useNavBadges();
+  const week = useGameStore((s) => s.game?.week ?? 0);
+  const phase = useGameStore(selectPhase);
+  const navUnlockContext = useMemo(() => ({ week, phase }), [phase, week]);
   const navItemMap = useMemo(() => {
     const map = new Map<string, NavItem>();
     for (const item of NAV_ITEMS) map.set(item.path, item);
@@ -743,9 +852,11 @@ function MobileBottomTabBarMount({ activePath }: { activePath: string }) {
       items: group.paths
         .map((p) => navItemMap.get(p))
         .filter((i): i is NavItem => !!i)
+        .map((i) => resolveNavItem(i, navUnlockContext))
+        .filter((i) => i.unlocked || i.path === activePath)
         .map((i) => ({ path: i.path, shortLabel: i.shortLabel, icon: i.icon })),
     }));
-  }, [navItemMap]);
+  }, [activePath, navItemMap, navUnlockContext]);
 
   return <MobileBottomTabBar activePath={activePath} drawerGroups={drawerGroups} badges={badges} />;
 }
@@ -797,7 +908,9 @@ function TopNav({
   const badges = useNavBadges();
   const team = useGameStore(selectUserTeam);
   const week = useGameStore((s) => s.game?.week ?? 0);
+  const phase = useGameStore(selectPhase);
   const year = useGameStore((s) => s.game?.year ?? 0);
+  const navUnlockContext = useMemo(() => ({ week, phase }), [phase, week]);
 
   const activeGroupId = useMemo(() => {
     for (const g of NAV_GROUPS) {
@@ -817,10 +930,24 @@ function TopNav({
     for (const item of NAV_ITEMS) map.set(item.path, item);
     return map;
   }, []);
-  const selectedGroup = NAV_GROUPS.find((group) => group.id === selectedGroupId) ?? NAV_GROUPS[0]!;
+  const visibleGroups = useMemo(() => {
+    return NAV_GROUPS.filter((group) => group.paths.some((path) => {
+      const item = navItemMap.get(path);
+      if (!item) return false;
+      return path === activePath || resolveNavItem(item, navUnlockContext).unlocked;
+    }));
+  }, [activePath, navItemMap, navUnlockContext]);
+  const selectedGroup = visibleGroups.find((group) => group.id === selectedGroupId)
+    ?? visibleGroups.find((group) => group.id === activeGroupId)
+    ?? visibleGroups[0]
+    ?? NAV_GROUPS[0]!;
   const selectedItems = selectedGroup.paths
     .map((path) => navItemMap.get(path))
     .filter((item): item is NavItem => !!item);
+  const visibleSelectedItems = resolveVisibleNavItems(selectedItems, navUnlockContext, activePath);
+  const lockedSelectedItems = selectedItems
+    .map((item) => resolveNavItem(item, navUnlockContext))
+    .filter((item) => !item.unlocked && item.path !== activePath);
   const activeItem = navItemMap.get(activePath);
   const teamName = team ? `${team.city} ${team.name}` : 'No active dynasty';
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '--';
@@ -883,7 +1010,7 @@ function TopNav({
           <span>Season {year || '--'}</span>
         </div>
         <nav className="mfd-app-nav-group-rail" aria-label="Franchise command groups">
-          {NAV_GROUPS.map((group) => {
+          {visibleGroups.map((group) => {
             const active = group.id === activeGroupId;
             const selected = group.id === selectedGroupId;
             return (
@@ -905,11 +1032,34 @@ function TopNav({
         <div className="mfd-app-nav-active-strip">
           <span className="mfd-app-nav-active-label">{selectedGroup.label}</span>
           <NavItemStrip
-            items={selectedItems}
+            items={visibleSelectedItems}
             activePath={activePath}
             highlightedPath={highlightedPath}
             badges={badges}
           />
+          {lockedSelectedItems.length > 0 ? (
+            <div
+              className="mfd-app-nav-unlocks"
+              aria-label={`${selectedGroup.label} routes that unlock later`}
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '6px',
+                alignItems: 'center',
+                color: 'var(--mfd-text-faint)',
+                fontFamily: 'var(--mfd-font-mono)',
+                fontSize: '10px',
+                lineHeight: 1.45,
+              }}
+            >
+              <span style={{ color: 'var(--mfd-cyan)', fontFamily: 'var(--mfd-font-pixel)', fontSize: '7px' }}>LATER</span>
+              {lockedSelectedItems.map((item) => (
+                <span key={item.path}>
+                  {item.shortLabel}: {item.unlockLabel}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -998,7 +1148,12 @@ function LazyRouteFrame({
         justifyContent: 'center',
         minHeight: 300,
         gap: '16px',
-      }} data-mfd-route-loading="true">
+      }}
+      data-mfd-route-loading="true"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      >
         <Loader size={24} style={{ color: 'var(--mfd-gold)', animation: 'spin 1.2s linear infinite' }} />
         <div style={{
           fontFamily: 'var(--mfd-font-pixel)',
@@ -1717,11 +1872,25 @@ function PlayerDevRouteWrapper() {
   const roster = useGameStore(selectRoster);
   const team = useGameStore(selectUserTeam);
   const game = useGameStore((s) => s.game);
-  const firstPlayer = roster[0] ?? null;
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const selectedPlayer = useMemo(() => (
+    roster.find((player) => player.id === selectedPlayerId) ?? roster[0] ?? null
+  ), [roster, selectedPlayerId]);
+  const playerOptions = useMemo(() => roster.map((player) => ({
+    id: player.id,
+    name: player.name,
+    pos: player.pos,
+    age: player.age,
+    ovr: player.ovr,
+  })), [roster]);
   const report = useMemo(() => {
-    if (!firstPlayer) return null;
-    return generateDevelopmentReport(firstPlayer, team ?? null);
-  }, [firstPlayer, team]);
+    if (!selectedPlayer) return null;
+    return generateDevelopmentReport(selectedPlayer, team ?? null);
+  }, [selectedPlayer, team]);
+  const projections = useMemo(() => {
+    if (!selectedPlayer) return [];
+    return projectDevelopmentCurve(selectedPlayer, team ?? null, 3);
+  }, [selectedPlayer, team]);
   const breakoutCandidates = useMemo(() => {
     if (!game || !team) return [];
     return identifyBreakoutCandidates(game, team.id);
@@ -1730,9 +1899,12 @@ function PlayerDevRouteWrapper() {
     <LazyRouteFrame label="player development">
       <LazyPlayerDevelopmentInner
         report={report}
-        projections={[]}
+        projections={projections}
         breakoutCandidates={breakoutCandidates}
-        coachImpact={null}
+        coachImpact={report?.coachImpact || null}
+        playerOptions={playerOptions}
+        selectedPlayerId={selectedPlayer?.id ?? null}
+        onSelectPlayer={setSelectedPlayerId}
       />
     </LazyRouteFrame>
   );
@@ -1828,15 +2000,9 @@ const routeTree = rootRoute.addChildren([
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, franchiseBookRoute, legendsRoute, seasonRecapRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, newsroomRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
-  powerRankingsRoute, leaguePulseRoute, scenarioRoute, legacyRoute, namedGamesRoute, bloodlinesRoute, awardsRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, playoffLoreDirectoryRoute, dynastyChronicleRoute, superBowlRoute, playerDevRoute, mentorsRoute, aboutRoute, creditsRoute, faqRoute, settingsRoute,
+  powerRankingsRoute, leaguePulseRoute, scenarioRoute, legacyRoute, namedGamesRoute, bloodlinesRoute, awardsRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, trophyRoomRoute, eraHallRoute,
+  mvpPlaqueWallRoute, playoffLoreDirectoryRoute, dynastyChronicleRoute, achievementsRoute, weatherForecastRoute, superBowlRoute, playerDevRoute, mentorsRoute, aboutRoute, creditsRoute, faqRoute, settingsRoute,
 ]);
-routeTree.addChildren([...(routeTree.children ?? []), trophyRoomRoute, eraHallRoute]);
-
-routeTree.addChildren([...(routeTree.children ?? []), mvpPlaqueWallRoute]);
-
-routeTree.addChildren([...(routeTree.children ?? []), achievementsRoute]);
-
-routeTree.addChildren([...(routeTree.children ?? []), weatherForecastRoute]);
 
 const hashHistory = createHashHistory();
 const router = createRouter({ routeTree, history: hashHistory });
@@ -1844,16 +2010,16 @@ const router = createRouter({ routeTree, history: hashHistory });
 // ── App entry ───────────────────────────────────────────────
 
 export const CHIP_FRANCHISE_SETUP_STAGES: ChipHostStage[] = [
-  { id: 'chip.onboarding.beat-1', label: 'Choose AGM', content: null, spotlightStageId: 'cold-open' },
+  { id: 'chip.onboarding.beat-1', label: 'Hire Assistant GM', content: null, spotlightStageId: 'cold-open' },
   { id: 'chip.onboarding.beat-2', label: 'Franchise Intel', content: null, spotlightStageId: 'intel-briefing' },
-  { id: 'chip.onboarding.beat-3', label: 'Meet Players', content: null, spotlightStageId: 'roster-overview' },
-  { id: 'chip.onboarding.beat-4', label: 'Hire Coach', content: null, spotlightStageId: 'coach-hire' },
-  { id: 'chip.onboarding.beat-5', label: 'Build Intel', content: null, spotlightStageId: 'scout-hire' },
-  { id: 'chip.onboarding.beat-6', label: 'Set Identity', content: null, spotlightStageId: 'scheme' },
+  { id: 'chip.onboarding.beat-3', label: 'Meet Roster', content: null, spotlightStageId: 'roster-overview' },
+  { id: 'chip.onboarding.beat-4', label: 'Hire Head Coach', content: null, spotlightStageId: 'coach-hire' },
+  { id: 'chip.onboarding.beat-5', label: 'Hire Scouting Director', content: null, spotlightStageId: 'scout-hire' },
+  { id: 'chip.onboarding.beat-6', label: 'Pick Schemes', content: null, spotlightStageId: 'scheme' },
   { id: 'chip.onboarding.beat-7', label: 'Starting Lineup', content: null, spotlightStageId: 'depth-chart' },
-  { id: 'chip.onboarding.beat-8', label: 'The Money', content: null, spotlightStageId: 'cap-strategy' },
-  { id: 'chip.onboarding.beat-9', label: 'Set Goals', content: null, spotlightStageId: 'goals' },
-  { id: 'chip.onboarding.beat-10', label: 'Day 1 Complete', content: null, spotlightStageId: 'blueprint' },
+  { id: 'chip.onboarding.beat-8', label: 'Cap Plan', content: null, spotlightStageId: 'cap-strategy' },
+  { id: 'chip.onboarding.beat-9', label: 'Set Owner Goals', content: null, spotlightStageId: 'goals' },
+  { id: 'chip.onboarding.beat-10', label: 'Open Blueprint', content: null, spotlightStageId: 'blueprint' },
 ];
 
 type ChipSetupStorage = Parameters<typeof readFirstTenMinutesCompleted>[0];
@@ -1869,7 +2035,7 @@ export function isChipNewGameSetup(storage: ChipSetupStorage = resolveChipSetupS
 
 function currentAppRoute(): string {
   if (typeof window === 'undefined') return '/';
-  return window.location.hash.replace(/^#/, '') || window.location.pathname || '/';
+  return resolveCurrentAppRoute(window.location);
 }
 
 function useCurrentAppRoute(): string {
@@ -1968,11 +2134,12 @@ export function App() {
           companionAction={setupCompanionAction}
           onCompanionVisibleChange={setSetupCompanionVisible}
         >
-          {({ onStageAdvance, companionPanel }) => (
+          {({ onStageAdvance, companionPanel, setCompanionDialogue }) => (
             <FranchiseSetupWizard
               companionPanel={companionPanel}
               companionPrimaryActionActive={setupCompanionVisible}
               onCompanionActionChange={(action) => setSetupCompanionAction(action)}
+              onCompanionDialogueChange={setCompanionDialogue}
               onStageAdvance={onStageAdvance}
             />
           )}

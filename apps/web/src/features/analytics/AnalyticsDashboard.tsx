@@ -36,6 +36,18 @@ interface EfficiencyRow {
   primary: number;
 }
 
+type AdvancedStats = ReturnType<typeof selectAdvancedStats>;
+type AnalyticsLeaders = ReturnType<typeof selectAnalyticsLeaders>;
+type SourceAccent = 'default' | 'gold' | 'cyan' | 'green';
+
+interface AnalyticsSourceRow {
+  id: string;
+  label: string;
+  badge: string;
+  accent: SourceAccent;
+  detail: string;
+}
+
 function rankAccent(rank: number | null): 'gold' | 'cyan' | 'green' | 'default' {
   if (!rank) return 'default';
   if (rank <= 5) return 'gold';
@@ -67,6 +79,57 @@ function trendGlyph(current: number, next: number | undefined): string {
 
 function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
+}
+
+function rankBadge(rank: number | null): string {
+  return rank ? `#${rank}` : '--';
+}
+
+export function buildAnalyticsSourceRows(
+  advanced: AdvancedStats,
+  leaders: AnalyticsLeaders,
+  efficiencyRows: EfficiencyRow[],
+): AnalyticsSourceRow[] {
+  const leaderGroups = [leaders.passYds, leaders.rushYds, leaders.recYds, leaders.sacks, leaders.defINT];
+  const leaderRows = leaderGroups.reduce((total, group) => total + group.length, 0);
+
+  return [
+    {
+      id: 'team-model',
+      label: 'Team model',
+      badge: `Off ${rankBadge(advanced.ranks.offense)} / Def ${rankBadge(advanced.ranks.defense)} / ST ${rankBadge(advanced.ranks.specialTeams)}`,
+      accent: 'gold',
+      detail: 'selectAdvancedStats reads calculateAdvancedStats plus getTeamRankings for offense, defense, and special-teams ranks.',
+    },
+    {
+      id: 'player-efficiency',
+      label: 'Player efficiency',
+      badge: `${efficiencyRows.length} roster rows`,
+      accent: 'green',
+      detail: 'Player Efficiency reads selectRoster, calculatePlayerEfficiency, and the route-local primary-stat lens. It does not write player stats.',
+    },
+    {
+      id: 'leaderboards',
+      label: 'League leaders',
+      badge: `${leaderRows} leaders`,
+      accent: 'cyan',
+      detail: 'selectAnalyticsLeaders reads current-season player/team stats through the analytics leader helpers for the visible leader boards.',
+    },
+    {
+      id: 'trends-comparison',
+      label: 'Trends / comparison',
+      badge: '4 trends',
+      accent: 'default',
+      detail: 'Weekly Trend reads selectWeeklyTrend for four team stats; Player Comparison reads selectPlayerComparison for the selected player pair.',
+    },
+    {
+      id: 'render-boundary',
+      label: 'Just viewing',
+      badge: 'display only',
+      accent: 'default',
+      detail: 'Opening Analytics does not recalculate season stats, click Advance Week, write player history, create records, update rankings, or generate news/social posts.',
+    },
+  ];
 }
 
 const efficiencyColumns: ColumnDef<EfficiencyRow, unknown>[] = [
@@ -176,6 +239,7 @@ export function AnalyticsDashboard() {
     }))
     .sort((a, b) => b.efficiency - a.efficiency || b.primary - a.primary)
     .slice(0, 8), [roster]);
+  const sourceRows = buildAnalyticsSourceRows(advanced, leaders, efficiencyRows);
 
   return (
     <div style={screenStackStyle}>
@@ -197,6 +261,32 @@ export function AnalyticsDashboard() {
         )}
       />
 
+      <PixelPanel title="Analytics Sources" accent="cyan">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+          {sourceRows.map((row) => (
+            <div
+              key={row.id}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '10px',
+                border: '2px solid var(--mfd-border)',
+                background: 'var(--mfd-bg-2)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ ...monoSm, color: '#fff' }}>{row.label}</span>
+                <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
+              </div>
+              <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                {row.detail}
+              </span>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
+
       <div style={autoGrid(220)}>
         <PixelPanel title="Team Overview" accent="gold">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -209,12 +299,12 @@ export function AnalyticsDashboard() {
               <PixelBadge variant={advanced.stats.epa >= 0 ? 'green' : 'red'}>{advanced.stats.epa}</PixelBadge>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-              <span style={{ ...monoSm, color: '#aaa' }}>Success Rate</span>
+              <span style={{ ...monoSm, color: '#aaa' }}>Win Rate</span>
               <PixelBadge variant="cyan">{formatPercent(advanced.stats.successRate)}</PixelBadge>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-              <span style={{ ...monoSm, color: '#aaa' }}>Turnover Rate</span>
-              <PixelBadge variant={advanced.stats.turnoverRate <= 1 ? 'green' : 'gold'}>{advanced.stats.turnoverRate}</PixelBadge>
+              <span style={{ ...monoSm, color: '#aaa' }}>Turnovers / Game</span>
+              <PixelBadge variant={advanced.stats.turnoverRate <= 1 ? 'green' : 'gold'}>{advanced.stats.turnoverRate.toFixed(1)}</PixelBadge>
             </div>
           </div>
         </PixelPanel>

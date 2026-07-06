@@ -1,4 +1,5 @@
 import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
+import { SAVE_VERSION } from '@mfd/engine';
 import { PixelMetricCard, PixelScreenHeader, autoGrid, monoSm, screenStackStyle } from '../shared/pixelUi';
 
 const REPO_URL = 'https://github.com/KevinBigham/MFD';
@@ -35,9 +36,9 @@ export function AboutScreen() {
         />
         <PixelMetricCard
           label="Saves"
-          value="v35"
+          value={`v${SAVE_VERSION}`}
           accent="cyan"
-          detail="Launch countdown keeps save schema locked."
+          detail="Current engine save schema."
         />
         <PixelMetricCard
           label="Mode"

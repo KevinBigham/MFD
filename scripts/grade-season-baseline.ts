@@ -4,6 +4,9 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   baselinePathFor,
+  buildGradeSeasonCliPreflight,
+  formatGradeSeasonHelp,
+  isGradeSeasonHelpRequested,
   parseGradeSeasonCliArgs,
   reportPathFor,
   runGradeSeason,
@@ -11,11 +14,19 @@ import {
 
 function isMainModule(): boolean {
   const entry = process.argv[1];
-  return Boolean(entry) && import.meta.url === pathToFileURL(resolve(entry)).href;
+  if (!entry) return false;
+  return import.meta.url === pathToFileURL(resolve(entry)).href;
 }
 
 async function main(): Promise<void> {
-  const options = parseGradeSeasonCliArgs(process.argv.slice(2));
+  const args = process.argv.slice(2);
+  if (isGradeSeasonHelpRequested(args)) {
+    process.stdout.write(formatGradeSeasonHelp('grade-season-baseline'));
+    return;
+  }
+
+  const options = parseGradeSeasonCliArgs(args);
+  process.stdout.write(`${buildGradeSeasonCliPreflight(options, { baselineMode: true })}\n\n`);
   const record = await runGradeSeason({ ...options, baselineMode: true });
   const baselinePath = baselinePathFor(options.outputDir, options.releaseTag, options.seed);
 
@@ -27,6 +38,7 @@ async function main(): Promise<void> {
 if (isMainModule()) {
   main().catch((error) => {
     process.stderr.write(`grade-season-baseline failed: ${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
+    process.stderr.write('Run with --help for usage, required flags, output paths, baseline behavior, and API-key expectations.\n');
     process.exit(1);
   });
 }

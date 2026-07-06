@@ -24,8 +24,7 @@ export function PixelPlayerLink({
       onClick={(event) => {
         event.stopPropagation();
         if (typeof window !== 'undefined') {
-          window.history.pushState({}, '', `/player/${playerId}`);
-          window.dispatchEvent(new PopStateEvent('popstate'));
+          window.location.hash = `/player/${encodeURIComponent(playerId)}`;
         }
       }}
       style={{

@@ -4,48 +4,48 @@
       "id": "marcus_whitaker",
       "name": "Marcus Whitaker",
       "age": 48,
-      "background": "Spent last six years as offensive coordinator in Seattle, turning a bottom-five unit into top-three in EPA per play. Former Division III quarterback who climbed through quality control ranks. Known for scripting first 15 plays with surgical precision.",
+      "background": "Built quick passing scripts that protect the quarterback early. Has not owned defensive staffing, so the defensive coordinator must control personnel, practice priorities, and late-game calls.",
       "archetype": "offensive_genius",
       "scheme_preference": { "offense": "air_raid", "defense": "man_press" },
-      "strengths": ["Elite red zone creativity", "Quarterback development track record", "Tempo control that wears down defenses"],
-      "weaknesses": ["Delegates defense entirely to coordinator", "Clock management ranked 28th last two seasons"],
-      "interview_quote": "Give me a quarterback who processes fast and I'll give you 30 points a game.",
+      "strengths": ["Red-zone calls that turn drives into points", "Quarterback rep plan before Week 1", "Tempo packages that protect leads late"],
+      "weaknesses": ["Defense must be assigned to the coordinator", "Late-game clock choices have cost wins"],
+      "interview_quote": "Give me a quarterback who processes fast, then assign defense and late-game calls before kickoff.",
       "agm_reactions": {
-        "elias_vance": { "recommendation": "hire", "analysis": "His offenses have averaged plus 0.18 EPA per dropback over three seasons, that's top five percentile. That's a 62 percent win probability boost when paired with even average defense. The clock management is a real leak, about minus 0.4 wins per year, but that's coachable. Process over outcome, every time.", "one_liner": "Checking my model, he adds 2.1 expected wins. That's a clear hire." },
-        "derrick_coleman": { "recommendation": "consider", "analysis": "Listen, Whitaker, smart as hell. Players love him, quarterbacks get better. But he runs a finesse spread, and he don't care about defense. You win in December by running the ball and stopping the run. I worry we get soft. He can coach, but we need dogs on both sides.", "one_liner": "Listen, he'll score points, but will his guys hit anybody?" },
-        "maya_alvarez": { "recommendation": "consider", "analysis": "Marcus connects beautifully with quarterbacks and skill players, I've heard that from three agents already. My concern is balance. Will the defensive staff feel empowered, or will they feel like second-class citizens? Culture has to be whole-team, not just offense. Can we build that together?", "one_liner": "He's brilliant, but how do we make sure everyone feels valued?" }
+        "elias_vance": { "recommendation": "hire", "analysis": "Whitaker gives the quarterback structure fast before Week 1. Before hiring him, assign the defensive coordinator to defensive personnel, practice priorities, and late-game calls; otherwise clock and defensive mistakes cost wins.", "one_liner": "Hire him for offense, then assign defense and late-game calls before those mistakes cost wins." },
+        "derrick_coleman": { "recommendation": "consider", "analysis": "Whitaker gives the quarterback quick passing answers. His spread offense leaves defense and the run game underbuilt without a defensive coordinator owning personnel, practice priorities, and late-game calls.", "one_liner": "Assign defensive personnel and late-game calls before hiring him, or Week 1 run-defense jobs and coverage calls get exposed." },
+        "maya_alvarez": { "recommendation": "consider", "analysis": "Marcus gives the quarterback and skill players quick passing structure. Without defensive coordinator ownership over personnel, practice priorities, and Week 1 calls, run-defense jobs and coverage calls are exposed.", "one_liner": "Assign defensive personnel, practice priorities, and Week 1 calls first; otherwise run-defense jobs and coverage calls get exposed." }
       }
     },
     {
       "id": "victor_ramos",
       "name": "Victor Ramos",
       "age": 54,
-      "background": "Twenty-year defensive coordinator, built top-five defenses in three different cities. Former Marine who brings that discipline to meetings. Never been a head coach, turned down two interviews waiting for right roster.",
+      "background": "Twenty-year defensive coordinator who demands exact practice roles and tackling work. Has never been a head coach, so offensive play-call authority must be settled before Week 1.",
       "archetype": "defensive_mastermind",
       "scheme_preference": { "offense": "smashmouth", "defense": "3-4" },
-      "strengths": ["Creates turnovers through disguise", "Develops linebackers into All-Pros", "Situational mastery on third down"],
-      "weaknesses": ["Wants to run ball 35 times a game", "History of clashing with offensive coordinators"],
-      "interview_quote": "We will be the most physical team in the league by Week 4, or I'll resign.",
+      "strengths": ["Coverage disguise that creates turnover chances", "Linebacker roles tied to run, blitz, and coverage jobs", "Third-down rules assigned before kickoff"],
+      "weaknesses": ["Power-run preference makes late drives predictable without play-call control", "Offensive coordinator conflict slows Week 1 calls"],
+      "interview_quote": "Give me tackling rules, third-down jobs, and one offensive play-caller before kickoff.",
       "agm_reactions": {
-        "elias_vance": { "recommendation": "consider", "analysis": "His defenses allow minus 0.12 EPA per play, elite territory. That's a three-win floor. The problem is offensive conservatism, his preferred power run scheme ranks 22nd in efficiency league-wide. It's like playing chess and refusing to use your queen. We'd need to pair him with a strong OC.", "one_liner": "Defense is a 70 percent hit rate, offense is the variance." },
-        "derrick_coleman": { "recommendation": "hire", "analysis": "Listen, Ramos, that's my guy. Played linebacker, coaches like a linebacker. His players would run through a wall, I know three of them personally. He builds tough, smart defenses that hit. Yeah, he's stubborn on offense, but I'll take physical over pretty every Sunday.", "one_liner": "Listen, Ramos builds teams I want to play for." },
-        "maya_alvarez": { "recommendation": "pass", "analysis": "Victor is a tremendous teacher, but I've talked to two former offensive coordinators who worked for him. Both described a divided building. If we hire him, how do we ensure collaboration, not silos? Culture eats scheme for breakfast, and I'm worried about the room fracturing. We need alignment, not a turf war.", "one_liner": "Can we build one team with two different philosophies?" }
+        "elias_vance": { "recommendation": "consider", "analysis": "Ramos lowers defensive mistakes with contact and assignments. If the offensive coordinator lacks play-call and adjustment control, his power-run preference makes late drives predictable.", "one_liner": "Assign offense play-call control before hiring him; otherwise late drives get predictable." },
+        "derrick_coleman": { "recommendation": "hire", "analysis": "Ramos reduces defensive mistakes with contact work, assigned roles, and third-down tackling. Keep offensive control with the playcaller or late drives get predictable.", "one_liner": "Hire Ramos for defense, then protect offensive control or late drives stall." },
+        "maya_alvarez": { "recommendation": "pass", "analysis": "Victor teaches defense, but two former offensive coordinators described split staffs. Coordinator conflict slows offensive adjustments and creates different practice rules for offense and defense unless the offensive coordinator has final play-call authority.", "one_liner": "Pass until the offensive coordinator controls play calls; otherwise staff conflict slows Week 1 adjustments." }
       }
     },
     {
       "id": "jamal_brooks",
       "name": "Jamal Brooks",
       "age": 45,
-      "background": "Former Pro Bowl running back turned running backs coach, then assistant head coach in Detroit. Players voted him most respected coach two years straight. Never called plays, but led culture turnaround.",
+      "background": "Former Pro Bowl running back turned assistant head coach. Stabilized practice roles and accountability after a staff transition, but has never called plays.",
       "archetype": "players_coach",
       "scheme_preference": { "offense": "pro_style", "defense": "zone_cov" },
-      "strengths": ["Unmatched locker room buy-in", "Elite player development, especially young players", "Crisis management and communication"],
-      "weaknesses": ["Relies heavily on coordinators for scheme", "In-game adjustments have been slow in interim stints"],
-      "interview_quote": "I'll never ask a player to do something I wouldn't do myself. We win together.",
+      "strengths": ["Morale repair before role complaints", "Young-player development with assigned reps", "Crisis messages before morale drops"],
+      "weaknesses": ["Scheme calls stay with coordinators", "Slow in-game adjustment history"],
+      "interview_quote": "Give me assigned roles, a trusted playcaller, and a game manager, or morale cannot save fourth-down mistakes.",
       "agm_reactions": {
-        "elias_vance": { "recommendation": "pass", "analysis": "Players coaches without playcalling experience have a 44 percent success rate as first-time head coaches, that's below replacement. His scheme preferences are sound, zone run and Tampa 2 are efficient, but he's delegating the chess match. I'd rather hire the coordinator and keep Brooks as assistant head coach.", "one_liner": "The model says high variance, low control. That's a pass for me." },
-        "derrick_coleman": { "recommendation": "consider", "analysis": "Listen, Brooks, players love him, and that matters. I played for a guy like that, we went to war. But can he make the hard call on fourth down? Can he tell a coordinator his plan stinks? I don't know. I like him, but I need to see the fire when it counts.", "one_liner": "Listen, great leader, but is he a killer when we need one?" },
-        "maya_alvarez": { "recommendation": "hire", "analysis": "Jamal is exactly the kind of human we need after a GM firing. Players trust him instantly, coaches want to work for him, and he builds bridges, not walls. Yes, we'll need to surround him with strong tacticians, but culture is the multiplier. With him, we can attract free agents and keep our own. That's how we win sustainably.", "one_liner": "He's the connector who makes everyone better, including us." }
+        "elias_vance": { "recommendation": "pass", "analysis": "Brooks repairs player morale, but he has not owned play calls. That leaves fourth-down, timeout, and adjustment decisions in other hands by Week 1. Hire the playcaller first and keep Brooks in an assistant role.", "one_liner": "Pass for the top job; no play-call owner leaves Week 1 fourth-down and timeout mistakes exposed." },
+        "derrick_coleman": { "recommendation": "consider", "analysis": "Brooks steadies sideline morale. Fourth down, timeouts, and coordinator accountability still need a proven game manager. Hire him with assigned playcallers who own fourth downs, timeouts, and coordinator fixes, or mistakes cost drives.", "one_liner": "Hire him with a game manager, or fourth-down and timeout mistakes cost drives." },
+        "maya_alvarez": { "recommendation": "hire", "analysis": "Jamal calms players after a GM firing and improves free-agent recruiting. Unproven playcallers leave fourth-down calls and in-game adjustments behind by Week 1 unless proven playcallers are attached.", "one_liner": "Hire him with proven playcallers or fourth-down and timeout mistakes cost drives." }
       }
     }
   ],
@@ -54,93 +54,93 @@
       "id": "calvin_hendricks",
       "name": "Calvin Hendricks",
       "age": 58,
-      "background": "Thirty-four years scouting, started driving a Buick through the SEC in 1991. Found four Pro Bowlers after round four. Still grades players on paper, watches every snap three times.",
+      "background": "Thirty-four years scouting college players. Finds late-round talent through coach reports, practice habits, and repeated film reads; medical and athletic data must match the file before picks are spent.",
       "specialty": "college",
-      "philosophy": "The tape don't lie, and neither do a player's eyes when he's tired.",
-      "strengths": ["Evaluates toughness and competitive stamina", "Deep relationships with college coaches", "Late-round sleeper identification"],
-      "weaknesses": ["Dismisses analytics as spreadsheet nonsense", "Slow to adopt new technology and data tools"],
-      "interview_quote": "I can tell you if a kid loves football in three plays.",
+      "philosophy": "Judge effort, toughness, and practice habits, then match them with medical and athletic data before we spend picks.",
+      "strengths": ["Evaluates toughness and competitive stamina", "College-coach reports tied to practice habits", "Late-round sleeper identification"],
+      "weaknesses": ["No medical or athletic cross-check before picks wastes cheap picks on players who cannot practice", "Slow data updates leave injury and testing warnings late before picks"],
+      "interview_quote": "Show me effort, practice notes, and medical limits before we spend a pick.",
       "agm_reactions": {
-        "elias_vance": { "recommendation": "pass", "analysis": "Cal is a legend, but his hit rate on day three picks is 18 percent, league average is 22. He actively ignores GPS data and RAS scores that correlate with injury. That's leaving money on the table.", "one_liner": "Great stories, but the process is stuck in 2005." },
-        "derrick_coleman": { "recommendation": "hire", "analysis": "Listen, Hendricks, that's a real scout. He lives in high school gyms, he knows who loves ball. He found my teammate in the sixth round, still starting. I trust his eyes over any computer.", "one_liner": "Listen, Cal finds dogs, not data points." },
-        "maya_alvarez": { "recommendation": "consider", "analysis": "Cal's relationships are invaluable, coaches tell him the truth about character. My question is, can he collaborate with our analytics team? We need both art and science, not either or. Can we build that bridge together?", "one_liner": "How do we honor his experience while modernizing our process?" }
+        "elias_vance": { "recommendation": "pass", "analysis": "Cal has missed too many recent Day 3 starter roles. Audit injury tracking and athletic limits before hiring him; without medical data, cheap picks get spent on players who cannot practice or earn jobs.", "one_liner": "Pass until injury data clears him; otherwise cheap picks go to players who cannot practice or earn jobs." },
+        "derrick_coleman": { "recommendation": "hire", "analysis": "Hendricks sees effort, toughness, and practice habits that the combine misses. The cost is slower data adoption, so pair him with medical and athletic data before picks are spent.", "one_liner": "Hire Cal with medical data; missing it wastes cheap picks on players who cannot practice or earn jobs." },
+        "maya_alvarez": { "recommendation": "consider", "analysis": "Cal's college-coach reports reveal character and practice habits. Pair him with medical and athletic data before picks, or injury and athleticism warnings stay hidden.", "one_liner": "Pair Cal with medical and athletic data before early picks, or injury warnings get missed." }
       }
     },
     {
       "id": "priya_desai",
       "name": "Priya Desai",
       "age": 36,
-      "background": "Former quantitative analyst at a hedge fund, joined the league in 2019. Built a draft model that outperformed the market by 12 percent over three years. Never scouted on the road full-time.",
+      "background": "Built a pick-cost warning system that found productive mid-round starters. Never scouted on the road full-time, so regional scouts must report toughness, coachability, and medical warnings.",
       "specialty": "analytics",
-      "philosophy": "Find market inefficiencies before the market corrects.",
-      "strengths": ["Predictive modeling for draft success", "Combine data interpretation", "Contract value optimization"],
-      "weaknesses": ["Limited in-person evaluation experience", "Can undervalue intangibles and character flags"],
-      "interview_quote": "If we can't measure it, we probably shouldn't pay for it.",
+      "philosophy": "Turn data into draftable starter reports before other teams find the same role.",
+      "strengths": ["Data-backed role reports", "Combine data interpretation", "Contract cost comparison"],
+      "weaknesses": ["No road-scout report before early picks misses toughness, coachability, or medical warnings", "No road-scout visit leaves coachability, effort, or character warnings hidden"],
+      "interview_quote": "If we cannot measure it, study tape and medical limits before we pay for it.",
       "agm_reactions": {
-        "elias_vance": { "recommendation": "hire", "analysis": "Priya's model has a 0.71 correlation to second-contract AV, that's elite. Pairing her with our regional scouts gives us a 68 percent hit rate improvement on rounds two through four. It's exactly the edge we need.", "one_liner": "She turns uncertainty into probability. That's a hire." },
-        "derrick_coleman": { "recommendation": "pass", "analysis": "Listen, Desai, smart, real smart. But she's never sat in a living room with a mama at midnight. She can't tell me if a kid quits when he's tired. Football ain't a spreadsheet.", "one_liner": "Listen, numbers don't tackle." },
-        "maya_alvarez": { "recommendation": "consider", "analysis": "Priya brings rigor we need, and she asks great questions about people, not just data. I'd want to pair her with a veteran road scout to balance. Can she learn the human side as fast as she learned the math?", "one_liner": "Can we teach the art to go with her science?" }
+        "elias_vance": { "recommendation": "hire", "analysis": "Priya turns scattered reports into role, medical, and cost warnings tied to picks. Limited road work means regional scouts must report toughness, coachability, and medical warnings before rounds two through four.", "one_liner": "Hire her, then pair reports with road scouts or mid-round misses cost picks." },
+        "derrick_coleman": { "recommendation": "pass", "analysis": "Desai brings data reports, but the lead scout also needs coach, family, and practice input. If we hire her, assign veteran road scouts before picks are spent or toughness and effort misses cost picks.", "one_liner": "Assign road scouts before picks are spent, or toughness misses cost picks." },
+        "maya_alvarez": { "recommendation": "consider", "analysis": "Priya brings data-backed reports and coachability notes. Limited road scouting misses how prospects respond to coaching, so pair her with a veteran evaluator before picks are spent.", "one_liner": "Pair her reports with a road scout before early picks, or missed coachability detail costs snaps." }
       }
     },
     {
       "id": "theo_washington",
       "name": "Theo Washington",
       "age": 44,
-      "background": "Started as area scout, became director of pro personnel, then college director. Known as the translator between old school and new school in two front offices.",
+      "background": "Started as area scout, became director of pro personnel, then college director. Known for making data staff and road scouts name each prospect's job, medical limit or coachability warning, and pick or cap cost before decisions.",
       "specialty": "pro",
-      "philosophy": "Balance the spreadsheet and the story.",
-      "strengths": ["Bridges analytics and traditional scouting", "Excellent communicator with coaches", "Pro free agency evaluation"],
-      "weaknesses": ["Not elite at either analytics or tape grinding", "Tends toward consensus, avoids bold swings"],
-      "interview_quote": "My job is to make sure the scout and the scientist are talking about the same player.",
+      "philosophy": "Combine data reports, coach input, and live evaluation before we spend picks or cap space.",
+      "strengths": ["Data and road-scout reports tied together", "Coach communication before picks or signings", "Pro free-agent roles named before spending"],
+      "weaknesses": ["No specialist comparison leaves data and tape conflicts unresolved before picks", "No coach-owned development plan passes over unusual prospects or wastes their snaps"],
+      "interview_quote": "Every report must name the player's job, medical limit or coachability warning, and pick or cap cost.",
       "agm_reactions": {
-        "elias_vance": { "recommendation": "consider", "analysis": "Theo is a solid 55th percentile in both domains, which creates stability but not alpha. He'll reduce our bust rate by about 8 percent, but he won't find us the outlier star. He's a safe, collaborative choice.", "one_liner": "Low variance, moderate upside. That's a consider." },
-        "derrick_coleman": { "recommendation": "consider", "analysis": "Listen, Washington, good dude, players respect him, coaches like him. He ain't the best tape guy, ain't the best numbers guy, but he gets people talking. Might be what we need after the mess here.", "one_liner": "Listen, Theo keeps the room together." },
-        "maya_alvarez": { "recommendation": "hire", "analysis": "Theo is exactly the connector we need. He speaks both languages, he builds trust, and he makes decisions with people in mind. After a firing, we need someone who unites the building, not divides it. He helps us become who we say we want to be.", "one_liner": "He helps us build the culture while we build the roster." }
+        "elias_vance": { "recommendation": "consider", "analysis": "Theo lines up data and road scouting before picks. Coaches and scouts name the player job, medical limit or coachability warning, and pick cost before draft night. Unusual prospects get passed over when no coach owns their development plan.", "one_liner": "Choose Theo before picks are spent so reports name the player job, warning, and pick cost." },
+        "derrick_coleman": { "recommendation": "consider", "analysis": "Washington makes scouts and coaches name the player job, medical limit or coachability warning, and cap or pick cost before a signing or draft pick. Unusual prospects get passed over when no coach owns their development plan.", "one_liner": "Choose Theo before contracts or picks lock so reports name player jobs and medical warnings." },
+        "maya_alvarez": { "recommendation": "hire", "analysis": "Theo makes data staff, road scouts, and coaches file the same player job, warning, pick-cost, and cap-cost report. Unusual prospects get passed over when no coach owns the development plan.", "one_liner": "Hire Theo before picks or cap space are spent so medical and role warnings are named first." }
       }
     }
   ],
   "teaching_narration": {
     "what_is_a_head_coach": {
-      "elias_vance": "Your head coach is your chief decision-maker on game day, responsible for about 120 high-leverage choices per game. We measure them on fourth-down aggressiveness, timeout efficiency, and challenge success rate, all of which correlate to roughly 0.8 wins per season. Think of them as the player moving the chess pieces, while you provide the pieces. Hire for process, not just personality.",
-      "derrick_coleman": "Listen, head coach sets the temperature every day. Players know in five minutes if he'll go to war for them. He runs practice, he calls the shots when it's loud, he decides who plays when it's fourth and one. You need a guy players run through walls for, not a guy who reads a script.",
-      "maya_alvarez": "What does a head coach really do? He sets the standard for how we treat each other when no one is watching. He manages 20 different personalities, from the quarterback to the practice squad. How does he build trust? How does he handle conflict? That's the job, wins follow that."
+      "elias_vance": "Your head coach is your chief decision-maker on game day, responsible for fourth-down calls, timeouts, challenges, practice priorities, and coordinator authority. Hire the coach who owns those calls before Week 1 mistakes become losses.",
+      "derrick_coleman": "The head coach sets practice roles, scheme rules, fourth-down calls, and who plays on fourth-and-one. Hire someone who makes hard calls without creating morale loss.",
+      "maya_alvarez": "A head coach sets practice roles, conflict rules, and game-day accountability. Pick someone with clear coordinator authority, or close games become blame, morale loss, and slow development."
     },
     "what_is_a_scouting_director": {
-      "elias_vance": "The scouting director runs our information market. He turns 2,000 college players into a ranked board with confidence intervals. A good director improves our hit rate by 10 to 15 percent, which is worth about 12 million in surplus value per draft. He's your edge.",
-      "derrick_coleman": "Listen, scouting director finds the dogs. He lives on the road, watches tape till his eyes bleed, tells you who loves football. He builds the board, but more important, he tells you who to trust when the lights come on. That's your lifeline.",
-      "maya_alvarez": "Your scouting director shapes who we invite into our family. How do we evaluate character, not just 40 times? He has to align scouts, coaches, and your vision. When we get that right, we draft people who fit who we are, not just what we need."
+      "elias_vance": "The scouting director turns college reports into player roles, medical warnings, and pick-cost calls before draft day. A role-disciplined hire protects picks; a hire without role discipline costs picks, cap space, and development snaps.",
+      "derrick_coleman": "The scouting director ties live film, practice habits, coach notes, and medical limits to pick decisions. That hire decides which reports name pick cost or cap-space cost before decisions.",
+      "maya_alvarez": "Your scouting director puts scouts, coaches, and your roster plan on the same player job, warning, pick-cost, and cap-cost report before we spend picks. Name character warnings because a role mismatch costs development snaps, cap space, and later fixes."
     },
     "why_scheme_matters": {
-      "elias_vance": "Scheme is optimization. A west coast offense generates plus 0.05 EPA per play with an accurate quarterback but minus 0.03 with a strong arm and poor timing. You're matching player skill curves to play distributions. Get it right and you gain two wins for free.",
-      "derrick_coleman": "Listen, scheme is identity. Power run tells the other team we're gonna hit you for four quarters. Tampa 2 says we swarm. Players play faster when they know who they are. Pick a scheme your guys believe in, then go impose it.",
-      "maya_alvarez": "Why does scheme matter? Because it has to fit your people, not the other way around. What do our linemen do well? What does our quarterback love? When scheme fits people, confidence grows. That's when culture and performance connect."
+      "elias_vance": "Scheme decides which players carry each snap. Match it to your quarterback, line, and coverage players or Week 1 mistakes multiply.",
+      "derrick_coleman": "Scheme tells players how they must win. Power run needs line play and backs who finish; Tampa 2 needs safeties who stay deep and corners who tackle. Pick calls that fit the blockers and coverage players you have by Week 1, or missed assignments start there.",
+      "maya_alvarez": "Set scheme calls that match your people, not the other way around. Name what the line protects and what the quarterback must decide quickly. If calls do not match the roster, players hesitate and Week 1 mistakes multiply."
     },
     "what_is_the_salary_cap": {
-      "elias_vance": "The cap is a 255 million dollar budget with complex accounting rules. Every dollar you push to future years costs 1.08 dollars due to dead money risk. Think of it as poker chips, you can go all in now, but you reduce your options later. We optimize for three-year win probability, not one-year headlines.",
-      "derrick_coleman": "Listen, cap is simple. Pay the guys who produce, don't pay for what they did three years ago. Keep money for your own dogs. Don't get stuck with dead money for guys who don't play. That's how bad teams stay bad.",
-      "maya_alvarez": "What is the cap really? It's how we show players what we value. Who do we invest in long term? Who do we thank and let go? Those decisions send messages through the locker room. We need to be clear, fair, and consistent, that's how trust compounds."
+      "elias_vance": "The cap is the budget for keeping, replacing, and adding players. Pushing money into future years creates dead money, so tie each spend to a named starter, injury, trade, or extension need.",
+      "derrick_coleman": "Spend cap space on players who still produce, your own starters, and injury fixes. Dead money on players who no longer play blocks injury replacements and extensions.",
+      "maya_alvarez": "The cap limits who we keep, replace, or add. Extensions reward core players; cuts and restructures create morale loss and dead money. Before spending next-offseason cap space, name whether the move protects Week 1 depth, owner patience, and later injury fixes."
     },
     "what_are_season_goals": {
-      "elias_vance": "Goals are target functions. Do we maximize year one wins, or maximize the probability of a Super Bowl in years two through four? Vegas has us at 6.5 wins, the model says 7.2. Setting a goal of 9 wins changes our risk tolerance on trades and free agency. Let's choose intentionally.",
-      "derrick_coleman": "Listen, goals are simple. Win the division. Everything else is excuses. You set a goal to go 8-9, you'll go 8-9. You tell the team we're winning the North, now they practice different. Set the bar high.",
-      "maya_alvarez": "What do we want this season to feel like? Wins matter, but how do we want players to describe playing here? Do we want to be known for development, for toughness, for connection? Let's set goals for the record and for the standard, then we live them daily."
+      "elias_vance": "Goals tell ownership what you are promising. A high win goal pushes trades and free agency harder; a development goal protects young snaps but makes early losses louder.",
+      "derrick_coleman": "Goals decide what ownership judges. Division title means faster veteran upgrades and fewer rookie mistakes tolerated. Development means young players keep snaps, but losses hit owner patience.",
+      "maya_alvarez": "Season goals tell players what ownership will judge. A win target moves trades and lineup choices into this week's decisions; a development goal protects young-player snaps but makes early losses louder. Pick the goal the roster must defend before October losses cut owner patience."
     },
     "how_the_draft_works": {
-      "elias_vance": "The draft is the most inefficient market in sports. Teams overvalue recent production by 23 percent and undervalue age by 18 percent. Our job is to exploit that. We trade back when the board is flat, trade up when our model shows a tier break. That's how you create surplus value.",
-      "derrick_coleman": "Listen, draft is about finding competitors. Watch the tape, does he quit on plays? Does he love football? Combine is underwear Olympics. Give me the kid who plays hard every snap from a small school over the workout warrior. That's how you build a roster.",
-      "maya_alvarez": "How does the draft work for us? It's not just picking players, it's inviting people into our culture. What is their story? How do they handle adversity? We interview for character as much as talent, because we're investing in a person for four years, not just a 40 time."
+      "elias_vance": "The draft buys future starters with limited picks. Trade back when reports show no tier break, trade up only for a clear tier break, and avoid spending picks on players the staff cannot develop.",
+      "derrick_coleman": "Draft buys future starters with limited picks. Name effort, assigned role, medical limits, and practice habits before the pick; testing alone wastes cheap roster spots.",
+      "maya_alvarez": "How does the draft work for us? We are choosing who gets four years of development snaps and cap space. Interview for character, coachability, and assigned role because a talented miss still costs picks, time, and expensive veteran fixes."
     }
   },
   "hiring_celebration": {
     "after_coach_hire": {
-      "elias_vance": ["Good process. The data supports this decision.", "His profile adds 1.8 expected wins over baseline.", "Now we optimize the staff around his strengths."],
-      "derrick_coleman": ["Listen, we got our coach. I respect the pick.", "Now we find players who fit how he wants to play.", "Time to go to work, GM."],
-      "maya_alvarez": ["I feel good about this fit for our people.", "He connects with players, that's our foundation.", "Let's make sure he feels supported from day one."]
+      "elias_vance": ["Coach hire is set. Choose scheme and depth cover before Week 1 or the hire does not protect the starters he was hired to coach.", "Set weekly prep around his assignments; without it, player mistakes rise by Week 1.", "Hire staff who cover his assignment misses before scheme mistakes cost drives."],
+      "derrick_coleman": ["Coach hire is set. Match his scheme and depth chart to the roster before Week 1.", "Set players and weekly prep to his scheme, or missed assignments cost games.", "Set the depth chart now; missing backup order leaves his Week 1 roles unprotected."],
+        "maya_alvarez": ["Protect this coach with scheme and depth choices before Week 1; otherwise players enter the opener with unassigned calls.", "Match scheme, depth chart, and weekly prep to his assigned roles before morale drops and assignments slip.", "Name his role plan before kickoff; without it, Week 1 jobs stay unassigned."]
     },
     "after_scout_hire": {
-      "elias_vance": ["Excellent. Our information edge just improved.", "This hire should lift our day-two hit rate by 10 percent.", "Now we integrate the model with the board."],
-      "derrick_coleman": ["Listen, we got a real evaluator. I like it.", "He finds football players, not just testers.", "Let's trust his eyes and go find dogs."],
-      "maya_alvarez": ["This person will help us stay aligned.", "I love how they think about people, not just prospects.", "We'll build a draft room where everyone is heard."]
+      "elias_vance": ["Open scout reports before pick deadlines; fewer handoffs reduce missed starter and backup assignments.", "Make this hire reduce middle-round misses before cheap roster spots get wasted.", "Pair each data report with live scout notes before pick cost locks in."],
+      "derrick_coleman": ["Scout hire is set. Name film, effort, and medical limits in every report before picks are spent.", "Match film notes to the first open role before draft weekend; otherwise picks buy players the staff cannot use.", "Fix incomplete reports before draft weekend or cheap roster spots get wasted."],
+      "maya_alvarez": ["Set each report to role, character warning, and pick cost before pick decisions cost development snaps.", "Attach role, character warning, and pick cost to every report before picks are spent.", "Apply those named reports before draft picks cost development snaps on players the staff cannot develop."]
     }
   }
 }
