@@ -14,6 +14,7 @@ test('builds a full G7 release gate plan covering required gate groups', () => {
 
   for (const id of [
     'script-tests',
+    'grade-season-tests',
     'engine-typecheck',
     'web-typecheck',
     'design-typecheck',
@@ -58,12 +59,38 @@ test('builds a full G7 release gate plan covering required gate groups', () => {
   }
 });
 
+test('runs TypeScript grade-season tests through Vitest instead of plain Node', () => {
+  const plan = buildReleaseGatePlan({ platform: 'darwin' });
+  const scriptTests = plan.find((step) => step.id === 'script-tests');
+  const gradeSeasonTests = plan.find((step) => step.id === 'grade-season-tests');
+
+  assert.ok(scriptTests);
+  assert.equal(scriptTests.args.includes('scripts/__tests__/grade-season.test.ts'), false);
+
+  assert.ok(gradeSeasonTests);
+  assert.match(gradeSeasonTests.command, /apps\/web\/node_modules\/\.bin\/vitest$/);
+  assert.deepEqual(gradeSeasonTests.args.slice(0, 2), ['run', '--root']);
+  assert.ok(gradeSeasonTests.args.includes('--globals'));
+  assert.ok(gradeSeasonTests.args.includes('grade-season.test.ts'));
+});
+
 test('defaults production and browser smoke steps to Chip enabled', () => {
   const plan = buildReleaseGatePlan({ platform: 'darwin' });
 
   assert.equal(plan.find((step) => step.id === 'web-production-build').env.VITE_CHIP_ENABLED, 'true');
   assert.equal(plan.find((step) => step.id === 'g3-football-ops-matrix').env.VITE_CHIP_ENABLED, 'true');
   assert.equal(plan.find((step) => step.id === 'g6-visual-sweep-mobile').env.VITE_CHIP_ENABLED, 'true');
+});
+
+test('gives post-setup browser smokes extra preview startup time', () => {
+  const plan = buildReleaseGatePlan({ platform: 'darwin' });
+  const postSetupSmokes = plan.filter((step) => step.args?.[0] === 'scripts/smoke-test-post-setup-route.mjs');
+
+  assert.ok(postSetupSmokes.length >= 2);
+  for (const step of postSetupSmokes) {
+    assert.equal(step.env.SMOKE_TIMEOUT_MS, '90000', `${step.id} keeps assertion timeout`);
+    assert.equal(step.env.SMOKE_PREVIEW_TIMEOUT_MS, '240000', `${step.id} has preview startup timeout`);
+  }
 });
 
 test('keeps the dedicated G4 soak out of the generic web test step', () => {

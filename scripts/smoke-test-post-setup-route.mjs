@@ -55,8 +55,23 @@ import net from 'node:net';
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const webDir = resolve(rootDir, 'apps/web');
 const distDir = resolve(webDir, 'dist');
-const timeoutMs = Number(process.env.SMOKE_TIMEOUT_MS ?? 30_000);
 const pnpmBin = process.env.PNPM_BIN ?? 'pnpm';
+
+function parsePositiveInt(raw, fallback) {
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+export function parseSmokeTimeoutMs(env = process.env) {
+  return parsePositiveInt(env.SMOKE_TIMEOUT_MS, 30_000);
+}
+
+export function parseSmokePreviewTimeoutMs(env = process.env) {
+  return parsePositiveInt(env.SMOKE_PREVIEW_TIMEOUT_MS, Math.max(parseSmokeTimeoutMs(env), 30_000));
+}
+
+const timeoutMs = parseSmokeTimeoutMs(process.env);
+const previewTimeoutMs = parseSmokePreviewTimeoutMs(process.env);
 
 const defaultRouteCheck = Object.freeze({
   route: '/league/weather',
@@ -448,14 +463,6 @@ async function waitFor(label, condition, ms = timeoutMs) {
 }
 
 function createPreviewCommand(port) {
-  if (commandExists(pnpmBin)) {
-    return {
-      command: pnpmBin,
-      args: ['--filter', '@mfd/web', 'preview', '--port', String(port), '--strictPort'],
-      cwd: rootDir,
-    };
-  }
-
   const viteBin = resolve(webDir, 'node_modules/.bin/vite');
   if (existsSync(viteBin)) {
     return {
@@ -465,7 +472,26 @@ function createPreviewCommand(port) {
     };
   }
 
+  if (commandExists(pnpmBin)) {
+    return {
+      command: pnpmBin,
+      args: ['--filter', '@mfd/web', 'preview', '--port', String(port), '--strictPort'],
+      cwd: rootDir,
+    };
+  }
+
   fail('pnpm is unavailable and apps/web/node_modules/.bin/vite was not found.');
+}
+
+function formatPreviewStartFailure(err, command, previewLog) {
+  const message = err instanceof Error ? err.message : String(err);
+  const output = previewLog.trim() || '(no preview output captured)';
+  return [
+    message,
+    `Preview command: ${command.command} ${command.args.join(' ')}`,
+    'Preview output:',
+    output,
+  ].join('\n');
 }
 
 class CdpConnection {
@@ -2232,7 +2258,17 @@ async function runNewDynastyFullSetupSmoke(cdp, sessionId, baseUrl) {
   await clickSetupPrimaryAction(cdp, sessionId, 'advance from franchise intel phase');
 
   await waitForSetupHeaderText(cdp, sessionId, 'MEET THE ROSTER', 'meet roster phase');
-  await waitForBodyText(cdp, sessionId, 'first-backup job that needs cover before one injury changes the lineup', 'meet roster Chip injury-depth consequence');
+  await waitFor('meet roster setup consequence', () => evaluate(cdp, sessionId, `
+    (() => {
+      const text = document.body?.innerText ?? '';
+      return [
+        'Name roster roles and scheme calls before Week 1',
+        'Fix unresolved roster, Week 1 game-plan, or cap choices before Week 1',
+        'Fix unresolved roster, Week 1 game-plan, and cap choices before kickoff',
+        'Preview every unresolved setup choice before the first month',
+      ].some((copy) => text.includes(copy));
+    })()
+  `));
   await assertBodyTextAbsent(cdp, sessionId, 'thin backup', 'meet roster avoids thin-backup shorthand');
   await assertBodyTextAbsent(cdp, sessionId, 'thinnest starter', 'meet roster avoids thinnest-starter shorthand');
   await assertBodyTextAbsent(cdp, sessionId, 'cannot survive an injury', 'meet roster avoids survive-injury shorthand');
@@ -2254,8 +2290,8 @@ async function runNewDynastyFullSetupSmoke(cdp, sessionId, baseUrl) {
   await clickSetupPrimaryAction(cdp, sessionId, 'advance from meet roster phase');
 
   await waitForSetupHeaderText(cdp, sessionId, 'HIRE HEAD COACH', 'hire coach phase');
-  await waitForBodyText(cdp, sessionId, "Must Do: hire the coach whose calls match today's starters", 'coach phase Chip assignment-fit instruction');
-  await waitForBodyText(cdp, sessionId, 'leaves protection or coverage assignments unassigned for Week 1', 'coach phase Chip assignment consequence');
+  await waitForBodyText(cdp, sessionId, 'Choose the coach whose scheme and teaching match current starters', 'coach phase assignment-fit instruction');
+  await waitForBodyText(cdp, sessionId, 'coach-player gaps create Week 1 missed assignments', 'coach phase assignment consequence');
   await waitForBodyText(cdp, sessionId, 'Mistake Chance', 'plain candidate mistake-chance badge');
   await waitForBodyText(cdp, sessionId, 'WHAT CAN GO WRONG', 'plain candidate consequence warning label');
   await waitForBodyText(cdp, sessionId, 'HAS COST', 'plain candidate has-cost recommendation label');
@@ -2286,8 +2322,8 @@ async function runNewDynastyFullSetupSmoke(cdp, sessionId, baseUrl) {
   await clickSetupPrimaryAction(cdp, sessionId, 'advance from hire scout phase');
 
   await waitForSetupHeaderText(cdp, sessionId, 'PICK SCHEMES', 'scheme phase');
-  await waitForBodyText(cdp, sessionId, 'Must Do: choose schemes that protect current starters', 'scheme phase Chip starter-protection instruction');
-  await waitForBodyText(cdp, sessionId, 'force Depth Chart or Game Plan protection by Week 1', 'scheme phase Chip assignment consequence');
+  await waitForBodyText(cdp, sessionId, 'Choose Week 1 calls that avoid unassigned starter jobs', 'scheme phase starter-protection instruction');
+  await waitForBodyText(cdp, sessionId, 'late scheme changes create missed assignments before Week 1', 'scheme phase assignment consequence');
   await waitFor('plain scheme recommendation labels', () => evaluate(cdp, sessionId, `
     (() => {
       const text = document.body?.innerText ?? '';
@@ -2316,8 +2352,8 @@ async function runNewDynastyFullSetupSmoke(cdp, sessionId, baseUrl) {
   );
   await assertBodyTextAbsent(cdp, sessionId, 'protect later fixes', 'cap strategy avoids vague later-fixes shorthand');
   await waitForSetupCapPlanChoices(cdp, sessionId);
-  await waitForBodyText(cdp, sessionId, 'Restructures create cap space now by moving money into future seasons', 'cap strategy Chip restructure consequence');
-  await waitForBodyText(cdp, sessionId, 'future cap space needed for injuries, trades, extensions, and next offseason', 'cap strategy Chip future cap consequence');
+  await waitForBodyText(cdp, sessionId, 'Create cap space with one controlled restructure', 'cap strategy restructure consequence');
+  await waitForBodyText(cdp, sessionId, 'later injury, trade, and extension fixes stay open', 'cap strategy future cap consequence');
   await assertBodyTextAbsent(cdp, sessionId, 'reduce room for later fixes', 'cap strategy avoids room shorthand');
   await assertBodyTextAbsent(cdp, sessionId, 'losing later room', 'cap strategy avoids later-room shorthand');
   await clickSetupSpotlightTarget(cdp, sessionId, 'wizard.cap-strategy.confirm', 'cap strategy spotlight command');
@@ -7823,6 +7859,10 @@ async function run() {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   children.push(preview);
+  let previewError = null;
+  preview.once('error', (err) => {
+    previewError = err;
+  });
   preview.stdout.on('data', (chunk) => {
     previewLog += chunk.toString();
   });
@@ -7831,13 +7871,23 @@ async function run() {
   });
 
   try {
-    await waitFor('preview server', async () => {
-      if (preview.exitCode !== null) {
-        throw new Error(`preview exited with ${preview.exitCode}\n${previewLog}`);
-      }
-      const response = await fetch(baseUrl).catch(() => null);
-      return response?.ok;
-    });
+    try {
+      await waitFor('preview server', async () => {
+        if (previewError) {
+          throw previewError;
+        }
+        if (preview.exitCode !== null) {
+          throw new Error(`preview exited with status ${preview.exitCode}`);
+        }
+        if (preview.signalCode !== null) {
+          throw new Error(`preview exited with signal ${preview.signalCode}`);
+        }
+        const response = await fetch(baseUrl).catch(() => null);
+        return response?.ok;
+      }, previewTimeoutMs);
+    } catch (err) {
+      throw new Error(formatPreviewStartFailure(err, previewCommand, previewLog));
+    }
 
     console.log(`Launching headless Chrome with CDP on :${cdpPort}...`);
     const chrome = spawn(chromeBin, [

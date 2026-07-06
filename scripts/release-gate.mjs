@@ -46,7 +46,7 @@ function packageBinStep(id, group, label, packageRoot, bin, args, options = {}) 
     label,
     command: commandBin(packageRoot, bin, options.platform),
     args,
-    cwd: packageRoot,
+    cwd: options.cwd ?? packageRoot,
     env: options.env ?? {},
   };
 }
@@ -68,6 +68,7 @@ function postSetupStep(id, group, label, env) {
     env: {
       VITE_CHIP_ENABLED: 'true',
       SMOKE_TIMEOUT_MS: '90000',
+      SMOKE_PREVIEW_TIMEOUT_MS: '240000',
       ...env,
     },
   });
@@ -83,7 +84,15 @@ export function buildReleaseGatePlan(options = {}) {
     'scripts/__tests__/smoke-test-post-setup-route.test.mjs',
     'scripts/__tests__/smoke-test-g3-football-ops-matrix.test.mjs',
     'scripts/__tests__/smoke-test-g4-multi-year-trust.test.mjs',
-    'scripts/__tests__/grade-season.test.ts',
+  ];
+  const gradeSeasonTestArgs = [
+    'run',
+    '--root',
+    repoRoot,
+    '--dir',
+    join(repoRoot, 'scripts/__tests__'),
+    '--globals',
+    'grade-season.test.ts',
   ];
 
   return [
@@ -92,6 +101,10 @@ export function buildReleaseGatePlan(options = {}) {
     scriptStep('g3-matrix-syntax', 'static', 'G3 matrix syntax check', ['--check', 'scripts/smoke-test-g3-football-ops-matrix.mjs']),
     scriptStep('g4-soak-syntax', 'static', 'G4 soak runner syntax check', ['--check', 'scripts/smoke-test-g4-multi-year-trust.mjs']),
     scriptStep('script-tests', 'tests', 'script and release-tooling tests', nodeTestArgs),
+    packageBinStep('grade-season-tests', 'tests', 'TypeScript grade-season release-tooling tests', webRoot, 'vitest', gradeSeasonTestArgs, {
+      platform,
+      cwd: repoRoot,
+    }),
 
     packageBinStep('engine-typecheck', 'typecheck', 'engine typecheck', engineRoot, 'tsc', ['--noEmit'], { platform }),
     packageBinStep('web-typecheck', 'typecheck', 'web typecheck', webRoot, 'tsc', ['--noEmit'], { platform }),
