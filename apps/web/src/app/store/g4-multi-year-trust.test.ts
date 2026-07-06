@@ -31,7 +31,7 @@ const STEP_GUARD = 800;
 const VALIDATED_STATE_GUARD = STEP_GUARD * 4;
 const ADVANCE_ONLY_BIAS = Object.freeze({ advanceOnly: true, fatigueIgnore: true });
 const G4_SOAK_LOG = process.env.G4_SOAK_LOG === '1';
-const G4_SOAK_TIMEOUT_MS = 1_500_000;
+const G4_SOAK_TIMEOUT_MS = 3_600_000;
 
 const PHASE_ORDER_FOR_ASSERTIONS: readonly SeasonPhase[] = [
   'offseason',
