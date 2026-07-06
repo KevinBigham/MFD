@@ -1,4 +1,4 @@
-import { getActiveRule } from './league-rules';
+import { getRegularSeasonWeekCount } from './season-schedule';
 import { compareStatLeaders } from '../utils';
 import type {
   BrokenRecord,
@@ -225,11 +225,6 @@ function careerValueFor(player: Player, stat: string): number {
 
 function seasonValueFor(player: Player, stat: string): number {
   return Number(player.stats?.[stat] ?? 0);
-}
-
-function regularSeasonGames(game: GameState): number {
-  const configuredWeeks = Number(getActiveRule(game.leagueRules, 'schedule_weeks', game.year));
-  return Math.max(1, configuredWeeks - 1);
 }
 
 function playerGamesPlayed(game: GameState, player: Player): number {
@@ -460,7 +455,7 @@ export function getSeasonPaceProjection(
 }
 
 export function checkRecordChases(game: GameState): RecordChase[] {
-  const totalWeeks = regularSeasonGames(game);
+  const totalWeeks = getRegularSeasonWeekCount(game);
   const chases = Object.values(game.players)
     .flatMap<RecordChase>((player) => {
       if (!player.teamId) return [];

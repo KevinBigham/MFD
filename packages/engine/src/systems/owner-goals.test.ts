@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   evaluateOwnerMandates,
@@ -5,6 +6,12 @@ import {
   refreshOwnerMandates,
 } from './owner-goals';
 import { makeLeagueState } from './test-helpers';
+
+const OWNER_GOALS_SOURCE = readFileSync(new URL('./owner-goals.ts', import.meta.url), 'utf8');
+const STALE_OWNER_AGM_NOTE_COPY =
+  /\b(?:cap-health readout|weekly standards|player-development proof|owner trust|competitive standard|extra patience|cap space can cover|game-plan checks)\b/i;
+const STALE_OWNER_PROMISE_TIER_COPY =
+  /\b(?:Floor mandate|Target mandate|Ceiling mandate|Missing this floor|Meeting this target|Delivering this ceiling)\b/i;
 
 describe('owner mandates', () => {
   it('installs selected setup goals as durable floor/target/ceiling mandates and owner handshakes', () => {
@@ -24,7 +31,29 @@ describe('owner mandates', () => {
     ]);
     expect(game.ownerMandates).toHaveLength(3);
     expect(game.handshakes.filter((handshake) => handshake.condition.metric === 'owner_mandate')).toHaveLength(3);
+    expect(game.handshakes.find((handshake) => handshake.targetId === game.ownerMandates![0]!.id)?.promiseText).toContain('Minimum promise');
+    expect(game.handshakes.find((handshake) => handshake.targetId === game.ownerMandates![1]!.id)?.promiseText).toContain('Main promise');
+    expect(game.handshakes.find((handshake) => handshake.targetId === game.ownerMandates![2]!.id)?.promiseText).toContain('Stretch promise');
+    expect(game.handshakes.find((handshake) => handshake.targetId === game.ownerMandates![0]!.id)?.consequence).toContain('cuts owner approval, owner patience, and front-office reputation');
+    expect(game.handshakes.find((handshake) => handshake.targetId === game.ownerMandates![1]!.id)?.consequence).toContain('raises owner approval and front-office reputation');
+    expect(game.handshakes.find((handshake) => handshake.targetId === game.ownerMandates![2]!.id)?.consequence).toContain('creates the largest owner reward');
     expect(game.ownerMandates![1]!.progress.agmNote).toContain('Marcus Webb');
+    expect(OWNER_GOALS_SOURCE).not.toMatch(STALE_OWNER_PROMISE_TIER_COPY);
+  });
+
+  it('keeps AGM owner mandate notes specific about actions and consequences', () => {
+    const marcusGame = makeLeagueState('regular_season', 1);
+    const coachDGame = makeLeagueState('regular_season', 1);
+    const sandraGame = makeLeagueState('regular_season', 1);
+
+    installOwnerMandates(marcusGame, 'afce1', ['cap_health'], 'marcus_webb');
+    installOwnerMandates(coachDGame, 'afce1', ['winning_record'], 'coach_d_hardaway');
+    installOwnerMandates(sandraGame, 'afce1', ['draft_well'], 'sandra_chen');
+
+    expect(marcusGame.ownerMandates![0]!.progress.agmNote).toContain('cap space against injury, extension, and trade fixes');
+    expect(coachDGame.ownerMandates![0]!.progress.agmNote).toContain('weekly practice reps and saved Game Plan calls');
+    expect(sandraGame.ownerMandates![0]!.progress.agmNote).toContain('young players are earning snaps, roles, and development time');
+    expect(OWNER_GOALS_SOURCE).not.toMatch(STALE_OWNER_AGM_NOTE_COPY);
   });
 
   it('uses actual postseason finish for championship instead of raw wins', () => {

@@ -246,4 +246,12 @@ describe('HomegrownMeter', () => {
 
     expect(markup).toContain('2');
   });
+
+  it('labels roster identity as current roster joined to playerArchive without archive writes', () => {
+    const markup = renderToStaticMarkup(<HomegrownMeter game={makeGame()} />);
+
+    expect(markup).toContain('current user roster joined to playerArchive first-team history');
+    expect(markup).toContain('Age buckets are display-only');
+    expect(markup).toContain('does not write archive rows');
+  });
 });

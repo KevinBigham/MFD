@@ -2,6 +2,8 @@ import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
 import type { FranchiseBlueprint } from '@mfd/engine';
 import { PixelMetricCard, autoGrid, monoSm, pixelSm, display } from '../../shared/pixelUi';
 
+const GOAL_PROMISE_BADGES = ['MINIMUM PROMISE', 'MAIN PROMISE', 'STRETCH PROMISE'] as const;
+
 export function BlueprintPhase({
   data,
   runtimeCliffhanger,
@@ -12,7 +14,7 @@ export function BlueprintPhase({
     ifThisWorks: string;
     ifThisBreaks: string;
     unresolvedDanger: string;
-    betSummary?: string[];
+    decisionSummary?: string[];
   };
 }) {
   return (
@@ -39,7 +41,7 @@ export function BlueprintPhase({
       <div style={autoGrid(200)}>
         <PixelMetricCard label="Offense" value={data.selectedSchemes.offenseLabel} accent="gold" detail="Offensive scheme" />
         <PixelMetricCard label="Defense" value={data.selectedSchemes.defenseLabel} accent="cyan" detail="Defensive scheme" />
-        <PixelMetricCard label="Roster" value={data.rosterStrength} accent="green" detail="Roster grade" />
+        <PixelMetricCard label="Roster" value={data.rosterStrength} accent="green" detail="Roster strength" />
         <PixelMetricCard label="Cap" value={data.capOutlook.split('.')[0] ?? data.capOutlook} accent="gold" detail="Financial outlook" />
       </div>
 
@@ -48,7 +50,9 @@ export function BlueprintPhase({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {data.seasonGoals.map((goal, i) => (
             <div key={goal.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <PixelBadge variant={i === 0 ? 'green' : i === 1 ? 'gold' : 'cyan'}>{i === 0 ? 'FLOOR' : i === 1 ? 'TARGET' : 'CEILING'}</PixelBadge>
+              <PixelBadge variant={i === 0 ? 'green' : i === 1 ? 'gold' : 'cyan'}>
+                {GOAL_PROMISE_BADGES[i] ?? 'OWNER PROMISE'}
+              </PixelBadge>
               <span style={{ ...monoSm, color: '#ddd' }}>{goal.label}</span>
               <span style={{ ...monoSm, color: '#888' }}>{goal.description}</span>
             </div>
@@ -56,7 +60,7 @@ export function BlueprintPhase({
         </div>
       </PixelPanel>
 
-      <PixelPanel title="Day 1 Diagnosis" accent="red">
+      <PixelPanel title="Setup Diagnosis" accent="red">
         <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.7 }}>{data.crisisHeadline}</div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
           {data.pressureSnapshot.map((card) => (
@@ -101,27 +105,27 @@ export function BlueprintPhase({
         </div>
       </PixelPanel>
 
-      <PixelPanel title="Day 1 Bets" accent="cyan">
+      <PixelPanel title="Setup Decisions" accent="cyan">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {data.dayOneBets.map((bet) => (
-            <div key={bet} style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
-              {bet}
+          {data.dayOneBets.map((decision) => (
+            <div key={decision} style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
+              {decision}
             </div>
           ))}
         </div>
       </PixelPanel>
 
-      <PixelPanel title="Week 1 Cliffhanger" accent="gold">
+      <PixelPanel title="Week 1 Risk Check" accent="gold">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>{data.weekOneCliffhanger.openerLabel}</div>
-          <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}><strong>Threat:</strong> {data.weekOneCliffhanger.threat}</div>
-          <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}><strong>Hope:</strong> {data.weekOneCliffhanger.hope}</div>
-          <div style={{ ...monoSm, color: '#aaa', lineHeight: 1.6 }}><strong>Unknown:</strong> {data.weekOneCliffhanger.unknown}</div>
+          <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}><strong>If ignored:</strong> {data.weekOneCliffhanger.threat}</div>
+          <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}><strong>If solved:</strong> {data.weekOneCliffhanger.hope}</div>
+          <div style={{ ...monoSm, color: '#aaa', lineHeight: 1.6 }}><strong>Before kickoff:</strong> {data.weekOneCliffhanger.unknown}</div>
         </div>
       </PixelPanel>
 
       {runtimeCliffhanger ? (
-        <PixelPanel title="Week 1 War Room" accent="red">
+        <PixelPanel title="Week 1 Kickoff Check" accent="red">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ ...pixelSm, color: 'var(--mfd-red)' }}>{runtimeCliffhanger.opponentIdentity}</div>
             <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
@@ -133,11 +137,11 @@ export function BlueprintPhase({
             <div style={{ ...monoSm, color: '#aaa', lineHeight: 1.6 }}>
               <strong>TOP UNRESOLVED DANGER</strong> {runtimeCliffhanger.unresolvedDanger}
             </div>
-            {runtimeCliffhanger.betSummary && runtimeCliffhanger.betSummary.length > 0 ? (
+            {runtimeCliffhanger.decisionSummary && runtimeCliffhanger.decisionSummary.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>DAY 1 BETS CARRIED INTO KICKOFF</div>
-                {runtimeCliffhanger.betSummary.map((bet) => (
-                  <div key={bet} style={{ ...monoSm, color: '#ddd', lineHeight: 1.5 }}>{bet}</div>
+                <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>SETUP DECISIONS CARRIED INTO WEEK 1</div>
+                {runtimeCliffhanger.decisionSummary.map((decision) => (
+                  <div key={decision} style={{ ...monoSm, color: '#ddd', lineHeight: 1.5 }}>{decision}</div>
                 ))}
               </div>
             ) : null}

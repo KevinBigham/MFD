@@ -99,8 +99,27 @@ function writePayload(payload: RookieOfYearPayload): RookieOfYearPayload {
   return next;
 }
 
+export function parseRookieOfYearPayload(candidate: unknown): RookieOfYearPayload | null {
+  const validated = PayloadSchema.safeParse(candidate);
+  if (!validated.success) return null;
+
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    byDynastyId: Object.fromEntries(
+      Object.entries(validated.data.byDynastyId).map(([dynastyId, entries]) => [
+        dynastyId,
+        normalizeEntries(entries),
+      ]),
+    ),
+  };
+}
+
 export function readRookieOfYearStore(): RookieOfYearPayload {
   return readPayload();
+}
+
+export function replaceRookieOfYearStore(payload: RookieOfYearPayload): RookieOfYearPayload {
+  return writePayload(payload);
 }
 
 export function readRookieOfYearEntries(dynastyId: string): RookieOfYearEntry[] {

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { PHASE_ORDER } from '@mfd/engine';
 import {
   STAGE_ACTION_REGISTRATIONS,
   buildPrimaryActionProps,
@@ -46,6 +47,32 @@ describe('stageActionRegistry', () => {
       cultureMandateSelected: true,
     })).toBe('culture');
     expect(resolveWizardStageId({ showColdOpen: false, currentPhase: 'blueprint', isLaunchingSeason: true })).toBe('week-one');
+  });
+
+  it('keeps every engine setup phase mapped to a wizard stage', () => {
+    const resolvedStages = PHASE_ORDER.map((phase) => [
+      phase,
+      resolveWizardStageId({
+        showColdOpen: false,
+        currentPhase: phase,
+        seasonGoalCount: 0,
+        cultureMandateSelected: false,
+        isLaunchingSeason: false,
+      }),
+    ]);
+
+    expect(resolvedStages).toEqual([
+      ['choose_agm', 'agm-hire'],
+      ['intel_briefing', 'intel-briefing'],
+      ['meet_roster', 'roster-overview'],
+      ['hire_coach', 'coach-hire'],
+      ['hire_scout', 'scout-hire'],
+      ['set_scheme', 'scheme'],
+      ['depth_chart', 'depth-chart'],
+      ['cap_strategy', 'cap-strategy'],
+      ['set_goals', 'goals'],
+      ['blueprint', 'blueprint'],
+    ]);
   });
 
   it('fires the stage advance callback only after the stage changes', () => {

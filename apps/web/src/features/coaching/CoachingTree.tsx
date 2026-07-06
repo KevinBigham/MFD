@@ -4,7 +4,7 @@ import {
   PixelButton,
   PixelPanel,
 } from '@mfd/design-system/components';
-import { buildCoachingLegacy, type CoachCareerHistory, type GameEvent, type GameState, type StaffMember, type StaffRole, type Team } from '@mfd/engine';
+import { buildCoachingLegacy, type CoachCareerHistory, type CoachingLegacy, type GameEvent, type GameState, type StaffMember, type StaffRole, type Team } from '@mfd/engine';
 import { selectUserTeam, useGameStore } from '../../app/store/game-store';
 import {
   PixelMetricCard,
@@ -313,6 +313,59 @@ function EmptyState() {
   );
 }
 
+function CoachingTreeSourcePanel() {
+  return (
+    <PixelPanel title="Coaching Tree Sources" accent="cyan">
+      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+        Source: active team.staff HC/OC/DC records across the league, saved game.coachingHistory,
+        coach_retirement event labels, and buildCoachingLegacy metrics for your current head coach.
+        The mentor chain reads staff mentorCoachId fields, disciples read saved disciple ids, and this
+        route does not write staff moves, relationship edges, coaching history, or coach development.
+      </div>
+    </PixelPanel>
+  );
+}
+
+function NotableProtegesPanel({ legacy }: { legacy: CoachingLegacy }) {
+  return (
+    <PixelPanel title="Notable Proteges" accent={legacy.notableProteges.length > 0 ? 'gold' : 'default'}>
+      {legacy.notableProteges.length > 0 ? (
+        <div style={autoGrid(200)}>
+          {legacy.notableProteges.map((protege, index) => (
+            <div
+              key={protege.coachId}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '10px',
+                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(255, 215, 0, 0.04)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                <span style={{ ...pixelSm, color: 'var(--mfd-text-dim)' }}>#{index + 1} BRANCH</span>
+                <PixelBadge variant={protege.role === 'HC' ? 'gold' : 'cyan'}>{protege.role}</PixelBadge>
+              </div>
+              <div style={{ ...mono, color: 'var(--mfd-text)' }}>{protege.name}</div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <PixelBadge variant="default">{protege.teamAbbr}</PixelBadge>
+                <PixelBadge variant={protege.championships > 0 ? 'green' : 'default'}>
+                  {protege.championships} title{protege.championships === 1 ? '' : 's'}
+                </PixelBadge>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+          No active protege placements yet. This panel reads buildCoachingLegacy notableProteges and does not create staff moves or relationship edges.
+        </div>
+      )}
+    </PixelPanel>
+  );
+}
+
 export function CoachingTree() {
   const game = useGameStore((s) => s.game);
   const userTeam = useGameStore(selectUserTeam);
@@ -399,6 +452,7 @@ export function CoachingTree() {
       {status ? (
         <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{status}</div>
       ) : null}
+      <CoachingTreeSourcePanel />
       {!userTeam || !root ? (
         <PixelPanel title="NO TEAM LOADED" accent="red">
           <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
@@ -413,6 +467,8 @@ export function CoachingTree() {
             <PixelMetricCard label="Coordinators Placed" value={legacy.coordinatorsPlaced} accent="green" detail="Active OC and DC placements across the league" />
             <PixelMetricCard label="Notable Proteges" value={legacy.notableProteges.length} accent="default" detail="Top five active branches ranked by titles and tenure" />
           </div>
+
+          <NotableProtegesPanel legacy={legacy} />
 
           <div style={{ position: 'relative' }}>
             <CoachingTreeConnectionLines mentorChain={mentorChain} disciples={disciples} />

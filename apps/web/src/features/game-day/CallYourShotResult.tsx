@@ -83,6 +83,25 @@ export function CallYourShotResult({ result }: CallYourShotResultProps) {
         <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
           {result.reaction.speaker} // {result.reaction.speakerType.replace('_', ' ')}
         </div>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            padding: '8px',
+            border: '2px solid var(--mfd-border)',
+            background: 'var(--mfd-bg-2)',
+          }}
+        >
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <PixelBadge variant="cyan">resolveCallYourShot</PixelBadge>
+            <PixelBadge variant="gold">GameDayPackage</PixelBadge>
+            <PixelBadge variant="default">Read-only receipt</PixelBadge>
+          </div>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', lineHeight: 1.6, color: 'var(--mfd-text-dim)' }}>
+            Source: resolveCallYourShot resolves saved activeCallYourShot after the user game, applies the fan-confidence delta, clears activeCallYourShot, and stores callYourShotResult on the user GameResult. GameDayPackage copies that payload for recap display. Opening this result does not re-evaluate the shot, apply another fan-confidence swing, queue audio, change the saved game, rerun the game, or reroll saved outcomes.
+          </div>
+        </div>
       </div>
     </PixelPanel>
   );

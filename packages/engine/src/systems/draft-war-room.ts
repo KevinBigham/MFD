@@ -1,7 +1,10 @@
 import { calcPickValue } from './trade-value';
 import { buildLeagueAverageByGroup, analyzeTeamNeeds } from './team-needs';
+import { getScenarioConstraints } from './scenario-challenge';
+import { recordNewsItem } from './league-news';
 import type {
   DraftOrderEntry,
+  DraftPick,
   DraftTradeOffer,
   DraftProspect,
   GameState,
@@ -56,41 +59,22 @@ function topProspect(draftClass: DraftProspect[] | Player[]): (DraftProspect | P
     String((a as DraftProspect).id ?? (a as Player).id).localeCompare(String((b as DraftProspect).id ?? (b as Player).id)))[0] ?? null;
 }
 
-function synthesizedEntry(currentPick: DraftOrderEntry, teamId: string, offset: number): DraftOrderEntry {
-  const overall = currentPick.overall + offset;
-  return {
-    id: `${teamId}-${currentPick.round}-${overall}-${teamId}`,
-    teamId,
-    round: currentPick.round,
-    pick: currentPick.pick + offset,
-    overall,
-    originalTeamId: teamId,
-  };
+function hasSourceDraftOrderPick(game: GameState, entry: DraftOrderEntry): boolean {
+  const team = game.teams[entry.teamId];
+  return Boolean(team?.draftPicks.some((pick) =>
+    pick.year === game.year &&
+    pick.currentTeamId === entry.teamId &&
+    pick.round === entry.round &&
+    pick.pick === entry.pick &&
+    pick.originalTeamId === entry.originalTeamId));
 }
 
 function draftTradeCandidates(game: GameState, currentPick: DraftOrderEntry): Array<{ entry: DraftOrderEntry; team: Team }> {
-  const actualCandidates = game.offseasonState?.draftOrder
+  return game.offseasonState?.draftOrder
     .filter((entry) => entry.overall > currentPick.overall && entry.overall <= currentPick.overall + 8)
     .map((entry) => ({ entry, team: game.teams[entry.teamId]! }))
-    .filter(({ team }) => Boolean(team) && !team.isUser) ?? [];
-
-  if (actualCandidates.length >= 3) {
-    return actualCandidates;
-  }
-
-  const seenTeams = new Set(actualCandidates.map(({ team }) => team.id));
-  let offset = 1;
-  for (const team of Object.values(game.teams).sort((a, b) => a.id.localeCompare(b.id))) {
-    if (team.isUser || seenTeams.has(team.id)) continue;
-    actualCandidates.push({
-      entry: synthesizedEntry(currentPick, team.id, offset),
-      team,
-    });
-    offset += 1;
-    if (actualCandidates.length >= 3) break;
-  }
-
-  return actualCandidates;
+    .filter(({ entry, team }) => Boolean(team) && !team.isUser && hasSourceDraftOrderPick(game, entry))
+    .slice(0, 3) ?? [];
 }
 
 function buildPickAsset(teamId: string, pick: DraftOrderEntry, description?: string): TradeOfferAsset {
@@ -134,20 +118,130 @@ function scoreToGrade(score: number): string {
   return 'F';
 }
 
-function transferPick(game: GameState, asset: TradeOfferAsset, toTeamId: string): void {
-  if (!asset.pickId) return;
+function draftPickIdCandidates(pick: DraftPick, teamId = pick.currentTeamId): string[] {
+  return [
+    `${teamId}-${pick.year}-${pick.round}-${pick.pick}-${pick.originalTeamId}`,
+    `${teamId}-${pick.round}-${pick.pick}-${pick.originalTeamId}`,
+  ];
+}
+
+function draftOrderIdForPick(pick: DraftPick, teamId = pick.currentTeamId): string {
+  return `${teamId}-${pick.year}-${pick.round}-${pick.pick}-${pick.originalTeamId}`;
+}
+
+function buildFuturePickAsset(game: GameState, team: Team, round: number): TradeOfferAsset | null {
+  const pick = [...team.draftPicks]
+    .filter((entry) => entry.currentTeamId === team.id && entry.year > game.year && entry.round === round)
+    .sort((a, b) =>
+      a.year - b.year ||
+      a.pick - b.pick ||
+      a.originalTeamId.localeCompare(b.originalTeamId))[0] ?? null;
+  if (!pick) return null;
+  return {
+    type: 'pick',
+    teamId: team.id,
+    playerId: null,
+    pickId: draftOrderIdForPick(pick, team.id),
+    description: `Future round ${round} pick`,
+  };
+}
+
+function describeAssets(assets: TradeOfferAsset[]): string {
+  return assets
+    .map((asset) => asset.description ?? asset.pickId ?? asset.playerId ?? asset.type)
+    .filter(Boolean)
+    .join(' + ') || 'draft assets';
+}
+
+function recordAcceptedDraftTradeNews(game: GameState, offer: DraftTradeOffer, userTeam: Team): void {
+  const sourceTeam = game.teams[offer.from];
+  const sourceLabel = sourceTeam ? `${sourceTeam.city} ${sourceTeam.name}` : offer.from;
+  const userLabel = `${userTeam.city} ${userTeam.name}`;
+  const sourceCity = sourceTeam?.city ?? offer.from;
+
+  recordNewsItem(game, {
+    id: `draft-trade-${game.year}-${game.week}-${offer.targetPick}-${offer.from}`,
+    year: game.year,
+    week: game.week,
+    type: 'trade',
+    headline: `${sourceCity} trades up to pick #${offer.targetPick}`,
+    body: `${sourceLabel} sends ${describeAssets(offer.offer.offering)} to ${userLabel} for ${describeAssets(offer.offer.requesting)}. Draft order ownership updated before the next pick.`,
+    teamIds: [offer.from, userTeam.id],
+    playerIds: [],
+    importance: 'breaking',
+  });
+}
+
+function assetMatchesDraftPick(asset: TradeOfferAsset, pick: DraftPick): boolean {
+  if (asset.type !== 'pick' || !asset.pickId) return false;
+  return [
+    ...draftPickIdCandidates(pick),
+    ...draftPickIdCandidates(pick, asset.teamId),
+  ].includes(asset.pickId);
+}
+
+function assetMatchesDraftOrderEntry(game: GameState, asset: TradeOfferAsset, entry: DraftOrderEntry): boolean {
+  if (asset.type !== 'pick' || !asset.pickId) return false;
+  const year = game.year;
+  return [
+    `${entry.teamId}-${year}-${entry.round}-${entry.pick}-${entry.originalTeamId}`,
+    `${entry.teamId}-${entry.round}-${entry.pick}-${entry.originalTeamId}`,
+    `${asset.teamId}-${year}-${entry.round}-${entry.pick}-${entry.originalTeamId}`,
+    `${asset.teamId}-${entry.round}-${entry.pick}-${entry.originalTeamId}`,
+  ].includes(asset.pickId);
+}
+
+function findLiveDraftOrderEntry(game: GameState, asset: TradeOfferAsset): DraftOrderEntry | null {
+  return game.offseasonState?.draftOrder.find((entry) =>
+    entry.teamId === asset.teamId && assetMatchesDraftOrderEntry(game, asset, entry)) ?? null;
+}
+
+function hasSourceDraftPick(game: GameState, asset: TradeOfferAsset): boolean {
+  const fromTeam = game.teams[asset.teamId];
+  return Boolean(fromTeam?.draftPicks.some((pick) => assetMatchesDraftPick(asset, pick)));
+}
+
+function updateDraftOrderForTransfer(
+  game: GameState,
+  transfer: { pick: DraftPick; fromTeamId: string; toTeamId: string },
+): void {
+  if (!game.offseasonState || transfer.pick.year !== game.year) return;
+  game.offseasonState.draftOrder = game.offseasonState.draftOrder
+    .map((entry) => {
+      if (
+        entry.teamId === transfer.fromTeamId &&
+        entry.round === transfer.pick.round &&
+        entry.pick === transfer.pick.pick &&
+        entry.originalTeamId === transfer.pick.originalTeamId
+      ) {
+        return {
+          ...entry,
+          id: draftOrderIdForPick(transfer.pick, transfer.toTeamId),
+          teamId: transfer.toTeamId,
+        };
+      }
+      return entry;
+    })
+    .sort((a, b) => a.overall - b.overall);
+}
+
+function transferPick(
+  game: GameState,
+  asset: TradeOfferAsset,
+  toTeamId: string,
+): { pick: DraftPick; fromTeamId: string; toTeamId: string } | null {
+  if (!asset.pickId) return null;
   const fromTeam = game.teams[asset.teamId];
   const toTeam = game.teams[toTeamId];
-  if (!fromTeam || !toTeam) return;
-  const index = fromTeam.draftPicks.findIndex((pick) =>
-    `${pick.currentTeamId}-${pick.round}-${pick.pick}-${pick.originalTeamId}` === asset.pickId ||
-    `${asset.teamId}-${pick.round}-${pick.pick}-${pick.originalTeamId}` === asset.pickId,
-  );
-  if (index === -1) return;
+  if (!fromTeam || !toTeam) return null;
+  const index = fromTeam.draftPicks.findIndex((pick) => assetMatchesDraftPick(asset, pick));
+  if (index === -1) return null;
   const [pick] = fromTeam.draftPicks.splice(index, 1);
-  if (!pick) return;
+  if (!pick) return null;
+  const fromTeamId = fromTeam.id;
   pick.currentTeamId = toTeamId;
   toTeam.draftPicks.push(pick);
+  return { pick, fromTeamId, toTeamId };
 }
 
 export function generateDraftTradeOffers(
@@ -155,8 +249,11 @@ export function generateDraftTradeOffers(
   currentPick: DraftOrderEntry,
   rng: () => number,
 ): DraftTradeOffer[] {
+  if (getScenarioConstraints(game)?.blockTrades) return [];
+
   const userTeam = Object.values(game.teams).find((team) => team.isUser) ?? null;
   if (!userTeam || currentPick.teamId !== userTeam.id || !game.offseasonState) return [];
+  if (!hasSourceDraftOrderPick(game, currentPick)) return [];
 
   const eliteProspect = topProspect(game.draftClass as DraftProspect[] | Player[]);
   if (!eliteProspect) return [];
@@ -195,15 +292,9 @@ export function generateDraftTradeOffers(
           : 'casual';
 
     const pickGap = calcPickValue({ round: entry.round, pick: entry.pick }) - calcPickValue({ round: currentPick.round, pick: currentPick.pick });
-    const sweetener = pickGap < -150
-      ? [{
-        type: 'pick' as const,
-        teamId: team.id,
-        playerId: null,
-        pickId: `${team.id}-future-3-${team.id}`,
-        description: 'Future round 3 pick',
-      }]
-      : [];
+    const futureSweetener = pickGap < -150 ? buildFuturePickAsset(game, team, 3) : null;
+    if (pickGap < -150 && !futureSweetener) return [];
+    const sweetener = futureSweetener ? [futureSweetener] : [];
 
     return [{
       from: team.id,
@@ -349,27 +440,36 @@ export function buildDraftWarRoomState(game: GameState, rng: () => number): WarR
 }
 
 export function applyDraftTradeOffer(game: GameState, offer: DraftTradeOffer): GameState {
-  const nextState = structuredClone(game);
-  const userTeam = (Object.values(nextState.teams) as Team[]).find((team) => team.isUser) ?? null;
-  if (!userTeam) return nextState;
+  if (getScenarioConstraints(game)?.blockTrades) return game;
+  const userTeam = (Object.values(game.teams) as Team[]).find((team) => team.isUser) ?? null;
+  const currentPick = game.offseasonState?.draftOrder[game.offseasonState.currentDraftPickIndex] ?? null;
+  if (!userTeam || !currentPick || currentPick.teamId !== userTeam.id || currentPick.overall !== offer.targetPick) {
+    return game;
+  }
 
+  const offeredLiveAssets = offer.offer.offering.filter((asset) => findLiveDraftOrderEntry(game, asset));
+  const requestedLiveAssets = offer.offer.requesting.filter((asset) => findLiveDraftOrderEntry(game, asset));
+  if (offeredLiveAssets.length === 0 || requestedLiveAssets.length === 0) return game;
+  if (![...offeredLiveAssets, ...requestedLiveAssets].every((asset) => hasSourceDraftPick(game, asset))) {
+    return game;
+  }
+
+  const nextState = structuredClone(game);
+  const transfers: Array<{ pick: DraftPick; fromTeamId: string; toTeamId: string }> = [];
   for (const asset of offer.offer.offering) {
-    transferPick(nextState, asset, userTeam.id);
+    const transfer = transferPick(nextState, asset, userTeam.id);
+    if (transfer) transfers.push(transfer);
   }
   for (const asset of offer.offer.requesting) {
-    transferPick(nextState, asset, offer.from);
+    const transfer = transferPick(nextState, asset, offer.from);
+    if (transfer) transfers.push(transfer);
   }
 
-  if (nextState.offseasonState) {
-    nextState.offseasonState.draftOrder = nextState.offseasonState.draftOrder
-      .map((entry: DraftOrderEntry) => {
-        if (entry.teamId === offer.from && entry.overall === offer.targetPick) {
-          return entry;
-        }
-        return entry;
-      })
-      .sort((a: DraftOrderEntry, b: DraftOrderEntry) => a.overall - b.overall);
+  for (const transfer of transfers) {
+    updateDraftOrderForTransfer(nextState, transfer);
   }
+
+  recordAcceptedDraftTradeNews(nextState, offer, userTeam);
 
   return nextState;
 }

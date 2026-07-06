@@ -64,6 +64,25 @@ describe('ApologyTourModalView', () => {
     expect(markup).toContain('A four-beat narrative thread following The Collapse.');
   });
 
+  it('renders source boundary copy for saved threads, authored beats, local replay state, and delivery ledger', () => {
+    const markup = renderToStaticMarkup(
+      <ApologyTourModalView
+        thread={makeThread({ beatsDelivered: ['fan_letter'] })}
+        teamName="Chicago Blaze"
+        open
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(markup).toContain('apology-tour-sources');
+    expect(markup).toContain('Tour Sources');
+    expect(markup).toContain('Saved apologyTourThreads owns gameId, teamId, status, and beatsDelivered');
+    expect(markup).toContain('getApologyTourBeat fan_letter supplies from/title/body copy');
+    expect(markup).toContain('Back and Next only change modal-local beatIndex');
+    expect(markup).toContain('1/4 delivered');
+    expect(markup).toContain('replaying does not add delivered beats');
+  });
+
   it('honors initialBeatIndex to deep-link into a later beat (Day +3 owner email)', () => {
     const markup = renderToStaticMarkup(
       <ApologyTourModalView

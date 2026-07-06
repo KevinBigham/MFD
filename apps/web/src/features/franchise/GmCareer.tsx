@@ -31,6 +31,28 @@ function legacyStats(dynasties: DynastySummary[]) {
   };
 }
 
+function CareerSourcesPanel({ currentDynastyId }: { currentDynastyId: string | null }) {
+  return (
+    <PixelPanel title="Career Sources" accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="cyan">BROWSER SIDECAR</PixelBadge>
+          <PixelBadge variant="gold">READ ONLY</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.7 }}>
+          This route reads <strong>mfd.careerMeta.v1</strong> through <strong>readCareerMeta</strong>, validates the payload, and recomputes career totals from stored dynasty summaries before rendering.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Current dynasty id comes from <strong>deriveDynastyId(game)</strong>: {currentDynastyId ?? 'No active dynasty loaded'}. That same id is passed into Rookie of the Year history so cross-dynasty panels stay aligned.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Career writes are owned by <strong>appendDynastySummary</strong>, <strong>finalizeDynasty</strong>, <strong>actions.newGame</strong>, and <strong>actions.loadGame</strong>. Opening GM Career does not write career meta, finalize dynasties, clear sidecars, autosave, change the live save, or play scheduled games.
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function GmCareer() {
   const game = useGameStore((state) => state.game);
   const userTeam = useGameStore(selectUserTeam);
@@ -56,6 +78,7 @@ export function GmCareer() {
           subtitle="Persistent local legacy across every dynasty."
           badges={<PixelBadge variant="cyan">CAREER META</PixelBadge>}
         />
+        <CareerSourcesPanel currentDynastyId={currentDynastyId} />
         <PixelPanel title="Legacy Status" accent="default">
           <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
             No dynasties yet — start your first franchise to build your legacy.
@@ -81,6 +104,8 @@ export function GmCareer() {
         subtitle="Cross-dynasty coaching ledger stored in this browser."
         badges={<PixelBadge variant="gold">LEGACY TRACKER</PixelBadge>}
       />
+
+      <CareerSourcesPanel currentDynastyId={currentDynastyId} />
 
       <div style={autoGrid(180)}>
         <PixelMetricCard label="Seasons Coached" value={meta.careerTotals.seasonsCoached} accent="gold" detail={`${meta.careerTotals.dynasties} ${dynastyLabel}`} />

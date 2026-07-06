@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HallOfFameEntry } from '@mfd/engine';
 import {
   clearHallOfFameForDynasty,
+  exportHallOfFameArchiveJson,
+  importHallOfFameArchiveJson,
   listDynastiesByStartYear,
+  parseHallOfFameArchiveJson,
   readHallOfFameArchive,
   readHallOfFameDynasty,
   summarizeHallOfFameArchive,
@@ -66,6 +69,94 @@ describe('hall-of-fame-archive', () => {
     const payload = readHallOfFameArchive();
     expect(payload.schemaVersion).toBe(1);
     expect(Object.keys(payload.dynastiesById)).toHaveLength(0);
+  });
+
+  it('exports the archive as a versioned JSON envelope without writing storage', () => {
+    const json = exportHallOfFameArchiveJson({
+      schemaVersion: 1,
+      dynastiesById: {
+        'seed-kc-2030': makeDynasty({
+          entries: [
+            makeEntry({ playerId: 'older', inductionYear: 2041, name: 'Older' }),
+            makeEntry({ playerId: 'newer', inductionYear: 2044, name: 'Newer' }),
+          ],
+        }),
+      },
+    }, new Date('2026-05-01T12:00:00.000Z'));
+    const envelope = JSON.parse(json);
+
+    expect(envelope.kind).toBe('mfd.hallOfFame.archive.v1');
+    expect(envelope.exportedAt).toBe('2026-05-01T12:00:00.000Z');
+    expect(envelope.payload.dynastiesById['seed-kc-2030'].entries.map((entry: HallOfFameEntry) => entry.playerId))
+      .toEqual(['newer', 'older']);
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it('parses archive JSON without mutating the current sidecar', () => {
+    const json = exportHallOfFameArchiveJson({
+      schemaVersion: 1,
+      dynastiesById: {
+        'seed-kc-2030': makeDynasty({ entries: [makeEntry({ playerId: 'exported' })] }),
+      },
+    }, new Date('2026-05-01T12:00:00.000Z'));
+
+    const result = parseHallOfFameArchiveJson(json);
+
+    expect(result).toMatchObject({ ok: true, dynasties: 1, inductees: 1 });
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it('imports a versioned archive envelope into the sidecar', () => {
+    const json = exportHallOfFameArchiveJson({
+      schemaVersion: 1,
+      dynastiesById: {
+        'seed-kc-2030': makeDynasty({
+          entries: [
+            makeEntry({ playerId: 'older', inductionYear: 2041, name: 'Older' }),
+            makeEntry({ playerId: 'newer', inductionYear: 2044, name: 'Newer' }),
+          ],
+        }),
+      },
+    }, new Date('2026-05-01T12:00:00.000Z'));
+
+    const result = importHallOfFameArchiveJson(json);
+
+    expect(result).toMatchObject({ ok: true, dynasties: 1, inductees: 2 });
+    expect(readHallOfFameDynasty('seed-kc-2030')?.entries.map((entry) => entry.playerId)).toEqual(['newer', 'older']);
+  });
+
+  it('imports a raw sidecar payload for direct mfd.hallOfFame.v1 portability', () => {
+    const result = importHallOfFameArchiveJson(JSON.stringify({
+      schemaVersion: 1,
+      dynastiesById: {
+        raw: makeDynasty({ dynastyId: 'raw', entries: [makeEntry({ playerId: 'raw-entry' })] }),
+      },
+    }));
+
+    expect(result).toMatchObject({ ok: true, dynasties: 1, inductees: 1 });
+    expect(readHallOfFameDynasty('raw')?.entries[0]?.playerId).toBe('raw-entry');
+  });
+
+  it('rejects malformed import JSON without replacing the sidecar', () => {
+    upsertHallOfFameDynasty(makeDynasty({ dynastyId: 'existing', entries: [makeEntry({ playerId: 'kept' })] }));
+
+    const result = importHallOfFameArchiveJson('{not-json');
+
+    expect(result).toEqual({ ok: false, reason: 'Import must be valid JSON.' });
+    expect(Object.keys(readHallOfFameArchive().dynastiesById)).toEqual(['existing']);
+  });
+
+  it('rejects schema-invalid import JSON without replacing the sidecar', () => {
+    upsertHallOfFameDynasty(makeDynasty({ dynastyId: 'existing', entries: [makeEntry({ playerId: 'kept' })] }));
+
+    const result = importHallOfFameArchiveJson(JSON.stringify({
+      kind: 'mfd.hallOfFame.archive.v1',
+      exportedAt: '2026-05-01T12:00:00.000Z',
+      payload: { schemaVersion: 99, dynastiesById: {} },
+    }));
+
+    expect(result).toEqual({ ok: false, reason: 'Import is not a valid Hall of Fame archive.' });
+    expect(Object.keys(readHallOfFameArchive().dynastiesById)).toEqual(['existing']);
   });
 
   it('persists a dynasty via upsert and reads it back sorted newest-induction first', () => {

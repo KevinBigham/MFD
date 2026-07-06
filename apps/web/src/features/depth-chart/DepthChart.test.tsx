@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DepthChart } from './DepthChart';
+import { DepthChart, getFormationStarterReadout } from './DepthChart';
 
 const mockState = {
   roster: [
@@ -43,14 +43,31 @@ const mockState = {
       isStarter: true,
       injury: null,
     },
+    {
+      id: 'wr-1',
+      name: 'Milo Dash',
+      firstName: 'Milo',
+      lastName: 'Dash',
+      pos: 'WR',
+      ovr: 79,
+      pot: 84,
+      age: 23,
+      systemFit: 78,
+      isStarter: false,
+      injury: null,
+      ratings: {
+        speed: 91,
+        awareness: 72,
+      },
+    },
   ],
   actions: {
-    setStarter: () => undefined,
+    setStarter: () => Promise.resolve(),
     assignKickReturner: () => Promise.resolve(),
     assignPuntReturner: () => Promise.resolve(),
   },
   specialTeams: {
-    kickReturner: null,
+    kickReturner: 'wr-1',
     puntReturner: null,
     longSnapper: null,
     kickCoverageUnit: [],
@@ -82,7 +99,7 @@ describe('DepthChart accessibility', () => {
 
     expect(markup).toContain('DEPTH CHART');
     expect(markup).toContain('NEXT CALL');
-    expect(markup).toContain('Fill every starting slot');
+    expect(markup).toContain('Set legal starter shape');
     expect(markup).toContain('type="button"');
     expect(markup).toContain('SPECIAL TEAMS');
   });
@@ -92,5 +109,43 @@ describe('DepthChart accessibility', () => {
 
     expect(markup).toContain('Jay Stone');
     expect(markup).not.toContain('title="Open Jay Stone"');
+  });
+
+  it('renders source copy for starter flags and saved special-teams state', () => {
+    const markup = renderToStaticMarkup(<DepthChart />);
+
+    expect(markup).toContain('DEPTH CHART SOURCES');
+    expect(markup).toContain('Room cards show the active roster');
+    expect(markup).toContain('Starter shape');
+    expect(markup).toContain('23 open / 0 extra');
+    expect(markup).toContain('engine starter shape by position');
+    expect(markup).toContain('Open rooms: RB -1');
+    expect(markup).toContain('1/2 returners');
+    expect(markup).toContain('Dropdowns are the only returner commits here');
+    expect(markup).toContain('Opening Depth Chart does not auto-set starters');
+  });
+
+  it('requires the starter shape by position instead of accepting any 22 flags', () => {
+    const overloadedRoster = [
+      ...Array.from({ length: 22 }, (_, index) => ({
+        ...mockState.roster[0],
+        id: `qb-${index}`,
+        name: `Quarterback ${index}`,
+        pos: 'QB' as const,
+        isStarter: true,
+      })),
+      {
+        ...mockState.roster[2],
+        id: 'dl-extra',
+        isStarter: false,
+      },
+    ];
+
+    const readout = getFormationStarterReadout(overloadedRoster as any);
+
+    expect(readout.marked).toBe(22);
+    expect(readout.complete).toBe(false);
+    expect(readout.extra).toBe(21);
+    expect(readout.openRooms.some((room) => room.position === 'OL' && room.missing === 5)).toBe(true);
   });
 });

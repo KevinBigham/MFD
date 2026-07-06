@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { LockerRoom } from './LockerRoom';
+import { LockerRoom, LockerRoomActionReceiptPanel } from './LockerRoom';
 
 const baseState = () => ({
   team: {
@@ -73,6 +73,36 @@ describe('LockerRoom', () => {
     const markup = renderToStaticMarkup(<LockerRoom />);
     expect(markup).toContain('rally cry');
     expect(markup).toContain('Trigger Rally');
+  });
+
+  it('renders source copy for saved locker-room state and action boundaries', () => {
+    const markup = renderToStaticMarkup(<LockerRoom />);
+    expect(markup).toContain('LOCKER ROOM SOURCES');
+    expect(markup).toContain('selectLockerRoom reads saved team.lockerRoom');
+    expect(markup).toContain('may return an on-screen confirmation');
+    expect(markup).toContain('captain buttons elect captains');
+    expect(markup).toContain('eligibleBench is route-local roster guidance');
+    expect(markup).toContain('CAPTAIN_PERK_EFFECTS');
+    expect(markup).toContain('Opening Locker Room does not tick weekly culture');
+  });
+
+  it('renders action receipts returned by committed locker-room actions', () => {
+    const markup = renderToStaticMarkup(
+      <LockerRoomActionReceiptPanel
+        receipt={{
+          kind: 'meeting',
+          title: 'Team Meeting Receipt',
+          detail: 'The captains cooled off one tension.',
+          source: 'callTeamMeeting committed saved team.lockerRoom through the store; this confirmation appears here only.',
+        }}
+      />,
+    );
+
+    expect(markup).toContain('TEAM MEETING RECEIPT');
+    expect(markup).toContain('Meeting');
+    expect(markup).toContain('On-screen confirmation');
+    expect(markup).toContain('The captains cooled off one tension.');
+    expect(markup).toContain('appears here only');
   });
 
   it('shows the meeting cooldown when a meeting is still locked', () => {

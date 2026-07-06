@@ -133,6 +133,34 @@ function sortPlaques(awards: MvpPlaqueAward[], sort: MvpPlaqueSortMode): MvpPlaq
   });
 }
 
+function MvpPlaqueSourcesPanel() {
+  return (
+    <PixelPanel title="Plaque Sources" accent="cyan">
+      <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="gold">saved awardsHistory</PixelBadge>
+          <PixelBadge variant="cyan">user-team winners</PixelBadge>
+          <PixelBadge variant="default">route-local filters</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Source: saved `game.awardsHistory` through `selectAwardsHistory`, the current `selectUserTeam`,
+          and `selectFranchiseEras` labels derived from franchise history.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          `buildMvpPlaqueAwards` includes MVP, OPOY, DPOY, and Coach of the Year rows only when
+          `winnerTeamId` matches the user team. Plaques display saved `winnerStats` and rounded award
+          `score` as the peak score.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Opening this route does not generate awards, change career stats, write ceremonies, patch season
+          history, detect new eras, update players, records, Hall of Fame archives, media posts,
+          achievements, or simulation outcomes.
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function MvpPlaqueWallView({
   awards,
   initialFilter = 'all',
@@ -163,6 +191,8 @@ export function MvpPlaqueWallView({
         <PixelMetricCard label="MVPs" value={mvpCount} accent="green" detail="League MVP plaques" />
         <PixelMetricCard label="Latest" value={latestYear ?? '--'} accent="cyan" detail="Most recent award season" />
       </div>
+
+      <MvpPlaqueSourcesPanel />
 
       <PixelPanel title="Controls" accent="cyan">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

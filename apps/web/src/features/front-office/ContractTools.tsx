@@ -11,6 +11,7 @@ import {
   evaluateStandardCutImpact,
   evaluatePostJune1CutImpact,
   projectContractCap,
+  buildContractDecisionForecast,
 } from '@mfd/engine';
 import type { Player } from '@mfd/engine';
 import {
@@ -20,6 +21,7 @@ import {
   useGameStore,
 } from '../../app/store/game-store';
 import {
+  PixelConsequenceList,
   PixelMetricCard,
   PixelScreenHeader,
   autoGrid,
@@ -42,9 +44,174 @@ function savingsVariant(savings: number): 'green' | 'gold' | 'red' | 'default' {
   return 'default';
 }
 
+function forecastAccent(severity: 'low' | 'medium' | 'high'): 'green' | 'gold' | 'red' {
+  if (severity === 'high') return 'red';
+  if (severity === 'medium') return 'gold';
+  return 'green';
+}
+
+type ContractToolSourceAccent = 'cyan' | 'gold' | 'green' | 'red';
+
+interface ContractToolSourceRow {
+  label: string;
+  detail: string;
+  accent: ContractToolSourceAccent;
+}
+
+type ContractToolAction = 'restructure' | 'backload' | 'standard_cut' | 'post_june_1_cut';
+
+export interface ContractToolActionReceipt {
+  id: string;
+  title: string;
+  actionLabel: string;
+  accent: ContractToolSourceAccent;
+  target: string;
+  result: string;
+  stateTouched: string;
+  source: string;
+  boundary: string;
+}
+
+function buildContractToolSourceRows(hasGameContext: boolean): ContractToolSourceRow[] {
+  return [
+    {
+      label: 'Roster Source',
+      detail: 'selectRoster supplies current user-team contract players; this list hides players without active contracts.',
+      accent: 'cyan',
+    },
+    {
+      label: 'Preview Helpers',
+      detail: 'Restructure, backload, standard-cut, post-June-1, and forecast rows call pure contract-tools helpers before any button commits.',
+      accent: 'gold',
+    },
+    {
+      label: 'Rule Context',
+      detail: hasGameContext
+        ? 'projectContractCap and buildContractDecisionForecast receive active GameState so salary_cap_growth overrides surface in projections.'
+        : 'No GameState is loaded, so projection helpers fall back to default cap math.',
+      accent: hasGameContext ? 'green' : 'red',
+    },
+    {
+      label: 'Commit Boundary',
+      detail: 'Only Apply/Cut buttons call restructure, backload, or cutPlayer store actions; rendering previews does not move players or write saves.',
+      accent: 'green',
+    },
+  ];
+}
+
+export function buildContractToolActionReceipt(args: {
+  action: ContractToolAction;
+  player: Player;
+  teamName: string;
+  currentYear: number;
+  currentHit: number;
+  projectedHit?: number;
+  capSavings?: number;
+  deadCap?: number;
+  currentYearDead?: number;
+  nextYearDead?: number;
+  voidYears?: number;
+}): ContractToolActionReceipt {
+  const target = `${args.player.name} // ${args.player.pos} // ${args.teamName} // Y${args.currentYear}`;
+  const savings = fmtMoney(args.capSavings ?? 0);
+  const currentHit = fmtMoney(args.currentHit);
+
+  if (args.action === 'restructure') {
+    return {
+      id: `restructure:${args.player.id}:${args.currentYear}`,
+      title: 'Restructure Applied',
+      actionLabel: 'Restructure',
+      accent: 'cyan',
+      target,
+      result: `Preview showed ${savings} of current-year cap space from a ${currentHit} starting hit to a ${fmtMoney(args.projectedHit ?? args.currentHit)} projected hit.`,
+      stateTouched: 'Selected contract base/proration/guarantee fields, team cap totals, league cap-space read model, undo snapshot, and autosave.',
+      source: 'actions.restructure -> restructureContract -> syncPlayerContractReference -> syncTeamCapTotals -> refreshLeagueCapSpace -> commitGame',
+      boundary: 'This confirmation does not run another restructure, change cap formulas, move players, play scheduled games, reroll saved outcomes, or save a separate confirmation log.',
+    };
+  }
+
+  if (args.action === 'backload') {
+    return {
+      id: `backload:${args.player.id}:${args.currentYear}:${args.voidYears ?? 0}`,
+      title: 'Backload Applied',
+      actionLabel: `Backload +${args.voidYears ?? 0} void`,
+      accent: 'gold',
+      target,
+      result: `Preview showed ${savings} of current-year cap space from a ${currentHit} starting hit by adding ${args.voidYears ?? 0} void year(s).`,
+      stateTouched: 'Selected contract base/proration/void-year/guarantee fields, team cap totals, league cap-space read model, undo snapshot, and autosave.',
+      source: 'actions.backload -> backloadContract -> syncPlayerContractReference -> syncTeamCapTotals -> refreshLeagueCapSpace -> commitGame',
+      boundary: 'This confirmation does not add more void years, change cap formulas, move players, play scheduled games, reroll saved outcomes, or save a separate confirmation log.',
+    };
+  }
+
+  if (args.action === 'post_june_1_cut') {
+    return {
+      id: `post-june-1-cut:${args.player.id}:${args.currentYear}`,
+      title: 'Post-June 1 Cut Processed',
+      actionLabel: 'Post-June 1 Cut',
+      accent: 'red',
+      target,
+      result: `Preview showed ${savings} current-year cap space with ${fmtMoney(args.currentYearDead ?? 0)} dead cap this year and ${fmtMoney(args.nextYearDead ?? 0)} deferred to next year.`,
+      stateTouched: 'Roster, practice squad references, GameState.players team/contract fields, waiver wire, team txLog, dead cap by year, current team cap totals, undo snapshot, and autosave.',
+      source: 'actions.cutPlayer({ postJune1: true }) -> applyPostJune1CutToGame -> postJune1Cut -> commitGame',
+      boundary: 'This confirmation does not cut another player, create a second waiver row, change post-June-1 math, play scheduled games, reroll saved outcomes, or save a separate confirmation log.',
+    };
+  }
+
+  return {
+    id: `standard-cut:${args.player.id}:${args.currentYear}`,
+    title: 'Standard Cut Processed',
+    actionLabel: 'Standard Cut',
+    accent: 'red',
+    target,
+    result: `Preview showed ${savings} current-year cap space with ${fmtMoney(args.deadCap ?? 0)} dead cap before the player enters the waiver process.`,
+    stateTouched: 'Roster, practice squad references, GameState.players team/contract fields, waiver wire, team txLog, current team cap totals, undo snapshot, and autosave.',
+    source: 'actions.cutPlayer -> cutPlayerToWaiversEngine -> commitGame',
+    boundary: 'This confirmation does not cut another player, create a second waiver row, change dead-cap math, play scheduled games, reroll saved outcomes, or save a separate confirmation log.',
+  };
+}
+
+export function ContractToolActionReceiptPanel({ receipt }: { receipt: ContractToolActionReceipt }) {
+  return (
+    <PixelPanel title="Contract Action Receipt" accent={receipt.accent}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant={receipt.accent}>{receipt.title}</PixelBadge>
+          <PixelBadge variant="default">On-screen confirmation</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.5 }}>{receipt.target}</div>
+        <div style={autoGrid(220)}>
+          {[
+            { label: receipt.actionLabel, detail: receipt.result, accent: receipt.accent },
+            { label: 'Changed now', detail: receipt.stateTouched, accent: 'gold' as const },
+            { label: 'Action used', detail: receipt.source, accent: 'cyan' as const },
+            { label: 'Did not also', detail: receipt.boundary, accent: 'green' as const },
+          ].map((row) => (
+            <div
+              key={row.label}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                padding: '8px',
+                border: '1px solid var(--mfd-border)',
+                background: 'var(--mfd-bg-elevated)',
+              }}
+            >
+              <PixelBadge variant={row.accent}>{row.label}</PixelBadge>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{row.detail}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 // ── Component ──────────────────────────────────────────
 
 export function ContractTools() {
+  const game = useGameStore((s) => s.game);
   const userTeam = useGameStore(selectUserTeam);
   const roster = useGameStore(selectRoster);
   const currentYear = useGameStore(selectYear);
@@ -54,6 +221,7 @@ export function ContractTools() {
 
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
   const [voidYears, setVoidYears] = useState('2');
+  const [actionReceipt, setActionReceipt] = useState<ContractToolActionReceipt | null>(null);
 
   // Contract-bearing players only, sorted by cap hit desc for quick scanning.
   const contractPlayers = useMemo(
@@ -89,8 +257,20 @@ export function ContractTools() {
     [selectedContract],
   );
   const projection = useMemo(
-    () => projectContractCap(selectedContract, currentYear, 4),
-    [selectedContract, currentYear],
+    () => projectContractCap(selectedContract, currentYear, 4, game ?? null),
+    [selectedContract, currentYear, game],
+  );
+  const decisionForecast = useMemo(
+    () => buildContractDecisionForecast(selectedContract, currentYear, {
+      currentCapSpace: userTeam?.capSpace ?? 0,
+      voidYears: Number.parseInt(voidYears, 10) || 1,
+      game: game ?? null,
+    }),
+    [currentYear, selectedContract, userTeam?.capSpace, voidYears, game],
+  );
+  const sourceRows = useMemo(
+    () => buildContractToolSourceRows(Boolean(game)),
+    [game],
   );
 
   // Team-level totals for metric cards.
@@ -117,26 +297,69 @@ export function ContractTools() {
     );
   }
 
-  const handleRestructure = (): void => {
+  const handleRestructure = async (): Promise<void> => {
     if (!selectedPlayer || !restructurePreview.eligible) return;
-    restructure(userTeam.id, selectedPlayer.id);
+    const receipt = buildContractToolActionReceipt({
+      action: 'restructure',
+      player: selectedPlayer,
+      teamName: userTeam.name,
+      currentYear,
+      currentHit: restructurePreview.currentHit,
+      projectedHit: restructurePreview.projectedHit,
+      capSavings: restructurePreview.savings,
+    });
+    await restructure(userTeam.id, selectedPlayer.id);
+    setActionReceipt(receipt);
   };
 
-  const handleBackload = (): void => {
+  const handleBackload = async (): Promise<void> => {
     if (!selectedPlayer || !backloadPreview.eligible) return;
-    backload(userTeam.id, selectedPlayer.id, Number.parseInt(voidYears, 10) || 1);
+    const requestedVoidYears = Number.parseInt(voidYears, 10) || 1;
+    const receipt = buildContractToolActionReceipt({
+      action: 'backload',
+      player: selectedPlayer,
+      teamName: userTeam.name,
+      currentYear,
+      currentHit: backloadPreview.currentHit,
+      projectedHit: backloadPreview.projectedHit,
+      capSavings: backloadPreview.savings,
+      voidYears: backloadPreview.voidYearsAdded || requestedVoidYears,
+    });
+    await backload(userTeam.id, selectedPlayer.id, requestedVoidYears);
+    setActionReceipt(receipt);
   };
 
-  const handleCut = (): void => {
+  const handleCut = async (): Promise<void> => {
     if (!selectedPlayer) return;
-    void cutPlayer(userTeam.id, selectedPlayer.id);
+    const receipt = buildContractToolActionReceipt({
+      action: 'standard_cut',
+      player: selectedPlayer,
+      teamName: userTeam.name,
+      currentYear,
+      currentHit: cutPreview.currentHit,
+      capSavings: cutPreview.capSavings,
+      deadCap: cutPreview.deadCap,
+    });
+    await cutPlayer(userTeam.id, selectedPlayer.id);
     setSelectedPlayerId('');
+    setActionReceipt(receipt);
   };
 
-  const handlePostJune1Cut = (): void => {
+  const handlePostJune1Cut = async (): Promise<void> => {
     if (!selectedPlayer) return;
-    void cutPlayer(userTeam.id, selectedPlayer.id, { postJune1: true });
+    const receipt = buildContractToolActionReceipt({
+      action: 'post_june_1_cut',
+      player: selectedPlayer,
+      teamName: userTeam.name,
+      currentYear,
+      currentHit: postJune1Preview.currentHit,
+      capSavings: postJune1Preview.capSavings,
+      currentYearDead: postJune1Preview.currentYearDead,
+      nextYearDead: postJune1Preview.nextYearDead,
+    });
+    await cutPlayer(userTeam.id, selectedPlayer.id, { postJune1: true });
     setSelectedPlayerId('');
+    setActionReceipt(receipt);
   };
 
   return (
@@ -157,6 +380,29 @@ export function ContractTools() {
         <PixelMetricCard label="DEAD CAP" value={fmtMoney(teamTotals.deadCap)} accent={teamTotals.deadCap > 10 ? 'red' : 'default'} />
         <PixelMetricCard label="ACTIVE DEALS" value={String(teamTotals.activeContracts)} />
       </div>
+
+      <PixelPanel title="Contract Tool Sources" accent="cyan">
+        <div style={autoGrid(220)}>
+          {sourceRows.map((row) => (
+            <div
+              key={row.label}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                padding: '8px',
+                border: '1px solid var(--mfd-border)',
+                background: 'var(--mfd-bg-elevated)',
+              }}
+            >
+              <PixelBadge variant={row.accent}>{row.label}</PixelBadge>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{row.detail}</div>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
+
+      {actionReceipt ? <ContractToolActionReceiptPanel receipt={actionReceipt} /> : null}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) minmax(360px, 2fr)', gap: '12px' }}>
         {/* Left — roster picker */}
@@ -217,6 +463,37 @@ export function ContractTools() {
                 <PixelMetricCard label="GUARANTEED" value={fmtMoney(selectedContract.guaranteed)} />
                 <PixelMetricCard label="VOID YEARS" value={String(selectedContract.voidYears ?? 0)} />
               </div>
+
+              {/* Decision forecast */}
+              <PixelPanel title="DECISION FORECAST" accent={forecastAccent(decisionForecast.severity)} padding="sm">
+                <div style={autoGrid(140)}>
+                  <PixelMetricCard label="RECOMMENDED" value={decisionForecast.actionLabel.toUpperCase()} accent={forecastAccent(decisionForecast.severity)} />
+                  <PixelMetricCard label="CAP CHANGE" value={fmtMoney(decisionForecast.capSpaceDelta)} accent={savingsVariant(decisionForecast.capSpaceDelta)} />
+                  <PixelMetricCard label="DEAD NOW" value={fmtMoney(decisionForecast.currentYearDeadCapDelta)} accent={decisionForecast.currentYearDeadCapDelta > 0 ? 'red' : 'default'} />
+                  <PixelMetricCard label="FUTURE DEAD" value={fmtMoney(decisionForecast.futureDeadCapDelta)} accent={decisionForecast.futureDeadCapDelta > 0 ? 'gold' : 'default'} />
+                  <PixelMetricCard label="REVERSIBLE" value={decisionForecast.reversible ? 'YES' : 'NO'} accent={decisionForecast.reversible ? 'green' : 'red'} />
+                </div>
+                <div style={{ marginTop: '10px' }}>
+                  <PixelConsequenceList
+                    items={[
+                      { id: 'forecast-immediate', label: 'Immediate', delta: decisionForecast.immediateImpact, accent: forecastAccent(decisionForecast.severity) },
+                      { id: 'forecast-season', label: 'This season', delta: decisionForecast.thisSeasonImpact, accent: 'gold' },
+                      { id: 'forecast-future', label: 'Future', delta: decisionForecast.futureImpact, accent: 'cyan' },
+                      { id: 'forecast-risk', label: 'Risk', delta: decisionForecast.risk, accent: forecastAccent(decisionForecast.severity) },
+                      { id: 'forecast-player', label: 'Player camp', delta: decisionForecast.playerReaction, accent: 'cyan' },
+                      { id: 'forecast-media', label: 'Media', delta: decisionForecast.mediaReaction, accent: 'gold' },
+                      { id: 'forecast-uncertainty', label: 'Uncertainty', delta: decisionForecast.uncertainty, accent: forecastAccent(decisionForecast.severity) },
+                    ]}
+                  />
+                </div>
+                {decisionForecast.warnings.length > 0 ? (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
+                    {decisionForecast.warnings.map((warning) => (
+                      <PixelBadge key={warning} variant={decisionForecast.severity === 'high' ? 'red' : 'gold'}>{warning}</PixelBadge>
+                    ))}
+                  </div>
+                ) : null}
+              </PixelPanel>
 
               {/* Action previews */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

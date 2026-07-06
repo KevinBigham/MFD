@@ -33,24 +33,24 @@ function SchemeCard({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
         <span style={{ ...pixelSm, color: selected ? 'var(--mfd-gold)' : '#ddd' }}>{option.label.toUpperCase()}</span>
         <div style={{ display: 'flex', gap: '4px' }}>
-          {option.recommended && <PixelBadge variant="gold">REC</PixelBadge>}
+          {option.recommended && <PixelBadge variant="gold">RECOMMENDED</PixelBadge>}
           {selected && <PixelBadge variant="green">SELECTED</PixelBadge>}
         </div>
       </div>
       <div style={{ ...monoSm, color: '#aaa', lineHeight: 1.5, marginBottom: '8px' }}>{option.description}</div>
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
         <span style={{ ...monoSm, color: option.fitScore >= 70 ? 'var(--mfd-green)' : option.fitScore >= 50 ? 'var(--mfd-gold)' : 'var(--mfd-red, #ff4444)' }}>
-          Fit: {Math.round(option.fitScore)}
+          Roster match: {Math.round(option.fitScore)}
         </span>
         {option.transitionPenalty > 0 && (
-          <span style={{ ...monoSm, color: 'var(--mfd-gold)' }}>Transition: -{Math.round(option.transitionPenalty)}</span>
+          <span style={{ ...monoSm, color: 'var(--mfd-gold)' }}>Install cost: -{Math.round(option.transitionPenalty)}</span>
         )}
-        {option.staffAligned && <PixelBadge variant="cyan">Staff Aligned</PixelBadge>}
+        {option.staffAligned && <PixelBadge variant="cyan">Staff teaches this</PixelBadge>}
       </div>
       <ChoiceDeltaBadges preview={preview} />
       {option.bestFitPlayers.length > 0 && (
         <div style={{ ...monoSm, color: '#777', marginTop: '6px' }}>
-          Thrives: {option.bestFitPlayers.slice(0, 2).map((p) => `${p.name} (${p.ovr})`).join(', ')}
+          Best current players: {option.bestFitPlayers.slice(0, 2).map((p) => `${p.name} (${p.ovr})`).join(', ')}
         </div>
       )}
     </div>
@@ -76,7 +76,7 @@ export function SetSchemePhase({
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <PixelPanel title="Offensive Identity" accent="gold">
+      <PixelPanel title="Offensive Calls" accent="gold">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {data.offenseOptions.map((opt, index) => (
             <SchemeCard
@@ -91,7 +91,7 @@ export function SetSchemePhase({
         </div>
       </PixelPanel>
 
-      <PixelPanel title="Defensive Identity" accent="cyan">
+      <PixelPanel title="Defensive Calls" accent="cyan">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {data.defenseOptions.map((opt, index) => (
             <SchemeCard

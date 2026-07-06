@@ -79,6 +79,7 @@ describe('DynastyChronicle', () => {
 
     expect(markup).toContain('DYNASTY CHRONICLE');
     expect(markup).toContain('Chicago Blaze // one scroll across every archive');
+    expect(markup).toContain('CHRONICLE SOURCES');
   });
 
   it('renders the empty state when there are no chronicle events', () => {
@@ -157,6 +158,29 @@ describe('DynastyChronicle', () => {
 
     expect(markup).toContain('Export Chronicle');
     expect(markup).toContain('Exports 4 event(s) from the filtered timeline.');
+  });
+
+  it('labels chronicle sources without implying route writes', () => {
+    const markup = renderToStaticMarkup(<DynastyChronicle />);
+
+    expect(markup).toContain('CHRONICLE SOURCES');
+    expect(markup).toContain('saved dynasty memory');
+    expect(markup).toContain('sidecar archive reads');
+    expect(markup).toContain('route-local filters');
+    expect(markup).toContain('deriveDynastyId');
+    expect(markup).toContain('computeDynastyChronicle');
+    expect(markup).toContain('franchiseHistory');
+    expect(markup).toContain('hallOfFame');
+    expect(markup).toContain('coachingHistory');
+    expect(markup).toContain('scrapbook and playoff-lore sidecar reads');
+    expect(markup).toContain('countEventsByType');
+    expect(markup).toContain('filterChronicleEvents');
+    expect(markup).toContain('chronicleTitle');
+    expect(markup).toContain('chronicleBody');
+    expect(markup).toContain('chronicleAccent');
+    expect(markup).toContain('Opening this route does not write franchise history');
+    expect(markup).toContain('simulation outcomes');
+    expect(markup).toContain('browser PNG download');
   });
 
   it('disables the export button when the chronicle has no events', () => {

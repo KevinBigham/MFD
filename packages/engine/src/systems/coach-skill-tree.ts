@@ -81,9 +81,9 @@ export const SKILL_TREES: Record<string, SkillTree> = {
         { level: 9, label: 'Hidden Yards', bonus: { stMod: 5, fieldPosMod: 5 }, desc: '+5% ST, +5 field position' },
       ]},
       { id: 'conditioning', name: 'Conditioning', icon: 'dumbbell', tiers: [
-        { level: 3, label: 'Iron Man', bonus: { injMod: 0.85 }, desc: '-15% injury risk' },
-        { level: 6, label: 'Recovery', bonus: { injMod: 0.75, recoveryBoost: 1 }, desc: '-25% injury, +1wk recovery' },
-        { level: 9, label: 'Machine', bonus: { injMod: 0.60, recoveryBoost: 2 }, desc: '-40% injury, +2wk recovery' },
+        { level: 3, label: 'Iron Man', bonus: { injMod: 0.85 }, desc: '-15% injury-report chance' },
+        { level: 6, label: 'Recovery', bonus: { injMod: 0.75, recoveryBoost: 1 }, desc: '-25% injury-report chance, +1wk recovery' },
+        { level: 9, label: 'Machine', bonus: { injMod: 0.60, recoveryBoost: 2 }, desc: '-40% injury-report chance, +2wk recovery' },
       ]},
     ],
   },

@@ -91,7 +91,7 @@ type FetchLike = (
   text(): Promise<string>;
 }>;
 
-interface CliOptions {
+export interface CliOptions {
   seed: number;
   releaseTag: string;
   fixturePath: string;
@@ -557,6 +557,76 @@ function defaultOutputDir(): string {
   return resolve(here, 'grading-results');
 }
 
+export function isGradeSeasonHelpRequested(args: string[]): boolean {
+  return args.includes('--help') || args.includes('-h');
+}
+
+export function formatGradeSeasonHelp(command = 'grade-season'): string {
+  const isBaselineCommand = command.includes('baseline');
+  const script = isBaselineCommand ? 'pnpm grade-season-baseline' : 'pnpm grade-season';
+  return `${command}
+
+Usage:
+  ${script} -- --seed <integer> --tag <release-tag> --fixture <game-state-json> [options]
+
+Required:
+  --seed <integer>          Seed associated with the fixture/report.
+  --tag, --releaseTag <id>  Release candidate tag, such as rc2.
+  --fixture <path>          GameState JSON, or an object with gameState/state.
+
+Options:
+  --output-dir <path>       Defaults to scripts/grading-results.
+  --baseline <path>         Override baseline input for grade-season only.
+  --allow-quorum-drop       Development-only: skip missing-key judges, but still require 2 valid verdicts.
+  --help, -h                Print this help and exit.
+
+Environment:
+  ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY are required unless --allow-quorum-drop is passed.
+  ANTHROPIC_MODEL, OPENAI_MODEL, GOOGLE_MODEL can override default judge models.
+
+Gate behavior:
+  grade-season writes a season report and verdict, then compares against the baseline. Missing or unreadable baselines are gate failures.
+  grade-season-baseline writes the baseline record and skips release-gate comparison.
+`;
+}
+
+export function buildGradeSeasonCliPreflight(
+  options: CliOptions,
+  config: { baselineMode?: boolean; env?: NodeJS.ProcessEnv } = {},
+): string {
+  const baselineMode = config.baselineMode ?? false;
+  const missing = missingApiKeys(config.env ?? process.env);
+  const defaultBaselinePath = baselinePathFor(options.outputDir, options.releaseTag, options.seed);
+  const baselineInput = options.baselinePath ?? defaultBaselinePath;
+  const quorumMode = options.allowQuorumDrop
+    ? 'development quorum drop allowed; at least 2 valid judge verdicts are still required'
+    : 'strict tri-judge; all API keys must be present before judge calls';
+  const missingKeyLine = missing.length === 0
+    ? 'none'
+    : options.allowQuorumDrop
+      ? `${missing.join(', ')} (corresponding judges will be skipped; 2 valid verdicts still required)`
+      : `${missing.join(', ')} (command will fail before judge calls unless --allow-quorum-drop is passed)`;
+
+  const lines = [
+    `Release grading preflight (${baselineMode ? 'baseline' : 'gate'})`,
+    `- seed: ${options.seed}`,
+    `- tag: ${options.releaseTag}`,
+    `- fixture: ${options.fixturePath}`,
+    `- output dir: ${options.outputDir}`,
+    `- season report: ${reportPathFor(options.outputDir, options.releaseTag, options.seed)}`,
+    baselineMode
+      ? `- baseline output: ${defaultBaselinePath}`
+      : `- verdict output: ${resultPathFor(options.outputDir, options.releaseTag, options.seed)}`,
+    baselineMode
+      ? '- release gate: skipped while writing baseline'
+      : `- baseline input: ${baselineInput}`,
+    `- quorum mode: ${quorumMode}`,
+    `- missing API keys: ${missingKeyLine}`,
+  ];
+
+  return lines.join('\n');
+}
+
 export function resultPathFor(outputDir: string, releaseTag: string, seed: number): string {
   return resolve(outputDir, `${releaseTag}-${seed}.json`);
 }
@@ -720,11 +790,19 @@ export function parseGradeSeasonCliArgs(args: string[]): CliOptions {
 
 function isMainModule(): boolean {
   const entry = process.argv[1];
-  return Boolean(entry) && import.meta.url === pathToFileURL(resolve(entry)).href;
+  if (!entry) return false;
+  return import.meta.url === pathToFileURL(resolve(entry)).href;
 }
 
 async function main(): Promise<void> {
-  const options = parseGradeSeasonCliArgs(process.argv.slice(2));
+  const args = process.argv.slice(2);
+  if (isGradeSeasonHelpRequested(args)) {
+    process.stdout.write(formatGradeSeasonHelp('grade-season'));
+    return;
+  }
+
+  const options = parseGradeSeasonCliArgs(args);
+  process.stdout.write(`${buildGradeSeasonCliPreflight(options)}\n\n`);
   const record = await runGradeSeason(options);
 
   process.stdout.write(`Season report written to ${reportPathFor(options.outputDir, options.releaseTag, options.seed)}\n`);
@@ -741,6 +819,7 @@ async function main(): Promise<void> {
 if (isMainModule()) {
   main().catch((error) => {
     process.stderr.write(`grade-season failed: ${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
+    process.stderr.write('Run with --help for usage, required flags, output paths, baseline behavior, and API-key expectations.\n');
     process.exit(1);
   });
 }

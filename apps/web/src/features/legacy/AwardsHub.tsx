@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import type { AwardsHistoryEntry } from '@mfd/engine';
@@ -145,6 +145,114 @@ function AwardCard({
   );
 }
 
+function AwardsHubHeader({
+  subtitle,
+  badges,
+}: {
+  subtitle: string;
+  badges: ReactNode;
+}) {
+  return (
+    <div data-spotlight-target="chip.route.awards-hub.beat-1">
+      <PixelScreenHeader
+        title="Awards Hub"
+        subtitle={subtitle}
+        badges={badges}
+      />
+    </div>
+  );
+}
+
+function SeasonScrubberPanel({
+  sortedHistory,
+  activeYear,
+  hasNewer,
+  hasOlder,
+  onSelectYear,
+}: {
+  sortedHistory: AwardsHistoryEntry[];
+  activeYear: number | null;
+  hasNewer: boolean;
+  hasOlder: boolean;
+  onSelectYear: (year: number) => void;
+}) {
+  return (
+    <div data-spotlight-target="chip.route.awards-hub.beat-2">
+      <PixelPanel title="Season Scrubber" accent="gold">
+        {activeYear === null || sortedHistory.length === 0 ? (
+          <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+            No saved award seasons yet.
+          </span>
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <PixelButton
+              accent="cyan"
+              disabled={!hasNewer}
+              onClick={() => onSelectYear(getAdjacentAwardYear(sortedHistory, activeYear, 'newer'))}
+            >
+              <ChevronLeft size={14} aria-hidden="true" />
+              Newer
+            </PixelButton>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {sortedHistory.map((entry) => (
+                <PixelButton
+                  key={entry.year}
+                  accent={entry.year === activeYear ? 'gold' : 'default'}
+                  aria-pressed={entry.year === activeYear}
+                  onClick={() => onSelectYear(entry.year)}
+                >
+                  {entry.year}
+                </PixelButton>
+              ))}
+            </div>
+            <PixelButton
+              accent="cyan"
+              disabled={!hasOlder}
+              onClick={() => onSelectYear(getAdjacentAwardYear(sortedHistory, activeYear, 'older'))}
+            >
+              Older
+              <ChevronRight size={14} aria-hidden="true" />
+            </PixelButton>
+          </div>
+        )}
+      </PixelPanel>
+    </div>
+  );
+}
+
+function AwardSourcesPanel({
+  classCount,
+  activeYear,
+}: {
+  classCount: number;
+  activeYear: number | null;
+}) {
+  return (
+    <PixelPanel title="Award Sources" accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="gold">saved game.awardsHistory</PixelBadge>
+          <PixelBadge variant="cyan">selectAwardsHistory</PixelBadge>
+          <PixelBadge variant="default">route-local scrubber</PixelBadge>
+        </div>
+        <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Source: `selectAwardsHistory` returns saved completed-season award classes sorted newest first.
+          This view has {classCount} saved class{classCount === 1 ? '' : 'es'}{activeYear ? ` and is showing ${activeYear}` : ''}.
+        </span>
+        <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Ceremony headlines and intros come from saved `AwardsHistoryEntry.ceremony`; winner,
+          runner-up, score, and narrative rows come from each saved award result.
+        </span>
+        <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Season scrubber state is route-local. Opening Awards Hub does not generate awards,
+          write ceremonies, patch season history, change player records, change records or Hall of Fame
+          archives, publish media, or unlock achievements.
+        </span>
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function AwardsHub() {
   const awardsHistory = useGameStore(selectAwardsHistory);
   const sortedHistory = useMemo(() => sortAwardsHistory(awardsHistory), [awardsHistory]);
@@ -157,74 +265,53 @@ export function AwardsHub() {
   if (!selectedEntry || activeYear === null) {
     return (
       <div style={screenStackStyle}>
-        <div data-spotlight-target="chip.route.awards-hub.beat-1">
-          <PixelScreenHeader
-            title="Awards Hub"
-            subtitle="League honors archive for completed seasons."
-            badges={<PixelBadge variant="gold">AWARDS</PixelBadge>}
-          />
-        </div>
+        <AwardsHubHeader
+          subtitle="League honors archive for completed seasons."
+          badges={<PixelBadge variant="gold">AWARDS</PixelBadge>}
+        />
         <PixelPanel title="Awards Archive" accent="default">
           <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
             No award classes archived yet.
           </span>
         </PixelPanel>
+        <SeasonScrubberPanel
+          sortedHistory={sortedHistory}
+          activeYear={null}
+          hasNewer={false}
+          hasOlder={false}
+          onSelectYear={setSelectedYear}
+        />
+        <AwardSourcesPanel classCount={0} activeYear={null} />
       </div>
     );
   }
 
   return (
     <div style={screenStackStyle}>
-      <div data-spotlight-target="chip.route.awards-hub.beat-1">
-        <PixelScreenHeader
-          title="Awards Hub"
-          subtitle="Season-by-season MVP races, rookie breakouts, and league honors."
-          badges={(
-            <>
-              <PixelBadge variant="gold">
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <Trophy size={14} aria-hidden="true" />
-                  {sortedHistory.length} classes
-                </span>
-              </PixelBadge>
-              <PixelBadge variant="cyan">{activeYear}</PixelBadge>
-            </>
-          )}
-        />
-      </div>
+      <AwardsHubHeader
+        subtitle="Season-by-season MVP races, rookie breakouts, and league honors."
+        badges={(
+          <>
+            <PixelBadge variant="gold">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Trophy size={14} aria-hidden="true" />
+                {sortedHistory.length} classes
+              </span>
+            </PixelBadge>
+            <PixelBadge variant="cyan">{activeYear}</PixelBadge>
+          </>
+        )}
+      />
 
-      <PixelPanel title="Season Scrubber" accent="gold">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <PixelButton
-            accent="cyan"
-            disabled={!hasNewer}
-            onClick={() => setSelectedYear(getAdjacentAwardYear(sortedHistory, activeYear, 'newer'))}
-          >
-            <ChevronLeft size={14} aria-hidden="true" />
-            Newer
-          </PixelButton>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {sortedHistory.map((entry) => (
-              <PixelButton
-                key={entry.year}
-                accent={entry.year === activeYear ? 'gold' : 'default'}
-                aria-pressed={entry.year === activeYear}
-                onClick={() => setSelectedYear(entry.year)}
-              >
-                {entry.year}
-              </PixelButton>
-            ))}
-          </div>
-          <PixelButton
-            accent="cyan"
-            disabled={!hasOlder}
-            onClick={() => setSelectedYear(getAdjacentAwardYear(sortedHistory, activeYear, 'older'))}
-          >
-            Older
-            <ChevronRight size={14} aria-hidden="true" />
-          </PixelButton>
-        </div>
-      </PixelPanel>
+      <AwardSourcesPanel classCount={sortedHistory.length} activeYear={activeYear} />
+
+      <SeasonScrubberPanel
+        sortedHistory={sortedHistory}
+        activeYear={activeYear}
+        hasNewer={hasNewer}
+        hasOlder={hasOlder}
+        onSelectYear={setSelectedYear}
+      />
 
       <PixelPanel title={selectedEntry.ceremony.headline} accent="cyan">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

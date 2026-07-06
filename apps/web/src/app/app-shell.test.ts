@@ -6,8 +6,8 @@ const shellCss = readFileSync(fileURLToPath(new URL('./app-shell.css', import.me
 
 describe('app shell responsive layout CSS', () => {
   it('reserves a narrower desktop Chip runway without collapsing the command surface', () => {
-    expect(shellCss).toContain('padding-right: clamp(500px, 42vw, 600px)');
-    expect(shellCss).toContain('padding-right: clamp(510px, 35vw, 580px)');
+    expect(shellCss).toContain('padding-right: clamp(310px, 27vw, 360px)');
+    expect(shellCss).toContain('padding-right: clamp(320px, 25vw, 370px)');
   });
 
   it('pairs mobile content clearance with the bottom nav and compact Chip dock', () => {

@@ -1,9 +1,17 @@
 import type { NewsItem } from '@mfd/engine';
-import { PixelBadge, PixelButton, PixelModal } from '@mfd/design-system/components';
+import { PixelBadge, PixelButton, PixelModal, PixelPanel } from '@mfd/design-system/components';
 import { useGameStore, selectTeams, selectUserTeamId } from '../../app/store/game-store';
 import { monoSm, navigateTo, pixelSm } from '../shared/pixelUi';
 
 type Accent = 'default' | 'gold' | 'cyan' | 'green' | 'red';
+
+interface HeadlineStoryReceiptRow {
+  id: string;
+  label: string;
+  value: string;
+  detail: string;
+  accent: Accent;
+}
 
 function importanceAccent(importance: NewsItem['importance']): Accent {
   if (importance === 'breaking') return 'gold';
@@ -15,6 +23,50 @@ function importanceLabel(importance: NewsItem['importance']): string {
   if (importance === 'breaking') return 'BREAKING';
   if (importance === 'major') return 'MAJOR STORY';
   return 'WIRE NOTE';
+}
+
+function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+export function buildHeadlineStoryReceiptRows(item: NewsItem): HeadlineStoryReceiptRow[] {
+  return [
+    {
+      id: 'source',
+      label: 'Saved Source',
+      value: 'game.leagueNews',
+      detail: `NewsItemSchema row ${item.id}`,
+      accent: 'cyan',
+    },
+    {
+      id: 'clock',
+      label: 'Story Clock',
+      value: `Y${item.year} W${item.week}`,
+      detail: `${importanceLabel(item.importance)} // ${item.type}`,
+      accent: importanceAccent(item.importance),
+    },
+    {
+      id: 'scope',
+      label: 'Linked Entities',
+      value: `${pluralize(item.teamIds.length, 'team')} // ${pluralize(item.playerIds.length, 'player')}`,
+      detail: 'Team and player ids are display context only; this modal does not resolve roster movement or player state.',
+      accent: item.teamIds.length > 0 || item.playerIds.length > 0 ? 'gold' : 'default',
+    },
+    {
+      id: 'writer',
+      label: 'Write Owner',
+      value: 'news writers',
+      detail: 'recordNewsItem and domain-specific game/week/action flows append or dedupe saved leagueNews before this screen reads it.',
+      accent: 'green',
+    },
+    {
+      id: 'boundary',
+      label: 'Modal Boundary',
+      value: 'no news writes',
+      detail: 'Opening this story does not generate stories, append leagueNews, dismiss breaking news, advance week, or autosave.',
+      accent: 'default',
+    },
+  ];
 }
 
 interface HeadlineModalProps {
@@ -52,6 +104,7 @@ export function HeadlineModal({ item, open, onOpenChange }: HeadlineModalProps) 
 
   const accent = importanceAccent(item.importance);
   const involvesUser = item.teamIds.includes(userTeamId ?? '__none__');
+  const receiptRows = buildHeadlineStoryReceiptRows(item);
   const teamChips = item.teamIds
     .map((teamId) => {
       const team = teams?.[teamId];
@@ -91,6 +144,32 @@ export function HeadlineModal({ item, open, onOpenChange }: HeadlineModalProps) 
             </div>
           </div>
         ) : null}
+
+        <PixelPanel title="Story Receipt" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {receiptRows.map((row) => (
+              <div
+                key={row.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(120px, 0.8fr) minmax(140px, 1fr)',
+                  gap: '8px',
+                  alignItems: 'start',
+                  padding: '8px 0',
+                  borderBottom: '1px solid var(--mfd-border)',
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <PixelBadge variant={row.accent}>{row.label}</PixelBadge>
+                  <div style={{ ...pixelSm, color: 'var(--mfd-text)' }}>{row.value}</div>
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+                  {row.detail}
+                </div>
+              </div>
+            ))}
+          </div>
+        </PixelPanel>
 
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '4px' }}>
           <PixelButton

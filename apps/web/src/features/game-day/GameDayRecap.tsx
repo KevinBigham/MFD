@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Trophy } from 'lucide-react';
+import { BookOpen, Trophy } from 'lucide-react';
 import type {
   BroadcastCommentaryGame,
   GameDayPackage,
@@ -12,9 +12,10 @@ import type {
   TeamGameStats,
   WinProbPoint,
 } from '@mfd/engine';
-import { analyzeGameFlow, buildBroadcastCommentary } from '@mfd/engine';
-import { PixelPanel, PixelBadge, PixelButton, PixelDialog, PixelEkg, PixelScoreboard, PixelStatBar } from '@mfd/design-system/components';
+import { analyzeGameFlow, buildBroadcastCommentary, buildHalftimeDecisionReceipt } from '@mfd/engine';
+import { PixelPanel, PixelBadge, PixelButton, PixelDialog, PixelEkg, PixelPlayerLink, PixelScoreboard, PixelStatBar } from '@mfd/design-system/components';
 import { navigateTo } from '../shared/pixelUi';
+import { getWeatherImpactCopy } from '../shared/weatherImpactCopy';
 import { CallYourShotResult } from './CallYourShotResult';
 import { PressConferenceModal } from './PressConferenceModal';
 import { RecapChipReaction, deriveRecapChipOutcome } from './RecapChipReaction';
@@ -67,6 +68,306 @@ function classifyWinProbEvent(current: WinProbPoint, previous: WinProbPoint | nu
   return undefined;
 }
 
+type PostgameSourceReceiptAccent = 'cyan' | 'gold' | 'green' | 'red' | 'default';
+
+export interface PostgameSourceReceiptRow {
+  id: 'package' | 'why' | 'players' | 'next';
+  label: string;
+  value: string;
+  detail: string;
+  accent: PostgameSourceReceiptAccent;
+}
+
+export interface PostgameDecisionReceiptRow {
+  id: 'prep' | 'health' | 'carryover' | 'next-week';
+  label: string;
+  value: string;
+  detail: string;
+  accent: PostgameSourceReceiptAccent;
+}
+
+type NamedGameReceiptEvent = NonNullable<GameDayPackage['namedGame'] | GameResult['namedGame']>;
+
+export interface NamedGameMemoryReceiptRow {
+  id: 'saved-result' | 'archive' | 'boundary';
+  label: string;
+  value: string;
+  detail: string;
+  accent: PostgameSourceReceiptAccent;
+}
+
+export interface RecordMemoryReceiptRow {
+  id: 'saved-records' | 'record-highlight' | 'milestone-highlight' | 'archive' | 'boundary';
+  label: string;
+  value: string;
+  detail: string;
+  accent: PostgameSourceReceiptAccent;
+}
+
+export interface GameDayPlayerArcFollowUpRow {
+  id: string;
+  playerId: string;
+  playerName: string;
+  label: string;
+  value: string;
+  detail: string;
+  source: 'GameDayPackage.topPerformers' | 'GameDayPackage.recordsMoments' | 'GameDayPackage.milestoneMoments';
+  accent: PostgameSourceReceiptAccent;
+}
+
+export function buildPostgameSourceReceipt(packageData: GameDayPackage): PostgameSourceReceiptRow[] {
+  const topPerformerLabels = packageData.topPerformers
+    .slice(0, 3)
+    .map((performer) => performer.label)
+    .join(' / ');
+  const nextFocus = packageData.autopsy.nextFocus.slice(0, 3).join(' / ');
+
+  return [
+    {
+      id: 'package',
+      label: 'Saved Package',
+      value: `${packageData.year} W${packageData.week} // ${packageData.result.toUpperCase()} // ${packageData.finalScore}`,
+      detail: `GameDayPackage ${packageData.id} read from selectLatestGameDayPackage; no package writer runs on open.`,
+      accent: packageData.result === 'win' ? 'green' : packageData.result === 'loss' ? 'red' : 'default',
+    },
+    {
+      id: 'why',
+      label: 'Why It Moved',
+      value: `${packageData.turningPoints.length} turning point(s)`,
+      detail: `${packageData.autopsy.diagnosis} Leverage: ${packageData.autopsy.leverage}`,
+      accent: packageData.turningPoints.some((point) => point.impact === 'negative') ? 'red' : 'cyan',
+    },
+    {
+      id: 'players',
+      label: 'Who Mattered',
+      value: `${packageData.topPerformers.length} performer(s)`,
+      detail: topPerformerLabels || 'No saved top performers on this package.',
+      accent: packageData.topPerformers.length > 0 ? 'gold' : 'default',
+    },
+    {
+      id: 'next',
+      label: 'Next Actions',
+      value: `${packageData.autopsy.nextFocus.length} focus item(s)`,
+      detail: nextFocus || 'No saved next-focus items on this package.',
+      accent: packageData.autopsy.nextFocus.length > 0 ? 'cyan' : 'default',
+    },
+  ];
+}
+
+function prepGradeAccent(grade?: string | null): PostgameSourceReceiptAccent {
+  if (grade === 'A' || grade === 'B') return 'green';
+  if (grade === 'C') return 'gold';
+  if (grade === 'D' || grade === 'F') return 'red';
+  return 'default';
+}
+
+export function buildPostgameDecisionReceipt(packageData: GameDayPackage): PostgameDecisionReceiptRow[] {
+  const rows: PostgameDecisionReceiptRow[] = [];
+  const coachingNotes = packageData.coachingNotes ?? [];
+  const carryForward = packageData.carryForwardRecommendations ?? [];
+  const prepDetails = [...coachingNotes, ...carryForward].slice(0, 3);
+
+  if (packageData.prepGrade || prepDetails.length > 0) {
+    rows.push({
+      id: 'prep',
+      label: 'Prep Check',
+      value: packageData.prepGrade ? `PREP ${packageData.prepGrade}` : `${prepDetails.length} prep note(s)`,
+      detail: prepDetails.join(' / ') || 'Saved package has a prep grade without additional Film Room notes.',
+      accent: prepGradeAccent(packageData.prepGrade),
+    });
+  }
+
+  if (packageData.injuryNotes.length > 0) {
+    rows.push({
+      id: 'health',
+      label: 'Health Check',
+      value: `${packageData.injuryNotes.length} injury note(s)`,
+      detail: packageData.injuryNotes.slice(0, 3).join(' / '),
+      accent: 'red',
+    });
+  }
+
+  const carryoverItems = [...packageData.activeEffectSummaries, ...carryForward];
+  if (carryoverItems.length > 0) {
+    rows.push({
+      id: 'carryover',
+      label: 'Carryover',
+      value: `${carryoverItems.length} saved carryover item(s)`,
+      detail: carryoverItems.slice(0, 3).join(' / '),
+      accent: 'gold',
+    });
+  }
+
+  if (packageData.autopsy.nextFocus.length > 0) {
+    rows.push({
+      id: 'next-week',
+      label: 'Next Week',
+      value: `${packageData.autopsy.nextFocus.length} focus item(s)`,
+      detail: packageData.autopsy.nextFocus.slice(0, 3).join(' / '),
+      accent: 'cyan',
+    });
+  }
+
+  return rows;
+}
+
+export function buildNamedGameMemoryReceipt(
+  packageData: GameDayPackage,
+  namedGame: NamedGameReceiptEvent,
+): NamedGameMemoryReceiptRow[] {
+  return [
+    {
+      id: 'saved-result',
+      label: 'Saved named game',
+      value: `${namedGame.year} W${namedGame.week} // ${namedGame.homeScore}-${namedGame.awayScore}`,
+      detail: `GameDayPackage ${packageData.id} carries ${namedGame.name} from the saved game result.`,
+      accent: 'gold',
+    },
+    {
+      id: 'archive',
+      label: 'Archive path',
+      value: '/legacy/named-games',
+      detail: 'NamedGamesBrowser reads saved dynastyTimeline named_game rows; use it to revisit trophy-tier games later.',
+      accent: 'cyan',
+    },
+    {
+      id: 'boundary',
+      label: 'No rerun',
+      value: 'read-only CTA',
+      detail: 'Opening this panel or archive link does not re-run detectNamedGame, rewrite results, repair timeline rows, change scores, reroll outcomes, or create new results.',
+      accent: 'default',
+    },
+  ];
+}
+
+function formatRecordStat(stat: string): string {
+  return stat
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[_-]/g, ' ')
+    .toUpperCase();
+}
+
+function formatRecordCategory(category: GameDayPackage['recordsMoments'][number]['category']): string {
+  return category === 'singleGame' ? 'SINGLE GAME' : 'SINGLE SEASON';
+}
+
+function playerNameFromPerformer(label: string): string {
+  return label.replace(/\s*\([^)]*\)\s*$/, '').trim() || label;
+}
+
+function playerPositionFromPerformer(label: string): string | null {
+  return label.match(/\(([^)]+)\)\s*$/)?.[1] ?? null;
+}
+
+export function buildGameDayPlayerArcFollowUps(packageData: GameDayPackage): GameDayPlayerArcFollowUpRow[] {
+  const rows: GameDayPlayerArcFollowUpRow[] = [];
+  const seenPlayerIds = new Set<string>();
+
+  const addRow = (row: GameDayPlayerArcFollowUpRow) => {
+    if (seenPlayerIds.has(row.playerId)) return;
+    seenPlayerIds.add(row.playerId);
+    rows.push(row);
+  };
+
+  for (const record of packageData.recordsMoments) {
+    addRow({
+      id: `record-${record.playerId}`,
+      playerId: record.playerId,
+      playerName: record.playerName,
+      label: 'Record Breaker',
+      value: `${formatRecordCategory(record.category)} ${formatRecordStat(record.stat)} ${record.newValue}`,
+      detail: record.narrative,
+      source: 'GameDayPackage.recordsMoments',
+      accent: 'green',
+    });
+  }
+
+  for (const milestone of packageData.milestoneMoments) {
+    addRow({
+      id: `milestone-${milestone.playerId}`,
+      playerId: milestone.playerId,
+      playerName: milestone.playerName,
+      label: 'Milestone',
+      value: milestone.milestoneLabel,
+      detail: milestone.narrative,
+      source: 'GameDayPackage.milestoneMoments',
+      accent: 'cyan',
+    });
+  }
+
+  for (const performer of packageData.topPerformers) {
+    if (!performer.playerId) continue;
+    const pos = playerPositionFromPerformer(performer.label);
+    addRow({
+      id: `performer-${performer.playerId}`,
+      playerId: performer.playerId,
+      playerName: playerNameFromPerformer(performer.label),
+      label: pos ? `Top ${pos}` : 'Top Performer',
+      value: performer.statLine,
+      detail: `Saved top performer from ${packageData.finalScore}; use the profile link to carry this game into the player's arc.`,
+      source: 'GameDayPackage.topPerformers',
+      accent: 'gold',
+    });
+  }
+
+  return rows.slice(0, 4);
+}
+
+export function buildRecordMemoryReceipt(packageData: GameDayPackage): RecordMemoryReceiptRow[] {
+  const recordCount = packageData.recordsMoments.length;
+  const milestoneCount = packageData.milestoneMoments.length;
+  const record = packageData.recordsMoments[0] ?? null;
+  const milestone = packageData.milestoneMoments[0] ?? null;
+  const rows: RecordMemoryReceiptRow[] = [
+    {
+      id: 'saved-records',
+      label: 'Saved record package',
+      value: `${recordCount} record(s) // ${milestoneCount} milestone(s)`,
+      detail: `GameDayPackage ${packageData.id} carries saved recordsMoments and milestoneMoments from the completed game.`,
+      accent: recordCount + milestoneCount > 0 ? 'green' : 'default',
+    },
+  ];
+
+  if (record) {
+    rows.push({
+      id: 'record-highlight',
+      label: 'Record Book',
+      value: `${record.playerName} // ${formatRecordCategory(record.category)} ${formatRecordStat(record.stat)} ${record.newValue}`,
+      detail: record.narrative,
+      accent: 'gold',
+    });
+  }
+
+  if (milestone) {
+    rows.push({
+      id: 'milestone-highlight',
+      label: 'Milestone',
+      value: `${milestone.playerName} // ${milestone.milestoneLabel}`,
+      detail: milestone.narrative,
+      accent: 'green',
+    });
+  }
+
+  rows.push(
+    {
+      id: 'archive',
+      label: 'Archive path',
+      value: '/records',
+      detail: 'RecordBook reads saved game.records plus recentMilestones; use it to track the moment after the recap.',
+      accent: 'cyan',
+    },
+    {
+      id: 'boundary',
+      label: 'No recalculation',
+      value: 'read-only CTA',
+      detail: 'Opening this panel or archive link does not update records, check milestones, write recentMilestones, change stats, replay the game, reroll outcomes, or create new results.',
+      accent: 'default',
+    },
+  );
+
+  return rows;
+}
+
 /* ── Main View: Game Day Center ─────────────────────────── */
 
 interface GameDayCenterViewProps {
@@ -110,6 +411,15 @@ export function GameDayCenterView({
     );
   }
 
+  const weatherImpact = getWeatherImpactCopy(packageData.weather);
+  const halftimeReceipt = buildHalftimeDecisionReceipt(packageData.activeEffectSummaries);
+  const postgameReceiptRows = buildPostgameSourceReceipt(packageData);
+  const decisionReceiptRows = buildPostgameDecisionReceipt(packageData);
+  const namedGameReceiptRows = namedGame ? buildNamedGameMemoryReceipt(packageData, namedGame) : [];
+  const playerArcRows = buildGameDayPlayerArcFollowUps(packageData);
+  const recordMemoryReceiptRows = buildRecordMemoryReceipt(packageData);
+  const hasRecordMemory = packageData.recordsMoments.length > 0 || packageData.milestoneMoments.length > 0;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {namedGame ? (
@@ -124,6 +434,38 @@ export function GameDayCenterView({
             </div>
             <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
               {namedGame.reason}
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <PixelButton
+                accent="gold"
+                onClick={() => navigateTo('/legacy/named-games')}
+              >
+                <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                  <BookOpen size={14} />
+                  Named Games
+                </span>
+              </PixelButton>
+              <PixelBadge variant="cyan">GameDayPackage.namedGame</PixelBadge>
+              <PixelBadge variant="default">dynastyTimeline archive</PixelBadge>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {namedGameReceiptRows.map((row) => (
+                <div
+                  key={row.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                    gap: '10px',
+                    alignItems: 'start',
+                    paddingBottom: '8px',
+                    borderBottom: '1px solid var(--mfd-border)',
+                  }}
+                >
+                  <PixelBadge variant={row.accent}>{row.label}</PixelBadge>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{row.value}</span>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{row.detail}</span>
+                </div>
+              ))}
             </div>
           </div>
         </PixelPanel>
@@ -176,7 +518,7 @@ export function GameDayCenterView({
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
             <PixelBadge variant="gold">{packageData.finalScore}</PixelBadge>
             {packageData.weather ? (
-              <PixelBadge variant={weatherVariant(packageData.weather)}>{`weather // ${packageData.weather}`}</PixelBadge>
+              <PixelBadge variant={weatherVariant(weatherImpact.label)}>{`weather // ${weatherImpact.label}`}</PixelBadge>
             ) : null}
             {packageData.primetime ? <PixelBadge variant="gold">PRIMETIME</PixelBadge> : null}
             {packageData.flexed ? <PixelBadge variant="gold">FLEXED</PixelBadge> : null}
@@ -188,28 +530,222 @@ export function GameDayCenterView({
             ))}
             {phase === 'playoffs' && playoffMomentum ? (
               <PixelBadge variant={playoffMomentum.momentum > 85 ? 'gold' : playoffMomentum.momentum > 70 ? 'cyan' : 'default'}>
-                {playoffMomentum.narrativeTag ? playoffMomentum.narrativeTag.replaceAll('_', ' ') : `momentum ${playoffMomentum.momentum}`}
+                {`playoff score ${playoffMomentum.momentum}`}
               </PixelBadge>
             ) : null}
           </div>
         </div>
       </PixelPanel>
 
+      <PixelPanel title="Postgame Source Receipt" accent="cyan">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <PixelBadge variant="cyan">selectLatestGameDayPackage</PixelBadge>
+            <PixelBadge variant="gold">Saved GameDayPackage</PixelBadge>
+            <PixelBadge variant="default">Read-only</PixelBadge>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {postgameReceiptRows.map((row) => (
+              <div
+                key={row.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                  gap: '10px',
+                  alignItems: 'start',
+                  paddingBottom: '8px',
+                  borderBottom: '1px solid var(--mfd-border)',
+                }}
+              >
+                <PixelBadge variant={row.accent}>{row.label}</PixelBadge>
+                <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{row.value}</span>
+                <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{row.detail}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+            Source: saved GameDayPackage headline, autopsy, turning points, top performers, and next-focus rows.
+            Opening this recap does not replay the game, generate a new package, rewrite weekly summaries, change scores,
+            move players, alter injuries, autosave, reroll outcomes, or answer press.
+          </div>
+        </div>
+      </PixelPanel>
+
+      {decisionReceiptRows.length > 0 ? (
+        <PixelPanel title="Postgame Decision Receipt" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="gold">Saved GameDayPackage</PixelBadge>
+              <PixelBadge variant="cyan">Next-week inputs</PixelBadge>
+              <PixelBadge variant="default">No render writes</PixelBadge>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {decisionReceiptRows.map((row) => (
+                <div
+                  key={row.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                    gap: '10px',
+                    alignItems: 'start',
+                    paddingBottom: '8px',
+                    borderBottom: '1px solid var(--mfd-border)',
+                  }}
+                >
+                  <PixelBadge variant={row.accent}>{row.label}</PixelBadge>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{row.value}</span>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{row.detail}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+              Source: saved GameDayPackage prepGrade, coachingNotes, carryForwardRecommendations,
+              injuryNotes, activeEffectSummaries, and autopsy.nextFocus. Opening this receipt does not
+              recalculate Film Room, apply training, adjust fatigue, change injuries, alter morale,
+              answer press, or advance the week.
+            </div>
+          </div>
+        </PixelPanel>
+      ) : null}
+
+      {playerArcRows.length > 0 ? (
+        <PixelPanel title="Player Arc Follow-Up" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <PixelBadge variant="gold">GameDayPackage.topPerformers</PixelBadge>
+              <PixelBadge variant="green">GameDayPackage.recordsMoments</PixelBadge>
+              <PixelBadge variant="cyan">GameDayPackage.milestoneMoments</PixelBadge>
+              <PixelBadge variant="default">Profile callbacks</PixelBadge>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {playerArcRows.map((row) => (
+                <div
+                  key={row.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                    gap: '10px',
+                    alignItems: 'start',
+                    paddingBottom: '8px',
+                    borderBottom: '1px solid var(--mfd-border)',
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <PixelPlayerLink
+                      playerId={row.playerId}
+                      name={row.playerName}
+                      title={`Open ${row.playerName} profile from saved game-day package`}
+                      style={{ ...display, fontSize: '16px', letterSpacing: '1px' }}
+                    />
+                    <PixelBadge variant={row.accent}>{row.label}</PixelBadge>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{row.value}</span>
+                    <PixelBadge variant="default">{row.source}</PixelBadge>
+                  </div>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{row.detail}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelButton accent="cyan" onClick={() => navigateTo('/player-development')}>Open Development</PixelButton>
+              {hasRecordMemory ? <PixelButton accent="green" onClick={() => navigateTo('/records')}>Open Record Book</PixelButton> : null}
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+              Source: saved GameDayPackage top performers, recordsMoments, and milestoneMoments.
+              Opening this follow-up does not write player history, add timeline rows, create scrapbook cards,
+              recalculate records or milestones, replay the game, rewrite the save, autosave, or reroll outcomes.
+            </div>
+          </div>
+        </PixelPanel>
+      ) : null}
+
+      {hasRecordMemory ? (
+        <PixelPanel title="Record Memory" accent="green">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <PixelButton
+                accent="cyan"
+                onClick={() => navigateTo('/records')}
+              >
+                <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                  <BookOpen size={14} />
+                  Record Book
+                </span>
+              </PixelButton>
+              <PixelBadge variant="green">GameDayPackage.recordsMoments</PixelBadge>
+              <PixelBadge variant="gold">GameDayPackage.milestoneMoments</PixelBadge>
+              <PixelBadge variant="default">recentMilestones archive</PixelBadge>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {recordMemoryReceiptRows.map((row) => (
+                <div
+                  key={row.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                    gap: '10px',
+                    alignItems: 'start',
+                    paddingBottom: '8px',
+                    borderBottom: '1px solid var(--mfd-border)',
+                  }}
+                >
+                  <PixelBadge variant={row.accent}>{row.label}</PixelBadge>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{row.value}</span>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{row.detail}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+              Source: saved GameDayPackage.recordsMoments and GameDayPackage.milestoneMoments.
+              Opening this recap does not update records, check milestones, write recentMilestones,
+              change stats, replay the game, reroll outcomes, or create new results.
+            </div>
+          </div>
+        </PixelPanel>
+      ) : null}
+
+      {weatherImpact.severity !== 'none' ? (
+        <PixelPanel title="Weather Impact" accent={weatherImpact.severity === 'game_changer' ? 'red' : 'gold'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <PixelBadge variant={weatherImpact.severity === 'game_changer' ? 'red' : 'gold'}>
+                {weatherImpact.label.toUpperCase()}
+              </PixelBadge>
+              <div style={{ ...display, fontSize: '18px', color: '#fff', letterSpacing: '1px', lineHeight: 1.1 }}>
+                {weatherImpact.headline.toUpperCase()}
+              </div>
+            </div>
+            <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
+              {weatherImpact.detail}
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="cyan">GameDayPackage.weather</PixelBadge>
+              <PixelBadge variant="gold">Shared weather copy</PixelBadge>
+              <PixelBadge variant="default">Read-only</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+              Source: saved game-day package weather plus getWeatherImpactCopy. Opening this recap does not
+              generate matchup weather, rewrite schedule weather, replay the game, alter weather formulas,
+              change saved results, or reroll saved outcomes.
+            </div>
+          </div>
+        </PixelPanel>
+      ) : null}
+
       {phase === 'playoffs' && playoffMomentum ? (
-        <PixelPanel title="Playoff Momentum" accent={playoffMomentum.momentum > 85 ? 'gold' : playoffMomentum.momentum > 70 ? 'cyan' : 'default'}>
+        <PixelPanel title="Playoff Readiness" accent={playoffMomentum.momentum > 85 ? 'gold' : playoffMomentum.momentum > 70 ? 'cyan' : 'default'}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
               <div style={{ ...display, fontSize: '20px', color: '#fff', lineHeight: 1 }}>
                 {teamLabel.toUpperCase()}
               </div>
               <PixelBadge variant={playoffMomentum.momentum > 85 ? 'gold' : playoffMomentum.momentum > 70 ? 'cyan' : 'default'}>
-                MOM {playoffMomentum.momentum}
+                SCORE {playoffMomentum.momentum}
               </PixelBadge>
             </div>
             <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
-              {playoffMomentum.narrativeTag
-                ? `${playoffMomentum.narrativeTag.replaceAll('_', ' ')} narrative is active with a ${playoffMomentum.winStreak}-game streak profile.`
-                : `Momentum sits at ${playoffMomentum.momentum} entering this playoff stage.`}
+              {`Playoff score ${playoffMomentum.momentum} with ${playoffMomentum.winStreak} straight wins. Before the next playoff game, set health, depth, and matchup calls.`}
             </div>
           </div>
         </PixelPanel>
@@ -222,7 +758,7 @@ export function GameDayCenterView({
               <PixelBadge variant={packageData.matchupHighlight.advantage >= 0 ? 'green' : 'red'}>
                 {packageData.matchupHighlight.label}
               </PixelBadge>
-              <PixelBadge variant="default">{`edge ${packageData.matchupHighlight.advantage >= 0 ? '+' : ''}${packageData.matchupHighlight.advantage}`}</PixelBadge>
+              <PixelBadge variant="default">{`advantage ${packageData.matchupHighlight.advantage >= 0 ? '+' : ''}${packageData.matchupHighlight.advantage}`}</PixelBadge>
             </div>
             <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
               {packageData.matchupHighlight.detail}
@@ -288,7 +824,7 @@ export function GameDayCenterView({
         <PixelPanel title="Postgame Autopsy" accent="red">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px' }}>
             <div style={{ ...mono, fontWeight: 600, color: '#ddd' }}>{packageData.autopsy.diagnosis}</div>
-            <div style={{ ...monoSm, color: '#888' }}>{packageData.autopsy.leverage}</div>
+            <div style={{ ...monoSm, color: '#888' }}>Why it changed: {packageData.autopsy.leverage}</div>
             {packageData.autopsy.nextFocus.map((item) => (
               <div key={item} style={{
                 ...monoSm,
@@ -325,12 +861,47 @@ export function GameDayCenterView({
               {quote}
             </PixelDialog>
           ))}
+          <PixelPanel title="Press Receipt" accent="gold">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <PixelBadge variant="gold">GameDayPackage</PixelBadge>
+                <PixelBadge variant="cyan">Post-week hook</PixelBadge>
+                <PixelBadge variant="default">Read-only</PixelBadge>
+              </div>
+              <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
+                Saved GameDayPackage.pressConference powers this recap&apos;s press theme, opener,
+                reporter Q&amp;A, and quotes. The post-week command deck also reads it through
+                buildPostWeekMoment as Press Follow-Up; opening this recap does not record a
+                conference, change score, player effects, news, social feeds, or answer the
+                press queue.
+              </div>
+            </div>
+          </PixelPanel>
         </div>
       </div>
 
       {packageData.activeEffectSummaries.length > 0 && (
         <PixelPanel title="Off-Field Carryover" accent="gold">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px' }}>
+            {halftimeReceipt ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                padding: '8px',
+                border: '3px solid var(--mfd-gold)',
+                background: 'rgba(250, 204, 21, 0.08)',
+              }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <PixelBadge variant="gold">HALFTIME DECISION RECEIPT</PixelBadge>
+                  <PixelBadge variant="cyan">GAME DAY PACKAGE</PixelBadge>
+                  <PixelBadge variant="green">BROADCAST HOOK</PixelBadge>
+                </div>
+                <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
+                  {halftimeReceipt.recapLine} Broadcast routes consume this same saved receipt read model; no package writer or broadcast simulation path is changed here.
+                </div>
+              </div>
+            ) : null}
             {packageData.activeEffectSummaries.map((summary) => (
               <div key={summary} style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>
                 {summary}
@@ -761,14 +1332,14 @@ export function GameDayRecap() {
         boothRecap={boothRecap}
       />
       {latestPressConferenceEntry ? (
-        <PixelPanel title="Podium Response" accent={pendingPressConference ? 'gold' : 'green'}>
+        <PixelPanel title="Press Response" accent={pendingPressConference ? 'gold' : 'green'}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
                 {latestPressConferenceEntry.speaker} // {latestPressConferenceEntry.topic}
               </div>
               <PixelButton accent={pendingPressConference ? 'gold' : 'cyan'} onClick={() => setPressModalOpen(true)}>
-                {pendingPressConference ? 'Answer Podium' : 'Review Podium'}
+                {pendingPressConference ? 'Answer Press' : 'Review Press'}
               </PixelButton>
             </div>
             {latestPressConferenceEntry.selectedResponse ? (
@@ -777,7 +1348,7 @@ export function GameDayRecap() {
               </div>
             ) : (
               <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-                Choose the ambition tier for the postgame message to lock in the podium tone for this week.
+                Choose the saved quote style. This saves the quote only; result, owner reaction, player changes, news, social reaction, and next-week state are already final.
               </div>
             )}
           </div>

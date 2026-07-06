@@ -67,7 +67,7 @@ describe('useChipStore', () => {
       id: 'chip.weekly.cleanWin',
       beat: 0,
       pose: 'celebrate',
-      text: 'That was a grown-up win.',
+      text: 'Recommended: open Roster and Depth Chart before Advance Week. Consequence: an unseen injury or wrong backup order can flip next week.',
       archetype: 'weekly',
     });
 
@@ -176,14 +176,14 @@ describe('useChipStore', () => {
       id: 'chip.weekly.cleanWin',
       beat: 0,
       pose: 'celebrate',
-      text: 'That was a grown-up win.',
+      text: 'Recommended: open Roster and Depth Chart before Advance Week. Consequence: an unseen injury or wrong backup order can flip next week.',
       archetype: 'weekly',
     });
 
     expect(useChipStore.getState()).toMatchObject({
       pose: 'celebrate',
       currentDialogueId: 'chip.weekly.cleanWin',
-      currentDialogueText: 'That was a grown-up win.',
+      currentDialogueText: 'Recommended: open Roster and Depth Chart before Advance Week. Consequence: an unseen injury or wrong backup order can flip next week.',
       lastWeeklyDialogue: expect.objectContaining({ id: 'chip.weekly.cleanWin' }),
       dismissed: false,
       context: 'event',

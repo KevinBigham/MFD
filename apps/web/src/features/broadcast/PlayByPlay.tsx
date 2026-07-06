@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { BroadcastCommentaryGame } from '@mfd/engine';
-import { buildBroadcastCommentary } from '@mfd/engine';
+import { buildBroadcastCommentary, buildHalftimeDecisionReceipt } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import type { BroadcastOutput, DriveNarrative, PlayDescription } from '@mfd/engine/types';
-import { selectLatestBroadcast, useGameStore } from '../../app/store/game-store';
-import { PixelScreenHeader, monoSm, pixelSm, screenStackStyle } from '../shared/pixelUi';
+import { selectGameDayPackageByBroadcastGameId, selectLatestBroadcast, useGameStore } from '../../app/store/game-store';
+import { PixelScreenHeader, display, monoSm, pixelSm, screenStackStyle } from '../shared/pixelUi';
 
 // ── Helpers ────────────────────────────────────────────
 
@@ -47,6 +47,100 @@ function formatTime(seconds: number): string {
 
 const TOP_HIGHLIGHTS = 5;
 
+type PlayByPlaySourceAccent = 'default' | 'green' | 'cyan' | 'gold' | 'red';
+
+interface PlayByPlaySourceRow {
+  id: string;
+  label: string;
+  value: string;
+  detail: string;
+  accent: PlayByPlaySourceAccent;
+}
+
+export function buildPlayByPlaySourceRows({
+  hasBroadcast,
+  quarterCount,
+  driveCount,
+  highlightCount,
+  ghostLineCount,
+  commentaryLineCount,
+  activeQuarterLabel,
+}: {
+  hasBroadcast: boolean;
+  quarterCount: number;
+  driveCount: number;
+  highlightCount: number;
+  ghostLineCount: number;
+  commentaryLineCount: number;
+  activeQuarterLabel: string;
+}): PlayByPlaySourceRow[] {
+  return [
+    {
+      id: 'latest-broadcast',
+      label: 'Latest broadcast',
+      value: hasBroadcast ? `${quarterCount} quarters` : 'No broadcast',
+      detail: 'The connected /play-by-play route reads selectLatestBroadcast, so it follows the newest user-team result instead of transient selected-game broadcast context.',
+      accent: hasBroadcast ? 'green' : 'default',
+    },
+    {
+      id: 'drive-timeline',
+      label: 'Drive timeline',
+      value: `${driveCount} drives`,
+      detail: 'Drive cards render broadcast.quarters from saved or deterministically rebuilt BroadcastOutput. Expanding a drive only changes route-local React state.',
+      accent: driveCount > 0 ? 'cyan' : 'default',
+    },
+    {
+      id: 'highlight-sort',
+      label: 'Highlight sort',
+      value: `${Math.min(highlightCount, TOP_HIGHLIGHTS)} shown`,
+      detail: 'Highlights are copied, sorted by excitement, and capped for display. Sorting this panel does not rewrite broadcast.highlights.',
+      accent: highlightCount > 0 ? 'gold' : 'default',
+    },
+    {
+      id: 'booth-lines',
+      label: 'Booth lines',
+      value: `${ghostLineCount + commentaryLineCount} lines`,
+      detail: 'Ghost lines come from broadcast.ghostLines, while Broadcast Texture lines are passed from buildHalftimeDecisionReceipt and buildBroadcastCommentary. This route does not generate saved commentary.',
+      accent: ghostLineCount + commentaryLineCount > 0 ? 'cyan' : 'default',
+    },
+    {
+      id: 'render-boundary',
+      label: 'Just viewing',
+      value: activeQuarterLabel,
+      detail: 'Quarter tabs, expanded-drive state, sorted highlights, booth sections, and texture rows are read-only presentation. Opening the route does not append packages, change broadcasts, click Advance Week, or change results.',
+      accent: 'red',
+    },
+  ];
+}
+
+function PlayByPlaySources({ rows }: { rows: PlayByPlaySourceRow[] }) {
+  return (
+    <PixelPanel title="Play-by-Play Sources" accent="cyan">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+        {rows.map((row) => (
+          <div
+            key={row.id}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              padding: '10px',
+              border: '2px solid var(--mfd-border)',
+              background: 'var(--mfd-bg-2)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ ...display, fontSize: '16px', color: 'var(--mfd-text)', lineHeight: 1 }}>{row.label.toUpperCase()}</div>
+              <PixelBadge variant={row.accent}>{row.value.toUpperCase()}</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{row.detail}</div>
+          </div>
+        ))}
+      </div>
+    </PixelPanel>
+  );
+}
+
 // ── PlayByPlayView (props-based) ───────────────────────
 
 export function PlayByPlayView({
@@ -61,6 +155,17 @@ export function PlayByPlayView({
 
   const quarterCount = broadcast.quarters.length;
   const drives = broadcast.quarters[activeQuarter] ?? [];
+  const driveCount = broadcast.quarters.reduce((total, quarter) => total + quarter.length, 0);
+  const activeQuarterLabel = activeQuarter < 4 ? `Q${activeQuarter + 1}` : 'OT';
+  const sourceRows = buildPlayByPlaySourceRows({
+    hasBroadcast: true,
+    quarterCount,
+    driveCount,
+    highlightCount: broadcast.highlights.length,
+    ghostLineCount: broadcast.ghostLines?.length ?? 0,
+    commentaryLineCount: commentaryLines.length,
+    activeQuarterLabel,
+  });
 
   const sortedHighlights = [...broadcast.highlights]
     .sort((a, b) => b.excitement - a.excitement)
@@ -69,6 +174,7 @@ export function PlayByPlayView({
   return (
     <div style={screenStackStyle}>
       <PixelScreenHeader title="Play-by-Play" subtitle={`${broadcast.broadcastNetwork} Broadcast`} />
+      <PlayByPlaySources rows={sourceRows} />
 
       {/* Quarter tabs */}
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -274,6 +380,7 @@ export function PlayByPlayView({
 export function PlayByPlay() {
   const game = useGameStore((state) => state.game);
   const broadcast = useGameStore(selectLatestBroadcast);
+  const gameDayPackage = useGameStore(useMemo(() => selectGameDayPackageByBroadcastGameId(null), []));
   const commentaryLines = useMemo(() => {
     if (!game || !broadcast) return [];
     const commentary = buildBroadcastCommentary(game as BroadcastCommentaryGame, {
@@ -282,16 +389,31 @@ export function PlayByPlay() {
       result: broadcast.gameResult,
       seed: game.year * 100 + broadcast.gameResult.week,
     });
-    return [...commentary.pregame, ...commentary.inGame].slice(0, 4);
-  }, [game, broadcast]);
+    const halftimeReceipt = buildHalftimeDecisionReceipt(gameDayPackage?.activeEffectSummaries ?? []);
+    return [
+      ...(halftimeReceipt ? [halftimeReceipt.broadcastLine] : []),
+      ...commentary.pregame,
+      ...commentary.inGame,
+    ].slice(0, 4);
+  }, [game, broadcast, gameDayPackage]);
 
   if (!broadcast) {
+    const sourceRows = buildPlayByPlaySourceRows({
+      hasBroadcast: false,
+      quarterCount: 0,
+      driveCount: 0,
+      highlightCount: 0,
+      ghostLineCount: 0,
+      commentaryLineCount: 0,
+      activeQuarterLabel: 'Q1',
+    });
     return (
       <div style={screenStackStyle}>
         <PixelScreenHeader title="Play-by-Play" subtitle="No broadcast data available." />
         <PixelPanel title="Awaiting Broadcast" accent="default">
           <div style={monoSm}>Advance to game day to generate a broadcast.</div>
         </PixelPanel>
+        <PlayByPlaySources rows={sourceRows} />
       </div>
     );
   }

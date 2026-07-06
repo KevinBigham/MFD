@@ -32,6 +32,13 @@ const MANDATE_ACCENT: Record<string, 'green' | 'gold' | 'red' | 'cyan'> = {
   failed: 'red',
 };
 
+function ownerPromiseTierLabel(slot: string): string {
+  if (slot === 'floor') return 'Minimum promise';
+  if (slot === 'target') return 'Main promise';
+  if (slot === 'ceiling') return 'Stretch promise';
+  return 'Owner promise';
+}
+
 function getStage(approval: number): OwnerStage {
   if (approval >= 70) return 'PATIENT';
   if (approval >= 50) return 'RESTLESS';
@@ -89,7 +96,7 @@ export function OwnerMood() {
       )}
 
       {agm ? (
-        <PixelPanel title="Front Office Identity" accent={agm.cardAccent === 'red' ? 'red' : agm.cardAccent === 'green' ? 'green' : agm.cardAccent === 'cyan' ? 'cyan' : 'gold'}>
+        <PixelPanel title="Assistant GM Impact" accent={agm.cardAccent === 'red' ? 'red' : agm.cardAccent === 'green' ? 'green' : agm.cardAccent === 'cyan' ? 'cyan' : 'gold'}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div>
@@ -134,7 +141,7 @@ export function OwnerMood() {
           label="Confidence"
           value={confidenceScore}
           accent={confidenceScore >= 60 ? 'green' : confidenceScore >= 40 ? 'cyan' : confidenceScore >= 25 ? 'gold' : 'red'}
-          detail="Weighted trust score"
+          detail="Approval plus patience"
         />
         <PixelMetricCard
           label="Stage"
@@ -143,6 +150,45 @@ export function OwnerMood() {
           detail={`${cfg.label} mode active`}
         />
       </div>
+
+      <PixelPanel title="Owner Pressure Sources" accent="cyan">
+        <div style={autoGrid(260)}>
+          {[
+            {
+              label: 'Saved mandates',
+              body: 'Owner Goals read saved ownerMandates installed by setup; evaluation owns approval, patience, front-office reputation, and AGM impact deltas.',
+              border: 'var(--mfd-gold)',
+            },
+            {
+              label: 'Handshake mirrors',
+              body: 'owner_mandate mirrors follow mandate met/exceeded/missed status and skip normal handshake deltas so consequences are not double-applied.',
+              border: 'var(--mfd-cyan)',
+            },
+            {
+              label: 'Weekly receipts',
+              body: 'Latest Reaction reads saved weekSummaries, while Inbox and season reports render downstream owner-pressure receipts after evaluation.',
+              border: 'var(--mfd-green)',
+            },
+          ].map((item) => (
+            <div
+              key={item.label}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                padding: '10px',
+                border: `3px solid ${item.border}`,
+                background: 'rgba(0, 0, 0, 0.18)',
+              }}
+            >
+              <div style={{ ...pixelSm, color: item.border }}>{item.label}</div>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+                {item.body}
+              </div>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
 
       <div style={autoGrid(320)}>
         <PixelPanel title="Confidence Arc" accent={cfg.accent}>
@@ -206,7 +252,7 @@ export function OwnerMood() {
                   {goal.label.toUpperCase()}
                 </div>
                 <div style={{ ...monoSm, color: '#888', marginTop: '4px' }}>
-                  {goal.slot.toUpperCase()} // {goal.progress.label}
+                  {ownerPromiseTierLabel(goal.slot).toUpperCase()} // {goal.progress.label}
                 </div>
                 <PixelProgressBar
                   value={goal.progress.percent}

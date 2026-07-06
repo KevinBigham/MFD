@@ -1,0 +1,13 @@
+{
+  "teamId": "ATL",
+  "name": "The Orchard",
+  "capacity": 71000,
+  "tradition": "The Pit Drop now opens every Peaches home game: a gold-painted peach pit rolls down the north concourse rail, the Pit Crew shakes orange towels through the retractable-roof light, and kickoff waits for the pit to land in the midfield crate.",
+  "surface": "Turf",
+  "roof": "Retractable",
+  "cue": {
+    "label": "The Pit Drop",
+    "pregameLine": "The gold peach pit is rolling at The Orchard, and the Pit Crew is already counting down the midfield crate drop.",
+    "crowdResponse": "The Pit Crew answers with a SWEET! AS! PEACH! chant that bounces through the roof panels."
+  }
+}

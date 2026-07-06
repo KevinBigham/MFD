@@ -5,12 +5,13 @@
  */
 import { useMemo, useState } from 'react';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
-import { buildBroadcastPresentation } from '@mfd/engine';
+import { buildBroadcastPresentation, buildHalftimeDecisionReceipt } from '@mfd/engine';
 import type { BroadcastBeat, BroadcastBeatKind } from '@mfd/engine';
-import { selectLatestBroadcast, useGameStore } from '../../app/store/game-store';
+import { selectGameDayPackageByBroadcastGameId, selectLatestBroadcast, useGameStore } from '../../app/store/game-store';
 import {
   PixelScreenHeader,
   autoGrid,
+  display,
   monoSm,
   pixelSm,
   screenStackStyle,
@@ -40,6 +41,96 @@ function kindVariant(kind: BroadcastBeatKind): 'green' | 'gold' | 'red' | 'defau
   const c = KIND_COLOR[kind];
   if (c === 'green' || c === 'gold' || c === 'red') return c;
   return 'default';
+}
+
+type PresentationSourceAccent = 'default' | 'green' | 'cyan' | 'gold' | 'red';
+
+interface PresentationSourceRow {
+  id: string;
+  label: string;
+  value: string;
+  detail: string;
+  accent: PresentationSourceAccent;
+}
+
+export function buildBroadcastPresentationSourceRows({
+  hasBroadcast,
+  hasGameDayPackage,
+  hasHalftimeReceipt,
+  beatCount,
+  activeBeatLabel,
+}: {
+  hasBroadcast: boolean;
+  hasGameDayPackage: boolean;
+  hasHalftimeReceipt: boolean;
+  beatCount: number;
+  activeBeatLabel: string;
+}): PresentationSourceRow[] {
+  return [
+    {
+      id: 'latest-broadcast',
+      label: 'Latest broadcast',
+      value: hasBroadcast ? 'Latest result' : 'No broadcast',
+      detail: 'The connected /presentation route reads selectLatestBroadcast, matching /play-by-play and /game-flow rather than the transient selected-game /broadcast context.',
+      accent: hasBroadcast ? 'green' : 'default',
+    },
+    {
+      id: 'presentation-helper',
+      label: 'Presentation helper',
+      value: `${beatCount} beats`,
+      detail: 'buildBroadcastPresentation curates replay beats from the saved GameResult and BroadcastOutput with maxHighlights: 6. It does not change the source broadcast.',
+      accent: beatCount > 0 ? 'cyan' : 'default',
+    },
+    {
+      id: 'halftime-receipt',
+      label: 'Halftime receipt',
+      value: hasHalftimeReceipt ? 'Saved receipt' : hasGameDayPackage ? 'Package only' : 'No package',
+      detail: 'selectGameDayPackageByBroadcastGameId(null) matches the latest broadcast result to saved recentPackages; buildHalftimeDecisionReceipt only parses saved activeEffectSummaries.',
+      accent: hasHalftimeReceipt ? 'gold' : hasGameDayPackage ? 'cyan' : 'default',
+    },
+    {
+      id: 'beat-state',
+      label: 'Beat state',
+      value: activeBeatLabel,
+      detail: 'Prev/Next controls and timeline dots only update route-local beatIndex state. They do not rewrite presentation beats or the underlying broadcast.',
+      accent: beatCount > 0 ? 'gold' : 'default',
+    },
+    {
+      id: 'render-boundary',
+      label: 'Just viewing',
+      value: 'Read only',
+      detail: 'Opening the route does not append game-day packages, change broadcasts, persist replay beats, advance the week, or change results.',
+      accent: 'red',
+    },
+  ];
+}
+
+function BroadcastPresentationSources({ rows }: { rows: PresentationSourceRow[] }) {
+  return (
+    <PixelPanel title="Presentation Sources" accent="cyan">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+        {rows.map((row) => (
+          <div
+            key={row.id}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              padding: '10px',
+              border: '2px solid var(--mfd-border)',
+              background: 'var(--mfd-bg-2)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ ...display, fontSize: '16px', color: 'var(--mfd-text)', lineHeight: 1 }}>{row.label.toUpperCase()}</div>
+              <PixelBadge variant={row.accent}>{row.value.toUpperCase()}</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{row.detail}</div>
+          </div>
+        ))}
+      </div>
+    </PixelPanel>
+  );
 }
 
 // ── Sub-components ─────────────────────────────────────
@@ -160,12 +251,23 @@ function BeatTimeline({
 
 export function BroadcastPresentation() {
   const broadcast = useGameStore(selectLatestBroadcast);
+  const gameDayPackage = useGameStore(useMemo(() => selectGameDayPackageByBroadcastGameId(null), []));
   const [beatIndex, setBeatIndex] = useState(0);
 
   const presentation = useMemo(() => {
     if (!broadcast) return null;
     return buildBroadcastPresentation(broadcast.gameResult, broadcast.broadcast, { maxHighlights: 6 });
   }, [broadcast]);
+  const halftimeReceipt = buildHalftimeDecisionReceipt(gameDayPackage?.activeEffectSummaries ?? []);
+  const sourceRows = buildBroadcastPresentationSourceRows({
+    hasBroadcast: Boolean(broadcast),
+    hasGameDayPackage: Boolean(gameDayPackage),
+    hasHalftimeReceipt: Boolean(halftimeReceipt),
+    beatCount: presentation?.beats.length ?? 0,
+    activeBeatLabel: presentation && presentation.beats.length > 0
+      ? `Beat ${Math.min(Math.max(0, beatIndex), presentation.beats.length - 1) + 1}`
+      : 'No beats',
+  });
 
   if (!broadcast || !presentation) {
     return (
@@ -174,6 +276,7 @@ export function BroadcastPresentation() {
         <PixelPanel title="AWAITING GAME" accent="default">
           <div style={monoSm}>Play a game to unlock the cinematic replay.</div>
         </PixelPanel>
+        <BroadcastPresentationSources rows={sourceRows} />
       </div>
     );
   }
@@ -192,6 +295,7 @@ export function BroadcastPresentation() {
         title="BROADCAST PRESENTATION"
         subtitle={`${awayTeamName} @ ${homeTeamName} · WK${broadcast.gameResult.week} · ${presentation.broadcastNetwork}`}
       />
+      <BroadcastPresentationSources rows={sourceRows} />
 
       <div style={autoGrid(160)}>
         <div
@@ -254,6 +358,20 @@ export function BroadcastPresentation() {
       </div>
 
       {beat && <BeatStage beat={beat} total={presentation.beats.length} />}
+
+      {halftimeReceipt ? (
+        <PixelPanel title="HALFTIME RECEIPT" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="gold">SAVED DECISION</PixelBadge>
+              <PixelBadge variant="cyan">GAME DAY PACKAGE</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.5 }}>
+              {halftimeReceipt.broadcastLine}
+            </div>
+          </div>
+        </PixelPanel>
+      ) : null}
 
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
         <PixelButton

@@ -64,6 +64,17 @@ export function ContinuityMeter({
           <PixelMetricCard label="Departed" value={continuity.departed} accent="red" />
           <PixelMetricCard label="Total Starters" value={continuity.total} accent="gold" />
         </div>
+
+        <div style={{
+          ...monoSm,
+          color: 'var(--mfd-text-dim)',
+          lineHeight: 1.6,
+          borderTop: '1px solid var(--mfd-border)',
+          paddingTop: '10px',
+        }}
+        >
+          Source: browser-local mfd.rosterContinuity.v1 starter snapshot for this dynasty ID compared with current isStarter flags. This is not cartridge data.
+        </div>
       </div>
     </PixelPanel>
   );

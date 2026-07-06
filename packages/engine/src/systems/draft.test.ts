@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { rookieSlotContract } from '../config/rookie-slots';
 import type { DraftOrderEntry, DraftPick, DraftProspect, GameState } from '../types';
-import { ensureDraftClass, finalizePostDraft, makeDraftPick, runPrivateWorkout, runScoutingAction, advanceDraft } from './draft';
+import {
+  ensureDraftClass,
+  ensureDraftClassCoversCurrentPicks,
+  finalizePostDraft,
+  makeDraftPick,
+  runPrivateWorkout,
+  runScoutingAction,
+  advanceDraft,
+} from './draft';
 import { initializeOffseasonState } from './offseason';
 import { makeLeagueState, makePlayer } from './test-helpers';
 
@@ -81,6 +89,29 @@ function addBloodlineArchive(game: GameState): void {
   }];
 }
 
+function setBlockDraftScenario(game: GameState): void {
+  game.scenarioState = {
+    activeScenario: {
+      id: 'draft_lock',
+      name: 'Draft Lock',
+      tagline: 'No user draft picks.',
+      description: 'A test scenario that blocks user draft selections.',
+      difficulty: 'pro',
+      seasonLimit: 1,
+      objectives: [],
+      bonusObjectives: [],
+      constraints: {
+        blockTrades: false,
+        blockFreeAgency: false,
+        blockDraft: true,
+        forcedDifficulty: undefined,
+      },
+    },
+    scenarioSeason: 1,
+    completedScenarios: [],
+  };
+}
+
 describe('draft direct coverage', () => {
   it('generates identical draft classes for the same seed and year', () => {
     const left = makeLeagueState('draft', 1);
@@ -145,6 +176,28 @@ describe('draft direct coverage', () => {
 
     expect(game.draftClass).toHaveLength(1);
     expect(game.draftClass[0]?.id).toBe('existing-prospect');
+  });
+
+  it('tops up an existing draft class after current-year pick count expands', () => {
+    const game = makeLeagueState('draft', 1);
+
+    ensureDraftClass(game);
+    const existingIds = new Set(game.draftClass.map((prospect) => prospect.id));
+    game.teams.afce1!.draftPicks.push(
+      ...Array.from({ length: 80 }, (_, index) => addPick('afce1', game.year, 8, index + 1)),
+    );
+
+    ensureDraftClassCoversCurrentPicks(game);
+
+    expect(game.draftClass.length).toBeGreaterThan(existingIds.size);
+    expect(game.draftClass.length).toBeGreaterThanOrEqual(
+      Object.values(game.teams).flatMap((team) => team.draftPicks).filter((pick) => pick.year === game.year).length + 24,
+    );
+    expect(new Set(game.draftClass.map((prospect) => prospect.id)).size).toBe(game.draftClass.length);
+    for (const id of existingIds) {
+      expect(game.draftClass.some((prospect) => prospect.id === id)).toBe(true);
+    }
+    expect(game.draftClass).toEqual([...game.draftClass].sort((a, b) => b.trueGrade - a.trueGrade || a.id.localeCompare(b.id)));
   });
 
   it('produces a positionally diverse class', () => {
@@ -277,6 +330,27 @@ describe('draft direct coverage', () => {
     expect(result.nextState.offseasonState?.currentDraftPickIndex).toBe(1);
     expect(result.nextState.offseasonState?.completedDraftPickIds).toEqual([`afce1-${game.year}-1-1-afce1`]);
     expect(result.nextState.phase).toBe('post_draft');
+  });
+
+  it('blocks user draft picks when scenario constraints disable drafting', () => {
+    const game = makeLeagueState('draft', 1);
+    game.teams.afce1.draftPicks = [addPick('afce1', game.year, 1, 1)];
+    game.offseasonState = {
+      ...initializeOffseasonState(game),
+      draftOrder: [makeDraftEntry('afce1', game.year, 1, 1, 1)],
+      currentDraftPickIndex: 0,
+      completedDraftPickIds: [],
+    };
+    game.draftClass = [makeProspect('blocked-qb', 'QB', 89)];
+    setBlockDraftScenario(game);
+
+    const result = makeDraftPick(game, 'blocked-qb');
+
+    expect(result.nextState.teams.afce1.roster.some((player) => player.id === 'blocked-qb')).toBe(false);
+    expect(result.nextState.draftClass.some((prospect) => prospect.id === 'blocked-qb')).toBe(true);
+    expect(result.nextState.offseasonState?.currentDraftPickIndex).toBe(0);
+    expect(result.nextState.offseasonState?.completedDraftPickIds).toEqual([]);
+    expect(result.nextState.phase).toBe('draft');
   });
 
   it('copies bloodline context to the drafted player, nudges loyalty for the parent team, and records dynasty memory', () => {

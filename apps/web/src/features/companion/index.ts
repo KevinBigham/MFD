@@ -1,11 +1,16 @@
 export {
+  CHIP_INTRO_STORAGE_KEY,
   CHIP_ONBOARDING_STORAGE_KEY,
   ChipHost,
   advanceOnboardingBeat,
   isChipFeatureEnabled,
+  readChipIntroState,
   readOnboardingSkipState,
+  writeChipIntroState,
   writeOnboardingSkipState,
   type ChipHostProps,
   type ChipHostStage,
+  type ChipHostDialogueOverride,
+  type ChipIntroState,
   type ChipOnboardingSkipState,
 } from './ChipHost';

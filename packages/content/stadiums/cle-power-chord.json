@@ -1,0 +1,13 @@
+{
+  "teamId": "CLE",
+  "name": "The Garage",
+  "capacity": 67800,
+  "tradition": "The Power Chord now opens every Rockers home game: lake-effect lights sweep the stage decks, a hometown guitarist hits the thirty-second solo, and the Dawg Pound Pit howls until kickoff shakes the amps.",
+  "surface": "Grass",
+  "roof": "Open",
+  "cue": {
+    "label": "The Power Chord",
+    "pregameLine": "The stage lights are sweeping The Garage, and the hometown guitarist is already bending the opening solo into the lake wind.",
+    "crowdResponse": "The Dawg Pound Pit answers with a TURN! IT! UP! chant that rattles every amp on the sideline."
+  }
+}

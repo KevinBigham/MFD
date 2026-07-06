@@ -11,7 +11,7 @@ import { calculateCompPicks } from './comp-picks';
 import { advanceCommissioner, initCommissioner } from './commissioner';
 import { makeContract } from './contracts';
 import { resolveConditions } from './conditional-picks';
-import { ensureDraftClass } from './draft';
+import { ensureDraftClass, ensureDraftClassCoversCurrentPicks } from './draft';
 import { recordDynastyEvent } from './dynasty-timeline';
 import { generateEndorsementOffers, getEndorsementNarrative, tickEndorsements } from './endorsements';
 import { replenishFacilityBudget } from './facilities';
@@ -23,28 +23,32 @@ import { inductHallOfFame } from './hall-of-fame';
 import { syncPlayerArchiveEntry } from './history';
 import { generateMedicalStaffPool } from './injury-system';
 import { assignJerseyNumber, generateJerseyRetirement, shouldRetireJersey } from './jersey-retirement';
-import { getActiveRule, initLeagueRules } from './league-rules';
+import { getActiveRule, getRosterLimit, initLeagueRules } from './league-rules';
 import { generateOffseasonNews, recordGovernanceNews, recordLaborNews, recordNewsItem } from './league-news';
 import { generateLaborEvent, initLaborState } from './labor-relations';
 import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
 import { applyMentoringBonuses, formMentoringPairs } from './mentoring';
 import { recordBeat } from './narrative-director';
+import { createNearMissTracker, recordMissedFA } from './near-miss-receipts';
 import { clearSeasonLivingWorldState } from './off-field-events';
 import { buildTrainingProgressionBonuses, clearTrainingAssignments } from './player-development';
 import { archivePlayerSeasonHistory } from './player-profile';
-import { agentDemand, ensureAgentsInitialized, getAgentPatienceWeeks, getPlayerAgent, negotiateOffer } from './player-agents';
+import { agentDemand, ensureAgentsInitialized, getAgentPatienceWeeks, getPlayerAgent, negotiateOffer, ratioOfferToDemand } from './player-agents';
 import { processWaiverClaims } from './practice-squad';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { progressPlayers } from './progression';
 import { getSeasonRecordNotes, updateCareerRecords, updateSeasonRecords } from './records';
+import { STARTER_SLOTS } from './roster-management';
 import { decayLeagueRivalries } from './rivalries';
 import { decayRivalries } from './player-rivalries';
 import { getScenarioConstraints } from './scenario-challenge';
 import { createDefaultScoutingDepartment, generateScoutPool } from './scouting-staff';
 import { generateSeasonReport } from './season-report';
+import { emptyPlayerStats } from './season-stats';
 import { buildSpecialTeamsState } from './special-teams';
 import { appendToSocialFeed, createGovernancePost, createLaborPost, generateTransactionPosts } from './social-feed';
 import { generateTradeOffers } from './trade-market';
+import { syncTeamCapTotals } from './team-cap';
 import {
   createDefaultFranchiseIdentity,
   generateStadiumDeals,
@@ -70,6 +74,33 @@ import type {
 } from '../types';
 import type { AIBiasConfig } from './ai-bias';
 
+export type FreeAgencyForecastMode = 're_sign' | 'open_market_bid' | 'street_sign';
+
+export type FreeAgencyForecastStatus =
+  | 'likely_accept'
+  | 'likely_counter'
+  | 'likely_decline'
+  | 'strong_bid'
+  | 'competitive_bid'
+  | 'long_shot'
+  | 'immediate_add'
+  | 'blocked';
+
+export interface FreeAgencyDecisionForecast {
+  mode: FreeAgencyForecastMode;
+  status: FreeAgencyForecastStatus;
+  statusLabel: string;
+  confidence: 'high' | 'medium' | 'low';
+  score: number | null;
+  threshold: number | null;
+  immediateImpact: string;
+  seasonImpact: string;
+  futureRisk: string;
+  resolution: string;
+  source: string;
+  warnings: string[];
+}
+
 function cloneGame(game: GameState): GameState {
   return structuredClone(game);
 }
@@ -83,6 +114,20 @@ function ensureGovernanceState(game: GameState): void {
 
 function findUserTeam(game: GameState): Team | null {
   return Object.values(game.teams).find((team) => team.isUser) ?? null;
+}
+
+function ensureNearMissTracker(game: GameState) {
+  game.nearMissTracker ??= createNearMissTracker();
+  return game.nearMissTracker;
+}
+
+function recordMissedFreeAgentNearMiss(game: GameState, player: Player, signedWithTeam: Team): void {
+  recordMissedFA(ensureNearMissTracker(game), {
+    playerName: player.name,
+    playerOvr: player.ovr,
+    signedWithTeam: `${signedWithTeam.city} ${signedWithTeam.name}`,
+    position: player.pos,
+  });
 }
 
 function refreshRosterState(team: Team): void {
@@ -295,6 +340,12 @@ function adjustCapSpace(team: Team, amount: number): void {
   team.capUsed = roundMoney(Math.max(0, team.capUsed - amount));
 }
 
+function syncLeagueCapTotals(game: GameState): void {
+  for (const team of Object.values(game.teams)) {
+    syncTeamCapTotals(game, team);
+  }
+}
+
 function applyOfferToPlayer(game: GameState, team: Team, player: Player, offer: ContractOffer): void {
   player.contract = makeContract(
     offer.salary,
@@ -374,6 +425,217 @@ function scoreOffer(offer: ContractOffer, ask: ContractOffer): number {
 
 function acceptThreshold(player: Player): number {
   return 8 + player.personality.greed - player.personality.loyalty;
+}
+
+function blockedFreeAgencyForecast(
+  mode: FreeAgencyForecastMode,
+  reason: string,
+  source: string,
+  warnings: string[] = [],
+): FreeAgencyDecisionForecast {
+  return {
+    mode,
+    status: 'blocked',
+    statusLabel: 'Blocked',
+    confidence: 'high',
+    score: null,
+    threshold: null,
+    immediateImpact: reason,
+    seasonImpact: 'No free-agency state changes should commit from this action.',
+    futureRisk: 'Resolve the blocker before spending cap, roster slots, or offseason turns.',
+    resolution: reason,
+    source,
+    warnings,
+  };
+}
+
+function roundForecastValue(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+export function buildFreeAgencyDecisionForecast(
+  game: GameState,
+  playerId: string,
+  offer: ContractOffer,
+  mode: FreeAgencyForecastMode,
+): FreeAgencyDecisionForecast {
+  const player = getPlayer(game, playerId);
+  if (!player) {
+    return blockedFreeAgencyForecast(mode, 'Player is missing from the loaded save.', 'GameState.players lookup');
+  }
+
+  if (mode === 're_sign') {
+    const decision = game.offseasonState?.reSignDecisions[playerId] ?? null;
+    if (!decision) {
+      return blockedFreeAgencyForecast(mode, 'No saved re-sign decision is open for this player.', 'offseasonState.reSignDecisions');
+    }
+
+    const ratio = ratioOfferToDemand(offer, decision.agentDemand);
+    const pct = Math.round(ratio * 100);
+    const warnings = decision.status === 'accepted'
+      ? ['This player already has an accepted re-sign decision; advancing the offseason applies the saved offer.']
+      : [];
+
+    if (ratio >= 0.9) {
+      return {
+        mode,
+        status: 'likely_accept',
+        statusLabel: 'Likely accepted',
+        confidence: 'high',
+        score: roundForecastValue(ratio),
+        threshold: 0.9,
+        immediateImpact: `Offer reaches ${pct}% of saved agent demand, which should move the negotiation to accepted.`,
+        seasonImpact: 'The contract is still applied by the existing offseason advance path, not by rendering this forecast.',
+        futureRisk: `${offer.years} year(s) at $${offer.salary}M base salary become the saved commitment if the accepted offer advances.`,
+        resolution: 'Immediate negotiation response; roster/cap application waits for offseason resolution.',
+        source: 'negotiateOffer ratio to saved agentDemand',
+        warnings,
+      };
+    }
+
+    if (ratio >= 0.8) {
+      return {
+        mode,
+        status: 'likely_counter',
+        statusLabel: 'Likely counter',
+        confidence: 'medium',
+        score: roundForecastValue(ratio),
+        threshold: 0.8,
+        immediateImpact: `Offer reaches ${pct}% of saved agent demand, enough for a counter but not an acceptance.`,
+        seasonImpact: 'Countered decisions stay in the re-sign window until you accept, improve the offer, or advance and risk a walk.',
+        futureRisk: 'Waiting leaves the player unsigned until you accept, improve the offer, or Advance Offseason; if the window closes, that becomes a holdout carryover or free-agent loss.',
+        resolution: 'Immediate negotiation response; no roster movement from the forecast or the button alone.',
+        source: 'negotiateOffer ratio to saved agentDemand',
+        warnings,
+      };
+    }
+
+    return {
+      mode,
+      status: 'likely_decline',
+      statusLabel: 'Likely declined',
+      confidence: 'high',
+      score: roundForecastValue(ratio),
+      threshold: 0.8,
+      immediateImpact: `Offer reaches ${pct}% of saved agent demand, below the current counter threshold.`,
+      seasonImpact: 'A declined offer keeps pressure on the next offseason advance; if the window closes, the player remains unsigned.',
+      futureRisk: 'Lowballing preserves current cap plan now but increases walk/holdout risk if the window closes.',
+      resolution: 'Immediate rejection from the negotiation helper; no roster movement from this forecast.',
+      source: 'negotiateOffer ratio to saved agentDemand',
+      warnings,
+    };
+  }
+
+  if (getScenarioConstraints(game)?.blockFreeAgency) {
+    return blockedFreeAgencyForecast(mode, 'Active scenario constraints block this free-agency action.', 'getScenarioConstraints(blockFreeAgency)');
+  }
+
+const userTeam = findUserTeam(game);
+  if (!userTeam) {
+    return blockedFreeAgencyForecast(mode, 'No user team is available for this action.', 'findUserTeam');
+  }
+
+  if (mode === 'open_market_bid') {
+    if (game.phase !== 'free_agency' || !game.offseasonState) {
+      return blockedFreeAgencyForecast(mode, 'Open-market bids only resolve during the free-agency phase.', 'offseasonState.freeAgencyBids');
+    }
+
+    if (!game.freeAgents.includes(playerId)) {
+      return blockedFreeAgencyForecast(mode, 'Player is not currently in the free-agent pool.', 'game.freeAgents');
+    }
+
+    const round = game.offseasonState.round;
+    const identity = userTeam.franchiseIdentity ?? createDefaultFranchiseIdentity(userTeam);
+    const score = roundForecastValue(scoreOffer(offer, buildAskingPrice(player)) * (1 + getFanbaseEffect(identity).faInterestBonus));
+    const threshold = acceptThreshold(player);
+    const margin = roundForecastValue(score - threshold);
+    const existingBid = game.offseasonState.freeAgencyBids[playerId]?.find((bid) => bid.teamId === userTeam.id && bid.round === round);
+    const warnings = existingBid
+      ? [`This click replaces your current Round ${round} bid before the market resolves.`]
+      : [];
+
+    if (margin >= 12) {
+      return {
+        mode,
+        status: 'strong_bid',
+        statusLabel: 'Strong bid',
+        confidence: 'high',
+        score,
+        threshold,
+        immediateImpact: `Stores a pending Round ${round} bid that clears the player threshold by ${margin} score points.`,
+        seasonImpact: 'Resolve Round still compares this bid against CPU bids before any roster move is committed.',
+        futureRisk: `Winning commits ${offer.years} year(s) at $${offer.salary}M base salary plus bonus/guarantees.`,
+        resolution: 'Pending bid now; signing only happens during free-agency round resolution.',
+        source: 'submitFreeAgentBid score and resolveFreeAgencyRound threshold',
+        warnings,
+      };
+    }
+
+    if (margin >= 0) {
+      return {
+        mode,
+        status: 'competitive_bid',
+        statusLabel: 'Competitive bid',
+        confidence: 'medium',
+        score,
+        threshold,
+        immediateImpact: `Stores a pending Round ${round} bid that clears the player threshold by ${margin} score points.`,
+        seasonImpact: 'Higher CPU bids beat this offer when the round resolves.',
+        futureRisk: 'A close bid protects cap space; aggressive market bids win the player at round resolution.',
+        resolution: 'Pending bid now; signing only happens during free-agency round resolution.',
+        source: 'submitFreeAgentBid score and resolveFreeAgencyRound threshold',
+        warnings,
+      };
+    }
+
+    return {
+      mode,
+      status: 'long_shot',
+      statusLabel: 'Long shot',
+      confidence: 'low',
+      score,
+      threshold,
+      immediateImpact: `Stores a pending Round ${round} bid, but it sits ${Math.abs(margin)} score points below the player threshold.`,
+      seasonImpact: 'At round resolution, the player remains unsigned or signs elsewhere.',
+      futureRisk: 'Cheap bids preserve cap but are unlikely to close unless the market collapses.',
+      resolution: 'Pending bid now; signing only happens during free-agency round resolution.',
+      source: 'submitFreeAgentBid score and resolveFreeAgencyRound threshold',
+      warnings,
+    };
+  }
+
+  if (!game.freeAgents.includes(playerId)) {
+    return blockedFreeAgencyForecast(mode, 'Player is not currently in the street free-agent pool.', 'game.freeAgents');
+  }
+
+  const rosterLimit = getRosterLimit(game);
+  const rosterCount = userTeam.roster.length;
+  if (rosterCount >= rosterLimit) {
+    return blockedFreeAgencyForecast(
+      mode,
+      `Active roster is full at ${rosterCount}/${rosterLimit}; the signing action should no-op.`,
+      'signStreetFreeAgent roster-limit gate',
+    );
+  }
+
+  const warnings = rosterLimit - rosterCount <= 2
+    ? [`Roster is close to full at ${rosterCount}/${rosterLimit}.`]
+    : [];
+
+  return {
+    mode,
+    status: 'immediate_add',
+    statusLabel: 'Immediate add',
+    confidence: 'high',
+    score: null,
+    threshold: null,
+    immediateImpact: 'Signs now from the free-agent list and removes the player from the street market.',
+    seasonImpact: 'The existing signing action attaches the offered contract and adds the player to the active roster.',
+    futureRisk: `Consumes one active roster slot and commits ${offer.years} year(s) at $${offer.salary}M base salary.`,
+    resolution: 'Immediate store action commit; no bidding round or CPU comparison.',
+    source: 'signStreetFreeAgent free-agent-list and roster-limit gates',
+    warnings,
+  };
 }
 
 function resolveUserOffer(player: Player, decision: ReSignDecision): boolean {
@@ -573,6 +835,8 @@ function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState, aiBi
     const team = game.teams[winner.teamId];
     if (!team) continue;
 
+    const userBidLost = Boolean(userTeam && !team.isUser && userBids.some((bid) => bid.teamId === userTeam.id));
+
     const signedPlayer = player;
     if (!team.roster.some((candidate) => candidate.id === signedPlayer.id)) {
       team.roster.push(signedPlayer);
@@ -604,6 +868,8 @@ function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState, aiBi
         teamNames: [team.name],
         context: `Free-agency agreement for ${signedPlayer.name}.`,
       }, RNG.ai));
+    } else if (userBidLost) {
+      recordMissedFreeAgentNearMiss(game, signedPlayer, team);
     }
     game.freeAgents = game.freeAgents.filter((id) => id !== playerId);
 
@@ -786,6 +1052,172 @@ function resetPracticeSquads(game: GameState): void {
   processWaiverClaims(game);
 }
 
+const MINIMUM_ROSTER_POSITIONS = Object.entries(STARTER_SLOTS) as Array<[Player['pos'], number]>;
+
+function minimumRosterOffer(position: Player['pos']): ContractOffer {
+  const salary = position === 'QB' ? 2.5
+    : position === 'K' ? 1.1
+      : position === 'P' ? 0.9
+        : 1.2;
+  return {
+    years: 1,
+    salary,
+    signingBonus: 0,
+    guaranteed: 0,
+  };
+}
+
+function uniqueMinimumRosterPlayerId(game: GameState, team: Team, position: Player['pos'], slotIndex: number): string {
+  const baseId = `camp-${game.year}-${team.id}-${position.toLowerCase()}-${slotIndex}`;
+  let candidateId = baseId;
+  let suffix = 1;
+  while (game.players[candidateId]) {
+    candidateId = `${baseId}-${suffix}`;
+    suffix += 1;
+  }
+  return candidateId;
+}
+
+function minimumReplacementOvr(position: Player['pos']): number {
+  if (position === 'QB') return 62;
+  if (position === 'K') return 63;
+  if (position === 'P') return 61;
+  return 59;
+}
+
+function minimumReplacementRoleName(position: Player['pos']): string {
+  const labels: Record<Player['pos'], string> = {
+    QB: 'Quarterback',
+    RB: 'Runner',
+    WR: 'Receiver',
+    TE: 'Tight End',
+    OL: 'Lineman',
+    DL: 'Defender',
+    LB: 'Linebacker',
+    CB: 'Corner',
+    S: 'Safety',
+    K: 'Kicker',
+    P: 'Punter',
+  };
+  return labels[position];
+}
+
+function createMinimumRosterPlayer(game: GameState, team: Team, position: Player['pos'], slotIndex: number): Player {
+  const ovr = minimumReplacementOvr(position);
+  const roleName = minimumReplacementRoleName(position);
+  const id = uniqueMinimumRosterPlayerId(game, team, position, slotIndex);
+
+  return {
+    id,
+    firstName: 'Camp',
+    lastName: roleName,
+    name: `${team.abbr} Camp ${roleName}`,
+    pos: position,
+    age: 24,
+    ovr,
+    pot: ovr + 2,
+    ratings: {
+      awareness: ovr,
+      speed: 55,
+      stamina: 70,
+      kickPower: ovr,
+      kickAccuracy: ovr,
+    },
+    devTrait: 'normal',
+    personality: { workEthic: 6, loyalty: 5, greed: 4, pressure: 5, ambition: 4 },
+    traits: [],
+    archetype: null,
+    contract: null,
+    teamId: null,
+    draftYear: game.year,
+    draftRound: 7,
+    draftPick: slotIndex + 1,
+    college: 'Regional State',
+    yearsExp: 0,
+    careerStats: { seasons: 0, gp: 0, snaps: 0 },
+    traitMilestones: {},
+    traitPowerLevel: {},
+    injury: null,
+    morale: 62,
+    chemistry: 58,
+    systemFit: 60,
+    cliqueId: null,
+    jerseyNumber: 0,
+    endorsements: [],
+    isStarter: true,
+    role: 'Starter',
+    roleWeeks: 0,
+    tradeBlock: false,
+    holdout: false,
+    agentId: null,
+    stats: emptyPlayerStats(),
+  };
+}
+
+function takeBestFreeAgentAtPosition(game: GameState, position: Player['pos']): Player | null {
+  const candidate = game.freeAgents
+    .map((playerId) => game.players[playerId])
+    .filter((player): player is Player => Boolean(player && player.pos === position && player.teamId === null))
+    .sort((left, right) =>
+      right.ovr - left.ovr
+      || left.age - right.age
+      || left.id.localeCompare(right.id))[0] ?? null;
+
+  if (!candidate) return null;
+  game.freeAgents = game.freeAgents.filter((playerId) => playerId !== candidate.id);
+  return candidate;
+}
+
+function openRosterSlotForMinimumFloor(game: GameState, team: Team): boolean {
+  const positionCounts = team.roster.reduce<Partial<Record<Player['pos'], number>>>((counts, player) => {
+    counts[player.pos] = (counts[player.pos] ?? 0) + 1;
+    return counts;
+  }, {});
+  const expendable = team.roster
+    .filter((player) => (positionCounts[player.pos] ?? 0) > (STARTER_SLOTS[player.pos] ?? 1))
+    .sort((left, right) =>
+      Number(left.isStarter) - Number(right.isStarter)
+      || left.ovr - right.ovr
+      || right.age - left.age
+      || left.id.localeCompare(right.id))[0] ?? null;
+
+  if (!expendable) return false;
+  moveToFreeAgency(game, team, expendable.id);
+  return true;
+}
+
+function signMinimumRosterPlayer(game: GameState, team: Team, position: Player['pos'], slotIndex: number): void {
+  if (team.roster.length >= getRosterLimit(game) && !openRosterSlotForMinimumFloor(game, team)) return;
+
+  const player = takeBestFreeAgentAtPosition(game, position)
+    ?? createMinimumRosterPlayer(game, team, position, slotIndex);
+
+  if (!team.roster.some((entry) => entry.id === player.id)) {
+    team.roster.push(player);
+  }
+  applyOfferToPlayer(game, team, player, minimumRosterOffer(position));
+  assignJerseyNumber(team, player);
+  refreshRosterState(team);
+  team.txLog.push({
+    type: 'SIGN_FA',
+    year: game.year,
+    week: game.week,
+    playerId: player.id,
+    toTeamId: team.id,
+  });
+}
+
+function ensureMinimumRosterFloors(game: GameState): void {
+  for (const team of Object.values(game.teams)) {
+    for (const [position, minimum] of MINIMUM_ROSTER_POSITIONS) {
+      const rostered = team.roster.filter((player) => player.pos === position).length;
+      for (let index = rostered; index < minimum; index += 1) {
+        signMinimumRosterPlayer(game, team, position, index);
+      }
+    }
+  }
+}
+
 function rebuildDraftBoard(game: GameState): void {
   if (!game.offseasonState) return;
   game.offseasonState.draftOrder = buildDraftOrder(game);
@@ -962,19 +1394,16 @@ export function signStreetFreeAgent(
   const faIdx = nextState.freeAgents.indexOf(playerId);
   if (faIdx === -1) return { nextState, events: [], consequences: [] };
 
-  // Roster cap check (53 man)
-  if (userTeam.roster.length >= 53) {
+  if (userTeam.roster.length >= getRosterLimit(nextState)) {
     return { nextState, events: [], consequences: [] };
   }
 
-  // Apply contract
-  player.contract = makeContract(
-    offer.salary, offer.years, offer.signingBonus, offer.guaranteed,
-    playerId, userTeam.id,
-  );
-
-  // Add to roster, remove from FA pool
-  userTeam.roster.push(player);
+  if (!userTeam.roster.some((entry) => entry.id === player.id)) {
+    userTeam.roster.push(player);
+  }
+  applyOfferToPlayer(nextState, userTeam, player, offer);
+  assignJerseyNumber(userTeam, player);
+  refreshRosterState(userTeam);
   nextState.freeAgents.splice(faIdx, 1);
 
   return { nextState, events: [], consequences: [] };
@@ -1160,6 +1589,7 @@ export function advanceOffseason(game: GameState, aiBias?: AIBiasConfig): void {
   }
   const strategyEvents = reevaluateLeagueStrategies(game);
   game.eventLog.push(...strategyEvents);
+  syncLeagueCapTotals(game);
   applyTeamPhilosophies(game, currentSeasonYear(game));
   const previousCommissionerName = game.commissionerState.name;
   const previousProposalIds = game.commissionerState.activeProposals.map((proposal) => proposal.id);
@@ -1187,6 +1617,9 @@ export function advanceFreeAgency(game: GameState, aiBias?: AIBiasConfig): void 
     for (const team of Object.values(game.teams)) {
       calculateCompPicks(game, team.id);
     }
+    ensureMinimumRosterFloors(game);
+    syncLeagueCapTotals(game);
+    ensureDraftClassCoversCurrentPicks(game);
     generateOffseasonNews(game);
     rebuildDraftBoard(game);
     game.teamNeedsCache = {};

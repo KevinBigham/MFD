@@ -10,6 +10,14 @@ function stripCurrentAdditions(state: Record<string, unknown>): Record<string, u
   delete clone['mediaCycle'];
   delete clone['storylineThreads'];
   delete clone['ownerMandates'];
+  delete clone['ballotWaitlist'];
+  delete clone['ballotEliminatedIds'];
+  const teams = clone['teams'];
+  if (teams && typeof teams === 'object') {
+    for (const team of Object.values(teams as Record<string, Record<string, unknown>>)) {
+      delete team['gmStrategy'];
+    }
+  }
   const frontOffice = clone['frontOffice'];
   if (frontOffice && typeof frontOffice === 'object') {
     delete (frontOffice as Record<string, unknown>)['agmProfileId'];
@@ -58,8 +66,25 @@ describe('save migrations', () => {
       expect(parsed.data.mediaCycle.weeklyDigests).toEqual([]);
       expect(parsed.data.storylineThreads).toEqual([]);
       expect(parsed.data.ownerMandates).toEqual([]);
+      expect(parsed.data.ballotWaitlist).toEqual([]);
+      expect(parsed.data.ballotEliminatedIds).toEqual([]);
       expect(parsed.data.frontOffice.agmProfileId).toBeNull();
     }
+  });
+
+  it('normalizes legacy team GM strategy values while migrating old saves', () => {
+    const legacy = structuredClone(v34Fixture) as Record<string, unknown>;
+    const teams = legacy['teams'] as Record<string, Record<string, unknown>>;
+    const teamIds = Object.keys(teams);
+    expect(teamIds.length).toBeGreaterThanOrEqual(2);
+    teams[teamIds[0]]!['gmStrategy'] = 'buy';
+    teams[teamIds[1]]!['gmStrategy'] = 'sell';
+
+    const migrated = migrate(legacy, SAVE_VERSION);
+    const migratedTeams = migrated['teams'] as Record<string, Record<string, unknown>>;
+
+    expect(migratedTeams[teamIds[0]]?.['gmStrategy']).toBe('contend');
+    expect(migratedTeams[teamIds[1]]?.['gmStrategy']).toBe('rebuild');
   });
 
   it('keeps the migration chain continuous from 1 through current version minus one', () => {

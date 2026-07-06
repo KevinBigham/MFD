@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { readFileSync } from 'fs';
 import { RelationshipGraph } from './RelationshipGraph';
 
 // Minimal state shape — only the selectors used by RelationshipGraph.
@@ -77,6 +78,8 @@ function setupStoreMock(state: MockState) {
 }
 
 describe('RelationshipGraph screen', () => {
+  const source = readFileSync(new URL('./RelationshipGraph.tsx', import.meta.url), 'utf-8');
+
   it('renders the header and both edge counts in legend buttons', async () => {
     vi.resetModules();
     setupStoreMock(makeState());
@@ -90,6 +93,21 @@ describe('RelationshipGraph screen', () => {
     expect(markup).toContain('rival');
   });
 
+  it('labels saved relationship sources and the display-only boundary', async () => {
+    vi.resetModules();
+    setupStoreMock(makeState());
+    const { RelationshipGraph: Component } = await import('./RelationshipGraph');
+
+    const markup = renderToStaticMarkup(<Component />);
+
+    expect(markup).toContain('RELATIONSHIP SOURCES');
+    expect(markup).toContain('Reads game.relationships as the only graph edge source');
+    expect(markup).toContain('Resolves coach labels from active team HC/OC/DC staff');
+    expect(markup).toContain('stable hash layout');
+    expect(markup).toContain('does not synthesize edges from staff mentor fields');
+    expect(markup).toContain('write GameState');
+  });
+
   it('shows the empty state panel when no relationships are recorded', async () => {
     vi.resetModules();
     const empty = makeState();
@@ -98,7 +116,43 @@ describe('RelationshipGraph screen', () => {
     const { RelationshipGraph: Component } = await import('./RelationshipGraph');
 
     const markup = renderToStaticMarkup(<Component />);
+    expect(markup).toContain('RELATIONSHIP SOURCES');
+    expect(markup).toContain('an empty list stays an empty graph');
     expect(markup).toContain('NO RELATIONSHIPS RECORDED');
+  });
+
+  it('does not synthesize edges from staff mentor fields without saved relationships', async () => {
+    vi.resetModules();
+    const state = makeState();
+    state.game.relationships = [];
+    state.game.teams.t1.staff.hc = {
+      ...state.game.teams.t1.staff.hc,
+      mentorCoachId: 'c2',
+      disciples: [],
+      yearsUnderMentor: 3,
+    } as typeof state.game.teams.t1.staff.hc;
+    state.game.teams.t2.staff.hc = {
+      ...state.game.teams.t2.staff.hc,
+      mentorCoachId: null,
+      disciples: ['c1'],
+      yearsUnderMentor: 0,
+    } as typeof state.game.teams.t2.staff.hc;
+    state.userTeam.staff.hc = state.game.teams.t1.staff.hc;
+    setupStoreMock(state);
+    const { RelationshipGraph: Component } = await import('./RelationshipGraph');
+
+    const markup = renderToStaticMarkup(<Component />);
+    expect(markup).toContain('NO RELATIONSHIPS RECORDED');
+    expect(markup).not.toContain('coach tree');
+  });
+
+  it('keeps empty game selector fallbacks stable for React store snapshots', () => {
+    expect(source).toContain('const EMPTY_TEAMS: Record<string, Team> = {};');
+    expect(source).toContain('const EMPTY_RELATIONSHIPS: RelationshipEdge[] = [];');
+    expect(source).toContain('s.game?.teams ?? EMPTY_TEAMS');
+    expect(source).toContain('s.game?.relationships ?? EMPTY_RELATIONSHIPS');
+    expect(source).not.toContain('s.game?.teams ?? {}');
+    expect(source).not.toContain('s.game?.relationships ?? []');
   });
 
   it('renders the svg graph with both edges in desktop view', async () => {

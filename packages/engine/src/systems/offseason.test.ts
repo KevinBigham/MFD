@@ -3,22 +3,51 @@ import {
   acceptTradeOffer,
   advanceOffseason,
   advanceFranchiseWeek,
+  applyRuleChange,
   createEmptyRecordBook,
   initCBA,
   initCommissioner,
   initLaborState,
   initLeagueRules,
   getDefaultHalftimeDecisionSetting,
+  getSalaryCap,
+  buildFreeAgencyDecisionForecast,
+  calcCapHit,
   makeDraftPick,
   initializeOffseasonState,
   makeContract,
   rejectTradeOffer,
   runScoutingAction,
   SAVE_VERSION,
+  signStreetFreeAgent,
   submitFreeAgentBid,
   submitReSignOffer,
+  validateGameState,
 } from '../index';
 import type { DraftPick, DraftProspect, GameState, Player, Team, TradeOffer } from '../types';
+
+function scaleOffer(offer: { years: number; salary: number; signingBonus: number; guaranteed: number }, multiplier: number) {
+  return {
+    years: offer.years,
+    salary: Math.round(offer.salary * multiplier * 10) / 10,
+    signingBonus: Math.round(offer.signingBonus * multiplier * 10) / 10,
+    guaranteed: Math.round(offer.guaranteed * multiplier * 10) / 10,
+  };
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+function expectedCapUsed(team: Team): number {
+  return roundMoney(team.roster.reduce((sum, player) => sum + calcCapHit(player.contract ?? null), 0) + team.deadCap);
+}
+
+function expectCapTotalsSynced(game: GameState, teamId: string): void {
+  const team = game.teams[teamId]!;
+  expect(team.capUsed).toBe(expectedCapUsed(team));
+  expect(team.capSpace).toBe(roundMoney(getSalaryCap(game.year, game) - team.capUsed));
+}
 
 function makePlayer(id: string, teamId: string, pos: Player['pos'], ovr: number, isStarter = true): Player {
   return {
@@ -317,6 +346,81 @@ function makeProspect(id: string, pos: Player['pos'], trueGrade = 84): DraftPros
 }
 
 describe('offseason systems', () => {
+  it('blocks street free-agent signings at the active roster limit', () => {
+    const game = makeOffseasonGame();
+    const userTeam = game.teams.user!;
+    game.leagueRules = applyRuleChange(game.leagueRules, {
+      key: 'roster_limit',
+      newValue: 50,
+      source: 'commissioner_vote',
+      proposedBy: 'commissioner',
+      effectiveYear: game.year,
+      rationale: 'Trim active rosters.',
+    });
+    userTeam.roster = Array.from({ length: 50 }, (_, index) => makePlayer(`limit-player-${index}`, userTeam.id, 'WR', 65, false));
+    for (const player of userTeam.roster) {
+      game.players[player.id] = player;
+    }
+    const freeAgent = makePlayer('street-fa-limit', null as never, 'CB', 72, false);
+    freeAgent.teamId = null;
+    freeAgent.contract = null;
+    game.players[freeAgent.id] = freeAgent;
+    game.freeAgents = [freeAgent.id];
+
+    const result = signStreetFreeAgent(game, freeAgent.id, {
+      years: 1,
+      salary: 1.1,
+      signingBonus: 0.2,
+      guaranteed: 0.6,
+    });
+
+    expect(result.nextState.teams.user.roster).toHaveLength(50);
+    expect(result.nextState.players[freeAgent.id]?.teamId).toBeNull();
+    expect(result.nextState.freeAgents).toContain(freeAgent.id);
+  });
+
+  it('synchronizes street free-agent signings across roster, player map, cap, and archive state', () => {
+    const game = makeOffseasonGame();
+    const userTeam = game.teams.user!;
+    const freeAgent = makePlayer('street-fa-sync', null as never, 'CB', 72, false);
+    const offer = {
+      years: 1,
+      salary: 1.1,
+      signingBonus: 0.2,
+      guaranteed: 0.6,
+    };
+    freeAgent.teamId = null;
+    freeAgent.contract = null;
+    game.players[freeAgent.id] = freeAgent;
+    game.freeAgents = [freeAgent.id];
+    const preCapUsed = userTeam.capUsed;
+    const preCapSpace = userTeam.capSpace;
+
+    const result = signStreetFreeAgent(game, freeAgent.id, offer);
+    const nextTeam = result.nextState.teams.user!;
+    const signedPlayer = result.nextState.players[freeAgent.id]!;
+    const rosterPlayer = nextTeam.roster.find((player) => player.id === freeAgent.id);
+    const capHit = calcCapHit(signedPlayer.contract);
+
+    expect(result.nextState.freeAgents).not.toContain(freeAgent.id);
+    expect(signedPlayer.teamId).toBe(nextTeam.id);
+    expect(signedPlayer.contract).toMatchObject({
+      playerId: freeAgent.id,
+      teamId: nextTeam.id,
+      years: offer.years,
+      baseSalary: offer.salary,
+      signingBonus: offer.signingBonus,
+      guaranteed: offer.guaranteed,
+    });
+    expect(rosterPlayer).toBeDefined();
+    expect(rosterPlayer?.teamId).toBe(nextTeam.id);
+    expect(nextTeam.capUsed).toBeCloseTo(preCapUsed + capHit, 5);
+    expect(nextTeam.capSpace).toBeCloseTo(preCapSpace - capHit, 5);
+    expect(nextTeam.txLog.some((entry) => entry.type === 'SIGN_FA' && entry.playerId === freeAgent.id)).toBe(false);
+    expect(result.nextState.playerArchive.find((entry) => entry.playerId === freeAgent.id)?.teamHistory.at(-1)?.teamId).toBe(nextTeam.id);
+    expect(validateGameState(result.nextState).violations.filter((entry) => entry.context?.playerId === freeAgent.id)).toEqual([]);
+  });
+
   it('stores a user re-sign offer and carries unsigned players into free agency', () => {
     const game = makeOffseasonGame();
     const userQuarterback = game.teams.user.roster[0]!;
@@ -352,6 +456,130 @@ describe('offseason systems', () => {
     expect(roundOne.nextState.socialFeed.some((post) => post.trigger === 'signing')).toBe(true);
     expect(roundThree.nextState.phase).toBe('draft');
     expect(roundThree.nextState.offseasonState?.draftOrder.length).toBeGreaterThan(0);
+  });
+
+  it('records a missed-FA near miss when a user bid loses to a signed CPU offer', () => {
+    const game = makeOffseasonGame();
+    const expiringRunner = game.teams.user.roster[1]!;
+    const marketState = advanceFranchiseWeek(game).nextState;
+    const marketRunner = marketState.players[expiringRunner.id]!;
+    const bidState = submitFreeAgentBid(marketState, expiringRunner.id, {
+      years: 1,
+      salary: 1,
+      signingBonus: 0,
+      guaranteed: 0,
+    });
+
+    const roundOne = advanceFranchiseWeek(bidState.nextState);
+
+    expect(roundOne.nextState.teams.user.roster.some((player) => player.id === expiringRunner.id)).toBe(false);
+    expect(roundOne.nextState.players[expiringRunner.id]?.teamId).not.toBe('user');
+    expect(roundOne.nextState.nearMissTracker?.missedFAs).toEqual([
+      expect.objectContaining({
+        playerName: marketRunner.name,
+        playerOvr: marketRunner.ovr,
+        position: marketRunner.pos,
+      }),
+    ]);
+    expect(roundOne.nextState.nearMissTracker?.missedFAs[0]?.signedWithTeam).toMatch(/Club$/);
+  });
+
+  it('forecasts re-sign offer responses without mutating the saved decision', () => {
+    const game = makeOffseasonGame();
+    const userQuarterback = game.teams.user.roster[0]!;
+    const decision = game.offseasonState!.reSignDecisions[userQuarterback.id]!;
+
+    const counterForecast = buildFreeAgencyDecisionForecast(
+      game,
+      userQuarterback.id,
+      scaleOffer(decision.agentDemand, 0.88),
+      're_sign',
+    );
+    const declineForecast = buildFreeAgencyDecisionForecast(
+      game,
+      userQuarterback.id,
+      scaleOffer(decision.agentDemand, 0.5),
+      're_sign',
+    );
+    const matchForecast = buildFreeAgencyDecisionForecast(game, userQuarterback.id, decision.agentDemand, 're_sign');
+
+    expect(counterForecast.status).toBe('likely_counter');
+    expect(counterForecast.immediateImpact).toContain('saved agent demand');
+    expect(counterForecast.futureRisk).toBe('Waiting leaves the player unsigned until you accept, improve the offer, or Advance Offseason; if the window closes, that becomes a holdout carryover or free-agent loss.');
+    expect(counterForecast.futureRisk).not.toMatch(/Waiting can leave|can turn into/i);
+    expect(counterForecast.source).toContain('negotiateOffer');
+    expect(declineForecast.status).toBe('likely_decline');
+    expect(declineForecast.seasonImpact).toBe('A declined offer keeps pressure on the next offseason advance; if the window closes, the player remains unsigned.');
+    expect(declineForecast.seasonImpact).not.toMatch(/can leave the player unsigned/i);
+    expect(matchForecast.status).toBe('likely_accept');
+    expect(matchForecast.seasonImpact).toContain('offseason advance path');
+    expect(game.offseasonState!.reSignDecisions[userQuarterback.id]!.lastOffer).toBeNull();
+  });
+
+  it('forecasts open-market bids as pending round decisions and warns when replacing a bid', () => {
+    const game = makeOffseasonGame();
+    const expiringRunner = game.teams.user.roster[1]!;
+    const marketState = advanceFranchiseWeek(game).nextState;
+    const offer = { years: 3, salary: 14, signingBonus: 8, guaranteed: 24 };
+
+    const firstForecast = buildFreeAgencyDecisionForecast(marketState, expiringRunner.id, offer, 'open_market_bid');
+    const candidateOffers = Array.from({ length: 31 }, (_, index) => ({
+      years: 2,
+      salary: index + 1,
+      signingBonus: Math.floor(index / 2),
+      guaranteed: index * 2,
+    }));
+    const bidForecasts = candidateOffers.map((candidate) => (
+      buildFreeAgencyDecisionForecast(marketState, expiringRunner.id, candidate, 'open_market_bid')
+    ));
+    const competitiveForecast = bidForecasts.find((forecast) => forecast.status === 'competitive_bid');
+    const longShotForecast = bidForecasts.find((forecast) => forecast.status === 'long_shot');
+    const bidState = submitFreeAgentBid(marketState, expiringRunner.id, offer).nextState;
+    const replacementForecast = buildFreeAgencyDecisionForecast(bidState, expiringRunner.id, offer, 'open_market_bid');
+
+    expect(firstForecast.status).toBe('strong_bid');
+    expect(firstForecast.resolution).toContain('free-agency round resolution');
+    expect(firstForecast.source).toContain('submitFreeAgentBid');
+    expect(competitiveForecast).toBeDefined();
+    expect(competitiveForecast?.seasonImpact).toBe('Higher CPU bids beat this offer when the round resolves.');
+    expect(competitiveForecast?.futureRisk).toBe('A close bid protects cap space; aggressive market bids win the player at round resolution.');
+    expect(longShotForecast).toBeDefined();
+    expect(longShotForecast?.seasonImpact).toBe('At round resolution, the player remains unsigned or signs elsewhere.');
+    expect(JSON.stringify(bidForecasts)).not.toMatch(/CPU bids can still beat|may lose the player|can remain unsigned/i);
+    expect(replacementForecast.warnings.join(' ')).toContain('replaces your current Round 1 bid');
+  });
+
+  it('forecasts street free-agent roster-limit blockers before commit', () => {
+    const game = makeOffseasonGame();
+    const userTeam = game.teams.user!;
+    game.leagueRules = applyRuleChange(game.leagueRules, {
+      key: 'roster_limit',
+      newValue: 50,
+      source: 'commissioner_vote',
+      proposedBy: 'commissioner',
+      effectiveYear: game.year,
+      rationale: 'Trim active rosters.',
+    });
+    userTeam.roster = Array.from({ length: 50 }, (_, index) => makePlayer(`forecast-limit-${index}`, userTeam.id, 'WR', 65, false));
+    for (const player of userTeam.roster) {
+      game.players[player.id] = player;
+    }
+    const freeAgent = makePlayer('forecast-street-fa', null as never, 'CB', 72, false);
+    freeAgent.teamId = null;
+    freeAgent.contract = null;
+    game.players[freeAgent.id] = freeAgent;
+    game.freeAgents = [freeAgent.id];
+
+    const forecast = buildFreeAgencyDecisionForecast(game, freeAgent.id, {
+      years: 1,
+      salary: 1.1,
+      signingBonus: 0.2,
+      guaranteed: 0.6,
+    }, 'street_sign');
+
+    expect(forecast.status).toBe('blocked');
+    expect(forecast.immediateImpact).toContain('50/50');
+    expect(forecast.source).toContain('roster-limit');
   });
 
   it('builds a draft class and trade board when the offseason begins', () => {
@@ -438,6 +666,34 @@ describe('offseason systems', () => {
       .toBe(progressed.nextState.year);
     expect(progressed.nextState.eventLog.some((event) => event.type === 'player_retired' && event.data.playerId === oldRunner.id))
       .toBe(true);
+  });
+
+  it('fills a specialist room when offseason progression retires the only kicker', () => {
+    const game = makeOffseasonGame();
+    const kicker = game.teams.user.roster.find((player) => player.pos === 'K')!;
+    kicker.age = 39;
+    kicker.ovr = 45;
+    kicker.ratings.awareness = 45;
+    kicker.ratings.speed = 45;
+    game.players[kicker.id] = kicker;
+
+    advanceOffseason(game);
+    let state = game;
+    while (state.phase === 'free_agency') {
+      state = advanceFranchiseWeek(state).nextState;
+    }
+
+    const kickers = state.teams.user.roster.filter((player) => player.pos === 'K');
+    expect(kickers).toHaveLength(1);
+    expect(kickers[0]!.id).not.toBe(kicker.id);
+    expect(kickers[0]!.teamId).toBe('user');
+    expect(kickers[0]!.contract?.years).toBe(1);
+    expect(state.phase).toBe('draft');
+    expect(state.players[kickers[0]!.id]).toBe(kickers[0]);
+    expect(state.players[kicker.id]!.teamId).toBeNull();
+    expect(state.playerArchive.find((entry) => entry.playerId === kicker.id)?.retirementYear).toBe(state.year);
+    expect(state.teams.user.specialTeams?.kickReturner).toBeDefined();
+    expectCapTotalsSynced(state, 'user');
   });
 
   it('re-evaluates AI team strategy before the trade market refreshes', () => {

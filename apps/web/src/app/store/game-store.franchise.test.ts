@@ -85,6 +85,35 @@ describe('game-store franchise actions', () => {
     expect(movedTeam.franchiseIdentity.relocationHistory).toHaveLength(1);
   });
 
+  it('does not relocate before the eligibility window', async () => {
+    const game = createSeedGameState(0);
+    game.year = 2028;
+    const team = userTeam(game);
+    team.capSpace = 120;
+    loadGame(game);
+
+    await useGameStore.getState().actions.relocateTeam('LDN');
+
+    const unchangedTeam = userTeam(currentGame());
+    expect(unchangedTeam.city).not.toBe('London');
+    expect(unchangedTeam.franchiseIdentity.relocationHistory).toEqual([]);
+  });
+
+  it('does not relocate to a selected destination the franchise cannot afford', async () => {
+    const game = createSeedGameState(0);
+    game.year = 2031;
+    const team = userTeam(game);
+    team.capSpace = 40;
+    loadGame(game);
+
+    await useGameStore.getState().actions.relocateTeam('LDN');
+
+    const unchangedTeam = userTeam(currentGame());
+    expect(unchangedTeam.city).not.toBe('London');
+    expect(unchangedTeam.capSpace).toBe(40);
+    expect(unchangedTeam.franchiseIdentity.relocationHistory).toEqual([]);
+  });
+
   it('protects expansion players and completes the preview draft', async () => {
     const game = createSeedGameState(0);
     const team = userTeam(game);

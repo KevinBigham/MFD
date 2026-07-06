@@ -10,7 +10,7 @@ import {
 import { generateAwards } from './awards';
 import { makeLeagueState } from './test-helpers';
 
-function makeInductee(): HallOfFameEntry {
+function makeInductee(overrides: Partial<HallOfFameEntry> = {}): HallOfFameEntry {
   return {
     playerId: 'hof-1',
     name: 'Legend Player',
@@ -27,6 +27,7 @@ function makeInductee(): HallOfFameEntry {
     },
     highlights: ['Peak 97 OVR', '2 MVP', '2 championships'],
     teams: ['afce1'],
+    ...overrides,
   };
 }
 
@@ -88,6 +89,27 @@ describe('ceremonies', () => {
     const ceremony = generateHOFInduction(game, [makeInductee()]);
 
     expect(ceremony.highlights[0]?.value).toContain('Peak 97 OVR');
+  });
+
+  it('hall of fame induction prefers saved epilogue copy when present', () => {
+    const game = makeLeagueState('offseason');
+
+    const ceremony = generateHOFInduction(game, [
+      makeInductee({
+        epilogue: {
+          playerId: 'hof-1',
+          playerName: 'Legend Player',
+          category: 'broadcasting',
+          headline: 'Legend Player takes the booth',
+          story: 'The retired quarterback turns film study into appointment television.',
+        },
+      }),
+    ]);
+
+    expect(ceremony.highlights[0]?.label).toBe('Legend Player');
+    expect(ceremony.highlights[0]?.value).toContain('Legend Player takes the booth');
+    expect(ceremony.highlights[0]?.value).toContain('turns film study into appointment television');
+    expect(ceremony.highlights[0]?.value).not.toContain('Peak 97 OVR');
   });
 
   it('ring ceremony triggers in week one for defending champions', () => {

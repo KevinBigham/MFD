@@ -21,7 +21,7 @@ describe('CreditsScreen', () => {
   it('credits design and development', () => {
     const markup = renderToStaticMarkup(<CreditsScreen />);
 
-    expect(markup).toContain('DESIGN + DEV');
+    expect(markup).toContain('Design + Dev');
     expect(markup).toContain('Kevin Bigham');
   });
 

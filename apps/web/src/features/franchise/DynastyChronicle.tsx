@@ -70,6 +70,35 @@ export async function exportDynastyChronicleAsPng(
   }
 }
 
+function ChronicleSourcesPanel() {
+  return (
+    <PixelPanel title="Chronicle Sources" accent="cyan">
+      <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="gold">saved dynasty memory</PixelBadge>
+          <PixelBadge variant="cyan">sidecar archive reads</PixelBadge>
+          <PixelBadge variant="default">route-local filters</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Source: `deriveDynastyId(game)` selects the dynasty, and `computeDynastyChronicle`
+          combines saved `franchiseHistory`, `hallOfFame`, and `coachingHistory` with scrapbook and
+          playoff-lore sidecar reads.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          `countEventsByType`, `filterChronicleEvents`, `chronicleTitle`, `chronicleBody`, and
+          `chronicleAccent` only shape the displayed event stream. Filter chips and the detail modal are
+          route-local state.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Opening this route does not write franchise history, Hall of Fame entries, coaching history,
+          scrapbook entries, playoff-lore cards, ceremonies, records, media posts, achievements, or
+          simulation outcomes. Export only creates a browser PNG download.
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function DynastyChronicle({
   dynastyId: dynastyIdOverride,
 }: {
@@ -147,6 +176,8 @@ export function DynastyChronicle({
           </div>
         </div>
       </div>
+
+      <ChronicleSourcesPanel />
 
       {hasEvents ? (
         <ChronicleFilters

@@ -56,13 +56,35 @@ const mockState = {
           homeRecord: '2-5',
           awayRecord: '1-5',
         },
+        {
+          rank: 9,
+          teamId: 'team-12',
+          teamName: 'Toledo River Kings',
+          teamIcon: 'tol',
+          wins: 2,
+          losses: 11,
+          ties: 0,
+          pct: 0.154,
+          pointsFor: 190,
+          pointsAgainst: 330,
+          pointDifferential: -140,
+          streak: 1,
+          homeRecord: '1-6',
+          awayRecord: '1-5',
+        },
       ],
     },
   ],
   playoffPicture: {
     afc: [
       { seed: 1, teamId: 'team-1', teamName: 'Chicago City of Broad Shoulders Deep-Dish', teamIcon: 'chi', divisionWinner: true, indicator: 'X' },
+      { seed: 2, teamId: 'team-2', teamName: 'Cleveland Lakeshore', teamIcon: 'cle', divisionWinner: true, indicator: '' },
+      { seed: 3, teamId: 'team-3', teamName: 'Pittsburgh Iron', teamIcon: 'pit', divisionWinner: true, indicator: '' },
       { seed: 4, teamId: 'team-4', teamName: 'Milwaukee Frost Line', teamIcon: 'mil', divisionWinner: false, indicator: '' },
+      { seed: 5, teamId: 'team-5', teamName: 'Columbus Aviators', teamIcon: 'col', divisionWinner: false, indicator: '' },
+      { seed: 6, teamId: 'team-6', teamName: 'Detroit Motors', teamIcon: 'det', divisionWinner: false, indicator: '' },
+      { seed: 7, teamId: 'team-7', teamName: 'Indianapolis Speed', teamIcon: 'ind', divisionWinner: false, indicator: '' },
+      { seed: 8, teamId: 'team-8', teamName: 'Canton Factory Lights', teamIcon: 'can', divisionWinner: false, indicator: '' },
     ],
     nfc: [{ seed: 1, teamId: 'team-9', teamName: 'Seattle Emerald City Grunge', teamIcon: 'sea', divisionWinner: true, indicator: '' }],
   },
@@ -94,9 +116,23 @@ describe('LeagueStandings', () => {
     expect(markup).toContain('data-mfd-table-responsive="cards"');
     expect(markup).toContain('AFC EAST');
     expect(markup).toContain('Chicago City of Broad Shoulders Deep-Dish');
+    expect(markup).toContain('8 seeds / conference');
     expect(markup).toContain('PLAYOFF PICTURE');
     expect(markup).toContain('STAT LEADERS');
     expect(markup).toContain('Jay Stone');
+  });
+
+  it('labels standings sources without implying route-time writes', () => {
+    const markup = renderToStaticMarkup(<LeagueStandings />);
+
+    expect(markup).toContain('STANDINGS SOURCES');
+    expect(markup).toContain('selectStandings maps STANDINGS_DIVISIONS through getDivisionStandings');
+    expect(markup).toContain('1 divisions / 4 teams');
+    expect(markup).toContain('selectPlayoffPicture reads the playoff-picture helper output');
+    expect(markup).toContain('9 seeds');
+    expect(markup).toContain('selectStatLeaders reads current player and team season stats through getStatLeaders');
+    expect(markup).toContain('5 leaders');
+    expect(markup).toContain('Opening League Standings does not play scheduled games, click Advance Week, write playoff brackets');
   });
 
   it('renders division-leader laurel for the top team in a division', () => {
@@ -113,11 +149,12 @@ describe('LeagueStandings', () => {
     expect(markup).toContain('Playoff seed locked');
   });
 
-  it('renders bubble seed signal for seeds four through seven', () => {
+  it('renders bubble seed signal for playoff seeds after the locked group', () => {
     const markup = renderToStaticMarkup(<LeagueStandings />);
 
     expect(markup).toContain('data-standings-signal="seed_bubble"');
     expect(markup).toContain('Playoff bubble');
+    expect(markup).toContain('Canton Factory Lights');
   });
 
   it('renders out signal for non-playoff teams', () => {

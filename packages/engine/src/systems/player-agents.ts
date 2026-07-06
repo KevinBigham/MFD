@@ -9,12 +9,12 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function offerScore(offer: ContractOffer): number {
+export function scoreContractOffer(offer: ContractOffer): number {
   return offer.salary * 10 + offer.guaranteed * 1.5 + offer.signingBonus + offer.years * 2;
 }
 
-function ratioToDemand(offer: ContractOffer, demand: ContractOffer): number {
-  return offerScore(offer) / Math.max(offerScore(demand), 1);
+export function ratioOfferToDemand(offer: ContractOffer, demand: ContractOffer): number {
+  return scoreContractOffer(offer) / Math.max(scoreContractOffer(demand), 1);
 }
 
 function playerById(team: Team, playerId: string): Player | null {
@@ -153,7 +153,7 @@ export function negotiateOffer(
   const agent = getPlayerAgent(game, playerId);
   decision.lastOffer = offer;
 
-  const ratio = ratioToDemand(offer, decision.agentDemand);
+  const ratio = ratioOfferToDemand(offer, decision.agentDemand);
   if (ratio >= 0.9) {
     decision.status = 'accepted';
     decision.counterOffer = null;
@@ -186,7 +186,7 @@ export function holdoutCheck(game: GameState, teamId: string, playerId: string):
   const decision = findDecision(game, playerId);
   if (!player || !decision || player.contract !== null) return false;
 
-  const ratio = decision.lastOffer ? ratioToDemand(decision.lastOffer, decision.agentDemand) : 0;
+  const ratio = decision.lastOffer ? ratioOfferToDemand(decision.lastOffer, decision.agentDemand) : 0;
   if (ratio >= 0.9) return false;
 
   if (decision.patienceWeeksRemaining > 0) {

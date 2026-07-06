@@ -106,7 +106,7 @@ function makeCard(year: number, week: number, overrides: Partial<PlayoffLoreCard
     gameId: `playoff-${year}-${week}`,
     seasonYear: year,
     week,
-    round: week === 22 ? 'super_bowl' : week === 21 ? 'conference' : week === 20 ? 'divisional' : 'wild_card',
+    round: 'wild_card',
     outcome: 'win',
     headline: 'Chicago survives and advances',
     finalScore: '27-24',
@@ -208,6 +208,19 @@ describe('scrapbook-store', () => {
     const entries = readScrapbookForDynasty('dynasty-a');
     expect(entries[0]?.playoffLoreCards).toEqual([card]);
     expect(readPendingPlayoffLoreCards('dynasty-a', 2026)).toEqual([]);
+  });
+
+  it('preserves other pending playoff lore seasons when archiving one season', () => {
+    const consumedCard = makeCard(2026, 19, { gameId: 'consumed-card' });
+    const futureCard = makeCard(2027, 20, { gameId: 'future-card' });
+    stagePendingPlayoffLoreCard('dynasty-a', 2026, consumedCard);
+    stagePendingPlayoffLoreCard('dynasty-a', 2027, futureCard);
+
+    appendScrapbookEntry('dynasty-a', makeEntry(2026));
+
+    expect(readScrapbookForDynasty('dynasty-a')[0]?.playoffLoreCards).toEqual([consumedCard]);
+    expect(readPendingPlayoffLoreCards('dynasty-a', 2026)).toEqual([]);
+    expect(readPendingPlayoffLoreCards('dynasty-a', 2027)).toEqual([futureCard]);
   });
 
   it('clears only the target dynasty entries', () => {

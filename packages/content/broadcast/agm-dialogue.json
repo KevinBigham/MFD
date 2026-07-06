@@ -2,432 +2,432 @@
   "marcus_webb": {
     "gameStart": {
       "winning_record": [
-        "The numbers never lie. We're operating at 73% efficiency above league average.",
-        "Current trajectory projects 11.4 wins. Regression models favor us.",
-        "Cap allocation is optimized. We're getting 1.3 dollars of value per dollar spent.",
-        "Our point differential suggests this is sustainable, not variance.",
-        "I've run the simulations 10,000 times. We make playoffs in 84% of them."
+        "Efficiency is above league average; keep the current starters together while healthy and change the depth chart when injuries force backup roles.",
+        "The 11-win projection depends on turnover margin; protect the ball before spending picks on luxury trades.",
+        "Cap space is available now; extend core starters before free agency raises prices.",
+        "Set special teams and injury depth now; coverage units without assigned jobs and uncovered backups turn wins into losses.",
+        "The playoff path is open; add a short-term starter for a named weekly upgrade, or luxury trades waste cap and picks."
       ],
       "losing_record": [
-        "The numbers never lie. We're underperforming expected wins by 2.7.",
-        "Point differential indicates we're better than our record, but not by much.",
-        "I've identified three roster inefficiencies costing us approximately 4.2 points per game.",
-        "Current cap utilization is at 91% with bottom-quartile return on investment.",
-        "We need to discuss reallocating resources before the trade deadline."
+        "The record is worse than the starter usage; name the position losing snaps before the trade deadline, or December shifts to next-year depth tryouts.",
+        "Fix losses now; point differential warns that owner patience is still shrinking.",
+        "Three roster spots are costing drives; name the failing starter or snap group before a scheme change hides the real fix.",
+        "Too much cap is tied to players who are not producing; stop adding veteran money until production improves.",
+        "Move snaps, cap space, or picks before the deadline; by December, losses shift young players into next-year depth roles."
       ],
       "rebuilding": [
-        "The numbers never lie. This is a two-year process minimum.",
-        "I've modeled six different rebuild paths. The optimal one involves patience.",
-        "Dead money peaks next season at 18%. That's by design.",
-        "We're accumulating draft capital at 1.4x the league average rate.",
-        "Short-term pain for long-term cap flexibility. The math is clear."
+        "Protect premium picks during this rebuild; trading them now delays the payoff by multiple seasons.",
+        "Choose patience during this rebuild: keep cheap starters and draft capital, because panic veteran deals delay the payoff.",
+        "Avoid unnecessary restructures while dead money peaks next season; extra pushes compound future cap pain.",
+        "Draft capital is accumulating; protect those picks for a young starter or future cheap depth.",
+        "Give young players named starter or rotation snaps during losses; otherwise rebuild years protect cap space but waste development time."
       ],
       "contending": [
-        "The numbers never lie. Our championship window is currently open.",
-        "We have 14% cap space and all our premium picks. This is the time.",
-        "Win probability added suggests we should be buyers, not sellers.",
-        "I've identified three veterans on expiring deals who fit our timeline.",
-        "The model says go all-in. I concur with the model."
+        "Make contending moves when they improve this playoff run; headline trades waste cap and picks.",
+        "Cap space plus premium picks let us buy starters; spend them on backups, or later injury fixes lose space.",
+        "The roster says buy, but do not trade depth that protects us from injuries.",
+        "Choose expiring veterans for immediate starter snaps; otherwise they cost assets without future roster control.",
+        "Make an aggressive move for a starter upgrade; future cap hits still need an exit plan."
       ],
       "cap_hell": [
-        "The numbers never lie. We're 12 million over with 38 players under contract.",
-        "I've prepared four restructuring scenarios. All are painful.",
-        "Dead money will be 24% of our cap next year regardless of what we do.",
-        "We need to discuss June 1st designations and void years immediately.",
-        "This is what happens when you mortgage the future. The bill is due."
+        "We are $12M over with 38 players signed; create space before adding any outside contract.",
+        "Preview every restructure path first; each one pushes cap pain into future seasons.",
+        "Dead money is heavy next year; every cut or void year needs a survival plan before extensions or injury fixes.",
+        "Set June 1 designations and void-year plans now because the deadline will shrink choices.",
+        "Create cap space now; missing this step blocks extensions and injury replacements."
       ]
     },
     "bigTrade": {
       "good_value": [
-        "We acquired 2.3 wins above replacement for 60 cents on the dollar.",
-        "The numbers never lie. This is positive expected value.",
-        "Surplus value analysis shows we gained $14.2M in cap-adjusted talent.",
-        "His contract structure aligns perfectly with our competitive window.",
-        "I've already updated the models. Playoff probability increased 11%."
+        "We added starter-level production on a cheaper contract; give him snaps where that role changes games.",
+        "This trade pays off when the depth chart uses him immediately.",
+        "The contract is cheaper than the role; protect that cap advantage by avoiding extra guarantees around the same position.",
+        "Feature him for this playoff push after previewing year-two guarantees before the next move.",
+        "Set the upgrade as a starter or featured package now; if the Game Plan ignores him, cap and pick cost stay wasted."
       ],
       "bad_value": [
-        "We paid premium price for depreciating asset. The numbers never lie.",
-        "This trade fails cost-benefit analysis at every level.",
-        "We surrendered 1.8 expected wins for 0.9 wins of production.",
-        "The contract has negative surplus value in years two and three.",
-        "I advised against this. The data was clear."
+        "We paid a premium for declining production; cap and pick cost now demand starter-level impact.",
+        "This trade needs a starter-level role fast; otherwise the cap and pick cost stays wasted.",
+        "Decide starter usage or resale now; paying for unused production hurts later cap space.",
+        "Preview years two and three before the next move; the contract already reduces later cap space.",
+        "Name four games of snaps and production before adding cost; if the role stays small, stop spending around the mistake."
       ],
       "blockbuster": [
-        "This shifts our championship odds from 7% to 19%. Massive swing.",
-        "The numbers never lie. We just bought a two-year window.",
-        "Cap implications are severe but justifiable given the upside.",
-        "I've stress-tested this against three injury scenarios. Still positive EV.",
-        "This is the kind of move that gets GMs extended or fired. No middle ground."
+        "Spend cap and picks for a starter upgrade now; a missed playoff push makes future cap space tighter.",
+        "Plan every follow-up move around a two-year playoff push; missing the postseason leaves less future cap space.",
+        "Cap hits are severe, so every follow-up move needs to cover an injury or upgrade a starter.",
+        "Protect replacement depth after this trade; losing backups break the playoff run.",
+        "Follow this trade with wins or roster repair; owner patience drops if results stall."
       ]
     },
     "draftNight": {
       "first_round": [
-        "Our board had him at 11. We got him at 17. That's value.",
-        "The numbers never lie. His RAS score correlates with Pro Bowl probability.",
-        "Contract is slotted at $4.2M AAV. Excellent cost control for four years.",
-        "Positional value analysis confirms this was optimal allocation of capital.",
-        "I've already modeled his rookie contract surplus. It's significant."
+        "We landed him at 17 after treating him like a top Round 1 target; give him a starter-path role before the pick turns into idle depth.",
+        "Assign his athletic testing to package snaps this month; without starter-track reps, the expensive pick creates future free-agency spending.",
+        "Start the four-year rookie contract window now; wasted rookie snaps shorten the cheap starter window.",
+        "Start the rookie plan early at this expensive position; missing now forces future free-agency spending.",
+        "Give him starter-path reps before extension decisions arrive; otherwise the cheap years pass without starter answers."
       ],
       "steal_pick": [
-        "We just extracted maximum value. He was a top-15 player on our board.",
-        "The numbers never lie. This is a 2.4x return on draft capital.",
-        "Other teams will regret passing. The analytics are overwhelming.",
-        "His fall was due to market inefficiency, not talent evaluation.",
-        "This is why we trust the process over the noise."
+        "He slid despite starter traits; assign snaps before the roster spot becomes wasted depth.",
+        "Open his medical report and assign a role before calling it a steal; missed limitations turn the draft capital into a redshirt year.",
+        "Assign him defined development snaps instead of hiding him; otherwise other teams' mistake becomes a wasted roster spot.",
+        "Name medical, role, and practice warnings that caused the slide; missed warnings turn the discount into lost snaps.",
+        "Name the role, medical limitation, and coaching plan, then give him a specific job."
       ],
       "reach_pick": [
-        "We reached by approximately 23 picks according to consensus board.",
-        "The numbers never lie. This fails value-over-replacement analysis.",
-        "I had three higher-graded players available at positions of need.",
-        "This appears to be a traits bet over production. Risky.",
-        "I've noted my objection for the record. Hope I'm wrong."
+        "Set a development plan now; picking him 23 slots early raises the practice burden.",
+        "This pick needs a starter or top-backup role quickly.",
+        "Assign him to a named need position now; this pick must become a starter fast.",
+        "We drafted traits over proven production, so missed practice reps make this pick dangerous.",
+        "Keep this pick by giving him a defined role, practice snaps, and a progress deadline before preseason ends."
       ]
     },
     "seasonMilestone": {
       "playoff_clinch": [
-        "Probability reached 100%. We have officially clinched.",
-        "The numbers never lie. Home field advantage is worth 3.2 points.",
-        "I've begun modeling potential matchups. We match up well with the 3-seed.",
-        "Rest vs rust analysis suggests we should play starters week 18.",
-        "Cap bonuses for playoff games are already accounted for in our projections."
+        "The playoff spot is clinched; choose Week 18 starter usage now. Chasing seeding risks injuries, while a full rest plan surrenders home-field position when seeding is still live.",
+        "Decide before Week 18 whether home-field gain justifies playing starters with injury tags; a full rest plan surrenders seeding when home-field is still live.",
+        "Scout the 3-seed path now; late coverage or protection prep gives the next opponent an easier first drive.",
+        "Choose Week 18 starter usage from injury reports and the seeding race; mistimed rest costs playoff sharpness.",
+        "Playoff bonuses are budgeted; do not let cap accounting surprise the postseason plan."
       ],
       "elimination": [
-        "Mathematically eliminated. Probability now zero percent.",
-        "The numbers never lie. We underperformed Pythagorean wins by 1.8.",
-        "I've initiated offseason modeling. We have 23% cap space projected.",
-        "Draft position currently projects to 8th overall. Valuable capital.",
-        "Time to evaluate young players and preserve veteran health."
+        "Stop contention spending now; give late-season snaps to young players before free agency decides who must be replaced.",
+        "Name which backups cover injuries before cuts; cut that player, and the next injury removes the backup who covers it.",
+        "The offseason starts with cap space; protect it, or emotional extensions and free-agency fixes will shrink it.",
+        "Give young players late-season reps now; the projected eighth pick needs a starter or backup role, or it sits outside next year's depth chart.",
+        "Give young players late-season snaps and rest veterans; using playoff-eliminated games on veterans hides next year's depth needs."
       ],
       "record_broken": [
-        "New franchise record. Previous mark stood for 14 seasons.",
-        "The numbers never lie. This performance is 2.1 standard deviations above mean.",
-        "Historical comps suggest this level is sustainable for 2-3 more years.",
-        "His contract value just increased approximately 18% in surplus terms.",
-        "I've updated the record book and the valuation model."
+        "The franchise record changes the next contract decision; budget before the ask rises.",
+        "Budget for a higher contract ask now; rare production raises his extension price.",
+        "Set his workload and backup rotation for the next two seasons; overuse puts the starter on the injury report before extension value is protected.",
+        "His asking price just rose; budget extension space before talks begin.",
+        "The record book changed his price, and the cap plan has to catch up."
       ]
     }
   },
   "coach_d_hardaway": {
     "gameStart": {
       "winning_record": [
-        "We are NOT giving up easy yards! That's why we're winning!",
-        "Defense travels! Defense wins! Look at the record!",
-        "They feel us out there! Every snap! Every play!",
-        "We hit, we swarm, we dominate! That's our identity!",
-        "You think this is luck? This is EFFORT! This is PHYSICALITY!"
+        "The defense is preventing easy yards; keep tackling practice high so injury replacements know their first jobs before they enter.",
+        "Winning is coming from run defense; do not weaken the front seven for a flashy trade.",
+        "Keep tackling practice high; missed gap assignments turn winning downs into penalties and free yards.",
+        "Match depth-chart backups to run-defense jobs before December or injuries break the plan.",
+        "Effort is showing up, but one blown coverage costs the next game, so fix exposed starters."
       ],
       "losing_record": [
-        "We are NOT giving up easy yards! But we ARE giving up too many!",
-        "Soft! We're playing soft! I see it on tape!",
-        "Where's the dog? Where's the fight? I need DOGS out there!",
-        "Missed tackles! Blown coverages! Unacceptable!",
-        "We gotta get nasty! We gotta get mean! Right now!"
+        "We are still giving up too many easy yards; fix tackling and coverage before Advance Week.",
+        "The tape shows missed run-defense assignments; replace or protect the starter getting targeted.",
+        "I need tacklers, not slogans; raise contact reliability through Depth Chart and Training.",
+        "Change practice priorities now; missed tackles and blown coverage are costing drives.",
+        "Raise contact work this week or the next opponent will attack the same gap."
       ],
       "rebuilding": [
-        "We are NOT giving up easy yards! Even while we rebuild!",
-        "Young guys gotta learn to hit! Gotta learn to love contact!",
-        "This is where we build the foundation! Brick by brick!",
-        "Culture! We're building culture! Toughness! Physicality!",
-        "I don't care about the record! I care about the effort!"
+        "Define young defenders' roles now; missed tackling habits stick before the rebuild pays off.",
+        "Assign snaps and practice to teach contact; hiding rookies slows development.",
+        "Start with assigned jobs, tackling reps, and live-snap ownership; skipped practice work turns young snaps into missed tackles.",
+        "Give roles to defenders who win assigned jobs and finish practice; missed assignment work becomes missed tackles on game day.",
+        "Give young defenders live-snap assignments; finishing them earns future roles."
       ],
       "contending": [
-        "We are NOT giving up easy yards! Not now! Not ever!",
-        "This is our time! Our window! Gotta seize it!",
-        "Championship defense! That's what we need! That's what we'll be!",
-        "Every play matters now! Every snap! Every inch!",
-        "They gotta go through US! Through THIS defense!"
+        "Cut off easy yards now; playoff teams punish the first missed assignment.",
+        "This roster is built for the bracket now, so every defensive move must change the next opponent's calls or it wastes playoff prep.",
+        "Championship defense starts with stopping explosive plays; open safety and corner depth before the bracket.",
+        "Fix coverage every week; one busted snap costs the bracket spot.",
+        "Make opponents drive the field; free yards hand playoff opponents short fields and force extra defensive snaps."
       ],
       "cap_hell": [
-        "We are NOT giving up easy yards! Even if we're broke!",
-        "Don't matter who we got! Don't matter what we pay 'em!",
-        "Next man up! Always next man up! That's football!",
-        "We coach 'em up! We make 'em better! That's our job!",
-        "Money don't tackle! Money don't hit! Players do!"
+        "Cap trouble does not excuse missed tackles; coach the cheap players who must start.",
+        "Protect the positions opponents attack most when cap space is tight; uncovered starter and backup jobs get targeted first.",
+        "Give backups practice reps before injuries hit; next man up fails without them.",
+        "Coaching has to cover roster limits; simplify assignments for replacement starters.",
+        "Money does not tackle; depth and practice choices decide who survives the next game."
       ]
     },
     "bigTrade": {
       "good_value": [
-        "We got a DOG! A real one! He hits!",
-        "This kid flies around! Loves contact! My kind of player!",
-        "We are NOT giving up easy yards with him out there!",
-        "Put him in the middle and let him eat!",
-        "Finally! Somebody who likes to hit people!"
+        "Update the depth chart now; this hitter needs starter snaps before the trade cost sits outside the game plan.",
+        "Define his contact role before the next game; undefined early-down snaps create assignment mistakes.",
+        "Set him on the downs opponents target; otherwise those same downs stay open for easy yards next game.",
+        "Set his middle-field role with coverage protection; unprotected matchups extend drives with easy throws.",
+        "Fix run-defense roles around him now; after this trade, missed tackles are on us."
       ],
       "bad_value": [
-        "We gave up WHAT for a coverage linebacker? Are you kidding me?",
-        "Soft! We traded for soft! I can see it on his tape!",
-        "He avoids contact! I watch the film! He AVOIDS it!",
-        "We need hitters! Not runners! Hitters!",
-        "This ain't gonna work! Not in my defense!"
+        "Limit the role if he cannot finish tackles; the coverage price becomes wasted cost.",
+        "The tape shows contact avoidance; do not give him every-down snaps until practice contact improves.",
+        "Keep him off early downs if he avoids contact; opponents will run at those missed tackles next game.",
+        "Limit him to protected coverage and special-teams tackles now; every unprotected early-down snap turns the trade cost into more missed tackles.",
+        "Name missed-tackle counts before adding snaps; if contact stays poor, the trade costs a roster spot without fixing defense."
       ],
       "blockbuster": [
-        "We are NOT giving up easy yards! Especially not now!",
-        "This changes everything! Whole defense gets better!",
-        "Put him on the edge and let him hunt! Let him EAT!",
-        "Offenses gonna feel this one! They gonna FEEL us!",
-        "Super Bowl defense! That's what we got now!"
+        "Assign him as the pass rusher before next game, or the trade cost becomes wasted snaps.",
+        "Name his pass-rush or coverage assignment before Game Plan locks; undefined calls waste snaps.",
+        "Assign him outside-rusher snaps after pass-drop coverage; missing that role lets offenses throw behind the rush on passing snaps.",
+        "Assign rush downs where offenses must account for him; unused rush snaps waste the extra rusher.",
+        "This is a playoff-defense move; if he gets hurt, the depth plan must already exist."
       ]
     },
     "draftNight": {
       "first_round": [
-        "We got our guy! Our hitter! Look at this tape!",
-        "He EXPLODES through contact! That's what I want!",
-        "We are NOT giving up easy yards with this kid!",
-        "Put him in day one! Let him learn by hitting!",
-        "Physical! Violent! My kind of football player!"
+        "We got a hitter; do not waste the pick by burying him without development snaps.",
+        "Give coverage protection early; rookie contact mistakes become easy yards without it.",
+        "Teach the assignment tree quickly; assignment mistakes create easy yards.",
+        "Give him protected Week 1 reps with a defined assignment; broad snaps create missed assignments.",
+        "Give him a named depth-chart job before preseason reps; otherwise physical tools turn into blown assignments."
       ],
       "steal_pick": [
-        "How'd he fall to us? How? They don't want hitters no more?",
-        "Steal of the draft! Absolute steal! Look at him hit!",
-        "Their loss! Our gain! We got a DOG!",
-        "I don't care why he fell! I care that he's ours!",
-        "Gonna make 31 teams regret passing on a hitter!"
+        "He fell to us; protect the pick by giving him a defined role, special-teams snaps, and a development deadline.",
+        "Assign a role, practice reps, and a development deadline this season, or the falling pick stays outside the lineup.",
+        "Other teams passed, so name medical limits and assignment misses before increasing snaps.",
+        "Give contact reps before game responsibility; if he cannot earn them, keep the role narrow.",
+        "Avoid rushing him into unprotected coverage; a forced role turns a steal into blown assignments."
       ],
       "reach_pick": [
-        "We reached? For THAT? He can't tackle my grandmother!",
-        "Soft! I see soft on tape! We drafted soft!",
-        "Where's the physicality? Where's the dog? I don't see it!",
-        "We are NOT giving up easy yards? Yes we are with him!",
-        "Gonna get us both fired drafting athletes over football players!"
+        "Drill tackling in practice before starter snaps; early pick cost does not cover missed tackles.",
+        "The tape lacks contact finish, so give him a narrow role first.",
+        "If the physicality is missing, the opponent will find him.",
+        "Limit his lineup role until coverage improves; forcing him in creates easy yards.",
+        "Protect the game-day plan by limiting tools-only snaps; stalled development costs games."
       ]
     },
     "seasonMilestone": {
       "playoff_clinch": [
-        "We in! Now the real season starts!",
-        "Defense wins in January! Always has! Always will!",
-        "We are NOT giving up easy yards in the playoffs!",
-        "They gotta come through us! Through THIS!",
-        "One game at a time! One hit at a time!"
+        "Protect health without lowering tackling work; playoff missed tackles extend drives.",
+        "Set weekly prep around assignments now; January mistakes become explosive plays.",
+        "Cut off easy yards in practice this week; explosive plays end playoff seasons.",
+        "Fix depth-chart mistakes before kickoff; shortcuts hand opponents free drives.",
+        "Build this opponent's matchup plan first; skipped coverage answers create easy yards."
       ],
       "elimination": [
-        "Season's over! But the work ain't!",
-        "We gotta get tougher! Gotta get meaner!",
-        "This can't happen again! Not on my watch!",
-        "Everybody in that locker room better be angry!",
-        "We are NOT giving up easy yards next year! Promise you that!"
+        "Name tackling, coverage, and backup jobs before free agency; missed defender roles turn offseason spending into the same easy yards.",
+        "Find missed-tackle positions before free agency; repeating the pattern wastes spending.",
+        "This cannot happen again; fix the missed-tackle position before free agency.",
+        "Name the failed defender jobs, practice reps, and coverage calls now; leaving them unchanged carries the same missed tackles into next season.",
+        "Choose personnel now to cut easy yards next year; waiting carries the missed tackles forward."
       ],
       "record_broken": [
-        "That's my guy! That's what I'm talking about!",
-        "Plays the game right! Physical! Violent!",
-        "We are NOT giving up easy yards? He doesn't give up ANY!",
-        "That's a football player! That's a DAWG!",
-        "Record book? He belongs in it! Earned it!"
+        "That record came from assigned jobs and weekly reps; keep the scheme and depth-chart protection around him.",
+        "He played physical without busting assignments; keep that role and coverage protection intact.",
+        "Keep the scheme that put him in winning positions; changing it gives next season's opponents free throws into the vacated coverage.",
+        "He changes the defense; extend him or tag/protect him before extension talks get more expensive.",
+        "The record changes his extension price and how opponents game-plan him."
       ]
     }
   },
   "sandra_chen": {
     "gameStart": {
       "winning_record": [
-        "Trust the tape. It's showing up on Sundays.",
-        "Our evaluations are translating. Good process, good results.",
-        "I've watched every snap three times. We're legit.",
-        "The young guys we bet on are hitting. Tape don't lie.",
-        "This is what happens when you draft football players."
+        "The tape matches the wins; keep young starters in roles they already produce in, or mistakes stall the streak.",
+        "Young contributors are producing; keep their snaps. Trading picks for veterans blocks development and raises next spring's cost.",
+        "Set first backups behind the starters; the top lineup is working, but one injury sends an unassigned backup into the next game.",
+        "Keep young players in productive snaps; interrupting that pipeline slows development.",
+        "Keep drafted players in productive roles; their cheap snaps lower free-agent spending next spring."
       ],
       "losing_record": [
-        "Trust the tape. It's not pretty right now.",
-        "I've got concerns at three positions. Film shows it clearly.",
-        "We're getting beat on talent, not scheme. That's on us.",
-        "My board had warnings on two of these starters. Should've listened.",
-        "Need to go back to the tape and find answers."
+        "Name the missed-block, missed-tackle, or coverage position before spending; spending moves on a covered role leaves the failed spot open.",
+        "Three starter matchups are losing on tape; name the overmatched starter before changing scheme, or the same matchup costs the next game.",
+        "Upgrade the matchups losing on talent first; playbook tweaks cannot cover every overmatched starter.",
+        "Protect or replace the two starters my scout reports flagged before those matchups cost more games.",
+        "Set the worst-matchup roster action from tape before the next opponent repeats it."
       ],
       "rebuilding": [
-        "Trust the tape. These rookies flash.",
-        "Process over results right now. Development matters.",
-        "I've got 12 guys I'm excited to watch grow. That's the focus.",
-        "The film shows progress, even if the scoreboard doesn't.",
-        "This is about building the right way. Tape tells the story."
+        "Keep rookies in coached snaps with backup protection; unprotected mistakes stall development and cost games.",
+        "These reps decide next year's depth chart, so assign young players before the week is wasted.",
+        "Assign practice reps and game-day roles to the twelve young players; waiting without reps will not develop them.",
+        "The film shows progress even if wins lag; keep young-player roles steady long enough to measure development.",
+        "Match each young player to snaps, coaching, and medical or role warnings; otherwise the rebuild spends weeks on players who cannot earn jobs."
       ],
       "contending": [
-        "Trust the tape. We're built for this.",
-        "I've scouted the contenders. We match up.",
-        "Our roster has no holes. That's rare.",
-        "Film study says we're the most complete team.",
-        "This group is ready. Tape proves it."
+        "The tape gives these starters playoff-matchup advantages; protect the players who drive that plan or one injury changes the bracket.",
+        "Protect health and depth for contender matchups; those advantages fail fast when backup jobs are not assigned.",
+        "Make every new move solve a specific playoff matchup; a luxury move opens a starter or backup hole.",
+        "Film study gives this lineup playoff-matchup answers; avoid trades that open a starter or backup hole before the bracket.",
+        "Protect the one exposed position now; one uncovered starter or first-backup job undoes the season."
       ],
       "cap_hell": [
-        "Trust the tape. We need cheaper talent that plays.",
-        "I've got Day 3 guys who can start. Need to find them.",
-        "Film doesn't care about your contract. Just your play.",
-        "Time to scout harder, not spend more.",
-        "The tape will show us who can play for less."
+        "We need cheaper playable talent; scout practice-squad and Day 3 options now.",
+        "Scout Day 3 starters harder; cheap hits are the cap escape route.",
+        "A big contract is wasted when snaps are poor; name role and production before new money blocks a cheaper fix.",
+        "Scout harder before spending more because cap space is already scarce.",
+        "Find low-cost playable roles on tape before free agency forces prices up."
       ]
     },
     "bigTrade": {
       "good_value": [
-        "Trust the tape. He's a player.",
-        "I've watched 400 snaps. He fits us perfectly.",
-        "Good football player. Better person. We got better.",
-        "His film pops. Effort, technique, instincts.",
-        "This is a scout's dream. Tape matches the player."
+        "His tape shows starter traits; assign his next-game role before the trade price blocks another roster fix.",
+        "His previous snaps show the role; set his job and contract plan before the trade price blocks another roster fix.",
+        "Test his technique in our scheme immediately; if it fails, the trade does not improve next-game snaps.",
+        "Give him assignments that turn effort into starter production; otherwise instincts do not change snaps.",
+        "Set the depth chart to match the cost paid; leaving him outside a role wastes snaps."
       ],
       "bad_value": [
-        "Trust the tape. I don't love it.",
-        "I've got questions about his play speed. Film shows it.",
-        "We paid for potential, not production. Risky.",
-        "His best tape is two years old. That's concerning.",
-        "I had a fourth-round grade. We gave up a second."
+        "The tape does not justify the price; limit his role until production catches up.",
+        "Protect him against faster receivers; if the film question is speed, every isolated snap gives opponents the matchup to attack.",
+        "Assign development snaps this month; missed reps turn the trade price into wasted picks or cap space.",
+        "His strongest tape is from past seasons; name health and role before guaranteeing more.",
+        "Set a tight role and progress deadline now; a second-round trade price becomes wasted pick cost if production never earns snaps."
       ],
       "blockbuster": [
-        "Trust the tape. He's elite.",
-        "I've never seen a player like this at his position.",
-        "Game-wrecker. Changes how offenses play us.",
-        "Worth every pick. Franchise-altering talent.",
-        "His film is art. Seriously, go watch it."
+        "Set him in starter packages this week; premium trade cost is wasted if his snaps wait behind lesser roles.",
+        "Build weekly calls around his blitz, coverage, or protection role; unused premium snaps waste the trade cost.",
+        "Adjust protection rules around him now; missed assignment costs next-game snaps for teammates.",
+        "Give him premium snaps in the saved plan; benching him behind lesser roles makes the pick cost too high.",
+        "Set his blitz, coverage, or protection role from film now; undefined snaps let opponents scheme around the trade."
       ]
     },
     "draftNight": {
       "first_round": [
-        "Trust the tape. We got our guy.",
-        "I've watched him since sophomore year. He's special.",
-        "Clean evaluation. No character concerns, all football.",
-        "His pro day confirmed what the film showed.",
-        "This is why we scout. Right player, right spot."
+        "The tape justifies the pick; assign the defined job before rookie snaps stall outside development.",
+        "I have scouted him for years, and he needs early coaching before habits set.",
+        "Do not stop because scouts found no off-field warning; set practice reps and the first role now, or the pick sits without earning snaps.",
+        "The pro day showed athleticism; game snaps still decide whether the pick pays off.",
+        "Set the scouted role and development plan now; missing either leaves the pick without game-day snaps."
       ],
       "steal_pick": [
-        "Trust the tape. How is he still here?",
-        "I've got a first-round grade on him. We got him in the third.",
-        "Other teams overthought it. We took the football player.",
-        "His tape is better than five guys already drafted.",
-        "Steal of the draft. Book it."
+        "Before assigning starter work, name the medical, role, or practice warning from his fall; missing it costs snaps.",
+        "Give the Round 1 talent third-round reps; the pick pays off when he earns snaps before the roster spot is needed.",
+        "Other teams hesitated; open the medical report, assign the role, and set the coaching plan before snaps are wasted.",
+        "Give the depth chart a starter or top-backup lane for him; without that lane, the discount pick sits outside weekly snaps.",
+        "Keep him out of unassigned snaps; development reps are wasted if the depth-chart job is undefined."
       ],
       "reach_pick": [
-        "Trust the tape. I had him two rounds later.",
-        "I don't see it. Film is average at best.",
-        "We fell in love with traits over tape. Dangerous.",
-        "I've got three better players still on my board.",
-        "Hope the coaches see something I don't."
+        "Set a narrow development plan with practice reps and a preseason deadline; otherwise the reach burns snaps needed by players already assigned jobs.",
+        "Keep the role narrow until production improves; average film in a starter job gives opponents a matchup to target.",
+        "Limit tools-over-tape snaps when coaching reps are scarce; missed assignments waste development time.",
+        "Three available players matched immediate roles; set a starter or depth role before the pick wastes reps.",
+        "When coaches see something I missed, give him practice reps, preseason snaps, and a role deadline."
       ]
     },
     "seasonMilestone": {
       "playoff_clinch": [
-        "Trust the tape. We earned this.",
-        "Film shows a playoff team. Has for weeks.",
-        "Our best players play their best in big moments.",
-        "This roster is built for January.",
-        "Tape don't lie. We're legit contenders."
+        "Keep starter-rest, coverage, and protection matchups that won the clinch; late role changes create playoff mistakes.",
+        "After clinching, set starter rest, backup roles, and matchup calls before changing playoff roles; late changes break January snaps.",
+        "Set starter rest and playoff packages now; hiding top starters in key snaps leaves January downs to backups without assigned roles.",
+        "Protect backup depth before January; a January injury breaks this roster without prepared backups.",
+        "Protect the corner, tackle, or backup matchup opponents will attack before kickoff; leaving it open gives a playoff opponent the target for third down."
       ],
       "elimination": [
-        "Trust the tape. We weren't good enough.",
-        "Film shows the truth. Need more talent.",
-        "Back to the board. Back to the tape.",
-        "Evaluation season starts now. Every snap matters.",
-        "We'll find the right guys. We always do."
+        "Name playable talent before free agency; missing it repeats the failed roster plan.",
+        "Name the failed position group from film; offseason needs start there.",
+        "Open scouting reports and tape before replacing starters; cutting the backup who covers injuries leaves the failed starter job uncovered.",
+        "Start late-season role snaps now; every young player's role changes next year's depth chart and cut list.",
+        "Find the right players by tying reports to roles, or cuts leave the uncovered starter job intact."
       ],
       "record_broken": [
-        "Trust the tape. He's been this good all year.",
-        "I've got every catch on film. It's beautiful football.",
-        "Special player having a special season.",
-        "His tape this year belongs in a museum.",
-        "We knew he had it. Now everyone else does too."
+        "The tape showed this level all year; now plan the extension cost.",
+        "Plan coverage counters for next season; every catch changes how defenses attack him.",
+        "Budget for the higher price now; a special season raises his extension ask.",
+        "Open his tape before extension talks; skipping it pays future cap for a role his snaps no longer support.",
+        "Now everyone knows; adjust the cap plan before extension talks get more expensive."
       ]
     }
   },
   "tommy_obrien": {
     "gameStart": {
       "winning_record": [
-        "Football is simple. Block, tackle, execute. We're doing it.",
-        "Run the ball, stop the run. That's how you win games.",
-        "We've been physical. Physical teams win in December.",
-        "Keep it simple, stupid. That's my motto. It's working.",
-        "Good teams do the boring stuff well. We're doing the boring stuff."
+        "The line and tackling are carrying wins; keep the plan narrow and change the depth chart quickly when injuries hit.",
+        "Run game and run defense are carrying wins; protect the lines at the deadline before injuries put backups into close games.",
+        "Prepare backup linemen now; physical teams last in December when replacements know the run and protection calls.",
+        "Keep calls narrow enough for young players; assignment mistakes put close games on an unassigned player.",
+        "Assign backup jobs in practice; depth works when replacements know their assignments."
       ],
       "losing_record": [
-        "Football is simple. Block, tackle, execute. We ain't doing it.",
-        "Can't run it, can't stop it. That's losing football.",
-        "Too cute. Too fancy. Get back to basics.",
-        "We need to line up and whip the guy across from us.",
-        "All this scheme stuff don't matter if you can't block nobody."
+        "Line play and tackling are failing; start with missed blocks and missed tackles.",
+        "If we cannot run or stop the run, the next opponent controls the game.",
+        "Call safer protections and drill blocking and tackling; missed blocks and tackles already end drives and carry into the next matchup.",
+        "Win the line matchup or adjust the depth chart before the same miss costs drives.",
+        "Scheme cannot save players who miss blocks; fix personnel or practice."
       ],
       "rebuilding": [
-        "Football is simple. Block, tackle, execute. Teach the kids that.",
-        "Rebuild or not, you still gotta be physical.",
-        "Young guys need to learn how to practice. How to work.",
-        "Can't skip steps. Gotta learn to block and tackle first.",
-        "I've seen rebuilds. The ones that work get tough first."
+        "Teach line play, tackling, and assignments now; rookies carry those habits into future seasons.",
+        "Assign physical reps during the rebuild or the young core fails in future snaps.",
+        "Set practice habits for young players before they hold starter jobs.",
+        "Drill fundamentals now; missed blocks and tackles slow the rebuild.",
+        "Make the lines reliable before skill positions get expensive; otherwise the rebuild loses cap space for depth."
       ],
       "contending": [
-        "Football is simple. Block, tackle, execute. Do it now.",
-        "This is when it matters. Be the most physical team.",
-        "Run the damn ball. Control the clock. Win the game.",
-        "Championship teams run it when they know you're running it.",
-        "Keep it simple. Don't outsmart yourself."
+        "Win line play, tackle, and keep assignments now because playoff opponents punish sloppy basics.",
+        "Set physical calls this week where the matchup is close; missed blocks and tackles become playoff targets.",
+        "Run the ball and control the clock when the line owns first-down contact; otherwise drives stall.",
+        "Name run-blocking matchups before calling heavy run; if the line loses first down, drives stall and the clock plan fails.",
+        "Call the runs, protections, and coverages your current starters execute now; forcing extra calls creates assignment mistakes."
       ],
       "cap_hell": [
-        "Football is simple. Block, tackle, execute. Don't need money for that.",
-        "I've coached broke teams before. Toughness is free.",
-        "Next man up. Always been that way.",
-        "Can't pay everybody. Gotta coach everybody.",
-        "Money don't block. Players block."
+        "Drill fundamentals harder during cap trouble because cheap players must perform.",
+        "Toughness is not free if missed blocks hit the quarterback and create turnovers.",
+        "Give next-man-up reps before the next game, not after the starter gets hurt.",
+        "Coach replacement-level players hard because cap limits mean we cannot pay everybody.",
+        "Set the depth chart honestly; money does not block, and an unassigned backup fails the next game."
       ]
     },
     "bigTrade": {
       "good_value": [
-        "Football is simple. Block, tackle, execute. He does all three.",
-        "Good football player. Plays the game the right way.",
-        "He'll fit in. Tough kid. Likes contact.",
-        "We got better today. Simple as that.",
-        "Old school player. My kind of guy."
+        "He blocks, tackles, and handles his assignment; give him a starter-level role if the assignment work holds.",
+        "Give him a defined job before the next game; sound assignment work reduces missed assignments.",
+        "Keep the job narrow until contact holds; extra responsibility puts him on blocks or tackles he has not earned.",
+        "This trade pays off when his snaps replace the failing role.",
+        "Assign him to blocking, tackling, or matchup jobs he has already shown; otherwise the trade leaves snaps unchanged."
       ],
       "bad_value": [
-        "Football is simple. Block, tackle, execute. He don't do none of it well.",
-        "Soft. I watch the tape, he's soft.",
-        "We gave up too much for a fancy player.",
-        "Can't block, can't tackle, but he sure can run fast in shorts.",
-        "Another track guy. We need football players."
+        "He does not block or tackle well enough; limit the cost by limiting the role.",
+        "Limit his role until contact improves; poor contact does not solve toughness.",
+        "Earn offensive, return, or coverage snaps before more cost; speed alone does not repay the trade.",
+        "Name game-day blocking before using speed packages; missed blocks stall drives.",
+        "Name game-day production before expanding the role; missed contact cannot protect snaps."
       ],
       "blockbuster": [
-        "Football is simple. Block, tackle, execute. He does it at an elite level.",
-        "Now we're talking. Got us a real one.",
-        "This changes things. Puts us over the top.",
-        "Championship move. That's what this is.",
-        "He's a football player. Plain and simple."
+        "Make him central to the weekly plan; elite play must change next-game roles.",
+        "Adjust roles around this upgrade before the next game, or the new talent sits outside the plan.",
+        "Plan injuries and cap hits before calling this a push; missing either one stalls the move.",
+        "Build the depth plan behind this championship move, or one injury erases the upgrade.",
+        "Set line help and scheme calls before the next game; missed protection wastes the upgrade."
       ]
     },
     "draftNight": {
       "first_round": [
-        "Football is simple. Block, tackle, execute. He can do it.",
-        "Good pick. Solid player. Plays hard.",
-        "I like him. Tough, smart, dependable.",
-        "He'll help us. Day one.",
-        "That's a football player right there."
+        "Assign defined practice reps before game snaps; the job works when he knows the assignment.",
+        "Test his contact in practice before starter work; pro-speed failures cost early snaps.",
+        "Assign contact and coverage jobs to players who finish practice; unassigned jobs waste dependable traits.",
+        "Set his depth-chart job before Week 1; missing assignments waste the immediate role.",
+        "Keep the assignment narrow before expanding snaps; complexity turns rookie snaps into mistakes."
       ],
       "steal_pick": [
-        "How'd we get him? Don't care, we got him.",
-        "Steal. Absolute steal. Good football player.",
-        "Other teams are dumb. We ain't.",
-        "He fell to us. We'll take him.",
-        "Sometimes you get lucky. This is lucky."
+        "Before increasing snaps, find why he fell; missed medical limits or an undefined job waste the roster spot.",
+        "Assign practice reps before game responsibility; steals bust when the role arrives too fast.",
+        "Name medical limits and the depth-chart job before practice reps; forced snaps waste the pick.",
+        "Assign practice reps first; a forced role turns the fall into wasted snaps.",
+        "Set a development deadline before the roster spot is needed; the pick fails if he never earns a starter or backup job."
       ],
       "reach_pick": [
-        "Football is simple. Block, tackle, execute. I ain't seen it on his tape.",
-        "Reached. We reached bad.",
-        "Fancy player. Not a football player.",
-        "Hope I'm wrong. Usually ain't.",
-        "They overthought this one."
+        "I do not see enough blocking, tackling, or assignment discipline on tape; keep the role narrow.",
+        "We reached, so he has to justify the pick with practice production.",
+        "Give athleticism a narrow football assignment first; broad roles create mistakes.",
+        "Name practice production before starter snaps; a forced role costs development reps if the pick misses.",
+        "Match him against available players with named jobs; if he cannot fill one, the reach costs development reps."
       ]
     },
     "seasonMilestone": {
       "playoff_clinch": [
-        "Football is simple. Block, tackle, execute. Do it in January too.",
-        "We're in. Now the real work starts.",
-        "Playoff football is different. More physical.",
-        "Run the ball, stop the run. Still works in playoffs.",
-        "One game at a time. Same as always."
+        "Keep assignments defined in January too; changing them creates playoff mistakes.",
+        "We are in, so protect practice quality and starter health.",
+        "Set line depth before kickoff; playoff football is more physical and one injury exposes backups.",
+        "Name run-blocking matchups before leaning on the run; calls the line cannot block stall drives.",
+        "Set this opponent's plan first; ignoring the current matchup leaves it uncovered."
       ],
       "elimination": [
-        "Season's over. Back to work.",
-        "Football is simple. Block, tackle, execute. We didn't do it enough.",
-        "Gotta get tougher. Gotta get smarter.",
-        "Learn from it. Come back better.",
-        "This feeling stinks. Remember it."
+        "Find who blocks and tackles before next year's cuts.",
+        "Missed assignments and failed blocks shaped the season; the offseason plan starts there.",
+        "Fix missed blocking, tackling, coverage, and injury depth before free agency; signing players without those fixes wastes roster moves.",
+        "Change roles, practice, or personnel now; otherwise the same mistakes return.",
+        "Choose veteran, pick, and cut changes from this loss, or the same assignment failures return."
       ],
       "record_broken": [
-        "Football is simple. Block, tackle, execute. He did it better than anyone.",
-        "Hell of a year. Hell of a player.",
-        "Earned it. Every bit of it.",
-        "That's how you play the game.",
-        "Record book looks good on him."
+        "He owned the record-setting role; protect that weekly job before contract talks and next-season counters change it.",
+        "Prepare counters now because opponent scouting starts with him next season.",
+        "Budget extension and workload decisions now; earning the record makes both more expensive.",
+        "Teach that assignment every week; skipped practice reps create snap mistakes.",
+        "The record raises his asking price; plan the contract before talks start."
       ]
     }
   }

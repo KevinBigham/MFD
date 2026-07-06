@@ -1,8 +1,11 @@
 import {
   getPACall,
-  getTeamContent,
+  getRevengeLineTemplates,
   getTeamFanCulture,
   getTeamRivalryContent,
+  getTeamStadiumContent,
+  interpolateContentPlaceholders,
+  type RevengeLineBucket,
 } from '../content-loader';
 import type { GameResult, GameState, Team } from '../types';
 import type { RelationshipEdge } from './relationship-graph';
@@ -155,9 +158,11 @@ function rivalryLine(homeTeam: Team, awayTeam: Team, seed: number): string | nul
 }
 
 function stadiumLine(homeTeam: Team): string | null {
-  const teamContent = getTeamContent(homeTeam.id);
-  if (!teamContent) return null;
-  return `Tonight's backdrop is ${teamContent.stadium.name}: ${teamContent.stadium.tradition}`;
+  const stadium = getTeamStadiumContent(homeTeam.id);
+  if (!stadium) return null;
+  const cue = 'cue' in stadium ? stadium.cue : undefined;
+  const cueText = cue ? ` ${cue.pregameLine} ${cue.crowdResponse}` : '';
+  return `Tonight's backdrop is ${stadium.name}: ${stadium.tradition}${cueText}`;
 }
 
 function historyLine(game: BroadcastCommentaryGame, homeTeam: Team, awayTeam: Team, seed: number): string | null {
@@ -176,7 +181,29 @@ function historyLine(game: BroadcastCommentaryGame, homeTeam: Team, awayTeam: Te
   return `${labelFor(homeTeam)} were ${formatFinish(homeRecent?.playoffFinish ?? 'off the board')} last year, ${labelFor(awayTeam)} were ${formatFinish(awayRecent?.playoffFinish ?? 'off the board')}.`;
 }
 
-function revengeLine(game: BroadcastCommentaryGame, homeTeam: Team, awayTeam: Team, seed: number, stage: CommentaryStage): string | null {
+const REVENGE_BUCKET_BY_STAGE: Record<CommentaryStage, RevengeLineBucket> = {
+  pregame: 'pregame.agm',
+  inGame: 'halftime.commentary',
+  recap: 'postgame.agm',
+};
+
+interface RevengeCommentaryContext {
+  flavor: NonNullable<ReturnType<typeof getRevengeFlavorForMatchup>>;
+  formerTeam: Team;
+  currentTeam: Team;
+  placeholders: Record<string, string | number>;
+}
+
+function fallbackRevengeTemplates(flavor: ReturnType<typeof getRevengeFlavorForMatchup>, formerTeam: Team, currentTeam: Team): readonly string[] {
+  if (!flavor) return [];
+  return [
+    `${flavor.headline.subjectName} is back against ${labelFor(formerTeam)} ${flavor.headline.yearsSinceDeparture} ${pluralize(flavor.headline.yearsSinceDeparture, 'year')} after leaving.`,
+    `There is the reunion angle: ${flavor.headline.subjectName} now lines up for ${labelFor(currentTeam)} against the club he used to call home.`,
+    `Keep the camera on ${flavor.headline.subjectName}; few subplots carry more edge than a return trip against ${labelFor(formerTeam)}.`,
+  ];
+}
+
+function revengeContext(game: BroadcastCommentaryGame, homeTeam: Team, awayTeam: Team): RevengeCommentaryContext | null {
   const flavor = getRevengeFlavorForMatchup(
     game,
     { homeTeamId: homeTeam.id, awayTeamId: awayTeam.id },
@@ -188,16 +215,57 @@ function revengeLine(game: BroadcastCommentaryGame, homeTeam: Team, awayTeam: Te
   const currentTeam = game.teams[flavor.headline.currentTeamId] ?? null;
   if (!formerTeam || !currentTeam) return null;
 
-  const line = pickRevengeLine([
-    `${flavor.headline.subjectName} is back against ${labelFor(formerTeam)} ${flavor.headline.yearsSinceDeparture} ${pluralize(flavor.headline.yearsSinceDeparture, 'year')} after leaving.`,
-    `There is the reunion angle: ${flavor.headline.subjectName} now lines up for ${labelFor(currentTeam)} against the club he used to call home.`,
-    `Keep the camera on ${flavor.headline.subjectName}; few subplots carry more edge than a return trip against ${labelFor(formerTeam)}.`,
-  ], `${seed}:${flavor.matchupKey}`, `${stage}.revenge`);
+  return {
+    flavor,
+    formerTeam,
+    currentTeam,
+    placeholders: {
+      subjectName: flavor.headline.subjectName,
+      subjectRole: flavor.headline.subjectRole,
+      formerTeam: labelFor(formerTeam),
+      currentTeam: labelFor(currentTeam),
+      yearsSince: flavor.headline.yearsSinceDeparture,
+    },
+  };
+}
+
+function revengeLine(game: BroadcastCommentaryGame, homeTeam: Team, awayTeam: Team, seed: number, stage: CommentaryStage): string | null {
+  const context = revengeContext(game, homeTeam, awayTeam);
+  if (!context) return null;
+
+  const authoredPool = getRevengeLineTemplates(REVENGE_BUCKET_BY_STAGE[stage]);
+  const line = pickRevengeLine(
+    authoredPool.length > 0 ? authoredPool : fallbackRevengeTemplates(context.flavor, context.formerTeam, context.currentTeam),
+    `${seed}:${context.flavor.matchupKey}`,
+    `${stage}.revenge`,
+  );
 
   if (!line) return null;
-  if (stage === 'pregame') return line;
-  if (stage === 'inGame') return `The reunion thread is still part of the call tonight: ${line}`;
-  return `That reunion story landed at the horn too: ${line}`;
+  return interpolateContentPlaceholders(line, context.placeholders);
+}
+
+function revengeNewsline(
+  game: BroadcastCommentaryGame,
+  homeTeam: Team,
+  awayTeam: Team,
+  seed: number,
+  result: Pick<GameResult, 'homeScore' | 'awayScore'> | null | undefined,
+): string | null {
+  if (!result) return null;
+  const context = revengeContext(game, homeTeam, awayTeam);
+  if (!context) return null;
+
+  const currentScore = context.currentTeam.id === homeTeam.id ? result.homeScore : result.awayScore;
+  const formerScore = context.formerTeam.id === homeTeam.id ? result.homeScore : result.awayScore;
+  if (currentScore <= formerScore) return null;
+
+  const line = pickRevengeLine(
+    getRevengeLineTemplates('postgame.newsline'),
+    `${seed}:${context.flavor.matchupKey}`,
+    'recap.revenge.newsline',
+  );
+
+  return line ? `Newswire headline: ${interpolateContentPlaceholders(line, context.placeholders)}` : null;
 }
 
 function inGamePALine(homeTeam: Team, awayTeam: Team, seed: number): string | null {
@@ -306,6 +374,7 @@ export function buildBroadcastCommentary(
     ]),
     recap: dedupe([
       recapLine(game, homeTeam, awayTeam, seed, input.result),
+      revengeNewsline(game, homeTeam, awayTeam, seed, input.result),
       revengeLine(game, homeTeam, awayTeam, seed, 'recap'),
       relationshipFor('recap'),
     ]),

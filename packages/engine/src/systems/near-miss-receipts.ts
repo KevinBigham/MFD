@@ -127,8 +127,8 @@ export function generateNearMissReceipts(
         type: 'missed_fa',
         playerName: fa.playerName,
         playerOvr: fa.playerOvr,
-        description: `You didn't pursue ${fa.playerName} (${fa.position}) in free agency.`,
-        outcome: `${fa.playerName} signed with ${fa.signedWithTeam} and posted ${fa.playerOvr} OVR — filling a position of need.`,
+        description: `You missed out on ${fa.playerName} (${fa.position}) in free agency.`,
+        outcome: `${fa.playerName} signed with ${fa.signedWithTeam} and posted ${fa.playerOvr} OVR after the market closed.`,
       });
     }
   }

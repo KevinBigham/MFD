@@ -3,21 +3,36 @@
  */
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { MfdPanel, PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
-import { Clock3, FileUp, Gamepad2, Play, Search, Shield, Trophy, Upload } from 'lucide-react';
+import { Clock3, FileUp, Gamepad2, Play, Search, Shield, Trophy, Upload, Zap } from 'lucide-react';
 import {
   CONVENTION_SAVE_METADATA,
+  SAVE_VERSION,
+  createFastLaneSetupState,
   generateConventionSave,
   getAvailableScenarios,
   getDefaultDifficultyFlags,
+  getScenarioConstraintCoverage,
   mulberry32,
   startScenario,
   type DifficultyLevel,
+  type GameState,
+  type ScenarioConstraints,
 } from '@mfd/engine';
 import { useGameStore } from './store/game-store';
 import { createSeedGameState, getTeamOptions } from './store/seed';
 import { TeamLogo } from '../features/shared/TeamLogo';
-import { loadImportedCartridge, loadImportedCartridgeFile, loadLatestAutosaveGame } from './store/persistence';
+import {
+  autosaveDynasty,
+  loadImportedCartridge,
+  loadImportedCartridgeFile,
+  loadLatestAutosaveGame,
+} from './store/persistence';
 import { AttractMode } from '../features/title/AttractMode';
+import {
+  persistSetupRunMode,
+  readFirstTenMinutesCompleted,
+  type SetupRunMode,
+} from '../features/franchise-setup/setupPersistence';
 import './new-game-screen.css';
 
 const rookieDefaults = getDefaultDifficultyFlags('rookie');
@@ -44,15 +59,123 @@ const divisionFilters = ['ALL', ...divisions] as const;
 
 type ConferenceFilter = (typeof conferenceFilters)[number];
 type DivisionFilter = (typeof divisionFilters)[number];
+type LaunchMode = 'dynasty' | 'scenario';
+
+interface BuildLaunchGameStateInput {
+  seed: number;
+  selectedTeam: number;
+  difficulty: DifficultyLevel;
+  mode: LaunchMode;
+  selectedScenarioId: string;
+  setupRunMode?: SetupRunMode;
+}
+
+function scenarioCoverageAccent(status: string): 'green' | 'gold' {
+  return status === 'enforced' ? 'green' : 'gold';
+}
+
+export function buildLaunchGameState({
+  seed,
+  selectedTeam,
+  difficulty,
+  mode,
+  selectedScenarioId,
+  setupRunMode = 'full',
+}: BuildLaunchGameStateInput): ReturnType<typeof createSeedGameState> {
+  const baseState = createSeedGameState(seed, selectedTeam, difficulty);
+  if (mode !== 'scenario') {
+    if (setupRunMode === 'fast_lane') {
+      const userTeam = Object.values(baseState.teams).find((team) => team.isUser);
+      if (!userTeam) {
+        throw new Error('Cannot build Fast Lane setup without a selected user team.');
+      }
+      baseState.setupState = createFastLaneSetupState(baseState as GameState, userTeam.id);
+    }
+
+    return baseState;
+  }
+
+  const state = startScenario(
+    selectedScenarioId,
+    baseState,
+    mulberry32(seed ^ (selectedScenarioId.length * 97)),
+  );
+  delete state.setupState;
+  return state;
+}
+
+export function buildConventionDemoLaunchState(seed: number): ReturnType<typeof generateConventionSave> {
+  return generateConventionSave('afce1', mulberry32(seed));
+}
+
+function resolveLaunchSetupStorage(): Storage | null {
+  return typeof window === 'undefined' ? null : window.localStorage;
+}
+
+export function ScenarioLaunchCoverageBadges({
+  constraints,
+}: {
+  constraints: Partial<ScenarioConstraints> | null | undefined;
+}) {
+  const coverage = getScenarioConstraintCoverage(constraints);
+
+  if (coverage.items.length === 0) {
+    return (
+      <span className="mfd-scenario-card-coverage" aria-label="Scenario launch constraint coverage">
+        <PixelBadge variant="default">Open rules</PixelBadge>
+      </span>
+    );
+  }
+
+  return (
+    <span className="mfd-scenario-card-coverage" aria-label="Scenario launch constraint coverage">
+      {coverage.items.map((item) => (
+        <PixelBadge key={item.id} variant={scenarioCoverageAccent(item.status)}>
+          {item.label} enforced
+        </PixelBadge>
+      ))}
+    </span>
+  );
+}
+
+function LaunchSourcesPanel() {
+  return (
+    <PixelPanel title="Launch Sources" accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          <PixelBadge variant="gold">createSeedGameState</PixelBadge>
+          <PixelBadge variant="green">actions.newGame</PixelBadge>
+          <PixelBadge variant="cyan">validated loadGame</PixelBadge>
+          <PixelBadge variant="default">setup-run mode</PixelBadge>
+        </div>
+        <p className="mfd-new-game-guide">
+          Source: New Dynasty starts from the web seed factory, Scenario Challenge applies saved
+          scenario constraints before first-run setup, Convention Demo uses the validated Week 14
+          showcase builder, Continue calls loadGame only after autosave validation, and Import validates
+          backup text/file data before writing a fresh autosave and calling loadGame.
+          New Dynasty persists the selected setup-run mode immediately before `actions.newGame`; Full
+          setup keeps the seeded setup state, while unlocked Fast Lane replaces only the initial
+          setup state through the engine fast-lane factory. Rendering this screen does not create a
+          dynasty, clear sidecars, autosave, import backups, start setup, play scheduled games, or write
+          GameState.
+        </p>
+      </div>
+    </PixelPanel>
+  );
+}
 
 export function NewGameScreen() {
   const [selectedTeam, setSelectedTeam] = useState(0);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('pro');
-  const [mode, setMode] = useState<'dynasty' | 'scenario'>('dynasty');
+  const [mode, setMode] = useState<LaunchMode>('dynasty');
+  const [setupLaunchMode, setSetupLaunchMode] = useState<SetupRunMode>('full');
   const [selectedScenarioId, setSelectedScenarioId] = useState(getAvailableScenarios()[0]?.id ?? 'rebuild');
   const [teamQuery, setTeamQuery] = useState('');
   const [conferenceFilter, setConferenceFilter] = useState<ConferenceFilter>('ALL');
   const [divisionFilter, setDivisionFilter] = useState<DivisionFilter>('ALL');
+  const [fastLaneUnlocked, setFastLaneUnlocked] = useState<boolean>(() => (
+    readFirstTenMinutesCompleted(resolveLaunchSetupStorage())
+  ));
   const [hasAutosave, setHasAutosave] = useState(false);
   const [loadingAutosave, setLoadingAutosave] = useState(false);
   const [loadingImport, setLoadingImport] = useState(false);
@@ -79,23 +202,32 @@ export function NewGameScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!fastLaneUnlocked && setupLaunchMode === 'fast_lane') {
+      setSetupLaunchMode('full');
+    }
+  }, [fastLaneUnlocked, setupLaunchMode]);
+
   const handleStart = async () => {
     const seed = Date.now();
-    const baseState = createSeedGameState(seed, selectedTeam, difficulty);
-    if (mode === 'scenario') {
-      const state = startScenario(selectedScenarioId, baseState, mulberry32(seed ^ (selectedScenarioId.length * 97)));
-      delete state.setupState;
-      await newGame(state);
-    } else {
-      await newGame(baseState);
+    const activeSetupRunMode = fastLaneUnlocked ? setupLaunchMode : 'full';
+    const state = buildLaunchGameState({
+      seed,
+      selectedTeam,
+      difficulty,
+      mode,
+      selectedScenarioId,
+      setupRunMode: activeSetupRunMode,
+    });
+    if (mode === 'dynasty') {
+      persistSetupRunMode(resolveLaunchSetupStorage(), activeSetupRunMode);
     }
+    await newGame(state);
   };
 
   const handleConventionDemo = async () => {
     const seed = Date.now();
-    const rng = mulberry32(seed);
-    const demoState = generateConventionSave('afce1', rng);
-    await newGame(demoState);
+    await newGame(buildConventionDemoLaunchState(seed));
   };
 
   const handleContinue = async () => {
@@ -127,6 +259,7 @@ export function NewGameScreen() {
 
     try {
       const imported = await loadImportedCartridgeFile(file);
+      await autosaveDynasty(imported);
       setImportText('');
       loadGame(imported);
     } catch (err) {
@@ -138,7 +271,7 @@ export function NewGameScreen() {
     }
   };
 
-  const handleImportText = () => {
+  const handleImportText = async () => {
     if (!importText.trim()) {
       setAutosaveError('Paste backup code before importing.');
       return;
@@ -149,6 +282,7 @@ export function NewGameScreen() {
 
     try {
       const imported = loadImportedCartridge(importText.trim());
+      await autosaveDynasty(imported);
       setImportText('');
       loadGame(imported);
     } catch (err) {
@@ -189,6 +323,7 @@ export function NewGameScreen() {
     [filteredTeams],
   );
   const hasTeamFilters = normalizedTeamQuery.length > 0 || conferenceFilter !== 'ALL' || divisionFilter !== 'ALL';
+  const activeSetupRunMode = fastLaneUnlocked ? setupLaunchMode : 'full';
 
   const clearTeamFilters = () => {
     setTeamQuery('');
@@ -196,10 +331,10 @@ export function NewGameScreen() {
     setDivisionFilter('ALL');
   };
 
-  const startLabel = mode === 'scenario' ? 'Start Challenge' : 'Start Dynasty';
+  const startLabel = mode === 'scenario' ? 'Start Challenge' : activeSetupRunMode === 'fast_lane' ? 'Start Fast Lane' : 'Start Dynasty';
   const launchSummary = mode === 'scenario'
     ? selectedScenario?.tagline ?? 'Scenario challenge'
-    : `${selected.fullName} // ${selectedDifficulty.label}`;
+    : `${selected.fullName} // ${selectedDifficulty.label} // ${activeSetupRunMode === 'fast_lane' ? 'Fast Lane' : 'Full Setup'}`;
 
   return (
     <div className="mfd-new-game-shell">
@@ -212,7 +347,7 @@ export function NewGameScreen() {
           </div>
           <div className="mfd-new-game-hero-badges" aria-label="Launch highlights">
             <PixelBadge variant="gold">v1.0</PixelBadge>
-            <PixelBadge variant="cyan">Save v35</PixelBadge>
+            <PixelBadge variant="cyan">Save v{SAVE_VERSION}</PixelBadge>
             <PixelBadge variant="green">Browser Dynasty</PixelBadge>
           </div>
         </header>
@@ -371,6 +506,52 @@ export function NewGameScreen() {
               </PixelPanel>
             </MfdPanel>
 
+            {mode === 'dynasty' ? (
+              <MfdPanel title="Setup Path" icon={<Zap size={14} />}>
+                <div className="mfd-setup-path-grid" role="group" aria-label="Dynasty setup path">
+                  <button
+                    type="button"
+                    className="mfd-setup-path-card"
+                    data-selected={activeSetupRunMode === 'full' ? 'true' : 'false'}
+                    aria-pressed={activeSetupRunMode === 'full'}
+                    onClick={() => setSetupLaunchMode('full')}
+                  >
+                    <span className="mfd-setup-path-title">Full Setup</span>
+                    <span className="mfd-setup-path-desc">Run every Day 1 decision with Chip setup guidance.</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mfd-setup-path-card"
+                    data-selected={activeSetupRunMode === 'fast_lane' ? 'true' : 'false'}
+                    data-unlocked={fastLaneUnlocked ? 'true' : 'false'}
+                    aria-pressed={activeSetupRunMode === 'fast_lane'}
+                    disabled={!fastLaneUnlocked}
+                    onClick={() => setSetupLaunchMode('fast_lane')}
+                  >
+                    <span className="mfd-setup-path-title">
+                      Fast Lane
+                      <PixelBadge variant={fastLaneUnlocked ? 'green' : 'default'}>
+                        {fastLaneUnlocked ? 'UNLOCKED' : 'LOCKED'}
+                      </PixelBadge>
+                    </span>
+                    <span className="mfd-setup-path-desc">
+                      {fastLaneUnlocked
+                        ? 'Start after AGM selection with recommended setup defaults preloaded.'
+                        : 'Complete one full Day 1 setup to unlock repeat-player setup.'}
+                    </span>
+                  </button>
+                </div>
+                <PixelPanel title="Setup Source" accent="default" padding="sm" style={{ marginTop: 'var(--mfd-sp-md)' }}>
+                  <p className="mfd-new-game-guide">
+                    <strong>{activeSetupRunMode === 'fast_lane' ? 'Fast Lane' : 'Full Setup'}:</strong>{' '}
+                    {activeSetupRunMode === 'fast_lane'
+                      ? 'Uses createFastLaneSetupState and persists setup-run mode as Fast Lane before the dynasty opens.'
+                      : 'Uses the seeded setup state and persists setup-run mode as Full before the dynasty opens.'}
+                  </p>
+                </PixelPanel>
+              </MfdPanel>
+            ) : null}
+
             {mode === 'scenario' ? (
               <PixelPanel title="Scenario Challenge" accent="cyan">
                 <div className="mfd-scenario-list">
@@ -396,6 +577,7 @@ export function NewGameScreen() {
                         </span>
                         <span className="mfd-scenario-card-tagline">{scenario.tagline}</span>
                         <span className="mfd-scenario-card-description">{scenario.description}</span>
+                        <ScenarioLaunchCoverageBadges constraints={scenario.constraints} />
                       </button>
                     );
                   })}
@@ -451,6 +633,8 @@ export function NewGameScreen() {
             </div>
 
             <div className="mfd-launch-support-stack">
+              <LaunchSourcesPanel />
+
               <PixelPanel title="Convention Demo" accent="green">
                 <div className="mfd-convention-card">
                   <p>{CONVENTION_SAVE_METADATA.headline}</p>

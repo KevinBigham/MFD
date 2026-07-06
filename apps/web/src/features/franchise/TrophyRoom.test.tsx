@@ -109,6 +109,35 @@ describe('TrophyRoom', () => {
     expect(markup).toContain('No championships yet. The trophy case is empty.');
     expect(markup).toContain('data-chip-pose="idle"');
     expect(markup).toContain('VIEW PLAYOFF LORE');
+    expect(markup).toContain('FIRST BANNER CHASE');
+    expect(markup).toContain('Standings');
+    expect(markup).toContain('Schedule');
+    expect(markup).toContain('Game Plan');
+  });
+
+  it('renders trophy source context and no-write boundaries', () => {
+    const markup = renderTrophyRoom();
+
+    expect(markup).toContain('TROPHY SOURCES');
+    expect(markup).toContain('SAVE MEMORY');
+    expect(markup).toContain('game.franchiseHistory');
+    expect(markup).toContain('selectCeremonies');
+    expect(markup).toContain('buildTrophyRoomChampionships');
+    expect(markup).toContain('filterMode');
+    expect(markup).toContain('Opening Trophy Room does not award championships');
+    expect(markup).toContain('generate ceremonies');
+    expect(markup).toContain('change the live save');
+    expect(markup).toContain('play scheduled games');
+  });
+
+  it('links the trophy archive back into the current banner chase', () => {
+    const markup = renderTrophyRoom();
+
+    expect(markup).toContain('NEXT BANNER CHASE');
+    expect(markup).toContain('check the race');
+    expect(markup).toContain('Standings');
+    expect(markup).toContain('Schedule');
+    expect(markup).toContain('Game Plan');
   });
 
   it('renders one Lombardi SVG per championship in props', () => {

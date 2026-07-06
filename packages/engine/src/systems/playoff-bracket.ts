@@ -8,6 +8,7 @@ import type {
   Team,
 } from '../types';
 import { getRuleValueForYear } from './league-rules';
+import { getRegularSeasonWeekCount } from './season-schedule';
 
 function getWinPct(team: Team): number {
   const gamesPlayed = team.wins + team.losses + team.ties;
@@ -37,6 +38,10 @@ function toSeed(seed: number, team: Team, divisionWinner: boolean): PlayoffSeed 
 function seedsPerConference(game: GameState): number {
   if (!game.leagueRules) return 7;
   return Number(getRuleValueForYear(game.leagueRules, 'playoff_seeds_per_conf', game.year));
+}
+
+function firstPlayoffWeek(game: GameState): number {
+  return getRegularSeasonWeekCount(game) + 1;
 }
 
 function createMatchup(round: PlayoffRound, conference: PlayoffMatchup['conference'], week: number, homeTeamId: string, awayTeamId: string): PlayoffMatchup {
@@ -147,14 +152,15 @@ export function seedPlayoffBracket(game: GameState): PlayoffBracket {
   const seedCount = seedsPerConference(game);
   const afc = buildConferenceSeeds(teams.filter((team) => team.conference === 'AFC'), seedCount);
   const nfc = buildConferenceSeeds(teams.filter((team) => team.conference === 'NFC'), seedCount);
+  const wildCardWeek = firstPlayoffWeek(game);
 
   return {
     season: game.year,
     afc,
     nfc,
     matchups: [
-      ...buildInitialMatchups(afc, 'AFC', 19),
-      ...buildInitialMatchups(nfc, 'NFC', 19),
+      ...buildInitialMatchups(afc, 'AFC', wildCardWeek),
+      ...buildInitialMatchups(nfc, 'NFC', wildCardWeek),
     ],
     championTeamId: null,
   };
@@ -176,13 +182,13 @@ export function advancePlayoffBracket(
 
   const round = currentRound[0]!.round;
   if (round === 'wild_card' && !bracket.matchups.some((matchup) => matchup.round === 'divisional')) {
-    bracket.matchups.push(...buildDivisionalMatchups(bracket, 'AFC', 20), ...buildDivisionalMatchups(bracket, 'NFC', 20));
+    bracket.matchups.push(...buildDivisionalMatchups(bracket, 'AFC', week + 1), ...buildDivisionalMatchups(bracket, 'NFC', week + 1));
   }
   if (round === 'divisional' && !bracket.matchups.some((matchup) => matchup.round === 'conference')) {
-    bracket.matchups.push(...buildConferenceChampionship(bracket, 'AFC', 21), ...buildConferenceChampionship(bracket, 'NFC', 21));
+    bracket.matchups.push(...buildConferenceChampionship(bracket, 'AFC', week + 1), ...buildConferenceChampionship(bracket, 'NFC', week + 1));
   }
   if (round === 'conference' && !bracket.matchups.some((matchup) => matchup.round === 'super_bowl')) {
-    bracket.matchups.push(...buildSuperBowl(bracket, 22));
+    bracket.matchups.push(...buildSuperBowl(bracket, week + 1));
   }
   if (round === 'super_bowl') {
     bracket.championTeamId = bracket.matchups.find((matchup) => matchup.round === 'super_bowl')?.winnerTeamId ?? null;

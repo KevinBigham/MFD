@@ -150,6 +150,20 @@ describe('WatchListScreen', () => {
     expect(markup).toContain('own roster');
   });
 
+  it('renders source copy for browser-local pins and saved watchlist boundaries', () => {
+    mockPrefs = { playerIds: ['own-1'], updatedAt: '2026-04-30T12:00:00.000Z' };
+
+    const markup = renderToStaticMarkup(<WatchListScreen />);
+
+    expect(markup).toContain('WATCH LIST SOURCES');
+    expect(markup).toContain('mfd.watchlist.v1');
+    expect(markup).toContain('browser-local and outside GameState cartridges');
+    expect(markup).toContain('buildWatchListRows resolves pinned ids');
+    expect(markup).toContain('offseasonState.scoutingWatchlist');
+    expect(markup).toContain('faTargetBoard.watchlist');
+    expect(markup).toContain('Opening Watch List does not change the saved game');
+  });
+
   it('builds rows for roster, free-agent, prospect, and retired groups', () => {
     const rows = buildWatchListRows(mockGame, {
       playerIds: ['own-1', 'fa-1', 'prospect-1', 'retired-1'],

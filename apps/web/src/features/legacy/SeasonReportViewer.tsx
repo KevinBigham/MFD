@@ -7,13 +7,83 @@ import {
 } from '@mfd/design-system/components';
 import type { SeasonReport } from '@mfd/engine';
 import { useGameStore } from '../../app/store/game-store';
-import { autoGrid, display, monoSm } from '../shared/pixelUi';
+import { autoGrid, display, monoSm, type PixelAccent } from '../shared/pixelUi';
+
+interface SeasonReportSourceRow {
+  id: string;
+  label: string;
+  status: string;
+  detail: string;
+  accent: PixelAccent;
+}
 
 function gradeAccent(grade: string): 'gold' | 'cyan' | 'default' | 'red' {
   if (grade.startsWith('A')) return 'gold';
   if (grade.startsWith('B')) return 'cyan';
   if (grade.startsWith('D') || grade.startsWith('F')) return 'red';
   return 'default';
+}
+
+export function buildSeasonReportSourceRows(report: SeasonReport): SeasonReportSourceRow[] {
+  return [
+    {
+      id: 'saved-report',
+      label: 'Saved report',
+      status: `Year ${report.year}`,
+      detail: 'Source: game.seasonReports rows filtered and sorted by selectSeasonReports for the current user team.',
+      accent: 'cyan',
+    },
+    {
+      id: 'writer-path',
+      label: 'Writer path',
+      status: 'offseason',
+      detail: 'advanceOffseason writes reports after generateSeasonReport(game, team.id); opening this modal does not rerun that generator.',
+      accent: 'gold',
+    },
+    {
+      id: 'saved-sections',
+      label: 'Saved sections',
+      status: `${report.sections.length} section${report.sections.length === 1 ? '' : 's'}`,
+      detail: 'Grades, summaries, highlights, and stat rows come from saved report.sections. Show Stats only reveals saved section.stats.',
+      accent: report.sections.length > 0 ? 'green' : 'default',
+    },
+    {
+      id: 'modal-state',
+      label: 'Modal state',
+      status: 'route-local',
+      detail: 'Open/close and expanded-section state live in React. The modal does not write saves, sidecars, reports, awards, or records.',
+      accent: 'cyan',
+    },
+  ];
+}
+
+function SeasonReportSourcesPanel({ report }: { report: SeasonReport }) {
+  return (
+    <PixelPanel title="Season Report Sources" accent="cyan">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+        {buildSeasonReportSourceRows(report).map((row) => (
+          <div
+            key={row.id}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              minHeight: '116px',
+              padding: '10px',
+              border: '1px solid #1f1f1f',
+              background: 'rgba(255,255,255,0.02)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ ...monoSm, color: '#fff' }}>{row.label}</span>
+              <PixelBadge variant={row.accent}>{row.status}</PixelBadge>
+            </div>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{row.detail}</span>
+          </div>
+        ))}
+      </div>
+    </PixelPanel>
+  );
 }
 
 export function SeasonReportViewer({
@@ -84,6 +154,8 @@ export function SeasonReportViewer({
             <PixelBadge variant={gradeAccent(report.overallGrade)}>Overall Grade</PixelBadge>
           </div>
         </div>
+
+        <SeasonReportSourcesPanel report={report} />
 
         <div style={autoGrid(300)}>
           {report.sections.map((section) => {

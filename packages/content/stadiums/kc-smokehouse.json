@@ -1,0 +1,13 @@
+{
+  "teamId": "KC",
+  "name": "The Smokehouse",
+  "capacity": 76416,
+  "tradition": "The Pitmaster's Torch now starts the broadcast night: a retired KC lineman lights the smoker-fountain, the Burnt End Brigade counts down from 12, and the first plume tells the booth whether the crowd is patient smoke or full blaze.",
+  "surface": "Grass",
+  "roof": "Open",
+  "cue": {
+    "label": "Pitmaster's Torch",
+    "pregameLine": "The smoker-fountain is lit before kickoff, and the whole bowl smells like hickory and red-zone pressure.",
+    "crowdResponse": "The Burnt End Brigade answers with a low-and-slow chant that rolls through third downs."
+  }
+}

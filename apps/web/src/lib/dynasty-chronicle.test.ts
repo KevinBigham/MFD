@@ -47,6 +47,13 @@ function createGame(): GameState {
         awards: { mvps: 2, allPros: 4, proBowls: 6, championships: 2 },
         highlights: ['2x MVP'],
         teams: ['team-1'],
+        epilogue: {
+          playerId: 'hof-1',
+          playerName: 'Cole Stone',
+          category: 'broadcasting',
+          headline: 'Cole Stone joins the booth',
+          story: 'Stone turns film study into appointment television.',
+        },
       },
       {
         playerId: 'hof-2',
@@ -152,6 +159,46 @@ describe('computeDynastyChronicle', () => {
         expect.objectContaining({ type: 'scrapbook_note', year: 2032, headline: 'A title season lands in the scrapbook.' }),
       ]),
     );
+  });
+
+  it('carries saved hall of fame epilogue copy into chronicle events', () => {
+    const game = createGame();
+
+    const chronicle = computeDynastyChronicle(game, 'seed-1:team-1:2030');
+    const hofEvent = chronicle.find((event) => event.type === 'hof_induction');
+
+    expect(hofEvent).toEqual(expect.objectContaining({
+      type: 'hof_induction',
+      playerName: 'Cole Stone',
+      epilogueCategory: 'broadcasting',
+      epilogueHeadline: 'Cole Stone joins the booth',
+      epilogueStory: 'Stone turns film study into appointment television.',
+    }));
+  });
+
+  it('omits blank hall of fame epilogue copy from chronicle events', () => {
+    const game = createGame();
+    game.hallOfFame[0] = {
+      ...game.hallOfFame[0]!,
+      epilogue: {
+        playerId: 'hof-1',
+        playerName: 'Cole Stone',
+        category: 'broadcasting',
+        headline: '   ',
+        story: 'Stone turns film study into appointment television.',
+      },
+    };
+
+    const chronicle = computeDynastyChronicle(game, 'seed-1:team-1:2030');
+    const hofEvent = chronicle.find((event) => event.type === 'hof_induction');
+
+    expect(hofEvent).toEqual(expect.objectContaining({
+      type: 'hof_induction',
+      playerName: 'Cole Stone',
+    }));
+    expect(hofEvent).not.toHaveProperty('epilogueHeadline');
+    expect(hofEvent).not.toHaveProperty('epilogueStory');
+    expect(hofEvent).not.toHaveProperty('epilogueCategory');
   });
 
   it('sorts same-year events by chronicle priority before stable ids', () => {

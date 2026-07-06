@@ -9,7 +9,7 @@ import { canonicalJsonStringify } from '../anomaly-detectors';
 import { runPlaytest } from '../harness';
 import { getPlaytestPersona } from '../personas';
 import type { PlaytestReport } from '../types';
-import { getShadowScenario } from './scenarios';
+import { SHADOW_SCENARIOS, getShadowScenario } from './scenarios';
 
 export interface ShadowRunResult {
   scenarioId: string;
@@ -38,5 +38,5 @@ export function runShadowScenario(scenarioId: string): ShadowRunResult {
 }
 
 function getKnownScenarioIds(): readonly string[] {
-  return ['speedrunner-5y', 'speedrunner-10y', 'speedrunner-20y'];
+  return SHADOW_SCENARIOS.map((scenario) => scenario.id);
 }

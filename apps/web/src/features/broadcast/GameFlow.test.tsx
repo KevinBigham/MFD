@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { GameFlowAnalysis } from '@mfd/engine';
-import { GameFlowView } from './GameFlow';
+import { buildGameFlowSourceRows, GameFlowView } from './GameFlow';
 
 const mockAnalysis: GameFlowAnalysis = {
   quarterMomentum: [
@@ -25,6 +25,42 @@ const mockAnalysis: GameFlowAnalysis = {
 };
 
 describe('GameFlowView', () => {
+  it('renders source context and render boundaries for the game flow route', () => {
+    const markup = renderToStaticMarkup(
+      <GameFlowView analysis={mockAnalysis} homeName="Bears" awayName="Lions" />,
+    );
+
+    expect(markup).toContain('GAME FLOW SOURCES');
+    expect(markup).toContain('LATEST BROADCAST');
+    expect(markup).toContain('4 QUARTERS');
+    expect(markup).toContain('selectLatestBroadcast');
+    expect(markup).toContain('ANALYSIS HELPER');
+    expect(markup).toContain('analyzeGameFlow');
+    expect(markup).toContain('WIN PROBABILITY INPUT');
+    expect(markup).toContain('2 POINTS');
+    expect(markup).toContain('PixelEkg');
+    expect(markup).toContain('MOMENTUM + EFFICIENCY');
+    expect(markup).toContain('22 DRIVES');
+    expect(markup).toContain('JUST VIEWING');
+    expect(markup).toContain('TURNING POINT');
+    expect(markup).toContain('does not append game-day packages');
+  });
+
+  it('builds no-broadcast source rows without implying a repair write', () => {
+    const rows = buildGameFlowSourceRows({
+      hasBroadcast: false,
+      quarterCount: 0,
+      driveCount: 0,
+      scoringRunCount: 0,
+      winProbPointCount: 0,
+      hasTurningPoint: false,
+    });
+
+    expect(rows.find((row) => row.id === 'latest-broadcast')?.value).toBe('No broadcast');
+    expect(rows.find((row) => row.id === 'analysis-helper')?.detail).toContain('no save write');
+    expect(rows.find((row) => row.id === 'render-boundary')?.detail).toContain('does not append game-day packages');
+  });
+
   it('renders quarter momentum cards with points and yards', () => {
     const markup = renderToStaticMarkup(
       <GameFlowView analysis={mockAnalysis} homeName="Bears" awayName="Lions" />,

@@ -73,6 +73,17 @@ export const TeamStadiumSchema = z.object({
   roof: z.string(),
 });
 
+export const StadiumCueSchema = z.object({
+  label: z.string().min(1),
+  pregameLine: z.string().min(1),
+  crowdResponse: z.string().min(1),
+});
+
+export const StadiumContentSchema = TeamStadiumSchema.extend({
+  teamId: z.string().regex(/^[A-Z]{2,4}$/),
+  cue: StadiumCueSchema.optional(),
+});
+
 export const TeamFanCultureSchema = z.object({
   nickname: z.string(),
   description: z.string(),
@@ -116,6 +127,7 @@ export const TeamContentSchema = z.object({
 export type TeamContent = z.infer<typeof TeamContentSchema>;
 export type TeamFightSongContent = z.infer<typeof TeamFightSongSchema>;
 export type TeamStadiumContent = z.infer<typeof TeamStadiumSchema>;
+export type StadiumContent = z.infer<typeof StadiumContentSchema>;
 export type TeamFanCultureContent = z.infer<typeof TeamFanCultureSchema>;
 export type TeamRivalryContent = z.infer<typeof TeamRivalrySchema>;
 
@@ -452,6 +464,34 @@ export const SocialFeedTemplatesContentSchema = z.object({
   reporter_posts: z.record(ReporterSocialScenarioSchema, NonEmptyStringArraySchema),
 });
 
+export const RevengeLineBucketSchema = z.enum([
+  'pregame.agm',
+  'halftime.commentary',
+  'postgame.agm',
+  'postgame.newsline',
+]);
+
+const RevengePregameLinesSchema = z.object({
+  agm: NonEmptyStringArraySchema,
+}).strict();
+
+const RevengeHalftimeLinesSchema = z.object({
+  commentary: NonEmptyStringArraySchema,
+}).strict();
+
+const RevengePostgameLinesSchema = z.object({
+  newsline: NonEmptyStringArraySchema,
+  agm: NonEmptyStringArraySchema,
+}).strict();
+
+export const RevengeLinesContentSchema = z.object({
+  version: z.literal(1),
+  description: NonEmptyStringSchema,
+  pregame: RevengePregameLinesSchema,
+  halftime: RevengeHalftimeLinesSchema,
+  postgame: RevengePostgameLinesSchema,
+}).strict();
+
 // Inferred types exported for content-loader consumers
 export type PressConferenceScenarioKey = z.infer<typeof PressConferenceScenarioKeySchema>;
 export type PressConferenceScenarioContent = z.infer<typeof PressConferenceScenarioContentSchema>;
@@ -491,3 +531,5 @@ export type PlayerSocialScenario = z.infer<typeof PlayerSocialScenarioSchema>;
 export type FanSocialScenario = z.infer<typeof FanSocialScenarioSchema>;
 export type AnalystSocialScenario = z.infer<typeof AnalystSocialScenarioSchema>;
 export type ReporterSocialScenario = z.infer<typeof ReporterSocialScenarioSchema>;
+export type RevengeLineBucket = z.infer<typeof RevengeLineBucketSchema>;
+export type RevengeLinesContent = z.infer<typeof RevengeLinesContentSchema>;

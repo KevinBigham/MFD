@@ -220,10 +220,16 @@ describe('near-miss wiring', () => {
       pickNumber: 12,
       draftedByTeam: 'AFCE2 Club',
     });
+    tracker.missedFAs.push({
+      playerName: 'Free Agent Starter',
+      playerOvr: 81,
+      signedWithTeam: 'NFCE1 Club',
+      position: 'CB',
+    });
 
     const receipts = generateNearMissReceipts(() => 0.42, tracker);
 
-    expect(receipts).toHaveLength(2);
-    expect(receipts.map((receipt) => receipt.type)).toEqual(['declined_trade', 'passed_pick']);
+    expect(receipts).toHaveLength(3);
+    expect(receipts.map((receipt) => receipt.type)).toEqual(['declined_trade', 'missed_fa', 'passed_pick']);
   });
 });

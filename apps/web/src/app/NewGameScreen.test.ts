@@ -4,6 +4,26 @@ import { readFileSync } from 'fs';
 describe('NewGameScreen', () => {
   const content = readFileSync(new URL('./NewGameScreen.tsx', import.meta.url), 'utf-8');
 
+  function sourceSection(startMarker: string, endMarker: string): string {
+    const start = content.indexOf(startMarker);
+    const end = content.indexOf(endMarker, start + startMarker.length);
+
+    if (start < 0 || end < 0) {
+      throw new Error(`Could not find source section from ${startMarker} to ${endMarker}`);
+    }
+
+    return content.slice(start, end);
+  }
+
+  function expectSourceOrder(source: string, markers: string[]): void {
+    let previousIndex = -1;
+    for (const marker of markers) {
+      const index = source.indexOf(marker);
+      expect(index).toBeGreaterThan(previousIndex);
+      previousIndex = index;
+    }
+  }
+
   it('has autosave error state for corrupted saves', () => {
     expect(content).toContain('autosaveError');
     expect(content).toContain('setAutosaveError');
@@ -31,6 +51,28 @@ describe('NewGameScreen', () => {
     expect(content).toContain('loadImportedCartridge(importText.trim())');
   });
 
+  it('persists validated imports before hydrating the active game', () => {
+    const fileImport = sourceSection(
+      'const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {',
+      'const handleImportText = async () => {',
+    );
+    const textImport = sourceSection(
+      'const handleImportText = async () => {',
+      'const scenarios = getAvailableScenarios();',
+    );
+
+    expectSourceOrder(fileImport, [
+      'const imported = await loadImportedCartridgeFile(file);',
+      'await autosaveDynasty(imported);',
+      'loadGame(imported);',
+    ]);
+    expectSourceOrder(textImport, [
+      'const imported = loadImportedCartridge(importText.trim());',
+      'await autosaveDynasty(imported);',
+      'loadGame(imported);',
+    ]);
+  });
+
   it('uses responsive launch-screen styles and pressed states', () => {
     expect(content).toContain("import './new-game-screen.css'");
     expect(content).toContain('mfd-new-game-command-grid');
@@ -41,5 +83,17 @@ describe('NewGameScreen', () => {
     expect(content).toContain('rookieDefaults.skipHalftimeDecision');
     expect(content).toContain('halftime decisions auto-skip');
     expect(content).not.toContain('CPU games stay on the fast path');
+  });
+
+  it('wires Fast Lane setup through the gated New Dynasty launch path only', () => {
+    expect(content).toContain('createFastLaneSetupState');
+    expect(content).toContain('persistSetupRunMode');
+    expect(content).toContain('readFirstTenMinutesCompleted');
+    expect(content).toContain("setupLaunchMode === 'fast_lane'");
+    expect(content).toContain("if (mode === 'dynasty')");
+    expect(content).toContain("mode !== 'scenario'");
+    expect(content).toContain('persistSetupRunMode(resolveLaunchSetupStorage(), activeSetupRunMode)');
+    expect(content).toContain('Complete one full Day 1 setup to unlock repeat-player setup.');
+    expect(content).not.toContain('SETUP_RUN_MODE_KEY');
   });
 });

@@ -67,6 +67,14 @@ export function computeTypewriterRevealCount({
   return Math.min(textLength, Math.floor((elapsedMs * speed) / 1000));
 }
 
+export function computeTypewriterFallbackMs({
+  speed,
+  textLength,
+}: Pick<TypewriterRevealInput, 'speed' | 'textLength'>): number {
+  if (textLength <= 0 || speed <= 0) return 0;
+  return Math.ceil((textLength / speed) * 1000) + 500;
+}
+
 export interface TypewriterTimingMode {
   hasRAF: boolean;
   requestFrame: (callback: FrameRequestCallback) => number;
@@ -206,8 +214,19 @@ export function ChipDialogueBubble({
     });
     controllerRef.current = controller;
     controller.start();
+    const fallbackMs = computeTypewriterFallbackMs({
+      textLength: normalizedText.length,
+      speed,
+    });
+    const fallbackTimerId =
+      typeof window !== 'undefined' && !effectiveReducedMotion && fallbackMs > 0
+        ? window.setTimeout(() => {
+          controller.skip();
+        }, fallbackMs)
+        : null;
 
     return () => {
+      if (fallbackTimerId !== null) window.clearTimeout(fallbackTimerId);
       controller.stop();
       if (controllerRef.current === controller) controllerRef.current = null;
     };

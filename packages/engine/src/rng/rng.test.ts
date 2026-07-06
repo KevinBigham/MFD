@@ -3,7 +3,7 @@ import {
   mulberry32, RNG, setSeed, getSeed,
   reseedWeek, reseedSeason,
   rng, rngI, rngD, rngAI, rngT, rngDev,
-  pick, pickD, uid,
+  rngEvent, pick, pickD, uid,
 } from './index';
 
 describe('mulberry32', () => {
@@ -48,13 +48,13 @@ describe('RNG channels', () => {
     expect(getSeed()).toBe(42);
   });
 
-  it('7 channels produce independent sequences', () => {
+  it('8 channels produce independent sequences', () => {
     const vals = [
       RNG.play(), RNG.injury(), RNG.draft(),
-      RNG.ai(), RNG.dev(), RNG.trade(), RNG.ui(),
+      RNG.ai(), RNG.dev(), RNG.trade(), RNG.ui(), RNG.event(),
     ];
     const unique = new Set(vals);
-    expect(unique.size).toBe(7);
+    expect(unique.size).toBe(8);
   });
 });
 
@@ -117,10 +117,12 @@ describe('convenience wrappers', () => {
     const trade = rngT(0, 1000);
     setSeed(42);
     const dev = rngDev(0, 1000);
+    setSeed(42);
+    const event = rngEvent(0, 1000);
     // Each should produce different values (different channel offsets)
-    const vals = [play, injury, draft, ai, trade, dev];
+    const vals = [play, injury, draft, ai, trade, dev, event];
     const unique = new Set(vals);
-    expect(unique.size).toBe(6);
+    expect(unique.size).toBe(7);
   });
 
   it('pick returns an element from the array', () => {

@@ -47,6 +47,22 @@ describe('PowerRankingsTicker', () => {
     expect(html).toContain('2 of 3');
   });
 
+  it('labels the saved ranking source, user highlight selector, click target, and no-write boundary', () => {
+    mockState.rankings = [
+      makeRanking({ rank: 1, teamId: 'team-1', teamName: 'Alpha' }),
+      makeRanking({ rank: 2, teamId: 'team-me', teamName: 'Mine' }),
+    ];
+    const html = renderToStaticMarkup(<PowerRankingsTicker />);
+    expect(html).toContain('selectPowerRankings');
+    expect(html).toContain('selectUserTeamId');
+    expect(html).toContain('click -&gt; /power-rankings');
+    expect(html).toContain('Read-only');
+    expect(html).toContain('Source: saved route power rankings via selectPowerRankings');
+    expect(html).toContain('user highlight uses selectUserTeamId');
+    expect(html).toContain('does not recalculate rankings, write league news or social posts');
+    expect(html).toContain('advance the media cycle, change saves, or reroll saved outcomes');
+  });
+
   it('renders one tile per entry with rank badge, team name, record, and score', () => {
     mockState.rankings = [
       makeRanking({ rank: 1, teamId: 'team-1', teamName: 'Alpha', record: '4-0', score: 92.4 }),
@@ -118,6 +134,7 @@ describe('PowerRankingsTicker', () => {
     mockState.rankings = [makeRanking()];
     const html = renderToStaticMarkup(<PowerRankingsTicker clickable={false} />);
     expect(html).not.toContain('role="button"');
+    expect(html).toContain('static embed');
   });
 
   it('truncates to the limit prop', () => {

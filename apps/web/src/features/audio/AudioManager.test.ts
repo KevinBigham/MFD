@@ -143,6 +143,23 @@ describe('AudioManager', () => {
     expect(mockCtx.createOscillator).not.toHaveBeenCalled();
   });
 
+  it('rejects unsafe requested asset paths and falls back to synth playback', () => {
+    const play = vi.fn().mockResolvedValue(undefined);
+    const audioCtor = vi.fn((src: string) => ({ src, play, volume: 1 }));
+    vi.stubGlobal('Audio', audioCtor);
+    syncAudioPreferences(DEFAULT_AUDIO_PREFERENCES);
+
+    playAudioCueQueue([
+      createAudioCue('achievement_unlocked', 'high', {
+        source: 'asset-sanitizer-test',
+        requestedAsset: '../not-public.mp3',
+      }),
+    ]);
+
+    expect(audioCtor).not.toHaveBeenCalled();
+    expect(mockCtx.createOscillator).toHaveBeenCalled();
+  });
+
   it('switches ambient modes based on routed screens', () => {
     syncAudioPreferences(DEFAULT_AUDIO_PREFERENCES);
 

@@ -1,0 +1,13 @@
+{
+  "teamId": "CIN",
+  "name": "The Sty",
+  "capacity": 65500,
+  "tradition": "The Flight now opens every Flying Pigs home game: a chrome flying pig drone climbs above the river end, traces one full sky loop over The Sty, and the Pork Chop Platoon oinks only after the wings clear the press box.",
+  "surface": "Turf",
+  "roof": "Open",
+  "cue": {
+    "label": "The Flight",
+    "pregameLine": "The chrome flying pig drone is climbing over The Sty, and the Pork Chop Platoon is waiting for the sky loop to clear the press box.",
+    "crowdResponse": "The Pork Chop Platoon answers with a PIGS! FLY! PIGS! FLY! chant that rattles the river seats."
+  }
+}

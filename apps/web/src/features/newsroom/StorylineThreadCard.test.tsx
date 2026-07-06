@@ -18,7 +18,7 @@ const mockState = {
 };
 
 import type { StorylineThread } from '@mfd/engine';
-import { StorylineThreadCard } from './StorylineThreadCard';
+import { StorylineThreadCard, buildStorylineReceiptRows } from './StorylineThreadCard';
 
 const activeThread: StorylineThread = {
   id: 'thread-1',
@@ -72,6 +72,35 @@ describe('StorylineThreadCard', () => {
   it('renders the next-beat hint when provided', () => {
     const html = renderToStaticMarkup(<StorylineThreadCard thread={activeThread} />);
     expect(html).toContain('Next: A presser Tuesday could make the switch permanent.');
+  });
+
+  it('builds source-backed receipt rows from saved storyline fields', () => {
+    const rows = buildStorylineReceiptRows(activeThread);
+
+    expect(rows.map((row) => row.id)).toEqual(['source', 'timeline', 'beats', 'lifecycle', 'boundary']);
+    expect(rows.find((row) => row.id === 'source')?.value).toBe('storylineThreads');
+    expect(rows.find((row) => row.id === 'source')?.detail).toContain('qb-chicago-2030');
+    expect(rows.find((row) => row.id === 'timeline')?.value).toBe('Y2030 W3 -> Y2030 W4');
+    expect(rows.find((row) => row.id === 'beats')?.value).toBe('2 beats');
+    expect(rows.find((row) => row.id === 'beats')?.detail).toContain('Backup earns a second start');
+    expect(rows.find((row) => row.id === 'lifecycle')?.detail).toContain('advanceStorylineThreads');
+    expect(rows.find((row) => row.id === 'boundary')?.detail).toContain('does not advance, close, seed');
+  });
+
+  it('renders a Thread Receipt with lifecycle ownership and no-write copy', () => {
+    const html = renderToStaticMarkup(<StorylineThreadCard thread={activeThread} />);
+
+    expect(html).toContain('THREAD RECEIPT');
+    expect(html).toContain('Saved Source');
+    expect(html).toContain('storylineThreads');
+    expect(html).toContain('Thread Clock');
+    expect(html).toContain('Y2030 W3 -&gt; Y2030 W4');
+    expect(html).toContain('Beat Ledger');
+    expect(html).toContain('2 beats');
+    expect(html).toContain('Lifecycle Owner');
+    expect(html).toContain('advanceStorylineThreads -&gt; closeCompletedThreads -&gt; seedThreadsForWeek');
+    expect(html).toContain('Just viewing');
+    expect(html).toContain('This card does not advance, close, seed, write news, or change storyline metadata.');
   });
 
   it('renders a heat meter showing 10 cells, 7 filled, and the numeric value', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { BreakingNews } from './BreakingNews';
+import { BreakingNews, buildBreakingNewsSourceMeta } from './BreakingNews';
 
 const defaultProps = {
   headline: 'BLOCKBUSTER TRADE',
@@ -34,5 +34,13 @@ describe('BreakingNews', () => {
     const html = renderToStaticMarkup(<BreakingNews {...defaultProps} />);
     expect(html).toContain('role="alert"');
     expect(html).toContain('aria-live="assertive"');
+  });
+
+  it('builds source metadata from the queued breaking-news item source', () => {
+    expect(buildBreakingNewsSourceMeta('LEAGUE OFFICE')).toEqual({
+      sourceLine: 'SOURCE: LEAGUE OFFICE',
+      queueLine: 'SAVED BREAKING NEWS QUEUE',
+      dismissLine: 'DISMISS ADVANCES QUEUE ONLY',
+    });
   });
 });

@@ -57,12 +57,29 @@ describe('EventLog', () => {
     expect(events[2]!.seq).toBe(3);
   });
 
+  it('shares sequence state across separate event logs until reset', () => {
+    const otherLog = createEventLog();
+
+    expect(log.emit(EVENT_NAMES.GAME_START, {}).seq).toBe(1);
+    expect(otherLog.emit(EVENT_NAMES.SCORE, {}).seq).toBe(2);
+    expect(log.emit(EVENT_NAMES.GAME_END, {}).seq).toBe(3);
+  });
+
   it('resets clears everything', () => {
     log.emit(EVENT_NAMES.GAME_START, {});
     log.emit(EVENT_NAMES.SCORE, {});
     expect(log.getEvents()).toHaveLength(2);
     log.reset();
     expect(log.getEvents()).toHaveLength(0);
+  });
+
+  it('reset clears the package-level sequence for future logs', () => {
+    log.emit(EVENT_NAMES.GAME_START, {});
+    expect(createEventLog().emit(EVENT_NAMES.SCORE, {}).seq).toBe(2);
+
+    log.reset();
+
+    expect(createEventLog().emit(EVENT_NAMES.GAME_START, {}).seq).toBe(1);
   });
 
   it('getByName filters correctly', () => {

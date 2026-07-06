@@ -1,0 +1,13 @@
+{
+  "teamId": "BAL",
+  "name": "The Crab Pot",
+  "capacity": 71000,
+  "tradition": "The Mallet Smash now starts every Baltimore home game: a former Crab Pickers defender raises the giant wooden mallet at midfield, cracks the ceremonial shell, and lets the scoreboard reveal the score-prediction pieces before kickoff.",
+  "surface": "Grass",
+  "roof": "Open",
+  "cue": {
+    "label": "Mallet Smash",
+    "pregameLine": "The giant mallet is raised at midfield, and the ceremonial shell is already cracking under the lights.",
+    "crowdResponse": "The Pickers answer with a sideways PICK! IT! PICK! IT! shuffle that turns every third down into a street-corner dare."
+  }
+}

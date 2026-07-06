@@ -149,7 +149,7 @@ function evaluateDefensiveAdjustment(
       scheme: 'contain',
       adjustment: {
         type: 'defensive_scheme',
-        description: 'They\'re gashing us on the ground — tightening up the run fits.',
+        description: 'They are beating us on the ground -- tighten run-defense jobs.',
         quality: 5 + Math.round(rng() * 3),
       },
     };

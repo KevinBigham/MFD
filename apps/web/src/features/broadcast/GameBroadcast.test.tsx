@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { readFileSync } from 'fs';
 import { GameBroadcast } from './GameBroadcast';
 
 const broadcastState = {
@@ -78,6 +79,19 @@ let gameStoreState: { broadcastView: any | null; game: any } = {
         staff: { hc: { id: 'hc-det', name: 'Nate Fields' }, oc: null, dc: null },
       },
     },
+    gameDayState: {
+      latestPackageId: 'gameday-2031-9-CHI',
+      recentPackages: [
+        {
+          id: 'gameday-2031-9-CHI',
+          year: 2031,
+          week: 9,
+          teamId: 'CHI',
+          opponentTeamId: 'DET',
+          activeEffectSummaries: ['Halftime hell: flipped the second-half plan to open the throttle.'],
+        },
+      ],
+    },
     relationships: [],
     franchiseHistory: [],
     playerArchive: [],
@@ -92,13 +106,31 @@ vi.mock('../../app/store/ui-store', () => ({
 vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: typeof gameStoreState) => unknown) => selector(gameStoreState),
   selectBroadcastByGameId: () => (state: typeof gameStoreState) => state.broadcastView,
+  selectGameDayPackageByBroadcastGameId: () => (state: typeof gameStoreState) => state.game.gameDayState.recentPackages[0] ?? null,
 }));
 
 describe('GameBroadcast', () => {
+  it('selects the broadcast view from transient broadcastGameId UI context', () => {
+    const content = readFileSync(new URL('./GameBroadcast.tsx', import.meta.url), 'utf-8');
+
+    expect(content).toContain('const broadcastGameId = useUiStore((state) => state.broadcastGameId);');
+    expect(content).toContain('selectBroadcastByGameId(broadcastGameId)');
+    expect(content).toContain('[broadcastGameId]');
+  });
+
   it('renders broadcast data with quarter tabs and play-by-play', () => {
     const markup = renderToStaticMarkup(<GameBroadcast />);
 
     expect(markup).toContain('GAME BROADCAST');
+    expect(markup).toContain('BROADCAST SOURCES');
+    expect(markup).toContain('BROADCAST SELECTION');
+    expect(markup).toContain('SELECTED GAME');
+    expect(markup).toContain('selectBroadcastByGameId');
+    expect(markup).toContain('MATCHED PACKAGE');
+    expect(markup).toContain('selectGameDayPackageByBroadcastGameId');
+    expect(markup).toContain('buildHalftimeDecisionReceipt');
+    expect(markup).toContain('buildBroadcastCommentary');
+    expect(markup).toContain('Opening the route does not append packages');
     expect(markup).toContain('Q1');
     expect(markup).toContain('Marcus Cole rips a 24-yard strike.');
     expect(markup).toContain('Touchdown Chicago.');
@@ -114,6 +146,9 @@ describe('GameBroadcast', () => {
     expect(markup).toContain('In a thriller at Soldier Field');
     expect(markup).toContain('BROADCAST NOTES');
     expect(markup).toContain('PA flavor');
+    expect(markup).toContain('HALFTIME RECEIPT');
+    expect(markup).toContain('Halftime receipt: flipped the second-half plan to open the throttle.');
+    expect(markup).toContain('BROADCAST HOOK');
   });
 
   it('renders the empty state when no broadcast is available', () => {
@@ -123,6 +158,11 @@ describe('GameBroadcast', () => {
 
     expect(markup).toContain('GAME BROADCAST');
     expect(markup).toContain('Advance Week');
+    expect(markup).toContain('BROADCAST SOURCES');
+    expect(markup).toContain('NO RESULT');
+    expect(markup).toContain('NO PACKAGE');
+    expect(markup).toContain('SELECTED GAME');
+    expect(markup).toContain('Rendering does not simulate or replay the game.');
 
     gameStoreState = {
       broadcastView: {
@@ -195,6 +235,19 @@ describe('GameBroadcast', () => {
             roster: [{ id: 'p2', name: 'Theo Watts', pos: 'WR' }],
             staff: { hc: { id: 'hc-det', name: 'Nate Fields' }, oc: null, dc: null },
           },
+        },
+        gameDayState: {
+          latestPackageId: 'gameday-2031-9-CHI',
+          recentPackages: [
+            {
+              id: 'gameday-2031-9-CHI',
+              year: 2031,
+              week: 9,
+              teamId: 'CHI',
+              opponentTeamId: 'DET',
+              activeEffectSummaries: ['Halftime hell: flipped the second-half plan to open the throttle.'],
+            },
+          ],
         },
         relationships: [],
         franchiseHistory: [],

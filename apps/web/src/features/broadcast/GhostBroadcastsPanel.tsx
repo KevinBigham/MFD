@@ -87,6 +87,20 @@ export function GhostBroadcastsPanel({
           </PixelButton>
         </div>
 
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <PixelBadge variant="gold">broadcast.ghostLines</PixelBadge>
+            <PixelBadge variant="cyan">mfd.broadcast.ghost.v1</PixelBadge>
+            <PixelBadge variant="default">Read-only lines</PixelBadge>
+          </div>
+          <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+            Source: latest broadcast ghost lines split into HOF voices and Booth Alert callouts, with legacy
+            unsourced lines classified by commentator name. The toggle writes only this device's display
+            preference; opening this panel does not generate commentary, alter broadcast payloads, write
+            GameState, play scheduled games, or reroll saved outcomes.
+          </span>
+        </div>
+
         {prefs.enabled ? (
           lines.length === 0 ? (
             <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>

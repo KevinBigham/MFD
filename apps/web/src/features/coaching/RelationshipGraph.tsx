@@ -57,6 +57,8 @@ const CANVAS_W = 720;
 const CANVAS_H = 480;
 const NODE_R = 8;
 const NODE_R_ACTIVE = 11;
+const EMPTY_TEAMS: Record<string, Team> = {};
+const EMPTY_RELATIONSHIPS: RelationshipEdge[] = [];
 
 // ── Types ───────────────────────────────────────────────
 
@@ -77,11 +79,37 @@ interface GraphData {
   nodes: NodeMeta[];
 }
 
+interface RelationshipSourceRow {
+  label: string;
+  detail: string;
+}
+
+function buildRelationshipSourceRows(): RelationshipSourceRow[] {
+  return [
+    {
+      label: 'Saved edge list',
+      detail: 'Reads game.relationships as the only graph edge source; an empty list stays an empty graph.',
+    },
+    {
+      label: 'Entity labels',
+      detail: 'Resolves coach labels from active team HC/OC/DC staff and player labels from active rosters; unknown ids remain literal ids.',
+    },
+    {
+      label: 'Filters and layout',
+      detail: 'Edge-type, user-team, and year-window filters are route-local, and node placement uses stable hash layout.',
+    },
+    {
+      label: 'Display boundary',
+      detail: 'Opening this route does not synthesize edges from staff mentor fields, prune relationships, run coaching/offseason/draft systems, or write GameState.',
+    },
+  ];
+}
+
 // ── Helpers ─────────────────────────────────────────────
 
 /**
  * Deterministic hash → value in [0, 1). Used for node placement so the
- * graph lays out identically across sessions. Explicitly avoids RNG.
+ * graph lays out identically across sessions. Explicitly avoids random rerolls.
  */
 function seededUnit(key: string, salt: number): number {
   let h = 2166136261 ^ salt;
@@ -92,7 +120,7 @@ function seededUnit(key: string, salt: number): number {
   return (h >>> 0) / 4294967296;
 }
 
-/** Compute polar layout for a set of nodes — stable, no RNG. */
+/** Compute polar layout for a set of nodes — stable with no random reroll. */
 function layoutNodes(nodes: readonly NodeMeta[]): LaidOutNode[] {
   // Deterministically sort so rendering order (and id-based angle) is stable.
   const sorted = [...nodes].sort((a, b) => a.id.localeCompare(b.id));
@@ -392,8 +420,8 @@ function Legend() {
 
 export function RelationshipGraph() {
   const userTeam = useGameStore(selectUserTeam);
-  const teams = useGameStore((s) => s.game?.teams ?? {});
-  const relationships = useGameStore((s) => s.game?.relationships ?? []);
+  const teams = useGameStore((s) => s.game?.teams ?? EMPTY_TEAMS);
+  const relationships = useGameStore((s) => s.game?.relationships ?? EMPTY_RELATIONSHIPS);
   const currentYear = useGameStore((s) => s.game?.year ?? 2026);
 
   const [filters, actions] = useFilterState(currentYear);
@@ -426,6 +454,8 @@ export function RelationshipGraph() {
     return byType;
   }, [filteredGraph.edges]);
 
+  const sourceRows = useMemo(() => buildRelationshipSourceRows(), []);
+
   return (
     <div style={screenStackStyle}>
       <PixelScreenHeader
@@ -433,6 +463,28 @@ export function RelationshipGraph() {
         subtitle="League-wide lineage, rivalries, and family ties"
         kicker="THE REUNION"
       />
+
+      <PixelPanel title="RELATIONSHIP SOURCES" accent="cyan">
+        <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+          {sourceRows.map((row) => (
+            <div
+              key={row.label}
+              style={{
+                padding: '8px',
+                border: '1px solid var(--mfd-border-dim, #333)',
+                background: 'rgba(0, 229, 255, 0.05)',
+              }}
+            >
+              <div style={{ ...pixelSm, color: 'var(--mfd-cyan, #00e5ff)', marginBottom: '4px' }}>
+                {row.label}
+              </div>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                {row.detail}
+              </div>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
 
       {baseGraph.edges.length === 0 ? (
         <PixelPanel title="NO RELATIONSHIPS RECORDED" accent="default">

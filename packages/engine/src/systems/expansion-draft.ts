@@ -209,8 +209,13 @@ export function makeExpansionPick(state: ExpansionDraftState, playerId: string):
   };
 }
 
-export function finalizeExpansionDraft(gameState: GameState, state: ExpansionDraftState, rng: PrngFn): GameState {
-  const nextState = cloneValue(gameState);
+export function finalizeExpansionDraft(
+  gameState: GameState,
+  state: ExpansionDraftState,
+  rng: PrngFn,
+  options: { mutateInPlace?: boolean } = {},
+): GameState {
+  const nextState = options.mutateInPlace ? gameState : cloneValue(gameState);
   const template = Object.values(nextState.teams)[0]!;
   const teamId = nextTeamId(nextState, state.expansionTeam.abbr);
   const salaryCap = getSalaryCap(nextState.year, nextState);

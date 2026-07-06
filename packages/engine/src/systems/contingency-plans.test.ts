@@ -3,6 +3,7 @@ import { mulberry32 } from '../rng';
 import type { GamePlan } from '../types';
 import {
   CONTINGENCY_TRIGGERS,
+  CONTINGENCY_RESPONSES,
   MAX_CONTINGENCIES,
   applyContingency,
   createContingencyRule,
@@ -31,6 +32,17 @@ describe('Contingency Plans', () => {
       'two_minute_warning_one_score',
       'opponent_td_lead_after_halftime',
     ]);
+  });
+
+  it('keeps response descriptions concrete about tradeoffs', () => {
+    const airRaid = CONTINGENCY_RESPONSES.go_air_raid.description;
+    const pressure = CONTINGENCY_RESPONSES.pressure_every_down.description;
+
+    expect(airRaid).toContain('fast points');
+    expect(airRaid).toContain('turnover risk');
+    expect(pressure).toContain('negative plays');
+    expect(pressure).toContain('coverage exposed');
+    expect(`${airRaid} ${pressure}`).not.toMatch(/\bchase\b/i);
   });
 
   it('fires contingency when down by 14+ in Q3', () => {

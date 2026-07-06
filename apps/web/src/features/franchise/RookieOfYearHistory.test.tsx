@@ -11,6 +11,8 @@ vi.mock('../../lib/rookie-of-year-store', () => ({
 }));
 
 vi.mock('@mfd/design-system/components', () => ({
+  PixelBadge: ({ children }: any) => <span data-mock="badge">{children}</span>,
+  PixelButton: ({ children }: any) => <button type="button">{children}</button>,
   PixelPanel: ({ title, children }: any) => (
     <section data-mock="panel">
       <h2>{title}</h2>
@@ -21,6 +23,7 @@ vi.mock('@mfd/design-system/components', () => ({
 
 vi.mock('../shared/pixelUi', () => ({
   monoSm: {},
+  navigateTo: vi.fn(),
 }));
 
 vi.mock('./RookieOfYearCard', () => ({
@@ -56,6 +59,7 @@ describe('RookieOfYearHistory', () => {
     const markup = renderToStaticMarkup(<RookieOfYearHistory dynastyId={null} />);
 
     expect(markup).toContain('No rookie award archive yet. Finish a season to crown the first winner.');
+    expect(markup).toContain('No dynasty id');
   });
 
   it('renders the empty state when the dynasty has no entries', () => {
@@ -75,6 +79,34 @@ describe('RookieOfYearHistory', () => {
     const markup = renderToStaticMarkup(<RookieOfYearHistory dynastyId="dynasty-a" />);
 
     expect(markup.match(/data-mock="roy-card"/g)?.length ?? 0).toBe(2);
+  });
+
+  it('labels the browser-local sidecar and rollover source boundary', () => {
+    readRookieOfYearEntriesMock.mockReturnValue([makeEntry(2027, 'Tariq Moss')]);
+
+    const markup = renderToStaticMarkup(<RookieOfYearHistory dynastyId="dynasty-a" />);
+
+    expect(markup).toContain('mfd.rookieOfYear.v1');
+    expect(markup).toContain('Year rollover');
+    expect(markup).toContain('Dynasty scoped');
+    expect(markup).toContain('readRookieOfYearEntries(dynastyId)');
+    expect(markup).toContain('syncRookieOfYearAtYearRollover');
+    expect(markup).toContain('computeRookieOfYear');
+    expect(markup).toContain('Opening this panel does not recompute winners');
+    expect(markup).toContain('write GameState');
+    expect(markup).toContain('change the sidecar');
+    expect(markup).toContain('play games or reroll saved outcomes');
+  });
+
+  it('links rookie award history into the next rookie class workflow', () => {
+    readRookieOfYearEntriesMock.mockReturnValue([makeEntry(2027, 'Tariq Moss')]);
+
+    const markup = renderToStaticMarkup(<RookieOfYearHistory dynastyId="dynasty-a" />);
+
+    expect(markup).toContain('next class plan');
+    expect(markup).toContain('Scouting');
+    expect(markup).toContain('Draft Board');
+    expect(markup).toContain('Development');
   });
 
   it('renders the winners in newest-first order from the store payload', () => {

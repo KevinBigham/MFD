@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 const STORAGE_KEY = 'mfd.hallOfFame.v1';
 const SCHEMA_VERSION = 1 as const;
+export const HALL_OF_FAME_ARCHIVE_EXPORT_KIND = 'mfd.hallOfFame.archive.v1' as const;
 
 const POSITION_VALUES = ['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P'] as const;
 
@@ -29,6 +30,24 @@ export interface HallOfFameArchiveSummary {
   totalMvps: number;
   dynastiesRepresented: number;
 }
+
+export interface HallOfFameArchiveExportEnvelope {
+  kind: typeof HALL_OF_FAME_ARCHIVE_EXPORT_KIND;
+  exportedAt: string;
+  payload: HallOfFameArchivePayload;
+}
+
+export type HallOfFameArchiveImportResult =
+  | {
+    ok: true;
+    payload: HallOfFameArchivePayload;
+    dynasties: number;
+    inductees: number;
+  }
+  | {
+    ok: false;
+    reason: string;
+  };
 
 const PositionSchema: z.ZodType<Position> = z.enum(POSITION_VALUES);
 
@@ -67,6 +86,12 @@ const PayloadSchema = z.object({
   dynastiesById: z.record(z.string(), HallOfFameArchiveDynastySchema),
 });
 
+const ExportEnvelopeSchema: z.ZodType<HallOfFameArchiveExportEnvelope> = z.object({
+  kind: z.literal(HALL_OF_FAME_ARCHIVE_EXPORT_KIND),
+  exportedAt: z.string().min(1),
+  payload: PayloadSchema,
+});
+
 function defaultPayload(): HallOfFameArchivePayload {
   return { schemaVersion: SCHEMA_VERSION, dynastiesById: {} };
 }
@@ -92,6 +117,18 @@ function normalizeDynasty(dynasty: HallOfFameArchiveDynasty): HallOfFameArchiveD
   };
 }
 
+function normalizePayload(payload: HallOfFameArchivePayload): HallOfFameArchivePayload {
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    dynastiesById: Object.fromEntries(
+      Object.entries(payload.dynastiesById).map(([dynastyId, dynasty]) => [
+        dynastyId,
+        normalizeDynasty(dynasty),
+      ]),
+    ),
+  };
+}
+
 function readPayload(): HallOfFameArchivePayload {
   const backingStore = storage();
   if (!backingStore) return defaultPayload();
@@ -103,31 +140,14 @@ function readPayload(): HallOfFameArchivePayload {
     const parsed = JSON.parse(raw);
     const validated = PayloadSchema.safeParse(parsed);
     if (!validated.success) return defaultPayload();
-    return {
-      schemaVersion: SCHEMA_VERSION,
-      dynastiesById: Object.fromEntries(
-        Object.entries(validated.data.dynastiesById).map(([dynastyId, dynasty]) => [
-          dynastyId,
-          normalizeDynasty(dynasty),
-        ]),
-      ),
-    };
+    return normalizePayload(validated.data);
   } catch {
     return defaultPayload();
   }
 }
 
 function writePayload(payload: HallOfFameArchivePayload): HallOfFameArchivePayload {
-  const next: HallOfFameArchivePayload = {
-    schemaVersion: SCHEMA_VERSION,
-    dynastiesById: Object.fromEntries(
-      Object.entries(payload.dynastiesById).map(([dynastyId, dynasty]) => [
-        dynastyId,
-        normalizeDynasty(dynasty),
-      ]),
-    ),
-  };
-
+  const next = normalizePayload(payload);
   const backingStore = storage();
   if (!backingStore) return next;
   backingStore.setItem(STORAGE_KEY, JSON.stringify(next));
@@ -136,6 +156,56 @@ function writePayload(payload: HallOfFameArchivePayload): HallOfFameArchivePaylo
 
 export function readHallOfFameArchive(): HallOfFameArchivePayload {
   return readPayload();
+}
+
+export function exportHallOfFameArchiveJson(
+  payload: HallOfFameArchivePayload = readPayload(),
+  exportedAt: Date = new Date(),
+): string {
+  const envelope: HallOfFameArchiveExportEnvelope = {
+    kind: HALL_OF_FAME_ARCHIVE_EXPORT_KIND,
+    exportedAt: exportedAt.toISOString(),
+    payload: normalizePayload(payload),
+  };
+  return JSON.stringify(envelope, null, 2);
+}
+
+export function parseHallOfFameArchiveJson(raw: string): HallOfFameArchiveImportResult {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { ok: false, reason: 'Import must be valid JSON.' };
+  }
+
+  const envelope = ExportEnvelopeSchema.safeParse(parsed);
+  const payloadCandidate = envelope.success ? envelope.data.payload : parsed;
+  const validated = PayloadSchema.safeParse(payloadCandidate);
+  if (!validated.success) {
+    return { ok: false, reason: 'Import is not a valid Hall of Fame archive.' };
+  }
+
+  const normalized = normalizePayload(validated.data);
+  const summary = summarizeHallOfFameArchive(normalized);
+  return {
+    ok: true,
+    payload: normalized,
+    dynasties: Object.keys(normalized.dynastiesById).length,
+    inductees: summary.totalInductees,
+  };
+}
+
+export function importHallOfFameArchiveJson(raw: string): HallOfFameArchiveImportResult {
+  const result = parseHallOfFameArchiveJson(raw);
+  if (!result.ok) return result;
+  return {
+    ...result,
+    payload: writePayload(result.payload),
+  };
+}
+
+export function replaceHallOfFameArchive(payload: HallOfFameArchivePayload): HallOfFameArchivePayload {
+  return writePayload(payload);
 }
 
 export function readHallOfFameDynasty(dynastyId: string): HallOfFameArchiveDynasty | null {

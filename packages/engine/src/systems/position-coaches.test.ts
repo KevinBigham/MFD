@@ -4,6 +4,7 @@ import {
   initializePositionCoaches,
   getPositionCoachBonus,
   upgradePositionCoach,
+  advancePositionCoachSeason,
   generateCoachingStaffReport,
   type PositionCoachStaff,
   type PositionCoach,
@@ -113,6 +114,22 @@ describe('position-coaches', () => {
     const unchangedDL = upgraded.coaches.find((c) => c.role === 'DL')!;
     expect(unchangedDL.id).toBe('pc-DL-test');
     expect(unchangedDL.quality).toBe(5);
+  });
+
+  it('advancePositionCoachSeason increments tenure without mutating existing staff', () => {
+    const original: PositionCoachStaff = {
+      coaches: [
+        makeCoachWithQuality('OL', 6),
+        { ...makeCoachWithQuality('DB', 7, 'coverage_technique'), yearsWithTeam: 2 },
+      ],
+    };
+
+    const advanced = advancePositionCoachSeason(original);
+
+    expect(advanced).not.toBe(original);
+    expect(advanced.coaches[0]).not.toBe(original.coaches[0]);
+    expect(advanced.coaches.map((coach) => coach.yearsWithTeam)).toEqual([1, 3]);
+    expect(original.coaches.map((coach) => coach.yearsWithTeam)).toEqual([0, 2]);
   });
 
   it('generateCoachingStaffReport identifies elite and weak coaches', () => {

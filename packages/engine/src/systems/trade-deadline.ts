@@ -1,6 +1,8 @@
 import { generateTradeOffers } from './trade-market';
+import { syncPlayerArchiveEntry } from './history';
 import { assignJerseyNumber } from './jersey-retirement';
 import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
+import { syncTeamCapTotals } from './team-cap';
 import { calcPickValue, calcPlayerValue } from './trade-value';
 import type {
   DeadlineDeal,
@@ -107,9 +109,24 @@ function parseFallbackPickValue(label: string): number {
   return calcPickValue({ round, pick: 16 });
 }
 
-function selectCompensation(buyer: Team, playerValue: number, rng: PrngFn): { picks: DraftPick[]; ids: string[]; descriptions: string[] } {
+function targetCompensationYear(buyer: Team, currentYear: number): number {
+  const nextAvailableYear = buyer.draftPicks
+    .map((pick) => pick.year)
+    .filter((year) => year >= currentYear)
+    .sort((left, right) => left - right)[0];
+
+  return nextAvailableYear ?? currentYear + 1;
+}
+
+function selectCompensation(
+  buyer: Team,
+  playerValue: number,
+  rng: PrngFn,
+  currentYear: number,
+): { picks: DraftPick[]; ids: string[]; descriptions: string[] } {
+  const compensationYear = targetCompensationYear(buyer, currentYear);
   const available = [...buyer.draftPicks]
-    .filter((pick) => pick.year === 2026)
+    .filter((pick) => pick.year === compensationYear)
     .sort((left, right) => left.round - right.round || left.pick - right.pick);
   const selected: DraftPick[] = [];
   let totalValue = 0;
@@ -132,7 +149,7 @@ function selectCompensation(buyer: Team, playerValue: number, rng: PrngFn): { pi
       pick: randInt(rng, 8, 24),
       originalTeamId: buyer.id,
       currentTeamId: buyer.id,
-      year: 2026,
+      year: compensationYear,
       isCompPick: false,
     };
     selected.push(synthetic);
@@ -194,6 +211,7 @@ export function generateDeadlineDeal(
   players: Player[],
   rng: PrngFn,
   aiBias?: AIBiasConfig,
+  currentYear = 2026,
 ): DeadlineDeal {
   const mappedPlayers = playerMap(players);
   const fallbackTeamIds = Object.values(teams)
@@ -219,10 +237,10 @@ export function generateDeadlineDeal(
     const playerValue = Math.max(1, calcPlayerValue({
       version: 0,
       seed: 0,
-      year: 2026,
+      year: currentYear,
       week: 9,
     } as unknown as GameState, target, buyer));
-    const compensation = selectCompensation(buyer, playerValue, rng);
+    const compensation = selectCompensation(buyer, playerValue, rng, currentYear);
     const splash = target.ovr >= 82;
     const draftDeal: DeadlineDeal = {
       id: `deadline-${buyer.id}-${seller.id}-${target.id}`,
@@ -242,7 +260,7 @@ export function generateDeadlineDeal(
   const fallbackBuyer = teams[validContenders[0]!]!;
   const fallbackSeller = teams[validSellers[0]!]!;
   const fallbackPlayer = veteranCandidates(fallbackSeller, aiBias)[0] ?? fallbackSeller.roster[0]!;
-  const fallbackPicks = selectCompensation(fallbackBuyer, 250, rng);
+  const fallbackPicks = selectCompensation(fallbackBuyer, 250, rng, currentYear);
   const fallback: DeadlineDeal = {
     id: `deadline-${fallbackBuyer.id}-${fallbackSeller.id}-${fallbackPlayer.id}`,
     teams: [fallbackBuyer.id, fallbackSeller.id],
@@ -300,7 +318,7 @@ export function initializeDeadline(gameState: GameState, rng: PrngFn, aiBias?: A
   const usedPlayers = new Set<string>();
 
   for (let index = 0; index < dealCount; index += 1) {
-    const deal = generateDeadlineDeal(gameState.teams, derivedContenders, derivedSellers, Object.values(gameState.players), rng, aiBias);
+    const deal = generateDeadlineDeal(gameState.teams, derivedContenders, derivedSellers, Object.values(gameState.players), rng, aiBias, gameState.year);
     if (usedPlayers.has(deal.players[0]!)) continue;
     usedPlayers.add(deal.players[0]!);
     scheduledDeals.push({
@@ -362,6 +380,7 @@ function movePlayer(game: GameState, fromTeamId: string, toTeamId: string, playe
   refreshRosterState(fromTeam);
   refreshRosterState(toTeam);
   game.players[player.id] = player;
+  syncPlayerArchiveEntry(game, player, game.year);
 }
 
 function movePick(game: GameState, fromTeamId: string, toTeamId: string, pickIdString: string): void {
@@ -385,6 +404,10 @@ function applyDeadlineDeal(game: GameState, deal: DeadlineDeal): void {
   for (const pickIdString of deal.pickIds ?? []) {
     movePick(game, buyerId, sellerId, pickIdString);
   }
+  const buyer = game.teams[buyerId];
+  const seller = game.teams[sellerId];
+  if (buyer) syncTeamCapTotals(game, buyer);
+  if (seller) syncTeamCapTotals(game, seller);
 }
 
 export function finalizeDeadline(gameState: GameState, deadlineState: TradeDeadlineState): GameState {

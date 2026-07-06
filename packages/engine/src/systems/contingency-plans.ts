@@ -96,11 +96,11 @@ export const CONTINGENCY_TRIGGERS: Record<
 export const CONTINGENCY_RESPONSES: Record<ContingencyResponse, { label: string; description: string }> = {
   go_air_raid: {
     label: 'Go Air Raid',
-    description: 'Open the offense and chase explosive plays through the air.',
+    description: 'Call deeper passes for fast points; misses stop the clock and raise turnover risk.',
   },
   kill_clock: {
     label: 'Kill the clock',
-    description: 'Shrink possessions and protect the scoreboard.',
+    description: 'Shrink possessions, keep the clock moving, and reduce turnover chances.',
   },
   go_for_it_on_4th: {
     label: 'Go for it on 4th',
@@ -112,7 +112,7 @@ export const CONTINGENCY_RESPONSES: Record<ContingencyResponse, { label: string;
   },
   pressure_every_down: {
     label: 'Pressure every down',
-    description: 'Keep the rush active and chase negative plays.',
+    description: 'Send extra rushers for negative plays; missed pressure leaves coverage exposed.',
   },
   prevent_defense_off: {
     label: 'Prevent defense off',

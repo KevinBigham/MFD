@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
+import { SAVE_VERSION } from '@mfd/engine';
 import appSource from '../../app/App.tsx?raw';
 import { AboutScreen } from './AboutScreen';
 
@@ -22,7 +23,8 @@ describe('AboutScreen', () => {
     const markup = renderToStaticMarkup(<AboutScreen />);
 
     expect(markup).toContain('v1.0.0');
-    expect(markup).toContain('v35');
+    expect(markup).toContain(`v${SAVE_VERSION}`);
+    expect(markup).not.toContain('v35');
   });
 
   it('links to the repository and play guide', () => {

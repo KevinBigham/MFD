@@ -5,7 +5,23 @@ import {
   getDivisionStandings,
   getStatLeaders,
 } from './standings';
+import { applyRuleChange, initLeagueRules } from './league-rules';
 import { makeLeagueState } from './test-helpers';
+
+function emptySchedule(weeks: number) {
+  return Array.from({ length: weeks }, (_, index) => ({ week: index + 1, games: [] }));
+}
+
+function applyLeagueRule(game: ReturnType<typeof makeLeagueState>, key: 'playoff_seeds_per_conf' | 'schedule_weeks', newValue: number) {
+  game.leagueRules = applyRuleChange(initLeagueRules(game.year), {
+    key,
+    newValue,
+    source: 'commissioner_vote',
+    proposedBy: 'commissioner',
+    effectiveYear: game.year,
+    rationale: 'Test rule override.',
+  });
+}
 
 describe('standings helpers', () => {
   it('sorts division standings using win pct then point differential', () => {
@@ -62,6 +78,17 @@ describe('standings helpers', () => {
     expect(picture.nfc[0]?.teamId).toBe('nfce1');
   });
 
+  it('builds playoff picture seed counts from the active league rule', () => {
+    const game = makeLeagueState('regular_season', 18);
+    applyLeagueRule(game, 'playoff_seeds_per_conf', 8);
+
+    const picture = buildPlayoffPicture(game);
+
+    expect(picture.afc).toHaveLength(8);
+    expect(picture.nfc).toHaveLength(8);
+    expect(picture.afc.at(-1)?.seed).toBe(8);
+  });
+
   it('marks clinched and eliminated teams under the simplified tiebreak model', () => {
     const game = makeLeagueState('regular_season', 18);
     game.teams.afce1.wins = 17;
@@ -83,6 +110,18 @@ describe('standings helpers', () => {
 
     expect(getClinchedStatus(game, 'afce1')).toBe('X');
     expect(getClinchedStatus(game, 'afce2')).toBe('E');
+  });
+
+  it('uses generated schedule length for remaining division-clinch math', () => {
+    const game = makeLeagueState('regular_season', 17);
+    applyLeagueRule(game, 'schedule_weeks', 19);
+    game.schedule = emptySchedule(19);
+    game.teams.afce1.wins = 17;
+    game.teams.afce1.losses = 0;
+    game.teams.afce2.wins = 16;
+    game.teams.afce2.losses = 1;
+
+    expect(getClinchedStatus(game, 'afce1')).toBe('');
   });
 
   it('produces stat leaders from player season totals', () => {

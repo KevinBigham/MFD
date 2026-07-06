@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   applyDockControl,
+  CHIP_INTRO_RECEIPT_STORAGE_KEY,
   CHIP_LEGACY_ONBOARDING_STORAGE_KEY,
   type ChipDockControl,
   type ChipDockControlStore,
@@ -43,7 +44,7 @@ function applyControl(control: ChipDockControl, storage = new MemoryStorage()) {
     id: 'chip.weekly.cleanWin',
     beat: 0,
     pose: 'celebrate',
-    text: 'That was a grown-up win.',
+    text: 'Recommended: open Roster and Depth Chart before Advance Week. Consequence: an unseen injury or wrong backup order can flip next week.',
     archetype: 'weekly',
   };
   const store: ChipDockControlStore = {
@@ -70,13 +71,13 @@ describe('dock controls', () => {
 
     expect(store.showWeeklyDialogue).toHaveBeenCalledWith(expect.objectContaining({
       id: 'chip.weekly.cleanWin',
-      text: 'That was a grown-up win.',
+      text: 'Recommended: open Roster and Depth Chart before Advance Week. Consequence: an unseen injury or wrong backup order can flip next week.',
     }));
     expect(readDockPrefs(storage)).toEqual(prefs);
     expect(prefs).toEqual(createDefaultDockPrefs());
   });
 
-  it('resets first-ten onboarding progress and legacy skip state without touching route receipts', () => {
+  it('resets first-ten onboarding progress, intro receipt, and legacy skip state without touching route receipts', () => {
     const storage = new MemoryStorage();
     storage.setItem(
       CHIP_ONBOARDING_STATE_STORAGE_KEY,
@@ -92,6 +93,10 @@ describe('dock controls', () => {
       CHIP_LEGACY_ONBOARDING_STORAGE_KEY,
       JSON.stringify({ skipped: true, lastBeat: 9, timestamp: '2026-04-30T04:00:00.000Z' }),
     );
+    storage.setItem(
+      CHIP_INTRO_RECEIPT_STORAGE_KEY,
+      JSON.stringify({ seen: true, skipped: false, timestamp: '2026-04-30T03:30:00.000Z' }),
+    );
     writeChipReadReceipts(storage, ['chip.first10.roster', 'chip.route.roster.beat-1']);
 
     const { prefs, store } = applyControl('resetOnboarding', storage);
@@ -100,6 +105,7 @@ describe('dock controls', () => {
     expect(readChipReadReceipts(storage).has('chip.first10.roster')).toBe(false);
     expect(readChipReadReceipts(storage).has('chip.route.roster.beat-1')).toBe(true);
     expect(storage.getItem(CHIP_LEGACY_ONBOARDING_STORAGE_KEY)).toBeNull();
+    expect(storage.getItem(CHIP_INTRO_RECEIPT_STORAGE_KEY)).toBeNull();
     expect(store.reset).toHaveBeenCalledTimes(1);
     expect(prefs).toEqual(createDefaultDockPrefs());
   });

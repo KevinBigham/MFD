@@ -3,6 +3,7 @@ import { AlertTriangle, RotateCcw, Home } from 'lucide-react';
 import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
 import { SAVE_VERSION } from '@mfd/engine';
 import { PixelScreenHeader, monoSm } from '../features/shared/pixelUi';
+import { resolveCurrentAppRoute } from './currentAppRoute';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -82,8 +83,7 @@ type DevLogWindow = typeof window & { __MFD_DEV_LOGS__?: unknown };
 
 export function getCurrentErrorRoute(): string {
   if (typeof window === 'undefined') return 'server-render';
-  const hashRoute = window.location.hash.replace(/^#/, '');
-  return hashRoute || window.location.pathname || '/';
+  return resolveCurrentAppRoute(window.location);
 }
 
 export function getRecentDevLogMessages(): string[] {

@@ -1,4 +1,5 @@
 import type { GameResult, GameState, LeagueRivalry, Rivalry } from '../types';
+import { getRegularSeasonWeekCount } from '../systems/season-schedule';
 import { tagMatchup } from './drama-tags';
 import { intensityScore } from './scoring';
 import {
@@ -129,7 +130,7 @@ function toLegacyMatchup(game: GameState, teamId: string, rivalry: Rivalry, resu
   const teamAScore = result.winner === teamAId ? parsedScore.winnerScore : parsedScore.loserScore;
   const teamBScore = result.winner === teamBId ? parsedScore.winnerScore : parsedScore.loserScore;
   const relationship = resolveRelationship(game, teamAId, teamBId);
-  const isPlayoff = result.week >= 19;
+  const isPlayoff = result.week > getRegularSeasonWeekCount(game);
 
   return {
     source: 'legacy',

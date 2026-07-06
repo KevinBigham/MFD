@@ -131,4 +131,24 @@ describe('ChronicleEventDetailModal', () => {
 
     expect(markup).toContain('Close');
   });
+
+  it('renders saved hall of fame epilogue context in the detail modal', () => {
+    const markup = renderToStaticMarkup(
+      <ChronicleEventDetailModal
+        event={{
+          ...hofEvent,
+          epilogueCategory: 'broadcasting',
+          epilogueHeadline: 'Cole Stone joins the booth',
+          epilogueStory: 'Stone turns film study into appointment television.',
+        }}
+        open
+        onClose={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain('Epilogue');
+    expect(markup).toContain('Broadcasting');
+    expect(markup).toContain('Cole Stone joins the booth');
+    expect(markup).toContain('Stone turns film study into appointment television.');
+  });
 });

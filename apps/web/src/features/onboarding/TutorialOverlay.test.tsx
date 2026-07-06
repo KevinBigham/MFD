@@ -50,8 +50,14 @@ describe('TutorialOverlay', () => {
 
     expect(markup).toContain('TUTORIAL TIPS');
     expect(markup).toContain('Shift+? opens the hotkey board');
+    expect(markup).toContain('Before Advance Week: check Monday Briefing');
     expect(markup).toContain('WHAT&#x27;S NEW');
     expect(markup).toContain('Game Plan holds contingency rules');
-    expect(markup).toContain('invariant debug readout');
+    expect(markup).toContain('Game Day shows score, injuries, turnovers, sacks, failed drives');
+    expect(markup).not.toContain('swing plays');
+    expect(markup).toContain('open Roster, Contracts, or Game Plan before offers, starters, or calls lock');
+    expect(markup).not.toContain('can affect roster or Game Plan choices');
+    expect(markup).not.toContain('invariant debug readout');
+    expect(markup).not.toContain('New wiring');
   });
 });
