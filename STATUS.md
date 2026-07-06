@@ -1,5 +1,40 @@
 # STATUS
 
+## Run Ledger - 2026-07-06 Wave 0 GitHub Convergence / Release Gate / Branch Protection
+
+Closed Wave 0 follow-through after the July Convergence work reached GitHub. PR #66 (`goat/july-convergence`) merged to `main` as `1640557e8a0813d3cdefcf7d2446ac2e460b7c29`, bringing the July 5 snapshot and GOAT Waves 0-3 work onto GitHub. The associated GitHub Pages workflow for that convergence merge passed and deployed the July build, while main CI exposed release-gate wiring/runtime issues that were fixed in follow-up PR #67.
+
+PR #67 (`codex/fix-release-gate-ts-test`) fixed release-gate TypeScript and browser-smoke harness failures and merged as `89c077f95634b2bf2b265f6757ddac692139d075`. The fix stayed in CI/test harness scope: TypeScript grade-season tests now run through Vitest, the release gate runs on Node 24, the release-gate timeout allows the full gate to finish, post-setup browser smokes prefer the local Vite preview binary, preview startup has separate timeout/diagnostics, preview child signal/error exits are detected, and stale full-setup smoke copy assertions were aligned to source-verified setup copy. No engine, sim, save schema, migration, `SAVE_VERSION`, RNG, gameplay, dependency, or product feature code changed in the PR #67 fix.
+
+Patch 0.2 is complete: the full remote public-release gate passed on GitHub for PR #67 with 37/37 release-gate steps green. The release-gate job reported `PASS: full public-release gate completed in 5687.4s` (job runtime 1h35m7s). The main-branch CI rerun after merge also passed `test`, `determinism-gate`, and `release-gate`.
+
+Patch 0.4 intent is satisfied through GitHub branch protection on `main`. Protection now requires status checks `test` and `determinism-gate`, requires branches to be up to date before merging (`strict: true`), enforces protection for admins, disallows force pushes, and disallows deletions. `release-gate` is intentionally not required yet because it is too slow/new to block every merge. Required linear history is off, required PR reviews are not configured, and branch restrictions are not configured.
+
+The GitHub Pages deploy for `89c077f95634b2bf2b265f6757ddac692139d075` initially built successfully but failed twice inside `actions/deploy-pages@v4` after the deployment reached `syncing_files` with the platform message `Deployment failed, try again later.` A full Pages workflow rerun produced a fresh artifact and deployed successfully. Live-site verification then loaded `https://kevinbigham.github.io/MFD/` in headless Chrome and confirmed the page rendered `Mr. Football Dynasty v1.0.0` / Save v36 content with no console/runtime errors on initial load.
+
+### CI Failure Root Causes Recorded
+
+- Failure #1: main CI after PR #66 ran `scripts/__tests__/grade-season.test.ts` through plain Node test, which could not execute the TypeScript file extension.
+- Failure #2: the first PR #67 release-gate run hit the old 75-minute job timeout before the full 37-step public-release gate could finish.
+- Failure #3: the next release-gate run used Node 20 for browser smokes; the G1/G2 smoke required a runtime with built-in `fetch` and `WebSocket`, so Node 24 was required.
+- Failure #4: the G1/G2 full-setup smoke timed out waiting for the preview server because the harness did not detect preview child signal/error exits, went through a brittle `pnpm preview` layer, and still contained stale full-setup copy assertions. The fix added local Vite preference, preview diagnostics, signal/error detection, a separate preview timeout, and source-verified copy assertions.
+- Failure #5: GitHub Pages deploy accepted the artifact and created the deployment, then failed during `syncing_files` with a GitHub Pages service-side `try again later` error. A full workflow rerun with a fresh artifact succeeded; no deploy-workflow restructure was made.
+
+### Verification
+
+- PR #67 GitHub checks: `determinism-gate` passed in 24s; `test` passed in 33m29s; `release-gate` passed in 1h35m7s with 37/37 steps and 5687.4s full-gate script runtime.
+- Main CI after PR #67: `determinism-gate`, `test`, and `release-gate` passed for `89c077f95634b2bf2b265f6757ddac692139d075`.
+- GitHub Pages after PR #67: fresh workflow rerun passed build and deploy; live site rendered with no console/runtime errors on initial load.
+- Branch protection readback confirmed `strict: true`, contexts `test` and `determinism-gate`, `enforce_admins: true`, `allow_force_pushes: false`, and `allow_deletions: false`.
+
+### Checks Not Run
+
+- No additional product tests were run for this ledger-only update. This branch changes documentation only.
+
+### Rollback
+
+Revert this `STATUS.md` ledger entry only. Do not roll back PR #66, PR #67, branch protection, or the successful Pages deployment unless Director separately requests that operational rollback.
+
 ## Run Ledger - 2026-07-06 GOAT Director Patch 3.1 Team Window Read-Model
 
 Implemented Patch 3.1 — Team window read-model. `computeTeamWindow` is a web-only deterministic read-model that classifies CPU clubs as `ALL_IN`, `CONTEND`, `RETOOL`, or `REBUILD`, with `clear` or `mixed` confidence and 2-4 receipted drivers. The rubric reads only already-saved or render-derived inputs: roster/QB/core age and OVR, current cap space, draft-pick inventory, saved `team.gmStrategy`, saved `team.philosophy`, current record, team-needs cap flexibility, and saved `game.franchiseHistory`.
