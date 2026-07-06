@@ -30,6 +30,15 @@ const marketPlayer = {
   agentId: null,
 };
 
+const cpuRoster = [
+  { id: 'cpu-qb', name: 'Mason Pike', firstName: 'Mason', lastName: 'Pike', pos: 'QB', ovr: 88, age: 34, isStarter: true },
+  { id: 'cpu-wr-1', name: 'Ari Knox', firstName: 'Ari', lastName: 'Knox', pos: 'WR', ovr: 84, age: 31, isStarter: true },
+  { id: 'cpu-wr-2', name: 'Nico Bell', firstName: 'Nico', lastName: 'Bell', pos: 'WR', ovr: 80, age: 30, isStarter: true },
+  { id: 'cpu-te', name: 'Cal Reed', firstName: 'Cal', lastName: 'Reed', pos: 'TE', ovr: 79, age: 30, isStarter: true },
+  { id: 'cpu-ol', name: 'Jules Ward', firstName: 'Jules', lastName: 'Ward', pos: 'OL', ovr: 82, age: 32, isStarter: true },
+  { id: 'cpu-dl', name: 'Owen Frost', firstName: 'Owen', lastName: 'Frost', pos: 'DL', ovr: 78, age: 29, isStarter: true },
+];
+
 const reSignDecision = {
   playerId: 'p1',
   teamId: 'team-1',
@@ -129,6 +138,7 @@ const visibleOffseasonCalendar: MockOffseasonCalendar = {
 
 const mockState = {
   game: {
+    year: 2030,
     phase: 'offseason',
     freeAgents: [] as string[],
     scenarioState: null as any,
@@ -147,10 +157,33 @@ const mockState = {
     teams: {
       'team-1': {
         id: 'team-1',
+        city: 'Chicago',
+        name: 'Blaze',
         isUser: true,
         roster: [rosterPlayer],
       },
+      'cpu-1': {
+        id: 'cpu-1',
+        city: 'Denver',
+        name: 'Peak',
+        isUser: false,
+        roster: cpuRoster,
+        draftPicks: [
+          { round: 1, year: 2031, currentTeamId: 'cpu-1' },
+          { round: 3, year: 2031, currentTeamId: 'cpu-1' },
+        ],
+        capSpace: 38,
+        capUsed: 212,
+        deadCap: 5,
+        gmStrategy: 'win_now',
+        philosophy: 'maintain',
+        wins: 0,
+        losses: 0,
+        ties: 0,
+      },
     },
+    teamNeedsCache: {},
+    franchiseHistory: [],
     offseasonState,
   },
   phase: 'offseason',
@@ -289,20 +322,30 @@ describe('FreeAgencyHub', () => {
     const summary = buildFreeAgencyBidResolutionSummary({
       bidsByPlayer: offseasonState.freeAgencyBids as never,
       players: mockState.game.players as never,
+      teams: mockState.game.teams as never,
       userTeamId: 'team-1',
+      currentYear: mockState.game.year,
+      teamNeedsByTeam: mockState.game.teamNeedsCache as never,
+      franchiseHistory: mockState.game.franchiseHistory as never,
     });
 
     expect(summary.label).toBe('Market losses saved');
     expect(summary.accent).toBe('red');
     expect(summary.detail).toContain('1 resolved free-agency bid row(s): 0 user win(s), 1 user loss(es), 0 CPU-only result(s).');
     expect(summary.source).toContain('offseasonState.freeAgencyBids rows after resolveFreeAgencyRound marks bids won/lost');
-    expect(summary.rows).toEqual([{
-      id: 'fa-bid-resolution:fa-1:1:cpu-1',
-      label: 'Outbid',
-      accent: 'red',
-      detail: 'Drew Vale // WR // 79 OVR // Round 1: cpu-1 won at 91.8 score from 2 saved bid(s). User bid lost at 82.4 score.',
-      boundary: 'Saved bid-resolution row only; display does not re-score bids, resolve the round, move players, change cap totals, autosave, or reroll outcomes.',
-    }]);
+    expect(summary.rows).toEqual([
+      expect.objectContaining({
+        id: 'fa-bid-resolution:fa-1:1:cpu-1',
+        label: 'Outbid',
+        accent: 'red',
+        detail: 'Drew Vale // WR // 79 OVR // Round 1: cpu-1 won at 91.8 score from 2 saved bid(s). User bid lost at 82.4 score.',
+        boundary: 'Saved bid-resolution row only; display does not re-score bids, resolve the round, move players, change cap totals, autosave, or reroll outcomes.',
+        counterfactual: expect.objectContaining({
+          winnerLine: 'Denver Peak won Drew Vale at $11.2M in Round 1.',
+          userComparisonLine: 'You offered $9.5M ($1.7M less per year). Saved bid score: you 82.4, Denver Peak 91.8.',
+        }),
+      }),
+    ]);
   });
 
   it('renders saved bid-resolution rows without adding a write path', () => {
@@ -313,6 +356,11 @@ describe('FreeAgencyHub', () => {
     expect(markup).toContain('Saved freeAgencyBids');
     expect(markup).toContain('Drew Vale // WR // 79 OVR // Round 1: cpu-1 won at 91.8 score');
     expect(markup).toContain('User bid lost at 82.4 score.');
+    expect(markup).toContain('Why they won');
+    expect(markup).toContain('Denver Peak won Drew Vale at $11.2M in Round 1.');
+    expect(markup).toContain('Competitive window');
+    expect(markup).toContain('WIN_NOW GM posture and MAINTAIN philosophy were saved on the winning team.');
+    expect(markup).toContain('You offered $9.5M ($1.7M less per year). Saved bid score: you 82.4, Denver Peak 91.8.');
     expect(markup).toContain('display does not re-score bids, resolve the round, move players, change cap totals, autosave, or reroll outcomes');
   });
 

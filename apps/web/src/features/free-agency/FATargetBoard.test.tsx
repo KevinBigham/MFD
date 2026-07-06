@@ -5,6 +5,71 @@ import { FATargetBoard, buildFATargetMarketReceipt } from './FATargetBoard';
 const mockState = {
   phase: 'free_agency',
   team: { id: 'user', city: 'Chicago', name: 'Blaze' },
+  game: {
+    year: 2030,
+    players: {
+      'fa-1': { id: 'fa-1', name: 'Cole Hart', firstName: 'Cole', lastName: 'Hart', pos: 'CB', ovr: 87, age: 26 },
+    },
+    teams: {
+      user: { id: 'user', city: 'Chicago', name: 'Blaze', isUser: true, roster: [] },
+      'rival-1': {
+        id: 'rival-1',
+        city: 'Denver',
+        name: 'Peak',
+        isUser: false,
+        roster: [
+          { id: 'cpu-qb', name: 'Mason Pike', pos: 'QB', ovr: 88, age: 34, isStarter: true },
+          { id: 'cpu-wr-1', name: 'Ari Knox', pos: 'WR', ovr: 84, age: 31, isStarter: true },
+          { id: 'cpu-wr-2', name: 'Nico Bell', pos: 'WR', ovr: 80, age: 30, isStarter: true },
+          { id: 'cpu-te', name: 'Cal Reed', pos: 'TE', ovr: 79, age: 30, isStarter: true },
+          { id: 'cpu-ol', name: 'Jules Ward', pos: 'OL', ovr: 82, age: 32, isStarter: true },
+          { id: 'cpu-dl', name: 'Owen Frost', pos: 'DL', ovr: 78, age: 29, isStarter: true },
+        ],
+        draftPicks: [
+          { round: 1, year: 2031, currentTeamId: 'rival-1' },
+          { round: 3, year: 2031, currentTeamId: 'rival-1' },
+        ],
+        capSpace: 38,
+        capUsed: 212,
+        deadCap: 5,
+        gmStrategy: 'win_now',
+        philosophy: 'maintain',
+        wins: 0,
+        losses: 0,
+        ties: 0,
+      },
+    },
+    teamNeedsCache: {},
+    franchiseHistory: [],
+    offseasonState: {
+      freeAgencyBids: {
+        'fa-1': [
+          {
+            playerId: 'fa-1',
+            teamId: 'user',
+            round: 2,
+            years: 3,
+            salary: 14.2,
+            signingBonus: 4.5,
+            guaranteed: 28,
+            score: 83.1,
+            status: 'lost',
+          },
+          {
+            playerId: 'fa-1',
+            teamId: 'rival-1',
+            round: 2,
+            years: 4,
+            salary: 17.4,
+            signingBonus: 7.2,
+            guaranteed: 38,
+            score: 91.2,
+            status: 'won',
+          },
+        ],
+      },
+    },
+  },
   board: {
     watchlist: ['fa-1'],
     targets: [
@@ -58,6 +123,10 @@ describe('FATargetBoard', () => {
     expect(markup).toContain('FA Market Receipt');
     expect(markup).toContain('Hot market');
     expect(markup).toContain('Cole Hart // CB // 91 fit, 62% sign probability, $14.2M projected.');
+    expect(markup).toContain('Why they won');
+    expect(markup).toContain('Denver Peak won Cole Hart at $17.4M in Round 2.');
+    expect(markup).toContain('Saved bid receipt');
+    expect(markup).toContain('You offered $14.2M ($3.2M less per year). Saved bid score: you 83.1, Denver Peak 91.2.');
     expect(markup).toContain('Compare');
   });
 

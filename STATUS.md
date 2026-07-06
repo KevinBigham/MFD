@@ -1,5 +1,43 @@
 # STATUS
 
+## Run Ledger - 2026-07-06 GOAT Director Patch 3.2 Counterfactual FA Receipts
+
+Implemented Patch 3.2 — Counterfactual FA receipts. `buildBidCounterfactual` is a web-only deterministic read-model that explains saved free-agent bid losses from already-persisted bid-resolution rows, winning-team contract amount, user bid amount/score when present, winner cap fields, saved GM/philosophy posture, and the existing `computeTeamWindow` read-model. Older or sparse saves fail closed to `null` when the saved winner, amount, team, or enough receipted drivers are missing.
+
+Free Agency Hub resolved-bid rows now show an expandable `Why they won` receipt with winner line, 2-3 sourced drivers, user comparison copy, and source refs. FA Target Board rows now show the compact version when a saved lost user bid exists for that target. The feature explains saved outcomes only; it does not re-score bids, resolve markets, move players, change cap totals, autosave, reroll outcomes, change CPU bidding/market behavior, change `GameState`, change save schema, change migrations, bump `SAVE_VERSION`, alter sim math/RNG, add dependencies, touch CI/deploy wiring, or edit engine source.
+
+### Files Changed
+
+- `apps/web/src/lib/fa-counterfactuals.ts`
+- `apps/web/src/lib/fa-counterfactuals.test.ts`
+- `apps/web/src/features/free-agency/FreeAgencyHub.tsx`
+- `apps/web/src/features/free-agency/FreeAgencyHub.test.tsx`
+- `apps/web/src/features/free-agency/FATargetBoard.tsx`
+- `apps/web/src/features/free-agency/FATargetBoard.test.tsx`
+- `CHANGELOG.md`
+- `STATUS.md`
+- `RELEASE_CONVERGENCE.md`
+
+### Verification
+
+- Passed: `corepack pnpm --filter @mfd/web test -- src/lib/fa-counterfactuals.test.ts src/features/free-agency/FreeAgencyHub.test.tsx src/features/free-agency/FATargetBoard.test.tsx` (3 files / 20 tests).
+- Passed: `corepack pnpm -r --workspace-concurrency=1 typecheck` across `@mfd/design-system`, `@mfd/engine`, and `@mfd/web`.
+- Passed: touched-logic randomness scan found no `Math.random` and no `Date.now` in `apps/web/src/lib/fa-counterfactuals.ts`, `FreeAgencyHub.tsx`, or `FATargetBoard.tsx`.
+- Passed: `bash scripts/check-math-random.sh`.
+- Confirmed: no files under `packages/engine/src` were edited by this run.
+
+### Checks Not Run
+
+- Full unfocused `@mfd/web` suite, production build, browser smokes, playtests, full release gate, deploys, and merges were not run. This was a targeted read-model/UI patch with focused web tests plus recursive typecheck per the mission.
+
+### Rollback
+
+Revert the files listed above. Runtime rollback removes the FA counterfactual receipts from Free Agency Hub and FA Target Board plus the web read-model/tests/docs only. No save repair, migration rollback, `SAVE_VERSION` rollback, engine rollback, RNG rollback, sidecar cleanup, market repair, CPU behavior repair, or gameplay data repair is required.
+
+### Best Next Slice
+
+Patch 3.3 or the next unblocked Wave 3 read-model that layers on Team Window without changing CPU behavior; if Director wants FA receipts broadened first, add draft/waiver counterfactual receipts as a separate read-model patch.
+
 ## Run Ledger - 2026-07-06 Wave 0 GitHub Convergence / Release Gate / Branch Protection
 
 Closed Wave 0 follow-through after the July Convergence work reached GitHub. PR #66 (`goat/july-convergence`) merged to `main` as `1640557e8a0813d3cdefcf7d2446ac2e460b7c29`, bringing the July 5 snapshot and GOAT Waves 0-3 work onto GitHub. The associated GitHub Pages workflow for that convergence merge passed and deployed the July build, while main CI exposed release-gate wiring/runtime issues that were fixed in follow-up PR #67.

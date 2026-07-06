@@ -8,8 +8,11 @@ import {
   type ContractOffer,
   type FreeAgencyBid,
   type FreeAgencyDecisionForecast,
+  type FranchiseHistoryEntry,
   type GameState,
   type Player,
+  type Team,
+  type TeamNeedsReport,
 } from '@mfd/engine';
 import {
   selectFreeAgentPlayers,
@@ -35,6 +38,7 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 import { playSound } from '../audio/AudioManager';
+import { buildBidCounterfactual, type BidCounterfactual } from '../../lib/fa-counterfactuals';
 
 interface AgentSummary {
   id: string;
@@ -102,6 +106,7 @@ export interface FreeAgencyBidResolutionRow {
   accent: FreeAgencyReceiptAccent;
   detail: string;
   boundary: string;
+  counterfactual: BidCounterfactual | null;
 }
 
 export interface FreeAgencyBidResolutionSummary {
@@ -144,7 +149,11 @@ function forecastReceiptLine(forecast?: FreeAgencyDecisionForecast): string {
 export function buildFreeAgencyBidResolutionSummary(args: {
   bidsByPlayer: Record<string, FreeAgencyBid[]>;
   players: Record<string, Player>;
+  teams?: Record<string, Team>;
   userTeamId: string | null;
+  currentYear?: number | null;
+  teamNeedsByTeam?: Record<string, TeamNeedsReport | undefined>;
+  franchiseHistory?: FranchiseHistoryEntry[];
 }): FreeAgencyBidResolutionSummary {
   const rows = Object.entries(args.bidsByPlayer).flatMap(([playerId, bids]) => {
     const resolved = bids.filter((bid) => bid.status !== 'pending');
@@ -157,6 +166,19 @@ export function buildFreeAgencyBidResolutionSummary(args: {
     const userBid = args.userTeamId ? resolved.find((bid) => bid.teamId === args.userTeamId) : undefined;
     const player = args.players[playerId];
     const playerLabel = player ? playerReceiptLabel(player) : playerId;
+    const winningTeam = args.teams?.[winner.teamId];
+    const counterfactual = buildBidCounterfactual({
+      player,
+      playerName: player ? playerDisplayName(player) : playerId,
+      bids: resolved,
+      winnerBid: winner,
+      userBid: userBid ?? null,
+      userTeamId: args.userTeamId,
+      winningTeam: winningTeam ?? null,
+      currentYear: args.currentYear,
+      teamNeeds: winningTeam ? args.teamNeedsByTeam?.[winningTeam.id] ?? null : null,
+      franchiseHistory: args.franchiseHistory ?? [],
+    });
     const userLine = userBid
       ? `User bid ${userBid.status} at ${scoreLabel(userBid.score)} score.`
       : 'No saved user bid in this resolved row.';
@@ -177,6 +199,7 @@ export function buildFreeAgencyBidResolutionSummary(args: {
       accent,
       detail: `${playerLabel} // Round ${winner.round}: ${winner.teamId} won at ${scoreLabel(winner.score)} score from ${resolved.length} saved bid(s). ${userLine}`,
       boundary: 'Saved bid-resolution row only; display does not re-score bids, resolve the round, move players, change cap totals, autosave, or reroll outcomes.',
+      counterfactual,
     }];
   });
 
@@ -199,6 +222,41 @@ export function buildFreeAgencyBidResolutionSummary(args: {
     source: 'Source: offseasonState.freeAgencyBids rows after resolveFreeAgencyRound marks bids won/lost. This summary is read-only.',
     rows,
   };
+}
+
+function FreeAgencyCounterfactualReceipt({ counterfactual }: { counterfactual: BidCounterfactual }) {
+  return (
+    <details
+      data-fa-counterfactual="why-they-won"
+      style={{
+        padding: '8px',
+        border: '1px solid rgba(244, 211, 94, 0.35)',
+        background: 'rgba(244, 211, 94, 0.06)',
+      }}
+    >
+      <summary style={{ ...pixelSm, color: 'var(--mfd-gold)', cursor: 'pointer' }}>
+        Why they won
+      </summary>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.5 }}>{counterfactual.winnerLine}</div>
+        {counterfactual.whyDrivers.map((driver) => (
+          <div key={`${driver.label}:${driver.sourceRef}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="gold">{driver.label}</PixelBadge>
+              <PixelBadge variant="default">{driver.sourceRef}</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{driver.detail}</div>
+          </div>
+        ))}
+        {counterfactual.userComparisonLine ? (
+          <div style={{ ...monoSm, color: 'var(--mfd-red)', lineHeight: 1.5 }}>{counterfactual.userComparisonLine}</div>
+        ) : null}
+        <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)', lineHeight: 1.5 }}>
+          Sources: {counterfactual.sourceRefs.join(' | ')}
+        </div>
+      </div>
+    </details>
+  );
 }
 
 export function buildFreeAgencyActionReceipt(args: {
@@ -361,6 +419,7 @@ function FreeAgencyBidResolutionPanel({ summary }: { summary: FreeAgencyBidResol
                 <PixelBadge variant={row.accent}>{row.label}</PixelBadge>
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{row.detail}</div>
                 <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)', lineHeight: 1.5 }}>{row.boundary}</div>
+                {row.counterfactual ? <FreeAgencyCounterfactualReceipt counterfactual={row.counterfactual} /> : null}
               </div>
             ))}
           </div>
@@ -533,8 +592,12 @@ export function FreeAgencyHub() {
   const bidResolutionSummary = useMemo(() => buildFreeAgencyBidResolutionSummary({
     bidsByPlayer: offseasonState?.freeAgencyBids ?? {},
     players: game?.players ?? {},
+    teams: game?.teams ?? {},
     userTeamId: userTeamId ?? null,
-  }), [game?.players, offseasonState?.freeAgencyBids, userTeamId]);
+    currentYear: game?.year ?? null,
+    teamNeedsByTeam: game?.teamNeedsCache ?? {},
+    franchiseHistory: game?.franchiseHistory ?? [],
+  }), [game?.franchiseHistory, game?.players, game?.teamNeedsCache, game?.teams, game?.year, offseasonState?.freeAgencyBids, userTeamId]);
 
   const expiringPlayers = useMemo(() => {
     if (!offseasonState) return [];
