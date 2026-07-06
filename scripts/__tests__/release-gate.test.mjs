@@ -14,6 +14,7 @@ test('builds a full G7 release gate plan covering required gate groups', () => {
 
   for (const id of [
     'script-tests',
+    'grade-season-tests',
     'engine-typecheck',
     'web-typecheck',
     'design-typecheck',
@@ -56,6 +57,21 @@ test('builds a full G7 release gate plan covering required gate groups', () => {
   ]) {
     assert.equal(groups.has(group), true, `${group} group is in the release plan`);
   }
+});
+
+test('runs TypeScript grade-season tests through Vitest instead of plain Node', () => {
+  const plan = buildReleaseGatePlan({ platform: 'darwin' });
+  const scriptTests = plan.find((step) => step.id === 'script-tests');
+  const gradeSeasonTests = plan.find((step) => step.id === 'grade-season-tests');
+
+  assert.ok(scriptTests);
+  assert.equal(scriptTests.args.includes('scripts/__tests__/grade-season.test.ts'), false);
+
+  assert.ok(gradeSeasonTests);
+  assert.match(gradeSeasonTests.command, /apps\/web\/node_modules\/\.bin\/vitest$/);
+  assert.deepEqual(gradeSeasonTests.args.slice(0, 2), ['run', '--root']);
+  assert.ok(gradeSeasonTests.args.includes('--globals'));
+  assert.ok(gradeSeasonTests.args.includes('grade-season.test.ts'));
 });
 
 test('defaults production and browser smoke steps to Chip enabled', () => {

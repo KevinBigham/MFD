@@ -9,7 +9,7 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "test:engine": "pnpm --filter @mfd/engine test",
-    "test:grading": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/__tests__/grade-season.test.ts",
+    "test:grading": "apps/web/node_modules/.bin/vitest run --root . --dir scripts/__tests__ --globals grade-season.test.ts",
     "release:gate": "node scripts/release-gate.mjs",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
