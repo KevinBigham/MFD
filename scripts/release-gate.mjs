@@ -68,6 +68,7 @@ function postSetupStep(id, group, label, env) {
     env: {
       VITE_CHIP_ENABLED: 'true',
       SMOKE_TIMEOUT_MS: '90000',
+      SMOKE_PREVIEW_TIMEOUT_MS: '240000',
       ...env,
     },
   });

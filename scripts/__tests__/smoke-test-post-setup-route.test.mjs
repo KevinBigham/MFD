@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
+  parseSmokePreviewTimeoutMs,
+  parseSmokeTimeoutMs,
   parseSmokeViewport,
   parsePostImportRouteCheck,
   parsePostSetupRouteChecks,
@@ -38,6 +40,36 @@ import {
 } from '../smoke-test-post-setup-route.mjs';
 
 const smokeSource = readFileSync(new URL('../smoke-test-post-setup-route.mjs', import.meta.url), 'utf8');
+
+test('parses smoke assertion and preview startup timeouts independently', () => {
+  assert.equal(parseSmokeTimeoutMs({}), 30_000);
+  assert.equal(parseSmokeTimeoutMs({ SMOKE_TIMEOUT_MS: '90000' }), 90_000);
+  assert.equal(parseSmokeTimeoutMs({ SMOKE_TIMEOUT_MS: 'invalid' }), 30_000);
+
+  assert.equal(parseSmokePreviewTimeoutMs({}), 30_000);
+  assert.equal(parseSmokePreviewTimeoutMs({ SMOKE_TIMEOUT_MS: '90000' }), 90_000);
+  assert.equal(parseSmokePreviewTimeoutMs({
+    SMOKE_TIMEOUT_MS: '90000',
+    SMOKE_PREVIEW_TIMEOUT_MS: '240000',
+  }), 240_000);
+  assert.equal(parseSmokePreviewTimeoutMs({ SMOKE_PREVIEW_TIMEOUT_MS: 'invalid' }), 30_000);
+});
+
+test('prints preview command output when preview startup fails', () => {
+  assert.match(smokeSource, /formatPreviewStartFailure/);
+  assert.match(smokeSource, /previewError/);
+  assert.match(smokeSource, /preview\.signalCode !== null/);
+  assert.match(smokeSource, /Preview command:/);
+  assert.match(smokeSource, /Preview output:/);
+  assert.match(smokeSource, /no preview output captured/);
+});
+
+test('prefers the local Vite preview binary before falling back to pnpm', () => {
+  assert.match(
+    smokeSource,
+    /const viteBin = resolve\(webDir, 'node_modules\/\.bin\/vite'\);[\s\S]+if \(existsSync\(viteBin\)\)[\s\S]+if \(commandExists\(pnpmBin\)\)/,
+  );
+});
 
 test('uses the default post-setup weather route check', () => {
   assert.deepEqual(parsePostSetupRouteChecks({}), [
@@ -329,11 +361,13 @@ test('keeps full setup smoke aligned to the plain-language setup labels', () => 
   assert.match(smokeSource, /const expected = \['Protect Future Cap', 'Restructure One Contract', 'Restructure Multiple Contracts'\]/);
   assert.match(smokeSource, /'Balanced Pressure Release'/);
   assert.match(smokeSource, /await waitForSetupCapPlanChoices\(cdp, sessionId\)/);
-  assert.match(smokeSource, /Restructures create cap space now by moving money into future seasons/);
-  assert.match(smokeSource, /future cap space needed for injuries, trades, extensions, and next offseason/);
+  assert.match(smokeSource, /Create cap space with one controlled restructure/);
+  assert.match(smokeSource, /later injury, trade, and extension fixes stay open/);
   assert.match(smokeSource, /assertBodyTextAbsent\(cdp, sessionId, 'reduce room for later fixes'/);
   assert.match(smokeSource, /assertBodyTextAbsent\(cdp, sessionId, 'losing later room'/);
-  assert.match(smokeSource, /first-backup job that needs cover before one injury changes the lineup/);
+  assert.match(smokeSource, /Name roster roles and scheme calls before Week 1/);
+  assert.match(smokeSource, /Fix unresolved roster, Week 1 game-plan, or cap choices before Week 1/);
+  assert.match(smokeSource, /Preview every unresolved setup choice before the first month/);
   assert.match(smokeSource, /thin backup/);
   assert.match(smokeSource, /thinnest starter/);
   assert.match(smokeSource, /cannot survive an injury/);
@@ -342,10 +376,10 @@ test('keeps full setup smoke aligned to the plain-language setup labels', () => 
   assert.match(smokeSource, /opener depends on matching opponent pressure, coverage, and run-defense needs/);
   assert.match(smokeSource, /wrong pairings cost the opener/);
   assert.match(smokeSource, /wrong starter, call, or cap tradeoff/);
-  assert.match(smokeSource, /Must Do: hire the coach whose calls match today's starters/);
-  assert.match(smokeSource, /leaves protection or coverage assignments unassigned for Week 1/);
-  assert.match(smokeSource, /Must Do: choose schemes that protect current starters/);
-  assert.match(smokeSource, /force Depth Chart or Game Plan protection by Week 1/);
+  assert.match(smokeSource, /Choose the coach whose scheme and teaching match current starters/);
+  assert.match(smokeSource, /coach-player gaps create Week 1 missed assignments/);
+  assert.match(smokeSource, /Choose Week 1 calls that avoid unassigned starter jobs/);
+  assert.match(smokeSource, /late scheme changes create missed assignments before Week 1/);
   assert.match(smokeSource, /hire the coach this roster can run right now/);
   assert.match(smokeSource, /Play calls current starters cannot run/);
   assert.match(smokeSource, /choose schemes the roster can run now/);

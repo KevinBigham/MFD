@@ -82,6 +82,17 @@ test('defaults production and browser smoke steps to Chip enabled', () => {
   assert.equal(plan.find((step) => step.id === 'g6-visual-sweep-mobile').env.VITE_CHIP_ENABLED, 'true');
 });
 
+test('gives post-setup browser smokes extra preview startup time', () => {
+  const plan = buildReleaseGatePlan({ platform: 'darwin' });
+  const postSetupSmokes = plan.filter((step) => step.args?.[0] === 'scripts/smoke-test-post-setup-route.mjs');
+
+  assert.ok(postSetupSmokes.length >= 2);
+  for (const step of postSetupSmokes) {
+    assert.equal(step.env.SMOKE_TIMEOUT_MS, '90000', `${step.id} keeps assertion timeout`);
+    assert.equal(step.env.SMOKE_PREVIEW_TIMEOUT_MS, '240000', `${step.id} has preview startup timeout`);
+  }
+});
+
 test('keeps the dedicated G4 soak out of the generic web test step', () => {
   const plan = buildReleaseGatePlan({ platform: 'darwin' });
   const webTests = plan.find((step) => step.id === 'web-tests');
