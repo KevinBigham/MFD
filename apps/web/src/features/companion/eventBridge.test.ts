@@ -118,8 +118,8 @@ describe('createChipEventBridge', () => {
         gameOutcome: 'cleanWin',
         dialogueId: 'chip.weekly.cleanWin',
         guidance: expect.objectContaining({
-          topAction: 'Monday Briefing sets the board.',
-          whatChanged: 'Week 2: a clean win.',
+          topAction: 'Must Do: open Monday Briefing. Where: Action Center. Consequence: Advance Week locks saved lineups, cap moves, morale, and matchup calls.',
+          whatChanged: 'Week 2: strong win; open Roster and Depth Chart for injury flags before changing starters.',
         }),
         occurredAt: '2026-04-29T20:00:00.000Z',
       },
@@ -135,6 +135,60 @@ describe('createChipEventBridge', () => {
     gameStore.setState(makeGame({ currentWeek: 2 }));
 
     expect(events).toHaveLength(1);
+  });
+
+  it('fires gameComplete from an explicit completed-game marker instead of duplicate week rollover', () => {
+    const { bridge, gameStore, events } = setupBridge();
+    bridge.start();
+
+    gameStore.setState(makeGame({
+      currentWeek: 2,
+      latestGameCompleteId: 'summary-2026-1-user',
+      weeklyOutcome: 'cleanWin',
+    }));
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        id: 'chip.event.gameComplete.2026.2',
+        trigger: 'gameComplete',
+        category: 'gameComplete',
+        currentWeek: 2,
+        gameOutcome: 'cleanWin',
+        dialogueId: 'chip.weekly.cleanWin',
+        guidance: expect.objectContaining({
+          topAction: 'Must Do: open Postgame Recap before Advance Week. Where: Post-Week Command Deck, then Roster, Depth Chart, Game Plan. Consequence: next week uses unfixed injuries, morale, and matchup calls.',
+          whatChanged: 'Final whistle, Week 2: strong win; open Roster and Depth Chart for injury flags before changing starters.',
+        }),
+      }),
+    ]);
+  });
+
+  it('fires seasonEnd from an explicit season-end marker before game-complete markers', () => {
+    const { bridge, gameStore, events } = setupBridge();
+    bridge.start();
+
+    gameStore.setState(makeGame({
+      currentWeek: 1,
+      currentSeason: 2027,
+      latestGameCompleteId: 'summary-2026-22-user',
+      latestSeasonEndId: 'season-end-2026-user-champion',
+      weeklyOutcome: 'championship',
+    }));
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        id: 'chip.event.seasonEnd.2027.1',
+        trigger: 'seasonEnd',
+        category: 'seasonEnd',
+        currentSeason: 2027,
+        gameOutcome: 'championship',
+        dialogueId: 'chip.weekly.championship',
+        guidance: expect.objectContaining({
+          topAction: 'Must Do: open Season Recap before bids. Where: Season Recap, Contracts, Staff, Cap Lab, Free Agency. Consequence: rushed bids spend cap space on unneeded roles, miss extensions, or leave staff seats empty.',
+          whatChanged: 'Season closed: offseason; open Contracts and Staff for expiring starters before spending.',
+        }),
+      }),
+    ]);
   });
 
   it('suppresses events on setup routes', () => {

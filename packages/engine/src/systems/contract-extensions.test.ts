@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { getSalaryCap } from '../config/cap-math';
+import { applyRuleChange } from './league-rules';
 import { makeLeagueState } from './test-helpers';
 import {
   capProjection,
@@ -60,6 +62,23 @@ describe('contract extensions system', () => {
 
     expect(projection).toHaveLength(3);
     expect(projection.every((entry) => typeof entry.freeSpace === 'number')).toBe(true);
+  });
+
+  it('uses active salary cap growth rules in cap projections when game state is supplied', () => {
+    const game = makeLeagueState();
+    game.leagueRules = applyRuleChange(game.leagueRules, {
+      key: 'salary_cap_growth',
+      newValue: 0.1,
+      source: 'cba',
+      proposedBy: 'owners',
+      effectiveYear: game.year + 1,
+      rationale: 'Raise the cap faster next season.',
+    });
+
+    const projection = capProjection(game.teams.afce1!, game.year, 1, game);
+
+    expect(projection[0]?.totalCap).toBe(getSalaryCap(game.year + 1, game));
+    expect(projection[0]?.totalCap).toBeGreaterThan(getSalaryCap(game.year + 1));
   });
 
   it('prorates signing bonus across the added contract years', () => {

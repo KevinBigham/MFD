@@ -16,8 +16,8 @@ function setCoachDevelopment(game: ReturnType<typeof makeLeagueState>, teamId: s
   };
 }
 
-function tuneQuarterback(game: ReturnType<typeof makeLeagueState>) {
-  const qb = game.teams.afce1.roster.find((player) => player.pos === 'QB')!;
+function tuneQuarterbackForTeam(game: ReturnType<typeof makeLeagueState>, teamId: string) {
+  const qb = game.teams[teamId].roster.find((player) => player.pos === 'QB')!;
   qb.age = 23;
   qb.ovr = 82;
   qb.devTrait = 'superstar';
@@ -27,6 +27,10 @@ function tuneQuarterback(game: ReturnType<typeof makeLeagueState>) {
   qb.stats.passTD = 37;
   qb.stats.passINT = 9;
   return qb;
+}
+
+function tuneQuarterback(game: ReturnType<typeof makeLeagueState>) {
+  return tuneQuarterbackForTeam(game, 'afce1');
 }
 
 function tuneRunningBack(game: ReturnType<typeof makeLeagueState>) {
@@ -126,6 +130,27 @@ describe('mentor progression wiring', () => {
     progressPlayers(stacked);
 
     expect(stackedQb.ovr).toBeGreaterThan(singleQb.ovr);
+  });
+
+  it('does not apply active alumni mentors to CPU-team players', () => {
+    const control = makeLeagueState('offseason');
+    const mentored = makeLeagueState('offseason');
+    tuneQuarterback(control);
+    tuneQuarterback(mentored);
+    const controlCpuQb = tuneQuarterbackForTeam(control, 'afce2');
+    const mentoredCpuQb = tuneQuarterbackForTeam(mentored, 'afce2');
+    tuneRunningBack(control);
+    tuneRunningBack(mentored);
+    setCoachDevelopment(control, 'afce1', 88);
+    setCoachDevelopment(mentored, 'afce1', 88);
+    setCoachDevelopment(control, 'afce2', 88);
+    setCoachDevelopment(mentored, 'afce2', 88);
+    mentored.activeMentors = [mentor({ mentorRating: 5 })];
+
+    progressPlayers(control);
+    progressPlayers(mentored);
+
+    expect(mentoredCpuQb.ovr).toBe(controlCpuQb.ovr);
   });
 
   it('does not crash when no active mentors are present', () => {

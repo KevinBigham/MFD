@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { FranchiseHistoryEntry, GameState, HallOfFameEntry, PlayerArchiveEntry } from '@mfd/engine';
+import type { FarewellTour, FranchiseHistoryEntry, GameState, HallOfFameEntry, PlayerArchiveEntry } from '@mfd/engine';
 import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
 import { useGameStore, selectUserTeam } from '../../app/store/game-store';
 import {
@@ -57,6 +57,10 @@ function formatSeasonRange(startYear: number, endYear: number): string {
 
 function formatCoachWinPct(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
+}
+
+function formatFarewellMomentType(type: FarewellTour['moments'][number]['type']): string {
+  return type.replace(/_/g, ' ').toUpperCase();
 }
 
 function buildPlayerNameMap(game: GameState): Map<string, string> {
@@ -213,6 +217,96 @@ function hallOfFamersForTeam(game: GameState, teamId: string): HallOfFameEntry[]
       || left.name.localeCompare(right.name));
 }
 
+function FranchiseLegendSourcesPanel({
+  seasonCount,
+  ringCount,
+  hallCount,
+  retiredCount,
+  farewellCount,
+  coachCount,
+  eraCount,
+}: {
+  seasonCount: number;
+  ringCount: number;
+  hallCount: number;
+  retiredCount: number;
+  farewellCount: number;
+  coachCount: number;
+  eraCount: number;
+}) {
+  const rows = [
+    {
+      id: 'franchise-history',
+      label: 'Franchise seasons',
+      status: `${seasonCount} season${seasonCount === 1 ? '' : 's'}`,
+      detail: 'Source: saved game.franchiseHistory filtered to the current user team. Championship rings and era buckets are derived from those rows.',
+      accent: 'gold' as const,
+    },
+    {
+      id: 'player-names',
+      label: 'Player labels',
+      status: `${ringCount} title run${ringCount === 1 ? '' : 's'}`,
+      detail: 'Source: game.players, game.playerArchive, game.hallOfFame, and game.playerSeasonHistory resolve starting QBs, retired-number eras, and player names.',
+      accent: 'cyan' as const,
+    },
+    {
+      id: 'hall-rafters',
+      label: 'Hall + rafters',
+      status: `${hallCount + retiredCount} rows`,
+      detail: 'Source: saved game.hallOfFame and team.retiredJerseys. Hall rows only open a route-local detail modal.',
+      accent: 'green' as const,
+    },
+    {
+      id: 'farewell-tours',
+      label: 'Farewell tours',
+      status: `${farewellCount} active`,
+      detail: 'Source: saved game.farewellTours filtered to the current user team. Starting a tour remains owned by the Player Profile action.',
+      accent: 'cyan' as const,
+    },
+    {
+      id: 'coaches',
+      label: 'Coach roll call',
+      status: `${coachCount} coach${coachCount === 1 ? '' : 'es'}`,
+      detail: 'Source: saved game.coachingHistory team stints. The route sorts and summarizes existing coach records only.',
+      accent: 'gold' as const,
+    },
+    {
+      id: 'route-boundary',
+      label: 'Route boundary',
+      status: `${eraCount} era bucket${eraCount === 1 ? '' : 's'}`,
+      detail: 'Opening /legends does not write franchise history, Hall of Fame entries, retired jerseys, coach history, season stats, player archives, or save sidecars.',
+      accent: 'cyan' as const,
+    },
+  ];
+
+  return (
+    <PixelPanel title="Franchise Legend Sources" accent="cyan">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+        {rows.map((row) => (
+          <div
+            key={row.id}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              minHeight: '116px',
+              padding: '10px',
+              border: '1px solid #1f1f1f',
+              background: 'rgba(255,255,255,0.02)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ ...monoSm, color: '#fff' }}>{row.label}</span>
+              <PixelBadge variant={row.accent}>{row.status}</PixelBadge>
+            </div>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{row.detail}</span>
+          </div>
+        ))}
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function FranchiseLegends() {
   const game = useGameStore((state) => state.game);
   const userTeam = useGameStore(selectUserTeam);
@@ -237,6 +331,14 @@ export function FranchiseLegends() {
   );
   const allHallOfFamers = useMemo(
     () => (game && userTeam ? hallOfFamersForTeam(game, userTeam.id) : []),
+    [game, userTeam],
+  );
+  const activeFarewellTours = useMemo(
+    () => (game && userTeam
+      ? [...(game.farewellTours ?? [])]
+        .filter((tour) => tour.teamId === userTeam.id)
+        .sort((left, right) => left.announcedWeek - right.announcedWeek || left.playerName.localeCompare(right.playerName))
+      : []),
     [game, userTeam],
   );
   const archiveMap = useMemo(
@@ -276,6 +378,16 @@ export function FranchiseLegends() {
         <PixelMetricCard label="Head Coaches" value={coachRollCall.length} accent="green" detail="Distinct franchise hires on record" />
         <PixelMetricCard label="Seasons Played" value={franchiseHistory.length} accent="default" detail="Tracked seasons in franchise history" />
       </div>
+
+      <FranchiseLegendSourcesPanel
+        seasonCount={franchiseHistory.length}
+        ringCount={championshipRings.length}
+        hallCount={allHallOfFamers.length}
+        retiredCount={userTeam.retiredJerseys.length}
+        farewellCount={activeFarewellTours.length}
+        coachCount={coachRollCall.length}
+        eraCount={eraBuckets.length}
+      />
 
       <div style={autoGrid(360)}>
         <PixelPanel title="Championship Rings" accent="gold">
@@ -408,6 +520,53 @@ export function FranchiseLegends() {
                 ))}
             </div>
           )}
+        </PixelPanel>
+
+        <PixelPanel title="Active Farewell Tours" accent={activeFarewellTours.length > 0 ? 'gold' : 'default'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Source: saved game.farewellTours filtered to the current user team. Player Profile starts tours through startFarewellTour; Legends only displays the saved farewell schedule.
+            </div>
+            {activeFarewellTours.length === 0 ? (
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+                No farewell tours are active right now.
+              </div>
+            ) : (
+              activeFarewellTours.map((tour) => (
+                <div
+                  key={tour.playerId}
+                  data-testid="farewell-tour-row"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    padding: '12px',
+                    border: '2px solid var(--mfd-gold)',
+                    background: 'var(--mfd-bg-2)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div style={{ ...display, fontSize: '18px', color: 'var(--mfd-text)', lineHeight: 1 }}>
+                      {tour.playerName.toUpperCase()}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <PixelBadge variant="gold">ANNOUNCED WEEK {tour.announcedWeek}</PixelBadge>
+                      <PixelBadge variant={tour.finalSeason ? 'cyan' : 'default'}>
+                        {tour.finalSeason ? 'FINAL SEASON' : 'HONOR TOUR'}
+                      </PixelBadge>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {tour.moments.map((moment) => (
+                      <div key={`${tour.playerId}-${moment.week}-${moment.type}`} style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+                        Week {moment.week}: {formatFarewellMomentType(moment.type)} vs {moment.opponent} - {moment.narrative}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </PixelPanel>
 
         <PixelPanel title="Coach Roll Call" accent="green">

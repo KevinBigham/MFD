@@ -8,6 +8,12 @@ const PRESSURE_ACCENT: Record<PressureCard['severity'], 'green' | 'gold' | 'red'
   critical: 'red',
 };
 
+const PRESSURE_ACTION_LABEL: Record<PressureCard['severity'], string> = {
+  stable: 'ON TRACK FOR WEEK 1',
+  warning: 'WATCH BEFORE WEEK 1',
+  critical: 'FIX BEFORE WEEK 1',
+};
+
 export function IntelBriefingPhase({
   data,
   crisis,
@@ -91,8 +97,8 @@ export function IntelBriefingPhase({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <span style={{ ...pixelSm, color: 'var(--mfd-text)' }}>{primaryPressure.label}</span>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  {requiredPressureId === primaryPressure.id ? <PixelBadge variant="gold">REQUIRED</PixelBadge> : null}
-                  <PixelBadge variant={PRESSURE_ACCENT[primaryPressure.severity]}>{primaryPressure.signal}</PixelBadge>
+                  {requiredPressureId === primaryPressure.id ? <PixelBadge variant="gold">OPEN TO CONTINUE</PixelBadge> : null}
+                  <PixelBadge variant={PRESSURE_ACCENT[primaryPressure.severity]}>{PRESSURE_ACTION_LABEL[primaryPressure.severity]}</PixelBadge>
                 </div>
               </div>
               <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>{primaryPressure.diagnosis}</div>
@@ -105,7 +111,7 @@ export function IntelBriefingPhase({
                 </div>
               ) : (
                 <div style={{ ...monoSm, color: 'var(--mfd-gold)', lineHeight: 1.5 }}>
-                  Open this pressure card to unlock Next.
+                  Open this Intel card to continue.
                 </div>
               )}
             </button>
@@ -114,17 +120,17 @@ export function IntelBriefingPhase({
       </div>
 
       <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))' }}>
-        <PixelPanel title="Franchise Snapshot" accent="gold">
+        <PixelPanel title="Roster / Cap Snapshot" accent="gold">
           <div style={{ display: 'grid', gap: '6px', gridTemplateColumns: 'repeat(auto-fit, minmax(112px, 1fr))' }}>
-            <SnapshotRow label="Window" value={data.windowPhase} detail={`Score ${data.windowScore}`} />
-            <SnapshotRow label="Cap" value={data.capGrade} detail={`$${data.capSpace}M space`} />
+            <SnapshotRow label="Timeline" value={data.windowPhase} detail={`Pressure ${data.windowScore}`} />
+            <SnapshotRow label="Cap Space" value={`$${data.capSpace}M`} detail={`${data.capGrade} status`} />
             <SnapshotRow label="Roster" value={`${data.rosterOverall}`} detail={`League #${data.leagueRank}`} />
-            <SnapshotRow label="Strengths" value={data.strengths.length ? data.strengths.join(', ') : 'None clear'} />
+            <SnapshotRow label="Best Rooms" value={data.strengths.length ? data.strengths.join(', ') : 'None named'} />
             <SnapshotRow label="Needs" value={data.criticalNeeds.length ? data.criticalNeeds.join(', ') : 'No critical needs'} />
           </div>
         </PixelPanel>
 
-        <PixelPanel title="Secondary Signals" accent="cyan">
+        <PixelPanel title="Other Week 1 Costs" accent="cyan">
           <div style={{ display: 'grid', gap: '6px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
             {secondaryPressures.map((card) => (
               <button
@@ -149,8 +155,8 @@ export function IntelBriefingPhase({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                   <span style={{ ...pixelSm, color: 'var(--mfd-text)' }}>{card.label}</span>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    {requiredPressureId === card.id ? <PixelBadge variant="gold">REQUIRED</PixelBadge> : null}
-                    <PixelBadge variant={PRESSURE_ACCENT[card.severity]}>{card.signal}</PixelBadge>
+                    {requiredPressureId === card.id ? <PixelBadge variant="gold">OPEN TO CONTINUE</PixelBadge> : null}
+                    <PixelBadge variant={PRESSURE_ACCENT[card.severity]}>{PRESSURE_ACTION_LABEL[card.severity]}</PixelBadge>
                   </div>
                 </div>
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.4 }}>

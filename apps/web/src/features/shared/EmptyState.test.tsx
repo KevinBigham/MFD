@@ -9,6 +9,8 @@ describe('EmptyState', () => {
     );
     expect(html).toContain('Test reason');
     expect(html).toContain('Test step');
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-live="polite"');
   });
 
   it('renders action button when actionLabel and actionRoute provided', () => {

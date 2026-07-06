@@ -15,9 +15,18 @@ function deltaLabel(direction: 'up' | 'down' | 'flat', delta: number) {
   return `${direction === 'up' ? '+' : ''}${delta}`;
 }
 
+function cardLabel(card: ForecastBoardModel['cards'][number]): string {
+  if (card.id === 'week_one_readiness') return 'Week 1 Plan';
+  if (card.id === 'owner_heat') return 'Owner Patience';
+  if (card.id === 'scheme_cohesion') return 'Scheme Fit';
+  if (card.id === 'culture_stability') return 'Team Morale';
+  if (card.id === 'cap_flexibility') return 'Cap Space';
+  return card.label;
+}
+
 export function ForecastBoard({ forecast }: { forecast: ForecastBoardModel }) {
   return (
-    <PixelPanel title="Forecast Board" accent="cyan">
+    <PixelPanel title="Setup Consequences" accent="cyan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
           {forecast.summary}
@@ -44,7 +53,7 @@ export function ForecastBoard({ forecast }: { forecast: ForecastBoardModel }) {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
-                  <span style={{ ...pixelSm, color: accent }}>{card.label}</span>
+                  <span data-mfd-setup-forecast-card-label={card.id} style={{ ...pixelSm, color: accent }}>{cardLabel(card)}</span>
                   <PixelBadge variant={card.direction === 'up' ? 'green' : card.direction === 'down' ? 'red' : 'default'}>
                     {deltaLabel(card.direction, card.delta)}
                   </PixelBadge>

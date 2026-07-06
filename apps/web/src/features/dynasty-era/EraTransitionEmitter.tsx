@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { PixelButton, PixelPanel } from '@mfd/design-system/components';
 import type { FranchiseEra } from '@mfd/engine';
 import { selectFranchiseEras, useGameStore } from '../../app/store/game-store';
 import { useReducedMotionPreference } from '../shared/transitions/RouteTransition';
-import { display, monoSm, pixelSm } from '../shared/pixelUi';
+import {
+  EraTransitionReveal,
+  type EraTransitionVariant,
+} from './EraTransitionReveal';
+import type { EraTransitionStage } from './eraTransitionState';
 
 export interface EraTransitionSnapshot {
   id: string;
@@ -11,6 +14,7 @@ export interface EraTransitionSnapshot {
   summary: string;
   startYear: number;
   endYear: number | null;
+  variant: EraTransitionVariant;
 }
 
 export interface EraTransitionResolution {
@@ -34,6 +38,20 @@ function eraSnapshotId(era: FranchiseEra): string {
   return `${era.name}:${era.startYear}:${era.endYear ?? 'active'}`;
 }
 
+export function resolveEraTransitionVariant(name: string): EraTransitionVariant {
+  if (/dark|fall|grace|slump/i.test(name)) return 'fall-from-grace';
+  if (/rebuild/i.test(name)) return 'rebuilding';
+  if (/build|rise/i.test(name)) return 'building';
+  if (/dynasty|crown/i.test(name)) return 'dynasty';
+  if (/gold|age/i.test(name)) return 'golden-age';
+  if (/contend|playoff|window/i.test(name)) return 'contender';
+  return 'contender';
+}
+
+export function buildEraTransitionNarrative(transition: EraTransitionSnapshot): string {
+  return `${transition.startYear} - ${transition.endYear ?? 'Present'}: ${transition.summary}`;
+}
+
 function toEraSnapshot(era: FranchiseEra | null): EraTransitionSnapshot | null {
   if (!era) return null;
   return {
@@ -42,6 +60,7 @@ function toEraSnapshot(era: FranchiseEra | null): EraTransitionSnapshot | null {
     summary: era.description,
     startYear: era.startYear,
     endYear: era.endYear,
+    variant: resolveEraTransitionVariant(era.name),
   };
 }
 
@@ -60,48 +79,25 @@ export function EraTransitionEmitterView({
   transition,
   reducedMotion,
   onDismiss,
+  initialStage,
 }: {
   transition: EraTransitionSnapshot | null;
   reducedMotion: boolean;
   onDismiss: () => void;
+  initialStage?: EraTransitionStage;
 }) {
   if (!transition) return null;
 
   return (
-    <div
-      data-era-transition-reveal="true"
-      data-reduced-motion={reducedMotion ? 'true' : 'false'}
-      role="dialog"
-      aria-label="Era transition reveal"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9998,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 'var(--mfd-sp-xl)',
-        background: 'var(--mfd-bg)',
-        animation: reducedMotion ? 'none' : 'mfdRouteEnter 240ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-      }}
-    >
-      <PixelPanel title="Era Transition" accent="gold" style={{ width: 'min(560px, 100%)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', textAlign: 'center' }}>
-          <div style={{ ...pixelSm, color: 'var(--mfd-cyan)', textTransform: 'uppercase' }}>
-            {transition.startYear} - {transition.endYear ?? 'Present'}
-          </div>
-          <div style={{ ...display, color: 'var(--mfd-gold)', fontSize: '32px', lineHeight: 1.1 }}>
-            {transition.name}
-          </div>
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
-            {transition.summary}
-          </div>
-          <div>
-            <PixelButton accent="gold" onClick={onDismiss}>Continue</PixelButton>
-          </div>
-        </div>
-      </PixelPanel>
-    </div>
+    <EraTransitionReveal
+      open
+      eraName={transition.name}
+      eraType={transition.variant}
+      narrative={buildEraTransitionNarrative(transition)}
+      reducedMotion={reducedMotion}
+      initialStage={initialStage}
+      onContinue={onDismiss}
+    />
   );
 }
 

@@ -28,14 +28,7 @@ interface BuildPlayoffLoreCardArgs {
   result: GameResult | null;
   userTeamId: string | null;
   momentumTag: PlayoffMomentum['narrativeTag'] | null;
-}
-
-function roundFromWeek(week: number): PlayoffLoreRound | null {
-  if (week === 19) return 'wild_card';
-  if (week === 20) return 'divisional';
-  if (week === 21) return 'conference';
-  if (week === 22) return 'super_bowl';
-  return null;
+  playoffRound: PlayoffLoreRound | null;
 }
 
 function titleCase(value: string): string {
@@ -143,14 +136,13 @@ export function buildPlayoffLoreCard({
   result,
   userTeamId,
   momentumTag,
+  playoffRound,
 }: BuildPlayoffLoreCardArgs): PlayoffLoreCard | null {
   if (!packageData || !result || !userTeamId) return null;
   if (packageData.phase !== 'playoffs') return null;
   if (packageData.teamId !== userTeamId) return null;
   if (result.homeTeamId !== userTeamId && result.awayTeamId !== userTeamId) return null;
-
-  const round = roundFromWeek(packageData.week);
-  if (!round) return null;
+  if (!playoffRound) return null;
 
   const outcome = outcomeFromPackage(packageData, result, userTeamId);
   if (!outcome) return null;
@@ -163,7 +155,7 @@ export function buildPlayoffLoreCard({
     gameId: result.id,
     seasonYear: result.year,
     week: result.week,
-    round,
+    round: playoffRound,
     outcome,
     headline: packageData.headline,
     finalScore: packageData.finalScore || fallbackScore(result, userTeamId),

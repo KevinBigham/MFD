@@ -1,0 +1,13 @@
+{
+  "teamId": "PIT",
+  "name": "The Furnace",
+  "capacity": 68400,
+  "tradition": "The Pour now opens every Iron Smelters home game: molten-gold light runs down the scoreboard slag chute, a retired mill worker tips the ceremonial ladle, and The Mill counts the temperature until kickoff feels forged.",
+  "surface": "Grass",
+  "roof": "Open",
+  "cue": {
+    "label": "The Pour",
+    "pregameLine": "The scoreboard slag chute is glowing at The Furnace, and the ceremonial ladle is already tipping toward kickoff.",
+    "crowdResponse": "The Mill answers with a SMELT! IT! DOWN! chant that swings like hammers on a third-down beam."
+  }
+}

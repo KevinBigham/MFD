@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import { CAPTAIN_PERK_EFFECTS, type CaptainPerk, type LockerRoomState, type Player, type Team } from '@mfd/engine';
 import {
+  type LockerRoomActionReceipt,
   selectLockerRoom,
   selectUserTeam,
   selectWeek,
@@ -21,6 +22,15 @@ function severityAccent(severity: 'minor' | 'moderate' | 'serious'): 'cyan' | 'g
   if (severity === 'minor') return 'cyan';
   if (severity === 'moderate') return 'gold';
   return 'red';
+}
+
+type SourceAccent = 'cyan' | 'gold' | 'green' | 'red';
+
+interface LockerRoomSourceRow {
+  label: string;
+  badge: string;
+  detail: string;
+  accent: SourceAccent;
 }
 
 function progressBar(value: number, accent: string) {
@@ -45,6 +55,23 @@ function progressBar(value: number, accent: string) {
   );
 }
 
+export function LockerRoomActionReceiptPanel({ receipt }: { receipt: LockerRoomActionReceipt }) {
+  return (
+    <PixelPanel title={receipt.title} accent={receipt.kind === 'meeting' ? 'gold' : 'green'}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant={receipt.kind === 'meeting' ? 'gold' : 'green'}>
+            {receipt.kind === 'meeting' ? 'Meeting' : 'Rally'}
+          </PixelBadge>
+          <PixelBadge variant="default">On-screen confirmation</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>{receipt.detail}</div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{receipt.source}</div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 function perkBadge(perk: CaptainPerk) {
   return (
     <PixelBadge key={perk} variant={perk === 'rally_cry' ? 'gold' : perk === 'clutch_aura' ? 'green' : 'cyan'}>
@@ -61,6 +88,46 @@ function eligibleBench(team: Team, lockerRoom: LockerRoomState): Player[] {
     .slice(0, 6);
 }
 
+export function buildLockerRoomSourceRows(
+  team: Team,
+  lockerRoom: LockerRoomState,
+  week: number,
+  bench: Player[],
+): LockerRoomSourceRow[] {
+  return [
+    {
+      label: 'Saved room state',
+      badge: `${lockerRoom.cultureScore}/100`,
+      detail: `selectLockerRoom reads saved team.lockerRoom culture, cliques, captains, tensions, and last meeting week for Week ${week}.`,
+      accent: cultureAccent(lockerRoom.culture),
+    },
+    {
+      label: 'Action owners',
+      badge: '3 actions',
+      detail: 'Team meeting and rally buttons save locker-room changes and may return an on-screen confirmation; captain buttons elect captains. This source panel does not call them.',
+      accent: 'gold',
+    },
+    {
+      label: 'Leadership bench',
+      badge: `${bench.length}/${team.roster.length} candidates`,
+      detail: 'eligibleBench is route-local roster guidance over OVR, experience, holdout status, traits, and existing captains; it does not elect captains or update lockerRoom.',
+      accent: 'cyan',
+    },
+    {
+      label: 'Captain perks',
+      badge: `${lockerRoom.captains.length} captains`,
+      detail: 'CAPTAIN_PERK_EFFECTS labels perk copy; live morale, culture, and game-result effects remain owned by engine locker-room and week systems plus committed actions.',
+      accent: 'green',
+    },
+    {
+      label: 'Just viewing',
+      badge: 'display only',
+      detail: 'Opening Locker Room does not tick weekly culture, resolve tensions, call meetings, trigger rallies, elect captains, write narratives or events, or apply game bonuses.',
+      accent: 'red',
+    },
+  ];
+}
+
 export function LockerRoom() {
   const team = useGameStore(selectUserTeam);
   const lockerRoom = useGameStore(selectLockerRoom);
@@ -69,6 +136,7 @@ export function LockerRoom() {
   const triggerCaptainRally = useGameStore((state) => state.actions.triggerCaptainRally);
   const electCaptain = useGameStore((state) => state.actions.electCaptain);
   const [pending, setPending] = useState<string | null>(null);
+  const [actionReceipt, setActionReceipt] = useState<LockerRoomActionReceipt | null>(null);
 
   const playerMap = useMemo(
     () => new Map((team?.roster ?? []).map((player) => [player.id, player])),
@@ -85,6 +153,8 @@ export function LockerRoom() {
     );
   }
 
+  const sourceRows = buildLockerRoomSourceRows(team, lockerRoom, week, bench);
+
   return (
     <div style={screenStackStyle}>
       <PixelScreenHeader
@@ -100,6 +170,30 @@ export function LockerRoom() {
           </>
         )}
       />
+
+      <PixelPanel title="Locker Room Sources" accent="cyan">
+        <div style={autoGrid(220)}>
+          {sourceRows.map((row) => (
+            <div key={row.label} style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              padding: '10px',
+              border: '2px solid var(--mfd-border)',
+              background: 'var(--mfd-bg-2)',
+            }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                <span style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>{row.label.toUpperCase()}</span>
+                <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
+              </div>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>{row.detail}</div>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
+
+      {actionReceipt ? <LockerRoomActionReceiptPanel receipt={actionReceipt} /> : null}
 
       <div style={autoGrid(260)}>
         <FranchiseGauge
@@ -119,7 +213,11 @@ export function LockerRoom() {
               disabled={meetingCooldown > 0 || pending === 'meeting'}
               onClick={() => {
                 setPending('meeting');
-                void callTeamMeeting().finally(() => setPending(null));
+                void callTeamMeeting()
+                  .then((receipt) => {
+                    if (receipt) setActionReceipt(receipt);
+                  })
+                  .finally(() => setPending(null));
               }}
             >
               {meetingCooldown > 0 ? `Cooldown ${meetingCooldown}w` : pending === 'meeting' ? 'Calling...' : 'Call Team Meeting'}
@@ -191,7 +289,11 @@ export function LockerRoom() {
                   disabled={!canRally || pending === captain.playerId}
                   onClick={() => {
                     setPending(captain.playerId);
-                    void triggerCaptainRally(captain.playerId).finally(() => setPending(null));
+                    void triggerCaptainRally(captain.playerId)
+                      .then((receipt) => {
+                        if (receipt) setActionReceipt(receipt);
+                      })
+                      .finally(() => setPending(null));
                   }}
                 >
                   {pending === captain.playerId ? 'Rallying...' : canRally ? 'Trigger Rally' : 'Rally Locked'}

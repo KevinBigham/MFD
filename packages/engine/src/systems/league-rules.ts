@@ -9,6 +9,7 @@ import type {
   RuleChange,
   RuleChangeRecord,
   RuleDiff,
+  GameState,
 } from '../types';
 
 type RuleDefaults = Record<LeagueRuleKey, LeagueRuleValue>;
@@ -261,6 +262,11 @@ export function getActiveRule(rules: LeagueRules, key: LeagueRuleKey, year?: num
     return getRuleValueForYear(rules, key, year);
   }
   return cloneValue(rules.entries[key].value);
+}
+
+export function getRosterLimit(game: Pick<GameState, 'leagueRules' | 'year'>): number {
+  if (!game.leagueRules) return ROSTER_CAP;
+  return Number(getActiveRule(game.leagueRules, 'roster_limit', game.year));
 }
 
 export function applyRuleChange(rules: LeagueRules, change: RuleChange): LeagueRules {

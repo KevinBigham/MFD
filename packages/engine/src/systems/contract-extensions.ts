@@ -128,10 +128,10 @@ export function postJune1Cut(player: Player, team: Team, year: number): {
   };
 }
 
-export function capProjection(team: Team, startYear: number, years = 3): CapProjectionYear[] {
+export function capProjection(team: Team, startYear: number, years = 3, game?: GameState | null): CapProjectionYear[] {
   return Array.from({ length: years }, (_, offset) => {
     const year = startYear + offset + 1;
-    const totalCap = getSalaryCap(year);
+    const totalCap = getSalaryCap(year, game);
     const committedCap = round(team.roster.reduce((sum, player) => {
       if (!player.contract) return sum;
       const contractYear = player.contract.yearlyBreakdown.find((entry) => entry.year === year);

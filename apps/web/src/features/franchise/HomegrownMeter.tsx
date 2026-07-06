@@ -50,6 +50,17 @@ export function HomegrownMeter({
             <PixelMetricCard label="Mid-Career" value={identity.midCareerCount} accent="gold" />
             <PixelMetricCard label="Veterans" value={identity.veteranCount} accent="red" />
           </div>
+
+          <div style={{
+            ...monoSm,
+            color: 'var(--mfd-text-dim)',
+            lineHeight: 1.6,
+            borderTop: '1px solid var(--mfd-border)',
+            paddingTop: '10px',
+          }}
+          >
+            Source: current user roster joined to playerArchive first-team history. Age buckets are display-only and this panel does not write archive rows.
+          </div>
         </div>
       )}
     </PixelPanel>

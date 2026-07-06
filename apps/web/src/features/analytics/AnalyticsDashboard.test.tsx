@@ -63,11 +63,31 @@ describe('AnalyticsDashboard', () => {
     const markup = renderToStaticMarkup(<AnalyticsDashboard />);
 
     expect(markup).toContain('ANALYTICS');
-    expect(markup).toContain('--- TEAM OVERVIEW ---');
-    expect(markup).toContain('--- PLAYER EFFICIENCY ---');
-    expect(markup).toContain('--- PLAYER COMPARISON ---');
+    expect(markup).toContain('TEAM OVERVIEW');
+    expect(markup).toContain('Win Rate');
+    expect(markup).toContain('69%');
+    expect(markup).not.toContain('Success Rate');
+    expect(markup).toContain('Turnovers / Game');
+    expect(markup).toContain('1.1');
+    expect(markup).not.toContain('Turnover Rate');
+    expect(markup).toContain('PLAYER EFFICIENCY');
+    expect(markup).toContain('PLAYER COMPARISON');
     expect(markup).toContain('Jay Stone');
-    expect(markup).toContain('--- WEEKLY TREND ---');
-    expect(markup).toContain('--- LEAGUE LEADERS ---');
+    expect(markup).toContain('WEEKLY TREND');
+    expect(markup).toContain('LEAGUE LEADERS');
+  });
+
+  it('labels analytics sources without implying route-time stat writes', () => {
+    const markup = renderToStaticMarkup(<AnalyticsDashboard />);
+
+    expect(markup).toContain('ANALYTICS SOURCES');
+    expect(markup).toContain('selectAdvancedStats reads calculateAdvancedStats plus getTeamRankings');
+    expect(markup).toContain('Off #4 / Def #8 / ST #11');
+    expect(markup).toContain('Player Efficiency reads selectRoster, calculatePlayerEfficiency');
+    expect(markup).toContain('2 roster rows');
+    expect(markup).toContain('selectAnalyticsLeaders reads current-season player/team stats');
+    expect(markup).toContain('5 leaders');
+    expect(markup).toContain('Weekly Trend reads selectWeeklyTrend');
+    expect(markup).toContain('Opening Analytics does not recalculate season stats, click Advance Week, write player history');
   });
 });

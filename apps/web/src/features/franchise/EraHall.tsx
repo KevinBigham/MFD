@@ -97,6 +97,28 @@ export function buildEraHallEntries({
     });
 }
 
+function EraSourcesPanel() {
+  return (
+    <PixelPanel title="Era Sources" accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="cyan">DETECTED ERAS</PixelBadge>
+          <PixelBadge variant="gold">READ ONLY</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.7 }}>
+          Era Hall reads <strong>selectFranchiseEras</strong>, which derives dashboard chapters from saved <strong>game.franchiseHistory</strong> instead of writing new era records while rendering.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          <strong>buildEraHallEntries</strong> adds championship years from franchise history, uses <strong>selectUserTeam</strong> only for the current-era roster snapshot, and falls back to a present-day placeholder when no eras exist.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          User-named era writes remain separate through <strong>actions.nameDynastyEra</strong> and <strong>startDynastyEra</strong>. Opening Era Hall does not name eras, start or end eras, write team.era, update franchise history, award titles, change the live save, or play scheduled games.
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function EraHallView({
   eras,
   currentYear,
@@ -121,6 +143,8 @@ export function EraHallView({
           </>
         )}
       />
+
+      <EraSourcesPanel />
 
       <div style={{
         position: 'sticky',

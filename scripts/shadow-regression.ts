@@ -34,6 +34,13 @@ import type { PlaytestReport } from '../packages/engine/src/playtesting/types.ts
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..');
 const baselineDir = resolve(repoRoot, '_canon/seeds/mfd');
+const shadowCorpusVersion = '3';
+const shadowCorpusClassification = 'intended';
+const shadowCorpusSpecCitation = '_canon/seeds/mfd/README.md:25';
+const shadowCorpusReason = [
+  'The speedrunner-20y shadow report now completes the requested 20 seasons under the default 800-step guard.',
+  'The regenerated report replaces the stale truncated v2 baseline that carried post-year-10 phase-boundary high anomalies while preserving the frozen shadow-tier determinism contract.',
+].join(' ');
 
 const argv = process.argv.slice(2);
 const updateFlag = argv.indexOf('--update');
@@ -95,7 +102,10 @@ function writeBaseline(
   writeFileSync(baselinePath(scenarioId), canonicalJson + '\n', 'utf8');
   const metadata = {
     scenarioId,
-    corpusVersion: '1',
+    corpusVersion: shadowCorpusVersion,
+    classification: shadowCorpusClassification,
+    specCitation: shadowCorpusSpecCitation,
+    updateReason: shadowCorpusReason,
     schemaVersion: SAVE_VERSION,
     engineCommit: readEngineSha(),
     generatedAt: new Date().toISOString(),

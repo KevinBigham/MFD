@@ -85,6 +85,22 @@ describe('NewsroomDigest', () => {
     expect(html).toContain('NO ACTIVE THREADS');
   });
 
+  it('explains the saved media sources without implying render-time generation', () => {
+    mockState.team = { id: 'team-me', city: 'Chicago', name: 'Blaze' };
+    mockState.news = [];
+    mockState.rankings = [];
+    mockState.storylines = [];
+    const html = renderToStaticMarkup(<NewsroomDigest />);
+
+    expect(html).toContain('MEDIA SOURCES');
+    expect(html).toContain('Saved league wire');
+    expect(html).toContain('Saved power rankings');
+    expect(html).toContain('Active storyline threads');
+    expect(html).toContain('does not generate stories while rendering');
+    expect(html).toContain('breaking-news queue');
+    expect(html).toContain('top ticker reads league news outside this route');
+  });
+
   it('promotes the breaking story to lead over a major story', () => {
     mockState.team = { id: 'team-me', city: 'Chicago', name: 'Blaze' };
     mockState.news = [
@@ -141,7 +157,7 @@ describe('NewsroomDigest', () => {
     ];
     mockState.storylines = [];
     const html = renderToStaticMarkup(<NewsroomDigest />);
-    expect(html).toContain('BIGGEST MOVER');
+    expect(html).toContain('Biggest Mover');
     expect(html).toContain('Third');
     expect(html).toContain('DOWN 9');
   });

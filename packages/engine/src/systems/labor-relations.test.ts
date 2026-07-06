@@ -49,6 +49,41 @@ describe('labor relations', () => {
     expect(updated.unionSatisfaction).toBeLessThan(60);
   });
 
+  it('counts every active franchise tag array entry toward union pressure', () => {
+    const game = makeLeagueState('regular_season', 5);
+    const team = Object.values(game.teams)[0]!;
+    const first = team.roster[0]!;
+    const second = team.roster[1]!;
+    team.franchiseTags = [
+      {
+        playerId: first.id,
+        playerName: first.name,
+        pos: first.pos,
+        salary: 20,
+        year: game.year,
+        reaction: 'neutral',
+      },
+    ];
+    team.franchiseTag973 = team.franchiseTags[0]!;
+
+    const oneTag = updateUnionSatisfaction(initLaborState(), game);
+
+    team.franchiseTags.push(
+      {
+        playerId: second.id,
+        playerName: second.name,
+        pos: second.pos,
+        salary: 18,
+        year: game.year,
+        reaction: 'neutral',
+      },
+    );
+
+    const updated = updateUnionSatisfaction(initLaborState(), game);
+
+    expect(updated.unionSatisfaction).toBe(oneTag.unionSatisfaction - 6);
+  });
+
   it('triggers a holdout wave when satisfaction is very low', () => {
     const stoppage = checkWorkStoppage({
       ...initLaborState(),

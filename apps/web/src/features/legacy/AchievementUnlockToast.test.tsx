@@ -25,6 +25,15 @@ describe('AchievementUnlockToast', () => {
     expect(markup).toContain('First Banner');
     expect(markup).toContain('data-achievement-chip-host="true"');
     expect(markup).toContain('data-chip-pose="proud"');
-    expect(markup).toContain('Hang the receipt. This one goes in the building.');
+    expect(markup).toContain('Achievement recorded in Legacy.');
+    expect(markup).toContain('Optional: open Legacy after Must Do tasks');
+    expect(markup).toContain('Where: Legacy');
+    expect(markup).toContain('Consequence: roster, cap space, owner patience, and next-week state do not change');
+    expect(markup).not.toContain('weekly work');
+    expect(markup).not.toContain('Achievement saved');
+    expect(markup).not.toContain('record only');
+    expect(markup).not.toContain('history context');
+    expect(markup).not.toContain('owner approval');
+    expect(markup).not.toContain('next week do not change');
   });
 });

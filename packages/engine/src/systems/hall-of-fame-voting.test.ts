@@ -135,4 +135,30 @@ describe('hall of fame ballot voting', () => {
     expect(game.ballotWaitlist).toEqual([]);
     expect(nextBallot.some((entry) => entry.playerId === 'linger')).toBe(false);
   });
+
+  it('uses schema-backed empty ballot state for new league saves', () => {
+    const game = makeLeagueState('offseason');
+    game.year = 2032;
+    game.playerArchive = [
+      {
+        ...archiveEntry('borderline', 85),
+        careerStats: {
+          gp: 170,
+          seasons: 11,
+          mvps: 0,
+          allPros: 3,
+          proBowls: 5,
+          championships: 0,
+        },
+      },
+    ];
+
+    const inducted = inductHallOfFame(game, 2031);
+
+    expect(inducted).toEqual([]);
+    expect(game.hallOfFame).toEqual([]);
+    expect(game.ballotWaitlist?.map((entry) => entry.playerId)).toEqual(['borderline']);
+    expect(game.ballotWaitlist?.[0]?.yearsOnBallot).toBe(2);
+    expect(game.ballotEliminatedIds).toEqual([]);
+  });
 });

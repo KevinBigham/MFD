@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import {
   ChipDialogueBubble,
+  computeTypewriterFallbackMs,
   computeTypewriterRevealCount,
   createTypewriterController,
   normalizeBubbleText,
@@ -30,6 +31,12 @@ describe('ChipDialogueBubble', () => {
     expect(computeTypewriterRevealCount({ elapsedMs: 0, speed: 28, textLength: 80 })).toBe(0);
     expect(computeTypewriterRevealCount({ elapsedMs: 500, speed: 28, textLength: 80 })).toBe(14);
     expect(computeTypewriterRevealCount({ elapsedMs: 10_000, speed: 28, textLength: 80 })).toBe(80);
+  });
+
+  it('computes a timeout fallback so typewriter copy cannot stay blank forever', () => {
+    expect(computeTypewriterFallbackMs({ speed: 28, textLength: 84 })).toBe(3500);
+    expect(computeTypewriterFallbackMs({ speed: 0, textLength: 84 })).toBe(0);
+    expect(computeTypewriterFallbackMs({ speed: 28, textLength: 0 })).toBe(0);
   });
 
   it('advances the controller frame by frame and completes once', () => {

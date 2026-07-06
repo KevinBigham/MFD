@@ -3,6 +3,11 @@ import { PixelBadge, PixelPanel, PixelTable } from '@mfd/design-system/component
 import type { ColumnDef } from '@tanstack/react-table';
 import { Activity } from 'lucide-react';
 import {
+  buildTeamOpsImpactReceipt,
+  type TeamOpsImpactReceipt,
+  type TeamOpsImpactTone,
+} from '@mfd/engine';
+import {
   selectUserTeamId,
   useGameStore,
 } from '../../app/store/game-store';
@@ -14,6 +19,10 @@ import {
   monoSm,
   screenStackStyle,
 } from '../shared/pixelUi';
+import {
+  buildTrainingCampReadinessForecast,
+  type TrainingCampReadinessForecast,
+} from './trainingCampReadiness';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -76,10 +85,96 @@ const injuryColumns: ColumnDef<InjuryRow>[] = [
   { accessorKey: 'weeksOut', header: 'Weeks Out' },
 ];
 
+function toneAccent(tone: TeamOpsImpactTone): 'default' | 'gold' | 'cyan' | 'green' | 'red' {
+  if (tone === 'positive') return 'green';
+  if (tone === 'warning') return 'gold';
+  if (tone === 'negative') return 'red';
+  return 'cyan';
+}
+
+function OpsCarryover({ receipt }: { receipt: TeamOpsImpactReceipt | null }) {
+  if (!receipt) return null;
+
+  return (
+    <div data-spotlight-target="chip.route.training-camp.beat-2">
+      <PixelPanel title="Ops Carryover" accent="green">
+        <div style={autoGrid(190)}>
+          {receipt.summaryItems.map((item) => (
+            <PixelMetricCard
+              key={item.id}
+              label={item.label}
+              value={item.value}
+              accent={toneAccent(item.tone)}
+              detail={item.detail}
+            />
+          ))}
+        </div>
+        {receipt.mentors.topEffects.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+            {receipt.mentors.topEffects.slice(0, 3).map((effect) => (
+              <div
+                key={effect.targetPlayerId}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  alignItems: 'center',
+                  padding: '8px 10px',
+                  border: '2px solid var(--mfd-border)',
+                  background: 'var(--mfd-bg-2)',
+                }}
+              >
+                <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{effect.description}</span>
+                <PixelBadge variant="green">+{(effect.devBonus * 100).toFixed(0)}% DEV</PixelBadge>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </PixelPanel>
+    </div>
+  );
+}
+
+function CampReadiness({ forecast }: { forecast: TrainingCampReadinessForecast }) {
+  return (
+    <div data-spotlight-target="chip.route.training-camp.beat-1">
+      <PixelPanel title="Camp Readiness" accent={forecast.accent}>
+        <div style={autoGrid(200)}>
+          <PixelMetricCard
+            label="Status"
+            value={forecast.label}
+            accent={forecast.accent}
+            detail={forecast.timing}
+          />
+          <PixelMetricCard
+            label="Saved By"
+            value={forecast.commitPath}
+            accent="cyan"
+            detail={forecast.source}
+          />
+          <PixelMetricCard
+            label="Saved Receipt"
+            value={forecast.savedReceipt}
+            accent={forecast.status === 'camp_recorded' ? 'green' : 'default'}
+            detail="Read from saved camp results"
+          />
+          <PixelMetricCard
+            label="Ops Carryover"
+            value={forecast.carryover}
+            accent="green"
+            detail="Facility, medical, mentor, and camp receipt inputs"
+          />
+        </div>
+      </PixelPanel>
+    </div>
+  );
+}
+
 // ── Component ─────────────────────────────────────────────
 
 export function TrainingCamp() {
   const teamId = useGameStore(selectUserTeamId);
+  const game = useGameStore((s) => s.game);
   const campResults = useGameStore((s) => s.game?.trainingCampResults);
 
   const myResults = useMemo(() => {
@@ -87,13 +182,23 @@ export function TrainingCamp() {
     return campResults.find((r) => r.teamId === teamId) ?? null;
   }, [campResults, teamId]);
 
+  const opsReceipt = useMemo(() => (
+    game && teamId ? buildTeamOpsImpactReceipt(game, teamId) : null
+  ), [game, teamId]);
+  const readinessForecast = useMemo(
+    () => buildTrainingCampReadinessForecast(game, teamId, opsReceipt),
+    [game, teamId, opsReceipt],
+  );
+
   if (!myResults) {
     return (
       <div style={screenStackStyle}>
         <PixelScreenHeader title="TRAINING CAMP" subtitle="No camp results available yet" kicker="MFD NETWORK" />
+        <CampReadiness forecast={readinessForecast} />
         <PixelPanel title="Camp Not Started">
           <p style={mono}>Training camp results will appear here after the post-draft phase.</p>
         </PixelPanel>
+        <OpsCarryover receipt={opsReceipt} />
       </div>
     );
   }
@@ -145,6 +250,10 @@ export function TrainingCamp() {
           accent={myResults.injuries.length > 0 ? 'red' : 'green'}
         />
       </div>
+
+      <CampReadiness forecast={readinessForecast} />
+
+      <OpsCarryover receipt={opsReceipt} />
 
       <PixelPanel title="Camp Headlines">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

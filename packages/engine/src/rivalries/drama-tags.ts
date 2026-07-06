@@ -17,7 +17,7 @@ export function tagMatchup(matchup: TaggedRivalryMatchup): DramaTag[] {
   if (matchup.endedOpponentStreakLength >= 3) {
     tags.push('streak-breaker');
   }
-  if (matchup.isDivisional && matchup.isRegularSeason && matchup.week >= 14 && matchup.week <= 18) {
+  if (matchup.isDivisional && matchup.isRegularSeason && matchup.week >= 14) {
     tags.push('divisional-implications');
   }
 

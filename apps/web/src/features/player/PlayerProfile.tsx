@@ -1,14 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { PixelBadge, PixelButton, PixelPanel, PixelTable } from '@mfd/design-system/components';
-import type { PlayerArchiveEntry, PlayerCareerStatLine } from '@mfd/engine';
+import type { DraftRecap, PlayerArchiveEntry, PlayerCareerStatLine, PlayerProfile as EnginePlayerProfile, PlayerRivalry, RecordBook, RecordEntry } from '@mfd/engine';
 import {
   selectFarewellCandidates,
   selectFarewellTours,
+  selectDraftRecaps,
   selectPlayerProfileBundle,
   selectPlayerRivalries,
   selectTeamById,
+  selectTransactionLog,
   useGameStore,
 } from '../../app/store/game-store';
 import { useUiStore } from '../../app/store/ui-store';
@@ -21,6 +23,7 @@ import {
   pixelSm,
   screenStackStyle,
 } from '../shared/pixelUi';
+import { buildPlayerTransactionMemoryRows, type PlayerTransactionMemoryRow } from '../shared/playerTransactionMemory';
 
 function chartPoints(entries: Array<{ age: number; ovr: number }>) {
   if (entries.length <= 1) {
@@ -86,6 +89,296 @@ const contractColumns: ColumnDef<ContractYearRow, unknown>[] = [
 
 const EMPTY_ARCHIVE: PlayerArchiveEntry[] = [];
 
+interface PlayerMemoryCard {
+  id: string;
+  label: string;
+  value: string | number;
+  detail: string;
+  accent: 'cyan' | 'gold' | 'green' | 'red';
+}
+
+interface PlayerSignatureMomentRow {
+  id: string;
+  sourceLabel: string;
+  headline: string;
+  badge: string;
+  timeLabel: string;
+  detail: string;
+  accent: 'cyan' | 'gold' | 'green' | 'red' | 'default';
+}
+
+interface FarewellTourStartReceipt {
+  id: string;
+  title: string;
+  actionLabel: string;
+  playerLabel: string;
+  context: string;
+  result: string;
+  source: string;
+}
+
+function pluralize(count: number, singular: string): string {
+  return `${count} ${singular}${count === 1 ? '' : 's'}`;
+}
+
+function formatStatKey(stat: string): string {
+  return stat.replace(/([a-z])([A-Z])/g, '$1 $2');
+}
+
+function formatRecordCategory(category: RecordEntry['category']): string {
+  const labels: Record<RecordEntry['category'], string> = {
+    singleGame: 'Single-Game',
+    singleSeason: 'Single-Season',
+    career: 'Career',
+    franchise: 'Franchise',
+  };
+  return labels[category];
+}
+
+function summarizeKeyStats(line: PlayerCareerStatLine): string {
+  const stats = Object.entries(line.keyStats)
+    .filter(([, value]) => Number.isFinite(value) && value !== 0)
+    .sort(([, left], [, right]) => Math.abs(right) - Math.abs(left))
+    .slice(0, 3)
+    .map(([key, value]) => `${key}: ${value}`);
+  return stats.length > 0
+    ? `${line.gamesStarted} GS // ${stats.join(' // ')}`
+    : `${line.gamesPlayed} GP // ${line.gamesStarted} GS`;
+}
+
+function careerLineScore(line: PlayerCareerStatLine): number {
+  return line.gamesStarted * 10 + Object.values(line.keyStats).reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0);
+}
+
+function playerRecordEntries(recordBook: RecordBook | null, playerId: string): RecordEntry[] {
+  if (!recordBook) return [];
+  return (Object.values(recordBook) as Array<Record<string, RecordEntry[]>>)
+    .flatMap((bucket) => Object.values(bucket).flat())
+    .filter((entry) => entry.playerId === playerId)
+    .sort((a, b) => b.year - a.year || (b.week ?? 0) - (a.week ?? 0) || b.value - a.value)
+    .slice(0, 2);
+}
+
+function draftRecapMomentForPlayer(draftRecaps: DraftRecap[], playerId: string): PlayerSignatureMomentRow | null {
+  for (const recap of draftRecaps) {
+    const pick = recap.picks.find((entry) => entry.playerId === playerId) ?? null;
+    if (!pick) continue;
+    const valueDelta = pick.valueDelta === 0 ? 'even value' : `${pick.valueDelta > 0 ? '+' : ''}${pick.valueDelta} value`;
+    return {
+      id: `draft-recap-${recap.year}-${pick.playerId}`,
+      sourceLabel: 'draftRecaps',
+      headline: 'Draft Class Memory',
+      badge: `${pick.verdict.toUpperCase()} // Class ${recap.classGrade}`,
+      timeLabel: `${recap.year} R${pick.round} P${pick.pick}`,
+      detail: `Saved draft recap: projected #${pick.projectedPick}, selected #${pick.pick}, ${valueDelta}.`,
+      accent: pick.verdict === 'steal' ? 'green' : pick.verdict === 'reach' ? 'red' : 'cyan',
+    };
+  }
+  return null;
+}
+
+function buildPlayerMemoryCards(profile: EnginePlayerProfile, rivalries: PlayerRivalry[]): PlayerMemoryCard[] {
+  const seasons = profile.careerStats.map((entry) => entry.season).sort((a, b) => a - b);
+  const firstSeason = seasons[0] ?? null;
+  const lastSeason = seasons.at(-1) ?? null;
+  const peakArc = profile.developmentArc.reduce(
+    (best, entry) => (entry.ovr > best.ovr ? entry : best),
+    profile.developmentArc[0] ?? { age: profile.player.age, ovr: profile.player.ovr },
+  );
+  const topRivalry = [...rivalries].sort((a, b) => b.intensity - a.intensity)[0] ?? null;
+  const storyThreads = [
+    profile.awardsWon.length > 0 ? pluralize(profile.awardsWon.length, 'award') : null,
+    rivalries.length > 0 ? pluralize(rivalries.length, 'rivalry') : null,
+    profile.player.bloodline ? 'bloodline' : null,
+    profile.injuryHistory.length > 0 ? pluralize(profile.injuryHistory.length, 'injury') : null,
+  ].filter(Boolean) as string[];
+  const topRivalName = topRivalry
+    ? topRivalry.playerAId === profile.player.id ? topRivalry.playerBName : topRivalry.playerAName
+    : null;
+
+  return [
+    {
+      id: 'recorded-seasons',
+      label: 'Recorded Seasons',
+      value: seasons.length,
+      detail: firstSeason && lastSeason
+        ? `${firstSeason === lastSeason ? firstSeason : `${firstSeason}-${lastSeason}`}${profile.legacyHistoryPartial ? ' // partial legacy snapshot' : ''}`
+        : 'No archived seasons yet',
+      accent: profile.legacyHistoryPartial ? 'gold' : 'cyan',
+    },
+    {
+      id: 'peak-arc',
+      label: 'Peak Arc',
+      value: `${peakArc.ovr} OVR`,
+      detail: `Age ${peakArc.age}`,
+      accent: peakArc.ovr >= 90 ? 'gold' : 'green',
+    },
+    {
+      id: 'story-threads',
+      label: 'Story Threads',
+      value: storyThreads.length,
+      detail: storyThreads.length > 0 ? storyThreads.join(' // ') : 'No saved legacy hooks yet',
+      accent: storyThreads.length > 0 ? 'green' : 'cyan',
+    },
+    {
+      id: 'rivalry-heat',
+      label: 'Rivalry Heat',
+      value: topRivalry ? `${topRivalry.tier.toUpperCase()} ${topRivalry.intensity}` : 'None',
+      detail: topRivalName ? `vs ${topRivalName}` : 'No active player rivalries',
+      accent: topRivalry?.tier === 'nemesis' ? 'red' : topRivalry ? 'gold' : 'cyan',
+    },
+  ];
+}
+
+function buildPlayerSignatureMomentRows(
+  profile: EnginePlayerProfile,
+  rivalries: PlayerRivalry[],
+  transactionRows: PlayerTransactionMemoryRow[],
+  parentEntry: PlayerArchiveEntry | null,
+  recordBook: RecordBook | null,
+  draftRecaps: DraftRecap[],
+): PlayerSignatureMomentRow[] {
+  const rows: PlayerSignatureMomentRow[] = [];
+  const playerId = profile.player.id;
+
+  for (const [index, award] of [...profile.awardsWon].reverse().slice(0, 2).entries()) {
+    const parsed = award.match(/^(\d{4})\s+(.+)$/);
+    rows.push({
+      id: `award-${award}-${index}`,
+      sourceLabel: 'awardsHistory',
+      headline: award,
+      badge: parsed?.[2] ?? 'Award',
+      timeLabel: parsed?.[1] ?? 'Award',
+      detail: 'Saved awardsHistory winner row.',
+      accent: 'gold',
+    });
+  }
+
+  const draftRecapMoment = draftRecapMomentForPlayer(draftRecaps, playerId);
+  if (draftRecapMoment) {
+    rows.push(draftRecapMoment);
+  }
+
+  for (const [index, record] of playerRecordEntries(recordBook, playerId).entries()) {
+    rows.push({
+      id: `record-${record.category}-${record.stat}-${record.year}-${record.week ?? 0}-${index}`,
+      sourceLabel: 'records',
+      headline: `${formatRecordCategory(record.category)} Record`,
+      badge: `${formatStatKey(record.stat)} ${record.value}`,
+      timeLabel: record.week ? `${record.year} W${record.week}` : `${record.year}`,
+      detail: record.note ?? `${record.teamName} record book entry.`,
+      accent: record.category === 'career' || record.category === 'franchise' ? 'gold' : 'cyan',
+    });
+  }
+
+  const bestCareerLine = [...profile.careerStats].sort((a, b) => careerLineScore(b) - careerLineScore(a) || b.season - a.season)[0] ?? null;
+  if (bestCareerLine) {
+    rows.push({
+      id: `career-line-${bestCareerLine.season}`,
+      sourceLabel: profile.legacyHistoryPartial ? 'playerArchive fallback' : 'playerSeasonHistory',
+      headline: 'Peak Ledger Season',
+      badge: `${bestCareerLine.season}`,
+      timeLabel: bestCareerLine.team,
+      detail: summarizeKeyStats(bestCareerLine),
+      accent: profile.legacyHistoryPartial ? 'cyan' : 'green',
+    });
+  }
+
+  const topRivalry = [...rivalries].sort((a, b) => b.intensity - a.intensity)[0] ?? null;
+  if (topRivalry) {
+    const opponentName = topRivalry.playerAId === playerId ? topRivalry.playerBName : topRivalry.playerAName;
+    const rivalryMoment = [...(topRivalry.history ?? [])].sort((a, b) => b.year - a.year || b.week - a.week)[0] ?? null;
+    rows.push({
+      id: `rivalry-${topRivalry.id}`,
+      sourceLabel: 'playerRivalries',
+      headline: `Rivalry Memory vs ${opponentName}`,
+      badge: `${topRivalry.tier.toUpperCase()} ${topRivalry.intensity}`,
+      timeLabel: rivalryMoment ? `${rivalryMoment.year} W${rivalryMoment.week}` : `Since ${topRivalry.seasonStarted}`,
+      detail: rivalryMoment?.description ?? topRivalry.origin,
+      accent: topRivalry.tier === 'nemesis' ? 'red' : topRivalry.tier === 'heated' ? 'gold' : 'cyan',
+    });
+  }
+
+  const latestTransaction = transactionRows[0] ?? null;
+  if (latestTransaction) {
+    rows.push({
+      id: `transaction-${latestTransaction.id}`,
+      sourceLabel: 'txLog',
+      headline: 'Movement Receipt',
+      badge: latestTransaction.typeLabel,
+      timeLabel: latestTransaction.yearWeek,
+      detail: latestTransaction.detail,
+      accent: latestTransaction.accent,
+    });
+  }
+
+  if (profile.player.bloodline && parentEntry) {
+    rows.push({
+      id: `lineage-${parentEntry.playerId}`,
+      sourceLabel: 'playerArchive',
+      headline: 'Lineage Link',
+      badge: parentEntry.name,
+      timeLabel: `Peak ${parentEntry.peakYear}`,
+      detail: `Bloodline archive links ${profile.player.name} to ${parentEntry.positions.join('/')} legacy context.`,
+      accent: 'gold',
+    });
+  }
+
+  return rows.slice(0, 8);
+}
+
+export function buildFarewellTourStartReceipt({
+  playerId,
+  playerName,
+  position,
+  ovr,
+  teamName,
+  year,
+  week,
+}: {
+  playerId: string;
+  playerName: string;
+  position: string;
+  ovr: number;
+  teamName: string;
+  year: number | null;
+  week: number | null;
+}): FarewellTourStartReceipt {
+  const timeLabel = year && week ? `${year} W${week}` : 'Current week';
+
+  return {
+    id: `farewell-tour:${playerId}`,
+    title: 'Farewell Tour Started',
+    actionLabel: 'Started',
+    playerLabel: `${playerName} // ${position} // ${ovr} OVR`,
+    context: `${teamName} // ${timeLabel}`,
+    result: 'The existing action clones the current save, removes any prior tour row for this player, schedules new tour moments from the saved season schedule, writes game.farewellTours, and commits the save.',
+    source: 'Action used: actions.startFarewellTour -> startFarewellTourEngine -> commitGame. This confirmation appears here only.',
+  };
+}
+
+export function FarewellTourStartReceiptPanel({ receipt }: { receipt: FarewellTourStartReceipt }) {
+  return (
+    <PixelPanel title="Farewell Tour Receipt" accent="gold">
+      <div style={autoGrid(220)}>
+        <PixelMetricCard label="Action" value={receipt.actionLabel} accent="gold" detail={receipt.playerLabel} />
+        <PixelMetricCard label="Context" value="Saved tour path" accent="cyan" detail={receipt.context} />
+        <PixelMetricCard label="Receipt" value="Route-local" accent="green" detail="The durable row is game.farewellTours; this panel is acknowledgement copy only." />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="gold">On-screen confirmation</PixelBadge>
+          <PixelBadge variant="default">Saved tour path</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>{receipt.result}</div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+          {receipt.source} This confirmation does not reschedule moments, write another tour, change retirement logic, alter the save schema, play games, reroll saved outcomes, or move players.
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function PlayerProfile() {
   const { playerId } = useParams({ from: '/player/$playerId' });
   const bundle = useGameStore(selectPlayerProfileBundle(playerId));
@@ -93,11 +386,18 @@ export function PlayerProfile() {
   const rivalries = useGameStore(selectPlayerRivalries(playerId));
   const farewellCandidates = useGameStore(selectFarewellCandidates);
   const farewellTours = useGameStore(selectFarewellTours);
+  const draftRecaps = useGameStore(selectDraftRecaps);
+  const transactionLog = useGameStore(selectTransactionLog);
   const playerArchive = useGameStore((state) => state.game?.playerArchive ?? EMPTY_ARCHIVE);
+  const recordBook = useGameStore((state) => state.game?.records ?? null);
   const teamsById = useGameStore((state) => state.game?.teams ?? null);
+  const currentYear = useGameStore((state) => state.game?.year ?? null);
+  const currentWeek = useGameStore((state) => state.game?.week ?? null);
   const navigate = useNavigate();
   const setFocusedPlayerContext = useUiStore((state) => state.setFocusedPlayerContext);
   const startFarewellTour = useGameStore((state) => state.actions.startFarewellTour);
+  const [farewellTourPending, setFarewellTourPending] = useState(false);
+  const [farewellTourReceipt, setFarewellTourReceipt] = useState<FarewellTourStartReceipt | null>(null);
 
   const chartData = useMemo(() => bundle ? chartPoints(bundle.profile.developmentArc) : '', [bundle]);
 
@@ -111,6 +411,8 @@ export function PlayerProfile() {
 
   const { profile, value, comparables, projection } = bundle;
   const player = profile.player;
+  const memoryCards = buildPlayerMemoryCards(profile, rivalries);
+  const transactionMemoryRows = buildPlayerTransactionMemoryRows(transactionLog, player.id, teamsById);
   const hasFarewellTour = farewellTours.some((tour) => tour.playerId === player.id);
   const isFarewellCandidate = farewellCandidates.some((candidate) => candidate.id === player.id);
 
@@ -121,6 +423,26 @@ export function PlayerProfile() {
   const parentPrimaryTeam = parentEntry && teamsById
     ? (parentPrimaryTeamId ? teamsById[parentPrimaryTeamId] ?? null : null)
     : null;
+  const signatureMomentRows = buildPlayerSignatureMomentRows(profile, rivalries, transactionMemoryRows, parentEntry, recordBook, draftRecaps);
+  const visibleFarewellTourReceipt = farewellTourReceipt?.id === `farewell-tour:${player.id}` ? farewellTourReceipt : null;
+
+  async function handleStartFarewellTour() {
+    setFarewellTourPending(true);
+    try {
+      await startFarewellTour(player.id);
+      setFarewellTourReceipt(buildFarewellTourStartReceipt({
+        playerId: player.id,
+        playerName: player.name,
+        position: player.pos,
+        ovr: player.ovr,
+        teamName: team ? `${team.city} ${team.name}` : 'Current team',
+        year: currentYear,
+        week: currentWeek,
+      }));
+    } finally {
+      setFarewellTourPending(false);
+    }
+  }
 
   return (
     <div style={screenStackStyle}>
@@ -142,6 +464,114 @@ export function PlayerProfile() {
         <PixelMetricCard label="Market Value" value={`$${value.marketValue}M`} accent="green" detail="Expected annual FA ask" />
         <PixelMetricCard label="Surplus" value={`$${value.surplus}M`} accent={value.surplus >= 0 ? 'green' : 'red'} detail="Value minus current annual cap hit" />
       </div>
+
+      <PixelPanel title="Career Memory" accent="gold">
+        <div style={autoGrid(190)}>
+          {memoryCards.map((card) => (
+            <PixelMetricCard
+              key={card.id}
+              label={card.label}
+              value={card.value}
+              accent={card.accent}
+              detail={card.detail}
+            />
+          ))}
+        </div>
+      </PixelPanel>
+
+      <PixelPanel title="Signature Moments" accent={signatureMomentRows.length > 0 ? 'gold' : 'cyan'}>
+        {signatureMomentRows.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {signatureMomentRows.map((entry) => (
+              <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', paddingBottom: '8px', borderBottom: '1px solid var(--mfd-border)', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '220px', flex: '1 1 260px' }}>
+                  <span style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>{entry.sourceLabel}</span>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{entry.headline}</span>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{entry.detail}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <PixelBadge variant={entry.accent}>{entry.timeLabel}</PixelBadge>
+                  <PixelBadge variant="default">{entry.badge}</PixelBadge>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+            No saved awards, draft recaps, records, season history, rivalries, movements, or lineage receipts for this player yet.
+          </div>
+        )}
+      </PixelPanel>
+
+      <PixelPanel title="Transaction Memory" accent={transactionMemoryRows.length > 0 ? 'green' : 'cyan'}>
+        {transactionMemoryRows.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {transactionMemoryRows.map((entry) => (
+              <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', paddingBottom: '8px', borderBottom: '1px solid var(--mfd-border)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{entry.yearWeek}</span>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{entry.detail}</span>
+                </div>
+                <PixelBadge variant={entry.accent}>{entry.typeLabel}</PixelBadge>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+            No saved user-team transaction rows for this player yet.
+          </div>
+        )}
+      </PixelPanel>
+
+      <PixelPanel title="Profile Sources" accent="cyan">
+        <div style={autoGrid(190)}>
+          <PixelMetricCard
+            label="Active Player"
+            value="Profile Bundle"
+            accent="cyan"
+            detail="selectPlayerProfileBundle joins the active player, value, contract, development, awards, mentor, and injury read models."
+          />
+          <PixelMetricCard
+            label="Season Ledger"
+            value={profile.careerStats.length}
+            accent={profile.legacyHistoryPartial ? 'gold' : 'green'}
+            detail={profile.legacyHistoryPartial ? 'Career rows include a partial legacy fallback.' : 'Career rows come from saved season/profile history.'}
+          />
+          <PixelMetricCard
+            label="Archive Link"
+            value={parentEntry ? 'Bloodline archive' : `${playerArchive.length} archived`}
+            accent={parentEntry ? 'gold' : 'default'}
+            detail="playerArchive is read-only lineage and retired-player context for this route."
+          />
+          <PixelMetricCard
+            label="Rivalry Feed"
+            value={rivalries.length}
+            accent={rivalries.length > 0 ? 'gold' : 'default'}
+            detail="selectPlayerRivalries reads saved playerRivalries; opening this profile does not create rivalry receipts."
+          />
+          <PixelMetricCard
+            label="Transactions"
+            value={transactionMemoryRows.length}
+            accent={transactionMemoryRows.length > 0 ? 'green' : 'default'}
+            detail="selectTransactionLog reads saved user-team txLog rows; this profile filters them for the current player."
+          />
+          <PixelMetricCard
+            label="Draft Recaps"
+            value={draftRecaps.length}
+            accent={draftRecaps.some((recap) => recap.picks.some((pick) => pick.playerId === player.id)) ? 'gold' : 'default'}
+            detail="selectDraftRecaps reads saved user-team draftRecaps; matching picks appear as Signature Moments without generating recaps."
+          />
+          <PixelMetricCard
+            label="Farewell Tours"
+            value={hasFarewellTour ? 'Saved tour' : isFarewellCandidate ? 'Eligible' : 'Read only'}
+            accent={hasFarewellTour || isFarewellCandidate ? 'gold' : 'default'}
+            detail="selectFarewellCandidates and selectFarewellTours are read-only here; only the Start Farewell Tour button calls actions.startFarewellTour."
+          />
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5, marginTop: '10px' }}>
+          Display-only route: no profile render writes playerSeasonHistory, playerArchive, draftRecaps, txLog, awards, records, endorsements, rivalries, farewell tours, or timeline rows.
+        </div>
+      </PixelPanel>
 
       <div style={autoGrid(320)}>
         <PixelPanel title="Development Arc" accent={player.ovr >= 90 ? 'gold' : 'cyan'}>
@@ -397,15 +827,16 @@ export function PlayerProfile() {
           {team?.isUser && isFarewellCandidate && !hasFarewellTour ? (
             <PixelButton
               accent="gold"
-              onClick={() => {
-                void startFarewellTour(player.id);
-              }}
+              disabled={farewellTourPending}
+              onClick={() => { void handleStartFarewellTour(); }}
             >
-              Start Farewell Tour
+              {farewellTourPending ? 'Starting Tour...' : 'Start Farewell Tour'}
             </PixelButton>
           ) : null}
         </div>
       </PixelPanel>
+
+      {visibleFarewellTourReceipt ? <FarewellTourStartReceiptPanel receipt={visibleFarewellTourReceipt} /> : null}
     </div>
   );
 }

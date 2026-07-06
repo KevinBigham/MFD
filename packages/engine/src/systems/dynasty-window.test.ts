@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { Player, Team } from '../types';
+import type { GameState, Player, Team } from '../types';
+import { applyRuleChange, initLeagueRules } from './league-rules';
 import {
   calculateDynastyWindow,
   windowPhaseLabel,
@@ -104,6 +105,35 @@ describe('Dynasty Window', () => {
       expect(result.factors.youthFactor).toBeGreaterThanOrEqual(0);
       expect(result.factors.capHealth).toBeGreaterThanOrEqual(0);
       expect(result.factors.draftCapital).toBeGreaterThanOrEqual(0);
+    });
+
+    it('uses active salary cap growth rules for cap-health scoring when supplied', () => {
+      const roster = Array.from({ length: 22 }, () => {
+        const player = makePlayer(80, 27);
+        player.contract = {
+          ...player.contract,
+          baseSalary: 12,
+          prorated: 0,
+          years: 3,
+          totalValue: 36,
+        } as Player['contract'];
+        return player;
+      });
+      const team = makeTeam(roster);
+      const leagueRules = applyRuleChange(initLeagueRules(2028), {
+        key: 'salary_cap_growth',
+        newValue: 0.1,
+        source: 'cba',
+        proposedBy: 'owners',
+        effectiveYear: 2028,
+        rationale: 'Raise the cap faster.',
+      });
+      const game = { year: 2028, leagueRules } as unknown as GameState;
+
+      const defaultWindow = calculateDynastyWindow(team, 2028, 7);
+      const ruleAwareWindow = calculateDynastyWindow(team, 2028, 7, game);
+
+      expect(ruleAwareWindow.factors.capHealth).toBeGreaterThan(defaultWindow.factors.capHealth);
     });
 
     it('more draft picks = better draft capital score', () => {

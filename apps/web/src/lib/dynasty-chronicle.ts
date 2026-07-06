@@ -1,4 +1,4 @@
-import type { GameState } from '@mfd/engine';
+import type { CareerEpilogue, GameState } from '@mfd/engine';
 import { listAllPlayoffLoreCards, readScrapbookForDynasty } from './scrapbook-store';
 
 export type ChronicleEventType =
@@ -25,6 +25,9 @@ export type ChronicleEvent =
     year: number;
     playerName: string;
     position: string;
+    epilogueCategory?: CareerEpilogue['category'];
+    epilogueHeadline?: string;
+    epilogueStory?: string;
   }
   | {
     id: string;
@@ -92,6 +95,14 @@ function compareEvents(left: ChronicleEvent, right: ChronicleEvent): number {
     || left.id.localeCompare(right.id);
 }
 
+function chronicleEpilogue(epilogue: CareerEpilogue | undefined): Pick<CareerEpilogue, 'category' | 'headline' | 'story'> | null {
+  const headline = epilogue?.headline.trim();
+  const story = epilogue?.story.trim();
+  const category = epilogue?.category.trim() as CareerEpilogue['category'] | undefined;
+  if (!headline || !story || !category) return null;
+  return { category, headline, story };
+}
+
 export function computeDynastyChronicle(game: GameState, dynastyId: string): ChronicleEvent[] {
   const parsed = parseDynastyId(dynastyId);
   if (!parsed) return [];
@@ -125,12 +136,18 @@ export function computeDynastyChronicle(game: GameState, dynastyId: string): Chr
 
   for (const entry of game.hallOfFame ?? []) {
     if (!entry.teams.includes(teamId) || entry.inductionYear < startYear) continue;
+    const epilogue = chronicleEpilogue(entry.epilogue);
     events.push({
       id: `hof:${entry.playerId}:${entry.inductionYear}`,
       type: 'hof_induction',
       year: entry.inductionYear,
       playerName: entry.name,
       position: entry.position,
+      ...(epilogue ? {
+        epilogueCategory: epilogue.category,
+        epilogueHeadline: epilogue.headline,
+        epilogueStory: epilogue.story,
+      } : {}),
     });
   }
 

@@ -72,11 +72,12 @@ describe('AwardsHub', () => {
     mockAwardsHistory = [awardsEntry(2031), awardsEntry(2030)];
   });
 
-  it('renders the awards hub header and spotlight anchor', () => {
+  it('renders the awards hub header and scrubber spotlight anchors', () => {
     const markup = renderToStaticMarkup(<AwardsHub />);
 
     expect(markup).toContain('AWARDS HUB');
     expect(markup).toContain('data-spotlight-target="chip.route.awards-hub.beat-1"');
+    expect(markup).toContain('data-spotlight-target="chip.route.awards-hub.beat-2"');
   });
 
   it('renders the six marquee award category cards', () => {
@@ -106,12 +107,30 @@ describe('AwardsHub', () => {
     expect(markup).toContain('Milwaukee Meteors');
   });
 
+  it('labels award sources without implying render-time writes', () => {
+    const markup = renderToStaticMarkup(<AwardsHub />);
+
+    expect(markup).toContain('AWARD SOURCES');
+    expect(markup).toContain('saved game.awardsHistory');
+    expect(markup).toContain('selectAwardsHistory');
+    expect(markup).toContain('AwardsHistoryEntry.ceremony');
+    expect(markup).toContain('Season scrubber state is route-local.');
+    expect(markup).toContain('Opening Awards Hub does not generate awards');
+    expect(markup).toContain('write ceremonies');
+    expect(markup).toContain('unlock achievements');
+  });
+
   it('renders a stable empty state before awards are archived', () => {
     mockAwardsHistory = [];
 
     const markup = renderToStaticMarkup(<AwardsHub />);
 
     expect(markup).toContain('No award classes archived yet.');
+    expect(markup).toContain('No saved award seasons yet.');
+    expect(markup).toContain('AWARD SOURCES');
+    expect(markup).toContain('0 saved classes');
+    expect(markup).toContain('data-spotlight-target="chip.route.awards-hub.beat-1"');
+    expect(markup).toContain('data-spotlight-target="chip.route.awards-hub.beat-2"');
     expect(markup).not.toContain('data-award-card=');
   });
 

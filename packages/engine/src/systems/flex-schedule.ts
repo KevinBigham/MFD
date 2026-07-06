@@ -1,5 +1,6 @@
 import { RNG } from '../rng';
 import type { BroadcastNetwork, GameState, ScheduledGame } from '../types';
+import { getRegularSeasonWeekCount } from './season-schedule';
 
 type RandomFn = () => number;
 
@@ -146,7 +147,8 @@ export function getFullSchedule(game: GameState, teamId: string): TeamScheduleEn
   let losses = 0;
   let ties = 0;
 
-  for (let week = 1; week <= 18; week += 1) {
+  const totalWeeks = getRegularSeasonWeekCount(game);
+  for (let week = 1; week <= totalWeeks; week += 1) {
     const weekSchedule = game.schedule.find((entry) => entry.week === week);
     const matchup = weekSchedule?.games.find((entry) => entry.homeTeamId === teamId || entry.awayTeamId === teamId) ?? null;
 

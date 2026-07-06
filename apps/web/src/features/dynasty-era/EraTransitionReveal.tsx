@@ -63,6 +63,13 @@ function shouldShowConfetti(eraType: EraTransitionVariant): boolean {
   return eraType === 'dynasty' || eraType === 'golden-age' || eraType === 'contender';
 }
 
+export function eraChipCopy(eraType: EraTransitionVariant): string {
+  if (eraType === 'fall-from-grace') {
+    return 'Fall recorded in Legacy. Optional: open Legacy after Must Do tasks. Where: Legacy. Consequence: roster, cap space, owner patience, and next-week state do not change.';
+  }
+  return 'Era recorded in Legacy. Optional: open Legacy after Must Do tasks. Where: Legacy. Consequence: roster, cap space, owner patience, and next-week state do not change.';
+}
+
 function TransitionEraBadge({ eraType, color }: { eraType: EraTransitionVariant; color: string }) {
   const common = { fill: 'none', stroke: color, strokeWidth: 6, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
 
@@ -178,9 +185,11 @@ export function EraTransitionReveal({
     <div
       role="dialog"
       aria-label="Era transition reveal"
+      data-era-transition-reveal="true"
       data-era-transition-stage={stage}
       data-era-transition-type={eraType}
       data-era-transition-accent={accent}
+      data-reduced-motion={reducedMotion ? 'true' : 'false'}
       style={{
         position: 'fixed',
         inset: 0,
@@ -258,9 +267,7 @@ export function EraTransitionReveal({
           >
             <Chip pose={chipPoseForEra(eraType)} size="md" reducedMotion={reducedMotion} />
             <ChipDialogueBubble
-              text={eraType === 'fall-from-grace'
-                ? 'This chapter needs a steady hand. The museum records the fall, then waits for the climb.'
-                : 'New era marker archived. This is the kind of chapter fans remember.'}
+              text={eraChipCopy(eraType)}
               speed={28}
               reducedMotion
             />

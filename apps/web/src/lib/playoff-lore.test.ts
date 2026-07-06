@@ -228,6 +228,7 @@ describe('playoff-lore', () => {
       result: makeResult(),
       userTeamId: 'user',
       momentumTag: 'cinderella',
+      playoffRound: 'wild_card',
     });
 
     expect(card).not.toBeNull();
@@ -252,6 +253,7 @@ describe('playoff-lore', () => {
       }),
       userTeamId: 'user',
       momentumTag: null,
+      playoffRound: 'super_bowl',
     });
 
     expect(card).not.toBeNull();
@@ -260,12 +262,42 @@ describe('playoff-lore', () => {
     expect(card?.seasonYear).toBe(2026);
   });
 
+  it('uses the explicit bracket round instead of absolute playoff week', () => {
+    const card = buildPlayoffLoreCard({
+      packageData: makePackage({
+        week: 20,
+        headline: 'Chicago survives a shifted wild-card weekend',
+      }),
+      result: makeResult({ week: 20 }),
+      userTeamId: 'user',
+      momentumTag: null,
+      playoffRound: 'wild_card',
+    });
+
+    expect(card).not.toBeNull();
+    expect(card?.week).toBe(20);
+    expect(card?.round).toBe('wild_card');
+  });
+
+  it('does not archive a playoff card when the caller cannot prove the round', () => {
+    const card = buildPlayoffLoreCard({
+      packageData: makePackage(),
+      result: makeResult(),
+      userTeamId: 'user',
+      momentumTag: null,
+      playoffRound: null,
+    });
+
+    expect(card).toBeNull();
+  });
+
   it('prefers the named-game reason as the lore hook when one exists', () => {
     const card = buildPlayoffLoreCard({
       packageData: makePackage(),
       result: makeResult(),
       userTeamId: 'user',
       momentumTag: null,
+      playoffRound: 'wild_card',
     });
 
     expect(card?.namedGameName).toBe('The Comeback');
@@ -278,6 +310,7 @@ describe('playoff-lore', () => {
       result: makeResult(),
       userTeamId: 'user',
       momentumTag: 'cinderella',
+      playoffRound: 'wild_card',
     });
 
     expect(card?.heroBlocks).toHaveLength(3);
@@ -294,6 +327,7 @@ describe('playoff-lore', () => {
       result: makeResult({ week: 8 }),
       userTeamId: 'user',
       momentumTag: null,
+      playoffRound: null,
     });
 
     const first = buildPlayoffLoreCard({
@@ -301,6 +335,7 @@ describe('playoff-lore', () => {
       result: makeResult(),
       userTeamId: 'user',
       momentumTag: null,
+      playoffRound: 'wild_card',
     })!;
     const second = { ...first, headline: 'Duplicate should be rejected' };
 

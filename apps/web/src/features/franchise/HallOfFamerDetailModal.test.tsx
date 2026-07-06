@@ -162,6 +162,52 @@ describe('HallOfFamerDetailModal', () => {
     expect(markup).toContain('Anchored a dynasty');
   });
 
+  it('renders a saved career epilogue when one is present', () => {
+    const markup = renderToStaticMarkup(
+      <HallOfFamerDetailModal
+        entry={makeEntry({
+          epilogue: {
+            playerId: 'p-1',
+            playerName: 'Jalen Banks',
+            category: 'quiet_life',
+            headline: 'Jalen Banks finally takes the quiet route',
+            story: 'Banks leaves Canton weekend for a cabin, a playbook, and no cameras.',
+          },
+        })}
+        open
+        onClose={() => undefined}
+        teams={teams}
+      />,
+    );
+
+    expect(markup).toContain('Career Epilogue');
+    expect(markup).toContain('SAVED EPILOGUE');
+    expect(markup).toContain('Quiet Life');
+    expect(markup).toContain('Jalen Banks finally takes the quiet route');
+    expect(markup).toContain('Banks leaves Canton weekend for a cabin');
+  });
+
+  it('omits malformed browser-sidecar epilogue payloads', () => {
+    const markup = renderToStaticMarkup(
+      <HallOfFamerDetailModal
+        entry={makeEntry({
+          epilogue: {
+            playerId: 'p-1',
+            playerName: 'Jalen Banks',
+            category: 'coaching',
+            headline: 'Missing the story field',
+          } as HallOfFameEntry['epilogue'],
+        })}
+        open
+        onClose={() => undefined}
+        teams={teams}
+      />,
+    );
+
+    expect(markup).not.toContain('Career Epilogue');
+    expect(markup).not.toContain('Missing the story field');
+  });
+
   it('omits the highlights panel when highlights are empty', () => {
     const markup = renderToStaticMarkup(
       <HallOfFamerDetailModal

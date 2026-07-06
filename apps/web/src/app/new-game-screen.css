@@ -73,7 +73,8 @@
 
 .mfd-new-game-hero-badges,
 .mfd-new-game-badge-row,
-.mfd-scenario-card-badges {
+.mfd-scenario-card-badges,
+.mfd-scenario-card-coverage {
   display: flex;
   flex-wrap: wrap;
   gap: var(--mfd-sp-sm);
@@ -267,6 +268,7 @@
 
 .mfd-team-card,
 .mfd-difficulty-card,
+.mfd-setup-path-card,
 .mfd-scenario-card {
   border-radius: var(--mfd-rad-md);
   color: var(--mfd-text-dim);
@@ -292,12 +294,14 @@
 
 .mfd-team-card:hover,
 .mfd-difficulty-card:hover,
+.mfd-setup-path-card:hover:not(:disabled),
 .mfd-scenario-card:hover {
   filter: brightness(1.12);
 }
 
 .mfd-team-card:focus-visible,
 .mfd-difficulty-card:focus-visible,
+.mfd-setup-path-card:focus-visible,
 .mfd-scenario-card:focus-visible,
 .mfd-primary-launch-button:focus-visible,
 .mfd-secondary-launch-button:focus-visible,
@@ -309,6 +313,7 @@
 
 .mfd-team-card[data-selected='true'],
 .mfd-difficulty-card[data-selected='true'],
+.mfd-setup-path-card[data-selected='true'],
 .mfd-scenario-card[data-selected='true'] {
   border-color: var(--mfd-gold);
   background:
@@ -358,6 +363,12 @@
   gap: var(--mfd-sp-sm);
 }
 
+.mfd-setup-path-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: var(--mfd-sp-sm);
+}
+
 .mfd-difficulty-card {
   display: flex;
   min-height: 86px;
@@ -370,7 +381,26 @@
   text-align: left;
 }
 
-.mfd-difficulty-card-title {
+.mfd-setup-path-card {
+  display: flex;
+  min-height: 104px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--mfd-sp-sm);
+  padding: 12px;
+  border: 1px solid var(--mfd-border);
+  background: var(--mfd-bg-2);
+  text-align: left;
+}
+
+.mfd-setup-path-card:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.45);
+  opacity: 0.66;
+}
+
+.mfd-difficulty-card-title,
+.mfd-setup-path-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -383,6 +413,7 @@
 }
 
 .mfd-difficulty-card-desc,
+.mfd-setup-path-desc,
 .mfd-new-game-guide,
 .mfd-convention-card p,
 .mfd-recovery-card p,
@@ -605,17 +636,18 @@
   }
 
   .mfd-team-filter-row {
-    flex-wrap: nowrap;
-    margin-inline: -2px;
-    overflow-x: auto;
-    padding: 2px;
-    scroll-padding-inline: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+    margin-inline: 0;
+    overflow: visible;
+    padding: 0;
   }
 
   .mfd-team-filter-chip {
-    flex: 0 0 auto;
+    min-width: 0;
+    width: 100%;
     min-height: 40px;
-    padding-inline: 12px;
+    padding-inline: 8px;
   }
 
   .mfd-team-grid {

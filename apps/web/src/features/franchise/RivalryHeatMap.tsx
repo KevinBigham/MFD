@@ -22,6 +22,12 @@ function formatWinPct(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+function formatLatestMeeting(entry: ReturnType<typeof computeRivalryHeatMap>[number]): string {
+  if (!entry.latestMeeting) return 'No saved meetings yet';
+  const result = entry.latestMeeting.result.toUpperCase();
+  return `${result} ${entry.latestMeeting.score} // ${entry.latestMeeting.year} W${entry.latestMeeting.week}`;
+}
+
 export function RivalryHeatMap() {
   const game = useGameStore((state) => state.game);
   const userTeam = useGameStore(selectUserTeam);
@@ -61,11 +67,17 @@ export function RivalryHeatMap() {
                 <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>
                   {entry.rivalCityName}
                 </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                  Latest: {formatLatestMeeting(entry)}
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
                   {formatRecord(entry.wins, entry.losses, entry.ties)}
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                  {entry.totalGames} game{entry.totalGames === 1 ? '' : 's'}
                 </div>
                 <div style={{ ...monoSm, color: 'var(--mfd-text)' }}>
                   {formatWinPct(entry.winPct)}
@@ -75,6 +87,17 @@ export function RivalryHeatMap() {
           ))}
         </div>
       )}
+      <div style={{
+        ...monoSm,
+        color: 'var(--mfd-text-dim)',
+        lineHeight: 1.6,
+        borderTop: '1px solid var(--mfd-border)',
+        paddingTop: '10px',
+        marginTop: '10px',
+      }}
+      >
+        Source: authored team rivalry content plus runtime team lookup. W-L-T, total games, and latest meeting are derived from saved completed schedule and playoff results; rendering does not write rivalry state.
+      </div>
     </PixelPanel>
   );
 }

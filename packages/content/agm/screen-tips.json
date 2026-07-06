@@ -4,83 +4,83 @@
   "tips": {
     "/": {
       "id": "tip_dashboard",
-      "title": "Your command center",
-      "body": "Everything that matters this week is surfaced here. When in doubt, start on the dashboard and work outward."
+      "title": "Start the week here",
+      "body": "Open Action Center first for injuries, owner requests, decisions, and next opponent. Before Advance Week, choose Roster, Depth Chart, Game Plan, or Inbox; unresolved items lock into the next game."
     },
     "/roster": {
       "id": "tip_roster",
-      "title": "Know your 53",
-      "body": "Sort by overall, age, or contract status. The players you see here are the ones you ride with — or the ones you cut."
+      "title": "Find roles and uncovered backups",
+      "body": "Sort by overall, age, or contract status. Decide who to protect, trade, cut, or replace before injuries expose uncovered backup jobs."
     },
     "/depth-chart": {
       "id": "tip_depth_chart",
-      "title": "Who plays when it matters",
-      "body": "Order your starters by role. Injuries and fatigue will roll the backups in — if that scares you, fix it here first."
+      "title": "Set starters and backups",
+      "body": "Order starters and first backups by role. Injuries and fatigue follow this saved order, so fix backup spots that would play after one injury before Advance Week."
     },
     "/schedule": {
       "id": "tip_schedule",
-      "title": "The year ahead",
-      "body": "Every opponent, every week. Tough stretches coming? Rest starters early. Easy stretch? Push for seeding."
+      "title": "Set rest and weather calls",
+      "body": "Open Schedule for opponent strength, byes, short weeks, wind, and rain. Set rest or Game Plan calls before Advance Week; missed rest creates starter fatigue and weather shrinks calls."
     },
     "/standings": {
       "id": "tip_standings",
-      "title": "Where you stack up",
-      "body": "Division first, conference second. The tie-breakers in week 17 are built on the decisions you make in weeks 1-16."
+      "title": "Choose buy/sell timing",
+      "body": "Open the division first and conference second before selling picks or resting starters. A missed tiebreaker turns one saved pick or rested starter into a lost playoff spot."
     },
     "/inbox": {
       "id": "tip_inbox",
-      "title": "The league is talking",
-      "body": "Press conferences, front-office memos, rival moves — the inbox is how the league tells you what it thinks of your team."
+      "title": "Clear deadlines first",
+      "body": "Answer expiring decisions, press prompts, and front-office memos before Advance Week. Unanswered items expire, remove offers, or cut owner patience."
     },
     "/game-plan": {
       "id": "tip_game_plan",
-      "title": "Beat them before kickoff",
-      "body": "Your scheme vs. their personnel. Match strengths to weaknesses. A good plan turns a coin-flip into a two-score game."
+      "title": "Protect healthy starters",
+      "body": "Set calls from healthy starters, opponent pass rush, coverage, and run-defense targets. Ignoring injury flags exposes unavailable players, missed protections, or uncovered receivers."
     },
     "/contracts": {
       "id": "tip_contracts",
-      "title": "The cap is a scoreboard too",
-      "body": "Every dollar in dead money is a dollar you can't spend on talent. Restructure when it helps; walk away when it doesn't."
+      "title": "Cap space decides options",
+      "body": "Preview cap space and dead money before cuts, trades, extensions, or restructures. Restructure when the saved cap space solves a starter, backup, or injury job; otherwise future injury replacement and extension options shrink."
     },
     "/trades": {
       "id": "tip_trades",
-      "title": "Every team has needs",
-      "body": "The best trades make both sides better. Find a GM whose pain is your surplus, and don't be afraid to include a pick."
+      "title": "Name cost before trading",
+      "body": "Name the return, cap hit, depth loss, and pick cost before accepting. Ignoring cap or depth weakens the lineup or blocks the next contract."
     },
     "/scouting": {
       "id": "tip_scouting",
-      "title": "Know before you draft",
-      "body": "Scouting budget is finite. Spend it where your roster will be thin in three years, not where it's deep today."
+      "title": "Scout starter jobs",
+      "body": "Spend scouting budget on positions that must start soon. Unassigned role answers, medical limits, or coachability warnings force a draft reach or expensive free-agent patch."
     },
     "/draft": {
       "id": "tip_draft",
-      "title": "The future gets drafted today",
-      "body": "Board vs. need. Best player available wins more championships than reaching for fit — but you still need a QB."
+      "title": "Name role before pick",
+      "body": "Name the top player on your board, the starter or backup job, and the rookie role before each pick. Reaching for quarterback or a starter job without a backup plan leaves a stronger pick unused and extends the roster gap."
     },
     "/free-agency": {
       "id": "tip_free_agency",
-      "title": "Spend with intention",
-      "body": "Free agents are expensive for a reason. Pay for scheme fits and role-specific skills, not name recognition."
+      "title": "Pay for roles",
+      "body": "Name the role before bidding. Free agents cost more than draft picks, so a contract without a starter, backup, or injury role blocks cap space for extensions or trade fixes."
     },
     "/training-camp": {
       "id": "tip_training_camp",
-      "title": "Camp makes the team",
-      "body": "Reps build chemistry and catch injuries early. Cut decisions you make here live with you all season."
+      "title": "Set roles before cuts",
+      "body": "Assign camp reps to lock roles before cuts and depth changes. Roleless reps lower morale, hide which player reaches the injury report first, and weaken depth all season."
     },
     "/briefing": {
       "id": "tip_briefing",
       "title": "One screen, one week",
-      "body": "Your Monday Briefing is where the week begins. Read what your AGM flags before you click Advance."
+      "body": "Open the AGM flags before Advance Week. Missing the briefing leaves injuries, tight cap space, or matchup fixes unresolved when the game locks."
     },
     "/broadcast": {
       "id": "tip_broadcast",
-      "title": "Watch the story tell itself",
-      "body": "Game Day replays show the swing plays and key drives. Great for figuring out why you lost — or why you won."
+      "title": "Name result cause",
+      "body": "Open Broadcast after games to name turnovers, sacks, injuries, and failed drives. Then change Roster, Depth Chart, or Game Plan before Advance Week; unfixed misses repeat next game."
     },
     "/franchise": {
       "id": "tip_franchise",
-      "title": "The long game",
-      "body": "Owner mood, dynasty window, franchise doctrines. This is the pulse of everything you've built."
+      "title": "Open long-term after weekly lineup and cap",
+      "body": "Open Franchise after roster, cap, Game Plan, and injury choices to view owner approval, dynasty phase, and rule changes. This page will not fix next week's lineup, cap space, or injuries."
     }
   }
 }

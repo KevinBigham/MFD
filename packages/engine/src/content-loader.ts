@@ -9,11 +9,27 @@ import contingencyCalloutsJson from '../../content/contingency-callouts.json';
 import halftimePerformersJson from '../../content/halftime/halftime-performers.json';
 import playerNamesJson from '../../content/names/player-names.json';
 import apologyTourJson from '../../content/narrative/apology-tour.json';
+import revengeLinesJson from '../../content/narrative/revenge-lines.json';
 import storyArcTemplatesJson from '../../content/narrative/story-arc-templates.json';
 import leagueNewsTemplatesJson from '../../content/news/league-news-templates.json';
 import personalityFlavorJson from '../../content/personalities/personality-flavor.json';
 import scoutingReportTemplatesJson from '../../content/scouting/scouting-report-templates.json';
 import socialFeedTemplatesJson from '../../content/social/social-feed-templates.json';
+import stadium_atl_orchard_json from '../../content/stadiums/atl-orchard.json';
+import stadium_bal_crab_pot_json from '../../content/stadiums/bal-crab-pot.json';
+import stadium_bos_kettle_json from '../../content/stadiums/bos-kettle.json';
+import stadium_chi_deep_freeze_json from '../../content/stadiums/chi-deep-freeze.json';
+import stadium_cin_sty_json from '../../content/stadiums/cin-sty.json';
+import stadium_cle_power_chord_json from '../../content/stadiums/cle-power-chord.json';
+import stadium_dal_corral_json from '../../content/stadiums/dal-corral.json';
+import stadium_den_bull_market_json from '../../content/stadiums/den-bull-market.json';
+import stadium_det_bass_drop_json from '../../content/stadiums/det-bass-drop.json';
+import stadium_kc_smokehouse_json from '../../content/stadiums/kc-smokehouse.json';
+import stadium_nyc_meter_json from '../../content/stadiums/nyc-meter.json';
+import stadium_phi_liberty_bell_json from '../../content/stadiums/phi-liberty-bell.json';
+import stadium_pit_furnace_json from '../../content/stadiums/pit-furnace.json';
+import stadium_sea_feedback_json from '../../content/stadiums/sea-feedback.json';
+import stadium_sf_mother_dough_json from '../../content/stadiums/sf-mother-dough.json';
 import team_atl_peaches_json from '../../content/teams/atl-peaches.json';
 import team_bal_crab_pickers_json from '../../content/teams/bal-crab-pickers.json';
 import team_bos_chowderheads_json from '../../content/teams/bos-chowderheads.json';
@@ -52,6 +68,7 @@ import {
   ContingencyCalloutsContentSchema,
   ApologyTourContentSchema,
   TeamContentSchema,
+  StadiumContentSchema,
   PressConferenceTemplatesContentSchema,
   AgmDialogueContentSchema,
   BroadcastTemplatesContentSchema,
@@ -64,13 +81,16 @@ import {
   PersonalityFlavorContentSchema,
   ScoutingTemplatesContentSchema,
   SocialFeedTemplatesContentSchema,
+  RevengeLinesContentSchema,
   type CallYourShotReactionContent,
   type CallYourShotReactionOutcome,
   type ContingencyCalloutKey,
   type ApologyTourBeatContent,
+  type RevengeLineBucket,
   type TeamContent as TeamContentFull,
   type TeamFanCultureContent,
   type TeamStadiumContent,
+  type StadiumContent,
   type TeamRivalryContent,
 } from './types/content-schemas';
 
@@ -79,9 +99,10 @@ export type {
   CallYourShotReactionOutcome,
   ContingencyCalloutKey,
   ApologyTourBeatContent,
+  RevengeLineBucket,
 } from './types/content-schemas';
 export type TeamIdentityContent = TeamContentFull;
-export type { TeamFanCultureContent, TeamStadiumContent, TeamRivalryContent } from './types/content-schemas';
+export type { TeamFanCultureContent, TeamStadiumContent, StadiumContent, TeamRivalryContent } from './types/content-schemas';
 
 export type PressConferenceScenario =
   | 'win_blowout'
@@ -328,6 +349,19 @@ type ContingencyCalloutsContent = {
   callouts: Record<ContingencyCalloutKey, readonly string[]>;
 };
 
+interface RevengeLinesContent {
+  pregame: {
+    agm: readonly string[];
+  };
+  halftime: {
+    commentary: readonly string[];
+  };
+  postgame: {
+    agm: readonly string[];
+    newsline: readonly string[];
+  };
+}
+
 // Tier B content validation (cleanup sprint post-55): every content JSON
 // passes through Zod at import time. Silent drift is caught before the
 // game loop reads the content — matching the Tier A team-file pattern.
@@ -404,6 +438,11 @@ const contingencyCalloutsContent = ContingencyCalloutsContentSchema.parse(
   contingencyCalloutsJson,
 ) as ContingencyCalloutsContent;
 const apologyTourContent = ApologyTourContentSchema.parse(apologyTourJson);
+const revengeLinesContent = parseContent(
+  RevengeLinesContentSchema,
+  revengeLinesJson,
+  'narrative/revenge-lines.json',
+) as RevengeLinesContent;
 const passingDefenseStTemplates = parseContent(
   BroadcastTemplatesContentSchema,
   passingDefenseStTemplatesJson,
@@ -418,6 +457,37 @@ const broadcastTemplateContent: Record<string, BroadcastTemplateCategory> = {
   ...passingDefenseStTemplates,
   ...rushingTemplates,
 };
+
+const stadiumContentList: readonly StadiumContent[] = [
+  stadium_atl_orchard_json,
+  stadium_bal_crab_pot_json,
+  stadium_bos_kettle_json,
+  stadium_chi_deep_freeze_json,
+  stadium_cin_sty_json,
+  stadium_cle_power_chord_json,
+  stadium_dal_corral_json,
+  stadium_den_bull_market_json,
+  stadium_det_bass_drop_json,
+  stadium_kc_smokehouse_json,
+  stadium_nyc_meter_json,
+  stadium_phi_liberty_bell_json,
+  stadium_pit_furnace_json,
+  stadium_sea_feedback_json,
+  stadium_sf_mother_dough_json,
+].map((raw, index) => {
+  const parsed = StadiumContentSchema.safeParse(raw);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+    throw new Error(`Invalid stadium content at index ${index} (${(raw as { teamId?: string }).teamId ?? '?'}): ${issues}`);
+  }
+  return parsed.data;
+});
+
+const stadiumContentByTeamId = stadiumContentList.reduce<Record<string, StadiumContent>>((map, stadium) => {
+  map[stadium.teamId.toUpperCase()] = stadium;
+  return map;
+}, {});
+
 // Sprint 40 "The Straight Line": validate every team JSON via Zod at load.
 // Fail loud if a team file drifts from TeamContentSchema shape.
 const teamContentList: readonly TeamContentFull[] = [
@@ -679,6 +749,19 @@ export function getApologyTourBeat(
   return apologyTourContent.beats[key];
 }
 
+export function getRevengeLineTemplates(bucket: RevengeLineBucket): readonly string[] {
+  switch (bucket) {
+    case 'pregame.agm':
+      return revengeLinesContent.pregame.agm;
+    case 'halftime.commentary':
+      return revengeLinesContent.halftime.commentary;
+    case 'postgame.agm':
+      return revengeLinesContent.postgame.agm;
+    case 'postgame.newsline':
+      return revengeLinesContent.postgame.newsline;
+  }
+}
+
 export function getStoryArcPhaseContent(arcType: string, phase: string): StoryArcPhaseContent | null {
   const phases = storyArcTemplates[arcType as StoryArcContentTemplate];
   if (!phases) return null;
@@ -733,8 +816,8 @@ export function getTeamContent(teamId: string): TeamIdentityContent | null {
   return teamContentById[teamId.toUpperCase()] ?? null;
 }
 
-export function getTeamStadiumContent(teamId: string): TeamStadiumContent | null {
-  return getTeamContent(teamId)?.stadium ?? null;
+export function getTeamStadiumContent(teamId: string): StadiumContent | TeamStadiumContent | null {
+  return stadiumContentByTeamId[teamId.toUpperCase()] ?? getTeamContent(teamId)?.stadium ?? null;
 }
 
 export function getTeamStadiumTradition(teamId: string): string | null {

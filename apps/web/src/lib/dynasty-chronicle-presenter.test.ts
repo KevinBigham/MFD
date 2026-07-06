@@ -100,6 +100,22 @@ describe('chronicleBody', () => {
     expect(chronicleBody(event)).toBe('Cole Stone entered the Hall of Fame as a QB.');
   });
 
+  it('formats hof body with saved epilogue context when present', () => {
+    const event: ChronicleEvent = {
+      id: 'h',
+      type: 'hof_induction',
+      year: 2032,
+      playerName: 'Cole Stone',
+      position: 'QB',
+      epilogueCategory: 'broadcasting',
+      epilogueHeadline: 'Cole Stone joins the booth',
+      epilogueStory: 'Stone turns film study into appointment television.',
+    };
+    expect(chronicleBody(event)).toBe(
+      'Cole Stone entered the Hall of Fame as a QB. Cole Stone joins the booth: Stone turns film study into appointment television.',
+    );
+  });
+
   it('formats playoff round body with outcome, score, and headline', () => {
     const event: ChronicleEvent = {
       id: 'p', type: 'playoff_round', year: 2032, round: 'super_bowl', outcome: 'win',
@@ -151,6 +167,25 @@ describe('chronicleFacts', () => {
       { label: 'Name', value: 'Cole Stone' },
       { label: 'Position', value: 'QB' },
       { label: 'Induction', value: '2032' },
+    ]);
+  });
+
+  it('adds a saved epilogue category fact for hof inductions when present', () => {
+    const event: ChronicleEvent = {
+      id: 'h',
+      type: 'hof_induction',
+      year: 2032,
+      playerName: 'Cole Stone',
+      position: 'QB',
+      epilogueCategory: 'quiet_life',
+      epilogueHeadline: 'Cole Stone chooses silence',
+      epilogueStory: 'Stone stepped away from the cameras.',
+    };
+    expect(chronicleFacts(event)).toEqual([
+      { label: 'Name', value: 'Cole Stone' },
+      { label: 'Position', value: 'QB' },
+      { label: 'Induction', value: '2032' },
+      { label: 'Epilogue', value: 'Quiet Life' },
     ]);
   });
 

@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { mulberry32 } from '../rng';
-import type { DraftPick, DraftProspect, GameState, TradeOffer } from '../types';
+import { getSalaryCap } from '../config';
+import type { DraftPick, DraftProspect, GameState, Team, TradeOffer } from '../types';
+import { calcCapHit } from './contracts';
 import { initializeOffseasonState } from './offseason';
 import { startScenario } from './scenario-challenge';
 import { acceptTradeOffer, generateTradeOffers, rejectTradeOffer } from './trade-market';
+import { applyRuleChange, initLeagueRules } from './league-rules';
 import { makeLeagueState, makePlayer } from './test-helpers';
 
 function addPick(game: GameState, teamId: string, round: number, pick: number, year = game.year): DraftPick {
@@ -90,6 +93,20 @@ function makeProspect(id: string, pos: DraftProspect['pos'], trueGrade: number):
   };
 }
 
+function roundMoney(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+function expectedCapUsed(team: Team): number {
+  return roundMoney(team.roster.reduce((sum, player) => sum + calcCapHit(player.contract ?? null), 0) + team.deadCap);
+}
+
+function expectCapTotalsSynced(game: GameState, teamId: string): void {
+  const team = game.teams[teamId];
+  expect(team.capUsed).toBe(expectedCapUsed(team));
+  expect(team.capSpace).toBe(roundMoney(getSalaryCap(game.year, game) - team.capUsed));
+}
+
 describe('trade-market direct coverage', () => {
   it('generates inbound offers for reasonable trade-block players', () => {
     const game = makeLeagueState('offseason', 1);
@@ -148,8 +165,8 @@ describe('trade-market direct coverage', () => {
     )).toBe(true);
   });
 
-  it('blocks accepting trades after the week-12 regular-season deadline', () => {
-    const game = makeLeagueState('regular_season', 13);
+  it('blocks accepting trades after the configured regular-season deadline', () => {
+    const game = makeLeagueState('regular_season', 10);
     const { userPlayerId, aiPlayerId } = makeOffer(game);
 
     const result = acceptTradeOffer(game, 'offer-1');
@@ -157,6 +174,23 @@ describe('trade-market direct coverage', () => {
     expect(result.nextState.offseasonState?.tradeOffers[0]?.status).toBe('pending');
     expect(result.nextState.teams.afce1.roster.some((player) => player.id === userPlayerId)).toBe(true);
     expect(result.nextState.teams.afce2.roster.some((player) => player.id === aiPlayerId)).toBe(true);
+  });
+
+  it('honors a custom week 12 deadline before blocking accepted offers', () => {
+    const game = makeLeagueState('regular_season', 10);
+    game.leagueRules = applyRuleChange(initLeagueRules(game.year), {
+      key: 'trade_deadline_week',
+      newValue: 12,
+      source: 'owners_vote',
+      proposedBy: 'owners',
+      effectiveYear: game.year,
+      rationale: 'Late-season trade window.',
+    });
+    makeOffer(game);
+
+    const result = acceptTradeOffer(game, 'offer-1');
+
+    expect(result.nextState.offseasonState?.tradeOffers[0]?.status).toBe('accepted');
   });
 
   it('blocks accepting trades when scenario constraints disable trades', () => {
@@ -185,6 +219,32 @@ describe('trade-market direct coverage', () => {
     expect(result.nextState.teams.afce1.txLog).toHaveLength(1);
     expect(result.nextState.teams.afce2.txLog).toHaveLength(1);
     expect(result.nextState.offseasonState?.tradeOffers[0]?.status).toBe('accepted');
+  });
+
+  it('synchronizes cap totals from post-trade rosters when an offer is accepted', () => {
+    const game = makeLeagueState('offseason', 1);
+    const { userPlayerId, aiPlayerId } = makeOffer(game);
+    const userTeam = game.teams.afce1;
+    const aiTeam = game.teams.afce2;
+    const userPlayer = userTeam.roster.find((player) => player.id === userPlayerId)!;
+    const aiPlayer = aiTeam.roster.find((player) => player.id === aiPlayerId)!;
+    userPlayer.contract!.baseSalary = 18;
+    userPlayer.contract!.prorated = 2;
+    aiPlayer.contract!.baseSalary = 4;
+    aiPlayer.contract!.prorated = 1;
+    userTeam.deadCap = 3.5;
+    aiTeam.deadCap = 1.5;
+    userTeam.capUsed = 999;
+    userTeam.capSpace = -999;
+    aiTeam.capUsed = 888;
+    aiTeam.capSpace = -888;
+
+    const result = acceptTradeOffer(game, 'offer-1');
+
+    expect(result.nextState.teams.afce1.roster.some((player) => player.id === aiPlayerId)).toBe(true);
+    expect(result.nextState.teams.afce2.roster.some((player) => player.id === userPlayerId)).toBe(true);
+    expectCapTotalsSynced(result.nextState, userTeam.id);
+    expectCapTotalsSynced(result.nextState, aiTeam.id);
   });
 
   it('records press, news, and social fallout for accepted user-team trades', () => {

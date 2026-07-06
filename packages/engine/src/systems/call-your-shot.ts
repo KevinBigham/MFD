@@ -175,7 +175,7 @@ const DECLARATIONS: Record<ShotDeclaration, DeclarationDef> = {
   run_dominant: {
     id: 'run_dominant',
     label: 'We\'re a Running Team',
-    description: 'Declare that your ground game will dominate. Rush for 120+ yards to succeed.',
+    description: 'Promise 120+ rushing yards. Hit it for fan-confidence gain; miss it and the recap records the failed run-game promise.',
     evaluate: (result, teamId) => evaluatePositiveThreshold(result.stats[teamId]?.rushingYards ?? 0, 120, 96),
     successHeadline: 'THEY BACKED IT UP! The ground game delivered exactly as promised!',
     failureHeadline: 'All talk, no yards. The running game couldn\'t deliver on the bold prediction.',
@@ -183,7 +183,7 @@ const DECLARATIONS: Record<ShotDeclaration, DeclarationDef> = {
   air_attack: {
     id: 'air_attack',
     label: 'We\'ll Dominate the Air',
-    description: 'Declare aerial supremacy. Throw for 250+ yards to succeed.',
+    description: 'Promise 250+ passing yards. Hit it for fan-confidence gain; miss it and the recap records the failed passing promise.',
     evaluate: (result, teamId) => evaluatePositiveThreshold(result.stats[teamId]?.passingYards ?? 0, 250, 210),
     successHeadline: 'THE AIR RAID DELIVERED! Passing attack was unstoppable, just like they promised!',
     failureHeadline: 'The passing game sputtered. Big talk about the air attack fell flat.',
@@ -191,7 +191,7 @@ const DECLARATIONS: Record<ShotDeclaration, DeclarationDef> = {
   defensive_shutout: {
     id: 'defensive_shutout',
     label: 'Our Defense Will Shut Them Out',
-    description: 'Promise a defensive masterpiece. Hold the opponent to 10 or fewer points to succeed.',
+    description: 'Promise 10 or fewer opponent points. Hit it for fan-confidence gain; miss it and the recap records the failed defensive promise.',
     evaluate: (result, teamId) => evaluateNegativeThreshold(getOpponentScore(result, teamId), 10, 17),
     successHeadline: 'SHUTDOWN DEFENSE! They said they\'d silence the opponent, and they DID!',
     failureHeadline: 'The defense promised a shutout but couldn\'t deliver. The opponent carved them up.',
@@ -199,7 +199,7 @@ const DECLARATIONS: Record<ShotDeclaration, DeclarationDef> = {
   total_domination: {
     id: 'total_domination',
     label: 'Total Domination',
-    description: 'The boldest call — win by 14+ points. High risk, huge reward.',
+    description: 'Promise a 14+ point win. Hit it for the biggest fan-confidence gain; miss it and the recap records the failed blowout promise.',
     evaluate: (result, teamId) => evaluatePositiveThreshold(getTeamScore(result, teamId) - getOpponentScore(result, teamId), 14, 7),
     successHeadline: 'TOTAL DOMINATION! They called it and DELIVERED a dominant victory!',
     failureHeadline: 'They promised domination but couldn\'t back it up. The bold prediction backfired.',
@@ -207,7 +207,7 @@ const DECLARATIONS: Record<ShotDeclaration, DeclarationDef> = {
   underdog_special: {
     id: 'underdog_special',
     label: 'The Underdog Special',
-    description: 'Embrace the underdog role. Just win the game, no matter how. Any win counts.',
+    description: 'Promise any win as the underdog. Hit it for fan-confidence gain; miss by more than one score and the recap records the failed upset promise.',
     evaluate: evaluateUnderdogSpecial,
     successHeadline: 'THE UNDERDOG WINS! Nobody believed them, but they found a way!',
     failureHeadline: 'The underdog story ends in disappointment. They fought hard but fell short.',

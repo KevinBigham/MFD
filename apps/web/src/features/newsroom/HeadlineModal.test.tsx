@@ -16,7 +16,7 @@ const mockState = {
   userTeamId: 'team-home',
 };
 
-import { HeadlineModal } from './HeadlineModal';
+import { HeadlineModal, buildHeadlineStoryReceiptRows } from './HeadlineModal';
 
 const baseItem: NewsItem = {
   id: 'news-1',
@@ -79,6 +79,39 @@ describe('HeadlineModal', () => {
     expect(html).toContain('Open Rankings');
     expect(html).toContain('Full Wire');
     expect(html).toContain('Close');
+  });
+
+  it('builds source-backed story receipt rows from saved news fields', () => {
+    const rows = buildHeadlineStoryReceiptRows(baseItem);
+
+    expect(rows.map((row) => row.id)).toEqual(['source', 'clock', 'scope', 'writer', 'boundary']);
+    expect(rows.find((row) => row.id === 'source')?.value).toBe('game.leagueNews');
+    expect(rows.find((row) => row.id === 'source')?.detail).toContain('NewsItemSchema row news-1');
+    expect(rows.find((row) => row.id === 'clock')?.value).toBe('Y2030 W5');
+    expect(rows.find((row) => row.id === 'clock')?.detail).toContain('BREAKING // trade');
+    expect(rows.find((row) => row.id === 'scope')?.value).toBe('2 teams // 1 player');
+    expect(rows.find((row) => row.id === 'writer')?.detail).toContain('recordNewsItem');
+    expect(rows.find((row) => row.id === 'boundary')?.detail).toContain('does not generate stories');
+  });
+
+  it('renders a Story Receipt with source, writer, and no-write boundary copy', () => {
+    const html = renderToStaticMarkup(
+      <HeadlineModal item={baseItem} open={true} onOpenChange={() => undefined} />,
+    );
+
+    expect(html).toContain('STORY RECEIPT');
+    expect(html).toContain('Saved Source');
+    expect(html).toContain('game.leagueNews');
+    expect(html).toContain('NewsItemSchema row news-1');
+    expect(html).toContain('Story Clock');
+    expect(html).toContain('Y2030 W5');
+    expect(html).toContain('Linked Entities');
+    expect(html).toContain('2 teams // 1 player');
+    expect(html).toContain('Write Owner');
+    expect(html).toContain('recordNewsItem');
+    expect(html).toContain('Modal Boundary');
+    expect(html).toContain('no news writes');
+    expect(html).toContain('Opening this story does not generate stories, append leagueNews, dismiss breaking news, advance week, or autosave.');
   });
 
   it('does not mark involvement when the user team is not in teamIds', () => {

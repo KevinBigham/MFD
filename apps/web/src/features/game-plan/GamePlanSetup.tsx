@@ -18,19 +18,24 @@ import {
   selectCurrentOpponentReport,
   selectCurrentWeeklyPrepPlan,
   selectPhase,
+  selectUpcomingRivalry,
   selectUserTeam,
   selectWeek,
   selectYear,
   useGameStore,
 } from '../../app/store/game-store';
-import { PixelScreenHeader, autoGrid, monoSm, screenStackStyle } from '../shared/pixelUi';
+import { PixelConsequenceList, PixelScreenHeader, autoGrid, display, monoSm, screenStackStyle } from '../shared/pixelUi';
 import { playSound } from '../audio/AudioManager';
 import { ContingencyBuilder } from './ContingencyBuilder';
+import {
+  PREP_ALIGNMENT_MAX_SCORE,
+  buildPrepDecisionForecast,
+} from './prepDecisionForecast';
 
-const PLAN_TOOLTIPS: Record<string, string> = {
+export const PLAN_TOOLTIPS: Record<string, string> = {
   'Offensive Focus': 'Choose how your offense attacks. "Attack Secondary" targets the passing game, "Attack Front" emphasizes the run, "Feed Star" gives your best player extra touches.',
   'Defensive Focus': 'Set your defensive priority. "Stop Run" stacks the box, "Heat QB" sends extra blitzes, "Erase WR1" shadows their top receiver.',
-  'Practice Intensity': 'Higher intensity boosts preparation but increases injury risk. Light is safest, Full Pads gives maximum readiness.',
+  'Practice Intensity': 'Set practice contact before Save Weekly Prep. Light lowers injury-report chances but leaves fewer reps; Full Pads raises install gains and injury-report chances before Advance Week.',
   'Snap Management': 'Control how you distribute playing time. "Protect Starters" reduces wear, "Ride Stars" maximizes your best players\' snaps.',
   'Special Situation': 'Focus practice reps on a specific game scenario. Red Zone, Third Down, Two Minute, or Field Position drills.',
   'Key Matchup': 'Designate a player to receive extra game-plan attention for this matchup.',
@@ -82,6 +87,109 @@ const PREP_EXTRA_TABS: Array<{ id: PrepExtrasTab; label: string; accent: 'gold' 
 
 const MAX_SELECTED_TRICK_PLAYS = 2;
 
+type WeeklyPrepSourceAccent = 'default' | 'green' | 'cyan' | 'gold' | 'red';
+
+interface WeeklyPrepSourceRow {
+  id: string;
+  label: string;
+  value: string;
+  detail: string;
+  accent: WeeklyPrepSourceAccent;
+}
+
+export function buildWeeklyPrepSourceRows({
+  reportTeamName,
+  week,
+  storedPlan,
+  alignmentLabel,
+  loadLabel,
+  extrasLabel,
+  contingencyCount,
+  trickPlayCount,
+}: {
+  reportTeamName: string;
+  week: number;
+  storedPlan: boolean;
+  alignmentLabel: string;
+  loadLabel: string;
+  extrasLabel: string;
+  contingencyCount: number;
+  trickPlayCount: number;
+}): WeeklyPrepSourceRow[] {
+  return [
+    {
+      id: 'opponent-intel',
+      label: 'Opponent intel',
+      value: `Week ${week}`,
+      detail: `selectCurrentOpponentReport and selectCurrentOpponentIntel supply the ${reportTeamName} report, lanes, recommendations, tendencies, danger players, and weak links for the current matchup.`,
+      accent: 'cyan',
+    },
+    {
+      id: 'prep-draft',
+      label: 'Prep draft',
+      value: storedPlan ? 'Saved board' : 'Route draft',
+      detail: 'The visible controls are route-local WeeklyPrepPlan fields until a commit button runs. Changing them does not write weeklyPrepPlans, gamePlan, reports, or Call Your Shot by itself.',
+      accent: storedPlan ? 'green' : 'gold',
+    },
+    {
+      id: 'decision-forecast',
+      label: 'Decision forecast',
+      value: `${alignmentLabel} / ${loadLabel}`,
+      detail: `buildPrepDecisionForecast reads the current draft plus ${contingencyCount} contingency rules and ${trickPlayCount} trick plays to label consequences. It does not play scheduled games or change saved data.`,
+      accent: 'green',
+    },
+    {
+      id: 'trick-play-boundary',
+      label: 'Trick play boundary',
+      value: trickPlayCount > 0 ? `${trickPlayCount} planned` : 'Planning only',
+      detail: 'Selected trick plays are saved in the weekly prep plan and included in forecast labels, but the current game does not call trick-play helper outcomes.',
+      accent: trickPlayCount > 0 ? 'cyan' : 'default',
+    },
+    {
+      id: 'commit-paths',
+      label: 'Ways to advance',
+      value: 'Save or auto',
+      detail: 'Save Weekly Prep & Sim writes the plan, opponent report, game-plan calls, and selected Call Your Shot before advancing. Auto Prep clears saved prep, saves Call Your Shot when selected, then advances.',
+      accent: 'gold',
+    },
+    {
+      id: 'sim-boundary',
+      label: 'Advance boundary',
+      value: extrasLabel,
+      detail: 'Opening Game Plan does not click Advance Week, evaluate prep, resolve snaps, play games, resolve contingency outcomes, create Film Room entries, or change the schedule.',
+      accent: 'red',
+    },
+  ];
+}
+
+function WeeklyPrepSources({ rows }: { rows: WeeklyPrepSourceRow[] }) {
+  return (
+    <PixelPanel title="Weekly Prep Sources" accent="cyan">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+        {rows.map((row) => (
+          <div
+            key={row.id}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              padding: '10px',
+              border: '2px solid var(--mfd-border)',
+              background: 'var(--mfd-bg-2)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ ...display, fontSize: '16px', color: 'var(--mfd-text)', lineHeight: 1 }}>{row.label.toUpperCase()}</div>
+              <PixelBadge variant={row.accent}>{row.value.toUpperCase()}</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{row.detail}</div>
+          </div>
+        ))}
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function GamePlanSetup() {
   const week = useGameStore(selectWeek);
   const year = useGameStore(selectYear);
@@ -90,6 +198,7 @@ export function GamePlanSetup() {
   const report = useGameStore(selectCurrentOpponentReport);
   const intel = useGameStore(selectCurrentOpponentIntel);
   const storedPlan = useGameStore(selectCurrentWeeklyPrepPlan);
+  const upcomingRivalry = useGameStore(selectUpcomingRivalry);
   const activeCallYourShot = useGameStore((state) => state.game?.activeCallYourShot ?? null);
   const { advanceWeek, clearWeeklyPrepPlan, saveWeeklyPrepPlan, setCallYourShot } = useGameStore((state) => state.actions);
 
@@ -119,9 +228,8 @@ export function GamePlanSetup() {
 
   const shotEligibility = useMemo(() => {
     const isPlayoff = (phase as string) === 'playoffs' || (phase as string) === 'super_bowl';
-    const isLateSeasonRivalry = week >= 14;
-    return isCallYourShotEligible(isLateSeasonRivalry, false, isPlayoff, week);
-  }, [phase, week]);
+    return isCallYourShotEligible(Boolean(upcomingRivalry), false, isPlayoff, week);
+  }, [phase, upcomingRivalry, week]);
   const declarations = useMemo(() => getDeclarations(), []);
   const availableTrickPlays = useMemo(() => (team ? getAvailableTrickPlays(team) : []), [team]);
 
@@ -154,6 +262,25 @@ export function GamePlanSetup() {
     contingencyRules,
     trickPlays: selectedTrickPlays,
   };
+  const prepForecast = buildPrepDecisionForecast({
+    plan: currentPlan,
+    intel,
+    storedPlan: Boolean(storedPlan),
+    contingencyCount: contingencyRules.length,
+    maxContingencies: MAX_CONTINGENCIES,
+    trickPlayCount: selectedTrickPlays.length,
+    maxTrickPlays: MAX_SELECTED_TRICK_PLAYS,
+  });
+  const sourceRows = buildWeeklyPrepSourceRows({
+    reportTeamName: report.teamName,
+    week,
+    storedPlan: Boolean(storedPlan),
+    alignmentLabel: prepForecast.alignmentLabel,
+    loadLabel: prepForecast.loadLabel,
+    extrasLabel: prepForecast.extrasLabel,
+    contingencyCount: contingencyRules.length,
+    trickPlayCount: selectedTrickPlays.length,
+  });
 
   const filteredOffensivePlaybook = OFFENSIVE_PLAYS.filter((play) => play.planAffinity.includes(
     currentPlan.offensiveFocus === 'attack_secondary'
@@ -225,6 +352,8 @@ export function GamePlanSetup() {
         )}
       />
 
+      <WeeklyPrepSources rows={sourceRows} />
+
       <div data-mfd-next-call="weekly-prep">
       <PixelPanel title="Next Call" accent={storedPlan ? 'green' : 'gold'}>
         <div style={{
@@ -240,10 +369,10 @@ export function GamePlanSetup() {
                 {storedPlan ? 'Prep locked' : 'Prep open'}
               </PixelBadge>
               <PixelBadge variant="cyan">Contingencies {contingencyRules.length}/{MAX_CONTINGENCIES}</PixelBadge>
-              <PixelBadge variant="gold">Tricks {selectedTrickPlays.length}/{MAX_SELECTED_TRICK_PLAYS}</PixelBadge>
+              <PixelBadge variant="gold">Trick plays {selectedTrickPlays.length}/{MAX_SELECTED_TRICK_PLAYS}</PixelBadge>
             </div>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-              Primary decision: lock your staff board and sim, or let the staff auto-prep so the week can move.
+              Primary decision: save the weekly prep plan before advancing, or choose Auto Prep and accept the staff's default calls.
             </div>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -316,7 +445,7 @@ export function GamePlanSetup() {
               {intel && (
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   Intel says: {intel.attackLane === 'passing' ? 'Attack Secondary' : 'Attack Front'}
-                  {offensiveFocus === (intel.attackLane === 'passing' ? 'attack_secondary' : 'attack_front') && <PixelBadge variant="green">REC</PixelBadge>}
+                  {offensiveFocus === (intel.attackLane === 'passing' ? 'attack_secondary' : 'attack_front') && <PixelBadge variant="green">SCOUT MATCH</PixelBadge>}
                 </div>
               )}
             </PixelPanel>
@@ -334,7 +463,7 @@ export function GamePlanSetup() {
               {intel && (
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   Intel says: {intel.defendLane === 'passing' ? 'Limit Explosive' : 'Stop Run'}
-                  {defensiveFocus === (intel.defendLane === 'passing' ? 'limit_explosive' : 'stop_run') && <PixelBadge variant="green">REC</PixelBadge>}
+                  {defensiveFocus === (intel.defendLane === 'passing' ? 'limit_explosive' : 'stop_run') && <PixelBadge variant="green">SCOUT MATCH</PixelBadge>}
                 </div>
               )}
             </PixelPanel>
@@ -394,28 +523,16 @@ export function GamePlanSetup() {
         <PixelPanel title="Prep Board Readout" accent="green">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <PixelProgressBar
-              label="Offensive alignment"
-              value={offensiveFocus === 'attack_secondary' && intel.attackLane === 'passing'
-                ? 88
-                : offensiveFocus === 'attack_front' && intel.attackLane === 'rushing'
-                  ? 88
-                  : offensiveFocus === 'balanced'
-                    ? 70
-                    : 62}
-              max={100}
+              label="Offense vs scout report"
+              value={prepForecast.offensiveScore}
+              max={PREP_ALIGNMENT_MAX_SCORE}
               accent="gold"
               valueLabel={offensiveFocus.replaceAll('_', ' ')}
             />
             <PixelProgressBar
-              label="Defensive alignment"
-              value={defensiveFocus === 'limit_explosive' && intel.defendLane === 'passing'
-                ? 88
-                : defensiveFocus === 'stop_run' && intel.defendLane === 'rushing'
-                  ? 88
-                  : defensiveFocus === 'balanced'
-                    ? 70
-                    : 62}
-              max={100}
+              label="Defense vs scout report"
+              value={prepForecast.defensiveScore}
+              max={PREP_ALIGNMENT_MAX_SCORE}
               accent="cyan"
               valueLabel={defensiveFocus.replaceAll('_', ' ')}
             />
@@ -426,11 +543,22 @@ export function GamePlanSetup() {
         </PixelPanel>
       </div>
 
+      <PixelPanel title="Decision Forecast" accent={prepForecast.alignmentAccent}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <PixelBadge variant={prepForecast.alignmentAccent}>{prepForecast.alignmentLabel}</PixelBadge>
+            <PixelBadge variant={prepForecast.loadAccent}>{prepForecast.loadLabel}</PixelBadge>
+            <PixelBadge variant="cyan">{prepForecast.extrasLabel}</PixelBadge>
+          </div>
+          <PixelConsequenceList items={prepForecast.consequenceItems} />
+        </div>
+      </PixelPanel>
+
       {shotEligibility.eligible && (
         <PixelPanel title="Call Your Shot" accent="gold">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ ...monoSm, color: 'var(--mfd-gold)', lineHeight: 1.6 }}>
-              {shotEligibility.reason} — Make a bold prediction and earn bonus morale if you deliver.
+              {shotEligibility.reason} — Choose one promise before Save &amp; Sim or Auto Prep. It saves with the weekly advance; hit it for fan-confidence gain, miss it and fan confidence drops in the recap receipt.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {declarations.map((decl) => (
@@ -493,6 +621,10 @@ export function GamePlanSetup() {
                 <PixelBadge variant={availableTrickPlays.length > 0 ? 'green' : 'red'}>
                   {availableTrickPlays.length > 0 ? 'Coach unlocked' : 'Coach locked'}
                 </PixelBadge>
+              </div>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+                Current boundary: this menu saves planned trick-play ids with weekly prep and feeds the forecast label. It does not make
+                the live-drive call `executeTrickPlay`, `shouldCallTrickPlay`, or other trick-play helpers during live drives.
               </div>
               {availableTrickPlays.length === 0 ? (
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>

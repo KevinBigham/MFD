@@ -57,7 +57,7 @@ export const CLINIC_TRACKS: readonly ClinicTrack[] = [
     id: 'development', label: 'Player Dev', desc: 'Growth & recovery',
     perks: [
       { id: 'dev1', name: 'Practice Guru', desc: '+15% dev camp progression chance', xpReq: 30, fx: { devBoost: 0.15 } },
-      { id: 'dev2', name: 'Iron Man', desc: '-10% injury risk from Full Pads', xpReq: 80, fx: { padsInjReduction: 0.10 } },
+      { id: 'dev2', name: 'Iron Man', desc: '-10% injury-report chance from Full Pads', xpReq: 80, fx: { padsInjReduction: 0.10 } },
     ],
   },
 ] as const;
@@ -65,6 +65,8 @@ export const CLINIC_TRACKS: readonly ClinicTrack[] = [
 // ── Action→Track Mapping ───────────────────────────────
 
 const ACTION_TRACK: Record<string, string> = {
+  offense: 'offense', defense: 'defense', analytics: 'analytics',
+  leadership: 'leadership', development: 'development',
   gameplan_change: 'offense', halftime_pick: 'offense',
   def_plan_change: 'defense',
   scout_practice: 'analytics', dossier_scout: 'analytics', prospect_scout: 'analytics',

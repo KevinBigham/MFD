@@ -10,7 +10,7 @@ import Dexie, { type EntityTable } from 'dexie';
 export interface SaveSlot {
   id?: number;
   name: string;
-  data: string;           // LZW-compressed JSON
+  data: string;           // Plain cartridge JSON
   timestamp: number;
   year: number;
   week: number;

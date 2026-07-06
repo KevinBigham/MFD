@@ -139,6 +139,99 @@ function summarizeAwardStat(entry: AwardsHistoryEntry['awards'][number]): string
   return `${value} ${humanizeStatLabel(label)}`;
 }
 
+const HOF_BALLOT_SUPPORT_WATCH_PCT = 70;
+const HOF_BALLOT_FINAL_YEAR = 5;
+
+function LegacySourcesPanel({
+  seasonCount,
+  timelineCount,
+  ceremonyCount,
+  reportCount,
+  draftRecapCount,
+  namedGameCount,
+  hallCount,
+  recordPanelCount,
+  mentoringCount,
+}: {
+  seasonCount: number;
+  timelineCount: number;
+  ceremonyCount: number;
+  reportCount: number;
+  draftRecapCount: number;
+  namedGameCount: number;
+  hallCount: number;
+  recordPanelCount: number;
+  mentoringCount: number;
+}) {
+  const rows = [
+    {
+      id: 'season-archive',
+      label: 'Season archive',
+      status: `${seasonCount} season${seasonCount === 1 ? '' : 's'}`,
+      detail: 'Source: saved game.franchiseHistory filtered to the current user team, plus game.playerArchive for all-time roster and legend counts.',
+      accent: 'gold' as const,
+    },
+    {
+      id: 'timeline',
+      label: 'Timeline stack',
+      status: `${timelineCount + ceremonyCount + reportCount + recordPanelCount} rows`,
+      detail: 'Source: selectDynastyTimeline, selectCeremonies, selectRecords, and selectSeasonReports feed the timeline, ceremonies, records book, and report cards.',
+      accent: 'cyan' as const,
+    },
+    {
+      id: 'linked-archives',
+      label: 'Linked archives',
+      status: `${draftRecapCount + namedGameCount} linked`,
+      detail: 'Source: selectDraftRecaps, selectNamedGames, selectBloodlineFamilies, and selectHallOfFame power the linked archive CTAs without rebuilding those archives.',
+      accent: 'green' as const,
+    },
+    {
+      id: 'ballot-mentoring',
+      label: 'Ballot + mentoring',
+      status: `${hallCount + mentoringCount} rows`,
+      detail: 'Source: saved game.ballotWaitlist / game.ballotEliminatedIds plus active and historical mentoring selectors. This route summarizes existing rows only.',
+      accent: 'gold' as const,
+    },
+    {
+      id: 'route-state',
+      label: 'Route-local state',
+      status: 'modals only',
+      detail: 'Selected ceremony and season-report detail state live in React. Buttons navigate to archive routes or open local detail views; rendering does not write the save.',
+      accent: 'cyan' as const,
+    },
+  ];
+
+  return (
+    <PixelPanel title="Legacy Sources" accent="cyan">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+        {rows.map((row) => (
+          <div
+            key={row.id}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              minHeight: '116px',
+              padding: '10px',
+              border: '1px solid #1f1f1f',
+              background: 'rgba(255,255,255,0.02)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ ...monoSm, color: '#fff' }}>{row.label}</span>
+              <PixelBadge variant={row.accent}>{row.status}</PixelBadge>
+            </div>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{row.detail}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6, marginTop: '10px' }}>
+        Opening Legacy does not generate ceremonies, draft recaps, named games, Hall of Fame entries, records, reports, timeline events, mentoring history, or archive sidecars.
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function LegacyTimeline() {
   const game = useGameStore((state) => state.game);
   const userTeam = useGameStore(selectUserTeam);
@@ -156,6 +249,25 @@ export function LegacyTimeline() {
   const historicalMentoring = useGameStore(selectHistoricalMentoringChains);
   const [selectedCeremonyId, setSelectedCeremonyId] = useState<string | null>(null);
   const [selectedReportYear, setSelectedReportYear] = useState<number | null>(null);
+  const hofBallotWaitlist = game?.ballotWaitlist ?? [];
+  const hofBallotEliminatedIds = game?.ballotEliminatedIds ?? [];
+  const hofBallotLeaders = useMemo(() =>
+    [...hofBallotWaitlist]
+      .sort((a, b) => b.votePct - a.votePct || b.score - a.score || a.name.localeCompare(b.name))
+      .slice(0, 5),
+  [hofBallotWaitlist]);
+  const hofBallotPressure = useMemo(() => {
+    const total = hofBallotWaitlist.length;
+    const averageVotePct = total > 0
+      ? Math.round(hofBallotWaitlist.reduce((sum, entry) => sum + entry.votePct, 0) / total)
+      : 0;
+    return {
+      averageVotePct,
+      supportWatchCount: hofBallotWaitlist.filter((entry) => entry.votePct >= HOF_BALLOT_SUPPORT_WATCH_PCT).length,
+      finalYearCount: hofBallotWaitlist.filter((entry) => entry.yearsOnBallot >= HOF_BALLOT_FINAL_YEAR).length,
+      leader: hofBallotLeaders[0] ?? null,
+    };
+  }, [hofBallotLeaders, hofBallotWaitlist]);
 
   const teamHistory = useMemo(() => {
     if (!game || !userTeam) return [];
@@ -223,6 +335,7 @@ export function LegacyTimeline() {
   const legendCount = allTimeRoster.filter((entry) => entry.peakOvr >= 85).length;
   const hallCount = hallOfFame.length;
   const selectedCeremony = ceremonies.find((entry) => entry.id === selectedCeremonyId) ?? null;
+  const legacyMentoringCount = activeMentoringPairs.length + historicalMentoring.length;
 
   return (
     <div style={screenStackStyle}>
@@ -250,8 +363,8 @@ export function LegacyTimeline() {
         eyebrow="Archive Command"
         title={teamHistory.length > 0 ? 'Turn the record into a story' : 'Start filing the first chapter'}
         body={teamHistory.length > 0
-          ? 'Jump from the ledger into the chronicle, scrapbook, or award room before the archive turns into a wall of rows.'
-          : 'Once the first season closes, this hub will become the control room for banners, records, named games, and player legacies.'}
+          ? 'Jump from the ledger into the chronicle, scrapbook, award room, or current standings so the old seasons keep pointing back at this year.'
+          : 'Once the first season closes, this hub will become the control room for banners, records, named games, and player legacies. For now, steer the next chapter from the live league table.'}
         accent={titleCount > 0 ? 'gold' : 'cyan'}
         meta={(
           <>
@@ -264,7 +377,20 @@ export function LegacyTimeline() {
           { label: 'Open Chronicle', accent: 'gold', onClick: () => navigateTo('/franchise/chronicle') },
           { label: 'Scrapbook', accent: 'cyan', onClick: () => navigateTo('/franchise/scrapbook') },
           { label: 'Awards Hub', accent: 'green', onClick: () => navigateTo('/awards'), disabled: awardRows.length === 0 },
+          { label: 'Current Standings', accent: 'cyan', onClick: () => navigateTo('/standings') },
         ]}
+      />
+
+      <LegacySourcesPanel
+        seasonCount={teamHistory.length}
+        timelineCount={timelineYears.length}
+        ceremonyCount={ceremonies.length}
+        reportCount={seasonReports.length}
+        draftRecapCount={draftRecaps.length}
+        namedGameCount={namedGames.length}
+        hallCount={hallCount}
+        recordPanelCount={recordPanels.length}
+        mentoringCount={legacyMentoringCount}
       />
 
       {awardsHistory.length > 0 ? (
@@ -573,6 +699,99 @@ export function LegacyTimeline() {
       ) : null}
 
       <PixelPanel title="Hall of Fame" accent="red">
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: '12px',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          marginBottom: '12px',
+        }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <PixelBadge variant="cyan">Current save archive</PixelBadge>
+              <PixelBadge variant="default">
+                {hallOfFame.length} live inductee{hallOfFame.length === 1 ? '' : 's'}
+              </PixelBadge>
+              <PixelBadge variant="gold">
+                {hofBallotWaitlist.length} on ballot
+              </PixelBadge>
+              <PixelBadge variant="default">
+                {hofBallotEliminatedIds.length} eliminated
+              </PixelBadge>
+            </div>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              These inductees come from the active dynasty save. Use the Hall of Fame Directory for browser-local,
+              cross-dynasty snapshots.
+            </span>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Ballot state is saved in game.ballotWaitlist and game.ballotEliminatedIds, defaulted through the v36
+              schema and updated by the offseason Hall of Fame induction pass.
+            </span>
+          </div>
+          <PixelButton accent="cyan" onClick={() => navigateTo('/franchise/hall')}>
+            Open Directory
+          </PixelButton>
+        </div>
+        <div style={{
+          border: '1px solid var(--mfd-border)',
+          background: 'rgba(0,0,0,0.18)',
+          padding: '10px',
+          marginBottom: '12px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+        }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ ...monoSm, color: '#fff' }}>Ballot Watch</span>
+            <PixelBadge variant="default">
+              {hofBallotEliminatedIds.length} eliminated all-time
+            </PixelBadge>
+          </div>
+          {hofBallotLeaders.length === 0 ? (
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              No waitlisted candidates yet. Retired legends enter this saved ballot during the offseason induction pass.
+            </span>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <PixelBadge variant="gold">{hofBallotPressure.averageVotePct}% avg vote</PixelBadge>
+                <PixelBadge variant={hofBallotPressure.supportWatchCount > 0 ? 'cyan' : 'default'}>
+                  {hofBallotPressure.supportWatchCount} at 70%+
+                </PixelBadge>
+                <PixelBadge variant={hofBallotPressure.finalYearCount > 0 ? 'red' : 'default'}>
+                  {hofBallotPressure.finalYearCount} year-5
+                </PixelBadge>
+                <PixelBadge variant="default">Top {hofBallotLeaders.length} shown</PixelBadge>
+              </div>
+              {hofBallotPressure.leader ? (
+                <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                  Top watch: {hofBallotPressure.leader.name} at {Math.round(hofBallotPressure.leader.votePct)}% saved support.
+                </span>
+              ) : null}
+              {hofBallotLeaders.map((entry) => (
+                <div
+                  key={entry.playerId}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1fr) auto auto auto',
+                    gap: '8px',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span style={{ ...monoSm, color: '#fff', minWidth: 0 }}>
+                    {entry.name} // {entry.position}
+                  </span>
+                  <PixelBadge variant="cyan">Year {entry.yearsOnBallot}</PixelBadge>
+                  <PixelBadge variant="gold">{Math.round(entry.votePct)}% vote</PixelBadge>
+                  <PixelBadge variant="default">Score {Math.round(entry.score)}</PixelBadge>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         {hallOfFame.length === 0 ? (
           <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>Inductees will appear after retired legends clear the threshold.</span>
         ) : (

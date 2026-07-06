@@ -158,6 +158,35 @@ describe('revenge-games scanner', () => {
     expect(flavor).toBeNull();
   });
 
+  it('does not synthesize coach revenge from saved coach career history yet', () => {
+    const game = seedRevengeScenario();
+    game.playerArchive = [];
+    game.coachingHistory = [{
+      coachId: 'coach-1',
+      name: 'Former Coach',
+      archetype: 'Strategist',
+      age: 55,
+      seasonsCoached: 4,
+      wins: 40,
+      losses: 28,
+      championships: 0,
+      awards: 0,
+      retired: false,
+      teams: [
+        { teamId: 'afce2', startYear: 2022, endYear: 2024, wins: 22, losses: 12, championships: 0 },
+        { teamId: 'afce1', startYear: 2025, endYear: 2026, wins: 18, losses: 16, championships: 0 },
+      ],
+    }];
+
+    const flavor = getRevengeFlavorForMatchup(
+      game,
+      { homeTeamId: 'afce1', awayTeamId: 'afce2' },
+      1,
+    );
+
+    expect(flavor).toBeNull();
+  });
+
   it('hashMatchupSeed is deterministic and non-negative', () => {
     const a = hashMatchupSeed('1:afce1:afce2::agm');
     const b = hashMatchupSeed('1:afce1:afce2::agm');

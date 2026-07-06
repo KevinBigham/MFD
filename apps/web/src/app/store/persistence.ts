@@ -29,7 +29,11 @@ function normalizeImportedGame(raw: unknown): GameState {
   const migrated = migrate(raw as Record<string, unknown>, SAVE_VERSION);
   const result = SaveStateSchema.safeParse(migrated);
   if (!result.success) {
-    throw new Error('Save data failed schema validation.');
+    const issueSummary = result.error.issues
+      .slice(0, 6)
+      .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+      .join('; ');
+    throw new Error(`Save data failed schema validation.${issueSummary ? ` ${issueSummary}` : ''}`);
   }
 
   const game = result.data as unknown as GameState;

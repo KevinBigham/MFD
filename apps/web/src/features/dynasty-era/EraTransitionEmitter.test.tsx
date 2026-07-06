@@ -1,7 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import {
+  buildEraTransitionNarrative,
   EraTransitionEmitterView,
+  resolveEraTransitionVariant,
   resolveEraTransitionEvent,
   type EraTransitionSnapshot,
 } from './EraTransitionEmitter';
@@ -12,6 +14,7 @@ const ERA_ONE: EraTransitionSnapshot = {
   summary: 'The first chapter.',
   startYear: 2026,
   endYear: 2029,
+  variant: 'rebuilding',
 };
 
 const ERA_TWO: EraTransitionSnapshot = {
@@ -20,6 +23,7 @@ const ERA_TWO: EraTransitionSnapshot = {
   summary: 'The second chapter.',
   startYear: 2030,
   endYear: 2033,
+  variant: 'dynasty',
 };
 
 describe('EraTransitionEmitter', () => {
@@ -35,10 +39,19 @@ describe('EraTransitionEmitter', () => {
       previousEraId: ERA_ONE.id,
       firedEraIds: new Set(),
     });
-    const markup = renderToStaticMarkup(<EraTransitionEmitterView transition={event} reducedMotion={false} onDismiss={() => undefined} />);
+    const markup = renderToStaticMarkup(
+      <EraTransitionEmitterView
+        transition={event}
+        reducedMotion={false}
+        initialStage="idle"
+        onDismiss={() => undefined}
+      />,
+    );
 
     expect(markup).toContain('data-era-transition-reveal="true"');
-    expect(markup).toContain('Banner Standard');
+    expect(markup).toContain('data-era-transition-type="dynasty"');
+    expect(markup).toContain('BANNER STANDARD');
+    expect(markup).toContain('2030 - 2033: The second chapter.');
   });
 
   it('does not re-fire for repeated identical era values', () => {
@@ -66,10 +79,24 @@ describe('EraTransitionEmitter', () => {
       <EraTransitionEmitterView
         transition={ERA_TWO}
         reducedMotion
+        initialStage="idle"
         onDismiss={() => undefined}
       />,
     );
 
     expect(markup).toContain('data-reduced-motion="true"');
+  });
+
+  it('maps detected era names onto staged reveal variants', () => {
+    expect(resolveEraTransitionVariant('Dark Ages')).toBe('fall-from-grace');
+    expect(resolveEraTransitionVariant('The Rebuild')).toBe('rebuilding');
+    expect(resolveEraTransitionVariant('Golden Rebuild')).toBe('rebuilding');
+    expect(resolveEraTransitionVariant('Dynasty Era')).toBe('dynasty');
+    expect(resolveEraTransitionVariant('Golden Age')).toBe('golden-age');
+    expect(resolveEraTransitionVariant('Playoff Window')).toBe('contender');
+  });
+
+  it('keeps the era year range in the staged narrative', () => {
+    expect(buildEraTransitionNarrative({ ...ERA_TWO, endYear: null })).toBe('2030 - Present: The second chapter.');
   });
 });

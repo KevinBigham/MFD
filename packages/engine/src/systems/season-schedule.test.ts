@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { applyRuleChange, initLeagueRules } from './league-rules';
-import { buildSeasonSchedule } from './season-schedule';
+import { buildSeasonSchedule, getConfiguredScheduleWeekCount, getRegularSeasonWeekCount } from './season-schedule';
+
+function emptySchedule(weeks: number) {
+  return Array.from({ length: weeks }, (_, index) => ({ week: index + 1, games: [] }));
+}
 
 describe('season schedule generation', () => {
   it('creates one bye per week for odd team counts and remains deterministic', () => {
@@ -52,5 +56,21 @@ describe('season schedule generation', () => {
 
     expect(currentYear).toHaveLength(18);
     expect(futureYear).toHaveLength(19);
+  });
+
+  it('reports generated schedule length while falling back to effective rules', () => {
+    const leagueRules = applyRuleChange(initLeagueRules(2030), {
+      key: 'schedule_weeks',
+      newValue: 17,
+      source: 'commissioner_vote',
+      proposedBy: 'comm-1',
+      effectiveYear: 2030,
+      rationale: 'Trim the season.',
+    });
+
+    expect(getConfiguredScheduleWeekCount({ year: 2030, leagueRules })).toBe(17);
+    expect(getRegularSeasonWeekCount({ year: 2030, leagueRules, schedule: emptySchedule(19) })).toBe(19);
+    expect(getRegularSeasonWeekCount({ year: 2030, leagueRules, schedule: emptySchedule(2) })).toBe(17);
+    expect(getRegularSeasonWeekCount(null)).toBe(18);
   });
 });

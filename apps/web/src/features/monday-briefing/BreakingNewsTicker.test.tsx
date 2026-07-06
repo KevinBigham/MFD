@@ -44,6 +44,20 @@ describe('BreakingNewsTicker', () => {
     expect(markup).toContain('Two contenders swapped edge rushers');
   });
 
+  it('labels the leagueNews source and no-write ticker boundary', () => {
+    const markup = renderToStaticMarkup(
+      <BreakingNewsTickerView item={breakingNewsItem} reducedMotion={false} />,
+    );
+
+    expect(markup).toContain('leagueNews via selectTickerItems');
+    expect(markup).toContain('read-only');
+    expect(markup).toContain('no queue dismiss, new story, save change, or outcome reroll');
+    expect(markup).toContain('Source: saved leagueNews passed from the app shell through selectTickerItems');
+    expect(markup).toContain('full-screen interrupts stay in breakingNewsQueue');
+    expect(markup).toContain('does not dismiss queue items, create new stories, click Advance Week, change saves, or reroll saved outcomes');
+    expect(markup).not.toMatch(/\bRNG\b|story gen|advance the week|mutate saves/i);
+  });
+
   it('disables the ticker slide animation when reduced motion is enabled', () => {
     const markup = renderToStaticMarkup(
       <BreakingNewsTickerView item={breakingNewsItem} reducedMotion />,

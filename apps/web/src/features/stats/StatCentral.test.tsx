@@ -89,6 +89,23 @@ describe('StatCentral', () => {
     expect(markup).toContain('Team History');
   });
 
+  it('labels stat read model sources without implying render-time writes', () => {
+    const markup = renderToStaticMarkup(<StatCentral />);
+
+    expect(markup).toContain('STAT SOURCES');
+    expect(markup).toContain('Current season source');
+    expect(markup).toContain('game.players');
+    expect(markup).toContain('Historical source');
+    expect(markup).toContain('playerSeasonHistory');
+    expect(markup).toContain('Archive fallback');
+    expect(markup).toContain('playerArchive');
+    expect(markup).toContain('Local controls');
+    expect(markup).toContain('route state');
+    expect(markup).toContain('Just viewing');
+    expect(markup).toContain('display only');
+    expect(markup).toContain('Opening Stat Central does not write stats, records, news, social posts, history rows, or player-archive entries.');
+  });
+
   it('renders the default league leaders table', () => {
     const markup = renderToStaticMarkup(<StatCentral />);
 

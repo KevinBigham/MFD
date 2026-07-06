@@ -268,4 +268,15 @@ describe('ContinuityMeter', () => {
     expect(markup).toContain('Total Starters');
     expect(markup.match(/data-mock="metric-card"/g)?.length ?? 0).toBe(4);
   });
+
+  it('labels continuity as a browser-local starter snapshot instead of cartridge data', () => {
+    const game = makeGame(['a', 'b', 'c']);
+    upsertDynastyStarters(deriveDynastyId(game), 2026, ['a', 'b', 'c']);
+
+    const markup = renderToStaticMarkup(<ContinuityMeter game={game} />);
+
+    expect(markup).toContain('browser-local mfd.rosterContinuity.v1 starter snapshot');
+    expect(markup).toContain('current isStarter flags');
+    expect(markup).toContain('This is not cartridge data');
+  });
 });

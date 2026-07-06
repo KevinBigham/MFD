@@ -21,8 +21,16 @@
  *
  * Documented in docs/verification/fast-tier.md.
  */
+import { getSalaryCap } from '../config';
 import { SAVE_VERSION, getDefaultHalftimeDecisionSetting } from '../config/difficulty';
-import { initCBA } from '../systems/cba-engine';
+import {
+  applyCBADealToRules,
+  checkCBAStatus,
+  initCBA,
+  negotiateCBA,
+  ratifyCBA,
+  resolveLockout,
+} from '../systems/cba-engine';
 import { initCommissioner } from '../systems/commissioner';
 import { makeContract } from '../systems/contracts';
 import { createDefaultFranchiseIdentity } from '../systems/franchise-identity';
@@ -32,10 +40,18 @@ import { initLeagueRules } from '../systems/league-rules';
 import { initializeLockerRoom } from '../systems/locker-room';
 import { createEmptyRecordBook } from '../systems/records';
 import { assignJerseyNumber } from '../systems/jersey-retirement';
+import {
+  finalizeExpansionDraft,
+  makeExpansionPick,
+  PROTECT_LIMIT,
+  protectPlayers,
+} from '../systems/expansion-draft';
 import { STARTER_SLOTS } from '../systems/roster-management';
 import { emptyPlayerStats } from '../systems/season-stats';
+import { syncTeamCapTotals } from '../systems/team-cap';
 import { advanceFranchiseWeek } from '../systems/franchise-week';
 import { finalizeDeadline } from '../systems/trade-deadline';
+import { RNG, reseedSeason, reseedWeek, setSeed } from '../rng';
 import type { GameState, GameDayState, Player, ScheduleWeek, Team } from '../types';
 import { PLAYTEST_DETECTORS, PLAYTEST_PHASE_ORDER, saveRoundTripBytes } from './anomaly-detectors';
 import { getPlaytestPersona } from './personas';
@@ -44,11 +60,15 @@ import type {
   PlaytestFrame,
   PlaytestPersona,
   PlaytestReport,
+  PlaytestRunOptions,
 } from './types';
 
 export const MAX_PLAYTEST_STEPS = 800;
+export const PLAYTEST_ROUNDTRIP_SKIPPED = '__PLAYTEST_ROUNDTRIP_SKIPPED__';
 const ELAPSED_HISTORY_LIMIT = 32;
-const HOST_NOISE_DETECTOR_IDS = new Set(['perf-budget']);
+const PLAYTEST_CBA_ACTION_LIMIT = 8;
+export const HOST_NOISE_DETECTOR_IDS = ['perf-budget'] as const;
+const HOST_NOISE_DETECTOR_ID_SET = new Set<string>(HOST_NOISE_DETECTOR_IDS);
 
 function createEmptyGameDayState(): GameDayState {
   return {
@@ -64,7 +84,9 @@ function makePlayer(
   ovr: number,
   isStarter = true,
 ): Player {
-  const contractSalary = isStarter ? Math.max(1, Math.round(ovr / 10)) : Math.max(1, Math.round(ovr / 20));
+  const contractSalary = isStarter
+    ? Math.max(1, Math.round((ovr / 15) * 10) / 10)
+    : Math.max(0.8, Math.round((ovr / 35) * 10) / 10);
   const contractYears = isStarter ? 3 : 2;
   return {
     id,
@@ -354,7 +376,7 @@ function makeSchedule(teamIds: string[]): ScheduleWeek[] {
   return weeks;
 }
 
-function makeLeagueState(seed: number): GameState {
+export function makePlaytestLeagueState(seed: number): GameState {
   const teams: Record<string, Team> = {};
   const players: GameState['players'] = {};
   const defs: Array<[string, Team['conference'], string, number]> = [
@@ -420,6 +442,8 @@ function makeLeagueState(seed: number): GameState {
     recentMilestones: [],
     awardsHistory: [],
     hallOfFame: [],
+    ballotWaitlist: [],
+    ballotEliminatedIds: [],
     allDecadeTeams: [],
     powerRankings: [],
     franchiseHistory: [],
@@ -541,6 +565,9 @@ function makeLeagueState(seed: number): GameState {
     tradeSuggestions: [],
   } as unknown as GameState;
 
+  for (const team of Object.values(game.teams)) {
+    syncTeamCapTotals(game, team);
+  }
   syncAllPlayerArchiveEntries(game, game.year);
   return game;
 }
@@ -558,6 +585,143 @@ function recordElapsedDuration(history: number[], elapsedMs: number): void {
   if (history.length > ELAPSED_HISTORY_LIMIT) {
     history.splice(0, history.length - ELAPSED_HISTORY_LIMIT);
   }
+}
+
+function resolveSaveRoundTripEvery(value: number | undefined): number {
+  const cadence = value ?? 1;
+  if (!Number.isInteger(cadence) || cadence < 1) {
+    throw new Error(`saveRoundTripEvery must be a positive integer; got ${String(value)}.`);
+  }
+  return cadence;
+}
+
+function shouldSampleSaveRoundTrip(params: {
+  step: number;
+  completedSeasonThisStep: boolean;
+  saveRoundTripEvery: number;
+}): boolean {
+  return params.step === 1
+    || params.completedSeasonThisStep
+    || params.step % params.saveRoundTripEvery === 0;
+}
+
+function buildSaveRoundTripSample(state: GameState): {
+  serializedState: string;
+  roundTripSerializedState: string;
+} {
+  const serializedState = saveRoundTripBytes(state);
+  try {
+    return {
+      serializedState,
+      roundTripSerializedState: saveRoundTripBytes(JSON.parse(serializedState) as GameState),
+    };
+  } catch (error) {
+    return {
+      serializedState,
+      roundTripSerializedState: `__PLAYTEST_ROUNDTRIP_ERROR__:${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+function isPlaytestCBAActionStatus(status: GameState['cbaState']['status']): boolean {
+  return status === 'expiring'
+    || status === 'expired'
+    || status === 'negotiating'
+    || status === 'awaiting_owner_vote'
+    || status === 'lockout';
+}
+
+function refreshLeagueCapSpaceForRules(game: GameState): void {
+  const salaryCap = getSalaryCap(game.year, game);
+  for (const team of Object.values(game.teams)) {
+    team.capSpace = Math.round((salaryCap - team.capUsed) * 10) / 10;
+  }
+}
+
+function topProtectedPlayerIds(state: GameState): string[] {
+  const userTeam = Object.values(state.teams).find((team) => team.isUser);
+  if (!userTeam) return [];
+  return [...userTeam.roster]
+    .sort((left, right) => right.ovr - left.ovr || left.id.localeCompare(right.id))
+    .slice(0, PROTECT_LIMIT)
+    .map((player) => player.id);
+}
+
+export function resolvePlaytestExpansionDraft(state: GameState): GameState {
+  if (!state.expansionDraftState) return state;
+
+  setSeed(state.seed);
+  reseedSeason(state.year);
+  reseedWeek(state.year, state.week);
+
+  let expansionState = state.expansionDraftState;
+  const userTeam = Object.values(state.teams).find((team) => team.isUser);
+  if (expansionState.phase === 'protection' && userTeam) {
+    expansionState = protectPlayers(expansionState, userTeam.id, topProtectedPlayerIds(state));
+  }
+
+  while (expansionState.phase !== 'complete' && expansionState.picksRemaining > 0) {
+    expansionState = makeExpansionPick(expansionState, expansionState.availablePlayers[0]?.id ?? '');
+  }
+
+  state.expansionDraftState = expansionState;
+  return finalizeExpansionDraft(state, expansionState, RNG.ai, { mutateInPlace: true });
+}
+
+export function resolvePlaytestCBAActions(state: GameState): GameState {
+  const initialStatus = checkCBAStatus(state.cbaState, state.year);
+  if (!isPlaytestCBAActionStatus(initialStatus)) return state;
+
+  // Playtests own this synthetic state; cloning full long-save history at every CBA window is prohibitive.
+  const next = state;
+  setSeed(next.seed);
+  reseedSeason(next.year);
+  reseedWeek(next.year, next.week);
+
+  for (let action = 0; action < PLAYTEST_CBA_ACTION_LIMIT; action += 1) {
+    const status = checkCBAStatus(next.cbaState, next.year);
+    next.cbaState.status = status;
+    if (!isPlaytestCBAActionStatus(status)) return next;
+
+    if (status === 'awaiting_owner_vote') {
+      const proposal = next.cbaState.negotiationState?.currentProposal ?? null;
+      if (!proposal) {
+        throw new Error(`Playtest CBA owner vote requested in ${next.year} without a current proposal.`);
+      }
+      next.cbaState = ratifyCBA(next.cbaState, proposal, next.year);
+      applyCBADealToRules(next, next.cbaState.currentDeal!);
+      refreshLeagueCapSpaceForRules(next);
+      next.laborState.activeStoppage = null;
+      continue;
+    }
+
+    if (status === 'lockout') {
+      const resolution = resolveLockout(next.cbaState, next);
+      if (!resolution.resolved) {
+        throw new Error(`Playtest CBA lockout in ${next.year} could not be resolved.`);
+      }
+      next.cbaState = resolution.cba;
+      applyCBADealToRules(next, next.cbaState.currentDeal!);
+      refreshLeagueCapSpaceForRules(next);
+      next.laborState.activeStoppage = null;
+      continue;
+    }
+
+    const outcome = negotiateCBA(next.cbaState, next);
+    next.cbaState = outcome.cba;
+    if (outcome.lockout) {
+      next.laborState.activeStoppage = {
+        type: 'lockout',
+        severity: 3,
+        startWeek: next.week,
+        resolvedWeek: null,
+        affectedTeams: Object.keys(next.teams),
+        moralePenalty: -10,
+      };
+    }
+  }
+
+  throw new Error(`Playtest CBA auto-resolution exceeded ${PLAYTEST_CBA_ACTION_LIMIT} actions in ${next.year}.`);
 }
 
 function captureFrame(state: GameState): PlaytestFrame {
@@ -584,7 +748,7 @@ function sortAnomalies(anomalies: readonly PlaytestAnomaly[]): PlaytestAnomaly[]
 }
 
 function canonicalAnomalies(anomalies: readonly PlaytestAnomaly[]): PlaytestAnomaly[] {
-  return sortAnomalies(anomalies.filter((anomaly) => !HOST_NOISE_DETECTOR_IDS.has(anomaly.detectorId)));
+  return sortAnomalies(anomalies.filter((anomaly) => !HOST_NOISE_DETECTOR_ID_SET.has(anomaly.detectorId)));
 }
 
 export function buildPlaytestReport(params: {
@@ -615,6 +779,7 @@ export function runPlaytest(
   personaInput: PlaytestPersona | string,
   seed: number,
   seasons: number,
+  options: PlaytestRunOptions = {},
 ): PlaytestReport {
   const persona = typeof personaInput === 'string'
     ? getPlaytestPersona(personaInput)
@@ -624,14 +789,19 @@ export function runPlaytest(
     throw new Error(`Unknown playtest persona: ${String(personaInput)}`);
   }
 
-  let state = makeLeagueState(seed);
+  let state = makePlaytestLeagueState(seed);
   let weeksAdvanced = 0;
   let completedSeasons = 0;
   let step = 0;
   const anomalies: PlaytestAnomaly[] = [];
   const elapsedHistoryMs: number[] = [];
+  const maxSteps = options.maxSteps ?? MAX_PLAYTEST_STEPS;
+  const saveRoundTripEvery = resolveSaveRoundTripEvery(options.saveRoundTripEvery);
 
-  while (completedSeasons < seasons && step < MAX_PLAYTEST_STEPS) {
+  while (completedSeasons < seasons && step < maxSteps) {
+    state = resolvePlaytestCBAActions(state);
+    state = resolvePlaytestExpansionDraft(state);
+
     if (state.tradeDeadlineState) {
       const resolved = finalizeDeadline(state, state.tradeDeadlineState);
       resolved.eventLog.push({
@@ -645,7 +815,6 @@ export function runPlaytest(
     }
 
     const previousFrame = captureFrame(state);
-    const serializedState = saveRoundTripBytes(state);
     const originalMathRandom = Math.random;
     let mathRandomCalls = 0;
     Math.random = (() => {
@@ -655,7 +824,11 @@ export function runPlaytest(
 
     const startedAt = nowMs();
     try {
-      state = advanceFranchiseWeek(state, { playtestBias: persona.aiBias }).nextState;
+      state = advanceFranchiseWeek(state, {
+        playtestBias: persona.aiBias,
+        mutateInPlace: true,
+        skipExpansionDraft: true,
+      }).nextState;
     } finally {
       Math.random = originalMathRandom;
     }
@@ -674,11 +847,28 @@ export function runPlaytest(
     weeksAdvanced += 1;
     step += 1;
 
-    if (previousFrame.phase === 'playoffs' && currentFrame.phase === 'offseason') {
+    const completedSeasonThisStep = previousFrame.phase === 'playoffs' && currentFrame.phase === 'offseason';
+    if (completedSeasonThisStep) {
       completedSeasons += 1;
+      options.onProgress?.({
+        personaId: persona.id,
+        seed,
+        step,
+        seasonsCompleted: completedSeasons,
+        seasonsRequested: seasons,
+        weeksAdvanced,
+        currentFrame,
+      });
     }
 
-    const roundTripSerializedState = saveRoundTripBytes(JSON.parse(serializedState) as GameState);
+    let serializedState = PLAYTEST_ROUNDTRIP_SKIPPED;
+    let roundTripSerializedState = PLAYTEST_ROUNDTRIP_SKIPPED;
+    if (shouldSampleSaveRoundTrip({ step, completedSeasonThisStep, saveRoundTripEvery })) {
+      const sample = buildSaveRoundTripSample(state);
+      serializedState = sample.serializedState;
+      roundTripSerializedState = sample.roundTripSerializedState;
+    }
+
     const detectorContext = {
       step,
       seed,
@@ -715,7 +905,7 @@ export function runPlaytest(
     anomalies.push({
       detectorId: 'harness-guard',
       severity: 'high',
-      detail: `Playtest loop hit the guard before completing ${seasons} seasons.`,
+      detail: `Playtest loop hit the ${maxSteps}-step guard before completing ${seasons} seasons.`,
       reproSeed: seed,
       step,
       year: state.year,

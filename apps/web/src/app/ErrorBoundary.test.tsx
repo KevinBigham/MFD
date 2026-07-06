@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { SAVE_VERSION } from '@mfd/engine';
 import { ErrorBoundary } from './ErrorBoundary';
 
 describe('ErrorBoundary', () => {
@@ -77,7 +78,27 @@ describe('ErrorBoundary', () => {
 
       expect(markup).toContain('/faq');
       expect(markup).toContain('SAVE VERSION');
-      expect(markup).toContain('35');
+      expect(markup).toContain(String(SAVE_VERSION));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('normalizes deploy-base browser-history paths in fallback context', () => {
+    vi.stubGlobal('window', {
+      location: { hash: '', pathname: '/MFD/roster' },
+    });
+    try {
+      const instance = new ErrorBoundary({ children: null });
+      instance.state = {
+        hasError: true,
+        error: new Error('Crash'),
+      };
+      const element = instance.render();
+      const markup = renderToStaticMarkup(element as React.ReactElement);
+
+      expect(markup).toContain('/roster');
+      expect(markup).not.toContain('/MFD/roster');
     } finally {
       vi.unstubAllGlobals();
     }

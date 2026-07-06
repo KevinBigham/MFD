@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate, useParams } from '@tanstack/react-router';
+import type { DraftRecap } from '@mfd/engine';
 import {
   PixelBadge,
   PixelButton,
@@ -8,13 +9,93 @@ import {
   PixelPlayerLink,
   PixelScreenHeader,
 } from '@mfd/design-system/components';
-import { selectTeams, usePlayerTimeline, useGameStore } from '../../app/store/game-store';
+import { selectDraftRecaps, selectTeams, selectTransactionLog, usePlayerTimeline, useGameStore } from '../../app/store/game-store';
+import { buildPlayerTransactionMemoryRows } from '../shared/playerTransactionMemory';
+
+type DraftRecapMemoryAccent = 'green' | 'red' | 'cyan';
 
 const screenStyle = {
   display: 'flex',
   flexDirection: 'column',
   gap: '16px',
 } as const;
+
+const timelineSourceRows = [
+  {
+    id: 'timeline-read-model',
+    label: 'Timeline read model',
+    badge: 'getPlayerCareerTimeline',
+    accent: 'cyan',
+    detail: 'The route reads the existing engine timeline model through the store selector; it does not build or persist seasons itself.',
+  },
+  {
+    id: 'archived-seasons',
+    label: 'Archived seasons',
+    badge: 'playerSeasonHistory',
+    accent: 'gold',
+    detail: 'Durable season cards come from archived player-season rows, including saved age, OVR, team, games, and key stats.',
+  },
+  {
+    id: 'current-season',
+    label: 'Current-season row',
+    badge: 'game.players',
+    accent: 'green',
+    detail: 'Active players can receive a current-season row from live saved player stats when that season has not already been archived.',
+  },
+  {
+    id: 'archive-fallback',
+    label: 'Archive fallback',
+    badge: 'playerArchive',
+    accent: 'default',
+    detail: 'Retired or missing live players can still resolve name and position from the saved player archive.',
+  },
+  {
+    id: 'receipts',
+    label: 'Awards and highlights',
+    badge: 'awards/records',
+    accent: 'default',
+    detail: 'Award badges and highlights read existing awards, records, and milestone receipts for the matching season.',
+  },
+  {
+    id: 'transaction-log',
+    label: 'Transaction memory',
+    badge: 'transactionLog',
+    accent: 'gold',
+    detail: 'Roster-move memories read saved transactionLog rows for this player; the timeline does not create or repair transactions.',
+  },
+  {
+    id: 'draft-recaps',
+    label: 'Draft recap memory',
+    badge: 'draftRecaps',
+    accent: 'gold',
+    detail: 'Draft-class memories read saved user-team draftRecaps for this player; the timeline does not generate or repair recaps.',
+  },
+  {
+    id: 'render-boundary',
+    label: 'Just viewing',
+    badge: 'display only',
+    accent: 'default',
+    detail: 'Opening Player Timeline does not write seasons, awards, records, milestones, draft recaps, player archives, or profile history.',
+  },
+] as const;
+
+function draftRecapMemoryForPlayer(draftRecaps: DraftRecap[], playerId: string) {
+  for (const recap of draftRecaps) {
+    const pick = recap.picks.find((entry) => entry.playerId === playerId) ?? null;
+    if (!pick) continue;
+    const valueDelta = pick.valueDelta === 0 ? 'even value' : `${pick.valueDelta > 0 ? '+' : ''}${pick.valueDelta} value`;
+    const accent: DraftRecapMemoryAccent = pick.verdict === 'steal' ? 'green' : pick.verdict === 'reach' ? 'red' : 'cyan';
+    return {
+      id: `draft-recap-${recap.year}-${pick.playerId}`,
+      badge: `${pick.verdict.toUpperCase()} // Class ${recap.classGrade}`,
+      yearLabel: `${recap.year} draft`,
+      pickLabel: `Round ${pick.round}, pick ${pick.pick}`,
+      detail: `Projected #${pick.projectedPick}, selected #${pick.pick}, ${valueDelta}.`,
+      accent,
+    };
+  }
+  return null;
+}
 
 function buildPolyline(values: number[]): string {
   if (values.length <= 1) return '0,80 100,20';
@@ -33,8 +114,18 @@ export default function PlayerTimeline() {
   const navigate = useNavigate();
   const getPlayerTimeline = usePlayerTimeline();
   const teams = useGameStore(selectTeams) ?? {};
+  const transactionLog = useGameStore(selectTransactionLog);
+  const draftRecaps = useGameStore(selectDraftRecaps);
   const timeline = getPlayerTimeline(playerId);
   const currentPlayer = useGameStore((state) => state.game?.players[playerId] ?? null);
+  const transactionRows = useMemo(
+    () => buildPlayerTransactionMemoryRows(transactionLog, playerId, teams),
+    [playerId, teams, transactionLog],
+  );
+  const draftRecapMemory = useMemo(
+    () => draftRecapMemoryForPlayer(draftRecaps, playerId),
+    [draftRecaps, playerId],
+  );
 
   const ovrPoints = useMemo(
     () => buildPolyline(timeline.seasons.map((season) => season.ovr)),
@@ -68,6 +159,34 @@ export default function PlayerTimeline() {
         badges={currentPlayer ? <PixelBadge variant="gold">{currentPlayer.ovr} OVR</PixelBadge> : undefined}
       />
 
+      <PixelPanel title="Timeline Sources" accent="cyan">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+          {timelineSourceRows.map((row) => (
+            <div
+              key={row.id}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '10px',
+                border: '2px solid var(--mfd-border)',
+                background: 'var(--mfd-bg-2)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: '#fff' }}>
+                  {row.label}
+                </span>
+                <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
+              </div>
+              <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                {row.detail}
+              </span>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: '12px', alignItems: 'start' }}>
         <PixelPanel title="OVR Arc" accent="cyan">
           <svg viewBox="0 0 100 100" role="img" aria-label="Career OVR progression" style={{ width: '100%', height: '180px', background: 'var(--mfd-bg-3)', border: '3px solid var(--mfd-border)' }}>
@@ -95,6 +214,63 @@ export default function PlayerTimeline() {
         <PixelMetricCard label="Rush Yards" value={totals.rushYds} accent="gold" />
         <PixelMetricCard label="Awards" value={totals.awards} accent="red" />
       </div>
+
+      <PixelPanel title="Transaction Memory" accent={transactionRows.length > 0 ? 'green' : 'cyan'}>
+        {transactionRows.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+            {transactionRows.map((row) => (
+              <div
+                key={row.id}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  padding: '10px',
+                  border: '2px solid var(--mfd-border)',
+                  background: 'var(--mfd-bg-2)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <PixelBadge variant={row.accent}>{row.typeLabel}</PixelBadge>
+                  <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                    {row.yearWeek}
+                  </span>
+                </div>
+                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text)', lineHeight: 1.5 }}>
+                  {row.detail}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+            No saved transaction rows for this player yet.
+          </div>
+        )}
+      </PixelPanel>
+
+      <PixelPanel title="Draft Class Memory" accent={draftRecapMemory ? 'gold' : 'cyan'}>
+        {draftRecapMemory ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <PixelBadge variant={draftRecapMemory.accent}>{draftRecapMemory.badge}</PixelBadge>
+              <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                {draftRecapMemory.yearLabel}
+              </span>
+            </div>
+            <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text)' }}>
+              {draftRecapMemory.pickLabel}
+            </span>
+            <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+              Saved draft recap: {draftRecapMemory.detail}
+            </span>
+          </div>
+        ) : (
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+            No saved draft recap pick is linked to this player yet.
+          </div>
+        )}
+      </PixelPanel>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {timeline.seasons.map((season, index) => {

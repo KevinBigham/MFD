@@ -631,7 +631,7 @@ function derivePlayMetadata(
   );
   const narrative = leverageCallout ?? winProbabilityNarrative(team.name, wpBefore, wpAfter);
   const winProbabilityNote = leverageIndex >= 4
-    ? (narrative ?? `${team.name} just pushed this drive into ${leverageTier} leverage territory.`)
+    ? (narrative ?? `${team.name} just pushed this drive into ${leverageTier.toLowerCase()} pressure territory.`)
     : (Math.abs(swing) >= 3 ? (narrative ?? undefined) : undefined);
 
   return {

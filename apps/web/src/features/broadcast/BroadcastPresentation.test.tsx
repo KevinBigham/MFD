@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import BroadcastPresentation from './BroadcastPresentation';
+import BroadcastPresentation, { buildBroadcastPresentationSourceRows } from './BroadcastPresentation';
 
 // ── Mock state ─────────────────────────────────────────
 
@@ -22,6 +22,9 @@ const mockState: {
     };
     homeTeam: { name: string };
     awayTeam: { name: string };
+    gameDayPackage: {
+      activeEffectSummaries: string[];
+    } | null;
   } | null;
 } = {
   broadcast: {
@@ -41,12 +44,21 @@ const mockState: {
     },
     homeTeam: { name: 'Blaze' },
     awayTeam: { name: 'Thunder' },
+    gameDayPackage: {
+      activeEffectSummaries: ['Halftime hell: flipped the second-half plan to open the throttle.'],
+    },
   },
 };
 
 // ── Mocks ──────────────────────────────────────────────
 
 vi.mock('@mfd/engine', () => ({
+  buildHalftimeDecisionReceipt: (summaries: readonly string[] = []) => {
+    const summary = summaries.find((entry) => entry.startsWith('Halftime hell:'));
+    if (!summary) return null;
+    const detail = summary.replace('Halftime hell: ', '');
+    return { broadcastLine: `Halftime receipt: ${detail}` };
+  },
   buildBroadcastPresentation: (result: { homeScore: number; awayScore: number }, broadcast: { broadcastNetwork: string; finalNarrative: string } | null) => ({
     gameId: 'g1',
     homeTeamId: 'HOME',
@@ -106,11 +118,47 @@ vi.mock('@mfd/engine', () => ({
 vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: typeof mockState) => unknown) => selector(mockState),
   selectLatestBroadcast: (state: typeof mockState) => state.broadcast,
+  selectGameDayPackageByBroadcastGameId: () => (state: typeof mockState) => state.broadcast?.gameDayPackage ?? null,
 }));
 
 // ── Tests ──────────────────────────────────────────────
 
 describe('BroadcastPresentation', () => {
+  it('renders source context and render boundaries for the presentation route', () => {
+    const markup = renderToStaticMarkup(<BroadcastPresentation />);
+
+    expect(markup).toContain('PRESENTATION SOURCES');
+    expect(markup).toContain('LATEST BROADCAST');
+    expect(markup).toContain('LATEST RESULT');
+    expect(markup).toContain('selectLatestBroadcast');
+    expect(markup).toContain('PRESENTATION HELPER');
+    expect(markup).toContain('3 BEATS');
+    expect(markup).toContain('buildBroadcastPresentation');
+    expect(markup).toContain('maxHighlights: 6');
+    expect(markup).toContain('HALFTIME RECEIPT');
+    expect(markup).toContain('SAVED RECEIPT');
+    expect(markup).toContain('selectGameDayPackageByBroadcastGameId');
+    expect(markup).toContain('BEAT STATE');
+    expect(markup).toContain('BEAT 1');
+    expect(markup).toContain('route-local beatIndex state');
+    expect(markup).toContain('JUST VIEWING');
+    expect(markup).toContain('does not append game-day packages');
+  });
+
+  it('builds no-broadcast source rows without implying replay persistence', () => {
+    const rows = buildBroadcastPresentationSourceRows({
+      hasBroadcast: false,
+      hasGameDayPackage: false,
+      hasHalftimeReceipt: false,
+      beatCount: 0,
+      activeBeatLabel: 'No beats',
+    });
+
+    expect(rows.find((row) => row.id === 'latest-broadcast')?.value).toBe('No broadcast');
+    expect(rows.find((row) => row.id === 'presentation-helper')?.detail).toContain('does not change the source broadcast');
+    expect(rows.find((row) => row.id === 'render-boundary')?.detail).toContain('does not append game-day packages');
+  });
+
   it('renders the cinematic header with away @ home matchup', () => {
     const markup = renderToStaticMarkup(<BroadcastPresentation />);
     expect(markup).toContain('BROADCAST PRESENTATION');
@@ -150,6 +198,13 @@ describe('BroadcastPresentation', () => {
     expect(markup).toContain('A nail-biter goes to the wire.');
   });
 
+  it('renders the saved halftime receipt when the matching game-day package has one', () => {
+    const markup = renderToStaticMarkup(<BroadcastPresentation />);
+    expect(markup).toContain('HALFTIME RECEIPT');
+    expect(markup).toContain('SAVED DECISION');
+    expect(markup).toContain('Halftime receipt: flipped the second-half plan to open the throttle.');
+  });
+
   it('renders the empty-state panel when broadcast data is missing', () => {
     mockState.broadcast = null;
     const markup = renderToStaticMarkup(<BroadcastPresentation />);
@@ -162,6 +217,9 @@ describe('BroadcastPresentation', () => {
       broadcast: { gameId: 'g1', broadcastNetwork: 'ESPN8', quarters: [], finalNarrative: 'A nail-biter goes to the wire.' },
       homeTeam: { name: 'Blaze' },
       awayTeam: { name: 'Thunder' },
+      gameDayPackage: {
+        activeEffectSummaries: ['Halftime hell: flipped the second-half plan to open the throttle.'],
+      },
     };
   });
 });

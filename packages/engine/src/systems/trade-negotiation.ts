@@ -3,8 +3,12 @@ import { assignJerseyNumber } from './jersey-retirement';
 import { recordNewsItem } from './league-news';
 import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
 import { createNearMissTracker, recordDeclinedTrade } from './near-miss-receipts';
+import { getActiveRule } from './league-rules';
+import { getScenarioConstraints } from './scenario-challenge';
+import { conditionalPickExpectedValue } from './conditional-picks';
+import { syncTeamCapTotals } from './team-cap';
 import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
-import type { DraftPick, GameState, Player, Team, TradeOfferAsset, TradeProposal } from '../types';
+import type { ConditionalPick, DraftPick, GameState, Player, Team, TradeOfferAsset, TradeProposal } from '../types';
 
 function proposalId(game: GameState): string {
   return `proposal-${game.year}-${game.week}-${game.activeProposals.length}`;
@@ -22,6 +26,10 @@ function findUserValue(game: GameState, teamId: string, assets: TradeOfferAsset[
     if (asset.pickId) {
       const pick = findPick(game, asset.teamId, asset.pickId);
       return sum + (pick ? calcPickValue(pick) : parsePickValue(asset));
+    }
+    if (asset.type === 'conditional_pick' && asset.conditionalPickId) {
+      const conditionalPick = game.conditionalPicks.find((entry) => entry.id === asset.conditionalPickId);
+      return sum + (conditionalPick ? conditionalPickExpectedValue(conditionalPick) : 0);
     }
     return sum;
   }, 0);
@@ -44,7 +52,16 @@ function parsePickValue(asset: TradeOfferAsset): number {
 }
 
 function isTradeWindowClosed(game: GameState): boolean {
-  return game.phase === 'regular_season' && game.week > 12;
+  const deadlineWeek = game.leagueRules
+    ? Number(getActiveRule(game.leagueRules, 'trade_deadline_week', game.year))
+    : 9;
+  return game.phase === 'regular_season' && game.week > deadlineWeek;
+}
+
+function assertScenarioAllowsDirectTrades(game: GameState): void {
+  if (getScenarioConstraints(game)?.blockTrades) {
+    throw new Error('Scenario constraints block direct trade proposals and counters.');
+  }
 }
 
 function findPick(game: GameState, teamId: string, pickId: string): DraftPick | null {
@@ -60,6 +77,18 @@ function pickAsset(teamId: string, pick: DraftPick): TradeOfferAsset {
     playerId: null,
     pickId: `${pick.currentTeamId}-${pick.year}-${pick.round}-${pick.pick}-${pick.originalTeamId}`,
     description: `Round ${pick.round} pick`,
+  };
+}
+
+function conditionalPickAsset(teamId: string, conditionalPick: ConditionalPick): TradeOfferAsset {
+  const ceilingRound = Math.min(conditionalPick.basePick.round, conditionalPick.condition.upgradeRound);
+  return {
+    type: 'conditional_pick',
+    teamId,
+    playerId: null,
+    pickId: null,
+    conditionalPickId: conditionalPick.id,
+    description: conditionalPick.description || `Conditional round ${conditionalPick.basePick.round}/ceiling ${ceilingRound} pick`,
   };
 }
 
@@ -85,6 +114,13 @@ function ensureNearMissTracker(game: GameState) {
   return game.nearMissTracker;
 }
 
+function playerDisplayName(player: Player): string {
+  const legacyName = (player as Player & { name?: string }).name;
+  if (legacyName) return legacyName;
+  const composed = [player.firstName, player.lastName].filter(Boolean).join(' ').trim();
+  return composed || player.id;
+}
+
 function recordRejectedTradeNearMiss(game: GameState, proposal: TradeProposal): void {
   const fromTeam = game.teams[proposal.fromTeamId];
   const toTeam = game.teams[proposal.toTeamId];
@@ -98,7 +134,7 @@ function recordRejectedTradeNearMiss(game: GameState, proposal: TradeProposal): 
   if (!requestedPlayer) return;
 
   recordDeclinedTrade(ensureNearMissTracker(game), {
-    playerName: requestedPlayer.name,
+    playerName: playerDisplayName(requestedPlayer),
     playerOvr: requestedPlayer.ovr,
     partnerTeamName: `${toTeam.city} ${toTeam.name}`,
     week: game.week,
@@ -111,6 +147,21 @@ function availableExtraPicks(game: GameState, teamId: string, usedPickIds: Set<s
     .map((pick) => pickAsset(teamId, pick))
     .filter((asset) => asset.pickId && !usedPickIds.has(asset.pickId))
     .sort((a, b) => (findPick(game, teamId, b.pickId!)?.round ?? 9) - (findPick(game, teamId, a.pickId!)?.round ?? 9));
+}
+
+function availableExtraConditionalPicks(
+  game: GameState,
+  teamId: string,
+  usedConditionalPickIds: Set<string>,
+): TradeOfferAsset[] {
+  return [...(game.conditionalPicks ?? [])]
+    .filter((pick) => pick.toTeamId === teamId && !pick.resolved && !usedConditionalPickIds.has(pick.id))
+    .map((pick) => ({
+      asset: conditionalPickAsset(teamId, pick),
+      value: conditionalPickExpectedValue(pick),
+    }))
+    .sort((a, b) => b.value - a.value || a.asset.description.localeCompare(b.asset.description))
+    .map((entry) => entry.asset);
 }
 
 function availableExtraPlayers(game: GameState, teamId: string, usedPlayerIds: Set<string>): TradeOfferAsset[] {
@@ -171,8 +222,36 @@ function transferPick(game: GameState, asset: TradeOfferAsset, toTeamId: string)
   toTeam.draftPicks.push(pick);
 }
 
+function transferConditionalPick(game: GameState, asset: TradeOfferAsset, toTeamId: string): void {
+  if (!asset.conditionalPickId) return;
+  const conditionalPick = game.conditionalPicks.find((entry) => entry.id === asset.conditionalPickId);
+  const fromTeam = game.teams[asset.teamId];
+  const toTeam = game.teams[toTeamId];
+  if (!conditionalPick || !fromTeam || !toTeam) return;
+
+  const index = fromTeam.draftPicks.findIndex((pick) =>
+    pick.year === conditionalPick.basePick.year
+    && pick.round === conditionalPick.basePick.round
+    && pick.pick === conditionalPick.basePick.pick
+    && pick.originalTeamId === conditionalPick.basePick.originalTeamId
+  );
+
+  const movedPick = index === -1 ? null : fromTeam.draftPicks.splice(index, 1)[0] ?? null;
+  if (movedPick) {
+    movedPick.currentTeamId = toTeamId;
+    toTeam.draftPicks.push(movedPick);
+  }
+
+  conditionalPick.toTeamId = toTeamId;
+  conditionalPick.basePick.currentTeamId = toTeamId;
+  if (conditionalPick.resolvedPick) {
+    conditionalPick.resolvedPick.currentTeamId = toTeamId;
+  }
+}
+
 function applyAsset(game: GameState, asset: TradeOfferAsset, toTeamId: string): void {
   if (asset.type === 'player') transferPlayer(game, asset, toTeamId);
+  else if (asset.type === 'conditional_pick') transferConditionalPick(game, asset, toTeamId);
   else transferPick(game, asset, toTeamId);
 }
 
@@ -182,8 +261,14 @@ function executeProposal(game: GameState, proposal: TradeProposal): void {
 
   const fromTeam = game.teams[proposal.fromTeamId];
   const toTeam = game.teams[proposal.toTeamId];
-  if (fromTeam) refreshRosterState(fromTeam);
-  if (toTeam) refreshRosterState(toTeam);
+  if (fromTeam) {
+    refreshRosterState(fromTeam);
+    syncTeamCapTotals(game, fromTeam);
+  }
+  if (toTeam) {
+    refreshRosterState(toTeam);
+    syncTeamCapTotals(game, toTeam);
+  }
   const notable = proposal.requesting.find((asset) => asset.playerId)?.description ?? 'new pieces';
   recordNewsItem(game, {
     id: `${proposal.id}-accepted`,
@@ -217,8 +302,9 @@ export function getTradeableAssets(game: GameState, teamId: string): TradeOfferA
     }))
     .sort((a, b) => b.value - a.value || a.asset.description.localeCompare(b.asset.description))
     .map((entry) => entry.asset);
+  const conditionalPickAssets = availableExtraConditionalPicks(game, teamId, new Set());
 
-  return [...playerAssets, ...pickAssets];
+  return [...playerAssets, ...pickAssets, ...conditionalPickAssets];
 }
 
 export function getTradeTargets(game: GameState, teamId: string): Array<{
@@ -226,6 +312,7 @@ export function getTradeTargets(game: GameState, teamId: string): Array<{
   teamName: string;
   tradeBlock: Player[];
   picks: DraftPick[];
+  conditionalPicks: ConditionalPick[];
 }> {
   return Object.values(game.teams)
     .filter((team) => team.id !== teamId)
@@ -234,8 +321,9 @@ export function getTradeTargets(game: GameState, teamId: string): Array<{
       teamName: `${team.city} ${team.name}`,
       tradeBlock: team.roster.filter((player) => player.tradeBlock),
       picks: team.draftPicks.filter((pick) => pick.year === game.year),
+      conditionalPicks: (game.conditionalPicks ?? []).filter((pick) => pick.toTeamId === team.id && !pick.resolved),
     }))
-    .filter((entry) => entry.tradeBlock.length > 0 || entry.picks.length > 0)
+    .filter((entry) => entry.tradeBlock.length > 0 || entry.picks.length > 0 || entry.conditionalPicks.length > 0)
     .sort((a, b) => a.teamName.localeCompare(b.teamName));
 }
 
@@ -246,6 +334,7 @@ export function createTradeProposal(
   offering: TradeOfferAsset[],
   requesting: TradeOfferAsset[],
 ): TradeProposal {
+  assertScenarioAllowsDirectTrades(game);
   const offeringValue = findUserValue(game, fromTeamId, offering);
   const requestingValue = findUserValue(game, toTeamId, requesting);
   const proposal: TradeProposal = {
@@ -275,9 +364,13 @@ export function generateCounterOffer(
   const nextOffering = [...proposal.offering];
   const usedPlayerIds = new Set(nextOffering.flatMap((asset) => asset.playerId ? [asset.playerId] : []));
   const usedPickIds = new Set(nextOffering.flatMap((asset) => asset.pickId ? [asset.pickId] : []));
+  const usedConditionalPickIds = new Set(nextOffering.flatMap((asset) => asset.conditionalPickId ? [asset.conditionalPickId] : []));
 
   if (aiTeam.gmStrategy === 'rebuild') {
-    const extraPick = selectBestCounterAsset(game, proposal, availableExtraPicks(game, userTeam.id, usedPickIds));
+    const extraPick = selectBestCounterAsset(game, proposal, [
+      ...availableExtraPicks(game, userTeam.id, usedPickIds),
+      ...availableExtraConditionalPicks(game, userTeam.id, usedConditionalPickIds),
+    ]);
     if (extraPick) nextOffering.push(extraPick);
   } else {
     const extraPlayer = selectBestCounterAsset(game, proposal, availableExtraPlayers(game, userTeam.id, usedPlayerIds));
@@ -303,6 +396,7 @@ export function submitProposal(
   proposalIdValue: string,
   rand: () => number = () => 0.5,
 ): { proposal: TradeProposal; nextState: GameState } {
+  assertScenarioAllowsDirectTrades(game);
   if (isTradeWindowClosed(game)) {
     throw new Error('Trade deadline has passed.');
   }
@@ -343,6 +437,7 @@ export function submitProposal(
 }
 
 export function acceptCounterProposal(game: GameState, proposalIdValue: string): TradeProposal {
+  assertScenarioAllowsDirectTrades(game);
   if (isTradeWindowClosed(game)) {
     throw new Error('Trade deadline has passed.');
   }

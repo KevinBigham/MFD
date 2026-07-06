@@ -29,6 +29,11 @@ describe('NamedGamesBrowserView', () => {
     expect(markup).toContain('NAMED GAMES');
     expect(markup).toContain('No named games filed yet');
     expect(markup).toContain('0 archived');
+    expect(markup).toContain('NAMED GAME SOURCES');
+    expect(markup).toContain('0 filed');
+    expect(markup).toContain('0/12 active');
+    expect(markup).toContain('selectNamedGames reads selectDynastyTimeline');
+    expect(markup).toContain('this route does not inspect raw game results or re-run detectNamedGame');
   });
 
   it('renders one card per filed game with score and reason', () => {
@@ -56,6 +61,10 @@ describe('NamedGamesBrowserView', () => {
     expect(markup).toContain('14-38');
     expect(markup).toContain('Up 21 at halftime, no second-half offense, leadership crater.');
     expect(markup).toContain('2 archived');
+    expect(markup).toContain('NAMED GAME SOURCES');
+    expect(markup).toContain('2 filed');
+    expect(markup).toContain('Archetype filter and sort order live in this route.');
+    expect(markup).toContain('Changing them does not write dynastyTimeline or repair saved games.');
   });
 
   it('badges your wins and losses against the user team', () => {
@@ -94,6 +103,8 @@ describe('NamedGamesBrowserView', () => {
     // Counts are surfaced inline on each filter chip.
     expect(markup).toContain('Shootout (2)');
     expect(markup).toContain('Snow Bowl (1)');
+    expect(markup).toContain('2/12 active');
+    expect(markup).toContain('NAMED_GAME_ARCHETYPES owns the valid set');
   });
 
   it('humanizes every archetype label so no internal snake_case leaks', () => {

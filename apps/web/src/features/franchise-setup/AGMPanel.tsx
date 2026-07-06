@@ -29,6 +29,27 @@ const SENTIMENT_COLOR: Record<string, string> = {
   disagree: 'var(--mfd-red)',
 };
 
+const PERSONALITY_LABEL: Record<AGMProfile['personality'], string> = {
+  analytical: 'Cost Checks',
+  fiery: 'Urgent Fixes',
+  old_school: 'Practice Rules',
+  player_whisperer: 'Role Clarity',
+};
+
+const EXPERTISE_LABEL: Record<AGMProfile['expertise'], string> = {
+  offense: 'Offense Calls',
+  defense: 'Defense Calls',
+  personnel: 'Roster Roles',
+  cap_management: 'Cap Space',
+};
+
+const SENTIMENT_LABEL: Record<AGMReaction['sentiment'], string> = {
+  love_it: 'Strong Match',
+  like_it: 'Good Match',
+  concerned: 'Needs Protection',
+  disagree: 'High Risk',
+};
+
 const TONE_BADGE: Record<AGMPhaseDialogue['tone'], { label: string; variant: 'default' | 'gold' | 'cyan' | 'green' }> = {
   confident: { label: 'Confident', variant: 'green' },
   concerned: { label: 'Cautious', variant: 'gold' },
@@ -109,8 +130,8 @@ export function AGMPanel({
           {agm.background}
         </div>
         <div style={{ marginTop: '6px', display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <PixelBadge variant="default">{agm.personality.replace('_', ' ')}</PixelBadge>
-          <PixelBadge variant="cyan">{agm.expertise.replace('_', ' ')}</PixelBadge>
+          <PixelBadge variant="default">{PERSONALITY_LABEL[agm.personality]}</PixelBadge>
+          <PixelBadge variant="cyan">{EXPERTISE_LABEL[agm.expertise]}</PixelBadge>
         </div>
       </div>
 
@@ -146,7 +167,7 @@ export function AGMPanel({
             flexDirection: 'column',
             gap: '10px',
           }}>
-            <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>END OF DAY 1</div>
+            <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>SETUP WRAP</div>
             <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.7, fontSize: '12px' }}>
               &ldquo;{blueprintMonologue}&rdquo;
             </div>
@@ -236,7 +257,7 @@ export function AGMPanel({
           background: 'var(--mfd-bg-3)',
         }}>
           <div style={{ ...pixelSm, color: SENTIMENT_COLOR[reaction.sentiment] ?? 'var(--mfd-text-dim)', marginBottom: '4px' }}>
-            {reaction.sentiment.replace('_', ' ').toUpperCase()}
+            {SENTIMENT_LABEL[reaction.sentiment].toUpperCase()}
           </div>
           <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.5 }}>&ldquo;{reaction.reaction}&rdquo;</div>
           {reaction.followUp ? (

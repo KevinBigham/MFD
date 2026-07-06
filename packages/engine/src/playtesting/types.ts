@@ -50,6 +50,22 @@ export type PlaytestDetectorVerdict = PlaytestDetectorPass | PlaytestDetectorFai
 
 export type PlaytestDetector = (context: PlaytestDetectorContext) => PlaytestDetectorVerdict;
 
+export interface PlaytestProgressEvent {
+  personaId: string;
+  seed: number;
+  step: number;
+  seasonsCompleted: number;
+  seasonsRequested: number;
+  weeksAdvanced: number;
+  currentFrame: PlaytestFrame;
+}
+
+export interface PlaytestRunOptions {
+  maxSteps?: number;
+  saveRoundTripEvery?: number;
+  onProgress?: (event: PlaytestProgressEvent) => void;
+}
+
 export interface PlaytestAnomaly {
   detectorId: string;
   severity: PlaytestSeverity;

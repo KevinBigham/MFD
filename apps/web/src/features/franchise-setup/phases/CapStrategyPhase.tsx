@@ -19,9 +19,9 @@ export function CapStrategyPhase({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={autoGrid(160)}>
-        <PixelMetricCard label="Cap Grade" value={data.capGrade} accent={data.capGrade <= 'B' ? 'green' : 'gold'} detail="Overall health" />
-        <PixelMetricCard label="Cap Space" value={`$${data.capSpace}M`} accent="cyan" detail="Available room" />
-        <PixelMetricCard label="Dead Cap" value={`$${data.deadCap}M`} accent="red" detail="Sunk cost" />
+        <PixelMetricCard label="Cap Status" value={data.capGrade} accent={data.capGrade <= 'B' ? 'green' : 'gold'} detail="Injury, trade, and extension money" />
+        <PixelMetricCard label="Cap Space" value={`$${data.capSpace}M`} accent="cyan" detail="Available money before new moves" />
+        <PixelMetricCard label="Dead Cap" value={`$${data.deadCap}M`} accent="red" detail="Money already charged" />
       </div>
 
       <PixelPanel title="Biggest Contracts" accent="gold">
@@ -72,7 +72,7 @@ export function CapStrategyPhase({
         <div style={{ ...monoSm, color: '#ccc', lineHeight: 1.7 }}>{data.capOutlook}</div>
       </PixelPanel>
 
-      <PixelPanel title="Day 1 Cap Packages" accent="cyan">
+      <PixelPanel title="Cap Plan Choices" accent="cyan">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
           {packages.map((pkg, index) => {
             const selected = pkg.posture === selectedPosture;
@@ -105,7 +105,7 @@ export function CapStrategyPhase({
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <PixelBadge variant="green">{`+$${pkg.capSpaceDelta}M`}</PixelBadge>
                   <PixelBadge variant={pkg.weekOneDelta >= 1 ? 'gold' : 'default'}>
-                    {pkg.weekOneDelta >= 1 ? `+${pkg.weekOneDelta} Week 1` : 'No Week 1 bump'}
+                    {pkg.weekOneDelta >= 1 ? `+${pkg.weekOneDelta} Week 1 fix` : 'No Week 1 fix'}
                   </PixelBadge>
                 </div>
                 <ChoiceDeltaBadges preview={previewByPosture?.[pkg.posture]} />

@@ -34,11 +34,19 @@ describe('PlayerDevelopmentView', () => {
         projections={[{ year: 1, projectedOvr: 80, confidence: 80 }]}
         breakoutCandidates={[]}
         coachImpact="Great coaching impact."
+        playerOptions={[
+          { id: 'p1', name: 'John Smith', pos: 'QB', age: 24, ovr: 78 },
+          { id: 'p2', name: 'Jane Runner', pos: 'RB', age: 23, ovr: 81 },
+        ]}
+        selectedPlayerId="p1"
       />,
     );
     expect(markup).toContain('Pocket Passer');
     expect(markup).toContain('72% ALIGNED');
     expect(markup).toContain('accuracy');
+    expect(markup).toContain('DEVELOPMENT PLAYER');
+    expect(markup).toContain('John Smith - QB 78 OVR');
+    expect(markup).toContain('Jane Runner - RB 81 OVR');
   });
 
   it('renders evolution risk badge when present', () => {
@@ -120,5 +128,36 @@ describe('PlayerDevelopmentView', () => {
     expect(markup).toContain('+1 yr');
     expect(markup).toContain('+2 yr');
     expect(markup).toContain('80% conf');
+  });
+
+  it('labels development sources without implying progression writes', () => {
+    const markup = renderToStaticMarkup(
+      <PlayerDevelopmentView
+        report={{
+          playerId: 'p1',
+          playerName: 'John Smith',
+          pos: 'LB',
+          age: 23,
+          ovr: 76,
+          archetypeAlignment: 68,
+          archetypeLabel: 'Field General',
+          topGrowthRatings: [],
+          coachImpact: '',
+          evolutionRisk: 'none',
+          projectedOvr: 78,
+        }}
+        projections={[{ year: 1, projectedOvr: 78, confidence: 80 }]}
+        breakoutCandidates={[]}
+        coachImpact={null}
+      />,
+    );
+
+    expect(markup).toContain('DEVELOPMENT SOURCES');
+    expect(markup).toContain('Selected roster player');
+    expect(markup).toContain('Pure engine helpers');
+    expect(markup).toContain('No progression write');
+    expect(markup).toContain('for the selected roster player');
+    expect(markup).toContain('Opening it does not run progression');
+    expect(markup).toContain('alter archetypes, spend training-camp work, mutate coach effects, or write player history');
   });
 });

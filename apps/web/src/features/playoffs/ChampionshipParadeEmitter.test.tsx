@@ -1,10 +1,13 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'fs';
 import {
   ChampionshipParadeEmitterView,
   resolveChampionshipParadeEvent,
   type ChampionshipSnapshot,
 } from './ChampionshipParadeEmitter';
+
+const source = readFileSync(new URL('./ChampionshipParadeEmitter.tsx', import.meta.url), 'utf-8');
 
 const FIRST_TITLE: ChampionshipSnapshot = {
   key: 'team-1:2030',
@@ -43,6 +46,16 @@ describe('ChampionshipParadeEmitter', () => {
     expect(markup).toContain('2031');
   });
 
+  it('does not open for a championship already present on initial mount', () => {
+    const event = resolveChampionshipParadeEvent({
+      currentChampionship: FIRST_TITLE,
+      previousKey: null,
+      firedKeys: new Set(),
+    });
+
+    expect(event).toBeNull();
+  });
+
   it('does not open when the championship snapshot is repeated', () => {
     const event = resolveChampionshipParadeEvent({
       currentChampionship: FIRST_TITLE,
@@ -73,5 +86,12 @@ describe('ChampionshipParadeEmitter', () => {
     );
 
     expect(markup).toContain('data-reduced-motion="true"');
+  });
+
+  it('keeps parade dismissal session-local instead of adding a persistent sidecar', () => {
+    expect(source).toContain('const previousKey = useRef<string | null>');
+    expect(source).toContain('const firedKeys = useRef<Set<string>>(new Set())');
+    expect(source).not.toContain('localStorage');
+    expect(source).not.toContain('sessionStorage');
   });
 });

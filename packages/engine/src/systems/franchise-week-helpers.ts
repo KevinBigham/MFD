@@ -6,7 +6,7 @@ import { generateHooks } from './hooks-engine';
 import { getInjuryPenalty, isPlayerUnavailable, maybeGenerateTeamInjury, processInjuryRecovery } from './injury-system';
 import { updateOwnerApproval } from './owner';
 import { tickPatience } from './owner-extended';
-import { applyGameToSeasonStats, ensureSeasonStats, tickInjuries } from './season-stats';
+import { applyGameToSeasonStats, ensurePlayerStatBuckets, ensureSeasonStats, tickInjuries } from './season-stats';
 import { generateRegionalWeather } from './regional-weather';
 import type {
   GameEvent,
@@ -210,9 +210,15 @@ export function makeEvent(game: GameState, type: string, description: string, da
 }
 
 export function syncPlayers(game: GameState): void {
+  for (const player of Object.values(game.players)) {
+    ensurePlayerStatBuckets(player);
+  }
   for (const team of Object.values(game.teams)) {
     ensureSeasonStats(team);
-    for (const player of team.roster) game.players[player.id] = player;
+    for (const player of team.roster) {
+      ensurePlayerStatBuckets(player);
+      game.players[player.id] = player;
+    }
   }
 }
 

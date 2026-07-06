@@ -86,7 +86,7 @@ function defensiveRecommendation(opponent: Team): GamePlan['defensiveScheme'] {
 }
 
 function reportNarrative(opponent: Team, recommendation: OpponentReport['schemeRecommendation']): string {
-  return `Attack ${opponent.city} ${opponent.name} with ${recommendation.offense.replaceAll('_', ' ')} and answer back with ${recommendation.defense.replaceAll('_', ' ')}.`;
+  return `Set ${recommendation.offense.replaceAll('_', ' ')} and ${recommendation.defense.replaceAll('_', ' ')} before Advance Week; calls that do not fit your starters give ${opponent.city} ${opponent.name} the matchup they already want.`;
 }
 
 export function getStoredOpponentReport(
@@ -117,16 +117,16 @@ export function generateOpponentScouting(game: GameState, teamId: string, oppone
   const strengths: string[] = [];
   const weaknesses: string[] = [];
 
-  if (positionGroupAverage(opponent, ['QB', 'WR', 'TE']) >= 78) strengths.push('Vertical passing game can stress the secondary.');
-  if (positionGroupAverage(opponent, ['RB', 'OL']) >= 78) strengths.push('Run game can control tempo and shorten the night.');
-  if (positionGroupAverage(opponent, ['CB', 'S']) >= 78) strengths.push('Secondary closes throwing windows quickly.');
-  if (positionGroupAverage(opponent, ['DL', 'LB']) >= 78) strengths.push('Front seven can muddy the line of scrimmage.');
+  if (positionGroupAverage(opponent, ['QB', 'WR', 'TE']) >= 78) strengths.push('QB, WR, and TE group wins deep routes; safeties and corners need help rules before kickoff.');
+  if (positionGroupAverage(opponent, ['RB', 'OL']) >= 78) strengths.push('RB and OL group shortens drives; assign run-defense jobs and defensive rotation before kickoff.');
+  if (positionGroupAverage(opponent, ['CB', 'S']) >= 78) strengths.push('CB and safety group closes throwing windows; late throws turn into stalled drives or interceptions.');
+  if (positionGroupAverage(opponent, ['DL', 'LB']) >= 78) strengths.push('DL and LB group disrupts run lanes; missed double-teams leave the offense behind schedule.');
 
-  if (vulnerabilities.passing >= 28) weaknesses.push('Secondary is vulnerable to sustained passing pressure.');
-  if (vulnerabilities.rushing >= 28) weaknesses.push('Front can be moved in the run game.');
-  if (vulnerabilities.pass_rush >= 28) weaknesses.push('Pass rush lacks finishing juice.');
+  if (vulnerabilities.passing >= 28) weaknesses.push('Secondary gives up repeated throws; assign QB, WR, and TE timing reps before kickoff.');
+  if (vulnerabilities.rushing >= 28) weaknesses.push('Front gives up movement; assign RB and OL run calls before kickoff.');
+  if (vulnerabilities.pass_rush >= 28) weaknesses.push('Pass rush struggles to finish; Protect QB calls buy time for longer throws.');
   if (weaknesses.length === 0) {
-    weaknesses.push('No glaring weakness. Execution will matter more than leverage.');
+    weaknesses.push('No glaring weakness; choose the matchup your starters can execute; a bad fit leaves no easy counter.');
   }
 
   return {

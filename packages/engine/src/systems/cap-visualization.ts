@@ -7,7 +7,7 @@
 
 import { v36CapHit, v36DeadIfCut } from './contract-helpers';
 import { getSalaryCap } from '../config/cap-math';
-import type { Team, Player, Position } from '../types';
+import type { GameState, Team, Player, Position } from '../types';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -50,10 +50,11 @@ export interface CapVisualization {
 export function buildCapVisualization(
   team: Team | null,
   currentYear = 2026,
+  gameState?: GameState | null,
 ): CapVisualization | null {
   if (!team) return null;
 
-  const cap = getSalaryCap(currentYear);
+  const cap = getSalaryCap(currentYear, gameState);
   const roster = team.roster ?? [];
 
   // Positional breakdown
@@ -106,7 +107,7 @@ export function buildCapVisualization(
       }
     }
 
-    const futureCap = getSalaryCap(currentYear + yr);
+    const futureCap = getSalaryCap(currentYear + yr, gameState);
     const space = futureCap - committed;
     const pct = futureCap > 0 ? committed / futureCap : 0;
     const warning = pct > 0.85 ? 'Cap cliff'

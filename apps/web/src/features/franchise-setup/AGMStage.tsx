@@ -39,6 +39,7 @@ export function AGMStage({
       className="mfd-agm-stage"
       data-mfd-agm-state={state}
       data-mfd-agm-motion={reducedMotion ? 'reduced' : 'animated'}
+      data-mfd-agm-has-rail-addon={railAddon ? 'true' : 'false'}
       style={stageStyle}
     >
       <div

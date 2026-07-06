@@ -153,6 +153,7 @@ describe('Scrapbook', () => {
     const markup = renderToStaticMarkup(<Scrapbook />);
 
     expect(markup).toContain('No seasons recorded yet. Complete a season to start your scrapbook.');
+    expect(markup).toContain('Scrapbook Sources');
   });
 
   it('renders entries in reverse chronological order', () => {
@@ -199,6 +200,29 @@ describe('Scrapbook', () => {
     const markup = renderToStaticMarkup(<Scrapbook />);
 
     expect(markup).not.toMatch(/\p{Extended_Pictographic}/u);
+  });
+
+  it('labels scrapbook sources without implying route writes', () => {
+    mockEntries.splice(0, mockEntries.length, makeEntry(2026, 'champion'));
+
+    const markup = renderToStaticMarkup(<Scrapbook />);
+
+    expect(markup).toContain('Scrapbook Sources');
+    expect(markup).toContain('mfd.scrapbook.v1');
+    expect(markup).toContain('year-rollover writer');
+    expect(markup).toContain('browser export only');
+    expect(markup).toContain('deriveDynastyId');
+    expect(markup).toContain('readScrapbookForDynasty');
+    expect(markup).toContain('summarizeScrapbook');
+    expect(markup).toContain('syncScrapbookAtYearRollover');
+    expect(markup).toContain('buildSeasonRecap');
+    expect(markup).toContain('buildScrapbookEntry');
+    expect(markup).toContain('appendScrapbookEntry');
+    expect(markup).toContain('pending playoff-lore cards merge');
+    expect(markup).toContain('Opening this route does not write the scrapbook sidecar');
+    expect(markup).toContain('clear pending playoff lore');
+    expect(markup).toContain('create new game outcomes');
+    expect(markup).toContain('browser PNG download');
   });
 
   it('uses the recap-share PNG helper for full scrapbook export', async () => {

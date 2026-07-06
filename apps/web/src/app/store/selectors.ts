@@ -161,6 +161,9 @@ import {
   getPlayerAgent,
   getStatLeaderboard,
   getTeamSeasonHistory,
+  getPracticeSquadLimit,
+  getRegularSeasonWeekCount,
+  getRosterLimit,
   initLeagueRules,
   identifyCapCandidates,
   LEAGUE_RULE_DEFINITIONS,
@@ -194,9 +197,78 @@ export interface GameStoreState {
   pendingPlayoffLoreReveal: PlayoffLoreCard | null;
 }
 
+export interface WaiverWireBoardRow {
+  playerId: string;
+  name: string;
+  pos: Position;
+  ovr: number;
+  age: number;
+  salary: number;
+  salaryLabel: string;
+  contractStatus: 'active_contract' | 'no_active_contract';
+  releasedByTeamId?: string;
+  releasedByName: string;
+  countdown: string;
+  claimPending: boolean;
+  canSubmitClaim: boolean;
+  actionLabel: string;
+  statusLabel: string;
+  lifecycleNote: string;
+}
+
+export interface PracticeSquadReadRow {
+  playerId: string;
+  name: string;
+  pos: string;
+  ovr: number;
+  age: number;
+  elevationsUsed: number;
+  maxElevations: number;
+  isElevated: boolean;
+  canElevate: boolean;
+  statusLabel: string;
+}
+
+export interface PracticeSquadCandidateRow {
+  id: string;
+  name: string;
+  pos: Position;
+  ovr: number;
+  age: number;
+  source: 'free_agent' | 'waiver';
+  availability: 'eligible' | 'blocked_on_waivers';
+  canAdd: boolean;
+  actionLabel: string;
+  statusLabel: string;
+  helpText: string;
+}
+
+export type OffseasonCalendarStepStatus = 'complete' | 'active' | 'upcoming' | 'blocked';
+
+export interface OffseasonCalendarStep {
+  id: string;
+  label: string;
+  status: OffseasonCalendarStepStatus;
+  detail: string;
+  route: string;
+  ctaLabel: string;
+}
+
+export interface OffseasonCalendarReadModel {
+  visible: boolean;
+  headline: string;
+  summary: string;
+  activeStepId: string | null;
+  blocked: boolean;
+  steps: OffseasonCalendarStep[];
+}
+
 // Stable empty arrays — prevents infinite re-renders when selectors
 // would otherwise return a new [] reference every call.
 const EMPTY_PLAYERS: Player[] = [];
+const EMPTY_PRACTICE_SQUAD_ROWS: PracticeSquadReadRow[] = [];
+const EMPTY_PRACTICE_SQUAD_CANDIDATES: PracticeSquadCandidateRow[] = [];
+const EMPTY_OFFSEASON_CALENDAR_STEPS: OffseasonCalendarStep[] = [];
 const EMPTY_ROSTER: Player[] = [];
 const EMPTY_SCHEDULE: never[] = [];
 const EMPTY_AGENTS: AgentProfile[] = [];
@@ -223,6 +295,19 @@ const EMPTY_SEASON_REPORTS: SeasonReport[] = [];
 const EMPTY_WAIVER_WIRE: WaiverWireEntry[] = [];
 const EMPTY_WAIVER_CLAIMS: WaiverClaim[] = [];
 const EMPTY_WAIVER_RESULTS: WaiverRunResult[] = [];
+
+function playerDisplayName(player: Player | undefined, fallback: string): string {
+  const legacyName = typeof (player as { name?: unknown } | undefined)?.name === 'string'
+    ? (player as { name: string }).name.trim()
+    : '';
+  if (legacyName) return legacyName;
+
+  const firstName = player?.firstName?.trim() ?? '';
+  const lastName = player?.lastName?.trim() ?? '';
+  const fullName = `${firstName} ${lastName}`.trim();
+  return fullName || fallback;
+}
+
 const EMPTY_HANDSHAKES: Handshake[] = [];
 const EMPTY_OWNER_MANDATES: OwnerMandate[] = [];
 const EMPTY_CONDITIONAL_PICKS: ConditionalPick[] = [];
@@ -350,6 +435,14 @@ const EMPTY_AVAILABLE_SCENARIOS: ScenarioDefinition[] = getAvailableScenarios();
 const EMPTY_TRADE_DEADLINE_STATE: TradeDeadlineState | null = null;
 const EMPTY_SCENARIO_STATE: ScenarioState | null = null;
 const EMPTY_EXPANSION_DRAFT_STATE: ExpansionDraftState | null = null;
+const EMPTY_OFFSEASON_CALENDAR: OffseasonCalendarReadModel = {
+  visible: false,
+  headline: '',
+  summary: '',
+  activeStepId: null,
+  blocked: false,
+  steps: EMPTY_OFFSEASON_CALENDAR_STEPS,
+};
 const EMPTY_FRANCHISE_DASHBOARD: FranchiseDashboard | null = null;
 const EMPTY_RELOCATION_DESTINATIONS: ReturnType<typeof getRelocationDestinations> = [];
 const EMPTY_COACHING_MARKET: CoachingMarketState = {
@@ -437,6 +530,8 @@ export interface LeagueTradeBlockEntry {
   teamName: string;
   teamConference: Team['conference'];
   teamDivision: string;
+  teamGmStrategy: Team['gmStrategy'];
+  teamPhilosophy: NonNullable<Team['philosophy']>;
   playerId: string;
   playerName: string;
   position: Position;
@@ -449,7 +544,6 @@ export interface LeagueTradeBlockEntry {
   reasoning: string;
 }
 
-const SEASON_LENGTH = 17;
 const RECORD_WATCH_STATS = ['passYds', 'rushYds', 'recYds', 'passTD', 'rushTD', 'sacks', 'defINT'] as const;
 
 export interface RecordWatchItem {
@@ -585,8 +679,8 @@ export const selectActiveEndorsements: (state: GameStoreState) => EndorsementDea
 export const selectEndorsementRevenue = (state: GameStoreState): number =>
   getEndorsementRevenue(selectActiveEndorsements(state));
 
-export const selectPlayerRivalries = (playerId: string) => (state: GameStoreState): PlayerRivalry[] =>
-  state.game ? getActiveRivalries(state.game.playerRivalries ?? EMPTY_PLAYER_RIVALRIES, playerId) : EMPTY_PLAYER_RIVALRIES;
+export const selectPlayerRivalries = memoParamByGame((playerId: string, state: GameStoreState): PlayerRivalry[] =>
+  state.game ? getActiveRivalries(state.game.playerRivalries ?? EMPTY_PLAYER_RIVALRIES, playerId) : EMPTY_PLAYER_RIVALRIES);
 
 export const selectAllPlayerRivalries = (state: GameStoreState): PlayerRivalry[] =>
   state.game?.playerRivalries ?? EMPTY_PLAYER_RIVALRIES;
@@ -688,7 +782,35 @@ export const selectUserTeamId = (state: GameStoreState): string | null => select
 export const selectUndoLabel = (state: GameStoreState): string | null => state.undoLabel;
 export const selectCanUndo = (state: GameStoreState): boolean => state.undoSnapshot != null;
 export const selectRoster = (state: GameStoreState): Player[] => selectUserTeam(state)?.roster ?? EMPTY_ROSTER;
+export const selectRosterLimit = (state: GameStoreState): number => (
+  state.game ? getRosterLimit(state.game) : 53
+);
 export const selectPracticeSquad = (state: GameStoreState): PracticeSquadPlayer[] => selectUserTeam(state)?.practiceSquad ?? EMPTY_PRACTICE_SQUAD;
+export const selectPracticeSquadRows: (state: GameStoreState) => PracticeSquadReadRow[] = memoByGame((state) => {
+  const team = selectUserTeam(state);
+  if (!state.game || !team) return EMPTY_PRACTICE_SQUAD_ROWS;
+
+  return (team.practiceSquad ?? EMPTY_PRACTICE_SQUAD).map((entry) => {
+    const player = state.game!.players[entry.playerId];
+    const isElevated = Boolean(entry.isElevated);
+    const maxed = entry.elevationsUsed >= entry.maxElevations;
+    return {
+      playerId: entry.playerId,
+      name: playerDisplayName(player, entry.playerId),
+      pos: player?.pos ?? '--',
+      ovr: player?.ovr ?? 0,
+      age: player?.age ?? 0,
+      elevationsUsed: entry.elevationsUsed,
+      maxElevations: entry.maxElevations,
+      isElevated,
+      canElevate: !maxed && !isElevated,
+      statusLabel: isElevated ? 'Elevated to active roster' : maxed ? 'Elevation maxed' : 'Practice squad',
+    };
+  });
+});
+export const selectPracticeSquadLimit = (state: GameStoreState): number => (
+  state.game ? getPracticeSquadLimit(state.game) : 16
+);
 export const selectPlayerById = (id: string) => (state: GameStoreState): Player | null => state.game?.players[id] ?? null;
 export const selectTeamById = (id: string) => (state: GameStoreState): Team | null => state.game?.teams[id] ?? null;
 export const selectWeek = (state: GameStoreState): number => state.game?.week ?? 0;
@@ -726,6 +848,164 @@ export const selectActiveStoryArcs = (state: GameStoreState): StoryArc[] => stat
 export const selectLatestSummary = (state: GameStoreState): WeeklySummary | null => state.game?.weekSummaries.at(-1) ?? null;
 export const selectPlayoffBracket = (state: GameStoreState) => state.game?.playoffBracket ?? null;
 export const selectOffseasonState = (state: GameStoreState): OffseasonState | null => state.game?.offseasonState ?? null;
+const OFFSEASON_PHASE_RANK: Partial<Record<SeasonPhase, number>> = {
+  offseason: 0,
+  free_agency: 1,
+  draft: 2,
+  post_draft: 3,
+  training_camp: 4,
+  preseason: 5,
+};
+const CBA_BLOCKING_STATUSES = new Set<CBAState['status']>(['negotiating', 'awaiting_owner_vote', 'lockout']);
+
+function calendarStepStatus(rank: number, currentRank: number | undefined, blocked: boolean): OffseasonCalendarStepStatus {
+  if (currentRank === undefined) return 'upcoming';
+  if (rank < currentRank) return 'complete';
+  if (rank === currentRank) return blocked ? 'upcoming' : 'active';
+  return 'upcoming';
+}
+
+function formatCBAStatus(status: CBAState['status']): string {
+  return status.replace(/_/g, ' ');
+}
+
+function reSignCalendarDetail(game: GameState): string {
+  const offseason = game.offseasonState;
+  if (!offseason) return 'Expiring-contract decisions open when the offseason phase starts.';
+  const decisions = Object.values(offseason.reSignDecisions);
+  const accepted = decisions.filter((decision) => decision.status === 'accepted').length;
+  const unresolved = decisions.filter((decision) => decision.status === 'pending' || decision.status === 'countered').length;
+  if (decisions.length === 0) return 'No expiring contracts are queued for this offseason.';
+  return `${accepted} accepted, ${unresolved} unresolved from ${decisions.length} expiring player(s).`;
+}
+
+function freeAgencyCalendarDetail(game: GameState): string {
+  const round = Math.min(3, Math.max(1, game.offseasonState?.round ?? game.week ?? 1));
+  const bidCount = Object.values(game.offseasonState?.freeAgencyBids ?? {}).reduce((total, bids) => (
+    total + bids.filter((bid) => bid.round === round && bid.status === 'pending').length
+  ), 0);
+  return `Round ${round} of 3${bidCount > 0 ? ` with ${bidCount} pending bid(s)` : ''}.`;
+}
+
+function draftCalendarDetail(game: GameState): string {
+  const draftOrder = game.offseasonState?.draftOrder ?? [];
+  const currentIndex = game.offseasonState?.currentDraftPickIndex ?? 0;
+  const current = draftOrder[currentIndex];
+  if (!current || draftOrder.length === 0) return 'Draft order appears after free agency closes.';
+  return `Pick ${currentIndex + 1}/${draftOrder.length} // Round ${current.round}, Pick ${current.pick}.`;
+}
+
+function draftRecapCalendarDetail(game: GameState): string {
+  const recapCount = game.draftRecaps?.length ?? 0;
+  return recapCount > 0
+    ? `${recapCount} team draft recap(s) are available.`
+    : 'Finalize the draft class, then review recaps before camp.';
+}
+
+function trainingCampCalendarDetail(game: GameState): string {
+  const reportCount = game.trainingCampResults?.length ?? 0;
+  return reportCount > 0
+    ? `${reportCount} team camp report(s) are saved.`
+    : 'Camp results are generated when training camp advances.';
+}
+
+export const selectOffseasonCalendar: (state: GameStoreState) => OffseasonCalendarReadModel = memoByGame((state) => {
+  const game = state.game;
+  if (!game) return EMPTY_OFFSEASON_CALENDAR;
+
+  const currentRank = OFFSEASON_PHASE_RANK[game.phase];
+  const blockerSteps: OffseasonCalendarStep[] = [];
+  const cbaStatus = game.cbaState?.status;
+  if (cbaStatus && CBA_BLOCKING_STATUSES.has(cbaStatus)) {
+    blockerSteps.push({
+      id: 'cba_hold',
+      label: 'CBA Hold',
+      status: 'blocked',
+      detail: `League business is paused while CBA status is ${formatCBAStatus(cbaStatus)}.`,
+      route: '/cba',
+      ctaLabel: 'Open CBA',
+    });
+  }
+  if (game.expansionDraftState) {
+    blockerSteps.push({
+      id: 'expansion_draft',
+      label: 'Expansion Draft',
+      status: 'blocked',
+      detail: `${game.expansionDraftState.expansionTeam.city} ${game.expansionDraftState.expansionTeam.name} is in ${game.expansionDraftState.phase} with ${game.expansionDraftState.picksRemaining} pick(s) remaining.`,
+      route: '/expansion-draft',
+      ctaLabel: 'Open Expansion',
+    });
+  }
+
+  if (currentRank === undefined && blockerSteps.length === 0) return EMPTY_OFFSEASON_CALENDAR;
+
+  const blocked = blockerSteps.length > 0;
+  const steps: OffseasonCalendarStep[] = [
+    {
+      id: 're_sign',
+      label: 'Re-sign Window',
+      status: calendarStepStatus(0, currentRank, blocked),
+      detail: reSignCalendarDetail(game),
+      route: '/contracts',
+      ctaLabel: 'Manage Contracts',
+    },
+    {
+      id: 'free_agency',
+      label: 'Free Agency Rounds',
+      status: calendarStepStatus(1, currentRank, blocked),
+      detail: freeAgencyCalendarDetail(game),
+      route: '/free-agency',
+      ctaLabel: 'Open Market',
+    },
+    {
+      id: 'draft',
+      label: 'Draft Board',
+      status: calendarStepStatus(2, currentRank, blocked),
+      detail: draftCalendarDetail(game),
+      route: '/draft',
+      ctaLabel: 'Open Draft',
+    },
+    {
+      id: 'post_draft',
+      label: 'Draft Recap',
+      status: calendarStepStatus(3, currentRank, blocked),
+      detail: draftRecapCalendarDetail(game),
+      route: '/draft-recap',
+      ctaLabel: 'Review Class',
+    },
+    {
+      id: 'training_camp',
+      label: 'Training Camp',
+      status: calendarStepStatus(4, currentRank, blocked),
+      detail: trainingCampCalendarDetail(game),
+      route: '/training-camp',
+      ctaLabel: 'Open Camp',
+    },
+    {
+      id: 'preseason',
+      label: 'Preseason Gate',
+      status: calendarStepStatus(5, currentRank, blocked),
+      detail: 'Advance from preseason to start Week 1 after camp and roster checks are clean.',
+      route: '/week-advance',
+      ctaLabel: 'Stay Here',
+    },
+  ];
+  const visibleSteps = [...blockerSteps, ...steps];
+  const activeStep = visibleSteps.find((step) => step.status === 'blocked' || step.status === 'active') ?? null;
+
+  return {
+    visible: true,
+    headline: blocked ? 'Resolve offseason hold' : activeStep ? activeStep.label : 'Offseason calendar',
+    summary: blocked
+      ? `${activeStep?.label ?? 'Hold'} owns the next click before the offseason can move.`
+      : activeStep
+        ? `${activeStep.label} is the current window; advancement still runs through the existing phase action.`
+        : 'Offseason handoff is complete.',
+    activeStepId: activeStep?.id ?? null,
+    blocked,
+    steps: visibleSteps,
+  };
+});
 export const selectTutorial = (state: GameStoreState): TutorialState => state.game?.tutorialState ?? EMPTY_TUTORIAL_STATE;
 export const selectAgents = (state: GameStoreState): AgentProfile[] => state.game?.agents ?? EMPTY_AGENTS;
 export const selectPlayerAgent = (playerId: string) => (state: GameStoreState): AgentProfile | null =>
@@ -793,31 +1073,32 @@ export const selectClaimResults = memoByGame((state: GameStoreState) => {
         .filter((entry) => entry.winningTeamId === teamId)
         .map((entry) => ({
           playerId: entry.playerId,
-          playerName: state.game!.players[entry.playerId]?.name ?? entry.playerId,
+          playerName: playerDisplayName(state.game!.players[entry.playerId], entry.playerId),
           winningTeamName: `${state.game!.teams[teamId]?.city ?? ''} ${state.game!.teams[teamId]?.name ?? ''}`.trim(),
         })),
       lostClaims: result.entries
         .filter((entry) => entry.losingTeamIds.includes(teamId))
         .map((entry) => ({
           playerId: entry.playerId,
-          playerName: state.game!.players[entry.playerId]?.name ?? entry.playerId,
+          playerName: playerDisplayName(state.game!.players[entry.playerId], entry.playerId),
           winningTeamName: entry.winningTeamId ? `${state.game!.teams[entry.winningTeamId]?.city ?? ''} ${state.game!.teams[entry.winningTeamId]?.name ?? ''}`.trim() : 'Cleared',
         })),
       clearedPlayers: result.entries
         .filter((entry) => entry.clearedToFreeAgency)
         .map((entry) => ({
           playerId: entry.playerId,
-          playerName: state.game!.players[entry.playerId]?.name ?? entry.playerId,
+          playerName: playerDisplayName(state.game!.players[entry.playerId], entry.playerId),
+          scopeLabel: 'League-wide clearance',
         })),
     }))
     .filter((result) => result.successfulClaims.length > 0 || result.lostClaims.length > 0 || result.clearedPlayers.length > 0);
 });
 export const selectHandshakes = (state: GameStoreState): Handshake[] => state.game?.handshakes ?? EMPTY_HANDSHAKES;
-export const selectOwnerMandates = (state: GameStoreState): OwnerMandate[] => {
+export const selectOwnerMandates: (state: GameStoreState) => OwnerMandate[] = memoByGame((state) => {
   const teamId = selectUserTeamId(state);
   if (!teamId) return EMPTY_OWNER_MANDATES;
   return (state.game?.ownerMandates ?? EMPTY_OWNER_MANDATES).filter((mandate) => mandate.teamId === teamId);
-};
+});
 export const selectLeagueNews: (state: GameStoreState) => NewsItem[] = memoByGame((state) =>
   state.game ? getRecentNews(state.game, state.game.leagueNews.length) : EMPTY_NEWS);
 export const selectTeamNews: (state: GameStoreState) => NewsItem[] = memoByGame((state) => {
@@ -1151,14 +1432,45 @@ export const selectLatestGameDayPackage = (state: GameStoreState): GameDayPackag
   }
   return gameDayState.recentPackages.at(-1) ?? null;
 };
+
+function gameDayPackageMatchesResult(packageData: GameDayPackage, result: GameResult, fallbackYear: number): boolean {
+  const resultYear = result.year ?? fallbackYear;
+  if (packageData.year !== resultYear || packageData.week !== result.week) return false;
+  const packageTeams = new Set([packageData.teamId, packageData.opponentTeamId].filter(Boolean));
+  return packageTeams.has(result.homeTeamId) && packageTeams.has(result.awayTeamId);
+}
+
+function findGameDayPackageForResult(game: GameState, result: GameResult): GameDayPackage | null {
+  const packages = game.gameDayState?.recentPackages ?? [];
+  return [...packages]
+    .reverse()
+    .find((packageData) => gameDayPackageMatchesResult(packageData, result, game.year)) ?? null;
+}
+
+export const selectGameDayPackageByBroadcastGameId = memoParamByGame((gameId: string | null, state: GameStoreState): GameDayPackage | null => {
+  if (!state.game) return null;
+  const broadcast = selectBroadcastByGameId(gameId)(state);
+  return broadcast ? findGameDayPackageForResult(state.game, broadcast.gameResult) : null;
+});
 let _prevFAIds: string[] | undefined;
+let _prevFAGame: GameState | null = null;
 let _prevFAPlayers: Player[] = EMPTY_PLAYERS;
 export const selectFreeAgentPlayers = (state: GameStoreState): Player[] => {
   if (!state.game) return EMPTY_PLAYERS;
   // With Immer the freeAgents reference only changes when mutated
-  if (state.game.freeAgents === _prevFAIds) return _prevFAPlayers;
+  if (state.game === _prevFAGame && state.game.freeAgents === _prevFAIds) return _prevFAPlayers;
+  _prevFAGame = state.game;
   _prevFAIds = state.game.freeAgents;
-  _prevFAPlayers = state.game.freeAgents.map((playerId) => state.game!.players[playerId]).filter(Boolean) as Player[];
+  _prevFAPlayers = state.game.freeAgents
+    .flatMap((playerId) => {
+      const player = state.game!.players[playerId];
+      return player
+        ? [{
+          ...player,
+          name: playerDisplayName(player, player.id),
+        }]
+        : [];
+    });
   return _prevFAPlayers;
 };
 export const selectWaiverWirePlayers: (state: GameStoreState) => Player[] = memoByGame((state) => {
@@ -1168,33 +1480,88 @@ export const selectWaiverWirePlayers: (state: GameStoreState) => Player[] = memo
     .map((entry) => state.game!.players[entry.playerId])
     .filter(Boolean) as Player[];
 });
-export const selectWaiverWireBoard = memoByGame((state: GameStoreState) => {
+export const selectWaiverWireBoard: (state: GameStoreState) => WaiverWireBoardRow[] = memoByGame((state: GameStoreState) => {
   if (!state.game) return [];
   const teamId = selectUserTeamId(state);
   return state.game.waiverWire.map((entry) => {
     const player = state.game!.players[entry.playerId];
     const releasedBy = entry.releasedByTeamId ? state.game!.teams[entry.releasedByTeamId] : null;
+    const weeksUntilClear = Math.max(0, entry.expiresWeek - state.game!.week);
+    const claimPending = Boolean(teamId && state.game!.waiverClaims.some((claim) => claim.teamId === teamId && claim.playerId === entry.playerId));
+    const salary = player?.contract?.baseSalary ?? 0;
+    const contractStatus = player?.contract ? 'active_contract' : 'no_active_contract';
     return {
       playerId: entry.playerId,
-      name: player?.name ?? entry.playerId,
+      name: playerDisplayName(player, entry.playerId),
       pos: player?.pos ?? 'WR',
       ovr: player?.ovr ?? 0,
       age: player?.age ?? 0,
-      salary: player?.contract?.baseSalary ?? 0,
-      releasedByTeamId: entry.releasedByTeamId,
+      salary,
+      salaryLabel: player?.contract ? `$${salary.toFixed(1)}M` : 'No active contract',
+      contractStatus,
+      releasedByTeamId: entry.releasedByTeamId ?? undefined,
       releasedByName: releasedBy ? `${releasedBy.city} ${releasedBy.name}` : 'Free Agent Pool',
-      countdown: `${Math.max(0, entry.expiresWeek - state.game!.week)} day${Math.max(0, entry.expiresWeek - state.game!.week) === 1 ? '' : 's'}`,
-      claimPending: Boolean(teamId && state.game!.waiverClaims.some((claim) => claim.teamId === teamId && claim.playerId === entry.playerId)),
+      countdown: weeksUntilClear === 0
+        ? 'Clears on next waiver run'
+        : `Clears after ${weeksUntilClear} week advance${weeksUntilClear === 1 ? '' : 's'}`,
+      claimPending,
+      canSubmitClaim: !claimPending,
+      actionLabel: claimPending ? 'Claim Pending' : 'Submit Claim',
+      statusLabel: claimPending ? 'Pending waiver run' : 'Open claim',
+      lifecycleNote: player?.contract
+        ? 'Claim resolves after week advance with current contract data shown.'
+        : 'If awarded, the player signs a one-year minimum deal with the claiming team.',
     };
   });
 });
-export const selectPracticeSquadCandidates: (state: GameStoreState) => Player[] = memoByGame((state) => {
-  if (!state.game) return EMPTY_PLAYERS;
+export const selectPracticeSquadCandidates: (state: GameStoreState) => PracticeSquadCandidateRow[] = memoByGame((state) => {
+  if (!state.game) return EMPTY_PRACTICE_SQUAD_CANDIDATES;
   const existing = new Set((selectPracticeSquad(state) ?? EMPTY_PRACTICE_SQUAD).map((entry) => entry.playerId));
-  const waiverPlayers = selectWaiverWirePlayers(state);
-  const freeAgents = selectFreeAgentPlayers(state);
-  return [...freeAgents, ...waiverPlayers]
+  const freeAgentIds = new Set(state.game.freeAgents);
+  const waiverEntries = new Map(state.game.waiverWire.map((entry) => [entry.playerId, entry]));
+  const userTeamId = selectUserTeamId(state);
+  const pendingClaimIds = new Set(
+    userTeamId
+      ? state.game.waiverClaims
+        .filter((claim) => claim.teamId === userTeamId)
+        .map((claim) => claim.playerId)
+      : [],
+  );
+  const candidates = new Map<string, Player>();
+
+  for (const player of selectFreeAgentPlayers(state)) {
+    candidates.set(player.id, player);
+  }
+  for (const player of selectWaiverWirePlayers(state)) {
+    if (!candidates.has(player.id)) {
+      candidates.set(player.id, player);
+    }
+  }
+
+  return [...candidates.values()]
     .filter((player) => !existing.has(player.id))
+    .map((player): PracticeSquadCandidateRow => {
+      const isFreeAgent = freeAgentIds.has(player.id);
+      const isPendingClaim = pendingClaimIds.has(player.id);
+      const isOnWaivers = waiverEntries.has(player.id) && !isFreeAgent;
+      return {
+        id: player.id,
+        name: playerDisplayName(player, player.id),
+        pos: player.pos,
+        ovr: player.ovr,
+        age: player.age,
+        source: isFreeAgent ? 'free_agent' : 'waiver',
+        availability: isOnWaivers ? 'blocked_on_waivers' : 'eligible',
+        canAdd: isFreeAgent,
+        actionLabel: isFreeAgent ? 'Add' : isPendingClaim ? 'Claim Pending' : 'Waiver Hold',
+        statusLabel: isFreeAgent ? 'Practice-squad eligible' : isPendingClaim ? 'Pending waiver claim' : 'Blocked on waivers',
+        helpText: isFreeAgent
+          ? 'Available now from the free-agent pool.'
+          : isPendingClaim
+            ? 'Resolve the pending claim after week advance before adding.'
+            : 'Submit a waiver claim or wait for clearance before adding.',
+      };
+    })
     .sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name));
 });
 export const selectDraftRecaps: (state: GameStoreState) => DraftRecap[] = memoByGame((state) => {
@@ -1239,6 +1606,8 @@ export const selectLeagueTradeBlock: (state: GameStoreState) => LeagueTradeBlock
         teamName: `${blockTeam.city} ${blockTeam.name}`,
         teamConference: blockTeam.conference,
         teamDivision: blockTeam.division,
+        teamGmStrategy: blockTeam.gmStrategy,
+        teamPhilosophy: blockTeam.philosophy ?? 'maintain',
         playerId: player.id,
         playerName: player.name,
         position: player.pos,
@@ -1430,7 +1799,7 @@ export const selectWarRoomState: (state: GameStoreState) => WarRoomState | null 
 export const selectCapProjection: (state: GameStoreState) => CapProjectionYear[] = memoByGame((state) => {
   if (!state.game) return EMPTY_CAP_PROJECTION;
   const team = selectUserTeam(state);
-  return team ? capProjection(team, state.game.year, 3) : EMPTY_CAP_PROJECTION;
+  return team ? capProjection(team, state.game.year, 3, state.game) : EMPTY_CAP_PROJECTION;
 });
 export const selectContractExtensions: (state: GameStoreState) => ContractExtensionRecord[] = memoByGame((state) => {
   if (!state.game) return EMPTY_CONTRACT_EXTENSIONS;
@@ -1519,6 +1888,7 @@ export const selectCoachingCarouselNews: (state: GameStoreState) => GameEvent[] 
     .filter((event) => event.type === 'coach_fired' || event.type === 'coach_hired' || event.type === 'coach_promoted' || event.type === 'coach_departed')
     .slice(-6)
     .reverse() ?? EMPTY_GAME_EVENTS);
+export const selectGameEventLog = (state: GameStoreState): GameEvent[] => state.game?.eventLog ?? EMPTY_GAME_EVENTS;
 export const selectHistoricalMentoringChains: (state: GameStoreState) => MentoringHistoryNote[] = memoByGame((state) => {
   const team = selectUserTeam(state);
   if (!state.game || !team) return EMPTY_MENTORING_HISTORY;
@@ -1542,6 +1912,7 @@ export const selectUserRecordWatch: (state: GameStoreState) => RecordWatchItem[]
 
   const gamesPlayed = team.seasonStats.gamesPlayed || team.wins + team.losses + team.ties;
   if (gamesPlayed <= 0) return EMPTY_RECORD_WATCH;
+  const seasonLength = getRegularSeasonWeekCount(state.game);
 
   const recordBook = selectRecords(state);
   const recordWatch: RecordWatchItem[] = [];
@@ -1554,7 +1925,7 @@ export const selectUserRecordWatch: (state: GameStoreState) => RecordWatchItem[]
       const leader = recordBook.singleSeason[stat]?.[0];
       if (!leader) continue;
 
-      const projectedValue = Math.round((currentValue / gamesPlayed) * SEASON_LENGTH);
+      const projectedValue = Math.round((currentValue / gamesPlayed) * seasonLength);
       if (projectedValue <= leader.value) continue;
 
       recordWatch.push({
