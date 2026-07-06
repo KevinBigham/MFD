@@ -20,6 +20,51 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 
+const rankingSourceRows = [
+  {
+    id: 'saved-table',
+    label: 'Saved table',
+    badge: 'game.powerRankings',
+    accent: 'gold',
+    detail: 'The ladder reads the saved weekly table through selectors. Empty saves stay empty until the week pipeline writes rankings.',
+  },
+  {
+    id: 'weekly-owner',
+    label: 'Weekly update owner',
+    badge: 'updatePowerRankings',
+    accent: 'cyan',
+    detail: 'Rankings are created by the engine update path, not by opening this route.',
+  },
+  {
+    id: 'score-formula',
+    label: 'Score and blurbs',
+    badge: 'media-cycle',
+    accent: 'green',
+    detail: 'The media-cycle scorer owns roster strength, win percentage, last-five momentum, strength-of-victory weighting, and deterministic blurbs.',
+  },
+  {
+    id: 'movement',
+    label: 'Movement source',
+    badge: 'previousRank/delta',
+    accent: 'default',
+    detail: 'Trend badges display saved prior-rank deltas from the last generated table; this screen does not recalculate history.',
+  },
+  {
+    id: 'presentation',
+    label: 'Route presentation',
+    badge: 'local display',
+    accent: 'default',
+    detail: 'Top-team cards, biggest-mover sorting, and navigation callouts are local projections over the saved table.',
+  },
+  {
+    id: 'render-boundary',
+    label: 'Just viewing',
+    badge: 'display only',
+    accent: 'default',
+    detail: 'Opening Power Rankings does not write rankings, news, social posts, storyline threads, records, or media-cycle history.',
+  },
+] as const;
+
 export function PowerRankings() {
   const rankings = useGameStore(selectPowerRankings);
   const userTeam = useGameStore(selectUserTeam);
@@ -110,6 +155,34 @@ export function PowerRankings() {
           </>
         )}
       />
+
+      <PixelPanel title="Ranking Sources" accent="cyan">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+          {rankingSourceRows.map((row) => (
+            <div
+              key={row.id}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '10px',
+                border: '2px solid var(--mfd-border)',
+                background: 'var(--mfd-bg-2)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ ...monoSm, color: '#fff' }}>
+                  {row.label}
+                </span>
+                <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
+              </div>
+              <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                {row.detail}
+              </span>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
 
       <CommandCallout
         title={userRanking ? 'Treat ranking as temperature' : 'Wait for the first table'}

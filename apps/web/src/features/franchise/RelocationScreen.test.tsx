@@ -39,6 +39,9 @@ describe('RelocationScreen', () => {
     const markup = renderToStaticMarkup(<RelocationScreen />);
     expect(markup).toContain('FRANCHISE RELOCATION');
     expect(markup).toContain('$62.0M CAP');
+    expect(markup).toContain('RELOCATION SOURCES');
+    expect(markup).toContain('selectCanRelocate');
+    expect(markup).toContain('Opening the route does not rewrite the team');
   });
 
   it('shows all destination cards', () => {
@@ -63,9 +66,29 @@ describe('RelocationScreen', () => {
     expect(markup).toContain('BLOCKED');
   });
 
+  it('shows when the selected destination costs more than current cap space', () => {
+    mockState.team.capSpace = 53;
+    const markup = renderToStaticMarkup(<RelocationScreen />);
+
+    expect(markup).toContain('Selected package costs $55M; current franchise cap space is $53M.');
+  });
+
   it('renders the decision controls', () => {
     const markup = renderToStaticMarkup(<RelocationScreen />);
     expect(markup).toContain('Confirm Relocation');
     expect(markup).toContain('Cancel');
+    expect(markup).toContain('selected destination and confirmation-modal state live in React only');
+    expect(markup).toContain('selected-destination cost');
+    expect(markup).toContain('relocateTeam(destinationId)');
+    expect(markup).toContain('syncs relocated roster players back into');
+  });
+
+  it('renders source context when no active franchise is loaded', () => {
+    mockState.team = null as never;
+    const markup = renderToStaticMarkup(<RelocationScreen />);
+
+    expect(markup).toContain('No active franchise is loaded.');
+    expect(markup).toContain('RELOCATION SOURCES');
+    expect(markup).toContain('No active team');
   });
 });

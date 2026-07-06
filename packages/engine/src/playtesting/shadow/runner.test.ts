@@ -27,7 +27,9 @@ describe('shadow scenarios catalog', () => {
 
 describe('runShadowScenario', () => {
   it('rejects an unknown scenario id with a list of known ids', () => {
-    expect(() => runShadowScenario('mystery-scenario')).toThrow(/Unknown shadow scenario/);
+    expect(() => runShadowScenario('mystery-scenario')).toThrow(
+      `Unknown shadow scenario: mystery-scenario. Known: ${SHADOW_SCENARIOS.map((scenario) => scenario.id).join(', ')}`,
+    );
   });
 
   // The 5y baseline smoke that USED to live here ran the full 5-year sim

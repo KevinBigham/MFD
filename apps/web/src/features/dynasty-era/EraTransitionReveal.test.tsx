@@ -35,8 +35,15 @@ describe('EraTransitionReveal', () => {
     const markup = renderToStaticMarkup(<EraTransitionReveal {...defaultProps} initialStage="narrative" />);
 
     expect(markup).toContain('Three banners in five years changed the building forever.');
-    expect(markup).toContain('New era marker archived.');
+    expect(markup).toContain('Era recorded in Legacy.');
+    expect(markup).toContain('Optional: open Legacy after Must Do tasks');
+    expect(markup).toContain('Where: Legacy');
+    expect(markup).toContain('Consequence: roster, cap space, owner patience, and next-week state do not change');
     expect(markup).toContain('data-chip-pose="celebrate"');
+    expect(markup).not.toContain('Era archived');
+    expect(markup).not.toContain('Legacy screens will show');
+    expect(markup).not.toContain('history context');
+    expect(markup).not.toContain('roster, cap, owner patience');
   });
 
   it('shows all content and the continue CTA in the idle stage', () => {
@@ -59,6 +66,13 @@ describe('EraTransitionReveal', () => {
 
     expect(markup).toContain('data-era-transition-accent="red"');
     expect(markup).toContain('data-chip-pose="concern"');
+    expect(markup).toContain('Fall recorded in Legacy.');
+    expect(markup).toContain('Optional: open Legacy after Must Do tasks');
+    expect(markup).toContain('Where: Legacy');
+    expect(markup).toContain('Consequence: roster, cap space, owner patience, and next-week state do not change');
+    expect(markup).not.toContain('football work');
+    expect(markup).not.toContain('history context');
+    expect(markup).not.toContain('do not change here');
     expect(markup).not.toContain('data-testid="era-transition-confetti"');
   });
 });

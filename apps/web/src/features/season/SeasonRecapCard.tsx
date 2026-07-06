@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
-import { buildSeasonRecap, type SeasonRecap } from '@mfd/engine';
+import { buildSeasonRecap, type NearMissEntry, type SeasonRecap } from '@mfd/engine';
 import { selectUserTeam, useGameStore } from '../../app/store/game-store';
 import { resolveTeamContentFromStore } from '../../lib/team-content-resolver';
 import { EmptyState } from '../shared/EmptyState';
@@ -50,6 +50,18 @@ function accentForPlayoffResult(playoffResult: SeasonRecap['playoffResult']) {
   return 'cyan' as const;
 }
 
+function nearMissLabel(type: NearMissEntry['type']): string {
+  if (type === 'declined_trade') return 'Declined Trade';
+  if (type === 'passed_pick') return 'Passed Pick';
+  return 'Missed FA';
+}
+
+function nearMissAccent(type: NearMissEntry['type']) {
+  if (type === 'declined_trade') return 'red' as const;
+  if (type === 'passed_pick') return 'gold' as const;
+  return 'cyan' as const;
+}
+
 function recapThemeVars(teamIdOrAbbr: string): CSSProperties {
   const content = resolveTeamContentFromStore(teamIdOrAbbr);
   return {
@@ -57,6 +69,28 @@ function recapThemeVars(teamIdOrAbbr: string): CSSProperties {
     '--mfd-recap-secondary': content?.secondaryColor ?? 'var(--mfd-cyan)',
     '--mfd-recap-tertiary': content?.tertiaryColor ?? 'var(--mfd-green)',
   } as CSSProperties;
+}
+
+function SeasonRecapSourcesPanel() {
+  return (
+    <PixelPanel title="Season Recap Sources" accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="cyan">RECAP READ MODEL</PixelBadge>
+          <PixelBadge variant="gold">SHARE CONTROLS ONLY</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.7 }}>
+          This route calls <strong>buildSeasonRecap(game, team.id)</strong> from the loaded save and passes the result into <strong>SeasonRecapCard</strong>. Saved what-if rows come from <strong>game.seasonNearMissReceipts</strong>.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          <strong>Export PNG</strong> imports <strong>exportRecapAsPng</strong> for a browser download, and <strong>Copy Text</strong> imports <strong>copyRecapAsText</strong> for clipboard output. Those controls do not update the franchise save.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Opening Season Recap does not archive the season, create near-miss receipts, advance the league year, change player records, write media, change saves, or play scheduled games.
+        </div>
+      </div>
+    </PixelPanel>
+  );
 }
 
 function LeaderBlock({
@@ -94,8 +128,10 @@ function LeaderBlock({
 
 export function SeasonRecapCard({
   recap,
+  nearMissReceipts = [],
 }: {
   recap: SeasonRecap;
+  nearMissReceipts?: readonly NearMissEntry[];
 }) {
   const themeVars = recapThemeVars(recap.teamId);
 
@@ -178,6 +214,41 @@ export function SeasonRecapCard({
         </PixelPanel>
       </div>
 
+      {nearMissReceipts.length > 0 ? (
+        <PixelPanel title="What-If Receipts" accent="red">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+              Source: saved game.seasonNearMissReceipts generated at season rollover from declined direct trade proposals, passed-pick draft flow, and user free-agent bids that lose to a signed CPU offer. Opening this recap does not generate receipts or change the near-miss tracker.
+            </div>
+            {nearMissReceipts.slice(0, 5).map((receipt, index) => (
+              <div
+                key={`${receipt.type}-${receipt.playerName}-${index}`}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  padding: '10px',
+                  border: '2px solid var(--mfd-border)',
+                  background: 'var(--mfd-bg-2)',
+                }}
+              >
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <PixelBadge variant={nearMissAccent(receipt.type)}>{nearMissLabel(receipt.type)}</PixelBadge>
+                  <PixelBadge variant="default">{receipt.playerOvr} OVR</PixelBadge>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{receipt.playerName}</span>
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+                  {receipt.description}
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+                  {receipt.outcome}
+                </div>
+              </div>
+            ))}
+          </div>
+        </PixelPanel>
+      ) : null}
+
       <PixelPanel title="Top Performers" accent="gold">
         <div style={autoGrid(260)}>
           <LeaderBlock label="Passing Leader" leader={recap.topPerformers.passingLeader} />
@@ -205,6 +276,7 @@ export function SeasonRecapScreen() {
   }
 
   const recap = buildSeasonRecap(game, team.id);
+  const nearMissReceipts = game.seasonNearMissReceipts ?? [];
   if (!recap) {
     return (
       <EmptyState
@@ -247,6 +319,8 @@ export function SeasonRecapScreen() {
         )}
       />
 
+      <SeasonRecapSourcesPanel />
+
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
         <PixelButton accent="gold" onClick={() => { void handleExportPng(); }}>
           Export PNG
@@ -262,7 +336,7 @@ export function SeasonRecapScreen() {
       </div>
 
       <div ref={(node) => { recapRef.current = node; }}>
-        <SeasonRecapCard recap={recap} />
+        <SeasonRecapCard recap={recap} nearMissReceipts={nearMissReceipts} />
       </div>
     </div>
   );

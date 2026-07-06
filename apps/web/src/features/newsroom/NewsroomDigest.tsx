@@ -175,6 +175,21 @@ export function NewsroomDigest({ storylines }: NewsroomDigestProps = {}) {
         />
       </div>
 
+      <PixelPanel title="Media Sources" accent="cyan">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <PixelBadge variant="gold">Saved league wire</PixelBadge>
+            <PixelBadge variant="cyan">Saved power rankings</PixelBadge>
+            <PixelBadge variant="green">Active storyline threads</PixelBadge>
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+            This digest projects saved league news, route power rankings, and active storyline threads. It does
+            not generate stories while rendering; full-screen Breaking News interrupts stay in the separate
+            breaking-news queue and the top ticker reads league news outside this route.
+          </div>
+        </div>
+      </PixelPanel>
+
       <PixelPanel title="Top of the Wire" accent={lead ? importanceAccent(lead.importance) : 'cyan'}>
         {lead ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

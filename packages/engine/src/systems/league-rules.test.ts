@@ -4,6 +4,7 @@ import {
   applyRuleChange,
   diffRules,
   getActiveRule,
+  getRosterLimit,
   getRuleHistory,
   initLeagueRules,
 } from './league-rules';
@@ -127,6 +128,21 @@ describe('league rules', () => {
 
     expect(getActiveRule(rules, 'practice_squad_size', 2026)).toBe(8);
     expect(getActiveRule(rules, 'practice_squad_size', 2028)).toBe(12);
+  });
+
+  it('reports the active roster limit with the legacy no-rules fallback', () => {
+    let rules = initLeagueRules(2026);
+    rules = applyRuleChange(rules, {
+      key: 'roster_limit',
+      newValue: 50,
+      source: 'commissioner_vote',
+      proposedBy: 'comm-1',
+      effectiveYear: 2026,
+      rationale: 'Smaller active rosters.',
+    });
+
+    expect(getRosterLimit({ leagueRules: rules, year: 2026 })).toBe(50);
+    expect(getRosterLimit({ leagueRules: null as never, year: 2026 })).toBe(53);
   });
 
   it('defines petition metadata for supported rules', () => {

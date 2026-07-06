@@ -7,11 +7,19 @@ import {
   PixelSelect,
 } from '@mfd/design-system/components';
 import { AlertTriangle } from 'lucide-react';
-import type { Player, Position, PositionBattle } from '@mfd/engine';
-import { detectPositionBattles } from '@mfd/engine';
+import type {
+  Player,
+  Position,
+  PositionBattle,
+  SpecialTeamsState,
+} from '@mfd/engine';
+import { STARTER_SLOTS, detectPositionBattles } from '@mfd/engine';
 import {
   useGameStore, selectRoster, selectSpecialTeams, selectUserTeamId,
 } from '../../app/store/game-store';
+import {
+  type DepthChartStarterReadout,
+} from '../../lib/depth-chart-starters';
 import {
   PixelMetricCard,
   PixelScreenHeader,
@@ -31,6 +39,30 @@ interface PositionSlot {
   side: 'OFF' | 'DEF';
 }
 
+type SourceAccent = 'default' | 'gold' | 'cyan' | 'green';
+
+interface DepthChartSourceRow {
+  id: string;
+  label: string;
+  badge: string;
+  accent: SourceAccent;
+  detail: string;
+}
+
+type FormationStarterRoom = {
+  position: Position;
+  marked: number;
+  target: number;
+  missing: number;
+  extra: number;
+};
+
+interface FormationStarterReadout extends DepthChartStarterReadout {
+  extra: number;
+  openRooms: FormationStarterRoom[];
+  overfilledRooms: FormationStarterRoom[];
+}
+
 const OFFENSE_SLOTS: PositionSlot[] = [
   { label: 'QB', positions: ['QB'], side: 'OFF' },
   { label: 'RB', positions: ['RB'], side: 'OFF' },
@@ -45,6 +77,91 @@ const DEFENSE_SLOTS: PositionSlot[] = [
   { label: 'CB', positions: ['CB'], side: 'DEF' },
   { label: 'S', positions: ['S'], side: 'DEF' },
 ];
+
+export function getFormationStarterReadout(roster: Player[]): FormationStarterReadout {
+  const rooms = (Object.entries(STARTER_SLOTS) as Array<[Position, number]>).map(([position, target]) => {
+    const marked = roster.filter((player) => player.pos === position && player.isStarter).length;
+    return {
+      position,
+      marked,
+      target,
+      missing: Math.max(0, target - marked),
+      extra: Math.max(0, marked - target),
+    };
+  });
+  const marked = rooms.reduce((sum, room) => sum + room.marked, 0);
+  const target = rooms.reduce((sum, room) => sum + room.target, 0);
+  const missing = rooms.reduce((sum, room) => sum + room.missing, 0);
+  const extra = rooms.reduce((sum, room) => sum + room.extra, 0);
+
+  return {
+    marked,
+    target,
+    missing,
+    extra,
+    complete: missing === 0 && extra === 0,
+    openRooms: rooms.filter((room) => room.missing > 0),
+    overfilledRooms: rooms.filter((room) => room.extra > 0),
+  };
+}
+
+function starterShapeSummary(readout: FormationStarterReadout): string {
+  const open = readout.openRooms.slice(0, 3).map((room) => `${room.position} -${room.missing}`).join(' / ');
+  const extra = readout.overfilledRooms.slice(0, 3).map((room) => `${room.position} +${room.extra}`).join(' / ');
+  if (open && extra) return `${open}; trim ${extra}`;
+  if (open) return `Open rooms: ${open}`;
+  if (extra) return `Too many starters: ${extra}`;
+  return 'All starter rooms match the engine formation shape.';
+}
+
+export function buildDepthChartSourceRows(
+  roster: Player[],
+  battles: PositionBattle[],
+  specialTeams: SpecialTeamsState,
+): DepthChartSourceRow[] {
+  const starterReadout = getFormationStarterReadout(roster);
+  const assignedReturners = Number(Boolean(specialTeams.kickReturner)) + Number(Boolean(specialTeams.puntReturner));
+
+  return [
+    {
+      id: 'active-roster',
+      label: 'Active roster',
+      badge: `${roster.length} players`,
+      accent: 'cyan',
+      detail: 'Room cards show the active roster, putting current starters ahead of rating order so the board matches the saved lineup.',
+    },
+    {
+      id: 'starter-flags',
+      label: 'Starter shape',
+      badge: starterReadout.complete
+        ? `${starterReadout.target}/${starterReadout.target} legal`
+        : `${starterReadout.missing} open / ${starterReadout.extra} extra`,
+      accent: starterReadout.complete ? 'green' : 'gold',
+      detail: `Promote and backup buttons update starter tags. The board checks the engine starter shape by position: ${starterShapeSummary(starterReadout)}.`,
+    },
+    {
+      id: 'battle-model',
+      label: 'Battle model',
+      badge: `${battles.length} battles`,
+      accent: battles.length > 0 ? 'gold' : 'green',
+      detail: 'Battle rows are scouting guidance from ratings and starter tags. Opening the route does not save battle receipts.',
+    },
+    {
+      id: 'special-teams',
+      label: 'Special teams',
+      badge: `${assignedReturners}/2 returners`,
+      accent: assignedReturners >= 2 ? 'green' : 'gold',
+      detail: 'Returner lanes show the current special-teams card. Dropdowns are the only returner commits here.',
+    },
+    {
+      id: 'render-boundary',
+      label: 'Just viewing',
+      badge: 'display only',
+      accent: 'default',
+      detail: 'Opening Depth Chart does not auto-set starters, auto-assign special teams, play games, distribute snaps, change contracts, or write player history.',
+    },
+  ];
+}
 
 function battleDescription(battle: PositionBattle): string {
   const { incumbent: inc, challenger: ch } = battle;
@@ -101,8 +218,9 @@ export function DepthChart() {
 
   const slots = side === 'OFF' ? OFFENSE_SLOTS : DEFENSE_SLOTS;
   const battles = useMemo(() => detectPositionBattles(roster), [roster]);
-  const starters = roster.filter((player) => player.isStarter).length;
+  const starterReadout = getFormationStarterReadout(roster);
   const injuryCount = roster.filter((player) => player.injury).length;
+  const sourceRows = buildDepthChartSourceRows(roster, battles, specialTeams);
 
   const slotPlayers = useMemo(() => {
     const map = new Map<string, Player[]>();
@@ -139,23 +257,24 @@ export function DepthChart() {
         subtitle="Set starters, monitor competition, and keep every position room broadcast-ready."
         badges={(
           <>
-            <PixelBadge variant="gold">{starters} starters</PixelBadge>
+            <PixelBadge variant={starterReadout.complete ? 'green' : 'gold'}>{starterReadout.marked}/{starterReadout.target} starters</PixelBadge>
             <PixelBadge variant={injuryCount > 0 ? 'red' : 'green'}>{injuryCount} injuries</PixelBadge>
           </>
         )}
       />
 
       <CommandCallout
-        title={starters < 22 ? 'Fill every starting slot' : battles.length > 0 ? 'Settle the live battles' : 'Confirm return roles'}
-        body={starters < 22
-          ? `${starters}/22 starters are marked. Start with the side toggle, then open the thinnest room.`
+        title={!starterReadout.complete ? 'Set legal starter shape' : battles.length > 0 ? 'Settle the live battles' : 'Confirm return roles'}
+        body={!starterReadout.complete
+          ? `${starterReadout.marked}/${starterReadout.target} starter tags are marked. ${starterShapeSummary(starterReadout)}. Use the room toggles to fit the engine formation before Advance Week.`
           : battles.length > 0
             ? `${battles.length} room${battles.length === 1 ? '' : 's'} still have a live competition. Pick the battle before changing the whole board.`
             : 'The first unit is set. Check special teams, then carry the lineup into weekly prep.'}
-        accent={starters < 22 ? 'red' : battles.length > 0 ? 'gold' : 'green'}
+        accent={!starterReadout.complete ? 'red' : battles.length > 0 ? 'gold' : 'green'}
         meta={(
           <>
-            <PixelBadge variant="gold">{starters}/22 starters</PixelBadge>
+            <PixelBadge variant={starterReadout.complete ? 'green' : 'gold'}>{starterReadout.marked}/{starterReadout.target} starter shape</PixelBadge>
+            {!starterReadout.complete ? <PixelBadge variant="red">{starterReadout.missing} open / {starterReadout.extra} extra</PixelBadge> : null}
             <PixelBadge variant={battles.length > 0 ? 'gold' : 'green'}>{battles.length} battles</PixelBadge>
           </>
         )}
@@ -165,6 +284,32 @@ export function DepthChart() {
           { label: 'Open Plan', accent: 'gold', onClick: () => navigateTo('/game-plan') },
         ]}
       />
+
+      <PixelPanel title="Depth Chart Sources" accent="cyan">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+          {sourceRows.map((row) => (
+            <div
+              key={row.id}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '10px',
+                border: '2px solid var(--mfd-border)',
+                background: 'var(--mfd-bg-2)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ ...monoSm, color: '#fff' }}>{row.label}</span>
+                <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
+              </div>
+              <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                {row.detail}
+              </span>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
 
       <div style={autoGrid(220)}>
         <PixelMetricCard label="Open Battles" value={battles.length} accent={battles.length > 0 ? 'gold' : 'green'} detail="Roster spots still up for grabs" />
@@ -345,7 +490,7 @@ export function DepthChart() {
                       accent="green"
                       onClick={() => {
                         if (!teamId) return;
-                        setStarter(teamId, player.id, true);
+                        void setStarter(teamId, player.id, true);
                       }}
                     >
                       Promote To Starter
@@ -356,7 +501,7 @@ export function DepthChart() {
                       accent="red"
                       onClick={() => {
                         if (!teamId) return;
-                        setStarter(teamId, player.id, false);
+                        void setStarter(teamId, player.id, false);
                       }}
                     >
                       Move To Backup

@@ -41,6 +41,13 @@ describe('PlayByPlayView', () => {
   it('renders quarter tabs', () => {
     const markup = renderToStaticMarkup(<PlayByPlayView broadcast={mockBroadcast} />);
 
+    expect(markup).toContain('PLAY-BY-PLAY SOURCES');
+    expect(markup).toContain('LATEST BROADCAST');
+    expect(markup).toContain('selectLatestBroadcast');
+    expect(markup).toContain('DRIVE TIMELINE');
+    expect(markup).toContain('BroadcastOutput');
+    expect(markup).toContain('HIGHLIGHT SORT');
+    expect(markup).toContain('JUST VIEWING');
     expect(markup).toContain('Q1');
     expect(markup).toContain('Q2');
     expect(markup).toContain('Q3');
@@ -108,6 +115,7 @@ describe('PlayByPlayView', () => {
       <PlayByPlayView
         broadcast={mockBroadcast}
         commentaryLines={[
+          'Halftime receipt: flipped the second-half plan to open the throttle.',
           "Tonight's backdrop is The Oven: The Cheese Pull sets the tone before kickoff.",
           'PA flavor: First down Chicago! That slice is hot!',
         ]}
@@ -115,8 +123,12 @@ describe('PlayByPlayView', () => {
     );
 
     expect(markup).toContain('BROADCAST TEXTURE');
+    expect(markup).toContain('Halftime receipt: flipped the second-half plan to open the throttle.');
     expect(markup).toContain('The Oven: The Cheese Pull sets the tone before kickoff.');
     expect(markup).toContain('PA flavor');
+    expect(markup).toContain('4 LINES');
+    expect(markup).toContain('buildHalftimeDecisionReceipt');
+    expect(markup).toContain('buildBroadcastCommentary');
   });
 
   it('displays the final narrative', () => {

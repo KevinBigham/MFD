@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ScoutingBoard } from './ScoutingBoard';
+import { ScoutingActionReceiptPanel, ScoutingBoard, buildScoutingActionReceipt } from './ScoutingBoard';
 
 const mockState = {
   draftClass: [
@@ -80,6 +80,20 @@ describe('ScoutingBoard', () => {
     expect(markup).toContain('SCOUTING BOARD');
     expect(markup).toContain('NEXT CALL');
     expect(markup).toContain('Work the watchlist');
+    expect(markup).toContain('SCOUTING SOURCES');
+    expect(markup).toContain('SAVED DRAFT CLASS');
+    expect(markup).toContain('game.draftClass');
+    expect(markup).toContain('offseasonState.scoutingState');
+    expect(markup).toContain('private-workout lines');
+    expect(markup).toContain('PRO DAY IMPACT');
+    expect(markup).toContain('raises confidence');
+    expect(markup).toContain('without spending a private-workout slot');
+    expect(markup).toContain('PRIVATE WORKOUT IMPACT');
+    expect(markup).toContain('consumes one seasonal workout');
+    expect(markup).toContain('can unlock risk and ceiling bands');
+    expect(markup).toContain('offseasonState.scoutingWatchlist');
+    expect(markup).toContain('mfd.watchlist.v1');
+    expect(markup).toContain('Opening Scouting does not generate a new class');
     expect(markup).toContain('Private Workouts');
     expect(markup).toContain('WATCHLIST');
     expect(markup).toContain('Watchlist Only');
@@ -92,5 +106,42 @@ describe('ScoutingBoard', () => {
     expect(markup).toContain('Compare');
     expect(markup).toContain('Scout Desk // Authored Read');
     expect(markup).toContain('Good route runner on three-level tree. Sharp on slants, digs, outs.');
+  });
+
+  it('builds and renders route-local scouting action receipts from existing action inputs', () => {
+    const receipt = buildScoutingActionReceipt({
+      kind: 'private_workout',
+      prospect: mockState.draftClass[0] as never,
+      scouting: mockState.offseasonState.scoutingState['prospect-1'] as never,
+      workoutsBefore: mockState.scoutingDepartment.privateWorkoutsRemaining,
+    });
+
+    expect(receipt).toMatchObject({
+      title: 'Private Workout Receipt',
+      target: 'Jalen North // WR',
+      result: 'Private workout recorded',
+      accent: 'gold',
+    });
+    expect(receipt.detail).toContain('2 -> 1');
+    expect(receipt.detail).toContain('privateWorkoutRatings');
+    expect(receipt.source).toContain('actions.runPrivateWorkout -> runPrivateWorkout');
+    expect(receipt.source).toContain('this confirmation appears here only');
+
+    const hireReceipt = buildScoutingActionReceipt({
+      kind: 'hire_scout',
+      scout: mockState.scoutingDepartment.availableScouts[0] as never,
+      budgetBefore: mockState.scoutingDepartment.budget,
+    });
+
+    expect(hireReceipt.result).toContain('National // Generalist // 93%');
+    expect(hireReceipt.detail).toContain('$4.2M toward $2.0M');
+
+    const markup = renderToStaticMarkup(<ScoutingActionReceiptPanel receipt={receipt} />);
+
+    expect(markup).toContain('PRIVATE WORKOUT RECEIPT');
+    expect(markup).toContain('Scouting row that fired the existing commit.');
+    expect(markup).toContain('Private workout recorded');
+    expect(markup).toContain('actions.runPrivateWorkout -&gt; runPrivateWorkout');
+    expect(markup).toContain('this confirmation appears here only');
   });
 });

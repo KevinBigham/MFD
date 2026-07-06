@@ -1,8 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadRivalries, saveRivalries } from './storage';
-import type { RivalryPayload } from './types';
-
-const STORAGE_KEY = 'mfd.rivalries.v1';
+import type { RivalryPayload } from '@mfd/engine';
+import {
+  clearRivalries,
+  loadRivalries,
+  parseRivalryPayload,
+  replaceRivalries,
+  RIVALRIES_STORAGE_KEY,
+  saveRivalries,
+} from './rivalry-storage';
 
 class MemoryStorage {
   private readonly backing = new Map<string, string>();
@@ -67,7 +72,7 @@ function samplePayload(): RivalryPayload {
   };
 }
 
-describe('rivalries storage', () => {
+describe('rivalry storage', () => {
   beforeEach(() => {
     vi.stubGlobal('localStorage', new MemoryStorage());
   });
@@ -85,7 +90,7 @@ describe('rivalries storage', () => {
     });
   });
 
-  it('round-trips a payload and stamps generatedAt at the storage boundary', () => {
+  it('round-trips a payload and stamps generatedAt at the browser sidecar boundary', () => {
     vi.spyOn(Date, 'now').mockReturnValue(1_717_171_717);
 
     const saved = saveRivalries(samplePayload());
@@ -97,8 +102,42 @@ describe('rivalries storage', () => {
     expect(loaded.teams.afce1?.map((record) => record.opponentId)).toEqual(['afce2', 'nfce1']);
   });
 
+  it('parses archive payloads without writing storage or stamping generatedAt', () => {
+    const payload = samplePayload();
+    payload.generatedAt = 444;
+
+    const parsed = parseRivalryPayload(payload);
+
+    expect(parsed?.generatedAt).toBe(444);
+    expect(parsed?.teams.afce1?.map((record) => record.opponentId)).toEqual(['afce2', 'nfce1']);
+    expect(localStorage.getItem(RIVALRIES_STORAGE_KEY)).toBeNull();
+  });
+
+  it('replaces the sidecar while preserving archive metadata', () => {
+    const payload = samplePayload();
+    payload.generatedAt = 555;
+
+    expect(replaceRivalries(payload).generatedAt).toBe(555);
+    expect(loadRivalries().generatedAt).toBe(555);
+  });
+
+  it('clears the sidecar to an empty payload', () => {
+    saveRivalries(samplePayload());
+
+    expect(clearRivalries()).toEqual({
+      schemaVersion: 1,
+      generatedAt: 0,
+      teams: {},
+    });
+    expect(loadRivalries()).toEqual({
+      schemaVersion: 1,
+      generatedAt: 0,
+      teams: {},
+    });
+  });
+
   it('rejects payloads with the wrong schema version', () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    localStorage.setItem(RIVALRIES_STORAGE_KEY, JSON.stringify({
       schemaVersion: 99,
       generatedAt: 123,
       teams: {},
@@ -112,7 +151,7 @@ describe('rivalries storage', () => {
   });
 
   it('rejects corrupted json without throwing', () => {
-    localStorage.setItem(STORAGE_KEY, '{broken-json');
+    localStorage.setItem(RIVALRIES_STORAGE_KEY, '{broken-json');
 
     expect(loadRivalries()).toEqual({
       schemaVersion: 1,

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { SocialFeed } from './SocialFeed';
+import type { SocialPost } from '@mfd/engine';
+import { buildVisibleSocialPosts, SocialFeed } from './SocialFeed';
 
 let mockState = {
   socialFeed: [
@@ -35,6 +36,25 @@ vi.mock('../../app/store/game-store', () => ({
 }));
 
 describe('SocialFeed', () => {
+  it('projects saved posts newest-first and filters by source without mutating feed order', () => {
+    const feed = [
+      { id: 'old-player', source: 'player', timestamp: 1 },
+      { id: 'middle-fan', source: 'fan', timestamp: 2 },
+      { id: 'new-player', source: 'player', timestamp: 3 },
+    ] as SocialPost[];
+
+    expect(buildVisibleSocialPosts(feed, 'all').map((post) => post.id)).toEqual([
+      'new-player',
+      'middle-fan',
+      'old-player',
+    ]);
+    expect(buildVisibleSocialPosts(feed, 'player').map((post) => post.id)).toEqual([
+      'new-player',
+      'old-player',
+    ]);
+    expect(feed.map((post) => post.id)).toEqual(['old-player', 'middle-fan', 'new-player']);
+  });
+
   it('renders posts with source badges', () => {
     const markup = renderToStaticMarkup(<SocialFeed />);
 
@@ -52,6 +72,18 @@ describe('SocialFeed', () => {
     expect(markup).toContain('Players');
     expect(markup).toContain('Fans');
     expect(markup).toContain('Reporters');
+  });
+
+  it('explains the saved feed source and source-only filter boundary', () => {
+    const markup = renderToStaticMarkup(<SocialFeed />);
+
+    expect(markup).toContain('FEED SOURCE');
+    expect(markup).toContain('Saved socialFeed');
+    expect(markup).toContain('Newest-first projection');
+    expect(markup).toContain('Source filters only');
+    expect(markup).toContain('clones them into newest-first display order');
+    expect(markup).toContain('Filter choices are not saved');
+    expect(markup).toContain('no posts are generated during render');
   });
 
   it('renders the empty state when the feed is empty', () => {

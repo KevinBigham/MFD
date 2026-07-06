@@ -23,7 +23,7 @@ const mockState = {
       broadcastNetwork: 'MFN',
     },
     {
-      week: 15,
+      week: 19,
       opponentTeamId: null,
       opponentName: 'BYE',
       home: false,
@@ -69,6 +69,20 @@ describe('TeamSchedule', () => {
     expect(markup).toContain('FLEXED');
     expect(markup).toContain('Primetime');
     expect(markup).toContain('BYE');
-    expect(markup).toContain('--- LEAGUE SLATE ---');
+    expect(markup).toContain('full 19-week slate');
+    expect(markup).toContain('Week 19');
+    expect(markup).toContain('LEAGUE SLATE');
+  });
+
+  it('labels schedule sources and the display-only boundary', () => {
+    const markup = renderToStaticMarkup(<TeamSchedule />);
+
+    expect(markup).toContain('SCHEDULE SOURCES');
+    expect(markup).toContain('selectTeamSchedule reads the saved user-team schedule across 19 weeks');
+    expect(markup).toContain('W14 // 1 games');
+    expect(markup).toContain('1 prime / 1 flex');
+    expect(markup).toContain('0 final / 1 byes');
+    expect(markup).toContain('selectWeekSchedule(selectedWeek) projects saved ScheduledGame rows');
+    expect(markup).toContain('Opening Schedule does not generate a schedule, assign broadcasts, flex games, weather, results');
   });
 });

@@ -62,6 +62,7 @@ describe('MvpPlaqueWall', () => {
 
     expect(markup).toContain('MVP PLAQUE WALL');
     expect(markup).toContain('Every star season your franchise turned into hardware.');
+    expect(markup).toContain('PLAQUE SOURCES');
   });
 
   it('renders one plaque per award winner in props', () => {
@@ -107,6 +108,23 @@ describe('MvpPlaqueWall', () => {
 
     const markup = renderToStaticMarkup(<MvpPlaqueWallView awards={[fixtureAwards[0]!]} />);
     expect(markup).toContain('4523 PASS YDS');
+  });
+
+  it('labels plaque sources without implying route writes', () => {
+    const markup = renderToStaticMarkup(<MvpPlaqueWallView awards={fixtureAwards} />);
+
+    expect(markup).toContain('PLAQUE SOURCES');
+    expect(markup).toContain('saved awardsHistory');
+    expect(markup).toContain('user-team winners');
+    expect(markup).toContain('route-local filters');
+    expect(markup).toContain('selectAwardsHistory');
+    expect(markup).toContain('selectUserTeam');
+    expect(markup).toContain('selectFranchiseEras');
+    expect(markup).toContain('buildMvpPlaqueAwards');
+    expect(markup).toContain('winnerTeamId');
+    expect(markup).toContain('winnerStats');
+    expect(markup).toContain('Opening this route does not generate awards');
+    expect(markup).toContain('simulation outcomes');
   });
 
   it('builds franchise-only plaques from awards history and era data', () => {

@@ -45,14 +45,32 @@ export const GM_STRATEGIES: Record<GmStrategy, GmStrategyDef> = {
   },
 };
 
+export function normalizeGmStrategy(value: unknown): GmStrategy {
+  switch (value) {
+    case 'rebuild':
+    case 'contend':
+    case 'neutral':
+      return value;
+    case 'buy':
+    case 'buyer':
+      return 'contend';
+    case 'sell':
+    case 'seller':
+      return 'rebuild';
+    default:
+      return 'neutral';
+  }
+}
+
 // ── Strategy Application ───────────────────────────────
 
 export function applyGmStrategy(team: Team, strategyId: GmStrategy): GmStrategyDef {
-  const strategy = GM_STRATEGIES[strategyId] ?? GM_STRATEGIES.neutral;
-  team.gmStrategy = strategyId;
+  const normalizedStrategyId = normalizeGmStrategy(strategyId);
+  const strategy = GM_STRATEGIES[normalizedStrategyId];
+  team.gmStrategy = normalizedStrategyId;
 
   for (const p of team.roster) {
-    switch (strategyId) {
+    switch (normalizedStrategyId) {
       case 'rebuild':
         p.tradeBlock = p.age >= 28 && p.ovr >= 72;
         break;
@@ -99,21 +117,22 @@ export function evaluateStrategy(team: Team): GmStrategy {
     ? (team.wins + team.ties * 0.5) / (team.wins + team.losses + team.ties)
     : 0.5;
   const youngStars = team.roster.filter((player) => player.age <= 25 && player.ovr > 80).length;
+  const currentStrategy = normalizeGmStrategy(team.gmStrategy);
 
-  if (team.gmStrategy === 'rebuild' && avgOvr > 78 && youngStars >= 3) {
+  if (currentStrategy === 'rebuild' && avgOvr > 78 && youngStars >= 3) {
     return 'contend';
   }
 
-  if (team.gmStrategy === 'contend' && winPct < 0.4 && avgAge > 28) {
+  if (currentStrategy === 'contend' && winPct < 0.4 && avgAge > 28) {
     return 'rebuild';
   }
 
-  if (team.gmStrategy === 'neutral') {
+  if (currentStrategy === 'neutral') {
     if (winPct >= 0.6 && avgOvr >= 78) return 'contend';
     if (winPct < 0.4 && avgAge > 28) return 'rebuild';
   }
 
-  return team.gmStrategy;
+  return currentStrategy;
 }
 
 function recentSeasonTrend(game: GameState, teamId: string): number {

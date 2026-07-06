@@ -6,6 +6,8 @@ import {
   shouldMakeAdjustments,
 } from './halftime';
 
+const STALE_HALFTIME_COPY = /\b(?:run fits?|run-fit jobs|missed fits|gap jobs|gashing us)\b/i;
+
 function seededRng(seed = 42) {
   return mulberry32(seed);
 }
@@ -117,6 +119,22 @@ describe('Halftime Adjustments', () => {
         rng, team, makePlan('balanced', 'base'), -3, makeStats(), oppStats,
       );
       expect(report.adjustedPlan.defensiveScheme).toBe('coverage');
+    });
+
+    it('explains run-defense halftime fixes without shorthand', () => {
+      const rng = seededRng();
+      const team = makeTeam();
+      const oppStats = makeStats({ passingYards: 30, rushingYards: 140 });
+      const report = generateHalftimeAdjustments(
+        rng, team, makePlan('balanced', 'base'), -3, makeStats(), oppStats,
+      );
+
+      expect(report.adjustedPlan.defensiveScheme).toBe('contain');
+      expect(report.adjustments.map((adjustment) => adjustment.description)).toContain(
+        'They are beating us on the ground -- tighten run-defense jobs.',
+      );
+      expect(report.commentary).toContain('They are beating us on the ground -- tighten run-defense jobs.');
+      expect(JSON.stringify(report)).not.toMatch(STALE_HALFTIME_COPY);
     });
 
     it('no adjustments when game plan is working', () => {

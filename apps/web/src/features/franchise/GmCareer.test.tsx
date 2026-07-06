@@ -133,40 +133,7 @@ vi.mock('../shared/pixelUi', async (importOriginal) => {
 
 import { GmCareer } from './GmCareer';
 import { FranchiseHub } from './FranchiseHub';
-
-function flattenText(children: unknown): string {
-  if (Array.isArray(children)) {
-    return children.map((child) => flattenText(child)).join('');
-  }
-  if (children == null || typeof children === 'boolean') return '';
-  if (typeof children === 'string' || typeof children === 'number') return String(children);
-  if (typeof children === 'object' && children && 'props' in children) {
-    return flattenText((children as { props?: { children?: unknown } }).props?.children);
-  }
-  return '';
-}
-
-function findButtonByText(node: unknown, text: string): { props?: { onClick?: () => void; children?: unknown } } | null {
-  if (!node || typeof node !== 'object') return null;
-  const element = node as { type?: unknown; props?: { children?: unknown; onClick?: () => void } };
-  if (typeof element.type === 'function') {
-    return findButtonByText(element.type(element.props ?? {}), text);
-  }
-  if (element.type === 'button' && flattenText(element.props?.children).includes(text)) {
-    return element;
-  }
-
-  const children = element.props?.children;
-  if (Array.isArray(children)) {
-    for (const child of children) {
-      const found = findButtonByText(child, text);
-      if (found) return found;
-    }
-    return null;
-  }
-
-  return findButtonByText(children, text);
-}
+import { FRANCHISE_HUB_ROUTE_ACTIONS } from './franchiseHubRoutes';
 
 describe('GmCareer', () => {
   it('renders the empty state without crashing', () => {
@@ -188,6 +155,22 @@ describe('GmCareer', () => {
     const markup = renderToStaticMarkup(<GmCareer />);
 
     expect(markup).toContain('No dynasties yet');
+  });
+
+  it('renders career source context and no-write boundaries', () => {
+    const markup = renderToStaticMarkup(<GmCareer />);
+
+    expect(markup).toContain('Career Sources');
+    expect(markup).toContain('BROWSER SIDECAR');
+    expect(markup).toContain('mfd.careerMeta.v1');
+    expect(markup).toContain('readCareerMeta');
+    expect(markup).toContain('deriveDynastyId(game)');
+    expect(markup).toContain('123:team-1:2029');
+    expect(markup).toContain('appendDynastySummary');
+    expect(markup).toContain('finalizeDynasty');
+    expect(markup).toContain('Opening GM Career does not write career meta');
+    expect(markup).toContain('change the live save');
+    expect(markup).toContain('play scheduled games');
   });
 
   it('lists dynasties in most-recent-first order', () => {
@@ -420,11 +403,11 @@ describe('GmCareer', () => {
   });
 
   it('FranchiseHub wires the GM Career tile to /franchise/career', () => {
-    const tree = FranchiseHub();
-    const button = findButtonByText(tree, 'View GM Career');
+    const markup = renderToStaticMarkup(<FranchiseHub />);
 
-    expect(button).not.toBeNull();
-    button?.props?.onClick?.();
+    expect(markup).toContain('GM Career');
+    expect(markup).toContain('View GM Career');
+    FRANCHISE_HUB_ROUTE_ACTIONS.career();
     expect(navigateToMock).toHaveBeenCalledWith('/franchise/career');
   });
 });

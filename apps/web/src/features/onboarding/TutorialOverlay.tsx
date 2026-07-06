@@ -6,20 +6,20 @@ import { monoSm, pixelSm } from '../shared/pixelUi';
 const TUTORIAL_TIPS = [
   'Hotkeys: 1-9 jump to core screens, Cmd/Ctrl+K opens the Cmd Deck, and Shift+? opens the hotkey board.',
   'Save flow: Save/Load lives under SYSTEM. Autosave covers week advances and major state changes, but manual checkpoints are still the safest way to protect a long dynasty.',
-  'New wiring: Game Plan holds contingency rules, trick plays, and the live playbook. Game Day now carries the podium response flow after games.',
+  'Before Advance Week: check Monday Briefing, Depth Chart, Game Plan, Contracts, and messages with deadlines.',
 ];
 
 const WHATS_NEW = [
-  'Check Settings for the invariant debug readout when you launch with ?debug=1.',
-  'Use the new postgame press modal to pick your public tone after big results.',
-  'Look for story, intel, and breaking-news surfaces in Inbox, Social, and Game Day during the first week.',
+  'Game Plan holds contingency rules, trick plays, and the live playbook.',
+  'Game Day shows score, injuries, turnovers, sacks, failed drives, and public-response choices after results.',
+  'Inbox, Social, and Newsroom surface deadlines, injuries, and league moves; open Roster, Contracts, or Game Plan before offers, starters, or calls lock.',
 ];
 
 function actionPrompt(step: TutorialStep): string {
   if (!step.action) {
     return step.id === 'you_are_ready'
-      ? 'Close this guide and start running the dynasty your way.'
-      : 'Read the setup, then move to the next step when you are ready.';
+      ? 'Close this guide and keep checking Monday Briefing, Roster, Contracts, Game Plan, and Advance Week.'
+      : 'Use this note, then move to the next step when you are ready.';
   }
 
   if (step.action.startsWith('screen:')) {
@@ -28,8 +28,8 @@ function actionPrompt(step: TutorialStep): string {
 
   if (step.action === 'depth_chart:update') return 'Set one starter on the depth chart.';
   if (step.action === 'training:assign') return 'Assign a weekly training focus from the roster screen.';
-  if (step.action === 'week:advance') return 'Advance the week to trigger your first game cycle.';
-  if (step.action === 'handshake:create') return 'Make one promise in the handshake ledger.';
+  if (step.action === 'week:advance') return 'Advance Week to lock current decisions and trigger the next game cycle.';
+  if (step.action === 'handshake:create') return 'Make one owner promise with a deadline.';
   if (step.action === 'scouting:action') return 'Run one scouting action on a prospect.';
   return 'Complete the requested action to continue.';
 }

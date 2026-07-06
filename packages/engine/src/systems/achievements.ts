@@ -1,9 +1,13 @@
 import type {
   Achievement,
+  AchievementConditionType,
   AchievementProgress,
   GameState,
   Team,
 } from '../types';
+import { getRosterLimit } from './league-rules';
+import { getPracticeSquadLimit } from './practice-squad';
+import { getConfiguredScheduleWeekCount, getRegularSeasonWeekCount } from './season-schedule';
 
 interface MetricResult {
   current: number;
@@ -21,7 +25,7 @@ function buildAchievement(
   description: string,
   category: Achievement['category'],
   tier: Achievement['tier'],
-  type: string,
+  type: AchievementConditionType,
   threshold: number | string | boolean,
   icon: string,
 ): Achievement {
@@ -208,7 +212,40 @@ function positivePressConferences(game: GameState, teamId: string): number {
     conference.teamId === teamId && (conference.tone === 'confident' || conference.tone === 'fired_up')).length;
 }
 
-const metricMap: Record<string, MetricFn> = {
+function regularSeasonWeekCountForEvent(game: GameState, eventYear: number): number {
+  if (eventYear === game.year) {
+    return getRegularSeasonWeekCount(game);
+  }
+  return getConfiguredScheduleWeekCount({
+    leagueRules: game.leagueRules ?? null,
+    year: eventYear,
+  });
+}
+
+function isPlayoffNamedGameEvent(game: GameState, event: GameState['dynastyTimeline'][number]): boolean {
+  const eventWeek = event.week ?? event.namedGame?.week ?? null;
+  if (typeof eventWeek !== 'number') return false;
+  return eventWeek > regularSeasonWeekCountForEvent(game, event.year);
+}
+
+function playoffComebacksInSingleRun(game: GameState, teamId: string): number {
+  const byYear = new Map<number, number>();
+
+  for (const event of game.dynastyTimeline ?? []) {
+    const namedGame = event.namedGame;
+    if (event.type !== 'named_game' || !namedGame) continue;
+    if (namedGame.archetype !== 'comeback') continue;
+    if (namedGame.winnerTeamId !== teamId) continue;
+    if (!event.teamIds.includes(teamId)) continue;
+    if (!isPlayoffNamedGameEvent(game, event)) continue;
+
+    byYear.set(event.year, (byYear.get(event.year) ?? 0) + 1);
+  }
+
+  return Math.max(0, ...byYear.values());
+}
+
+const metricMap: Record<AchievementConditionType, MetricFn> = {
   championships: (game, team, achievement) => {
     const current = (game.franchiseHistory ?? []).filter((entry) => entry.teamId === team.id && entry.playoffFinish === 'champion').length;
     return progress(achievement, current, `${current}/${thresholdValue(achievement)} championships`);
@@ -278,9 +315,15 @@ const metricMap: Record<string, MetricFn> = {
     const current = team.roster.filter((player) => player.age >= 30).length;
     return progress(achievement, current, `${current}/${thresholdValue(achievement)} veterans`);
   },
-  full_house: (_game, team, achievement) => {
-    const current = team.roster.length >= 53 && team.practiceSquad.length >= 16 ? 1 : 0;
-    return progress(achievement, current, current ? 'Full house ready' : `${team.roster.length}/53 roster // ${team.practiceSquad.length}/16 PS`);
+  full_house: (game, team, achievement) => {
+    const rosterLimit = getRosterLimit(game);
+    const practiceSquadLimit = getPracticeSquadLimit(game);
+    const current = team.roster.length >= rosterLimit && team.practiceSquad.length >= practiceSquadLimit ? 1 : 0;
+    return progress(
+      achievement,
+      current,
+      current ? 'Full house ready' : `${team.roster.length}/${rosterLimit} roster // ${team.practiceSquad.length}/${practiceSquadLimit} PS`,
+    );
   },
   cap_wizard: (_game, team, achievement) => {
     const avgOvr = team.roster.reduce((total, player) => total + player.ovr, 0) / Math.max(1, team.roster.length);
@@ -427,7 +470,10 @@ const metricMap: Record<string, MetricFn> = {
     const current = seed !== null && seed >= 7 ? 1 : 0;
     return progress(achievement, current, current ? 'Cinderella run complete' : 'Keep the underdog dream alive');
   },
-  playoff_comebacks: (_game, _team, achievement) => progress(achievement, 0, `0/${thresholdValue(achievement)} tracked playoff comebacks`),
+  playoff_comebacks: (game, team, achievement) => {
+    const current = playoffComebacksInSingleRun(game, team.id);
+    return progress(achievement, current, `${current}/${thresholdValue(achievement)} playoff comebacks in one run`);
+  },
 };
 
 export function getAchievementCatalog(): Achievement[] {

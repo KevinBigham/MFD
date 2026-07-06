@@ -9,6 +9,7 @@ import {
 } from './audio-preferences';
 
 type SimSpeed = 'fast' | 'normal' | 'detailed';
+type Density = 'compact' | 'comfortable';
 
 const memoryStorage = {
   getItem: () => null,
@@ -24,8 +25,8 @@ interface UiState {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
 
-  density: 'compact' | 'comfortable';
-  setDensity: (d: 'compact' | 'comfortable') => void;
+  density: Density;
+  setDensity: (d: Density) => void;
 
   autosaveEnabled: boolean;
   setAutosaveEnabled: (enabled: boolean) => void;
@@ -47,6 +48,18 @@ interface UiState {
   broadcastGameId: string | null;
   setBroadcastGameId: (gameId: string | null) => void;
   clearBroadcastGameId: () => void;
+}
+
+function normalizeBooleanPreference(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function normalizeDensityPreference(value: unknown, fallback: Density): Density {
+  return value === 'compact' || value === 'comfortable' ? value : fallback;
+}
+
+function normalizeSimSpeedPreference(value: unknown, fallback: SimSpeed): SimSpeed {
+  return value === 'fast' || value === 'normal' || value === 'detailed' ? value : fallback;
 }
 
 export const useUiStore = create<UiState>()(
@@ -130,7 +143,10 @@ export const useUiStore = create<UiState>()(
 
         return {
           ...currentState,
-          ...persisted,
+          sidebarCollapsed: normalizeBooleanPreference(persisted.sidebarCollapsed, currentState.sidebarCollapsed),
+          density: normalizeDensityPreference(persisted.density, currentState.density),
+          autosaveEnabled: normalizeBooleanPreference(persisted.autosaveEnabled, currentState.autosaveEnabled),
+          simSpeed: normalizeSimSpeedPreference(persisted.simSpeed, currentState.simSpeed),
           audioPreferences: normalizeAudioPreferences(persisted.audioPreferences),
         };
       },

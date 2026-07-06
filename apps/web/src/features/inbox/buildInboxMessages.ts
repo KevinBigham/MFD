@@ -16,6 +16,7 @@ import type {
   NewsItem,
   OffseasonState,
   OffFieldEvent,
+  OwnerPersonalityEvent,
   Player,
   PlayoffMomentum,
   PressConference,
@@ -38,6 +39,7 @@ import type {
   FilmRoomReport,
 } from '@mfd/engine';
 import { getApologyTourBeat } from '@mfd/engine';
+import { getWeatherImpactCopy } from '../shared/weatherImpactCopy';
 
 export type MessageType = 'URGENT' | 'DECISION' | 'INTEL';
 
@@ -105,6 +107,9 @@ interface BuildInboxMessagesParams {
   currentWeeklyPrepPlan: WeeklyPrepPlan | null;
   latestFilmRoomReport: FilmRoomReport | null;
   apologyTourThreads: ApologyTourThread[];
+  ownerPersonalityInbox: OwnerPersonalityEvent[];
+  tradeDeadlineWeek: number;
+  compPickLimit: number;
   upcomingGame: {
     week: number;
     opponentName: string;
@@ -155,6 +160,50 @@ function buildApologyTourMessage(thread: ApologyTourThread, beat: ApologyTourBea
   };
 }
 
+function formatSignedDelta(value: number): string {
+  return value > 0 ? `+${value}` : `${value}`;
+}
+
+function ownerPersonalityEventSlug(event: OwnerPersonalityEvent, index: number): string {
+  const labelSlug = event.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return `${index}-${event.archetypeId}-${labelSlug || 'owner-note'}`;
+}
+
+function buildOwnerPersonalityMessage(event: OwnerPersonalityEvent, index: number, week: number): InboxMessage {
+  const hasNegativeDelta = event.moodDelta < 0 || event.moraleDelta < 0;
+  const type: MessageType = hasNegativeDelta ? 'DECISION' : 'INTEL';
+
+  return {
+    id: `owner-personality-${ownerPersonalityEventSlug(event, index)}`,
+    type,
+    title: event.label,
+    body: [
+      event.desc,
+      `Owner mood ${formatSignedDelta(event.moodDelta)} // Locker room morale ${formatSignedDelta(event.moraleDelta)}`,
+    ].join('\n'),
+    from: 'Ownership',
+    week,
+    read: false,
+    actionRequired: hasNegativeDelta,
+    consequences: [
+      {
+        id: `owner-mood-${index}`,
+        label: 'Owner Mood',
+        delta: formatSignedDelta(event.moodDelta),
+        direction: event.moodDelta > 0 ? 'positive' : event.moodDelta < 0 ? 'negative' : 'neutral',
+      },
+      {
+        id: `owner-morale-${index}`,
+        label: 'Locker Room Morale',
+        delta: formatSignedDelta(event.moraleDelta),
+        direction: event.moraleDelta > 0 ? 'positive' : event.moraleDelta < 0 ? 'negative' : 'neutral',
+      },
+    ],
+    link: '/owner',
+    linkLabel: 'Open Owner Room',
+  };
+}
+
 export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessage[] {
   const {
     team,
@@ -195,12 +244,21 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     currentWeeklyPrepPlan,
     latestFilmRoomReport,
     apologyTourThreads,
+    ownerPersonalityInbox,
+    tradeDeadlineWeek,
+    compPickLimit,
     upcomingGame,
   } = params;
   const msgs: InboxMessage[] = [];
   if (!team) return msgs;
 
   const teamName = `${team.city} ${team.name}`.trim();
+  const recentOwnerPersonalityInbox = ownerPersonalityInbox.slice(-3);
+  recentOwnerPersonalityInbox.forEach((event, index) => {
+    const sourceIndex = ownerPersonalityInbox.length - recentOwnerPersonalityInbox.length + index;
+    msgs.push(buildOwnerPersonalityMessage(event, sourceIndex, week));
+  });
+
   for (const thread of apologyTourThreads.filter((entry) => entry.teamId === team.id).slice(-3)) {
     const delivered = new Set(thread.beatsDelivered);
     for (const beat of APOLOGY_BEAT_ORDER) {
@@ -307,7 +365,7 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       id: `weekly-prep-reminder-${upcomingGame.week}`,
       type: 'DECISION',
       title: 'Weekly Prep Board Is Empty',
-      body: `No weekly prep plan is locked in for ${upcomingGame.opponentName}.\nOpen the Game Plan screen to choose your offensive focus, defensive focus, and practice settings before sim.`,
+      body: `No weekly prep plan is locked in for ${upcomingGame.opponentName}.\nOpen the Game Plan screen to choose your offensive focus, defensive focus, and practice settings before Advance Week.`,
       from: 'Prep Desk',
       week: upcomingGame.week,
       read: false,
@@ -556,7 +614,10 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       id: 'comp-picks',
       type: 'INTEL',
       title: 'Comp Picks Awarded',
-      body: teamCompPicks.map((pick) => `Round ${pick.round} compensation pick added to your board.`).join('\n'),
+      body: [
+        ...teamCompPicks.map((pick) => `Round ${pick.round} compensation pick added to your board.`),
+        `Active comp-pick limit: ${compPickLimit}.`,
+      ].join('\n'),
       from: 'League Office',
       week,
       read: false,
@@ -592,14 +653,14 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     });
   }
 
-  if (phase === 'regular_season' && (week === 11 || week === 12)) {
+  if (phase === 'regular_season' && (week === tradeDeadlineWeek - 1 || week === tradeDeadlineWeek)) {
     msgs.push({
       id: `trade-deadline-${week}`,
-      type: week === 12 ? 'URGENT' : 'DECISION',
-      title: week === 12 ? 'Trade Deadline Week' : 'Trade Deadline Closing In',
-      body: week === 12
+      type: week === tradeDeadlineWeek ? 'URGENT' : 'DECISION',
+      title: week === tradeDeadlineWeek ? 'Trade Deadline Week' : 'Trade Deadline Closing In',
+      body: week === tradeDeadlineWeek
         ? 'This is the last week to complete in-season trades before the market closes.'
-        : 'The trade deadline hits after Week 12. Push deals now if you need roster help.',
+        : `The trade deadline hits after Week ${tradeDeadlineWeek}. Push deals now if you need roster help.`,
       from: 'League Office',
       week,
       read: false,
@@ -642,18 +703,19 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
     });
   }
 
-  if (weather === 'snow' || weather === 'wind') {
+  const weatherImpact = getWeatherImpactCopy(weather);
+  if (weatherImpact.inboxBody) {
     msgs.push({
       id: 'weather-alert',
-      type: 'INTEL',
-      title: 'Weather Advisory',
-      body: weather === 'snow'
-        ? 'Snow is in the forecast. Expect lower passing efficiency and a higher fumble risk.'
-        : 'Heavy wind is in the forecast. Long field goals and deep passing will be volatile.',
+      type: weatherImpact.severity === 'game_changer' ? 'URGENT' : 'INTEL',
+      title: `Weather Advisory: ${weatherImpact.headline}`,
+      body: weatherImpact.inboxBody,
       from: 'Game Operations',
       week,
       read: false,
       actionRequired: false,
+      link: '/league/weather',
+      linkLabel: 'Open Forecast',
     });
   }
 
@@ -806,7 +868,7 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
       id: `fatigue-${entry.player.id}-${week}`,
       type: 'URGENT',
       title: `${entry.player.name} is overworked`,
-      body: `Fatigue has climbed to ${entry.fatigue.toFixed(1)}.\nOn-field penalties are active and injury exposure is elevated until workload drops.`,
+      body: `Fatigue has climbed to ${entry.fatigue.toFixed(1)}.\nOn-field penalties are active and injury-report chances stay elevated until workload drops.`,
       from: 'Performance Science',
       week,
       read: false,
@@ -849,13 +911,14 @@ export function buildInboxMessages(params: BuildInboxMessagesParams): InboxMessa
   }
 
   if (phase === 'playoffs' && playoffMomentum) {
+    const playoffRunLabel = playoffMomentum.narrativeTag
+      ? ` after a ${playoffMomentum.narrativeTag.replaceAll('_', ' ')} run`
+      : '';
     msgs.push({
       id: `playoff-momentum-${week}`,
       type: playoffMomentum.momentum > 70 ? 'INTEL' : 'DECISION',
-      title: 'Playoff momentum update',
-      body: playoffMomentum.narrativeTag
-        ? `${playoffMomentum.narrativeTag.replaceAll('_', ' ')} narrative is active.\nMomentum ${playoffMomentum.momentum} with a ${playoffMomentum.winStreak}-game streak profile.`
-        : `Momentum sits at ${playoffMomentum.momentum} entering the next playoff game.`,
+      title: 'Playoff readiness update',
+      body: `Playoff score ${playoffMomentum.momentum} with ${playoffMomentum.winStreak} straight wins${playoffRunLabel}.\nBefore the next playoff game, check Medical, Depth Chart, and Game Plan matchup calls.`,
       from: 'Broadcast Prep',
       week,
       read: false,

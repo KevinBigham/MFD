@@ -46,6 +46,34 @@ export async function exportFullScrapbookAsPng(target: HTMLElement, dynastyName:
   return dataUrl;
 }
 
+function ScrapbookSourcesPanel() {
+  return (
+    <PixelPanel title="Scrapbook Sources" accent="cyan">
+      <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="gold">mfd.scrapbook.v1</PixelBadge>
+          <PixelBadge variant="cyan">year-rollover writer</PixelBadge>
+          <PixelBadge variant="default">browser export only</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Source: `deriveDynastyId(game)` selects the dynasty bucket, `readScrapbookForDynasty`
+          reads the browser-local scrapbook sidecar, and `summarizeScrapbook` derives the metric row.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Completed-season entries are written by app-shell year rollover through
+          `syncScrapbookAtYearRollover`, `buildSeasonRecap`, `buildScrapbookEntry`, and
+          `appendScrapbookEntry`; pending playoff-lore cards merge into the matching season bucket there.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Opening this route does not write the scrapbook sidecar, clear pending playoff lore, rebuild
+          season recaps, update `GameState`, generate media posts, detect eras, award achievements, or create
+          new game outcomes. The export button only creates a browser PNG download and route-local status.
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function Scrapbook() {
   const game = useGameStore((state) => state.game);
   const team = useGameStore(selectUserTeam);
@@ -83,6 +111,8 @@ export function Scrapbook() {
           </div>
         </div>
       </PixelPanel>
+
+      <ScrapbookSourcesPanel />
 
       <div ref={timelineRef} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={autoGrid(180)}>

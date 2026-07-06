@@ -1,0 +1,13 @@
+{
+  "teamId": "DEN",
+  "name": "The Exchange",
+  "capacity": 76100,
+  "tradition": "The Altitude Opening Bell now echoes through The Exchange: a retired broker-coach rings the brass bell from the north deck, the Brokers flash green rally towels, and the scoreboard opens the market before the first snap.",
+  "surface": "Grass",
+  "roof": "Open",
+  "cue": {
+    "label": "Altitude Opening Bell",
+    "pregameLine": "The brass bell is ringing above the north deck, and every green towel in The Exchange is signaling buy.",
+    "crowdResponse": "The Brokers answer sacks with a short-sell roar that makes the press box windows rattle."
+  }
+}

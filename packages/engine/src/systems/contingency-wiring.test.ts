@@ -117,7 +117,12 @@ describe('contingency wiring', () => {
       setSeed(seed);
       const result = advanceFranchiseWeek(game);
       const userGame = result.nextState.schedule[0]!.games[0]!.result!;
-      boothAlert = userGame.broadcast?.ghostLines?.find((line) => line.trigger === 'quarter_break')?.commentary;
+      const callout = userGame.broadcast?.ghostLines?.find((line) =>
+        line.source === 'callout'
+        && line.commentatorName === 'Booth Alert'
+        && line.trigger === 'quarter_break'
+      );
+      boothAlert = callout?.commentary;
       if (boothAlert) break;
     }
 

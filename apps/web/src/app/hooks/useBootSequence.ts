@@ -15,7 +15,7 @@ const BOOT_LINES: BootLine[] = [
   { text: '145+ simulation systems loaded [OK]', delay: 480 },
   { text: 'Config loaded: positions, schemes, coaching, cap-math [OK]', delay: 600 },
   { text: 'Systems online: 2,650+ tests verified [OK]', delay: 720 },
-  { text: 'Save pipeline: v35 migration chain // Dexie slots [OK]', delay: 840 },
+  { text: 'Save pipeline: v36 migration chain // Dexie slots [OK]', delay: 840 },
   { text: '', delay: 900 },
   { text: 'Design system: 8-BIT ESPN // Pixel chrome [OK]', delay: 1000 },
   { text: 'All systems nominal.', delay: 1150, color: 'var(--mfd-green)' },

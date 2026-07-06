@@ -1,0 +1,13 @@
+{
+  "teamId": "SEA",
+  "name": "The Garage",
+  "capacity": 68700,
+  "tradition": "The Eleven-String Feedback now opens every Grunge home game: eleven guitars line the tunnel, each one sustains a note for a starter, and the final feedback wave tells The Mosh Pit the first defensive stand is already plugged in.",
+  "surface": "Turf",
+  "roof": "Open",
+  "cue": {
+    "label": "Eleven-String Feedback",
+    "pregameLine": "The tunnel guitars are sustaining all eleven notes, and The Garage is waiting for the feedback wave to break.",
+    "crowdResponse": "The Mosh Pit answers with a LOUD-ER! THAN! LOVE! call that rattles the visiting snap count."
+  }
+}

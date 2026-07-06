@@ -11,6 +11,22 @@ import {
 } from './navigation';
 
 describe('navigation unlock rules', () => {
+  it('covers current primary shell routes while preserving explicit gates', () => {
+    expect(NAV_UNLOCK_RULES).toHaveLength(56);
+    expect(NAV_UNLOCK_RULES[0]).toEqual({ route: '/', label: 'Monday Briefing', unlockWeek: 'always' });
+    expect(NAV_UNLOCK_RULES.at(-1)).toEqual({ route: '/settings', label: 'Settings', unlockWeek: 'always' });
+    expect(NAV_UNLOCK_RULES.filter((rule) => rule.unlockWeek === 4).map((rule) => rule.route))
+      .toEqual(['/contracts', '/trades']);
+    expect(NAV_UNLOCK_RULES.filter((rule) => rule.unlockWeek === 'midseason').map((rule) => rule.route))
+      .toEqual(['/scouting', '/power-rankings']);
+    expect(NAV_UNLOCK_RULES.filter((rule) => rule.unlockPhase).map((rule) => [rule.route, rule.unlockPhase]))
+      .toEqual([
+        ['/draft', 'draft'],
+        ['/free-agency', 'free_agency'],
+        ['/training-camp', 'training_camp'],
+      ]);
+  });
+
   it('roster is always unlocked', () => {
     expect(isNavItemUnlocked('/roster', { week: 1, phase: 'regular_season' })).toBe(true);
     expect(isNavItemUnlocked('/roster', { week: 17, phase: 'playoffs' })).toBe(true);
@@ -35,9 +51,26 @@ describe('navigation unlock rules', () => {
     expect(isNavItemUnlocked('/draft', { week: 1, phase: 'draft' })).toBe(true);
   });
 
+  it('returns readable labels for phase-gated routes before they unlock', () => {
+    expect(getNavUnlockStatus('/draft', { week: 10, phase: 'regular_season' }).unlockLabel)
+      .toBe('Unlocks in Draft');
+    expect(getNavUnlockStatus('/free-agency', { week: 10, phase: 'regular_season' }).unlockLabel)
+      .toBe('Unlocks in Free Agency');
+    expect(getNavUnlockStatus('/training-camp', { week: 10, phase: 'regular_season' }).unlockLabel)
+      .toBe('Unlocks in Training Camp');
+  });
+
   it('unknown routes fall through to unlocked', () => {
     expect(isNavItemUnlocked('/custom-unregistered', { week: 1, phase: 'regular_season' }))
       .toBe(true);
+  });
+
+  it('does not list the unregistered briefing alias as progressive unlock metadata', () => {
+    expect(NAV_UNLOCK_RULES.some((rule) => rule.route === '/briefing')).toBe(false);
+    expect(getNavUnlockStatus('/briefing', { week: 1, phase: 'regular_season' })).toEqual({
+      unlocked: true,
+      unlockLabel: null,
+    });
   });
 
   it('every rule has a unique route', () => {

@@ -1,8 +1,14 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Bell, Calendar, CalendarOff, Check, EyeOff, Lightbulb, MapPin, MessageSquare, RotateCcw, VolumeX, X } from 'lucide-react';
 import { Chip, ChipDialogueBubble, PixelButton, Spotlight } from '@mfd/design-system/components';
 import type { ChipPose } from '@mfd/design-system/components';
-import { isChipFeatureEnabled, readOnboardingSkipState } from './ChipHost';
+import { resolveCurrentAppRoute } from '../../app/currentAppRoute';
+import {
+  CHIP_INTRO_STORAGE_KEY,
+  CHIP_ONBOARDING_STORAGE_KEY,
+  isChipFeatureEnabled,
+  readOnboardingSkipState,
+} from './ChipHost';
 import { useChipStore, useResolvedChipPose } from './store';
 import type { DialogueCatalogEntry } from './dialogue/types';
 import {
@@ -17,7 +23,6 @@ import {
   readChipReadReceipts,
   writeChipReadReceipts,
 } from './readReceipts';
-import { CHIP_ONBOARDING_STORAGE_KEY } from './ChipHost';
 import {
   enableChipOnboarding,
   isFirstTenMinuteBeatId,
@@ -27,6 +32,7 @@ import {
 } from './onboardingMachine';
 import { formatDynastyIndicatorLabel, type DynastyIndicator } from './dynastyIndicator';
 import { createWhereAmIBeat, type WhereAmIState } from './whereAmI';
+import type { PendingDecisionCounts } from './decisionsPending';
 import type { ChipRoutePose, RouteBeat } from '../route-coaching/routeBeatRegistry';
 import './ChipDock.css';
 
@@ -71,7 +77,7 @@ export interface ChipDockProps {
   currentWeek?: number;
   currentSeason?: number;
   routeBeats?: readonly RouteBeat[];
-  pendingDecisions?: { total?: number };
+  pendingDecisions?: Partial<PendingDecisionCounts>;
   whereAmI?: WhereAmIState;
   dynastyIndicator?: DynastyIndicator;
 }
@@ -85,13 +91,13 @@ interface DockControlButton {
 }
 
 const DOCK_CONTROL_BUTTONS: readonly DockControlButton[] = [
-  { id: 'whatNow', label: 'Board check', icon: MessageSquare, accent: 'gold', weight: 'primary' },
+  { id: 'whatNow', label: 'Ask Chip', icon: MessageSquare, accent: 'gold', weight: 'primary' },
   { id: 'resetOnboarding', label: 'Replay', icon: RotateCcw, accent: 'cyan', weight: 'utility' },
   { id: 'snoozeOnboarding', label: 'Snooze', icon: CalendarOff, accent: 'gold', weight: 'quiet' },
   { id: 'enableGuidance', label: 'Enable', icon: Bell, accent: 'green', weight: 'utility' },
-  { id: 'quietForScreen', label: 'Quiet for screen', icon: VolumeX, accent: 'cyan', weight: 'quiet' },
-  { id: 'quietUntilNextWeek', label: 'Quiet until next week', icon: Calendar, accent: 'gold', weight: 'quiet' },
-  { id: 'quietThisSeason', label: 'Quiet this season', icon: CalendarOff, accent: 'red', weight: 'quiet' },
+  { id: 'quietForScreen', label: 'not now Chip!', icon: VolumeX, accent: 'cyan', weight: 'quiet' },
+  { id: 'quietUntilNextWeek', label: 'Not this week Chip!', icon: Calendar, accent: 'gold', weight: 'quiet' },
+  { id: 'quietThisSeason', label: 'Mute season', icon: VolumeX, accent: 'red', weight: 'quiet' },
   { id: 'reduceGuidance', label: 'Reduce guidance', icon: Lightbulb, accent: 'green', weight: 'utility' },
   { id: 'disableAnimations', label: 'Disable animations', icon: EyeOff, accent: 'default', weight: 'utility' },
 ] as const;
@@ -135,10 +141,16 @@ export interface RouteBeatProgressOptions {
   markBeatSeen?: (id: string) => void;
 }
 
-interface DockLiveBeat {
+export interface DockLiveBeat {
   id: 'chip.dock.pending' | 'chip.dock.summary';
   pose: ChipRoutePose;
   text: string;
+}
+
+export interface AskChipLiveBeatOptions {
+  pendingDecisionTotal?: number | null;
+  pendingDecisions?: Partial<PendingDecisionCounts> | null;
+  whereAmI?: WhereAmIState | null;
 }
 
 export interface EffectiveDockCollapsedOptions {
@@ -161,12 +173,86 @@ export function resolveEffectiveDockCollapsed({
   return controlledCollapsed ?? localCollapsed;
 }
 
-export function createPendingDecisionsBeat(count: number): DockLiveBeat {
+const PENDING_DECISION_COPY = [
+  {
+    key: 'tradeOffers',
+    screen: 'Trades',
+    consequence: 'offers expire',
+  },
+  {
+    key: 'expiringContracts',
+    screen: 'Contracts',
+    consequence: 'players hit free agency',
+  },
+  {
+    key: 'emptyDepthSlots',
+    screen: 'Depth Chart',
+    consequence: 'empty slots force unassigned backups',
+  },
+  {
+    key: 'unspentPicks',
+    screen: 'Draft',
+    consequence: 'draft window closes',
+  },
+  {
+    key: 'openStaffSlots',
+    screen: 'Coaching',
+    consequence: 'staff gaps slow practice',
+  },
+] as const satisfies readonly {
+  key: keyof Omit<PendingDecisionCounts, 'total'>;
+  screen: string;
+  consequence: string;
+}[];
+
+type PendingDecisionBeatInput = number | Partial<PendingDecisionCounts> | null | undefined;
+
+function countFromPendingInput(input: PendingDecisionBeatInput, key: keyof PendingDecisionCounts): number {
+  if (typeof input === 'number') return key === 'total' ? Math.max(0, Math.trunc(input)) : 0;
+  return Math.max(0, Math.trunc(Number(input?.[key] ?? 0)));
+}
+
+function formatPlainList(values: readonly string[]): string {
+  if (values.length === 0) return '';
+  if (values.length === 1) return values[0]!;
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values.slice(0, -1).join(', ')}, and ${values[values.length - 1]}`;
+}
+
+export function createPendingDecisionsBeat(input: PendingDecisionBeatInput): DockLiveBeat {
+  const total = Math.max(1, countFromPendingInput(input, 'total'));
+  const categories = typeof input === 'number'
+    ? []
+    : PENDING_DECISION_COPY
+      .map((entry) => ({ ...entry, count: countFromPendingInput(input, entry.key) }))
+      .filter((entry) => entry.count > 0);
+  const categoryCopy = categories.length > 0
+    ? {
+        screenList: formatPlainList(categories.map((entry) => `${entry.screen} (${entry.count})`)),
+        consequenceList: formatPlainList(categories.map((entry) => entry.consequence)),
+      }
+    : null;
+
   return {
     id: 'chip.dock.pending',
     pose: 'reviewing-tablet',
-    text: count === 1 ? 'Decision waiting.' : `${count} decisions waiting.`,
+    text: categoryCopy
+      ? `Must Do: choose or defer before Advance Week. Where: ${categoryCopy.screenList}. Consequence: ${categoryCopy.consequenceList}.`
+      : total === 1
+        ? 'Must Do: choose or defer 1 decision before Advance Week. Where: Inbox, Action Center, or highlighted screen badge. Consequence: the offer, promise, vote, cap, lineup, or morale choice expires or locks at Advance Week.'
+        : `Must Do: choose or defer ${total} decisions before Advance Week. Where: Inbox, Action Center, or highlighted screen badges. Consequence: offers, promises, votes, cap, lineup, and morale expire or lock at Advance Week.`,
   };
+}
+
+export function createAskChipLiveBeat({
+  pendingDecisionTotal = 0,
+  pendingDecisions = null,
+  whereAmI = null,
+}: AskChipLiveBeatOptions): DockLiveBeat | null {
+  const total = Math.max(0, Math.trunc(Number(pendingDecisions?.total ?? pendingDecisionTotal ?? 0)));
+  if (total > 0) return createPendingDecisionsBeat(pendingDecisions ?? total);
+  if (whereAmI) return createWhereAmIBeat(whereAmI);
+  return null;
 }
 
 export function persistRouteBeatProgress({
@@ -235,6 +321,7 @@ export function applyDockControl(control: ChipDockControl, options: ApplyDockCon
       resetChipOnboardingState(options.storage);
       clearChipReadReceipts(options.storage, isFirstTenMinuteBeatId);
       options.storage?.removeItem(CHIP_ONBOARDING_STORAGE_KEY);
+      options.storage?.removeItem(CHIP_INTRO_STORAGE_KEY);
       chipStore?.reset?.();
       return prefs;
     case 'snoozeOnboarding':
@@ -259,6 +346,7 @@ export function applyDockControl(control: ChipDockControl, options: ApplyDockCon
       return updateDockPrefs(
         options.storage,
         {
+          collapsed: true,
           quietForScreen: options.currentRoute,
         },
         options.now,
@@ -268,6 +356,7 @@ export function applyDockControl(control: ChipDockControl, options: ApplyDockCon
       return updateDockPrefs(
         options.storage,
         {
+          collapsed: true,
           quietUntilWeek: options.currentWeek,
         },
         options.now,
@@ -277,6 +366,7 @@ export function applyDockControl(control: ChipDockControl, options: ApplyDockCon
       return updateDockPrefs(
         options.storage,
         {
+          collapsed: true,
           quietForSeason: options.currentSeason,
         },
         options.now,
@@ -307,20 +397,34 @@ export function applyDockControl(control: ChipDockControl, options: ApplyDockCon
         options.now,
       );
     case 'expand':
+      enableChipOnboarding(options.storage, options.now);
+      options.storage?.removeItem(CHIP_ONBOARDING_STORAGE_KEY);
       return updateDockPrefs(
         options.storage,
         {
           collapsed: false,
+          quietForScreen: null,
+          quietUntilWeek: null,
+          quietForSeason: null,
         },
         options.now,
       );
   }
 }
 
-function resolveCurrentRoute(fallback: string): string {
+interface ChipDockRouteLocation {
+  hash?: string;
+  pathname?: string;
+}
+
+export function resolveChipDockRoute(
+  fallback: string,
+  location: ChipDockRouteLocation | null | undefined = typeof window === 'undefined' ? null : window.location,
+  basePath?: string,
+): string {
   if (fallback) return fallback;
-  if (typeof window === 'undefined') return 'screen';
-  return window.location.hash.replace(/^#/, '') || window.location.pathname || 'screen';
+  if (!location) return 'screen';
+  return resolveCurrentAppRoute(location, basePath);
 }
 
 export function ChipDock({
@@ -347,7 +451,7 @@ export function ChipDock({
   const storePose = useResolvedChipPose();
   const routeBeatSignature = routeBeats.map((beat) => beat.id).join('|');
   const globalRouteSkip = readOnboardingSkipState(backingStorage)?.skipped === true;
-  const resolvedRoute = resolveCurrentRoute(currentRoute);
+  const resolvedRoute = resolveChipDockRoute(currentRoute);
   const routeQuieted = isRouteCoachingQuieted({
     prefs,
     currentRoute: resolvedRoute,
@@ -419,25 +523,35 @@ export function ChipDock({
     });
   }, [activeRouteBeat, backingStorage, eligibleRouteBeats, routeBeatIndex]);
 
+  const persistCurrentRouteBeat = useCallback(() => {
+    if (!activeRouteBeat) return;
+    persistRouteBeatProgress({
+      storage: backingStorage,
+      beatIds: [activeRouteBeat.id],
+      markBeatSeen: useChipStore.getState().markBeatSeen,
+    });
+  }, [activeRouteBeat, backingStorage]);
+
   const dismissRouteBeatSequence = useCallback(() => {
     persistShownRouteBeats();
     setDismissedRouteBeatSignature(routeBeatSignature);
   }, [persistShownRouteBeats, routeBeatSignature]);
 
   const advanceRouteBeat = useCallback(() => {
+    persistCurrentRouteBeat();
     const result = resolveNextRouteBeatIndex(routeBeatIndex, eligibleRouteBeats);
     if (result.complete) {
       dismissRouteBeatSequence();
       return;
     }
     setRouteBeatIndex(result.nextIndex);
-  }, [dismissRouteBeatSequence, eligibleRouteBeats, routeBeatIndex]);
+  }, [dismissRouteBeatSequence, eligibleRouteBeats, persistCurrentRouteBeat, routeBeatIndex]);
 
   const showPendingDecisionsBeat = useCallback(() => {
     if (pendingDecisionTotal <= 0) return;
-    setActiveLiveBeat(createPendingDecisionsBeat(pendingDecisionTotal));
+    setActiveLiveBeat(createPendingDecisionsBeat(pendingDecisions ?? pendingDecisionTotal));
     setLocalCollapsed(false);
-  }, [pendingDecisionTotal]);
+  }, [pendingDecisionTotal, pendingDecisions]);
 
   const showWhereAmIBeat = useCallback(() => {
     if (!whereAmI) return;
@@ -445,12 +559,24 @@ export function ChipDock({
     setLocalCollapsed(false);
   }, [whereAmI]);
 
+  const showAskChipBeat = useCallback(() => {
+    const beat = createAskChipLiveBeat({ pendingDecisionTotal, pendingDecisions, whereAmI });
+    if (!beat) return false;
+    setActiveLiveBeat(beat);
+    setLocalCollapsed(false);
+    return true;
+  }, [pendingDecisionTotal, pendingDecisions, whereAmI]);
+
   const dismissLiveBeat = useCallback(() => {
     setActiveLiveBeat(null);
   }, []);
 
   const applyControl = useCallback(
     (control: ChipDockControl) => {
+      if (control === 'whatNow') {
+        if (activeRouteBeat) return;
+        if (showAskChipBeat()) return;
+      }
       if (activeRouteBeat && ROUTE_BEAT_DISMISS_CONTROLS.has(control)) {
         dismissRouteBeatSequence();
       }
@@ -466,13 +592,14 @@ export function ChipDock({
         now,
       });
       setPrefs(nextPrefs);
-      if (control === 'collapse') {
+      if (ROUTE_BEAT_DISMISS_CONTROLS.has(control)) {
         setLocalCollapsed(true);
         setRouteCoachOpened(false);
       }
       if (control === 'expand') {
         setLocalCollapsed(false);
         setRouteCoachOpened(true);
+        if (!activeRouteBeat) showAskChipBeat();
       }
       if (control === 'disableAnimations') setLocalCollapsed(nextPrefs.collapsed);
       onCollapseToggle?.();
@@ -487,7 +614,16 @@ export function ChipDock({
       now,
       onCollapseToggle,
       resolvedRoute,
+      showAskChipBeat,
     ],
+  );
+  const activateControlFromKeyboard = useCallback(
+    (event: KeyboardEvent<HTMLElement>, control: ChipDockControl) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      applyControl(control);
+    },
+    [applyControl],
   );
 
   if (!isChipFeatureEnabled()) {
@@ -524,12 +660,13 @@ export function ChipDock({
         <button
           type="button"
           className="mfd-chip-dock__collapsed"
+          data-chip-ask-dock-button="true"
           onClick={() => applyControl('expand')}
-          aria-label={activeRouteBeat ? 'Open Chip route guidance' : 'Open Chip dock'}
+          onKeyDown={(event) => activateControlFromKeyboard(event, 'expand')}
+          aria-label={activeRouteBeat ? 'Ask Chip about this screen' : 'Ask Chip'}
         >
-          <span className="mfd-chip-dock__collapsed-ring" aria-hidden="true" />
-          <Chip pose={portraitPose} size="sm" reducedMotion={motionMode === 'reduced'} />
-          <span className="mfd-chip-dock__collapsed-label" aria-hidden="true">{activeRouteBeat ? 'TIP' : 'CHIP'}</span>
+          <MessageSquare className="mfd-chip-dock__collapsed-icon" aria-hidden="true" />
+          <span className="mfd-chip-dock__collapsed-label">Ask Chip</span>
         </button>
       </aside>
     );
@@ -575,11 +712,11 @@ export function ChipDock({
                   accent="gold"
                   className="mfd-chip-dock__control"
                   onClick={advanceRouteBeat}
-                  aria-label="Logged"
-                  title="Logged"
+                  aria-label="Got it"
+                  title="Got it"
                 >
                   <Check aria-hidden="true" />
-                  <span className="mfd-chip-dock__control-label">Logged</span>
+                  <span className="mfd-chip-dock__control-label">Got it</span>
                 </PixelButton>
               </div>
             </div>
@@ -600,12 +737,12 @@ export function ChipDock({
                   accent="gold"
                   className="mfd-chip-dock__control"
                   onClick={dismissLiveBeat}
-                  aria-label="Logged"
-                  title="Logged"
+                  aria-label="Got it"
+                  title="Got it"
                   data-chip-live-beat-dismiss="true"
                 >
                   <Check aria-hidden="true" />
-                  <span className="mfd-chip-dock__control-label">Logged</span>
+                  <span className="mfd-chip-dock__control-label">Got it</span>
                 </PixelButton>
               </div>
             </div>
@@ -618,11 +755,11 @@ export function ChipDock({
                 data-chip-control-id="whereAmI"
                 data-chip-control-weight="primary"
                 onClick={showWhereAmIBeat}
-                aria-label="Current board"
-                title="Current board"
+                aria-label="Where am I?"
+                title="Where am I?"
               >
                 <MapPin aria-hidden="true" />
-                <span className="mfd-chip-dock__control-label">Current board</span>
+                <span className="mfd-chip-dock__control-label">Where am I?</span>
               </PixelButton>
             ) : null}
             {DOCK_CONTROL_BUTTONS.map(({ id, label, icon: Icon, accent, weight }) => (
@@ -640,6 +777,7 @@ export function ChipDock({
                       : undefined
                 }
                 onClick={() => applyControl(id)}
+                onKeyDown={(event) => activateControlFromKeyboard(event, id)}
                 aria-label={label}
                 title={label}
               >
@@ -653,6 +791,7 @@ export function ChipDock({
               data-chip-control-id="collapse"
               data-chip-control-weight="utility"
               onClick={() => applyControl('collapse')}
+              onKeyDown={(event) => activateControlFromKeyboard(event, 'collapse')}
               aria-label="Collapse Chip dock"
               title="Collapse Chip dock"
             >

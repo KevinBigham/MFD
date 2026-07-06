@@ -3,15 +3,23 @@ import type { ChoiceForecastPreview, CultureMandate, GoalSelectionContext, GoalO
 import { monoSm, pixelSm } from '../../shared/pixelUi';
 import { ChoiceDeltaBadges } from '../ChoiceDeltaBadges';
 
-const DIFFICULTY_ACCENT: Record<string, 'green' | 'gold' | 'red'> = {
-  easy: 'green', medium: 'gold', hard: 'red',
+const OWNER_PRESSURE_BADGE: Record<GoalOption['difficulty'], { label: string; accent: 'green' | 'gold' | 'red' }> = {
+  easy: { label: 'LOW OWNER PRESSURE', accent: 'green' },
+  moderate: { label: 'WEEKLY OWNER PRESSURE', accent: 'gold' },
+  hard: { label: 'FAST OWNER PRESSURE', accent: 'red' },
 };
 
 const MANDATES: Array<{ id: CultureMandate; label: string; desc: string }> = [
-  { id: 'accountability', label: 'Accountability', desc: 'Tighten standards and make the room earn roles fast.' },
-  { id: 'player_led', label: 'Player Led', desc: 'Push leadership to the veterans and let the room police itself.' },
-  { id: 'development_first', label: 'Development First', desc: 'Accept short-term turbulence to accelerate young contributors.' },
+  { id: 'accountability', label: 'Mistakes Change Roles', desc: 'Bench or reduce players after repeated missed assignments; players understand mistakes cost snaps.' },
+  { id: 'player_led', label: 'Captains Own Corrections', desc: 'Make veterans lead corrections; if captains lack credibility, losses hurt morale faster.' },
+  { id: 'development_first', label: 'Young Players Get Snaps', desc: 'Give young players snaps now; missed assignments cost drives and owner patience.' },
 ];
+
+const OWNER_TYPE_LABEL: Record<GoalSelectionContext['ownerType'], string> = {
+  patient: 'Patient Owner',
+  win_now: 'Win-Now Owner',
+  penny: 'Cost-Control Owner',
+};
 
 export function SetGoalsPhase({
   data,
@@ -32,7 +40,7 @@ export function SetGoalsPhase({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <PixelPanel title="Owner Expectations" accent="gold">
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
-          <PixelBadge variant="gold">{data.ownerType.replace('_', ' ')}</PixelBadge>
+          <PixelBadge variant="gold">{OWNER_TYPE_LABEL[data.ownerType]}</PixelBadge>
         </div>
         <div style={{ ...monoSm, color: '#bbb', lineHeight: 1.6 }}>{data.ownerExpectations}</div>
       </PixelPanel>
@@ -45,7 +53,7 @@ export function SetGoalsPhase({
         {data.availableGoals.map((goal, index) => {
           const isSelected = selectedGoals.includes(goal.id);
           const canSelect = isSelected || selectedGoals.length < 3;
-          const difficulty = (goal as GoalOption & { difficulty?: string }).difficulty ?? 'medium';
+          const ownerPressure = OWNER_PRESSURE_BADGE[goal.difficulty];
           const firstAvailableGoalIndex = data.availableGoals.findIndex((entry) => !selectedGoals.includes(entry.id));
           const isSpotlightTarget = selectedGoals.length < 3 && canSelect && !isSelected && index === firstAvailableGoalIndex;
           return (
@@ -68,8 +76,8 @@ export function SetGoalsPhase({
                   {goal.label.toUpperCase()}
                 </span>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  <PixelBadge variant={DIFFICULTY_ACCENT[difficulty] ?? 'gold'}>{difficulty}</PixelBadge>
-                  {goal.recommended && <PixelBadge variant="gold">REC</PixelBadge>}
+                  <PixelBadge variant={ownerPressure.accent}>{ownerPressure.label}</PixelBadge>
+                  {goal.recommended && <PixelBadge variant="gold">RECOMMENDED</PixelBadge>}
                   {isSelected && <PixelBadge variant="green">SELECTED</PixelBadge>}
                 </div>
               </div>
@@ -82,7 +90,7 @@ export function SetGoalsPhase({
         })}
       </div>
 
-      <PixelPanel title="Culture Mandate" accent="cyan">
+      <PixelPanel title="Team Rules" accent="cyan">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
           {MANDATES.map((mandate, index) => {
             const selected = mandate.id === selectedMandate;

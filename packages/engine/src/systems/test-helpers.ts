@@ -307,6 +307,8 @@ export function makeLeagueState(
     recentMilestones: [],
     awardsHistory: [],
     hallOfFame: [],
+    ballotWaitlist: [],
+    ballotEliminatedIds: [],
     allDecadeTeams: [],
     powerRankings: [],
     mediaCycle: {

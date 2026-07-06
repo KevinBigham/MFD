@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CBANegotiation } from './CBANegotiation';
+import { type CBAProposal } from '@mfd/engine';
+import { CBAActionReceiptPanel, CBANegotiation, buildCBAActionReceipt } from './CBANegotiation';
 
 const negotiationState = {
   round: 2,
@@ -72,6 +73,13 @@ const negotiationState = {
 };
 
 const baseState = () => ({
+  game: {
+    teams: {
+      user: {},
+      cpu1: {},
+      cpu2: {},
+    },
+  },
   cbaState: {
     status: 'awaiting_owner_vote' as 'awaiting_owner_vote' | 'lockout',
     currentDeal: {
@@ -181,11 +189,30 @@ describe('CBANegotiation', () => {
     expect(markup).toContain('WORK ETHIC 8');
   });
 
-  it('shows approve and reject buttons when owner voting is open', () => {
+  it('shows approve, reject, and abstain buttons when owner voting is open', () => {
     const markup = renderToStaticMarkup(<CBANegotiation />);
     expect(markup).toContain('Approve');
     expect(markup).toContain('Reject');
+    expect(markup).toContain('Abstain');
+    expect(markup).toContain('2 / 3 APPROVALS');
+    expect(markup).toContain('Ratification needs 2 of 3 owner approvals');
+    expect(markup).toContain('Rejections and abstentions appear in the public vote line but add no approval votes');
     expect(markup).toContain('Advance Negotiation');
+  });
+
+  it('renders cba source context and commit boundaries', () => {
+    const markup = renderToStaticMarkup(<CBANegotiation />);
+    expect(markup).toContain('CBA SOURCES');
+    expect(markup).toContain('selectCBAState reads saved game.cbaState');
+    expect(markup).toContain('this route does not generate proposal terms while rendering');
+    expect(markup).toContain('Approve, Reject, and Abstain commit through voteOnCBA');
+    expect(markup).toContain('Abstain is saved as an owner vote');
+    expect(markup).toContain('advanceCBANegotiation');
+    expect(markup).toContain('/league-rules remains the read-only effective-rule and history view');
+    expect(markup).toContain('OUTSIDE CBA TERMS');
+    expect(markup).toContain('COMMISSIONER LANE');
+    expect(markup).toContain('comp-pick limit are not part of CBA term projection today');
+    expect(markup).toContain('use /commissioner for petitionable changes');
   });
 
   it('renders the lockout banner and resolution button during a work stoppage', () => {
@@ -193,5 +220,41 @@ describe('CBANegotiation', () => {
     const markup = renderToStaticMarkup(<CBANegotiation />);
     expect(markup).toContain('WORK STOPPAGE ACTIVE');
     expect(markup).toContain('Resolve Lockout');
+  });
+
+  it('builds and renders route-local cba action receipts', () => {
+    const voteReceipt = buildCBAActionReceipt({
+      type: 'vote',
+      vote: 'abstain',
+      ownerCount: 3,
+      approvalThreshold: 2,
+      proposal: negotiationState.currentProposal as CBAProposal,
+    });
+
+    expect(voteReceipt.title).toBe('CBA Vote Receipt');
+    expect(voteReceipt.result).toContain('Abstain vote sent for round 2');
+    expect(voteReceipt.detail).toContain('ratifies only when approvals meet 2 of 3');
+    expect(voteReceipt.detail).toContain('add no approval vote');
+    expect(voteReceipt.source).toContain('Saved by the CBA vote action');
+    expect(voteReceipt.source).toContain('owner votes and your vote are recorded');
+
+    const advanceReceipt = buildCBAActionReceipt({
+      type: 'advance',
+      status: 'lockout',
+      round: 5,
+      hasCurrentProposal: false,
+    });
+
+    expect(advanceReceipt.title).toBe('CBA Lockout Receipt');
+    expect(advanceReceipt.result).toContain('Resolve Lockout action sent');
+    expect(advanceReceipt.source).toContain('Saved by the CBA advance action');
+    expect(advanceReceipt.source).toContain('negotiation status and history move forward');
+
+    const markup = renderToStaticMarkup(<CBAActionReceiptPanel receipt={voteReceipt} />);
+    expect(markup).toContain('CBA VOTE RECEIPT');
+    expect(markup).toContain('OWNER VOTE');
+    expect(markup).toContain('SAVED BY');
+    expect(markup).toContain('Saved by the CBA vote action');
+    expect(markup).toContain('On-screen confirmation only');
   });
 });

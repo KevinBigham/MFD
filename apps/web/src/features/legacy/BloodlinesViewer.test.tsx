@@ -108,6 +108,27 @@ describe('BloodlinesViewerView', () => {
     expect(markup).toContain('Rookie Jr.');
   });
 
+  it('labels bloodline rows as selector-derived active and draft sources without route writes', () => {
+    const families = [
+      makeFamily({
+        children: [
+          makeChild({ playerId: 'active-son', name: 'Active Jr.', teamId: 'team-user', isUserPlayer: true }),
+          makeChild({ playerId: 'rookie-son', name: 'Rookie Jr.', source: 'draft', teamId: null }),
+        ],
+      }),
+    ];
+
+    const markup = renderToStaticMarkup(
+      <BloodlinesViewerView families={families} userTeamId="team-user" />,
+    );
+
+    expect(markup).toContain('BLOODLINE SOURCES');
+    expect(markup).toContain('selectBloodlineFamilies joins active game.players and current draft prospects');
+    expect(markup).toContain('saved bloodline fields');
+    expect(markup).toContain('rookie-class sons use scout grade as the OVR signal');
+    expect(markup).toContain('this route does not assign bloodlines or write family relationship edges');
+  });
+
   it('humanizes every legacy tag so no internal snake_case leaks', () => {
     const families: BloodlineFamily[] = [
       makeFamily({ parentPlayerId: 'a', legacyTag: 'franchise_royalty' }),

@@ -7,7 +7,7 @@
  * worker RPC timeout ("Timeout calling onTaskUpdate"), producing red CI runs
  * even when every test passed.
  *
- * The 11 tests here all exercise heavy sim paths (`advanceWeek`,
+ * The tests here all exercise heavy sim paths (`advanceWeek`,
  * `resolveHalftimeDecision`, `finalizeDeadline`, trade offer accept/reject).
  * The remaining 32 offseason/cap/cba/IR/tutorial tests stay in
  * `game-store.test.ts`.
@@ -20,7 +20,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { initializeDeadline, initializeOffseasonState, mulberry32 } from '@mfd/engine';
+import { applyRuleChange, initializeDeadline, initializeOffseasonState, mulberry32, startScenario } from '@mfd/engine';
 import { createSeedGameState } from './seed';
 import { selectLatestGameDayPackage, useGameStore } from './game-store';
 import { autosaveDynasty } from './persistence';
@@ -156,6 +156,51 @@ describe('game store game-week advancing actions', () => {
     expect(nextGame.postGameUi?.audioCueQueue.some((cue) => cue.event === 'game_end')).toBe(true);
     expect(nextGame.postGameUi?.pressConferenceQueue.length).toBeGreaterThan(0);
     expect(nextGame.postGameUi?.pressConferenceQueue[0]?.conferenceId).toBe(nextGame.recentPressConferences[0]?.id);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('saves podium responses without adding new press side effects', async () => {
+    const game = createSeedGameState(318, 0, 'pro');
+    game.postGameUi = {
+      pressConferenceQueue: [{
+        conferenceId: 'press-queue-1',
+        teamId: 'CHI',
+        year: game.year,
+        week: game.week,
+        speaker: 'Coach Vale',
+        topic: 'statement win',
+        scenario: 'win_close',
+        responses: {
+          high: ['We set the tone.'],
+          mid: ['The room stayed steady.'],
+          low: ['We move on.'],
+        },
+      }],
+      audioCueQueue: [],
+      pendingHalftimeDecision: null,
+    };
+    game.recentPressConferences = [];
+    game.activeEffects = [];
+    game.eventLog = [];
+    game.leagueNews = [];
+    game.socialFeed = [];
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.respondToPressConference('press-queue-1', 'mid', 'The room stayed steady.');
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.postGameUi?.pressConferenceQueue[0]?.selectedTier).toBe('mid');
+    expect(nextGame.postGameUi?.pressConferenceQueue[0]?.selectedResponse).toBe('The room stayed steady.');
+    expect(nextGame.recentPressConferences).toEqual([]);
+    expect(nextGame.activeEffects).toEqual([]);
+    expect(nextGame.eventLog).toEqual([]);
+    expect(nextGame.leagueNews).toEqual([]);
+    expect(nextGame.socialFeed).toEqual([]);
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 
@@ -321,6 +366,100 @@ describe('game store game-week advancing actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 
+  it('uses the active trade deadline week when routing the deadline interruption', { timeout: 15_000 }, async () => {
+    const pushState = vi.fn();
+    const dispatchEvent = vi.fn();
+    vi.stubGlobal('window', {
+      history: { pushState },
+      dispatchEvent,
+    });
+
+    const game = createSeedGameState(818, 0, 'pro');
+    game.phase = 'regular_season';
+    game.week = 10;
+    game.leagueRules = applyRuleChange(game.leagueRules, {
+      key: 'trade_deadline_week',
+      newValue: 10,
+      source: 'owners_vote',
+      proposedBy: 'owners',
+      effectiveYear: game.year,
+      rationale: 'Move deadline back one week.',
+    });
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    userTeam.roster[0]!.tradeBlock = true;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.advanceWeek();
+
+    expect(useGameStore.getState().game?.tradeDeadlineState).toBeDefined();
+    expect(useGameStore.getState().game?.week).toBe(10);
+    expect(pushState).toHaveBeenCalledWith({}, '', '/trade-deadline');
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the active trade deadline week after resolving a halftime decision', { timeout: 15_000 }, async () => {
+    const pushState = vi.fn();
+    const dispatchEvent = vi.fn();
+    vi.stubGlobal('window', {
+      history: { pushState },
+      dispatchEvent,
+    });
+
+    const game = createSeedGameState(819, 0, 'pro');
+    game.phase = 'regular_season';
+    game.week = 10;
+    game.leagueRules = applyRuleChange(game.leagueRules, {
+      key: 'trade_deadline_week',
+      newValue: 10,
+      source: 'owners_vote',
+      proposedBy: 'owners',
+      effectiveYear: game.year,
+      rationale: 'Move deadline back one week.',
+    });
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const opponent = Object.values(game.teams).find((team) => !team.isUser)!;
+    userTeam.roster[0]!.tradeBlock = true;
+    game.postGameUi = {
+      pressConferenceQueue: [],
+      audioCueQueue: [],
+      pendingHalftimeDecision: {
+        teamId: userTeam.id,
+        year: game.year,
+        week: game.week,
+        phase: game.phase,
+        homeTeamId: userTeam.id,
+        awayTeamId: opponent.id,
+        homeScore: 10,
+        awayScore: 17,
+        suggestion: {
+          direction: 'more_pass',
+          responseLabel: 'Open the second-half passing menu',
+          summary: 'The pivot asks the offense to chase explosive plays.',
+          reason: 'The score and efficiency gap call for a heavier passing plan.',
+        },
+      },
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.resolveHalftimeDecision('switch');
+
+    expect(useGameStore.getState().game?.tradeDeadlineState).toBeDefined();
+    expect(useGameStore.getState().game?.postGameUi?.pendingHalftimeDecision).toBeNull();
+    expect(useGameStore.getState().game?.week).toBe(10);
+    expect(pushState).toHaveBeenCalledWith({}, '', '/trade-deadline');
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
   it('finalizes the trade deadline and resumes the same week advance', { timeout: 15_000 }, async () => {
     const pushState = vi.fn();
     const dispatchEvent = vi.fn();
@@ -348,5 +487,35 @@ describe('game store game-week advancing actions', () => {
     expect(nextGame.week).toBe(10);
     expect(pushState).toHaveBeenCalledWith({}, '', '/game-day');
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves deadline offers pending when scenario constraints disable trades', async () => {
+    const base = createSeedGameState(910, 0, 'pro');
+    base.phase = 'regular_season';
+    base.week = 9;
+    const game = startScenario('the_savant', base, mulberry32(910));
+    const offer = buildTradeOffer(game);
+    game.tradeDeadlineState = {
+      isDeadlineWeek: true,
+      minutesRemaining: 120,
+      completedDeals: [],
+      scheduledDeals: [],
+      pendingOffers: [offer],
+      urgencyLevel: 'heating_up',
+      tickerMessages: ['TRADE DEADLINE OPEN: Phones are already buzzing around the league.'],
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.acceptDeadlineOffer(offer.id);
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.tradeDeadlineState?.pendingOffers).toHaveLength(1);
+    expect(nextGame.tradeDeadlineState?.tickerMessages).toEqual(game.tradeDeadlineState.tickerMessages);
+    expect(autosaveDynasty).not.toHaveBeenCalled();
   });
 });

@@ -129,6 +129,18 @@ describe('RecordBook', () => {
     const markup = renderToStaticMarkup(<RecordBook />);
 
     expect(markup).toContain('RECORD BOOK');
+    expect(markup).toContain('RECORD SOURCES');
+    expect(markup).toContain('Saved record book');
+    expect(markup).toContain('game.records');
+    expect(markup).toContain('does not detect or write new records');
+    expect(markup).toContain('Weekly chase receipts');
+    expect(markup).toContain('activeRecordChases');
+    expect(markup).toContain('Fresh breaks');
+    expect(markup).toContain('recentBrokenRecords');
+    expect(markup).toContain('Milestone receipts');
+    expect(markup).toContain('recentMilestones');
+    expect(markup).toContain('no render-time news');
+    expect(markup).toContain('not by opening this route');
     expect(markup).toContain('Single Game');
     expect(markup).toContain('Single Season');
     expect(markup).toContain('Career');

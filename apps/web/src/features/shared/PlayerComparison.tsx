@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
-import { calcCapHit, calcContractScore, type Player } from '@mfd/engine';
+import { calcCapHit, calcContractScore, type GameState, type Player } from '@mfd/engine';
 import { getSalaryCap } from '@mfd/engine';
 import {
-  selectRoster,
-  selectUserTeamId,
   useGameStore,
 } from '../../app/store/game-store';
 import {
@@ -30,7 +28,7 @@ function formatMoney(val: number): string {
   return `$${val.toFixed(1)}M`;
 }
 
-function buildStatRows(a: Player, b: Player, year: number): StatRow[] {
+function buildStatRows(a: Player, b: Player, year: number, game?: GameState | null): StatRow[] {
   const rows: StatRow[] = [];
 
   const coreStats: Array<{ label: string; key: keyof Player }> = [
@@ -89,15 +87,23 @@ function buildStatRows(a: Player, b: Player, year: number): StatRow[] {
   });
 
   // Contract value score
-  const cap = getSalaryCap(year);
+  const cap = getSalaryCap(year, game);
   if (a.contract) {
     const scoreA = calcContractScore(a.ovr, a.pos, a.age, a.contract.years, a.contract.totalValue, cap);
-    const scoreB = b.contract ? calcContractScore(b.ovr, b.pos, b.age, b.contract.years, b.contract.totalValue, cap) : { grade: 'N/A', score: 0 };
+    const scoreB = b.contract
+      ? calcContractScore(b.ovr, b.pos, b.age, b.contract.years, b.contract.totalValue, cap)
+      : { grade: 'N/A', score: 0, annualCapPct: 0 };
     rows.push({
       label: 'Contract Grade',
       a: scoreA.grade,
       b: scoreB.grade,
       winner: scoreA.score === scoreB.score ? 'tie' : scoreA.score > scoreB.score ? 'a' : 'b',
+    });
+    rows.push({
+      label: 'Annual Cap %',
+      a: `${scoreA.annualCapPct}% cap`,
+      b: `${scoreB.annualCapPct}% cap`,
+      winner: scoreA.annualCapPct === scoreB.annualCapPct ? 'tie' : scoreA.annualCapPct < scoreB.annualCapPct ? 'a' : 'b',
     });
   }
 
@@ -162,6 +168,39 @@ function ComparisonRow({ row }: { row: StatRow }) {
         {row.b}
       </span>
     </div>
+  );
+}
+
+function ComparisonContextPanel({
+  playerA,
+  playerB,
+}: {
+  playerA: Player | null;
+  playerB: Player | null;
+}) {
+  const statLabels = playerA ? getPositionStatKeys(playerA.pos).map((entry) => entry.label).join(' / ') : 'position stat rows';
+  const samePosition = Boolean(playerA && playerB && playerA.pos === playerB.pos);
+
+  return (
+    <PixelPanel title="Comparison Context" accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="cyan">CURRENT GAME.PLAYERS</PixelBadge>
+          <PixelBadge variant="gold">ACTIVE SALARY CAP</PixelBadge>
+          <PixelBadge variant="default">ROUTE-LOCAL PICKS</PixelBadge>
+          <PixelBadge variant="green">DISPLAY ONLY</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.5 }}>
+          Player pool comes from current contracted players in game.players. Rows compare current OVR, potential, age, experience, personality, contract cap hit, active-cap contract grade, and current-season player.stats.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+          Position stat rows follow Player A's position lens{playerA ? ` (${statLabels})` : ''}{playerA && playerB ? (samePosition ? ' because both players share a position.' : ' so cross-position comparisons should lean on core, trait, and contract rows.') : '.'}
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+          Opening this screen does not write stats, contracts, profile history, timelines, player archives, awards, records, news, or social posts.
+        </div>
+      </div>
+    </PixelPanel>
   );
 }
 
@@ -245,12 +284,13 @@ interface PlayerComparisonProps {
 }
 
 export function PlayerComparison({ initialPlayerA, initialPlayerB }: PlayerComparisonProps) {
-  const roster = useGameStore(selectRoster);
   const game = useGameStore((s) => s.game);
-  const allPlayers = useGameStore((s) => {
-    if (!s.game) return [];
-    return Object.values(s.game.players).filter((p) => p.contract != null).sort((a, b) => b.ovr - a.ovr);
-  });
+  const allPlayers = useMemo(() => {
+    if (!game) return [];
+    return Object.values(game.players)
+      .filter((p) => p.contract != null)
+      .sort((a, b) => b.ovr - a.ovr);
+  }, [game]);
 
   const [playerIdA, setPlayerIdA] = useState<string | null>(initialPlayerA ?? null);
   const [playerIdB, setPlayerIdB] = useState<string | null>(initialPlayerB ?? null);
@@ -260,8 +300,8 @@ export function PlayerComparison({ initialPlayerA, initialPlayerB }: PlayerCompa
 
   const statRows = useMemo(() => {
     if (!playerA || !playerB) return [];
-    return buildStatRows(playerA, playerB, game?.year ?? 2026);
-  }, [playerA, playerB, game?.year]);
+    return buildStatRows(playerA, playerB, game?.year ?? 2026, game);
+  }, [playerA, playerB, game]);
 
   const winsA = statRows.filter((r) => r.winner === 'a').length;
   const winsB = statRows.filter((r) => r.winner === 'b').length;
@@ -290,6 +330,8 @@ export function PlayerComparison({ initialPlayerA, initialPlayerB }: PlayerCompa
           onSelect={setPlayerIdB}
         />
       </div>
+
+      <ComparisonContextPanel playerA={playerA} playerB={playerB} />
 
       {playerA && playerB ? (
         <>

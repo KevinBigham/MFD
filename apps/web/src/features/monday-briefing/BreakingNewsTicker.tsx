@@ -62,6 +62,12 @@ export function BreakingNewsTickerView({ item, reducedMotion }: BreakingNewsTick
         <span style={{ minWidth: 0, maxWidth: '100%', overflow: 'hidden', fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {item.body}
         </span>
+        <span
+          title="Source: saved leagueNews passed from the app shell through selectTickerItems; full-screen interrupts stay in breakingNewsQueue. Showing the ticker does not dismiss queue items, create new stories, click Advance Week, change saves, or reroll saved outcomes."
+          style={{ minWidth: 0, maxWidth: '100%', overflow: 'hidden', fontFamily: 'var(--mfd-font-pixel)', fontSize: '7px', color: 'var(--mfd-text-dim)', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        >
+          leagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll
+        </span>
       </div>
     </div>
   );

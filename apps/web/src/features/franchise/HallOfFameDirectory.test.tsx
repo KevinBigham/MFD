@@ -44,6 +44,7 @@ const gameState = {
     year: 2045,
     teams: { 'team-1': { id: 'team-1', isUser: true, city: 'Chicago', name: 'Blaze', abbr: 'CHI' } },
     franchiseHistory: [{ teamId: 'team-1', year: 2030 }],
+    hallOfFame: [] as HallOfFameEntry[],
   },
 };
 
@@ -132,6 +133,7 @@ function makeDynasty(overrides: Partial<HallOfFameArchiveDynasty> = {}): HallOfF
 describe('HallOfFameDirectory', () => {
   beforeEach(() => {
     vi.stubGlobal('localStorage', new MemoryStorage());
+    gameState.game.hallOfFame = [];
     createExportFrameMock.mockReset();
     exportCleanupMock.mockReset();
     createExportFrameMock.mockReturnValue({
@@ -148,6 +150,73 @@ describe('HallOfFameDirectory', () => {
     const markup = renderToStaticMarkup(<HallOfFameDirectory />);
     expect(markup).toContain('No inductees have been archived yet');
     expect(markup).toContain('Hall of Fame Directory');
+  });
+
+  it('identifies the directory as a browser-local sidecar archive', () => {
+    const markup = renderToStaticMarkup(<HallOfFameDirectory />);
+
+    expect(markup).toContain('Browser-local cross-dynasty snapshots');
+    expect(markup).toContain('BROWSER ARCHIVE');
+    expect(markup).toContain('mfd.hallOfFame.v1');
+    expect(markup).toContain('Year rollover snapshot');
+    expect(markup).toContain('readHallOfFameArchive()');
+    expect(markup).toContain('does not run');
+    expect(markup).toContain('syncHallOfFameArchiveAtYearRollover');
+    expect(markup).toContain('write GameState');
+    expect(markup).toContain('change the sidecar');
+    expect(markup).toContain('Sync Current Save');
+    expect(markup).toContain('Explicitly writes this current dynasty');
+    expect(markup).toContain('never imports sidecar entries back into GameState');
+    expect(markup).toContain('play games or reroll saved outcomes');
+  });
+
+  it('renders explicit sidecar export and import controls', () => {
+    const markup = renderToStaticMarkup(<HallOfFameDirectory />);
+
+    expect(markup).toContain('Archive Portability');
+    expect(markup).toContain('JSON SIDECAR');
+    expect(markup).toContain('mfd.hallOfFame.v1 only');
+    expect(markup).toContain('Export Archive JSON');
+    expect(markup).toContain('Paste Hall of Fame archive JSON');
+    expect(markup).toContain('Import Archive JSON');
+    expect(markup).toContain('do not create a save cartridge');
+    expect(markup).toContain('write GameState');
+    expect(markup).toContain('play games or reroll saved outcomes');
+    expect(markup).toMatch(/<button[^>]*disabled[^>]*>Import Archive JSON/);
+  });
+
+  it('disables explicit current-save sync when the live save has no hall of famers', () => {
+    const markup = renderToStaticMarkup(<HallOfFameDirectory />);
+
+    expect(markup).toMatch(/<button[^>]*disabled[^>]*>Sync Current Save/);
+  });
+
+  it('enables explicit current-save sync when the live save has hall of famers', () => {
+    gameState.game.hallOfFame = [makeEntry({ playerId: 'live-1', name: 'Live One' })];
+
+    const markup = renderToStaticMarkup(<HallOfFameDirectory />);
+
+    expect(markup).toMatch(/<button>Sync Current Save<\/button>/);
+  });
+
+  it('compares the live save Hall of Fame count with the current sidecar snapshot', () => {
+    gameState.game.hallOfFame = [
+      makeEntry({ playerId: 'live-1', name: 'Live One' }),
+      makeEntry({ playerId: 'live-2', name: 'Live Two' }),
+    ];
+    upsertHallOfFameDynasty(makeDynasty({
+      dynastyId: '123:team-1:2030',
+      lastSyncedYear: 2044,
+      entries: [makeEntry({ playerId: 'stored-1', name: 'Stored One' })],
+    }));
+
+    const markup = renderToStaticMarkup(<HallOfFameDirectory />);
+
+    expect(markup).toMatch(/Live Save HOFers[\s\S]*?2[\s\S]*?game\.hallOfFame now/);
+    expect(markup).toMatch(/Sidecar Snapshot[\s\S]*?1[\s\S]*?last synced 2044/);
+    expect(markup).toContain('Current dynasty comparable');
+    expect(markup).toContain('deriveDynastyId(game)');
+    expect(markup).toContain('A count mismatch means the sidecar is stale until app-shell year rollover');
   });
 
   it('renders the totals strip and dynasty section when entries exist', () => {

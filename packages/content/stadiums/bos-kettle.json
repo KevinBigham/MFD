@@ -1,0 +1,13 @@
+{
+  "teamId": "BOS",
+  "name": "The Kettle",
+  "capacity": 65800,
+  "tradition": "The Ladle Drop now opens every Chowderheads home game: the harbor bell rings twice, steam curls off the north end-zone bread bowl, and a twenty-foot ladle tips the first pour before kickoff turns wicked loud.",
+  "surface": "Turf",
+  "roof": "Open",
+  "cue": {
+    "label": "The Ladle Drop",
+    "pregameLine": "The harbor bell is ringing at The Kettle, and the north end-zone bread bowl is already steaming for the first pour.",
+    "crowdResponse": "The Chowdah Club answers with a SOUP'S! ON! chant that rolls through the upper deck like fog off the harbor."
+  }
+}

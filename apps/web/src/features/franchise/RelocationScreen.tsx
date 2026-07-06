@@ -15,6 +15,29 @@ function navigateTo(path: string) {
   window.location.hash = path;
 }
 
+function RelocationSourcesPanel({ active }: { active: boolean }) {
+  return (
+    <PixelPanel title="Relocation Sources" accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant={active ? 'gold' : 'default'}>{active ? 'Selector-gated' : 'No active team'}</PixelBadge>
+          <PixelBadge variant="cyan">Local destination choice</PixelBadge>
+          <PixelBadge variant="default">Confirmed store commit</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+          Source: `selectUserTeam`, `selectCanRelocate`, and `selectRelocationDestinations` drive the active franchise, eligibility badge, blocked reason, and destination cards. Opening the route does not rewrite the team.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+          UI boundary: selected destination and confirmation-modal state live in React only. Confirm Relocation checks route eligibility plus selected-destination cost before the final Move Franchise action.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-faint)', lineHeight: 1.5 }}>
+          Commit boundary: `relocateTeam(destinationId)` resolves the destination, applies the engine relocation helper, charges the relocation cost through franchise cap space, syncs relocated roster players back into `game.players`, commits, and routes back to Franchise Hub.
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function RelocationScreen() {
   const team = useGameStore(selectUserTeam);
   const year = useGameStore(selectYear);
@@ -33,16 +56,22 @@ export function RelocationScreen() {
     return (
       <div style={screenStackStyle}>
         <PixelScreenHeader title="Franchise Relocation" subtitle="No active franchise is loaded." />
+        <RelocationSourcesPanel active={false} />
       </div>
     );
   }
 
   const cheapest = destinations.reduce((min, destination) => Math.min(min, destination.cost), Number.POSITIVE_INFINITY);
+  const selectedCanBeFunded = selected ? team.capSpace >= selected.cost : false;
+  const canConfirmRelocation = canRelocate && Boolean(selected) && selectedCanBeFunded;
   const reason = canRelocate
     ? 'Relocation is available.'
     : team.capSpace < cheapest
       ? `Need at least $${cheapest}M in cap space to fund the move.`
       : 'You need 3 seasons played and 5 quiet years since the last relocation.';
+  const selectedBlockReason = selected && !selectedCanBeFunded
+    ? `Selected package costs $${selected.cost}M; current franchise cap space is $${team.capSpace}M.`
+    : null;
 
   return (
     <div style={screenStackStyle}>
@@ -56,6 +85,8 @@ export function RelocationScreen() {
           </>
         )}
       />
+
+      <RelocationSourcesPanel active />
 
       <div style={autoGrid(260)}>
         {destinations.map((destination) => {
@@ -121,8 +152,11 @@ export function RelocationScreen() {
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
               League year {year}. This move rewrites the franchise identity, resets the stadium, and tests locker-room loyalty immediately.
             </div>
+            {selectedBlockReason ? (
+              <div style={{ ...monoSm, color: 'var(--mfd-bad)', lineHeight: 1.7 }}>{selectedBlockReason}</div>
+            ) : null}
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <PixelButton accent="green" disabled={!canRelocate || !selected} onClick={() => setConfirmOpen(true)}>
+              <PixelButton accent="green" disabled={!canConfirmRelocation} onClick={() => setConfirmOpen(true)}>
                 Confirm Relocation
               </PixelButton>
               <PixelButton accent="default" onClick={() => navigateTo('/franchise')}>
@@ -143,9 +177,9 @@ export function RelocationScreen() {
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <PixelButton
               accent="red"
-              disabled={!selected}
+              disabled={!canConfirmRelocation}
               onClick={() => {
-                if (!selected) return;
+                if (!selected || !canConfirmRelocation) return;
                 setConfirmOpen(false);
                 void relocateTeam(selected.abbr);
               }}

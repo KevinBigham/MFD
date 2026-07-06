@@ -27,6 +27,8 @@ export interface AdvanceFranchiseWeekOptions {
     suggestion: SwitchSuggestion;
   } | null;
   playtestBias?: AIBiasConfig;
+  mutateInPlace?: boolean;
+  skipExpansionDraft?: boolean;
 }
 
 function approximateYardsPerPlay(totalYards: number, plays: number): number {
@@ -159,7 +161,7 @@ export function suggestHalftimeSwitch(input: HalftimeSwitchInput): SwitchSuggest
     responseLabel: yppDelta >= 0 ? 'Lean on the legs' : 'Let it rip',
     summary: yppDelta >= 0
       ? 'Use the efficient rushing profile to control the second half.'
-      : 'Push the ball outside and chase a cleaner explosive script.',
+      : 'Attack outside routes for a cleaner explosive answer.',
     reason: yppDelta >= 0
       ? 'The run efficiency is the clearest edge from the first half.'
       : 'The offense needs a cleaner vertical answer after halftime.',

@@ -1,4 +1,5 @@
-import { buildCoachingLegacy } from '@mfd/engine';
+import { useState } from 'react';
+import { buildCoachingLegacy, STADIUM_UPGRADE_COSTS, type StadiumDeal } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import {
   useGameStore,
@@ -15,7 +16,6 @@ import {
   autoGrid,
   display,
   monoSm,
-  navigateTo,
   screenStackStyle,
   teamThemeVars,
 } from '../shared/pixelUi';
@@ -30,6 +30,7 @@ import { HomegrownMeter } from './HomegrownMeter';
 import { ContinuityMeter } from './ContinuityMeter';
 import { RivalryHeatMap } from './RivalryHeatMap';
 import { PowerRankingsTicker } from '../newsroom/PowerRankingsTicker';
+import { FRANCHISE_HUB_ROUTE_ACTIONS } from './franchiseHubRoutes';
 
 const DOCTRINE_ACCENTS = {
   culture: 'green',
@@ -38,10 +39,124 @@ const DOCTRINE_ACCENTS = {
   personnel: 'default',
 } as const;
 
+type FranchiseActionReceiptKind = 'stadium_upgrade' | 'naming_rights';
+
+export interface FranchiseActionReceipt {
+  title: string;
+  kind: FranchiseActionReceiptKind;
+  target: string;
+  result: string;
+  detail: string;
+  source: string;
+  stateTouched: string;
+  accent: 'gold' | 'green';
+}
+
+interface StadiumUpgradeReceiptInput {
+  type: 'stadium_upgrade';
+  teamName: string;
+  stadiumName: string;
+  levelBefore: 1 | 2 | 3;
+  capSpaceBefore: number;
+}
+
+interface NamingRightsReceiptInput {
+  type: 'naming_rights';
+  teamName: string;
+  deal: StadiumDeal;
+  dealIndex: number;
+}
+
+type FranchiseActionReceiptInput = StadiumUpgradeReceiptInput | NamingRightsReceiptInput;
+
 function stadiumLevelLabel(level: 1 | 2 | 3): string {
   if (level === 3) return 'Elite';
   if (level === 2) return 'Modern';
   return 'Basic';
+}
+
+function stadiumUpgradeCost(level: 1 | 2 | 3): number | null {
+  if (level === 1) return STADIUM_UPGRADE_COSTS[1];
+  if (level === 2) return STADIUM_UPGRADE_COSTS[2];
+  return null;
+}
+
+export function buildFranchiseActionReceipt(input: FranchiseActionReceiptInput): FranchiseActionReceipt {
+  if (input.type === 'stadium_upgrade') {
+    const nextLevel = input.levelBefore < 3 ? input.levelBefore + 1 : input.levelBefore;
+    const cost = stadiumUpgradeCost(input.levelBefore);
+    const costLabel = cost === null ? 'max level' : `$${cost.toFixed(1)}M`;
+    return {
+      title: 'Stadium Upgrade Receipt',
+      kind: 'stadium_upgrade',
+      target: `${input.teamName} // ${input.stadiumName}`,
+      result: `Upgrade request resolved for level ${input.levelBefore} -> ${nextLevel}`,
+      detail: `Pre-action cap space $${input.capSpaceBefore.toFixed(1)}M; the store applies the upgrade only when the engine cost check clears ${costLabel}.`,
+      source: 'actions.upgradeStadium -> game-store upgradeStadium -> engine upgradeStadium; this on-screen confirmation is not saved separately.',
+      stateTouched: 'When accepted by the store, team.franchiseIdentity stadium level/prestige and franchise cap totals are updated; no games, outcome rerolls, routes, or save-schema shape changed.',
+      accent: 'gold',
+    };
+  }
+
+  return {
+    title: 'Naming Rights Receipt',
+    kind: 'naming_rights',
+    target: `${input.teamName} // offer ${input.dealIndex + 1}`,
+    result: `${input.deal.sponsorName} accepted for ${input.deal.yearsTotal} years`,
+    detail: `$${input.deal.revenuePerYear.toFixed(1)}M per year // +${input.deal.prestigeBonus} prestige // ${input.deal.yearsRemaining} years remaining at signing.`,
+    source: 'actions.acceptNamingRights -> game-store acceptNamingRights -> engine acceptStadiumDeal; this on-screen confirmation is not saved separately.',
+    stateTouched: 'When the deal index is valid, team.franchiseIdentity stadiumDeal/stadiumName/prestige are updated and game.stadiumDealOffers is cleared; no games, outcome rerolls, routes, or save-schema shape changed.',
+    accent: 'green',
+  };
+}
+
+export function FranchiseActionReceiptPanel({ receipt }: { receipt: FranchiseActionReceipt }) {
+  return (
+    <PixelPanel title={receipt.title} accent={receipt.accent}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant={receipt.accent}>{receipt.kind.replace(/_/g, ' ').toUpperCase()}</PixelBadge>
+          <PixelBadge variant="cyan">ON-SCREEN CONFIRMATION</PixelBadge>
+        </div>
+        <DetailStripe label="Action" value={receipt.target} accent={receipt.accent} />
+        <DetailStripe label="Result" value={receipt.result} accent="cyan" />
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.7 }}>
+          {receipt.detail}
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Source: {receipt.source}
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Changed now: {receipt.stateTouched}
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
+function FranchiseSourcesPanel() {
+  return (
+    <PixelPanel title="Franchise Sources" accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="cyan">DASHBOARD READ MODEL</PixelBadge>
+          <PixelBadge variant="gold">ACTION BUTTONS SEPARATE</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.7 }}>
+          This hub reads <strong>selectFranchiseDashboard</strong>, <strong>selectUserTeam</strong>, <strong>selectFranchiseEras</strong>, <strong>selectStadiumDealOffers</strong>, and <strong>selectCanRelocate</strong> to project saved identity, history, eras, stadium offers, and relocation eligibility.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          The surrounding modules stay read-only: Power Rankings, Homegrown, Continuity, Rivalries, Legends, Doctrines, and <strong>buildCoachingLegacy</strong> only explain existing saved or derived context while this screen renders.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          The write paths remain explicit buttons: <strong>upgradeStadium</strong>, <strong>acceptNamingRights</strong>, and relocation through <strong>/relocate</strong>. Opening Franchise Hub does not upgrade the stadium, accept naming rights, relocate, award doctrines, detect eras, update franchise history, change the live save, or play scheduled games.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Stadium and naming-rights buttons show an on-screen confirmation after the saved action resolves. It explains what changed, but it is not saved as a separate log.
+        </div>
+      </div>
+    </PixelPanel>
+  );
 }
 
 export function FranchiseHub() {
@@ -52,6 +167,7 @@ export function FranchiseHub() {
   const offers = useGameStore(selectStadiumDealOffers);
   const canRelocate = useGameStore(selectCanRelocate);
   const { acceptNamingRights, upgradeStadium } = useGameStore((state) => state.actions);
+  const [actionReceipt, setActionReceipt] = useState<FranchiseActionReceipt | null>(null);
 
   if (!team || !dashboard) {
     return (
@@ -77,6 +193,30 @@ export function FranchiseHub() {
   };
   const hasDoctrines = dashboard.earnedDoctrines.length > 0;
   const coachingDepth = game && team?.staff?.hc ? buildCoachingLegacy(game, team.staff.hc.id).treeDepth : 0;
+  const teamName = `${team.city} ${team.name}`;
+
+  const handleUpgradeStadium = async () => {
+    const receipt = buildFranchiseActionReceipt({
+      type: 'stadium_upgrade',
+      teamName,
+      stadiumName: identity.stadiumName,
+      levelBefore: identity.stadiumLevel,
+      capSpaceBefore: team.capSpace,
+    });
+    await upgradeStadium();
+    setActionReceipt(receipt);
+  };
+
+  const handleAcceptNamingRights = async (deal: StadiumDeal, index: number) => {
+    const receipt = buildFranchiseActionReceipt({
+      type: 'naming_rights',
+      teamName,
+      deal,
+      dealIndex: index,
+    });
+    await acceptNamingRights(index);
+    setActionReceipt(receipt);
+  };
 
   return (
     <div style={{
@@ -110,10 +250,12 @@ export function FranchiseHub() {
           </>
         )}
         actions={[
-          { label: 'Chronicle', accent: 'gold', onClick: () => navigateTo('/franchise/chronicle') },
-          { label: 'GM Career', accent: 'cyan', onClick: () => navigateTo('/franchise/career') },
+          { label: 'Chronicle', accent: 'gold', onClick: FRANCHISE_HUB_ROUTE_ACTIONS.chronicle },
+          { label: 'GM Career', accent: 'cyan', onClick: FRANCHISE_HUB_ROUTE_ACTIONS.career },
         ]}
       />
+      <FranchiseSourcesPanel />
+      {actionReceipt ? <FranchiseActionReceiptPanel receipt={actionReceipt} /> : null}
       <HomegrownMeter game={game} />
       <ContinuityMeter game={game} />
       <RivalryHeatMap />
@@ -254,13 +396,13 @@ export function FranchiseHub() {
               accent={activeDeal ? 'green' : 'red'}
             />
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <PixelButton accent="gold" disabled={identity.stadiumLevel >= 3} onClick={() => { void upgradeStadium(); }}>
+              <PixelButton accent="gold" disabled={identity.stadiumLevel >= 3} onClick={() => { void handleUpgradeStadium(); }}>
                 Upgrade Stadium
               </PixelButton>
-              <PixelButton accent={canRelocate ? 'cyan' : 'default'} disabled={!canRelocate} onClick={() => navigateTo('/relocate')}>
+              <PixelButton accent={canRelocate ? 'cyan' : 'default'} disabled={!canRelocate} onClick={FRANCHISE_HUB_ROUTE_ACTIONS.relocate}>
                 Relocate Franchise
               </PixelButton>
-              <PixelButton accent="green" onClick={() => navigateTo('/legends')}>
+              <PixelButton accent="green" onClick={FRANCHISE_HUB_ROUTE_ACTIONS.legends}>
                 View All-Decade Team
               </PixelButton>
             </div>
@@ -293,7 +435,7 @@ export function FranchiseHub() {
                         ${deal.revenuePerYear.toFixed(1)}M / year // {deal.yearsTotal} years // +{deal.prestigeBonus} prestige
                       </div>
                     </div>
-                    <PixelButton accent="green" onClick={() => { void acceptNamingRights(index); }}>
+                    <PixelButton accent="green" onClick={() => { void handleAcceptNamingRights(deal, index); }}>
                       Accept
                     </PixelButton>
                   </div>
@@ -308,7 +450,7 @@ export function FranchiseHub() {
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
               Every dynasty you coach lives here, even after wipes and fresh starts.
             </div>
-            <PixelButton accent="gold" onClick={() => navigateTo('/franchise/career')}>
+            <PixelButton accent="gold" onClick={FRANCHISE_HUB_ROUTE_ACTIONS.career}>
               View GM Career
             </PixelButton>
           </div>
@@ -322,7 +464,7 @@ export function FranchiseHub() {
             <div style={{ ...monoSm, color: 'var(--mfd-green)' }}>
               Depth: {coachingDepth}
             </div>
-            <PixelButton accent="green" onClick={() => navigateTo('/coaching/tree')}>
+            <PixelButton accent="green" onClick={FRANCHISE_HUB_ROUTE_ACTIONS.coachingTree}>
               View Coaching Tree
             </PixelButton>
           </div>
@@ -333,7 +475,7 @@ export function FranchiseHub() {
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
               Every Hall of Famer you ever developed, across every dynasty you ever coached.
             </div>
-            <PixelButton accent="red" onClick={() => navigateTo('/franchise/hall')}>
+            <PixelButton accent="red" onClick={FRANCHISE_HUB_ROUTE_ACTIONS.hall}>
               Open Hall of Fame
             </PixelButton>
           </div>
@@ -344,7 +486,7 @@ export function FranchiseHub() {
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
               Every postseason moment, across every dynasty.
             </div>
-            <PixelButton accent="cyan" onClick={() => navigateTo('/franchise/playoff-lore')}>
+            <PixelButton accent="cyan" onClick={FRANCHISE_HUB_ROUTE_ACTIONS.playoffLore}>
               Open Playoff Lore
             </PixelButton>
           </div>
@@ -355,7 +497,7 @@ export function FranchiseHub() {
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
               Franchise history, Hall of Fame, scrapbook notes, and playoff lore in one chronological scroll.
             </div>
-            <PixelButton accent="gold" onClick={() => navigateTo('/franchise/chronicle')}>
+            <PixelButton accent="gold" onClick={FRANCHISE_HUB_ROUTE_ACTIONS.chronicle}>
               Open Dynasty Chronicle
             </PixelButton>
           </div>
@@ -366,7 +508,7 @@ export function FranchiseHub() {
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
               Every completed season becomes a scrapbook page in your dynasty archive.
             </div>
-            <PixelButton accent="cyan" onClick={() => navigateTo('/franchise/scrapbook')}>
+            <PixelButton accent="cyan" onClick={FRANCHISE_HUB_ROUTE_ACTIONS.scrapbook}>
               View Dynasty Scrapbook
             </PixelButton>
           </div>

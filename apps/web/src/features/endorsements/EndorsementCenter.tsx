@@ -72,6 +72,105 @@ const dealColumns: ColumnDef<ActiveDealRow, unknown>[] = [
   },
 ];
 
+type EndorsementReceiptAction = 'accept' | 'decline';
+type EndorsementReceiptAccent = 'green' | 'default';
+
+interface EndorsementActionReceipt {
+  id: string;
+  title: string;
+  actionLabel: string;
+  brandName: string;
+  target: string;
+  requirement: string;
+  result: string;
+  source: string;
+  accent: EndorsementReceiptAccent;
+}
+
+export function buildEndorsementActionReceipt({
+  action,
+  offer,
+  player,
+  team,
+}: {
+  action: EndorsementReceiptAction;
+  offer: EndorsementDeal;
+  player?: Player;
+  team: Team | null;
+}): EndorsementActionReceipt {
+  const status = requirementStatus(player, team, offer);
+  const playerLabel = player ? `${player.name} // ${player.pos} // ${player.ovr} OVR` : offer.playerId;
+  const accept = action === 'accept';
+
+  return {
+    id: `${action}:${offer.id}`,
+    title: accept ? 'Endorsement Accepted' : 'Endorsement Declined',
+    actionLabel: accept ? 'Accepted' : 'Declined',
+    brandName: offer.brandName,
+    target: `${playerLabel} // ${offer.tier.toUpperCase()} // $${offer.revenuePerYear.toFixed(1)}M/YR`,
+    requirement: `${status.label} ${status.ok ? 'met' : 'not met'}`,
+    result: accept
+      ? 'The accept path resolves the roster player first, lets the engine helper apply the deal when capacity and tier checks allow, writes that player back to game.players, removes the pending offer, and commits the save.'
+      : 'The decline path removes only the pending offer and commits the save. There is no current morale, reputation, revenue, renewal-odds, game-result or hidden-outcome penalty for declining.',
+    source: accept
+      ? 'Action used: actions.acceptEndorsement -> acceptEndorsementEngine -> commitGame. This confirmation appears here only.'
+      : 'Action used: actions.declineEndorsement -> commitGame. This confirmation appears here only.',
+    accent: accept ? 'green' : 'default',
+  };
+}
+
+export function EndorsementActionReceiptPanel({ receipt }: { receipt: EndorsementActionReceipt }) {
+  return (
+    <PixelPanel title="Endorsement Receipt" accent={receipt.accent}>
+      <div style={autoGrid(220)}>
+        <PixelMetric label="Action" value={receipt.actionLabel} accent={receipt.accent} detail={receipt.brandName} />
+        <PixelMetric label="Offer" value={receipt.brandName} accent="gold" detail={receipt.target} />
+        <PixelMetric label="Requirement" value={receipt.requirement} accent="cyan" detail="Requirement status is read before the existing action resolves." />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant={receipt.accent}>On-screen confirmation</PixelBadge>
+          <PixelBadge variant="default">Saved offer path</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>{receipt.result}</div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+          {receipt.source} This confirmation does not generate offers, tick yearly deals, change requirements, write revenue, play games, reroll saved outcomes, or move players.
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
+function PixelMetric({
+  label,
+  value,
+  accent,
+  detail,
+}: {
+  label: string;
+  value: string;
+  accent: 'default' | 'cyan' | 'green' | 'gold';
+  detail: string;
+}) {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '6px',
+      padding: '10px',
+      border: `2px solid var(--mfd-${accent === 'default' ? 'border' : accent})`,
+      background: 'rgba(0,0,0,0.18)',
+    }}
+    >
+      <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '8px', letterSpacing: 0, color: accent === 'default' ? 'var(--mfd-text-dim)' : `var(--mfd-${accent})` }}>
+        {label}
+      </span>
+      <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{value}</span>
+      <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{detail}</span>
+    </div>
+  );
+}
+
 export function EndorsementCenter() {
   const team = useGameStore(selectUserTeam);
   const activeDeals = useGameStore(selectActiveEndorsements);
@@ -81,6 +180,7 @@ export function EndorsementCenter() {
   const acceptEndorsement = useGameStore((state) => state.actions.acceptEndorsement);
   const declineEndorsement = useGameStore((state) => state.actions.declineEndorsement);
   const [pending, setPending] = useState<string | null>(null);
+  const [actionReceipt, setActionReceipt] = useState<EndorsementActionReceipt | null>(null);
 
   const playerMap = useMemo(
     () => new Map((team?.roster ?? []).map((player) => [player.id, player])),
@@ -110,6 +210,27 @@ export function EndorsementCenter() {
     );
   }
 
+  const handleOfferAction = async (offer: EndorsementDeal, action: EndorsementReceiptAction) => {
+    const pendingKey = action === 'accept' ? offer.id : `decline:${offer.id}`;
+    const receipt = buildEndorsementActionReceipt({
+      action,
+      offer,
+      player: playerMap.get(offer.playerId),
+      team,
+    });
+    setPending(pendingKey);
+    try {
+      if (action === 'accept') {
+        await acceptEndorsement(offer.id);
+      } else {
+        await declineEndorsement(offer.id);
+      }
+      setActionReceipt(receipt);
+    } finally {
+      setPending(null);
+    }
+  };
+
   return (
     <div style={screenStackStyle}>
       <PixelScreenHeader
@@ -134,6 +255,8 @@ export function EndorsementCenter() {
           </div>
         </div>
       </PixelPanel>
+
+      {actionReceipt ? <EndorsementActionReceiptPanel receipt={actionReceipt} /> : null}
 
       <PixelPanel title="Active Deals" accent="cyan">
         {activeDeals.length > 0 ? (
@@ -188,20 +311,14 @@ export function EndorsementCenter() {
                       <PixelButton
                         accent="green"
                         disabled={pending === offer.id}
-                        onClick={() => {
-                          setPending(offer.id);
-                          void acceptEndorsement(offer.id).finally(() => setPending(null));
-                        }}
+                        onClick={() => void handleOfferAction(offer, 'accept')}
                       >
                         {pending === offer.id ? 'Signing...' : 'Accept'}
                       </PixelButton>
                       <PixelButton
                         accent="default"
                         disabled={pending === `decline:${offer.id}`}
-                        onClick={() => {
-                          setPending(`decline:${offer.id}`);
-                          void declineEndorsement(offer.id).finally(() => setPending(null));
-                        }}
+                        onClick={() => void handleOfferAction(offer, 'decline')}
                       >
                         {pending === `decline:${offer.id}` ? 'Declining...' : 'Decline'}
                       </PixelButton>

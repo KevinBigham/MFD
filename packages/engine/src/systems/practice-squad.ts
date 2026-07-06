@@ -1,10 +1,12 @@
 import { RNG } from '../rng';
-import { getSalaryCap } from '../config';
-import { calcCapHit, calcDeadMoney } from './contracts';
+import { getMinSalary, getSalaryCap } from '../config';
+import { calcCapHit, calcDeadMoney, makeContract } from './contracts';
 import { assignJerseyNumber } from './jersey-retirement';
 import { getActiveRule } from './league-rules';
 import { recordNewsItem } from './league-news';
 import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
+import { getScenarioConstraints } from './scenario-challenge';
+import { syncTeamCapTotals } from './team-cap';
 import type {
   EngineOutput,
   GameState,
@@ -17,7 +19,7 @@ import type {
 
 const PRACTICE_SQUAD_MAX = 16;
 
-function getPracticeSquadLimit(game: GameState): number {
+export function getPracticeSquadLimit(game: GameState): number {
   if (!game.leagueRules) return PRACTICE_SQUAD_MAX;
   return Number(getActiveRule(game.leagueRules, 'practice_squad_size', game.year));
 }
@@ -69,6 +71,10 @@ function teamNeeds(team: Team, playerPos: string): boolean {
 }
 
 export function addToPracticeSquad(game: GameState, teamId: string, playerId: string): EngineOutput {
+  if (getScenarioConstraints(game)?.blockFreeAgency) {
+    return { nextState: game, events: [], consequences: [] };
+  }
+
   const team = game.teams[teamId];
   const player = game.players[playerId];
   if (!team || !player || !game.freeAgents.includes(playerId) || team.practiceSquad.length >= getPracticeSquadLimit(game)) {
@@ -181,6 +187,10 @@ export function cutPlayerToWaivers(game: GameState, teamId: string, playerId: st
 }
 
 export function submitWaiverClaim(game: GameState, teamId: string, playerId: string): EngineOutput {
+  if (getScenarioConstraints(game)?.blockFreeAgency) {
+    return { nextState: game, events: [], consequences: [] };
+  }
+
   ensureWaiverState(game);
   if (!game.waiverWire.some((entry) => entry.playerId === playerId)) {
     return emptyResult(game);
@@ -208,6 +218,12 @@ function awardClaim(game: GameState, claim: WaiverClaim): void {
   }
   assignJerseyNumber(team, player);
   player.teamId = team.id;
+  if (player.contract) {
+    player.contract.teamId = team.id;
+  } else {
+    player.contract = makeContract(getMinSalary(player.yearsExp ?? 0), 1, 0, 0, player.id, team.id);
+  }
+  game.freeAgents = game.freeAgents.filter((playerId) => playerId !== player.id);
   game.waiverWire = game.waiverWire.filter((entry) => entry.playerId !== player.id);
   game.waiverClaims = game.waiverClaims.filter((entry) => entry.playerId !== player.id);
   team.txLog.push({
@@ -230,6 +246,7 @@ function awardClaim(game: GameState, claim: WaiverClaim): void {
     importance: 'minor',
   });
   refreshRosterState(team);
+  syncTeamCapTotals(game, team);
 }
 
 function expireWaivers(game: GameState): WaiverResultEntry[] {
@@ -260,11 +277,16 @@ function expireWaivers(game: GameState): WaiverResultEntry[] {
 
 function returnElevatedPlayers(game: GameState): void {
   for (const team of Object.values(game.teams)) {
+    let returnedPlayer = false;
     for (const squadPlayer of team.practiceSquad) {
       if (!squadPlayer.isElevated) continue;
       if (squadPlayer.elevatedWeek !== game.week) continue;
       squadPlayer.isElevated = false;
       team.roster = team.roster.filter((player) => player.id !== squadPlayer.playerId);
+      returnedPlayer = true;
+    }
+    if (returnedPlayer) {
+      refreshRosterState(team);
     }
   }
 }

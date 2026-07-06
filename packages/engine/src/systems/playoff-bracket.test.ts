@@ -4,6 +4,10 @@ import { applyRuleChange, initLeagueRules } from './league-rules';
 import { seedPlayoffBracket } from './playoff-bracket';
 import { makeLeagueState } from './test-helpers';
 
+function emptySchedule(weeks: number) {
+  return Array.from({ length: weeks }, (_, index) => ({ week: index + 1, games: [] }));
+}
+
 function applyRecords(game: GameState) {
   const records: Record<string, [number, number, number]> = {
     afce1: [13, 4, 120],
@@ -68,5 +72,16 @@ describe('playoff bracket league rule overrides', () => {
     expect(bracket.afc).toHaveLength(8);
     expect(bracket.nfc).toHaveLength(8);
     expect(bracket.matchups.filter((matchup) => matchup.round === 'wild_card' && matchup.conference === 'NFC')).toHaveLength(4);
+  });
+
+  it('starts the wild card after the generated regular-season schedule', () => {
+    const game = makeLeagueState('regular_season', 19);
+    applyRecords(game);
+    game.schedule = emptySchedule(19);
+
+    const bracket = seedPlayoffBracket(game);
+
+    expect(bracket.matchups.every((matchup) => matchup.round === 'wild_card')).toBe(true);
+    expect(bracket.matchups.every((matchup) => matchup.week === 20)).toBe(true);
   });
 });

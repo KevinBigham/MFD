@@ -105,6 +105,29 @@ describe('cap laboratory', () => {
     expect(getCapHealth(unhealthy, game).grade).toBe('F');
   });
 
+  it('keeps cap-health recommendations direct and player-facing', () => {
+    const game = makeLeagueState();
+    const healthy = game.teams.afce1;
+    healthy.capSpace = 42;
+    healthy.capUsed = 190;
+    healthy.deadCap = 4;
+
+    const unhealthy = game.teams.afce2;
+    unhealthy.capSpace = 2;
+    unhealthy.capUsed = 253;
+    unhealthy.deadCap = 32;
+    unhealthy.deadCapByYear[game.year + 1] = 28;
+    unhealthy.deadCapByYear[game.year + 2] = 20;
+
+    const copy = [
+      ...getCapHealth(healthy, game).recommendations,
+      ...getCapHealth(unhealthy, game).recommendations,
+    ].join(' ');
+
+    expect(copy).toMatch(/\b(?:cap space|dead money|starter-value|future dead cap|flexibility|extension)\b/i);
+    expect(copy).not.toMatch(/\b(?:Create room|Cap sheet|crowding flexibility|too top-heavy|stable shape)\b/i);
+  });
+
   it('identifies cap candidates sorted by cap hit with actionable recommendations', () => {
     const game = makeLeagueState();
     const team = game.teams.afce1;

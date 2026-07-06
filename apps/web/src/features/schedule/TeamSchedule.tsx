@@ -22,6 +22,15 @@ import {
 
 type TeamScheduleRow = ReturnType<typeof selectTeamSchedule> extends Array<infer Entry> ? Entry : never;
 type WeekScheduleRow = ReturnType<ReturnType<typeof selectWeekSchedule>> extends Array<infer Entry> ? Entry : never;
+type SourceAccent = 'default' | 'gold' | 'cyan' | 'green';
+
+interface ScheduleSourceRow {
+  id: string;
+  label: string;
+  badge: string;
+  accent: SourceAccent;
+  detail: string;
+}
 
 function resultLabel(entry: TeamScheduleRow) {
   if (entry.bye) return 'BYE';
@@ -32,6 +41,56 @@ function resultLabel(entry: TeamScheduleRow) {
   const teamTied = entry.result.homeScore === entry.result.awayScore;
   if (teamTied) return `T ${entry.result.homeScore}-${entry.result.awayScore}`;
   return `${teamWon ? 'W' : 'L'} ${entry.home ? entry.result.homeScore : entry.result.awayScore}-${entry.home ? entry.result.awayScore : entry.result.homeScore}`;
+}
+
+export function buildScheduleSourceRows(
+  teamSchedule: TeamScheduleRow[],
+  weekSchedule: WeekScheduleRow[],
+  selectedWeek: number,
+  seasonWeeks: number,
+): ScheduleSourceRow[] {
+  const primetimeCount = teamSchedule.filter((entry) => entry.primetime).length;
+  const flexedCount = teamSchedule.filter((entry) => entry.flexed).length;
+  const completedCount = teamSchedule.filter((entry) => entry.result).length;
+  const byeCount = teamSchedule.filter((entry) => entry.bye).length;
+
+  return [
+    {
+      id: 'team-slate',
+      label: 'Team slate',
+      badge: `${teamSchedule.length} rows`,
+      accent: 'cyan',
+      detail: `selectTeamSchedule reads the saved user-team schedule across ${seasonWeeks} weeks, including byes, stored results, records after completed games, broadcasts, and flex tags.`,
+    },
+    {
+      id: 'league-slate',
+      label: 'League slate',
+      badge: `W${selectedWeek} // ${weekSchedule.length} games`,
+      accent: 'gold',
+      detail: 'selectWeekSchedule(selectedWeek) projects saved ScheduledGame rows for the chosen week; changing the dropdown only changes this read.',
+    },
+    {
+      id: 'broadcast-flex',
+      label: 'Broadcast / flex',
+      badge: `${primetimeCount} prime / ${flexedCount} flex`,
+      accent: 'green',
+      detail: 'Primetime, flexed, and broadcast network badges come from saved schedule fields assigned by week-advance and media paths.',
+    },
+    {
+      id: 'results',
+      label: 'Results / byes',
+      badge: `${completedCount} final / ${byeCount} byes`,
+      accent: 'default',
+      detail: 'Final scores and record-after-game rows read stored results. Pending games stay pending until the advance-week path writes outcomes.',
+    },
+    {
+      id: 'render-boundary',
+      label: 'Just viewing',
+      badge: 'display only',
+      accent: 'default',
+      detail: 'Opening Schedule does not generate a schedule, assign broadcasts, flex games, weather, results, records, news, or game-day packages.',
+    },
+  ];
 }
 
 const teamColumns: ColumnDef<TeamScheduleRow, unknown>[] = [
@@ -126,12 +185,14 @@ export function TeamSchedule() {
   const teamSchedule = useGameStore(selectTeamSchedule);
   const [selectedWeek, setSelectedWeek] = useState(currentWeek);
   const weekSchedule = useGameStore(selectWeekSchedule(selectedWeek));
+  const seasonWeeks = Math.max(currentWeek, selectedWeek, ...teamSchedule.map((entry) => entry.week), 1);
+  const sourceRows = buildScheduleSourceRows(teamSchedule, weekSchedule, selectedWeek, seasonWeeks);
 
   return (
     <div style={screenStackStyle}>
       <PixelScreenHeader
         title="Schedule"
-        subtitle={`${team ? `${team.city} ${team.name}` : 'Franchise'} // full 18-week slate with broadcasts and flex windows`}
+        subtitle={`${team ? `${team.city} ${team.name}` : 'Franchise'} // full ${seasonWeeks}-week slate with broadcasts and flex windows`}
         badges={(
           <>
             <PixelBadge variant="cyan">Week {selectedWeek}</PixelBadge>
@@ -139,6 +200,32 @@ export function TeamSchedule() {
           </>
         )}
       />
+
+      <PixelPanel title="Schedule Sources" accent="cyan">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+          {sourceRows.map((row) => (
+            <div
+              key={row.id}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '10px',
+                border: '2px solid var(--mfd-border)',
+                background: 'var(--mfd-bg-2)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ ...monoSm, color: '#fff' }}>{row.label}</span>
+                <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
+              </div>
+              <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                {row.detail}
+              </span>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
 
       <div style={autoGrid(260)}>
         <PixelPanel title="Team Schedule" accent="cyan">
@@ -158,7 +245,7 @@ export function TeamSchedule() {
                 aria-label="Select league week"
                 value={String(selectedWeek)}
                 onChange={(event) => setSelectedWeek(Number(event.target.value))}
-                options={Array.from({ length: 18 }, (_, index) => ({
+                options={Array.from({ length: seasonWeeks }, (_, index) => ({
                   value: String(index + 1),
                   label: `Week ${index + 1}`,
                 }))}

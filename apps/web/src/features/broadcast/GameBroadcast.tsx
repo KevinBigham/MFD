@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { BroadcastCommentaryGame } from '@mfd/engine';
-import { buildBroadcastCommentary } from '@mfd/engine';
+import { buildBroadcastCommentary, buildHalftimeDecisionReceipt } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
-import { selectBroadcastByGameId, useGameStore } from '../../app/store/game-store';
+import { selectBroadcastByGameId, selectGameDayPackageByBroadcastGameId, useGameStore } from '../../app/store/game-store';
 import { useUiStore } from '../../app/store/ui-store';
-import { PixelScreenHeader, autoGrid, monoSm, pixelSm, screenStackStyle } from '../shared/pixelUi';
+import { PixelScreenHeader, autoGrid, display, monoSm, pixelSm, screenStackStyle } from '../shared/pixelUi';
 import { EmptyState } from '../shared/EmptyState';
 import { GhostBroadcastsPanel } from './GhostBroadcastsPanel';
 
@@ -26,11 +26,106 @@ function playAccent(play: { type: string; isBigPlay: boolean; isClutch: boolean 
   return 'var(--mfd-border)';
 }
 
+type BroadcastSourceAccent = 'default' | 'green' | 'cyan' | 'gold' | 'red';
+
+interface BroadcastSourceRow {
+  id: string;
+  label: string;
+  value: string;
+  detail: string;
+  accent: BroadcastSourceAccent;
+}
+
+export function buildBroadcastSourceRows({
+  hasBroadcast,
+  hasGameDayPackage,
+  broadcastGameId,
+  commentaryLineCount,
+  activeTab,
+}: {
+  hasBroadcast: boolean;
+  hasGameDayPackage: boolean;
+  broadcastGameId: string | null;
+  commentaryLineCount: number;
+  activeTab: BroadcastTab;
+}): BroadcastSourceRow[] {
+  return [
+    {
+      id: 'broadcast-selection',
+      label: 'Broadcast selection',
+      value: broadcastGameId ? 'Selected game' : 'Latest result',
+      detail: 'useUiStore.broadcastGameId scopes selectBroadcastByGameId. A null selection falls back to the latest completed result instead of writing route state.',
+      accent: broadcastGameId ? 'gold' : 'cyan',
+    },
+    {
+      id: 'broadcast-view',
+      label: 'Broadcast view',
+      value: hasBroadcast ? 'Saved result' : 'No result',
+      detail: 'selectBroadcastByGameId rebuilds this read model from saved GameResult broadcast data plus current team rosters and labels. Rendering does not simulate or replay the game.',
+      accent: hasBroadcast ? 'green' : 'default',
+    },
+    {
+      id: 'game-day-package',
+      label: 'Game-day package',
+      value: hasGameDayPackage ? 'Matched package' : 'No package',
+      detail: 'selectGameDayPackageByBroadcastGameId matches saved gameDayState.recentPackages to the selected result; buildHalftimeDecisionReceipt only parses saved activeEffectSummaries.',
+      accent: hasGameDayPackage ? 'gold' : 'default',
+    },
+    {
+      id: 'broadcast-texture',
+      label: 'Broadcast texture',
+      value: `${commentaryLineCount} lines`,
+      detail: 'buildBroadcastCommentary derives deterministic pregame and in-game booth flavor from saved teams, relationships, history, and the year/week seed. These lines are not persisted by this route.',
+      accent: commentaryLineCount > 0 ? 'cyan' : 'default',
+    },
+    {
+      id: 'render-boundary',
+      label: 'Just viewing',
+      value: activeTab === 'highlights' ? 'Highlights' : activeTab.toUpperCase(),
+      detail: 'Quarter tabs, highlights, MVP radar, ghost lines, and broadcast notes are read-only presentation. Opening the route does not append packages, change broadcasts, click Advance Week, or change results.',
+      accent: 'red',
+    },
+  ];
+}
+
+function BroadcastSources({ rows }: { rows: BroadcastSourceRow[] }) {
+  return (
+    <PixelPanel title="Broadcast Sources" accent="cyan">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+        {rows.map((row) => (
+          <div
+            key={row.id}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              padding: '10px',
+              border: '2px solid var(--mfd-border)',
+              background: 'var(--mfd-bg-2)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ ...display, fontSize: '16px', color: 'var(--mfd-text)', lineHeight: 1 }}>{row.label.toUpperCase()}</div>
+              <PixelBadge variant={row.accent}>{row.value.toUpperCase()}</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{row.detail}</div>
+          </div>
+        ))}
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function GameBroadcast() {
   const broadcastGameId = useUiStore((state) => state.broadcastGameId);
   const game = useGameStore((state) => state.game);
   const latestBroadcast = useGameStore(useMemo(() => selectBroadcastByGameId(broadcastGameId), [broadcastGameId]));
+  const gameDayPackage = useGameStore(useMemo(() => selectGameDayPackageByBroadcastGameId(broadcastGameId), [broadcastGameId]));
   const [activeTab, setActiveTab] = useState<BroadcastTab>('q1');
+  const halftimeReceipt = useMemo(
+    () => buildHalftimeDecisionReceipt(gameDayPackage?.activeEffectSummaries ?? []),
+    [gameDayPackage],
+  );
   const broadcastNotes = useMemo(() => {
     if (!game || !latestBroadcast) {
       return { pregame: [], inGame: [], recap: [] };
@@ -42,16 +137,26 @@ export function GameBroadcast() {
       seed: game.year * 100 + latestBroadcast.gameResult.week,
     });
   }, [game, latestBroadcast]);
+  const sourceRows = buildBroadcastSourceRows({
+    hasBroadcast: Boolean(latestBroadcast),
+    hasGameDayPackage: Boolean(latestBroadcast && gameDayPackage),
+    broadcastGameId,
+    commentaryLineCount: broadcastNotes.pregame.length + broadcastNotes.inGame.length,
+    activeTab,
+  });
 
   if (!latestBroadcast) {
     return (
-      <EmptyState
-        title="Game Broadcast"
-        reason="No recent broadcast is available. Advance a game week to generate a broadcast recap and highlight reel."
-        nextStep="Advance a game week to generate your first broadcast."
-        actionLabel="Advance Week"
-        actionRoute="/week-advance"
-      />
+      <div style={screenStackStyle}>
+        <EmptyState
+          title="Game Broadcast"
+          reason="No recent broadcast is available. Advance a game week to generate a broadcast recap and highlight reel."
+          nextStep="Advance a game week to generate your first broadcast."
+          actionLabel="Advance Week"
+          actionRoute="/week-advance"
+        />
+        <BroadcastSources rows={sourceRows} />
+      </div>
     );
   }
 
@@ -77,6 +182,8 @@ export function GameBroadcast() {
           </>
         )}
       />
+
+      <BroadcastSources rows={sourceRows} />
 
       <div style={{
         display: 'grid',
@@ -112,6 +219,21 @@ export function GameBroadcast() {
                 {line}
               </div>
             ))}
+          </div>
+        </PixelPanel>
+      ) : null}
+
+      {halftimeReceipt ? (
+        <PixelPanel title="Halftime Receipt" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="gold">HALFTIME DECISION</PixelBadge>
+              <PixelBadge variant="cyan">GAME DAY PACKAGE</PixelBadge>
+              <PixelBadge variant="green">BROADCAST HOOK</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+              {halftimeReceipt.broadcastLine}
+            </div>
           </div>
         </PixelPanel>
       ) : null}

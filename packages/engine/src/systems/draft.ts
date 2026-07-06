@@ -22,6 +22,7 @@ import { recordNewsItem } from './league-news';
 import { initializeLockerRoom, syncLockerRoomRoster } from './locker-room';
 import { createNearMissTracker, recordPassedPick } from './near-miss-receipts';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
+import { getScenarioConstraints } from './scenario-challenge';
 import { applyScoutAccuracy, bestScoutForProspect, runCombine } from './scouting-staff';
 import { mulberry32 } from '../rng';
 import type {
@@ -125,14 +126,40 @@ function makeProspect(game: GameState, rand: () => number, index: number): Draft
 
 export function ensureDraftClass(game: GameState): void {
   if (game.draftClass.length > 0) return;
-  const pickCount = Object.values(game.teams)
-    .flatMap((team) => team.draftPicks)
-    .filter((pick) => pick.year === game.year).length;
+  const count = draftClassTargetSize(game);
   const rand = rngForClass(game.seed, game.year);
-  const count = Math.max(64, pickCount + 24);
   const prospects = Array.from({ length: count }, (_, index) => makeProspect(game, rand, index + 1));
   game.draftClass = assignBloodlinesToDraftClass(prospects, game)
     .sort((a, b) => b.trueGrade - a.trueGrade || a.id.localeCompare(b.id));
+  runCombine(game, rand);
+}
+
+function draftClassTargetSize(game: GameState): number {
+  const pickCount = Object.values(game.teams)
+    .flatMap((team) => team.draftPicks)
+    .filter((pick) => pick.year === game.year).length;
+  return Math.max(64, pickCount + 24);
+}
+
+export function ensureDraftClassCoversCurrentPicks(game: GameState): void {
+  const targetSize = draftClassTargetSize(game);
+  if (game.draftClass.length >= targetSize) return;
+
+  const existingIds = new Set(game.draftClass.map((prospect) => prospect.id));
+  const additions: DraftProspect[] = [];
+  const rand = rngForClass(game.seed, game.year);
+
+  for (let index = 1; additions.length + game.draftClass.length < targetSize; index += 1) {
+    const prospect = makeProspect(game, rand, index);
+    if (existingIds.has(prospect.id)) continue;
+    additions.push(prospect);
+    existingIds.add(prospect.id);
+  }
+
+  game.draftClass = [
+    ...game.draftClass,
+    ...assignBloodlinesToDraftClass(additions, game),
+  ].sort((a, b) => b.trueGrade - a.trueGrade || a.id.localeCompare(b.id));
   runCombine(game, rand);
 }
 
@@ -387,6 +414,10 @@ function recordPendingPassedPick(game: GameState, team: Team, prospect: DraftPro
 
 export function makeDraftPick(game: GameState, prospectId: string): EngineOutput {
   const nextState = cloneGame(game);
+  if (getScenarioConstraints(nextState)?.blockDraft) {
+    return { nextState, events: [], consequences: [] };
+  }
+
   const userTeam = findUserTeam(nextState);
   if (!nextState.offseasonState || !userTeam) {
     return { nextState, events: [], consequences: [] };

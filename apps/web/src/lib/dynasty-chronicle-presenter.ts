@@ -54,8 +54,11 @@ export function chronicleBody(event: ChronicleEvent): string {
   switch (event.type) {
     case 'championship_win':
       return `${event.teamAbbr} finished ${event.record} and closed the year with a title.`;
-    case 'hof_induction':
-      return `${event.playerName} entered the Hall of Fame as a ${event.position}.`;
+    case 'hof_induction': {
+      const base = `${event.playerName} entered the Hall of Fame as a ${event.position}.`;
+      if (!event.epilogueHeadline || !event.epilogueStory) return base;
+      return `${base} ${event.epilogueHeadline}: ${event.epilogueStory}`;
+    }
     case 'playoff_round':
       return `${titleCase(event.outcome)} // ${event.finalScore} // ${event.headline}`;
     case 'season_end':
@@ -90,6 +93,7 @@ export function chronicleFacts(event: ChronicleEvent): ChronicleFact[] {
         { label: 'Name', value: event.playerName },
         { label: 'Position', value: event.position },
         { label: 'Induction', value: String(event.year) },
+        ...(event.epilogueCategory ? [{ label: 'Epilogue', value: titleCase(event.epilogueCategory) }] : []),
       ];
     case 'playoff_round':
       return [

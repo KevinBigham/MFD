@@ -1,4 +1,5 @@
 import { calcCapHit } from './contracts';
+import { conditionalPickExpectedValue } from './conditional-picks';
 import { getTradeableAssets, getTradeTargets } from './trade-negotiation';
 import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
 import type { GameState, Position, Team, TradeOfferAsset, TradeSuggestion } from '../types';
@@ -32,6 +33,10 @@ function assetValue(game: GameState, valuationTeam: Team, asset: TradeOfferAsset
       pick: Number(pickText),
     });
   }
+  if (asset.type === 'conditional_pick' && asset.conditionalPickId) {
+    const conditionalPick = game.conditionalPicks.find((entry) => entry.id === asset.conditionalPickId);
+    return conditionalPick ? conditionalPickExpectedValue(conditionalPick) : 0;
+  }
   return 0;
 }
 
@@ -52,8 +57,7 @@ function capCompatible(game: GameState, userTeam: Team, offering: TradeOfferAsse
 function suggestionType(offering: TradeOfferAsset[], requesting: TradeOfferAsset[]): TradeSuggestion['offer']['type'] {
   const assetTypes = new Set([...offering, ...requesting].map((asset) => asset.type));
   if (assetTypes.size === 1 && assetTypes.has('player')) return 'player_for_player';
-  if (assetTypes.has('pick') && !assetTypes.has('player')) return 'pick_for_player';
-  if (assetTypes.size === 1 && assetTypes.has('pick')) return 'pick_for_player';
+  if ((assetTypes.has('pick') || assetTypes.has('conditional_pick')) && !assetTypes.has('player')) return 'pick_for_player';
   return 'mixed';
 }
 

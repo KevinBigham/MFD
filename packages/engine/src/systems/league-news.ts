@@ -1,4 +1,4 @@
-import type { BrokenRecord, GameResult, GameState, LeagueLeader, MilestoneReached, NewsItem, Player, Team } from '../types';
+import type { BrokenRecord, GameResult, GameState, HallOfFameEntry, LeagueLeader, MilestoneReached, NewsItem, Player, Team } from '../types';
 
 function nextNewsId(game: GameState, type: NewsItem['type']): string {
   return `${type}-${game.year}-${game.week}-${game.leagueNews.length}`;
@@ -15,6 +15,13 @@ function teamLabel(team: Team | undefined): string {
 
 function playerLabel(player: Player | undefined): string {
   return player?.name ?? 'A player';
+}
+
+function hallOfFameNewsBody(entry: HallOfFameEntry): string {
+  const headline = entry.epilogue?.headline.trim();
+  const story = entry.epilogue?.story.trim();
+  if (headline && story) return `${headline}: ${story}`;
+  return `${entry.name} is honored for a career that peaked at ${entry.peakOvr} overall.`;
 }
 
 export function recordNewsItem(game: GameState, item: NewsItem): NewsItem {
@@ -303,7 +310,7 @@ export function generateOffseasonNews(game: GameState, _rand: () => number = () 
       week: game.week,
       type: 'milestone',
       headline: `${entry.name} enters the Hall of Fame`,
-      body: `${entry.name} is honored for a career that peaked at ${entry.peakOvr} overall.`,
+      body: hallOfFameNewsBody(entry),
       teamIds: [],
       playerIds: [entry.playerId],
       importance: 'breaking',

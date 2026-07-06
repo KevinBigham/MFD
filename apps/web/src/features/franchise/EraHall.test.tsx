@@ -46,6 +46,22 @@ describe('EraHall', () => {
     expect(markup).toContain('Franchise chapters, title windows, and the roster faces that carried them.');
   });
 
+  it('renders era source context and no-write boundaries', () => {
+    const markup = renderEraHall();
+
+    expect(markup).toContain('ERA SOURCES');
+    expect(markup).toContain('DETECTED ERAS');
+    expect(markup).toContain('selectFranchiseEras');
+    expect(markup).toContain('game.franchiseHistory');
+    expect(markup).toContain('buildEraHallEntries');
+    expect(markup).toContain('selectUserTeam');
+    expect(markup).toContain('actions.nameDynastyEra');
+    expect(markup).toContain('startDynastyEra');
+    expect(markup).toContain('Opening Era Hall does not name eras');
+    expect(markup).toContain('change the live save');
+    expect(markup).toContain('play scheduled games');
+  });
+
   it('renders one era card per era in state', () => {
     const markup = renderEraHall();
 

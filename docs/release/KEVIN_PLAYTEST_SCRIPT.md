@@ -66,10 +66,10 @@ Fast path: launch the Convention Demo from the title screen.
 ## Save / Export
 
 1. Create Save Slot.
-2. Click Copy Cartridge.
-3. If the browser blocks clipboard, use Download `.mfd`.
+2. Click Download Combined Backup.
+3. For legacy recovery only, try Advanced: Copy `.mfd`; if the browser blocks clipboard, use Advanced: Download `.mfd`.
 4. Try invalid pasted backup text and confirm the message says: `That file does not look like a valid MFD save. Your current dynasty was not changed. Try exporting again or choose a different file.`
-5. Try Upload `.mfd Backup` or paste a valid backup code in a clean browser session.
+5. Try Upload Combined Backup in a clean browser session; separately confirm Advanced: Upload `.mfd` / pasted `.mfd` restore only the current save.
 
 ## Review Checklist
 

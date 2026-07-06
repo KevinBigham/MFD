@@ -18,8 +18,19 @@ import { TeamLogo } from '../shared/TeamLogo';
 import { StandingsSignalSvg, StreakSignalSvg, type StandingsSignalKind } from './standingsSignalSvg';
 
 type SeedSignalKind = Extract<StandingsSignalKind, 'seed_locked' | 'seed_bubble' | 'seed_out'>;
-type PlayoffSeed = { seed: number; teamId: string; indicator?: string };
+type PlayoffSeed = { seed: number; teamId: string; teamName: string; teamIcon: string; divisionWinner: boolean; indicator?: string };
 type PlayoffPicture = { afc: PlayoffSeed[]; nfc: PlayoffSeed[] };
+type StandingsSections = ReturnType<typeof selectStandings>;
+type StatLeaders = ReturnType<typeof selectStatLeaders>;
+type SourceAccent = 'default' | 'gold' | 'cyan' | 'green';
+
+interface StandingsSourceRow {
+  id: string;
+  label: string;
+  badge: string;
+  accent: SourceAccent;
+  detail: string;
+}
 
 function streakLabel(streak: number): string {
   if (streak > 0) return `W${streak}`;
@@ -33,7 +44,7 @@ function buildSeedSignals(playoffPicture: PlayoffPicture): Map<string, SeedSigna
   for (const seed of [...playoffPicture.afc, ...playoffPicture.nfc]) {
     if (seed.indicator === 'X' || seed.indicator === 'Y' || seed.seed <= 3) {
       signals.set(seed.teamId, 'seed_locked');
-    } else if (seed.seed <= 7) {
+    } else {
       signals.set(seed.teamId, 'seed_bubble');
     }
   }
@@ -41,10 +52,64 @@ function buildSeedSignals(playoffPicture: PlayoffPicture): Map<string, SeedSigna
   return signals;
 }
 
+function playoffSeedCountLabel(playoffPicture: PlayoffPicture): string {
+  const seedCount = Math.max(playoffPicture.afc.length, playoffPicture.nfc.length);
+  return `${seedCount} seeds / conference`;
+}
+
 function seedSignalTitle(kind: SeedSignalKind): string {
   if (kind === 'seed_locked') return 'Playoff seed locked';
   if (kind === 'seed_bubble') return 'Playoff bubble';
   return 'Outside playoff picture';
+}
+
+export function buildStandingsSourceRows(
+  standings: StandingsSections,
+  playoffPicture: PlayoffPicture,
+  statLeaders: StatLeaders,
+): StandingsSourceRow[] {
+  const teamRows = standings.reduce((total, section) => total + section.rows.length, 0);
+  const playoffSeeds = playoffPicture.afc.length + playoffPicture.nfc.length;
+  const leaderGroups = [statLeaders.passYds, statLeaders.rushYds, statLeaders.recYds, statLeaders.sacks, statLeaders.defINT];
+  const leaderRows = leaderGroups.reduce((total, group) => total + group.length, 0);
+
+  return [
+    {
+      id: 'division-tables',
+      label: 'Division tables',
+      badge: `${standings.length} divisions / ${teamRows} teams`,
+      accent: 'cyan',
+      detail: 'selectStandings maps STANDINGS_DIVISIONS through getDivisionStandings, reading current records, point differential, streaks, and home/away splits.',
+    },
+    {
+      id: 'playoff-picture',
+      label: 'Playoff picture',
+      badge: `${playoffSeeds} seeds`,
+      accent: 'gold',
+      detail: 'selectPlayoffPicture reads the playoff-picture helper output. This route displays saved-season positioning; it does not write playoff brackets or clinch state.',
+    },
+    {
+      id: 'stat-leaders',
+      label: 'Stat leaders',
+      badge: `${leaderRows} leaders`,
+      accent: 'green',
+      detail: 'selectStatLeaders reads current player and team season stats through getStatLeaders. The standings route does not create stats, records, or awards.',
+    },
+    {
+      id: 'route-signals',
+      label: 'Route signals',
+      badge: 'display layer',
+      accent: 'default',
+      detail: 'Division-leader, seed-lock, bubble, out, and streak icons are local projections over selector rows. They do not change standings.',
+    },
+    {
+      id: 'render-boundary',
+      label: 'Just viewing',
+      badge: 'display only',
+      accent: 'default',
+      detail: 'Opening League Standings does not play scheduled games, click Advance Week, write playoff brackets, update power rankings, create records, or generate news/social posts.',
+    },
+  ];
 }
 
 function standingsColumns(userTeamId: string | null, seedSignals: Map<string, SeedSignalKind>): ColumnDef<StandingsRow, unknown>[] {
@@ -144,6 +209,8 @@ export function LeagueStandings() {
   const userDivision = standings
     .flatMap((section) => section.rows)
     .find((row) => row.teamId === userTeam?.id);
+  const sourceRows = buildStandingsSourceRows(standings, playoffPicture, statLeaders);
+  const seedCountLabel = playoffSeedCountLabel(playoffPicture);
 
   return (
     <div style={screenStackStyle}>
@@ -153,7 +220,7 @@ export function LeagueStandings() {
         badges={(
           <>
             <PixelBadge variant="gold">8 divisions</PixelBadge>
-            <PixelBadge variant="cyan">7 seeds / conference</PixelBadge>
+            <PixelBadge variant="cyan">{seedCountLabel}</PixelBadge>
           </>
         )}
       />
@@ -175,6 +242,32 @@ export function LeagueStandings() {
           { label: 'Trade Desk', accent: 'gold', onClick: () => navigateTo('/trades') },
         ]}
       />
+
+      <PixelPanel title="Standings Sources" accent="cyan">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+          {sourceRows.map((row) => (
+            <div
+              key={row.id}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '10px',
+                border: '2px solid var(--mfd-border)',
+                background: 'var(--mfd-bg-2)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ ...monoSm, color: '#fff' }}>{row.label}</span>
+                <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
+              </div>
+              <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                {row.detail}
+              </span>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

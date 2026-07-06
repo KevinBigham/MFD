@@ -21,6 +21,22 @@ export interface DialogueCatalogEntry {
 }
 
 const CHIP_DIALOGUE_POSES = CHIP_POSES satisfies readonly ChipPose[];
+const CHIP_ACTION_CUE =
+  /\b(accept|add|adjust|answer|apply|assign|bid|build|change|choose|claim|clear|cover|cut|decide|decline|download|find|finish|fix|hire|identify|mark|move|name|open|pick|pin|preview|protect|release|resolve|run|save|set|sign|spend|start|test|trade|validate)\b/i;
+const CHIP_CONSEQUENCE_CUE =
+  /\b(advance|before|block|cap|change|consequence|cost|deadline|depth|expire|fail\w*|final|future|injur\w*|later|limit|lock\w*|morale|next|not|owner|pressure|repeat\w*|risk|save|score|slow\w*|starter|week|weak|wrong)\b/i;
+
+export function chipCopyHasClearAction(copy: string): boolean {
+  return CHIP_ACTION_CUE.test(copy);
+}
+
+export function chipCopyHasConsequenceLimitOrDeadline(copy: string): boolean {
+  return CHIP_CONSEQUENCE_CUE.test(copy);
+}
+
+export function chipCopyHasActionAndConsequence(copy: string): boolean {
+  return chipCopyHasClearAction(copy) && chipCopyHasConsequenceLimitOrDeadline(copy);
+}
 
 export function isChipContext(value: unknown): value is ChipContext {
   return typeof value === 'string' && CHIP_CONTEXTS.includes(value as ChipContext);
@@ -56,6 +72,13 @@ export function assertDialogueEntry(entry: DialogueCatalogEntry): DialogueCatalo
     )
   ) {
     throw new Error('Chip dialogue context details must be non-empty strings.');
+  }
+  const fullCopy = [entry.text, ...(entry.contextDetails ?? [])].join(' ');
+  if (!chipCopyHasClearAction(fullCopy)) {
+    throw new Error('Chip dialogue entries require a clear player action.');
+  }
+  if (!chipCopyHasConsequenceLimitOrDeadline(fullCopy)) {
+    throw new Error('Chip dialogue entries require a consequence, limit, or deadline.');
   }
   if (entry.priority !== undefined && (!Number.isInteger(entry.priority) || entry.priority < 1 || entry.priority > 5)) {
     throw new Error('Chip dialogue priority must be an integer from 1 to 5.');

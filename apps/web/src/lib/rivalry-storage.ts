@@ -4,9 +4,9 @@ import {
   type DramaTag,
   type RivalryPayload,
   type RivalryRecord,
-} from './types';
+} from '@mfd/engine';
 
-const STORAGE_KEY = 'mfd.rivalries.v1';
+export const RIVALRIES_STORAGE_KEY = 'mfd.rivalries.v1';
 
 type StorageLike = {
   getItem(key: string): string | null;
@@ -129,18 +129,31 @@ function normalizePayload(payload: RivalryPayload, generatedAt = payload.generat
   };
 }
 
+function writePayload(payload: RivalryPayload, generatedAt = payload.generatedAt): RivalryPayload {
+  const normalized = normalizePayload(payload, generatedAt);
+  const backingStore = storage();
+  if (!backingStore) return normalized;
+
+  backingStore.setItem(RIVALRIES_STORAGE_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
+export function parseRivalryPayload(candidate: unknown): RivalryPayload | null {
+  const validated = RivalryPayloadSchema.safeParse(candidate);
+  if (!validated.success) return null;
+  return normalizePayload(validated.data);
+}
+
 export function loadRivalries(): RivalryPayload {
   const backingStore = storage();
   if (!backingStore) return defaultPayload();
 
-  const raw = backingStore.getItem(STORAGE_KEY);
+  const raw = backingStore.getItem(RIVALRIES_STORAGE_KEY);
   if (!raw) return defaultPayload();
 
   try {
     const parsed = JSON.parse(raw);
-    const validated = RivalryPayloadSchema.safeParse(parsed);
-    if (!validated.success) return defaultPayload();
-    return normalizePayload(validated.data);
+    return parseRivalryPayload(parsed) ?? defaultPayload();
   } catch {
     return defaultPayload();
   }
@@ -148,10 +161,13 @@ export function loadRivalries(): RivalryPayload {
 
 export function saveRivalries(payload: RivalryPayload): RivalryPayload {
   // This timestamp is storage metadata only and never feeds back into sim logic.
-  const stamped = normalizePayload(payload, Date.now());
-  const backingStore = storage();
-  if (!backingStore) return stamped;
+  return writePayload(payload, Date.now());
+}
 
-  backingStore.setItem(STORAGE_KEY, JSON.stringify(stamped));
-  return stamped;
+export function replaceRivalries(payload: RivalryPayload): RivalryPayload {
+  return writePayload(payload);
+}
+
+export function clearRivalries(): RivalryPayload {
+  return writePayload(defaultPayload());
 }

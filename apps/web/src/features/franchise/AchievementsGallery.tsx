@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import type { Achievement, AchievementCategory } from '@mfd/engine';
-import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
+import { getAchievementProgress, type Achievement, type AchievementCategory, type AchievementProgress } from '@mfd/engine';
+import { PixelBadge, PixelButton, PixelPanel, PixelProgressBar } from '@mfd/design-system/components';
 import { selectAchievements, useGameStore } from '../../app/store/game-store';
 import {
   PixelScreenHeader,
@@ -71,9 +71,46 @@ function sortAchievements(achievements: Achievement[], sort: GallerySort): Achie
   });
 }
 
-function criteriaText(achievement: Achievement): string {
-  const type = achievement.condition.type.replaceAll('_', ' ');
-  return `Criteria: ${type} ${achievement.condition.threshold}`;
+function thresholdLabel(achievement: Achievement): string {
+  return String(achievement.condition.threshold);
+}
+
+function readableCriteria(achievement: Achievement): string {
+  const target = thresholdLabel(achievement);
+  switch (achievement.condition.type) {
+    case 'championships':
+      return `Win ${target} championship${target === '1' ? '' : 's'}`;
+    case 'consecutive_championships':
+      return `Win ${target} championships in a row`;
+    case 'perfect_season':
+      return 'Finish a title season without a loss';
+    case 'worst_to_first':
+      return 'Follow a losing season with a playoff breakthrough';
+    case 'full_house':
+      return 'Fill the active roster and practice squad under current league rules';
+    case 'average_roster_age_under':
+      return `Keep roster average age under ${target}`;
+    case 'average_roster_ovr':
+      return `Reach ${target} average roster OVR`;
+    case 'cap_wizard':
+      return 'Stay cap-legal with contender-level roster talent';
+    case 'cinderella_story':
+      return 'Win the title from seed 7 or lower';
+    case 'playoff_comebacks':
+      return `Win ${target} playoff comeback games in one postseason`;
+    default:
+      return `Reach ${target} ${achievement.condition.type.replaceAll('_', ' ')}`;
+  }
+}
+
+function criteriaText(achievement: Achievement, progress?: AchievementProgress | null): string {
+  if (achievement.category === 'hidden' && achievement.unlockedYear === null) {
+    return 'Criteria hidden until unlocked.';
+  }
+  if (achievement.unlockedYear === null && progress && !progress.hidden) {
+    return `Progress: ${progress.label}`;
+  }
+  return `Goal: ${readableCriteria(achievement)}`;
 }
 
 function tierVariant(tier: Achievement['tier']): 'gold' | 'cyan' | 'green' | 'default' {
@@ -89,10 +126,12 @@ function categoryLabel(category: AchievementCategory): string {
 
 export function AchievementsGalleryView({
   achievements,
+  progressById,
   initialFilter = 'all',
   initialSort = 'recent',
 }: {
   achievements: Achievement[];
+  progressById?: Record<string, AchievementProgress | null>;
   initialFilter?: GalleryFilter;
   initialSort?: GallerySort;
 }) {
@@ -147,6 +186,10 @@ export function AchievementsGalleryView({
       <div style={autoGrid(320)}>
         {visibleAchievements.map((achievement) => {
           const unlocked = isUnlocked(achievement);
+          const hiddenLocked = achievement.category === 'hidden' && !unlocked;
+          const progress = progressById?.[achievement.id] ?? null;
+          const title = hiddenLocked ? '???' : achievement.title;
+          const description = hiddenLocked ? 'A hidden achievement waits behind a mystery run.' : achievement.description;
           return (
             <article
               key={achievement.id}
@@ -162,7 +205,7 @@ export function AchievementsGalleryView({
                 filter: unlocked ? 'none' : 'grayscale(0.55)',
               }}
             >
-              <AchievementMedalSvg tier={achievement.tier} locked={!unlocked} title={`${achievement.title} medal`} />
+              <AchievementMedalSvg tier={achievement.tier} locked={!unlocked} title={`${title} medal`} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   <PixelBadge variant={tierVariant(achievement.tier)}>{achievement.tier}</PixelBadge>
@@ -170,14 +213,22 @@ export function AchievementsGalleryView({
                   {unlocked ? <PixelBadge variant="gold">Unlocked</PixelBadge> : <PixelBadge variant="default">Locked</PixelBadge>}
                 </div>
                 <div style={{ ...monoSm, color: 'var(--mfd-text)', fontWeight: 700, fontSize: '13px', lineHeight: 1.4 }}>
-                  {achievement.title}
+                  {title}
                 </div>
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
-                  {achievement.description}
+                  {description}
                 </div>
                 <div style={{ ...monoSm, color: unlocked ? 'var(--mfd-cyan)' : 'var(--mfd-text-faint)', lineHeight: 1.5 }}>
-                  {criteriaText(achievement)}
+                  {criteriaText(achievement, progress)}
                 </div>
+                {!unlocked && progress && !progress.hidden ? (
+                  <PixelProgressBar
+                    value={progress.percentage}
+                    accent={tierVariant(achievement.tier)}
+                    label={progress.label}
+                    valueLabel={`${progress.percentage}%`}
+                  />
+                ) : null}
                 {unlocked ? (
                   <div style={{ ...monoSm, color: 'var(--mfd-gold)' }}>
                     Year {achievement.unlockedYear}{achievement.unlockedWeek !== null ? ` // Week ${achievement.unlockedWeek}` : ''}
@@ -194,5 +245,12 @@ export function AchievementsGalleryView({
 
 export function AchievementsGallery() {
   const achievements = useGameStore(selectAchievements);
-  return <AchievementsGalleryView achievements={achievements} />;
+  const game = useGameStore((state) => state.game);
+  const progressById = useMemo(() => {
+    if (!game) return undefined;
+    return Object.fromEntries(
+      achievements.map((achievement) => [achievement.id, getAchievementProgress(game, achievement.id)]),
+    );
+  }, [achievements, game]);
+  return <AchievementsGalleryView achievements={achievements} progressById={progressById} />;
 }

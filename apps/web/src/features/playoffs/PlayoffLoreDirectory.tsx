@@ -9,9 +9,11 @@ import {
   PixelScreenHeader,
   autoGrid,
   monoSm,
+  navigateTo,
   screenStackStyle,
   teamIdFromDynastyId,
   teamThemeVars,
+  type PixelAccent,
 } from '../shared/pixelUi';
 import { PlayoffLoreCardView } from './PlayoffLoreCard';
 
@@ -134,6 +136,99 @@ function dynastyTitle(
   return truncateDynastyId(dynastyId);
 }
 
+function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function PlayoffLoreSourcesPanel({
+  currentDynastyId,
+  totalCards,
+  archivedCount,
+  pendingCount,
+  currentDynastyCards,
+  filteredCount,
+}: {
+  currentDynastyId: string | null;
+  totalCards: number;
+  archivedCount: number;
+  pendingCount: number;
+  currentDynastyCards: number;
+  filteredCount: number;
+}) {
+  const rows: Array<{
+    id: string;
+    label: string;
+    status: string;
+    detail: string;
+    accent: PixelAccent;
+  }> = [
+    {
+      id: 'dynasty-id',
+      label: 'Dynasty key',
+      status: currentDynastyId ? truncateDynastyId(currentDynastyId) : 'No active game',
+      detail: 'Source: deriveDynastyId(game) from the active GameState seed, user team, and franchise start. The current-dynasty filter only compares this id.',
+      accent: 'gold',
+    },
+    {
+      id: 'sidecar',
+      label: 'Lore sidecar',
+      status: pluralize(totalCards, 'card'),
+      detail: 'Source: browser-local mfd.scrapbook.v1 via listAllPlayoffLoreCards. Archived cards come from season scrapbook entries; pending cards come from pending playoff-lore buckets.',
+      accent: 'cyan',
+    },
+    {
+      id: 'archive-split',
+      label: 'Archive split',
+      status: `${pluralize(archivedCount, 'archived')} / ${pluralize(pendingCount, 'pending')}`,
+      detail: 'Pending cards are written by stagePendingPlayoffLoreCard during week advance, then fold into the matching scrapbook entry at season rollover.',
+      accent: pendingCount > 0 ? 'gold' : 'default',
+    },
+    {
+      id: 'route-state',
+      label: 'Route controls',
+      status: `${pluralize(filteredCount, 'visible')} / ${pluralize(currentDynastyCards, 'current-dynasty')}`,
+      detail: 'Sort and filter choices are route-local React state. The immediate PlayoffLorePrompt reads transient pendingPlayoffLoreReveal separately.',
+      accent: 'green',
+    },
+    {
+      id: 'read-only',
+      label: 'Read-only boundary',
+      status: 'No writes',
+      detail: 'Opening /franchise/playoff-lore does not write GameState, clear pending playoff lore, merge scrapbook entries, update sidecars, play scheduled games, reroll saved outcomes, or move players.',
+      accent: 'cyan',
+    },
+  ];
+
+  return (
+    <PixelPanel title="Playoff Lore Sources" accent="cyan">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+        {rows.map((row) => (
+          <div
+            key={row.id}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              minHeight: '120px',
+              padding: '10px',
+              border: '1px solid #1f1f1f',
+              background: 'rgba(255,255,255,0.02)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ ...monoSm, color: '#fff', fontSize: '12px' }}>{row.label}</span>
+              <PixelBadge variant={row.accent}>{row.status}</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+              {row.detail}
+            </div>
+          </div>
+        ))}
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function PlayoffLoreDirectory({
   initialSortMode = 'year',
   initialFilterMode = 'all',
@@ -150,6 +245,8 @@ export function PlayoffLoreDirectory({
   const currentDynastyId = game ? deriveDynastyId(game) : null;
   const currentTeamName = userTeam ? `${userTeam.city} ${userTeam.name}` : null;
   const seasonsRepresented = new Set(allCards.map((entry) => entry.seasonYear)).size;
+  const archivedCount = allCards.filter((entry) => entry.source === 'archived').length;
+  const pendingCount = allCards.filter((entry) => entry.source === 'pending').length;
   const superBowlWins = allCards.filter((entry) => entry.card.round === 'super_bowl' && entry.card.outcome === 'win').length;
   const conferenceTitles = allCards.filter((entry) => entry.card.round === 'conference' && entry.card.outcome === 'win').length;
   const currentDynastyCards = currentDynastyId
@@ -176,6 +273,28 @@ export function PlayoffLoreDirectory({
         <PixelMetricCard label="Dynasty Cards" value={currentDynastyCards} accent="green" detail="Current dynasty only" />
         <PixelMetricCard label="Seasons Represented" value={seasonsRepresented} accent="default" detail="Unique playoff years" />
       </div>
+
+      <PlayoffLoreSourcesPanel
+        currentDynastyId={currentDynastyId}
+        totalCards={allCards.length}
+        archivedCount={archivedCount}
+        pendingCount={pendingCount}
+        currentDynastyCards={currentDynastyCards}
+        filteredCount={filteredCards.length}
+      />
+
+      <PixelPanel title="Next Playoff Push" accent="gold">
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7, maxWidth: '640px' }}>
+            Use the old playoff card as a live checklist: see the race, confirm the next opponent, then tune the matchup plan.
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <PixelButton accent="cyan" onClick={() => navigateTo('/standings')}>Standings</PixelButton>
+            <PixelButton accent="default" onClick={() => navigateTo('/schedule')}>Schedule</PixelButton>
+            <PixelButton accent="gold" onClick={() => navigateTo('/game-plan')}>Game Plan</PixelButton>
+          </div>
+        </div>
+      </PixelPanel>
 
       <PixelPanel title="Controls" accent="cyan">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

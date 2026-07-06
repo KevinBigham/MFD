@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { SeasonRecap } from '@mfd/engine';
+import type { NearMissEntry, SeasonRecap } from '@mfd/engine';
 
 const { teamThemeVarsMock } = vi.hoisted(() => ({
   teamThemeVarsMock: vi.fn(() => ({
@@ -59,8 +59,35 @@ const mockRecap: SeasonRecap = {
   ],
 };
 
+const mockNearMissReceipts: NearMissEntry[] = [
+  {
+    type: 'declined_trade',
+    playerName: 'Avery Bolt',
+    playerOvr: 86,
+    description: 'You declined a trade for Avery Bolt (86 OVR) in Week 8.',
+    outcome: 'Avery Bolt had a breakout season with Phoenix, posting an 86 OVR.',
+  },
+  {
+    type: 'passed_pick',
+    playerName: 'Nico Redd',
+    playerOvr: 80,
+    description: 'You passed on Nico Redd in Round 2, Pick 44.',
+    outcome: 'Nico Redd was drafted by Dallas and finished the season at 80 OVR.',
+  },
+  {
+    type: 'missed_fa',
+    playerName: 'Cole Hart',
+    playerOvr: 82,
+    description: 'You missed out on Cole Hart (CB) in free agency.',
+    outcome: 'Cole Hart signed with Austin Club and posted 82 OVR after the market closed.',
+  },
+];
+
 const mockStore = {
-  game: { year: 2027 },
+  game: {
+    year: 2027,
+    seasonNearMissReceipts: mockNearMissReceipts,
+  },
   team: {
     id: 'afce1',
     city: 'Chicago',
@@ -171,11 +198,53 @@ describe('SeasonRecapCard', () => {
     expect(/[\p{Extended_Pictographic}]/u.test(markup)).toBe(false);
   });
 
+  it('renders saved near-miss receipts with source and no-write context', () => {
+    const markup = renderToStaticMarkup(<SeasonRecapCard recap={mockRecap} nearMissReceipts={mockNearMissReceipts} />);
+
+    expect(markup).toContain('WHAT-IF RECEIPTS');
+    expect(markup).toContain('saved game.seasonNearMissReceipts');
+    expect(markup).toContain('declined direct trade proposals');
+    expect(markup).toContain('passed-pick draft flow');
+    expect(markup).toContain('user free-agent bids that lose to a signed CPU offer');
+    expect(markup).toContain('does not generate receipts or change the near-miss tracker');
+    expect(markup).toContain('Declined Trade');
+    expect(markup).toContain('Avery Bolt');
+    expect(markup).toContain('Avery Bolt had a breakout season with Phoenix');
+    expect(markup).toContain('Passed Pick');
+    expect(markup).toContain('Nico Redd');
+    expect(markup).toContain('Missed FA');
+    expect(markup).toContain('Cole Hart signed with Austin Club');
+  });
+
   it('renders the season recap route surface with export controls', () => {
     const markup = renderToStaticMarkup(<SeasonRecapScreen />);
 
     expect(markup).toContain('Season Recap');
     expect(markup).toContain('Export PNG');
     expect(markup).toContain('Copy Text');
+  });
+
+  it('renders route-level recap source context and separates share controls from save writes', () => {
+    const markup = renderToStaticMarkup(<SeasonRecapScreen />);
+
+    expect(markup).toContain('SEASON RECAP SOURCES');
+    expect(markup).toContain('RECAP READ MODEL');
+    expect(markup).toContain('SHARE CONTROLS ONLY');
+    expect(markup).toContain('buildSeasonRecap(game, team.id)');
+    expect(markup).toContain('SeasonRecapCard');
+    expect(markup).toContain('game.seasonNearMissReceipts');
+    expect(markup).toContain('exportRecapAsPng');
+    expect(markup).toContain('copyRecapAsText');
+    expect(markup).toContain('do not update the franchise save');
+    expect(markup).toContain('Opening Season Recap does not archive the season');
+    expect(markup).toContain('play scheduled games');
+  });
+
+  it('passes saved near-miss receipts from the route game state into the recap card', () => {
+    const markup = renderToStaticMarkup(<SeasonRecapScreen />);
+
+    expect(markup).toContain('WHAT-IF RECEIPTS');
+    expect(markup).toContain('Avery Bolt');
+    expect(markup).toContain('Nico Redd');
   });
 });

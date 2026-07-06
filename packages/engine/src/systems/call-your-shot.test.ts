@@ -9,6 +9,8 @@ import {
 } from './call-your-shot';
 import { makeLeagueState } from './test-helpers';
 
+const STALE_CALL_YOUR_SHOT_COPY = /\b(?:Declare that your ground game will dominate|Declare aerial supremacy|defensive masterpiece|boldest call|High risk, huge reward|no matter how|Make a bold prediction|bonus morale)\b/i;
+
 function seededRng(seed = 42) {
   return mulberry32(seed);
 }
@@ -66,10 +68,14 @@ describe('Call Your Shot', () => {
       expect(getDeclarations().length).toBe(5);
     });
 
-    it('each declaration has label and description', () => {
+    it('each declaration has label and concrete fan-confidence consequence', () => {
       for (const decl of getDeclarations()) {
         expect(decl.label.length).toBeGreaterThan(3);
         expect(decl.description.length).toBeGreaterThan(10);
+        expect(decl.description).toContain('Promise');
+        expect(decl.description).toContain('fan-confidence');
+        expect(decl.description).toContain('recap records');
+        expect(decl.description).not.toMatch(STALE_CALL_YOUR_SHOT_COPY);
       }
     });
   });

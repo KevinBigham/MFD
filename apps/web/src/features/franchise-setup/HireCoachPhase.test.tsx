@@ -20,7 +20,7 @@ vi.mock('@mfd/engine', async (importOriginal) => {
       },
     ],
     getAGMCoachReaction: () => ({
-      recommendation: 'hire',
+      recommendation: 'consider',
       analysis: 'Best fit for the room.',
       oneLiner: 'The room needs this.',
     }),
@@ -35,7 +35,7 @@ const preview: ChoiceForecastPreview = {
   summaryLine: 'Coach fit calms the install and gives Week 1 cleaner answers.',
   secondaryDelta: {
     id: 'scheme_cohesion',
-    label: 'Scheme Cohesion',
+    label: 'Scheme Fit',
     delta: 5,
   },
 };
@@ -51,8 +51,17 @@ describe('HireCoachPhase', () => {
       />,
     );
 
-    expect(html).toContain('WK1 +6');
-    expect(html).toContain('VOL -3');
-    expect(html).toContain('Scheme Cohesion +5');
+    expect(html).toContain('Week 1 +6');
+    expect(html).toContain('Mistake Chance -3');
+    expect(html).toContain('Scheme Fit +5');
+    expect(html).toContain('coach-player gaps create Week 1 missed assignments');
+    expect(html).toContain('WHAT CAN GO WRONG');
+    expect(html).toContain('HAS COST');
+    expect(html).not.toContain('CONSIDER');
+    expect(html).not.toContain('RISKS');
+    expect(html).not.toContain('TRADEOFF');
+    expect(html).not.toContain('Risk -3');
+    expect(html).not.toContain('WATCH-OUTS');
+    expect(html).not.toMatch(/\bWK1\b|\bVOL\b|Scheme Cohesion|verify whether/i);
   });
 });

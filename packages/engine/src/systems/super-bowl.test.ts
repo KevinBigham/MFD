@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mulberry32 } from '../rng';
 import {
   getSuperBowlNumber,
+  generateSuperBowlContext,
   generateHalftimeShow,
   generateSuperBowlMVP,
   generateChampionParade,
@@ -58,6 +59,42 @@ describe('super bowl system', () => {
     // At least two of the three must differ — three identical performers would
     // mean the seed is collapsing exactly the way the pre-fix code did.
     expect(distinct.size).toBeGreaterThan(1);
+  });
+
+  it('counts lowercase champion history for dynasty storylines', () => {
+    const game = {
+      year: 2034,
+      teams: {
+        home: {
+          id: 'home',
+          city: 'Lakeview',
+          name: 'Caps',
+          wins: 12,
+          losses: 5,
+        },
+        away: {
+          id: 'away',
+          city: 'Metro',
+          name: 'Rails',
+          wins: 11,
+          losses: 6,
+        },
+      },
+      franchiseHistory: [
+        { teamId: 'home', playoffFinish: 'champion' },
+        { teamId: 'home', playoffFinish: 'champion' },
+      ],
+    } as any;
+    const bracket = {
+      matchups: [
+        { round: 'super_bowl', homeTeamId: 'home', awayTeamId: 'away' },
+      ],
+    } as any;
+
+    const context = generateSuperBowlContext(game, bracket);
+
+    expect(context?.storylines).toContain('Lakeview seeks championship #3 — dynasty territory.');
+    expect(context?.storylines).not.toContain('Lakeview has never won a championship. This is their moment.');
   });
 
   // ── generateSuperBowlMVP ─────────────────────────────

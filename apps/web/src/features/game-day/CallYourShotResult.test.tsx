@@ -32,6 +32,14 @@ describe('CallYourShotResult', () => {
     const markup = renderToStaticMarkup(<CallYourShotResult result={makeResult('hit')} />);
     expect(markup).toContain('CALLED IT.');
     expect(markup).toContain('CONF +');
+    expect(markup).toContain('resolveCallYourShot');
+    expect(markup).toContain('GameDayPackage');
+    expect(markup).toContain('Read-only receipt');
+    expect(markup).toContain('Source: resolveCallYourShot resolves saved activeCallYourShot after the user game');
+    expect(markup).toContain('stores callYourShotResult on the user GameResult');
+    expect(markup).toContain('Opening this result does not re-evaluate the shot');
+    expect(markup).toContain('apply another fan-confidence swing');
+    expect(markup).toContain('change the saved game, rerun the game, or reroll saved outcomes');
   });
 
   it('renders the miss state', () => {
@@ -44,8 +52,15 @@ describe('CallYourShotResult', () => {
     const markup = (['hit', 'miss', 'partial'] as const)
       .map((outcome) => renderToStaticMarkup(<CallYourShotResult result={makeResult(outcome)} />))
       .join('\n');
+    const resultStyles = [...markup.matchAll(/data-testid="call-your-shot-(hit|miss|partial)" style="([^"]+)"/g)]
+      .map((match) => match[2]);
 
-    expect(markup).not.toMatch(/background:linear-gradient\([^"]*(#050505|#000000|rgba\()/);
+    expect(resultStyles).toHaveLength(3);
+    for (const style of resultStyles) {
+      expect(style).toContain('background:var(--mfd-result-');
+      expect(style).not.toMatch(/background:linear-gradient/);
+      expect(style).not.toMatch(/#050505|#000000|rgba\(/);
+    }
   });
 
   it('renders nothing when no result is present', () => {

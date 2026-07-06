@@ -25,6 +25,7 @@ const BEAT_LABELS: Record<ApologyTourBeatKey, string> = {
 };
 
 type Accent = 'default' | 'gold' | 'cyan' | 'green' | 'red';
+type ApologyTourContentKey = Parameters<typeof getApologyTourBeat>[0];
 
 const BEAT_ACCENTS: Record<ApologyTourBeatKey, Accent> = {
   fan_letter: 'red',
@@ -46,12 +47,16 @@ function interpolate(template: string, thread: ApologyTourThread, teamName: stri
     .replaceAll('{teamName}', teamName);
 }
 
-function resolveBeatContent(beat: ApologyTourBeatKey, thread: ApologyTourThread): ApologyTourBeatContent {
-  const key = beat === 'resolution'
+function resolveBeatContentKey(beat: ApologyTourBeatKey, thread: ApologyTourThread): ApologyTourContentKey {
+  return beat === 'resolution'
     ? thread.status === 'escalated'
       ? 'resolution_escalated'
       : 'resolution_resolved'
     : beat;
+}
+
+function resolveBeatContent(beat: ApologyTourBeatKey, thread: ApologyTourThread): ApologyTourBeatContent {
+  const key = resolveBeatContentKey(beat, thread);
   return getApologyTourBeat(key);
 }
 
@@ -62,6 +67,50 @@ function resolveBeatAccent(beat: ApologyTourBeatKey, thread: ApologyTourThread):
 
 interface ApologyTourModalViewProps extends ApologyTourModalProps {
   initialBeatIndex?: number;
+}
+
+interface ApologyTourSourceRow {
+  label: string;
+  badge: string;
+  detail: string;
+  accent: Accent;
+}
+
+export function buildApologyTourSourceRows(
+  thread: ApologyTourThread,
+  beat: ApologyTourBeatKey,
+  contentKey: ApologyTourContentKey,
+): ApologyTourSourceRow[] {
+  const deliveredBeats = new Set(thread.beatsDelivered);
+  const deliveredCount = deliveredBeats.size;
+  const beatDelivered = deliveredBeats.has(beat);
+
+  return [
+    {
+      label: 'Saved thread',
+      badge: `Y${thread.startedYear} W${thread.startedWeek}`,
+      detail: 'Saved apologyTourThreads owns gameId, teamId, status, and beatsDelivered; opening this replay does not edit the thread.',
+      accent: 'cyan',
+    },
+    {
+      label: 'Authored beat',
+      badge: contentKey,
+      detail: `getApologyTourBeat ${contentKey} supplies from/title/body copy, then the modal interpolates the saved named game and team name.`,
+      accent: beat === 'resolution' ? resolveBeatAccent(beat, thread) : BEAT_ACCENTS[beat],
+    },
+    {
+      label: 'Replay state',
+      badge: 'modal local',
+      detail: 'Back and Next only change modal-local beatIndex. Close Tour only calls onOpenChange(false).',
+      accent: 'green',
+    },
+    {
+      label: 'Delivery ledger',
+      badge: `${deliveredCount}/${BEAT_ORDER.length} delivered`,
+      detail: `${BEAT_LABELS[beat]} is ${beatDelivered ? 'present in' : 'not present in'} beatsDelivered; replaying does not add delivered beats, mark messages read, resolve threads, schedule weeks, or write a sidecar.`,
+      accent: beatDelivered ? 'green' : 'gold',
+    },
+  ];
 }
 
 export function ApologyTourModalView({
@@ -83,6 +132,7 @@ export function ApologyTourModalView({
   if (!thread) return null;
 
   const beat = BEAT_ORDER[Math.min(Math.max(0, beatIndex), BEAT_ORDER.length - 1)] ?? BEAT_ORDER[0]!;
+  const contentKey = resolveBeatContentKey(beat, thread);
   const content = resolveBeatContent(beat, thread);
   const accent = resolveBeatAccent(beat, thread);
   const dayOffset = BEAT_DAY_OFFSETS[beat];
@@ -90,6 +140,7 @@ export function ApologyTourModalView({
   const isFirst = beatIndex <= 0;
   const interpolatedTitle = interpolate(content.title, thread, teamName);
   const interpolatedBody = interpolate(content.body, thread, teamName);
+  const sourceRows = buildApologyTourSourceRows(thread, beat, contentKey);
 
   return (
     <PixelModal
@@ -151,6 +202,39 @@ export function ApologyTourModalView({
 
         <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
           {interpolatedBody}
+        </div>
+
+        <div
+          data-testid="apology-tour-sources"
+          aria-label="Apology tour sources"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            padding: '10px',
+            border: '2px solid var(--mfd-border)',
+            background: 'var(--mfd-bg-2)',
+          }}
+        >
+          <div style={{ ...monoSm, color: 'var(--mfd-text-faint)', textTransform: 'uppercase' }}>
+            Tour Sources
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+            gap: '10px',
+          }}
+          >
+            {sourceRows.map((row) => (
+              <div key={row.label} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', textTransform: 'uppercase' }}>{row.label}</span>
+                  <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{row.detail}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>

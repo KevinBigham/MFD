@@ -6,15 +6,15 @@ import { useGameStore } from '../../app/store/game-store';
 const optionDescriptions: Record<HalftimeDecisionChoice, { title: string; detail: string }> = {
   stick: {
     title: 'Stick',
-    detail: 'Coach Bigham keeps his faith in the game plan. (no modifier)',
+    detail: 'Keep the halftime calls. No first-drive boost and no late-drive penalty; choose it when the matchup is not the problem.',
   },
   switch: {
     title: 'Switch',
-    detail: 'Adjusting the approach. +5% efficiency on 2nd-half calls, -3% on first call.',
+    detail: 'Change the plan after halftime. The first second-half drive starts slower while players adjust; later drives get a small lift.',
   },
   gamble: {
     title: 'Gamble',
-    detail: 'Rolling the dice. +12% on one high-leverage drive, -8% on all others.',
+    detail: 'Push for an immediate score. The first second-half drive gets the biggest lift; later drives get weaker if the push misses.',
   },
 };
 
@@ -27,6 +27,9 @@ function cardAccent(choice: HalftimeDecisionChoice): 'default' | 'cyan' | 'gold'
 function switchCopy(pending: PendingHalftimeDecision): string {
   return `${optionDescriptions.switch.detail} ${pending.suggestion.summary}`;
 }
+
+export const HALFTIME_CHIP_COPY =
+  'Must Do: choose Stick, Switch, or Gamble before second half. Where: Halftime cards. Consequence: Stick keeps calls; Switch starts slower, then improves later drives; Gamble boosts drive one but weakens later drives if it misses.';
 
 export function getHalftimeChipPose(
   previewChoice: HalftimeDecisionChoice | null,
@@ -71,8 +74,8 @@ export function HalftimeDecisionView({
     <PixelModal
       open
       onOpenChange={onOpenChange}
-      title="Halftime Hell"
-      description="Thirty seconds to decide what the second half feels like."
+      title="Halftime Adjustment"
+      description="Choose whether to keep the plan, adjust after drive one, or gamble on the first drive."
       accent="gold"
       width={720}
     >
@@ -89,7 +92,7 @@ export function HalftimeDecisionView({
         >
           <Chip pose={chipPose} size="md" reducedMotion={reducedMotion} ariaLabel="Chip hosts the halftime decision" />
           <ChipDialogueBubble
-            text="Second half is a choice. Pick the risk you can defend."
+            text={HALFTIME_CHIP_COPY}
             pose={chipPose}
             pointer="left"
             reducedMotion={reducedMotion}

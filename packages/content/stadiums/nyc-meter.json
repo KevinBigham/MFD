@@ -1,0 +1,13 @@
+{
+  "teamId": "NYC",
+  "name": "The Meter",
+  "capacity": 78200,
+  "tradition": "The Honk now opens every Cabbies home game: yellow lights crawl around the upper deck, the dispatch board calls every borough to the curb, and seventy-eight cab horns hit the meter before the kickoff fare starts running.",
+  "surface": "Turf",
+  "roof": "Open",
+  "cue": {
+    "label": "The Honk",
+    "pregameLine": "The dispatch board is blinking at The Meter, and the yellow-cab ring is already circling the upper deck.",
+    "crowdResponse": "The Fare Dodgers answer with a NEXT! STOP! FIRST DOWN! chant that sounds like traffic finding one impossible lane."
+  }
+}

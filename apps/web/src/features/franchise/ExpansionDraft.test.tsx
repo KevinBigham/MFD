@@ -43,6 +43,8 @@ describe('ExpansionDraft', () => {
     mockState.expansionDraftState = null as never;
     const markup = renderToStaticMarkup(<ExpansionDraft />);
     expect(markup).toContain('No expansion draft is active');
+    expect(markup).toContain('EXPANSION SOURCES');
+    expect(markup).toContain('No active state');
   });
 
   it('shows the protection board during the protection phase', () => {
@@ -50,6 +52,10 @@ describe('ExpansionDraft', () => {
     expect(markup).toContain('PROTECTION BOARD');
     expect(markup).toContain('COLE STONE');
     expect(markup).toContain('Finalize Protection');
+    expect(markup).toContain('EXPANSION SOURCES');
+    expect(markup).toContain('selectExpansionDraftState');
+    expect(markup).toContain('Finalize Protection calls');
+    expect(markup).toContain('preview feed is still not a league mutation');
   });
 
   it('renders the expansion feed after the draft is complete', () => {
@@ -76,5 +82,8 @@ describe('ExpansionDraft', () => {
     mockState.expansionDraftState.phase = 'complete';
     const markup = renderToStaticMarkup(<ExpansionDraft />);
     expect(markup).toContain('Finalize Expansion Draft');
+    expect(markup).toContain('creates the new non-user team');
+    expect(markup).toContain('moves selected players and contracts');
+    expect(markup).toContain('rebuilds the schedule');
   });
 });

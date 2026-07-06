@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { EndorsementCenter } from './EndorsementCenter';
+import type { Player, Team } from '@mfd/engine';
+import {
+  buildEndorsementActionReceipt,
+  EndorsementActionReceiptPanel,
+  EndorsementCenter,
+} from './EndorsementCenter';
 
 const activeDeal = {
   id: 'deal-1',
@@ -36,8 +41,8 @@ const baseState = () => ({
     wins: 10,
     franchiseIdentity: { marketSize: 'large' },
     roster: [
-      { id: 'p1', name: 'Marcus Cole', ovr: 92 },
-      { id: 'p2', name: 'Rico Hale', ovr: 78 },
+      { id: 'p1', name: 'Marcus Cole', pos: 'QB', ovr: 92 },
+      { id: 'p2', name: 'Rico Hale', pos: 'WR', ovr: 78 },
     ],
   },
   activeDeals: [activeDeal],
@@ -84,6 +89,7 @@ describe('EndorsementCenter', () => {
     expect(markup).toContain('PENDING OFFERS');
     expect(markup).toContain('METRO HEALTH');
     expect(markup).toContain('Accept');
+    expect(markup).not.toContain('ENDORSEMENT RECEIPT');
   });
 
   it('shows the empty state when no active deals exist', () => {
@@ -96,5 +102,66 @@ describe('EndorsementCenter', () => {
     mockState.phase = 'regular_season';
     const markup = renderToStaticMarkup(<EndorsementCenter />);
     expect(markup).not.toContain('Pending Offers');
+  });
+
+  it('builds accepted endorsement receipts from the existing commit path', () => {
+    const receipt = buildEndorsementActionReceipt({
+      action: 'accept',
+      offer: offerDeal,
+      player: mockState.team.roster[1] as unknown as Player,
+      team: mockState.team as unknown as Team,
+    });
+
+    expect(receipt).toMatchObject({
+      id: 'accept:offer-1',
+      title: 'Endorsement Accepted',
+      actionLabel: 'Accepted',
+      brandName: 'Metro Health',
+      accent: 'green',
+    });
+    expect(receipt.target).toContain('Rico Hale // WR // 78 OVR');
+    expect(receipt.requirement).toContain('wins 10/8 met');
+    expect(receipt.result).toContain('resolves the roster player first');
+    expect(receipt.result).toContain('writes that player back to game.players');
+    expect(receipt.source).toContain('actions.acceptEndorsement -> acceptEndorsementEngine -> commitGame');
+    expect(receipt.source).toContain('This confirmation appears here only');
+  });
+
+  it('builds declined endorsement receipts without implying a penalty', () => {
+    const receipt = buildEndorsementActionReceipt({
+      action: 'decline',
+      offer: offerDeal,
+      player: mockState.team.roster[1] as unknown as Player,
+      team: mockState.team as unknown as Team,
+    });
+
+    expect(receipt).toMatchObject({
+      id: 'decline:offer-1',
+      title: 'Endorsement Declined',
+      actionLabel: 'Declined',
+      accent: 'default',
+    });
+    expect(receipt.result).toContain('removes only the pending offer');
+    expect(receipt.result).toContain('There is no current morale, reputation, revenue, renewal-odds, game-result or hidden-outcome penalty');
+    expect(receipt.source).toContain('actions.declineEndorsement -> commitGame');
+  });
+
+  it('renders endorsement receipt source copy and no-extra-write boundary', () => {
+    const receipt = buildEndorsementActionReceipt({
+      action: 'accept',
+      offer: offerDeal,
+      player: mockState.team.roster[1] as unknown as Player,
+      team: mockState.team as unknown as Team,
+    });
+
+    const markup = renderToStaticMarkup(<EndorsementActionReceiptPanel receipt={receipt} />);
+
+    expect(markup).toContain('ENDORSEMENT RECEIPT');
+    expect(markup).toContain('On-screen confirmation');
+    expect(markup).toContain('Saved offer path');
+    expect(markup).toContain('actions.acceptEndorsement -&gt; acceptEndorsementEngine -&gt; commitGame');
+    expect(markup).toContain('This confirmation does not generate offers');
+    expect(markup).toContain('reroll saved outcomes');
+    expect(markup).toContain('move players');
   });
 });

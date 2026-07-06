@@ -45,6 +45,8 @@ export interface GameStoreSnapshot {
   currentWeek: number;
   currentSeason: number;
   dynastySeed: number;
+  latestGameCompleteId?: string;
+  latestSeasonEndId?: string;
   weeklyOutcome?: WeeklyDialogueVariant;
   weeklyGuidance?: Omit<WeeklyGuidanceInput, 'outcome' | 'currentWeek'>;
   poseEvents?: readonly ChipPoseEvent[];
@@ -113,8 +115,7 @@ export function createChipEventBridge(deps: CreateChipEventBridgeDeps): ChipEven
     return lastFiredWeek === undefined || game.currentWeek > lastFiredWeek;
   }
 
-  function emitWeekRollover(game: GameStoreSnapshot): void {
-    const category: ChipEventCategory = 'weekRollover';
+  function emitDialogueEvent(category: ChipEventCategory, game: GameStoreSnapshot): void {
     if (!canEmit(category, game)) return;
 
     const gameOutcome = game.weeklyOutcome ?? 'midseason';
@@ -123,10 +124,11 @@ export function createChipEventBridge(deps: CreateChipEventBridgeDeps): ChipEven
       outcome: gameOutcome,
       currentWeek: game.currentWeek,
       ...game.weeklyGuidance,
+      eventTrigger: category,
     });
     const event: ChipEvent = {
-      id: `chip.event.weekRollover.${game.currentSeason}.${game.currentWeek}`,
-      trigger: 'weekRollover',
+      id: `chip.event.${category}.${game.currentSeason}.${game.currentWeek}`,
+      trigger: category,
       category,
       currentWeek: game.currentWeek,
       currentSeason: game.currentSeason,
@@ -141,6 +143,22 @@ export function createChipEventBridge(deps: CreateChipEventBridgeDeps): ChipEven
     lastEmittedCategory = category;
     categoryByDialogueId.set(dialogueId, category);
     deps.onEvent(event);
+  }
+
+  function emitWeekRollover(game: GameStoreSnapshot): void {
+    emitDialogueEvent('weekRollover', game);
+  }
+
+  function emitGameComplete(game: GameStoreSnapshot, previousState: GameStoreSnapshot): boolean {
+    if (!game.latestGameCompleteId || game.latestGameCompleteId === previousState.latestGameCompleteId) return false;
+    emitDialogueEvent('gameComplete', game);
+    return true;
+  }
+
+  function emitSeasonEnd(game: GameStoreSnapshot, previousState: GameStoreSnapshot): boolean {
+    if (!game.latestSeasonEndId || game.latestSeasonEndId === previousState.latestSeasonEndId) return false;
+    emitDialogueEvent('seasonEnd', game);
+    return true;
   }
 
   function emitPoseReaction(event: ChipPoseEvent): void {
@@ -164,15 +182,17 @@ export function createChipEventBridge(deps: CreateChipEventBridgeDeps): ChipEven
   }
 
   function handleGameTransition(state: GameStoreSnapshot, previousState: GameStoreSnapshot): void {
-    if (state.currentWeek > previousState.currentWeek || state.currentSeason > previousState.currentSeason) {
+    const emittedSeasonEnd = emitSeasonEnd(state, previousState);
+    const emittedGameComplete = emittedSeasonEnd ? false : emitGameComplete(state, previousState);
+
+    if (
+      !emittedSeasonEnd
+      && !emittedGameComplete
+      && (state.currentWeek > previousState.currentWeek || state.currentSeason > previousState.currentSeason)
+    ) {
       emitWeekRollover(state);
     }
     emitNewPoseEvents(state, previousState);
-
-    // Slice C will wire `gameComplete` once the broader event catalog exists.
-    // Slice C will wire `seasonEnd` after season-summary dialogue variants exist.
-    // The high-stakes pose reactions above are intentionally fed by explicit
-    // web-side poseEvents until the engine event spine exposes those signals.
   }
 
   function handleChipTransition(state: ChipStoreSnapshot, previousState: ChipStoreSnapshot): void {

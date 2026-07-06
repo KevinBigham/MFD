@@ -66,7 +66,7 @@ describe('tutorial', () => {
     advanceTutorial(game); // roster step
 
     const hint = getTutorialHint(game, '/roster');
-    expect(hint?.title).toBe('Check Roster');
+    expect(hint?.title).toBe('Open Roster');
 
     completeTutorialAction(game, 'screen:/roster');
 
@@ -115,7 +115,47 @@ describe('tutorial', () => {
     const finalStep = tutorial.steps.at(-1);
 
     expect(gamePlanStep?.targetElement).toBe('[data-nav="/game-plan"]');
-    expect(finalStep?.description).toBe('You have the tools to build a dynasty. Play your way — there are no wrong answers, only your story. Good luck, Coach.');
+    expect(finalStep?.description).toBe(
+      "Keep using Monday Briefing, Roster, Depth Chart, Game Plan, Contracts, and Advance Week to make each week's decisions with known consequences.",
+    );
+  });
+
+  it('keeps tutorial copy action and consequence focused', () => {
+    const allCopy = [
+      ...getWeek1Steps(),
+      ...createDefaultTutorialState().steps,
+    ].map((step) => `${step.title} ${step.description}`).join(' ');
+
+    expect(allCopy).toContain('Start Advance Week last. It locks Week 1 results, injuries, morale, deadlines, and the next opponent.');
+    expect(allCopy).toContain('Open Owner Promises to make one promise with a deadline; missed promises cut owner patience.');
+    expect(allCopy).toContain('Set Contingency Gambit so staff know which call changes when score, clock, or injury conditions turn against you.');
+    expect(allCopy).toContain('Open Roster and identify starters, backups, injuries, contracts, and first-month player jobs.');
+    expect(allCopy).toContain('Open Game Day to see the score, injuries, turnovers, sacks, and failed drives; missed injuries put unavailable or low-role backups into saved roles.');
+    expect(allCopy).toContain('Open Game Day after kickoff to see score, injuries, turnovers, sacks, and failed drives; missed injuries put unavailable or low-role backups into saved roles.');
+    expect(allCopy).toContain('Open Inbox and answer messages with deadlines before Advance Week; missed deadlines remove choices.');
+    expect(allCopy).toContain('calls that do not fit expose injuries or backup groups without a role');
+    expect(allCopy).not.toContain('calls starters cannot handle');
+    expect(allCopy).not.toContain('mismatched calls can expose injuries or backup groups without a role');
+    expect(allCopy).toContain('unsaved starters leave injured or low-role backups in key jobs');
+    expect(allCopy).toContain('assign one weekly training focus; unused focus loses development reps before the next game');
+    expect(allCopy).toContain('buying while buried wastes picks, and selling while alive costs a playoff spot');
+    expect(allCopy).toContain('assign one scout report; missing role, medical-limit, or coachability info wastes a draft pick');
+    expect(allCopy).not.toContain('missing role, medical, or trait info wastes a draft pick');
+    expect(allCopy).toContain('open Broadcast for scoring swings, turnovers, injuries, and drive failures before changing Game Plan or Depth Chart.');
+    expect(allCopy).toContain('Open Newsroom for injuries, streaks, owner tension, and league moves; open Roster or Game Plan before those alerts lock a starter or call the lineup cannot handle.');
+    expect(allCopy).not.toMatch(/wrong calls expose|wrong starter or call|unsupported starter or call/i);
+    expect(allCopy).toContain('Open Newsroom threads for injuries, promises, streaks, and breakouts; missed threads leave morale, offers, or prep calls late.');
+    expect(allCopy).toContain('When Game Day shows a halftime choice, keep the plan or change second-half calls; that choice changes drive boosts and late-drive penalties.');
+    expect(allCopy).not.toContain('Game Day can ask whether');
+    expect(allCopy).toContain('set Game Plan counters before coverage, rest, pass depth, or kick choices lock at kickoff.');
+    expect(allCopy).not.toMatch(/run\/pass|wrong jobs/i);
+    expect(allCopy).toContain('division deficits, and games that affect buy, sell, or hold timing before trade deadlines');
+    expect(allCopy).toContain('Open Trade Center to name starter or backup job, cap space, player role, and deal cost before accepting');
+    expect(allCopy).toContain('deals without a role spend picks or starters without fixing the lineup');
+    expect(allCopy).toContain('Open Franchise Hub to view owner patience, staff effects, and roster timeline');
+    expect(allCopy).toContain('owner patience, staff effects, and roster timeline before cap moves block extensions or injury fixes');
+    expect(allCopy).not.toMatch(/\bUse\b/);
+    expect(allCopy).not.toMatch(/guys you want|simulate Week 1|read what the league|change the story|league context|feel the trust system|weekly bet|postgame story|check the Broadcast|right match|hot takes|league narrative|rivalry heat|legacy|long game|no wrong answers|only your story|Good luck|changing the next plan|matchup risk|standings pressure|owner mood|dynasty window|can affect roster or Game Plan choices|can change morale|choice can swing the result|players who can carry|missed deadlines can remove choices|Open scouting and run one scouting action|record and division position support buying|doctrine effects|drives that explain the result|swing plays|before spending picks or starters|compare offers|review owner patience|weak backups|bad deals|clear messages|name roster need/i);
   });
 
   it('mutating steps require their explicit action instead of just visiting the screen', () => {
@@ -167,6 +207,26 @@ describe('tutorial', () => {
     const steps = getWeek1Steps();
     expect(steps.map((s) => s.id)).toEqual([...WEEK1_STEP_IDS]);
     expect(steps.every((s) => s.completed === false)).toBe(true);
+  });
+
+  it('routes the Week 1 briefing step to the registered home route', () => {
+    const game = makeLeagueState('preseason');
+    game.tutorialState = {
+      ...createDefaultTutorialState(),
+      steps: getWeek1Steps(),
+      currentStepIndex: 0,
+      completedSteps: [],
+    };
+    const briefingStep = game.tutorialState.steps[0]!;
+
+    expect(briefingStep.id).toBe('week1-briefing');
+    expect(briefingStep.targetScreen).toBe('/');
+    expect(briefingStep.targetElement).toBe('[data-nav="/"]');
+
+    completeTutorialAction(game, 'screen:/');
+
+    expect(game.tutorialState.completedSteps).toContain('week1-briefing');
+    expect(game.tutorialState.currentStepIndex).toBe(1);
   });
 
   it.each(LAUNCH_STEP_EXPECTATIONS)('contains launch-era step %s', (stepId) => {

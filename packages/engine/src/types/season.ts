@@ -88,8 +88,63 @@ export interface TutorialState {
 
 // ── Achievements ────────────────────────────────────────
 
+export const ACHIEVEMENT_CONDITION_TYPES = [
+  'championships',
+  'consecutive_championships',
+  'perfect_season',
+  'worst_to_first',
+  'elite_defense_years',
+  'dynasty_score',
+  'conference_finals',
+  'playoff_appearances',
+  'young_starters',
+  'average_roster_ovr',
+  'average_roster_age_under',
+  'veteran_count',
+  'full_house',
+  'cap_wizard',
+  'no_ir_season',
+  'average_chemistry',
+  'starters_from_single_draft_class',
+  'late_round_starters',
+  'trade_up_foundation',
+  'draft_pick_count',
+  'comp_picks',
+  'conditional_pick_upgrades',
+  'elite_scouts',
+  'combine_actions',
+  'moneyball',
+  'max_cap_usage',
+  'fulfilled_promises',
+  'hardball_bargains',
+  'max_facilities',
+  'positive_cap_years',
+  'high_level_coaches',
+  'active_mentoring_pairs',
+  'training_breakouts',
+  'scheme_innovator',
+  'medical_marvel',
+  'positive_press_conferences',
+  'blood_feud_rivalries',
+  'news_items_current_season',
+  'active_story_arcs',
+  'cool_under_pressure',
+  'records_broken',
+  'records_held',
+  'hall_of_famers',
+  'peak_ovr_90',
+  'franchise_wins',
+  'seasons_played',
+  'hc_tenure',
+  'trade_partners',
+  'cinderella_story',
+  'playoff_comebacks',
+] as const;
+
+export type AchievementConditionType = typeof ACHIEVEMENT_CONDITION_TYPES[number];
+
 export interface AchievementCondition {
-  type: string;
+  type: AchievementConditionType;
   threshold: number | string | boolean;
 }
 
@@ -308,4 +363,3 @@ export interface TradeProposal {
   aiResponse: string;
   valueDiff: number;
 }
-

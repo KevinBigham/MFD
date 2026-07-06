@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { mulberry32 } from '../rng';
 import type { Team } from '../types';
 import {
@@ -38,6 +40,21 @@ function makeTeam(traits: string[] = [], gameplan = 75): Team {
       },
     },
   } as unknown as Team;
+}
+
+function readSystemSource(filename: string): string {
+  return readFileSync(fileURLToPath(new URL(filename, import.meta.url)), 'utf8');
+}
+
+function blankPreservingNewlines(value: string): string {
+  return value.replace(/[^\n\r]/g, ' ');
+}
+
+function stripCommentsAndStrings(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, blankPreservingNewlines)
+    .replace(/\/\/[^\n\r]*/g, blankPreservingNewlines)
+    .replace(/(['"`])(?:\\[\s\S]|(?!\1)[\s\S])*\1/g, blankPreservingNewlines);
 }
 
 describe('Trick Plays', () => {
@@ -175,6 +192,42 @@ describe('Trick Plays', () => {
         if (shouldCallTrickPlay(seededRng(seed), 3, 14, false)) leadingCount++;
       }
       expect(trailingCount).toBeGreaterThan(leadingCount);
+    });
+  });
+
+  describe('simulation wiring boundary', () => {
+    it('keeps trick-play execution helpers out of the current simulation spine', () => {
+      const simulationSources = [
+        'game-sim.ts',
+        'game-flow.ts',
+        'franchise-week.ts',
+      ].map((filename) => ({
+        filename,
+        rawSource: readSystemSource(filename),
+      }));
+      const normalizedSources = simulationSources.map(({ filename, rawSource }) => ({
+        filename,
+        rawSource,
+        strippedSource: stripCommentsAndStrings(rawSource),
+      }));
+      const runtimeHelperPatterns = [
+        /\bTRICK_PLAYS\b/,
+        /\bexecuteTrickPlay\b/,
+        /\bshouldCallTrickPlay\b/,
+        /\bgetAvailableTrickPlays\b/,
+        /\bcanCallTrickPlays\b/,
+      ];
+      const importPattern = /from\s+['"]\.\/trick-plays['"]/;
+
+      const violations = normalizedSources.flatMap(({ filename, rawSource, strippedSource }) => {
+        const helperMatches = runtimeHelperPatterns
+          .filter((pattern) => pattern.test(strippedSource))
+          .map((pattern) => `${filename} matches ${pattern}`);
+        const importMatches = importPattern.test(rawSource) ? [`${filename} imports ./trick-plays`] : [];
+        return [...helperMatches, ...importMatches];
+      });
+
+      expect(violations).toEqual([]);
     });
   });
 });

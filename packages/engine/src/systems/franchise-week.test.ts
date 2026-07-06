@@ -1,8 +1,90 @@
 import { describe, expect, it } from 'vitest';
 import { advanceFranchiseWeek, seedPlayoffBracket } from '../index';
+import type { FranchiseHistoryEntry, StaffMember } from '../types';
+import { applyRuleChange, initLeagueRules } from './league-rules';
 import { makeLeagueState } from './test-helpers';
 
+function scheduleWithGameAt(totalWeeks: number, gameWeek: number) {
+  return Array.from({ length: totalWeeks }, (_, index) => ({
+    week: index + 1,
+    games: index + 1 === gameWeek
+      ? [{ homeTeamId: 'afce1', awayTeamId: 'afce2', result: null, flexed: false, primetime: false, broadcastNetwork: null }]
+      : [],
+  }));
+}
+
+function applyScheduleWeeks(game: ReturnType<typeof makeLeagueState>, weeks: number) {
+  game.leagueRules = applyRuleChange(initLeagueRules(game.year), {
+    key: 'schedule_weeks',
+    newValue: weeks,
+    source: 'commissioner_vote',
+    proposedBy: 'commissioner',
+    effectiveYear: game.year,
+    rationale: 'Test schedule length.',
+  });
+}
+
+function addFranchiseHistory(game: ReturnType<typeof makeLeagueState>, teamId: string, entries: Array<{
+  year: number;
+  wins: number;
+  losses: number;
+  playoffFinish?: string;
+}>): void {
+  for (const entry of entries) {
+    game.franchiseHistory.push({
+      year: entry.year,
+      teamId,
+      wins: entry.wins,
+      losses: entry.losses,
+      ties: 0,
+      record: `${entry.wins}-${entry.losses}`,
+      pointDifferential: 0,
+      playoffFinish: entry.playoffFinish ?? 'missed_playoffs',
+      majorEvents: [],
+      awardsWon: [],
+      recordsBroken: [],
+    } as FranchiseHistoryEntry);
+  }
+}
+
+function makeStaff(id: string, role: StaffMember['role'], overrides: Partial<StaffMember> = {}): StaffMember {
+  return {
+    id,
+    name: `${id} Coach`,
+    role,
+    archetype: 'Strategist',
+    traits: [],
+    ratings: { gameplan: 72, development: 70, motivation: 68, strategy: 71 },
+    level: 2,
+    age: 44,
+    term: role === 'HC' ? 4 : 3,
+    buyoutPenalty: role === 'HC' ? 3 : 2,
+    loyalty: 6,
+    ambition: 5,
+    schemeLean: { offense: 'spread', defense: 'cover_3' },
+    lastHiredYear: 2025,
+    ...overrides,
+  };
+}
+
 describe('franchise week simulation', () => {
+  it('keeps the default advance boundary immutable for callers', () => {
+    const game = makeLeagueState('preseason', 1);
+    const result = advanceFranchiseWeek(game);
+
+    expect(result.nextState).not.toBe(game);
+    expect(game.phase).toBe('preseason');
+    expect(result.nextState.phase).toBe('regular_season');
+  });
+
+  it('allows playtest callers to advance synthetic state in place', () => {
+    const game = makeLeagueState('preseason', 1);
+    const result = advanceFranchiseWeek(game, { mutateInPlace: true });
+
+    expect(result.nextState).toBe(game);
+    expect(game.phase).toBe('regular_season');
+  });
+
   it('moves preseason into regular season without consuming week 1', () => {
     const game = makeLeagueState('preseason', 1);
     const result = advanceFranchiseWeek(game);
@@ -95,6 +177,32 @@ describe('franchise week simulation', () => {
     expect(result.nextState.week).toBe(10);
   });
 
+  it('continues regular season through generated 19-week schedules', () => {
+    const game = makeLeagueState('regular_season', 18);
+    applyScheduleWeeks(game, 19);
+    game.schedule = scheduleWithGameAt(19, 18);
+
+    const result = advanceFranchiseWeek(game);
+
+    expect(result.nextState.phase).toBe('regular_season');
+    expect(result.nextState.week).toBe(19);
+    expect(result.nextState.playoffBracket).toBeNull();
+    expect(result.nextState.schedule[17]!.games[0]!.result).not.toBeNull();
+    expect(result.nextState.weekSummaries.at(-1)?.phase).toBe('regular_season');
+  });
+
+  it('starts playoffs immediately after generated 17-week schedules', () => {
+    const game = makeLeagueState('regular_season', 17);
+    applyScheduleWeeks(game, 17);
+    game.schedule = scheduleWithGameAt(17, 17);
+
+    const result = advanceFranchiseWeek(game);
+
+    expect(result.nextState.phase).toBe('playoffs');
+    expect(result.nextState.week).toBe(18);
+    expect(result.nextState.playoffBracket?.matchups.every((matchup) => matchup.week === 18)).toBe(true);
+  });
+
   it('seeds seven playoff teams per conference using standings tiebreakers', () => {
     const game = makeLeagueState('regular_season', 19);
     const records: Record<string, [number, number, number]> = {
@@ -155,6 +263,144 @@ describe('franchise week simulation', () => {
     expect(result.nextState.offseasonState).not.toBeNull();
     expect(result.nextState.offseasonState?.expiringPlayerIds).toContain(game.teams.afce1.roster[0]!.id);
     expect(result.nextState.freeAgents).not.toContain(game.teams.afce1.roster[0]!.id);
+  });
+
+  it('fires franchise book chapter news after season history is archived', () => {
+    const game = makeLeagueState('playoffs', 22);
+    game.year = 2029;
+    game.week = 22;
+    game.playoffBracket = {
+      season: 2029,
+      afc: [],
+      nfc: [],
+      matchups: [],
+      championTeamId: 'afce1',
+    };
+    game.teams.afce1.wins = 10;
+    game.teams.afce1.losses = 7;
+    game.teams.afce1.ties = 0;
+    addFranchiseHistory(game, 'afce1', [
+      { year: 2026, wins: 9, losses: 8 },
+      { year: 2027, wins: 11, losses: 6 },
+      { year: 2028, wins: 14, losses: 3, playoffFinish: 'champion' },
+    ]);
+
+    const result = advanceFranchiseWeek(game);
+    const alert = result.nextState.leagueNews.find((item) => item.id.startsWith('franchise-book-chapter-afce1-'));
+
+    expect(result.nextState.phase).toBe('offseason');
+    expect(result.nextState.year).toBe(2030);
+    expect(alert).toBeDefined();
+    expect(alert?.year).toBe(2029);
+    expect(alert?.week).toBe(22);
+    expect(alert?.headline).toContain('A NEW CHAPTER BEGINS');
+    expect(alert?.body).toContain('Franchise Book');
+    expect(alert?.teamIds).toContain('afce1');
+  });
+
+  it('advances coach development during championship rollover', () => {
+    const game = makeLeagueState('playoffs', 22);
+    game.playoffBracket = {
+      season: 2026,
+      afc: [],
+      nfc: [],
+      matchups: [],
+      championTeamId: 'afce1',
+    };
+    game.teams.afce1!.wins = 12;
+    game.teams.afce1!.losses = 5;
+    game.teams.afce1!.staff.hc = makeStaff('hc-development', 'HC', {
+      level: 2,
+      ratings: { gameplan: 72, development: 70, motivation: 68, strategy: 71 },
+    });
+
+    const result = advanceFranchiseWeek(game);
+    const coach = result.nextState.teams.afce1!.staff.hc;
+
+    expect(result.nextState.phase).toBe('offseason');
+    expect(result.nextState.year).toBe(2027);
+    expect(coach?.id).toBe('hc-development');
+    expect(coach?.level).toBeGreaterThan(2);
+    expect(coach?.ratings.gameplan).toBeGreaterThan(72);
+  });
+
+  it('advances position coach tenure during championship rollover', () => {
+    const game = makeLeagueState('playoffs', 22);
+    game.playoffBracket = {
+      season: 2026,
+      afc: [],
+      nfc: [],
+      matchups: [],
+      championTeamId: 'afce1',
+    };
+    game.teams.afce1!.positionCoaches = {
+      coaches: [
+        {
+          id: 'pc-ol-tenure',
+          name: 'Line Coach',
+          role: 'OL',
+          specialty: 'pass_blocking',
+          quality: 6,
+          yearsWithTeam: 0,
+        },
+        {
+          id: 'pc-db-tenure',
+          name: 'Coverage Coach',
+          role: 'DB',
+          specialty: 'coverage_technique',
+          quality: 8,
+          yearsWithTeam: 2,
+        },
+      ],
+    };
+
+    const result = advanceFranchiseWeek(game);
+
+    expect(result.nextState.phase).toBe('offseason');
+    expect(result.nextState.year).toBe(2027);
+    expect(result.nextState.teams.afce1!.positionCoaches?.coaches.map((coach) => coach.yearsWithTeam)).toEqual([1, 3]);
+    expect(game.teams.afce1!.positionCoaches?.coaches.map((coach) => coach.yearsWithTeam)).toEqual([0, 2]);
+  });
+
+  it('resolves season-end coordinator poaching deterministically and clears legacy staff mirrors', () => {
+    const game = makeLeagueState('playoffs', 22);
+    game.seed = 42;
+    game.playoffBracket = {
+      season: 2026,
+      afc: [],
+      nfc: [],
+      matchups: [],
+      championTeamId: 'afce1',
+    };
+    game.teams.afce1!.staff.dc = makeStaff('dc-leaving', 'DC', {
+      term: 1,
+      loyalty: 1,
+      ambition: 10,
+    });
+    game.teams.afce1!.coachingStaff.dc = {
+      id: 'dc-leaving',
+      firstName: 'Leaving',
+      lastName: 'Coach',
+      role: 'DC',
+      archetype: 'Strategist',
+      traits: [],
+      skillTree: {},
+      xp: 0,
+      reputation: 70,
+      tenure: 1,
+    };
+
+    const first = advanceFranchiseWeek(game);
+    const second = advanceFranchiseWeek(structuredClone(game));
+    const firstNews = first.nextState.leagueNews.find((item) => item.id === 'coach-departed-afce1-dc-leaving');
+    const secondNews = second.nextState.leagueNews.find((item) => item.id === 'coach-departed-afce1-dc-leaving');
+
+    expect(first.nextState.teams.afce1!.staff.dc).toBeNull();
+    expect(first.nextState.teams.afce1!.coachingStaff.dc).toBeNull();
+    expect(first.nextState.eventLog.some((event) => event.type === 'coach_departed')).toBe(true);
+    expect(firstNews?.headline).toContain('loses dc-leaving Coach');
+    expect(firstNews).toEqual(secondNews);
+    expect(first.nextState.teams.afce1!.staff.dc).toEqual(second.nextState.teams.afce1!.staff.dc);
   });
 
   it('interrupts preseason progression when the cba is still negotiating', () => {

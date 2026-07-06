@@ -182,12 +182,12 @@ function mandateSection(game: GameState, team: Team, year: number): ReportSectio
     'Owner Mandates',
     grade,
     floor?.status === 'missed'
-      ? 'The promised floor was missed, and ownership treated it as a real failure.'
+      ? 'The minimum promise was missed, so ownership cut approval and patience.'
       : ceiling?.status === 'exceeded'
-        ? 'The season cleared the ceiling mandate and turned the setup promise into a headline.'
+        ? 'The stretch promise was exceeded, creating the strongest owner reward.'
         : target?.status === 'met' || target?.status === 'exceeded'
-          ? 'The target mandate landed and strengthened front-office trust.'
-          : 'The floor survived, but the larger promises still need a stronger follow-through.',
+          ? 'The main promise landed and raised front-office reputation.'
+          : 'The minimum promise survived, but the bigger promises still need roster, cap, or Game Plan follow-through.',
     highlights,
     {
       floor: floor ? `${floor.label}: ${floor.status}` : 'N/A',
