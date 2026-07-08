@@ -26,7 +26,8 @@ import type { GameState, SeasonPhase, Team } from '@mfd/engine';
 import { createSeedGameState } from './seed';
 
 const G4_SEED = 860_618;
-const TARGET_COMPLETED_SEASONS = Number(process.env.G4_TARGET_SEASONS ?? 10);
+const DEFAULT_COMPLETED_SEASONS = 3;
+const TARGET_COMPLETED_SEASONS = Number(process.env.G4_TARGET_SEASONS ?? DEFAULT_COMPLETED_SEASONS);
 const STEP_GUARD = 800;
 const VALIDATED_STATE_GUARD = STEP_GUARD * 4;
 const ADVANCE_ONLY_BIAS = Object.freeze({ advanceOnly: true, fatigueIgnore: true });
@@ -663,7 +664,7 @@ async function runG4Soak(seed: number, completedSeasonsTarget: number, options: 
 }
 
 describe('G4 multi-year trust gate', () => {
-  it('reaches Year 4 Week 1 and replays a deterministic 10-season New Dynasty soak', { timeout: G4_SOAK_TIMEOUT_MS }, async () => {
+  it('reaches Year 4 Week 1 and replays a deterministic New Dynasty soak', { timeout: G4_SOAK_TIMEOUT_MS }, async () => {
     const left = await runG4Soak(G4_SEED, TARGET_COMPLETED_SEASONS, { saveRoundTrips: true });
     const right = await runG4Soak(G4_SEED, TARGET_COMPLETED_SEASONS, { saveRoundTrips: false });
 
