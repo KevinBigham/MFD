@@ -40,17 +40,17 @@ const COMEBACK_LOW_WP = 25;
 const CHOKE_HIGH_WP = 75;
 
 const OUTCOME_POSES: Record<RecapChipOutcome, ChipPose> = {
-  BLOWOUT_WIN: 'celebrate',
-  CLOSE_WIN: 'thumbs-up',
-  WIN: 'thumbs-up',
-  OT_WIN: 'surprised',
-  COMEBACK_WIN: 'excited',
-  CLOSE_LOSS: 'concern',
-  BLOWOUT_LOSS: 'sad',
-  CHOKE_LOSS: 'disappointed',
-  LOSS: 'sad',
-  OT_LOSS: 'concern',
-  UNKNOWN: 'think',
+  BLOWOUT_WIN: 'rallying',
+  CLOSE_WIN: 'fist-bump',
+  WIN: 'proud',
+  OT_WIN: 'laughing',
+  COMEBACK_WIN: 'rallying',
+  CLOSE_LOSS: 'frustrated',
+  BLOWOUT_LOSS: 'head-in-hands',
+  CHOKE_LOSS: 'facepalm',
+  LOSS: 'tired',
+  OT_LOSS: 'head-in-hands',
+  UNKNOWN: 'reviewing-tablet',
 };
 
 export function getRecapChipPose(outcome: RecapChipOutcome): ChipPose {
@@ -114,33 +114,34 @@ export function buildRecapChipCopy({
   opponentScore?: number | null;
 }): string {
   const opponent = opponentName ? ` over ${opponentName}` : '';
+  const againstOpponent = opponentName ? ` against ${opponentName}` : '';
   const score = typeof userScore === 'number' && typeof opponentScore === 'number'
     ? ` ${userScore}-${opponentScore}.`
     : '.';
 
   switch (outcome) {
     case 'BLOWOUT_WIN':
-      return `${teamName} turned it into a statement${opponent}${score}`;
+      return `${teamName} won by 22+ points${opponent}${score} Must Do: open Film Room before changing starters or Game Plan. Where: Film Room. Consequence: it names the role or matchup that carried the win before the next move changes it.`;
     case 'CLOSE_WIN':
-      return `${teamName} survived the final snap${opponent}${score}`;
+      return `${teamName} won by one score${opponent}${score} Must Do: set first backup and final-drive call before Advance Week. Where: Recap, Depth Chart, Game Plan. Consequence: a missed backup order or late call leaves the next close game on an unassigned backup or a call the roster cannot handle.`;
     case 'OT_WIN':
-      return `${teamName} needed bonus football and cashed it${opponent}${score}`;
+      return `${teamName} won in overtime${opponent}${score} Must Do: identify the tired starter and set the first backup before Advance Week. Where: Roster, Depth Chart, Game Plan. Consequence: tired starters put backups without assigned roles on the field next kickoff.`;
     case 'COMEBACK_WIN':
-      return `${teamName} climbed off the mat and stole it${opponent}${score}`;
+      return `${teamName} won after trailing${againstOpponent}${score} Must Do: identify slow-start cause before Game Plan changes. Where: Recap, Game Plan. Consequence: missed protection hits next week before comeback calls help.`;
     case 'BLOWOUT_LOSS':
-      return `${teamName} took a hard one${score}`;
+      return `${teamName} lost by 22+ points${score} Must Do: identify the worst missed block, coverage bust, tackle miss, or injury. Where: Recap, Roster, Depth Chart, Game Plan. Consequence: leaving that miss uncovered repeats next game.`;
     case 'CLOSE_LOSS':
-      return `${teamName} had it within reach${score}`;
+      return `${teamName} lost by one score${score} Must Do: find the missed backup or late call before Advance Week. Where: Recap, Depth Chart, Game Plan. Consequence: one backup-order or play-call miss repeats the same late-game miss next week.`;
     case 'OT_LOSS':
-      return `${teamName} ran out of answers in overtime${score}`;
+      return `${teamName} lost in overtime${score} Must Do: name the tired starter, injury, or late call before Advance Week. Where: Roster and Game Plan. Consequence: fatigue, injury, or late-call misses repeat.`;
     case 'CHOKE_LOSS':
-      return `${teamName} let the door stay open too long${score}`;
+      return `${teamName} lost after leading${score} Must Do: identify the late call or tired starter before changing roster. Where: Recap, Roster, Game Plan. Consequence: late-game misses repeat and cut owner patience and job security.`;
     case 'WIN':
-      return `${teamName} handled the job${opponent}${score}`;
+      return `${teamName} won${opponent}${score} Must Do: open Film Room before roster or Game Plan changes. Where: Film Room. Consequence: it names any injury, role, or matchup miss before a change benches what carried the win.`;
     case 'LOSS':
-      return `${teamName} has cleanup waiting${score}`;
+      return `${teamName} lost${score} Must Do: identify the biggest matchup miss before Advance Week. Where: Recap or Film Room. Consequence: fixing a covered position spends cap space or depth while the real miss stays exposed.`;
     default:
-      return `${teamName} has the tape ready.`;
+      return `${teamName} has the recap ready. Must Do: open Recap before roster, cap, or Game Plan moves. Where: Recap. Consequence: irreversible cuts, trades, or contract moves outlive one unclear result.`;
   }
 }
 

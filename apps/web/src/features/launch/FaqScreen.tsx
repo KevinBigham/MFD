@@ -1,4 +1,5 @@
 import { PixelBadge, PixelPanel } from '@mfd/design-system/components';
+import { SAVE_VERSION } from '@mfd/engine';
 import { PixelScreenHeader, monoSm, screenStackStyle } from '../shared/pixelUi';
 
 const FAQ_ENTRIES = [
@@ -20,7 +21,7 @@ const FAQ_ENTRIES = [
   },
   {
     question: 'How do saves work?',
-    answer: 'The game autosaves in browser storage and can export portable dynasty backups. Sprint 70 keeps save version 35 unchanged.',
+    answer: `The game autosaves in browser storage and can export portable dynasty backups. Current saves use schema version ${SAVE_VERSION}.`,
   },
   {
     question: "What's rivalry heat?",

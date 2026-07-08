@@ -16,6 +16,7 @@ describe('SuperBowlPresentationView', () => {
       />,
     );
     expect(markup).toContain('not yet been played');
+    expect(markup).toContain('SUPER BOWL SOURCES');
   });
 
   it('renders matchup card with Super Bowl number', () => {
@@ -147,5 +148,51 @@ describe('SuperBowlPresentationView', () => {
     expect(markup).toContain('CHAMPION PODIUM');
     expect(markup).toContain('Patrick Starfish');
     expect(markup).toContain('One MVP doesn&#x27;t define a career.');
+  });
+
+  it('labels presentation sources without implying route writes', () => {
+    const markup = renderToStaticMarkup(
+      <SuperBowlPresentationView
+        context={{
+          number: 'LX',
+          matchup: 'Team A vs Team B',
+          venue: 'Test Venue',
+          storylines: ['Dynasty territory.'],
+        }}
+        halftimeShow={{
+          performer: 'Nova Eclipse',
+          genre: 'pop',
+          description: 'A dazzling show.',
+          rating: 4,
+        }}
+        mvp={{
+          playerId: 'p1',
+          playerName: 'Patrick Starfish',
+          pos: 'QB',
+          stats: '300 pass yds, 3 TD',
+          narrative: 'Patrick Starfish was named Super Bowl MVP.',
+        }}
+        parade={null}
+        championName="Team A"
+        narrative="Team A won the title."
+        awardSpeech={{
+          presenterIntro: 'Please welcome your MVP.',
+          acceptance: 'This locker room earned it.',
+        }}
+      />,
+    );
+
+    expect(markup).toContain('SUPER BOWL SOURCES');
+    expect(markup).toContain('saved playoffBracket');
+    expect(markup).toContain('deterministic helpers');
+    expect(markup).toContain('browser-local dismissal');
+    expect(markup).toContain('generateSuperBowlContext');
+    expect(markup).toContain('generateSuperBowlMVP');
+    expect(markup).toContain('generateChampionParade');
+    expect(markup).toContain('getAwardSpeech');
+    expect(markup).toContain('mfd-celebration-dismissed');
+    expect(markup).toContain('not cartridge state');
+    expect(markup).toContain('Opening this route does not write playoff brackets');
+    expect(markup).toContain('simulation outcomes');
   });
 });

@@ -10,6 +10,10 @@ import {
 import {
   getScoutingReportTemplate,
   interpolateContentPlaceholders,
+  type DraftProspect,
+  type ProspectScoutingState,
+  type Scout,
+  type ScoutingAction,
 } from '@mfd/engine';
 import {
   selectDraftClass,
@@ -19,11 +23,13 @@ import {
   useGameStore,
 } from '../../app/store/game-store';
 import {
+  CommandCallout,
   PixelMetricCard,
   PixelScreenHeader,
   autoGrid,
   display,
   monoSm,
+  navigateTo,
   screenStackStyle,
 } from '../shared/pixelUi';
 import { ComparePlayersModal } from '../player/ComparePlayersModal';
@@ -36,6 +42,26 @@ const REGION_OPTIONS = [
   { value: 'midwest', label: 'midwest' },
   { value: 'west', label: 'west' },
 ];
+
+type ScoutingReceiptAccent = 'cyan' | 'green' | 'gold' | 'red' | 'default';
+
+export interface ScoutingActionReceipt {
+  id: string;
+  title: string;
+  target: string;
+  result: string;
+  detail: string;
+  source: string;
+  accent: ScoutingReceiptAccent;
+}
+
+type ScoutingActionReceiptInput =
+  | { kind: 'hire_scout'; scout: Scout; budgetBefore: number }
+  | { kind: 'fire_scout'; scout: Scout; budgetBefore: number }
+  | { kind: 'watch'; prospect: DraftProspect; wasWatched: boolean }
+  | { kind: 'prospect_action'; prospect: DraftProspect; action: Exclude<ScoutingAction, 'private_workout'>; scouting?: ProspectScoutingState }
+  | { kind: 'pro_day'; prospect: DraftProspect; scouting?: ProspectScoutingState }
+  | { kind: 'private_workout'; prospect: DraftProspect; scouting?: ProspectScoutingState; workoutsBefore: number };
 
 function scoutingStrengthTier(grade: number): 'elite' | 'solid' {
   return grade >= 85 ? 'elite' : 'solid';
@@ -73,6 +99,139 @@ function buildScoutingFlavor(params: {
     .map((line) => interpolateContentPlaceholders(line, placeholders));
 }
 
+function buildProDayImpactLine(proDayRating: string | null | undefined): string {
+  if (proDayRating) {
+    return `Saved pro-day result from offseasonState.scoutingState.proDayRating: ${proDayRating}. It adds one scout-backed rating sample, raises confidence, and tightens the visible grade without spending a private-workout slot.`;
+  }
+  return 'Pro day records one scout-backed rating sample, raises confidence, and tightens the visible grade without spending a private-workout slot.';
+}
+
+function buildPrivateWorkoutImpactLine(
+  privateWorkoutRatings: readonly string[] | undefined,
+  remainingWorkouts: number,
+): string {
+  if (privateWorkoutRatings?.length) {
+    return `Saved private-workout result from offseasonState.scoutingState.privateWorkoutRatings: ${privateWorkoutRatings.join(' // ')}. It consumed one seasonal workout, verified top position ratings, and can unlock risk and ceiling bands.`;
+  }
+  if (remainingWorkouts <= 0) {
+    return 'No private-workout bullets remain. Film, combine, interview, and pro-day actions can still improve confidence, but they do not save private-workout rating lines.';
+  }
+  return 'Private workout consumes one seasonal workout, verifies top position ratings, gives a large confidence bump, and can unlock risk and ceiling bands.';
+}
+
+function prospectName(prospect: DraftProspect): string {
+  return `${prospect.firstName} ${prospect.lastName}`;
+}
+
+function scoutDescriptor(scout: Scout): string {
+  const scope = scout.scope === 'national' ? 'National' : `${scout.region ?? 'regional'} region`;
+  return `${scope} // ${scout.specialty ?? 'Generalist'} // ${Math.round(scout.accuracy * 100)}%`;
+}
+
+function scoutingActionLabel(action: Exclude<ScoutingAction, 'private_workout'>): string {
+  return {
+    film: 'Film Review',
+    combine: 'Combine Check',
+    interview: 'Interview',
+  }[action];
+}
+
+export function buildScoutingActionReceipt(input: ScoutingActionReceiptInput): ScoutingActionReceipt {
+  if (input.kind === 'hire_scout') {
+    const budgetAfter = Math.round((input.budgetBefore - input.scout.salary) * 100) / 100;
+    return {
+      id: `hire-${input.scout.id}`,
+      title: 'Scout Hire Receipt',
+      target: input.scout.name,
+      result: `Added ${scoutDescriptor(input.scout)}`,
+      detail: `Budget moves from $${input.budgetBefore.toFixed(1)}M toward $${budgetAfter.toFixed(1)}M, and the scout moves from the available pool to hired staff.`,
+      source: 'Action used: actions.hireScout -> hireScout; this confirmation appears here only.',
+      accent: input.scout.tier === 'elite' ? 'gold' : 'green',
+    };
+  }
+
+  if (input.kind === 'fire_scout') {
+    const refund = Math.round(input.scout.salary * 50) / 100;
+    const budgetAfter = Math.round((input.budgetBefore + input.scout.salary * 0.5) * 100) / 100;
+    return {
+      id: `fire-${input.scout.id}`,
+      title: 'Scout Release Receipt',
+      target: input.scout.name,
+      result: `Returned ${scoutDescriptor(input.scout)} to the candidate pool`,
+      detail: `The scouting budget refunds $${refund.toFixed(1)}M and moves from $${input.budgetBefore.toFixed(1)}M toward $${budgetAfter.toFixed(1)}M.`,
+      source: 'Action used: actions.fireScout -> fireScout; this confirmation appears here only.',
+      accent: 'red',
+    };
+  }
+
+  if (input.kind === 'watch') {
+    const name = prospectName(input.prospect);
+    return {
+      id: `watch-${input.prospect.id}-${input.wasWatched ? 'remove' : 'add'}`,
+      title: 'Scouting Watchlist Receipt',
+      target: `${name} // ${input.prospect.pos}`,
+      result: input.wasWatched ? 'Removed from saved draft watchlist' : 'Added to saved draft watchlist',
+      detail: 'This changes offseasonState.scoutingWatchlist for draft-room focus. Browser-local star pins stay in the separate mfd.watchlist.v1 sidecar.',
+      source: 'Action used: actions.toggleScoutingWatchlist -> toggleScoutingWatchlist; this confirmation appears here only.',
+      accent: input.wasWatched ? 'default' : 'gold',
+    };
+  }
+
+  if (input.kind === 'prospect_action') {
+    const name = prospectName(input.prospect);
+    const label = scoutingActionLabel(input.action);
+    const confidence = input.scouting?.confidence ?? Math.round((input.scouting?.accuracy ?? 0) * 100);
+    return {
+      id: `${input.action}-${input.prospect.id}`,
+      title: 'Scouting Intel Receipt',
+      target: `${name} // ${input.prospect.pos}`,
+      result: `${label} logged`,
+      detail: `The saved scouting row re-renders from offseasonState.scoutingState with actions, confidence, assigned scout, visible grade, and notes. Previous confidence was ${confidence}%.`,
+      source: 'Action used: actions.runScoutingAction -> runScoutingAction; this confirmation appears here only.',
+      accent: input.action === 'film' ? 'cyan' : input.action === 'combine' ? 'gold' : 'green',
+    };
+  }
+
+  if (input.kind === 'pro_day') {
+    const name = prospectName(input.prospect);
+    return {
+      id: `pro-day-${input.prospect.id}`,
+      title: 'Pro Day Receipt',
+      target: `${name} // ${input.prospect.pos}`,
+      result: input.scouting?.proDayRating ? 'Pro day refreshed' : 'Pro day recorded',
+      detail: 'The saved scouting row can gain one proDayRating line, a note, tighter visible grade, and higher confidence without spending a private-workout slot.',
+      source: 'Action used: actions.runProDay -> runProDay; this confirmation appears here only.',
+      accent: 'green',
+    };
+  }
+
+  const name = prospectName(input.prospect);
+  const remainingAfter = Math.max(0, input.workoutsBefore - 1);
+  return {
+    id: `private-workout-${input.prospect.id}`,
+    title: 'Private Workout Receipt',
+    target: `${name} // ${input.prospect.pos}`,
+    result: 'Private workout recorded',
+    detail: `One seasonal workout is consumed (${input.workoutsBefore} -> ${remainingAfter}), and the saved row can add privateWorkoutRatings plus risk/ceiling clarity.`,
+    source: 'Action used: actions.runPrivateWorkout -> runPrivateWorkout; this confirmation appears here only.',
+    accent: 'gold',
+  };
+}
+
+export function ScoutingActionReceiptPanel({ receipt }: { receipt: ScoutingActionReceipt }) {
+  return (
+    <PixelPanel title={receipt.title} accent={receipt.accent}>
+      <div style={autoGrid(210)}>
+        <PixelMetricCard label="Target" value={receipt.target} accent="cyan" detail="Scouting row that fired the existing commit." />
+        <PixelMetricCard label="Result" value={receipt.result} accent={receipt.accent} detail={receipt.detail} />
+      </div>
+      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6, marginTop: '10px' }}>
+        {receipt.source}
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function ScoutingBoard() {
   const draftClass = useGameStore(selectDraftClass);
   const offseasonState = useGameStore(selectOffseasonState);
@@ -92,11 +251,13 @@ export function ScoutingBoard() {
   const [watchlistOnly, setWatchlistOnly] = useState(false);
   const [criticalNeedsOnly, setCriticalNeedsOnly] = useState(false);
   const [compareProspectId, setCompareProspectId] = useState<string | null>(null);
+  const [actionReceipt, setActionReceipt] = useState<ScoutingActionReceipt | null>(null);
 
-  const handleAction = async (key: string, run: () => Promise<void>) => {
+  const handleAction = async (key: string, run: () => Promise<void>, receipt?: () => ScoutingActionReceipt) => {
     setPending(key);
     try {
       await run();
+      if (receipt) setActionReceipt(receipt());
     } finally {
       setPending(null);
     }
@@ -152,6 +313,24 @@ export function ScoutingBoard() {
         )}
       />
 
+      <CommandCallout
+        title={watchlist.size > 0 ? 'Work the watchlist' : 'Find one need-fit target'}
+        body={watchlist.size > 0
+          ? 'Your board has a focus list. Spend actions where confidence is low before opening the full prospect stack.'
+          : `${needsReport.criticalNeeds.join(', ') || 'No critical needs'} is the first filter. Mark targets before late draft pressure narrows your choices.`}
+        accent={watchlist.size > 0 ? 'gold' : 'cyan'}
+        meta={(
+          <>
+            <PixelBadge variant="gold">{scoutingDepartment.privateWorkoutsRemaining} workouts</PixelBadge>
+            <PixelBadge variant="cyan">{watchlist.size} watched</PixelBadge>
+          </>
+        )}
+        actions={[
+          { label: 'Critical Needs', accent: 'green', onClick: () => setCriticalNeedsOnly(true) },
+          { label: 'Draft Board', accent: 'gold', onClick: () => navigateTo('/draft') },
+        ]}
+      />
+
       <div style={autoGrid(210)}>
         <PixelMetricCard label="Board Size" value={visibleProspects.length} accent="cyan" detail="Visible prospects" />
         <PixelMetricCard label="Scouting Actions" value={completedActions} accent="gold" detail="Film, combine, interview" />
@@ -159,6 +338,28 @@ export function ScoutingBoard() {
         <PixelMetricCard label="Scout Budget" value={`$${scoutingDepartment.budget.toFixed(1)}M`} accent="default" detail={`${scoutingDepartment.scouts.length}/${scoutingDepartment.maxScouts} hired`} />
         <PixelMetricCard label="Watchlist" value={watchlist.size} accent="gold" detail="Priority prospects" />
       </div>
+
+      <PixelPanel title="Scouting Sources" accent="cyan">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <PixelBadge variant="cyan">SAVED DRAFT CLASS</PixelBadge>
+            <PixelBadge variant="gold">SCOUTING STATE</PixelBadge>
+            <PixelBadge variant="green">SCOUT STAFF</PixelBadge>
+            <PixelBadge variant="default">WATCHLIST SPLIT</PixelBadge>
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+            Prospect rows read saved game.draftClass. Visible grade, confidence, notes, risk, ceiling, character, pro-day, and private-workout lines read saved offseasonState.scoutingState when present.
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+            Film, combine, interview, pro day, private workout, scout hire/fire, and saved draft watch/unwatch actions stay in the store actions backed by engine scouting helpers. Opening Scouting does not generate a new class, reroll scouts, spend workouts, or change saved scouting intel.
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+            The saved scouting watchlist is offseasonState.scoutingWatchlist. The pin button is the separate browser-local mfd.watchlist.v1 sidecar, and Scout Desk lines come from authored scouting-report templates.
+          </div>
+        </div>
+      </PixelPanel>
+
+      {actionReceipt ? <ScoutingActionReceiptPanel receipt={actionReceipt} /> : null}
 
       <div style={autoGrid(320)}>
         <PixelPanel title="Scouting Filters" accent="gold">
@@ -262,7 +463,15 @@ export function ScoutingBoard() {
                     <PixelBadge variant={scout.tier === 'elite' ? 'gold' : scout.tier === 'good' ? 'green' : scout.tier === 'average' ? 'cyan' : 'red'}>
                       {scout.tier}
                     </PixelBadge>
-                    <PixelButton accent="red" disabled={pending === scout.id} onClick={() => void handleAction(scout.id, async () => fireScout(scout.id))}>
+                    <PixelButton
+                      accent="red"
+                      disabled={pending === scout.id}
+                      onClick={() => void handleAction(
+                        scout.id,
+                        async () => fireScout(scout.id),
+                        () => buildScoutingActionReceipt({ kind: 'fire_scout', scout, budgetBefore: scoutingDepartment.budget }),
+                      )}
+                    >
                       Fire
                     </PixelButton>
                   </div>
@@ -290,7 +499,11 @@ export function ScoutingBoard() {
                   <PixelButton
                     accent="cyan"
                     disabled={scoutingDepartment.scouts.length >= scoutingDepartment.maxScouts || scoutingDepartment.budget < scout.salary || pending === scout.id}
-                    onClick={() => void handleAction(scout.id, async () => hireScout(scout.id))}
+                    onClick={() => void handleAction(
+                      scout.id,
+                      async () => hireScout(scout.id),
+                      () => buildScoutingActionReceipt({ kind: 'hire_scout', scout, budgetBefore: scoutingDepartment.budget }),
+                    )}
                   >
                     Hire
                   </PixelButton>
@@ -373,6 +586,39 @@ export function ScoutingBoard() {
                     </div>
                   ) : null}
 
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gap: '8px',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      padding: '8px 10px',
+                      border: '2px solid rgba(34, 211, 238, 0.35)',
+                      background: 'rgba(34, 211, 238, 0.06)',
+                    }}>
+                      <PixelBadge variant="cyan">PRO DAY IMPACT</PixelBadge>
+                      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+                        {buildProDayImpactLine(scouting?.proDayRating)}
+                      </div>
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      padding: '8px 10px',
+                      border: '2px solid rgba(245, 158, 11, 0.35)',
+                      background: 'rgba(245, 158, 11, 0.06)',
+                    }}>
+                      <PixelBadge variant="gold">PRIVATE WORKOUT IMPACT</PixelBadge>
+                      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+                        {buildPrivateWorkoutImpactLine(scouting?.privateWorkoutRatings, scoutingDepartment.privateWorkoutsRemaining)}
+                      </div>
+                    </div>
+                  </div>
+
                   {scouting?.proDayRating ? (
                     <div style={{ ...monoSm, color: 'var(--mfd-green)' }}>
                       Pro Day: {scouting.proDayRating}
@@ -413,7 +659,11 @@ export function ScoutingBoard() {
                     <PixelButton
                       accent={isWatched ? 'gold' : 'default'}
                       disabled={pending === `${prospect.id}-watch`}
-                      onClick={() => void handleAction(`${prospect.id}-watch`, async () => toggleScoutingWatchlist(prospect.id))}
+                      onClick={() => void handleAction(
+                        `${prospect.id}-watch`,
+                        async () => toggleScoutingWatchlist(prospect.id),
+                        () => buildScoutingActionReceipt({ kind: 'watch', prospect, wasWatched: isWatched }),
+                      )}
                     >
                       {isWatched ? 'Unwatch' : 'Watch'}
                     </PixelButton>
@@ -428,7 +678,11 @@ export function ScoutingBoard() {
                           key={action}
                           accent={taken ? 'default' : action === 'film' ? 'cyan' : action === 'combine' ? 'gold' : 'green'}
                           disabled={taken || pending === `${prospect.id}-${action}`}
-                          onClick={() => void handleAction(`${prospect.id}-${action}`, async () => runScoutingAction(prospect.id, action))}
+                          onClick={() => void handleAction(
+                            `${prospect.id}-${action}`,
+                            async () => runScoutingAction(prospect.id, action),
+                            () => buildScoutingActionReceipt({ kind: 'prospect_action', prospect, action, scouting }),
+                          )}
                         >
                           {taken ? `${action} done` : action}
                         </PixelButton>
@@ -437,14 +691,27 @@ export function ScoutingBoard() {
                     <PixelButton
                       accent="green"
                       disabled={pending === `${prospect.id}-pro-day`}
-                      onClick={() => void handleAction(`${prospect.id}-pro-day`, async () => runProDay(prospect.id))}
+                      onClick={() => void handleAction(
+                        `${prospect.id}-pro-day`,
+                        async () => runProDay(prospect.id),
+                        () => buildScoutingActionReceipt({ kind: 'pro_day', prospect, scouting }),
+                      )}
                     >
                       Pro Day
                     </PixelButton>
                     <PixelButton
                       accent="gold"
                       disabled={privateWorkoutTaken || scoutingDepartment.privateWorkoutsRemaining <= 0 || pending === `${prospect.id}-workout`}
-                      onClick={() => void handleAction(`${prospect.id}-workout`, async () => runPrivateWorkout(prospect.id))}
+                      onClick={() => void handleAction(
+                        `${prospect.id}-workout`,
+                        async () => runPrivateWorkout(prospect.id),
+                        () => buildScoutingActionReceipt({
+                          kind: 'private_workout',
+                          prospect,
+                          scouting,
+                          workoutsBefore: scoutingDepartment.privateWorkoutsRemaining,
+                        }),
+                      )}
                     >
                       {privateWorkoutTaken ? 'Workout Done' : 'Private Workout'}
                     </PixelButton>

@@ -405,6 +405,15 @@ export interface FrontOffice {
     media: number;
     owner: number;
   };
+  agmProfileId?: string | null;
+  agmImpactLog?: Array<{
+    id: string;
+    year: number;
+    week: number;
+    agmProfileId: string;
+    category: 'cap' | 'competitive' | 'personnel' | 'mandate';
+    summary: string;
+  }>;
 }
 
 export interface NarrativeState {
@@ -536,6 +545,51 @@ export interface SeasonReport {
   teamId: string;
   overallGrade: 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C' | 'D' | 'F';
   sections: ReportSection[];
+}
+
+// ── Owner Mandates ─────────────────────────────────────
+
+export type OwnerMandateSlot = 'floor' | 'target' | 'ceiling';
+export type OwnerMandateStatus = 'active' | 'met' | 'exceeded' | 'missed';
+export type OwnerMandateProgressStatus = 'on_track' | 'at_risk' | 'complete' | 'failed';
+
+export interface OwnerMandateProgress {
+  value: number;
+  target: number;
+  percent: number;
+  label: string;
+  detail: string;
+  status: OwnerMandateProgressStatus;
+  agmNote?: string | null;
+}
+
+export interface OwnerMandateEvaluation {
+  evaluatedYear: number;
+  met: boolean;
+  exceeded: boolean;
+  outcomeLabel: string;
+  summary: string;
+  approvalDelta: number;
+  patienceDelta: number;
+  ownerReputationDelta: number;
+  applied: boolean;
+  agmAdjustment?: string | null;
+}
+
+export interface OwnerMandate {
+  id: string;
+  teamId: string;
+  year: number;
+  goalId: string;
+  label: string;
+  description: string;
+  slot: OwnerMandateSlot;
+  selectedIndex: number;
+  createdWeek: number;
+  createdByAGMProfileId?: string | null;
+  status: OwnerMandateStatus;
+  progress: OwnerMandateProgress;
+  evaluation?: OwnerMandateEvaluation | null;
 }
 
 export interface PowerRanking {
@@ -1160,7 +1214,7 @@ export interface SocialPost {
 // ── Handshakes ──────────────────────────────────────────
 
 export interface HandshakeCondition {
-  metric: 'wins' | 'playoff' | 'starter' | 'trade_block' | 'spending' | 'draft_position' | 'on_roster' | 'restructure';
+  metric: 'wins' | 'playoff' | 'starter' | 'trade_block' | 'spending' | 'draft_position' | 'on_roster' | 'restructure' | 'owner_mandate';
   target: number | string | boolean;
 }
 
@@ -1269,6 +1323,7 @@ export interface GameState {
   waiverWire: WaiverWireEntry[];
   waiverClaims: WaiverClaim[];
   handshakes: Handshake[];
+  ownerMandates?: OwnerMandate[];
   tutorialState: TutorialState;
   agents: AgentProfile[];
   narrativeIntensity: NarrativeIntensity;

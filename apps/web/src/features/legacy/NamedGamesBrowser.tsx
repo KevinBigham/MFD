@@ -108,6 +108,64 @@ interface NamedGamesBrowserViewProps {
   userTeamId: string | null;
 }
 
+function NamedGamesSourcesPanel({ gameCount, visibleArchetypeCount }: { gameCount: number; visibleArchetypeCount: number }) {
+  return (
+    <PixelPanel title="Named Game Sources" accent="cyan">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+        {[
+          {
+            id: 'timeline',
+            label: 'Saved timeline',
+            status: `${gameCount} filed`,
+            detail: 'Source: selectNamedGames reads selectDynastyTimeline and keeps only saved event.type === named_game rows with a namedGame payload.',
+            accent: 'cyan' as const,
+          },
+          {
+            id: 'filters',
+            label: 'Filter state',
+            status: 'route-local',
+            detail: 'Archetype filter and sort order live in this route. Changing them does not write dynastyTimeline or repair saved games.',
+            accent: 'gold' as const,
+          },
+          {
+            id: 'archetypes',
+            label: 'Archetype labels',
+            status: `${visibleArchetypeCount}/12 active`,
+            detail: 'NAMED_GAME_ARCHETYPES owns the valid set; the route humanizes labels and only shows filters for archetypes present in saved rows.',
+            accent: visibleArchetypeCount > 0 ? 'green' as const : 'default' as const,
+          },
+          {
+            id: 'writer',
+            label: 'Writer path',
+            status: 'week advance',
+            detail: 'Named games are detected upstream from completed results in franchise-week; this route does not inspect raw game results or re-run detectNamedGame.',
+            accent: 'gold' as const,
+          },
+        ].map((row) => (
+          <div
+            key={row.id}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              minHeight: '112px',
+              padding: '10px',
+              border: '1px solid #1f1f1f',
+              background: 'rgba(255,255,255,0.02)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ ...monoSm, color: '#fff' }}>{row.label}</span>
+              <PixelBadge variant={row.accent}>{row.status}</PixelBadge>
+            </div>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{row.detail}</span>
+          </div>
+        ))}
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function NamedGamesBrowserView({ games, userTeamId }: NamedGamesBrowserViewProps) {
   const [archetypeFilter, setArchetypeFilter] = useState<ArchetypeFilter>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('year-desc');
@@ -167,6 +225,8 @@ export function NamedGamesBrowserView({ games, userTeamId }: NamedGamesBrowserVi
           </>
         )}
       />
+
+      <NamedGamesSourcesPanel gameCount={games.length} visibleArchetypeCount={visibleArchetypes.length} />
 
       <div style={autoGrid(220)}>
         <PixelMetricCard

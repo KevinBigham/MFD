@@ -20,11 +20,28 @@ export function getPressConferenceChipPose(
   lockedIn: boolean,
   reducedMotion = false,
 ): ChipPose {
-  if (lockedIn) return 'thumbs-up';
-  if (reducedMotion) return 'think';
-  if (tier === 'high') return 'concern';
-  if (tier === 'low') return 'thumbs-up';
-  return 'think';
+  if (lockedIn) return 'fist-bump';
+  if (reducedMotion) return 'reviewing-tablet';
+  if (tier === 'high') return 'skeptical';
+  if (tier === 'low') return 'note-taking';
+  return 'reviewing-tablet';
+}
+
+export function buildPressConferenceChipCopy(
+  tier: PressConferenceResponseTier,
+  lockedIn: boolean,
+): string {
+  if (lockedIn) {
+    return 'Optional: open the press record later for the saved quote. Consequence: score, owner reaction, player effects, news, social reaction, and next week do not change.';
+  }
+
+  const quoteStyle = tier === 'high'
+    ? 'High Ambition saves the strongest promise in this press record'
+    : tier === 'low'
+      ? 'Low Key saves the least committal answer in this press record'
+      : 'Measured saves a balanced answer without adding a promise or deflection';
+
+  return `Optional: choose a public answer for this saved press record. Where: Quote Style, then Response Options. Consequence: ${quoteStyle}; result and next week do not change.`;
 }
 
 export function PressConferenceModal({
@@ -58,6 +75,7 @@ export function PressConferenceModal({
       : entry.responses.mid;
   const chipTier = previewTier ?? activeTier;
   const chipPose = getPressConferenceChipPose(chipTier, lockedIn, reducedMotion);
+  const chipCopy = buildPressConferenceChipCopy(chipTier, lockedIn);
   const setPreview = (tier: PressConferenceResponseTier | null) => {
     if (!reducedMotion) setPreviewTier(tier);
   };
@@ -84,7 +102,7 @@ export function PressConferenceModal({
         >
           <Chip pose={chipPose} size="md" reducedMotion={reducedMotion} ariaLabel="Chip hosts the postgame press conference" />
           <ChipDialogueBubble
-            text="Podium tone travels. Pick the answer you want quoted tomorrow."
+            text={chipCopy}
             pose={chipPose}
             pointer="left"
             reducedMotion={reducedMotion}
@@ -98,7 +116,21 @@ export function PressConferenceModal({
           <PixelBadge variant="default">{entry.scenario.replaceAll('_', ' ')}</PixelBadge>
         </div>
 
-        <PixelPanel title="Podium Tone" accent="gold">
+        <PixelPanel title="What This Changes" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="cyan">Public quote only</PixelBadge>
+              <PixelBadge variant="gold">No gameplay change</PixelBadge>
+              <PixelBadge variant="default">Result already final</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+              Your answer changes the saved quote shown for this press moment. The game result, headline, owner
+              reaction, player changes, news, social reaction, and next-week state are already final.
+            </div>
+          </div>
+        </PixelPanel>
+
+        <PixelPanel title="Quote Style" accent="gold">
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {(['high', 'mid', 'low'] as const).map((tier) => (
               <PixelButton

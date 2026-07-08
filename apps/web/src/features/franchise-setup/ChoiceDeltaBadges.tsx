@@ -30,10 +30,10 @@ export function ChoiceDeltaBadges({ preview }: { preview?: ChoiceForecastPreview
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
         <PixelBadge variant={primaryVariant(preview.weekOneReadinessDelta)}>
-          {`WK1 ${formatSignedDelta(preview.weekOneReadinessDelta)}`}
+          {`Week 1 ${formatSignedDelta(preview.weekOneReadinessDelta)}`}
         </PixelBadge>
         <PixelBadge variant={volatilityVariant(preview.weekOneVolatilityDelta)}>
-          {`VOL ${formatSignedDelta(preview.weekOneVolatilityDelta)}`}
+          {`Mistake Chance ${formatSignedDelta(preview.weekOneVolatilityDelta)}`}
         </PixelBadge>
         <span style={{ ...monoSm, color: 'var(--mfd-cyan)' }}>
           {renderContextLabel(preview.secondaryDelta.label, preview.secondaryDelta.delta)}

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DEFAULT_AUDIO_PREFERENCES } from '../../app/store/audio-preferences';
-import { AudioSettings } from './AudioSettings';
+import { AudioSettings, buildAudioSourceRows } from './AudioSettings';
 
 class MemoryStorage {
   private readonly data = new Map<string, string>();
@@ -101,5 +101,25 @@ describe('AudioSettings', () => {
     const markup = renderToStaticMarkup(<AudioSettings audio={mockAudioControls()} />);
 
     expect(markup).toContain('Stored outside the dynasty save.');
+  });
+
+  it('renders audio source boundaries for local preferences and queued game cues', () => {
+    const audio = mockAudioControls();
+    const markup = renderToStaticMarkup(<AudioSettings audio={audio} />);
+    const rows = buildAudioSourceRows(audio);
+
+    expect(markup).toContain('data-testid="audio-source-boundary"');
+    expect(markup).toContain('Audio Sources');
+    expect(markup).toContain('NO SAVE WRITE');
+    expect(markup).toContain('Preference store');
+    expect(markup).toContain('mfd-ui-preferences');
+    expect(markup).toContain('not GameState or dynasty save');
+    expect(markup).toContain('Runtime controller');
+    expect(markup).toContain('AudioController');
+    expect(markup).toContain('Preview buttons');
+    expect(markup).toContain('do not enqueue postGameUi audio cues or write saves');
+    expect(markup).toContain('Game cue queue');
+    expect(markup).toContain('played and cleared by RootLayout');
+    expect(rows).toHaveLength(4);
   });
 });

@@ -10,11 +10,15 @@ import {
   PixelTable,
 } from '@mfd/design-system/components';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { ExtensionOffer, Player } from '@mfd/engine';
+import type { ExtensionOffer, FranchiseTagType, Player, TagResult } from '@mfd/engine';
 import {
+  FRANCHISE_TAG_TYPES,
   calcCapHit,
   calcDeadMoney,
   generateExtensionOffer,
+  getActiveRule,
+  getCapFloor,
+  getFranchiseTagSalary,
   getSalaryCap,
   postJune1Cut,
 } from '@mfd/engine';
@@ -51,6 +55,7 @@ interface ContractRow {
   totalValue: number;
   restructured: boolean;
   holdout: boolean;
+  franchiseTag: FranchiseTagType | null;
   agentName: string;
   agentStyle: string;
   player: Player;
@@ -79,6 +84,7 @@ function toContractRows(
         totalValue: contract ? Math.round(contract.totalValue * 10) / 10 : 0,
         restructured: contract?.restructured ?? false,
         holdout: player.holdout,
+        franchiseTag: contract?.franchiseTag ?? null,
         agentName: agent?.name ?? 'Unassigned',
         agentStyle: agent?.style.replaceAll('_', ' ') ?? 'n/a',
         player,
@@ -153,7 +159,9 @@ const columns: ColumnDef<ContractRow, unknown>[] = [
     cell: ({ row, getValue }) => (
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
         {row.original.holdout ? <PixelBadge variant="red">Holdout</PixelBadge> : null}
+        {row.original.franchiseTag ? <PixelBadge variant="gold">Tagged</PixelBadge> : null}
         {getValue() ? <PixelBadge variant="cyan">Restructured</PixelBadge> : null}
+        {!row.original.holdout && !getValue() && !row.original.franchiseTag ? <PixelBadge variant="green">Clear</PixelBadge> : null}
       </div>
     ),
     size: 132,
@@ -180,6 +188,62 @@ function buildExtensionPreview(baseOffer: ExtensionOffer, years: number, preset:
   };
 }
 
+function ContractsSourcesPanel({
+  contractCount,
+  projectionCount,
+  incentiveCount,
+  tagLimit,
+  allowedTagTypes,
+}: {
+  contractCount: number;
+  projectionCount: number;
+  incentiveCount: number;
+  tagLimit: number;
+  allowedTagTypes: FranchiseTagType[];
+}) {
+  return (
+    <PixelPanel title="Contract Sources" accent="cyan">
+      <div style={autoGrid(220)}>
+        <PixelMetricCard
+          label="Roster Contracts"
+          value={contractCount}
+          accent="cyan"
+          detail="selectRoster feeds active contracts, holdouts, cap hits, dead money, agents, and row actions."
+        />
+        <PixelMetricCard
+          label="Cap Context"
+          value="GameState"
+          accent="gold"
+          detail="getSalaryCap(year, game), getCapFloor(year, game), and selectCapProjection surface active league-rule overrides."
+        />
+        <PixelMetricCard
+          label="Incentives"
+          value={incentiveCount}
+          accent={incentiveCount > 0 ? 'green' : 'default'}
+          detail="selectIncentiveSummary reads saved contract clauses and progress without writing payouts from render."
+        />
+        <PixelMetricCard
+          label="Projection Rows"
+          value={projectionCount}
+          accent="green"
+          detail="selectCapProjection owns the multi-year committed/free-space read model shown on this route."
+        />
+        <PixelMetricCard
+          label="Tag Rules"
+          value={`${allowedTagTypes.length}/${tagLimit}`}
+          accent="gold"
+          detail="franchise_tag_limit and tag_types_allowed drive selected-player tag eligibility and options."
+        />
+      </div>
+      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7, marginTop: '10px' }}>
+        Opening /contracts and selecting rows do not write contracts, tags, cap totals, saves, game results or saved outcomes,
+        or player movement. Restructure, Add Void Years, Cut Player, Submit Extension, and Apply Franchise Tag are the
+        explicit store commit buttons.
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function ContractsCap() {
   const game = useGameStore((state) => state.game);
   const roster = useGameStore(selectRoster);
@@ -189,7 +253,7 @@ export function ContractsCap() {
   const year = useGameStore(selectYear);
   const projections = useGameStore(selectCapProjection);
   const incentiveSummary = useGameStore(selectIncentiveSummary);
-  const { restructure, backload, cutPlayer, submitExtensionOffer } = useGameStore((state) => state.actions);
+  const { restructure, backload, cutPlayer, submitExtensionOffer, applyFranchiseTag } = useGameStore((state) => state.actions);
   const focusedPlayerId = useUiStore((state) => state.focusedPlayerId);
   const focusedPlayerScreen = useUiStore((state) => state.focusedPlayerScreen);
   const clearFocusedPlayerContext = useUiStore((state) => state.clearFocusedPlayerContext);
@@ -199,13 +263,31 @@ export function ContractsCap() {
   const [extensionYears, setExtensionYears] = useState('base');
   const [extensionPreset, setExtensionPreset] = useState<'team' | 'fair' | 'aggressive'>('fair');
   const [extensionFeedback, setExtensionFeedback] = useState<{ accepted: boolean; reasoning: string } | null>(null);
+  const [tagType, setTagType] = useState<FranchiseTagType>('non-exclusive');
+  const [tagFeedback, setTagFeedback] = useState<TagResult | null>(null);
 
   const contractRows = useMemo(() => toContractRows(roster, agents), [agents, roster]);
-  const salaryCap = getSalaryCap(year);
+  const salaryCap = getSalaryCap(year, game);
+  const capFloor = getCapFloor(year, game);
   const capUsed = team ? Math.round(team.capUsed * 10) / 10 : 0;
   const capSpace = team ? Math.round(team.capSpace * 10) / 10 : 0;
   const deadCap = team ? Math.round(team.deadCap * 10) / 10 : 0;
   const capPct = salaryCap > 0 ? Math.round((capUsed / salaryCap) * 100) : 0;
+  const floorGap = Math.max(0, Math.round((capFloor - capUsed) * 10) / 10);
+  const activeTags = useMemo(
+    () => team ? team.franchiseTags ?? (team.franchiseTag973 ? [team.franchiseTag973] : []) : [],
+    [team],
+  );
+  const tagLimit = game?.leagueRules
+    ? Number(getActiveRule(game.leagueRules, 'franchise_tag_limit', year))
+    : 1;
+  const allowedTagTypes = useMemo(() => {
+    if (!game?.leagueRules) return FRANCHISE_TAG_TYPES.map((entry) => entry.id);
+    return getActiveRule(game.leagueRules, 'tag_types_allowed', year) as FranchiseTagType[];
+  }, [game?.leagueRules, year]);
+  const tagOptions = FRANCHISE_TAG_TYPES
+    .filter((entry) => allowedTagTypes.includes(entry.id))
+    .map((entry) => ({ value: entry.id, label: entry.label }));
 
   useEffect(() => {
     if (!focusedPlayerId || focusedPlayerScreen !== 'contracts') return;
@@ -221,7 +303,15 @@ export function ContractsCap() {
     setExtensionYears('base');
     setExtensionPreset('fair');
     setExtensionFeedback(null);
+    if (selectedContract) {
+      setTagFeedback(null);
+    }
   }, [selectedContract?.id]);
+
+  useEffect(() => {
+    if (allowedTagTypes.includes(tagType)) return;
+    setTagType(allowedTagTypes[0] ?? 'non-exclusive');
+  }, [allowedTagTypes, tagType]);
 
   const handleRestructure = useCallback(() => {
     if (!teamId || !selectedContract) return;
@@ -288,6 +378,33 @@ export function ContractsCap() {
     }
   }, [extensionOffer, selectedContract, submitExtensionOffer]);
 
+  const selectedTagDef = FRANCHISE_TAG_TYPES.find((entry) => entry.id === tagType) ?? FRANCHISE_TAG_TYPES[1]!;
+  const tagSalaryPreview = useMemo(() => {
+    if (!selectedContract || !game) return null;
+    const salary = getFranchiseTagSalary(selectedContract.player.pos, Object.values(game.teams)) * selectedTagDef.salaryMult;
+    return Math.round(salary * 100) / 100;
+  }, [game, selectedContract, selectedTagDef.salaryMult]);
+  const selectedIsExpiring = Boolean(selectedContract?.player.contract && selectedContract.player.contract.years <= 1);
+  const selectedAlreadyTagged = Boolean(selectedContract?.player.contract?.franchiseTag);
+  const canApplySelectedTag = Boolean(
+    teamId
+    && selectedContract?.player.contract
+    && selectedIsExpiring
+    && !selectedAlreadyTagged
+    && activeTags.length < tagLimit
+    && allowedTagTypes.includes(tagType),
+  );
+
+  const handleApplyFranchiseTag = useCallback(async () => {
+    if (!teamId || !selectedContract) return;
+    const result = await applyFranchiseTag(teamId, selectedContract.id, tagType);
+    if (!result) return;
+    setTagFeedback(result);
+    if (result.ok) {
+      setSelectedContract(null);
+    }
+  }, [applyFranchiseTag, selectedContract, tagType, teamId]);
+
   return (
     <div style={screenStackStyle}>
       <PixelScreenHeader
@@ -304,9 +421,18 @@ export function ContractsCap() {
       <div style={autoGrid(210)}>
         <PixelMetricCard label="Salary Cap" value={`$${salaryCap}M`} accent="cyan" detail="League cap ceiling" />
         <PixelMetricCard label="Cap Used" value={`$${capUsed}M`} accent={capPct > 90 ? 'red' : 'gold'} detail={`${capPct}% committed`} />
+        <PixelMetricCard label="Cap Floor" value={`$${capFloor}M`} accent={capUsed >= capFloor ? 'green' : 'gold'} detail={capUsed >= capFloor ? 'Floor met' : `$${floorGap}M under floor`} />
         <PixelMetricCard label="Dead Cap" value={`$${deadCap}M`} accent={deadCap > 20 ? 'red' : 'gold'} detail="Current year sunk cost" />
         <PixelMetricCard label="Cap Space" value={`$${capSpace}M`} accent={capSpace >= 0 ? 'green' : 'red'} detail={capSpace >= 0 ? 'Flexible' : 'Over the limit'} />
       </div>
+
+      <ContractsSourcesPanel
+        contractCount={contractRows.length}
+        projectionCount={projections.length}
+        incentiveCount={incentiveSummary.total}
+        tagLimit={tagLimit}
+        allowedTagTypes={allowedTagTypes}
+      />
 
       <div style={autoGrid(320)}>
         <PixelPanel title="Cap Breakdown" accent="cyan">
@@ -362,11 +488,45 @@ export function ContractsCap() {
         </div>
       </PixelPanel>
 
+      <PixelPanel title="Franchise Tag Window" accent="gold">
+        <div style={autoGrid(220)}>
+          <PixelMetricCard
+            label="Tag Usage"
+            value={`${activeTags.length}/${tagLimit}`}
+            accent={activeTags.length >= tagLimit ? 'red' : 'gold'}
+            detail={`Active limit for ${year}`}
+          />
+          <PixelMetricCard
+            label="Allowed Tags"
+            value={allowedTagTypes.length}
+            accent="cyan"
+            detail={allowedTagTypes.map((entry) => entry.replace('-', ' ')).join(', ')}
+          />
+          <PixelMetricCard
+            label="Source"
+            value="League Rules"
+            accent="default"
+            detail="franchise_tag_limit and tag_types_allowed"
+          />
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7, marginTop: '10px' }}>
+          Franchise tags are available only from a selected expiring player row. Applying one writes the current roster
+          player's one-year tag tender, mirrors the flat player map, refreshes cap totals, and autosaves through the
+          Contracts store action.
+        </div>
+        {tagFeedback ? (
+          <div style={{ ...monoSm, color: tagFeedback.ok ? 'var(--mfd-green)' : 'var(--mfd-red)', lineHeight: 1.6, marginTop: '10px' }}>
+            {tagFeedback.msg}
+          </div>
+        ) : null}
+      </PixelPanel>
+
       <PixelTable
         data={contractRows}
         columns={columns}
         density="compact"
         accent="gold"
+        responsive="cards"
         onRowClick={(row) => setSelectedContract(row)}
       />
 
@@ -464,6 +624,41 @@ export function ContractsCap() {
                 </div>
               </PixelPanel>
             ) : null}
+
+            <PixelPanel title="Franchise Tag" accent="gold">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={autoGrid(160)}>
+                  <PixelMetricCard label="Tag Tender" value={tagSalaryPreview !== null ? `$${tagSalaryPreview}M` : '--'} accent="gold" />
+                  <PixelMetricCard label="Tags Used" value={`${activeTags.length}/${tagLimit}`} accent={activeTags.length >= tagLimit ? 'red' : 'cyan'} />
+                  <PixelMetricCard label="Eligibility" value={selectedIsExpiring && !selectedAlreadyTagged ? 'Eligible' : 'Locked'} accent={selectedIsExpiring && !selectedAlreadyTagged ? 'green' : 'red'} />
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <PixelSelect
+                    aria-label="Franchise tag type"
+                    value={tagType}
+                    onChange={(event) => setTagType(event.target.value as FranchiseTagType)}
+                    options={tagOptions}
+                    accent="gold"
+                  />
+                  <PixelButton
+                    accent="gold"
+                    onClick={() => { void handleApplyFranchiseTag(); }}
+                    disabled={!canApplySelectedTag}
+                  >
+                    Apply Franchise Tag
+                  </PixelButton>
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+                  {selectedAlreadyTagged
+                    ? 'This player already has a franchise tag tender.'
+                    : !selectedIsExpiring
+                      ? 'Only one-year expiring contracts can be tagged from this screen.'
+                      : activeTags.length >= tagLimit
+                        ? 'The active franchise tag limit is already used for this season.'
+                        : `${selectedTagDef.label}: ${selectedTagDef.desc}`}
+                </div>
+              </div>
+            </PixelPanel>
           </div>
         ) : null}
       </PixelModal>

@@ -10,9 +10,16 @@ import {
   monoSm,
   screenStackStyle,
 } from '../shared/pixelUi';
-import { getWatchList, removeFromWatchList, subscribeWatchList, type WatchListPrefs } from './watchListPrefs';
+import {
+  WATCH_LIST_STORAGE_KEY,
+  getWatchList,
+  removeFromWatchList,
+  subscribeWatchList,
+  type WatchListPrefs,
+} from './watchListPrefs';
 
 type WatchListGroup = 'own' | 'fa' | 'prospect' | 'former';
+type SourceAccent = 'default' | 'gold' | 'cyan' | 'green';
 
 export interface WatchListRow {
   id: string;
@@ -23,6 +30,14 @@ export interface WatchListRow {
   statusLabel: string;
   group: WatchListGroup;
   updatedAt: string;
+}
+
+interface WatchListSourceRow {
+  id: string;
+  label: string;
+  badge: string;
+  accent: SourceAccent;
+  detail: string;
 }
 
 const GROUP_ORDER: Array<{ id: WatchListGroup; title: string; accent: 'gold' | 'cyan' | 'green' | 'default' }> = [
@@ -138,6 +153,46 @@ export function buildWatchListRows(game: GameState | null, prefs: WatchListPrefs
   });
 }
 
+export function buildWatchListSourceRows(prefs: WatchListPrefs, rows: WatchListRow[]): WatchListSourceRow[] {
+  return [
+    {
+      id: 'browser-sidecar',
+      label: 'Browser sidecar',
+      badge: `${prefs.playerIds.length} pins`,
+      accent: 'gold',
+      detail: `watchListPrefs reads localStorage key ${WATCH_LIST_STORAGE_KEY}. This board is browser-local and outside GameState cartridges.`,
+    },
+    {
+      id: 'row-resolution',
+      label: 'Row resolution',
+      badge: `${rows.length} rows`,
+      accent: 'cyan',
+      detail: 'buildWatchListRows resolves pinned ids against game.players, free agents, draftClass, playerArchive, then a recoverable missing-player row. Rendering does not auto-prune stale ids.',
+    },
+    {
+      id: 'saved-watchlists',
+      label: 'Saved watchlists',
+      badge: 'separate',
+      accent: 'green',
+      detail: 'Global pins are separate from saved offseasonState.scoutingWatchlist and faTargetBoard.watchlist. WatchListPinButton toggles only the browser-local global board.',
+    },
+    {
+      id: 'updated-at',
+      label: 'Update stamp',
+      badge: prefs.updatedAt ? 'board stamp' : 'not synced',
+      accent: 'default',
+      detail: 'updatedAt is one board-level timestamp from the add/remove helpers, not a per-player pin timeline or deterministic simulation input.',
+    },
+    {
+      id: 'render-boundary',
+      label: 'Just viewing',
+      badge: 'display only',
+      accent: 'default',
+      detail: 'Opening Watch List does not change the saved game, move players, change saved scouting or FA watchlists, alter draft/free-agent boards, or write player/archive records.',
+    },
+  ];
+}
+
 export function removeWatchListRow(playerId: string, setPrefs: (prefs: WatchListPrefs) => void): void {
   setPrefs(removeFromWatchList(playerId));
 }
@@ -153,6 +208,7 @@ export function WatchListScreen() {
   }, []);
 
   const rows = useMemo(() => buildWatchListRows(game, prefs), [game, prefs]);
+  const sourceRows = useMemo(() => buildWatchListSourceRows(prefs, rows), [prefs, rows]);
   const groups = GROUP_ORDER.map((group) => ({
     ...group,
     rows: rows.filter((row) => row.group === group.id),
@@ -170,6 +226,32 @@ export function WatchListScreen() {
           </>
         )}
       />
+
+      <PixelPanel title="Watch List Sources" accent="cyan">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+          {sourceRows.map((row) => (
+            <div
+              key={row.id}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '10px',
+                border: '2px solid var(--mfd-border)',
+                background: 'var(--mfd-bg-2)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ ...monoSm, color: '#fff' }}>{row.label}</span>
+                <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
+              </div>
+              <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                {row.detail}
+              </span>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
 
       {rows.length === 0 ? (
         <PixelPanel title="Empty Watch List" accent="default">

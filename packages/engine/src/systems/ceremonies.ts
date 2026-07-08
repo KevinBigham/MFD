@@ -81,6 +81,13 @@ export function generateAwardsNight(game: GameState): Ceremony {
   };
 }
 
+function hallOfFameHighlightValue(entry: HallOfFameEntry): string {
+  const headline = entry.epilogue?.headline.trim();
+  const story = entry.epilogue?.story.trim();
+  if (headline && story) return `${headline}: ${story}`;
+  return entry.highlights.join(' // ');
+}
+
 export function generateHOFInduction(game: GameState, inductees: HallOfFameEntry[]): Ceremony {
   return {
     id: `ceremony-${uid()}`,
@@ -90,7 +97,7 @@ export function generateHOFInduction(game: GameState, inductees: HallOfFameEntry
     description: 'The Hall of Fame class steps into football immortality with a retrospective broadcast package.',
     highlights: inductees.map((entry) => ({
       label: entry.name,
-      value: entry.highlights.join(' // '),
+      value: hallOfFameHighlightValue(entry),
       playerIds: [entry.playerId],
     })),
     mvp: null,

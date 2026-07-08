@@ -2,7 +2,7 @@
  * AGM — Assistant GM advisory helpers (Sprint 43).
  *
  * Provides weekly recommendation rollups for the Monday Briefing
- * "What should I do?" modal. Pure, deterministic, no I/O.
+ * "Show AGM advice" modal. Pure, deterministic, no I/O.
  *
  * Ranking heuristics (in priority order):
  *   1. Urgent injuries      — starters out for 2+ weeks
@@ -56,6 +56,13 @@ const CAP_TROUBLE_THRESHOLD = 1_000_000; // $1M — below this, flag cap trouble
 const URGENT_INJURY_GAMES = 2; // 1 game ≈ 1 week in this sim
 const ROSTER_GAP_MIN = 2;
 
+function selectedAgmProfileId(game: GameState): string | null {
+  return game.frontOffice?.agmProfileId
+    ?? game.franchiseBlueprint?.agmProfileId
+    ?? game.setupState?.decisions.agmProfileId
+    ?? null;
+}
+
 /**
  * Build a prioritized list of recommendations for the user team.
  * Returns up to `limit` items (default 3). Deterministic — no RNG.
@@ -68,6 +75,7 @@ export function getAGMWeeklyRecommendations(
   if (!team) return [];
 
   const recommendations: AGMRecommendation[] = [];
+  const agmProfileId = selectedAgmProfileId(game);
 
   // 1. Urgent injuries
   const injuredStarters = collectUrgentInjuries(game, team);
@@ -76,8 +84,8 @@ export function getAGMWeeklyRecommendations(
     recommendations.push({
       id: 'injury_watch',
       priority: 'urgent',
-      title: `Injury watch: ${injuredStarters.length} starter${injuredStarters.length === 1 ? '' : 's'} sidelined`,
-      body: `${names}${injuredStarters.length > 2 ? ` and ${injuredStarters.length - 2} more` : ''} will miss ${URGENT_INJURY_GAMES}+ weeks. Check the depth chart and consider a free-agent signing.`,
+      title: `Injury fix: ${injuredStarters.length} starter${injuredStarters.length === 1 ? '' : 's'} sidelined`,
+      body: `${names}${injuredStarters.length > 2 ? ` and ${injuredStarters.length - 2} more` : ''} will miss ${URGENT_INJURY_GAMES}+ weeks. Fix the Depth Chart and add a free agent, waiver claim, or practice-squad player if the backup is not playable.`,
       targetRoute: '/roster',
     });
   }
@@ -88,7 +96,7 @@ export function getAGMWeeklyRecommendations(
       id: 'cap_trouble',
       priority: team.capSpace < 0 ? 'urgent' : 'high',
       title: team.capSpace < 0 ? 'Over the cap' : 'Cap space getting tight',
-      body: `You have $${Math.round(team.capSpace / 1000).toLocaleString()}K of cap space. Consider restructures or a post-June-1 cut before more bills hit.`,
+      body: `You have $${Math.round(team.capSpace / 1000).toLocaleString()}K of cap space. Open Contracts or Cap Lab before signing, trading, or extending; otherwise injury replacements and extensions lose the cap space they need.`,
       targetRoute: '/contracts',
     });
   }
@@ -98,9 +106,13 @@ export function getAGMWeeklyRecommendations(
   if (nextOpponent) {
     recommendations.push({
       id: 'next_opponent',
-      priority: 'medium',
-      title: `Scout next opponent: ${nextOpponent.city} ${nextOpponent.name}`,
-      body: `They are ${nextOpponent.wins}-${nextOpponent.losses}. Review their strengths on the Game Plan screen before kickoff.`,
+      priority: agmProfileId === 'coach_d_hardaway' ? 'high' : 'medium',
+      title: agmProfileId === 'coach_d_hardaway'
+        ? `Coach D matchup standard: ${nextOpponent.city} ${nextOpponent.name}`
+        : `Scout next opponent: ${nextOpponent.city} ${nextOpponent.name}`,
+      body: agmProfileId === 'coach_d_hardaway'
+        ? `They are ${nextOpponent.wins}-${nextOpponent.losses}. Set protection, coverage, and run-defense answers before Advance Week; skipping it lets their top matchup attack an exposed starter.`
+        : `They are ${nextOpponent.wins}-${nextOpponent.losses}. Open Game Plan before Advance Week to set protection, coverage, and run-defense answers; skipping matchup work leaves a starter exposed where they attack first.`,
       targetRoute: '/game-plan',
     });
   }
@@ -110,10 +122,39 @@ export function getAGMWeeklyRecommendations(
   if (gaps.length > 0) {
     recommendations.push({
       id: 'roster_gaps',
-      priority: 'medium',
-      title: `Depth concerns at ${gaps.slice(0, 3).join(', ')}`,
-      body: `You have fewer than ${ROSTER_GAP_MIN} healthy players at ${gaps.length > 3 ? 'several positions' : 'these spots'}. Practice squad or waiver wire can shore things up.`,
+      priority: agmProfileId === 'sandra_chen' ? 'high' : 'medium',
+      title: agmProfileId === 'sandra_chen'
+        ? `Sandra's depth audit: ${gaps.slice(0, 3).join(', ')}`
+        : `Depth concerns at ${gaps.slice(0, 3).join(', ')}`,
+      body: agmProfileId === 'sandra_chen'
+        ? `You have fewer than ${ROSTER_GAP_MIN} healthy players at ${gaps.length > 3 ? 'several positions' : 'these spots'}. Add depth or lower the starter workload before one injury puts an unplanned starter on the field.`
+        : `You have fewer than ${ROSTER_GAP_MIN} healthy players at ${gaps.length > 3 ? 'several positions' : 'these spots'}. Open Team Needs, waivers, or practice squad before Advance Week; one injury puts an unassigned backup in the next game.`,
       targetRoute: '/team-needs',
+    });
+  }
+
+  const activeMandates = (game.ownerMandates ?? []).filter((mandate) =>
+    mandate.teamId === team.id && mandate.status === 'active');
+  const capMandate = activeMandates.find((mandate) => mandate.goalId === 'cap_health');
+  if (agmProfileId === 'marcus_webb' && capMandate && !recommendations.some((rec) => rec.id === 'cap_trouble')) {
+    recommendations.push({
+      id: 'marcus_cap_mandate',
+      priority: capMandate.progress.status === 'at_risk' ? 'high' : 'medium',
+      title: `Cap mandate: ${capMandate.progress.label}`,
+      body: `${capMandate.progress.detail} Open Contracts or Cap Lab before Advance Week; missing this mandate cuts owner patience at season end.`,
+      targetRoute: '/owner',
+    });
+  }
+
+  const developmentMandate = activeMandates.find((mandate) =>
+    mandate.goalId === 'rebuild_progress' || mandate.goalId === 'draft_well');
+  if (agmProfileId === 'sandra_chen' && developmentMandate) {
+    recommendations.push({
+      id: 'sandra_development_mandate',
+      priority: developmentMandate.progress.status === 'at_risk' ? 'high' : 'medium',
+      title: `Development mandate: ${developmentMandate.progress.label}`,
+      body: `${developmentMandate.progress.detail} Keep young players in assigned weekly jobs before Advance Week; changing snaps too often fails the development goal.`,
+      targetRoute: '/roster',
     });
   }
 

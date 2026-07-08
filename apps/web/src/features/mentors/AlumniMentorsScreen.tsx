@@ -4,8 +4,14 @@
  */
 import { useMemo } from 'react';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
-import { getAvailableMentors, calculateMentorEffects, type AlumniMentor } from '@mfd/engine';
 import {
+  buildTeamOpsImpactReceipt,
+  getAvailableMentors,
+  calculateMentorEffects,
+  type AlumniMentor,
+} from '@mfd/engine';
+import {
+  selectUserTeamId,
   selectRoster,
   useGameStore,
 } from '../../app/store/game-store';
@@ -17,6 +23,8 @@ import {
   pixelSm,
   screenStackStyle,
 } from '../shared/pixelUi';
+
+const EMPTY_MENTORS: AlumniMentor[] = [];
 
 function specialtyColor(spec: string): string {
   if (spec === 'technique') return 'var(--mfd-gold)';
@@ -32,11 +40,12 @@ function ratingStars(rating: number): string {
 
 export function AlumniMentorsScreen() {
   const game = useGameStore((s) => s.game);
+  const teamId = useGameStore(selectUserTeamId);
   const roster = useGameStore(selectRoster);
   const hireMentor = useGameStore((s) => s.actions.hireMentor);
   const fireMentor = useGameStore((s) => s.actions.fireMentor);
 
-  const activeMentors: AlumniMentor[] = game?.activeMentors ?? [];
+  const activeMentors: AlumniMentor[] = game?.activeMentors ?? EMPTY_MENTORS;
   const mentorBudget: number = game?.mentorBudget ?? 2.5;
 
   const availableMentors = useMemo(() => {
@@ -48,6 +57,12 @@ export function AlumniMentorsScreen() {
     if (activeMentors.length === 0) return [];
     return calculateMentorEffects(activeMentors, roster);
   }, [activeMentors, roster]);
+  const mentorReceipt = useMemo(() => {
+    if (!game || !teamId) return null;
+    return buildTeamOpsImpactReceipt(game, teamId);
+  }, [game, teamId]);
+  const mentorReceiptItem = mentorReceipt?.summaryItems.find((item) => item.id === 'mentors') ?? null;
+  const topMentorEffect = mentorReceipt?.mentors.topEffects[0] ?? null;
 
   return (
     <div style={screenStackStyle}>
@@ -62,10 +77,55 @@ export function AlumniMentorsScreen() {
         )}
       />
 
-      <div style={autoGrid(220)}>
+      <div data-spotlight-target="chip.route.mentors.beat-1" style={autoGrid(220)}>
         <PixelMetricCard label="Active Mentors" value={activeMentors.length} accent="gold" detail="Max 5 mentors per season" />
         <PixelMetricCard label="Budget Remaining" value={`$${mentorBudget.toFixed(1)}M`} accent="green" detail="$0.5M per mentor per year" />
         <PixelMetricCard label="Players Mentored" value={mentorEffects.length} accent="cyan" detail="Up to 3 per mentor" />
+      </div>
+
+      <div data-spotlight-target="chip.route.mentors.beat-2">
+        <PixelPanel title="Network Source" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="gold">Saved activeMentors</PixelBadge>
+              <PixelBadge variant="cyan">Team Ops receipt</PixelBadge>
+              <PixelBadge variant="green">Hire/Release commits</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+              This route reads saved activeMentors and mentorBudget, previews compatible roster effects with
+              calculateMentorEffects, and reuses the shared Team Ops receipt. Hire and Release commit through mentor
+              store actions; rendering the route does not run progression, update normal mentoring pairs, alter CPU
+              teams, or rewrite training-camp receipts.
+            </div>
+            {mentorReceiptItem ? (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: '12px',
+                alignItems: 'center',
+                padding: '10px 12px',
+                border: '2px solid var(--mfd-border)',
+                background: 'var(--mfd-bg-2)',
+                flexWrap: 'wrap',
+              }}>
+                <div style={{ flex: 1, minWidth: '220px' }}>
+                  <div style={{ ...monoSm, color: '#fff', fontWeight: 600 }}>{mentorReceiptItem.label}</div>
+                  <div style={{ ...pixelSm, color: 'var(--mfd-text-dim)', marginTop: '4px' }}>
+                    {mentorReceiptItem.detail}
+                  </div>
+                  {topMentorEffect ? (
+                    <div style={{ ...monoSm, color: 'var(--mfd-cyan)', marginTop: '6px' }}>
+                      {topMentorEffect.description}
+                    </div>
+                  ) : null}
+                </div>
+                <PixelBadge variant={mentorReceiptItem.tone === 'positive' ? 'green' : 'default'}>
+                  {mentorReceiptItem.value}
+                </PixelBadge>
+              </div>
+            ) : null}
+          </div>
+        </PixelPanel>
       </div>
 
       {/* Active Mentors */}

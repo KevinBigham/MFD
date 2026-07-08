@@ -89,6 +89,21 @@ export function PowerRankingsTicker({ limit = 12, clickable = true }: PowerRanki
           {entries.length} of {teamCount}
         </div>
       </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="cyan">selectPowerRankings</PixelBadge>
+          <PixelBadge variant="default">selectUserTeamId</PixelBadge>
+          <PixelBadge variant={clickable ? 'gold' : 'default'}>
+            {clickable ? 'click -> /power-rankings' : 'static embed'}
+          </PixelBadge>
+          <PixelBadge variant="default">Read-only</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+          Source: saved route power rankings via selectPowerRankings; user highlight uses selectUserTeamId.
+          Rendering this ticker does not recalculate rankings, write league news or social posts, advance the media
+          cycle, change saves, or reroll saved outcomes.
+        </div>
+      </div>
       <div
         style={{
           display: 'flex',

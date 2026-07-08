@@ -134,38 +134,44 @@ function recommendedAgmForPressure(topPressureId: PressureCard['id']): string {
 }
 
 function pressureName(topPressureId: PressureCard['id']): string {
-  if (topPressureId === 'cap') return 'the cap sheet';
-  if (topPressureId === 'culture') return 'the locker room';
-  return 'the roster spine';
+  if (topPressureId === 'cap') return 'cap space';
+  if (topPressureId === 'culture') return 'player leadership';
+  return 'starter and backup groups';
+}
+
+function pressureFirstDanger(topPressureId: PressureCard['id']): string {
+  if (topPressureId === 'cap') return 'cap space';
+  if (topPressureId === 'culture') return 'player leadership';
+  return 'starter and backup jobs';
 }
 
 function pressureUrgency(topPressureId: PressureCard['id']): string {
-  if (topPressureId === 'cap') return 'The books are shrinking every margin for error.';
-  if (topPressureId === 'culture') return 'The room will decide whether Week 1 feels calm or chaotic.';
-  return 'The talent is real, but the wrong lineup answers will get exposed immediately.';
+  if (topPressureId === 'cap') return 'Cap space is tight; extra spending blocks Week 1 depth fixes and extensions.';
+  if (topPressureId === 'culture') return 'Name captains and weekly roles now; losses before role clarity split starters and backups.';
+  return 'The roster has starter talent, but missed lineup choices put an unassigned starter or backup in the first matchup.';
 }
 
 function coldOpenKicker(beat: DayOneNarrativeBeat['id'], topPressureId: PressureCard['id'], owner: DayOneOwnerBand, media: DayOneMediaBand, opener: DayOneOpenerContext): string {
   if (beat === 'owner') {
     if (owner === 'boiling') return 'Ownership is measuring patience in weeks, not months.';
-    if (owner === 'restless') return 'A slow September will turn this room political fast.';
+    if (owner === 'restless') return 'A slow September will make ownership question the plan fast.';
     if (owner === 'empowered') return 'Ownership will back aggression if the first answers look sharp.';
-    return 'Ownership wants proof that this regime can diagnose the problem cleanly.';
+    return 'Ownership wants proof: name the first Week 1 danger and choose its fix before kickoff.';
   }
   if (beat === 'media') {
-    if (media === 'skeptical') return 'The market is waiting to pounce on anything that feels generic.';
-    if (media === 'hyped') return 'The noise outside will magnify every early signal.';
-    return 'The market sees upside, but it does not trust this team yet.';
+    if (media === 'skeptical') return "Fans and media will criticize choices that do not match the team's starter, cap, or staff warnings.";
+    if (media === 'hyped') return 'Public hype will make early losses, injuries, or cap mistakes cut owner patience faster.';
+    return 'The public sees enough talent to care, but missed Week 1 protection, coverage, or backup decisions will cut owner patience quickly.';
   }
   if (beat === 'scar') {
-    return `That scar is why ${pressureName(topPressureId)} feels heavier than it should on Day 1.`;
+    return `That scar makes ${pressureFirstDanger(topPressureId)} the first Week 1 danger to fix before kickoff.`;
   }
   if (beat === 'crisis') {
     return pressureUrgency(topPressureId);
   }
-  if (opener.includes('rivalry')) return 'The opener already has teeth. There is no soft launch here.';
-  if (opener.includes('dangerous')) return 'Week 1 is good enough to punish any fake confidence.';
-  return 'If you hit the right diagnosis now, the opener is survivable and useful.';
+  if (opener.includes('rivalry')) return 'The opener is a rivalry test; a sloppy plan becomes public fast.';
+  if (opener.includes('dangerous')) return "Identify the opponent's top unit before saving the plan; ignoring the matchup exposes an unassigned starter or backup in Week 1.";
+  return 'Choose the first fix now so Week 1 tests the plan instead of exposing the same starter or backup warning.';
 }
 
 function agmScene(profile: AGMProfile, topPressureId: PressureCard['id'], recommendedAgmId: string, owner: DayOneOwnerBand): DayOneAgmScene {
@@ -175,15 +181,15 @@ function agmScene(profile: AGMProfile, topPressureId: PressureCard['id'], recomm
     ? 'with an owner who is out of patience'
     : owner === 'restless'
       ? 'before ownership starts forcing the timeline'
-      : 'without losing the long game';
+      : 'without wasting future cap space or draft options';
 
   if (profile.expertise === 'cap_management') {
     return {
       whyThisFits: recommended
-        ? `This crisis is written in ${pressureTarget}, and Marcus turns messy cap pressure into clean options.`
-        : `He can still keep ${pressureTarget} from spilling into panic decisions.`,
-      dayOnePromise: `I will clear the numbers so the football decisions stop feeling trapped ${ownerStress}.`,
-      seasonBet: 'Season 1 gets better when the room stops paying interest on old mistakes.',
+        ? `Choose Marcus when ${pressureFirstDanger(topPressureId)} is the first Week 1 danger; he turns cap mistakes into cut, restructure, and hold options before dead money blocks Week 1 fixes.`
+        : `Choose Marcus to control ${pressureTarget}; he keeps cap mistakes from forcing rushed cuts or trades.`,
+      dayOnePromise: `Hire me and I will list the cap moves to make now, the moves to hold, and the later cap space each choice costs ${ownerStress}.`,
+      seasonBet: 'Protect cap space before mistakes limit injury, trade, and extension fixes.',
       recommended,
     };
   }
@@ -191,20 +197,20 @@ function agmScene(profile: AGMProfile, topPressureId: PressureCard['id'], recomm
   if (profile.expertise === 'personnel') {
     return {
       whyThisFits: recommended
-        ? `This team does not just need answers. It needs the right people carrying them inside ${pressureTarget}.`
-        : `She can keep ${pressureTarget} from turning into a trust problem.`,
-      dayOnePromise: 'I will make the room clearer, louder, and easier for the right players to grow inside.',
-      seasonBet: 'Season 1 swings when the right people believe in the plan before the standings do.',
+        ? `Choose Sandra when ${pressureTarget} is causing role confusion; she identifies leaders and protects morale before early losses turn unassigned roles into louder complaints.`
+        : `Choose Sandra to turn ${pressureTarget} into role decisions before morale loss and stalled development cost wins.`,
+      dayOnePromise: 'Hire me and I will name the leaders to keep on field, the players to move into new jobs, and the role calls to settle before Week 1.',
+      seasonBet: 'Keep key veterans in named roles early; ignored role conflicts create morale and depth risk.',
       recommended,
     };
   }
 
   return {
     whyThisFits: recommended
-      ? `This team has enough raw talent to matter, but ${pressureTarget} needs a sharper competitive edge right now.`
-      : `He can still weaponize the roster even if ${pressureTarget} remains messy.`,
-    dayOnePromise: 'I will make the opener feel harder on the opponent than it feels on us.',
-    seasonBet: 'Season 1 moves when the building starts playing fast, violent, and certain.',
+      ? `Choose Coach D when ${pressureFirstDanger(topPressureId)} is the first Week 1 danger; he turns starter quality into lineup and practice decisions before unsupported Week 1 roles create missed assignments.`
+      : 'Choose Coach D to stop missed assignments; he turns the roster into a weekly matchup plan before poor roles cost games.',
+    dayOnePromise: "Hire me and I will set Week 1 practice priorities: protect exposed positions, assign backup rules, and make the opponent attack the roster's strongest group.",
+    seasonBet: 'Protect starter and backup assignments early; unassigned roles create missed assignments, uncovered backup jobs, and lower owner patience.',
     recommended,
   };
 }
@@ -249,8 +255,8 @@ export function generateDayOneNarrativePack(
   return {
     coldOpen: {
       openerLabel: coldOpen.openerLabel,
-      diagnosisLabel: 'Your first morning is not a tutorial. It is a diagnosis.',
-      entryCta: 'Enter War Room',
+      diagnosisLabel: 'First job: choose the AGM who names the Week 1 danger to fix before kickoff.',
+      entryCta: 'Hire Assistant GM',
       skipLabel: 'Skip Intro',
       beats,
     },
@@ -265,11 +271,11 @@ export function generateDayOneNarrativePack(
     blueprint: {
       opponentIdentity: opponentIdentityLabel(cliffhanger.openerLabel, openerKind),
       ifThisWorks: forecast.weekOneReadiness >= 68
-        ? `The opener feels like proof of concept: ${cliffhanger.hope}`
-        : `Even without full certainty, there is a playable path: ${cliffhanger.hope}`,
+        ? `Lock the setup choices that match the roster; Week 1 then shows whether they protect the opener: ${cliffhanger.hope}`
+        : `Lock the Week 1 plan around the safest role, cap, and scheme fixes; the opener improves only when those fixes match the roster: ${cliffhanger.hope}`,
       ifThisBreaks: openerKind.includes('rivalry')
-        ? `A rivalry opener will turn the wrong diagnosis into a very public bruise. ${cliffhanger.threat}`
-        : `If the first bet is wrong, Week 1 will identify it immediately. ${cliffhanger.threat}`,
+        ? `Fix the setup choice now; an unresolved rivalry matchup turns into a public Week 1 mistake. ${cliffhanger.threat}`
+        : `Fix the setup choice now; an unresolved starter, cap, or plan mistake shows up in Week 1. ${cliffhanger.threat}`,
       unresolvedDanger: topPressure.drilldown.riskSource,
     },
     meta: {

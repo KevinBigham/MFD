@@ -65,9 +65,31 @@ describe('PowerRankings', () => {
     const markup = renderToStaticMarkup(<PowerRankings />);
 
     expect(markup).toContain('POWER RANKINGS');
+    expect(markup).toContain('NEXT CALL');
+    expect(markup).toContain('Treat ranking as temperature');
+    expect(markup).toContain('data-mfd-table-responsive="cards"');
     expect(markup).toContain('USER #2');
-    expect(markup).toContain('--- LEAGUE LADDER ---');
+    expect(markup).toContain('LEAGUE LADDER');
     expect(markup).toContain('CHICAGO BLAZE');
     expect(markup).toContain('Chicago is closing fast behind a streaking offense.');
+  });
+
+  it('labels ranking sources without implying route-time generation', () => {
+    const markup = renderToStaticMarkup(<PowerRankings />);
+
+    expect(markup).toContain('RANKING SOURCES');
+    expect(markup).toContain('Saved table');
+    expect(markup).toContain('game.powerRankings');
+    expect(markup).toContain('Weekly update owner');
+    expect(markup).toContain('updatePowerRankings');
+    expect(markup).toContain('Score and blurbs');
+    expect(markup).toContain('media-cycle');
+    expect(markup).toContain('Movement source');
+    expect(markup).toContain('previousRank/delta');
+    expect(markup).toContain('Route presentation');
+    expect(markup).toContain('local display');
+    expect(markup).toContain('Just viewing');
+    expect(markup).toContain('display only');
+    expect(markup).toContain('Opening Power Rankings does not write rankings, news, social posts, storyline threads, records, or media-cycle history.');
   });
 });

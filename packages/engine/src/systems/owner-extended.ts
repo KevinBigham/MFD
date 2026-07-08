@@ -131,11 +131,12 @@ const ULTIMATUM_POOL: readonly Ultimatum[] = [
 export function generateUltimatums(count = 2): Ultimatum[] {
   const pool = [...ULTIMATUM_POOL];
   const result: Ultimatum[] = [];
+  const limit = Math.min(Math.max(0, count), pool.length);
 
-  for (let i = 0; i < Math.min(count, pool.length); i++) {
+  for (let i = 0; i < limit; i++) {
     const idx = Math.floor(RNG.ai() * pool.length);
     const item = pool.splice(idx, 1)[0];
-    if (item) result.push(item);
+    if (item) result.push({ ...item });
   }
 
   return result;

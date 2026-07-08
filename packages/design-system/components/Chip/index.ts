@@ -1,5 +1,5 @@
-export { Chip, CHIP_POSES } from './Chip';
-export type { ChipPose, ChipProps, ChipSize } from './Chip';
+export { Chip, CHIP_POSES, CHIP_POSE_ART, CHIP_POSE_MOTION_PROFILE, resolveChipPoseArt } from './Chip';
+export type { ChipMotionProfile, ChipPose, ChipPoseArt, ChipProps, ChipSize } from './Chip';
 export {
   ChipDialogueBubble,
   computeTypewriterRevealCount,

@@ -19,3 +19,11 @@ export {
   ROSTER_CAP, CAMP_CAP, PS_CAP, MIN_SALARY, CAP_MATH,
   getSalaryCap, getCapFloor, getMinSalary,
 } from './cap-math';
+
+export {
+  MIDSEASON_UNLOCK_WEEK,
+  NAV_UNLOCK_RULES,
+  getNavUnlockStatus,
+  isNavItemUnlocked,
+} from './navigation';
+export type { NavUnlockRule, NavUnlockStatus } from './navigation';

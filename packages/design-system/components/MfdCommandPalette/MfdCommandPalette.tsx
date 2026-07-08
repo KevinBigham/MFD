@@ -16,22 +16,41 @@ interface MfdCommandPaletteProps {
   onOpenChange: (open: boolean) => void;
   items: CommandItem[];
   placeholder?: string;
+  globalShortcutEnabled?: boolean;
 }
 
-const categoryLabels: Record<string, string> = {
+export const COMMAND_CATEGORY_LABELS: Record<CommandItem['category'], string> = {
   player: 'Players',
   team: 'Teams',
   screen: 'Screens',
   action: 'Actions',
 };
 
-const categoryOrder = ['action', 'screen', 'player', 'team'];
+export const COMMAND_CATEGORY_ORDER: CommandItem['category'][] = ['action', 'screen', 'player', 'team'];
+
+export function groupCommandItems(items: CommandItem[]) {
+  const grouped = new Map<CommandItem['category'], CommandItem[]>();
+  for (const item of items) {
+    const existing = grouped.get(item.category) ?? [];
+    existing.push(item);
+    grouped.set(item.category, existing);
+  }
+
+  return COMMAND_CATEGORY_ORDER
+    .map((category) => ({
+      category,
+      label: COMMAND_CATEGORY_LABELS[category],
+      items: grouped.get(category) ?? [],
+    }))
+    .filter((group) => group.items.length > 0);
+}
 
 export function MfdCommandPalette({
   open,
   onOpenChange,
   items,
   placeholder = 'Search players, teams, screens...',
+  globalShortcutEnabled = true,
 }: MfdCommandPaletteProps) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -44,18 +63,15 @@ export function MfdCommandPalette({
   );
 
   useEffect(() => {
+    if (!globalShortcutEnabled) return undefined;
+
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  }, [globalShortcutEnabled, handleKeyDown]);
 
   if (!open) return null;
 
-  const grouped = new Map<string, CommandItem[]>();
-  for (const item of items) {
-    const existing = grouped.get(item.category) ?? [];
-    existing.push(item);
-    grouped.set(item.category, existing);
-  }
+  const groupedItems = groupCommandItems(items);
 
   return (
     <div
@@ -99,6 +115,7 @@ export function MfdCommandPalette({
           <Search size={16} style={{ color: 'var(--mfd-text-faint)', flexShrink: 0 }} />
           <Command.Input
             placeholder={placeholder}
+            autoFocus
             style={{
               flex: 1,
               border: 'none',
@@ -140,14 +157,11 @@ export function MfdCommandPalette({
             No results found
           </Command.Empty>
 
-          {categoryOrder.map((cat) => {
-            const catItems = grouped.get(cat);
-            if (!catItems?.length) return null;
-
+          {groupedItems.map(({ category, label, items: catItems }) => {
             return (
               <Command.Group
-                key={cat}
-                heading={categoryLabels[cat]}
+                key={category}
+                heading={label}
                 style={{
                   padding: '0',
                 }}
@@ -160,7 +174,7 @@ export function MfdCommandPalette({
                   letterSpacing: '0.06em',
                   color: 'var(--mfd-text-faint)',
                 }}>
-                  {categoryLabels[cat]}
+                  {label}
                 </div>
                 {catItems.map((item) => (
                   <Command.Item

@@ -1,394 +1,237 @@
+import type { DialogueCatalogEntry } from './dialogue/types';
 import type { WeeklyDialogueVariant } from './dialogue/weekly';
 
-export type ChipGuidanceConfidence = 'high' | 'medium' | 'low';
-
-export interface ChipRecommendedAction {
-  id: string;
-  label: string;
-  route: string;
-  reason: string;
-  priority: number;
-}
-
-export interface ChipFeatureLink {
-  label: string;
-  route: string;
-}
-
-export interface ChipWeeklyGuidance {
-  headline: string;
-  record: string;
-  memoryCallbacks: string[];
-  whatChanged: string[];
-  whyItMatters: string;
-  recommendedActions: ChipRecommendedAction[];
-  risks: string[];
-  featureLinks: ChipFeatureLink[];
-  confidence: ChipGuidanceConfidence;
-}
-
-export interface BuildWeeklyGuidanceInput {
-  currentWeek: number;
-  currentSeason: number;
-  phase: string;
+export interface WeeklyGuidanceInput {
   outcome: WeeklyDialogueVariant;
+  currentWeek: number;
+  eventTrigger?: WeeklyGuidanceTrigger;
   record?: string;
-  opponentName?: string | null;
-  injuredStarterCount: number;
-  injuryCount: number;
-  capSpace: number;
-  ownerMood: number;
-  chemistry: number;
-  pendingDecisions: number;
-  hasGamePlan: boolean;
-  difficulty?: string | null;
-  memoryCallbacks?: string[];
+  opponentName?: string;
+  injuryCount?: number;
+  pendingDecisionCount?: number;
+  capSpace?: number;
+  difficulty?: string;
+  memoryCallbacks?: readonly string[];
 }
 
-type LooseRecord = Record<string, unknown>;
+export type WeeklyGuidanceTrigger = 'weekRollover' | 'gameComplete' | 'seasonEnd';
 
-function asRecord(value: unknown): LooseRecord | null {
-  return value && typeof value === 'object' ? value as LooseRecord : null;
+export interface WeeklyGuidance {
+  id: string;
+  pose: DialogueCatalogEntry['pose'];
+  whatChanged: string;
+  whyItMatters: string;
+  topAction: string;
+  mustDo: string;
+  recommended: string;
+  optional: string;
+  where: string;
+  deadline: string;
+  canWait: string;
+  risk: string;
+  memoryCallbacks: string[];
 }
 
-function asArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
+function outcomeLabel(outcome: WeeklyDialogueVariant): string {
+  switch (outcome) {
+    case 'cleanWin':
+      return 'strong win; open Roster and Depth Chart for injury flags before changing starters';
+    case 'uglyWin':
+      return 'close win; open Recap for injuries, backup order, and Game Plan miss';
+    case 'loss':
+      return 'loss; name the failed call or position before fixes';
+    case 'blowoutLoss':
+      return 'blowout loss; open Recap before roster or Game Plan fixes';
+    case 'threeLossStreak':
+      return 'three-game skid; pick one lineup, plan, or roster fix';
+    case 'preseason':
+      return 'preseason week; lock depth before Week 1';
+    case 'playoffs':
+      return 'playoff week; fix injuries and matchups first';
+    case 'championship':
+      return 'offseason; open Contracts and Staff for expiring starters before spending';
+    case 'darkMoment':
+      return 'lopsided loss; open Recap before roster or Game Plan changes';
+    case 'midseason':
+      return 'midseason week; open Standings, Roster, and cap space before deadline moves';
+  }
 }
 
-function numberValue(value: unknown, fallback: number): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+function poseFor(outcome: WeeklyDialogueVariant): DialogueCatalogEntry['pose'] {
+  if (outcome === 'cleanWin' || outcome === 'championship') return 'proud';
+  if (outcome === 'uglyWin') return 'pointing-at-tape';
+  if (outcome === 'playoffs') return 'rallying';
+  if (outcome === 'preseason') return 'reviewing-tablet';
+  if (outcome === 'loss') return 'frustrated';
+  if (outcome === 'blowoutLoss' || outcome === 'threeLossStreak') {
+    return 'head-in-hands';
+  }
+  if (outcome === 'darkMoment') return 'facepalm';
+  return 'reviewing-tablet';
 }
 
-function stringValue(value: unknown, fallback = ''): string {
-  return typeof value === 'string' ? value : fallback;
+function changedSubjectFor(trigger: WeeklyGuidanceTrigger | undefined, currentWeek: number): string {
+  if (trigger === 'gameComplete') return `Final whistle, Week ${currentWeek}`;
+  if (trigger === 'seasonEnd') return 'Season closed';
+  return `Week ${currentWeek}`;
 }
 
-function boolValue(value: unknown, fallback = false): boolean {
-  return typeof value === 'boolean' ? value : fallback;
+function topActionFor(input: WeeklyGuidanceInput, pending: number, injuries: number): string {
+  if (input.eventTrigger === 'seasonEnd') {
+    return 'Must Do: open Season Recap before bids. Where: Season Recap, Contracts, Staff, Cap Lab, Free Agency. Consequence: rushed bids spend cap space on unneeded roles, miss extensions, or leave staff seats empty.';
+  }
+  if (input.eventTrigger === 'gameComplete') {
+    return 'Must Do: open Postgame Recap before Advance Week. Where: Post-Week Command Deck, then Roster, Depth Chart, Game Plan. Consequence: next week uses unfixed injuries, morale, and matchup calls.';
+  }
+  if (pending > 0) {
+    return `Must Do: choose or defer ${pending} pending decision${pending === 1 ? '' : 's'} before Advance Week. Where: Inbox, Action Center, or highlighted screen badges. Consequence: offers, promises, votes, cap, lineup, and morale expire or lock.`;
+  }
+  if (injuries > 0) {
+    return 'Must Do: set injury status, first backups, and safer calls before kickoff. Where: Roster, Depth Chart, Game Plan. Consequence: unassigned backups enter saved calls.';
+  }
+  return 'Must Do: open Monday Briefing. Where: Action Center. Consequence: Advance Week locks saved lineups, cap moves, morale, and matchup calls.';
 }
 
-function userTeamFromGame(game: LooseRecord | null): LooseRecord | null {
-  const teams = asRecord(game?.teams);
-  if (!teams) return null;
-  return Object.values(teams).map(asRecord).find((team) => team?.isUser === true) ?? null;
+function whereFor(input: WeeklyGuidanceInput, pending: number, injuries: number): string {
+  if (input.eventTrigger === 'seasonEnd') return 'Season Recap, Contracts, Staff, Cap Lab, and Free Agency.';
+  if (input.eventTrigger === 'gameComplete') return 'Open Post-Week Command Deck, then open Roster, Depth Chart, and Game Plan before Advance Week.';
+  if (pending > 0) return 'Inbox, Action Center, or highlighted screen badges; choose or defer there, then return to Monday Briefing.';
+  if (injuries > 0) return 'Open Roster, then Depth Chart for the first backup; open Game Plan if the injury changes calls.';
+  return 'Action Center, then any legal football-ops screen: Roster, Depth Chart, Training, Game Plan, Contracts, Cap Lab, Trades, Waivers, Practice Squad, Free Agency, Scouting, Coaching, Facility, or Medical.';
 }
 
-function latestSummaryFromGame(game: LooseRecord | null): LooseRecord | null {
-  const summaries = asArray(game?.weekSummaries).map(asRecord).filter((entry): entry is LooseRecord => entry !== null);
-  return summaries.at(-1) ?? null;
+function recommendedFor(input: WeeklyGuidanceInput, pending: number, injuries: number): string {
+  if (pending > 0) return 'Choose or defer every pending decision before Advance Week; ignored offers, promises, votes, cap, lineup, or morale expire or lock.';
+  if (injuries > 0) return 'Set injured roles, first backups, and one legal free-agent or practice-squad option.';
+  if (input.eventTrigger === 'seasonEnd') return 'Open Contracts, Staff, Cap Lab, and Free Agency for expiring starters, open staff seats, aging positions, and cap space before the first bid.';
+  if (input.eventTrigger === 'gameComplete') return 'Open Recap notes, then fix the Game Plan call, Depth Chart order, or roster role Recap names before lower-impact moves.';
+  return input.opponentName
+    ? `Scout ${input.opponentName} for injuries, backup order, cap space, and matchup calls; then make any legal roster, cap, market, staff, or matchup move whose gain beats the cost.`
+    : 'Open Action Center for current notes; then any legal roster, depth chart, training, game plan, contracts, Cap Lab, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical move remains available before Advance Week.';
 }
 
-function teamLabel(game: LooseRecord | null, teamId: string): string {
-  const team = asRecord(asRecord(game?.teams)?.[teamId]);
-  if (!team) return teamId;
-  return `${stringValue(team.city)} ${stringValue(team.name)}`.trim() || stringValue(team.abbr, teamId);
+function optionalFor(input: WeeklyGuidanceInput): string {
+  if (input.eventTrigger === 'seasonEnd') {
+    return 'Open awards, records, and history after Season Recap, Contracts, Staff, Cap Lab, and the first-bid plan; those screens do not fix extensions, bids, or empty staff seats.';
+  }
+  return "Make any legal roster, depth chart, training, game plan, cap space, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical move this week; prioritize moves that change lineup, cap space, market offer, staff plan, recovery, or matchup before Advance Week.";
 }
 
-function rosterFromTeam(team: LooseRecord | null): LooseRecord[] {
-  return asArray(team?.roster).map(asRecord).filter((player): player is LooseRecord => player !== null);
+function whyItMattersFor(input: WeeklyGuidanceInput): string {
+  if (input.eventTrigger === 'seasonEnd') {
+    return 'Offseason spending locks fast; expiring starters, open staff seats, aging positions, and cap space decide extensions, bids, and draft roles.';
+  }
+  if (input.eventTrigger === 'gameComplete') {
+    return input.opponentName
+      ? `Final score is locked. Recap names injuries, morale swings, and matchup misses before you prep for ${input.opponentName}.`
+      : 'Final score is locked. Recap names injuries, morale swings, and matchup misses before Advance Week.';
+  }
+  return input.opponentName
+    ? `Scout ${input.opponentName} now; choices affect depth, morale, cap space, and Game Plan.`
+    : 'Monday Briefing names injuries, backup gaps, morale drops, or uncovered protection, coverage, or run-defense calls before Advance Week locks the next game.';
 }
 
-function countInjured(roster: readonly LooseRecord[]): { injuryCount: number; injuredStarterCount: number } {
-  let injuryCount = 0;
-  let injuredStarterCount = 0;
-  for (const player of roster) {
-    if (!player.injury) continue;
-    injuryCount += 1;
-    if (player.isStarter === true) injuredStarterCount += 1;
+function canWaitFor(trigger: WeeklyGuidanceTrigger | undefined): string {
+  if (trigger === 'seasonEnd') {
+    return "Open awards, records, and history after Season Recap, Contracts, Staff, Cap Lab, and the first free-agent plan; awards, records, and history do not change next season's roster plan.";
   }
-  return { injuryCount, injuredStarterCount };
+  if (trigger === 'gameComplete') {
+    return 'Open awards, records, and history after you fix or accept the roster role, depth-chart order, or Game Plan call Recap names; awards, records, and history do not change the next game.';
+  }
+  return 'Open awards, records, and history after you fix or accept Monday Briefing and Action Center notes; awards, records, and history do not change the next game.';
 }
 
-function deriveOutcome(summary: LooseRecord | null): WeeklyDialogueVariant {
-  const result = stringValue(summary?.result, 'pending');
-  const teamScore = numberValue(summary?.teamScore, 0);
-  const opponentScore = numberValue(summary?.opponentScore, 0);
-  const margin = teamScore - opponentScore;
-
-  if (result === 'win') return margin <= 3 ? 'uglyWin' : 'cleanWin';
-  if (result === 'loss') return margin <= -21 ? 'blowoutLoss' : 'loss';
-  return 'midseason';
+function riskFor(input: WeeklyGuidanceInput, pending: number, injuries: number): string {
+  const capSpace = input.capSpace;
+  const difficulty = input.difficulty?.toLowerCase();
+  const highPressureDifficulty = difficulty === 'hard'
+    || difficulty === 'allpro'
+    || difficulty === 'all-pro'
+    || difficulty === 'legend';
+  if (pending > 0) return 'Ignored decisions expire, remove offers, cut owner patience, or lock weaker starter, backup, cap, lineup, or morale choices after Advance Week.';
+  if (injuries > 0) return 'Uncovered injuries put an unassigned first backup on the field or break the saved Game Plan.';
+  if (highPressureDifficulty) return 'Higher difficulty punishes skipped injury, backup, cap, and matchup work; Advance Week locks what you leave.';
+  if (capSpace !== undefined && capSpace < 8) {
+    return 'Cap space is tight. Open Contracts or Cap Lab before short-term fixes; new money blocks injury replacements, extensions, or next-offseason moves.';
+  }
+  if (input.eventTrigger === 'seasonEnd') {
+    return 'Bidding before Season Recap, Contracts, Staff, and Cap Lab decisions wastes cap space on a veteran role the roster does not need, misses an extension, or leaves a staff vacancy slowing prep.';
+  }
+  if (input.eventTrigger === 'gameComplete') {
+    return 'Skipping Recap leaves injuries, morale swings, and matchup notes unseen before the next Game Plan locks.';
+  }
+  if (input.outcome === 'threeLossStreak') {
+    return 'Another week with the same lineup or plan miss cuts owner patience and makes morale harder to recover.';
+  }
+  if (input.outcome === 'blowoutLoss' || input.outcome === 'darkMoment') {
+    return 'Skipping Recap, Roster, or Game Plan repeats matchup, injury, or starter mistakes by kickoff.';
+  }
+  return 'Skipping Monday Briefing leaves a named injury, unassigned first backup, tight cap choice, or uncovered matchup call locked into Advance Week.';
 }
 
-function headlineFor(input: BuildWeeklyGuidanceInput): string {
-  if (input.outcome === 'blowoutLoss') return 'Bad tape, useful tape';
-  if (input.outcome === 'threeLossStreak') return 'Losing streak, one clean decision';
-  if (input.outcome === 'loss') return 'Loss logged, correction week starts now';
-  if (input.outcome === 'uglyWin') return 'Win survived, cleanup required';
-  if (input.outcome === 'cleanWin') {
-    return input.injuredStarterCount > 0 || input.pendingDecisions > 0 || input.capSpace < 0
-      ? 'Win banked, problem still on the board'
-      : 'Win banked, keep the week honest';
-  }
-  if (input.outcome === 'playoffs') return 'Playoff room, smaller margins';
-  if (input.outcome === 'championship') return 'Trophy won, harder questions next';
-  return 'New week, read the board';
-}
-
-function addAction(actions: ChipRecommendedAction[], action: ChipRecommendedAction): void {
-  if (actions.some((entry) => entry.id === action.id)) return;
-  actions.push(action);
-}
-
-function buildActions(input: BuildWeeklyGuidanceInput): ChipRecommendedAction[] {
-  const actions: ChipRecommendedAction[] = [];
-
-  if (input.capSpace < 0) {
-    addAction(actions, {
-      id: 'cap-overage',
-      label: 'Get cap compliant',
-      route: '/contracts',
-      reason: `$${Math.abs(Math.round(input.capSpace))}M over the cap blocks clean roster work.`,
-      priority: 100,
-    });
-  }
-
-  if (input.injuredStarterCount > 0) {
-    addAction(actions, {
-      id: 'injured-starter-depth',
-      label: 'Fix the depth chart',
-      route: '/depth-chart',
-      reason: `${input.injuredStarterCount} starter injury changes the next matchup plan.`,
-      priority: 98,
-    });
-  }
-
-  if (input.pendingDecisions > 0) {
-    addAction(actions, {
-      id: 'pending-decisions',
-      label: 'Clear urgent inbox',
-      route: '/inbox',
-      reason: `${input.pendingDecisions} decision${input.pendingDecisions === 1 ? '' : 's'} can move morale, cap, or leverage.`,
-      priority: 94,
-    });
-  }
-
-  if (!input.hasGamePlan && (input.phase === 'regular_season' || input.phase === 'playoffs')) {
-    addAction(actions, {
-      id: 'missing-game-plan',
-      label: 'Set the game plan',
-      route: '/game-plan',
-      reason: 'The next opponent should not get your default answers.',
-      priority: 92,
-    });
-  }
-
-  if (input.outcome === 'loss' || input.outcome === 'blowoutLoss' || input.outcome === 'threeLossStreak') {
-    addAction(actions, {
-      id: 'film-correction',
-      label: 'Review the film room',
-      route: '/film-room',
-      reason: 'Separate a plan problem from a roster problem before changing everything.',
-      priority: 90,
-    });
-  }
-
-  if (input.capSpace >= 0 && input.capSpace < 10) {
-    addAction(actions, {
-      id: 'cap-pressure',
-      label: 'Check cap pressure',
-      route: '/cap-lab',
-      reason: `Only $${Math.round(input.capSpace)}M of room leaves little injury or trade flexibility.`,
-      priority: 72,
-    });
-  }
-
-  if (input.ownerMood < 40) {
-    addAction(actions, {
-      id: 'owner-pressure',
-      label: 'Read owner pressure',
-      route: '/owner',
-      reason: 'Low owner mood makes losing weeks louder.',
-      priority: 68,
-    });
-  }
-
-  if (input.chemistry < 45) {
-    addAction(actions, {
-      id: 'locker-room',
-      label: 'Check locker room',
-      route: '/locker-room',
-      reason: 'Low chemistry turns small mistakes into a heavier week.',
-      priority: 64,
-    });
-  }
-
-  if (input.currentWeek >= 8 || input.phase === 'playoffs') {
-    addAction(actions, {
-      id: 'standings-context',
-      label: 'Check the standings',
-      route: '/standings',
-      reason: 'By midseason, the table changes how aggressive the next decision should be.',
-      priority: 54,
-    });
-  }
-
-  addAction(actions, {
-    id: 'briefing-loop',
-    label: 'Return to the briefing',
-    route: '/',
-    reason: 'Use the briefing as the weekly hub before widening the search.',
-    priority: 10,
-  });
-
-  return actions.sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id)).slice(0, 5);
-}
-
-function buildWhatChanged(input: BuildWeeklyGuidanceInput): string[] {
-  const changes: string[] = [];
-  if (input.injuredStarterCount > 0) {
-    changes.push(`${input.injuredStarterCount} injured starter needs a depth answer.`);
-  } else if (input.injuryCount > 0) {
-    changes.push(`${input.injuryCount} injured player${input.injuryCount === 1 ? '' : 's'} changed the weekly floor.`);
-  }
-
-  if (input.pendingDecisions > 0) {
-    changes.push(`${input.pendingDecisions} decision${input.pendingDecisions === 1 ? '' : 's'} waiting for a front-office call.`);
-  }
-
-  if (input.capSpace < 0) {
-    changes.push(`Cap is $${Math.abs(Math.round(input.capSpace))}M over the line.`);
-  } else if (input.capSpace < 10) {
-    changes.push(`Cap room is thin at $${Math.round(input.capSpace)}M.`);
-  }
-
-  if (!input.hasGamePlan && (input.phase === 'regular_season' || input.phase === 'playoffs')) {
-    changes.push('The next matchup still needs a game plan.');
-  }
-
-  if (changes.length === 0) {
-    changes.push(input.outcome === 'cleanWin' || input.outcome === 'uglyWin'
-      ? 'The win bought breathing room.'
-      : 'The new week reset the board.');
-  }
-
-  return changes;
-}
-
-function buildRisks(input: BuildWeeklyGuidanceInput): string[] {
-  const risks: string[] = [];
-  if (input.injuredStarterCount > 0) {
-    risks.push('If you ignore it, your passing plan may collapse by halftime.');
-  }
-  if (input.capSpace < 0) {
-    risks.push('Cap noncompliance narrows every fix until you create room.');
-  }
-  if (input.outcome === 'loss' || input.outcome === 'blowoutLoss') {
-    risks.push('Reacting before film can turn one bad Sunday into a permanent mistake.');
-  }
-  if (input.difficulty === 'hard' || input.difficulty === 'expert') {
-    risks.push('Hard difficulty makes ignored cap and morale pressure bite faster.');
-  }
-  if (risks.length === 0) {
-    risks.push('The risk is drifting into the next advance without choosing the week’s problem.');
-  }
-  return risks;
-}
-
-function buildMemoryCallbacks(game: LooseRecord | null, team: LooseRecord | null): string[] {
-  const callbacks: string[] = [];
-  const teamId = stringValue(team?.id);
-
-  const timeline = asArray(game?.dynastyTimeline).map(asRecord).filter((entry): entry is LooseRecord => entry !== null);
-  const landmark = [...timeline].reverse().find((entry) => {
-    const teamIds = asArray(entry.teamIds);
-    return (entry.importance === 'major' || entry.type === 'milestone')
-      && (teamIds.length === 0 || teamIds.includes(teamId));
-  });
-  if (landmark) {
-    callbacks.push(`I remember ${stringValue(landmark.headline, 'that landmark')} from ${numberValue(landmark.year, numberValue(game?.year, 0))}; receipts like that still travel with this team.`);
-  }
-
-  const activeThread = asArray(game?.storylineThreads)
-    .map(asRecord)
-    .filter((entry): entry is LooseRecord => entry !== null)
-    .find((entry) => entry.status === 'active' && asArray(entry.teamIds).includes(teamId));
-  if (activeThread) {
-    callbacks.push(`${stringValue(activeThread.title, 'This storyline')} has been building for ${numberValue(activeThread.weeksActive, 1)} week${numberValue(activeThread.weeksActive, 1) === 1 ? '' : 's'}; Chip has the thread pinned.`);
-  }
-
-  const rivalry = asArray(game?.leagueRivalries)
-    .map(asRecord)
-    .filter((entry): entry is LooseRecord => entry !== null)
-    .find((entry) => (entry.teamA === teamId || entry.teamB === teamId) && numberValue(entry.intensity, 0) >= 60);
-  if (rivalry) {
-    const opponentId = rivalry.teamA === teamId ? stringValue(rivalry.teamB) : stringValue(rivalry.teamA);
-    callbacks.push(`The ${teamLabel(game, opponentId)} rivalry is already warm at ${numberValue(rivalry.intensity, 0)} heat; the old games are not done talking.`);
-  }
-
-  const playoffMemory = [...asArray(game?.franchiseHistory).map(asRecord).filter((entry): entry is LooseRecord => entry !== null)]
-    .reverse()
-    .find((entry) => entry.teamId === teamId && typeof entry.playoffFinish === 'string' && entry.playoffFinish !== 'missed');
-  if (playoffMemory) {
-    callbacks.push(`Last playoff receipt: ${stringValue(playoffMemory.playoffFinish).replace(/_/g, ' ')} in ${numberValue(playoffMemory.year, numberValue(game?.year, 0))}. That context belongs in the room.`);
-  }
-
-  return callbacks.slice(0, 3);
-}
-
-function confidenceFor(input: BuildWeeklyGuidanceInput): ChipGuidanceConfidence {
-  if (input.injuredStarterCount > 0 || input.capSpace < 0 || input.pendingDecisions > 0) return 'high';
-  if (!input.hasGamePlan || input.outcome === 'loss' || input.outcome === 'blowoutLoss') return 'medium';
-  return 'low';
-}
-
-export function buildWeeklyGuidance(input: BuildWeeklyGuidanceInput): ChipWeeklyGuidance {
-  const recommendedActions = buildActions(input);
-  const featureLinks = recommendedActions.map((action) => ({
-    label: action.label,
-    route: action.route,
-  }));
+export function buildWeeklyGuidance(input: WeeklyGuidanceInput): WeeklyGuidance {
+  const pending = Math.max(0, Math.trunc(input.pendingDecisionCount ?? 0));
+  const injuries = Math.max(0, Math.trunc(input.injuryCount ?? 0));
+  const topAction = topActionFor(input, pending, injuries);
+  const deadline = pending > 0
+    ? `${pending} decision${pending === 1 ? '' : 's'} need a choice or defer before Advance Week.`
+    : injuries > 0
+      ? `${injuries} injuries need Roster, Depth Chart, or Game Plan before kickoff locks the lineup.`
+      : input.eventTrigger === 'seasonEnd'
+        ? 'Before bidding, open Season Recap, Contracts, Staff, Cap Lab, and Free Agency; rushed bids miss extensions or leave staff seats empty.'
+        : input.eventTrigger === 'gameComplete'
+        ? 'Open Postgame Recap before Advance Week; next week uses the injuries, morale, and matchup plan you leave in place.'
+          : 'Open Monday Briefing. Fix or accept any Action Center injury, backup, morale, cap, or matchup note before Advance Week.';
+  const recommended = recommendedFor(input, pending, injuries);
+  const optional = optionalFor(input);
+  const where = whereFor(input, pending, injuries);
+  const memoryCallbacks = [...(input.memoryCallbacks ?? [])]
+    .map((callback) => callback.trim())
+    .filter(Boolean);
 
   return {
-    headline: headlineFor(input),
-    record: input.record ?? '0-0',
-    memoryCallbacks: input.memoryCallbacks ?? [],
-    whatChanged: buildWhatChanged(input),
-    whyItMatters: input.opponentName
-      ? `Next opponent: ${input.opponentName}. The week should answer the biggest mismatch first.`
-      : 'The week should answer the biggest football problem first.',
-    recommendedActions,
-    risks: buildRisks(input),
-    featureLinks,
-    confidence: confidenceFor(input),
+    id: `chip.weekly.guidance.${Math.max(0, Math.trunc(input.currentWeek))}`,
+    pose: poseFor(input.outcome),
+    whatChanged:
+      `${changedSubjectFor(input.eventTrigger, input.currentWeek)}: ${outcomeLabel(input.outcome)}${
+        input.record ? `, record ${input.record}` : ''
+      }.`,
+    whyItMatters: whyItMattersFor(input),
+    topAction,
+    mustDo: topAction,
+    recommended,
+    optional,
+    where,
+    deadline,
+    canWait: canWaitFor(input.eventTrigger),
+    risk: riskFor(input, pending, injuries),
+    memoryCallbacks,
   };
 }
 
-export function buildWeeklyGuidanceFromGame(gameValue: unknown, pendingDecisions = 0): ChipWeeklyGuidance {
-  const game = asRecord(gameValue);
-  const team = userTeamFromGame(game);
-  const roster = rosterFromTeam(team);
-  const injuries = countInjured(roster);
-  const latestSummary = latestSummaryFromGame(game);
-  const lockerRoom = asRecord(team?.lockerRoom);
-  const memoryCallbacks = buildMemoryCallbacks(game, team);
-
-  return buildWeeklyGuidance({
-    currentWeek: Math.max(0, Math.trunc(numberValue(game?.week, 0))),
-    currentSeason: Math.max(0, Math.trunc(numberValue(game?.year, 0))),
-    phase: stringValue(game?.phase, 'regular_season'),
-    outcome: deriveOutcome(latestSummary),
-    record: stringValue(latestSummary?.record, `${numberValue(team?.wins, 0)}-${numberValue(team?.losses, 0)}`),
-    opponentName: stringValue(latestSummary?.opponentName, ''),
-    injuredStarterCount: injuries.injuredStarterCount,
-    injuryCount: Math.max(injuries.injuryCount, asArray(latestSummary?.injuries).length),
-    capSpace: numberValue(team?.capSpace, 0),
-    ownerMood: numberValue(team?.ownerMood, 50),
-    chemistry: numberValue(lockerRoom?.cultureScore, numberValue(team?.chemistry, 50)),
-    pendingDecisions: Math.max(0, Math.trunc(pendingDecisions)),
-    hasGamePlan: boolValue(game?.currentGamePlan, false) || Boolean(game?.weeklyPrepPlan),
-    difficulty: stringValue(asRecord(game?.difficulty)?.level, stringValue(game?.difficulty, 'standard')),
-    memoryCallbacks,
-  });
+function stripLeadingGuidanceLabel(text: string): string {
+  return text.replace(/^(Must Do|Recommended|Optional|Where|Deadline|Later|Risk):\s*/i, '');
 }
 
-export function formatChipWeeklyGuidanceText(guidance: ChipWeeklyGuidance): string {
-  const topAction = guidance.recommendedActions[0];
-  const firstChange = guidance.whatChanged[0] ?? 'The new week is live.';
+export function weeklyGuidanceToDialogueEntry(guidance: WeeklyGuidance): DialogueCatalogEntry {
   const memory = guidance.memoryCallbacks[0];
-  const firstRisk = guidance.risks[0] ?? 'Do not advance without choosing the week’s problem.';
-  const next = topAction ? `Next: ${topAction.label}.` : 'Next: Return to the briefing.';
-  const full = `${guidance.headline}. ${memory ? `${memory} ` : ''}${firstChange} ${next} Risk: ${firstRisk}`;
-  if (full.length <= 240) return full;
-  return `${full.slice(0, 237).trimEnd()}...`;
+  return {
+    id: guidance.id,
+    beat: 0,
+    pose: guidance.pose,
+    text: `${guidance.topAction} ${memory ? `${memory} ` : ''}${guidance.whyItMatters}`,
+    contextDetails: [
+      `What changed: ${guidance.whatChanged}`,
+      `Must Do: ${stripLeadingGuidanceLabel(guidance.mustDo)}`,
+      `Recommended: ${guidance.recommended}`,
+      `Optional: ${guidance.optional}`,
+      `Where: ${guidance.where}`,
+      `Deadline: ${guidance.deadline}`,
+      `Optional later: ${guidance.canWait}`,
+      ...(memory ? [`Memory: ${memory}`] : []),
+      `Consequence: ${guidance.risk}`,
+    ],
+    archetype: 'weekly',
+    priority: 4,
+  };
 }

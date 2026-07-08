@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { FranchiseHub } from './FranchiseHub';
+import {
+  FranchiseActionReceiptPanel,
+  FranchiseHub,
+  buildFranchiseActionReceipt,
+} from './FranchiseHub';
+import { FRANCHISE_HUB_ROUTE_ACTIONS } from './franchiseHubRoutes';
 
 const { navigateToMock } = vi.hoisted(() => ({
   navigateToMock: vi.fn(),
@@ -11,6 +16,7 @@ const baseState = () => ({
     id: 'team-1',
     city: 'Chicago',
     name: 'Blaze',
+    capSpace: 74.5,
   },
   dashboard: {
     identity: {
@@ -123,40 +129,6 @@ vi.mock('../shared/pixelUi', async (importOriginal) => {
   };
 });
 
-function flattenText(children: unknown): string {
-  if (Array.isArray(children)) {
-    return children.map((child) => flattenText(child)).join('');
-  }
-  if (children == null || typeof children === 'boolean') return '';
-  if (typeof children === 'string' || typeof children === 'number') return String(children);
-  if (typeof children === 'object' && children && 'props' in children) {
-    return flattenText((children as { props?: { children?: unknown } }).props?.children);
-  }
-  return '';
-}
-
-function findButtonByText(node: unknown, text: string): { props?: { onClick?: () => void; children?: unknown } } | null {
-  if (!node || typeof node !== 'object') return null;
-  const element = node as { type?: unknown; props?: { children?: unknown; onClick?: () => void } };
-  if (typeof element.type === 'function') {
-    return findButtonByText(element.type(element.props ?? {}), text);
-  }
-  if (element.type === 'button' && flattenText(element.props?.children).includes(text)) {
-    return element;
-  }
-
-  const children = element.props?.children;
-  if (Array.isArray(children)) {
-    for (const child of children) {
-      const found = findButtonByText(child, text);
-      if (found) return found;
-    }
-    return null;
-  }
-
-  return findButtonByText(children, text);
-}
-
 describe('FranchiseHub', () => {
   beforeEach(() => {
     mockState = baseState();
@@ -168,6 +140,29 @@ describe('FranchiseHub', () => {
     expect(markup).toContain('YOUR FRANCHISE');
     expect(markup).toContain('Nexus Dome');
     expect(markup).toContain('LARGE MARKET');
+    expect(markup).toContain('Protect the standard');
+    expect(markup).toContain('Chronicle');
+  });
+
+  it('renders franchise source context and separates write buttons', () => {
+    const markup = renderToStaticMarkup(<FranchiseHub />);
+
+    expect(markup).toContain('FRANCHISE SOURCES');
+    expect(markup).toContain('DASHBOARD READ MODEL');
+    expect(markup).toContain('ACTION BUTTONS SEPARATE');
+    expect(markup).toContain('selectFranchiseDashboard');
+    expect(markup).toContain('selectUserTeam');
+    expect(markup).toContain('selectFranchiseEras');
+    expect(markup).toContain('selectStadiumDealOffers');
+    expect(markup).toContain('selectCanRelocate');
+    expect(markup).toContain('buildCoachingLegacy');
+    expect(markup).toContain('upgradeStadium');
+    expect(markup).toContain('acceptNamingRights');
+    expect(markup).toContain('/relocate');
+    expect(markup).toContain('Opening Franchise Hub does not upgrade the stadium');
+    expect(markup).toContain('on-screen confirmation after the saved action resolves');
+    expect(markup).toContain('change the live save');
+    expect(markup).toContain('play scheduled games');
   });
 
   it('shows fanbase, prestige, and attendance gauges', () => {
@@ -241,30 +236,52 @@ describe('FranchiseHub', () => {
     expect(markup).toContain('RIVALRIES');
   });
 
-  it('navigates to the scrapbook route from the Dynasty Scrapbook tile', () => {
-    const button = findButtonByText(<FranchiseHub />, 'View Dynasty Scrapbook');
-
-    expect(button).not.toBeNull();
-    button?.props?.onClick?.();
-
+  it('wires route actions for franchise archive tiles', () => {
+    FRANCHISE_HUB_ROUTE_ACTIONS.scrapbook();
     expect(navigateToMock).toHaveBeenCalledWith('/franchise/scrapbook');
-  });
 
-  it('navigates to the playoff lore route from the Playoff Lore tile', () => {
-    const button = findButtonByText(<FranchiseHub />, 'Open Playoff Lore');
-
-    expect(button).not.toBeNull();
-    button?.props?.onClick?.();
-
+    FRANCHISE_HUB_ROUTE_ACTIONS.playoffLore();
     expect(navigateToMock).toHaveBeenCalledWith('/franchise/playoff-lore');
+
+    FRANCHISE_HUB_ROUTE_ACTIONS.chronicle();
+    expect(navigateToMock).toHaveBeenCalledWith('/franchise/chronicle');
   });
 
-  it('navigates to the chronicle route from the Dynasty Chronicle tile', () => {
-    const button = findButtonByText(<FranchiseHub />, 'Open Dynasty Chronicle');
+  it('builds and renders route-local franchise action receipts', () => {
+    const upgradeReceipt = buildFranchiseActionReceipt({
+      type: 'stadium_upgrade',
+      teamName: 'Chicago Blaze',
+      stadiumName: 'Nexus Dome',
+      levelBefore: 2,
+      capSpaceBefore: 74.5,
+    });
 
-    expect(button).not.toBeNull();
-    button?.props?.onClick?.();
+    expect(upgradeReceipt.title).toBe('Stadium Upgrade Receipt');
+    expect(upgradeReceipt.result).toContain('level 2 -> 3');
+    expect(upgradeReceipt.detail).toContain('$74.5M');
+    expect(upgradeReceipt.detail).toContain('$150.0M');
+    expect(upgradeReceipt.source).toContain('actions.upgradeStadium -> game-store upgradeStadium');
+    expect(upgradeReceipt.stateTouched).toContain('team.franchiseIdentity stadium level/prestige');
 
-    expect(navigateToMock).toHaveBeenCalledWith('/franchise/chronicle');
+    const namingReceipt = buildFranchiseActionReceipt({
+      type: 'naming_rights',
+      teamName: 'Chicago Blaze',
+      deal: mockState.offers[0]!,
+      dealIndex: 0,
+    });
+
+    expect(namingReceipt.title).toBe('Naming Rights Receipt');
+    expect(namingReceipt.result).toContain('TechNova Field accepted');
+    expect(namingReceipt.detail).toContain('$8.4M per year');
+    expect(namingReceipt.source).toContain('actions.acceptNamingRights -> game-store acceptNamingRights');
+    expect(namingReceipt.stateTouched).toContain('game.stadiumDealOffers is cleared');
+
+    const markup = renderToStaticMarkup(<FranchiseActionReceiptPanel receipt={namingReceipt} />);
+
+    expect(markup).toContain('NAMING RIGHTS RECEIPT');
+    expect(markup).toContain('ON-SCREEN CONFIRMATION');
+    expect(markup).toContain('Chicago Blaze // offer 1');
+    expect(markup).toContain('actions.acceptNamingRights -&gt; game-store acceptNamingRights');
+    expect(markup).toContain('not saved separately');
   });
 });

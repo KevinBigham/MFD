@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
+import { SAVE_VERSION } from '@mfd/engine';
 import appSource from '../../app/App.tsx?raw';
 import { FaqScreen } from './FaqScreen';
 
@@ -30,7 +31,8 @@ describe('FaqScreen', () => {
   it('renders save, rivalry, audio, and bug-report answers', () => {
     const markup = renderToStaticMarkup(<FaqScreen />);
 
-    expect(markup).toContain('Sprint 70 keeps save version 35 unchanged');
+    expect(markup).toContain(`Current saves use schema version ${SAVE_VERSION}`);
+    expect(markup).not.toContain('save version 35');
     expect(markup).toContain('Rivalry heat tracks friction');
     expect(markup).toContain('master audio');
     expect(markup).toContain('GitHub repository issue tracker');

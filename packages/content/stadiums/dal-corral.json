@@ -1,0 +1,13 @@
+{
+  "teamId": "DAL",
+  "name": "The Corral",
+  "capacity": 80000,
+  "tradition": "The Buck-Off now opens every Rodeos home game: the scoreboard cattle gate swings wide, a season-ticket rider climbs the silver mechanical bull, and the giant lasso drops only if the eight-second horn hits before kickoff.",
+  "surface": "Turf",
+  "roof": "Retractable",
+  "cue": {
+    "label": "The Buck-Off",
+    "pregameLine": "The cattle gate is swinging open at The Corral, and the silver mechanical bull is already counting down eight seconds.",
+    "crowdResponse": "The Wranglers answer with a RIDE! FOR! THE! BRAND! chant that snaps like a lasso over midfield."
+  }
+}

@@ -85,13 +85,13 @@ function postWorkerRequest<K extends SimWorkerRequest['kind']>(
  * force every caller to change its contract.
  */
 export async function runAdvanceWeek(game: GameState, options?: AdvanceFranchiseWeekOptions): Promise<EngineOutput> {
-  const workerResult = postWorkerRequest({ kind: 'advanceWeek', game, options });
+  const workerResult = postWorkerRequest<'advanceWeek'>({ kind: 'advanceWeek', game, options });
   if (workerResult) return workerResult;
   return advanceFranchiseWeek(game, options);
 }
 
 export async function runPreviewHalftimeDecision(game: GameState): Promise<PendingHalftimeDecision | null> {
-  const workerResult = postWorkerRequest({ kind: 'previewHalftimeDecision', game });
+  const workerResult = postWorkerRequest<'previewHalftimeDecision'>({ kind: 'previewHalftimeDecision', game });
   if (workerResult) return workerResult;
   return previewHalftimeDecision(game);
 }
@@ -101,7 +101,7 @@ export async function runSimAhead(
   target: SimAheadTarget,
   onProgress?: (frame: SimAheadFrame) => void,
 ): Promise<SimAheadResult> {
-  const workerResult = postWorkerRequest({ kind: 'simulateWeeks', game, target }, onProgress);
+  const workerResult = postWorkerRequest<'simulateWeeks'>({ kind: 'simulateWeeks', game, target }, onProgress);
   if (workerResult) return workerResult;
   return simulateWeeks(game, target, onProgress);
 }

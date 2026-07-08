@@ -168,6 +168,22 @@ function createRoster(teamId: string, ratingBase: number): Player[] {
   return POSITIONS.map((pos, index) => createPlayer(teamId, pos, ratingBase + (pos === 'QB' ? 8 : pos === 'RB' ? 4 : pos === 'WR' ? 3 - Math.min(index, 1) : pos === 'OL' || pos === 'DL' ? 2 : 0), index));
 }
 
+function setShowcaseExpiringContract(game: GameState, player: Player | undefined) {
+  if (!player?.contract) return;
+
+  player.contract = {
+    ...player.contract,
+    years: 1,
+    yearlyBreakdown: player.contract.yearlyBreakdown.slice(0, 1),
+    franchiseTag: null,
+  };
+
+  const mirroredPlayer = game.players[player.id];
+  if (mirroredPlayer) {
+    mirroredPlayer.contract = player.contract;
+  }
+}
+
 function createTeam(definition: (typeof TEAM_DEFINITIONS)[number], isUser: boolean): Team {
   const roster = createRoster(definition.id, definition.ratingBase);
   const team = {
@@ -198,7 +214,7 @@ function createTeam(definition: (typeof TEAM_DEFINITIONS)[number], isUser: boole
     ownerMood: isUser ? USER_APPROVAL : 58,
     fanConfidence: isUser ? USER_APPROVAL : 58,
     ownerPatience80: OWNER_PATIENCE,
-    gmStrategy: isUser ? 'neutral' : definition.ratingBase >= 79 ? 'buy' : definition.ratingBase <= 71 ? 'rebuild' : 'neutral',
+    gmStrategy: isUser ? 'neutral' : definition.ratingBase >= 79 ? 'contend' : definition.ratingBase <= 71 ? 'rebuild' : 'neutral',
     philosophy: 'maintain',
     draftPicks: [],
     rivalries: [],
@@ -314,6 +330,8 @@ function createBaseState(userTeamId: string, rng: PrngFn): GameState {
     recentMilestones: [],
     awardsHistory: [],
     hallOfFame: [],
+    ballotWaitlist: [],
+    ballotEliminatedIds: [],
     allDecadeTeams: [],
     powerRankings: [],
     mediaCycle: {
@@ -532,6 +550,7 @@ function configureUserShowcase(game: GameState, userTeamId: string, rivalTeamId:
   const qb = userTeam.roster.find((player) => player.pos === 'QB')!;
   const rb = userTeam.roster.find((player) => player.pos === 'RB')!;
   const wr = userTeam.roster.find((player) => player.pos === 'WR')!;
+  const tagCandidate = userTeam.roster.find((player) => player.pos === 'S');
   const rivalCb = rivalTeam.roster.find((player) => player.pos === 'CB')!;
 
   qb.traits = ['captain', 'clutch'];
@@ -567,6 +586,8 @@ function configureUserShowcase(game: GameState, userTeamId: string, rivalTeamId:
   wr.careerStats.recTD = 24;
   wr.careerStats.targets = 382;
   wr.careerStats.gp = 46;
+
+  setShowcaseExpiringContract(game, tagCandidate);
 
   rivalCb.traits = ['chip'];
   rivalCb.stats.defINT = 4;
@@ -672,7 +693,7 @@ function configureUserShowcase(game: GameState, userTeamId: string, rivalTeamId:
   game.handshakes = [{
     id: 'owner-playoff-push',
     type: 'owner',
-    promiseText: 'Make the playoffs and keep the dynasty window open.',
+    promiseText: 'Make the playoffs so ownership keeps this veteran core together.',
     targetId: userTeam.ownerId,
     teamId: userTeam.id,
     madeYear: SCENARIO_YEAR,

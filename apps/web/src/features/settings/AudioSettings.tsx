@@ -33,12 +33,54 @@ const CATEGORY_CONFIG: Array<{
   },
 ];
 
+interface AudioSourceRow {
+  label: string;
+  badge: string;
+  detail: string;
+}
+
 interface AudioSettingsProps {
   audio: AudioControls;
   title?: string;
   type?: 'range';
   previewLabel?: string;
   onTestSound?: () => void;
+}
+
+function formatCategorySnapshot(audio: AudioControls, category: AudioCategory): string {
+  const state = audio.categories[category];
+  return state.enabled && audio.masterEnabled ? `${category.toUpperCase()} ${state.volume}%` : `${category.toUpperCase()} off`;
+}
+
+export function buildAudioSourceRows(audio: AudioControls): AudioSourceRow[] {
+  const categorySnapshot = [
+    formatCategorySnapshot(audio, 'ui'),
+    formatCategorySnapshot(audio, 'sfx'),
+    formatCategorySnapshot(audio, 'ambient'),
+  ].join(', ');
+
+  return [
+    {
+      label: 'Preference store',
+      badge: 'browser local',
+      detail: `useAudio reads ui-store audioPreferences persisted under mfd-ui-preferences (${audio.masterEnabled ? 'master on' : 'master off'}; ${categorySnapshot}); not GameState or dynasty save.`,
+    },
+    {
+      label: 'Runtime controller',
+      badge: 'AudioController',
+      detail: 'Playback is gated by master/category/volume preferences before .ogg asset or synth fallback; unsupported browser and SSR failures remain silent.',
+    },
+    {
+      label: 'Preview buttons',
+      badge: 'route local',
+      detail: 'Preview buttons call audio.play with existing debounce overrides; they do not enqueue postGameUi audio cues or write saves.',
+    },
+    {
+      label: 'Game cue queue',
+      badge: 'app shell',
+      detail: 'Saved postGameUi.audioCueQueue is played and cleared by RootLayout; this settings panel only changes local audio preferences.',
+    },
+  ];
 }
 
 export function AudioSettings({
@@ -49,6 +91,7 @@ export function AudioSettings({
   onTestSound,
 }: AudioSettingsProps) {
   const previewHandler = onTestSound ?? (() => audio.play('notification', { debounceMs: 0 }));
+  const sourceRows = buildAudioSourceRows(audio);
 
   return (
     <PixelPanel title={title} accent="gold">
@@ -153,6 +196,32 @@ export function AudioSettings({
             </div>
           );
         })}
+
+        <div
+          data-testid="audio-source-boundary"
+          style={{
+            display: 'grid',
+            gap: '10px',
+            padding: '10px',
+            border: '3px solid var(--mfd-border)',
+            background: 'var(--mfd-bg-2)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ ...monoSm, color: '#fff' }}>Audio Sources</span>
+            <PixelBadge variant="gold">NO SAVE WRITE</PixelBadge>
+          </div>
+
+          {sourceRows.map((row) => (
+            <div key={row.label} style={{ display: 'grid', gap: '4px' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ ...monoSm, color: '#fff' }}>{row.label}</span>
+                <PixelBadge variant="default">{row.badge}</PixelBadge>
+              </div>
+              <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{row.detail}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </PixelPanel>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 
-interface Shortcut {
+export interface Shortcut {
   key: string;
   meta?: boolean;
   ctrl?: boolean;
@@ -29,19 +29,34 @@ export function getRegisteredShortcuts() {
   }));
 }
 
+export function isTextEditingShortcutTarget(target: EventTarget | null): boolean {
+  const element = target as HTMLElement | null;
+  if (!element) return false;
+
+  return element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.isContentEditable;
+}
+
+export function shortcutMatchesEvent(
+  shortcut: Shortcut,
+  event: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'shiftKey'>,
+): boolean {
+  const metaMatch = shortcut.meta ? (event.metaKey || event.ctrlKey) : true;
+  const ctrlMatch = shortcut.ctrl ? event.ctrlKey : true;
+  const shiftMatch = shortcut.shift ? event.shiftKey : !event.shiftKey;
+  const keyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase();
+
+  return keyMatch && metaMatch && ctrlMatch && shiftMatch;
+}
+
+export function shouldSkipShortcutForTarget(shortcut: Shortcut, target: EventTarget | null): boolean {
+  return isTextEditingShortcutTarget(target) && !shortcut.meta && !shortcut.ctrl;
+}
+
 export function useGlobalKeyboard() {
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    const target = e.target as HTMLElement;
-    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-
     for (const s of shortcuts) {
-      const metaMatch = s.meta ? (e.metaKey || e.ctrlKey) : true;
-      const ctrlMatch = s.ctrl ? e.ctrlKey : true;
-      const shiftMatch = s.shift ? e.shiftKey : !e.shiftKey;
-      const keyMatch = e.key.toLowerCase() === s.key.toLowerCase();
-
-      if (keyMatch && metaMatch && ctrlMatch && shiftMatch) {
-        if (isInput && !s.meta && !s.ctrl) continue;
+      if (shortcutMatchesEvent(s, e)) {
+        if (shouldSkipShortcutForTarget(s, e.target)) continue;
         e.preventDefault();
         s.handler();
         return;
@@ -63,13 +78,18 @@ export function useShortcut(
 ) {
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
+  const meta = modifiers?.meta;
+  const ctrl = modifiers?.ctrl;
+  const shift = modifiers?.shift;
 
   useEffect(() => {
     return registerShortcut({
       key,
-      ...modifiers,
+      meta,
+      ctrl,
+      shift,
       handler: () => handlerRef.current(),
       description,
     });
-  }, [key, description, modifiers?.meta, modifiers?.ctrl, modifiers?.shift]);
+  }, [key, description, meta, ctrl, shift]);
 }

@@ -11,7 +11,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, reason, nextStep, actionLabel, actionRoute }: EmptyStateProps) {
   return (
-    <div style={screenStackStyle}>
+    <div style={screenStackStyle} role="status" aria-live="polite">
       <PixelScreenHeader
         title={title}
         subtitle="This screen will populate once data is available."

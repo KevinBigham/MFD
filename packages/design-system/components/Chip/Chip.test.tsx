@@ -2,12 +2,19 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { isValidElement, type ReactElement, type ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
-import { Chip, CHIP_POSES, type ChipPose } from './index';
+import {
+  Chip,
+  CHIP_POSES,
+  CHIP_POSE_ART,
+  CHIP_POSE_MOTION_PROFILE,
+  resolveChipPoseArt,
+  type ChipPose,
+} from './index';
 
-const sizePixels = {
+const legacyPixels = {
   sm: 64,
-  md: 96,
-  lg: 144,
+  md: 112,
+  lg: 176,
 } as const;
 
 type ElementRecord = {
@@ -49,7 +56,7 @@ function renderChipElements({
   ariaLabel,
 }: {
   pose?: ChipPose;
-  size?: keyof typeof sizePixels;
+  size?: keyof typeof legacyPixels;
   reducedMotion?: boolean;
   ariaLabel?: string;
 } = {}) {
@@ -93,78 +100,116 @@ describe('Chip', () => {
       'disappointed',
       'mic-check',
       'thumbs-up',
+      'rallying',
+      'coaching-crouch',
+      'calling-play',
+      'time-out',
+      'whistle-blow',
+      'coffee-sip',
+      'on-phone',
+      'reviewing-tablet',
+      'head-in-hands',
+      'fist-bump',
+      'note-taking',
+      'laughing',
+      'skeptical',
+      'proud',
+      'facepalm',
+      'frustrated',
+      'tired',
+      'football-in-hand',
+      'pointing-at-tape',
     ]);
   });
 
   it('renders every pose at desktop, tablet, and mobile sizes', () => {
     const renderContracts = CHIP_POSES.flatMap((pose) =>
-      (Object.keys(sizePixels) as Array<keyof typeof sizePixels>).map((size) => {
+      (Object.keys(legacyPixels) as Array<keyof typeof legacyPixels>).map((size) => {
         const elements = renderChipElements({ pose, size });
         const root = findElement(elements, 'span');
         const svg = findElement(elements, 'svg');
         expect(root.props['data-chip-pose']).toBe(pose);
-        expect(svg.props.width).toBe(sizePixels[size]);
-        expect(svg.props.height).toBe(sizePixels[size]);
+        expect(svg.props.width).toBe(legacyPixels[size]);
+        expect(svg.props.height).toBe(legacyPixels[size]);
         expect(svg.props.viewBox).toBe('0 0 160 220');
-        return `${pose}:${size}:${sizePixels[size]}`;
+        return `${pose}:${size}:${legacyPixels[size]}`;
       }),
     );
 
-    expect(renderContracts).toMatchInlineSnapshot(`
-      [
-        "idle:sm:64",
-        "idle:md:96",
-        "idle:lg:144",
-        "greeting:sm:64",
-        "greeting:md:96",
-        "greeting:lg:144",
-        "talk:sm:64",
-        "talk:md:96",
-        "talk:lg:144",
-        "point-left:sm:64",
-        "point-left:md:96",
-        "point-left:lg:144",
-        "point-right:sm:64",
-        "point-right:md:96",
-        "point-right:lg:144",
-        "wave:sm:64",
-        "wave:md:96",
-        "wave:lg:144",
-        "think:sm:64",
-        "think:md:96",
-        "think:lg:144",
-        "whispering:sm:64",
-        "whispering:md:96",
-        "whispering:lg:144",
-        "celebrate:sm:64",
-        "celebrate:md:96",
-        "celebrate:lg:144",
-        "excited:sm:64",
-        "excited:md:96",
-        "excited:lg:144",
-        "concern:sm:64",
-        "concern:md:96",
-        "concern:lg:144",
-        "warning:sm:64",
-        "warning:md:96",
-        "warning:lg:144",
-        "surprised:sm:64",
-        "surprised:md:96",
-        "surprised:lg:144",
-        "sad:sm:64",
-        "sad:md:96",
-        "sad:lg:144",
-        "disappointed:sm:64",
-        "disappointed:md:96",
-        "disappointed:lg:144",
-        "mic-check:sm:64",
-        "mic-check:md:96",
-        "mic-check:lg:144",
-        "thumbs-up:sm:64",
-        "thumbs-up:md:96",
-        "thumbs-up:lg:144",
-      ]
-    `);
+    expect(renderContracts).toHaveLength(CHIP_POSES.length * Object.keys(legacyPixels).length);
+    expect(renderContracts[0]).toBe('idle:sm:64');
+    expect(renderContracts.at(-1)).toBe('pointing-at-tape:lg:176');
+  });
+
+  it('maps every pose to a concrete Chip PNG asset', () => {
+    const sources = new Set<string>();
+
+    for (const pose of CHIP_POSES) {
+      const art = CHIP_POSE_ART[pose];
+      expect(art.src).toMatch(/^assets\/chip\/.+\.png$/);
+      expect(art.inlineSrc).toMatch(/^assets\/chip\/inline\/.+\.png$/);
+      expect(art.alt).toContain('Chip');
+      sources.add(art.src);
+    }
+
+    expect(CHIP_POSE_ART.idle.src).toBe('assets/chip/chip-coach.png');
+    expect(CHIP_POSE_ART.talk.src).toBe('assets/chip/chip-broadcast.png');
+    expect(CHIP_POSE_ART.warning.src).toBe('assets/chip/pose-warning.png');
+    expect(CHIP_POSE_ART['thumbs-up'].src).toBe('assets/chip/pose-thumbs-up.png');
+    expect(CHIP_POSE_ART.rallying.src).toBe('assets/chip/pose-rallying.png');
+    expect(CHIP_POSE_ART['pointing-at-tape'].inlineSrc).toBe('assets/chip/inline/pose-pointing-at-tape.png');
+    expect(sources.size).toBeGreaterThanOrEqual(12);
+  });
+
+  it('uses square inline crops for small and medium Chip art', () => {
+    const mdElements = renderChipElements({ pose: 'warning', size: 'md' });
+    const mdRoot = findElement(mdElements, 'span');
+    const mdImage = findElement(mdElements, 'img', 'data-chip-image-pose', 'warning');
+    const smImage = findElement(renderChipElements({ pose: 'warning', size: 'sm' }), 'img', 'data-chip-image-pose', 'warning');
+
+    expect(resolveChipPoseArt('warning', 'md').src).toBe('assets/chip/inline/pose-warning.png');
+    expect(resolveChipPoseArt('warning', 'lg').src).toBe('assets/chip/pose-warning.png');
+    expect(mdRoot.props['data-chip-art-src']).toBe('assets/chip/inline/pose-warning.png');
+    expect(mdRoot.props['data-chip-full-art-src']).toBe('assets/chip/pose-warning.png');
+    expect(mdImage.props.src).toBe('assets/chip/inline/pose-warning.png');
+    expect(mdImage.props.width).toBe(112);
+    expect(mdImage.props.height).toBe(112);
+    expect(smImage.props.width).toBe(64);
+    expect(smImage.props.height).toBe(64);
+  });
+
+  it('renders the PNG art as the visible Chip layer while preserving pose metadata', () => {
+    const elements = renderChipElements({ pose: 'warning', size: 'lg' });
+    const root = findElement(elements, 'span');
+    const image = findElement(elements, 'img', 'data-chip-image-pose', 'warning');
+
+    expect(root.props['data-chip-art-src']).toBe('assets/chip/pose-warning.png');
+    expect(image.props.src).toBe('assets/chip/pose-warning.png');
+    expect(image.props.alt).toBe('');
+    expect(image.props.width).toBe(224);
+    expect(image.props.height).toBe(260);
+  });
+
+  it('routes visible portrait motion through a pose-specific rig profile', () => {
+    const elements = renderChipElements({ pose: 'warning', size: 'lg' });
+    const root = findElement(elements, 'span');
+    const rig = findElement(elements, 'span', 'data-chip-motion-rig', 'urgent');
+
+    expect(root.props['data-chip-motion-profile']).toBe('urgent');
+    expect(rig.props.className).toBe('mfd-chip__motion-rig');
+    expect(CHIP_POSE_MOTION_PROFILE.warning).toBe('urgent');
+    expect(CHIP_POSE_MOTION_PROFILE.celebrate).toBe('victory');
+    expect(CHIP_POSE_MOTION_PROFILE['head-in-hands']).toBe('downbeat');
+    expect(CHIP_POSES.every((pose) => CHIP_POSE_MOTION_PROFILE[pose])).toBe(true);
+  });
+
+  it('keeps the portrait stage, shine, and scanline as separate animation layers', () => {
+    const elements = renderChipElements({ pose: 'celebrate' });
+
+    expect(findElement(elements, 'span', 'data-chip-pose-art', 'celebrate').props.className).toBe('mfd-chip__art-frame');
+    expect(elements.some((element) => element.props.className === 'mfd-chip__stage-shadow')).toBe(true);
+    expect(elements.some((element) => element.props.className === 'mfd-chip__shine')).toBe(true);
+    expect(elements.some((element) => element.props.className === 'mfd-chip__scanline')).toBe(true);
   });
 
   it('uses an accessible default name and accepts a custom aria label', () => {
@@ -175,7 +220,7 @@ describe('Chip', () => {
     );
 
     expect(defaultRoot.props.role).toBe('img');
-    expect(defaultRoot.props['aria-label']).toBe('Chip, your assistant');
+    expect(defaultRoot.props['aria-label']).toBe('Chip, franchise operations chief');
     expect(customRoot.props['aria-label']).toBe('Chip points at the team picker');
   });
 
@@ -254,10 +299,19 @@ describe('Chip', () => {
     const chipCss = readFileSync(join(__dirname, 'Chip.css'), 'utf8');
     const reducedMotionBlock = chipCss.slice(chipCss.indexOf('@media (prefers-reduced-motion: reduce)'));
 
-    expect(chipCss).toContain('--chip-pose-transition: 180ms ease-out');
-    expect(chipCss).toContain('--chip-pose-crossfade: 200ms ease-out');
+    expect(chipCss).toContain('--chip-pose-transition: 210ms cubic-bezier(0.2, 0.86, 0.22, 1)');
+    expect(chipCss).toContain('--chip-pose-crossfade: 240ms cubic-bezier(0.18, 0.86, 0.22, 1)');
+    expect(chipCss).toContain('--chip-enter-from-y');
+    expect(chipCss).toContain('--chip-enter-peak-scale');
     expect(chipCss).toContain('@keyframes mfd-chip-pose-crossfade');
     expect(chipCss).toContain(".mfd-chip[data-chip-motion='animated'] .mfd-chip-svg__pose-fade-in");
+    expect(chipCss).toContain('@keyframes mfd-chip-art-arrive');
+    expect(chipCss).toContain('will-change: transform, opacity;');
+    expect(chipCss).toContain('mfd-chip-motion-focused 5.8s');
+    expect(chipCss).toContain('@keyframes mfd-chip-motion-victory');
+    expect(chipCss).toContain('mfd-chip-motion-urgent 2.55s');
+    expect(chipCss).toContain('mfd-chip-motion-downbeat 7.9s');
+    expect(chipCss).toContain("[data-chip-motion-profile='conversational'] .mfd-chip__motion-rig");
     expect(chipCss).toContain('@keyframes mfd-chip-idle-breathe');
     expect(chipCss).toContain('@keyframes mfd-chip-mic-check-tap');
     expect(reducedMotionBlock).toContain('opacity');
@@ -270,6 +324,9 @@ describe('Chip', () => {
     const reducedTransforms = [...reducedMotionBlock.matchAll(/transform:\s*([^;]+);/g)].map((match) =>
       (match[1] ?? '').trim(),
     );
-    expect(reducedTransforms.every((value) => value === 'none')).toBe(true);
+    expect(reducedMotionBlock).toContain('.mfd-chip .mfd-chip__image-rig');
+    expect(reducedMotionBlock).toContain('scale(var(--chip-art-scale))');
+    const hardCutTransforms = reducedTransforms.filter((value) => !value.includes('var(--chip-art'));
+    expect(hardCutTransforms.every((value) => value === 'none')).toBe(true);
   });
 });

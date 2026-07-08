@@ -10,6 +10,23 @@ import type {
 } from '../types';
 import type { PrngFn } from '../rng';
 
+export type ScenarioConstraintCoverageStatus = 'enforced' | 'not_enforced';
+
+export interface ScenarioConstraintCoverageItem {
+  id: 'trade_market' | 'offseason_free_agency' | 'draft';
+  label: string;
+  status: ScenarioConstraintCoverageStatus;
+  summary: string;
+  enforcedPaths: string[];
+  allowedPlanningPaths: string[];
+  uncoveredPaths: string[];
+}
+
+export interface ScenarioConstraintCoverage {
+  hasRestrictions: boolean;
+  items: ScenarioConstraintCoverageItem[];
+}
+
 const SCENARIO_DEFINITIONS: ScenarioDefinition[] = [
   {
     id: 'rebuild',
@@ -390,4 +407,51 @@ export function advanceScenarioSeason(
 
 export function getScenarioConstraints(gameState: GameState): ScenarioConstraints | null {
   return gameState.scenarioState?.activeScenario?.constraints ?? null;
+}
+
+export function getScenarioConstraintCoverage(
+  constraints: Partial<ScenarioConstraints> | null | undefined,
+): ScenarioConstraintCoverage {
+  const items: ScenarioConstraintCoverageItem[] = [];
+
+  if (constraints?.blockTrades) {
+    items.push({
+      id: 'trade_market',
+      label: 'Trade Actions',
+      status: 'enforced',
+      summary: 'Trade-market, direct, deadline, and draft war-room trade paths are blocked today.',
+      enforcedPaths: ['Generated trade-market offers', 'Accepted Trade Center market offers', 'Direct proposals and counters', 'Accepted Trade Deadline user offers', 'Draft war-room trades'],
+      allowedPlanningPaths: ['Team-needs reports', 'Trade-block scouting', 'Depth chart and cap planning', 'Draft board review without trade accepts'],
+      uncoveredPaths: [],
+    });
+  }
+
+  if (constraints?.blockFreeAgency) {
+    items.push({
+      id: 'offseason_free_agency',
+      label: 'Offseason Free Agency',
+      status: 'enforced',
+      summary: 'Offseason bids, street free-agent signings, waiver claims, and practice-squad acquisitions are blocked today.',
+      enforcedPaths: ['Submit free-agent bids', 'Sign street free agents', 'Waiver claims', 'Practice-squad acquisitions'],
+      allowedPlanningPaths: ['FA target-board refresh and watchlist', 'Team-needs reports', 'Waiver and practice-squad review without acquisition', 'Internal development planning'],
+      uncoveredPaths: [],
+    });
+  }
+
+  if (constraints?.blockDraft) {
+    items.push({
+      id: 'draft',
+      label: 'User Draft Picks',
+      status: 'enforced',
+      summary: 'User draft-pick submissions are blocked today.',
+      enforcedPaths: ['User draft picks'],
+      allowedPlanningPaths: ['Scouting reports', 'Draft board rankings', 'War-room review without Make Pick', 'Team-needs planning'],
+      uncoveredPaths: [],
+    });
+  }
+
+  return {
+    hasRestrictions: items.length > 0,
+    items,
+  };
 }

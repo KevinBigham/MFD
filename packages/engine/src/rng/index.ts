@@ -56,7 +56,7 @@ const DEFAULT_SEED = 12345;
 
 let _globalSeed = DEFAULT_SEED;
 
-/** The global RNG state with all 7 channels. */
+/** The global RNG state with all 8 channels. */
 export const RNG: RngState = createRngState(DEFAULT_SEED);
 
 function createRngState(seed: number): RngState {

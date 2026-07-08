@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Chip, ChipDialogueBubble, PixelButton, Spotlight } from '@mfd/design-system/components';
+import './ChipHost.css';
 import { onboardingDialogue } from './dialogue/onboarding';
 import type { DialogueCatalogEntry } from './dialogue/types';
 import { useChipStore } from './store';
@@ -14,6 +15,7 @@ import {
 } from './onboardingReveal';
 
 export const CHIP_ONBOARDING_STORAGE_KEY = 'mfd.chip.onboarding';
+export const CHIP_INTRO_STORAGE_KEY = 'mfd.chip.intro.v1';
 
 export interface ChipHostStage {
   id: string;
@@ -26,6 +28,8 @@ export interface ChipHostRenderControls {
   onStageAdvance: (stageId: string) => void;
   spotlightTargetId: string | null;
   currentBeat: number;
+  companionPanel: ReactNode | null;
+  setCompanionDialogue: (dialogue: ChipHostDialogueOverride | null) => void;
 }
 
 export interface ChipOnboardingSkipState {
@@ -34,14 +38,25 @@ export interface ChipOnboardingSkipState {
   timestamp: string;
 }
 
+export interface ChipIntroState {
+  seen: true;
+  skipped: boolean;
+  timestamp: string;
+}
+
 export interface ChipOnboardingReplayStore {
   showDialogue: (dialogueId: string, options?: { pose?: DialogueCatalogEntry['pose']; context?: 'onboarding' }) => void;
 }
+
+export type ChipHostDialogueOverride = Partial<Pick<DialogueCatalogEntry, 'pose' | 'text' | 'contextDetails'>>;
 
 export interface ChipHostProps {
   newGame: boolean;
   stages: ChipHostStage[];
   children: ReactNode | ((controls: ChipHostRenderControls) => ReactNode);
+  companionAction?: ReactNode;
+  companionDialogue?: ChipHostDialogueOverride | null;
+  onCompanionVisibleChange?: (visible: boolean) => void;
   reducedMotion?: boolean;
   storage?: Storage | null;
   now?: () => Date;
@@ -115,6 +130,26 @@ export function readOnboardingSkipState(storage: Storage | null = resolveStorage
   }
 }
 
+export function readChipIntroState(storage: Storage | null = resolveStorage()): ChipIntroState | null {
+  if (!storage) return null;
+  const raw = storage.getItem(CHIP_INTRO_STORAGE_KEY);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<ChipIntroState>;
+    if (parsed.seen !== true) return null;
+    if (typeof parsed.skipped !== 'boolean') return null;
+    if (typeof parsed.timestamp !== 'string') return null;
+    return {
+      seen: true,
+      skipped: parsed.skipped,
+      timestamp: parsed.timestamp,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function writeOnboardingSkipState(storage: Storage | null, lastBeat: number, timestamp = new Date()): void {
   if (!storage) return;
   const payload: ChipOnboardingSkipState = {
@@ -123,6 +158,16 @@ export function writeOnboardingSkipState(storage: Storage | null, lastBeat: numb
     timestamp: timestamp.toISOString(),
   };
   storage.setItem(CHIP_ONBOARDING_STORAGE_KEY, JSON.stringify(payload));
+}
+
+export function writeChipIntroState(storage: Storage | null, skipped: boolean, timestamp = new Date()): void {
+  if (!storage) return;
+  const payload: ChipIntroState = {
+    seen: true,
+    skipped,
+    timestamp: timestamp.toISOString(),
+  };
+  storage.setItem(CHIP_INTRO_STORAGE_KEY, JSON.stringify(payload));
 }
 
 export function replayOnboardingBeat(
@@ -144,10 +189,104 @@ function resolveStageSpotlightId(stage: ChipHostStage | undefined): string | nul
   return SPOTLIGHT_TARGETS_BY_BEAT.find((entry) => entry.beat === beat)?.stageId ?? null;
 }
 
+interface ChipContextDetailParts {
+  label: string;
+  body: string;
+  kind: 'consequence' | 'decision' | 'where' | 'why' | 'forecast' | 'owner' | 'risk' | 'choice' | 'note';
+}
+
+function resolveChipContextDetailKind(label: string): ChipContextDetailParts['kind'] {
+  const normalized = label.toLowerCase();
+  if (normalized.includes('consequence')) return 'consequence';
+  if (normalized.includes('decision')) return 'decision';
+  if (normalized.includes('where')) return 'where';
+  if (normalized.includes('why')) return 'why';
+  if (normalized.includes('forecast')) return 'forecast';
+  if (normalized.includes('owner')) return 'owner';
+  if (normalized.includes('risk')) return 'risk';
+  if (normalized.includes('advisor') || normalized.includes('game')) return 'choice';
+  return 'note';
+}
+
+export function splitChipContextDetail(detail: string): ChipContextDetailParts {
+  const [rawLabel, ...bodyParts] = detail.split(':');
+  const label = rawLabel?.trim() ?? '';
+  const body = bodyParts.join(':').trim();
+
+  if (!label || !body) {
+    return {
+      label: 'Note',
+      body: detail.trim(),
+      kind: 'note',
+    };
+  }
+
+  return {
+    label,
+    body,
+    kind: resolveChipContextDetailKind(label),
+  };
+}
+
+interface ChipIntroScreenProps {
+  onContinue: () => void;
+  onSkip: () => void;
+  reducedMotion: boolean;
+}
+
+function ChipIntroScreen({ onContinue, onSkip, reducedMotion }: ChipIntroScreenProps) {
+  return (
+    <section
+      className="mfd-chip-intro"
+      data-chip-intro="true"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mfd-chip-intro-title"
+      aria-describedby="mfd-chip-intro-copy"
+    >
+      <PixelButton
+        accent="default"
+        className="mfd-chip-intro__skip"
+        data-chip-intro-skip="true"
+        onClick={onSkip}
+      >
+        Skip Chip Intro
+      </PixelButton>
+
+      <div className="mfd-chip-intro__stage">
+        <div className="mfd-chip-intro__portrait" aria-hidden="true">
+          <Chip pose="greeting" size="lg" reducedMotion={reducedMotion} ariaLabel="Chip, franchise operations chief" />
+        </div>
+
+        <div className="mfd-chip-intro__copy">
+          <div className="mfd-chip-intro__eyebrow">Franchise Ops // Chip</div>
+          <h1 id="mfd-chip-intro-title">I'm Chip</h1>
+          <p id="mfd-chip-intro-copy">
+            I separate Must Do, Recommended, and Optional work, point to the exact screen to open, and explain the
+            consequence before a choice hurts the roster, cap space, owner patience, or the next game.
+          </p>
+          <div className="mfd-chip-intro__actions">
+            <PixelButton
+              accent="gold"
+              data-chip-intro-start="true"
+              onClick={onContinue}
+            >
+              Start Setup
+            </PixelButton>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function ChipHost({
   newGame,
   stages,
   children,
+  companionAction,
+  companionDialogue = null,
+  onCompanionVisibleChange,
   reducedMotion = false,
   storage,
   now = () => new Date(),
@@ -156,59 +295,65 @@ export function ChipHost({
   const [dismissed, setDismissed] = useState(false);
   const [activeStageId, setActiveStageId] = useState<string | null>(() => resolveStageSpotlightId(stages[0]));
   const [revealElapsedMs, setRevealElapsedMs] = useState(reducedMotion ? ONBOARDING_REVEAL_TOTAL_MS : 0);
+  const [skipOverride, setSkipOverride] = useState(false);
   const revealStartMs = useRef<number | null>(null);
   const backingStorage = storage === undefined ? resolveStorage() : storage;
-  const skipped = readOnboardingSkipState(backingStorage)?.skipped === true;
+  const skipped = readOnboardingSkipState(backingStorage)?.skipped === true && !skipOverride;
   const enabled = isChipFeatureEnabled();
+  const [introDismissed, setIntroDismissed] = useState(() => readChipIntroState(backingStorage)?.seen === true);
+  const [renderedCompanionDialogue, setRenderedCompanionDialogue] = useState<ChipHostDialogueOverride | null>(null);
   const subscribedStoreDismissed = useChipStore((state) => state.dismissed);
   const storeDismissed = subscribedStoreDismissed || useChipStore.getState().dismissed;
   const hostDismissed = dismissed || storeDismissed;
-  const currentDialogue = onboardingDialogue[beatIndex] ?? onboardingDialogue[0]!;
+  const baseDialogue = onboardingDialogue[beatIndex] ?? onboardingDialogue[0]!;
+  const effectiveCompanionDialogue = companionDialogue ?? renderedCompanionDialogue;
+  const currentDialogue = useMemo(
+    () => ({
+      ...baseDialogue,
+      ...effectiveCompanionDialogue,
+    }),
+    [baseDialogue, effectiveCompanionDialogue],
+  );
   const currentStage = stages[beatIndex] ?? stages[0];
-  const shouldPlayReveal = enabled && newGame && !skipped && !hostDismissed && !reducedMotion;
+  const introSeen = introDismissed || readChipIntroState(backingStorage)?.seen === true;
+  const showIntro = Boolean(enabled && newGame && !skipped && !hostDismissed && currentDialogue && !introSeen);
+  const shouldPlayReveal = enabled && newGame && !skipped && !hostDismissed && introSeen && !reducedMotion;
   const revealFrame = getOnboardingRevealFrame({
     elapsedMs: shouldPlayReveal ? revealElapsedMs : ONBOARDING_REVEAL_TOTAL_MS,
     reducedMotion,
   });
   const revealComplete = !shouldPlayReveal || revealFrame.complete;
+  const companionVisible = Boolean(enabled && newGame && !skipped && !hostDismissed && currentDialogue && introSeen);
   const spotlightTargetId = resolveChipHostSpotlightTarget({
     beatIndex,
     stageId: activeStageId,
     enabled,
     skipped,
-    dismissed: hostDismissed || !revealComplete,
+    dismissed: hostDismissed || !introSeen || !revealComplete,
   });
 
-  // FranchiseSetupWizard renders as a full-viewport `position: fixed` overlay
-  // (see FranchiseSetupWizard.tsx — z-index 50 inset:0). A side-by-side grid
-  // host gets covered. Chip lives as its own fixed overlay above the wizard.
   const hostStyle = useMemo(
     () => ({
-      position: 'fixed' as const,
-      bottom: 'var(--mfd-sp-lg)',
-      left: 'var(--mfd-sp-lg)',
-      zIndex: 100,
-      width: 'min(320px, calc(100vw - (var(--mfd-sp-lg) * 2)))',
-      maxHeight: 'calc(100vh - (var(--mfd-sp-lg) * 2))',
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: 'var(--mfd-sp-md)',
-      padding: 'var(--mfd-sp-md)',
-      border: '2px solid var(--mfd-gold)',
-      background: 'var(--mfd-bg)',
+      boxSizing: 'border-box' as const,
+      width: '100%',
+      minWidth: 0,
+      display: 'grid',
+      gap: '18px',
+      padding: '24px',
+      border: '3px solid rgba(255, 215, 0, 0.84)',
+      borderLeft: '10px solid var(--mfd-gold)',
+      background: 'linear-gradient(180deg, rgba(255, 215, 0, 0.09), rgba(0, 0, 0, 0.22)), var(--mfd-bg-2)',
       color: 'var(--mfd-text)',
-      boxShadow: 'var(--mfd-shadow-lg)',
-      overflowY: 'auto' as const,
+      boxShadow: '0 0 0 1px rgba(0, 0, 0, 0.58), 0 22px 46px rgba(0, 0, 0, 0.38), 0 0 28px rgba(255, 215, 0, 0.1)',
+      overflow: 'hidden' as const,
     }),
     [],
   );
 
   const stageStyle = useMemo(
     () => ({
-      display: 'flex',
-      flexDirection: 'column' as const,
-      alignItems: 'center' as const,
-      gap: 'var(--mfd-sp-sm)',
+      display: 'grid',
+      gap: '10px',
       minWidth: 0,
     }),
     [],
@@ -220,7 +365,17 @@ export function ChipHost({
       flexWrap: 'wrap' as const,
       gap: 'var(--mfd-sp-sm)',
       alignItems: 'center',
-      justifyContent: 'center' as const,
+      justifyContent: 'space-between' as const,
+    }),
+    [],
+  );
+
+  const primaryActionStyle = useMemo(
+    () => ({
+      display: 'grid',
+      gap: 'var(--mfd-sp-xs)',
+      justifyItems: 'stretch',
+      width: '100%',
     }),
     [],
   );
@@ -230,8 +385,8 @@ export function ChipHost({
       display: 'grid',
       placeItems: 'center',
       padding: 0,
-      border: '2px solid transparent',
-      background: 'transparent',
+      border: '1px solid rgba(0, 229, 255, 0.32)',
+      background: 'rgba(0, 229, 255, 0.06)',
       color: 'inherit',
       cursor: 'pointer',
     }),
@@ -252,18 +407,52 @@ export function ChipHost({
   const contextDetailsStyle = useMemo(
     () => ({
       display: 'grid',
-      gap: 'var(--mfd-sp-xs)',
+      gap: '10px',
       width: '100%',
-      padding: 'var(--mfd-sp-sm)',
-      border: '2px solid var(--mfd-border)',
-      background: 'var(--mfd-bg-2)',
-      color: 'var(--mfd-text-dim)',
+      padding: '16px',
+      border: '1px solid rgba(0, 229, 255, 0.38)',
+      background: 'linear-gradient(180deg, rgba(0, 229, 255, 0.08), rgba(0, 0, 0, 0.18))',
+      color: 'var(--mfd-text)',
       fontFamily: 'var(--mfd-font-mono)',
-      fontSize: '11px',
-      lineHeight: 1.55,
+      fontSize: '15px',
+      lineHeight: 1.5,
     }),
     [],
   );
+
+  const railMetaStyle = useMemo(
+    () => ({
+      display: 'flex',
+      justifyContent: 'space-between',
+      gap: '8px',
+      alignItems: 'center',
+      color: 'var(--mfd-gold)',
+      fontFamily: 'var(--mfd-font-pixel)',
+      fontSize: '8px',
+      lineHeight: 1.25,
+      textTransform: 'uppercase' as const,
+    }),
+    [],
+  );
+
+  const quietNoteStyle = useMemo(
+    () => ({
+      color: 'var(--mfd-text-dim)',
+      fontFamily: 'var(--mfd-font-mono)',
+      fontSize: '11px',
+      lineHeight: 1.45,
+    }),
+    [],
+  );
+
+  const completeIntro = useCallback((introSkipped: boolean) => {
+    writeChipIntroState(backingStorage, introSkipped, now());
+    setIntroDismissed(true);
+  }, [backingStorage, now]);
+
+  useEffect(() => {
+    onCompanionVisibleChange?.(companionVisible);
+  }, [companionVisible, onCompanionVisibleChange]);
 
   useEffect(() => {
     useChipStore.getState().setSpotlightTarget(spotlightTargetId);
@@ -285,6 +474,10 @@ export function ChipHost({
     revealStartMs.current = null;
     let frameId = 0;
     let cancelled = false;
+    const fallbackTimerId = window.setTimeout(() => {
+      if (cancelled) return;
+      setRevealElapsedMs(ONBOARDING_REVEAL_TOTAL_MS);
+    }, ONBOARDING_REVEAL_TOTAL_MS + 250);
 
     const tick = (timestamp: number) => {
       if (cancelled) return;
@@ -295,6 +488,8 @@ export function ChipHost({
       setRevealElapsedMs(elapsed);
       if (elapsed < ONBOARDING_REVEAL_TOTAL_MS) {
         frameId = window.requestAnimationFrame(tick);
+      } else {
+        window.clearTimeout(fallbackTimerId);
       }
     };
 
@@ -303,8 +498,26 @@ export function ChipHost({
     return () => {
       cancelled = true;
       window.cancelAnimationFrame?.(frameId);
+      window.clearTimeout(fallbackTimerId);
     };
   }, [shouldPlayReveal]);
+
+  useEffect(() => {
+    if (!showIntro || typeof window === 'undefined') return undefined;
+
+    window.document.querySelector<HTMLButtonElement>('[data-chip-intro-start="true"]')?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      completeIntro(true);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [completeIntro, showIntro]);
 
   const handleStageAdvance = useCallback((stageId: string) => {
     setActiveStageId(stageId);
@@ -318,50 +531,173 @@ export function ChipHost({
     });
   }, []);
 
-  const skip = useCallback(() => {
-    writeOnboardingSkipState(backingStorage, beatIndex + 1, now());
+  const dismissForNow = useCallback(() => {
     useChipStore.getState().dismiss();
     setDismissed(true);
-  }, [backingStorage, beatIndex, now]);
+  }, []);
+
+  const restoreChip = useCallback(() => {
+    backingStorage?.removeItem(CHIP_ONBOARDING_STORAGE_KEY);
+    setSkipOverride(true);
+    setDismissed(false);
+    useChipStore.getState().showDialogue(currentDialogue.id, {
+      pose: currentDialogue.pose,
+      context: 'onboarding',
+    });
+  }, [backingStorage, currentDialogue]);
 
   const replayCurrentBeat = useCallback(() => {
     replayOnboardingBeat(currentDialogue);
   }, [currentDialogue]);
 
-  const renderedChildren = typeof children === 'function'
+  const renderChildren = (companionPanel: ReactNode | null) => (typeof children === 'function'
     ? children({
       onStageAdvance: handleStageAdvance,
       spotlightTargetId,
       currentBeat: beatIndex + 1,
+      companionPanel,
+      setCompanionDialogue: setRenderedCompanionDialogue,
     })
-    : children;
+    : children);
 
-  if (!enabled || !newGame || skipped || hostDismissed || !currentDialogue) {
-    return <>{renderedChildren}</>;
+  if (showIntro) {
+    return (
+      <ChipIntroScreen
+        reducedMotion={reducedMotion}
+        onContinue={() => completeIntro(false)}
+        onSkip={() => completeIntro(true)}
+      />
+    );
   }
 
-  if (!revealComplete) {
+  const askChipButton = (
+    <PixelButton
+      accent="cyan"
+      className="mfd-chip-ask-button"
+      data-chip-ask-button="true"
+      aria-label="Ask Chip to return"
+      title="Ask Chip"
+      onClick={restoreChip}
+    >
+      Ask Chip
+    </PixelButton>
+  );
+
+  if (enabled && newGame && (skipped || hostDismissed) && currentDialogue) {
     return (
       <>
-        <div data-chip-host-content="true" aria-label={currentStage?.label}>
-          {renderedChildren}
-        </div>
-        <aside
-          data-chip-host="true"
-          data-chip-host-reveal={revealFrame.phase}
-          data-chip-host-stage-id={currentStage?.id}
-          style={hostStyle}
-          aria-label="Chip onboarding companion"
-        >
-          <div data-chip-host-companion="true" style={stageStyle}>
-            <div data-chip-host-reveal-portrait="true" style={revealStyle}>
-              <Chip pose={revealFrame.pose} reducedMotion={reducedMotion} size="md" />
-            </div>
-          </div>
-        </aside>
+        {renderChildren(null)}
+        {askChipButton}
       </>
     );
   }
+
+  if (!enabled || !newGame || !currentDialogue) {
+    return <>{renderChildren(null)}</>;
+  }
+
+  const companionPanel = !revealComplete ? (
+    <aside
+      className="mfd-chip-host mfd-chip-host--setup"
+      data-chip-host="true"
+      data-chip-host-reveal={revealFrame.phase}
+      data-chip-host-stage-id={currentStage?.id}
+      style={hostStyle}
+      aria-label="Chip operations rail"
+    >
+      <div style={railMetaStyle}>
+        <span>Operations Chief</span>
+        <span>{currentStage?.label}</span>
+      </div>
+      <div data-chip-host-companion="true" style={stageStyle}>
+        <div data-chip-host-reveal-portrait="true" style={revealStyle}>
+          <Chip pose={revealFrame.pose} reducedMotion={reducedMotion} size="lg" ariaLabel="Chip, franchise operations chief" />
+        </div>
+      </div>
+    </aside>
+  ) : (
+    <aside
+      className="mfd-chip-host mfd-chip-host--setup"
+      data-chip-host="true"
+      data-chip-host-stage-id={currentStage?.id}
+      style={hostStyle}
+      aria-label="Chip operations rail"
+    >
+      <div style={railMetaStyle}>
+        <span>Operations Chief</span>
+        <span>{currentStage?.label}</span>
+      </div>
+      <div data-chip-host-companion="true" style={stageStyle}>
+        <button
+          type="button"
+          data-chip-host-portrait="true"
+          onClick={replayCurrentBeat}
+          aria-label="Replay Chip briefing"
+          style={portraitButtonStyle}
+        >
+          <Chip pose={currentDialogue.pose} reducedMotion={reducedMotion} size="lg" ariaLabel="Chip, franchise operations chief" />
+        </button>
+        <ChipDialogueBubble
+          text={currentDialogue.text}
+          pose={currentDialogue.pose}
+          reducedMotion={reducedMotion}
+          skippable={false}
+          pointer="left"
+        />
+        <div data-chip-host-controls="true" style={controlsStyle}>
+          {companionAction ? (
+            <div data-chip-host-primary-action="true" style={primaryActionStyle}>
+              {companionAction}
+            </div>
+          ) : currentDialogue.contextDetails?.length ? null : (
+            <div style={quietNoteStyle}>
+              Finish the visible setup choice. Continue saves that decision and moves Chip to the next consequence.
+            </div>
+          )}
+          <PixelButton
+            accent="cyan"
+            onClick={dismissForNow}
+            style={!companionAction && currentDialogue.contextDetails?.length ? { marginLeft: 'auto' } : undefined}
+          >
+            not now Chip!
+          </PixelButton>
+        </div>
+        {currentDialogue.contextDetails?.length ? (
+          <section
+            data-chip-host-context-details="true"
+            style={contextDetailsStyle}
+          >
+            <div
+              data-chip-host-context-heading="true"
+              style={{ color: 'var(--mfd-cyan)', fontFamily: 'var(--mfd-font-pixel)', fontSize: '8px', lineHeight: 1.35 }}
+            >
+              Choice Consequences
+            </div>
+            <div className="mfd-chip-host__context-list" data-chip-host-context-list="true">
+              {currentDialogue.contextDetails.map((detail) => {
+                const parts = splitChipContextDetail(detail);
+                return (
+                  <div
+                    key={detail}
+                    className="mfd-chip-host__context-detail"
+                    data-chip-host-context-kind={parts.kind}
+                    aria-label={detail}
+                  >
+                    <span className="mfd-chip-host__context-detail-label">{parts.label}</span>
+                    <span className="mfd-chip-host__context-detail-body">{parts.body}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+      </div>
+    </aside>
+  );
+
+  const renderedChildren = renderChildren(companionPanel);
+
+  const renderPropChildren = typeof children === 'function';
 
   return (
     <>
@@ -369,46 +705,7 @@ export function ChipHost({
       <div data-chip-host-content="true" aria-label={currentStage?.label}>
         {renderedChildren}
       </div>
-      <aside
-        data-chip-host="true"
-        data-chip-host-stage-id={currentStage?.id}
-        style={hostStyle}
-        aria-label="Chip onboarding companion"
-      >
-        <div data-chip-host-companion="true" style={stageStyle}>
-          <button
-            type="button"
-            data-chip-host-portrait="true"
-            onClick={replayCurrentBeat}
-            aria-label="Replay Chip briefing"
-            style={portraitButtonStyle}
-          >
-            <Chip pose={currentDialogue.pose} reducedMotion={reducedMotion} size="md" />
-          </button>
-          <ChipDialogueBubble
-            text={currentDialogue.text}
-            pose={currentDialogue.pose}
-            reducedMotion={reducedMotion}
-            skippable={false}
-            pointer="left"
-          />
-          {currentDialogue.contextDetails?.length ? (
-            <div data-chip-host-context-details="true" style={contextDetailsStyle}>
-              {currentDialogue.contextDetails.map((detail) => (
-                <div key={detail}>{detail}</div>
-              ))}
-            </div>
-          ) : null}
-          <div data-chip-host-controls="true" style={controlsStyle}>
-            <div style={{ color: 'var(--mfd-gold)', fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', lineHeight: 1.45 }}>
-              Click the gold button when ready.
-            </div>
-            <PixelButton accent="cyan" onClick={skip}>
-              Skip
-            </PixelButton>
-          </div>
-        </div>
-      </aside>
+      {renderPropChildren ? null : companionPanel}
     </>
   );
 }

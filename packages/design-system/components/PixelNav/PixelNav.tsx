@@ -26,11 +26,12 @@ export function PixelNav({
 }: PixelNavProps) {
   return (
     <div
+      data-mfd-pixel-nav="true"
       className={className}
       style={{
         display: 'flex',
         flexWrap: wrap ? 'wrap' : 'nowrap',
-        gap: '6px',
+        gap: '8px',
         overflowX: wrap ? 'visible' : 'auto',
         ...style,
       }}
@@ -43,7 +44,9 @@ export function PixelNav({
             type="button"
             data-mfd-nav-item="true"
             data-active={active ? 'true' : 'false'}
+            data-selected={active ? 'true' : 'false'}
             aria-pressed={active}
+            aria-current={active ? 'page' : undefined}
             disabled={item.disabled}
             onClick={() => {
               if (!item.disabled) {
@@ -54,17 +57,24 @@ export function PixelNav({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              minHeight: '32px',
-              padding: '7px 10px',
-              border: `3px solid ${active ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
-              background: active ? 'rgba(255, 215, 0, 0.1)' : 'var(--mfd-bg-2)',
+              minHeight: '38px',
+              padding: '8px 12px',
+              border: `2px solid ${active ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
+              borderRadius: 'var(--mfd-rad-md)',
+              background: active
+                ? 'linear-gradient(180deg, rgba(255, 215, 0, 0.16), rgba(255, 215, 0, 0.07))'
+                : item.disabled
+                  ? 'rgba(16, 21, 27, 0.76)'
+                  : 'var(--mfd-bg-2)',
               color: item.disabled ? 'var(--mfd-text-faint)' : active ? 'var(--mfd-gold)' : 'var(--mfd-text-dim)',
               fontFamily: 'var(--mfd-font-pixel)',
               fontSize: '8px',
-              letterSpacing: '0.8px',
+              lineHeight: 1.25,
+              letterSpacing: 0,
               textTransform: 'uppercase',
               whiteSpace: 'nowrap',
               cursor: item.disabled ? 'default' : 'pointer',
+              opacity: item.disabled ? 0.62 : 1,
               flexShrink: 0,
             }}
           >

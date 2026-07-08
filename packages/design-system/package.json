@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "lint": "eslint components --ext .ts,.tsx",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

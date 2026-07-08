@@ -1,7 +1,7 @@
 /**
  * MFD Dynasty Cartridge System
  *
- * Pure-logic save export/import with compression.
+ * Pure-logic save export/import with a plain JSON envelope.
  * No DOM/browser APIs — download/clipboard handled in web layer.
  */
 

@@ -1,0 +1,13 @@
+{
+  "teamId": "PHI",
+  "name": "The Belfry",
+  "capacity": 69500,
+  "tradition": "The Liberty Bell Run now opens every home game: a retired Bell-Ringers captain pulls the cracked bronze rope, the Ringers answer with the tunnel chant, and the soundboard lets the final note hang until the visiting huddle has to hear it.",
+  "surface": "Turf",
+  "roof": "Open",
+  "cue": {
+    "label": "Liberty Bell Run",
+    "pregameLine": "The cracked bell is swinging above the south end, and the whole Belfry is waiting for the final note to drop.",
+    "crowdResponse": "The Ringers answer with a sharp RING! THE! BELL! chant that cuts through the visiting cadence."
+  }
+}

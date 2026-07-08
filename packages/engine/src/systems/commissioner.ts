@@ -212,7 +212,7 @@ export function issueRuling(state: CommissionerState, ruling: CommissionerRuling
 }
 
 export function advanceCommissioner(state: CommissionerState, game: GameState): CommissionerState {
-  let nextState: CommissionerState = {
+  const nextState: CommissionerState = {
     ...state,
     tenure: state.tenure + 1,
     activeProposals: [...state.activeProposals],

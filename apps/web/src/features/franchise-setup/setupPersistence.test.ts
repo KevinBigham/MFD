@@ -37,6 +37,29 @@ describe('setupPersistence', () => {
     expect(storage.getItem(FIRST_TEN_COMPLETED_KEY)).toBe('true');
   });
 
+  it('treats a missing run-mode key as the current full setup default', () => {
+    const storage = createStorageStub();
+    const runId = '42:afce1:2026';
+
+    markPreludeDismissed(storage, runId);
+    finalizeSetupRun(storage, runId);
+
+    expect(readFirstTenMinutesCompleted(storage)).toBe(true);
+    expect(readPreludeDismissed(storage, runId)).toBe(false);
+    expect(storage.getItem(SETUP_RUN_MODE_KEY)).toBeNull();
+    expect(storage.getItem(FIRST_TEN_COMPLETED_KEY)).toBe('true');
+  });
+
+  it('treats an invalid run-mode key as the current full setup default', () => {
+    const storage = createStorageStub();
+
+    storage.setItem(SETUP_RUN_MODE_KEY, 'classic');
+    finalizeSetupRun(storage);
+
+    expect(readFirstTenMinutesCompleted(storage)).toBe(true);
+    expect(storage.getItem(SETUP_RUN_MODE_KEY)).toBeNull();
+  });
+
   it('does not unlock Fast Lane after a Fast Lane completion', () => {
     const storage = createStorageStub();
 

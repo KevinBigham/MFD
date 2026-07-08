@@ -91,6 +91,27 @@ function generateCandidate(role: 'HC'): StaffMember {
   };
 }
 
+function coachMirror(member: StaffMember): NonNullable<Team['coachingStaff']['hc']> {
+  const [firstName, ...rest] = member.name.split(' ');
+  return {
+    id: member.id,
+    firstName: firstName || member.role,
+    lastName: rest.join(' ') || 'Coach',
+    role: member.role,
+    archetype: member.archetype,
+    traits: member.traits,
+    skillTree: {},
+    xp: 0,
+    reputation: Math.max(30, Math.min(95, 40 + member.level * 8)),
+    tenure: 1,
+  };
+}
+
+function writeHeadCoach(team: Team, coach: StaffMember): void {
+  team.staff.hc = coach;
+  team.coachingStaff.hc = coachMirror(coach);
+}
+
 function recordCoachHistory(game: GameState, coach: StaffMember, team: Team, seasonYear: number, retired = false): void {
   const existing = game.coachingHistory.find((entry) => entry.coachId === coach.id);
   const wins = team.wins;
@@ -190,7 +211,7 @@ export function runCoachingCarousel(game: GameState, seasonYear: number, aiBias?
 
     const pool = Array.from({ length: 5 + Math.floor(RNG.ai() * 4) }, () => generateCandidate('HC'));
     const hire = pool.sort((a, b) => scoreCandidate(team, b) - scoreCandidate(team, a) || a.name.localeCompare(b.name))[0]!;
-    team.staff.hc = hire;
+    writeHeadCoach(team, hire);
 
     const hired = buildEvent(game, 'coach_hired', `${team.city} hires ${hire.name} to run the sideline.`, { teamId: team.id, coachId: hire.id });
     events.push(hired);

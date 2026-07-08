@@ -20,6 +20,7 @@ export function AGMStage({
   headline,
   subhead,
   reducedMotion = false,
+  railAddon = null,
   children,
 }: {
   agm: AGMProfile;
@@ -27,6 +28,7 @@ export function AGMStage({
   headline: string;
   subhead: string;
   reducedMotion?: boolean;
+  railAddon?: ReactNode | null;
   children?: ReactNode;
 }) {
   const accent = STATE_ACCENT[state];
@@ -37,6 +39,7 @@ export function AGMStage({
       className="mfd-agm-stage"
       data-mfd-agm-state={state}
       data-mfd-agm-motion={reducedMotion ? 'reduced' : 'animated'}
+      data-mfd-agm-has-rail-addon={railAddon ? 'true' : 'false'}
       style={stageStyle}
     >
       <div
@@ -47,6 +50,12 @@ export function AGMStage({
           <span style={{ ...pixelSm, color: accent }}>{state.toUpperCase()}</span>
           <span style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>{agm.title}</span>
         </div>
+
+        {railAddon ? (
+          <div className="mfd-agm-stage__rail-addon">
+            {railAddon}
+          </div>
+        ) : null}
 
         <div className="mfd-agm-stage__portrait">
           <AssistantGMCharacter agm={agm} state={state} reducedMotion={reducedMotion} />

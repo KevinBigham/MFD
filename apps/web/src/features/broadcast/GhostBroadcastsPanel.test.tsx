@@ -36,6 +36,24 @@ describe('GhostBroadcastsPanel', () => {
     expect(markup).toContain('They hit the panic button and never looked back.');
   });
 
+  it('labels ghost-line sources, browser prefs, legacy split, and no-write boundaries', () => {
+    const markup = renderToStaticMarkup(
+      <GhostBroadcastsPanel
+        lines={[HOF_LINE, CALLOUT_LINE]}
+        storage={null}
+      />,
+    );
+
+    expect(markup).toContain('broadcast.ghostLines');
+    expect(markup).toContain('mfd.broadcast.ghost.v1');
+    expect(markup).toContain('Read-only lines');
+    expect(markup).toContain('latest broadcast ghost lines split into HOF voices and Booth Alert callouts');
+    expect(markup).toContain('legacy unsourced lines classified by commentator name');
+    expect(markup).toContain("writes only this device&#x27;s display");
+    expect(markup).toContain('does not generate commentary, alter broadcast payloads, write');
+    expect(markup).toContain('GameState, play scheduled games, or reroll saved outcomes');
+  });
+
   it('honors initialPrefs.enabled = false and hides every line panel', () => {
     const markup = renderToStaticMarkup(
       <GhostBroadcastsPanel

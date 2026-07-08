@@ -1,4 +1,3 @@
-// @ts-nocheck — test-only file, vitest provides node APIs
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'fs';
 
@@ -19,7 +18,7 @@ describe('useBootSequence config', () => {
     expect(content).toContain('145+');
     expect(content).toContain('2,650+ tests');
     expect(content).toContain('8-BIT ESPN');
-    expect(content).toContain('v35 migration chain');
+    expect(content).toContain('v36 migration chain');
   });
 
   it('has 14 boot lines including blanks', () => {

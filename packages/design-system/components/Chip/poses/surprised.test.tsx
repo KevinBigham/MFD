@@ -43,8 +43,8 @@ describe('SurprisedPose', () => {
   it('renders the large SVG contract while preserving the CRT overlay', () => {
     const markup = renderToStaticMarkup(<Chip pose="surprised" size="lg" />);
 
-    expect(markup).toContain('width="144"');
-    expect(markup).toContain('height="144"');
+    expect(markup).toContain('width="176"');
+    expect(markup).toContain('height="176"');
     expect(markup).toContain('viewBox="0 0 160 220"');
     expect(markup).toContain('data-chip-crt-overlay="true"');
   });

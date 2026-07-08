@@ -141,7 +141,7 @@ function makeCard(year: number, week: number): PlayoffLoreCard {
     gameId: `playoff-${year}-${week}`,
     seasonYear: year,
     week,
-    round: week === 22 ? 'super_bowl' : week === 21 ? 'conference' : week === 20 ? 'divisional' : 'wild_card',
+    round: 'wild_card',
     outcome: 'win',
     headline: 'Chicago survives and advances',
     finalScore: '27-24',

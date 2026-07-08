@@ -1,0 +1,726 @@
+.mfd-new-game-shell {
+  box-sizing: border-box;
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding: clamp(14px, 2.4vw, 28px);
+  background:
+    linear-gradient(180deg, rgba(255, 215, 0, 0.075), transparent 260px),
+    linear-gradient(115deg, rgba(0, 229, 255, 0.08), transparent 34%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 88px),
+    var(--mfd-bg);
+  color: var(--mfd-text);
+  font-family: var(--mfd-font-sans);
+}
+
+.mfd-new-game-shell * {
+  box-sizing: border-box;
+}
+
+.mfd-new-game-layout {
+  width: min(1380px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-sp-lg);
+}
+
+.mfd-new-game-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--mfd-sp-lg);
+  padding: clamp(12px, 2vw, 22px);
+  border: 1px solid rgba(255, 215, 0, 0.28);
+  border-left: 4px solid var(--mfd-gold);
+  border-radius: var(--mfd-rad-lg);
+  background:
+    linear-gradient(90deg, rgba(255, 215, 0, 0.11), transparent 46%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 58%),
+    rgba(8, 11, 15, 0.88);
+  box-shadow: var(--mfd-shadow-panel);
+}
+
+.mfd-new-game-kicker {
+  margin-bottom: 7px;
+  color: var(--mfd-green);
+  font-family: var(--mfd-font-pixel);
+  font-size: 9px;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.mfd-new-game-hero h1 {
+  max-width: 100%;
+  margin: 0;
+  color: var(--mfd-gold);
+  font-family: var(--mfd-font-display);
+  font-size: clamp(42px, 7vw, 76px);
+  font-weight: 700;
+  line-height: 0.92;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.mfd-new-game-hero p {
+  max-width: 680px;
+  margin: 10px 0 0;
+  color: var(--mfd-text-dim);
+  font-family: var(--mfd-font-mono);
+  font-size: clamp(13px, 1.5vw, 15px);
+  line-height: 1.55;
+}
+
+.mfd-new-game-hero-badges,
+.mfd-new-game-badge-row,
+.mfd-scenario-card-badges,
+.mfd-scenario-card-coverage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfd-sp-sm);
+}
+
+.mfd-new-game-error {
+  padding: 12px 14px;
+  border: 1px solid var(--mfd-red);
+  border-left: 4px solid var(--mfd-red);
+  border-radius: var(--mfd-rad-md);
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--mfd-red);
+  font-family: var(--mfd-font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.mfd-new-game-command-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
+  align-items: start;
+  gap: var(--mfd-sp-lg);
+}
+
+.mfd-new-game-builder,
+.mfd-new-game-sidecar,
+.mfd-launch-primary-command,
+.mfd-launch-support-stack,
+.mfd-recovery-card,
+.mfd-convention-card,
+.mfd-launch-actions {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-sp-md);
+}
+
+.mfd-new-game-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: var(--mfd-sp-sm);
+}
+
+.mfd-new-game-mode-tabs [data-mfd-focusable='pixel-button'] {
+  width: 100%;
+  min-width: 0;
+  white-space: normal;
+}
+
+.mfd-team-picker-toolbar {
+  display: grid;
+  gap: var(--mfd-sp-sm);
+  margin-bottom: var(--mfd-sp-lg);
+  padding: 12px;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  background:
+    linear-gradient(90deg, rgba(0, 229, 255, 0.06), transparent 42%),
+    rgba(255, 255, 255, 0.025);
+}
+
+.mfd-team-search-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mfd-sp-sm);
+  color: var(--mfd-cyan);
+  font-family: var(--mfd-font-pixel);
+  font-size: 8px;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.mfd-team-search-input {
+  width: 100%;
+  min-height: var(--mfd-touch-min);
+  padding: 10px 12px;
+  border: 1px solid var(--mfd-border);
+  border-radius: var(--mfd-rad-md);
+  background: var(--mfd-bg);
+  color: var(--mfd-text);
+  font-family: var(--mfd-font-mono);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.mfd-team-search-input:focus-visible,
+.mfd-team-filter-chip:focus-visible,
+.mfd-team-filter-status button:focus-visible {
+  outline: none;
+  box-shadow: var(--mfd-focus-ring);
+}
+
+.mfd-team-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfd-sp-xs);
+}
+
+.mfd-team-filter-chip,
+.mfd-team-filter-status button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--mfd-border);
+  border-radius: var(--mfd-rad-md);
+  background: var(--mfd-bg-2);
+  color: var(--mfd-text-dim);
+  font-family: var(--mfd-font-pixel);
+  font-size: 7px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.mfd-team-filter-chip[data-selected='true'] {
+  border-color: var(--mfd-gold);
+  background: rgba(255, 215, 0, 0.12);
+  color: var(--mfd-gold);
+}
+
+.mfd-team-filter-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mfd-sp-sm);
+  color: var(--mfd-text-faint);
+  font-family: var(--mfd-font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.mfd-team-filter-status button {
+  min-height: 30px;
+  border-color: rgba(248, 113, 113, 0.4);
+  color: var(--mfd-red);
+}
+
+.mfd-team-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-sp-lg);
+}
+
+.mfd-team-conference {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-sp-sm);
+}
+
+.mfd-team-conference-header,
+.mfd-team-division-label,
+.mfd-import-label {
+  color: var(--mfd-text-faint);
+  font-family: var(--mfd-font-pixel);
+  font-size: 8px;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.mfd-team-conference-header {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 24px;
+  align-items: center;
+  padding: 3px 9px;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  background: rgba(0, 229, 255, 0.06);
+  color: var(--mfd-cyan);
+}
+
+.mfd-team-division-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
+  gap: var(--mfd-sp-md);
+}
+
+.mfd-team-division {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--mfd-sp-xs);
+}
+
+.mfd-team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr));
+  gap: var(--mfd-sp-xs);
+}
+
+.mfd-team-card,
+.mfd-difficulty-card,
+.mfd-setup-path-card,
+.mfd-scenario-card {
+  border-radius: var(--mfd-rad-md);
+  color: var(--mfd-text-dim);
+  cursor: pointer;
+  transition:
+    border-color var(--mfd-motion-fast),
+    background var(--mfd-motion-fast),
+    color var(--mfd-motion-fast),
+    filter var(--mfd-motion-fast),
+    transform var(--mfd-motion-fast);
+}
+
+.mfd-team-card {
+  display: flex;
+  align-items: center;
+  gap: var(--mfd-sp-sm);
+  min-height: 50px;
+  padding: 8px 9px;
+  border: 1px solid var(--mfd-border);
+  background: var(--mfd-bg-2);
+  text-align: left;
+}
+
+.mfd-team-card:hover,
+.mfd-difficulty-card:hover,
+.mfd-setup-path-card:hover:not(:disabled),
+.mfd-scenario-card:hover {
+  filter: brightness(1.12);
+}
+
+.mfd-team-card:focus-visible,
+.mfd-difficulty-card:focus-visible,
+.mfd-setup-path-card:focus-visible,
+.mfd-scenario-card:focus-visible,
+.mfd-primary-launch-button:focus-visible,
+.mfd-secondary-launch-button:focus-visible,
+.mfd-demo-launch-button:focus-visible,
+.mfd-import-textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--mfd-focus-ring);
+}
+
+.mfd-team-card[data-selected='true'],
+.mfd-difficulty-card[data-selected='true'],
+.mfd-setup-path-card[data-selected='true'],
+.mfd-scenario-card[data-selected='true'] {
+  border-color: var(--mfd-gold);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 54%),
+    rgba(255, 215, 0, 0.14);
+  color: var(--mfd-gold);
+}
+
+.mfd-team-card-copy,
+.mfd-selected-team-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mfd-team-card-abbr {
+  color: inherit;
+  font-family: var(--mfd-font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mfd-team-card-city {
+  overflow: hidden;
+  color: var(--mfd-text-faint);
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mfd-team-empty-state {
+  padding: 14px;
+  border: 1px dashed var(--mfd-border-strong);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--mfd-text-dim);
+  font-family: var(--mfd-font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.mfd-difficulty-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--mfd-sp-sm);
+}
+
+.mfd-setup-path-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: var(--mfd-sp-sm);
+}
+
+.mfd-difficulty-card {
+  display: flex;
+  min-height: 86px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--mfd-sp-sm);
+  padding: 12px;
+  border: 1px solid var(--mfd-border);
+  background: var(--mfd-bg-2);
+  text-align: left;
+}
+
+.mfd-setup-path-card {
+  display: flex;
+  min-height: 104px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--mfd-sp-sm);
+  padding: 12px;
+  border: 1px solid var(--mfd-border);
+  background: var(--mfd-bg-2);
+  text-align: left;
+}
+
+.mfd-setup-path-card:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.45);
+  opacity: 0.66;
+}
+
+.mfd-difficulty-card-title,
+.mfd-setup-path-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mfd-sp-sm);
+  color: inherit;
+  font-family: var(--mfd-font-pixel);
+  font-size: 9px;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.mfd-difficulty-card-desc,
+.mfd-setup-path-desc,
+.mfd-new-game-guide,
+.mfd-convention-card p,
+.mfd-recovery-card p,
+.mfd-import-help {
+  margin: 0;
+  color: var(--mfd-text-dim);
+  font-family: var(--mfd-font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.mfd-new-game-guide strong {
+  color: var(--mfd-gold);
+}
+
+.mfd-scenario-list {
+  display: grid;
+  gap: var(--mfd-sp-sm);
+}
+
+.mfd-scenario-card {
+  display: grid;
+  gap: var(--mfd-sp-sm);
+  padding: 13px;
+  border: 2px solid var(--mfd-border);
+  background: var(--mfd-bg-2);
+  text-align: left;
+}
+
+.mfd-scenario-card-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mfd-sp-md);
+  color: var(--mfd-gold);
+  font-family: var(--mfd-font-pixel);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.mfd-scenario-card-tagline,
+.mfd-scenario-card-description {
+  color: var(--mfd-text-dim);
+  font-family: var(--mfd-font-mono);
+  line-height: 1.6;
+}
+
+.mfd-scenario-card-tagline {
+  font-size: 11px;
+}
+
+.mfd-scenario-card-description {
+  color: var(--mfd-text);
+  font-size: 12px;
+}
+
+.mfd-new-game-sidecar {
+  position: sticky;
+  top: 18px;
+}
+
+.mfd-selected-team-card {
+  display: grid;
+  gap: var(--mfd-sp-md);
+  text-align: center;
+}
+
+.mfd-selected-team-logo {
+  display: grid;
+  min-height: 118px;
+  place-items: center;
+  border: 1px solid rgba(255, 215, 0, 0.24);
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 215, 0, 0.14), transparent 42%),
+    var(--mfd-bg-2);
+}
+
+.mfd-selected-team-name {
+  color: var(--mfd-gold);
+  font-family: var(--mfd-font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mfd-selected-team-meta,
+.mfd-selected-team-summary {
+  color: var(--mfd-text-dim);
+  font-family: var(--mfd-font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.mfd-selected-team-summary {
+  padding: 10px;
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  background: rgba(0, 229, 255, 0.055);
+}
+
+.mfd-primary-launch-button,
+.mfd-secondary-launch-button,
+.mfd-demo-launch-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mfd-sp-sm);
+  min-height: var(--mfd-touch-min);
+  padding: 12px 14px;
+  border-radius: var(--mfd-rad-md);
+  font-family: var(--mfd-font-pixel);
+  font-size: 9px;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.mfd-primary-launch-button {
+  border: 2px solid var(--mfd-gold);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent 52%),
+    var(--mfd-gold);
+  color: var(--mfd-bg);
+  box-shadow: var(--mfd-shadow-gold-strong);
+}
+
+.mfd-secondary-launch-button {
+  border: 2px solid var(--mfd-cyan);
+  background: rgba(0, 229, 255, 0.08);
+  color: var(--mfd-cyan);
+}
+
+.mfd-demo-launch-button {
+  border: 2px solid var(--mfd-green);
+  background: rgba(74, 222, 128, 0.08);
+  color: var(--mfd-green);
+}
+
+.mfd-secondary-launch-button:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.72);
+  opacity: 0.68;
+}
+
+.mfd-import-label {
+  margin-top: var(--mfd-sp-xs);
+  color: var(--mfd-cyan);
+}
+
+.mfd-import-textarea {
+  min-height: 126px;
+  padding: 10px;
+  border: 1px solid var(--mfd-border);
+  border-radius: var(--mfd-rad-md);
+  background: var(--mfd-bg);
+  color: var(--mfd-text);
+  font-family: var(--mfd-font-mono);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.mfd-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 1040px) {
+  .mfd-new-game-command-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mfd-new-game-sidecar {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .mfd-new-game-shell {
+    padding: 10px;
+  }
+
+  .mfd-new-game-hero {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .mfd-new-game-hero h1 {
+    font-size: clamp(38px, 15vw, 58px);
+  }
+
+  .mfd-team-division-grid,
+  .mfd-difficulty-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mfd-new-game-sidecar {
+    display: contents;
+  }
+
+  .mfd-launch-primary-command {
+    order: -1;
+  }
+
+  .mfd-new-game-builder {
+    order: 0;
+  }
+
+  .mfd-launch-support-stack {
+    order: 1;
+  }
+
+  .mfd-team-picker-toolbar {
+    margin-bottom: var(--mfd-sp-md);
+    padding: 10px;
+  }
+
+  .mfd-team-filter-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+    margin-inline: 0;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .mfd-team-filter-chip {
+    min-width: 0;
+    width: 100%;
+    min-height: 40px;
+    padding-inline: 8px;
+  }
+
+  .mfd-team-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mfd-team-card {
+    min-width: 0;
+    padding: 8px;
+  }
+
+  .mfd-team-card-city {
+    white-space: normal;
+  }
+
+  .mfd-scenario-card-topline {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 560px) {
+  .mfd-new-game-hero h1 {
+    font-size: 38px;
+    line-height: 0.98;
+  }
+
+  .mfd-new-game-mode-tabs,
+  .mfd-team-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mfd-new-game-hero-badges > * {
+    max-width: 100%;
+  }
+
+  .mfd-selected-team-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    text-align: left;
+  }
+
+  .mfd-selected-team-logo {
+    min-height: 76px;
+    padding: 8px;
+  }
+
+  .mfd-selected-team-logo img {
+    width: auto;
+    height: 64px;
+  }
+
+  .mfd-selected-team-summary {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 430px) {
+  .mfd-new-game-hero h1 {
+    font-size: 34px;
+  }
+
+  .mfd-primary-launch-button,
+  .mfd-secondary-launch-button,
+  .mfd-demo-launch-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mfd-team-card,
+  .mfd-difficulty-card,
+  .mfd-scenario-card {
+    transition: none;
+  }
+}

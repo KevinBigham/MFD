@@ -118,4 +118,13 @@ describe('roster-continuity-store', () => {
   it('returns null when reading an unknown dynasty id', () => {
     expect(readDynastyStarters('unknown')).toBeNull();
   });
+
+  it('falls back to the default payload when global localStorage is not Storage-like', () => {
+    vi.stubGlobal('localStorage', {} as Storage);
+
+    expect(readRosterContinuity()).toEqual({
+      schemaVersion: 1,
+      byDynastyId: {},
+    });
+  });
 });

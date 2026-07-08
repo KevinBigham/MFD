@@ -29,6 +29,7 @@ const RETIREMENT_THRESHOLD: Record<Position, number> = {
   K: 50,
   P: 50,
 };
+const MAX_ACTIVE_PLAYER_AGE = 55;
 
 export interface ProgressionResult {
   retiredPlayerIds: string[];
@@ -189,6 +190,10 @@ function makeRetirementEvent(game: GameState, player: Player, teamId: string | n
   };
 }
 
+function shouldRetirePlayer(player: Player): boolean {
+  return player.ovr < RETIREMENT_THRESHOLD[player.pos] || player.age + 1 > MAX_ACTIVE_PLAYER_AGE;
+}
+
 function progressSinglePlayer(
   game: GameState,
   player: Player,
@@ -245,7 +250,7 @@ export function progressPlayers(game: GameState, options: ProgressionOptions = {
 
     for (const player of team.roster) {
       progressSinglePlayer(game, player, team, progressionOptions);
-      if (player.ovr < RETIREMENT_THRESHOLD[player.pos]) {
+      if (shouldRetirePlayer(player)) {
         retirees.push(player);
       }
     }
@@ -276,7 +281,7 @@ export function progressPlayers(game: GameState, options: ProgressionOptions = {
     const player = game.players[playerId];
     if (!player) continue;
     progressSinglePlayer(game, player, null, progressionOptions);
-    if (player.ovr < RETIREMENT_THRESHOLD[player.pos]) {
+    if (shouldRetirePlayer(player)) {
       player.teamId = null;
       player.contract = null;
       recordPlayerRetirement(game, player, game.year);

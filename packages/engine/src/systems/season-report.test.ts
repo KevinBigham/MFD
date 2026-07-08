@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { installOwnerMandates, evaluateOwnerMandates } from './owner-goals';
 import { generateSeasonReport } from './season-report';
 import { makeLeagueState } from './test-helpers';
 
@@ -76,6 +77,36 @@ describe('season report', () => {
     const report = generateSeasonReport(game, 'afce1');
 
     expect(report.sections).toHaveLength(10);
+  });
+
+  it('adds owner mandate outcomes when setup promises were active', () => {
+    const game = makeLeagueState('regular_season', 18);
+    const team = game.teams.afce1!;
+    team.wins = 11;
+    team.losses = 6;
+    installOwnerMandates(game, team.id, ['winning_record', 'playoff_berth', 'cap_health'], 'marcus_webb');
+    game.franchiseHistory.push({
+      year: 2026,
+      teamId: team.id,
+      wins: 11,
+      losses: 6,
+      ties: 0,
+      record: '11-6',
+      pointDifferential: 80,
+      playoffFinish: 'playoff_team',
+      majorEvents: [],
+      awardsWon: [],
+      recordsBroken: [],
+    });
+    evaluateOwnerMandates(game, team.id);
+
+    const report = generateSeasonReport(game, team.id);
+    const section = report.sections.find((entry) => entry.title === 'Owner Mandates');
+
+    expect(section?.highlights.some((line) => line.includes('Main promise mandate'))).toBe(true);
+    expect(section?.summary).toContain('stretch promise');
+    expect(section?.summary).not.toMatch(/promised floor|ceiling mandate|target mandate|front-office trust/i);
+    expect(section?.stats.floor).toContain('Winning Record');
   });
 
   it('grades offense using points per game', () => {

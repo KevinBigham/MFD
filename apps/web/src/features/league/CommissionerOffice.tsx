@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PixelBadge, PixelButton, PixelPanel, PixelSelect } from '@mfd/design-system/components';
-import { LEAGUE_RULE_DEFINITIONS, type LeagueRuleDefinition, type LeagueRuleKey, type LeagueRuleValue } from '@mfd/engine';
+import { LEAGUE_RULE_DEFINITIONS, type LeagueRuleDefinition, type LeagueRuleKey, type LeagueRuleValue, type RuleProposal, type RuleProposalVote } from '@mfd/engine';
 import {
   selectCBAState,
   selectCommissionerAgenda,
@@ -15,6 +15,39 @@ import { FranchiseGauge } from '../franchise/franchiseUi';
 import { PixelScreenHeader, autoGrid, display, monoSm, pixelSm, screenStackStyle } from '../shared/pixelUi';
 
 type OfficeTab = 'agenda' | 'history' | 'rulings';
+type GovernanceSourceAccent = 'default' | 'green' | 'cyan' | 'gold' | 'red';
+type GovernanceReceiptAccent = 'default' | 'green' | 'cyan' | 'gold' | 'red';
+
+interface GovernanceSourceRow {
+  id: string;
+  label: string;
+  value: string;
+  detail: string;
+  accent: GovernanceSourceAccent;
+}
+
+export interface GovernanceActionReceipt {
+  title: string;
+  target: string;
+  result: string;
+  detail: string;
+  source: string;
+  accent: GovernanceReceiptAccent;
+}
+
+type GovernanceActionReceiptInput =
+  | {
+    type: 'petition';
+    definition: LeagueRuleDefinition;
+    currentValue: LeagueRuleValue | null;
+    proposedValue: LeagueRuleValue;
+    teamName: string;
+  }
+  | {
+    type: 'vote';
+    proposal: RuleProposal;
+    vote: RuleProposalVote;
+  };
 
 function goTo(path: string) {
   if (typeof window === 'undefined') return;
@@ -29,11 +62,98 @@ function stringifyRuleValue(value: LeagueRuleValue): string {
   return String(value);
 }
 
+function voteLabel(vote: RuleProposalVote): string {
+  if (vote === 'yes') return 'Yes';
+  if (vote === 'no') return 'No';
+  return 'Abstain';
+}
+
+function voteAccent(vote: RuleProposalVote): GovernanceReceiptAccent {
+  if (vote === 'yes') return 'green';
+  if (vote === 'no') return 'red';
+  return 'default';
+}
+
 function approvalAccent(value: number): 'red' | 'gold' | 'cyan' | 'green' {
   if (value < 30) return 'red';
   if (value < 50) return 'gold';
   if (value < 70) return 'cyan';
   return 'green';
+}
+
+export function buildGovernanceActionReceipt(input: GovernanceActionReceiptInput): GovernanceActionReceipt {
+  if (input.type === 'petition') {
+    return {
+      title: 'Rule Petition Receipt',
+      target: input.definition.label,
+      result: `Filed ${stringifyRuleValue(input.currentValue ?? 'unknown')} -> ${stringifyRuleValue(input.proposedValue)}`,
+      detail: `${input.teamName} ownership asked the league office to stage the owner petition. Filing replaces this team's prior active petition and saves the governance narrative.`,
+      source: 'Saved by the rule-petition action. Changed now: the active proposal is updated and governance news/social narrative is added.',
+      accent: 'green',
+    };
+  }
+
+  const definition = LEAGUE_RULE_DEFINITIONS[input.proposal.ruleKey];
+  return {
+    title: 'Rule Vote Receipt',
+    target: definition.label,
+    result: `${voteLabel(input.vote)} vote sent for ${stringifyRuleValue(input.proposal.currentValue)} -> ${stringifyRuleValue(input.proposal.proposedValue)}`,
+    detail: `voteOnProposal records the user vote, simulates remaining owner votes, writes commissioner vote history, and applies the rule only if the existing majority threshold passes. Abstain adds no yes vote.`,
+    source: 'Saved by the rule-vote action. Changed now: proposal history is updated; league rules change only if the vote passes, with governance news/social narrative added.',
+    accent: voteAccent(input.vote),
+  };
+}
+
+export function buildGovernanceSourceRows({
+  agendaCount,
+  historyCount,
+  rulingCount,
+  cbaStatus,
+  petitionableRuleCount,
+}: {
+  agendaCount: number;
+  historyCount: number;
+  rulingCount: number;
+  cbaStatus: string;
+  petitionableRuleCount: number;
+}): GovernanceSourceRow[] {
+  return [
+    {
+      id: 'commissioner-state',
+      label: 'League office state',
+      value: `${agendaCount} active / ${historyCount} history`,
+      detail: 'selectCommissionerState, selectCommissionerAgenda, and selectCommissionerVoteHistory read saved game.commissionerState.',
+      accent: 'cyan',
+    },
+    {
+      id: 'petition-vote-path',
+      label: 'Rule petition and vote path',
+      value: `${petitionableRuleCount} petitionable rules`,
+      detail: 'File Petition commits through petitionRuleChange; Vote Yes, Vote No, and Abstain commit through voteOnProposal for commissioner rule proposals only.',
+      accent: 'green',
+    },
+    {
+      id: 'cba-handoff',
+      label: 'CBA handoff',
+      value: cbaStatus,
+      detail: 'CBA Status reads selectCBAState. Open CBA Negotiation routes to /cba, where voteOnCBA and advanceCBANegotiation own bargaining commits.',
+      accent: cbaStatus === 'lockout' ? 'red' : cbaStatus === 'awaiting_owner_vote' ? 'gold' : 'cyan',
+    },
+    {
+      id: 'rule-registry',
+      label: 'Rule registry',
+      value: 'League Rules',
+      detail: 'LEAGUE_RULE_DEFINITIONS controls petition inputs; /league-rules remains the read-only rule registry and history view.',
+      accent: 'gold',
+    },
+    {
+      id: 'ruling-boundary',
+      label: 'Ruling boundary',
+      value: `${rulingCount} recent`,
+      detail: 'Commissioner rulings render from selectCommissionerRulings. Save parsing accepts live ruling fields and legacy description/approvalImpact imports; this route does not issue rulings.',
+      accent: rulingCount > 0 ? 'red' : 'default',
+    },
+  ];
 }
 
 function buildPetitionOptions(definition: LeagueRuleDefinition, currentValue: LeagueRuleValue): Array<{ value: string; label: string; decoded: LeagueRuleValue }> {
@@ -86,6 +206,58 @@ function buildPetitionOptions(definition: LeagueRuleDefinition, currentValue: Le
   }));
 }
 
+function GovernanceSourceContext({ rows }: { rows: GovernanceSourceRow[] }) {
+  return (
+    <PixelPanel title="Governance Sources" accent="cyan">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+        {rows.map((row) => (
+          <div
+            key={row.id}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              padding: '10px',
+              border: '2px solid var(--mfd-border)',
+              background: 'var(--mfd-bg-2)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ ...display, fontSize: '16px', color: 'var(--mfd-text)', lineHeight: 1 }}>{row.label.toUpperCase()}</div>
+              <PixelBadge variant={row.accent}>{row.value.toUpperCase()}</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{row.detail}</div>
+          </div>
+        ))}
+      </div>
+    </PixelPanel>
+  );
+}
+
+export function GovernanceActionReceiptPanel({ receipt }: { receipt: GovernanceActionReceipt }) {
+  return (
+    <PixelPanel title={receipt.title} accent={receipt.accent}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px', border: '2px solid var(--mfd-border)', background: 'var(--mfd-bg-2)' }}>
+          <div style={{ ...display, fontSize: '16px', color: 'var(--mfd-text)', lineHeight: 1 }}>TARGET</div>
+          <PixelBadge variant={receipt.accent}>{receipt.target.toUpperCase()}</PixelBadge>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{receipt.result}</div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px', border: '2px solid var(--mfd-border)', background: 'var(--mfd-bg-2)' }}>
+          <div style={{ ...display, fontSize: '16px', color: 'var(--mfd-text)', lineHeight: 1 }}>SAVED BY</div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>{receipt.source}</div>
+        </div>
+      </div>
+      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '10px', lineHeight: 1.6 }}>
+        {receipt.detail}
+      </div>
+      <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)', marginTop: '8px' }}>
+        On-screen confirmation only. The saved governance state is owned by the existing store action above.
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function CommissionerOffice() {
   const team = useGameStore(selectUserTeam);
   const commissioner = useGameStore(selectCommissionerState);
@@ -107,10 +279,21 @@ export function CommissionerOffice() {
   const currentValue = leagueRules ? leagueRules.entries[ruleKey].value : null;
   const petitionOptions = useMemo(
     () => buildPetitionOptions(selectedDefinition, currentValue ?? selectedDefinition.options?.[0]?.value ?? 0),
-    [currentValue, selectedDefinition, ruleKey],
+    [currentValue, selectedDefinition],
   );
   const [petitionValue, setPetitionValue] = useState<string>(petitionOptions[0]?.value ?? '');
+  const [actionReceipt, setActionReceipt] = useState<GovernanceActionReceipt | null>(null);
   const cbaYearsRemaining = cbaState?.currentDeal ? Math.max(0, cbaState.currentDeal.endYear - cbaState.currentDeal.startYear) : 0;
+  const sourceRows = useMemo(
+    () => buildGovernanceSourceRows({
+      agendaCount: agenda.length,
+      historyCount: history.length,
+      rulingCount: rulings.length,
+      cbaStatus: cbaState?.status ?? 'active',
+      petitionableRuleCount: petitionableRules.length,
+    }),
+    [agenda.length, cbaState?.status, history.length, petitionableRules.length, rulings.length],
+  );
 
   useEffect(() => {
     setPetitionValue(petitionOptions[0]?.value ?? '');
@@ -203,10 +386,17 @@ export function CommissionerOffice() {
             <PixelButton
               accent="green"
               disabled={!petitionOptions.some((option) => option.value === petitionValue)}
-              onClick={() => {
+              onClick={async () => {
                 const selected = petitionOptions.find((option) => option.value === petitionValue);
                 if (!selected) return;
-                void petitionRuleChange(ruleKey, selected.decoded);
+                await petitionRuleChange(ruleKey, selected.decoded);
+                setActionReceipt(buildGovernanceActionReceipt({
+                  type: 'petition',
+                  definition: selectedDefinition,
+                  currentValue,
+                  proposedValue: selected.decoded,
+                  teamName: `${team.city} ${team.name}`,
+                }));
               }}
             >
               File Petition
@@ -214,6 +404,9 @@ export function CommissionerOffice() {
           </div>
         </PixelPanel>
       </div>
+
+      <GovernanceSourceContext rows={sourceRows} />
+      {actionReceipt ? <GovernanceActionReceiptPanel receipt={actionReceipt} /> : null}
 
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         <PixelButton accent={activeTab === 'agenda' ? 'gold' : 'default'} onClick={() => setActiveTab('agenda')}>Active Proposals</PixelButton>
@@ -242,9 +435,33 @@ export function CommissionerOffice() {
                   Effective year {proposal.effectiveYear}
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <PixelButton accent="green" onClick={() => { void voteOnProposal(proposal.id, 'yes'); }}>Vote Yes</PixelButton>
-                  <PixelButton accent="red" onClick={() => { void voteOnProposal(proposal.id, 'no'); }}>Vote No</PixelButton>
-                  <PixelButton accent="default" onClick={() => { void voteOnProposal(proposal.id, 'abstain'); }}>Abstain</PixelButton>
+                  <PixelButton
+                    accent="green"
+                    onClick={async () => {
+                      await voteOnProposal(proposal.id, 'yes');
+                      setActionReceipt(buildGovernanceActionReceipt({ type: 'vote', proposal, vote: 'yes' }));
+                    }}
+                  >
+                    Vote Yes
+                  </PixelButton>
+                  <PixelButton
+                    accent="red"
+                    onClick={async () => {
+                      await voteOnProposal(proposal.id, 'no');
+                      setActionReceipt(buildGovernanceActionReceipt({ type: 'vote', proposal, vote: 'no' }));
+                    }}
+                  >
+                    Vote No
+                  </PixelButton>
+                  <PixelButton
+                    accent="default"
+                    onClick={async () => {
+                      await voteOnProposal(proposal.id, 'abstain');
+                      setActionReceipt(buildGovernanceActionReceipt({ type: 'vote', proposal, vote: 'abstain' }));
+                    }}
+                  >
+                    Abstain
+                  </PixelButton>
                 </div>
               </div>
             </PixelPanel>

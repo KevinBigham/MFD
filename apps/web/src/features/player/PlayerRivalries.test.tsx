@@ -77,6 +77,20 @@ describe('PlayerRivalries', () => {
     expect(markup).toContain('MFSN Insider');
   });
 
+  it('labels rivalry sources without implying render-time writes', () => {
+    const markup = renderToStaticMarkup(<PlayerRivalries />);
+
+    expect(markup).toContain('RIVALRY SOURCES');
+    expect(markup).toContain('Saved playerRivalries');
+    expect(markup).toContain('Week-advance receipts');
+    expect(markup).toContain('Social feed projection');
+    expect(markup).toContain('Sim bonus source');
+    expect(markup).toContain('selectAllPlayerRivalries');
+    expect(markup).toContain('two interceptions, three sacks, or one forced fumble can seed a feud');
+    expect(markup).toContain('Opening this screen does not create or decay rivalries');
+    expect(markup).toContain('mfd.rivalries.v1 sidecar');
+  });
+
   it('renders the empty state when no rivalries exist', () => {
     mockState.rivalries = [];
     const markup = renderToStaticMarkup(<PlayerRivalries />);

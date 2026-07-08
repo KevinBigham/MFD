@@ -8,7 +8,7 @@ import {
   selectConditionalPicks, selectHandshakes, selectWaiverWire, selectWeather,
   selectActiveProposals, selectApologyTourThreads, selectCeremonies, selectClaimResults, selectContractExtensions, selectCurrentWeeklyPrepPlan, selectDifficultyState, selectDraftRecaps, selectFATargetBoard, selectLatestFilmRoomReport, selectLeagueNews, selectMedicalStaff, selectNewlyUnlocked, selectOffseasonState, selectPlayoffMomentum, selectSeasonReports, selectTeamSchedule, selectTradeSuggestions, selectTrainingAssignments, selectTransactionLog, selectUserTeamNeeds, selectWarRoomState,
 } from '../../app/store/game-store';
-import type { ApologyTourThread } from '@mfd/engine';
+import { getActiveRule, type ApologyTourThread } from '@mfd/engine';
 import { buildInboxMessages, type InboxMessage, type MessageType } from './buildInboxMessages';
 import { ApologyTourModal } from './ApologyTourModal';
 import {
@@ -25,7 +25,69 @@ const TYPE_CONFIG: Record<MessageType, { accent: 'red' | 'gold' | 'cyan'; label:
   INTEL: { accent: 'cyan', label: 'INTEL', badge: 'cyan' },
 };
 
+type SourceAccent = 'cyan' | 'gold' | 'green' | 'red';
+
+interface InboxSourceRow {
+  label: string;
+  badge: string;
+  detail: string;
+  accent: SourceAccent;
+}
+
+export function buildInboxSourceRows(
+  messages: InboxMessage[],
+  urgentCount: number,
+  decisionCount: number,
+  ownerPersonalityCount: number,
+): InboxSourceRow[] {
+  return [
+    {
+      label: 'Generated queue',
+      badge: `${messages.length} messages`,
+      detail: 'buildInboxMessages projects selector inputs into regenerated message rows in insertion order. The rows are not saved mailbox records.',
+      accent: 'cyan',
+    },
+    {
+      label: 'Route inputs',
+      badge: `${urgentCount} urgent / ${decisionCount} decisions`,
+      detail: 'InboxTriage gathers team, roster, week, summaries, game-day packages, news, trades, waivers, weather, prep, achievements, and apology threads through selectors.',
+      accent: urgentCount > 0 ? 'red' : decisionCount > 0 ? 'gold' : 'green',
+    },
+    {
+      label: 'Shell badge boundary',
+      badge: 'no /inbox badge',
+      detail: 'App-shell computeNavBadges badges trades, depth chart, game plan, and handshakes only. Inbox urgent and decision counts are route-local header/filter counts, not a top-nav or mobile-tab badge.',
+      accent: 'cyan',
+    },
+    {
+      label: 'Display state',
+      badge: 'local only',
+      detail: 'selectedMsg, filter, and apology-tour replay modal state live in React only; opening or filtering messages does not write read receipts, browser storage, or GameState.',
+      accent: 'green',
+    },
+    {
+      label: 'CTA routing',
+      badge: 'links only',
+      detail: 'The modal navigates only with explicit message.link or Film Room, Prep Desk, and Ownership sender fallbacks; Inbox does not perform the target action.',
+      accent: 'gold',
+    },
+    {
+      label: 'Owner mailbox',
+      badge: `${ownerPersonalityCount} saved notes`,
+      detail: 'Saved ownerPersonalityInbox events join the generated queue as Ownership messages with owner-room CTAs. Durable read receipts remain outside this route until GameState exposes a saved receipt field.',
+      accent: ownerPersonalityCount > 0 ? 'gold' : 'cyan',
+    },
+    {
+      label: 'Just viewing',
+      badge: 'display only',
+      detail: 'Opening Inbox does not click Advance Week, resolve actions, change proposals, clear waivers, write news or social posts, mark messages read, or play games or reroll saved outcomes.',
+      accent: 'red',
+    },
+  ];
+}
+
 export function InboxTriage() {
+  const game = useGameStore((state) => state.game);
   const team = useGameStore(selectUserTeam);
   const roster = useGameStore(selectRoster);
   const week = useGameStore(selectWeek);
@@ -65,6 +127,7 @@ export function InboxTriage() {
   const warRoomState = useGameStore(selectWarRoomState);
   const contractExtensions = useGameStore(selectContractExtensions);
   const apologyTourThreads = useGameStore(selectApologyTourThreads);
+  const ownerPersonalityInbox = game?.ownerPersonalityInbox ?? [];
 
   const [selectedMsg, setSelectedMsg] = useState<InboxMessage | null>(null);
   const [filter, setFilter] = useState<MessageType | 'ALL'>('ALL');
@@ -75,6 +138,12 @@ export function InboxTriage() {
     [apologyTourThreads, team],
   );
   const tourTeamName = team ? `${team.city} ${team.name}`.trim() : '';
+  const tradeDeadlineWeek = game?.leagueRules
+    ? Number(getActiveRule(game.leagueRules, 'trade_deadline_week', game.year))
+    : 9;
+  const compPickLimit = game?.leagueRules
+    ? Number(getActiveRule(game.leagueRules, 'comp_pick_limit', game.year))
+    : 4;
 
   const messages = useMemo(() => buildInboxMessages({
     team,
@@ -115,8 +184,11 @@ export function InboxTriage() {
     currentWeeklyPrepPlan,
     latestFilmRoomReport,
     apologyTourThreads,
+    ownerPersonalityInbox,
+    tradeDeadlineWeek,
+    compPickLimit,
     upcomingGame: teamSchedule.find((entry) => entry.week === week) ?? null,
-  }), [activeArcs, activeProposals, apologyTourThreads, ceremonies, claimResults, coachingMarket, coachingNews, conditionalPicks, contractExtensions, currentWeeklyPrepPlan, difficultyState, draftRecaps, faTargetBoard, handshakes, latestFilmRoomReport, latestPackage, latestSummary, leagueNews, medicalStaff.available, narrative, newlyUnlockedAchievements, offFieldEvents, offseasonState, phase, playoffMomentum, recentPressConferences, roster, seasonReports, team, teamNeedsReport, teamSchedule, tradeSuggestions, trainingAssignments, transactionLog, upcomingRivalry, waiverWire, warRoomState, weather, week]);
+  }), [activeArcs, activeProposals, apologyTourThreads, ceremonies, claimResults, coachingMarket, coachingNews, compPickLimit, conditionalPicks, contractExtensions, currentWeeklyPrepPlan, difficultyState, draftRecaps, faTargetBoard, handshakes, latestFilmRoomReport, latestPackage, latestSummary, leagueNews, medicalStaff.available, narrative, newlyUnlockedAchievements, offFieldEvents, offseasonState, ownerPersonalityInbox, phase, playoffMomentum, recentPressConferences, roster, seasonReports, team, teamNeedsReport, teamSchedule, tradeDeadlineWeek, tradeSuggestions, trainingAssignments, transactionLog, upcomingRivalry, waiverWire, warRoomState, weather, week]);
 
   const filtered = filter === 'ALL' ? messages : messages.filter((m) => m.type === filter);
   const urgentCount = messages.filter((m) => m.type === 'URGENT' && !m.read).length;
@@ -130,6 +202,7 @@ export function InboxTriage() {
           ? '/coaching'
           : null);
   const selectedRouteLabel = selectedMsg?.linkLabel ?? 'Open Related Screen';
+  const sourceRows = buildInboxSourceRows(messages, urgentCount, decisionCount, ownerPersonalityInbox.length);
 
   return (
     <div style={screenStackStyle}>
@@ -143,6 +216,33 @@ export function InboxTriage() {
           </>
         )}
       />
+
+      <PixelPanel title="Inbox Sources" accent="cyan">
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '12px',
+        }}
+        >
+          {sourceRows.map((row) => (
+            <div key={row.label} style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              padding: '10px',
+              border: '2px solid var(--mfd-border)',
+              background: 'var(--mfd-bg-2)',
+            }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                <span style={{ ...monoSm, color: 'var(--mfd-text-faint)', textTransform: 'uppercase' }}>{row.label}</span>
+                <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
+              </div>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>{row.detail}</div>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
 
       <PixelNav
         activeKey={filter}

@@ -20,6 +20,7 @@ import {
   useGameStore,
   useMultiYearProjection,
 } from '../../app/store/game-store';
+import { buildDecisionImpactExplanation, decisionImpactToConsequenceItems } from '../companion/decisionImpact';
 
 const screenStyle = {
   display: 'flex',
@@ -54,6 +55,139 @@ function recommendationAccent(recommendation: string): 'green' | 'gold' | 'red' 
   return 'gold';
 }
 
+type CapLabReceiptAccent = 'green' | 'gold' | 'red' | 'cyan' | 'default';
+
+export interface CapLabExecutionReceipt {
+  id: string;
+  title: string;
+  accent: CapLabReceiptAccent;
+  summary: string;
+  moveSummary: string;
+  stateTouched: string;
+  source: string;
+  boundary: string;
+  warnings: string[];
+}
+
+function capMoveLabel(move: CapMove): string {
+  if (move.type === 'post_june_1_cut') return 'Post-June-1 Cut';
+  if (move.type === 'backload') return `Backload +${move.params?.voidYears ?? 1} void`;
+  if (move.type === 'extend') return `Extend ${move.params?.years ?? 2}y @ $${move.params?.avgSalary ?? 1}M`;
+  return move.type.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+export function buildCapLabExecutionReceipt(args: {
+  moves: CapMove[];
+  capSpaceBefore: number;
+  capSpaceAfter: number;
+  capSaved: number;
+  warnings?: string[];
+  playerNames?: Record<string, string>;
+}): CapLabExecutionReceipt {
+  const moveLabels = args.moves.map((move) => `${args.playerNames?.[move.playerId] ?? move.playerId}: ${capMoveLabel(move)}`);
+  const capDelta = args.capSpaceAfter - args.capSpaceBefore;
+  const hasMovement = args.moves.some((move) => move.type === 'cut' || move.type === 'post_june_1_cut');
+  const hasExtension = args.moves.some((move) => move.type === 'extend');
+  const warnings = args.warnings ?? [];
+
+  return {
+    id: `cap-lab:${args.moves.map((move) => `${move.type}:${move.playerId}`).join('|')}`,
+    title: 'Cap Lab Applied',
+    accent: warnings.length > 0 ? 'gold' : capDelta >= 0 ? 'green' : 'red',
+    summary: `${args.moves.length} queued move${args.moves.length === 1 ? '' : 's'} resolved from $${args.capSpaceBefore.toFixed(1)}M to $${args.capSpaceAfter.toFixed(1)}M cap space (${capDelta >= 0 ? '+' : ''}$${capDelta.toFixed(1)}M net, $${args.capSaved.toFixed(1)}M preview saved).`,
+    moveSummary: moveLabels.join(' // '),
+    stateTouched: [
+      'contracts',
+      'team cap totals',
+      'league cap-space read model',
+      hasMovement ? 'roster/waiver state' : null,
+      hasExtension ? 'contract extension records' : null,
+      'cap-move social posts',
+      'undo snapshot',
+      'autosave',
+    ].filter(Boolean).join(', '),
+    source: 'actions.executeCapMoves -> buildCapScenario/simulate previews -> live contract/cut/extension helpers -> syncTeamCapTotals -> refreshLeagueCapSpace -> commitGame',
+    boundary: 'This confirmation does not reapply sandbox moves, create extra social posts, change cap formulas, play scheduled games or reroll saved outcomes beyond the existing action, or save a separate confirmation log.',
+    warnings,
+  };
+}
+
+export function CapLabExecutionReceiptPanel({ receipt }: { receipt: CapLabExecutionReceipt }) {
+  return (
+    <PixelPanel title="Cap Lab Execution Receipt" accent={receipt.accent}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant={receipt.accent}>{receipt.title}</PixelBadge>
+          <PixelBadge variant="default">On-screen confirmation</PixelBadge>
+        </div>
+        <PixelConsequenceList
+          items={[
+            { id: 'cap-lab-result', label: 'Result', delta: receipt.summary, accent: receipt.accent },
+            { id: 'cap-lab-moves', label: 'Moves', delta: receipt.moveSummary, accent: 'cyan' },
+            { id: 'cap-lab-state', label: 'Changed now', delta: receipt.stateTouched, accent: 'gold' },
+            { id: 'cap-lab-source', label: 'Action used', delta: receipt.source, accent: 'cyan' },
+            { id: 'cap-lab-boundary', label: 'Did not also', delta: receipt.boundary, accent: 'green' },
+          ]}
+        />
+        {receipt.warnings.length > 0 ? (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {receipt.warnings.map((warning) => <PixelBadge key={warning} variant="gold">{warning}</PixelBadge>)}
+          </div>
+        ) : null}
+      </div>
+    </PixelPanel>
+  );
+}
+
+function CapLabSourcesPanel({
+  queuedMoves,
+  previewActive,
+}: {
+  queuedMoves: number;
+  previewActive: boolean;
+}) {
+  return (
+    <PixelPanel title="Cap Lab Sources" accent="cyan">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px' }}>
+        <PixelMetricCard
+          label="Health Model"
+          value="useCapHealth"
+          accent="cyan"
+          detail="Reads current cap grade, space, dead-cap pressure, top-heavy score, and flexibility from the store read model."
+        />
+        <PixelMetricCard
+          label="Candidate Board"
+          value="useCapCandidates"
+          accent="gold"
+          detail="Reads contract move candidates and recommendations. Search, position, sort, and queued moves are route-local state."
+        />
+        <PixelMetricCard
+          label="Base Projection"
+          value="useMultiYearProjection"
+          accent="green"
+          detail="Shows the saved team's forward cap outlook before sandbox moves replace the preview rows."
+        />
+        <PixelMetricCard
+          label="Preview Engine"
+          value={previewActive ? 'simulateMultipleMoves' : 'Idle'}
+          accent={previewActive ? 'gold' : 'default'}
+          detail="buildCapScenario(userTeam, game) plus simulateMultipleMoves previews queued moves without committing them."
+        />
+        <PixelMetricCard
+          label="Commit Boundary"
+          value={`${queuedMoves} queued`}
+          accent={queuedMoves > 0 ? 'red' : 'default'}
+          detail="Only the Confirm button calls actions.executeCapMoves(sandbox) to write contracts, cap totals, and roster/player movement."
+        />
+      </div>
+      <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.6, marginTop: '10px' }}>
+        Opening /cap-lab, changing filters, adding sandbox rows, and removing sandbox rows do not write saves,
+        change cap rules, play scheduled games, reroll saved outcomes, or move players.
+      </div>
+    </PixelPanel>
+  );
+}
+
 export default function CapLaboratory() {
   const game = useGameStore((state) => state.game);
   const userTeam = useGameStore(selectUserTeam);
@@ -71,6 +205,7 @@ export default function CapLaboratory() {
   const [extensionSalary, setExtensionSalary] = useState('12');
   const [sandbox, setSandbox] = useState<CapMove[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [executionReceipt, setExecutionReceipt] = useState<CapLabExecutionReceipt | null>(null);
 
   const filteredCandidates = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -99,6 +234,16 @@ export default function CapLaboratory() {
   const deadCapPct = preview
     ? Math.round(((preview.scenario.currentDeadCap ?? userTeam?.deadCap ?? 0) / Math.max(1, capHealth.capUsed + capHealth.capSpace)) * 100)
     : capHealth.deadCapPct;
+  const capImpact = useMemo(
+    () => buildDecisionImpactExplanation({
+      surface: 'cap-lab',
+      label: 'Cap sandbox',
+      queuedMoves: sandbox.length,
+      netCapChange,
+      deadCapPct,
+    }),
+    [deadCapPct, netCapChange, sandbox.length],
+  );
 
   const candidateColumns = useMemo<ColumnDef<(typeof candidates)[number], unknown>[]>(() => [
     {
@@ -128,7 +273,7 @@ export default function CapLaboratory() {
     { accessorKey: 'committed', header: 'Committed', cell: ({ getValue }) => `$${getValue() as number}M` },
     { accessorKey: 'deadCap', header: 'Dead Cap', cell: ({ getValue }) => `$${getValue() as number}M` },
     { accessorKey: 'available', header: 'Available', cell: ({ getValue }) => `$${getValue() as number}M` },
-  ], [projectionYears]);
+  ], []);
 
   const addMove = () => {
     if (!selectedCandidate) return;
@@ -146,6 +291,25 @@ export default function CapLaboratory() {
     setSandbox((current) => [...current, move]);
   };
 
+  const handleConfirmSandbox = async (): Promise<void> => {
+    if (sandbox.length === 0) return;
+    const receipt = preview
+      ? buildCapLabExecutionReceipt({
+        moves: sandbox,
+        capSpaceBefore: preview.capSpaceBefore,
+        capSpaceAfter: preview.capSpaceAfter,
+        capSaved: preview.capSaved,
+        warnings: preview.warnings,
+        playerNames: Object.fromEntries(candidates.map((candidate) => [candidate.playerId, candidate.playerName])),
+      })
+      : null;
+
+    await executeCapMoves(sandbox);
+    setSandbox([]);
+    setConfirmOpen(false);
+    if (receipt) setExecutionReceipt(receipt);
+  };
+
   return (
     <div style={screenStyle}>
       <PixelScreenHeader
@@ -160,6 +324,10 @@ export default function CapLaboratory() {
         <PixelMetricCard label="Dead Cap %" value={`${capHealth.deadCapPct}%`} accent={capHealth.deadCapPct > 15 ? 'red' : 'gold'} detail="Dead money share" />
         <PixelMetricCard label="Flex Score" value={capHealth.flexibilityScore} accent="cyan" detail={`Top-heavy score ${capHealth.topHeavyScore}`} />
       </div>
+
+      <CapLabSourcesPanel queuedMoves={sandbox.length} previewActive={preview !== null} />
+
+      {executionReceipt ? <CapLabExecutionReceiptPanel receipt={executionReceipt} /> : null}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(320px, 0.9fr)', gap: '12px' }}>
         <PixelPanel title="Cap Candidates" accent="cyan">
@@ -207,6 +375,7 @@ export default function CapLaboratory() {
             accent="cyan"
             onRowClick={(row) => setSelectedPlayerId(row.playerId)}
             emptyMessage="No cap candidates match this filter."
+            responsive="cards"
           />
         </PixelPanel>
 
@@ -318,6 +487,10 @@ export default function CapLaboratory() {
               ]}
             />
 
+            <PixelPanel title="Decision Impact" accent={capImpact.severity === 'high' ? 'red' : 'gold'} padding="sm">
+              <PixelConsequenceList items={decisionImpactToConsequenceItems(capImpact)} />
+            </PixelPanel>
+
             {preview?.warnings?.length ? (
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {preview.warnings.map((warning) => <PixelBadge key={warning} variant="red">{warning}</PixelBadge>)}
@@ -333,7 +506,7 @@ export default function CapLaboratory() {
 
       <div data-spotlight-target="chip.route.cap-laboratory.beat-2">
         <PixelPanel title="Multi-Year Projection" accent="green">
-          <PixelTable data={projectionYears} columns={projectionColumns} accent="green" emptyMessage="Projection unavailable." />
+          <PixelTable data={projectionYears} columns={projectionColumns} accent="green" emptyMessage="Projection unavailable." responsive="cards" />
         </PixelPanel>
       </div>
 
@@ -352,11 +525,7 @@ export default function CapLaboratory() {
             <PixelButton accent="gold" onClick={() => setConfirmOpen(false)}>Cancel</PixelButton>
             <PixelButton
               accent="green"
-              onClick={() => {
-                void executeCapMoves(sandbox);
-                setSandbox([]);
-                setConfirmOpen(false);
-              }}
+              onClick={() => { void handleConfirmSandbox(); }}
             >
               Confirm
             </PixelButton>

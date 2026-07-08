@@ -43,6 +43,9 @@ describe('coaching carousel', () => {
     expect(game.teams.afce2!.staff.hc?.id).not.toBe('old-hc');
     expect(game.teams.afce2!.staff.hc?.ratings.gameplan).toBeGreaterThanOrEqual(50);
     expect(game.teams.afce2!.staff.hc?.ratings.gameplan).toBeLessThanOrEqual(95);
+    expect(game.teams.afce2!.coachingStaff.hc?.id).toBe(game.teams.afce2!.staff.hc?.id);
+    expect(game.teams.afce2!.coachingStaff.hc?.role).toBe('HC');
+    expect(game.teams.afce2!.coachingStaff.hc?.reputation).toBeGreaterThanOrEqual(30);
     expect(game.teams.afce1!.staff.hc?.id).toBe('user-hc');
     expect(result.events.some((event) => event.type === 'coach_fired')).toBe(true);
     expect(result.events.some((event) => event.type === 'coach_hired')).toBe(true);

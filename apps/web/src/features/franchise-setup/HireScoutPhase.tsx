@@ -14,6 +14,11 @@ function recommendationVariant(recommendation: string): 'green' | 'gold' | 'red'
   return 'red';
 }
 
+function recommendationLabel(recommendation: string): string {
+  if (recommendation === 'consider') return 'HAS COST';
+  return recommendation.toUpperCase();
+}
+
 function recommendationHighlight(recommendation: string): { border: string; boxShadow: string; background: string } {
   if (recommendation === 'hire') {
     return {
@@ -55,7 +60,7 @@ export function HireScoutPhase({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ ...pixelSm, color: 'var(--mfd-cyan)' }}>BUILD YOUR INTEL</div>
           <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
-            Hire the scouting director who determines what your board trusts and where your draft room finds its edge.
+            Hire the scouting director who names medical warnings, assigned-role warnings, and uncovered positions before picks are spent.
           </div>
         </div>
       </PixelPanel>
@@ -105,7 +110,7 @@ export function HireScoutPhase({
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>WATCH-OUTS</div>
+                  <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>WHAT CAN GO WRONG</div>
                   <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
                     {candidate.weaknesses.join(' // ')}
                   </div>
@@ -127,7 +132,7 @@ export function HireScoutPhase({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                     <div style={{ ...pixelSm, color: 'var(--mfd-cyan)' }}>AGM TAKE</div>
-                    <PixelBadge variant={recommendationVariant(reaction.recommendation)}>{reaction.recommendation.toUpperCase()}</PixelBadge>
+                    <PixelBadge variant={recommendationVariant(reaction.recommendation)}>{recommendationLabel(reaction.recommendation)}</PixelBadge>
                   </div>
                   <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>{reaction.analysis}</div>
                   <div style={{ ...monoSm, color: 'var(--mfd-text-faint)', marginTop: '6px' }}>{reaction.oneLiner}</div>

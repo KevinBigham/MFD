@@ -1,0 +1,275 @@
+[
+  {
+    "label": "cold-open portrait",
+    "viewport": "desktop",
+    "pose": "wave",
+    "src": "assets/chip/inline/pose-wave.png",
+    "natural": {
+      "width": 600,
+      "height": 600
+    },
+    "frame": {
+      "width": 100,
+      "height": 100
+    },
+    "image": {
+      "width": 96,
+      "height": 96
+    },
+    "inkAreaFraction": 0.5412,
+    "bboxAreaFraction": 0.8832,
+    "aspectRatio": 1
+  },
+  {
+    "label": "setup portrait talk",
+    "viewport": "desktop",
+    "pose": "talk",
+    "src": "assets/chip/inline/chip-broadcast.png",
+    "natural": {
+      "width": 600,
+      "height": 600
+    },
+    "frame": {
+      "width": 100,
+      "height": 100
+    },
+    "image": {
+      "width": 96,
+      "height": 96
+    },
+    "inkAreaFraction": 0.5309,
+    "bboxAreaFraction": 0.8832,
+    "aspectRatio": 1
+  },
+  {
+    "label": "expanded dock idle",
+    "viewport": "desktop",
+    "pose": "idle",
+    "src": "assets/chip/chip-coach.png",
+    "natural": {
+      "width": 600,
+      "height": 732
+    },
+    "frame": {
+      "width": 148,
+      "height": 180
+    },
+    "image": {
+      "width": 144,
+      "height": 176
+    },
+    "inkAreaFraction": 0.30544294294294294,
+    "bboxAreaFraction": 0.5211711711711712,
+    "aspectRatio": 0.8222222222222222
+  },
+  {
+    "label": "expanded dock think",
+    "viewport": "desktop",
+    "pose": "think",
+    "src": "assets/chip/pose-think.png",
+    "natural": {
+      "width": 600,
+      "height": 732
+    },
+    "frame": {
+      "width": 148,
+      "height": 180
+    },
+    "image": {
+      "width": 144,
+      "height": 176
+    },
+    "inkAreaFraction": 0.3010885885885886,
+    "bboxAreaFraction": 0.486036036036036,
+    "aspectRatio": 0.8222222222222222
+  },
+  {
+    "label": "collapsed dock",
+    "viewport": "desktop",
+    "pose": "idle",
+    "src": "assets/chip/inline/chip-coach.png",
+    "natural": {
+      "width": 600,
+      "height": 600
+    },
+    "frame": {
+      "width": 68,
+      "height": 68
+    },
+    "image": {
+      "width": 64,
+      "height": 64
+    },
+    "inkAreaFraction": 0.5270328719723183,
+    "bboxAreaFraction": 0.7766003460207612,
+    "aspectRatio": 1
+  },
+  {
+    "label": "cold-open portrait",
+    "viewport": "tablet",
+    "pose": "wave",
+    "src": "assets/chip/inline/pose-wave.png",
+    "natural": {
+      "width": 600,
+      "height": 600
+    },
+    "frame": {
+      "width": 100,
+      "height": 100
+    },
+    "image": {
+      "width": 96,
+      "height": 96
+    },
+    "inkAreaFraction": 0.5412,
+    "bboxAreaFraction": 0.8832,
+    "aspectRatio": 1
+  },
+  {
+    "label": "expanded dock idle",
+    "viewport": "tablet",
+    "pose": "idle",
+    "src": "assets/chip/chip-coach.png",
+    "natural": {
+      "width": 600,
+      "height": 732
+    },
+    "frame": {
+      "width": 148,
+      "height": 180
+    },
+    "image": {
+      "width": 144,
+      "height": 176
+    },
+    "inkAreaFraction": 0.30544294294294294,
+    "bboxAreaFraction": 0.5211711711711712,
+    "aspectRatio": 0.8222222222222222
+  },
+  {
+    "label": "expanded dock think",
+    "viewport": "tablet",
+    "pose": "think",
+    "src": "assets/chip/pose-think.png",
+    "natural": {
+      "width": 600,
+      "height": 732
+    },
+    "frame": {
+      "width": 148,
+      "height": 180
+    },
+    "image": {
+      "width": 144,
+      "height": 176
+    },
+    "inkAreaFraction": 0.3010885885885886,
+    "bboxAreaFraction": 0.486036036036036,
+    "aspectRatio": 0.8222222222222222
+  },
+  {
+    "label": "collapsed dock",
+    "viewport": "tablet",
+    "pose": "idle",
+    "src": "assets/chip/inline/chip-coach.png",
+    "natural": {
+      "width": 600,
+      "height": 600
+    },
+    "frame": {
+      "width": 68,
+      "height": 68
+    },
+    "image": {
+      "width": 64,
+      "height": 64
+    },
+    "inkAreaFraction": 0.5270328719723183,
+    "bboxAreaFraction": 0.7766003460207612,
+    "aspectRatio": 1
+  },
+  {
+    "label": "cold-open portrait",
+    "viewport": "mobile",
+    "pose": "wave",
+    "src": "assets/chip/inline/pose-wave.png",
+    "natural": {
+      "width": 600,
+      "height": 600
+    },
+    "frame": {
+      "width": 100,
+      "height": 100
+    },
+    "image": {
+      "width": 96,
+      "height": 96
+    },
+    "inkAreaFraction": 0.5412,
+    "bboxAreaFraction": 0.8832,
+    "aspectRatio": 1
+  },
+  {
+    "label": "expanded dock idle",
+    "viewport": "mobile",
+    "pose": "idle",
+    "src": "assets/chip/chip-coach.png",
+    "natural": {
+      "width": 600,
+      "height": 732
+    },
+    "frame": {
+      "width": 148,
+      "height": 180
+    },
+    "image": {
+      "width": 144,
+      "height": 176
+    },
+    "inkAreaFraction": 0.30544294294294294,
+    "bboxAreaFraction": 0.5211711711711712,
+    "aspectRatio": 0.8222222222222222
+  },
+  {
+    "label": "expanded dock think",
+    "viewport": "mobile",
+    "pose": "think",
+    "src": "assets/chip/pose-think.png",
+    "natural": {
+      "width": 600,
+      "height": 732
+    },
+    "frame": {
+      "width": 148,
+      "height": 180
+    },
+    "image": {
+      "width": 144,
+      "height": 176
+    },
+    "inkAreaFraction": 0.3010885885885886,
+    "bboxAreaFraction": 0.486036036036036,
+    "aspectRatio": 0.8222222222222222
+  },
+  {
+    "label": "collapsed dock",
+    "viewport": "mobile",
+    "pose": "idle",
+    "src": "assets/chip/inline/chip-coach.png",
+    "natural": {
+      "width": 600,
+      "height": 600
+    },
+    "frame": {
+      "width": 68,
+      "height": 68
+    },
+    "image": {
+      "width": 64,
+      "height": 64
+    },
+    "inkAreaFraction": 0.5270328719723183,
+    "bboxAreaFraction": 0.7766003460207612,
+    "aspectRatio": 1
+  }
+]

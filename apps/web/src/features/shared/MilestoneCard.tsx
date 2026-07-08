@@ -126,7 +126,7 @@ export function MilestoneCard({
 
   return (
     <div
-      style={visible ? { ...visibleStyle, borderColor: color } : cardStyle}
+      style={visible ? { ...visibleStyle, border: `2px solid ${color}` } : cardStyle}
       onClick={() => {
         setVisible(false);
         setTimeout(onDismiss, 400);

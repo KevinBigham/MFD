@@ -24,7 +24,10 @@ function unionMood(game: GameState): number {
 }
 
 function taggedPlayerCount(game: GameState): number {
-  return Object.values(game.teams).filter((team) => team.franchiseTag973).length;
+  return Object.values(game.teams).reduce((count, team) => {
+    const tags = team.franchiseTags ?? (team.franchiseTag973 ? [team.franchiseTag973] : []);
+    return count + tags.length;
+  }, 0);
 }
 
 function taggedHoldouts(game: GameState): Player[] {

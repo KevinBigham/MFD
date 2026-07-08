@@ -6,6 +6,7 @@ import {
   evaluateStandardCutImpact,
   evaluatePostJune1CutImpact,
   projectContractCap,
+  buildContractDecisionForecast,
 } from './contract-tools';
 
 describe('contract-tools / evaluateRestructureEligibility', () => {
@@ -176,5 +177,67 @@ describe('contract-tools / projectContractCap', () => {
     const contract = makeContract(10, 3, 6, 8);
     const projection = projectContractCap(contract, 2026, 0);
     expect(projection).toHaveLength(0);
+  });
+});
+
+describe('contract-tools / buildContractDecisionForecast', () => {
+  it('recommends a restructure for a flexible high-salary multi-year deal', () => {
+    const contract = makeContract(30, 3, 24, 40);
+    const result = buildContractDecisionForecast(contract, 2026, { currentCapSpace: 4 });
+
+    expect(result.recommendedAction).toBe('restructure');
+    expect(result.actionLabel).toBe('Restructure');
+    expect(result.capSpaceDelta).toBeGreaterThan(10);
+    expect(result.currentYearDeadCapDelta).toBe(0);
+    expect(result.reversible).toBe(false);
+    expect(result.immediateImpact).toContain('current-year cap space');
+    expect(result.immediateImpact).not.toContain('current-year room');
+    expect(result.futureImpact).toContain('proration');
+    expect(result.playerReaction).toContain('guaranteed');
+  });
+
+  it('returns a safe hold forecast for a missing contract', () => {
+    const result = buildContractDecisionForecast(null, 2026);
+
+    expect(result.recommendedAction).toBe('hold');
+    expect(result.severity).toBe('low');
+    expect(result.reversible).toBe(true);
+    expect(result.warnings).toContain('No contract selected.');
+  });
+
+  it('can recommend a post-June 1 cut when restructure and backload are unavailable', () => {
+    const contract = makeContract(12, 2, 10, 14);
+    contract.restructured = true;
+    contract.voidYears = 3;
+
+    const result = buildContractDecisionForecast(contract, 2026, { currentCapSpace: 2 });
+
+    expect(result.recommendedAction).toBe('post_june_1_cut');
+    expect(result.currentYearDeadCapDelta).toBeLessThan(result.futureDeadCapDelta);
+    expect(result.futureImpact).toContain('next year');
+    expect(result.severity).toBe('high');
+  });
+
+  it('keeps standard-cut season impact concrete about cap space, morale, and replacement jobs', () => {
+    const contract = makeContract(10, 1, 2, 5);
+
+    const result = buildContractDecisionForecast(contract, 2026, { currentCapSpace: 12 });
+
+    expect(result.recommendedAction).toBe('standard_cut');
+    expect(result.thisSeasonImpact).toContain('Creates cap space immediately');
+    expect(result.thisSeasonImpact).toContain('roster depth and locker-room morale');
+    expect(result.thisSeasonImpact).toContain('replacement job is unassigned');
+    expect(result.risk).toBe('Preview Depth Chart before cutting; a correct cap cut still leaves a needed backup or rotation role uncovered.');
+    expect(result.thisSeasonImpact).not.toMatch(/can take|role clarity|Creates room immediately/i);
+    expect(result.risk).not.toMatch(/cap math can be right/i);
+  });
+
+  it('does NOT mutate the input contract', () => {
+    const contract = makeContract(16, 4, 12, 18);
+    const snapshot = structuredClone(contract);
+
+    buildContractDecisionForecast(contract, 2026, { currentCapSpace: 6, voidYears: 2 });
+
+    expect(contract).toEqual(snapshot);
   });
 });

@@ -23,17 +23,21 @@ export function PixelBadge({ children, variant = 'default', className, style }: 
   const v = variantStyles[variant];
   return (
     <span
+      data-mfd-pixel-badge={variant}
       className={className}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        padding: '2px 6px',
+        minHeight: '22px',
+        padding: '3px 7px',
         fontFamily: 'var(--mfd-font-pixel)',
-        fontSize: '7px',
-        letterSpacing: '0.5px',
-        border: `2px solid ${v.border}`,
+        fontSize: '8px',
+        lineHeight: 1.2,
+        letterSpacing: 0,
+        border: `1px solid ${v.border}`,
+        borderRadius: 'var(--mfd-rad-md)',
         color: v.color,
-        background: v.bg,
+        background: `linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 48%), ${v.bg}`,
         whiteSpace: 'nowrap',
         ...style,
       }}

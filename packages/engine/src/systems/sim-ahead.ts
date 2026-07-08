@@ -5,6 +5,7 @@ export type SimAheadTarget =
   | 'next_user_game'
   | 'trade_deadline'
   | 'end_regular_season'
+  | 'end_phase'
   | 'playoffs'
   | { weeks: number };
 
@@ -125,6 +126,7 @@ function reachedTarget(previous: GameState, next: GameState, target: SimAheadTar
   if (target === 'playoffs' && next.phase === 'playoffs') return 'target_reached';
   if (target === 'trade_deadline' && isTradeDeadlineInterrupt(previous, next)) return 'trade_deadline';
   if (target === 'end_regular_season' && previous.phase === 'regular_season' && next.phase !== 'regular_season') return 'target_reached';
+  if (target === 'end_phase' && previous.phase !== next.phase) return 'phase_changed';
   if (typeof target === 'object' && weeksSimmed >= Math.max(0, target.weeks)) return 'target_reached';
   return null;
 }
@@ -134,6 +136,7 @@ function safetyLimitFor(target: SimAheadTarget): number {
   if (target === 'next_user_game') return 24;
   if (target === 'trade_deadline') return 24;
   if (target === 'end_regular_season') return 32;
+  if (target === 'end_phase') return 32;
   return 52;
 }
 

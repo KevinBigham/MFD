@@ -203,6 +203,33 @@ describe('deriveRivalries', () => {
     });
   });
 
+  it('classifies legacy week 18 rivalry rows as playoff history after generated 17-week seasons', () => {
+    const game = makeLeagueState();
+    game.schedule = Array.from({ length: 17 }, (_, index) => ({ week: index + 1, games: [] }));
+
+    setLegacyRivalries(game, 'afce1', {
+      teamId: 'afce2',
+      heat: 72,
+      trophyName: null,
+      history: [
+        { year: 2025, week: 18, winner: 'afce1', score: '31-17' },
+      ],
+    });
+
+    const record = deriveRivalries(game).teams.afce1?.[0];
+
+    expect(record).toMatchObject({
+      opponentId: 'afce2',
+      intensity: 45,
+      lastMatchup: {
+        season: 2025,
+        week: 18,
+        result: 'win',
+        margin: 14,
+      },
+    });
+  });
+
   it('ignores malformed legacy history rows instead of inventing matchup detail', () => {
     const game = makeLeagueState();
 

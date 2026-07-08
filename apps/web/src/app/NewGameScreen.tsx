@@ -1,15 +1,39 @@
 /**
- * New Game screen — team selection + difficulty → creates seed state.
+ * New Game screen: team selection + difficulty creates seed state.
  */
-import { type ChangeEvent, useEffect, useRef, useState } from 'react';
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { MfdPanel, PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
-import { Gamepad2, Shield, Trophy } from 'lucide-react';
-import { getAvailableScenarios, mulberry32, startScenario, generateConventionSave, CONVENTION_SAVE_METADATA, getDefaultDifficultyFlags, type DifficultyLevel } from '@mfd/engine';
+import { Clock3, FileUp, Gamepad2, Play, Search, Shield, Trophy, Upload, Zap } from 'lucide-react';
+import {
+  CONVENTION_SAVE_METADATA,
+  SAVE_VERSION,
+  createFastLaneSetupState,
+  generateConventionSave,
+  getAvailableScenarios,
+  getDefaultDifficultyFlags,
+  getScenarioConstraintCoverage,
+  mulberry32,
+  startScenario,
+  type DifficultyLevel,
+  type GameState,
+  type ScenarioConstraints,
+} from '@mfd/engine';
 import { useGameStore } from './store/game-store';
 import { createSeedGameState, getTeamOptions } from './store/seed';
 import { TeamLogo } from '../features/shared/TeamLogo';
-import { loadImportedCartridge, loadImportedCartridgeFile, loadLatestAutosaveGame } from './store/persistence';
+import {
+  autosaveDynasty,
+  loadImportedCartridge,
+  loadImportedCartridgeFile,
+  loadLatestAutosaveGame,
+} from './store/persistence';
 import { AttractMode } from '../features/title/AttractMode';
+import {
+  persistSetupRunMode,
+  readFirstTenMinutesCompleted,
+  type SetupRunMode,
+} from '../features/franchise-setup/setupPersistence';
+import './new-game-screen.css';
 
 const rookieDefaults = getDefaultDifficultyFlags('rookie');
 
@@ -29,13 +53,129 @@ const DIFFICULTIES: { id: DifficultyLevel; label: string; desc: string; guide: s
 
 const teams = getTeamOptions();
 const conferences = ['AFC', 'NFC'] as const;
-const divisions = ['East', 'North', 'South', 'West'];
+const divisions = ['East', 'North', 'South', 'West'] as const;
+const conferenceFilters = ['ALL', ...conferences] as const;
+const divisionFilters = ['ALL', ...divisions] as const;
+
+type ConferenceFilter = (typeof conferenceFilters)[number];
+type DivisionFilter = (typeof divisionFilters)[number];
+type LaunchMode = 'dynasty' | 'scenario';
+
+interface BuildLaunchGameStateInput {
+  seed: number;
+  selectedTeam: number;
+  difficulty: DifficultyLevel;
+  mode: LaunchMode;
+  selectedScenarioId: string;
+  setupRunMode?: SetupRunMode;
+}
+
+function scenarioCoverageAccent(status: string): 'green' | 'gold' {
+  return status === 'enforced' ? 'green' : 'gold';
+}
+
+export function buildLaunchGameState({
+  seed,
+  selectedTeam,
+  difficulty,
+  mode,
+  selectedScenarioId,
+  setupRunMode = 'full',
+}: BuildLaunchGameStateInput): ReturnType<typeof createSeedGameState> {
+  const baseState = createSeedGameState(seed, selectedTeam, difficulty);
+  if (mode !== 'scenario') {
+    if (setupRunMode === 'fast_lane') {
+      const userTeam = Object.values(baseState.teams).find((team) => team.isUser);
+      if (!userTeam) {
+        throw new Error('Cannot build Fast Lane setup without a selected user team.');
+      }
+      baseState.setupState = createFastLaneSetupState(baseState as GameState, userTeam.id);
+    }
+
+    return baseState;
+  }
+
+  const state = startScenario(
+    selectedScenarioId,
+    baseState,
+    mulberry32(seed ^ (selectedScenarioId.length * 97)),
+  );
+  delete state.setupState;
+  return state;
+}
+
+export function buildConventionDemoLaunchState(seed: number): ReturnType<typeof generateConventionSave> {
+  return generateConventionSave('afce1', mulberry32(seed));
+}
+
+function resolveLaunchSetupStorage(): Storage | null {
+  return typeof window === 'undefined' ? null : window.localStorage;
+}
+
+export function ScenarioLaunchCoverageBadges({
+  constraints,
+}: {
+  constraints: Partial<ScenarioConstraints> | null | undefined;
+}) {
+  const coverage = getScenarioConstraintCoverage(constraints);
+
+  if (coverage.items.length === 0) {
+    return (
+      <span className="mfd-scenario-card-coverage" aria-label="Scenario launch constraint coverage">
+        <PixelBadge variant="default">Open rules</PixelBadge>
+      </span>
+    );
+  }
+
+  return (
+    <span className="mfd-scenario-card-coverage" aria-label="Scenario launch constraint coverage">
+      {coverage.items.map((item) => (
+        <PixelBadge key={item.id} variant={scenarioCoverageAccent(item.status)}>
+          {item.label} enforced
+        </PixelBadge>
+      ))}
+    </span>
+  );
+}
+
+function LaunchSourcesPanel() {
+  return (
+    <PixelPanel title="Launch Sources" accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          <PixelBadge variant="gold">createSeedGameState</PixelBadge>
+          <PixelBadge variant="green">actions.newGame</PixelBadge>
+          <PixelBadge variant="cyan">validated loadGame</PixelBadge>
+          <PixelBadge variant="default">setup-run mode</PixelBadge>
+        </div>
+        <p className="mfd-new-game-guide">
+          Source: New Dynasty starts from the web seed factory, Scenario Challenge applies saved
+          scenario constraints before first-run setup, Convention Demo uses the validated Week 14
+          showcase builder, Continue calls loadGame only after autosave validation, and Import validates
+          backup text/file data before writing a fresh autosave and calling loadGame.
+          New Dynasty persists the selected setup-run mode immediately before `actions.newGame`; Full
+          setup keeps the seeded setup state, while unlocked Fast Lane replaces only the initial
+          setup state through the engine fast-lane factory. Rendering this screen does not create a
+          dynasty, clear sidecars, autosave, import backups, start setup, play scheduled games, or write
+          GameState.
+        </p>
+      </div>
+    </PixelPanel>
+  );
+}
 
 export function NewGameScreen() {
   const [selectedTeam, setSelectedTeam] = useState(0);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('pro');
-  const [mode, setMode] = useState<'dynasty' | 'scenario'>('dynasty');
+  const [mode, setMode] = useState<LaunchMode>('dynasty');
+  const [setupLaunchMode, setSetupLaunchMode] = useState<SetupRunMode>('full');
   const [selectedScenarioId, setSelectedScenarioId] = useState(getAvailableScenarios()[0]?.id ?? 'rebuild');
+  const [teamQuery, setTeamQuery] = useState('');
+  const [conferenceFilter, setConferenceFilter] = useState<ConferenceFilter>('ALL');
+  const [divisionFilter, setDivisionFilter] = useState<DivisionFilter>('ALL');
+  const [fastLaneUnlocked, setFastLaneUnlocked] = useState<boolean>(() => (
+    readFirstTenMinutesCompleted(resolveLaunchSetupStorage())
+  ));
   const [hasAutosave, setHasAutosave] = useState(false);
   const [loadingAutosave, setLoadingAutosave] = useState(false);
   const [loadingImport, setLoadingImport] = useState(false);
@@ -62,23 +202,32 @@ export function NewGameScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!fastLaneUnlocked && setupLaunchMode === 'fast_lane') {
+      setSetupLaunchMode('full');
+    }
+  }, [fastLaneUnlocked, setupLaunchMode]);
+
   const handleStart = async () => {
     const seed = Date.now();
-    const baseState = createSeedGameState(seed, selectedTeam, difficulty);
-    if (mode === 'scenario') {
-      const state = startScenario(selectedScenarioId, baseState, mulberry32(seed ^ (selectedScenarioId.length * 97)));
-      delete state.setupState;
-      await newGame(state);
-    } else {
-      await newGame(baseState);
+    const activeSetupRunMode = fastLaneUnlocked ? setupLaunchMode : 'full';
+    const state = buildLaunchGameState({
+      seed,
+      selectedTeam,
+      difficulty,
+      mode,
+      selectedScenarioId,
+      setupRunMode: activeSetupRunMode,
+    });
+    if (mode === 'dynasty') {
+      persistSetupRunMode(resolveLaunchSetupStorage(), activeSetupRunMode);
     }
+    await newGame(state);
   };
 
   const handleConventionDemo = async () => {
     const seed = Date.now();
-    const rng = mulberry32(seed);
-    const demoState = generateConventionSave('afce1', rng);
-    await newGame(demoState);
+    await newGame(buildConventionDemoLaunchState(seed));
   };
 
   const handleContinue = async () => {
@@ -110,6 +259,7 @@ export function NewGameScreen() {
 
     try {
       const imported = await loadImportedCartridgeFile(file);
+      await autosaveDynasty(imported);
       setImportText('');
       loadGame(imported);
     } catch (err) {
@@ -121,7 +271,7 @@ export function NewGameScreen() {
     }
   };
 
-  const handleImportText = () => {
+  const handleImportText = async () => {
     if (!importText.trim()) {
       setAutosaveError('Paste backup code before importing.');
       return;
@@ -132,6 +282,7 @@ export function NewGameScreen() {
 
     try {
       const imported = loadImportedCartridge(importText.trim());
+      await autosaveDynasty(imported);
       setImportText('');
       loadGame(imported);
     } catch (err) {
@@ -142,50 +293,64 @@ export function NewGameScreen() {
     }
   };
 
-  const selected = teams[selectedTeam]!;
   const scenarios = getAvailableScenarios();
+  const selected = teams.find((team) => team.index === selectedTeam) ?? teams[0]!;
+  const selectedDifficulty = DIFFICULTIES.find((item) => item.id === difficulty) ?? DIFFICULTIES[1]!;
+  const selectedScenario = scenarios.find((scenario) => scenario.id === selectedScenarioId) ?? scenarios[0] ?? null;
+  const normalizedTeamQuery = teamQuery.trim().toLowerCase();
+  const filteredTeams = useMemo(
+    () => teams.filter((team) => {
+      const matchesConference = conferenceFilter === 'ALL' || team.conference === conferenceFilter;
+      const matchesDivision = divisionFilter === 'ALL' || team.division === divisionFilter;
+      const searchHaystack = `${team.abbr} ${team.city} ${team.name} ${team.fullName}`.toLowerCase();
+      const matchesSearch = normalizedTeamQuery.length === 0 || searchHaystack.includes(normalizedTeamQuery);
+      return matchesConference && matchesDivision && matchesSearch;
+    }),
+    [conferenceFilter, divisionFilter, normalizedTeamQuery],
+  );
+  const teamGroups = useMemo(
+    () => conferences
+      .map((conference) => ({
+        conference,
+        divisions: divisions
+          .map((division) => ({
+            division,
+            teams: filteredTeams.filter((team) => team.conference === conference && team.division === division),
+          }))
+          .filter((group) => group.teams.length > 0),
+      }))
+      .filter((group) => group.divisions.length > 0),
+    [filteredTeams],
+  );
+  const hasTeamFilters = normalizedTeamQuery.length > 0 || conferenceFilter !== 'ALL' || divisionFilter !== 'ALL';
+  const activeSetupRunMode = fastLaneUnlocked ? setupLaunchMode : 'full';
+
+  const clearTeamFilters = () => {
+    setTeamQuery('');
+    setConferenceFilter('ALL');
+    setDivisionFilter('ALL');
+  };
+
+  const startLabel = mode === 'scenario' ? 'Start Challenge' : activeSetupRunMode === 'fast_lane' ? 'Start Fast Lane' : 'Start Dynasty';
+  const launchSummary = mode === 'scenario'
+    ? selectedScenario?.tagline ?? 'Scenario challenge'
+    : `${selected.fullName} // ${selectedDifficulty.label} // ${activeSetupRunMode === 'fast_lane' ? 'Fast Lane' : 'Full Setup'}`;
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'var(--mfd-bg)',
-      color: 'var(--mfd-text)',
-      fontFamily: 'var(--mfd-font-sans)',
-      padding: 'var(--mfd-sp-xl)',
-    }}>
-      <div style={{ maxWidth: 720, width: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--mfd-sp-lg)' }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center' }}>
-          <h1 style={{
-            fontFamily: 'var(--mfd-font-serif)',
-            fontSize: '2rem',
-            fontWeight: 700,
-            color: 'var(--mfd-gold)',
-            margin: 0,
-          }}>
-            Mr. Football Dynasty
-          </h1>
-          <p style={{
-            fontFamily: 'var(--mfd-font-mono)',
-            fontSize: '0.75rem',
-            color: 'var(--mfd-text-dim)',
-            margin: '8px 0 0',
-          }}>
-            Select your franchise // Choose your difficulty // Pick your mode
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <PixelButton accent={mode === 'dynasty' ? 'gold' : 'default'} onClick={() => setMode('dynasty')}>
-            New Dynasty
-          </PixelButton>
-          <PixelButton accent={mode === 'scenario' ? 'cyan' : 'default'} onClick={() => setMode('scenario')}>
-            Scenario Challenge
-          </PixelButton>
-        </div>
+    <div className="mfd-new-game-shell">
+      <div className="mfd-new-game-layout">
+        <header className="mfd-new-game-hero">
+          <div>
+            <div className="mfd-new-game-kicker">MFD NETWORK</div>
+            <h1>Mr. Football Dynasty</h1>
+            <p>Build a franchise, survive the week, keep the save.</p>
+          </div>
+          <div className="mfd-new-game-hero-badges" aria-label="Launch highlights">
+            <PixelBadge variant="gold">v1.0</PixelBadge>
+            <PixelBadge variant="cyan">Save v{SAVE_VERSION}</PixelBadge>
+            <PixelBadge variant="green">Browser Dynasty</PixelBadge>
+          </div>
+        </header>
 
         <AttractMode
           teams={teams}
@@ -193,304 +358,341 @@ export function NewGameScreen() {
           conventionHeadline={CONVENTION_SAVE_METADATA.headline}
         />
 
-        <PixelPanel title="Recovery" accent="cyan">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
-              Lost browser storage or opening this dynasty on a new machine? Import a portable backup first, then fall back to pasted backup code if the file is unavailable.
-            </div>
-            <input
-              ref={importFileRef}
-              type="file"
-              accept=".mfd,.json,application/json"
-              onChange={(event) => { void handleImportFile(event); }}
-              style={{ display: 'none' }}
-            />
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <PixelButton
-                accent="cyan"
-                disabled={loadingImport}
-                onClick={() => importFileRef.current?.click()}
-              >
-                {loadingImport ? 'Importing Backup...' : 'Import Dynasty'}
-              </PixelButton>
-            </div>
-            <label
-              htmlFor="dynasty-import-text"
-              style={{
-                fontFamily: 'var(--mfd-font-mono)',
-                fontSize: '0.6875rem',
-                color: 'var(--mfd-text-dim)',
-              }}
-            >
-              Paste backup code
-            </label>
-            <textarea
-              id="dynasty-import-text"
-              value={importText}
-              onChange={(event) => setImportText(event.target.value)}
-              placeholder="Paste backup code here..."
-              style={{
-                minHeight: '120px',
-                padding: '10px',
-                background: 'var(--mfd-bg)',
-                border: '1px solid var(--mfd-border)',
-                borderRadius: 'var(--mfd-rad-md)',
-                color: 'var(--mfd-text)',
-                fontFamily: 'var(--mfd-font-mono)',
-                fontSize: '0.75rem',
-                resize: 'vertical',
-              }}
-            />
-            <div>
-              <PixelButton
-                accent="green"
-                disabled={loadingImport || !importText.trim()}
-                onClick={handleImportText}
-              >
-                Import Backup Code
-              </PixelButton>
-            </div>
-          </div>
-        </PixelPanel>
-
-        {/* Convention Demo Quick-Start */}
-        <PixelPanel title="Convention Demo" accent="green">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.6875rem', color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
-              {CONVENTION_SAVE_METADATA.headline}
-            </div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <PixelBadge variant="green">Week {CONVENTION_SAVE_METADATA.week}</PixelBadge>
-              <PixelBadge variant="gold">Playoff Race</PixelBadge>
-            </div>
-            <PixelButton accent="green" onClick={handleConventionDemo}>
-              Launch Demo Scenario
-            </PixelButton>
-          </div>
-        </PixelPanel>
-
-        {/* Team Selection */}
-        <MfdPanel title="Select Franchise" icon={<Shield size={14} />}>
-          {conferences.map((conf) => (
-            <div key={conf} style={{ marginBottom: 'var(--mfd-sp-md)' }}>
-              <div style={{
-                fontFamily: 'var(--mfd-font-mono)',
-                fontSize: '0.6875rem',
-                color: 'var(--mfd-text-faint)',
-                marginBottom: '6px',
-                letterSpacing: '0.08em',
-              }}>
-                {conf}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
-                {teams
-                  .filter((t) => t.conference === conf)
-                  .map((t) => (
-                    <button
-                      key={t.index}
-                      onClick={() => setSelectedTeam(t.index)}
-                      style={{
-                        padding: '8px 6px',
-                        fontSize: '0.6875rem',
-                        fontFamily: 'var(--mfd-font-sans)',
-                        fontWeight: t.index === selectedTeam ? 600 : 400,
-                        color: t.index === selectedTeam ? 'var(--mfd-bg)' : 'var(--mfd-text-dim)',
-                        background: t.index === selectedTeam ? 'var(--mfd-gold)' : 'var(--mfd-bg-2)',
-                        border: `1px solid ${t.index === selectedTeam ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
-                        borderRadius: 'var(--mfd-rad-md)',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        transition: 'all var(--mfd-motion-fast)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <TeamLogo icon={t.icon} size={28} alt={t.fullName} />
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: '0.75rem' }}>{t.abbr}</div>
-                          <div style={{ fontSize: '0.625rem', opacity: 0.8 }}>{t.city}</div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            </div>
-          ))}
-        </MfdPanel>
-
-        {/* Selected Team Preview */}
-        <div style={{
-          padding: 'var(--mfd-sp-md)',
-          background: 'var(--mfd-bg-2)',
-          border: '1px solid var(--mfd-gold)',
-          borderRadius: 'var(--mfd-rad-lg)',
-          textAlign: 'center',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '8px',
-        }}>
-          <TeamLogo icon={selected.icon} size={96} alt={selected.fullName} />
-          <div style={{
-            fontFamily: 'var(--mfd-font-serif)',
-            fontSize: '1.25rem',
-            fontWeight: 700,
-            color: 'var(--mfd-gold)',
-          }}>
-            {selected.fullName}
-          </div>
-          <div style={{
-            fontFamily: 'var(--mfd-font-mono)',
-            fontSize: '0.6875rem',
-            color: 'var(--mfd-text-dim)',
-            marginTop: '4px',
-          }}>
-            {selected.conference} {selected.division}
-          </div>
-        </div>
-
-        {/* Difficulty */}
-        <MfdPanel title="Difficulty" icon={<Gamepad2 size={14} />}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-            {DIFFICULTIES.map((d) => (
-              <button
-                key={d.id}
-                onClick={() => setDifficulty(d.id)}
-                style={{
-                  padding: '10px 8px',
-                  fontSize: '0.75rem',
-                  fontFamily: 'var(--mfd-font-sans)',
-                  fontWeight: d.id === difficulty ? 600 : 400,
-                  color: d.id === difficulty ? 'var(--mfd-bg)' : 'var(--mfd-text-dim)',
-                  background: d.id === difficulty ? 'var(--mfd-gold)' : 'var(--mfd-bg-2)',
-                  border: `1px solid ${d.id === difficulty ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
-                  borderRadius: 'var(--mfd-rad-md)',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  transition: 'all var(--mfd-motion-fast)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
-                  <span style={{ fontWeight: 600 }}>{d.label}</span>
-                  {d.id === 'rookie' && <PixelBadge variant="green">REC</PixelBadge>}
-                </div>
-                <div style={{ fontSize: '0.5625rem', opacity: 0.7, marginTop: '4px' }}>{d.desc}</div>
-              </button>
-            ))}
-          </div>
-          <PixelPanel title="Difficulty Guide" accent="default">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {DIFFICULTIES.map((d) => (
-                <div key={d.id} style={{
-                  fontFamily: 'var(--mfd-font-mono)',
-                  fontSize: '0.6875rem',
-                  color: difficulty === d.id ? 'var(--mfd-gold)' : 'var(--mfd-text-dim)',
-                }}>
-                  <strong>{d.label}:</strong> {d.guide}
-                </div>
-              ))}
-            </div>
-          </PixelPanel>
-        </MfdPanel>
-
-        {mode === 'scenario' ? (
-          <PixelPanel title="Scenario Challenge" accent="cyan">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {scenarios.map((scenario) => {
-                const selectedScenario = scenario.id === selectedScenarioId;
-                return (
-                  <button
-                    key={scenario.id}
-                    type="button"
-                    onClick={() => setSelectedScenarioId(scenario.id)}
-                    style={{
-                      padding: '12px',
-                      border: `2px solid ${selectedScenario ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
-                      background: selectedScenario ? 'rgba(255, 215, 0, 0.08)' : 'var(--mfd-bg-2)',
-                      color: 'var(--mfd-text)',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                      <div>
-                        <div style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '10px', color: 'var(--mfd-gold)' }}>
-                          {scenario.name.toUpperCase()}
-                        </div>
-                        <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', marginTop: '6px' }}>
-                          {scenario.tagline}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        <PixelBadge variant={scenario.difficulty === 'rookie' ? 'green' : scenario.difficulty === 'pro' ? 'cyan' : scenario.difficulty === 'all_pro' ? 'gold' : 'red'}>
-                          {scenario.difficulty.toUpperCase()}
-                        </PixelBadge>
-                        <PixelBadge variant="default">{scenario.seasonLimit} seasons</PixelBadge>
-                      </div>
-                    </div>
-                    <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '12px', color: 'var(--mfd-text)', marginTop: '8px', lineHeight: 1.6 }}>
-                      {scenario.description}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </PixelPanel>
-        ) : null}
-
-        {/* Autosave error message */}
-        {autosaveError && (
-          <div style={{
-            padding: '12px',
-            background: 'rgba(255, 50, 50, 0.1)',
-            border: '1px solid var(--mfd-red)',
-            borderRadius: 'var(--mfd-rad-md)',
-            fontFamily: 'var(--mfd-font-mono)',
-            fontSize: '0.75rem',
-            color: 'var(--mfd-red)',
-            lineHeight: 1.5,
-          }}>
+        {autosaveError ? (
+          <div className="mfd-new-game-error" role="alert" aria-live="assertive">
             {autosaveError}
           </div>
-        )}
+        ) : null}
 
-        {/* Start Button */}
-        {hasAutosave && (
-          <button
-            onClick={handleContinue}
-            disabled={loadingAutosave}
-            style={{
-              padding: '12px',
-              fontSize: '0.875rem',
-              fontFamily: 'var(--mfd-font-sans)',
-              fontWeight: 600,
-              color: 'var(--mfd-text)',
-              background: 'var(--mfd-bg-2)',
-              border: '1px solid var(--mfd-border)',
-              borderRadius: 'var(--mfd-rad-lg)',
-              cursor: loadingAutosave ? 'default' : 'pointer',
-            }}
-          >
-            {loadingAutosave ? 'Loading Latest Autosave...' : 'Continue Latest Autosave'}
-          </button>
-        )}
-        <button
-          onClick={handleStart}
-          style={{
-            padding: '14px',
-            fontSize: '1rem',
-            fontFamily: 'var(--mfd-font-serif)',
-            fontWeight: 700,
-            color: 'var(--mfd-bg)',
-            background: 'var(--mfd-gold)',
-            border: 'none',
-            borderRadius: 'var(--mfd-rad-lg)',
-            cursor: 'pointer',
-            letterSpacing: '0.04em',
-            transition: 'opacity var(--mfd-motion-fast)',
-          }}
-        >
-          {mode === 'scenario' ? 'Start Challenge' : 'Start Dynasty'}
-        </button>
+        <div className="mfd-new-game-command-grid">
+          <section className="mfd-new-game-builder" aria-label="Dynasty builder">
+            <div className="mfd-new-game-mode-tabs" role="group" aria-label="Launch mode">
+              <PixelButton
+                accent={mode === 'dynasty' ? 'gold' : 'default'}
+                aria-pressed={mode === 'dynasty'}
+                onClick={() => setMode('dynasty')}
+              >
+                <Shield size={14} />
+                New Dynasty
+              </PixelButton>
+              <PixelButton
+                accent={mode === 'scenario' ? 'cyan' : 'default'}
+                aria-pressed={mode === 'scenario'}
+                onClick={() => setMode('scenario')}
+              >
+                <Trophy size={14} />
+                Scenario Challenge
+              </PixelButton>
+            </div>
+
+            <MfdPanel title="Select Franchise" icon={<Shield size={14} />}>
+              <div className="mfd-team-picker-toolbar">
+                <label className="mfd-team-search-label" htmlFor="mfd-team-search">
+                  <Search size={14} />
+                  Find franchise
+                </label>
+                <input
+                  id="mfd-team-search"
+                  className="mfd-team-search-input"
+                  value={teamQuery}
+                  onChange={(event) => setTeamQuery(event.target.value)}
+                  placeholder="Search city, name, or abbreviation"
+                />
+                <div className="mfd-team-filter-row" role="group" aria-label="Conference filter">
+                  {conferenceFilters.map((filter) => (
+                    <button
+                      key={filter}
+                      type="button"
+                      className="mfd-team-filter-chip"
+                      data-selected={conferenceFilter === filter ? 'true' : 'false'}
+                      aria-pressed={conferenceFilter === filter}
+                      onClick={() => setConferenceFilter(filter)}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
+                <div className="mfd-team-filter-row" role="group" aria-label="Division filter">
+                  {divisionFilters.map((filter) => (
+                    <button
+                      key={filter}
+                      type="button"
+                      className="mfd-team-filter-chip"
+                      data-selected={divisionFilter === filter ? 'true' : 'false'}
+                      aria-pressed={divisionFilter === filter}
+                      onClick={() => setDivisionFilter(filter)}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
+                <div className="mfd-team-filter-status">
+                  <span>{filteredTeams.length} teams shown</span>
+                  {hasTeamFilters ? (
+                    <button type="button" onClick={clearTeamFilters}>
+                      Clear
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="mfd-team-board">
+                {teamGroups.length > 0 ? teamGroups.map((conferenceGroup) => (
+                  <section key={conferenceGroup.conference} className="mfd-team-conference">
+                    <div className="mfd-team-conference-header">{conferenceGroup.conference}</div>
+                    <div className="mfd-team-division-grid">
+                      {conferenceGroup.divisions.map((divisionGroup) => (
+                        <section key={`${conferenceGroup.conference}-${divisionGroup.division}`} className="mfd-team-division">
+                          <div className="mfd-team-division-label">{divisionGroup.division}</div>
+                          <div className="mfd-team-grid">
+                            {divisionGroup.teams.map((team) => {
+                              const active = team.index === selectedTeam;
+                              return (
+                                <button
+                                  key={team.index}
+                                  type="button"
+                                  className="mfd-team-card"
+                                  data-selected={active ? 'true' : 'false'}
+                                  aria-pressed={active}
+                                  onClick={() => setSelectedTeam(team.index)}
+                                >
+                                  <TeamLogo icon={team.icon} size={30} alt={team.fullName} />
+                                  <span className="mfd-team-card-copy">
+                                    <span className="mfd-team-card-abbr">{team.abbr}</span>
+                                    <span className="mfd-team-card-city">{team.city}</span>
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  </section>
+                )) : (
+                  <div className="mfd-team-empty-state">
+                    No franchises match this command filter.
+                  </div>
+                )}
+              </div>
+            </MfdPanel>
+
+            <MfdPanel title="Difficulty" icon={<Gamepad2 size={14} />}>
+              <div className="mfd-difficulty-grid">
+                {DIFFICULTIES.map((item) => {
+                  const active = item.id === difficulty;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="mfd-difficulty-card"
+                      data-selected={active ? 'true' : 'false'}
+                      aria-pressed={active}
+                      onClick={() => setDifficulty(item.id)}
+                    >
+                      <span className="mfd-difficulty-card-title">
+                        {item.label}
+                        {item.id === 'rookie' ? <PixelBadge variant="green">REC</PixelBadge> : null}
+                      </span>
+                      <span className="mfd-difficulty-card-desc">{item.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <PixelPanel title="Difficulty Guide" accent="default" padding="sm" style={{ marginTop: 'var(--mfd-sp-md)' }}>
+                <p className="mfd-new-game-guide">
+                  <strong>{selectedDifficulty.label}:</strong> {selectedDifficulty.guide}
+                </p>
+              </PixelPanel>
+            </MfdPanel>
+
+            {mode === 'dynasty' ? (
+              <MfdPanel title="Setup Path" icon={<Zap size={14} />}>
+                <div className="mfd-setup-path-grid" role="group" aria-label="Dynasty setup path">
+                  <button
+                    type="button"
+                    className="mfd-setup-path-card"
+                    data-selected={activeSetupRunMode === 'full' ? 'true' : 'false'}
+                    aria-pressed={activeSetupRunMode === 'full'}
+                    onClick={() => setSetupLaunchMode('full')}
+                  >
+                    <span className="mfd-setup-path-title">Full Setup</span>
+                    <span className="mfd-setup-path-desc">Run every Day 1 decision with Chip setup guidance.</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mfd-setup-path-card"
+                    data-selected={activeSetupRunMode === 'fast_lane' ? 'true' : 'false'}
+                    data-unlocked={fastLaneUnlocked ? 'true' : 'false'}
+                    aria-pressed={activeSetupRunMode === 'fast_lane'}
+                    disabled={!fastLaneUnlocked}
+                    onClick={() => setSetupLaunchMode('fast_lane')}
+                  >
+                    <span className="mfd-setup-path-title">
+                      Fast Lane
+                      <PixelBadge variant={fastLaneUnlocked ? 'green' : 'default'}>
+                        {fastLaneUnlocked ? 'UNLOCKED' : 'LOCKED'}
+                      </PixelBadge>
+                    </span>
+                    <span className="mfd-setup-path-desc">
+                      {fastLaneUnlocked
+                        ? 'Start after AGM selection with recommended setup defaults preloaded.'
+                        : 'Complete one full Day 1 setup to unlock repeat-player setup.'}
+                    </span>
+                  </button>
+                </div>
+                <PixelPanel title="Setup Source" accent="default" padding="sm" style={{ marginTop: 'var(--mfd-sp-md)' }}>
+                  <p className="mfd-new-game-guide">
+                    <strong>{activeSetupRunMode === 'fast_lane' ? 'Fast Lane' : 'Full Setup'}:</strong>{' '}
+                    {activeSetupRunMode === 'fast_lane'
+                      ? 'Uses createFastLaneSetupState and persists setup-run mode as Fast Lane before the dynasty opens.'
+                      : 'Uses the seeded setup state and persists setup-run mode as Full before the dynasty opens.'}
+                  </p>
+                </PixelPanel>
+              </MfdPanel>
+            ) : null}
+
+            {mode === 'scenario' ? (
+              <PixelPanel title="Scenario Challenge" accent="cyan">
+                <div className="mfd-scenario-list">
+                  {scenarios.map((scenario) => {
+                    const active = scenario.id === selectedScenarioId;
+                    return (
+                      <button
+                        key={scenario.id}
+                        type="button"
+                        className="mfd-scenario-card"
+                        data-selected={active ? 'true' : 'false'}
+                        aria-pressed={active}
+                        onClick={() => setSelectedScenarioId(scenario.id)}
+                      >
+                        <span className="mfd-scenario-card-topline">
+                          <span>{scenario.name.toUpperCase()}</span>
+                          <span className="mfd-scenario-card-badges">
+                            <PixelBadge variant={scenario.difficulty === 'rookie' ? 'green' : scenario.difficulty === 'pro' ? 'cyan' : scenario.difficulty === 'all_pro' ? 'gold' : 'red'}>
+                              {scenario.difficulty.toUpperCase()}
+                            </PixelBadge>
+                            <PixelBadge variant="default">{scenario.seasonLimit} seasons</PixelBadge>
+                          </span>
+                        </span>
+                        <span className="mfd-scenario-card-tagline">{scenario.tagline}</span>
+                        <span className="mfd-scenario-card-description">{scenario.description}</span>
+                        <ScenarioLaunchCoverageBadges constraints={scenario.constraints} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </PixelPanel>
+            ) : null}
+          </section>
+
+          <aside className="mfd-new-game-sidecar" aria-label="Launch command card">
+            <div className="mfd-launch-primary-command">
+              <PixelPanel title="Next Snap" accent="gold">
+                <div className="mfd-selected-team-card">
+                  <div className="mfd-selected-team-logo">
+                    <TeamLogo icon={selected.icon} size={92} alt={selected.fullName} />
+                  </div>
+                  <div className="mfd-selected-team-copy">
+                    <div className="mfd-selected-team-name">{selected.fullName}</div>
+                    <div className="mfd-selected-team-meta">{selected.conference} {selected.division} // {selectedDifficulty.label}</div>
+                  </div>
+                  <div className="mfd-selected-team-summary">{launchSummary}</div>
+                </div>
+
+                <div className="mfd-launch-actions">
+                  <button
+                    type="button"
+                    className="mfd-primary-launch-button"
+                    onClick={handleStart}
+                  >
+                    <Play size={18} />
+                    {startLabel}
+                  </button>
+                  {hasAutosave ? (
+                    <button
+                      type="button"
+                      className="mfd-secondary-launch-button"
+                      disabled={loadingAutosave}
+                      onClick={handleContinue}
+                    >
+                      <Clock3 size={16} />
+                      {loadingAutosave ? 'Loading Latest Autosave...' : 'Continue Latest Autosave'}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="mfd-demo-launch-button"
+                    onClick={handleConventionDemo}
+                  >
+                    <Trophy size={16} />
+                    Launch Demo Scenario
+                  </button>
+                </div>
+              </PixelPanel>
+            </div>
+
+            <div className="mfd-launch-support-stack">
+              <LaunchSourcesPanel />
+
+              <PixelPanel title="Convention Demo" accent="green">
+                <div className="mfd-convention-card">
+                  <p>{CONVENTION_SAVE_METADATA.headline}</p>
+                  <div className="mfd-new-game-badge-row">
+                    <PixelBadge variant="green">Week {CONVENTION_SAVE_METADATA.week}</PixelBadge>
+                    <PixelBadge variant="gold">Playoff Race</PixelBadge>
+                  </div>
+                </div>
+              </PixelPanel>
+
+              <PixelPanel title="Recovery" accent="cyan">
+                <div className="mfd-recovery-card">
+                  <p>
+                    Lost browser storage or opening this dynasty on a new machine? Import a portable backup first, then use pasted backup code if the file is unavailable.
+                  </p>
+                  <input
+                    ref={importFileRef}
+                    type="file"
+                    accept=".mfd,.json,application/json"
+                    onChange={(event) => { void handleImportFile(event); }}
+                    className="mfd-sr-only"
+                    tabIndex={-1}
+                  />
+                  <PixelButton
+                    accent="cyan"
+                    disabled={loadingImport}
+                    onClick={() => importFileRef.current?.click()}
+                  >
+                    <Upload size={14} />
+                    {loadingImport ? 'Importing Backup...' : 'Import Dynasty'}
+                  </PixelButton>
+                  <label htmlFor="dynasty-import-text" className="mfd-import-label">
+                    Paste backup code
+                  </label>
+                  <textarea
+                    id="dynasty-import-text"
+                    value={importText}
+                    onChange={(event) => setImportText(event.target.value)}
+                    placeholder="Paste backup code here..."
+                    className="mfd-import-textarea"
+                    aria-describedby="dynasty-import-help"
+                  />
+                  <div id="dynasty-import-help" className="mfd-import-help">
+                    Current dynasty changes only after the backup validates.
+                  </div>
+                  <PixelButton
+                    accent="green"
+                    disabled={loadingImport || !importText.trim()}
+                    onClick={handleImportText}
+                  >
+                    <FileUp size={14} />
+                    Import Backup Code
+                  </PixelButton>
+                </div>
+              </PixelPanel>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );

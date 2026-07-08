@@ -106,6 +106,57 @@ interface AttractModeProps {
   conventionHeadline: string;
 }
 
+interface AttractModeFrameProps {
+  currentMoment: AttractMoment;
+  momentCount: number;
+}
+
+export function AttractModeFrame({ currentMoment, momentCount }: AttractModeFrameProps) {
+  return (
+    <PixelPanel title="Attract Mode" accent={currentMoment.accent}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <PixelBadge variant={currentMoment.accent}>{currentMoment.label.toUpperCase()}</PixelBadge>
+          <PixelBadge variant="default">DEMO REEL</PixelBadge>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <PixelBadge variant="cyan">NewGameScreen inputs</PixelBadge>
+            <PixelBadge variant="gold">mulberry32 seed</PixelBadge>
+            <PixelBadge variant="default">Render-only reel</PixelBadge>
+          </div>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.68rem', color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+            Source: {momentCount} seeded demo frames from team catalog, scenario catalog, and the convention headline.
+            Idle timers and player input only activate, advance, or dismiss this mount; rendering the reel does
+            not create a dynasty, start setup, write GameState, autosave, play scheduled games, or reroll random outcomes.
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px',
+          padding: '10px',
+          border: '3px solid var(--mfd-border)',
+          background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.08) 0%, rgba(0, 229, 255, 0.04) 100%)',
+        }}
+        >
+          <div style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '10px', color: 'var(--mfd-gold)' }}>
+            MFD NETWORK DEMO
+          </div>
+          <div style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1.1rem', color: '#fff', fontWeight: 700 }}>
+            {currentMoment.headline}
+          </div>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.72rem', color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+            {currentMoment.detail}
+          </div>
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function AttractMode({ teams, scenarios, conventionHeadline }: AttractModeProps) {
   const [state, dispatch] = useReducer(reduceAttractModeState, INITIAL_STATE);
   const moments = useMemo(
@@ -154,33 +205,5 @@ export function AttractMode({ teams, scenarios, conventionHeadline }: AttractMod
     return null;
   }
 
-  return (
-    <PixelPanel title="Attract Mode" accent={currentMoment.accent}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <PixelBadge variant={currentMoment.accent}>{currentMoment.label.toUpperCase()}</PixelBadge>
-          <PixelBadge variant="default">DEMO REEL</PixelBadge>
-        </div>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px',
-          padding: '10px',
-          border: '3px solid var(--mfd-border)',
-          background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.08) 0%, rgba(0, 229, 255, 0.04) 100%)',
-        }}
-        >
-          <div style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '10px', color: 'var(--mfd-gold)' }}>
-            MFD NETWORK DEMO
-          </div>
-          <div style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1.1rem', color: '#fff', fontWeight: 700 }}>
-            {currentMoment.headline}
-          </div>
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.72rem', color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
-            {currentMoment.detail}
-          </div>
-        </div>
-      </div>
-    </PixelPanel>
-  );
+  return <AttractModeFrame currentMoment={currentMoment} momentCount={moments.length} />;
 }

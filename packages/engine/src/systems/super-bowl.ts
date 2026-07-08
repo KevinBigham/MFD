@@ -120,6 +120,10 @@ const VENUES = [
 
 // ── Super Bowl Context ─────────────────────────────────
 
+function isChampionshipFinish(playoffFinish: string): boolean {
+  return playoffFinish.toLowerCase() === 'champion';
+}
+
 export function generateSuperBowlContext(
   game: GameState,
   bracket: PlayoffBracket,
@@ -142,8 +146,8 @@ export function generateSuperBowlContext(
   if (away.wins >= 13) storylines.push(`${away.city} enters with a dominant ${away.wins}-${away.losses} record.`);
 
   // Dynasty check
-  const homeChamps = game.franchiseHistory.filter((h) => h.teamId === home.id && h.playoffFinish === 'Champion').length;
-  const awayChamps = game.franchiseHistory.filter((h) => h.teamId === away.id && h.playoffFinish === 'Champion').length;
+  const homeChamps = game.franchiseHistory.filter((h) => h.teamId === home.id && isChampionshipFinish(h.playoffFinish)).length;
+  const awayChamps = game.franchiseHistory.filter((h) => h.teamId === away.id && isChampionshipFinish(h.playoffFinish)).length;
   if (homeChamps >= 2) storylines.push(`${home.city} seeks championship #${homeChamps + 1} — dynasty territory.`);
   if (awayChamps >= 2) storylines.push(`${away.city} seeks championship #${awayChamps + 1} — dynasty territory.`);
 

@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { SaveStateSchema } from './schema';
+import {
+  AchievementConditionSchema,
+  CareerEpilogueSchema,
+  CommissionerRulingSchema,
+  EndorsementDealSchema,
+  HallOfFameBallotEntrySchema,
+  HallOfFameEntrySchema,
+  SaveStateSchema,
+} from './schema';
 import { migrate, registerMigration, getRegisteredVersions } from './migrations';
 import { SAVE_VERSION } from '../config';
 import { initCBA } from '../systems/cba-engine';
@@ -9,9 +17,116 @@ import { initLeagueRules } from '../systems/league-rules';
 import { createEmptyRecordBook } from '../systems/records';
 import { makeLeagueState } from '../systems/test-helpers';
 
+function makeEndorsementDeal(playerId: string, overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: 'endorsement-p1-apex',
+    playerId,
+    brandName: 'Apex Athletics',
+    revenuePerYear: 6.4,
+    yearsTotal: 3,
+    yearsRemaining: 2,
+    tier: 'global',
+    moraleBonus: 6,
+    requirement: { type: 'min_ovr', value: 90 },
+    active: true,
+    ...overrides,
+  };
+}
+
+function makeCommissionerRuling(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: 'ruling-1',
+    year: 2031,
+    week: 4,
+    type: 'suspension',
+    playerId: 'p1',
+    playerName: 'Marcus Cole',
+    teamId: 'CHI',
+    headline: 'Commissioner disciplines Marcus Cole',
+    rationale: 'Conduct detrimental to the league.',
+    moraleImpact: -6,
+    chemistryImpact: -2,
+    ownerApprovalImpact: -1,
+    ...overrides,
+  };
+}
+
+function makeLegacyCommissionerRuling(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  const legacy = makeCommissionerRuling(overrides);
+  const description = overrides['description'] ?? legacy['rationale'];
+  const approvalImpact = overrides['approvalImpact'] ?? legacy['ownerApprovalImpact'];
+  delete legacy['playerName'];
+  delete legacy['rationale'];
+  delete legacy['chemistryImpact'];
+  delete legacy['ownerApprovalImpact'];
+  legacy['description'] = description;
+  legacy['approvalImpact'] = approvalImpact;
+  return legacy;
+}
+
+function makeCareerEpilogue(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    playerId: 'hof-qb',
+    playerName: 'Miles Archive',
+    headline: 'Miles Archive joins the broadcast desk',
+    story: 'Miles Archive turns a film-room obsession into a second career calling protections before the snap.',
+    category: 'broadcasting',
+    ...overrides,
+  };
+}
+
+function makeHallOfFameEntry(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    playerId: 'hof-qb',
+    name: 'Miles Archive',
+    position: 'QB',
+    inductionYear: 2036,
+    peakOvr: 94,
+    careerYears: 12,
+    score: 96,
+    awards: {
+      mvps: 1,
+      allPros: 4,
+      proBowls: 7,
+      championships: 2,
+    },
+    highlights: ['MVP', 'Champion'],
+    teams: ['afce1'],
+    epilogue: makeCareerEpilogue(),
+    ...overrides,
+  };
+}
+
+function makeHallOfFameBallotEntry(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    playerId: 'hof-ballot-qb',
+    name: 'Ballot Quarterback',
+    position: 'QB',
+    score: 82,
+    yearsOnBallot: 2,
+    votePct: 71,
+    ...overrides,
+  };
+}
+
+function makeAchievement(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: 'dynasty:first_championship',
+    title: 'First Championship',
+    description: 'Win your first title.',
+    category: 'dynasty',
+    tier: 'bronze',
+    condition: { type: 'championships', threshold: 1 },
+    unlockedYear: null,
+    unlockedWeek: null,
+    icon: 'trophy',
+    ...overrides,
+  };
+}
+
 describe('SaveStateSchema', () => {
-  it('uses save version 37 for event-log retention persistence', () => {
-    expect(SAVE_VERSION).toBe(37);
+  it('uses save version 38 after save-diet and event-log repair migrations', () => {
+    expect(SAVE_VERSION).toBe(38);
   });
 
   it('validates a minimal valid save', () => {
@@ -113,11 +228,131 @@ describe('SaveStateSchema', () => {
     }
   });
 
+  it('accepts cba owner abstain votes in current-save negotiation state', () => {
+    const save = JSON.parse(JSON.stringify(makeLeagueState())) as Record<string, unknown>;
+    const cbaState = save['cbaState'] as Record<string, unknown>;
+    const currentDeal = cbaState['currentDeal'] as { terms: Record<string, unknown> };
+    const proposal = {
+      id: 'cba-abstain-proposal',
+      side: 'owners',
+      year: save['year'],
+      round: 3,
+      rationale: 'A mediated deal is ready for an owner vote.',
+      terms: currentDeal.terms,
+    };
+
+    cbaState['status'] = 'awaiting_owner_vote';
+    cbaState['negotiationState'] = {
+      round: 3,
+      ownersProposal: proposal,
+      playersProposal: proposal,
+      currentProposal: proposal,
+      gap: 8,
+      mediator: true,
+      publicPressure: 72,
+      ownerVotes: { afce1: 'abstain' },
+      userVote: 'abstain',
+    };
+
+    const result = SaveStateSchema.safeParse(save);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.cbaState.negotiationState?.ownerVotes.afce1).toBe('abstain');
+    expect(result.data.cbaState.negotiationState?.userVote).toBe('abstain');
+  });
+
+  it('normalizes stale Week 1 briefing tutorial routes during current-save schema parse', () => {
+    const save = makeLeagueState();
+    save.tutorialState = {
+      active: true,
+      currentStepIndex: 0,
+      dismissed: false,
+      completedSteps: [],
+      visitedScreens: [],
+      steps: [
+        {
+          id: 'week1-briefing',
+          title: 'Read the Monday Briefing',
+          description: 'Your AGM flags the week priorities.',
+          targetScreen: '/briefing',
+          targetElement: '[data-nav="/briefing"]',
+          action: 'screen:/briefing',
+          completed: false,
+        },
+        {
+          id: 'custom-briefing-link',
+          title: 'Custom',
+          description: 'A non-canonical custom tutorial row stays untouched.',
+          targetScreen: '/briefing',
+          targetElement: '[data-nav="/briefing"]',
+          action: 'screen:/briefing',
+          completed: false,
+        },
+      ],
+    };
+
+    const result = SaveStateSchema.safeParse(save);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    const [weekOneStep, customStep] = result.data.tutorialState.steps;
+    expect(weekOneStep).toMatchObject({
+      id: 'week1-briefing',
+      targetScreen: '/',
+      targetElement: '[data-nav="/"]',
+      action: 'screen:/',
+    });
+    expect(customStep).toMatchObject({
+      id: 'custom-briefing-link',
+      targetScreen: '/briefing',
+      targetElement: '[data-nav="/briefing"]',
+      action: 'screen:/briefing',
+    });
+  });
+
+  it('normalizes stale Week 1 briefing tutorial routes after migrating old saves', () => {
+    const legacy = makeLeagueState();
+    legacy.version = 30;
+    legacy.tutorialState = {
+      active: true,
+      currentStepIndex: 0,
+      dismissed: false,
+      completedSteps: [],
+      steps: [{
+        id: 'week1-briefing',
+        title: 'Read the Monday Briefing',
+        description: 'Your AGM flags the week priorities.',
+        targetScreen: '/briefing',
+        targetElement: '[data-nav="/briefing"]',
+        action: 'screen:/briefing',
+        completed: false,
+      }],
+    } as typeof legacy.tutorialState;
+
+    const migrated = migrate(legacy as unknown as Record<string, unknown>, SAVE_VERSION);
+    const result = SaveStateSchema.safeParse(migrated);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.version).toBe(SAVE_VERSION);
+    expect(result.data.tutorialState.steps[0]).toMatchObject({
+      id: 'week1-briefing',
+      targetScreen: '/',
+      targetElement: '[data-nav="/"]',
+      action: 'screen:/',
+    });
+  });
+
   it('migrates v32 saves by defaulting story arcs and team philosophies', () => {
     const legacy = makeLeagueState();
     legacy.version = 32;
     delete legacy.storyArcs;
-    for (const team of Object.values(legacy.teams)) {
+    const teamsBeforeMigration = Object.values(legacy.teams);
+    teamsBeforeMigration[0].gmStrategy = 'buy' as typeof teamsBeforeMigration[number]['gmStrategy'];
+    teamsBeforeMigration[1].gmStrategy = 'sell' as typeof teamsBeforeMigration[number]['gmStrategy'];
+    teamsBeforeMigration[2].gmStrategy = 'chaos' as typeof teamsBeforeMigration[number]['gmStrategy'];
+    for (const team of teamsBeforeMigration) {
       delete team.philosophy;
     }
 
@@ -126,6 +361,397 @@ describe('SaveStateSchema', () => {
 
     expect(migrated['storyArcs']).toEqual([]);
     expect(Object.values(teams).every((team) => team['philosophy'] === 'maintain')).toBe(true);
+    expect(teamsBeforeMigration).toHaveLength(Object.values(teams).length);
+    expect(teams[teamsBeforeMigration[0].id]?.['gmStrategy']).toBe('contend');
+    expect(teams[teamsBeforeMigration[1].id]?.['gmStrategy']).toBe('rebuild');
+    expect(teams[teamsBeforeMigration[2].id]?.['gmStrategy']).toBe('neutral');
+  });
+
+  it('normalizes current-save team GM strategy values during schema parse', () => {
+    const save = makeLeagueState();
+    const teams = Object.values(save.teams);
+    teams[0].gmStrategy = 'buy' as typeof teams[number]['gmStrategy'];
+    teams[1].gmStrategy = 'sell' as typeof teams[number]['gmStrategy'];
+    teams[2].gmStrategy = 'future_shock' as typeof teams[number]['gmStrategy'];
+
+    const result = SaveStateSchema.safeParse(save);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.teams[teams[0].id]?.gmStrategy).toBe('contend');
+      expect(result.data.teams[teams[1].id]?.gmStrategy).toBe('rebuild');
+      expect(result.data.teams[teams[2].id]?.gmStrategy).toBe('neutral');
+    }
+  });
+
+  it('validates endorsement deals through a typed schema', () => {
+    const valid = makeEndorsementDeal('p1');
+    expect(EndorsementDealSchema.safeParse(valid).success).toBe(true);
+
+    const invalidRequirement = {
+      ...valid,
+      requirement: { type: 'followers', value: 1_000_000 },
+    };
+    expect(EndorsementDealSchema.safeParse(invalidRequirement).success).toBe(false);
+  });
+
+  it('sanitizes current-save endorsement arrays while keeping valid deals', () => {
+    const save = JSON.parse(JSON.stringify(makeLeagueState())) as Record<string, unknown>;
+    const players = save['players'] as Record<string, Record<string, unknown>>;
+    const playerId = Object.keys(players)[0]!;
+    const legacyDeal = makeEndorsementDeal(playerId, { id: 'legacy-active-deal' });
+    delete legacyDeal['active'];
+    const offer = makeEndorsementDeal(playerId, { id: 'pending-offer', active: false });
+
+    players[playerId]!['endorsements'] = [
+      legacyDeal,
+      { id: 'broken-deal', playerId, brandName: 'Missing Numbers' },
+    ];
+    save['endorsementOffers'] = [
+      offer,
+      { id: 'broken-offer', playerId, tier: 'regional' },
+    ];
+
+    const result = SaveStateSchema.safeParse(save);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.players[playerId]?.endorsements).toEqual([
+      { ...legacyDeal, active: true },
+    ]);
+    expect(result.data.endorsementOffers).toEqual([offer]);
+  });
+
+  it('validates commissioner rulings through live schema while accepting legacy keys', () => {
+    expect(CommissionerRulingSchema.safeParse(makeCommissionerRuling()).success).toBe(true);
+
+    const legacy = makeLegacyCommissionerRuling({
+      id: 'legacy-ruling',
+      description: 'Legacy appeal rationale.',
+      approvalImpact: -4,
+    });
+    const result = CommissionerRulingSchema.safeParse(legacy);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data).toMatchObject({
+      id: 'legacy-ruling',
+      playerName: '',
+      rationale: 'Legacy appeal rationale.',
+      chemistryImpact: 0,
+      ownerApprovalImpact: -4,
+    });
+    expect('description' in result.data).toBe(false);
+    expect('approvalImpact' in result.data).toBe(false);
+  });
+
+  it('sanitizes current-save commissioner ruling arrays to the live shape', () => {
+    const save = JSON.parse(JSON.stringify(makeLeagueState())) as Record<string, unknown>;
+    const commissionerState = save['commissionerState'] as Record<string, unknown>;
+    commissionerState['rulings'] = [makeCommissionerRuling({ id: 'live-ruling' })];
+    save['commissionerDisciplineLog'] = [
+      makeLegacyCommissionerRuling({
+        id: 'legacy-log',
+        description: 'Legacy log rationale.',
+        approvalImpact: 2,
+      }),
+    ];
+
+    const result = SaveStateSchema.safeParse(save);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.commissionerState.rulings[0]).toMatchObject({
+      id: 'live-ruling',
+      playerName: 'Marcus Cole',
+      rationale: 'Conduct detrimental to the league.',
+      chemistryImpact: -2,
+      ownerApprovalImpact: -1,
+    });
+    expect(result.data.commissionerDisciplineLog[0]).toMatchObject({
+      id: 'legacy-log',
+      playerName: '',
+      rationale: 'Legacy log rationale.',
+      chemistryImpact: 0,
+      ownerApprovalImpact: 2,
+    });
+  });
+
+  it('migrates legacy endorsement arrays through typed defaults', () => {
+    const legacy = JSON.parse(JSON.stringify(makeLeagueState())) as Record<string, unknown>;
+    legacy['version'] = 18;
+    const players = legacy['players'] as Record<string, Record<string, unknown>>;
+    const playerId = Object.keys(players)[0]!;
+    const rosterTeam = Object.values(legacy['teams'] as Record<string, Record<string, unknown>>)
+      .find((team) => Array.isArray(team['roster']) && (team['roster'] as Array<Record<string, unknown>>).some((player) => player['id'] === playerId));
+    const rosterPlayer = rosterTeam
+      ? (rosterTeam['roster'] as Array<Record<string, unknown>>).find((player) => player['id'] === playerId)
+      : null;
+    const legacyDeal = makeEndorsementDeal(playerId, { id: 'legacy-migrated-deal' });
+    delete legacyDeal['active'];
+    const offer = makeEndorsementDeal(playerId, { id: 'legacy-offer', active: false });
+
+    players[playerId]!['endorsements'] = [
+      legacyDeal,
+      { id: 'bad-player-deal', playerId },
+    ];
+    if (rosterPlayer) {
+      rosterPlayer['endorsements'] = [
+        legacyDeal,
+        { id: 'bad-roster-deal', playerId },
+      ];
+    }
+    legacy['endorsementOffers'] = [
+      offer,
+      { id: 'bad-offer', playerId },
+    ];
+
+    const migrated = migrate(legacy, SAVE_VERSION);
+    const result = SaveStateSchema.safeParse(migrated);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.players[playerId]?.endorsements).toEqual([
+      { ...legacyDeal, active: true },
+    ]);
+    expect(result.data.endorsementOffers).toEqual([offer]);
+  });
+
+  it('migrates legacy commissioner ruling fields before current schema validation', () => {
+    const legacy = JSON.parse(JSON.stringify(makeLeagueState())) as Record<string, unknown>;
+    legacy['version'] = 35;
+    const commissionerState = legacy['commissionerState'] as Record<string, unknown>;
+    commissionerState['rulings'] = [
+      makeLegacyCommissionerRuling({
+        id: 'legacy-state-ruling',
+        description: 'Legacy state rationale.',
+        approvalImpact: -3,
+      }),
+    ];
+    legacy['commissionerDisciplineLog'] = [
+      makeLegacyCommissionerRuling({
+        id: 'legacy-discipline-log',
+        description: 'Legacy discipline rationale.',
+        approvalImpact: 1,
+      }),
+    ];
+
+    const migrated = migrate(legacy, SAVE_VERSION);
+    const result = SaveStateSchema.safeParse(migrated);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.commissionerState.rulings[0]).toMatchObject({
+      id: 'legacy-state-ruling',
+      playerName: '',
+      rationale: 'Legacy state rationale.',
+      chemistryImpact: 0,
+      ownerApprovalImpact: -3,
+    });
+    expect(result.data.commissionerDisciplineLog[0]).toMatchObject({
+      id: 'legacy-discipline-log',
+      playerName: '',
+      rationale: 'Legacy discipline rationale.',
+      chemistryImpact: 0,
+      ownerApprovalImpact: 1,
+    });
+    expect('description' in result.data.commissionerState.rulings[0]!).toBe(false);
+    expect('approvalImpact' in result.data.commissionerDisciplineLog[0]!).toBe(false);
+  });
+
+  it('validates hall of fame epilogues through typed schema', () => {
+    expect(CareerEpilogueSchema.safeParse(makeCareerEpilogue()).success).toBe(true);
+    expect(HallOfFameEntrySchema.safeParse(makeHallOfFameEntry()).success).toBe(true);
+    expect(HallOfFameBallotEntrySchema.safeParse(makeHallOfFameBallotEntry()).success).toBe(true);
+    expect(CareerEpilogueSchema.safeParse({
+      ...makeCareerEpilogue(),
+      category: 'podcasting',
+    }).success).toBe(false);
+    expect(HallOfFameBallotEntrySchema.safeParse({
+      ...makeHallOfFameBallotEntry(),
+      yearsOnBallot: 6,
+    }).success).toBe(false);
+  });
+
+  it('defaults current-save hall of fame ballot state when fields are missing', () => {
+    const save = JSON.parse(JSON.stringify(makeLeagueState())) as Record<string, unknown>;
+    delete save['ballotWaitlist'];
+    delete save['ballotEliminatedIds'];
+
+    const result = SaveStateSchema.safeParse(save);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.ballotWaitlist).toEqual([]);
+    expect(result.data.ballotEliminatedIds).toEqual([]);
+  });
+
+  it('preserves valid hall of fame ballot state while filtering malformed rows', () => {
+    const save = JSON.parse(JSON.stringify(makeLeagueState())) as Record<string, unknown>;
+    save['ballotWaitlist'] = [
+      makeHallOfFameBallotEntry({ playerId: 'valid-qb' }),
+      makeHallOfFameBallotEntry({ playerId: 'invalid-year', yearsOnBallot: 0 }),
+      { playerId: 'missing-fields' },
+    ];
+    save['ballotEliminatedIds'] = ['z-last', 12, 'a-first', 'z-last'];
+
+    const result = SaveStateSchema.safeParse(save);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.ballotWaitlist.map((entry) => entry.playerId)).toEqual(['valid-qb']);
+    expect(result.data.ballotEliminatedIds).toEqual(['a-first', 'z-last']);
+  });
+
+  it('migrates old saves with hall of fame ballot defaults and sanitized ballot rows', () => {
+    const legacy = JSON.parse(JSON.stringify(makeLeagueState())) as Record<string, unknown>;
+    legacy['version'] = 35;
+    legacy['ballotWaitlist'] = [
+      makeHallOfFameBallotEntry({ playerId: 'waitlisted-valid', votePct: 64 }),
+      makeHallOfFameBallotEntry({ playerId: 'waitlisted-invalid', position: 'LS' }),
+    ];
+    legacy['ballotEliminatedIds'] = ['dropout-b', null, 'dropout-a', 'dropout-b'];
+
+    const migrated = migrate(legacy, SAVE_VERSION);
+    const result = SaveStateSchema.safeParse(migrated);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.ballotWaitlist.map((entry) => entry.playerId)).toEqual(['waitlisted-valid']);
+    expect(result.data.ballotEliminatedIds).toEqual(['dropout-a', 'dropout-b']);
+  });
+
+  it('preserves current-save hall of fame epilogues while dropping malformed epilogue payloads', () => {
+    const save = JSON.parse(JSON.stringify(makeLeagueState())) as Record<string, unknown>;
+    save['hallOfFame'] = [
+      makeHallOfFameEntry(),
+      makeHallOfFameEntry({
+        playerId: 'hof-bad',
+        name: 'Broken Story',
+        epilogue: { playerId: 'hof-bad', headline: 'Missing required fields' },
+      }),
+    ];
+
+    const result = SaveStateSchema.safeParse(save);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.hallOfFame[0]?.epilogue).toEqual(makeCareerEpilogue());
+    expect(result.data.hallOfFame[1]?.epilogue).toBeUndefined();
+  });
+
+  it('migrates hall of fame epilogues before current schema validation', () => {
+    const legacy = JSON.parse(JSON.stringify(makeLeagueState())) as Record<string, unknown>;
+    legacy['version'] = 35;
+    legacy['hallOfFame'] = [
+      makeHallOfFameEntry({
+        epilogue: {
+          ...makeCareerEpilogue(),
+          extraBrowserOnlyField: 'drop-me',
+        },
+      }),
+      makeHallOfFameEntry({
+        playerId: 'hof-malformed',
+        name: 'Malformed Epilogue',
+        epilogue: {
+          ...makeCareerEpilogue({ playerId: 'hof-malformed', playerName: 'Malformed Epilogue' }),
+          category: 'podcasting',
+        },
+      }),
+    ];
+
+    const migrated = migrate(legacy, SAVE_VERSION);
+    const result = SaveStateSchema.safeParse(migrated);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.hallOfFame[0]?.epilogue).toEqual(makeCareerEpilogue());
+    expect(result.data.hallOfFame[1]?.epilogue).toBeUndefined();
+  });
+
+  it('validates achievement condition types through a typed schema', () => {
+    expect(AchievementConditionSchema.safeParse({ type: 'championships', threshold: 1 }).success).toBe(true);
+    expect(AchievementConditionSchema.safeParse({ type: 'made_up_metric', threshold: 1 }).success).toBe(false);
+  });
+
+  it('repairs current-save catalog achievement conditions and filters unrecoverable malformed rows', () => {
+    const save = JSON.parse(JSON.stringify(makeLeagueState())) as Record<string, unknown>;
+    save['achievements'] = [
+      makeAchievement({
+        condition: { type: 'championship_typo', threshold: 99 },
+        unlockedYear: 2030,
+        unlockedWeek: 4,
+      }),
+      makeAchievement({
+        id: 'custom:valid',
+        title: 'Custom Valid',
+        condition: { type: 'franchise_wins', threshold: 25 },
+      }),
+      makeAchievement({
+        id: 'custom:broken',
+        title: 'Custom Broken',
+        condition: { type: 'made_up_metric', threshold: 1 },
+      }),
+    ];
+
+    const result = SaveStateSchema.safeParse(save);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.achievements.map((achievement) => achievement.id)).toEqual([
+      'dynasty:first_championship',
+      'custom:valid',
+    ]);
+    expect(result.data.achievements[0]?.condition).toEqual({ type: 'championships', threshold: 1 });
+    expect(result.data.achievements[0]?.unlockedYear).toBe(2030);
+    expect(result.data.achievements[1]?.condition).toEqual({ type: 'franchise_wins', threshold: 25 });
+  });
+
+  it('migrates legacy achievement condition typos before current schema validation', () => {
+    const legacy = JSON.parse(JSON.stringify(makeLeagueState())) as Record<string, unknown>;
+    legacy['version'] = 35;
+    legacy['achievements'] = [
+      makeAchievement({
+        id: 'roster:full_house',
+        title: 'Full House',
+        category: 'roster',
+        tier: 'silver',
+        condition: { type: 'full_house_typo', threshold: 5 },
+        unlockedYear: 2031,
+        unlockedWeek: 18,
+        icon: 'locker',
+      }),
+      makeAchievement({
+        id: 'legacy:broken',
+        title: 'Broken Legacy',
+        condition: { type: 'legacy_metric', threshold: 1 },
+      }),
+    ];
+
+    const migrated = migrate(legacy, SAVE_VERSION);
+    const result = SaveStateSchema.safeParse(migrated);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.achievements).toHaveLength(1);
+    expect(result.data.achievements[0]).toMatchObject({
+      id: 'roster:full_house',
+      unlockedYear: 2031,
+      unlockedWeek: 18,
+      condition: { type: 'full_house', threshold: 1 },
+    });
   });
 
   it('rejects invalid phase', () => {

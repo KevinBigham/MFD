@@ -150,6 +150,47 @@ const cardButtonStyle: CSSProperties = {
   cursor: 'pointer',
 };
 
+function TrophySourcesPanel() {
+  return (
+    <PixelPanel title="Trophy Sources" accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="gold">SAVE MEMORY</PixelBadge>
+          <PixelBadge variant="cyan">READ ONLY</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.7 }}>
+          Trophy rows come from saved <strong>game.franchiseHistory</strong> champion seasons for the current user team, with linked broadcasts read through <strong>selectCeremonies</strong>.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          <strong>buildTrophyRoomChampionships</strong> pairs each title with ceremony highlights for opponent, score, and MVP, then falls back to archive copy when a ceremony is missing.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Filters use route-local <strong>filterMode</strong> state, current-year recent-window math, dynasty-run grouping, and selected trophy modal state. Opening Trophy Room does not award championships, generate ceremonies, update franchise history, write media, unlock achievements, write sidecars, change the live save, or play scheduled games.
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
+function TrophyNextChasePanel({ hasTitles }: { hasTitles: boolean }) {
+  return (
+    <PixelPanel title={hasTitles ? 'Next Banner Chase' : 'First Banner Chase'} accent="gold">
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7, maxWidth: '640px' }}>
+          {hasTitles
+            ? 'Let the trophy case pressure this season: check the race, find the next trap game, and tune the plan before the next result lands.'
+            : 'The case is empty, so turn the chase into a current-week checklist: standings first, schedule next, game plan last.'}
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelButton accent="cyan" onClick={() => navigateTo('/standings')}>Standings</PixelButton>
+          <PixelButton accent="default" onClick={() => navigateTo('/schedule')}>Schedule</PixelButton>
+          <PixelButton accent="gold" onClick={() => navigateTo('/game-plan')}>Game Plan</PixelButton>
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 export function TrophyRoomView({
   championships,
   ceremonies,
@@ -183,6 +224,8 @@ export function TrophyRoomView({
           subtitle="Every banner. Every ring. Every parade."
           badges={<PixelBadge variant="gold">0 titles</PixelBadge>}
         />
+        <TrophySourcesPanel />
+        <TrophyNextChasePanel hasTitles={false} />
         <PixelPanel title="Empty Case" accent="gold">
           <div style={{
             display: 'grid',
@@ -222,11 +265,15 @@ export function TrophyRoomView({
         )}
       />
 
+      <TrophySourcesPanel />
+
       <div style={autoGrid(220)}>
         <PixelMetricCard label="Championships" value={championships.length} accent="gold" detail="Archived title seasons" />
         <PixelMetricCard label="Latest Banner" value={latestTitle?.year ?? '--'} accent="cyan" detail={latestTitle?.score ?? 'Waiting'} />
         <PixelMetricCard label="Parade Vault" value={ceremonyCount} accent="green" detail="Ceremony broadcasts linked" />
       </div>
+
+      <TrophyNextChasePanel hasTitles />
 
       <PixelPanel title="Era Filter" accent="cyan">
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>

@@ -71,6 +71,10 @@ function makeResult(game: ReturnType<typeof makeLeagueState>, passYds: number): 
   };
 }
 
+function emptySchedule(weeks: number) {
+  return Array.from({ length: weeks }, (_, index) => ({ week: index + 1, games: [] }));
+}
+
 describe('record tracker', () => {
   it('finds active record chases above eighty percent pace and sorts by closeness', () => {
     const game = makeLeagueState('regular_season', 9);
@@ -110,6 +114,35 @@ describe('record tracker', () => {
     expect(chases[0]?.playerId).toBe(qb.id);
     expect(chases[0]?.projected).toBeGreaterThan(chases[0]!.recordValue);
     expect(chases[1]?.stat).toBe('recYds');
+  });
+
+  it('projects record chases over the generated regular-season schedule length', () => {
+    const game = makeLeagueState('regular_season', 17);
+    game.records = createEmptyRecordBook();
+    game.schedule = emptySchedule(19);
+
+    const qb = game.teams.afce1.roster.find((player) => player.pos === 'QB')!;
+    qb.stats.gamesPlayed = 17;
+    qb.stats.passYds = 3400;
+    game.records.singleSeason.passYds = [{
+      category: 'singleSeason',
+      stat: 'passYds',
+      value: 3700,
+      teamId: 'afce2',
+      teamName: 'AFCE2 Club',
+      year: 2024,
+      playerId: 'legacy-qb',
+      playerName: 'Legacy QB',
+    }];
+
+    const chases = checkRecordChases(game);
+
+    expect(chases[0]).toMatchObject({
+      playerId: qb.id,
+      stat: 'passYds',
+      projected: 3800,
+      weeksRemaining: 2,
+    });
   });
 
   it('detects and stores a broken single-game record', () => {
@@ -157,6 +190,17 @@ describe('record tracker', () => {
     expect(first.some((record) => record.category === 'singleSeason')).toBe(true);
     expect(second.some((record) => record.category === 'singleSeason')).toBe(false);
     expect(game.records.singleSeason.passYds[0]?.value).toBe(4300);
+  });
+
+  it('treats players missing season stats as zero in record checks', () => {
+    const game = makeLeagueState('regular_season', 4);
+    game.records = createEmptyRecordBook();
+    const qb = game.teams.afce1.roster.find((player) => player.pos === 'QB') as { stats?: unknown };
+    delete qb.stats;
+
+    expect(() => detectBrokenRecords(game, [makeResult(game, 451)])).not.toThrow();
+    expect(() => checkRecordChases(game)).not.toThrow();
+    expect(getLeagueLeaders(game, 'passYds')).toEqual([]);
   });
 
   it('checks milestones once and stores durable milestone flags', () => {

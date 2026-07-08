@@ -11,42 +11,42 @@ const PHASE_CONFIG: Record<string, { label: string; color: string; tip: string }
   preseason: {
     label: 'PRESEASON',
     color: 'var(--mfd-cyan)',
-    tip: 'Set your roster and depth chart before the regular season begins.',
+    tip: 'Set roster, depth chart, and Game Plan before the regular season begins.',
   },
   regular_season: {
     label: 'REGULAR SEASON',
     color: 'var(--mfd-green)',
-    tip: 'Play games, manage your roster, and chase the playoffs.',
+    tip: 'Set injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.',
   },
   playoffs: {
     label: 'PLAYOFFS',
     color: 'var(--mfd-gold)',
-    tip: 'Win or go home. Every decision is magnified.',
+    tip: 'Set health, depth, and matchup calls now; one missed assignment ends the season.',
   },
   offseason: {
     label: 'OFFSEASON',
     color: 'var(--mfd-cyan)',
-    tip: 'Re-sign players, manage the cap, and prepare for free agency.',
+    tip: 'Re-sign core players, clear cap space, and save room for Free Agency bids.',
   },
   free_agency: {
     label: 'FREE AGENCY',
     color: 'var(--mfd-gold)',
-    tip: 'Sign free agents to fill roster holes before the draft.',
+    tip: 'Sign free agents for open starter or backup jobs before the draft.',
   },
   draft: {
     label: 'DRAFT',
     color: 'var(--mfd-green)',
-    tip: 'Select new players to build your future.',
+    tip: 'Pick players for named starter, backup, or development jobs.',
   },
   post_draft: {
     label: 'POST-DRAFT',
     color: 'var(--mfd-cyan)',
-    tip: 'Finalize your roster before camp opens.',
+    tip: 'Set rookie roles and roster cuts before camp opens.',
   },
   training_camp: {
     label: 'TRAINING CAMP',
     color: 'var(--mfd-gold)',
-    tip: 'Rookies compete, veterans battle, and surprises emerge.',
+    tip: 'Assign rookie reps, veteran jobs, and injury backup plans before Week 1.',
   },
 };
 

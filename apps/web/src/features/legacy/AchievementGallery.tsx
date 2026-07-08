@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { getAchievementProgress, type Achievement, type AchievementCategory } from '@mfd/engine';
 import {
+  Chip,
+  ChipDialogueBubble,
   PixelBadge,
   PixelButton,
   PixelPanel,
@@ -24,6 +26,9 @@ const CATEGORY_TABS: Array<{ key: AchievementCategory | 'all'; label: string }> 
   { key: 'milestones', label: 'Milestones' },
   { key: 'hidden', label: 'Hidden' },
 ];
+
+export const ACHIEVEMENT_UNLOCK_CHIP_COPY =
+  'Achievement recorded in Legacy. Optional: open Legacy after Must Do tasks. Where: Legacy. Consequence: roster, cap space, owner patience, and next-week state do not change.';
 
 function tierAccent(tier: Achievement['tier']): 'gold' | 'cyan' | 'green' | 'red' | 'default' {
   if (tier === 'platinum') return 'gold';
@@ -158,6 +163,26 @@ export function AchievementUnlockToast({
     >
       <PixelPanel title="Achievement Unlocked" accent="gold">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div
+            data-achievement-chip-host="true"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'auto minmax(0, 1fr)',
+              gap: '10px',
+              alignItems: 'center',
+              minWidth: '220px',
+              flex: '1 1 280px',
+            }}
+          >
+            <Chip pose="proud" size="sm" reducedMotion ariaLabel="Chip celebrates the unlocked achievement" />
+            <ChipDialogueBubble
+              text={ACHIEVEMENT_UNLOCK_CHIP_COPY}
+              pose="proud"
+              pointer="left"
+              reducedMotion
+              monoBody
+            />
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ ...monoSm, color: '#fff', fontSize: '13px' }}>{achievement.title}</div>
             <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>{achievement.description}</div>

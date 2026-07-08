@@ -27,7 +27,7 @@ type ScrapbookEntryInput = ScrapbookEntry & {
   playoffLoreCards?: PlayoffLoreCard[];
 };
 
-type ScrapbookPayload = {
+export type ScrapbookPayload = {
   schemaVersion: typeof SCHEMA_VERSION;
   entriesByDynastyId: Record<string, StoredScrapbookEntry[]>;
   pendingPlayoffLoreByDynastyId: Record<string, Record<string, PlayoffLoreCard[]>>;
@@ -246,6 +246,30 @@ function writePayload(payload: ScrapbookPayload): ScrapbookPayload {
 
   backingStore.setItem(STORAGE_KEY, JSON.stringify(next));
   return next;
+}
+
+export function parseScrapbookPayload(candidate: unknown): ScrapbookPayload | null {
+  const validated = ScrapbookPayloadSchema.safeParse(candidate);
+  if (!validated.success) return null;
+
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    entriesByDynastyId: Object.fromEntries(
+      Object.entries(validated.data.entriesByDynastyId).map(([dynastyId, entries]) => [
+        dynastyId,
+        normalizeEntries(entries),
+      ]),
+    ),
+    pendingPlayoffLoreByDynastyId: normalizePendingBuckets(validated.data.pendingPlayoffLoreByDynastyId),
+  };
+}
+
+export function readScrapbookStore(): ScrapbookPayload {
+  return readPayload();
+}
+
+export function replaceScrapbookStore(payload: ScrapbookPayload): ScrapbookPayload {
+  return writePayload(payload);
 }
 
 function seasonKey(seasonYear: number): string {

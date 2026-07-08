@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { makeLeagueState } from './test-helpers';
-import { evaluateStrategy, reevaluateLeagueStrategies } from './gm-strategies';
+import { evaluateStrategy, normalizeGmStrategy, reevaluateLeagueStrategies } from './gm-strategies';
 
 describe('gm strategy reevaluation', () => {
+  it('normalizes legacy and malformed strategy ids without applying roster side effects', () => {
+    expect(normalizeGmStrategy('rebuild')).toBe('rebuild');
+    expect(normalizeGmStrategy('contend')).toBe('contend');
+    expect(normalizeGmStrategy('neutral')).toBe('neutral');
+    expect(normalizeGmStrategy('buy')).toBe('contend');
+    expect(normalizeGmStrategy('buyer')).toBe('contend');
+    expect(normalizeGmStrategy('sell')).toBe('rebuild');
+    expect(normalizeGmStrategy('seller')).toBe('rebuild');
+    expect(normalizeGmStrategy('chaos')).toBe('neutral');
+    expect(normalizeGmStrategy(undefined)).toBe('neutral');
+  });
+
   it('pivots a rebuild team to contend when the roster is young and strong', () => {
     const game = makeLeagueState('offseason');
     const team = game.teams.afce2;

@@ -1,7 +1,12 @@
 import { advanceFranchiseWeek, previewHalftimeDecision, simulateWeeks } from '@mfd/engine';
 import type { SimWorkerRequest, SimWorkerResponse } from './sim-protocol';
 
-const workerScope = self as DedicatedWorkerGlobalScope;
+type SimWorkerScope = {
+  addEventListener: (type: 'message', listener: (event: MessageEvent<SimWorkerRequest>) => void) => void;
+  postMessage: (message: SimWorkerResponse) => void;
+};
+
+const workerScope = self as unknown as SimWorkerScope;
 
 function serializeError(error: unknown): Pick<Extract<SimWorkerResponse, { kind: 'error' }>, 'message' | 'stack'> {
   if (error instanceof Error) {

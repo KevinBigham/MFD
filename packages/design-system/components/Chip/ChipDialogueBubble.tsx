@@ -67,6 +67,14 @@ export function computeTypewriterRevealCount({
   return Math.min(textLength, Math.floor((elapsedMs * speed) / 1000));
 }
 
+export function computeTypewriterFallbackMs({
+  speed,
+  textLength,
+}: Pick<TypewriterRevealInput, 'speed' | 'textLength'>): number {
+  if (textLength <= 0 || speed <= 0) return 0;
+  return Math.ceil((textLength / speed) * 1000) + 500;
+}
+
 export interface TypewriterTimingMode {
   hasRAF: boolean;
   requestFrame: (callback: FrameRequestCallback) => number;
@@ -206,8 +214,19 @@ export function ChipDialogueBubble({
     });
     controllerRef.current = controller;
     controller.start();
+    const fallbackMs = computeTypewriterFallbackMs({
+      textLength: normalizedText.length,
+      speed,
+    });
+    const fallbackTimerId =
+      typeof window !== 'undefined' && !effectiveReducedMotion && fallbackMs > 0
+        ? window.setTimeout(() => {
+          controller.skip();
+        }, fallbackMs)
+        : null;
 
     return () => {
+      if (fallbackTimerId !== null) window.clearTimeout(fallbackTimerId);
       controller.stop();
       if (controllerRef.current === controller) controllerRef.current = null;
     };
@@ -224,13 +243,21 @@ export function ChipDialogueBubble({
     <section
       className="mfd-chip-bubble"
       data-chip-bubble="broadcast-card"
+      data-chip-bubble-stage="sideline"
       data-chip-bubble-pointer={pointer}
       data-chip-bubble-pose={pose}
       data-chip-bubble-body={monoBody ? 'mono' : undefined}
       aria-label={normalizedText}
       onClick={handleSkip}
     >
-      <div className="mfd-chip-bubble__stamp">DYNASTY DESK // CHIP</div>
+      <div className="mfd-chip-bubble__header">
+        <div className="mfd-chip-bubble__stamp">FRANCHISE OPS // CHIP</div>
+        <div className="mfd-chip-bubble__signal" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
       <div
         className="mfd-chip-bubble__rule"
         role="separator"

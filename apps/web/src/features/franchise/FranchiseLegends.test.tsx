@@ -77,6 +77,38 @@ const baseState = () => ({
       { year: 2024, teamId: 'team-1', wins: 8, losses: 9, ties: 0, record: '8-9', pointDifferential: -12, playoffFinish: 'missed_playoffs' },
       { year: 2019, teamId: 'team-1', wins: 6, losses: 10, ties: 0, record: '6-10', pointDifferential: -54, playoffFinish: 'missed_playoffs' },
     ],
+    farewellTours: [
+      {
+        playerId: 'qb-1',
+        playerName: 'Cole Stone',
+        teamId: 'team-1',
+        finalSeason: true,
+        announcedWeek: 14,
+        moments: [
+          {
+            week: 16,
+            type: 'final_home_game',
+            opponent: 'Detroit',
+            narrative: 'Cole took one last home tunnel walk.',
+          },
+        ],
+      },
+      {
+        playerId: 'qb-road',
+        playerName: 'Road Legend',
+        teamId: 'team-2',
+        finalSeason: true,
+        announcedWeek: 13,
+        moments: [
+          {
+            week: 15,
+            type: 'gift_exchange',
+            opponent: 'Chicago',
+            narrative: 'A road tribute.',
+          },
+        ],
+      },
+    ],
     hallOfFame: Array.from({ length: 12 }, (_, index) => createHallOfFamer(index + 1)),
     coachingHistory: [
       {
@@ -201,16 +233,25 @@ describe('FranchiseLegends', () => {
     expect(markup).toContain('CHICAGO BLAZE');
     expect(markup).toContain('Franchise Legends');
     expect(markup).toContain('FOUNDED 2019');
+    expect(markup).toContain('FRANCHISE LEGEND SOURCES');
+    expect(markup).toContain('game.franchiseHistory');
+    expect(markup).toContain('Championship rings and era buckets are derived from those rows.');
+    expect(markup).toContain('game.players, game.playerArchive, game.hallOfFame, and game.playerSeasonHistory');
+    expect(markup).toContain('saved game.hallOfFame and team.retiredJerseys');
+    expect(markup).toContain('game.farewellTours');
+    expect(markup).toContain('Starting a tour remains owned by the Player Profile action.');
+    expect(markup).toContain('game.coachingHistory team stints');
+    expect(markup).toContain('Opening /legends does not write franchise history, Hall of Fame entries, retired jerseys, coach history, season stats, player archives, or save sidecars.');
   });
 
   it('renders the totals strip from derived franchise history', () => {
     const markup = renderToStaticMarkup(<FranchiseLegends />);
 
-    expect(markup).toContain('--- CHAMPIONSHIPS ---');
-    expect(markup).toContain('--- HOFERS ---');
-    expect(markup).toContain('--- RETIRED NUMBERS ---');
-    expect(markup).toContain('--- HEAD COACHES ---');
-    expect(markup).toContain('--- SEASONS PLAYED ---');
+    expect(markup).toContain('Championships');
+    expect(markup).toContain('HOFers');
+    expect(markup).toContain('Retired Numbers');
+    expect(markup).toContain('Head Coaches');
+    expect(markup).toContain('Seasons Played');
     expect(markup).toContain('Titles in franchise history');
   });
 
@@ -253,6 +294,19 @@ describe('FranchiseLegends', () => {
 
     expect(markup).toContain('#12 COLE STONE');
     expect(markup).toContain('era 2025-2032');
+  });
+
+  it('renders active farewell tours from saved game state without starting tours', () => {
+    const markup = renderToStaticMarkup(<FranchiseLegends />);
+
+    expect(markup).toContain('ACTIVE FAREWELL TOURS');
+    expect(markup).toContain('Source: saved game.farewellTours filtered to the current user team.');
+    expect(markup).toContain('Player Profile starts tours through startFarewellTour');
+    expect(markup.match(/data-testid="farewell-tour-row"/g)).toHaveLength(1);
+    expect(markup).toContain('COLE STONE');
+    expect(markup).toContain('ANNOUNCED WEEK 14');
+    expect(markup).toContain('Week 16: FINAL HOME GAME vs Detroit - Cole took one last home tunnel walk.');
+    expect(markup).not.toContain('ROAD LEGEND');
   });
 
   it('sorts coach roll call rows by hire year descending', () => {

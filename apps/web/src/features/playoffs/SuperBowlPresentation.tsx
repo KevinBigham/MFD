@@ -140,6 +140,35 @@ function ParadeCard({ parade }: { parade: ChampionParade }) {
   );
 }
 
+function SuperBowlSourcesPanel() {
+  return (
+    <PixelPanel title="Super Bowl Sources" accent="cyan">
+      <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="gold">saved playoffBracket</PixelBadge>
+          <PixelBadge variant="cyan">deterministic helpers</PixelBadge>
+          <PixelBadge variant="default">browser-local dismissal</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: '#ccc', lineHeight: 1.6 }}>
+          Source: saved playoff bracket, Super Bowl result, champion team, user team, and current year
+          feed `generateSuperBowlContext`, `generateSuperBowlMVP`, `generateSuperBowlNarrative`,
+          `generateHalftimeShow`, and `generateChampionParade`.
+        </div>
+        <div style={{ ...monoSm, color: '#ccc', lineHeight: 1.6 }}>
+          Champion podium copy comes from authored award-speech content through `getAwardSpeech`.
+          The user-champion celebration dismissal key is browser-local
+          `mfd-celebration-dismissed:&lt;teamId&gt;:&lt;year&gt;`, not cartridge state.
+        </div>
+        <div style={{ ...monoSm, color: '#ccc', lineHeight: 1.6 }}>
+          Opening this route does not write playoff brackets, game results, ceremonies, awards history,
+          franchise history, scrapbook or Hall of Fame archives, media posts, achievements, or simulation
+          outcomes.
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
 /* ── Exported View ──────────────────────────────────────── */
 
 export interface SuperBowlPresentationViewProps {
@@ -166,17 +195,21 @@ export function SuperBowlPresentationView({
 }: SuperBowlPresentationViewProps) {
   if (!context) {
     return (
-      <PixelPanel title="Super Bowl" accent="gold">
-        <div style={{ ...pixel, color: '#999', padding: '12px', lineHeight: 2 }}>
-          The Super Bowl has not yet been played. Advance through the playoffs to see the championship presentation.
-        </div>
-      </PixelPanel>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <PixelPanel title="Super Bowl" accent="gold">
+          <div style={{ ...pixel, color: '#999', padding: '12px', lineHeight: 2 }}>
+            The Super Bowl has not yet been played. Advance through the playoffs to see the championship presentation.
+          </div>
+        </PixelPanel>
+        <SuperBowlSourcesPanel />
+      </div>
     );
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <MatchupCard context={context} />
+      <SuperBowlSourcesPanel />
       {narrative && (
         <PixelPanel title="Championship Recap" accent="gold">
           <div style={{ ...monoSm, color: '#ccc', padding: '12px', lineHeight: 1.6 }}>

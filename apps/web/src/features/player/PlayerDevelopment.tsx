@@ -151,6 +151,17 @@ export interface PlayerDevelopmentViewProps {
   projections: DevelopmentProjection[];
   breakoutCandidates: BreakoutCandidate[];
   coachImpact: string | null;
+  playerOptions?: PlayerDevelopmentPlayerOption[];
+  selectedPlayerId?: string | null;
+  onSelectPlayer?: (playerId: string) => void;
+}
+
+export interface PlayerDevelopmentPlayerOption {
+  id: string;
+  name: string;
+  pos: string;
+  age: number;
+  ovr: number;
 }
 
 export function PlayerDevelopmentView({
@@ -158,6 +169,9 @@ export function PlayerDevelopmentView({
   projections,
   breakoutCandidates,
   coachImpact,
+  playerOptions = [],
+  selectedPlayerId,
+  onSelectPlayer,
 }: PlayerDevelopmentViewProps) {
   if (!report) {
     return (
@@ -169,23 +183,68 @@ export function PlayerDevelopmentView({
     );
   }
 
+  const selectedId = selectedPlayerId ?? report.playerId;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Player header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '3px solid var(--mfd-cyan)' }}>
-        <span style={{ ...display, fontSize: '20px', color: '#fff' }}>
-          {report.playerName}
-        </span>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <PixelBadge variant="cyan">{report.pos}</PixelBadge>
-          <PixelBadge variant="default">AGE {report.age}</PixelBadge>
-          <PixelBadge variant="gold">OVR {report.ovr}</PixelBadge>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '12px', flexWrap: 'wrap', padding: '4px 0', borderBottom: '3px solid var(--mfd-cyan)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <span style={{ ...display, fontSize: '20px', color: '#fff' }}>
+            {report.playerName}
+          </span>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <PixelBadge variant="cyan">{report.pos}</PixelBadge>
+            <PixelBadge variant="default">AGE {report.age}</PixelBadge>
+            <PixelBadge variant="gold">OVR {report.ovr}</PixelBadge>
+          </div>
         </div>
+
+        {playerOptions.length > 0 && (
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '220px' }}>
+            <span style={{ ...pixel, color: '#999' }}>DEVELOPMENT PLAYER</span>
+            <select
+              aria-label="Development player"
+              value={selectedId}
+              onChange={(event) => onSelectPlayer?.(event.currentTarget.value)}
+              style={{
+                ...monoSm,
+                width: '100%',
+                minHeight: '32px',
+                color: '#fff',
+                background: '#111',
+                border: '1px solid var(--mfd-cyan)',
+                padding: '6px 8px',
+              }}
+            >
+              {playerOptions.map((player) => (
+                <option key={player.id} value={player.id}>
+                  {player.name} - {player.pos} {player.ovr} OVR
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       <ArchetypeCard report={report} />
       <RatingGrowthCard report={report} />
       <ProjectionCard projections={projections} currentOvr={report.ovr} />
+
+      <PixelPanel title="Development Sources" accent="gold">
+        <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <PixelBadge variant="cyan">Selected roster player</PixelBadge>
+            <PixelBadge variant="gold">Pure engine helpers</PixelBadge>
+            <PixelBadge variant="default">No progression write</PixelBadge>
+          </div>
+          <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
+            This screen renders the generated development report, projected curve, breakout candidates,
+            and optional position-coach narrative for the selected roster player. Opening it does not run progression,
+            alter archetypes, spend training-camp work, mutate coach effects, or write player history.
+          </div>
+        </div>
+      </PixelPanel>
 
       {coachImpact && (
         <PixelPanel title="Position Coach Impact" accent="default">

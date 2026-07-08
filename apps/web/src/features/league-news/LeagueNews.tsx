@@ -61,6 +61,21 @@ export function LeagueNews() {
         onSelect={(value) => setFilter(value as NewsFilter)}
       />
 
+      <PixelPanel title="Wire Source" accent="cyan">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <PixelBadge variant="gold">Saved leagueNews</PixelBadge>
+            <PixelBadge variant="cyan">Route-local filters</PixelBadge>
+            <PixelBadge variant="default">Ticker separate</PixelBadge>
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+            This route reads the saved league wire newest-first through selectors. Filters and expanded stories
+            are local to this screen; the app-shell ticker and full-screen Breaking News interrupts are separate
+            surfaces and are not consumed or dismissed here.
+          </div>
+        </div>
+      </PixelPanel>
+
       <PixelPanel title="League Wire" accent={filteredNews[0]?.importance === 'breaking' ? 'gold' : 'cyan'}>
         {filteredNews.length === 0 ? (
           <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>

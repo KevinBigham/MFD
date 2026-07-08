@@ -39,8 +39,8 @@ interface PixelTableProps<T> {
 }
 
 const densityPadding: Record<Density, string> = {
-  compact: '6px 8px',
-  comfortable: '8px 12px',
+  compact: '8px 10px',
+  comfortable: '10px 14px',
 };
 
 const densityFontSize: Record<Density, string> = {
@@ -102,12 +102,19 @@ export function PixelTable<T>({
 
   return (
     <div
+      data-mfd-pixel-table="true"
+      data-mfd-table-accent={accent}
+      data-mfd-table-density={density}
+      data-mfd-table-responsive={responsive}
       className={className}
       style={{
         overflow: 'auto',
         maxHeight,
-        border: `3px solid ${accentBorder[accent]}`,
-        background: 'var(--mfd-bg-2)',
+        border: `1px solid ${accentBorder[accent]}`,
+        borderTop: `3px solid ${accentBorder[accent]}`,
+        borderRadius: 'var(--mfd-rad-lg)',
+        background: 'var(--mfd-gradient-card)',
+        boxShadow: 'var(--mfd-shadow-panel)',
         ...style,
       }}
     >
@@ -118,46 +125,77 @@ export function PixelTable<T>({
           borderCollapse: 'collapse',
           fontFamily: 'var(--mfd-font-mono)',
           fontSize: densityFontSize[density],
+          lineHeight: 1.45,
         }}
       >
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th
-                  key={header.id}
-                  onClick={header.column.getToggleSortingHandler()}
-                  style={{
-                    padding: densityPadding[density],
-                    textAlign: 'left',
-                    fontFamily: 'var(--mfd-font-pixel)',
-                    fontWeight: 400,
-                    fontSize: '7px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.8px',
-                    color: accent === 'default' ? 'var(--mfd-text-faint)' : accentBorder[accent],
-                    background: 'var(--mfd-bg-3)',
-                    borderBottom: `2px solid ${accentBorder[accent]}`,
-                    cursor: header.column.getCanSort() ? 'pointer' : 'default',
-                    userSelect: 'none',
-                    whiteSpace: 'nowrap',
-                    ...(stickyHeader ? {
-                      position: 'sticky' as const,
-                      top: 0,
-                      zIndex: 1,
-                    } : {}),
-                  }}
-                >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    {header.isPlaceholder
-                      ? null
-                      : renderHeaderLabel(header.column.columnDef.header, header.getContext())}
-                    {header.column.getCanSort() && (
-                      <SortIcon direction={header.column.getIsSorted()} />
-                    )}
-                  </span>
-                </th>
-              ))}
+              {headerGroup.headers.map((header) => {
+                const canSort = header.column.getCanSort();
+                const sortDirection = header.column.getIsSorted();
+                const sortHandler = header.column.getToggleSortingHandler();
+                const ariaSort = sortDirection === 'asc'
+                  ? 'ascending'
+                  : sortDirection === 'desc'
+                    ? 'descending'
+                    : canSort
+                      ? 'none'
+                      : undefined;
+
+                return (
+                  <th
+                    key={header.id}
+                    onClick={sortHandler}
+                    onKeyDown={(event) => {
+                      if (!canSort || (event.key !== 'Enter' && event.key !== ' ')) return;
+                      event.preventDefault();
+                      sortHandler?.(event);
+                    }}
+                    tabIndex={canSort ? 0 : undefined}
+                    aria-sort={ariaSort}
+                    aria-label={canSort ? `Sort by ${typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header : header.column.id}` : undefined}
+                    data-mfd-table-sortable={canSort ? 'true' : 'false'}
+                    data-mfd-table-sorted={sortDirection || 'false'}
+                    style={{
+                      padding: densityPadding[density],
+                      textAlign: 'left',
+                      fontFamily: 'var(--mfd-font-pixel)',
+                      fontWeight: 400,
+                      fontSize: '8px',
+                      textTransform: 'uppercase',
+                      letterSpacing: 0,
+                      color: sortDirection
+                        ? 'var(--mfd-gold)'
+                        : accent === 'default'
+                          ? 'var(--mfd-text-faint)'
+                          : accentBorder[accent],
+                      background: sortDirection
+                        ? 'linear-gradient(180deg, rgba(255, 215, 0, 0.12), rgba(0, 0, 0, 0.34))'
+                        : 'rgba(0, 0, 0, 0.34)',
+                      borderBottom: `1px solid ${sortDirection ? 'var(--mfd-gold)' : accentBorder[accent]}`,
+                      cursor: canSort ? 'pointer' : 'default',
+                      outline: 'none',
+                      userSelect: 'none',
+                      whiteSpace: 'nowrap',
+                      ...(stickyHeader ? {
+                        position: 'sticky' as const,
+                        top: 0,
+                        zIndex: 1,
+                      } : {}),
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {header.isPlaceholder
+                        ? null
+                        : renderHeaderLabel(header.column.columnDef.header, header.getContext())}
+                      {canSort && (
+                        <SortIcon direction={sortDirection} />
+                      )}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           ))}
         </thead>
@@ -169,7 +207,7 @@ export function PixelTable<T>({
                 style={{
                   padding: '20px',
                   textAlign: 'center',
-                  color: 'var(--mfd-text-faint)',
+                  color: 'var(--mfd-text-dim)',
                   fontFamily: 'var(--mfd-font-pixel)',
                   fontSize: '8px',
                 }}
@@ -178,20 +216,43 @@ export function PixelTable<T>({
               </td>
             </tr>
           ) : (
-            table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.id}
-                onClick={() => onRowClick?.(row.original)}
-                onKeyDown={(e) => handleKeyDown(e, row.original)}
-                tabIndex={onRowClick ? 0 : undefined}
-                role={onRowClick ? 'button' : undefined}
-                data-mfd-focusable={onRowClick ? 'pixel-row' : undefined}
-                style={{
-                  cursor: onRowClick ? 'pointer' : 'default',
-                  borderBottom: '1px solid #151515',
-                  background: row.index % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent',
-                }}
-              >
+            table.getRowModel().rows.map((row) => {
+              const rowBackground = row.index % 2 === 0 ? 'rgba(255,255,255,0.018)' : 'rgba(0,0,0,0.08)';
+
+              return (
+                <tr
+                  key={row.id}
+                  onClick={() => onRowClick?.(row.original)}
+                  onKeyDown={(e) => handleKeyDown(e, row.original)}
+                  onMouseEnter={(event) => {
+                    event.currentTarget.style.background = onRowClick
+                      ? 'linear-gradient(90deg, rgba(0, 229, 255, 0.09), rgba(255, 255, 255, 0.02))'
+                      : 'rgba(255,255,255,0.035)';
+                  }}
+                  onMouseLeave={(event) => {
+                    event.currentTarget.style.background = rowBackground;
+                  }}
+                  onFocus={(event) => {
+                    event.currentTarget.style.background = 'rgba(255, 215, 0, 0.08)';
+                    event.currentTarget.style.boxShadow = 'var(--mfd-focus-ring)';
+                  }}
+                  onBlur={(event) => {
+                    event.currentTarget.style.background = rowBackground;
+                    event.currentTarget.style.boxShadow = 'none';
+                  }}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  role={onRowClick ? 'button' : undefined}
+                  data-mfd-focusable={onRowClick ? 'pixel-row' : undefined}
+                  data-mfd-table-row="true"
+                  data-mfd-row-clickable={onRowClick ? 'true' : 'false'}
+                  style={{
+                    cursor: onRowClick ? 'pointer' : 'default',
+                    borderBottom: '1px solid rgba(174, 184, 195, 0.13)',
+                    background: rowBackground,
+                    outline: 'none',
+                    transition: 'background var(--mfd-motion-fast), box-shadow var(--mfd-motion-fast)',
+                  }}
+                >
                 {row.getVisibleCells().map((cell) => {
                   const headerDef = cell.column.columnDef.header;
                   const label = typeof headerDef === 'string' ? headerDef.toUpperCase() : cell.column.id.toUpperCase();
@@ -199,17 +260,20 @@ export function PixelTable<T>({
                     <td
                       key={cell.id}
                       data-mfd-table-label={responsive === 'cards' ? label : undefined}
+                      data-mfd-table-cell-id={cell.column.id}
                       style={{
                         padding: densityPadding[density],
                         color: 'var(--mfd-text)',
+                        verticalAlign: 'middle',
                       }}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   );
                 })}
-              </tr>
-            ))
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>

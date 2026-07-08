@@ -493,6 +493,8 @@ export function createSeedGameState(
     recentMilestones: [],
     awardsHistory: [],
     hallOfFame: [],
+    ballotWaitlist: [],
+    ballotEliminatedIds: [],
     allDecadeTeams: [],
     powerRankings: [],
     franchiseHistory: [],

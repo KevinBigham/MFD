@@ -165,6 +165,44 @@ describe('PlayoffLoreDirectory', () => {
     expect(markup).toContain('Super Bowl Only');
   });
 
+  it('links archived playoff lore back into the live playoff push', () => {
+    aggregateCards = [
+      { dynastyId: '123:team-1:2030', seasonYear: 2026, card: makeCard(), source: 'archived' },
+    ];
+
+    const markup = renderToStaticMarkup(<PlayoffLoreDirectory />);
+
+    expect(markup).toContain('Next Playoff Push');
+    expect(markup).toContain('see the race');
+    expect(markup).toContain('Standings');
+    expect(markup).toContain('Schedule');
+    expect(markup).toContain('Game Plan');
+  });
+
+  it('renders source boundaries for sidecar playoff lore reads', () => {
+    aggregateCards = [
+      { dynastyId: '123:team-1:2030', seasonYear: 2026, card: makeCard({ headline: 'Archived dynasty win' }), source: 'archived' },
+      {
+        dynastyId: 'other-dynasty',
+        seasonYear: 2027,
+        card: makeCard({ gameId: 'pending-card', seasonYear: 2027, week: 20, headline: 'Pending road upset' }),
+        source: 'pending',
+      },
+    ];
+
+    const markup = renderToStaticMarkup(<PlayoffLoreDirectory />);
+
+    expect(markup).toContain('Playoff Lore Sources');
+    expect(markup).toContain('deriveDynastyId(game)');
+    expect(markup).toContain('mfd.scrapbook.v1');
+    expect(markup).toContain('listAllPlayoffLoreCards');
+    expect(markup).toContain('1 archived');
+    expect(markup).toContain('1 pending');
+    expect(markup).toContain('stagePendingPlayoffLoreCard');
+    expect(markup).toContain('pendingPlayoffLoreReveal');
+    expect(markup).toContain('Opening /franchise/playoff-lore does not write GameState');
+  });
+
   it('shows only current dynasty cards when the current filter is selected', () => {
     aggregateCards = [
       { dynastyId: '123:team-1:2030', seasonYear: 2026, card: makeCard({ headline: 'Current dynasty win' }), source: 'archived' },

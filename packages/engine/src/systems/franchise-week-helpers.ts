@@ -6,10 +6,9 @@ import { generateHooks } from './hooks-engine';
 import { getInjuryPenalty, isPlayerUnavailable, maybeGenerateTeamInjury, processInjuryRecovery } from './injury-system';
 import { updateOwnerApproval } from './owner';
 import { tickPatience } from './owner-extended';
-import { applyGameToSeasonStats, tickInjuries } from './season-stats';
+import { applyGameToSeasonStats, ensurePlayerStatBuckets, ensureSeasonStats, tickInjuries } from './season-stats';
 import { generateRegionalWeather } from './regional-weather';
 import { logicalEventTimestamp, withEventDate } from './event-log-retention';
-import { syncPlayers } from './game-state-references';
 import type {
   GameEvent,
   GameResult,
@@ -211,7 +210,18 @@ export function makeEvent(game: GameState, type: string, description: string, da
   };
 }
 
-export { syncPlayers, rehydrateGameStateReferences } from './game-state-references';
+export function syncPlayers(game: GameState): void {
+  for (const player of Object.values(game.players)) {
+    ensurePlayerStatBuckets(player);
+  }
+  for (const team of Object.values(game.teams)) {
+    ensureSeasonStats(team);
+    for (const player of team.roster) {
+      ensurePlayerStatBuckets(player);
+      game.players[player.id] = player;
+    }
+  }
+}
 
 export function refreshNarrative(game: GameState): void {
   const userTeam = findUserTeam(game);

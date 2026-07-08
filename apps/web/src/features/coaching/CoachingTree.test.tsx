@@ -76,7 +76,13 @@ vi.mock('@mfd/engine', async (importOriginal) => {
       headCoachesProduced: 1,
       coordinatorsPlaced: 1,
       retiredWithEpilogue: 0,
-      notableProteges: [disciple],
+      notableProteges: [{
+        coachId: disciple.id,
+        name: disciple.name,
+        teamAbbr: 'MET',
+        role: 'OC',
+        championships: 0,
+      }],
     }),
   };
 });
@@ -118,9 +124,30 @@ describe('CoachingTree', () => {
     const markup = renderToStaticMarkup(<CoachingTree />);
 
     expect(markup).toContain('COACHING TREE');
-    expect(markup).toContain('TREE DEPTH');
+    expect(markup).toContain('Tree Depth');
     expect(markup).toContain('DANA VALE');
     expect(markup).toContain('MIKA STONE');
     expect(markup).toContain('RIVER CROSS');
+  });
+
+  it('renders notable protege details from buildCoachingLegacy output', () => {
+    const markup = renderToStaticMarkup(<CoachingTree />);
+
+    expect(markup).toContain('NOTABLE PROTEGES');
+    expect(markup).toContain('#1 BRANCH');
+    expect(markup).toContain('River Cross');
+    expect(markup).toContain('MET');
+    expect(markup).toContain('0 titles');
+  });
+
+  it('labels coaching-tree sources and no-write boundaries', () => {
+    const markup = renderToStaticMarkup(<CoachingTree />);
+
+    expect(markup).toContain('COACHING TREE SOURCES');
+    expect(markup).toContain('active team.staff HC/OC/DC records across the league');
+    expect(markup).toContain('game.coachingHistory');
+    expect(markup).toContain('coach_retirement event labels');
+    expect(markup).toContain('buildCoachingLegacy metrics');
+    expect(markup).toContain('does not write staff moves, relationship edges, coaching history, or coach development');
   });
 });

@@ -1,16 +1,24 @@
 # Mr. Football Dynasty - Codex Game Guide
 
-This guide is for future Codex sessions working on Mr. Football Dynasty (MFD). It captures the repo shape, runtime wiring, deterministic simulation contract, save discipline, testing strategy, and known caution zones.
+This guide is for future Codex sessions working in the visible working copy:
+
+`/Users/tkevinbigham/MFD/MFD-main`
+
+Historical absolute paths in this guide are provenance notes; resolve the repo root from the current checkout before running commands.
+
+It is based on inspection of the MFD TypeScript codebase and should be refreshed whenever routes, save schema, CI gates, or the week-advance spine change.
+
+For improvement planning, use `CODEX_IMPROVEMENT_PLAN.md` alongside this guide. The plan tracks source-backed implementation tracks and verification gates. For a fresh-window implementation marathon, use the paste-ready `/goal` in `CODEX_GOAT_MARATHON_PROMPT.md`.
 
 ## First Facts
 
-- Actual game repo inspected: `/Users/tkevinbigham/Documents/GitHub/MFD`.
-- The originally provided workspace `/Users/tkevinbigham/Documents/New project` is currently an empty Git repo with no game files.
-- Current product: browser-only single-player football franchise dynasty sim.
+- Product: browser-only single-player football franchise dynasty sim.
 - Stack: TypeScript monorepo, pure engine package, React 19 web app, Zustand store, Dexie/IndexedDB saves, Vite, Vitest, GitHub Pages.
-- Current save version: `SAVE_VERSION = 37` in `packages/engine/src/config/difficulty.ts`.
-- Local environment observed on 2026-06-10: Node `v24.14.1`; global `pnpm` was not installed. Use `npx --yes pnpm@9.15.9 ...` if needed.
-- Git status/log commands may be slow in this checkout because dependency/build folders exist locally. Prefer targeted file commands and avoid relying on full `git status` for quick checks.
+- This folder has `package.json`, `pnpm-workspace.yaml`, `apps`, `packages`, `scripts`, `docs`, `.github`, `.codex`, `DESIGN.md`, and `STATUS.md`.
+- This folder did not show a `.git` directory during inspection, so treat it as an extracted working copy unless Git is later initialized.
+- `package.json` pins `packageManager: pnpm@9.15.9`.
+- Current source-truth save schema is `SAVE_VERSION = 38` in `packages/engine/src/config/difficulty.ts`.
+- The save migration chain is registered in `packages/engine/src/save/migrations.ts`; version 35 migrates to 36 by adding AGM profile/log defaults and `ownerMandates`, version 36 migrates to 37 by trimming long-running media-cycle collections, and version 37 migrates to 38 by repairing/trimming event-log metadata.
 
 ## Repo Topology
 
@@ -27,24 +35,1245 @@ This guide is for future Codex sessions working on Mr. Football Dynasty (MFD). I
 - `packages/content`: bundled JSON content, validated by engine Zod schemas at import time.
 - `packages/design-system`: shared pixel/broadcast UI components and CSS tokens.
 - `scripts`: launch gates, playtest reports, smoke tests, grading scripts.
-- `_canon/seeds/mfd`: canonical playtest seed outputs.
-- `.github/workflows`: CI and deploy.
-- `.codex/MFD`: old sprint/checkpoint notes.
 
-## Package Commands
+## Source Map For Future Codex
 
-Root `package.json`:
+Use this map before editing. It is intentionally path-first because stale comments and release docs have drifted before.
 
-- `pnpm dev`: starts `@mfd/web`.
-- `pnpm build`: recursive package build.
-- `pnpm test`: recursive tests.
-- `pnpm test:engine`: engine tests only.
-- `pnpm typecheck`: recursive typecheck.
-- `pnpm test:perft`: alias for deterministic playtest-all.
-- `pnpm test:shadow`: shadow regression script.
-- `pnpm grade-season`: season grading script.
+- `packages/engine/src/config`: constants and configuration. `difficulty.ts` owns `SAVE_VERSION`; `cap-math.ts`, `positions.ts`, `schemes.ts`, `rookie-slots.ts`, and `navigation.ts` hold named constants and tables.
+- `packages/engine/src/types`: serialization/domain contracts. `franchise.ts` is the large `GameState` aggregate; `player.ts`, `team.ts`, `season.ts`, `schedule.ts`, `transactions.ts`, `governance.ts`, `records.ts`, and `sim.ts` split supporting types.
+- `packages/engine/src/rng`: Mulberry32 channels. Sim paths use `rng`, `rngI`, `rngD`, `rngAI`, `rngT`, `rngDev`, `rngEvent`, `pick`, `pickD`, and `uid`.
+- `packages/engine/src/save`: Zod save schema, migration pipeline, fixtures, and golden save tests. Add persistent fields here before trusting any UI save/load path.
+- `packages/engine/src/systems`: pure game systems. High-risk shared spine files include `franchise-week.ts`, `franchise-week-helpers.ts`, `game-sim.ts`, `offseason.ts`, `draft.ts`, `contracts.ts`, `contract-helpers.ts`, `trade-*`, `cba-engine.ts`, `league-rules.ts`, `invariants.ts`, `season-smoke.test.ts`, `full-season.test.ts`, and `save-round-trip.test.ts`.
+- `packages/engine/src/media-cycle`, `storyline-threads`, `rivalries`, `season`, and `playtesting`: pure subsystems outside the main `systems` folder. The playtesting harness feeds `pnpm test:perft`.
+- `apps/web/src/app`: runtime shell. `App.tsx` owns hash routes, nav groups, route-level overlays, Chip mounting, ceremonies, year-rollover local archives, command palette, and mobile nav. `store/game-store.ts` owns all gameplay actions. `store/sim.ts` is the async boundary around engine advance. `store/persistence.ts` owns cartridge import/export validation. `store/seed.ts` creates new dynasties.
+- `apps/web/src/features`: route and workflow UI. Most folders map one-to-one to a route or modal surface. Keep business logic thin and call `useGameStore` actions or pure engine helpers.
+- `apps/web/src/lib`: browser-only persistence/presenter helpers that do not belong in engine, including Dexie saves, localStorage archives, dynasty chronicle presenters, playoff lore, roster continuity, rookie-of-year, and team content resolution.
+- `packages/design-system`: shared UI primitives. Exported through `packages/design-system/components/index.ts`; tokens live in `tokens/index.css`.
+- `packages/content`: JSON content loaded by `packages/engine/src/content-loader.ts` and validated by `packages/engine/src/types/content-schemas.ts`.
+- `apps/web/public`: static assets shipped by Vite: Chip pose PNGs, team logos, audio cues, PWA icons, screenshots, and 404 fallback.
+- `scripts`: non-app gates and reports. `check-math-random.sh`, `check-bundle-size.sh`, `smoke-full-season.sh`, `smoke-test-built-page.sh`, `playtest-report.*`, `shadow-regression.*`, and grading scripts are the important launch/quality tools.
+- `.github/workflows`: CI `test` installs, typechecks, tests, builds with `VITE_CHIP_ENABLED=true`, then runs bundle and built-page smoke gates. CI `determinism-gate` runs the Math.random audit and SAVE_VERSION read. Deploy runs typecheck/tests and builds `@mfd/web` with `VITE_CHIP_ENABLED=true` before uploading `apps/web/dist` to GitHub Pages.
 
-If `pnpm` is missing:
+## Repeatable Codebase Audit
+
+Before a broad change, regenerate this inventory instead of trusting old counts. As of the latest scan, excluding `dist` and `node_modules`, `apps`, `packages`, and `scripts` contain 1,084 code/config/content/tooling files matching `.ts`, `.tsx`, `.cjs`, `.js`, `.css`, `.json`, or `.sh`, including 432 test files.
+
+Useful commands:
+
+```bash
+find apps packages scripts -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.cjs' -o -name '*.js' -o -name '*.css' -o -name '*.json' -o -name '*.sh' \) ! -path '*/dist/*' ! -path '*/node_modules/*' | sort
+find apps packages scripts -type f \( -name '*.test.ts' -o -name '*.test.tsx' -o -name '*.test.cjs' \) ! -path '*/dist/*' ! -path '*/node_modules/*' | sort
+find apps/web/src/features -mindepth 1 -maxdepth 1 -type d | sort
+find packages/engine/src/systems -maxdepth 1 -type f -name '*.ts' ! -name '*.test.ts' | sort
+rg -n "TODO|FIXME|HACK|not wired|unwired|Not implemented|Slice C|feature flag|externalTargets" apps packages scripts --glob '!**/dist/**' --glob '!**/node_modules/**'
+```
+
+Largest source areas by file count in the scan:
+
+- `packages/engine/src/systems`: 328 files.
+- `packages/content/teams`: 32 team-content JSON files.
+- `apps/web/src/lib`: 31 files.
+- `apps/web/src/app`: 30 files.
+- `scripts`: 14 top-level script files.
+- `packages/engine/src/types`: 14 files.
+- `packages/engine/src/config`: 14 files.
+
+Ignore as source unless the task explicitly targets them:
+
+- `node_modules` at root/package levels.
+- `dist` output. Current source scan found no committed `apps`/`packages` dist files, but builds regenerate them.
+- `.logs` and `artifacts`, especially screenshots and UI audit outputs.
+- `coverage`, `playwright-report`, `storybook-static`, `tmp`, `.playwright-*`, and `output` per `.gitignore`.
+
+## Runtime Wiring
+
+- App entry: `apps/web/src/main.tsx` mounts `App`.
+- Router/nav: `apps/web/src/app/App.tsx` defines `NAV_ITEMS`, `NAV_GROUPS`, `createRoute` calls, and the hash-history router. If you add a major screen, update route, nav item/group, lazy import, tests, and any route coaching/Chip visibility rules.
+- New dynasty: `NewGameScreen`/store actions call `createSeedGameState(seed, userTeamIndex, difficulty)` in `apps/web/src/app/store/seed.ts`. That factory calls `setSeed(seed)`, generates 32 teams and rosters, initializes league/state systems, then syncs player archives.
+- Game actions: UI calls `useGameStore((s) => s.actions.*)`. Durable actions usually clone state, call an engine function, then `commitGame(nextGame)` to set Zustand state and autosave when enabled.
+- Week advance: `WeekAdvance` calls `actions.advanceWeek`; the store calls `runAdvanceWeek`; `runAdvanceWeek` delegates to `advanceFranchiseWeek` in `packages/engine/src/systems/franchise-week.ts`; returned `EngineOutput.nextState` is committed and post-game UI queues are staged.
+- Saves: manual/autosave payloads go through `buildCartridge`; imports go through `parseCartridge`, `migrate(raw, SAVE_VERSION)`, `SaveStateSchema.safeParse`, and `ensureAgentsInitialized`. IndexedDB slots live in Dexie database `mfd`, table `saves`.
+- Local browser sidecars: career meta, scrapbook, Hall of Fame archive, roster continuity, rookie-of-year history, derived rivalry heat, watch-list prefs, ghost broadcast prefs, Chip read receipts/dock state, setup run state, and some celebration flags use localStorage-style keys outside the main save cartridge.
+- Content: engine code should use `content-loader.ts` helpers. Components should not import raw JSON directly unless a nearby precedent proves the boundary already exists.
+- Chip companion: feature gate is `VITE_CHIP_ENABLED=true`; dock/host/store/event bridge live under `apps/web/src/features/companion`; shared art/component primitives live under `packages/design-system/components/Chip`. Chip copy should name the action or screen, why it matters, and the consequence/deadline; postgame and weekly lines should point to Recap, Film Room, Roster, Depth Chart, Game Plan, Advance Week, or the relevant decision surface instead of generic review/sim shorthand. Assistant GM setup advisor and hiring content are Chip-adjacent first-run guidance even when they live in `packages/engine/src/systems/assistant-gm.ts`, `packages/engine/src/systems/agm-setup-content.ts`, `packages/engine/src/systems/setup-hiring-catalog.ts`, or `packages/content/agm/*.json`; keep them practical and consequence-first around staff fit, scheme fit, roles, snaps, draft grades, cap space, owner pressure, and Week 1 risk. First-run setup Chip should lead with `Must Do`, include a `Where` line when a screen choice is being explained, and keep `Choice Consequences` visible after `Ask Chip` restore. Use `cap space`, not `cap room`, in player-facing Chip and Monday Briefing guidance. Avoid player-facing `true blocker` / `advance blocker` / `required red items` labels; explain whether a required action stops or redirects `Advance Week`, or whether `Advance Week` will still let the player continue. Player-facing weekly outcome labels should use human terms like `strong win`, not raw/internal labels or vague `clean win` copy.
+
+## App Shell And Route Wiring
+
+`apps/web/src/app/App.tsx` is the main React composition file. It owns app-level wiring, not gameplay rules.
+
+Shell branches:
+
+- `App` shows `BootScreen` first when `useBootSequence` has not completed.
+- If the game store is not initialized, it renders `NewGameScreen`.
+- If `game.setupState` is incomplete, it renders `FranchiseSetupWizard` inside `ChipHost` with the 10 `CHIP_FRANCHISE_SETUP_STAGES`.
+- After setup, `PostSetupApp` wraps `RouterProvider` in `ErrorBoundary`, mounts `PoseEventEmitter`, and conditionally mounts `ChipDock`.
+
+`RootLayout` responsibilities:
+
+- Calls `useGlobalKeyboard` and registers number-key route shortcuts plus `Cmd/Ctrl+K` command-palette toggling and `Shift+?` hotkey help.
+- Renders `TopNav`, `BreakingNewsTicker`, `RouteTransition` around `Outlet`, mobile bottom tabs, command palette, tutorial overlay fallback, achievements, ceremonies, season reports, autosave toast, milestone card, breaking news modal, `HalftimeDecision`, playoff lore prompt, season recap prompt, dynasty era prompt, and save-reminder dialog.
+- Mounts app-level controllers/emitters: `AudioController`, `EraTransitionEmitter`, and `ChampionshipParadeEmitter`.
+- Runs year-rollover sidecar syncs for scrapbook, Hall of Fame, roster continuity, rookie-of-year, and derived rivalry archives.
+
+Route and navigation rules:
+
+- `NAV_ITEMS` is the flat source for top nav, command palette screen commands, number-key shortcuts, tutorial coverage extraction, and mobile drawer item labels/icons.
+- `NAV_GROUPS` is the grouped source for desktop group toggles and mobile drawer sections.
+- Route components are a mix of eager imports and `lazy` imports behind `LazyRouteFrame`; add the same styled lazy frame for large route chunks.
+- Routes are registered in one `rootRoute.addChildren([...])` list after all `createRoute` definitions. Direct-navigation checks matter after touching this area because the list remains source-order sensitive.
+- `createHashHistory()` is intentional for GitHub Pages. Do not switch to browser history without handling the `/MFD/` deploy base and 404 fallback.
+- Design-system player links (`PixelPlayerLink`) must navigate through `window.location.hash` to `/player/:id` so roster/player cards resolve under the app's hash router and `/MFD/` deploy base. Do not use browser-history `pushState('/player/:id')` from reusable UI unless the router/deploy contract changes with tests.
+- Direct navigation from store actions uses helper navigation or `window` history for interruption flows such as trade deadline, expansion draft, and CBA. Keep those in web code, not engine.
+
+Route, nav, and guidance boundary map:
+
+- Adding a durable screen usually requires all of these in the same slice: route component import/lazy wrapper, `createRoute`, `routeTree` registration, `NAV_ITEMS`, `NAV_GROUPS`, source tests, tutorial coverage or allowlist, route-coaching decision, mobile behavior, store navigation target coverage when store actions route users there, and direct-navigation verification.
+- `NAV_ITEMS` and `NAV_GROUPS` are currently inline constants in `App.tsx`, not exported from a dedicated nav module. Several tests read `App.tsx` as source text, so extracting or renaming these constants requires updating source guards and tutorial coverage extraction deliberately.
+- `NAV_ITEMS` is broad shell metadata, not only a top-nav list. It drives visible labels, command-palette screen commands, numeric shortcut registration, tutorial coverage extraction, mobile drawer item data, and `data-nav` targets.
+- `NAV_GROUPS` controls desktop group toggles and the mobile More drawer. `MobileBottomTabBar.tsx` has its own hard-coded four primary tabs (`/`, `/roster`, `/game-plan`, `/week-advance`) plus More, so adding a high-priority route to `NAV_ITEMS` does not make it a mobile primary automatically.
+- `/cba` and `/league-rules` are first-class `NAV_ITEMS` in the `LEAGUE` group, not direct-only hidden routes. They appear through desktop league navigation, the mobile More drawer, and command-palette screen search while preserving their existing route components and commit boundaries. They also resolve to unanchored Chip route-coaching keys that explain bargaining/registry ownership without requiring spotlight anchors; the legacy tutorial allowlist remains separate.
+- `computeNavBadges` in `apps/web/src/app/navBadges.ts` is the badge derivation boundary. `RootLayout`/`useNavBadges` supplies `selectTradeOffers`, `selectRoster`, `selectPhase`, `selectCurrentWeeklyPrepPlan`, and `selectHandshakes`, then maps them only to `/trades`, `/depth-chart`, `/game-plan`, and `/handshakes`. Depth-chart starter count/target semantics live in `apps/web/src/lib/depth-chart-starters.ts`. `/inbox` labels this no-shell-badge boundary in `Inbox Sources`; Inbox urgent/decision counts remain route-local header/filter counts.
+- Nav badges are red-dot urgency indicators in desktop `NavItemStrip` and `MobileBottomTabBar` primary/drawer items. The numeric value is currently used for truthiness and mobile `aria-label` copy, not rendered as visible text in the desktop nav.
+- Game-plan badges appear only in `regular_season` or `playoffs` when there is no current weekly prep plan. Depth-chart badges use `DEPTH_CHART_FIELD_STARTER_TARGET = 22` as the shared shell/depth-chart urgency threshold, not exact formation validation. Handshake badges count only `status === 'active'`. Inbox messages, Chip pending decisions, and route-coaching beats are separate systems and do not currently feed shell nav badges.
+- Route registration is source-order sensitive but no longer append-style. `nav-items.test.ts` locks the source relationships between `createRoute` definitions, the unified `rootRoute.addChildren([...])` registration list, `NAV_ITEMS`, `NAV_GROUPS`, unique route paths, and the direct-only route allowlist; preserve or update that test before moving route metadata into a dedicated module. `App.test.tsx` also checks hard-coded store and production component `navigateTo('/literal')` targets, production router `navigate({ to: '/literal' })` targets, production hash-helper `navigateTo('/literal')` / `goTo('/literal')` targets, literal `location.hash = '#/literal'` assignments, production template route targets such as `/player/${player.id}/timeline`, engine AGM recommendation `targetRoute` literals, command-deck route object values, offseason calendar route values, Inbox message link values, Chip onboarding `route` values, and shared EmptyState action-route props against the registered route tree, allowing template segments only where the registered route segment is dynamic.
+- `apps/web/src/app/currentAppRoute.ts` owns app-shell route-context normalization for the hash-history shell. It prefers `window.location.hash`, strips the Vite `/MFD/` deploy base when no hash is present, preserves browser-history-style paths, and returns `/` for missing location data. `PostSetupApp`, `useChipEvents`, `ChipDock` fallback route handling, and `ErrorBoundary` fallback context use this helper instead of duplicating hash/path parsing. Keep `currentAppRoute.test.ts`, companion route-context tests, `ErrorBoundary.test.tsx`, `App.test.tsx`, `nav-items.test.ts`, and route-coaching tests aligned when changing hash-history or Chip route context behavior.
+- `packages/engine/src/config/navigation.ts` exports tested progressive unlock helpers (`NAV_UNLOCK_RULES`, `MIDSEASON_UNLOCK_WEEK`, `getNavUnlockStatus`, `isNavItemUnlocked`) through `@mfd/engine/config`, and the app shell consumes that metadata through `getNavUnlockStatus()` so unlock labels and route availability stay tied to the engine table. New progressive-disclosure rules belong in `navigation.ts`, not duplicated in shell code. The table is reconciled to every current primary `NAV_ITEMS` path and label in source order; `nav-items.test.ts` guards that parity and the shell consumption in `App.tsx`. The preserved explicit gates are `/contracts` and `/trades` at Week 4, `/scouting` and `/power-rankings` at `MIDSEASON_UNLOCK_WEEK = 8`, and `/draft`, `/free-agency`, and `/training-camp` by phase; every other primary nav path is marked always open to match current shell visibility. `/briefing` is not a registered app route and is not listed in `NAV_UNLOCK_RULES`; direct-only routes are also outside the primary-nav table, and unknown routes still fall through to unlocked. Monday Briefing is the home route `/`, and `App.test.tsx` guards that split. The Week 1 tutorial briefing step also targets `/` with `screen:/` and `[data-nav="/"]`, guarded by `tutorial.test.ts`; `TutorialStepSchema` normalizes stale serialized `week1-briefing` rows that still point at `/briefing` during save load/import validation. If progressive tab disclosure changes, wire TopNav, mobile nav, command palette, route coaching/tutorial copy, direct-route affordances, and fallback copy together instead of only hiding buttons.
+- Command palette commands are generated in `RootLayout` from every `NAV_ITEMS` entry, capped `selectRoster` player commands, plus a separate `action-advance-week` command. There is no standalone command registry today; `nav-items.test.ts` guards this app-supplied command contract. Adding non-screen commands means updating `commandItems`, keyboard/help copy if relevant, and focused source or component tests.
+- Numeric route shortcuts are module-scoped keyboard shortcuts registered from `NAV_ITEMS.shortcut` through `registerShortcut`. `Cmd/Ctrl+K` and `Shift+?` are registered through `useShortcut`; unmodified shortcuts are ignored while focus is inside inputs/contenteditable.
+- Route coaching is a separate normalized key space. Current public-release keys live in `ROUTE_KEYS` and `ROUTE_BEAT_REGISTRY` with two beats per key; the registry intentionally covers fewer concepts than `NAV_ITEMS`.
+- `resolveRouteKey` maps many routes onto coaching keys: `/coaching` and `/coaching/*` -> `staff`, `/contracts` and `/cap-lab` -> `cap-laboratory`, `/league-pulse` -> `league-pulse`, `/news` -> `league-news`, `/newsroom` -> `newsroom`, `/social` -> `social-feed`, `/cba` -> `cba`, `/league-rules` -> `league-rules`, `/records`, `/legacy/*`, `/franchise`, and `/franchise/*` -> `record-book`, `/dynasty` -> `dynasty-save-load`, and `/settings` -> `settings`.
+- `useActiveRouteBeats.test.ts` now source-scans `NAV_ITEMS` and requires every primary nav path to be either route-coached or explicitly listed as intentionally uncoached. It also source-scans registered routes from `App.tsx`, derives direct-only paths outside `NAV_ITEMS`, and requires every direct-only route to be explicitly route-coached or explicitly uncoached. This is the guardrail that keeps hidden/direct routes from silently falling through route coaching. The same file still ensures every `ROUTE_KEYS` entry is reachable from a primary nav path or documented direct path such as `/season/recap`, `/trade-deadline`, and `/expansion-draft`.
+- `/season/recap` is a documented direct coached route, not a primary nav item. It resolves to the `season-recap` route key with unanchored Chip beats that describe recap receipts and browser share controls; they do not imply season rollover, save writes, or recap generation.
+- `useActiveRouteBeats` merges onboarding-machine route beats with registry beats and caches unseen registry beats by route-key signature. Do not key new caches on the global seen-beat set; tests enforce bounded cache behavior at `ROUTE_KEYS.length`.
+- Spotlight route guidance only works when the owning screen has exactly one `data-spotlight-target` for each non-null beat target. `spotlightAnchors.test.ts` covers both registry beats and first-ten onboarding-machine `spotlightTarget` values, so update it deliberately when moving anchors, adding route keys, or changing first-ten targets.
+- The legacy tutorial path is still active when `VITE_CHIP_ENABLED=false`. `TutorialCoverage.test.tsx` extracts `NAV_ITEMS` and requires each sidebar route to have a tutorial step or an explicit allowlist entry; keep the allowlist free of routes that already have real tutorial steps.
+
+Chip and route coaching wiring:
+
+- `VITE_CHIP_ENABLED=true` turns on Chip shell behavior; when false, the legacy `TutorialOverlay` path stays active.
+- Setup onboarding uses `readFirstTenMinutesCompleted` fresh on every render to avoid stale first-ten state when a user starts another franchise in the same SPA session.
+- Post-setup Chip route guidance comes from `useActiveRouteBeats(currentRoute, { currentWeek })`, which normalizes app paths in `apps/web/src/features/route-coaching/useActiveRouteBeats.ts` and merges onboarding-machine beats with route-beat registry entries. `App.test.tsx` source-guards every `FIRST_TEN_MINUTE_ONBOARDING_BEATS[*].route` value against the registered route tree; `spotlightAnchors.test.ts` resolves those routes and requires each non-null first-ten spotlight target to appear exactly once on the owning route screen.
+- Chip dock context also receives pending-decision counts, where-am-I state, season year, coach name, active dialogue text, and current Chip pose.
+
+App lifecycle and effect boundary map:
+
+- `useBootSequence` is a session-only browser effect: it reads/writes `sessionStorage` key `mfd-boot-seen`, schedules boot-line timers, and exposes `skip()`. Keep boot state out of `GameState`.
+- `useKeyboard.ts` owns a module-scoped shortcut registry. `RootLayout` calls `useGlobalKeyboard()` once, registers nav number shortcuts from `NAV_ITEMS`, and unregisters them on cleanup; `Cmd/Ctrl+K` and `Shift+?` are local `useShortcut` registrations. `shortcutMatchesEvent`, `isTextEditingShortcutTarget`, and `shouldSkipShortcutForTarget` are exported pure guards so modifier semantics and editable-target suppression stay unit-tested. `useKeyboard.test.ts` also source-guards `useGlobalKeyboard` document listener add/remove cleanup.
+- `useCurrentAppRoute` is only for Chip dock context. It listens to `hashchange` and `popstate` and delegates path normalization to `resolveCurrentAppRoute`; route rendering and active shell state still come from TanStack Router inside `RootLayout`.
+- `PostSetupApp` is the only place `useChipEvents()` starts. The setup branch renders `PoseEventEmitter`, `ChipHost`, and `FranchiseSetupWizard` directly; the post-setup branch wraps `RouterProvider` and the optional `ChipDock` in `ErrorBoundary`. Boot, launch, and setup branches are not inside this fallback.
+- `RootLayout` app effects own screen-level reactions: tutorial step auto-advance, expansion-draft redirect, ceremony/achievement/season-report overlays, `audioCueQueue` playback plus clearing, autosave toast visibility, milestone cards, era prompt, save reminder prompt, and year-rollover sidecar syncs. `App.test.tsx` source-guards that this ownership stays in `RootLayout`, including global shortcuts, route-shortcut cleanup, shell overlays, audio queue handling, save reminders, autosave toast baseline handling, and year-rollover sidecar calls.
+- App-shell `MilestoneCard` overlays are session-local celebration UI derived from user-team wins/year/week thresholds (`first_win`, `win_100`, `season_10`) plus `lastMilestoneCheck`. They are not the saved `GameState.recentMilestones` record-tracker feed.
+- The year-rollover sidecar writes are deliberately app-shell effects, not render logic and not engine transactions. They call `syncScrapbookAtYearRollover`, `syncHallOfFameArchiveAtYearRollover`, `syncRosterContinuityAtYearRollover`, `syncRookieOfYearAtYearRollover`, and `syncRivalriesAtYearRollover` only after guarded year/week checks.
+- `AutosaveToast` is cosmetic. The real autosave happens through `commitGame(nextGame)` and Dexie persistence helpers. `RootLayout` passes its current/previous week through `resolveAutosaveToastStep`, updates the remembered week before showing the cue, then plays `week_advance_complete` and clears shell visibility after 3000 ms; `AutosaveToast` itself displays for 2000 ms, fades for 500 ms, then hides. Do not use the toast as proof that a non-week action persisted, and do not use it as proof that `autosaveEnabled` was honored.
+- Save reminders have split ownership. `advanceFranchiseWeek` can return `showSaveReminder`, but the web store commits only `nextState`; `RootLayout` recomputes the reminder from saved `currentYear` and `game.lastPortableExportYear` during its year-rollover effect. The dialog confirm only navigates to `/dynasty`; it does not call `recordPortableExport` or mutate `lastPortableExportYear`.
+- `ErrorBoundary` fallback reads the normalized current app route through `resolveCurrentAppRoute`, `SAVE_VERSION`, and the last five `window.__MFD_DEV_LOGS__` entries when present. The boundary only stringifies an existing global debug array; it does not populate that log itself. `componentDidCatch` writes to `console.error`, Retry reloads the page, and Return to Briefing sets `window.location.hash = '#/'` while clearing boundary state.
+- Keep lifecycle effects idempotent with refs/session keys/seen arrays. Do not move localStorage sidecar writes, audio playback, route navigation, or timer scheduling into React render bodies.
+
+Focused tests for shell/routing work:
+
+- `apps/web/src/app/App.test.tsx`: source guards for shell landmarks, Chip setup stages, setup gate, post-setup Chip dock, global shortcut and route-shortcut ownership, read-only shell overlays, browser sidecar cues, legacy tutorial fallback, app-level emitters, and unified route-tree registration for achievements/weather.
+- The same `App.test.tsx` file source-scans production route targets: store `navigateTo('/literal')`, component/helper `navigateTo('/literal')`, router `navigate({ to: '/literal' })`, hash-helper `navigateTo('/literal')` / `goTo('/literal')`, literal `location.hash = '#/literal'`, template route targets such as `/player/${playerId}`, engine AGM recommendation `targetRoute` literals, command-deck route object values from `ActionCenter` and `WeekAdvance`, offseason calendar route values from `selectOffseasonCalendar`, Inbox message link values/fallbacks, Chip onboarding `route` values, and shared EmptyState JSX `actionRoute` props. Template segments only match registered dynamic route segments such as `$playerId`.
+- The same `App.test.tsx` file guards achievement UI ownership: `AchievementUnlockToast` stays imported from `features/legacy/AchievementGallery`, while the standalone `/franchise/achievements` route lazy-loads `features/franchise/AchievementsGallery`. Do not swap those two similarly named surfaces casually.
+- `App.test.tsx` also guards the broadcast route quartet: `/broadcast` -> `GameBroadcast`, `/presentation` -> default-exported `BroadcastPresentation`, `/play-by-play` -> `PlayByPlay`, and `/game-flow` -> `GameFlow`.
+- `App.test.tsx` guards coaching route ownership too: `/coaching` -> `CoachingStaff` for staff mutations, `/coaching/tree` -> `CoachingTree`, and `/coaching/relationships` -> `RelationshipGraph` for read-only legacy/relationship presentation.
+- `App.test.tsx` guards money route ownership: `/contracts` -> `ContractsCap`, `/cap-lab` -> default-exported `CapLaboratory`, and `/front-office` -> default-exported `ContractTools`.
+- `App.test.tsx` guards acquisition route ownership: `/trades` -> `TradeCenter`, `/trade-block` -> `TradeBlockTicker`, `/free-agency` -> `FreeAgencyHub`, `/fa-targets` -> `FATargetBoard`, `/team-needs` -> `TeamNeeds`, `/waivers` -> `WaiverWire`, `/practice-squad` -> `PracticeSquad`, `/scouting` -> `ScoutingBoard`, and `/draft` -> `DraftBoard`.
+- `App.test.tsx` guards recap direct-route ownership: `/draft-recap` -> `DraftRecap` and `/season/recap` -> `SeasonRecapScreen`, including their lazy-frame labels.
+- `App.test.tsx` guards player identity route ownership: `/player/$playerId` -> `PlayerProfile`, `/player/$playerId/timeline` -> `PlayerTimeline`, `/compare` -> `PlayerComparison`, `/rivalries` -> `PlayerRivalries`, and `/player-development` -> `PlayerDevelopmentView` through `PlayerDevRouteWrapper`. It also source-guards production template navigation targets so concrete player-profile/timeline calls like `/player/${playerId}` and `/player/${player.id}/timeline` continue matching the registered dynamic route shapes.
+- `App.test.tsx` guards legacy/archive route ownership: `/legacy` -> `LegacyTimeline`, `/legacy/named-games` -> `NamedGamesBrowser`, `/legacy/bloodlines` -> `BloodlinesViewer`, `/awards` -> `AwardsHub`, `/records` -> `RecordBook`, `/franchise` -> `FranchiseHub`, `/legends` -> `FranchiseLegends`, `/franchise/hall` -> `HallOfFameDirectory`, `/franchise/trophy-room` -> `TrophyRoom`, `/franchise/eras` -> `EraHall`, `/franchise/mvps` -> `MvpPlaqueWall`, `/franchise/playoff-lore` -> `PlayoffLoreDirectory`, and `/franchise/chronicle` -> `DynastyChronicle`.
+- `apps/web/src/app/hooks/useBootSequence.test.ts`, `apps/web/src/app/hooks/useKeyboard.test.ts`, `appShellLifecycle.test.ts`, `AutosaveToast.test.tsx`, and `ErrorBoundary.test.tsx`: boot-copy/session behavior, shortcut registry/matching/input-suppression behavior, document listener cleanup, cosmetic save-toast baseline/rendering, and crash fallback context.
+- `apps/web/src/app/scrapbook-rollover.test.ts`, `hall-of-fame-rollover.test.ts`, `roster-continuity-rollover.test.ts`, `rookie-of-year-rollover.test.ts`, and `rivalry-rollover.test.ts`: guarded year-rollover sidecar bridge behavior.
+- `apps/web/src/app/nav-items.test.ts`: source guards for navigation completeness. It parses `App.tsx` to ensure every `NAV_ITEMS` path is unique and backed by a registered route, `NAV_GROUPS` is a complete grouped view of `NAV_ITEMS`, every `createRoute` definition is explicitly registered once, registered route paths are unique, and direct-only routes remain an intentional allowlist. It also guards mobile primary tab paths from `MobileBottomTabBar.tsx`, command-palette sourcing from `NAV_ITEMS` plus `action-advance-week`, `NAV_ITEMS` path/label parity with `NAV_UNLOCK_RULES`, shell use of engine progressive unlock helpers in `App.tsx`, `data-nav` tutorial targets, lazy route frame, player-development wrapper, and audio toggle.
+- `apps/web/src/features/tutorial/TutorialCoverage.test.tsx`: every `NAV_ITEMS` route must have a tutorial step or explicit allowlist entry.
+- `apps/web/src/features/route-coaching/routeBeatRegistry.test.ts`, `useActiveRouteBeats.test.ts`, and `spotlightAnchors.test.ts`: public route-coaching key set/order, copy/pose/spotlight constraints, route normalization, explicit coached/uncoached `NAV_ITEMS` decisions, bounded route-beat cache, reachable route keys, exact registry source anchors, and first-ten onboarding spotlight anchors.
+- `apps/web/src/app/MobileBottomTabBar.test.tsx`, `apps/web/src/app/navBadges.test.ts`, `apps/web/src/app/app-shell.test.ts`, and `apps/web/src/features/shared/transitions/RouteTransition.test.tsx`: mobile nav, badge derivation, shell CSS layout expectations, and route transition behavior. `navBadges.test.ts` locks trade, starter-count, game-plan phase gating, active-handshake counts, and the intentional absence of an `/inbox` shell badge.
+
+## Boot, Launch, Title, And Meta Screen Wiring
+
+This layer is the pre-dynasty and system-info surface. It is user-facing, but most state here is local UI state or import/startup glue, not simulation state.
+
+Boot sequence:
+
+- `apps/web/src/app/hooks/useBootSequence.ts` owns the boot-line data, timed reveal, skip behavior, and sessionStorage key `mfd-boot-seen`.
+- `apps/web/src/app/BootScreen.tsx` renders the visible boot terminal. It skips on click, Enter, Space, or Escape.
+- `App.tsx` renders `BootScreen` before checking whether a game is initialized. Once `mfd-boot-seen` is set for the browser session, boot is bypassed until the session resets.
+- Boot copy currently says `Save pipeline: v38 migration chain // Dexie slots [OK]`, which matches `SAVE_VERSION = 38`.
+
+Launch/start screen:
+
+- `apps/web/src/app/NewGameScreen.tsx` is rendered when `useGameStore.initialized` is false.
+- Normal dynasty start uses `Date.now()` as a seed, calls `createSeedGameState(seed, selectedTeam, difficulty)`, then `actions.newGame(baseState)`.
+- Scenario start creates the same base state, calls `startScenario(selectedScenarioId, baseState, mulberry32(seed ^ (selectedScenarioId.length * 97)))`, deletes `setupState`, then starts the scenario save.
+- Convention demo uses `generateConventionSave('afce1', mulberry32(Date.now()))` and then `actions.newGame(demoState)`.
+- `buildLaunchGameState` is the tested launch-state builder for standard dynasty and scenario starts; `buildConventionDemoLaunchState` is the tested convention-demo builder. Keep those helpers aligned with the button handlers so launch tests can cover the exact seed/scenario/demo paths without driving browser clicks.
+- Continue/import paths use `loadLatestAutosaveGame`, `loadImportedCartridgeFile`, or `loadImportedCartridge(importText.trim())`, then call `actions.loadGame(imported)` only after validation succeeds.
+- Team search/filter, selected difficulty, selected scenario, import text, autosave/import loading flags, and error messages are component-local.
+- `NewGameScreen` renders `Launch Sources`, labeling `createSeedGameState`, `actions.newGame`, validated `loadGame`, scenario/convention/demo ownership, and the render boundary. Opening the launch screen does not create a dynasty, clear sidecars, autosave, import backups, start setup, simulate games, or write `GameState`. Explicit Import actions validate backup text/file data, write a fresh autosave through `autosaveDynasty(imported)`, then call `actions.loadGame(imported)` so `Continue Latest Autosave` survives a hard reload after import.
+- `new-game-screen.css` owns the launch-screen layout and responsive styling. Keep first-screen-specific CSS there.
+
+Launch, import, and setup-bypass boundary map:
+
+- Normal New Dynasty uses the web seed factory in `apps/web/src/app/store/seed.ts`, not an engine package seed helper. `createSeedGameState` writes `SAVE_VERSION`, 2026 Week 1 preseason state, default halftime settings, initialized league/governance/scouting/difficulty/dashboard/achievement systems, `tutorialState: createDefaultTutorialState(true)`, `scenarioState: undefined`, and `setupState: createSetupState()`, then calls `ensureAgentsInitialized` and `syncAllPlayerArchiveEntries`.
+- `App.tsx` handles setup after a game is initialized: if `game.setupState` exists and `completedPhases.length < PHASE_ORDER.length`, it renders `FranchiseSetupWizard` inside `ChipHost`; otherwise it renders `PostSetupApp`. The boot screen and `NewGameScreen` sit before this gate.
+- `actions.newGame(initial)` is a special startup path. It finalizes prior dynasty meta, clears scrapbook/HOF/roster-continuity/rookie-of-year sidecars for the incoming dynasty id, syncs career meta, replaces the global derived rivalry sidecar from the incoming save, resets session prompt state, marks the app initialized, and immediately calls `autosaveDynasty(initial)`.
+- Continue paths use `actions.loadGame(loaded)` after autosave validation. Explicit import paths first parse/migrate/schema-validate backup text or file data, write `autosaveDynasty(imported)`, then call `actions.loadGame(imported)`. `loadGame` syncs career meta, replaces the global derived rivalry sidecar from the loaded save, and resets session prompt state, but it does not autosave by itself and does not clear incoming-dynasty sidecars. Failed continue/import validation errors and import autosave-write failures stay local and should remain non-mutating.
+- `apps/web/src/app/store/persistence.ts` owns imported-cartridge normalization: parse cartridge -> migrate to `SAVE_VERSION` -> `SaveStateSchema.safeParse` -> `ensureAgentsInitialized`. File import is only an async text wrapper over text import. Dexie slot timestamps and launch `Date.now()` seeds are startup/metadata concerns, not sim outcomes.
+- Launch scenario start uses the normal seed factory, applies `startScenario`, then deletes `setupState` before `newGame`, so it bypasses first-run setup. The in-save scenario catalog route lives at `apps/web/src/features/scenario/ScenarioSelect.tsx`; `startScenarioChallenge` creates a fresh seeded game from the current user franchise/difficulty, preserves completed scenario grades, deletes `setupState` after applying `startScenario`, commits/autosaves through the normal store path, and navigates home. Both scenario entry points therefore enter the post-setup app instead of reopening first-run setup. Detailed scenario constraint notes live in the scenario boundary map.
+- Convention demo uses `generateConventionSave('afce1', mulberry32(Date.now()))`, then `newGame`. The engine helper builds a dedicated Week 14 showcase state, validates it with `SaveStateSchema`, starts with `tutorialState: createDefaultTutorialState(false)`, and does not include `setupState`, so it also bypasses first-run setup while still using `newGame` sidecar clearing/autosave behavior.
+- `Date.now()` is acceptable for user-started new saves, scenario starts, and convention demo startup seeds. Do not put wall-clock values into deterministic sim outcomes after a save exists. Note that `startScenario(..., _rng)` currently accepts but does not consume the RNG argument, while convention-save setup does consume its RNG.
+- `NewGameScreen` now exposes a New Dynasty setup-path choice. Full Setup remains the default and keeps the seeded `createSetupState()` row. Fast Lane appears as an enabled repeat-player path only when browser-local `mfd:first-ten-completed` is true; selecting it replaces only the initial setup state with `createFastLaneSetupState(baseState, userTeam.id)`. Immediately before `actions.newGame`, New Dynasty persists the selected `mfd:setup-run-mode` as `full` or `fast_lane`. Scenario Challenge, Convention Demo, Continue, and Import still bypass this setup-path writer.
+
+Title/attract mode:
+
+- `apps/web/src/features/title/AttractMode.tsx` mounts inside `NewGameScreen`.
+- It idles for `ATTRACT_MODE_IDLE_MS = 12_000`, advances every `ATTRACT_MODE_FRAME_MS = 2_800`, and builds deterministic demo moments with `mulberry32(ATTRACT_MODE_SEED)`.
+- The rendered attract frame labels `NewGameScreen` inputs, the seeded picker, and the render-only boundary: timers/input can activate, advance, or dismiss the current mount, but the reel does not create a dynasty, start setup, write `GameState`, autosave, simulate games, or touch `Math.random`.
+- `reduceAttractModeState` is pure and tested. User pointer or keyboard input dismisses the reel for the current mount.
+- Do not replace the seeded attract-mode picker with `Math.random()` or wall-clock-driven frame choices.
+
+Meta/info routes:
+
+- `/about`, `/credits`, and `/faq` are lazy routes in `App.tsx`, included in `NAV_ITEMS`, `NAV_GROUPS` meta group, and `routeTree`.
+- `AboutScreen.tsx` renders static identity, repository/play-guide links, `__MFD_VERSION__`, and save-version copy.
+- `CreditsScreen.tsx` renders static launch credits.
+- `FaqScreen.tsx` renders static launch answers, including save/rivalry/audio/bug-report copy.
+- `NewGameScreen.tsx`, `AboutScreen.tsx`, and `FaqScreen.tsx` now derive save-version copy from engine `SAVE_VERSION`. Keep focused tests asserting the current version and absence of stale v35 copy when that source truth changes.
+
+Safety rules:
+
+- Boot/session state is browser session UI state. Do not persist it in `GameState`.
+- `Date.now()` is acceptable for choosing a new dynasty seed. Do not use it inside deterministic simulation outcomes after seeding.
+- Launch import flows must validate cartridges before `loadGame`; keep malformed import errors visible and non-mutating.
+- Scenario and convention starts bypass first-run setup intentionally; changing that behavior is user-facing and must be verified against setup/Chip expectations.
+- If adding meta routes, update `NAV_ITEMS`, `NAV_GROUPS`, route registration, command palette/source tests, and tutorial coverage/allowlist as needed.
+
+Focused tests for boot/launch/title/meta work:
+
+- `apps/web/src/app/hooks/useBootSequence.test.ts`: boot copy, counts, and migration-chain string.
+- `apps/web/src/app/NewGameScreen.test.ts` and `NewGameScreen.test.tsx`: launch recovery/import, difficulty/team rendering, rookie guidance, Launch Sources, launch state builders, and source guards.
+- `apps/web/src/features/title/AttractMode.test.ts`: deterministic moments, reducer behavior, and source/no-write boundary copy.
+- `apps/web/src/features/launch/AboutScreen.test.tsx`, `CreditsScreen.test.tsx`, and `FaqScreen.test.tsx`: static copy and route reachability.
+- `apps/web/src/app/nav-items.test.ts`, `app-shell.test.ts`, and `TutorialCoverage.test.tsx` when adding/removing launch or meta routes.
+- `apps/web/src/app/store/persistence.test.ts`, `apps/web/src/app/round2-convention.test.ts`, and `round3-grand-opening.test.ts` when import/convention startup behavior changes.
+
+## Monday Briefing, Action Center, And Home Dashboard Wiring
+
+The `/` route is the command deck, not a static landing page.
+
+Primary ownership:
+
+- `apps/web/src/features/monday-briefing/MondayBriefing.tsx` renders the home dashboard, phase strip, command queue, Chip briefing bubbles, customizable widgets, narrative pulse, and dashboard customization modal.
+- `ActionCenter.tsx` derives immediate actions from phase, missing game plan, starter count, trade offers, owner approval, and injuries. It renders a Living Week action plan with Must Do, Recommended, and Optional lanes; Must Do is reserved for required actions that stop or redirect `Advance Week`, Recommended combines current alerts with AGM advice, and Optional keeps legal team-building routes visible. When `game` is provided, it opens an AGM recommendation modal from `getAGMWeeklyRecommendations(game, 3)` and renders read-only active scenario-lock notices from `getScenarioConstraintCoverage(game.scenarioState.activeScenario.constraints)`. Its local command-queue `route` values and AGM modal `AGMRecommendation.targetRoute` values both flow through variable `navigateTo(...)` calls; `App.test.tsx` source-guards them against the registered web route tree.
+- `MondayBriefing.tsx` renders a read-only `Team Ops Carryover` panel from `buildTeamOpsImpactReceipt(game, team.id)` when a loaded game/team exists. It reads saved `team.facilityState`, `team.medicalStaff`, `game.activeMentors`, `game.mentorBudget`, and `game.trainingCampResults`; Settings, Training Camp, and Alumni Mentors remain the real commit owners.
+- `PhaseIndicator.tsx` maps `SeasonPhase` strings to short phase labels/tips. Unknown phases fall back to uppercased text, so adding a new phase should update this component intentionally.
+- `AlumniTicker.tsx` renders `getAlumniUpdates(game, year)` and respects reduced motion by switching from marquee to wrapped static items.
+- `BreakingNewsTicker.tsx` is mounted by `App.tsx`, not inside `MondayBriefing`. It filters league news to non-minor items, keeps the first four, and auto-rotates only when reduced motion is off.
+
+Dashboard state and store flow:
+
+- Saved `game.dashboardState` owns `activeLayoutId`, `layouts`, and `pinnedWidgets`. Defaults come from `createDefaultDashboardState()` in `packages/engine/src/systems/dashboard-config.ts`.
+- `DashboardWidget` lives in `packages/engine/src/types/season.ts`; `DashboardStateSchema` in `packages/engine/src/save/schema.ts` must accept every widget id.
+- Store actions `pinWidget`, `unpinWidget`, `switchLayout`, and `saveLayout` clone `GameState`, call dashboard-config helpers, and `commitGame(nextGame)`.
+- The customize modal's `draftName`, `draftColumns`, and `draftWidgets` are component-local until `saveLayout` is clicked. Do not treat unsaved modal edits as durable state.
+- The default dashboard layout is `layout:default` / `Command Center` with 3 columns and these eight widgets: `team_record`, `next_game`, `injury_report`, `cap_snapshot`, `power_ranking`, `league_headlines`, `promise_tracker`, and `training_report`.
+- `dashboard-config.ts` lazily creates a default dashboard when a helper receives an older/missing `game.dashboardState`. New saves use `createDefaultDashboardState()` in `seed.ts`; save parsing has a `DashboardStateSchema` default; migration 11 backfills `dashboardState` alongside achievements, special teams, and season reports.
+- `createLayout(game, name, widgets, columns)` slugifies `name` into `layout:<slug>`, dedupes widget ids, and replaces any existing layout with the same id. `switchLayout` ignores unknown ids. `pinWidget` dedupes pins; `unpinWidget` filters them out.
+- `reorderWidgets(game, layoutId, newOrder)` only keeps widget ids already present in the target layout and returns `null` for unknown layouts. Store `saveLayout` uses it when editing an existing layout after mutating the layout name/column count; saving a new layout calls `createLayout` and switches to the new id.
+- `getActiveDashboardLayout(game)` returns the active layout when found, otherwise the first saved layout. It is an engine helper, but the inspected `MondayBriefing` route currently resolves active layout inline from `dashboardState.layouts`.
+- Pinned widgets render in a separate grid above the active layout grid. A pinned widget can also remain in the active layout; pinning is an always-on presentation affordance, not removal from layout membership.
+
+Selector and widget inputs:
+
+- `MondayBriefing` reads many selectors: achievements/progress, story arcs, coaching market/news, conditional picks, weekly prep, dashboard state, dynasty score/window, facilities, fatigue, handshakes, latest game-day package, film-room report, league news, narrative intensity, owner state, phase/week/year, playoff momentum/picture, roster, stat leaders, team schedule, teams, trade offers, training assignments, upcoming rivalry, user power ranking, user record watch, waiver wire, weather, and user team.
+- `ActionCenter` receives `game` for guidance and now derives a compact last-week result from saved `game.weekSummaries` plus `game.gameDayState.recentPackages` through engine `buildPostWeekMoment`. It renders the headline, record/score/result badges, two `whatNow` prompts, and a `/week-advance` CTA for `Advance Week`. Player-facing copy should say the result is already saved and that reading it does not advance the week, change media, or edit reports.
+- Widget rendering is local to `renderWidget(widget)`. Adding a widget requires updating `DashboardWidget`, save schema, `WIDGET_OPTIONS`, `renderWidget`, default layout choice if appropriate, and Monday briefing tests.
+- Dashboard layout ids are generated from layout names in `createLayout`; duplicate normalized names replace the existing layout id. Avoid using user-facing layout names as long-term external references.
+
+Chip and route coaching:
+
+- `selectMondayBriefingChipDialogue` maps phase/week/seed/latest result/margin/recent-result streak into the weekly Chip dialogue catalog. It is gated by `VITE_CHIP_ENABLED`.
+- Chip briefing bubbles use `data-chip-monday-briefing="intro"` and `"outro"` and do not replace the action center or widgets.
+- Route coaching anchors are `chip.route.monday-briefing.beat-1` on the action center and `chip.route.monday-briefing.beat-2` on the coaching loop. Keep `routeBeatRegistry.ts` and `spotlightAnchors.test.ts` aligned if those anchors move.
+
+Safety rules:
+
+- Home dashboard widgets are cross-system read models. Prefer selectors or existing engine helpers over duplicating logic inside the component.
+- If a new widget needs persistent configuration, route it through typed dashboard state, save schema, migrations/defaults, and old-save verification.
+- Keep reduced-motion behavior for ticker/AlumniTicker/Chip bubbles when changing home animations.
+- `ActionCenter` navigation uses `navigateTo`; do not move browser routing into engine recommendation helpers.
+
+Focused tests for home dashboard work:
+
+- `apps/web/src/features/monday-briefing/MondayBriefing.test.tsx`: widget-driven dashboard and key rendered data.
+- `apps/web/src/features/monday-briefing/MondayBriefing.integration.test.tsx`: deterministic Chip dialogue variant selection and Chip slots.
+- `ActionCenter.test.tsx`, `PhaseIndicator.test.tsx`, `AlumniTicker.test.tsx`, and `BreakingNewsTicker.test.tsx`: command queue, phase labels, reduced-motion ticker behavior, and news filtering.
+- `packages/engine/src/systems/dashboard-config.test.ts`, `packages/engine/src/save/schema.ts`, `packages/engine/src/save/migrations.ts`, and save/golden tests if `dashboardState` or widget ids change.
+
+## Inbox, Decision Queue, And Notification Wiring
+
+The `/inbox` route is a generated triage surface, not a persisted mailbox.
+
+Primary ownership:
+
+- `apps/web/src/features/inbox/InboxTriage.tsx` renders filters, message list, detail modal, hard-coded fallback CTAs, and the apology-tour replay panel.
+- `apps/web/src/features/inbox/buildInboxMessages.ts` is the pure message-projection helper. It consumes store selectors and saved state snapshots, returns `InboxMessage[]`, and does not mutate game state.
+- `apps/web/src/features/inbox/ApologyTourModal.tsx` replays four authored apology-tour beats from `getApologyTourBeat` and renders `Tour Sources` rows for the saved thread, authored beat, modal-local replay state, and delivered-beat ledger.
+- `/inbox` is registered in `App.tsx` through `NAV_ITEMS`, `NAV_GROUPS`, and `inboxRoute`; route coaching resolves it through `routeBeatRegistry.ts` and `useActiveRouteBeats.ts`.
+
+Message source model:
+
+- Most inbox messages are regenerated from current `GameState`/selector inputs on render. Current component state owns `filter`, `selectedMsg`, and `tourThread`.
+- The current `InboxMessage.read` flag is only a display hint returned by `buildInboxMessages`. There is no durable inbox read-state sidecar today. `buildInboxMessages.test.ts` source-guards that opening a message stays local to `selectedMsg`, avoids store actions/browser storage, and does not consume saved `ownerPersonalityInbox`.
+- `read` values are regenerated by message source, not by user interaction. Most generated messages are unread; press conferences, injury reports, and fallback narrative headlines are currently pre-read display items.
+- `InboxTriage.tsx` collects all `BuildInboxMessagesParams` from store selectors plus `tradeDeadlineWeek` and `compPickLimit` from active league rules and `upcomingGame` from the current team schedule. If adding a message source, update the selector list, `useMemo` dependency array, and focused builder tests together.
+- `buildInboxMessages` returns messages in builder insertion order. It does not globally sort by week, urgency, source, or read state, and it only dedupes where a source explicitly does so today, such as apology-tour delivered beat keys.
+- Apology-tour inbox cards are regenerated from the last three user-team threads, filtered by delivered beat keys, with deterministic ids shaped as `apology-${thread.id}-${beat}`. The replay panel is separate component state and does not mark beats read or resolved; its `Tour Sources` copy labels `beatsDelivered`, `getApologyTourBeat`, local `beatIndex`, and the no-read/no-resolution/no-sidecar boundary.
+- `ownerPersonalityInbox` is a saved `GameState` field seeded in `seed.ts`, defaulted by save schema/migrations, and currently separate from the `/inbox` route projection. Do not treat it as proof that web inbox messages are stored.
+- Engine systems can still create durable source material for inbox messages, usually through existing saved feeds. Examples: `advanceStoryArcs` returns `inboxEntries` that `franchise-week.ts` records as `leagueNews`; contingency wiring can also record league-news items when a user contingency fires.
+
+Current message categories include:
+
+- Game-day package or weekly summary, achievements, waiver results, practice-squad transactions, primetime/flex schedule, missing weekly prep, coaching hot seat, film-room reports, trade suggestions, team needs, FA board, draft offers, contract extension responses, story arcs, off-field events, agent leaks, handshakes, press conferences, coaching news, trade proposals, rivalry context, comp/conditional picks, waiver wire, trade deadline, training milestones, adaptive difficulty, weather, owner approval, holdouts, trade block, injuries, league news, cap alerts, playoffs, season reports, draft recaps, fatigue, facilities, medical staff, playoff momentum, ceremonies, and apology-tour beats.
+
+Routing and guidance:
+
+- Message deeplinks use `message.link` first. Current explicit game-day packages link to `/presentation`; fallback sender routing maps `Film Room` to `/film-room`, `Prep Desk` to `/game-plan`, and `Ownership` to `/coaching`.
+- `App.test.tsx` source-guards Inbox `buildInboxMessages` `link` values plus `InboxTriage` selected-route fallbacks against the registered web route tree because the detail modal navigates through the variable `selectedRoute`.
+- Messages without `message.link` or one of those three sender fallbacks can still be `actionRequired`, but they currently render no route CTA. The detail modal CTA navigates only; it does not clear a decision, mutate state, or acknowledge the message.
+- Trade-deadline inbox reminders are pure generated messages keyed to the configured `trade_deadline_week` display input. `InboxTriage.tsx` derives that week from league rules and passes it into `buildInboxMessages`; the builder has no store or rule-table dependency.
+- Route coaching beats are `chip.route.inbox.beat-1` and `chip.route.inbox.beat-2`. Both currently use `spotlightTarget: null`, so `spotlightAnchors.test.ts` expects no inbox DOM anchors.
+- `featureVisibilityMatrix.ts` describes Inbox as a route-beat guidance feature, but `computeNavBadges` does not currently badge `/inbox`; `navBadges.test.ts` guards that shell badges cover trades, depth chart, game plan, and active handshakes only. `Inbox Sources` now labels this as the shell badge boundary.
+- Chip pending-decision counts come from `features/companion/decisionsPending.ts` and are independent of inbox message counts.
+
+Safety rules:
+
+- If adding durable read receipts, snoozes, or archived inbox state, decide explicitly between a browser-local sidecar and saved `GameState`. Saved state requires type/schema/migration/seed/default/old-save tests.
+- Keep `buildInboxMessages` deterministic and side-effect free. It should remain easy to unit test with plain objects.
+- Keep ids stable and source-backed. Multiple-record sources should include a durable source id or year/week discriminator instead of relying on only the current week; generic condition messages should be safe to regenerate or replace each render.
+- Do not make user-facing inbox CTAs claim a decision is required unless the target workflow can actually clear or affect the underlying condition.
+- Keep sender-string fallback navigation in sync when changing `from` labels; otherwise CTAs can silently disappear.
+- If adding route-coaching spotlight targets for Inbox, add exactly one matching `data-spotlight-target` per target and update `spotlightAnchors.test.ts`.
+
+Focused tests for inbox work:
+
+- `apps/web/src/features/inbox/buildInboxMessages.test.ts`: message ordering, generated ids, urgency/action flags, duplicate apology-tour beats, deeplinks, and the no-durable-read-receipt source guard.
+- `apps/web/src/features/inbox/ApologyTourModal.test.tsx`: replay modal behavior, beat progression, and `Tour Sources` boundary copy.
+- `apps/web/src/features/route-coaching/routeBeatRegistry.test.ts`, `useActiveRouteBeats.test.ts`, and `spotlightAnchors.test.ts`: route key, beat ids, and optional spotlight anchors.
+- `apps/web/src/app/nav-items.test.ts`, `navBadges.test.ts`, `MobileBottomTabBar.test.tsx`, and `App.test.tsx` when route/nav/badge behavior changes.
+- Save/schema tests only when a change introduces or repurposes durable inbox-related state such as `ownerPersonalityInbox` or a new read-receipt field.
+
+## Newsroom, League Wire, Social Feed, And Breaking News Wiring
+
+This layer displays saved media feeds and generated editorial context. It overlaps with narrative systems, but the web routes are display surfaces and should not generate simulation outcomes.
+
+Saved feed ownership:
+
+- `game.leagueNews` stores `NewsItem[]`. Engine helper `recordNewsItem` dedupes by `id` and keeps the latest 200 items.
+- `game.socialFeed` stores `SocialPost[]`. Engine helper `appendToSocialFeed` keeps the latest 100 posts.
+- `game.powerRankings` and `game.mediaCycle` store weekly ranking/media-cycle state. `mediaCycle.powerRankingHistory` feeds rank deltas.
+- `game.storylineThreads` stores multi-week thread cards for newsroom display.
+- `game.breakingNewsQueue` stores full-screen interrupt events. It is separate from `leagueNews` and the top ticker.
+- All of these fields are save-schema owned. Adding or reshaping a persistent feed requires type, schema, migration/default, seed, and old-save tests.
+
+Engine generation sources:
+
+- `packages/engine/src/systems/league-news.ts` owns league-wire writes for governance, labor, records, milestones, weekly results, injuries, signings, coaching, Hall of Fame, and comp-pick news.
+- `packages/engine/src/systems/social-feed.ts` owns deterministic posts for governance, labor, players, game day, transactions, records, milestones, cap moves, and weekly buzz. Pass explicit RNGs; do not use `Math.random()`.
+- `packages/engine/src/media-cycle/weekly-digest.ts` calls `computePowerRankings`, `generateHeadlines`, and `generateHotTakes`.
+- `packages/engine/src/media-cycle/power-rankings.ts` ranks teams with strength, win percentage, momentum, and strength-of-victory components, then derives deltas from previous media-cycle history.
+- `packages/engine/src/systems/narrative-director.ts` owns `generateBreakingNews`, which creates full-screen interrupts from coaching firings, blockbuster trades, star season-ending injuries, records/milestones, playoff elimination, and Super Bowl matchup events.
+- `franchise-week.ts` is the main weekly write path: it updates media cycle history, league news, storyline threads, social feed, and queues breaking-news interrupts after the engine advance path returns.
+- `generateWeeklyLeagueNews(game, rng)` targets 3-8 stories from the just-completed week using completed game results, injury items, milestone candidates, and top-team pulse fallbacks, then writes through `recordNewsItem`.
+- The web store builds `breakingNewsQueue` with a local seeded PRNG from `buildIntelSeed(game, "breaking-news:<year>:<week>")`, caps it to the first 5 events after `advanceWeek`/`resolveHalftimeDecision`, and commits dismissals by dropping one queue item at a time.
+
+Web route and overlay ownership:
+
+- `/newsroom` renders `apps/web/src/features/newsroom/NewsroomDigest.tsx`. It reads league news, power rankings, user ranking, user team, and storyline threads.
+- `NewsroomDigest` chooses the lead story by importance first and recency second, shows up to four sub-headlines, embeds `PowerRankingsTicker`, filters active storyline threads, and opens `HeadlineModal`.
+- `NewsroomDigest` has only local modal state. Its optional `storylines` prop is a test override; normal route data comes from `selectStorylineThreads`.
+- Newsroom source clarity is shipped as a read-only UI slice: `NewsroomDigest` renders a `Media Sources` panel explaining that the route projects saved league news, saved route power rankings, and active storyline threads; it does not generate stories during render, and full-screen Breaking News interrupts stay in the separate `breakingNewsQueue` while the top ticker reads `leagueNews` outside the route.
+- `HeadlineModal.tsx` is a detail modal for one `NewsItem`; its buttons navigate to `/power-rankings` and `/news`. It renders a read-only `Story Receipt` from the saved `game.leagueNews` row, `NewsItemSchema` id, story year/week, linked team/player ids, engine/news writer ownership, and a no-write boundary for story generation, `leagueNews`, breaking-news dismissal, week advance, and autosave.
+- `PowerRankingsTicker.tsx` reads `selectPowerRankings`, highlights the user team through `selectUserTeamId`, and navigates to `/power-rankings` when clickable. It now renders a ticker-local source strip that labels both selectors, the clickable/static embed mode, and the no-recalculate/no-media-write/no-save/no-RNG boundary.
+- `StorylineThreadCard.tsx` renders archetype label, heat meter, latest beat, next-beat hint, affected team chips, optional click behavior, and a read-only `Thread Receipt` from saved `storylineThreads`: source key/archetype, start/update week, beat count/latest beat, week-advance lifecycle owner, and the no-write render boundary.
+- `/news` renders `apps/web/src/features/league-news/LeagueNews.tsx`, with component-local filters (`all`, `my-team`, `trades`, `injuries`, `records`, `coaching`) and component-local expanded story ids.
+- `/social` renders `apps/web/src/features/social/SocialFeed.tsx`, with component-local source filters and reversed feed order. `buildVisibleSocialPosts(feed, filter)` is the pure projection helper: it clones/reverses the saved feed for newest-first display, filters only by `post.source`, and must not mutate saved `game.socialFeed`.
+- `/news` and `/social` feed-source clarity is shipped as a read-only UI slice: `LeagueNews` labels the saved `leagueNews` source, route-local filters, and separate app-shell ticker/Breaking News interrupt surfaces; `SocialFeed` labels saved `socialFeed`, newest-first projection, source-only filters, unsaved filter choices, and no render-time post generation.
+- `RootLayout` mounts `BreakingNewsTicker` only on `/`, `/broadcast`, `/play-by-play`, `/game-day`, and `/game-flow` when non-minor league news exists and no full-screen breaking-news interrupt is active. `App.test.tsx` guards that the ticker reads `leagueNews`, the modal reads `breakingNewsQueue[0]`, and the full-screen interrupt suppresses the ticker until dismissed.
+- `BreakingNewsTicker.tsx` filters to non-minor league news, keeps the first four selector-ordered stories, resets index when items change, and auto-rotates only when reduced motion is off. Its visible source line now labels `leagueNews via selectTickerItems`, `read-only`, and the no queue-dismiss/story-generation/save/RNG boundary, with the full `breakingNewsQueue` separation in the title text.
+- `features/shared/BreakingNews.tsx` is the full-screen interrupt overlay. `RootLayout` reads `game.breakingNewsQueue[0]`, and `actions.dismissBreakingNews` clones state, drops the first queue item, and commits.
+- Route coaching now splits `/league-pulse`, `/news`, `/newsroom`, and `/social` into `league-pulse`, `league-news`, `newsroom`, and `social-feed` keys in `useActiveRouteBeats.ts`. These media beats are unanchored guidance (`spotlightTarget: null`) and `spotlightAnchors.test.ts` maps them to `LeaguePulse.tsx`, `LeagueNews.tsx`, `NewsroomDigest.tsx`, and `SocialFeed.tsx` so future anchored beats must be deliberate.
+
+Selector and ordering rules:
+
+- `selectLeagueNews` returns `getRecentNews(game, game.leagueNews.length)`, so route consumers see newest first.
+- `selectTeamNews` returns the latest 24 stories involving the user team.
+- `selectSocialFeed` exposes saved order; `SocialFeed` reverses locally for newest-first display.
+- Social feed filters are source-only (`all`, `player`, `fan`, `analyst`, `reporter`). There is no saved team/player/trigger filter state or browser sidecar today.
+- `selectPowerRankings`, `selectUserPowerRanking`, and `selectStorylineThreads` are direct read selectors with empty fallbacks.
+- Do not duplicate feed sorting logic in new routes without checking selector order first.
+
+Safety rules:
+
+- Keep feed generation in engine systems or explicit store actions, not inside React render paths.
+- Preserve feed caps unless deliberately changing save size or route performance.
+- Keep `breakingNewsQueue` separate from `leagueNews`: full-screen interrupt items do not have `NewsItem` ids/type/team ids, and ticker stories should not consume or dismiss queue entries.
+- Keep `/news` and `/social` filters local unless intentionally adding a browser sidecar; filter state is not saved dynasty data today.
+- If changing power-rankings math, document formula before/after, include sample outputs, and run deterministic ranking/media-cycle tests.
+- If changing ticker or overlay behavior, preserve reduced-motion behavior and the separation between `leagueNews` ticker items and `breakingNewsQueue` interrupts.
+- If adding content templates for news or social posts, update `packages/engine/src/content-loader.ts`, `types/content-schemas.ts`, content tests, and the `Content System` section.
+- If a route CTA changes, verify `navigateTo` targets still exist in `App.tsx`.
+- If adding media-route-specific route coaching, update `routeBeatRegistry.ts`, `useActiveRouteBeats.ts`, `spotlightAnchors.test.ts`, tutorial coverage, and this section together.
+
+Focused tests for newsroom/media-feed work:
+
+- Web: `NewsroomDigest.test.tsx`, `HeadlineModal.test.tsx`, `PowerRankingsTicker.test.tsx`, `StorylineThreadCard.test.tsx`, `LeagueNews.test.tsx`, `SocialFeed.test.tsx`, `BreakingNews.test.tsx`, and `BreakingNewsTicker.test.tsx`. `HeadlineModal.test.tsx` guards the `Story Receipt` saved-source/no-write copy, `PowerRankingsTicker.test.tsx` guards the selector/click-target/no-write ticker source strip, `BreakingNewsTicker.test.tsx` guards the visible `leagueNews`/`breakingNewsQueue` boundary copy, and `SocialFeed.test.tsx` guards the source-only newest-first projection through `buildVisibleSocialPosts`.
+- Engine: `league-news.test.ts`, `social-feed.test.ts`, `narrative-director.test.ts`, `franchise-week-media-cycle.test.ts`, `franchise-week-heat-spike.test.ts`, `media-cycle/weekly-digest.test.ts`, `media-cycle/power-rankings.test.ts`, `storyline-threads/*.test.ts`, and save/schema/migration tests when feed shapes change.
+- App shell: `App.test.tsx`, `nav-items.test.ts`, route coaching/tutorial coverage tests if routes or nav entries move.
+
+## Companion, Onboarding, And Guidance Wiring
+
+There are three guidance layers:
+
+- First-ten franchise setup: `App.tsx` renders `FranchiseSetupWizard` inside `ChipHost` while the setup gate is active. The 10 setup-stage beats live in `CHIP_FRANCHISE_SETUP_STAGES` and map to setup phases from `cold-open` through `blueprint`.
+- Post-setup Chip dock: `PostSetupApp` mounts `PoseEventEmitter` and conditional `ChipDock`. `useActiveRouteBeats(currentRoute, { currentWeek })` supplies route/onboarding beats from the normalized app route, and `ChipDock` owns dock controls, route replay, quiet settings, and read receipts. `ChipDock`'s own fallback route resolver also uses `resolveCurrentAppRoute` so deploy-base browser-history paths are not stored as raw `/MFD/...` quiet-screen values.
+- Legacy tutorial fallback: `TutorialOverlay` remains active when `VITE_CHIP_ENABLED` is false. Engine tutorial state and `TutorialCoverage.test.tsx` still matter even when Chip is the primary guided path.
+
+Companion module boundaries:
+
+- `ChipHost.tsx` is first-run setup guidance only. It gates on `VITE_CHIP_ENABLED === 'true'`, reads/writes the legacy setup skip state, maps current setup stages to spotlight targets through `spotlightController.ts`, and passes `onStageAdvance`, `spotlightTargetId`, `currentBeat`, and `companionPanel` to render-prop children. Early setup Chip should remain visually prominent enough to carry the decision summary and consequences. The setup `Not now Chip!` path must leave a small bottom-left `Ask Chip` recovery handle; the setup-entry smoke asserts dismissal, restore, restored `Choice Consequences`, and absence of soft/jargon intro copy.
+- `ChipDock.tsx` is post-setup guidance only. It reads dock prefs, route beats, pending-decision totals, `WhereAmI` state, dynasty indicator context, and optional live dialogue children. Its controls own quieting, replay/reset, snooze, guidance enable/reduce, animation disable, collapse, and `Where am I?` behavior.
+- Direct `Ask Chip` live beats are generated inside `ChipDock.tsx` and `whereAmI.ts`. Pending-decision beats should say `Must Do` plus `Consequence`; clear-board summaries should say no required action is stopping `Advance Week`, recommend the next review set, and state that clicking `Advance Week` means accepting the current matchup and roster risk.
+- Route beats and Chip feature-introduction copy must name the player's action, the consequence/deadline/limit, and the screen or workflow where action belongs. Information/history/meta routes still need a decision reason: when the screen can wait, what it can prevent, and which roster, cap, plan, medical, locker room, save, or settings action comes next. Avoid vague player-facing labels such as context, triage, risk signals, governance control, and similar shorthand; the first visible beat for a route must stand on its own.
+- Chip copy should prefer plain football and management decisions over metaphor shorthand. Use terms such as failed position, roster need, unprepared week, weekly decisions, game-plan decisions, future cap years, next game, and game-day lineup instead of leak/cracked/loose, roster hole, weekly work, plan work, contract-year math, Sunday shorthand, perfect counter, star power, or splash moves.
+- One-off Chip bubbles such as era transitions and achievement unlocks follow the same rule. They should say what was recorded, when to review it, and which game state does not change; avoid vague phrases like history context or record-only.
+- `dynastyIndicator.ts` is Chip Dock label formatting only. It formats `Year {seasonYear} - {coachName}` with coach-name trimming and a 16-character truncation fallback; it does not read or write dynasty metadata.
+- `onboardingReveal.ts` is a deterministic first-run ChipHost reveal state machine. It maps elapsed milliseconds to `hidden`, `fading-in`, `waving`, `mic-checking`, or `idle` frames over 4000 ms, clamps invalid elapsed input, and jumps straight to idle when reduced motion is requested. It is animation state, not onboarding completion state.
+- `useChipEvents.ts` is the React bridge that adapts `useGameStore` and `useChipStore` into `createChipEventBridge`. It derives weekly outcome/guidance, then calls `showWeeklyDialogue`; it does not write saved game state.
+- `PoseEventEmitter.tsx` is a web-side pose reaction emitter. It derives first-launch, touchdown, cap-over-limit, big-loss, playoff-upset, trade-rumor, Hall-of-Fame, and decision-locked-in pose events from current selectors/game state and sets transient Chip poses.
+- `useChipStore` in `store.ts` is transient Zustand UI state: pose windows, dialogue id/text, last weekly dialogue, spotlight target, seen beats, dismissal state, onboarding beat count, and context. It initializes seen beats from read receipts but is not a cartridge owner.
+- `decisionImpact.ts` is shared display copy for decision consequences on `week-advance`, `trade`, `cap-lab`, `game-plan`, and `roster` surfaces. Current inspected production usage is Week Advance and Cap Lab; trade decision math has been promoted to the engine-owned `trade-decision-forecast.ts` read model. Keep this helper presentational unless another surface deliberately moves into engine-owned math.
+- `decisionsPending.ts` and `whereAmI.ts` intentionally parse loose records from app state. They provide Chip badges/summary text and should not become a parallel source of truth for inbox messages, roster validation, standings, schedule generation, or draft state.
+- `weeklyGuidance.ts` turns a lightweight weekly snapshot into Chip dialogue copy. It accepts the event trigger so `gameComplete` copy can point to postgame recap and `seasonEnd` copy can point to recap/offseason planning while ordinary week rollover still falls back to pending decisions, injuries, then Monday Briefing. It carries Must Do, Recommended, Optional, Where, Deadline, Optional later, and Risk context details in the dialogue entry; visible copy should start with the Must Do, put pending-decision and injury consequences ahead of generic risk, and strip duplicate Must Do labels. It is guidance text, not a durable task queue.
+- `apps/web/src/features/monday-briefing/ActionCenter.tsx` is a separate route-local command queue. It is fed by Monday Briefing selectors/props and optional full `game` context; route buttons navigate only. Its Living Week action plan derives Must Do, Recommended, and Optional lanes on render: Must Do is reserved for required actions that stop or redirect `Advance Week`, Recommended is current alerts plus engine-owned `getAGMWeeklyRecommendations(game, 3)`, and Optional keeps legal team-building choices visible without adding saved checklist state. Every action card says what, why, consequence/deadline, and where. Its "What should I do?" modal still calls engine-owned `getAGMWeeklyRecommendations(game, 3)`.
+- `featureVisibilityMatrix.ts` is a coverage matrix for Chip feature introductions. It describes when a feature should be introduced and whether coverage is a route beat, state machine, manual check, scaffold, or missing.
+- `chipVoice.ts` and `chipShare.ts` are opt-in scaffolds. Voice requires `VITE_CHIP_TTS_ENABLED=true`, browser speech APIs, non-empty text, and a user-initiated call; sharing requires `VITE_MFD_SHARE_ENABLED=true`, returns deterministic local payloads, and has `externalTargets: []`. No production UI imports the Chip share scaffold today, so there are no visible share affordances to remove; `architecture-boundaries.test.ts` guards that non-wiring contract until a deliberate local export/share-card flow or external target is implemented.
+
+Companion storage and flags:
+
+- `mfd.chip.onboarding`: legacy Chip setup skip state from `ChipHost`.
+- `mfd.chip.onboarding.v2`: first-ten route beat machine from `onboardingMachine.ts`. Its live arc is five post-setup route beats only: `/`, `/roster`, `/depth-chart`, `/game-plan`, and `/week-advance`.
+- `mfd.chip.local`: Chip dock preferences such as collapsed state, quiet/snooze settings, reduced guidance, and animation opt-out. `readDockPrefs` requires a full valid payload shape and falls back to defaults for malformed or partial storage; it does not partial-merge old values.
+- `mfd.chip.read.v1`: route and onboarding beat read receipts, stored as a sorted JSON string array. `persistRouteBeatProgress` writes receipt ids and also calls `recordChipOnboardingBeat` so first-ten route-beat completion stays mirrored into `mfd.chip.onboarding.v2`.
+- `mfd:first-ten-completed`, `mfd:setup-run-mode`, and `mfd:setup-prelude-dismissed:<seed>:<teamId>:<year>`: franchise setup flow keys.
+- `VITE_CHIP_ENABLED`: main Chip feature flag. `VITE_CHIP_TTS_ENABLED` gates Chip voice, and `VITE_MFD_SHARE_ENABLED` gates Chip sharing scaffolding.
+
+Event and pose flow:
+
+- `useChipEvents.ts` is the live weekly-dialogue mount. It adapts `useGameStore` into `GameStoreSnapshot`, adapts `useChipStore` into `ChipStoreSnapshot`, creates `createChipEventBridge`, and handles emitted `ChipEvent` records by calling `showWeeklyDialogue`. Its event-bridge route callback uses `resolveCurrentAppRoute`, so setup-route suppression and event context see hash/base-normalized app paths.
+- `PoseEventEmitter` derives short-lived web-side pose events from current app state and sends transient poses straight into `useChipStore.setPose`. It does not create weekly dialogue.
+- `createChipEventBridge` emits `weekRollover`, `gameComplete`, and `seasonEnd` `ChipEvent` records with dialogue/guidance metadata and maps explicit `poseEvents` snapshots to transient pose reactions. Trigger precedence is `seasonEnd`, then `gameComplete`, then fallback `weekRollover`; the bridge passes that trigger into weekly guidance so the visible Chip copy can distinguish postgame, season-end, and normal rollover context without changing save data.
+- The weekly dialogue bridge suppresses setup routes, respects `quietUntilWeek` and `quietForSeason`, frequency-caps each category to once per week, and session-mutes a category after two consecutive dismissals. It does not read `quietForScreen`, `reducedGuidance`, or `animationsDisabled`; those are dock/route presentation preferences.
+- `gameComplete` is wired from explicit completed-summary markers derived by `useChipEvents.ts` from saved `weekSummaries`. `seasonEnd` is wired from explicit season-end markers derived from offseason `franchiseHistory`. Plain `weekRollover` remains the fallback when no completed-game or season-end marker changed.
+- `useChipStore` is a transient Zustand store. Seen beats initialize from `mfd.chip.read.v1`; pose windows use `Date.now()` for UI animation only and must not influence simulation outcomes.
+- Weekly guidance is derived from lightweight game snapshots: week, year, seed, phase, latest weekly summary, playoff finish, user record, opponent, injury count, pending-decision total, and cap space. Do not assume it has full engine context.
+- Pose event ids are deterministic strings built from season/week/trigger/detail and are deduped in-memory by `PoseEventEmitter`/`eventBridge`. They are UI events, not saved `GameState.eventLog` entries.
+
+Decision guidance and action-center boundary map:
+
+- `countPendingDecisions(state)` counts five loose-state categories: pending user trade offers, expiring user contracts without accepted extensions, empty starter rooms across QB/RB/WR/TE/OL/DL/LB/CB/S, unspent user draft picks from the active draft order after `currentDraftPickIndex` excluding `completedDraftPickIds`, and open HC/OC/DC staff slots.
+- `PostSetupApp` reads `chipGame` from `useGameStore`, memoizes `countPendingDecisions({ game: chipGame })`, and passes the count object into `ChipDock`; `App.test.tsx` guards that this is not wired as `useGameStore(countPendingDecisions)`.
+- The pending-decision count is not the Inbox message count. It is a lightweight companion signal; changing the categories affects ChipDock badges, Where Am I summaries, weekly guidance risk copy, and the `USER_DECISION_LOCKED_IN` pose event when the total decreases.
+- `resolveWhereAmIState(state, pendingTotal)` summarizes the current week, generated schedule length, user record, division rank, and pending total. Division rank is sorted by wins, losses, then team id; it is not the full standings/playoff tiebreaker model.
+- `buildWeeklyGuidance` builds a `DialogueCatalogEntry` from outcome, week, event trigger, record/opponent, injuries, pending count, cap space, and difficulty. `gameComplete` and `seasonEnd` use event-specific top actions/context, while ordinary week rollover keeps the pending-decision, injury, then Monday Briefing priority. The generated context details include Must Do, Recommended, Optional, Where, Deadline, Optional later, and Risk lines so Chip can mirror the Living Week categories without storing tasks.
+- `buildDecisionImpactExplanation` is copy-generation over supplied inputs. Week Advance passes readiness issue count; Cap Lab passes queued moves, net cap change, and dead-cap pressure. Do not infer that it validated the underlying roster, cap formulas, or trade acceptance.
+- Monday Briefing computes `injuredCount`, `starterCount`, trade-offer count, owner approval, and game-plan presence, then passes them plus `game` to `ActionCenter`. `ActionCenter` creates route CTAs for `/game-plan`, `/depth-chart`, `/trades`, `/owner`, `/roster`, `/contracts`, `/scouting`, `/dynasty`, or `/week-advance`; the buttons navigate but do not resolve the underlying issue by themselves. If an active scenario has enforced locks, the command queue labels those locks and links to `/scenarios`; it does not enforce or bypass the locked action.
+- `getAGMWeeklyRecommendations(game, limit)` in `packages/engine/src/systems/agm.ts` is deterministic and read-only. It looks for injured starters out at least two games, cap space below $1M, next opponent, roster gaps with fewer than two healthy players, and selected-AGM mandate context; then it priority-sorts and returns route-targeted advice. It does not mutate owner mandates, staff, roster, cap, or weekly prep.
+- Keep Action Center, Chip pending counts, Inbox generated messages, route coaching beats, scenario-lock notices, and engine AGM recommendations distinct. They can point to the same route, but none of them is a durable completion receipt unless a separate saved/browser-sidecar receipt system is deliberately added.
+
+Chip event spine boundary map:
+
+- `packages/engine/src/events` owns live-game telemetry envelopes: `event-types.ts`, `envelope.ts`, and `emitter.ts`. It is not a companion API, does not write saved `GameState.eventLog`, and is not currently the source for Chip weekly dialogue or pose reactions. `architecture-boundaries.test.ts` guards that production companion code does not import `@mfd/engine/events` or reference the envelope helpers until a deliberate bridge is designed.
+- `apps/web/src/features/companion/eventBridge.ts` owns the web companion event contract. `ChipEventTrigger` includes `weekRollover`, `gameComplete`, and `seasonEnd`; all three can emit production dialogue through the shared weekly-dialogue adapter, with trigger-specific guidance copy for postgame and season-end events.
+- `apps/web/src/features/companion/useChipEvents.ts` owns the app/store-to-dialogue adapter. It derives `latestGameCompleteId` from completed `weekSummaries` and `latestSeasonEndId` from offseason `franchiseHistory`; future trigger sources should enter through similarly explicit snapshot markers, not by importing React/UI code into the engine.
+- `apps/web/src/features/companion/PoseEventEmitter.tsx` owns short pose reactions for first launch, user touchdowns, cap warnings, big losses, playoff underdog wins, trade rumors, user Hall-of-Fame signatures, and locked-in decisions. These reactions are deduped by in-memory event ids.
+- Current authoritative sources are saved `weekSummaries` for game completion and saved `franchiseHistory` after offseason transition for season end. Do not switch these to `GameResult`, game-day package, live event envelope, playoff bracket, season report, or saved `GameState.eventLog` without updating the adapter and tests deliberately.
+- Add tests before broadening event triggers: `eventBridge.test.ts` for emitted `ChipEvent` shape, setup-route suppression, quiet prefs, dismissal muting, duplicate suppression, trigger precedence, and deterministic sequences; `useChipEvents.test.ts` for adapter lifecycle/dialogue handling, route normalization, and snapshot marker derivation; `PoseEventEmitter.test.tsx` for pose-event derivation/dedupe; and `App.test.tsx` for `VITE_CHIP_ENABLED` fallback behavior when mounts change.
+
+Route coaching flow:
+
+- `routeBeatRegistry.ts` is the source for route beats, route keys, pose codes, and spotlight targets.
+- `useActiveRouteBeats.ts` normalizes app paths, prepends eligible first-ten route beats from `selectChipOnboardingRouteBeats`, appends registry route beats from `selectActiveRouteBeats`, filters seen beats, and caches registry route beats by route key plus seen signature. Its registry cache is bounded by `ROUTE_KEYS.length`.
+- When adding or renaming a route, update `NAV_ITEMS`, tutorial coverage, route beat registry, spotlight anchors, and route-coaching tests together.
+- Registry route keys are not always app paths. `resolveRouteKey` maps `/`, `/briefing`, `/locker-room`, `/coaching/*`, `/training-camp`, `/mentors`, `/cap-lab`, `/contracts`, `/front-office`, `/endorsements`, `/draft`, `/draft-recap`, `/relocate`, `/trades`, `/film-room`, `/analytics`, `/stat-central`, `/player/$playerId` and concrete `/player/<id>` profile paths, `/player/$playerId/timeline` and concrete `/player/<id>/timeline` paths, `/player-development`, `/league-pulse`, `/league/weather`, `/news`, `/newsroom`, `/social`, `/commissioner`, `/scenarios`, `/legacy/*`, `/awards`, `/franchise`, `/franchise/*`, `/dynasty`, and `/settings` onto route-beat keys. `/briefing` is a route-coaching alias for `monday-briefing`, not a registered `App.tsx` route. `useActiveRouteBeats.test.ts` locks every primary nav path into a coached or intentionally uncoached decision.
+- `spotlightAnchors.test.ts` maps each route key to one source file and requires every non-null spotlight target to appear exactly once as `data-spotlight-target="..."`. Null spotlight targets are valid for guidance that does not anchor to a DOM element.
+- Completing a route beat calls `persistRouteBeatProgress`, which writes `mfd.chip.read.v1`, marks beats seen in `useChipStore`, and records first-ten onboarding beats in `mfd.chip.onboarding.v2`.
+
+Route coaching, first-ten, and legacy tutorial boundary map:
+
+- The public route-coaching catalog has 53 keys today: `monday-briefing`, `roster`, `depth-chart`, `locker-room`, `game-plan`, `game-day-recap`, `broadcast-suite`, `film-room`, `super-bowl`, `week-advance`, `schedule`, `watch-list`, `inbox`, `owner-promises`, `staff`, `cap-laboratory`, `front-office`, `endorsements`, `draft-board`, `draft-recap`, `trade-center`, `trade-market-radar`, `market-planning`, `roster-churn`, `scouting-board`, `standings`, `analytics-evidence`, `player-profile`, `player-timeline`, `player-development`, `player-comparison`, `player-rivalries`, `power-rankings`, `league-pulse`, `league-weather`, `league-news`, `newsroom`, `social-feed`, `commissioner-governance`, `cba`, `league-rules`, `scenario-constraints`, `record-book`, `awards-hub`, `franchise-legends`, `season-recap`, `dynasty-save-load`, `settings`, `training-camp`, `mentors`, `trade-deadline`, `relocation`, and `expansion-draft`. `routeBeatRegistry.test.ts` guards the key order, at least two beats per key, unique ids, valid pose codes, short copy, player-facing action plus consequence/limit/deadline cues, and `chip.route.<key>.beat-<n>` spotlight-target shape.
+- Not every `NAV_ITEMS` route has route coaching. `useActiveRouteBeats.test.ts` source-scans `App.tsx` and partitions primary nav paths into coached routes and explicit uncoached routes, then proves every `ROUTE_KEYS` entry is reachable from a nav path or documented direct path such as `/trade-deadline` and `/expansion-draft`.
+- `trade-deadline`, `relocation`, `expansion-draft`, `locker-room`, `front-office`, `endorsements`, `draft-recap`, `film-room`, `super-bowl`, `owner-promises`, `analytics-evidence`, `player-profile`, `player-timeline`, `player-development`, `player-comparison`, `player-rivalries`, `league-weather`, `commissioner-governance`, `scenario-constraints`, `franchise-legends`, and several media routes currently allow null spotlight targets where guidance is not anchored to a specific DOM element. `locker-room` maps to `LockerRoom.tsx`, `front-office` maps to `ContractTools.tsx`, `endorsements` maps to `EndorsementCenter.tsx`, `draft-recap` maps to `DraftRecap.tsx`, `relocation` maps to `RelocationScreen.tsx`, `film-room` maps to `FilmRoom.tsx`, `super-bowl` maps to `SuperBowlPresentation.tsx`, `owner-promises` maps to `OwnerMood.tsx`, `analytics-evidence` maps to `AnalyticsDashboard.tsx`, `player-profile` maps to `PlayerProfile.tsx`, `player-timeline` maps to `PlayerTimeline.tsx`, `player-development` maps to `PlayerDevelopment.tsx`, `player-comparison` maps to `PlayerComparison.tsx`, `player-rivalries` maps to `PlayerRivalries.tsx`, `league-weather` maps to `WeatherForecast.tsx`, `commissioner-governance` maps to `CommissionerOffice.tsx`, `scenario-constraints` maps to `ScenarioSelect.tsx`, and `franchise-legends` maps to `FranchiseLegends.tsx` in `spotlightAnchors.test.ts`; add route-specific anchors deliberately if any of these keys gain non-null spotlight targets.
+- `FIRST_TEN_MINUTE_ONBOARDING_BEATS` in `onboardingMachine.ts` is a separate five-beat post-setup arc for `/`, `/roster`, `/depth-chart`, `/game-plan`, and `/week-advance`. `useActiveRouteBeats` prepends one eligible first-ten beat before registry beats for the same route. `App.test.tsx` locks those route values to registered app routes, and `spotlightAnchors.test.ts` locks their non-null spotlight targets to exactly one owning-screen anchor.
+- First-ten and normal route beats share `mfd.chip.read.v1` read receipts, but only first-ten ids are mirrored into `mfd.chip.onboarding.v2`. `resetOnboarding` clears first-ten receipts and onboarding state without clearing normal route-beat receipts.
+- `ChipDock` owns route-beat presentation and progress. An active route beat takes display precedence over live beats, controls can dismiss the active route sequence, `Got it` advances or completes the sequence, and `Spotlight` renders only when the active route beat has a non-null spotlight target.
+- Legacy tutorial coverage is separate from Chip. `packages/engine/src/systems/tutorial.ts` owns `TutorialState` and Week 1/general steps, while `TutorialCoverage.test.tsx` extracts `NAV_ITEMS` and requires every sidebar route to have a tutorial step or explicit allowlist entry.
+- Week 1 tutorial targets the registered home route `/` for Monday Briefing, using `screen:/` plus `[data-nav="/"]`. `TutorialStepSchema` also normalizes stale current-version or migrated `week1-briefing` rows from `/briefing`, `[data-nav="/briefing"]`, and `screen:/briefing` to the home-route target during save schema parsing. Route coaching still resolves both `/` and `/briefing` to `monday-briefing`, but `/briefing` is an alias, not a registered app route. Do not add `/briefing` as a registered app route unless route tests, tutorial targets, nav copy, and docs are changed deliberately.
+- If unifying Chip and the legacy tutorial, design a shared guidance contract with Chip and non-Chip renderers. Do not just copy registry beat text into tutorial steps; the systems have different storage, completion, fallback, and route-coverage semantics.
+
+Dock and live guidance flow:
+
+- `isRouteCoachingQuieted` gates beats by exact route, current week, and current season using `mfd.chip.local` fields `quietForScreen`, `quietUntilWeek`, and `quietForSeason`.
+- `resetOnboarding` clears `mfd.chip.onboarding.v2`, removes only first-ten beat ids from `mfd.chip.read.v1`, removes the legacy `mfd.chip.onboarding` skip key, and resets the transient Chip store. It intentionally does not clear normal route-beat receipts or dock prefs.
+- `snoozeOnboarding` writes `snoozedUntilWeek` at the current week, and first-ten route beats stay hidden while `currentWeek <= snoozedUntilWeek`. `enableGuidance` clears onboarding snooze/disabled state, removes the legacy skip key, and clears quiet screen/week/season prefs while preserving reduced-guidance and animation-disable prefs.
+- The pending-decision badge comes from `countPendingDecisions`, not from inbox message count. The current count includes pending trade offers, expiring contracts without accepted extensions, empty starter depth slots, unspent draft picks, and open HC/OC/DC slots.
+- `Where am I?` uses `resolveWhereAmIState` to summarize week, generated schedule length, record, division rank, and pending decisions. The week denominator is derived from `game.schedule.length` when present and falls back to 18; it does not parse league-rule history. Division rank is computed from current team records, not standings tiebreaker logic.
+
+Franchise setup guidance flow:
+
+- `FranchiseSetupWizard` supports full and fast setup modes. It defaults missing setup-run mode to mounted `full`, and `finalizeSetupRun(...)` now mirrors that default: missing or invalid `mfd:setup-run-mode` marks `mfd:first-ten-completed`, while explicit `fast_lane` completion does not.
+- `App.tsx` intentionally reads `readFirstTenMinutesCompleted()` fresh during render so a same-session new franchise does not inherit stale setup completion state.
+- Setup stage actions, setup spotlight anchors, and Chip setup beats must stay aligned. A mismatch can make a stage advance without its companion guidance or spotlight target.
+
+Safety notes:
+
+- Companion storage is browser UI state, not dynasty save state. Do not let Chip localStorage change engine simulation or save migration behavior.
+- `Date.now()` is acceptable for reveal timers, dock timestamps, and pose windows. Do not use it for deterministic sim choices.
+- Chip sharing is disabled by default, currently has no external targets, and is not mounted in production UI. Chip voice is disabled unless the explicit TTS flag is enabled.
+
+Focused tests for companion/guidance work:
+
+- `apps/web/src/app/App.test.tsx`: setup-stage mapping, first-ten marker freshness, setup gate, post-setup Chip dock, legacy tutorial fallback, and app-level emitters.
+- `apps/web/src/features/companion/ChipHost.test.tsx`, `ChipDock.test.tsx`, `dockControls.test.ts`, `dockPersistence.test.ts`, `eventBridge.test.ts`, `PoseEventEmitter.test.tsx`, `store.test.ts`, `readReceipts.test.ts`, `onboardingMachine.test.ts`, `weeklyGuidance.test.ts`, `decisionImpact.test.ts`, `decisionsPending.test.ts`, `WhereAmI.test.tsx`, `featureVisibilityMatrix.test.ts`, `chipVoice.test.ts`, and `chipShare.test.ts`: companion shell, dock controls/prefs, event bridge, pose events, store state, receipt persistence, first-ten machine, guidance copy, decision helper contracts, pending counts, summary text, feature coverage, voice gate, and share scaffold. `apps/web/src/app/architecture-boundaries.test.ts` additionally guards that the share scaffold stays out of production UI until deliberately wired.
+- `apps/web/src/features/route-coaching/useActiveRouteBeats.test.ts`, `routeBeatRegistry.test.ts`, and `spotlightAnchors.test.ts`: route normalization, registry health, cache behavior, and anchor coverage.
+- `apps/web/src/features/tutorial/TutorialCoverage.test.tsx` and `apps/web/src/features/onboarding/TutorialOverlay.test.tsx`: legacy tutorial fallback and route tutorial coverage.
+- `apps/web/src/features/franchise-setup/setupPersistence.test.ts`, `stageActionRegistry.test.ts`, `setupPolish.test.ts`, and setup phase component tests: setup sidecar keys, stage actions, setup modes, and first-ten completion.
+
+## Engine System Ownership
+
+The engine has many narrow systems. Use this ownership map to find the source before making changes.
+
+- Core loop and game output: `franchise-week`, `franchise-week-helpers`, `game-sim`, `game-sim-types`, `game-plan`, `weekly-prep`, `weekly-summary`, `game-day-package`, `game-flow`, `win-probability`, `halftime`, `halftime-decision`, `playbook`, `trick-plays`, `special-teams`, `season-schedule`, `flex-schedule`.
+- Broadcast and game presentation: `broadcast`, `broadcast-commentary`, `broadcast-presentation`, `broadcast-templates`, `ghost-broadcasts`, `audio-events`, `atmosphere`, `regional-weather`, `super-bowl`.
+- Roster, players, development, health: `roster-management`, `role-defs`, `traits`, `personality`, `player-archetypes`, `player-profile`, `player-rivalries`, `player-development`, `progression`, `development-insights`, `archetype-progression`, `fatigue`, `injury-system`, `mentoring`, `alumni-mentors`, `snap-counts`, `scheme-fit`, `scheme-install`, `chemistry`, `season-stats`.
+- Contracts, cap, and acquisition: `contracts`, `contract-helpers`, `contract-tools`, `contract-extensions`, `cap-laboratory`, `cap-visualization`, `franchise-tag`, `incentives`, `offseason`, `draft`, `draft-war-room`, `draft-recap`, `advanced-scouting`, `scouting-staff`, `trade-market`, `trade-value`, `trade-negotiation`, `trade-deadline`, `trade-finder`, `fa-target-board`, `practice-squad`, `player-agents`, `comp-picks`, `conditional-picks`.
+- Coaching and first-ten-minutes setup: `franchise-setup`, `assistant-gm`, `agm`, `agm-setup-content`, `setup-hiring-catalog`, `coaching-market`, `coaching-carousel`, `coaching-clinic`, `coaching-legacy`, `coach-aging`, `coach-retirement`, `coach-retention`, `coach-skill-tree`, `coach-trait-mods`, `coordinator-chemistry`, `coordinator-specialties`, `position-coaches`, `relationship-graph`.
+- League, governance, AI, standings: `league-rules`, `cba-engine`, `commissioner`, `labor-relations`, `owner`, `owner-extended`, `owner-goals`, `owner-personality`, `gm-strategies`, `gm-reputation`, `ai-bias`, `ai-philosophy`, `adaptive-difficulty`, `standings`, `power-rankings`, `league-pulse`, `team-needs`, `analytics`, `stat-central`.
+- Narrative, media, and living world: `narrative-director`, `off-field-events`, `story-arcs`, `hooks-engine`, `apology-tour`, `press-conference`, `league-news`, `social-feed`, `call-your-shot`, `contingency-plans`, `revenge-games`, `named-games`, `near-miss-receipts`.
+- Dynasty memory and history: `history`, `records`, `record-tracker`, `awards`, `hall-of-fame`, `ceremonies`, `bloodlines`, `career-epilogues`, `jersey-retirement`, `legends`, `franchise-dashboard`, `franchise-identity`, `franchise-legends`, `franchise-book-hook`, `franchise-doctrines`, `dynasty-era`, `dynasty-timeline`, `dynasty-window`, `scrapbook`, `achievements`, `endorsements`, `save-reminder`.
+- Special flows and infrastructure: `expansion-draft`, `scenario-challenge`, `training-camp`, `facilities`, `handshake-ledger`, `dashboard-config`, `tutorial`, `convention-save`, `dynasty-cartridge`, `invariants`, `test-helpers`.
+
+`packages/engine/src/systems/test-helpers.ts` owns reusable synthetic fixtures for engine tests: `makePlayer`, `makeRoster`, `makeTeam`, `makeLeagueState`, and `createEmptyGameDayState`. `makeLeagueState` tracks current `SAVE_VERSION`, schema shape, generated current-save fixture policy, and broad subsystem initialization, but it is not the production new-dynasty seed factory. Keep `test-helpers.test.ts`, `golden-saves.test.ts`, and `save-version-drift.test.ts` aligned when fixture defaults, save defaults, or generated-save policy changes.
+
+High-risk exported functions in core files:
+
+- `advanceFranchiseWeek` is the week spine.
+- `simGame` and `applyPlayerLines` are the game simulation/stat application boundary.
+- `initializeOffseasonState`, `submitReSignOffer`, `submitFreeAgentBid`, `signStreetFreeAgent`, `advanceOffseason`, and `advanceFreeAgency` own offseason progression.
+- `ensureDraftClass`, `runScoutingAction`, `runPrivateWorkout`, `makeDraftPick`, `advanceDraft`, and `finalizePostDraft` own draft flow.
+- `makeContract`, `calcCapHit`, `calcDeadMoney`, `restructureContract`, `backloadContract`, `extendAndRestructure`, `calcContractScore`, and `calcDeadCap` own contract math.
+- `validateGameState` and `assertGameStateValid` are the engine invariant checks.
+
+Invariant validation boundary map:
+
+- `packages/engine/src/systems/invariants.ts` owns the runtime state validator. It exports `validateGameState(game)` and `assertGameStateValid(game)`, and `packages/engine/src/index.ts` re-exports both plus `InvariantViolation` / `InvariantResult`.
+- `validateGameState` is a pure read over a supplied `GameState`. It does not repair state, mutate saves, run migrations, or commit anything.
+- Current checks cover roster size, player OVR validity/bounds, duplicate player IDs across team rosters, regular-season standings games-played sanity, numeric cap fields, roster-player presence in `game.players`, roster/global `teamId` agreement, and live player-pool ownership across rosters, practice squads, free agency, and the waiver wire.
+- Roster-size validation uses `getRosterLimit(game)`, so active/custom league-rule `roster_limit` values affect invariant output.
+- Player-pool validation treats active rosters, practice squads, free agents, and waiver-wire entries as the live ownership pools. Elevated practice-squad entries may also appear on the same team's active roster; non-elevated practice-squad overlap, free-agent/waiver overlap, missing `game.players` rows, stale `teamId` values, and players in both team and external acquisition pools are violations.
+- Global players with `teamId: null` and no live pool are not forced into free agency or waivers, because retired/archive-style records can still exist outside live acquisition pools.
+- Standings sanity only runs during `regular_season` and only checks `wins + losses + ties <= game.week`. It does not compare standings against the schedule/results ledger, and it intentionally avoids playoff/offseason week-number assumptions.
+- Cap sanity only flags `NaN`/non-number `capUsed` and `capSpace`. It does not recompute salary-cap formulas, dead money, or cap-space correctness.
+- `assertGameStateValid` throws only when `validateGameState` finds at least one `critical` violation. High/medium/low violations make `valid` false but do not throw through this helper.
+- The inspected production mutation paths do not call `validateGameState` as a universal commit gate. It is used in tests/dev tooling and in `/settings` debug mode, which is enabled only with `?debug=1` in the URL or hash query and renders the "Invariant Debug" panel.
+- Focused tests: `invariants.test.ts` covers clean state, NaN/out-of-range OVR, duplicate roster players, NaN cap values, roster players missing from `game.players`, roster/global `teamId` drift, stale global team pools, free-agent/waiver team-pool overlap, elevated practice-squad allowance, non-elevated practice-squad overlap, custom roster-limit rules, and critical-only throw behavior. `Settings.test.tsx` covers the debug panel. `save-round-trip.test.ts` has separate structural invariant checks for JSON/schema/migration round trips, not the same `validateGameState` helper.
+
+## Web Feature Ownership
+
+Feature folders are the route and modal surfaces. Start here when a user-facing screen changes.
+
+- Launch, shell, onboarding, guidance: `title`, `launch`, `franchise-setup`, `onboarding`, `tutorial`, `companion`, `route-coaching`, `settings`, `shared`.
+- Core weekly workflow: `monday-briefing`, `week-advance`, `inbox`, `watch-list`, `game-day`, `game-plan`.
+- Team management: `roster`, `depth-chart`, `locker-room`, `coaching`, `training-camp`, `mentors`, `handshake-ledger`, `player`.
+- Front office and acquisition: `contracts`, `front-office`, `free-agency`, `trades`, `scouting`, `draft`, `waiver-wire`, `practice-squad`, `team-needs`, `endorsements`, `dynasty-cartridge`.
+- Gameday and media: `broadcast`, `film-room`, `schedule`, `season`, `playoffs`, `league-news`, `newsroom`, `social`.
+- League and analytics: `standings`, `power-rankings`, `league`, `analytics`, `stats`, `owner`, `scenario`.
+- Dynasty memory: `franchise`, `legacy`, `dynasty-era`.
+- Audio: `audio` owns web audio playback/synth settings; engine only emits audio cue intent.
+
+Exact primary nav routes in `NAV_ITEMS`:
+
+- Core/team/money/acquisition: `/`, `/week-advance`, `/watch-list`, `/inbox`, `/roster`, `/depth-chart`, `/locker-room`, `/coaching`, `/handshakes`, `/training-camp`, `/mentors`, `/contracts`, `/cap-lab`, `/front-office`, `/endorsements`, `/trades`, `/trade-block`, `/team-needs`, `/scouting`, `/draft`, `/free-agency`, `/fa-targets`, `/waivers`, `/practice-squad`.
+- Gameday/league/dynasty/system: `/game-day`, `/game-plan`, `/broadcast`, `/presentation`, `/play-by-play`, `/game-flow`, `/film-room`, `/super-bowl`, `/schedule`, `/social`, `/commissioner`, `/franchise`, `/legends`, `/news`, `/newsroom`, `/records`, `/stat-central`, `/standings`, `/analytics`, `/power-rankings`, `/league-pulse`, `/scenarios`, `/legacy`, `/awards`, `/about`, `/credits`, `/faq`, `/dynasty`, `/settings`.
+
+Direct routes that are not all top-level nav buttons:
+
+- Player/detail: `/player/$playerId`, `/player/$playerId/timeline`, `/compare`, `/rivalries`, `/player-development`.
+- Coaching/league special: `/coaching/tree`, `/coaching/relationships`, `/trade-deadline`, `/cba`, `/league-rules`, `/league/weather`.
+- Franchise/season special: `/franchise/book`, `/relocate`, `/expansion-draft`, `/season/recap`, `/legacy/named-games`, `/legacy/bloodlines`, `/franchise/career`, `/franchise/scrapbook`, `/franchise/hall`, `/franchise/trophy-room`, `/franchise/eras`, `/franchise/mvps`, `/franchise/playoff-lore`, `/franchise/chronicle`, `/franchise/achievements`.
+
+## Store And Selector Ownership
+
+- `apps/web/src/app/store/game-store.ts` is the mutation facade. `GameActions` groups initialization, roster, contracts, week advance, offseason/acquisition, owner, coaching, settings/season phase, game plan/prep, press/audio/news, dashboard, special teams, dynasty systems, franchise setup, and undo.
+- Store state is intentionally small: `game`, `initialized`, `undoSnapshot`, `undoLabel`, `recapPromptSeenThisSession`, and `pendingPlayoffLoreReveal`.
+- `commitGame(nextGame)` is the durable write path. It sets `game`, marks the store initialized, and calls `autosaveDynasty(nextGame)` when `useUiStore.autosaveEnabled` is true.
+- `cloneForMutation(current)` is the default local mutation pattern. Durable actions usually read `current = get().game`, clone, call an engine/local helper, then `await commitGame(nextGame)`.
+- Deterministic web-side helper randomness uses `buildIntelSeed(game, salt)` and `mulberry32`. It mixes `game.seed`, `game.year`, `game.week`, and a salt hash. Use this pattern for sim-adjacent UI choices instead of `Math.random()` or wall-clock time.
+- Direct `set` exceptions exist only for session-local state today. Recap-prompt session state and pending playoff-lore clearing mutate store state without autosave because they are not durable save edits. Setup progress is no longer one of these exceptions: `advanceSetup`, `goBackSetup`, `applySetupChoice`, and `toggleSetupDrilldown` now clone the current game and commit through `commitGame(nextGame)`. `setPhase` is also no longer one of these exceptions: saved phase changes clone the current game and commit through `commitGame(nextGame)`. `refreshOwner` is also no longer one of these exceptions: owner approval refreshes clone the current game, delegate the single owner-history receipt to `updateOwnerApproval`, and commit through `commitGame(nextGame)`. `addClinicXP` is also no longer one of these exceptions: successful clinic XP updates clone the current game and commit through `commitGame(nextGame)`. Setup completion and portable-export receipt recording also return to the durable path through clone -> `commitGame(nextGame)`.
+- Store-triggered navigation belongs in web code. `navigateTo(path)` uses hash/history fallback and currently routes interruption/special flows such as trade deadline, expansion draft, CBA, broadcast, game day, franchise, and home.
+- Undo is deliberately limited. `snapshotForUndo(label)` is used by selected roster/cap/trade actions; week advance clears undo and is not undoable.
+- `apps/web/src/app/store/selectors.ts` is the derived read boundary. Add screen-model/read derivation here before duplicating it inside components.
+- Selector stability matters. The file defines stable empty fallbacks plus `memoByGame` and `memoParamByGame` so selectors that build arrays/objects do not trigger React `useSyncExternalStore` loops.
+- Selector deterministic presentation helpers mirror the store seed pattern. Opponent intel, FA target boards, war room state, and broadcast rebuilding use seeded helpers rather than fresh random values.
+- Main selector domains: current user team/matchup, roster/practice squad/waivers, contracts/cap/projections, free agency/trades/team needs, scouting/draft/war room, weekly prep/game day/broadcast/film room, league rules/CBA/commissioner/labor, news/social/weather/rivalries, dynasty history/records/legacy/bloodlines, franchise relocation/expansion/stadium, coaching/owner/tutorial/dashboard/special teams, and setup state.
+- `apps/web/src/app/store/ui-store.ts` persists non-save UI preferences under `mfd-ui-preferences`: sidebar, density, autosave, sim speed, and audio preferences. It also holds transient command-palette, focused-player, and broadcast-game state.
+- `apps/web/src/app/store/persistence.ts` is the only place web save import/export should normalize with `migrate` and `SaveStateSchema`.
+- `apps/web/src/lib/db.ts` is the Dexie boundary. Saves are stored as cartridge JSON strings in IndexedDB database `mfd`, table `saves`.
+
+Store, selector, and async-sim boundary map:
+
+- Treat `game-store.ts` as the web action API and mutation coordinator, not the long-term owner of domain logic. New domain behavior should live in engine/local helpers first, then be called by a store action that preserves the existing `useGameStore((s) => s.actions.*)` API.
+- Durable saved mutations follow `current` -> clone -> engine/helper -> `commitGame(nextGame)`. Do not call `autosaveDynasty` directly from new actions unless the action is explicitly a save/load/export path or undo restore.
+- Direct `set` exceptions are not templates for new saved gameplay state. Before copying one, decide whether the state is session-only, setup-in-progress, local metadata, or a known autosave gap that should be fixed.
+- `apps/web/src/app/store/sim.ts` is the Promise-based async simulation boundary. `runAdvanceWeek` and `runPreviewHalftimeDecision` currently call engine functions directly, but the Promise contract is deliberate so week simulation can move to a Worker without changing every caller. `store/sim.test.ts` locks the Promise-returning wrapper contract and exact delegation to `advanceFranchiseWeek` / `previewHalftimeDecision`.
+- React routes should not call week simulation engine functions directly. Route actions should go through `actions.advanceWeek` or `actions.resolveHalftimeDecision` so halftime preview/resume, interruption routing, postgame UI queues, playoff-lore staging, recap-session reset, tutorial completion, season/career meta sync, and autosave stay coordinated.
+- Store-triggered navigation is a web concern. Keep route redirects for trade deadline, expansion draft, CBA, broadcast, game day, franchise, and home in store/web glue, not in engine systems.
+- Selectors are pure read-model builders. They must not write to Zustand, localStorage, Dexie, routes, or the network. Put reusable route view models in `selectors.ts` before duplicating derivation inside components.
+- Heavy selector outputs should keep stable fallback references and `memoByGame`/`memoParamByGame` memoization. `selectors.test.ts` currently locks this for opponent intel; add similar reference-stability tests when new selectors build arrays or objects from unchanged `state.game`.
+- Stored-vs-derived selector models need explicit ownership. Examples: `teamNeedsReportFor` prefers `game.teamNeedsCache`, `selectFATargetBoard` materializes a current stored FA board or derives a seeded board, `selectWarRoomState` reuses a matching stored snapshot or derives one, and broadcast selectors rebuild legacy missing broadcast output with stable seeds.
+- Cache invalidation is part of the feature, not cleanup. Roster, cap, scheme, draft, FA, coaching, and trade changes can make team-needs, FA-board, war-room, coaching-market, dashboard, and broadcast-derived read models stale; update mutation paths and tests together.
+
+Focused tests for store/selector work:
+
+- `apps/web/src/app/store/game-store.test.ts`: broad store actions, autosave behavior, dynasty sidecar clearing, derived rivalry sidecar sync, scouting/draft/free agency/trades/tutorial/IR/facilities/locker room/endorsements/governance/CBA/cap moves.
+- `apps/web/src/app/store/game-store.gameweek.test.ts`: week advance, halftime resume, postgame UI queues, playoff-lore staging, trade-deadline interruption, and deadline resume.
+- `apps/web/src/app/store/game-store.franchise.test.ts`: stadium, naming rights, relocation, and expansion-draft store actions.
+- `apps/web/src/app/store/game-store.test-helpers.ts`: intentionally non-suite helper module with `MemoryStorage`, `buildTradeOffer`, and `seedSuperBowlWeek`; keep it out of `*.test.ts` naming so Vitest does not run it as a standalone suite.
+- `apps/web/src/app/store/sim.test.ts`: Promise-returning web simulation wrapper delegation to engine week advance and halftime-preview functions.
+- `apps/web/src/app/store/selectors.test.ts`: selector reference stability for derived opponent intel.
+- `apps/web/src/app/store/persistence.test.ts`: cartridge import helpers, invalid import rejection, and portable export metadata migration.
+- `apps/web/src/app/store/seed.test.ts`: seed factory defaults needed by saves and selectors.
+- `apps/web/src/app/store/ui-store.test.ts`: UI preference hydration and audio volume clamping.
+
+## Persistence And Data Ownership
+
+Main dynasty save path:
+
+- Source game state type: `packages/engine/src/types/franchise.ts`.
+- Runtime save version: `SAVE_VERSION = 38` in `packages/engine/src/config/difficulty.ts`.
+- Zod aggregate schema: `SaveStateSchema` in `packages/engine/src/save/schema.ts`.
+- Migration registry: `packages/engine/src/save/migrations.ts`; current 35 -> 36 migration adds front-office AGM defaults and `ownerMandates`.
+- Web import/load path: `apps/web/src/app/store/persistence.ts` parses cartridge text, calls `migrate(raw, SAVE_VERSION)`, validates with `SaveStateSchema.safeParse`, then calls `ensureAgentsInitialized`.
+- Web slot storage: `apps/web/src/lib/db.ts` owns IndexedDB database `mfd`, table `saves`, and trims autosaves to 3 by default.
+- Portable backup format: `packages/engine/src/systems/dynasty-cartridge.ts` writes envelope `mfd-cartridge.v1`, supports legacy `{ save }` imports, names files like `team-S2026-W1.mfd`, and strips heavy `broadcast` payloads from saved game results before export.
+- Golden old-save fixtures currently cover `v1`, `v10`, `v20`, and `v30` through `v34`.
+
+Operational save/load flow:
+
+- `actions.newGame` in `game-store.ts` finalizes the current dynasty meta, clears scrapbook/Hall of Fame/roster-continuity/rookie-of-year sidecars for the incoming dynasty ID, syncs career meta, replaces the global derived rivalry sidecar from the incoming save, sets the new game, and immediately autosaves it.
+- Durable gameplay mutations should follow the store pattern in `game-store.ts`: clone current state, call an engine/helper function, then `commitGame(nextGame)`. `commitGame` writes the state and calls `autosaveDynasty(nextGame)` when UI autosave is enabled.
+- `autosaveDynasty` and `saveDynastyToSlot` in `apps/web/src/app/store/persistence.ts` build a `SaveSlot` by wrapping the game in `buildCartridge(game, { teamName, season, week })`, then write it through `saveGame` in `apps/web/src/lib/db.ts`.
+- Autosaves are rotating slots; `autosaveDynasty` calls `trimAutosaves()` and the default keep count is 3.
+- `loadSaveSlot`, `loadLatestAutosaveGame`, pasted imports, and `.mfd` file imports all converge on cartridge parse -> migration to `SAVE_VERSION` -> `SaveStateSchema.safeParse` -> `ensureAgentsInitialized`.
+- `DynastyCartridge.tsx` owns the visible save surface: local slots, manual slot creation, slot load/delete confirmation, clipboard cartridge export, `.mfd` download, pasted import, uploaded import, combined `.mfd` + sidecar backup export/import, and separate complete-sidecar archive export/import.
+- `recordPortableExport` records `lastPortableExportYear` through the normal clone -> `commitGame` path, so successful portable copy/download receipts autosave when autosave is enabled.
+
+Save schema, migration, and persistence boundary map:
+
+- `SAVE_VERSION` in `packages/engine/src/config/difficulty.ts` is the launch schema source truth. Re-check that source value before changing save copy, fixtures, migration expectations, or docs.
+- Persistent `GameState` fields need the TypeScript type, `SaveStateSchema`, `migrations.ts`, `SAVE_VERSION`, new-save defaults, and old-save tests updated together. New-save defaults currently live in paths such as `apps/web/src/app/store/seed.ts`, `packages/engine/src/systems/convention-save.ts`, and `packages/engine/src/playtesting/harness.ts`, depending on the entry point.
+- Zod `.default(...)` entries in `schema.ts` are parse-time compatibility for missing fields. They do not replace deterministic product defaults in new-save factories or entry-specific seed/demo/playtest builders.
+- Import/load order is raw payload -> `migrate(raw, SAVE_VERSION)` -> `SaveStateSchema.safeParse` -> `ensureAgentsInitialized`. Do not validate raw historical saves before migration, and do not let web import paths bypass this engine save boundary.
+- `migrate` runs registered N -> N+1 transforms and throws on a missing version. Keep `getRegisteredVersions()` continuous from 1 through `SAVE_VERSION - 1`; registration order in the file is less important than the sorted registry contents.
+- Checked-in golden JSON fixtures currently cover `v1`, `v10`, `v20`, and `v30` through `v34`. `golden-saves.test.ts` also owns generator-backed policy coverage from the v34 fixture through generated v37 and current-v38 from `makeLeagueState()`. Keep both signals: historical JSON fixtures prove old-era compatibility, generated fixtures prevent current-version drift without giant JSON churn.
+- `save-version-drift.test.ts` is the static guard for this boundary. It checks `SAVE_VERSION` against the continuous migration registry, checked-in fixture filenames and embedded versions, generated v37/current-v38 fixture policy, and the Codex guide/plan/marathon prompt save-version statements.
+- If adding persistent arrays, histories, feeds, logs, or receipts, decide the cap/compaction policy before shipping. Schema shape preserves loadability, but it does not protect long-save performance or UI volume by itself.
+- Web persistence stores cartridge strings in Dexie slots and wraps saves with `buildCartridge`. `Date.now()` slot timestamps and `new Date().toISOString()` cartridge metadata are export/storage metadata only; never feed them into deterministic simulation state.
+- Portable `.mfd` cartridges are currently plain JSON envelopes. Preserve existing `mfd-cartridge.v1` parse compatibility before adding compression, encryption, or a new archive version. The combined backup package is a separate web-layer `mfd.dynastyCombinedBackup.v1` envelope that wraps an existing `.mfd` cartridge plus the complete sidecar archive; it is not a replacement cartridge format.
+- Browser `localStorage`/`sessionStorage` sidecars are not `GameState`. Moving a sidecar into the dynasty save requires an explicit migration plan, malformed-data recovery, updated cartridge/import behavior, and focused sidecar plus old-save tests. Packaging sidecars beside a cartridge in the combined backup does not make them `GameState`.
+- Save reminders straddle engine and web: `franchise-week.ts` sets `showSaveReminder` through `shouldShowSaveReminder`, while the web cartridge UI records successful portable exports. Keep those semantics aligned.
+
+Cartridge and slot boundary map:
+
+- `packages/engine/src/systems/dynasty-cartridge.ts` is pure envelope logic. It does not touch DOM, Clipboard, localStorage, Dexie, downloads, or migrations. `buildCartridge` wraps sanitized save data in `mfd-cartridge.v1`, adds `exportedAt` via `new Date().toISOString()`, serializes plain JSON, and reports `sizeBytes` as string length.
+- Cartridge export sanitization strips `broadcast` payloads from regular-season scheduled game results and playoff matchup results. If more heavy or ephemeral result fields are added, update `sanitizeSaveForExport` and `dynasty-cartridge.test.ts` rather than filtering in React.
+- `parseCartridge` accepts the current v1 envelope only when `data.cartridgeVersion === CARTRIDGE_VERSION && data.save`; any JSON with a `save` field is treated as `legacy`; raw `GameState` JSON without a `save` wrapper is rejected.
+- `apps/web/src/app/store/persistence.ts` is the migration/validation boundary. `normalizeImportedGame` migrates unknown save payloads to `SAVE_VERSION`, validates with `SaveStateSchema.safeParse`, casts to `GameState`, and then calls `ensureAgentsInitialized`.
+- `apps/web/src/lib/db.ts` is only the IndexedDB slot adapter. It stores the cartridge string in `SaveSlot.data`, orders by `timestamp`, returns the newest autosave by scanning saves in reverse timestamp order, and trims autosaves with `bulkDelete`.
+- Current code stores plain cartridge JSON. Do not add compression without preserving parse compatibility for existing plain `.mfd` exports and Dexie slot strings.
+- `DynastyCartridge.tsx` builds portable exports directly with `buildCartridge(game, meta)`. Clipboard export records `lastPortableExportYear` only after `navigator.clipboard.writeText` succeeds; blocked clipboard writes show the download fallback and do not record. Download export records immediately after creating/clicking the blob URL.
+- Manual slot saves (`saveDynastyToSlot`) are local convenience checkpoints and do not mark `lastPortableExportYear`; portable copy/download does mark it. `shouldShowSaveReminder` is keyed to seasons, not wall-clock time, and prompts every 5 seasons when `lastPortableExportYear` is null or at least 5 seasons behind.
+- Save-reminder checks exist in both engine week advance (`franchise-week.ts` sets `showSaveReminder` in the advance result) and web year-rollover UI (`App.tsx` opens the save reminder overlay). The app-shell reminder only routes to `/dynasty`; it does not record an export receipt or mutate `lastPortableExportYear`. `App.test.tsx` guards that the receipt stays owned by the cartridge copy/download flow. Keep engine and web checks in sync if changing reminder semantics.
+- Import failure must remain non-mutating. `DynastyCartridge.tsx` and `NewGameScreen.tsx` call `loadGame(imported)` only after the persistence helper returns a migrated, schema-valid `GameState`.
+- Local sidecars are not in the v1 cartridge. The complete-dynasty sidecar archive is a separate versioned `mfd.dynastySidecars.archive.v1` JSON envelope; it preserves old `mfd-cartridge.v1` imports, validates every included sidecar before replacement, accepts older sidecar archives without rivalry data by marking `rivalries` missing, and never replaces a store the archive did not carry. Failed parses and previews remain non-mutating. The combined backup helper in `apps/web/src/lib/dynasty-combined-backup.ts` validates a `mfd.dynastyCombinedBackup.v1` envelope by parsing the wrapped cartridge with `parseCartridge` and the wrapped sidecars with `parseDynastySidecarArchiveJson`; the `/dynasty` UI stages a summary/count preview first, then only after explicit confirmation autosaves the migrated cartridge game, imports the carried sidecars, and calls `loadGame`.
+
+Portable backup receipt boundary map:
+
+- The active save-reminder model is season-based. `packages/engine/src/systems/save-reminder.ts` exports `shouldShowSaveReminder(year, lastPortableExportYear)` and `getSaveReminderMessage(year)`, and this is what `franchise-week.ts` and `App.tsx` call.
+- `packages/engine/src/systems/dynasty-cartridge.ts` still exports `shouldPromptBackup(lastExportTime, seasonsPlayed)`, an older wall-clock helper tested in `dynasty-cartridge.test.ts` and `phase2.test.ts`. The inspected production source does not call it. Do not use it for current reminder behavior unless intentionally replacing the season-based contract and updating tests/docs.
+- `DynastyCartridge.tsx` calls `buildCartridge(game, meta)` before `recordPortableExport()`. The clipboard/download payload therefore represents the pre-receipt game state; it does not include the newly set `lastPortableExportYear`.
+- `recordPortableExport` uses clone -> `commitGame`, so the in-browser current dynasty and autosave slots receive the receipt immediately when autosave is enabled. Do not move this receipt into wall-clock metadata; it is season-based save-reminder state.
+- Clipboard export records a receipt only after `navigator.clipboard.writeText` resolves. Clipboard API absence or rejection is intentionally non-mutating and tells the user to use download. Download records immediately after the blob link is clicked.
+- `DynastyCartridge.source.test.ts` source-guards these UI contracts: clipboard receipt after build/copy success, download receipt after pre-receipt blob click, and manual local slots staying separate from `recordPortableExport`.
+- When changing receipt behavior, verify all three surfaces together: generated cartridge contents, current in-memory store state, and reloaded IndexedDB/autosave/manual slots. Also keep failed clipboard attempts non-mutating.
+
+Browser sidecar storage keys:
+
+- `mfd-ui-preferences`: Zustand UI prefs for sidebar, density, autosave, sim speed, and audio preferences. Transient command-palette/focused-player/broadcast-game state is not persisted.
+- `mfd.careerMeta.v1`: career and dynasty summaries keyed by derived dynasty IDs.
+- `mfd.scrapbook.v1`: scrapbook archive, currently schema version 2 with legacy v1 read support.
+- `mfd.hallOfFame.v1`: Hall of Fame archive by dynasty. `/franchise/hall` can export/import this sidecar through `mfd.hallOfFame.archive.v1` JSON, but that remains separate from `GameState` and `mfd-cartridge.v1`.
+- `mfd.rosterContinuity.v1`: roster continuity starter snapshots by dynasty.
+- `mfd.rookieOfYear.v1`: rookie-of-year archive by dynasty.
+- `mfd.dynastySidecars.archive.v1`: complete sidecar archive JSON envelope exported/imported from `/dynasty`; it contains career meta, scrapbook including pending playoff lore, Hall of Fame archive, roster continuity, rookie-of-year history, and derived rivalry heat. This is an archive payload kind, not a persistent storage key.
+- `mfd.watchlist.v1`: player watch list preferences and `mfd-watchlist-change` browser event.
+- `mfd.rivalries.v1`: current-save derived-rivalry payload. `apps/web/src/lib/rivalry-storage.ts` validates/sorts it, `actions.newGame`, `actions.loadGame`, `loadLatestAutosave`, and `syncRivalriesAtYearRollover` replace it from `deriveRivalries(game)`, and `/dynasty` complete sidecar archive export/import carries it separately from `.mfd` cartridges.
+- `mfd.chip.local`: Chip dock preferences such as collapsed, quiet, reduced guidance, animation, and quiet-until-week state.
+- `mfd.chip.read.v1`: Chip read receipts.
+- `mfd.chip.onboarding`: legacy Chip onboarding skip state from `ChipHost`.
+- `mfd.chip.onboarding.v2`: route onboarding machine state.
+- `mfd.broadcast.ghost.v1`: UI preference for rendering retired-Hall-of-Famer guest commentary. Engine can still generate eligible lines.
+- `mfd:first-ten-completed`, `mfd:setup-run-mode`, and `mfd:setup-prelude-dismissed:<seed>:<teamId>:<year>`: first-ten/setup flow browser keys.
+- `mfd-celebration-dismissed:<teamId>:<year>`: user-team Super Bowl celebration dismissal.
+- `mfd-boot-seen`: boot sequence sessionStorage key, not localStorage.
+
+Persistence safety rules:
+
+- A new persistent `GameState` field must update the TypeScript type, Zod schema, migration chain, `SAVE_VERSION`, seed/default creation, and focused old-save tests.
+- A new sidecar must use a versioned key, validate/normalize parsed JSON, recover from malformed data, and include focused tests if the sidecar affects user progress or dynasty memory.
+- Keep `Date.now()` and browser timestamps as metadata only. Do not feed them back into deterministic sim resolution.
+- Do not add new localStorage/Dexie access inside `packages/engine`; browser sidecar storage belongs in web-lib helpers or app-shell/store effects.
+- Any change to dynasty ID derivation affects career, scrapbook, Hall of Fame, roster-continuity, and rookie-of-year archives. Verify old saves and rollover helpers together.
+
+Focused tests for persistence work:
+
+- Engine save/migrations: `packages/engine/src/save/save.test.ts`, `packages/engine/src/save/migrations.test.ts`, `packages/engine/src/save/golden-saves.test.ts`, `packages/engine/src/save/save-version-drift.test.ts`, `packages/engine/src/systems/save-round-trip.test.ts`, and `packages/engine/src/systems/test-helpers.test.ts`.
+- Cartridge/save reminder: `packages/engine/src/systems/dynasty-cartridge.test.ts`, `packages/engine/src/systems/save-reminder.test.ts`, `apps/web/src/features/dynasty-cartridge/DynastyCartridge.test.tsx`, `apps/web/src/features/dynasty-cartridge/DynastyCartridge.confirm.test.ts`, and `apps/web/src/features/dynasty-cartridge/DynastyCartridge.source.test.ts`.
+- Web persistence: `apps/web/src/app/store/persistence.test.ts`, `apps/web/src/lib/db.test.ts`, `apps/web/src/app/store/game-store.test.ts`, and `apps/web/src/app/AutosaveToast.test.tsx`.
+- Sidecar stores: `career-meta.test.ts`, `scrapbook-store.test.ts`, `hall-of-fame-archive.test.ts`, `roster-continuity-store.test.ts`, `rookie-of-year-store.test.ts`, `watchListPrefs.test.ts`, `ghostBroadcastPrefs.test.ts`, companion persistence tests, and `setupPersistence.test.ts`.
+
+## Web Lib And Dynasty Memory
+
+`apps/web/src/lib` is mostly browser-side glue around `GameState`, dynasty archives, and presentation helpers. Keep this layer out of engine simulation math.
+
+Dynasty identity:
+
+- `career-meta.ts` defines `deriveDynastyId(game)` as `seed:teamId:startYear` and `deriveDynastyStartYear(game)` from franchise history.
+- `buildDynastySummary(game)` derives career totals, championships, playoff appearances, breakouts, coaches developed, and Hall of Famers developed from the current save.
+- `readCareerMeta`, `writeCareerMeta`, `appendDynastySummary`, and `finalizeDynasty` own `mfd.careerMeta.v1`; reads validate with Zod and recompute totals instead of trusting stored totals.
+- `/franchise/career` renders `Career Sources` from `mfd.careerMeta.v1`, `readCareerMeta`, `deriveDynastyId(game)`, the Rookie of the Year dynasty-id handoff, and the career write owners. Its Rookie of the Year history panel separately labels the browser-local `mfd.rookieOfYear.v1` read path and year-rollover write owner. Opening the route does not write career meta, recompute rookie winners, write sidecars, finalize dynasties, clear sidecars, autosave, mutate the live save, or run simulation.
+
+Dynasty sidecar stores:
+
+- `scrapbook-store.ts` owns `mfd.scrapbook.v1`, schema version 2. It preserves legacy v1 entries, stores entries per dynasty, stages pending playoff-lore cards per dynasty/season, merges pending cards into the matching rollover scrapbook entry, then clears only that consumed dynasty/season pending bucket. Other pending seasons for the same dynasty remain staged until their matching season archive is written.
+- `hall-of-fame-archive.ts` owns `mfd.hallOfFame.v1`; it stores full dynasty snapshots, sorts entries newest-induction first, provides archive summaries/top-player helpers, and exposes explicit JSON export/import helpers for the versioned `mfd.hallOfFame.archive.v1` envelope plus raw sidecar payloads. `/franchise/hall` reads this sidecar for displayed rows, separately compares the active save's live `game.hallOfFame` count with the current sidecar snapshot count/last sync year, and offers sidecar-only Archive JSON portability.
+- `roster-continuity-store.ts` owns `mfd.rosterContinuity.v1`; it stores last synced year and deduped starter IDs per dynasty.
+- `rookie-of-year-store.ts` owns `mfd.rookieOfYear.v1`; it stores one rookie winner per dynasty season and replaces same-season entries deterministically.
+- `dynasty-sidecar-archive.ts` owns the complete-sidecar archive envelope `mfd.dynastySidecars.archive.v1`. It reads, summarizes, exports, parses, and imports the durable dynasty sidecars plus the current-save derived rivalry sidecar together, validates every payload before replacing any sidecar, rejects cartridge-looking JSON on the sidecar import path, and accepts older complete sidecar archives without `rivalries` by reporting that store as missing and leaving existing local rivalry heat untouched on import.
+- `rivalry-storage.ts` owns the live `mfd.rivalries.v1` derived-rivalry sidecar helper. It validates with Zod against engine-exported rivalry payload types, normalizes/sorts records, stamps `generatedAt` with `Date.now()` only at the browser storage boundary, and defaults safely when storage is missing or malformed. `apps/web/src/app/rivalry-rollover.ts` and `game-store.ts` are the production writers; the sidecar is current-save derived browser metadata, not durable all-time head-to-head history and not `GameState`.
+- All these sidecars default safely when storage is missing, malformed, or schema-invalid.
+
+Year-rollover bridges:
+
+- `App.tsx` calls `syncScrapbookAtYearRollover`, `syncHallOfFameArchiveAtYearRollover`, `syncRosterContinuityAtYearRollover`, `syncRookieOfYearAtYearRollover`, and `syncRivalriesAtYearRollover` after year changes.
+- `scrapbook-rollover.ts` gates through `shouldOpenSeasonRecapPrompt`, then builds a recap via engine helpers and appends a scrapbook entry. `buildScrapbookEntry` now auto-authors season notable moments from matching `leagueNews` rows, saved `dynastyTimeline` `named_game` events, saved bloodline `draft_pick` events, saved individual award winners, saved story-arc stage beats, saved season-report grades/overviews, completed-season record notes, saved Hall of Fame inductions, and heated league-rivalry chapters for the recap team/year.
+- `PlayoffLorePrompt` opens from transient `pendingPlayoffLoreReveal`, while `SeasonRecapPrompt` is suppressed until that reveal is cleared (`showRecapPrompt && pendingPlayoffLoreReveal === null`). `App.test.tsx` guards this overlay priority so the immediate playoff-lore stamp does not stack with the broader season recap prompt.
+- `hall-of-fame-rollover.ts` delegates to the shared Hall of Fame sidecar snapshot writer when `game.year > previousYear` and entries exist. `/franchise/hall` also exposes an explicit `Sync Current Save` action for the same full-snapshot write.
+- `roster-continuity-rollover.ts` writes the previous season's starter IDs.
+- `rookie-of-year-rollover.ts` computes the completed season's rookie winner from `previousYear`, not the advanced current year.
+
+Local archive and rollover boundary map:
+
+- `deriveDynastyId(game)` is the sidecar identity root: `seed:teamId:startYear`. It is shared by career meta, scrapbook, Hall of Fame archive, roster continuity, rookie-of-year, playoff-lore pending cards, and dynasty chronicle inputs. Changing it is an archive migration, not a cosmetic refactor.
+- `actions.newGame(initial)` finalizes the current dynasty in career meta, clears the incoming dynasty's scrapbook/Hall-of-Fame/roster-continuity/rookie-of-year sidecars, appends the incoming dynasty summary, replaces the global derived rivalry sidecar from the incoming save, stores the new game, and autosaves. `actions.loadGame(loaded)` backfills career meta and replaces the global derived rivalry sidecar from the loaded save, but it does not clear dynasty-keyed sidecars or autosave.
+- `clearScrapbookForDynasty` also clears that dynasty's pending playoff-lore buckets because pending lore lives inside `mfd.scrapbook.v1`; there is no separate playoff-lore storage key to clear on new game.
+- Career meta stores summaries, not trusted totals. `readCareerMeta` validates the payload, defaults on malformed or wrong-version data, and recomputes `careerTotals` from `dynasties` every read/write.
+- Scrapbook is the richest sidecar and currently has schema version 2 plus legacy v1 read support. `appendScrapbookEntry` replaces same-year entries for a dynasty, merges pending playoff-lore cards for that season, then clears only the consumed pending season bucket. The entry itself is built by engine `buildScrapbookEntry`, which now folds saved league news, named-game dynasty events, bloodline draft timeline events, individual award winners, story-arc stage beats, season-report grades/overviews, record notes, Hall of Fame inductions, and heated league-rivalry chapters into notable moments without changing sidecar schema. `scrapbook-store.test.ts` guards same-dynasty future pending lore preservation.
+- Hall of Fame archive uses full-snapshot semantics per dynasty. `syncHallOfFameArchiveSnapshot(game, teamId)` builds the current user-team dynasty snapshot from saved `game.hallOfFame` and `deriveDynastyId(game)`, then `upsertHallOfFameDynasty` replaces that dynasty snapshot with sorted current entries rather than appending deltas. App-shell rollover calls the same helper only after a year advance, and `/franchise/hall` can call it through the explicit `Sync Current Save` button. `lastSyncedYear` is the current `game.year`.
+- Hall of Fame sidecar JSON portability is explicit user action only. `exportHallOfFameArchiveJson` reads and normalizes the current sidecar into a versioned `mfd.hallOfFame.archive.v1` envelope; `parseHallOfFameArchiveJson` is read-only; `importHallOfFameArchiveJson` validates the envelope or raw `mfd.hallOfFame.v1` payload before replacing only that browser-local sidecar. It does not write `GameState`, autosave, import entries into the live save, change cartridge exports/imports, or run sim/RNG.
+- Hall of Fame epilogue persistence is cartridge-durable: the TypeScript `HallOfFameEntry` type, engine `HallOfFameEntrySchema`, and browser HOF archive sidecar all accept optional `epilogue`, and `inductHallOfFame` can generate it. `CareerEpilogueSchema` validates the saved payload, current-save parsing drops malformed epilogue objects instead of failing the whole save, and migration v35 normalizes older Hall of Fame entries before current schema validation.
+- Roster continuity stores one latest starter snapshot per dynasty. It records `lastSyncedYear = previousYear` and deduped starter IDs; later rollovers replace the previous snapshot.
+- Rookie-of-year stores one winner per dynasty season. `upsertRookieOfYearEntry` replaces same-season entries and sorts newest first; `syncRookieOfYearAtYearRollover` intentionally computes from `previousYear` while `game.year` is already advanced.
+- Derived rivalry sidecar data is global/current-save scoped rather than keyed by `deriveDynastyId`. `syncRivalriesForGame(game)` replaces the whole payload from `deriveRivalries(game)` on new game, load game, latest-autosave load, and guarded year rollover. It intentionally does not reconstruct all-time rivalry history after old results leave the active save.
+- Sidecar stores are browser-local. They resolve `window.localStorage` or `globalThis.localStorage` when available, default safely when storage is absent, and recover from malformed JSON/schema mismatches without mutating `GameState`.
+- Rollover bridges are UI-shell effects, not engine transactions. If a browser crashes before a sidecar write, the main save remains valid; the archive can be reconstructed only where the source data still exists in `GameState`.
+- These sidecars are not included in `mfd-cartridge.v1`. Hall of Fame has its own focused `mfd.hallOfFame.archive.v1` JSON envelope, and `/dynasty` now has the broader `mfd.dynastySidecars.archive.v1` complete-sidecar envelope. Both stay separate from `.mfd` cartridges and validate imported JSON before replacing browser-local sidecars.
+- Do not write sidecars during React render. Current writes happen in store actions (`newGame`, `loadGame`, playoff-lore staging) or `App.tsx` year-rollover effects after guards.
+
+Pure web-lib derived helpers:
+
+- `dynasty-chronicle.ts` aggregates franchise history, Hall of Fame entries, coaching history, scrapbook notes, and playoff-lore cards into one sorted event stream. Hall of Fame chronicle events carry existing saved `HallOfFameEntry.epilogue` category/headline/story only when that epilogue is displayable; missing or blank epilogues keep the old name/position fallback.
+- `/franchise/chronicle` is presentation over those helpers plus browser-only export. `DynastyChronicle.tsx` keeps active event-type filters and selected-event modal state locally, `ChronicleFilters.tsx` renders one chip per `listChronicleEventTypes()` entry, and `ChronicleEventDetailModal.tsx` uses `chronicleTitle`/`chronicleBody`/`chronicleFacts` from the presenter rather than deriving copy in the modal, including saved HOF epilogue context when present. Chronicle PNG export uses `createExportFrame` like other archive-card exports: it wraps the filtered timeline in a hidden frame, then calls `exportRecapAsPng`; the export date uses `new Date()` only for filename/footer metadata and is not saved to `GameState`.
+- `playoff-lore.ts` builds and deduplicates playoff-lore cards from user-team playoff game-day packages/results. The app store passes the actual `playoffBracket.matchups[].round` into `buildPlayoffLoreCard`; the helper should not infer round from absolute weeks because custom schedule lengths can shift Wild Card/Super Bowl weeks.
+- `buildPlayoffLoreCard` returns `null` unless the caller supplies a playoff-phase `GameDayPackage`, a matching `GameResult`, the current user team id, and a proven bracket round. It also verifies the package belongs to the user team and the result includes that team, then derives outcome, opponent, lore hook, hero blocks, and tags from package/result/momentum data. `mergePlayoffLoreCards` dedupes by `gameId` and sorts newest-first.
+- `roster-continuity.ts`, `roster-identity.ts`, `rookie-of-year.ts`, and `rivalry-heat-map.ts` derive display models for franchise screens. `rivalry-heat-map.ts` resolves authored rivalry content through the runtime-id bridge, then derives W-L-T, total games, and latest meeting from saved completed `schedule` results and `playoffBracket.matchups` results without writing `GameState` or the rivalry sidecar.
+- `RookieOfYearHistory.tsx` reads browser-local `mfd.rookieOfYear.v1` directly through `readRookieOfYearEntries(dynastyId)` and renders `RookieOfYearCard` display rows plus source-boundary badges for the sidecar key, year-rollover owner, and dynasty scope. It is not a `GameState` selector and it does not recompute winners, write the sidecar, autosave, or run sim/RNG during render; `syncRookieOfYearAtYearRollover` owns writes through `computeRookieOfYear`.
+- `rivalry-heat-map.ts` uses `resolveTeamContent(game, idOrAbbr)` for user-team content, finds live rival teams by runtime id or abbreviation, and aliases runtime ids/content ids/abbreviations when matching saved results. The current-save readout includes W-L-T, total games, and latest meeting; the remaining gap is durable all-time rivalry history across seasons, not current-save completed-result derivation.
+- `team-content-resolver.ts` bridges runtime team IDs to canonical content abbreviations. Prefer pure `resolveTeamContent(game, idOrAbbr)` when `game` is already available; `resolveTeamContentFromStore` is a convenience wrapper for deep render-tree call sites.
+
+Rivalry boundary map:
+
+- Saved league rivalries live on `GameState.leagueRivalries` as `LeagueRivalry[]`: `id`, sorted `teamA/teamB`, `intensity`, `isDivision`, string `history`, and nullable `lastMetYear/lastMetWeek`. `systems/rivalries.ts` mutates this state, mirrors heat into legacy `team.rivals` and `team.rivalries`, and feeds gameplay rivalry context.
+- `seedLeagueRivalries(game)` creates all division rivalries at at least 40 intensity. `updateLeagueRivalriesFromGame(game, result, options?)` adds intensity for close games, playoff elimination, and revenge-player performance; `decayLeagueRivalries(game)` runs in offseason with floors for division and established non-division rivalries.
+- `getRivalryGameContext(game, homeTeamId, awayTeamId)` returns context only above 20 intensity. It classifies `budding`/`heated`/`blood_feud`, adds a 3 OVR boost above 50 intensity, and supplies the headline used by game-day/media surfaces.
+- Player rivalries are separate saved `GameState.playerRivalries`. `systems/player-rivalries.ts` detects matchup sparks from repeated interceptions, sacks, or forced fumbles, caps the active list at 10, upgrades `budding`/`heated`/`nemesis`, adds per-player bonuses of 1/2/3, can create trash-talk social posts, and decays/removes stale entries in offseason.
+- `franchise-week.ts` seeds league rivalries when the list is empty, feeds `getRivalryGameContext` into regular-season/playoff sim context, updates league rivalry heat after each simulated game, and emits heat-spike social posts when rivalry tiers ascend.
+- `franchise-week.ts` also builds player-rivalry context before each game, applies player OVR bonuses through sim context, updates existing player rivalries after game results, detects new ones, and can add rivalry trash-talk posts to the social feed.
+- `offseason.ts` decays both saved rivalry models: `decayLeagueRivalries(game)` and `game.playerRivalries = decayRivalries(...)`.
+- `packages/engine/src/rivalries` is a separate derived sidecar package, not the live gameplay model. `deriveRivalries(game)` builds a `RivalryPayload` from completed schedule results, playoff bracket results, parseable legacy team rivalry history, and saved league-rivalry hints. It computes recent W-L-T, last matchup, intensity, and drama tags.
+- `deriveRivalries` is exported and tested as pure engine derivation, while `loadRivalries`, `saveRivalries`, `replaceRivalries`, `clearRivalries`, and `parseRivalryPayload` live in `apps/web/src/lib/rivalry-storage.ts`. Production app wiring is limited to `apps/web/src/app/rivalry-rollover.ts`, `game-store.ts`, and `dynasty-sidecar-archive.ts`; `apps/web/src/app/architecture-boundaries.test.ts` guards this allowlist so the sidecar remains browser-local and out of engine transactions.
+- `/league-pulse` uses `selectLeagueRivalries` and `buildLeaguePulse` against saved `GameState.leagueRivalries`. `/franchise` `RivalryHeatMap` uses content-declared team rivals through the web runtime-id resolver bridge, labels that source on the route, and derives W-L-T, total games, and latest meeting from saved completed schedule/playoff results only.
+- Old-save migration v6 derives `leagueRivalries` from legacy `team.rivalries` and `team.rivals`; migration v18 defaults `playerRivalries`. Current save schema validates `LeagueRivalry`, but `playerRivalries` are still `z.any()` arrays, so tightening that schema needs fixtures and old-save coverage.
+
+Rivalry source-of-truth matrix:
+
+- Gameplay team heat: saved `GameState.leagueRivalries`, mirrored into legacy `team.rivals` / `team.rivalries`, read by `getRivalryGameContext`, `franchise-week.ts`, `press-conference.ts`, media headlines, achievements, and `/league-pulse`.
+- Gameplay player feuds: saved `GameState.playerRivalries`, read by `buildPlayerRivalryContext`, `PlayerRivalries.tsx`, and player-rivalry selectors. This is the only rivalry layer that grants per-player OVR bonuses.
+- Authored rivalry identity: `packages/content/teams/*.json` `rivalries[]`, read by `getTeamRivalryContent`, broadcast commentary, and current `RivalryHeatMap` through the web resolver bridge. This is flavor/identity copy, not saved dynasty heat; `RivalryHeatMap` W-L-T, total games, and latest meeting come separately from saved completed schedule/playoff results.
+- Derived head-to-head payload: `packages/engine/src/rivalries` `RivalryPayload`, test-covered as pure derivation and mirrored into browser-local `mfd.rivalries.v1` by the web store/app-shell lifecycle. `architecture-boundaries.test.ts` allows only the pure rivalry package/barrel, `rivalry-storage.ts`, `rivalry-rollover.ts`, `game-store.ts`, and `dynasty-sidecar-archive.ts` to reference derived sidecar symbols at runtime. It is exportable through `/dynasty` complete sidecar archives, but it is not `GameState`, not `.mfd` cartridge data, and not durable all-time head-to-head history. Legacy rivalry rows classify playoff history with `getRegularSeasonWeekCount(game)`, not fixed Week 19. `tagMatchup` treats Week 14+ divisional games as late regular-season implications only when `isRegularSeason` is true, so expanded Week 19 regular seasons are covered without tagging playoff games.
+- Relationship graph edges: `game.relationships` can include `rival` edges, but that graph is a separate presentation surface and does not drive team rivalry heat, player-rivalry bonuses, or authored team rivalry copy.
+
+Rivalry safety rules:
+
+- Do not treat `GameState.leagueRivalries`, `GameState.playerRivalries`, content-declared team rivalries, and `RivalryPayload` as interchangeable. Pick the source of truth deliberately for each UI or sim change.
+- Current-save head-to-head display can derive from completed schedule/playoff results. If implementing durable all-time head-to-head franchise history beyond the saved current schedule/bracket, first decide whether existing archives are complete enough or whether a persistent save field is required. Persistent fields require types, schema, migration, seed/default, fixtures/golden saves, selectors, UI tests, and old-save verification.
+- Keep the derived rivalry sidecar lifecycle in web-lib/app-shell/store code and document any new caller as browser-local current-save metadata, an exportable sidecar, or a live read model before relying on it.
+- Do not feed sidecar `generatedAt` or any wall-clock value back into simulation or deterministic reports.
+- Do not add engine `localStorage` access for rivalry history; the storage boundary is already in web-lib code.
+
+Focused tests for web-lib memory work:
+
+- `career-meta.test.ts`, `scrapbook-store.test.ts`, `hall-of-fame-archive.test.ts`, `roster-continuity-store.test.ts`, and `rookie-of-year-store.test.ts`: storage fallback, schema validation, sorting, isolation, and idempotent replacement.
+- `scrapbook-rollover.test.ts`, `hall-of-fame-rollover.test.ts`, `roster-continuity-rollover.test.ts`, `rookie-of-year-rollover.test.ts`, and `rivalry-rollover.test.ts`: rollover gates and completed-season write behavior.
+- `dynasty-chronicle.test.ts`, `dynasty-chronicle-filter.test.ts`, and `dynasty-chronicle-presenter.test.ts`: event aggregation, filtering, and display formatting.
+- `playoff-lore.test.ts`, `roster-continuity.test.ts`, `roster-identity.test.ts`, `rookie-of-year.test.ts`, `rivalry-heat-map.test.ts`, and `team-content-resolver.test.ts`: pure display-model helpers.
+- Rivalry-specific tests: `packages/engine/src/systems/rivalries.test.ts`, `packages/engine/src/systems/player-rivalries.test.ts`, `packages/engine/src/rivalries/compute.test.ts`, `packages/engine/src/rivalries/scoring.test.ts`, `packages/engine/src/rivalries/drama-tags.test.ts`, `packages/engine/src/systems/franchise-week-heat-spike.test.ts`, `apps/web/src/lib/rivalry-storage.test.ts`, `apps/web/src/app/rivalry-rollover.test.ts`, `apps/web/src/lib/dynasty-sidecar-archive.test.ts`, `apps/web/src/lib/rivalry-heat-map.test.ts`, `apps/web/src/features/franchise/RivalryHeatMap.test.tsx`, `apps/web/src/features/league/LeaguePulse.test.tsx`, and `apps/web/src/app/architecture-boundaries.test.ts` for the derived-sidecar runtime allowlist.
+
+## Content And Assets
+
+- `packages/content/teams` has one JSON file per fictional franchise. These back team identity/fan/stadium/rivalry content.
+- `packages/content/agm`, `broadcast`, `call-your-shot-reactions.json`, `ceremonies`, `coaching`, `contingency-callouts.json`, `halftime`, `names`, `narrative`, `news`, `personalities`, `scouting`, and `social` feed content through `content-loader.ts`.
+- Directories with `.gitkeep` do not automatically mean empty. Current `broadcast` and `personalities` directories contain real JSON plus `.gitkeep`; `stadiums` now contains `.gitkeep` plus loader-owned ATL, BAL, BOS, CHI, CIN, CLE, DAL, DEN, DET, KC, NYC, PHI, PIT, SEA, and SF standalone stadium files.
+- `apps/web/public/assets/chip` contains generated Chip pose PNGs and contact sheets. `packages/design-system/components/Chip/Chip.tsx` maps pose ids to those files and to `assets/chip/inline/*` for smaller render sizes. Regenerate only with `scripts/generate-chip-v3-art.cjs` when intentionally changing poses.
+- The Chip atlas currently has 36 pose ids. `resolveChipPoseArt` uses inline square crops for `sm`/`md` and full-body PNGs for `lg`; `Chip.test.tsx` locks pose order, asset-path shape, inline crop behavior, motion metadata, and representative asset names.
+- Chip's public pose surface is PNG-first. The SVG pose fragments under `packages/design-system/components/Chip/poses` are legacy/vector fallback renderers: `greeting.tsx`, `celebrate.tsx`, `thumbs-up.tsx`, `think.tsx`, `disappointed.tsx`, `excited.tsx`, `whispering.tsx`, `point-left.tsx`, `sad.tsx`, `surprised.tsx`, `point-right.tsx`, and the other imported fragments are not a one-file-per-public-pose contract for the 36-pose atlas. `props/TelestratorX.tsx` is a tiny SVG prop used by warning/pointing pose fragments; it owns no app state, game state, or content behavior.
+- `apps/web/public/logos` contains team logo PNGs and composites. `TeamLogo.tsx` loads `logos/${icon}.png`, where `icon` is the runtime team icon/lowercase abbreviation. Missing files hide the image instead of throwing.
+- `TeamLogo.tsx` uses a fixed 512:279 aspect ratio, derives width from the `size` height prop, and does not run through team-content resolution or Vite `BASE_URL`; `TeamLogo.test.tsx` guards the route-relative `logos/${icon}.png` resolver, derived dimensions, alt fallback, silent missing-file hide behavior, and every selectable `getTeamOptions()` icon resolving to a shipped public logo file.
+- `apps/web/public/audio` contains event/cue `.ogg` files used by web audio playback. `AudioController.tsx` sanitizes requested assets to `audio/... .ogg` and resolves through `import.meta.env.BASE_URL`.
+- Public audio references are split: `game-store.ts` stages `requestedAsset` metadata on saved `postGameUi.audioCueQueue`, while `AudioController.tsx` decides whether a safe `.ogg` plays or the synthesized sound fallback runs. `audio-assets.test.ts` cross-checks production literals against shipped files and unused shipped cue/event files.
+- `apps/web/public/screenshots/v1` powers README/release imagery, not runtime simulation.
+- `apps/web/public/manifest.json` is the active PWA manifest for the web app. The root `public/manifest.json` is legacy/unwired unless a task explicitly targets root public assets. `apps/web/src/app/indexDocument.test.ts` guards the active manifest's `/MFD/` scope and verifies the index document does not reference the legacy `/mr-football-dynasty/` path.
+
+## Design System Inventory
+
+- General `Mfd*` components: `MfdBadge`, `MfdCommandPalette`, `MfdConsequenceRibbon`, `MfdDialog`, `MfdHoverCard`, `MfdKpiCard`, `MfdKpiGrid`, `MfdPanel`, `MfdRingProgress`, `MfdStepper`, `MfdTable`, `MfdTooltip`.
+- Pixel/broadcast components: `PixelBadge`, `PixelButton`, `PixelConsequenceList`, `PixelDialog`, `PixelEkg`, `PixelMetricCard`, `PixelModal`, `PixelNav`, `PixelPanel`, `PixelPlayerLink`, `PixelProgressBar`, `PixelScoreboard`, `PixelScreenHeader`, `PixelSelect`, `PixelStatBar`, `PixelSwitch`, `PixelTable`.
+- `packages/design-system/components/PixelEkg/PixelEkg.stories.tsx` is Storybook-only. It exports hardcoded `Blowout`, `Shootout`, and `Classic` visual scenarios for the presentational SVG EKG component; it is not runtime route wiring, a probability model, or a test gate.
+- Companion/onboarding primitives: `Chip`, `Spotlight`, `ChipDialogueBubble`, pose types, motion profiles, and typewriter helpers.
+- Use `packages/design-system/tokens/index.css` and `tokens/breakpoints.ts` before inventing new visual constants.
+
+## Design System, Shell UI, And Accessibility Wiring
+
+Primary ownership:
+
+- `packages/design-system/components/index.ts` is the shared component barrel. Web routes should import from `@mfd/design-system/components` unless a feature already has an app-specific wrapper.
+- `packages/design-system/package.json` exports only `./components` and `./tokens`. It is a shared package, not an app feature folder; do not import app stores, route helpers, content resolvers, or save/game logic into it.
+- `packages/design-system/tokens/index.css` is loaded once from `apps/web/src/main.tsx` through `@mfd/design-system/tokens`. It owns color, typography, spacing, radius, motion, focus, responsive, mobile-nav, and card-table CSS custom properties.
+- `packages/design-system/tokens/breakpoints.ts` mirrors CSS breakpoints for JS and `matchMedia` helpers. Keep it synchronized with `--mfd-bp-sm`, `--mfd-bp-md`, and `--mfd-bp-lg`.
+- `apps/web/src/features/shared/pixelUi.tsx` is the app-specific convenience layer. It re-exports/wraps common Pixel components, `screenStackStyle`, `autoGrid`, `teamThemeVars`, `CommandCallout`, `PlayerNameLink`, and `navigateTo`.
+- `apps/web/src/app/app-shell.css` owns desktop top-nav layout, shell spacing, Chip-aware content gutters, and app-shell background. `apps/web/src/app/a11y.css` adds global focus outlines for button-like elements.
+- `apps/web/src/app/NewGameScreen.tsx` has separate `new-game-screen.css`; keep first-screen styling there instead of mixing it into app shell CSS.
+
+Design-system package boundary map:
+
+- Shared components must stay app-agnostic. The design-system package depends on React, lucide, Radix primitives, `cmdk`, and TanStack Table; it should not know about `useGameStore`, `useUiStore`, route paths, team ids, save schema, or browser sidecars.
+- General `Mfd*` components are lower-chrome primitives. `MfdDialog`, `MfdTooltip`, and `MfdHoverCard` wrap Radix; `MfdCommandPalette` wraps `cmdk`; `MfdTable`/`PixelTable` use TanStack Table. Prefer improving these primitives before duplicating a route-local version.
+- Pixel components are broadcast-style route primitives with inline styles and token-driven CSS variables. They expose `data-mfd-*` hooks intentionally; tests and global responsive CSS depend on those attributes.
+- `PixelTable` owns TanStack sorting/filtering state, keyboard-sortable headers, keyboard-clickable rows, and the `responsive="cards"` table mode. Card mode is activated with `data-mfd-table-mode="cards"` and rendered by token CSS at the phone breakpoint using per-cell `data-mfd-table-label` values.
+- `PixelSelect` is a native `<select>` styled to the pixel system. It uses `data-mfd-focusable="pixel-select"` and `min-height: var(--mfd-touch-min)`; do not replace it with a custom select unless keyboard/native behavior and tests are preserved.
+- `MfdCommandPalette` is reusable and category-aware, but not the app command source. It orders groups as action, screen, player, team and can register its own default `Cmd/Ctrl+K` document listener for standalone use; app `RootLayout` disables that listener and owns shortcut toggling through the app shortcut registry.
+- `Chip` owns the pose atlas, pose-to-motion-profile map, and pose-to-art map. Small/medium sizes use `assets/chip/inline/*.png`; large sizes use full art from `assets/chip/*.png`. Those files live under `apps/web/public/assets/chip`, so Chip art changes are shared-component plus public-asset work.
+- `Spotlight` is a DOM-positioned onboarding primitive. It finds targets by `targetRef` first or `[data-spotlight-target="..."]`, mutates the target with `aria-current="step"` and a screen-reader label, and returns `null` when the target is missing. Keep spotlight ids stable with route-coaching/setup registries.
+- `pixelUi.tsx` is not part of the shared package. It is the app bridge for hash navigation, app-specific `CommandCallout`, `autoGrid`, and `teamThemeVars`. `teamThemeVars` can resolve runtime team ids through `resolveTeamContentFromStore`, so route components that already have `game` should still prefer explicit `resolveTeamContent(game, idOrAbbr)` when feasible.
+- App shell CSS and global token CSS have different jobs. `tokens/index.css` owns reusable tokens plus data-attribute responsive rules; `app-shell.css` owns nav rails, Chip runway, main-content padding, and route-shell clearance; `a11y.css` owns global focus-visible outlines.
+- Adding a new shared component requires a folder export, barrel export, focused design-system tests, and app usage docs when it becomes a new pattern. Adding a new design token requires CSS token, JS mirror when relevant, and a test if component behavior depends on it.
+
+Component usage rules:
+
+- Use `PixelButton`, `PixelSelect`, `PixelSwitch`, `PixelTable`, `PixelModal`, `PixelPanel`, `PixelScreenHeader`, and `PixelMetricCard` for pixel/broadcast route surfaces.
+- Use `MfdDialog`, `MfdTooltip`, `MfdHoverCard`, `MfdTable`, and `MfdCommandPalette` for lower-chrome app utilities and Radix/cmdk-backed interactions.
+- `ConfirmDialog` in `apps/web/src/features/shared` wraps `PixelModal` for destructive/commit confirmations. Prefer it before creating a one-off confirm modal.
+- `EmptyState` in `apps/web/src/features/shared` standardizes empty route surfaces with a reason, next step, and optional route action.
+- `PixelTable` supports `responsive="cards"`; the card transformation is CSS-driven through `data-mfd-table-mode="cards"` and `data-mfd-table-label`.
+- Preserve `data-mfd-*` and `data-nav` attributes when refactoring UI. Tokens and tests use them for mobile nav, focus rings, table card mode, tutorial/Chip targeting, and shell spacing.
+- `MfdCommandPalette` accepts `CommandItem[]` and owns the reusable cmdk UI plus category grouping. `COMMAND_CATEGORY_ORDER`, `COMMAND_CATEGORY_LABELS`, and `groupCommandItems` keep command groups ordered as action, screen, player, then team; `globalShortcutEnabled` defaults on for standalone use and is disabled by the app shell; `MfdCommandPalette.test.tsx` locks closed/open SSR rendering, grouping semantics, and the shortcut-listener opt-out.
+- `RootLayout` builds screen commands from `NAV_ITEMS`, capped user-roster player commands from `selectRoster`, and the explicit `Advance Week` action. Add command-palette route coverage when adding major nav routes, and update both app and design-system tests if app code starts supplying team commands or changes player command semantics.
+- `MobileBottomTabBar` owns four primary tabs plus a More drawer built from `NAV_GROUPS` and `NAV_ITEMS`. The current primary paths are `/`, `/roster`, `/game-plan`, and `/week-advance`; `nav-items.test.ts` locks that they remain intentional and backed by `NAV_ITEMS`. Visibility is CSS-gated by `data-mfd-mobile-nav` and `data-mfd-top-nav`.
+
+Accessibility and responsive rules:
+
+- Touch targets should respect `--mfd-touch-min` / `TOUCH_MIN_PX = 44`.
+- Reduced motion flows through CSS custom properties under `prefers-reduced-motion`; avoid hardcoded animation timings that bypass tokens.
+- Focus styling relies on `data-mfd-focusable`, `data-mfd-nav-item`, and `data-mfd-table-sortable`. Preserve keyboard handlers on clickable table rows, sortable headers, modal close buttons, and mobile drawer controls.
+- For mobile route work, verify top nav hides, bottom nav shows, main content clears the fixed bottom bar, and Chip-aware padding does not hide content.
+- Avoid route-local CSS that fights `tokens/index.css` responsive overrides unless the route has a unique layout constraint and tests/screenshots cover it.
+
+Focused tests for design/shell UI work:
+
+- Design system: `packages/design-system/tokens/index.test.ts`, `MfdCommandPalette.test.tsx`, `PixelTable.test.tsx`, `PixelSelect.test.tsx`, `Spotlight.test.tsx`, `Chip.test.tsx`, and Chip pose tests.
+- App shell/shared: `apps/web/src/app/app-shell.test.ts`, `App.test.tsx`, `appShellLifecycle.test.ts`, `MobileBottomTabBar.test.tsx`, `nav-items.test.ts`, `navBadges.test.ts`, `indexDocument.test.ts`, `ErrorBoundary.test.tsx`, `AutosaveToast.test.tsx`, `NewGameScreen.test.tsx`, `pixelUi.test.tsx`, `EmptyState.test.tsx`, and `RouteTransition.test.tsx`.
+- For visible route polish, add focused component tests and then use Browser/Playwright screenshots for desktop and mobile when layout, table density, modals, or nav behavior changed.
+
+## Settings, Commands, Watch List, And Inbox Wiring
+
+This layer mixes saved dynasty controls with browser-local preferences. Check ownership before changing behavior.
+
+Settings ownership:
+
+- `/settings` renders `apps/web/src/features/settings/Settings.tsx`.
+- Saved dynasty mutations go through `useGameStore` actions in `apps/web/src/app/store/game-store.ts`: `setDifficulty`, `setHalftimeDecisions`, `setAdaptiveDifficultyEnabled`, `upgradeFacility`, and `hireMedicalStaff`.
+- `setDifficulty` writes `game.difficulty` and resets `game.settings.halftimeDecisions` with `getDefaultHalftimeDecisionSetting(difficulty)`.
+- `setHalftimeDecisions` writes `game.settings.halftimeDecisions`; rookie difficulty forces it to `off`.
+- `setAdaptiveDifficultyEnabled(false)` also resets `game.difficultyState.adaptiveSlider` to 50.
+- Facility and medical-staff controls clone current `GameState`, call engine helpers, then `commitGame`.
+- Browser-local settings come from `apps/web/src/app/store/ui-store.ts`: `autosaveEnabled`, `simSpeed`, sidebar collapse, density, and audio preferences.
+- `commitGame` respects `useUiStore.getState().autosaveEnabled`; disabling autosave changes persistence behavior, not the in-memory GameState mutation.
+- Settings debug mode is enabled only with `?debug=1` in the URL or hash query and renders `validateGameState(game)` output.
+
+UI store and audio preference ownership:
+
+- `useUiStore` persists selected fields under `mfd-ui-preferences`.
+- Persisted UI fields are `sidebarCollapsed`, `density`, `autosaveEnabled`, `simSpeed`, and `audioPreferences`.
+- Transient UI fields are `commandPaletteOpen`, focused-player context, and `broadcastGameId`.
+- `ui-store.ts` uses `createJSONStorage` with `window.localStorage` in the browser and a no-op memory storage fallback for SSR/tests.
+- Hydration merge whitelists only the persisted UI fields, validates non-audio preference values (`sidebarCollapsed`, `density`, `autosaveEnabled`, `simSpeed`), normalizes `audioPreferences`, and leaves transient shell context at defaults even if old or malformed storage includes it.
+- Audio preferences are local UI preferences, not cartridge data. Categories are `ui`, `sfx`, and `ambient`; volumes are clamped by `clampAudioVolume`.
+- `AudioSettings.tsx` renders the Settings audio controls and explicitly documents that audio preferences live outside dynasty saves.
+
+Command palette and keyboard ownership:
+
+- `apps/web/src/app/hooks/useKeyboard.ts` owns the module-level shortcut registry, `useGlobalKeyboard`, `useShortcut`, `getRegisteredShortcuts`, and the pure shortcut guards `shortcutMatchesEvent`, `isTextEditingShortcutTarget`, and `shouldSkipShortcutForTarget`.
+- `useGlobalKeyboard` skips unmodified shortcuts while focus is in input, textarea, or contenteditable elements; meta/ctrl shortcuts can still fire. `useKeyboard.test.ts` locks case-insensitive key matching, shift requirements, Ctrl-as-Cmd fallback for meta shortcuts, metadata-only registry reads, shortcut unregister cleanup, document listener cleanup, and editable-target suppression.
+- `RootLayout` registers number-key route shortcuts from `NAV_ITEMS`, `Cmd/Ctrl+K` for command-palette toggling, and `Shift+?` for hotkey help. `App.test.tsx` source-guards that route shortcuts are registered from `NAV_ITEMS.shortcut`, navigate through the router, feed the hotkey-help rows, and dispose on cleanup.
+- `RootLayout` rebuilds `commandItems` from `NAV_ITEMS`, capped `selectRoster` player commands, plus one hard-coded `Advance Week` action. There is no persisted command registry.
+- `packages/design-system/components/MfdCommandPalette/MfdCommandPalette.tsx` owns the `cmdk` palette UI and groups command items by action, screen, player, and team through exported grouping helpers. Its optional document shortcut listener stays enabled by default for standalone use and disabled by `RootLayout`; `MfdCommandPalette.test.tsx` guards the reusable category order, labels, and opt-out contract. App-specific command sources stay guarded by `nav-items.test.ts`.
+- Current app command items are screen commands derived from `NAV_ITEMS`, capped roster-player commands derived from `selectRoster`, plus the explicit `Advance Week` action. The palette component supports team commands too, but current `RootLayout` does not populate them; `nav-items.test.ts` intentionally fails if app command items start drawing from another source without updating the contract.
+
+Command-palette source/test boundary map:
+
+- The app command source is inline in `RootLayout`, not a separate command registry. Screen commands are `NAV_ITEMS.map(...)` with ids `screen-${nav.path}`, labels from `nav.label`, `category: 'screen'`, icons from `nav.icon`, `keywords: [nav.shortLabel]`, and `router.navigate({ to: nav.path })` selection.
+- The only explicit non-screen command today is `action-advance-week`, categorized as `action`, with keywords `next`, `sim`, and `advance`; it navigates to `/week-advance`. `nav-items.test.ts` source-guards that this is the only hard-coded command id.
+- The reusable `CommandItem` type allows `player`, `team`, `screen`, and `action`; `COMMAND_CATEGORY_ORDER` renders groups as action, screen, player, team. App player commands are now wired from `selectRoster`; team commands remain component capacity until a real team-detail route contract exists.
+- `MfdCommandPalette` defaults its placeholder to "Search players, teams, screens...", while `RootLayout` overrides the app instance to "Search screens, actions, roster players..." because current app command items are `NAV_ITEMS` screens, capped selector-backed user-roster player commands, and `action-advance-week`. `App.test.tsx` source-guards that app-specific placeholder.
+- `nav-items.test.ts` is the app-shell contract: command items must come from `NAV_ITEMS`, `selectRoster`-backed `rosterCommandItems` capped at 32, plus `action-advance-week`. Roster-player commands navigate to `/player/$playerId` and the command block still must not include `category: 'team'` because there is no app-level team-detail command route.
+- `commandPaletteOpen` is transient UI store state. `ui-store.ts` excludes it from `mfd-ui-preferences`, and `ui-store.test.ts` proves old persisted `commandPaletteOpen`, focused-player context, and `broadcastGameId` reset on hydration.
+- `Cmd/Ctrl+K` is app-owned in `RootLayout`: `useShortcut('k', () => toggleCommandPalette(), { meta: true })` toggles transient `commandPaletteOpen`, while the app passes `globalShortcutEnabled={false}` to `MfdCommandPalette` to avoid duplicate document listeners. Browser smoke has verified both `Meta+K` and `Control+K` open and close the app palette.
+- Future command-palette expansion should choose live selector inputs, destination routes, keyword shape, result caps, stale-id behavior, and whether each command is route-only or action-like. Player commands currently use `/player/$playerId`; future team commands need an explicit team-detail route contract. Keep results out of `GameState` unless a separate persistence feature is deliberately designed.
+
+Watch list ownership:
+
+- `/watch-list` lazy-loads `apps/web/src/features/watch-list/WatchListScreen.tsx`.
+- `watchListPrefs.ts` persists pinned IDs in localStorage under `mfd.watchlist.v1`, emits `mfd-watchlist-change` for same-tab writes, and subscribes to matching cross-tab `storage` events.
+- Watch-list prefs are not save-cartridge data. They can point at current players, free agents, draft prospects, archived players, or missing IDs.
+- `WatchListPinButton.tsx` stops row activation on pointer/mouse/click events before toggling the local pin.
+- Pin buttons are wired in roster, scouting, and FA target surfaces. If adding another player board, reuse `WatchListPinButton`.
+- Watch-list source clarity is shipped as a read-only UI slice: `/watch-list` renders `Watch List Sources`, labeling the browser-local `mfd.watchlist.v1` sidecar, `buildWatchListRows` resolution through current players/free agents/draft prospects/archive rows/missing rows, separate saved scouting and FA target watchlists, board-level `updatedAt`, and the display-only boundary. Opening the route does not mutate `GameState`, move players, change saved scouting or FA watchlists, alter draft/free-agent boards, or write player/archive records.
+
+Inbox ownership:
+
+- `/inbox` renders `InboxTriage.tsx`.
+- Inbox source clarity is shipped as a read-only UI slice: `/inbox` renders `Inbox Sources`, labeling `buildInboxMessages` as the generated queue read model, route selector inputs, the shell badge boundary where `computeNavBadges` does not badge `/inbox`, local `selectedMsg`/filter/apology modal state, CTA navigation boundaries, the owner-personality mailbox split, and the display-only boundary. Opening Inbox does not advance weeks, resolve actions, mutate proposals, clear waivers, write news/social, mark messages read, or run sim/RNG.
+- See `Inbox, Decision Queue, And Notification Wiring` for the full source map, generated-message inputs, route-coaching notes, and persistence rules.
+
+Route-coaching interaction:
+
+- `resolveRouteKey` maps `/locker-room` to `locker-room`, `/front-office` to `front-office`, `/endorsements` to `endorsements`, `/draft-recap` to `draft-recap`, `/relocate` to `relocation`, `/training-camp` to `training-camp`, `/mentors` to `mentors`, `/commissioner` to `commissioner-governance`, `/awards` to `awards-hub`, `/legends` to `franchise-legends`, `/game-day` to `game-day-recap`, `/broadcast`, `/presentation`, `/play-by-play`, and `/game-flow` to `broadcast-suite`, `/film-room` to `film-room`, `/super-bowl` to `super-bowl`, `/schedule` to `schedule`, `/watch-list` to `watch-list`, `/owner` and `/handshakes` to `owner-promises`, `/analytics` and `/stat-central` to `analytics-evidence`, `/player/$playerId` and concrete `/player/<id>` profile paths to `player-profile`, `/player/$playerId/timeline` and concrete `/player/<id>/timeline` paths to `player-timeline`, `/player-development` to `player-development`, `/compare` to `player-comparison`, `/rivalries` to `player-rivalries`, `/league/weather` to `league-weather`, `/scenarios` to `scenario-constraints`, `/trade-block` to `trade-market-radar`, `/team-needs`, `/free-agency`, and `/fa-targets` to `market-planning`, `/waivers` and `/practice-squad` to `roster-churn`, `/dynasty` to `dynasty-save-load`, and `/settings` to `settings`.
+- Current `locker-room`, `front-office`, `endorsements`, `draft-recap`, `relocation`, `commissioner-governance`, `franchise-legends`, `game-day-recap`, `broadcast-suite`, `film-room`, `super-bowl`, `schedule`, `watch-list`, `owner-promises`, `analytics-evidence`, `player-profile`, `player-timeline`, `player-development`, `player-comparison`, `player-rivalries`, `league-weather`, `scenario-constraints`, `trade-market-radar`, `market-planning`, and `roster-churn` route beats in `routeBeatRegistry.ts` have `spotlightTarget: null`, so they display route-specific guidance without anchoring to a specific locker-room, front-office, endorsements, draft-recap, relocation, commissioner, legends, game-day, broadcast, film-room, Super Bowl, schedule, watch-list, owner, handshake, analytics, Stat Central, player-profile, player-timeline, player-development, comparison, rivalry, league-weather, scenario, trade-block, market, or roster-churn control.
+- `routeBeatRegistry.test.ts` locks Settings, Dynasty Save/Load, and Mentors as deliberately anchored, while `spotlightAnchors.test.ts` locks every non-null target to one source anchor. Update those guards deliberately before adding locker-room-specific, front-office-specific, endorsements-specific, commissioner-specific, legends-specific, game-day-specific, broadcast-specific, film-room-specific, Super Bowl-specific, schedule-specific, watch-list-specific, owner-specific, handshake-specific, analytics-specific, stat-central-specific, comparison-specific, rivalry-specific, scenario-specific, trade-block-specific, market-specific, or roster-churn-specific spotlight targets.
+- `spotlightAnchors.test.ts` maps `locker-room` to `apps/web/src/features/locker-room/LockerRoom.tsx`, `front-office` to `apps/web/src/features/front-office/ContractTools.tsx`, `endorsements` to `apps/web/src/features/endorsements/EndorsementCenter.tsx`, `draft-recap` to `apps/web/src/features/draft/DraftRecap.tsx`, `relocation` to `apps/web/src/features/franchise/RelocationScreen.tsx`, `training-camp` to `apps/web/src/features/training-camp/TrainingCamp.tsx`, `mentors` to `apps/web/src/features/mentors/AlumniMentorsScreen.tsx`, `commissioner-governance` to `apps/web/src/features/league/CommissionerOffice.tsx`, `awards-hub` to `apps/web/src/features/legacy/AwardsHub.tsx`, `franchise-legends` to `apps/web/src/features/franchise/FranchiseLegends.tsx`, `game-day-recap` to `apps/web/src/features/game-day/GameDayRecap.tsx`, `broadcast-suite` to `apps/web/src/features/broadcast/GameBroadcast.tsx`, `film-room` to `apps/web/src/features/film-room/FilmRoom.tsx`, `super-bowl` to `apps/web/src/features/playoffs/SuperBowlPresentation.tsx`, `schedule` to `apps/web/src/features/schedule/TeamSchedule.tsx`, `watch-list` to `apps/web/src/features/watch-list/WatchListScreen.tsx`, `owner-promises` to `apps/web/src/features/owner/OwnerMood.tsx`, `analytics-evidence` to `apps/web/src/features/analytics/AnalyticsDashboard.tsx`, `player-profile` to `apps/web/src/features/player/PlayerProfile.tsx`, `player-timeline` to `apps/web/src/features/stats/PlayerTimeline.tsx`, `player-development` to `apps/web/src/features/player/PlayerDevelopment.tsx`, `player-comparison` to `apps/web/src/features/shared/PlayerComparison.tsx`, `player-rivalries` to `apps/web/src/features/player/PlayerRivalries.tsx`, `league-weather` to `apps/web/src/features/league/WeatherForecast.tsx`, `scenario-constraints` to `apps/web/src/features/scenario/ScenarioSelect.tsx`, `trade-market-radar` to `apps/web/src/features/trades/TradeBlockTicker.tsx`, `market-planning` to `apps/web/src/features/team-needs/TeamNeeds.tsx`, `roster-churn` to `apps/web/src/features/waiver-wire/WaiverWire.tsx`, `dynasty-save-load` to `apps/web/src/features/dynasty-cartridge/DynastyCartridge.tsx`, and `settings` to `apps/web/src/features/settings/Settings.tsx`.
+
+Settings, command, and watch-list boundary map:
+
+- Settings controls fall into three persistence classes. Dynasty settings (`difficulty`, `settings.halftimeDecisions`, `difficultyState`, facilities, and medical staff) mutate `GameState` through `game-store.ts` actions and `commitGame`; UI preferences (`autosaveEnabled`, `simSpeed`, density, sidebar, and audio preferences) persist under `mfd-ui-preferences`; command palette state, focused-player context, and `broadcastGameId` are transient UI store fields.
+- `autosaveEnabled` is browser-local, but it changes the side effect of `commitGame`: durable game mutations still update in-memory `GameState`, while automatic Dexie writes are skipped when autosave is off. Treat this as a local persistence-control preference, not a dynasty rule.
+- `useUiStore` `partialize` plus the hydration `merge` whitelist control what survives reload. If adding UI store fields, deliberately choose persisted sidecar versus transient shell state and update `ui-store.test.ts` for storage shape, hydration, and normalization.
+- `audioPreferences` normalize missing categories on hydration and clamp category volume to 0-100. Adding an audio category requires updates to `audio-preferences.ts`, `ui-store.ts`, `AudioSettings.tsx`, audio controller/category routing, and focused tests.
+- Command palette state lives in `useUiStore`, while command palette rendering lives in `packages/design-system/components/MfdCommandPalette`. The design-system palette supports `player`, `team`, `screen`, and `action` groups; current `RootLayout` supplies screen commands from `NAV_ITEMS`, capped roster-player commands from `selectRoster`, and `Advance Week`. Keep `nav-items.test.ts` aligned with any new player/team/action command source. `RootLayout` passes the app-specific placeholder `Search screens, actions, roster players...` so current UI copy matches the wired command source.
+- Player command-palette search is selector-driven and routes to existing player profiles without persisting command results in `GameState`. Future team command search should remain selector-driven too, but should wait for an explicit team-detail destination or route contract instead of sending team commands to an unrelated screen.
+- `Cmd/Ctrl+K` is handled by the app shortcut registry in `RootLayout`, which toggles `commandPaletteOpen`; the app disables the command palette component's default document listener with `globalShortcutEnabled={false}`. If changing palette open/close behavior, keep the app/design-system tests and a browser shortcut smoke aligned.
+- The shortcut registry in `useKeyboard.ts` is module-level. `RootLayout` registers number-key route shortcuts in an effect and unregisters them on cleanup; hotkey help combines explicit `NAV_ITEMS` shortcut rows with `getRegisteredShortcuts()`.
+- `NAV_ITEMS` remains a broad shell source of truth: top nav, mobile nav, number shortcuts, command-palette screen commands, tutorial/source tests, and route labels all derive from it. Major route additions need nav/source tests, command-palette coverage expectations, and route-coaching/tutorial consideration.
+- Game Day, Broadcast Suite, Film Room, Super Bowl, Schedule, Watch List, Owner/Handshakes, trade-block radar, market planning, roster churn, Settings, and Dynasty now use distinct route-coaching keys: `/game-day` resolves to `game-day-recap`; `/broadcast`, `/presentation`, `/play-by-play`, and `/game-flow` resolve to `broadcast-suite`; `/film-room` resolves to `film-room`; `/super-bowl` resolves to `super-bowl`; `/schedule` resolves to `schedule`; `/watch-list` resolves to `watch-list`; `/owner` and `/handshakes` resolve to `owner-promises`; `/trade-block` resolves to `trade-market-radar`; `/team-needs`, `/free-agency`, and `/fa-targets` resolve to `market-planning`; `/waivers` and `/practice-squad` resolve to `roster-churn`; `/settings` resolves to `settings`; and `/dynasty` resolves to `dynasty-save-load`. Do not add a route beat anchor unless `spotlightAnchors.test.ts` maps that key to the screen that owns the DOM target.
+- Dynasty Save/Load route coaching is anchored: `/dynasty` resolves to `dynasty-save-load`; beat 1 spotlights `Portable Backup` for Combined Backup as the primary off-machine backup path plus advanced current-save-only `.mfd` actions, and beat 2 spotlights the Local Save Slots plus Advanced `.mfd` Cartridge restore grid. This is route guidance only; it does not build cartridges, write export receipts, save slots, load slots, validate imports, replace `GameState`, import sidecars, autosave, mutate saves, run sim, or touch RNG.
+- Settings route coaching is anchored: `/settings` resolves to `settings`; beat 1 spotlights `Simulation Preferences` for difficulty, adaptive difficulty, halftime, autosave, and sim speed controls, and beat 2 spotlights `Operations Source` for saved facility/medical sources, upgrade/hire commit owners, and read-only team-ops receipts. This is route guidance only; it does not toggle settings, upgrade facilities, hire staff, refresh candidate pools, process injuries, resolve training camp, mutate saves, run sim, or touch RNG.
+- There are three distinct watch-list concepts. Browser-local global pins live in `watchListPrefs.ts` under `mfd.watchlist.v1`; saved draft prospect focus lives in `offseasonState.scoutingWatchlist`; saved free-agent target focus lives in `faTargetBoard.watchlist`. Do not merge these without an explicit save/sidecar migration design.
+- `WatchListPinButton` is the global browser-local star. The `Watch` buttons in scouting and FA target board are saved domain watchlists. Boards can render both controls for the same player/prospect, but they mean different things.
+- FA target board selector tests guard that current stored snapshots are materialized as-is, stale target snapshots rebuild from the current free-agent pool, and saved FA watchlist ids survive the rebuild. Do not "clean up" stale watched ids in selectors; pruning saved intent would be a persistence decision.
+- `watchListPrefs.ts` is SSR-safe, normalizes duplicate/blank IDs while preserving first-seen order, falls back to empty prefs on malformed JSON or malformed payload shape, emits `mfd-watchlist-change`, and listens to both that local event plus matching cross-tab `storage` events. `watchListPrefs.test.ts` guards subscribe/unsubscribe behavior. The key is versioned, but the payload has only `playerIds` and `updatedAt`, not an embedded schema version.
+- `WatchListScreen.tsx` derives rows at render time from current `game.players`, `game.freeAgents`, `game.draftClass`, and `game.playerArchive`; missing IDs render a recoverable "missing player record" row and are not auto-pruned.
+- `/watch-list` now surfaces this read/write split in the route itself through `Watch List Sources`: global pins are browser-local, saved scouting and FA watchlists remain separate, `updatedAt` is board-level metadata, and render-time row resolution does not prune stale IDs or repair saved/player/archive data.
+- Watch List route coaching is shipped for `/watch-list`: `resolveRouteKey` maps the route to `watch-list`, whose unanchored Chip beats explain that global pins are browser-local and that real roster, free-agency, prospect, or archive actions still belong on their owner routes. This is route guidance only; it does not change the `mfd.watchlist.v1` sidecar shape, write `GameState`, mutate saved scouting/FA watchlists, move players, alter draft/free-agent boards, run sim, or touch RNG.
+- `updatedAt` in watch-list prefs is one board-level ISO metadata stamp from `new Date()`, reused across every rendered row. It is not a per-player pin timestamp. Do not use it for deterministic sim decisions or saved scouting/FA logic.
+- Removing a row from `/watch-list` calls `removeFromWatchList` and writes the next browser-local prefs snapshot. It does not mutate the saved player, free-agent, draft, or archive records.
+
+Wired/not-wired notes:
+
+- Do not move UI preferences, watch-list prefs, or future inbox read receipts into `GameState` without a save-schema and migration plan.
+- If adding team command-palette search or local command history, decide whether it reads live selectors only or stores any local history under a versioned sidecar.
+- UI preference hydration falls back to current defaults for malformed persisted sidebar, density, autosave, and sim-speed values, while `audioPreferences` normalizes missing categories. Do not let transient `commandPaletteOpen`, focused-player context, or `broadcastGameId` survive reload.
+- If adding durable inbox read state, choose browser-local sidecar versus saved `GameState` deliberately; current `read` flags are regenerated display hints.
+- If Settings changes core simulation controls, document whether the control is saved with the dynasty or local to the browser.
+
+Focused tests for settings/control-surface work:
+
+- Settings/audio/UI prefs: `apps/web/src/features/settings/Settings.test.tsx`, `AudioSettings.test.tsx`, `apps/web/src/app/store/ui-store.test.ts`, and `apps/web/src/app/store/game-store.test.ts`.
+- Command/nav shell: `apps/web/src/app/nav-items.test.ts`, `apps/web/src/app/hooks/useKeyboard.test.ts`, `App.test.tsx`, `MobileBottomTabBar.test.tsx`, `app-shell.test.ts`, and design-system command-palette tests if added.
+- Watch list: `apps/web/src/features/watch-list/watchListPrefs.test.ts`, `WatchListScreen.test.tsx`, and `WatchListPinButton.test.tsx`. The prefs tests cover storage shape, malformed recovery, duplicate/blank normalization, SSR fallback, local change events, cross-tab storage events, and unsubscribe behavior.
+- `WatchListScreen.test.tsx` also guards roster/free-agent/prospect/archive grouping, group display order, missing-id resilience, fallback player naming for old saves, and the remove-row state handoff.
+- Inbox: `apps/web/src/features/inbox/buildInboxMessages.test.ts`, `ApologyTourModal.test.tsx`, and route-coaching spotlight anchor tests when inbox anchors change.
+
+## Tooling And Gates
+
+- Root scripts: `dev`, `build`, `test`, `test:engine`, `test:grading`, `lint`, `typecheck`, `grade-season`, `grade-season-baseline`, `playtest`, `playtest:all`, `test:perft`, `test:shadow`.
+- Script files: `check-math-random.sh`, `check-bundle-size.sh`, `smoke-full-season.sh`, `smoke-test-built-page.sh`, `smoke-test-post-setup-route.mjs`, `playtest-report.sh/.ts`, `shadow-regression.sh/.ts`, `grade-season.ts`, `grade-season-baseline.ts`, `age-curve-report.sh/.ts`, `cleanup-gate.sh`, `generate-chip-v3-art.cjs`.
+- Web e2e: `apps/web/e2e` contains Playwright Chip-art checks. Use Browser/Playwright for visual route work when a running dev server is needed.
+- Current manual Chip-art e2e scripts are `apps/web/e2e/chip-art-v3.pw.cjs` and `apps/web/e2e/chip-art-shell-polish-v2.pw.cjs`. They clear browser storage, launch cold-open/demo flows, measure rendered Chip PNG ink/bounds/overlap across desktop/tablet/mobile, and write screenshots/metrics under `.codex/MFD/evidence/...` when run. They are visual regression aids, not broad gameplay e2e coverage or CI gates unless workflow wiring changes.
+- CI: `.github/workflows/ci.yml` runs install, typecheck, tests, build with Chip enabled, bundle gate, built-page smoke, Math.random audit. `.github/workflows/deploy.yml` builds/deploys GitHub Pages. The post-setup route smoke is manual/local unless a workflow deliberately wires it.
+
+## Toolchain And Config
+
+- Workspace manager: root `package.json` pins `pnpm@9.15.9`; use `npx --yes pnpm@9.15.9 ...` if `pnpm` is not on PATH.
+- Node target: root `package.json` requires Node >=20 and pnpm >=9.
+- Ambient declarations are intentionally tiny: `apps/web/src/vite-env.d.ts` references Vite client types and declares `__MFD_VERSION__`, while `packages/engine/src/global.d.ts` declares `structuredClone<T>` for the ES2022 TypeScript lib target. Do not move runtime logic or broad globals into these files.
+- Package exports:
+  - `@mfd/engine` exports source entrypoints for `.`, `./rng`, `./types`, `./events`, `./config`, and `./save`.
+  - `@mfd/design-system` exports `./tokens` and `./components`.
+  - The web app consumes workspace packages through Vite/TS aliases to source files, not built package artifacts.
+- TypeScript:
+  - Root `tsconfig.json` uses `strict`, `noUncheckedIndexedAccess`, `moduleResolution: bundler`, `resolveJsonModule`, `isolatedModules`, and `noEmit`.
+  - `apps/web/tsconfig.json` adds React JSX, DOM libs, and paths for `@mfd/engine`.
+  - `packages/engine/tsconfig.json` emits to `dist` for builds but excludes tests.
+  - `packages/design-system/tsconfig.json` covers `components` and token/source files with React JSX and DOM libs.
+- Vite:
+  - `apps/web/vite.config.ts` sets `base: '/MFD/'`; do not break GitHub Pages pathing.
+  - `__MFD_VERSION__` is injected from `apps/web/package.json`, so visible About-screen version tracks the web package, not the root package.
+  - Manual chunks intentionally split `engine-content` from the rest of `engine`; `broadcast-commentary` must stay out of `engine-content` because an earlier split caused a production TDZ crash.
+  - Chunks are roughly `engine-content`, `engine`, `design-system`, and `vendor`.
+- Vitest:
+  - Only `packages/engine/vitest.config.ts` exists; it uses Node environment, `src/**/*.test.ts`, `pool: 'forks'`, and 45-second timeouts for long synchronous season tests.
+  - `apps/web` and `packages/design-system` currently rely on Vitest defaults from their package scripts.
+- Playwright:
+  - `apps/web/playwright.config.cjs` builds and previews under `/MFD/` at `MFD_PLAYWRIGHT_PORT` or 4173.
+  - Playwright forces `VITE_CHIP_ENABLED=true`, `VITE_CHIP_TTS_ENABLED=false`, and `VITE_MFD_SHARE_ENABLED=false`.
+- ESLint:
+  - Root `.eslintrc.cjs` is mostly warn-only cleanup surfacing, but React hook rules are errors.
+  - Test files disable `@typescript-eslint/no-explicit-any`.
+- Dependency/graph tools:
+  - `knip.json` has some stale-looking workspaces (`packages/analytics`, `packages/testkit`) not present in this working copy; treat those entries as config drift until verified.
+  - `.madgerc` excludes tests, stories, `node_modules`, and `dist`.
+- Public assets:
+  - Active web manifest is `apps/web/public/manifest.json` with `/MFD/` scope, and `apps/web/src/app/indexDocument.test.ts` verifies that ownership.
+  - Root `public/manifest.json` still references `/mr-football-dynasty/`; treat it as legacy/unwired unless a task explicitly targets root public assets. The index document test also guards that the app shell does not reference the legacy path.
+- Shell note:
+  - This environment uses zsh. Do not use `path` as a loop variable; in zsh it can shadow the command lookup path and make commands like `sed` appear missing.
+
+## Testing, CI, Release, And Automation Wiring
+
+Package script ownership:
+
+- Root `package.json` is mostly orchestration: `dev` delegates to `@mfd/web`, `build`/`test`/`lint`/`typecheck` run recursively, `test:engine` targets `@mfd/engine`, `release:gate` runs the full local public-release gate through `node scripts/release-gate.mjs`, and `test:grading`, `grade-season`, `playtest`, `playtest:all`, `test:perft`, and `test:shadow` call the local report/grading/shadow scripts.
+- `packages/engine/package.json` owns `build`, `test`, `typecheck`, `lint`, and playtest scripts. `playtest` runs the `SPEEDRUNNER` persona for 3 seasons; `playtest:all` runs all personas for 10 seasons.
+- `apps/web/package.json` owns Vite dev/build/preview, Vitest component/source tests, Playwright e2e, ESLint, typecheck, and Storybook scripts.
+- `packages/design-system/package.json` owns component lint/test/typecheck and only exports `./tokens` plus `./components`.
+
+CI and deploy:
+
+- `.github/workflows/ci.yml` has two jobs. `test` installs with pnpm 9/Node 20, runs root typecheck, root tests, root build with `VITE_CHIP_ENABLED=true`, then runs bundle-size and built-page smoke gates. `determinism-gate` installs separately, runs the Math.random ban, reads `SAVE_VERSION`, and relies on the test job's golden-save tests for migration-chain coverage.
+- `.github/workflows/deploy.yml` triggers on `main` or manual dispatch. It installs with pnpm 9.15.9, runs recursive typecheck, tests, `@mfd/web` build with `VITE_CHIP_ENABLED=true`, bundle-size, and built-page smoke checks, then uploads `apps/web/dist` to GitHub Pages.
+- Production-equivalent build checks should set `VITE_CHIP_ENABLED=true`; otherwise Chip is invisible and the artifact differs from deploy.
+- CI does not currently run `test:perft`, `test:shadow`, `scripts/smoke-full-season.sh`, `scripts/smoke-test-post-setup-route.mjs`, real API-backed `grade-season`, or web `test:e2e`. Those are deliberate/manual or release-quality checks unless a workflow is changed to wire them.
+
+Gate scripts:
+
+- `scripts/release-gate.mjs` is the repeatable local G7 release command. Default usage is `node scripts/release-gate.mjs`; `--dry-run` prints the plan, `--list` lists step ids/groups, and `--only <id-or-group,csv>` runs focused diagnostics. The 2026-06-19 full run passed all 35/35 steps in 2550.5s, covering static script checks, release-tooling tests, engine/web/design typechecks and tests, Chip-enabled production build, bundle-size gate, built-page smoke, Math.random audit, engine season/save smoke, 10-season all-persona playtest, shadow regression, G4 soak, G1/G2 desktop/mobile setup, G5 browser smoke, G3 football-ops matrix, and G6 desktop/mobile UX/console checks. As of 2026-06-24 the local plan has 36 steps because `goat-release-sentinel` joined the `determinism` group. Current stitched proof passed the default gate through step 23, then passed repaired selected G3 and G6 release slices; one uninterrupted default 36/36 run is still the local blocker before calling the current plan fully refreshed.
+- `scripts/check-math-random.sh` greps `packages` and `apps` for `Math.random()`, excluding tests, comments, and the one approved synth-audio exception `apps/web/src/features/audio/synth-sounds.ts`.
+- `scripts/check-bundle-size.sh` must run after `pnpm --filter @mfd/web build`. It expects exactly one `engine-*.js` chunk excluding `engine-content-*.js`, gzips it, and fails above `BUNDLE_CEILING_KB` (default 312 KB) with a 10 KB warning window.
+- `scripts/smoke-test-built-page.sh` must run after a web build. It finds Chrome/Chromium, previews the production artifact, dumps the DOM for `/MFD/` plus representative hash route `/MFD/#/league/weather`, and fails if `#root` is empty or init-time JS errors such as TDZ/reference/type/syntax failures appear. CI starts preview through pnpm; local checkouts without pnpm can fall back to `apps/web/node_modules/.bin/vite`.
+- `scripts/smoke-test-post-setup-route.mjs` must run after a web build. It starts preview through pnpm or the package-local Vite binary, launches headless Chrome through the DevTools protocol, resets a temporary browser profile, skips the boot screen, clicks `Launch Demo Scenario`, opens the default post-setup hash route `/MFD/#/league/weather`, and fails if the route text is missing or browser errors appear. `SMOKE_NEW_DYNASTY_SETUP_ENTRY=1` branches before the demo path, clicks `Start Dynasty` from a clean profile, and verifies the setup shell, stepper, and cold-open copy. `SMOKE_FULL_SETUP_COMPLETE=1` branches before the demo path, completes normal Full Setup through all setup phases, clicks `START WEEK 1`, verifies the app shell lands on playable 2026 preseason Week 1 Monday Briefing with current Action Center source copy, checks `mfd:first-ten-completed = true`, checks `mfd:setup-run-mode` was cleared, and fails on browser errors. `SMOKE_VIEWPORT_WIDTH` plus `SMOKE_VIEWPORT_HEIGHT` can run the same smoke at a specific viewport such as `480x900`. `SMOKE_POST_SETUP_ROUTE` and `SMOKE_POST_SETUP_TEXT` can override the default route/text pair, while `SMOKE_POST_SETUP_ROUTES_JSON` accepts a JSON array of `{ "route": "/path", "text": "Expected Text" }` checks for a small initialized route matrix. `SMOKE_ADVANCE_WEEK=1` additionally opens `/week-advance`, waits for `Advance Week Uses`, clicks the real advance button in the convention demo, resolves a halftime decision with Stick if that gate appears, and verifies a committed post-advance route state. `SMOKE_CONTRACT_RESTRUCTURE=1` opens `/contracts`, selects a clear contract row, clicks the existing `Restructure` action, and verifies that row is marked `Restructured`. `SMOKE_CONTRACT_BACKLOAD=1` opens `/contracts`, tries clear contract rows until `Add Void Years` changes the same row's cap hit, and verifies the route stays healthy. `SMOKE_CONTRACT_CUTS=1` opens `/contracts`, performs one normal cut and one Post-June-1 cut through the live selected-row controls, verifies each latest IndexedDB autosave contains the released player/waiver/log state, hard-reloads after each cut, clicks `Continue Latest Autosave`, and verifies the cut players remain absent from active contracts with no browser errors. `SMOKE_CONTRACT_NEGOTIATIONS=1` opens `/contracts`, submits an accepted extension, verifies the latest autosave, hard-reloads and continues it, applies a franchise tag to the demo's final-year safety, verifies saved tag state, hard-reloads again, and fails on browser errors. `SMOKE_CAP_LAB_BATCH=1` opens `/cap-lab`, queues one restructure plus one backload, confirms the sandbox once, verifies the execution receipt, asserts the latest autosave contains both contract updates and cap-move social posts, hard-reloads, and continues the autosave. `SMOKE_TRADE_COUNTER_BLOCK=1` stages a minimal trade-market fixture from the latest autosave, opens `/roster` to toggle a player onto the trade block, opens `/trades` to submit a Round 3-for-player direct proposal that counters, rejects the counter, verifies latest-autosave state including `nearMissTracker.declinedTrades`, hard-reloads/loads latest autosave, reopens the proposal tab, and fails on browser errors. `SMOKE_DRAFT_SCOUTING=1` stages a draft/scouting fixture, opens `/scouting`, saves watchlist/film/pro-day/private-workout state, hard-reloads, opens `/draft`, drafts the prospect, verifies rookie/player-map/pick/news state, hard-reloads again, and fails on browser errors. `SMOKE_STAFF_FACILITY_MEDICAL=1` stages a Settings fixture, opens `/settings`, upgrades Medical Center, verifies latest-autosave budget/level/effect state, hard-reloads, hires a medical staff candidate, verifies candidate swap and prior-staff pool return, hard-reloads again, and fails on browser errors. `SMOKE_WEEKLY_PREP=1` stages an existing Week 14 user matchup, opens `/game-plan`, saves live weekly-prep controls, sims the week, verifies `weeklyPrepHistory`, `filmRoomHistory`, opponent report, completed game result, prep/game-plan cleanup, hard-reloads into Film Room, and fails on browser errors. `SMOKE_CARTRIDGE_ROUND_TRIP=1` opens `/dynasty`, captures `Advanced: Copy .mfd`, advances the demo away from the exported week, pastes the captured backup into the current-save-only `.mfd` textarea, clicks `Import .mfd Only`, and verifies the imported cartridge restores the exported Week 14 state. `SMOKE_CARTRIDGE_FILE_ROUND_TRIP=1` captures the actual `Advanced: Download .mfd` Blob in-page, advances the demo away from it, feeds that Blob back through the hidden upload input as a `File`, and verifies Week 14 restores through the file-import path. `SMOKE_LOCAL_SAVE_SLOT_ROUND_TRIP=1` creates a manual Week 14 save slot, advances the demo away from it, loads the selected manual slot through the confirmation dialog, and verifies Week 14 restores. `SMOKE_POST_IMPORT_ROUTE_SMOKE=1` runs the copied-cartridge import path by default, then opens `/contracts` and verifies `Contract Sources` plus the imported Week 14 state; `SMOKE_POST_IMPORT_ROUTE` and `SMOKE_POST_IMPORT_TEXT` can override that post-import route/text pair. `SMOKE_POST_IMPORT_HARD_RELOAD=1` implies the default post-import route check, reloads the page, clicks `Continue Latest Autosave`, and verifies the imported Week 14 state still opens on the post-import route; it can also combine with `SMOKE_CARTRIDGE_FILE_ROUND_TRIP=1` to prove the `.mfd` upload path.
+- `scripts/smoke-test-g3-football-ops-matrix.mjs` is the repeatable G3 gate command. It shells out to `smoke-test-post-setup-route.mjs` for 15 source-owned browser workflows covering contracts, Cap Lab, trades, waiver/practice squad, free agency, roster/depth/training/IR, weekly prep, draft/scouting, Settings facility/medical, local save-slot restore, copied cartridge import with post-import hard reload, and `.mfd` import with post-import hard reload. `SMOKE_G3_MATRIX_INCLUDE=id1,id2` reruns specific workflow ids, and `SMOKE_G3_MATRIX_GROUPS=operations` or `persistence` reruns a group. The 2026-06-18 full matrix run passed all 15 workflows in 112.9s with zero browser errors, making G3 repeatably evidenced.
+- `scripts/smoke-test-g4-multi-year-trust.mjs` is the repeatable G4 gate wrapper for the app-local Vitest soak. The underlying command is `./node_modules/.bin/vitest run src/app/store/g4-multi-year-trust.test.ts` from `apps/web`; the 2026-06-24 default run passed in 635.6s. It starts from the web New Dynasty seed, completes Full Setup, reaches playable 2026 regular-season Week 1, proves Year 4 Week 1 at 2029 regular-season Week 1, runs to 2036 regular-season Week 1 after 10 completed season cycles, validates state after every advance/action, save-round-trips the first run through migrate + Zod schema, compares a same-seed replay, handles draft/trade-deadline/CBA action pauses, and asserts week advance makes no `Math.random` calls. `G4_TARGET_SEASONS=1` can run a short diagnostic, but only the default 10-season run is G4 release evidence.
+- `scripts/smoke-full-season.sh` is the engine playability smoke. It directly runs engine Vitest filters `season-smoke`, `full-season`, and `save-round-trip` to prove multi-season advance and save/load still work.
+- `SMOKE_ROSTER_DEPTH_TRAINING=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` is the focused G3 `/roster` plus `/depth-chart` persistence smoke. It stages training, IR, depth, and returner fixtures from latest autosave, clicks the live route controls, verifies training assignment, roster and player-map IR placement, roster and player-map IR activation, depth starter promotion, kick-returner assignment, hard-reloads latest autosave after each stage, and fails on browser errors.
+- `SMOKE_DRAFT_SCOUTING=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` is the focused G3 `/scouting` plus `/draft` persistence smoke. It stages a draft fixture from latest autosave, saves live watchlist, film, pro-day, and private-workout state, hard-reloads, drafts the staged prospect through the live Draft Board, verifies rookie roster/player-map state, removed pick state, completed draft-pick id, draft news, final hard reload, and fails on browser errors.
+- `SMOKE_STAFF_FACILITY_MEDICAL=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` is the focused G3 `/settings` facility and medical-staff persistence smoke. It stages an offseason Settings fixture from latest autosave, upgrades Medical Center through the live Facilities row, verifies budget, level, level-2 effect, and hard reload, hires a staged medical staff candidate, verifies candidate removal and prior-staff pool return, hard-reloads the final state, and fails on browser errors.
+- `SMOKE_WEEKLY_PREP=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` is the focused G3 `/game-plan` plus `/film-room` persistence smoke. It stages an existing Week 14 user matchup from latest autosave, clicks live weekly-prep select controls, saves and sims through `Save Weekly Prep & Sim`, verifies the resulting `weeklyPrepHistory`, `filmRoomHistory`, opponent report, completed game result, cleared `weeklyPrepPlans`, cleared `gamePlan`, Film Room hard reload, and fails on browser errors.
+- `SMOKE_FREE_AGENCY_SIGNINGS=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` is the focused G3 `/free-agency` persistence smoke. It stages re-sign, open-market, and street free-agent fixtures from latest autosave, clicks the live route buttons, verifies accepted re-sign intent, pending and won FA bid state, street signing roster/contract state, hard-reloads latest autosave after each stage, and fails on browser errors.
+- `scripts/cleanup-gate.sh` is a local cleanup-wave guard, not CI. It runs recursive typecheck/test/build, prints `any` and `try` drift counts, enforces `SAVE_VERSION = 38`, and reports madge circular dependency count as informational.
+- `scripts/age-curve-report.sh` is deterministic progression/balance telemetry, not CI. It runs `scripts/age-curve-report.ts` through installed `vite-node`, calls `runAgeCurveHarness`, and writes JSON/CSV for design review without touching saved game state. Source currently resolves its output directory two levels above `scripts`, so in this working tree the files land under `/Users/tkevinbigham/MFD/.codex/MFD/`, not under `MFD-main/.codex/MFD/`.
+
+Playtest and regression tooling:
+
+- `scripts/playtest-report.sh` and `scripts/shadow-regression.sh` execute their TypeScript CLIs through installed `vite-node`; run `pnpm install` first if `vite-node` is missing.
+- `scripts/playtest-report.ts` writes JSON reports to `tmp/playtest-report-<persona>-<seed>.json` and exits nonzero if any report has high-severity anomalies.
+- `scripts/playtest-report.ts --benchmark goat-release-sentinel|goat-25y|goat-50y` runs named long-horizon quality profiles, prints one progress line per completed season, and writes `tmp/long-horizon-quality-<id>-<seed>.json` on full runs. `goat-release-sentinel` is the runtime-bounded release-gate profile; `goat-25y` and `goat-50y` remain opt-in stress profiles. Use `--dry-run` to print a profile, step ceiling, and anomaly budgets without advancing seasons.
+- `scripts/shadow-regression.ts` compares playtest reports against `_canon/seeds/mfd`. `--update` rewrites canonical reports plus metadata, including `SAVE_VERSION`, generation command, and git commit if available; do not update baselines blindly. The `speedrunner-20y` shadow baseline is corpus `v3` because the current report now completes all 20 requested seasons under the default 800-step guard with 0 high anomalies, replacing the stale truncated v2 report.
+- `scripts/grade-season.ts` is the external-judge release grader around generated season reports. It owns shared `--help` and preflight text for normal and baseline grading, including required flags, output paths, baseline behavior, quorum mode, and missing API keys. Its tests live in `scripts/__tests__/grade-season.test.ts`; API-backed grading should be treated as a release-quality workflow, not a normal unit gate.
+
+Static hygiene tooling:
+
+- Root `.eslintrc.cjs` is cleanup surfacing first. Most TypeScript and unused-import rules warn; `react-hooks/rules-of-hooks` and `react-hooks/exhaustive-deps` are errors. Test files explicitly allow `any`, so do not use test-file lint results as proof production `any` usage is acceptable.
+- `.madgerc` configures circular-dependency scans for `ts`/`tsx`, uses root `tsconfig.json`, and excludes tests, stories, `node_modules`, and `dist`. `cleanup-gate.sh` currently treats madge cycle count as informational, not failing.
+- `knip.json` protects actual package barrels with `!` entry markers, but it also lists stale or absent workspaces such as `packages/analytics` and `packages/testkit`. Treat knip output as cleanup intelligence until those workspace entries are reconciled, not as a release-blocking signal by default.
+- Root `tsconfig.json` is strict with `noUncheckedIndexedAccess`, `isolatedModules`, JSON imports, declaration/source map options, and `noEmit`. Package-local configs own library targets, JSX/DOM support, output directories, and workspace path aliases.
+
+Frontend e2e and visual checks:
+
+- Current Playwright config lives at `apps/web/playwright.config.cjs`, builds and previews `/MFD/`, and forces `VITE_CHIP_ENABLED=true`, `VITE_CHIP_TTS_ENABLED=false`, and `VITE_MFD_SHARE_ENABLED=false`.
+- Current `apps/web/e2e` coverage is Chip-art/shell visual verification, not a broad gameplay e2e suite. The improvement plan's golden-path e2e item is still future work.
+- `apps/web/package.json` exposes `test:e2e`, but root package scripts and GitHub Actions do not run web e2e today.
+- For frontend changes that can blank the production build, run web build plus `scripts/smoke-test-built-page.sh`; unit tests and bundle size are not enough to catch cross-chunk TDZ failures. For route-shell changes that need a live initialized dynasty, also run `node scripts/smoke-test-post-setup-route.mjs` after the build when Chrome is available, using `SMOKE_NEW_DYNASTY_SETUP_ENTRY=1` when the clean-profile New Dynasty entry should be smoke-clicked, `SMOKE_FULL_SETUP_COMPLETE=1` when normal Full Setup should be completed through Year 1 Week 1, `SMOKE_VIEWPORT_WIDTH=480 SMOKE_VIEWPORT_HEIGHT=900` when that path needs mobile-width evidence, `SMOKE_POST_SETUP_ROUTES_JSON` when a small route matrix is more useful than a single route, `SMOKE_ADVANCE_WEEK=1` when the week-advance commit path should be smoke-clicked, `SMOKE_CONTRACT_RESTRUCTURE=1` when the `/contracts` restructure mutation path should be smoke-clicked, `SMOKE_CONTRACT_BACKLOAD=1` when the `/contracts` add-void-years path should be smoke-clicked, `SMOKE_CONTRACT_CUTS=1` when normal and Post-June-1 `/contracts` cuts should be smoke-clicked and proved through latest-autosave hard reloads, `SMOKE_CONTRACT_NEGOTIATIONS=1` when accepted extension and franchise-tag `/contracts` actions should be smoke-clicked and proved through latest-autosave hard reloads, `SMOKE_CAP_LAB_BATCH=1` when the `/cap-lab` two-move sandbox batch should be smoke-clicked and proved through latest-autosave hard reload, `SMOKE_TRADE_COUNTER_BLOCK=1` when roster trade-block toggle plus rejected direct-trade counter should be smoke-clicked and proved through latest-autosave hard reload, `SMOKE_STAFF_FACILITY_MEDICAL=1` when `/settings` facility upgrade and medical-staff replacement should be smoke-clicked and proved through latest-autosave hard reloads, `SMOKE_CARTRIDGE_ROUND_TRIP=1` when the portable pasted-backup restore path should be exercised, `SMOKE_CARTRIDGE_FILE_ROUND_TRIP=1` when the `.mfd` download/upload import path should be exercised, `SMOKE_LOCAL_SAVE_SLOT_ROUND_TRIP=1` when local manual save-slot load/restore should be exercised, `SMOKE_POST_IMPORT_ROUTE_SMOKE=1` when imported state should be proved against a second initialized route in the same app session, and `SMOKE_POST_IMPORT_HARD_RELOAD=1` when imported state should be proved through a reload plus Continue Latest Autosave.
+
+Testing, CI, and release boundary map:
+
+- Root package scripts orchestrate workspace checks, but the package-local scripts own implementation details. Change `package.json`, `packages/engine/package.json`, `apps/web/package.json`, or `packages/design-system/package.json` together only when the command contract really changes.
+- Production-equivalent web artifacts require `VITE_CHIP_ENABLED=true`. CI root build, deploy build, and Playwright webServer all set it; local frontend build/smoke checks should do the same when verifying the shipped experience.
+- GitHub Pages pathing is anchored in `apps/web/vite.config.ts` with `base: '/MFD/'`, in `apps/web/playwright.config.cjs` with `baseURL: .../MFD/`, and in `scripts/smoke-test-built-page.sh` with both `http://localhost:${PORT}/MFD/` and `http://localhost:${PORT}/MFD/#/league/weather`. Any deploy path change must update all three plus launch/meta tests.
+- The bundle gate is artifact-dependent. Run `pnpm --filter @mfd/web build` first, then `bash scripts/check-bundle-size.sh`; it expects exactly one `engine-*.js` chunk excluding `engine-content-*.js` and enforces a 312 KB gzip ceiling by default.
+- The built-page smoke gate is also artifact-dependent. It previews `apps/web/dist`, requires a local Chrome/Chromium binary, checks that `#root` has children for the deploy root and representative hash route, and catches init-time JS errors such as TDZ, reference, type, or syntax crashes. This is still a boot/deploy smoke, not a post-setup route crawl.
+- The post-setup route smoke is artifact-dependent and browser-dependent. It previews `apps/web/dist`, requires Node's built-in `fetch`/`WebSocket` plus local Chrome/Chromium, uses a temporary browser profile, launches the convention demo by default, verifies one or more initialized hash routes, can opt into clean-profile new-dynasty setup entry, can opt into full setup completion through Year 1 Week 1, can opt into viewport overrides for mobile-width checks, can opt into one convention-demo week-advance click, can opt into `/contracts` restructure, backload, standard cut, and Post-June-1 cut mutations, can opt into a portable pasted-backup restore check, can opt into an in-page `.mfd` Blob download/upload restore check, can opt into a local manual save-slot load/restore check, can opt into post-import route navigation in the same app session, and can opt into a post-import hard reload plus Continue Latest Autosave. It is narrower than Playwright e2e and does not replace OS-level download-directory assertions, broader roster/cap move coverage, multi-year soak, or full golden-path gameplay coverage.
+- The Math.random gate is source-dependent. `scripts/check-math-random.sh` scans `packages` and `apps`, excludes tests/comments, and allows only `apps/web/src/features/audio/synth-sounds.ts`. Update the script and this guide together if the approved exception policy changes.
+- `scripts/smoke-full-season.sh` is the engine playability smoke, not a browser smoke. It runs the focused `season-smoke`, `full-season`, and `save-round-trip` Vitest filters inside `packages/engine`.
+- Playtest and shadow CLIs require installed `vite-node`; their shell wrappers fail with an install hint if `node_modules` is absent. Do not treat that as a simulation regression.
+- `scripts/shadow-regression.ts --update` rewrites `_canon/seeds/mfd` reports and metadata with `SAVE_VERSION`, generation command, timestamp, and git commit when available. Use update mode only after classifying the diff as intended.
+- `scripts/grade-season.ts` can call external judge APIs when real keys are present, while `scripts/__tests__/grade-season.test.ts` uses mocked providers. The CLI preflight makes missing keys visible before judge calls, but strict mode still fails without all required keys. Treat API-backed grading as release QA, not a required local unit gate.
+- `scripts/cleanup-gate.sh` is a local cleanup-wave guard, not CI. It has a machine-specific PATH prefix and hardcoded current `SAVE_VERSION = 38`; revise deliberately if moving it into portable automation.
+- Static hygiene tools have different authority levels. Recursive lint is a package script and React hook violations are real errors; madge cycle count and knip unused/dependency output are cleanup signals unless a task explicitly promotes them into gates. Document any promotion from diagnostic to blocking before changing CI.
+- The age-curve report is deterministic balance telemetry for progression review. It is useful when changing aging/progression formulas, but it is not a substitute for progression tests, playtest/shadow runs, or save compatibility checks.
+
+Tooling safety rules:
+
+- Do not weaken CI gates by dropping `VITE_CHIP_ENABLED=true`, `/MFD/` path checks, the built-page smoke, or the Math.random audit without documenting the replacement signal.
+- Keep Vite manual chunks one-way from engine to `engine-content`; do not move `broadcast-commentary` back into `engine-content` unless the production smoke proves no cross-chunk TDZ crash.
+- When adding a new gate, state whether it is source-dependent, build-artifact-dependent, browser-dependent, network/API-dependent, or baseline-mutating, then wire prerequisites and failure messages accordingly.
+- If a local environment lacks Chrome, pnpm, installed dependencies, or a Git repository, record that as environment limitation rather than source failure.
+- Do not treat cleanup-only diagnostics as proof of runtime safety. For example, fewer circular imports or unused exports can be useful cleanup progress, but route, save, sim, and browser smoke tests still prove the gameplay and shipped-artifact contracts.
+
+Focused tests and artifacts for tooling work:
+
+- Package/workflow changes: `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, root/package-local `package.json` scripts, and focused command dry-runs where feasible.
+- Build/deploy path changes: `apps/web/vite.config.ts`, `apps/web/playwright.config.cjs`, `apps/web/src/app/indexDocument.test.ts`, `scripts/smoke-test-built-page.sh`, and a production build plus smoke.
+- Bundle/chunking changes: `apps/web/vite.config.ts`, `bash scripts/check-bundle-size.sh`, and `bash scripts/smoke-test-built-page.sh` after a web build.
+- Determinism/static-gate changes: `bash scripts/check-math-random.sh`, engine RNG tests, playtest/shadow tests if report shape changes.
+- Release-grading changes: `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/__tests__/grade-season.test.ts`; use `pnpm grade-season -- --help` and `pnpm grade-season-baseline -- --help` to inspect the command contract.
+- Cleanup/static hygiene changes: root `.eslintrc.cjs`, `.madgerc`, `knip.json`, `tsconfig.json`, package-local `tsconfig.json` files, `pnpm -r lint`, `pnpm exec madge --circular --extensions ts,tsx --ts-config packages/engine/tsconfig.json packages/engine/src`, and `pnpm exec knip` only after reconciling known workspace drift.
+- Progression telemetry changes: `scripts/age-curve-report.sh`, `scripts/age-curve-report.ts`, `packages/engine/src/systems/dev/age-curve-harness.ts`, and progression/aging tests before trusting report deltas.
+
+## Playtesting, Shadow Regression, And Release Grading Wiring
+
+Fast-tier playtesting:
+
+- `pnpm test:perft` is an alias for `pnpm playtest:all`, which delegates to `pnpm --filter @mfd/engine playtest:all`.
+- `packages/engine/package.json` runs `scripts/playtest-report.sh --all --seed 42 --seasons 10` for `playtest:all`; single-persona `playtest` runs `SPEEDRUNNER` for 3 seasons.
+- `scripts/playtest-report.sh` locates installed `vite-node` and executes `scripts/playtest-report.ts`. It fails early if dependencies are not installed.
+- `scripts/playtest-report.ts` writes `tmp/playtest-report-<persona>-<seed>.json`, prints persona/seasons/weeks/anomaly/high-severity rows, and exits nonzero when a report has any high-severity anomaly.
+- `packages/engine/src/playtesting/harness.ts` owns `runPlaytest`, `buildPlaytestReport`, `MAX_PLAYTEST_STEPS = 800`, exported `HOST_NOISE_DETECTOR_IDS`, deterministic playtest league creation, trade-deadline auto-resolve, harness-only CBA/expansion auto-resolution, `Math.random` call counting, save round-trip sampling, and the loop around `advanceFranchiseWeek(state, { playtestBias, mutateInPlace: true, skipExpansionDraft: true })`.
+- The playtesting harness builds its own deterministic synthetic 18-week schedule fixture for benchmark/shadow consistency. Do not cite that fixture as live league schedule behavior; production schedule length is owned by `buildSeasonSchedule` and `getRegularSeasonWeekCount(game)`.
+- `detectPhaseBoundaries` is a playtest-frame invariant, not a league-rules oracle: it now uses `getRegularSeasonWeekCount(context.state)` so generated/configured 17/18/19-week states are judged against their own regular-season boundary. The default harness fixture still builds a synthetic 18-week schedule for benchmark/shadow consistency, so fixture runs alone are not proof of every live schedule-rule path. If the synthetic harness schedule or detector semantics change, update focused detector tests, canonical reports, shadow baselines, and this guide together.
+- Host-noise detector ids are excluded from canonical anomaly counts through exported `HOST_NOISE_DETECTOR_IDS`, which is available from the playtesting barrel and root `@mfd/engine`. Current host-noise set is `perf-budget`, because it depends on wall-clock `Date.now()` timing.
+- `docs/verification/fast-tier.md` is the human verification contract for `test:perft`; update it when personas, detector semantics, canonical anomaly counts, or fast-tier commands change. Current fast-tier success can include documented medium `roster-minimums` anomalies, but any high-severity anomaly fails `scripts/playtest-report.ts`.
+
+Playtesting, shadow, and grading boundary map:
+
+- The playtest harness uses its own deterministic synthetic league from `makeLeagueState(seed)` inside `harness.ts`. It is a verification fixture, not the web app's authored team/content seed and not a production save factory.
+- `runPlaytest` loops until requested completed seasons or a step ceiling. The default remains `MAX_PLAYTEST_STEPS = 800`; opt-in GOAT quality benchmarks pass higher `maxSteps` values and `saveRoundTripEvery=10` without changing the fast-tier or shadow default. A season is counted only when `previousFrame.phase === 'playoffs'` and `currentFrame.phase === 'offseason'`; the optional `onProgress` callback fires only at completed-season boundaries and does not alter `PlaytestReport` JSON.
+- Trade-deadline interruptions are auto-resolved before the next advance with `finalizeDeadline`; the harness appends a synthetic `trade_deadline_resolved` event-log entry, and deadline pause frames do not count as advanced steps.
+- During `advanceFranchiseWeek`, the harness temporarily monkey-patches `Math.random` and restores it in `finally`. The `rng-channel` detector catches ambient global RNG calls during week advance, not arbitrary CLI/report-writing code outside that wrapped call.
+- The save-roundtrip detector validates sampled pre-advance states. Default fast-tier playtests still sample every step; long GOAT profiles pass `saveRoundTripEvery=10` and also sample step 1 plus completed-season steps so save compatibility remains covered without making 25/50-year runs spend most runtime serializing giant states. `saveRoundTripBytes` JSON-serializes the state, migrates to current `SAVE_VERSION`, parses through `SaveStateSchema`, canonicalizes object keys, and returns an error sentinel when migration/parse fails.
+- `buildPlaytestReport` filters host-noise detector ids before sorting/counting anomalies. The written `tmp/playtest-report-<persona>-<seed>.json` reports are canonical, deterministic `PlaytestReport` JSON with `perf-budget` stripped, so same-seed determinism tests should compare the serialized reports directly instead of test-side re-filtering. Do not add wall-clock diagnostic counts back into the serialized report.
+- `scripts/playtest-report.ts` exits nonzero only when a canonical report has `highSeverityCount > 0` for normal persona runs. Existing medium-severity roster-minimum anomalies can still be part of an accepted baseline if the fast-tier contract documents them.
+- `scripts/playtest-report.ts` accepts `--all`, `--persona`, `--seed`, and `--seasons`; there is no `--out-dir` flag today. Unknown personas throw before running; report filenames are keyed by persona id and seed only, so changing seasons for the same persona/seed overwrites the same `tmp/playtest-report-<persona>-<seed>.json` path.
+- `scripts/playtest-report.ts --benchmark goat-release-sentinel`, `--benchmark goat-25y`, and `--benchmark goat-50y` run long-horizon quality profiles from `packages/engine/src/playtesting/quality-benchmarks.ts`. Full runs print progress after each completed season, write `tmp/long-horizon-quality-<id>-<seed>.json`, and fail when requested seasons do not complete or any named anomaly budget fails. `--dry-run` prints the profile contract without advancing seasons.
+- Current GOAT benchmark profiles use `SPEEDRUNNER`, seed `42`, and `saveRoundTripEvery=10`. `goat-release-sentinel` runs 4 seasons with `maxSteps=800` and a `120/0` roster-minimum budget inside the release gate. `goat-25y` runs 25 seasons with `maxSteps=2500` and a `750/0` roster-minimum budget; `goat-50y` runs 50 seasons with `maxSteps=5000` and a `1500/0` roster-minimum budget. Their named budgets cover economy/cap health, roster balance, records, player ages, draft flow, injuries, awards, bloodlines, save round trips, and RNG-channel usage. High-severity budget is zero across all areas.
+- Current focused release-gate proof from 2026-06-24 is green for `goat-release-sentinel`: 4/4 seasons, 113 weeks, 56 medium roster-minimum anomalies under the 120 budget, 0 high anomalies, and all budgets PASS in `tmp/long-horizon-quality-goat-release-sentinel-42.json`. Current full-run proof from 2026-06-23 is green for both opt-in profiles: `goat-25y` completed 25/25 seasons, 743 weeks, 403 medium roster-minimum anomalies, 0 high anomalies, and all budgets PASS in `tmp/long-horizon-quality-goat-25y-42.json`; `goat-50y` completed 50/50 seasons, 1493 weeks, 629 medium roster-minimum anomalies, 0 high anomalies, and all budgets PASS in `tmp/long-horizon-quality-goat-50y-42.json`. Do not claim this proof from dry-runs alone; cite the full-run JSON reports or rerun the profiles when source changes can affect long-save behavior.
+- Shadow baselines compare the full canonical `PlaytestReport` JSON, not metadata. Scalar fields and anomaly entries can fail a scenario even when high-severity count stays zero.
+- Shadow metadata sidecars record `generatedAt`, `engineCommit`, `schemaVersion`, command, persona, seed, seasons, and anomaly counts. Metadata is audit context and is rewritten by `--update`; it is not what `diffShadowReports` compares.
+- `diffShadowReports` excludes the top-level `anomalies` array from generic scalar walking, then compares anomaly length and anomaly fields explicitly. `divergentWeek` is derived from the first added/removed/changed anomaly when available.
+- `scripts/shadow-regression.ts --update` writes baseline JSON plus metadata and exits successfully unless an exception is thrown. Always run compare mode first, classify the diff, then update only with a source/spec reason.
+- Release grading is external-judge QA over `SeasonReport`, not deterministic simulation proof. It calls Anthropic/OpenAI/Google endpoints through `fetch`, needs API keys unless a development quorum drop is allowed, and still requires at least two valid judge verdicts. Normal and baseline CLIs print a preflight summary before grading so fixture, output, baseline, quorum, and missing-key behavior are explicit.
+- `grade-season-baseline.ts` runs the same grader in `baselineMode` and writes the baseline record. Normal `grade-season` compares current aggregate scores against that baseline and exits nonzero on gate failure.
+- `grade-season` and `grade-season-baseline` require `--seed`, `--tag`/`--releaseTag`, and `--fixture`; optional flags are `--output-dir`, `--baseline`, `--allow-quorum-drop`, and `--help`/`-h`. `--baseline` applies to normal `grade-season`; baseline mode writes `baselines/<tag>-baseline-<seed>.json`.
+- The release gate fails on total-score drop `>= 0.15`, any category average below `2.5`, a new single-judge `poor` flag, or a new 2+ judge consensus issue tag versus baseline.
+
+Playtest personas and detectors:
+
+- `packages/engine/src/playtesting/personas.ts` defines five frozen personas: `SPEEDRUNNER`, `GLUTTON`, `CHEAPSKATE`, `CHURN_ARTIST`, and `INJURY_MAGNET`.
+- Personas are deterministic `AIBiasConfig` presets. Do not add wall-clock, random, or environment-dependent behavior to persona definitions.
+- `packages/engine/src/playtesting/anomaly-detectors.ts` owns canonical JSON stringification, save round-trip bytes, phase ordering, and detector registration. Current long-horizon invariant detectors include cap sanity, roster minimums, active player age bounds, injury timer sanity, draft-class id/grade sanity, awards-history uniqueness/scores, bloodline parent references, record-book numeric sanity, phase boundaries, save round trips, RNG-channel calls, and host-noise performance telemetry.
+- Current detectors are `cap-sanity`, `roster-minimums`, `player-age-sanity`, `injury-sanity`, `draft-class-sanity`, `awards-sanity`, `bloodline-sanity`, `record-book-sanity`, `monotonic-time`, `phase-boundaries`, `save-roundtrip`, `rng-channel`, and `perf-budget`.
+- On sampled frames, the save-roundtrip detector serializes the state, migrates to current `SAVE_VERSION`, parses through `SaveStateSchema`, and compares canonical bytes; intentionally skipped frames carry a skip marker rather than a serialization result.
+- The RNG-channel detector fails if `Math.random()` is invoked during `advanceFranchiseWeek`; the broader repository gate is still `scripts/check-math-random.sh`.
+
+Shadow regression:
+
+- `pnpm test:shadow` runs `scripts/shadow-regression.sh`, which executes `scripts/shadow-regression.ts` through `vite-node`.
+- `packages/engine/src/playtesting/shadow/scenarios.ts` defines three frozen scenarios: `speedrunner-5y`, `speedrunner-10y`, and `speedrunner-20y`, all `SPEEDRUNNER`, seed 42.
+- `runShadowScenario(id)` wraps `runPlaytest` and returns canonical JSON for the full `PlaytestReport`. Unknown-scenario errors derive their known-id list from `SHADOW_SCENARIOS`; do not add a second manual scenario list in the runner or scripts.
+- `diffShadowReports` compares scalar report fields and anomaly entries, then reports the first divergent year/week/phase when available.
+- Canonical baselines live in `_canon/seeds/mfd/<id>.json`; metadata sidecars live beside them as `<id>.meta.json`.
+- `_canon/seeds/mfd/README.md` documents baseline update protocol, scenario purpose, and the intentional `speedrunner-20y` completion under the 800-step harness cap.
+- `speedrunner-20y` currently requests and completes 20 seasons before `MAX_PLAYTEST_STEPS = 800`; v3 metadata records `weeksAdvanced: 593`, `anomalyCount: 376`, and `highSeverityCount: 0`. A shadow pass means the canonical report still matches this frozen corpus, not that the long-horizon run is free of medium roster-minimum anomalies.
+- Current shadow metadata sidecars record `classification: "intended"`, `schemaVersion: 36`, and `engineCommit: "unknown"` in this extracted no-`.git` checkout. `speedrunner-5y` / `speedrunner-10y` remain corpus `v2`; `speedrunner-20y` is corpus `v3`. Metadata is not the compare artifact; do not regenerate baselines solely to refresh metadata without classifying the report diff.
+- `--update` rewrites canonical reports and metadata. Use compare mode first, classify divergence as intended or unintended, and update baselines only with a clear source/spec reason.
+
+Release grading:
+
+- `pnpm test:grading` runs Node's built-in test runner against `scripts/__tests__/grade-season.test.ts`.
+- `pnpm grade-season` executes `scripts/grade-season.ts`; `pnpm grade-season-baseline` executes `scripts/grade-season-baseline.ts`.
+- `scripts/grade-season.ts` loads a fixture GameState, calls `generateSeasonReport(game, { releaseTag })`, prompts external judges, validates strict JSON verdicts, aggregates five categories, and evaluates the release gate against a baseline.
+- Both grading commands support `--help`/`-h` without requiring other flags. After parsing real options, both print a preflight summary with seed, tag, fixture, output directory, report path, verdict/baseline path, release-gate baseline input, quorum mode, and missing API keys.
+- Judge ids are `claude`, `gpt`, and `gemini`. Default model ids are stored in `DEFAULT_MODELS`, and can be overridden with `ANTHROPIC_MODEL`, `OPENAI_MODEL`, and `GOOGLE_MODEL`.
+- Required API keys are `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and `GOOGLE_API_KEY`; `--allow-quorum-drop` is development-only tolerance for missing judges.
+- Default grading output is under `scripts/grading-results`: `<tag>-<seed>-report.json`, `<tag>-<seed>.json`, `baselines/<tag>-baseline-<seed>.json`, and `raw/<tag>-<seed>-<judge>-raw.txt` when a judge returns invalid JSON twice.
+- Missing or unreadable grading baselines are converted into release-gate failures in normal mode; baseline mode writes the baseline record instead of evaluating a gate.
+- `scripts/__tests__/grade-season.test.ts` uses mocked providers and local temp files. It proves schema validation/retry/quorum/aggregation/gate behavior, not live API availability or current model quality.
+- Release grading is not a normal unit gate. Treat it as a release-quality workflow that may need network credentials, fixture curation, and human review.
+
+Focused tests and artifacts for playtesting/tooling work:
+
+- Engine playtesting: `packages/engine/src/playtesting/harness.test.ts`, `personas.test.ts`, `anomaly-detectors.test.ts`, `quality-benchmarks.test.ts`, integration tests under `packages/engine/src/playtesting/integration`, and shadow tests under `packages/engine/src/playtesting/shadow`.
+- Script grading: `scripts/__tests__/grade-season.test.ts`.
+- Shell/build gates: `scripts/check-math-random.sh`, `check-bundle-size.sh`, `smoke-test-built-page.sh`, `smoke-full-season.sh`, `playtest-report.sh`, and `shadow-regression.sh`.
+- Canon and docs: `_canon/seeds/mfd/README.md`, `_canon/seeds/mfd/*.json`, `_canon/seeds/mfd/*.meta.json`, and `docs/verification/fast-tier.md`.
+- CLI argument/output changes: add or update tests for exported parser/path helpers when possible, then run the relevant wrapper in a dependency-installed environment or document that `vite-node`/API keys are unavailable.
+
+## Wired / Not-Wired Notes
+
+- There is no server runtime. The game is browser-only; persistence is IndexedDB plus explicit portable backup files and localStorage sidecars.
+- `packages/engine` exports source files directly in `package.json` for workspace use; build output is still produced by `tsc` for package builds.
+- `App.tsx` registers routes in one `rootRoute.addChildren([...])` call after route constants are declared. Treat this as source-order sensitive when editing route registration; verify direct navigation for any route you touch.
+- Some web actions perform browser navigation with `window.location.hash` from inside `game-store.ts` for special interruptions such as trade deadline/CBA/expansion flows. Do not move those into engine.
+- `Date.now()` exists in UI telemetry, save timestamps, and new-game seed creation; it must not enter deterministic sim resolution. `Math.random()` is only allowed in the approved audio synth exception.
+- Checked-in golden save fixtures currently cover v1, v10, v20, and v30-v34; generated fixture-policy tests cover generated v37 and current-v38. The migration chain includes 35 to 36, 36 to 37, and 37 to 38, and tests assert continuous registration through `SAVE_VERSION - 1`.
+- `cleanup-gate.sh` is a local cleanup-wave script, not the same as CI. Keep its expected `SAVE_VERSION` in sync if the schema changes.
+- `apps/web/src/features/companion/eventBridge.ts` now emits `gameComplete` and `seasonEnd` from explicit app snapshot markers. High-stakes pose reactions are still fed by web-side `poseEvents`; the engine event spine remains separate from Chip dialogue.
+- `apps/web/src/features/companion/chipShare.ts` is scaffolded behind `VITE_MFD_SHARE_ENABLED`. It creates deterministic local payloads, returns `null` while disabled, and has `externalTargets: []`; it does not post to external services.
+- Placeholder content directories with `.gitkeep` do not prove a feature is wired. Current content reality: `packages/content/broadcast` and `packages/content/personalities` contain JSON plus `.gitkeep`; `packages/content/stadiums` contains `.gitkeep` plus schema-validated ATL, BAL, BOS, CHI, CIN, CLE, DAL, DEN, DET, KC, NYC, PHI, PIT, SEA, and SF standalone stadium slices.
+- Broad `TODO`/`stub` searches have many false positives from Vitest stubs, input placeholders, and football/media language. Treat only source comments or feature-flagged scaffolds as actionable after reading the surrounding file.
+
+## Core Commands
+
+```bash
+pnpm dev
+pnpm build
+pnpm test
+pnpm test:engine
+pnpm typecheck
+pnpm test:perft
+pnpm test:shadow
+pnpm grade-season
+```
+
+If `pnpm` is not on PATH:
 
 ```bash
 npx --yes pnpm@9.15.9 --filter @mfd/engine test
@@ -60,28 +1289,75 @@ Preferred layering:
 - `packages/content`: JSON content/config, loaded through validated schemas.
 - `packages/design-system`: reusable UI primitives and tokens.
 
-Do not put browser APIs in `packages/engine`. If a feature needs clipboard, localStorage, IndexedDB, DOM, audio, routing, or downloads, it belongs in `apps/web`.
+Do not put browser APIs in `packages/engine`. Clipboard, localStorage, IndexedDB, DOM, audio, routing, and downloads belong in `apps/web`.
 
 ## Engine Entry Points
 
 Main barrel: `packages/engine/src/index.ts`.
 
-It exports:
+Package export paths from `packages/engine/package.json`:
 
-- Types from `src/types`.
-- RNG helpers from `src/rng`.
-- Events from `src/events`.
-- Config from `src/config`.
-- Save/cartridge APIs.
-- Dozens of systems from `src/systems`, media cycle, storyline threads, and content loader.
+- `@mfd/engine` -> `packages/engine/src/index.ts`.
+- `@mfd/engine/rng` -> `packages/engine/src/rng/index.ts`.
+- `@mfd/engine/types` -> `packages/engine/src/types/index.ts`.
+- `@mfd/engine/events` -> `packages/engine/src/events/index.ts`.
+- `@mfd/engine/config` -> `packages/engine/src/config/index.ts`.
+- `@mfd/engine/save` -> `packages/engine/src/save/index.ts`.
 
-Use existing exported engine functions from `@mfd/engine` in web code. Avoid reaching into private paths from the app unless the codebase already does so for that system.
+Main barrel export groups:
+
+- Core surfaces: `types`, `utils`, RNG, events, config, save schema/migrations, dynasty cartridge.
+- Content bridge: `content-loader.ts` exposes validated content lookups for teams, broadcast templates, AGM lines, scouting reports, social/news copy, and setup dialogue.
+- Simulation spine: `advanceFranchiseWeek`, `simGame`, `applyPlayerLines`, `buildWeeklySummary`, `buildGameDayPackage`, game plan, halftime decisions, game flow, playbook, trick plays, win probability, weather, atmosphere, playoff bracket, special teams.
+- Roster/player systems: traits, personality, archetypes, history/archive, progression, player development, training, facilities, injuries/fatigue, roles, scheme fit, chemistry, season stats, player profile, player agents, mentoring, alumni mentors, bloodlines, career epilogues, snap counts, position coaches.
+- Team/acquisition systems: contracts, contract helpers/tools/extensions, cap lab/visualization, franchise tags, incentives, offseason, draft, scouting staff, advanced scouting, draft war room, draft recap, FA target board, trade negotiation/market/value/finder/deadline, practice squad/waivers, comp and conditional picks.
+- League/governance systems: standings, analytics, power rankings, league rules, CBA, commissioner, labor relations, owner/mandates/personality, GM strategies/reputation, AI philosophy/bias, adaptive difficulty, invariants.
+- Narrative/media/dynasty systems: media cycle, storyline threads/arcs, league news, social feed, press conferences, broadcast/presentation/commentary/templates/ghosts, audio events, locker room, endorsements, player/league rivalries, revenge games, named games, call-your-shot, contingency plans, near-miss receipts, save reminders, ceremonies, awards, Hall of Fame, records/milestones, dynasty timeline/book/era/window/doctrines, franchise dashboard/identity/legends, scrapbook/season recap/report.
+- Setup/coaching systems: franchise setup, day-one narrative, AGM/assistant GM setup content, tutorial, coaching market/carousel/clinic/skill tree/trait mods/retention/aging/retirement/legacy, coordinator chemistry/specialties, relationship graph.
+- Dev harnesses: age-curve harness and playtest report exports are available from the barrel but should stay out of runtime web flows unless explicitly building tooling.
+
+Import rules:
+
+- Use exported engine functions from `@mfd/engine` in web code when they are available.
+- Use subpath imports (`@mfd/engine/rng`, `@mfd/engine/save`, etc.) when a package boundary already exposes the narrower surface.
+- Avoid private-path imports into `packages/engine/src/systems/*` from web code unless the local code already uses that exact subsystem pattern and no barrel export exists.
+- When adding an engine API for web use, prefer exporting it through `packages/engine/src/index.ts` and adding focused engine tests.
+
+Engine package API and import boundary map:
+
+- `packages/engine/package.json` has historical `main`/`types` fields pointing at `dist`, but its `exports` map points workspace consumers at live TypeScript source. The root export is `./src/index.ts`; package subpaths are only `./rng`, `./types`, `./events`, `./config`, and `./save`.
+- `packages/engine/src/index.ts` is intentionally broad. It re-exports most reusable domain APIs from `systems`, content helpers, config, RNG, save, playtesting, and dev harnesses. Add exports here deliberately when a web feature needs reusable engine logic; avoid normalizing new web imports from private `systems/*` paths.
+- `packages/engine/src/types/index.ts`, `rng/index.ts`, `events/index.ts`, `config/index.ts`, and `save/index.ts` are the narrow subpath barrels. Prefer these subpaths for type-only, RNG, event-envelope, config, or save/migration consumers when the narrow boundary communicates intent better than the root barrel.
+- `apps/web/tsconfig.json` maps `@mfd/engine` to `../../packages/engine/src/index.ts` and `@mfd/engine/*` to `../../packages/engine/src/*`. That wildcard exists for compiler resolution, not as product permission to import arbitrary private engine modules.
+- `apps/web/vite.config.ts` aliases `@mfd/engine` to `packages/engine/src`, so `@mfd/engine/types` resolves to the source `types` barrel during web builds. It also chunks `/packages/engine/src/content-loader.ts`, `/packages/engine/src/types/content-schemas.ts`, and `/packages/content/` into `engine-content`; all other engine source goes into `engine`.
+- Keep content-loader dependencies one-way from engine to `engine-content`. `broadcast-commentary` must stay out of `engine-content` unless a production build plus smoke proves there is no cross-chunk TDZ crash.
+- Current browser-runtime subpath imports are intentionally narrow. `@mfd/engine/types` is used for broadcast output/play-description types; `@mfd/engine/events` is package-exposed but production companion code is separately guarded from importing or referencing live event-envelope helpers until a deliberate bridge exists.
+- Tooling scripts are allowed to import source paths directly for Node-only workflows such as playtest reports, shadow regression, grade-season, and age-curve reports. Current direct source imports are script-only: `scripts/playtest-report.ts`, `scripts/age-curve-report.ts`, `scripts/shadow-regression.ts`, and `scripts/grade-season.ts`. Do not copy those script import patterns into browser runtime code.
+- `apps/web/src/app/architecture-boundaries.test.ts` enforces the browser runtime import boundary. It scans `apps/web/src` and `packages/design-system` for `@mfd/engine/*` subpaths outside the exported package list (`rng`, `types`, `events`, `config`, `save`), `@mfd/engine/src`, and private `packages/engine/src` imports. Scripts/tooling stay outside that browser-runtime rule.
+- The same architecture test keeps direct `advanceFranchiseWeek` / `previewHalftimeDecision` references behind `apps/web/src/app/store/sim.ts`, so routes and components use store actions instead of calling simulation directly.
+- The same architecture test keeps derived rivalry sidecar symbols out of production runtime wiring except the package barrel, `packages/engine/src/rivalries/*`, `apps/web/src/lib/rivalry-storage.ts`, `apps/web/src/app/rivalry-rollover.ts`, `apps/web/src/app/store/game-store.ts`, and `apps/web/src/lib/dynasty-sidecar-archive.ts`; it also keeps Chip share scaffold symbols out of visible production UI and companion dialogue code separate from engine live-game event-envelope symbols.
+- `apps/web/src/app/architecture-boundaries.test.ts` also enforces the engine browser-API boundary for production `packages/engine/src` modules. Production engine code should not add `window`, `document`, `navigator`, IndexedDB, clipboard, audio, downloads, or storage access.
+- The same architecture test source-guards salary-cap rule context. Production app code and production `packages/engine/src/systems` code should not call `getSalaryCap(...)` or `getCapFloor(...)` with only a year; pass `GameState`/active cap context so `salary_cap_growth` and `cap_floor_pct` overrides surface. The only current default-cap allowlist is `apps/web/src/app/store/seed.ts`, where initial roster salary scaling runs before a save `GameState` exists.
+- The same architecture test also guards the derived rivalry sidecar export. `packages/engine/src/index.ts` exports pure rivalry derivation/types, while `apps/web/src/lib/rivalry-storage.ts`, `apps/web/src/app/rivalry-rollover.ts`, `apps/web/src/app/store/game-store.ts`, and `apps/web/src/lib/dynasty-sidecar-archive.ts` own the browser-local lifecycle/archive wiring. Production app/engine runtime code must not reference derived rivalry sidecar symbols elsewhere unless the sidecar ownership docs and allowlist are updated deliberately.
+- The same architecture test also guards the web async simulation boundary. Production `apps/web/src` code should not reference engine `advanceFranchiseWeek` or `previewHalftimeDecision` directly outside `apps/web/src/app/store/sim.ts`; route/store callers should use `runAdvanceWeek` and `runPreviewHalftimeDecision`.
+- `packages/engine/src/types/index.ts` is a deliberately small type barrel that re-exports domain type files in dependency order. Put new saved/domain types in the proper domain file first, then export through this barrel if package consumers need them.
+- `packages/engine/src/save/index.ts` exposes only schema and migration APIs: `SaveStateSchema`, selected schemas, `SaveState`, `migrate`, `registerMigration`, and `getRegisteredVersions`. Save callers should not reach into migration internals.
+- `scripts/cleanup-gate.sh` tracks `engine/src/index.ts` LOC and `engine/src/types/index.ts` LOC as drift indicators. A larger barrel is not automatically wrong, but large API-surface growth should be intentional and accompanied by tests/docs.
+- If a web feature needs an unexported engine helper, first ask whether it is domain logic that belongs in the barrel, a derived read model that belongs in `selectors.ts`, or a one-off UI helper that should stay in the feature. Add exports deliberately rather than importing from `systems/*` by relative or wildcard path.
+
+Focused verification for entry-point or architecture-boundary work:
+
+- Package export changes: inspect `packages/engine/package.json`, `packages/engine/src/index.ts`, exposed subpath barrels, `apps/web/tsconfig.json`, and `apps/web/vite.config.ts`; then run typecheck/build or the narrowest package checks that exercise the new import surface.
+- Browser import boundary changes: run `./node_modules/.bin/vitest run src/app/architecture-boundaries.test.ts` from `apps/web`, then run at least `pnpm --filter @mfd/web typecheck` or explain why it could not run.
+- Engine browser-API checks: keep `architecture-boundaries.test.ts` aligned with the documented allowlist and do not add storage/browser API access to production engine modules.
+- Derived rivalry sidecar wiring: update `architecture-boundaries.test.ts`, `Web Lib And Dynasty Memory`, and the improvement plan together before adding new `mfd.rivalries.v1` runtime callers beyond storage, rollover, game-store load/start sync, and complete sidecar archive import/export.
+- Async week-sim boundary changes: update `apps/web/src/app/store/sim.test.ts`, `apps/web/src/app/architecture-boundaries.test.ts`, and the store/selector guide section together before moving week advance into a Worker or exposing direct engine week-sim calls elsewhere.
 
 ## Game State Model
 
 Core aggregate: `packages/engine/src/types/franchise.ts`, `GameState`.
 
-Key top-level fields:
+Important top-level fields:
 
 - `version`, `seed`, `year`, `week`, `phase`, `difficulty`, `settings`.
 - `players`, `teams`, `owners`.
@@ -98,20 +1374,7 @@ Key top-level fields:
 - `achievements`, `dashboardState`, `postGameUi`, `breakingNewsQueue`.
 - `setupState`, `franchiseBlueprint`.
 
-Player shape: `packages/engine/src/types/player.ts`.
-
-- Stable `id`, name fields, `pos`, age, `ovr`, `pot`, ratings, dev trait, personality, traits.
-- Contract, team ID, draft metadata, career/season stats.
-- Injury, morale, chemistry, system fit, clique/captain-related fields.
-- Optional bloodlines and dev snapshots.
-
-Team shape: `packages/engine/src/types/team.ts`.
-
-- Stable `id`, city/name/abbr, conference/division.
-- `roster`, cap fields, record/streak, schemes.
-- `staff` plus legacy `coachingStaff`, owner state, philosophy/strategy.
-- Draft picks, rivalry state, transaction log, season stats.
-- training, fatigue, facilities, practice squad, locker room, franchise identity, retired jerseys, special teams.
+Persistent field changes require save schema and migration work.
 
 ## Initial Game Creation
 
@@ -120,18 +1383,109 @@ Main seed factory: `apps/web/src/app/store/seed.ts`.
 `createSeedGameState(seed, userTeamIndex, difficulty)`:
 
 - Calls `setSeed(seed)`.
-- Generates 32 fictional franchises from `TEAM_DEFS`.
-- Generates rosters from `ROSTER_TEMPLATE`.
-- Creates contracts using engine cap tables.
-- Initializes owners, staff, facilities, locker rooms, franchise identity, special teams, schedule, tutorial, achievements, governance, CBA, labor, dashboard, scouting, and records.
-- Calls `ensureAgentsInitialized` and `syncAllPlayerArchiveEntries`.
+- Uses hardcoded local `TEAM_DEFS`, name/college pools, and `ROSTER_TEMPLATE` to generate 32 fictional franchises and roughly 52 players per team.
+- Marks exactly one team as `isUser` by `userTeamIndex`.
+- Generates players with ratings, potential, dev trait, personality, contracts, draft metadata, career stats, morale, chemistry, system fit, role, and empty season stats.
+- Generates teams with cap totals, owner state, owners table entry, staff, coaching scheme fields, draft picks, facilities, franchise identity, locker room, jersey numbers, and special teams.
+- Starts the league at `year = 2026`, `week = 1`, `phase = 'preseason'`, and `version = SAVE_VERSION`.
+- Initializes schedule, records, awards/history/memory arrays, league rules, CBA, commissioner, labor, front office, narrative state, game-day state, coaching market, difficulty state, scouting department, waivers, tutorial, achievements, dashboard, post-game UI queues, and setup state.
+- Calls `ensureAgentsInitialized(gameState)` and `syncAllPlayerArchiveEntries(gameState, year)` before returning.
 
-Important current constants in seed:
+New-game entry points:
 
-- Base year is `2026`.
-- Roster template totals 52 despite comment saying close enough for 53.
-- KC gets special elite roster boosts.
-- Team IDs and player IDs come from deterministic `uid()` on the RNG UI channel.
+- `apps/web/src/app/NewGameScreen.tsx` uses `Date.now()` as the new dynasty seed, calls `createSeedGameState`, then `actions.newGame`.
+- Scenario launch calls `startScenario(selectedScenarioId, baseState, mulberry32(seed ^ (selectedScenarioId.length * 97)))`, deletes `setupState`, then starts the scenario save.
+- Convention demo uses `generateConventionSave('afce1', mulberry32(Date.now()))`.
+- Continue/import paths use `loadLatestAutosaveGame`, `loadImportedCartridgeFile`, or `loadImportedCartridge`, then `actions.loadGame`.
+- `actions.newGame` in `game-store.ts` finalizes current dynasty meta, clears sidecar archives for the new dynasty ID, syncs career meta, sets `initialized = true`, clears session prompts, and autosaves.
+- `actions.loadGame` syncs career meta, sets `initialized = true`, and does not immediately autosave.
+- `actions.startScenarioChallenge` can create a new seeded game from inside an existing save, preserving completed scenario IDs before applying `startScenario`.
+
+Initialization cautions:
+
+- Persistent `GameState` defaults live here as well as in save migrations. Any new saved field needs seed default coverage plus schema/migration coverage.
+- `Date.now()` is acceptable for choosing a fresh user-facing seed, but deterministic simulation should derive from stored `game.seed` and RNG channels after that.
+- `seed.ts` contains local `OFF_SCHEME_IDS` and `DEF_SCHEME_IDS`, including legacy-looking IDs such as `power_run`, `cover_3`, and `tampa_2`. Do not silently rename these in a cleanup pass; changing them affects initial team identities, saves, and balance expectations.
+
+Focused tests for creation/import changes:
+
+- `apps/web/src/app/store/seed.test.ts`: player archive initialization and franchise defaults on a seeded game.
+- `apps/web/src/app/NewGameScreen.test.tsx` and `apps/web/src/app/NewGameScreen.test.ts`: launch screen difficulty/team/import/autosave recovery behavior.
+- `apps/web/src/app/store/persistence.test.ts`: cartridge round trips from seeded games and legacy metadata import.
+- `apps/web/src/app/store/game-store.test.ts`: broad store action coverage, including `newGame` and seeded state workflows.
+
+## Franchise Setup, New Game, Scenario, And Convention Wiring
+
+Entry points:
+
+- `NewGameScreen.tsx` is the uninitialized app entry. It can start a normal dynasty, start a scenario challenge, launch a convention demo, continue latest autosave, import a `.mfd`/JSON file, or import pasted cartridge text.
+- Normal dynasty start uses `Date.now()` as the seed, then `createSeedGameState(seed, selectedTeam, difficulty)`, then `actions.newGame(baseState)`.
+- Scenario start uses the same seed factory, calls `startScenario(selectedScenarioId, baseState, mulberry32(seed ^ (selectedScenarioId.length * 97)))`, deletes `setupState`, then starts the save. Scenario challenges skip first-run setup.
+- Convention demo uses `generateConventionSave('afce1', mulberry32(Date.now()))`, then `actions.newGame(demoState)`. The convention generator validates with `SaveStateSchema`.
+- Autosave continue and imports use `loadLatestAutosaveGame`, `loadImportedCartridgeFile`, or `loadImportedCartridge` from `apps/web/src/app/store/persistence.ts`, then `actions.loadGame(imported)`.
+
+Seed factory contract:
+
+- `apps/web/src/app/store/seed.ts` owns `createSeedGameState` and `getTeamOptions`.
+- `createSeedGameState` calls `setSeed(seed)`, creates 32 teams/owners/rosters, builds the schedule, sets `version: SAVE_VERSION`, year 2026, week 1, phase `preseason`, default settings, league/governance/labor/front-office/narrative/tutorial/dashboard/post-game UI systems, and `setupState: createSetupState()`.
+- Same seed/team/difficulty should produce the same initial game state except for UI callers that choose a seed with `Date.now()`.
+- It calls `ensureAgentsInitialized(gameState)` and `syncAllPlayerArchiveEntries(gameState, year)` before returning.
+- Do not confuse this production seed path with `packages/engine/src/systems/test-helpers.ts::makeLeagueState`, which is a 16-team synthetic fixture for engine tests and generated save-fixture policy coverage.
+
+Setup gate:
+
+- `App.tsx` renders `NewGameScreen` until `useGameStore.initialized` is true.
+- Setup remains active while `game.setupState.completedPhases.length < PHASE_ORDER.length`. A completed setup keeps `setupState` in the save for reference, but the app moves to `PostSetupApp`.
+- During setup, `App.tsx` renders `PoseEventEmitter(firstLaunchActive)`, wraps `FranchiseSetupWizard` in `ChipHost`, and passes `CHIP_FRANCHISE_SETUP_STAGES`.
+- `CHIP_FRANCHISE_SETUP_STAGES` maps 10 Chip onboarding beats to stage action IDs from `cold-open` through `blueprint`; keep these aligned with `stageActionRegistry.ts`.
+
+Setup engine flow:
+
+- `packages/engine/src/systems/franchise-setup.ts` owns `PHASE_ORDER`: `choose_agm`, `intel_briefing`, `meet_roster`, `hire_coach`, `hire_scout`, `set_scheme`, `depth_chart`, `cap_strategy`, `set_goals`, `blueprint`.
+- `SetupState` persists `currentPhase`, `completedPhases`, `decisions`, `crisisProfile`, `forecastBoard`, `openedDrilldowns`, and `blueprint`.
+- Read-model helpers generate the wizard data: cold open, intel briefing, roster overview, coaching review, scheme context, depth-chart context, cap briefing/packages, goal context, crisis profile, forecast board, week-one volatility/cliffhanger, and final blueprint.
+- `day-one-narrative.ts` is the setup narrative pack owner. `generateDayOneNarrativePack(game, teamId, decisions)` composes `franchise-setup.ts` cold-open/crisis/forecast/cliffhanger helpers plus `assistant-gm.ts` profiles into a deterministic pack with AGM recommendations, per-AGM scene copy, intel support copy, Week 1 blueprint copy, and metadata (`topPressureId`, owner/media bands, opener context). It is presentation/read-model data; committed setup choices still flow through `applySetupDecision` and `finalizeSetup`.
+- `isPhaseComplete`, `advanceSetupPhase`, `goBackSetupPhase`, `applySetupDecision`, and `toggleSetupDrilldown` are pure setup-state transitions. `applySetupDecision` invalidates downstream completed phases when choices change.
+- `createFastLaneSetupState(game, teamId)` is exported scaffolding for repeat-player setup. It starts at `intel_briefing`, marks only `choose_agm` complete, preloads default AGM/coach/scout/scheme/goal/depth/cap/culture decisions, fills `crisisProfile` and `forecastBoard`, leaves `openedDrilldowns` empty, and keeps `blueprint` null.
+- `setup-hiring-catalog.ts` is the first-run coach/scout candidate source. `getCoachCandidateCatalog` returns clone-safe candidates for Elias Rowe, Nico Morales, and Dorian Cross; `getScoutCandidateCatalog` returns clone-safe candidates for Zoe Wilcox, Marvin Tate, and Celia Duarte. `find*Candidate` returns fresh candidates or `null` for unknown ids.
+- `materializeHeadCoach(candidate, year)` turns a setup coach candidate into both saved `team.staff.hc` and mirrored `team.coachingStaff.hc` shapes: archetype-specific ratings/level, four-year term, buyout/loyalty/ambition defaults, scheme lean, `lastHiredYear`, coach record names, reputation, and empty skill/trait state. `seedScoutingStaff(candidate, team)` writes three deterministic scouts from the selected director pool with ids keyed by candidate id, runtime team id, and seed key.
+- `agm-setup-content.ts` is the setup copy bridge for AGM hiring reactions, scheme/goal reactions, teaching tips, transition flavor, loading tips, and blueprint closing monologues. It imports `packages/content/agm/agm-characters.json`, `hiring-content.json`, and `teaching-polish.json` directly, maps live AGM ids (`marcus_webb`, `coach_d_hardaway`, `sandra_chen`) to authored Muse ids, and maps live setup coach/scout ids to older authored content ids. Transition flavor precedence is AGM-specific copy first, then day-one `after_selection` for `choose_agm -> intel_briefing`, then generic transition keys, then local/default fallbacks. `getTransitionTip(seed, fromPhase, toPhase)` is deterministic by hashed seed/phase pair. Keep `agm-setup-content.test.ts`, `assistant-gm.test.ts`, `franchise-setup.test.ts`, and `scheme-ids.test.ts` green when changing AGM setup copy, aliases, transition keys, or referenced scheme ids.
+- `finalizeSetup` validates every phase, clones the game, materializes selected head coach and scouting staff, writes schemes, applies recommended starters, applies cap posture, writes owner goals, installs owner mandates, writes AGM profile/impact effects, adds culture timed effects, writes `franchiseBlueprint`, and marks all setup phases complete.
+
+Web setup flow:
+
+- `FranchiseSetupWizard.tsx` derives phase data from engine helpers, renders phase-specific components, shows AGM reactions, builds choice previews through `previewSetupForecastChange`, and controls cold-open/transition overlays.
+- `FranchiseSetupWizard.tsx` memoizes `generateDayOneNarrativePack` from the current `game`, `teamId`, and setup `decisions`. It uses `recommendedAgmId` as the default AGM preview, passes `agmScenes` into `ChooseAGMPhase`, passes `intelBriefing` support copy into `IntelBriefingPhase`, and uses the same pack to fill fast-lane diagnosis copy.
+- `ForecastBoard.tsx` renders the setup forecast read model supplied by `FranchiseSetupWizard`: saved/current `setupState.forecastBoard` when present, otherwise `generateSetupForecast(game, teamId, decisions)`. Its rendered `FORECAST SOURCES` block labels that fallback, current setup-decision read ownership, and the no-write boundary: the board does not mutate `setupState`, autosave, advance phases, run RNG, or finalize the franchise.
+- The phase components under `features/franchise-setup/phases` are stateless presentation surfaces over engine read models plus callback props from `FranchiseSetupWizard`. `MeetRosterPhase` renders `RosterOverview`; `SetSchemePhase` renders `SchemeSelectionContext` offense/defense options; `DepthChartPhase` renders `DepthChartContext` plus local philosophy cards; `CapStrategyPhase` renders `CapStrategyBriefing` and `CapPackage` choices; `SetGoalsPhase` enforces the UI shape for three selected goals plus one culture mandate; and `BlueprintPhase` renders the finalized `FranchiseBlueprint` plus optional runtime Week 1 cliffhanger copy. These components do not commit setup decisions by themselves.
+- `ChoiceDeltaBadges.tsx` is shared setup forecast display for `ChoiceForecastPreview`: Week 1 readiness, volatility, secondary/bonus deltas, and summary copy. It is UI copy over `previewSetupForecastChange` output, not a separate forecast engine. `HireScoutPhase.tsx` reads `getScoutCandidates()` and `getAGMScoutReaction(agmId, candidate.id)`, then delegates the actual selection through `onHire`.
+- `TeachingTooltip.tsx` is route-local teaching copy state. It cycles through supplied tips with `getNextTeachingTipIndex` and stores only component-local `tipIndex`. `PhaseTransitionOverlay.tsx` is a transient visual overlay fed by `getTransitionFlavor`/loading-tip copy from `agm-setup-content.ts`; it does not advance setup state.
+- `SetupColdOpen.tsx` renders the older `generateSetupColdOpen` model directly; the enhanced narrative pack currently supplements AGM choice, intel support, and blueprint/diagnosis copy rather than replacing every cold-open beat in that component.
+- `DayOneBetLedger.tsx` is UI-local summary state. The AGM row uses the selected narrative scene's `dayOnePromise`; coach/scout/scheme/depth/cap/goal rows are rebuilt in `FranchiseSetupWizard` from `previewSetupForecastChange` against base setup decisions. The rendered `LEDGER SOURCES` block labels those read paths, current `setupState.decisions`, and the no-write boundary: entries are not saved separately, and reading the rail does not autosave, advance setup, run RNG, or finalize the franchise.
+- Read-only phases (`intel_briefing`, `meet_roster`, `blueprint`) require acknowledgement through `decisions.acknowledged`.
+- `set_goals` requires exactly 3 season goals plus a culture mandate before advance.
+- `stageActionRegistry.ts` maps wizard stages to spotlight target IDs and primary action props; changes to phase order, spotlight targets, or Chip setup beats must update this registry and tests together.
+- `stageActionRegistry.test.ts` now imports engine `PHASE_ORDER` and locks every setup phase to its wizard-stage id (`choose_agm -> agm-hire`, `intel_briefing -> intel-briefing`, `meet_roster -> roster-overview`, `hire_coach -> coach-hire`, `hire_scout -> scout-hire`, `set_scheme -> scheme`, `depth_chart -> depth-chart`, `cap_strategy -> cap-strategy`, `set_goals -> goals`, `blueprint -> blueprint`). `set_goals` still switches from `goals` to `culture` only after three season goals; `blueprint` switches to `week-one` only while launching.
+- `setupPersistence.ts` owns browser-local setup keys: `mfd:first-ten-completed`, `mfd:setup-run-mode`, and `mfd:setup-prelude-dismissed:<seed>:<teamId>:<year>`. `finalizeSetupRun` reads the stored mode through `readSetupRunMode`, treats missing/invalid mode as the current mounted `full` default, marks first-ten completed for `full`, skips that marker for explicit `fast_lane`, clears prelude state, and removes run mode.
+- `FranchiseSetupWizard` reads `setupRunMode`, first-ten completion, and prelude dismissal from localStorage when the wizard mounts. Missing or invalid run mode still defaults the mounted wizard to `full`, preserving old-save/session fallback behavior, while `NewGameScreen` now persists the selected New Dynasty setup mode before the setup gate renders.
+- Fast Lane launch is now wired as a repeat-player setup shortcut, not a save schema change. The launch screen reads `mfd:first-ten-completed` to unlock the option, persists `mfd:setup-run-mode = fast_lane` only for a selected Fast Lane New Dynasty, and calls `createFastLaneSetupState` to preload setup decisions. It does not alter scenario start, convention demo, imports, continue, setup phase order, `finalizeSetup`, Chip route beats, save schema, sim math, RNG, or movement.
+- Full setup can show the cold open and requires opening the top pressure drilldown before leaving `intel_briefing`; `fast_lane` mode skips the cold open/top-pressure requirement and shows the Fast Lane Diagnosis panel.
+- Setup store actions in `game-store.ts` now persist wizard progress through the durable store path. `advanceSetup`, `goBackSetup`, and `applySetupChoice` clone the current game, run the pure setup transition, recompute `crisisProfile` and `forecastBoard` from the cloned game and decisions, then `commitGame(nextGame)`. `toggleSetupDrilldown` clones the current game, toggles `openedDrilldowns`, and commits. `completeSetup` calls `finalizeSetupEngine(...)` and `commitGame(nextGame)`.
+
+Wired/not-wired notes:
+
+- Fast-lane setup support is live behind the repeat-player New Dynasty gate. `franchise-setup.test.ts` guards the exported fast-lane state shape, `setupPersistence.test.ts` guards full-vs-fast-lane first-ten completion semantics, and `NewGameScreen` tests guard the locked/unlocked setup-path UI, the standard dynasty path, the Fast Lane setup preload, and scenario setup bypass. Current full setup completion still marks `mfd:first-ten-completed`; explicit fast-lane completion still skips that marker.
+- Scenario challenge start from `NewGameScreen` intentionally deletes `setupState`; in-save scenario restart uses `actions.startScenarioChallenge` and preserves completed scenario IDs from the current save.
+- Scenario display difficulty is not the same key space as saved gameplay difficulty. Scenario cards use `ScenarioDifficulty` values (`rookie`, `pro`, `all_pro`, `hall_of_fame`) for badges/copy; `GameState.difficulty` uses `DifficultyLevel` values (`rookie`, `pro`, `allpro`, `legend`). Only `constraints.forcedDifficulty` can write `game.difficulty`, and its save schema uses the real `DifficultyLevel` key space.
+- `NewGameScreen` displays the save badge from engine `SAVE_VERSION`; keep this badge derived rather than hard-coding schema numbers in launch copy.
+- Setup sidecar keys are not cartridge data and are excluded from the current `mfd.dynastySidecars.archive.v1` export/import. If a future archive scope includes setup sidecars, version and validate them separately from `GameState.setupState`.
+
+Focused tests for entry/setup work:
+
+- Entry and seed: `apps/web/src/app/NewGameScreen.test.tsx`, `apps/web/src/app/NewGameScreen.test.ts`, `apps/web/src/app/round2-convention.test.ts`, `apps/web/src/app/store/seed.test.ts`, and `apps/web/src/app/store/persistence.test.ts`.
+- Setup engine: `packages/engine/src/systems/agm-setup-content.test.ts`, `packages/engine/src/systems/day-one-narrative.test.ts`, `packages/engine/src/systems/setup-hiring-catalog.test.ts`, `packages/engine/src/systems/franchise-setup.test.ts`, `packages/engine/src/systems/convention-save.test.ts`, and `packages/engine/src/systems/scenario-challenge.test.ts`. `franchise-setup.test.ts` covers phase requirements, read-only acknowledgements, full-run top-pressure drilldown requirements, decision invalidation, forecast/blueprint generation, finalization writes, and the exported-but-unwired fast-lane setup scaffold. `day-one-narrative.test.ts` locks deterministic pack generation, crisis-fit AGM recommendation, and stable opener-context keys.
+- Setup UI and persistence: `apps/web/src/features/franchise-setup/stageActionRegistry.test.ts`, `setupPersistence.test.ts`, `setupPolish.test.ts`, `AGMStage.test.tsx`, `AGMPanel.test.tsx`, `ChooseAGMPhase.test.tsx`, `HireCoachPhase.test.tsx`, `ForecastBoard.test.tsx`, `DayOneBetLedger.test.tsx`, `SetupColdOpen.test.tsx`, and phase tests under `features/franchise-setup/phases`.
+- App shell gate: `apps/web/src/app/App.test.tsx` for setup gate, first-ten marker freshness, Chip setup wrapper, and post-setup handoff.
 
 ## RNG And Determinism
 
@@ -150,34 +1504,84 @@ Channels:
 
 Key functions:
 
-- `setSeed(seed)`: resets all channels.
-- `reseedSeason(year)`: reseeds draft channel for season.
-- `reseedWeek(year, week)`: reseeds play-time channels for the week.
-- `rng`, `rngI`, `rngD`, `rngAI`, `rngT`, `rngDev`, `rngEvent`.
-- `pick`, `pickD`, `uid`.
+- `setSeed(seed)`
+- `reseedSeason(year)`
+- `reseedWeek(year, week)`
+- `rng`, `rngI`, `rngD`, `rngAI`, `rngT`, `rngDev`, `rngEvent`
+- `pick`, `pickD`, `uid`
 
-`advanceFranchiseWeek` explicitly calls:
+All sim randomness must flow through these channels. Do not use `Math.random()` in engine or app simulation paths.
 
-```ts
-setSeed(game.seed);
-reseedSeason(game.year);
-reseedWeek(game.year, game.week);
-```
+Where reseeding happens:
 
-That makes week simulation replayable from seed/year/week/state. Do not add ambient randomness to engine systems.
+- New dynasty creation calls `setSeed(seed)` in `apps/web/src/app/store/seed.ts`.
+- `advanceFranchiseWeek(game, options)` calls `setSeed(game.seed)`, `reseedSeason(game.year)`, and `reseedWeek(game.year, game.week)` before resolving weekly simulation work.
+- Draft-season work uses `reseedSeason(year)` or local `mulberry32((seed ^ year salt) >>> 0)` helpers when the function is deliberately pure and accepts an RNG argument.
+- Web selectors/store presentation helpers derive local PRNGs through `mulberry32(buildIntelSeed(game, salt))`; this is acceptable for sim-adjacent UI if the seed only comes from stable game fields plus a named salt.
 
-Known permitted clock/random-ish areas:
+Channel intent:
 
-- `Date.now()` and `new Date()` exist for UI timestamps, export metadata, local Chip UI state, and playtest performance telemetry.
-- `packages/engine/src/playtesting/harness.ts` instruments `Math.random()` to detect calls.
-- `scripts/check-math-random.sh` bans unauthorized `Math.random()` in packages/apps.
+- `play`: game/play resolution and generic weekly sim rolls.
+- `injury`: injury rolls.
+- `draft`: draft class, draft board, and season draft work.
+- `ai`: AI decisions.
+- `dev`: development, progression, and player growth.
+- `trade`: trade/deadline market actions.
+- `ui`: deterministic IDs or presentation-only generated values.
+- `event`: narrative/off-field/world events.
+
+RNG and determinism boundary map:
+
+- `setSeed(seed)` resets every channel from the stored global seed plus `CHANNEL_OFFSETS`.
+- `reseedWeek(year, week)` intentionally reseeds `play`, `injury`, `ai`, `dev`, `trade`, and `event`; it leaves `draft` and `ui` untouched.
+- `reseedSeason(year)` reseeds only `draft`; do not assume a week reseed refreshes draft-board or UI-ID streams.
+- `uid()` is deterministic but order-dependent because it consumes the mutable `ui` channel. Use it only when deterministic generation order is stable enough; prefer explicit source-field IDs for persisted or cross-refactor identity.
+- Global `RNG` is mutable process state. Pure helpers, selectors, and React render paths should accept an injected PRNG or derive a local `mulberry32(...)` from stable game fields and a named salt.
+- Web presentation randomness should use `buildIntelSeed(game, salt)` / local `mulberry32(...)` patterns or content helpers with injected RNG. Salts must be stable, descriptive, and tied to saved inputs.
+- Adding RNG-consuming calls can change later same-seed outcomes even if probabilities do not change. Lock exact sequences only when the sequence itself is the product contract; otherwise assert ranges, invariants, and same-seed equality around the touched system.
+- Adding a channel requires updating `RngChannel`, `CHANNEL_OFFSETS`, `RngState`, wrapper exports, `packages/engine/src/rng/rng.test.ts`, this guide, the improvement plan, and the marathon prompt.
+
+Allowed wall-clock or ambient-time uses:
+
+- New-game seed creation from `Date.now()` before the seed becomes stored game state.
+- Export/save metadata such as cartridge timestamps, portable backup timestamps, or UI preference timestamps.
+- Companion/Chip pose windows, onboarding receipts, dock quiet timestamps, and reveal timers.
+- Audio synth noise in `apps/web/src/features/audio/synth-sounds.ts`, which is the only approved `Math.random()` exception.
+- Playtest performance telemetry such as `perf-budget`; `buildPlaytestReport` strips exported `HOST_NOISE_DETECTOR_IDS` from canonical anomaly counts, and deterministic comparisons should use the canonical report JSON or stable sim-state projections without wall-clock diagnostic fields.
+
+Known caution spots:
+
+- Browser sidecar storage is a web-layer concern. `apps/web/src/lib/rivalry-storage.ts` owns derived-rivalry storage, while `rivalry-rollover.ts`, `game-store.ts`, and `dynasty-sidecar-archive.ts` own the limited lifecycle/export callers so engine code remains browser-API-free.
+- `packages/engine/src/systems/dynasty-cartridge.ts` uses timestamps and export throttling as metadata. Keep those values out of season outcomes.
+- `packages/engine/src/systems/hooks-engine.ts` records `setAt: Date.now()` for hook metadata. Treat it as metadata unless a future refactor makes hooks affect simulation outcomes.
+- The playtest harness temporarily wraps `Math.random` to detect ambient random calls. Do not copy that monitor into production logic, and keep `scripts/check-math-random.sh` passing.
+
+Focused gates for determinism work:
+
+- `packages/engine/src/rng/rng.test.ts`: channel independence, reseeding behavior, wrappers, `uid`, and same-seed sequence guarantee.
+- `bash scripts/check-math-random.sh`: fails on unauthorized `Math.random()` usage outside `synth-sounds.ts`.
+- `packages/engine/src/playtesting/harness.ts`: owns `HOST_NOISE_DETECTOR_IDS` and canonical playtest anomaly counts.
+- `scripts/playtest/sprint72-audit.md`: documents the original repeat-run drift from wall-clock perf telemetry and the expected sim-state-only contract.
+- For gameplay math changes, add focused same-seed tests around the touched system and run a season smoke/playtest when balance could move.
 
 ## Week Advance Spine
 
 Web boundary: `apps/web/src/app/store/sim.ts`.
 
 - `runAdvanceWeek(game, options)` delegates to `advanceFranchiseWeek`.
-- Promise-based so a future Worker swap does not change callers.
+- Promise-based so a future Worker swap can preserve caller contracts.
+
+Web action layer: `apps/web/src/app/store/game-store.ts`.
+
+- `actions.advanceWeek` clears undo, refuses to advance while a pending halftime decision exists, optionally stages a halftime decision, then calls `runAdvanceWeek`.
+- Halftime preview is skipped on the trade-deadline week so the deadline pause wins before any game simulation.
+- `actions.resolveHalftimeDecision` calls `runAdvanceWeek(current, { halftimeDecision })`, clears `postGameUi.pendingHalftimeDecision`, then repeats the same interruption checks and post-advance staging as `advanceWeek`.
+- Store-side interruptions commit the engine output and navigate:
+  - trade deadline -> `/trade-deadline`
+  - expansion draft -> `/expansion-draft`
+  - CBA negotiation/vote/lockout -> `/cba`
+- `actions.finalizeDeadline` calls `finalizeDeadlineEngine`, appends a deadline-resolved event, resumes `runAdvanceWeek` for the same week, commits, then navigates to `/game-day`.
+- Normal post-advance store work updates user-team system fit, press/audio queues, breaking news, playoff-lore reveal state, career meta after year rollover, and tutorial completion before commit.
 
 Engine spine: `packages/engine/src/systems/franchise-week.ts`.
 
@@ -186,353 +1590,1840 @@ Engine spine: `packages/engine/src/systems/franchise-week.ts`.
 - `structuredClone`s input into `nextState`.
 - Ensures governance/living-world defaults.
 - Reseeds RNG by seed/year/week.
-- Handles early-return non-game phases:
-  - CBA interruptions.
-  - training camp.
-  - preseason transition to regular season.
-  - expansion draft pause.
-  - offseason/free agency/draft/post-draft.
-  - trade deadline pause.
-- For regular season/playoffs:
-  - process holdouts, training, labor, fatigue, injury recovery.
-  - auto-assign AI special teams.
-  - flex/assign broadcasts and weather.
-  - build sim context from effects, weekly prep, locker room, rivalries, atmosphere, game plans, adaptive difficulty.
-  - call `simulateGame`.
-  - update snap counts, records, milestones, named games, rivalries, owner, event log.
-  - build game-day package, press conference, film room report, media cycle, storyline threads, league/social news, achievements.
-  - reset game plan and clear current weekly prep.
+- Clears `postGameUi.pendingHalftimeDecision` before engine work; the web store owns the UI prompt.
+- Applies early phase gates in this order: CBA interruption for preseason/training camp/offseason, training camp -> preseason, preseason -> regular season, offseason expansion draft pause, new expansion trigger, offseason/free agency/draft/post-draft progression, then regular-season trade-deadline pause.
+- Simulates regular-season weeks and playoff rounds after early gates pass.
+- Updates training, fatigue, injuries, records, milestones, named games, rivalries, owner state, news/social, media cycle, storyline threads, game-day package, press conference, film room, achievements, and trade suggestions.
 - Returns `EngineOutput` with `nextState`, events, consequences, and optional milestone/call-your-shot/near-miss/save-reminder fields.
+
+Season phase flow from source types:
+
+- `preseason -> regular_season` without consuming week 1.
+- `regular_season` weeks advance until `getRegularSeasonWeekCount(game)` completes. That helper trusts generated schedules with 17+ weeks, falls back to the effective `schedule_weeks` league rule, then defaults to 18.
+- `playoffs` start at `getRegularSeasonWeekCount(game) + 1`, then advance wild card, divisional, conference, and championship rounds one week at a time. A champion triggers season archive, owner-mandate evaluation, player-season archive, doctrine checks, near-miss receipts, save reminder, `year += 1`, `week = 1`, draft class creation, and `phase = 'offseason'`.
+- User weekly summaries label phase from the played branch (`label` means playoff) instead of absolute Week 19, so 19-week regular seasons still save regular-season summaries.
+- `offseason -> free_agency -> draft -> post_draft` is delegated through `advanceOffseason`, `advanceFreeAgency`, `advanceDraft`, and `finalizePostDraft`.
+- `training_camp -> preseason` runs all training camps and stores `trainingCampResults`.
+
+Week simulation details that matter before editing:
+
+- Regular season auto-assigns CPU special teams, flexes from week 14 onward, assigns broadcasts, ensures weather, then simulates every scheduled matchup.
+- User-game broadcast data is generated only for the user-team game; CPU-only results normally stay lighter.
+- Sim context merges off-field effects, fatigue, weekly prep, locker room, rivalry, atmosphere, labor penalties, game plan, opponent report, and optional halftime choice.
+- Playoffs reuse much of the regular-season path but add playoff momentum, playoff atmosphere, playoff news, and default `ride_stars` snap management.
+- After games, shared tail work runs waivers, owner mandates, handshakes, player sync, records/milestones/news, media cycle, story threads, user weekly summary, press conference, film room report, social feed, league news, achievements, game-plan reset, weekly-prep cleanup, and trade suggestions.
+
+Focused tests for this spine:
+
+- `packages/engine/src/systems/franchise-week.test.ts`: phase gates, deterministic week simulation, user broadcast scope, trade-deadline interrupt/resume, playoffs/offseason rollover, CBA preseason interrupt, labor unrest.
+- `packages/engine/src/systems/franchise-week-helpers.test.ts`: helper contracts for weather assignment/preservation, legacy generic weather, owner approval/mood/patience update glue, deterministic event ids/timestamps, player sync, deep clone, user-team lookup, and narrative hook/fallback persistence.
+- `apps/web/src/app/store/game-store.gameweek.test.ts`: store action behavior for `advanceWeek`, `resolveHalftimeDecision`, playoff-lore staging, trade-deadline routing, deadline finalization.
+- `packages/engine/src/systems/season-smoke.test.ts`: longer season loops that explicitly resolve deadline interruptions and continue.
 
 Game sim helpers:
 
-- `packages/engine/src/systems/franchise-week-helpers.ts` wraps `simGame`, applies results/stats/fatigue/injuries, updates owner.
-- `packages/engine/src/systems/game-sim.ts` is the drive-by-drive sim: play selection, weather effects, coaching edge, pressure, turnovers, scoring, special teams, matchup events, and player stat lines.
+- `packages/engine/src/systems/franchise-week-helpers.ts`
+- `packages/engine/src/systems/game-sim.ts`
+
+## Game Simulation, Game Day, Playoffs, And Weather Wiring
+
+This layer is the football engine below the week spine. `advanceFranchiseWeek` decides when a game is played; these systems decide what happens in the game and what artifacts the UI can show afterward.
+
+Simulation boundaries:
+
+- Web calls `apps/web/src/app/store/sim.ts`, which wraps `advanceFranchiseWeek` and `previewHalftimeDecision` behind Promise-returning functions so a future Worker boundary can replace the implementation without changing every caller.
+- `franchise-week-helpers.ts` is the matchup/helper layer. `simulateGame` calls `simGame`, `applyPlayerLines`, applies team records/streaks/season stats, processes fatigue, chooses MVP, records special-teams/player-matchup/contingency artifacts, and generates weekly injuries. `ensureWeeklyWeather` fills only missing scheduled-game weather with `generateRegionalWeather`, preserves existing weather, and skips unknown home teams. `updateOwner` composes `updateOwnerApproval` with `tickPatience`, writing `team.ownerMood` from approval and `team.ownerPatience80` from record/streak/week/playoff/first-season context. `makeEvent` builds deterministic ids/timestamps from year/week/event-log length. `syncPlayers` mirrors team rosters into `game.players`; `refreshNarrative` converts `generateHooks` output into saved `game.narrativeState.hooks` with deterministic ids/deadlines and writes a fallback when no hook condition fires. Keep `franchise-week-helpers.test.ts`, `franchise-week.test.ts`, `hooks-engine.test.ts`, `regional-weather.test.ts`, and owner tests green when changing this helper layer.
+- `game-sim-types.ts` owns `SimGameContext` and `SimTeamContext` with no runtime imports or runtime exports. It exists to avoid circular runtime dependencies between `game-sim`, `game-plan`, `weekly-prep`, `halftime-decision`, and `franchise-week`; keep `game-sim-types.test.ts` green when adding sim context fields or changing imports so this file remains a type-only shared shell.
+- `simGame(home, away, context)` is the main pure-ish game simulation boundary. It returns deterministic same-seed box-score artifacts, does not mutate source teams while applying context bonuses, carries weather/special-teams/player-matchup/contingency artifacts, and keeps returned player lines scoped to the matching roster. `applyPlayerLines(team, lines)` is the post-result stat-application boundary; it mutates matching roster players' season and career stats, increments games played for available starters and line participants, ignores unknown player ids, skips unavailable players for games played, and clamps derived YAC at zero. Keep `game-sim.test.ts`, `game-sim.balance.test.ts`, `contingency-wiring.test.ts`, `halftime-decision.test.ts`, `coach-trait-mods.test.ts`, and `franchise-week-helpers.test.ts` aligned when changing simulation output, context copying, or player-line stat semantics.
+
+Football math and play selection:
+
+- `playbook.ts` owns offensive/defensive play definitions plus `determineSituation`, `scorePlay`, `scoreDefensivePlay`, `selectOffensivePlay`, `selectDefensivePlay`, `playMatchupQuality`, and play lookup/commentary helpers.
+- `win-probability.ts` owns expected points, win probability, leverage index, turning-point labels, and win-probability narrative helpers.
+- `game-flow.ts` turns a completed result into quarter momentum, drive efficiency, scoring runs, win-probability curve, and turning point analysis.
+- `trick-plays.ts` owns trick-play availability, execution, and AI/user call likelihood.
+- `contingency-plans.ts` owns contingency limits, trigger checks, sim adjustment application, and callout generation from authored content.
+- Any change to play selection, clock/pace, scoring, turnovers, win probability, leverage, weather effects, fatigue effects, or trick-play odds is gameplay math. Keep constants named, preserve seeded RNG, document formula before/after, and include sample outputs.
+
+Game context inputs:
+
+- Game context can include team OVR bonuses, player OVR bonuses, clutch player bonuses, game plan, opponent report, halftime modifier, weather, rivalry intensity, and home-field bonus.
+- Regular-season simulation combines weather, atmosphere, weekly prep, game plan, fatigue, locker room, rivalry, off-field/labor effects, and optional halftime decisions.
+- Playoff simulation adds playoff momentum and playoff atmosphere on top of the normal context.
+- `game-plan.ts` and `weekly-prep.ts` own stored user plan/prep inputs; see the roster/player/weekly-prep section for their user-facing mutation paths.
+
+Halftime flow:
+
+- `halftime.ts` owns `generateHalftimeAdjustments` and `shouldMakeAdjustments`.
+- `halftime-decision.ts` owns `suggestHalftimeSwitch`, `applyHalftimeDecision`, `shouldOfferHalftimeDecision`, and `previewHalftimeDecision`.
+- The web store previews halftime before week advance, unless the regular-season trade deadline pause should win first. If a prompt is offered, it writes `postGameUi.pendingHalftimeDecision`, appends a halftime audio cue, commits, and returns without advancing.
+- `actions.resolveHalftimeDecision(choice)` calls `runAdvanceWeek(current, { halftimeDecision })`, clears `pendingHalftimeDecision`, then repeats the same trade-deadline/CBA/expansion interruption checks as normal week advance.
+- The UI surface is globally mounted as `HalftimeDecision` in `App.tsx`, not only on `/game-day`.
+- `GameState.settings.halftimeDecisions` and `postGameUi.pendingHalftimeDecision` are save-backed with schema and migration defaults. `getDefaultHalftimeDecisionSetting` locks rookie difficulty to `off` and defaults other difficulties to `on`; `Settings.tsx` and the store setter also force rookie back to `off`.
+- `previewHalftimeDecision(game)` is deterministic and non-mutating: it seeds from `game.seed`/year/week, clones the current user matchup teams, runs `simGame` only to infer first-half score and stats, then suggests a direction from score margin, yards per play, and turnover delta.
+- Halftime choices are real simulation input. `stick` returns the original sim context. `switch` changes the second-half game-plan direction and applies a `-1` first-drive team OVR delta followed by a `+1` sustained team OVR delta. `gamble` changes the plan direction and applies a `+3` first-drive team OVR delta followed by a `-2` delta on later second-half drives. `HalftimeDecision.tsx` now labels these OVR/game-plan modifiers directly rather than percentage-efficiency values.
+- `halftime.ts` is exported and tested, but inspected production source only imports it through the engine barrel; live halftime user decisions use `halftime-decision.ts` plus `game-sim.ts`'s `halftimeModifier` handling. Do not claim `generateHalftimeAdjustments` is part of the week-advance spine until a real caller is added.
+- `franchise-week.ts` adds the selected halftime choice summary into `userActiveEffectSummaries`, and `buildGameDayPackage` saves that array on `GameDayPackage.activeEffectSummaries`; `GameDayRecap.tsx` renders it under "Off-Field Carryover." `buildHalftimeDecisionReceipt` parses saved `Halftime hell:` summaries into a read model with `source: 'GameDayPackage.activeEffectSummaries'`, a classified choice, recap copy, and broadcast copy. `GameDayRecap`, `GameBroadcast`, `PlayByPlay`, and `BroadcastPresentation` consume that helper through the matching saved package. No package writer, weekly-summary writer, week-advance mutation, broadcast generation, save schema, sim math, or RNG changed. A future save-schema slice can add a dedicated structured halftime receipt field if string-prefix compatibility is no longer enough.
+- Store deadline ordering is rule-aware. `advanceWeek` uses the active `trade_deadline_week` rule to skip the halftime preview on deadline week; `franchise-week.ts` initializes the deadline from the same rule; and the store's post-engine interruption check uses that same active rule for both normal week advance and `resolveHalftimeDecision` resume paths.
+
+Postgame artifacts:
+
+- `buildWeeklySummary` writes the concise week result, injuries, records, owner pressure, and next-action style data stored in `game.weekSummaries`.
+- `buildGameDayPackage` writes the richer user-facing recap data stored in `game.gameDayState.recentPackages` with `latestPackageId`.
+- `GameDayRecap.tsx` renders `Postgame Source Receipt` from the saved package returned by `selectLatestGameDayPackage`. `buildPostgameSourceReceipt(packageData)` is a read-only UI helper over saved `GameDayPackage` fields: id/year/week/result/final score, turning points, autopsy diagnosis/leverage/next-focus, and top performers. The route also renders `Postgame Decision Receipt` through `buildPostgameDecisionReceipt(packageData)`, reading only saved `prepGrade`, `coachingNotes`, `carryForwardRecommendations`, `injuryNotes`, `activeEffectSummaries`, and `autopsy.nextFocus` to summarize prep, health, carryover, and next-week focus. When a saved package/result carries `namedGame`, `buildNamedGameMemoryReceipt(packageData, namedGame)` powers the named-game banner's `Named Games` CTA and source rows for `GameDayPackage.namedGame`, `/legacy/named-games`, and the no-rerun boundary. When the saved package carries `recordsMoments` or `milestoneMoments`, `buildRecordMemoryReceipt(packageData)` powers the `Record Book` CTA and source rows for `GameDayPackage.recordsMoments`, `GameDayPackage.milestoneMoments`, `/records`, and the no-recalculation boundary. Rendering `/game-day` does not replay the game, build a new package, rewrite weekly summaries, recalculate Film Room, re-run `detectNamedGame`, update records, check milestones, write `recentMilestones`, repair dynasty timeline rows, apply training, adjust fatigue, change scores or stats, move players, alter injuries or morale, autosave, answer press, simulate, or touch RNG.
+- `buildPostWeekMoment(summary, packageData)` in `post-week-moment.ts` is the read-only receipt for the Week Advance "Post-Week Command Deck". It composes saved `WeeklySummary` plus the latest `GameDayPackage` into "why it happened", "what changed", and "what now" items, including package-backed stakes, rivalry heat, special-teams swings, podium follow-up, and coaching notes when those fields already exist. It does not mutate save state, create package content, or write media/events, and should be reused for future post-week dashboard/briefing copy instead of re-deriving package fields in React.
+- `WeekAdvance.tsx` renders a read-only `Advance Week Uses` panel that labels the readiness selectors, `selectOffseasonCalendar`, `buildPostWeekMoment`, the game-plan routing gate, and `actions.advanceWeek` as the only route-level commit boundary. It also renders `Offseason Command Snapshot` when the offseason calendar is visible, and `Rookie Class Follow-Up` during training camp, preseason, or the first four regular-season weeks when current/prior saved user-team `draftRecaps` exist. `buildOffseasonCommandSnapshot` reads only the saved offseason calendar, `offseasonState`, selected user-team roster contracts, and saved team cap fields to show calendar owner, expiring core, cap room, and pending market load with route-only CTAs. `buildRookieClassFollowUp` reads only saved draft recap picks to link top pick, best value, reach watch, and steal follow-up rows to existing player/development/training/draft recap routes. Rendering `/week-advance` does not advance the league, build packages, write summaries, submit bids, resolve free-agency rounds, re-sign players, mutate cap totals, move roster assets, mutate media/records, generate draft recaps, change rookie ratings, assign training, alter depth charts, autosave, or bypass halftime/deadline/expansion/CBA pauses. Its checklist `fixRoute`, snapshot `route`, and rookie follow-up CTA values stay route-only navigation.
+- `GameDayRecap.tsx` renders a read-only `Podium Receipt` from saved `GameDayPackage.pressConference`, labeling the saved podium theme/opener/Q&A/quotes and the matching `buildPostWeekMoment` `Podium Follow-Up` hook. Rendering the recap does not record a conference, add timed effects, write event/news/social feeds, or answer the separate postgame podium queue.
+- `buildFilmRoomReport` writes `game.filmRoomHistory`; `film-room-analysis.ts` derives tendency, situational, coaching-adjustment, enhanced report, and season tendency models.
+- `generateBroadcast` is called during simulation for the user game and can be rebuilt by selectors for legacy results that do not already store broadcast output. Broadcast route/component details live in the broadcast section.
+- Store post-advance work builds press conference queues, audio queues, breaking-news queues, playoff-lore cards, season recap prompt state, career meta sync, and tutorial completion after the engine returns.
+
+Season stats and analytics boundary map:
+
+- `season-stats.ts` owns the canonical empty stat shapes and team-season accumulation helpers: `emptyPlayerStats`, `createEmptySeasonStats`, `ensureSeasonStats`, and `applyGameToSeasonStats`.
+- Live team stat mutation happens in `franchise-week-helpers.ts`: `simulateGame` calls `applyPlayerLines` for player box-score stats, then `applyResult`, which calls `applyGameToSeasonStats` for home and away before updating wins/losses/streaks.
+- `applyGameToSeasonStats` accumulates totals only. It increments `gamesPlayed`, adds points/yards/turnovers/sacks/drives/third-down/time-of-possession/field-goal/punt/pressure/YAC/red-zone fields, and recomputes `pointDifferential = pointsFor - pointsAgainst`. It does not derive per-game rates, rankings, awards, records, or playoff standings directly.
+- `ensureSeasonStats(team)` is the legacy safety initializer. If a team lacks `seasonStats`, it creates empty stats with `gamesPlayed = wins + losses + ties`; `syncPlayers(game)` calls it while mirroring rosters into `game.players`.
+- New saves, drafted players, expansion teams, convention saves, test fixtures, playtest harness fixtures, and Hall of Fame placeholder/player records should use `emptyPlayerStats` / `createEmptySeasonStats` instead of hand-writing partial stat shapes.
+- `draft.ts::finalizePostDraft` is the main annual reset path: it clears team records/streaks, assigns `team.seasonStats = createEmptySeasonStats()`, increments player age/experience, clears injuries, resets `player.stats = emptyPlayerStats()`, and mirrors players back into `game.players`.
+- `tickInjuries(team)` is exported and tested in `season-stats.ts`, but the inspected production source does not call it. Current live weekly injury recovery runs through `injury-system.ts::processInjuryRecovery` from `franchise-week.ts`. Do not wire both systems for the same countdown without consolidating behavior and tests.
+- Team `seasonStats` feeds many read models: standings point differential, playoff seeding tiebreakers, analytics advanced stats/team rankings, records, awards, league news, social feed, power rankings, season reports, franchise history, stat-central team summaries, Monday Briefing, and user record-watch pacing. Changing a field name or meaning has broad save/UI effects.
+- `TeamPersistedSchema` in `save/schema.ts` is currently passthrough, but migrations normalize/extend `team.seasonStats` with all current numeric fields. Adding a new team-season stat still needs type, seed/default, reset, migration/default, generated fixture, helper, and consumer test updates; do not rely on passthrough alone as compatibility.
+
+Schedule, playoffs, weather, and atmosphere:
+
+- `buildSeasonSchedule` creates the season schedule using the effective `schedule_weeks` league rule for the schedule year.
+- `getRegularSeasonWeekCount` is the shared consumer helper for generated schedule length. It ignores tiny synthetic fixture schedules below 17 weeks and falls back to the effective rule/default.
+- `flexSchedule`, `assignBroadcasts`, `getFullSchedule`, and `getWeekSchedule` own schedule presentation and late-season flex logic. `getFullSchedule` uses `getRegularSeasonWeekCount(game)`, so schedule route rows and byes follow generated 17/18/19-week seasons instead of a fixed 18-week UI model.
+- `generateRegionalWeather`, `getWeatherRegion`, and `getRegionWeatherOdds` own weather generation. Weather is saved on matchups/results and is exposed through selectors before and after games.
+- `calculateAtmosphere`, `getCrowdEnergy`, and `getAtmosphereBonus` own crowd/home-field atmosphere.
+- `seedPlayoffBracket` and `advancePlayoffBracket` own playoff bracket creation and round advancement. Bracket seed counts follow `playoff_seeds_per_conf`, and wildcard week starts after the generated/effective regular-season length instead of assuming Week 19.
+- `calculatePlayoffMomentum`, `getPlayoffMomentumBonus`, and `generatePlayoffNews` own playoff momentum state and news.
+- `super-bowl.ts` owns Super Bowl numbering, context, halftime show, MVP, champion parade, and narrative helpers.
+- `named-games.ts` and `revenge-games.ts` detect special matchup labels and revenge-game flavor around completed or upcoming games.
+
+Schedule generation, flex, and broadcast boundary map:
+
+- Schedule type/save ownership lives in `types/schedule.ts` and `save/schema.ts`: each `ScheduledGame` stores `homeTeamId`, `awayTeamId`, nullable `result`, optional `weather`, optional `flexed`, optional `primetime`, and optional nullable `broadcastNetwork`. The schema defaults `flexed`/`primetime` to `false` and `broadcastNetwork` to `null`; migrations normalize older scheduled games through `migrateScheduledGame`.
+- `buildSeasonSchedule(teamIds, year, gameState?)` is deterministic and does not use RNG. It sorts team ids, rotates the order on odd years, inserts a private `__BYE__` placeholder for odd team counts, alternates home/away by week parity, initializes every matchup with `result: null`, `flexed: false`, `primetime: false`, and `broadcastNetwork: null`, and sizes the schedule from `getConfiguredScheduleWeekCount`.
+- `getConfiguredScheduleWeekCount(gameState)` reads the effective `schedule_weeks` league rule for `gameState.year`, defaulting to 18 when league rules/year are missing. `getRegularSeasonWeekCount(gameState)` trusts an already generated schedule only when it has at least 17 weeks, otherwise it falls back to the effective rule/default. Keep this helper as the public season-length read path for playoffs, standings, record pace, schedule UI, rivalry history, and weekly summary phase labels.
+- Live schedule creation happens in three inspected places: new dynasties call `buildSeasonSchedule` from `apps/web/src/app/store/seed.ts`, `draft.ts::finalizePostDraft` rebuilds next year's schedule after annual resets, and `expansion-draft.ts::finalizeExpansionDraft` rebuilds the current schedule after adding the expansion team. Do not hand-build schedule arrays in new production paths unless they are explicit fixtures.
+- `franchise-week.ts` owns live flex/broadcast mutation during regular-season week advance. At Week 14+, it calls `flexSchedule(nextState, RNG.ai)`, then calls `assignBroadcasts(nextState, nextState.week)` for every regular-season week before simulating games.
+- `flexSchedule(game, random)` is mutating and regular-season only. It clears `primetime` on current-week matchups, ranks games by `compellingScore`, marks the top matchup `primetime: true`, `flexed: true`, `broadcastNetwork: 'MFN'`, and can rarely mark the second-ranked game `flexed` when `random() > 0.97`; callers pass `RNG.ai` in live week advance.
+- `assignBroadcasts(game, week)` is also mutating. It ranks the requested week by the same compelling-score model, preserves MFN for primetime games, gives the second-ranked game `NBC8`, rotates `FOX8`/`CBS8` across the third/fourth-ranked games by week parity, and fills the rest with `ESPN8`, then returns the read-only week schedule projection.
+- `getFullSchedule(game, teamId)` and `getWeekSchedule(game, week)` are read models for selectors/UI. They read optional schedule defaults without mutating saved matchups, compute user-team record-after-game rows, BYE rows for missing team matchups, labels from current team names, and rounded compelling scores for league slates.
+- Web schedule display is selector-driven: `selectTeamSchedule` calls `getFullSchedule`, `selectWeekSchedule` calls `getWeekSchedule`, and `features/schedule/TeamSchedule.tsx` derives its subtitle/dropdown length from returned rows plus current/selected week. It is not the source of schedule length, flex decisions, or broadcast assignment.
+- Schedule source clarity is shipped as a read-only UI slice: `/schedule` renders `Schedule Sources`, labeling `selectTeamSchedule`, `selectWeekSchedule(selectedWeek)`, saved broadcast/flex/result fields, byes, and the display-only boundary. Opening Schedule does not generate schedules, assign broadcasts, flex games, weather, results, records, news, or game-day packages.
+- Schedule route coaching is shipped for `/schedule`: `resolveRouteKey` maps the route to `schedule`, whose unanchored Chip beats reinforce that the route reads saved weeks, byes, broadcasts, flex, and results without creating games, and points outcome/advancement/weather ownership back to Week Advance, Game Day, and League Weather. This is route guidance only; it does not generate schedules, assign broadcasts, flex games, create weather, simulate results, mutate saves, move players, or touch RNG.
+- Tests to keep aligned: `season-schedule.test.ts` for deterministic generation, effective/future rule reads, and generated-vs-rule season length; `flex-schedule.test.ts` for Week 14 gating, compelling-game primetime selection, broadcast assignment, 19-week full-schedule rows, and week-slate metadata; `TeamSchedule.test.tsx` for route rendering of dynamic season length; plus `franchise-week.test.ts`, `playoff-bracket.test.ts`, `standings.test.ts`, `record-tracker.test.ts`, and selector tests when schedule length affects downstream consumers.
+
+Weather, atmosphere, and forecast boundary map:
+
+- `types/schedule.ts` defines the complete saved weather key space as `WeatherCondition = 'dome' | 'clear' | 'rain' | 'snow' | 'wind'`. `ScheduledGameSchema` and the game-day package/result schemas accept only those persisted values. Do not add a visual-only weather variant such as heat wave or cloudy to saved results without type/schema/migration/default/old-save tests.
+- `regional-weather.ts` owns deterministic weather generation. `TEAM_REGION_MAP` maps known team ids to `dome`, `warm`, `temperate`, `cold`, or `coastal`; unknown ids fall back to `temperate`; dome `stadiumType` or dome region always returns `dome`; week bands drive the regional rain/snow/wind odds.
+- Live regular-season weather persistence runs through `ensureWeeklyWeather(game, week)` in `franchise-week-helpers.ts`. It fills only missing current-week scheduled-game weather, preserves preexisting matchup weather, skips unknown home teams, and uses `RNG.play` through `generateRegionalWeather`.
+- Regular-season week advance calls `ensureWeeklyWeather` when entering regular season, before simulating the current week, and after incrementing to the next week. The sim context uses the saved `matchup.weather` when present, falling back to `generateRegionalWeather(home, week, RNG.play)`.
+- Playoff sim currently generates weather directly for the sim context with `generateRegionalWeather(home, week, RNG.play)` instead of persisting a `weather` field onto the playoff matchup before simulation. The returned `GameResult.weather` still carries the generated condition for user-facing result/package/broadcast surfaces.
+- `franchise-week-helpers.ts::generateWeatherForGame` is an older generic week-table helper that still exports and is imported by `franchise-week.ts`, but inspected live regular-season and playoff simulation paths use `generateRegionalWeather`. Do not route new weather work through the generic helper unless intentionally replacing or reviving it with tests.
+- `game-sim.ts` owns gameplay weather effects. Rain lowers pass quality and adds fumble chance; snow lowers pass/run quality and adds more fumble chance; wind adds long-field-goal volatility and fixed wind speed; clear/dome have no quality penalty. Treat these as gameplay-balance constants.
+- `atmosphere.ts` owns crowd/home-field atmosphere. `getCrowdEnergy` uses record, fanbase, dome bonus, undefeated start, late-season momentum, and elimination-feel games; `calculateAtmosphere` adds playoff, rivalry, attendance, dome, high-energy, and dominant-team factors; `getAtmosphereBonus` converts the context into home OVR bonus and away OVR penalty. These bonuses are sim-affecting.
+- `franchise-week.ts` applies atmosphere bonuses into regular-season and playoff sim `teamOvrBonus` context. The playoff branch also combines playoff momentum with playoff atmosphere. `AtmosphereReport.tsx` only renders a completed package's atmosphere context; it is not a mutation or recalculation path.
+- `selectWeather` is a user-facing weather read selector. It prefers an upcoming unsimmed current matchup's saved weather, then latest game-day package weather, latest result weather, current matchup weather, and finally `null`.
+- Monday Briefing uses `selectWeather` and has copy for snow, wind, rain, and standard conditions. `features/shared/weatherImpactCopy.ts` owns shared presentation copy for saved weather impact. Inbox uses it to create rain/snow/wind advisories with `/league/weather` CTAs, while `GameDayRecap` uses it to add a `Weather Impact` panel for saved rain/snow/wind game-day packages. That panel now labels `GameDayPackage.weather`, `getWeatherImpactCopy`, and the no-generation/no-rerun/no-RNG boundary. `game-day-package.ts` still copies package weather from `GameResult.weather`.
+- `/league/weather` renders `WeatherForecast.tsx` from the saved schedule and current week. It picks the current week or next unplayed week, filters games locally, and does not call `generateRegionalWeather`; if schedule weather is still missing, it maps dome stadiums to `DOME`, warm Florida home-city games to visual `HEAT_WAVE`, and most other outdoor games to `SUNNY`.
+- `WeatherForecast.tsx` temperature, wind MPH, impact tier, and `HEAT_WAVE`/cloudy-style glyph profiles are presentation heuristics, not saved simulation inputs. The route is forecast/read-model UI over schedule state, not the source of weather truth. Completed route source clarity: `/league/weather` now shows a `Forecast Source` panel that names saved `schedule.weather`, the persisted `dome`/`clear`/`rain`/`snow`/`wind` key space, route-local UI forecast profiles, and the no-render-mutation boundary. Each forecast card now labels its own source as saved `schedule.weather`, `Stadium dome`, or `UI forecast profile`; `WeatherForecast.test.tsx` covers both the rendered labels and exported `buildForecastGamesFromSchedule` helper.
+- League Weather route coaching is shipped for `/league/weather`: `resolveRouteKey` maps the direct route to `league-weather`, whose unanchored Chip beats point users to saved schedule weather, route-local forecast profiles, and Week Advance/Game Day ownership of generated weather, saved results, and receipts. This is route guidance only; it does not generate regional weather, write matchup weather, simulate games, mutate saved results, change forecast profiles, alter weather formulas, mutate saves, run sim, or touch RNG.
+- `weatherGlyphSvg.tsx` owns the SVG presentation variants: `SUNNY`, `PARTLY_CLOUDY`, `CLOUDY`, `RAIN`, `SNOW`, `WIND`, `DOME`, and `HEAT_WAVE`. Only the subset mapped from `WeatherCondition` is persisted; `PARTLY_CLOUDY` and `CLOUDY` are presentation-capable variants but are not currently emitted by `conditionToVariant`.
+- Weather and atmosphere changes should keep `regional-weather.test.ts`, `franchise-week-helpers.test.ts`, `franchise-week.test.ts`, `game-sim.test.ts`, `game-sim.balance.test.ts`, `atmosphere.test.ts`, `WeatherForecast.test.tsx`, `weatherGlyphSvg.test.tsx`, `AtmosphereReport.test.tsx`, `GameDayRecap.test.tsx`, `MondayBriefing.test.tsx`, `buildInboxMessages.test.ts`, and selector tests aligned based on the touched surface. If only clarifying copy, stay on the saved five-condition key space and do not change `WeatherCondition`, `WeatherGlyphVariant`, or sim formulas.
+
+Playoff bracket and momentum boundary map:
+
+- `playoff-bracket.ts` seeds from current `Team` records, conference/division, and `team.seasonStats.pointDifferential`; it sorts by win percentage, point differential, then team id. Division winners are seeded first, then wildcards fill the configured field. It does not use the fuller standings/tiebreaker/playoff-picture module.
+- `seedsPerConference(game)` reads the active `playoff_seeds_per_conf` league rule with a legacy 7-seed fallback. Six-team fields create two wild-card games and two byes per conference; seven-team fields create three wild-card games and one bye; eight-team fields create four wild-card games and no byes.
+- `firstPlayoffWeek(game)` is `getRegularSeasonWeekCount(game) + 1`, so 17/18/19-week generated seasons drive the wild-card start. Do not reintroduce absolute Week 19 assumptions in bracket, playoff lore, schedule, or summary code.
+- `advancePlayoffBracket(bracket, week, playMatchup)` mutates the passed bracket. It plays only matchups for the current `week` with `result === null`, writes `result` and `winnerTeamId`, then lazily appends the next round if that round has not been created yet. Super Bowl completion writes `bracket.championTeamId`.
+- Divisional/conference/Super Bowl construction uses seed order among winners. Super Bowl home/away is chosen by lower seed number across conference champions, not neutral-site metadata.
+- `franchise-week.ts` is the live playoff write path. When regular season finishes, it sets `phase = 'playoffs'`, `week = getRegularSeasonWeekCount(game) + 1`, and seeds `playoffBracket`. During playoff phase it ensures a bracket exists, calls `advancePlayoffBracket`, simulates each current matchup, attaches broadcasts only for user-team games, applies playoff snap counts, updates records/rivalries/locker rooms, writes playoff news, and archives season history/doctrines when `championTeamId` appears.
+- `playoff-momentum.ts` is not flavor-only. `calculatePlayoffMomentum(game, teamId, wonRound)` derives saved momentum from team streak, low seed status, previous franchise-history championship tags, and won-round status. `getPlayoffMomentumBonus` converts saved momentum into a playoff sim team OVR bonus: `>85 => +3`, `>70 => +2`, `<30 => -1`, otherwise `0`.
+- In the playoff simulation branch, `franchise-week.ts` initializes missing momentum for both teams before simulation, adds each team's momentum bonus into the team OVR context alongside effects, locker room, weekly prep, rivalry, adaptive difficulty, and playoff atmosphere, then recalculates winner/loser momentum after the result.
+- `generatePlayoffNews` writes a `NewsItem` per playoff result with `type: 'rivalry'`; cinderella/underdog tags make it `breaking`, otherwise it is `major`.
+- Web read surfaces are derived from saved `game.playoffMomentum[userTeamId]`: `GameDayRecap` renders playoff badges/panel, `MondayBriefing` swaps dynasty-score copy to current momentum copy, `InboxTriage`/`buildInboxMessages` adds a playoff momentum update, and `PoseEventEmitter` can react to an underdog tag. These surfaces should not recalculate momentum independently.
+- Save schema currently treats `playoffBracket` as `z.any().nullable()` while `playoffMomentum` has `PlayoffMomentumSchema`. If formalizing bracket schema, update old-save/cartridge stripping tests and broadcast-stripping behavior because playoff matchup results can contain heavy `GameResult.broadcast` payloads that portable export removes.
+
+Routes, selectors, and feature surfaces:
+
+- Routes: `/week-advance`, `/game-day`, `/game-plan`, `/broadcast`, `/presentation`, `/play-by-play`, `/game-flow`, `/film-room`, `/schedule`, `/standings`, `/league/weather`, `/super-bowl`, and `/franchise/playoff-lore`.
+- Feature folders: `features/week-advance`, `features/game-day`, `features/game-plan`, `features/broadcast`, `features/film-room`, `features/schedule`, `features/standings`, `features/league`, `features/playoffs`, `features/monday-briefing`, and `features/inbox`.
+- Selectors: `selectCurrentMatchup`, `selectLatestSummary`, `selectGameDayState`, `selectLatestGameDayPackage`, `selectLatestGameResult`, `selectBroadcastByGameId`, `selectLatestBroadcast`, `selectCurrentOpponentIntel`, `selectPlayoffBracket`, `selectPlayoffMomentum`, `selectPlayoffPicture`, `selectWeather`, `selectFilmRoomHistory`, and `selectLatestFilmRoomReport`.
+
+Save and balance risks:
+
+- Saved game-day state includes `schedule`, matchup/result weather, `gameDayState`, `weekSummaries`, `playoffBracket`, `playoffMomentum`, `filmRoomHistory`, `gamePlan`, `postGameUi.pendingHalftimeDecision`, and `settings.halftimeDecisions`.
+- Do not delete or rebuild old `GameResult` data casually. Broadcast and game-flow screens can derive views from old results, but saved records, achievements, playoff lore, player stats, and dynasty history depend on stable completed results.
+- Weather, atmosphere, playbook, win probability, halftime modifiers, contingency rules, playoff momentum, and sim context bonuses are gameplay math. Changes need deterministic tests, sample outputs, and season-level sanity checks.
+- If adding persistent result/package fields, update `packages/engine/src/save/schema.ts`, migrations, save fixtures/golden tests, seed defaults, and old-save verification.
+
+Focused tests for this layer:
+
+- Engine: `game-sim.test.ts`, `game-sim-types.test.ts`, `game-sim.balance.test.ts`, `playbook.test.ts`, `win-probability.test.ts`, `game-flow.test.ts`, `trick-plays.test.ts`, `contingency-plans.test.ts`, `contingency-wiring.test.ts`, `halftime.test.ts`, `halftime-decision.test.ts`, `weekly-summary.test.ts`, `game-day-package.test.ts`, `post-week-moment.test.ts`, `film-room.test.ts`, `film-room-analysis.test.ts`, `season-schedule.test.ts`, `flex-schedule.test.ts`, `regional-weather.test.ts`, `atmosphere.test.ts`, `playoff-bracket.test.ts`, `playoff-momentum.test.ts`, `super-bowl.test.ts`, `named-games.test.ts`, `revenge-games.test.ts`, `franchise-week-helpers.test.ts`, `franchise-week.test.ts`, and `season-smoke.test.ts`.
+- Store: `apps/web/src/app/store/game-store.gameweek.test.ts` for advance/resume/postgame queues/interruption behavior and selector tests around latest package/result/broadcast if touched.
+- UI: `WeekAdvance.test.tsx`, `GameDayRecap.test.tsx`, `HalftimeDecision.test.tsx`, `AtmosphereReport.test.tsx`, `CallYourShotResult.test.tsx`, `PressConferenceModal.test.tsx`, `RecapChipReaction.test.tsx`, `GameBroadcast.test.tsx`, `BroadcastPresentation.test.tsx`, `PlayByPlay.test.tsx`, `GameFlow.test.tsx`, `FilmRoom.test.tsx`, `TeamSchedule.test.tsx`, `LeagueStandings.test.tsx`, `SuperBowlPresentation.test.tsx`, `PlayoffLorePrompt.test.tsx`, `PlayoffLoreDirectory.test.tsx`, `ChampionshipParadeEmitter.test.tsx`, `WeatherForecast.test.tsx`, `weatherGlyphSvg.test.tsx`, `MondayBriefing.test.tsx`, and `InboxTriage`/`buildInboxMessages` tests.
+
+## Game Plan, Prep, Contingency, Trick Play, And Special Teams Control Wiring
+
+This is the user-control layer between roster construction and simulated football. It owns scout reports, weekly prep, saved game plans, halftime decisions, contingency calls, trick-play selection, special teams assignments, and postgame film-room receipts.
+
+Persistent state and result fields:
+
+- `GameState.gamePlan` stores the current derived or explicit game plan.
+- `GameState.opponentReports` stores week/opponent scouting reports.
+- `GameState.weeklyPrepPlans` stores saved prep by team id; `franchise-week.ts` deletes the current user team's plan after game-week resolution.
+- `GameState.weeklyPrepHistory` and `GameState.filmRoomHistory` keep the latest 24 user prep outcomes/reports.
+- `Team.specialTeams` stores returners, long snapper, and coverage unit ids.
+- `GameResult.specialTeams` stores special-teams game summaries; `GameResult.contingencyActivations` stores fired contingency receipts.
+- Save schema defaults live in `packages/engine/src/save/schema.ts`; older migrations default `gamePlan`, `opponentReports`, `weeklyPrepPlans`, `weeklyPrepHistory`, `filmRoomHistory`, `settings.halftimeDecisions`, and `Team.specialTeams`.
+
+Game plan and opponent scouting:
+
+- `packages/engine/src/systems/game-plan.ts` owns opponent scouting, report upserts, game-plan storage, AI plan generation, and sim-context bonuses.
+- `generateOpponentScouting(game, teamId, opponentTeamId)` derives ranks, strengths, weaknesses, key players, vulnerability ratings, and scheme recommendations from opponent roster/season stats.
+- `getStoredOpponentReport(game, teamId, opponentTeamId, year, week)` currently keys the lookup on `report.teamId === opponentTeamId`, `year`, and `week`; the passed user `teamId` is only used in a no-op length check. `upsertOpponentReport` replaces any existing report for the same opponent/year/week, not a per-user-team tuple. If multiple user-control modes are ever added, this report key needs a deliberate redesign.
+- `selectCurrentOpponentReport` reads a stored current-week report for the user team's matchup when one exists, otherwise it generates a report on demand for display. That generated selector report is not durable until `saveGamePlan` or `saveWeeklyPrepPlan` receives it and calls `upsertOpponentReport`.
+- `selectCurrentOpponentIntel` is a memoized selector over the current user matchup and `buildOpponentIntel`; `selectors.test.ts` guards stable references for unchanged `state.game` and recomputation when `state.game` changes.
+- `setGamePlan(game, plan, report)` calls `ensurePlanBonus`; `schemeDelta(selected, recommended)` is `+2` for matching a recommendation and `-1` otherwise, so game-plan bonus is offense delta plus defense delta.
+- `generateAiGamePlan` follows generated scouting recommendations and sets `gamePlanBonus: 4`.
+- `applyGamePlan(plan, report, team)` converts scheme alignment and key matchup choice into player OVR bonuses for offense/defense positions.
+- Store action `saveGamePlan` writes through `setGamePlanEngine`; store action `clearGamePlan` calls `resetGamePlanEngine`.
+
+Weekly prep:
+
+- `packages/engine/src/systems/weekly-prep.ts` owns `buildOpponentIntel`, `evaluateWeeklyPrep`, and `applyWeeklyPrepToSim`.
+- Weekly prep choices are offense focus, defense focus, practice intensity, key matchup player, snap management, special situation, contingency rules, and trick-play ids.
+- `evaluateWeeklyPrep` starts readiness at `55`, adjusts readiness/effects by focus alignment, practice intensity, snap plan, special situation, key matchup, and Coach D AGM bonus, then clamps readiness to `0..100` and team OVR bonus to `-3..6`.
+- Weekly prep effects can include team OVR bonus, player bonuses, fatigue delta, injury-risk delta, morale delta, and chemistry delta.
+- `applyWeeklyPrepToSim` passes only team OVR bonus and player OVR bonuses into the sim context. Fatigue, injury-risk, morale, and chemistry deltas are receipt/forecast data unless another system consumes them later.
+- Snap management is consumed by `franchise-week.ts`, not by `game-sim.ts` directly. During regular-season user games, the user's saved `weeklyPrepPlans[teamId].snapManagement` flows through `resolvePlaytestSnapManagement`, `allocateGameSnaps`, and `applySnapCounts`; the opponent defaults to `normal`. During playoffs, both teams default to `ride_stars` unless the user has a saved playoff prep plan.
+- `snap-counts.ts` allocates about 65 offensive snaps, 65 defensive snaps, and 20 special-teams snaps per game, excludes unavailable injured players, and mutates `player.careerStats.snaps` through `applySnapCounts`. Snap reports and rotation advice are read models over accumulated career snap totals.
+- `buildPrepDecisionForecast` in `packages/engine/src/systems/prep-decision-forecast.ts` is the read-only forecast for the `/game-plan` Decision Forecast panel. It scores offensive/defensive prep alignment against opponent intel lanes, labels weekly workload, summarizes contingency/trick-play extras, and returns immediate/season/future/uncertainty copy. `apps/web/src/features/game-plan/prepDecisionForecast.ts` is now only a compatibility re-export from `@mfd/engine`; do not add new forecast math there.
+- Store action `saveWeeklyPrepPlan(plan, report)` writes `weeklyPrepPlans[teamId]`, upserts the opponent report, derives a `GamePlan` from prep focus, copies `contingencyRules` and `trickPlays`, then calls `setGamePlanEngine`.
+- When `saveWeeklyPrepPlan` receives a report and `plan.keyMatchupPlayerId`, the derived `GamePlan.keyMatchup` pairs the selected user player with `report.keyPlayers[0].id`. Without both values, key matchup stays `null`.
+- The store's weekly-prep-to-game-plan mapping is local glue: `attack_secondary -> pass_heavy`, `attack_front -> run_heavy`, `feed_star -> spread`, `protect_qb/balanced -> balanced`; `heat_qb -> blitz_heavy`, `limit_explosive -> coverage`, `stop_run -> contain`, `erase_wr1 -> aggressive`, and balanced defense -> `base`. If the engine focus or scheme enums change, update this mapping, route copy, and tests together.
+- `buildSimPlanContext` in `franchise-week.ts` evaluates prep only when the saved `weeklyPrepPlans[team.id]` matches current `year`, `week`, and opponent id. For user-team matchups it also upserts a fresh generated opponent report every week before simulation and uses `game.gamePlan ?? generateAiGamePlan(...)`; CPU teams use generated AI plans and generated reports without writing opponent reports.
+- `selectCurrentWeeklyPrepPlan` filters the saved plan by user team, current `year`, current `week`, and current opponent id. Old saved prep rows can remain in `GameState.weeklyPrepPlans` but are hidden from `/game-plan` once the matchup changes.
+- Store action `clearWeeklyPrepPlan` removes the current user team's plan and resets `gamePlan`.
+- Web `GamePlanSetup.tsx` renders prep controls, call-your-shot, `ContingencyBuilder`, trick-play selection, and `prepDecisionForecast.ts`. When the user saves and advances, the route first calls `saveWeeklyPrepPlan`, then persists `activeCallYourShot` through `setCallYourShot`, then advances the week. When the user skips with auto-prep, it clears weekly prep/resets `gamePlan`, can still persist the selected Call Your Shot declaration, and then advances the week.
+- Weekly-prep source clarity is shipped as a read-only UI slice: `/game-plan` renders `Weekly Prep Sources`, labeling `selectCurrentOpponentReport`, `selectCurrentOpponentIntel`, route-local `WeeklyPrepPlan` draft state, `buildPrepDecisionForecast`, the Save Weekly Prep & Sim and Skip With Auto Prep commit paths, the trick-play planning-only boundary, and the no-render simulation boundary. Opening the route does not write `weeklyPrepPlans`, `gamePlan`, opponent reports, `activeCallYourShot`, film-room receipts, schedule state, contingencies, snaps, or game results.
+- G3 browser persistence proof exists for the primary weekly-prep save-and-sim path: `SMOKE_WEEKLY_PREP=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` stages a latest-autosave Week 14 user matchup, clicks live `/game-plan` prep controls, saves and sims, verifies the matching `weeklyPrepHistory`, `filmRoomHistory`, opponent report, completed game result, cleared temporary prep/game-plan state, Film Room hard reload, and zero browser errors.
+
+Contingencies:
+
+- `packages/engine/src/systems/contingency-plans.ts` owns trigger/response definitions, legacy v27 rule support, rule limiting, trigger checks, plan adjustments, and broadcast callouts.
+- `MAX_CONTINGENCIES = 3`; `ContingencyBuilder.tsx` enforces this through `limitContingencyRules`.
+- Current authored trigger model supports `down_by`, `up_by`, `end_of_q2_losing`, `two_minute_warning_one_score`, and `opponent_td_lead_after_halftime`.
+- Legacy triggers still parse for old saves: `trailing_14_at_half`, `trailing_7_at_half`, `leading_14_at_half`, `opponent_scores_opening`, `turnover_deficit_2`, and `wind_over_15`.
+- Responses are `go_air_raid`, `kill_clock`, `go_for_it_on_4th`, `run_heavy`, `pressure_every_down`, and `prevent_defense_off`.
+- `game-sim.ts` evaluates active plan contingency rules at quarter breaks and late-game windows, tracks fired rule ids so each rule fires once, mutates the active in-game plan, and returns `contingencyActivations`.
+- `franchise-week.ts` appends contingency broadcast ghost lines and records league-news/inbox-style receipts for user-team activations.
+- Contingency callout templates come from `packages/content/contingency-callouts.json` through `getContingencyCallouts`.
+
+Trick plays:
+
+- `packages/engine/src/systems/trick-plays.ts` owns the trick-play catalog, coach eligibility, availability, execution math, and AI call chance helper.
+- There are eight catalog plays: flea flicker, fake punt, fake field goal, hook and lateral, Philly Special, wildcat, double pass, and Statue of Liberty.
+- Eligibility requires head-coach gameplan rating and traits (`gambler`, `creative`, `aggressive`, or `innovator` depending on play).
+- `executeTrickPlay` adjusts success by `(coachGameplanRating - 70) * 0.003`, clamps success rate to `0.15..0.75`, uses base fumble chance `0.065` times play risk, and can create big-play yards/touchdowns.
+- `shouldCallTrickPlay` starts at 3% per drive, increases when trailing, decreases in playoffs, and clamps chance to `0.01..0.12`.
+- Current wiring caveat: `GamePlanSetup.tsx` lets the user select up to `MAX_SELECTED_TRICK_PLAYS = 2` and saves those ids on `WeeklyPrepPlan.trickPlays` and derived `GamePlan.trickPlays`, but `game-sim.ts` currently does not import or execute `trick-plays.ts`. Treat selected trick plays as planned/forecast UI data until a future slice wires them into simulation. The route now labels this explicitly in `Weekly Prep Sources` and in the trick-play tab copy.
+- `packages/engine/src/systems/trick-plays.test.ts` intentionally guards that caveat by scanning `game-sim.ts`, `game-flow.ts`, and `franchise-week.ts` for trick-play helper imports/symbols. If a future slice wires trick plays into live simulation, update this guard deliberately and add deterministic sim/balance coverage plus sample outputs.
+
+Special teams:
+
+- `packages/engine/src/systems/special-teams.ts` owns default state, assignment helpers, return-yard math, return touchdown/fumble odds, touchback rate, net punt average, and special-teams simulation summaries.
+- `buildSpecialTeamsState(team)` auto-selects speed-based returners, a high-awareness long snapper, and top defensive coverage players.
+- Store actions `assignKickReturner` and `assignPuntReturner` clone the current save, call the engine assignment helpers, and `commitGame`; UI controls live in `DepthChart.tsx`. There is no current user-facing manual assignment for long snapper or coverage units.
+- `DepthChart.tsx` derives eligible returner options from the active roster's RB/WR speed ratings, displays the auto-selected long snapper from `Team.specialTeams.longSnapper`, and shows kicker/punter battery readouts. `selectSpecialTeams` falls back to `createDefaultSpecialTeamsState()` only when the user team is missing.
+- Depth-chart source clarity is shipped as a read-only UI slice: `/depth-chart` renders `Depth Chart Sources`, labeling `selectRoster`, saved `Team.roster[].isStarter` flags, durable `setStarter`, `detectPositionBattles(roster)`, `selectSpecialTeams`, returner assignment actions, and the display-only boundary. Opening the route does not auto-set starters, auto-assign special teams, simulate games, distribute snaps, change contracts, enforce lineup legality, update roles, or write player history.
+- `advanceFranchiseWeek` auto-assigns special teams only for CPU teams before regular-season simulation, preserving user returner choices. `advanceOffseason` rebuilds every team's special-teams state with `buildSpecialTeamsState`, so offseason roster churn can reset user returner selections.
+- `game-sim.ts` calls `simulateSpecialTeams` after drive simulation, adds return touchdown points to the final score, and stores special-teams summaries on the result.
+- `simulateSpecialTeams` lazily builds missing `Team.specialTeams`, uses selected coverage-unit ids when present and falls back to the top defensive coverage unit when those ids are empty/stale, then writes `GameResult.specialTeams[teamId]` summaries. `game-day-package.ts` surfaces user-team summary highlights as `specialTeamsHighlights`.
+- Return-yard formula is `20 + (speed - coverageOvr) * 0.45 + (returnOvr - 75) * 0.25 + random noise`, with touchdown chance `0.05` for 85+ OVR returners and `0.01` otherwise.
+
+Halftime decision bridge:
+
+- `packages/engine/src/systems/halftime-decision.ts` previews the user matchup by reseeding season/week, cloning teams, running `simGame`, and suggesting a switch from halftime score, yards/play, and turnover delta.
+- `shouldOfferHalftimeDecision` requires non-rookie difficulty, `settings.halftimeDecisions === 'on'`, regular-season or playoff phase, and an unplayed user matchup.
+- Store action `advanceWeek` stages `postGameUi.pendingHalftimeDecision` before simulating the real week unless the regular-season trade-deadline pause should win first.
+- Store action `resolveHalftimeDecision(choice)` reruns week advance with the selected halftime decision and then clears `pendingHalftimeDecision`.
+- Settings action `setDifficulty` resets halftime default from difficulty; `setHalftimeDecisions` forces rookie saves to `off`.
+
+Film-room receipts:
+
+- `packages/engine/src/systems/film-room.ts` grades saved prep against the completed result and opponent intel.
+- `gradeGamePlanExecution` returns `F/0` with a missing-stats note when either team stat block is absent. Otherwise it starts at `55 + prep.effects.teamOvrBonus * 4`, adjusts for offensive/defensive focus outcomes, special situations, win/loss, turnovers, scoring floor, and passing floor, then clamps score to `0..99`. Grade thresholds are `A >= 85`, `B >= 72`, `C >= 60`, `D >= 48`, else `F`.
+- `buildFilmRoomReport` writes deterministic id `film-room-${teamId}-${prep.year}-${prep.week}`, headline, plan summary, aligned calls, missed calls, execution notes, recommendations, and carry-forward notes.
+- `film-room-analysis.ts` derives broadcast-level play tendencies, situational success, coaching adjustments, enhanced film reports, and season tendency profiles.
+- `franchise-week.ts` writes `weeklyPrepHistory` when there is a user prep outcome and writes `filmRoomHistory` only when both a user prep outcome and opponent intel are available. Both arrays are capped with `.slice(-24)`. After week resolution, `resetGamePlan(nextState)` clears `game.gamePlan` and the current user's `weeklyPrepPlans[currentUser.id]` row is deleted.
+- `selectFilmRoomHistory` filters reports to the user team and reverses the saved list, so `selectLatestFilmRoomReport` is the newest user-team report. Web `/film-room` renders `FilmRoom.tsx`, which is empty until a saved prep plan creates a report; the current component renders the latest review and saved recent-tape rows but does not trigger report generation itself.
+- Film-room source clarity is shipped as a read-only UI slice: `/film-room` renders `Film Room Sources`, labeling `selectLatestFilmRoomReport`, `selectFilmRoomHistory`, `buildFilmRoomReport`, the `franchise-week.ts` write owner, the 24-report cap, and the render boundary. Opening the route does not evaluate prep, generate reports, mutate `weeklyPrepHistory`, mutate `filmRoomHistory`, reset `gamePlan`, advance the schedule, or replay results.
+- Film Room route coaching is shipped for `/film-room`: `resolveRouteKey` maps the route to `film-room`, whose unanchored Chip beats frame Film Room as saved prep-report review after a result. This is route guidance only; it does not grade game plans, generate reports, replay results, mutate `weeklyPrepHistory`, mutate `filmRoomHistory`, reset `gamePlan`, advance the schedule, run sim, or touch RNG.
+
+Safety rules:
+
+- Game-plan, weekly-prep, contingency, trick-play, special-teams, halftime, and film-room scoring are gameplay math or decision-forecast math. Preserve seeded RNG, name constants, show formula before/after, include sample outputs, and run deterministic tests.
+- UI forecasts must not drift from engine writes. If a component predicts an effect, prefer using the same engine helper or a small shared forecast model with focused tests.
+- User special-teams assignment is a saved depth-chart action; CPU auto-assignment and offseason reset are separate engine lifecycle paths. Do not silently auto-rebuild the user team's `Team.specialTeams` during regular-season UI reads or week advance unless the product deliberately wants to overwrite user choices.
+- Do not claim trick-play selections affect outcomes until `game-sim.ts` actually consumes them; `trick-plays.test.ts` currently fails if trick-play helpers enter the simulation spine without an intentional test/doc update.
+- Contingency changes must preserve legacy rules unless a migration intentionally rewrites old saves.
+- Adding persistent fields to `WeeklyPrepPlan`, `GamePlan`, `OpponentReport`, `FilmRoomReport`, `Team.specialTeams`, or result summaries requires type/schema/migration/fixture/golden-save coverage and old-save verification.
+
+Focused tests for this layer:
+
+- Engine: `game-plan.test.ts`, `weekly-prep.test.ts`, `prep-decision-forecast.test.ts`, `contingency-plans.test.ts`, `contingency-wiring.test.ts`, `trick-plays.test.ts` including the simulation non-wiring guard, `special-teams.test.ts`, `snap-counts.test.ts`, `halftime-decision.test.ts`, `film-room.test.ts`, `film-room-analysis.test.ts`, `game-sim.balance.test.ts`, and `franchise-week.test.ts`.
+- Save: `packages/engine/src/save/save.test.ts`, `migrations.test.ts`, and `golden-saves.test.ts` when persistent shape changes.
+- Web/store: `DepthChart.test.tsx` for the special-teams panel and `game-store.test.ts` when returner assignment persistence or autosave behavior changes.
+- Store/UI: `apps/web/src/app/store/game-store.gameweek.test.ts`, `game-store.test.ts`, `selectors.test.ts`, `GamePlanSetup.test.tsx`, `ContingencyBuilder.test.tsx`, `prepDecisionForecast.test.ts`, `DepthChart.test.tsx`, `HalftimeDecision.test.tsx`, and `FilmRoom.test.tsx`.
+
+## Roster, Player Development, Health, And Weekly Prep Wiring
+
+This layer owns the user's week-to-week team operations. It is not isolated to the roster route:
+
+- Roster/depth/practice squad: `roster-management.ts`, `practice-squad.ts`, `role-defs.ts`, `snap-counts.ts`, `special-teams.ts`, and depth-chart UI.
+- Player growth and identity: `player-development.ts`, `progression.ts`, `development-insights.ts`, `archetype-progression.ts`, `player-profile.ts`, `player-rivalries.ts`, `player-archetypes.ts`, `traits.ts`, and `personality.ts`.
+- Health and workload: `injury-system.ts`, `fatigue.ts`, `facilities.ts`, and medical-staff hiring.
+- Culture and mentoring: `locker-room.ts`, `mentoring.ts`, `alumni-mentors.ts`, `chemistry.ts`, and captain systems.
+- Scheme, prep, and game plan: `scheme-fit.ts`, `scheme-install.ts`, `game-plan.ts`, `weekly-prep.ts`, `film-room.ts`, and weekly/game-day selectors.
+
+Roster and player mutation flow:
+
+- Store actions `cutPlayer`, `setStarter`, `addToPracticeSquad`, `removeFromPracticeSquad`, `elevatePracticeSquadPlayer`, `submitWaiverClaim`, `assignTraining`, `placeOnIR`, and `activateFromIR` are the main user-facing roster/health mutations.
+- Cuts normally call `cutPlayerToWaivers`; post-June-1 cuts use the cap action path. Practice squad operations go through engine helpers and must respect the active `practice_squad_size` league rule.
+- `RosterManagement.tsx` keeps the selected-player cut path read-only until confirmation. Its `buildRosterCutForecast` UI model uses standard-cut `calcDeadMoney`, `calcCapHit`, `buildCutAdvisor(roster, rosterLimit)`, the active roster limit, and existing waiver copy to show cap relief/dead money/room delta, active roster count after cut, and source context before `cutPlayer` is called.
+- `setStarter` clones the current save, updates the matching `Team.roster` player, mirrors `GameState.players[playerId].isStarter` when present, completes the depth-chart tutorial action on promotes, and commits through `commitGame`/autosave. If starter semantics become richer, move the invariant into an engine helper before expanding behavior.
+- Current depth-chart starter state is still a loose boolean contract, not a validated formation model. `setStarter(teamId, playerId, isStarter)` does not snapshot undo, does not update `player.role`, and does not enforce one starter per position room or exactly 22 starters.
+- `/depth-chart` groups players into nine UI rooms (`QB`, `RB`, `WR`, `TE`, `OL`, `DL`, `LB`, `CB`, `S`), sorts each room by `isStarter` then OVR, and uses `countDepthChartStarterFlags` plus `getDepthChartStarterReadout` for the header/action copy. K/P are shown through the special-teams battery, not room starter cards.
+- `/depth-chart` now surfaces this read/write split in the route itself through `Depth Chart Sources`: active roster and starter flags are saved roster fields, starter buttons commit only through `setStarter`, battle rows are `detectPositionBattles(roster)` guidance, returner choices commit only through `assignKickReturner` / `assignPuntReturner`, and render does not repair lineup, snap-count, role, or history state.
+- The app shell and `/depth-chart` share the 22-flag urgency target through `depth-chart-starters.ts`; Monday Briefing and Week Advance still use their existing coarse starter-warning reads. Chip pending decisions use a different nine-room missing-depth check that only asks whether each room has at least one starter. These are guidance signals, not proof that lineup composition is legal.
+- `detectPositionBattles(roster)` is a read-only engine helper over OVR-sorted healthy players. It uses `STARTER_SLOTS` (`QB 1`, `RB 1`, `WR 3`, `TE 1`, `OL 5`, `DL 4`, `LB 3`, `CB 3`, `S 2`, `K/P 1` but K/P are skipped for battles), emits at most eight starter-boundary/backup-push/starter-competition battles, and does not mutate the depth chart.
+- Many downstream systems read `isStarter`: simulation participant selection, game-plan/weekly-prep intel, fatigue, progression, awards, achievements, owner goals, handshakes, locker room, dynasty window, team needs, Stat Central, player profiles, roster continuity, and player-season history. Treat starter semantics as broad gameplay/read-model behavior, not only DepthChart UI copy.
+- `role-defs.ts` is the engine role-rotation helper for RB/WR/DL/LB groups. `assignDefaultRoles(roster)` mutates eligible, non-injured players by position OVR order, reuses the last role for surplus players, increments `roleWeeks` only when the assigned role is unchanged, and leaves unsupported positions alone. `getRoleSnapPct` returns configured snap percentages, `50` for unknown roles in supported groups, and `100` for unsupported positions.
+- Keep `GameState.players`, `Team.roster`, waiver state, practice squad state, player archive/history, cap totals, and transaction logs synchronized whenever a player moves or changes contract/team status.
+
+Development and training flow:
+
+- `calculateTrainingXP`, `assignTraining`, `processWeeklyTraining`, `getTrainingProgress`, `clearTrainingAssignments`, and `buildTrainingProgressionBonuses` own weekly player-training state.
+- `progressPlayers` owns broader offseason/season progression and regression. `training-camp.ts` runs camp standouts, camp injuries, position battles, and `runAllTrainingCamps` during the `training_camp -> preseason` gate.
+- `trust-aging.ts` has a split contract. `getAgingMultiplier(ratingName, phase, posWeight)` is live gameplay math consumed by `progression.ts` when applying negative age/regression deltas to ratings. `getTrustArrow`, `getTrustArrowLabel`, and `leagueSnapshot` are exported read models over `TradeState.gmTrustByTeam`/recent-trade classifications; they are not player locker-room trust, handshake trust, or a broad web route by themselves.
+- `generateDevelopmentReport`, `projectDevelopmentCurve`, `identifyBreakoutCandidates`, `getDevelopmentHistory`, `compareDevPaths`, and `createDevelopmentSnapshot` drive the `/player-development` and profile-style projections.
+- `getArchetypeProgressionMultipliers`, `getArchetypeAlignment`, `checkArchetypeEvolution`, `applyArchetypeEvolution`, and `getArchetypeDevelopmentReport` are gameplay math. Treat changes as balance changes with before/after formulas, named constants, sample outputs, and min/max sanity ranges.
+
+Health, workload, and facilities:
+
+- `generateInjury`, `processInjuryRecovery`, `maybeGenerateTeamInjury`, `placeOnIR`, and `activateFromIR` own injury state. Player injuries are saved on both roster players and `GameState.players` entries when present. The web store now mirrors successful `actions.placeOnIR` and `actions.activateFromIR` roster mutations back into existing `GameState.players[playerId]` rows before autosave, preserving imported/hard-reloaded player-map consistency without changing injury timers or formulas.
+- `calculateGameFatigue`, `applyWeeklyRecovery`, `getFatigueModifier`, `getInjuryRiskMultiplier`, `processWeeklyFatigue`, `getWorkloadReport`, and `buildFatiguePlayerBonuses` own fatigue and workload effects.
+- `generateMedicalStaffPool` refreshes offseason candidates; `hireMedicalStaff` writes a selected staffer and removes the candidate from the pool.
+- `createFacilityState`, `applyFacilityBonuses`, `upgradeFacility`, and `replenishFacilityBudget` own facility state and bonuses. The active UI surface for facilities and medical staff is currently `Settings.tsx`, plus Inbox/Monday briefing prompts, not a dedicated route.
+
+Facilities, medical, training camp, and alumni mentor boundary map:
+
+- Facilities are team-owned saved state on `team.facilityState`. `createFacilityState` creates the five current facility types (`training_complex`, `medical_center`, `film_room`, `weight_room`, and `recovery_suite`), seeds owner-archetype budgets, and may randomize AI facilities to level 2. `replenishFacilityBudget` resets budget during offseason physical-state reset.
+- Facility effects are multiplicative read models from `applyFacilityBonuses(team)`: training XP, recovery, injury prevention, scouting, morale, and fatigue gain. UI previews should prefer `facility.effect` or the shared helper instead of re-deriving formulas in React.
+- `upgradeFacility(game, teamId, facilityType)` mutates the passed game/team and returns `false` for missing teams, missing facilities, max level, or insufficient budget. `Settings.tsx` currently permits upgrades in any phase when budget allows. Its route-local `buildFacilityUpgradeForecast` is read-only: it compares saved `facility.effect` with `getFacilityLevelEffect` for the next level, labels cost/budget status, and does not call `upgradeFacility`.
+- Medical staff has a split source of truth: the current hire is `team.medicalStaff`, while candidates live in game-level `availableMedicalStaff`. `refreshMedicalStaffPool` is deterministic by seed/year and runs during offseason initialization or when `advanceOffseason` finds an empty pool.
+- `hireMedicalStaff(game, teamId, staffId)` is engine-gated to `phase === 'offseason'`, splices the selected candidate from `availableMedicalStaff`, and returns the previous team staffer to the pool when replacing one. The Settings UI mirrors this with an offseason-only button. Its route-local `buildMedicalStaffHireForecast` is read-only: it compares a candidate against saved `team.medicalStaff` or league-average fallback, labels phase gate, salary, recovery-time delta, and injury-risk delta, and does not call `hireMedicalStaff`.
+- Training camp is automatic, not route-driven. `advanceFranchiseWeek` runs `runAllTrainingCamps(nextState)` only when `phase === 'training_camp'`, stores `trainingCampResults`, mutates camp OVR/morale/injury state on roster players and `game.players`, then advances to preseason. `/training-camp` is a read-only report over saved results plus a route-local `trainingCampReadiness.ts` read model: it labels saved camp receipts, pre-result `training_camp` readiness, phase timing, and the `advanceFranchiseWeek` commit path without running camp.
+- Training Camp route coaching is anchored: `resolveRouteKey` maps `/training-camp` to `training-camp`; beat 1 spotlights `Camp Readiness` over saved `game.phase`, saved camp receipts, and `advanceFranchiseWeek` ownership, and beat 2 spotlights `Ops Carryover` over `buildTeamOpsImpactReceipt(game, team.id)` from facilities, medical staff, alumni mentors, mentor budget, and saved camp results. This is route guidance only; it does not resolve camp, run progression, generate injuries, mutate saves, run sim, or touch RNG.
+- Alumni mentors are separate from normal `team.mentoringPairs`. `getAvailableMentors` derives candidates from retired franchise legends for the user team; `hireMentor` / `fireMentor` clone and return a new `GameState`; `fireMentor` does not refund `mentorBudget`; and `calculateMentorEffects` is a read model that targets up to three compatible young/low-OVR players per mentor.
+- Alumni mentor progression is applied through `progressPlayers`: the active mentor bonus map is built for the user team from top-level `activeMentors`, then multiplied into positive development deltas before normal mentoring/training bonuses. `mentor-progression.test.ts` locks that CPU-team players do not receive active alumni mentor bonuses. Do not claim alumni mentors affect CPU teams unless that wiring is added and tested.
+- `buildTeamOpsImpactReceipt(game, teamId)` in `team-ops-impact.ts` is the shared read model for the Settings "Team Ops Impact" panel, the `/training-camp` "Ops Carryover" and "Camp Readiness" panels, the `/mentors` "Network Source" receipt row, and Monday Briefing's "Team Ops Carryover" panel. It composes `applyFacilityBonuses`, `calculateRecoveryGames`, `calculateMentorEffects`, and saved `trainingCampResults` into one receipt with training, recovery, injury-prevention, fatigue, mentor, and camp summary items. Use this helper for future facilities/medical/camp/mentor dashboard copy instead of duplicating formulas in React.
+- `/settings` now renders an "Operations Source" panel for facilities and medical staff. It labels `team.facilityState`, saved `facility.effect`, the existing `upgradeFacility` action, `team.medicalStaff`, the game-level `availableMedicalStaff` pool, the offseason-only `hireMedicalStaff` gate, and `buildTeamOpsImpactReceipt`; rendering the route does not refresh medical candidates, process injury recovery, run progression, or resolve training camp. Facility rows render read-only Upgrade Forecast copy from saved effects, active budget/costs, and `getFacilityLevelEffect`; staff candidates render read-only Hiring Forecast copy from saved current staff, candidate pool, phase gate, salary, and recovery/prevention deltas. After an enabled Upgrade or Hire Staff button resolves through the existing store action, the route shows a route-local `Operations Action Receipt` naming the commit path, touched facility/medical state, and no-extra-write boundary. The receipt is not saved separately and does not change facility formulas, medical pool refresh, injury recovery, progression, training camp, sim math, RNG, or save schema.
+- G3 browser persistence proof exists for the primary Settings facility/medical paths: `SMOKE_STAFF_FACILITY_MEDICAL=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` stages an offseason Settings fixture, upgrades Medical Center through the live row, verifies latest-autosave budget, level, and level-2 effect, hard-reloads, hires a staged medical staff candidate, verifies candidate swap plus prior-staff pool return, hard-reloads again, and fails on browser errors.
+- `/mentors` labels saved `activeMentors`/`mentorBudget`, the shared Team Ops receipt, and Hire/Release store actions. It previews compatible roster effects with `calculateMentorEffects`; rendering the route does not run progression, update normal mentoring pairs, alter CPU teams, or rewrite training-camp receipts.
+- Mentors route coaching is anchored for `/mentors`: `resolveRouteKey` maps the route to `mentors`; beat 1 spotlights the active/budget/effects summary, and beat 2 spotlights `Network Source` over saved `activeMentors`, `mentorBudget`, `calculateMentorEffects`, the shared Team Ops receipt, and Hire/Release commit ownership. This is route guidance only; it does not hire mentors, release mentors, spend budget, run progression, alter CPU teams, update normal mentoring pairs, rewrite training-camp receipts, mutate saves, run sim, or touch RNG.
+- `/coaching` development buttons keep their existing commit owners and may show route-local receipts after the action resolves. Run Clinic commits through durable `actions.addClinicXP` and renders a `Clinic Run Receipt` built from saved clinic XP before the click plus the engine `earnXP` result for the selected `CLINIC_TRACKS` row, including newly unlocked perk names. Activate tier commits through durable `actions.setHeadCoachSkillSelection` and renders a `Skill Activation Receipt` with coach, branch, tier label, and prior active branch context. These receipts are not saved separately and do not change clinic formulas, skill-tree bonuses, sim math, RNG, schema, or staff movement.
+
+Locker room, mentoring, and culture:
+
+- `initializeLockerRoom`, `syncLockerRoomRoster`, `updateLockerRoomWeekly`, `callTeamMeeting`, `triggerCaptainRally`, `appointCaptain`, `getLockerRoomGameBonus`, and `getLockerRoomClutchBonuses` own locker-room state and game bonuses.
+- Store actions `callTeamMeeting`, `triggerCaptainRally`, and `electCaptain` use `intelRng` salts. Do not replace these with wall-clock or `Math.random()` calls.
+- Clique labels come from `CLIQUE_TYPES` in `packages/engine/src/config/coaching.ts`: Vets, Young Core, and Stars. `assignCliques` mutates `player.cliqueId`; star status takes precedence over vet status, while non-star/non-vet players fall into Young Core.
+- Captain eligibility is source-owned: `CAPTAIN_MIN_OVR = 78`, `CAPTAIN_MIN_YEARS_EXP = 4`, max captains is 3, and holdouts / `holdout` trait / `cancer` trait are excluded. `electCaptains` sorts vocal leaders, then captain trait, then OVR, experience, and id; the RNG argument is currently unused.
+- Culture score is gameplay math: weighted clique cohesion `0.6`, roster chemistry `0.25`, roster morale `0.15`, captain count/moment boosts, and unresolved tension penalties of `4` minor, `9` moderate, and `15` serious. Labels are `toxic <= 20`, `fragile <= 40`, `stable <= 60`, `strong <= 79`, otherwise `elite`.
+- Weekly locker-room updates run during regular-season and playoff simulation after each matchup. `franchise-week.ts` initializes missing locker rooms before sim, injects `getLockerRoomGameBonus` and `getLockerRoomClutchBonuses` into the sim context, then writes `updateLockerRoomWeekly(...).lockerRoom` after the result. The returned `events` array is currently ignored by those production callers, so new tension receipts are saved in `lockerRoom.tensions` but not separately surfaced as a weekly event feed.
+- Preseason transition reinitializes every team's locker room when advancing to regular season, and post-draft/offseason physical reset reinitializes locker rooms again. Roster movement helpers in draft, trade market, trade deadline, offseason, waiver, and practice-squad paths usually call `syncLockerRoomRoster` or a local refresh helper after movement; verify this downstream sync whenever adding a new movement path.
+- `callTeamMeeting` has a four-week cooldown, adds +1 cohesion when the room is quiet, can backfire in toxic rooms at 10%, and otherwise resolves one or two active tensions while incrementing the lead captain's moments. The store commits the new state and returns the engine narrative as a route-local Team Meeting Receipt; the receipt is not saved separately or written to event/news/social/inbox feeds.
+- `triggerCaptainRally` requires a captain with `rally_cry`, zero cooldown, and `team.streak <= -3`; it adds +5 cohesion to every clique, increments captain moments, and sets a four-week rally cooldown. `/locker-room` disables the button unless those conditions are true, then shows a route-local Captain Rally Receipt after the saved locker-room commit.
+- `getLockerRoomGameBonus` maps culture to team OVR `-2/-1/0/+1/+2` for toxic/fragile/stable/strong/elite and gives `mentor_boost` captains +1 OVR to Young Core player ids. `getLockerRoomClutchBonuses` gives +1 to starters in the same clique as a `clutch_aura` captain.
+- `Team.lockerRoom` is required in TypeScript, but `TeamPersistedSchema` is passthrough and does not validate the locker-room shape. New web seeds initialize it, migration code backfills missing team locker rooms with deterministic `() => 0.42`, and `selectLockerRoom` falls back to an empty stable room for missing user-team state.
+- Locker Room source clarity and action receipts are shipped: `/locker-room` renders `Locker Room Sources`, labeling `selectLockerRoom`, saved `team.lockerRoom`, the existing meeting/rally/captain action owners, route-local `eligibleBench` guidance, `CAPTAIN_PERK_EFFECTS`, and the display-only boundary. Meeting/rally button actions may render route-local receipts after their existing store commits; opening Locker Room itself does not tick weekly culture, resolve tensions, call meetings, trigger rallies, elect captains, write narratives/events, or apply sim bonuses.
+- Locker Room route coaching is shipped for `/locker-room`: `resolveRouteKey` maps the route to `locker-room`, whose unanchored Chip beats point users to culture/tension/captain/cooldown context before spending meeting or rally actions. This is route guidance only; it does not tick weekly culture, call meetings, trigger rallies, elect captains, mutate saves, apply sim bonuses, run sim, or touch RNG.
+- `formMentoringPairs` and `applyMentoringBonuses` own normal mentoring pairs. `getAvailableMentors`, `hireMentor`, `fireMentor`, and `calculateMentorEffects` own alumni mentors on `/mentors`.
+- `chemistryMod`, `systemFitMod`, `updateSystemFit`, and `resetSystemFit` are team-level modifiers that feed broader simulation context.
+
+Scheme, prep, and game plan:
+
+- `calcSchemeFit`, `calcPlayerIdentityFit`, `calcTeamFit`, and `getSchemeMismatchWarnings` explain scheme/player fit.
+- `projectSchemeTransition` previews scheme changes; `applySchemeChange` writes the live team scheme and is exposed through the coaching/staff UI.
+- `generateOpponentScouting`, `upsertOpponentReport`, `setGamePlan`, `resetGamePlan`, `generateAiGamePlan`, and `applyGamePlan` own stored game-plan data and sim context modifiers.
+- `buildOpponentIntel`, `evaluateWeeklyPrep`, and `applyWeeklyPrepToSim` own weekly prep plans and outcomes.
+- Store actions `saveGamePlan`, `clearGamePlan`, `saveWeeklyPrepPlan`, and `clearWeeklyPrepPlan` write `game.gamePlan`, `weeklyPrepPlans`, and opponent reports. Saving weekly prep also derives a game plan through `buildGamePlanFromWeeklyPrep`.
+
+Routes, selectors, and feature surfaces:
+
+- Routes: `/roster`, `/depth-chart`, `/player/$playerId`, `/player/$playerId/timeline`, `/player-development`, `/locker-room`, `/training-camp`, `/mentors`, `/game-plan`, `/game-day`, `/film-room`, `/watch-list`, `/practice-squad`, and facilities/medical controls inside `/settings`.
+- Feature folders: `features/roster`, `features/depth-chart`, `features/player`, `features/locker-room`, `features/training-camp`, `features/mentors`, `features/game-plan`, `features/film-room`, `features/watch-list`, `features/practice-squad`, `features/settings`, `features/monday-briefing`, and `features/inbox`.
+- Selectors: `selectRoster`, `selectPracticeSquad`, `selectPlayerById`, `selectTrainingAssignments`, `selectMedicalStaff`, `selectFatigueReport`, `selectFacilities`, `selectInjuryReport`, `selectLockerRoom`, `selectUserMentoringPairs`, `selectCurrentGamePlan`, `selectCurrentOpponentReport`, `selectCurrentWeeklyPrepPlan`, `selectFilmRoomHistory`, `selectLatestFilmRoomReport`, `selectSpecialTeams`, `selectSchemeTransitionPreview`, `selectPlayerRivalries`, `selectFarewellCandidates`, and `selectWatchlistTargets`. `selectPlayerRivalries(playerId)` is memoized by player id and `state.game` identity so profile routes do not return fresh rivalry arrays on every React store snapshot.
+- `/roster` now renders `Roster Sources`, labeling `selectRoster`, `selectRosterLimit`, `selectTrainingAssignments`, `selectFatigueReport`, `buildRosterCutForecast`, `buildCutAdvisor(roster, rosterLimit)`, `selectPracticeSquad`, `selectPracticeSquadLimit`, `selectFreeAgentPlayers`, and `selectWaiverWirePlayers`. Opening `/roster`, filtering positions, selecting a player, or opening Compare does not write roster entries, practice-squad entries, waiver claims, training assignments, injuries, contracts, cap totals, saves, simulation results, RNG, or player movement; training, cut, waiver, practice-squad, IR, restructure, and trade-block buttons remain the explicit store commit owners.
+
+Player identity, profile, and development boundary map:
+
+- Durable player identity lives on `GameState.players`, team rosters, `playerArchive`, `playerSeasonHistory`, `playerRivalries`, `awardsHistory`, `records`, `recentMilestones`, `relationships`, and active/draft `bloodline` fields.
+- `personality.ts` owns the five-axis player personality model (`workEthic`, `loyalty`, `greed`, `pressure`, `ambition`). `getPersonality` clamps partial/missing data to 1-10 defaults, `traitScalar` maps clamped values onto [-1, +1], `generatePersonality` uses the draft RNG plus age/dev-trait/position nudges, `getDominantTrait` reports only traits at 8+, and `getContractPersonalityEffects` converts greed/loyalty/pressure/context into demand, walk-threshold, free-agency score, and holdout adjustments. Keep `personality.test.ts` green when changing player identity math because scheme fit, chemistry, franchise tags, contracts, scouting, locker room, and social voice consume these axes.
+- `player-archetypes.ts` owns position archetype classification plus base/archetype-modified aging curves. `classifyArchetype(pos, ratings)` scores position-specific rating clusters against neutral 50 defaults, returns `null` for K/P and unknown positions, and uses the first listed archetype as the tie fallback when supported-position ratings are missing or even. `getAgeCurve(pos, archetypeId)` returns the base `AGE_CURVES[pos]` object for null/unknown archetypes, falls back to the WR curve for invalid positions, and returns a new rounded modified curve for known archetype aging modifiers. Keep `player-archetypes.test.ts` green when changing age curves or archetype ids because `progression.ts`, `player-profile.ts`, `trade-value.ts`, and the dev age-curve harness consume these contracts.
+- `packages/engine/src/systems/player-profile.ts` owns profile read models: `buildPlayerProfile`, `getPlayerValue`, `getPlayerComparables`, `getPlayerProjection`, `buildPlayerSeasonHistoryEntry`, and `archivePlayerSeasonHistory`.
+- `buildPlayerSeasonHistoryEntry(player, season)` snapshots the player's age, OVR, team, games played, starter-derived games started, and position-specific key stats. `archivePlayerSeasonHistory(game, season)` iterates `game.players`, skips already-archived seasons for each player, appends missing snapshots, and keeps each player's history sorted by season.
+- `buildPlayerProfile` is a read model, not a mutation path. It builds contract year rows from `player.contract.yearlyBreakdown`, development/career rows from durable `playerSeasonHistory`, and appends the current OVR to the visible arc. If no season snapshots exist, it synthesizes a partial arc from `playerArchive`/career stat hints/current OVR and sets `legacyHistoryPartial: true`.
+- Profile side panels have intentionally narrow data ownership: awards come from `awardsHistory`, mentor history scans every team's current `mentoringPairs`, and injury history only reports the player's current active `player.injury`. There is no durable historical injury ledger in the current profile model.
+- Profile value/comparable/projection helpers are formula read models. `getPlayerValue` wraps trade value plus a simple market/surplus estimate using position and age multipliers; `getPlayerComparables` returns up to five same-position players sorted by OVR/age/potential distance; `getPlayerProjection` uses `player-archetypes.ts` age curves, clamps OVR to 40-99, and extends QB retirement age farther than other positions.
+- `selectPlayerProfileBundle(playerId)` is the web bundle owner. It derives profile, value, comparables, and projection from engine helpers; do not duplicate this math in `PlayerProfile.tsx` or roster modals unless a helper is missing and tested. `PlayerProfile.tsx` now renders a display-only `Profile Sources` panel that labels the profile bundle, season ledger rows, `playerArchive` lineage context, saved `playerRivalries`, saved user-team `txLog` rows through `selectTransactionLog`, saved user-team `draftRecaps` rows through `selectDraftRecaps`, and the no-render-write boundary for player history, archives, draft recaps, transaction logs, awards, records, endorsements, rivalries, and timeline rows.
+- `PlayerProfile.tsx` is mostly a read surface. Its route-local `Career Memory` panel summarizes already-derived profile history, peak arc, awards/lineage/injury/rivalry hooks, and saved player-rivalry heat without writing new state. Its `Signature Moments` panel is also display-only: it ranks existing saved/read-model rows from `awardsHistory`, `game.records`, profile career stats from `playerSeasonHistory` or `playerArchive` fallback, saved `playerRivalries`, user-team `txLog`, saved user-team `draftRecaps` matching the current player's pick, and lineage `playerArchive`. Its `Draft Class Memory` row is a profile callback over archived draft recap picks only; rendering the profile does not generate, repair, or rescore draft recaps. Its `Transaction Memory` panel filters existing user-team transaction-log rows for the current player, labels free-agency/trade/cut style events, and resolves saved team ids for readable context. Its actions navigate to timeline/trade/contracts/endorsements/farewell flows and set focused UI context; it should not directly mutate player value, contract, archive, draft recaps, awards, records, transaction, or rivalry state.
+- Player Profile route coaching is shipped for dynamic `/player/$playerId` routes: `resolveRouteKey` maps the route pattern and concrete `/player/<id>` paths to `player-profile`. The unanchored Chip beats point users to Profile Sources, Career Memory, Signature Moments, Transaction Memory, owner-workflow action buttons, and the display-only no history/archive/award/record/contract/rivalry write boundary.
+- `PlayerTimeline.tsx` reads `getPlayerCareerTimeline(game, playerId)` through `usePlayerTimeline`. Its durable season rows come from `playerSeasonHistory`, awards, records, and milestones, not from the profile chart alone. `getPlayerCareerTimeline` also adds a current-season row for active players when that season has not already been archived. Draft-class timeline memory reads saved user-team `draftRecaps` through `selectDraftRecaps`; it is a display callback over archived recap picks, not a recap generator or timeline writer.
+- `PlayerTimeline.tsx` now renders a `Timeline Sources` panel that labels `getPlayerCareerTimeline`, `playerSeasonHistory`, current `game.players`, `playerArchive`, awards/records highlights, saved `transactionLog`, saved `draftRecaps`, and the display-only boundary. Its `Transaction Memory` panel reuses the shared player transaction-memory read model to show saved roster-move rows for the route player, and its `Draft Class Memory` panel shows a matching saved recap pick with class grade, pick slot, projected pick, value delta, and verdict. Opening the route does not write seasons, awards, records, milestones, transaction logs, draft recaps, player archives, or profile history.
+- Player Timeline route coaching is shipped for dynamic `/player/$playerId/timeline` routes: `resolveRouteKey` maps the route pattern and concrete `/player/<id>/timeline` paths to `player-timeline`. The unanchored Chip beats point users to archived seasons, current-season rows, transaction memory, draft-class memory, awards/highlights, Back To Profile and Stat Central navigation, and the display-only no season/record/transaction/draft-recap/archive write boundary.
+- `comparePlayerCareers(game, playerIds)` is a Stat Central read model capped at the first four requested ids. It builds timelines, peak OVR, career length, championships, MVPs/all-pro counts, and peak stat comparisons from durable history plus current-player fallback. `selectPlayerCareerComparison(playerIds)` sorts the caller-provided id array in place when building its cache key, so callers that care about input order should pass a disposable copy.
+- `/compare` renders `PlayerComparison.tsx`, a current-roster comparison surface over contracted `game.players`. Its `Comparison Context` panel labels the current-player pool, active salary-cap contract grading, route-local picker state, Player-A position-stat lens, and no-write boundary for stats, contracts, profile history, timelines, archives, awards, records, news, and social posts.
+- Player Comparison route coaching is shipped for `/compare`: `resolveRouteKey` maps the direct route to `player-comparison`, whose unanchored Chip beats point users to Player A's stat-lens ownership, current contracted player reads, active-cap contract grade rows, cap-hit rows, and the display-only no-profile/no-record write boundary.
+- `Player.devSnapshots` is explicitly in-memory-only and is not persisted by `PlayerSchema`. If a future feature needs durable rating-delta history, add a real save field/schema/migration/default/tests instead of relying on `devSnapshots`.
+- `archivePlayerSeasonHistory(nextState, year)` runs during championship rollover in `franchise-week.ts`; old players without snapshots fall back to synthesized profile history and set `legacyHistoryPartial`.
+- Progression regression details are hidden but live: `progressPlayers` derives an aging phase from the player's next age plus `player-archetypes.ts` age curves, then passes rating names and curve decay rate into `getAgingMultiplier`. Mental ratings can improve slightly or decline less than physical ratings; physical decline is stronger for lower positional decay weights; technique ratings decay only in decline/twilight. Any formula change here is a balance change, not copy polish.
+- `PlayerRivalries.tsx` displays saved `game.playerRivalries`; `franchise-week.ts` updates and creates these from `GameResult.playerMatchupEvents` in regular season and playoffs, then may generate rivalry trash-talk posts. `detectNewRivalries` currently ignores its RNG argument and creates rivalries from same-pair thresholds: two interceptions, three sacks, or one fumble, with starting intensity 30 and a max active list of 10. `/rivalries` now renders a `Rivalry Sources` panel that labels saved `playerRivalries`, `selectAllPlayerRivalries`, saved `socialFeed` rivalry posts, the week-advance write path, the sim-bonus source boundary, and the no-render-write/no-derived-sidecar boundary.
+- Player Rivalries route coaching is shipped for `/rivalries`: `resolveRouteKey` maps the direct route to `player-rivalries`, whose unanchored Chip beats point users to saved feud intensity/tier/history/team context, saved social-post trash-talk projection, and Week Advance ownership of feud creation, decay, and sim-bonus context.
+- Player-rivalry bonuses are real sim modifiers through `buildPlayerRivalryContext` and `getRivalryGameBonus`. Budding/heated/nemesis rivalries add +1/+2/+3 player OVR bonus for involved players in regular-season and playoff sim context. `updateRivalryFromGame` adds a clamped +5 to +15 intensity when rivals meet again, tiers upgrade above 50 and 80 intensity, and `decayRivalries` subtracts 5 intensity per elapsed year and drops entries below 10.
+- Bloodlines are assigned to draft prospects in `bloodlines.ts` from archived/HOF parents, copied to drafted players in `draft.ts`, recorded as dynasty events, and surfaced as `family` relationship graph edges. Eligible parents need a team stint and must be retired/archived with peak OVR >= 85 or HOF status; class assignment defaults to a 5% chance, caps at three prospects, uses a seed/year salt, and does not alter prospect grades.
+- Draft integration keeps bloodlines lightweight: if the drafting team matches the parent team, `personalityWithBloodlineLoyalty` adds only +1 loyalty; drafted rookies copy `prospect.bloodline`, record a `draft-bloodline-*` dynasty event, and add parent->rookie strength-90 plus same-parent sibling strength-70 `family` relationship edges through `addBloodlineFamilyEdges`.
+- `selectBloodlineFamilies` derives active and draft family cards for legacy screens. Active players use current OVR/age/team; draft prospects use public `scoutGrade` as the comparable OVR signal and age 21 because prospect records do not carry age. Families sort by peak child OVR, child count, then parent name. `/legacy/bloodlines` now labels these selector sources and states that the route does not assign bloodlines or write family relationship edges.
+- `/player-development` now wraps `PlayerDevelopmentView` around a route-local selected user roster player, defaulting to the first current roster entry and falling back safely if the selected id disappears. The route supplies `generateDevelopmentReport`, a three-year `projectDevelopmentCurve`, `identifyBreakoutCandidates`, and the report-owned position-coach narrative for that selected player. Its `Development Sources` panel labels those pure read models and the no-write boundary. Treat it as a read-only selector/report route before claiming durable development snapshots, live progression effects, training-camp spend, or player-history writes exist.
+- Player Development route coaching is shipped for `/player-development`: `resolveRouteKey` maps the direct route to `player-development`, whose unanchored Chip beats point users to selected-player reports, projection curves, breakout candidates, coach-context helpers, and the no progression/training-camp/archetype/coach-effect/player-history write boundary. This is route guidance only; it does not run progression, spend camp work, mutate coach effects, alter archetypes, write player history, mutate saves, run sim, or touch RNG.
+- `ComparePlayersModal` calls engine `getPlayerComparables` / `getPlayerProjection` directly for modal-local comparison state; keep it read-only unless routing new comparison mutations through store/engine actions.
+
+Save and balance risks:
+
+- Team state includes `roster`, `practiceSquad`, `mentoringPairs`, `trainingAssignments`, `medicalStaff`, `fatigueState`, `facilityState`, `lockerRoom`, `specialTeams`, staff/scheme fields, and optional chemistry fields.
+- Game state includes `weeklyPrepPlans`, `weeklyPrepHistory`, `gamePlan`, `availableMedicalStaff`, `activeMentors`, `mentorBudget`, `trainingCampResults`, player rivalries, player archive/history, bloodlines/relationships, and sidecar watch-list preferences.
+- Save schema/migration coverage already defaults many of these fields in `packages/engine/src/save/schema.ts` and `packages/engine/src/save/migrations.ts`, and the top-level save/team schemas currently pass through unknown fields. Adding or formalizing fields still requires type/schema/migration/fixture/golden-save coverage and old-save checks.
+- Personality effects, development, aging multipliers, fatigue, injury risk, facility bonuses, chemistry, scheme fit, game-plan modifiers, and locker-room bonuses are gameplay math. Preserve deterministic RNG and document formula changes.
+- UI previews must match engine write paths. A forecast for cuts, training, facilities, game plan, or scheme transition should call the same pure helper or share a typed forecast model rather than duplicating formulas in components.
+
+Focused tests for this layer:
+
+- Engine: `roster-management.test.ts`, `role-defs.test.ts`, `practice-squad.test.ts`, `personality.test.ts`, `player-archetypes.test.ts`, `trust-aging.test.ts`, `player-development.test.ts`, `progression.test.ts`, `development-insights.test.ts`, `archetype-progression.test.ts`, `training-camp.test.ts`, `injury-system.test.ts`, `fatigue.test.ts`, `facilities.test.ts`, `locker-room.test.ts`, `mentoring.test.ts`, `alumni-mentors.test.ts`, `chemistry.test.ts`, `scheme-fit.test.ts`, `scheme-install.test.ts`, `game-plan.test.ts`, `weekly-prep.test.ts`, `player-profile.test.ts`, `player-rivalries.test.ts`, `bloodlines.test.ts`, `relationship-graph.test.ts`, `stat-central.test.ts`, `snap-counts.test.ts`, and `special-teams.test.ts`.
+- Store/save: `apps/web/src/app/store/game-store.test.ts` for training, IR, facilities, medical staff, locker room meetings/rallies/captains, and mentors; `game-store.gameweek.test.ts` plus `packages/engine/src/systems/franchise-week.test.ts` for week/playoff locker-room side effects; `packages/engine/src/save/save.test.ts`, `migrations.test.ts`, and `golden-saves.test.ts` for persistent fields.
+- UI: `RosterManagement.test.tsx` covers active/custom roster-limit presentation, selected-player cut-forecast source copy, and selected-player Roster Action Receipts; `Settings.test.tsx` covers operations source copy, facility/medical forecasts, and route-local operations action receipts; `DepthChart.test.tsx`, `PlayerProfile.test.tsx`, `PlayerDevelopment.test.tsx`, `PlayerRivalries.test.tsx`, `PlayerTimeline.test.tsx`, `ComparePlayersModal.test.tsx`, `BloodlinesViewer.test.tsx`, `LockerRoom.test.tsx`, `GamePlanSetup.test.tsx`, `ContingencyBuilder.test.tsx`, `prepDecisionForecast.test.ts`, `FilmRoom.test.tsx`, `PracticeSquad.test.tsx`, `WatchListScreen.test.tsx`, `WatchListPinButton.test.tsx`, `MondayBriefing.test.tsx`, and `InboxTriage`/`buildInboxMessages` tests. Add focused `TrainingCamp` or `AlumniMentorsScreen` component tests before changing those routes' behavior.
+
+## Acquisition, Offseason, And Draft Wiring
+
+Acquisition is split across several engine systems. Do not treat it as one trade/free-agency module:
+
+- Contracts and cap math: `config/cap-math.ts`, `contracts.ts`, `contract-helpers.ts`, `contract-tools.ts`, `contract-extensions.ts`, `franchise-tag.ts`, `incentives.ts`, `cap-laboratory.ts`, and `cap-visualization.ts`.
+- Player agents and negotiation pressure: `player-agents.ts` owns agent pools, player-agent assignment, agent demand scaling, re-sign negotiation status/counter logic, holdout escalation, media leaks, and carryover walk-to-free-agency behavior.
+- Offseason phase progression: `offseason.ts` owns `initializeOffseasonState`, `submitReSignOffer`, `submitFreeAgentBid`, `signStreetFreeAgent`, `advanceOffseason`, and `advanceFreeAgency`.
+- Draft/scouting: `draft.ts`, `advanced-scouting.ts`, `scouting-staff.ts`, `draft-war-room.ts`, `draft-recap.ts`, `comp-picks.ts`, and `conditional-picks.ts`.
+- Trades: `trade-market.ts` for generated inbound/outbound offers, `trade-negotiation.ts` for user-created proposals/counters, `trade-deadline.ts` for the countdown interruption, `trade-finder.ts` for suggestions, and `trade-value.ts` for valuation.
+- Waivers/practice squad: `practice-squad.ts` owns practice-squad adds/removes/elevations, cuts to waivers, waiver claims, AI waiver logic, and weekly waiver processing. `/waivers` now shows a route-local `Waiver Claim Receipt` after the existing `actions.submitWaiverClaim -> submitWaiverClaimEngine -> commitGame` path resolves, labeling the claim-intent queue, later waiver-run resolution boundary, contract/minimum-deal context, and no-extra-write boundary without adding durable receipt history or changing waiver processing. `/practice-squad` now shows route-local `Practice Squad Action Receipt` panels after existing Add, Elevate, or Release actions resolve through their store/engine commit paths, labeling touched practice-squad/free-agent/roster/player/transaction/autosave state and no-extra-write boundaries without changing movement behavior.
+
+Offseason lifecycle:
+
+- `advanceFranchiseWeek` delegates non-game phases through `applyNonGamePhase`: `offseason -> advanceOffseason`, `free_agency -> advanceFreeAgency`, `draft -> advanceDraft`, `post_draft -> finalizePostDraft`.
+- `initializeOffseasonState(game)` refreshes scout/medical pools, resets physical state, finds expiring contracts, initializes agent-backed re-sign decisions, builds draft order, and resets free-agency/scouting/trade/draft tracking.
+- `advanceOffseason(game)` is a large year-rollover transaction: governance/CBA checks, season archive, awards, Hall of Fame, records, owner/handshake evaluation, coaching carousel, player progression/retirements, rivalry decay, franchise identity, stadium deals, training/practice reset, offseason news, trade-offer generation, endorsement offers, and transition to `phase = 'free_agency'`.
+- `advanceFreeAgency(game)` resolves one FA round, refreshes generated trade offers, advances `week` by FA round, and after round 3 calculates compensatory picks, rebuilds the draft board, clears team-needs/war-room caches, and moves to `phase = 'draft'`.
+- `finalizePostDraft(game)` generates draft recaps, resets team records/stats, creates next-year draft picks, ages roster/free-agent players, clears injuries/stats, builds the new schedule, clears offseason/draft state, and transitions to `phase = 'training_camp'`.
+
+Offseason calendar and route boundary map:
+
+- There is no separate persisted "offseason calendar" object today. The user-visible calendar is derived from `game.phase`, `game.week`, and `game.offseasonState`; do not add parallel phase state in React when a label/checklist can read the existing source of truth.
+- Current UI implementation: `apps/web/src/app/store/selectors.ts` owns `selectOffseasonCalendar`, a memoized read model for the read-only `/week-advance` Offseason Calendar panel, and `WeekAdvance.tsx` labels that read model again in `Advance Week Uses`. It derives re-sign, free-agency, draft, post-draft, training-camp, preseason, CBA-hold, and expansion-draft rows from existing state only. Panel buttons route to existing owners (`/contracts`, `/free-agency`, `/draft`, `/draft-recap`, `/training-camp`, `/week-advance`, `/cba`, `/expansion-draft`) and do not advance phases or write GameState; `App.test.tsx` source-guards those selector `route` values against the registered web route tree because the panel navigates through read-model CTA values. `WeekAdvance.tsx` now also builds a read-only `Offseason Command Snapshot` from that calendar plus saved `offseasonState`, roster contracts, and team cap fields; it does not create a second calendar model or commit any offseason action.
+- Re-signing is the `offseason` phase. `submitReSignOffer` / `negotiateContract` stage accepted/countered/declined `ReSignDecision` state only; contracts are applied, unsigned players are moved, and carryover holdout counters are seeded later inside `advanceOffseason`.
+- Free agency is three engine rounds. `submitFreeAgentBid` stages one user-team bid per player for the current `offseasonState.round`; `advanceFreeAgency` resolves the current round and increments `round`/`week`, then after round 3 calculates comp picks, rebuilds the draft board, clears `teamNeedsCache` and `warRoomState`, and enters `phase = 'draft'`.
+- Street free agency is a separate immediate-signing path. `signStreetFreeAgent` is for regular-season/preseason emergency adds and moves the player directly from `game.freeAgents` to the roster. A successful street signing now writes the player/team contract, sets the global and roster player `teamId`, refreshes jersey/locker-room roster state, syncs the player archive stint, and updates the user's cap ledger through the existing offer application helper; it is not a bidding wave and does not write a `SIGN_FA` transaction for compensatory-pick offset. The web store only appends the `free_agent_signed` cue and autosaves after the engine result proves the player left `game.freeAgents`, landed on the user roster, and has a matching user-team contract; blocked/no-op attempts leave the current store game uncommitted and silent.
+- Draft-night advancement is also driven by `advanceWeek`. `/draft` calls the store `advanceWeek` action when CPU teams are on the clock, which delegates to `advanceDraft` and stops again when the user team is on the clock or the draft is complete.
+- Post-draft reset is the `post_draft` phase. Advancing that phase calls `finalizePostDraft`, creates draft recaps, resets season stats/injuries/records, rebuilds the schedule, clears offseason/draft state, and enters `training_camp`.
+- Training camp and preseason are handled directly in `advanceFranchiseWeek` before the regular game simulation path, not through `applyNonGamePhase`: `training_camp -> preseason` runs `runAllTrainingCamps` and stores `trainingCampResults`; `preseason -> regular_season` initializes locker rooms, may create a ring ceremony, and starts Week 1 without simulating a game.
+- CBA/labor and expansion can pause this sequence. `advanceFranchiseWeek` returns early for preseason/training-camp/offseason CBA interruption states; offseason expansion draft state blocks advancement, and a new expansion trigger initializes `expansionDraftState` before normal offseason/free-agency/draft progression. A calendar UI needs paused/blocked states for `/cba` and `/expansion-draft` instead of marking the next offseason step complete.
+- Current route ownership is split: `/contracts` and `/free-agency` show re-sign/market work, `/fa-targets` is planning/watchlist state, `/scouting` and `/draft` own draft prep/live picks, `/draft-recap` reads generated recaps, `/training-camp` reads saved camp results, and `/week-advance` provides the generic phase button plus the read-only command snapshot. Any deeper unified offseason checklist should continue source-labeling/actions from these owner routes instead of committing new gameplay state.
+- Existing tests already lock key phase invariants: `offseason.test.ts` covers staged re-signs, three FA rounds into draft, deterministic offseason-to-preseason flow, and post-draft reset through week advance; `draft.test.ts` covers CPU draft auto-advance and `finalizePostDraft`; `franchise-week.test.ts` covers preseason-to-regular-season transition and CBA interruption; `training-camp.test.ts` covers deterministic camp results.
+
+Draft flow:
+
+- `ensureDraftClass(game)` is deterministic from `game.seed` and `game.year`, sizes class to at least 64 and `pickCount + 24`, assigns bloodlines, sorts by true grade, and runs combine data.
+- `runScoutingAction` and `runPrivateWorkout` clone state and write `offseasonState.scoutingState`; private workouts consume `scoutingDepartment.privateWorkoutsRemaining`.
+- `makeDraftPick(game, prospectId)` drafts for the user team, queues near-miss passed-pick receipts, creates press conference/news/dynasty events, advances `currentDraftPickIndex`, and moves to `post_draft` if the draft is complete.
+- `advanceDraft(game)` auto-picks for CPU teams until the user is on the clock or the draft is complete.
+- `apps/web/src/app/store/selectors.ts` derives `selectCurrentDraftEntry`, `selectWarRoomState`, draft class, draft recaps, and scout/target UI models. War-room state is rebuilt from stable `intelRng` salts when no current stored snapshot exists.
+
+Compensatory pick boundary map:
+
+- `packages/engine/src/systems/comp-picks.ts` owns compensatory-pick calculation. `calculateCompPicks(game, teamId)` mutates `team.draftPicks`, first removing existing current-year comp picks for that team, then adding new current-year `DraftPick` records with `isCompPick: true`.
+- The live write path is `advanceFreeAgency(game)`: after free-agency round 3, it calls `calculateCompPicks` for every team, calls `generateOffseasonNews`, rebuilds the draft board, clears `teamNeedsCache`/`warRoomState`, sets `phase = 'draft'`, and resets `week = 1`.
+- Inputs are current-year team transaction logs, not a separate free-agent-loss ledger. `LOSE_FA` entries are written when unresolved offseason players are moved to free agency; `SIGN_FA` entries are written by the offseason bidding resolver when a player signs. `signStreetFreeAgent` does not write `SIGN_FA`, so street free-agent adds do not currently offset comp-pick awards.
+- Calculation pairs losses against signings by count after sorting both groups by a deterministic `compPickScore`. The score uses `calcPlayerValue(game, player, team)`, position weights, and an age factor; thresholds map scores to rounds 3-7. Treat changes to weights, thresholds, or transaction matching as acquisition balance math with deterministic sample coverage.
+- The active `comp_pick_limit` league rule caps picks per team, with a legacy fallback of 4 when `game.leagueRules` is absent. Commissioner petitions can target `comp_pick_limit` because it is a petitionable `LEAGUE_RULE_DEFINITIONS` entry. `/cba` now labels `comp_pick_limit` as an outside-CBA commissioner-lane rule alongside schedule weeks, trade deadline week, and overtime format; `applyCBADealToRules` still does not write `comp_pick_limit`.
+- Pick numbering uses `nextPickNumber(game, round)`, which starts from the max current pick number for the same year/round across all teams or 32, then appends at the end of that round. `buildDraftOrder` sorts current-year picks by round, pick number, `isCompPick` flag, original team, and current team; comp picks therefore flow into the normal draft board rather than a separate supplemental board.
+- Save shape is normal draft-pick state. `DraftPick` has `round`, `pick`, `originalTeamId`, `currentTeamId`, `year`, and `isCompPick`; `TeamPersistedSchema` is passthrough rather than a named `draftPicks` schema. `ConditionalPickSchema` embeds the same pick shape, including `isCompPick`, for base/resolved picks.
+- User-visible surfaces are derived from saved `team.draftPicks`: `DraftBoard.tsx` marks saved comp picks in "Your Remaining Picks" and renders a read-only `Comp Pick Context` panel, which reads `selectLeagueRules`/`selectYear` and `getActiveRule(..., 'comp_pick_limit', year)` to show the active cap value next to the saved pick count. `league-news.ts` emits one de-duped `draft` news item per team/year with comp picks, `buildInboxMessages.ts` adds a user-team "Comp Picks Awarded" message for up to three comp picks plus the active comp-pick limit value passed in by `InboxTriage`, and `achievements.ts` counts current-year comp picks for "Comp Pick Master." There is no second comp-pick ledger or mutation path behind the `/draft` panel or Inbox receipt.
+- Focused tests before changing this seam: `comp-picks.test.ts`, `offseason.test.ts` for free-agency phase advancement, `league-rules.test.ts` for `comp_pick_limit`, `DraftBoard.test.tsx` for the route's active rule display, `league-news.test.ts` if news behavior changes, `achievements.test.ts` if achievement counting changes, `buildInboxMessages.test.ts` if inbox copy changes, and save tests if making team draft-pick fields schema-strict.
+
+Trade flow:
+
+- Generated trade offers live in `offseasonState.tradeOffers` and are produced by `generateTradeOffers(game)`.
+- `acceptTradeOffer` and `rejectTradeOffer` in the web store call `trade-market.ts`, append audio cues, and commit. Accept also snapshots undo.
+- User-created proposals use `createTradeProposal`, `submitProposal`, `acceptCounterProposal`, and `rejectCounterProposal` from `trade-negotiation.ts`. The engine blocks proposal submission after the configured trade deadline.
+- Draft-night trades use `draft-war-room.ts` helpers through store actions `acceptDraftTradeOffer`, `rejectDraftTradeOffer`, and `refreshWarRoom`; active `blockTrades` scenario constraints suppress generated war-room offers and make accept/apply paths no-op before commit.
+- The regular-season trade deadline is an interruption, not the same as normal generated offers. `initializeDeadline(game, rng)` creates `TradeDeadlineState`; the store countdown calls `advanceDeadlineClock`; accepting a deadline offer temporarily stages those offers in `offseasonState` to reuse `acceptTradeOfferEngine`; `finalizeDeadline` applies completed scheduled deals, clears `tradeDeadlineState`, resumes the same week advance, and routes to `/game-day`. `/trade-deadline` now renders a read-only `Deadline Sources` panel in both active and idle states, labeling saved `game.tradeDeadlineState`, the no-render-offer-generation boundary, pending offer accept/reject/clock store actions, and the fact that completed-deal rows do not move players or picks until Finalize Deadline applies them. Each visible completed-deal row also renders a read-only `Deadline Deal Receipt` built from saved `DeadlineDeal` teams, players, picks, grade, timestamp, and splash flag; the receipt labels splash-buy, value-buy, or market-churn context without finalizing movement, rerolling the countdown, changing valuation, autosaving, running sim, or touching RNG. After Accept, Reject, or Advance Clock resolves, the route shows a route-local `Deadline Action Receipt` naming the existing commit path, touched deadline/trade state, and no-extra-write boundary. Finalize intentionally keeps no route-local receipt because it resumes week advance and navigates to `/game-day`.
+- Trade reputation state lives at `game.tradeState.gmTrustByTeam` plus `recentTrades`. `trust-aging.ts` can summarize that state through `leagueSnapshot` and `getTrustArrow`, while `gm-reputation.ts` has a separate transaction/reputation read model. Neither helper moves assets or changes trade acceptance by itself; wire UI claims deliberately to the exact read model being shown.
+
+Trade boundary map:
+
+- `trade-value.ts` is the shared valuation core. `calcPlayerValue` combines OVR cubing, age curve, contract burden, dev trait, position multiplier, cap awareness, team `gmStrategy`, and optional philosophy. `calcPickValue` uses a classic draft-pick curve by round/pick. `evaluateTradeOffer` compares incoming versus outgoing value with strategy/philosophy thresholds.
+- `trade-decision-forecast.ts` is the read-only decision forecast model for user-facing trade review. `buildTradeDecisionForecast` composes `evaluateTradeOffer` from the user and partner perspectives, returns user send/receive value, fairness score, partner threshold ratio, acceptance label/accent, consequence items, and compact warnings. `TradeCenter.tsx` uses this for generated offers and custom proposal packages instead of duplicating valuation math in React.
+- `TradeOfferAsset` supports `player`, `pick`, and `conditional_pick`. Generated trade offers can value and transfer conditional picks through `trade-market.ts`; direct proposals now expose unresolved owned conditional picks through `getTradeableAssets` / `getTradeTargets`, value them through the shared expected-value read, and transfer them through `trade-negotiation.ts`.
+- Generated market offers are user-team-centric. `generateTradeOffers(game)` returns up to 6 offers, exits when scenario constraints block trades, builds inbound offers for user trade-block players, may add pick-only fallback offers, and may generate outbound offers from fire-sale/rebuild AI teams shopping veterans.
+- `acceptTradeOffer(game, offerId)` clones state, blocks scenario-disabled trades and regular-season weeks after the configured `trade_deadline_week`, applies `send` assets to `fromTeamId` and `receive` assets to `toTeamId`, marks the offer accepted, appends player transaction logs, records a post-trade press conference, records league news, and emits deterministic social posts for user-involved trades.
+- `rejectTradeOffer(game, offerId)` only marks the offer rejected. It does not move assets, write transaction logs, or create social/news fallout.
+- Direct negotiation stores durable `GameState.activeProposals` capped to the latest 20. `createTradeProposal` appends a draft proposal; `submitProposal` mutates the proposal to accepted/countered/rejected; accepted proposals execute immediately; rejected/counter-declined proposals can record near-miss declined-trade receipts.
+- Direct proposal creation, submission, and counter acceptance are also blocked when active scenario constraints set `blockTrades`; rejected counters remain a no-movement cleanup path. Direct proposal submission and counter acceptance close when `phase === 'regular_season' && week > trade_deadline_week`. `trade-negotiation.test.ts`, `trade-market.test.ts`, `TradeCenter.test.tsx`, and `buildInboxMessages.test.ts` guard default Week 9 behavior plus custom Week 12 rule overrides where relevant.
+- `TradeCenter.tsx` renders route-level `Scenario Lock` copy when saved `scenarioState.activeScenario.constraints.blockTrades` is active. It disables generated-offer Accept, direct proposal Submit, and Accept Counter controls to match existing store/engine blockers, while Reject, Reject Counter, package building, and trade-block scanning remain available no-movement paths.
+- `TradeCenter.tsx` also surfaces the active `trade_deadline_week` rule in the `Trade Window` metric detail using the same year-sensitive rule read that drives closure state. This is route copy only; the existing engine/store deadline guards and interruption paths remain the commit owners.
+- `TradeCenter.tsx` now renders `Trade Center Sources`, labeling `selectTradeOffers`, `selectActiveProposals`, `selectTradeSuggestions`, `getTradeTargets(game, userTeam.id)`, `getTradeableAssets(game, userTeam.id)`, route-local partner/asset selection state, `buildTradeDecisionForecast`, `selectScenarioState`, `selectTradeDeadlineState`, the active `trade_deadline_week` rule read, saved `game.conditionalPicks`, and the explicit `acceptTradeOffer`, `rejectTradeOffer`, `createTradeProposal` / `submitTradeProposal`, `acceptCounter`, `rejectCounter`, and `/trade-deadline` commit paths. It also labels that visible Trade Finder rows render `Generated Offer Receipt` copy from saved suggestion fields before any package is loaded. Opening `/trades`, loading an advisory suggestion, changing tabs, choosing a partner, adding assets, or viewing forecasts does not move players or picks, change cap, mutate saves, run simulation, touch RNG, or autosave.
+- `TradeCenter.tsx` also renders a route-local `Trade Action Receipt` after generated-offer Accept or Reject, direct proposal submit, or counter Accept or Reject resolves through the existing store actions. Receipts label the package, forecast/status context, touched offer/proposal/roster/pick/conditional-pick/cap/audio/autosave state, exact commit path, and no-extra-write boundary. They do not persist durable receipt history, create another proposal, accept another offer/counter, rebuild suggestions, bypass scenario/deadline gates, change trade valuation or cap formulas, simulate games, or touch RNG.
+- Trade finder is advisory only. `findTradeTargets(game, teamId)` scans user weak positions, partner trade-block players, user assets, cap compatibility, and `evaluateTradeOffer`; it returns up to 5 suggestions for `TradeFinder`/`TradeCenter` to load into the proposal builder. `TradeFinder` displays `acceptanceLikelihood` on the same percentage scale as its progress bar, so a `0.9` advisory likelihood renders as `90%` rather than a raw decimal. Each visible suggestion also renders a read-only `Generated Offer Receipt` built from saved `TradeSuggestion` fields: partner/partnerName, package type, asset descriptions, reasoning-owned need, acceptance likelihood, and value gap. The receipt labels green-light, value-window, or need-match packages; it does not create a proposal, refresh suggestions, accept offers, mutate trade-block flags, move assets, autosave, run sim, or touch RNG.
+- `/trade-block` now renders `Trade Block Source`, labeling `selectLeagueTradeBlock` as CPU-team `findTradeTargets` output over trade-block flags, team needs, cap compatibility, trade valuation, and saved CPU intent fields. Route-local controls include conference/division filtering, CPU intent filtering from saved `team.gmStrategy` plus `team.philosophy`, and team/OVR sorting; those controls do not write dynasty state. Each visible target row also renders a read-only `Market Receipt` built from the existing selector row fields: saved philosophy/strategy, seeker team/need, acceptance likelihood, and value gap. Opening the route does not create proposals, accept offers, move players or picks, write `game.tradeSuggestions`, mutate player `tradeBlock` flags, or refresh generated trade targets. When saved `scenarioState.activeScenario.constraints.blockTrades` is active, the route also renders a planning-only `Scenario Lock` notice while leaving scanning/filter/sort controls available. The Trade Center remains the user-package commit path, including direct proposal rows for unresolved conditional picks when the selected side owns them.
+- Trade-block route coaching is shipped for `/trade-block`: `resolveRouteKey` maps the route to `trade-market-radar`, whose unanchored Chip beats frame the ticker as advisory radar, point users back to `/trades` for commits, and remind them that opening the ticker does not create proposals or move assets. This is route guidance only; it does not create offers, accept trades, move players or picks, change trade valuation, write saves, run sim, or touch RNG.
+- Trade deadline state is its own saved interruption model. `initializeDeadline` builds scheduled AI deals, pending inbound offers, urgency, and ticker messages; `advanceDeadlineClock` reveals scheduled deals as time drops; `finalizeDeadline` applies only completed scheduled deals, then clears `tradeDeadlineState`. `/trade-deadline` reads completed deals back as receipt copy only until the finalizer runs.
+- Deadline user offers are a web-store staging path: `acceptDeadlineOffer` first returns without committing when active scenario constraints set `blockTrades`; otherwise it initializes a temporary `offseasonState`, copies `deadlineState.pendingOffers` into `offseasonState.tradeOffers`, reuses `acceptTradeOfferEngine`, removes the accepted offer from deadline pending offers, clears temporary `offseasonState`, appends trade audio, and commits.
+- `TradeDeadline.tsx` renders route-level `Scenario Lock` copy when saved `scenarioState.activeScenario.constraints.blockTrades` is active. It disables only deadline Accept buttons to match the existing store no-op, while Reject, clock advance, and finalization remain available deadline-flow controls. `TradeDeadline.test.tsx` guards the scenario-lock copy, the route-level deadline source panel, route-local action receipts, and read-only completed-deal receipts.
+- Draft-night trade offers are separate from both generated market offers and deadline offers. They live in `warRoomState.incomingOffers`; `generateDraftTradeOffers` returns `[]` when active scenario constraints set `blockTrades`, only emits source-backed live draft-order pick offers, and includes future sweeteners only when the source team owns a transferable future pick. `applyDraftTradeOffer` returns an unchanged clone under that blocker; and web `acceptDraftTradeOffer` returns before rebuild/audio/autosave/commit. Normal accepted offers rebuild war-room state with `buildDraftWarRoomState` and append a durable `leagueNews` trade receipt through `recordNewsItem`; `SMOKE_DRAFT_WAR_ROOM_TRADE=1` browser-proves a route-generated accepted offer with a future sweetener through `/draft`, autosave, hard reload, and saved receipt readback.
+
+Conditional pick boundary map:
+
+- `packages/engine/src/systems/conditional-picks.ts` owns conditional-pick resolution and expected value. `resolveConditions(game)` initializes missing `game.conditionalPicks` to `[]`, skips already-resolved entries, checks the tracked player condition, writes `resolvedPick`, sets `resolved = true`, forces `basePick.currentTeamId` / `resolvedPick.currentTeamId` to `toTeamId`, and syncs the matching team `draftPicks` round when it finds the pick.
+- Conditions are saved as `games_played`, `starts`, `pro_bowl`, or `playoff_win`. Games/starts read `player.stats`, Pro Bowl reads `player.careerStats.proBowls`, and playoff-win currently reads the tracked player's current team's `wins` against the threshold. If this model should mean playoff wins specifically, change the condition semantics and tests deliberately.
+- Resolution runs during `advanceOffseason(game)` after award events are recorded and before owner mandates, handshakes, records, season history, and season reports. It is not a weekly live update and does not produce a standalone event by itself.
+- `conditionalPickExpectedValue(conditionalPick)` averages `calcPickValue(basePick)` with `calcPickValue(upgradedPick)`, where the upgrade uses `Math.min(basePick.round, condition.upgradeRound)`. `trade-value.ts` has a parallel expected-value calculation for `TradeOfferAsset` valuation, and `trade-decision-forecast.ts` surfaces conditional-pick uncertainty without mutating saved state.
+- Generated market offers can include conditional picks. `trade-market.ts` looks for unresolved `game.conditionalPicks` where `toTeamId === aiTeam.id`, ranks them by expected value, builds `conditional_pick` assets, and `acceptTradeOffer` transfers those assets through `transferConditionalPick`, including the actual base draft pick when it can find it in the sending team's `draftPicks`.
+- Direct proposals can now include conditional picks too. `getTradeableAssets` exposes unresolved conditional picks owned by the user team, `getTradeTargets` exposes unresolved conditional picks owned by the selected partner, `TradeCenter.tsx` keys them as `conditional:<id>` and labels them as `CONDITIONAL PICK`, and `trade-negotiation.ts` values/transfers them through the direct proposal and counter-acceptance path. The transfer updates `conditionalPick.toTeamId`, `basePick.currentTeamId`, optional `resolvedPick.currentTeamId`, and the matching base draft pick holder when that pick is present in `team.draftPicks`.
+- Save ownership is top-level and explicit: `GameState.conditionalPicks` is a required array, new-game seed/test/convention/playtest builders initialize it to `[]`, migration v7 backfills it for old saves, and `SaveStateSchema` defaults it to `[]` through `ConditionalPickSchema`. `TradeOfferAssetSchema` allows `conditional_pick` assets with optional `conditionalPickId`.
+- User-visible surfaces are read models unless the user presses a commit button. `selectConditionalPicks` returns saved picks; `TradeCenter.tsx` renders a `Conditional Pick Context` panel that counts saved user-team incoming/outgoing/unresolved conditional picks, labels generated-market/direct-proposal support, and lists conditional-pick rows in direct proposal pickers only through route-local selection state; `MondayBriefing.tsx` shows up to two user-team incoming conditional assets whether resolved or not; `buildInboxMessages.ts` shows resolved incoming user-team conditional picks; `achievements.ts` counts resolved upgrades for "Conditional Victory"; `generateSeasonReport.ts` includes conditional-pick asset descriptions in trade reports; and `narrative-director.ts` values conditional assets from `resolvedPick ?? basePick`.
+- Focused tests before changing this seam: `conditional-picks.test.ts`, `trade-market.test.ts`, `trade-negotiation.test.ts`, `trade-finder.test.ts`, `trade-value.test.ts`, `trade-decision-forecast.test.ts`, `TradeCenter.test.tsx`, `game-store.test.ts`, `offseason.test.ts` for resolution timing, `achievements.test.ts`, `buildInboxMessages.test.ts`, `MondayBriefing.test.tsx`, and save tests for any schema/default/migration change.
+
+Near-miss tracker and receipt boundary map:
+
+- `near-miss-receipts.ts` owns the season "what if" model: `createNearMissTracker`, `recordDeclinedTrade`, `recordPassedPick`, `recordMissedFA`, `hasNotableNearMisses`, and `generateNearMissReceipts`.
+- `GameState.nearMissTracker` is optional season-in-progress saved state. It is initialized lazily by `trade-negotiation.ts`, `draft.ts`, or offseason free-agency resolution only when the first qualifying near-miss input is recorded.
+- `GameState.seasonNearMissReceipts` is the latest generated receipt array. New saves seed it as `[]`, the save schema defaults it to `[]`, and migration 25 backfills it for older saves. The tracker itself is optional in schema because most saves do not have an active tracker.
+- Direct user trade proposal rejections can record declined-trade near misses only when the proposal is from the user team and requests at least one player from the partner. The stored input is the highest-OVR requested player, partner team name, and week. Generated market-offer rejection only marks an offer rejected; it does not currently create a near-miss receipt. `/trades` now labels this distinction in `Trade Center Sources`, generated-offer rejection receipts, direct-proposal rejection receipts, and counter-rejection receipts so the player knows which rejected trade paths can seed season-end What-If receipts.
+- Rejected direct-trade counters can also write `nearMissTracker.declinedTrades`; use `playerDisplayName` in `trade-negotiation.ts` for the stored player name because current save schema normalization strips legacy `player.name` from `game.players` while team rosters may retain it through `TeamPersistedSchema.passthrough()`.
+- User draft picks can queue `pendingPassedPickTargets` when the user passes on a higher-true-grade remaining prospect. The actual `passed_pick` near miss is recorded later only if/when another team drafts that pending prospect; if the user drafts the best remaining prospect, no target or tracker is created.
+- `resolveFreeAgencyRound` records missed-FA near misses when the user placed a bid for the current round, a CPU team wins and signs that player, and the player leaves the free-agent pool. It does not track every free agent the user ignored.
+- Season rollover in `franchise-week.ts` deletes any previous `seasonNearMissReceipts`, checks `nearMissTracker`, generates up to five receipts through `generateNearMissReceipts(RNG.event, tracker)` only when `hasNotableNearMisses` is true, writes `nextState.seasonNearMissReceipts`, returns `EngineOutput.nearMissReceipts`, and then deletes `nearMissTracker`.
+- Receipt thresholds are gameplay/content constants in `near-miss-receipts.ts`: declined trades require player OVR >= 80, passed picks >= 75, missed FAs >= 78. Generated receipts sort by player OVR descending and cap at 5.
+- `generateNearMissReceipts` accepts an RNG argument for deterministic API shape, but the inspected implementation does not currently consume it. Adding randomized outcome copy would change deterministic RNG-channel behavior and needs same-seed tests.
+- `/season/recap` now renders saved `game.seasonNearMissReceipts` as `What-If Receipts` when present. The panel labels season-rollover generation, declined direct trade proposal inputs, passed-pick draft-flow inputs, user free-agent bids that lose to signed CPU offers, and the no-render-write boundary. It does not generate receipts, mutate `nearMissTracker`, or render transient `EngineOutput.nearMissReceipts` directly.
+- Focused tests: `near-miss-receipts.test.ts` covers thresholds, sort, cap, and helper recording; `near-miss-wiring.test.ts` covers trade/draft/helper inputs; `near-miss-generation.test.ts` covers season-end generation/clearing; `offseason.test.ts` covers user-bid lost free-agent wiring; `SeasonRecapCard.test.tsx` covers the route copy; save tests cover default/backfill shape.
+
+Trade safety rules:
+
+- Do not conflate generated `TradeOffer`s, direct `TradeProposal`s, deadline `DeadlineDeal`s, draft-war-room offers, and advisory `TradeSuggestion`s. They have different state owners, UI surfaces, and commit paths.
+- Trade transfer helpers move rosters, player map entries, draft picks, jersey numbers, locker-room roster state, archives, news/social, cap totals, and transaction logs depending on the lane. Accepted generated offers in `trade-market.ts`, accepted direct proposals/counters in `trade-negotiation.ts`, and finalized completed deadline deals in `trade-deadline.ts` call `syncTeamCapTotals(game, team)` after movement, recomputing each involved team's `capUsed` from current roster `calcCapHit` totals plus `deadCap`, then `capSpace` from active `getSalaryCap(game.year, game)`. Player movement in those lanes also calls `syncPlayerArchiveEntry` so `playerArchive.teamHistory` can reflect the new team stint. This is a roster-cap/archive synchronization guard, not a trade-dead-money formula or a new cap-effect preview model.
+- Keep trade IDs and pick IDs stable. Pick assets are commonly serialized as `${currentTeamId}-${year}-${round}-${pick}-${originalTeamId}`; changing this requires schema, transfer, selector, UI, and tests together.
+- Deadline deal generation derives the compensation year from the buyer's earliest available draft-pick year at or after the current dynasty year; synthetic fallback picks use that same derived year. `trade-deadline.test.ts` guards long-dynasty behavior so stale launch-year 2026 picks are not selected when current inventory has moved forward.
+- Scenario constraints can block generated/accepted market trades, direct proposals/counters, deadline user offers, and draft-war-room trade offers. New trade paths should still be checked deliberately before copy claims they are scenario-gated.
+- Trade valuation is gameplay math. If changing `calcPlayerValue`, pick curves, strategy thresholds, or acceptance likelihood, document formula before/after, sample outputs, and deterministic tests.
+
+Free agency and contract flow:
+
+- Re-signing uses agent-backed `reSignDecisions` inside `offseasonState`; the store routes `submitReSignOffer` and `negotiateContract` through the same contract negotiation helper.
+- Offseason free agency uses round-based `submitFreeAgentBid`; regular/preseason street free agency uses `signStreetFreeAgent` for immediate roster adds.
+- FA target board is selector-derived via `selectFATargetBoard`, `buildFATargetBoard`, and optional stored `faTargetBoard` watchlist/snapshot state.
+- `fa-target-board.ts` is a read-only planning model, not a signing path. It computes projected salary from OVR, position value, and age; fit score from team needs, scheme compatibility, and age; market demand from league-wide critical needs; sign probability from cap-space coverage and competing-team count; and bargain ranking from `fitScore + ovr - projectedSalary * 6`.
+- `selectFATargetBoard` returns the saved `game.faTargetBoard` snapshot only when `teamId` matches the user team, the snapshot has targets, and every stored target still exists in `game.freeAgents`. Otherwise it derives a fresh board from current free agents using `intelRng(game, "fa-board:${team.id}")` while preserving `faTargetBoard.watchlist`.
+- Store actions split saved intent from derived display: `toggleFATargetWatchlist` only adds/removes player ids in `game.faTargetBoard.watchlist`; `refreshFATargetBoard` clones the game, gathers current `game.freeAgents`, calls `refreshStoredFATargetBoard`, and commits a new saved target snapshot.
+- `/fa-targets` now labels this as a saved target-board snapshot plus explicit refresh/write boundary: empty boards request the existing after-mount refresh, `Refresh Board` rewrites the snapshot, Watch/Unwatch updates only `faTargetBoard.watchlist`, and real bids/signings remain owned by `/free-agency`. Each visible row also renders a read-only `FA Market Receipt` built from existing `FATarget` fields: player identity/position, fit score, sign probability, projected salary, market demand, and competing-team count. The receipt labels hot-market, fit-window, long-shot, or market-watch targets; it does not refresh the board, write the watchlist, submit bids, sign players, move rosters, autosave, run sim, or touch RNG. When saved `scenarioState.activeScenario.constraints.blockFreeAgency` is active, the route renders planning-only `Scenario Lock` copy while leaving Refresh Board and Watch/Unwatch available because those actions do not sign a player.
+- `buildFreeAgencyDecisionForecast(game, playerId, offer, mode)` is the pure read model for `/free-agency` action clarity. Re-sign forecasts use the same `ratioOfferToDemand` threshold semantics as `negotiateOffer`; open-market bid forecasts use `scoreOffer`, `buildAskingPrice`, fanbase FA interest, and `acceptThreshold` like `submitFreeAgentBid` / `resolveFreeAgencyRound`; street-sign forecasts use the active scenario blocker, `game.freeAgents`, and `getRosterLimit(game)` like `signStreetFreeAgent`. `FreeAgencyHub.tsx` renders these forecasts beside Open at 88%, Meet Demand, Accept Counter, Market, Aggressive, Sign, and Overpay buttons, including immediate impact, season impact, future risk, resolution, source, warnings, status, and confidence without changing those commit paths. When saved `scenarioState.activeScenario.constraints.blockFreeAgency` is active, the route renders `Scenario Lock` copy and disables open-market bid plus street-sign buttons while leaving in-house re-sign negotiation and market advancement available.
+- `/free-agency` now renders `Free Agency Sources`, labeling `selectOffseasonState`, `selectRoster`, saved `reSignDecisions`, `selectFreeAgentPlayers`, saved `game.agents`, route-local `marketOffer` estimates, `buildFreeAgencyDecisionForecast`, saved `offseasonState.freeAgencyBids` bid-resolution rows, `selectScenarioState`/`blockFreeAgency`, and the explicit `negotiateContract`, `submitFreeAgentBid`, `signStreetFreeAgent`, and `advanceWeek` commit buttons. Opening `/free-agency`, viewing forecasts, navigating to the target board, and reading market estimates or bid-resolution summaries do not write bids, sign players, resolve rounds, change cap totals, mutate saves, run simulation, touch RNG, or move players.
+- `/free-agency` also renders a read-only `Bid Resolution Summary` from saved `offseasonState.freeAgencyBids` rows after `resolveFreeAgencyRound` marks bids `won` or `lost`. It labels user wins, user losses, and CPU-only outcomes with the resolved player, winner, round, saved score, saved bid count, and any user lost-bid score. This display does not call `scoreOffer`, resolve the market, submit bids, move players, remove free agents, change cap totals, append transactions/news, autosave, reroll outcomes, or create durable receipt history.
+- `/free-agency` also renders a route-local `Free Agency Action Receipt` after re-sign offer, open-market bid, or street-sign buttons resolve through the existing store actions. The receipt labels the player, offer, current round/phase context, forecast status, touched re-sign/bid/roster/cap/audio/autosave state, exact commit path, and no-extra-write boundary. It does not persist durable receipt history, advance/resolve free agency, bypass scenario/source-list/roster-limit gates, change bid or negotiation formulas, change cap formulas, simulate games, touch RNG, or move players outside the existing action helper. Display labels on this route derive from legacy `name`, first/last name, then id because `GameState.players` can be schema-normalized without legacy `name`; `selectFreeAgentPlayers` materializes that fallback for free-agent rows, while `FreeAgencyHub.tsx` applies the same fallback for roster-derived re-sign rows and receipt labels.
+- G3 browser persistence proof exists for the primary free-agency signing paths: `SMOKE_FREE_AGENCY_SIGNINGS=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` stages re-sign/open-market/street fixtures from latest autosave, sends a Meet Demand re-sign offer, stores an Aggressive open-market bid, hard-reloads pending bid intent, resolves Round 1 to a user signing, signs a regular-season street free agent, verifies latest-autosave roster/contract/transaction state after hard reloads, and fails on browser errors.
+- Cap tools are split: pure preview helpers in `contract-tools.ts`, live contract mutations in `contracts.ts`/`contract-extensions.ts`, and UI sandboxing in `cap-laboratory.ts`. Do not apply cap-lab previews to live state unless using the explicit store action.
+
+Agent negotiation and holdout boundary map:
+
+- `AgentProfile` records live in saved `game.agents`; `Player.agentId` is saved on players; `ReSignDecision` stores `askingPrice`, `agentDemand`, `lastOffer`, `counterOffer`, `agentResponse`, `patienceWeeksRemaining`, and status. Migration v10 defaults agents, player agent ids, and agent fields on older re-sign decisions.
+- `ensureAgentsInitialized(game, rng?)` creates a deterministic agent pool when `game.agents` is empty, assigns unassigned `GameState.players` by personality-driven preferred style, balances client counts, sorts client ids, and syncs roster copies from the canonical player map. The production seed path and persistence import path both call this helper.
+- Agent style selection is personality-driven: high greed prefers `hardball`, high loyalty prefers `collaborative`, high pressure or `media_darling` prefers `media_savvy`, otherwise `old_school`.
+- `initializeOffseasonState(game)` calls `ensureAgentsInitialized`, finds expiring players, computes a base `askingPrice`, then builds `agentDemand` with `agentDemand(player, agent, { baseOffer, topFiveAtPosition })`. Hardball agents ask more, collaborative agents ask less, media-savvy agents sit above neutral, and top-five positional peers get an additional demand bump.
+- `getAgentPatienceWeeks(agent)` is a small 0-4 week window derived from style plus `patienceModifier`; collaborative agents are less patient. This drives both offseason `ReSignDecision.patienceWeeksRemaining` and carryover holdout countdown fields.
+- `submitReSignOffer(game, playerId, offer)` clones the game and calls `negotiateOffer`. Offers at or above 90% of agent demand are marked `accepted`; 80-90% becomes `countered` with a midpoint counter offer; below that is `declined`. This action stores negotiation state and autosaves through the web store, but contract application happens later in `advanceOffseason`.
+- During `advanceOffseason`, `resolveUserReSigns` applies accepted user deals with the saved `lastOffer`, `resolveAiReSigns` applies AI decisions from `agentDemand`, and `finalizeUnsignedExpiringPlayers` moves unsigned players to free agency. For user-team expiring players with a `lastOffer` but no accepted deal, finalization leaves them on the roster without a contract and seeds `careerStats.holdoutPatienceWeeksRemaining`, `careerStats.holdoutWalkWeeksRemaining`, and `careerStats.agentDemandSalary`.
+- `franchise-week.ts` calls `processCarryoverHoldouts(nextState, userTeam.id, RNG.ai)` for the user team during regular season and playoffs before weekly training. It decrements patience, flips unpaid players into holdout, removes starter status, reduces morale, may call `agentMediaLeak`, then eventually clears holdout, removes the player from the roster, and pushes the player id into `game.freeAgents`.
+- `agentMediaLeak(game, rng, playerId)` creates an `agent_media_leak` off-field event and league news only for held-out players with an agent when `rng() <= 0.15`. It uses `uid()` plus injected/engine RNG; do not replace this with wall-clock randomness.
+- `ContractsCap.tsx` displays agent name/style and holdout rows from saved roster/agent state. `FreeAgencyHub.tsx` renders agent demand, responses, counters, and basic market/street free-agent offers. `buildInboxMessages.ts` surfaces unresolved re-sign pressure and the latest agent media leak.
+
+Agent safety rules:
+
+- Do not confuse `submitReSignOffer`/`negotiateContract` with an immediate contract write. The accepted decision is applied when the offseason transaction advances.
+- Do not duplicate free-agency offer scoring in React. Use `buildFreeAgencyDecisionForecast` for route copy and keep real writes in `negotiateContract`, `submitFreeAgentBid`, `signStreetFreeAgent`, and offseason advancement.
+- Street free-agent signing currently uses route-local market demand estimates and `signStreetFreeAgent`; it does not call `agentDemand` or open a negotiation loop.
+- Carryover holdout fields are stored in the open numeric `careerStats` record, not a typed `Player` property. Formalizing or reshaping them requires save/schema/migration/default/tests even though `careerStats` accepts numeric keys today.
+- Holdout processing mutates roster membership, starter status, morale, free-agent ids, off-field events, and league news. Treat changes as acquisition/save/weekly-loop work, not only contract UI polish.
+
+Contract and cap boundary map:
+
+- `packages/engine/src/config/cap-math.ts` owns cap constants and rule-aware cap totals. `getSalaryCap(year, game?)` applies the `salary_cap_growth` league rule when the caller passes `GameState`; `getCapFloor(year, game?)` applies `cap_floor_pct` the same way. Without `game`, both helpers use the default 2026 base cap, 5% annual growth, and 90% floor. `MIN_SALARY` is `0.5`, while `getMinSalary(yoe)` uses rookie/veteran minimum tables.
+- `packages/engine/src/systems/team-cap.ts` owns the shared live cap-total synchronization helper. `syncTeamCapTotals(game, team)` intentionally matches the store cap helper: current roster contract hits via `calcCapHit`, plus `team.deadCap`, rounded to one decimal, with `capSpace` derived from rule-aware `getSalaryCap(game.year, game)`.
+- Rule-aware cap display is wired through the main read-only consumers. `buildCapVisualization(team, year, game?)`, `capProjection(team, startYear, years, game?)`, `calculateDynastyWindow(team, year, draftPicks, game?)`, `ContractTools.tsx`, `ContractsCap.tsx`, `PlayerComparison.tsx`, the setup cap/window briefings, Monday Briefing's dynasty-window widget, and `selectCapProjection` pass `GameState` when available, so active `salary_cap_growth` and `cap_floor_pct` overrides surface in cap ceilings, cap floors, projections, cap-health scoring, front-office contract projections, and player comparison cap-share copy. `architecture-boundaries.test.ts` now prevents production cap read-model/runtime callers from using year-only `getSalaryCap`/`getCapFloor` calls outside seed-time roster generation. Seed-time salary scaling in `apps/web/src/app/store/seed.ts` intentionally uses default cap math because changing it would alter generated new-save economics.
+- `/contracts` now renders `Contract Sources`, labeling `selectRoster`, `getSalaryCap(year, game)`, `getCapFloor(year, game)`, `selectCapProjection`, `selectIncentiveSummary`, active franchise-tag rules, route-local selected-row controls, and explicit store commit buttons. Opening `/contracts` and selecting rows do not write contracts, tags, cap totals, saves, simulation results, RNG, or player movement; Restructure, Add Void Years, Cut Player, Submit Extension, and Apply Franchise Tag remain the commit owners.
+- `/cap-lab` now renders `Cap Lab Sources`, labeling `useCapHealth`, `useCapCandidates`, `useMultiYearProjection`, the route-local search/filter/sandbox state, `buildCapScenario(userTeam, game)` plus `simulateMultipleMoves` as the preview path, and `actions.executeCapMoves(sandbox)` as the only commit boundary. Opening `/cap-lab`, changing filters, adding sandbox rows, and removing sandbox rows do not write saves, change cap rules, run simulation, touch RNG, or move players; confirming the modal deliberately commits through the store action. After that existing action resolves, `/cap-lab` shows a route-local `Cap Lab Execution Receipt` with queued moves, preview cap-space result, warnings, commit path, state touched, and no-extra-write copy; the receipt is not persisted and does not reapply sandbox moves.
+- `packages/engine/src/types/contract.ts` is the serialized contract shape: `baseSalary`, `signingBonus`, `prorated`, `years`, `totalValue`, `yearlyBreakdown`, `guaranteed`, `voidYears`, `restructured`, franchise tag, incentives, optional `slices`, and optional `guaranteeSchedule`.
+- `makeContract(salary, years, signingBonus, guaranteed, playerId?, teamId?)` prorates signing bonus over years, creates one signing `BonusSlice` per year, builds `yearlyBreakdown`, and adds guarantee schedule entries. Any new contract field must be added to the TypeScript type, `ContractSchema`, contract creation, seed/default creation, and old-save migrations.
+- Core current-year formulas are `calcCapHit(contract) = baseSalary + prorated` and legacy `calcDeadMoney(contract) = prorated * years`. V36 helper formulas in `contract-helpers.ts` are the cap-tool source of truth: `v36DeadIfCut = bonus slices + void-year dead cap`; `v36DeadIfTraded` uses slices when available or `prorated * years` for old contracts; `v36TradeSavings = v36CapHit - v36DeadIfTraded`.
+- Restructure/backload helpers in `contracts.ts` mutate the provided contract. `restructureContract` converts base salary above `MIN_SALARY` into proration over `min(years, 5)`, marks the contract restructured, increases guaranteed money, pushes restructure slices, and rebuilds breakdown. `backloadContract` converts 40% of base salary into proration spread across `years + voidYears`, clamps added void years to 1-3, increases guaranteed money, pushes backload slices, and rebuilds breakdown.
+- `incentives.ts` owns performance-bonus definitions and hit/miss evaluation for contract incentives. `checkIncentives(player, teamRecord)` reads saved `player.contract.incentives`, ignores unknown incentive ids, uses default definitions for labels/position availability, uses the saved incentive threshold/bonus for evaluation/output, maps stat incentives to `PlayerSeasonStats`, and handles `playoffs`/`pro_bowl` through team context. `getAvailableIncentives(pos)` filters the definition catalog by position. Keep `incentives.test.ts` and selector tests aligned when adding incentive ids or changing how contract incentive progress is summarized.
+- `contract-tools.ts` is the pure per-player preview API. It clones contracts before calling mutating helpers, returns eligibility/reason structs, previews standard cut, post-June-1 cut, restructure, backload, and multi-year contract projections, and has tests asserting no input mutation.
+- `buildContractDecisionForecast(contract, startYear, options)` in `contract-tools.ts` is the reusable cap decision forecast helper. It uses the existing pure preview helpers to choose a cap-only recommended action, then returns current cap delta, current/future dead cap, immediate/season/future/risk copy, owner/player/media reactions, uncertainty, reversibility, and warnings. `ContractTools.tsx` renders this as the front-office "Decision Forecast" panel and now passes active `GameState` into both the forecast helper and `projectContractCap`, so `salary_cap_growth` rule changes surface in front-office projection rows. Keep new cap forecast UI pointed at this helper or cap-lab scenario helpers instead of duplicating formulas in React.
+- `cap-visualization.ts` is a read-only setup/front-office model. `buildCapVisualization(team, currentYear, game?)` uses v36 cap hits to derive positional cap share, top contract hits with simple Fair/Watch/Overpay labels, three future committed/expiring projections, dead cap, cap room, and salary cap. It ignores players without contracts, returns `null` for missing teams, and uses rule-aware `getSalaryCap` values when `GameState` is supplied. Keep this helper pure and update `cap-visualization.test.ts` when changing the rollup/projection contract.
+- `cap-laboratory.ts` is the multi-move sandbox. `buildCapScenario` clones roster contracts; `simulate*` helpers operate on scenario clones; `simulateMultipleMoves` chains moves; `getCapHealth`, `identifyCapCandidates`, `buildMultiYearProjection`, and `projectCapDeltas` derive cap planning models for UI.
+- `contract-extensions.ts` owns extension offers and acceptance. `generateExtensionOffer` uses trade value, position market multipliers, age, team success, personality loyalty/greed, guarantees, signing bonus, and cap-hit escalators; `evaluateExtension` may accept or counter; `applyExtensionOffer` replaces the player/team contract and writes a `ContractExtensionRecord`.
+- Post-June-1 cuts are split in `contract-extensions.ts`: current-year dead cap is current proration, next-year dead cap is remaining proration. The web store helper `applyPostJune1CutToGame` also removes the player, clears practice-squad links, pushes a waiver entry, and writes a `CUT` transaction log.
+- Standard cuts normally flow through `practice-squad.ts` `cutPlayerToWaivers`, which adds `calcDeadMoney`, adjusts `capUsed/capSpace`, removes the player from roster/practice squad, clears player team/contract, and pushes a waiver record.
+- Current web mutation surfaces differ. `ContractTools` uses pure `contract-tools.ts` previews, labels `Contract Tool Sources` for roster source, helper previews, active rule context, and commit boundary, then calls store actions `cutPlayer`, `restructure`, and `backload` only from buttons. After those existing actions resolve, `/front-office` shows a route-local `Contract Action Receipt` over the selected player, preview cap/dead-money context, commit path, state touched, and no-extra-write boundary; the receipt is not persisted and does not run another contract action. `ContractsCap` exposes the live contract table, direct restructure/backload/cut controls, extension offers, and the franchise-tag action. `CapLaboratory` queues sandbox `CapMove`s and commits through `actions.executeCapMoves`.
+- Route ownership mirrors that split and is source-guarded in `App.test.tsx`: `/contracts` renders `ContractsCap`, `/cap-lab` renders `CapLaboratory`, and `/front-office` renders `ContractTools`. Do not move forecast-only copy into the live table or sandbox batch path without updating route ownership tests and commit-path docs.
+- Front Office route coaching is shipped for `/front-office`: `resolveRouteKey` maps the route to `front-office`, whose unanchored Chip beats point users to pick a contract, compare projections/savings/forecast warnings, and treat preview rows as pure until Apply or Cut buttons commit store actions. This is route guidance only; it does not restructure contracts, backload deals, cut players, move players, change cap math, sync rosters, mutate saves, run sim, or touch RNG.
+- `executeCapMoves` is the safest current batch path: it previews each move against a scenario, rejects unsupported `trade` moves, applies live restructure/backload/cut/post-June/extension helpers, syncs player contract references, recalculates team cap totals, refreshes league cap space, emits cap-move social posts, and commits the cloned game.
+- Direct store actions `restructure` and `backload` now follow the durable clone -> helper -> sync -> `commitGame` path. They still snapshot undo before applying the move, call the existing mutating contract helper on the cloned roster contract, sync the matching `GameState.players[playerId].contract` reference when present, recalculate team cap totals, refresh league cap space, and autosave through `commitGame(nextGame)`. `toggleTradeBlock` also clones and commits, mirroring `tradeBlock` into `GameState.players[playerId]` when present. The cap-lab batch path remains the richer multi-move/social-post owner.
+- Front-office contract receipts are display-only route state. They are built from the selected player plus the already-rendered pure preview values before the existing action call, then shown after that action resolves; they deliberately do not diff the final saved roster/waiver state or create a durable action history. Keep future richer receipt work on the existing store/engine result boundaries instead of adding a second contract writer.
+- Cap Lab execution receipts are display-only route state. They are built from the queued sandbox moves plus the already-rendered `simulateMultipleMoves` preview before the existing `executeCapMoves` call, then shown after that action resolves and the sandbox clears; they deliberately do not diff the final saved contracts, roster, waiver wire, social feed, or cap totals and do not create a durable action history. Keep richer batch receipts on returned store/engine results if that contract is added later.
+- `game-store.source.test.ts` guards the saved-game store write boundary. Any future `set((s) => ...)` block that touches `s.game` must stay inside one of the explicit owners: `commitGame`, `newGame`, `loadGame`, `loadLatestAutosave`, or `undo`. Runtime store actions that mutate saved `GameState` should clone current state, use the relevant engine/helper owner, then commit through `commitGame(nextGame)` unless a deliberate persistence-boundary slice updates the guard and this guide.
+- Saved cap/contract state includes player contracts, team `capUsed`, `capSpace`, `deadCap`, `deadCapByYear`, `contractExtensions`, `offseasonState.reSignDecisions`, free-agency bids, waiver wire, and transaction logs. Save schema coverage includes `ContractSchema`, `BonusSliceSchema`, `GuaranteeEntrySchema`, and `ContractExtensionRecordSchema`.
+
+Franchise tag boundary map:
+
+- `packages/engine/src/systems/franchise-tag.ts` owns tag definitions, tag salary calculation, personality reactions, and the mutating `applyFranchiseTag` helper. `FRANCHISE_TAG_TYPES` currently defines exclusive, non-exclusive, and transition tags; `getFranchiseTagSalary(pos, teams)` averages the top five v36 cap hits at a position, applies a position floor, and rounds to two decimals.
+- `applyFranchiseTag(team, player, teams, year, tagType, gameState?)` reads active `franchise_tag_limit` and `tag_types_allowed` rules when `gameState.leagueRules` is provided, replaces the player's contract with a one-year tag contract, writes `contract.franchiseTag`, appends to `team.franchiseTags`, mirrors the first tag into legacy `team.franchiseTag973`, and applies morale/chemistry/holdout consequences from player personality.
+- `/contracts` renders a rule-aware Franchise Tag Window and a selected-player Franchise Tag panel. The page reads active `franchise_tag_limit` and `tag_types_allowed`, previews tender salary from `getFranchiseTagSalary` plus the selected tag type multiplier, disables non-expiring, already-tagged, limit-used, or disallowed selections, and calls `actions.applyFranchiseTag` for the actual write.
+- `actions.applyFranchiseTag(teamId, playerId, tagType)` clones the current save, finds the roster player, rejects missing/non-expiring/duplicate tags, calls the engine helper with the full `GameState`, mirrors the mutated roster player back into `game.players`, recalculates the user team's cap totals, refreshes league cap space, snapshots undo, commits, and autosaves. It does not create a new save field, bump `SAVE_VERSION`, change tag formulas, or move players.
+- Team tag state has a legacy/new split. `Team` has required `franchiseTag973: FranchiseTagState | null` plus optional `franchiseTags?: FranchiseTagState[]`; browser new-game seed writes both `franchiseTag973: null` and `franchiseTags: []`; migration v19 backfills missing/invalid `franchiseTags` arrays; synthetic/convention/playtest team builders may still omit the optional array, so live helpers use `team.franchiseTags ?? (team.franchiseTag973 ? [team.franchiseTag973] : [])`.
+- Save Zod coverage is asymmetric: `ContractSchema` validates `contract.franchiseTag`, while `TeamPersistedSchema` names `philosophy` and normalized `gmStrategy` but still passes through team-level tag fields. Do not assume team-level tag arrays are strongly schema-validated until a deliberate save-schema slice adds named team fields, migrations, seed/defaults, and old-save tests.
+- `franchise-week.ts` detects tagged players through `contract.franchiseTag` and then the `franchiseTags`/`franchiseTag973` fallback for holdout-wave effects. `labor-relations.ts` counts every active `team.franchiseTags` entry, with a legacy fallback to `[team.franchiseTag973]`, so multi-tag rule configurations now affect union satisfaction.
+- Focused tests before changing this seam: `franchise-tag.test.ts`, `labor-relations.test.ts`, `game-store.test.ts`, `ContractsCap.test.tsx`, `phase2.test.ts`, `league-rules.test.ts`, `cba-engine.test.ts` for rule-derived tag limits/types, and save tests if making team tag state schema-backed.
+
+Contract and cap safety rules:
+
+- Do not duplicate cap formulas in React. Use `contract-tools.ts`, `cap-laboratory.ts`, `contract-helpers.ts`, or engine/store actions; if a component needs new copy, expose a pure helper rather than retyping math.
+- When changing salary-cap growth/floor awareness, dead money, void years, guarantees, or extension acceptance, provide formula before/after, 3-5 sample outputs, deterministic tests, and cap/dead-money sanity ranges. For league-rule-aware cap display work, include `config/cap-math.test.ts` plus the affected read-model/component tests because many current consumers omit `GameState`.
+- Keep preview helpers pure. Tests currently assert `contract-tools` and cap-lab scenario simulations do not mutate input contracts.
+- Treat post-June-1 cuts, standard cuts, waivers, and cap-lab cut moves as related but not identical paths. Verify roster removal, player map cleanup, waiver entries, practice-squad cleanup, transaction logs, dead cap, future `deadCapByYear`, cap totals, undo, and autosave/commit behavior.
+
+Waiver and practice-squad flow:
+
+- `cutPlayer` normally calls `cutPlayerToWaivers`; post-June-1 cuts use a separate cap action path.
+- `addToPracticeSquad`, `removeFromPracticeSquad`, `elevateFromPracticeSquad`, and `submitWaiverClaim` are exposed as store actions and commit engine output.
+- `processWaiverClaims(game)` and `aiWaiverLogic(game)` run in the shared week-advance tail after games. Claims resolve by waiver order sorted from worst record/point differential to best.
+- Practice squad size comes from `getPracticeSquadLimit(game)`: it reads the active `practice_squad_size` rule for `game.year`, with a legacy 16-slot fallback when `game.leagueRules` is absent.
+- Active roster size for rule-aware engine reads should use `getRosterLimit(game)`: it reads the active `roster_limit` rule for `game.year`, with a legacy 53-man fallback when `game.leagueRules` is absent.
+- Street free-agent signing in `signStreetFreeAgent` and runtime roster-size validation in `validateGameState` both use `getRosterLimit(game)`, so custom `roster_limit` rules affect enforcement, not only UI copy. Focused `offseason.test.ts` coverage also guards the successful street-signing sync across free-agent removal, roster/global `teamId`, contract team id, cap ledger, player archive, invariant cleanliness, and the intentional absence of a `SIGN_FA` comp-pick log. Focused web store coverage proves successful street signings cue/autosave while scenario-blocked signings do not cue, commit, or autosave.
+- `buildCutAdvisor(roster, rosterCap = ROSTER_CAP)` is a pure roster-list helper with an explicit cap parameter. Callers that have `GameState` should pass `getRosterLimit(game)` instead of relying on the static default.
+- G3 browser persistence proof exists for the primary waiver/practice path: `SMOKE_WAIVER_PRACTICE_SQUAD=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` submits a waiver claim, verifies pending intent after hard reload, adds/elevates/releases a practice-squad player, advances the week to award the claim, hard-reloads latest autosave, and fails on browser errors.
+
+Waiver, practice-squad, and team-needs boundary map:
+
+- `practice-squad.ts` is the mutation owner for normal practice-squad and waiver movement. Its helpers mutate the passed `GameState` and return `{ nextState: game }`; web store actions clone first, call the helper, then `commitGame`.
+- `ensureWaiverState` initializes saved `waiverOrder`, `waiverWire`, `waiverClaims`, `waiverResults`, each team `practiceSquad`, and each team transaction log. Do not bypass it when adding a new waiver lane.
+- `addToPracticeSquad` returns unchanged when active scenario constraints set `blockFreeAgency`; otherwise it only accepts players listed in `game.freeAgents`, removes the id from `freeAgents`, writes `player.teamId = teamId`, clears `player.contract`, appends a `PracticeSquadPlayer` record with `maxElevations = 3`, and logs `PS_ADD`. It does not add the player to the active roster.
+- `removeFromPracticeSquad`/`releasePSPlayer` removes the player from `team.practiceSquad` and active roster if present, pushes the id back to `game.freeAgents`, clears `player.teamId`, logs `PS_RELEASE`, then refreshes jerseys and locker-room roster state.
+- `elevateFromPracticeSquad` keeps the practice-squad entry, optionally adds the player to active roster, increments `elevationsUsed`, sets `isElevated` and `elevatedWeek`, assigns a jersey, logs `PS_ELEVATE`, and refreshes locker-room roster state.
+- Elevated-player return is inside `processWaiverClaims` via `returnElevatedPlayers`, which only clears entries whose `elevatedWeek` equals the current `game.week`. When at least one elevated player is returned for a team, the helper now calls the local `refreshRosterState` helper so jersey assignment and locker-room roster state are rebuilt after the active-roster removal.
+- Standard cuts use `cutPlayerToWaivers`: add `calcDeadMoney`, adjust `capUsed`/`capSpace` with the legacy cap-hit formula, remove the player from roster/practice squad, clear player team/contract, create a `WaiverWireEntry` expiring at `week + 1`, log `CUT`, and refresh roster/locker-room state. Post-June-1 cuts use the separate store helper documented in the contract/cap boundary map.
+- `/roster` standard-cut preview copy should use `calcDeadMoney` for dead money, keep post-June-1 copy on the separate cap/front-office paths, and avoid presenting a preview as a commit until the existing `cutPlayer` confirmation runs.
+- `submitWaiverClaim` returns unchanged when active scenario constraints set `blockFreeAgency`; otherwise it only appends a deduped `WaiverClaim` and does not move the player. Movement happens when `processWaiverClaims` groups claims by player, sorts by computed waiver order, awards the winning team, records `WaiverRunResult`, and expires unclaimed players to free agency.
+- `WaiverRunResult` batches are saved at `game.waiverResults` with id/year/week and entries for winners, losers, and cleared players. `selectClaimResults` reverses all saved batches for newest-first display, includes only user-team wins/losses for claim outcomes, and includes every `clearedToFreeAgency` entry with a `League-wide clearance` qualifier because saved clearance entries are not team-specific.
+- Waiver order is recomputed from team record: fewer wins first, then more losses, then fewer ties, then worse point differential, then team id. Do not treat `game.waiverOrder` as a permanently manual order unless the rules model is changed.
+- `awardClaim` adds the player to the winning roster, assigns a jersey, sets `player.teamId`, removes any free-agent entry plus all waiver-wire/claim entries for that player, logs `WAIVER_CLAIM`, records league news, refreshes roster/locker-room state, and syncs the claimant's cap totals. If the claimed player still has a contract, the helper updates `contract.teamId` to the claimant. If the player is contractless after a standard cut, the helper creates a one-year minimum contract with `getMinSalary(player.yearsExp)` and no signing bonus before cap synchronization.
+- `aiWaiverLogic` scans non-user teams, targets the highest-OVR waiver player at a position where the team has fewer than two rostered players, and currently submits the claim whenever the injected `rand()` is `<= 1`. If making AI waiver selectivity real, treat it as AI/team-building balance math with deterministic tests.
+- `selectWaiverWireBoard`, `selectWaiverPriority`, `selectClaimResults`, and `selectTransactionLog` are web read models. They join saved waiver/team/player/claim state for display and should not move players. The board now exposes contract labels, pending/open claim state, a week-advance clearance label, action eligibility, and lifecycle notes; already-pending user claims render as disabled intent, not a second claim action. Claim Results now renders cleared players as `cleared to free agency // League-wide clearance` so league-wide clearances are not mistaken for user-team claim losses. Display rows derive names from legacy `name`, first/last name, then id because `GameState.players` can be schema-normalized without legacy `name`. When saved `scenarioState.activeScenario.constraints.blockFreeAgency` is active, `WaiverWire.tsx` renders `Scenario Lock` copy and disables Submit Claim buttons to match the existing store no-op. Cross-year clearance semantics still use the current `expiresWeek - game.week` model.
+- `selectPracticeSquadCandidates` merges `selectFreeAgentPlayers` with `selectWaiverWirePlayers`, excludes existing practice-squad ids, and returns candidate rows with `source`, `availability`, `canAdd`, `actionLabel`, `statusLabel`, and `helpText`. Adding a player from this route still flows through `addToPracticeSquad`, which accepts only ids currently in `game.freeAgents`; waiver-wire candidates remain visible but are marked blocked or pending until they clear to free agency.
+- `selectPracticeSquadRows` joins saved `team.practiceSquad` entries through `game.players`, so `PracticeSquad.tsx` no longer depends on active-roster membership to render non-elevated player name/position/OVR. Candidate and row names use the same legacy `name` -> first/last -> id fallback as waiver rows. The screen still uses `addToPracticeSquad`, `elevatePSPlayer`, and `releasePSPlayer` for real movement and does not create contracts or alter waiver resolution. When saved `scenarioState.activeScenario.constraints.blockFreeAgency` is active, `PracticeSquad.tsx` renders `Scenario Lock` copy and disables Add buttons while leaving releases/elevations available as roster-management actions.
+- `team-needs.ts` is a derived report, not an acquisition commit path. `analyzeTeamNeeds` grades 11 position groups from roster rooms versus league starter averages; `compareTeamNeeds` compares two teams using the same derived league averages.
+- `teamNeedsReportFor` in `selectors.ts` returns `game.teamNeedsCache[team.id]` when present and only computes a fresh report when no cache exists. The web store's `commitGame` invalidates stale saved reports before autosave: any roster-room input change that can affect league starter averages (roster membership, position, OVR, age, or starter flag) clears all cached reports; cap-space-only changes clear the affected team's cached report. Scheme/offseason/free-agency transitions still clear their existing cache boundaries. Coordinate future FA/draft board work with this cache contract so `/team-needs`, FA targets, and war-room guidance do not read stale room grades.
+- `/team-needs` now labels the saved-cache-or-derived selector boundary and calls draft/FA target rows planning lanes only. The route's CPU Intent panel reads the selected comparison team's saved `team.philosophy`, canonical `team.gmStrategy`, cache-aware needs report, cap space, critical needs, and roster `tradeBlock` flags; comparison controls can locally filter CPU teams as Sellers, Buyers, or Neutral from those saved identity fields. Its `Intent Ledger` rows are read-only presentation over those same saved fields: market posture, GM strategy, cap plan, position chase, and trade-block reasons. Its `Strategy History` rows are also read-only: they read saved `game.eventLog` `gm_strategy_shift` events and saved `game.leagueNews` team-philosophy signal rows for the selected CPU team. Rendering or filtering does not run `applyTeamPhilosophies`, `applyGmStrategy`, `reevaluateLeagueStrategies`, `findTradeTargets`, refresh `teamNeedsCache`, generate trade offers, write save state, write news, autosave, reroll outcomes, or move assets. When saved `scenarioState.activeScenario.constraints` blocks draft picks, free-agency acquisitions, or trades, it renders planning-only `Scenario Lock` copy while keeping the report and comparison view available.
+- The `PracticeSquad.tsx` header, badge, and slot grid read `selectPracticeSquadLimit`, which delegates to engine-owned `getPracticeSquadLimit(game)`. Keep the engine helper, selector, route copy, component tests, and league-rule behavior aligned if the practice-squad size model changes.
+- The roster "Full House" achievement composes `getRosterLimit(game)` and `getPracticeSquadLimit(game)` instead of hard-coded 53/16 thresholds. `achievements.test.ts` guards both custom rule values and legacy no-rules fallback labels.
+- `RosterManagement.tsx` reads `selectRosterLimit` and `selectPracticeSquadLimit` for active-roster badges, roster-size details, and the embedded practice-squad panel, so roster-management presentation follows active/custom league rules instead of hard-coded 53/16 copy.
+- The selected-player Roster Management modal also renders a read-only Cut Forecast from `buildRosterCutForecast`, `calcDeadMoney`, `calcCapHit`, `buildCutAdvisor(roster, rosterLimit)`, `selectRosterLimit`, and waiver lifecycle copy. It does not mutate roster, cap, waiver, or player state until the existing cut confirmation dispatches `cutPlayer`.
+- Roster selected-player action receipts are route-local UI confirmations after existing Cut, Trade Block toggle, Restructure, Place on IR, or Activate from IR commits resolve through their current store/engine paths. They label the result, touched roster/player/waiver/cap/autosave state, exact source path, and no-extra-write boundary; they do not create durable receipt history, change movement rules, alter cap/contract formulas, or add save fields.
+- Roster training assignment receipts are route-local UI confirmations after the existing `actions.assignTraining -> assignTraining` commit resolves. The receipt reads the selected player, requested focus, previous saved assignment when present, `calculateTrainingXP` preview, and mentor-pair context; the durable state remains saved `team.trainingAssignments`, and the receipt itself is not a new save field or weekly progression result.
+- G3 browser persistence proof exists for the primary roster/depth/training/IR paths: `SMOKE_ROSTER_DEPTH_TRAINING=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` assigns roster training, places an injured player on IR, activates a separate IR-cleared player, promotes a WR room backup to starter, assigns a kick returner, verifies latest-autosave roster/player-map/special-teams state after hard reloads, and fails on browser errors.
+- G3 browser persistence proof exists for the primary weekly-prep path: `SMOKE_WEEKLY_PREP=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` saves live `/game-plan` prep controls, sims the staged matchup, verifies saved prep/film/opponent-report/game-result state and cleanup, hard-reloads into Film Room, and fails on browser errors.
+
+Route and selector surfaces:
+
+- App routes: `/trades`, `/trade-block`, `/scouting`, `/draft`, `/draft-recap`, `/free-agency`, `/fa-targets`, `/waivers`, `/practice-squad`, `/team-needs`, `/trade-deadline`, and `/expansion-draft`.
+- Feature folders: `features/trades`, `features/draft`, `features/free-agency`, `features/contracts`, `features/waiver-wire`, and `features/practice-squad`.
+- Selector boundaries: `selectOffseasonState`, `selectDraftClass`, `selectScoutingDepartment`, `selectTradeOffers`, `selectActiveProposals`, `selectTradeDeadlineState`, `selectConditionalPicks`, `selectWaiverWire`, `selectWaiverPriority`, `selectWaiverWireBoard`, `selectClaimResults`, `selectPracticeSquadRows`, `selectPracticeSquadCandidates`, `selectUserTeamNeeds`, `selectTeamNeedsComparison`, `selectCurrentDraftEntry`, `selectFATargetBoard`, `selectWatchlistTargets`, `selectWarRoomState`, `selectCapProjection`, and `selectContractExtensions`.
+
+Save and balance risks:
+
+- `agents`, player `agentId`, `offseasonState`, `reSignDecisions`, carryover holdout counters in `careerStats`, `draftClass`, `freeAgents`, `activeProposals`, `tradeDeadlineState`, `conditionalPicks`, `waiver*`, `waiverResults`, `teamNeedsCache`, `faTargetBoard`, `warRoomState`, `contractExtensions`, draft picks, player contracts, cap fields, and transaction logs are saved state. New fields require schema/migration/default coverage.
+- Contract/cap formulas are gameplay math. If touched, document before/after formulas, named constants, sample outputs, and cap/dead-money sanity ranges.
+- FA target board formulas are acquisition guidance math. If changing projected salary, fit score, market demand, sign probability, bargain ranking, or stale-snapshot rules, update `fa-target-board.test.ts`, `selectors.test.ts`, `FATargetBoard.test.tsx`, sample expectations, and this guide together.
+- Trade, FA, draft, waiver, and deadline RNG must stay deterministic from stored game state or explicit RNG arguments. Do not add `Math.random()` or wall-clock time to these decisions.
+- Many acquisition actions mutate roster, cap, locker-room sync, player archive, news, dynasty events, audio queues, and cached selectors. Verify downstream screens, not only the initiating route.
+- Save schemas for trade work include `TradeOfferAssetSchema`, `TradeOfferSchema`, recursive `TradeProposalSchema`, `DeadlineDealSchema`, `TradeDeadlineStateSchema`, and `ConditionalPickSchema`.
+
+Focused tests for acquisition work:
+
+- Engine: `config.test.ts`, `config/cap-math.test.ts`, `offseason.test.ts`, `player-agents.test.ts`, `draft.test.ts`, `trade-market.test.ts`, `trade-negotiation.test.ts`, `trade-deadline.test.ts`, `trade-finder.test.ts`, `trade-value.test.ts`, `contracts.test.ts`, `contract-helpers.test.ts`, `contract-tools.test.ts`, `contract-extensions.test.ts`, `franchise-tag.test.ts`, `incentives.test.ts`, `cap-laboratory.test.ts`, `cap-visualization.test.ts`, `fa-target-board.test.ts`, `comp-picks.test.ts`, `conditional-picks.test.ts`, `practice-squad.test.ts`, and `team-needs.test.ts`.
+- Store: `apps/web/src/app/store/game-store.test.ts` for offseason/scouting/draft/signing/cap/proposal actions, `selectors.test.ts` for memoized acquisition board ownership such as FA target snapshot freshness, and `game-store.gameweek.test.ts` for trade-offer audio plus deadline interrupt/finalize behavior.
+- UI: `DraftBoard.test.tsx`, `DraftPickReveal.test.tsx`, `DraftRecap.test.tsx`, `TradeCenter.test.tsx` for trade route scenario locks and trade context, `TradeBlockTicker.test.tsx` for trade-block source and scenario planning copy, `TradeDeadline.test.tsx` for deadline scenario locks, `FreeAgencyHub.test.tsx` for free-agency forecast windows and scenario locks, `FATargetBoard.test.tsx` for target-board source and acquisition-lock planning copy, `CapLaboratory.test.tsx`, `ContractTools.test.tsx`, `ContractsCap.test.tsx`, `PlayerComparison.test.tsx`, `App.test.tsx` for money route ownership, `architecture-boundaries.test.ts` for cap-context/import/browser-boundary guards, `WaiverWire.test.tsx` and `PracticeSquad.test.tsx` for acquisition scenario locks, `TeamNeeds.test.tsx` for team-needs source, CPU intent/history, and scenario-planning copy, and `buildInboxMessages.test.ts` for agent-pressure inbox copy.
+
+## Scouting, Draft Board, War Room, And Draft Recap Wiring
+
+This is the detailed map for the draft-night experience. Use it with the broader acquisition section above before touching prospect intel, private workouts, draft trades, pick reveals, or recap archives.
+
+Route and UI surfaces:
+
+- `apps/web/src/app/App.tsx` lazy-loads `ScoutingBoard`, `DraftBoard`, and `DraftRecap` for `/scouting`, `/draft`, and `/draft-recap`. Main nav exposes `/scouting` and `/draft`; `/draft-recap` is also linked from archive/inbox flows.
+- `packages/engine/src/config/navigation.ts` unlocks `/scouting` at midseason and `/draft` only in `phase = 'draft'`. Keep nav unlock copy and route guards in sync if moving draft access earlier.
+- `apps/web/src/features/scouting/ScoutingBoard.tsx` is the prospect-intel surface. It shows the top 32 prospects, position/region/watchlist/critical-need filters, regional coverage, hired scouts, scout pool, focus board, authored scouting flavor, compare modal entry, saved scouting watchlist actions, and the browser-local `WatchListPinButton`. Its read-only `Scouting Sources` panel labels saved `game.draftClass`, saved `offseasonState.scoutingState` intel, store/engine scouting action ownership, saved `offseasonState.scoutingWatchlist`, browser-local `mfd.watchlist.v1` pins, authored scouting-report templates, and the no-render-mutation boundary. Prospect cards also render `PRO DAY IMPACT` and `PRIVATE WORKOUT IMPACT` copy from existing scouting state: pro days save one `proDayRating`, raise confidence, and tighten visible grade without spending a private-workout slot; private workouts consume one seasonal workout, save `privateWorkoutRatings`, verify top position ratings, and can unlock risk/ceiling bands. Completed scouting actions now render a route-local `Scouting Action Receipt` after the existing store action resolves, covering scout hire/fire, saved scouting watchlist toggles, film/combine/interview intel actions, pro days, and private workouts. Those receipts name the action source, existing commit path, pre-action context, and state touched; they are not saved receipt history.
+- `apps/web/src/features/draft/DraftBoard.tsx` is the live war-room surface. It shows the top 20 prospects, current pick, simulated clock, remaining user picks, incoming trade-down offers, trade-up calculator, needs-aware suggestions, and the big-board draft button when the user is on the clock. Its read-only `Draft Board Sources` panel labels saved `game.draftClass`, saved `offseasonState.scoutingState` intel/fallbacks, `selectWarRoomState` saved-versus-derived behavior, store action owners, route-local Offer Confidence, route-local Draft Market Receipt, and route-local reveal/receipt presentation boundaries. Big Board rows also render route-local `buildDraftPickForecast` copy from current pick round, projected round, critical-need fit, saved scouting confidence/risk/ceiling/character, and source ownership before the `makeDraftPick` button. After that existing action resolves, `/draft` renders a route-local `Draft Pick Receipt` that labels the selected prospect, pre-pick forecast, `actions.makeDraftPick -> makeDraftPickEngine -> applyDraftSelection -> commitGame` path, touched draft/roster/player/news/archive/press-conference/audio/autosave state, and no-extra-write boundary without adding durable receipt history. Incoming offer cards render route-local `buildDraftOfferConfidence` copy from `selectWarRoomState.incomingOffers`, current pick context, critical needs, top visible prospect, and `calcPickValue` chart reads before the existing Accept/Reject buttons; they also render `Draft Market Receipt` copy from the saved incoming-offer team/target/urgency/reasoning/assets plus that confidence read. The route-local receipt does not generate offers, accept/reject the trade, move picks, update draft order, autosave, refresh the war room, run sim, or touch RNG. After a valid Accept, the engine writes the durable accepted-trade history into existing `game.leagueNews`. During `phase = post_draft`, `/draft` now renders a `Draft Closure` panel: if `selectDraftRecaps` already has the current-year user recap it routes to `/draft-recap`, otherwise it calls the existing `advanceWeek` post-draft finalization path and then routes to `/draft-recap`. The panel does not generate or repair recaps during render. The focused `SMOKE_DRAFT_WAR_ROOM_TRADE=1` harness stages a real-backed generated offer, clicks this Accept button, and verifies the saved transaction plus `leagueNews` receipt after hard reload. The `Comp Pick Context` panel reads the active `comp_pick_limit` for the current year and displays it as a source value beside saved `isCompPick` rows; it still does not award picks or maintain a second ledger. When `scenarioState.activeScenario.constraints` blocks draft picks or trades, `/draft` renders a `Scenario Lock` panel; Draft Player buttons are disabled for `blockDraft`, draft-night Accept buttons are disabled for `blockTrades`, and Reject remains available to clear a stale displayed offer without moving picks.
+- `apps/web/src/features/draft/DraftPickReveal.tsx` is presentation-only. The modal/card takes already-derived pick content, respects reduced motion, and does not own draft state.
+- `apps/web/src/features/draft/DraftRecap.tsx` reads archived user-team recaps, lets the user select a year, renders best-value reveal card/highlights, links saved recap picks back to existing player profiles through `PixelPlayerLink`, and shows pick-by-pick verdicts. It now renders `Draft Recap Sources`, labeling `selectDraftRecaps`, route-local selected-year state, `finalizePostDraft` as the upstream recap writer, selected-recap presentation including player profile links, and the no-render-generation/no-repair boundary. It also renders a read-only `Class Follow-Through` panel for the selected saved recap: `buildDraftRecapFollowThrough` de-duplicates top pick, best value, reach watch, and steal follow-up rows, joins saved pick ids against current `game.players` plus `selectTeams`, and displays current team, current OVR, age, experience, and OVR delta without inferring retirements/releases for missing live rows. Rendering `/draft-recap` does not generate recaps, repair picks, create player history, change ratings, move roster assets, change contracts, alter depth charts, autosave, or reroll outcomes. `/draft-recap` also resolves to unanchored `draft-recap` Chip route beats that point to saved recap rows, class-grade/value/reach/steal/highlight reads, route-local year selection, and the no-generation/no-repair boundary.
+- Route coaching uses route keys `scouting-board`, `draft-board`, and `draft-recap`; anchors live in `ScoutingBoard.tsx` and `DraftBoard.tsx` as `chip.route.scouting-board.*` and `chip.route.draft-board.*`, while `draft-recap` is intentionally unanchored in `DraftRecap.tsx`. Update `routeBeatRegistry` and `spotlightAnchors` tests if those targets move.
+
+Selector and store boundaries:
+
+- Scouting UI reads `selectDraftClass`, `selectOffseasonState`, `selectScoutingDepartment`, and `selectUserTeamNeeds`; actions are `runScoutingAction`, `runProDay`, `runPrivateWorkout`, `toggleScoutingWatchlist`, `hireScout`, and `fireScout`. The post-action receipt panel is route-local React state built from the action inputs and the pre-action read model.
+- Draft UI reads `selectPhase`, `selectUserTeam`, `selectUserTeamNeeds`, `selectDraftClass`, `selectDraftRecaps`, `selectOffseasonState`, `selectCurrentDraftEntry`, and `selectWarRoomState`; actions are `acceptDraftTradeOffer`, `rejectDraftTradeOffer`, `refreshWarRoom`, `makeDraftPick`, and `advanceWeek`. `acceptDraftTradeOffer` delegates to engine `applyDraftTradeOffer`, which updates team pick ledgers plus live current-year `offseasonState.draftOrder` owner/id entries for accepted live offers and returns the original state for stale/no-op accepts. The browser smoke proves this path through the rendered `/draft` route for a live current-year pick plus owned future sweetener, then verifies autosave/hard-reload persistence. The `/draft` comp-pick explanation, Pick Forecast rows, and `Draft Closure` CTA are display-only over saved draft/scouting/pick/need/recap state until the user clicks the existing finalize/review action. The post-pick receipt is also route-local presentation after the existing store action resolves.
+- G3 browser persistence proof exists for the primary scouting plus user-pick path: `SMOKE_DRAFT_SCOUTING=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` stages a latest-autosave draft fixture, saves live `/scouting` watchlist/film/pro-day/private-workout state, hard-reloads, drafts the prospect through `/draft`, verifies rookie/player-map/pick/news state, hard-reloads again, and fails on browser errors.
+- `selectWarRoomState` returns stored `game.warRoomState` only when it matches the current pick and team on the clock. Otherwise it rebuilds a preview with `buildDraftWarRoomState(state.game, intelRng(...))`.
+- `selectDraftRecaps` filters saved `game.draftRecaps` to the user team and sorts newest first. `/draft-recap` owns recap review, profile links, and current-player class follow-through over current `game.players` / `selectTeams`; `/draft` owns the post-draft closure CTA; and `PlayerProfile.tsx` / `PlayerTimeline.tsx` may read those saved rows to display a matching player's `Draft Class Memory`. None of those render paths generate, repair, rescore, or rewrite recaps or player history.
+- There are three watch-list concepts across scouting/acquisition surfaces: saved draft scouting focus in `offseasonState.scoutingWatchlist`, saved free-agent target focus in `faTargetBoard.watchlist`, and browser-local global pins in `apps/web/src/features/watch-list/watchListPrefs.ts` under `mfd.watchlist.v1`. Do not merge them without a deliberate persistence/migration plan.
+
+Engine ownership:
+
+- `packages/engine/src/systems/draft.ts` owns `ensureDraftClass`, `runScoutingAction`, `runPrivateWorkout`, `makeDraftPick`, `advanceDraft`, and `finalizePostDraft`. React should not duplicate pick mutation, rookie creation, news, dynasty events, press conference creation, or near-miss receipt logic. `makeDraftPick` returns an unchanged clone when active scenario constraints set `blockDraft`.
+- `ensureDraftClass(game)` seeds from `game.seed` and `game.year`, sizes the class to at least 64 and `pickCount + 24`, assigns bloodlines, sorts by `trueGrade`, and runs combine data.
+- `runScoutingAction(game, prospectId, action)` clones state, picks the best scout, normalizes `offseasonState.scoutingState[prospectId]`, tightens visible grade/confidence, writes notes, and consumes private workouts only through the `private_workout` path.
+- `packages/engine/src/systems/advanced-scouting.ts` owns regions, scout fit score, confidence, risk/ceiling/character bands, notes, private workout ratings, visible-grade tightening, and the saved scouting-watchlist toggle helper. `resolvePrivateWorkout` adds `private_workout`, consumes a workout slot, saves the top two rating lines, increases accuracy/confidence, and normalizes risk/ceiling bands.
+- `packages/engine/src/systems/scouting-staff.ts` owns pro-day output. `runProDay` requires an available scout, stores one `proDayRating`, increases accuracy/confidence, tightens visible grade, and does not spend private-workout inventory.
+- `packages/engine/src/systems/scouting-staff.ts` owns default department shape, deterministic scout pool generation, hire/fire budget effects, best-scout selection, combine generation, and pro-day writes.
+- `packages/engine/src/systems/draft-war-room.ts` owns incoming trade offers, trade-up/down evaluations, war-room grade updates, `buildDraftWarRoomState`, and `applyDraftTradeOffer`. Generated trade-down offers require source-backed live `offseasonState.draftOrder` entries for the current pick and offering pick; the old synthesized fallback is intentionally retired. Future round sweeteners are emitted only from actual future `team.draftPicks` owned by the source team, using year-qualified pick ids that `transferPick` can move. Accepted live current-year offer assets are validated against both `offseasonState.draftOrder` and source team `draftPicks` before mutation; real transfers update `DraftPick.currentTeamId` and matching draft-order `teamId`/`id` entries, then `recordAcceptedDraftTradeNews` writes a deterministic `leagueNews` trade item through existing `recordNewsItem`. Missing live/source picks return the original state so callers can avoid false commits and false receipts. `scripts/smoke-test-post-setup-route.mjs` now covers the rendered `/draft` accept flow for this transaction with `SMOKE_DRAFT_WAR_ROOM_TRADE=1`; it is proof tooling, not gameplay logic.
+- `packages/engine/src/systems/draft-recap.ts` owns recap pick verdicts, class-grade scoring, best value, biggest reach, steals, and league top-five highlights.
+
+Save and determinism risks:
+
+- Saved draft fields include `game.draftClass`, `game.offseasonState.scoutingState`, `game.offseasonState.scoutingWatchlist`, `game.offseasonState.draftOrder`, `game.offseasonState.currentDraftPickIndex`, `game.offseasonState.completedDraftPickIds`, `game.scoutingDepartment`, `game.warRoomState`, `game.draftRecaps`, team `draftPicks`, roster/player records, `playerArchive`, `relationships`, `leagueNews`, `dynastyTimeline`, `recentPressConferences`, and near-miss state.
+- Save schemas cover these through `ProspectScoutingStateSchema`, `ScoutingDepartmentSchema`, `OffseasonStateSchema`, `WarRoomStateSchema`, and `DraftRecapSchema` in `packages/engine/src/save/schema.ts`. New persistent prospect/scout/war-room/recap fields require TypeScript types, schema, migrations, seed/default creation, fixture/golden-save updates, and old-save tests.
+- Draft/scouting randomness must remain deterministic. Use `mulberry32`, `RNG`, explicit RNG arguments, or `intelRng` salts already in store/selectors. Do not use `Math.random()`, `Date.now()`, or render-time randomness for sim decisions.
+- `DraftBoard` uses local React state for the reveal modal and route-local `Draft Pick Receipt` after `makeDraftPick`; neither is durable draft history. If active scenario constraints set `blockDraft`, the web store returns before draft audio/autosave/commit, so blocked user picks do not stage a reveal/receipt or mutate the save. If a future design needs draft-pick reveal history, store it in a schema-backed field or derive it from drafted players/recaps.
+- `buildDraftPickForecast` in `DraftBoard.tsx` is presentation-only. It should keep using saved `offseasonState.scoutingState` plus current pick/need context and must not duplicate `makeDraftPick`, prospect generation, rookie creation, news, press-conference, near-miss, or recap logic.
+- `buildDraftOfferConfidence` in `DraftBoard.tsx` is presentation-only. It prices readable pick assets with `calcPickValue`, treats future-round picks as final-pick chart estimates, labels unpriced conditional/player assets as display warnings, and must not duplicate `evaluateTradeDown`, `generateDraftTradeOffers`, `applyDraftTradeOffer`, trade valuation, pick transfer, or war-room offer generation.
+- The `/draft` `Scenario Lock` panel is UI guidance over existing store guards. It should keep reading saved `scenarioState.activeScenario.constraints`, disable only already-blocked commit buttons, and avoid changing `makeDraftPick`, `acceptDraftTradeOffer`, `rejectDraftTradeOffer`, scenario definitions, scenario coverage copy, or engine enforcement.
+- `acceptDraftTradeOffer` first returns without committing when active scenario constraints set `blockTrades`; otherwise it applies the engine trade transaction, skips commit/audio/autosave if the engine returns the original stale/no-op state, rebuilds war-room state, appends trade audio, and commits. Accepted live current-year offers update both team `draftPicks` and live `offseasonState.draftOrder` ownership, source-backed future sweeteners transfer through the same pick ledger without altering current draft order, and the engine writes a durable accepted-trade `leagueNews` receipt through the existing schema-backed feed. The focused `SMOKE_DRAFT_WAR_ROOM_TRADE=1` browser proof covers a richer accepted offer through `/draft`, autosave, hard reload, and receipt readback; remaining draft-trust work should target post-draft CTA/recap clarity or deeper prospect memory rather than redoing the accepted-offer transaction. `rejectDraftTradeOffer` filters only the current stored offer list. If trade offer identity changes, update both offer filtering and tests.
+- `advanceWeek` is used by `DraftBoard` to move CPU picks because `advanceFranchiseWeek` delegates the draft phase to `advanceDraft`. Do not add a separate UI-only draft clock that bypasses week/phase progression.
+
+Focused tests for this layer:
+
+- Engine: `draft.test.ts`, `draft-premium.test.ts`, `advanced-scouting.test.ts`, `scouting-staff.test.ts`, `draft-war-room.test.ts`, `draft-recap.test.ts`, `comp-picks.test.ts`, `conditional-picks.test.ts`, `near-miss-wiring.test.ts`, and save tests when persistent shapes change.
+- Store: `apps/web/src/app/store/game-store.test.ts` covers scouting actions, private workouts, draft picks, and war-room trade actions.
+- UI: `ScoutingBoard.test.tsx` for source panels and route-local Scouting Action Receipt copy, `DraftBoard.test.tsx` for source panels, Pick Forecast copy, Draft Pick Receipt copy, Offer Confidence copy, Draft Market Receipt copy, and Scenario Lock copy, `DraftPickReveal.test.tsx`, `DraftRecap.test.tsx`, `LegacyTimeline.test.tsx`, `InboxTriage`/`buildInboxMessages` tests for recap messages, and route-coaching tests when draft/scouting anchors move.
+- Navigation/audio: `packages/engine/src/config/navigation.test.ts`, `apps/web/src/features/tutorial/TutorialCoverage.test.tsx`, `routeBeatRegistry.test.ts`, `spotlightAnchors.test.ts`, `useActiveRouteBeats.test.ts`, and `AudioManager`/`AudioController` tests if route ambience or draft/trade audio changes.
+
+## Governance, Owner, Coaching, And AI Wiring
+
+This layer is four linked systems, not one screen:
+
+- League governance: `league-rules.ts`, `cba-engine.ts`, `commissioner.ts`, and `labor-relations.ts` own rule defaults, CBA negotiations, commissioner proposals, votes, rulings, lockouts, and labor events.
+- Owner pressure: `owner.ts`, `owner-extended.ts`, `owner-goals.ts`, `owner-personality.ts`, and `handshake-ledger.ts` own owner approval, patience, ultimatums, mandates, and promise evaluation.
+- Coaching/front office: `franchise-setup.ts`, `assistant-gm.ts`, `agm.ts`, `agm-setup-content.ts`, `setup-hiring-catalog.ts`, `coaching-market.ts`, `coaching-carousel.ts`, `coaching-clinic.ts`, `coach-aging.ts`, `coach-retirement.ts`, `coach-retention.ts`, `coach-skill-tree.ts`, `coach-trait-mods.ts`, `coordinator-chemistry.ts`, `coordinator-specialties.ts`, `position-coaches.ts`, `coaching-legacy.ts`, and `relationship-graph.ts`.
+- CPU identity: `gm-strategies.ts`, `gm-reputation.ts`, `ai-philosophy.ts`, `ai-bias.ts`, `adaptive-difficulty.ts`, and `team-needs.ts` shape team strategy, philosophy, trade/draft tendencies, and user-facing difficulty adaptation.
+
+Governance write paths:
+
+- `initLeagueRules`, `getActiveRule`, `getRuleValueForYear`, `applyRuleChange`, `getRuleHistory`, and `diffRules` are the rule-table boundary. Rule changes can affect cap growth, cap floor, schedule length, trade deadline week, draft rounds, practice squad size, comp-pick limits, and playoff spots.
+- `initCBA`, `checkCBAStatus`, `generateCBAProposal`, `evaluateCBAProposal`, `negotiateCBA`, `ratifyCBA`, `getLockoutRisk`, `resolveLockout`, and `applyCBADealToRules` are the CBA boundary.
+- `initCommissioner`, `generateRuleProposal`, `castVote`, `simulateAIVotes`, `resolveVote`, `getCommissionerAgenda`, `issueRuling`, and `advanceCommissioner` are the commissioner boundary.
+- `initLaborState`, `getUnionLeader`, `updateUnionSatisfaction`, `checkWorkStoppage`, `resolveWorkStoppage`, and `generateLaborEvent` are the labor boundary.
+- The web store owns user actions: `voteOnProposal`, `petitionRuleChange`, `voteOnCBA`, and `advanceCBANegotiation`. It also owns `ensureGovernanceState`, cap-space refresh after rule/CBA changes, governance/labor narrative writes, and navigation to `/cba` when CBA status is `negotiating`, `awaiting_owner_vote`, or `lockout`.
+
+Owner and mandate flow:
+
+- `initOwner`, `updateOwnerApproval`, and `getOwnerStatus` drive the basic owner approval meter.
+- `tickPatience`, `calcConfidenceArc`, `generateUltimatums`, and `checkHotSeat` add longer-term ownership pressure. `tickPatience` uses archetype-specific gain/drain rates, halves loss drain in the first season before playoff multipliers, stacks playoff appearance/streak/week-nine checkpoint modifiers, and clamps final patience to 0-100. `calcConfidenceArc` scores patience at 65% and owner mood at 35% into `PATIENT`, `RESTLESS`, `DEMANDING`, and `ULTIMATUM` stages. `generateUltimatums` pulls unique cloned ultimatum objects from the AI RNG channel only, so callers cannot mutate the module pool. Keep `owner-extended.test.ts` green when changing patience math, confidence thresholds, ultimatum catalogs, RNG channel usage, hot-seat thresholds, or furious penalties.
+- `buildOwnerMandates`, `refreshOwnerMandates`, `evaluateOwnerMandates`, `installOwnerMandates`, and `upsertOwnerMandateHandshakes` connect setup goals, AGM identity, promises, and season evaluation.
+- `handshake-ledger.ts` creates owner demands and player promises, then evaluates them during the week/offseason tail.
+- The store action `refreshOwner` clones the current game, calls `updateOwnerApproval` to recalculate approval and write the single owner-history row for the selected team, then commits through `commitGame(nextGame)`.
+
+Coaching and front-office flow:
+
+- `franchise-setup.ts` owns the day-one wizard: AGM selection, intel briefing, roster overview, coach/scout hiring, scheme/depth/cap/goal choices, blueprint generation, and `finalizeSetup`. `finalizeSetup` writes head coach/scouts, selected AGM, franchise blueprint, owner mandates, and related first-save state.
+- `assistant-gm.ts` and `agm-setup-content.ts` provide setup dialogue, reactions, teaching tips, and weekly AGM guidance. `agm.ts` provides route screen tips and weekly recommendations. `agm-setup-content.ts` is intentionally a direct authored-JSON bridge with live-id aliases and deterministic fallbacks rather than a content-loader-owned schema path.
+- `setup-hiring-catalog.ts` owns the clone-safe first-run head-coach and scouting-director catalogs, candidate lookup, setup HC materialization, and selected-director scout seeding. `franchise-setup.finalizeSetup` uses it to write `team.staff.hc`, `team.coachingStaff.hc`, and `game.scoutingDepartment.scouts`; `assistant-gm.ts` re-exports candidate lists for setup UI/AGM reactions. Keep `setup-hiring-catalog.test.ts`, `franchise-setup.test.ts`, and `assistant-gm.test.ts` green when changing setup candidate ids, archetypes, scheme preferences, staff defaults, or scout pools.
+- `coaching-market.ts` owns `buildCoachingMarket`, `hireStaffCandidate`, `fireStaffMember`, `promoteCoordinator`, and mirrored writes into both `team.staff` and `team.coachingStaff`.
+- `coaching-carousel.ts` runs league coach firings, hires, promotions, and departures during offseason progression.
+- `coaching-clinic.ts` owns five XP tracks (`offense`, `defense`, `analytics`, `leadership`, and `development`), two threshold perks per track at 30/80 XP, action-string-to-track mapping in `earnXP`, and active perk aggregation in `getClinicMods`.
+- `coordinator-specialties.ts` owns the five OC and five DC specialty catalogs plus `assignCoordSpecialty` / `getSpecialtyById`. The catalog ids are consumed by `coordinator-chemistry.ts` matrices and `scheme-fit.ts` player identity bonuses, while the `effect` objects are the simulation-facing specialty metadata. `assignCoordSpecialty(staff, role)` mutates `staff.specialty75`, pulls from the OC or DC pool using the AI RNG channel, and returns an existing `specialty75` without rerolling. Keep `coordinator-specialties.test.ts`, `coordinator-chemistry.test.ts`, and `scheme-fit.test.ts` green when changing specialty ids, effects, labels, icons, or assignment behavior.
+- `coach-aging.ts`, `coach-retirement.ts`, and `coach-retention.ts` handle retirement chance, replacement, development, retention decisions, and poaching.
+- `coach-skill-tree.ts`, `coach-trait-mods.ts`, `coordinator-chemistry.ts`, `coordinator-specialties.ts`, and `position-coaches.ts` are gameplay modifiers. Treat these as gameplay math if changed: document formulas, constants, sample inputs, and min/max sanity ranges.
+- Head-coach skill selections are saved on `team.skillSelections` keyed by active HC id. The `/coaching` development tab calls `setHeadCoachSkillSelection(branch, tier)`, which clones the current game, writes `{ branch, tier, archForLookup }`, and commits. `getActiveBonus(selections, coachId, coachLevel, archetype)` gates bonuses by selected branch/tier plus coach level; live production usage is season-end `advanceCoachDevelopment` during playoff champion rollover. These bonuses can affect next-season staff rating/level progression, but they do not alter completed game sims retroactively.
+- `coach-trait-mods.ts` is live sim math. `getCoachTraitMods(team)` reads `team.staff.hc/oc/dc` trait ids from `COACH_TRAITS`, aggregates known effects, and clamps capped fields such as `stallReduction`, `pocketBoost`, `pressureBoost`, `intBoost`, `qbBoost`, `devRate`, and `moraleBoost`. `game-sim.ts` currently consumes `pocketBoost`, defensive `pressureBoost`, `stallReduction`, and `qbBoost` inside drives; other mod keys may be exported/readable but are not proof of live sim usage unless a caller is added.
+- Position coaches are optional team state (`team.positionCoaches`) with migration v22 defaulting missing saves to `undefined`. `position-coaches.ts` defines seven roles (`OL`, `DL`, `DB`, `WR`, `RB_TE`, `LB`, `ST`) and maps players to roles as QB/OL -> `OL`, RB/TE -> `RB_TE`, CB/S -> `DB`, K/P -> `ST`, and same-name roles for WR/DL/LB. `initializePositionCoaches(baseLevel, rng)` generates one coach per role with quality clamped 1-10, `upgradePositionCoach` replaces only the selected role, `advancePositionCoachSeason` increments `yearsWithTeam`, and `generateCoachingStaffReport` is a pure report helper.
+- `getPositionCoachBonus(team?.positionCoaches, player)` is live progression math. Quality maps to a dev multiplier using `0.85 + quality * 0.05`, clamped 0.9-1.3, then adds up to +0.06 tenure bonus over three years and clamps the final multiplier to 0.9-1.35. Specialty rating boosts are clamped integer deltas from -1 to +2 and only apply when the player's ratings object already contains that rating key. `progression.ts` multiplies base development by this multiplier and merges the rating boosts with training bonuses; `development-insights.ts` uses the same helper only for coach-impact narrative in reports. Generation, upgrade, fit, staff-report, and season-advance helpers are exported/tested. `/coaching` renders `Position Coach Report` from `generateCoachingStaffReport(team.positionCoaches)` and now exposes explicit position-coach lifecycle buttons: `actions.initializePositionCoachesForTeam(team.id)` seeds missing rooms through `initializePositionCoaches`, and `actions.upgradePositionCoachRole(team.id, role)` replaces one selected role through `upgradePositionCoach`. Both store actions clone the current save, seed generation with the existing `buildIntelSeed(...)+mulberry32` store pattern, write only saved `team.positionCoaches`, commit through `commitGame`, and show route-local `Position Coach Receipt` confirmations after the action resolves. Championship rollover now also calls `advancePositionCoachSeason` from `advanceSeasonEndCoaching` for teams that already have saved position coaches, incrementing existing `yearsWithTeam` before the next offseason year; `/coaching` source context and the Position Coach Report footer label that source path. Opening `/coaching` still does not seed coaches, upgrade roles, recalculate player progression, add clinic XP, refresh the staff market, resolve poaching, change save schema, alter sim math, or run offseason coach development.
+- Coordinator specialty ids are saved on staff as optional `specialty75`. `assignCoordSpecialty(staff, role)` mutates the staff member with a seeded OC/DC-pool specialty from `RNG.ai` and returns existing specialties without rerolling. `coordinator-chemistry.ts` scores HC/OC/DC fit and exposes `getChemistryBonus`; `scheme-fit.ts` reads OC/DC specialties for player identity fit. The `StaffChemistry` team field is optional/migration-defaulted, so treat chemistry caching or new consumers as save-sensitive work.
+- `coaching-legacy.ts` and `relationship-graph.ts` provide long-term coach tree and relationship surfaces for dynasty presentation.
+- Store actions `refreshCoachingMarket`, `hireStaff`, `fireStaff`, `promoteStaff`, and `setHeadCoachSkillSelection` remain the HC/OC/DC and head-coach development mutation boundary. Position-coach mutations are deliberately narrower: `initializePositionCoachesForTeam` and `upgradePositionCoachRole` only touch `team.positionCoaches`; they do not mutate `team.staff`, `team.coachingStaff`, `team.clinic`, `team.skillSelections`, `game.coachingMarket`, player development rows, or coach history.
+
+CPU AI and difficulty flow:
+
+- `applyGmStrategy`, `suggestStrategy`, `evaluateStrategy`, and `reevaluateLeagueStrategies` keep CPU teams attached to rebuilding, contending, aggressive, conservative, or balanced strategy identities.
+- `derivePhilosophy` and `applyTeamPhilosophies` convert long-running team outcomes into persistent team philosophy and news.
+- `gm-reputation.ts` summarizes transaction reputation. `calculateReputation(txLog, tradeState)` counts only `TRADE` and `SIGN_FA` entries, derives fair-dealer/aggressive scores from volume with 0-100 clamps, uses rounded average `gmTrustByTeam` for loyalty when present, defaults loyalty to 50, and rounds the three-axis overall score. `getRepLabel(score)` owns public tiers from `Untrusted` through `Elite GM`; update `gm-reputation.test.ts` when changing scoring or labels.
+- `createDefaultDifficultyState`, `updateAdaptiveDifficulty`, and `getAdaptiveModifier` own adaptive difficulty. This is saved state and should not be mixed with playtest-only bias knobs unless intentionally promoted into the cartridge.
+- AI changes often influence trades, draft picks, free agency, coaching movement, and week-advance recommendations. Verify the downstream flow, not only the helper being edited.
+
+Governance, staff, and AI boundary map:
+
+- League rules are effective-year records. `applyRuleChange` updates the current `leagueRules.entries[key]` plus `history`; `getRuleValueForYear` reconstructs past/future values from rule history. Do not read raw `entries[key].value` for year-sensitive math when a helper such as `getActiveRule` or `getRuleValueForYear` exists.
+- Governance store actions call `ensureGovernanceState(nextGame)` before votes/petitions/CBA actions. If adding a new governance entry point, preserve the default initialization path for old saves that may lack `leagueRules`, `cbaState`, `commissionerState`, or `laborState`.
+- Commissioner petitions are one active owner petition per user team today: `petitionRuleChange` filters prior user petitions before adding a new one. Failed owner petitions apply an owner mood penalty; passed salary-cap/cap-floor changes refresh league cap space.
+- CBA/rule changes can mutate league rules indirectly via `applyCBADealToRules` and directly via commissioner votes. Treat cap growth, cap floor, roster limits, practice-squad size, playoff seeds, schedule weeks, trade-deadline week, draft rounds, comp-pick limits, and tag types as league-wide balance surfaces.
+- Owner mandates are durable setup-season goals stored in `game.ownerMandates`. `installOwnerMandates` writes mandates, `refreshOwnerMandates` updates progress, `evaluateOwnerMandates` resolves season outcomes, and `upsertOwnerMandateHandshakes` mirrors mandates into the handshake ledger so owner promises appear in living-world promise flows.
+- AGM profile choice is saved in `game.frontOffice.agmProfileId`, with fallbacks through `franchiseBlueprint` and `setupState`. `assistant-gm.ts` is mostly advisory/setup copy and reactions; `agm.ts` is route tips/weekly recommendations. Do not treat advisory text as a committed gameplay effect unless a separate engine mutation records it.
+- `franchise-setup.ts` is the day-one transaction boundary. `finalizeSetup` writes staff, scouts, selected AGM, blueprint, owner mandates, setup completion, and first-save state. Any setup phase or decision shape change needs setup persistence, save schema, and old-save checks.
+- Coaching market candidates are deterministic from `game.seed`, year, week, team id, role, and candidate index. `selectCoachingMarket` lazily rebuilds a market when the cached `game.coachingMarket` is missing or stale for the current team/year/week.
+- Staff writes must keep mirrors synchronized. `coaching-market.ts` writes both `team.staff.{hc,oc,dc}` and `team.coachingStaff.{hc,oc,dc}` through `writeStaff`; hiring/firing/promoting also appends `eventLog`, records league news, and refreshes the market.
+- Clinic state is team-owned saved state on `team.clinic`. `earnXP(clinic, action, amount)` changes XP for known legacy action strings and direct clinic track ids (`offense`, `defense`, `analytics`, `leadership`, `development`), returns the original object for unknown actions, clones the XP/perk containers for known actions, and unlocks each perk once when a track crosses its threshold. `getClinicMods(team.clinic)` is the read model for perk effects; current inspected consumers use `padsInjReduction` in weekly prep and `devBoost`/`credBonus` in coach development/retention math, while the coaching UI displays XP and perk counts. Keep `coaching-clinic.test.ts` green when changing track ids, action mapping, thresholds, perks, or modifier values.
+- Coordinator specialties are saved on staff as optional `specialty75`. Existing assigned specialties are sticky because `assignCoordSpecialty` returns them directly and does not advance the AI RNG channel; missing OC/DC specialties are generated from role-specific catalogs. Treat specialty assignment as deterministic RNG behavior and preserve the role-pool split.
+- Coaching modifier persistence is split: `team.skillSelections` and `team.clinic` are seeded team fields, `StaffMember.specialty75` is schema-permissive optional data, and `team.staffChemistry` / `team.positionCoaches` are optional team fields backfilled to `undefined` by migrations. Changing these shapes, seeding position coaches by default, or making optional helpers required is save-schema/default/migration work.
+- `refreshOwner` now follows the durable clone -> `updateOwnerApproval` -> `commitGame` path, and `updateOwnerApproval` remains the single writer for owner approval history rows so store code should not append duplicate receipts. `addClinicXP` also follows the durable clone -> `commitGame` path for known clinic actions and remains a no-autosave no-op for unknown action strings. Audit persistence/autosave expectations before using any direct `set` actions as templates for new durable actions.
+- CPU identity has two layers: `gm-strategies.ts` writes `team.gmStrategy` and toggles player `tradeBlock`; `ai-philosophy.ts` writes `team.philosophy`, may call `applyGmStrategy`, and records news when philosophy changes. Changes here can affect trade-market, trade-value, draft-war-room, free-agency, and team-needs behavior.
+- `gm-strategies.ts`'s public strategy catalog is only `rebuild`, `contend`, and `neutral`. `applyGmStrategy` mutates every roster player's `tradeBlock`: rebuild shops age-28-plus 72+ OVR players, contend shops low-OVR older depth, and neutral clears all trade-block flags. `reevaluateLeagueStrategies(game)` skips user teams, can pivot CPU rebuild teams with young strong cores to contend, old losing contenders to rebuild, and neutral teams from recent franchise-history trend, then appends `gm_strategy_shift` events plus recent headlines. `/team-needs` reads those saved events into `Strategy History` for the selected CPU comparison team; it does not invoke the reevaluator from render.
+- `ai-philosophy.ts` derives saved `team.philosophy` from the last three franchise-history rows, cap space/dead cap/cap used, and average roster age. `fire_sale` requires cap stress plus a sharp win drop, `contend` requires two straight 0.625+ playoff seasons, `rebuild` requires three sub-.500 seasons plus young roster or cap room, and everything else is `maintain`. `applyTeamPhilosophies(game, currentYear)` skips user teams, sorts CPU teams by id for determinism, writes philosophy every offseason, calls `applyGmStrategy` only for non-maintain philosophies, and records one league-news item only when the philosophy changes.
+- A `maintain` philosophy write does not normalize `team.gmStrategy` back to neutral or clear existing `tradeBlock` flags. Because `advanceOffseason` runs `reevaluateLeagueStrategies(game)` before `applyTeamPhilosophies(game, currentSeasonYear(game))`, CPU teams can legitimately carry `philosophy: 'maintain'` while retaining a prior or strategy-derived `gmStrategy`. UI labels, filters, and AI changes should either display both fields or deliberately normalize/migrate this split with tests.
+- Offseason is the live CPU-identity mutation path. `advanceOffseason(game)` calls `reevaluateLeagueStrategies(game)`, pushes returned strategy events into `eventLog`, then calls `applyTeamPhilosophies(game, currentSeasonYear(game))` before offseason news, generated trade offers, endorsement offers, `teamNeedsCache = {}`, and `warRoomState = null`. `advanceFreeAgency` refreshes generated trade offers each round and clears team-needs/war-room caches again when moving into the draft.
+- Trade consumers treat strategy and philosophy differently. `trade-value.ts` uses `team.gmStrategy` for rebuild/contend value nudges and acceptance thresholds, while `team.philosophy` can override with `fire_sale` or rebuild/contend-specific pick/player valuation. `trade-market.ts` uses philosophy to create fire-sale outbound offers, prevent fire-sale teams from buying user players, protect young stars for contenders, and prefer picks/flexibility for rebuilding sellers.
+- Free-agency AI also reads philosophy: rebuilding teams pay more for young targets and less for veterans, contenders bias toward veterans/80+ OVR players, and fire-sale teams usually pass unless a young affordable target fits. `AIBiasConfig` is a playtest/harness knob, not saved dynasty state; `faAggression`, `extensionAggression`, `udfaReliance`, `tradeWillingness`, `fireCoachEverySeason`, `snapManagement`, `fatigueIgnore`, and `advanceOnly` are optional and many consumers preserve old hard-coded behavior when the relevant field is undefined.
+- `team-needs.ts` is a pure read model over the current roster and league starter averages. It grades 11 position groups, sorts rooms by starter flag/OVR/age/id, flags age risk from 30+ starters, picks critical needs/strengths, and maps cap space to `tight`/`moderate`/`abundant`. `teamNeedsCache` is saved and schema-defaulted, but selectors return the cached report when present and only recompute on cache miss. Store commits now clear all cached reports when roster-room inputs change and clear only the affected team when cap-space-only inputs change; scheme changes and offseason/free-agency/draft transitions keep their existing clear boundaries.
+- Advisory surfaces are not commit paths. `findTradeTargets(game, teamId)` returns up to five cap-compatible suggestions with accepted partner evaluation and 80%+ acceptance likelihood; it does not create proposals or move assets. `franchise-week.ts` refreshes saved `game.tradeSuggestions` for the user after week advance, while `selectLeagueTradeBlock` calls `findTradeTargets` from CPU-team perspectives to build a read-only block market. `/trades` renders read-only `Generated Offer Receipt` rows for saved user-team `tradeSuggestions`; loading a row only copies assets into route-local proposal state. `/trade-block` labels the CPU-perspective split in-route, adds local CPU intent filters from saved `team.gmStrategy` plus `team.philosophy`, and renders read-only `Market Receipt` copy from existing selector row fields; selecting Sellers/Buyers/Neutral changes only the route projection. `/trade-deadline` renders read-only `Deadline Deal Receipt` rows for saved completed deadline deals, but movement is still owned by `finalizeDeadline`. `/team-needs` uses the same saved-field classification for comparison-team filtering, renders an `Intent Ledger` from saved philosophy/strategy, cap, critical needs, and trade-block flags, and renders `Strategy History` from saved `eventLog` strategy shifts plus saved philosophy news while still reading cache-aware team-needs reports. Draft war-room trade-down offers also use `analyzeTeamNeeds` for CPU urgency, but applying an offer is still owned by `draft-war-room.ts`.
+- Save/schema boundary: `TeamPersistedSchema` now names `gmStrategy` and normalizes persisted values to the public strategy catalog. `normalizeGmStrategy` maps legacy `buy`/`buyer` to `contend`, `sell`/`seller` to `rebuild`, and malformed/missing values to `neutral`; the v35->v36 migration normalizes old saves, and current-version cartridge imports normalize through `SaveStateSchema.safeParse`. This does not call `applyGmStrategy`, rewrite roster `tradeBlock` flags, bump `SAVE_VERSION`, or change AI behavior. New seeded/test-helper teams initialize `gmStrategy: 'neutral'`, and `convention-save.ts` now emits canonical demo strategies guarded by `convention-save.test.ts`.
+- Adaptive difficulty is saved gameplay state, not a playtest harness knob. `updateAdaptiveDifficulty` mutates `game.difficultyState` from user wins/losses, win/loss streaks, and bounded slider deltas; keep it deterministic and explain any balance deltas with before/after examples.
+
+League rules, CBA, commissioner, and labor boundary map:
+
+- `league-rules.ts` owns the canonical rule registry. Current keys are `salary_cap_growth`, `cap_floor_pct`, `franchise_tag_limit`, `roster_limit`, `practice_squad_size`, `playoff_seeds_per_conf`, `schedule_weeks`, `trade_deadline_week`, `ir_return_limit`, `overtime_format`, `min_salary_scale`, `revenue_split`, `draft_rounds`, `comp_pick_limit`, and `tag_types_allowed`. `LEAGUE_RULE_DEFINITIONS` also controls petitionability and UI input metadata.
+- `applyRuleChange(rules, change)` is immutable and no-ops when the new value equals the current entry value. When it changes a rule, it writes the new value to `rules.entries[key]`, stamps `effectiveYear`, preserves `previousValue`, and appends `history`. Because the current entry can point to a future-effective value, year-sensitive gameplay should call `getActiveRule(rules, key, game.year)` or `getRuleValueForYear`; do not read `rules.entries[key].value` directly for season math.
+- CBA terms are not the full rule table. `cbaTermsToRuleChanges` maps ratified deals to `revenue_split`, `salary_cap_growth`, `cap_floor_pct`, `min_salary_scale`, `franchise_tag_limit`, `tag_types_allowed`, `roster_limit`, `practice_squad_size`, `ir_return_limit`, `playoff_seeds_per_conf`, and `draft_rounds`. CBA deals do not currently write `schedule_weeks`, `trade_deadline_week`, `overtime_format`, or `comp_pick_limit`; `/cba` now renders an "Outside CBA terms" source row for those commissioner-lane rules and points users to `/league-rules` for active values plus `/commissioner` for petitionable changes.
+- `cba-engine.ts` owns deal creation, status checks, proposal generation, gap narrowing, ratification, lockout risk, emergency lockout resolution, and CBA-to-rule projection. `negotiateCBA` uses the engine `RNG.event` channel, advances up to five rounds, moves to `awaiting_owner_vote` when a compromise exists, and otherwise enters `lockout` at round five. Treat proposal formulas and gap/public-pressure changes as deterministic balance math.
+- Governance lifecycle has multiple entry points. New saves, test helpers, playtest harnesses, the week spine, offseason progression, and store actions all call or mirror `ensureGovernanceState` to lazily initialize `leagueRules`, `cbaState`, `commissionerState`, and `laborState` for older saves. Migration v19 also backfills these fields.
+- `advanceOffseason(game)` checks CBA status before normal offseason work. A new deal whose `startYear === game.year` is applied to league rules; expiring/expired deals call `startCBANegotiation`, record labor news/social, and return early; `negotiating`, `awaiting_owner_vote`, and `lockout` statuses also return early after possible labor narrative. Commissioner advancement and new rule-proposal news happen later in normal offseason progression, after the CBA gate.
+- `advanceFranchiseWeek` checks CBA status early and returns during preseason/training-camp/offseason if bargaining or lockout should interrupt the flow. During regular season, it updates union satisfaction, checks work stoppages, can activate holdout-wave/practice-boycott/lockout effects, records labor news/social, and passes a practice-boycott player OVR penalty into game context for affected teams.
+- `commissioner.ts` owns commissioner identity, proposal generation, user vote recording, AI owner vote simulation, vote resolution, rulings, approval aging, and replacement after three low-approval years. Commissioner-generated proposal rules depend on personality and attendance; owner-petition proposals are created in the web store, not in the engine helper.
+- Web governance commits live in `game-store.ts`: `petitionRuleChange`, `voteOnProposal`, `voteOnCBA`, and `advanceCBANegotiation` clone current game state, call engine helpers, append governance/labor news and social posts, then `commitGame`. `voteOnProposal` applies passed rule changes and refreshes league cap space only for `salary_cap_growth` / `cap_floor_pct`; CBA ratification and lockout resolution apply CBA rules, refresh cap space, clear active labor stoppage, and improve union satisfaction. CBA owner-vote thresholding is store-local today: `majorityThreshold` is simple majority of all teams, and CPU owner votes are filled inside `voteOnCBA` with `cbaOwnerVoteForTeam`, including `abstain` when the team heuristic lands exactly neutral.
+- G5 release proof lives in `apps/web/src/app/store/g5-governance-cba.test.ts`. It drives the real store through v19-era governance-missing save migration, expired-CBA negotiation start, training-camp CBA hold routing to `/cba`, owner-approved ratification, effective-year rule/history projection, cap refresh after changed cap growth, labor stoppage clearing, save round trip, and lockout resolution. If future work changes CBA interruption, vote, cap-refresh, rule-projection, or old-save defaults, update this test with the source change rather than adding a parallel proof.
+- Commissioner petitions are one active owner petition per user team. `petitionRuleChange` filters prior user owner-petitions before adding the new one, rejects non-petitionable/no-op value changes, and warns that a failed user petition costs owner mood through `voteOnProposal`.
+- Labor state is derived from player morale, `team.franchiseTags` tag pressure with a legacy `team.franchiseTag973` fallback, player holdouts, current CBA fairness, and unresolved grievances. `updateUnionSatisfaction` now counts every active franchise-tag array entry, so multi-tag rule configurations affect union satisfaction.
+- Save-schema cautions: CBA owner abstain support is now aligned across the existing `NegotiationState` TypeScript type, `NegotiationStateSchema`, `voteOnCBA`, `/cba` UI, and the store-local CPU vote heuristic. User abstain is a real saved owner vote, neutral CPU owner scores become `abstain`, approval thresholding still counts only approvals, and failed CBA votes still clear the proposal/vote maps after writing news. `CommissionerRulingSchema` now matches the live TypeScript/UI fields and normalizes legacy `description` / `approvalImpact` rows for compatibility.
+- `/commissioner` now renders `Governance Sources`, labeling saved `game.commissionerState` reads through `selectCommissionerState`, `selectCommissionerAgenda`, `selectCommissionerVoteHistory`, and `selectCommissionerRulings`; petition and rule-vote commits through `petitionRuleChange` / `voteOnProposal`; `selectCBAState` as the CBA summary source; `/cba` as the bargaining commit route; `LEAGUE_RULE_DEFINITIONS` and `/league-rules` as rule-registry ownership; and the no-render-write boundary for rulings. After the existing petition or rule-vote store action resolves, `/commissioner` also renders a route-local `Rule Petition Receipt` or `Rule Vote Receipt` naming the source action, commit path, state touched, and pre-action context. Those receipts are not durable vote history and do not add a second governance ledger. Opening the route does not issue rulings, run CBA negotiation, cast CBA votes, apply league-rule changes, mutate ruling logs, or write receipts during render.
+- Commissioner route coaching is shipped for `/commissioner`: `resolveRouteKey` maps the route to `commissioner-governance`, whose unanchored Chip beats point users to active proposals, CBA status, active rules, and the Petition/Vote commit boundary. This is route guidance only; it does not file petitions, cast votes, run CBA negotiation, issue rulings, apply league-rule changes, mutate saves, run sim, or touch RNG.
+- `/cba` now renders `CBA Sources`, labeling saved `game.cbaState` reads through `selectCBAState`, displayed `negotiationState` proposals, `voteOnCBA` as the approve/reject/abstain owner-vote commit path, `advanceCBANegotiation` as the round/lockout-resolution commit path, `/league-rules` as the read-only effective-rule view after ratification, and "Outside CBA terms" for schedule weeks, trade deadline week, overtime format, and comp-pick limit values that remain commissioner-lane league rules. After an existing owner vote, negotiation advance, or lockout-resolution store action resolves, `/cba` renders a route-local `CBA Vote Receipt`, `CBA Advance Receipt`, or `CBA Lockout Receipt` naming the source action, commit path, state touched, and pre-action bargaining context. Those receipts are not durable CBA vote history and do not create a second bargaining ledger. The Owner Decision panel also displays the simple-majority approval threshold from the current `game.teams` count and states that rejections/abstentions add no approval votes. Keep this as approve/reject/abstain in handoffs: the user abstain path is live, and CPU owner votes can abstain when `cbaOwnerVoteForTeam` scores a proposal exactly neutral. Opening the route does not generate proposal terms, cast votes before the user clicks, narrow bargaining gaps, apply emergency deals, project rules, update labor state, or write receipts during render.
+- `/league-rules` now renders `Rule Registry Sources`, labeling `selectLeagueRulesByCategory`, `selectLeagueRuleDiffs`, and `selectLeagueRuleHistory` as read models over saved `game.leagueRules`, `LEAGUE_RULE_DEFINITIONS`, and saved rule-change history. The route points rule petitions/proposal votes back to `/commissioner`, CBA bargaining/ratification back to `/cba`, and reminds future gameplay callers to use `getActiveRule` / `getRuleValueForYear` for year-sensitive math. Opening the route does not apply pending changes, run gameplay formulas, recalculate seasons/playoffs/caps/rosters/deadlines, or mutate rule history.
+- Governance route discoverability is explicit in the shell: `/commissioner`, `/cba`, and `/league-rules` all live in `NAV_ITEMS` and the `LEAGUE` `NAV_GROUPS` entry. `nav-items.test.ts` keeps `/cba` and `/league-rules` out of the direct-only allowlist, while `App.test.tsx` locks their route components and grouped nav membership.
+- Governance route coaching is unanchored and display-only: `/cba` resolves to a `cba` route key and `/league-rules` resolves to `league-rules`, both with two null-target Chip beats. The copy reinforces vote/commit ownership and effective-rule boundaries without mutating governance state, CBA state, rule history, sidecars, sim, RNG, or saves.
+
+Governance persistence drift map:
+
+- Commissioner rule votes and CBA owner votes are separate models. Rule proposals use `RuleProposalVote = 'yes' | 'no' | 'abstain'`; `RuleProposalSchema` allows all three; `/commissioner` renders Vote Yes/Vote No/Abstain; and `voteOnProposal` manually records abstain before `simulateAIVotes` / `resolveVote`. Engine `castVote` and `simulateAIVotes` still only create yes/no votes; user abstain is store-local and AI abstain is not modeled. Do not use commissioner voting behavior as proof of CBA owner-vote behavior.
+- CBA owner abstain is wired for the user path and the CPU neutral heuristic. `NegotiationState` TypeScript, `NegotiationStateSchema`, `GameActions.voteOnCBA`, and `CBANegotiation.tsx` all support `approve` / `reject` / `abstain`; `/cba` renders an Abstain button plus the current simple-majority approval threshold; and `cbaOwnerVoteForTeam` returns `abstain` only when a CPU team's proposal score is exactly neutral. `voteOnCBA` still counts only `approve` votes against the same simple-majority threshold, so richer vote thresholding and durable vote history remain future work.
+- `negotiateCBA` and failed `voteOnCBA` reset `ownerVotes` and `userVote` to empty/null while clearing `currentProposal`; rejected or abstained CBA votes usually are not durable state after the failed vote commits. The store now writes approve-reject-abstain vote summaries into generated CBA news/social, and focused save/store/UI tests cover current-save abstain parsing plus failed user-abstain and CPU-neutral-abstain paths.
+- Commissioner rulings are now save-schema aligned with the live UI/type objects. `commissioner.ts::issueRuling`, `commissioner.test.ts`, `CommissionerOffice.tsx`, and `CommissionerRulingSchema` use `playerName`, `rationale`, `chemistryImpact`, and `ownerApprovalImpact`.
+- `selectCommissionerRulings` reads `game.commissionerState.rulings`. `CommissionerStateSchema.rulings` and top-level `commissionerDisciplineLog` both use `CommissionerRulingSchema`; schema parsing and the v35 import migration normalize legacy `description` / `approvalImpact` rows to the live shape, default missing `playerName` to `''`, and default missing `chemistryImpact` to `0`.
+- Safe correction order for future governance persistence work: choose the canonical serialized shape first, then update TypeScript types if needed, Zod schema, migrations/defaults, seed/test helpers if non-empty samples are added, old-save fixtures or focused parse tests, store actions, UI copy/buttons, and docs together.
+- User-visible surfaces are split. `/commissioner` shows active proposals, petitions, vote history, CBA summary, and rulings; `/cba` shows bargaining state and owns the user CBA vote/advance buttons; `/league-rules` is a read-only rule registry/history view; Inbox/league-news/social surfaces consume generated governance and labor news; route/store interruptions navigate to `/cba` when bargaining or lockout blocks progression.
+- Focused tests before changing this seam: `league-rules.test.ts`, `cba-engine.test.ts`, `commissioner.test.ts`, `labor-relations.test.ts`, `franchise-week.test.ts`, `franchise-week-helpers.test.ts` if week glue changes, `offseason.test.ts`, save tests for schema/migration/default changes, `game-store.test.ts`, `g5-governance-cba.test.ts`, `game-store.gameweek.test.ts`, `CommissionerOffice.test.tsx`, `CBANegotiation.test.tsx`, and `LeagueRulesViewer.test.tsx`.
+
+Owner mandate, handshake, and setup-promise boundary map:
+
+- `owner-goals.ts` owns the durable setup promise model: `OWNER_GOALS`, `buildOwnerMandates`, `installOwnerMandates`, `refreshOwnerMandates`, `evaluateOwnerMandates`, and `upsertOwnerMandateHandshakes`. `buildOwnerMandates(game, teamId, goalIds, agmProfileId)` uses the first three selected setup goals, maps them to `floor` / `target` / `ceiling`, creates ids like `mandate:${teamId}:${game.year}:${slot}:${goalId}`, snapshots current progress, and stores the AGM profile that shaped the mandate.
+- `installOwnerMandates` is the write boundary used by `franchise-setup.ts`. It sets `game.frontOffice.agmProfileId` when an AGM is supplied, replaces existing same-team/same-year mandates, and then mirrors the new mandates into `game.handshakes` through `upsertOwnerMandateHandshakes`.
+- Owner-mandate handshakes are status mirrors, not the main consequence engine. `upsertOwnerMandateHandshakes` creates `type: 'owner'` handshakes with `condition.metric === 'owner_mandate'`, `target` equal to the mandate id, and a Week 18 deadline. `evaluateOwnerMandates` applies approval, owner patience, front-office owner reputation, and AGM impact-log deltas; `evaluateHandshakes` maps mandate status `met` / `exceeded` to `fulfilled` and `missed` to `broken`, then skips the normal fulfilled/broken handshake deltas for those mirrored entries.
+- `owner_mandate` handshakes do not resolve from the Week 18 deadline branch by themselves. If `evaluateOwnerMandates` has not set the mandate to `met`, `exceeded`, or `missed`, the mirrored handshake stays active and `evaluateHandshakes` continues without applying expired-owner penalties. Keep the `evaluateOwnerMandates(game)` before `evaluateHandshakes(game)` ordering in offseason/championship paths.
+- Mandate progress is source-specific. Championship/playoff goals read `franchiseHistory` or the current playoff bracket rather than raw win count; division rank scans current division records; no-losing-streak scans scheduled game results; cap health reads `team.capSpace` / `team.deadCap`; development goals compare young/drafted contributors and prior OVR baselines. Treat changes here as owner-pressure balance work.
+- Lifecycle timing matters. `finalizeSetup` writes staff, scouts, selected AGM, blueprint, owner goals, mandates, and setup completion; the web `completeSetup` action commits that cloned game through `commitGame`. At preseason entry, `franchise-week.ts` calls `generateOwnerDemands` only for teams that do not already have a current-year owner handshake, so setup-created owner-mandate handshakes count against the generic archetype-demand gate. Weekly/playoff tails call `refreshOwnerMandates(nextState)` and then `evaluateHandshakes(nextState)`. Championship rollover and `advanceOffseason(game)` call `evaluateOwnerMandates(game)` before season reports, then `evaluateHandshakes(game)` to mirror mandate outcomes in the ledger.
+- Player promises are separate from owner mandates. `makePlayerPromise` appends a `player` handshake for starter/no-trade/restructure commitments, the web `makePromise` action clones and commits through `makePlayerPromiseEngine`, and broken player promises apply morale/chemistry/reputation costs. Fulfilled normal promises add owner approval plus, when a target player exists, player morale and user-team player reputation. Broken player promises subtract owner approval, player morale, player chemistry, and user-team player reputation; Sandra Chen adds extra personnel/owner reputation cost plus an AGM impact-log entry.
+- Ordinary non-mandate owner demands are evaluated by the normal handshake path: fulfilled demands reward owner approval/reputation, while unmet owner demands after their deadline become `expired` and apply the smaller owner patience leak. No-trade player promises use the `on_roster` condition and can break immediately when the player leaves the team, before the formal deadline.
+- Save ownership is split: `GameState.handshakes` is required and schema-defaulted/backfilled; `GameState.ownerMandates` is still optional in the TypeScript type, schema-defaulted to `[]`, and backfilled by the v35 -> v36 migration. Current seed/test/playtest builders inspected in this slice do not eagerly seed `ownerMandates`, so use nullish fallbacks unless doing a deliberate default-shape migration.
+- User-visible surfaces are read models. `/owner` renders selected AGM identity, recent `frontOffice.agmImpactLog`, mandate progress, evaluation state through `selectOwnerMandates`, and an `Owner Pressure Sources` panel labeling saved mandates, `owner_mandate` mirrors, no-double-application behavior, `weekSummaries`, Inbox, and season-report receipts. `/handshakes` renders all user-team handshakes, lets the user create player promises, includes `Handshake Sources` to separate setup mandate mirrors, player promises, and ordinary owner demands, and now shows a route-local `Promise Receipt` after an awaited `actions.makePromise` commit resolves. Monday Briefing shows up to three active user-team handshakes; Inbox shows fulfilled/broken handshakes; `season-report.ts` adds an Owner Mandates section after evaluation; achievements count fulfilled promises from `game.handshakes`.
+- Focused tests before changing this seam: `owner-goals.test.ts`, `handshake-ledger.test.ts`, `franchise-setup.test.ts`, `season-report.test.ts`, `save.test.ts`, `migrations.test.ts`, `golden-saves.test.ts`, `game-store.test.ts` / setup store tests for commit behavior, `OwnerMood.test.tsx`, `HandshakeLedger.test.tsx`, `MondayBriefing.test.tsx`, and `buildInboxMessages.test.ts`.
+
+Adaptive difficulty boundary map:
+
+- `adaptive-difficulty.ts` owns the saved default state and the only inspected engine helpers: `createDefaultDifficultyState`, `updateAdaptiveDifficulty`, and `getAdaptiveModifier`.
+- `DifficultyState` lives in `types/season.ts` and is stored at `GameState.difficultyState`. The shape is `enabled`, `adaptiveSlider`, `recentUserResults`, `currentStreak`, and `adjustmentHistory`.
+- New saves use `createDefaultDifficultyState()` in `apps/web/src/app/store/seed.ts`; save parsing has a `DifficultyStateSchema` default; migration 8 backfills the same `{ enabled: true, adaptiveSlider: 50, recentUserResults: [], currentStreak: 0, adjustmentHistory: [] }` shape for older saves. Treat shape changes as save-schema work, not settings-only polish.
+- `advanceFranchiseWeek` calls `getAdaptiveModifier(nextState)` before the regular-season/playoff sim loop, passes that value into `buildTeamOvrBonus`, and later calls `updateAdaptiveDifficulty(nextState, userOutcome, playedWeek)` after a user-game win/loss is known. User ties do not create an update because `userOutcome` is `null`.
+- `buildTeamOvrBonus(team, baseBonus, adaptiveModifier)` adds the adaptive modifier only when `team.isUser` is false, then clamps the total team OVR bonus to `[-5, 5]`. CPU-vs-CPU games apply the same modifier to both teams; user games apply it only to the non-user opponent. It is not a direct boost/penalty on the user team.
+- `getAdaptiveModifier` returns `0` when disabled; otherwise it maps slider 0-100 to `-5..5` via `(adaptiveSlider - 50) / 10` with clamp. `updateAdaptiveDifficulty` raises the slider by `+3` once the current win streak reaches 4+ and lowers it by `-2` once the losing streak reaches 3+, with the slider clamped to `0..100`.
+- Even when adaptive difficulty is disabled, `updateAdaptiveDifficulty` still updates `currentStreak` and the last eight `recentUserResults`, then resets the slider to 50 and skips adjustment-history writes. The Settings action `setAdaptiveDifficultyEnabled(false)` also resets the slider to 50 immediately through a clone -> `commitGame` action.
+- Adjustment history is capped to the latest 12 entries and recent user results to the latest 8 entries. `buildInboxMessages` surfaces the latest adjustment as a "League Pressure Rising/Softening" Intel message; `/settings` displays enabled state and slider value through `selectDifficultyState`.
+- Focused tests: `adaptive-difficulty.test.ts` covers streak thresholds, clamps, modifier bounds, and disabled behavior; save tests cover migration/default shape; `Settings.test.tsx` covers Settings rendering. If changing when the week loop updates difficulty or how the modifier enters simulation context, also run focused `franchise-week`/game-sim tests.
+
+Coaching identity, legacy, and relationship boundary map:
+
+- `/coaching` is the user-facing staff mutation hub. It uses `selectCoachingStaff`, `selectClinic`, `selectCoachingMarket`, and actions `refreshCoachingMarket`, `hireStaff`, `fireStaff`, `promoteStaff`, `applyTeamSchemeChange`, durable `addClinicXP`, and `setHeadCoachSkillSelection`.
+- `/coaching` now renders `Coaching Source Context`, labeling `selectCoachingStaff` over saved `team.staff`, `selectCoachingMarket` as a display board that can derive stale/missing market views without persisting them, route-local scheme preview state, saved `selectClinic` / `team.skillSelections`, route-local development receipts, and the no-render-write boundary. Opening the route does not hire/fire/promote staff, refresh the saved market, save schemes, add clinic XP, activate skill tiers, resolve poaching/development, or write coaching history; only the existing buttons commit those paths.
+- `/coaching` also renders a read-only `Coaching Decision Receipt` that summarizes staff vacancies, the best current market fit, highest retention/poach signal from `buildCoachRetentionDecision`, current scheme continuity from `projectSchemeTransition`, and clinic leverage from saved XP/perks. It is guidance only: Hire, Fire, Promote, Refresh Market, Apply Identity, Run Clinic, and Activate tier buttons remain the only route commits. Completed Run Clinic actions additionally render a route-local `Clinic Run Receipt`; completed Activate tier actions render a route-local `Skill Activation Receipt`. Neither receipt is durable save state.
+- User staff hires/fires/promotions go through `coaching-market.ts` helpers and store clone -> `commitGame` actions. Those helpers write `team.staff`, mirror `team.coachingStaff`, append `eventLog`, record league news, and rebuild the market.
+- `buildCoachingMarket(game, teamId)` is deterministic from `game.seed`, year, week, team id, role, and candidate index. It creates five candidates for each HC/OC/DC board, scores fit from owner archetype, roster strengths, staff ratings, scheme match, loyalty, and ambition, then marks `hotSeat` only when owner approval is <= 30 and owner patience is <= 25.
+- `selectCoachingMarket` lazily rebuilds when `game.coachingMarket` is missing or stale for the current user team/year/week. Selecting a market does not persist the rebuilt board; `selectors.test.ts` locks that stale cached boards remain unchanged on the saved `GameState`. `refreshCoachingMarket` / staff actions are the commit paths.
+- `/coaching/tree` is a presentation surface. It resolves the user head coach from active `team.staff`, `game.coachingHistory`, `coach_retirement` events, `mentorCoachId`, `disciples`, and `yearsUnderMentor`, limits the mentor-chain walk to depth 5, dedupes disciples, then uses `buildCoachingLegacy(game, hc.id)` for tree metrics. The route renders `Coaching Tree Sources` plus a `Notable Proteges` panel from `legacy.notableProteges`, showing the top active branches ranked by the engine helper with role, current team, and championship count. Rendering does not write staff moves, relationship edges, coaching history, or coach development.
+- `coachArchetypeGlyphSvg.tsx` is a route-local visual helper for `/coaching/tree`. It normalizes loose archetype strings into six glyph variants (`offensive_mind`, `defensive_mind`, `players_coach`, `gm_track`, `cerebral`, and `fire_starter`) with heuristic substring matching and SVG data attributes for tests. It is not the engine coach-archetype taxonomy and should not drive staff effects.
+- `/coaching/relationships` reads the flat `game.relationships` edge list and renders deterministic layout/filtering for `mentor`, `coach_tree`, `family`, `rival`, and `teammate` edges. It now renders a `Relationship Sources` panel labeling saved edge ownership, active staff/roster label resolution, route-local filters/layout, and the no-write boundary. It does not synthesize missing edges from staff mentor fields at render time; `RelationshipGraph.test.tsx` locks the empty-state behavior even when staff `mentorCoachId`/`disciples` fields are present. The route's filters are UI-local state, not saved relationship preferences. Empty `teams`/`relationships` selector fallbacks are module-level constants so old/demo saves without `game.relationships` do not trigger React store-snapshot loops.
+- `App.test.tsx` source-guards those route assignments so the mutable `/coaching` hub cannot silently drift into a read-only presentation surface, and the tree/relationship routes cannot be swapped without an explicit test/doc update.
+- Migration v31 -> v32 adds both top-level `relationships` and staff lineage fields (`mentorCoachId`, `disciples`, `yearsUnderMentor`). These are related but distinct sources; changing one does not automatically update the other unless a writer explicitly does so.
+- `relationship-graph.ts` is pure and deterministic. Use `addEdge` for new edges, preserve deterministic `edgeId`, and use `pruneDeadEdges` only when intentionally aging out graph history.
+- Bloodline drafting currently writes `family` edges through `addBloodlineFamilyEdges`; coaching tree edges are validated by save fixtures/tests, but current source does not show every staff move automatically adding `coach_tree` relationship edges. Wire that deliberately if a future slice promises graph continuity.
+- Offseason coaching lifecycle runs `processCoachRetirements(game)`, then `runCoachingCarousel(game, seasonYear, aiBias)`, then `fillOpenStaffVacancies(game)`. Retirement can clear HC/OC/DC slots; `fillOpenStaffVacancies` hires top market candidates for any open staff role.
+- `runCoachingCarousel` skips firing user-team coaches, grows successful incumbent CPU head coaches, fires CPU coaches for low patience or repeated losing seasons, records fired/hired HC history, writes coach fired/hired events/news, and assigns a new CPU head coach. New carousel HC hires now write both `team.staff.hc` and the legacy `team.coachingStaff.hc` mirror. The later `fillOpenStaffVacancies` path also uses `hireStaffCandidate`, so open-slot hires go through the mirror-writing helper.
+- `applyCoachRetirement` uses `coachRetirementChance`, existing coaching history, recent losing seasons, and an injected RNG to decide retirement, records/upserts `coachingHistory`, emits one `coach_retirement` event with epilogue/label/championship/year data, adds a recent headline, and clears both `team.staff` and `team.coachingStaff` for the retired role.
+- `buildCoachRetentionDecision` is used by the `/coaching` UI to display poach/extension risk. Championship rollover now calls `advanceSeasonEndCoaching` after season archive/story-arc work and before `nextState.year` increments: it runs `advanceCoachDevelopment` once for each staffed team, then `resolvePoachingCycle(nextState, RNG.ai)` for deterministic OC/DC departures. Development mutates the selected active staffer's level/ratings from team record, clinic mods, and skill-tree bonuses without writing media; poaching removes OC/DC staff, clears the matching `team.coachingStaff` mirror, and writes coach-departure event/news rows. Position-coach generation/management and default seeding remain separate save/UI lifecycle work.
+
+Governance and coaching safety rules:
+
+- Do not create a third staff representation. Use existing `Team.staff` and `Team.coachingStaff` mirrors deliberately, and test both when staff moves.
+- Do not let advisory AGM, route-tip, or content copy silently imply live modifiers. If copy says an AGM, coach, or owner changes outcomes, point it to a real saved field or engine helper.
+- Rule and CBA changes require downstream verification beyond their own tests: cap math, franchise tags, practice squad, schedule/playoffs, trade deadline, draft rounds, comp picks, and affected UI copy.
+- Owner mandate changes are save-schema changes when they alter mandate shape, progress shape, selected slots, or handshake linkage. Include migration/fixture coverage and test season-end evaluation.
+- AI philosophy and GM strategy changes are balance changes. Include deterministic samples for teams with losing old cores, young rebuilds, contenders, and cap-stressed rosters before changing thresholds.
+
+Routes, selectors, and feature surfaces:
+
+- Routes: `/owner`, `/commissioner`, `/cba`, `/league-rules`, `/coaching`, `/coaching/tree`, `/coaching/relationships`, `/front-office`, and setup wizard phases under the first-run flow.
+- Feature folders: `features/owner`, `features/league`, `features/coaching`, `features/front-office`, and `features/franchise-setup`.
+- Selectors: `selectLeagueRules`, `selectLeagueRuleDiffs`, `selectLeagueRulesByCategory`, `selectLeagueRuleHistory`, `selectCBAState`, `selectCBAProposal`, `selectCommissionerState`, `selectCommissionerAgenda`, `selectCommissionerVoteHistory`, `selectCommissionerRulings`, `selectLaborState`, `selectUnionLeader`, `selectOwnerState`, `selectOwners`, `selectOwnerMandates`, `selectCoachingStaff`, `selectCoachingMarket`, `selectCoachingCarouselNews`, and `selectDifficultyState`.
+
+Save and balance risks:
+
+- `GameState` stores `owners`, `leagueRules`, `cbaState`, `commissionerState`, `laborState`, `frontOffice`, `difficultyState`, `ownerMandates`, `coachingMarket`, `coachingHistory`, and `relationships`; teams also store owner IDs/state, staff, coaching mirrors, coach lineage fields, chemistry/modifier fields, and related history.
+- Save schema and migration coverage lives in `packages/engine/src/save/schema.ts`, `packages/engine/src/save/migrations.ts`, `packages/engine/src/save/save.test.ts`, `packages/engine/src/save/migrations.test.ts`, and `packages/engine/src/save/golden-saves.test.ts`.
+- Any new persistent owner/governance/staff/AI field needs type/schema/default/migration/fixture coverage plus an old-save verification.
+- Rule/CBA changes are league-wide balance changes. Always call out before/after behavior and verify dependent systems such as cap math, schedule, practice squad, comp picks, draft rounds, trade deadline, and playoffs.
+- Staff traits, chemistry, position-coach bonuses, and adaptive difficulty are gameplay math. Keep them deterministic and seeded where randomness exists.
+
+Focused tests for this layer:
+
+- Engine: `league-rules.test.ts`, `cba-engine.test.ts`, `commissioner.test.ts`, `labor-relations.test.ts`, `owner.test.ts`, `owner-extended.test.ts`, `owner-personality.test.ts`, `owner-goals.test.ts`, `assistant-gm.test.ts`, `agm.test.ts`, `agm-setup-content.test.ts`, `setup-hiring-catalog.test.ts`, `franchise-setup.test.ts`, `coaching-market.test.ts`, `coaching-carousel.test.ts`, `coaching-clinic.test.ts`, `coach-aging.test.ts`, `coach-retirement.test.ts`, `coach-retention.test.ts`, `coach-skill-tree.test.ts`, `coach-trait-mods.test.ts`, `coordinator-chemistry.test.ts`, `coordinator-specialties.test.ts`, `position-coaches.test.ts`, `coaching-legacy.test.ts`, `relationship-graph.test.ts`, `gm-strategies.test.ts`, `gm-reputation.test.ts`, `ai-philosophy.test.ts`, `ai-bias.test.ts`, `adaptive-difficulty.test.ts`, and `scouting-staff.test.ts`. `owner-extended.test.ts` guards patience math, confidence thresholds, AI-channel ultimatum selection, cloned ultimatum returns, hot-seat thresholds, and furious penalties; `owner-personality.test.ts` guards the random event gate, selected archetype mutation, clamp behavior, and stale runtime archetype fallback; `agm-setup-content.test.ts` guards live-to-authored content aliases, missing-content throws, fallbacks, transition precedence, deterministic loading tips, and blueprint monologue aliases; `setup-hiring-catalog.test.ts` guards first-run candidate catalogs, clone safety, setup HC materialization, and selected-director scout pools; `coaching-clinic.test.ts` guards clinic tracks, action mapping, threshold unlocks, query helpers, neutral modifiers, and active modifier aggregation; `coordinator-specialties.test.ts` guards OC/DC catalogs, lookup, seeded role-pool assignment, staff mutation, and existing-specialty non-reroll behavior.
+- Store: `apps/web/src/app/store/game-store.test.ts` for governance votes, CBA actions, difficulty, and staff actions; `game-store.gameweek.test.ts` for CBA interruption/routing through week advance.
+- UI: `CommissionerOffice.test.tsx`, `CBANegotiation.test.tsx`, `LeagueRulesViewer` tests if added, `OwnerMood.test.tsx`, `CoachingStaff.test.tsx`, `CoachingTree.test.tsx`, `RelationshipGraph.test.tsx`, `App.test.tsx` for coaching route ownership, `ContractTools.test.tsx`, and setup wizard tests such as `AGMPanel.test.tsx`, `AGMStage.test.tsx`, `ChooseAGMPhase.test.tsx`, `HireCoachPhase.test.tsx`, and setup persistence/polish tests.
+
+## Franchise Business, League Analytics, Scenarios, And Dashboard Wiring
+
+This layer covers the front-office world outside individual games and roster transactions:
+
+- Franchise identity and business: `franchise-identity.ts` owns fanbase, prestige, attendance, stadium deals, stadium upgrades, relocation, and fanbase effects.
+- Expansion: `expansion-draft.ts` owns league expansion trigger rules, expansion-city definitions, protection lists, expansion picks, and final team creation.
+- Scenarios: `scenario-challenge.ts` owns available challenge definitions, scenario start, progress checks, completion grading, season advancement, and scenario constraints.
+- League analytics: `standings.ts`, `analytics.ts`, `stat-central.ts`, `power-rankings.ts`, `league-pulse.ts`, and `media-cycle/power-rankings.ts` own standings, stat leaders, advanced team/player analytics, career timelines, league pulse, and ranking movement.
+- Franchise dashboard and legacy summaries: `dashboard-config.ts`, `franchise-dashboard.ts`, `franchise-legends.ts`, `franchise-doctrines.ts`, and `season-recap.ts`.
+
+Franchise identity, stadium, and relocation flow:
+
+- `createDefaultFranchiseIdentity` and `initializeFranchiseIdentity` seed each team identity during new-game creation.
+- `updateFanbase`, `updatePrestige`, `updateAttendance`, `getStadiumHomeFieldBonus`, `getFanbaseEffect`, `generateStadiumDeals`, `acceptStadiumDeal`, `tickStadiumDeal`, `upgradeStadium`, `canRelocate`, `getRelocationDestinations`, and `relocateTeam` are the core business helpers.
+- Offseason progression updates fanbase/prestige, ticks stadium deals, and refreshes `game.stadiumDealOffers` for the user team.
+- Store actions `upgradeStadium`, `acceptNamingRights`, and `relocateTeam` mutate the user team's `franchiseIdentity`. Stadium upgrades and relocation also adjust franchise cap/budget-like resources through store-side helpers.
+- `/franchise` renders `Franchise Sources` and now shows route-local `Stadium Upgrade Receipt` / `Naming Rights Receipt` panels after `upgradeStadium` or `acceptNamingRights` resolves. The receipts are UI-only, built from pre-action route context, and label source action, store/engine commit path, touched state, no-save/no-sim/no-RNG boundaries, and the stadium upgrade engine cost check. They do not persist durable receipt history or change stadium/naming formulas.
+- Relocation writes a new team record into `game.teams[userTeam.id]`, syncs relocated roster players back into `game.players`, commits, and navigates to `/franchise`.
+- Relocation eligibility is guarded in both UI and store. `selectCanRelocate` calls `canRelocate`, `RelocationScreen.tsx` disables confirmation when the route is blocked or the selected destination costs more than current cap space, and the store action `relocateTeam(destinationId)` re-checks `canRelocate` plus selected-destination affordability before calling the engine helper. `/relocate` renders `Relocation Sources` copy that labels `selectUserTeam`, `selectCanRelocate`, `selectRelocationDestinations`, route-local selected destination / confirmation-modal state, no route-open write, and the confirmed store commit boundary. `/relocate` also resolves to unanchored `relocation` Chip route beats that point to eligibility, destination cost/market/fanbase/prestige preview reads, and the confirmed `Move Franchise` commit path.
+- Stadium naming-rights revenue is paid later, not when accepted. `acceptNamingRights` changes the stadium name/prestige and clears the offer board; `offseason.ts::payStadiumNamingRights` adds deal revenue multiplied by `getFanbaseEffect(identity).revenueMultiplier` during franchise identity refresh.
+
+Expansion flow:
+
+- `shouldTriggerExpansion(gameState, rng)` gates expansion after `EXPANSION_MIN_YEAR` with `EXPANSION_CHANCE_PER_YEAR`.
+- `initializeExpansionDraft` creates `game.expansionDraftState`; the week spine pauses and routes the web app to `/expansion-draft`.
+- `protectPlayers` writes team protection lists. `finalizeExpansionDraft` creates the expansion team and applies draft results.
+- Store actions `protectExpansionPlayers` and `finalizeExpansionDraft` call those engine helpers, complete preview state where needed, commit, and return to `/franchise`.
+- `App.tsx` also watches `selectExpansionDraftState` and navigates to `/expansion-draft` if expansion is pending and the user is elsewhere.
+- Expansion interruption happens in `franchise-week.ts` while phase is `offseason`. If `expansionDraftState` already exists, week advance returns without progressing; if eligible and the seeded 15% roll hits, it initializes the draft and returns immediately.
+- `ExpansionDraft.tsx` preselects the user's top 15 players by OVR/id during protection. Once protection is finalized, the store's `completeExpansionPreview` repeatedly calls `makeExpansionPick(state, '')`, which uses the engine's best-available/position-need picker until the preview reaches `complete`. `/expansion-draft` now renders an `Expansion Sources` panel in active and idle states, labeling saved `game.expansionDraftState`, route-local protection checkbox state, `protectExpansionPlayers` as the protection commit path, the non-mutating preview feed boundary, and `finalizeExpansionDraft` as the league mutation that creates the new team, moves selected players/contracts, rebuilds the schedule, clears expansion state, commits, and routes back to `/franchise`.
+
+Scenarios and dashboard flow:
+
+- `getAvailableScenarios`, `startScenario`, `checkScenarioProgress`, `gradeScenarioCompletion`, `advanceScenarioSeason`, `getScenarioConstraints`, and `getScenarioConstraintCoverage` own challenge mode.
+- New-game scenario launch starts from `createSeedGameState`, applies `startScenario`, deletes first-run setup state, and begins the challenge save. Store action `startScenarioChallenge` can start a new seeded challenge from inside an existing save while preserving completed scenario IDs.
+- `createDefaultDashboardState`, `createLayout`, `switchLayout`, `pinWidget`, `unpinWidget`, `reorderWidgets`, and `getActiveDashboardLayout` own the configurable dashboard state.
+- Store actions `pinWidget`, `unpinWidget`, `switchLayout`, and `saveLayout` mutate `game.dashboardState` through engine helpers and commit.
+
+League analytics and franchise surfaces:
+
+- `getDivisionStandings`, `getClinchedStatus`, `buildPlayoffPicture`, and standings stat leaders power standings/playoff-picture UI. Clinch math uses `getRegularSeasonWeekCount(game)` for remaining games, and playoff-picture size follows the effective `playoff_seeds_per_conf` rule.
+- `calculateAdvancedStats`, `calculatePlayerEfficiency`, analytics stat leaders, `getTeamRankings`, `getPlayerComparison`, and `getWeeklyTrend` power analytics and comparison surfaces.
+- `getStatLeaderboard`, `getPlayerCareerTimeline`, `comparePlayerCareers`, `getTeamSeasonHistory`, `getLeagueAverages`, `getPositionRankings`, and `buildStatSnapshot` power stat central and timeline views.
+- `createPowerRankings` and `updatePowerRankings` write `game.powerRankings`; the lower media-cycle `computePowerRankings` creates media ranking entries.
+- `buildLeaguePulse`, `getLeaguePulseRivalry`, `detectRivalryTierAscension`, and `createRivalryHeatSpikePost` derive the league-pulse route from rivalries, team names, and power rankings.
+- `buildFranchiseDashboard`, `detectFranchiseEras`, `getFranchiseLegends`, `generateAllDecadeTeam`, doctrine helpers, and `buildSeasonRecap` support franchise hub, legends, eras, recaps, and trophy-style views.
+
+Franchise business and analytics boundary map:
+
+- Franchise identity is team-owned state. `createDefaultFranchiseIdentity` and `initializeFranchiseIdentity` seed `team.franchiseIdentity`; offseason updates mutate fanbase/prestige/attendance and refresh user-facing `game.stadiumDealOffers`.
+- Default identity infers `marketSize` from city, defaulting unknown cities to `medium`, and uses relocation destination overrides when the city appears in `RELOCATION_DESTINATIONS`. Initialized identity adds seeded variation to fanbase, prestige, and attendance, then clamps fanbase 20-99, prestige 10-99, and attendance 0-100.
+- Current stadium business constants are code-defined in `franchise-identity.ts`: relocation has 10 fixed destinations; naming-rights sponsors have base revenue/duration/prestige values; stadium upgrades cost 50 then 150; stadium revenue bonuses are 0%, 10%, and 25%; prestige bonuses are 0, 5, and 12; home-field crowd bonuses are 0, 1, and 2 by stadium level.
+- Fanbase/prestige/attendance updates happen at season rollover from recorded season history and current team record. Fanbase moves by playoff finish and streak context; prestige moves from championships, playoff appearances, Hall of Famers, and losing seasons; attendance is a weighted read from fanbase, record, prestige, and stadium level.
+- Stadium upgrades use cap-space-like team resources, not a separate cash ledger. `upgradeStadium` returns `{ identity, cost }`; the store applies the identity and calls `adjustFranchiseCap(userTeam, -cost)`, which lowers `capSpace` and raises `capUsed`. If introducing a real franchise cash/budget field, do not keep using cap space as the hidden payment source.
+- Naming-rights deals are transient offers. `acceptNamingRights` applies `acceptStadiumDeal`, then clears `game.stadiumDealOffers`; `tickStadiumDeal` later decrements years remaining and reverts the stadium name/prestige bonus when the deal expires.
+- Relocation preserves the existing `team.id`. `relocateTeamEngine` changes city/name/abbr/icon/stadium type, resets stadium identity, appends relocation history, boosts owner approval, and lowers player morale/chemistry; the store checks eligibility and selected-destination affordability, charges relocation cost with `adjustFranchiseCap`, rewrites `game.teams[userTeam.id]`, syncs relocated roster entries into `game.players`, commits, and navigates to `/franchise`.
+- `canRelocate` requires at least three seasons after the 2026 inaugural year, enough cap space for the cheapest destination, and at least five years since the last relocation. `getRelocationDestinations` removes the current city. The engine `relocateTeam` helper itself is a mutation helper, not an eligibility gate, so the web store owns the final guard before invoking it. The `/relocate` source panel also states that the store commit applies the engine helper, charges relocation cost through franchise cap space, syncs relocated roster players back into `game.players`, commits, and routes back to Franchise Hub.
+- Expansion is a true league mutation. `initializeExpansionDraft` picks one of 10 code-defined expansion cities, balances conference/division alignment toward the least-populated side, protects every non-user team's top 15 players by OVR/id, and stores `game.expansionDraftState`; `protectExpansionPlayers` writes the user protection list and the store's `completeExpansionPreview` auto-picks the rest of the expansion roster; `finalizeExpansionDraft` removes selected players from old teams, creates a new non-user team id, assigns contracts/team IDs, creates draft picks, rebuilds schedule, clears `expansionDraftState`, commits, and navigates to `/franchise`.
+- Expansion trigger randomness belongs in week/offseason progression and must receive seeded RNG. `EXPANSION_MIN_YEAR` is 10 seasons after 2026 and `EXPANSION_CHANCE_PER_YEAR` is 0.15. `shouldTriggerExpansion` blocks repeats once the league has more than 32 teams and only considers years at least `EXPANSION_MIN_YEAR` after 2026.
+- Expansion finalization clones an existing team template for broad team shape, then overrides id, city/name/abbr/icon, conference/division, roster, cap totals, season stats, user flag, draft picks, transaction logs, rivalries, fatigue/training/practice-squad state, stadium type, and franchise identity. If new required `Team` fields are added, update expansion finalization and tests so the new club does not inherit stale template-only state.
+- Scenario definitions are code-defined in `scenario-challenge.ts`, not content JSON. `startScenario` clones the base game, mutates user roster/contracts/cap/picks/history by scenario, syncs user roster players back to `game.players`, applies forced difficulty when configured, and preserves prior `completedScenarios`.
+- `getScenarioConstraintCoverage` is the display contract for scenario blocker truth-in-copy. It currently marks trade-market generated offers/accepted market offers, direct proposals/counters, accepted user deadline offers, draft-war-room trades, offseason bids/street free-agent signings, waiver claims, practice-squad acquisitions, and user draft-pick submissions as enforced when the matching blocker is active. Route-level scenario-lock copy is currently shipped on `/trades`, `/draft`, `/trade-deadline`, `/free-agency`, `/waivers`, and `/practice-squad`; other blocked routes may still rely on `/scenarios`, Monday Briefing, disabled local controls, or existing no-op/throw behavior.
+- `scenario-challenge.test.ts` now guards the shipped scenario catalog against coverage drift: every enabled shipped constraint flag must map to an enforced `getScenarioConstraintCoverage` row with at least one enforced path and no uncovered paths. Add or update this catalog guard when introducing a new constraint flag, a scenario that enables an existing flag in a new combination, or deliberate uncovered-path copy.
+- `/scenarios` active state also renders a `Blocked Action Guide` from enforced `getScenarioConstraintCoverage` items. It explains that blocked trade, acquisition, and draft-pick attempts will not take effect and points users toward allowed roster, depth-chart, draft-board, cap, and development moves. This guide is explanatory UI only; enforcement remains in the existing engine/store paths.
+- New-game scenario launch deletes `setupState`; in-save `startScenarioChallenge` creates a fresh seed with `Date.now()`, preserves completed scenario IDs, starts the selected scenario, commits, and navigates home. Wall-clock seed use is acceptable for creating a new user-started save, but not for deterministic replay inside a save.
+- Scenario constraints are only enforced where callers check `getScenarioConstraints` or read `game.scenarioState.activeScenario.constraints`. `getScenarioConstraintCoverage` is a read-only truth-in-copy helper for surfaced constraint claims; it does not enforce blockers. Existing trade/free-agency/draft paths should be audited individually before promising a scenario blocks every possible route.
+- Scenario route coaching is shipped: `/scenarios` resolves to unanchored `scenario-constraints` Chip beats that point users to active locks, current enforcement badges, safe planning lanes, and the challenge-start confirmation boundary. This is guidance only; it does not expand scenario enforcement, start a challenge, mutate rosters, submit acquisitions, make picks, write saves, or run sim/RNG.
+- Dashboard layout state is saved in `game.dashboardState`; the widgets themselves are read models. `createLayout` builds ids from a slugged layout name and replaces any existing layout with the same id; widget lists and pinned widgets are deduped, but unsupported widget IDs require type/schema/default/migration work.
+- Monday Briefing source clarity is shipped as a read-only UI slice: `/` renders `Briefing Sources`, labeling `MondayBriefing` selector inputs, saved `game.dashboardState` layout/pinned-widget ownership, widget read models, `ActionCenter` guidance inputs, local customize-modal draft state, and the display-only boundary. It also renders `Team Ops Carryover` from `buildTeamOpsImpactReceipt(game, team.id)`, exposing saved facility, medical, alumni mentor, and training-camp carryover without owning those commit paths. The `ActionCenter` Living Week action plan separates Must Do, Recommended, and Optional from the current props/game context only; it refreshes when those inputs change and does not persist a parallel completion queue. Opening Monday Briefing does not advance weeks, simulate games, generate weather/news, update power rankings, save layouts, pin widgets, write achievements, upgrade facilities, hire staff, resolve camp, move players, or run sim/RNG.
+- Standings, analytics, stat central, league pulse, franchise dashboard, legends, era detection, and most franchise surfaces are derived read models. Do not persist their outputs unless the product needs historical receipts; prefer deriving from `GameState` histories, schedule/results, player archives, and current teams.
+- `standings.ts` uses a deliberately simple sort: win percentage, then `seasonStats.pointDifferential`, then team id. Home/away records are rebuilt from completed schedule results, not from team record fields. Remaining-games math uses `getRegularSeasonWeekCount(game)`, and playoff-picture size uses active `playoff_seeds_per_conf`; clinch/elimination labels are simplified and do not model full NFL-style head-to-head/common-games tiebreakers.
+- `LeagueStandings.tsx` reads rule-aware playoff data through selectors. The header seed-count badge derives from the larger AFC/NFC `selectPlayoffPicture` length, and seed signals classify every displayed playoff seed after the locked top group as bubble instead of assuming seven seeds. If changing playoff seed counts or exposing custom rules, update the route copy/signals/tests alongside the engine helpers.
+- Standings source clarity is shipped as a read-only UI slice: `/standings` renders `Standings Sources`, labeling `selectStandings`, `selectPlayoffPicture`, `selectStatLeaders`, local division/seed/streak signal projection, and the display-only boundary. Opening League Standings does not simulate games, advance weeks, write playoff brackets, update power rankings, create records, or generate news/social posts.
+- `analytics.ts` owns the advanced-stat formulas. QBR is `(completion% * 100 + passTD * 20 - passINT * 25) / 6`, EPA is points above a 21-point-per-game baseline, success rate is wins per game played, pressure rate divides pressures allowed by starting-QB attempts, turnover rate divides turnovers lost by games played, and zero-game teams sort to the bottom of offense/defense/special-teams rankings with `Number.NEGATIVE_INFINITY`. `AnalyticsDashboard.tsx` imports `calculatePlayerEfficiency` for roster rows and has its own local primary-stat display helper, so keep UI labels aligned if engine position mapping changes.
+- Analytics source clarity is shipped as a read-only UI slice: `/analytics` renders `Analytics Sources`, labeling `selectAdvancedStats`, `selectAnalyticsLeaders`, `selectRoster` plus `calculatePlayerEfficiency`, `selectWeeklyTrend`, `selectPlayerComparison`, and the display-only boundary. The Team Overview labels `successRate` as `Win Rate` because the engine read model is wins per game played, and labels `turnoverRate` as `Turnovers / Game` because the engine read model is turnovers lost per game, not a percentage. Opening Analytics does not recalculate season stats, advance weeks, write player history, create records, update rankings, or generate news/social posts.
+- Analytics/Stat Central route coaching is shipped: `/analytics` and `/stat-central` resolve to unanchored `analytics-evidence` Chip beats that frame both routes as evidence boards over live stats, histories, and derived helpers. This is guidance only; it does not write stats, records, rankings, news, history rows, or archive entries.
+- `stat-central.ts` labels the current season as `game.year - 1` during `offseason`, `free_agency`, `draft`, and `post_draft`; otherwise it uses `game.year`. `getStatLeaderboard` returns top 20 rows, historical requests read `playerSeasonHistory`, current-season requests read live `game.players`, and `currentSeasonEntry` avoids duplicating a season already present in history. `getPositionRankings` ranks only active rostered players by OVR, the position's primary stat, and name.
+- There are two power-ranking layers. `systems/power-rankings.ts` writes saved `game.powerRankings`; `media-cycle/power-rankings.ts` computes media-cycle snapshots and ranking history. Keep the saved route model and media digest model aligned but do not conflate their shapes.
+- Media-cycle power rankings score teams as `0.40 * normalized starter strength + 0.30 * winPct + 0.20 * normalized last-five momentum + 0.10 * normalized strength of victory`, with exact-score ties broken by team id. Starters are `isStarter`/`role === 'Starter'` players by OVR/id, falling back to the top 12 roster players; blurbs are deterministic from `state.seed`, team id, and week. `systems/power-rankings.ts` adapts this into the saved route shape and seeds previous-rank deltas from the prior saved table.
+- `/power-rankings` now renders a `Ranking Sources` panel that labels the saved `game.powerRankings` table, the `updatePowerRankings` write owner, the media-cycle scoring/blurb owner, saved `previousRank`/`delta` movement fields, local biggest-mover/card projections, and the display-only boundary. Opening the route does not write rankings, news, social posts, storyline threads, records, or media-cycle history.
+- `league-pulse.ts` is a pure aggregator over saved `leagueRivalries`, team names, and saved power rankings. Heat-spike social posts require an explicit caller with RNG; the pulse screen itself should not write social posts while rendering.
+- League Pulse intensity tiers are code thresholds: `blood_feud >= 76`, `heated >= 51`, `budding >= 21`, otherwise `quiet`. Summary counts use the full rivalry list, hottest-rivalry rows filter by a clamped minimum intensity and sort by intensity/id, movers split saved power rankings into `delta > 0` risers and `delta < 0` fallers, and `LeaguePulse.tsx` passes `{ maxRivalries: 12, maxMovers: 5 }` with team-name-only display labels from `team.name`.
+- `/league-pulse` now renders a `Pulse Sources` panel in both populated and empty states. It labels saved `leagueRivalries`, saved `game.powerRankings`, `buildLeaguePulse` read-model ownership, heat-spike social posts as explicit-caller-only, route-local display caps, and the display-only boundary. Opening the route does not write rivalries, rankings, news, social posts, storyline threads, or history rows.
+- `stat-central.ts` combines current players with `playerSeasonHistory` and `playerArchive` fallbacks. Historical seasons come from archived history, while current-season rows synthesize from live `game.players`; keep this split in mind before changing leaderboard or timeline copy.
+- Record books are saved state, but many record views are derived. `records.ts`/`record-tracker.ts` mutate `game.records` during week advance, while `selectUserRecordWatch`, `selectLeagueLeaders`, `selectCareerStatLeaders`, `selectPlayerTimeline`, `selectTeamSeasonHistory`, `selectLeagueAverages`, and `selectPositionRankings` derive route models from current players, history, archive, awards, and franchise history.
+- Recent record/milestone feeds are capped saved receipts. `franchise-week.ts` appends `recentBrokenRecords` and `recentMilestones` with a latest-25 cap, rebuilds `activeRecordChases` only during the regular season, and uses those receipts for news, social posts, media-cycle/storyline inputs, and record-book UI. Record-chase projections use `getRegularSeasonWeekCount(game)` so generated 17/18/19-week schedules drive remaining games and projected totals. The web `selectUserRecordWatch` selector uses the same public helper for user-team pace cards instead of a fixed season length.
+- `/records` now renders a `Record Sources` panel that labels saved `game.records`, saved `activeRecordChases`, saved `recentBrokenRecords`, saved `recentMilestones`, local route filters/selection, and the no-render-time media boundary. `/game-day` can link into this route from a saved `GameDayPackage.recordsMoments` / `milestoneMoments` receipt, but that CTA is also read-only. Opening either route does not detect or write new records, recalculate chase receipts, add league news/social/storylines, create ceremonies, update stats, simulate, or touch RNG.
+- `/stat-central` now renders a `Stat Sources` panel that labels current-season rows from live `game.players`, historical rows from `playerSeasonHistory`, retired/name/position fallback context from `playerArchive`, local route state for tabs/filters/comparison slots, and the display-only boundary. Opening the route does not write stats, records, news, social posts, history rows, or archive entries.
+- `RecordBook.tsx`, `StatCentral.tsx`, `AnalyticsDashboard.tsx`, `PowerRankings.tsx`, and `LeaguePulse.tsx` should stay display/query surfaces. If one of these screens needs to create news, posts, rankings, or records, route it through engine/store week or action paths instead of mutating from render code.
+- `StatCentral.tsx` currently keeps tab/filter/compare/alignment selections in local React state. These are not saved user preferences; add a browser sidecar deliberately if persistence is needed.
+
+Scenario challenge and constraint boundary map:
+
+- `SCENARIO_DEFINITIONS` currently defines `rebuild`, `cap_hell`, `dynasty_or_bust`, `expansion`, and `the_savant`. Only `the_savant` currently sets active blockers: `blockTrades: true` and `blockFreeAgency: true`. All shipped scenarios currently set `blockDraft: false` and leave `forcedDifficulty` unset, but loaded/future scenarios with `blockDraft: true` are guarded at the user draft-pick action.
+- `ScenarioDefinition.difficulty` is catalog/display metadata with its own display key space (`all_pro`, `hall_of_fame`) that is distinct from saved `DifficultyLevel` values (`allpro`, `legend`). `startScenario` changes `game.difficulty` only when `scenario.constraints.forcedDifficulty` is set; current shipped scenarios do not force the difficulty field. Do not copy display difficulty strings into `GameState.difficulty`.
+- `startScenario(scenarioId, baseGameState, _rng)` accepts an RNG parameter but currently does not consume it. Scenario setup is deterministic as a function of the base state and scenario id; web launch nondeterminism comes from creating a fresh `Date.now()` seed before calling it.
+- `GameState.scenarioState` is optional. New seeded games set it to `undefined`; `SaveStateSchema` accepts optional `scenarioState` and defaults missing constraint booleans to `false`; scenario launch writes `{ activeScenario, scenarioSeason: 1, completedScenarios }`.
+- `checkScenarioProgress(gameState)` mutates `gameState.scenarioState.activeScenario.objectives` and `bonusObjectives`; `advanceScenarioSeason(gameState)` rechecks progress, increments `scenarioSeason`, or clears `activeScenario` and records/replaces the completed scenario grade. Completed records are unique by scenario id; a new completion filters out any prior grade for the same id before appending the latest `{ id, score, grade }`. The live year-rollover caller is `franchise-week.ts` after next-year week/offseason state is initialized.
+- Scenario grading is code-owned: primary objectives contribute up to 60 points, bonus objectives up to 20, and efficiency up to 20 only when every primary objective is complete before the season limit. Grades are `S >= 95`, `A >= 85`, `B >= 75`, `C >= 65`, `D >= 50`, else `F`.
+- Current enforced blockers are still route-specific. `trade-market.ts` returns no generated offers and returns an unchanged clone from `acceptTradeOffer` when `blockTrades`; the web store now returns before generated-offer accepts, direct proposal creation, direct proposal submission, or counter acceptance under `blockTrades`, preventing undo snapshots, audio cues, autosave, and commits on direct calls; `trade-negotiation.ts` still throws as a lower-level backstop when called directly under `blockTrades`; the web store returns before accepting deadline user offers when `blockTrades`; draft-war-room helpers suppress generated offers, return unchanged clones from `applyDraftTradeOffer`, and the web store returns before `acceptDraftTradeOffer` commit when `blockTrades`; `draft.ts` returns an unchanged clone from `makeDraftPick` and the web store returns before `makeDraftPick` audio/autosave/commit when `blockDraft`; `offseason.ts` returns unchanged clones from `submitFreeAgentBid` and `signStreetFreeAgent` when `blockFreeAgency`; the web store returns before street-signing cue/autosave/commit when the `signStreetFreeAgent` result is not a proved user-roster signing; and `practice-squad.ts` returns unchanged from `submitWaiverClaim` and `addToPracticeSquad` while the web store returns before waiver/practice-squad acquisition commit/autosave when `blockFreeAgency`. These paths do not emit a blocker event, audio cue, or consequence; `/scenarios` provides status-page blocked-action guidance instead of a global action toast. Planning-only read routes such as `/team-needs`, `/trade-block`, and `/fa-targets` render saved blocker context while staying non-commit reports, and `getScenarioConstraintCoverage` exposes `allowedPlanningPaths` so `/scenarios` can list the safe read-only lanes still open under each blocker.
+- Practice-squad release and elevation actions remain internal roster-management paths under the current blocker model rather than external free-agent acquisition paths.
+- `ScenarioSelect.tsx` is a catalog/status/start surface. Its active constraints panel and inactive `/scenarios` catalog badges use `getScenarioConstraintCoverage` to distinguish currently enforced paths from uncovered inspected paths, and the active `Blocked Action Guide` converts enforced items into uncommitted-attempt/next-move copy. The same coverage items now include `allowedPlanningPaths`, which `/scenarios` renders as `Still open:` lines for safe read-only planning lanes such as team-needs reports, trade-block scouting, FA target-board refresh/watchlist, scouting reports, and war-room review without commit. Those badges, guides, planning-lane rows, and source rows are not enforcement by themselves. `Scenario Sources` labels the `selectAvailableScenarios` / `getAvailableScenarios()` catalog read, `getScenarioConstraintCoverage` display helper, explicit `actions.startScenarioChallenge -> createSeedGameState -> startScenario -> commitGame` start path, and no-render-write boundary. `ActionCenter.tsx` now reuses the same coverage helper for a Monday Briefing `Scenario locks active` notice near the command queue; it links back to `/scenarios` and does not change the action list or enforcement paths. `NewGameScreen` scenario-launch cards now reuse `getScenarioConstraintCoverage` through `ScenarioLaunchCoverageBadges`, showing `Open rules` for unrestricted scenarios and enforced blocker badges such as `Trade Actions enforced` / `Offseason Free Agency enforced` before a save is started. Starting a scenario from `/scenarios` calls `window.confirm`, then `actions.startScenarioChallenge`, which creates a fresh `Date.now()`-seeded game for the current user franchise identity/difficulty, preserves completed scenario grades, commits, and navigates home.
+- If extending scenario constraints, test the actual blocked engine/store/UI routes: `scenario-challenge.test.ts`, `trade-market.test.ts`, `offseason.test.ts`, `trade-negotiation.test.ts`, `trade-deadline.test.ts`, `draft.test.ts`, `draft-war-room.test.ts`, web `game-store.test.ts`, and `ScenarioSelect.test.tsx`. Add save tests if the shape of `scenarioState`, constraints, or completed scenario records changes.
+
+Dynasty window, doctrines, and Franchise Book hook boundary map:
+
+- `dynasty-window.ts` is a pure read model. `calculateDynastyWindow(team, year, draftPicks?, game?)` scores roster strength from starters or the first 22 roster players, youth from starter ages, cap health from current roster base salaries versus rule-aware `getSalaryCap(year, game?)`, and draft capital from pick count, then returns phase/score/factors/description/trend. It does not write `GameState`.
+- Current live dynasty-window consumers are setup/AGM copy in `franchise-setup.ts` and the `dynasty_window` Monday Briefing widget. `franchise-week.ts` imports `calculateDynastyWindow` in the inspected source but does not use it for sim math or saved outcomes. `FranchiseHub` does not currently use the dynasty-window helper; it uses `buildFranchiseDashboard`.
+- `franchise-doctrines.ts` owns the 12-item doctrine catalog and helper functions only. `checkDoctrineEligibility` only blocks duplicate ids; `awardDoctrine` stamps catalog copy with earned year/week; `getDoctrinesByCategory` groups the passed list without sorting or validating schema.
+- Live doctrine awards happen only in the playoff champion branch of `franchise-week.ts` after `archiveSeasonHistory(nextState)`. Inspected live awards are `championship_dna` for 2+ user-team championships, `trust_the_process` for a user-team title after a recent losing season, `loyalty_first` for a current user-team roster player with 10+ years experience, and `cap_wizardry` for current user-team cap space at least 15% of cap space plus cap used plus dead cap. The other catalog doctrines are definitions/display inventory until a live award path is added.
+- Saved doctrine state is `game.earnedDoctrines`; new saves seed `[]`, migrations default `[]`, and `SaveStateSchema` currently stores `earnedDoctrines: z.array(z.any()).default([])`. Treat doctrine shape as persistence-sensitive even though the current schema is permissive; a stricter doctrine schema needs old-save coverage.
+- `buildFranchiseDashboard(game, teamId)` is the Franchise Hub read model. It sorts `game.earnedDoctrines` newest-first, groups them through `getDoctrinesByCategory`, and combines them with franchise identity, all-time record, eras, legends, all-decade team, stadium deal status, and fan/prestige trends. `FranchiseHub.tsx` renders this derived data and should not award doctrines from render code.
+- `FranchiseHub.tsx` also composes route-local read panels beside the engine dashboard: `PowerRankingsTicker`, `HomegrownMeter`, `ContinuityMeter`, `RivalryHeatMap`, and coaching-depth copy from `buildCoachingLegacy`. Treat these as presentation/read-model satellites; they should not write dashboard, doctrine, roster, archive, rivalry, or sidecar state from render.
+- Franchise Hub source clarity is shipped as a read-only UI slice: `/franchise` renders `Franchise Sources`, labeling `selectFranchiseDashboard`, `selectUserTeam`, `selectFranchiseEras`, `selectStadiumDealOffers`, `selectCanRelocate`, read-only child modules, `buildCoachingLegacy`, and the explicit write buttons `upgradeStadium`, `acceptNamingRights`, and `/relocate`. Opening the route does not upgrade the stadium, accept naming rights, relocate, award doctrines, detect eras, update franchise history, mutate the live save, or run simulation.
+- Franchise Book source clarity is shipped as a read-only UI slice: `/franchise/book` renders `Franchise Book Sources`, labeling `buildFranchiseBook(game, userTeam.id)`, saved `game.franchiseHistory`, saved `game.userDynastyEras`, saved `game.dynastyTimeline`, signature-player reads from `game.playerArchive` and `game.playerSeasonHistory`, authored `era-templates.json` / `book-commentary.json`, route-local TOC state, browser-only print controls, and the no-render-write boundary. The chapter margin renders saved `chapter.record.winPct` as a percentage label, so `0.682` displays as `68.2%` instead of a bare decimal-like number. Opening the route does not write dynasty events, start or name eras, update franchise history, mutate players, write news, touch saves, or run simulation. The source panel is hidden in print output so shared PDF books stay reader-focused.
+- `HomegrownMeter` is pure presentation over `computeRosterIdentity(game)`. It shows an empty active-dynasty state when game/user team is missing. Homegrown source is `playerArchive[playerId].teamHistory[0].teamId`, because active `Player` objects do not retain origin-team provenance; missing archive entries do not count as homegrown. Age buckets are rookie `<= 22`, veteran `>= 30`, and mid-career otherwise; `homegrownPercent` is rounded over the current user roster size. The route now labels this source and states the panel does not write archive rows.
+- `ContinuityMeter` is hidden unless a user team exists and `readDynastyStarters(deriveDynastyId(game))` returns a non-empty snapshot. It reads browser-local `mfd.rosterContinuity.v1` through `roster-continuity-store.ts`, not `GameState`, then compares that snapshot to current roster `isStarter` flags with `computeRosterContinuity`. The route now labels that the source is browser-local and not cartridge data.
+- `computeRosterContinuity` dedupes previous starter ids, counts retained starters among current starters, counts departed previous starters absent from current starters, and uses current starter count as the `retentionPct` denominator. Because `setStarter` persists loose starter flags without lineup legality enforcement, continuity panels inherit the starter-flag caveats documented in the roster/depth-chart section.
+- `syncRosterContinuityAtYearRollover` writes the prior-season starter snapshot after an app-shell year advance; later rollovers replace that dynasty's snapshot. New-dynasty clearing removes only the incoming dynasty's sidecar. This data is browser-local and absent from portable cartridge exports unless a future complete-archive feature explicitly includes sidecars.
+- `RivalryHeatMap` now renders a route source note: authored team rivalry content plus runtime team lookup, W-L-T, total games, and latest meeting from saved completed schedule/playoff results, and no render-time rivalry writes.
+- `franchise-book-hook.ts::fireFranchiseBookChapterAlerts(game)` builds each team's Franchise Book with `buildFranchiseBook`, detects when the latest non-Chapter-1 era starts in `game.year`, and writes a league-news milestone through `recordNewsItem`; news ids make repeated calls idempotent. It returns alert metadata for logging/tests.
+- Franchise Book chapter-alert wiring is shipped. `franchise-week.ts` calls `fireFranchiseBookChapterAlerts(nextState)` immediately after `archiveSeasonHistory(nextState)` in the playoff champion rollover branch and before `nextState.year` increments, so live season-wrap saves can receive deduped chapter-start league-news milestones. The hook does not change franchise-history archiving, chapter derivation, save schema, sim math, RNG, movement, sidecars, or route rendering.
+
+Franchise business and analytics safety rules:
+
+- Preserve stable team/player ids through relocation and expansion unless doing a deliberate schema/archive migration. Team abbr/city/name can change; historical references normally depend on ids.
+- Do not add stadium JSON under `packages/content/stadiums` and assume it is live. Standalone stadium content becomes runtime-live after schemas, loader helpers, consumers, and tests are updated; current standalone stadium files are `atl-orchard.json`, `bal-crab-pot.json`, `bos-kettle.json`, `chi-deep-freeze.json`, `cin-sty.json`, `cle-power-chord.json`, `dal-corral.json`, `den-bull-market.json`, `det-bass-drop.json`, `kc-smokehouse.json`, `nyc-meter.json`, `phi-liberty-bell.json`, `pit-furnace.json`, `sea-feedback.json`, and `sf-mother-dough.json`, with embedded `packages/content/teams/*.json` stadium fields as fallback.
+- Treat relocation costs, stadium upgrade costs, expansion odds, scenario grading, standings tiebreakers, analytics formulas, and power-ranking scores as gameplay/world-balance math: document constants, before/after formulas, deterministic samples, and range checks.
+- Any dashboard widget or layout schema change must update `DashboardWidget`/`DashboardState`, save schema, migrations/defaults, Monday briefing rendering, and focused dashboard tests together.
+- Before changing scenario constraints, test the actual blocked flows, not only `getScenarioConstraints` or `getScenarioConstraintCoverage`: trade market, direct proposals, trade deadline, draft-war-room trades, free agency, draft picks, waivers, practice squad, and store actions may have separate gate paths.
+- Record-tracker changes can affect saved record books, active chases, recent receipts, media-cycle headlines, storyline threads, audio cues, social posts, and game-day packages. Keep record detection deterministic, cap receipt feeds deliberately, and update save schema/migrations if the receipt or record shapes change.
+- Do not regenerate or resort saved `game.powerRankings` from React render paths. `updatePowerRankings(nextState)` currently runs during regular-season week advance before `nextState.week` increments; media-cycle history is generated later from the completed week digest.
+
+Routes, selectors, and feature surfaces:
+
+- Routes: `/franchise`, `/relocate`, `/expansion-draft`, `/scenarios`, `/standings`, `/analytics`, `/stat-central`, `/power-rankings`, `/league-pulse`, `/season/recap`, `/franchise/book`, `/franchise/trophy-room`, `/franchise/eras`, `/franchise/mvps`, `/franchise/career`, and `/franchise/achievements`.
+- Feature folders: `features/franchise`, `features/scenario`, `features/standings`, `features/analytics`, `features/stats`, `features/power-rankings`, `features/league`, `features/season`, `features/monday-briefing`, and `features/inbox`.
+- Selectors: `selectStadiumDealOffers`, `selectExpansionDraftState`, `selectCanRelocate`, `selectRelocationDestinations`, `selectScenarioState`, `selectDashboardState`, `selectFranchiseDashboard`, `selectFranchiseLegends`, `selectAllDecadeTeams`, `selectFranchiseEras`, `selectCurrentAllDecadeNarrative`, `selectPowerRankings`, `selectUserPowerRanking`, `selectStandings`, `selectPlayoffPicture`, `selectStatLeaders`, `selectAnalyticsLeaders`, `selectPlayerComparison`, `selectWeeklyTrend`, `selectRecords`, `selectRecordChases`, `selectRecentBrokenRecords`, `selectRecentMilestones`, `selectLeagueLeaders`, `selectCareerStatLeaders`, `selectPlayerTimeline`, `selectPlayerCareerComparison`, `selectTeamSeasonHistory`, `selectLeagueAverages`, and `selectPositionRankings`.
+
+Save and balance risks:
+
+- Saved fields include `team.franchiseIdentity`, `team.fanConfidence`, `game.stadiumDealOffers`, `game.expansionDraftState`, `game.scenarioState`, `game.dashboardState`, `game.powerRankings`, `game.records`, `game.activeRecordChases`, `game.recentBrokenRecords`, `game.recentMilestones`, franchise history, all-decade teams, earned doctrines, schedule/results, and stat/history archives.
+- Relocation and expansion mutate stable team/player identity. Preserve stable IDs unless intentionally designing an explicit migration and downstream archive strategy.
+- Stadium deals, relocation costs, fanbase/prestige updates, expansion trigger odds, rankings, league pulse, and scenario grading are gameplay/world-balance logic. Keep RNG seeded and document constant/formula changes.
+- Scenario start currently uses `Date.now()` in the web store for the new challenge seed. That is acceptable for user-started new saves, but do not let wall-clock time leak into deterministic simulation replay.
+- Stadium content work should coordinate with `Content System`: `getTeamStadiumContent(teamId)` now prefers standalone stadium content by uppercase team id and falls back to embedded `packages/content/teams/*.json` stadium fields. Regional weather, relocation, naming-rights deals, and PA overrides remain separate systems.
+
+Focused tests for this layer:
+
+- Engine: `franchise-identity.test.ts`, `expansion-draft.test.ts`, `scenario-challenge.test.ts`, `dashboard-config.test.ts`, `standings.test.ts`, `analytics.test.ts`, `stat-central.test.ts`, `power-rankings.test.ts`, `media-cycle/power-rankings.test.ts`, `league-pulse.test.ts`, `franchise-dashboard.test.ts`, `franchise-legends.test.ts`, `franchise-doctrines.test.ts`, `season-recap.test.ts`, `franchise-week-media-cycle.test.ts`, and save migration/golden tests for persistent fields.
+- Store: `apps/web/src/app/store/game-store.franchise.test.ts` for stadium, naming rights, relocation, and expansion draft; `game-store.test.ts` for dashboard/scenario actions where applicable.
+- UI: `RelocationScreen.test.tsx`, `ExpansionDraft.test.tsx`, `ScenarioSelect.test.tsx`, `LeagueStandings.test.tsx`, `AnalyticsDashboard.test.tsx`, `StatCentral.test.tsx`, `PowerRankings.test.tsx`, `LeaguePulse.test.tsx`, `FranchiseHub.test.tsx`, `HomegrownMeter.test.tsx`, `ContinuityMeter.test.tsx`, `FranchiseBook.test.tsx`, `FranchiseLegends.test.tsx`, `TrophyRoom.test.tsx`, `SeasonRecapCard.test.tsx`, `SeasonRecapPrompt.test.tsx`, and `standingsSignalSvg.test.tsx`.
+
+## Narrative, Media, And Dynasty Memory Wiring
+
+There are two memory layers:
+
+- Saved `GameState` memory: `franchiseHistory`, `playerArchive`, `playerSeasonHistory`, `records`, `activeRecordChases`, `recentBrokenRecords`, `recentMilestones`, `awardsHistory`, `hallOfFame`, `dynastyTimeline`, `userDynastyEras`, `narrativeState`, `narrativeIntensity`, `eventLog`, `leagueNews`, `socialFeed`, `mediaCycle`, `storylineThreads`, `storyArcs`, `recentPressConferences`, `ceremonies`, `seasonReports`, `seasonNearMissReceipts`, `nearMissTracker`, `earnedDoctrines`, and `achievements`.
+- Browser sidecar archives: career meta, scrapbook, Hall of Fame directory, roster continuity, rookie-of-year history, playoff-lore pending cards, watch list, and ghost broadcast prefs. Career meta, scrapbook including pending playoff lore, Hall of Fame, roster continuity, rookie-of-year history, and derived rivalry heat can be exported/imported together through `/dynasty` as `mfd.dynastySidecars.archive.v1`, or packaged beside the current `.mfd` cartridge as `mfd.dynastyCombinedBackup.v1`; watch list and preference sidecars remain outside that complete-dynasty archive.
+
+Core engine write paths:
+
+- `history.ts`: `syncPlayerArchiveEntry`, `syncAllPlayerArchiveEntries`, `recordPlayerRetirement`, and `archiveSeasonHistory` keep player/team historical records.
+- `record-tracker.ts` and `records.ts`: active record chases, broken records, milestones, league leaders, and record-book updates. `checkRecordChases` projects single-season paces over `getRegularSeasonWeekCount(game)`, not a fixed 17-game or raw-rule-minus-one season. `apps/web/src/app/store/selectors.ts` imports that helper from `@mfd/engine` for `selectUserRecordWatch`.
+- `league-news.ts`: `recordNewsItem` dedupes by id and keeps `game.leagueNews` bounded to the latest 200 items. Helpers create governance, labor, record, milestone, weekly result, and generated offseason news, and accepted draft war-room trades call the same helper for durable `draft-trade-*` trade receipts.
+- `social-feed.ts`: generates deterministic MFSN/player/analyst/reporter posts from explicit RNG arguments; transaction, weekly, rivalry, governance, labor, record, injury, and achievement posts feed `game.socialFeed`.
+- `press-conference.ts`: `recordPressConference` stores the latest 5 conferences, pushes timed effects, headlines, and event-log entries. Current generated press-conference effects are morale effects stored in `activeEffects`; web podium responses are separate UI queue receipts.
+- `narrative-director.ts`: `recordBeat` updates `narrativeIntensity` from the latest 8 beats; breaking-news helpers use current context plus deterministic RNG.
+- `hooks-engine.ts`: `generateHooks` builds up to three prioritized narrative hooks from contract pressure, upcoming rivalries, playoff race, development, owner pressure, injury, draft-pick, and streak conditions. It subtracts 20 priority from categories in `lastShownCats` before sorting, filters rivalry hooks to unplayed upcoming user matchups after the current week, and scans only the next four user games. `checkNemesisTrigger` maps playoff-loss, injury, and free-agent-steal events to nemesis records with `Date.now()` metadata; `checkNemesisResolved` requires a consequential win against the same opponent. `generateDraftCrush` is a draft-RNG-only three-year prospect preview gate. Keep `hooks-engine.test.ts`, `phase2.test.ts`, `franchise-week.test.ts`, and `game-day-package.test.ts` aligned when changing hook priorities, category thresholds, schedule filtering, nemesis semantics, or draft-crush copy/RNG behavior.
+- `story-arcs.ts`: `advanceWeeklyStoryArcs` owns user-team weekly arcs such as win streak, hot seat, breakout player, injury crisis, and revenge game. League arcs derive from franchise history, cap collapses, playoff runs, and dynasty breakthroughs.
+- `dynasty-timeline.ts`: `recordDynastyEvent`, `getDynastyHighlights`, `getDynastyByYear`, and Franchise Book builders derive long-term era chapters from `franchiseHistory`, `dynastyTimeline`, `userDynastyEras`, `playerArchive`, and relationships.
+- `scrapbook.ts`: `buildScrapbookEntry` is the pure engine author for completed-season scrapbook entries. It derives the season highlight from `buildSeasonRecap`, selects the era through `buildFranchiseBook`, and auto-authors up to three notable moments from saved `leagueNews`, saved `dynastyTimeline` named games, saved bloodline `draft_pick` events that structurally reference a drafted player's `bloodline.parentPlayerId`, saved individual `game.awardsHistory` winners for the recap team/year, saved `game.storyArcs` stage beats for the recap team/year when matching `story-arc-*` league news is absent, saved `game.seasonReports` rows for the recap team/year with overall grade plus Season Overview summary, the completed season's `franchiseHistory.recordsBroken`, saved `game.hallOfFame` inductions, and saved heated `game.leagueRivalries` rows matching the recap team/year. It does not write `GameState`, write sidecars, run draft/bloodline/award/story-arc/season-report/record/HOF/rivalry generation, change `mfd.scrapbook.v1`, or touch RNG; app-shell rollover still owns persistence through `syncScrapbookAtYearRollover -> appendScrapbookEntry`.
+- Dynasty-window, doctrine, and Franchise Book alert details live in the Franchise Business boundary map. `fireFranchiseBookChapterAlerts(game)` is exported/tested and now production-called by playoff champion rollover after franchise history is archived; it idempotently writes `leagueNews` milestone items when a new non-Chapter-1 Franchise Book chapter starts in the completed season.
+- `ceremonies.ts`, `hall-of-fame.ts`, `career-epilogues.ts`, `jersey-retirement.ts`, `awards.ts`, `dynasty-era.ts`, `dynasty-window.ts`, `franchise-doctrines.ts`, `franchise-legends.ts`, `franchise-dashboard.ts`, `scrapbook.ts`, `near-miss-receipts.ts`, and `save-reminder.ts` are supporting long-save memory systems.
+
+Week/offseason generation flow:
+
+- Regular week tail work in `franchise-week.ts` handles waivers, owner mandates, handshakes, player sync, broken-record news, milestone news, media cycle, story threads, weekly summary, press conference, film room report, social feed, league news, achievements, game-plan reset, weekly-prep cleanup, and trade suggestions. `advanceFranchiseWeek` calls `syncPlayers` before phase work and again after waiver processing; `syncPlayers` now initializes missing player `stats` and required `careerStats` buckets before syncing roster objects into `game.players`, which protects schema-normalized/imported saves from post-week stat-reader crashes without changing stat formulas.
+- Playoff rollover archives the completed season, creates near-miss receipts, increments year, creates the draft class/offseason state, and can trigger save reminders. `/season/recap` reads the saved latest `seasonNearMissReceipts` array when present; it does not consume transient `EngineOutput.nearMissReceipts` directly or create receipts from render.
+- Season Recap source clarity is shipped as a read-only UI slice: `/season/recap` renders `Season Recap Sources`, labeling `buildSeasonRecap(game, team.id)`, `SeasonRecapCard`, saved `game.seasonNearMissReceipts`, explicit `Export PNG` / `Copy Text` helper imports through `exportRecapAsPng` and `copyRecapAsText`, browser download/clipboard behavior, and the no-render-write boundary. Opening the route does not archive the season, create near-miss receipts, advance the league year, mutate players, write media, touch saves, or run simulation.
+- Market-planning route coaching is shipped for `/team-needs`, `/free-agency`, and `/fa-targets`: `resolveRouteKey` maps those routes to `market-planning`, whose unanchored Chip beats remind the user to connect needs, targets, cap, and commit-route ownership. This is route guidance only; it does not refresh caches, submit bids, sign players, move assets, change save state, run sim, or touch RNG.
+- Offseason Calendar Readout is also shipped on `/free-agency` as a read-only UI mirror of the existing shared `selectOffseasonCalendar` model. It displays the same saved phase/offseason/CBA/expansion calendar status beside market actions, labels selector ownership plus the no-render-write boundary, and does not add a second calendar model. `/week-advance` now adds `Offseason Command Snapshot` from the shared calendar plus saved offseason, roster-contract, and cap fields. Opening either route does not advance weeks, resolve bids, generate draft state, move players, mutate saves, touch RNG, or simulate games.
+- Roster-churn route coaching is shipped for `/waivers` and `/practice-squad`: `resolveRouteKey` maps those routes to `roster-churn`, whose unanchored Chip beats remind the user to check eligibility, timing, roster limits, and action-row risk before committing claims/adds/releases/elevations. This is route guidance only; it does not submit claims, add players, release players, elevate players, create contracts, change save state, run sim, or touch RNG.
+- Season Recap route coaching is also shipped: `resolveRouteKey('/season/recap')` maps the direct route to `season-recap`, whose unanchored Chip beats remind the user to read the record/story/what-if rows and treat export/copy as browser share controls. This is route guidance only; it does not change the recap read model, route registration, save writes, season rollover, sidecars, sim math, or RNG.
+- `advanceOffseason` archives player-season history, clears season living-world state, stamps champion careers, generates awards and ceremonies, inducts Hall of Famers, records dynasty events, patches season history, creates season reports, processes jersey retirements, decays rivalries, runs coaching carousel, progresses/retire players, records offseason news, and transitions to free agency.
+- Many feeds are bounded or deduped. Preserve those limits unless deliberately changing UX/performance: league news 200, recent press conferences 5, narrative beats 8, and route/UI queues usually slice latest entries.
+
+Web sidecar and prompt flow:
+
+- `App.tsx` watches year/week changes. On year rollover it calls `syncScrapbookAtYearRollover`, `syncHallOfFameArchiveAtYearRollover`, `syncRosterContinuityAtYearRollover`, and `syncRookieOfYearAtYearRollover`; it also opens season recap, dynasty-era, and save-reminder prompts when selectors/helpers say so.
+- `game-store.ts` calls `buildDynastySummary`, `appendDynastySummary`, and `finalizeDynasty` for career meta when saves are loaded/finalized.
+- `career-meta.ts` owns dynasty identity (`seed:teamId:startYear`) and career totals. `/franchise/career` is the read-only GM Career viewer for that browser-local sidecar. Changing dynasty identity affects every sidecar archive.
+- `dynasty-chronicle.ts` combines franchise history, Hall of Fame archive entries, coaching history, scrapbook notes, and playoff-lore cards into the `/franchise/chronicle` event stream.
+- `rivalry-heat-map.ts` currently derives W-L-T, total games, and the latest saved meeting from available completed schedule/playoff results for declared rivalries; durable all-time rivalry history across seasons is still an improvement-plan item.
+- Keep the two era systems separate. `selectFranchiseEras` derives dashboard eras from `franchiseHistory` through `detectFranchiseEras`; `EraTransitionEmitter` watches that derived latest era, suppresses initial mount, dedupes fired era ids in React refs, and shows only a session overlay. `DynastyEraPrompt` is the user-naming flow: `App.tsx` opens it when `shouldPromptEraNaming(game)` becomes true after a year/week check, suggestions come from `generateEraSuggestions(game, mulberry32(game.seed ^ game.year ^ 0xEEEE))`, and confirming calls `actions.nameDynastyEra`, which clones, runs `startDynastyEra`, writes `userDynastyEras`/`team.era`, and commits/autosaves. The modal's `Era Naming Sources` panel labels that prompt gate, seeded suggestion source, explicit write path, and `Skip` close-only boundary; rendering the prompt does not detect eras, start/end eras, update franchise history, award titles, mutate the save, run simulation, or use unseeded RNG. Do not treat the transition overlay as proof that a user-named era was saved.
+- Era transition reveal integration is shipped. `EraTransitionEmitter` still watches `selectFranchiseEras`, suppresses initial mount, dedupes fired era ids in React refs, and writes no save or sidecar state, but it now renders the staged `EraTransitionReveal` flow (`badge -> name -> narrative -> idle`) with reduced motion starting at `idle`. The emitter maps detected era names such as `Dark Ages`, `The Rebuild`, `Dynasty Era`, and `Golden Age` to reveal badge/palette variants and keeps the era year range in the narrative copy.
+
+Routes and selectors:
+
+- App routes: `/inbox`, `/social`, `/news`, `/league-pulse`, `/broadcast`, `/play-by-play`, `/records`, `/stat-central`, `/legacy`, `/legacy/named-games`, `/legacy/bloodlines`, `/awards`, `/franchise`, `/franchise/book`, `/franchise/career`, `/franchise/scrapbook`, `/franchise/hall`, `/franchise/trophy-room`, `/franchise/eras`, `/franchise/mvps`, `/franchise/playoff-lore`, `/franchise/chronicle`, and `/franchise/achievements`.
+- Feature folders: `features/inbox`, `features/social`, `features/league-news`, `features/newsroom`, `features/league`, `features/legacy`, `features/franchise`, `features/season`, `features/dynasty-era`, `features/playoffs`, `features/broadcast`, and `features/audio`. There is no `features/news` folder today; `/news` is the `league-news` route while `/newsroom` is the digest route.
+- Main selectors: `selectActiveStoryArcs`, `selectCeremonies`, `selectHallOfFame`, `selectRecords`, `selectStorylineThreads`, `selectRecentPressConferences`, `selectLeagueRivalries`, `selectSocialFeed`, `selectLeagueNews`, `selectTeamNews`, `selectAchievements`, `selectNewlyUnlocked`, `selectSeasonReports`, `selectFranchiseDashboard`, `selectFranchiseLegends`, `selectFranchiseEras`, `selectDynastyTimeline`, `selectDynastyScore`, `selectUpcomingRivalry`, `selectUserRecordWatch`, `selectRecordChases`, `selectRecentBrokenRecords`, `selectRecentMilestones`, `selectLeagueLeaders`, and `selectPlayerTimeline`.
+
+Safety rules:
+
+- Do not move sidecar-only archive state into `GameState` without schema, migration, seed/default, cartridge import/export, and old-save verification.
+- Do not add new localStorage access in engine systems; browser storage helpers belong in `apps/web/src/lib` or app-shell/store effects.
+- Narrative randomness still needs explicit RNG or seeded helpers. Do not use `Math.random()` for news, social, ceremonies, arcs, records, or dynasty events.
+- When adding event IDs, make them deterministic and stable across repeated same-seed runs. Dedupe logic often keys on ids.
+- When adding UI for a memory system, verify the source of truth: current save, local sidecar archive, or derived selector model.
+
+Focused tests for narrative/memory work:
+
+- Engine: `franchise-week-media-cycle.test.ts`, `franchise-week-heat-spike.test.ts`, `hooks-engine.test.ts`, `history.test.ts`, `records.test.ts`, `record-tracker.test.ts`, `league-news.test.ts`, `social-feed.test.ts`, `press-conference.test.ts`, `story-arcs.test.ts`, `dynasty-timeline.test.ts`, `dynasty-era.test.ts`, `dynasty-window.test.ts`, `franchise-book-hook.test.ts`, `franchise-dashboard.test.ts`, `franchise-legends.test.ts`, `hall-of-fame.test.ts`, `hall-of-fame-voting.test.ts`, `hall-of-fame-epilogues.test.ts`, `ceremonies.test.ts`, `awards.test.ts`, `scrapbook.test.ts`, `near-miss-*.test.ts`, `named-games.test.ts`, `rivalries.test.ts`, `player-rivalries.test.ts`, and `season-report.test.ts`.
+- Web lib: `career-meta.test.ts`, `scrapbook-store.test.ts`, `hall-of-fame-archive.test.ts`, `roster-continuity-store.test.ts`, `rookie-of-year-store.test.ts`, `rivalry-storage.test.ts`, `dynasty-sidecar-archive.test.ts`, `dynasty-combined-backup.test.ts`, `playoff-lore.test.ts`, `dynasty-chronicle.test.ts`, `dynasty-chronicle-filter.test.ts`, `dynasty-chronicle-presenter.test.ts`, and `rivalry-heat-map.test.ts`.
+- UI/store: `SocialFeed.test.tsx`, `LeagueNews.test.tsx`, `NewsroomDigest.test.tsx`, `InboxTriage`/`buildInboxMessages.test.ts`, `DynastyChronicle.test.tsx`, `FranchiseBook.test.tsx`, `FranchiseHub.test.tsx`, `GmCareer.test.tsx`, `HallOfFameDirectory.test.tsx`, `TrophyRoom.test.tsx`, `EraHall.test.tsx`, `MvpPlaqueWall.test.tsx`, `Scrapbook*.test.tsx`, `RivalryHeatMap.test.tsx`, `RookieOfYear*.test.tsx`, `AchievementsGallery.test.tsx`, `App.test.tsx` for `/news` versus `/newsroom` route ownership, and `game-store.gameweek.test.ts` for playoff-lore/press/recap side effects.
+- Season recap and era UI: `SeasonRecapCard.test.tsx`, `SeasonRecapPrompt.test.tsx`, `recap-share.test.ts`, `export-frame.test.ts`, `EraTransitionEmitter.test.tsx`, `EraTransitionReveal.test.tsx`, `eraTransitionState.test.ts`, `dynasty-era.test.ts`, `round3-grand-opening.test.ts`, and `App.test.tsx` for era-prompt and transition-emitter shell wiring.
+- Franchise/legacy presentation: `ChronicleFilters.test.tsx`, `ChronicleEventDetailModal.test.tsx`, `DynastyChronicle.test.tsx`, `NamedGamesBrowser.test.tsx`, `RookieOfYearCard.test.tsx`, `RookieOfYearHistory.test.tsx`, `TrophyRoom.test.tsx`, `EraHall.test.tsx`, `MvpPlaqueWall.test.tsx`, `AchievementsGallery.test.tsx`, and `ChampionshipParade.test.tsx` for filter labels, route-local state, export framing, sidecar reads, named-game labels, SVG attributes, and presentation-only helpers.
+
+## Legacy, Awards, Records, And Ceremony Wiring
+
+Saved source-of-truth fields:
+
+- `game.records`: league record book with `singleGame`, `singleSeason`, `career`, and `franchise` buckets. `records.ts` keeps each stat bucket sorted and capped to 10 entries.
+- `game.activeRecordChases`, `game.recentBrokenRecords`, and `game.recentMilestones`: short-lived record/milestone queues written during weekly advancement and read by record-watch UI. These saved receipts are separate from the app-shell `MilestoneCard` threshold overlays.
+- `game.awardsHistory`: completed-season awards archive. `generateAwards(game, seasonYear)` replaces same-year entries and sorts by year.
+- `game.hallOfFame`: saved Hall of Fame induction archive. `ballotWaitlist` and `ballotEliminatedIds` are now live saved ballot state: the TypeScript `GameState` type has the fields, `HallOfFameBallotEntrySchema` validates waitlist rows, v36 schema parsing defaults/sanitizes them, the v35 migration initializes/sanitizes them, and new seed/demo/test/playtest builders initialize empty arrays.
+- `game.ceremonies`: bounded ceremony feed. `recordCeremony` appends and keeps the latest 20.
+- `team.retiredJerseys` and `game.farewellTours`: retired jerseys are team-owned; farewell tours are saved on `GameState`. Jersey assignment also treats retired numbers as unavailable.
+- The web store `startFarewellTour(playerId)` action clones the current save, uses the generated schedule flattened with explicit week numbers, calls the engine `startFarewellTour`, and commits the returned saved tour. Focused engine tests guard final-home/final-game moment construction, and `game-store.test.ts` guards that the store action saves a tour with future scheduled moments from a live seed schedule.
+- Player Profile owns the explicit tour-start command. Its `Profile Sources` row labels `selectFarewellCandidates` and `selectFarewellTours` as read-only inputs, and the `Farewell Tour Receipt` shown after the existing `actions.startFarewellTour -> startFarewellTourEngine -> commitGame` path resolves is route-local acknowledgement copy only. Rendering the profile or the receipt does not create another tour, reschedule moments, change retirement logic, alter save schema, run sim, touch RNG, or move players.
+- `game.achievements`: saved achievement catalog with `unlockedYear` and `unlockedWeek`; `checkAchievements` mutates only still-locked entries.
+
+Engine write flow:
+
+- Regular-season advancement calls `detectBrokenRecords`, `checkMilestones`, `checkRecordChases`, and `checkAchievements` from `franchise-week.ts`. Broken record and milestone narrative is deterministic template selection from explicit record data.
+- Offseason rollover calls `generateAwards`, `generateAwardsNight`, `updateSeasonRecords`, `updateCareerRecords`, `inductHallOfFame`, `generateHOFInduction`, and `checkAchievements` from `offseason.ts`.
+- Hall of Fame voting is deterministic from `game.seed`, induction year, and candidate player IDs. Production-shaped new/imported saves now define `ballotWaitlist`, so `inductHallOfFame` uses ballot voting; only legacy in-memory test shapes with `ballotWaitlist === undefined` fall back to the old direct-induction path.
+- Jersey retirement is processed after Hall of Fame induction and uses `shouldRetireJersey` plus `generateJerseyRetirement`; qualifying numbers are written to `team.retiredJerseys` and mirrored as `jersey_retirement` ceremonies.
+- Ceremony generators cover championship, awards night, Hall of Fame induction, ring ceremony, and jersey retirement. `generateRingCeremony` only returns a ceremony in regular-season week 1 for the defending champion.
+
+Hall of Fame ballot and epilogue boundary map:
+
+- `history.ts` owns the player archive source data. `syncPlayerArchiveEntry` creates/updates `game.playerArchive`, tracks positions, jersey number, team-history stints, peak OVR/year, last year, and career stats; `recordPlayerRetirement` stamps `retirementYear` and closes the latest stint. Hall of Fame, franchise legends, alumni mentors, record leaders, revenge games, and player-profile bloodline context all read this archive.
+- `hall-of-fame.ts` filters `playerArchive` entries as eligible only when `retirementYear` is at least one year before the induction year, `peakOvr >= 85`, and career games played are at least 80. `hallScore` combines peak OVR, games played, MVPs, All-Pros, Pro Bowls, and championships; direct legacy classes require score `>= 70` and are capped at five inductees.
+- `inductHallOfFame(game, inductionYear)` has two modes. If `game.ballotWaitlist` is `undefined`, it uses the legacy direct-induction path and appends the top eligible class to `game.hallOfFame`; this remains compatibility behavior for old in-memory callers. If `ballotWaitlist` exists, it collects waitlisted/new candidates, seeds ballot voting with `game.seed ^ inductionYear ^ candidate id hashes`, updates `ballotWaitlist`/`ballotEliminatedIds`, and appends inducted entries.
+- Ballot persistence/defaulting is shipped: `HallOfFameBallotEntrySchema` validates saved rows, malformed waitlist rows are filtered, eliminated ids are string-filtered/deduped/sorted, v35 migration defaults both fields, current schema parsing defaults missing current-version imports, and `/legacy` labels saved ballot counts/source fields plus a read-only `Ballot Watch` list of saved waitlisted candidates with years, latest vote percentage, score, average saved vote, 70%+ support count, year-5 count, and top-watch copy. This did not change HOF scoring, vote thresholds, offseason induction timing, save version, sim math, RNG formula, or movement.
+- `career-epilogues.ts` is deterministic trait-based post-career copy. `generateCareerEpilogue(rng, player)` picks the template with the highest matching trait count, chooses headline/story with the supplied PRNG, and falls back to quiet-life/business templates. `isEpilogueWorthy(player)` requires `ovr >= 80` and `yearsExp >= 8`.
+- Hall of Fame entries attach epilogues only inside `buildHallOfFameEntry`: it resolves the active `game.players[playerId]` when available, otherwise builds an archive-backed fallback player with empty traits and peak OVR/years; it seeds the epilogue with `mulberry32(game.seed ^ inductionYear ^ hashString(playerId))`. Retirement itself does not generate or persist epilogue copy.
+- Type/schema persistence: `HallOfFameEntry` in `types/franchise.ts` has optional `epilogue`, and `HallOfFameEntrySchema` in `save/schema.ts` now preserves it through typed `CareerEpilogueSchema` validation. Imported/autosaved cartridges are normalized through `SaveStateSchema.safeParse`; malformed epilogue payloads are dropped, while valid epilogues survive current-save parse and v35 import migration.
+- Web surface caveat: `selectHallOfFame` returns saved `game.hallOfFame`; `/legacy` lists Hall of Fame entries, and `/franchise/hall` reads the Hall of Fame local sidecar archive. `HallOfFamerDetailModal` renders metrics, teams, highlights, PNG export, and displayable `entry.epilogue` category/headline/story when the selected saved/sidecar entry already carries one. `/franchise/chronicle` also reuses displayable saved HOF epilogue headline/story/category in chronicle timeline and detail context. `generateHOFInduction` ceremony highlights and `generateOffseasonNews` HOF items now prefer existing epilogue headline/story and fall back to joined career highlights or peak-OVR copy.
+- Browser archive caveat: `apps/web/src/lib/hall-of-fame-archive.ts` owns `mfd.hallOfFame.v1`, a localStorage payload keyed by derived dynasty id. Its schema accepts `epilogue: z.unknown().optional()`, while the engine cartridge schema now validates the typed epilogue shape. Sidecar sync timing is still separate from cartridge persistence. The route-level Archive JSON export/import is sidecar-only portability for this payload, not a cartridge format. `/dynasty` complete-sidecar archive export/import can carry this HOF sidecar alongside scrapbook, rookie history, roster continuity, career meta, and derived rivalry heat, but still does not import HOF entries into `GameState`.
+- `syncHallOfFameArchiveSnapshot(game, teamId)` is the shared production writer for the Hall of Fame archive. It requires the active user team and at least one saved `game.hallOfFame` entry, then upserts a full dynasty snapshot with `lastSyncedYear: game.year`. `syncHallOfFameArchiveAtYearRollover(previousYear, game, teamId)` gates that writer to app-shell year advances; `/franchise/hall` gates it behind the explicit `Sync Current Save` button. Neither path imports older sidecar entries back into `GameState`, changes HOF induction logic, autosaves, or runs sim/RNG.
+- `exportHallOfFameArchiveJson` reads the current sidecar into a versioned `mfd.hallOfFame.archive.v1` JSON envelope. `importHallOfFameArchiveJson` accepts that envelope or a raw `mfd.hallOfFame.v1` payload only after Zod validation, then replaces only the local sidecar. Invalid JSON/schema input leaves the existing archive intact.
+- `HallOfFameDirectory.tsx` reads the sidecar synchronously through `readHallOfFameArchive()`, summarizes all stored dynasties, supports all/homegrown/current filters, groups by induction decade, and exports the filtered DOM through `createExportFrame` plus `recap-share`. The "current" filter uses the active game only to derive the current dynasty id/team theme; the displayed entries still come from the sidecar snapshot.
+- `DynastyCartridge.tsx` also exposes `One-Click Combined Backup` and `Complete Dynasty Sidecars`. The combined panel builds a normal `.mfd` cartridge, packages it with `readDynastySidecarArchivePayload()` as `mfd.dynastyCombinedBackup.v1`, and imports only after `parseDynastyCombinedBackupJson` validates both the cartridge envelope and sidecar payloads. Its import path autosaves the imported cartridge game, imports the sidecars, then calls `loadGame`. The sidecar-only panel reads `readDynastySidecarArchivePayload()`, exports `mfd.dynastySidecars.archive.v1`, and imports only after `importDynastySidecarArchiveJson` validates every included payload. Sidecar-only import does not call `loadGame`, write `GameState`, autosave, alter `.mfd` cartridge compatibility, write Dexie slots, or include preferences/watchlists/Chip/audio/setup sidecars.
+- HOF/archive clarity is shipped: `/legacy` labels its Hall of Fame panel as the current save archive and links to `/franchise/hall`, while `/franchise/hall` labels `mfd.hallOfFame.v1`, `readHallOfFameArchive()`, the active save's live `game.hallOfFame` count, the current sidecar snapshot count/last sync year, the explicit `Sync Current Save` sidecar write, and sidecar-only Archive JSON export/import. Durable epilogue persistence is shipped in the engine save schema, the detail modal displays existing valid epilogues without generating or repairing them, HOF induction ceremonies/news use existing epilogue headline/story when present, and Dynasty Chronicle reuses saved HOF epilogue context. Rendering `/franchise/hall` does not run `syncHallOfFameArchiveAtYearRollover`, import sidecar entries into `GameState`, write `GameState`, autosave, or run sim/RNG; pressing `Sync Current Save` only writes the current dynasty's full saved `game.hallOfFame` snapshot to `mfd.hallOfFame.v1`, while `Import Archive JSON` only replaces the browser-local sidecar after validation.
+
+Achievement catalog, progress, toast, and gallery boundary map:
+
+- `achievements.ts` owns the code-defined `ACHIEVEMENT_CATALOG`, `createDefaultAchievements`, `checkAchievements`, and `getAchievementProgress`. The inspected catalog has 52 entries across dynasty, roster, draft, financial, coaching, narrative, records, milestones, and hidden categories; only two are hidden (`hidden:cinderella_story` and `hidden:comeback_kings`).
+- New saves seed `game.achievements` from `createDefaultAchievements()` in `seed.ts`; migration v11 backfills the default catalog when old saves have no achievement array; the save schema itself defaults missing achievement arrays to `[]`; and `ensureAchievements(game)` lazily backfills the catalog when engine achievement helpers read an empty save. Plain selectors such as `selectAchievements` do not call `ensureAchievements`, so old-save/catalog backfill assumptions should be tested through migration or helper paths.
+- Saved achievement entries carry ids, condition metadata, tier/category/icon copy, and `unlockedYear`/`unlockedWeek`. Adding, renaming, or removing ids or condition types is persistence-sensitive: update TypeScript types, schema/default/migration behavior when needed, seed defaults, selectors, UI tests, and old-save expectations together. `AchievementCondition.type` and `AchievementConditionSchema.type` now use the shared `ACHIEVEMENT_CONDITION_TYPES` list; current-save parsing and migration normalize known catalog rows with stale condition metadata back to catalog defaults, while malformed custom rows with unknown metric ids are filtered instead of making the whole save fail.
+- `checkAchievements(game)` mutates only locked saved entries, stamps the current `game.year` and `game.week`, returns cloned newly unlocked entries, and returns nothing on repeat calls for already-unlocked achievements. There is no separate durable achievement event ledger or toast queue.
+- `getAchievementProgress(game, achievementId)` is a read model over the current save plus live metric functions. Unknown ids return a safe `0/1` progress object; locked hidden achievements return `hidden: true` with `???` copy until unlocked.
+- Achievement metrics in `metricMap` read broad live state: franchise history, playoff bracket seeds, records, roster, league rules, cap, draft picks, handshakes, recent press conferences, player archive, coaching history, facilities, and transaction logs. Treat condition changes as sim/read-model logic, not just copy.
+- The hidden achievement metrics are source-backed. `hidden:cinderella_story` can complete when the saved playoff bracket champion is seed 7 or higher. `hidden:comeback_kings` maps to `playoff_comebacks`, which counts existing saved `dynastyTimeline` `named_game` events where `namedGame.archetype === 'comeback'`, the user team is the winner, and the event week is after the regular-season boundary for that event year. The metric buckets by event year and uses the best single playoff run against the threshold, so the achievement unlocks from three user-team playoff comeback named games in one postseason. The regular-season boundary uses the live generated schedule length for the current year and configured/effective `schedule_weeks` rules for historical years.
+- Playoff achievements use the canonical `playoffFinish` strings where `missed_playoffs` and `regular_season` are non-playoff finishes; the literal `missed` is not written by inspected source. `achievements.test.ts` guards this for playoff-staple and worst-to-first progress.
+- The roster `Full House` achievement composes live `getRosterLimit(game)` and `getPracticeSquadLimit(game)` values, including custom league rules and legacy fallback labels. Do not reintroduce hard-coded 53/16 thresholds in achievement, roster, or practice-squad surfaces.
+- `selectNewlyUnlocked` filters achievements whose unlock stamp matches the current game year/week and sorts them by title. It is not a queue. `App.tsx` uses session-local `seenAchievements` keys plus `activeAchievement` timeout state to show `AchievementUnlockToast` and play the unlock cue.
+- Inbox achievement cards and the app-shell toast both derive from current-week newly unlocked achievements; after the week/year moves forward, they no longer appear through `selectNewlyUnlocked` unless a saved inbox message or another surface retained its own copy.
+- Achievement UI ownership is split by intent. The embedded `/legacy` `AchievementGallery` calls `getAchievementProgress` for locked non-hidden achievements and hides locked hidden achievements. The standalone `/franchise/achievements` `AchievementsGallery` remains a filter/sort medal gallery over saved entries, but it now builds a route-local `progressById` read model with `getAchievementProgress(game, achievement.id)`. Locked visible entries show readable progress copy and a `PixelProgressBar` instead of raw condition-type text; unlocked entries show readable `Goal:` copy; locked hidden entries use `???` mystery title/description/criteria copy instead of exposing saved hidden details. Monday Briefing has its own `achievement_progress` dashboard widget using `getAchievementProgress` only when that widget is present; it filters hidden progress out, sorts locked visible entries by completion percentage, and falls back to two recent unlocked achievements when no progress rows are available.
+- The app-shell `MilestoneCard` overlay is separate session-local celebration UI. It is not `game.achievements`, not `selectNewlyUnlocked`, and not saved `recentMilestones`.
+
+Web read flow:
+
+- Selectors: `selectAwardsHistory`, `selectCeremonies`, `selectHallOfFame`, `selectRecords`, `selectAchievements`, `selectNewlyUnlocked`, `selectAchievementProgress`, `selectRecordChases`, `selectRecentBrokenRecords`, `selectRecentMilestones`, `selectRetiredJerseys`, `selectFarewellTours`, `selectDynastyTimeline`, and `selectPlayerTimeline`.
+- Routes/components: `/legacy` uses `LegacyTimeline`; `/awards` uses `AwardsHub`; `/records` uses `RecordBook`; `/stat-central` uses `StatCentral`; player timeline uses `/player/$playerId/timeline`; `/franchise/hall` uses `HallOfFameDirectory`; `/franchise/trophy-room` uses `TrophyRoom`; `/franchise/mvps` uses `MvpPlaqueWall`; `/franchise/achievements` uses `AchievementsGallery`.
+- Awards Hub source clarity is shipped as a read-only UI slice: `/awards` renders `Award Sources`, labeling saved `game.awardsHistory` through `selectAwardsHistory`, saved `AwardsHistoryEntry.ceremony` headline/intro data, saved winner/runner-up/score/narrative rows, route-local season scrubber state, and the no-render-write boundary. Opening Awards Hub does not generate awards, write ceremonies, patch season history, mutate players, touch records or Hall of Fame archives, publish media, or unlock achievements.
+- Awards Hub route coaching is shipped for `/awards`: `resolveRouteKey` maps the route to `awards-hub`, whose Chip beats point users to the saved awards archive, winners/runners-up comparison, and route-local season scrubber. `AwardsHub.tsx` owns unique spotlight anchors for `chip.route.awards-hub.beat-1` on the shared header and `chip.route.awards-hub.beat-2` on the season scrubber, including the empty state. This is route guidance only; it does not generate awards, write ceremonies, patch season history, mutate players, touch records or Hall of Fame archives, publish media, unlock achievements, mutate saves, run sim, or touch RNG.
+- MVP Plaque Wall source clarity is shipped as a read-only UI slice: `/franchise/mvps` renders `Plaque Sources`, labeling saved `game.awardsHistory` through `selectAwardsHistory`, the current `selectUserTeam`, `selectFranchiseEras` labels derived from franchise history, `buildMvpPlaqueAwards` filtering of MVP/OPOY/DPOY/Coach of the Year rows by matching `winnerTeamId`, saved `winnerStats`, rounded award `score`, route-local filter/sort controls, and the no-render-write boundary. Opening the route does not generate awards, mutate career stats, write ceremonies, patch season history, detect new eras, update players, records, Hall of Fame archives, media posts, achievements, or simulation outcomes.
+- Trophy Room source clarity is shipped as a read-only UI slice: `/franchise/trophy-room` renders `Trophy Sources`, labeling saved `game.franchiseHistory` champion seasons for the user team, linked saved ceremonies through `selectCeremonies`, `buildTrophyRoomChampionships` title-to-ceremony pairing and fallback copy, route-local `filterMode`, recent-window filtering, dynasty-run grouping, selected trophy modal state, and the no-render-write boundary. Opening the route does not award championships, generate ceremonies, update franchise history, write media, unlock achievements, write sidecars, mutate the live save, or run simulation.
+- Era Hall source clarity is shipped as a read-only UI slice: `/franchise/eras` renders `Era Sources`, labeling `selectFranchiseEras` as the detected dashboard-era read path over saved `game.franchiseHistory`, `buildEraHallEntries` as the presentation helper for championship years/current-roster snapshots/present-day fallback, `selectUserTeam` as the current-era roster source, and `actions.nameDynastyEra` / `startDynastyEra` as separate user-named era write owners. Opening the route does not name eras, start or end eras, write `team.era`, update franchise history, award titles, mutate the live save, or run simulation.
+- Franchise Book source clarity is shipped as a read-only UI slice: `/franchise/book` renders `Franchise Book Sources`, labeling the engine book builder and authored narrative/commentary inputs separately from TOC and print controls. Opening the route does not write dynasty events, start/name eras, update franchise history, mutate players, write news, touch saves, or run simulation.
+- `/legacy/named-games` is read-only over saved `dynastyTimeline` named-game events. `selectNamedGames` filters `selectDynastyTimeline` for `event.type === 'named_game' && event.namedGame`, sorts newest-first, and `NamedGamesBrowserView` keeps archetype filter/sort state locally while humanizing all 12 `NAMED_GAME_ARCHETYPES`. It renders `Named Game Sources` to label the saved timeline source, route-local filters/sort, archetype-label source, week-advance writer path, and no-detection/no-repair boundary. It does not inspect raw game results or re-run `detectNamedGame`.
+- `/legends` is read-only over saved franchise legacy rows. `FranchiseLegends.tsx` renders `Franchise Legend Sources`, labeling saved `game.franchiseHistory`, `game.players`, `game.playerArchive`, `game.hallOfFame`, `game.playerSeasonHistory`, `game.coachingHistory`, `team.retiredJerseys`, and saved `game.farewellTours` filtered to the current user team, plus route-local Hall-of-Famer detail modal state. Its `Active Farewell Tours` panel displays saved tour moments only; starting a tour remains owned by the Player Profile `startFarewellTour` action and its route-local receipt. Opening `/legends` does not write franchise history, Hall of Fame entries, retired jerseys, farewell tours, coach history, season stats, player archives, or save sidecars.
+- Franchise Legends route coaching is shipped for `/legends`: `resolveRouteKey` maps the route to `franchise-legends`, whose unanchored Chip beats point users to the saved archive wall, rings, rafters, Hall rows, coaches, eras, and the local Hall detail modal boundary. This is route guidance only; it does not write franchise history, Hall of Fame entries, retired jerseys, coach history, season stats, player archives, save sidecars, sim, or RNG.
+- `JerseyRetirementViewer.tsx` is a standalone read-only widget rather than the mounted `/legends` route surface. It reads saved retired jerseys and farewell tours through `selectRetiredJerseys` / `selectFarewellTours`; its only local state is which ceremony card is expanded. Retired jerseys are still written by offseason jersey-retirement logic, not by this viewer.
+- `franchiseUi.tsx` and the route-local SVG helpers (`lombardiTrophy.tsx`, `eraBadgeSvg.tsx`, `mvpPlaqueSvg.tsx`, `achievementMedalSvg.tsx`, and `shared/paradeFloatSvg.tsx`) are app presentation utilities, not design-system exports and not gameplay logic. `FranchiseGauge` is reused outside franchise routes by locker-room, CBA, and commissioner screens; keep it store-free. The SVG helpers expose data attributes and tiny pure mapping helpers for tests, but they should not become state owners.
+- App-level presentation: `App.tsx` renders `AchievementUnlockToast` from `selectNewlyUnlocked`, a global `CeremonyViewer` modal from `selectCeremonies`, and a global `SeasonReportViewer` modal from `selectSeasonReports`.
+- Saved legacy modals are serialized in the app shell: the latest unseen ceremony opens first, and the season-report effect no-ops while a ceremony or report modal is active. `App.test.tsx` guards this order so ceremony and season-report overlays do not stack.
+- `ChampionshipParadeEmitter` is an app-shell celebration overlay, not a saved ceremony, Super Bowl presentation card, or scrapbook sidecar. It derives the latest user championship from saved `franchiseHistory`, stores `previousKey` and `firedKeys` in React refs, does not use local/session storage, does not fire for a championship already present on initial mount, and only opens when the latest user championship key changes during the session. `ChampionshipParadeEmitter.test.tsx` guards those semantics.
+- `/super-bowl` renders `SuperBowlPresentation`, a route-local presentation over the playoff bracket and current save. It derives context, MVP, champion parade copy, podium speech, and narrative during render through `super-bowl.ts` plus authored award-speech content; these presentation artifacts are not saved ceremonies and are not written back to `GameState`.
+- Super Bowl source clarity is shipped as a read-only UI slice: `/super-bowl` renders `Super Bowl Sources`, labeling saved playoff bracket/result/champion/user-team/year inputs, deterministic presentation helpers, authored `getAwardSpeech` podium copy, browser-local `mfd-celebration-dismissed:<teamId>:<year>` dismissal state, and the no-render-write boundary. Opening the route does not write playoff brackets, game results, ceremonies, awards history, franchise history, scrapbook or Hall of Fame archives, media posts, achievements, or simulation outcomes.
+- Super Bowl route coaching is shipped for `/super-bowl`: `resolveRouteKey` maps the route to `super-bowl`, whose unanchored Chip beats frame the route as presentation over saved playoff results after the bracket resolves. This is route guidance only; it does not crown a champion, write playoff brackets, write game results, create ceremonies, update awards/franchise history, write archives/media/achievements, mutate saves, run sim, or touch RNG.
+- `SuperBowlPresentation` has its own user-champion `CelebrationOverlay` with localStorage dismissal key `mfd-celebration-dismissed:<champion.id>:<year>`. This is separate from `ChampionshipParadeEmitter`, which is session-only/ref-suppressed, and separate from saved championship ceremonies in `game.ceremonies`.
+- `generateSuperBowlContext` now counts prior championships through a case-insensitive champion-finish helper, so canonical lowercase `playoffFinish: 'champion'` franchise-history rows drive dynasty and first-title Super Bowl storylines. `super-bowl.test.ts` includes a focused context regression for the lowercase history path; `SuperBowlPresentation.test.tsx` still renders supplied context rather than deriving one.
+- Playoff-lore display has two layers. `stagePendingPlayoffLoreCard` writes the card into the scrapbook sidecar immediately, while `pendingPlayoffLoreReveal` is only transient store state for `PlayoffLorePrompt`. Dismissing the prompt clears the transient reveal, not the staged sidecar card; the card folds into the matching scrapbook entry at season rollover unless the dynasty sidecar is cleared.
+- Playoff Lore Directory source clarity is shipped as a read-only UI slice: `/franchise/playoff-lore` renders `Playoff Lore Sources`, labeling `deriveDynastyId(game)`, browser-local `mfd.scrapbook.v1` through `listAllPlayoffLoreCards`, archived versus pending card buckets, `stagePendingPlayoffLoreCard` as the upstream pending writer, route-local sort/filter state, `pendingPlayoffLoreReveal` as the separate immediate-prompt state, and the no-render-write boundary. Opening the route does not write `GameState`, clear pending playoff lore, merge scrapbook entries, update sidecars, run simulation, touch RNG, or move players.
+- Dynasty Scrapbook source clarity is shipped as a read-only UI slice: `/franchise/scrapbook` renders `Scrapbook Sources`, labeling `deriveDynastyId(game)`, browser-local `mfd.scrapbook.v1`, `readScrapbookForDynasty`, `summarizeScrapbook`, the app-shell year-rollover writer path through `syncScrapbookAtYearRollover` / `buildSeasonRecap` / `buildScrapbookEntry` / `appendScrapbookEntry`, pending playoff-lore merge semantics, route-local export status, and the browser-only PNG export boundary. `buildScrapbookEntry` now includes saved league news, named-game dynasty timeline events, bloodline draft timeline events, individual award winners, story-arc stage beats, season-report grades/overviews, record notes, Hall of Fame inductions, and heated league-rivalry chapters as season notable moments. Opening the route does not write the scrapbook sidecar, clear pending playoff lore, rebuild season recaps, update `GameState`, generate media posts, generate awards, advance story arcs, generate season reports, detect eras, award achievements, or run simulation outcomes.
+- Dynasty Chronicle source clarity is shipped as a read-only UI slice: `/franchise/chronicle` renders `Chronicle Sources`, labeling `deriveDynastyId(game)`, `computeDynastyChronicle`, saved `franchiseHistory` / `hallOfFame` / `coachingHistory`, scrapbook and playoff-lore sidecar reads, filter/presenter helpers, route-local filter chips/detail modal state, and the browser-only PNG export boundary. HOF chronicle entries now reuse existing saved epilogue headline/story/category for timeline and detail context when present, with the prior name/position fallback when absent. Opening the route does not write franchise history, Hall of Fame entries, coaching history, scrapbook entries, playoff-lore cards, ceremonies, records, media posts, achievements, or simulation outcomes.
+- `SeasonRecapPrompt` and `syncScrapbookAtYearRollover` share `shouldOpenSeasonRecapPrompt(previousYear, game, teamId, recapPromptSeenThisSession)`: they only proceed after a year advance, when a team exists, the session has not marked the recap seen, and `buildSeasonRecap` returns data. Opening or dismissing the prompt marks `recapPromptSeenThisSession`; the app suppresses the recap prompt while `pendingPlayoffLoreReveal` is non-null so the playoff-lore stamp appears first.
+- `/season/recap` uses `buildSeasonRecap(game, team.id)` as a read model and does not write recap data back to `GameState`. `SeasonRecapCard` resolves team colors through `resolveTeamContentFromStore`/`teamThemeVars`; export/copy actions are browser-only helpers. `recap-share.ts` dynamically imports `html-to-image` for `toPng` with `cacheBust: true` and `pixelRatio: 2`, and copies a plain-text summary through `navigator.clipboard.writeText`. `export-frame.ts` can build a hidden 960px DOM export shell with title/subtitle/footer/team vars and cleanup, but the current recap screen captures the card node directly and does not call `createExportFrame`.
+- Achievement UI ownership is intentionally split. `features/legacy/AchievementGallery.tsx` exports the embedded `/legacy` achievement panel plus `AchievementUnlockToast` for the app-shell overlay. `features/franchise/AchievementsGallery.tsx` is the standalone medal-gallery route for `/franchise/achievements`. `App.test.tsx` guards this split so route work does not accidentally use the legacy embedded panel or move the toast into the standalone route module.
+- `LegacyTimeline` is a composite archive surface. It reads franchise history, awards, ceremonies, draft recaps, dynasty score, dynasty timeline, Hall of Fame, named games, bloodlines, records, season reports, and mentoring chains. It now renders `Legacy Sources`, labeling saved franchise/player archives, timeline/ceremony/record/report selectors, linked archive selectors, ballot/mentoring reads, route-local ceremony/report modal state, and the no-generation/no-sidecar-write boundary.
+- `CeremonyViewer` is the ceremony modal for saved `game.ceremonies` rows selected by `selectCeremonies`. Its `Ceremony Sources` panel labels the engine ceremony generators plus `recordCeremony` as the writer path, saved `headline`/`description`/`highlights`/`mvp` payload fields as the display source, and modal open/close as route-local React state. Opening or closing the modal does not write ceremonies, awards, HOF rows, records, sidecars, or saves.
+- `SeasonReportViewer` is the report-card modal for saved `game.seasonReports` rows selected by `selectSeasonReports`. Its `Season Report Sources` panel labels `advanceOffseason` / `generateSeasonReport(game, team.id)` as the writer path, saved `report.sections` as the source for grades/highlights/stat rows, and the modal open/expand state as route-local React state. Opening or expanding the modal does not write saves, sidecars, reports, awards, records, or run offseason generation.
+
+Safety rules:
+
+- Adding award IDs, ceremony types, achievement condition types, record stat keys, or Hall of Fame fields can affect saved data. Update types, save schema/migrations, seed defaults, selectors, UI tests, and old-save verification together.
+- Do not replace deterministic Hall of Fame ballot seeding, record sorting, or achievement progress formulas without formula before/after, samples, and tests.
+- `uid()` is still used for some ceremony IDs. Do not use ceremony IDs as deterministic sim proof unless the call path has been audited.
+- Keep record bucket caps, ceremony cap, and selector sorting stable unless the UX/performance change is deliberate.
+- Treat the old Hall of Fame direct-induction fallback as save-compatibility behavior; do not remove it without a migration plan and fixture coverage.
+
+Focused tests for legacy/records work:
+
+- Engine: `achievements.test.ts`, `awards.test.ts`, `records.test.ts`, `record-tracker.test.ts`, `hall-of-fame.test.ts`, `hall-of-fame-voting.test.ts`, `hall-of-fame-epilogues.test.ts`, `ceremonies.test.ts`, `jersey-retirement.test.ts`, `franchise-week.test.ts`, and `offseason.test.ts`.
+- Web: `LegacyTimeline.test.tsx`, `AwardsHub.test.tsx`, `RecordBook.test.tsx`, `PlayerTimeline.test.tsx`, `AchievementUnlockToast.test.tsx`, `AchievementsGallery.test.tsx`, `App.test.tsx` for achievement toast/route ownership, `HallOfFameDirectory.test.tsx`, `TrophyRoom.test.tsx`, `MvpPlaqueWall.test.tsx`, and `game-store.gameweek.test.ts` when route-level queues change.
+
+## Engine Events, Media Cycle, And Storyline Threads Wiring
+
+Engine event envelopes, saved event logs, media-cycle digests, and storyline threads are related living-world systems, but they are not one system.
+
+For web route ownership, ticker behavior, full-screen breaking-news interrupts, and social/league-wire display rules, also read `Newsroom, League Wire, Social Feed, And Breaking News Wiring`.
+
+Engine event spine:
+
+- `packages/engine/src/events/index.ts` exports the event envelope helpers, typed emitter, event constants, and event types.
+- `event-types.ts` defines `SCHEMA_VERSION = '0.1.0'` plus `EVENT_NAMES`: `game_start`, `drive_start`, `play_call`, `trench_resolution`, `pressure_resolution`, `play_result`, `turnover`, `penalty`, `injury`, `score`, `halftime_adjustment`, `drive_end`, and `game_end`.
+- `envelope.ts` owns `LiveGameState`, `EventEnvelope`, module-level sequence state, `resetSeq`, and `buildEnvelope`. `buildEnvelope` increments `seq` and fills missing live-game fields from defaults.
+- `emitter.ts` owns `createEventLog()`, an in-memory live-game event envelope log with `bindGameState`, `emit`, `reset`, `getEvents`, `getByName`, and typed emitters for every event name.
+- `createEventLog().reset()` clears local events, unbinds live game state, and calls `resetSeq()`. Reset sequence state in tests or long-lived sessions when exact envelope order matters; `events.test.ts` locks the cross-log shared sequence and reset semantics.
+- This event spine is not the same as saved `GameState.eventLog`. Saved `eventLog` stores `GameEvent[]` entries pushed by systems such as press conferences, coaching/front-office, governance, and week advance helpers.
+- Chip currently has web-side pose/event bridge concepts in `apps/web/src/features/companion`, including `PoseEventEmitter.tsx` and `eventBridge.ts`. Do not assume `packages/engine/src/events` already drives Chip or saved `GameState.eventLog`; define the mapping explicitly before wiring them together and update the architecture-boundary guard deliberately.
+- Player-facing Chip copy should name the actual player action/screen and consequence. Avoid `sim`, `Sunday`, `Week Advance`, generic `advance` / `next advance`, raw event ids such as `uglyWin`, or engine shorthand in Chip/onboarding/route/Monday copy unless quoting a real UI label; prefer `Advance Week`, `scheduled games`, `next game`, `normal matchup risk`, `multi-week advance`, and human event labels such as `strong win` so the player knows what button or deadline matters.
+- Route-coaching Chip copy should avoid labels such as `nothing is blocked`, `true deadlines`, `next week turns`, `required red items`, and `red items are unresolved risk`. Say the real consequence instead: required items can stop or redirect `Advance Week`, Inbox items with deadlines should be cleared before advancing, and optional roster/cap moves can wait.
+- First-run Assistant GM/setup copy that feeds Chip or advisor guidance should avoid abstract shorthand such as `variance`, `leverage`, `edge`, `chess`, `cleanest`, `bet on`, `execute cleanly`, `clean signal`, and `dashboard that actually matters`. Use concrete staff fit, scheme fit, cap space, roster role, draft grade, Week 1 risk, owner pressure, deadline, and cost consequences.
+- Setup blueprint/cap posture copy should explain Week 1 help versus future cap flexibility. Avoid `press your edge`, `center of gravity`, `narrowing window`, `books clean`, `bill gets louder`, and similar metaphor-heavy setup summaries.
+- Early setup Chip dismissal is temporary guidance control, not a permanent tutorial skip. The visible button is `Not now Chip!`, and the small bottom-left `Ask Chip` handle must restore Chip without writing `mfd.chip.onboarding` as a skip receipt by itself.
+- G6 Chip mute proof lives in `apps/web/src/features/companion/ChipDock.tsx`, `ChipDock.css`, `ChipDock.test.tsx`, and `scripts/smoke-test-post-setup-route.mjs` behind `SMOKE_CHIP_MUTE=1`. The browser-local dock prefs key is `mfd.chip.local`; `Mute Chip` writes `quietForSeason` plus `collapsed: true`, collapses the live dock immediately, suppresses route guidance, and has desktop plus 480x900 hard-reload browser proof after Continue Latest Autosave. This is a browser-local companion preference, not `GameState`, save schema, cartridge data, engine event persistence, or route coaching catalog state.
+- G6 Chip keyboard/reduced-motion proof also lives in `ChipDock.tsx` and `scripts/smoke-test-post-setup-route.mjs` behind `SMOKE_CHIP_FOCUS_REDUCED_MOTION=1`. The dock controls own explicit Enter-key activation; the smoke focuses the collapsed opener, opens Chip with Enter, focuses `Disable Animations`, toggles it with Enter, verifies `mfd.chip.local.animationsDisabled`, `data-chip-dock-motion="reduced"`, reduced-motion Chip art while expanded, hard-reload persistence after Continue Latest Autosave, and repeats at 480x900 where mobile route coaching may reload collapsed before the smoke reopens the dock and verifies the toggle remains pressed. This remains browser-local companion preference behavior, not save schema, engine event persistence, or route coaching state.
+- G6 Chip receipt-respect proof lives in `ChipDock.tsx` and `scripts/smoke-test-post-setup-route.mjs` behind `SMOKE_CHIP_RECEIPT_RESPECT=1`. Pressing `Got it` now persists the currently visible beat immediately through `persistRouteBeatProgress`; the smoke verifies `chip.first10.roster` in `mfd.chip.read.v1` plus `mfd.chip.onboarding.v2`, verifies normal `/roster` route beats persist one at a time, confirms roster guidance stays suppressed after route return and hard reload without mute/quiet prefs, and confirms `/trades` still shows unacknowledged guidance. This remains browser-local Chip guidance state, not `GameState`, save schema, cartridge data, engine event persistence, or route coaching catalog mutation.
+- G6 core route UX proof lives in `scripts/smoke-test-post-setup-route.mjs` behind `SMOKE_G6_CORE_UX=1`. The shortcut launches the convention demo and checks `/`, `/roster`, `/depth-chart`, `/game-plan`, `/contracts`, `/cap-lab`, `/front-office`, `/trades`, `/waivers`, `/practice-squad`, `/free-agency`, `/scouting`, `/draft`, `/settings`, and `/dynasty` for stable route markers with browser-error collection. It has desktop and 480x900 proof. This is route-state/mobile/console evidence only; it does not click mutations, inspect every viewport overlap, or replace full visual/playability audits.
+- G6 state-feedback proof lives in `App.tsx`, `EmptyState.tsx`, `DynastyCartridge.tsx`, and `scripts/smoke-test-post-setup-route.mjs` behind `SMOKE_G6_STATE_FEEDBACK=1`. Lazy-route loading exposes `role="status"`, `aria-live="polite"`, and `aria-busy="true"` on the existing reduced-motion fallback; shared empty states expose polite status semantics; Dynasty Cartridge success/error feedback exposes status/alert semantics. The smoke proves real lazy loading on `/film-room`, the Film Room empty state, Dynasty invalid-import error copy and save-safe consequence, and Dynasty manual-save success at desktop plus 480x900 with zero browser errors. This is UI feedback and smoke evidence only; it does not change save schema, `GameState`, cartridge/import validation, route registration, sim, RNG, sidecars, or engine ownership.
+- G6 focus-sweep proof lives in `App.tsx`, `packages/design-system/components/MfdCommandPalette/MfdCommandPalette.tsx`, and `scripts/smoke-test-post-setup-route.mjs` behind `SMOKE_G6_FOCUS_SWEEP=1`. `RootLayout` focuses the main content region after route changes, the main region is programmatically focusable, and the command-palette input autofocuses on open. The smoke checks `/`, `/roster`, `/contracts`, `/trades`, `/game-plan`, `/scouting`, `/settings`, and `/dynasty` for route-change main focus plus first in-route `Tab` focus, then proves keyboard access to `Cmd Deck` opens and focuses command search at desktop plus 480x900 with zero browser errors. This is transient focus behavior and smoke evidence only; it does not change routes, save schema, `GameState`, sim, RNG, sidecars, or engine ownership.
+- G6 visual/playability route proof lives in `scripts/smoke-test-post-setup-route.mjs` behind `SMOKE_G6_VISUAL_SWEEP=1`. The smoke checks 48 initialized post-setup routes at desktop plus 480x900 for expected route text, nonblank root, no stuck lazy fallback, no technical-timeout/error copy, main-content dimensions/text, visible in-route signals, no tiny interactive controls, horizontal overflow tolerance, and zero browser errors. Successful runs report compact aggregate metrics and the harness now awaits CDP/preview/Chrome cleanup before exiting. This is DOM visual/playability and console evidence only; it does not click football-ops mutations, change routes, save schema, `GameState`, sim, RNG, sidecars, or engine ownership.
+
+Event, media, and storyline boundary map:
+
+- Live event envelopes are package-level telemetry helpers, not a persistent dynasty timeline. `buildEnvelope` uses a module-level sequence counter, so separate `createEventLog()` instances share sequence state until `resetSeq()` or `createEventLog().reset()` is called.
+- `EventEnvelope.timestamp` comes from the bound `LiveGameState.timestamp` or defaults to `0`; it is not a wall-clock timestamp unless a caller explicitly supplies one.
+- Saved `GameState.eventLog` is a separate `GameEvent[]` history pushed by simulation and franchise systems. Bridging live envelopes into this save field requires schema, migration, fixture, and UI decisions.
+- Web companion/Chip pose events are separate UI events. `PoseEventEmitter.tsx`, `eventBridge.ts`, and `useChipEvents.ts` should stay explicit adapters instead of being treated as engine event persistence.
+- Media-cycle digests are written only by week advancement after completed regular-season weeks. `weekly-digest.ts` reads completed schedule results for the target week, sorts them by result id, then derives headlines, hot takes, and media rankings.
+- `mediaCycle.weeklyDigests` and `mediaCycle.powerRankingHistory` currently append over time. Power-ranking history powers media-rank deltas; any cap/compaction needs a deliberate save and UX decision.
+- `headlines.ts` is deterministic from schedule results, rivalry context, recent records, and recent milestones. `hot-takes.ts` is deterministic presentation flavor for the first five headlines only.
+- `packages/engine/src/media-cycle/power-rankings.ts` produces `MediaPowerRanking` snapshots for the newsroom digest. It is distinct from saved route-level `PowerRanking` data in `packages/engine/src/systems/power-rankings.ts`.
+- Storyline threads live in saved `GameState.storylineThreads`. They advance, close, then seed only after completed regular-season weeks; generator ids are `storyline|${candidate.key}` and dedupe by stable `key`.
+- Storyline metadata must stay primitive (`string | number | boolean | null`). Adding an archetype means updating the type union, archetype registry, schema/migration coverage when needed, tests, UI labels, and this guide.
+- `breakingNewsQueue` is saved UI-interrupt state but generated by the web store after week advance. `game-store.ts` calls `generateBreakingNews` with a deterministic `intelRng` seed and replaces the queue with the fresh top five items; it does not append to an existing queue. `dismissBreakingNews` removes the first entry before committing.
+- `generateBreakingNews` lives in `narrative-director.ts`, not `league-news.ts`. Current triggers are same-week coaching-fire league news, accepted blockbuster trade proposals/offseason offers worth at least `1800` trade-value points, season-ending injuries for players at `86+` OVR, same-week broken records/milestones, user-team playoff elimination, and an upcoming Super Bowl matchup.
+- `narrative-director.ts` narrative intensity/recent beats are a separate engine helper from media-cycle digests and storyline threads. `recordBeat` keeps recent beats bounded to the latest eight and should not become an unbounded saved narrative log.
+
+Media cycle:
+
+- `packages/engine/src/media-cycle/types.ts` defines `MediaCycleState`, `WeeklyDigest`, `Headline`, `HotTake`, `PowerRankingSnapshot`, and `MediaPowerRanking`.
+- Headline categories are `UPSET`, `BLOWOUT`, `COMEBACK`, `RIVALRY_WIN`, `INDIVIDUAL_PERFORMANCE`, `MILESTONE`, and `ROOKIE_BREAKOUT`.
+- `headlines.ts` builds deterministic headline ids from stable source fields and derives headlines from weekly results, rivalry wins, individual stat lines, rookie breakout thresholds, recent broken records, and recent milestones.
+- `hot-takes.ts` derives up to five deterministic analyst reactions from `weekNumber` plus headline id using seeded `mulberry32`/`hashString` helpers. Analysts and sentiment are presentation data, not simulation inputs.
+- `power-rankings.ts` computes media rankings with:
+  - `score = normalizedStrength * 0.4 + winPct * 0.3 + normalizedMomentum * 0.2 + normalizedSov * 0.1`
+  - teams sorted by score descending, then team id
+  - previous-rank movement from `state.mediaCycle?.powerRankingHistory`
+  - deterministic blurbs seeded from `state.seed`, team id, and week number
+- `weekly-digest.ts` owns `generateWeeklyMediaCycle(state, weekNumber)`, which builds rankings, finds completed schedule results for that week, generates headlines, and generates hot takes.
+- `franchise-week.ts` initializes `mediaCycle` when missing and appends a digest plus `powerRankingHistory` only after completed regular-season weeks. The write order is: append current-week records/milestones, rebuild active record chases, generate weekly media-cycle digest, append media power-ranking snapshot, advance existing storyline threads, close completed threads, then seed new threads. Preseason setup ticks should not create weekly digests.
+
+Storyline threads:
+
+- `packages/engine/src/storyline-threads/types.ts` defines `StorylineThread`, `StorylineArchetype`, `StorylineStatus`, beats, candidates, and primitive-only `StorylineMetadataValue` (`string | number | boolean | null`).
+- Current archetypes are `hot-seat-coach`, `qb-controversy`, `rookie-of-year-chase`, `records-chase`, and `comeback-player`.
+- `thread-generator.ts` owns `seedThreadsForWeek(state, weekNumber)`: it gathers candidates from every archetype, sorts by archetype/key, dedupes by stable `key`, and creates new ids as `storyline|${candidate.key}`.
+- `thread-progression.ts` owns `advanceStorylineThreads` and `closeCompletedThreads`. Closed threads are skipped, and active threads are not evolved twice in the same week.
+- `franchise-week.ts` advances existing threads, closes completed threads, then seeds new threads after the weekly media cycle for completed regular-season weeks.
+- New threads start with `weeksActive: 1`, `status: 'active'`, `beatIndex: 0`, `updatedYear`/`updatedWeek` set to the seed week, a first beat using the archetype's opening label, `closeReason: null`, and candidate-supplied primitive metadata. Archetype evolve helpers append a beat only when the label/summary changed and update `weeksActive` from the year/week delta for same-year threads.
+- Archetype seed/close logic is intentionally source-specific:
+  - hot-seat coach: long-tenured head coach plus losing streak pressure; closes on coach change, recovery, or season/phase closure.
+  - QB controversy: struggling starter plus credible higher-upside backup; closes when the backup holds the job, starter stabilizes, or season ends.
+  - rookie-of-year chase: week 6+ rookie production thresholds; closes when regular season ends.
+  - records chase: active record chase projected at/above record pace; closes on broken record, eliminated chase, or season end.
+  - comeback player: veteran baseline recovery/comeback signals; closes when regular season ends.
+- Archetype trigger and metadata details:
+  - `hot-seat-coach` seeds only when a team has a head coach with `tenure >= 3` and `team.streak <= -3`; keys include season/team/coach, heat starts at `55 + abs(streak) * 10`, and metadata stores `teamId`, `coachId`, and `coachName`.
+  - `qb-controversy` seeds only when a team has at least two quarterbacks, the starter's last-three-game passer rating is below `75`, and the backup ceiling (`pot + devTrait bonus`) exceeds the starter ceiling; metadata stores starter/backup ids and names plus `backupStartedWeeks`.
+  - `rookie-of-year-chase` seeds from Week 6 onward for players with `yearsExp === 0` or `draftYear === game.year` whose position-specific impact score clears the source threshold table (`QB 110`, `RB 90`, `WR 85`, `TE 75`, `OL 50`, `DL/LB 60`, `CB/S 55`, `K 45`, `P 35`); metadata stores player id/name, score, and position.
+  - `records-chase` seeds from `activeRecordChases` only for `franchise`, `singleSeason`, or `career` categories where `projected >= recordValue`; metadata stores team id, player name, stat, category, and record value.
+  - `comeback-player` seeds for rostered players with `yearsExp >= 2`, finite `previousSeasonOvr` and `seasonStartOvr`, a missed-time signal (`careerStats.gp / seasons <= 12`, season-ending injury, or `comeback_kid` trait), and current/season-start OVR at least back to baseline; metadata stores player id/name and baseline OVR.
+
+Save, migration, and UI wiring:
+
+- `packages/engine/src/save/schema.ts` validates `MediaCycleState`, `StorylineThread`, and primitive-only storyline metadata. Adding richer metadata requires a schema and migration decision.
+- `packages/engine/src/save/migrations.ts` adds empty `mediaCycle` and `storylineThreads` during the v34 to v35 migration path.
+- `GameState.mediaCycle` defaults to `{ weeklyDigests: [], powerRankingHistory: [] }`; `GameState.storylineThreads` defaults to `[]`.
+- `packages/engine/src/index.ts` exports media-cycle, storyline-thread, and event APIs for package consumers.
+- `/newsroom` renders `apps/web/src/features/newsroom/NewsroomDigest.tsx`; `StorylineThreadCard.tsx` renders active/closed thread cards.
+- `apps/web/src/app/store/selectors.ts` exposes `selectStorylineThreads` and newsroom selectors such as league news and power rankings.
+- `NewsroomDigest.tsx` is a projection over saved `leagueNews`, saved route `powerRankings`, `selectUserPowerRanking`, user team, and `selectStorylineThreads`. It picks one lead story by importance bucket (`breaking`, `major`, `minor`) plus recency, shows up to four sub-headlines, embeds `PowerRankingsTicker`, filters to active threads only, and keeps `HeadlineModal` state local.
+- `StorylineThreadCard.tsx` now renders a read-only `Thread Receipt` that labels saved `storylineThreads` as the source, start/update week, saved beat count/latest beat, the `advanceStorylineThreads -> closeCompletedThreads -> seedThreadsForWeek` lifecycle owner after completed regular-season weeks, and the no-advance/no-close/no-seed/no-news/no-write boundary.
+- Full-screen `BreakingNews` interrupts are app-shell consumers of saved `game.breakingNewsQueue[0]`, not the `/newsroom` digest and not the top league-news ticker. `App.tsx` passes the queued event headline, detail, and saved `source` into `BreakingNews`; the overlay labels the saved breaking-news queue source and dismissal boundary while `dismissBreakingNews` remains the only queue-advance commit path.
+- The "no active threads" copy in `NewsroomDigest` is route copy, not an engine lifecycle rule. Actual thread seeding is archetype-specific and can happen as soon as those source conditions are true during completed regular-season week advancement.
+
+Wired/not-wired cautions:
+
+- Do not use the live-game event envelope helper as a persistence log without a save-schema design.
+- Do not add `Date.now()` or other non-deterministic timestamps to event envelopes, media headlines, hot takes, or storyline progression unless replay/save determinism is deliberately redesigned.
+- Do not add non-primitive objects into storyline thread metadata unless `schema.ts`, migrations, fixtures/golden saves, and UI read paths are updated together.
+- Do not generate or mutate `breakingNewsQueue` from React render paths. Keep queue generation in store/week-advance mutation paths and keep dismissal as a committed state change.
+- `story-arcs.ts` and `storyline-threads` are separate systems. User-team story arcs drive a different weekly narrative layer than league-wide storyline threads.
+- `mediaCycle.weeklyDigests` and `mediaCycle.powerRankingHistory` append over time. If bounding or compaction is introduced later, make it an explicit save/UX decision.
+- If wiring Chip to engine events, define the bridge among `packages/engine/src/events`, saved `GameState.eventLog`, and web companion pose events instead of merging those concepts. Update `architecture-boundaries.test.ts` only after the bridge ownership and tests are explicit.
+
+Focused tests for this layer:
+
+- Event spine: `packages/engine/src/events/events.test.ts`.
+- Media cycle: `packages/engine/src/media-cycle/headlines.test.ts`, `hot-takes.test.ts`, `power-rankings.test.ts`, `weekly-digest.test.ts`, and `packages/engine/src/systems/franchise-week-media-cycle.test.ts`.
+- Storyline threads: `packages/engine/src/storyline-threads/thread-generator.test.ts`, `thread-progression.test.ts`, and `archetypes.test.ts`.
+- Save coverage: `packages/engine/src/save/migrations.test.ts`, `golden-saves.test.ts`, and `save.test.ts`.
+- Web newsroom: `apps/web/src/features/newsroom/NewsroomDigest.test.tsx` and `StorylineThreadCard.test.tsx`.
+
+## Stakes, Promises, Endorsements, And Living-World Event Wiring
+
+This layer turns football outcomes and GM promises into trust, business, media, and long-save story receipts. It crosses roster, owner, game-day, inbox, social, legacy, and save systems.
+
+Persistent and result state:
+
+- Saved `GameState` fields include `handshakes`, `endorsementOffers`, `offFieldEvents`, `recentPressConferences`, `activeEffects`, `activeCallYourShot`, `apologyTourThreads`, and `postGameUi.pressConferenceQueue`.
+- Player records include `endorsements`; active deals live on players, while pending user offers live in `game.endorsementOffers`.
+- `GameResult` can carry `namedGame` and `callYourShotResult`. Game-day packages and playoff-lore cards can copy those result fields.
+- Named games are also persisted as `dynastyTimeline` events with `type: 'named_game'`; `selectNamedGames` derives the legacy named-game browser from that timeline.
+- Save schema coverage lives in `packages/engine/src/save/schema.ts`; migrations default `offFieldEvents`, `handshakes`, player `endorsements`, `endorsementOffers`, `activeCallYourShot`, and `apologyTourThreads` for older saves.
+
+Handshakes and promises:
+
+- `packages/engine/src/systems/handshake-ledger.ts` owns owner demands, player promises, and promise evaluation.
+- `HandshakeCondition.metric` supports `wins`, `playoff`, `starter`, `trade_block`, `spending`, `draft_position`, `on_roster`, `restructure`, and `owner_mandate`.
+- `generateOwnerDemands(game, teamId)` creates yearly owner promises from owner archetype: playoff push, cap control, young-player starter development, or winning-season demand.
+- `franchise-week.ts` creates preseason owner demands if a team lacks an owner handshake for the current year.
+- `makePlayerPromise(game, teamId, playerId, promiseType)` supports `starter`, `no_trade`, and `restructure`; the web store exposes this through `actions.makePromise`.
+- `evaluateHandshakes(game)` runs during week/offseason paths. Fulfilled promises improve owner approval and user front-office reputation; broken player promises reduce morale, chemistry, and player reputation. If Sandra Chen is the selected AGM, broken player promises also add an AGM impact log entry and extra reputation penalties.
+- Owner-mandate handshakes are also created by `owner-goals.ts` through `upsertOwnerMandateHandshakes`.
+- `/handshakes` now renders `Handshake Sources`, labeling `selectHandshakes` as the saved `game.handshakes` read model, `selectRoster` as the displayed Make Promise target source, `generateOwnerDemands` and `upsertOwnerMandateHandshakes` as upstream owner writers, `actions.makePromise` -> `makePlayerPromise` as the only route commit path, and `evaluateHandshakes` as the week/offseason evaluator. Opening the route, reading cards, seeing warnings, or scanning targets does not generate owner demands, evaluate promises, award achievements, autosave, run sim, touch RNG, or move players. After `Promise Starter`, `Promise No Trade`, or `Promise Restructure` resolves, the route shows a route-local `Promise Receipt` with the target, deadline, saved-ledger path, and no-extra-evaluation boundary; the receipt is not a saved history field and does not add a second promise writer.
+- Owner/Handshakes route coaching is shipped for `/owner` and `/handshakes`: `resolveRouteKey` maps both routes to `owner-promises`, whose unanchored Chip beats frame owner pressure and promises as shared trust-consequence surfaces while keeping promise commits on Handshakes and pressure receipts on Owner. This is route guidance only; it does not generate owner demands, create promises, evaluate promises, mutate approval, autosave, run sim, touch RNG, or move players.
+
+Endorsements:
+
+- `packages/engine/src/systems/endorsements.ts` owns endorsement brands, market multipliers, offer generation, accepting deals, yearly ticking, revenue calculation, and social narrative copy.
+- `ENDORSEMENT_MARKET_MULTIPLIERS` are small `0.6`, medium `1`, large `1.3`, and mega `1.6`. Do not silently change these; they affect player morale/business rewards.
+- `generateEndorsementOffers(team, players, rng)` scores eligible player-brand pairs by OVR, market/prestige, ambition, greed, dev trait, and brand revenue. It generates 2-5 offers, capped at two offers per player.
+- `acceptEndorsement(player, deal)` enforces max two active deals and no duplicate active tier, then applies the deal morale bonus.
+- `tickEndorsements(team, seasonResult, rng)` decrements active deals during offseason, removes deals when requirements fail, and may renew expired deals with RNG.
+- `offseason.ts` ticks endorsements for teams at season rollover, appends user social posts for lost/renewed deals, and generates new user-team `endorsementOffers`.
+- Web routes/selectors/actions: `/endorsements`, `EndorsementCenter.tsx`, `selectEndorsementOffers`, `selectActiveEndorsements`, `selectEndorsementRevenue`, `actions.acceptEndorsement`, and `actions.declineEndorsement`.
+- `selectActiveEndorsements` derives from active deals on the current user-team roster, and `selectEndorsementRevenue` sums only those active deals. Pending offers remain separate in `game.endorsementOffers` until accepted.
+- Store action `acceptEndorsement(dealId)` clones the save with `structuredClone`, finds the pending offer, resolves the roster player first, falls back to the flat-index player, calls `acceptEndorsementEngine`, writes the mutated player back into `game.players`, removes the pending offer, and commits. This keeps roster-backed Endorsement Center rows/revenue and flat-index Player Profile data aligned even for JSON-loaded saves where roster and flat player objects are not the same reference.
+- Regression coverage in `game-store.test.ts` deliberately splits the roster and flat player records before accepting an offer, then asserts roster/flat endorsements and morale match plus `selectActiveEndorsements` and `selectEndorsementRevenue` see the accepted deal. `PlayerProfile.test.tsx` also guards visible active endorsement copy.
+- Store action `declineEndorsement(dealId)` only removes the pending offer and commits; there is no current morale, reputation, or odds penalty for declining.
+- `/endorsements` now shows a route-local `Endorsement Receipt` after `Accept` or `Decline` resolves through the existing action path. The receipt labels the offer, player, requirement snapshot, accept/decline commit path, and no-extra-write boundary. It is not durable receipt history, does not generate offers, does not tick yearly deals, does not change revenue/morale math, and does not touch sim/RNG/movement.
+- Endorsements route coaching is shipped for `/endorsements`: `resolveRouteKey` maps the route to `endorsements`, whose unanchored Chip beats point users to active deals, requirements, pending offseason offers, and the Accept/Decline commit boundary. This is route guidance only; it does not generate offers, accept deals, decline deals, tick endorsements, change revenue or morale, mutate saves, run sim, or touch RNG.
+- `EndorsementDeal` is strongly typed in `packages/engine/src/types/player.ts`, and save schema now validates that shape through `EndorsementDealSchema` / `EndorsementRequirementSchema` for `PlayerSchema.endorsements` and top-level `endorsementOffers`. Current-save parse sanitizes malformed rows for compatibility, and migration v18 normalizes old player, roster, and top-level endorsement arrays while defaulting missing `active` flags. Tightening team-roster endorsement fields further would require replacing the current passthrough `TeamPersistedSchema` roster boundary with explicit team/player schemas plus old-save coverage.
+- `generateEndorsementOffers` uses RNG for offer count and ids after deterministic score sorting; `tickEndorsements` uses RNG for renewal chances after requirement checks. Keep these on injected RNG / `RNG.ai`; do not introduce render-time offer randomness in web routes.
+
+Press conferences and podium responses:
+
+- `packages/engine/src/systems/press-conference.ts` owns durable `PressConference` construction and recording. `recordPressConference(...)` calls `ensureLivingWorldState`, prepends to `recentPressConferences` capped at five, pushes conference `effects` into `activeEffects`, prepends the headline to `narrativeState.recentHeadlines` capped at eight, and appends a `press_conference` `eventLog` entry. That engine receipt/effect boundary is separate from the web podium response queue.
+- Postgame conferences are created in `franchise-week.ts` after the user game, included in the game-day package, then recorded. Rivalry intensity `60+` makes the tone `fired_up`, wins make it `confident`, losses make it `somber`, and other results are `deflecting`; fired-up postgames add a one-week team morale `+1` effect, somber postgames add morale `-1`, and other tones add no effect. Midweek rivalry conferences can be generated by `shouldGenerateEvent(..., 'midweek_press', 30, RNG.ai, ...)` plus `maybeCreateMidweekPressConference`; rivalry intensity `70+` gives a fired-up morale `+1` effect. Transactional post-trade, post-draft, and coaching-change conferences are confident and effect-free.
+- `postGameUi.pressConferenceQueue` is saved web-facing response state. `apps/web/src/app/store/game-store.ts::buildPressConferenceQueueEntry` only uses `recentPressConferences[0]` when it is a `postgame` conference, resolves a scenario from the latest game-day package, loads authored pools through `getPressConferenceScenarioContent`, interpolates high/mid/low response pools with team/opponent/speaker context, avoids duplicate `conferenceId`s, and caps the queue at four entries in post-advance store paths.
+- `respondToPressConference(conferenceId, tier, response)` only writes `selectedTier` and `selectedResponse` onto the queued entry and commits. It does not call `recordPressConference`, add timed effects, append event-log/news/social items, or change owner/team/player state. Treat the current podium answer as a saved UI receipt and tone choice, not a gameplay consequence; `game-store.gameweek.test.ts` now guards that answering a podium queue entry does not add press conferences, active effects, event logs, league news, or social posts.
+- `GameDayRecap.tsx` renders the immutable game-day package press conference panel from `GameDayPackage.pressConference`, a read-only `Podium Receipt` tying that saved package field to `buildPostWeekMoment`'s `Podium Follow-Up`, then a separate `Podium Response` panel from `postGameUi.pressConferenceQueue[0]`. It also renders a read-only `Player Arc Follow-Up` panel from saved `GameDayPackage.topPerformers`, `recordsMoments`, and `milestoneMoments`: `buildGameDayPlayerArcFollowUps` de-duplicates player ids, keeps saved record/milestone narratives and top-performer stat lines, links players to profiles with `PixelPlayerLink`, and routes only to existing Player Development or Record Book screens. `PressConferenceModal.tsx` owns tier buttons, Chip pose, prompt-bank display, and response selection; prompt banks come from `pressConferenceContent.ts`, and the modal does not fetch content or mutate game state itself. The modal renders a `Receipt Source` panel that labels the saved podium queue, tone-choice-only boundary, and no-new-effects behavior. Opening the player-arc panel or profile links does not write player history, add timeline rows, create scrapbook cards, recalculate records/milestones, replay the game, mutate `GameState`, autosave, or touch RNG. If podium answers should become gameplay-visible later, add an engine/store contract and tests instead of changing UI copy alone.
+- Game Day route coaching is shipped for `/game-day`: `resolveRouteKey` maps the route to `game-day-recap`, whose unanchored Chip beats frame the screen as receipt review over saved result, injury, weather, podium, saved-package source/decision receipts, and reaction outputs before moving to next-week roster or plan fixes. This is route guidance only; it does not simulate games, append game-day packages, answer podium prompts, record press conferences, change weather, mutate saves, move players, run sim, or touch RNG.
+
+Call Your Shot:
+
+- `packages/engine/src/systems/call-your-shot.ts` owns declarations, eligibility, result evaluation, and saved-state resolution.
+- Declarations are `run_dominant`, `air_attack`, `defensive_shutout`, `total_domination`, and `underdog_special`.
+- Eligibility is playoffs, division-clinch, rivalry, or week 15+ late-season push. `GamePlanSetup.tsx` passes `Boolean(selectUpcomingRivalry)` into `isCallYourShotEligible`, so rivalry eligibility comes from live rivalry context while Week 15+ still uses the engine's late-season reason. `GamePlanSetup.test.tsx` guards both cases.
+- `evaluateCallYourShotResult(rng, declaration, result, teamId)` is pure and returns hit/partial/miss outcome, magnitude, fan-confidence delta, morale delta, chemistry delta, dev-bonus multiplier, headline, and narrative.
+- `resolveCallYourShot(game, result, rng)` mutates saved state by applying fan-confidence delta, deleting `activeCallYourShot`, and attaching `callYourShotResult` to the user game result.
+- `franchise-week.ts` resolves the active call after the user game, includes it in engine output and game-day package data, and the store queues call-your-shot audio cues from the result.
+- Web surfaces: `GamePlanSetup.tsx` saves `activeCallYourShot`; `GameDayRecap.tsx` renders `CallYourShotResult`.
+- `CallYourShotResult.tsx` now labels the display source boundary: `resolveCallYourShot` owns resolution, `GameResult.callYourShotResult` is the saved user-game receipt, `GameDayPackage.callYourShotResult` is the recap copy, and the panel is read-only. Rendering it does not re-evaluate the shot, apply another fan-confidence swing, queue audio, mutate `GameState`, rerun the game, or touch RNG.
+
+Named games and apology tours:
+
+- `packages/engine/src/systems/named-games.ts` detects one named game per result in priority order: `yard_miracle`, `dagger`, `comeback`, `collapse`, `heartbreaker`, `ghost_game`, `statement`, `gauntlet_game`, `snow_bowl`, `shootout`, `coin_flip`, and `rout`.
+- `franchise-week.ts` builds the named-game context from score flow, weather, rivalry, primetime, rankings, injuries, and winning-play information, then records qualifying named games into the result and dynasty timeline.
+- Completed-season scrapbook entries now consume saved named-game timeline events, saved bloodline draft timeline events, saved individual award winners, saved story-arc stage beats, saved season-report grades/overviews, saved record notes, saved Hall of Fame inductions, and saved heated league-rivalry chapters from `buildScrapbookEntry`; the app-shell route `/franchise/scrapbook` remains a read-only sidecar reader.
+- `packages/engine/src/systems/apology-tour.ts` starts an apology tour only when the user team loses a `collapse` or `heartbreaker` named game.
+- Apology tour beats are `fan_letter`, `beat_column`, `owner_email`, and `resolution`; scheduled beats arrive at week offsets 1, 2, and 3, then resolution follows later wins/losses after owner email.
+- Apology tour content comes from `packages/content/narrative/apology-tour.json` through `getApologyTourBeat`.
+- `syncApologyTourThreads(game, params)` dedupes by source game id, delivers scheduled beats from the `beatsDelivered` ledger using `(currentYear - startedYear) * 22 + currentWeek - startedWeek`, and resolves only after `owner_email` has landed and a later user-team result is played. A later win marks the thread `resolved`; a later loss marks it `escalated`; both add the `resolution` beat.
+- Inbox apology-tour cards are projections over the last three user-team threads. `buildInboxMessages.ts` emits one card per delivered beat in order and selects `resolution_resolved` or `resolution_escalated` copy from thread status. `ApologyTourModal.tsx` is presentation only and now renders `Tour Sources` rows that name the saved thread, authored `getApologyTourBeat` copy, local `beatIndex`, and delivered-beat ledger; it does not mark beats read, mutate threads, schedule weeks, resolve threads, or write a sidecar.
+- Web surfaces: inbox messages from `buildInboxMessages.ts`, `ApologyTourModal.tsx`, `GameDayRecap` named-game banner/memory CTA, playoff lore tags, `/legacy/named-games`, and legacy timeline named-game entries.
+
+Off-field events and timed effects:
+
+- `packages/engine/src/systems/off-field-events.ts` owns living-world defaults, off-field event candidates, active timed effects, and effect lookup helpers.
+- `ensureLivingWorldState(game)` initializes `offFieldEvents`, `recentPressConferences`, `coachingHistory`, `leagueRivalries`, and `activeEffects`.
+- Candidate event types include `captain_speech`, `position_group_beef`, `contract_grumbling`, `player_interview`, `injury_setback`, `breakout_practice`, and `milestone`.
+- `generateWeeklyOffFieldEvents(game, team)` only runs during regular season, picks one or two candidate events with `RNG.ai`, appends events, appends timed effects, pushes saved `eventLog` entries, and adds recent narrative headlines.
+- `expireTimedEffects`, `getTimedEffectDelta`, and `getGameEffectBonuses` control effect lifetime and active game bonuses. `franchise-week.ts` calls `getGameEffectBonuses` before simulation and includes active-effect summaries in game-day packages.
+- `clearSeasonLivingWorldState(game)` clears off-field events, recent press conferences, and active effects during offseason rollover.
+
+Off-field event and active-effect boundary map:
+
+- Type/schema ownership lives in `types/governance.ts` and `save/schema.ts`. `OffFieldEvent.category` is `locker_room`, `media`, or `personal`; `TimedEffect.sourceType` is `off_field_event`, `press_conference`, or `rivalry`; `TimedEffect.stat` is `chemistry`, `morale`, `ovr`, or `ownerApproval`.
+- `franchise-week.ts` owns the weekly generation gate, not `off-field-events.ts`: after the user-team weekly summary, it calls `shouldGenerateEvent(nextState, 'off_field_event', 40, RNG.ai, ...)`, then `generateWeeklyOffFieldEvents(nextState, currentUser)` only during regular season.
+- `generateWeeklyOffFieldEvents` builds candidate events from current user-team roster/state, then selects `1` or `2` events using `RNG.ai`. It writes the selected events to `game.offFieldEvents`, pushes each event's `effects` into `game.activeEffects`, appends an `off_field_event` entry to `game.eventLog`, and prepends the headline to `narrativeState.recentHeadlines` capped at 8.
+- Candidate effects are intentionally not all sim-affecting. `captain_speech`, `position_group_beef`, `contract_grumbling`, and `milestone` create non-game chemistry/morale effects; positive `player_interview` and `breakout_practice` create `appliesToGame: true` player OVR effects; negative `player_interview` creates a non-game chemistry effect; `injury_setback` has no timed effect and instead increments the injured player's `gamesOut` by 1 when selected.
+- Timed-effect lifetime uses a numeric stamp `year * 100 + week`. `makeEffect` stores `startStamp` and `endStamp = startStamp + weeks - 1`; `expireTimedEffects(game)` removes effects whose `endStamp` is less than the current stamp and returns the expired list.
+- `getTimedEffectDelta(game, teamId, stat, targetId?)` sums active effects for a team/stat at the current stamp. When `targetId` is supplied it matches that player; without `targetId` it sums team-targeted effects. Tests guard that these ledgers do not mutate stored player ratings.
+- `getGameEffectBonuses(game, teamId)` is the simulation-facing read model. It filters active effects to `appliesToGame`, ignores non-OVR stats, returns a team OVR bonus plus per-player OVR bonuses, and passes active summaries into game-day package context. `franchise-week.ts` merges these bonuses before regular-season and playoff simulation.
+- `activeEffects` has multiple producers. Off-field events push off-field sourced effects; `recordPressConference` can push press-conference effects; rivalry effects are represented by the shared type even when a specific code path derives rivalry bonuses elsewhere. Do not treat `activeEffects` as only off-field-event state.
+- `game.offFieldEvents` also has producers outside `off-field-events.ts`. `player-agents.ts::agentMediaLeak` pushes `agent_media_leak` media events with no timed effects and records league news during holdout escalation. Inbox code treats agent leaks specially.
+- Web presentation is generated, not a durable mailbox: `buildInboxMessages.ts` projects the latest two `offFieldEvents` into Inbox messages, marks any event with a negative effect delta as `URGENT`, derives sender from category, and separately surfaces the latest `agent_media_leak`.
+- `clearSeasonLivingWorldState(game)` clears `offFieldEvents`, `recentPressConferences`, and `activeEffects` during `advanceOffseason`, so these are season-local living-world receipts/effects rather than long-term archives. Long-term memory should use dynasty timeline, season reports, scrapbook/HOF sidecars, or another explicit persistent archive.
+
+Revenge-game flavor:
+
+- `packages/engine/src/systems/revenge-games.ts` is pure flavor: it scans schedule/player archive data for marquee players facing recent former teams.
+- Defaults are marquee OVR `82` and lookback `3` years. The module explicitly does not buff stats.
+- `scanRevengeMatchups` walks the schedule; `getRevengeFlavorForMatchup` handles one matchup; `pickRevengeLine` gives deterministic UI copy from a matchup key without touching RNG state.
+- `packages/content/narrative/revenge-lines.json` is loader-owned through `RevengeLinesContentSchema` and `getRevengeLineTemplates`. `broadcast-commentary.ts` consumes the `pregame.agm`, `halftime.commentary`, and `postgame.agm` buckets with deterministic `pickRevengeLine` selection and placeholder interpolation; it also consumes `postgame.newsline` as a recap `Newswire headline:` only when the revenge subject's current team beats the former team.
+- Coach revenge is scaffolded by type shape, but the scanner does not consume saved `coachingHistory` yet. `revenge-games.test.ts` locks that coach career stints do not synthesize revenge flavor until that wiring is deliberately added.
+
+Safety rules:
+
+- These systems are save-sensitive. Adding or reshaping fields requires TypeScript types, Zod schema, migration/defaults, fixtures/golden-save checks, and old-save verification.
+- Handshake, endorsement, off-field, and call-your-shot math changes affect gameplay or rewards. Name constants, show formula deltas, add deterministic tests, and document sample outputs.
+- Do not let revenge-game flavor or named-game presentation directly buff simulation outcomes.
+- Keep call-your-shot resolution tied to the user game result; do not apply deltas to unrelated games.
+- Off-field events use `RNG.ai()` and `uid()` internally. Any reproducibility work here should centralize or inject RNG before changing output semantics.
+
+Focused tests for this layer:
+
+- Engine: `handshake-ledger.test.ts`, `endorsements.test.ts`, `call-your-shot.test.ts`, `call-your-shot-wiring.test.ts`, `named-games.test.ts`, `apology-tour.test.ts`, `off-field-events.test.ts`, `press-conference.test.ts`, `revenge-games.test.ts`, `offseason.test.ts`, `franchise-week.test.ts`, and save migration/golden tests when persistent shape changes.
+- Web store/selectors: `apps/web/src/app/store/game-store.test.ts`, `game-store.gameweek.test.ts`, and `selectors.test.ts`.
+- UI/lib: `EndorsementCenter.test.tsx`, `HandshakeLedger.test.tsx`, `GamePlanSetup.test.tsx`, `CallYourShotResult.test.tsx`, `GameDayRecap.test.tsx`, `PressConferenceModal.test.tsx`, `ApologyTourModal.test.tsx`, `buildInboxMessages.test.ts`, `LegacyTimeline.test.tsx`, and `playoff-lore.test.ts`.
+
+## Broadcast, Audio, And Presentation Wiring
+
+Broadcast and audio are separate layers:
+
+- Engine broadcast output is deterministic presentation data stored on `GameResult.broadcast`.
+- Web broadcast screens render the latest broadcast output or rebuild missing legacy output through selectors with a stable seed.
+- Engine audio cues are intent only. Web audio preferences and browser audio APIs decide whether anything is played.
+- Public `.ogg` files are optional polish assets; synth playback remains the fallback path.
+
+Broadcast and audio boundary map:
+
+- `GameResult.broadcast` is an optional heavy presentation payload on user-visible completed games. `ScheduledGame.broadcastNetwork` is the saved schedule/network field; it is not the same thing as the generated play-by-play broadcast payload.
+- `franchise-week.ts` attaches generated broadcasts only when the home or away team is the user team, in both regular-season and playoff paths. CPU-only game results intentionally remain lighter, and `franchise-week.test.ts` asserts this behavior.
+- `selectors.ts` rebuilds missing broadcasts through `rebuildBroadcast()` using `generateBroadcast` plus `mulberry32(buildBroadcastSeed(game, gameResult))`. This is how old saves or cartridge imports without broadcast payloads still render broadcast routes.
+- `selectBroadcastByGameId(gameId)` is the web read-model entry point. With a `gameId`, it scans saved schedule results for that exact completed result; with `null`, it walks the schedule backward for the latest user-team result. `rebuildBroadcast` returns `null` if either team id cannot be resolved.
+- `selectGameDayPackageByBroadcastGameId(gameId)` matches the selected or latest broadcast result back to a saved `GameDayPackage` by year, week, and home/away team ids. Broadcast routes use that read model to surface saved halftime decision receipts from `GameDayPackage.activeEffectSummaries`; it does not create or persist a new receipt.
+- `buildBroadcastSeed(game, gameResult)` combines `game.seed`, result year/week, result id, and home/away ids. Selector-side broadcast regeneration is deterministic display repair for missing payloads; it is not a new simulation run and should not be committed back to the save merely because a route rendered.
+- `dynasty-cartridge.ts` strips `result.broadcast` from scheduled games and playoff matchups during export. Do not treat a missing broadcast payload after import as save corruption; route selectors can regenerate it.
+- Broadcast presentation is pure curation. `broadcast-presentation.ts` does not mutate the source broadcast and can return opening/final beats even when a broadcast is missing.
+- Ghost broadcast commentary has two layers: engine generation appends `broadcast.ghostLines`, while `ghostBroadcastPrefs.ts` only gates whether the web UI displays those lines using localStorage key `mfd.broadcast.ghost.v1`. HOF guest commentary is tagged `source: 'hof'` when `franchise-week.ts` appends it; contingency booth alerts are tagged `source: 'callout'`.
+- Ghost broadcast prefs fail open to enabled. Empty storage, missing storage/SSR, malformed JSON, or wrong-shape payloads all return `{ enabled: true, lastUpdated: '' }`; toggles write `{ enabled, lastUpdated: new Date().toISOString() }`. `lastUpdated` is browser metadata only, not simulation chronology or save data.
+- `broadcastGameId` is transient UI store context, not persisted in `mfd-ui-preferences` and not saved in `GameState`. `actions.watchBroadcast(gameId)` sets it and navigates to `/broadcast`; when it is null, broadcast selectors fall back to the latest user-team game result.
+- Engine audio cues are `AudioCue` intents with event, priority, and optional metadata. `createAudioCue` does not set wall-clock timestamps; queue timing and playback debounce are web-only concerns.
+- `postGameUi.audioCueQueue` is saved UI staging state and is kept to the latest 20 cues by store mutation paths. `App.tsx`/`AudioController.tsx` play the queue and then `clearAudioQueue()` commits an empty queue.
+- `AudioController.tsx` owns sound-event category mapping, optional `.ogg` asset resolution, synth fallback, ambient route mode, and a bounded recent-playback map. Requested asset paths are accepted only when they match `audio/... .ogg`.
+- Audio playback is category-gated before asset or synth playback. Muted master/category prefs prevent both `.ogg` and synth sounds. Non-critical queued cues use the default 180 ms debounce; critical queued cues pass `debounceMs: 0`; the recent-playback key map is FIFO-capped at 256 entries.
+- `AudioController.tsx` keeps `AudioContext`, category gains, current preferences, current/active ambient mode, the ambient interval handle, and the recent-playback debounce map as module-scoped tab-lifetime state. `resetAudioControllerForTests()` is the test reset hook; do not move these browser objects into `GameState` or persistent Zustand state.
+- Public audio asset paths are resolved through Vite `import.meta.env.BASE_URL` after sanitization. Do not hard-code `/MFD/` or leading public paths in queued cue metadata.
+- Audio preferences live in the UI preference sidecar (`mfd-ui-preferences`), not in dynasty save state. `audio-preferences.ts` normalizes missing categories and clamps category volume to 0-100.
+
+Broadcast generation:
+
+- `packages/engine/src/systems/broadcast.ts` owns `generateBroadcast(result, home, away, rng)`, drive/play reconstruction, highlights, final narrative, playbook metadata, leverage/win-probability notes, and broadcast output shape.
+- `broadcast-templates.ts` owns built-in commentary template pools used directly by `broadcast.ts`.
+- `broadcast-commentary.ts` adds pregame/in-game/recap color from team content, stadium traditions, PA calls, rivalries, authored revenge-game lines, relationships, and franchise history.
+- `broadcast-presentation.ts` builds cinematic beat summaries for the `/presentation` route from an existing result/broadcast pair.
+- `ghost-broadcasts.ts` builds retired-Hall-of-Famer commentary; `franchise-week.ts` appends HOF ghost lines and contingency booth-alert lines into `broadcast.ghostLines` with explicit `source` tags.
+- `apps/web/src/app/store/selectors.ts` uses `selectLatestBroadcast`/`rebuildBroadcast`. If old saves lack `gameResult.broadcast`, it calls `generateBroadcast` with `mulberry32(buildBroadcastSeed(game, gameResult))`.
+
+Broadcast UI:
+
+- Routes and components: `/broadcast` -> `GameBroadcast`, `/presentation` -> `BroadcastPresentation`, `/play-by-play` -> `PlayByPlay`, `/game-flow` -> `GameFlow`, and `/game-day` -> game-day recap surfaces.
+- `App.test.tsx` guards that route/component map, including the fact that `BroadcastPresentation.tsx` is imported through its default export while the other broadcast route components are named exports.
+- `GameBroadcast` reads `selectBroadcastByGameId(useUiStore.broadcastGameId)`, so it can show a user-selected historical game after `watchBroadcast(gameId)` or fall back to the latest result when no id is selected. `GameBroadcast.test.tsx` source-guards this transient UI-context selector path.
+- Broadcast source clarity is shipped as a read-only UI slice: `/broadcast` renders `Broadcast Sources`, labeling `useUiStore.broadcastGameId`, `selectBroadcastByGameId`, `selectGameDayPackageByBroadcastGameId`, `buildHalftimeDecisionReceipt`, `buildBroadcastCommentary`, route-local quarter/highlight tabs, ghost lines, MVP radar, and the render boundary. Opening the route does not append game-day packages, persist commentary texture, mutate broadcasts, advance the week, or change results.
+- `BroadcastPresentation`, `PlayByPlay`, and `GameFlow` read `selectLatestBroadcast`. `GameFlow` then calls `analyzeGameFlow`, while `BroadcastPresentation` calls `buildBroadcastPresentation`.
+- Broadcast Suite route coaching is shipped for `/broadcast`, `/presentation`, `/play-by-play`, and `/game-flow`: `resolveRouteKey` maps those routes to `broadcast-suite`, whose unanchored Chip beats frame them as saved-result review that cannot change the score or next opponent. This is route guidance only; it does not generate broadcasts, append game-day packages, persist commentary texture, mutate broadcasts, rebuild saved results, advance the week, change schedules, run sim, or touch RNG.
+- Film Room route coaching is shipped for `/film-room`: `resolveRouteKey` maps the route to `film-room`, whose unanchored Chip beats frame it as saved prep-report review after a result. This is route guidance only; it does not grade game plans, generate reports, replay results, mutate `weeklyPrepHistory`, mutate `filmRoomHistory`, reset `gamePlan`, advance the schedule, run sim, or touch RNG.
+- Presentation source clarity is shipped as a read-only UI slice: `/presentation` renders `Presentation Sources`, labeling `selectLatestBroadcast`, `buildBroadcastPresentation`, `selectGameDayPackageByBroadcastGameId(null)`, `buildHalftimeDecisionReceipt`, route-local `beatIndex` controls, and the render boundary. Opening the route does not append game-day packages, mutate broadcasts, persist replay beats, advance the week, or change results.
+- Play-by-play source clarity is shipped as a read-only UI slice: `/play-by-play` renders `Play-by-Play Sources`, labeling `selectLatestBroadcast`, saved or deterministically rebuilt `BroadcastOutput.quarters`, route-local drive expansion, copied/sorted/capped highlights, `broadcast.ghostLines`, `buildHalftimeDecisionReceipt`/`buildBroadcastCommentary` texture rows, and the render boundary. Opening the route does not append packages, mutate broadcasts, advance the week, or change results.
+- Game-flow source clarity is shipped as a read-only UI slice: `/game-flow` renders `Game Flow Sources`, labeling `selectLatestBroadcast`, pure `analyzeGameFlow`, `PixelEkg` win-probability inputs, derived momentum/efficiency/turning-point reads, and the render boundary. Opening the route does not append game-day packages, mutate broadcasts, rebuild saved results, advance the week, or change schedules.
+- `GameBroadcast`, `PlayByPlay`, and `BroadcastPresentation` also read the matching game-day package through `selectGameDayPackageByBroadcastGameId`. When `buildHalftimeDecisionReceipt` finds a saved `Halftime hell:` row, those routes display the same saved halftime receipt that `GameDayRecap` shows.
+- `GameBroadcast` and `PlayByPlay` add route-local authored commentary through `buildBroadcastCommentary` with a simple `game.year * 100 + result.week` seed. Treat this as display garnish, not the same thing as the stored/generated `GameResult.broadcast` payload.
+- `GhostBroadcastsPanel` reads `broadcast.ghostLines` and gates display through local pref `mfd.broadcast.ghost.v1`. The engine still emits eligible ghost lines while the panel is disabled. The panel now labels the `broadcast.ghostLines` source, the browser-only pref key, the read-only/no-generate/no-broadcast-write/no-GameState/no-sim/no-RNG render boundary, and the HOF/callout split. Legacy unsourced `Booth Alert` lines render as callouts; other unsourced lines render as HOF voices for old-save compatibility. The panel shows up to six HOF lines and six callout lines and renders `+N more` overflow hints; trigger ids are humanized by replacing underscores with spaces.
+- Broadcast route components are display surfaces over stored/generated broadcast data and derived read models. Do not put simulation decisions in these components.
+
+Game-flow and EKG presentation:
+
+- `packages/engine/src/systems/game-flow.ts` is a pure analytics layer over `BroadcastOutput`; it has no RNG, no I/O, and no save mutation. `analyzeGameFlow` assembles quarter momentum, drive efficiency, scoring runs, win-probability points, and a turning point from broadcast drives.
+- Game-flow constants are source-owned presentation math: big plays are counted from `play.excitement >= 7`, dominant quarter team requires a 2x yardage ratio or one side with all yards, three-and-outs are punts of three or fewer plays, turning points require at least a 5 percentage-point swing, and the win-probability curve uses a logistic slope of `0.3` with quarter multipliers `0.5`, `0.75`, `1.0`, and `1.5`.
+- `GameFlow.tsx` maps the pure analysis into route panels and sends win-probability points into shared `PixelEkg`. It classifies chart events locally from consecutive win-probability deltas: 18+ points becomes touchdown/turnover coloring, 10+ points becomes `big_play`.
+- `GameDayRecap.tsx` also calls `analyzeGameFlow` from `selectLatestBroadcast` to build named-game EKG points and recap Chip win-probability context. Do not treat `/game-flow` as the only consumer of game-flow analysis.
+- `packages/design-system/components/PixelEkg/PixelEkg.tsx` is a presentational SVG component. It clamps `wp` to 0-100, draws a step path, colors spike markers from event strings, and renders `NO SIGNAL` for empty point arrays. It does not calculate win probability or own game-flow semantics.
+
+Content hooks used by broadcast/presentation:
+
+- `content-loader.ts` validates broadcast template JSON, halftime/PA JSON, team identity JSON, and press-conference JSON at module load.
+- `getBroadcastTemplate`, `getPACall`, `getHalftimePerformers`, `getTeamContent`, `getTeamRivalryContent`, `getTeamFanCulture`, `getTeamStadiumContent`, and `getTeamStadiumTradition` are the main authored-content accessors used by presentation systems.
+- `packages/content/broadcast` currently contains `agm-dialogue.json`, `passing-defense-st-templates.json`, `press-conference-templates.json`, and `rushing-templates.json`; it is not placeholder-only.
+- `packages/content/stadiums` currently contains `.gitkeep`, `atl-orchard.json`, `bal-crab-pot.json`, `bos-kettle.json`, `chi-deep-freeze.json`, `cin-sty.json`, `cle-power-chord.json`, `dal-corral.json`, `den-bull-market.json`, `det-bass-drop.json`, `kc-smokehouse.json`, `nyc-meter.json`, `phi-liberty-bell.json`, `pit-furnace.json`, `sea-feedback.json`, and `sf-mother-dough.json`. Stadium flavor accessors prefer standalone stadium JSON for a matching team id, then fall back to embedded `packages/content/teams/*.json` stadium fields; regional weather remains a separate system. Broadcast pregame stadium copy consumes standalone `cue.pregameLine` and `cue.crowdResponse` when present.
+
+Audio cue flow:
+
+- Engine cue types live in `packages/engine/src/systems/audio-events.ts`: `SoundEvent`, `AudioCue`, `AudioPriority`, `createAudioCue`, `shouldPlaySound`, and `mapGameResultToAudioCues`.
+- `game-store.ts` builds post-advance queues from the user game result, injuries, call-your-shot outcome, records, rivalry heat, Super Bowl outcome, season end, and explicit transaction/draft events. `appendAudioCue` keeps `postGameUi.audioCueQueue` bounded to the latest 20.
+- `App.tsx` watches `postGameUi.audioCueQueue`, no-ops on an empty queue, calls `playAudioCueQueue(audioCueQueue)`, then calls `clearAudioQueue()`. `App.test.tsx` guards this shell handoff so playback stays in an effect and the saved staging queue is cleared only after the browser-audio handoff.
+- `AudioController.tsx` maps `SoundEvent` to audio categories and synth functions, optionally uses requested public `.ogg` assets, debounces repeated cues, and bounds recent playback keys to 256.
+- Default controller asset mapping covers `trade_complete`, `draft_pick`, `record_broken`, and `super_bowl_win`. Store-queued `metadata.requestedAsset` currently covers call-your-shot hit/miss/partial, major starter injury, record broken, rivalry heat spike, championship win, accepted trades, and draft-pick confirmation.
+- `playAudioCueQueue` reads only string `metadata.requestedAsset` for per-cue asset overrides. Invalid or missing assets fall back to synth playback after sanitized asset playback fails.
+- Public audio assets live under `apps/web/public/audio`; requested asset paths are sanitized to `audio/... .ogg` before playback and resolved with `BASE_URL`.
+- Current public audio files are `audio/cue/call-hit.ogg`, `audio/cue/call-miss.ogg`, `audio/cue/call-partial.ogg`, `audio/event/championship-win.ogg`, `audio/event/draft-pick-confirmed.ogg`, `audio/event/injury-major-starter.ogg`, `audio/event/record-broken.ogg`, `audio/event/rivalry-heat-spike.ogg`, and `audio/event/trade-accepted.ogg`.
+- `apps/web/src/features/audio/audio-assets.test.ts` is the public audio asset coverage guard. It scans production web source for `audio/cue/*.ogg` and `audio/event/*.ogg` literals, verifies each literal has a shipped file, and verifies each shipped cue/event file is intentionally referenced by runtime code.
+- Audio preferences live in UI preferences under `mfd-ui-preferences`. Categories are `ui`, `sfx`, and `ambient`; volumes are clamped 0-100.
+- `AudioSettings` renders `Audio Sources` under the Broadcast Mix controls, labeling `mfd-ui-preferences` as browser-local preference state, `AudioController` as the playback gate, preview buttons as route-local `audio.play` calls, and `RootLayout`/`postGameUi.audioCueQueue` as the saved game-cue handoff that is separate from this settings panel.
+- Ambient mode is route-derived: crowd ambience on `/broadcast`, `/play-by-play`, `/game-flow`, `/game-day`, `/super-bowl`; office ambience for `/roster` and `/scouting`; off elsewhere.
+
+Audio safety rules:
+
+- Browser audio initializes only after pointer/key interaction and silently fails on unsupported browsers or SSR.
+- Ambient loops stop when the document is hidden or ambient/settings disable playback, then resync on route, preference, and visibility changes.
+- Audio must never feed back into simulation or deterministic outcome state.
+- `Math.random()` is allowed only in `apps/web/src/features/audio/synth-sounds.ts` for synth noise. Keep `scripts/check-math-random.sh` passing.
+- Do not require or interpret `AudioCue.timestamp` as simulation chronology; current `createAudioCue` does not populate it.
+- Keep `AudioController` module singletons browser-local and test-resettable. Do not serialize `AudioContext`, gain nodes, interval handles, recent playback keys, or resolved asset URLs.
+- If adding a new `SoundEvent`, update engine type/priority mapping, web category map, synth map/fallback, optional public asset mapping, settings/tests, and any store action that queues it.
+- If adding public audio assets, use the existing `audio/cue/*.ogg` or `audio/event/*.ogg` pattern, queue them through `metadata.requestedAsset` or `SOUND_EVENT_ASSETS`, and keep `audio-assets.test.ts` plus `AudioManager.test.ts` sanitization coverage green.
+- If changing broadcast persistence, update `types/sim.ts`, save schema expectations, cartridge sanitization, selector rebuild behavior, broadcast route tests, and import/export tests together.
+- Do not put game outcome, play-calling, or simulation math in broadcast route components, `broadcast-presentation.ts`, or audio playback code.
+
+Focused tests for broadcast/audio/presentation work:
+
+- Engine: `broadcast.test.ts`, `broadcast-commentary.test.ts`, `broadcast-templates.test.ts`, `broadcast-presentation.test.ts`, `broadcast-leverage.test.ts`, `ghost-broadcasts.test.ts`, `contingency-wiring.test.ts`, `audio-events.test.ts`, `halftime.test.ts`, `halftime-decision.test.ts`, `regional-weather.test.ts`, and `super-bowl.test.ts`.
+- Cartridge/save: `packages/engine/src/systems/phase2.test.ts` covers export stripping for broadcast payloads; save schema tests cover `broadcastNetwork`.
+- Web: `App.test.tsx` for route and app-shell audio queue handoff, `GameBroadcast.test.tsx` for selected `broadcastGameId` selector wiring, `BroadcastPresentation.test.tsx`, `PlayByPlay.test.tsx`, `GameFlow.test.tsx`, `GhostBroadcastsPanel.test.tsx` for HOF/callout classification plus source/no-write strip coverage, `ghostBroadcastPrefs.test.ts`, `AudioManager.test.ts`, `audio-assets.test.ts`, `Settings.test.tsx`, `AudioSettings.test.tsx`, `ui-store.test.ts`, and `game-store.gameweek.test.ts` for queue staging/clearing.
+- Gates: `bash scripts/check-math-random.sh` and the relevant `content-loader`/`content-schemas` tests if authored JSON changes.
 
 ## Web Store And Persistence
 
-Main store: `apps/web/src/app/store/game-store.ts`.
+This section is the quick reference. For full details, read `Store And Selector Ownership`, `Persistence And Data Ownership`, and `Settings, Commands, Watch List, And Inbox Wiring`.
 
-Patterns:
+Store mutation boundaries:
 
-- Zustand + Immer.
-- `game: GameState | null`.
-- Most actions:
-  1. Read `current = get().game`.
-  2. `structuredClone(current)`.
-  3. Call engine function or deterministic local helper.
-  4. `commitGame(nextGame)`.
-- `commitGame` sets state and autosaves through `autosaveDynasty` when UI autosave is enabled.
-- Undo snapshot exists for selected actions; week advance is intentionally not undoable.
-- A few direct `set` actions mutate without autosave (`toggleTradeBlock`, `setStarter`, setup phase moves, `recordPortableExport`, etc.). Check whether persistence is intentional before following those examples.
+- Main store: `apps/web/src/app/store/game-store.ts`.
+- Durable gameplay actions normally follow `current = get().game` -> `structuredClone(current)` -> engine/local helper -> `commitGame(nextGame)`.
+- `commitGame(nextGame)` sets `game`, marks the store initialized, and calls `autosaveDynasty(nextGame)` only when `useUiStore.getState().autosaveEnabled` is true.
+- `actions.newGame(initial)` is a special launch path: it finalizes the prior dynasty meta, clears dynasty-keyed browser sidecars for the incoming dynasty id, syncs career meta, replaces the global derived rivalry sidecar from the incoming save, resets session prompt state, sets the new game, and immediately calls `autosaveDynasty(initial)` rather than honoring the normal `commitGame` autosave gate.
+- `actions.loadGame(loaded)` syncs career meta, replaces the global derived rivalry sidecar from the loaded game, sets the loaded game, and resets session prompt state; it does not autosave or clear dynasty-keyed sidecars. Import UI handlers deliberately autosave validated imported games before calling `loadGame` so hard-reload Continue uses the imported save.
+- `snapshotForUndo(label)` stores a JSON-cloned `undoSnapshot` for selected actions. Week advance explicitly clears undo and is not undoable.
+- Some direct `set` actions remain intentional exceptions, such as phase/session prompt state, setup edits, and transient playoff-lore reveal state. `addClinicXP` now uses clone -> `commitGame` for successful XP changes. Do not copy direct-set paths for saved gameplay mutations without documenting the autosave choice.
+- Keep `GameState.players` and `Team.roster` synchronized when moving or editing players; many selectors and validators expect both views to agree.
 
-Browser save layer:
+UI preference and transient shell boundaries:
 
-- `apps/web/src/app/store/persistence.ts`: normalizes import, migrations, Zod validation, agent initialization, autosave/manual save APIs.
-- `apps/web/src/lib/db.ts`: Dexie database `mfd`, table `saves`.
-- Autosaves are trimmed to 3 by default.
-- Portable backups use dynasty cartridges.
+- `apps/web/src/app/store/ui-store.ts` persists only selected browser preferences under `mfd-ui-preferences`: sidebar collapse, density, autosave enabled, sim speed, and audio preferences.
+- Transient shell context stays out of persistence: command-palette open state, focused-player context, and `broadcastGameId` reset on hydration even if malformed or old storage contains them.
+- UI store hydration whitelists persisted fields, validates non-audio values, normalizes missing audio categories, and clamps audio volumes through `audio-preferences.ts`.
+- `autosaveEnabled` is browser-local. It changes the side effect of `commitGame`, not whether the in-memory dynasty mutation happens.
 
-Cartridge system:
+Save, slot, and import boundaries:
 
-- `packages/engine/src/systems/dynasty-cartridge.ts`.
-- `buildCartridge(save, meta)` wraps save in JSON envelope.
-- Export strips heavy `broadcast` payloads from historical schedule/playoff results.
-- `parseCartridge(text)` accepts current and legacy JSON envelopes.
-- UI screen: `apps/web/src/features/dynasty-cartridge/DynastyCartridge.tsx`.
+- `apps/web/src/app/store/persistence.ts` owns web import/load normalization: parse cartridge -> `migrate(raw, SAVE_VERSION)` -> `SaveStateSchema.safeParse` -> `ensureAgentsInitialized`.
+- Import validation failures include up to the first six schema issue paths from `SaveStateSchema.safeParse`. Keep those diagnostics concise because they surface through user-facing import errors and are also the fastest way to identify hard-reload/latest-autosave compatibility drift.
+- `autosaveDynasty` and `saveDynastyToSlot` build plain `mfd-cartridge.v1` JSON through `buildCartridge(game, meta)` and store that cartridge string in Dexie slot data.
+- `apps/web/src/lib/db.ts` is only the IndexedDB adapter. It uses database `mfd`, table `saves`, orders slots by timestamp, finds the latest autosave by scanning save slots, and trims autosaves to the latest 3 by default.
+- Slot timestamps (`Date.now()`) and cartridge metadata timestamps are storage/export metadata. They must not become simulation inputs.
+- `packages/engine/src/systems/dynasty-cartridge.ts` is pure cartridge envelope logic and strips heavy broadcast payloads during export. UI, Clipboard, downloads, Dexie, migration, and validation live outside that engine helper.
+- `apps/web/src/lib/dynasty-combined-backup.ts` is a web portability helper, not engine save logic. It exports/imports `mfd.dynastyCombinedBackup.v1` by wrapping an existing `.mfd` cartridge object with the complete sidecar archive payload. Combined import must continue validating both parts before `DynastyCartridge.tsx` autosaves the imported game, imports sidecars, and hydrates the active game.
+
+Focused tests:
+
+- Store actions and autosave: `apps/web/src/app/store/game-store.test.ts` and `game-store.gameweek.test.ts`.
+- UI preference persistence: `apps/web/src/app/store/ui-store.test.ts`.
+- Import helpers: `apps/web/src/app/store/persistence.test.ts` and `apps/web/src/lib/dynasty-combined-backup.test.ts`.
+- IndexedDB adapter: `apps/web/src/lib/db.test.ts`.
+- Cartridge envelope/save reminder: `packages/engine/src/systems/dynasty-cartridge.test.ts`, `save-reminder.test.ts`, `apps/web/src/lib/dynasty-combined-backup.test.ts`, and `apps/web/src/features/dynasty-cartridge/*test*`.
 
 ## Save Schema And Migrations
 
+See `Persistence And Data Ownership` above for the current save version, import/load path, cartridge format, and browser sidecar keys.
+
 Save schema:
 
-- `packages/engine/src/save/schema.ts`.
-- Zod-validated `SaveStateSchema`.
+- `packages/engine/src/save/schema.ts`
 
 Migration chain:
 
-- `packages/engine/src/save/migrations.ts`.
-- `registerMigration(N, fn)` upgrades version N to N+1.
-- `migrate(state, SAVE_VERSION)` loops by version key.
-- Registered versions cover v1 through v37.
-- v30 migration is registered after v34 in file order; this is okay because lookup is by numeric key.
+- `packages/engine/src/save/migrations.ts`
 
 Golden fixtures:
 
-- `packages/engine/src/save/fixtures/v1.json`
-- `v10`, `v20`, `v30`, `v31`, `v32`, `v33`, `v34`.
+- `packages/engine/src/save/fixtures`
+- Checked-in historical fixture files currently include `v1.json`, `v10.json`, `v20.json`, `v30.json`, `v31.json`, `v32.json`, `v33.json`, and `v34.json`; `v33.json` is a historical golden save with embedded version 33, not the current launch schema. Generated fixture-policy coverage handles generated v37 and current-v38 without committing giant JSON.
 
 Save tests:
 
 - `packages/engine/src/save/save.test.ts`
-- `migrations.test.ts`
-- `golden-saves.test.ts`
+- `packages/engine/src/save/migrations.test.ts`
+- `packages/engine/src/save/golden-saves.test.ts`
 
-Persistent field checklist:
+Checklist for persistent changes:
 
 - Update TypeScript type.
-- Update `SaveStateSchema`.
-- Add migration from current `SAVE_VERSION` to `SAVE_VERSION + 1`.
+- Update Zod schema.
+- Add migration.
 - Increment `SAVE_VERSION`.
-- Update seed factory defaults if new games need the field.
-- Update import normalization if needed.
-- Add or adjust save tests and a load-old-save verification case.
+- Update seed factory defaults.
+- Add/adjust old-save migration tests.
 
 ## Routing And Screens
 
-Router lives in `apps/web/src/app/App.tsx`.
+Router lives in `apps/web/src/app/App.tsx` and uses hash history for GitHub Pages.
 
-Visible nav groups include:
+Major visible areas:
 
-- Core: briefing, advance week, watch list, inbox.
-- Team: roster, depth chart, locker room, coaching, handshakes, training camp, mentors.
-- Money: contracts, cap lab, front office, endorsements.
-- Acquire: trades, trade block, scouting, draft, free agency, FA targets, waivers, practice squad, team needs.
-- Gameday: game day, game plan, broadcast, presentation, play-by-play, game flow, film room, schedule, Super Bowl.
-- League: standings, power rankings, league pulse, newsroom, news, social, commissioner, analytics, records, stat central.
-- Dynasty: franchise, owner, legends, legacy, awards, scenarios.
-- System: about, credits, FAQ, save/load, settings.
+- Monday briefing, week advance, inbox, watch list.
+- Roster, depth chart, locker room, coaching, handshakes, training camp, mentors.
+- Contracts, cap lab, front office, endorsements.
+- Trades, trade block, scouting, draft, free agency, FA targets, waivers, practice squad, team needs.
+- Game day, game plan, broadcast, presentation, play-by-play, game flow, film room, schedule, Super Bowl.
+- Standings, power rankings, league pulse, newsroom, league news, social, commissioner, analytics, records, stat central.
+- Franchise, owner, legends, legacy, awards, scenarios.
+- About, credits, FAQ, save/load, settings.
 
-Additional direct routes not all visible in nav:
+Additional direct routes include player profiles, coaching tree/relationships, franchise subpages, CBA, league rules, relocation, expansion draft, season recap, legacy named games, bloodlines, playoff lore, achievements, and weather.
 
-- `/player/$playerId`
-- `/player/$playerId/timeline`
-- `/compare`
-- `/rivalries`
-- `/coaching/tree`
-- `/coaching/relationships`
-- `/franchise/book`
-- `/trade-deadline`
-- `/cba`
-- `/league-rules`
-- `/relocate`
-- `/expansion-draft`
-- `/season/recap`
-- `/legacy/named-games`
-- `/legacy/bloodlines`
-- `/franchise/career`
-- `/franchise/scrapbook`
-- `/franchise/hall`
-- `/franchise/trophy-room`
-- `/franchise/eras`
-- `/franchise/mvps`
-- `/franchise/playoff-lore`
-- `/franchise/chronicle`
-- `/player-development`
-- `/franchise/achievements`
-- `/league/weather`
+Route ownership guards live in `apps/web/src/app/App.test.tsx` and `nav-items.test.ts`. They lock core/team/gameplay command routes, franchise business/scenario entry routes (`/relocate`, `/expansion-draft`, `/scenarios`), special direct routes (`/franchise/achievements`, `/league/weather`), remaining direct content/deadline routes (`/inbox`, `/social`, `/franchise/book`, `/film-room`, `/trade-deadline`, `/franchise/scrapbook`), governance/league routes (`/owner`, `/commissioner`, `/cba`, `/league-rules`, `/standings`, `/analytics`, `/power-rankings`), and meta/system routes (`/about`, `/credits`, `/faq`, `/dynasty`, `/settings`) to their intended feature modules. `App.test.tsx` also references every registered route variable in `App.tsx`, so new registered routes should either join an existing identity guard or add a focused one. The same test file now scans `store/game-store.ts` and production `apps/web/src` `navigateTo('/literal')` calls, production router `navigate({ to: '/literal' })` calls, and production hash-helper `navigateTo('/literal')` / `goTo('/literal')` calls, failing if a hard-coded navigation target is not in the registered `rootRoute.addChildren([...])` tree.
 
-Router uses hash history for GitHub Pages.
-
-## Boot And UI Shell
-
-Entry point: `apps/web/src/main.tsx`.
-
-- Mounts `App`.
-- Imports design tokens and accessibility CSS.
-
-App shell responsibilities:
-
-- Top nav/mobile bottom nav.
-- Command palette and keyboard shortcuts.
-- Autosave toast.
-- Audio controller/toggle.
-- Tutorial overlay.
-- Ceremony, achievement, season report, milestone, breaking news, halftime decision, dynasty era, season recap, playoff lore, save reminder modals/prompts.
-- Chip companion host/dock.
+Player-card navigation should preserve hash routing. `PixelPlayerLink` writes `window.location.hash = /player/:id`, producing `/MFD/#/player/:id` in the deployed base. If another reusable link helper starts using browser-history paths, add focused route/base coverage before shipping it.
 
 ## Design System
 
 Exports: `packages/design-system/components/index.ts`.
 
-Major component families:
+Use existing:
 
-- `Pixel*`: pixel/broadcast UI primitives (`PixelPanel`, `PixelButton`, `PixelTable`, `PixelModal`, etc.).
-- `Mfd*`: general UI primitives (`MfdPanel`, `MfdDialog`, `MfdCommandPalette`, etc.).
-- `Chip`: assistant character, poses, dialogue bubble, typewriter behavior.
-- `Spotlight`: guided UI highlight.
+- `Pixel*` components for pixel/broadcast screens.
+- `Mfd*` components for general app primitives.
+- `Chip` and `Spotlight` for companion/onboarding UI.
 
 Tokens: `packages/design-system/tokens/index.css`.
 
-Identity:
+Style identity:
 
 - Black/dark pixel broadcast surface.
-- Gold is signature color.
+- Gold signature color.
 - Cyan/green/red semantic accents.
-- Sharp/pixel borders, minimal radius.
+- Sharp/pixel borders and minimal radius.
 - Responsive mobile nav and card-mode tables through data attributes.
-
-When adding UI:
-
-- Prefer existing `Pixel*`/`Mfd*` components.
-- Use tokens instead of one-off colors.
-- Keep screen logic in features; move reusable selectors/pure calculations to engine or lib.
 
 ## Content System
 
 Content files live under `packages/content`.
 
-Loaded by `packages/engine/src/content-loader.ts` with JSON imports and Zod validation from `packages/engine/src/types/content-schemas.ts`.
+Primary loader:
 
-Content buckets include:
+- `packages/engine/src/content-loader.ts` imports JSON content, validates it at module load, and exposes typed helper functions through `packages/engine/src/index.ts`.
+- `packages/engine/src/types/content-schemas.ts` owns Zod schemas for team identity, press conferences, AGM dialogue, broadcast templates, awards, coach archetypes, halftime/PA, player names, story arcs, league news, personality flavor, scouting templates, social feed templates, call-your-shot reactions, contingency callouts, apology-tour beats, and revenge-game lines.
+- Team identity content is `packages/content/teams/*.json`; current tests require at least 32 files, unique uppercase 2-4 letter IDs, valid AFC/NFC conference, valid North/South/East/West division, colors, fight songs, stadiums, fan culture, rivalries, PA overrides, city flavor, established year, and motto.
 
-- Team identity/fan culture/stadium/rivalry/PA overrides for all 32 teams.
-- Broadcast templates.
-- Press conference templates.
-- AGM dialogue/content.
-- News/social templates.
-- Scouting report templates.
-- Halftime performers.
-- Award speeches.
-- Personality flavor.
-- Call Your Shot reactions.
-- Contingency callouts.
-- Apology tour beats.
+Loaded content inventory:
 
-Content edit rules:
+- Static loader imports: `broadcast/press-conference-templates.json`, `broadcast/agm-dialogue.json`, `broadcast/passing-defense-st-templates.json`, `broadcast/rushing-templates.json`, `call-your-shot-reactions.json`, `ceremonies/award-speeches.json`, `coaching/coach-archetypes.json`, `contingency-callouts.json`, `halftime/halftime-performers.json`, `names/player-names.json`, `narrative/apology-tour.json`, `narrative/revenge-lines.json`, `narrative/story-arc-templates.json`, `news/league-news-templates.json`, `personalities/personality-flavor.json`, `scouting/scouting-report-templates.json`, `social/social-feed-templates.json`, `stadiums/bal-crab-pot.json`, `stadiums/bos-kettle.json`, `stadiums/chi-deep-freeze.json`, `stadiums/cle-power-chord.json`, `stadiums/dal-corral.json`, `stadiums/den-bull-market.json`, `stadiums/det-bass-drop.json`, `stadiums/kc-smokehouse.json`, `stadiums/nyc-meter.json`, `stadiums/phi-liberty-bell.json`, `stadiums/pit-furnace.json`, `stadiums/sea-feedback.json`, `stadiums/sf-mother-dough.json`, and all 32 files under `teams/`.
+- Current team-content JSON files: `atl-peaches.json`, `bal-crab-pickers.json`, `bos-chowderheads.json`, `chi-deep-dish.json`, `cin-flying-pigs.json`, `cle-rockers.json`, `clt-bootleggers.json`, `col-astronauts.json`, `dal-rodeos.json`, `dc-filibusters.json`, `den-wall-street.json`, `det-music-machine.json`, `hou-brisket-spaceships.json`, `ind-speed-racers.json`, `jax-swamps.json`, `kc-bbq-fountains.json`, `la-traffic-jams.json`, `lv-cardsharks.json`, `mia-sunny-place.json`, `min-juicy-lucy-lakers.json`, `nsh-bible-belt.json`, `nyc-cabbies.json`, `orl-rollercoasters.json`, `phi-bell-ringers.json`, `phx-grand-canyons.json`, `pit-iron-smelters.json`, `sa-rivers.json`, `sd-surfers.json`, `sea-grunge.json`, `sf-sourdoughs.json`, `stl-toasted-raviolis.json`, and `tb-pirates.json`.
+- Present but not loader-owned today: `agm/agm-characters.json`, `agm/book-commentary.json`, `agm/hiring-content.json`, `agm/screen-tips.json`, `agm/teaching-polish.json`, `narrative/alumni-updates.json`, and `narrative/era-templates.json`.
+- Standalone stadium content today: `packages/content/stadiums/atl-orchard.json`, `packages/content/stadiums/bal-crab-pot.json`, `packages/content/stadiums/bos-kettle.json`, `packages/content/stadiums/chi-deep-freeze.json`, `packages/content/stadiums/cin-sty.json`, `packages/content/stadiums/cle-power-chord.json`, `packages/content/stadiums/dal-corral.json`, `packages/content/stadiums/den-bull-market.json`, `packages/content/stadiums/det-bass-drop.json`, `packages/content/stadiums/kc-smokehouse.json`, `packages/content/stadiums/nyc-meter.json`, `packages/content/stadiums/phi-liberty-bell.json`, `packages/content/stadiums/pit-furnace.json`, `packages/content/stadiums/sea-feedback.json`, and `packages/content/stadiums/sf-mother-dough.json` are schema-validated and loader-owned for ATL, BAL, BOS, CHI, CIN, CLE, DAL, DEN, DET, KC, NYC, PHI, PIT, SEA, and SF. Runtime stadium flavor accessors prefer standalone stadium content by team id, then embedded team stadium fields.
+- Directory caution: `.gitkeep` does not mean a directory is dormant. `packages/content/broadcast`, `packages/content/personalities`, and `packages/content/stadiums` all contain live JSON alongside `.gitkeep`.
 
-- Update schemas when content shape changes.
-- Add/adjust content schema tests.
-- Use deterministic RNG passed into content selectors.
-- Do not read JSON ad hoc in feature components.
+Schema tiers and drift guards:
 
-## Playtesting And Determinism Gates
+- Tier A: `TeamContentSchema` validates all team files at loader import time and `content-schemas.test.ts` independently validates every `teams/*.json` file, team id convention, conference/division enums, unique ids, non-empty motto, and non-empty rivalries.
+- Tier B: non-team authored content is validated by Zod schemas in `content-loader.ts` at import time. Current loader-owned non-team files are 19 JSON imports, not counting the 32 team files.
+- Tier C: bounded key-space schemas prevent silent typos for broadcast play types, coach archetype keys, coach scheme sides, scouting positions, AGM persona ids, and social scenario keys.
+- Inventory guard: `content-schemas.test.ts` classifies every `packages/content/**/*.json` file as loader-owned, a known direct-import exception, or explicitly dormant, validates standalone stadium JSON with `StadiumContentSchema`, and scans `apps` and `packages` for raw content JSON imports outside `content-loader.ts`.
+- `packages/engine/src/config/scheme-ids.test.ts` separately checks scheme ids inside `agm/hiring-content.json`, `coaching/coach-archetypes.json`, and `agm/teaching-polish.json` against `SCHEME_IDS`.
 
-Fast tier doc: `docs/verification/fast-tier.md`.
+Loader mechanics:
 
-`pnpm test:perft` runs five personas for 10 seasons at seed 42:
+- `parseContent(schema, raw, label)` uses `safeParse` and throws an issue-by-issue error during module import, so invalid JSON fails before a game loop reads it.
+- Team files are hard-coded static imports, then validated with `TeamContentSchema.safeParse` and reduced into uppercase lookup maps for full team content and PA overrides.
+- Randomized line selection goes through `pickWithRng(items, rng, label)`. New content helpers should accept an injected RNG and avoid `Math.random()`.
+- Placeholder interpolation uses `{{token}}` replacement plus whitespace/punctuation normalization. Add new placeholders deliberately and test at least one rendered string.
+- Several lookup helpers throw on missing required pools, including personality lines, AGM dialogue, broadcast templates, social posts, news articles, PA templates, and empty RNG pools. Treat missing content as runtime-risk, not harmless flavor.
+- `getTeamContent` keys by uppercase content/team abbreviation. Web code that starts from runtime `game.teams` ids should use `apps/web/src/lib/team-content-resolver.ts` or pass the team's `abbr`/`icon` deliberately.
+- The Vite bundle gate treats `content-loader`, `content-schemas`, and `packages/content` as an `engine-content-*` sibling chunk. `scripts/check-bundle-size.sh` excludes that sibling from the core `engine-*.js` ceiling.
 
-- CHEAPSKATE
-- CHURN_ARTIST
-- GLUTTON
-- INJURY_MAGNET
-- SPEEDRUNNER
+Content source-of-truth boundary map:
 
-Launch baseline high-severity count is `0`.
+- JSON files are not runtime-live just because they exist under `packages/content`. Loader-owned content must be statically imported in `content-loader.ts`, parsed by a schema in `types/content-schemas.ts`, exposed by a helper/export, consumed by engine/web code, and covered by loader/schema tests.
+- Team files are especially easy to under-wire. `content-schemas.test.ts` discovers every `teams/*.json` file on disk, but `content-loader.ts` uses a hard-coded import list and `teamContentList`. Adding or renaming a team file requires both the on-disk JSON and the static loader import/list update.
+- Treat schema tests and accessor tests as different signals. Schema tests prove files fit shape/key-space rules; `content-loader.test.ts` proves runtime helpers return expected pools, interpolate placeholders, normalize ids, and throw/fallback as intended.
+- Direct JSON imports are quarantined exceptions. If a new exception is unavoidable, add it to `KNOWN_DIRECT_CONTENT_IMPORT_EXCEPTIONS` in `content-schemas.test.ts`, add it to the known-exception list here, explain why loader ownership is not appropriate, and add a focused source/schema test for the imported shape. If a JSON file is intentionally dormant, add it to `KNOWN_DORMANT_AUTHORED_CONTENT` and document why it is not runtime-live. If adding more standalone stadium content, update the stadium file inventory/schema/accessor tests rather than bypassing them.
+- Runtime `Team.id` and content `TeamContent.id` are not the same namespace. Save/game teams use generated runtime ids; content uses uppercase abbreviations. Use `resolveTeamContent(game, idOrAbbr)` when a screen starts from saved game data.
+- Authoring new template helpers should keep random choice caller-injected. Use `pickWithRng`/helper-level RNG parameters and never `Math.random()` or render-time randomness in content selection that affects saved sim-adjacent output.
+- Key-space schemas are part of gameplay safety. If adding play types, social scenarios, scouting positions, coach archetypes, AGM personas, or contingency callout keys, update the enum schema, authored JSON, consumers, and rejection tests together so typos fail at import/test time.
+- Content-loader helpers may throw on missing required pools; do not assume missing authored content is harmless flavor. For route-visible content, verify at least one real render path or helper test in addition to parse-time validation.
+- Public assets remain outside this boundary. Audio `.ogg` files, Chip art, logos, screenshots, icons, and PWA assets need resolver/controller/component tests where they are consumed; content schemas only matter when authored JSON points at those assets.
 
-Playtest architecture:
+Public asset resolver boundary map:
 
-- Harness: `packages/engine/src/playtesting/harness.ts`.
-- Personas: `packages/engine/src/playtesting/personas.ts`.
-- Detectors: `packages/engine/src/playtesting/anomaly-detectors.ts`.
-- Reporter: `scripts/playtest-report.ts`.
+- Chip art is design-system owned. `CHIP_POSES`, `CHIP_POSE_ART`, `CHIP_POSE_MOTION_PROFILE`, `resolveChipPoseArt`, and the visible `<img>` layer live in `packages/design-system/components/Chip/Chip.tsx`; the PNG files live under `apps/web/public/assets/chip`. Add or rename a pose by updating the pose id union, full and inline PNGs, art map, motion profile, route/companion pose users, generated contact sheet if relevant, and `Chip.test.tsx`.
+- Chip uses two asset sizes by convention: `sm`/`md` resolve to `assets/chip/inline/*.png`, while `lg` resolves to `assets/chip/*.png`. Do not point small dock portraits at full-body images without checking mobile layout and `ChipDock`/Chip tests.
+- Team logos are app-public assets, not engine content. `TeamLogo.tsx` reads the route-relative `logos/${icon}.png`, where `icon` is expected to be the runtime lowercase icon/abbreviation. Missing logo images are hidden by `onError`, so broken logo paths can be visually silent; `TeamLogo.test.tsx` is the focused resolver/dimension/fallback/inventory guard for changes to this component, seeded team icons, or logo naming.
+- Audio assets are app-public files resolved by `AudioController.tsx`, not engine content. Safe requested assets must match `audio/[a-z0-9/_-]+.ogg`; unsafe paths are ignored and fall back to synthesized playback. The store can request assets through cue metadata, but playback policy remains tab-local and preference-gated in the audio controller.
+- `apps/web/src/features/audio/audio-assets.test.ts` is the public-audio inventory guard. It scans production source literals for `audio/cue|event/*.ogg`, verifies referenced files exist under `apps/web/public`, and fails if shipped cue/event `.ogg` files are not referenced by runtime code.
+- Release/PWA assets are Vite public assets. `apps/web/index.html` intentionally links `manifest.json`, `favicon.svg`, and `screenshots/v1/dashboard-desktop.png` relatively so Vite applies the configured `/MFD/` base; `apps/web/public/manifest.json` is the active manifest with `/MFD/` scope/start URL. The root `public/manifest.json` remains legacy metadata and is not referenced by the app index.
 
-Host-noise detectors such as wall-clock perf are excluded from canonical counts.
+Team, stadium, PA, and rivalry content boundary map:
 
-Other gates:
+- `TeamContentSchema` embeds each team's fight song, stadium, fan culture, rivalries, PA announcer overrides, city flavor, established year, and motto. `StadiumContentSchema` validates standalone stadium JSON with a `teamId`, optional cue, and the same base stadium fields.
+- `getTeamStadiumContent(teamId)` and `getTeamStadiumTradition(teamId)` prefer standalone stadium content by uppercase `teamId`, then fall back to `getTeamContent(teamId)?.stadium`. Standalone return values can include `cue`; embedded fallback values do not. These accessors do not read saved franchise-identity fields, relocation state, naming-rights state, or stadium-deal state.
+- `getTeamPAOverrides` is built from `teamContentList` and `paAnnouncer` fields. `getPACall` uses team overrides only for `first_down` and `touchdown_home`; other PA calls come from `halftime/halftime-performers.json` `pa_templates`.
+- `getTeamRivalryContent(teamId, opponentTeamId)` reads authored rivalry entries from team JSON only. Do not confuse this with saved `leagueRivalries`, saved `playerRivalries`, relationship graph edges, or the derived `RivalryPayload` sidecar.
+- Runtime game teams and authored content teams use different identifiers in many web contexts. `getTeamContent` keys by uppercase abbreviation/content id; `apps/web/src/lib/team-content-resolver.ts` first tries direct content lookup, then resolves runtime team uid -> `game.teams[uid].abbr` -> content lookup.
+- Use `resolveTeamContent(game, idOrAbbr)` when a web screen already has `game`, and `resolveTeamContentFromStore(idOrAbbr)` only for deep render helpers that cannot thread `game` without broad churn. Avoid direct `getTeamContent(userTeam.id)` in web UI unless the value is known to be an abbreviation.
+- Completed runtime-id and saved-result fix: `apps/web/src/lib/rivalry-heat-map.ts` now uses `resolveTeamContent(game, idOrAbbr)` for declared user rivalries, finds rival live teams by runtime id or abbreviation, and derives current-save W-L-T, total games, and latest meeting from completed regular-season/playoff results. `mfd.rivalries.v1` now mirrors the current save for archive/export portability, but the remaining heat-map gap is still durable all-time head-to-head persistence across seasons.
+- Team identity is consumed across multiple surfaces: `broadcast-commentary.ts` uses team content, fan culture, authored rivalry copy, and standalone stadium cue copy; `season-recap.ts` reads team motto; `pixelUi`, scrapbook cards, and season recap cards use the web resolver for colors/content.
+- Standalone stadium precedence is currently authored-content only: `packages/content/stadiums/*.json` by team id wins, embedded team stadium fields are fallback, and runtime saved stadium/franchise-identity state, relocation, naming-rights deals, weather, and PA consumers stay separate. Do not add more stadium JSON without schema validation, static imports/helpers, runtime consumers, tests, inventory guards, and this guide update.
 
-- `bash scripts/check-math-random.sh`
-- `bash scripts/check-bundle-size.sh`
-- `bash scripts/smoke-full-season.sh`
-- `bash scripts/smoke-test-built-page.sh`
-- `pnpm test:shadow`
+Important loader exports:
 
-## CI
+- Identity/fan/stadium/rivalry: `getTeamContent`, `getTeamFanCulture`, `getTeamRivalryContent`, `getTeamPAOverrides`, `getTeamStadiumContent`, `getTeamStadiumTradition`.
+- Narrative/media: `getPressConferenceScenarioContent`, `getStoryArcPhaseContent`, `getSocialPost`, `getNewsArticle`, `getBroadcastTemplate`, `getPACall`, `getHalftimePerformers`.
+- Player/coach/flavor: `getNamePool`, `getScoutingReportTemplate`, `getCoachArchetype`, `getAwardSpeech`, `getPersonalityLine`, `getAgmDialogueLine`.
+- Special authored pools: `getCallYourShotReactions`, `getContingencyCallouts`, `getApologyTourBeat`, `getRevengeLineTemplates`.
 
-`.github/workflows/ci.yml`:
+Known direct JSON import and dormant-content exceptions:
 
-- Install pnpm 9 and Node 20.
-- `pnpm install --frozen-lockfile`.
-- `pnpm typecheck`.
-- `pnpm test`.
-- `pnpm build` with `VITE_CHIP_ENABLED=true`.
-- Bundle size gate.
-- Built-page smoke test.
-- Separate determinism job runs `check-math-random.sh` and save version audit.
+- `packages/engine/src/systems/agm.ts` imports `agm/screen-tips.json` directly for route tips.
+- `packages/engine/src/systems/agm-setup-content.ts` imports `agm/agm-characters.json`, `agm/hiring-content.json`, and `agm/teaching-polish.json` directly, with local TypeScript shapes and deterministic fallbacks.
+- `packages/engine/src/systems/legends.ts` imports `narrative/alumni-updates.json` directly.
+- `apps/web/src/features/franchise/FranchiseBook.tsx` imports `narrative/era-templates.json` and `agm/book-commentary.json` directly for the reader view.
+- No authored content is currently classified as intentionally dormant by the inventory guard.
+- Treat direct imports as existing exceptions, not a pattern to copy. Prefer adding new content through `content-loader.ts` plus `content-schemas.ts`.
 
-`.github/workflows/deploy.yml`:
+Content safety rules:
 
-- Builds `@mfd/web` with `VITE_CHIP_ENABLED=true`.
-- Uploads `apps/web/dist` to GitHub Pages.
+- If a JSON shape changes, update `content-schemas.ts`, content-loader parsing, exported types/helpers, and tests in the same patch.
+- If content references scheme IDs, keep them aligned with `SCHEME_IDS`; `packages/engine/src/config/scheme-ids.test.ts` guards `agm/hiring-content.json`, `coaching/coach-archetypes.json`, and `agm/teaching-polish.json`.
+- Use loader helpers in engine and web whenever possible. If a component must import raw JSON, document why and add a focused source/schema test.
+- Content lookup helpers often throw on missing pools; missing content can become a runtime crash even without TypeScript errors.
+- Public assets are not content-loader data. Adding Chip art, logos, audio, screenshots, icons, or PWA files should update the web component/controller that resolves the file path plus focused web/design-system tests, not engine content schemas unless authored JSON also changes.
+- Do not extend `packages/content/stadiums` by only adding JSON files. A real stadium slice needs schemas, loader imports/helpers, runtime consumers, tests, and docs; otherwise the file is not runtime-live.
 
-## Feature/Wiring Map
+Focused tests for content changes:
 
-Heavily wired through web UI:
-
-- Weekly advance, game day recap, halftime decision.
-- Roster, depth chart, practice squad, waivers.
-- Contracts, cap lab, contract tools.
-- Trades, trade proposals, trade deadline, trade block.
-- Scouting, draft board, draft recap, war room.
-- Free agency and FA targets.
-- Coaching staff/tree/relationships.
-- Owner, commissioner, CBA, league rules.
-- Standings, schedule, records, stat central, analytics, power rankings.
-- Newsroom, league news, social feed, league pulse.
-- Franchise hub, legends, scrapbook, Hall of Fame, trophies, eras, chronicle, GM career.
-- Locker room, facilities/training/fatigue-related screens, game plan, film room.
-- Chip companion/onboarding/route coaching.
-- Save/load via dynasty cartridge.
-
-Engine systems with partial, indirect, or lower-confidence UI wiring. Verify before extending:
-
-- `assistant-gm.ts`
-- `gm-reputation.ts`
-- `coach-retention.ts`
-- `coaching-legacy.ts`
-- `coordinator-chemistry.ts`
-- `position-coaches.ts`
-- `scheme-install.ts`
-- `development-insights.ts`
-- `cap-visualization.ts`
-- `broadcast-commentary.ts`
-- `role-defs.ts`
-- `trick-plays.ts` beyond weekly prep/game-plan use
-
-This does not mean unused. It means future work should inspect imports, selectors, and feature screens before assuming product exposure.
-
-## Known Caution Zones
-
-- Save schema is large and strict. Any state shape drift can break old saves.
-- Many systems mutate the cloned `GameState`; this is expected inside engine workflows but should stay deterministic.
-- `GameState.players` and `Team.roster` both hold player records. Many systems call `syncPlayers`; if editing player movement, keep both synchronized.
-- Cap actions must keep `capUsed`, `capSpace`, `deadCap`, contract references, and roster/player records in sync.
-- Week advance has many early returns. If adding phase behavior, place it carefully so it does not bypass required post-processing.
-- Trade deadline and CBA can intentionally interrupt week advance and navigate the UI to special routes.
-- Some store actions mutate directly without autosave. Prefer `commitGame` for durable user actions unless matching a deliberate transient pattern.
-- Content loader fails at import time if JSON shape is invalid.
-- Hash router is used for GitHub Pages.
-- `VITE_CHIP_ENABLED=true` must be set for production-equivalent build/smoke tests.
-
-## How To Add A Feature Safely
-
-1. Locate the owning layer:
-   - Pure sim rule: `packages/engine/src/systems`.
-   - Persistent state: `packages/engine/src/types` plus save schema/migration.
-   - Browser workflow: `apps/web/src/app/store` and feature screen.
-   - Presentation only: `apps/web/src/features` or `packages/design-system`.
-   - Content: `packages/content` and content schemas.
-2. Read the closest existing system and its test.
-3. Add the smallest pure helper possible.
-4. Add focused tests next to the changed system.
-5. Wire through store actions/selectors only after engine behavior is tested.
-6. Wire UI using existing components/tokens.
-7. Run verification based on risk.
+- `packages/engine/src/types/content-schemas.test.ts`: schema validation, key-space bounds, team-file discovery, content inventory classification, direct-import exception guard.
+- `packages/engine/src/content-loader.test.ts`: accessor behavior and authored pool sanity.
+- `packages/engine/src/types/content-schemas.test.ts`: on-disk JSON schema validation and team-file list guards.
+- `packages/engine/src/config/scheme-ids.test.ts`: canonical scheme ID alignment for content.
+- `scripts/check-bundle-size.sh` after web builds when content-loader/schema/content imports could affect chunking.
+- Public asset changes: `packages/design-system/components/Chip/Chip.test.tsx` for Chip pose art, `AudioController`/`AudioManager` tests for audio assets, and route/component tests for logo or screenshot consumers.
 
 ## Verification By Change Type
 
-Docs only:
+Engine:
 
 ```bash
-npx --yes pnpm@9.15.9 --version
+pnpm --filter @mfd/engine test
 ```
 
-Engine unit/system:
+Web:
 
 ```bash
-npx --yes pnpm@9.15.9 --filter @mfd/engine test
+pnpm --filter @mfd/web test
+pnpm --filter @mfd/web typecheck
+pnpm --filter @mfd/web build
 ```
 
-Specific engine test:
+Design system:
 
 ```bash
-cd packages/engine
-npx --yes pnpm@9.15.9 exec vitest run systems/game-sim.test.ts
+pnpm --filter @mfd/design-system test
+pnpm --filter @mfd/design-system typecheck
 ```
 
 Save/migration:
 
 ```bash
-npx --yes pnpm@9.15.9 --filter @mfd/engine test -- save
+pnpm --filter @mfd/engine test -- save
 ```
 
 Sim math or season loop:
@@ -540,74 +3431,70 @@ Sim math or season loop:
 ```bash
 bash scripts/check-math-random.sh
 bash scripts/smoke-full-season.sh
-npx --yes pnpm@9.15.9 test:perft
-```
-
-Web feature:
-
-```bash
-npx --yes pnpm@9.15.9 --filter @mfd/web test
-npx --yes pnpm@9.15.9 --filter @mfd/web typecheck
-npx --yes pnpm@9.15.9 --filter @mfd/web build
-```
-
-Design system:
-
-```bash
-npx --yes pnpm@9.15.9 --filter @mfd/design-system test
-npx --yes pnpm@9.15.9 --filter @mfd/design-system typecheck
+pnpm test:perft
 ```
 
 Full local gate:
 
 ```bash
-npx --yes pnpm@9.15.9 typecheck
-npx --yes pnpm@9.15.9 test
-npx --yes pnpm@9.15.9 build
+pnpm -r lint
+pnpm -r typecheck
+pnpm test
+VITE_CHIP_ENABLED=true pnpm build
 bash scripts/check-math-random.sh
 bash scripts/check-bundle-size.sh
+bash scripts/smoke-test-built-page.sh
 bash scripts/smoke-full-season.sh
 ```
 
-## Manual Smoke Script
+## Known Caution Zones
 
-For user-facing changes:
+- Save schema is large and strict.
+- Current `SAVE_VERSION` is 38. If docs, boot copy, tests, fixtures, or cleanup gates mention an older version, treat that as stale until source says otherwise.
+- Week advance has many early returns.
+- Trade deadline and CBA intentionally interrupt week advance and navigate to special routes.
+- Cap actions must keep cap totals, dead money, contracts, roster, and player records aligned.
+- Content loader fails at import time if JSON shape is invalid.
+- `VITE_CHIP_ENABLED=true` is needed for production-equivalent build/smoke checks.
+- This folder appears to be an extracted copy, so check whether `.git` exists before expecting Git workflows.
 
-1. Start dev server: `npx --yes pnpm@9.15.9 dev`.
-2. Open the local Vite URL.
-3. Start or load a dynasty.
-4. Visit the changed route.
-5. Perform the changed action.
-6. Assert:
-   - No console errors.
-   - State updates are visible.
-   - Autosave/manual save works if persistent.
-   - Reload/import old save still works if save shape changed.
-   - Mobile width does not hide critical controls.
+## Phase TODO For Future Sessions
+
+Phase 1 - Audit before edits:
+
+- Confirm working root, `.git` availability, package manager, `SAVE_VERSION`, and whether generated `dist`/assets are present.
+- Read the subsystem source and tests before touching any route, state field, sim formula, or persistence shape.
+- Classify the change as engine, save, week advance, store/persistence, UI route, content, asset, tooling, or docs.
+
+Phase 2 - Implement safely:
+
+- Prefer existing engine exports and `useGameStore` actions over new cross-layer imports.
+- For persistent `GameState` changes, update types, schema, migration, seed defaults, fixtures/tests, and old-save verification.
+- For sim math, name constants, keep RNG centralized, add deterministic tests, and document formula before/after with sample outputs.
+- For UI screens, update route/nav wiring, route coaching/Chip surfaces if relevant, focused component tests, and mobile behavior.
+
+Phase 3 - Verify and hand off:
+
+- Run the smallest relevant package tests first, then broaden to typecheck/build/smoke gates based on risk.
+- For save or week-advance work, run save migration tests and `scripts/smoke-full-season.sh` or explain why not.
+- Update this guide when routes, save schema, CI gates, or the week-advance spine change.
 
 ## Future Codex First-Read Checklist
 
-1. Read `AGENTS.md` and this file.
-2. Confirm intended repo path. If starting in `/Users/tkevinbigham/Documents/New project`, switch to `/Users/tkevinbigham/Documents/GitHub/MFD`.
-3. Inspect the files for the requested subsystem before editing.
-4. Identify whether the change touches:
-   - gameplay math,
-   - save schema,
-   - week advance,
-   - store/persistence,
-   - UI only,
-   - content only.
-5. Pick focused tests before editing.
-6. Keep patches small.
+1. Read `AGENTS.md`, this file, `STATUS.md`, `README.md`, and `DESIGN.md`.
+2. Read `CODEX_IMPROVEMENT_PLAN.md` when planning broad product/gameplay upgrades, especially its area scorecard and suggested first slices.
+3. Read `CODEX_GOAT_MARATHON_PROMPT.md` when launching a long implementation run in a fresh Codex window; it is the canonical scoreboard-driven `/goal` handoff.
+4. Confirm `SAVE_VERSION`.
+5. Inspect the subsystem files before editing.
+6. Decide whether the change touches gameplay math, save schema, week advance, store/persistence, UI only, or content only.
+7. Pick focused tests before editing.
+8. Keep patches small.
+9. Update this guide, the improvement plan, and the marathon prompt if your change invalidates any of them.
 
-## Maintenance Notes For This Guide
+## High-Leverage Next `/GOAL` Prompt
 
-Update this guide when:
+For a full marathon run, prefer the paste-ready, scoreboard-driven prompt in `CODEX_GOAT_MARATHON_PROMPT.md`. Use this compact fallback only when the next window needs a shorter command:
 
-- `SAVE_VERSION` changes.
-- New package/workspace is added.
-- Week advance spine changes meaningfully.
-- Persistence/import/export changes.
-- Major feature routes are added/removed.
-- Determinism or playtest baselines change.
-- CI gates change.
+```text
+/GOAL You are continuing work on Mr. Football Dynasty in /Users/tkevinbigham/MFD/MFD-main. First read AGENTS.md, CODEX_GAME_GUIDE.md, CODEX_IMPROVEMENT_PLAN.md, CODEX_GOAT_MARATHON_PROMPT.md, STATUS.md, README.md, and DESIGN.md. Audit the current playable loop end-to-end, build a candidate scoreboard from the improvement plan, then choose the highest-leverage safe vertical slice that makes the game deeper, clearer, more alive, or more playable without broad rewrites. Before editing, state the slice contract: source owner, read path, commit path, state touched, focused tests, docs touched, rollback path, and whether it is read-only clarity, mutation, save/schema, sim math, route shell, content, tooling, or docs-only. Preserve deterministic simulation integrity, save compatibility, route integrity, and browser/engine boundaries. Prefer wiring existing engine systems into meaningful UI before inventing new systems. Make decisions more legible by exposing immediate impact, season impact, future risk, uncertainty, and why it matters. Add focused tests, run the appropriate verification gates, update the guide/plan/marathon prompt when facts change, and continue into additional independent slices while the run remains clean.
+```

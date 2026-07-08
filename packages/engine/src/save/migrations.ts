@@ -10,16 +10,17 @@ import { assignProspectRegion, deriveConfidence } from '../systems/advanced-scou
 import { initCBA } from '../systems/cba-engine';
 import { initCommissioner } from '../systems/commissioner';
 import { createDefaultDashboardState } from '../systems/dashboard-config';
+import { normalizeGmStrategy } from '../systems/gm-strategies';
 import { initLaborState } from '../systems/labor-relations';
 import { initLeagueRules } from '../systems/league-rules';
 import { initializeLockerRoom } from '../systems/locker-room';
-import { trimLongRunningSaveCollectionsRecord } from '../systems/long-running-save-collections';
-import { assignJerseyNumber } from '../systems/jersey-retirement';
-import { createEmptyRecordBook } from '../systems/records';
 import { repairAndTrimEventLogRecord } from '../systems/event-log-retention';
+import { assignJerseyNumber } from '../systems/jersey-retirement';
+import { trimLongRunningSaveCollectionsRecord } from '../systems/long-running-save-collections';
+import { createEmptyRecordBook } from '../systems/records';
 import { buildSpecialTeamsState, createDefaultSpecialTeamsState } from '../systems/special-teams';
 import { getDefaultHalftimeDecisionSetting } from '../config';
-import type { Team } from '../types';
+import { ACHIEVEMENT_CONDITION_TYPES, type Team } from '../types';
 
 type MigrationFn = (state: Record<string, unknown>) => Record<string, unknown>;
 
@@ -264,6 +265,244 @@ function deriveWaiverOrder(state: Record<string, unknown>): string[] {
   return Object.entries(teams)
     .sort(([aId, a], [bId, b]) => sortWaiverTeams(a, b, aId, bId))
     .map(([teamId]) => teamId);
+}
+
+function normalizeTeamGmStrategies(teamsRaw: unknown): unknown {
+  if (!teamsRaw || typeof teamsRaw !== 'object' || Array.isArray(teamsRaw)) return teamsRaw;
+
+  return Object.fromEntries(
+    Object.entries(teamsRaw as Record<string, unknown>).map(([teamId, team]) => {
+      if (!team || typeof team !== 'object' || Array.isArray(team)) return [teamId, team];
+      const teamRecord = team as Record<string, unknown>;
+      return [teamId, {
+        ...teamRecord,
+        gmStrategy: normalizeGmStrategy(teamRecord['gmStrategy']),
+      }];
+    }),
+  );
+}
+
+function normalizeEndorsementRequirement(raw: unknown): Record<string, unknown> | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const requirement = raw as Record<string, unknown>;
+  const type = requirement['type'];
+  if (type === 'no_suspension') {
+    return requirement['value'] === true ? { type, value: true } : null;
+  }
+  if ((type === 'min_ovr' || type === 'min_games' || type === 'team_wins') && typeof requirement['value'] === 'number') {
+    return { type, value: requirement['value'] };
+  }
+  return null;
+}
+
+function normalizeEndorsementDeal(raw: unknown): Record<string, unknown> | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const deal = raw as Record<string, unknown>;
+  const requirement = normalizeEndorsementRequirement(deal['requirement']);
+  const tier = deal['tier'];
+  if (
+    typeof deal['id'] !== 'string'
+    || typeof deal['playerId'] !== 'string'
+    || typeof deal['brandName'] !== 'string'
+    || typeof deal['revenuePerYear'] !== 'number'
+    || typeof deal['yearsTotal'] !== 'number'
+    || typeof deal['yearsRemaining'] !== 'number'
+    || (tier !== 'local' && tier !== 'regional' && tier !== 'national' && tier !== 'global')
+    || typeof deal['moraleBonus'] !== 'number'
+    || !requirement
+  ) {
+    return null;
+  }
+
+  return {
+    ...deal,
+    requirement,
+    active: typeof deal['active'] === 'boolean' ? deal['active'] : true,
+  };
+}
+
+function normalizeEndorsementDeals(raw: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((deal) => normalizeEndorsementDeal(deal))
+    .filter((deal): deal is Record<string, unknown> => deal !== null);
+}
+
+function normalizeCommissionerRuling(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
+  const ruling = { ...(raw as Record<string, unknown>) };
+
+  if (typeof ruling['rationale'] !== 'string' && typeof ruling['description'] === 'string') {
+    ruling['rationale'] = ruling['description'];
+  }
+  if (typeof ruling['ownerApprovalImpact'] !== 'number' && typeof ruling['approvalImpact'] === 'number') {
+    ruling['ownerApprovalImpact'] = ruling['approvalImpact'];
+  }
+  if (typeof ruling['chemistryImpact'] !== 'number') {
+    ruling['chemistryImpact'] = 0;
+  }
+  if (typeof ruling['playerName'] !== 'string') {
+    ruling['playerName'] = '';
+  }
+
+  delete ruling['description'];
+  delete ruling['approvalImpact'];
+  return ruling;
+}
+
+function normalizeCommissionerRulings(raw: unknown): unknown[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((ruling) => normalizeCommissionerRuling(ruling));
+}
+
+function normalizeCommissionerState(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
+  const commissionerState = { ...(raw as Record<string, unknown>) };
+  return {
+    ...commissionerState,
+    rulings: normalizeCommissionerRulings(commissionerState['rulings']),
+  };
+}
+
+const EPILOGUE_CATEGORIES = new Set([
+  'broadcasting',
+  'coaching',
+  'business',
+  'entertainment',
+  'philanthropy',
+  'quiet_life',
+  'writing',
+  'controversy',
+]);
+
+function normalizeCareerEpilogue(raw: unknown): Record<string, unknown> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const epilogue = raw as Record<string, unknown>;
+  if (
+    typeof epilogue['playerId'] !== 'string'
+    || typeof epilogue['playerName'] !== 'string'
+    || typeof epilogue['headline'] !== 'string'
+    || typeof epilogue['story'] !== 'string'
+    || typeof epilogue['category'] !== 'string'
+    || !EPILOGUE_CATEGORIES.has(epilogue['category'])
+  ) {
+    return undefined;
+  }
+
+  return {
+    playerId: epilogue['playerId'],
+    playerName: epilogue['playerName'],
+    headline: epilogue['headline'],
+    story: epilogue['story'],
+    category: epilogue['category'],
+  };
+}
+
+function normalizeHallOfFameEntry(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
+  const entry = { ...(raw as Record<string, unknown>) };
+  const epilogue = normalizeCareerEpilogue(entry['epilogue']);
+  if (epilogue) {
+    entry['epilogue'] = epilogue;
+  } else {
+    delete entry['epilogue'];
+  }
+  return entry;
+}
+
+function normalizeHallOfFameEntries(raw: unknown): unknown[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((entry) => normalizeHallOfFameEntry(entry));
+}
+
+const PLAYER_POSITION_SET = new Set(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']);
+
+function normalizeHallOfFameBallotEntry(raw: unknown): Record<string, unknown> | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const entry = raw as Record<string, unknown>;
+  if (
+    typeof entry['playerId'] !== 'string' ||
+    typeof entry['name'] !== 'string' ||
+    typeof entry['position'] !== 'string' ||
+    !PLAYER_POSITION_SET.has(entry['position']) ||
+    typeof entry['score'] !== 'number' ||
+    typeof entry['yearsOnBallot'] !== 'number' ||
+    !Number.isInteger(entry['yearsOnBallot']) ||
+    entry['yearsOnBallot'] < 1 ||
+    entry['yearsOnBallot'] > 5 ||
+    typeof entry['votePct'] !== 'number' ||
+    entry['votePct'] < 0 ||
+    entry['votePct'] > 100
+  ) {
+    return null;
+  }
+
+  return {
+    playerId: entry['playerId'],
+    name: entry['name'],
+    position: entry['position'],
+    score: entry['score'],
+    yearsOnBallot: entry['yearsOnBallot'],
+    votePct: entry['votePct'],
+  };
+}
+
+function normalizeHallOfFameBallotEntries(raw: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((entry) => normalizeHallOfFameBallotEntry(entry))
+    .filter((entry): entry is Record<string, unknown> => entry !== null);
+}
+
+function normalizeStringArray(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.filter((entry): entry is string => typeof entry === 'string'))].sort((left, right) =>
+    left.localeCompare(right));
+}
+
+const ACHIEVEMENT_CONDITION_TYPE_SET = new Set<string>(ACHIEVEMENT_CONDITION_TYPES);
+const DEFAULT_ACHIEVEMENTS_BY_ID = new Map(createDefaultAchievements().map((achievement) => [achievement.id, achievement]));
+
+function normalizeAchievement(raw: unknown): Record<string, unknown> | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const achievement = { ...(raw as Record<string, unknown>) };
+  const catalogAchievement = typeof achievement['id'] === 'string'
+    ? DEFAULT_ACHIEVEMENTS_BY_ID.get(achievement['id'])
+    : undefined;
+  const condition = achievement['condition'];
+
+  if (!condition || typeof condition !== 'object' || Array.isArray(condition)) {
+    if (!catalogAchievement) return null;
+    achievement['condition'] = catalogAchievement.condition;
+    return achievement;
+  }
+
+  const conditionRecord = { ...(condition as Record<string, unknown>) };
+  const threshold = conditionRecord['threshold'];
+  if (
+    typeof conditionRecord['type'] !== 'string'
+    || !ACHIEVEMENT_CONDITION_TYPE_SET.has(conditionRecord['type'])
+    || (typeof threshold !== 'number' && typeof threshold !== 'string' && typeof threshold !== 'boolean')
+  ) {
+    if (!catalogAchievement) return null;
+    achievement['condition'] = catalogAchievement.condition;
+    return achievement;
+  }
+
+  achievement['condition'] = {
+    type: conditionRecord['type'],
+    threshold,
+  };
+  return achievement;
+}
+
+function normalizeAchievements(raw: unknown): Array<Record<string, unknown>> {
+  const defaults = () => createDefaultAchievements().map((achievement) => ({ ...achievement }));
+  if (!Array.isArray(raw)) return defaults();
+  if (raw.length === 0) return defaults();
+  return raw
+    .map((achievement) => normalizeAchievement(achievement))
+    .filter((achievement): achievement is Record<string, unknown> => achievement !== null);
 }
 
 function migrateScheduledGame(raw: unknown): Record<string, unknown> {
@@ -746,9 +985,7 @@ registerMigration(11, (state) => {
     ...state,
     teams,
     schedule: migrateSchedule(state['schedule']),
-    achievements: Array.isArray(state['achievements']) && state['achievements'].length > 0
-      ? state['achievements']
-      : createDefaultAchievements(),
+    achievements: normalizeAchievements(state['achievements']),
     dashboardState: state['dashboardState'] ?? createDefaultDashboardState(),
     seasonReports: Array.isArray(state['seasonReports']) ? state['seasonReports'] : [],
   };
@@ -923,7 +1160,7 @@ registerMigration(18, (state) => {
     team['roster'] = Array.isArray(team['roster']) ? team['roster'] : [];
     const roster = team['roster'] as Array<Record<string, unknown>>;
     for (const player of roster) {
-      player['endorsements'] = Array.isArray(player['endorsements']) ? player['endorsements'] : [];
+      player['endorsements'] = normalizeEndorsementDeals(player['endorsements']);
       player['cliqueId'] = player['cliqueId'] ?? null;
       player['jerseyNumber'] = Number(player['jerseyNumber'] ?? 0);
     }
@@ -933,7 +1170,7 @@ registerMigration(18, (state) => {
       assignJerseyNumber(typedTeam, player);
       const storedPlayer = players[player.id];
       if (storedPlayer) {
-        storedPlayer['endorsements'] = Array.isArray(storedPlayer['endorsements']) ? storedPlayer['endorsements'] : player.endorsements ?? [];
+        storedPlayer['endorsements'] = normalizeEndorsementDeals(storedPlayer['endorsements'] ?? player.endorsements);
         storedPlayer['cliqueId'] = player.cliqueId ?? null;
         storedPlayer['jerseyNumber'] = Number(player.jerseyNumber ?? 0);
       }
@@ -949,7 +1186,7 @@ registerMigration(18, (state) => {
   }
 
   for (const player of Object.values(players)) {
-    player['endorsements'] = Array.isArray(player['endorsements']) ? player['endorsements'] : [];
+    player['endorsements'] = normalizeEndorsementDeals(player['endorsements']);
     player['cliqueId'] = player['cliqueId'] ?? null;
     player['jerseyNumber'] = Number(player['jerseyNumber'] ?? 0);
   }
@@ -966,7 +1203,7 @@ registerMigration(18, (state) => {
     playerArchive,
     playerRivalries: Array.isArray(state['playerRivalries']) ? state['playerRivalries'] : [],
     farewellTours: Array.isArray(state['farewellTours']) ? state['farewellTours'] : [],
-    endorsementOffers: Array.isArray(state['endorsementOffers']) ? state['endorsementOffers'] : [],
+    endorsementOffers: normalizeEndorsementDeals(state['endorsementOffers']),
   };
 });
 
@@ -1278,8 +1515,41 @@ registerMigration(34, (state) => ({
   storylineThreads: [],
 }));
 
-// v35→v36: cap long-running media-cycle save collections.
-registerMigration(35, (state) => trimLongRunningSaveCollectionsRecord({
+// v35→v36: AGM + owner mandate persistence.
+registerMigration(35, (state) => {
+  const frontOffice = (state['frontOffice'] && typeof state['frontOffice'] === 'object')
+    ? { ...(state['frontOffice'] as Record<string, unknown>) }
+    : {};
+  const hasCommissionerDisciplineLog = Object.prototype.hasOwnProperty.call(state, 'commissionerDisciplineLog');
+  const hasHallOfFame = Object.prototype.hasOwnProperty.call(state, 'hallOfFame');
+  const hasAchievements = Object.prototype.hasOwnProperty.call(state, 'achievements');
+
+  return {
+    ...state,
+    teams: normalizeTeamGmStrategies(state['teams']),
+    commissionerState: normalizeCommissionerState(state['commissionerState']),
+    ...(hasCommissionerDisciplineLog
+      ? { commissionerDisciplineLog: normalizeCommissionerRulings(state['commissionerDisciplineLog']) }
+      : {}),
+    ...(hasHallOfFame
+      ? { hallOfFame: normalizeHallOfFameEntries(state['hallOfFame']) }
+      : {}),
+    ...(hasAchievements
+      ? { achievements: normalizeAchievements(state['achievements']) }
+      : {}),
+    ballotWaitlist: normalizeHallOfFameBallotEntries(state['ballotWaitlist']),
+    ballotEliminatedIds: normalizeStringArray(state['ballotEliminatedIds']),
+    frontOffice: {
+      ...frontOffice,
+      agmProfileId: typeof frontOffice['agmProfileId'] === 'string' ? frontOffice['agmProfileId'] : null,
+      agmImpactLog: Array.isArray(frontOffice['agmImpactLog']) ? frontOffice['agmImpactLog'] : [],
+    },
+    ownerMandates: Array.isArray(state['ownerMandates']) ? state['ownerMandates'] : [],
+  };
+});
+
+// v36→v37: cap long-running media-cycle save collections.
+registerMigration(36, (state) => trimLongRunningSaveCollectionsRecord({
   ...state,
   mediaCycle: state['mediaCycle'] && typeof state['mediaCycle'] === 'object'
     ? {
@@ -1297,8 +1567,8 @@ registerMigration(35, (state) => trimLongRunningSaveCollectionsRecord({
     },
 }));
 
-// v36→v37: repair eventLog year/week metadata and trim old disposable noise.
-registerMigration(36, (state) => repairAndTrimEventLogRecord({ ...state }));
+// v37→v38: repair eventLog year/week metadata and trim old disposable noise.
+registerMigration(37, (state) => repairAndTrimEventLogRecord({ ...state }));
 
 // v30→v31: Add tutorialState.visitedScreens (Sprint 43 "Rookie Card" onboarding)
 registerMigration(30, (state) => {

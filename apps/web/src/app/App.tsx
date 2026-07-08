@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { RouterProvider, createRouter, createRootRoute, createRoute, createHashHistory, Outlet, useRouter, useRouterState } from '@tanstack/react-router';
 import {
   LayoutDashboard, Users, DollarSign, ArrowLeftRight,
@@ -6,9 +6,10 @@ import {
   Trophy, Settings, Terminal, Inbox, Crown, ListOrdered,
   Play, ScrollText, Save, TrendingUp, Newspaper, BarChart3, Activity, CalendarRange,
   Radio, MessageSquare, Crosshair, Building2, Award, Users2, Sparkles, Scale,
-  ChevronDown, ChevronRight, Map as MapIcon, Film, Tent, Target, Loader, Briefcase, Star,
+  Map as MapIcon, Film, Tent, Target, Loader, Briefcase, Star,
 } from 'lucide-react';
 import { ChipDialogueBubble, MfdTooltipProvider, MfdCommandPalette, PixelModal, type CommandItem } from '@mfd/design-system/components';
+import { getNavUnlockStatus } from '@mfd/engine/config';
 import { getRegisteredShortcuts, registerShortcut, useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
 import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
@@ -27,8 +28,9 @@ import {
   useGameStore,
 } from './store/game-store';
 import { selectCanUndo, selectUndoLabel } from './store/selectors';
-import { generateDevelopmentReport, identifyBreakoutCandidates, PHASE_ORDER } from '@mfd/engine';
+import { generateDevelopmentReport, identifyBreakoutCandidates, PHASE_ORDER, projectDevelopmentCurve } from '@mfd/engine';
 import { computeNavBadges } from './navBadges';
+import { countDepthChartStarterFlags } from '../lib/depth-chart-starters';
 import { MobileBottomTabBar } from './MobileBottomTabBar';
 import { ErrorBoundary } from './ErrorBoundary';
 import { AutosaveToast } from './AutosaveToast';
@@ -77,9 +79,13 @@ import { syncScrapbookAtYearRollover } from './scrapbook-rollover';
 import { syncHallOfFameArchiveAtYearRollover } from './hall-of-fame-rollover';
 import { syncRosterContinuityAtYearRollover } from './roster-continuity-rollover';
 import { syncRookieOfYearAtYearRollover } from './rookie-of-year-rollover';
+import { syncRivalriesAtYearRollover } from './rivalry-rollover';
+import { resolveCurrentAppRoute } from './currentAppRoute';
+import { resolveAutosaveToastStep } from './appShellLifecycle';
 import { PlayoffLorePrompt } from '../features/playoffs/PlayoffLorePrompt';
 import { EraTransitionEmitter } from '../features/dynasty-era/EraTransitionEmitter';
 import { ChampionshipParadeEmitter } from '../features/playoffs/ChampionshipParadeEmitter';
+import './app-shell.css';
 
 const LazyScoutingBoard = lazy(async () => ({ default: (await import('../features/scouting/ScoutingBoard')).ScoutingBoard }));
 const LazyDraftBoard = lazy(async () => ({ default: (await import('../features/draft/DraftBoard')).DraftBoard }));
@@ -158,6 +164,35 @@ interface NavItem {
   shortcut?: string;
 }
 
+interface NavUnlockContext {
+  week: number;
+  phase: ReturnType<typeof selectPhase>;
+}
+
+interface ResolvedNavItem extends NavItem {
+  unlockLabel: string | null;
+  unlocked: boolean;
+}
+
+function resolveNavItem(item: NavItem, context: NavUnlockContext): ResolvedNavItem {
+  const status = getNavUnlockStatus(item.path, context);
+  return {
+    ...item,
+    unlockLabel: status.unlockLabel,
+    unlocked: status.unlocked,
+  };
+}
+
+function resolveVisibleNavItems(
+  items: readonly NavItem[],
+  context: NavUnlockContext,
+  activePath: string,
+): ResolvedNavItem[] {
+  return items
+    .map((item) => resolveNavItem(item, context))
+    .filter((item) => item.unlocked || item.path === activePath);
+}
+
 /** Flat list of all nav items — used by command palette and keyboard shortcuts */
 const NAV_ITEMS: NavItem[] = [
   { path: '/',             label: 'Monday Briefing', shortLabel: 'Briefing', icon: <LayoutDashboard size={16} />, shortcut: '1' },
@@ -170,9 +205,12 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/endorsements', label: 'Endorsements',     shortLabel: 'Deals',    icon: <Sparkles size={16} /> },
   { path: '/trades',       label: 'Trades',           shortLabel: 'Trades',   icon: <ArrowLeftRight size={16} />, shortcut: '4' },
   { path: '/trade-block',  label: 'Trade Block',      shortLabel: 'Block',    icon: <ArrowLeftRight size={16} /> },
+  { path: '/trade-deadline', label: 'Trade Deadline', shortLabel: 'Deadline', icon: <CalendarRange size={16} /> },
   { path: '/team-needs',   label: 'Team Needs',       shortLabel: 'Needs',    icon: <BarChart3 size={16} /> },
   { path: '/scouting',     label: 'Scouting',         shortLabel: 'Scout',    icon: <Search size={16} />,         shortcut: '5' },
   { path: '/draft',        label: 'Draft',            shortLabel: 'Draft',    icon: <FileText size={16} />,       shortcut: '6' },
+  { path: '/draft-recap',  label: 'Draft Recap',      shortLabel: 'Recap',    icon: <FileText size={16} /> },
+  { path: '/expansion-draft', label: 'Expansion Draft', shortLabel: 'Expansion', icon: <Users size={16} /> },
   { path: '/free-agency',  label: 'Free Agency',      shortLabel: 'FA',       icon: <Handshake size={16} />,      shortcut: '7' },
   { path: '/fa-targets',  label: 'FA Targets',       shortLabel: 'Targets',  icon: <Target size={16} /> },
   { path: '/game-day',     label: 'Game Day',         shortLabel: 'Game',     icon: <Gamepad2 size={16} />,       shortcut: '8' },
@@ -190,12 +228,33 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/schedule',      label: 'Schedule',         shortLabel: 'Schedule', icon: <CalendarRange size={16} /> },
   { path: '/depth-chart',   label: 'Depth Chart',      shortLabel: 'Depth',    icon: <ListOrdered size={16} /> },
   { path: '/coaching',      label: 'Coaching',         shortLabel: 'Coach',    icon: <GraduationCap size={16} /> },
+  { path: '/coaching/tree', label: 'Coaching Tree',    shortLabel: 'Tree',     icon: <GraduationCap size={16} /> },
+  { path: '/coaching/relationships', label: 'Staff Relationships', shortLabel: 'Relations', icon: <Users2 size={16} /> },
   { path: '/training-camp', label: 'Training Camp',    shortLabel: 'Camp',     icon: <Tent size={16} /> },
   { path: '/mentors',       label: 'Alumni Mentors',   shortLabel: 'Mentors',  icon: <Award size={16} /> },
+  { path: '/player-development', label: 'Player Development', shortLabel: 'Develop', icon: <TrendingUp size={16} /> },
+  { path: '/compare',       label: 'Player Compare',   shortLabel: 'Compare',  icon: <BarChart3 size={16} /> },
+  { path: '/rivalries',     label: 'Player Rivalries', shortLabel: 'Rivalries', icon: <Crosshair size={16} /> },
   { path: '/owner',         label: 'Owner',            shortLabel: 'Owner',    icon: <Crown size={16} /> },
   { path: '/commissioner',  label: 'Commissioner',     shortLabel: 'Commish',  icon: <Scale size={16} /> },
+  { path: '/cba',           label: 'CBA Negotiation',  shortLabel: 'CBA',      icon: <Handshake size={16} /> },
+  { path: '/league-rules',  label: 'League Rules',     shortLabel: 'Rules',    icon: <Scale size={16} /> },
   { path: '/franchise',     label: 'Franchise',        shortLabel: 'Franchise', icon: <Building2 size={16} /> },
   { path: '/legends',       label: 'Legends',          shortLabel: 'Legends',  icon: <Award size={16} /> },
+  { path: '/franchise/career', label: 'GM Career',     shortLabel: 'Career',   icon: <Briefcase size={16} /> },
+  { path: '/franchise/book', label: 'Franchise Book',  shortLabel: 'Book',     icon: <ScrollText size={16} /> },
+  { path: '/franchise/chronicle', label: 'Chronicle',  shortLabel: 'Chronicle', icon: <ScrollText size={16} /> },
+  { path: '/franchise/scrapbook', label: 'Scrapbook',  shortLabel: 'Scrap',    icon: <FileText size={16} /> },
+  { path: '/franchise/hall', label: 'Hall of Fame',    shortLabel: 'Hall',     icon: <Award size={16} /> },
+  { path: '/franchise/trophy-room', label: 'Trophy Room', shortLabel: 'Trophies', icon: <Trophy size={16} /> },
+  { path: '/franchise/eras', label: 'Era Hall',        shortLabel: 'Eras',     icon: <Crown size={16} /> },
+  { path: '/franchise/mvps', label: 'MVP Plaques',     shortLabel: 'MVPs',     icon: <Star size={16} /> },
+  { path: '/franchise/playoff-lore', label: 'Playoff Lore', shortLabel: 'Lore', icon: <Trophy size={16} /> },
+  { path: '/franchise/achievements', label: 'Achievements', shortLabel: 'Achieve', icon: <Trophy size={16} /> },
+  { path: '/legacy/named-games', label: 'Named Games', shortLabel: 'Named',    icon: <Gamepad2 size={16} /> },
+  { path: '/legacy/bloodlines', label: 'Bloodlines',   shortLabel: 'Bloodlines', icon: <Users2 size={16} /> },
+  { path: '/season/recap', label: 'Season Recap',      shortLabel: 'Recap',    icon: <FileText size={16} /> },
+  { path: '/relocate',      label: 'Relocation',       shortLabel: 'Relocate', icon: <Building2 size={16} /> },
   { path: '/week-advance',  label: 'Advance Week',     shortLabel: 'Advance',  icon: <Play size={16} /> },
   { path: '/handshakes',    label: 'Handshakes',       shortLabel: 'Promises', icon: <ScrollText size={16} /> },
   { path: '/news',          label: 'News',             shortLabel: 'News',     icon: <Newspaper size={16} /> },
@@ -206,6 +265,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/analytics',     label: 'Analytics',        shortLabel: 'Data',     icon: <Activity size={16} /> },
   { path: '/power-rankings',label: 'Power Rankings',   shortLabel: 'Rankings', icon: <TrendingUp size={16} /> },
   { path: '/league-pulse',  label: 'League Pulse',     shortLabel: 'Pulse',    icon: <Activity size={16} /> },
+  { path: '/league/weather', label: 'Weather',         shortLabel: 'Weather',  icon: <Activity size={16} /> },
   { path: '/scenarios',    label: 'Scenarios',        shortLabel: 'Challenge', icon: <Crosshair size={16} /> },
   { path: '/legacy',        label: 'Legacy',           shortLabel: 'Legacy',   icon: <Trophy size={16} /> },
   { path: '/awards',        label: 'Awards Hub',       shortLabel: 'Awards',   icon: <Trophy size={16} /> },
@@ -225,12 +285,12 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   { id: 'core',     label: 'CORE',     paths: ['/', '/week-advance', '/watch-list', '/inbox'] },
-  { id: 'team',     label: 'TEAM',     paths: ['/roster', '/depth-chart', '/locker-room', '/coaching', '/handshakes', '/training-camp', '/mentors'] },
+  { id: 'team',     label: 'TEAM',     paths: ['/roster', '/depth-chart', '/locker-room', '/coaching', '/coaching/tree', '/coaching/relationships', '/handshakes', '/training-camp', '/mentors', '/player-development', '/compare', '/rivalries'] },
   { id: 'money',    label: 'MONEY',    paths: ['/contracts', '/cap-lab', '/front-office', '/endorsements'] },
-  { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/trade-block', '/scouting', '/draft', '/free-agency', '/fa-targets', '/waivers', '/practice-squad', '/team-needs'] },
+  { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/trade-block', '/trade-deadline', '/scouting', '/draft', '/draft-recap', '/expansion-draft', '/free-agency', '/fa-targets', '/waivers', '/practice-squad', '/team-needs'] },
   { id: 'gameday',  label: 'GAMEDAY',  paths: ['/game-day', '/game-plan', '/broadcast', '/presentation', '/play-by-play', '/game-flow', '/film-room', '/schedule', '/super-bowl'] },
-  { id: 'league',   label: 'LEAGUE',   paths: ['/standings', '/power-rankings', '/league-pulse', '/newsroom', '/news', '/social', '/commissioner', '/analytics', '/records', '/stat-central'] },
-  { id: 'dynasty',  label: 'DYNASTY',  paths: ['/franchise', '/owner', '/legends', '/legacy', '/awards', '/scenarios'] },
+  { id: 'league',   label: 'LEAGUE',   paths: ['/standings', '/power-rankings', '/league-pulse', '/league/weather', '/newsroom', '/news', '/social', '/commissioner', '/cba', '/league-rules', '/analytics', '/records', '/stat-central'] },
+  { id: 'dynasty',  label: 'DYNASTY',  paths: ['/franchise', '/owner', '/legends', '/franchise/career', '/franchise/book', '/franchise/chronicle', '/franchise/scrapbook', '/franchise/hall', '/franchise/trophy-room', '/franchise/eras', '/franchise/mvps', '/franchise/playoff-lore', '/franchise/achievements', '/legacy', '/legacy/named-games', '/legacy/bloodlines', '/awards', '/season/recap', '/relocate', '/scenarios'] },
   { id: 'meta',     label: 'SYSTEM',   paths: ['/about', '/credits', '/faq', '/dynasty', '/settings'] },
 ];
 
@@ -240,6 +300,7 @@ function RootLayout() {
   useGlobalKeyboard();
   const commandPaletteOpen = useUiStore((s) => s.commandPaletteOpen);
   const setCommandPaletteOpen = useUiStore((s) => s.setCommandPaletteOpen);
+  const toggleCommandPalette = useUiStore((s) => s.toggleCommandPalette);
   const tutorial = useGameStore(selectTutorial);
   const ceremonies = useGameStore(selectCeremonies);
   const newlyUnlocked = useGameStore(selectNewlyUnlocked);
@@ -247,7 +308,9 @@ function RootLayout() {
   const expansionDraftState = useGameStore(selectExpansionDraftState);
   const game = useGameStore((s) => s.game);
   const userTeam = useGameStore(selectUserTeam);
+  const roster = useGameStore(selectRoster);
   const currentWeek = useGameStore((s) => s.game?.week ?? 0);
+  const currentPhase = useGameStore(selectPhase);
   const currentYear = useGameStore((s) => s.game?.year ?? 0);
   const recapPromptSeenThisSession = useGameStore((s) => s.recapPromptSeenThisSession);
   const pendingPlayoffLoreReveal = useGameStore((s) => s.pendingPlayoffLoreReveal);
@@ -268,6 +331,14 @@ function RootLayout() {
   const leagueNews = useGameStore((s) => s.game?.leagueNews ?? []);
   const router = useRouter();
   const activePath = useRouterState({ select: (state) => state.location.pathname });
+  const navUnlockContext = useMemo(
+    () => ({ week: currentWeek, phase: currentPhase }),
+    [currentPhase, currentWeek],
+  );
+  const visibleNavItems = useMemo(
+    () => resolveVisibleNavItems(NAV_ITEMS, navUnlockContext, activePath),
+    [activePath, navUnlockContext],
+  );
   const [seenCeremonies, setSeenCeremonies] = useState<string[]>([]);
   const [activeCeremonyId, setActiveCeremonyId] = useState<string | null>(null);
   const [seenAchievements, setSeenAchievements] = useState<string[]>([]);
@@ -281,46 +352,53 @@ function RootLayout() {
   const [showSaveReminder, setShowSaveReminder] = useState(false);
   const [showHotkeyHelp, setShowHotkeyHelp] = useState(false);
   const [lastEraCheck, setLastEraCheck] = useState('');
+  const mainContentRef = useRef<HTMLElement | null>(null);
   const prevWins = useRef(0);
   const prevYear = useRef<number | null>(null);
   const [showSaveToast, setShowSaveToast] = useState(false);
   const prevWeek = useRef(0);
 
-  useShortcut('k', () => setCommandPaletteOpen(true), 'Open command palette', { meta: true });
+  useShortcut('k', () => toggleCommandPalette(), 'Toggle command palette', { meta: true });
   useShortcut('?', () => setShowHotkeyHelp(true), 'Open hotkey help', { shift: true });
 
   const currentTutorialStep = tutorial.steps[tutorial.currentStepIndex] ?? null;
+  const chipFeatureEnabled = isChipFeatureEnabled();
   const activeCeremony = useMemo(
     () => ceremonies.find((ceremony) => ceremony.id === activeCeremonyId) ?? null,
     [activeCeremonyId, ceremonies],
   );
-  const shortcutRows = useMemo(() => {
-    const manualRows = NAV_ITEMS
-      .filter((item) => item.shortcut)
-      .map((item) => ({
-        combo: item.shortcut ?? '',
-        description: `Go to ${item.label}`,
-      }));
-    const registeredRows = getRegisteredShortcuts().map((shortcut) => ({
-      combo: `${shortcut.meta ? 'Cmd/Ctrl+' : ''}${shortcut.ctrl ? 'Ctrl+' : ''}${shortcut.shift ? 'Shift+' : ''}${shortcut.key.toUpperCase()}`,
-      description: shortcut.description,
+  const manualShortcutRows = visibleNavItems
+    .filter((item) => item.shortcut)
+    .map((item) => ({
+      combo: item.shortcut ?? '',
+      description: `Go to ${item.label}`,
     }));
-    const seen = new Set<string>();
-    return [...manualRows, ...registeredRows].filter((row) => {
-      const key = `${row.combo}:${row.description}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [activePath, commandPaletteOpen, showHotkeyHelp]);
+  const registeredShortcutRows = getRegisteredShortcuts().map((shortcut) => ({
+    combo: `${shortcut.meta ? 'Cmd/Ctrl+' : ''}${shortcut.ctrl ? 'Ctrl+' : ''}${shortcut.shift ? 'Shift+' : ''}${shortcut.key.toUpperCase()}`,
+    description: shortcut.description,
+  }));
+  const seenShortcuts = new Set<string>();
+  const shortcutRows = [...manualShortcutRows, ...registeredShortcutRows].filter((row) => {
+    const key = `${row.combo}:${row.description}`;
+    if (seenShortcuts.has(key)) return false;
+    seenShortcuts.add(key);
+    return true;
+  });
   const tickerItems = useMemo(() => selectTickerItems(leagueNews), [leagueNews]);
   const showTicker = tickerItems.length > 0
     && !breakingNews
     && ['/', '/broadcast', '/play-by-play', '/game-day', '/game-flow'].includes(activePath);
 
   useEffect(() => {
-    const unregister = NAV_ITEMS
-      .filter((item): item is NavItem & { shortcut: string } => typeof item.shortcut === 'string')
+    const frame = window.requestAnimationFrame(() => {
+      mainContentRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activePath]);
+
+  useEffect(() => {
+    const unregister = visibleNavItems
+      .filter((item): item is ResolvedNavItem & { shortcut: string } => typeof item.shortcut === 'string')
       .map((item) => registerShortcut({
         key: item.shortcut,
         description: `Go to ${item.label}`,
@@ -332,7 +410,7 @@ function RootLayout() {
         dispose();
       }
     };
-  }, [router]);
+  }, [router, visibleNavItems]);
 
   useEffect(() => {
     if (!tutorial.active || tutorial.dismissed || !currentTutorialStep?.action?.startsWith('screen:')) {
@@ -403,13 +481,15 @@ function RootLayout() {
 
   // Autosave toast — triggers when week changes (indicating advanceWeek completed + autosaved)
   useEffect(() => {
-    if (prevWeek.current !== 0 && currentWeek !== prevWeek.current) {
+    const toastStep = resolveAutosaveToastStep(prevWeek.current, currentWeek);
+    prevWeek.current = toastStep.nextPreviousWeek;
+
+    if (toastStep.showToast) {
       setShowSaveToast(true);
       playSound('week_advance_complete');
       const t = window.setTimeout(() => setShowSaveToast(false), 3000);
       return () => window.clearTimeout(t);
     }
-    prevWeek.current = currentWeek;
   }, [currentWeek]);
 
   // Milestone detection — check for first win, 100 wins, etc.
@@ -448,6 +528,7 @@ function RootLayout() {
     syncHallOfFameArchiveAtYearRollover(prevYear.current, game, userTeam?.id ?? null);
     syncRosterContinuityAtYearRollover(prevYear.current, game, userTeam?.id ?? null);
     syncRookieOfYearAtYearRollover(prevYear.current, game, userTeam?.id ?? null);
+    syncRivalriesAtYearRollover(prevYear.current, game);
 
     if (shouldShowSaveReminder(currentYear, game.lastPortableExportYear ?? null)) {
       setShowSaveReminder(true);
@@ -456,8 +537,26 @@ function RootLayout() {
     prevYear.current = currentYear;
   }, [currentYear, currentWeek, game, lastEraCheck, recapPromptSeenThisSession, userTeam]);
 
+  const playerCommandName = (player: (typeof roster)[number]): string => {
+    const legacyName = typeof player.name === 'string' ? player.name.trim() : '';
+    if (legacyName) return legacyName;
+    return [player.firstName, player.lastName].filter(Boolean).join(' ').trim() || player.id;
+  };
+
+  const rosterCommandItems: CommandItem[] = roster
+    .slice()
+    .sort((left, right) => right.ovr - left.ovr || playerCommandName(left).localeCompare(playerCommandName(right)))
+    .map((player): CommandItem => ({
+      id: `player-${player.id}`,
+      label: `${playerCommandName(player)} (${player.pos})`,
+      category: 'player',
+      icon: <Users size={16} />,
+      keywords: [player.pos, `${player.ovr} OVR`, userTeam?.abbr ?? 'roster'],
+      onSelect: () => router.navigate({ to: '/player/$playerId', params: { playerId: player.id } }),
+    }));
+
   const commandItems: CommandItem[] = [
-    ...NAV_ITEMS.map((nav): CommandItem => ({
+    ...visibleNavItems.map((nav): CommandItem => ({
       id: `screen-${nav.path}`,
       label: nav.label,
       category: 'screen',
@@ -465,6 +564,7 @@ function RootLayout() {
       keywords: [nav.shortLabel],
       onSelect: () => router.navigate({ to: nav.path }),
     })),
+    ...rosterCommandItems,
     {
       id: 'action-advance-week',
       label: 'Advance Week',
@@ -477,14 +577,19 @@ function RootLayout() {
 
   return (
     <MfdTooltipProvider>
-      <div style={{
+      <div
+        className="mfd-app-shell"
+        data-mfd-app-shell="true"
+        data-mfd-chip-enabled={chipFeatureEnabled ? 'true' : 'false'}
+        style={{
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--mfd-bg)',
         color: 'var(--mfd-text)',
         fontFamily: 'var(--mfd-font-sans)',
-      }}>
+      }}
+      >
         <AudioController />
         <EraTransitionEmitter />
         <ChampionshipParadeEmitter />
@@ -496,13 +601,17 @@ function RootLayout() {
           }
         `}</style>
         <TopNav
-          highlightedPath={tutorial.active && !tutorial.dismissed ? currentTutorialStep?.targetScreen ?? null : null}
+          highlightedPath={!chipFeatureEnabled && tutorial.active && !tutorial.dismissed ? currentTutorialStep?.targetScreen ?? null : null}
           activePath={activePath}
           onOpenHotkeyHelp={() => setShowHotkeyHelp(true)}
         />
         {showTicker ? <BreakingNewsTicker items={tickerItems} /> : null}
         <main
+          ref={mainContentRef}
+          className="mfd-app-main"
           data-mfd-main-content="true"
+          tabIndex={-1}
+          aria-label="Franchise command center content"
           style={{
             flex: 1,
             padding: 'var(--mfd-sp-lg) var(--mfd-sp-xl)',
@@ -519,8 +628,10 @@ function RootLayout() {
           open={commandPaletteOpen}
           onOpenChange={setCommandPaletteOpen}
           items={commandItems}
+          placeholder="Search screens, actions, roster players..."
+          globalShortcutEnabled={false}
         />
-        {tutorial.active && !tutorial.dismissed && currentTutorialStep ? (
+        {!chipFeatureEnabled && tutorial.active && !tutorial.dismissed && currentTutorialStep ? (
           <TutorialOverlay
             step={currentTutorialStep}
             stepIndex={Math.min(tutorial.currentStepIndex + 1, tutorial.steps.length)}
@@ -557,6 +668,7 @@ function RootLayout() {
           <BreakingNews
             headline={breakingNews.headline}
             detail={breakingNews.detail}
+            source={breakingNews.source}
             onDismiss={() => { void dismissBreakingNews(); }}
           />
         )}
@@ -628,103 +740,76 @@ function RootLayout() {
 
 // ── Top Nav ─────────────────────────────────────────────────
 
-function NavGroupSection({
-  group,
+function NavItemStrip({
   items,
   activePath,
   highlightedPath,
-  expanded,
-  onToggle,
   badges,
 }: {
-  group: NavGroup;
-  items: NavItem[];
+  items: ResolvedNavItem[];
   activePath: string;
   highlightedPath: string | null;
-  expanded: boolean;
-  onToggle: () => void;
   badges: Record<string, number>;
 }) {
   const router = useRouter();
-  const hasActive = items.some((i) => i.path === activePath);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-      <button
-        type="button"
-        data-mfd-nav-item="true"
-        onClick={onToggle}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-          padding: '3px 6px',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          fontFamily: 'var(--mfd-font-pixel)',
-          fontSize: '6px',
-          letterSpacing: '1px',
-          color: hasActive ? 'var(--mfd-gold)' : 'var(--mfd-text-faint)',
-          textTransform: 'uppercase',
-        }}
-      >
-        {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-        {group.label}
-      </button>
-      {expanded && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', paddingLeft: '4px' }}>
-          {items.map((item) => {
-            const active = item.path === activePath;
-            const highlighted = item.path === highlightedPath;
-            return (
-              <div
-                key={item.path}
-                style={{
-                  animation: highlighted ? 'mfdTutorialPulse 1.2s infinite' : undefined,
-                  border: highlighted ? '2px solid rgba(255, 215, 0, 0.85)' : '2px solid transparent',
-                }}
-              >
-                <button
-                  type="button"
-                  data-nav={item.path}
-                  data-mfd-nav-item="true"
-                  onClick={() => { void router.navigate({ to: item.path }); }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    minHeight: '28px',
-                    padding: '5px 8px',
-                    border: `2px solid ${active ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
-                    background: active ? 'rgba(255, 215, 0, 0.1)' : 'var(--mfd-bg-2)',
-                    color: active ? 'var(--mfd-gold)' : highlighted ? '#ffe27a' : 'var(--mfd-text-dim)',
-                    fontFamily: 'var(--mfd-font-pixel)',
-                    fontSize: '7px',
-                    letterSpacing: '0.8px',
-                    textTransform: 'uppercase',
-                    whiteSpace: 'nowrap',
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                  }}
-                >
-                  {item.icon}
-                  <span>{item.shortLabel.toUpperCase()}</span>
-                  {(badges[item.path] ?? 0) > 0 && (
-                    <span style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: 'var(--mfd-red)',
-                      flexShrink: 0,
-                    }} />
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
+    <div className="mfd-app-nav-items" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+      {items.map((item) => {
+        const active = item.path === activePath;
+        const highlighted = item.path === highlightedPath;
+        return (
+          <div
+            key={item.path}
+            className="mfd-app-nav-item-frame"
+            style={{
+              animation: highlighted ? 'mfdTutorialPulse 1.2s infinite' : undefined,
+              borderRadius: 'var(--mfd-rad-md)',
+            }}
+          >
+            <button
+              type="button"
+              className="mfd-app-nav-button"
+              data-nav={item.path}
+              data-mfd-nav-item="true"
+              data-active={active ? 'true' : 'false'}
+              data-highlighted={highlighted ? 'true' : 'false'}
+              onClick={() => { void router.navigate({ to: item.path }); }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                minHeight: '44px',
+                padding: '9px 12px',
+                border: `1px solid ${active ? 'var(--mfd-gold)' : highlighted ? 'var(--mfd-gold-strong)' : 'var(--mfd-border)'}`,
+                borderRadius: 'var(--mfd-rad-md)',
+                background: active ? 'rgba(255, 215, 0, 0.13)' : 'var(--mfd-bg-2)',
+                color: active ? 'var(--mfd-gold)' : highlighted ? '#ffe27a' : 'var(--mfd-text-dim)',
+                fontFamily: 'var(--mfd-font-pixel)',
+                fontSize: '8px',
+                lineHeight: 1.2,
+                letterSpacing: 0,
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              {item.icon}
+              <span className="mfd-app-nav-button-label">{item.shortLabel.toUpperCase()}</span>
+              {(badges[item.path] ?? 0) > 0 && (
+                <span className="mfd-app-nav-badge" style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: 'var(--mfd-red)',
+                  flexShrink: 0,
+                }} />
+              )}
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -738,7 +823,7 @@ function useNavBadges(): Record<string, number> {
 
   return useMemo(() => computeNavBadges({
     tradeOfferCount: tradeOffers.length,
-    starterCount: roster.filter((p) => p.isStarter).length,
+    starterCount: countDepthChartStarterFlags(roster),
     hasGamePlan,
     phase,
     activeHandshakeCount: handshakes.filter((h) => h.status === 'active').length,
@@ -752,6 +837,9 @@ function useNavBadges(): Record<string, number> {
  */
 function MobileBottomTabBarMount({ activePath }: { activePath: string }) {
   const badges = useNavBadges();
+  const week = useGameStore((s) => s.game?.week ?? 0);
+  const phase = useGameStore(selectPhase);
+  const navUnlockContext = useMemo(() => ({ week, phase }), [phase, week]);
   const navItemMap = useMemo(() => {
     const map = new Map<string, NavItem>();
     for (const item of NAV_ITEMS) map.set(item.path, item);
@@ -764,9 +852,11 @@ function MobileBottomTabBarMount({ activePath }: { activePath: string }) {
       items: group.paths
         .map((p) => navItemMap.get(p))
         .filter((i): i is NavItem => !!i)
+        .map((i) => resolveNavItem(i, navUnlockContext))
+        .filter((i) => i.unlocked || i.path === activePath)
         .map((i) => ({ path: i.path, shortLabel: i.shortLabel, icon: i.icon })),
     }));
-  }, [navItemMap]);
+  }, [activePath, navItemMap, navUnlockContext]);
 
   return <MobileBottomTabBar activePath={activePath} drawerGroups={drawerGroups} badges={badges} />;
 }
@@ -786,8 +876,10 @@ function UndoButton() {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: '4px',
-        padding: '4px 8px',
+        minHeight: '44px',
+        padding: '6px 10px',
         background: 'rgba(255, 215, 0, 0.1)',
         border: '2px solid var(--mfd-gold)',
         color: 'var(--mfd-gold)',
@@ -814,8 +906,12 @@ function TopNav({
   onOpenHotkeyHelp: () => void;
 }) {
   const badges = useNavBadges();
+  const team = useGameStore(selectUserTeam);
+  const week = useGameStore((s) => s.game?.week ?? 0);
+  const phase = useGameStore(selectPhase);
+  const year = useGameStore((s) => s.game?.year ?? 0);
+  const navUnlockContext = useMemo(() => ({ week, phase }), [phase, week]);
 
-  // Auto-expand the group containing the active path, plus always expand 'core'
   const activeGroupId = useMemo(() => {
     for (const g of NAV_GROUPS) {
       if (g.paths.includes(activePath)) return g.id;
@@ -823,37 +919,42 @@ function TopNav({
     return 'core';
   }, [activePath]);
 
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    () => new Set(['core', activeGroupId]),
-  );
+  const [selectedGroupId, setSelectedGroupId] = useState(activeGroupId);
 
-  // Auto-expand group when navigating to a new section
   useEffect(() => {
-    setExpandedGroups((prev) => {
-      if (prev.has(activeGroupId)) return prev;
-      const next = new Set(prev);
-      next.add(activeGroupId);
-      return next;
-    });
+    setSelectedGroupId(activeGroupId);
   }, [activeGroupId]);
 
-  const toggleGroup = useCallback((id: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); }
-      return next;
-    });
-  }, []);
-
-  // Build grouped items lookup
   const navItemMap = useMemo(() => {
     const map = new Map<string, NavItem>();
     for (const item of NAV_ITEMS) map.set(item.path, item);
     return map;
   }, []);
+  const visibleGroups = useMemo(() => {
+    return NAV_GROUPS.filter((group) => group.paths.some((path) => {
+      const item = navItemMap.get(path);
+      if (!item) return false;
+      return path === activePath || resolveNavItem(item, navUnlockContext).unlocked;
+    }));
+  }, [activePath, navItemMap, navUnlockContext]);
+  const selectedGroup = visibleGroups.find((group) => group.id === selectedGroupId)
+    ?? visibleGroups.find((group) => group.id === activeGroupId)
+    ?? visibleGroups[0]
+    ?? NAV_GROUPS[0]!;
+  const selectedItems = selectedGroup.paths
+    .map((path) => navItemMap.get(path))
+    .filter((item): item is NavItem => !!item);
+  const visibleSelectedItems = resolveVisibleNavItems(selectedItems, navUnlockContext, activePath);
+  const lockedSelectedItems = selectedItems
+    .map((item) => resolveNavItem(item, navUnlockContext))
+    .filter((item) => !item.unlocked && item.path !== activePath);
+  const activeItem = navItemMap.get(activePath);
+  const teamName = team ? `${team.city} ${team.name}` : 'No active dynasty';
+  const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '--';
 
   return (
     <header
+      className="mfd-app-top-nav"
       data-mfd-top-nav="true"
       style={{
         display: 'flex',
@@ -866,60 +967,103 @@ function TopNav({
         overflowX: 'auto',
       }}
     >
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
+      <div
+        className="mfd-app-brand-lockup"
+        data-mfd-brand-lockup="true"
+        style={{
+        display: 'grid',
+        gap: '6px',
         paddingRight: '8px',
         flexShrink: 0,
-      }}>
+      }}
+      >
         <span style={{
           fontFamily: 'var(--mfd-font-pixel)',
           fontSize: '8px',
           color: 'var(--mfd-green)',
-          letterSpacing: '1px',
+          letterSpacing: 0,
         }}>
           MFD NETWORK
         </span>
         <span style={{
           fontFamily: 'var(--mfd-font-display)',
-          fontSize: '28px',
+          fontSize: '34px',
           lineHeight: 1,
           color: 'var(--mfd-gold)',
-          letterSpacing: '1px',
+          letterSpacing: 0,
         }}>
           MFD
         </span>
+        <span className="mfd-app-brand-subtitle">{teamName}</span>
       </div>
 
-      <div style={{
+      <div className="mfd-app-nav-groups" style={{
         flex: 1,
         minWidth: '280px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
+        display: 'grid',
+        gap: '10px',
       }}>
-        {NAV_GROUPS.map((group) => {
-          const items = group.paths
-            .map((p) => navItemMap.get(p))
-            .filter((i): i is NavItem => !!i);
-          if (items.length === 0) return null;
-          return (
-            <NavGroupSection
-              key={group.id}
-              group={group}
-              items={items}
-              activePath={activePath}
-              highlightedPath={highlightedPath}
-              expanded={expandedGroups.has(group.id)}
-              onToggle={() => toggleGroup(group.id)}
-              badges={badges}
-            />
-          );
-        })}
+        <div className="mfd-app-context-strip">
+          <span>{activeItem?.label ?? 'Command Center'}</span>
+          <span>{record}</span>
+          <span>Week {week}</span>
+          <span>Season {year || '--'}</span>
+        </div>
+        <nav className="mfd-app-nav-group-rail" aria-label="Franchise command groups">
+          {visibleGroups.map((group) => {
+            const active = group.id === activeGroupId;
+            const selected = group.id === selectedGroupId;
+            return (
+              <button
+                key={group.id}
+                type="button"
+                className="mfd-app-nav-group-toggle"
+                data-mfd-nav-group={group.id}
+                data-mfd-nav-item="true"
+                data-active={active ? 'true' : 'false'}
+                data-selected={selected ? 'true' : 'false'}
+                onClick={() => setSelectedGroupId(group.id)}
+              >
+                {group.label}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="mfd-app-nav-active-strip">
+          <span className="mfd-app-nav-active-label">{selectedGroup.label}</span>
+          <NavItemStrip
+            items={visibleSelectedItems}
+            activePath={activePath}
+            highlightedPath={highlightedPath}
+            badges={badges}
+          />
+          {lockedSelectedItems.length > 0 ? (
+            <div
+              className="mfd-app-nav-unlocks"
+              aria-label={`${selectedGroup.label} routes that unlock later`}
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '6px',
+                alignItems: 'center',
+                color: 'var(--mfd-text-faint)',
+                fontFamily: 'var(--mfd-font-mono)',
+                fontSize: '10px',
+                lineHeight: 1.45,
+              }}
+            >
+              <span style={{ color: 'var(--mfd-cyan)', fontFamily: 'var(--mfd-font-pixel)', fontSize: '7px' }}>LATER</span>
+              {lockedSelectedItems.map((item) => (
+                <span key={item.path}>
+                  {item.shortLabel}: {item.unlockLabel}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+      <div className="mfd-app-nav-actions" data-mfd-nav-actions="true" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
         <UndoButton />
         <AudioToggle />
         <button
@@ -930,8 +1074,8 @@ function TopNav({
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: '32px',
-            minHeight: '32px',
+            minWidth: '44px',
+            minHeight: '44px',
             padding: '0 10px',
             background: 'rgba(0, 229, 255, 0.08)',
             border: '3px solid var(--mfd-cyan)',
@@ -955,12 +1099,14 @@ function CommandPaletteTrigger() {
 
   return (
     <button
+      type="button"
       onClick={() => setOpen(true)}
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: '6px',
-        padding: '7px 10px',
+        minHeight: '44px',
+        padding: '8px 11px',
         fontSize: '8px',
         fontFamily: 'var(--mfd-font-pixel)',
         color: 'var(--mfd-cyan)',
@@ -1002,7 +1148,12 @@ function LazyRouteFrame({
         justifyContent: 'center',
         minHeight: 300,
         gap: '16px',
-      }}>
+      }}
+      data-mfd-route-loading="true"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      >
         <Loader size={24} style={{ color: 'var(--mfd-gold)', animation: 'spin 1.2s linear infinite' }} />
         <div style={{
           fontFamily: 'var(--mfd-font-pixel)',
@@ -1032,6 +1183,13 @@ function LazyRouteFrame({
           @keyframes mfdLoadSlide {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(350%); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            [data-mfd-route-loading="true"] *,
+            [data-mfd-route-loading="true"] {
+              animation: none !important;
+              transform: none !important;
+            }
           }
         `}</style>
       </div>
@@ -1714,11 +1872,25 @@ function PlayerDevRouteWrapper() {
   const roster = useGameStore(selectRoster);
   const team = useGameStore(selectUserTeam);
   const game = useGameStore((s) => s.game);
-  const firstPlayer = roster[0] ?? null;
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const selectedPlayer = useMemo(() => (
+    roster.find((player) => player.id === selectedPlayerId) ?? roster[0] ?? null
+  ), [roster, selectedPlayerId]);
+  const playerOptions = useMemo(() => roster.map((player) => ({
+    id: player.id,
+    name: player.name,
+    pos: player.pos,
+    age: player.age,
+    ovr: player.ovr,
+  })), [roster]);
   const report = useMemo(() => {
-    if (!firstPlayer) return null;
-    return generateDevelopmentReport(firstPlayer, team ?? null);
-  }, [firstPlayer, team]);
+    if (!selectedPlayer) return null;
+    return generateDevelopmentReport(selectedPlayer, team ?? null);
+  }, [selectedPlayer, team]);
+  const projections = useMemo(() => {
+    if (!selectedPlayer) return [];
+    return projectDevelopmentCurve(selectedPlayer, team ?? null, 3);
+  }, [selectedPlayer, team]);
   const breakoutCandidates = useMemo(() => {
     if (!game || !team) return [];
     return identifyBreakoutCandidates(game, team.id);
@@ -1727,9 +1899,12 @@ function PlayerDevRouteWrapper() {
     <LazyRouteFrame label="player development">
       <LazyPlayerDevelopmentInner
         report={report}
-        projections={[]}
+        projections={projections}
         breakoutCandidates={breakoutCandidates}
-        coachImpact={null}
+        coachImpact={report?.coachImpact || null}
+        playerOptions={playerOptions}
+        selectedPlayerId={selectedPlayer?.id ?? null}
+        onSelectPlayer={setSelectedPlayerId}
       />
     </LazyRouteFrame>
   );
@@ -1825,15 +2000,9 @@ const routeTree = rootRoute.addChildren([
   scheduleRoute, depthChartRoute, playerProfileRoute, playerComparisonRoute, playerTimelineRoute, rivalriesRoute, teamNeedsRoute, coachingRoute, coachingTreeRoute, relationshipGraphRoute, filmRoomRoute, tradeDeadlineRoute,
   ownerRoute, commissionerRoute, cbaRoute, leagueRulesRoute, franchiseRoute, franchiseBookRoute, legendsRoute, seasonRecapRoute, relocationRoute, expansionDraftRoute, weekAdvanceRoute, handshakeRoute,
   newsRoute, newsroomRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
-  powerRankingsRoute, leaguePulseRoute, scenarioRoute, legacyRoute, namedGamesRoute, bloodlinesRoute, awardsRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, playoffLoreDirectoryRoute, dynastyChronicleRoute, superBowlRoute, playerDevRoute, mentorsRoute, aboutRoute, creditsRoute, faqRoute, settingsRoute,
+  powerRankingsRoute, leaguePulseRoute, scenarioRoute, legacyRoute, namedGamesRoute, bloodlinesRoute, awardsRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, trophyRoomRoute, eraHallRoute,
+  mvpPlaqueWallRoute, playoffLoreDirectoryRoute, dynastyChronicleRoute, achievementsRoute, weatherForecastRoute, superBowlRoute, playerDevRoute, mentorsRoute, aboutRoute, creditsRoute, faqRoute, settingsRoute,
 ]);
-routeTree.addChildren([...(routeTree.children ?? []), trophyRoomRoute, eraHallRoute]);
-
-routeTree.addChildren([...(routeTree.children ?? []), mvpPlaqueWallRoute]);
-
-routeTree.addChildren([...(routeTree.children ?? []), achievementsRoute]);
-
-routeTree.addChildren([...(routeTree.children ?? []), weatherForecastRoute]);
 
 const hashHistory = createHashHistory();
 const router = createRouter({ routeTree, history: hashHistory });
@@ -1841,15 +2010,16 @@ const router = createRouter({ routeTree, history: hashHistory });
 // ── App entry ───────────────────────────────────────────────
 
 export const CHIP_FRANCHISE_SETUP_STAGES: ChipHostStage[] = [
-  { id: 'chip.onboarding.beat-1', label: 'Cold Open', content: null },
-  { id: 'chip.onboarding.beat-2', label: 'Team Select', content: null },
-  { id: 'chip.onboarding.beat-3', label: 'AGM Hire', content: null },
-  { id: 'chip.onboarding.beat-4', label: 'Depth Philosophy', content: null },
-  { id: 'chip.onboarding.beat-5', label: 'Season Goals', content: null },
-  { id: 'chip.onboarding.beat-6', label: 'Culture Mandate', content: null },
-  { id: 'chip.onboarding.beat-7', label: 'Blueprint Reveal', content: null },
-  { id: 'chip.onboarding.beat-8', label: 'Kickoff', content: null },
-  { id: 'chip.onboarding.beat-9', label: 'Dashboard Handoff', content: null },
+  { id: 'chip.onboarding.beat-1', label: 'Hire Assistant GM', content: null, spotlightStageId: 'cold-open' },
+  { id: 'chip.onboarding.beat-2', label: 'Franchise Intel', content: null, spotlightStageId: 'intel-briefing' },
+  { id: 'chip.onboarding.beat-3', label: 'Meet Roster', content: null, spotlightStageId: 'roster-overview' },
+  { id: 'chip.onboarding.beat-4', label: 'Hire Head Coach', content: null, spotlightStageId: 'coach-hire' },
+  { id: 'chip.onboarding.beat-5', label: 'Hire Scouting Director', content: null, spotlightStageId: 'scout-hire' },
+  { id: 'chip.onboarding.beat-6', label: 'Pick Schemes', content: null, spotlightStageId: 'scheme' },
+  { id: 'chip.onboarding.beat-7', label: 'Starting Lineup', content: null, spotlightStageId: 'depth-chart' },
+  { id: 'chip.onboarding.beat-8', label: 'Cap Plan', content: null, spotlightStageId: 'cap-strategy' },
+  { id: 'chip.onboarding.beat-9', label: 'Set Owner Goals', content: null, spotlightStageId: 'goals' },
+  { id: 'chip.onboarding.beat-10', label: 'Open Blueprint', content: null, spotlightStageId: 'blueprint' },
 ];
 
 type ChipSetupStorage = Parameters<typeof readFirstTenMinutesCompleted>[0];
@@ -1865,7 +2035,24 @@ export function isChipNewGameSetup(storage: ChipSetupStorage = resolveChipSetupS
 
 function currentAppRoute(): string {
   if (typeof window === 'undefined') return '/';
-  return window.location.hash.replace(/^#/, '') || window.location.pathname || '/';
+  return resolveCurrentAppRoute(window.location);
+}
+
+function useCurrentAppRoute(): string {
+  const [route, setRoute] = useState(currentAppRoute);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const updateRoute = () => setRoute(currentAppRoute());
+    window.addEventListener('hashchange', updateRoute);
+    window.addEventListener('popstate', updateRoute);
+    return () => {
+      window.removeEventListener('hashchange', updateRoute);
+      window.removeEventListener('popstate', updateRoute);
+    };
+  }, []);
+
+  return route;
 }
 
 function PostSetupApp() {
@@ -1878,8 +2065,8 @@ function PostSetupApp() {
   const chipCoachName = chipUserTeam?.staff.hc?.name ?? 'Coach';
   const chipDialogueText = useChipStore((s) => s.currentDialogueText);
   const chipDialoguePose = useChipStore((s) => s.pose);
-  const chipDockRoute = currentAppRoute();
-  const chipRouteBeats = useActiveRouteBeats(chipDockRoute);
+  const chipDockRoute = useCurrentAppRoute();
+  const chipRouteBeats = useActiveRouteBeats(chipDockRoute, { currentWeek: chipDockWeek });
   const chipPendingDecisions = useMemo(
     () => countPendingDecisions({ game: chipGame }),
     [chipGame],
@@ -1906,7 +2093,7 @@ function PostSetupApp() {
             <ChipDialogueBubble
               text={chipDialogueText}
               pose={chipDialoguePose}
-              pointer="right"
+              pointer="left"
             />
           ) : null}
         </ChipDock>
@@ -1918,6 +2105,8 @@ function PostSetupApp() {
 export function App() {
   const boot = useBootSequence();
   const gameLoaded = useGameStore((s) => s.initialized);
+  const [setupCompanionAction, setSetupCompanionAction] = useState<ReactNode | null>(null);
+  const [setupCompanionVisible, setSetupCompanionVisible] = useState(false);
   const setupIncomplete = useGameStore((s) => {
     if (!s.game?.setupState) return false;
     return s.game.setupState.completedPhases.length < PHASE_ORDER.length;
@@ -1935,12 +2124,24 @@ export function App() {
     // Read first-ten marker fresh on each render (PR #18 P2 fix): a memoized
     // chipNewGame would go stale if a user finishes setup and starts another
     // franchise within the same SPA session.
+    const chipNewGameSetup = isChipNewGameSetup();
     return (
       <>
-        <PoseEventEmitter firstLaunchActive={isChipNewGameSetup()} />
-        <ChipHost newGame={isChipNewGameSetup()} stages={CHIP_FRANCHISE_SETUP_STAGES}>
-          {({ onStageAdvance }) => (
-            <FranchiseSetupWizard onStageAdvance={onStageAdvance} />
+        <PoseEventEmitter firstLaunchActive={chipNewGameSetup} />
+        <ChipHost
+          newGame={chipNewGameSetup}
+          stages={CHIP_FRANCHISE_SETUP_STAGES}
+          companionAction={setupCompanionAction}
+          onCompanionVisibleChange={setSetupCompanionVisible}
+        >
+          {({ onStageAdvance, companionPanel, setCompanionDialogue }) => (
+            <FranchiseSetupWizard
+              companionPanel={companionPanel}
+              companionPrimaryActionActive={setupCompanionVisible}
+              onCompanionActionChange={(action) => setSetupCompanionAction(action)}
+              onCompanionDialogueChange={setCompanionDialogue}
+              onStageAdvance={onStageAdvance}
+            />
           )}
         </ChipHost>
       </>

@@ -1,5 +1,16 @@
-import { useMemo } from 'react';
-import { DIFF_SETTINGS, validateGameState, type DifficultyLevel } from '@mfd/engine';
+import { useMemo, useState } from 'react';
+import {
+  DIFF_SETTINGS,
+  buildTeamOpsImpactReceipt,
+  getFacilityLevelEffect,
+  validateGameState,
+  type DifficultyLevel,
+  type Facility,
+  type FacilityEffect,
+  type FacilityState,
+  type MedicalStaff,
+  type TeamOpsImpactTone,
+} from '@mfd/engine';
 import { useAudio } from '../audio/AudioManager';
 import {
   PixelBadge,
@@ -36,12 +47,224 @@ const facilityLabels: Record<string, string> = {
   recovery_suite: 'Recovery Suite',
 };
 
-function facilityEffectCopy(type: string, level: number): string {
-  if (type === 'training_complex') return `Training XP x${(1 + level * 0.05).toFixed(2)}`;
-  if (type === 'medical_center') return `Recovery x${(1 + level * 0.05).toFixed(2)}`;
-  if (type === 'film_room') return `Scouting x${(1 + (level === 3 ? 0.1 : level * 0.03)).toFixed(2)}`;
-  if (type === 'weight_room') return `Fatigue gain x${(1 - level * 0.03 - (level === 3 ? 0.01 : 0)).toFixed(2)}`;
-  return `Injury risk x${(1 - level * 0.05).toFixed(2)}`;
+function formatMultiplier(value: number | undefined): string {
+  return typeof value === 'number' ? value.toFixed(2) : '--';
+}
+
+function facilityEffectCopy(type: string, effect?: Partial<FacilityEffect>): string {
+  if (!effect) return 'Effect unavailable';
+  if (type === 'training_complex') return `Training XP x${formatMultiplier(effect.trainingXPBonus)} // Morale x${formatMultiplier(effect.moraleBonus)}`;
+  if (type === 'medical_center') return `Recovery x${formatMultiplier(effect.recoveryBonus)} // Injury risk x${formatMultiplier(effect.injuryPreventionBonus)}`;
+  if (type === 'film_room') return `Scouting x${formatMultiplier(effect.scoutingBonus)} // Morale x${formatMultiplier(effect.moraleBonus)}`;
+  if (type === 'weight_room') return `Training XP x${formatMultiplier(effect.trainingXPBonus)} // Fatigue gain x${formatMultiplier(effect.fatigueGainBonus)}`;
+  return `Injury risk x${formatMultiplier(effect.injuryPreventionBonus)} // Morale x${formatMultiplier(effect.moraleBonus)}`;
+}
+
+function formatDelta(current: number, next: number, inverse = false): string {
+  const delta = inverse ? current - next : next - current;
+  const pct = Math.round(delta * 1000) / 10;
+  if (pct === 0) return 'no change';
+  return `${pct > 0 ? '+' : ''}${pct}%`;
+}
+
+function facilityUpgradeDeltaCopy(type: string, current: FacilityEffect, next: FacilityEffect): string {
+  if (type === 'training_complex') {
+    return `Training XP ${formatDelta(current.trainingXPBonus, next.trainingXPBonus)} // morale ${formatDelta(current.moraleBonus, next.moraleBonus)}`;
+  }
+  if (type === 'medical_center') {
+    return `Recovery ${formatDelta(current.recoveryBonus, next.recoveryBonus)} // injury prevention ${formatDelta(current.injuryPreventionBonus, next.injuryPreventionBonus, true)}`;
+  }
+  if (type === 'film_room') {
+    return `Scouting ${formatDelta(current.scoutingBonus, next.scoutingBonus)} // morale ${formatDelta(current.moraleBonus, next.moraleBonus)}`;
+  }
+  if (type === 'weight_room') {
+    return `Training XP ${formatDelta(current.trainingXPBonus, next.trainingXPBonus)} // fatigue gain ${formatDelta(current.fatigueGainBonus, next.fatigueGainBonus, true)}`;
+  }
+  return `Injury risk ${formatDelta(current.injuryPreventionBonus, next.injuryPreventionBonus, true)} // morale ${formatDelta(current.moraleBonus, next.moraleBonus)}`;
+}
+
+export interface FacilityUpgradeForecast {
+  status: 'upgrade_ready' | 'budget_blocked' | 'maxed';
+  label: string;
+  accent: 'green' | 'gold' | 'cyan' | 'default';
+  nextLevelLabel: string;
+  costLabel: string;
+  budgetAfterLabel: string;
+  impact: string;
+  source: string;
+}
+
+export function buildFacilityUpgradeForecast(facility: Facility, facilityState: FacilityState): FacilityUpgradeForecast {
+  if (facility.level >= 3) {
+    return {
+      status: 'maxed',
+      label: 'Maxed out',
+      accent: 'default',
+      nextLevelLabel: 'Level 3 ceiling reached',
+      costLabel: 'No upgrade available',
+      budgetAfterLabel: `$${facilityState.budget} budget remains`,
+      impact: facilityEffectCopy(facility.type, facility.effect),
+      source: 'Source: saved team.facilityState and facility.effect; no upgradeFacility call until the button is clicked.',
+    };
+  }
+
+  const upgradeCost = facilityState.upgradeCosts[facility.type][facility.level - 1] ?? 0;
+  const nextLevel = (facility.level + 1) as 2 | 3;
+  const nextEffect = getFacilityLevelEffect(facility.type, nextLevel);
+  const affordable = facilityState.budget >= upgradeCost;
+
+  return {
+    status: affordable ? 'upgrade_ready' : 'budget_blocked',
+    label: affordable ? 'Upgrade ready' : 'Budget blocked',
+    accent: affordable ? 'gold' : 'default',
+    nextLevelLabel: `Level ${facility.level} -> ${nextLevel}`,
+    costLabel: `$${upgradeCost} cost`,
+    budgetAfterLabel: affordable
+      ? `$${Number((facilityState.budget - upgradeCost).toFixed(2))} after upgrade`
+      : `$${facilityState.budget} available`,
+    impact: facilityUpgradeDeltaCopy(facility.type, facility.effect, nextEffect),
+    source: 'Source: saved team.facilityState plus getFacilityLevelEffect; the Upgrade button is the only action that saves this change.',
+  };
+}
+
+export interface MedicalStaffHireForecast {
+  status: 'hire_ready' | 'phase_locked';
+  label: string;
+  accent: 'gold' | 'cyan' | 'default';
+  recoveryImpact: string;
+  preventionImpact: string;
+  salaryLabel: string;
+  source: string;
+}
+
+export function buildMedicalStaffHireForecast(
+  candidate: MedicalStaff,
+  context: {
+    current: MedicalStaff | null;
+    phase: string;
+  },
+): MedicalStaffHireForecast {
+  const current = context.current ?? {
+    id: 'league-average',
+    name: 'League Average Medical Team',
+    tier: 'average',
+    salary: 0,
+    recoveryBonus: 1,
+    preventionBonus: 1,
+  } satisfies MedicalStaff;
+  const hiringOpen = context.phase === 'offseason';
+
+  return {
+    status: hiringOpen ? 'hire_ready' : 'phase_locked',
+    label: hiringOpen ? 'Hire ready' : 'Offseason gate',
+    accent: hiringOpen ? 'cyan' : 'default',
+    recoveryImpact: `Recovery time ${formatDelta(current.recoveryBonus, candidate.recoveryBonus, true)}`,
+    preventionImpact: `Injury risk ${formatDelta(current.preventionBonus, candidate.preventionBonus, true)}`,
+    salaryLabel: `$${candidate.salary.toFixed(1)}M salary`,
+    source: 'Source: availableMedicalStaff candidate plus saved team.medicalStaff; the Hire button is the only action that saves this change.',
+  };
+}
+
+type SettingsReceiptAccent = 'green' | 'gold' | 'cyan' | 'red' | 'default';
+type SettingsReceiptAction = 'facility_upgrade' | 'medical_hire';
+
+export interface SettingsActionReceipt {
+  id: string;
+  title: string;
+  accent: SettingsReceiptAccent;
+  target: string;
+  result: string;
+  stateTouched: string;
+  source: string;
+  boundary: string;
+}
+
+export function buildSettingsActionReceipt(args: {
+  action: SettingsReceiptAction;
+  teamName: string;
+  facilityType?: string;
+  facilityLabel?: string;
+  fromLevel?: number;
+  nextLevelLabel?: string;
+  costLabel?: string;
+  budgetAfterLabel?: string;
+  impact?: string;
+  staffId?: string;
+  staffName?: string;
+  staffTier?: MedicalStaff['tier'];
+  previousStaffName?: string | null;
+  salaryLabel?: string;
+  recoveryImpact?: string;
+  preventionImpact?: string;
+}): SettingsActionReceipt {
+  if (args.action === 'facility_upgrade') {
+    const facilityLabel = args.facilityLabel ?? args.facilityType ?? 'Facility';
+    return {
+      id: `settings:facility:${args.facilityType ?? facilityLabel}:${args.fromLevel ?? 'current'}`,
+      title: 'Facility Upgrade Processed',
+      accent: 'gold',
+      target: `${facilityLabel} // ${args.teamName}`,
+      result: `${facilityLabel} upgrade resolved from Level ${args.fromLevel ?? '?'} using ${args.costLabel ?? 'the saved upgrade cost'}. ${args.nextLevelLabel ?? 'Next level applied'}; ${args.budgetAfterLabel ?? 'facility budget refreshed after commit'}. Impact preview before commit: ${args.impact ?? 'saved facility effect refreshed'}.`,
+      stateTouched: 'team.facilityState budget, facility level/effect, and autosave through the existing store commit.',
+      source: 'actions.upgradeFacility -> upgradeFacilityEngine -> commitGame',
+      boundary: 'This confirmation does not run progression, training camp, injury recovery, scouting, week advance, game-result math, saved outcomes, facility formula recalculation beyond the existing helper, or a separate confirmation log.',
+    };
+  }
+
+  return {
+    id: `settings:medical:${args.staffId ?? args.staffName ?? 'staff'}`,
+    title: 'Medical Staff Hire Processed',
+    accent: 'cyan',
+    target: `${args.staffName ?? 'Medical staff'} // ${args.staffTier ?? 'candidate'} // ${args.teamName}`,
+    result: `${args.staffName ?? 'The selected staffer'} was hired from the offseason candidate pool. Previous staff: ${args.previousStaffName ?? 'none'}. ${args.salaryLabel ?? 'Salary saved on the staff record'}; ${args.recoveryImpact ?? 'recovery context refreshed'} // ${args.preventionImpact ?? 'injury-prevention context refreshed'}.`,
+    stateTouched: 'team.medicalStaff, game.availableMedicalStaff candidate pool including prior staff return when present, and autosave through the existing store commit.',
+    source: 'actions.hireMedicalStaff -> hireMedicalStaffEngine -> commitGame',
+    boundary: 'This confirmation does not refresh the medical pool, process injury recovery, change injury formulas, run training camp, advance the offseason, reroll saved outcomes, or save a separate confirmation log.',
+  };
+}
+
+export function SettingsActionReceiptPanel({ receipt }: { receipt: SettingsActionReceipt }) {
+  return (
+    <PixelPanel title="Operations Action Receipt" accent={receipt.accent}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant={receipt.accent}>{receipt.title}</PixelBadge>
+          <PixelBadge variant="default">On-screen confirmation</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.5 }}>{receipt.target}</div>
+        <div style={autoGrid(220)}>
+          {[
+            { label: 'Result', detail: receipt.result, accent: receipt.accent },
+            { label: 'Changed now', detail: receipt.stateTouched, accent: 'gold' as const },
+            { label: 'Action used', detail: receipt.source, accent: 'cyan' as const },
+            { label: 'Did not also', detail: receipt.boundary, accent: 'green' as const },
+          ].map((row) => (
+            <div
+              key={row.label}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                padding: '8px',
+                border: '1px solid var(--mfd-border)',
+                background: 'var(--mfd-bg-elevated)',
+              }}
+            >
+              <PixelBadge variant={row.accent}>{row.label}</PixelBadge>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{row.detail}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
+function toneAccent(tone: TeamOpsImpactTone): 'default' | 'gold' | 'cyan' | 'green' | 'red' {
+  if (tone === 'positive') return 'green';
+  if (tone === 'warning') return 'gold';
+  if (tone === 'negative') return 'red';
+  return 'cyan';
 }
 
 function isDebugModeEnabled(): boolean {
@@ -78,13 +301,49 @@ export function Settings() {
   const currentMedical = medicalStaff.current;
   const availableMedicalStaff = medicalStaff.available;
   const medicalHiringOpen = phase === 'offseason';
+  const teamName = team ? [team.city, team.name].filter(Boolean).join(' ') || team.name : 'Franchise';
+  const [actionReceipt, setActionReceipt] = useState<SettingsActionReceipt | null>(null);
   const debugModeEnabled = isDebugModeEnabled();
   const invariantResult = useMemo(
     () => (debugModeEnabled && game ? validateGameState(game) : null),
     [debugModeEnabled, game],
   );
-  const adaptiveRecentCount = difficultyState.recentUserResults?.length ?? 0;
-  const adaptiveAdjustmentCount = difficultyState.adjustmentHistory?.length ?? 0;
+  const teamOpsReceipt = useMemo(
+    () => (game && team ? buildTeamOpsImpactReceipt(game, team.id) : null),
+    [game, team],
+  );
+
+  const handleUpgradeFacility = async (facility: Facility, forecast: FacilityUpgradeForecast) => {
+    if (!team || forecast.status !== 'upgrade_ready') return;
+    await upgradeFacility(team.id, facility.type);
+    setActionReceipt(buildSettingsActionReceipt({
+      action: 'facility_upgrade',
+      teamName,
+      facilityType: facility.type,
+      facilityLabel: facilityLabels[facility.type] ?? facility.type,
+      fromLevel: facility.level,
+      nextLevelLabel: forecast.nextLevelLabel,
+      costLabel: forecast.costLabel,
+      budgetAfterLabel: forecast.budgetAfterLabel,
+      impact: forecast.impact,
+    }));
+  };
+
+  const handleHireMedicalStaff = async (staff: MedicalStaff, forecast: MedicalStaffHireForecast) => {
+    if (!team || !medicalHiringOpen) return;
+    await hireMedicalStaff(team.id, staff.id);
+    setActionReceipt(buildSettingsActionReceipt({
+      action: 'medical_hire',
+      teamName,
+      staffId: staff.id,
+      staffName: staff.name,
+      staffTier: staff.tier,
+      previousStaffName: currentMedical?.name ?? null,
+      salaryLabel: forecast.salaryLabel,
+      recoveryImpact: forecast.recoveryImpact,
+      preventionImpact: forecast.preventionImpact,
+    }));
+  };
 
   return (
     <div style={screenStackStyle}>
@@ -134,6 +393,115 @@ export function Settings() {
         />
       </div>
 
+      <div aria-label="Adaptive Difficulty Readout">
+        <PixelPanel title="Adaptive Difficulty Readout" accent={difficultyState.enabled ? 'cyan' : 'default'}>
+          <div style={autoGrid(180)}>
+            <PixelMetricCard
+              label="Status"
+              value={difficultyState.enabled ? 'ON' : 'OFF'}
+              accent={difficultyState.enabled ? 'cyan' : 'default'}
+              detail={difficultyState.enabled ? 'Saved adaptive tuning is active for this dynasty.' : 'Difficulty is fixed at the selected tier.'}
+            />
+            <PixelMetricCard
+              label="League Slider"
+              value={`${difficultyState.adaptiveSlider}/100`}
+              accent="gold"
+              detail="Stored on the save and adjusted only through gameplay outcomes."
+            />
+            <PixelMetricCard
+              label="Current Tier"
+              value={DIFF_SETTINGS[difficulty].name}
+              accent="green"
+              detail="Base difficulty still anchors trade, injury, owner, and morale modifiers."
+            />
+          </div>
+        </PixelPanel>
+      </div>
+
+      {teamOpsReceipt ? (
+        <PixelPanel title="Team Ops Impact" accent="green">
+          <div style={autoGrid(180)}>
+            {teamOpsReceipt.summaryItems.map((item) => (
+              <PixelMetricCard
+                key={item.id}
+                label={item.label}
+                value={item.value}
+                accent={toneAccent(item.tone)}
+                detail={item.detail}
+              />
+            ))}
+          </div>
+          {teamOpsReceipt.mentors.topEffects.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+              {teamOpsReceipt.mentors.topEffects.slice(0, 3).map((effect) => (
+                <div key={effect.targetPlayerId} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', padding: '8px 10px', border: '2px solid var(--mfd-border)', background: 'var(--mfd-bg-2)' }}>
+                  <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{effect.description}</span>
+                  <PixelBadge variant="green">+{(effect.devBonus * 100).toFixed(0)}% DEV</PixelBadge>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </PixelPanel>
+      ) : null}
+
+      {actionReceipt ? <SettingsActionReceiptPanel receipt={actionReceipt} /> : null}
+
+      <div data-spotlight-target="chip.route.settings.beat-2">
+        <PixelPanel title="Operations Source" accent="cyan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', padding: '10px', border: '2px solid var(--mfd-border)', background: 'var(--mfd-bg-2)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '240px', flex: 1 }}>
+                <span style={{ ...monoSm, color: '#fff' }}>Facility source</span>
+                <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                  Rows read saved facility levels, saved budget, and each saved facility.effect from the user team.
+                </span>
+              </div>
+              <PixelBadge variant="gold">team.facilityState</PixelBadge>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', padding: '10px', border: '2px solid var(--mfd-border)', background: 'var(--mfd-bg-2)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '240px', flex: 1 }}>
+                <span style={{ ...monoSm, color: '#fff' }}>Upgrade commit</span>
+                <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                  Upgrade buttons call the existing store action and engine helper; this screen does not run progression or training camp math.
+                </span>
+              </div>
+              <PixelBadge variant="default">upgradeFacility</PixelBadge>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', padding: '10px', border: '2px solid var(--mfd-border)', background: 'var(--mfd-bg-2)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '240px', flex: 1 }}>
+                <span style={{ ...monoSm, color: '#fff' }}>Medical source</span>
+                <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                  Current staff is saved on the user team; candidates come from the game-level availableMedicalStaff pool.
+                </span>
+              </div>
+              <PixelBadge variant={medicalHiringOpen ? 'cyan' : 'default'}>
+                team.medicalStaff
+              </PixelBadge>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', padding: '10px', border: '2px solid var(--mfd-border)', background: 'var(--mfd-bg-2)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '240px', flex: 1 }}>
+                <span style={{ ...monoSm, color: '#fff' }}>Hiring gate</span>
+                <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                  The button state mirrors hireMedicalStaff's offseason gate; rendering does not refresh the pool or process injury recovery.
+                </span>
+              </div>
+              <PixelBadge variant={medicalHiringOpen ? 'gold' : 'default'}>
+                {medicalHiringOpen ? 'offseason open' : 'offseason only'}
+              </PixelBadge>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', padding: '10px', border: '2px solid var(--mfd-border)', background: 'var(--mfd-bg-2)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '240px', flex: 1 }}>
+                <span style={{ ...monoSm, color: '#fff' }}>Receipt source</span>
+                <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                  Team Ops Impact reuses buildTeamOpsImpactReceipt for facility aggregate, recovery estimate, mentor reach, and saved camp receipts.
+                </span>
+              </div>
+              <PixelBadge variant="green">read-only receipt</PixelBadge>
+            </div>
+          </div>
+        </PixelPanel>
+      </div>
+
       <PixelPanel title="Difficulty" accent="gold">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {difficultyOrder.map((level) => {
@@ -157,7 +525,8 @@ export function Settings() {
       </PixelPanel>
 
       <div style={autoGrid(320)}>
-        <PixelPanel title="Simulation Preferences" accent="cyan">
+        <div data-spotlight-target="chip.route.settings.beat-1">
+          <PixelPanel title="Simulation Preferences" accent="cyan">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <PixelSwitch
               checked={difficultyState.enabled}
@@ -184,7 +553,7 @@ export function Settings() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <span style={{ ...monoSm, color: '#fff' }}>Autosave</span>
                 <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-                  Disable if you want manual save control during testing.
+                  Disable for manual save control during testing.
                 </span>
               </div>
               <PixelButton
@@ -212,36 +581,8 @@ export function Settings() {
               </div>
             </div>
           </div>
-        </PixelPanel>
-
-        <PixelPanel title="Adaptive Difficulty Readout" accent={difficultyState.enabled ? 'cyan' : 'default'}>
-          <div style={autoGrid(160)}>
-            <PixelMetricCard
-              label="League Slider"
-              value={`${difficultyState.adaptiveSlider}/100`}
-              accent={difficultyState.enabled ? 'cyan' : 'default'}
-              detail={difficultyState.enabled ? 'Active adjustment rail' : 'Paused'}
-            />
-            <PixelMetricCard
-              label="User Streak"
-              value={difficultyState.currentStreak}
-              accent={difficultyState.currentStreak > 0 ? 'green' : difficultyState.currentStreak < 0 ? 'red' : 'gold'}
-              detail={difficultyState.currentStreak > 0 ? 'Wins in a row' : difficultyState.currentStreak < 0 ? 'Losses in a row' : 'Neutral'}
-            />
-            <PixelMetricCard
-              label="Recent Sample"
-              value={adaptiveRecentCount}
-              accent="gold"
-              detail="Stored user result window"
-            />
-            <PixelMetricCard
-              label="Adjustments"
-              value={adaptiveAdjustmentCount}
-              accent="green"
-              detail="Historical slider moves"
-            />
-          </div>
-        </PixelPanel>
+          </PixelPanel>
+        </div>
 
         {/* Legacy convention-test anchors: Mute Audio / Unmute Audio / audio.setVolume */}
         <AudioSettings
@@ -279,6 +620,7 @@ export function Settings() {
             {facilities.facilities.map((facility) => {
               const upgradeCost = facility.level >= 3 ? null : facilities.upgradeCosts[facility.type][facility.level - 1] ?? null;
               const canUpgrade = upgradeCost !== null && facilities.budget >= upgradeCost && team;
+              const forecast = buildFacilityUpgradeForecast(facility, facilities);
               return (
                 <div
                   key={facility.type}
@@ -299,14 +641,30 @@ export function Settings() {
                       <PixelBadge variant={facility.level === 3 ? 'gold' : 'cyan'}>{`L${facility.level}`}</PixelBadge>
                     </div>
                     <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-                      {facilityEffectCopy(facility.type, facility.level)}
+                      {facilityEffectCopy(facility.type, facility.effect)}
                     </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px', padding: '8px', border: '2px solid var(--mfd-border)', background: 'var(--mfd-bg-2)' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <PixelBadge variant={forecast.accent}>Upgrade Forecast</PixelBadge>
+                        <PixelBadge variant={forecast.accent}>{forecast.label}</PixelBadge>
+                        <PixelBadge variant="cyan">{forecast.nextLevelLabel}</PixelBadge>
+                      </div>
+                      <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>
+                        {forecast.impact}
+                      </span>
+                      <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                        {forecast.costLabel} // {forecast.budgetAfterLabel}
+                      </span>
+                      <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                        {forecast.source}
+                      </span>
+                    </div>
                   </div>
                   <PixelButton
                     type="button"
                     accent={canUpgrade ? 'gold' : 'default'}
                     disabled={!canUpgrade}
-                    onClick={() => team && void upgradeFacility(team.id, facility.type)}
+                    onClick={() => { void handleUpgradeFacility(facility, forecast); }}
                   >
                     {facility.level >= 3 ? 'Maxed' : `Upgrade ${upgradeCost !== null ? `($${upgradeCost})` : ''}`}
                   </PixelButton>
@@ -353,24 +711,45 @@ export function Settings() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {availableMedicalStaff.slice(0, 5).map((staff) => (
-                  <div key={staff.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', padding: '10px', border: '3px solid var(--mfd-border)', background: 'var(--mfd-bg-3)', flexWrap: 'wrap' }}>
-                    <div>
-                      <div style={{ ...monoSm, color: '#fff' }}>{staff.name}</div>
-                      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-                        {staff.tier} // recovery x{staff.recoveryBonus.toFixed(2)} // prevention x{staff.preventionBonus.toFixed(2)} // ${staff.salary.toFixed(1)}M
+                {availableMedicalStaff.slice(0, 5).map((staff) => {
+                  const hireForecast = buildMedicalStaffHireForecast(staff, {
+                    current: currentMedical,
+                    phase,
+                  });
+                  return (
+                    <div key={staff.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', padding: '10px', border: '3px solid var(--mfd-border)', background: 'var(--mfd-bg-3)', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '240px', flex: 1 }}>
+                        <div>
+                          <div style={{ ...monoSm, color: '#fff' }}>{staff.name}</div>
+                          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                            {staff.tier} // recovery x{staff.recoveryBonus.toFixed(2)} // prevention x{staff.preventionBonus.toFixed(2)} // ${staff.salary.toFixed(1)}M
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '8px', border: '2px solid var(--mfd-border)', background: 'var(--mfd-bg-2)' }}>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <PixelBadge variant={hireForecast.accent}>Hiring Forecast</PixelBadge>
+                            <PixelBadge variant={hireForecast.accent}>{hireForecast.label}</PixelBadge>
+                            <PixelBadge variant="gold">{hireForecast.salaryLabel}</PixelBadge>
+                          </div>
+                          <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>
+                            {hireForecast.recoveryImpact} // {hireForecast.preventionImpact}
+                          </span>
+                          <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+                            {hireForecast.source}
+                          </span>
+                        </div>
                       </div>
+                      <PixelButton
+                        type="button"
+                        accent={medicalHiringOpen ? 'cyan' : 'default'}
+                        disabled={!medicalHiringOpen || !team}
+                        onClick={() => { void handleHireMedicalStaff(staff, hireForecast); }}
+                      >
+                        Hire Staff
+                      </PixelButton>
                     </div>
-                    <PixelButton
-                      type="button"
-                      accent={medicalHiringOpen ? 'cyan' : 'default'}
-                      disabled={!medicalHiringOpen || !team}
-                      onClick={() => team && void hireMedicalStaff(team.id, staff.id)}
-                    >
-                      Hire Staff
-                    </PixelButton>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

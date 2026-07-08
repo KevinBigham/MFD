@@ -9,3 +9,18 @@ coverage/
 playwright-report/
 storybook-static/
 tmp/
+
+# Local-only Claude/Codex agent state
+.claude/settings.local.json
+.claude/worktrees/
+
+# Playwright runner artifacts
+.playwright-cli/
+.playwright-mcp/
+
+# Generated playwright screenshots
+output/
+
+# Corrupt-backup files from iCloud-related editor failures
+*.unreadable-*
+*.corrupt-backup-*

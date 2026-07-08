@@ -1,5 +1,17 @@
-import { useState } from 'react';
-import { calculateTrainingXP, getAchievementProgress, calculateDynastyWindow, getAlumniUpdates, windowPhaseLabel, windowPhaseColor, type Achievement, type DashboardWidget } from '@mfd/engine';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  buildTeamOpsImpactReceipt,
+  calculateTrainingXP,
+  getAchievementProgress,
+  calculateDynastyWindow,
+  getAlumniUpdates,
+  windowPhaseLabel,
+  windowPhaseColor,
+  type Achievement,
+  type DashboardWidget,
+  type GameState,
+  type TeamOpsImpactTone,
+} from '@mfd/engine';
 import {
   ChipDialogueBubble,
   PixelBadge,
@@ -29,6 +41,7 @@ import {
   selectLeagueNews,
   selectNarrativeIntensity,
   selectOwnerState,
+  selectOwnerMandates,
   selectPhase,
   selectPlayoffMomentum,
   selectPlayoffPicture,
@@ -65,6 +78,20 @@ import { TeamLogo } from '../shared/TeamLogo';
 import { isChipFeatureEnabled } from '../companion';
 import { selectWeeklyDialogue, type WeeklyDialogueVariant } from '../companion/dialogue/weekly';
 import type { DialogueCatalogEntry } from '../companion/dialogue/types';
+import { countPendingDecisions } from '../companion/decisionsPending';
+import { buildWeeklyGuidance, weeklyGuidanceToDialogueEntry } from '../companion/weeklyGuidance';
+import { deriveDynastyId } from '../../lib/career-meta';
+import { buildWeeklyCallbacks, type CallbackCard } from '../../lib/dynasty-callbacks';
+import { readScrapbookForDynasty } from '../../lib/scrapbook-store';
+import {
+  SESSION_RECAP_STORAGE_KEY,
+  buildSessionRecap,
+  dismissSessionRecapForSession,
+  markSessionRecapDisplayed,
+  shouldShowSessionRecap,
+  type SessionRecap,
+  type SessionRecapPendingItem,
+} from '../../lib/session-recap';
 
 const facilityLabels: Record<string, string> = {
   training_complex: 'Training Complex',
@@ -75,13 +102,13 @@ const facilityLabels: Record<string, string> = {
 };
 
 const WIDGET_OPTIONS: Array<{ value: DashboardWidget; label: string; description: string }> = [
-  { value: 'team_record', label: 'Team Record', description: 'Record, point differential, and room temperature.' },
-  { value: 'next_game', label: 'Next Game', description: 'Upcoming opponent, broadcast, and matchup context.' },
+  { value: 'team_record', label: 'Team Record', description: 'Record, point differential, and owner patience.' },
+  { value: 'next_game', label: 'Next Game', description: 'Upcoming opponent, broadcast, weather, and matchup calls.' },
   { value: 'injury_report', label: 'Injury Report', description: 'Current injuries and recovery windows.' },
   { value: 'fatigue_watch', label: 'Fatigue Watch', description: 'Workload alerts before kickoff.' },
-  { value: 'cap_snapshot', label: 'Cap Snapshot', description: 'Cap room, payroll, and facility budget.' },
-  { value: 'dynasty_window', label: 'Dynasty Window', description: 'Competitive window phase and franchise trajectory.' },
-  { value: 'power_ranking', label: 'Power Ranking', description: 'League positioning and movement.' },
+  { value: 'cap_snapshot', label: 'Cap Snapshot', description: 'Cap space, payroll, and facility budget.' },
+  { value: 'dynasty_window', label: 'Dynasty Window', description: 'Core age, contract timing, and whether to add veterans or save cap.' },
+  { value: 'power_ranking', label: 'Power Ranking', description: 'Rank change, why it moved, and who the league is chasing.' },
   { value: 'promise_tracker', label: 'Promise Tracker', description: 'Owner and player promises on the clock.' },
   { value: 'training_report', label: 'Training Report', description: 'Who is stacking the best weekly gains.' },
   { value: 'league_headlines', label: 'League Headlines', description: 'Breaking stories around the league.' },
@@ -90,11 +117,70 @@ const WIDGET_OPTIONS: Array<{ value: DashboardWidget; label: string; description
   { value: 'coaching_news', label: 'Coaching News', description: 'League staffing movement.' },
   { value: 'waiver_wire', label: 'Waiver Wire', description: 'Claimable talent and roster churn.' },
   { value: 'weather_forecast', label: 'Weather Forecast', description: 'Conditions for the next stage.' },
-  { value: 'achievement_progress', label: 'Achievement Progress', description: 'Closest milestones toward Hall of Champions.' },
-  { value: 'dynasty_score', label: 'Dynasty Score', description: 'Legacy index and title posture.' },
+  { value: 'achievement_progress', label: 'Achievement Progress', description: 'Closest unlocks and what action moves each one.' },
+  { value: 'dynasty_score', label: 'Dynasty Score', description: 'Titles, playoff trips, awards, and records in one score.' },
   { value: 'playoff_picture', label: 'Playoff Picture', description: 'Current conference bracket track.' },
   { value: 'stat_leaders', label: 'Stat Leaders', description: 'League leaders in core categories.' },
 ];
+
+type SourceAccent = 'cyan' | 'gold' | 'green' | 'red';
+
+interface BriefingSourceRowsInput {
+  phase: string;
+  week: number;
+  year: number;
+  layoutName: string;
+  widgetCount: number;
+  pinnedCount: number;
+}
+
+interface BriefingSourceRow {
+  label: string;
+  badge: string;
+  detail: string;
+  accent: SourceAccent;
+}
+
+export function buildBriefingSourceRows(input: BriefingSourceRowsInput): BriefingSourceRow[] {
+  return [
+    {
+      label: 'Saved week inputs',
+      badge: `${input.phase} W${input.week}`,
+      detail: 'Monday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.',
+      accent: 'cyan',
+    },
+    {
+      label: 'Dashboard layout',
+      badge: input.layoutName,
+      detail: 'Saved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.',
+      accent: 'gold',
+    },
+    {
+      label: 'Weekly cards',
+      badge: `${input.widgetCount} widgets`,
+      detail: 'Cards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.',
+      accent: 'green',
+    },
+    {
+      label: 'Action Center',
+      badge: 'ActionCenter',
+      detail: 'Action Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.',
+      accent: 'cyan',
+    },
+    {
+      label: 'Screen controls',
+      badge: `${input.pinnedCount} pinned`,
+      detail: 'Customize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.',
+      accent: 'gold',
+    },
+    {
+      label: 'What opening does not do',
+      badge: 'no lock-in',
+      detail: `Opening Monday Briefing for ${input.year} does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.`,
+      accent: 'red',
+    },
+  ];
+}
 
 function resultAccent(result?: string): 'default' | 'green' | 'red' {
   return result === 'win' ? 'green' : result === 'loss' ? 'red' : 'default';
@@ -102,6 +188,228 @@ function resultAccent(result?: string): 'default' | 'green' | 'red' {
 
 function rankingDeltaAccent(delta: number): 'default' | 'green' | 'red' {
   return delta > 0 ? 'green' : delta < 0 ? 'red' : 'default';
+}
+
+function callbackKindAccent(kind: CallbackCard['kind']): 'default' | 'gold' | 'cyan' | 'green' | 'red' {
+  if (kind === 'ANNIVERSARY') return 'gold';
+  if (kind === 'FOLLOW_THROUGH') return 'green';
+  return 'cyan';
+}
+
+function callbackKindLabel(kind: CallbackCard['kind']): string {
+  if (kind === 'ANNIVERSARY') return 'Anniversary';
+  if (kind === 'FOLLOW_THROUGH') return 'Follow-through';
+  return 'Milestone echo';
+}
+
+function callbackSeasonLabel(seasonsAgo: number): string {
+  return `${seasonsAgo} ${seasonsAgo === 1 ? 'season' : 'seasons'} ago`;
+}
+
+function callbackSourceLabel(card: CallbackCard): string {
+  const primaryRef = card.sourceRefs[0] ?? '';
+  const weekRef = card.sourceRefs.find((ref) => ref.startsWith('Week '));
+  const suffix = weekRef ? `, ${weekRef}` : '';
+
+  if (primaryRef.startsWith('gameDayPackage:') || primaryRef.startsWith('namedGame:')) {
+    return `From your saved game-day package and named game${suffix}.`;
+  }
+  if (primaryRef.startsWith('leagueNews:')) {
+    return `From your saved league news${suffix}.`;
+  }
+  if (primaryRef.startsWith('draftRecap:')) {
+    return 'From your saved draft recap and current player table.';
+  }
+  if (primaryRef.startsWith('records:')) {
+    return `From your saved record book${suffix}.`;
+  }
+  if (primaryRef.startsWith('hallOfFame:')) {
+    return `From your saved Hall of Fame archive${suffix}.`;
+  }
+  if (primaryRef.startsWith('scrapbook:')) {
+    return `From your saved dynasty scrapbook${suffix}.`;
+  }
+  return `From your saved dynasty receipts${suffix}.`;
+}
+
+function chipMemoryCallbackText(card: CallbackCard): string {
+  return `${card.headline}. ${card.body}`;
+}
+
+function readDynastyScrapbookEntries(game: GameState) {
+  try {
+    return readScrapbookForDynasty(deriveDynastyId(game));
+  } catch {
+    return [];
+  }
+}
+
+export function DynastyHistoryPanel({ cards }: { cards: CallbackCard[] }) {
+  if (cards.length === 0) return null;
+
+  return (
+    <PixelPanel title="This Week in Dynasty History" accent="gold">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="gold">Read-only</PixelBadge>
+          <PixelBadge variant="cyan">Saved receipts</PixelBadge>
+          <PixelBadge variant="green">{`${cards.length} callback${cards.length === 1 ? '' : 's'}`}</PixelBadge>
+        </div>
+        <div style={autoGrid(260)}>
+          {cards.map((card) => (
+            <div
+              key={card.id}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                padding: '12px',
+                border: '2px solid var(--mfd-border)',
+                background: 'var(--mfd-bg-2)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <PixelBadge variant={callbackKindAccent(card.kind)}>{callbackKindLabel(card.kind)}</PixelBadge>
+                <PixelBadge variant="default">{callbackSeasonLabel(card.seasonsAgo)}</PixelBadge>
+              </div>
+              <div style={{ ...display, fontSize: '18px', color: '#fff', lineHeight: 1.15 }}>
+                {card.headline}
+              </div>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+                {card.body}
+              </div>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-faint)', lineHeight: 1.6 }}>
+                {callbackSourceLabel(card)}
+              </div>
+              <div>
+                <PixelButton accent={callbackKindAccent(card.kind)} onClick={() => navigateTo(card.ctaRoute)}>
+                  {card.ctaLabel}
+                </PixelButton>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </PixelPanel>
+  );
+}
+
+function sessionRecapChipText(recap: SessionRecap): string {
+  const copy = `Previously on your dynasty: ${recap.stakesLine} Open Action Center or the highlighted screen before Advance Week locks this week.`;
+  return copy.length <= 236 ? copy : `${copy.slice(0, 233).trimEnd()}...`;
+}
+
+function sessionRecapSourceLine(): string {
+  return `Browser-local convenience state: ${SESSION_RECAP_STORAGE_KEY} stores only this dynasty's last-seen timestamp; it is outside the dynasty archive.`;
+}
+
+export function SessionRecapSurface({
+  recap,
+  visible,
+  chipEnabled,
+  reducedMotion = false,
+  onDismiss,
+}: {
+  recap: SessionRecap | null;
+  visible: boolean;
+  chipEnabled: boolean;
+  reducedMotion?: boolean;
+  onDismiss: () => void;
+}) {
+  if (!visible || !recap) return null;
+
+  const beatList = (
+    <div style={{ display: 'grid', gap: '10px' }}>
+      {recap.beats.map((beat) => (
+        <div
+          key={beat.id}
+          style={{
+            display: 'grid',
+            gap: '6px',
+            padding: '10px',
+            border: '2px solid var(--mfd-border)',
+            background: 'var(--mfd-bg-2)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>{beat.label.toUpperCase()}</span>
+            <PixelBadge variant={beat.kind === 'THIS_WEEK' ? 'gold' : beat.kind === 'JUST_HAPPENED' ? 'cyan' : 'green'}>
+              {beat.kind.replaceAll('_', ' ')}
+            </PixelBadge>
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.65 }}>{beat.text}</div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const footer = (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ ...monoSm, color: 'var(--mfd-text-faint)', lineHeight: 1.6 }}>
+        {sessionRecapSourceLine()}
+      </div>
+      <PixelButton accent="cyan" data-session-recap-dismiss="true" onClick={onDismiss}>
+        Dismiss Recap
+      </PixelButton>
+    </div>
+  );
+
+  if (chipEnabled) {
+    return (
+      <div
+        data-session-recap-surface="chip"
+        style={{ display: 'grid', gap: '10px', maxWidth: '900px' }}
+      >
+        <ChipDialogueBubble
+          text={sessionRecapChipText(recap)}
+          pose="reviewing-tablet"
+          pointer="right"
+          reducedMotion={reducedMotion}
+        />
+        <div
+          style={{
+            display: 'grid',
+            gap: '10px',
+            padding: '12px',
+            border: '2px solid rgba(255, 215, 0, 0.36)',
+            borderLeft: '5px solid var(--mfd-gold)',
+            background: 'rgba(255, 215, 0, 0.06)',
+          }}
+        >
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <PixelBadge variant="gold">Previously on</PixelBadge>
+            <PixelBadge variant="cyan">Chip opener</PixelBadge>
+            <PixelBadge variant="default">browser-local</PixelBadge>
+          </div>
+          {beatList}
+          {footer}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <PixelPanel title="Previously on your dynasty" accent="gold">
+      <div data-session-recap-surface="fallback" style={{ display: 'grid', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="gold">Session recap</PixelBadge>
+          <PixelBadge variant="default">browser-local</PixelBadge>
+        </div>
+        <div style={{ ...display, fontSize: '20px', color: '#fff', lineHeight: 1.2 }}>
+          {recap.stakesLine}
+        </div>
+        {beatList}
+        {footer}
+      </div>
+    </PixelPanel>
+  );
+}
+
+function opsToneAccent(tone: TeamOpsImpactTone): 'default' | 'gold' | 'cyan' | 'green' | 'red' {
+  if (tone === 'positive') return 'green';
+  if (tone === 'warning') return 'gold';
+  if (tone === 'negative') return 'red';
+  return 'cyan';
 }
 
 function rankingDeltaLabel(delta: number): string {
@@ -114,10 +422,17 @@ export interface MondayBriefingChipInput {
   phase: string;
   week: number;
   dynastySeed: number;
+  record?: string;
+  opponentName?: string | null;
+  injuryCount?: number;
+  pendingDecisionCount?: number;
+  capSpace?: number;
+  difficulty?: string;
   latestResult?: 'win' | 'loss' | 'tie' | 'pending' | string | null;
   latestTeamScore?: number | null;
   latestOpponentScore?: number | null;
   recentResults?: ReadonlyArray<'win' | 'loss' | 'tie' | 'pending' | string | null | undefined>;
+  memoryCallbacks?: readonly string[];
 }
 
 const BLOWOUT_MARGIN = 21;
@@ -153,11 +468,166 @@ function selectMondayBriefingVariant(input: MondayBriefingChipInput): WeeklyDial
 }
 
 export function selectMondayBriefingChipDialogue(input: MondayBriefingChipInput): DialogueCatalogEntry {
-  return selectWeeklyDialogue({
-    gameOutcome: selectMondayBriefingVariant(input),
+  const outcome = selectMondayBriefingVariant(input);
+  const base = selectWeeklyDialogue({
+    gameOutcome: outcome,
     currentWeek: input.week,
     dynastySeed: input.dynastySeed,
   });
+  const guidance = weeklyGuidanceToDialogueEntry(buildWeeklyGuidance({
+    outcome,
+    currentWeek: input.week,
+    record: input.record,
+    opponentName: input.opponentName ?? undefined,
+    injuryCount: input.injuryCount,
+    pendingDecisionCount: input.pendingDecisionCount,
+    capSpace: input.capSpace,
+    difficulty: input.difficulty,
+    memoryCallbacks: input.memoryCallbacks,
+  }));
+
+  return {
+    ...base,
+    pose: guidance.pose,
+    text: guidance.text,
+    contextDetails: guidance.contextDetails,
+    priority: guidance.priority,
+  };
+}
+
+function chipDetail(entry: DialogueCatalogEntry, label: string): string | null {
+  const prefix = `${label}: `;
+  return entry.contextDetails?.find((detail) => detail.startsWith(prefix))?.slice(prefix.length) ?? null;
+}
+
+const MONDAY_CHIP_DETAIL_PREFIXES = ['Must Do:', 'Recommended:', 'Optional:', 'Consequence:', 'Where:'] as const;
+
+export function chipBriefingDetails(entry: DialogueCatalogEntry): string[] {
+  return entry.contextDetails?.filter((detail) => (
+    MONDAY_CHIP_DETAIL_PREFIXES.some((prefix) => detail.startsWith(prefix))
+  )) ?? [];
+}
+
+function chipMustDoSummary(mustDo: string | null): string | null {
+  if (!mustDo) return null;
+  if (mustDo.startsWith('Roster and depth chart')) return 'Set roster and Depth Chart before Game Plan.';
+  if (
+    mustDo.startsWith('open Roster, set first backups')
+    || mustDo.startsWith('set injury status')
+    || mustDo.startsWith('cover injuries, first backups')
+    || mustDo.startsWith('cover injury flags')
+  ) {
+    return 'Cover injuries before Game Plan.';
+  }
+  if (
+    mustDo.startsWith('Pending decisions')
+    || mustDo.startsWith('answer pending decisions')
+    || mustDo.startsWith('open Inbox, Action Center')
+    || mustDo.startsWith('choose or defer')
+  ) {
+    return 'Choose or defer pending decisions before Advance Week.';
+  }
+  if (mustDo.startsWith('Open Monday Briefing') || mustDo.startsWith('open Monday Briefing') || mustDo.startsWith('Read Monday Briefing') || mustDo.startsWith('read Monday Briefing')) {
+    return 'Open Action Center; fix or accept named items.';
+  }
+  if (mustDo.startsWith('open Postgame Recap') || mustDo.startsWith('Postgame recap')) {
+    return 'Open Recap for named injury, morale, or matchup fixes.';
+  }
+  if (
+    mustDo.startsWith('Season Recap')
+    || mustDo.startsWith('open Recap')
+    || mustDo.startsWith('open Season Recap')
+  ) {
+    return 'Open Season Recap, Contracts, Staff, and Cap Lab before bidding.';
+  }
+  return mustDo;
+}
+
+function chipRecommendedSummary(recommended: string | null): string | null {
+  if (!recommended) return null;
+  if (recommended.startsWith('Set injured roles')) return 'Set first backups or legal replacement.';
+  if (
+    recommended.startsWith('Resolve or deliberately defer')
+    || recommended.startsWith('Take action or defer')
+    || recommended.startsWith('Choose or defer')
+  ) {
+    return 'Use Inbox, Action Center, or highlighted badges for pending choices.';
+  }
+  if (recommended.startsWith('Open Action Center for current notes')) {
+    return 'Open Action Center; roster, cap, staff, and matchup moves stay open before Advance Week.';
+  }
+  if (recommended.includes('backup order') && recommended.includes('cap space')) {
+    return 'Scout opponent injuries, backup order, cap space, and matchup calls.';
+  }
+  if (recommended.startsWith('Open Recap notes')) {
+    return 'Adjust only the injury, morale, or matchup fix named by Recap.';
+  }
+  if (recommended.startsWith('Open Contracts') || recommended.startsWith('Open Contracts and Staff')) {
+    return 'Open Contracts, Staff, Cap Lab, and Free Agency.';
+  }
+  return recommended;
+}
+
+function chipOptionalSummary(optional: string | null): string | null {
+  if (!optional) return null;
+  if (
+    optional.startsWith('Roster, depth chart, training')
+    || optional.startsWith('Make any legal roster')
+  ) {
+    return 'Roster, depth, cap, market, staff, and matchup moves stay open before Advance Week.';
+  }
+  if (
+    optional.startsWith('Awards, records, and history')
+    || optional.startsWith('Open awards, records, and history')
+  ) {
+    return "Open awards/history after this week's lineup, cap, and matchup choices.";
+  }
+  return optional;
+}
+
+function chipConsequenceSummary(consequence: string | null): string | null {
+  if (!consequence) return null;
+  if (consequence.startsWith('Uncovered injuries')) {
+    return 'Unassigned first backup starts.';
+  }
+  if (consequence.startsWith('Unanswered decisions') || consequence.startsWith('Ignored decisions')) {
+    return 'Ignored decisions expire, remove offers, or lock weaker choices.';
+  }
+  if (consequence.startsWith('Another unprepared week cuts owner patience')) {
+    return 'Another unprepared week cuts owner patience and hurts morale recovery.';
+  }
+  if (consequence.startsWith('Skipping Recap leaves injuries')) {
+    return 'Skipping Recap leaves injuries, morale swings, and matchup notes unseen before Game Plan locks.';
+  }
+  if (consequence.startsWith('Skipping Monday Briefing')) {
+    return 'Skipping Briefing locks a named injury, unassigned first backup, tight cap choice, or uncovered matchup call.';
+  }
+  if (consequence.startsWith('Cap space is tight')) {
+    return 'Tight cap space blocks later fixes.';
+  }
+  return consequence;
+}
+
+function chipWhereSummary(where: string | null): string | null {
+  if (!where) return null;
+  if (where.startsWith('Open Inbox, Action Center') || where.startsWith('Inbox, Action Center')) return 'Inbox, Action Center, or highlighted screen badges.';
+  if (where.startsWith('Open Roster')) return 'Roster then Depth Chart; Game Plan if calls change.';
+  if (where.startsWith('Roster, Depth Chart')) return 'Roster, Depth Chart, Game Plan.';
+  if (where.startsWith('Post-Week Command Deck')) return 'Postgame Recap, then roster, depth, or Game Plan fix.';
+  if (where.startsWith('Season Recap')) return 'Season Recap, Contracts, Staff, Cap Lab, Free Agency.';
+  if (where.startsWith('Action Center, then')) return 'Action Center, then legal football-ops screens.';
+  if (where.startsWith('Open Monday Briefing') || where.startsWith('Monday Briefing')) return 'Briefing, Action Center, then flagged action screens.';
+  return where;
+}
+
+function chipStructuredOutro(entry: DialogueCatalogEntry): string | null {
+  const mustDo = chipMustDoSummary(chipDetail(entry, 'Must Do'));
+  const recommended = chipRecommendedSummary(chipDetail(entry, 'Recommended'));
+  const optional = chipOptionalSummary(chipDetail(entry, 'Optional'));
+  const where = chipWhereSummary(chipDetail(entry, 'Where'));
+  const consequence = chipConsequenceSummary(chipDetail(entry, 'Consequence'));
+  if (!mustDo || !recommended || !optional || !where || !consequence) return null;
+  return `Must Do: ${mustDo} Recommended: ${recommended} Where: ${where} Optional: ${optional} Consequence: ${consequence}`;
 }
 
 function parseFinalScore(finalScore: string | null | undefined): { teamScore: number | null; opponentScore: number | null } {
@@ -171,20 +641,23 @@ function parseFinalScore(finalScore: string | null | undefined): { teamScore: nu
   };
 }
 
-function chipBriefingOutro(entry: DialogueCatalogEntry): string {
+export function chipBriefingOutro(entry: DialogueCatalogEntry): string {
+  const structured = chipStructuredOutro(entry);
+  if (structured) return structured;
+
   if (entry.id === 'chip.weekly.threeLossStreak') {
-    return 'Desk note: one clean decision beats three loud corrections. Start there.';
+    return 'Next: fix one root cause before Advance Week. Ignoring it lets the streak cut prep quality and owner patience.';
   }
   if (entry.id === 'chip.weekly.uglyWin') {
-    return 'Desk note: bank the win, fix the wobble, keep the receipts short.';
+    return 'Next: fix the missed assignment that almost cost the game. If you skip Roster, Medical, or Game Plan changes, the same mistake decides next week.';
   }
   if (entry.id === 'chip.weekly.cleanWin') {
-    return 'Desk note: repeatable beats dramatic. Let the next plan copy the useful parts.';
+    return 'Next: keep what worked. Optional moves stay open before Advance Week; prioritize depth, cap, scouting, or staff changes that improve the next matchup.';
   }
   if (entry.id === 'chip.weekly.blowoutLoss' || entry.id === 'chip.weekly.darkMoment') {
-    return 'Desk note: stabilize the room before you chase the scoreboard.';
+    return 'Next: stabilize injuries, starters, and game plan before Advance Week; major roster moves first make the loss worse.';
   }
-  return 'Desk note: briefing logged. The next clean choice gets the loudest microphone.';
+  return 'Next: clear Must Do first, resolve or accept Recommended items, then prioritize Optional moves that affect lineup, cap, market, staff, or matchup before Advance Week.';
 }
 
 function tierAccent(tier: Achievement['tier']): 'default' | 'gold' | 'cyan' | 'green' | 'red' {
@@ -226,6 +699,7 @@ export function MondayBriefing() {
   const week = useGameStore(selectWeek);
   const year = useGameStore(selectYear);
   const ownerState = useGameStore(selectOwnerState);
+  const ownerMandates = useGameStore(selectOwnerMandates);
   const latestSummary = useGameStore(selectLatestSummary);
   const latestPackage = useGameStore(selectLatestGameDayPackage);
   const latestFilmRoomReport = useGameStore(selectLatestFilmRoomReport);
@@ -273,27 +747,56 @@ export function MondayBriefing() {
   const [draftName, setDraftName] = useState(activeLayout?.name ?? 'Command Center');
   const [draftColumns, setDraftColumns] = useState<2 | 3>(activeLayout?.columns ?? 3);
   const [draftWidgets, setDraftWidgets] = useState<DashboardWidget[]>(activeLayout?.widgets ?? []);
+  const [sessionRecapVisible, setSessionRecapVisible] = useState(false);
+  const [sessionRecapDismissedDynastyId, setSessionRecapDismissedDynastyId] = useState<string | null>(null);
 
   const nextGame = teamSchedule.find((entry) => entry.week === week) ?? null;
   const opponent = nextGame?.opponentTeamId && teams ? teams[nextGame.opponentTeamId] : null;
   const opponentName = nextGame?.opponentName ?? 'BYE';
   const teamName = team ? `${team.city} ${team.name}` : 'No Team';
+  const teamOpsReceipt = game && team ? buildTeamOpsImpactReceipt(game, team.id) : null;
   const alumniUpdates = game ? getAlumniUpdates(game, year) : [];
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '0-0';
   const latestResult = latestPackage?.result ?? latestSummary?.result;
   const packageScore = parseFinalScore(latestPackage?.finalScore);
+  const injuredCount = roster.filter((p) => p.injury).length;
+  const pendingDecisionCount = game ? countPendingDecisions({ game }).total : 0;
+  const dynastyCallbacks = game
+    ? buildWeeklyCallbacks({
+      year,
+      week,
+      userTeamId: team?.id ?? null,
+      players: game.players,
+      teams: game.teams,
+      leagueNews: game.leagueNews,
+      gameDayPackages: game.gameDayState.recentPackages,
+      draftRecaps: game.draftRecaps,
+      scrapbookEntries: readDynastyScrapbookEntries(game),
+      hallOfFame: game.hallOfFame,
+      records: game.records,
+      franchiseHistory: game.franchiseHistory,
+    })
+    : [];
   const chipBriefingEnabled = isChipFeatureEnabled();
   const chipBriefingEntry = chipBriefingEnabled
     ? selectMondayBriefingChipDialogue({
       phase,
       week,
       dynastySeed: game?.seed ?? year,
+      record,
+      opponentName: opponent ? opponentName : null,
+      injuryCount: injuredCount,
+      pendingDecisionCount,
+      capSpace: team?.capSpace,
+      difficulty: game?.difficulty,
       latestResult,
       latestTeamScore: latestSummary?.teamScore ?? packageScore.teamScore,
       latestOpponentScore: latestSummary?.opponentScore ?? packageScore.opponentScore,
       recentResults: (game?.weekSummaries ?? []).map((summary) => summary.result),
+      memoryCallbacks: dynastyCallbacks.slice(0, 1).map(chipMemoryCallbackText),
     })
     : null;
+  const chipGuidanceDetails = chipBriefingEntry ? chipBriefingDetails(chipBriefingEntry) : [];
   const ownerMood = ownerState?.approval ?? 0;
   const ownerLabel = ownerMood >= 70 ? 'Pleased' : ownerMood >= 50 ? 'Neutral' : ownerMood >= 30 ? 'Unhappy' : 'Furious';
   const injuries = roster
@@ -339,6 +842,12 @@ export function MondayBriefing() {
     .slice(0, 3);
   const userConditionalPicks = conditionalPicks.filter((pick) => pick.toTeamId === team?.id).slice(0, 2);
   const conferencePlayoffPicture = team?.conference === 'NFC' ? playoffPicture.nfc : playoffPicture.afc;
+  const userPlayoffSeed = conferencePlayoffPicture.find((entry) => entry.teamId === team?.id) ?? null;
+  const standingsPosition = userPlayoffSeed
+    ? `#${userPlayoffSeed.seed} ${team?.conference ?? 'conference'} playoff seed`
+    : userPowerRanking
+      ? `#${userPowerRanking.rank} power ranking`
+      : null;
   const recentAchievements = achievements
     .filter((achievement) => achievement.unlockedYear !== null)
     .sort((a, b) => (b.unlockedYear ?? 0) - (a.unlockedYear ?? 0) || (b.unlockedWeek ?? 0) - (a.unlockedWeek ?? 0))
@@ -437,7 +946,7 @@ export function MondayBriefing() {
         <PixelPanel key={widget} title="Injury Report" accent={injuries.length > 0 ? 'red' : 'green'}>
           {injuries.length === 0 ? (
             <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
-              No fresh injuries. The training room is quiet heading into the next broadcast.
+              No fresh injuries. Verify fatigue and backup order before the next broadcast.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -519,7 +1028,7 @@ export function MondayBriefing() {
     }
 
     if (widget === 'dynasty_window') {
-      const windowResult = team ? calculateDynastyWindow(team, game?.year ?? 2026, team.draftPicks?.length) : null;
+      const windowResult = team ? calculateDynastyWindow(team, game?.year ?? 2026, team.draftPicks?.length, game) : null;
       const phaseLabel = windowResult ? windowPhaseLabel(windowResult.phase) : 'UNKNOWN';
       const phaseColor = windowResult ? windowPhaseColor(windowResult.phase) : 'var(--mfd-text-dim)';
       return (
@@ -629,7 +1138,7 @@ export function MondayBriefing() {
         <PixelPanel key={widget} title="League Headlines" accent={headlineItems[0]?.importance === 'breaking' ? 'gold' : 'cyan'}>
           {headlineItems.length === 0 ? (
             <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
-              No breaking league stories are crowding the wire right now.
+              No breaking league stories are changing this week's priorities right now.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -786,7 +1295,7 @@ export function MondayBriefing() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {recentAchievements.length === 0 ? (
                 <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
-                  No achievement momentum yet. Milestones will surface as the dynasty deepens.
+                  No achievement milestone is close yet. Win games, develop players, and chase records to open the next target.
                 </div>
               ) : recentAchievements.map((achievement) => (
                 <div key={achievement.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
@@ -835,7 +1344,7 @@ export function MondayBriefing() {
             </div>
             <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
               {playoffMomentum
-                ? `Current playoff momentum sits at ${playoffMomentum.momentum} with ${playoffMomentum.winStreak} straight wins in the profile.`
+                ? `Playoff score: ${playoffMomentum.momentum}; ${playoffMomentum.winStreak} straight wins. Another win improves seeding.`
                 : 'Legacy score blends championships, playoff appearances, awards, and record moments.'}
             </div>
           </div>
@@ -848,7 +1357,7 @@ export function MondayBriefing() {
         <PixelPanel key={widget} title="Playoff Picture" accent={week > 8 ? 'gold' : 'default'}>
           {week <= 8 ? (
             <div style={{ ...monoSm, color: '#888', lineHeight: 1.6 }}>
-              The playoff picture firms up after Week 8. The race board will light up once the field separates.
+              The playoff picture firms up after Week 8. Standings matter more once the field separates.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -892,8 +1401,100 @@ export function MondayBriefing() {
     );
   };
 
-  const injuredCount = roster.filter((p) => p.injury).length;
   const starterCount = roster.filter((p) => p.isStarter).length;
+  const sourceRows = buildBriefingSourceRows({
+    phase,
+    week,
+    year,
+    layoutName: activeLayout?.name ?? 'Command Center',
+    widgetCount: pinnedRenderList.length + layoutRenderList.length,
+    pinnedCount: pinnedRenderList.length,
+  });
+  const sessionRecapDynastyId = useMemo(() => {
+    if (!game) return null;
+    try {
+      return deriveDynastyId(game);
+    } catch {
+      return null;
+    }
+  }, [game]);
+  const sessionRecapPendingItems = useMemo<SessionRecapPendingItem[]>(() => {
+    const promiseItems = activePromises.map((handshake) => ({
+      id: handshake.id,
+      label: handshake.promiseText,
+      detail: handshake.consequence ?? `Due ${handshake.deadline.year}-W${handshake.deadline.week}.`,
+      sourceRef: `handshake:${handshake.id}`,
+      priority: 'high' as const,
+    }));
+    const mandateItems = ownerMandates
+      .filter((mandate) => mandate.status === 'active')
+      .map((mandate) => ({
+        id: mandate.id,
+        label: mandate.label,
+        detail: mandate.progress.detail,
+        sourceRef: `ownerMandate:${mandate.id}`,
+        priority: mandate.progress.status === 'at_risk' ? 'high' as const : 'medium' as const,
+      }));
+
+    return [...promiseItems, ...mandateItems];
+  }, [activePromises, ownerMandates]);
+  const sessionRecap = useMemo(() => game ? buildSessionRecap({
+    year,
+    week,
+    phase,
+    teamName,
+    teamRecord: record,
+    weekSummaries: game.weekSummaries.slice(-4),
+    leagueNews: game.leagueNews,
+    standingsPosition,
+    nextOpponent: nextGame ? {
+      week: nextGame.week,
+      opponentTeamId: nextGame.opponentTeamId,
+      opponentName,
+      home: nextGame.home,
+      bye: nextGame.bye,
+      primetime: nextGame.primetime,
+    } : null,
+    pendingItems: sessionRecapPendingItems,
+  }) : null, [
+    game,
+    year,
+    week,
+    phase,
+    teamName,
+    record,
+    standingsPosition,
+    nextGame,
+    opponentName,
+    sessionRecapPendingItems,
+  ]);
+  const sessionRecapKey = sessionRecap
+    ? `${sessionRecap.stakesLine}|${sessionRecap.sourceRefs.join('|')}`
+    : 'none';
+  const sessionRecapDismissed = Boolean(
+    sessionRecapDynastyId && sessionRecapDismissedDynastyId === sessionRecapDynastyId,
+  );
+
+  useEffect(() => {
+    if (!sessionRecap || !sessionRecapDynastyId || sessionRecapDismissed) {
+      setSessionRecapVisible(false);
+      return;
+    }
+
+    if (shouldShowSessionRecap({ dynastyId: sessionRecapDynastyId })) {
+      markSessionRecapDisplayed(sessionRecapDynastyId);
+      setSessionRecapVisible(true);
+      return;
+    }
+
+    setSessionRecapVisible(false);
+  }, [sessionRecapKey, sessionRecapDynastyId, sessionRecapDismissed]);
+
+  const dismissSessionRecap = () => {
+    if (sessionRecapDynastyId) dismissSessionRecapForSession(sessionRecapDynastyId);
+    setSessionRecapDismissedDynastyId(sessionRecapDynastyId);
+    setSessionRecapVisible(false);
+  };
 
   return (
     <div style={screenStackStyle}>
@@ -918,12 +1519,95 @@ export function MondayBriefing() {
 
       <AlumniTicker updates={alumniUpdates} reducedMotion={reducedMotion} />
 
+      <SessionRecapSurface
+        recap={sessionRecap}
+        visible={sessionRecapVisible}
+        chipEnabled={chipBriefingEnabled}
+        reducedMotion={reducedMotion}
+        onDismiss={dismissSessionRecap}
+      />
+
+      <PixelPanel title="Briefing Sources" accent="cyan">
+        <div style={autoGrid(220)}>
+          {sourceRows.map((row) => (
+            <div key={row.label} style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              padding: '10px',
+              border: '2px solid var(--mfd-border)',
+              background: 'var(--mfd-bg-2)',
+            }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                <span style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>{row.label.toUpperCase()}</span>
+                <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
+              </div>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>{row.detail}</div>
+            </div>
+          ))}
+        </div>
+      </PixelPanel>
+
+      <div data-spotlight-target="chip.route.monday-briefing.beat-1">
+        <ActionCenter
+          phase={phase}
+          hasGamePlan={!!currentWeeklyPrepPlan}
+          starterCount={starterCount}
+          tradeOfferCount={tradeOffers.length}
+          ownerApproval={ownerState?.approval ?? 100}
+          injuredCount={injuredCount}
+          game={game}
+        />
+      </div>
+
+      <DynastyHistoryPanel cards={dynastyCallbacks} />
+
+      {teamOpsReceipt ? (
+        <PixelPanel title="Team Ops Carryover" accent="green">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={autoGrid(180)}>
+              {teamOpsReceipt.summaryItems.map((item) => (
+                <PixelMetricCard
+                  key={item.id}
+                  label={item.label}
+                  value={item.value}
+                  accent={opsToneAccent(item.tone)}
+                  detail={item.detail}
+                />
+              ))}
+            </div>
+            <div style={{
+              display: 'grid',
+              gap: '10px',
+              padding: '10px',
+              border: '2px solid var(--mfd-border)',
+              background: 'var(--mfd-bg-2)',
+            }}
+            >
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <PixelBadge variant="cyan">buildTeamOpsImpactReceipt</PixelBadge>
+                <PixelBadge variant="gold">{`Facility $${teamOpsReceipt.facilityBudget.toFixed(1)}M`}</PixelBadge>
+                <PixelBadge variant="green">{`${teamOpsReceipt.mentors.activeMentors} mentors`}</PixelBadge>
+                <PixelBadge variant={teamOpsReceipt.camp.available ? 'green' : 'default'}>
+                  {teamOpsReceipt.camp.available ? 'Camp stored' : 'Camp pending'}
+                </PixelBadge>
+              </div>
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+                Reads saved team.facilityState, team.medicalStaff, game.activeMentors, mentorBudget, and trainingCampResults. Settings, Training Camp, and Alumni Mentors are the places that save those changes; Monday Briefing does not upgrade facilities, hire staff, resolve camp, move players, play scheduled games, or reroll saved outcomes.
+              </div>
+            </div>
+          </div>
+        </PixelPanel>
+      ) : null}
+
       {chipBriefingEntry ? (
         <div
           data-chip-monday-briefing="intro"
           style={{
             display: 'grid',
-            maxWidth: '760px',
+            gap: '10px',
+            maxWidth: '860px',
           }}
         >
           <ChipDialogueBubble
@@ -932,18 +1616,40 @@ export function MondayBriefing() {
             pointer="right"
             reducedMotion={reducedMotion}
           />
+          {chipGuidanceDetails.length > 0 ? (
+            <section
+              data-chip-monday-guidance-details="true"
+              style={{
+                display: 'grid',
+                gap: '8px',
+                padding: '12px',
+                border: '1px solid rgba(0, 229, 255, 0.34)',
+                borderLeft: '5px solid var(--mfd-cyan)',
+                background: 'rgba(0, 229, 255, 0.06)',
+                color: 'var(--mfd-text)',
+                fontFamily: 'var(--mfd-font-mono)',
+                fontSize: '12px',
+                lineHeight: 1.55,
+              }}
+            >
+              <div
+                style={{
+                  color: 'var(--mfd-gold)',
+                  fontFamily: 'var(--mfd-font-pixel)',
+                  fontSize: '8px',
+                  lineHeight: 1.3,
+                  textTransform: 'uppercase',
+                }}
+              >
+                Chip Week Plan
+              </div>
+              {chipGuidanceDetails.map((detail) => (
+                <div key={detail}>{detail}</div>
+              ))}
+            </section>
+          ) : null}
         </div>
       ) : null}
-
-      <ActionCenter
-        phase={phase}
-        hasGamePlan={!!currentWeeklyPrepPlan}
-        starterCount={starterCount}
-        tradeOfferCount={tradeOffers.length}
-        ownerApproval={ownerState?.approval ?? 100}
-        injuredCount={injuredCount}
-        game={game}
-      />
 
       <div style={autoGrid(220)}>
         <PixelMetricCard
@@ -974,13 +1680,13 @@ export function MondayBriefing() {
           label="Weekly Prep"
           value={currentWeeklyPrepPlan ? 'LOCKED' : 'MISSING'}
           accent={currentWeeklyPrepPlan ? 'green' : 'red'}
-          detail={currentWeeklyPrepPlan ? `${currentWeeklyPrepPlan.offensiveFocus} / ${currentWeeklyPrepPlan.defensiveFocus}` : 'Open Game Plan to lock the prep board'}
+          detail={currentWeeklyPrepPlan ? `${currentWeeklyPrepPlan.offensiveFocus} / ${currentWeeklyPrepPlan.defensiveFocus}` : 'Open Game Plan to save the prep plan'}
         />
         <PixelMetricCard
           label="Film Room"
           value={latestFilmRoomReport?.grade ?? '--'}
           accent={latestFilmRoomReport?.grade === 'A' || latestFilmRoomReport?.grade === 'B' ? 'green' : latestFilmRoomReport?.grade === 'C' ? 'gold' : 'red'}
-          detail={latestFilmRoomReport?.headline ?? 'No postgame coaching review yet'}
+          detail={latestFilmRoomReport?.headline ?? 'No postgame coaching note yet'}
         />
         <PixelMetricCard
           label="Sideline Heat"
@@ -990,33 +1696,35 @@ export function MondayBriefing() {
         />
       </div>
 
-      <PixelPanel title="Coaching Loop" accent="cyan">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-            Move straight from the Monday board into weekly prep, coaching decisions, or the latest film review.
+      <div data-spotlight-target="chip.route.monday-briefing.beat-2">
+        <PixelPanel title="Coaching Loop" accent="cyan">
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              Move straight from Monday Briefing into weekly prep, coaching decisions, or the latest Film Room report.
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelButton
+                accent={currentWeeklyPrepPlan ? 'green' : 'gold'}
+                onClick={() => navigateTo('/game-plan')}
+              >
+                Open Game Plan
+              </PixelButton>
+              <PixelButton
+                accent={latestFilmRoomReport ? 'cyan' : 'default'}
+                onClick={() => navigateTo('/film-room')}
+              >
+                Open Film Room
+              </PixelButton>
+              <PixelButton
+                accent={coachingMarket.hotSeat ? 'red' : 'gold'}
+                onClick={() => navigateTo('/coaching')}
+              >
+                Open Coaching
+              </PixelButton>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <PixelButton
-              accent={currentWeeklyPrepPlan ? 'green' : 'gold'}
-              onClick={() => navigateTo('/game-plan')}
-            >
-              Open Game Plan
-            </PixelButton>
-            <PixelButton
-              accent={latestFilmRoomReport ? 'cyan' : 'default'}
-              onClick={() => navigateTo('/film-room')}
-            >
-              Open Film Room
-            </PixelButton>
-            <PixelButton
-              accent={coachingMarket.hotSeat ? 'red' : 'gold'}
-              onClick={() => navigateTo('/coaching')}
-            >
-              Open Coaching
-            </PixelButton>
-          </div>
-        </div>
-      </PixelPanel>
+        </PixelPanel>
+      </div>
 
       <PixelPanel title="Dashboard Control" accent="cyan">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1049,19 +1757,19 @@ export function MondayBriefing() {
         {layoutRenderList.map((widget) => renderWidget(widget))}
       </div>
 
-      <PixelPanel title="Narrative Pulse" accent="gold">
+      <PixelPanel title="Season Signals" accent="gold">
         <div style={autoGrid(320)}>
           <div>
-            <div style={{ ...pixelSm, color: '#666', marginBottom: '6px' }}>STORY ARC</div>
+            <div style={{ ...pixelSm, color: '#666', marginBottom: '6px' }}>SAVED ARC</div>
             <div style={{ ...display, fontSize: '22px', color: '#fff', lineHeight: 1 }}>
               {(activeArcs[0]?.title ?? 'No active arc').toUpperCase()}
             </div>
             <div style={{ ...monoSm, color: '#999', marginTop: '8px', lineHeight: 1.6 }}>
-              {activeArcs[0]?.summary ?? 'Your next big storyline will form after the next meaningful result.'}
+              {activeArcs[0]?.summary ?? 'Next saved arc appears after a result, injury, rivalry, owner demand, or record event.'}
             </div>
           </div>
           <div>
-            <div style={{ ...pixelSm, color: '#666', marginBottom: '6px' }}>POSTGAME CINEMA</div>
+            <div style={{ ...pixelSm, color: '#666', marginBottom: '6px' }}>LATEST RECAP</div>
             <div style={{ ...display, fontSize: '22px', color: '#fff', lineHeight: 1 }}>
               {(latestPackage?.headline ?? latestSummary?.headline ?? 'No package yet').toUpperCase()}
             </div>

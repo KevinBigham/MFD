@@ -16,6 +16,13 @@ function playerForHandshake(game: GameState, handshake: Handshake): Player | nul
   return game.players[handshake.targetId] ?? null;
 }
 
+function selectedAgmProfileId(game: GameState): string | null {
+  return game.frontOffice.agmProfileId
+    ?? game.franchiseBlueprint?.agmProfileId
+    ?? game.setupState?.decisions.agmProfileId
+    ?? null;
+}
+
 function conditionMet(game: GameState, handshake: Handshake): boolean {
   const team = game.teams[handshake.teamId];
   const player = playerForHandshake(game, handshake);
@@ -54,6 +61,10 @@ function conditionMet(game: GameState, handshake: Handshake): boolean {
       playerEntry.pos === pos &&
       playerEntry.draftRound <= round);
   }
+  if (handshake.condition.metric === 'owner_mandate') {
+    const mandate = (game.ownerMandates ?? []).find((entry) => entry.id === String(handshake.condition.target));
+    return mandate?.status === 'met' || mandate?.status === 'exceeded';
+  }
   return false;
 }
 
@@ -89,6 +100,22 @@ function applyBrokenEffects(game: GameState, handshake: Handshake): void {
     if (team.isUser) {
       game.frontOffice.reputation.players = clamp(game.frontOffice.reputation.players - 8, 0, 100);
     }
+  }
+  if (handshake.type === 'player' && selectedAgmProfileId(game) === 'sandra_chen' && team.isUser) {
+    game.frontOffice.reputation.players = clamp(game.frontOffice.reputation.players - 4, 0, 100);
+    game.frontOffice.reputation.owner = clamp(game.frontOffice.reputation.owner - 2, 0, 100);
+    game.frontOffice.agmImpactLog ??= [];
+    game.frontOffice.agmImpactLog = [
+      ...game.frontOffice.agmImpactLog,
+      {
+        id: `agm-impact:sandra-promise:${handshake.id}`,
+        year: game.year,
+        week: game.week,
+        agmProfileId: 'sandra_chen',
+        category: 'personnel' as const,
+        summary: 'Sandra Chen flagged a broken player promise as a deeper development-trust failure.',
+      },
+    ].slice(-20);
   }
 }
 
@@ -175,7 +202,9 @@ export function makePlayerPromise(
         ? { metric: 'on_roster', target: true }
         : { metric: 'restructure', target: true },
     status: 'active',
-    consequence: 'Breaking this promise will hurt trust in the room.',
+    consequence: selectedAgmProfileId(game) === 'sandra_chen'
+      ? 'Sandra Chen will hold broken player promises against your personnel reputation.'
+      : 'Breaking this promise will hurt trust in the room.',
   };
   game.handshakes.push(promise);
   return emptyResult(game);
@@ -187,6 +216,15 @@ export function evaluateHandshakes(game: GameState): Handshake[] {
   }
   for (const handshake of game.handshakes) {
     if (handshake.status !== 'active') continue;
+    if (handshake.condition.metric === 'owner_mandate') {
+      const mandate = (game.ownerMandates ?? []).find((entry) => entry.id === String(handshake.condition.target));
+      if (mandate?.status === 'met' || mandate?.status === 'exceeded') {
+        handshake.status = 'fulfilled';
+      } else if (mandate?.status === 'missed') {
+        handshake.status = 'broken';
+      }
+      continue;
+    }
     if (conditionMet(game, handshake)) {
       handshake.status = 'fulfilled';
       applyFulfilledEffects(game, handshake);

@@ -56,18 +56,29 @@ export function PixelSelect({
       data-mfd-focusable="pixel-select"
       disabled={disabled}
       style={{
-        minHeight: '34px',
-        padding: '8px 10px',
-        border: `3px solid ${accentStyle.border}`,
-        background: disabled ? 'var(--mfd-bg-3)' : accentStyle.background,
+        minHeight: 'var(--mfd-touch-min)',
+        padding: '9px 34px 9px 12px',
+        border: `2px solid ${accentStyle.border}`,
+        borderRadius: 'var(--mfd-rad-md)',
+        background: disabled
+          ? 'var(--mfd-bg-3)'
+          : `linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 48%), ${accentStyle.background}`,
         color: disabled ? 'var(--mfd-text-faint)' : accentStyle.color,
         fontFamily: 'var(--mfd-font-pixel)',
         fontSize: '8px',
-        letterSpacing: '0.8px',
+        lineHeight: 1.25,
+        letterSpacing: 0,
         textTransform: 'uppercase',
         boxShadow: disabled ? 'none' : 'var(--mfd-shadow-sm)',
         outline: 'none',
         cursor: disabled ? 'default' : 'pointer',
+        appearance: 'none',
+        backgroundImage: disabled
+          ? undefined
+          : `linear-gradient(45deg, transparent 50%, ${accentStyle.color} 50%), linear-gradient(135deg, ${accentStyle.color} 50%, transparent 50%)`,
+        backgroundPosition: 'calc(100% - 18px) 50%, calc(100% - 13px) 50%',
+        backgroundSize: '5px 5px, 5px 5px',
+        backgroundRepeat: 'no-repeat',
         ...style,
       }}
       {...props}

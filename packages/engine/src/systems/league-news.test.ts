@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { NewsItem } from '../types';
+import type { HallOfFameEntry, NewsItem } from '../types';
 import { acceptTradeOffer } from './trade-market';
 import {
+  generateOffseasonNews,
   generateWeeklyLeagueNews,
   getRecentNews,
   getTeamNews,
@@ -20,6 +21,27 @@ function makeNews(overrides: Partial<NewsItem> = {}): NewsItem {
     teamIds: overrides.teamIds ?? [],
     playerIds: overrides.playerIds ?? [],
     importance: overrides.importance ?? 'minor',
+  };
+}
+
+function makeHallOfFameEntry(overrides: Partial<HallOfFameEntry> = {}): HallOfFameEntry {
+  return {
+    playerId: 'hof-qb',
+    name: 'Legend Player',
+    position: 'QB',
+    inductionYear: 2026,
+    peakOvr: 98,
+    careerYears: 15,
+    score: 142,
+    awards: {
+      mvps: 3,
+      allPros: 5,
+      proBowls: 10,
+      championships: 2,
+    },
+    highlights: ['Peak 98 OVR', '3 MVP'],
+    teams: ['afce1'],
+    ...overrides,
   };
 }
 
@@ -120,5 +142,39 @@ describe('league news', () => {
 
     expect(getRecentNews(game, 2).map((item) => item.id)).toEqual(['newest', 'mid']);
     expect(getTeamNews(game, 'afce1', 3).map((item) => item.id)).toEqual(['newest', 'mid']);
+  });
+
+  it('uses peak OVR fallback copy for hall of fame news without epilogues', () => {
+    const game = makeLeagueState('offseason');
+    game.hallOfFame = [makeHallOfFameEntry({ inductionYear: game.year })];
+
+    const items = generateOffseasonNews(game);
+    const hofNews = items.find((item) => item.id === `hof-qb-hof-${game.year}`);
+
+    expect(hofNews?.headline).toBe('Legend Player enters the Hall of Fame');
+    expect(hofNews?.body).toContain('peaked at 98 overall');
+  });
+
+  it('uses saved epilogue copy for hall of fame news when present', () => {
+    const game = makeLeagueState('offseason');
+    game.hallOfFame = [
+      makeHallOfFameEntry({
+        inductionYear: game.year,
+        epilogue: {
+          playerId: 'hof-qb',
+          playerName: 'Legend Player',
+          category: 'broadcasting',
+          headline: 'Legend Player takes the booth',
+          story: 'The retired quarterback turns film study into appointment television.',
+        },
+      }),
+    ];
+
+    const items = generateOffseasonNews(game);
+    const hofNews = items.find((item) => item.id === `hof-qb-hof-${game.year}`);
+
+    expect(hofNews?.body).toContain('Legend Player takes the booth');
+    expect(hofNews?.body).toContain('turns film study into appointment television');
+    expect(hofNews?.body).not.toContain('peaked at 98 overall');
   });
 });

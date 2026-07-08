@@ -105,6 +105,17 @@ const mockState = {
         teams: ['user'],
       },
     ],
+    ballotWaitlist: [
+      {
+        playerId: 'hof-waiting',
+        name: 'Waiting Legend',
+        position: 'QB',
+        score: 82,
+        yearsOnBallot: 2,
+        votePct: 71,
+      },
+    ],
+    ballotEliminatedIds: ['hof-miss'],
     records: recordBook,
     ceremonies: [
       {
@@ -384,6 +395,17 @@ vi.mock('../../app/store/game-store', () => ({
 describe('LegacyTimeline', () => {
   beforeEach(() => {
     mockState.awardsHistory = baseAwardsHistory;
+    mockState.game.ballotWaitlist = [
+      {
+        playerId: 'hof-waiting',
+        name: 'Waiting Legend',
+        position: 'QB',
+        score: 82,
+        yearsOnBallot: 2,
+        votePct: 71,
+      },
+    ];
+    mockState.game.ballotEliminatedIds = ['hof-miss'];
   });
 
   it('renders season history plus awards, hall of fame, records, and mentoring sections', () => {
@@ -392,26 +414,47 @@ describe('LegacyTimeline', () => {
     expect(markup).toContain('DYNASTY LEGACY');
     expect(markup).toContain('12-5');
     expect(markup).toContain('Dynasty 15');
-    expect(markup).toContain('--- DYNASTY TIMELINE ---');
+    expect(markup).toContain('DYNASTY TIMELINE');
     expect(markup).toContain('Won the championship.');
-    expect(markup).toContain('--- CEREMONIES ---');
+    expect(markup).toContain('CEREMONIES');
     expect(markup).toContain('Chicago Blaze championship ceremony');
-    expect(markup).toContain('--- AWARDS HISTORY ---');
+    expect(markup).toContain('AWARDS HISTORY');
     expect(markup).toContain('Jay Stone');
-    expect(markup).toContain('--- AWARDS NIGHT MIC CHECK ---');
+    expect(markup).toContain('AWARDS NIGHT MIC CHECK');
     expect(markup).toContain('First, thank God.');
-    expect(markup).toContain('--- HALL OF FAME ---');
+    expect(markup).toContain('HALL OF FAME');
+    expect(markup).toContain('Current save archive');
+    expect(markup).toContain('1 live inductee');
+    expect(markup).toContain('1 on ballot');
+    expect(markup).toContain('1 eliminated');
+    expect(markup).toContain('game.ballotWaitlist');
+    expect(markup).toContain('game.ballotEliminatedIds');
+    expect(markup).toContain('offseason Hall of Fame induction pass');
+    expect(markup).toContain('Ballot Watch');
+    expect(markup).toContain('71% avg vote');
+    expect(markup).toContain('1 at 70%+');
+    expect(markup).toContain('0 year-5');
+    expect(markup).toContain('Top 1 shown');
+    expect(markup).toContain('Top watch: Waiting Legend at 71% saved support.');
+    expect(markup).toContain('Waiting Legend // QB');
+    expect(markup).toContain('Year 2');
+    expect(markup).toContain('71% vote');
+    expect(markup).toContain('Score 82');
+    expect(markup).toContain('1 eliminated all-time');
+    expect(markup).toContain('active dynasty save');
+    expect(markup).toContain('browser-local, cross-dynasty snapshots');
+    expect(markup).toContain('Open Directory');
     expect(markup).toContain('Legend One');
-    expect(markup).toContain('--- RECORDS BOOK ---');
+    expect(markup).toContain('RECORDS BOOK');
     expect(markup).toContain('Passing Yards: 5114');
-    expect(markup).toContain('--- HALL OF CHAMPIONS ---');
+    expect(markup).toContain('HALL OF CHAMPIONS');
     expect(markup).toContain('First Championship');
-    expect(markup).toContain('--- SEASON REPORTS ---');
+    expect(markup).toContain('SEASON REPORTS');
     expect(markup).toContain('View Report');
-    expect(markup).toContain('--- DRAFT RECAPS ---');
+    expect(markup).toContain('DRAFT RECAPS');
     expect(markup).toContain('Open Recap');
     expect(markup).toContain('Drew Moss');
-    expect(markup).toContain('--- MENTORING REPORT ---');
+    expect(markup).toContain('MENTORING REPORT');
     expect(markup).toContain('Rick Mason -&gt; Jay Stone');
     expect(markup).toContain('Jay Stone');
     expect(markup).toContain('NAMED GAME');
@@ -419,12 +462,53 @@ describe('LegacyTimeline', () => {
     expect(markup).toContain('TROPHY FILED');
     expect(markup).toContain('Open Named Games');
     expect(markup).toContain('1 named games filed');
+    expect(markup).toContain('ARCHIVE COMMAND');
+    expect(markup).toContain('Turn the record into a story');
+    expect(markup).toContain('Open Chronicle');
+    expect(markup).toContain('Current Standings');
+    expect(markup).toContain('LEGACY SOURCES');
+    expect(markup).toContain('game.franchiseHistory');
+    expect(markup).toContain('game.playerArchive');
+    expect(markup).toContain('selectDynastyTimeline, selectCeremonies, selectRecords, and selectSeasonReports');
+    expect(markup).toContain('selectDraftRecaps, selectNamedGames, selectBloodlineFamilies, and selectHallOfFame');
+    expect(markup).toContain('saved game.ballotWaitlist / game.ballotEliminatedIds');
+    expect(markup).toContain('Selected ceremony and season-report detail state live in React.');
+    expect(markup).toContain('Opening Legacy does not generate ceremonies, draft recaps, named games, Hall of Fame entries, records, reports, timeline events, mentoring history, or archive sidecars.');
+  });
+
+  it('summarizes final-year Hall of Fame ballot pressure from saved waitlist rows', () => {
+    mockState.game.ballotWaitlist = [
+      {
+        playerId: 'last-chance',
+        name: 'Last Chance',
+        position: 'RB',
+        score: 86,
+        yearsOnBallot: 5,
+        votePct: 73,
+      },
+      {
+        playerId: 'long-shot',
+        name: 'Long Shot',
+        position: 'WR',
+        score: 76,
+        yearsOnBallot: 3,
+        votePct: 61,
+      },
+    ];
+
+    const markup = renderToStaticMarkup(<LegacyTimeline />);
+
+    expect(markup).toContain('67% avg vote');
+    expect(markup).toContain('1 at 70%+');
+    expect(markup).toContain('1 year-5');
+    expect(markup).toContain('Top 2 shown');
+    expect(markup).toContain('Top watch: Last Chance at 73% saved support.');
   });
 
   it('renders the Awards Hub CTA when awards exist', () => {
     const markup = renderToStaticMarkup(<LegacyTimeline />);
 
-    expect(markup).toContain('--- AWARDS HUB ---');
+    expect(markup).toContain('AWARDS HUB');
     expect(markup).toContain('Browse every MVP race, rookie breakout, and awards-night class in one place.');
     expect(markup).toContain('1 archived class ready.');
   });
@@ -434,8 +518,8 @@ describe('LegacyTimeline', () => {
 
     const markup = renderToStaticMarkup(<LegacyTimeline />);
 
-    expect(markup).not.toContain('--- AWARDS HUB ---');
     expect(markup).not.toContain('Browse every MVP race');
+    expect(markup).not.toContain('archived class ready.');
   });
 
   it('keeps the inline awards history empty state when the CTA is hidden', () => {
@@ -443,15 +527,18 @@ describe('LegacyTimeline', () => {
 
     const markup = renderToStaticMarkup(<LegacyTimeline />);
 
-    expect(markup).toContain('--- AWARDS HISTORY ---');
+    expect(markup).toContain('AWARDS HISTORY');
     expect(markup).toContain('Award classes will appear once the first season is completed.');
   });
 
   it('keeps the legacy metric row at the top of the screen', () => {
     const markup = renderToStaticMarkup(<LegacyTimeline />);
 
-    expect(markup.indexOf('Seasons Tracked')).toBeLessThan(markup.indexOf('--- AWARDS HUB ---'));
-    expect(markup.indexOf('Championships')).toBeLessThan(markup.indexOf('--- AWARDS HUB ---'));
-    expect(markup.indexOf('Dynasty Score')).toBeLessThan(markup.indexOf('--- AWARDS HUB ---'));
+    expect(markup.indexOf('Seasons Tracked')).toBeLessThan(markup.indexOf('ARCHIVE COMMAND'));
+    expect(markup.indexOf('Championships')).toBeLessThan(markup.indexOf('ARCHIVE COMMAND'));
+    expect(markup.indexOf('Dynasty Score')).toBeLessThan(markup.indexOf('ARCHIVE COMMAND'));
+    expect(markup.indexOf('ARCHIVE COMMAND')).toBeLessThan(markup.indexOf('Browse every MVP race'));
+    expect(markup.indexOf('LEGACY SOURCES')).toBeGreaterThan(markup.indexOf('ARCHIVE COMMAND'));
+    expect(markup.indexOf('LEGACY SOURCES')).toBeLessThan(markup.indexOf('Browse every MVP race'));
   });
 });

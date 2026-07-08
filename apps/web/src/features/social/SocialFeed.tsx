@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
+import type { SocialPost } from '@mfd/engine';
 import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/components';
 import { selectSocialFeed, useGameStore } from '../../app/store/game-store';
 import { PixelScreenHeader, monoSm, screenStackStyle } from '../shared/pixelUi';
 
-type FilterMode = 'all' | 'player' | 'fan' | 'analyst' | 'reporter';
+export type FilterMode = 'all' | 'player' | 'fan' | 'analyst' | 'reporter';
 
 const FILTERS: Array<{ id: FilterMode; label: string }> = [
   { id: 'all', label: 'All' },
@@ -20,15 +21,17 @@ function authorAccent(source: string): 'default' | 'gold' | 'cyan' | 'green' {
   return 'default';
 }
 
+export function buildVisibleSocialPosts(feed: SocialPost[], filter: FilterMode): SocialPost[] {
+  const ordered = [...feed].reverse();
+  if (filter === 'all') return ordered;
+  return ordered.filter((post) => post.source === filter);
+}
+
 export function SocialFeed() {
   const feed = useGameStore(selectSocialFeed);
   const [filter, setFilter] = useState<FilterMode>('all');
 
-  const visiblePosts = useMemo(() => {
-    const ordered = [...feed].reverse();
-    if (filter === 'all') return ordered;
-    return ordered.filter((post) => post.source === filter);
-  }, [feed, filter]);
+  const visiblePosts = useMemo(() => buildVisibleSocialPosts(feed, filter), [feed, filter]);
 
   return (
     <div style={screenStackStyle}>
@@ -45,6 +48,21 @@ export function SocialFeed() {
           </PixelButton>
         ))}
       </div>
+
+      <PixelPanel title="Feed Source" accent="cyan">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <PixelBadge variant="cyan">Saved socialFeed</PixelBadge>
+            <PixelBadge variant="gold">Newest-first projection</PixelBadge>
+            <PixelBadge variant="default">Source filters only</PixelBadge>
+          </div>
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+            This screen reads saved social posts, clones them into newest-first display order, and filters only by
+            author source. Filter choices are not saved, no browser sidecar is written, and no posts are generated
+            during render.
+          </div>
+        </div>
+      </PixelPanel>
 
       {visiblePosts.length === 0 ? (
         <PixelPanel title="No Posts Yet" accent="default">

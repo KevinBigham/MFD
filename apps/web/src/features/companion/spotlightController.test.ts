@@ -12,14 +12,19 @@ describe('spotlightController', () => {
       resolveSpotlightTargetId(entry.beat, entry.stageId),
     ])).toEqual([
       [1, 'wizard.cold-open.continue'],
-      [2, 'wizard.team-select.confirm'],
-      [3, 'wizard.agm-hire.confirm'],
-      [4, 'wizard.depth-chart.confirm'],
-      [5, 'wizard.goals.confirm'],
-      [6, 'wizard.culture.confirm'],
-      [7, 'wizard.blueprint.mic-check'],
-      [8, 'wizard.week-one.start'],
-      [9, 'wizard.dashboard.handoff'],
+      [1, 'wizard.agm-hire.confirm'],
+      [2, 'wizard.intel-briefing.confirm'],
+      [3, 'wizard.roster.confirm'],
+      [4, 'wizard.coach-hire.confirm'],
+      [5, 'wizard.scout-hire.confirm'],
+      [6, 'wizard.scheme.confirm'],
+      [7, 'wizard.depth-chart.confirm'],
+      [8, 'wizard.cap-strategy.confirm'],
+      [9, 'wizard.goals.confirm'],
+      [9, 'wizard.culture.confirm'],
+      [10, 'wizard.blueprint.mic-check'],
+      [10, 'wizard.week-one.start'],
+      [10, 'wizard.dashboard.handoff'],
     ]);
   });
 
@@ -29,21 +34,21 @@ describe('spotlightController', () => {
   });
 
   it('returns null when the beat and stage do not match', () => {
-    expect(resolveSpotlightTargetId(1, 'team-select')).toBeNull();
+    expect(resolveSpotlightTargetId(1, 'intel-briefing')).toBeNull();
   });
 
   it('returns null for unsupported beats', () => {
     expect(resolveSpotlightTargetId(0, 'cold-open')).toBeNull();
-    expect(resolveSpotlightTargetId(10, 'dashboard')).toBeNull();
+    expect(resolveSpotlightTargetId(11, 'dashboard')).toBeNull();
   });
 
   it('resolves through the controller current state readers', () => {
     const controller = createSpotlightController({
-      getCurrentBeat: () => 3,
-      getCurrentStage: () => 'agm-hire',
+      getCurrentBeat: () => 2,
+      getCurrentStage: () => 'intel-briefing',
     });
 
-    expect(controller.getTargetId()).toBe('wizard.agm-hire.confirm');
+    expect(controller.getTargetId()).toBe('wizard.intel-briefing.confirm');
   });
 
   it('returns null when the feature flag is off', () => {

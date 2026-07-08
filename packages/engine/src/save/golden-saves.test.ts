@@ -12,6 +12,7 @@ import { describe, it, expect } from 'vitest';
 import { SaveStateSchema } from './schema';
 import { migrate } from './migrations';
 import { SAVE_VERSION } from '../config';
+import { makeLeagueState } from '../systems/test-helpers';
 
 import v1Fixture from './fixtures/v1.json';
 import v10Fixture from './fixtures/v10.json';
@@ -21,6 +22,17 @@ import v31Fixture from './fixtures/v31.json';
 import v32Fixture from './fixtures/v32.json';
 import v33Fixture from './fixtures/v33.json';
 import v34Fixture from './fixtures/v34.json';
+
+function schemaIssues(result: ReturnType<typeof SaveStateSchema.safeParse>): string {
+  if (result.success) return '';
+  return result.error.issues
+    .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+    .join('\n');
+}
+
+function generatedV35Fixture(): Record<string, unknown> {
+  return migrate(structuredClone(v34Fixture) as Record<string, unknown>, 35);
+}
 
 describe('golden save fixtures', () => {
   it('migrates v1 fixture through full pipeline to current version', { timeout: 15_000 }, () => {
@@ -210,7 +222,7 @@ describe('golden save fixtures', () => {
     expect(result.data.lastPortableExportYear).toBe(2025);
   });
 
-  it('migrates v34 fixture through v34→v35, v35→v36, and v36→v37 to current version', () => {
+  it('migrates v34 fixture through v34→v35, v35→v36, v36→v37, and v37→v38 to current version', () => {
     const migrated = migrate(v34Fixture as Record<string, unknown>, SAVE_VERSION);
 
     expect(migrated['version']).toBe(SAVE_VERSION);
@@ -219,6 +231,57 @@ describe('golden save fixtures', () => {
       powerRankingHistory: [],
     });
     expect(migrated['storylineThreads']).toEqual([]);
+  });
+
+  it('generates deterministic v35 fixture coverage from the v34 golden fixture', () => {
+    const generated = generatedV35Fixture();
+    const regenerated = generatedV35Fixture();
+
+    expect(generated).toEqual(regenerated);
+    expect(generated['version']).toBe(35);
+    expect(generated['mediaCycle']).toEqual({
+      weeklyDigests: [],
+      powerRankingHistory: [],
+    });
+    expect(generated['storylineThreads']).toEqual([]);
+    expect(generated['ownerMandates']).toBeUndefined();
+
+    const frontOffice = generated['frontOffice'] as Record<string, unknown>;
+    expect(frontOffice['agmProfileId']).toBeUndefined();
+    expect(frontOffice['agmImpactLog']).toBeUndefined();
+  });
+
+  it('migrates generated v35 fixture coverage through v35→v36 and later migrations to current version', () => {
+    const migrated = migrate(generatedV35Fixture(), SAVE_VERSION);
+    const result = SaveStateSchema.safeParse(migrated);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(result.success, schemaIssues(result)).toBe(true);
+    if (!result.success) return;
+    expect(result.data.frontOffice.agmProfileId).toBeNull();
+    expect(result.data.frontOffice.agmImpactLog).toEqual([]);
+    expect(result.data.ownerMandates).toEqual([]);
+  });
+
+  it('validates deterministic current-version fixture coverage from the engine test league factory', () => {
+    const generated = makeLeagueState();
+    const jsonRoundTrip = JSON.parse(JSON.stringify(generated)) as Record<string, unknown>;
+    const migrated = migrate(jsonRoundTrip, SAVE_VERSION);
+    const result = SaveStateSchema.safeParse(migrated);
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(result.success, schemaIssues(result)).toBe(true);
+    if (!result.success) return;
+    expect(result.data.version).toBe(SAVE_VERSION);
+    expect(Object.keys(result.data.teams).length).toBe(16);
+    expect(result.data.frontOffice.agmProfileId).toBeNull();
+    expect(result.data.frontOffice.agmImpactLog).toEqual([]);
+    expect(result.data.ownerMandates).toEqual([]);
+    expect(result.data.mediaCycle).toEqual({
+      weeklyDigests: [],
+      powerRankingHistory: [],
+    });
+    expect(result.data.storylineThreads).toEqual([]);
   });
 
   it('verifies migration chain has no gaps from v1 to SAVE_VERSION', () => {

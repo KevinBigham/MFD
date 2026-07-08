@@ -17,6 +17,20 @@ export interface BreakingNewsProps {
   revealDelay?: number;
 }
 
+export interface BreakingNewsSourceMeta {
+  sourceLine: string;
+  queueLine: string;
+  dismissLine: string;
+}
+
+export function buildBreakingNewsSourceMeta(source = 'MFSN INSIDER'): BreakingNewsSourceMeta {
+  return {
+    sourceLine: `SOURCE: ${source}`,
+    queueLine: 'SAVED BREAKING NEWS QUEUE',
+    dismissLine: 'DISMISS ADVANCES QUEUE ONLY',
+  };
+}
+
 const overlayStyle: CSSProperties = {
   position: 'fixed',
   inset: 0,
@@ -79,7 +93,19 @@ const sourceStyle: CSSProperties = {
   ...pixel,
   fontSize: '7px',
   color: 'var(--mfd-text-dim, #666)',
-  marginTop: '24px',
+  margin: '24px 0 0',
+  textAlign: 'center',
+};
+
+const queueMetaStyle: CSSProperties = {
+  ...pixel,
+  display: 'flex',
+  justifyContent: 'center',
+  gap: '10px',
+  flexWrap: 'wrap',
+  fontSize: '7px',
+  color: 'var(--mfd-text-dim, #555)',
+  margin: '8px auto 0',
   textAlign: 'center',
 };
 
@@ -112,6 +138,7 @@ export function BreakingNews({
   revealDelay = 2000,
 }: BreakingNewsProps) {
   const [showContent, setShowContent] = useState(false);
+  const sourceMeta = buildBreakingNewsSourceMeta(source);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowContent(true), revealDelay);
@@ -153,7 +180,11 @@ export function BreakingNews({
         }}>
           <p style={headlineStyle}>{headline}</p>
           <p style={detailStyle}>{detail}</p>
-          <p style={sourceStyle}>SOURCE: {source}</p>
+          <p style={sourceStyle}>{sourceMeta.sourceLine}</p>
+          <div style={queueMetaStyle} aria-label="Breaking news queue source">
+            <span>{sourceMeta.queueLine}</span>
+            <span>{sourceMeta.dismissLine}</span>
+          </div>
         </div>
       )}
 

@@ -1,8 +1,13 @@
 export type SpotlightWizardStageId =
   | 'cold-open'
-  | 'team-select'
   | 'agm-hire'
+  | 'intel-briefing'
+  | 'roster-overview'
+  | 'coach-hire'
+  | 'scout-hire'
+  | 'scheme'
   | 'depth-chart'
+  | 'cap-strategy'
   | 'goals'
   | 'culture'
   | 'blueprint'
@@ -17,14 +22,19 @@ export interface SpotlightTargetEntry {
 
 export const SPOTLIGHT_TARGETS_BY_BEAT: SpotlightTargetEntry[] = [
   { beat: 1, stageId: 'cold-open', targetId: 'wizard.cold-open.continue' },
-  { beat: 2, stageId: 'team-select', targetId: 'wizard.team-select.confirm' },
-  { beat: 3, stageId: 'agm-hire', targetId: 'wizard.agm-hire.confirm' },
-  { beat: 4, stageId: 'depth-chart', targetId: 'wizard.depth-chart.confirm' },
-  { beat: 5, stageId: 'goals', targetId: 'wizard.goals.confirm' },
-  { beat: 6, stageId: 'culture', targetId: 'wizard.culture.confirm' },
-  { beat: 7, stageId: 'blueprint', targetId: 'wizard.blueprint.mic-check' },
-  { beat: 8, stageId: 'week-one', targetId: 'wizard.week-one.start' },
-  { beat: 9, stageId: 'dashboard', targetId: 'wizard.dashboard.handoff' },
+  { beat: 1, stageId: 'agm-hire', targetId: 'wizard.agm-hire.confirm' },
+  { beat: 2, stageId: 'intel-briefing', targetId: 'wizard.intel-briefing.confirm' },
+  { beat: 3, stageId: 'roster-overview', targetId: 'wizard.roster.confirm' },
+  { beat: 4, stageId: 'coach-hire', targetId: 'wizard.coach-hire.confirm' },
+  { beat: 5, stageId: 'scout-hire', targetId: 'wizard.scout-hire.confirm' },
+  { beat: 6, stageId: 'scheme', targetId: 'wizard.scheme.confirm' },
+  { beat: 7, stageId: 'depth-chart', targetId: 'wizard.depth-chart.confirm' },
+  { beat: 8, stageId: 'cap-strategy', targetId: 'wizard.cap-strategy.confirm' },
+  { beat: 9, stageId: 'goals', targetId: 'wizard.goals.confirm' },
+  { beat: 9, stageId: 'culture', targetId: 'wizard.culture.confirm' },
+  { beat: 10, stageId: 'blueprint', targetId: 'wizard.blueprint.mic-check' },
+  { beat: 10, stageId: 'week-one', targetId: 'wizard.week-one.start' },
+  { beat: 10, stageId: 'dashboard', targetId: 'wizard.dashboard.handoff' },
 ];
 
 export interface SpotlightControllerOptions {
@@ -44,8 +54,8 @@ export function resolveSpotlightTargetId(
   stage: SpotlightWizardStageId | string | null | undefined,
 ): string | null {
   if (!stage) return null;
-  const entry = SPOTLIGHT_TARGETS_BY_BEAT.find((target) => target.beat === beat);
-  if (!entry || entry.stageId !== stage) return null;
+  const entry = SPOTLIGHT_TARGETS_BY_BEAT.find((target) => target.beat === beat && target.stageId === stage);
+  if (!entry) return null;
   return entry.targetId;
 }
 

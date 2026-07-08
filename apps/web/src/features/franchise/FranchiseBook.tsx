@@ -126,6 +126,7 @@ const printStyles = `
   body { background: white !important; color: black !important; }
   .mfd-franchise-book-toc,
   .mfd-franchise-book-header-kicker,
+  .mfd-franchise-book-source-panel,
   .mfd-franchise-book-toc-toggle,
   nav, header, footer,
   button { display: none !important; }
@@ -337,7 +338,7 @@ function ChapterView({
 
           <div style={{ marginTop: '18px', display: 'flex', flexDirection: 'column', gap: '6px', ...monoSm, color: 'var(--mfd-text-dim)' }}>
             <div><strong style={{ color: 'var(--mfd-text)' }}>RECORD</strong> {chapter.record.wins}-{chapter.record.losses}{chapter.record.ties > 0 ? `-${chapter.record.ties}` : ''}</div>
-            <div><strong style={{ color: 'var(--mfd-text)' }}>WIN %</strong> {(chapter.record.winPct * 100).toFixed(1)}</div>
+            <div><strong style={{ color: 'var(--mfd-text)' }}>WIN %</strong> {(chapter.record.winPct * 100).toFixed(1)}%</div>
             <div><strong style={{ color: 'var(--mfd-text)' }}>PT DIFF</strong> {chapter.record.pointDifferential >= 0 ? '+' : ''}{chapter.record.pointDifferential}</div>
             <div><strong style={{ color: 'var(--mfd-text)' }}>COACH</strong> {chapter.headCoachName ?? '—'}</div>
             <div><strong style={{ color: 'var(--mfd-text)' }}>TRIGGER</strong> {chapter.trigger.replace(/_/g, ' ')}</div>
@@ -345,6 +346,28 @@ function ChapterView({
         </aside>
       </div>
     </article>
+  );
+}
+
+function FranchiseBookSourcesPanel() {
+  return (
+    <PixelPanel title="Franchise Book Sources" accent="cyan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <PixelBadge variant="cyan">BOOK READ MODEL</PixelBadge>
+          <PixelBadge variant="gold">PRINT CONTROL ONLY</PixelBadge>
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.7 }}>
+          This reader calls <strong>buildFranchiseBook(game, userTeam.id)</strong>. Era chapters are derived from saved <strong>game.franchiseHistory</strong> and <strong>game.userDynastyEras</strong>, with defining moments from <strong>game.dynastyTimeline</strong>.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          Signature players read <strong>game.playerArchive</strong> and <strong>game.playerSeasonHistory</strong>; the coach label is a best-effort read from current team staff. Prose comes from authored <strong>era-templates.json</strong> and <strong>book-commentary.json</strong> through deterministic template selection.
+        </div>
+        <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          TOC selection and <strong>PRINT / SAVE PDF</strong> are route-local/browser controls. Opening Franchise Book does not write dynasty events, start or name eras, update franchise history, change player records, write news, change saves, or play scheduled games.
+        </div>
+      </div>
+    </PixelPanel>
   );
 }
 
@@ -420,6 +443,10 @@ export function FranchiseBookScreen() {
           </>
         )}
       />
+
+      <div className="mfd-franchise-book-source-panel">
+        <FranchiseBookSourcesPanel />
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 260px) minmax(0, 1fr)', gap: '20px', alignItems: 'start' }} className="mfd-franchise-book-layout">
         <aside

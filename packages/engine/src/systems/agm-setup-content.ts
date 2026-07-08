@@ -69,10 +69,12 @@ const GENERIC_TRANSITION_KEYS: Partial<Record<string, string>> = {
 };
 
 const LOCAL_TRANSITION_FALLBACKS: Record<string, string> = {
-  'choose_agm__intel_briefing': 'Your new AGM closes the door behind you and opens the first real file of the day.',
-  'hire_coach__hire_scout': 'The coaching chair is set. Now you decide who helps the building trust its next wave of talent.',
-  'hire_scout__set_scheme': 'With leadership and intel in place, the room is ready for an identity call.',
+  'choose_agm__intel_briefing': 'Your new AGM opens Franchise Intel and points to roster, staff, depth-chart, and cap choices that decide Week 1 starter jobs, cap space, and missed calls.',
+  'hire_coach__hire_scout': 'The coach is set. Now hire the scouting director who finds medical limits, assigned-role gaps, and coachability warnings before picks are spent.',
+  'hire_scout__set_scheme': 'With staff and scouting set, choose schemes that protect current starter assignments by Week 1.',
 };
+const DEFAULT_TRANSITION_FALLBACK =
+  'Name the setup decision before you commit; missed staff, scheme, cap, or goal choices cost Week 1 prep.';
 
 const hiringContent = hiringContentJson as HiringContentShape;
 const agmCharacters = agmCharactersJson as AgmCharactersShape;
@@ -142,13 +144,13 @@ export function getScoutHiringReaction(agmId: string, candidateId: string): { re
 export function getSchemeReaction(agmId: string, schemeId: string): string {
   const agmKey = toMuseAgmId(agmId);
   return teachingPolish.scheme_reactions[agmKey]?.[schemeId]
-    ?? `We can make ${schemeId} work if the room understands why we chose it.`;
+    ?? `Choose ${schemeId} when starters have assigned protection, coverage, and run-defense jobs; otherwise Week 1 mistakes arrive first.`;
 }
 
 export function getGoalReaction(agmId: string, goalId: string): string {
   const agmKey = toMuseAgmId(agmId);
   return teachingPolish.goal_reactions[agmKey]?.[goalId]
-    ?? `That goal can work if we keep the room aligned behind it.`;
+    ?? 'Choose that goal after naming starter strength, cap space, and owner patience; otherwise early losses force rushed trades or contract pushes.';
 }
 
 export function getTeachingTips(agmId: string, topicKey: string): string[] {
@@ -169,16 +171,16 @@ export function getPhaseTransitionFlavor(agmId: string, fromPhase: SetupPhase, t
 
   const genericKey = GENERIC_TRANSITION_KEYS[key];
   if (genericKey) {
-    return agmCharacters.day_one_narrative.phase_transitions[genericKey] ?? LOCAL_TRANSITION_FALLBACKS[key] ?? 'The next conversation starts before the last one has fully settled.';
+    return agmCharacters.day_one_narrative.phase_transitions[genericKey] ?? LOCAL_TRANSITION_FALLBACKS[key] ?? DEFAULT_TRANSITION_FALLBACK;
   }
 
-  return LOCAL_TRANSITION_FALLBACKS[key] ?? 'The next conversation starts before the last one has fully settled.';
+  return LOCAL_TRANSITION_FALLBACKS[key] ?? DEFAULT_TRANSITION_FALLBACK;
 }
 
 export function getTransitionTip(seed: number, fromPhase: SetupPhase, toPhase: SetupPhase): string {
   const tips = teachingPolish.loading_tips;
   if (tips.length === 0) {
-    return 'Small edges compound when the plan stays coherent.';
+    return 'Before the next setup screen, name the decision and consequence; skipped warnings leave Week 1 injuries, cap costs, or matchups unresolved.';
   }
   const index = hashText(`${seed}:${fromPhase}:${toPhase}`) % tips.length;
   return tips[index]!;
@@ -187,5 +189,5 @@ export function getTransitionTip(seed: number, fromPhase: SetupPhase, toPhase: S
 export function getBlueprintClosingMonologue(agmId: string): string {
   const agmKey = toMuseAgmId(agmId);
   return teachingPolish.blueprint_closing_monologue[agmKey]
-    ?? 'The plan is set. Now the building has to live up to it.';
+    ?? 'Open Roster, cap space, Depth Chart, and Game Plan before each Advance Week; skipped roster, cap, depth-chart, or game-plan fixes leave an uncovered starter job, uncovered injury, or dead-money cap squeeze.';
 }

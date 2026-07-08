@@ -14,6 +14,7 @@ import { evaluateContingencies } from './contingency-plans';
 import { determineSituation, selectOffensivePlay, selectDefensivePlay, playMatchupQuality } from './playbook';
 import { simulateSpecialTeams } from './special-teams';
 import { getCoachTraitMods } from './coach-trait-mods';
+import { ensurePlayerStatBuckets } from './season-stats';
 import type { ContingencyCheckContext } from './contingency-plans';
 import type {
   GamePlan,
@@ -1273,6 +1274,7 @@ export function applyPlayerLines(team: Team, lines: PlayerGameLine[]): void {
   for (const line of lines) {
     const player = team.roster.find((p) => p.id === line.playerId);
     if (!player) continue;
+    ensurePlayerStatBuckets(player);
     participants.add(player.id);
     player.stats.passYds += line.passYds ?? 0;
     player.stats.passTD += line.passTD ?? 0;
@@ -1317,6 +1319,7 @@ export function applyPlayerLines(team: Team, lines: PlayerGameLine[]): void {
   for (const player of team.roster) {
     if (isPlayerUnavailable(player)) continue;
     if (player.isStarter || participants.has(player.id)) {
+      ensurePlayerStatBuckets(player);
       player.careerStats.gp = (player.careerStats.gp ?? 0) + 1;
       player.stats.gamesPlayed += 1;
     }

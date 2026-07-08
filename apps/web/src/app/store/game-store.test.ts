@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ContingencyRule, ContractOffer, DraftProspect, ScrapbookEntry } from '@mfd/engine';
-import { initializeOffseasonState } from '@mfd/engine';
+import type { ContingencyRule, ContractOffer, DraftProspect, GameResult, ScrapbookEntry, TeamNeedsReport, TradeOffer, TradeOfferAsset } from '@mfd/engine';
+import { calcCapHit, createTradeProposal as createTradeProposalEngine, getFacilityLevelEffect, getSalaryCap, initializeOffseasonState, mulberry32, startScenario, validateGameState } from '@mfd/engine';
 import { createSeedGameState } from './seed';
 import { useGameStore } from './game-store';
+import { selectActiveEndorsements, selectEndorsementRevenue } from './selectors';
 import { autosaveDynasty } from './persistence';
 import { useUiStore } from './ui-store';
 import { deriveDynastyId } from '../../lib/career-meta';
@@ -18,6 +19,7 @@ import {
   readRookieOfYearEntries,
   upsertRookieOfYearEntry,
 } from '../../lib/rookie-of-year-store';
+import { loadRivalries, saveRivalries } from '../../lib/rivalry-storage';
 import { MemoryStorage } from './game-store.test-helpers';
 
 // Note: the heavy week-advancing / halftime / playoff-lore / trade-deadline
@@ -51,6 +53,93 @@ function makeProspect(id: string): DraftProspect {
     stealProbability: 0.08,
     scoutingReports: [],
     combine: null,
+  };
+}
+
+function makeRivalryResult(
+  homeTeamId: string,
+  awayTeamId: string,
+  week: number,
+  homeScore: number,
+  awayScore: number,
+): GameResult {
+  return {
+    id: `${homeTeamId}-${awayTeamId}-${week}`,
+    homeTeamId,
+    awayTeamId,
+    homeScore,
+    awayScore,
+    week,
+    year: 2026,
+    overtime: false,
+    mvpPlayerId: null,
+    stats: {
+      [homeTeamId]: {} as never,
+      [awayTeamId]: {} as never,
+    },
+    playerMatchupEvents: [],
+  };
+}
+
+function addCompletedRivalryMatchup(game: ReturnType<typeof createSeedGameState>): [string, string] {
+  const [home, away] = Object.values(game.teams);
+  if (!home || !away) throw new Error('Expected at least two teams');
+
+  game.schedule = [{
+    week: 1,
+    games: [{
+      homeTeamId: home.id,
+      awayTeamId: away.id,
+      result: makeRivalryResult(home.id, away.id, 1, 24, 17),
+    }],
+  }];
+
+  return [home.id, away.id];
+}
+
+function setBlockDraftScenario(game: ReturnType<typeof createSeedGameState>): void {
+  game.scenarioState = {
+    activeScenario: {
+      id: 'draft_lock',
+      name: 'Draft Lock',
+      tagline: 'No user draft picks.',
+      description: 'A test scenario that blocks user draft selections.',
+      difficulty: 'pro',
+      seasonLimit: 1,
+      objectives: [],
+      bonusObjectives: [],
+      constraints: {
+        blockTrades: false,
+        blockFreeAgency: false,
+        blockDraft: true,
+        forcedDifficulty: undefined,
+      },
+    },
+    scenarioSeason: 1,
+    completedScenarios: [],
+  };
+}
+
+function setBlockFreeAgencyScenario(game: ReturnType<typeof createSeedGameState>): void {
+  game.scenarioState = {
+    activeScenario: {
+      id: 'waiver_lock',
+      name: 'Waiver Lock',
+      tagline: 'No external claims.',
+      description: 'A test scenario that blocks waiver claim submissions.',
+      difficulty: 'pro',
+      seasonLimit: 1,
+      objectives: [],
+      bonusObjectives: [],
+      constraints: {
+        blockTrades: false,
+        blockFreeAgency: true,
+        blockDraft: false,
+        forcedDifficulty: undefined,
+      },
+    },
+    scenarioSeason: 1,
+    completedScenarios: [],
   };
 }
 
@@ -111,6 +200,18 @@ function makeScrapbookEntry(year: number): ScrapbookEntry {
         reason: 'Strong offseason leap.',
       }],
     },
+  };
+}
+
+function makeCachedNeedsReport(overall: string): TeamNeedsReport {
+  return {
+    overall,
+    positionGrades: [],
+    criticalNeeds: ['QB'],
+    strengths: ['WR'],
+    draftTargets: ['QB'],
+    faTargets: ['QB'],
+    capFlexibility: 'moderate',
   };
 }
 
@@ -198,6 +299,61 @@ describe('game store offseason actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 
+  it('persists starter changes and mirrors the global player map', async () => {
+    const game = createSeedGameState(126, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const cpuTeam = Object.values(game.teams).find((team) => !team.isUser)!;
+    const backup = userTeam.roster.find((player) => !player.isStarter && game.players[player.id]);
+    if (!backup) throw new Error('Expected a seeded backup player for starter persistence test.');
+    const depthChartStepIndex = game.tutorialState.steps.findIndex((step) => step.id === 'set_depth_chart');
+    game.tutorialState.currentStepIndex = depthChartStepIndex;
+    game.teamNeedsCache = {
+      [userTeam.id]: makeCachedNeedsReport('cached user report'),
+      [cpuTeam.id]: makeCachedNeedsReport('cached CPU report'),
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.setStarter(userTeam.id, backup.id, true);
+
+    const nextGame = useGameStore.getState().game!;
+    const rosterPlayer = nextGame.teams[userTeam.id]!.roster.find((player) => player.id === backup.id);
+    expect(rosterPlayer?.isStarter).toBe(true);
+    expect(nextGame.players[backup.id]?.isStarter).toBe(true);
+    expect(nextGame.teamNeedsCache).toEqual({});
+    expect(nextGame.tutorialState.completedSteps).toContain('set_depth_chart');
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggles trade-block status through the durable store path and mirrors the player map', async () => {
+    const game = createSeedGameState(127, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const player = userTeam.roster.find((entry) => game.players[entry.id])!;
+    player.tradeBlock = false;
+    game.players[player.id] = { ...player, tradeBlock: false };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.toggleTradeBlock(userTeam.id, player.id);
+
+    const nextGame = useGameStore.getState().game!;
+    const nextPlayer = nextGame.teams[userTeam.id]!.roster.find((entry) => entry.id === player.id)!;
+    expect(nextPlayer.tradeBlock).toBe(true);
+    expect(nextGame.players[player.id]?.tradeBlock).toBe(true);
+    expect(player.tradeBlock).toBe(false);
+    expect(game.players[player.id]?.tradeBlock).toBe(false);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+    expect(autosaveDynasty).toHaveBeenCalledWith(nextGame);
+  });
+
   it('clears only the new dynasty scrapbook bucket when starting a new game', async () => {
     const game = createSeedGameState(41, 0, 'pro');
     const dynastyId = deriveDynastyId(game);
@@ -258,6 +414,36 @@ describe('game store offseason actions', () => {
 
     expect(readRookieOfYearEntries(dynastyId)).toEqual([]);
     expect(readRookieOfYearEntries('other-dynasty')).toHaveLength(1);
+  });
+
+  it('resets the derived rivalry sidecar when starting a new game', async () => {
+    const game = createSeedGameState(44, 0, 'pro');
+    saveRivalries({
+      schemaVersion: 1,
+      generatedAt: 123,
+      teams: {
+        stale: [],
+      },
+    });
+
+    await useGameStore.getState().actions.newGame(game);
+
+    expect(loadRivalries().teams).toEqual({});
+  });
+
+  it('syncs the derived rivalry sidecar when loading a save', () => {
+    const game = createSeedGameState(45, 0, 'pro');
+    const [homeTeamId, awayTeamId] = addCompletedRivalryMatchup(game);
+
+    useGameStore.getState().actions.loadGame(game);
+
+    expect(loadRivalries().teams[homeTeamId]?.[0]).toMatchObject({
+      opponentId: awayTeamId,
+      lastMatchup: {
+        result: 'win',
+        margin: 7,
+      },
+    });
   });
 
   it('runs a private workout and spends one scouting workout slot', async () => {
@@ -334,11 +520,58 @@ describe('game store offseason actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 
+  it('blocks draft picks through the store when scenario constraints disable drafting', async () => {
+    const game = createSeedGameState(325, 0, 'pro');
+    game.phase = 'draft';
+    game.offseasonState = initializeOffseasonState(game);
+    game.draftClass = [makeProspect('blocked-store-prospect')];
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    game.offseasonState.draftOrder = [{
+      id: 'user-2027-1-1-user',
+      teamId: userTeam.id,
+      round: 1,
+      pick: 1,
+      overall: 1,
+      originalTeamId: userTeam.id,
+    }];
+    game.offseasonState.currentDraftPickIndex = 0;
+    setBlockDraftScenario(game);
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.makeDraftPick('blocked-store-prospect');
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.teams[userTeam.id]!.roster.some((player) => player.id === 'blocked-store-prospect')).toBe(false);
+    expect(nextGame.draftClass.some((prospect) => prospect.id === 'blocked-store-prospect')).toBe(true);
+    expect(nextGame.offseasonState?.currentDraftPickIndex).toBe(0);
+    expect(nextGame.postGameUi?.audioCueQueue ?? []).toEqual([]);
+    expect(autosaveDynasty).not.toHaveBeenCalled();
+  });
+
   it('queues a free-agent signing cue when a street free agent signs', async () => {
     const game = createSeedGameState(24, 0, 'pro');
     game.phase = 'offseason';
     game.offseasonState = initializeOffseasonState(game);
-    const playerId = game.freeAgents[0]!;
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const sourceTeam = Object.values(game.teams).find((team) => !team.isUser)!;
+    const untouchedTeam = Object.values(game.teams).find((team) => !team.isUser && team.id !== sourceTeam.id)!;
+    const player = sourceTeam.roster[0]!;
+    sourceTeam.roster = sourceTeam.roster.filter((entry) => entry.id !== player.id);
+    player.teamId = null;
+    player.contract = null;
+    game.players[player.id] = player;
+    game.freeAgents = [player.id];
+    game.teamNeedsCache = {
+      [userTeam.id]: makeCachedNeedsReport('cached user report'),
+      [sourceTeam.id]: makeCachedNeedsReport('cached source report'),
+      [untouchedTeam.id]: makeCachedNeedsReport('cached untouched report'),
+    };
+    const playerId = player.id;
     const offer: ContractOffer = {
       years: 1,
       salary: 1.1,
@@ -355,8 +588,112 @@ describe('game store offseason actions', () => {
     await useGameStore.getState().actions.signStreetFreeAgent(playerId, offer);
 
     const nextGame = useGameStore.getState().game!;
-    expect(nextGame.players[playerId]?.teamId).not.toBeNull();
+    const nextUserTeam = nextGame.teams[userTeam.id]!;
+    const signedPlayer = nextGame.players[playerId]!;
+    expect(signedPlayer.teamId).toBe(userTeam.id);
+    expect(signedPlayer.contract?.teamId).toBe(userTeam.id);
+    expect(nextUserTeam.roster.some((player) => player.id === playerId && player.teamId === userTeam.id)).toBe(true);
+    expect(nextGame.freeAgents).not.toContain(playerId);
+    expect(nextGame.teamNeedsCache).toEqual({});
+    expect(validateGameState(nextGame).violations.filter((entry) => entry.context?.playerId === playerId)).toEqual([]);
     expect(nextGame.postGameUi?.audioCueQueue.at(-1)?.event).toBe('free_agent_signed');
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not cue or autosave when a street free-agent signing is blocked by scenario constraints', async () => {
+    const game = createSeedGameState(325, 0, 'pro');
+    game.phase = 'offseason';
+    game.offseasonState = initializeOffseasonState(game);
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const sourceTeam = Object.values(game.teams).find((team) => !team.isUser)!;
+    const player = sourceTeam.roster[0]!;
+    sourceTeam.roster = sourceTeam.roster.filter((entry) => entry.id !== player.id);
+    player.teamId = null;
+    player.contract = null;
+    game.players[player.id] = player;
+    game.freeAgents = [player.id];
+    game.teamNeedsCache = {
+      [userTeam.id]: makeCachedNeedsReport('cached user report'),
+    };
+    const offer: ContractOffer = {
+      years: 1,
+      salary: 1.1,
+      signingBonus: 0.2,
+      guaranteed: 0.6,
+    };
+    setBlockFreeAgencyScenario(game);
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.signStreetFreeAgent(player.id, offer);
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame).toBe(game);
+    expect(nextGame.teams[userTeam.id]!.roster.some((entry) => entry.id === player.id)).toBe(false);
+    expect(nextGame.freeAgents).toContain(player.id);
+    expect(nextGame.players[player.id]?.teamId).toBeNull();
+    expect(nextGame.teamNeedsCache[userTeam.id]?.overall).toBe('cached user report');
+    expect(nextGame.postGameUi?.audioCueQueue ?? []).toEqual([]);
+    expect(autosaveDynasty).not.toHaveBeenCalled();
+  });
+
+  it('blocks waiver claim submissions through the store when scenario constraints disable free agency', async () => {
+    const game = createSeedGameState(326, 0, 'pro');
+    const releasedBy = Object.values(game.teams).find((team) => !team.isUser)!;
+    const player = releasedBy.roster[0]!;
+    game.waiverWire = [{
+      playerId: player.id,
+      releasedByTeamId: releasedBy.id,
+      createdYear: game.year,
+      createdWeek: game.week,
+      expiresYear: game.year,
+      expiresWeek: game.week + 1,
+    }];
+    game.waiverClaims = [];
+    setBlockFreeAgencyScenario(game);
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.submitWaiverClaim('afce1', player.id);
+
+    expect(useGameStore.getState().game?.waiverClaims).toEqual([]);
+    expect(useGameStore.getState().game?.waiverWire).toHaveLength(1);
+    expect(autosaveDynasty).not.toHaveBeenCalled();
+  });
+
+  it('blocks practice-squad acquisitions through the store when scenario constraints disable free agency', async () => {
+    const game = createSeedGameState(327, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const sourceTeam = Object.values(game.teams).find((team) => !team.isUser)!;
+    const player = sourceTeam.roster[0]!;
+    sourceTeam.roster = sourceTeam.roster.filter((entry) => entry.id !== player.id);
+    player.teamId = null;
+    player.contract = null;
+    game.players[player.id] = player;
+    game.freeAgents = [player.id];
+    setBlockFreeAgencyScenario(game);
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.addToPracticeSquad(userTeam.id, player.id);
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.teams[userTeam.id]?.practiceSquad ?? []).not.toContainEqual(expect.objectContaining({ playerId: player.id }));
+    expect(nextGame.freeAgents).toContain(player.id);
+    expect(nextGame.players[player.id]?.teamId).toBeNull();
+    expect(autosaveDynasty).not.toHaveBeenCalled();
   });
 
   it('persists call your shot declarations through the store', async () => {
@@ -374,7 +711,7 @@ describe('game store offseason actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 
-  it('records the current season as the last portable export year without autosaving', () => {
+  it('records the current season as the last portable export year and autosaves the receipt', async () => {
     const game = createSeedGameState(778, 0, 'pro');
     game.year = 2034;
 
@@ -384,18 +721,27 @@ describe('game store offseason actions', () => {
       initialized: true,
     }));
 
-    useGameStore.getState().actions.recordPortableExport();
+    await useGameStore.getState().actions.recordPortableExport();
 
     expect(useGameStore.getState().game?.lastPortableExportYear).toBe(2034);
-    expect(autosaveDynasty).not.toHaveBeenCalled();
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+    expect(autosaveDynasty).toHaveBeenCalledWith(expect.objectContaining({
+      lastPortableExportYear: 2034,
+    }));
   });
 
   it('stores contingency rules and trick plays on weekly prep plans', async () => {
     const game = createSeedGameState(888, 0, 'pro');
     game.phase = 'regular_season';
     const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
-    const matchup = game.schedule.find((week) => week.week === game.week)?.games
-      .find((entry) => entry.homeTeamId === userTeam.id || entry.awayTeamId === userTeam.id)!;
+    const matchingWeek = game.schedule.find((week) => week.week === game.week);
+    const matchup = matchingWeek?.games
+      .find((entry) => entry.homeTeamId === userTeam.id || entry.awayTeamId === userTeam.id);
+
+    if (matchup === undefined) {
+      throw new Error('Expected a scheduled user matchup for weekly prep plan persistence.');
+    }
+
     const opponentTeamId = matchup.homeTeamId === userTeam.id ? matchup.awayTeamId : matchup.homeTeamId;
     const contingencyRule: ContingencyRule = {
       id: 'contingency-1',
@@ -434,8 +780,66 @@ describe('game store offseason actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 
-  it('updates difficulty without autosaving when UI autosave is disabled', async () => {
+  it('sets the season phase through the durable store commit path', async () => {
+    const game = createSeedGameState(122, 0, 'pro');
+    game.phase = 'regular_season';
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.setPhase('offseason');
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.phase).toBe('offseason');
+    expect(game.phase).toBe('regular_season');
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+    expect(autosaveDynasty).toHaveBeenCalledWith(nextGame);
+  });
+
+  it('commits setup progress actions through the durable store path', async () => {
     const game = createSeedGameState(123, 0, 'pro');
+    const originalSetupState = game.setupState!;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.applySetupChoice({ agmProfileId: 'marcus_webb' });
+
+    let nextGame = useGameStore.getState().game!;
+    expect(nextGame.setupState?.decisions.agmProfileId).toBe('marcus_webb');
+    expect(nextGame.setupState?.crisisProfile?.pressureCards.length).toBeGreaterThan(0);
+    expect(nextGame.setupState?.forecastBoard).not.toBeNull();
+    expect(game.setupState).toBe(originalSetupState);
+    expect(game.setupState?.decisions.agmProfileId).toBeNull();
+
+    await useGameStore.getState().actions.advanceSetup();
+    nextGame = useGameStore.getState().game!;
+    expect(nextGame.setupState?.currentPhase).toBe('intel_briefing');
+
+    const pressureId = nextGame.setupState?.crisisProfile?.pressureCards[0]?.id;
+    if (!pressureId) {
+      throw new Error('Expected setup pressure cards after applying setup choice.');
+    }
+
+    await useGameStore.getState().actions.toggleSetupDrilldown(pressureId);
+    nextGame = useGameStore.getState().game!;
+    expect(nextGame.setupState?.openedDrilldowns).toContain(pressureId);
+
+    await useGameStore.getState().actions.goBackSetup();
+    nextGame = useGameStore.getState().game!;
+    expect(nextGame.setupState?.currentPhase).toBe('choose_agm');
+    expect(autosaveDynasty).toHaveBeenCalledTimes(4);
+    expect(autosaveDynasty).toHaveBeenLastCalledWith(nextGame);
+  });
+
+  it('updates difficulty without autosaving when UI autosave is disabled', async () => {
+    const game = createSeedGameState(124, 0, 'pro');
 
     useGameStore.setState((state) => ({
       ...state,
@@ -451,6 +855,104 @@ describe('game store offseason actions', () => {
 
     expect(useGameStore.getState().game?.difficulty).toBe('legend');
     expect(autosaveDynasty).not.toHaveBeenCalled();
+  });
+
+  it('adds coaching clinic XP through the durable store commit path', async () => {
+    const game = createSeedGameState(124, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.addClinicXP(userTeam.id, 'offense', 10);
+
+    expect(useGameStore.getState().game?.teams[userTeam.id]?.clinic.xp.offense).toBe(10);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores unknown coaching clinic actions without autosaving', async () => {
+    const game = createSeedGameState(125, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.addClinicXP(userTeam.id, 'unknown_action', 10);
+
+    expect(useGameStore.getState().game?.teams[userTeam.id]?.clinic.xp).toEqual({});
+    expect(autosaveDynasty).not.toHaveBeenCalled();
+  });
+
+  it('sets the head coach skill selection through the durable store commit path', async () => {
+    const game = createSeedGameState(126, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const headCoach = userTeam.staff.hc!;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.setHeadCoachSkillSelection('air_raid', 1);
+
+    expect(useGameStore.getState().game?.teams[userTeam.id]?.skillSelections[headCoach.id]).toEqual({
+      branch: 'air_raid',
+      tier: 1,
+      archForLookup: headCoach.archetype,
+    });
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('initializes position coaches through the durable store commit path', async () => {
+    const game = createSeedGameState(127, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    userTeam.positionCoaches = undefined;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    const staff = await useGameStore.getState().actions.initializePositionCoachesForTeam(userTeam.id);
+
+    const savedStaff = useGameStore.getState().game?.teams[userTeam.id]?.positionCoaches;
+    expect(staff?.coaches).toHaveLength(7);
+    expect(savedStaff?.coaches.map((coach) => coach.role).sort()).toEqual(['DB', 'DL', 'LB', 'OL', 'RB_TE', 'ST', 'WR']);
+    expect(validateGameState(useGameStore.getState().game!)).toBeTruthy();
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('upgrades a position coach role through the durable store commit path', async () => {
+    const game = createSeedGameState(128, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    userTeam.positionCoaches = undefined;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    const initialStaff = await useGameStore.getState().actions.initializePositionCoachesForTeam(userTeam.id);
+    const beforeOl = initialStaff?.coaches.find((coach) => coach.role === 'OL');
+    const upgradedStaff = await useGameStore.getState().actions.upgradePositionCoachRole(userTeam.id, 'OL');
+    const afterOl = upgradedStaff?.coaches.find((coach) => coach.role === 'OL');
+
+    expect(beforeOl).toBeDefined();
+    expect(afterOl).toBeDefined();
+    expect(afterOl).not.toEqual(beforeOl);
+    expect(upgradedStaff?.coaches).toHaveLength(7);
+    expect(useGameStore.getState().game?.teams[userTeam.id]?.positionCoaches?.coaches.find((coach) => coach.role === 'OL')).toEqual(afterOl);
+    expect(validateGameState(useGameStore.getState().game!)).toBeTruthy();
+    expect(autosaveDynasty).toHaveBeenCalledTimes(2);
   });
 
   it('assigns player training through the store and persists the updated game', async () => {
@@ -497,6 +999,250 @@ describe('game store offseason actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(2);
   });
 
+  it('no-ops trade-center commit actions through the store when scenario constraints disable trades', async () => {
+    const base = createSeedGameState(334, 0, 'pro');
+    base.phase = 'offseason';
+    base.offseasonState = initializeOffseasonState(base);
+    const userTeam = Object.values(base.teams).find((team) => team.isUser)!;
+    const partner = Object.values(base.teams).find((team) => !team.isUser)!;
+    const offering: TradeOfferAsset[] = [
+      { type: 'pick', teamId: userTeam.id, playerId: null, pickId: `${userTeam.id}-${base.year}-1-1-${userTeam.id}`, description: 'Round 1 pick' },
+    ];
+    const requesting: TradeOfferAsset[] = [
+      { type: 'pick', teamId: partner.id, playerId: null, pickId: `${partner.id}-${base.year}-7-7-${partner.id}`, description: 'Round 7 pick' },
+    ];
+    const generatedOffer: TradeOffer = {
+      id: 'blocked-offer',
+      fromTeamId: partner.id,
+      toTeamId: userTeam.id,
+      direction: 'inbound',
+      summary: 'Scenario should block this generated offer.',
+      status: 'pending',
+      send: requesting,
+      receive: offering,
+    };
+    base.offseasonState.tradeOffers = [generatedOffer];
+    const proposal = createTradeProposalEngine(base, userTeam.id, partner.id, offering, requesting);
+    proposal.counterOffer = {
+      ...proposal,
+      offering,
+      requesting,
+      status: 'countered',
+      aiResponse: 'We need another premium pick.',
+      valueDiff: 0.8,
+      counterOffer: null,
+    };
+    const game = startScenario('the_savant', base, mulberry32(334));
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    const created = await useGameStore.getState().actions.createTradeProposal(userTeam.id, partner.id, offering, requesting);
+    const submitted = await useGameStore.getState().actions.submitTradeProposal(proposal.id);
+    const acceptedCounter = await useGameStore.getState().actions.acceptCounter(proposal.id);
+    await useGameStore.getState().actions.acceptTradeOffer(generatedOffer.id);
+
+    const nextGame = useGameStore.getState().game!;
+    expect(created).toBeNull();
+    expect(submitted).toBeNull();
+    expect(acceptedCounter).toBeNull();
+    expect(nextGame.activeProposals).toHaveLength(1);
+    expect(nextGame.activeProposals[0]?.status).toBe('draft');
+    expect(nextGame.offseasonState?.tradeOffers).toHaveLength(1);
+    expect(nextGame.offseasonState?.tradeOffers[0]?.status).toBe('pending');
+    expect(nextGame.postGameUi?.audioCueQueue ?? []).toEqual([]);
+    expect(useGameStore.getState().undoSnapshot).toBeNull();
+    expect(autosaveDynasty).not.toHaveBeenCalled();
+  });
+
+  it('blocks draft war-room trade accepts through the store when scenario constraints disable trades', async () => {
+    const base = createSeedGameState(335, 0, 'pro');
+    base.phase = 'draft';
+    const game = startScenario('the_savant', base, mulberry32(335));
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const partner = Object.values(game.teams).find((team) => !team.isUser)!;
+    game.warRoomState = {
+      currentPick: 1,
+      onTheClock: userTeam.id,
+      timeRemaining: 90,
+      incomingOffers: [{
+        from: partner.id,
+        targetPick: 1,
+        offer: {
+          offering: [{
+            type: 'pick',
+            teamId: partner.id,
+            playerId: null,
+            pickId: `${partner.id}-1-1-${partner.id}`,
+            description: 'Round 1 pick',
+          }],
+          requesting: [{
+            type: 'pick',
+            teamId: userTeam.id,
+            playerId: null,
+            pickId: `${userTeam.id}-1-1-${userTeam.id}`,
+            description: 'Round 1 pick',
+          }],
+          type: 'mixed',
+        },
+        urgency: 'interested',
+        reasoning: 'Scenario should block this trade.',
+      }],
+      userCanTradeUp: [],
+      draftGrade: 'B',
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.acceptDraftTradeOffer(game.warRoomState.incomingOffers[0]!);
+
+    expect(useGameStore.getState().game?.warRoomState?.incomingOffers).toHaveLength(1);
+    expect(autosaveDynasty).not.toHaveBeenCalled();
+  });
+
+  it('accepts draft war-room trade offers through the store and updates live draft order ownership', async () => {
+    const game = createSeedGameState(336, 0, 'pro');
+    game.phase = 'draft';
+    game.offseasonState = initializeOffseasonState(game);
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const partner = Object.values(game.teams).find((team) => !team.isUser)!;
+    game.teams[userTeam.id]!.draftPicks = [
+      { round: 1, pick: 1, originalTeamId: userTeam.id, currentTeamId: userTeam.id, year: game.year, isCompPick: false },
+    ];
+    game.teams[partner.id]!.draftPicks = [
+      { round: 1, pick: 2, originalTeamId: partner.id, currentTeamId: partner.id, year: game.year, isCompPick: false },
+    ];
+    game.offseasonState.draftOrder = [
+      { id: `${userTeam.id}-${game.year}-1-1-${userTeam.id}`, teamId: userTeam.id, round: 1, pick: 1, overall: 1, originalTeamId: userTeam.id },
+      { id: `${partner.id}-${game.year}-1-2-${partner.id}`, teamId: partner.id, round: 1, pick: 2, overall: 2, originalTeamId: partner.id },
+    ];
+    game.offseasonState.currentDraftPickIndex = 0;
+    const offer = {
+      from: partner.id,
+      targetPick: 1,
+      offer: {
+        offering: [{
+          type: 'pick' as const,
+          teamId: partner.id,
+          playerId: null,
+          pickId: `${partner.id}-1-2-${partner.id}`,
+          description: 'Round 1, Pick 2',
+        }],
+        requesting: [{
+          type: 'pick' as const,
+          teamId: userTeam.id,
+          playerId: null,
+          pickId: `${userTeam.id}-1-1-${userTeam.id}`,
+          description: 'Round 1, Pick 1',
+        }],
+        type: 'mixed' as const,
+      },
+      urgency: 'desperate' as const,
+      reasoning: 'Move down one slot.',
+    };
+    game.warRoomState = {
+      currentPick: 1,
+      onTheClock: userTeam.id,
+      timeRemaining: 90,
+      incomingOffers: [offer],
+      userCanTradeUp: [],
+      draftGrade: 'B',
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.acceptDraftTradeOffer(offer);
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame.teams[userTeam.id]!.draftPicks).toEqual([
+      { round: 1, pick: 2, originalTeamId: partner.id, currentTeamId: userTeam.id, year: game.year, isCompPick: false },
+    ]);
+    expect(nextGame.teams[partner.id]!.draftPicks).toEqual([
+      { round: 1, pick: 1, originalTeamId: userTeam.id, currentTeamId: partner.id, year: game.year, isCompPick: false },
+    ]);
+    expect(nextGame.offseasonState?.draftOrder).toEqual([
+      { id: `${partner.id}-${game.year}-1-1-${userTeam.id}`, teamId: partner.id, round: 1, pick: 1, overall: 1, originalTeamId: userTeam.id },
+      { id: `${userTeam.id}-${game.year}-1-2-${partner.id}`, teamId: userTeam.id, round: 1, pick: 2, overall: 2, originalTeamId: partner.id },
+    ]);
+    expect(nextGame.warRoomState?.onTheClock).toBe(partner.id);
+    expect(nextGame.warRoomState?.incomingOffers).toEqual([]);
+    expect(nextGame.postGameUi?.audioCueQueue.at(-1)?.event).toBe('trade_complete');
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not commit stale draft war-room trade accepts when a live pick is missing', async () => {
+    const game = createSeedGameState(337, 0, 'pro');
+    game.phase = 'draft';
+    game.offseasonState = initializeOffseasonState(game);
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const partner = Object.values(game.teams).find((team) => !team.isUser)!;
+    game.teams[userTeam.id]!.draftPicks = [
+      { round: 1, pick: 1, originalTeamId: userTeam.id, currentTeamId: userTeam.id, year: game.year, isCompPick: false },
+    ];
+    game.teams[partner.id]!.draftPicks = [];
+    game.offseasonState.draftOrder = [
+      { id: `${userTeam.id}-${game.year}-1-1-${userTeam.id}`, teamId: userTeam.id, round: 1, pick: 1, overall: 1, originalTeamId: userTeam.id },
+      { id: `${partner.id}-${game.year}-1-2-${partner.id}`, teamId: partner.id, round: 1, pick: 2, overall: 2, originalTeamId: partner.id },
+    ];
+    game.offseasonState.currentDraftPickIndex = 0;
+    const offer = {
+      from: partner.id,
+      targetPick: 1,
+      offer: {
+        offering: [{
+          type: 'pick' as const,
+          teamId: partner.id,
+          playerId: null,
+          pickId: `${partner.id}-1-2-${partner.id}`,
+          description: 'Round 1, Pick 2',
+        }],
+        requesting: [{
+          type: 'pick' as const,
+          teamId: userTeam.id,
+          playerId: null,
+          pickId: `${userTeam.id}-1-1-${userTeam.id}`,
+          description: 'Round 1, Pick 1',
+        }],
+        type: 'mixed' as const,
+      },
+      urgency: 'desperate' as const,
+      reasoning: 'Missing offered pick should not commit.',
+    };
+    game.warRoomState = {
+      currentPick: 1,
+      onTheClock: userTeam.id,
+      timeRemaining: 90,
+      incomingOffers: [offer],
+      userCanTradeUp: [],
+      draftGrade: 'B',
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.acceptDraftTradeOffer(offer);
+
+    const nextGame = useGameStore.getState().game!;
+    expect(nextGame).toBe(game);
+    expect(nextGame.warRoomState?.incomingOffers).toHaveLength(1);
+    expect(nextGame.postGameUi?.audioCueQueue ?? []).toEqual([]);
+    expect(autosaveDynasty).not.toHaveBeenCalled();
+  });
+
   it('advances and dismisses tutorial state through the store', async () => {
     const game = createSeedGameState(345, 0, 'pro');
 
@@ -521,6 +1267,7 @@ describe('game store offseason actions', () => {
     const game = createSeedGameState(444, 0, 'pro');
     const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
     const player = userTeam.roster[0]!;
+    game.players[player.id] = structuredClone(player);
     player.injury = {
       id: 'inj-store',
       type: 'hamstring',
@@ -542,6 +1289,8 @@ describe('game store offseason actions', () => {
 
     await useGameStore.getState().actions.placeOnIR(userTeam.id, player.id);
     expect(useGameStore.getState().game?.teams[userTeam.id]?.roster[0]?.injury?.onIR).toBe(true);
+    expect(useGameStore.getState().game?.players[player.id]?.injury?.onIR).toBe(true);
+    expect(useGameStore.getState().game?.players[player.id]?.injury?.gamesOut).toBe(4);
 
     const clearedGame = structuredClone(useGameStore.getState().game!);
     clearedGame.teams[userTeam.id]!.roster[0]!.injury!.gamesOut = 0;
@@ -553,6 +1302,8 @@ describe('game store offseason actions', () => {
     await useGameStore.getState().actions.activateFromIR(userTeam.id, player.id);
 
     expect(useGameStore.getState().game?.teams[userTeam.id]?.roster[0]?.injury?.onIR).toBe(false);
+    expect(useGameStore.getState().game?.players[player.id]?.injury?.onIR).toBe(false);
+    expect(useGameStore.getState().game?.players[player.id]?.injury?.gamesOut).toBe(0);
     expect(autosaveDynasty).toHaveBeenCalledTimes(2);
   });
 
@@ -577,11 +1328,15 @@ describe('game store offseason actions', () => {
       initialized: true,
     }));
 
-    await useGameStore.getState().actions.upgradeFacility(userTeam.id, 'film_room');
+    const facilityType = 'film_room';
+    await useGameStore.getState().actions.upgradeFacility(userTeam.id, facilityType);
     await useGameStore.getState().actions.hireMedicalStaff(userTeam.id, 'med-store');
 
     const nextGame = useGameStore.getState().game!;
+    const upgradedFacility = nextGame.teams[userTeam.id]!.facilityState.facilities.find((facility) => facility.type === facilityType);
     expect(nextGame.teams[userTeam.id]!.facilityState.budget).toBeLessThan(startingBudget);
+    expect(upgradedFacility?.level).toBe(2);
+    expect(upgradedFacility?.effect).toStrictEqual(getFacilityLevelEffect(facilityType, 2));
     expect(nextGame.teams[userTeam.id]!.medicalStaff?.id).toBe('med-store');
     expect(autosaveDynasty).toHaveBeenCalledTimes(2);
   });
@@ -604,11 +1359,17 @@ describe('game store offseason actions', () => {
 
     useGameStore.setState((state) => ({ ...state, game, initialized: true }));
 
-    await useGameStore.getState().actions.callTeamMeeting();
+    const receipt = await useGameStore.getState().actions.callTeamMeeting();
 
     const nextLockerRoom = useGameStore.getState().game!.teams[userTeam.id]!.lockerRoom;
     expect(nextLockerRoom.lastMeetingWeek).toBe(game.week);
     expect(nextLockerRoom.tensions.some((tension) => tension.resolved)).toBe(true);
+    expect(receipt).toMatchObject({
+      kind: 'meeting',
+      title: 'Team Meeting Receipt',
+    });
+    expect(receipt?.detail).toContain('cooled off');
+    expect(receipt?.source).toContain('this confirmation appears here only');
   });
 
   it('routes captain rallies through the store', async () => {
@@ -630,17 +1391,24 @@ describe('game store offseason actions', () => {
 
     useGameStore.setState((state) => ({ ...state, game, initialized: true }));
 
-    await useGameStore.getState().actions.triggerCaptainRally(userTeam.roster[0]!.id);
+    const receipt = await useGameStore.getState().actions.triggerCaptainRally(userTeam.roster[0]!.id);
 
     const nextLockerRoom = useGameStore.getState().game!.teams[userTeam.id]!.lockerRoom;
     expect(nextLockerRoom.cliques[0]?.cohesion).toBe(55);
     expect(nextLockerRoom.captains[0]?.rallyCooldown).toBe(4);
+    expect(receipt).toMatchObject({
+      kind: 'rally',
+      title: 'Captain Rally Receipt',
+    });
+    expect(receipt?.detail).toContain('triggered rally_cry');
+    expect(receipt?.source).toContain('rally cooldown is 4 weeks');
   });
 
-  it('accepts endorsement offers through the store', async () => {
+  it('accepts endorsement offers through the store and keeps player records in sync', async () => {
     const game = createSeedGameState(818, 0, 'pro');
     const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
     const player = userTeam.roster[0]!;
+    game.players[player.id] = structuredClone(player);
     game.endorsementOffers = [{
       id: 'offer-store',
       playerId: player.id,
@@ -659,9 +1427,16 @@ describe('game store offseason actions', () => {
     await useGameStore.getState().actions.acceptEndorsement('offer-store');
 
     const nextGame = useGameStore.getState().game!;
+    const nextUserTeam = Object.values(nextGame.teams).find((team) => team.isUser)!;
+    const rosterPlayer = nextUserTeam.roster.find((entry) => entry.id === player.id)!;
+    const flatPlayer = nextGame.players[player.id]!;
     expect(nextGame.endorsementOffers).toHaveLength(0);
-    expect(nextGame.players[player.id]!.endorsements).toHaveLength(1);
-    expect(nextGame.players[player.id]!.endorsements[0]?.active).toBe(true);
+    expect(rosterPlayer.endorsements).toHaveLength(1);
+    expect(flatPlayer.endorsements).toEqual(rosterPlayer.endorsements);
+    expect(flatPlayer.morale).toBe(rosterPlayer.morale);
+    expect(rosterPlayer.endorsements[0]?.active).toBe(true);
+    expect(selectActiveEndorsements(useGameStore.getState())).toHaveLength(1);
+    expect(selectEndorsementRevenue(useGameStore.getState())).toBe(5.2);
   });
 
   it('declines endorsement offers through the store', async () => {
@@ -713,7 +1488,11 @@ describe('game store offseason actions', () => {
     await useGameStore.getState().actions.electCaptain(player.id);
 
     const nextGame = useGameStore.getState().game!;
-    expect(nextGame.farewellTours.some((tour) => tour.playerId === player.id)).toBe(true);
+    const farewellTour = nextGame.farewellTours.find((tour) => tour.playerId === player.id);
+    expect(farewellTour).toBeDefined();
+    expect(farewellTour?.moments.length).toBeGreaterThanOrEqual(3);
+    expect(farewellTour?.moments.some((moment) => moment.type === 'final_game')).toBe(true);
+    expect(farewellTour?.moments.every((moment) => moment.week >= nextGame.week)).toBe(true);
     expect(nextGame.teams[userTeam.id]!.lockerRoom.captains.some((captain) => captain.playerId === player.id)).toBe(true);
   });
 
@@ -754,6 +1533,7 @@ describe('game store offseason actions', () => {
     const nextUser = Object.values(nextGame.teams).find((team) => team.isUser)!;
     expect(nextGame.scenarioState?.activeScenario?.id).toBe('the_savant');
     expect(nextGame.scenarioState?.activeScenario?.constraints.blockTrades).toBe(true);
+    expect(nextGame.setupState).toBeUndefined();
     expect(nextUser.city).toBe(previousUser.city);
     expect(nextUser.name).toBe(previousUser.name);
     expect(pushState).toHaveBeenCalledWith({}, '', '/');
@@ -776,6 +1556,42 @@ describe('game store offseason actions', () => {
     expect(proposal?.ruleKey).toBe('practice_squad_size');
     expect(proposal?.proposedValue).toBe(10);
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes owner approval through the commit path and stores a single history receipt', async () => {
+    const game = createSeedGameState(1210, 12, 'pro');
+    game.phase = 'regular_season';
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    userTeam.wins = 10;
+    userTeam.losses = 2;
+    userTeam.owner = {
+      archetypeId: 'win_now',
+      label: 'Win Now',
+      approval: 50,
+      history: [],
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.refreshOwner(userTeam.id);
+
+    const nextGame = useGameStore.getState().game!;
+    const nextTeam = nextGame.teams[userTeam.id]!;
+    expect(nextTeam.owner.approval).toBe(65);
+    expect(nextTeam.owner.history).toEqual([{
+      year: game.year,
+      week: game.week,
+      approval: 65,
+      delta: 15,
+    }]);
+    expect(userTeam.owner.approval).toBe(50);
+    expect(userTeam.owner.history).toHaveLength(0);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+    expect(autosaveDynasty).toHaveBeenCalledWith(nextGame);
   });
 
   it('resolves a passed rule proposal and records the vote result', async () => {
@@ -911,6 +1727,118 @@ describe('game store offseason actions', () => {
     expect(nextGame.laborState.activeStoppage).toBeNull();
   });
 
+  it('accepts a cba abstain vote and records a three-way vote summary when the deal fails', async () => {
+    const game = createSeedGameState(1650, 0, 'pro');
+    game.phase = 'offseason';
+    const teams = Object.values(game.teams);
+    const userTeam = teams.find((team) => team.isUser)!;
+    const cpuTeams = teams.filter((team) => team.id !== userTeam.id).slice(0, 2);
+    game.teams = Object.fromEntries([userTeam, ...cpuTeams].map((team) => [team.id, team])) as typeof game.teams;
+
+    const currentTerms = game.cbaState.currentDeal!.terms;
+    const proposal = {
+      id: 'cba-abstain-fail',
+      side: 'owners' as const,
+      year: game.year,
+      round: 2,
+      rationale: 'A deal with little owner support is ready for approval.',
+      terms: {
+        ...currentTerms,
+        revenueSplit: Number((currentTerms.revenueSplit - 0.03).toFixed(3)),
+        capGrowthRate: Number((currentTerms.capGrowthRate + 0.05).toFixed(3)),
+        capFloorPct: Number((currentTerms.capFloorPct + 0.05).toFixed(3)),
+        franchiseTagLimit: currentTerms.franchiseTagLimit + 1,
+        rosterLimit: currentTerms.rosterLimit - 1,
+        practiceSquadSize: currentTerms.practiceSquadSize - 2,
+        playoffSeeds: currentTerms.playoffSeeds - 1,
+      },
+    };
+
+    game.cbaState.status = 'awaiting_owner_vote';
+    game.cbaState.negotiationState = {
+      round: 2,
+      ownersProposal: proposal,
+      playersProposal: proposal,
+      currentProposal: proposal,
+      gap: 10,
+      mediator: true,
+      publicPressure: 70,
+      ownerVotes: {},
+      userVote: null,
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.voteOnCBA('abstain');
+
+    const nextGame = useGameStore.getState().game!;
+    const rejectionNews = nextGame.leagueNews.find((entry) => entry.headline === 'Owners reject the current CBA offer');
+    expect(nextGame.cbaState.status).toBe('negotiating');
+    expect(nextGame.cbaState.negotiationState?.currentProposal).toBeNull();
+    expect(nextGame.cbaState.negotiationState?.ownerVotes).toEqual({});
+    expect(nextGame.cbaState.negotiationState?.userVote).toBeNull();
+    expect(rejectionNews?.body).toContain('(approve-reject-abstain)');
+    expect(rejectionNews?.body).toMatch(/\d+-\d+-1/);
+  });
+
+  it('records neutral cpu owner cba votes as abstentions in the failed vote summary', async () => {
+    const game = createSeedGameState(1651, 0, 'pro');
+    game.phase = 'offseason';
+    const teams = Object.values(game.teams);
+    const userTeam = teams.find((team) => team.isUser)!;
+    const cpuTeams = teams.filter((team) => team.id !== userTeam.id).slice(0, 2);
+    for (const team of cpuTeams) {
+      team.gmStrategy = 'contend';
+      team.franchiseIdentity.marketSize = 'large';
+    }
+    game.teams = Object.fromEntries([userTeam, ...cpuTeams].map((team) => [team.id, team])) as typeof game.teams;
+
+    const currentTerms = game.cbaState.currentDeal!.terms;
+    const proposal = {
+      id: 'cba-cpu-neutral-fail',
+      side: 'owners' as const,
+      year: game.year,
+      round: 2,
+      rationale: 'A polarizing deal leaves some owners on the fence.',
+      terms: {
+        ...currentTerms,
+        revenueSplit: Number((currentTerms.revenueSplit + 0.02).toFixed(3)),
+        franchiseTagLimit: currentTerms.franchiseTagLimit + 1,
+        rosterLimit: currentTerms.rosterLimit - 1,
+      },
+    };
+
+    game.cbaState.status = 'awaiting_owner_vote';
+    game.cbaState.negotiationState = {
+      round: 2,
+      ownersProposal: proposal,
+      playersProposal: proposal,
+      currentProposal: proposal,
+      gap: 10,
+      mediator: true,
+      publicPressure: 70,
+      ownerVotes: {},
+      userVote: null,
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.voteOnCBA('reject');
+
+    const nextGame = useGameStore.getState().game!;
+    const rejectionNews = nextGame.leagueNews.find((entry) => entry.headline === 'Owners reject the current CBA offer');
+    expect(nextGame.cbaState.status).toBe('negotiating');
+    expect(rejectionNews?.body).toContain('0-1-2 (approve-reject-abstain)');
+  });
+
   it('applies a cap move through the store and records the cap reaction post', async () => {
     const game = createSeedGameState(1700, 0, 'pro');
     const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
@@ -930,6 +1858,119 @@ describe('game store offseason actions', () => {
     expect(nextTeam.capSpace).toBeGreaterThan(startingCapSpace);
     expect(nextGame.socialFeed[0]?.content).toContain(player.name);
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('commits direct restructures through cap sync and mirrors the player map', async () => {
+    const game = createSeedGameState(1701, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const player = userTeam.roster.find((entry) => entry.contract && entry.contract.years > 1)!;
+    game.players[player.id] = { ...player, contract: { ...player.contract! } };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.restructure(userTeam.id, player.id);
+
+    const nextGame = useGameStore.getState().game!;
+    const nextTeam = nextGame.teams[userTeam.id]!;
+    const rosterPlayer = nextTeam.roster.find((entry) => entry.id === player.id)!;
+    const expectedCapUsed = Math.round((nextTeam.roster.reduce((sum, entry) => sum + calcCapHit(entry.contract ?? null), 0) + nextTeam.deadCap) * 10) / 10;
+    expect(rosterPlayer.contract?.restructured).toBe(true);
+    expect(nextGame.players[player.id]?.contract?.restructured).toBe(true);
+    expect(player.contract?.restructured).toBeFalsy();
+    expect(nextTeam.capUsed).toBe(expectedCapUsed);
+    expect(nextTeam.capSpace).toBe(Math.round((getSalaryCap(nextGame.year, nextGame) - expectedCapUsed) * 10) / 10);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+    expect(autosaveDynasty).toHaveBeenCalledWith(nextGame);
+  });
+
+  it('commits direct backloads through cap sync and mirrors the player map', async () => {
+    const game = createSeedGameState(1702, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const player = userTeam.roster.find((entry) => entry.contract && entry.contract.years > 1)!;
+    game.players[player.id] = { ...player, contract: { ...player.contract! } };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.backload(userTeam.id, player.id, 3);
+
+    const nextGame = useGameStore.getState().game!;
+    const nextTeam = nextGame.teams[userTeam.id]!;
+    const rosterPlayer = nextTeam.roster.find((entry) => entry.id === player.id)!;
+    const expectedCapUsed = Math.round((nextTeam.roster.reduce((sum, entry) => sum + calcCapHit(entry.contract ?? null), 0) + nextTeam.deadCap) * 10) / 10;
+    expect(rosterPlayer.contract?.voidYears).toBeGreaterThan(0);
+    expect(nextGame.players[player.id]?.contract?.voidYears).toBe(rosterPlayer.contract?.voidYears);
+    expect(player.contract?.voidYears ?? 0).toBe(0);
+    expect(nextTeam.capUsed).toBe(expectedCapUsed);
+    expect(nextTeam.capSpace).toBe(Math.round((getSalaryCap(nextGame.year, nextGame) - expectedCapUsed) * 10) / 10);
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+    expect(autosaveDynasty).toHaveBeenCalledWith(nextGame);
+  });
+
+  it('applies a franchise tag through the store, mirrors the player map, and refreshes cap totals', async () => {
+    const game = createSeedGameState(1710, 0, 'pro');
+    game.phase = 'offseason';
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const cpuTeam = Object.values(game.teams).find((team) => !team.isUser)!;
+    const player = userTeam.roster.find((entry) => entry.contract)!;
+    player.contract!.years = 1;
+    game.players[player.id] = { ...player, contract: { ...player.contract! } };
+    game.teamNeedsCache = {
+      [userTeam.id]: makeCachedNeedsReport('cached user report'),
+      [cpuTeam.id]: makeCachedNeedsReport('cached CPU report'),
+    };
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    const result = await useGameStore.getState().actions.applyFranchiseTag(userTeam.id, player.id, 'transition');
+
+    const nextGame = useGameStore.getState().game!;
+    const nextTeam = nextGame.teams[userTeam.id]!;
+    const rosterPlayer = nextTeam.roster.find((entry) => entry.id === player.id)!;
+    const expectedCapUsed = Math.round((nextTeam.roster.reduce((sum, entry) => sum + calcCapHit(entry.contract ?? null), 0) + nextTeam.deadCap) * 10) / 10;
+    expect(result?.ok).toBe(true);
+    expect(rosterPlayer.contract?.franchiseTag).toBe('transition');
+    expect(nextGame.players[player.id]?.contract?.franchiseTag).toBe('transition');
+    expect(nextTeam.franchiseTags?.[0]?.playerId).toBe(player.id);
+    expect(nextTeam.franchiseTag973?.playerId).toBe(player.id);
+    expect(nextTeam.capUsed).toBe(expectedCapUsed);
+    expect(nextTeam.capSpace).toBe(Math.round((getSalaryCap(nextGame.year, nextGame) - expectedCapUsed) * 10) / 10);
+    expect(nextGame.teamNeedsCache[userTeam.id]).toBeUndefined();
+    expect(nextGame.teamNeedsCache[cpuTeam.id]?.overall).toBe('cached CPU report');
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not commit a franchise tag for a non-expiring contract', async () => {
+    const game = createSeedGameState(1720, 0, 'pro');
+    game.phase = 'offseason';
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const player = userTeam.roster.find((entry) => entry.contract)!;
+    player.contract!.years = 3;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    const result = await useGameStore.getState().actions.applyFranchiseTag(userTeam.id, player.id, 'exclusive');
+
+    expect(result?.ok).toBe(false);
+    expect(result?.msg).toContain('Only expiring contracted players');
+    expect(useGameStore.getState().game!.teams[userTeam.id]!.franchiseTags).toHaveLength(0);
+    expect(useGameStore.getState().game!.players[player.id]?.contract?.franchiseTag).toBeNull();
+    expect(autosaveDynasty).not.toHaveBeenCalled();
   });
 
   it('applies multiple cap moves sequentially and updates the player contract state', async () => {

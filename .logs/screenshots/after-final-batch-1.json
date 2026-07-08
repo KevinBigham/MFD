@@ -1,0 +1,221 @@
+[
+  {
+    "bottomNavRect": null,
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": false,
+    "chipRect": {
+      "bottom": 698,
+      "height": 325,
+      "right": 1243,
+      "width": 328,
+      "x": 915,
+      "y": 373
+    },
+    "chipState": "expanded",
+    "commandQueueRect": {
+      "bottom": 759,
+      "height": 311,
+      "right": 911,
+      "width": 865,
+      "x": 46,
+      "y": 448
+    },
+    "hasHorizontalOverflow": false,
+    "nextCallRect": null,
+    "route": "/",
+    "routeKey": "monday",
+    "scrollHeight": 3297,
+    "scrollWidth": 1265,
+    "title": "MONDAY BRIEFING",
+    "url": "http://127.0.0.1:5173/MFD/#/",
+    "viewportName": "desktop",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-monday-desktop.png",
+    "signalFound": true
+  },
+  {
+    "bottomNavRect": {
+      "bottom": 844,
+      "height": 51,
+      "right": 375,
+      "width": 375,
+      "x": 0,
+      "y": 793
+    },
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": true,
+    "chipRect": {
+      "bottom": 780,
+      "height": 70,
+      "right": 365,
+      "width": 70,
+      "x": 295,
+      "y": 710
+    },
+    "chipState": "collapsed",
+    "commandQueueRect": {
+      "bottom": 806,
+      "height": 414,
+      "right": 359,
+      "width": 343,
+      "x": 16,
+      "y": 391
+    },
+    "hasHorizontalOverflow": false,
+    "nextCallRect": null,
+    "route": "/",
+    "routeKey": "monday",
+    "scrollHeight": 4798,
+    "scrollWidth": 375,
+    "title": "MONDAY BRIEFING",
+    "url": "http://127.0.0.1:5173/MFD/#/",
+    "viewportName": "mobile",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-monday-mobile.png",
+    "signalFound": true
+  },
+  {
+    "bottomNavRect": null,
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": false,
+    "chipRect": {
+      "bottom": 698,
+      "height": 325,
+      "right": 1243,
+      "width": 328,
+      "x": 915,
+      "y": 373
+    },
+    "chipState": "expanded",
+    "commandQueueRect": null,
+    "hasHorizontalOverflow": false,
+    "nextCallRect": {
+      "bottom": 518,
+      "height": 183,
+      "right": 911,
+      "width": 865,
+      "x": 46,
+      "y": 335
+    },
+    "route": "/roster",
+    "routeKey": "roster",
+    "scrollHeight": 2587,
+    "scrollWidth": 1265,
+    "title": "ROSTER MANAGEMENT",
+    "url": "http://127.0.0.1:5173/MFD/#/roster",
+    "viewportName": "desktop",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-roster-desktop.png",
+    "signalFound": true
+  },
+  {
+    "bottomNavRect": {
+      "bottom": 844,
+      "height": 51,
+      "right": 375,
+      "width": 375,
+      "x": 0,
+      "y": 793
+    },
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": false,
+    "chipRect": {
+      "bottom": 780,
+      "height": 70,
+      "right": 365,
+      "width": 70,
+      "x": 295,
+      "y": 710
+    },
+    "chipState": "collapsed",
+    "commandQueueRect": null,
+    "hasHorizontalOverflow": false,
+    "nextCallRect": {
+      "bottom": 399,
+      "height": 241,
+      "right": 359,
+      "width": 343,
+      "x": 16,
+      "y": 158
+    },
+    "route": "/roster",
+    "routeKey": "roster",
+    "scrollHeight": 10395,
+    "scrollWidth": 375,
+    "title": "ROSTER MANAGEMENT",
+    "url": "http://127.0.0.1:5173/MFD/#/roster",
+    "viewportName": "mobile",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-roster-mobile.png",
+    "signalFound": true
+  },
+  {
+    "bottomNavRect": null,
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": false,
+    "chipRect": {
+      "bottom": 698,
+      "height": 325,
+      "right": 1243,
+      "width": 328,
+      "x": 915,
+      "y": 373
+    },
+    "chipState": "expanded",
+    "commandQueueRect": null,
+    "hasHorizontalOverflow": false,
+    "nextCallRect": {
+      "bottom": 518,
+      "height": 183,
+      "right": 911,
+      "width": 865,
+      "x": 46,
+      "y": 335
+    },
+    "route": "/depth-chart",
+    "routeKey": "depth-chart",
+    "scrollHeight": 1810,
+    "scrollWidth": 1265,
+    "title": "DEPTH CHART",
+    "url": "http://127.0.0.1:5173/MFD/#/depth-chart",
+    "viewportName": "desktop",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-depth-chart-desktop.png",
+    "signalFound": true
+  },
+  {
+    "bottomNavRect": {
+      "bottom": 844,
+      "height": 51,
+      "right": 375,
+      "width": 375,
+      "x": 0,
+      "y": 793
+    },
+    "chipBeat": "route",
+    "chipOverlapsCommandQueue": false,
+    "chipRect": {
+      "bottom": 780,
+      "height": 70,
+      "right": 365,
+      "width": 70,
+      "x": 295,
+      "y": 710
+    },
+    "chipState": "collapsed",
+    "commandQueueRect": null,
+    "hasHorizontalOverflow": false,
+    "nextCallRect": {
+      "bottom": 494,
+      "height": 293,
+      "right": 359,
+      "width": 343,
+      "x": 16,
+      "y": 200
+    },
+    "route": "/depth-chart",
+    "routeKey": "depth-chart",
+    "scrollHeight": 2665,
+    "scrollWidth": 375,
+    "title": "DEPTH CHART",
+    "url": "http://127.0.0.1:5173/MFD/#/depth-chart",
+    "viewportName": "mobile",
+    "file": "/Users/kevin/MFD-main/.logs/screenshots/after-final-depth-chart-mobile.png",
+    "signalFound": true
+  }
+]

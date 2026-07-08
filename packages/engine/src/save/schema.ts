@@ -6,6 +6,9 @@
  */
 
 import { z } from 'zod';
+import { createDefaultAchievements } from '../systems/achievements';
+import { normalizeGmStrategy } from '../systems/gm-strategies';
+import { ACHIEVEMENT_CONDITION_TYPES } from '../types';
 
 const ScoutingRegionSchema = z.enum(['east', 'south', 'midwest', 'west']);
 const ProspectRiskBandSchema = z.enum(['unknown', 'safe', 'balanced', 'volatile']);
@@ -13,6 +16,7 @@ const ProspectCeilingBandSchema = z.enum(['unknown', 'starter', 'impact', 'star'
 const ProspectCharacterReadSchema = z.enum(['unknown', 'leader', 'steady', 'mercurial', 'red_flag']);
 const MarketSizeSchema = z.enum(['small', 'medium', 'large', 'mega']);
 const PlayerPositionSchema = z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']);
+const GmStrategySchema = z.preprocess(normalizeGmStrategy, z.enum(['rebuild', 'contend', 'neutral']));
 
 export const PersonalitySchema = z.object({
   workEthic: z.number().min(1).max(10),
@@ -488,10 +492,33 @@ export const AwardsHistoryEntrySchema = z.object({
   }),
 });
 
+export const CareerEpilogueSchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  headline: z.string(),
+  story: z.string(),
+  category: z.enum([
+    'broadcasting',
+    'coaching',
+    'business',
+    'entertainment',
+    'philanthropy',
+    'quiet_life',
+    'writing',
+    'controversy',
+  ]),
+});
+
+function normalizeCareerEpilogueInput(raw: unknown): unknown {
+  if (raw === undefined) return undefined;
+  const result = CareerEpilogueSchema.safeParse(raw);
+  return result.success ? result.data : undefined;
+}
+
 export const HallOfFameEntrySchema = z.object({
   playerId: z.string(),
   name: z.string(),
-  position: z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P']),
+  position: PlayerPositionSchema,
   inductionYear: z.number(),
   peakOvr: z.number(),
   careerYears: z.number(),
@@ -504,7 +531,31 @@ export const HallOfFameEntrySchema = z.object({
   }),
   highlights: z.array(z.string()),
   teams: z.array(z.string()),
+  epilogue: z.preprocess(normalizeCareerEpilogueInput, CareerEpilogueSchema.optional()),
 });
+
+export const HallOfFameBallotEntrySchema = z.object({
+  playerId: z.string(),
+  name: z.string(),
+  position: PlayerPositionSchema,
+  score: z.number(),
+  yearsOnBallot: z.number().int().min(1).max(5),
+  votePct: z.number().min(0).max(100),
+});
+
+function normalizeHallOfFameBallotInput(raw: unknown): unknown {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((entry) => HallOfFameBallotEntrySchema.safeParse(entry))
+    .filter((result): result is { success: true; data: z.infer<typeof HallOfFameBallotEntrySchema> } => result.success)
+    .map((result) => result.data);
+}
+
+function normalizeStringArrayInput(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.filter((value): value is string => typeof value === 'string'))].sort((left, right) =>
+    left.localeCompare(right));
+}
 
 export const PowerRankingSchema = z.object({
   rank: z.number(),
@@ -820,7 +871,7 @@ export const WaiverRunResultSchema = z.object({
 });
 
 export const HandshakeConditionSchema = z.object({
-  metric: z.enum(['wins', 'playoff', 'starter', 'trade_block', 'spending', 'draft_position', 'on_roster', 'restructure']),
+  metric: z.enum(['wins', 'playoff', 'starter', 'trade_block', 'spending', 'draft_position', 'on_roster', 'restructure', 'owner_mandate']),
   target: z.union([z.number(), z.string(), z.boolean()]),
 });
 
@@ -1012,8 +1063,8 @@ export const NegotiationStateSchema = z.object({
   gap: z.number(),
   mediator: z.boolean(),
   publicPressure: z.number(),
-  ownerVotes: z.record(z.string(), z.enum(['approve', 'reject'])),
-  userVote: z.enum(['approve', 'reject']).nullable(),
+  ownerVotes: z.record(z.string(), z.enum(['approve', 'reject', 'abstain'])),
+  userVote: z.enum(['approve', 'reject', 'abstain']).nullable(),
 });
 
 export const CBAStateSchema = z.object({
@@ -1050,18 +1101,42 @@ export const VoteResultSchema = z.object({
   proposedValue: LeagueRuleValueSchema,
 });
 
-export const CommissionerRulingSchema = z.object({
+function normalizeCommissionerRulingInput(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
+  const ruling = { ...(raw as Record<string, unknown>) };
+
+  if (typeof ruling['rationale'] !== 'string' && typeof ruling['description'] === 'string') {
+    ruling['rationale'] = ruling['description'];
+  }
+  if (typeof ruling['ownerApprovalImpact'] !== 'number' && typeof ruling['approvalImpact'] === 'number') {
+    ruling['ownerApprovalImpact'] = ruling['approvalImpact'];
+  }
+  if (typeof ruling['chemistryImpact'] !== 'number') {
+    ruling['chemistryImpact'] = 0;
+  }
+  if (typeof ruling['playerName'] !== 'string') {
+    ruling['playerName'] = '';
+  }
+
+  delete ruling['description'];
+  delete ruling['approvalImpact'];
+  return ruling;
+}
+
+export const CommissionerRulingSchema = z.preprocess(normalizeCommissionerRulingInput, z.object({
   id: z.string(),
   year: z.number(),
   week: z.number(),
   type: z.enum(['fine', 'warning', 'suspension']),
   playerId: z.string().nullable(),
+  playerName: z.string(),
   teamId: z.string().nullable(),
   headline: z.string(),
-  description: z.string(),
+  rationale: z.string(),
   moraleImpact: z.number(),
-  approvalImpact: z.number(),
-});
+  chemistryImpact: z.number(),
+  ownerApprovalImpact: z.number(),
+}));
 
 export const CommissionerStateSchema = z.object({
   name: z.string(),
@@ -1163,12 +1238,15 @@ export const PlayoffMomentumSchema = z.object({
   winStreak: z.number(),
 });
 
+const AchievementConditionTypeSchema = z.enum(ACHIEVEMENT_CONDITION_TYPES);
+const DEFAULT_ACHIEVEMENTS_BY_ID = new Map(createDefaultAchievements().map((achievement) => [achievement.id, achievement]));
+
 export const AchievementConditionSchema = z.object({
-  type: z.string(),
+  type: AchievementConditionTypeSchema,
   threshold: z.union([z.number(), z.string(), z.boolean()]),
 });
 
-export const AchievementSchema = z.object({
+const AchievementObjectSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
@@ -1179,6 +1257,52 @@ export const AchievementSchema = z.object({
   unlockedWeek: z.number().nullable(),
   icon: z.string(),
 });
+
+function normalizeAchievementInput(raw: unknown): unknown | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const achievement = { ...(raw as Record<string, unknown>) };
+  const catalogAchievement = typeof achievement['id'] === 'string'
+    ? DEFAULT_ACHIEVEMENTS_BY_ID.get(achievement['id'])
+    : undefined;
+  const condition = achievement['condition'];
+
+  if (!condition || typeof condition !== 'object' || Array.isArray(condition)) {
+    if (!catalogAchievement) return null;
+    achievement['condition'] = catalogAchievement.condition;
+    return achievement;
+  }
+
+  const conditionRecord = { ...(condition as Record<string, unknown>) };
+  const typeResult = AchievementConditionTypeSchema.safeParse(conditionRecord['type']);
+  if (!typeResult.success) {
+    if (!catalogAchievement) return null;
+    achievement['condition'] = catalogAchievement.condition;
+    return achievement;
+  }
+
+  const threshold = conditionRecord['threshold'];
+  if (typeof threshold !== 'number' && typeof threshold !== 'string' && typeof threshold !== 'boolean') {
+    if (!catalogAchievement) return null;
+    achievement['condition'] = catalogAchievement.condition;
+    return achievement;
+  }
+
+  achievement['condition'] = {
+    type: typeResult.data,
+    threshold,
+  };
+  return achievement;
+}
+
+function normalizeAchievementListInput(raw: unknown): unknown {
+  if (!Array.isArray(raw)) return raw;
+  return raw
+    .map((achievement) => normalizeAchievementInput(achievement))
+    .filter((achievement): achievement is NonNullable<typeof achievement> => achievement !== null);
+}
+
+export const AchievementSchema = z.preprocess(normalizeAchievementInput, AchievementObjectSchema);
+export const AchievementsSchema = z.preprocess(normalizeAchievementListInput, z.array(AchievementSchema));
 
 export const DashboardLayoutSchema = z.object({
   id: z.string(),
@@ -1233,6 +1357,45 @@ export const SeasonReportSchema = z.object({
   teamId: z.string(),
   overallGrade: z.enum(['A+', 'A', 'B+', 'B', 'C+', 'C', 'D', 'F']),
   sections: z.array(ReportSectionSchema),
+});
+
+export const OwnerMandateProgressSchema = z.object({
+  value: z.number(),
+  target: z.number(),
+  percent: z.number(),
+  label: z.string(),
+  detail: z.string(),
+  status: z.enum(['on_track', 'at_risk', 'complete', 'failed']),
+  agmNote: z.string().nullable().optional(),
+});
+
+export const OwnerMandateEvaluationSchema = z.object({
+  evaluatedYear: z.number(),
+  met: z.boolean(),
+  exceeded: z.boolean(),
+  outcomeLabel: z.string(),
+  summary: z.string(),
+  approvalDelta: z.number(),
+  patienceDelta: z.number(),
+  ownerReputationDelta: z.number(),
+  applied: z.boolean(),
+  agmAdjustment: z.string().nullable().optional(),
+});
+
+export const OwnerMandateSchema = z.object({
+  id: z.string(),
+  teamId: z.string(),
+  year: z.number(),
+  goalId: z.string(),
+  label: z.string(),
+  description: z.string(),
+  slot: z.enum(['floor', 'target', 'ceiling']),
+  selectedIndex: z.number(),
+  createdWeek: z.number(),
+  createdByAGMProfileId: z.string().nullable().optional(),
+  status: z.enum(['active', 'met', 'exceeded', 'missed']),
+  progress: OwnerMandateProgressSchema,
+  evaluation: OwnerMandateEvaluationSchema.nullable().optional(),
 });
 
 export const GamePlanSchema = z.object({
@@ -1623,7 +1786,26 @@ export const ScheduleWeekSchema = z.object({
   games: z.array(ScheduledGameSchema),
 });
 
-export const TutorialStepSchema = z.object({
+function normalizeTutorialStepInput(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
+  const step = raw as Record<string, unknown>;
+  if (step['id'] !== 'week1-briefing') return raw;
+
+  const hasLegacyBriefingRoute = step['targetScreen'] === '/briefing'
+    || step['targetElement'] === '[data-nav="/briefing"]'
+    || step['action'] === 'screen:/briefing';
+
+  if (!hasLegacyBriefingRoute) return raw;
+
+  return {
+    ...step,
+    targetScreen: '/',
+    targetElement: '[data-nav="/"]',
+    action: 'screen:/',
+  };
+}
+
+export const TutorialStepSchema = z.preprocess(normalizeTutorialStepInput, z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
@@ -1631,7 +1813,7 @@ export const TutorialStepSchema = z.object({
   targetElement: z.string().nullable(),
   action: z.string().nullable(),
   completed: z.boolean(),
-});
+}));
 
 export const TutorialStateSchema = z.object({
   active: z.boolean(),
@@ -1757,6 +1939,36 @@ export const OffseasonStateSchema = z.object({
   completedDraftPickIds: z.array(z.string()),
 });
 
+export const EndorsementRequirementSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('min_ovr'), value: z.number() }),
+  z.object({ type: z.literal('min_games'), value: z.number() }),
+  z.object({ type: z.literal('no_suspension'), value: z.literal(true) }),
+  z.object({ type: z.literal('team_wins'), value: z.number() }),
+]);
+
+export const EndorsementDealSchema = z.object({
+  id: z.string(),
+  playerId: z.string(),
+  brandName: z.string(),
+  revenuePerYear: z.number(),
+  yearsTotal: z.number(),
+  yearsRemaining: z.number(),
+  tier: z.enum(['local', 'regional', 'national', 'global']),
+  moraleBonus: z.number(),
+  requirement: EndorsementRequirementSchema,
+  active: z.boolean().default(true),
+});
+
+function sanitizeEndorsementDeals(raw: unknown): unknown[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((deal) => EndorsementDealSchema.safeParse(deal).success);
+}
+
+export const EndorsementDealsSchema = z.preprocess(
+  sanitizeEndorsementDeals,
+  z.array(EndorsementDealSchema),
+);
+
 export const PlayerSchema = z.object({
   id: z.string(),
   firstName: z.string(),
@@ -1787,7 +1999,7 @@ export const PlayerSchema = z.object({
   morale: z.number(),
   cliqueId: z.union([z.literal(0), z.literal(1), z.literal(2)]).nullable().default(null),
   jerseyNumber: z.number().default(0),
-  endorsements: z.array(z.any()).default([]),
+  endorsements: EndorsementDealsSchema,
   agentId: z.string().nullable().default(null),
   bloodline: BloodlineInfoSchema.nullable().default(null),
 });
@@ -1822,6 +2034,7 @@ export const LeagueStoryArcSchema = z.object({
 
 export const TeamPersistedSchema = z.object({
   philosophy: z.enum(['rebuild', 'contend', 'maintain', 'fire_sale']).default('maintain'),
+  gmStrategy: GmStrategySchema,
 }).passthrough();
 
 export const SaveStateSchema = z.object({
@@ -1846,6 +2059,8 @@ export const SaveStateSchema = z.object({
   recentMilestones: z.array(MilestoneReachedSchema).default([]),
   awardsHistory: z.array(AwardsHistoryEntrySchema),
   hallOfFame: z.array(HallOfFameEntrySchema),
+  ballotWaitlist: z.preprocess(normalizeHallOfFameBallotInput, z.array(HallOfFameBallotEntrySchema).default([])),
+  ballotEliminatedIds: z.preprocess(normalizeStringArrayInput, z.array(z.string()).default([])),
   allDecadeTeams: z.array(AllDecadeTeamSchema).default([]),
   powerRankings: z.array(PowerRankingSchema),
   mediaCycle: MediaCycleStateSchema.default({
@@ -1857,7 +2072,7 @@ export const SaveStateSchema = z.object({
   playerSeasonHistory: z.record(z.string(), z.array(PlayerSeasonHistoryEntrySchema)).default({}),
   playerRivalries: z.array(z.any()).default([]),
   farewellTours: z.array(z.any()).default([]),
-  endorsementOffers: z.array(z.any()).default([]),
+  endorsementOffers: EndorsementDealsSchema,
   leagueRules: LeagueRulesSchema,
   cbaState: CBAStateSchema,
   commissionerState: CommissionerStateSchema,
@@ -1872,6 +2087,15 @@ export const SaveStateSchema = z.object({
       media: z.number(),
       owner: z.number(),
     }),
+    agmProfileId: z.string().nullable().default(null),
+    agmImpactLog: z.array(z.object({
+      id: z.string(),
+      year: z.number(),
+      week: z.number(),
+      agmProfileId: z.string(),
+      category: z.enum(['cap', 'competitive', 'personnel', 'mandate']),
+      summary: z.string(),
+    })).default([]),
   }),
   eventLog: z.array(z.any()),
   narrativeState: z.object({
@@ -1938,6 +2162,7 @@ export const SaveStateSchema = z.object({
   waiverWire: z.array(WaiverWireEntrySchema).default([]),
   waiverClaims: z.array(WaiverClaimSchema).default([]),
   handshakes: z.array(HandshakeSchema).default([]),
+  ownerMandates: z.array(OwnerMandateSchema).default([]),
   tutorialState: TutorialStateSchema.default({
     active: false,
     currentStepIndex: 0,
@@ -1952,7 +2177,7 @@ export const SaveStateSchema = z.object({
     recentBeats: [],
     cooldownWeeks: 0,
   }),
-  achievements: z.array(AchievementSchema).default([]),
+  achievements: AchievementsSchema.default([]),
   dashboardState: DashboardStateSchema.default({
     activeLayoutId: 'layout:default',
     layouts: [{

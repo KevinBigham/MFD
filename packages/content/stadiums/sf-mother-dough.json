@@ -1,0 +1,13 @@
+{
+  "teamId": "SF",
+  "name": "The Starter",
+  "capacity": 68500,
+  "tradition": "The Mother Dough Rising now opens every Sourdoughs home date: the game-day Dough Keeper feeds the century-old starter under the 50-yard line, the bowl counts the bubbles on the board, and the first rise tells the crowd the offense is ready to proof.",
+  "surface": "Grass",
+  "roof": "Open",
+  "cue": {
+    "label": "Mother Dough Rising",
+    "pregameLine": "The Dough Keeper is feeding the old starter below midfield, and The Starter is counting every bubble on the board.",
+    "crowdResponse": "The Culture answers with a slow RISE! AND! SHINE! chant that gets louder every time the offense breaks the huddle."
+  }
+}

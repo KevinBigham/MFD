@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import CapLaboratory from './CapLaboratory';
+import CapLaboratory, {
+  CapLabExecutionReceiptPanel,
+  buildCapLabExecutionReceipt,
+} from './CapLaboratory';
 
 const executeCapMoves = vi.fn();
 
@@ -130,9 +133,24 @@ describe('CapLaboratory', () => {
     const markup = renderToStaticMarkup(<CapLaboratory />);
 
     expect(markup).toContain('CAP LABORATORY');
-    expect(markup).toContain('CAP GRADE');
-    expect(markup).toContain('CAP SPACE');
-    expect(markup).toContain('FLEX SCORE');
+    expect(markup).toContain('Cap Grade');
+    expect(markup).toContain('Cap Space');
+    expect(markup).toContain('Flex Score');
+  });
+
+  it('labels cap laboratory source and commit boundaries', () => {
+    const markup = renderToStaticMarkup(<CapLaboratory />);
+
+    expect(markup).toContain('CAP LAB SOURCES');
+    expect(markup).toContain('useCapHealth');
+    expect(markup).toContain('useCapCandidates');
+    expect(markup).toContain('useMultiYearProjection');
+    expect(markup).toContain('buildCapScenario(userTeam, game)');
+    expect(markup).toContain('simulateMultipleMoves');
+    expect(markup).toContain('actions.executeCapMoves(sandbox)');
+    expect(markup).toContain('Opening /cap-lab');
+    expect(markup).toContain('do not write saves');
+    expect(markup).toContain('reroll saved outcomes');
   });
 
   it('renders the cap candidate table and selected player context', () => {
@@ -150,6 +168,7 @@ describe('CapLaboratory', () => {
     expect(markup).toContain('QUEUED MOVES');
     expect(markup).toContain('No moves queued yet.');
     expect(markup).toContain('Apply Sandbox');
+    expect(markup).not.toContain('CAP LAB EXECUTION RECEIPT');
   });
 
   it('renders the multi-year projection table', () => {
@@ -159,5 +178,59 @@ describe('CapLaboratory', () => {
     expect(markup).toContain('2033');
     expect(markup).toContain('$280M');
     expect(markup).toContain('$103M');
+  });
+
+  it('opts cap tables into responsive card mode for phone viewports', () => {
+    const markup = renderToStaticMarkup(<CapLaboratory />);
+
+    expect(markup.match(/data-mfd-table-mode="cards"/g)).toHaveLength(2);
+  });
+
+  it('builds cap-lab execution receipts from the batch commit path', () => {
+    const receipt = buildCapLabExecutionReceipt({
+      moves: [
+        { type: 'backload', playerId: 'p1', params: { voidYears: 1 } },
+        { type: 'extend', playerId: 'p2', params: { years: 3, avgSalary: 18 } },
+      ],
+      capSpaceBefore: 28.4,
+      capSpaceAfter: 41.9,
+      capSaved: 13.5,
+      warnings: ['Future dead cap pressure'],
+      playerNames: { p1: 'Ace Cannon', p2: 'Brick Stone' },
+    });
+
+    expect(receipt).toMatchObject({
+      id: 'cap-lab:backload:p1|extend:p2',
+      title: 'Cap Lab Applied',
+      accent: 'gold',
+    });
+    expect(receipt.summary).toContain('2 queued moves resolved');
+    expect(receipt.summary).toContain('$13.5M preview saved');
+    expect(receipt.moveSummary).toContain('Ace Cannon: Backload +1 void');
+    expect(receipt.moveSummary).toContain('Brick Stone: Extend 3y @ $18M');
+    expect(receipt.stateTouched).toContain('contract extension records');
+    expect(receipt.source).toContain('actions.executeCapMoves');
+    expect(receipt.source).toContain('commitGame');
+    expect(receipt.boundary).toContain('does not reapply sandbox moves');
+  });
+
+  it('renders cap-lab execution receipt source copy and no-extra-write boundary', () => {
+    const receipt = buildCapLabExecutionReceipt({
+      moves: [{ type: 'post_june_1_cut', playerId: 'p1' }],
+      capSpaceBefore: 28.4,
+      capSpaceAfter: 36.4,
+      capSaved: 8,
+      playerNames: { p1: 'Ace Cannon' },
+    });
+
+    const markup = renderToStaticMarkup(<CapLabExecutionReceiptPanel receipt={receipt} />);
+
+    expect(markup).toContain('CAP LAB EXECUTION RECEIPT');
+    expect(markup).toContain('On-screen confirmation');
+    expect(markup).toContain('Ace Cannon: Post-June-1 Cut');
+    expect(markup).toContain('roster/waiver state');
+    expect(markup).toContain('actions.executeCapMoves -&gt; buildCapScenario/simulate previews');
+    expect(markup).toContain('Did not also');
+    expect(markup).toContain('This confirmation does not reapply sandbox moves');
   });
 });

@@ -29,6 +29,19 @@ describe('halftime-decision', () => {
     expect(suggestHalftimeSwitch(input)).toEqual(suggestHalftimeSwitch(input));
   });
 
+  it('explains the pass switch without abstract script language', () => {
+    const suggestion = suggestHalftimeSwitch({
+      scoreMargin: 0,
+      teamYardsPerPlay: 4.4,
+      opponentYardsPerPlay: 5.0,
+      turnoverDelta: 0,
+    });
+
+    expect(suggestion.summary).toContain('Attack outside routes');
+    expect(suggestion.summary).not.toMatch(/chase|script/i);
+    expect(suggestion.reason).toContain('vertical answer');
+  });
+
   it('returns the same context when the coach sticks with the plan', () => {
     const context = {
       home: {

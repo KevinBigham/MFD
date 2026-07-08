@@ -261,12 +261,22 @@ export function readCareerMeta(): CareerMeta {
   }
 }
 
+export function parseCareerMetaPayload(candidate: unknown): CareerMeta | null {
+  const validated = CareerMetaSchema.safeParse(candidate);
+  if (!validated.success) return null;
+  return normalize(validated.data);
+}
+
 export function writeCareerMeta(meta: CareerMeta): CareerMeta {
   const next = normalize(meta);
   const backingStore = storage();
   if (!backingStore) return next;
   backingStore.setItem(STORAGE_KEY, JSON.stringify(next));
   return next;
+}
+
+export function replaceCareerMeta(meta: CareerMeta): CareerMeta {
+  return writeCareerMeta(meta);
 }
 
 export function appendDynastySummary(summary: DynastySummary): CareerMeta {

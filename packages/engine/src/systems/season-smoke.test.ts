@@ -34,28 +34,33 @@ function makeSchedule(teamIds: string[]): ScheduleWeek[] {
   return weeks;
 }
 
+function makeSmokeGame(): GameState {
+  const game = makeLeagueState('preseason', 1);
+  game.schedule = makeSchedule(Object.keys(game.teams));
+
+  // All-AI sim — no user-team pauses
+  for (const team of Object.values(game.teams)) {
+    team.isUser = false;
+  }
+
+  // Plant aging veterans to guarantee retirements across 3 seasons.
+  const retireQb = game.teams.nfcs2!.roster.find((p) => p.pos === 'QB')!;
+  retireQb.age = 36;
+  retireQb.ovr = 55;
+  retireQb.ratings.awareness = 55;
+
+  const retireRb = game.teams.afcw2!.roster.find((p) => p.pos === 'RB')!;
+  retireRb.age = 34;
+  retireRb.ovr = 58;
+  retireRb.ratings.speed = 57;
+
+  syncAllPlayerArchiveEntries(game, game.year);
+  return game;
+}
+
 describe('multi-season deterministic smoke test', () => {
   it('sims 3 full seasons without crash and within stat bounds', { timeout: 30_000 }, () => {
-    const game = makeLeagueState('preseason', 1);
-    game.schedule = makeSchedule(Object.keys(game.teams));
-
-    // All-AI sim — no user-team pauses
-    for (const team of Object.values(game.teams)) {
-      team.isUser = false;
-    }
-
-    // Plant aging veterans to guarantee retirements across 3 seasons
-    const retireQb = game.teams.nfcs2!.roster.find((p) => p.pos === 'QB')!;
-    retireQb.age = 36;
-    retireQb.ovr = 55;
-    retireQb.ratings.awareness = 55;
-
-    const retireRb = game.teams.afcw2!.roster.find((p) => p.pos === 'RB')!;
-    retireRb.age = 34;
-    retireRb.ovr = 58;
-    retireRb.ratings.speed = 57;
-
-    syncAllPlayerArchiveEntries(game, game.year);
+    const game = makeSmokeGame();
 
     const startYear = game.year;
     let state: GameState = game;
@@ -129,12 +134,7 @@ describe('multi-season deterministic smoke test', () => {
 
     // --- Determinism check ---
     // Re-run with the same seed and verify identical outcome.
-    const game2 = makeLeagueState('preseason', 1);
-    game2.schedule = makeSchedule(Object.keys(game2.teams));
-    for (const team of Object.values(game2.teams)) {
-      team.isUser = false;
-    }
-    syncAllPlayerArchiveEntries(game2, game2.year);
+    const game2 = makeSmokeGame();
 
     let state2: GameState = game2;
     let completedSeasons2 = 0;

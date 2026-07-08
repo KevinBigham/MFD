@@ -1,6 +1,8 @@
 # Codex Operating Notes for Mr. Football Dynasty
 
-Read `CODEX_GAME_GUIDE.md` before making code changes. It is the repo map for engine, web, saves, content, tests, and known wiring.
+Read `CODEX_GAME_GUIDE.md` before making code changes. This working copy is at:
+
+`/Users/tkevinbigham/MFD/MFD-main`
 
 ## Default Mode
 
@@ -27,17 +29,14 @@ Keep it concise.
 - Same seed plus same inputs must produce same outcomes.
 - All simulation randomness flows through `packages/engine/src/rng/index.ts`.
 - Do not use `Math.random()` in sim code.
-- Do not silently change constants, probabilities, or formulas. Call them out and add focused tests.
+- Do not silently change constants, probabilities, or formulas.
 - If touching gameplay math, provide before/after formula, sample outputs, and a sanity range check.
 
 ## Save Rules
 
-- Current save schema version is `SAVE_VERSION = 37` in `packages/engine/src/config/difficulty.ts`.
-- Persistent `GameState` changes require:
-  - Type update.
-  - Zod schema update.
-  - Migration step.
-  - Save/load tests, including old-save migration coverage.
+- Current launch save schema version in the inspected MFD codebase is `SAVE_VERSION = 38`.
+- Confirm the local value in `packages/engine/src/config/difficulty.ts` before save work.
+- Persistent `GameState` changes require type update, Zod schema update, migration, seed default, and old-save tests.
 
 ## Verification Defaults
 
@@ -45,4 +44,4 @@ Keep it concise.
 - Web change: `pnpm --filter @mfd/web test`
 - Design system change: `pnpm --filter @mfd/design-system test`
 - Sim-touching change: also run `pnpm test:perft` or explain why it was not run.
-- If global `pnpm` is unavailable, use `npx --yes pnpm@9.15.9 ...`.
+- This working copy pins `pnpm@9.15.9` in `package.json`.

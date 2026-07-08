@@ -30,9 +30,16 @@ function defaultPayload(): RosterContinuityPayload {
   };
 }
 
+function isStorageLike(value: unknown): value is Storage {
+  return !!value
+    && typeof value === 'object'
+    && typeof (value as Storage).getItem === 'function'
+    && typeof (value as Storage).setItem === 'function';
+}
+
 function storage(): Storage | null {
-  if (typeof window !== 'undefined' && window.localStorage) return window.localStorage;
-  if (typeof globalThis !== 'undefined' && 'localStorage' in globalThis && globalThis.localStorage) {
+  if (typeof window !== 'undefined' && isStorageLike(window.localStorage)) return window.localStorage;
+  if (typeof globalThis !== 'undefined' && 'localStorage' in globalThis && isStorageLike(globalThis.localStorage)) {
     return globalThis.localStorage;
   }
   return null;
@@ -101,8 +108,27 @@ function writePayload(payload: RosterContinuityPayload): RosterContinuityPayload
   return next;
 }
 
+export function parseRosterContinuityPayload(candidate: unknown): RosterContinuityPayload | null {
+  const validated = PayloadSchema.safeParse(candidate);
+  if (!validated.success) return null;
+
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    byDynastyId: Object.fromEntries(
+      Object.entries(validated.data.byDynastyId).map(([dynastyId, snapshot]) => [
+        dynastyId,
+        normalizeSnapshot(snapshot),
+      ]),
+    ),
+  };
+}
+
 export function readRosterContinuity(): RosterContinuityPayload {
   return readPayload();
+}
+
+export function replaceRosterContinuity(payload: RosterContinuityPayload): RosterContinuityPayload {
+  return writePayload(payload);
 }
 
 export function readDynastyStarters(dynastyId: string): RosterContinuitySnapshot | null {
