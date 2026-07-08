@@ -83,6 +83,16 @@ const defaultPostImportRouteCheck = Object.freeze({
   text: 'Contract Sources',
 });
 
+export const resolveExportedPlayerSnippet = `
+      const resolveExportedPlayer = (players, teams, playerId) => {
+        const player = players?.[playerId] ?? null;
+        const teamId = player && typeof player === 'object' ? player.$roster : null;
+        if (typeof teamId !== 'string') return player;
+        const roster = teams?.[teamId]?.roster ?? [];
+        return roster.find((entry) => entry?.id === playerId) ?? player;
+      };
+`;
+
 const g6CoreUxRouteChecks = Object.freeze([
   { route: '/', text: 'Living Week' },
   { route: '/roster', text: 'Roster Sources' },
@@ -2967,8 +2977,11 @@ function latestAutosaveExtensionStateExpression(playerId) {
         return { ok: false, reason: 'latest autosave data is not valid JSON', slotId: latest.id ?? null };
       }
       const save = envelope?.save;
-      const player = save?.players?.[playerId] ?? null;
-      const userTeam = Object.values(save?.teams ?? {}).find((team) => team?.isUser);
+      const teams = save?.teams ?? {};
+      const players = save?.players ?? {};
+${resolveExportedPlayerSnippet}
+      const userTeam = Object.values(teams).find((team) => team?.isUser);
+      const player = resolveExportedPlayer(players, teams, playerId) ?? null;
       const rosterPlayer = (userTeam?.roster ?? []).find((entry) => entry?.id === playerId) ?? null;
       const extension = (save?.contractExtensions ?? [])
         .find((entry) => entry?.playerId === playerId && entry?.teamId === userTeam?.id) ?? null;
@@ -3035,8 +3048,11 @@ function latestAutosaveFranchiseTagStateExpression(playerId) {
         return { ok: false, reason: 'latest autosave data is not valid JSON', slotId: latest.id ?? null };
       }
       const save = envelope?.save;
-      const player = save?.players?.[playerId] ?? null;
-      const userTeam = Object.values(save?.teams ?? {}).find((team) => team?.isUser);
+      const teams = save?.teams ?? {};
+      const players = save?.players ?? {};
+${resolveExportedPlayerSnippet}
+      const userTeam = Object.values(teams).find((team) => team?.isUser);
+      const player = resolveExportedPlayer(players, teams, playerId) ?? null;
       const rosterPlayer = (userTeam?.roster ?? []).find((entry) => entry?.id === playerId) ?? null;
       const teamTags = userTeam?.franchiseTags ?? (userTeam?.franchiseTag973 ? [userTeam.franchiseTag973] : []);
       const teamTag = teamTags.find((entry) => entry?.playerId === playerId) ?? null;
@@ -3108,15 +3124,17 @@ function latestAutosaveCapLabBatchStateExpression(restructurePlayerId, backloadP
         return { ok: false, reason: 'latest autosave data is not valid JSON', slotId: latest.id ?? null };
       }
       const save = envelope?.save;
+      const teams = save?.teams ?? {};
       const players = save?.players ?? {};
-      const userTeam = Object.values(save?.teams ?? {}).find((team) => team?.isUser);
+${resolveExportedPlayerSnippet}
+      const userTeam = Object.values(teams).find((team) => team?.isUser);
       if (!userTeam) {
         return { ok: false, reason: 'latest autosave has no user team', slotId: latest.id ?? null };
       }
       const rosterRestructurePlayer = (userTeam.roster ?? []).find((entry) => entry?.id === restructurePlayerId) ?? null;
       const rosterBackloadPlayer = (userTeam.roster ?? []).find((entry) => entry?.id === backloadPlayerId) ?? null;
-      const mapRestructurePlayer = players?.[restructurePlayerId] ?? null;
-      const mapBackloadPlayer = players?.[backloadPlayerId] ?? null;
+      const mapRestructurePlayer = resolveExportedPlayer(players, teams, restructurePlayerId) ?? null;
+      const mapBackloadPlayer = resolveExportedPlayer(players, teams, backloadPlayerId) ?? null;
       const restructureContract = rosterRestructurePlayer?.contract ?? mapRestructurePlayer?.contract ?? null;
       const backloadContract = rosterBackloadPlayer?.contract ?? mapBackloadPlayer?.contract ?? null;
       const backloadSlices = Array.isArray(backloadContract?.slices) ? backloadContract.slices : [];
@@ -3420,12 +3438,13 @@ function latestAutosaveTradeCounterBlockStateExpression(fixture) {
       const save = envelope?.save;
       const teams = save?.teams ?? {};
       const players = save?.players ?? {};
+${resolveExportedPlayerSnippet}
       const userTeam = teams?.[fixture.userTeamId] ?? Object.values(teams).find((team) => team?.isUser);
       const partnerTeam = teams?.[fixture.partnerTeamId] ?? null;
       const userRosterPlayer = (userTeam?.roster ?? []).find((player) => player?.id === fixture.blockPlayerId) ?? null;
-      const mapBlockPlayer = players?.[fixture.blockPlayerId] ?? null;
+      const mapBlockPlayer = resolveExportedPlayer(players, teams, fixture.blockPlayerId) ?? null;
       const partnerRosterPlayer = (partnerTeam?.roster ?? []).find((player) => player?.id === fixture.targetPlayerId) ?? null;
-      const mapTargetPlayer = players?.[fixture.targetPlayerId] ?? null;
+      const mapTargetPlayer = resolveExportedPlayer(players, teams, fixture.targetPlayerId) ?? null;
       const proposal = (save?.activeProposals ?? [])
         .find((entry) => (entry?.requesting ?? []).some((asset) => asset?.playerId === fixture.targetPlayerId)) ?? null;
       const counterOffer = proposal?.counterOffer ?? null;
@@ -3777,9 +3796,10 @@ function latestAutosaveWaiverPracticeSquadStateExpression(fixture) {
       const save = envelope?.save;
       const teams = save?.teams ?? {};
       const players = save?.players ?? {};
+${resolveExportedPlayerSnippet}
       const userTeam = teams?.[fixture.userTeamId] ?? Object.values(teams).find((team) => team?.isUser);
-      const waiverPlayer = players?.[fixture.waiverPlayerId] ?? null;
-      const practicePlayer = players?.[fixture.practicePlayerId] ?? null;
+      const waiverPlayer = resolveExportedPlayer(players, teams, fixture.waiverPlayerId) ?? null;
+      const practicePlayer = resolveExportedPlayer(players, teams, fixture.practicePlayerId) ?? null;
       const practiceEntry = (userTeam?.practiceSquad ?? []).find((entry) => entry?.playerId === fixture.practicePlayerId) ?? null;
       const userRosterWaiverPlayer = (userTeam?.roster ?? []).find((player) => player?.id === fixture.waiverPlayerId) ?? null;
       const userRosterPracticePlayer = (userTeam?.roster ?? []).find((player) => player?.id === fixture.practicePlayerId) ?? null;
@@ -4652,15 +4672,16 @@ function latestAutosaveRosterDepthTrainingStateExpression(fixture) {
       const save = envelope?.save;
       const teams = save?.teams ?? {};
       const players = save?.players ?? {};
+${resolveExportedPlayerSnippet}
       const userTeam = teams?.[fixture.userTeamId] ?? Object.values(teams).find((team) => team?.isUser);
       const roster = userTeam?.roster ?? [];
       const rosterTrainingPlayer = roster.find((player) => player?.id === fixture.trainingPlayerId) ?? null;
       const rosterPlaceIrPlayer = roster.find((player) => player?.id === fixture.placeIrPlayerId) ?? null;
       const rosterActivateIrPlayer = roster.find((player) => player?.id === fixture.activateIrPlayerId) ?? null;
       const rosterPromotePlayer = roster.find((player) => player?.id === fixture.promotePlayerId) ?? null;
-      const mapPlaceIrPlayer = players?.[fixture.placeIrPlayerId] ?? null;
-      const mapActivateIrPlayer = players?.[fixture.activateIrPlayerId] ?? null;
-      const mapPromotePlayer = players?.[fixture.promotePlayerId] ?? null;
+      const mapPlaceIrPlayer = resolveExportedPlayer(players, teams, fixture.placeIrPlayerId) ?? null;
+      const mapActivateIrPlayer = resolveExportedPlayer(players, teams, fixture.activateIrPlayerId) ?? null;
+      const mapPromotePlayer = resolveExportedPlayer(players, teams, fixture.promotePlayerId) ?? null;
       const assignment = userTeam?.trainingAssignments?.[fixture.trainingPlayerId] ?? null;
       const trainingAssigned = Boolean(
         assignment
@@ -5581,12 +5602,13 @@ function latestAutosaveDraftScoutingStateExpression(fixture) {
       const save = envelope?.save;
       const teams = save?.teams ?? {};
       const players = save?.players ?? {};
+${resolveExportedPlayerSnippet}
       const userTeam = teams?.[fixture.userTeamId] ?? Object.values(teams).find((team) => team?.isUser);
       const scouting = save?.offseasonState?.scoutingState?.[fixture.targetProspectId] ?? null;
       const draftClass = Array.isArray(save?.draftClass) ? save.draftClass : [];
       const roster = Array.isArray(userTeam?.roster) ? userTeam.roster : [];
       const rookie = roster.find((player) => player?.id === fixture.targetProspectId) ?? null;
-      const mapRookie = players?.[fixture.targetProspectId] ?? null;
+      const mapRookie = resolveExportedPlayer(players, teams, fixture.targetProspectId) ?? null;
       const targetStillInDraftClass = draftClass.some((prospect) => prospect?.id === fixture.targetProspectId);
       const userPickStillAvailable = (userTeam?.draftPicks ?? []).some((pick) => (
         pick?.year === fixture.year
@@ -7433,8 +7455,9 @@ function latestAutosaveFreeAgencySigningsStateExpression(fixture) {
       const save = envelope?.save;
       const teams = save?.teams ?? {};
       const players = save?.players ?? {};
+${resolveExportedPlayerSnippet}
       const userTeam = teams?.[fixture.userTeamId] ?? Object.values(teams).find((team) => team?.isUser);
-      const player = players?.[fixture.playerId] ?? null;
+      const player = resolveExportedPlayer(players, teams, fixture.playerId) ?? null;
       const rosterPlayer = (userTeam?.roster ?? []).find((entry) => entry?.id === fixture.playerId) ?? null;
       const decision = save?.offseasonState?.reSignDecisions?.[fixture.playerId] ?? null;
       const bids = save?.offseasonState?.freeAgencyBids?.[fixture.playerId] ?? [];
