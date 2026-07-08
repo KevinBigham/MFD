@@ -100,12 +100,31 @@ export {
   buildStatSnapshot,
 } from './systems/stat-central';
 export { createPowerRankings, updatePowerRankings } from './systems/power-rankings';
+export { rehydrateGameStateReferences } from './systems/game-state-references';
 export {
   computePowerRankings,
   generateHeadlines,
   generateHotTakes,
   generateWeeklyMediaCycle,
 } from './media-cycle';
+export {
+  simulateWeeks,
+  type SimAheadFrame,
+  type SimAheadProgress,
+  type SimAheadResult,
+  type SimAheadStopReason,
+  type SimAheadTarget,
+} from './systems/sim-ahead';
+export {
+  backfillEventLogDates,
+  inferEventWeekFromKnownIdPattern,
+  inferEventYearFromKnownIdPattern,
+  logicalEventTimestamp,
+  readGameEventYear,
+  repairAndTrimEventLog,
+  trimEventLogForRetention,
+  withEventDate,
+} from './systems/event-log-retention';
 export type {
   WeeklyDigest,
   MediaCycleState,

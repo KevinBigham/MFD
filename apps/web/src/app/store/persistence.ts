@@ -5,6 +5,7 @@ import {
   buildCartridge,
   migrate,
   parseCartridge,
+  rehydrateGameStateReferences,
   type GameState,
 } from '@mfd/engine';
 import {
@@ -34,7 +35,7 @@ function normalizeImportedGame(raw: unknown): GameState {
 
   const game = result.data as unknown as GameState;
   ensureAgentsInitialized(game);
-  return game;
+  return rehydrateGameStateReferences(game);
 }
 
 function buildSlotPayload(game: GameState, isAutosave: boolean, name?: string): Omit<SaveSlot, 'id'> {

@@ -8,6 +8,7 @@ import type {
   StaffRole,
   Team,
 } from '../types';
+import { logicalEventTimestamp, withEventDate } from './event-log-retention';
 import { recordNewsItem } from './league-news';
 
 const ROLE_KEYS = {
@@ -45,7 +46,7 @@ function average(values: number[]): number {
 }
 
 function eventStamp(game: GameState): number {
-  return game.year * 1000 + game.week * 10 + game.eventLog.length;
+  return logicalEventTimestamp(game.year, game.week, game.eventLog.length);
 }
 
 function buildEvent(game: GameState, type: string, description: string, data: Record<string, unknown>): GameEvent {
@@ -54,7 +55,7 @@ function buildEvent(game: GameState, type: string, description: string, data: Re
     type,
     timestamp: eventStamp(game),
     description,
-    data,
+    data: withEventDate(data, game.year, game.week),
   };
 }
 

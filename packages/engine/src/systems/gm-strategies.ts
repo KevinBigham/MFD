@@ -6,6 +6,7 @@
  */
 
 import type { GameEvent, GameState, Team, GmStrategy } from '../types';
+import { logicalEventTimestamp, withEventDate } from './event-log-retention';
 
 // ── Strategy Definitions ───────────────────────────────
 
@@ -150,9 +151,9 @@ export function reevaluateLeagueStrategies(game: GameState): GameEvent[] {
     const event: GameEvent = {
       id: `gm-strategy-${team.id}-${game.year}-${events.length}`,
       type: 'gm_strategy_shift',
-      timestamp: game.year * 1000 + game.eventLog.length + events.length,
+      timestamp: logicalEventTimestamp(game.year, game.week, game.eventLog.length + events.length),
       description,
-      data: { teamId: team.id, from: previous, to: nextStrategy },
+      data: withEventDate({ teamId: team.id, from: previous, to: nextStrategy }, game.year, game.week),
     };
     events.push(event);
     game.narrativeState.recentHeadlines = [description, ...game.narrativeState.recentHeadlines].slice(0, 8);

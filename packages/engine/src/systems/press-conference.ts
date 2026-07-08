@@ -8,6 +8,7 @@ import type {
   TimedEffect,
 } from '../types';
 import { ensureLivingWorldState } from './off-field-events';
+import { logicalEventTimestamp, withEventDate } from './event-log-retention';
 import { getRivalryGameContext } from './rivalries';
 
 function stampFor(year: number, week: number): number {
@@ -84,9 +85,9 @@ export function recordPressConference(game: GameState, conference: PressConferen
   game.eventLog.push({
     id: `${conference.type}-${conference.id}`,
     type: 'press_conference',
-    timestamp: stampFor(conference.year, conference.week) * 10 + game.eventLog.length,
+    timestamp: logicalEventTimestamp(conference.year, conference.week, game.eventLog.length),
     description: conference.headline,
-    data: { pressConferenceId: conference.id, teamId: conference.teamId },
+    data: withEventDate({ pressConferenceId: conference.id, teamId: conference.teamId }, conference.year, conference.week),
   });
 }
 

@@ -10,8 +10,8 @@ import { createEmptyRecordBook } from '../systems/records';
 import { makeLeagueState } from '../systems/test-helpers';
 
 describe('SaveStateSchema', () => {
-  it('uses save version 35 for Sprint 67 newsroom persistence', () => {
-    expect(SAVE_VERSION).toBe(35);
+  it('uses save version 37 for event-log retention persistence', () => {
+    expect(SAVE_VERSION).toBe(37);
   });
 
   it('validates a minimal valid save', () => {

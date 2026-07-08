@@ -4,6 +4,9 @@ import { PixelBadge, PixelButton, PixelPanel } from '@mfd/design-system/componen
 import {
   useGameStore,
   selectLeagueNews,
+  selectLatestDigestPowerRankings,
+  selectLatestDigestUserTeamSegment,
+  selectLatestWeeklyDigest,
   selectPowerRankings,
   selectStorylineThreads,
   selectUserPowerRanking,
@@ -16,6 +19,7 @@ import {
   autoGrid,
   display,
   monoSm,
+  navigateTo,
   pixelSm,
   screenStackStyle,
   teamThemeVars,
@@ -86,6 +90,9 @@ export function NewsroomDigest({ storylines }: NewsroomDigestProps = {}) {
   const team = useGameStore(selectUserTeam);
   const leagueNews = useGameStore(selectLeagueNews);
   const rankings = useGameStore(selectPowerRankings);
+  const latestDigest = useGameStore(selectLatestWeeklyDigest);
+  const digestPowerRankings = useGameStore(selectLatestDigestPowerRankings);
+  const userDigestSegment = useGameStore(selectLatestDigestUserTeamSegment);
   const userRanking = useGameStore(selectUserPowerRanking);
   const storeThreads = useGameStore(selectStorylineThreads);
   const [selectedStory, setSelectedStory] = useState<NewsItem | null>(null);
@@ -101,6 +108,9 @@ export function NewsroomDigest({ storylines }: NewsroomDigestProps = {}) {
 
   const threads = storylines ?? storeThreads;
   const activeThreads = threads.filter((thread) => thread.status === 'active');
+  const digestHeadlines = latestDigest?.headlines.slice(0, 5) ?? [];
+  const digestHotTakes = latestDigest?.hotTakes.slice(0, 4) ?? [];
+  const digestRankings = digestPowerRankings.slice(0, 8);
 
   if (!team) {
     return (
@@ -132,6 +142,7 @@ export function NewsroomDigest({ storylines }: NewsroomDigestProps = {}) {
         badges={(
           <>
             <PixelBadge variant="gold">{leagueNews.length} stories</PixelBadge>
+            {latestDigest ? <PixelBadge variant="cyan">MFSN W{latestDigest.weekNumber}</PixelBadge> : null}
             {userRanking ? <PixelBadge variant="cyan">YOU #{userRanking.rank}</PixelBadge> : null}
             {activeThreads.length > 0 ? (
               <PixelBadge variant="green">{activeThreads.length} storylines</PixelBadge>
@@ -174,6 +185,153 @@ export function NewsroomDigest({ storylines }: NewsroomDigestProps = {}) {
           ) : null}
         />
       </div>
+
+      <PixelPanel title="This Week on MFSN" accent="cyan">
+        {latestDigest ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ ...display, fontSize: '28px', color: 'var(--mfd-text)', lineHeight: 1 }}>
+                WEEK {latestDigest.weekNumber} SHOW
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                <PixelBadge variant="gold">{latestDigest.headlines.length} headlines</PixelBadge>
+                <PixelBadge variant="cyan">{latestDigest.hotTakes.length} hot takes</PixelBadge>
+                <PixelBadge variant="green">{latestDigest.powerRankings.length} ranked</PixelBadge>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelButton accent="gold" onClick={() => navigateTo('/week-advance')}>Advance Week</PixelButton>
+              <PixelButton accent="cyan" onClick={() => navigateTo('/game-plan')}>Game Plan</PixelButton>
+              <PixelButton accent="green" onClick={() => navigateTo('/power-rankings')}>Power Rankings</PixelButton>
+            </div>
+          </div>
+        ) : (
+          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+            NO WEEKLY SHOW YET // AWAITING SAVED MEDIA CYCLE.
+          </div>
+        )}
+      </PixelPanel>
+
+      {latestDigest ? (
+        <>
+          <PixelPanel title="Opening Headlines" accent="gold">
+            {digestHeadlines.length === 0 ? (
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+                No saved headlines in the latest weekly digest.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {digestHeadlines.map((headline) => (
+                  <div key={headline.id} style={{
+                    padding: '10px 12px',
+                    border: '2px solid var(--mfd-border)',
+                    background: 'var(--mfd-bg-2)',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                      <div style={{ ...display, fontSize: '20px', color: 'var(--mfd-text)', lineHeight: 1.1 }}>
+                        {headline.title.toUpperCase()}
+                      </div>
+                      <PixelBadge variant={headline.importance >= 80 ? 'gold' : headline.importance >= 55 ? 'cyan' : 'default'}>
+                        {headline.category}
+                      </PixelBadge>
+                    </div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', lineHeight: 1.6 }}>
+                      {headline.summary}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </PixelPanel>
+
+          <PixelPanel title="Analyst Desk" accent="red">
+            {digestHotTakes.length === 0 ? (
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+                No saved hot takes in the latest weekly digest.
+              </div>
+            ) : (
+              <div style={autoGrid(260)}>
+                {digestHotTakes.map((take) => (
+                  <div key={take.id} style={{
+                    border: '2px solid var(--mfd-border)',
+                    background: 'var(--mfd-bg-2)',
+                    padding: '12px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                      <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>{take.analyst.toUpperCase()}</div>
+                      <PixelBadge variant={take.sentiment === 'supportive' ? 'green' : take.sentiment === 'combative' ? 'red' : 'gold'}>
+                        {take.sentiment}
+                      </PixelBadge>
+                    </div>
+                    <div style={{ ...display, fontSize: '18px', color: 'var(--mfd-text)', marginTop: '8px', lineHeight: 1.1 }}>
+                      {take.angle.toUpperCase()}
+                    </div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '8px', lineHeight: 1.6 }}>
+                      {take.quote}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </PixelPanel>
+
+          <PixelPanel title="Power Ranking Movement" accent="cyan">
+            {digestRankings.length === 0 ? (
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+                No saved ranking table in the latest weekly digest.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {digestRankings.map((entry) => (
+                  <div key={entry.teamId} style={{
+                    display: 'grid',
+                    gridTemplateColumns: '52px minmax(0, 1fr) 80px',
+                    gap: '10px',
+                    alignItems: 'center',
+                    padding: '8px 0',
+                    borderBottom: '1px solid var(--mfd-border)',
+                  }}>
+                    <PixelBadge variant="gold">#{entry.rank}</PixelBadge>
+                    <div>
+                      <div style={{ ...display, fontSize: '18px', color: 'var(--mfd-text)', lineHeight: 1 }}>{entry.teamName.toUpperCase()}</div>
+                      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '4px' }}>{entry.record} // {entry.blurb}</div>
+                    </div>
+                    <PixelBadge variant={deltaAccent(entry.rankDelta)}>{deltaLabel(entry.rankDelta)}</PixelBadge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </PixelPanel>
+
+          <PixelPanel title="Your Team Segment" accent="green">
+            {userDigestSegment ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <PixelBadge variant="green">{userDigestSegment.ranking ? `#${userDigestSegment.ranking.rank}` : 'UNRANKED'}</PixelBadge>
+                  {userDigestSegment.ranking ? <PixelBadge variant={deltaAccent(userDigestSegment.ranking.rankDelta)}>{deltaLabel(userDigestSegment.ranking.rankDelta)}</PixelBadge> : null}
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+                  {userDigestSegment.ranking?.blurb ?? 'No saved ranking blurb for your club this week.'}
+                </div>
+                {userDigestSegment.headlines.slice(0, 2).map((headline) => (
+                  <div key={headline.id} style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>
+                    {headline.title} // {headline.summary}
+                  </div>
+                ))}
+                {userDigestSegment.hotTakes.slice(0, 1).map((take) => (
+                  <div key={take.id} style={{ ...monoSm, color: 'var(--mfd-gold)', lineHeight: 1.6 }}>
+                    {take.analyst}: {take.quote}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+                No user-team segment in the latest saved digest.
+              </div>
+            )}
+          </PixelPanel>
+        </>
+      ) : null}
 
       <PixelPanel title="Top of the Wire" accent={lead ? importanceAccent(lead.importance) : 'cyan'}>
         {lead ? (

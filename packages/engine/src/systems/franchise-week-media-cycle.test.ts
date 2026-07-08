@@ -203,4 +203,25 @@ describe('franchise week media-cycle integration', () => {
     expect(state.mediaCycle.weeklyDigests).toHaveLength(18);
     expect(state.mediaCycle.powerRankingHistory).toHaveLength(18);
   });
+
+  it('caps media-cycle histories at 34 entries after a weekly append', () => {
+    const game = makeLeagueState('regular_season', 4);
+    game.mediaCycle.weeklyDigests = Array.from({ length: 40 }, (_, index) => ({
+      weekNumber: index + 1,
+      powerRankings: [],
+      headlines: [],
+      hotTakes: [],
+    }));
+    game.mediaCycle.powerRankingHistory = Array.from({ length: 40 }, (_, index) => ({
+      weekNumber: index + 1,
+      rankings: [],
+    }));
+
+    const result = advanceFranchiseWeek(game);
+
+    expect(result.nextState.mediaCycle.weeklyDigests).toHaveLength(34);
+    expect(result.nextState.mediaCycle.powerRankingHistory).toHaveLength(34);
+    expect(result.nextState.mediaCycle.weeklyDigests[result.nextState.mediaCycle.weeklyDigests.length - 1]?.weekNumber).toBe(4);
+    expect(result.nextState.mediaCycle.powerRankingHistory[result.nextState.mediaCycle.powerRankingHistory.length - 1]?.weekNumber).toBe(4);
+  });
 });

@@ -1,4 +1,5 @@
 import { RNG, uid } from '../rng';
+import { logicalEventTimestamp, withEventDate } from './event-log-retention';
 import type {
   GameEvent,
   GameState,
@@ -25,9 +26,9 @@ function pushLivingWorldEvent(game: GameState, type: string, description: string
   const event: GameEvent = {
     id: `${type}-${game.year}-${game.week}-${game.eventLog.length}`,
     type,
-    timestamp: stampFor(game.year, game.week) * 10 + game.eventLog.length,
+    timestamp: logicalEventTimestamp(game.year, game.week, game.eventLog.length),
     description,
-    data,
+    data: withEventDate(data, game.year, game.week),
   };
   game.eventLog.push(event);
   return event;

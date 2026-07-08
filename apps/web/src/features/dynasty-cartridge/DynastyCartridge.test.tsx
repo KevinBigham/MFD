@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 const mockState = {
   game: {
+    version: 37,
     seed: 42,
     phase: 'regular_season',
     week: 5,
@@ -28,6 +29,7 @@ const mockState = {
     },
     userTeamId: 'team-1',
     players: {},
+    lastPortableExportYear: null,
   },
   actions: {
     loadGame: vi.fn(),
@@ -52,8 +54,10 @@ vi.mock('../../app/store/persistence', () => ({
 }));
 
 vi.mock('@mfd/engine', () => ({
-  buildCartridge: vi.fn().mockReturnValue({ ok: true, json: '{}' }),
+  SAVE_VERSION: 37,
+  buildCartridge: vi.fn().mockReturnValue({ ok: true, json: '{}', sizeBytes: 2048 }),
   generateFileName: vi.fn().mockReturnValue('CHI_S2026_W5.mfd'),
+  validateGameState: vi.fn().mockReturnValue({ ok: true }),
 }));
 
 import { DynastyCartridge } from './DynastyCartridge';
@@ -70,6 +74,7 @@ describe('DynastyCartridge', () => {
 
     expect(markup).toContain('Create Save Slot');
     expect(markup).toContain('Copy Cartridge');
+    expect(markup).toContain('Copy Challenge Seed');
     expect(markup).toContain('Download .mfd');
     expect(markup).toContain('IMPORT CARTRIDGE');
     expect(markup).toContain('LOCAL SAVE SLOTS');
@@ -91,5 +96,14 @@ describe('DynastyCartridge', () => {
     const markup = renderToStaticMarkup(<DynastyCartridge />);
 
     expect(markup).toContain('Paste backup code');
+  });
+
+  it('renders the save health meter', () => {
+    const markup = renderToStaticMarkup(<DynastyCartridge />);
+
+    expect(markup).toContain('SAVE HEALTH METER');
+    expect(markup).toContain('Cartridge Size');
+    expect(markup).toContain('Integrity');
+    expect(markup).toContain('Manual Export');
   });
 });

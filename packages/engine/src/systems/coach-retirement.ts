@@ -8,6 +8,7 @@ import type {
   Team,
 } from '../types';
 import { coachRetirementChance } from './coach-aging';
+import { logicalEventTimestamp, withEventDate } from './event-log-retention';
 
 export type RetirementEpilogue =
   | 'broadcasting'
@@ -66,9 +67,9 @@ function buildEvent(game: GameState, type: string, description: string, data: Re
   return {
     id: `${type}-${game.year}-${game.week}-${game.eventLog.length}`,
     type,
-    timestamp: game.year * 1000 + game.week * 10 + game.eventLog.length,
+    timestamp: logicalEventTimestamp(game.year, game.week, game.eventLog.length),
     description,
-    data,
+    data: withEventDate(data, game.year, game.week),
   };
 }
 

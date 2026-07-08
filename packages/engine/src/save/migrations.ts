@@ -13,8 +13,10 @@ import { createDefaultDashboardState } from '../systems/dashboard-config';
 import { initLaborState } from '../systems/labor-relations';
 import { initLeagueRules } from '../systems/league-rules';
 import { initializeLockerRoom } from '../systems/locker-room';
+import { trimLongRunningSaveCollectionsRecord } from '../systems/long-running-save-collections';
 import { assignJerseyNumber } from '../systems/jersey-retirement';
 import { createEmptyRecordBook } from '../systems/records';
+import { repairAndTrimEventLogRecord } from '../systems/event-log-retention';
 import { buildSpecialTeamsState, createDefaultSpecialTeamsState } from '../systems/special-teams';
 import { getDefaultHalftimeDecisionSetting } from '../config';
 import type { Team } from '../types';
@@ -1275,6 +1277,28 @@ registerMigration(34, (state) => ({
   },
   storylineThreads: [],
 }));
+
+// v35→v36: cap long-running media-cycle save collections.
+registerMigration(35, (state) => trimLongRunningSaveCollectionsRecord({
+  ...state,
+  mediaCycle: state['mediaCycle'] && typeof state['mediaCycle'] === 'object'
+    ? {
+      ...(state['mediaCycle'] as Record<string, unknown>),
+      weeklyDigests: Array.isArray((state['mediaCycle'] as Record<string, unknown>)['weeklyDigests'])
+        ? [...((state['mediaCycle'] as Record<string, unknown>)['weeklyDigests'] as unknown[])]
+        : [],
+      powerRankingHistory: Array.isArray((state['mediaCycle'] as Record<string, unknown>)['powerRankingHistory'])
+        ? [...((state['mediaCycle'] as Record<string, unknown>)['powerRankingHistory'] as unknown[])]
+        : [],
+    }
+    : {
+      weeklyDigests: [],
+      powerRankingHistory: [],
+    },
+}));
+
+// v36→v37: repair eventLog year/week metadata and trim old disposable noise.
+registerMigration(36, (state) => repairAndTrimEventLogRecord({ ...state }));
 
 // v30→v31: Add tutorialState.visitedScreens (Sprint 43 "Rookie Card" onboarding)
 registerMigration(30, (state) => {

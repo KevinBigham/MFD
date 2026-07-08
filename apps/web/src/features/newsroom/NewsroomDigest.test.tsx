@@ -1,11 +1,26 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { NewsItem, PowerRanking, StorylineThread } from '@mfd/engine';
+import type { NewsItem, PowerRanking, StorylineThread, WeeklyDigest } from '@mfd/engine';
 
 vi.mock('../../app/store/game-store', () => ({
   useGameStore: (selector: (state: typeof mockState) => unknown) => selector(mockState),
   selectUserTeam: (state: typeof mockState) => state.team,
   selectLeagueNews: (state: typeof mockState) => state.news,
+  selectLatestWeeklyDigest: (state: typeof mockState) => state.weeklyDigests.at(-1) ?? null,
+  selectLatestDigestPowerRankings: (state: typeof mockState) => state.weeklyDigests.at(-1)?.powerRankings ?? [],
+  selectLatestDigestUserTeamSegment: (state: typeof mockState) => {
+    const digest = state.weeklyDigests.at(-1);
+    const teamId = state.team?.id;
+    if (!digest || !teamId) return null;
+    const headlines = digest.headlines.filter((headline) => headline.teamIds.includes(teamId));
+    const headlineIds = new Set(headlines.map((headline) => headline.id));
+    return {
+      teamId,
+      ranking: digest.powerRankings.find((entry) => entry.teamId === teamId) ?? null,
+      headlines,
+      hotTakes: digest.hotTakes.filter((take) => headlineIds.has(take.headlineId)),
+    };
+  },
   selectPowerRankings: (state: typeof mockState) => state.rankings,
   selectStorylineThreads: (state: typeof mockState) => state.storylines,
   selectUserPowerRanking: (state: typeof mockState) => {
@@ -19,12 +34,14 @@ vi.mock('../../app/store/game-store', () => ({
 const mockState: {
   team: { id: string; city: string; name: string } | null;
   news: NewsItem[];
+  weeklyDigests: WeeklyDigest[];
   rankings: PowerRanking[];
   storylines: StorylineThread[];
   teamsById: Record<string, { id: string; abbr: string; city: string; name: string }>;
 } = {
   team: { id: 'team-me', city: 'Chicago', name: 'Blaze' },
   news: [],
+  weeklyDigests: [],
   rankings: [],
   storylines: [],
   teamsById: {
@@ -64,7 +81,52 @@ function makeRanking(overrides: Partial<PowerRanking> = {}): PowerRanking {
   };
 }
 
+function makeDigest(overrides: Partial<WeeklyDigest> = {}): WeeklyDigest {
+  return {
+    weekNumber: 6,
+    headlines: [{
+      id: 'headline-team',
+      category: 'RIVALRY_WIN',
+      weekNumber: 6,
+      title: 'Blaze own the night',
+      summary: 'Chicago turned a rivalry game into a statement.',
+      teamIds: ['team-me'],
+      playerId: null,
+      gameId: 'game-1',
+      importance: 85,
+    }],
+    hotTakes: [{
+      id: 'take-team',
+      weekNumber: 6,
+      headlineId: 'headline-team',
+      analyst: 'Rae Collier',
+      angle: 'The locker room bought in',
+      quote: 'That win looked like a team starting to believe its own tape.',
+      sentiment: 'supportive',
+    }],
+    powerRankings: [{
+      teamId: 'team-me',
+      teamName: 'Chicago Blaze',
+      rank: 4,
+      rankDelta: 3,
+      score: 91,
+      blurb: 'Momentum is finally showing up on both sides.',
+      record: '5-1',
+      weekNumber: 6,
+    }],
+    ...overrides,
+  };
+}
+
 describe('NewsroomDigest', () => {
+  beforeEach(() => {
+    mockState.team = { id: 'team-me', city: 'Chicago', name: 'Blaze' };
+    mockState.news = [];
+    mockState.weeklyDigests = [];
+    mockState.rankings = [];
+    mockState.storylines = [];
+  });
+
   it('renders an empty-state when no team is loaded', () => {
     mockState.team = null;
     mockState.news = [];
@@ -80,9 +142,21 @@ describe('NewsroomDigest', () => {
     mockState.rankings = [];
     mockState.storylines = [];
     const html = renderToStaticMarkup(<NewsroomDigest />);
+    expect(html).toContain('NO WEEKLY SHOW YET');
     expect(html).toContain('No breaking or major stories hit the wire this cycle.');
     expect(html).toContain('Nothing else broke this week.');
     expect(html).toContain('NO ACTIVE THREADS');
+  });
+
+  it('renders the latest saved MFSN weekly digest without generating during render', () => {
+    mockState.weeklyDigests = [makeDigest()];
+    const html = renderToStaticMarkup(<NewsroomDigest />);
+    expect(html).toContain('MFSN W6');
+    expect(html).toContain('WEEK 6 SHOW');
+    expect(html).toContain('BLAZE OWN THE NIGHT');
+    expect(html).toContain('RAE COLLIER');
+    expect(html).toContain('CHICAGO BLAZE');
+    expect(html).toContain('YOUR TEAM SEGMENT');
   });
 
   it('promotes the breaking story to lead over a major story', () => {

@@ -16,6 +16,22 @@ describe('persistence import helpers', () => {
     expect(loaded.lastPortableExportYear).toBeNull();
   });
 
+  it('rehydrates roster and player-map references on cartridge import', () => {
+    const game = createSeedGameState(123, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser);
+    const rostered = userTeam?.roster[0];
+    if (!userTeam || !rostered) throw new Error('Seed game missing rostered user player.');
+    const built = buildCartridge(game, { teamName: 'Identity Test', season: game.year, week: game.week });
+
+    if (!built.ok) throw new Error(built.error);
+    const loaded = loadImportedCartridge(built.json);
+    const loadedTeam = loaded.teams[userTeam.id];
+    const loadedRostered = loadedTeam?.roster.find((player) => player.id === rostered.id);
+
+    expect(loadedRostered).toBeDefined();
+    expect(loadedRostered).toBe(loaded.players[rostered.id]);
+  });
+
   it('loads a dynasty cartridge from a file-like object', async () => {
     const game = createSeedGameState(7, 1, 'legend');
     const built = buildCartridge(game, { teamName: 'File Test', season: game.year, week: game.week });

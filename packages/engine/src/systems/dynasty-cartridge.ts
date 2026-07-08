@@ -7,7 +7,8 @@
 
 // ── Cartridge Version ──────────────────────────────────
 
-export const CARTRIDGE_VERSION = 'mfd-cartridge.v1';
+export const CARTRIDGE_VERSION = 'mfd-cartridge.v2';
+const CARTRIDGE_VERSION_V1 = 'mfd-cartridge.v1';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -79,6 +80,56 @@ function sanitizeSaveForExport(save: unknown): unknown {
   return clone;
 }
 
+function dedupeRosteredPlayersForExport(save: unknown): unknown {
+  if (!save || typeof save !== 'object') return save;
+
+  const record = save as Record<string, unknown>;
+  const teams = record['teams'];
+  const players = record['players'];
+  if (!teams || typeof teams !== 'object' || !players || typeof players !== 'object') return save;
+
+  const playerMap = players as Record<string, unknown>;
+  for (const [teamId, teamValue] of Object.entries(teams as Record<string, unknown>)) {
+    if (!teamValue || typeof teamValue !== 'object') continue;
+    const roster = (teamValue as Record<string, unknown>)['roster'];
+    if (!Array.isArray(roster)) continue;
+    for (const player of roster) {
+      if (!player || typeof player !== 'object') continue;
+      const id = (player as Record<string, unknown>)['id'];
+      if (typeof id !== 'string' || !playerMap[id]) continue;
+      playerMap[id] = { $roster: teamId };
+    }
+  }
+
+  return save;
+}
+
+function rehydrateRosteredPlayersFromExport(save: unknown): unknown {
+  if (!save || typeof save !== 'object') return save;
+
+  const record = save as Record<string, unknown>;
+  const teams = record['teams'];
+  const players = record['players'];
+  if (!teams || typeof teams !== 'object' || !players || typeof players !== 'object') return save;
+
+  const playerMap = players as Record<string, unknown>;
+  for (const [playerId, playerValue] of Object.entries(playerMap)) {
+    if (!playerValue || typeof playerValue !== 'object') continue;
+    const teamId = (playerValue as Record<string, unknown>)['$roster'];
+    if (typeof teamId !== 'string') continue;
+    const team = (teams as Record<string, unknown>)[teamId];
+    if (!team || typeof team !== 'object') continue;
+    const roster = (team as Record<string, unknown>)['roster'];
+    if (!Array.isArray(roster)) continue;
+    const rosterPlayer = roster.find((player) =>
+      player && typeof player === 'object' && (player as Record<string, unknown>)['id'] === playerId,
+    );
+    if (rosterPlayer) playerMap[playerId] = rosterPlayer;
+  }
+
+  return save;
+}
+
 // ── Build ──────────────────────────────────────────────
 
 export function buildCartridge(
@@ -86,7 +137,7 @@ export function buildCartridge(
   meta: CartridgeMeta = {},
 ): BuildResult | BuildError {
   if (!save) return { ok: false, error: 'No save data provided.' };
-  const sanitizedSave = sanitizeSaveForExport(save);
+  const sanitizedSave = dedupeRosteredPlayersForExport(sanitizeSaveForExport(save));
 
   const envelope: CartridgeEnvelope = {
     cartridgeVersion: CARTRIDGE_VERSION,
@@ -116,6 +167,14 @@ export function parseCartridge(text: string): ParseResult | ParseError {
   try {
     const data = JSON.parse(trimmed);
     if (data.cartridgeVersion === CARTRIDGE_VERSION && data.save) {
+      return {
+        ok: true,
+        save: rehydrateRosteredPlayersFromExport(data.save),
+        meta: data.meta ?? {},
+        version: data.cartridgeVersion,
+      };
+    }
+    if (data.cartridgeVersion === CARTRIDGE_VERSION_V1 && data.save) {
       return { ok: true, save: data.save, meta: data.meta ?? {}, version: data.cartridgeVersion };
     }
     if (data.save) {

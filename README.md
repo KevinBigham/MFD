@@ -68,7 +68,7 @@ pnpm playtest:all
 
 ## Release Notes
 
-See [CHANGELOG.md](CHANGELOG.md). v1.0.0 ships with save schema v35 and the Sprint 72 deterministic playtest-report cleanup.
+See [CHANGELOG.md](CHANGELOG.md). Current development uses save schema v37 with media-cycle caps and event-log retention.
 
 ## License
 

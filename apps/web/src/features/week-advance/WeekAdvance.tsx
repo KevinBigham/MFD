@@ -2,12 +2,15 @@ import { useState, useMemo, useCallback } from 'react';
 import {
   PixelPanel, PixelBadge, PixelButton,
 } from '@mfd/design-system/components';
-import { Play } from 'lucide-react';
+import { FastForward, Play } from 'lucide-react';
+import type { SimAheadFrame, SimAheadStopReason, SimAheadTarget } from '@mfd/engine';
 import {
   useGameStore, selectUserTeam, selectRoster,
   selectCurrentGamePlan,
   selectWeek, selectYear, selectSchedule, selectLatestSummary, selectOffseasonState, selectPhase, selectTeams,
+  selectLeagueRivalries, selectPowerRankings,
 } from '../../app/store/game-store';
+import { buildDecisionImpactExplanation, decisionImpactToConsequenceItems } from '../companion/decisionImpact';
 import {
   PixelConsequenceList,
   PixelMetricCard,
@@ -48,10 +51,17 @@ export function WeekAdvance() {
   const latestSummary = useGameStore(selectLatestSummary);
   const offseasonState = useGameStore(selectOffseasonState);
   const phase = useGameStore(selectPhase);
+  const difficulty = useGameStore((state) => state.game?.difficulty ?? 'pro');
   const currentGamePlan = useGameStore(selectCurrentGamePlan);
-  const { advanceWeek } = useGameStore((s) => s.actions);
+  const { advanceWeek, simAhead } = useGameStore((s) => s.actions);
 
   const [advancing, setAdvancing] = useState(false);
+  const [simAheadStatus, setSimAheadStatus] = useState<{
+    label: string;
+    frame: SimAheadFrame | null;
+    running: boolean;
+    stopReason: SimAheadStopReason | null;
+  } | null>(null);
 
   const matchup = useMemo(() => {
     if (!team || !schedule.length || (phase !== 'regular_season' && phase !== 'playoffs')) return null;
@@ -123,11 +133,62 @@ export function WeekAdvance() {
   const issueCount = checklist.filter((c) => c.status !== 'done').length;
   const starters = roster.filter((p) => p.isStarter).length;
   const injuredCount = roster.filter((p) => p.injury).length;
+  const advanceImpact = useMemo(
+    () => buildDecisionImpactExplanation({
+      surface: 'week-advance',
+      label: 'Week advance',
+      issueCount,
+      ownerDelta: allClear ? 0 : -1,
+      chemistryDelta: injuredCount > 0 ? -1 : 0,
+      difficulty,
+    }),
+    [allClear, difficulty, injuredCount, issueCount],
+  );
 
   const teams = useGameStore(selectTeams);
+  const leagueRivalries = useGameStore(selectLeagueRivalries);
+  const powerRankings = useGameStore(selectPowerRankings);
   const opponent = matchup?.opponentId && teams ? teams[matchup.opponentId] : null;
+  const radar = useMemo(() => {
+    if (!team || !opponent || !matchup) return null;
+    const rivalry = leagueRivalries.find((entry) =>
+      (entry.teamA === team.id && entry.teamB === opponent.id)
+      || (entry.teamB === team.id && entry.teamA === opponent.id),
+    ) ?? null;
+    const opponentRank = powerRankings.find((entry) => entry.teamId === opponent.id) ?? null;
+    const majorUserInjuries = roster.filter((player) =>
+      player.isStarter
+      && player.injury
+      && (player.injury.severityTier === 'severe' || player.injury.severityTier === 'season_ending' || player.injury.severity === 'out' || player.injury.severity === 'ir'),
+    );
+    const weather = matchup.game.weather ?? (opponent.stadiumType === 'dome' ? 'dome' : null);
+    const primetime = matchup.game.primetime ? 'PRIMETIME' : matchup.game.broadcastNetwork ?? null;
+    const revenge = rivalry?.lastMetYear === year && rivalry.lastMetWeek !== null && rivalry.lastMetWeek < week;
+    const why = rivalry && rivalry.intensity >= 70
+      ? `${opponent.city} brings a rivalry heat index of ${rivalry.intensity}.`
+      : opponentRank && opponentRank.rank <= 8
+        ? `${opponent.city} enters as a top-${opponentRank.rank} measuring stick.`
+        : majorUserInjuries.length > 0
+          ? `${majorUserInjuries.length} starter injury ${majorUserInjuries.length === 1 ? 'changes' : 'change'} the margin.`
+          : matchup.game.primetime
+            ? 'The lights are brighter than the standings.'
+            : 'A clean week keeps the season plan on schedule.';
+
+    return {
+      rivalry,
+      opponentRank,
+      majorUserInjuries,
+      weather,
+      primetime,
+      revenge,
+      why,
+    };
+  }, [leagueRivalries, matchup, opponent, powerRankings, roster, team, week, year]);
+  const isSimAheadRunning = Boolean(simAheadStatus?.running);
+  const isBusy = advancing || isSimAheadRunning;
 
   const handleAdvance = useCallback(async () => {
+    if (isBusy) return;
     if (needsGamePlan) {
       navigateTo('/game-plan');
       return;
@@ -139,7 +200,43 @@ export function WeekAdvance() {
     } finally {
       setAdvancing(false);
     }
-  }, [advanceWeek, needsGamePlan]);
+  }, [advanceWeek, isBusy, needsGamePlan, phase, week]);
+
+  const handleSimAhead = useCallback(async (target: SimAheadTarget, label: string) => {
+    if (isBusy) return;
+    setSimAheadStatus({ label, frame: null, running: true, stopReason: null });
+    try {
+      playSound('week_advance_start', { debounceMs: 0, debounceKey: `sim-ahead:${label}:${phase}:${week}` });
+      const result = await simAhead(target, (frame) => {
+        setSimAheadStatus({ label, frame, running: true, stopReason: frame.stopReason ?? null });
+      });
+      setSimAheadStatus((current) => ({
+        label,
+        frame: current?.frame ?? result?.frames.at(-1) ?? null,
+        running: false,
+        stopReason: result?.stopReason ?? current?.stopReason ?? null,
+      }));
+    } catch {
+      setSimAheadStatus({
+        label,
+        frame: null,
+        running: false,
+        stopReason: 'safety_guard',
+      });
+    }
+  }, [isBusy, phase, simAhead, week]);
+
+  const simAheadControls: Array<{ label: string; target: SimAheadTarget }> = [
+    { label: 'My Next Game', target: 'next_user_game' },
+    { label: 'Trade Deadline', target: 'trade_deadline' },
+    { label: 'End Regular Season', target: 'end_regular_season' },
+    { label: 'Playoffs', target: 'playoffs' },
+    { label: '4 Weeks', target: { weeks: 4 } },
+  ];
+
+  const stopReasonLabel = simAheadStatus?.stopReason
+    ? simAheadStatus.stopReason.replace(/_/g, ' ').toUpperCase()
+    : null;
 
   const advanceLabel = needsGamePlan
     ? 'Prepare Game Plan'
@@ -238,9 +335,21 @@ export function WeekAdvance() {
                 <PixelBadge variant="default">{opponent.wins}-{opponent.losses}</PixelBadge>
                 <PixelBadge variant="cyan">{opponent.schemeOff}</PixelBadge>
                 <PixelBadge variant="red">{opponent.schemeDef}</PixelBadge>
+                {radar?.opponentRank ? <PixelBadge variant="gold">#{radar.opponentRank.rank}</PixelBadge> : null}
+                {radar?.rivalry ? <PixelBadge variant={radar.rivalry.intensity >= 70 ? 'red' : 'gold'}>RIVALRY {radar.rivalry.intensity}</PixelBadge> : null}
+                {radar?.revenge ? <PixelBadge variant="red">REVENGE</PixelBadge> : null}
+                {radar?.weather ? <PixelBadge variant="default">{String(radar.weather).toUpperCase()}</PixelBadge> : null}
+                {radar?.primetime ? <PixelBadge variant="cyan">{radar.primetime}</PixelBadge> : null}
               </div>
+              {radar?.majorUserInjuries.length ? (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {radar.majorUserInjuries.slice(0, 3).map((player) => (
+                    <PixelBadge key={player.id} variant="red">{player.pos} {player.name}</PixelBadge>
+                  ))}
+                </div>
+              ) : null}
               <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
-                Broadcast note: this game will define the next owner pulse and chemistry swing.
+                {radar?.why ?? 'This game will define the next owner pulse and chemistry swing.'}
               </div>
             </div>
           ) : (
@@ -265,7 +374,32 @@ export function WeekAdvance() {
         />
       </PixelPanel>
 
-      {advancing ? (
+      <PixelPanel title="Decision Impact" accent={advanceImpact.severity === 'high' ? 'red' : 'gold'}>
+        <PixelConsequenceList items={decisionImpactToConsequenceItems(advanceImpact)} />
+      </PixelPanel>
+
+      <PixelPanel title="Sim Ahead" accent="cyan">
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {simAheadControls.map((control) => (
+            <PixelButton
+              key={control.label}
+              accent="cyan"
+              disabled={isBusy}
+              onClick={() => void handleSimAhead(control.target, control.label)}
+            >
+              <FastForward size={14} />
+              {control.label}
+            </PixelButton>
+          ))}
+        </div>
+        <div style={{ ...monoSm, color: '#999', marginTop: '10px', lineHeight: 1.6 }}>
+          {simAheadStatus?.frame
+            ? `${simAheadStatus.label}: S${simAheadStatus.frame.year} W${simAheadStatus.frame.week} // ${phaseLabel(simAheadStatus.frame.phase)} // ${simAheadStatus.frame.record ?? 'NO RECORD'}${stopReasonLabel ? ` // ${stopReasonLabel}` : ''}`
+            : 'READY // STANDBY'}
+        </div>
+      </PixelPanel>
+
+      {advancing || isSimAheadRunning ? (
         <div style={{
           display: 'flex',
           flexDirection: 'column',
@@ -288,7 +422,7 @@ export function WeekAdvance() {
             fontSize: '10px',
             letterSpacing: '2px',
           }}>
-            SIMULATING {phaseLabel(phase)}...
+            {isSimAheadRunning ? `SIM AHEAD ${simAheadStatus?.label.toUpperCase() ?? ''}...` : `SIMULATING ${phaseLabel(phase)}...`}
           </div>
           <div style={{
             width: '100%',
@@ -312,13 +446,15 @@ export function WeekAdvance() {
             `}</style>
           </div>
           <div style={{ ...monoSm, color: '#666' }}>
-            Processing league-wide results...
+            {isSimAheadRunning && simAheadStatus?.frame
+              ? `Processed ${simAheadStatus.frame.weeksSimmed} week(s).`
+              : 'Processing league-wide results...'}
           </div>
         </div>
       ) : (
         <PixelButton
           onClick={() => void handleAdvance()}
-          disabled={advancing}
+          disabled={isBusy}
           accent={needsGamePlan ? 'gold' : allClear ? 'green' : 'gold'}
           style={{ width: '100%', justifyContent: 'center', minHeight: '42px' }}
         >

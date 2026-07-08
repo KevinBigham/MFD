@@ -45,6 +45,9 @@ import type {
   MultiYearProjection,
   PressConferenceQueueEntry,
   PressConferenceResponseTier,
+  SimAheadFrame,
+  SimAheadResult,
+  SimAheadTarget,
   } from '@mfd/engine';
 import type { ShotDeclaration, AlumniMentor, DynastyEra } from '@mfd/engine';
 import {
@@ -168,6 +171,8 @@ import {
   upsertOpponentReport as upsertOpponentReportEngine,
   upgradeFacility as upgradeFacilityEngine,
   getDefaultHalftimeDecisionSetting,
+  logicalEventTimestamp,
+  withEventDate,
 } from '@mfd/engine';
 import type { SetupDecisions } from '@mfd/engine';
 import { autosaveDynasty, loadLatestAutosaveGame } from './persistence';
@@ -200,7 +205,7 @@ import {
   selectRecordChases,
   type GameStoreState,
 } from './selectors';
-import { runAdvanceWeek, runPreviewHalftimeDecision } from './sim';
+import { runAdvanceWeek, runPreviewHalftimeDecision, runSimAhead } from './sim';
 import { useUiStore } from './ui-store';
 import { createSeedGameState, getTeamOptions } from './seed';
 export * from './selectors';
@@ -275,6 +280,7 @@ interface GameActions {
 
   // Week advance
   advanceWeek: () => Promise<WeeklySummary | null>;
+  simAhead: (target: SimAheadTarget, onProgress?: (frame: SimAheadFrame) => void) => Promise<SimAheadResult | null>;
   resolveHalftimeDecision: (choice: 'stick' | 'switch' | 'gamble') => Promise<WeeklySummary | null>;
   watchBroadcast: (gameId: string) => void;
   advanceDeadlineClock: (minutes: number) => Promise<void>;
@@ -691,6 +697,80 @@ export const useGameStore = create<GameStore>()(
         window.dispatchEvent?.(new PopStateEvent('popstate'));
       }
     };
+    const finalizeAdvancedGame = async (
+      previousGame: GameState,
+      nextGame: GameState,
+      options: { clearPendingHalftimeDecision?: boolean } = {},
+    ): Promise<WeeklySummary | null> => {
+      ensureGovernanceState(nextGame);
+
+      if (options.clearPendingHalftimeDecision) {
+        ensurePostGameUi(nextGame).pendingHalftimeDecision = null;
+      }
+
+      const deadlineInterrupted = previousGame.phase === 'regular_season'
+        && previousGame.week === 9
+        && nextGame.week === previousGame.week
+        && Boolean(nextGame.tradeDeadlineState?.isDeadlineWeek);
+      const cbaInterrupted = (nextGame.phase === 'offseason' || nextGame.phase === 'preseason')
+        && isCBAInterruptStatus(nextGame.cbaState.status);
+
+      if (deadlineInterrupted) {
+        await commitGame(nextGame);
+        navigateTo('/trade-deadline');
+        return null;
+      }
+
+      if (nextGame.expansionDraftState) {
+        await commitGame(nextGame);
+        navigateTo('/expansion-draft');
+        return null;
+      }
+
+      if (cbaInterrupted) {
+        await commitGame(nextGame);
+        navigateTo('/cba');
+        return null;
+      }
+
+      const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+      if (userTeam) {
+        updateSystemFit(userTeam);
+      }
+
+      const postGameUi = ensurePostGameUi(nextGame);
+      const pressConferenceQueueEntry = buildPressConferenceQueueEntry(nextGame);
+      if (pressConferenceQueueEntry && !postGameUi.pressConferenceQueue.some((entry) => entry.conferenceId === pressConferenceQueueEntry.conferenceId)) {
+        postGameUi.pressConferenceQueue = [
+          pressConferenceQueueEntry,
+          ...postGameUi.pressConferenceQueue,
+        ].slice(0, 4);
+      }
+      postGameUi.audioCueQueue = [
+        ...postGameUi.audioCueQueue,
+        ...buildPostAdvanceAudioQueue(nextGame, previousGame.week),
+      ].slice(-20);
+      nextGame.breakingNewsQueue = buildBreakingNewsQueue(nextGame).slice(0, 5);
+      const pendingPlayoffLoreReveal = maybeStagePlayoffLoreCard(nextGame, previousGame, previousGame.week);
+
+      if (nextGame.year > previousGame.year) {
+        set((s) => {
+          s.recapPromptSeenThisSession = false;
+        });
+        syncCareerMeta(nextGame);
+      }
+
+      if (pendingPlayoffLoreReveal) {
+        set((s) => {
+          s.pendingPlayoffLoreReveal = pendingPlayoffLoreReveal;
+        });
+      }
+
+      completeTutorialActionEngine(nextGame, 'week:advance');
+      await commitGame(nextGame);
+
+      return nextGame.weekSummaries.at(-1) ?? null;
+    };
     const adjustFranchiseCap = (team: Team, amount: number) => {
       team.capSpace = Math.round((team.capSpace + amount) * 10) / 10;
       team.capUsed = Math.round(Math.max(0, team.capUsed - amount) * 10) / 10;
@@ -709,12 +789,12 @@ export const useGameStore = create<GameStore>()(
     const deadlineResolvedEvent = (game: GameState): GameEvent => ({
       id: `trade-deadline-resolved-${game.year}-${game.week}`,
       type: 'trade_deadline_resolved',
-      timestamp: Date.now(),
+      timestamp: logicalEventTimestamp(game.year, game.week, game.eventLog.length),
       description: `Trade deadline resolved in week ${game.week}.`,
-      data: {
+      data: withEventDate({
         year: game.year,
         week: game.week,
-      },
+      }, game.year, game.week),
     });
     const userTeamIndexFor = (game: GameState): number => {
       const userTeam = Object.values(game.teams).find((team) => team.isUser) ?? null;
@@ -1243,74 +1323,7 @@ export const useGameStore = create<GameStore>()(
 
         const result = await runAdvanceWeek(current);
         const nextGame = result.nextState;
-        ensureGovernanceState(nextGame);
-        const deadlineInterrupted = current.phase === 'regular_season'
-          && current.week === 9
-          && nextGame.week === current.week
-          && Boolean(nextGame.tradeDeadlineState?.isDeadlineWeek);
-        const cbaInterrupted = (nextGame.phase === 'offseason' || nextGame.phase === 'preseason')
-          && isCBAInterruptStatus(nextGame.cbaState.status);
-
-        if (deadlineInterrupted) {
-          await commitGame(nextGame);
-          navigateTo('/trade-deadline');
-          return null;
-        }
-
-        if (nextGame.expansionDraftState) {
-          await commitGame(nextGame);
-          navigateTo('/expansion-draft');
-          return null;
-        }
-
-        if (cbaInterrupted) {
-          await commitGame(nextGame);
-          navigateTo('/cba');
-          return null;
-        }
-
-        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
-
-        if (userTeam) {
-          updateSystemFit(userTeam);
-        }
-
-        nextGame.postGameUi = nextGame.postGameUi ?? {
-          pressConferenceQueue: [],
-          audioCueQueue: [],
-          pendingHalftimeDecision: null,
-        };
-        const pressConferenceQueueEntry = buildPressConferenceQueueEntry(nextGame);
-        if (pressConferenceQueueEntry && !nextGame.postGameUi.pressConferenceQueue.some((entry) => entry.conferenceId === pressConferenceQueueEntry.conferenceId)) {
-          nextGame.postGameUi.pressConferenceQueue = [
-            pressConferenceQueueEntry,
-            ...nextGame.postGameUi.pressConferenceQueue,
-          ].slice(0, 4);
-        }
-        nextGame.postGameUi.audioCueQueue = [
-          ...nextGame.postGameUi.audioCueQueue,
-          ...buildPostAdvanceAudioQueue(nextGame, current.week),
-        ].slice(-20);
-        nextGame.breakingNewsQueue = buildBreakingNewsQueue(nextGame).slice(0, 5);
-        const pendingPlayoffLoreReveal = maybeStagePlayoffLoreCard(nextGame, current, current.week);
-
-        if (nextGame.year > current.year) {
-          set((s) => {
-            s.recapPromptSeenThisSession = false;
-          });
-          syncCareerMeta(nextGame);
-        }
-
-        if (pendingPlayoffLoreReveal) {
-          set((s) => {
-            s.pendingPlayoffLoreReveal = pendingPlayoffLoreReveal;
-          });
-        }
-
-        completeTutorialActionEngine(nextGame, 'week:advance');
-        await commitGame(nextGame);
-
-        return nextGame.weekSummaries.at(-1) ?? null;
+        return finalizeAdvancedGame(current, nextGame);
       },
 
       resolveHalftimeDecision: async (choice) => {
@@ -1325,76 +1338,19 @@ export const useGameStore = create<GameStore>()(
           },
         });
         const nextGame = result.nextState;
-        ensureGovernanceState(nextGame);
+        return finalizeAdvancedGame(current, nextGame, { clearPendingHalftimeDecision: true });
+      },
 
-        nextGame.postGameUi = nextGame.postGameUi ?? {
-          pressConferenceQueue: [],
-          audioCueQueue: [],
-          pendingHalftimeDecision: null,
-        };
-        nextGame.postGameUi.pendingHalftimeDecision = null;
+      simAhead: async (target, onProgress) => {
+        const current = get().game;
+        if (!current) return null;
+        clearUndo();
 
-        const deadlineInterrupted = current.phase === 'regular_season'
-          && current.week === 9
-          && nextGame.week === current.week
-          && Boolean(nextGame.tradeDeadlineState?.isDeadlineWeek);
-        const cbaInterrupted = (nextGame.phase === 'offseason' || nextGame.phase === 'preseason')
-          && isCBAInterruptStatus(nextGame.cbaState.status);
-
-        if (deadlineInterrupted) {
-          await commitGame(nextGame);
-          navigateTo('/trade-deadline');
-          return null;
+        const result = await runSimAhead(current, target, onProgress);
+        if (result.weeksSimmed > 0) {
+          await finalizeAdvancedGame(current, result.nextState);
         }
-
-        if (nextGame.expansionDraftState) {
-          await commitGame(nextGame);
-          navigateTo('/expansion-draft');
-          return null;
-        }
-
-        if (cbaInterrupted) {
-          await commitGame(nextGame);
-          navigateTo('/cba');
-          return null;
-        }
-
-        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
-        if (userTeam) {
-          updateSystemFit(userTeam);
-        }
-
-        const pressConferenceQueueEntry = buildPressConferenceQueueEntry(nextGame);
-        if (pressConferenceQueueEntry && !nextGame.postGameUi.pressConferenceQueue.some((entry) => entry.conferenceId === pressConferenceQueueEntry.conferenceId)) {
-          nextGame.postGameUi.pressConferenceQueue = [
-            pressConferenceQueueEntry,
-            ...nextGame.postGameUi.pressConferenceQueue,
-          ].slice(0, 4);
-        }
-        nextGame.postGameUi.audioCueQueue = [
-          ...nextGame.postGameUi.audioCueQueue,
-          ...buildPostAdvanceAudioQueue(nextGame, current.week),
-        ].slice(-20);
-        nextGame.breakingNewsQueue = buildBreakingNewsQueue(nextGame).slice(0, 5);
-        const pendingPlayoffLoreReveal = maybeStagePlayoffLoreCard(nextGame, current, current.week);
-
-        if (nextGame.year > current.year) {
-          set((s) => {
-            s.recapPromptSeenThisSession = false;
-          });
-          syncCareerMeta(nextGame);
-        }
-
-        if (pendingPlayoffLoreReveal) {
-          set((s) => {
-            s.pendingPlayoffLoreReveal = pendingPlayoffLoreReveal;
-          });
-        }
-
-        completeTutorialActionEngine(nextGame, 'week:advance');
-        await commitGame(nextGame);
-
-        return nextGame.weekSummaries.at(-1) ?? null;
+        return result;
       },
 
       watchBroadcast: (gameId) => {

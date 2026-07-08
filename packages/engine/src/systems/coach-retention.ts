@@ -10,6 +10,7 @@ import type {
 } from '../types';
 import { getClinicMods } from './coaching-clinic';
 import { getActiveBonus } from './coach-skill-tree';
+import { logicalEventTimestamp, withEventDate } from './event-log-retention';
 import { recordNewsItem } from './league-news';
 
 const ROLE_KEYS = {
@@ -26,9 +27,9 @@ function buildEvent(game: GameState, type: string, description: string, data: Re
   return {
     id: `${type}-${game.year}-${game.week}-${game.eventLog.length}`,
     type,
-    timestamp: game.year * 1000 + game.week * 10 + game.eventLog.length,
+    timestamp: logicalEventTimestamp(game.year, game.week, game.eventLog.length),
     description,
-    data,
+    data: withEventDate(data, game.year, game.week),
   };
 }
 

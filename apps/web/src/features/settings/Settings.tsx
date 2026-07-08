@@ -83,6 +83,8 @@ export function Settings() {
     () => (debugModeEnabled && game ? validateGameState(game) : null),
     [debugModeEnabled, game],
   );
+  const adaptiveRecentCount = difficultyState.recentUserResults?.length ?? 0;
+  const adaptiveAdjustmentCount = difficultyState.adjustmentHistory?.length ?? 0;
 
   return (
     <div style={screenStackStyle}>
@@ -209,6 +211,35 @@ export function Settings() {
                 ))}
               </div>
             </div>
+          </div>
+        </PixelPanel>
+
+        <PixelPanel title="Adaptive Difficulty Readout" accent={difficultyState.enabled ? 'cyan' : 'default'}>
+          <div style={autoGrid(160)}>
+            <PixelMetricCard
+              label="League Slider"
+              value={`${difficultyState.adaptiveSlider}/100`}
+              accent={difficultyState.enabled ? 'cyan' : 'default'}
+              detail={difficultyState.enabled ? 'Active adjustment rail' : 'Paused'}
+            />
+            <PixelMetricCard
+              label="User Streak"
+              value={difficultyState.currentStreak}
+              accent={difficultyState.currentStreak > 0 ? 'green' : difficultyState.currentStreak < 0 ? 'red' : 'gold'}
+              detail={difficultyState.currentStreak > 0 ? 'Wins in a row' : difficultyState.currentStreak < 0 ? 'Losses in a row' : 'Neutral'}
+            />
+            <PixelMetricCard
+              label="Recent Sample"
+              value={adaptiveRecentCount}
+              accent="gold"
+              detail="Stored user result window"
+            />
+            <PixelMetricCard
+              label="Adjustments"
+              value={adaptiveAdjustmentCount}
+              accent="green"
+              detail="Historical slider moves"
+            />
           </div>
         </PixelPanel>
 
