@@ -1,5 +1,32 @@
 # STATUS
 
+## Run Ledger - 2026-07-08 Council Shared Brief Proposal Packet
+
+Completed the `00_MFD_COUNCIL_SHARED_BRIEF.md` council deliverable as a docs/schema artifact. Added the missing structured proposal schema required by the brief, then produced a source-backed council proposal packet that scores current proposals, preserves the complete gameplay-slice fields, labels assumptions/falsification evidence, and triages older brief gaps against the current ledgers so already-shipped work is not reopened.
+
+### Files Changed
+
+- `schemas/MFD_COUNCIL_PROPOSAL_SCHEMA.json`
+- `artifacts/mfd-council-proposals-2026-07-08/MFD_COUNCIL_PROPOSALS.json`
+- `artifacts/mfd-council-proposals-2026-07-08/MFD_COUNCIL_PROPOSALS.md`
+- `STATUS.md`
+
+### Verification
+
+- Passed: JSON parse for the schema and proposal packet.
+- Passed: score-total consistency check across all proposal scoring fields.
+- Passed: `npx --yes ajv-cli@5 validate --spec=draft2020 --strict=false -s schemas/MFD_COUNCIL_PROPOSAL_SCHEMA.json -d artifacts/mfd-council-proposals-2026-07-08/MFD_COUNCIL_PROPOSALS.json`.
+- Passed: ASCII punctuation scan for the new schema/proposal files.
+
+### Checks Not Run
+
+- No engine/web/design tests, typecheck, build, browser smoke, playtest, or release gate were run because this was a docs/schema artifact only and did not touch runtime code, save schema, sim math, RNG, UI source, package scripts, or dependencies.
+- Repo-local git status/diff is not useful for this extracted checkout because `git rev-parse --show-toplevel` resolves to `/Users/tkevinbigham/Downloads`, and this `MFD-main` folder appears there as an untracked directory alongside unrelated Downloads files.
+
+### Rollback
+
+Remove the three council artifact files and this ledger entry. Runtime rollback is not required.
+
 ## Run Ledger - 2026-07-06 GOAT Director Patch 3.1 Team Window Read-Model
 
 Implemented Patch 3.1 — Team window read-model. `computeTeamWindow` is a web-only deterministic read-model that classifies CPU clubs as `ALL_IN`, `CONTEND`, `RETOOL`, or `REBUILD`, with `clear` or `mixed` confidence and 2-4 receipted drivers. The rubric reads only already-saved or render-derived inputs: roster/QB/core age and OVR, current cap space, draft-pick inventory, saved `team.gmStrategy`, saved `team.philosophy`, current record, team-needs cap flexibility, and saved `game.franchiseHistory`.
