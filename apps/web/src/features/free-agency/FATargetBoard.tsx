@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Users } from 'lucide-react';
 import { PixelBadge, PixelButton, PixelPanel, PixelProgressBar } from '@mfd/design-system/components';
+import type { GameState } from '@mfd/engine';
 import {
   selectFATargetBoard,
   selectPhase,
@@ -20,6 +21,7 @@ import {
 } from '../shared/pixelUi';
 import { ComparePlayersModal } from '../player/ComparePlayersModal';
 import { WatchListPinButton } from '../watch-list/WatchListPinButton';
+import { buildBidCounterfactual, type BidCounterfactual } from '../../lib/fa-counterfactuals';
 
 function demandAccent(demand: 'high' | 'medium' | 'low'): 'red' | 'gold' | 'green' {
   return demand === 'high' ? 'red' : demand === 'medium' ? 'gold' : 'green';
@@ -79,12 +81,76 @@ export function buildFATargetMarketReceipt(target: FATargetBoardTarget): FATarge
   };
 }
 
+function buildTargetCounterfactuals(game: GameState | null | undefined, userTeamId: string | null | undefined): Map<string, BidCounterfactual> {
+  const counterfactuals = new Map<string, BidCounterfactual>();
+  if (!game || !userTeamId) return counterfactuals;
+
+  Object.entries(game.offseasonState?.freeAgencyBids ?? {})
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([playerId, bids]) => {
+      const resolved = bids.filter((bid) => bid.status !== 'pending');
+      const userBid = resolved.find((bid) => bid.teamId === userTeamId && bid.status === 'lost');
+      if (!userBid) return;
+      const winner = resolved
+        .filter((bid) => bid.status === 'won')
+        .sort((a, b) => b.score - a.score || b.salary - a.salary || a.teamId.localeCompare(b.teamId))[0];
+      if (!winner) return;
+
+      const counterfactual = buildBidCounterfactual({
+        player: game.players[playerId],
+        bids: resolved,
+        winnerBid: winner,
+        userBid,
+        userTeamId,
+        winningTeam: game.teams[winner.teamId] ?? null,
+        currentYear: game.year,
+        teamNeeds: game.teamNeedsCache[winner.teamId] ?? null,
+        franchiseHistory: game.franchiseHistory ?? [],
+      });
+      if (counterfactual) counterfactuals.set(playerId, counterfactual);
+    });
+
+  return counterfactuals;
+}
+
+function FATargetCounterfactualReceipt({ counterfactual }: { counterfactual: BidCounterfactual }) {
+  return (
+    <div
+      data-fa-target-counterfactual="why-they-won"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        padding: '8px',
+        border: '1px solid rgba(231, 76, 60, 0.32)',
+        background: 'rgba(231, 76, 60, 0.06)',
+      }}
+    >
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+        <PixelBadge variant="red">Why they won</PixelBadge>
+        <PixelBadge variant="default">Saved bid receipt</PixelBadge>
+      </div>
+      <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.5 }}>{counterfactual.winnerLine}</div>
+      <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+        {counterfactual.whyDrivers.map((driver) => `${driver.label}: ${driver.detail}`).join(' ')}
+      </div>
+      {counterfactual.userComparisonLine ? (
+        <div style={{ ...monoSm, color: 'var(--mfd-red)', lineHeight: 1.5 }}>{counterfactual.userComparisonLine}</div>
+      ) : null}
+      <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)', lineHeight: 1.5 }}>
+        Sources: {counterfactual.sourceRefs.join(' | ')}
+      </div>
+    </div>
+  );
+}
+
 function sectionTargets(
   title: string,
   accent: 'gold' | 'cyan' | 'green',
   targets: ReturnType<typeof selectFATargetBoard>['targets'],
   watchlist: Set<string>,
   pendingId: string | null,
+  counterfactuals: Map<string, BidCounterfactual>,
   onToggle: (playerId: string) => Promise<void>,
   onCompare: (playerId: string) => void,
 ) {
@@ -95,6 +161,7 @@ function sectionTargets(
           <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>No targets available.</div>
         ) : targets.map((target) => {
           const receipt = buildFATargetMarketReceipt(target);
+          const counterfactual = counterfactuals.get(target.player.id) ?? null;
 
           return (
             <div key={`${title}-${target.player.id}`} style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '10px', border: '3px solid var(--mfd-border)', background: 'var(--mfd-bg-3)' }}>
@@ -127,6 +194,7 @@ function sectionTargets(
                 </div>
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{receipt.detail}</div>
               </div>
+              {counterfactual ? <FATargetCounterfactualReceipt counterfactual={counterfactual} /> : null}
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
                 <div style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>
                   {title === 'Best Fits'
@@ -181,6 +249,7 @@ function FATargetScenarioLockPanel({ scenarioName }: { scenarioName: string }) {
 
 export function FATargetBoard() {
   const phase = useGameStore(selectPhase);
+  const game = useGameStore((state) => state.game);
   const team = useGameStore(selectUserTeam);
   const scenarioState = useGameStore(selectScenarioState);
   const board = useGameStore(selectFATargetBoard);
@@ -196,6 +265,7 @@ export function FATargetBoard() {
   }, [board.targets.length, refreshFATargetBoard]);
 
   const watchlist = new Set(board.watchlist);
+  const counterfactuals = useMemo(() => buildTargetCounterfactuals(game, team?.id ?? null), [game, team?.id]);
 
   const handleToggle = async (playerId: string) => {
     setPendingId(playerId);
@@ -249,10 +319,10 @@ export function FATargetBoard() {
 
       {freeAgencyLockedByScenario ? <FATargetScenarioLockPanel scenarioName={activeScenarioName} /> : null}
 
-      {sectionTargets('Watchlist', 'gold', watchlistTargets, watchlist, pendingId, handleToggle, setComparePlayerId)}
-      {sectionTargets('Top Available', 'cyan', board.topAvailable, watchlist, pendingId, handleToggle, setComparePlayerId)}
-      {sectionTargets('Best Fits', 'green', board.bestFits, watchlist, pendingId, handleToggle, setComparePlayerId)}
-      {sectionTargets('Bargains', 'gold', board.bargains, watchlist, pendingId, handleToggle, setComparePlayerId)}
+      {sectionTargets('Watchlist', 'gold', watchlistTargets, watchlist, pendingId, counterfactuals, handleToggle, setComparePlayerId)}
+      {sectionTargets('Top Available', 'cyan', board.topAvailable, watchlist, pendingId, counterfactuals, handleToggle, setComparePlayerId)}
+      {sectionTargets('Best Fits', 'green', board.bestFits, watchlist, pendingId, counterfactuals, handleToggle, setComparePlayerId)}
+      {sectionTargets('Bargains', 'gold', board.bargains, watchlist, pendingId, counterfactuals, handleToggle, setComparePlayerId)}
       <ComparePlayersModal
         open={comparePlayerId !== null}
         leftPlayerId={comparePlayerId}

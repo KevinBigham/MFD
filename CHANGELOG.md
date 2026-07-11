@@ -2,6 +2,12 @@
 
 ## Post-Launch Polish (unversioned, on `main`)
 
+### FA counterfactual receipts - 2026-07-06
+
+- Added a web-only `buildBidCounterfactual` read-model that explains saved free-agent bid losses from persisted bid rows plus winning-team roster, cap, and posture context.
+- Free Agency Hub resolved-bid rows now expose an expandable `Why they won` receipt, and FA Target Board rows show a compact saved-bid receipt when the user lost that target.
+- The patch is read-only presentation: no CPU bidding behavior, market resolution, save schema, sim math, RNG, dependencies, or engine source changed.
+
 ### Team window read-model - 2026-07-06
 
 - Added a web-only `computeTeamWindow` read-model that explains CPU clubs as `ALL IN`, `CONTEND`, `RETOOL`, or `REBUILD` from saved roster, cap space, picks, strategy, and results.
