@@ -24,3 +24,10 @@ output/
 # Corrupt-backup files from iCloud-related editor failures
 *.unreadable-*
 *.corrupt-backup-*
+
+# 2026-07-10 repo cleanup — keep deleted junk from coming back
+.logs/screenshots/
+artifacts/
+.codex/
+*.rtf
+package-lock.json
