@@ -393,6 +393,31 @@ export function Settings() {
         />
       </div>
 
+      <div aria-label="Adaptive Difficulty Readout">
+        <PixelPanel title="Adaptive Difficulty Readout" accent={difficultyState.enabled ? 'cyan' : 'default'}>
+          <div style={autoGrid(180)}>
+            <PixelMetricCard
+              label="Status"
+              value={difficultyState.enabled ? 'ON' : 'OFF'}
+              accent={difficultyState.enabled ? 'cyan' : 'default'}
+              detail={difficultyState.enabled ? 'Saved adaptive tuning is active for this dynasty.' : 'Difficulty is fixed at the selected tier.'}
+            />
+            <PixelMetricCard
+              label="League Slider"
+              value={`${difficultyState.adaptiveSlider}/100`}
+              accent="gold"
+              detail="Stored on the save and adjusted only through gameplay outcomes."
+            />
+            <PixelMetricCard
+              label="Current Tier"
+              value={DIFF_SETTINGS[difficulty].name}
+              accent="green"
+              detail="Base difficulty still anchors trade, injury, owner, and morale modifiers."
+            />
+          </div>
+        </PixelPanel>
+      </div>
+
       {teamOpsReceipt ? (
         <PixelPanel title="Team Ops Impact" accent="green">
           <div style={autoGrid(180)}>

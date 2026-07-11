@@ -324,6 +324,9 @@ describe('Settings', () => {
     expect(markup).toContain('DETAILED');
     expect(markup).toContain('Halftime Hell');
     expect(markup).toContain('Adaptive Difficulty');
+    expect(markup).toContain('Adaptive Difficulty Readout');
+    expect(markup).toContain('League Slider');
+    expect(markup).toContain('58/100');
     expect(markup).toContain('Winning streaks get tougher');
     expect(markup).toContain('data-spotlight-target="chip.route.settings.beat-1"');
     expect(markup).toContain('Broadcast Mix');

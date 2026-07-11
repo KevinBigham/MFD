@@ -90,4 +90,4 @@ export function getDefaultHalftimeDecisionSetting(difficulty: DifficultyLevel): 
   return getDefaultDifficultyFlags(difficulty).skipHalftimeDecision ? 'off' : 'on';
 }
 
-export const SAVE_VERSION = 36;
+export const SAVE_VERSION = 38;

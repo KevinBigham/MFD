@@ -124,6 +124,21 @@ describe('weekly guidance', () => {
     expect(entry.contextDetails?.join(' ')).not.toMatch(/waiting decision screen|unanswered items|unanswered choices|change what Advance Week locks in/i);
   });
 
+  it('surfaces a weekly memory callback in dialogue text and details', () => {
+    const guidance = buildWeeklyGuidance({
+      outcome: 'midseason',
+      currentWeek: 7,
+      memoryCallbacks: ['2 seasons ago: The Fog Bowl. Your defense survived the last drive.'],
+    });
+    const entry = weeklyGuidanceToDialogueEntry(guidance);
+
+    expect(guidance.memoryCallbacks).toEqual([
+      '2 seasons ago: The Fog Bowl. Your defense survived the last drive.',
+    ]);
+    expect(entry.text).toContain('2 seasons ago: The Fog Bowl');
+    expect(entry.contextDetails).toContain('Memory: 2 seasons ago: The Fog Bowl. Your defense survived the last drive.');
+  });
+
   it('surfaces postgame copy for completed-game events', () => {
     const guidance = buildWeeklyGuidance({
       outcome: 'cleanWin',

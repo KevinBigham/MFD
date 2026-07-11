@@ -93,6 +93,8 @@ import { getActiveRule, initLeagueRules } from './league-rules';
 import { getRegularSeasonWeekCount } from './season-schedule';
 import { generateTradeOffers } from './trade-market';
 import { findTradeTargets } from './trade-finder';
+import { repairAndTrimEventLog } from './event-log-retention';
+import { trimLongRunningSaveCollections } from './long-running-save-collections';
 import { buildWeeklySummary } from './weekly-summary';
 import { autoAssignSpecialTeams } from './special-teams';
 import {
@@ -1295,6 +1297,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
         rankings: digest.powerRankings,
       },
     ];
+    trimLongRunningSaveCollections(nextState);
     nextState.storylineThreads = advanceStorylineThreads(nextState, playedWeek);
     nextState.storylineThreads = closeCompletedThreads(nextState);
     nextState.storylineThreads = seedThreadsForWeek(nextState, playedWeek);
@@ -1456,6 +1459,8 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
   } else {
     nextState.tradeSuggestions = [];
   }
+
+  repairAndTrimEventLog(nextState);
 
   return {
     nextState,

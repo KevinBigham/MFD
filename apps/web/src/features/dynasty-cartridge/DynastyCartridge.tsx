@@ -6,7 +6,7 @@ import {
   PixelTable,
 } from '@mfd/design-system/components';
 import type { ColumnDef } from '@tanstack/react-table';
-import { buildCartridge, generateFileName, type GameState } from '@mfd/engine';
+import { buildCartridge, generateFileName, SAVE_VERSION, validateGameState, type GameState } from '@mfd/engine';
 import {
   deleteSaveSlot,
   listSaveSlots,
@@ -45,6 +45,7 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { formatDynastyChallengeShare } from './challenge-share';
 
 const slotColumns: ColumnDef<SaveSlot & { label: string }, unknown>[] = [
   {
@@ -86,6 +87,32 @@ export function combinedBackupCopyFallbackMessage(): string {
 
 export function combinedImportFailureMessage(): string {
   return 'That file does not look like a valid combined dynasty backup, or it could not be written to local saves. Your current dynasty was not changed. Try exporting again or choose a different file.';
+}
+
+function formatBytes(bytes: number | null): string {
+  if (bytes === null) return 'N/A';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function formatAge(timestamp: number | null): string {
+  if (!timestamp) return 'N/A';
+  const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60_000));
+  if (minutes < 60) return `${minutes}M AGO`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 48) return `${hours}H AGO`;
+  return `${Math.floor(hours / 24)}D AGO`;
+}
+
+function validationPassed(result: unknown): boolean {
+  const record = result && typeof result === 'object' ? result as Record<string, unknown> : {};
+  if (typeof record.ok === 'boolean') return record.ok;
+  if (typeof record.valid === 'boolean') return record.valid;
+  if (Array.isArray(record.errors)) return record.errors.length === 0;
+  if (Array.isArray(record.issues)) return record.issues.length === 0;
+  if (Array.isArray(record.violations)) return record.violations.length === 0;
+  return true;
 }
 
 export function DynastyStatusPanel({ status }: { status: string }) {
@@ -263,6 +290,34 @@ export function DynastyCartridge() {
     });
     setTransientStatus(`${fileName} downloaded`);
   }, [fileName, game, meta, recordPortableExport, setTransientStatus]);
+
+  const handleCopyChallenge = useCallback(() => {
+    if (!game) return;
+    const result = buildCartridge(game, meta);
+    if (!result.ok) return;
+
+    const challenge = formatDynastyChallengeShare({
+      teamName,
+      season: year,
+      week,
+      cartridge: result.json,
+      sizeBytes: result.sizeBytes,
+    });
+
+    if (!navigator.clipboard?.writeText) {
+      setTransientStatus('Clipboard blocked. Download Combined Backup instead.');
+      return;
+    }
+
+    navigator.clipboard.writeText(challenge).then(() => {
+      void recordPortableExport().catch((err) => {
+        console.error('Failed to persist challenge seed export receipt:', err);
+      });
+      setTransientStatus('Challenge seed copied');
+    }).catch(() => {
+      setTransientStatus('Clipboard blocked. Download Combined Backup instead.');
+    });
+  }, [game, meta, recordPortableExport, setTransientStatus, teamName, week, year]);
 
   const buildCombinedBackupJson = useCallback(() => {
     if (!game) return null;
@@ -491,6 +546,25 @@ export function DynastyCartridge() {
   })), [slots]);
 
   const selectedSlot = slotSummary.find((slot) => slot.id === selectedSlotId) ?? null;
+  const latestSlot = useMemo(() =>
+    [...slotSummary].sort((a, b) => b.timestamp - a.timestamp)[0] ?? null,
+  [slotSummary]);
+  const latestAutosave = useMemo(() =>
+    [...slotSummary].filter((slot) => slot.isAutosave).sort((a, b) => b.timestamp - a.timestamp)[0] ?? null,
+  [slotSummary]);
+  const latestManualSlot = useMemo(() =>
+    [...slotSummary].filter((slot) => !slot.isAutosave).sort((a, b) => b.timestamp - a.timestamp)[0] ?? null,
+  [slotSummary]);
+  const saveHealth = useMemo(() => {
+    if (!game) return null;
+    const cartridge = buildCartridge(game, meta);
+    const validation = validateGameState(game);
+    return {
+      sizeBytes: cartridge.ok ? cartridge.sizeBytes : null,
+      integrityOk: validationPassed(validation),
+      portableExportYear: game.lastPortableExportYear ?? null,
+    };
+  }, [game, meta]);
 
   return (
     <div style={screenStackStyle}>
@@ -511,10 +585,54 @@ export function DynastyCartridge() {
         <PixelMetricCard label="Autosaves" value={slotSummary.filter((slot) => slot.isAutosave).length} accent="green" detail="Rotating save protection" />
       </div>
 
+      {saveHealth ? (
+        <PixelPanel title="Save Health Meter" accent={saveHealth.integrityOk ? 'green' : 'red'}>
+          <div style={autoGrid(180)}>
+            <PixelMetricCard
+              label="Save Version"
+              value={`v${game?.version ?? '?'}`}
+              accent={game && game.version === SAVE_VERSION ? 'green' : 'gold'}
+              detail={`Engine v${SAVE_VERSION}`}
+            />
+            <PixelMetricCard
+              label="Cartridge Size"
+              value={formatBytes(saveHealth.sizeBytes)}
+              accent={saveHealth.sizeBytes && saveHealth.sizeBytes > 1_000_000 ? 'gold' : 'cyan'}
+              detail="Current portable export"
+            />
+            <PixelMetricCard
+              label="Integrity"
+              value={saveHealth.integrityOk ? 'PASS' : 'REVIEW'}
+              accent={saveHealth.integrityOk ? 'green' : 'red'}
+              detail="Schema invariant check"
+            />
+            <PixelMetricCard
+              label="Latest Slot"
+              value={formatAge(latestSlot?.timestamp ?? null)}
+              accent={latestSlot ? 'green' : 'red'}
+              detail={latestSlot?.label ?? 'No local save slot'}
+            />
+            <PixelMetricCard
+              label="Latest Autosave"
+              value={formatAge(latestAutosave?.timestamp ?? null)}
+              accent={latestAutosave ? 'cyan' : 'gold'}
+              detail={latestAutosave?.label ?? 'No autosave yet'}
+            />
+            <PixelMetricCard
+              label="Manual Export"
+              value={saveHealth.portableExportYear ? `S${saveHealth.portableExportYear}` : 'DUE'}
+              accent={saveHealth.portableExportYear ? 'green' : 'gold'}
+              detail={latestManualSlot ? `Manual slot ${formatAge(latestManualSlot.timestamp)}` : 'Backup before migrations'}
+            />
+          </div>
+        </PixelPanel>
+      ) : null}
+
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         <PixelButton type="button" accent="gold" onClick={handleDownloadCombinedBackup}>Download Combined Backup</PixelButton>
         <PixelButton type="button" accent="cyan" onClick={() => combinedImportFileRef.current?.click()}>Upload Combined Backup</PixelButton>
         <PixelButton type="button" accent="gold" onClick={() => void handleManualSave()}>Create Save Slot</PixelButton>
+        <PixelButton type="button" accent="cyan" onClick={handleCopyChallenge}>Copy Challenge Seed</PixelButton>
         <PixelButton type="button" accent="default" onClick={handleExport}>Advanced: Copy .mfd</PixelButton>
         <PixelButton type="button" accent="default" onClick={handleDownload}>Advanced: Download .mfd</PixelButton>
         <PixelButton type="button" accent="default" onClick={() => importFileRef.current?.click()}>Advanced: Upload .mfd</PixelButton>

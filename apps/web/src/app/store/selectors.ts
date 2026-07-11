@@ -107,6 +107,10 @@ import type {
   WaiverWireEntry,
   WeatherCondition,
   WarRoomState,
+  Headline,
+  HotTake,
+  MediaPowerRanking,
+  WeeklyDigest,
   WeeklyPrepPlan,
   WeeklySummary,
   Handshake,
@@ -282,6 +286,10 @@ const EMPTY_CEREMONIES: Ceremony[] = [];
 const EMPTY_DYNASTY_EVENTS: DynastyEvent[] = [];
 const EMPTY_HALL_OF_FAME: HallOfFameEntry[] = [];
 const EMPTY_POWER_RANKINGS: PowerRanking[] = [];
+const EMPTY_MEDIA_POWER_RANKINGS: MediaPowerRanking[] = [];
+const EMPTY_WEEKLY_DIGESTS: WeeklyDigest[] = [];
+const EMPTY_HEADLINES: Headline[] = [];
+const EMPTY_HOT_TAKES: HotTake[] = [];
 const EMPTY_STORYLINE_THREADS: StorylineThread[] = [];
 const EMPTY_MENTORING: MentoringPair[] = [];
 const EMPTY_OFF_FIELD_EVENTS: OffFieldEvent[] = [];
@@ -1027,6 +1035,30 @@ export const selectAwardsHistory: (state: GameStoreState) => AwardsHistoryEntry[
 export const selectHallOfFame = (state: GameStoreState): HallOfFameEntry[] => state.game?.hallOfFame ?? EMPTY_HALL_OF_FAME;
 export const selectRecords = (state: GameStoreState): RecordBook => state.game?.records ?? EMPTY_RECORD_BOOK;
 export const selectPowerRankings = (state: GameStoreState): PowerRanking[] => state.game?.powerRankings ?? EMPTY_POWER_RANKINGS;
+export const selectWeeklyDigests = (state: GameStoreState): WeeklyDigest[] => state.game?.mediaCycle?.weeklyDigests ?? EMPTY_WEEKLY_DIGESTS;
+export const selectLatestWeeklyDigest = (state: GameStoreState): WeeklyDigest | null => selectWeeklyDigests(state).at(-1) ?? null;
+export const selectLatestDigestPowerRankings = (state: GameStoreState): MediaPowerRanking[] =>
+  selectLatestWeeklyDigest(state)?.powerRankings ?? EMPTY_MEDIA_POWER_RANKINGS;
+export interface LatestDigestUserTeamSegment {
+  teamId: string;
+  ranking: MediaPowerRanking | null;
+  headlines: Headline[];
+  hotTakes: HotTake[];
+}
+export const selectLatestDigestUserTeamSegment: (state: GameStoreState) => LatestDigestUserTeamSegment | null = memoByGame((state) => {
+  const digest = selectLatestWeeklyDigest(state);
+  const teamId = selectUserTeamId(state);
+  if (!digest || !teamId) return null;
+  const headlines = digest.headlines.filter((headline) => headline.teamIds.includes(teamId));
+  const headlineIds = new Set(headlines.map((headline) => headline.id));
+  const hotTakes = digest.hotTakes.filter((take) => headlineIds.has(take.headlineId));
+  return {
+    teamId,
+    ranking: digest.powerRankings.find((entry) => entry.teamId === teamId) ?? null,
+    headlines: headlines.length > 0 ? headlines : EMPTY_HEADLINES,
+    hotTakes: hotTakes.length > 0 ? hotTakes : EMPTY_HOT_TAKES,
+  };
+});
 export const selectStorylineThreads = (state: GameStoreState): StorylineThread[] => state.game?.storylineThreads ?? EMPTY_STORYLINE_THREADS;
 export const selectOffFieldEvents = (state: GameStoreState): OffFieldEvent[] => state.game?.offFieldEvents ?? EMPTY_OFF_FIELD_EVENTS;
 export const selectRecentPressConferences = (state: GameStoreState): PressConference[] => state.game?.recentPressConferences ?? EMPTY_PRESS_CONFERENCES;

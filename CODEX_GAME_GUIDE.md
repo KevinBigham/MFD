@@ -17,8 +17,8 @@ For improvement planning, use `CODEX_IMPROVEMENT_PLAN.md` alongside this guide. 
 - This folder has `package.json`, `pnpm-workspace.yaml`, `apps`, `packages`, `scripts`, `docs`, `.github`, `.codex`, `DESIGN.md`, and `STATUS.md`.
 - This folder did not show a `.git` directory during inspection, so treat it as an extracted working copy unless Git is later initialized.
 - `package.json` pins `packageManager: pnpm@9.15.9`.
-- Current source-truth save schema is `SAVE_VERSION = 36` in `packages/engine/src/config/difficulty.ts`.
-- The save migration chain is registered in `packages/engine/src/save/migrations.ts`; version 35 migrates to 36 by adding AGM profile/log defaults and `ownerMandates`.
+- Current source-truth save schema is `SAVE_VERSION = 38` in `packages/engine/src/config/difficulty.ts`.
+- The save migration chain is registered in `packages/engine/src/save/migrations.ts`; version 35 migrates to 36 by adding AGM profile/log defaults and `ownerMandates`, version 36 migrates to 37 by trimming long-running media-cycle collections, and version 37 migrates to 38 by repairing/trimming event-log metadata.
 
 ## Repo Topology
 
@@ -198,7 +198,7 @@ Boot sequence:
 - `apps/web/src/app/hooks/useBootSequence.ts` owns the boot-line data, timed reveal, skip behavior, and sessionStorage key `mfd-boot-seen`.
 - `apps/web/src/app/BootScreen.tsx` renders the visible boot terminal. It skips on click, Enter, Space, or Escape.
 - `App.tsx` renders `BootScreen` before checking whether a game is initialized. Once `mfd-boot-seen` is set for the browser session, boot is bypassed until the session resets.
-- Boot copy currently says `Save pipeline: v36 migration chain // Dexie slots [OK]`, which matches `SAVE_VERSION = 36`.
+- Boot copy currently says `Save pipeline: v38 migration chain // Dexie slots [OK]`, which matches `SAVE_VERSION = 38`.
 
 Launch/start screen:
 
@@ -660,7 +660,7 @@ Focused tests for store/selector work:
 Main dynasty save path:
 
 - Source game state type: `packages/engine/src/types/franchise.ts`.
-- Runtime save version: `SAVE_VERSION = 36` in `packages/engine/src/config/difficulty.ts`.
+- Runtime save version: `SAVE_VERSION = 38` in `packages/engine/src/config/difficulty.ts`.
 - Zod aggregate schema: `SaveStateSchema` in `packages/engine/src/save/schema.ts`.
 - Migration registry: `packages/engine/src/save/migrations.ts`; current 35 -> 36 migration adds front-office AGM defaults and `ownerMandates`.
 - Web import/load path: `apps/web/src/app/store/persistence.ts` parses cartridge text, calls `migrate(raw, SAVE_VERSION)`, validates with `SaveStateSchema.safeParse`, then calls `ensureAgentsInitialized`.
@@ -685,8 +685,8 @@ Save schema, migration, and persistence boundary map:
 - Zod `.default(...)` entries in `schema.ts` are parse-time compatibility for missing fields. They do not replace deterministic product defaults in new-save factories or entry-specific seed/demo/playtest builders.
 - Import/load order is raw payload -> `migrate(raw, SAVE_VERSION)` -> `SaveStateSchema.safeParse` -> `ensureAgentsInitialized`. Do not validate raw historical saves before migration, and do not let web import paths bypass this engine save boundary.
 - `migrate` runs registered N -> N+1 transforms and throws on a missing version. Keep `getRegisteredVersions()` continuous from 1 through `SAVE_VERSION - 1`; registration order in the file is less important than the sorted registry contents.
-- Checked-in golden JSON fixtures currently cover `v1`, `v10`, `v20`, and `v30` through `v34`. `golden-saves.test.ts` also owns generator-backed policy coverage for v35 from the v34 fixture and current-v36 from `makeLeagueState()`. Keep both signals: historical JSON fixtures prove old-era compatibility, generated fixtures prevent current-version drift without giant JSON churn.
-- `save-version-drift.test.ts` is the static guard for this boundary. It checks `SAVE_VERSION` against the continuous migration registry, checked-in fixture filenames and embedded versions, generated v35/current-v36 fixture policy, and the Codex guide/plan/marathon prompt save-version statements.
+- Checked-in golden JSON fixtures currently cover `v1`, `v10`, `v20`, and `v30` through `v34`. `golden-saves.test.ts` also owns generator-backed policy coverage from the v34 fixture through generated v37 and current-v38 from `makeLeagueState()`. Keep both signals: historical JSON fixtures prove old-era compatibility, generated fixtures prevent current-version drift without giant JSON churn.
+- `save-version-drift.test.ts` is the static guard for this boundary. It checks `SAVE_VERSION` against the continuous migration registry, checked-in fixture filenames and embedded versions, generated v37/current-v38 fixture policy, and the Codex guide/plan/marathon prompt save-version statements.
 - If adding persistent arrays, histories, feeds, logs, or receipts, decide the cap/compaction policy before shipping. Schema shape preserves loadability, but it does not protect long-save performance or UI volume by itself.
 - Web persistence stores cartridge strings in Dexie slots and wraps saves with `buildCartridge`. `Date.now()` slot timestamps and `new Date().toISOString()` cartridge metadata are export/storage metadata only; never feed them into deterministic simulation state.
 - Portable `.mfd` cartridges are currently plain JSON envelopes. Preserve existing `mfd-cartridge.v1` parse compatibility before adding compression, encryption, or a new archive version. The combined backup package is a separate web-layer `mfd.dynastyCombinedBackup.v1` envelope that wraps an existing `.mfd` cartridge plus the complete sidecar archive; it is not a replacement cartridge format.
@@ -1108,7 +1108,7 @@ Gate scripts:
 - `SMOKE_STAFF_FACILITY_MEDICAL=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` is the focused G3 `/settings` facility and medical-staff persistence smoke. It stages an offseason Settings fixture from latest autosave, upgrades Medical Center through the live Facilities row, verifies budget, level, level-2 effect, and hard reload, hires a staged medical staff candidate, verifies candidate removal and prior-staff pool return, hard-reloads the final state, and fails on browser errors.
 - `SMOKE_WEEKLY_PREP=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` is the focused G3 `/game-plan` plus `/film-room` persistence smoke. It stages an existing Week 14 user matchup from latest autosave, clicks live weekly-prep select controls, saves and sims through `Save Weekly Prep & Sim`, verifies the resulting `weeklyPrepHistory`, `filmRoomHistory`, opponent report, completed game result, cleared `weeklyPrepPlans`, cleared `gamePlan`, Film Room hard reload, and fails on browser errors.
 - `SMOKE_FREE_AGENCY_SIGNINGS=1 VITE_CHIP_ENABLED=true node scripts/smoke-test-post-setup-route.mjs` is the focused G3 `/free-agency` persistence smoke. It stages re-sign, open-market, and street free-agent fixtures from latest autosave, clicks the live route buttons, verifies accepted re-sign intent, pending and won FA bid state, street signing roster/contract state, hard-reloads latest autosave after each stage, and fails on browser errors.
-- `scripts/cleanup-gate.sh` is a local cleanup-wave guard, not CI. It runs recursive typecheck/test/build, prints `any` and `try` drift counts, enforces `SAVE_VERSION = 36`, and reports madge circular dependency count as informational.
+- `scripts/cleanup-gate.sh` is a local cleanup-wave guard, not CI. It runs recursive typecheck/test/build, prints `any` and `try` drift counts, enforces `SAVE_VERSION = 38`, and reports madge circular dependency count as informational.
 - `scripts/age-curve-report.sh` is deterministic progression/balance telemetry, not CI. It runs `scripts/age-curve-report.ts` through installed `vite-node`, calls `runAgeCurveHarness`, and writes JSON/CSV for design review without touching saved game state. Source currently resolves its output directory two levels above `scripts`, so in this working tree the files land under `/Users/tkevinbigham/MFD/.codex/MFD/`, not under `MFD-main/.codex/MFD/`.
 
 Playtest and regression tooling:
@@ -1146,7 +1146,7 @@ Testing, CI, and release boundary map:
 - Playtest and shadow CLIs require installed `vite-node`; their shell wrappers fail with an install hint if `node_modules` is absent. Do not treat that as a simulation regression.
 - `scripts/shadow-regression.ts --update` rewrites `_canon/seeds/mfd` reports and metadata with `SAVE_VERSION`, generation command, timestamp, and git commit when available. Use update mode only after classifying the diff as intended.
 - `scripts/grade-season.ts` can call external judge APIs when real keys are present, while `scripts/__tests__/grade-season.test.ts` uses mocked providers. The CLI preflight makes missing keys visible before judge calls, but strict mode still fails without all required keys. Treat API-backed grading as release QA, not a required local unit gate.
-- `scripts/cleanup-gate.sh` is a local cleanup-wave guard, not CI. It has a machine-specific PATH prefix and hardcoded current `SAVE_VERSION = 36`; revise deliberately if moving it into portable automation.
+- `scripts/cleanup-gate.sh` is a local cleanup-wave guard, not CI. It has a machine-specific PATH prefix and hardcoded current `SAVE_VERSION = 38`; revise deliberately if moving it into portable automation.
 - Static hygiene tools have different authority levels. Recursive lint is a package script and React hook violations are real errors; madge cycle count and knip unused/dependency output are cleanup signals unless a task explicitly promotes them into gates. Document any promotion from diagnostic to blocking before changing CI.
 - The age-curve report is deterministic balance telemetry for progression review. It is useful when changing aging/progression formulas, but it is not a substitute for progression tests, playtest/shadow runs, or save compatibility checks.
 
@@ -1253,7 +1253,7 @@ Focused tests and artifacts for playtesting/tooling work:
 - `App.tsx` registers routes in one `rootRoute.addChildren([...])` call after route constants are declared. Treat this as source-order sensitive when editing route registration; verify direct navigation for any route you touch.
 - Some web actions perform browser navigation with `window.location.hash` from inside `game-store.ts` for special interruptions such as trade deadline/CBA/expansion flows. Do not move those into engine.
 - `Date.now()` exists in UI telemetry, save timestamps, and new-game seed creation; it must not enter deterministic sim resolution. `Math.random()` is only allowed in the approved audio synth exception.
-- Checked-in golden save fixtures currently cover v1, v10, v20, and v30-v34; generated fixture-policy tests cover v35 and current-v36. The migration chain includes 35 to 36 and tests assert continuous registration through `SAVE_VERSION - 1`.
+- Checked-in golden save fixtures currently cover v1, v10, v20, and v30-v34; generated fixture-policy tests cover generated v37 and current-v38. The migration chain includes 35 to 36, 36 to 37, and 37 to 38, and tests assert continuous registration through `SAVE_VERSION - 1`.
 - `cleanup-gate.sh` is a local cleanup-wave script, not the same as CI. Keep its expected `SAVE_VERSION` in sync if the schema changes.
 - `apps/web/src/features/companion/eventBridge.ts` now emits `gameComplete` and `seasonEnd` from explicit app snapshot markers. High-stakes pose reactions are still fed by web-side `poseEvents`; the engine event spine remains separate from Chip dialogue.
 - `apps/web/src/features/companion/chipShare.ts` is scaffolded behind `VITE_MFD_SHARE_ENABLED`. It creates deterministic local payloads, returns `null` while disabled, and has `externalTargets: []`; it does not post to external services.
@@ -3236,7 +3236,7 @@ Migration chain:
 Golden fixtures:
 
 - `packages/engine/src/save/fixtures`
-- Checked-in historical fixture files currently include `v1.json`, `v10.json`, `v20.json`, `v30.json`, `v31.json`, `v32.json`, `v33.json`, and `v34.json`; `v33.json` is a historical golden save with embedded version 33, not the current launch schema. Generated fixture-policy coverage handles v35 and current-v36 without committing giant JSON.
+- Checked-in historical fixture files currently include `v1.json`, `v10.json`, `v20.json`, `v30.json`, `v31.json`, `v32.json`, `v33.json`, and `v34.json`; `v33.json` is a historical golden save with embedded version 33, not the current launch schema. Generated fixture-policy coverage handles generated v37 and current-v38 without committing giant JSON.
 
 Save tests:
 
@@ -3450,7 +3450,7 @@ bash scripts/smoke-full-season.sh
 ## Known Caution Zones
 
 - Save schema is large and strict.
-- Current `SAVE_VERSION` is 36. If docs, boot copy, tests, fixtures, or cleanup gates mention an older version, treat that as stale until source says otherwise.
+- Current `SAVE_VERSION` is 38. If docs, boot copy, tests, fixtures, or cleanup gates mention an older version, treat that as stale until source says otherwise.
 - Week advance has many early returns.
 - Trade deadline and CBA intentionally interrupt week advance and navigate to special routes.
 - Cap actions must keep cap totals, dead money, contracts, roster, and player records aligned.

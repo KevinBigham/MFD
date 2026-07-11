@@ -87,6 +87,86 @@ describe('save migrations', () => {
     expect(migratedTeams[teamIds[1]]?.['gmStrategy']).toBe('rebuild');
   });
 
+  it('trims oversized media-cycle histories during the v36 to v37 migration', () => {
+    const legacy = migrate(structuredClone(v34Fixture) as Record<string, unknown>, 36);
+    legacy['mediaCycle'] = {
+      weeklyDigests: Array.from({ length: 48 }, (_, index) => ({
+        weekNumber: index + 1,
+        powerRankings: [],
+        headlines: [],
+        hotTakes: [],
+      })),
+      powerRankingHistory: Array.from({ length: 52 }, (_, index) => ({
+        weekNumber: index + 1,
+        rankings: [],
+      })),
+    };
+
+    const migrated = migrate(legacy, SAVE_VERSION);
+    const mediaCycle = migrated['mediaCycle'] as Record<string, unknown[]>;
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(mediaCycle['weeklyDigests']).toHaveLength(34);
+    expect(mediaCycle['powerRankingHistory']).toHaveLength(34);
+    expect(mediaCycle['weeklyDigests']?.[0]).toMatchObject({ weekNumber: 15 });
+    expect(mediaCycle['powerRankingHistory']?.[0]).toMatchObject({ weekNumber: 19 });
+  });
+
+  it('keeps week, year, and phase unchanged during the v36 to v37 migration', () => {
+    const legacy = migrate(structuredClone(v34Fixture) as Record<string, unknown>, 36);
+    const before = {
+      year: legacy['year'],
+      week: legacy['week'],
+      phase: legacy['phase'],
+    };
+
+    const migrated = migrate(legacy, SAVE_VERSION);
+
+    expect({
+      year: migrated['year'],
+      week: migrated['week'],
+      phase: migrated['phase'],
+    }).toEqual(before);
+  });
+
+  it('repairs and trims eventLog during the v37 to v38 migration', () => {
+    const legacy = migrate(structuredClone(v34Fixture) as Record<string, unknown>, 37);
+    legacy['year'] = 2026;
+    legacy['eventLog'] = [
+      ...Array.from({ length: 125 }, (_, index) => ({
+        id: `weekly_result-2020-1-${index}`,
+        type: 'weekly_result',
+        timestamp: 2020 * 1000 + index,
+        description: `Old result ${index}`,
+        data: {},
+      })),
+      {
+        id: 'coach_retirement-2001-1-0',
+        type: 'coach_retirement',
+        timestamp: 999999,
+        description: 'Retired',
+        data: {},
+      },
+      {
+        id: 'gm-strategy-t1-2002-0',
+        type: 'gm_strategy_shift',
+        timestamp: 999999,
+        description: 'Strategy',
+        data: { year: 2003 },
+      },
+    ];
+
+    const migrated = migrate(legacy, SAVE_VERSION);
+    const eventLog = migrated['eventLog'] as Array<Record<string, unknown>>;
+
+    expect(migrated['version']).toBe(SAVE_VERSION);
+    expect(eventLog.filter((row) => row['type'] === 'weekly_result')).toHaveLength(100);
+    expect(eventLog.some((row) => row['type'] === 'coach_retirement')).toBe(true);
+    expect(eventLog.some((row) => row['type'] === 'gm_strategy_shift')).toBe(true);
+    expect((eventLog.find((row) => row['type'] === 'coach_retirement')?.['data'] as Record<string, unknown>)['year']).toBe(2001);
+    expect((eventLog.find((row) => row['type'] === 'gm_strategy_shift')?.['data'] as Record<string, unknown>)['year']).toBe(2003);
+  });
+
   it('keeps the migration chain continuous from 1 through current version minus one', () => {
     expect(getRegisteredVersions()).toEqual(Array.from({ length: SAVE_VERSION - 1 }, (_, index) => index + 1));
   });

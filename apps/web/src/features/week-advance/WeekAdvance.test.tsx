@@ -71,6 +71,7 @@ const mockState = {
     },
   ],
   latestSummary: null,
+  leagueRivalries: [],
   latestGameDayPackage: {
     id: 'gameday-2031-10-team-1',
     year: 2031,
@@ -126,12 +127,14 @@ const mockState = {
   draftRecaps: mockDraftRecaps,
   offseasonCalendar: hiddenOffseasonCalendar,
   phase: 'regular_season',
+  powerRankings: [],
   teams: {
     'team-2': { id: 'team-2', city: 'Austin', name: 'Armadillos', wins: 7, losses: 3, schemeOff: 'power', schemeDef: 'base' },
   },
   currentGamePlan: null as { offensiveScheme: string; defensiveScheme: string } | null,
   actions: {
     advanceWeek: () => Promise.resolve(null),
+    simAhead: () => Promise.resolve(null),
   },
 };
 
@@ -141,9 +144,11 @@ vi.mock('../../app/store/game-store', () => ({
   selectDraftRecaps: (state: typeof mockState) => state.draftRecaps,
   selectLatestGameDayPackage: (state: typeof mockState) => state.latestGameDayPackage,
   selectLatestSummary: (state: typeof mockState) => state.latestSummary,
+  selectLeagueRivalries: (state: typeof mockState) => state.leagueRivalries,
   selectOffseasonCalendar: (state: typeof mockState) => state.offseasonCalendar,
   selectOffseasonState: (state: typeof mockState) => state.offseasonState,
   selectPhase: (state: typeof mockState) => state.phase,
+  selectPowerRankings: (state: typeof mockState) => state.powerRankings,
   selectRoster: (state: typeof mockState) => state.roster,
   selectSchedule: (state: typeof mockState) => state.schedule,
   selectTeams: (state: typeof mockState) => state.teams,

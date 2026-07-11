@@ -222,7 +222,7 @@ describe('golden save fixtures', () => {
     expect(result.data.lastPortableExportYear).toBe(2025);
   });
 
-  it('migrates v34 fixture through v34→v35 to current version', () => {
+  it('migrates v34 fixture through v34→v35, v35→v36, v36→v37, and v37→v38 to current version', () => {
     const migrated = migrate(v34Fixture as Record<string, unknown>, SAVE_VERSION);
 
     expect(migrated['version']).toBe(SAVE_VERSION);
@@ -251,7 +251,7 @@ describe('golden save fixtures', () => {
     expect(frontOffice['agmImpactLog']).toBeUndefined();
   });
 
-  it('migrates generated v35 fixture coverage through v35→v36 to current version', () => {
+  it('migrates generated v35 fixture coverage through v35→v36 and later migrations to current version', () => {
     const migrated = migrate(generatedV35Fixture(), SAVE_VERSION);
     const result = SaveStateSchema.safeParse(migrated);
 

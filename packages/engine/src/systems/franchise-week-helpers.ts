@@ -8,6 +8,7 @@ import { updateOwnerApproval } from './owner';
 import { tickPatience } from './owner-extended';
 import { applyGameToSeasonStats, ensurePlayerStatBuckets, ensureSeasonStats, tickInjuries } from './season-stats';
 import { generateRegionalWeather } from './regional-weather';
+import { logicalEventTimestamp, withEventDate } from './event-log-retention';
 import type {
   GameEvent,
   GameResult,
@@ -203,9 +204,9 @@ export function makeEvent(game: GameState, type: string, description: string, da
   return {
     id: `${type}-${game.year}-${game.week}-${game.eventLog.length}`,
     type,
-    timestamp: game.year * 1000 + game.week * 10 + game.eventLog.length,
+    timestamp: logicalEventTimestamp(game.year, game.week, game.eventLog.length),
     description,
-    data,
+    data: withEventDate(data, game.year, game.week),
   };
 }
 

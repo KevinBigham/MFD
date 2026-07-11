@@ -9,7 +9,7 @@ import { SKILL_TREES, getTreeKey, getActiveBonus } from './coach-skill-tree';
 import { getCoachTraitMods } from './coach-trait-mods';
 import { OC_SPECIALTIES, DC_SPECIALTIES, assignCoordSpecialty } from './coordinator-specialties';
 import { generateHooks, checkNemesisTrigger, generateDraftCrush } from './hooks-engine';
-import { buildCartridge, parseCartridge, generateFileName, shouldPromptBackup } from './dynasty-cartridge';
+import { CARTRIDGE_VERSION, buildCartridge, parseCartridge, generateFileName, shouldPromptBackup } from './dynasty-cartridge';
 import { getTrustArrow, leagueSnapshot, getAgingMultiplier } from './trust-aging';
 import { FRANCHISE_TAG_TYPES, getFranchiseTagSalary } from './franchise-tag';
 import { INCENTIVE_DEFS, checkIncentives, getAvailableIncentives } from './incentives';
@@ -269,7 +269,7 @@ describe('dynasty cartridge', () => {
     const result = buildCartridge({ version: 1, data: 'test' }, { teamName: 'Eagles' });
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.envelope.cartridgeVersion).toBe('mfd-cartridge.v1');
+      expect(result.envelope.cartridgeVersion).toBe(CARTRIDGE_VERSION);
       expect(result.sizeBytes).toBeGreaterThan(0);
     }
   });

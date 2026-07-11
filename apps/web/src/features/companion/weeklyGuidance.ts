@@ -11,6 +11,7 @@ export interface WeeklyGuidanceInput {
   pendingDecisionCount?: number;
   capSpace?: number;
   difficulty?: string;
+  memoryCallbacks?: readonly string[];
 }
 
 export type WeeklyGuidanceTrigger = 'weekRollover' | 'gameComplete' | 'seasonEnd';
@@ -28,6 +29,7 @@ export interface WeeklyGuidance {
   deadline: string;
   canWait: string;
   risk: string;
+  memoryCallbacks: string[];
 }
 
 function outcomeLabel(outcome: WeeklyDialogueVariant): string {
@@ -183,6 +185,9 @@ export function buildWeeklyGuidance(input: WeeklyGuidanceInput): WeeklyGuidance 
   const recommended = recommendedFor(input, pending, injuries);
   const optional = optionalFor(input);
   const where = whereFor(input, pending, injuries);
+  const memoryCallbacks = [...(input.memoryCallbacks ?? [])]
+    .map((callback) => callback.trim())
+    .filter(Boolean);
 
   return {
     id: `chip.weekly.guidance.${Math.max(0, Math.trunc(input.currentWeek))}`,
@@ -200,6 +205,7 @@ export function buildWeeklyGuidance(input: WeeklyGuidanceInput): WeeklyGuidance 
     deadline,
     canWait: canWaitFor(input.eventTrigger),
     risk: riskFor(input, pending, injuries),
+    memoryCallbacks,
   };
 }
 
@@ -208,11 +214,12 @@ function stripLeadingGuidanceLabel(text: string): string {
 }
 
 export function weeklyGuidanceToDialogueEntry(guidance: WeeklyGuidance): DialogueCatalogEntry {
+  const memory = guidance.memoryCallbacks[0];
   return {
     id: guidance.id,
     beat: 0,
     pose: guidance.pose,
-    text: `${guidance.topAction} ${guidance.whyItMatters}`,
+    text: `${guidance.topAction} ${memory ? `${memory} ` : ''}${guidance.whyItMatters}`,
     contextDetails: [
       `What changed: ${guidance.whatChanged}`,
       `Must Do: ${stripLeadingGuidanceLabel(guidance.mustDo)}`,
@@ -221,6 +228,7 @@ export function weeklyGuidanceToDialogueEntry(guidance: WeeklyGuidance): Dialogu
       `Where: ${guidance.where}`,
       `Deadline: ${guidance.deadline}`,
       `Optional later: ${guidance.canWait}`,
+      ...(memory ? [`Memory: ${memory}`] : []),
       `Consequence: ${guidance.risk}`,
     ],
     archetype: 'weekly',

@@ -5,6 +5,7 @@ import { recordPlayerRetirement, syncPlayerArchiveEntry } from './history';
 import { recordNewsItem } from './league-news';
 import { getArchetypeProgressionMultipliers } from './archetype-progression';
 import { calculateMentorEffects } from './alumni-mentors';
+import { logicalEventTimestamp, withEventDate } from './event-log-retention';
 import { getPositionCoachBonus } from './position-coaches';
 import type { GameEvent, GameState, Player, Position, Team } from '../types';
 
@@ -183,9 +184,9 @@ function makeRetirementEvent(game: GameState, player: Player, teamId: string | n
   return {
     id: `player-retired-${player.id}-${game.year}`,
     type: 'player_retired',
-    timestamp: game.year * 1000 + game.eventLog.length,
+    timestamp: logicalEventTimestamp(game.year, game.week, game.eventLog.length),
     description: `${player.name} retires.`,
-    data: { playerId: player.id, teamId },
+    data: withEventDate({ playerId: player.id, teamId }, game.year, game.week),
   };
 }
 

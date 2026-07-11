@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 const mockState = {
   game: {
+    version: 38,
     seed: 42,
     phase: 'regular_season',
     week: 5,
@@ -54,8 +55,10 @@ vi.mock('../../app/store/persistence', () => ({
 
 vi.mock('@mfd/engine', () => ({
   RIVALRIES_SCHEMA_VERSION: 1,
-  buildCartridge: vi.fn().mockReturnValue({ ok: true, json: '{}' }),
+  SAVE_VERSION: 38,
+  buildCartridge: vi.fn().mockReturnValue({ ok: true, json: '{}', sizeBytes: 512 }),
   generateFileName: vi.fn().mockReturnValue('CHI_S2026_W5.mfd'),
+  validateGameState: vi.fn().mockReturnValue({ valid: true, violations: [] }),
 }));
 
 import {
@@ -82,6 +85,9 @@ describe('DynastyCartridge', () => {
     expect(markup).toContain('Create Save Slot');
     expect(markup).toContain('Advanced: Copy .mfd');
     expect(markup).toContain('Advanced: Download .mfd');
+    expect(markup).toContain('Copy Challenge Seed');
+    expect(markup).toContain('SAVE HEALTH METER');
+    expect(markup).toContain('Integrity');
     expect(markup).toContain('Download Combined Backup');
     expect(markup).toContain('ADVANCED .MFD CARTRIDGE');
     expect(markup).toContain('LOCAL SAVE SLOTS');

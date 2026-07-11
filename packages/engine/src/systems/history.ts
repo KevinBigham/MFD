@@ -1,12 +1,12 @@
 import type {
   FranchiseHistoryEntry,
-  GameEvent,
   GameState,
   Player,
   PlayerArchiveEntry,
   PlayoffRound,
 } from '../types';
 import { createDefaultFranchiseIdentity } from './franchise-identity';
+import { readGameEventYear } from './event-log-retention';
 
 const PLAYOFF_FINISH_LABELS: Record<PlayoffRound, string> = {
   wild_card: 'wild_card_exit',
@@ -14,10 +14,6 @@ const PLAYOFF_FINISH_LABELS: Record<PlayoffRound, string> = {
   conference: 'conference_final_exit',
   super_bowl: 'super_bowl_runner_up',
 };
-
-function eventYear(event: GameEvent): number {
-  return Math.floor(event.timestamp / 1000);
-}
 
 function ensureArchiveEntry(game: GameState, player: Player, year: number): PlayerArchiveEntry {
   let entry = game.playerArchive.find((candidate) => candidate.playerId === player.id);
@@ -127,7 +123,7 @@ function resolvePlayoffFinish(game: GameState, teamId: string): string {
 
 function getTeamMajorEvents(game: GameState, teamId: string): string[] {
   return game.eventLog
-    .filter((event) => eventYear(event) === game.year)
+    .filter((event) => readGameEventYear(event, game.year) === game.year)
     .filter((event) => {
       const eventTeamId = typeof event.data.teamId === 'string' ? event.data.teamId : null;
       const teamIds = Array.isArray(event.data.teamIds) ? event.data.teamIds : [];

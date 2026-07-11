@@ -201,6 +201,8 @@ describe('architecture boundaries', () => {
       .flatMap((filePath) => {
         const relativePath = repoPath(filePath);
         if (relativePath === 'apps/web/src/app/store/sim.ts') return [];
+        if (relativePath === 'apps/web/src/app/store/sim-protocol.ts') return [];
+        if (relativePath === 'apps/web/src/app/store/sim.worker.ts') return [];
 
         const source = stripCommentsAndStrings(readFileSync(filePath, 'utf8'));
         return directWeekSimulationSymbols

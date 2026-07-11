@@ -232,6 +232,10 @@ function callbackSourceLabel(card: CallbackCard): string {
   return `From your saved dynasty receipts${suffix}.`;
 }
 
+function chipMemoryCallbackText(card: CallbackCard): string {
+  return `${card.headline}. ${card.body}`;
+}
+
 function readDynastyScrapbookEntries(game: GameState) {
   try {
     return readScrapbookForDynasty(deriveDynastyId(game));
@@ -428,6 +432,7 @@ export interface MondayBriefingChipInput {
   latestTeamScore?: number | null;
   latestOpponentScore?: number | null;
   recentResults?: ReadonlyArray<'win' | 'loss' | 'tie' | 'pending' | string | null | undefined>;
+  memoryCallbacks?: readonly string[];
 }
 
 const BLOWOUT_MARGIN = 21;
@@ -478,6 +483,7 @@ export function selectMondayBriefingChipDialogue(input: MondayBriefingChipInput)
     pendingDecisionCount: input.pendingDecisionCount,
     capSpace: input.capSpace,
     difficulty: input.difficulty,
+    memoryCallbacks: input.memoryCallbacks,
   }));
 
   return {
@@ -755,6 +761,22 @@ export function MondayBriefing() {
   const packageScore = parseFinalScore(latestPackage?.finalScore);
   const injuredCount = roster.filter((p) => p.injury).length;
   const pendingDecisionCount = game ? countPendingDecisions({ game }).total : 0;
+  const dynastyCallbacks = game
+    ? buildWeeklyCallbacks({
+      year,
+      week,
+      userTeamId: team?.id ?? null,
+      players: game.players,
+      teams: game.teams,
+      leagueNews: game.leagueNews,
+      gameDayPackages: game.gameDayState.recentPackages,
+      draftRecaps: game.draftRecaps,
+      scrapbookEntries: readDynastyScrapbookEntries(game),
+      hallOfFame: game.hallOfFame,
+      records: game.records,
+      franchiseHistory: game.franchiseHistory,
+    })
+    : [];
   const chipBriefingEnabled = isChipFeatureEnabled();
   const chipBriefingEntry = chipBriefingEnabled
     ? selectMondayBriefingChipDialogue({
@@ -771,6 +793,7 @@ export function MondayBriefing() {
       latestTeamScore: latestSummary?.teamScore ?? packageScore.teamScore,
       latestOpponentScore: latestSummary?.opponentScore ?? packageScore.opponentScore,
       recentResults: (game?.weekSummaries ?? []).map((summary) => summary.result),
+      memoryCallbacks: dynastyCallbacks.slice(0, 1).map(chipMemoryCallbackText),
     })
     : null;
   const chipGuidanceDetails = chipBriefingEntry ? chipBriefingDetails(chipBriefingEntry) : [];
@@ -1387,22 +1410,6 @@ export function MondayBriefing() {
     widgetCount: pinnedRenderList.length + layoutRenderList.length,
     pinnedCount: pinnedRenderList.length,
   });
-  const dynastyCallbacks = game
-    ? buildWeeklyCallbacks({
-      year,
-      week,
-      userTeamId: team?.id ?? null,
-      players: game.players,
-      teams: game.teams,
-      leagueNews: game.leagueNews,
-      gameDayPackages: game.gameDayState.recentPackages,
-      draftRecaps: game.draftRecaps,
-      scrapbookEntries: readDynastyScrapbookEntries(game),
-      hallOfFame: game.hallOfFame,
-      records: game.records,
-      franchiseHistory: game.franchiseHistory,
-    })
-    : [];
   const sessionRecapDynastyId = useMemo(() => {
     if (!game) return null;
     try {

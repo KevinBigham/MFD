@@ -1,4 +1,5 @@
-import type { CoachCareerHistory, GameEvent, GameState, StaffRole, Team } from '../types';
+import type { CoachCareerHistory, GameState, StaffRole, Team } from '../types';
+import { readGameEventYear } from './event-log-retention';
 
 interface ActiveCoachNode {
   coachId: string;
@@ -36,10 +37,6 @@ const ROLE_KEYS = {
   DC: 'dc',
 } as const satisfies Record<StaffRole, keyof Team['staff']>;
 
-function getEventYear(event: GameEvent): number {
-  return Math.floor(event.timestamp / 1000);
-}
-
 function collectActiveCoaches(game: GameState): Map<string, ActiveCoachNode> {
   const byId = new Map<string, ActiveCoachNode>();
 
@@ -66,7 +63,7 @@ function collectRecentRetirementEvents(game: GameState): Set<string> {
   return new Set(
     game.eventLog
       .filter((event) => event.type === 'coach_retirement')
-      .filter((event) => getEventYear(event) >= cutoffYear)
+      .filter((event) => readGameEventYear(event, game.year) >= cutoffYear)
       .map((event) => {
         const coachId = event.data['coachId'];
         return typeof coachId === 'string' ? coachId : null;

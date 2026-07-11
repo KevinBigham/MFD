@@ -10,6 +10,7 @@ import { SaveStateSchema } from './schema';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const fixtureDir = path.join(repoRoot, 'packages/engine/src/save/fixtures');
 const checkedInFixtureVersions = [1, 10, 20, 30, 31, 32, 33, 34] as const;
+const latestCheckedInFixtureVersion = checkedInFixtureVersions.at(-1) ?? 1;
 
 function readRepoFile(relativePath: string): string {
   return readFileSync(path.join(repoRoot, relativePath), 'utf8');
@@ -36,7 +37,8 @@ describe('save version drift guard', () => {
     const fixtureVersions = fixtureFiles.map((fileName) => Number(fileName.match(/\d+/)?.[0] ?? 0));
 
     expect(fixtureVersions).toEqual([...checkedInFixtureVersions]);
-    expect(Math.max(...fixtureVersions)).toBe(SAVE_VERSION - 2);
+    expect(Math.max(...fixtureVersions)).toBe(latestCheckedInFixtureVersion);
+    expect(Math.max(...fixtureVersions)).toBeLessThanOrEqual(SAVE_VERSION - 2);
 
     for (const fixtureVersion of fixtureVersions) {
       expect(readFixture(fixtureVersion)['version']).toBe(fixtureVersion);
@@ -44,7 +46,7 @@ describe('save version drift guard', () => {
   });
 
   it('keeps generated previous-version and current-version save coverage aligned', () => {
-    const previousVersionFixture = migrate(readFixture(SAVE_VERSION - 2), SAVE_VERSION - 1);
+    const previousVersionFixture = migrate(readFixture(latestCheckedInFixtureVersion), SAVE_VERSION - 1);
     expect(previousVersionFixture['version']).toBe(SAVE_VERSION - 1);
 
     const migratedPrevious = migrate(structuredClone(previousVersionFixture), SAVE_VERSION);

@@ -8,6 +8,7 @@ import {
   parseSmokeViewport,
   parsePostImportRouteCheck,
   parsePostSetupRouteChecks,
+  resolveExportedPlayerSnippet,
   shouldRunAdvanceWeekSmoke,
   shouldRunCapLabBatchSmoke,
   shouldRunCartridgeFileRoundTripSmoke,
@@ -40,6 +41,35 @@ import {
 } from '../smoke-test-post-setup-route.mjs';
 
 const smokeSource = readFileSync(new URL('../smoke-test-post-setup-route.mjs', import.meta.url), 'utf8');
+
+test('raw autosave smoke resolves v2 cartridge player stubs through roster payloads', () => {
+  const resolveExportedPlayer = new Function(
+    'players',
+    'teams',
+    'playerId',
+    `${resolveExportedPlayerSnippet}
+    return resolveExportedPlayer(players, teams, playerId);`,
+  );
+  const rosterPlayer = {
+    id: 'p1',
+    name: 'Stub Rehydrated',
+    teamId: 't1',
+    contract: { years: 4 },
+  };
+  const fullPlayer = {
+    id: 'p2',
+    name: 'Full Payload',
+    teamId: null,
+    contract: null,
+  };
+
+  assert.equal(
+    resolveExportedPlayer({ p1: { $roster: 't1' } }, { t1: { roster: [rosterPlayer] } }, 'p1'),
+    rosterPlayer,
+  );
+  assert.equal(resolveExportedPlayer({ p2: fullPlayer }, { t1: { roster: [] } }, 'p2'), fullPlayer);
+  assert.deepEqual(resolveExportedPlayer({ p3: { $roster: 'missing' } }, {}, 'p3'), { $roster: 'missing' });
+});
 
 test('parses smoke assertion and preview startup timeouts independently', () => {
   assert.equal(parseSmokeTimeoutMs({}), 30_000);
