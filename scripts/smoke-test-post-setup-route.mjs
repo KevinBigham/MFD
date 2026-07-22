@@ -7223,7 +7223,7 @@ async function stageFreeAgencySigningsFixture(cdp, sessionId, mode) {
         const tx = db.transaction('saves', 'readwrite');
         const store = tx.objectStore('saves');
         const request = store.put(slot);
-        request.onsuccess = () => resolveWrite();
+        request.onsuccess = () => resolveWrite(request.result);
         request.onerror = () => rejectWrite(request.error ?? new Error('Could not write mfd save slot.'));
       });
 
@@ -7441,13 +7441,25 @@ async function stageFreeAgencySigningsFixture(cdp, sessionId, mode) {
         };
       }
 
-      latest.data = JSON.stringify(envelope);
-      latest.year = save.year;
-      latest.week = save.week;
-      latest.timestamp = Date.now();
-      await writeSave(db, latest);
+      const newestTimestamp = saves.reduce(
+        (current, slot) => Math.max(current, Number(slot?.timestamp) || 0),
+        0,
+      );
+      const stagedSlot = {
+        ...latest,
+        name: 'Autosave (free-agency ' + mode + ' smoke fixture)',
+        data: JSON.stringify(envelope),
+        year: save.year,
+        week: save.week,
+        timestamp: Math.max(Date.now(), newestTimestamp) + (60 * 60 * 1000),
+      };
+      delete stagedSlot.id;
+      const stagedSlotId = await writeSave(db, stagedSlot);
       if (typeof db.close === 'function') db.close();
-      return result;
+      return {
+        ...result,
+        stagedSlotId: Number(stagedSlotId),
+      };
     })()
   `, true);
 }
@@ -7591,11 +7603,12 @@ async function runFreeAgencySigningsSmoke(cdp, sessionId, baseUrl) {
   const route = '/free-agency';
   console.log('Staging free-agency re-sign fixture from the latest autosave...');
   const reSignFixture = await stageFreeAgencySigningsFixture(cdp, sessionId, 're_sign');
-  if (!reSignFixture?.playerName) {
+  if (!reSignFixture?.playerName || !Number.isInteger(reSignFixture?.stagedSlotId)) {
     throw new Error(`Free-agency re-sign fixture did not return usable identifiers: ${JSON.stringify(reSignFixture)}`);
   }
   console.log(`Free-agency re-sign fixture: meet demand for ${reSignFixture.playerName}.`);
   await hardReloadAndLoadLatestAutosave(cdp, sessionId, route, 'free-agency re-sign fixture staging', ['Free Agency Sources', 'Re-Sign Window']);
+  await deleteSmokeSaveSlot(cdp, sessionId, reSignFixture.stagedSlotId, 'free-agency re-sign fixture load');
   await waitForBodyText(cdp, sessionId, reSignFixture.playerName, 'staged re-sign player on free-agency route');
   await clickButtonNearText(cdp, sessionId, 'Meet Demand', reSignFixture.playerName, 'clickable Meet Demand button for staged re-sign player');
   await waitForBodyText(cdp, sessionId, 'Free Agency Action Receipt', 'free-agency re-sign receipt panel');
@@ -7619,11 +7632,12 @@ async function runFreeAgencySigningsSmoke(cdp, sessionId, baseUrl) {
 
   console.log('Staging open-market free-agency fixture from the latest autosave...');
   const marketFixture = await stageFreeAgencySigningsFixture(cdp, sessionId, 'open_market');
-  if (!marketFixture?.playerName) {
+  if (!marketFixture?.playerName || !Number.isInteger(marketFixture?.stagedSlotId)) {
     throw new Error(`Free-agency open-market fixture did not return usable identifiers: ${JSON.stringify(marketFixture)}`);
   }
   console.log(`Free-agency market fixture: bid on ${marketFixture.playerName}.`);
   await hardReloadAndLoadLatestAutosave(cdp, sessionId, route, 'free-agency market fixture staging', ['Free Agency Sources', 'Open Market']);
+  await deleteSmokeSaveSlot(cdp, sessionId, marketFixture.stagedSlotId, 'free-agency market fixture load');
   await waitForBodyText(cdp, sessionId, marketFixture.playerName, 'staged market player on free-agency route');
   await clickButtonNearText(cdp, sessionId, 'Aggressive', marketFixture.playerName, 'clickable Aggressive bid button for staged market player');
   await waitForBodyText(cdp, sessionId, 'Open-Market Bid Stored', 'free-agency bid receipt');
@@ -7667,11 +7681,12 @@ async function runFreeAgencySigningsSmoke(cdp, sessionId, baseUrl) {
 
   console.log('Staging street free-agent fixture from the latest autosave...');
   const streetFixture = await stageFreeAgencySigningsFixture(cdp, sessionId, 'street_sign');
-  if (!streetFixture?.playerName) {
+  if (!streetFixture?.playerName || !Number.isInteger(streetFixture?.stagedSlotId)) {
     throw new Error(`Free-agency street-sign fixture did not return usable identifiers: ${JSON.stringify(streetFixture)}`);
   }
   console.log(`Free-agency street fixture: sign ${streetFixture.playerName}.`);
   await hardReloadAndLoadLatestAutosave(cdp, sessionId, route, 'free-agency street fixture staging', ['Free Agency Sources', 'Street Free Agents']);
+  await deleteSmokeSaveSlot(cdp, sessionId, streetFixture.stagedSlotId, 'free-agency street fixture load');
   await waitForBodyText(cdp, sessionId, streetFixture.playerName, 'staged street free agent on free-agency route');
   await clickButtonNearText(cdp, sessionId, 'Sign', streetFixture.playerName, 'clickable Sign button for staged street free agent');
   await waitForBodyText(cdp, sessionId, 'Street Signing Submitted', 'street signing receipt');
