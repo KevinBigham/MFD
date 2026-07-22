@@ -3390,6 +3390,31 @@ async function stageTradeCounterBlockFixture(cdp, sessionId) {
   `, true);
 }
 
+async function deleteSmokeSaveSlot(cdp, sessionId, slotId, label) {
+  const deleted = await evaluate(cdp, sessionId, `
+    (async () => {
+      const slotId = ${JSON.stringify(slotId)};
+      if (!Number.isInteger(slotId) || slotId < 1) return false;
+      const db = await new Promise((resolveOpen, rejectOpen) => {
+        const request = indexedDB.open('mfd');
+        request.onsuccess = () => resolveOpen(request.result);
+        request.onerror = () => rejectOpen(request.error ?? new Error('Could not open mfd IndexedDB.'));
+      });
+      await new Promise((resolveDelete, rejectDelete) => {
+        const tx = db.transaction('saves', 'readwrite');
+        tx.oncomplete = () => resolveDelete();
+        tx.onerror = () => rejectDelete(tx.error ?? new Error('Could not delete temporary smoke save slot.'));
+        tx.objectStore('saves').delete(slotId);
+      });
+      if (typeof db.close === 'function') db.close();
+      return true;
+    })()
+  `, true);
+  if (!deleted) {
+    throw new Error(`Could not delete temporary smoke save slot ${slotId} after ${label}.`);
+  }
+}
+
 function latestAutosaveTradeCounterBlockStateExpression(fixture) {
   return `
     (async () => {
@@ -4882,7 +4907,7 @@ async function stageWeeklyPrepFixture(cdp, sessionId) {
         const tx = db.transaction('saves', 'readwrite');
         const store = tx.objectStore('saves');
         const request = store.put(slot);
-        request.onsuccess = () => resolveWrite();
+        request.onsuccess = () => resolveWrite(request.result);
         request.onerror = () => rejectWrite(request.error ?? new Error('Could not write mfd save slot.'));
       });
 
@@ -5029,14 +5054,27 @@ async function stageWeeklyPrepFixture(cdp, sessionId) {
         && entry?.week === save.week
       ));
 
-      latest.data = JSON.stringify(envelope);
-      latest.year = save.year;
-      latest.week = save.week;
-      latest.timestamp = Date.now();
-      await writeSave(db, latest);
+      const newestTimestamp = saves.reduce(
+        (current, slot) => Math.max(current, Number(slot?.timestamp) || 0),
+        0,
+      );
+      const stagedSlot = {
+        ...latest,
+        name: 'Autosave (weekly-prep smoke fixture)',
+        data: JSON.stringify(envelope),
+        year: save.year,
+        week: save.week,
+        // Keep the isolated fixture ahead of any slow demo autosave still
+        // committing on a hosted runner. The slot is deleted after Continue
+        // loads it, before the workflow creates its real result autosave.
+        timestamp: Math.max(Date.now(), newestTimestamp) + (60 * 60 * 1000),
+      };
+      delete stagedSlot.id;
+      const stagedSlotId = await writeSave(db, stagedSlot);
       if (typeof db.close === 'function') db.close();
 
       return {
+        stagedSlotId: Number(stagedSlotId),
         year: save.year,
         week: save.week,
         userTeamId: userTeam.id,
@@ -5221,7 +5259,7 @@ async function waitForLatestAutosaveWeeklyPrep(cdp, sessionId, fixture, label, m
 async function runWeeklyPrepSmoke(cdp, sessionId, baseUrl) {
   console.log('Staging weekly-prep smoke fixture from the latest autosave...');
   const fixture = await stageWeeklyPrepFixture(cdp, sessionId);
-  if (!fixture?.opponentTeamName || !fixture?.keyMatchupPlayerName) {
+  if (!fixture?.opponentTeamName || !fixture?.keyMatchupPlayerName || !Number.isInteger(fixture?.stagedSlotId)) {
     throw new Error(`Weekly-prep smoke fixture did not return usable identifiers: ${JSON.stringify(fixture)}`);
   }
   console.log(`Weekly prep fixture: Week ${fixture.week} vs ${fixture.opponentTeamName}; key matchup ${fixture.keyMatchupPlayerName}.`);
@@ -5229,6 +5267,7 @@ async function runWeeklyPrepSmoke(cdp, sessionId, baseUrl) {
   const route = '/game-plan';
   console.log(`Running weekly-prep smoke at ${baseUrl}#${route}...`);
   await hardReloadAndLoadLatestAutosave(cdp, sessionId, route, 'weekly-prep fixture staging', ['Weekly Prep Sources', 'Weekly Prep']);
+  await deleteSmokeSaveSlot(cdp, sessionId, fixture.stagedSlotId, 'weekly-prep fixture load');
   if (fixture.callYourShotEligible) {
     await waitForBodyText(cdp, sessionId, 'Choose one promise before Save', 'Call Your Shot action/deadline copy');
     await waitForBodyText(cdp, sessionId, 'hit it for fan-confidence gain', 'Call Your Shot success consequence copy');

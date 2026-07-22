@@ -494,6 +494,9 @@ test('parses the opt-in weekly-prep workflow flag', () => {
 test('weekly-prep smoke proves Call Your Shot copy on high-stakes weeks', () => {
   assert.match(smokeSource, /highStakesWeeks = candidateWeeks\.filter\(\(week\) => Number\(week\.week\) >= 15\)/);
   assert.match(smokeSource, /stagedWeekNumber = Math\.max\(Number\(targetWeek\.week\), 15\)/);
+  assert.match(smokeSource, /Autosave \(weekly-prep smoke fixture\)/);
+  assert.match(smokeSource, /delete stagedSlot\.id/);
+  assert.match(smokeSource, /deleteSmokeSaveSlot\(cdp, sessionId, fixture\.stagedSlotId/);
   assert.match(smokeSource, /Choose one promise before Save/);
   assert.match(smokeSource, /hit it for fan-confidence gain/);
   assert.match(smokeSource, /fan confidence drops in the recap receipt/);
