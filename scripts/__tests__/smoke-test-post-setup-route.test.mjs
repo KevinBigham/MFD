@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
+  isTransientBrowserInfrastructureError,
   parseSmokePreviewTimeoutMs,
   parseSmokeTimeoutMs,
   parseSmokeViewport,
@@ -40,6 +41,23 @@ import {
 } from '../smoke-test-post-setup-route.mjs';
 
 const smokeSource = readFileSync(new URL('../smoke-test-post-setup-route.mjs', import.meta.url), 'utf8');
+
+test('classifies only Chrome certificate-verifier restarts as transient browser infrastructure', () => {
+  const verifierRestart = {
+    source: 'network',
+    level: 'error',
+    text: 'Failed to load resource: net::ERR_CERT_VERIFIER_CHANGED',
+  };
+
+  assert.equal(isTransientBrowserInfrastructureError(verifierRestart), true);
+  assert.equal(isTransientBrowserInfrastructureError({ ...verifierRestart, source: 'javascript' }), false);
+  assert.equal(isTransientBrowserInfrastructureError({ ...verifierRestart, level: 'warning' }), false);
+  assert.equal(isTransientBrowserInfrastructureError({
+    source: 'network',
+    level: 'error',
+    text: 'Failed to load resource: net::ERR_CONNECTION_REFUSED',
+  }), false);
+});
 
 test('parses smoke assertion and preview startup timeouts independently', () => {
   assert.equal(parseSmokeTimeoutMs({}), 30_000);

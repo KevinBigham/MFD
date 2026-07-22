@@ -70,6 +70,12 @@ export function parseSmokePreviewTimeoutMs(env = process.env) {
   return parsePositiveInt(env.SMOKE_PREVIEW_TIMEOUT_MS, Math.max(parseSmokeTimeoutMs(env), 30_000));
 }
 
+export function isTransientBrowserInfrastructureError(entry) {
+  return entry?.source === 'network'
+    && entry?.level === 'error'
+    && entry?.text === 'Failed to load resource: net::ERR_CERT_VERIFIER_CHANGED';
+}
+
 const timeoutMs = parseSmokeTimeoutMs(process.env);
 const previewTimeoutMs = parseSmokePreviewTimeoutMs(process.env);
 
@@ -7985,7 +7991,11 @@ async function run() {
         browserErrors.push((message.params.args ?? []).map((arg) => arg.value ?? arg.description).filter(Boolean).join(' '));
       }
       if (message.method === 'Log.entryAdded' && message.params?.entry?.level === 'error') {
-        browserErrors.push(message.params.entry.text);
+        if (isTransientBrowserInfrastructureError(message.params.entry)) {
+          console.warn(`WARN: ignored transient Chrome network restart: ${message.params.entry.text}`);
+        } else {
+          browserErrors.push(message.params.entry.text);
+        }
       }
     });
 
