@@ -1,5 +1,8 @@
-import { uid } from '../rng';
 import type { Ceremony, CeremonyHighlight, GameState, HallOfFameEntry, PlayoffMatchup, Team } from '../types';
+
+function ceremonyId(type: Ceremony['type'], year: number, subject: string): string {
+  return `ceremony-${type}-${year}-${subject.replace(/[^a-zA-Z0-9_-]+/g, '-').toLowerCase()}`;
+}
 
 function teamLabel(team: Team | null | undefined): string {
   return team ? `${team.city} ${team.name}` : 'Unknown Team';
@@ -32,7 +35,7 @@ export function generateChampionshipCeremony(game: GameState, championTeamId: st
   const mvp = finalMatchup?.result?.mvpPlayerId ?? null;
 
   return {
-    id: `ceremony-${uid()}`,
+    id: ceremonyId('championship', game.year, championTeamId),
     type: 'championship',
     year: game.year,
     headline: `${teamLabel(champion)} championship ceremony`,
@@ -71,7 +74,7 @@ export function generateAwardsNight(game: GameState): Ceremony {
     }));
 
   return {
-    id: `ceremony-${uid()}`,
+    id: ceremonyId('awards_night', entry?.year ?? game.year, 'league'),
     type: 'awards_night',
     year: entry?.year ?? game.year,
     headline: entry?.ceremony.headline ?? `${game.year} Awards Night`,
@@ -90,7 +93,7 @@ function hallOfFameHighlightValue(entry: HallOfFameEntry): string {
 
 export function generateHOFInduction(game: GameState, inductees: HallOfFameEntry[]): Ceremony {
   return {
-    id: `ceremony-${uid()}`,
+    id: ceremonyId('hall_of_fame_induction', inductees[0]?.inductionYear ?? game.year, inductees.map((entry) => entry.playerId).join('-') || 'empty'),
     type: 'hall_of_fame_induction',
     year: inductees[0]?.inductionYear ?? game.year,
     headline: `${inductees.length} player(s) enter the Hall of Fame`,
@@ -111,7 +114,7 @@ export function generateRingCeremony(game: GameState, teamId: string): Ceremony 
 
   const team = game.teams[teamId] ?? null;
   return {
-    id: `ceremony-${uid()}`,
+    id: ceremonyId('ring_ceremony', game.year, teamId),
     type: 'ring_ceremony',
     year: game.year,
     headline: `${teamLabel(team)} Ring Ceremony`,

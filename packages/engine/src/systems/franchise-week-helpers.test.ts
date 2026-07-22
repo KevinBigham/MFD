@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { setSeed } from '../rng';
+import { createRngState } from '../rng';
 import type { WeatherCondition } from '../types';
 import {
   cloneGame,
@@ -17,7 +17,7 @@ const WEATHER_VALUES: WeatherCondition[] = ['dome', 'clear', 'rain', 'snow', 'wi
 
 describe('franchise-week helpers weather wiring', () => {
   it('assigns regional weather only to scheduled games that are missing weather', () => {
-    setSeed(11);
+    const rng = createRngState(11);
     const game = makeLeagueState('regular_season', 1);
     game.schedule.unshift({
       week: 7,
@@ -28,7 +28,7 @@ describe('franchise-week helpers weather wiring', () => {
       ],
     });
 
-    ensureWeeklyWeather(game, 7);
+    ensureWeeklyWeather(game, 7, rng.play);
 
     expect(WEATHER_VALUES).toContain(game.schedule[0]!.games[0]!.weather);
     expect(game.schedule[0]!.games[1]!.weather).toBeUndefined();
@@ -39,7 +39,7 @@ describe('franchise-week helpers weather wiring', () => {
     const game = makeLeagueState('regular_season', 1);
     const before = structuredClone(game.schedule);
 
-    ensureWeeklyWeather(game, 99);
+    ensureWeeklyWeather(game, 99, createRngState(1).play);
 
     expect(game.schedule).toEqual(before);
   });
@@ -50,14 +50,12 @@ describe('franchise-week helpers weather wiring', () => {
     const dome = game.teams.afce2;
     dome.stadiumType = 'dome';
 
-    setSeed(1);
-    const first = generateWeatherForGame(outdoor, 15);
-    setSeed(1);
-    const second = generateWeatherForGame(outdoor, 15);
+    const first = generateWeatherForGame(outdoor, 15, createRngState(1).play);
+    const second = generateWeatherForGame(outdoor, 15, createRngState(1).play);
 
     expect(second).toBe(first);
     expect(WEATHER_VALUES).toContain(first);
-    expect(generateWeatherForGame(dome, 15)).toBe('dome');
+    expect(generateWeatherForGame(dome, 15, createRngState(1).play)).toBe('dome');
   });
 });
 

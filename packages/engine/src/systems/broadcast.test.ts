@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   generateBroadcast,
+  generateBroadcastFromSnapLedger,
   generateDriveSummary,
   generateFinalNarrative,
   generatePlayCommentary,
   mulberry32,
   selectHighlights,
+  simulateSnapShadow,
   type BroadcastOutput,
   type DriveNarrative,
   type GameResult,
@@ -456,6 +458,24 @@ describe('broadcast', () => {
     expect(narrative).toContain('Buckle of the Bible Belt');
     expect(narrative).toContain('Bold New City Swamps');
     expect(narrative).toContain('31-27');
+  });
+
+  it('builds canonical broadcast plays only from persisted snap ledger facts', () => {
+    const { home, away } = makeTeams();
+    const result = makeResult();
+    const snapResult = simulateSnapShadow(result.id, { id: home.id, overall: 80 }, { id: away.id, overall: 78 }, 8821);
+    result.homeScore = snapResult.homeScore;
+    result.awayScore = snapResult.awayScore;
+    result.snapEvents = snapResult.snapEvents;
+    result.snapLedgerMode = 'canonical';
+
+    const broadcast = generateBroadcastFromSnapLedger(result, home, away);
+    const ledgerDescriptions = new Set(snapResult.snapEvents.map((snap) => snap.description));
+    const broadcastPlays = broadcast.quarters.flatMap((quarter) => quarter.flatMap((drive) => drive.plays));
+
+    expect(broadcastPlays.length).toBe(snapResult.snapEvents.length);
+    expect(broadcastPlays.every((play) => ledgerDescriptions.has(play.commentary))).toBe(true);
+    expect(generateBroadcast(result, home, away, mulberry32(1))).toEqual(broadcast);
   });
 
   it('handles a scoreless game without crashing', () => {

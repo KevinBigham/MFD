@@ -1,12 +1,12 @@
 import { DIFF_SETTINGS } from '../config/difficulty';
-import { mulberry32, RNG } from '../rng';
+import { createWeekRngState, mulberry32, type RngState } from '../rng';
 import { checkAchievements } from './achievements';
 import { generateAwards } from './awards';
 import { applyCBADealToRules, checkCBAStatus, getLockoutRisk, initCBA } from './cba-engine';
 import { recordCeremony, generateAwardsNight, generateChampionshipCeremony, generateHOFInduction } from './ceremonies';
 import { applyCoachRetirement } from './coach-retirement';
 import { runCoachingCarousel } from './coaching-carousel';
-import { buildCoachingMarket, hireStaffCandidate } from './coaching-market';
+import { buildCoachingMarket, hireStaffCandidate, scoreStaffFit } from './coaching-market';
 import { calculateCompPicks } from './comp-picks';
 import { advanceCommissioner, initCommissioner } from './commissioner';
 import { makeContract } from './contracts';
@@ -21,7 +21,7 @@ import { evaluateHandshakes } from './handshake-ledger';
 import { evaluateOwnerMandates } from './owner-goals';
 import { inductHallOfFame } from './hall-of-fame';
 import { syncPlayerArchiveEntry } from './history';
-import { generateMedicalStaffPool } from './injury-system';
+import { generateMedicalStaffPool, getGameAvailability } from './injury-system';
 import { assignJerseyNumber, generateJerseyRetirement, shouldRetireJersey } from './jersey-retirement';
 import { getActiveRule, getRosterLimit, initLeagueRules } from './league-rules';
 import { generateOffseasonNews, recordGovernanceNews, recordLaborNews, recordNewsItem } from './league-news';
@@ -34,8 +34,10 @@ import { clearSeasonLivingWorldState } from './off-field-events';
 import { buildTrainingProgressionBonuses, clearTrainingAssignments } from './player-development';
 import { archivePlayerSeasonHistory } from './player-profile';
 import { agentDemand, ensureAgentsInitialized, getAgentPatienceWeeks, getPlayerAgent, negotiateOffer, ratioOfferToDemand } from './player-agents';
-import { processWaiverClaims } from './practice-squad';
+import { elevateFromPracticeSquad, processWaiverClaims } from './practice-squad';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
+import { computeDraftOrderForGame } from './draft-order';
+import { analyzeTeamNeeds, buildLeagueAverageByGroup, getTeamPositionNeed } from './team-needs';
 import { progressPlayers } from './progression';
 import { getSeasonRecordNotes, updateCareerRecords, updateSeasonRecords } from './records';
 import { STARTER_SLOTS } from './roster-management';
@@ -65,11 +67,13 @@ import type {
   DraftOrderEntry,
   EngineOutput,
   FranchiseHistoryEntry,
+  FranchisePlan,
   FreeAgencyBid,
   GameState,
   OffseasonState,
   Player,
   ReSignDecision,
+  StaffMember,
   Team,
 } from '../types';
 import type { AIBiasConfig } from './ai-bias';
@@ -137,16 +141,6 @@ function refreshRosterState(team: Team): void {
   team.lockerRoom = syncLockerRoomRoster(team, team.lockerRoom ?? initializeLockerRoom(team, () => 0.42));
 }
 
-function sortDraftTeams(a: Team, b: Team): number {
-  if (a.wins !== b.wins) return a.wins - b.wins;
-  if (a.losses !== b.losses) return b.losses - a.losses;
-  if (a.ties !== b.ties) return a.ties - b.ties;
-  if (a.seasonStats.pointDifferential !== b.seasonStats.pointDifferential) {
-    return a.seasonStats.pointDifferential - b.seasonStats.pointDifferential;
-  }
-  return a.id.localeCompare(b.id);
-}
-
 function getPlayer(game: GameState, playerId: string): Player | null {
   return game.players[playerId] ?? null;
 }
@@ -197,23 +191,30 @@ function buildDraftOrder(game: GameState): DraftOrderEntry[] {
   const ordered: DraftOrderEntry[] = [];
   let overall = 1;
   const draftRounds = game.leagueRules ? Number(getActiveRule(game.leagueRules, 'draft_rounds', game.year)) : 7;
+  const slotByOriginalTeam = new Map(
+    computeDraftOrderForGame(game).map((entry) => [entry.teamId, entry.slot]),
+  );
 
   for (let round = 1; round <= draftRounds; round++) {
     const roundPicks = Object.values(game.teams)
       .flatMap((team) => team.draftPicks)
       .filter((entry) => entry.year === game.year && entry.round === round)
       .sort((a, b) =>
-        a.pick - b.pick ||
         Number(a.isCompPick) - Number(b.isCompPick) ||
+        (slotByOriginalTeam.get(a.originalTeamId) ?? a.pick) - (slotByOriginalTeam.get(b.originalTeamId) ?? b.pick) ||
+        a.pick - b.pick ||
         a.originalTeamId.localeCompare(b.originalTeamId) ||
         a.currentTeamId.localeCompare(b.currentTeamId));
 
     for (const pick of roundPicks) {
+      const normalizedPick = pick.isCompPick
+        ? pick.pick
+        : slotByOriginalTeam.get(pick.originalTeamId) ?? pick.pick;
       ordered.push({
-        id: `${pick.currentTeamId}-${pick.year}-${pick.round}-${pick.pick}-${pick.originalTeamId}`,
+        id: `${pick.currentTeamId}-${pick.year}-${pick.round}-${normalizedPick}-${pick.originalTeamId}`,
         teamId: pick.currentTeamId,
         round: pick.round,
-        pick: pick.pick,
+        pick: normalizedPick,
         overall,
         originalTeamId: pick.originalTeamId,
       });
@@ -241,7 +242,7 @@ function isCBAInterruptStatus(status: GameState['cbaState']['status']): boolean 
   return status === 'negotiating' || status === 'awaiting_owner_vote' || status === 'lockout';
 }
 
-function startCBANegotiation(game: GameState): void {
+function startCBANegotiation(game: GameState, rng: RngState): void {
   game.cbaState = {
     ...game.cbaState,
     status: 'negotiating',
@@ -266,11 +267,16 @@ function startCBANegotiation(game: GameState): void {
     { idSuffix: `cba-open-${game.year}`, importance: 'breaking' },
   );
   game.socialFeed = appendToSocialFeed(game.socialFeed, [
-    createLaborPost('Negotiations are underway as the league and players association work toward a new CBA.', game.week, RNG.ai),
+    createLaborPost('Negotiations are underway as the league and players association work toward a new CBA.', game.week, rng.ai),
   ]);
 }
 
-function maybeGenerateGovernanceNarrative(game: GameState, previousCommissionerName: string, previousProposalIds: string[]): void {
+function maybeGenerateGovernanceNarrative(
+  game: GameState,
+  previousCommissionerName: string,
+  previousProposalIds: string[],
+  rng: RngState,
+): void {
   const newProposals = game.commissionerState.activeProposals.filter((proposal) => !previousProposalIds.includes(proposal.id));
   for (const proposal of newProposals) {
     recordGovernanceNews(
@@ -283,7 +289,7 @@ function maybeGenerateGovernanceNarrative(game: GameState, previousCommissionerN
       createGovernancePost(
         `${game.commissionerState.name} floated a rule proposal: ${proposal.ruleKey.replaceAll('_', ' ')} from ${String(proposal.currentValue)} to ${String(proposal.proposedValue)}.`,
         game.week,
-        RNG.ai,
+        rng.ai,
       ),
     ]);
   }
@@ -299,15 +305,15 @@ function maybeGenerateGovernanceNarrative(game: GameState, previousCommissionerN
       createGovernancePost(
         `${previousCommissionerName} is out. ${game.commissionerState.name} takes the office with a ${game.commissionerState.personality} agenda.`,
         game.week,
-        RNG.ai,
+        rng.ai,
         { sentiment: 'hype' },
       ),
     ]);
   }
 }
 
-function maybeGenerateOffseasonLaborEvent(game: GameState): void {
-  const laborEvent = generateLaborEvent(game.laborState, game);
+function maybeGenerateOffseasonLaborEvent(game: GameState, rng: RngState): void {
+  const laborEvent = generateLaborEvent(game.laborState, game, rng.event);
   if (!laborEvent) return;
 
   game.laborState = {
@@ -329,7 +335,7 @@ function maybeGenerateOffseasonLaborEvent(game: GameState): void {
     { idSuffix: `${laborEvent.type}-${game.year}-${game.week}` },
   );
   game.socialFeed = appendToSocialFeed(game.socialFeed, [
-    createLaborPost(laborEvent.description, game.week, RNG.ai, {
+    createLaborPost(laborEvent.description, game.week, rng.ai, {
       sentiment: laborEvent.impact.satisfaction && laborEvent.impact.satisfaction > 0 ? 'positive' : 'negative',
     }),
   ]);
@@ -643,6 +649,18 @@ function resolveUserOffer(player: Player, decision: ReSignDecision): boolean {
   return scoreOffer(decision.lastOffer, decision.askingPrice) >= acceptThreshold(player);
 }
 
+export function getAiReSignPlanModifiers(plan: FranchisePlan | undefined, player: Player): {
+  postureCoverage: number;
+  planPriority: boolean;
+  protectedAsset: boolean;
+} {
+  return {
+    postureCoverage: plan?.capPosture === 'preserve' ? 0.15 : plan?.capPosture === 'spend' ? -0.1 : 0,
+    planPriority: plan?.priorityPositions.includes(player.pos) ?? false,
+    protectedAsset: plan?.protectedAssets.includes(player.id) ?? false,
+  };
+}
+
 function resolveAiReSigns(game: GameState, offseason: OffseasonState, aiBias?: AIBiasConfig): void {
   const userTeamId = findUserTeam(game)?.id ?? null;
   // Per-field undefined short-circuits to original hardcoded behavior to preserve
@@ -662,13 +680,17 @@ function resolveAiReSigns(game: GameState, offseason: OffseasonState, aiBias?: A
 
     const team = game.teams[decision.teamId];
     if (!team) continue;
+    const plan = game.franchisePlans?.[team.id];
+    const planModifiers = getAiReSignPlanModifiers(plan, player);
 
     const cheapReplacement = udfaReliance >= 0.75 && player.pos !== 'QB' && player.ovr < 74;
-    const canAfford = team.capSpace >= decision.agentDemand.salary * requiredCapCoverage;
+    const canAfford = team.capSpace >= decision.agentDemand.salary * (requiredCapCoverage + planModifiers.postureCoverage);
     const wantsPlayer = !cheapReplacement && (
       player.ovr >= minimumOvr
       || player.pos === 'QB'
       || player.personality.loyalty >= 7
+      || planModifiers.planPriority
+      || planModifiers.protectedAsset
     );
 
     if (canAfford && wantsPlayer) {
@@ -745,6 +767,8 @@ function createAiBid(
   team: Team,
   round: number,
   difficulty: GameState['difficulty'],
+  needScore: number,
+  plan: FranchisePlan | undefined,
   aiBias?: AIBiasConfig,
 ): FreeAgencyBid | null {
   // Per-field undefined short-circuits to original hardcoded behavior (spendTolerance=1.0)
@@ -755,11 +779,17 @@ function createAiBid(
   const spendTolerance = hasFaBias ? 1.15 - faAggression * 0.25 : 1.0;
   if (team.capSpace < ask.salary * spendTolerance) return null;
   const identity = team.franchiseIdentity ?? createDefaultFranchiseIdentity(team);
-  const positionNeed = team.roster
-    .filter((candidate) => candidate.pos === player.pos)
-    .reduce((lowest, candidate) => Math.min(lowest, candidate.ovr), 99);
-  const needBoost = Math.max(0, 78 - positionNeed);
+  const needBoost = needScore;
   const difficultyMult = DIFF_SETTINGS[difficulty].aiBidMod;
+  const planSpendMultiplier = plan?.capPosture === 'spend'
+    ? 1.06
+    : plan?.capPosture === 'preserve'
+      ? 0.9
+      : 1;
+  const planRiskMultiplier = plan ? 0.9 + plan.riskTolerance / 500 : 1;
+  const planPriorityBoost = plan?.priorityPositions.includes(player.pos)
+    ? Math.max(2, 8 - plan.priorityPositions.indexOf(player.pos) * 2)
+    : 0;
   const philosophy = team.philosophy ?? 'maintain';
   const youngTarget = player.age <= 26;
   const veteranTarget = player.age >= 29;
@@ -792,9 +822,9 @@ function createAiBid(
         : 0.35
   );
   const aiSpendMult = aggressionMult * udfaSpendMult;
-  const salary = Math.round((ask.salary * (0.88 + needBoost / 100) * difficultyMult * salaryBias * aiSpendMult) * 10) / 10;
-  const signingBonus = Math.round((ask.signingBonus * (0.8 + needBoost / 120) * salaryBias * aiSpendMult) * 10) / 10;
-  const guaranteed = Math.round((ask.guaranteed * (0.82 + needBoost / 150) * salaryBias * aiSpendMult) * 10) / 10;
+  const salary = Math.round((ask.salary * (0.88 + (needBoost + planPriorityBoost) / 100) * difficultyMult * salaryBias * aiSpendMult * planSpendMultiplier * planRiskMultiplier) * 10) / 10;
+  const signingBonus = Math.round((ask.signingBonus * (0.8 + (needBoost + planPriorityBoost) / 120) * salaryBias * aiSpendMult * planSpendMultiplier * planRiskMultiplier) * 10) / 10;
+  const guaranteed = Math.round((ask.guaranteed * (0.82 + (needBoost + planPriorityBoost) / 150) * salaryBias * aiSpendMult * planSpendMultiplier * planRiskMultiplier) * 10) / 10;
   const franchiseAppeal = 1 + getFanbaseEffect(identity).faInterestBonus;
 
   return {
@@ -810,8 +840,9 @@ function createAiBid(
   };
 }
 
-function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState, aiBias?: AIBiasConfig): void {
+function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState, aiBias: AIBiasConfig | undefined, rng: RngState): void {
   const userTeam = findUserTeam(game);
+  const leagueAverage = buildLeagueAverageByGroup(Object.values(game.teams));
 
   for (const playerId of [...game.freeAgents]) {
     const player = getPlayer(game, playerId);
@@ -821,11 +852,33 @@ function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState, aiBi
     const userBids = (offseason.freeAgencyBids[playerId] ?? []).filter((bid) => bid.round === offseason.round);
     const aiBids = Object.values(game.teams)
       .filter((team) => !team.isUser)
-      .map((team) => createAiBid(player, ask, team, offseason.round, game.difficulty, aiBias))
+      .map((team) => {
+        const report = analyzeTeamNeeds(team, leagueAverage);
+        return createAiBid(
+          player,
+          ask,
+          team,
+          offseason.round,
+          game.difficulty,
+          getTeamPositionNeed(report, player.pos).needScore ?? 0,
+          game.franchisePlans?.[team.id],
+          aiBias,
+        );
+      })
       .filter((bid): bid is FreeAgencyBid => bid !== null)
-      .slice(0, 3);
+      .sort((a, b) => b.score - a.score || a.teamId.localeCompare(b.teamId));
 
-    const bids = [...userBids, ...aiBids].sort((a, b) => b.score - a.score || a.teamId.localeCompare(b.teamId));
+    const tierMaximum = player.ovr >= 88 ? 5 : player.ovr >= 80 ? 4 : player.ovr >= 72 ? 3 : 2;
+    const bidderSeed = [...`${game.seed}:${game.year}:${offseason.round}:${player.id}`]
+      .reduce((seed, character) => Math.imul(seed ^ character.charCodeAt(0), 16_777_619) >>> 0, 2_166_136_261);
+    const bidderCount = Math.min(
+      2 + Math.floor(mulberry32(bidderSeed)() * Math.max(1, tierMaximum - 1)),
+      tierMaximum,
+      aiBids.length,
+    );
+    const rankedAiBids = aiBids.slice(0, bidderCount);
+
+    const bids = [...userBids, ...rankedAiBids].sort((a, b) => b.score - a.score || a.teamId.localeCompare(b.teamId));
     offseason.freeAgencyBids[playerId] = bids;
 
     const winner = bids[0];
@@ -867,7 +920,7 @@ function resolveFreeAgencyRound(game: GameState, offseason: OffseasonState, aiBi
         playerNames: [signedPlayer.name],
         teamNames: [team.name],
         context: `Free-agency agreement for ${signedPlayer.name}.`,
-      }, RNG.ai));
+      }, rng.ai));
     } else if (userBidLost) {
       recordMissedFreeAgentNearMiss(game, signedPlayer, team);
     }
@@ -883,12 +936,24 @@ function currentSeasonYear(game: GameState): number {
   return game.year - 1;
 }
 
-function processCoachRetirements(game: GameState): void {
+function processCoachRetirements(game: GameState, rng: RngState): void {
   for (const team of Object.values(game.teams)) {
     for (const role of ['HC', 'OC', 'DC'] as const) {
-      applyCoachRetirement(game, team.id, role, RNG.ai);
+      applyCoachRetirement(game, team.id, role, rng.ai);
     }
   }
+}
+
+export function scoreVacancyCandidateForPlan(
+  team: Team,
+  candidate: StaffMember,
+  plan: FranchisePlan | undefined,
+): number {
+  const planSkill = plan?.riskTolerance !== undefined && plan.riskTolerance >= 60
+    ? candidate.ratings.gameplan ?? 70
+    : candidate.ratings.development ?? 70;
+  const continuity = plan?.capPosture === 'preserve' ? candidate.loyalty ?? 6 : 0;
+  return scoreStaffFit(team, candidate) + planSkill * 0.15 + continuity;
 }
 
 function fillOpenStaffVacancies(game: GameState): void {
@@ -898,7 +963,10 @@ function fillOpenStaffVacancies(game: GameState): void {
       if (team.staff[key]) continue;
 
       const market = buildCoachingMarket(game, team.id);
-      const candidate = market.candidates[role][0];
+      const plan = game.franchisePlans?.[team.id];
+      const candidate = [...market.candidates[role]].sort((left, right) =>
+        scoreVacancyCandidateForPlan(team, right, plan) - scoreVacancyCandidateForPlan(team, left, plan)
+        || left.name.localeCompare(right.name))[0];
       if (!candidate) continue;
       hireStaffCandidate(game, team.id, candidate, role);
     }
@@ -1157,7 +1225,12 @@ function createMinimumRosterPlayer(game: GameState, team: Team, position: Player
 function takeBestFreeAgentAtPosition(game: GameState, position: Player['pos']): Player | null {
   const candidate = game.freeAgents
     .map((playerId) => game.players[playerId])
-    .filter((player): player is Player => Boolean(player && player.pos === position && player.teamId === null))
+    .filter((player): player is Player => Boolean(
+      player
+      && player.pos === position
+      && player.teamId === null
+      && getGameAvailability(player) !== 'out',
+    ))
     .sort((left, right) =>
       right.ovr - left.ovr
       || left.age - right.age
@@ -1186,8 +1259,16 @@ function openRosterSlotForMinimumFloor(game: GameState, team: Team): boolean {
   return true;
 }
 
-function signMinimumRosterPlayer(game: GameState, team: Team, position: Player['pos'], slotIndex: number): void {
-  if (team.roster.length >= getRosterLimit(game) && !openRosterSlotForMinimumFloor(game, team)) return;
+function signMinimumRosterPlayer(
+  game: GameState,
+  team: Team,
+  position: Player['pos'],
+  slotIndex: number,
+  emergencyExemption = false,
+): Player | null {
+  if (team.roster.length >= getRosterLimit(game) && !openRosterSlotForMinimumFloor(game, team) && !emergencyExemption) {
+    return null;
+  }
 
   const player = takeBestFreeAgentAtPosition(game, position)
     ?? createMinimumRosterPlayer(game, team, position, slotIndex);
@@ -1205,9 +1286,102 @@ function signMinimumRosterPlayer(game: GameState, team: Team, position: Player['
     playerId: player.id,
     toTeamId: team.id,
   });
+  return player;
 }
 
-function ensureMinimumRosterFloors(game: GameState): void {
+export interface RosterHealthRepair {
+  teamId: string;
+  position: Player['pos'];
+  playerId: string;
+  source: 'practice_squad' | 'free_agent';
+}
+
+function promoteHealthyStarters(team: Team, position: Player['pos'], minimum: number): void {
+  const healthy = team.roster
+    .filter((player) => player.pos === position && getGameAvailability(player) !== 'out')
+    .sort((left, right) =>
+      Number(right.isStarter) - Number(left.isStarter)
+      || right.ovr - left.ovr
+      || left.id.localeCompare(right.id));
+  const currentHealthyStarters = healthy.filter((player) => player.isStarter).length;
+  for (const player of healthy.filter((entry) => !entry.isStarter).slice(0, Math.max(0, minimum - currentHealthyStarters))) {
+    player.isStarter = true;
+    player.role = 'Starter';
+  }
+}
+
+/**
+ * Deterministic pre-kickoff roster certification. Practice-squad elevations are
+ * consumed before street free agents, and a league emergency exemption is used
+ * only when an injury-short roster has no legal expendable slot.
+ */
+export function ensureTeamHealthyRosterFloors(game: GameState, teamId: string): RosterHealthRepair[] {
+  const team = game.teams[teamId];
+  if (!team) return [];
+  const repairs: RosterHealthRepair[] = [];
+
+  for (const [position, minimum] of MINIMUM_ROSTER_POSITIONS) {
+    let healthy = team.roster.filter((player) =>
+      player.pos === position && getGameAvailability(player) !== 'out').length;
+
+    const practiceCandidates = (team.practiceSquad ?? [])
+      .map((entry) => ({ entry, player: game.players[entry.playerId] }))
+      .filter(({ entry, player }) => Boolean(
+        player
+        && player.pos === position
+        && getGameAvailability(player) !== 'out'
+        && entry.elevationsUsed < entry.maxElevations
+        && !team.roster.some((rosterPlayer) => rosterPlayer.id === player.id),
+      ))
+      .sort((left, right) =>
+        right.player!.ovr - left.player!.ovr
+        || left.player!.id.localeCompare(right.player!.id));
+
+    while (healthy < minimum && practiceCandidates.length > 0) {
+      const candidate = practiceCandidates.shift()!;
+      elevateFromPracticeSquad(game, team.id, candidate.player!.id);
+      candidate.player!.isStarter = true;
+      candidate.player!.role = 'Starter';
+      repairs.push({ teamId: team.id, position, playerId: candidate.player!.id, source: 'practice_squad' });
+      healthy += 1;
+    }
+
+    for (let slotIndex = healthy; slotIndex < minimum; slotIndex += 1) {
+      const player = signMinimumRosterPlayer(game, team, position, slotIndex, true);
+      if (!player) continue;
+      player.isStarter = true;
+      player.role = 'Starter';
+      repairs.push({ teamId: team.id, position, playerId: player.id, source: 'free_agent' });
+    }
+    promoteHealthyStarters(team, position, minimum);
+  }
+
+  // Enforce the same exact predicate the kickoff ledger certifies. This second
+  // pass is deliberately direct: offseason depth-chart churn can leave enough
+  // healthy bodies while still leaving one slot unmarked as a starter.
+  for (const [position, minimum] of MINIMUM_ROSTER_POSITIONS) {
+    let healthyStarters = team.roster.filter((player) =>
+      player.pos === position && player.isStarter && getGameAvailability(player) !== 'out').length;
+    while (healthyStarters < minimum) {
+      const player = signMinimumRosterPlayer(game, team, position, healthyStarters, true);
+      if (!player) break;
+      player.isStarter = true;
+      player.role = 'Starter';
+      repairs.push({ teamId: team.id, position, playerId: player.id, source: 'free_agent' });
+      healthyStarters += 1;
+    }
+  }
+
+  return repairs;
+}
+
+export function certifyLeagueRosterHealth(game: GameState): RosterHealthRepair[] {
+  return Object.values(game.teams)
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .flatMap((team) => ensureTeamHealthyRosterFloors(game, team.id));
+}
+
+export function ensureMinimumRosterFloors(game: GameState): void {
   for (const team of Object.values(game.teams)) {
     for (const [position, minimum] of MINIMUM_ROSTER_POSITIONS) {
       const rostered = team.roster.filter((player) => player.pos === position).length;
@@ -1262,7 +1436,13 @@ function recordUserEndorsementPosts(game: GameState, team: Team, summary: Return
   game.socialFeed = appendToSocialFeed(game.socialFeed, posts);
 }
 
-function processJerseyRetirement(game: GameState, playerId: string, teamId: string, isHallOfFamer = false): void {
+function processJerseyRetirement(
+  game: GameState,
+  playerId: string,
+  teamId: string,
+  isHallOfFamer: boolean,
+  rng: RngState,
+): void {
   const team = game.teams[teamId];
   const archiveEntry = game.playerArchive.find((entry) => entry.playerId === playerId);
   if (!team || !archiveEntry || archiveEntry.jerseyNumber === null) return;
@@ -1270,7 +1450,7 @@ function processJerseyRetirement(game: GameState, playerId: string, teamId: stri
   if (team.retiredJerseys.some((retired) => retired.jerseyNumber === archiveEntry.jerseyNumber)) return;
   if (!shouldRetireJersey(archiveEntry, team, game.franchiseHistory, { isHallOfFamer })) return;
 
-  const retirement = generateJerseyRetirement(archiveEntry, team, game.year, RNG.ai, game.franchiseHistory, { isHallOfFamer });
+  const retirement = generateJerseyRetirement(archiveEntry, team, game.year, rng.ai, game.franchiseHistory, { isHallOfFamer });
   team.retiredJerseys = [...(team.retiredJerseys ?? []), retirement];
   recordCeremony(game, {
     id: `ceremony-${retirement.id}`,
@@ -1287,7 +1467,10 @@ function processJerseyRetirement(game: GameState, playerId: string, teamId: stri
   });
 }
 
-export function initializeOffseasonState(game: GameState): OffseasonState {
+export function initializeOffseasonState(
+  game: GameState,
+  rng: RngState = createWeekRngState(game.seed, game.year, game.week),
+): OffseasonState {
   refreshScoutPool(game);
   game.scoutingDepartment.privateWorkoutsRemaining = 3;
   refreshMedicalStaffPool(game);
@@ -1295,7 +1478,7 @@ export function initializeOffseasonState(game: GameState): OffseasonState {
   const expiringPlayers = Object.values(game.teams)
     .flatMap((team) => team.roster)
     .filter((player) => (player.contract?.years ?? 0) <= 1);
-  ensureAgentsInitialized(game);
+  ensureAgentsInitialized(game, rng.ai);
 
   const reSignDecisions = expiringPlayers.reduce<Record<string, ReSignDecision>>((acc, player) => {
     const askingPrice = buildAskingPrice(player);
@@ -1409,23 +1592,27 @@ export function signStreetFreeAgent(
   return { nextState, events: [], consequences: [] };
 }
 
-export function advanceOffseason(game: GameState, aiBias?: AIBiasConfig): void {
+export function advanceOffseason(
+  game: GameState,
+  aiBias?: AIBiasConfig,
+  rng: RngState = createWeekRngState(game.seed, game.year, game.week),
+): void {
   ensureGovernanceState(game);
   if (!game.offseasonState) {
     ensureDraftClass(game);
-    game.offseasonState = initializeOffseasonState(game);
+    game.offseasonState = initializeOffseasonState(game, rng);
   }
   game.cbaState.status = checkCBAStatus(game.cbaState, game.year);
   if (game.cbaState.currentDeal && game.cbaState.currentDeal.startYear === game.year) {
     applyCBADealToRules(game, game.cbaState.currentDeal);
   }
   if (game.cbaState.status === 'expiring' || game.cbaState.status === 'expired') {
-    startCBANegotiation(game);
-    maybeGenerateOffseasonLaborEvent(game);
+    startCBANegotiation(game, rng);
+    maybeGenerateOffseasonLaborEvent(game, rng);
     return;
   }
   if (isCBAInterruptStatus(game.cbaState.status)) {
-    maybeGenerateOffseasonLaborEvent(game);
+    maybeGenerateOffseasonLaborEvent(game, rng);
     return;
   }
   if (game.scoutingDepartment.availableScouts.length === 0) {
@@ -1437,14 +1624,14 @@ export function advanceOffseason(game: GameState, aiBias?: AIBiasConfig): void {
 
   const seasonYear = currentSeasonYear(game);
   for (const team of Object.values(game.teams)) {
-    const endorsementSummary = tickEndorsements(team, { wins: team.wins, losses: team.losses }, RNG.ai);
+    const endorsementSummary = tickEndorsements(team, { wins: team.wins, losses: team.losses }, rng.ai);
     recordUserEndorsementPosts(game, team, endorsementSummary);
   }
   markCompletedSeason(game, seasonYear);
   archivePlayerSeasonHistory(game, seasonYear);
   clearSeasonLivingWorldState(game);
   stampChampionCareers(game, seasonYear);
-  ensureAgentsInitialized(game);
+  ensureAgentsInitialized(game, rng.ai);
   const awards = generateAwards(game, seasonYear);
   if (game.playoffBracket?.championTeamId) {
     const championship = generateChampionshipCeremony(game, game.playoffBracket.championTeamId);
@@ -1508,13 +1695,13 @@ export function advanceOffseason(game: GameState, aiBias?: AIBiasConfig): void {
         teamIds: inductee.teams,
       });
       for (const teamId of inductee.teams) {
-        processJerseyRetirement(game, inductee.playerId, teamId, true);
+        processJerseyRetirement(game, inductee.playerId, teamId, true, rng);
       }
     }
   }
   refreshFranchiseIdentity(game, seasonYear, hofClass);
   const userTeam = findUserTeam(game);
-  game.stadiumDealOffers = userTeam ? generateStadiumDeals(RNG.ai) : [];
+  game.stadiumDealOffers = userTeam ? generateStadiumDeals(rng.ai) : [];
   if (shouldGenerateAllDecadeTeam(game)) {
     for (const team of Object.values(game.teams)) {
       game.allDecadeTeams.push(generateAllDecadeTeam(game, team.id));
@@ -1522,8 +1709,8 @@ export function advanceOffseason(game: GameState, aiBias?: AIBiasConfig): void {
   }
   decayLeagueRivalries(game);
   game.playerRivalries = decayRivalries(game.playerRivalries ?? [], game.year);
-  processCoachRetirements(game);
-  const carousel = runCoachingCarousel(game, seasonYear, aiBias);
+  processCoachRetirements(game, rng);
+  const carousel = runCoachingCarousel(game, seasonYear, aiBias, rng.ai);
   fillOpenStaffVacancies(game);
   const hireEvents = carousel.events.filter((event) => event.type === 'coach_hired');
   for (const event of hireEvents) {
@@ -1560,7 +1747,7 @@ export function advanceOffseason(game: GameState, aiBias?: AIBiasConfig): void {
     const archiveEntry = game.playerArchive.find((entry) => entry.playerId === retiredPlayerId);
     const lastTeamId = archiveEntry?.teamHistory.at(-1)?.teamId ?? null;
     if (lastTeamId) {
-      processJerseyRetirement(game, retiredPlayerId, lastTeamId, false);
+      processJerseyRetirement(game, retiredPlayerId, lastTeamId, false, rng);
     }
   }
   game.eventLog.push(...progression.events);
@@ -1572,7 +1759,7 @@ export function advanceOffseason(game: GameState, aiBias?: AIBiasConfig): void {
     for (const player of team.roster) {
       assignJerseyNumber(team, player);
     }
-    team.lockerRoom = initializeLockerRoom(team, RNG.ai);
+    team.lockerRoom = initializeLockerRoom(team, rng.ai);
   }
   game.farewellTours = [];
   const narrativeAdds = [
@@ -1593,11 +1780,11 @@ export function advanceOffseason(game: GameState, aiBias?: AIBiasConfig): void {
   applyTeamPhilosophies(game, currentSeasonYear(game));
   const previousCommissionerName = game.commissionerState.name;
   const previousProposalIds = game.commissionerState.activeProposals.map((proposal) => proposal.id);
-  game.commissionerState = advanceCommissioner(game.commissionerState, game);
-  maybeGenerateGovernanceNarrative(game, previousCommissionerName, previousProposalIds);
+  game.commissionerState = advanceCommissioner(game.commissionerState, game, rng.event);
+  maybeGenerateGovernanceNarrative(game, previousCommissionerName, previousProposalIds, rng);
   generateOffseasonNews(game);
   game.offseasonState.tradeOffers = generateTradeOffers(game);
-  game.endorsementOffers = userTeam ? generateEndorsementOffers(userTeam, userTeam.roster, RNG.ai) : [];
+  game.endorsementOffers = userTeam ? generateEndorsementOffers(userTeam, userTeam.roster, rng.ai) : [];
   game.teamNeedsCache = {};
   game.warRoomState = null;
   checkAchievements(game);
@@ -1605,12 +1792,16 @@ export function advanceOffseason(game: GameState, aiBias?: AIBiasConfig): void {
   game.week = 1;
 }
 
-export function advanceFreeAgency(game: GameState, aiBias?: AIBiasConfig): void {
+export function advanceFreeAgency(
+  game: GameState,
+  aiBias?: AIBiasConfig,
+  rng: RngState = createWeekRngState(game.seed, game.year, game.week),
+): void {
   if (!game.offseasonState) {
-    game.offseasonState = initializeOffseasonState(game);
+    game.offseasonState = initializeOffseasonState(game, rng);
   }
 
-  resolveFreeAgencyRound(game, game.offseasonState, aiBias);
+  resolveFreeAgencyRound(game, game.offseasonState, aiBias, rng);
   game.offseasonState.tradeOffers = generateTradeOffers(game);
 
   if (game.offseasonState.round >= 3) {

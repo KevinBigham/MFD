@@ -1,6 +1,6 @@
 {
   "name": "mfd",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@9.15.9",
   "description": "Mr. Football Dynasty - Browser-based football franchise management simulation",
@@ -18,10 +18,11 @@
     "playtest": "pnpm --filter @mfd/engine playtest",
     "playtest:all": "pnpm --filter @mfd/engine playtest:all",
     "test:perft": "pnpm --filter @mfd/engine playtest:all",
-    "test:shadow": "bash scripts/shadow-regression.sh"
+    "test:shadow": "bash scripts/shadow-regression.sh",
+    "ecology:cell": "bash scripts/playtest-report.sh"
   },
   "engines": {
-    "node": ">=20",
+    "node": ">=24",
     "pnpm": ">=9"
   },
   "devDependencies": {

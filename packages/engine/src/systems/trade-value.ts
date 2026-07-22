@@ -7,6 +7,7 @@ import type {
   Team,
   TradeOfferAsset,
 } from '../types';
+import { DIFF_SETTINGS } from '../config/difficulty';
 
 const POSITION_VALUE_MULTIPLIER: Record<Player['pos'], number> = {
   QB: 4,
@@ -166,6 +167,7 @@ export function evaluateTradeOffer(
   threshold: number;
 } {
   const philosophy = teamPhilosophy(team);
+  const plan = team.isUser ? undefined : game.franchisePlans?.[team.id];
   const incomingValue = incomingAssets.reduce((sum, asset) => {
     if (asset.type === 'player' && asset.playerId) {
       const player = game.players[asset.playerId];
@@ -180,6 +182,12 @@ export function evaluateTradeOffer(
       const player = game.players[asset.playerId];
       if (!player) return sum;
       const value = calcPlayerValue(game, player, team);
+      if (plan?.protectedAssets.includes(player.id)) {
+        return sum + value * 1.25;
+      }
+      if (plan?.expendableAssets.includes(player.id)) {
+        return sum + value * 0.85;
+      }
       if (team.gmStrategy === 'rebuild' && player.age >= 28) {
         return sum + value * 0.9;
       }
@@ -191,11 +199,15 @@ export function evaluateTradeOffer(
     return sum + resolvePickValue(game, asset);
   }, 0);
 
-  const threshold = philosophy === 'fire_sale'
+  const baseThreshold = philosophy === 'fire_sale'
     ? 0.82
     : philosophy === 'rebuild'
       ? 0.88
       : STRATEGY_THRESHOLD[team.gmStrategy] ?? 0.95;
+  const difficultySettings = DIFF_SETTINGS[game.difficulty] ?? DIFF_SETTINGS.pro;
+  const difficultyMultiplier = team.isUser ? 1 : difficultySettings.tradeMod;
+  const planRiskMultiplier = plan ? 1.08 - plan.riskTolerance / 500 : 1;
+  const threshold = Math.max(0.6, Math.min(1.5, baseThreshold * difficultyMultiplier * planRiskMultiplier));
 
   return {
     accepted: incomingValue >= outgoingValue * threshold,

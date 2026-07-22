@@ -113,7 +113,8 @@ export default function PlayerTimeline() {
   const { playerId } = useParams({ from: '/player/$playerId/timeline' });
   const navigate = useNavigate();
   const getPlayerTimeline = usePlayerTimeline();
-  const teams = useGameStore(selectTeams) ?? {};
+  const teamsState = useGameStore(selectTeams);
+  const teams = useMemo(() => teamsState ?? {}, [teamsState]);
   const transactionLog = useGameStore(selectTransactionLog);
   const draftRecaps = useGameStore(selectDraftRecaps);
   const timeline = getPlayerTimeline(playerId);

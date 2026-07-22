@@ -41,6 +41,20 @@ const GRADE_SCORE: Record<ReportCardGrade, number> = {
   F: -8,
 };
 
+const POSITION_TO_GROUP: Record<Player['pos'], PositionGroup> = {
+  QB: 'QB',
+  RB: 'RB',
+  WR: 'WR',
+  TE: 'TE',
+  OL: 'OL',
+  DL: 'DL',
+  LB: 'LB',
+  CB: 'CB',
+  S: 'S',
+  K: 'K',
+  P: 'P',
+};
+
 function round(value: number): number {
   return Math.round(value * 10) / 10;
 }
@@ -95,6 +109,49 @@ function capFlexibility(team: Team): TeamNeedsReport['capFlexibility'] {
   return 'tight';
 }
 
+function needScore(
+  starterOvr: number,
+  leagueAverage: number,
+  depth: number,
+  starterCount: number,
+  ageRiskCount: number,
+): number {
+  const qualityGap = Math.max(0, leagueAverage - starterOvr) * 2;
+  const missingStarterPenalty = Math.max(0, starterCount - depth) * 12;
+  const agingStarterPenalty = ageRiskCount * 3;
+  const shallowRoomPenalty = depth <= starterCount ? 4 : 0;
+  return round(Math.max(0, Math.min(40,
+    qualityGap + missingStarterPenalty + agingStarterPenalty + shallowRoomPenalty)));
+}
+
+function buildReasonCodes(
+  config: PositionGroupConfig,
+  room: Player[],
+  starters: Player[],
+  starterOvr: number,
+  leagueAverage: number,
+): string[] {
+  const reasons: string[] = [];
+  const missingStarters = Math.max(0, config.starterCount - room.length);
+  if (missingStarters > 0) {
+    reasons.push(`${config.group} is missing ${missingStarters} required starter${missingStarters === 1 ? '' : 's'}`);
+  }
+  const backup = room[config.starterCount];
+  if (backup && backup.ovr < 70) {
+    reasons.push(`${config.group}${config.starterCount + 1} is ${backup.ovr} OVR`);
+  } else if (!backup) {
+    reasons.push(`${config.group} has no proven first backup`);
+  }
+  const oldestStarter = [...starters].sort((a, b) => b.age - a.age || a.id.localeCompare(b.id))[0];
+  if (oldestStarter && oldestStarter.age >= 30) {
+    reasons.push(`${config.group}1 is ${oldestStarter.age} years old`);
+  }
+  if (starterOvr < leagueAverage) {
+    reasons.push(`${config.group} starters are ${round(leagueAverage - starterOvr)} OVR below league average`);
+  }
+  return reasons;
+}
+
 export function buildLeagueAverageByGroup(teams: Team[]): LeagueAverageByGroup {
   return POSITION_GROUPS.reduce<LeagueAverageByGroup>((acc, config) => {
     const starterAverages = teams.map((team) => {
@@ -125,7 +182,8 @@ export function analyzeTeamNeeds(team: Team, leagueAverageByGroup: LeagueAverage
     const starterOvr = round(average(starters.map((player) => player.ovr)));
     const avgOvr = round(average(room.map((player) => player.ovr)));
     const ageRiskCount = starters.filter((player) => player.age >= 30).length;
-    const delta = starterOvr - (leagueAverageByGroup[config.group] ?? 0);
+    const leagueAverage = leagueAverageByGroup[config.group] ?? 0;
+    const delta = starterOvr - leagueAverage;
 
     return {
       group: config.group,
@@ -136,6 +194,8 @@ export function analyzeTeamNeeds(team: Team, leagueAverageByGroup: LeagueAverage
       ageRisk: ageRiskCount >= 2 ? 'high' : ageRiskCount === 1 ? 'medium' : 'low',
       topPlayer: room[0] ?? null,
       weakestStarter: starters[starters.length - 1] ?? room[room.length - 1] ?? null,
+      needScore: needScore(starterOvr, leagueAverage, room.length, config.starterCount, ageRiskCount),
+      reasonCodes: buildReasonCodes(config, room, starters, starterOvr, leagueAverage),
     };
   });
 
@@ -159,6 +219,22 @@ export function analyzeTeamNeeds(team: Team, leagueAverageByGroup: LeagueAverage
     draftTargets: [...criticalNeeds],
     faTargets: flexibility === 'tight' ? criticalNeeds.slice(0, 2) : [...criticalNeeds],
     capFlexibility: flexibility,
+  };
+}
+
+export function getTeamPositionNeed(report: TeamNeedsReport, position: Player['pos']): PositionGroupGrade {
+  const group = POSITION_TO_GROUP[position];
+  return report.positionGrades.find((entry) => entry.group === group) ?? {
+    group,
+    grade: 'F',
+    avgOvr: 0,
+    starterOvr: 0,
+    depth: 0,
+    ageRisk: 'high',
+    topPlayer: null,
+    weakestStarter: null,
+    needScore: 40,
+    reasonCodes: [`${group} has no rostered players`],
   };
 }
 

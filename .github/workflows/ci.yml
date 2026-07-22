@@ -19,7 +19,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -48,7 +48,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -86,3 +86,11 @@ jobs:
 
       - name: Full release gate
         run: node scripts/release-gate.mjs
+
+      - name: Publish gated Pages artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mfd-pages-${{ github.sha }}
+          path: apps/web/dist
+          if-no-files-found: error
+          retention-days: 3

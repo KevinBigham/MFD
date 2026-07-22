@@ -1,6 +1,7 @@
 import { cl } from '../utils';
+import { DIFF_SETTINGS } from '../config/difficulty';
 import { generateWeeklyMediaCycle } from '../media-cycle';
-import { RNG, mulberry32, reseedSeason, reseedWeek, setSeed } from '../rng';
+import { createWeekRngState, mulberry32, type PrngFn, type RngState } from '../rng';
 import {
   advanceStorylineThreads,
   closeCompletedThreads,
@@ -47,7 +48,7 @@ import {
 } from './league-news';
 import { checkWorkStoppage, generateLaborEvent, initLaborState, updateUnionSatisfaction } from './labor-relations';
 import { recordBeat, shouldGenerateEvent } from './narrative-director';
-import { advanceFreeAgency, advanceOffseason, initializeOffseasonState } from './offseason';
+import { advanceFreeAgency, advanceOffseason, ensureTeamHealthyRosterFloors, initializeOffseasonState } from './offseason';
 import { advancePlayoffBracket, seedPlayoffBracket } from './playoff-bracket';
 import { generatePlayoffNews, calculatePlayoffMomentum, getPlayoffMomentumBonus } from './playoff-momentum';
 import { processWeeklyTraining } from './player-development';
@@ -55,6 +56,7 @@ import { archivePlayerSeasonHistory } from './player-profile';
 import { processCarryoverHoldouts } from './player-agents';
 import { archiveSeasonHistory } from './history';
 import { generateFarewellMoment } from './jersey-retirement';
+import { compactCanonicalSnapLedgers, ensureCausalSpineState, persistGameCapsule, reconcileCausalSpine, recordGamePlanDecisionReceipt, recordRivalPlanDefeat, recordWeeklyBriefingReceipts, updateFranchisePlans } from './causal-spine';
 import {
   checkMilestones,
   checkRecordChases,
@@ -210,9 +212,9 @@ function playtestFatigueIgnoreIds(teams: Team[], aiBias?: AIBiasConfig): string[
     .map((team) => team.id);
 }
 
-function applyNonGamePhase(nextState: GameState, aiBias?: AIBiasConfig): void {
-  if (nextState.phase === 'offseason') advanceOffseason(nextState, aiBias);
-  else if (nextState.phase === 'free_agency') advanceFreeAgency(nextState, aiBias);
+function applyNonGamePhase(nextState: GameState, rng: RngState, aiBias?: AIBiasConfig): void {
+  if (nextState.phase === 'offseason') advanceOffseason(nextState, aiBias, rng);
+  else if (nextState.phase === 'free_agency') advanceFreeAgency(nextState, aiBias, rng);
   else if (nextState.phase === 'draft') advanceDraft(nextState);
   else if (nextState.phase === 'post_draft') finalizePostDraft(nextState);
 
@@ -268,11 +270,15 @@ function appendGameDayPackage(
   nextState.narrativeState.recentHeadlines = [summary.headline, ...nextState.narrativeState.recentHeadlines].slice(0, 8);
 }
 
-function buildTeamOvrBonus(team: Team, baseBonus: number, adaptiveModifier: number): number {
-  return cl(baseBonus + (team.isUser ? 0 : adaptiveModifier), -5, 5);
+function buildTeamOvrBonus(team: Team, baseBonus: number, adaptiveModifier: number, moraleModifier: number): number {
+  const averageMorale = team.roster.length === 0
+    ? 70
+    : team.roster.reduce((sum, player) => sum + player.morale, 0) / team.roster.length;
+  const moraleBonus = cl(((averageMorale - 70) / 15) * moraleModifier, -3, 3);
+  return cl(baseBonus + moraleBonus + (team.isUser ? 0 : adaptiveModifier), -5, 5);
 }
 
-function advanceSeasonEndCoaching(game: GameState): void {
+function advanceSeasonEndCoaching(game: GameState, rng: RngState): void {
   for (const team of Object.values(game.teams)) {
     if (team.positionCoaches?.coaches.length) {
       team.positionCoaches = advancePositionCoachSeason(team.positionCoaches);
@@ -281,7 +287,7 @@ function advanceSeasonEndCoaching(game: GameState): void {
     if (!team.staff?.hc && !team.staff?.oc && !team.staff?.dc) continue;
     advanceCoachDevelopment(game, team.id);
   }
-  resolvePoachingCycle(game, RNG.ai);
+  resolvePoachingCycle(game, rng.ai);
 }
 
 function mergePlayerBonuses(...maps: Array<Record<string, number> | undefined>): Record<string, number> {
@@ -299,11 +305,12 @@ function resolveActiveCallYourShot(
   game: GameState,
   result: GameResult,
   userTeamId: string | null,
+  eventRng: PrngFn,
 ): CallYourShotResult | undefined {
   if (!userTeamId || !game.activeCallYourShot) return undefined;
   if (result.homeTeamId !== userTeamId && result.awayTeamId !== userTeamId) return undefined;
 
-  return resolveCallYourShot(game, result, RNG.event);
+  return resolveCallYourShot(game, result, eventRng);
 }
 
 function applyUserHalftimeChoice(
@@ -381,14 +388,14 @@ function getTaggedPlayers(game: GameState) {
   });
 }
 
-function activateWorkStoppage(game: GameState, check: ReturnType<typeof checkWorkStoppage>): void {
+function activateWorkStoppage(game: GameState, check: ReturnType<typeof checkWorkStoppage>, rng: RngState): void {
   if (!check.stoppage) return;
   if (game.laborState.activeStoppage?.type === check.stoppage.type) return;
 
   let affectedTeams = [...check.stoppage.affectedTeams];
   if (check.stoppage.type === 'holdout_wave') {
     const taggedPlayers = getTaggedPlayers(game).sort((a, b) => a.id.localeCompare(b.id));
-    const share = 0.05 + RNG.event() * 0.1;
+    const share = 0.05 + rng.event() * 0.1;
     const holdoutCount = Math.max(1, Math.min(taggedPlayers.length, Math.round(taggedPlayers.length * share)));
     for (const player of taggedPlayers.slice(0, holdoutCount)) {
       player.holdout = true;
@@ -416,14 +423,14 @@ function activateWorkStoppage(game: GameState, check: ReturnType<typeof checkWor
     teamIds: affectedTeams,
   });
   game.socialFeed = appendToSocialFeed(game.socialFeed, [
-    createLaborPost(check.summary, game.week, RNG.ai, {
+    createLaborPost(check.summary, game.week, rng.ai, {
       sentiment: check.stoppage.type === 'lockout' ? 'negative' : 'neutral',
     }),
   ]);
 }
 
-function recordLaborEventNarrative(game: GameState): void {
-  const laborEvent = generateLaborEvent(game.laborState, game);
+function recordLaborEventNarrative(game: GameState, rng: RngState): void {
+  const laborEvent = generateLaborEvent(game.laborState, game, rng.event);
   if (!laborEvent) return;
   game.laborState = {
     ...game.laborState,
@@ -439,7 +446,7 @@ function recordLaborEventNarrative(game: GameState): void {
     idSuffix: `${laborEvent.type}-${game.year}-${game.week}`,
   });
   game.socialFeed = appendToSocialFeed(game.socialFeed, [
-    createLaborPost(laborEvent.description, game.week, RNG.ai, {
+    createLaborPost(laborEvent.description, game.week, rng.ai, {
       sentiment: laborEvent.impact.satisfaction && laborEvent.impact.satisfaction > 0 ? 'positive' : 'negative',
     }),
   ]);
@@ -513,11 +520,16 @@ function appendContingencyGhostLines(result: GameResult): void {
   result.broadcast.ghostLines = [...(result.broadcast.ghostLines ?? []), ...contingencyLines];
 }
 
-function appendHallOfFamerGhostLine(result: GameResult, hallOfFame: GameState['hallOfFame'], year: number): void {
+function appendHallOfFamerGhostLine(
+  result: GameResult,
+  hallOfFame: GameState['hallOfFame'],
+  year: number,
+  aiRng: PrngFn,
+): void {
   if (!result.broadcast) return;
-  if (!shouldIncludeGhostBroadcast(RNG.ai, year - 2026, hallOfFame.length > 0)) return;
+  if (!shouldIncludeGhostBroadcast(aiRng, year - 2026, hallOfFame.length > 0)) return;
 
-  const hofer = hallOfFame[Math.floor(RNG.ai() * hallOfFame.length)];
+  const hofer = hallOfFame[Math.floor(aiRng() * hallOfFame.length)];
   if (!hofer) return;
 
   const commentator = buildHallOfFamerCommentator(hofer);
@@ -527,7 +539,7 @@ function appendHallOfFamerGhostLine(result: GameResult, hallOfFame: GameState['h
     overtime: result.overtime,
     hasMvp: result.mvpPlayerId !== null,
   });
-  const line = { ...generateGhostLine(RNG.ai, commentator, trigger), source: 'hof' as const };
+  const line = { ...generateGhostLine(aiRng, commentator, trigger), source: 'hof' as const };
   result.broadcast.ghostLines = [...(result.broadcast.ghostLines ?? []), line];
 }
 
@@ -594,7 +606,9 @@ function buildNamedGameContext(
 
 export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseWeekOptions = {}): EngineOutput {
   const nextState = options.mutateInPlace ? game : cloneGame(game);
+  const rng = createWeekRngState(game.seed, game.year, game.week);
   ensureGovernanceState(nextState);
+  ensureCausalSpineState(nextState);
   const events: GameEvent[] = [];
   const playedWeek = nextState.week;
   const startingUser = findUserTeam(nextState);
@@ -618,9 +632,6 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
   let label: string | undefined;
   let completedRegularSeasonWeek = false;
 
-  setSeed(game.seed);
-  reseedSeason(game.year);
-  reseedWeek(game.year, game.week);
   ensureLivingWorldState(nextState);
   nextState.activeRecordChases ??= [];
   nextState.recentBrokenRecords ??= [];
@@ -642,7 +653,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
     seedLeagueRivalries(nextState);
   }
   if ((nextState.phase === 'preseason' || nextState.phase === 'training_camp' || nextState.phase === 'offseason') && isCBAInterruptStatus(nextState.cbaState.status)) {
-    recordLaborEventNarrative(nextState);
+    recordLaborEventNarrative(nextState, rng);
     return { nextState, events, consequences: [] };
   }
 
@@ -655,7 +666,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
 
   if (nextState.phase === 'preseason') {
     for (const team of Object.values(nextState.teams)) {
-      team.lockerRoom = initializeLockerRoom(team, RNG.ai);
+      team.lockerRoom = initializeLockerRoom(team, rng.ai);
     }
     nextState.phase = 'regular_season';
     const defendingChampion = nextState.franchiseHistory.find((entry) => entry.year === nextState.year - 1 && entry.playoffFinish === 'champion');
@@ -684,18 +695,20 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
         generateOwnerDemands(nextState, team.id);
       }
     }
-    ensureWeeklyWeather(nextState, nextState.week);
+    ensureWeeklyWeather(nextState, nextState.week, rng.play);
     return { nextState, events, consequences: [] };
   }
   if (nextState.phase === 'offseason' && nextState.expansionDraftState) {
     return { nextState, events, consequences: [] };
   }
-  if (nextState.phase === 'offseason' && !options.skipExpansionDraft && shouldTriggerExpansion(nextState, RNG.ai)) {
-    nextState.expansionDraftState = initializeExpansionDraft(nextState, RNG.ai);
+  if (nextState.phase === 'offseason' && !options.skipExpansionDraft && shouldTriggerExpansion(nextState, rng.ai)) {
+    nextState.expansionDraftState = initializeExpansionDraft(nextState, rng.ai);
     return { nextState, events, consequences: [] };
   }
   if (['offseason', 'free_agency', 'draft', 'post_draft'].includes(nextState.phase)) {
-    applyNonGamePhase(nextState, options.playtestBias);
+    applyNonGamePhase(nextState, rng, options.playtestBias);
+    updateFranchisePlans(nextState);
+    reconcileCausalSpine(nextState);
     return { nextState, events, consequences: [] };
   }
   expireTimedEffects(nextState);
@@ -703,7 +716,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
 
   if (nextState.phase === 'regular_season' && nextState.week === getTradeDeadlineWeek(nextState) && !deadlineAlreadyResolved(nextState)) {
     if (!nextState.tradeDeadlineState) {
-      nextState.tradeDeadlineState = initializeDeadline(nextState, RNG.trade, options.playtestBias);
+      nextState.tradeDeadlineState = initializeDeadline(nextState, rng.trade, options.playtestBias);
     }
     return { nextState, events, consequences: [] };
   }
@@ -711,9 +724,9 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
   if (nextState.phase === 'regular_season' || nextState.phase === 'playoffs') {
     for (const team of Object.values(nextState.teams)) {
       if (team.isUser) {
-        processCarryoverHoldouts(nextState, team.id, RNG.ai);
+        processCarryoverHoldouts(nextState, team.id, rng.ai);
       }
-      processWeeklyTraining(nextState, team.id, RNG.dev);
+      processWeeklyTraining(nextState, team.id, rng.dev);
     }
   }
 
@@ -722,11 +735,11 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
     nextState.laborState = updateUnionSatisfaction(nextState.laborState, nextState);
     const stoppageCheck = checkWorkStoppage(nextState.laborState, nextState.cbaState);
     if (stoppageCheck.triggered) {
-      activateWorkStoppage(nextState, stoppageCheck);
+      activateWorkStoppage(nextState, stoppageCheck, rng);
       laborPenalty = stoppageCheck.playerOvrPenalty;
     }
     if (['expiring', 'expired', 'negotiating', 'awaiting_owner_vote', 'lockout'].includes(nextState.cbaState.status)) {
-      recordLaborEventNarrative(nextState);
+      recordLaborEventNarrative(nextState, rng);
     }
   }
 
@@ -738,16 +751,16 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
       }
     }
     if (nextState.week >= 14) {
-      flexSchedule(nextState, RNG.ai);
+      flexSchedule(nextState, rng.ai);
     }
     assignBroadcasts(nextState, nextState.week);
-    ensureWeeklyWeather(nextState, nextState.week);
+    ensureWeeklyWeather(nextState, nextState.week, rng.play);
     const currentWeek = nextState.schedule.find((entry) => entry.week === nextState.week);
     for (const matchup of currentWeek?.games ?? []) {
       const home = nextState.teams[matchup.homeTeamId]!;
       const away = nextState.teams[matchup.awayTeamId]!;
-      home.lockerRoom = home.lockerRoom?.cliques?.length ? home.lockerRoom : initializeLockerRoom(home, RNG.ai);
-      away.lockerRoom = away.lockerRoom?.cliques?.length ? away.lockerRoom : initializeLockerRoom(away, RNG.ai);
+      home.lockerRoom = home.lockerRoom?.cliques?.length ? home.lockerRoom : initializeLockerRoom(home, rng.ai);
+      away.lockerRoom = away.lockerRoom?.cliques?.length ? away.lockerRoom : initializeLockerRoom(away, rng.ai);
       home.franchiseIdentity = home.franchiseIdentity ?? createDefaultFranchiseIdentity(home);
       home.franchiseIdentity = {
         ...home.franchiseIdentity,
@@ -759,8 +772,8 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
       const awayEffects = getGameEffectBonuses(nextState, away.id);
       const homeLockerBonus = getLockerRoomGameBonus(home.lockerRoom);
       const awayLockerBonus = getLockerRoomGameBonus(away.lockerRoom);
-      processInjuryRecovery(nextState, home.id, RNG.injury);
-      processInjuryRecovery(nextState, away.id, RNG.injury);
+      processInjuryRecovery(nextState, home.id, rng.injury);
+      processInjuryRecovery(nextState, away.id, rng.injury);
       const homeFatigueBonuses = shouldIgnorePlaytestFatigue(home, options.playtestBias)
         ? undefined
         : buildFatiguePlayerBonuses(nextState, home.id);
@@ -778,6 +791,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
             home,
             homeEffects.teamOvrBonus + homeLockerBonus.teamOvrBonus + (homePlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + atmosphereBonus.homeOvrBonus,
             adaptiveModifier,
+            DIFF_SETTINGS[nextState.difficulty].moraleMod,
           ),
           playerOvrBonuses: buildPlayerBonuses(
             home,
@@ -799,6 +813,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
             away,
             awayEffects.teamOvrBonus + awayLockerBonus.teamOvrBonus + (awayPlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + atmosphereBonus.awayOvrPenalty,
             adaptiveModifier,
+            DIFF_SETTINGS[nextState.difficulty].moraleMod,
           ),
           playerOvrBonuses: buildPlayerBonuses(
             away,
@@ -815,15 +830,19 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
           gamePlan: awayPlanContext.gamePlan,
           opponentReport: awayPlanContext.opponentReport,
         },
-        weather: matchup.weather ?? generateRegionalWeather(home, nextState.week, RNG.play),
+        weather: matchup.weather ?? generateRegionalWeather(home, nextState.week, rng.play),
         rivalryIntensity: rivalry?.intensity ?? 0,
         homeFieldBonus: (matchup.primetime ? 2 : 0) + getStadiumHomeFieldBonus(home.franchiseIdentity),
+        clutchSwing: DIFF_SETTINGS[nextState.difficulty].clutchSwing,
       }, {
         startingUser,
         home,
         away,
         halftimeDecision: options.halftimeDecision,
       });
+      // Certify at the actual kickoff boundary, after every prep/scouting read.
+      ensureTeamHealthyRosterFloors(nextState, home.id);
+      ensureTeamHealthyRosterFloors(nextState, away.id);
       const outcome = simulateGame(
         nextState,
         home,
@@ -832,35 +851,38 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
         nextState.week,
         nextState.difficulty,
         simContext,
-        { fatigueIgnoreTeamIds: playtestFatigueIgnoreIds([home, away], options.playtestBias) },
+        {
+          fatigueIgnoreTeamIds: playtestFatigueIgnoreIds([home, away], options.playtestBias),
+          rng,
+        },
       );
       outcome.result.broadcastNetwork = matchup.broadcastNetwork;
       outcome.result.primetime = matchup.primetime;
       outcome.result.flexed = matchup.flexed;
-      callYourShotResult ??= resolveActiveCallYourShot(nextState, outcome.result, startingUser?.id ?? null);
+      callYourShotResult ??= resolveActiveCallYourShot(nextState, outcome.result, startingUser?.id ?? null, rng.event);
       if (home.isUser || away.isUser) {
         outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
         appendContingencyGhostLines(outcome.result);
-        appendHallOfFamerGhostLine(outcome.result, nextState.hallOfFame ?? [], nextState.year);
+        appendHallOfFamerGhostLine(outcome.result, nextState.hallOfFame ?? [], nextState.year, rng.ai);
       }
       // Snap count allocation
       const homePrep = nextState.weeklyPrepPlans?.[home.id];
       const homeSnapMgmt = resolvePlaytestSnapManagement(home, homePrep?.snapManagement ?? 'normal', options.playtestBias);
-      const homeSnaps = allocateGameSnaps(home, homeSnapMgmt, outcome.result.stats?.[home.id]?.playerLines ?? [], RNG.play);
+      const homeSnaps = allocateGameSnaps(home, homeSnapMgmt, outcome.result.stats?.[home.id]?.playerLines ?? [], rng.play);
       applySnapCounts(home, homeSnaps);
       const awaySnapMgmt = resolvePlaytestSnapManagement(away, 'normal', options.playtestBias);
-      const awaySnaps = allocateGameSnaps(away, awaySnapMgmt, outcome.result.stats?.[away.id]?.playerLines ?? [], RNG.play);
+      const awaySnaps = allocateGameSnaps(away, awaySnapMgmt, outcome.result.stats?.[away.id]?.playerLines ?? [], rng.play);
       applySnapCounts(away, awaySnaps);
       matchup.result = outcome.result;
       matchup.weather = outcome.result.weather ?? matchup.weather ?? null;
-      home.lockerRoom = updateLockerRoomWeekly(home, home.lockerRoom, outcome.result, RNG.ai).lockerRoom;
-      away.lockerRoom = updateLockerRoomWeekly(away, away.lockerRoom, outcome.result, RNG.ai).lockerRoom;
+      home.lockerRoom = updateLockerRoomWeekly(home, home.lockerRoom, outcome.result, rng.ai).lockerRoom;
+      away.lockerRoom = updateLockerRoomWeekly(away, away.lockerRoom, outcome.result, rng.ai).lockerRoom;
       nextState.playerRivalries = (nextState.playerRivalries ?? []).map((entry) =>
         playerRivalryContext.rivalries.some((rivalryEntry) => rivalryEntry.id === entry.id)
           ? updateRivalryFromGame(entry, outcome.result)
           : entry,
       );
-      nextState.playerRivalries = detectNewRivalries(outcome.result, home, away, nextState.playerRivalries, RNG.ai);
+      nextState.playerRivalries = detectNewRivalries(outcome.result, home, away, nextState.playerRivalries, rng.ai);
       updateRecordsFromGameResult(nextState, outcome.result);
       const brokenRecords = detectBrokenRecords(nextState, [outcome.result]);
       const reachedMilestones = checkMilestones(nextState);
@@ -909,7 +931,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
             ascendedTier,
             teamNameMap,
             nextState.week,
-            RNG.ai,
+            rng.ai,
           );
           if (heatSpikePost) ambientSocialPosts.push(heatSpikePost);
         }
@@ -918,13 +940,13 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
         const ids = [entry.teamAId, entry.teamBId];
         return ids.includes(home.id) && ids.includes(away.id);
       })) {
-        const trashTalkPost = createRivalryTrashTalkPost(rivalryEntry, nextState.week, RNG.ai);
+        const trashTalkPost = createRivalryTrashTalkPost(rivalryEntry, nextState.week, rng.ai);
         if (trashTalkPost) ambientSocialPosts.push(trashTalkPost);
       }
       for (const tour of nextState.farewellTours ?? []) {
         if (tour.teamId !== home.id && tour.teamId !== away.id) continue;
         const opponent = tour.teamId === home.id ? away : home;
-        const moment = generateFarewellMoment(tour, nextState.week, opponent, RNG.ai);
+        const moment = generateFarewellMoment(tour, nextState.week, opponent, rng.ai);
         if (moment) {
           ambientSocialPosts.push(createFarewellPost(nextState, moment.narrative));
         }
@@ -972,15 +994,15 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
     } else {
       updatePowerRankings(nextState);
       nextState.week += 1;
-      ensureWeeklyWeather(nextState, nextState.week);
+      ensureWeeklyWeather(nextState, nextState.week, rng.play);
     }
   } else if (nextState.phase === 'playoffs') {
     nextState.playoffBracket = nextState.playoffBracket ?? seedPlayoffBracket(nextState);
     nextState.playoffBracket = advancePlayoffBracket(nextState.playoffBracket, nextState.week, (homeTeamId, awayTeamId) => {
       const home = nextState.teams[homeTeamId]!;
       const away = nextState.teams[awayTeamId]!;
-      home.lockerRoom = home.lockerRoom?.cliques?.length ? home.lockerRoom : initializeLockerRoom(home, RNG.ai);
-      away.lockerRoom = away.lockerRoom?.cliques?.length ? away.lockerRoom : initializeLockerRoom(away, RNG.ai);
+      home.lockerRoom = home.lockerRoom?.cliques?.length ? home.lockerRoom : initializeLockerRoom(home, rng.ai);
+      away.lockerRoom = away.lockerRoom?.cliques?.length ? away.lockerRoom : initializeLockerRoom(away, rng.ai);
       home.franchiseIdentity = home.franchiseIdentity ?? createDefaultFranchiseIdentity(home);
       home.franchiseIdentity = {
         ...home.franchiseIdentity,
@@ -992,8 +1014,8 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
       const awayEffects = getGameEffectBonuses(nextState, away.id);
       const homeLockerBonus = getLockerRoomGameBonus(home.lockerRoom);
       const awayLockerBonus = getLockerRoomGameBonus(away.lockerRoom);
-      processInjuryRecovery(nextState, home.id, RNG.injury);
-      processInjuryRecovery(nextState, away.id, RNG.injury);
+      processInjuryRecovery(nextState, home.id, rng.injury);
+      processInjuryRecovery(nextState, away.id, rng.injury);
       const homeFatigueBonuses = shouldIgnorePlaytestFatigue(home, options.playtestBias)
         ? undefined
         : buildFatiguePlayerBonuses(nextState, home.id);
@@ -1016,6 +1038,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
             home,
             homeEffects.teamOvrBonus + homeLockerBonus.teamOvrBonus + (homePlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + homeMomentum + playoffAtmosphereBonus.homeOvrBonus,
             adaptiveModifier,
+            DIFF_SETTINGS[nextState.difficulty].moraleMod,
           ),
           playerOvrBonuses: buildPlayerBonuses(
             home,
@@ -1036,6 +1059,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
             away,
             awayEffects.teamOvrBonus + awayLockerBonus.teamOvrBonus + (awayPlanContext.prepContext.teamOvrBonus ?? 0) + (rivalry?.ovrBoost ?? 0) + awayMomentum + playoffAtmosphereBonus.awayOvrPenalty,
             adaptiveModifier,
+            DIFF_SETTINGS[nextState.difficulty].moraleMod,
           ),
           playerOvrBonuses: buildPlayerBonuses(
             away,
@@ -1051,15 +1075,19 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
           gamePlan: awayPlanContext.gamePlan,
           opponentReport: awayPlanContext.opponentReport,
         },
-        weather: generateRegionalWeather(home, nextState.week, RNG.play),
+        weather: generateRegionalWeather(home, nextState.week, rng.play),
         rivalryIntensity: rivalry?.intensity ?? 0,
         homeFieldBonus: getStadiumHomeFieldBonus(home.franchiseIdentity),
+        clutchSwing: DIFF_SETTINGS[nextState.difficulty].clutchSwing,
+        isPlayoff: true,
       }, {
         startingUser,
         home,
         away,
         halftimeDecision: options.halftimeDecision,
       });
+      ensureTeamHealthyRosterFloors(nextState, home.id);
+      ensureTeamHealthyRosterFloors(nextState, away.id);
       const outcome = simulateGame(
         nextState,
         home,
@@ -1068,21 +1096,24 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
         nextState.week,
         nextState.difficulty,
         simContext,
-        { fatigueIgnoreTeamIds: playtestFatigueIgnoreIds([home, away], options.playtestBias) },
+        {
+          fatigueIgnoreTeamIds: playtestFatigueIgnoreIds([home, away], options.playtestBias),
+          rng,
+        },
       );
-      callYourShotResult ??= resolveActiveCallYourShot(nextState, outcome.result, startingUser?.id ?? null);
+      callYourShotResult ??= resolveActiveCallYourShot(nextState, outcome.result, startingUser?.id ?? null, rng.event);
       if (home.isUser || away.isUser) {
         outcome.result.broadcast = generateBroadcast(outcome.result, home, away, buildBroadcastRng(nextState, outcome.result));
         appendContingencyGhostLines(outcome.result);
-        appendHallOfFamerGhostLine(outcome.result, nextState.hallOfFame ?? [], nextState.year);
+        appendHallOfFamerGhostLine(outcome.result, nextState.hallOfFame ?? [], nextState.year, rng.ai);
       }
       // Playoff snap counts — ride_stars in playoffs
       const playoffHomePrep = nextState.weeklyPrepPlans?.[home.id];
       const playoffHomeSnapMgmt = resolvePlaytestSnapManagement(home, playoffHomePrep?.snapManagement ?? 'ride_stars', options.playtestBias);
-      const playoffHomeSnaps = allocateGameSnaps(home, playoffHomeSnapMgmt, outcome.result.stats?.[home.id]?.playerLines ?? [], RNG.play);
+      const playoffHomeSnaps = allocateGameSnaps(home, playoffHomeSnapMgmt, outcome.result.stats?.[home.id]?.playerLines ?? [], rng.play);
       applySnapCounts(home, playoffHomeSnaps);
       const playoffAwaySnapMgmt = resolvePlaytestSnapManagement(away, 'ride_stars', options.playtestBias);
-      const playoffAwaySnaps = allocateGameSnaps(away, playoffAwaySnapMgmt, outcome.result.stats?.[away.id]?.playerLines ?? [], RNG.play);
+      const playoffAwaySnaps = allocateGameSnaps(away, playoffAwaySnapMgmt, outcome.result.stats?.[away.id]?.playerLines ?? [], rng.play);
       applySnapCounts(away, playoffAwaySnaps);
       const winnerTeamId = outcome.result.homeScore >= outcome.result.awayScore ? outcome.result.homeTeamId : outcome.result.awayTeamId;
       const loserTeamId = winnerTeamId === outcome.result.homeTeamId ? outcome.result.awayTeamId : outcome.result.homeTeamId;
@@ -1104,14 +1135,14 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
         awayScore: outcome.result.awayScore,
         narrativeTag: nextState.playoffMomentum[winnerTeamId]?.narrativeTag ?? null,
       }));
-      home.lockerRoom = updateLockerRoomWeekly(home, home.lockerRoom, outcome.result, RNG.ai).lockerRoom;
-      away.lockerRoom = updateLockerRoomWeekly(away, away.lockerRoom, outcome.result, RNG.ai).lockerRoom;
+      home.lockerRoom = updateLockerRoomWeekly(home, home.lockerRoom, outcome.result, rng.ai).lockerRoom;
+      away.lockerRoom = updateLockerRoomWeekly(away, away.lockerRoom, outcome.result, rng.ai).lockerRoom;
       nextState.playerRivalries = (nextState.playerRivalries ?? []).map((entry) =>
         playerRivalryContext.rivalries.some((rivalryEntry) => rivalryEntry.id === entry.id)
           ? updateRivalryFromGame(entry, outcome.result)
           : entry,
       );
-      nextState.playerRivalries = detectNewRivalries(outcome.result, home, away, nextState.playerRivalries, RNG.ai);
+      nextState.playerRivalries = detectNewRivalries(outcome.result, home, away, nextState.playerRivalries, rng.ai);
       updateRecordsFromGameResult(nextState, outcome.result);
       const brokenRecords = detectBrokenRecords(nextState, [outcome.result]);
       const reachedMilestones = checkMilestones(nextState);
@@ -1160,7 +1191,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
             ascendedPlayoffTier,
             playoffTeamNameMap,
             nextState.week,
-            RNG.ai,
+            rng.ai,
           );
           if (playoffHeatSpikePost) ambientSocialPosts.push(playoffHeatSpikePost);
         }
@@ -1204,7 +1235,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
       for (const item of storyArcAdvance.inboxEntries) {
         recordNewsItem(nextState, item);
       }
-      advanceSeasonEndCoaching(nextState);
+      advanceSeasonEndCoaching(nextState, rng);
 
       // Doctrine detection at season end
       if (!nextState.earnedDoctrines) nextState.earnedDoctrines = [];
@@ -1244,7 +1275,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
       delete nextState.seasonNearMissReceipts;
       if (nextState.nearMissTracker) {
         if (hasNotableNearMisses(nextState.nearMissTracker)) {
-          nearMissReceipts = generateNearMissReceipts(RNG.event, nextState.nearMissTracker);
+          nearMissReceipts = generateNearMissReceipts(rng.event, nextState.nearMissTracker);
           nextState.seasonNearMissReceipts = nearMissReceipts;
         }
         delete nextState.nearMissTracker;
@@ -1253,7 +1284,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
       showSaveReminder = shouldShowSaveReminder(nextState.year, nextState.lastPortableExportYear ?? null);
       nextState.week = 1;
       ensureDraftClass(nextState);
-      nextState.offseasonState = initializeOffseasonState(nextState);
+      nextState.offseasonState = initializeOffseasonState(nextState, rng);
       nextState.offseasonState.tradeOffers = generateTradeOffers(nextState);
       if (nextState.scenarioState?.activeScenario) {
         checkScenarioProgress(nextState);
@@ -1264,7 +1295,7 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
     }
   }
 
-  aiWaiverLogic(nextState);
+  aiWaiverLogic(nextState, rng.ai);
   processWaiverClaims(nextState);
   refreshOwnerMandates(nextState);
   evaluateHandshakes(nextState);
@@ -1301,6 +1332,9 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
   }
   const currentUser = findUserTeam(nextState);
   if (currentUser && userResult) {
+    const trickPlaySummaries = (userResult.contingencyActivations ?? [])
+      .filter((entry) => entry.teamId === currentUser.id && entry.ruleId.startsWith('trick:'))
+      .map((entry) => `Trick play — Q${entry.quarter} ${entry.label}: ${entry.responseLabel ?? 'resolved'}. ${entry.callout ?? ''}`.trim());
     const userOutcome = userResult.homeTeamId === currentUser.id
       ? userResult.homeScore > userResult.awayScore
         ? 'win'
@@ -1358,23 +1392,54 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
     appendGameDayPackage(nextState, currentUser, userOpponent, userResult, summary, {
       pressConference: postGameConference,
       rivalry: userRivalry,
-      activeEffectSummaries: userActiveEffectSummaries,
+      activeEffectSummaries: [...trickPlaySummaries, ...userActiveEffectSummaries].slice(0, 4),
       filmRoomReport,
       recordsMoments: userRecordMoments,
       milestoneMoments: userMilestoneMoments,
       callYourShotResult,
     });
+    if (userOpponent) {
+      const rivalPlan = nextState.franchisePlans?.[userOpponent.id] ?? null;
+      if (rivalPlan) {
+        recordNewsItem(nextState, {
+          id: `rival-plan-${userResult.id}-${userOpponent.id}`,
+          year: userResult.year,
+          week: userResult.week,
+          type: 'rivalry',
+          headline: `${userOpponent.abbr} stays on its franchise plan`,
+          body: `${rivalPlan.publicNarrative} Priorities: ${rivalPlan.priorityPositions.join(', ')}; cap posture: ${rivalPlan.capPosture}; risk tolerance: ${rivalPlan.riskTolerance}.`,
+          teamIds: [userOpponent.id, currentUser.id],
+          playerIds: [],
+          importance: 'minor',
+        });
+        ambientSocialPosts.push({
+          id: `rival-plan-social-${userResult.id}-${userOpponent.id}`,
+          source: 'analyst',
+          authorName: 'MFSN Franchise Desk',
+          content: rivalPlan.publicNarrative,
+          trigger: 'rivalry',
+          sentiment: 'neutral',
+          likes: 180 + rivalPlan.riskTolerance,
+          timestamp: playedWeek,
+        });
+        recordRivalPlanDefeat(nextState, userResult, currentUser.id);
+      }
+    }
     for (const activation of userResult.contingencyActivations?.filter((entry) => entry.teamId === currentUser.id) ?? []) {
       const scoreDelta = userResult.homeTeamId === currentUser.id
         ? userResult.homeScore - userResult.awayScore
         : userResult.awayScore - userResult.homeScore;
       recordNewsItem(nextState, {
-        id: `contingency-${nextState.year}-${playedWeek}-${activation.ruleId}`,
+        id: `${activation.ruleId.startsWith('trick:') ? 'trick-play' : 'contingency'}-${nextState.year}-${playedWeek}-${activation.ruleId}`,
         year: nextState.year,
         week: playedWeek,
         type: 'milestone',
-        headline: `Contingency fired: ${activation.responseLabel ?? activation.label}`,
-        body: `${activation.label} triggered in Q${activation.quarter}. Result: ${summary.result.toUpperCase()} with a ${scoreDelta >= 0 ? '+' : ''}${scoreDelta} point swing on the final scoreboard.`,
+        headline: activation.ruleId.startsWith('trick:')
+          ? `${activation.label}: ${activation.responseLabel ?? 'resolved'}`
+          : `Contingency fired: ${activation.responseLabel ?? activation.label}`,
+        body: activation.ruleId.startsWith('trick:')
+          ? `${activation.callout ?? activation.label} It was called in Q${activation.quarter}; the team finished with a ${scoreDelta >= 0 ? '+' : ''}${scoreDelta} point margin.`
+          : `${activation.label} triggered in Q${activation.quarter}. Result: ${summary.result.toUpperCase()} with a ${scoreDelta >= 0 ? '+' : ''}${scoreDelta} point swing on the final scoreboard.`,
         teamIds: [currentUser.id, ...(userOpponent ? [userOpponent.id] : [])],
         playerIds: [],
         importance: 'minor',
@@ -1396,12 +1461,12 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
       });
     }
     if (nextState.phase === 'regular_season') {
-      if (shouldGenerateEvent(nextState, 'off_field_event', 40, RNG.ai, {
+      if (shouldGenerateEvent(nextState, 'off_field_event', 40, rng.ai, {
         polarity: summary.result === 'loss' ? 'negative' : 'positive',
       })) {
-        generateWeeklyOffFieldEvents(nextState, currentUser);
+        generateWeeklyOffFieldEvents(nextState, currentUser, rng.ai);
       }
-      const midweekConference = shouldGenerateEvent(nextState, 'midweek_press', 30, RNG.ai, {
+      const midweekConference = shouldGenerateEvent(nextState, 'midweek_press', 30, rng.ai, {
         polarity: userRivalry ? 'positive' : 'neutral',
       }) ? maybeCreateMidweekPressConference(nextState, currentUser) : null;
       if (midweekConference) {
@@ -1418,8 +1483,8 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
   if (currentUser && (game.phase === 'regular_season' || game.phase === 'playoffs')) {
     const newPosts = [
       ...ambientSocialPosts,
-      ...weeklyBrokenRecords.map((record) => createRecordBreakingPost(record, playedWeek, RNG.ai)),
-      ...weeklyMilestones.map((milestone) => createMilestonePost(milestone, playedWeek, RNG.ai)),
+      ...weeklyBrokenRecords.map((record) => createRecordBreakingPost(record, playedWeek, rng.ai)),
+      ...weeklyMilestones.map((milestone) => createMilestonePost(milestone, playedWeek, rng.ai)),
       ...(userResult?.broadcast
         ? generateGameDayPosts(
           userResult.broadcast,
@@ -1427,17 +1492,17 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
           nextState.teams,
           Object.values(nextState.players),
           playedWeek,
-          RNG.ai,
+          rng.ai,
         )
         : []),
-      ...nextState.activeRecordChases.slice(0, 3).map((chase) => createRecordChasePost(chase, playedWeek, RNG.ai)),
-      ...generateWeeklyBuzz(nextState, playedWeek, RNG.ai),
+      ...nextState.activeRecordChases.slice(0, 3).map((chase) => createRecordChasePost(chase, playedWeek, rng.ai)),
+      ...generateWeeklyBuzz(nextState, playedWeek, rng.ai),
     ];
     nextState.socialFeed = appendToSocialFeed(nextState.socialFeed, newPosts);
   }
 
   if (completedRegularSeasonWeek) {
-    generateWeeklyLeagueNews(nextState, RNG.ai);
+    generateWeeklyLeagueNews(nextState, rng.ai);
     for (const stat of ['passYds', 'rushYds', 'sacks'] as const) {
       const leader = getLeagueLeaders(nextState, stat, undefined, 1)[0];
       if (leader) {
@@ -1447,6 +1512,11 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
   }
 
   checkAchievements(nextState);
+  if (currentUser && userResult) {
+    const completedPlan = nextState.weeklyPrepPlans?.[currentUser.id];
+    if (completedPlan) recordGamePlanDecisionReceipt(nextState, currentUser.id, completedPlan, userResult);
+    recordWeeklyBriefingReceipts(nextState, currentUser.id, userResult);
+  }
   resetGamePlan(nextState);
   if (currentUser?.id && nextState.weeklyPrepPlans?.[currentUser.id]) {
     delete nextState.weeklyPrepPlans[currentUser.id];
@@ -1456,6 +1526,16 @@ export function advanceFranchiseWeek(game: GameState, options: AdvanceFranchiseW
   } else {
     nextState.tradeSuggestions = [];
   }
+
+  reconcileCausalSpine(nextState);
+  const completedWeek = nextState.schedule.find((entry) => entry.week === playedWeek);
+  for (const scheduled of completedWeek?.games ?? []) {
+    if (scheduled.result && currentUser
+      && (scheduled.result.homeTeamId === currentUser.id || scheduled.result.awayTeamId === currentUser.id)) {
+      persistGameCapsule(nextState, scheduled.result);
+    }
+  }
+  if (currentUser) compactCanonicalSnapLedgers(nextState, currentUser.id);
 
   return {
     nextState,

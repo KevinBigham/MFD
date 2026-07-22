@@ -2127,8 +2127,9 @@ async function runG6VisualSweepSmoke(cdp, sessionId, baseUrl) {
 async function runNewDynastySetupEntrySmoke(cdp, sessionId, baseUrl) {
   console.log(`Running new-dynasty setup entry smoke at ${baseUrl}...`);
   await waitForBodyText(cdp, sessionId, 'Select Franchise', 'new-dynasty franchise selector');
-  await waitForBodyText(cdp, sessionId, 'Full Setup', 'new-dynasty full setup option');
-  await clickButtonContaining(cdp, sessionId, 'Start Dynasty', 'clickable Start Dynasty button');
+  await waitForBodyText(cdp, sessionId, 'Full GM', 'new-dynasty full GM option');
+  await clickButtonContaining(cdp, sessionId, 'Full GM', 'clickable Full GM onboarding option');
+  await clickButtonContaining(cdp, sessionId, 'Start Full GM', 'clickable Start Full GM button');
   await waitForSetupShellAfterStartDynasty(cdp, sessionId);
   await waitForBodyText(cdp, sessionId, 'YOUR FIRST DAY', 'setup header copy');
   await waitForSetupHeaderText(
@@ -2220,8 +2221,9 @@ async function runNewDynastySetupEntrySmoke(cdp, sessionId, baseUrl) {
 async function runNewDynastyFullSetupSmoke(cdp, sessionId, baseUrl) {
   console.log(`Running full new-dynasty setup completion smoke at ${baseUrl}...`);
   await waitForBodyText(cdp, sessionId, 'Select Franchise', 'new-dynasty franchise selector');
-  await waitForBodyText(cdp, sessionId, 'Full Setup', 'new-dynasty full setup option');
-  await clickButtonContaining(cdp, sessionId, 'Start Dynasty', 'clickable Start Dynasty button');
+  await waitForBodyText(cdp, sessionId, 'Full GM', 'new-dynasty full GM option');
+  await clickButtonContaining(cdp, sessionId, 'Full GM', 'clickable Full GM onboarding option');
+  await clickButtonContaining(cdp, sessionId, 'Start Full GM', 'clickable Start Full GM button');
   await waitForSetupShellAfterStartDynasty(cdp, sessionId);
 
   for (let index = 0; index < 6; index += 1) {
@@ -3818,6 +3820,15 @@ function latestAutosaveWaiverPracticeSquadStateExpression(fixture) {
         && (save?.freeAgents ?? []).includes(fixture.practicePlayerId)
         && practicePlayer?.teamId === null
       );
+      // Week advance may immediately sign a released player to a CPU club as
+      // deterministic roster-health repair. The release still survived when
+      // the player is absent from the user's PS and active roster and is not
+      // assigned back to the user team.
+      const practiceReleaseSurvived = Boolean(
+        !practiceEntry
+        && !userRosterPracticePlayer
+        && practicePlayer?.teamId !== fixture.userTeamId
+      );
       const waiverClaimIntent = Boolean(
         waiverClaimPending
         && waiverOnWire
@@ -3843,6 +3854,7 @@ function latestAutosaveWaiverPracticeSquadStateExpression(fixture) {
         practiceAdded,
         practiceElevated,
         practiceReleased,
+        practiceReleaseSurvived,
         practiceEntry,
         practiceInFreeAgents: (save?.freeAgents ?? []).includes(fixture.practicePlayerId),
         practiceTeamId: practicePlayer?.teamId ?? null,
@@ -7745,7 +7757,7 @@ async function runWaiverPracticeSquadSmoke(cdp, sessionId, baseUrl) {
     cdp,
     sessionId,
     fixture,
-    'practiceReleased',
+    'practiceReleaseSurvived',
     'practice-squad release persisted after final hard reload',
   );
   await waitForBodyText(cdp, sessionId, fixture.waiverPlayerName, 'waiver claim result after final hard reload');

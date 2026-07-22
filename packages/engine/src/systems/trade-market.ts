@@ -6,6 +6,8 @@ import { conditionalPickExpectedValue } from './conditional-picks';
 import { recordNewsItem } from './league-news';
 import { createTransactionalPressConference, recordPressConference } from './press-conference';
 import { getScenarioConstraints } from './scenario-challenge';
+import { analyzeTeamNeeds, buildLeagueAverageByGroup, getTeamPositionNeed } from './team-needs';
+import type { LeagueAverageByGroup } from './team-needs';
 import { appendToSocialFeed, generateTransactionPosts } from './social-feed';
 import { getActiveRule } from './league-rules';
 import { syncTeamCapTotals } from './team-cap';
@@ -152,11 +154,9 @@ function describeAssets(assets: TradeOfferAsset[]): string {
   return `${assets[0]!.description}, ${assets[1]!.description}, and ${assets[2]!.description}`;
 }
 
-function positionNeed(team: Team, pos: Player['pos']): number {
-  const bestAtPosition = team.roster
-    .filter((player) => player.pos === pos)
-    .sort((a, b) => b.ovr - a.ovr)[0];
-  return 90 - (bestAtPosition?.ovr ?? 60);
+function positionNeed(team: Team, pos: Player['pos'], leagueAverage: LeagueAverageByGroup): number {
+  const report = analyzeTeamNeeds(team, leagueAverage);
+  return getTeamPositionNeed(report, pos).needScore ?? 0;
 }
 
 function teamPhilosophy(team: Team): NonNullable<Team['philosophy']> {
@@ -362,10 +362,11 @@ export function generateTradeOffers(game: GameState): TradeOffer[] {
     .sort((a, b) => b.ovr - a.ovr || a.id.localeCompare(b.id));
 
   const offers: TradeOffer[] = [];
+  const leagueAverage = buildLeagueAverageByGroup(Object.values(game.teams));
 
   for (const player of tradeBlock) {
     const rankedTeams = [...aiTeams]
-      .sort((a, b) => positionNeed(b, player.pos) - positionNeed(a, player.pos) || a.id.localeCompare(b.id));
+      .sort((a, b) => positionNeed(b, player.pos, leagueAverage) - positionNeed(a, player.pos, leagueAverage) || a.id.localeCompare(b.id));
 
     for (const aiTeam of rankedTeams) {
       const offer = buildInboundOffer(game, userTeam, aiTeam, player);

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { setSeed } from '../rng';
+import { createRngState } from '../rng';
 import type { GamePlan } from '../types';
 import { advanceFranchiseWeek } from './franchise-week';
-import { simGame } from './game-sim';
+import { createSimulationContext, simGame } from './game-sim';
 import { makeLeagueState, makeTeam } from './test-helpers';
 
 function makePlan(overrides: Partial<GamePlan> = {}): GamePlan {
@@ -43,10 +43,9 @@ describe('contingency wiring', () => {
 
     let activation: ReturnType<typeof simGame>['contingencyActivations'][number] | undefined;
     for (let seed = 1; seed <= 300; seed += 1) {
-      setSeed(seed);
-      const result = simGame(home, away, {
+      const result = simGame(home, away, createSimulationContext({
         home: { gamePlan: homePlan },
-      });
+      }, createRngState(seed)));
       activation = result.contingencyActivations.find((entry) => entry.ruleId === 'home-trail');
       if (activation) break;
     }
@@ -73,16 +72,14 @@ describe('contingency wiring', () => {
 
     let changedByContingency = false;
     for (let seed = 1; seed <= 300; seed += 1) {
-      setSeed(seed);
-      const baseline = simGame(home, away, {
+      const baseline = simGame(home, away, createSimulationContext({
         home: { gamePlan: makePlan() },
         weather: 'dome',
-      });
-      setSeed(seed);
-      const contingent = simGame(home, away, {
+      }, createRngState(seed)));
+      const contingent = simGame(home, away, createSimulationContext({
         home: { gamePlan: contingentPlan },
         weather: 'dome',
-      });
+      }, createRngState(seed)));
 
       const activated = contingent.contingencyActivations.some((entry) => entry.ruleId === 'run-late');
       const changed = contingent.homeStats.rushAttempts !== baseline.homeStats.rushAttempts
@@ -114,7 +111,6 @@ describe('contingency wiring', () => {
         }],
       });
 
-      setSeed(seed);
       const result = advanceFranchiseWeek(game);
       const userGame = result.nextState.schedule[0]!.games[0]!.result!;
       const callout = userGame.broadcast?.ghostLines?.find((line) =>
@@ -146,7 +142,6 @@ describe('contingency wiring', () => {
         }],
       });
 
-      setSeed(seed);
       const result = advanceFranchiseWeek(game);
       headline = result.nextState.leagueNews.find((item) => item.id.includes('contingency'))?.headline;
       if (headline) break;
@@ -168,11 +163,10 @@ describe('contingency wiring', () => {
       }],
     });
 
-    setSeed(44);
-    const result = simGame(home, away, {
+    const result = simGame(home, away, createSimulationContext({
       home: { gamePlan: homePlan },
       weather: 'wind',
-    });
+    }, createRngState(44)));
 
     expect(result.contingencyActivations.filter((entry) => entry.ruleId === 'single-fire')).toHaveLength(1);
   });

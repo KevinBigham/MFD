@@ -11,11 +11,11 @@
  *      a team with pocketBoost + qbBoost outperforms a baseline team
  *      across a statistically meaningful number of games at the same seed.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { getCoachTraitMods } from './coach-trait-mods';
-import { simGame } from './game-sim';
+import { createSimulationContext, simGame } from './game-sim';
 import { makeTeam } from './test-helpers';
-import { setSeed } from '../rng';
+import { createRngState } from '../rng';
 import type { StaffMember, Team } from '../types';
 
 function makeStaff(id: string, role: StaffMember['role'], traits: string[]): StaffMember {
@@ -34,10 +34,6 @@ function teamWithStaff(baseId: string, ratingBase: number, staff: Team['staff'])
   const team = makeTeam(baseId, 'AFC', 'East', false, ratingBase);
   return { ...team, staff };
 }
-
-beforeEach(() => {
-  setSeed(42);
-});
 
 describe('getCoachTraitMods determinism', () => {
   it('returns identical mods for the same team across repeated calls', () => {
@@ -123,9 +119,11 @@ describe('simGame wiring — coach traits move sim outcomes', () => {
     let baselineWins = 0;
 
     // Alternate home/away to neutralize home-field advantage in the aggregate.
-    setSeed(1234);
+    const rng = createRngState(1234);
     for (let i = 0; i < 200; i++) {
-      const res = i % 2 === 0 ? simGame(loaded, baseline) : simGame(baseline, loaded);
+      const res = i % 2 === 0
+        ? simGame(loaded, baseline, createSimulationContext({}, rng))
+        : simGame(baseline, loaded, createSimulationContext({}, rng));
       if (i % 2 === 0) {
         loadedPoints += res.homeScore;
         baselinePoints += res.awayScore;

@@ -125,8 +125,8 @@ function makeAchievement(overrides: Record<string, unknown> = {}): Record<string
 }
 
 describe('SaveStateSchema', () => {
-  it('uses save version 36 for AGM and owner mandate persistence', () => {
-    expect(SAVE_VERSION).toBe(36);
+  it('uses save version 37 for causal spine and franchise-plan persistence', () => {
+    expect(SAVE_VERSION).toBe(37);
   });
 
   it('validates a minimal valid save', () => {
@@ -205,7 +205,7 @@ describe('SaveStateSchema', () => {
     if (result.success) {
       expect(result.data.offseasonState).toBeNull();
       expect(result.data.playerSeasonHistory).toEqual({});
-      expect(result.data.settings).toEqual({ halftimeDecisions: 'on' });
+      expect(result.data.settings).toEqual({ halftimeDecisions: 'on', coachMode: false });
       expect(result.data.faTargetBoard).toMatchObject({
         teamId: null,
         watchlist: [],
@@ -999,7 +999,7 @@ describe('SaveStateSchema', () => {
     expect(migrated['commissionerDisciplineLog']).toEqual([]);
     expect(migrated['earnedDoctrines']).toEqual([]);
     expect(migrated['seasonNearMissReceipts']).toEqual([]);
-    expect(migrated['settings']).toEqual({ halftimeDecisions: 'on' });
+    expect(migrated['settings']).toEqual({ halftimeDecisions: 'on', coachMode: false });
     expect(migrated['weeklyPrepPlans']).toEqual({
       USER: expect.objectContaining({
         contingencyRules: [],
@@ -1028,7 +1028,7 @@ describe('SaveStateSchema', () => {
 
     expect(migrated['version']).toBe(SAVE_VERSION);
     expect((migrated['teams'] as Record<string, Record<string, unknown>>).USER.fanConfidence).toBe(64);
-    expect(migrated['settings']).toEqual({ halftimeDecisions: 'off' });
+    expect(migrated['settings']).toEqual({ halftimeDecisions: 'off', coachMode: false });
     expect(migrated['postGameUi']).toEqual({
       pressConferenceQueue: [],
       audioCueQueue: [],
@@ -2395,5 +2395,56 @@ describe('migration pipeline', () => {
 
     expect(parsed.players[player.id]?.bloodline).toMatchObject({ parentName: 'Marcus Cole' });
     expect((parsed.draftClass[0] as Record<string, unknown>)['bloodline']).toMatchObject({ parentName: 'Marcus Cole' });
+  });
+
+  it('recovers current-version record memory rows written without player names', () => {
+    const game = makeLeagueState('regular_season', 9);
+    const qb = Object.values(game.players).find((player) => player.pos === 'QB' && player.teamId)!;
+    game.activeRecordChases = [{
+      playerId: qb.id,
+      playerName: 'Temporary Name',
+      teamId: qb.teamId!,
+      stat: 'passYds',
+      currentValue: 3_200,
+      recordValue: 5_000,
+      recordHolder: 'Legacy QB',
+      pace: 90,
+      category: 'singleSeason',
+      weeksRemaining: 9,
+      projected: 6_400,
+    }];
+    game.recentBrokenRecords = [{
+      playerId: qb.id,
+      playerName: 'Temporary Name',
+      teamId: qb.teamId!,
+      stat: 'passYds',
+      newValue: 501,
+      previousValue: 500,
+      previousHolder: 'Legacy QB',
+      category: 'singleGame',
+      year: game.year,
+      week: game.week,
+      narrative: 'A new record.',
+    }];
+    game.recentMilestones = [{
+      playerId: qb.id,
+      playerName: 'Temporary Name',
+      stat: 'passYds',
+      value: 10_000,
+      milestoneLabel: '10,000',
+      narrative: 'A milestone.',
+      year: game.year,
+      week: game.week,
+    }];
+    const raw = structuredClone(game) as unknown as Record<string, unknown>;
+    for (const key of ['activeRecordChases', 'recentBrokenRecords', 'recentMilestones'] as const) {
+      delete ((raw[key] as Array<Record<string, unknown>>)[0]!).playerName;
+    }
+
+    const parsed = SaveStateSchema.parse(raw);
+
+    expect(parsed.activeRecordChases[0]?.playerName).toBe('Unknown Player');
+    expect(parsed.recentBrokenRecords[0]?.playerName).toBe('Unknown Player');
+    expect(parsed.recentMilestones[0]?.playerName).toBe('Unknown Player');
   });
 });

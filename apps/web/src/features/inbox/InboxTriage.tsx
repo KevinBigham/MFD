@@ -127,7 +127,10 @@ export function InboxTriage() {
   const warRoomState = useGameStore(selectWarRoomState);
   const contractExtensions = useGameStore(selectContractExtensions);
   const apologyTourThreads = useGameStore(selectApologyTourThreads);
-  const ownerPersonalityInbox = game?.ownerPersonalityInbox ?? [];
+  const ownerPersonalityInbox = useMemo(
+    () => game?.ownerPersonalityInbox ?? [],
+    [game?.ownerPersonalityInbox],
+  );
 
   const [selectedMsg, setSelectedMsg] = useState<InboxMessage | null>(null);
   const [filter, setFilter] = useState<MessageType | 'ALL'>('ALL');

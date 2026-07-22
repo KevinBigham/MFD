@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'fs';
-import { getNavUnlockStatus, NAV_UNLOCK_RULES } from '@mfd/engine/config';
+import { APP_ROUTE_REGISTRY, getNavUnlockStatus, NAV_UNLOCK_RULES } from '@mfd/engine/config';
 
 describe('navigation completeness', () => {
   const content = readFileSync(new URL('./App.tsx', import.meta.url), 'utf-8');
@@ -11,31 +11,7 @@ describe('navigation completeness', () => {
     '/player/$playerId/timeline': 'Requires a concrete saved player id selected from roster, profile links, search, or another player surface.',
   };
 
-  const ROUTES_WITHOUT_ENGINE_UNLOCK_RULES = [
-    '/coaching/tree',
-    '/coaching/relationships',
-    '/player-development',
-    '/compare',
-    '/rivalries',
-    '/trade-deadline',
-    '/draft-recap',
-    '/expansion-draft',
-    '/franchise/career',
-    '/franchise/book',
-    '/franchise/chronicle',
-    '/franchise/scrapbook',
-    '/franchise/hall',
-    '/franchise/trophy-room',
-    '/franchise/eras',
-    '/franchise/mvps',
-    '/franchise/playoff-lore',
-    '/franchise/achievements',
-    '/legacy/bloodlines',
-    '/legacy/named-games',
-    '/season/recap',
-    '/relocate',
-    '/league/weather',
-  ];
+  const ROUTES_WITHOUT_ENGINE_UNLOCK_RULES: string[] = [];
 
   interface RouteDefinition {
     name: string;
@@ -46,22 +22,12 @@ describe('navigation completeness', () => {
     return [...new Set(values.filter((value, index) => values.indexOf(value) !== index))];
   }
 
-  function extractArrayBlock(name: 'NAV_ITEMS' | 'NAV_GROUPS'): string {
-    const match = content.match(new RegExp(`const ${name}[^=]*= \\[([\\s\\S]*?)\\];`));
-
-    expect(match?.[1], `${name} block should be present in App.tsx`).toBeDefined();
-    return match?.[1] ?? '';
-  }
-
   function extractNavItemPaths(): string[] {
     return extractNavItems().map((item) => item.path);
   }
 
   function extractNavItems(): Array<{ path: string; label: string }> {
-    return Array.from(
-      extractArrayBlock('NAV_ITEMS').matchAll(/\{\s*path:\s*'([^']+)'\s*,\s*label:\s*'([^']+)'/g),
-      (match) => ({ path: match[1]!, label: match[2]! }),
-    );
+    return APP_ROUTE_REGISTRY.map((entry) => ({ path: entry.path, label: entry.label }));
   }
 
   function extractMobilePrimaryPaths(): string[] {
@@ -75,11 +41,7 @@ describe('navigation completeness', () => {
   }
 
   function extractNavGroupPaths(): string[] {
-    return Array.from(extractArrayBlock('NAV_GROUPS').matchAll(/paths:\s*\[([^\]]*)\]/g))
-      .flatMap((match) => Array.from(
-        (match[1] ?? '').matchAll(/'([^']+)'/g),
-        (pathMatch) => pathMatch[1]!,
-      ));
+    return APP_ROUTE_REGISTRY.map((entry) => entry.path);
   }
 
   function extractRouteDefinitions(): RouteDefinition[] {
@@ -90,11 +52,8 @@ describe('navigation completeness', () => {
   }
 
   function extractRegisteredRouteNames(): string[] {
-    return Array.from(content.matchAll(/(?:rootRoute|routeTree)\.addChildren\(\[([\s\S]*?)\]\);/g))
-      .flatMap((match) => Array.from(
-        (match[1] ?? '').matchAll(/\b([a-z][A-Za-z0-9]+Route)\b/g),
-        (routeMatch) => routeMatch[1]!,
-      ));
+    const block = content.match(/const ROUTE_IMPLEMENTATIONS = \[([\s\S]*?)\]\s+as const;/)?.[1] ?? '';
+    return Array.from(block.matchAll(/\b([a-z][A-Za-z0-9]+Route)\b/g), (match) => match[1]!);
   }
 
   function extractRegisteredRoutePaths(): string[] {
@@ -104,7 +63,7 @@ describe('navigation completeness', () => {
   }
 
   function extractCommandItemsBlock(): string {
-    const match = content.match(/const commandItems: CommandItem\[\] = \[([\s\S]*?)\n  \];/);
+    const match = content.match(/const commandItems: CommandItem\[\] = \[([\s\S]*?)\n {2}\];/);
 
     expect(match?.[1], 'commandItems block should be present in App.tsx').toBeDefined();
     return match?.[1] ?? '';
@@ -127,6 +86,15 @@ describe('navigation completeness', () => {
     expect(duplicates(groupPaths)).toEqual([]);
     expect(groupPaths.filter((path) => !navPathSet.has(path))).toEqual([]);
     expect(navPaths.filter((path) => !groupPathSet.has(path))).toEqual([]);
+  });
+
+  it('materializes route objects in canonical registry order and rejects drift', () => {
+    expect(content).toContain('const canonicalRouteObjects = APP_ROUTE_REGISTRY.map((definition) => {');
+    expect(content).toContain('const CONTEXTUAL_ROUTE_PATHS = new Set');
+    expect(content).toContain('...canonicalRouteObjects');
+    expect(content).toContain('Missing route implementation for ${definition.path}');
+    expect(content).toContain('Route implementations missing registry metadata');
+    expect(content).toContain('rootRoute.addChildren(registeredRouteObjects');
   });
 
   it('keeps hard-coded mobile primary tabs intentional and backed by NAV_ITEMS', () => {
@@ -198,7 +166,8 @@ describe('navigation completeness', () => {
   });
 
   it('wires engine progressive unlock helpers into the app shell', () => {
-    expect(content).toContain("import { getNavUnlockStatus } from '@mfd/engine/config';");
+    expect(content).toContain('getNavUnlockStatus,');
+    expect(content).toContain("from '@mfd/engine/config';");
     expect(content).toContain('function resolveNavItem(');
     expect(content).toContain('function resolveVisibleNavItems(');
     expect(content).toContain('getNavUnlockStatus(item.path, context)');

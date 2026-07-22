@@ -76,7 +76,7 @@
 - Framework/styling system: React 19, Vite, TanStack Router, Zustand, Dexie, TypeScript, workspace `@mfd/design-system`, CSS custom properties plus inline styles in existing components.
 - Design-token constraints: extend existing CSS variables and data-attribute rules before adding a new styling layer.
 - Performance constraints: preserve lazy routes and existing chunking; known Vite chunk-size warnings are non-blocking release risks, not a UI-polish target.
-- Compatibility constraints: GitHub Pages `/MFD/` base path, stable browser saves, save schema v36, no deployment from this pass.
+- Compatibility constraints: GitHub Pages `/MFD/` base path, stable browser saves, save schema v37, and exact-gate artifact deployment.
 - Test/screenshot expectations: run targeted Vitest, typecheck/build, and browser smoke/screenshots for launch path and mobile width when UI changes land.
 
 ## Open questions

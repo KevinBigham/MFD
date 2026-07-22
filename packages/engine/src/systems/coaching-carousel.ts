@@ -1,4 +1,4 @@
-import { RNG, uid } from '../rng';
+import { RNG, type PrngFn } from '../rng';
 import type { AIBiasConfig } from './ai-bias';
 import type { GameEvent, GameState, StaffMember, Team } from '../types';
 import { recordNewsItem } from './league-news';
@@ -54,7 +54,7 @@ function clampRating(value: number): number {
   return Math.max(50, Math.min(95, value));
 }
 
-function scoreCandidate(team: Team, candidate: StaffMember): number {
+export function scoreCarouselCandidate(game: GameState, team: Team, candidate: StaffMember): number {
   const gameplan = candidate.ratings.gameplan ?? 70;
   const development = candidate.ratings.development ?? 70;
   const motivation = candidate.ratings.motivation ?? 70;
@@ -65,28 +65,35 @@ function scoreCandidate(team: Team, candidate: StaffMember): number {
       : motivation;
   const schemeFit = candidate.archetype.includes('offensive') && team.schemeOff !== 'balanced' ? 6 : 0;
   const disciplineFit = candidate.archetype === 'disciplinarian' && team.owner.archetypeId === 'win_now' ? 4 : 0;
-  return ownerFit + gameplan + schemeFit + disciplineFit;
+  const plan = game.franchisePlans?.[team.id];
+  const planFit = plan
+    ? plan.riskTolerance >= 60
+      ? gameplan * 0.18
+      : development * 0.18
+    : 0;
+  const continuityFit = plan?.capPosture === 'preserve' ? (candidate.loyalty ?? 6) : 0;
+  return ownerFit + gameplan + schemeFit + disciplineFit + planFit + continuityFit;
 }
 
-function generateCandidate(role: 'HC'): StaffMember {
-  const first = FIRST_NAMES[Math.floor(RNG.ai() * FIRST_NAMES.length)] ?? 'Marcus';
-  const last = LAST_NAMES[Math.floor(RNG.ai() * LAST_NAMES.length)] ?? 'Reed';
-  const archetype = ARCHETYPES[Math.floor(RNG.ai() * ARCHETYPES.length)] ?? 'balanced';
-  const base = 50 + Math.floor(RNG.ai() * 46);
+function generateCandidate(role: 'HC', aiRng: PrngFn, id: string): StaffMember {
+  const first = FIRST_NAMES[Math.floor(aiRng() * FIRST_NAMES.length)] ?? 'Marcus';
+  const last = LAST_NAMES[Math.floor(aiRng() * LAST_NAMES.length)] ?? 'Reed';
+  const archetype = ARCHETYPES[Math.floor(aiRng() * ARCHETYPES.length)] ?? 'balanced';
+  const base = 50 + Math.floor(aiRng() * 46);
   return {
-    id: uid(),
+    id,
     name: `${first} ${last}`,
     role,
     archetype,
     traits: [],
     ratings: {
-      gameplan: clampRating(base + Math.floor(RNG.ai() * 8)),
-      development: clampRating(base + Math.floor(RNG.ai() * 8) - 4),
-      motivation: clampRating(base + Math.floor(RNG.ai() * 8) - 2),
-      strategy: clampRating(base + Math.floor(RNG.ai() * 8) - 1),
+      gameplan: clampRating(base + Math.floor(aiRng() * 8)),
+      development: clampRating(base + Math.floor(aiRng() * 8) - 4),
+      motivation: clampRating(base + Math.floor(aiRng() * 8) - 2),
+      strategy: clampRating(base + Math.floor(aiRng() * 8) - 1),
     },
-    level: 1 + Math.floor(RNG.ai() * 5),
-    age: 34 + Math.floor(RNG.ai() * 29),
+    level: 1 + Math.floor(aiRng() * 5),
+    age: 34 + Math.floor(aiRng() * 29),
   };
 }
 
@@ -178,7 +185,12 @@ function growIncumbentCoach(team: Team): void {
   }
 }
 
-export function runCoachingCarousel(game: GameState, seasonYear: number, aiBias?: AIBiasConfig): { events: GameEvent[] } {
+export function runCoachingCarousel(
+  game: GameState,
+  seasonYear: number,
+  aiBias?: AIBiasConfig,
+  aiRng: PrngFn = RNG.ai,
+): { events: GameEvent[] } {
   ensureLivingWorldState(game);
   const events: GameEvent[] = [];
 
@@ -208,8 +220,9 @@ export function runCoachingCarousel(game: GameState, seasonYear: number, aiBias?
       });
     }
 
-    const pool = Array.from({ length: 5 + Math.floor(RNG.ai() * 4) }, () => generateCandidate('HC'));
-    const hire = pool.sort((a, b) => scoreCandidate(team, b) - scoreCandidate(team, a) || a.name.localeCompare(b.name))[0]!;
+    const pool = Array.from({ length: 5 + Math.floor(aiRng() * 4) }, (_, index) =>
+      generateCandidate('HC', aiRng, `coach-${seasonYear}-${team.id}-${index}`));
+    const hire = pool.sort((a, b) => scoreCarouselCandidate(game, team, b) - scoreCarouselCandidate(game, team, a) || a.name.localeCompare(b.name))[0]!;
     writeHeadCoach(team, hire);
 
     const hired = buildEvent(game, 'coach_hired', `${team.city} hires ${hire.name} to run the sideline.`, { teamId: team.id, coachId: hire.id });

@@ -1,6 +1,6 @@
 # MFD Project Map
 
-Supersession note: For current release decision context, read `docs/audits/CODEX_DEEP_AUDIT.md` and `docs/audits/FABLE_GOAT_REVIEW.md` before this older map.
+Supersession note: This remains a historical June audit map. For current release decision context, read `MFD_GOAT_COMPLETION_REPORT.md`, `RELEASE_CONVERGENCE.md`, `docs/audits/CODEX_DEEP_AUDIT.md`, and `docs/audits/FABLE_GOAT_REVIEW.md`.
 
 Audit date: 2026-06-19
 
@@ -29,7 +29,7 @@ Source and tooling facts:
 | `packages/engine` | Deterministic football/dynasty engine | GameState, seeded RNG, user decisions | next GameState, events, summaries, reports | Internal systems, Zod save schema | Exports consumed by web | `SaveStateSchema`, migrations, save version | 169 system modules, engine Vitest, playtest harness | Medium: broad state, permissive schema islands |
 | `packages/design-system` | Pixel components, Chip, shared UI primitives | Props and theme tokens | UI components | React | All feature screens | None directly | Design tests/typecheck in gate | Low |
 | `scripts` | Release gate, browser smokes, playtest, grading, asset generation | Node, package-local bins, Playwright | Gate evidence, generated assets, reports | Node, bash, browser runtime | Release/dev only | No user save writes except smoke test storage | Node script tests | Medium: full gate local-only |
-| `.github/workflows` | CI and Pages deploy | Push/PR/workflow dispatch | hosted checks, deploy artifact | pnpm, Node 20 | Release channel | None | Actions | Medium-high: weaker than local gate |
+| `.github/workflows` | CI, nightly ecology, and Pages deploy | Push/PR/schedule/workflow dispatch | hosted checks, exact gate artifact, ecology receipts | pnpm 9.15.9, Node 24 | Release channel | None | Actions | Medium: remote receipt still needs the real repository |
 | `_canon/seeds/mfd` | Frozen shadow playtest baselines | playtest reports | drift detector corpus | shadow script | None | no runtime save | shadow-regression | Medium: 20y baseline is truncated with high anomalies |
 | `docs`, root ledgers | Roadmaps, status, release context | prior runs, source conclusions | operator guidance | none | none | none | none | Medium: some release docs stale versus June G7 |
 
@@ -98,7 +98,7 @@ Navigation completeness is tested at `apps/web/src/app/nav-items.test.ts:110-216
 
 | Layer | File | What it owns | Trust note |
 | --- | --- | --- | --- |
-| Current version | `packages/engine/src/config/difficulty.ts` | `SAVE_VERSION = 36` | Good: surfaced in README and launch UI. |
+| Current version | `packages/engine/src/config/difficulty.ts` | `SAVE_VERSION = 37` | Good: surfaced in README and launch UI; v36 → v37 migration and old-save tests are green. |
 | Migration | `packages/engine/src/save/migrations.ts` | Old save normalization | Good: chain and drift tests exist. |
 | Schema | `packages/engine/src/save/schema.ts` | Zod parse contract | Mixed: many strict schemas, but `z.any`/passthrough remains in long-history areas. |
 | Cartridge | `packages/engine/src/systems/dynasty-cartridge.ts` | `mfd-cartridge.v1` JSON | Good envelope, but exports strip broadcast payloads and exclude sidecars. |

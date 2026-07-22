@@ -1,13 +1,14 @@
 import { DIFF_SETTINGS } from '../config/difficulty';
-import { RNG } from '../rng';
-import { simGame, applyPlayerLines } from './game-sim';
+import type { PrngFn, RngState } from '../rng';
+import { createSimulationContext, simGameWithContext, applyPlayerLines } from './game-sim';
 import { buildFatiguePlayerBonuses, processWeeklyFatigue } from './fatigue';
 import { generateHooks } from './hooks-engine';
-import { getInjuryPenalty, isPlayerUnavailable, maybeGenerateTeamInjury, processInjuryRecovery } from './injury-system';
+import { getGameAvailability, getInjuryPenalty, isPlayerUnavailable, maybeGenerateTeamInjury, processInjuryRecovery } from './injury-system';
 import { updateOwnerApproval } from './owner';
 import { tickPatience } from './owner-extended';
 import { applyGameToSeasonStats, ensurePlayerStatBuckets, ensureSeasonStats, tickInjuries } from './season-stats';
 import { generateRegionalWeather } from './regional-weather';
+import { STARTER_SLOTS } from './roster-management';
 import type {
   GameEvent,
   GameResult,
@@ -37,7 +38,13 @@ function applyResult(home: Team, away: Team, homeStats: TeamGameStats, awayStats
   home.streak = home.streak <= 0 ? home.streak - 1 : -1;
 }
 
-function maybeInjure(game: GameState, team: Team, injMod: number, ignoreFatigue = false): WeeklyInjurySummary[] {
+function maybeInjure(
+  game: GameState,
+  team: Team,
+  injMod: number,
+  injuryRng: PrngFn,
+  ignoreFatigue = false,
+): WeeklyInjurySummary[] {
   const injuries: WeeklyInjurySummary[] = [];
   const eligible = team.roster.filter((player) =>
     player.isStarter &&
@@ -48,7 +55,7 @@ function maybeInjure(game: GameState, team: Team, injMod: number, ignoreFatigue 
 
   for (const player of eligible) {
     const fatigueLevel = ignoreFatigue ? 0 : (team.fatigueState[player.id]?.fatigue ?? 0);
-    const injury = maybeGenerateTeamInjury(game, team.id, player, fatigueLevel, injMod, RNG.injury);
+    const injury = maybeGenerateTeamInjury(game, team.id, player, fatigueLevel, injMod, injuryRng);
     if (!injury) continue;
 
     injuries.push({
@@ -82,13 +89,51 @@ export function simulateGame(
   context?: SimGameContext,
   options?: {
     fatigueIgnoreTeamIds?: readonly string[];
+    rng: RngState;
   },
 ): {
   result: GameResult;
   injuries: Record<string, WeeklyInjurySummary[]>;
 } {
   const fatigueIgnoreIds = new Set(options?.fatigueIgnoreTeamIds ?? []);
-  const sim = simGame(home, away, context);
+  const healthyStarterShortagesByTeam = Object.fromEntries([home, away].map((team) => {
+    const teamShortages: Partial<Record<import('../types').Position, number>> = {};
+    for (const [position, minimum] of Object.entries(STARTER_SLOTS) as Array<[import('../types').Position, number]>) {
+      const healthyStarters = team.roster.filter((player) =>
+        player.pos === position && player.isStarter && getGameAvailability(player) !== 'out').length;
+      if (healthyStarters < minimum) teamShortages[position] = minimum - healthyStarters;
+    }
+    return [team.id, teamShortages];
+  }));
+  const healthyStarterShortages = Object.values(healthyStarterShortagesByTeam)
+    .reduce<Partial<Record<import('../types').Position, number>>>((shortages, teamShortages) => {
+      for (const [position, count] of Object.entries(teamShortages) as Array<[import('../types').Position, number]>) {
+        shortages[position] = (shortages[position] ?? 0) + count;
+      }
+    return shortages;
+  }, {});
+  const gameId = `game-${year}-${week}-${home.id}-${away.id}`;
+  const matchupHash = [...`${home.id}:${away.id}`]
+    .reduce((hash, character) => ((hash * 33) ^ character.charCodeAt(0)) >>> 0, 5381);
+  if (!options?.rng) throw new Error('simulateGame requires an explicit seeded RNG context');
+  const simulationContext = createSimulationContext(context, options.rng);
+  const homePrep = game.weeklyPrepPlans?.[home.id];
+  const awayPrep = game.weeklyPrepPlans?.[away.id];
+  simulationContext.home = {
+    ...(simulationContext.home ?? {}),
+    coachMode: Boolean(game.settings.coachMode && home.isUser),
+    twoMinuteMode: Boolean(game.settings.coachMode && home.isUser && homePrep?.specialSituation === 'two_minute'),
+  };
+  simulationContext.away = {
+    ...(simulationContext.away ?? {}),
+    coachMode: Boolean(game.settings.coachMode && away.isUser),
+    twoMinuteMode: Boolean(game.settings.coachMode && away.isUser && awayPrep?.specialSituation === 'two_minute'),
+  };
+  simulationContext.gameId = gameId;
+  const captureSnapLedger = home.isUser || away.isUser;
+  simulationContext.shadowSeed = (game.seed ^ (year * 7919) ^ (week * 1009) ^ matchupHash) >>> 0;
+  simulationContext.snapMode = 'canonical';
+  const sim = simGameWithContext(home, away, simulationContext);
   const {
     homeScore,
     awayScore,
@@ -114,7 +159,7 @@ export function simulateGame(
 
   return {
     result: {
-      id: `game-${year}-${week}-${home.id}-${away.id}`,
+      id: gameId,
       homeTeamId: home.id,
       awayTeamId: away.id,
       homeScore,
@@ -129,18 +174,24 @@ export function simulateGame(
       specialTeams: sim.specialTeams,
       playerMatchupEvents: sim.playerMatchupEvents,
       contingencyActivations,
+      // CPU games immediately reduce their ledger to standings, stats, and a
+      // capsule; user games retain full snaps for broadcast and film review.
+      snapEvents: captureSnapLedger ? sim.shadow?.snapEvents : undefined,
+      snapLedgerMode: captureSnapLedger && sim.shadow ? 'canonical' : undefined,
+      healthyStarterShortages,
+      healthyStarterShortagesByTeam,
     },
     injuries: {
-      [home.id]: maybeInjure(game, home, diff.injMod, fatigueIgnoreIds.has(home.id)),
-      [away.id]: maybeInjure(game, away, diff.injMod, fatigueIgnoreIds.has(away.id)),
+      [home.id]: maybeInjure(game, home, diff.injMod, options.rng.injury, fatigueIgnoreIds.has(home.id)),
+      [away.id]: maybeInjure(game, away, diff.injMod, options.rng.injury, fatigueIgnoreIds.has(away.id)),
     },
   };
 }
 
-export function generateWeatherForGame(home: Team, week: number): WeatherCondition {
+export function generateWeatherForGame(home: Team, week: number, playRng: PrngFn): WeatherCondition {
   if (home.stadiumType === 'dome') return 'dome';
 
-  const roll = RNG.play();
+  const roll = playRng();
   if (week >= 15) {
     if (roll < 0.16) return 'snow';
     if (roll < 0.34) return 'wind';
@@ -163,7 +214,7 @@ export function generateWeatherForGame(home: Team, week: number): WeatherConditi
   return 'clear';
 }
 
-export function ensureWeeklyWeather(game: GameState, week: number): void {
+export function ensureWeeklyWeather(game: GameState, week: number, playRng: PrngFn): void {
   const weekSchedule = game.schedule.find((entry) => entry.week === week);
   if (!weekSchedule) return;
 
@@ -171,7 +222,7 @@ export function ensureWeeklyWeather(game: GameState, week: number): void {
     if (matchup.weather) continue;
     const home = game.teams[matchup.homeTeamId];
     if (!home) continue;
-    matchup.weather = generateRegionalWeather(home, week, RNG.play);
+    matchup.weather = generateRegionalWeather(home, week, playRng);
   }
 }
 
@@ -195,6 +246,7 @@ export function updateOwner(team: Team, game: GameState): number {
       winPct,
       firstSeason,
     },
+    DIFF_SETTINGS[game.difficulty].ownerMod,
   ).patience;
   return team.owner.approval - before;
 }

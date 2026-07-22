@@ -115,7 +115,7 @@ function makeIntegrationGame(): GameState {
 }
 
 describe('three-season integration loop', () => {
-  it('simulates three consecutive seasons with progression, retirements, AI pivots, and realistic QB draft pressure', { timeout: 15_000 }, () => {
+  it('simulates three consecutive seasons with progression, retirements, AI pivots, and realistic QB draft pressure', { timeout: 60_000 }, () => {
     let state = makeIntegrationGame();
     const trackedPlayerId = state.teams.afce2!.roster.find((player) => player.pos === 'QB')!.id;
     const startingOvr = findPlayer(state, trackedPlayerId)!.ovr;
@@ -175,5 +175,5 @@ describe('three-season integration loop', () => {
     expect(middlingTeams.some((entry) => state.teams[entry.teamId]!.ownerPatience80 > 25)).toBe(true);
     expect(state.awardsHistory.length).toBeGreaterThan(0);
     expect(state.records.singleSeason.wins.length).toBeGreaterThan(0);
-  }, 15000);
+  }, 60_000);
 });

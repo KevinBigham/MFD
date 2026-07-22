@@ -33,4 +33,28 @@ describe('seed game state', () => {
     expect(userTeam.franchiseIdentity.stadiumLevel).toBe(1);
     expect(userTeam.franchiseIdentity.relocationHistory).toEqual([]);
   });
+
+  it('seeds one unique first-round slot per franchise and carries it through every round', () => {
+    const game = createSeedGameState(91, 0, 'pro');
+    const teams = Object.values(game.teams);
+    const firstRound = teams.map((team) => team.draftPicks.find((pick) => pick.round === 1)?.pick);
+
+    expect(new Set(firstRound).size).toBe(teams.length);
+    expect([...firstRound].sort((a, b) => (a ?? 0) - (b ?? 0))).toEqual(
+      Array.from({ length: teams.length }, (_, index) => index + 1),
+    );
+    expect(teams.every((team) => new Set(team.draftPicks.map((pick) => pick.pick)).size === 1)).toBe(true);
+  });
+
+  it('seeds difficulty-specific facility cash and front-office scouting resources', () => {
+    const rookie = createSeedGameState(12, 0, 'rookie');
+    const legend = createSeedGameState(12, 0, 'legend');
+    const rookieTeam = Object.values(rookie.teams).find((team) => team.isUser)!;
+    const legendTeam = Object.values(legend.teams).find((team) => team.isUser)!;
+
+    expect(rookieTeam.facilityState.budget).toBeGreaterThan(legendTeam.facilityState.budget);
+    expect(rookie.scoutingDepartment.budget).toBeGreaterThan(legend.scoutingDepartment.budget);
+    expect(rookie.scoutingDepartment.budget).toBe(6);
+    expect(legend.scoutingDepartment.budget).toBe(4);
+  });
 });

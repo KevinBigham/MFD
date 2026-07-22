@@ -20,7 +20,7 @@ this file adds the Claude Code layer. Never edit AGENTS.md.
    (8 named channels). Math.random() is banned — enforced by
    scripts/check-math-random.sh (sole exception: synth-sounds.ts)
    and by a PostToolUse hook after every TS edit.
-2. SAVE SCHEMA. SAVE_VERSION = 36
+2. SAVE SCHEMA. SAVE_VERSION = 37
    (packages/engine/src/config/difficulty.ts:93). Any persistent
    GameState change requires ALL of: type update, Zod schema,
    migration, seed default, old-save tests — and is a Kevin gate.

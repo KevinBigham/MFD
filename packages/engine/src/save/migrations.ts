@@ -1546,6 +1546,26 @@ registerMigration(35, (state) => {
   };
 });
 
+// v36→v37: canonical causal spine, durable CPU plans, compressed memory, and
+// per-dynasty navigation/onboarding preferences. Legacy logs remain intact and
+// are promoted idempotently by reconcileCausalSpine at runtime.
+registerMigration(36, (state) => ({
+  ...state,
+  settings: {
+    ...((state['settings'] && typeof state['settings'] === 'object') ? state['settings'] as Record<string, unknown> : {}),
+    halftimeDecisions: (state['settings'] as Record<string, unknown> | undefined)?.['halftimeDecisions'] === 'off' ? 'off' : 'on',
+    coachMode: Boolean((state['settings'] as Record<string, unknown> | undefined)?.['coachMode']),
+  },
+  leagueEvents: Array.isArray(state['leagueEvents']) ? state['leagueEvents'] : [],
+  decisionReceipts: Array.isArray(state['decisionReceipts']) ? state['decisionReceipts'] : [],
+  franchisePlans: (state['franchisePlans'] && typeof state['franchisePlans'] === 'object') ? state['franchisePlans'] : {},
+  pressMemoryTags: Array.isArray(state['pressMemoryTags']) ? state['pressMemoryTags'] : [],
+  gameCapsules: Array.isArray(state['gameCapsules']) ? state['gameCapsules'] : [],
+  memoryGraph: (state['memoryGraph'] && typeof state['memoryGraph'] === 'object') ? state['memoryGraph'] : { nodes: [], edges: [] },
+  navigationMode: state['navigationMode'] === 'nerd' ? 'nerd' : 'gm',
+  onboardingMode: state['onboardingMode'] === 'instant' || state['onboardingMode'] === 'full_gm' ? state['onboardingMode'] : 'guided',
+}));
+
 // v30→v31: Add tutorialState.visitedScreens (Sprint 43 "Rookie Card" onboarding)
 registerMigration(30, (state) => {
   const tutorialRaw = (state['tutorialState'] && typeof state['tutorialState'] === 'object')

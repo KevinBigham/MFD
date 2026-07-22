@@ -97,7 +97,7 @@ describe('GamePlanSetup', () => {
     expect(markup).toContain('Save Weekly Prep &amp; Sim writes the plan');
     expect(markup).toContain('TRICK PLAY BOUNDARY');
     expect(markup).toContain('Selected trick plays are saved in the weekly prep plan');
-    expect(markup).toContain('current game does not call trick-play helper outcomes');
+    expect(markup).toContain('enter the seeded live-drive caller at most once per play');
     expect(markup).toContain('Opening Game Plan does not click Advance Week');
     expect(markup).toContain('create Film Room entries');
     expect(markup).toContain('NEXT CALL');
@@ -212,7 +212,7 @@ describe('GamePlanSetup', () => {
       accent: 'cyan',
     });
     expect(trickBoundary?.detail).toContain('saved in the weekly prep plan');
-    expect(trickBoundary?.detail).toContain('current game does not call trick-play helper outcomes');
+    expect(trickBoundary?.detail).toContain('enter the seeded live-drive caller at most once per play');
   });
 
   it('falls back to the scouting pending empty state when intel is unavailable', () => {

@@ -1,4 +1,4 @@
-import { RNG, uid } from '../rng';
+import { createWeekRngState, type PrngFn } from '../rng';
 import type {
   GameEvent,
   GameState,
@@ -52,7 +52,7 @@ function makeEffect(params: {
 }): TimedEffect {
   const startStamp = stampFor(params.game.year, params.game.week);
   return {
-    id: uid(),
+    id: `effect-${params.sourceId}-${params.stat}-${params.targetId ?? params.teamId}`,
     sourceType: params.sourceType,
     sourceId: params.sourceId,
     teamId: params.teamId,
@@ -124,13 +124,13 @@ function milestonePlayer(team: Team): Player | null {
   }) ?? null;
 }
 
-function buildCandidateEvents(game: GameState, team: Team): OffFieldEvent[] {
+function buildCandidateEvents(game: GameState, team: Team, aiRng: PrngFn): OffFieldEvent[] {
   const candidates: OffFieldEvent[] = [];
   const positivity = teamRecordBias(team);
 
   const leader = leaderPlayer(team);
   if (leader) {
-    const id = `offfield-${uid()}`;
+    const id = `offfield-${game.year}-${game.week}-${team.id}-${candidates.length}`;
     candidates.push({
       id,
       type: 'captain_speech',
@@ -163,7 +163,7 @@ function buildCandidateEvents(game: GameState, team: Team): OffFieldEvent[] {
   if (battle) {
     const loser = battle[0];
     const winner = battle[1];
-    const id = `offfield-${uid()}`;
+    const id = `offfield-${game.year}-${game.week}-${team.id}-${candidates.length}`;
     candidates.push({
       id,
       type: 'position_group_beef',
@@ -194,7 +194,7 @@ function buildCandidateEvents(game: GameState, team: Team): OffFieldEvent[] {
 
   const expiring = expiringStar(team);
   if (expiring) {
-    const id = `offfield-${uid()}`;
+    const id = `offfield-${game.year}-${game.week}-${team.id}-${candidates.length}`;
     candidates.push({
       id,
       type: 'contract_grumbling',
@@ -225,8 +225,8 @@ function buildCandidateEvents(game: GameState, team: Team): OffFieldEvent[] {
 
   const star = starPlayer(team);
   if (star) {
-    const positiveInterview = RNG.ai() >= (positivity === 'negative' ? 0.65 : 0.45);
-    const id = `offfield-${uid()}`;
+    const positiveInterview = aiRng() >= (positivity === 'negative' ? 0.65 : 0.45);
+    const id = `offfield-${game.year}-${game.week}-${team.id}-${candidates.length}`;
     candidates.push({
       id,
       type: 'player_interview',
@@ -273,7 +273,7 @@ function buildCandidateEvents(game: GameState, team: Team): OffFieldEvent[] {
 
   const injured = injuredPlayer(team);
   if (injured) {
-    const id = `offfield-${uid()}`;
+    const id = `offfield-${game.year}-${game.week}-${team.id}-${candidates.length}`;
     candidates.push({
       id,
       type: 'injury_setback',
@@ -290,7 +290,7 @@ function buildCandidateEvents(game: GameState, team: Team): OffFieldEvent[] {
 
   const breakout = breakoutCandidate(team);
   if (breakout) {
-    const id = `offfield-${uid()}`;
+    const id = `offfield-${game.year}-${game.week}-${team.id}-${candidates.length}`;
     candidates.push({
       id,
       type: 'breakout_practice',
@@ -321,7 +321,7 @@ function buildCandidateEvents(game: GameState, team: Team): OffFieldEvent[] {
 
   const milestone = milestonePlayer(team);
   if (milestone) {
-    const id = `offfield-${uid()}`;
+    const id = `offfield-${game.year}-${game.week}-${team.id}-${candidates.length}`;
     candidates.push({
       id,
       type: 'milestone',
@@ -353,8 +353,8 @@ function buildCandidateEvents(game: GameState, team: Team): OffFieldEvent[] {
   return candidates;
 }
 
-function pickEventCount(): number {
-  return RNG.ai() < 0.5 ? 1 : 2;
+function pickEventCount(aiRng: PrngFn): number {
+  return aiRng() < 0.5 ? 1 : 2;
 }
 
 export function expireTimedEffects(game: GameState): TimedEffect[] {
@@ -418,19 +418,23 @@ export function getGameEffectBonuses(game: GameState, teamId: string): {
   };
 }
 
-export function generateWeeklyOffFieldEvents(game: GameState, team: Team): OffFieldEvent[] {
+export function generateWeeklyOffFieldEvents(
+  game: GameState,
+  team: Team,
+  aiRng: PrngFn = createWeekRngState(game.seed, game.year, game.week).ai,
+): OffFieldEvent[] {
   ensureLivingWorldState(game);
   if (game.phase !== 'regular_season') return [];
 
-  const candidates = buildCandidateEvents(game, team);
+  const candidates = buildCandidateEvents(game, team, aiRng);
   if (candidates.length === 0) return [];
 
   const selected: OffFieldEvent[] = [];
   const pool = [...candidates];
-  const eventCount = Math.min(pool.length, pickEventCount());
+  const eventCount = Math.min(pool.length, pickEventCount(aiRng));
 
   while (selected.length < eventCount && pool.length > 0) {
-    const index = Math.floor(RNG.ai() * pool.length);
+    const index = Math.floor(aiRng() * pool.length);
     const [event] = pool.splice(index, 1);
     if (!event) continue;
     if (event.type === 'injury_setback' && event.playerIds[0]) {

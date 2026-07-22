@@ -105,8 +105,16 @@ function selectInjury(rand: () => number): typeof INJURY_TABLE[number] {
   return INJURY_TABLE[11]!;
 }
 
+export type GameAvailability = 'available' | 'questionable' | 'out';
+
+export function getGameAvailability(player: Player): GameAvailability {
+  if (!player.injury) return 'available';
+  if (player.injury.gamesOut > 0 || player.injury.onIR) return 'out';
+  return 'questionable';
+}
+
 export function isPlayerUnavailable(player: Player): boolean {
-  return Boolean(player.injury && (player.injury.gamesOut > 0 || player.injury.onIR));
+  return getGameAvailability(player) === 'out';
 }
 
 export function getInjuryPenalty(player: Player): number {

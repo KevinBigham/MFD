@@ -5,12 +5,13 @@ import {
   getAGMWeeklyRecommendations,
   getScenarioConstraintCoverage,
   type AGMRecommendation,
+  type ActionCenterCardClosure,
   type GameState,
   type PostWeekMomentTone,
   type ScenarioConstraintCoverageItem,
 } from '@mfd/engine';
 import { monoSm, pixelSm, navigateTo } from '../shared/pixelUi';
-import { AlertTriangle, ArrowRight, HelpCircle } from 'lucide-react';
+import { AlertTriangle, ArrowRight, HelpCircle, X } from 'lucide-react';
 
 interface ActionCenterProps {
   phase: string;
@@ -21,6 +22,7 @@ interface ActionCenterProps {
   injuredCount: number;
   /** Optional: when provided, enables the "Show AGM advice" recommendations modal. */
   game?: GameState | null;
+  onCloseAction?: (card: ActionCenterCardClosure) => void | Promise<void>;
 }
 
 const PRIORITY_ACCENT: Record<AGMRecommendation['priority'], 'red' | 'gold' | 'cyan' | 'green'> = {
@@ -352,12 +354,16 @@ function WeeklyBoardLane({
   badge,
   accent,
   actions,
+  lane,
+  onCloseAction,
 }: {
   title: string;
   subtitle: string;
   badge: string;
   accent: ActionAccent;
   actions: WeeklyBoardAction[];
+  lane?: ActionCenterCardClosure['lane'];
+  onCloseAction?: ActionCenterProps['onCloseAction'];
 }) {
   return (
     <section
@@ -412,10 +418,22 @@ function WeeklyBoardLane({
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.45 }}>{action.where}</div>
               </div>
             </div>
-            <PixelButton accent={action.accent === 'default' ? 'cyan' : action.accent} onClick={() => navigateTo(action.route)}>
-              <ArrowRight size={12} />
-              {action.buttonLabel}
-            </PixelButton>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelButton accent={action.accent === 'default' ? 'cyan' : action.accent} onClick={() => navigateTo(action.route)}>
+                <ArrowRight size={12} />
+                {action.buttonLabel}
+              </PixelButton>
+              {lane && onCloseAction ? (
+                <PixelButton
+                  accent="default"
+                  aria-label={`Close ${action.what}`}
+                  onClick={() => onCloseAction({ id: action.id, lane, label: action.what, route: action.route })}
+                >
+                  <X size={12} />
+                  Close
+                </PixelButton>
+              ) : null}
+            </div>
           </div>
         ))}
       </div>
@@ -434,6 +452,16 @@ function ActionCenter(props: ActionCenterProps) {
   const panelAccent = hasRed ? 'red' : hasGold ? 'gold' : 'green';
 
   const recommendations = props.game ? getAGMWeeklyRecommendations(props.game, 3) : [];
+  const userTeamId = props.game
+    ? Object.values(props.game.teams).find((team) => team.isUser)?.id ?? null
+    : null;
+  const closedActionIds = new Set((props.game?.leagueEvents ?? [])
+    .filter((event) => event.type === 'legacy'
+      && event.payload.source === 'action_center.closed'
+      && event.seasonWeek.year === props.game?.year
+      && event.seasonWeek.week === props.game?.week
+      && Boolean(userTeamId && event.actors.teamIds.includes(userTeamId)))
+    .map((event) => String(event.payload.cardId)));
   const postWeekMoment = props.game
     ? buildPostWeekMoment((props.game.weekSummaries ?? []).at(-1) ?? null, latestPackageFromGame(props.game))
     : null;
@@ -441,8 +469,8 @@ function ActionCenter(props: ActionCenterProps) {
     ? getScenarioConstraintCoverage(props.game.scenarioState.activeScenario.constraints).items
       .filter((item) => item.status === 'enforced')
     : [];
-  const mustDoActions = requiredItems.length > 0
-    ? requiredItems.map((item, index) => toBoardAction(item, `must-${index}-${item.route}`))
+  const mustDoActions = (requiredItems.length > 0
+    ? requiredItems.slice(0, 3).map((item, index) => toBoardAction(item, `must-${index}-${item.route}`))
     : [toBoardAction(items.find((item) => item.route === '/week-advance') ?? {
       label: 'Ready for Advance Week',
       detail: 'Must Do: none right now.',
@@ -452,12 +480,15 @@ function ActionCenter(props: ActionCenterProps) {
       requiredBeforeAdvance: false,
       consequence: 'Advance Week is available. Make roster, depth, cap, market, staff, or matchup changes before Advance Week, offer expiration, or phase rules lock them.',
       where: routeLabel('/week-advance'),
-    }, 'must-ready')];
+    }, 'must-ready')]).filter((action) => !closedActionIds.has(action.id));
+  const openRequiredCount = requiredItems.length > 0 ? mustDoActions.length : 0;
   const recommendedActions = [
     ...advisoryItems.map((item, index) => toBoardAction(item, `recommended-alert-${index}-${item.route}`)),
     ...recommendations.map(recommendationToBoardAction),
   ];
-  const visibleRecommendedActions = recommendedActions.length > 0 ? recommendedActions : [fallbackRecommendedAction()];
+  const visibleRecommendedActions = (recommendedActions.length > 0 ? recommendedActions : [fallbackRecommendedAction()])
+    .filter((action) => !closedActionIds.has(action.id))
+    .slice(0, 3);
 
   return (
     <PixelPanel title="Command Queue" accent={panelAccent}>
@@ -605,9 +636,11 @@ function ActionCenter(props: ActionCenterProps) {
         <WeeklyBoardLane
           title="Must Do"
           subtitle="Stops or redirects Advance Week: injuries, missing starters, expiring offers, promises, or phase rules."
-          badge={`${requiredItems.length} required item${requiredItems.length === 1 ? '' : 's'}`}
-          accent={requiredItems.length > 0 ? 'red' : 'green'}
+          badge={`${openRequiredCount} required item${openRequiredCount === 1 ? '' : 's'}`}
+          accent={openRequiredCount > 0 ? 'red' : 'green'}
           actions={mustDoActions}
+          lane="must_do"
+          onCloseAction={props.onCloseAction}
         />
 
         <WeeklyBoardLane
@@ -616,6 +649,8 @@ function ActionCenter(props: ActionCenterProps) {
           badge={`${visibleRecommendedActions.length} item${visibleRecommendedActions.length === 1 ? '' : 's'}`}
           accent={visibleRecommendedActions.some((action) => action.accent === 'red') ? 'red' : 'gold'}
           actions={visibleRecommendedActions}
+          lane="recommended"
+          onCloseAction={props.onCloseAction}
         />
 
         <WeeklyBoardLane

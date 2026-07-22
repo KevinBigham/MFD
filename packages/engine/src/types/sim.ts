@@ -138,6 +138,12 @@ export interface GameResult {
   flexed?: boolean;
   specialTeams?: Record<string, SpecialTeamsGameSummary>;
   playerMatchupEvents: PlayerMatchupEvent[];
+  /** Canonical Snap Core ledger retained for user games; CPU ledgers reduce to derived views. */
+  snapEvents?: import('./causal.js').SnapEvent[];
+  snapLedgerMode?: 'shadow' | 'canonical';
+  /** Positive counts only; empty means every required healthy starter slot was certified pre-kickoff. */
+  healthyStarterShortages?: Partial<Record<Position, number>>;
+  healthyStarterShortagesByTeam?: Record<string, Partial<Record<Position, number>>>;
   callYourShotResult?: import('../systems/call-your-shot').CallYourShotResult;
   namedGame?: import('../systems/named-games').NamedGameEvent;
   contingencyActivations?: Array<{

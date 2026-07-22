@@ -27,7 +27,11 @@ export function runShadowScenario(scenarioId: string): ShadowRunResult {
     throw new Error(`Shadow scenario "${scenarioId}" references unknown persona ${scenario.personaId}`);
   }
 
-  const report = runPlaytest(persona, scenario.seed, scenario.seasons);
+  // Golden-save tests cover every migration edge. Shadow keeps an independent
+  // full-state round trip at step 1, every tenth step, and every season close
+  // so long-horizon drift stays protected without re-encoding a 30MB+ dynasty
+  // on every single simulated week.
+  const report = runPlaytest(persona, scenario.seed, scenario.seasons, { saveRoundTripEvery: 10 });
   const canonicalJson = canonicalJsonStringify(report);
 
   return {

@@ -117,8 +117,7 @@ describe('DynastyCartridge source contracts', () => {
     );
 
     expectSourceOrder(confirmCombinedBackupImport, [
-      'await autosaveDynasty(loaded);',
-      'const sidecarResult = importDynastySidecarArchiveJson(exportDynastySidecarArchiveJson(sidecarPayload));',
+      'const sidecarResult = await importCombinedBackupAtomically(loaded, sidecarPayload);',
       'loadGame(loaded);',
       'setPendingCombinedImport(null);',
       'setSidecarRevision((current) => current + 1);',

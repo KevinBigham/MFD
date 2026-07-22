@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   mulberry32, RNG, setSeed, getSeed,
+  createRngState, createWeekRngState,
   reseedWeek, reseedSeason,
   rng, rngI, rngD, rngAI, rngT, rngDev,
   rngEvent, pick, pickD, uid,
@@ -59,6 +60,29 @@ describe('RNG channels', () => {
 });
 
 describe('reseed functions', () => {
+  it('builds an isolated week context byte-for-byte equivalent to legacy reseeding', () => {
+    const seed = 81_337;
+    const year = 2034;
+    const week = 12;
+    const isolated = createWeekRngState(seed, year, week);
+    setSeed(seed);
+    reseedSeason(year);
+    reseedWeek(year, week);
+
+    for (const channel of ['play', 'injury', 'draft', 'ai', 'dev', 'trade', 'ui', 'event'] as const) {
+      expect(isolated[channel]()).toBe(RNG[channel]());
+      expect(isolated[channel]()).toBe(RNG[channel]());
+    }
+  });
+
+  it('does not mutate the legacy convenience channels when creating an isolated context', () => {
+    setSeed(444);
+    const expected = createRngState(444);
+    createWeekRngState(999, 2030, 8);
+    expect(RNG.play()).toBe(expected.play());
+    expect(RNG.event()).toBe(expected.event());
+  });
+
   it('reseedWeek changes play/injury/ai/dev/trade but not draft', () => {
     setSeed(12345);
     const draftBefore = RNG.draft();

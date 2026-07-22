@@ -37,6 +37,8 @@ import {
   initializeLockerRoom,
   assignJerseyNumber,
   syncAllPlayerArchiveEntries,
+  DIFF_SETTINGS,
+  ensureCausalSpineState,
 } from '@mfd/engine';
 import { createEmptyRecordBook } from '@mfd/engine';
 
@@ -230,10 +232,10 @@ function genPlayer(
   };
 }
 
-function genDraftPicks(teamId: string, year: number): DraftPick[] {
+function genDraftPicks(teamId: string, year: number, pickNumber: number): DraftPick[] {
   return Array.from({ length: 7 }, (_, i) => ({
     round: i + 1,
-    pick: rng(1, 32),
+    pick: pickNumber,
     originalTeamId: teamId,
     currentTeamId: teamId,
     year,
@@ -269,6 +271,7 @@ function genTeam(
   def: typeof TEAM_DEFS[number],
   year: number,
   isUser: boolean,
+  draftSlot: number,
 ): { team: Team; players: Player[] } {
   const teamId = uid();
   const players: Player[] = [];
@@ -359,7 +362,7 @@ function genTeam(
     ownerPatience80: 80,
     gmStrategy: 'neutral',
     philosophy: 'maintain',
-    draftPicks: genDraftPicks(teamId, year + 1),
+    draftPicks: genDraftPicks(teamId, year + 1, draftSlot),
     rivalries: [],
     rivals: {},
     franchiseTag973: null,
@@ -427,7 +430,10 @@ export function createSeedGameState(
   for (let i = 0; i < TEAM_DEFS.length; i++) {
     const def = TEAM_DEFS[i]!;
     const isUser = i === userTeamIndex;
-    const { team, players } = genTeam(def, year, isUser);
+    const { team, players } = genTeam(def, year, isUser, i + 1);
+    if (isUser) {
+      team.facilityState.budget = Math.round((DIFF_SETTINGS[difficulty].startCash / 7.5) * 10) / 10;
+    }
 
     allTeams[team.id] = team;
     teamIds.push(team.id);
@@ -471,6 +477,9 @@ export function createSeedGameState(
     latestPackageId: null,
   };
 
+  const scoutingDepartment = createDefaultScoutingDepartment();
+  scoutingDepartment.budget = Math.round((DIFF_SETTINGS[difficulty].foBudget / 5) * 10) / 10;
+
   const gameState: GameState = {
     version: SAVE_VERSION,
     seed,
@@ -480,6 +489,7 @@ export function createSeedGameState(
     difficulty,
     settings: {
       halftimeDecisions: getDefaultHalftimeDecisionSetting(difficulty),
+      coachMode: false,
     },
     players: allPlayers,
     teams: allTeams,
@@ -509,6 +519,14 @@ export function createSeedGameState(
     laborState: initLaborState(),
     frontOffice,
     eventLog: [],
+    leagueEvents: [],
+    decisionReceipts: [],
+    franchisePlans: {},
+    pressMemoryTags: [],
+    gameCapsules: [],
+    memoryGraph: { nodes: [], edges: [] },
+    navigationMode: 'gm',
+    onboardingMode: 'guided',
     narrativeState,
     offFieldEvents: [],
     recentPressConferences: [],
@@ -547,7 +565,7 @@ export function createSeedGameState(
     difficultyState: createDefaultDifficultyState(),
     availableMedicalStaff: [],
     playoffMomentum: {},
-    scoutingDepartment: createDefaultScoutingDepartment(),
+    scoutingDepartment,
     conditionalPicks: [],
     waiverOrder: [...teamIds],
     waiverWire: [],
@@ -582,6 +600,7 @@ export function createSeedGameState(
   };
 
   ensureAgentsInitialized(gameState);
+  ensureCausalSpineState(gameState);
   syncAllPlayerArchiveEntries(gameState, year);
   return gameState;
 }

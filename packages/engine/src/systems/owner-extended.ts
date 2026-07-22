@@ -37,6 +37,7 @@ export function tickPatience(
   archetype: OwnerArchetypeId,
   result: 'win' | 'loss',
   context: { isPlayoff?: boolean; streak?: number; playoffAppearance?: boolean; week?: number; winPct?: number; firstSeason?: boolean },
+  ownerPressureModifier = 1,
 ): PatienceTick {
   const drain = DRAIN_RATES[archetype] ?? 4;
   const gain = GAIN_RATES[archetype] ?? 8;
@@ -59,6 +60,10 @@ export function tickPatience(
 
   if (context.week === 9 && (context.winPct ?? 0) >= 0.5) {
     delta += 5;
+  }
+
+  if (delta < 0) {
+    delta = -Math.max(1, Math.round(Math.abs(delta) * ownerPressureModifier));
   }
 
   const newPatience = cl(patience + delta, 0, 100);

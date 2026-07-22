@@ -6,12 +6,21 @@ import v34Fixture from './fixtures/v34.json';
 
 function stripCurrentAdditions(state: Record<string, unknown>): Record<string, unknown> {
   const clone = structuredClone(state);
-  delete clone['version'];
+  clone['version'] = undefined;
   delete clone['mediaCycle'];
   delete clone['storylineThreads'];
   delete clone['ownerMandates'];
   delete clone['ballotWaitlist'];
   delete clone['ballotEliminatedIds'];
+  delete clone['settings'];
+  delete clone['leagueEvents'];
+  delete clone['decisionReceipts'];
+  delete clone['franchisePlans'];
+  delete clone['pressMemoryTags'];
+  delete clone['gameCapsules'];
+  delete clone['memoryGraph'];
+  delete clone['navigationMode'];
+  delete clone['onboardingMode'];
   const teams = clone['teams'];
   if (teams && typeof teams === 'object') {
     for (const team of Object.values(teams as Record<string, Record<string, unknown>>)) {

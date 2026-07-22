@@ -27,11 +27,11 @@
 - Combined and sidecar imports now show a summary preview with dynasty coverage and missing-store warnings before any autosave, active-game load, or sidecar replacement.
 - Older sidecar archives that do not carry rivalry heat no longer wipe existing local rivalry history.
 
-### Publication integrity release gate - 2026-07-05
+### Publication integrity release gate - 2026-07-21
 
-- 36-step `pnpm release:gate` is the public release contract and CI `release-gate` job.
+- 37-step `pnpm release:gate` is the public release contract and CI `release-gate` job.
 - One-Click Combined Backup exists for the normal `.mfd` cartridge plus dynasty sidecar archive export/import.
-- GitHub Pages deploy workflow now triggers only from `main` or manual dispatch, pins pnpm 9.15.9, and runs bundle-size plus built-page smoke checks after the web build.
+- GitHub Pages now runs only after successful `main` CI, downloads the SHA-named artifact produced by the full release gate, and never rebuilds a lighter artifact.
 - Release docs updated to match current release-gate, Combined Backup, and deploy-hardening truth.
 
 ### Chip companion rebuild - 2026-05-07 (PR #62)
@@ -81,9 +81,9 @@ Launch build for the TypeScript rebuild.
 
 ### Save Compatibility
 
-- Save schema is v36 in the current working copy.
+- Save schema is v37 in the current working copy.
 - Sprint 72 itself did not require a schema bump.
-- Existing v1 -> v36 migration chain remains the public compatibility contract.
+- Existing v1 -> v37 migration chain remains the public compatibility contract.
 
 ### Test Count
 

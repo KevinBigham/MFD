@@ -9,10 +9,11 @@ import {
   getNavUnlockStatus,
   isNavItemUnlocked,
 } from './navigation';
+import { APP_ROUTE_REGISTRY, APP_ROOMS, NERD_NAV_GROUPS } from './route-registry';
 
 describe('navigation unlock rules', () => {
   it('covers current primary shell routes while preserving explicit gates', () => {
-    expect(NAV_UNLOCK_RULES).toHaveLength(56);
+    expect(NAV_UNLOCK_RULES).toHaveLength(APP_ROUTE_REGISTRY.length);
     expect(NAV_UNLOCK_RULES[0]).toEqual({ route: '/', label: 'Monday Briefing', unlockWeek: 'always' });
     expect(NAV_UNLOCK_RULES.at(-1)).toEqual({ route: '/settings', label: 'Settings', unlockWeek: 'always' });
     expect(NAV_UNLOCK_RULES.filter((rule) => rule.unlockWeek === 4).map((rule) => rule.route))
@@ -21,9 +22,9 @@ describe('navigation unlock rules', () => {
       .toEqual(['/scouting', '/power-rankings']);
     expect(NAV_UNLOCK_RULES.filter((rule) => rule.unlockPhase).map((rule) => [rule.route, rule.unlockPhase]))
       .toEqual([
+        ['/training-camp', 'training_camp'],
         ['/draft', 'draft'],
         ['/free-agency', 'free_agency'],
-        ['/training-camp', 'training_camp'],
       ]);
   });
 
@@ -76,5 +77,17 @@ describe('navigation unlock rules', () => {
   it('every rule has a unique route', () => {
     const routes = NAV_UNLOCK_RULES.map((r) => r.route);
     expect(new Set(routes).size).toBe(routes.length);
+  });
+
+  it('uses one canonical registry for five-room and nerd navigation', () => {
+    expect(APP_ROOMS).toHaveLength(5);
+    expect(NERD_NAV_GROUPS).toHaveLength(8);
+    expect(new Set(APP_ROUTE_REGISTRY.map((entry) => entry.path)).size).toBe(APP_ROUTE_REGISTRY.length);
+    expect(new Set(APP_ROUTE_REGISTRY.map((entry) => entry.room)))
+      .toEqual(new Set(APP_ROOMS.map((room) => room.id)));
+    expect(new Set(APP_ROUTE_REGISTRY.map((entry) => entry.nerdGroup)))
+      .toEqual(new Set(NERD_NAV_GROUPS.map((group) => group.id)));
+    expect(NAV_UNLOCK_RULES.map((rule) => rule.route))
+      .toEqual(APP_ROUTE_REGISTRY.map((entry) => entry.path));
   });
 });

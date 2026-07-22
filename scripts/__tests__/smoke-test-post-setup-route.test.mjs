@@ -323,6 +323,10 @@ test('parses the opt-in full setup completion workflow flag', () => {
 });
 
 test('keeps full setup smoke aligned to the plain-language setup labels', () => {
+  assert.match(smokeSource, /waitForBodyText\(cdp, sessionId, 'Full GM', 'new-dynasty full GM option'\)/);
+  assert.match(smokeSource, /clickButtonContaining\(cdp, sessionId, 'Full GM', 'clickable Full GM onboarding option'\)/);
+  assert.match(smokeSource, /clickButtonContaining\(cdp, sessionId, 'Start Full GM', 'clickable Start Full GM button'\)/);
+  assert.doesNotMatch(smokeSource, /new-dynasty full setup option|clickable Start Dynasty button/);
   assert.match(smokeSource, /Open Intel for owner patience, injuries, cap space, and Week 1 matchup threats/);
   assert.match(smokeSource, /Choose restructures now or save injury, trade, and extension cap space/);
   assert.match(smokeSource, /Choose goals ownership judges and rules that change morale after losses/);
@@ -454,6 +458,13 @@ test('parses the opt-in waiver/practice-squad workflow flag', () => {
   assert.equal(shouldRunWaiverPracticeSquadSmoke({ SMOKE_WAIVER_PRACTICE_SQUAD: '1' }), true);
   assert.equal(shouldRunWaiverPracticeSquadSmoke({ SMOKE_WAIVER_PRACTICE_SQUAD: 'true' }), true);
   assert.equal(shouldRunWaiverPracticeSquadSmoke({ SMOKE_WAIVER_PRACTICE_SQUAD: 'YES' }), true);
+});
+
+test('waiver/practice smoke accepts deterministic CPU re-signing after a proven release', () => {
+  assert.match(smokeSource, /const practiceReleaseSurvived = Boolean/);
+  assert.match(smokeSource, /practicePlayer\?\.teamId !== fixture\.userTeamId/);
+  assert.match(smokeSource, /'practiceReleaseSurvived',\s*'practice-squad release persisted after final hard reload'/);
+  assert.match(smokeSource, /'practiceReleased',\s*'practice-squad release persisted to latest autosave'/);
 });
 
 test('parses the opt-in free-agency signings workflow flag', () => {

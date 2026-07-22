@@ -1,4 +1,4 @@
-import { RNG } from '../rng';
+import { RNG, type PrngFn } from '../rng';
 import type {
   CommissionerRuling,
   CommissionerState,
@@ -26,8 +26,8 @@ function deterministicIndex(seed: number, salt: number, length: number): number 
   return (((seed * 1103515245) ^ (salt * 12345)) >>> 0) % length;
 }
 
-function nextIndex(length: number): number {
-  return Math.floor(RNG.event() * length);
+function nextIndex(length: number, eventRng: PrngFn): number {
+  return Math.floor(eventRng() * length);
 }
 
 function averageAttendance(game: GameState): number {
@@ -36,7 +36,7 @@ function averageAttendance(game: GameState): number {
   return teams.reduce((sum, team) => sum + (team.franchiseIdentity?.attendance ?? 75), 0) / teams.length;
 }
 
-function selectProposalRule(state: CommissionerState, game: GameState): LeagueRuleKey {
+function selectProposalRule(state: CommissionerState, game: GameState, eventRng: PrngFn): LeagueRuleKey {
   const pool: LeagueRuleKey[] = state.personality === 'progressive'
     ? ['playoff_seeds_per_conf', 'practice_squad_size', 'roster_limit']
     : state.personality === 'traditionalist'
@@ -44,7 +44,7 @@ function selectProposalRule(state: CommissionerState, game: GameState): LeagueRu
       : averageAttendance(game) >= 82
         ? ['playoff_seeds_per_conf', 'roster_limit', 'practice_squad_size']
         : ['revenue_split', 'practice_squad_size', 'cap_floor_pct'];
-  return pool[nextIndex(pool.length)] ?? 'practice_squad_size';
+  return pool[nextIndex(pool.length, eventRng)] ?? 'practice_squad_size';
 }
 
 function proposedValueForRule(key: LeagueRuleKey, currentValue: LeagueRuleValue): LeagueRuleValue {
@@ -86,9 +86,9 @@ function rationaleFor(key: LeagueRuleKey, personality: CommissionerState['person
   return `The commissioner is responding to the league's current public mood around ${label}.`;
 }
 
-function createProposal(state: CommissionerState, game: GameState, source: RuleProposal['source']): RuleProposal {
+function createProposal(state: CommissionerState, game: GameState, source: RuleProposal['source'], eventRng: PrngFn): RuleProposal {
   const rules = game.leagueRules;
-  const ruleKey = selectProposalRule(state, game);
+  const ruleKey = selectProposalRule(state, game, eventRng);
   const currentValue = getActiveRule(rules, ruleKey, game.year);
   const proposedValue = proposedValueForRule(ruleKey, currentValue);
   return {
@@ -151,8 +151,8 @@ export function initCommissioner(year: number): CommissionerState {
   };
 }
 
-export function generateRuleProposal(state: CommissionerState, game: GameState): RuleProposal | null {
-  return createProposal(state, game, 'commissioner');
+export function generateRuleProposal(state: CommissionerState, game: GameState, eventRng: PrngFn = RNG.event): RuleProposal | null {
+  return createProposal(state, game, 'commissioner', eventRng);
 }
 
 export function castVote(proposal: RuleProposal, teamId: string, vote: 'yes' | 'no'): RuleProposal {
@@ -198,9 +198,9 @@ export function resolveVote(proposal: RuleProposal): VoteResult {
   };
 }
 
-export function getCommissionerAgenda(state: CommissionerState, game: GameState): RuleProposal[] {
+export function getCommissionerAgenda(state: CommissionerState, game: GameState, eventRng: PrngFn = RNG.event): RuleProposal[] {
   if (state.activeProposals.length > 0) return state.activeProposals;
-  const proposal = generateRuleProposal(state, game);
+  const proposal = generateRuleProposal(state, game, eventRng);
   return proposal ? [proposal] : [];
 }
 
@@ -211,7 +211,7 @@ export function issueRuling(state: CommissionerState, ruling: CommissionerRuling
   };
 }
 
-export function advanceCommissioner(state: CommissionerState, game: GameState): CommissionerState {
+export function advanceCommissioner(state: CommissionerState, game: GameState, eventRng: PrngFn = RNG.event): CommissionerState {
   const nextState: CommissionerState = {
     ...state,
     tenure: state.tenure + 1,
@@ -236,8 +236,8 @@ export function advanceCommissioner(state: CommissionerState, game: GameState): 
     return replacementCommissioner(game.year);
   }
 
-  if (nextState.activeProposals.length === 0 && RNG.event() < 0.3) {
-    const generated = generateRuleProposal(nextState, game);
+  if (nextState.activeProposals.length === 0 && eventRng() < 0.3) {
+    const generated = generateRuleProposal(nextState, game, eventRng);
     if (generated) {
       nextState.activeProposals = [generated];
     }

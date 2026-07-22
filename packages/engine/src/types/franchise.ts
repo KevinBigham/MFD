@@ -713,6 +713,10 @@ export interface PositionGroupGrade {
   ageRisk: 'low' | 'medium' | 'high';
   topPlayer: Player | null;
   weakestStarter: Player | null;
+  /** Deterministic 0-40 urgency used by CPU roster-building systems. */
+  needScore?: number;
+  /** Human-readable, source-backed reasons for the urgency score. */
+  reasonCodes?: string[];
 }
 
 export interface TeamNeedsReport {
@@ -913,6 +917,7 @@ export interface AllDecadeTeam {
 
 export interface GameSettings {
   halftimeDecisions: HalftimeDecisionSetting;
+  coachMode?: boolean;
 }
 
 export type PressConferenceResponseTier = 'high' | 'mid' | 'low';
@@ -1360,6 +1365,15 @@ export interface GameState {
   // Sprint 45 "The Family Tree" — league-wide relationship graph.
   // Stores coaching lineage, rivalries, and family ties in one flat list.
   relationships?: import('../systems/relationship-graph').RelationshipEdge[];
+  /** v37 causal-spine and compression state. Defaults are added by migration. */
+  leagueEvents?: import('./causal.js').LeagueEvent[];
+  decisionReceipts?: import('./causal.js').DecisionReceipt[];
+  franchisePlans?: Record<string, import('./causal.js').FranchisePlan>;
+  pressMemoryTags?: import('./causal.js').PressMemoryTag[];
+  gameCapsules?: import('./causal.js').GameCapsule[];
+  memoryGraph?: import('./causal.js').DynastyMemoryGraph;
+  navigationMode?: 'gm' | 'nerd';
+  onboardingMode?: 'instant' | 'guided' | 'full_gm';
 }
 
 // ── Commands / Engine Output ───────────────────────────

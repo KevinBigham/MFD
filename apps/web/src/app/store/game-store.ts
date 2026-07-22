@@ -9,6 +9,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type {
   AudioCue,
+  ActionCenterCardClosure,
   BreakingNewsEvent,
   CapCandidate,
   CapHealthReport,
@@ -62,6 +63,7 @@ import {
   applyDraftTradeOffer,
   applyRuleChange,
   applySchemeChange,
+  applyPressResponseConsequences,
   applyExtensionOffer,
   appointCaptain,
   assignTraining as assignTrainingEngine,
@@ -115,6 +117,7 @@ import {
   relocateTeam as relocateTeamEngine,
   removeFromPracticeSquad as removeFromPracticeSquadEngine,
   removeFromWatchlist,
+  recordActionCenterCardClosure as recordActionCenterCardClosureEngine,
   recordGovernanceNews,
   recordLaborNews,
   ratifyCBA,
@@ -369,12 +372,15 @@ interface GameActions {
   setPhase: (phase: SeasonPhase) => Promise<void>;
   setDifficulty: (difficulty: GameState['difficulty']) => Promise<void>;
   setHalftimeDecisions: (setting: GameState['settings']['halftimeDecisions']) => Promise<void>;
+  setCoachMode: (enabled: boolean) => Promise<void>;
+  setNavigationMode: (mode: 'gm' | 'nerd') => Promise<void>;
   setAdaptiveDifficultyEnabled: (enabled: boolean) => Promise<void>;
   startScenarioChallenge: (scenarioId: string) => Promise<void>;
   saveGamePlan: (plan: GamePlan, report?: OpponentReport | null) => Promise<void>;
   clearGamePlan: () => Promise<void>;
   saveWeeklyPrepPlan: (plan: WeeklyPrepPlan, report?: OpponentReport | null) => Promise<void>;
   clearWeeklyPrepPlan: () => Promise<void>;
+  closeActionCenterCard: (card: ActionCenterCardClosure) => Promise<void>;
   respondToPressConference: (
     conferenceId: string,
     tier: PressConferenceResponseTier,
@@ -2601,6 +2607,25 @@ export const useGameStore = create<GameStore>()(
         await commitGame(nextGame);
       },
 
+      setCoachMode: async (enabled) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.settings.coachMode = enabled;
+        if (enabled && current.difficulty !== 'rookie') {
+          nextGame.settings.halftimeDecisions = 'on';
+        }
+        await commitGame(nextGame);
+      },
+
+      setNavigationMode: async (mode) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        nextGame.navigationMode = mode;
+        await commitGame(nextGame);
+      },
+
       setAdaptiveDifficultyEnabled: async (enabled) => {
         const current = get().game;
         if (!current) return;
@@ -2682,6 +2707,16 @@ export const useGameStore = create<GameStore>()(
         await commitGame(nextGame);
       },
 
+      closeActionCenterCard: async (card) => {
+        const current = get().game;
+        if (!current) return;
+        const nextGame = cloneForMutation(current);
+        const userTeam = Object.values(nextGame.teams).find((team) => team.isUser) ?? null;
+        if (!userTeam) return;
+        recordActionCenterCardClosureEngine(nextGame, userTeam.id, card);
+        await commitGame(nextGame);
+      },
+
       respondToPressConference: async (conferenceId, tier, response) => {
         const current = get().game;
         if (!current) return;
@@ -2690,6 +2725,7 @@ export const useGameStore = create<GameStore>()(
         if (!entry) return;
         entry.selectedTier = tier;
         entry.selectedResponse = response;
+        applyPressResponseConsequences(nextGame, conferenceId, tier, response);
         await commitGame(nextGame);
       },
 

@@ -10,27 +10,6 @@ function stripYamlScalar(value) {
   return value.trim().replace(/^['"]|['"]$/g, '');
 }
 
-function readInlinePushBranches(workflow) {
-  const lines = workflow.split(/\r?\n/);
-  const pushIndex = lines.findIndex((line) => /^  push:\s*$/.test(line));
-  assert.notEqual(pushIndex, -1, 'workflow defines on.push');
-
-  for (let index = pushIndex + 1; index < lines.length; index += 1) {
-    const line = lines[index];
-    if (/^  [^ ]/.test(line)) break;
-
-    const match = line.match(/^\s{4}branches:\s*\[(.*)\]\s*$/);
-    if (!match) continue;
-
-    return match[1]
-      .split(',')
-      .map((branch) => stripYamlScalar(branch))
-      .filter(Boolean);
-  }
-
-  assert.fail('workflow push trigger defines inline branches');
-}
-
 function collectPnpmActionVersions(workflow) {
   const lines = workflow.split(/\r?\n/);
   const versions = [];
@@ -62,24 +41,27 @@ test('package.json defines release:gate', () => {
   assert.equal(packageJson.scripts?.['release:gate'], 'node scripts/release-gate.mjs');
 });
 
-test('deploy push branches are exactly main', () => {
+test('deploy runs only after successful main-branch CI', () => {
   const deployWorkflow = readRepoFile('.github/workflows/deploy.yml');
 
-  assert.deepEqual(readInlinePushBranches(deployWorkflow), ['main']);
+  assert.match(deployWorkflow, /workflow_run:[\s\S]*workflows: \[CI\]/);
+  assert.match(deployWorkflow, /workflow_run\.conclusion == 'success'/);
+  assert.match(deployWorkflow, /workflow_run\.head_branch == 'main'/);
 });
 
-test('deploy uses the same pnpm version as CI', () => {
-  const deployVersions = collectPnpmActionVersions(readRepoFile('.github/workflows/deploy.yml'));
+test('CI uses the package-manager pin for every build job', () => {
   const ciVersions = collectPnpmActionVersions(readRepoFile('.github/workflows/ci.yml'));
-  const expectedVersion = ciVersions[0];
+  const expectedVersion = JSON.parse(readRepoFile('package.json')).packageManager.split('@').at(-1);
 
   assert.ok(ciVersions.every((version) => version === expectedVersion), 'CI pnpm versions match');
-  assert.ok(deployVersions.every((version) => version === expectedVersion), 'deploy pnpm version matches CI');
 });
 
-test('deploy runs bundle-size and built-page smoke checks', () => {
+test('deploy consumes the exact SHA-named artifact emitted by the full release gate', () => {
+  const ciWorkflow = readRepoFile('.github/workflows/ci.yml');
   const deployWorkflow = readRepoFile('.github/workflows/deploy.yml');
 
-  assert.match(deployWorkflow, /check-bundle-size\.sh/);
-  assert.match(deployWorkflow, /smoke-test-built-page\.sh/);
+  assert.match(ciWorkflow, /Full release gate[\s\S]*node scripts\/release-gate\.mjs[\s\S]*upload-artifact@v4[\s\S]*mfd-pages-\$\{\{ github\.sha \}\}/);
+  assert.match(deployWorkflow, /download-artifact@v4[\s\S]*mfd-pages-\$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
+  assert.match(deployWorkflow, /run-id: \$\{\{ github\.event\.workflow_run\.id \}\}/);
+  assert.doesNotMatch(deployWorkflow, /pnpm install|pnpm .*build|vite build/);
 });

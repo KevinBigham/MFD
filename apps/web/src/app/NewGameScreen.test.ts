@@ -85,15 +85,17 @@ describe('NewGameScreen', () => {
     expect(content).not.toContain('CPU games stay on the fast path');
   });
 
-  it('wires Fast Lane setup through the gated New Dynasty launch path only', () => {
+  it('wires all three onboarding paths through New Dynasty only', () => {
     expect(content).toContain('createFastLaneSetupState');
     expect(content).toContain('persistSetupRunMode');
-    expect(content).toContain('readFirstTenMinutesCompleted');
-    expect(content).toContain("setupLaunchMode === 'fast_lane'");
+    expect(content).toContain("onboardingMode === 'instant'");
+    expect(content).toContain("onboardingMode === 'guided'");
+    expect(content).toContain("onboardingMode === 'full_gm'");
     expect(content).toContain("if (mode === 'dynasty')");
     expect(content).toContain("mode !== 'scenario'");
-    expect(content).toContain('persistSetupRunMode(resolveLaunchSetupStorage(), activeSetupRunMode)');
-    expect(content).toContain('Complete one full Day 1 setup to unlock repeat-player setup.');
+    expect(content).toContain("onboardingMode === 'full_gm' ? 'full' : 'fast_lane'");
+    expect(content).toContain('&lt;90 SEC');
+    expect(content).not.toContain('readFirstTenMinutesCompleted');
     expect(content).not.toContain('SETUP_RUN_MODE_KEY');
   });
 });

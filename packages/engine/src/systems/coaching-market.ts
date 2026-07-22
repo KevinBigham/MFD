@@ -1,4 +1,5 @@
 import { mulberry32 } from '../rng';
+import { DIFF_SETTINGS } from '../config/difficulty';
 import type {
   CoachingMarketState,
   GameEvent,
@@ -161,7 +162,8 @@ function generateCandidate(game: GameState, team: Team, role: StaffRole, index: 
   const last = LAST_NAMES[Math.floor(rng() * LAST_NAMES.length)] ?? 'Reed';
   const archetypePool = ARCHETYPES_BY_ROLE[role];
   const archetype = archetypePool[Math.floor(rng() * archetypePool.length)] ?? 'balanced';
-  const base = 63 + Math.floor(rng() * 24);
+  const staffBudgetAdjustment = Math.round((DIFF_SETTINGS[game.difficulty].staffBudget - DIFF_SETTINGS.pro.staffBudget) * 0.35);
+  const base = clamp(63 + Math.floor(rng() * 24) + staffBudgetAdjustment, 55, 92);
   const member: StaffMember = {
     id: `staff-${team.id}-${role.toLowerCase()}-${index}`,
     name: `${first} ${last}`,

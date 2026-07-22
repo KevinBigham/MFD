@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runCoachingCarousel, type StaffMember } from '../index';
+import { runCoachingCarousel, scoreCarouselCandidate, type StaffMember } from '../index';
 import { makeLeagueState } from './test-helpers';
 
 function makeCoach(id: string, name: string, gameplan: number): StaffMember {
@@ -21,6 +21,34 @@ function makeCoach(id: string, name: string, gameplan: number): StaffMember {
 }
 
 describe('coaching carousel', () => {
+  it('uses durable franchise risk tolerance when grading a staff candidate', () => {
+    const game = makeLeagueState('offseason', 1);
+    const team = game.teams.afce2!;
+    const candidate = makeCoach('candidate', 'Plan Candidate', 90);
+    candidate.ratings.development = 50;
+    game.franchisePlans = {
+      [team.id]: {
+        teamId: team.id,
+        windowYears: [2027, 2029],
+        ownerMandate: 'contend',
+        capPosture: 'balanced',
+        priorityPositions: ['QB'],
+        protectedAssets: [],
+        expendableAssets: [],
+        draftCapitalStrategy: 'balanced',
+        riskTolerance: 80,
+        changeTriggers: [],
+        publicNarrative: 'Aggressive window.',
+        planHistory: [],
+        lastUpdatedYear: 2027,
+      },
+    };
+    const aggressive = scoreCarouselCandidate(game, team, candidate);
+    game.franchisePlans[team.id]!.riskTolerance = 20;
+
+    expect(aggressive).toBeGreaterThan(scoreCarouselCandidate(game, team, candidate));
+  });
+
   it('fires struggling AI head coaches, hires replacements, and leaves the user coach untouched', () => {
     const game = makeLeagueState('offseason', 1);
     game.year = 2027;

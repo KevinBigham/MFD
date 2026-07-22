@@ -116,6 +116,33 @@ describe('record tracker', () => {
     expect(chases[1]?.stat).toBe('recYds');
   });
 
+  it('derives durable record and milestone names after save normalization strips the legacy name field', () => {
+    const game = makeLeagueState('regular_season', 9);
+    game.records = createEmptyRecordBook();
+    const qb = Object.values(game.players).find((player) => player.pos === 'QB' && player.teamId)!;
+    const expectedName = `${qb.firstName} ${qb.lastName}`;
+    delete (qb as { name?: string }).name;
+    qb.stats.gamesPlayed = 8;
+    qb.stats.passYds = 3_200;
+    qb.careerStats.passYds = 10_000;
+    game.records.singleSeason.passYds = [{
+      category: 'singleSeason',
+      stat: 'passYds',
+      value: 5_000,
+      teamId: 'afce2',
+      teamName: 'AFCE2 Club',
+      year: 2024,
+      playerId: 'legacy-qb',
+      playerName: 'Legacy QB',
+    }];
+
+    expect(checkRecordChases(game).find((chase) => chase.playerId === qb.id)?.playerName).toBe(expectedName);
+    expect(checkMilestones(game).find((milestone) => (
+      milestone.playerId === qb.id && milestone.stat === 'passYds'
+    ))?.playerName).toBe(expectedName);
+    expect(getLeagueLeaders(game, 'passYds').find((leader) => leader.playerId === qb.id)?.playerName).toBe(expectedName);
+  });
+
   it('projects record chases over the generated regular-season schedule length', () => {
     const game = makeLeagueState('regular_season', 17);
     game.records = createEmptyRecordBook();

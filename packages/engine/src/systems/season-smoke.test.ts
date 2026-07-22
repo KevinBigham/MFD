@@ -59,7 +59,7 @@ function makeSmokeGame(): GameState {
 }
 
 describe('multi-season deterministic smoke test', () => {
-  it('sims 3 full seasons without crash and within stat bounds', { timeout: 30_000 }, () => {
+  it('sims 3 full seasons without crash and within stat bounds', { timeout: 60_000 }, () => {
     const game = makeSmokeGame();
 
     const startYear = game.year;

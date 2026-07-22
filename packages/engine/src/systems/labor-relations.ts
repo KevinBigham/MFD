@@ -1,4 +1,4 @@
-import { RNG } from '../rng';
+import { RNG, type PrngFn } from '../rng';
 import type {
   CBAState,
   GameState,
@@ -161,7 +161,7 @@ export function resolveWorkStoppage(labor: LaborState, game: GameState): WorkSto
   };
 }
 
-export function generateLaborEvent(labor: LaborState, game: GameState): LaborEvent | null {
+export function generateLaborEvent(labor: LaborState, game: GameState, eventRng: PrngFn = RNG.event): LaborEvent | null {
   const tenseWindow = ['expiring', 'expired', 'negotiating', 'awaiting_owner_vote', 'lockout'].includes(game.cbaState?.status ?? 'active')
     || labor.unionSatisfaction <= 35;
   if (!tenseWindow) return null;
@@ -192,6 +192,6 @@ export function generateLaborEvent(labor: LaborState, game: GameState): LaborEve
   if (labor.unionSatisfaction <= 35) {
     return eventPool[(game.year + game.week + labor.laborEvents.length) % eventPool.length] ?? eventPool[0]!;
   }
-  if (RNG.event() > 0.2) return null;
-  return eventPool[Math.floor(RNG.event() * eventPool.length)] ?? eventPool[0]!;
+  if (eventRng() > 0.2) return null;
+  return eventPool[Math.floor(eventRng() * eventPool.length)] ?? eventPool[0]!;
 }

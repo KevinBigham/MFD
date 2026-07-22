@@ -34,12 +34,12 @@ import type { PlaytestReport } from '../packages/engine/src/playtesting/types.ts
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..');
 const baselineDir = resolve(repoRoot, '_canon/seeds/mfd');
-const shadowCorpusVersion = '3';
+const shadowCorpusVersion = '5';
 const shadowCorpusClassification = 'intended';
-const shadowCorpusSpecCitation = '_canon/seeds/mfd/README.md:25';
+const shadowCorpusSpecCitation = 'MFD_GOAT_MASTER_PLAN.md:110';
 const shadowCorpusReason = [
-  'The speedrunner-20y shadow report now completes the requested 20 seasons under the default 800-step guard.',
-  'The regenerated report replaces the stale truncated v2 baseline that carried post-year-10 phase-boundary high anomalies while preserving the frozen shadow-tier determinism contract.',
+  'Master-plan item 5.5 intentionally replaces mutable global RNG channel consumption with an explicit SimulationContext and isolated week RNG passed through the canonical game, injury, off-field, waiver, and offseason chain.',
+  'The regenerated corpus records the resulting deterministic sequence after the full engine suite, five-persona 10-season certification, GOAT release sentinel, save round-trip, and explicit-context isolation checks passed with zero high-severity anomalies, zero healthy-starter shortage game-weeks, and complete CPU transaction receipt coverage.',
 ].join(' ');
 
 const argv = process.argv.slice(2);

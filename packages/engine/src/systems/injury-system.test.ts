@@ -4,6 +4,7 @@ import {
   activateFromIR,
   calculateRecoveryGames,
   generateInjury,
+  getGameAvailability,
   placeOnIR,
   processInjuryRecovery,
 } from './injury-system';
@@ -40,6 +41,17 @@ function severeInjury(overrides: Partial<InjuryDetail> = {}): InjuryDetail {
 }
 
 describe('injury system', () => {
+  it('classifies healthy, day-to-day, and unavailable players through one API', () => {
+    const player = makePlayer('availability', 't1', 'WR', 80);
+    expect(getGameAvailability(player)).toBe('available');
+
+    player.injury = severeInjury({ gamesOut: 0, onIR: false, severity: 'questionable' });
+    expect(getGameAvailability(player)).toBe('questionable');
+
+    player.injury.gamesOut = 1;
+    expect(getGameAvailability(player)).toBe('out');
+  });
+
   it('high fatigue increases injury chance', () => {
     const player = makePlayer('p1', 't1', 'QB', 82);
 

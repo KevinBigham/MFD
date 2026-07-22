@@ -79,7 +79,7 @@ export interface PostgameSourceReceiptRow {
 }
 
 export interface PostgameDecisionReceiptRow {
-  id: 'prep' | 'health' | 'carryover' | 'next-week';
+  id: 'prep' | 'health' | 'trick-play' | 'carryover' | 'next-week';
   label: string;
   value: string;
   detail: string;
@@ -188,6 +188,16 @@ export function buildPostgameDecisionReceipt(packageData: GameDayPackage): Postg
   }
 
   const carryoverItems = [...packageData.activeEffectSummaries, ...carryForward];
+  const trickPlayItems = packageData.activeEffectSummaries.filter((item) => item.startsWith('Trick play —'));
+  if (trickPlayItems.length > 0) {
+    rows.push({
+      id: 'trick-play',
+      label: 'Trick Call',
+      value: `${trickPlayItems.length} tendency burned`,
+      detail: trickPlayItems.slice(0, 3).join(' / '),
+      accent: 'cyan',
+    });
+  }
   if (carryoverItems.length > 0) {
     rows.push({
       id: 'carryover',

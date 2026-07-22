@@ -10,8 +10,11 @@ import {
   initLaborState,
   initLeagueRules,
   getDefaultHalftimeDecisionSetting,
+  getAiReSignPlanModifiers,
+  scoreVacancyCandidateForPlan,
   getSalaryCap,
   buildFreeAgencyDecisionForecast,
+  ensureTeamHealthyRosterFloors,
   calcCapHit,
   makeDraftPick,
   initializeOffseasonState,
@@ -24,7 +27,7 @@ import {
   submitReSignOffer,
   validateGameState,
 } from '../index';
-import type { DraftPick, DraftProspect, GameState, Player, Team, TradeOffer } from '../types';
+import type { DraftPick, DraftProspect, GameState, Player, StaffMember, Team, TradeOffer } from '../types';
 
 function scaleOffer(offer: { years: number; salary: number; signingBonus: number; guaranteed: number }, multiplier: number) {
   return {
@@ -346,6 +349,116 @@ function makeProspect(id: string, pos: Player['pos'], trueGrade = 84): DraftPros
 }
 
 describe('offseason systems', () => {
+  it('uses FranchisePlan posture, priorities, and protected assets in CPU extension intent', () => {
+    const game = makeOffseasonGame();
+    const team = game.teams.ai1!;
+    const player = team.roster[0]!;
+    const plan = {
+      teamId: team.id,
+      windowYears: [game.year, game.year + 2] as [number, number],
+      ownerMandate: 'contend',
+      capPosture: 'preserve' as const,
+      priorityPositions: [player.pos],
+      protectedAssets: [player.id],
+      expendableAssets: [],
+      draftCapitalStrategy: 'balanced' as const,
+      riskTolerance: 50,
+      changeTriggers: [],
+      publicNarrative: 'Protect the core.',
+      planHistory: [],
+      lastUpdatedYear: game.year,
+    };
+
+    expect(getAiReSignPlanModifiers(plan, player)).toEqual({ postureCoverage: 0.15, planPriority: true, protectedAsset: true });
+    expect(getAiReSignPlanModifiers({ ...plan, capPosture: 'spend', priorityPositions: [], protectedAssets: [] }, player))
+      .toEqual({ postureCoverage: -0.1, planPriority: false, protectedAsset: false });
+  });
+
+  it('uses FranchisePlan risk and posture when filling staff vacancies', () => {
+    const game = makeOffseasonGame();
+    const team = game.teams.ai1!;
+    const candidate: StaffMember = {
+      id: 'staff-plan-candidate',
+      name: 'Plan Candidate',
+      role: 'HC',
+      archetype: 'balanced',
+      traits: [],
+      ratings: { gameplan: 92, development: 50, motivation: 70, strategy: 70 },
+      level: 4,
+      loyalty: 9,
+    };
+    const plan = {
+      teamId: team.id,
+      windowYears: [game.year, game.year + 2] as [number, number],
+      ownerMandate: 'contend',
+      capPosture: 'preserve' as const,
+      priorityPositions: ['QB' as const],
+      protectedAssets: [],
+      expendableAssets: [],
+      draftCapitalStrategy: 'balanced' as const,
+      riskTolerance: 80,
+      changeTriggers: [],
+      publicNarrative: 'Win now with continuity.',
+      planHistory: [],
+      lastUpdatedYear: game.year,
+    };
+
+    const aggressive = scoreVacancyCandidateForPlan(team, candidate, plan);
+    expect(aggressive).toBeGreaterThan(scoreVacancyCandidateForPlan(
+      team,
+      candidate,
+      { ...plan, capPosture: 'spend', riskTolerance: 20 },
+    ));
+  });
+
+  it('certifies every healthy starter floor before kickoff with deterministic emergency signings', () => {
+    const game = makeOffseasonGame();
+    const team = game.teams.user!;
+    for (const player of team.roster) {
+      player.injury = { type: 'test injury', severity: 'out', gamesOut: 3 };
+    }
+    for (const playerId of game.freeAgents) {
+      const player = game.players[playerId];
+      if (player) player.injury = { type: 'test injury', severity: 'out', gamesOut: 3 };
+    }
+
+    const repairs = ensureTeamHealthyRosterFloors(game, team.id);
+    const minimums: Array<[Player['pos'], number]> = [
+      ['QB', 1], ['RB', 1], ['WR', 3], ['TE', 1], ['OL', 5], ['DL', 4],
+      ['LB', 3], ['CB', 3], ['S', 2], ['K', 1], ['P', 1],
+    ];
+
+    expect(repairs.length).toBe(minimums.reduce((sum, [, count]) => sum + count, 0));
+    for (const [position, minimum] of minimums) {
+      expect(team.roster.filter((player) =>
+        player.pos === position && player.injury?.gamesOut !== 3 && player.isStarter).length)
+        .toBeGreaterThanOrEqual(minimum);
+    }
+    expect(repairs.every((repair) => repair.source === 'free_agent')).toBe(true);
+  });
+
+  it('elevates an eligible practice-squad player before signing a street replacement', () => {
+    const game = makeOffseasonGame();
+    const team = game.teams.user!;
+    const quarterback = team.roster.find((player) => player.pos === 'QB')!;
+    quarterback.injury = { type: 'test injury', severity: 'out', gamesOut: 2 };
+    const reserve = makePlayer('ps-quarterback', team.id, 'QB', 67, false);
+    reserve.contract = null;
+    game.players[reserve.id] = reserve;
+    team.practiceSquad = [{ playerId: reserve.id, elevationsUsed: 0, maxElevations: 3 }];
+
+    const repairs = ensureTeamHealthyRosterFloors(game, team.id);
+
+    expect(repairs.find((repair) => repair.position === 'QB')).toEqual({
+      teamId: team.id,
+      position: 'QB',
+      playerId: reserve.id,
+      source: 'practice_squad',
+    });
+    expect(team.roster.some((player) => player.id === reserve.id && player.isStarter)).toBe(true);
+    expect(team.txLog.some((entry) => entry.type === 'PS_ELEVATE' && entry.playerId === reserve.id)).toBe(true);
+  });
+
   it('blocks street free-agent signings at the active roster limit', () => {
     const game = makeOffseasonGame();
     const userTeam = game.teams.user!;
@@ -456,6 +569,32 @@ describe('offseason systems', () => {
     expect(roundOne.nextState.socialFeed.some((post) => post.trigger === 'signing')).toBe(true);
     expect(roundThree.nextState.phase).toBe('draft');
     expect(roundThree.nextState.offseasonState?.draftOrder.length).toBeGreaterThan(0);
+  });
+
+  it('awards every seeded CPU free-agent market to the highest retained offer', () => {
+    let resolvedMarkets = 0;
+    let bestOfferWins = 0;
+
+    for (let seed = 1; seed <= 20; seed += 1) {
+      const game = makeOffseasonGame();
+      game.seed = seed;
+      const freeAgentId = game.teams.user!.roster[1]!.id;
+      const marketState = advanceFranchiseWeek(game).nextState;
+      const resolvedState = advanceFranchiseWeek(marketState).nextState;
+      const bids = resolvedState.offseasonState?.freeAgencyBids[freeAgentId] ?? [];
+      const winner = bids.find((bid) => bid.status === 'won');
+      if (!winner) continue;
+
+      resolvedMarkets += 1;
+      const bestScore = Math.max(...bids.map((bid) => bid.score));
+      if (winner.score === bestScore) bestOfferWins += 1;
+      expect(bids).toEqual([...bids].sort((left, right) => right.score - left.score || left.teamId.localeCompare(right.teamId)));
+      expect(bids.length).toBeGreaterThanOrEqual(2);
+      expect(bids.length).toBeLessThanOrEqual(5);
+    }
+
+    expect(resolvedMarkets).toBeGreaterThan(0);
+    expect(bestOfferWins / resolvedMarkets).toBeGreaterThanOrEqual(0.95);
   });
 
   it('records a missed-FA near miss when a user bid loses to a signed CPU offer', () => {
@@ -925,8 +1064,18 @@ describe('offseason systems', () => {
 
       const userPick = state.draftClass[0]!;
       state = makeDraftPick(state, userPick.id).nextState;
+      let remainingAdvances = 10;
       while (state.phase !== 'preseason') {
-        state = advanceFranchiseWeek(state).nextState;
+        if (remainingAdvances <= 0) {
+          throw new Error(`Offseason failed to reach preseason: phase=${state.phase} round=${state.offseasonState?.round ?? 'none'} draftIndex=${state.offseasonState?.currentDraftPickIndex ?? 'none'}/${state.offseasonState?.draftOrder.length ?? 'none'}`);
+        }
+        remainingAdvances -= 1;
+        const currentEntry = state.offseasonState?.draftOrder[state.offseasonState.currentDraftPickIndex];
+        if (state.phase === 'draft' && currentEntry?.teamId === 'user') {
+          state = makeDraftPick(state, state.draftClass[0]!.id).nextState;
+        } else {
+          state = advanceFranchiseWeek(state).nextState;
+        }
       }
 
       return state;

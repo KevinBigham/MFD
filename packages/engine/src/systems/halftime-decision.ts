@@ -1,7 +1,7 @@
-import { simGame } from './game-sim';
+import { simGameWithContext } from './game-sim';
 import type { SimGameContext } from './game-sim-types';
 import { generateAiGamePlan } from './game-plan';
-import { reseedSeason, reseedWeek, setSeed } from '../rng';
+import { mulberry32 } from '../rng';
 import type { AIBiasConfig } from './ai-bias';
 import type {
   GameState,
@@ -212,15 +212,21 @@ export function previewHalftimeDecision(game: GameState): PendingHalftimeDecisio
   const matchup = currentUserMatchup(game, userTeam.id);
   if (!matchup) return null;
 
-  setSeed(game.seed);
-  reseedSeason(game.year);
-  reseedWeek(game.year, game.week);
-
   const home = structuredClone(game.teams[matchup.homeTeamId]!);
   const away = structuredClone(game.teams[matchup.awayTeamId]!);
-  const preview = simGame(home, away, {
+  const matchupHash = [...`${home.id}:${away.id}`]
+    .reduce((hash, character) => ((hash * 33) ^ character.charCodeAt(0)) >>> 0, 5381);
+  const snapSeed = (game.seed ^ (game.year * 7919) ^ (game.week * 1009) ^ matchupHash) >>> 0;
+  const preview = simGameWithContext(home, away, {
     ...buildPreviewContext(game, home, away),
     weather: matchup.weather ?? defaultWeather(home),
+    gameId: `game-${game.year}-${game.week}-${home.id}-${away.id}`,
+    snapMode: 'canonical',
+    shadowSeed: snapSeed,
+    rng: {
+      play: mulberry32(snapSeed ^ 0x9e3779b9),
+      event: mulberry32(snapSeed ^ 0x85ebca6b),
+    },
   });
 
   const homeHalftimeScore = (preview.homeStats.quarterScores[0] ?? 0) + (preview.homeStats.quarterScores[1] ?? 0);

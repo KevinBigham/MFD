@@ -196,38 +196,16 @@ describe('Trick Plays', () => {
   });
 
   describe('simulation wiring boundary', () => {
-    it('keeps trick-play execution helpers out of the current simulation spine', () => {
-      const simulationSources = [
-        'game-sim.ts',
-        'game-flow.ts',
-        'franchise-week.ts',
-      ].map((filename) => ({
-        filename,
-        rawSource: readSystemSource(filename),
-      }));
-      const normalizedSources = simulationSources.map(({ filename, rawSource }) => ({
-        filename,
-        rawSource,
-        strippedSource: stripCommentsAndStrings(rawSource),
-      }));
-      const runtimeHelperPatterns = [
-        /\bTRICK_PLAYS\b/,
-        /\bexecuteTrickPlay\b/,
-        /\bshouldCallTrickPlay\b/,
-        /\bgetAvailableTrickPlays\b/,
-        /\bcanCallTrickPlays\b/,
-      ];
-      const importPattern = /from\s+['"]\.\/trick-plays['"]/;
+    it('wires the deterministic live-drive helpers into the simulation spine', () => {
+      const source = readSystemSource('game-sim.ts');
+      const stripped = stripCommentsAndStrings(source);
 
-      const violations = normalizedSources.flatMap(({ filename, rawSource, strippedSource }) => {
-        const helperMatches = runtimeHelperPatterns
-          .filter((pattern) => pattern.test(strippedSource))
-          .map((pattern) => `${filename} matches ${pattern}`);
-        const importMatches = importPattern.test(rawSource) ? [`${filename} imports ./trick-plays`] : [];
-        return [...helperMatches, ...importMatches];
-      });
-
-      expect(violations).toEqual([]);
+      expect(source).toMatch(/from\s+['"]\.\/trick-plays['"]/);
+      expect(stripped).toMatch(/\bexecuteTrickPlay\b/);
+      expect(stripped).toMatch(/\bshouldCallTrickPlay\b/);
+      expect(stripped).toMatch(/\bgetAvailableTrickPlays\b/);
+      expect(stripped).toMatch(/\bcanCallTrickPlays\b/);
+      expect(stripped).toContain('usedTrickPlayIds');
     });
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { setSeed } from '../rng';
-import type { PlayerGameLine } from '../types';
-import { applyPlayerLines, simGame } from './game-sim';
+import { createRngState, mulberry32 } from '../rng';
+import type { PlayerGameLine, Team } from '../types';
+import { applyPlayerLines, createSimulationContext, simGame, simGameWithContext } from './game-sim';
 import { makeTeam } from './test-helpers';
 
 function sum(values: readonly number[]): number {
@@ -9,6 +9,23 @@ function sum(values: readonly number[]): number {
 }
 
 describe('game-sim public simulation boundary', () => {
+  it('promotes calibrated snap scores and box scores only when explicitly requested', () => {
+    const home = makeTeam('snap-home', 'AFC', 'East', true, 80);
+    const away = makeTeam('snap-away', 'NFC', 'West', false, 78);
+    const result = simGameWithContext(home, away, {
+      rng: { play: mulberry32(444), event: mulberry32(451) },
+      shadowSeed: 9_001,
+      snapMode: 'canonical',
+      gameId: 'canonical-snap',
+    });
+
+    expect(result.shadow).toBeDefined();
+    expect(result.homeScore).toBe(result.shadow!.homeScore);
+    expect(result.awayScore).toBe(result.shadow!.awayScore);
+    expect(result.homeStats.quarterScores.reduce((total, points) => total + points, 0)).toBe(result.homeScore);
+    expect(result.homeStats.totalYards).toBe(result.shadow!.homeYards);
+  });
+
   it('returns deterministic box-score artifacts for the same seed and inputs', () => {
     const home = makeTeam('home', 'AFC', 'East', true, 80);
     const away = makeTeam('away', 'NFC', 'West', false, 78);
@@ -20,11 +37,9 @@ describe('game-sim public simulation boundary', () => {
       away: { teamOvrBonus: -1 },
     };
 
-    setSeed(2026);
-    const first = simGame(structuredClone(home), structuredClone(away), context);
+    const first = simGame(structuredClone(home), structuredClone(away), createSimulationContext(context, createRngState(2026)));
 
-    setSeed(2026);
-    const second = simGame(structuredClone(home), structuredClone(away), context);
+    const second = simGame(structuredClone(home), structuredClone(away), createSimulationContext(context, createRngState(2026)));
 
     expect(second).toEqual(first);
     expect(first.weather).toBe('snow');
@@ -47,8 +62,7 @@ describe('game-sim public simulation boundary', () => {
     const beforeHome = structuredClone(home);
     const beforeAway = structuredClone(away);
 
-    setSeed(99);
-    simGame(home, away, {
+    simGame(home, away, createSimulationContext({
       weather: 'wind',
       home: {
         teamOvrBonus: 4,
@@ -58,10 +72,52 @@ describe('game-sim public simulation boundary', () => {
         teamOvrBonus: -3,
         clutchPlayerBonuses: { [away.roster[0]!.id]: 8 },
       },
-    });
+    }, createRngState(99)));
 
     expect(home).toEqual(beforeHome);
     expect(away).toEqual(beforeAway);
+  });
+
+  it('executes a selected trick play deterministically and burns its tendency once', () => {
+    const home = makeTeam('home', 'AFC', 'East', true, 80);
+    const away = makeTeam('away', 'NFC', 'West', false, 78);
+    home.staff.hc = {
+      id: 'creative-hc',
+      name: 'Coach Creative',
+      age: 48,
+      role: 'hc',
+      ratings: { gameplan: 90, motivation: 75, development: 75 },
+      traits: ['creative'],
+      contract: null,
+      yearsWithTeam: 2,
+      careerWins: 24,
+      careerLosses: 10,
+      experience: 6,
+      xp: 0,
+      perks: [],
+    } as NonNullable<Team['staff']['hc']>;
+    const context = {
+      home: { gamePlan: { trickPlays: ['flea_flicker'] } },
+    };
+
+    let seedWithCall = 0;
+    for (let seed = 1; seed <= 200; seed += 1) {
+      const candidate = simGame(structuredClone(home), structuredClone(away), createSimulationContext(context, createRngState(seed)));
+      if (candidate.contingencyActivations.some((entry) => entry.ruleId === 'trick:flea_flicker')) {
+        seedWithCall = seed;
+        break;
+      }
+    }
+
+    expect(seedWithCall).toBeGreaterThan(0);
+    const first = simGame(structuredClone(home), structuredClone(away), createSimulationContext(context, createRngState(seedWithCall)));
+    const second = simGame(structuredClone(home), structuredClone(away), createSimulationContext(context, createRngState(seedWithCall)));
+    const calls = first.contingencyActivations.filter((entry) => entry.ruleId === 'trick:flea_flicker');
+
+    expect(second).toEqual(first);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.callout).toContain('Flea Flicker');
+    expect(calls[0]?.triggerLabel).toMatch(/^TRICK_PLAY\|success=[01]\|yards=\d+/);
   });
 });
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { reseedSeason, reseedWeek, setSeed } from '../rng';
+import { createWeekRngState } from '../rng';
 import { generateAiGamePlan } from './game-plan';
-import { simGame } from './game-sim';
+import { createSimulationContext, simGame } from './game-sim';
 import { makeLeagueState } from './test-helpers';
 import {
   applyHalftimeDecision,
@@ -125,22 +125,23 @@ describe('halftime-decision', () => {
       weather: 'clear' as const,
     };
 
-    setSeed(game.seed);
-    reseedSeason(game.year);
-    reseedWeek(game.year, game.week);
-    const baseline = simGame(structuredClone(home), structuredClone(away), baseContext);
+    const baseline = simGame(
+      structuredClone(home),
+      structuredClone(away),
+      createSimulationContext(baseContext, createWeekRngState(game.seed, game.year, game.week)),
+    );
 
-    setSeed(game.seed);
-    reseedSeason(game.year);
-    reseedWeek(game.year, game.week);
     const adjusted = simGame(
       structuredClone(home),
       structuredClone(away),
-      applyHalftimeDecision(baseContext, {
-        side: 'home',
-        choice: 'switch',
-        suggestion: baseSuggestion,
-      }),
+      createSimulationContext(
+        applyHalftimeDecision(baseContext, {
+          side: 'home',
+          choice: 'switch',
+          suggestion: baseSuggestion,
+        }),
+        createWeekRngState(game.seed, game.year, game.week),
+      ),
     );
 
     expect(

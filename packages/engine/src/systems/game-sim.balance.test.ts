@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { setSeed } from '../rng';
-import { simGame } from './game-sim';
+import { createRngState } from '../rng';
+import { createSimulationContext, simGame } from './game-sim';
 import { makeTeam } from './test-helpers';
 
 describe('game sim balance', () => {
@@ -13,10 +13,9 @@ describe('game sim balance', () => {
     let turnovers = 0;
 
     for (let index = 0; index < gameCount; index += 1) {
-      setSeed(10_000 + index);
       const home = makeTeam('home', 'AFC', 'East', false, 78);
       const away = makeTeam('away', 'NFC', 'West', false, 77);
-      const result = simGame(home, away);
+      const result = simGame(home, away, createSimulationContext({}, createRngState(10_000 + index)));
 
       passAttempts += result.homeStats.passAttempts + result.awayStats.passAttempts;
       passCompletions += result.homeStats.passCompletions + result.awayStats.passCompletions;
