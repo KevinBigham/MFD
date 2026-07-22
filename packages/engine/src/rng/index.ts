@@ -59,7 +59,8 @@ let _globalSeed = DEFAULT_SEED;
 /** The global RNG state with all 8 channels. */
 export const RNG: RngState = createRngState(DEFAULT_SEED);
 
-function createRngState(seed: number): RngState {
+/** Build an isolated deterministic channel set without mutating global state. */
+export function createRngState(seed: number): RngState {
   return {
     play: mulberry32(seed + CHANNEL_OFFSETS.play),
     injury: mulberry32(seed + CHANNEL_OFFSETS.injury),
@@ -69,6 +70,25 @@ function createRngState(seed: number): RngState {
     trade: mulberry32(seed + CHANNEL_OFFSETS.trade),
     ui: mulberry32(seed + CHANNEL_OFFSETS.ui),
     event: mulberry32(seed + CHANNEL_OFFSETS.event),
+  };
+}
+
+/**
+ * Build the exact channel state used at a franchise-week boundary without
+ * mutating the legacy global convenience state.
+ */
+export function createWeekRngState(seed: number, year: number, week: number): RngState {
+  const weekChain = (seed ^ (year * 1000) ^ week) >>> 0;
+  const seasonChain = (seed ^ (year * 7919)) >>> 0;
+  return {
+    play: mulberry32(weekChain + CHANNEL_OFFSETS.play),
+    injury: mulberry32(weekChain + CHANNEL_OFFSETS.injury),
+    draft: mulberry32(seasonChain + CHANNEL_OFFSETS.draft),
+    ai: mulberry32(weekChain + CHANNEL_OFFSETS.ai),
+    dev: mulberry32(weekChain + CHANNEL_OFFSETS.dev),
+    trade: mulberry32(weekChain + CHANNEL_OFFSETS.trade),
+    ui: mulberry32(seed + CHANNEL_OFFSETS.ui),
+    event: mulberry32(weekChain + CHANNEL_OFFSETS.event),
   };
 }
 

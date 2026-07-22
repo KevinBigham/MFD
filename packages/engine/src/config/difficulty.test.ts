@@ -28,6 +28,11 @@ describe('difficulty defaults', () => {
     expect(Number.isFinite(settings.injMod)).toBe(true);
     expect(Number.isFinite(settings.ownerMod)).toBe(true);
     expect(Number.isFinite(settings.aiBidMod)).toBe(true);
+    expect(Number.isFinite(settings.clutchSwing)).toBe(true);
+    expect(Number.isFinite(settings.moraleMod)).toBe(true);
+    expect(Number.isFinite(settings.staffBudget)).toBe(true);
+    expect(Number.isFinite(settings.startCash)).toBe(true);
+    expect(Number.isFinite(settings.foBudget)).toBe(true);
   });
 
   it.each(DIFFICULTIES)('returns only the halftime default flag for %s', (difficulty) => {
@@ -67,5 +72,15 @@ describe('difficulty defaults', () => {
     const skipTiers = DIFFICULTIES.filter((difficulty) => getDefaultDifficultyFlags(difficulty).skipHalftimeDecision);
 
     expect(skipTiers).toEqual(['rookie']);
+  });
+
+  it('orders the wired resource and pressure knobs from forgiving to demanding', () => {
+    expect(DIFF_SETTINGS.rookie.tradeMod).toBeLessThan(DIFF_SETTINGS.pro.tradeMod);
+    expect(DIFF_SETTINGS.legend.tradeMod).toBeGreaterThan(DIFF_SETTINGS.allpro.tradeMod);
+    expect(DIFF_SETTINGS.rookie.ownerMod).toBeLessThan(DIFF_SETTINGS.pro.ownerMod);
+    expect(DIFF_SETTINGS.legend.ownerMod).toBeGreaterThan(DIFF_SETTINGS.allpro.ownerMod);
+    expect(DIFF_SETTINGS.rookie.staffBudget).toBeGreaterThan(DIFF_SETTINGS.legend.staffBudget);
+    expect(DIFF_SETTINGS.rookie.startCash).toBeGreaterThan(DIFF_SETTINGS.legend.startCash);
+    expect(DIFF_SETTINGS.rookie.foBudget).toBeGreaterThan(DIFF_SETTINGS.legend.foBudget);
   });
 });

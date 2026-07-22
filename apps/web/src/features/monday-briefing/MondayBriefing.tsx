@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   buildTeamOpsImpactReceipt,
+  buildDynastyMemoryDigest,
   calculateTrainingXP,
   getAchievementProgress,
   calculateDynastyWindow,
@@ -722,11 +723,13 @@ export function MondayBriefing() {
   const teamSchedule = useGameStore(selectTeamSchedule);
   const statLeaders = useGameStore(selectStatLeaders);
   const tradeOffers = useGameStore(selectTradeOffers);
+  const recentDecisionReceipts = (game?.decisionReceipts ?? []).slice(-3).reverse();
   const {
     pinWidget,
     unpinWidget,
     saveLayout,
     switchLayout,
+    closeActionCenterCard,
   } = useGameStore((state) => state.actions);
 
   const activeLayout = dashboardState.layouts.find((layout) => layout.id === dashboardState.activeLayoutId) ?? dashboardState.layouts[0];
@@ -1403,6 +1406,7 @@ export function MondayBriefing() {
       franchiseHistory: game.franchiseHistory,
     })
     : [];
+  const memoryDigest = game && team ? buildDynastyMemoryDigest(game, team.id) : null;
   const sessionRecapDynastyId = useMemo(() => {
     if (!game) return null;
     try {
@@ -1481,7 +1485,7 @@ export function MondayBriefing() {
     }
 
     setSessionRecapVisible(false);
-  }, [sessionRecapKey, sessionRecapDynastyId, sessionRecapDismissed]);
+  }, [sessionRecap, sessionRecapKey, sessionRecapDynastyId, sessionRecapDismissed]);
 
   const dismissSessionRecap = () => {
     if (sessionRecapDynastyId) dismissSessionRecapForSession(sessionRecapDynastyId);
@@ -1551,10 +1555,42 @@ export function MondayBriefing() {
           ownerApproval={ownerState?.approval ?? 100}
           injuredCount={injuredCount}
           game={game}
+          onCloseAction={closeActionCenterCard}
         />
       </div>
 
+      {recentDecisionReceipts.length > 0 ? (
+        <PixelPanel title="Why It Happened" accent="gold">
+          <div style={{ display: 'grid', gap: '10px' }}>
+            {recentDecisionReceipts.map((receipt) => (
+              <div key={receipt.id} style={{ padding: '10px', border: '2px solid var(--mfd-border)', background: 'var(--mfd-bg-2)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>{receipt.decision.toUpperCase()}</span>
+                  <PixelBadge variant="cyan">{`Y${receipt.seasonWeek.year} W${receipt.seasonWeek.week}`}</PixelBadge>
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text)', marginTop: '8px', lineHeight: 1.6 }}>{receipt.outcome}</div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', marginTop: '6px', lineHeight: 1.6 }}>
+                  {receipt.drivers.slice(0, 3).map((driver) => `${driver.label}: ${driver.value}`).join(' / ')}
+                </div>
+                <div style={{ ...monoSm, color: 'var(--mfd-text-faint)', marginTop: '6px', lineHeight: 1.6 }}>{`Counterfactual: ${receipt.counterfactual}`}</div>
+              </div>
+            ))}
+          </div>
+        </PixelPanel>
+      ) : null}
+
       <DynastyHistoryPanel cards={dynastyCallbacks} />
+
+      {memoryDigest?.previouslyOn ? (
+        <PixelPanel title="Previously On" accent="cyan">
+          <div style={{ display: 'grid', gap: '8px' }}>
+            {[memoryDigest.previouslyOn, memoryDigest.anniversary, memoryDigest.retrospective, memoryDigest.seasonDocumentary]
+              .filter((line): line is string => Boolean(line))
+              .map((line) => <div key={line} style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.6 }}>{line}</div>)}
+            <div style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>{`${memoryDigest.sourceNodeIds.length} memory graph source${memoryDigest.sourceNodeIds.length === 1 ? '' : 's'}`}</div>
+          </div>
+        </PixelPanel>
+      ) : null}
 
       {teamOpsReceipt ? (
         <PixelPanel title="Team Ops Carryover" accent="green">

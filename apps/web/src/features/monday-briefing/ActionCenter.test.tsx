@@ -163,6 +163,54 @@ describe('ActionCenter', () => {
     expect(clearHtml).toContain('Ready for Advance Week');
   });
 
+  it('offers explicit close controls and hides cards already closed this week', () => {
+    const game = createSeedGameState(42, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const openHtml = renderToStaticMarkup(
+      <ActionCenter
+        phase="regular_season"
+        hasGamePlan={false}
+        starterCount={22}
+        tradeOfferCount={0}
+        ownerApproval={80}
+        injuredCount={0}
+        game={game}
+        onCloseAction={() => undefined}
+      />,
+    );
+    expect(openHtml).toContain('aria-label="Close Set your game plan"');
+
+    game.leagueEvents ??= [];
+    game.leagueEvents.push({
+      id: `action-center-closed:${game.year}:${game.week}:${userTeam.id}:must-game-plan`,
+      seasonWeek: { year: game.year, week: game.week },
+      type: 'legacy',
+      actors: { teamIds: [userTeam.id], playerIds: [], staffIds: [] },
+      payload: {
+        source: 'action_center.closed',
+        cardId: 'must-0-/game-plan',
+        lane: 'must_do',
+        label: 'Set your game plan',
+        route: '/game-plan',
+      },
+      causeIds: [],
+    });
+    const closedHtml = renderToStaticMarkup(
+      <ActionCenter
+        phase="regular_season"
+        hasGamePlan={false}
+        starterCount={22}
+        tradeOfferCount={0}
+        ownerApproval={80}
+        injuredCount={0}
+        game={game}
+        onCloseAction={() => undefined}
+      />,
+    );
+    expect(closedHtml).not.toContain('aria-label="Close Set your game plan"');
+    expect(closedHtml).toContain('0 required items');
+  });
+
   it('renders active scenario locks in the command queue without changing actions', () => {
     const baseGame = createSeedGameState(42, 0, 'pro');
     const game = startScenario('the_savant', baseGame, mulberry32(99));

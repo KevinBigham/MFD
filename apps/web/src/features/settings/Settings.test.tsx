@@ -75,6 +75,7 @@ const gameState = {
   difficulty: 'allpro',
   settings: {
     halftimeDecisions: 'on',
+    coachMode: false,
   },
   teams: {
     'team-1': userTeam,
@@ -143,6 +144,7 @@ vi.mock('../../app/store/game-store', () => ({
     actions: {
       setDifficulty: () => Promise<void>;
       setHalftimeDecisions: () => Promise<void>;
+      setCoachMode: () => Promise<void>;
       setAdaptiveDifficultyEnabled: () => Promise<void>;
       upgradeFacility: () => Promise<void>;
       hireMedicalStaff: () => Promise<void>;
@@ -152,6 +154,7 @@ vi.mock('../../app/store/game-store', () => ({
     actions: {
       setDifficulty: async () => undefined,
       setHalftimeDecisions: async () => undefined,
+      setCoachMode: async () => undefined,
       setAdaptiveDifficultyEnabled: async () => undefined,
       upgradeFacility: async () => undefined,
       hireMedicalStaff: async () => undefined,

@@ -21,6 +21,12 @@ describe('owner-extended patience tracking', () => {
     expect(tickPatience(3, 'win_now', 'loss', {})).toEqual({ patience: 0, delta: -3 });
   });
 
+  it('scales only patience losses with the difficulty pressure modifier', () => {
+    expect(tickPatience(50, 'win_now', 'loss', {}, 0.7)).toEqual({ patience: 46, delta: -4 });
+    expect(tickPatience(50, 'win_now', 'loss', {}, 1.6)).toEqual({ patience: 40, delta: -10 });
+    expect(tickPatience(50, 'win_now', 'win', {}, 1.6)).toEqual({ patience: 62, delta: 12 });
+  });
+
   it('stacks playoff, appearance, streak, and week-nine checkpoint modifiers in order', () => {
     expect(tickPatience(40, 'legacy_builder', 'win', {
       isPlayoff: true,

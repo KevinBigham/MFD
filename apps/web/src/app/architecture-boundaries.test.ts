@@ -195,12 +195,15 @@ describe('architecture boundaries', () => {
     expect(violations).toEqual([]);
   });
 
-  it('keeps direct week simulation engine calls behind the web store sim boundary', () => {
+  it('keeps direct week simulation engine calls behind the web store sim boundary modules', () => {
     const violations = listSourceFiles(path.join(repoRoot, 'apps/web/src'))
       .filter((filePath) => !isTestFile(filePath))
       .flatMap((filePath) => {
         const relativePath = repoPath(filePath);
-        if (relativePath === 'apps/web/src/app/store/sim.ts') return [];
+        if (
+          relativePath === 'apps/web/src/app/store/sim.ts'
+          || relativePath === 'apps/web/src/app/store/sim.worker.ts'
+        ) return [];
 
         const source = stripCommentsAndStrings(readFileSync(filePath, 'utf8'));
         return directWeekSimulationSymbols

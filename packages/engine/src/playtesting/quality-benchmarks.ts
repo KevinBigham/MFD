@@ -52,12 +52,14 @@ export interface LongHorizonQualityBenchmarkResult {
   benchmark: LongHorizonQualityBenchmark;
   report: PlaytestReport;
   completedRequestedSeasons: boolean;
+  hardCertificationPassed: boolean;
   checks: LongHorizonBudgetCheck[];
   passed: boolean;
 }
 
 export interface LongHorizonQualityBenchmarkRunOptions {
   onProgress?: PlaytestRunOptions['onProgress'];
+  performanceNow: () => number;
 }
 
 function buildLongHorizonBudgets(rosterMinimumAnomalyBudget: number): readonly LongHorizonAnomalyBudget[] {
@@ -207,18 +209,20 @@ export function evaluateLongHorizonQualityBenchmark(
     } satisfies LongHorizonBudgetCheck;
   });
   const completedRequestedSeasons = report.seasonsCompleted >= benchmark.seasons;
+  const hardCertificationPassed = report.certification.certified;
   return {
     benchmark,
     report,
     completedRequestedSeasons,
+    hardCertificationPassed,
     checks,
-    passed: completedRequestedSeasons && checks.every((check) => check.passed),
+    passed: completedRequestedSeasons && hardCertificationPassed && checks.every((check) => check.passed),
   };
 }
 
 export function runLongHorizonQualityBenchmark(
   benchmarkInput: LongHorizonQualityBenchmark | LongHorizonQualityBenchmarkId,
-  options: LongHorizonQualityBenchmarkRunOptions = {},
+  options: LongHorizonQualityBenchmarkRunOptions,
 ): LongHorizonQualityBenchmarkResult {
   const benchmark = typeof benchmarkInput === 'string'
     ? getLongHorizonQualityBenchmark(benchmarkInput)
@@ -229,6 +233,8 @@ export function runLongHorizonQualityBenchmark(
   const report = runPlaytest(benchmark.personaId, benchmark.seed, benchmark.seasons, {
     maxSteps: benchmark.maxSteps,
     saveRoundTripEvery: benchmark.saveRoundTripEvery,
+    measureStatePerformance: true,
+    performanceNow: options.performanceNow,
     onProgress: options.onProgress,
   });
   return evaluateLongHorizonQualityBenchmark(benchmark, report);

@@ -70,6 +70,12 @@ export function parseSmokePreviewTimeoutMs(env = process.env) {
   return parsePositiveInt(env.SMOKE_PREVIEW_TIMEOUT_MS, Math.max(parseSmokeTimeoutMs(env), 30_000));
 }
 
+export function isTransientBrowserInfrastructureError(entry) {
+  return entry?.source === 'network'
+    && entry?.level === 'error'
+    && entry?.text === 'Failed to load resource: net::ERR_CERT_VERIFIER_CHANGED';
+}
+
 const timeoutMs = parseSmokeTimeoutMs(process.env);
 const previewTimeoutMs = parseSmokePreviewTimeoutMs(process.env);
 
@@ -2127,8 +2133,9 @@ async function runG6VisualSweepSmoke(cdp, sessionId, baseUrl) {
 async function runNewDynastySetupEntrySmoke(cdp, sessionId, baseUrl) {
   console.log(`Running new-dynasty setup entry smoke at ${baseUrl}...`);
   await waitForBodyText(cdp, sessionId, 'Select Franchise', 'new-dynasty franchise selector');
-  await waitForBodyText(cdp, sessionId, 'Full Setup', 'new-dynasty full setup option');
-  await clickButtonContaining(cdp, sessionId, 'Start Dynasty', 'clickable Start Dynasty button');
+  await waitForBodyText(cdp, sessionId, 'Full GM', 'new-dynasty full GM option');
+  await clickButtonContaining(cdp, sessionId, 'Full GM', 'clickable Full GM onboarding option');
+  await clickButtonContaining(cdp, sessionId, 'Start Full GM', 'clickable Start Full GM button');
   await waitForSetupShellAfterStartDynasty(cdp, sessionId);
   await waitForBodyText(cdp, sessionId, 'YOUR FIRST DAY', 'setup header copy');
   await waitForSetupHeaderText(
@@ -2220,8 +2227,9 @@ async function runNewDynastySetupEntrySmoke(cdp, sessionId, baseUrl) {
 async function runNewDynastyFullSetupSmoke(cdp, sessionId, baseUrl) {
   console.log(`Running full new-dynasty setup completion smoke at ${baseUrl}...`);
   await waitForBodyText(cdp, sessionId, 'Select Franchise', 'new-dynasty franchise selector');
-  await waitForBodyText(cdp, sessionId, 'Full Setup', 'new-dynasty full setup option');
-  await clickButtonContaining(cdp, sessionId, 'Start Dynasty', 'clickable Start Dynasty button');
+  await waitForBodyText(cdp, sessionId, 'Full GM', 'new-dynasty full GM option');
+  await clickButtonContaining(cdp, sessionId, 'Full GM', 'clickable Full GM onboarding option');
+  await clickButtonContaining(cdp, sessionId, 'Start Full GM', 'clickable Start Full GM button');
   await waitForSetupShellAfterStartDynasty(cdp, sessionId);
 
   for (let index = 0; index < 6; index += 1) {
@@ -3388,6 +3396,31 @@ async function stageTradeCounterBlockFixture(cdp, sessionId) {
   `, true);
 }
 
+async function deleteSmokeSaveSlot(cdp, sessionId, slotId, label) {
+  const deleted = await evaluate(cdp, sessionId, `
+    (async () => {
+      const slotId = ${JSON.stringify(slotId)};
+      if (!Number.isInteger(slotId) || slotId < 1) return false;
+      const db = await new Promise((resolveOpen, rejectOpen) => {
+        const request = indexedDB.open('mfd');
+        request.onsuccess = () => resolveOpen(request.result);
+        request.onerror = () => rejectOpen(request.error ?? new Error('Could not open mfd IndexedDB.'));
+      });
+      await new Promise((resolveDelete, rejectDelete) => {
+        const tx = db.transaction('saves', 'readwrite');
+        tx.oncomplete = () => resolveDelete();
+        tx.onerror = () => rejectDelete(tx.error ?? new Error('Could not delete temporary smoke save slot.'));
+        tx.objectStore('saves').delete(slotId);
+      });
+      if (typeof db.close === 'function') db.close();
+      return true;
+    })()
+  `, true);
+  if (!deleted) {
+    throw new Error(`Could not delete temporary smoke save slot ${slotId} after ${label}.`);
+  }
+}
+
 function latestAutosaveTradeCounterBlockStateExpression(fixture) {
   return `
     (async () => {
@@ -3818,6 +3851,15 @@ function latestAutosaveWaiverPracticeSquadStateExpression(fixture) {
         && (save?.freeAgents ?? []).includes(fixture.practicePlayerId)
         && practicePlayer?.teamId === null
       );
+      // Week advance may immediately sign a released player to a CPU club as
+      // deterministic roster-health repair. The release still survived when
+      // the player is absent from the user's PS and active roster and is not
+      // assigned back to the user team.
+      const practiceReleaseSurvived = Boolean(
+        !practiceEntry
+        && !userRosterPracticePlayer
+        && practicePlayer?.teamId !== fixture.userTeamId
+      );
       const waiverClaimIntent = Boolean(
         waiverClaimPending
         && waiverOnWire
@@ -3843,6 +3885,7 @@ function latestAutosaveWaiverPracticeSquadStateExpression(fixture) {
         practiceAdded,
         practiceElevated,
         practiceReleased,
+        practiceReleaseSurvived,
         practiceEntry,
         practiceInFreeAgents: (save?.freeAgents ?? []).includes(fixture.practicePlayerId),
         practiceTeamId: practicePlayer?.teamId ?? null,
@@ -4870,7 +4913,7 @@ async function stageWeeklyPrepFixture(cdp, sessionId) {
         const tx = db.transaction('saves', 'readwrite');
         const store = tx.objectStore('saves');
         const request = store.put(slot);
-        request.onsuccess = () => resolveWrite();
+        request.onsuccess = () => resolveWrite(request.result);
         request.onerror = () => rejectWrite(request.error ?? new Error('Could not write mfd save slot.'));
       });
 
@@ -5017,14 +5060,27 @@ async function stageWeeklyPrepFixture(cdp, sessionId) {
         && entry?.week === save.week
       ));
 
-      latest.data = JSON.stringify(envelope);
-      latest.year = save.year;
-      latest.week = save.week;
-      latest.timestamp = Date.now();
-      await writeSave(db, latest);
+      const newestTimestamp = saves.reduce(
+        (current, slot) => Math.max(current, Number(slot?.timestamp) || 0),
+        0,
+      );
+      const stagedSlot = {
+        ...latest,
+        name: 'Autosave (weekly-prep smoke fixture)',
+        data: JSON.stringify(envelope),
+        year: save.year,
+        week: save.week,
+        // Keep the isolated fixture ahead of any slow demo autosave still
+        // committing on a hosted runner. The slot is deleted after Continue
+        // loads it, before the workflow creates its real result autosave.
+        timestamp: Math.max(Date.now(), newestTimestamp) + (60 * 60 * 1000),
+      };
+      delete stagedSlot.id;
+      const stagedSlotId = await writeSave(db, stagedSlot);
       if (typeof db.close === 'function') db.close();
 
       return {
+        stagedSlotId: Number(stagedSlotId),
         year: save.year,
         week: save.week,
         userTeamId: userTeam.id,
@@ -5209,7 +5265,7 @@ async function waitForLatestAutosaveWeeklyPrep(cdp, sessionId, fixture, label, m
 async function runWeeklyPrepSmoke(cdp, sessionId, baseUrl) {
   console.log('Staging weekly-prep smoke fixture from the latest autosave...');
   const fixture = await stageWeeklyPrepFixture(cdp, sessionId);
-  if (!fixture?.opponentTeamName || !fixture?.keyMatchupPlayerName) {
+  if (!fixture?.opponentTeamName || !fixture?.keyMatchupPlayerName || !Number.isInteger(fixture?.stagedSlotId)) {
     throw new Error(`Weekly-prep smoke fixture did not return usable identifiers: ${JSON.stringify(fixture)}`);
   }
   console.log(`Weekly prep fixture: Week ${fixture.week} vs ${fixture.opponentTeamName}; key matchup ${fixture.keyMatchupPlayerName}.`);
@@ -5217,6 +5273,7 @@ async function runWeeklyPrepSmoke(cdp, sessionId, baseUrl) {
   const route = '/game-plan';
   console.log(`Running weekly-prep smoke at ${baseUrl}#${route}...`);
   await hardReloadAndLoadLatestAutosave(cdp, sessionId, route, 'weekly-prep fixture staging', ['Weekly Prep Sources', 'Weekly Prep']);
+  await deleteSmokeSaveSlot(cdp, sessionId, fixture.stagedSlotId, 'weekly-prep fixture load');
   if (fixture.callYourShotEligible) {
     await waitForBodyText(cdp, sessionId, 'Choose one promise before Save', 'Call Your Shot action/deadline copy');
     await waitForBodyText(cdp, sessionId, 'hit it for fan-confidence gain', 'Call Your Shot success consequence copy');
@@ -7745,7 +7802,7 @@ async function runWaiverPracticeSquadSmoke(cdp, sessionId, baseUrl) {
     cdp,
     sessionId,
     fixture,
-    'practiceReleased',
+    'practiceReleaseSurvived',
     'practice-squad release persisted after final hard reload',
   );
   await waitForBodyText(cdp, sessionId, fixture.waiverPlayerName, 'waiver claim result after final hard reload');
@@ -7934,7 +7991,11 @@ async function run() {
         browserErrors.push((message.params.args ?? []).map((arg) => arg.value ?? arg.description).filter(Boolean).join(' '));
       }
       if (message.method === 'Log.entryAdded' && message.params?.entry?.level === 'error') {
-        browserErrors.push(message.params.entry.text);
+        if (isTransientBrowserInfrastructureError(message.params.entry)) {
+          console.warn(`WARN: ignored transient Chrome network restart: ${message.params.entry.text}`);
+        } else {
+          browserErrors.push(message.params.entry.text);
+        }
       }
     });
 

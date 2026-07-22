@@ -19,6 +19,16 @@ function makeReport(overrides: Partial<PlaytestReport> = {}): PlaytestReport {
     anomalyCount: 0,
     highSeverityCount: 0,
     anomalies: [],
+    certification: {
+      completedRequestedSeasons: true,
+      healthyStarterShortageGameWeeks: 0,
+      healthyStarterShortages: [],
+      cpuTransactionCount: 10,
+      receiptBackedCpuTransactionCount: 10,
+      cpuReceiptCoverage: 1,
+      zeroHighSeverityAnomalies: true,
+      certified: true,
+    },
     ...overrides,
   };
 }
@@ -86,8 +96,37 @@ describe('long-horizon quality benchmarks', () => {
     const result = evaluateLongHorizonQualityBenchmark(benchmark, makeReport());
 
     expect(result.completedRequestedSeasons).toBe(true);
+    expect(result.hardCertificationPassed).toBe(true);
     expect(result.checks.every((check) => check.passed)).toBe(true);
     expect(result.passed).toBe(true);
+  });
+
+  it('fails when a hard ecology threshold fails even inside diagnostic anomaly budgets', () => {
+    const benchmark = getLongHorizonQualityBenchmark('goat-25y')!;
+    const result = evaluateLongHorizonQualityBenchmark(benchmark, makeReport({
+      certification: {
+        completedRequestedSeasons: true,
+        healthyStarterShortageGameWeeks: 1,
+        healthyStarterShortages: [{
+          gameId: 'shortage-game',
+          homeTeamId: 'home',
+          awayTeamId: 'away',
+          year: 2030,
+          week: 1,
+          positions: { OL: 1 },
+          teams: { home: { OL: 1 } },
+        }],
+        cpuTransactionCount: 10,
+        receiptBackedCpuTransactionCount: 10,
+        cpuReceiptCoverage: 1,
+        zeroHighSeverityAnomalies: true,
+        certified: false,
+      },
+    }));
+
+    expect(result.checks.every((check) => check.passed)).toBe(true);
+    expect(result.hardCertificationPassed).toBe(false);
+    expect(result.passed).toBe(false);
   });
 
   it('fails when the higher step cap still does not complete the requested seasons', () => {
@@ -127,6 +166,7 @@ describe('long-horizon quality benchmarks', () => {
     const seasonsCompleted: number[] = [];
 
     const result = runLongHorizonQualityBenchmark(benchmark, {
+      performanceNow: () => 0,
       onProgress: (event) => {
         seasonsCompleted.push(event.seasonsCompleted);
       },

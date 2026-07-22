@@ -249,7 +249,10 @@ export function LegacyTimeline() {
   const historicalMentoring = useGameStore(selectHistoricalMentoringChains);
   const [selectedCeremonyId, setSelectedCeremonyId] = useState<string | null>(null);
   const [selectedReportYear, setSelectedReportYear] = useState<number | null>(null);
-  const hofBallotWaitlist = game?.ballotWaitlist ?? [];
+  const hofBallotWaitlist = useMemo(
+    () => game?.ballotWaitlist ?? [],
+    [game?.ballotWaitlist],
+  );
   const hofBallotEliminatedIds = game?.ballotEliminatedIds ?? [];
   const hofBallotLeaders = useMemo(() =>
     [...hofBallotWaitlist]

@@ -227,6 +227,19 @@ function seasonValueFor(player: Player, stat: string): number {
   return Number(player.stats?.[stat] ?? 0);
 }
 
+/** Save-schema normalization intentionally omits the legacy `name` field from
+ * persisted players. Record writers run after reload, so derive a stable label
+ * from the canonical first/last fields before falling back to the id. */
+function playerDisplayName(player: Player | undefined, fallbackId?: string): string {
+  const legacyName = typeof player?.name === 'string' ? player.name.trim() : '';
+  if (legacyName) return legacyName;
+  const structuredName = [player?.firstName, player?.lastName]
+    .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
+    .join(' ')
+    .trim();
+  return structuredName || player?.id || fallbackId || 'Unknown Player';
+}
+
 function playerGamesPlayed(game: GameState, player: Player): number {
   if ((player.stats?.gamesPlayed ?? 0) > 0) {
     return Number(player.stats?.gamesPlayed ?? 0);
@@ -285,6 +298,9 @@ function brokenSingleGameRecords(game: GameState, results: GameResult[]): Broken
       if (!team || !teamStats) continue;
 
       for (const line of teamStats.playerLines ?? []) {
+        const linePlayerName = typeof line.name === 'string' && line.name.trim().length > 0
+          ? line.name
+          : playerDisplayName(game.players[line.playerId], line.playerId);
         const entries: Array<[string, number]> = [
           ['passYds', Number(line.passYds ?? 0)],
           ['rushYds', Number(line.rushYds ?? 0)],
@@ -301,7 +317,7 @@ function brokenSingleGameRecords(game: GameState, results: GameResult[]): Broken
 
           const record: BrokenRecord = {
             playerId: line.playerId,
-            playerName: line.name,
+            playerName: linePlayerName,
             teamId,
             stat,
             newValue: value,
@@ -324,7 +340,7 @@ function brokenSingleGameRecords(game: GameState, results: GameResult[]): Broken
             year: result.year,
             week: result.week,
             playerId: line.playerId,
-            playerName: line.name,
+            playerName: linePlayerName,
           });
         }
       }
@@ -364,14 +380,14 @@ function brokenSingleSeasonRecords(game: GameState, playerIds?: Set<string>): Br
           teamName: `${team.city} ${team.name}`,
           year: game.year,
           playerId: player.id,
-          playerName: player.name,
+          playerName: playerDisplayName(player),
         });
         continue;
       }
 
       const record: BrokenRecord = {
         playerId: player.id,
-        playerName: player.name,
+        playerName: playerDisplayName(player),
         teamId: player.teamId,
         stat,
         newValue: value,
@@ -393,7 +409,7 @@ function brokenSingleSeasonRecords(game: GameState, playerIds?: Set<string>): Br
         teamName: `${team.city} ${team.name}`,
         year: game.year,
         playerId: player.id,
-        playerName: player.name,
+        playerName: playerDisplayName(player),
       });
     }
   }
@@ -472,7 +488,7 @@ export function checkRecordChases(game: GameState): RecordChase[] {
 
         return [{
           playerId: player.id,
-          playerName: player.name,
+          playerName: playerDisplayName(player),
           teamId: player.teamId!,
           stat,
           currentValue,
@@ -514,7 +530,7 @@ export function getActiveMilestoneChases(game: GameState): MilestoneChase[] {
 
       return [{
         playerId: player.id,
-        playerName: player.name,
+        playerName: playerDisplayName(player),
         stat,
         currentValue,
         milestoneValue: nextThreshold,
@@ -540,7 +556,7 @@ export function checkMilestones(game: GameState): MilestoneReached[] {
         player.traitMilestones[flag] = true;
         const milestone: MilestoneReached = {
           playerId: player.id,
-          playerName: player.name,
+          playerName: playerDisplayName(player),
           stat,
           value: currentValue,
           milestoneLabel: `${threshold.toLocaleString()}`,
@@ -593,7 +609,7 @@ export function getLeagueLeaders(
     .filter((player) => !pos || player.pos === pos)
     .map((player) => ({
       playerId: player.id,
-      playerName: player.name,
+      playerName: playerDisplayName(player),
       teamId: player.teamId!,
       teamAbbr: teamAbbr(game, player.teamId),
       pos: player.pos,
@@ -623,7 +639,7 @@ export function getCareerLeaders(
     if (value <= 0) continue;
     leaders.set(archive.playerId, {
       playerId: archive.playerId,
-      playerName: activePlayer?.name ?? archive.name,
+      playerName: activePlayer ? playerDisplayName(activePlayer) : archive.name,
       pos: activePlayer?.pos ?? archive.positions[0] ?? 'WR',
       value,
       rank: 0,
@@ -638,7 +654,7 @@ export function getCareerLeaders(
     if (value <= 0) continue;
     leaders.set(player.id, {
       playerId: player.id,
-      playerName: player.name,
+      playerName: playerDisplayName(player),
       pos: player.pos,
       value,
       rank: 0,

@@ -25,6 +25,8 @@ import { createTransactionalPressConference, recordPressConference } from './pre
 import { getScenarioConstraints } from './scenario-challenge';
 import { applyScoutAccuracy, bestScoutForProspect, runCombine } from './scouting-staff';
 import { mulberry32 } from '../rng';
+import { computeDraftOrderForGame } from './draft-order';
+import { analyzeTeamNeeds, buildLeagueAverageByGroup, getTeamPositionNeed } from './team-needs';
 import type {
   DraftPick,
   DraftProspect,
@@ -69,10 +71,10 @@ function getDraftRounds(game: GameState | null, year: number): number {
   return Number(getActiveRule(game.leagueRules, 'draft_rounds', year));
 }
 
-function makeDraftPicks(teamId: string, year: number, rounds = 7): DraftPick[] {
+function makeDraftPicks(teamId: string, year: number, rounds = 7, pickNumber = 1): DraftPick[] {
   return Array.from({ length: rounds }, (_, index) => ({
     round: index + 1,
-    pick: index + 1,
+    pick: pickNumber,
     originalTeamId: teamId,
     currentTeamId: teamId,
     year,
@@ -223,12 +225,20 @@ function prospectToPlayer(prospect: DraftProspect, teamId: string, year: number,
 }
 
 function removeUsedPick(team: Team, year: number, round: number, pick: number, originalTeamId: string): void {
-  const index = team.draftPicks.findIndex((entry) =>
+  let index = team.draftPicks.findIndex((entry) =>
     entry.year === year &&
     entry.round === round &&
     entry.pick === pick &&
     entry.originalTeamId === originalTeamId,
   );
+  if (index === -1) {
+    index = team.draftPicks.findIndex((entry) =>
+      entry.year === year &&
+      entry.round === round &&
+      !entry.isCompPick &&
+      entry.originalTeamId === originalTeamId,
+    );
+  }
   if (index !== -1) {
     team.draftPicks.splice(index, 1);
   }
@@ -288,19 +298,18 @@ function randForAction(action: ScoutingAction, prospectId: string): () => number
 }
 
 function bestProspectForTeam(game: GameState, team: Team): DraftProspect | null {
-  const weakestPosition = team.roster
-    .reduce<Record<string, number>>((acc, player) => {
-      acc[player.pos] = Math.min(acc[player.pos] ?? 99, player.ovr);
-      return acc;
-    }, {});
+  const needs = analyzeTeamNeeds(team, buildLeagueAverageByGroup(Object.values(game.teams)));
+  const plan = game.franchisePlans?.[team.id];
 
   return [...game.draftClass]
     .sort((a, b) => {
-      const aNeed = 90 - (weakestPosition[a.pos] ?? 60);
-      const bNeed = 90 - (weakestPosition[b.pos] ?? 60);
+      const aNeed = getTeamPositionNeed(needs, a.pos).needScore ?? 0;
+      const bNeed = getTeamPositionNeed(needs, b.pos).needScore ?? 0;
       const aPremium = DRAFT_POSITION_PREMIUM[a.pos] ?? 0;
       const bPremium = DRAFT_POSITION_PREMIUM[b.pos] ?? 0;
-      return (b.trueGrade + bNeed + bPremium) - (a.trueGrade + aNeed + aPremium) || a.id.localeCompare(b.id);
+      const aPlan = plan?.priorityPositions.includes(a.pos) ? Math.max(3, 10 - plan.priorityPositions.indexOf(a.pos) * 2) : 0;
+      const bPlan = plan?.priorityPositions.includes(b.pos) ? Math.max(3, 10 - plan.priorityPositions.indexOf(b.pos) * 2) : 0;
+      return (b.trueGrade + bNeed + bPremium + bPlan) - (a.trueGrade + aNeed + aPremium + aPlan) || a.id.localeCompare(b.id);
     })[0] ?? null;
 }
 
@@ -322,6 +331,14 @@ function applyDraftSelection(game: GameState, teamId: string, prospectId: string
   removeUsedPick(team, game.year, draftEntry.round, draftEntry.pick, draftEntry.originalTeamId);
   game.offseasonState.completedDraftPickIds.push(draftEntry.id);
   game.offseasonState.currentDraftPickIndex += 1;
+  team.txLog.push({
+    type: 'DRAFT_PICK',
+    year: game.year,
+    week: game.week,
+    playerId: rookie.id,
+    toTeamId: team.id,
+    notes: `Round ${draftEntry.round}, pick ${draftEntry.pick}; ${prospect.pos} priority rank ${game.franchisePlans?.[team.id]?.priorityPositions.indexOf(prospect.pos) ?? -1}.`,
+  });
   recordNewsItem(game, {
     id: `draft-${rookie.id}-${game.year}`,
     year: game.year,
@@ -478,13 +495,43 @@ export function finalizePostDraft(game: GameState): void {
     return [...filtered, recap];
   }, recaps);
 
+  const nextDraftSlotByTeam = new Map(
+    computeDraftOrderForGame(game).map((entry) => [entry.teamId, entry.slot]),
+  );
+  const nextDraftYear = game.year + 1;
+  const existingNextYearPicks = Object.values(game.teams)
+    .flatMap((team) => team.draftPicks)
+    .filter((pick) => pick.year === nextDraftYear);
+  const ownerByOriginalPick = new Map(existingNextYearPicks
+    .filter((pick) => !pick.isCompPick)
+    .map((pick) => [`${pick.originalTeamId}:${pick.round}`, pick.currentTeamId]));
+  const nextPicksByOwner = new Map(Object.keys(game.teams).map((teamId) => [teamId, [] as DraftPick[]]));
+
+  for (const originalTeam of Object.values(game.teams).sort((left, right) => left.id.localeCompare(right.id))) {
+    const generated = makeDraftPicks(
+      originalTeam.id,
+      nextDraftYear,
+      getDraftRounds(game, game.year),
+      nextDraftSlotByTeam.get(originalTeam.id) ?? 1,
+    );
+    for (const pick of generated) {
+      const currentTeamId = ownerByOriginalPick.get(`${pick.originalTeamId}:${pick.round}`) ?? pick.originalTeamId;
+      pick.currentTeamId = currentTeamId;
+      (nextPicksByOwner.get(currentTeamId) ?? nextPicksByOwner.get(pick.originalTeamId))!.push(pick);
+    }
+  }
+  for (const compPick of existingNextYearPicks.filter((pick) => pick.isCompPick)) {
+    nextPicksByOwner.get(compPick.currentTeamId)?.push(compPick);
+  }
+
   for (const team of Object.values(game.teams)) {
     team.wins = 0;
     team.losses = 0;
     team.ties = 0;
     team.streak = 0;
     team.seasonStats = createEmptySeasonStats();
-    team.draftPicks = makeDraftPicks(team.id, game.year + 1, getDraftRounds(game, game.year));
+    team.draftPicks = (nextPicksByOwner.get(team.id) ?? [])
+      .sort((left, right) => left.round - right.round || left.pick - right.pick || left.originalTeamId.localeCompare(right.originalTeamId));
 
     for (const player of team.roster) {
       player.age += 1;

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { APP_ROUTE_REGISTRY } from '@mfd/engine/config';
 import { ROUTE_BEAT_REGISTRY, ROUTE_KEYS, type RouteKey } from './routeBeatRegistry';
 import {
   __getActiveRouteBeatCacheSize,
@@ -99,47 +100,14 @@ const ROUTE_COACHED_DIRECT_PATHS = new Map<string, RouteKey>([
 const UNCOACHED_DIRECT_PATHS = [] as const;
 
 function extractNavItemPaths(): string[] {
-  const match = APP_SOURCE.match(/const NAV_ITEMS[^=]*= \[([\s\S]*?)\];/);
-  expect(match?.[1], 'NAV_ITEMS block should be present in App.tsx').toBeDefined();
-
-  return Array.from(
-    (match?.[1] ?? '').matchAll(/\{\s*path:\s*'([^']+)'/g),
-    (pathMatch) => pathMatch[1]!,
-  );
-}
-
-interface RouteDefinition {
-  name: string;
-  path: string;
-}
-
-function extractRouteDefinitions(): RouteDefinition[] {
-  return Array.from(
-    APP_SOURCE.matchAll(/const\s+([A-Za-z0-9]+Route)\s*=\s*createRoute\(\{[\s\S]*?path:\s*'([^']+)'/g),
-    (match) => ({ name: match[1]!, path: match[2]! }),
-  );
-}
-
-function extractRegisteredRouteNames(): string[] {
-  return Array.from(APP_SOURCE.matchAll(/(?:rootRoute|routeTree)\.addChildren\(\[([\s\S]*?)\]\);/g))
-    .flatMap((match) => Array.from(
-      (match[1] ?? '').matchAll(/\b([a-z][A-Za-z0-9]+Route)\b/g),
-      (routeMatch) => routeMatch[1]!,
-    ));
-}
-
-function extractRegisteredRoutePaths(): string[] {
-  const definitionsByName = new Map(extractRouteDefinitions().map((route) => [route.name, route.path]));
-
-  return extractRegisteredRouteNames().map((name) => definitionsByName.get(name) ?? name);
+  return APP_ROUTE_REGISTRY.map((route) => route.path);
 }
 
 function extractDirectOnlyRoutePaths(): string[] {
-  const navPathSet = new Set(extractNavItemPaths());
+  const match = APP_SOURCE.match(/const CONTEXTUAL_ROUTE_PATHS = new Set\(\[([^\]]+)]\);/);
+  expect(match?.[1], 'CONTEXTUAL_ROUTE_PATHS should be present in App.tsx').toBeDefined();
 
-  return extractRegisteredRoutePaths()
-    .filter((path) => !navPathSet.has(path))
-    .sort();
+  return Array.from((match?.[1] ?? '').matchAll(/'([^']+)'/g), (pathMatch) => pathMatch[1]!).sort();
 }
 
 describe('useActiveRouteBeats selectors', () => {

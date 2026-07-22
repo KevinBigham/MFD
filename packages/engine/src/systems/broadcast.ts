@@ -1052,12 +1052,107 @@ function safeStats(result: GameResult, teamId: string): TeamGameStats {
   };
 }
 
+function snapPlayType(snap: NonNullable<GameResult['snapEvents']>[number]): PlayDescription['type'] {
+  if (snap.turnover) return 'turnover';
+  if (snap.points >= 6) return 'touchdown';
+  if (snap.playType === 'field_goal') return 'fieldGoal';
+  if (snap.playType === 'punt') return 'punt';
+  if (snap.playType === 'kickoff') return 'kickoff';
+  return snap.playType === 'trick' ? 'pass' : snap.playType;
+}
+
+/** Canonical Snap Core broadcast adapter. Every word and yard comes from the
+ * persisted ledger; no random play reconstruction is permitted on this path. */
+export function generateBroadcastFromSnapLedger(
+  gameResult: GameResult,
+  homeTeam: Team,
+  awayTeam: Team,
+): BroadcastOutput {
+  const snaps = gameResult.snapEvents ?? [];
+  const quarters: DriveNarrative[][] = [[], [], [], []];
+  let current: { teamId: string; quarter: number; snaps: typeof snaps } | null = null;
+  const flush = (): void => {
+    if (!current || current.snaps.length === 0) return;
+    const finalSnap = current.snaps.at(-1)!;
+    const plays = current.snaps.map<PlayDescription>((snap) => {
+      const scoreDiff = Math.abs(snap.before.homeScore - snap.before.awayScore);
+      const isClutch = snap.before.quarter >= 4 && snap.before.clockSeconds <= 300 && scoreDiff <= 8;
+      return {
+        type: snapPlayType(snap),
+        yardsGained: snap.yards,
+        playerIds: [],
+        commentary: snap.description,
+        excitement: clamp(20 + Math.abs(snap.yards) + snap.points * 8 + (snap.turnover ? 35 : 0) + (isClutch ? 20 : 0), 1, 100),
+        isBigPlay: Math.abs(snap.yards) >= 20 || snap.points > 0 || snap.turnover,
+        isClutch,
+      };
+    });
+    const endResult: DriveNarrative['endResult'] = finalSnap.points >= 6
+      ? 'touchdown'
+      : finalSnap.playType === 'field_goal' && finalSnap.points > 0
+        ? 'fieldGoal'
+        : finalSnap.playType === 'punt'
+          ? 'punt'
+          : finalSnap.turnover
+            ? finalSnap.description.toLowerCase().includes('down') ? 'turnoverOnDowns' : 'turnover'
+            : 'endOfHalf';
+    const targetQuarter = clamp(current.quarter, 1, 4) - 1;
+    quarters[targetQuarter]!.push({
+      plays,
+      startYardLine: current.snaps[0]!.before.fieldPosition,
+      endResult,
+      yardsTotal: current.snaps.reduce((sum, snap) => sum + snap.yards, 0),
+      timeElapsed: current.snaps.reduce((sum, snap) => {
+        if (snap.before.quarter !== snap.after.quarter) return sum + snap.before.clockSeconds;
+        return sum + Math.max(0, snap.before.clockSeconds - snap.after.clockSeconds);
+      }, 0),
+      narrative: finalSnap.description,
+      teamId: current.teamId,
+    });
+    current = null;
+  };
+
+  for (const snap of snaps) {
+    if (!current || current.teamId !== snap.offenseTeamId || current.quarter !== snap.before.quarter) {
+      flush();
+      current = { teamId: snap.offenseTeamId, quarter: snap.before.quarter, snaps: [] };
+    }
+    current.snaps.push(snap);
+    if (snap.points > 0 || snap.turnover || snap.playType === 'punt' || snap.playType === 'field_goal') flush();
+  }
+  flush();
+
+  const allPlays = quarters.flatMap((drives) => drives.flatMap((drive) => drive.plays));
+  const highlights = allPlays
+    .filter((play) => play.isBigPlay)
+    .sort((left, right) => right.excitement - left.excitement || right.yardsGained - left.yardsGained)
+    .slice(0, 8);
+  const momentumSwings = snaps
+    .filter((snap) => snap.points > 0 || snap.turnover)
+    .slice(-6)
+    .map((snap) => ({ quarter: snap.before.quarter, play: snap.sequence, description: snap.description }));
+  const broadcast: BroadcastOutput = {
+    gameId: gameResult.id,
+    quarters,
+    highlights,
+    mvpPlayerIds: gameResult.mvpPlayerId ? [gameResult.mvpPlayerId] : [],
+    momentumSwings,
+    broadcastNetwork: gameResult.broadcastNetwork ?? 'MFN',
+    finalNarrative: '',
+  };
+  broadcast.finalNarrative = generateFinalNarrative(broadcast, homeTeam, awayTeam, gameResult);
+  return broadcast;
+}
+
 export function generateBroadcast(
   gameResult: GameResult,
   homeTeam: Team,
   awayTeam: Team,
   rng: PrngFn,
 ): BroadcastOutput {
+  if (gameResult.snapLedgerMode === 'canonical' && (gameResult.snapEvents?.length ?? 0) > 0) {
+    return generateBroadcastFromSnapLedger(gameResult, homeTeam, awayTeam);
+  }
   const homeStats = safeStats(gameResult, homeTeam.id);
   const awayStats = safeStats(gameResult, awayTeam.id);
   const homeRuntime = buildRuntime(homeTeam, awayTeam, homeStats, awayStats);

@@ -18,4 +18,5 @@ export * from './sim.js';
 export * from './schedule.js';
 export * from './records.js';
 export * from './season.js';
+export * from './causal.js';
 export * from './franchise.js';

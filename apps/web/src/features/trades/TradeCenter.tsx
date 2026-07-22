@@ -938,7 +938,7 @@ export function TradeCenter() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {offers.map((offer) => (
                 (() => {
-	                  const forecast = buildOfferForecast(offer);
+                    const forecast = buildOfferForecast(offer);
 
                   return (
                     <div key={offer.id} style={{
@@ -986,10 +986,10 @@ export function TradeCenter() {
                       {offer.status === 'pending' ? (
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
                           <PixelButton
-	                            accent="gold"
-	                            disabled={pending === `${offer.id}-reject`}
-	                            onClick={() => void handleRejectOffer(offer, forecast)}
-	                          >
+                              accent="gold"
+                              disabled={pending === `${offer.id}-reject`}
+                              onClick={() => void handleRejectOffer(offer, forecast)}
+                            >
                             Reject
                           </PixelButton>
                           <PixelButton
@@ -1167,18 +1167,18 @@ export function TradeCenter() {
                       You receive: {currentProposal.counterOffer.requesting.map((asset) => asset.description).join(' | ')}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
-	                      <PixelButton
-	                        accent="gold"
-	                        disabled={pending === `reject-counter-${currentProposal.id}`}
-	                        onClick={() => void handleRejectCounter(currentProposal)}
-	                      >
+                        <PixelButton
+                          accent="gold"
+                          disabled={pending === `reject-counter-${currentProposal.id}`}
+                          onClick={() => void handleRejectCounter(currentProposal)}
+                        >
                         Reject Counter
                       </PixelButton>
                       <PixelButton
-	                        accent="green"
-	                        disabled={deadlineClosed || tradesLockedByScenario || pending === `accept-counter-${currentProposal.id}`}
-	                        onClick={() => void handleAcceptCounter(currentProposal)}
-	                      >
+                          accent="green"
+                          disabled={deadlineClosed || tradesLockedByScenario || pending === `accept-counter-${currentProposal.id}`}
+                          onClick={() => void handleAcceptCounter(currentProposal)}
+                        >
                         {tradesLockedByScenario ? 'Scenario Locked' : 'Accept Counter'}
                       </PixelButton>
                     </div>
@@ -1196,13 +1196,13 @@ export function TradeCenter() {
         message="Accept this trade offer? This action will move players and picks between rosters."
         confirmLabel="Accept Trade"
         accent="green"
-	        onConfirm={() => {
-	          const offer = offers.find((entry) => entry.id === confirmTradeId);
-	          if (offer && !tradesLockedByScenario) {
-	            void handleAcceptOffer(offer, buildOfferForecast(offer));
-	          }
-	          setConfirmTradeId(null);
-	        }}
+          onConfirm={() => {
+            const offer = offers.find((entry) => entry.id === confirmTradeId);
+            if (offer && !tradesLockedByScenario) {
+              void handleAcceptOffer(offer, buildOfferForecast(offer));
+            }
+            setConfirmTradeId(null);
+          }}
         onCancel={() => setConfirmTradeId(null)}
       />
     </div>

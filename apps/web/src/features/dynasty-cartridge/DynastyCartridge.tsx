@@ -34,6 +34,7 @@ import {
   type DynastySidecarArchivePayload,
   type DynastySidecarArchiveSummary,
 } from '../../lib/dynasty-sidecar-archive';
+import { importCombinedBackupAtomically } from '../../lib/combined-import-journal';
 import {
   useGameStore, selectUserTeam, selectWeek, selectYear,
 } from '../../app/store/game-store';
@@ -209,10 +210,10 @@ export function DynastyCartridge() {
   const teamName = team ? `${team.city} ${team.name}` : 'Unknown';
   const meta = useMemo(() => ({ teamName, season: year, week }), [teamName, week, year]);
   const fileName = team ? generateFileName(meta) : 'save.mfd';
-  const sidecarSummary = useMemo(
-    () => summarizeDynastySidecarArchive(readDynastySidecarArchivePayload()),
-    [sidecarRevision],
-  );
+  const sidecarSummary = useMemo(() => {
+    void sidecarRevision;
+    return summarizeDynastySidecarArchive(readDynastySidecarArchivePayload());
+  }, [sidecarRevision]);
 
   const refreshSlots = useCallback(async () => {
     setSlots(await listSaveSlots());
@@ -389,8 +390,7 @@ export function DynastyCartridge() {
 
     try {
       const { loaded, sidecarPayload } = pendingCombinedImport;
-      await autosaveDynasty(loaded);
-      const sidecarResult = importDynastySidecarArchiveJson(exportDynastySidecarArchiveJson(sidecarPayload));
+      const sidecarResult = await importCombinedBackupAtomically(loaded, sidecarPayload);
       if (!sidecarResult.ok) {
         throw new Error(sidecarResult.reason);
       }

@@ -303,7 +303,7 @@ export function ContractsCap() {
     setExtensionYears('base');
     setExtensionPreset('fair');
     setExtensionFeedback(null);
-    if (selectedContract) {
+    if (selectedContract?.id) {
       setTagFeedback(null);
     }
   }, [selectedContract?.id]);

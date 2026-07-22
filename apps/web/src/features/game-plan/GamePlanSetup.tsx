@@ -142,7 +142,7 @@ export function buildWeeklyPrepSourceRows({
       id: 'trick-play-boundary',
       label: 'Trick play boundary',
       value: trickPlayCount > 0 ? `${trickPlayCount} planned` : 'Planning only',
-      detail: 'Selected trick plays are saved in the weekly prep plan and included in forecast labels, but the current game does not call trick-play helper outcomes.',
+      detail: 'Selected trick plays are saved in the weekly prep plan, enter the seeded live-drive caller at most once per play, and persist their outcome into the game ledger and recap.',
       accent: trickPlayCount > 0 ? 'cyan' : 'default',
     },
     {
@@ -200,6 +200,7 @@ export function GamePlanSetup() {
   const storedPlan = useGameStore(selectCurrentWeeklyPrepPlan);
   const upcomingRivalry = useGameStore(selectUpcomingRivalry);
   const activeCallYourShot = useGameStore((state) => state.game?.activeCallYourShot ?? null);
+  const coachMode = useGameStore((state) => state.game?.settings?.coachMode ?? false);
   const { advanceWeek, clearWeeklyPrepPlan, saveWeeklyPrepPlan, setCallYourShot } = useGameStore((state) => state.actions);
 
   const defaultPlan = storedPlan ?? (team && intel ? {
@@ -353,6 +354,23 @@ export function GamePlanSetup() {
       />
 
       <WeeklyPrepSources rows={sourceRows} />
+
+      {coachMode ? (
+        <PixelPanel title="Coach Mode Live Calls" accent="green">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <PixelBadge variant="green">4th-down control</PixelBadge>
+              <PixelBadge variant="cyan">Two-minute script</PixelBadge>
+              <PixelBadge variant="gold">Halftime adjustment</PixelBadge>
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+              Use the Special Situation selector for Two Minute reps and Prep Extras → Contingencies for
+              “Go for it on 4th” or late-game scripts. Halftime Hell pauses the user game for the saved
+              stick, switch, or gamble call. Every selection is optional; Fast Sim remains available.
+            </div>
+          </div>
+        </PixelPanel>
+      ) : null}
 
       <div data-mfd-next-call="weekly-prep">
       <PixelPanel title="Next Call" accent={storedPlan ? 'green' : 'gold'}>
@@ -623,8 +641,8 @@ export function GamePlanSetup() {
                 </PixelBadge>
               </div>
               <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
-                Current boundary: this menu saves planned trick-play ids with weekly prep and feeds the forecast label. It does not make
-                the live-drive call `executeTrickPlay`, `shouldCallTrickPlay`, or other trick-play helpers during live drives.
+                Selected calls enter the seeded live-drive simulation when situation, coach, and tendency checks align. Each selected
+                play can fire only once per game; its outcome is saved in the broadcast and postgame receipt.
               </div>
               {availableTrickPlays.length === 0 ? (
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>

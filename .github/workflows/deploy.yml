@@ -1,11 +1,12 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -15,38 +16,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  package:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
+      - name: Download exact full-gate artifact
+        uses: actions/download-artifact@v4
         with:
-          version: 9.15.9
+          name: mfd-pages-${{ github.event.workflow_run.head_sha }}
+          path: apps/web/dist
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm -r typecheck
-      - run: pnpm test
-      - run: pnpm --filter @mfd/web build
-        env:
-          # Personal Assistant Chip — Slice A (onboarding) + Slice B (dock + Monday Briefing).
-          # Kill switch lives in apps/web/src/features/companion/ChipHost.tsx::isChipFeatureEnabled.
-          # Without this, the production build ships with Chip invisible.
-          VITE_CHIP_ENABLED: 'true'
-      - run: bash scripts/check-bundle-size.sh
-      - run: bash scripts/smoke-test-built-page.sh
-
-      - uses: actions/upload-pages-artifact@v3
+      - name: Package verified Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: apps/web/dist
 
   deploy:
-    needs: build
+    needs: package
     runs-on: ubuntu-latest
     environment:
       name: github-pages

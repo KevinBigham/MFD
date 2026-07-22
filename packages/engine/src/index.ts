@@ -232,6 +232,7 @@ export {
 } from './systems/facilities';
 export {
   isPlayerUnavailable,
+  getGameAvailability,
   getInjuryPenalty,
   calculateRecoveryGames,
   generateInjury,
@@ -242,6 +243,7 @@ export {
   hireMedicalStaff,
   maybeGenerateTeamInjury,
 } from './systems/injury-system';
+export type { GameAvailability } from './systems/injury-system';
 export {
   calculateGameFatigue,
   applyWeeklyRecovery,
@@ -331,6 +333,7 @@ export {
 } from './systems/flex-schedule';
 export {
   generateBroadcast,
+  generateBroadcastFromSnapLedger,
   calculateWpSwing,
   generatePlayCommentary,
   selectHighlights,
@@ -576,6 +579,13 @@ export {
   upsertOpponentReport,
 } from './systems/game-plan';
 export { generateDraftRecap } from './systems/draft-recap';
+export { computeDraftOrder, computeDraftOrderForGame } from './systems/draft-order';
+export type {
+  DraftOrderPlayoffFinish,
+  DraftOrderPlayoffResult,
+  DraftOrderSlot,
+  DraftOrderStanding,
+} from './systems/draft-order';
 export { findTradeTargets } from './systems/trade-finder';
 export {
   buildPlayerSeasonHistoryEntry,
@@ -589,6 +599,7 @@ export {
   buildLeagueAverageByGroup,
   analyzeTeamNeeds,
   compareTeamNeeds,
+  getTeamPositionNeed,
 } from './systems/team-needs';
 // Systems — Franchise Setup (Sprint 32)
 export {
@@ -914,8 +925,26 @@ export type { SchemeFitResult, FitTier, PlayerSide, PlayerIdentityFit, TeamFitSu
 // Systems — Chemistry (Phase 2)
 export { chemistryMod, systemFitMod, updateSystemFit, resetSystemFit } from './systems/chemistry';
 export { emptyPlayerStats, createEmptySeasonStats, ensureSeasonStats, applyGameToSeasonStats, tickInjuries } from './systems/season-stats';
-export { simGame, applyPlayerLines } from './systems/game-sim';
-export type { SimGameContext, SimGameResult, SimTeamContext } from './systems/game-sim';
+export { createSimulationContext, simGame, simGameWithContext, applyPlayerLines } from './systems/game-sim';
+export type { SimGameContext, SimTeamContext, SimulationContext, SimulationRngContext } from './systems/game-sim-types';
+export {
+  advancePossession,
+  createPossessionState,
+  recommendFourthDownDecision,
+  useTimeout,
+  validatePossessionState,
+} from './systems/possession-state';
+export type { CoachModeDecision, PossessionTransition, SnapResolution } from './systems/possession-state';
+export { calibrateSnapShadow, simulateSnapShadow } from './systems/snap-shadow';
+export type {
+  ShadowCalibrationReport,
+  ShadowCalibrationSample,
+  ShadowGameResult,
+  ShadowTeamInput,
+} from './systems/snap-shadow';
+export { measureStatePerformance } from './systems/state-performance';
+export type { StatePerformanceMeasurement, StatePerformanceOptions } from './systems/state-performance';
+export type { SimGameResult } from './systems/game-sim';
 export { buildWeeklySummary } from './systems/weekly-summary';
 export { buildGameDayPackage } from './systems/game-day-package';
 export { buildPostWeekMoment } from './systems/post-week-moment';
@@ -975,6 +1004,11 @@ export {
   submitReSignOffer,
   submitFreeAgentBid,
   signStreetFreeAgent,
+  ensureMinimumRosterFloors,
+  ensureTeamHealthyRosterFloors,
+  certifyLeagueRosterHealth,
+  getAiReSignPlanModifiers,
+  scoreVacancyCandidateForPlan,
   advanceOffseason,
   advanceFreeAgency,
 } from './systems/offseason';
@@ -982,8 +1016,9 @@ export type {
   FreeAgencyDecisionForecast,
   FreeAgencyForecastMode,
   FreeAgencyForecastStatus,
+  RosterHealthRepair,
 } from './systems/offseason';
-export { runCoachingCarousel } from './systems/coaching-carousel';
+export { runCoachingCarousel, scoreCarouselCandidate } from './systems/coaching-carousel';
 export {
   runScoutingAction,
   runPrivateWorkout,
@@ -1131,6 +1166,27 @@ export type {
   HalftimeDecisionReceipt,
   HalftimeDecisionReceiptChoice,
 } from './systems/halftime-receipts';
+
+// Systems — Causal spine, durable CPU plans, receipts, and memory
+export {
+  appendDecisionReceipt,
+  appendLeagueEvent,
+  applyPressResponseConsequences,
+  buildDynastyMemoryDigest,
+  buildGameCapsule,
+  compactCanonicalSnapLedgers,
+  createFranchisePlan,
+  derivePhilosophyLabel,
+  ensureCausalSpineState,
+  persistGameCapsule,
+  rebuildMemoryGraph,
+  reconcileCausalSpine,
+  recordActionCenterCardClosure,
+  recordGamePlanDecisionReceipt,
+  recordWeeklyBriefingReceipts,
+  updateFranchisePlans,
+} from './systems/causal-spine';
+export type { ActionCenterCardClosure } from './systems/causal-spine';
 
 // Systems — Dev harnesses (Sprint 48 "The Reunion")
 export {

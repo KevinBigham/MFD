@@ -204,7 +204,7 @@ export const LeagueRivalrySchema = z.object({
 
 export const BrokenRecordSchema = z.object({
   playerId: z.string(),
-  playerName: z.string(),
+  playerName: z.string().default('Unknown Player'),
   teamId: z.string(),
   stat: z.string(),
   newValue: z.number(),
@@ -218,7 +218,7 @@ export const BrokenRecordSchema = z.object({
 
 export const MilestoneReachedSchema = z.object({
   playerId: z.string(),
-  playerName: z.string(),
+  playerName: z.string().default('Unknown Player'),
   stat: z.string(),
   value: z.number(),
   milestoneLabel: z.string(),
@@ -229,7 +229,7 @@ export const MilestoneReachedSchema = z.object({
 
 export const RecordChaseSchema = z.object({
   playerId: z.string(),
-  playerName: z.string(),
+  playerName: z.string().default('Unknown Player'),
   teamId: z.string(),
   stat: z.string(),
   currentValue: z.number(),
@@ -426,6 +426,7 @@ export const PendingHalftimeDecisionSchema = z.object({
 
 export const GameSettingsSchema = z.object({
   halftimeDecisions: z.enum(['on', 'off']),
+  coachMode: z.boolean().default(false),
 });
 
 export const PostGameUiStateSchema = z.object({
@@ -1398,6 +1399,14 @@ export const OwnerMandateSchema = z.object({
   evaluation: OwnerMandateEvaluationSchema.nullable().optional(),
 });
 
+export const GameEventSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  timestamp: z.number(),
+  description: z.string(),
+  data: z.record(z.unknown()),
+});
+
 export const GamePlanSchema = z.object({
   offensiveScheme: z.enum(['balanced', 'pass_heavy', 'run_heavy', 'spread', 'power']),
   defensiveScheme: z.enum(['base', 'blitz_heavy', 'coverage', 'contain', 'aggressive']),
@@ -2032,6 +2041,95 @@ export const LeagueStoryArcSchema = z.object({
   stageHistory: z.array(StoryArcBeatSchema).default([]),
 });
 
+export const LeagueEventSchema = z.object({
+  id: z.string(),
+  seasonWeek: z.object({ year: z.number(), week: z.number() }),
+  type: z.enum(['signing', 'trade', 'cut', 'draft_pick', 'injury', 'firing', 'hiring', 'award', 'record', 'press_conference', 'game', 'trick_play', 'snap', 'legacy']),
+  actors: z.object({
+    teamIds: z.array(z.string()),
+    playerIds: z.array(z.string()),
+    staffIds: z.array(z.string()),
+  }),
+  payload: z.record(z.string(), z.unknown()),
+  causeIds: z.array(z.string()),
+});
+
+export const DecisionReceiptSchema = z.object({
+  id: z.string(),
+  seasonWeek: z.object({ year: z.number(), week: z.number() }),
+  teamId: z.string().nullable(),
+  decision: z.string(),
+  drivers: z.array(z.object({
+    label: z.string(),
+    value: z.union([z.number(), z.string(), z.boolean()]),
+    detail: z.string(),
+  })),
+  outcome: z.string(),
+  counterfactual: z.string(),
+  eventRefs: z.array(z.string()),
+});
+
+export const FranchisePlanSchema = z.object({
+  teamId: z.string(),
+  windowYears: z.tuple([z.number(), z.number()]),
+  ownerMandate: z.string(),
+  capPosture: z.enum(['preserve', 'balanced', 'spend']),
+  priorityPositions: z.array(z.enum(['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P'])),
+  protectedAssets: z.array(z.string()),
+  expendableAssets: z.array(z.string()),
+  draftCapitalStrategy: z.enum(['accumulate', 'balanced', 'trade_up']),
+  riskTolerance: z.number(),
+  changeTriggers: z.array(z.string()),
+  publicNarrative: z.string(),
+  planHistory: z.array(z.object({
+    year: z.number(),
+    week: z.number(),
+    trigger: z.string(),
+    summary: z.string(),
+  })),
+  lastUpdatedYear: z.number(),
+});
+
+export const PressMemoryTagSchema = z.object({
+  id: z.string(),
+  teamId: z.string(),
+  year: z.number(),
+  week: z.number(),
+  tag: z.enum(['bold', 'measured', 'deflecting']),
+  quote: z.string(),
+  receiptId: z.string(),
+});
+
+export const GameCapsuleSchema = z.object({
+  id: z.string(),
+  gameId: z.string(),
+  year: z.number(),
+  week: z.number(),
+  teamIds: z.tuple([z.string(), z.string()]),
+  score: z.tuple([z.number(), z.number()]),
+  turningPoint: z.string(),
+  keyPlayEventIds: z.array(z.string()),
+  receiptIds: z.array(z.string()),
+  starPlayerIds: z.array(z.string()),
+  summary: z.string(),
+});
+
+export const DynastyMemoryGraphSchema = z.object({
+  nodes: z.array(z.object({
+    id: z.string(),
+    kind: z.enum(['person', 'game', 'decision', 'rivalry', 'team']),
+    label: z.string(),
+    eventRefs: z.array(z.string()),
+  })),
+  edges: z.array(z.object({
+    id: z.string(),
+    fromId: z.string(),
+    toId: z.string(),
+    kind: z.enum(['played', 'decided', 'affected', 'rivaled', 'remembered']),
+    weight: z.number(),
+  })),
+});
+
 export const TeamPersistedSchema = z.object({
   philosophy: z.enum(['rebuild', 'contend', 'maintain', 'fire_sale']).default('maintain'),
   gmStrategy: GmStrategySchema,
@@ -2046,6 +2144,7 @@ export const SaveStateSchema = z.object({
   difficulty: z.enum(['rookie', 'pro', 'allpro', 'legend']),
   settings: GameSettingsSchema.default({
     halftimeDecisions: 'on',
+    coachMode: false,
   }),
   players: z.record(PlayerSchema),
   teams: z.record(TeamPersistedSchema),
@@ -2097,7 +2196,7 @@ export const SaveStateSchema = z.object({
       summary: z.string(),
     })).default([]),
   }),
-  eventLog: z.array(z.any()),
+  eventLog: z.array(GameEventSchema),
   narrativeState: z.object({
     activeArcs: z.array(StoryArcSchema),
     hooks: z.array(z.any()),
@@ -2223,6 +2322,14 @@ export const SaveStateSchema = z.object({
   storyArcs: z.array(LeagueStoryArcSchema).default([]),
   // Sprint 45 "The Family Tree" — coaching lineage / rivalry graph.
   relationships: z.array(RelationshipEdgeSchema).default([]),
+  leagueEvents: z.array(LeagueEventSchema).default([]),
+  decisionReceipts: z.array(DecisionReceiptSchema).default([]),
+  franchisePlans: z.record(z.string(), FranchisePlanSchema).default({}),
+  pressMemoryTags: z.array(PressMemoryTagSchema).default([]),
+  gameCapsules: z.array(GameCapsuleSchema).default([]),
+  memoryGraph: DynastyMemoryGraphSchema.default({ nodes: [], edges: [] }),
+  navigationMode: z.enum(['gm', 'nerd']).default('gm'),
+  onboardingMode: z.enum(['instant', 'guided', 'full_gm']).default('guided'),
 });
 
 export type SaveState = z.infer<typeof SaveStateSchema>;

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
+  isTransientBrowserInfrastructureError,
   parseSmokePreviewTimeoutMs,
   parseSmokeTimeoutMs,
   parseSmokeViewport,
@@ -40,6 +41,23 @@ import {
 } from '../smoke-test-post-setup-route.mjs';
 
 const smokeSource = readFileSync(new URL('../smoke-test-post-setup-route.mjs', import.meta.url), 'utf8');
+
+test('classifies only Chrome certificate-verifier restarts as transient browser infrastructure', () => {
+  const verifierRestart = {
+    source: 'network',
+    level: 'error',
+    text: 'Failed to load resource: net::ERR_CERT_VERIFIER_CHANGED',
+  };
+
+  assert.equal(isTransientBrowserInfrastructureError(verifierRestart), true);
+  assert.equal(isTransientBrowserInfrastructureError({ ...verifierRestart, source: 'javascript' }), false);
+  assert.equal(isTransientBrowserInfrastructureError({ ...verifierRestart, level: 'warning' }), false);
+  assert.equal(isTransientBrowserInfrastructureError({
+    source: 'network',
+    level: 'error',
+    text: 'Failed to load resource: net::ERR_CONNECTION_REFUSED',
+  }), false);
+});
 
 test('parses smoke assertion and preview startup timeouts independently', () => {
   assert.equal(parseSmokeTimeoutMs({}), 30_000);
@@ -323,6 +341,10 @@ test('parses the opt-in full setup completion workflow flag', () => {
 });
 
 test('keeps full setup smoke aligned to the plain-language setup labels', () => {
+  assert.match(smokeSource, /waitForBodyText\(cdp, sessionId, 'Full GM', 'new-dynasty full GM option'\)/);
+  assert.match(smokeSource, /clickButtonContaining\(cdp, sessionId, 'Full GM', 'clickable Full GM onboarding option'\)/);
+  assert.match(smokeSource, /clickButtonContaining\(cdp, sessionId, 'Start Full GM', 'clickable Start Full GM button'\)/);
+  assert.doesNotMatch(smokeSource, /new-dynasty full setup option|clickable Start Dynasty button/);
   assert.match(smokeSource, /Open Intel for owner patience, injuries, cap space, and Week 1 matchup threats/);
   assert.match(smokeSource, /Choose restructures now or save injury, trade, and extension cap space/);
   assert.match(smokeSource, /Choose goals ownership judges and rules that change morale after losses/);
@@ -456,6 +478,13 @@ test('parses the opt-in waiver/practice-squad workflow flag', () => {
   assert.equal(shouldRunWaiverPracticeSquadSmoke({ SMOKE_WAIVER_PRACTICE_SQUAD: 'YES' }), true);
 });
 
+test('waiver/practice smoke accepts deterministic CPU re-signing after a proven release', () => {
+  assert.match(smokeSource, /const practiceReleaseSurvived = Boolean/);
+  assert.match(smokeSource, /practicePlayer\?\.teamId !== fixture\.userTeamId/);
+  assert.match(smokeSource, /'practiceReleaseSurvived',\s*'practice-squad release persisted after final hard reload'/);
+  assert.match(smokeSource, /'practiceReleased',\s*'practice-squad release persisted to latest autosave'/);
+});
+
 test('parses the opt-in free-agency signings workflow flag', () => {
   assert.equal(shouldRunFreeAgencySigningsSmoke({}), false);
   assert.equal(shouldRunFreeAgencySigningsSmoke({ SMOKE_FREE_AGENCY_SIGNINGS: '0' }), false);
@@ -483,6 +512,9 @@ test('parses the opt-in weekly-prep workflow flag', () => {
 test('weekly-prep smoke proves Call Your Shot copy on high-stakes weeks', () => {
   assert.match(smokeSource, /highStakesWeeks = candidateWeeks\.filter\(\(week\) => Number\(week\.week\) >= 15\)/);
   assert.match(smokeSource, /stagedWeekNumber = Math\.max\(Number\(targetWeek\.week\), 15\)/);
+  assert.match(smokeSource, /Autosave \(weekly-prep smoke fixture\)/);
+  assert.match(smokeSource, /delete stagedSlot\.id/);
+  assert.match(smokeSource, /deleteSmokeSaveSlot\(cdp, sessionId, fixture\.stagedSlotId/);
   assert.match(smokeSource, /Choose one promise before Save/);
   assert.match(smokeSource, /hit it for fan-confidence gain/);
   assert.match(smokeSource, /fan confidence drops in the recap receipt/);

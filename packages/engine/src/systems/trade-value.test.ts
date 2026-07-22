@@ -74,6 +74,23 @@ describe('trade value system', () => {
     expect(neutralResult.accepted).toBe(false);
   });
 
+  it('uses difficulty to make CPU trade acceptance forgiving on rookie and strict on legend', () => {
+    const game = makeLeagueState('offseason');
+    const seller = game.teams.afce2;
+    const qb = seller.roster.find((player) => player.pos === 'QB')!;
+    const incoming = [pickAsset('afce1', game.year, 1, 10)];
+    const outgoing = [playerAsset(seller.id, qb.id, qb.name)];
+
+    game.difficulty = 'rookie';
+    const rookie = evaluateTradeOffer(game, seller, incoming, outgoing);
+    game.difficulty = 'legend';
+    const legend = evaluateTradeOffer(game, seller, incoming, outgoing);
+
+    expect(rookie.threshold).toBeLessThan(legend.threshold);
+    expect(rookie.threshold).toBeCloseTo(0.95 * 0.85, 5);
+    expect(legend.threshold).toBeCloseTo(0.95 * 1.45, 5);
+  });
+
   it('generates at least one offer for a reasonably valued trade-block player', () => {
     const game = makeLeagueState('offseason');
     const userTeam = game.teams.afce1;

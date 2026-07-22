@@ -18,7 +18,7 @@ describe('useBootSequence config', () => {
     expect(content).toContain('145+');
     expect(content).toContain('2,650+ tests');
     expect(content).toContain('8-BIT ESPN');
-    expect(content).toContain('v36 migration chain');
+    expect(content).toContain('v37 migration chain');
   });
 
   it('has 14 boot lines including blanks', () => {

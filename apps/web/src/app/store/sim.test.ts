@@ -7,7 +7,7 @@ import {
   type GameState,
   type PendingHalftimeDecision,
 } from '@mfd/engine';
-import { runAdvanceWeek, runPreviewHalftimeDecision } from './sim';
+import { runAdvanceWeek, runPreviewHalftimeDecision, shouldUseSimulationWorker } from './sim';
 
 vi.mock('@mfd/engine', () => ({
   advanceFranchiseWeek: vi.fn(),
@@ -18,6 +18,14 @@ const mockedAdvanceFranchiseWeek = vi.mocked(advanceFranchiseWeek);
 const mockedPreviewHalftimeDecision = vi.mocked(previewHalftimeDecision);
 
 describe('web store simulation boundary', () => {
+  it('activates the worker seam only after measured long-save growth', () => {
+    expect(shouldUseSimulationWorker({ franchiseHistory: [], decisionReceipts: [] } as unknown as GameState)).toBe(false);
+    expect(shouldUseSimulationWorker({
+      franchiseHistory: Array.from({ length: 256 }, () => ({})),
+      decisionReceipts: [],
+    } as unknown as GameState)).toBe(true);
+  });
+
   it('keeps week advance behind a Promise-returning wrapper', async () => {
     const game = { id: 'game-state' } as unknown as GameState;
     const options = { halftimeDecision: 'stay' } as unknown as AdvanceFranchiseWeekOptions;

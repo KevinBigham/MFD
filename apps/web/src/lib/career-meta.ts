@@ -105,10 +105,12 @@ function defaultCareerMeta(): CareerMeta {
 }
 
 function storage(): Storage | null {
-  if (typeof window !== 'undefined' && window.localStorage) return window.localStorage;
-  if (typeof globalThis !== 'undefined' && 'localStorage' in globalThis && globalThis.localStorage) {
-    return globalThis.localStorage;
-  }
+  const candidate = typeof window !== 'undefined'
+    ? window.localStorage
+    : typeof globalThis !== 'undefined' && 'localStorage' in globalThis
+      ? globalThis.localStorage
+      : null;
+  if (candidate && typeof candidate.getItem === 'function' && typeof candidate.setItem === 'function') return candidate;
   return null;
 }
 

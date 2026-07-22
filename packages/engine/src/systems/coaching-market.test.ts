@@ -26,6 +26,21 @@ describe('coaching market', () => {
     expect(first.candidates.HC.map((candidate) => candidate.id)).toEqual(second.candidates.HC.map((candidate) => candidate.id));
   });
 
+  it('uses the difficulty staff budget to improve or constrain the candidate pool', () => {
+    const rookieGame = makeLeagueState('regular_season', 4);
+    const legendGame = makeLeagueState('regular_season', 4);
+    rookieGame.difficulty = 'rookie';
+    legendGame.difficulty = 'legend';
+
+    const rookie = buildCoachingMarket(rookieGame, 'afce1').candidates.HC;
+    const legend = buildCoachingMarket(legendGame, 'afce1').candidates.HC;
+    const averageGameplan = (candidates: StaffCandidate[]) => (
+      candidates.reduce((sum, candidate) => sum + (candidate.ratings.gameplan ?? 0), 0) / candidates.length
+    );
+
+    expect(averageGameplan(rookie)).toBeGreaterThan(averageGameplan(legend));
+  });
+
   it('scores scheme-aligned candidates above poor fits', () => {
     const game = makeLeagueState('regular_season', 4);
     const team = game.teams.afce1!;

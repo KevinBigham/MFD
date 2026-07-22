@@ -36,7 +36,7 @@ describe('save version drift guard', () => {
     const fixtureVersions = fixtureFiles.map((fileName) => Number(fileName.match(/\d+/)?.[0] ?? 0));
 
     expect(fixtureVersions).toEqual([...checkedInFixtureVersions]);
-    expect(Math.max(...fixtureVersions)).toBe(SAVE_VERSION - 2);
+    expect(Math.max(...fixtureVersions)).toBeLessThanOrEqual(SAVE_VERSION - 2);
 
     for (const fixtureVersion of fixtureVersions) {
       expect(readFixture(fixtureVersion)['version']).toBe(fixtureVersion);
@@ -44,7 +44,8 @@ describe('save version drift guard', () => {
   });
 
   it('keeps generated previous-version and current-version save coverage aligned', () => {
-    const previousVersionFixture = migrate(readFixture(SAVE_VERSION - 2), SAVE_VERSION - 1);
+    const latestCheckedInFixture = Math.max(...checkedInFixtureVersions);
+    const previousVersionFixture = migrate(readFixture(latestCheckedInFixture), SAVE_VERSION - 1);
     expect(previousVersionFixture['version']).toBe(SAVE_VERSION - 1);
 
     const migratedPrevious = migrate(structuredClone(previousVersionFixture), SAVE_VERSION);

@@ -386,6 +386,14 @@ describe('draft direct coverage', () => {
 
   it('finalizes post-draft state by resetting the league for training camp', () => {
     const game = makeLeagueState('post_draft', 3);
+    game.teams.afce2!.draftPicks.push({
+      round: 1,
+      pick: 1,
+      originalTeamId: 'afce1',
+      currentTeamId: 'afce2',
+      year: game.year + 1,
+      isCompPick: false,
+    });
     game.teams.afce1.wins = 11;
     game.teams.afce1.losses = 6;
     game.teams.afce1.streak = 4;
@@ -462,6 +470,13 @@ describe('draft direct coverage', () => {
     expect(game.players[freeAgent.id]?.injury).toBeNull();
     expect(game.players[freeAgent.id]?.stats.recYds).toBe(0);
     expect(game.teams.afce1.draftPicks.every((pick) => pick.year === game.year + 1)).toBe(true);
+    expect(game.teams.afce2.draftPicks).toContainEqual(expect.objectContaining({
+      round: 1,
+      originalTeamId: 'afce1',
+      currentTeamId: 'afce2',
+      year: game.year + 1,
+    }));
+    expect(game.teams.afce1.draftPicks.some((pick) => pick.round === 1 && pick.originalTeamId === 'afce1')).toBe(false);
     expect(game.schedule.length).toBeGreaterThan(0);
   });
 });

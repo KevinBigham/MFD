@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultTutorialState } from '@mfd/engine';
-import appSource from '../../app/App.tsx?raw';
+import { APP_ROUTE_REGISTRY } from '@mfd/engine/config';
 
 const TUTORIAL_ROUTE_ALLOWLIST = new Set([
   '/locker-room',
@@ -68,11 +68,7 @@ const TUTORIAL_ROUTE_ALLOWLIST = new Set([
 ]);
 
 function getSidebarRoutes(): string[] {
-  const navItemsBlock = appSource.match(/const NAV_ITEMS: NavItem\[\] = \[([\s\S]*?)\];/)?.[1];
-
-  expect(navItemsBlock).toBeDefined();
-
-  return [...navItemsBlock!.matchAll(/\{\s*path:\s*'([^']+)'/g)].map((match) => match[1]!);
+  return APP_ROUTE_REGISTRY.map((route) => route.path);
 }
 
 describe('Tutorial route coverage', () => {

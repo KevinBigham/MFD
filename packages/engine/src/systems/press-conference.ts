@@ -1,4 +1,3 @@
-import { RNG, uid } from '../rng';
 import type {
   GameState,
   PressConference,
@@ -14,6 +13,16 @@ function stampFor(year: number, week: number): number {
   return year * 100 + week;
 }
 
+function stablePressId(...parts: Array<string | number>): string {
+  const input = parts.join('|');
+  let hash = 2166136261;
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
 function createEffect(params: {
   game: GameState;
   sourceId: string;
@@ -26,7 +35,7 @@ function createEffect(params: {
 }): TimedEffect {
   const startStamp = stampFor(params.game.year, params.game.week);
   return {
-    id: uid(),
+    id: `effect-${stablePressId(params.sourceId, params.stat, params.summary)}`,
     sourceType: 'press_conference',
     sourceId: params.sourceId,
     teamId: params.teamId,
@@ -41,7 +50,13 @@ function createEffect(params: {
   };
 }
 
-function buildQuestions(result: 'win' | 'loss' | 'tie' | 'pending', topic: string, team: Team, opponent: Team | null): ReporterQuestion[] {
+function buildQuestions(
+  result: 'win' | 'loss' | 'tie' | 'pending',
+  topic: string,
+  team: Team,
+  opponent: Team | null,
+  sourceId: string,
+): ReporterQuestion[] {
   const opponentName = opponent ? `${opponent.city} ${opponent.name}` : 'the week ahead';
   const prompts = result === 'win'
     ? [
@@ -58,7 +73,7 @@ function buildQuestions(result: 'win' | 'loss' | 'tie' | 'pending', topic: strin
       ];
 
   return prompts.map((prompt, index) => ({
-    id: `${uid()}-${index}`,
+    id: `${sourceId}-question-${index}`,
     prompt,
     topic,
     response: index === 0
@@ -100,7 +115,7 @@ export function createPostGamePressConference(params: {
   ownerDelta?: number;
 }): PressConference {
   const tone = baseTone(params.result, params.rivalryIntensity ?? 0);
-  const id = `press-${uid()}`;
+  const id = `press-${stablePressId('postgame', params.game.year, params.game.week, params.team.id, params.result)}`;
   const effects: TimedEffect[] = [];
 
   if (tone === 'fired_up') {
@@ -149,7 +164,7 @@ export function createPostGamePressConference(params: {
         ? 'You could feel the edge in every phase of the game.'
         : 'The room knows exactly which details carried the day.',
     ],
-    reporterQuestions: buildQuestions(params.result, params.topic, params.team, params.opponent),
+    reporterQuestions: buildQuestions(params.result, params.topic, params.team, params.opponent, id),
     effects,
   };
 }
@@ -164,7 +179,7 @@ export function maybeCreateMidweekPressConference(game: GameState, team: Team): 
   const rivalry = getRivalryGameContext(game, team.id, opponentId);
   if (!rivalry) return null;
 
-  const id = `press-${uid()}`;
+  const id = `press-${stablePressId('midweek', game.year, game.week, team.id, opponentId)}`;
   const tone: PressConferenceTone = rivalry.intensity >= 70 ? 'fired_up' : 'confident';
 
   return {
@@ -185,7 +200,7 @@ export function maybeCreateMidweekPressConference(game: GameState, team: Team): 
         ? 'The room has the right amount of edge right now.'
         : 'We are keeping the focus on execution, not the noise.',
     ],
-    reporterQuestions: buildQuestions('pending', 'rivalry week', team, opponent),
+    reporterQuestions: buildQuestions('pending', 'rivalry week', team, opponent, id),
     effects: tone === 'fired_up'
       ? [createEffect({
         game,
@@ -208,7 +223,7 @@ export function createTransactionalPressConference(params: {
   speaker: string;
 }): PressConference {
   return {
-    id: `press-${uid()}`,
+    id: `press-${stablePressId(params.type, params.game.year, params.game.week, params.teamId, params.topic)}`,
     type: params.type,
     year: params.game.year,
     week: params.game.week,

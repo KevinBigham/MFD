@@ -34,7 +34,7 @@ Keep it concise.
 
 ## Save Rules
 
-- Current launch save schema version in the inspected MFD codebase is `SAVE_VERSION = 36`.
+- Current launch save schema version in the inspected MFD codebase is `SAVE_VERSION = 37`.
 - Confirm the local value in `packages/engine/src/config/difficulty.ts` before save work.
 - Persistent `GameState` changes require type update, Zod schema update, migration, seed default, and old-save tests.
 

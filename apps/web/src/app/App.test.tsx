@@ -38,7 +38,7 @@ describe('App Chip setup wiring', () => {
   }
 
   function selectedRouteFallbackTargets(source: string, file: string): Array<{ path: string; file: string; line: number; routeKey: string }> {
-    const block = source.match(/const selectedRoute = [\s\S]*?;\n  const selectedRouteLabel/)?.[0] ?? '';
+    const block = source.match(/const selectedRoute = [\s\S]*?;\n {2}const selectedRouteLabel/)?.[0] ?? '';
     return Array.from(block.matchAll(/['"](\/[^'"]+)['"]/g), (match) => ({
       path: match[1] ?? '',
       file,
@@ -69,8 +69,7 @@ describe('App Chip setup wiring', () => {
         (match) => [match[1] ?? '', match[2] ?? ''] as const,
       ),
     );
-    const routeTreeMatch = content.match(/const routeTree = rootRoute\.addChildren\(\[([\s\S]*?)\]\);/);
-    const routeTreeBody = routeTreeMatch?.[1] ?? '';
+    const routeTreeBody = content.match(/const ROUTE_IMPLEMENTATIONS = \[([\s\S]*?)\]\s+as const;/)?.[1] ?? '';
 
     return new Set(
       Array.from(routeTreeBody.matchAll(/\b([a-z][A-Za-z0-9]+Route)\b/g), (match) => definitionsByName.get(match[1] ?? '') ?? null)
@@ -413,7 +412,7 @@ describe('App Chip setup wiring', () => {
   it('keeps the achievements gallery route mapped to its standalone franchise surface', () => {
     expect(content).toContain("const LazyAchievementsGallery = lazy(async () => ({ default: (await import('../features/franchise/AchievementsGallery')).AchievementsGallery }));");
     expect(content).toMatch(/const achievementsRoute = createRoute\(\{[\s\S]*path: '\/franchise\/achievements'[\s\S]*<LazyRouteFrame label="achievements">[\s\S]*<LazyAchievementsGallery \/>[\s\S]*\}\);/);
-    expect(content).toMatch(/rootRoute\.addChildren\(\[[\s\S]*achievementsRoute[\s\S]*\]\)/);
+    expect(content).toMatch(/const ROUTE_IMPLEMENTATIONS = \[[\s\S]*achievementsRoute[\s\S]*\]\s+as const/);
   });
 
   it('keeps achievement toast and standalone gallery ownership separate', () => {
@@ -889,7 +888,8 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain("const LazyPowerRankings = lazy(async () => ({ default: (await import('../features/power-rankings/PowerRankings')).PowerRankings }));");
     expect(content).toContain("{ path: '/cba',           label: 'CBA Negotiation'");
     expect(content).toContain("{ path: '/league-rules',  label: 'League Rules'");
-    expect(content).toContain("paths: ['/standings', '/power-rankings', '/league-pulse', '/league/weather', '/newsroom', '/news', '/social', '/commissioner', '/cba', '/league-rules', '/analytics', '/records', '/stat-central']");
+    expect(content).toContain('const ROOM_NAV_GROUPS: NavGroup[] = APP_ROOMS.map((room) => ({');
+    expect(content).toContain('APP_ROUTE_REGISTRY.filter((routeDefinition) => routeDefinition.room === room.id)');
     expect(content).toMatch(/const ownerRoute = createRoute\(\{[\s\S]*path: '\/owner'[\s\S]*component: OwnerMood[\s\S]*\}\);/);
     expect(content).toMatch(/const commissionerRoute = createRoute\(\{[\s\S]*path: '\/commissioner'[\s\S]*<LazyCommissionerOffice \/>[\s\S]*\}\);/);
     expect(content).toMatch(/const cbaRoute = createRoute\(\{[\s\S]*path: '\/cba'[\s\S]*<LazyCBANegotiation \/>[\s\S]*\}\);/);
@@ -912,7 +912,8 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain("const LazyFaqScreen = lazy(async () => ({ default: (await import('../features/launch/FaqScreen')).FaqScreen }));");
     expect(content).toContain("const LazyDynastyCartridge = lazy(async () => ({ default: (await import('../features/dynasty-cartridge/DynastyCartridge')).DynastyCartridge }));");
     expect(content).toContain("import { Settings as SettingsScreen } from '../features/settings/Settings';");
-    expect(content).toContain("{ id: 'meta',     label: 'SYSTEM',   paths: ['/about', '/credits', '/faq', '/dynasty', '/settings'] }");
+    expect(content).toContain('NERD_NAV_GROUPS as NERD_GROUP_DEFINITIONS');
+    expect(content).toContain('const FULL_NAV_GROUPS: NavGroup[] = NERD_GROUP_DEFINITIONS.map((group) => ({');
     expect(content).toMatch(/const aboutRoute = createRoute\(\{[\s\S]*path: '\/about'[\s\S]*<LazyAboutScreen \/>[\s\S]*\}\);/);
     expect(content).toMatch(/const creditsRoute = createRoute\(\{[\s\S]*path: '\/credits'[\s\S]*<LazyCreditsScreen \/>[\s\S]*\}\);/);
     expect(content).toMatch(/const faqRoute = createRoute\(\{[\s\S]*path: '\/faq'[\s\S]*<LazyFaqScreen \/>[\s\S]*\}\);/);
@@ -923,6 +924,6 @@ describe('App Chip setup wiring', () => {
   it('keeps the weather forecast route mapped to its forecast surface', () => {
     expect(content).toContain("const LazyWeatherForecast = lazy(async () => ({ default: (await import('../features/league/WeatherForecast')).WeatherForecast }));");
     expect(content).toMatch(/const weatherForecastRoute = createRoute\(\{[\s\S]*path: '\/league\/weather'[\s\S]*<LazyRouteFrame label="weather">[\s\S]*<LazyWeatherForecast \/>[\s\S]*\}\);/);
-    expect(content).toMatch(/rootRoute\.addChildren\(\[[\s\S]*weatherForecastRoute[\s\S]*\]\)/);
+    expect(content).toMatch(/const ROUTE_IMPLEMENTATIONS = \[[\s\S]*weatherForecastRoute[\s\S]*\]\s+as const/);
   });
 });

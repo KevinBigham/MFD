@@ -251,7 +251,7 @@ describe('golden save fixtures', () => {
     expect(frontOffice['agmImpactLog']).toBeUndefined();
   });
 
-  it('migrates generated v35 fixture coverage through v35→v36 to current version', () => {
+  it('migrates generated v35 fixture coverage through v35→v36→v37 to current version', () => {
     const migrated = migrate(generatedV35Fixture(), SAVE_VERSION);
     const result = SaveStateSchema.safeParse(migrated);
 
@@ -261,6 +261,9 @@ describe('golden save fixtures', () => {
     expect(result.data.frontOffice.agmProfileId).toBeNull();
     expect(result.data.frontOffice.agmImpactLog).toEqual([]);
     expect(result.data.ownerMandates).toEqual([]);
+    expect(result.data.leagueEvents).toEqual([]);
+    expect(result.data.decisionReceipts).toEqual([]);
+    expect(result.data.franchisePlans).toEqual({});
   });
 
   it('validates deterministic current-version fixture coverage from the engine test league factory', () => {

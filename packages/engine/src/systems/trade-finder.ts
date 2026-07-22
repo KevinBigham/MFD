@@ -2,23 +2,19 @@ import { calcCapHit } from './contracts';
 import { conditionalPickExpectedValue } from './conditional-picks';
 import { getTradeableAssets, getTradeTargets } from './trade-negotiation';
 import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
+import { analyzeTeamNeeds, buildLeagueAverageByGroup } from './team-needs';
+import type { LeagueAverageByGroup } from './team-needs';
 import type { GameState, Position, Team, TradeOfferAsset, TradeSuggestion } from '../types';
 
 const POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S'];
 
-function topPlayerAt(team: Team, pos: Position) {
-  return [...team.roster]
-    .filter((player) => player.pos === pos)
-    .sort((a, b) => Number(b.isStarter) - Number(a.isStarter) || b.ovr - a.ovr || a.id.localeCompare(b.id))[0] ?? null;
-}
-
-function weakestPositions(team: Team): Position[] {
-  return [...POSITIONS]
-    .sort((a, b) => {
-      const aOvr = topPlayerAt(team, a)?.ovr ?? 50;
-      const bOvr = topPlayerAt(team, b)?.ovr ?? 50;
-      return aOvr - bOvr || a.localeCompare(b);
-    });
+function weakestPositions(team: Team, leagueAverage: LeagueAverageByGroup): Position[] {
+  const report = analyzeTeamNeeds(team, leagueAverage);
+  return [...POSITIONS].sort((a, b) => {
+    const aNeed = report.positionGrades.find((entry) => entry.group === a)?.needScore ?? 0;
+    const bNeed = report.positionGrades.find((entry) => entry.group === b)?.needScore ?? 0;
+    return bNeed - aNeed || a.localeCompare(b);
+  });
 }
 
 function assetValue(game: GameState, valuationTeam: Team, asset: TradeOfferAsset): number {
@@ -67,6 +63,7 @@ function buildSuggestion(
   partner: Team,
   target: { type: 'player'; teamId: string; playerId: string; pickId: null; description: string; need: Position },
   offering: TradeOfferAsset[],
+  leagueAverage: LeagueAverageByGroup,
 ): TradeSuggestion | null {
   if (!capCompatible(game, userTeam, offering, [target])) return null;
   const evaluation = evaluateTradeOffer(game, partner, offering, [target]);
@@ -74,7 +71,7 @@ function buildSuggestion(
   if (!evaluation.accepted || acceptanceLikelihood < 0.8) return null;
 
   const valueGap = Math.round((assetValue(game, userTeam, target) - offering.reduce((sum, asset) => sum + assetValue(game, userTeam, asset), 0)) * 10) / 10;
-  const partnerNeeds = weakestPositions(partner);
+  const partnerNeeds = weakestPositions(partner, leagueAverage);
 
   return {
     partner: partner.id,
@@ -94,7 +91,8 @@ export function findTradeTargets(game: GameState, teamId: string): TradeSuggesti
   const userTeam = game.teams[teamId];
   if (!userTeam) return [];
 
-  const userNeeds = weakestPositions(userTeam);
+  const leagueAverage = buildLeagueAverageByGroup(Object.values(game.teams));
+  const userNeeds = weakestPositions(userTeam, leagueAverage);
   const partnerTargets = getTradeTargets(game, teamId);
   const userAssets = getTradeableAssets(game, teamId);
   const suggestions: TradeSuggestion[] = [];
@@ -102,7 +100,7 @@ export function findTradeTargets(game: GameState, teamId: string): TradeSuggesti
   for (const partnerTarget of partnerTargets) {
     const partner = game.teams[partnerTarget.teamId];
     if (!partner) continue;
-    const partnerNeeds = weakestPositions(partner);
+    const partnerNeeds = weakestPositions(partner, leagueAverage);
     const targetAssets = partnerTarget.tradeBlock
       .map((player) => ({
         type: 'player' as const,
@@ -120,12 +118,12 @@ export function findTradeTargets(game: GameState, teamId: string): TradeSuggesti
 
       let suggestion: TradeSuggestion | null = null;
       for (const offerAsset of viableOutgoing) {
-        suggestion = buildSuggestion(game, userTeam, partner, target, [offerAsset]);
+        suggestion = buildSuggestion(game, userTeam, partner, target, [offerAsset], leagueAverage);
         if (suggestion) break;
       }
       if (!suggestion && viableOutgoing.length >= 2) {
         for (let index = 0; index < Math.min(3, viableOutgoing.length - 1); index += 1) {
-          suggestion = buildSuggestion(game, userTeam, partner, target, [viableOutgoing[index]!, viableOutgoing[index + 1]!]);
+          suggestion = buildSuggestion(game, userTeam, partner, target, [viableOutgoing[index]!, viableOutgoing[index + 1]!], leagueAverage);
           if (suggestion) break;
         }
       }

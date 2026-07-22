@@ -31,7 +31,6 @@ vi.mock('./store/seed', () => ({
 
 vi.mock('../features/franchise-setup/setupPersistence', () => ({
   persistSetupRunMode: vi.fn(),
-  readFirstTenMinutesCompleted: vi.fn(() => false),
 }));
 
 vi.mock('@mfd/engine', async () => {
@@ -64,20 +63,22 @@ import {
   startScenario,
 } from '@mfd/engine';
 import { createSeedGameState } from './store/seed';
-import { readFirstTenMinutesCompleted } from '../features/franchise-setup/setupPersistence';
 
 const createSeedGameStateMock = vi.mocked(createSeedGameState);
 const startScenarioMock = vi.mocked(startScenario);
 const mulberry32Mock = vi.mocked(mulberry32);
 const generateConventionSaveMock = vi.mocked(generateConventionSave);
 const createFastLaneSetupStateMock = vi.mocked(createFastLaneSetupState);
-const readFirstTenMinutesCompletedMock = vi.mocked(readFirstTenMinutesCompleted);
 
 describe('NewGameScreen', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    readFirstTenMinutesCompletedMock.mockReturnValue(false);
-    createSeedGameStateMock.mockReturnValue({ id: 'base-game', setupState: { completedPhases: [] } } as unknown as ReturnType<typeof createSeedGameState>);
+    createSeedGameStateMock.mockReturnValue({
+      id: 'base-game',
+      setupState: { completedPhases: [] },
+      teams: { afce1: { id: 'afce1', isUser: true } },
+    } as unknown as ReturnType<typeof createSeedGameState>);
+    createFastLaneSetupStateMock.mockReturnValue({ currentPhase: 'intel_briefing' } as ReturnType<typeof createFastLaneSetupState>);
     startScenarioMock.mockReturnValue({ id: 'scenario-game', setupState: { completedPhases: ['choose_team'] } } as unknown as ReturnType<typeof createSeedGameState>);
     mulberry32Mock.mockReturnValue(() => 0.42);
     generateConventionSaveMock.mockReturnValue({ id: 'convention-game' } as unknown as ReturnType<typeof generateConventionSave>);
@@ -121,36 +122,22 @@ describe('NewGameScreen', () => {
     }
   });
 
-  it('renders the Start Dynasty button', () => {
+  it('renders Guided as the recommended default launch', () => {
     const markup = renderToStaticMarkup(<NewGameScreen />);
 
-    expect(markup).toContain('Start Dynasty');
+    expect(markup).toContain('Start Guided');
+    expect(markup).toContain('RECOMMENDED');
   });
 
-  it('renders a locked Fast Lane setup path before a full Day 1 completion', () => {
+  it('renders all three onboarding paths with an under-90-second instant path', () => {
     const markup = renderToStaticMarkup(<NewGameScreen />);
 
-    expect(markup).toContain('Setup Path');
-    expect(markup).toContain('Full Setup');
-    expect(markup).toContain('Fast Lane');
-    expect(markup).toContain('LOCKED');
-    expect(markup).toContain('Complete one full Day 1 setup to unlock repeat-player setup.');
-  });
-
-  it('renders Fast Lane as unlocked from the browser-local first-ten marker', () => {
-    const localStorage = {
-      getItem: vi.fn(),
-      setItem: vi.fn(),
-      removeItem: vi.fn(),
-    };
-    vi.stubGlobal('window', { localStorage });
-    readFirstTenMinutesCompletedMock.mockReturnValue(true);
-
-    const markup = renderToStaticMarkup(<NewGameScreen />);
-
-    expect(readFirstTenMinutesCompletedMock).toHaveBeenCalledWith(localStorage);
-    expect(markup).toContain('UNLOCKED');
-    expect(markup).toContain('Start after AGM selection with recommended setup defaults preloaded.');
+    expect(markup).toContain('Onboarding Path');
+    expect(markup).toContain('Instant');
+    expect(markup).toContain('&lt;90 SEC');
+    expect(markup).toContain('Guided');
+    expect(markup).toContain('Full GM');
+    expect(markup).not.toContain('LOCKED');
   });
 
   it('renders an Import Dynasty recovery action', () => {
@@ -193,14 +180,14 @@ describe('NewGameScreen', () => {
     expect(markup).toContain('Continue calls loadGame only after autosave validation');
     expect(markup).toContain('Import validates');
     expect(markup).toContain('before writing a fresh autosave and calling loadGame');
-    expect(markup).toContain('New Dynasty persists the selected setup-run mode immediately before');
-    expect(markup).toContain('Full setup keeps the seeded setup state');
-    expect(markup).toContain('unlocked Fast Lane replaces only the initial setup state');
+    expect(markup).toContain('New Dynasty persists the selected onboarding path immediately before');
+    expect(markup).toContain('Instant opens a playable franchise immediately');
+    expect(markup).toContain('Guided preloads safe recommendations');
     expect(markup).toContain('does not create a dynasty, clear sidecars, autosave, import backups');
     expect(markup).toContain('start setup, play scheduled games, or write GameState');
   });
 
-  it('builds a standard dynasty start from createSeedGameState without scenario mutation', () => {
+  it('builds Guided onboarding by default with safe setup recommendations', () => {
     const launched = buildLaunchGameState({
       seed: 2034,
       selectedTeam: 2,
@@ -211,11 +198,11 @@ describe('NewGameScreen', () => {
 
     expect(createSeedGameStateMock).toHaveBeenCalledWith(2034, 2, 'legend');
     expect(startScenarioMock).not.toHaveBeenCalled();
-    expect(createFastLaneSetupStateMock).not.toHaveBeenCalled();
-    expect(launched).toEqual({ id: 'base-game', setupState: { completedPhases: [] } });
+    expect(createFastLaneSetupStateMock).toHaveBeenCalledWith(expect.any(Object), 'afce1');
+    expect(launched.onboardingMode).toBe('guided');
   });
 
-  it('builds a Fast Lane dynasty start with the engine setup preload', () => {
+  it('builds Guided onboarding with the engine setup preload', () => {
     const baseState = {
       id: 'base-game',
       setupState: { completedPhases: [] },
@@ -236,12 +223,43 @@ describe('NewGameScreen', () => {
       difficulty: 'pro',
       mode: 'dynasty',
       selectedScenarioId: 'rebuild',
-      setupRunMode: 'fast_lane',
+      onboardingMode: 'guided',
     });
 
     expect(createSeedGameStateMock).toHaveBeenCalledWith(2035, 0, 'pro');
     expect(createFastLaneSetupStateMock).toHaveBeenCalledWith(baseState, 'afce1');
     expect(launched.setupState).toBe(fastLaneSetup);
+    expect(launched.onboardingMode).toBe('guided');
+  });
+
+  it('builds an Instant onboarding state with no setup gate', () => {
+    const launched = buildLaunchGameState({
+      seed: 2036,
+      selectedTeam: 0,
+      difficulty: 'rookie',
+      mode: 'dynasty',
+      selectedScenarioId: 'rebuild',
+      onboardingMode: 'instant',
+    });
+
+    expect(createFastLaneSetupStateMock).not.toHaveBeenCalled();
+    expect(launched.setupState).toBeUndefined();
+    expect(launched.onboardingMode).toBe('instant');
+  });
+
+  it('builds Full GM onboarding with the complete seeded setup state', () => {
+    const launched = buildLaunchGameState({
+      seed: 2037,
+      selectedTeam: 0,
+      difficulty: 'pro',
+      mode: 'dynasty',
+      selectedScenarioId: 'rebuild',
+      onboardingMode: 'full_gm',
+    });
+
+    expect(createFastLaneSetupStateMock).not.toHaveBeenCalled();
+    expect(launched.setupState).toEqual({ completedPhases: [] });
+    expect(launched.onboardingMode).toBe('full_gm');
   });
 
   it('builds a scenario start from the seed factory, scenario helper, and setup bypass', () => {
@@ -258,7 +276,7 @@ describe('NewGameScreen', () => {
     expect(mulberry32Mock).toHaveBeenCalledWith(2040 ^ ('rebuild'.length * 97));
     expect(startScenarioMock).toHaveBeenCalledWith(
       'rebuild',
-      { id: 'base-game', setupState: { completedPhases: [] } },
+      expect.objectContaining({ id: 'base-game', setupState: { completedPhases: [] } }),
       expect.any(Function),
     );
     expect(createFastLaneSetupStateMock).not.toHaveBeenCalled();

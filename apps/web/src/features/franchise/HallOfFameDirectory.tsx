@@ -329,7 +329,10 @@ export function HallOfFameDirectory({
   const [archiveTransferStatus, setArchiveTransferStatus] = useState<string | null>(null);
   const [archiveTransferError, setArchiveTransferError] = useState<string | null>(null);
 
-  const payload = useMemo(() => readHallOfFameArchive(), [archiveRevision]);
+  const payload = useMemo(() => {
+    void archiveRevision;
+    return readHallOfFameArchive();
+  }, [archiveRevision]);
   const summary = summarizeHallOfFameArchive(payload);
   const currentDynastyId = game ? deriveDynastyId(game) : null;
   const currentUserTeamId = Object.values(game?.teams ?? {}).find((team) => team.isUser)?.id ?? null;

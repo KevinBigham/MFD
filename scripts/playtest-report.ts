@@ -87,6 +87,7 @@ async function runBenchmark(id: string): Promise<void> {
 
   process.stdout.write(`Running long-horizon benchmark ${benchmark.id}...\n`);
   const result = runLongHorizonQualityBenchmark(benchmark, {
+    performanceNow: () => performance.now(),
     onProgress: (event) => {
       process.stdout.write(
         `  progress ${benchmark.id}: season ${event.seasonsCompleted}/${event.seasonsRequested} `
@@ -100,6 +101,11 @@ async function runBenchmark(id: string): Promise<void> {
 
   process.stdout.write(`Wrote ${outPath}\n`);
   process.stdout.write(`completed=${result.report.seasonsCompleted}/${result.benchmark.seasons} weeks=${result.report.weeksAdvanced} anomalies=${result.report.anomalyCount} high=${result.report.highSeverityCount}\n`);
+  process.stdout.write(
+    `hard-certification=${result.hardCertificationPassed ? 'PASS' : 'FAIL'} `
+    + `healthy-shortage-game-weeks=${result.report.certification.healthyStarterShortageGameWeeks} `
+    + `cpu-receipts=${result.report.certification.receiptBackedCpuTransactionCount}/${result.report.certification.cpuTransactionCount}\n`,
+  );
   process.stdout.write(`${formatBenchmarkBudgetRows(result).join('\n')}\n`);
 
   if (!result.passed) {
@@ -131,7 +137,12 @@ async function main(): Promise<void> {
 
   for (const persona of personas) {
     process.stdout.write(`Running playtest persona ${persona.id} (seed=${seed}, seasons=${seasons})...\n`);
-    const report = runPlaytest(persona, seed, seasons);
+    const report = runPlaytest(persona, seed, seasons, {
+      maxSteps: Math.max(800, seasons * 100),
+      saveRoundTripEvery: 10,
+      measureStatePerformance: true,
+      performanceNow: () => performance.now(),
+    });
     const outPath = resolve(outDir, `playtest-report-${persona.id}-${seed}.json`);
 
     await writeFile(outPath, JSON.stringify(report, null, 2) + '\n', 'utf8');
@@ -140,7 +151,33 @@ async function main(): Promise<void> {
     );
     process.stdout.write(`Wrote ${outPath}\n`);
 
-    if (report.highSeverityCount > 0) {
+    process.stdout.write(
+      `Certification ${report.certification.certified ? 'PASS' : 'FAIL'}: `
+      + `complete=${report.certification.completedRequestedSeasons} `
+      + `healthy-shortage-game-weeks=${report.certification.healthyStarterShortageGameWeeks} `
+      + `cpu-receipts=${report.certification.receiptBackedCpuTransactionCount}/${report.certification.cpuTransactionCount}\n`,
+    );
+    if (report.statePerformance) {
+      process.stdout.write(
+        `State performance: bytes=${report.statePerformance.stateBytes} `
+        + `clone-median=${report.statePerformance.cloneMedianMs}ms `
+        + `encode-median=${report.statePerformance.autosaveEncodeMedianMs}ms `
+        + `load-median=${report.statePerformance.cartridgeLoadMedianMs}ms `
+        + `load-target=${report.statePerformance.loadTargetPassed ? 'PASS' : 'FAIL'} `
+        + `worker-recommended=${report.statePerformance.workerRecommended}\n`,
+      );
+      process.stdout.write(
+        `Largest regions: ${report.statePerformance.largestRegions.map((region) => `${region.key}=${region.bytes}`).join(' ')}\n`,
+      );
+    }
+
+    if (!report.certification.certified) {
+      for (const shortage of report.certification.healthyStarterShortages) {
+        process.stdout.write(
+          `  shortage ${shortage.gameId}: ${shortage.homeTeamId} vs ${shortage.awayTeamId} `
+          + `Y${shortage.year}W${shortage.week} ${JSON.stringify(shortage.teams)}\n`,
+        );
+      }
       process.exitCode = 1;
     }
   }

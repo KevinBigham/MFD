@@ -284,12 +284,14 @@ export function Settings() {
   const team = useGameStore(selectUserTeam);
   const difficulty = useGameStore((state) => state.game?.difficulty ?? 'pro');
   const halftimeDecisions = useGameStore((state) => state.game?.settings.halftimeDecisions ?? (difficulty === 'rookie' ? 'off' : 'on'));
+  const coachMode = useGameStore((state) => state.game?.settings.coachMode ?? false);
   const difficultyState = useGameStore(selectDifficultyState);
   const facilities = useGameStore(selectFacilities);
   const medicalStaff = useGameStore(selectMedicalStaff);
   const phase = useGameStore(selectPhase);
   const setDifficulty = useGameStore((state) => state.actions.setDifficulty);
   const setHalftimeDecisions = useGameStore((state) => state.actions.setHalftimeDecisions);
+  const setCoachMode = useGameStore((state) => state.actions.setCoachMode);
   const setAdaptiveDifficultyEnabled = useGameStore((state) => state.actions.setAdaptiveDifficultyEnabled);
   const upgradeFacility = useGameStore((state) => state.actions.upgradeFacility);
   const hireMedicalStaff = useGameStore((state) => state.actions.hireMedicalStaff);
@@ -371,6 +373,7 @@ export function Settings() {
         <PixelMetricCard label="Autosave" value={autosaveEnabled ? 'ON' : 'OFF'} accent={autosaveEnabled ? 'green' : 'red'} detail="Apply to weekly advances and state-changing actions" />
         <PixelMetricCard label="Sim Speed" value={simSpeed.toUpperCase()} accent="cyan" detail="UI preference stored locally, outside the save file" />
         <PixelMetricCard label="Halftime Hell" value={halftimeDecisions.toUpperCase()} accent={halftimeDecisions === 'on' ? 'gold' : 'default'} detail={difficulty === 'rookie' ? 'Locked off on rookie difficulty' : 'Saved with the dynasty and interrupts user games'} />
+        <PixelMetricCard label="Coach Mode" value={coachMode ? 'ON' : 'OFF'} accent={coachMode ? 'green' : 'default'} detail="Optional live-call layer; Fast Sim remains the default" />
         <PixelMetricCard
           label="Adaptive Difficulty"
           value={difficultyState.enabled ? 'ON' : 'OFF'}
@@ -511,6 +514,16 @@ export function Settings() {
                 ? 'AI teams subtly adjust to your performance. Winning streaks get tougher, losing streaks get gentler.'
                 : 'Fixed difficulty — AI teams play at their natural level'}
               onChange={(checked) => { void setAdaptiveDifficultyEnabled(checked); }}
+            />
+
+            <PixelSwitch
+              checked={coachMode}
+              accent="green"
+              label="Coach Mode"
+              description={coachMode
+                ? 'Live-call layer is active: weekly prep exposes fourth-down and two-minute contingencies, plus halftime adjustments.'
+                : 'Fast Sim stays instant. Turn this on for fourth-down, two-minute, and halftime control.'}
+              onChange={(checked) => { void setCoachMode(checked); }}
             />
 
             <PixelSwitch

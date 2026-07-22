@@ -32,6 +32,7 @@ import {
   resolveLockout,
 } from '../systems/cba-engine';
 import { initCommissioner } from '../systems/commissioner';
+import { measureStatePerformance } from '../systems/state-performance';
 import { makeContract } from '../systems/contracts';
 import { createDefaultFranchiseIdentity } from '../systems/franchise-identity';
 import { syncAllPlayerArchiveEntries } from '../systems/history';
@@ -50,6 +51,7 @@ import { STARTER_SLOTS } from '../systems/roster-management';
 import { emptyPlayerStats } from '../systems/season-stats';
 import { syncTeamCapTotals } from '../systems/team-cap';
 import { advanceFranchiseWeek } from '../systems/franchise-week';
+import { auditCpuTransactionReceiptCoverage } from '../systems/causal-spine';
 import { finalizeDeadline } from '../systems/trade-deadline';
 import { RNG, reseedSeason, reseedWeek, setSeed } from '../rng';
 import type { GameState, GameDayState, Player, ScheduleWeek, Team } from '../types';
@@ -420,6 +422,7 @@ export function makePlaytestLeagueState(seed: number): GameState {
     difficulty: 'pro',
     settings: {
       halftimeDecisions: getDefaultHalftimeDecisionSetting('pro'),
+      coachMode: false,
     },
     players,
     teams,
@@ -464,6 +467,14 @@ export function makePlaytestLeagueState(seed: number): GameState {
       reputation: { players: 50, media: 50, owner: 50 },
     },
     eventLog: [],
+    leagueEvents: [],
+    decisionReceipts: [],
+    franchisePlans: {},
+    pressMemoryTags: [],
+    gameCapsules: [],
+    memoryGraph: { nodes: [], edges: [] },
+    navigationMode: 'gm',
+    onboardingMode: 'guided',
     narrativeState: { activeArcs: [], hooks: [], recentHeadlines: [] },
     offFieldEvents: [],
     recentPressConferences: [],
@@ -758,10 +769,21 @@ export function buildPlaytestReport(params: {
   seasonsCompleted: number;
   weeksAdvanced: number;
   anomalies: PlaytestAnomaly[];
+  healthyStarterShortageGameWeeks?: number;
+  healthyStarterShortages?: PlaytestReport['certification']['healthyStarterShortages'];
+  cpuTransactionCount?: number;
+  receiptBackedCpuTransactionCount?: number;
+  statePerformance?: PlaytestReport['statePerformance'];
 }): PlaytestReport {
   const anomalies = canonicalAnomalies(params.anomalies);
   const highSeverityCount = anomalies.filter((anomaly) => anomaly.severity === 'high').length;
 
+  const cpuTransactionCount = params.cpuTransactionCount ?? 0;
+  const receiptBackedCpuTransactionCount = params.receiptBackedCpuTransactionCount ?? 0;
+  const cpuReceiptCoverage = cpuTransactionCount === 0 ? 1 : receiptBackedCpuTransactionCount / cpuTransactionCount;
+  const completedRequestedSeasons = params.seasonsCompleted === params.seasonsRequested;
+  const healthyStarterShortageGameWeeks = params.healthyStarterShortageGameWeeks ?? 0;
+  const zeroHighSeverityAnomalies = highSeverityCount === 0;
   return {
     personaId: params.persona.id,
     personaLabel: params.persona.label,
@@ -772,6 +794,20 @@ export function buildPlaytestReport(params: {
     anomalyCount: anomalies.length,
     highSeverityCount,
     anomalies,
+    certification: {
+      completedRequestedSeasons,
+      healthyStarterShortageGameWeeks,
+      healthyStarterShortages: params.healthyStarterShortages ?? [],
+      cpuTransactionCount,
+      receiptBackedCpuTransactionCount,
+      cpuReceiptCoverage,
+      zeroHighSeverityAnomalies,
+      certified: completedRequestedSeasons
+        && healthyStarterShortageGameWeeks === 0
+        && cpuReceiptCoverage === 1
+        && zeroHighSeverityAnomalies,
+    },
+    ...(params.statePerformance ? { statePerformance: params.statePerformance } : {}),
   };
 }
 
@@ -795,6 +831,8 @@ export function runPlaytest(
   let step = 0;
   const anomalies: PlaytestAnomaly[] = [];
   const elapsedHistoryMs: number[] = [];
+  let healthyStarterShortageGameWeeks = 0;
+  const healthyStarterShortages: PlaytestReport['certification']['healthyStarterShortages'] = [];
   const maxSteps = options.maxSteps ?? MAX_PLAYTEST_STEPS;
   const saveRoundTripEvery = resolveSaveRoundTripEvery(options.saveRoundTripEvery);
 
@@ -834,6 +872,26 @@ export function runPlaytest(
     }
 
     const currentFrame = captureFrame(state);
+    const completedResults = state.schedule
+      .filter((entry) => entry.week === previousFrame.week)
+      .flatMap((entry) => entry.games)
+      .map((matchup) => matchup.result)
+      .filter((result): result is NonNullable<typeof result> => Boolean(result && result.year === previousFrame.year));
+    for (const result of completedResults) {
+      const positions = Object.fromEntries(Object.entries(result.healthyStarterShortages ?? {})
+        .filter(([, count]) => (count ?? 0) > 0)) as Record<string, number>;
+      if (Object.keys(positions).length === 0) continue;
+      healthyStarterShortageGameWeeks += 1;
+      healthyStarterShortages.push({
+        gameId: result.id,
+        homeTeamId: result.homeTeamId,
+        awayTeamId: result.awayTeamId,
+        year: result.year,
+        week: result.week,
+        positions,
+        teams: result.healthyStarterShortagesByTeam ?? {},
+      });
+    }
     const deadlinePause = currentFrame.year === previousFrame.year
       && currentFrame.week === previousFrame.week
       && currentFrame.phase === previousFrame.phase
@@ -914,6 +972,13 @@ export function runPlaytest(
     });
   }
 
+  const receiptAudit = auditCpuTransactionReceiptCoverage(state);
+  if (options.measureStatePerformance && !options.performanceNow) {
+    throw new Error('State performance measurement requires a host-owned monotonic clock.');
+  }
+  const statePerformance = options.measureStatePerformance
+    ? measureStatePerformance(state, { iterations: 3, now: options.performanceNow! })
+    : undefined;
   return buildPlaytestReport({
     persona,
     seed,
@@ -921,5 +986,10 @@ export function runPlaytest(
     seasonsCompleted: completedSeasons,
     weeksAdvanced,
     anomalies,
+    healthyStarterShortageGameWeeks,
+    healthyStarterShortages,
+    cpuTransactionCount: receiptAudit.cpuTransactionCount,
+    receiptBackedCpuTransactionCount: receiptAudit.receiptBackedCpuTransactionCount,
+    statePerformance,
   });
 }

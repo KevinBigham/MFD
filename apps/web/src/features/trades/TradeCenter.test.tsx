@@ -142,49 +142,49 @@ describe('TradeCenter', () => {
   it('renders the trade finder panel with reusable suggestions', () => {
     const markup = renderToStaticMarkup(<TradeCenter />);
 
-	    expect(markup).toContain('TRADE CENTER');
-	    expect(markup).toContain('NEXT CALL');
-	    expect(markup).toContain('Choose build, block, or hold');
-	    expect(markup).toContain('TRADE FINDER');
-	    expect(markup).not.toContain('TRADE ACTION RECEIPT');
-	    expect(markup).toContain('Austin Armadillos');
-	    expect(markup).toContain('CONTEND window');
-	    expect(markup).toContain('Window drivers from saved roster, cap, picks, and strategy');
-	    expect(markup).toContain('Contender spine');
-	    expect(markup).toContain('Cole Hart');
-	    expect(markup).toContain('90%');
-	    expect(markup).toContain('Generated Offer Receipt');
-	    expect(markup).toContain('Value window');
-	    expect(markup).toContain('Austin Armadillos targets your TE need');
-	    expect(markup).toContain('90% acceptance, Gap +1.2');
-	  });
+      expect(markup).toContain('TRADE CENTER');
+      expect(markup).toContain('NEXT CALL');
+      expect(markup).toContain('Choose build, block, or hold');
+      expect(markup).toContain('TRADE FINDER');
+      expect(markup).not.toContain('TRADE ACTION RECEIPT');
+      expect(markup).toContain('Austin Armadillos');
+      expect(markup).toContain('CONTEND window');
+      expect(markup).toContain('Window drivers from saved roster, cap, picks, and strategy');
+      expect(markup).toContain('Contender spine');
+      expect(markup).toContain('Cole Hart');
+      expect(markup).toContain('90%');
+      expect(markup).toContain('Generated Offer Receipt');
+      expect(markup).toContain('Value window');
+      expect(markup).toContain('Austin Armadillos targets your TE need');
+      expect(markup).toContain('90% acceptance, Gap +1.2');
+    });
 
-	  it('builds deterministic generated-offer receipts from saved trade-finder rows', () => {
-	    const greenLight = buildGeneratedOfferReceipt({
-	      ...mockState.tradeSuggestions[0]!,
-	      acceptanceLikelihood: 0.97,
-	      valueGap: 0,
-	    });
-	    const needMatch = buildGeneratedOfferReceipt({
-	      ...mockState.tradeSuggestions[0]!,
-	      acceptanceLikelihood: 0.88,
-	      valueGap: -1.4,
-	      need: null,
-	    });
+    it('builds deterministic generated-offer receipts from saved trade-finder rows', () => {
+      const greenLight = buildGeneratedOfferReceipt({
+        ...mockState.tradeSuggestions[0]!,
+        acceptanceLikelihood: 0.97,
+        valueGap: 0,
+      });
+      const needMatch = buildGeneratedOfferReceipt({
+        ...mockState.tradeSuggestions[0]!,
+        acceptanceLikelihood: 0.88,
+        valueGap: -1.4,
+        need: null,
+      });
 
-	    expect(greenLight).toEqual({
-	      label: 'Green-light offer',
-	      detail: 'Austin Armadillos targets your TE need; player-for-player uses Jay Reed for Cole Hart. 97% acceptance, Gap 0.',
-	      accent: 'green',
-	    });
-	    expect(needMatch).toEqual({
-	      label: 'Need match',
-	      detail: 'Austin Armadillos surfaced as a high-confidence match; player-for-player is carried by the saved trade-finder reason, not a submitted proposal. 88% acceptance, Gap -1.4.',
-	      accent: 'cyan',
-	    });
-	  });
+      expect(greenLight).toEqual({
+        label: 'Green-light offer',
+        detail: 'Austin Armadillos targets your TE need; player-for-player uses Jay Reed for Cole Hart. 97% acceptance, Gap 0.',
+        accent: 'green',
+      });
+      expect(needMatch).toEqual({
+        label: 'Need match',
+        detail: 'Austin Armadillos surfaced as a high-confidence match; player-for-player is carried by the saved trade-finder reason, not a submitted proposal. 88% acceptance, Gap -1.4.',
+        accent: 'cyan',
+      });
+    });
 
-	  it('labels trade center source and commit boundaries without implying render-time writes', () => {
+    it('labels trade center source and commit boundaries without implying render-time writes', () => {
     const markup = renderToStaticMarkup(<TradeCenter />);
 
     expect(markup).toContain('TRADE CENTER SOURCES');
@@ -210,114 +210,114 @@ describe('TradeCenter', () => {
     expect(markup).toContain('do not write nearMissTracker');
     expect(markup).toContain('Rejected direct proposals and counter declines can record nearMissTracker.declinedTrades');
     expect(markup).toContain('season-end What-If receipts are generated later from that tracker');
-	    expect(markup).toContain('Saved game.conditionalPicks feed the context panel plus direct proposal asset rows');
-	  });
+      expect(markup).toContain('Saved game.conditionalPicks feed the context panel plus direct proposal asset rows');
+    });
 
-	  it('builds on-screen confirmations for generated offers, direct proposals, and counter decisions', () => {
-	    const acceptedOffer = buildTradeCenterActionReceipt({
-	      action: 'accept_offer',
-	      id: 'offer-1',
-	      summary: 'Austin wants your receiver for a tight end.',
-	      sendAssets,
-	      receiveAssets,
-	      forecast,
-	    });
-	    const rejectedOffer = buildTradeCenterActionReceipt({
-	      action: 'reject_offer',
-	      id: 'offer-1',
-	      summary: 'Austin wants your receiver for a tight end.',
-	      sendAssets,
-	      receiveAssets,
-	      forecast,
-	    });
-	    const proposal = buildTradeCenterActionReceipt({
-	      action: 'submit_proposal',
-	      id: 'proposal-1',
-	      summary: 'Austin Armadillos proposal proposal-1',
-	      sendAssets,
-	      receiveAssets,
-	      forecast,
-	      resultStatus: 'countered',
-	      partnerName: 'Austin Armadillos',
-	    });
-	    const rejectedProposal = buildTradeCenterActionReceipt({
-	      action: 'submit_proposal',
-	      id: 'proposal-2',
-	      summary: 'Austin Armadillos proposal proposal-2',
-	      sendAssets,
-	      receiveAssets,
-	      forecast,
-	      resultStatus: 'rejected',
-	      partnerName: 'Austin Armadillos',
-	    });
-	    const acceptedCounter = buildTradeCenterActionReceipt({
-	      action: 'accept_counter',
-	      id: 'proposal-1',
-	      summary: 'We need another premium pick.',
-	      sendAssets,
-	      receiveAssets,
-	    });
-	    const rejectedCounter = buildTradeCenterActionReceipt({
-	      action: 'reject_counter',
-	      id: 'proposal-1',
-	      summary: 'We need another premium pick.',
-	      sendAssets,
-	      receiveAssets,
-	    });
+    it('builds on-screen confirmations for generated offers, direct proposals, and counter decisions', () => {
+      const acceptedOffer = buildTradeCenterActionReceipt({
+        action: 'accept_offer',
+        id: 'offer-1',
+        summary: 'Austin wants your receiver for a tight end.',
+        sendAssets,
+        receiveAssets,
+        forecast,
+      });
+      const rejectedOffer = buildTradeCenterActionReceipt({
+        action: 'reject_offer',
+        id: 'offer-1',
+        summary: 'Austin wants your receiver for a tight end.',
+        sendAssets,
+        receiveAssets,
+        forecast,
+      });
+      const proposal = buildTradeCenterActionReceipt({
+        action: 'submit_proposal',
+        id: 'proposal-1',
+        summary: 'Austin Armadillos proposal proposal-1',
+        sendAssets,
+        receiveAssets,
+        forecast,
+        resultStatus: 'countered',
+        partnerName: 'Austin Armadillos',
+      });
+      const rejectedProposal = buildTradeCenterActionReceipt({
+        action: 'submit_proposal',
+        id: 'proposal-2',
+        summary: 'Austin Armadillos proposal proposal-2',
+        sendAssets,
+        receiveAssets,
+        forecast,
+        resultStatus: 'rejected',
+        partnerName: 'Austin Armadillos',
+      });
+      const acceptedCounter = buildTradeCenterActionReceipt({
+        action: 'accept_counter',
+        id: 'proposal-1',
+        summary: 'We need another premium pick.',
+        sendAssets,
+        receiveAssets,
+      });
+      const rejectedCounter = buildTradeCenterActionReceipt({
+        action: 'reject_counter',
+        id: 'proposal-1',
+        summary: 'We need another premium pick.',
+        sendAssets,
+        receiveAssets,
+      });
 
-	    expect(acceptedOffer.title).toBe('Generated Offer Accepted');
-	    expect(acceptedOffer.result).toContain('you send Jay Reed');
-	    expect(acceptedOffer.stateTouched).toContain('rosters');
-	    expect(acceptedOffer.source).toContain('acceptTradeOfferEngine');
-	    expect(acceptedOffer.boundary).toContain('does not accept another offer');
-	    expect(rejectedOffer.title).toBe('Generated Offer Rejected');
-	    expect(rejectedOffer.stateTouched).toContain('trade-rejected audio cue');
-	    expect(rejectedOffer.boundary).toContain('does not move players or picks');
-	    expect(rejectedOffer.boundary).toContain('add nearMissTracker declined-trade inputs');
-	    expect(rejectedOffer.boundary).toContain('not season-end What-If receipt seeds');
-	    expect(proposal.title).toBe('Direct Proposal Countered');
-	    expect(proposal.target).toContain('Austin Armadillos');
-	    expect(proposal.source).toContain('createTradeProposalEngine');
-	    expect(proposal.source).toContain('submitTradeProposalEngine');
-	    expect(proposal.stateTouched).not.toContain('nearMissTracker declined-trade input');
-	    expect(acceptedCounter.result).toContain('Accepted the counter package');
-	    expect(rejectedCounter.result).toContain('Rejected the counter package');
-	    expect(acceptedCounter.result).not.toContain('AI counter');
-	    expect(rejectedCounter.result).not.toContain('AI counter');
-	    expect(rejectedProposal.title).toBe('Direct Proposal Rejected');
-	    expect(rejectedProposal.stateTouched).toContain('nearMissTracker declined-trade input');
-	    expect(rejectedProposal.stateTouched).toContain('season-end What-If receipts');
-	    expect(acceptedCounter.title).toBe('Counter Accepted');
-	    expect(acceptedCounter.source).toContain('acceptCounterProposalEngine');
-	    expect(rejectedCounter.title).toBe('Counter Rejected');
-	    expect(rejectedCounter.stateTouched).toContain('nearMissTracker declined-trade input');
-	    expect(rejectedCounter.boundary).toContain('does not move players or picks');
-	  });
+      expect(acceptedOffer.title).toBe('Generated Offer Accepted');
+      expect(acceptedOffer.result).toContain('you send Jay Reed');
+      expect(acceptedOffer.stateTouched).toContain('rosters');
+      expect(acceptedOffer.source).toContain('acceptTradeOfferEngine');
+      expect(acceptedOffer.boundary).toContain('does not accept another offer');
+      expect(rejectedOffer.title).toBe('Generated Offer Rejected');
+      expect(rejectedOffer.stateTouched).toContain('trade-rejected audio cue');
+      expect(rejectedOffer.boundary).toContain('does not move players or picks');
+      expect(rejectedOffer.boundary).toContain('add nearMissTracker declined-trade inputs');
+      expect(rejectedOffer.boundary).toContain('not season-end What-If receipt seeds');
+      expect(proposal.title).toBe('Direct Proposal Countered');
+      expect(proposal.target).toContain('Austin Armadillos');
+      expect(proposal.source).toContain('createTradeProposalEngine');
+      expect(proposal.source).toContain('submitTradeProposalEngine');
+      expect(proposal.stateTouched).not.toContain('nearMissTracker declined-trade input');
+      expect(acceptedCounter.result).toContain('Accepted the counter package');
+      expect(rejectedCounter.result).toContain('Rejected the counter package');
+      expect(acceptedCounter.result).not.toContain('AI counter');
+      expect(rejectedCounter.result).not.toContain('AI counter');
+      expect(rejectedProposal.title).toBe('Direct Proposal Rejected');
+      expect(rejectedProposal.stateTouched).toContain('nearMissTracker declined-trade input');
+      expect(rejectedProposal.stateTouched).toContain('season-end What-If receipts');
+      expect(acceptedCounter.title).toBe('Counter Accepted');
+      expect(acceptedCounter.source).toContain('acceptCounterProposalEngine');
+      expect(rejectedCounter.title).toBe('Counter Rejected');
+      expect(rejectedCounter.stateTouched).toContain('nearMissTracker declined-trade input');
+      expect(rejectedCounter.boundary).toContain('does not move players or picks');
+    });
 
-	  it('renders trade action receipt source and no-extra-write copy', () => {
-	    const receipt = buildTradeCenterActionReceipt({
-	      action: 'submit_proposal',
-	      id: 'proposal-1',
-	      summary: 'Austin Armadillos proposal proposal-1',
-	      sendAssets,
-	      receiveAssets,
-	      forecast,
-	      resultStatus: 'accepted',
-	      partnerName: 'Austin Armadillos',
-	    });
+    it('renders trade action receipt source and no-extra-write copy', () => {
+      const receipt = buildTradeCenterActionReceipt({
+        action: 'submit_proposal',
+        id: 'proposal-1',
+        summary: 'Austin Armadillos proposal proposal-1',
+        sendAssets,
+        receiveAssets,
+        forecast,
+        resultStatus: 'accepted',
+        partnerName: 'Austin Armadillos',
+      });
 
-	    const markup = renderToStaticMarkup(<TradeCenterActionReceiptPanel receipt={receipt} />);
+      const markup = renderToStaticMarkup(<TradeCenterActionReceiptPanel receipt={receipt} />);
 
-	    expect(markup).toContain('TRADE ACTION RECEIPT');
-	    expect(markup).toContain('Direct Proposal Accepted');
-	    expect(markup).toContain('On-screen confirmation');
-	    expect(markup).toContain('Action used');
-	    expect(markup).toContain('actions.createTradeProposal');
-	    expect(markup).toContain('Did not also');
-	    expect(markup).toContain('separate confirmation log');
-	  });
+      expect(markup).toContain('TRADE ACTION RECEIPT');
+      expect(markup).toContain('Direct Proposal Accepted');
+      expect(markup).toContain('On-screen confirmation');
+      expect(markup).toContain('Action used');
+      expect(markup).toContain('actions.createTradeProposal');
+      expect(markup).toContain('Did not also');
+      expect(markup).toContain('separate confirmation log');
+    });
 
-	  it('renders a guided empty state for incoming offers', () => {
+    it('renders a guided empty state for incoming offers', () => {
     const markup = renderToStaticMarkup(<TradeCenter />);
 
     expect(markup).toContain('No offers on the desk');

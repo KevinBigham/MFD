@@ -9,7 +9,12 @@ import {
   Map as MapIcon, Film, Tent, Target, Loader, Briefcase, Star,
 } from 'lucide-react';
 import { ChipDialogueBubble, MfdTooltipProvider, MfdCommandPalette, PixelModal, type CommandItem } from '@mfd/design-system/components';
-import { getNavUnlockStatus } from '@mfd/engine/config';
+import {
+  APP_ROUTE_REGISTRY,
+  APP_ROOMS,
+  NERD_NAV_GROUPS as NERD_GROUP_DEFINITIONS,
+  getNavUnlockStatus,
+} from '@mfd/engine/config';
 import { getRegisteredShortcuts, registerShortcut, useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
 import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
@@ -194,7 +199,7 @@ function resolveVisibleNavItems(
 }
 
 /** Flat list of all nav items — used by command palette and keyboard shortcuts */
-const NAV_ITEMS: NavItem[] = [
+const NAV_PRESENTATION_ITEMS: NavItem[] = [
   { path: '/',             label: 'Monday Briefing', shortLabel: 'Briefing', icon: <LayoutDashboard size={16} />, shortcut: '1' },
   { path: '/roster',       label: 'Roster',          shortLabel: 'Roster',   icon: <Users size={16} />,          shortcut: '2' },
   { path: '/watch-list',   label: 'Watch List',      shortLabel: 'Watch',    icon: <Star size={16} /> },
@@ -276,6 +281,18 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/settings',      label: 'Settings',         shortLabel: 'Config',   icon: <Settings size={16} /> },
 ];
 
+/** Nav + command items are generated from the canonical typed registry. */
+const NAV_ITEMS: NavItem[] = APP_ROUTE_REGISTRY.map((definition) => {
+  const presentation = NAV_PRESENTATION_ITEMS.find((item) => item.path === definition.path);
+  return {
+    path: definition.path,
+    label: definition.label,
+    shortLabel: definition.shortLabel,
+    shortcut: definition.shortcut,
+    icon: presentation?.icon ?? <LayoutDashboard size={16} />,
+  };
+});
+
 /** Grouped navigation categories for the sidebar/top nav */
 interface NavGroup {
   id: string;
@@ -283,16 +300,17 @@ interface NavGroup {
   paths: string[];
 }
 
-const NAV_GROUPS: NavGroup[] = [
-  { id: 'core',     label: 'CORE',     paths: ['/', '/week-advance', '/watch-list', '/inbox'] },
-  { id: 'team',     label: 'TEAM',     paths: ['/roster', '/depth-chart', '/locker-room', '/coaching', '/coaching/tree', '/coaching/relationships', '/handshakes', '/training-camp', '/mentors', '/player-development', '/compare', '/rivalries'] },
-  { id: 'money',    label: 'MONEY',    paths: ['/contracts', '/cap-lab', '/front-office', '/endorsements'] },
-  { id: 'acquire',  label: 'ACQUIRE',  paths: ['/trades', '/trade-block', '/trade-deadline', '/scouting', '/draft', '/draft-recap', '/expansion-draft', '/free-agency', '/fa-targets', '/waivers', '/practice-squad', '/team-needs'] },
-  { id: 'gameday',  label: 'GAMEDAY',  paths: ['/game-day', '/game-plan', '/broadcast', '/presentation', '/play-by-play', '/game-flow', '/film-room', '/schedule', '/super-bowl'] },
-  { id: 'league',   label: 'LEAGUE',   paths: ['/standings', '/power-rankings', '/league-pulse', '/league/weather', '/newsroom', '/news', '/social', '/commissioner', '/cba', '/league-rules', '/analytics', '/records', '/stat-central'] },
-  { id: 'dynasty',  label: 'DYNASTY',  paths: ['/franchise', '/owner', '/legends', '/franchise/career', '/franchise/book', '/franchise/chronicle', '/franchise/scrapbook', '/franchise/hall', '/franchise/trophy-room', '/franchise/eras', '/franchise/mvps', '/franchise/playoff-lore', '/franchise/achievements', '/legacy', '/legacy/named-games', '/legacy/bloodlines', '/awards', '/season/recap', '/relocate', '/scenarios'] },
-  { id: 'meta',     label: 'SYSTEM',   paths: ['/about', '/credits', '/faq', '/dynasty', '/settings'] },
-];
+const ROOM_NAV_GROUPS: NavGroup[] = APP_ROOMS.map((room) => ({
+  id: room.id,
+  label: room.label,
+  paths: APP_ROUTE_REGISTRY.filter((routeDefinition) => routeDefinition.room === room.id).map((routeDefinition) => routeDefinition.path),
+}));
+
+const FULL_NAV_GROUPS: NavGroup[] = NERD_GROUP_DEFINITIONS.map((group) => ({
+  id: group.id,
+  label: group.label,
+  paths: APP_ROUTE_REGISTRY.filter((routeDefinition) => routeDefinition.nerdGroup === group.id).map((routeDefinition) => routeDefinition.path),
+}));
 
 // ── Root Layout ─────────────────────────────────────────────
 
@@ -832,13 +850,15 @@ function useNavBadges(): Record<string, number> {
 
 /**
  * Sprint 44 — Mounts the sticky bottom tab bar on phone widths.
- * Builds `drawerGroups` from NAV_GROUPS + NAV_ITEMS so the "More" sheet
+ * Builds `drawerGroups` from the active five-room or full-map registry view.
  * mirrors the desktop grouping. Visibility is gated by CSS (tokens/index.css).
  */
 function MobileBottomTabBarMount({ activePath }: { activePath: string }) {
   const badges = useNavBadges();
   const week = useGameStore((s) => s.game?.week ?? 0);
   const phase = useGameStore(selectPhase);
+  const navigationMode = useGameStore((state) => state.game?.navigationMode ?? 'gm');
+  const navigationGroups = navigationMode === 'nerd' ? FULL_NAV_GROUPS : ROOM_NAV_GROUPS;
   const navUnlockContext = useMemo(() => ({ week, phase }), [phase, week]);
   const navItemMap = useMemo(() => {
     const map = new Map<string, NavItem>();
@@ -846,7 +866,7 @@ function MobileBottomTabBarMount({ activePath }: { activePath: string }) {
     return map;
   }, []);
   const drawerGroups = useMemo(() => {
-    return NAV_GROUPS.map((group) => ({
+    return navigationGroups.map((group) => ({
       id: group.id,
       label: group.label,
       items: group.paths
@@ -856,7 +876,7 @@ function MobileBottomTabBarMount({ activePath }: { activePath: string }) {
         .filter((i) => i.unlocked || i.path === activePath)
         .map((i) => ({ path: i.path, shortLabel: i.shortLabel, icon: i.icon })),
     }));
-  }, [activePath, navItemMap, navUnlockContext]);
+  }, [activePath, navItemMap, navUnlockContext, navigationGroups]);
 
   return <MobileBottomTabBar activePath={activePath} drawerGroups={drawerGroups} badges={badges} />;
 }
@@ -911,13 +931,16 @@ function TopNav({
   const phase = useGameStore(selectPhase);
   const year = useGameStore((s) => s.game?.year ?? 0);
   const navUnlockContext = useMemo(() => ({ week, phase }), [phase, week]);
+  const navigationMode = useGameStore((state) => state.game?.navigationMode ?? 'gm');
+  const setNavigationMode = useGameStore((state) => state.actions.setNavigationMode);
+  const navigationGroups = navigationMode === 'nerd' ? FULL_NAV_GROUPS : ROOM_NAV_GROUPS;
 
   const activeGroupId = useMemo(() => {
-    for (const g of NAV_GROUPS) {
+    for (const g of navigationGroups) {
       if (g.paths.includes(activePath)) return g.id;
     }
     return 'core';
-  }, [activePath]);
+  }, [activePath, navigationGroups]);
 
   const [selectedGroupId, setSelectedGroupId] = useState(activeGroupId);
 
@@ -931,16 +954,16 @@ function TopNav({
     return map;
   }, []);
   const visibleGroups = useMemo(() => {
-    return NAV_GROUPS.filter((group) => group.paths.some((path) => {
+    return navigationGroups.filter((group) => group.paths.some((path) => {
       const item = navItemMap.get(path);
       if (!item) return false;
       return path === activePath || resolveNavItem(item, navUnlockContext).unlocked;
     }));
-  }, [activePath, navItemMap, navUnlockContext]);
+  }, [activePath, navItemMap, navUnlockContext, navigationGroups]);
   const selectedGroup = visibleGroups.find((group) => group.id === selectedGroupId)
     ?? visibleGroups.find((group) => group.id === activeGroupId)
     ?? visibleGroups[0]
-    ?? NAV_GROUPS[0]!;
+    ?? navigationGroups[0]!;
   const selectedItems = selectedGroup.paths
     .map((path) => navItemMap.get(path))
     .filter((item): item is NavItem => !!item);
@@ -1064,6 +1087,25 @@ function TopNav({
       </div>
 
       <div className="mfd-app-nav-actions" data-mfd-nav-actions="true" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+        <button
+          type="button"
+          onClick={() => { void setNavigationMode(navigationMode === 'gm' ? 'nerd' : 'gm'); }}
+          aria-label={`Switch to ${navigationMode === 'gm' ? 'Franchise Nerd Mode' : 'GM Mode'}`}
+          title={`Current navigation: ${navigationMode === 'gm' ? 'GM Mode' : 'Franchise Nerd Mode'}`}
+          style={{
+            minHeight: '44px',
+            padding: '6px 10px',
+            background: navigationMode === 'gm' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 215, 0, 0.1)',
+            border: `2px solid ${navigationMode === 'gm' ? 'var(--mfd-cyan)' : 'var(--mfd-gold)'}`,
+            color: navigationMode === 'gm' ? 'var(--mfd-cyan)' : 'var(--mfd-gold)',
+            fontFamily: 'var(--mfd-font-pixel)',
+            fontSize: '7px',
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+          }}
+        >
+          {navigationMode === 'gm' ? 'GM MODE' : 'NERD MODE'}
+        </button>
         <UndoButton />
         <AudioToggle />
         <button
@@ -1992,7 +2034,7 @@ const weatherForecastRoute = createRoute({
   ),
 });
 
-const routeTree = rootRoute.addChildren([
+const ROUTE_IMPLEMENTATIONS = [
   indexRoute,
   rosterRoute, lockerRoomRoute, contractsRoute, capLabRoute, frontOfficeRoute, endorsementsRoute, tradesRoute, tradeBlockRoute, watchListRoute,
   scoutingRoute, draftRoute, trainingCampRoute, freeAgencyRoute, faTargetsRoute,
@@ -2002,7 +2044,33 @@ const routeTree = rootRoute.addChildren([
   newsRoute, newsroomRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, leaguePulseRoute, scenarioRoute, legacyRoute, namedGamesRoute, bloodlinesRoute, awardsRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, trophyRoomRoute, eraHallRoute,
   mvpPlaqueWallRoute, playoffLoreDirectoryRoute, dynastyChronicleRoute, achievementsRoute, weatherForecastRoute, superBowlRoute, playerDevRoute, mentorsRoute, aboutRoute, creditsRoute, faqRoute, settingsRoute,
-]);
+] as const;
+
+/** Route components remain colocated with their screens, while the canonical
+ * registry owns inclusion and order. Missing or orphaned implementations fail
+ * during app initialization instead of silently drifting from navigation. */
+const getRouteImplementationPath = (implementation: (typeof ROUTE_IMPLEMENTATIONS)[number]): string =>
+  (implementation.options as { path: string }).path;
+const routeImplementationByPath = new Map(
+  ROUTE_IMPLEMENTATIONS.map((implementation) => [getRouteImplementationPath(implementation), implementation] as const),
+);
+const CONTEXTUAL_ROUTE_PATHS = new Set(['/player/$playerId', '/player/$playerId/timeline']);
+const canonicalRouteObjects = APP_ROUTE_REGISTRY.map((definition) => {
+  const implementation = routeImplementationByPath.get(definition.path);
+  if (!implementation) throw new Error(`Missing route implementation for ${definition.path}`);
+  return implementation;
+});
+const registeredRouteObjects = [
+  ...canonicalRouteObjects,
+  ...ROUTE_IMPLEMENTATIONS.filter((implementation) => CONTEXTUAL_ROUTE_PATHS.has(getRouteImplementationPath(implementation))),
+];
+const orphanedRoutePaths = [...routeImplementationByPath.keys()].filter((path) =>
+  !APP_ROUTE_REGISTRY.some((definition) => definition.path === path) && !CONTEXTUAL_ROUTE_PATHS.has(path));
+if (orphanedRoutePaths.length > 0) {
+  throw new Error(`Route implementations missing registry metadata: ${orphanedRoutePaths.join(', ')}`);
+}
+
+const routeTree = rootRoute.addChildren(registeredRouteObjects as unknown as typeof ROUTE_IMPLEMENTATIONS);
 
 const hashHistory = createHashHistory();
 const router = createRouter({ routeTree, history: hashHistory });

@@ -29,7 +29,7 @@ engine_types_lines=$(wc -l < packages/engine/src/types/index.ts | tr -d ' ')
 
 echo "any count: $any_count (baseline: 113 pre-T5, 111 post-T5: all in test files, ESLint-exempt)"
 echo "try count: $try_count (baseline: 14)"
-echo "SAVE_VERSION: $save_version (expected current: 36)"
+echo "SAVE_VERSION: $save_version (expected current: 37)"
 echo "engine/src/index.ts: $engine_index_lines LOC (baseline: 1046)"
 echo "engine/src/types/index.ts: $engine_types_lines LOC (baseline: 3180 pre-T2, 21 post-T2)"
 
@@ -39,8 +39,8 @@ madge_out=$(pnpm exec madge --circular --extensions ts,tsx --ts-config packages/
 cycle_count=$(echo "$madge_out" | grep -oE 'Found [0-9]+ circular' | grep -oE '[0-9]+' || echo "0")
 echo "circular deps: $cycle_count (baseline 39 pre-T2, ~41 post-T2: mostly type-only via inline import() in types/franchise.ts; 1 runtime: game-plan <-> game-sim)"
 
-if [ "$save_version" != "36" ]; then
-  echo "FAIL: SAVE_VERSION drifted (expected 36, got $save_version). Halt and escalate to Kevin." >&2
+if [ "$save_version" != "37" ]; then
+  echo "FAIL: SAVE_VERSION drifted (expected 37, got $save_version). Halt and escalate to Kevin." >&2
   exit 1
 fi
 

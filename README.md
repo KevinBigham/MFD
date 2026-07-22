@@ -4,7 +4,7 @@ Browser-based football franchise dynasty simulation. Build a team, manage the ca
 
 ### ▶︎ [Play Now → kevinbigham.github.io/MFD](https://kevinbigham.github.io/MFD/)
 
-**Version:** v1.0.0 · **Save schema:** v36
+**Version:** v1.0.0 · **Save schema:** v37
 
 ## Screenshots
 
@@ -74,7 +74,7 @@ pnpm --filter @mfd/web build
 Launch gates:
 
 ```bash
-# Full public-release contract (36 steps):
+# Full public-release contract (37 steps):
 pnpm release:gate
 ```
 
@@ -95,7 +95,7 @@ node scripts/generate-chip-v3-art.cjs
 
 ## Release Notes
 
-See [CHANGELOG.md](CHANGELOG.md). v1.0.0 ships with save schema v36 and the Sprint 72 deterministic playtest-report cleanup. Recent post-launch polish: the Chip companion has been rebuilt on a unified procedural rig, expanded from 17 → 36 poses, and wired into 11 previously-generic surfaces (training camp, trade deadline, expansion draft, halftime, recap, press, achievement-unlock toast, and more).
+See [CHANGELOG.md](CHANGELOG.md). v1.0.0 now uses save schema v37 for the causal event ledger, decision receipts, durable CPU plans, compressed game memory, and per-dynasty navigation preferences.
 
 ## License
 

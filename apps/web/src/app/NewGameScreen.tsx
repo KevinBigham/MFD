@@ -30,7 +30,6 @@ import {
 import { AttractMode } from '../features/title/AttractMode';
 import {
   persistSetupRunMode,
-  readFirstTenMinutesCompleted,
   type SetupRunMode,
 } from '../features/franchise-setup/setupPersistence';
 import './new-game-screen.css';
@@ -67,6 +66,8 @@ interface BuildLaunchGameStateInput {
   difficulty: DifficultyLevel;
   mode: LaunchMode;
   selectedScenarioId: string;
+  onboardingMode?: NonNullable<GameState['onboardingMode']>;
+  /** @deprecated Compatibility input for older callers/tests. */
   setupRunMode?: SetupRunMode;
 }
 
@@ -80,14 +81,21 @@ export function buildLaunchGameState({
   difficulty,
   mode,
   selectedScenarioId,
-  setupRunMode = 'full',
+  onboardingMode,
+  setupRunMode,
 }: BuildLaunchGameStateInput): ReturnType<typeof createSeedGameState> {
   const baseState = createSeedGameState(seed, selectedTeam, difficulty);
   if (mode !== 'scenario') {
-    if (setupRunMode === 'fast_lane') {
+    const resolvedOnboardingMode = onboardingMode
+      ?? (setupRunMode === 'full' ? 'full_gm' : setupRunMode === 'fast_lane' ? 'guided' : 'guided');
+    baseState.onboardingMode = resolvedOnboardingMode;
+
+    if (resolvedOnboardingMode === 'instant') {
+      delete baseState.setupState;
+    } else if (resolvedOnboardingMode === 'guided') {
       const userTeam = Object.values(baseState.teams).find((team) => team.isUser);
       if (!userTeam) {
-        throw new Error('Cannot build Fast Lane setup without a selected user team.');
+        throw new Error('Cannot build Guided setup without a selected user team.');
       }
       baseState.setupState = createFastLaneSetupState(baseState as GameState, userTeam.id);
     }
@@ -153,9 +161,9 @@ function LaunchSourcesPanel() {
           scenario constraints before first-run setup, Convention Demo uses the validated Week 14
           showcase builder, Continue calls loadGame only after autosave validation, and Import validates
           backup text/file data before writing a fresh autosave and calling loadGame.
-          New Dynasty persists the selected setup-run mode immediately before `actions.newGame`; Full
-          setup keeps the seeded setup state, while unlocked Fast Lane replaces only the initial
-          setup state through the engine fast-lane factory. Rendering this screen does not create a
+          New Dynasty persists the selected onboarding path immediately before `actions.newGame`.
+          Instant opens a playable franchise immediately, Guided preloads safe recommendations, and
+          Full GM keeps every Day 1 setup decision. Rendering this screen does not create a
           dynasty, clear sidecars, autosave, import backups, start setup, play scheduled games, or write
           GameState.
         </p>
@@ -168,14 +176,11 @@ export function NewGameScreen() {
   const [selectedTeam, setSelectedTeam] = useState(0);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('pro');
   const [mode, setMode] = useState<LaunchMode>('dynasty');
-  const [setupLaunchMode, setSetupLaunchMode] = useState<SetupRunMode>('full');
+  const [onboardingMode, setOnboardingMode] = useState<NonNullable<GameState['onboardingMode']>>('guided');
   const [selectedScenarioId, setSelectedScenarioId] = useState(getAvailableScenarios()[0]?.id ?? 'rebuild');
   const [teamQuery, setTeamQuery] = useState('');
   const [conferenceFilter, setConferenceFilter] = useState<ConferenceFilter>('ALL');
   const [divisionFilter, setDivisionFilter] = useState<DivisionFilter>('ALL');
-  const [fastLaneUnlocked, setFastLaneUnlocked] = useState<boolean>(() => (
-    readFirstTenMinutesCompleted(resolveLaunchSetupStorage())
-  ));
   const [hasAutosave, setHasAutosave] = useState(false);
   const [loadingAutosave, setLoadingAutosave] = useState(false);
   const [loadingImport, setLoadingImport] = useState(false);
@@ -202,25 +207,20 @@ export function NewGameScreen() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!fastLaneUnlocked && setupLaunchMode === 'fast_lane') {
-      setSetupLaunchMode('full');
-    }
-  }, [fastLaneUnlocked, setupLaunchMode]);
-
   const handleStart = async () => {
     const seed = Date.now();
-    const activeSetupRunMode = fastLaneUnlocked ? setupLaunchMode : 'full';
     const state = buildLaunchGameState({
       seed,
       selectedTeam,
       difficulty,
       mode,
       selectedScenarioId,
-      setupRunMode: activeSetupRunMode,
+      onboardingMode,
     });
     if (mode === 'dynasty') {
-      persistSetupRunMode(resolveLaunchSetupStorage(), activeSetupRunMode);
+      if (onboardingMode !== 'instant') {
+        persistSetupRunMode(resolveLaunchSetupStorage(), onboardingMode === 'full_gm' ? 'full' : 'fast_lane');
+      }
     }
     await newGame(state);
   };
@@ -323,18 +323,17 @@ export function NewGameScreen() {
     [filteredTeams],
   );
   const hasTeamFilters = normalizedTeamQuery.length > 0 || conferenceFilter !== 'ALL' || divisionFilter !== 'ALL';
-  const activeSetupRunMode = fastLaneUnlocked ? setupLaunchMode : 'full';
-
   const clearTeamFilters = () => {
     setTeamQuery('');
     setConferenceFilter('ALL');
     setDivisionFilter('ALL');
   };
 
-  const startLabel = mode === 'scenario' ? 'Start Challenge' : activeSetupRunMode === 'fast_lane' ? 'Start Fast Lane' : 'Start Dynasty';
+  const onboardingLabel = onboardingMode === 'instant' ? 'Instant' : onboardingMode === 'guided' ? 'Guided' : 'Full GM';
+  const startLabel = mode === 'scenario' ? 'Start Challenge' : `Start ${onboardingLabel}`;
   const launchSummary = mode === 'scenario'
     ? selectedScenario?.tagline ?? 'Scenario challenge'
-    : `${selected.fullName} // ${selectedDifficulty.label} // ${activeSetupRunMode === 'fast_lane' ? 'Fast Lane' : 'Full Setup'}`;
+    : `${selected.fullName} // ${selectedDifficulty.label} // ${onboardingLabel}`;
 
   return (
     <div className="mfd-new-game-shell">
@@ -507,46 +506,51 @@ export function NewGameScreen() {
             </MfdPanel>
 
             {mode === 'dynasty' ? (
-              <MfdPanel title="Setup Path" icon={<Zap size={14} />}>
-                <div className="mfd-setup-path-grid" role="group" aria-label="Dynasty setup path">
+              <MfdPanel title="Onboarding Path" icon={<Zap size={14} />}>
+                <div className="mfd-setup-path-grid" role="group" aria-label="Dynasty onboarding path">
                   <button
                     type="button"
                     className="mfd-setup-path-card"
-                    data-selected={activeSetupRunMode === 'full' ? 'true' : 'false'}
-                    aria-pressed={activeSetupRunMode === 'full'}
-                    onClick={() => setSetupLaunchMode('full')}
-                  >
-                    <span className="mfd-setup-path-title">Full Setup</span>
-                    <span className="mfd-setup-path-desc">Run every Day 1 decision with Chip setup guidance.</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="mfd-setup-path-card"
-                    data-selected={activeSetupRunMode === 'fast_lane' ? 'true' : 'false'}
-                    data-unlocked={fastLaneUnlocked ? 'true' : 'false'}
-                    aria-pressed={activeSetupRunMode === 'fast_lane'}
-                    disabled={!fastLaneUnlocked}
-                    onClick={() => setSetupLaunchMode('fast_lane')}
+                    data-selected={onboardingMode === 'instant' ? 'true' : 'false'}
+                    aria-pressed={onboardingMode === 'instant'}
+                    onClick={() => setOnboardingMode('instant')}
                   >
                     <span className="mfd-setup-path-title">
-                      Fast Lane
-                      <PixelBadge variant={fastLaneUnlocked ? 'green' : 'default'}>
-                        {fastLaneUnlocked ? 'UNLOCKED' : 'LOCKED'}
-                      </PixelBadge>
+                      Instant <PixelBadge variant="green">&lt;90 SEC</PixelBadge>
                     </span>
-                    <span className="mfd-setup-path-desc">
-                      {fastLaneUnlocked
-                        ? 'Start after AGM selection with recommended setup defaults preloaded.'
-                        : 'Complete one full Day 1 setup to unlock repeat-player setup.'}
+                    <span className="mfd-setup-path-desc">Open a ready-to-play franchise with no setup gates.</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mfd-setup-path-card"
+                    data-selected={onboardingMode === 'guided' ? 'true' : 'false'}
+                    aria-pressed={onboardingMode === 'guided'}
+                    onClick={() => setOnboardingMode('guided')}
+                  >
+                    <span className="mfd-setup-path-title">
+                      Guided <PixelBadge variant="cyan">RECOMMENDED</PixelBadge>
                     </span>
+                    <span className="mfd-setup-path-desc">Keep the important choices; preload safe recommendations.</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mfd-setup-path-card"
+                    data-selected={onboardingMode === 'full_gm' ? 'true' : 'false'}
+                    aria-pressed={onboardingMode === 'full_gm'}
+                    onClick={() => setOnboardingMode('full_gm')}
+                  >
+                    <span className="mfd-setup-path-title">Full GM</span>
+                    <span className="mfd-setup-path-desc">Run every Day 1 staffing, identity, and roster decision.</span>
                   </button>
                 </div>
-                <PixelPanel title="Setup Source" accent="default" padding="sm" style={{ marginTop: 'var(--mfd-sp-md)' }}>
+                <PixelPanel title="Onboarding Source" accent="default" padding="sm" style={{ marginTop: 'var(--mfd-sp-md)' }}>
                   <p className="mfd-new-game-guide">
-                    <strong>{activeSetupRunMode === 'fast_lane' ? 'Fast Lane' : 'Full Setup'}:</strong>{' '}
-                    {activeSetupRunMode === 'fast_lane'
-                      ? 'Uses createFastLaneSetupState and persists setup-run mode as Fast Lane before the dynasty opens.'
-                      : 'Uses the seeded setup state and persists setup-run mode as Full before the dynasty opens.'}
+                    <strong>{onboardingLabel}:</strong>{' '}
+                    {onboardingMode === 'instant'
+                      ? 'Removes the setup gate and opens the live franchise immediately.'
+                      : onboardingMode === 'guided'
+                        ? 'Uses createFastLaneSetupState with safe defaults and focused choices.'
+                        : 'Keeps the complete seeded setup state for full control.'}
                   </p>
                 </PixelPanel>
               </MfdPanel>
