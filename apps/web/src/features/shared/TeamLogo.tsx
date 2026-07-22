@@ -6,6 +6,7 @@
 import { useCallback, useRef } from 'react';
 
 const ASPECT = 512 / 279; // width / height
+const CONFERENCE_PLACEHOLDER_ICONS = new Set(['afc', 'nfc']);
 
 interface TeamLogoProps {
   /** The team's icon field (lowercase abbreviation, e.g. 'kc') */
@@ -17,6 +18,7 @@ interface TeamLogoProps {
 }
 
 export function TeamLogo({ icon, size = 32, alt }: TeamLogoProps) {
+  const normalizedIcon = typeof icon === 'string' ? icon.trim().toLowerCase() : '';
   const imgRef = useRef<HTMLImageElement>(null);
 
   const handleError = useCallback(() => {
@@ -24,12 +26,14 @@ export function TeamLogo({ icon, size = 32, alt }: TeamLogoProps) {
     if (el) el.style.display = 'none';
   }, []);
 
+  if (!normalizedIcon || CONFERENCE_PLACEHOLDER_ICONS.has(normalizedIcon)) return null;
+
   const w = Math.round(size * ASPECT);
 
   return (
     <img
       ref={imgRef}
-      src={`logos/${icon}.png`}
+      src={`logos/${normalizedIcon}.png`}
       alt={alt ?? icon.toUpperCase()}
       width={w}
       height={size}
