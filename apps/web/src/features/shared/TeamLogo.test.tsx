@@ -27,10 +27,19 @@ describe('TeamLogo', () => {
     expect(markup).toContain('height="32"');
   });
 
-  it('keeps missing logo files as a silent visual fallback', () => {
-    expect(source).toContain('src={`logos/${icon}.png`}');
+  it('normalizes uppercase team abbreviations before requesting a shipped logo', () => {
+    const markup = renderToStaticMarkup(<TeamLogo icon="KC" />);
+
+    expect(markup).toContain('src="logos/kc.png"');
+    expect(source).toContain('src={`logos/${normalizedIcon}.png`}');
     expect(source).toContain('onError={handleError}');
     expect(source).toContain("el.style.display = 'none'");
+  });
+
+  it('does not request missing conference-placeholder logo files', () => {
+    expect(renderToStaticMarkup(<TeamLogo icon="AFC" />)).toBe('');
+    expect(renderToStaticMarkup(<TeamLogo icon="NFC" />)).toBe('');
+    expect(renderToStaticMarkup(<TeamLogo icon={undefined as unknown as string} />)).toBe('');
   });
 
   it('keeps every selectable franchise icon backed by a shipped logo file', () => {
