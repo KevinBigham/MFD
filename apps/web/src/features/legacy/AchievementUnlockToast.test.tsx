@@ -15,11 +15,15 @@ const achievement = {
 
 describe('AchievementUnlockToast', () => {
   it('renders nothing without a newly unlocked achievement', () => {
-    expect(renderToStaticMarkup(<AchievementUnlockToast achievement={null} />)).toBe('');
+    expect(renderToStaticMarkup(
+      <AchievementUnlockToast achievement={null} onDismiss={() => undefined} />,
+    )).toBe('');
   });
 
   it('hosts newly unlocked achievements with proud Chip feedback', () => {
-    const markup = renderToStaticMarkup(<AchievementUnlockToast achievement={achievement} />);
+    const markup = renderToStaticMarkup(
+      <AchievementUnlockToast achievement={achievement} onDismiss={() => undefined} />,
+    );
 
     expect(markup).toContain('ACHIEVEMENT UNLOCKED');
     expect(markup).toContain('First Banner');
@@ -35,5 +39,14 @@ describe('AchievementUnlockToast', () => {
     expect(markup).not.toContain('history context');
     expect(markup).not.toContain('owner approval');
     expect(markup).not.toContain('next week do not change');
+  });
+
+  it('offers a real dismissal control instead of Chip typewriter skip', () => {
+    const markup = renderToStaticMarkup(
+      <AchievementUnlockToast achievement={achievement} onDismiss={() => undefined} />,
+    );
+
+    expect(markup).toContain('>Dismiss</button>');
+    expect(markup).not.toContain('SKIP');
   });
 });

@@ -145,8 +145,10 @@ export function AchievementGallery() {
 
 export function AchievementUnlockToast({
   achievement,
+  onDismiss,
 }: {
   achievement: Achievement | null;
+  onDismiss: () => void;
 }) {
   if (!achievement) return null;
 
@@ -181,6 +183,7 @@ export function AchievementUnlockToast({
               pointer="left"
               reducedMotion
               monoBody
+              skippable={false}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -190,6 +193,9 @@ export function AchievementUnlockToast({
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             <PixelBadge variant={tierAccent(achievement.tier)}>{achievement.tier}</PixelBadge>
             <PixelBadge variant="gold">{achievement.category}</PixelBadge>
+            <PixelButton accent="gold" onClick={onDismiss}>
+              Dismiss
+            </PixelButton>
           </div>
         </div>
       </PixelPanel>
