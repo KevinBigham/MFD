@@ -493,6 +493,15 @@ test('parses the opt-in free-agency signings workflow flag', () => {
   assert.equal(shouldRunFreeAgencySigningsSmoke({ SMOKE_FREE_AGENCY_SIGNINGS: 'YES' }), true);
 });
 
+test('free-agency smoke isolates each staged fixture from pending demo autosaves', () => {
+  assert.match(smokeSource, /Autosave \(free-agency ' \+ mode \+ ' smoke fixture\)/);
+  assert.match(smokeSource, /timestamp: Math\.max\(Date\.now\(\), newestTimestamp\) \+ \(60 \* 60 \* 1000\)/);
+  assert.match(smokeSource, /delete stagedSlot\.id/);
+  assert.match(smokeSource, /deleteSmokeSaveSlot\(cdp, sessionId, reSignFixture\.stagedSlotId/);
+  assert.match(smokeSource, /deleteSmokeSaveSlot\(cdp, sessionId, marketFixture\.stagedSlotId/);
+  assert.match(smokeSource, /deleteSmokeSaveSlot\(cdp, sessionId, streetFixture\.stagedSlotId/);
+});
+
 test('parses the opt-in roster/depth/training workflow flag', () => {
   assert.equal(shouldRunRosterDepthTrainingSmoke({}), false);
   assert.equal(shouldRunRosterDepthTrainingSmoke({ SMOKE_ROSTER_DEPTH_TRAINING: '0' }), false);
