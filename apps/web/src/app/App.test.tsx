@@ -421,6 +421,17 @@ describe('App Chip setup wiring', () => {
     expect(content).not.toContain("lazy(async () => ({ default: (await import('../features/legacy/AchievementGallery')).AchievementGallery }))");
   });
 
+  it('keeps achievement unlocks dismissible manually and by timeout', () => {
+    const effectStart = content.indexOf('if (activeAchievement) {');
+    const effectBody = content.slice(effectStart, effectStart + 420);
+
+    expect(effectStart).toBeGreaterThan(0);
+    expect(effectBody).toContain('window.setTimeout(() => {');
+    expect(effectBody).toContain('setActiveAchievement(null);');
+    expect(effectBody).toContain('return () => window.clearTimeout(timeout);');
+    expect(content).toContain('onDismiss={() => setActiveAchievement(null)}');
+  });
+
   it('keeps broadcast route components mapped to their distinct presentation surfaces', () => {
     expect(content).toContain("const LazyGameBroadcast = lazy(async () => ({ default: (await import('../features/broadcast/GameBroadcast')).GameBroadcast }));");
     expect(content).toContain("const LazyBroadcastPresentation = lazy(async () => ({ default: (await import('../features/broadcast/BroadcastPresentation')).default }));");

@@ -467,7 +467,14 @@ function RootLayout() {
   }, [audioCueQueue, clearAudioQueue]);
 
   useEffect(() => {
-    if (activeAchievement) return;
+    if (activeAchievement) {
+      const timeout = window.setTimeout(() => {
+        setActiveAchievement(null);
+      }, 3000);
+
+      return () => window.clearTimeout(timeout);
+    }
+
     const nextAchievement = newlyUnlocked.find((achievement) => {
       const key = `${achievement.id}:${achievement.unlockedYear}:${achievement.unlockedWeek}`;
       return !seenAchievements.includes(key);
@@ -478,12 +485,6 @@ function RootLayout() {
     setSeenAchievements((current) => [...current, key]);
     setActiveAchievement(nextAchievement);
     playSound('achievement_unlocked');
-
-    const timeout = window.setTimeout(() => {
-      setActiveAchievement(null);
-    }, 3000);
-
-    return () => window.clearTimeout(timeout);
   }, [activeAchievement, newlyUnlocked, seenAchievements]);
 
   useEffect(() => {
@@ -658,7 +659,10 @@ function RootLayout() {
             onSkip={() => { void dismissTutorial(); }}
           />
         ) : null}
-        <AchievementUnlockToast achievement={activeAchievement} />
+        <AchievementUnlockToast
+          achievement={activeAchievement}
+          onDismiss={() => setActiveAchievement(null)}
+        />
         <CeremonyViewer
           ceremony={activeCeremony}
           open={!!activeCeremony}
