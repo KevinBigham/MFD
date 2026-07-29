@@ -77,6 +77,25 @@ describe('Chip onboarding machine', () => {
     expect(readChipOnboardingState(storage).completedBeatIds).toEqual([]);
   });
 
+  it('keeps onboarding controls usable when browser storage rejects reads or writes', () => {
+    const storage = new MemoryStorage();
+    storage.getItem = () => {
+      throw new Error('storage blocked');
+    };
+    expect(readChipOnboardingState(storage)).toEqual(createInitialChipOnboardingState());
+
+    storage.getItem = () => null;
+    storage.setItem = () => {
+      throw new Error('storage full');
+    };
+    expect(() => recordChipOnboardingBeat(storage, 'chip.first10.roster')).not.toThrow();
+
+    storage.removeItem = () => {
+      throw new Error('storage blocked');
+    };
+    expect(() => resetChipOnboardingState(storage)).not.toThrow();
+  });
+
   it('keeps first-ten live guidance plain and consequence-focused', () => {
     const decisionOrConsequenceCue =
       /\b(check|open|save|set|verify|identify|choose|advance|before|risk|emergency|unassigned|fails|locks|required|consequence|where)\b/i;

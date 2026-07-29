@@ -154,6 +154,8 @@ describe('App Chip setup wiring', () => {
   it('uses the existing first-ten localStorage marker for new-game detection', () => {
     expect(content).toContain("import { readFirstTenMinutesCompleted } from '../features/franchise-setup/setupPersistence'");
     expect(content).toContain('export function isChipNewGameSetup(storage: ChipSetupStorage = resolveChipSetupStorage()): boolean');
+    expect(content).toContain("import { resolveBrowserStorage } from '../features/companion/storageBoundary';");
+    expect(content).toContain('return resolveBrowserStorage();');
     expect(content).toContain('return !readFirstTenMinutesCompleted(storage);');
   });
 

@@ -6664,10 +6664,14 @@ async function clearVisibleChipRouteBeats(cdp, sessionId, label) {
         if (!beat) return { done: true };
         const id = beat.getAttribute('data-chip-route-beat');
         const button = [...beat.querySelectorAll('button')]
-          .find((candidate) => !candidate.disabled && (candidate.textContent ?? '').includes('Got it'));
-        if (!(button instanceof HTMLButtonElement)) return { done: false, reason: 'missing-got-it', id };
+          .find((candidate) => (
+            !candidate.disabled
+            && ['Next', 'Got it'].includes((candidate.textContent ?? '').trim())
+          ));
+        if (!(button instanceof HTMLButtonElement)) return { done: false, reason: 'missing-route-action', id };
+        const actionLabel = (button.textContent ?? '').trim();
         button.click();
-        return { done: false, reason: 'clicked-got-it', id };
+        return { done: false, reason: 'clicked-route-action', id, actionLabel };
       })()
     `);
     if (state?.done) return;
@@ -6836,13 +6840,14 @@ async function waitForChipRouteBeatText(cdp, sessionId, expectedId, expectedText
   }
 }
 
-async function clickGotItRouteBeat(cdp, sessionId, label) {
+async function clickRouteBeatAction(cdp, sessionId, actionLabel, label) {
   return waitFor(label, () => evaluate(cdp, sessionId, `
     (() => {
+      const actionLabel = ${JSON.stringify(actionLabel)};
       const beat = document.querySelector('[data-chip-route-beat]');
       if (!beat) return false;
       const button = [...beat.querySelectorAll('button')]
-        .find((candidate) => !candidate.disabled && (candidate.textContent ?? '').includes('Got it'));
+        .find((candidate) => !candidate.disabled && (candidate.textContent ?? '').trim() === actionLabel);
       if (!(button instanceof HTMLButtonElement)) return false;
       button.click();
       return true;
@@ -6944,19 +6949,19 @@ async function runChipMondayBeatChainSmoke(cdp, sessionId, baseUrl) {
     firstTenText,
     'first-ten Monday briefing beat text before logging',
   );
-  await clickGotItRouteBeat(cdp, sessionId, 'clickable Got it control for first-ten Monday briefing beat');
+  await clickRouteBeatAction(cdp, sessionId, 'Next', 'clickable Next control for first-ten Monday briefing beat');
   await waitForChipReadReceipts(
     cdp,
     sessionId,
     [firstTenMondayBeat],
     [mondayBeatOne],
-    'first-ten Monday briefing beat persisted immediately after Got it',
+    'first-ten Monday briefing beat persisted immediately after Next',
   );
   await waitForChipOnboardingCompleted(
     cdp,
     sessionId,
     firstTenMondayBeat,
-    'first-ten Monday briefing onboarding completion persisted after Got it',
+    'first-ten Monday briefing onboarding completion persisted after Next',
   );
   await waitForChipRouteBeatText(
     cdp,
@@ -6982,32 +6987,32 @@ async function runChipReceiptRespectSmoke(cdp, sessionId, baseUrl) {
   await setHashRoute(cdp, sessionId, rosterRoute);
   await waitForBodyText(cdp, sessionId, 'Roster Sources', 'Chip receipt-respect roster source panel');
   await waitForChipRouteBeatText(cdp, sessionId, firstTenRosterBeat, firstTenRosterText, 'first-ten roster beat text before logging');
-  await clickGotItRouteBeat(cdp, sessionId, 'clickable Got it control for first-ten roster beat');
+  await clickRouteBeatAction(cdp, sessionId, 'Next', 'clickable Next control for first-ten roster beat');
   await waitForChipReadReceipts(
     cdp,
     sessionId,
     [firstTenRosterBeat],
     [rosterBeatOne, rosterBeatTwo],
-    'first-ten roster beat persisted immediately after Got it',
+    'first-ten roster beat persisted immediately after Next',
   );
   await waitForChipOnboardingCompleted(
     cdp,
     sessionId,
     firstTenRosterBeat,
-    'first-ten roster onboarding completion persisted after Got it',
+    'first-ten roster onboarding completion persisted after Next',
   );
   await waitForChipRouteBeatText(cdp, sessionId, rosterBeatOne, rosterBeatOneText, 'first roster route beat text before logging');
-  await clickGotItRouteBeat(cdp, sessionId, 'clickable Got it control for first roster route beat');
+  await clickRouteBeatAction(cdp, sessionId, 'Next', 'clickable Next control for first roster route beat');
   await waitForChipReadReceipts(
     cdp,
     sessionId,
     [firstTenRosterBeat, rosterBeatOne],
     [rosterBeatTwo],
-    'first roster route beat persisted immediately after Got it',
+    'first roster route beat persisted immediately after Next',
   );
   await waitForChipRouteBeatText(cdp, sessionId, rosterBeatTwo, rosterBeatTwoText, 'second roster route beat text after first receipt');
 
-  await clickGotItRouteBeat(cdp, sessionId, 'clickable Got it control for second roster route beat');
+  await clickRouteBeatAction(cdp, sessionId, 'Got it', 'clickable Got it control for final roster route beat');
   await waitForChipReadReceipts(
     cdp,
     sessionId,

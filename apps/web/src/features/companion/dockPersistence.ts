@@ -1,3 +1,5 @@
+import { resolveBrowserStorage } from './storageBoundary';
+
 export const CHIP_DOCK_STORAGE_KEY = 'mfd.chip.local';
 
 export interface DockPrefs {
@@ -25,8 +27,7 @@ export function createDefaultDockPrefs(): DockPrefs {
 }
 
 export function resolveDockStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
-  return window.localStorage ?? null;
+  return resolveBrowserStorage();
 }
 
 function isNullableString(value: unknown): value is string | null {
@@ -53,7 +54,12 @@ export function isDockPrefs(value: unknown): value is DockPrefs {
 
 export function readDockPrefs(storage: Storage | null = resolveDockStorage()): DockPrefs {
   if (!storage) return createDefaultDockPrefs();
-  const raw = storage.getItem(CHIP_DOCK_STORAGE_KEY);
+  let raw: string | null;
+  try {
+    raw = storage.getItem(CHIP_DOCK_STORAGE_KEY);
+  } catch {
+    return createDefaultDockPrefs();
+  }
   if (!raw) return createDefaultDockPrefs();
 
   try {
@@ -67,7 +73,11 @@ export function readDockPrefs(storage: Storage | null = resolveDockStorage()): D
 
 export function writeDockPrefs(storage: Storage | null, prefs: DockPrefs): void {
   if (!storage) return;
-  storage.setItem(CHIP_DOCK_STORAGE_KEY, JSON.stringify(prefs));
+  try {
+    storage.setItem(CHIP_DOCK_STORAGE_KEY, JSON.stringify(prefs));
+  } catch {
+    // Dock controls remain usable when browser storage is unavailable.
+  }
 }
 
 export function updateDockPrefs(

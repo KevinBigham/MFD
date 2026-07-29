@@ -1,8 +1,9 @@
+import { resolveBrowserStorage } from './storageBoundary';
+
 export const CHIP_READ_RECEIPTS_STORAGE_KEY = 'mfd.chip.read.v1';
 
 export function resolveReadReceiptsStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
-  return window.localStorage ?? null;
+  return resolveBrowserStorage();
 }
 
 function normalizeReceiptArray(value: unknown): string[] {
@@ -14,7 +15,12 @@ export function readChipReadReceipts(
   storage: Storage | null = resolveReadReceiptsStorage(),
 ): Set<string> {
   if (!storage) return new Set();
-  const raw = storage.getItem(CHIP_READ_RECEIPTS_STORAGE_KEY);
+  let raw: string | null;
+  try {
+    raw = storage.getItem(CHIP_READ_RECEIPTS_STORAGE_KEY);
+  } catch {
+    return new Set();
+  }
   if (!raw) return new Set();
 
   try {
@@ -34,7 +40,11 @@ export function writeChipReadReceipts(
   }
 
   if (storage) {
-    storage.setItem(CHIP_READ_RECEIPTS_STORAGE_KEY, JSON.stringify([...merged].sort()));
+    try {
+      storage.setItem(CHIP_READ_RECEIPTS_STORAGE_KEY, JSON.stringify([...merged].sort()));
+    } catch {
+      // The session-level Chip store still receives the acknowledgement.
+    }
   }
   return merged;
 }
@@ -46,10 +56,14 @@ export function clearChipReadReceipts(
   const remaining = [...readChipReadReceipts(storage)].filter((beatId) => !shouldClear(beatId));
 
   if (storage) {
-    if (remaining.length === 0) {
-      storage.removeItem(CHIP_READ_RECEIPTS_STORAGE_KEY);
-    } else {
-      storage.setItem(CHIP_READ_RECEIPTS_STORAGE_KEY, JSON.stringify(remaining.sort()));
+    try {
+      if (remaining.length === 0) {
+        storage.removeItem(CHIP_READ_RECEIPTS_STORAGE_KEY);
+      } else {
+        storage.setItem(CHIP_READ_RECEIPTS_STORAGE_KEY, JSON.stringify(remaining.sort()));
+      }
+    } catch {
+      // Clearing preferences must not break the Chip controls.
     }
   }
 

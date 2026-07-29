@@ -264,7 +264,11 @@ export function persistRouteBeatProgress({
   const persisted = writeChipReadReceipts(storage, ids);
   for (const id of ids) {
     markBeatSeen?.(id);
-    recordChipOnboardingBeat(storage, id);
+    try {
+      recordChipOnboardingBeat(storage, id);
+    } catch {
+      // Session acknowledgement must still advance Chip when storage is blocked.
+    }
   }
   return persisted;
 }
@@ -278,6 +282,22 @@ export function resolveNextRouteBeatIndex(
     nextIndex,
     complete: currentIndex >= routeBeats.length - 1,
   };
+}
+
+export function routeBeatActionLabel(
+  currentIndex: number,
+  routeBeats: readonly RouteBeat[],
+): 'Next' | 'Got it' {
+  return currentIndex >= routeBeats.length - 1 ? 'Got it' : 'Next';
+}
+
+export function filterUnseenRouteBeats(
+  routeBeats: readonly RouteBeat[],
+  durableReadReceipts: ReadonlySet<string>,
+  sessionSeenBeats: ReadonlySet<string>,
+): readonly RouteBeat[] {
+  return routeBeats.filter((beat) =>
+    !durableReadReceipts.has(beat.id) && !sessionSeenBeats.has(beat.id));
 }
 
 export function routeBeatPoseToChipPose(pose: ChipRoutePose): ChipPose {
@@ -307,6 +327,15 @@ export function routeBeatPoseToChipPose(pose: ChipRoutePose): ChipPose {
   }
 }
 
+function removeStorageItem(storage: Storage | null, key: string): void {
+  if (!storage) return;
+  try {
+    storage.removeItem(key);
+  } catch {
+    // Chip controls must remain usable when browser storage is blocked.
+  }
+}
+
 export function applyDockControl(control: ChipDockControl, options: ApplyDockControlOptions): DockPrefs {
   const prefs = readDockPrefs(options.storage);
   const chipStore = options.chipStore;
@@ -320,8 +349,8 @@ export function applyDockControl(control: ChipDockControl, options: ApplyDockCon
     case 'resetOnboarding':
       resetChipOnboardingState(options.storage);
       clearChipReadReceipts(options.storage, isFirstTenMinuteBeatId);
-      options.storage?.removeItem(CHIP_ONBOARDING_STORAGE_KEY);
-      options.storage?.removeItem(CHIP_INTRO_STORAGE_KEY);
+      removeStorageItem(options.storage, CHIP_ONBOARDING_STORAGE_KEY);
+      removeStorageItem(options.storage, CHIP_INTRO_STORAGE_KEY);
       chipStore?.reset?.();
       return prefs;
     case 'snoozeOnboarding':
@@ -330,7 +359,7 @@ export function applyDockControl(control: ChipDockControl, options: ApplyDockCon
       return prefs;
     case 'enableGuidance':
       enableChipOnboarding(options.storage, options.now);
-      options.storage?.removeItem(CHIP_ONBOARDING_STORAGE_KEY);
+      removeStorageItem(options.storage, CHIP_ONBOARDING_STORAGE_KEY);
       return updateDockPrefs(
         options.storage,
         {
@@ -398,7 +427,7 @@ export function applyDockControl(control: ChipDockControl, options: ApplyDockCon
       );
     case 'expand':
       enableChipOnboarding(options.storage, options.now);
-      options.storage?.removeItem(CHIP_ONBOARDING_STORAGE_KEY);
+      removeStorageItem(options.storage, CHIP_ONBOARDING_STORAGE_KEY);
       return updateDockPrefs(
         options.storage,
         {
@@ -446,6 +475,7 @@ export function ChipDock({
   const [prefs, setPrefs] = useState<DockPrefs>(() =>
     backingStorage === null ? createDefaultDockPrefs() : readDockPrefs(backingStorage),
   );
+  const seenBeatIds = useChipStore((state) => state.seenBeats);
   const [localCollapsed, setLocalCollapsed] = useState(prefs.collapsed);
   const motionMode = reducedMotion || prefs.animationsDisabled ? 'reduced' : 'animated';
   const storePose = useResolvedChipPose();
@@ -461,14 +491,14 @@ export function ChipDock({
   const eligibleRouteBeats = useMemo(() => {
     if (globalRouteSkip) return [];
     if (routeQuieted) return [];
-    const seenBeatIds = readChipReadReceipts(backingStorage);
-    return routeBeats.filter((beat) => !seenBeatIds.has(beat.id));
+    const durableReadReceipts = readChipReadReceipts(backingStorage);
+    return filterUnseenRouteBeats(routeBeats, durableReadReceipts, seenBeatIds);
     // Sprint 41 perf fix [12]: routeBeatSignature already captures the content
     // of routeBeats; including routeBeats here would re-trigger the memo on
     // every parent render even when the beat list is identical. We
     // intentionally read routeBeats by closure but key the memo on signature.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backingStorage, globalRouteSkip, routeBeatSignature, routeQuieted]);
+  }, [backingStorage, globalRouteSkip, routeBeatSignature, routeQuieted, seenBeatIds]);
   const [routeBeatIndex, setRouteBeatIndex] = useState(0);
   const [dismissedRouteBeatSignature, setDismissedRouteBeatSignature] = useState<string | null>(null);
   const [activeLiveBeat, setActiveLiveBeat] = useState<DockLiveBeat | null>(null);
@@ -482,6 +512,7 @@ export function ChipDock({
   const activeRouteBeat = routeBeatActive
     ? eligibleRouteBeats[Math.min(routeBeatIndex, eligibleRouteBeats.length - 1)] ?? null
     : null;
+  const activeRouteBeatActionLabel = routeBeatActionLabel(routeBeatIndex, eligibleRouteBeats);
   const preferRouteBeatCollapsed = activeRouteBeat !== null && mobileRouteCoach && !routeCoachOpened;
   const effectiveCollapsed = resolveEffectiveDockCollapsed({
     activeRouteBeat: activeRouteBeat !== null,
@@ -537,15 +568,24 @@ export function ChipDock({
     setDismissedRouteBeatSignature(routeBeatSignature);
   }, [persistShownRouteBeats, routeBeatSignature]);
 
+  const completeRouteBeatSequence = useCallback(() => {
+    persistRouteBeatProgress({
+      storage: backingStorage,
+      beatIds: eligibleRouteBeats.map((beat) => beat.id),
+      markBeatSeen: useChipStore.getState().markBeatSeen,
+    });
+    setDismissedRouteBeatSignature(routeBeatSignature);
+  }, [backingStorage, eligibleRouteBeats, routeBeatSignature]);
+
   const advanceRouteBeat = useCallback(() => {
     persistCurrentRouteBeat();
     const result = resolveNextRouteBeatIndex(routeBeatIndex, eligibleRouteBeats);
     if (result.complete) {
-      dismissRouteBeatSequence();
+      completeRouteBeatSequence();
       return;
     }
     setRouteBeatIndex(result.nextIndex);
-  }, [dismissRouteBeatSequence, eligibleRouteBeats, persistCurrentRouteBeat, routeBeatIndex]);
+  }, [completeRouteBeatSequence, eligibleRouteBeats, persistCurrentRouteBeat, routeBeatIndex]);
 
   const showPendingDecisionsBeat = useCallback(() => {
     if (pendingDecisionTotal <= 0) return;
@@ -712,11 +752,11 @@ export function ChipDock({
                   accent="gold"
                   className="mfd-chip-dock__control"
                   onClick={advanceRouteBeat}
-                  aria-label="Got it"
-                  title="Got it"
+                  aria-label={activeRouteBeatActionLabel}
+                  title={activeRouteBeatActionLabel}
                 >
                   <Check aria-hidden="true" />
-                  <span className="mfd-chip-dock__control-label">Got it</span>
+                  <span className="mfd-chip-dock__control-label">{activeRouteBeatActionLabel}</span>
                 </PixelButton>
               </div>
             </div>

@@ -7,11 +7,13 @@ import {
   applyDockControl,
   createAskChipLiveBeat,
   createPendingDecisionsBeat,
+  filterUnseenRouteBeats,
   isRouteCoachingQuieted,
   persistRouteBeatProgress,
   resolveChipDockRoute,
   resolveEffectiveDockCollapsed,
   resolveNextRouteBeatIndex,
+  routeBeatActionLabel,
   type ChipDockControl,
   type ChipDockControlStore,
 } from './ChipDock';
@@ -176,7 +178,8 @@ describe('ChipDock', () => {
     expect(markup).toContain('data-chip-dock-state="expanded"');
     expect(markup).toContain('data-chip-route-beat="chip.route.roster.beat-1"');
     expect(markup).toContain('Recommended: decide starter, backup, trade, or cut. Where: highlighted player. Consequence: extra names do not fix the role.');
-    expect(markup).toContain('Got it');
+    expect(markup).toContain('Next');
+    expect(markup).not.toContain('aria-label="Got it"');
   });
 
   it('renders unanchored governance route beats', () => {
@@ -210,7 +213,9 @@ describe('ChipDock', () => {
     expect(markup).not.toContain('data-chip-route-beat');
   });
 
-  it('advances route beat index from Got it until the sequence is complete', () => {
+  it('labels intermediate guidance Next and reserves Got it for final dismissal', () => {
+    expect(routeBeatActionLabel(0, ROUTE_BEAT_REGISTRY.roster)).toBe('Next');
+    expect(routeBeatActionLabel(1, ROUTE_BEAT_REGISTRY.roster)).toBe('Got it');
     expect(resolveNextRouteBeatIndex(0, ROUTE_BEAT_REGISTRY.roster)).toEqual({
       nextIndex: 1,
       complete: false,
@@ -219,6 +224,91 @@ describe('ChipDock', () => {
       nextIndex: 1,
       complete: true,
     });
+  });
+
+  it('renders Got it when only the final unseen route beat remains', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    writeChipReadReceipts(storage, ['chip.route.monday-briefing.beat-1']);
+
+    const markup = renderDock(
+      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY['monday-briefing']} storage={storage} />,
+    );
+
+    expect(markup).toContain('data-chip-route-beat="chip.route.monday-briefing.beat-2"');
+    expect(markup).toContain('aria-label="Got it"');
+    expect(markup).not.toContain('aria-label="Next"');
+  });
+
+  it('renders and session-dismisses route guidance when all browser storage operations are blocked', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    vi.spyOn(storage, 'getItem').mockImplementation(() => {
+      throw new Error('storage read blocked');
+    });
+    vi.spyOn(storage, 'setItem').mockImplementation(() => {
+      throw new Error('storage write blocked');
+    });
+    vi.spyOn(storage, 'removeItem').mockImplementation(() => {
+      throw new Error('storage removal blocked');
+    });
+    const routeBeats = ROUTE_BEAT_REGISTRY['monday-briefing'];
+
+    const beforeDismissal = renderDock(
+      <ChipDock collapsed routeBeats={routeBeats} storage={storage} />,
+    );
+    expect(beforeDismissal).toContain('data-chip-route-beat=');
+
+    persistRouteBeatProgress({
+      storage,
+      beatIds: routeBeats.map((beat) => beat.id),
+      markBeatSeen: useChipStore.getState().markBeatSeen,
+    });
+
+    expect(
+      filterUnseenRouteBeats(
+        routeBeats,
+        new Set(),
+        useChipStore.getState().seenBeats,
+      ),
+    ).toEqual([]);
+  });
+
+  it('acknowledges the session even when durable receipt storage rejects reads and writes', () => {
+    const markBeatSeen = vi.fn();
+    const storage = new MemoryStorage();
+    storage.getItem = () => {
+      throw new Error('storage unavailable');
+    };
+    storage.setItem = () => {
+      throw new Error('storage unavailable');
+    };
+
+    expect(() => persistRouteBeatProgress({
+      storage,
+      beatIds: ['chip.route.monday-briefing.beat-2'],
+      markBeatSeen,
+    })).not.toThrow();
+    expect(markBeatSeen).toHaveBeenCalledWith('chip.route.monday-briefing.beat-2');
+  });
+
+  it('does not replay session-acknowledged route beats after a storage write failure', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem = () => {
+      throw new Error('storage unavailable');
+    };
+    persistRouteBeatProgress({
+      storage,
+      beatIds: ROUTE_BEAT_REGISTRY.roster.map((beat) => beat.id),
+      markBeatSeen: useChipStore.getState().markBeatSeen,
+    });
+
+    expect(filterUnseenRouteBeats(
+      ROUTE_BEAT_REGISTRY.roster,
+      readChipReadReceipts(storage),
+      useChipStore.getState().seenBeats,
+    )).toEqual([]);
   });
 
   it('persists final route beat dismissal to the read-receipt key and store', () => {
@@ -656,6 +746,24 @@ describe('ChipDock', () => {
     expect(readChipReadReceipts(storage).has('chip.route.roster.beat-1')).toBe(true);
     expect(storage.getItem(CHIP_ONBOARDING_STORAGE_KEY)).toBeNull();
     expect(storage.getItem(CHIP_INTRO_STORAGE_KEY)).toBeNull();
+    expect(store.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it('reset-onboarding still resets the session when storage removal is blocked', () => {
+    const storage = new MemoryStorage();
+    vi.spyOn(storage, 'getItem').mockImplementation(() => {
+      throw new Error('storage read blocked');
+    });
+    vi.spyOn(storage, 'setItem').mockImplementation(() => {
+      throw new Error('storage write blocked');
+    });
+    vi.spyOn(storage, 'removeItem').mockImplementation(() => {
+      throw new Error('storage removal blocked');
+    });
+
+    const { store, prefs } = applyControl('resetOnboarding', storage);
+
+    expect(prefs).toEqual(createDefaultDockPrefs());
     expect(store.reset).toHaveBeenCalledTimes(1);
   });
 

@@ -63,6 +63,7 @@ const mockState = {
   ],
   actions: {
     setStarter: () => Promise.resolve(),
+    applyRecommendedDepthChart: () => Promise.resolve(),
     assignKickReturner: () => Promise.resolve(),
     assignPuntReturner: () => Promise.resolve(),
   },
@@ -100,6 +101,7 @@ describe('DepthChart accessibility', () => {
     expect(markup).toContain('DEPTH CHART');
     expect(markup).toContain('NEXT CALL');
     expect(markup).toContain('Set legal starter shape');
+    expect(markup).toContain('Use Recommended');
     expect(markup).toContain('type="button"');
     expect(markup).toContain('SPECIAL TEAMS');
   });
@@ -122,7 +124,8 @@ describe('DepthChart accessibility', () => {
     expect(markup).toContain('Open rooms: RB -1');
     expect(markup).toContain('1/2 returners');
     expect(markup).toContain('Dropdowns are the only returner commits here');
-    expect(markup).toContain('Opening Depth Chart does not auto-set starters');
+    expect(markup).toContain('Opening Depth Chart does not change the lineup');
+    expect(markup).toContain('Use Recommended is the explicit one-click commit');
   });
 
   it('requires the starter shape by position instead of accepting any 22 flags', () => {

@@ -584,6 +584,9 @@ test('Chip receipt-respect smoke locks exact first-week roster guidance copy', (
   assert.match(smokeSource, /Recommended: open Roster before Game Plan\. Where: injuries and first backups\. Consequence: uncovered backups force emergency signings\./);
   assert.match(smokeSource, /Recommended: decide starter, backup, trade, or cut\. Where: highlighted player\. Consequence: extra names do not fix the role\./);
   assert.match(smokeSource, /Recommended: open Roster for injury and backup health\. Where: Roster, then Depth Chart\. Consequence: uncovered injuries force signings\./);
+  assert.match(smokeSource, /clickRouteBeatAction\(cdp, sessionId, 'Next', 'clickable Next control for first-ten roster beat'\)/);
+  assert.match(smokeSource, /clickRouteBeatAction\(cdp, sessionId, 'Next', 'clickable Next control for first roster route beat'\)/);
+  assert.match(smokeSource, /clickRouteBeatAction\(cdp, sessionId, 'Got it', 'clickable Got it control for final roster route beat'\)/);
   assert.doesNotMatch(smokeSource, /Where: injury and first-backup flags/);
   assert.doesNotMatch(smokeSource, /emergency starters/);
 });
@@ -599,6 +602,8 @@ test('parses the opt-in Chip Ask summary workflow flag', () => {
 test('Chip Ask summary smoke checks highlighted screen badge wording', () => {
   assert.match(smokeSource, /Must Do: choose or defer/);
   assert.match(smokeSource, /Where: Inbox, Action Center, or highlighted screen badges/);
+  assert.match(smokeSource, /\['Next', 'Got it'\]\.includes\(\(candidate\.textContent \?\? ''\)\.trim\(\)\)/);
+  assert.match(smokeSource, /reason: 'clicked-route-action', id, actionLabel/);
   assert.doesNotMatch(smokeSource, /Must Do: open Inbox, Action Center, or highlighted screen badges/);
   assert.doesNotMatch(smokeSource, /Must Do: open Inbox, Action Center, or route badges/);
 });
@@ -614,6 +619,7 @@ test('parses the opt-in Chip Monday beat-chain workflow flag', () => {
 test('Chip Monday beat-chain smoke locks exact first-week briefing guidance copy', () => {
   assert.match(smokeSource, /Must Do: open Monday Briefing\. Where: Action Center\. Consequence: Advance Week locks injuries, promises, deadlines, and opponent prep\./);
   assert.match(smokeSource, /Must Do: open Action Center\. Where: Monday Briefing\. Consequence: Advance Week locks injuries, promises, deadlines, and opponent prep\./);
+  assert.match(smokeSource, /clickRouteBeatAction\(cdp, sessionId, 'Next', 'clickable Next control for first-ten Monday briefing beat'\)/);
   assert.doesNotMatch(smokeSource, /open Action Center first\. Verify injuries/);
   assert.doesNotMatch(smokeSource, /Advance Week locks injuries, morale, deadlines, and opponent/);
   assert.doesNotMatch(smokeSource, /opponent lock/);

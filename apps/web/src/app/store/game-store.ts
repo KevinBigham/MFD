@@ -66,6 +66,7 @@ import {
   applyPressResponseConsequences,
   applyExtensionOffer,
   appointCaptain,
+  applyRecommendedDepthChart as applyRecommendedDepthChartEngine,
   assignTraining as assignTrainingEngine,
   buildCapScenario,
   callTeamMeeting as callTeamMeetingEngine,
@@ -278,6 +279,7 @@ interface GameActions {
   toggleTradeBlock: (teamId: string, playerId: string) => Promise<void>;
   refreshTeamNeedsReport: (teamId?: string) => Promise<void>;
   setStarter: (teamId: string, playerId: string, isStarter: boolean) => Promise<void>;
+  applyRecommendedDepthChart: (teamId: string) => Promise<void>;
   addToPracticeSquad: (teamId: string, playerId: string) => Promise<void>;
   removeFromPracticeSquad: (teamId: string, playerId: string) => Promise<void>;
   elevatePracticeSquadPlayer: (teamId: string, playerId: string) => Promise<void>;
@@ -1101,6 +1103,15 @@ export const useGameStore = create<GameStore>()(
           completeTutorialActionEngine(nextGame, 'depth_chart:update');
         }
 
+        await commitGame(nextGame);
+      },
+
+      applyRecommendedDepthChart: async (teamId) => {
+        const current = get().game;
+        if (!current?.teams[teamId]) return;
+        const nextGame = cloneForMutation(current);
+        applyRecommendedDepthChartEngine(nextGame, teamId);
+        completeTutorialActionEngine(nextGame, 'depth_chart:update');
         await commitGame(nextGame);
       },
 
