@@ -7,7 +7,8 @@
 
 import { v36CapHit, v36DeadIfCut } from './contract-helpers';
 import { ROSTER_CAP } from '../config/cap-math';
-import type { Player, Team, Position } from '../types';
+import type { GameState, Player, Position, SpecialTeamsState } from '../types';
+import { buildSpecialTeamsState } from './special-teams';
 
 // ── Position Battle Detection ──────────────────────────
 
@@ -16,6 +17,68 @@ export const STARTER_SLOTS: Readonly<Record<Position, number>> = {
   QB: 1, RB: 1, WR: 3, TE: 1, OL: 5,
   DL: 4, LB: 3, CB: 3, S: 2, K: 1, P: 1,
 };
+
+export interface RecommendedDepthChartResult {
+  starterIds: string[];
+  specialTeams: SpecialTeamsState;
+}
+
+function isUnavailableForRecommendation(player: Player): boolean {
+  return Boolean(
+    player.injury
+    && (
+      player.injury.gamesOut > 0
+      || player.injury.severity === 'out'
+      || player.injury.severity === 'ir'
+    )
+  );
+}
+
+/**
+ * Builds the default coaching recommendation without randomness:
+ * available players first, then OVR, system fit, and stable player id.
+ */
+export function buildRecommendedStarterIds(roster: readonly Player[]): string[] {
+  const starterIds: string[] = [];
+
+  for (const [position, slotCount] of Object.entries(STARTER_SLOTS) as Array<[Position, number]>) {
+    const room = roster
+      .filter((player) => player.pos === position)
+      .sort((left, right) =>
+        Number(isUnavailableForRecommendation(left)) - Number(isUnavailableForRecommendation(right))
+        || right.ovr - left.ovr
+        || (right.systemFit ?? 0) - (left.systemFit ?? 0)
+        || left.id.localeCompare(right.id));
+    starterIds.push(...room.slice(0, Math.min(slotCount, room.length)).map((player) => player.id));
+  }
+
+  return starterIds;
+}
+
+export function applyRecommendedDepthChart(
+  game: GameState,
+  teamId: string,
+): RecommendedDepthChartResult {
+  const team = game.teams[teamId];
+  if (!team) throw new Error(`Unknown team: ${teamId}`);
+
+  const starterIds = buildRecommendedStarterIds(team.roster);
+  const selected = new Set(starterIds);
+  for (const player of team.roster) {
+    player.isStarter = selected.has(player.id);
+    if (game.players[player.id]) {
+      game.players[player.id]!.isStarter = player.isStarter;
+    }
+  }
+
+  team.specialTeams = buildSpecialTeamsState(team, {
+    isPlayerAvailable: (player) => !isUnavailableForRecommendation(player),
+  });
+  return {
+    starterIds,
+    specialTeams: team.specialTeams,
+  };
+}
 
 const MAX_BATTLE_GAP = 5;
 const MAX_BATTLES = 8;

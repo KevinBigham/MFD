@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MfdTooltipProvider } from '@mfd/design-system/components';
-import { GamePlanSetup, PLAN_TOOLTIPS, buildWeeklyPrepSourceRows } from './GamePlanSetup';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import {
+  GamePlanSetup,
+  PLAN_TOOLTIPS,
+  buildRecommendedWeeklyPrepPlan,
+  buildWeeklyPrepSourceRows,
+} from './GamePlanSetup';
 
 function createMockState(): any {
   return {
@@ -101,9 +108,11 @@ describe('GamePlanSetup', () => {
     expect(markup).toContain('Opening Game Plan does not click Advance Week');
     expect(markup).toContain('create Film Room entries');
     expect(markup).toContain('NEXT CALL');
-    expect(markup).toContain('Primary decision');
-    expect(markup).toContain('save the weekly prep plan before advancing');
-    expect(markup).toContain('accept the staff&#x27;s default calls');
+    expect(markup).toContain('Use Recommended');
+    expect(markup).toContain('data-mfd-use-recommended="game-plan"');
+    expect(markup).toContain('does not save or advance');
+    expect(markup).toContain('loads the scout-matched core settings for review');
+    expect(markup).toContain('preserves optional extras');
     expect(markup).toContain('DECISION FORECAST');
     expect(PLAN_TOOLTIPS['Practice Intensity']).toContain('Set practice contact before Save Weekly Prep');
     expect(PLAN_TOOLTIPS['Practice Intensity']).toContain('Light lowers injury-report chances but leaves fewer reps');
@@ -120,6 +129,44 @@ describe('GamePlanSetup', () => {
     expect(markup).toContain('Save Weekly Prep &amp; Sim');
     expect(markup).toContain('Skip With Auto Prep');
     expect(markup).not.toMatch(/\b(?:REC|Off-script bet|Balanced hedge|sim gets|variance|less signal|film-room receipts|tricks|staff board|auto-prep|can stress the secondary|control tempo|leverage|Stress the secondary|maximum readiness|Offensive alignment|Defensive alignment)\b/i);
+  });
+
+  it('builds stable scout-matched recommended core settings', () => {
+    expect(buildRecommendedWeeklyPrepPlan({
+      teamId: 'team-1',
+      opponentTeamId: 'team-2',
+      year: 2029,
+      week: 11,
+      attackLane: 'passing',
+      defendLane: 'rushing',
+    })).toEqual({
+      teamId: 'team-1',
+      opponentTeamId: 'team-2',
+      year: 2029,
+      week: 11,
+      offensiveFocus: 'attack_secondary',
+      defensiveFocus: 'stop_run',
+      practiceIntensity: 'normal',
+      keyMatchupPlayerId: null,
+      snapManagement: 'normal',
+      specialSituation: 'third_down',
+    });
+  });
+
+  it('keeps Use Recommended draft-only and preserves optional extras', () => {
+    const source = readFileSync(fileURLToPath(new URL('./GamePlanSetup.tsx', import.meta.url)), 'utf8');
+    const start = source.indexOf('const handleUseRecommended = () => {');
+    const end = source.indexOf('\n  };', start);
+    const handler = source.slice(start, end);
+
+    expect(handler).toContain('setOffensiveFocus');
+    expect(handler).toContain('setKeyMatchupPlayerId');
+    expect(handler).not.toContain('setContingencyRules');
+    expect(handler).not.toContain('setSelectedTrickPlays');
+    expect(handler).not.toContain('saveWeeklyPrepPlan');
+    expect(handler).not.toContain('clearWeeklyPrepPlan');
+    expect(handler).not.toContain('advanceWeek');
+    expect(handler).not.toContain('setCallYourShot');
   });
 
   it('shows the call your shot panel on eligible late-season weeks', () => {

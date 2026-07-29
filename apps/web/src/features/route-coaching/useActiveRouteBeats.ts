@@ -4,6 +4,7 @@ import {
   readChipOnboardingState,
   selectChipOnboardingRouteBeats,
 } from '../companion/onboardingMachine';
+import { resolveBrowserStorage } from '../companion/storageBoundary';
 import {
   ROUTE_BEAT_REGISTRY,
   ROUTE_KEYS,
@@ -184,7 +185,7 @@ export function useActiveRouteBeats(
 
   return useMemo(
     () => {
-      const storage = typeof window === 'undefined' ? null : window.localStorage;
+      const storage = resolveBrowserStorage();
       const onboardingBeats = selectChipOnboardingRouteBeats(
         currentRoute,
         readChipOnboardingState(storage),

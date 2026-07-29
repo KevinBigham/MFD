@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   CHIP_READ_RECEIPTS_STORAGE_KEY,
   readChipReadReceipts,
+  resolveReadReceiptsStorage,
   writeChipReadReceipts,
 } from './readReceipts';
 
@@ -34,6 +35,10 @@ class MemoryStorage implements Storage {
 }
 
 describe('Chip read receipts', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('returns an empty set when storage is unavailable', () => {
     expect(readChipReadReceipts(null)).toEqual(new Set());
   });
@@ -66,6 +71,38 @@ describe('Chip read receipts', () => {
       'chip.route.roster.beat-1',
       'chip.route.staff.beat-1',
     ]));
+  });
+
+  it('keeps acknowledgement flow alive when browser storage throws', () => {
+    const storage = new MemoryStorage();
+    storage.getItem = () => {
+      throw new Error('blocked');
+    };
+    expect(readChipReadReceipts(storage)).toEqual(new Set());
+
+    storage.getItem = () => null;
+    storage.setItem = () => {
+      throw new Error('full');
+    };
+    expect(writeChipReadReceipts(storage, ['chip.route.roster.beat-1'])).toEqual(
+      new Set(['chip.route.roster.beat-1']),
+    );
+  });
+
+  it('lets the Chip store initialize when localStorage property access is blocked', async () => {
+    const blockedWindow = {};
+    Object.defineProperty(blockedWindow, 'localStorage', {
+      configurable: true,
+      get: () => {
+        throw new Error('localStorage property blocked');
+      },
+    });
+    vi.stubGlobal('window', blockedWindow);
+    vi.resetModules();
+
+    expect(resolveReadReceiptsStorage()).toBeNull();
+    const { useChipStore } = await import('./store');
+    expect(useChipStore.getState().seenBeats).toEqual(new Set());
   });
 
   it('exports the locked localStorage key constant', () => {

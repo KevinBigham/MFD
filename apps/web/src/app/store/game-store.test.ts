@@ -329,6 +329,44 @@ describe('game store offseason actions', () => {
     expect(autosaveDynasty).toHaveBeenCalledTimes(1);
   });
 
+  it('applies the recommended depth chart and special teams in one autosave', async () => {
+    const game = createSeedGameState(127, 0, 'pro');
+    const userTeam = Object.values(game.teams).find((team) => team.isUser)!;
+    const unavailableStarter = userTeam.roster.find((player) => player.pos === 'QB' && player.isStarter)!;
+    const healthyBackup = userTeam.roster.find((player) => player.pos === 'QB' && !player.isStarter)!;
+    unavailableStarter.ovr = 99;
+    unavailableStarter.injury = {
+      id: 'recommended-depth-injury',
+      type: 'knee',
+      severity: 'out',
+      severityTier: 'severe',
+      gamesOut: 4,
+      gamesRecovered: 0,
+      reinjuryRisk: 0.2,
+      affectedRatings: [],
+      ratingPenalty: 9,
+      onIR: false,
+    };
+    healthyBackup.ovr = 80;
+
+    useGameStore.setState((state) => ({
+      ...state,
+      game,
+      initialized: true,
+    }));
+
+    await useGameStore.getState().actions.applyRecommendedDepthChart(userTeam.id);
+
+    const nextGame = useGameStore.getState().game!;
+    const nextTeam = nextGame.teams[userTeam.id]!;
+    expect(nextTeam.roster.find((player) => player.id === unavailableStarter.id)?.isStarter).toBe(false);
+    expect(nextTeam.roster.find((player) => player.id === healthyBackup.id)?.isStarter).toBe(true);
+    expect(nextGame.players[unavailableStarter.id]?.isStarter).toBe(false);
+    expect(nextTeam.specialTeams?.kickReturner).not.toBeNull();
+    expect(nextTeam.specialTeams?.longSnapper).not.toBeNull();
+    expect(autosaveDynasty).toHaveBeenCalledTimes(1);
+  });
+
   it('toggles trade-block status through the durable store path and mirrors the player map', async () => {
     const game = createSeedGameState(127, 0, 'pro');
     const userTeam = Object.values(game.teams).find((team) => team.isUser)!;

@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { APP_ROUTE_REGISTRY } from '@mfd/engine/config';
 import { ROUTE_BEAT_REGISTRY, ROUTE_KEYS, type RouteKey } from './routeBeatRegistry';
@@ -7,6 +9,7 @@ import {
   __resetActiveRouteBeatCacheForTests,
   resolveRouteKey,
   selectActiveRouteBeats,
+  useActiveRouteBeats,
 } from './useActiveRouteBeats';
 
 const APP_SOURCE = readFileSync(new URL('../../app/App.tsx', import.meta.url), 'utf-8');
@@ -113,6 +116,26 @@ function extractDirectOnlyRoutePaths(): string[] {
 describe('useActiveRouteBeats selectors', () => {
   afterEach(() => {
     __resetActiveRouteBeatCacheForTests();
+    vi.unstubAllGlobals();
+  });
+
+  it('renders App-level route coaching when localStorage property access is blocked', () => {
+    const blockedWindow = {};
+    Object.defineProperty(blockedWindow, 'localStorage', {
+      configurable: true,
+      get: () => {
+        throw new Error('route storage property blocked');
+      },
+    });
+    vi.stubGlobal('window', blockedWindow);
+
+    function RouteBeatProbe() {
+      const beats = useActiveRouteBeats('/', { currentWeek: 1 });
+      return createElement('div', { 'data-route-beat-count': beats.length });
+    }
+
+    const markup = renderToStaticMarkup(createElement(RouteBeatProbe));
+    expect(markup).toMatch(/data-route-beat-count="[1-9]\d*"/);
   });
 
   it('returns an empty list for an unknown route', () => {

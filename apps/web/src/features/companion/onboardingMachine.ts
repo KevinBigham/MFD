@@ -96,7 +96,12 @@ function normalizeState(value: unknown): ChipOnboardingState | null {
 
 export function readChipOnboardingState(storage: Storage | null = null): ChipOnboardingState {
   if (!storage) return createInitialChipOnboardingState();
-  const raw = storage.getItem(CHIP_ONBOARDING_STATE_STORAGE_KEY);
+  let raw: string | null;
+  try {
+    raw = storage.getItem(CHIP_ONBOARDING_STATE_STORAGE_KEY);
+  } catch {
+    return createInitialChipOnboardingState();
+  }
   if (!raw) return createInitialChipOnboardingState();
 
   try {
@@ -109,7 +114,11 @@ export function readChipOnboardingState(storage: Storage | null = null): ChipOnb
 export function writeChipOnboardingState(storage: Storage | null, state: ChipOnboardingState): ChipOnboardingState {
   const normalized = normalizeState(state) ?? createInitialChipOnboardingState();
   if (storage) {
-    storage.setItem(CHIP_ONBOARDING_STATE_STORAGE_KEY, JSON.stringify(normalized));
+    try {
+      storage.setItem(CHIP_ONBOARDING_STATE_STORAGE_KEY, JSON.stringify(normalized));
+    } catch {
+      // Session guidance must continue even if browser storage is blocked.
+    }
   }
   return normalized;
 }
@@ -154,7 +163,11 @@ export function enableChipOnboarding(
 }
 
 export function resetChipOnboardingState(storage: Storage | null): void {
-  storage?.removeItem(CHIP_ONBOARDING_STATE_STORAGE_KEY);
+  try {
+    storage?.removeItem(CHIP_ONBOARDING_STATE_STORAGE_KEY);
+  } catch {
+    // Resetting guidance must not break the settings controls.
+  }
 }
 
 function normalizeRoute(route: string): string {

@@ -7,6 +7,7 @@ import {
   CHIP_ONBOARDING_STORAGE_KEY,
   ChipHost,
   advanceOnboardingBeat,
+  clearOnboardingSkipState,
   isChipFeatureEnabled,
   readChipIntroState,
   readOnboardingSkipState,
@@ -283,6 +284,25 @@ describe('ChipHost', () => {
       timestamp: '2026-04-29T12:30:00.000Z',
     });
     expect(storage.getItem(CHIP_ONBOARDING_STORAGE_KEY)).toBeNull();
+  });
+
+  it('keeps onboarding helpers usable when browser storage is blocked', () => {
+    const storage = new MemoryStorage();
+    vi.spyOn(storage, 'getItem').mockImplementation(() => {
+      throw new Error('storage read blocked');
+    });
+    vi.spyOn(storage, 'setItem').mockImplementation(() => {
+      throw new Error('storage write blocked');
+    });
+    vi.spyOn(storage, 'removeItem').mockImplementation(() => {
+      throw new Error('storage removal blocked');
+    });
+
+    expect(readOnboardingSkipState(storage)).toBeNull();
+    expect(readChipIntroState(storage)).toBeNull();
+    expect(() => writeOnboardingSkipState(storage, 4)).not.toThrow();
+    expect(() => writeChipIntroState(storage, false)).not.toThrow();
+    expect(() => clearOnboardingSkipState(storage)).not.toThrow();
   });
 
   it('propagates reduced-motion rendering to Chip and the bubble', () => {

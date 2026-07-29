@@ -48,6 +48,7 @@ import { PoseEventEmitter } from '../features/companion/PoseEventEmitter';
 import { useChipEvents } from '../features/companion/useChipEvents';
 import { useChipStore } from '../features/companion/store';
 import { countPendingDecisions } from '../features/companion/decisionsPending';
+import { resolveBrowserStorage } from '../features/companion/storageBoundary';
 import { resolveWhereAmIState } from '../features/companion/whereAmI';
 import { useActiveRouteBeats } from '../features/route-coaching/useActiveRouteBeats';
 import { BootScreen } from './BootScreen';
@@ -2097,8 +2098,7 @@ export const CHIP_FRANCHISE_SETUP_STAGES: ChipHostStage[] = [
 type ChipSetupStorage = Parameters<typeof readFirstTenMinutesCompleted>[0];
 
 function resolveChipSetupStorage(): ChipSetupStorage {
-  if (typeof window === 'undefined') return null;
-  return window.localStorage;
+  return resolveBrowserStorage();
 }
 
 export function isChipNewGameSetup(storage: ChipSetupStorage = resolveChipSetupStorage()): boolean {

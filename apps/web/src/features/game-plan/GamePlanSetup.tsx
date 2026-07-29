@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { PixelBadge, PixelButton, PixelPanel, PixelProgressBar, PixelSelect, MfdTooltip } from '@mfd/design-system/components';
 import type {
   ContingencyRule,
+  OpponentIntel,
   ShotDeclaration,
   WeeklyPrepPlan,
 } from '@mfd/engine';
@@ -87,6 +88,37 @@ const PREP_EXTRA_TABS: Array<{ id: PrepExtrasTab; label: string; accent: 'gold' 
 
 const MAX_SELECTED_TRICK_PLAYS = 2;
 
+export interface RecommendedWeeklyPrepInput {
+  teamId: string;
+  opponentTeamId: string;
+  year: number;
+  week: number;
+  attackLane: OpponentIntel['attackLane'];
+  defendLane: OpponentIntel['defendLane'];
+}
+
+export function buildRecommendedWeeklyPrepPlan({
+  teamId,
+  opponentTeamId,
+  year,
+  week,
+  attackLane,
+  defendLane,
+}: RecommendedWeeklyPrepInput): WeeklyPrepPlan {
+  return {
+    teamId,
+    opponentTeamId,
+    year,
+    week,
+    offensiveFocus: attackLane === 'passing' ? 'attack_secondary' : 'attack_front',
+    defensiveFocus: defendLane === 'passing' ? 'limit_explosive' : 'stop_run',
+    practiceIntensity: 'normal',
+    keyMatchupPlayerId: null,
+    snapManagement: 'normal',
+    specialSituation: 'third_down',
+  };
+}
+
 type WeeklyPrepSourceAccent = 'default' | 'green' | 'cyan' | 'gold' | 'red';
 
 interface WeeklyPrepSourceRow {
@@ -149,7 +181,7 @@ export function buildWeeklyPrepSourceRows({
       id: 'commit-paths',
       label: 'Ways to advance',
       value: 'Save or auto',
-      detail: 'Save Weekly Prep & Sim writes the plan, opponent report, game-plan calls, and selected Call Your Shot before advancing. Auto Prep clears saved prep, saves Call Your Shot when selected, then advances.',
+      detail: 'Use Recommended loads the scout-matched draft without saving or advancing. Save Weekly Prep & Sim writes the plan, report, calls, and selected Call Your Shot. Auto Prep clears saved prep and advances with staff defaults.',
       accent: 'gold',
     },
     {
@@ -203,18 +235,17 @@ export function GamePlanSetup() {
   const coachMode = useGameStore((state) => state.game?.settings?.coachMode ?? false);
   const { advanceWeek, clearWeeklyPrepPlan, saveWeeklyPrepPlan, setCallYourShot } = useGameStore((state) => state.actions);
 
-  const defaultPlan = storedPlan ?? (team && intel ? {
-    teamId: team.id,
-    opponentTeamId: intel.opponentTeamId,
-    year,
-    week,
-    offensiveFocus: intel.attackLane === 'passing' ? 'attack_secondary' : 'attack_front',
-    defensiveFocus: intel.defendLane === 'passing' ? 'limit_explosive' : 'stop_run',
-    practiceIntensity: 'normal',
-    keyMatchupPlayerId: null,
-    snapManagement: 'normal',
-    specialSituation: 'third_down',
-  } satisfies WeeklyPrepPlan : null);
+  const recommendedPlan = team && intel
+    ? buildRecommendedWeeklyPrepPlan({
+        teamId: team.id,
+        opponentTeamId: intel.opponentTeamId,
+        year,
+        week,
+        attackLane: intel.attackLane,
+        defendLane: intel.defendLane,
+      })
+    : null;
+  const defaultPlan = storedPlan ?? recommendedPlan;
 
   const [offensiveFocus, setOffensiveFocus] = useState<WeeklyPrepPlan['offensiveFocus']>(defaultPlan?.offensiveFocus ?? 'balanced');
   const [defensiveFocus, setDefensiveFocus] = useState<WeeklyPrepPlan['defensiveFocus']>(defaultPlan?.defensiveFocus ?? 'balanced');
@@ -226,6 +257,7 @@ export function GamePlanSetup() {
   const [prepExtrasTab, setPrepExtrasTab] = useState<PrepExtrasTab>('contingencies');
   const [contingencyRules, setContingencyRules] = useState<ContingencyRule[]>(defaultPlan?.contingencyRules ?? []);
   const [selectedTrickPlays, setSelectedTrickPlays] = useState<string[]>(defaultPlan?.trickPlays ?? []);
+  const [recommendationApplied, setRecommendationApplied] = useState(false);
 
   const shotEligibility = useMemo(() => {
     const isPlayoff = (phase as string) === 'playoffs' || (phase as string) === 'super_bowl';
@@ -340,6 +372,17 @@ export function GamePlanSetup() {
     })();
   };
 
+  const handleUseRecommended = () => {
+    if (!recommendedPlan) return;
+    setOffensiveFocus(recommendedPlan.offensiveFocus);
+    setDefensiveFocus(recommendedPlan.defensiveFocus);
+    setPracticeIntensity(recommendedPlan.practiceIntensity);
+    setSnapManagement(recommendedPlan.snapManagement);
+    setSpecialSituation(recommendedPlan.specialSituation);
+    setKeyMatchupPlayerId(recommendedPlan.keyMatchupPlayerId ?? '');
+    setRecommendationApplied(true);
+  };
+
   return (
     <div style={screenStackStyle}>
       <PixelScreenHeader
@@ -388,12 +431,21 @@ export function GamePlanSetup() {
               </PixelBadge>
               <PixelBadge variant="cyan">Contingencies {contingencyRules.length}/{MAX_CONTINGENCIES}</PixelBadge>
               <PixelBadge variant="gold">Trick plays {selectedTrickPlays.length}/{MAX_SELECTED_TRICK_PLAYS}</PixelBadge>
+              {recommendationApplied ? <PixelBadge variant="green">Recommended loaded</PixelBadge> : null}
             </div>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-              Primary decision: save the weekly prep plan before advancing, or choose Auto Prep and accept the staff's default calls.
+              Use Recommended loads the scout-matched core settings for review. It preserves optional extras and does not save or advance.
             </div>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <PixelButton
+              accent="green"
+              onClick={handleUseRecommended}
+              data-mfd-use-recommended="game-plan"
+              style={{ minWidth: 150 }}
+            >
+              Use Recommended
+            </PixelButton>
             <PixelButton accent="gold" onClick={handleSkipWithAutoPrep} style={{ minWidth: 126 }}>
               Auto Prep
             </PixelButton>
@@ -456,7 +508,10 @@ export function GamePlanSetup() {
             <PixelPanel title="Offensive Focus" accent="gold" style={{ height: '100%' }}>
               <PixelSelect
                 value={offensiveFocus}
-                onChange={(event) => setOffensiveFocus(event.target.value as WeeklyPrepPlan['offensiveFocus'])}
+                onChange={(event) => {
+                  setRecommendationApplied(false);
+                  setOffensiveFocus(event.target.value as WeeklyPrepPlan['offensiveFocus']);
+                }}
                 options={offensiveOptions}
                 accent="gold"
               />
@@ -474,7 +529,10 @@ export function GamePlanSetup() {
             <PixelPanel title="Defensive Focus" accent="cyan" style={{ height: '100%' }}>
               <PixelSelect
                 value={defensiveFocus}
-                onChange={(event) => setDefensiveFocus(event.target.value as WeeklyPrepPlan['defensiveFocus'])}
+                onChange={(event) => {
+                  setRecommendationApplied(false);
+                  setDefensiveFocus(event.target.value as WeeklyPrepPlan['defensiveFocus']);
+                }}
                 options={defensiveOptions}
                 accent="cyan"
               />
@@ -492,7 +550,10 @@ export function GamePlanSetup() {
             <PixelPanel title="Practice Intensity" accent="default" style={{ height: '100%' }}>
               <PixelSelect
                 value={practiceIntensity}
-                onChange={(event) => setPracticeIntensity(event.target.value as WeeklyPrepPlan['practiceIntensity'])}
+                onChange={(event) => {
+                  setRecommendationApplied(false);
+                  setPracticeIntensity(event.target.value as WeeklyPrepPlan['practiceIntensity']);
+                }}
                 options={intensityOptions}
                 accent="default"
               />
@@ -504,7 +565,10 @@ export function GamePlanSetup() {
             <PixelPanel title="Snap Management" accent="default" style={{ height: '100%' }}>
               <PixelSelect
                 value={snapManagement}
-                onChange={(event) => setSnapManagement(event.target.value as WeeklyPrepPlan['snapManagement'])}
+                onChange={(event) => {
+                  setRecommendationApplied(false);
+                  setSnapManagement(event.target.value as WeeklyPrepPlan['snapManagement']);
+                }}
                 options={snapOptions}
                 accent="default"
               />
@@ -516,7 +580,10 @@ export function GamePlanSetup() {
             <PixelPanel title="Special Situation" accent="default" style={{ height: '100%' }}>
               <PixelSelect
                 value={specialSituation}
-                onChange={(event) => setSpecialSituation(event.target.value as WeeklyPrepPlan['specialSituation'])}
+                onChange={(event) => {
+                  setRecommendationApplied(false);
+                  setSpecialSituation(event.target.value as WeeklyPrepPlan['specialSituation']);
+                }}
                 options={specialSituationOptions}
                 accent="default"
               />
@@ -528,7 +595,10 @@ export function GamePlanSetup() {
             <PixelPanel title="Key Matchup" accent="green" style={{ height: '100%' }}>
               <PixelSelect
                 value={keyMatchupPlayerId}
-                onChange={(event) => setKeyMatchupPlayerId(event.target.value)}
+                onChange={(event) => {
+                  setRecommendationApplied(false);
+                  setKeyMatchupPlayerId(event.target.value);
+                }}
                 options={[{ value: '', label: 'No matchup emphasis' }, ...matchupOptions]}
                 accent="green"
               />

@@ -158,7 +158,7 @@ export function buildDepthChartSourceRows(
       label: 'Just viewing',
       badge: 'display only',
       accent: 'default',
-      detail: 'Opening Depth Chart does not auto-set starters, auto-assign special teams, play games, distribute snaps, change contracts, or write player history.',
+      detail: 'Opening Depth Chart does not change the lineup. Use Recommended is the explicit one-click commit for starters and special teams; it does not play games, distribute snaps, change contracts, or write player history.',
     },
   ];
 }
@@ -211,10 +211,16 @@ export function DepthChart() {
   const roster = useGameStore(selectRoster);
   const teamId = useGameStore(selectUserTeamId);
   const specialTeams = useGameStore(selectSpecialTeams);
-  const { setStarter, assignKickReturner, assignPuntReturner } = useGameStore((state) => state.actions);
+  const {
+    setStarter,
+    applyRecommendedDepthChart,
+    assignKickReturner,
+    assignPuntReturner,
+  } = useGameStore((state) => state.actions);
 
   const [side, setSide] = useState<'OFF' | 'DEF'>('OFF');
   const [selectedSlot, setSelectedSlot] = useState<PositionSlot | null>(null);
+  const [recommendationApplied, setRecommendationApplied] = useState(false);
 
   const slots = side === 'OFF' ? OFFENSE_SLOTS : DEFENSE_SLOTS;
   const battles = useMemo(() => detectPositionBattles(roster), [roster]);
@@ -249,6 +255,13 @@ export function DepthChart() {
     ? `SR ${Math.round(kicker.ratings.shortRange ?? kicker.ovr)} // MR ${Math.round(kicker.ratings.medRange ?? kicker.ovr - 5)} // LR ${Math.round(kicker.ratings.longRange ?? kicker.ovr - 10)}`
     : 'No kicker on roster';
   const punterNetAverage = punter ? (35 + ((punter.ovr ?? 70) - 60) * 0.25).toFixed(1) : '--';
+  const handleUseRecommended = () => {
+    if (!teamId) return;
+    void (async () => {
+      await applyRecommendedDepthChart(teamId);
+      setRecommendationApplied(true);
+    })();
+  };
 
   return (
     <div style={screenStackStyle}>
@@ -259,6 +272,7 @@ export function DepthChart() {
           <>
             <PixelBadge variant={starterReadout.complete ? 'green' : 'gold'}>{starterReadout.marked}/{starterReadout.target} starters</PixelBadge>
             <PixelBadge variant={injuryCount > 0 ? 'red' : 'green'}>{injuryCount} injuries</PixelBadge>
+            {recommendationApplied ? <PixelBadge variant="green">Recommended applied</PixelBadge> : null}
           </>
         )}
       />
@@ -279,6 +293,7 @@ export function DepthChart() {
           </>
         )}
         actions={[
+          { label: 'Use Recommended', accent: 'green', onClick: handleUseRecommended },
           { label: 'Offense Rooms', accent: 'cyan', onClick: () => setSide('OFF') },
           { label: 'Defense Rooms', accent: 'green', onClick: () => setSide('DEF') },
           { label: 'Open Plan', accent: 'gold', onClick: () => navigateTo('/game-plan') },
@@ -395,6 +410,7 @@ export function DepthChart() {
                 value={specialTeams.kickReturner ?? ''}
                 onChange={(event) => {
                   if (!teamId || !event.target.value) return;
+                  setRecommendationApplied(false);
                   void assignKickReturner(teamId, event.target.value);
                 }}
                 options={eligibleReturners.length > 0
@@ -419,6 +435,7 @@ export function DepthChart() {
                 value={specialTeams.puntReturner ?? ''}
                 onChange={(event) => {
                   if (!teamId || !event.target.value) return;
+                  setRecommendationApplied(false);
                   void assignPuntReturner(teamId, event.target.value);
                 }}
                 options={eligibleReturners.length > 0
@@ -490,6 +507,7 @@ export function DepthChart() {
                       accent="green"
                       onClick={() => {
                         if (!teamId) return;
+                        setRecommendationApplied(false);
                         void setStarter(teamId, player.id, true);
                       }}
                     >
@@ -501,6 +519,7 @@ export function DepthChart() {
                       accent="red"
                       onClick={() => {
                         if (!teamId) return;
+                        setRecommendationApplied(false);
                         void setStarter(teamId, player.id, false);
                       }}
                     >

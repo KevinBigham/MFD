@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   CHIP_DOCK_STORAGE_KEY,
   createDefaultDockPrefs,
@@ -109,5 +109,28 @@ describe('dockPersistence', () => {
       lastUpdated: '2026-04-29T18:05:00.000Z',
     });
     expect(readDockPrefs(storage)).toEqual(prefs);
+  });
+
+  it('keeps dock preferences usable when browser storage rejects reads and writes', () => {
+    const storage = new MemoryStorage();
+    vi.spyOn(storage, 'getItem').mockImplementation(() => {
+      throw new Error('storage read blocked');
+    });
+    vi.spyOn(storage, 'setItem').mockImplementation(() => {
+      throw new Error('storage write blocked');
+    });
+
+    expect(readDockPrefs(storage)).toEqual(createDefaultDockPrefs());
+    expect(
+      updateDockPrefs(
+        storage,
+        { collapsed: true },
+        () => new Date('2026-04-29T18:10:00.000Z'),
+      ),
+    ).toEqual({
+      ...createDefaultDockPrefs(),
+      collapsed: true,
+      lastUpdated: '2026-04-29T18:10:00.000Z',
+    });
   });
 });

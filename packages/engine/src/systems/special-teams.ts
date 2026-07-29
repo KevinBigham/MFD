@@ -18,30 +18,54 @@ export interface SimulatedSpecialTeamsResult {
   away: SimulatedSpecialTeamsSide;
 }
 
-function eligibleReturners(team: Team): Player[] {
+export interface SpecialTeamsSelectionOptions {
+  isPlayerAvailable?: (player: Player) => boolean;
+}
+
+function isSelectable(player: Player, options: SpecialTeamsSelectionOptions): boolean {
+  return options.isPlayerAvailable?.(player) ?? true;
+}
+
+function eligibleReturners(team: Team, options: SpecialTeamsSelectionOptions): Player[] {
   return team.roster
-    .filter((player) => (player.pos === 'RB' || player.pos === 'WR') && (player.ratings.speed ?? player.ovr) > 75)
+    .filter((player) =>
+      isSelectable(player, options)
+      && (player.pos === 'RB' || player.pos === 'WR')
+      && (player.ratings.speed ?? player.ovr) > 75)
     .sort((a, b) =>
       (b.ratings.speed ?? b.ovr) - (a.ratings.speed ?? a.ovr) ||
       b.ovr - a.ovr ||
       a.id.localeCompare(b.id));
 }
 
-function coverageUnit(team: Team): Player[] {
+function coverageUnit(team: Team, options: SpecialTeamsSelectionOptions = {}): Player[] {
   return team.roster
-    .filter((player) => ['DL', 'LB', 'CB', 'S'].includes(player.pos))
-    .sort((a, b) => b.ovr - a.ovr || a.id.localeCompare(b.id))
+    .filter((player) => isSelectable(player, options) && ['DL', 'LB', 'CB', 'S'].includes(player.pos))
+    .sort((a, b) =>
+      b.ovr - a.ovr ||
+      a.id.localeCompare(b.id))
     .slice(0, 6);
+}
+
+function isInjuryAvailable(player: Player): boolean {
+  return !player.injury
+    || (
+      player.injury.gamesOut <= 0
+      && player.injury.severity !== 'out'
+      && player.injury.severity !== 'ir'
+    );
 }
 
 function awarenessScore(player: Player): number {
   return (player.ratings.awareness ?? player.ovr) + player.ovr * 0.35;
 }
 
-function selectLongSnapper(team: Team): Player | null {
+function selectLongSnapper(team: Team, options: SpecialTeamsSelectionOptions): Player | null {
   return team.roster
-    .filter((player) => player.pos === 'OL' || player.pos === 'TE')
-    .sort((a, b) => awarenessScore(b) - awarenessScore(a) || a.id.localeCompare(b.id))[0] ?? null;
+    .filter((player) => isSelectable(player, options) && (player.pos === 'OL' || player.pos === 'TE'))
+    .sort((a, b) =>
+      awarenessScore(b) - awarenessScore(a) ||
+      a.id.localeCompare(b.id))[0] ?? null;
 }
 
 function resolvePlayer(team: Team, playerId: string | null): Player | null {
@@ -49,11 +73,18 @@ function resolvePlayer(team: Team, playerId: string | null): Player | null {
   return team.roster.find((player) => player.id === playerId) ?? null;
 }
 
+function resolveAvailablePlayer(team: Team, playerId: string | null): Player | null {
+  const player = resolvePlayer(team, playerId);
+  return player && isInjuryAvailable(player) ? player : null;
+}
+
 function averageCoverage(team: Team, unitIds: string[]): number {
   const unit = unitIds
     .map((playerId) => resolvePlayer(team, playerId))
-    .filter((player): player is Player => Boolean(player));
-  const players = unit.length > 0 ? unit : coverageUnit(team);
+    .filter((player): player is Player => player !== null && isInjuryAvailable(player));
+  const players = unit.length > 0
+    ? unit
+    : coverageUnit(team, { isPlayerAvailable: isInjuryAvailable });
   if (players.length === 0) return 70;
   return players.reduce((total, player) => total + player.ovr, 0) / players.length;
 }
@@ -77,8 +108,8 @@ function punterNetAverage(team: Team): number {
 }
 
 function summarizeSide(team: Team, returnerId: string | null, puntReturnerId: string | null, opponentCoverage: number, random: RandomFn): SimulatedSpecialTeamsSide {
-  const kickReturner = resolvePlayer(team, returnerId);
-  const puntReturner = resolvePlayer(team, puntReturnerId);
+  const kickReturner = resolveAvailablePlayer(team, returnerId);
+  const puntReturner = resolveAvailablePlayer(team, puntReturnerId);
   const kickReturn = calculateReturnYards(kickReturner, opponentCoverage, random);
   const puntReturn = calculateReturnYards(puntReturner, opponentCoverage + 3, random);
   const touchbackRate = kickerTouchbackRate(team);
@@ -110,10 +141,13 @@ export function createDefaultSpecialTeamsState(): SpecialTeamsState {
   };
 }
 
-export function buildSpecialTeamsState(team: Team): SpecialTeamsState {
-  const speedsters = eligibleReturners(team);
-  const longSnapper = selectLongSnapper(team);
-  const kickCoverage = coverageUnit(team).map((player) => player.id);
+export function buildSpecialTeamsState(
+  team: Team,
+  options: SpecialTeamsSelectionOptions = {},
+): SpecialTeamsState {
+  const speedsters = eligibleReturners(team, options);
+  const longSnapper = selectLongSnapper(team, options);
+  const kickCoverage = coverageUnit(team, options).map((player) => player.id);
 
   return {
     kickReturner: speedsters[0]?.id ?? null,

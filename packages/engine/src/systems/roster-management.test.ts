@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { Player, Position } from '../types';
 import { makeContract } from './contracts';
-import { buildCutAdvisor, detectPositionBattles } from './roster-management';
-import { makePlayer } from './test-helpers';
+import {
+  applyRecommendedDepthChart,
+  buildCutAdvisor,
+  buildRecommendedStarterIds,
+  detectPositionBattles,
+  STARTER_SLOTS,
+} from './roster-management';
+import { makeLeagueState, makePlayer } from './test-helpers';
 
 function makeRosterPlayer(
   id: string,
@@ -30,6 +36,109 @@ function makeBoundaryGroup(pos: Position, slots: number): Player[] {
 }
 
 describe('roster-management direct coverage', () => {
+  it('builds a deterministic legal recommendation that benches unavailable players', () => {
+    const healthy = makeRosterPlayer('qb-healthy', 'QB', 82, { isStarter: false });
+    healthy.systemFit = 75;
+    const injured = makeRosterPlayer('qb-injured', 'QB', 95);
+    injured.injury = {
+      id: 'qb-injury',
+      type: 'knee',
+      severity: 'out',
+      severityTier: 'severe',
+      gamesOut: 3,
+      gamesRecovered: 0,
+      reinjuryRisk: 0.2,
+      affectedRatings: [],
+      ratingPenalty: 8,
+      onIR: false,
+    };
+    const wrFit = makeRosterPlayer('wr-fit', 'WR', 80, { isStarter: false });
+    wrFit.systemFit = 90;
+    const wrTie = makeRosterPlayer('wr-tie', 'WR', 80, { isStarter: true });
+    wrTie.systemFit = 70;
+    const wrTop = makeRosterPlayer('wr-top', 'WR', 88, { isStarter: false });
+    const wrFourth = makeRosterPlayer('wr-fourth', 'WR', 77, { isStarter: true });
+
+    const first = buildRecommendedStarterIds([injured, wrFourth, wrTie, healthy, wrFit, wrTop]);
+    const second = buildRecommendedStarterIds([wrTop, healthy, wrFit, injured, wrTie, wrFourth]);
+
+    expect(first).toEqual(second);
+    expect(first).toContain('qb-healthy');
+    expect(first).not.toContain('qb-injured');
+    expect(first.filter((id) => id.startsWith('wr-'))).toEqual(['wr-top', 'wr-fit', 'wr-tie']);
+  });
+
+  it('uses stable player id as the final recommendation tiebreak', () => {
+    const tiedReceivers = ['wr-zulu', 'wr-alpha', 'wr-mike', 'wr-bravo'].map((id) => {
+      const player = makeRosterPlayer(id, 'WR', 80, { isStarter: false });
+      player.systemFit = 75;
+      return player;
+    });
+
+    expect(buildRecommendedStarterIds(tiedReceivers)).toEqual([
+      'wr-alpha',
+      'wr-bravo',
+      'wr-mike',
+    ]);
+  });
+
+  it('applies recommended starters and special teams to roster and player mirrors', () => {
+    const game = makeLeagueState();
+    const team = Object.values(game.teams).find((entry) => entry.isUser)!;
+    const expectedStarterCount = Object.entries(STARTER_SLOTS).reduce(
+      (total, [position, slots]) =>
+        total + Math.min(slots, team.roster.filter((player) => player.pos === position).length),
+      0,
+    );
+
+    const result = applyRecommendedDepthChart(game, team.id);
+    const selected = new Set(result.starterIds);
+
+    expect(result.starterIds).toHaveLength(expectedStarterCount);
+    expect(team.roster.every((player) => player.isStarter === selected.has(player.id))).toBe(true);
+    expect(team.roster.every((player) => game.players[player.id]?.isStarter === player.isStarter)).toBe(true);
+    expect(result.specialTeams).toEqual(team.specialTeams);
+    expect(result.specialTeams.longSnapper).not.toBeNull();
+  });
+
+  it('keeps unavailable stars out of recommended return and coverage units', () => {
+    const game = makeLeagueState();
+    const team = Object.values(game.teams).find((entry) => entry.isUser)!;
+    const unavailableReturner = team.roster.find((player) => player.pos === 'WR')!;
+    const unavailableCoverage = team.roster.find((player) => player.pos === 'CB')!;
+    const unavailableSnapper = team.roster.find((player) => player.pos === 'OL')!;
+    const unavailablePlayers = [
+      unavailableReturner,
+      unavailableCoverage,
+      unavailableSnapper,
+    ];
+    for (const player of unavailablePlayers) {
+      player.ovr = 99;
+      player.ratings.speed = 99;
+      player.ratings.awareness = 99;
+      player.injury = {
+        id: `${player.id}-injury`,
+        type: 'knee',
+        severity: 'out',
+        severityTier: 'severe',
+        gamesOut: 4,
+        gamesRecovered: 0,
+        reinjuryRisk: 0.2,
+        affectedRatings: [],
+        ratingPenalty: 8,
+        onIR: false,
+      };
+    }
+
+    const result = applyRecommendedDepthChart(game, team.id);
+
+    expect(result.specialTeams.kickReturner).not.toBe(unavailableReturner.id);
+    expect(result.specialTeams.puntReturner).not.toBe(unavailableReturner.id);
+    expect(result.specialTeams.kickCoverageUnit).not.toContain(unavailableCoverage.id);
+    expect(result.specialTeams.puntCoverageUnit).not.toContain(unavailableCoverage.id);
+    expect(result.specialTeams.longSnapper).not.toBe(unavailableSnapper.id);
+  });
+
   it.each([
     ['WR', 3, 'WR3 Spot'],
     ['OL', 5, 'OL5 Spot'],

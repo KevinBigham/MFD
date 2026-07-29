@@ -13,6 +13,7 @@ import {
   ONBOARDING_REVEAL_TOTAL_MS,
   getOnboardingRevealFrame,
 } from './onboardingReveal';
+import { resolveBrowserStorage } from './storageBoundary';
 
 export const CHIP_ONBOARDING_STORAGE_KEY = 'mfd.chip.onboarding';
 export const CHIP_INTRO_STORAGE_KEY = 'mfd.chip.intro.v1';
@@ -105,13 +106,17 @@ export function resolveChipHostSpotlightTarget({
 }
 
 function resolveStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
-  return window.localStorage ?? null;
+  return resolveBrowserStorage();
 }
 
 export function readOnboardingSkipState(storage: Storage | null = resolveStorage()): ChipOnboardingSkipState | null {
   if (!storage) return null;
-  const raw = storage.getItem(CHIP_ONBOARDING_STORAGE_KEY);
+  let raw: string | null;
+  try {
+    raw = storage.getItem(CHIP_ONBOARDING_STORAGE_KEY);
+  } catch {
+    return null;
+  }
   if (!raw) return null;
 
   try {
@@ -132,7 +137,12 @@ export function readOnboardingSkipState(storage: Storage | null = resolveStorage
 
 export function readChipIntroState(storage: Storage | null = resolveStorage()): ChipIntroState | null {
   if (!storage) return null;
-  const raw = storage.getItem(CHIP_INTRO_STORAGE_KEY);
+  let raw: string | null;
+  try {
+    raw = storage.getItem(CHIP_INTRO_STORAGE_KEY);
+  } catch {
+    return null;
+  }
   if (!raw) return null;
 
   try {
@@ -157,7 +167,11 @@ export function writeOnboardingSkipState(storage: Storage | null, lastBeat: numb
     lastBeat,
     timestamp: timestamp.toISOString(),
   };
-  storage.setItem(CHIP_ONBOARDING_STORAGE_KEY, JSON.stringify(payload));
+  try {
+    storage.setItem(CHIP_ONBOARDING_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // The in-memory onboarding state still advances when storage is blocked.
+  }
 }
 
 export function writeChipIntroState(storage: Storage | null, skipped: boolean, timestamp = new Date()): void {
@@ -167,7 +181,20 @@ export function writeChipIntroState(storage: Storage | null, skipped: boolean, t
     skipped,
     timestamp: timestamp.toISOString(),
   };
-  storage.setItem(CHIP_INTRO_STORAGE_KEY, JSON.stringify(payload));
+  try {
+    storage.setItem(CHIP_INTRO_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // The current session remains usable when storage is blocked.
+  }
+}
+
+export function clearOnboardingSkipState(storage: Storage | null): void {
+  if (!storage) return;
+  try {
+    storage.removeItem(CHIP_ONBOARDING_STORAGE_KEY);
+  } catch {
+    // Ask Chip can still restore the current session when storage is blocked.
+  }
 }
 
 export function replayOnboardingBeat(
@@ -537,7 +564,7 @@ export function ChipHost({
   }, []);
 
   const restoreChip = useCallback(() => {
-    backingStorage?.removeItem(CHIP_ONBOARDING_STORAGE_KEY);
+    clearOnboardingSkipState(backingStorage);
     setSkipOverride(true);
     setDismissed(false);
     useChipStore.getState().showDialogue(currentDialogue.id, {
