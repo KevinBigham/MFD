@@ -7,6 +7,7 @@ import {
   selectFarewellCandidates,
   selectFarewellTours,
   selectDraftRecaps,
+  selectLivingPlayerStory,
   selectPlayerProfileBundle,
   selectPlayerRivalries,
   selectTeamById,
@@ -24,6 +25,7 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 import { buildPlayerTransactionMemoryRows, type PlayerTransactionMemoryRow } from '../shared/playerTransactionMemory';
+import { LivingPlayerStoryPanel } from '../shared/LivingPlayerStoryPanel';
 
 function chartPoints(entries: Array<{ age: number; ovr: number }>) {
   if (entries.length <= 1) {
@@ -115,6 +117,19 @@ interface FarewellTourStartReceipt {
   context: string;
   result: string;
   source: string;
+}
+
+function playerDisplayName(player: {
+  id: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+}): string {
+  const savedName = player.name?.trim();
+  if (savedName) return savedName;
+
+  const composedName = `${player.firstName ?? ''} ${player.lastName ?? ''}`.trim();
+  return composedName || player.id;
 }
 
 function pluralize(count: number, singular: string): string {
@@ -319,7 +334,7 @@ function buildPlayerSignatureMomentRows(
       headline: 'Lineage Link',
       badge: parentEntry.name,
       timeLabel: `Peak ${parentEntry.peakYear}`,
-      detail: `Bloodline archive links ${profile.player.name} to ${parentEntry.positions.join('/')} legacy context.`,
+      detail: `Bloodline archive links ${playerDisplayName(profile.player)} to ${parentEntry.positions.join('/')} legacy context.`,
       accent: 'gold',
     });
   }
@@ -382,6 +397,7 @@ export function FarewellTourStartReceiptPanel({ receipt }: { receipt: FarewellTo
 export function PlayerProfile() {
   const { playerId } = useParams({ from: '/player/$playerId' });
   const bundle = useGameStore(selectPlayerProfileBundle(playerId));
+  const livingPlayerStory = useGameStore(selectLivingPlayerStory(playerId));
   const team = useGameStore(selectTeamById(bundle?.profile.player.teamId ?? ''));
   const rivalries = useGameStore(selectPlayerRivalries(playerId));
   const farewellCandidates = useGameStore(selectFarewellCandidates);
@@ -411,6 +427,7 @@ export function PlayerProfile() {
 
   const { profile, value, comparables, projection } = bundle;
   const player = profile.player;
+  const playerName = playerDisplayName(player);
   const memoryCards = buildPlayerMemoryCards(profile, rivalries);
   const transactionMemoryRows = buildPlayerTransactionMemoryRows(transactionLog, player.id, teamsById);
   const hasFarewellTour = farewellTours.some((tour) => tour.playerId === player.id);
@@ -432,7 +449,7 @@ export function PlayerProfile() {
       await startFarewellTour(player.id);
       setFarewellTourReceipt(buildFarewellTourStartReceipt({
         playerId: player.id,
-        playerName: player.name,
+        playerName,
         position: player.pos,
         ovr: player.ovr,
         teamName: team ? `${team.city} ${team.name}` : 'Current team',
@@ -447,7 +464,7 @@ export function PlayerProfile() {
   return (
     <div style={screenStackStyle}>
       <PixelScreenHeader
-        title={player.name}
+        title={playerName}
         subtitle={`${player.pos} // ${team ? `${team.city} ${team.name}` : 'Free Agent'} // age ${player.age} // jersey #${player.jerseyNumber || '--'}`}
         badges={(
           <>
@@ -478,6 +495,13 @@ export function PlayerProfile() {
           ))}
         </div>
       </PixelPanel>
+
+      {livingPlayerStory ? (
+        <LivingPlayerStoryPanel
+          story={livingPlayerStory}
+          onOpenTimeline={() => { void navigate({ to: `/player/${player.id}/timeline` }); }}
+        />
+      ) : null}
 
       <PixelPanel title="Signature Moments" accent={signatureMomentRows.length > 0 ? 'gold' : 'cyan'}>
         {signatureMomentRows.length > 0 ? (

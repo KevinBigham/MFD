@@ -729,6 +729,22 @@ export function rebuildMemoryGraph(game: GameState): DynastyMemoryGraph {
       }
     }
   }
+  for (const thread of game.storylineThreads ?? []) {
+    const eventRefs = thread.beats.map((beat, index) =>
+      `storyline:${thread.id}:${beat.year}:${beat.weekNumber}:${index}`);
+    for (const playerId of thread.playerIds) {
+      const player = game.players[playerId];
+      const label = player ? `${player.firstName} ${player.lastName}`.trim() || playerId : playerId;
+      const personId = `person:${playerId}`;
+      const existing = nodes.get(personId);
+      nodes.set(personId, {
+        id: personId,
+        kind: 'person',
+        label,
+        eventRefs: [...new Set([...(existing?.eventRefs ?? []), ...eventRefs])],
+      });
+    }
+  }
   for (const rivalry of game.leagueRivalries ?? []) {
     const rivalryId = `rivalry:${rivalry.id}`;
     const teamIds = [rivalry.teamA, rivalry.teamB];

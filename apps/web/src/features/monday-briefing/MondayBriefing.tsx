@@ -40,6 +40,7 @@ import {
   selectLatestFilmRoomReport,
   selectLatestSummary,
   selectLeagueNews,
+  selectUserLivingPlayerStories,
   selectNarrativeIntensity,
   selectOwnerState,
   selectOwnerMandates,
@@ -76,6 +77,7 @@ import {
   screenStackStyle,
 } from '../shared/pixelUi';
 import { TeamLogo } from '../shared/TeamLogo';
+import { LivingPlayerStoryPanel } from '../shared/LivingPlayerStoryPanel';
 import { isChipFeatureEnabled } from '../companion';
 import { selectWeeklyDialogue, type WeeklyDialogueVariant } from '../companion/dialogue/weekly';
 import type { DialogueCatalogEntry } from '../companion/dialogue/types';
@@ -712,6 +714,7 @@ export function MondayBriefing() {
   const weather = useGameStore(selectWeather);
   const conditionalPicks = useGameStore(selectConditionalPicks);
   const leagueNews = useGameStore(selectLeagueNews);
+  const livingPlayerStories = useGameStore(selectUserLivingPlayerStories);
   const trainingAssignments = useGameStore(selectTrainingAssignments);
   const playoffPicture = useGameStore(selectPlayoffPicture);
   const fatigueReport = useGameStore(selectFatigueReport);
@@ -1407,6 +1410,7 @@ export function MondayBriefing() {
     })
     : [];
   const memoryDigest = game && team ? buildDynastyMemoryDigest(game, team.id) : null;
+  const featuredPlayerStory = livingPlayerStories[0] ?? null;
   const sessionRecapDynastyId = useMemo(() => {
     if (!game) return null;
     try {
@@ -1590,6 +1594,16 @@ export function MondayBriefing() {
             <div style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>{`${memoryDigest.sourceNodeIds.length} memory graph source${memoryDigest.sourceNodeIds.length === 1 ? '' : 's'}`}</div>
           </div>
         </PixelPanel>
+      ) : null}
+
+      {featuredPlayerStory ? (
+        <LivingPlayerStoryPanel
+          story={featuredPlayerStory}
+          title="Chip's Living Player Story"
+          chipLine={`Chip: Open ${featuredPlayerStory.playerName}'s Profile or Timeline to follow the whole climb. ${featuredPlayerStory.nextBeatHint ?? 'This chapter is now part of the franchise legacy.'}`}
+          onOpenProfile={() => navigateTo(`/player/${featuredPlayerStory.playerId}`)}
+          onOpenTimeline={() => navigateTo(`/player/${featuredPlayerStory.playerId}/timeline`)}
+        />
       ) : null}
 
       {teamOpsReceipt ? (

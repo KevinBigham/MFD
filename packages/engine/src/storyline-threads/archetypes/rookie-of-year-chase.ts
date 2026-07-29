@@ -32,19 +32,37 @@ function nextHint(beatIndex: number): string | null {
 }
 
 function seasonScore(player: Player): number {
+  const stats = player.stats;
   return (
-    player.stats.passYds / 25
-    + player.stats.passTD * 4
-    - player.stats.passINT * 3
-    + player.stats.rushYds / 10
-    + player.stats.rushTD * 6
-    + player.stats.recYds / 10
-    + player.stats.recTD * 6
-    + player.stats.tackles * 0.4
-    + player.stats.sacks * 4
-    + player.stats.defINT * 5
-    + player.stats.fgMade * 3
+    Number(stats?.passYds ?? 0) / 25
+    + Number(stats?.passTD ?? 0) * 4
+    - Number(stats?.passINT ?? 0) * 3
+    + Number(stats?.rushYds ?? 0) / 10
+    + Number(stats?.rushTD ?? 0) * 6
+    + Number(stats?.recYds ?? 0) / 10
+    + Number(stats?.recTD ?? 0) * 6
+    + Number(stats?.tackles ?? 0) * 0.4
+    + Number(stats?.sacks ?? 0) * 4
+    + Number(stats?.defINT ?? 0) * 5
+    + Number(stats?.fgMade ?? 0) * 3
   );
+}
+
+function mentoringPairFor(state: GameState, playerId: string) {
+  return Object.values(state.teams)
+    .flatMap((team) => team.mentoringPairs ?? [])
+    .find((pair) => pair.menteeId === playerId) ?? null;
+}
+
+function mentorLead(mentorName: string | null): string {
+  return mentorName ? `With ${mentorName}'s guidance, ` : '';
+}
+
+function playerDisplayName(player: Player | undefined): string {
+  if (!player) return 'The rookie';
+  const savedName = player.name?.trim();
+  if (savedName) return savedName;
+  return `${player.firstName ?? ''} ${player.lastName ?? ''}`.trim() || player.id;
 }
 
 function appendBeat(thread: StorylineThread, label: string, summary: string, year: number, weekNumber: number): StorylineThread {
@@ -72,20 +90,26 @@ export function seedRookieOfYearThreads(state: GameState, weekNumber: number): S
       const score = seasonScore(player);
       const threshold = THRESHOLD_BY_POSITION[player.pos];
       if (score < threshold) return [];
+      const mentoringPair = mentoringPairFor(state, player.id);
+      const lead = mentorLead(mentoringPair?.mentorName ?? null);
+      const playerName = playerDisplayName(player);
 
       return [{
         key: `rookie-of-year-chase|${state.year}|${player.id}`,
-        title: `${player.name} has entered the ROY chase`,
-        summary: `${player.name} is carrying a Rookie of the Year pace with a ${score.toFixed(1)} impact score through week ${weekNumber}.`,
+        title: `${playerName} has entered the ROY chase`,
+        summary: `${lead}${playerName} is carrying a Rookie of the Year pace with a ${score.toFixed(1)} impact score through week ${weekNumber}.`,
         teamIds: player.teamId ? [player.teamId] : [],
         playerIds: [player.id],
         heat: clampHeat(45 + (score - threshold) / 3),
         nextBeatHint: nextHint(0),
         metadata: {
           playerId: player.id,
-          playerName: player.name,
+          playerName,
           score: Number(score.toFixed(1)),
           pos: player.pos,
+          mentorId: mentoringPair?.mentorId ?? null,
+          mentorName: mentoringPair?.mentorName ?? null,
+          mentorBonus: mentoringPair?.bonus ?? null,
         },
       }];
     });
@@ -94,13 +118,19 @@ export function seedRookieOfYearThreads(state: GameState, weekNumber: number): S
 export function evolveRookieOfYearThread(thread: StorylineThread, state: GameState, weekNumber: number): StorylineThread {
   const player = state.players[thread.playerIds[0] ?? ''];
   const score = player ? seasonScore(player) : Number(thread.metadata['score'] ?? 0);
+  const playerName = player
+    ? playerDisplayName(player)
+    : String(thread.metadata['playerName'] ?? 'The rookie');
+  const mentorName = typeof thread.metadata['mentorName'] === 'string'
+    ? thread.metadata['mentorName']
+    : null;
   const nextIndex = Math.min(thread.beatIndex + 1, BEATS.length - 1);
   const label = BEATS[nextIndex] ?? BEATS.at(-1)!;
   const summary = nextIndex === 1
-    ? `${player?.name ?? 'The rookie'} is now showing up in the league-wide power-ranking spotlight.`
+    ? `${mentorLead(mentorName)}${playerName} is now showing up in the league-wide power-ranking spotlight.`
     : nextIndex === 2
-      ? `${player?.name ?? 'The rookie'} has become a real mid-season favorite in the ROY race.`
-      : `${player?.name ?? 'The rookie'} is making a late closing argument with every box score.`;
+      ? `${playerName} is stepping out of ${mentorName ? `${mentorName}'s shadow` : 'the prospect label'} as a real mid-season ROY favorite.`
+      : `${playerName} is turning ${mentorName ? `${mentorName}'s veteran lessons` : 'a breakout season'} into a late closing argument.`;
 
   const advanced = appendBeat(thread, label, summary, state.year, weekNumber);
   return {
@@ -118,7 +148,11 @@ export function evolveRookieOfYearThread(thread: StorylineThread, state: GameSta
 export function closeRookieOfYearThread(thread: StorylineThread, state: GameState): StorylineThread {
   if (thread.status === 'closed' || state.phase === 'regular_season') return thread;
   const playerName = String(thread.metadata['playerName'] ?? 'The rookie');
-  const summary = `${playerName}'s Rookie of the Year case is now complete with the regular season in the books.`;
+  const mentorName = typeof thread.metadata['mentorName'] === 'string'
+    ? thread.metadata['mentorName']
+    : null;
+  const mentorLine = mentorName ? ` The season began under ${mentorName}'s wing and ended with a legacy case of its own.` : '';
+  const summary = `${playerName}'s Rookie of the Year case is now complete with the regular season in the books.${mentorLine}`;
   const latest = thread.beats[thread.beats.length - 1];
   const beats = latest?.label === 'closing argument' && latest.summary === summary
     ? thread.beats

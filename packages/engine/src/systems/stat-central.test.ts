@@ -5,6 +5,7 @@ import {
   getLeagueAverages,
   getPlayerCareerTimeline,
   getPositionRankings,
+  SaveStateSchema,
   getStatLeaderboard,
   getTeamSeasonHistory,
 } from '../index';
@@ -103,6 +104,19 @@ describe('stat central', () => {
 
     expect(timeline.seasons[0]?.awards).toContain('MVP');
     expect(timeline.seasons[0]?.highlights).toContain('Single-season Pass Yards record');
+  });
+
+  it('builds a timeline from the normalized loaded-save player shape', () => {
+    const game = makeLeagueState('regular_season', 10);
+    const receiver = game.teams.afce1.roster.find((player) => player.pos === 'WR')!;
+    const expectedName = `${receiver.firstName} ${receiver.lastName}`;
+    const loaded = SaveStateSchema.parse(structuredClone(game));
+
+    const timeline = getPlayerCareerTimeline(loaded as unknown as typeof game, receiver.id);
+
+    expect(timeline.playerName).toBe(expectedName);
+    expect(timeline.seasons).toHaveLength(1);
+    expect(timeline.seasons[0]?.stats.gamesPlayed).toBe(0);
   });
 
   it('compares multiple careers and exposes peak stat leaders', () => {

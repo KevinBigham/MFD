@@ -87,6 +87,29 @@ const mockState = {
     steals: [],
     leagueHighlights: [],
   }],
+  livingPlayerStory: {
+    playerId: 'p-1',
+    playerName: 'Ace Cannon',
+    teamId: 'user',
+    stage: 'legacy',
+    status: 'archived',
+    headline: 'Ace Cannon completed the climb',
+    summary: 'A breakout season became league history.',
+    heat: 90,
+    mentor: { playerId: 'mentor-1', name: 'Coach Cannon', positionGroup: 'QB', year: 2027, bonus: 2 },
+    activeThreadId: null,
+    nextBeatHint: null,
+    chapters: [{
+      id: 'award-1',
+      source: 'award',
+      year: 2030,
+      week: null,
+      label: 'League MVP',
+      summary: 'Ace Cannon won League MVP.',
+      sourceRef: 'awardsHistory:2030:mvp:p-1',
+    }],
+    sourceRefs: ['awardsHistory:2030:mvp:p-1'],
+  },
 };
 
 vi.mock('@tanstack/react-router', () => ({
@@ -99,6 +122,7 @@ vi.mock('../../app/store/game-store', () => ({
   selectDraftRecaps: (state: typeof mockState) => state.draftRecaps,
   selectTeams: (state: typeof mockState) => state.teams,
   selectTransactionLog: (state: typeof mockState) => state.transactionLog,
+  selectLivingPlayerStory: () => (state: typeof mockState) => state.livingPlayerStory,
   usePlayerTimeline: () => () => mockTimeline,
 }));
 
@@ -114,6 +138,9 @@ describe('PlayerTimeline', () => {
     expect(markup).toContain('ACE CANNON');
     expect(markup).toContain('OVR ARC');
     expect(markup).toContain('Career OVR progression');
+    expect(markup).toContain('LIVING PLAYER STORY');
+    expect(markup).toContain('Ace Cannon completed the climb');
+    expect(markup).toContain('Open Profile');
   });
 
   it('labels timeline sources without implying render-time writes', () => {

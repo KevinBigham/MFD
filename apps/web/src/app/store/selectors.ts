@@ -46,6 +46,7 @@ import type {
   LeagueRuleHistoryGroup,
   LeagueRules,
   LockerRoomState,
+  LivingPlayerStory,
   LeagueRivalry,
   MentoringPair,
   MedicalStaff,
@@ -121,6 +122,8 @@ import {
   buildDraftWarRoomState,
   buildFATargetBoard,
   buildLeagueAverageByGroup,
+  buildLivingPlayerStories,
+  buildLivingPlayerStory,
   buildMultiYearProjection,
   buildOpponentIntel,
   buildPlayerProfile,
@@ -283,6 +286,7 @@ const EMPTY_DYNASTY_EVENTS: DynastyEvent[] = [];
 const EMPTY_HALL_OF_FAME: HallOfFameEntry[] = [];
 const EMPTY_POWER_RANKINGS: PowerRanking[] = [];
 const EMPTY_STORYLINE_THREADS: StorylineThread[] = [];
+const EMPTY_LIVING_PLAYER_STORIES: LivingPlayerStory[] = [];
 const EMPTY_MENTORING: MentoringPair[] = [];
 const EMPTY_OFF_FIELD_EVENTS: OffFieldEvent[] = [];
 const EMPTY_PRESS_CONFERENCES: PressConference[] = [];
@@ -1028,6 +1032,13 @@ export const selectHallOfFame = (state: GameStoreState): HallOfFameEntry[] => st
 export const selectRecords = (state: GameStoreState): RecordBook => state.game?.records ?? EMPTY_RECORD_BOOK;
 export const selectPowerRankings = (state: GameStoreState): PowerRanking[] => state.game?.powerRankings ?? EMPTY_POWER_RANKINGS;
 export const selectStorylineThreads = (state: GameStoreState): StorylineThread[] => state.game?.storylineThreads ?? EMPTY_STORYLINE_THREADS;
+export const selectLivingPlayerStory = memoParamByGame((playerId: string, state: GameStoreState): LivingPlayerStory | null =>
+  state.game ? buildLivingPlayerStory(state.game, playerId) : null);
+export const selectUserLivingPlayerStories: (state: GameStoreState) => LivingPlayerStory[] = memoByGame((state) => {
+  if (!state.game) return EMPTY_LIVING_PLAYER_STORIES;
+  const team = selectUserTeam(state);
+  return team ? buildLivingPlayerStories(state.game, team.id) : EMPTY_LIVING_PLAYER_STORIES;
+});
 export const selectOffFieldEvents = (state: GameStoreState): OffFieldEvent[] => state.game?.offFieldEvents ?? EMPTY_OFF_FIELD_EVENTS;
 export const selectRecentPressConferences = (state: GameStoreState): PressConference[] => state.game?.recentPressConferences ?? EMPTY_PRESS_CONFERENCES;
 export const selectLeagueRivalries = (state: GameStoreState): LeagueRivalry[] => state.game?.leagueRivalries ?? EMPTY_LEAGUE_RIVALRIES;
