@@ -413,6 +413,29 @@ const mockState: any = {
     },
   ],
   tradeOffers: [],
+  livingPlayerStories: [{
+    playerId: 'p1',
+    playerName: 'Jay Stone',
+    teamId: 'team-1',
+    stage: 'breakout',
+    status: 'active',
+    headline: 'Jay Stone has entered the MVP chase',
+    summary: 'The apprentice is now a league-wide name.',
+    heat: 78,
+    mentor: { playerId: 'mentor-qb', name: 'Ari Legacy', positionGroup: 'QB', year: 2028, bonus: 3 },
+    activeThreadId: 'storyline-1',
+    nextBeatHint: 'Next beat: closing argument.',
+    chapters: [{
+      id: 'chapter-1',
+      source: 'mentorship',
+      year: 2028,
+      week: null,
+      label: 'The apprenticeship',
+      summary: 'Ari Legacy took Jay Stone under his wing.',
+      sourceRef: 'mentoringPair:team-1:2028:mentor-qb:p1',
+    }],
+    sourceRefs: ['mentoringPair:team-1:2028:mentor-qb:p1'],
+  }],
   statLeaders: {
     passYds: [{ name: 'Jay Stone', value: 3810 }],
     rushYds: [{ name: 'Rick Mason', value: 1264 }],
@@ -467,6 +490,7 @@ vi.mock('../../app/store/game-store', () => ({
   selectTeamSchedule: (state: typeof mockState) => state.teamSchedule,
   selectStatLeaders: (state: typeof mockState) => state.statLeaders,
   selectTradeOffers: (state: typeof mockState) => state.tradeOffers,
+  selectUserLivingPlayerStories: (state: typeof mockState) => state.livingPlayerStories,
 }));
 
 describe('MondayBriefing', () => {
@@ -536,6 +560,10 @@ describe('MondayBriefing', () => {
     expect(markup).toContain('Austin hires Mason Pike to run the sideline.');
     expect(markup).toContain('Narrative hot');
     expect(markup).toContain('Dynasty 19');
+    expect(markup).toContain("CHIP&#x27;S LIVING PLAYER STORY");
+    expect(markup).toContain('Mentor: Ari Legacy');
+    expect(markup).toContain('Chip: Open Jay Stone');
+    expect(markup).toContain('Open Timeline');
   });
 
   it('hides dynasty history when no saved callback receipts exist', () => {

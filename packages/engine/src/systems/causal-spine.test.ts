@@ -228,6 +228,44 @@ describe('canonical causal spine', () => {
     ]));
   });
 
+  it('connects saved storyline beats to the player memory node', () => {
+    const game = makeLeagueState();
+    const player = game.teams.afce1!.roster[0]!;
+    game.storylineThreads = [{
+      id: `storyline|records-chase|${game.year}|${player.id}`,
+      key: `records-chase|${game.year}|${player.id}`,
+      archetype: 'records-chase',
+      title: `${player.name} is chasing history`,
+      summary: 'The record is within reach.',
+      teamIds: ['afce1'],
+      playerIds: [player.id],
+      startWeek: 8,
+      startYear: game.year,
+      weeksActive: 1,
+      status: 'active',
+      beats: [{
+        label: 'record watch',
+        summary: 'The chase reached the national conversation.',
+        weekNumber: 8,
+        year: game.year,
+      }],
+      heat: 74,
+      nextBeatHint: 'Next beat: record pace update.',
+      beatIndex: 0,
+      updatedWeek: 8,
+      updatedYear: game.year,
+      closeReason: null,
+      metadata: {},
+    }];
+
+    const graph = rebuildMemoryGraph(game);
+    const person = graph.nodes.find((node) => node.id === `person:${player.id}`);
+
+    expect(person?.eventRefs).toContain(
+      `storyline:${game.storylineThreads[0]!.id}:${game.year}:8:0`,
+    );
+  });
+
   it('authors previously-on, anniversary, retrospective, and season documentary copy from saved memory nodes', () => {
     const game = makeLeagueState();
     const [home, away] = Object.values(game.teams);

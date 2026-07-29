@@ -10,6 +10,7 @@ import type {
   SeasonReport,
   StoryArcBeat,
 } from '../types';
+import type { StorylineThread } from '../storyline-threads/types';
 import { buildFranchiseBook } from './dynasty-timeline';
 import type { SeasonRecap, SeasonRecapLeader, SeasonRecapPlayoffResult } from './season-recap';
 
@@ -169,6 +170,26 @@ function storyArcMomentCandidate(arc: LeagueStoryArc, beat: StoryArcBeat): Scrap
   };
 }
 
+function storylineThreadMomentCandidate(
+  thread: StorylineThread,
+  year: number,
+): ScrapbookMomentCandidate | null {
+  const beat = thread.beats
+    .filter((entry) => entry.year === year)
+    .sort((left, right) =>
+      right.weekNumber - left.weekNumber
+      || left.label.localeCompare(right.label))[0];
+  if (!beat) return null;
+
+  return {
+    headline: `Player story: ${thread.title}`,
+    detail: `${beat.label}: ${beat.summary}`,
+    week: beat.weekNumber,
+    importance: thread.status === 'closed' || thread.heat >= 70 ? 'major' : 'minor',
+    sortId: `storyline:${thread.id}:${beat.year}:${beat.weekNumber}`,
+  };
+}
+
 function seasonReportImportance(report: SeasonReport): ScrapbookMoment['importance'] {
   return report.overallGrade === 'A+' || report.overallGrade === 'A' || report.overallGrade === 'F'
     ? 'major'
@@ -315,6 +336,10 @@ function collectNotableMoments(game: GameState, recap: SeasonRecap): ScrapbookMo
         .filter((beat) => beat.year === recap.seasonYear)
         .map((beat) => storyArcMomentCandidate(arc, beat))
         .filter((moment): moment is ScrapbookMomentCandidate => Boolean(moment)));
+  const storylineThreadMoments = (game.storylineThreads ?? [])
+    .filter((thread) => thread.teamIds.includes(recap.teamId))
+    .map((thread) => storylineThreadMomentCandidate(thread, recap.seasonYear))
+    .filter((moment): moment is ScrapbookMomentCandidate => Boolean(moment));
   const seasonReportMoments = (game.seasonReports ?? [])
     .filter((report) => report.year === recap.seasonYear)
     .filter((report) => report.teamId === recap.teamId)
@@ -327,7 +352,7 @@ function collectNotableMoments(game: GameState, recap: SeasonRecap): ScrapbookMo
     .filter((rivalry) => rivalry.history.length > 0)
     .map((rivalry) => leagueRivalryMomentCandidate(game, rivalry, recap.teamId));
 
-  return [...newsMoments, ...namedGameMoments, ...bloodlineDraftMoments, ...recordMoments, ...hallOfFameMoments, ...awardMoments, ...storyArcMoments, ...seasonReportMoments, ...leagueRivalryMoments]
+  return [...newsMoments, ...namedGameMoments, ...bloodlineDraftMoments, ...recordMoments, ...hallOfFameMoments, ...awardMoments, ...storyArcMoments, ...storylineThreadMoments, ...seasonReportMoments, ...leagueRivalryMoments]
     .sort(compareMoments)
     .slice(0, 3)
     .map((moment) => ({

@@ -208,15 +208,50 @@ describe('storyline archetypes', () => {
   it('seeds rookie-of-year threads once a rookie clears the week-six threshold', () => {
     const game = makeLeagueState('regular_season', 8);
     const rookie = makePlayer('roy', 'afce1', 'WR', 80);
+    const mentor = game.teams.afce1!.roster.find((player) => player.id !== rookie.id)!;
     rookie.yearsExp = 0;
     rookie.draftYear = game.year;
     rookie.stats.recYds = 920;
     rookie.stats.recTD = 8;
     game.teams.afce1!.roster.push(rookie);
+    game.teams.afce1!.mentoringPairs = [{
+      mentorId: mentor.id,
+      mentorName: mentor.name,
+      menteeId: rookie.id,
+      menteeName: rookie.name,
+      teamId: 'afce1',
+      positionGroup: 'WR',
+      year: game.year,
+      bonus: 3,
+    }];
     game.players[rookie.id] = rookie;
+    const expectedRookieName = `${rookie.firstName} ${rookie.lastName}`;
+    delete (rookie as Partial<Player>).name;
 
     const seeds = seedRookieOfYearThreads(game, 8);
     expect(seeds.map((seed) => seed.playerIds[0])).toContain('roy');
+    const rookieSeed = seeds.find((seed) => seed.playerIds[0] === 'roy');
+    expect(rookieSeed?.title).toContain(expectedRookieName);
+    expect(rookieSeed?.summary).toContain(mentor.name);
+    expect(rookieSeed?.metadata).toMatchObject({
+      playerName: expectedRookieName,
+      mentorId: mentor.id,
+      mentorName: mentor.name,
+      mentorBonus: 3,
+    });
+  });
+
+  it('treats a normalized loaded-save rookie without live stats as scoreless', () => {
+    const game = makeLeagueState('regular_season', 8);
+    const rookie = makePlayer('loaded-rookie', 'afce1', 'WR', 80);
+    rookie.yearsExp = 0;
+    rookie.draftYear = game.year;
+    delete (rookie as Partial<Player>).stats;
+    game.players[rookie.id] = rookie;
+
+    expect(seedRookieOfYearThreads(game, 8)).not.toContainEqual(
+      expect.objectContaining({ playerIds: [rookie.id] }),
+    );
   });
 
   it('closes rookie-of-year threads at season end', () => {

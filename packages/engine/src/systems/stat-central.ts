@@ -67,9 +67,17 @@ function playerForHistory(game: GameState, playerId: string): Player | null {
   return game.players[playerId] ?? null;
 }
 
+function playerDisplayName(player: Player | undefined, fallbackId: string): string {
+  const savedName = player?.name?.trim();
+  if (savedName) return savedName;
+
+  const composedName = `${player?.firstName ?? ''} ${player?.lastName ?? ''}`.trim();
+  return composedName || fallbackId;
+}
+
 function playerName(game: GameState, playerId: string): string {
   const current = game.players[playerId];
-  if (current) return current.name;
+  if (current) return playerDisplayName(current, playerId);
   const archive = game.playerArchive.find((entry) => entry.playerId === playerId);
   return archive?.name ?? playerId;
 }
@@ -98,15 +106,16 @@ function awardsForSeason(game: GameState, playerId: string, season: number): str
 function currentSeasonEntry(game: GameState, player: Player): PlayerSeasonHistoryEntry | null {
   const season = currentSeasonLabel(game);
   if (game.playerSeasonHistory[player.id]?.some((entry) => entry.season === season)) return null;
+  const stats = player.stats ?? emptyPlayerStats();
   return {
     playerId: player.id,
     season,
     age: player.age,
     ovr: player.ovr,
     teamId: player.teamId,
-    gamesPlayed: Number(player.stats.gamesPlayed ?? 0),
-    gamesStarted: player.isStarter ? Number(player.stats.gamesPlayed ?? 0) : Math.round(Number(player.stats.gamesPlayed ?? 0) * 0.4),
-    keyStats: { ...player.stats },
+    gamesPlayed: Number(stats.gamesPlayed ?? 0),
+    gamesStarted: player.isStarter ? Number(stats.gamesPlayed ?? 0) : Math.round(Number(stats.gamesPlayed ?? 0) * 0.4),
+    keyStats: { ...stats },
   };
 }
 
@@ -252,7 +261,7 @@ export function getPlayerCareerTimeline(game: GameState, playerId: string): Care
 
   return {
     playerId,
-    playerName: player?.name ?? archive?.name ?? playerId,
+    playerName: player ? playerDisplayName(player, playerId) : archive?.name ?? playerId,
     pos,
     seasons,
   };

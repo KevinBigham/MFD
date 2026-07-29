@@ -9,8 +9,16 @@ import {
   PixelPlayerLink,
   PixelScreenHeader,
 } from '@mfd/design-system/components';
-import { selectDraftRecaps, selectTeams, selectTransactionLog, usePlayerTimeline, useGameStore } from '../../app/store/game-store';
+import {
+  selectDraftRecaps,
+  selectLivingPlayerStory,
+  selectTeams,
+  selectTransactionLog,
+  usePlayerTimeline,
+  useGameStore,
+} from '../../app/store/game-store';
 import { buildPlayerTransactionMemoryRows } from '../shared/playerTransactionMemory';
+import { LivingPlayerStoryPanel } from '../shared/LivingPlayerStoryPanel';
 
 type DraftRecapMemoryAccent = 'green' | 'red' | 'cyan';
 
@@ -117,6 +125,7 @@ export default function PlayerTimeline() {
   const teams = useMemo(() => teamsState ?? {}, [teamsState]);
   const transactionLog = useGameStore(selectTransactionLog);
   const draftRecaps = useGameStore(selectDraftRecaps);
+  const livingPlayerStory = useGameStore(selectLivingPlayerStory(playerId));
   const timeline = getPlayerTimeline(playerId);
   const currentPlayer = useGameStore((state) => state.game?.players[playerId] ?? null);
   const transactionRows = useMemo(
@@ -215,6 +224,13 @@ export default function PlayerTimeline() {
         <PixelMetricCard label="Rush Yards" value={totals.rushYds} accent="gold" />
         <PixelMetricCard label="Awards" value={totals.awards} accent="red" />
       </div>
+
+      {livingPlayerStory ? (
+        <LivingPlayerStoryPanel
+          story={livingPlayerStory}
+          onOpenProfile={() => { void navigate({ to: `/player/${playerId}` }); }}
+        />
+      ) : null}
 
       <PixelPanel title="Transaction Memory" accent={transactionRows.length > 0 ? 'green' : 'cyan'}>
         {transactionRows.length > 0 ? (

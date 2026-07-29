@@ -144,6 +144,18 @@ export type {
   StorylineSeedCandidate,
 } from './storyline-threads';
 export { formMentoringPairs, applyMentoringBonuses } from './systems/mentoring';
+export {
+  buildLivingPlayerStory,
+  buildLivingPlayerStories,
+} from './systems/living-player-story';
+export type {
+  LivingPlayerStory,
+  LivingPlayerStoryChapter,
+  LivingPlayerStoryMentor,
+  LivingPlayerStorySource,
+  LivingPlayerStoryStage,
+  LivingPlayerStoryStatus,
+} from './systems/living-player-story';
 export { generateAwards } from './systems/awards';
 export {
   FIRST_BALLOT_THRESHOLD,

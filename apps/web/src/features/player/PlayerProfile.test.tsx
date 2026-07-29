@@ -7,6 +7,8 @@ const mockBundle = {
     player: {
       id: 'p-1',
       name: 'Jay Stone',
+      firstName: 'Jay',
+      lastName: 'Stone',
       pos: 'QB',
       age: 25,
       ovr: 91,
@@ -107,6 +109,29 @@ vi.mock('../../app/store/game-store', () => ({
     }],
     farewellCandidates: [{ id: 'p-1' }],
     farewellTours: [],
+    livingPlayerStory: {
+      playerId: 'p-1',
+      playerName: 'Jay Stone',
+      teamId: 'user',
+      stage: 'breakout',
+      status: 'active',
+      headline: 'Jay Stone has entered the MVP chase',
+      summary: 'The apprentice is now a league-wide name.',
+      heat: 78,
+      mentor: { playerId: 'mentor-1', name: 'Rick Mason', positionGroup: 'QB', year: 2027, bonus: 2 },
+      activeThreadId: 'storyline-1',
+      nextBeatHint: 'Next beat: closing argument.',
+      chapters: [{
+        id: 'chapter-1',
+        source: 'mentorship',
+        year: 2027,
+        week: null,
+        label: 'The apprenticeship',
+        summary: 'Rick Mason took Jay Stone under his wing.',
+        sourceRef: 'mentoringPair:user:2027:mentor-1:p-1',
+      }],
+      sourceRefs: ['mentoringPair:user:2027:mentor-1:p-1'],
+    },
     actions: { startFarewellTour: () => Promise.resolve() },
     game: {
       year: 2028,
@@ -148,6 +173,7 @@ vi.mock('../../app/store/game-store', () => ({
   selectDraftRecaps: (state: any) => state.draftRecaps,
   selectFarewellCandidates: (state: any) => state.farewellCandidates,
   selectFarewellTours: (state: any) => state.farewellTours,
+  selectLivingPlayerStory: () => (state: any) => state.livingPlayerStory,
 }));
 
 vi.mock('../../app/store/ui-store', () => ({
@@ -175,6 +201,9 @@ describe('PlayerProfile', () => {
     expect(markup).toContain('Story Threads');
     expect(markup).toContain('1 award // 1 rivalry // bloodline');
     expect(markup).toContain('Rivalry Heat');
+    expect(markup).toContain('LIVING PLAYER STORY');
+    expect(markup).toContain('Mentor: Rick Mason');
+    expect(markup).toContain('Open Timeline');
     expect(markup).toContain('HEATED 64');
     expect(markup).toContain('vs Duke Hayes');
     expect(markup).toContain('SIGNATURE MOMENTS');
@@ -225,6 +254,20 @@ describe('PlayerProfile', () => {
     expect(markup).toContain('only the Start Farewell Tour button calls actions.startFarewellTour');
     expect(markup).toContain('Display-only route: no profile render writes playerSeasonHistory, playerArchive, draftRecaps, txLog, awards, records, endorsements, rivalries, farewell tours, or timeline rows.');
     expect(markup).toContain('Start Farewell Tour');
+  });
+
+  it('composes a display name from loaded-save fields when name is absent', () => {
+    const savedName = mockBundle.profile.player.name;
+    delete (mockBundle.profile.player as { name?: string }).name;
+
+    try {
+      const markup = renderToStaticMarkup(<PlayerProfile />);
+
+      expect(markup).toContain('JAY STONE');
+      expect(markup).toContain('Bloodline archive links Jay Stone to QB legacy context.');
+    } finally {
+      mockBundle.profile.player.name = savedName;
+    }
   });
 
   it('renders the Lineage panel with parent archive data when a bloodline is present', () => {

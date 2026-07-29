@@ -644,6 +644,58 @@ describe('scrapbook', () => {
     ]);
   });
 
+  it('carries saved player-story beats into the completed season scrapbook', () => {
+    const game = makeLeagueState('offseason', 1);
+    game.year = 2027;
+    const { team, quarterback } = seedCompletedSeason(game, 2026);
+    game.leagueNews = [];
+    game.dynastyTimeline = [];
+    game.awardsHistory = [];
+    game.hallOfFame = [];
+    game.storyArcs = [];
+    game.seasonReports = [];
+    game.leagueRivalries = [];
+    game.franchiseHistory = game.franchiseHistory.map((entry) => ({
+      ...entry,
+      recordsBroken: [],
+    }));
+    game.storylineThreads = [{
+      id: `storyline|rookie-of-year-chase|2026|${quarterback.id}`,
+      key: `rookie-of-year-chase|2026|${quarterback.id}`,
+      archetype: 'rookie-of-year-chase',
+      title: `${quarterback.name} completed the climb`,
+      summary: 'The final chapter belongs in franchise memory.',
+      teamIds: [team.id],
+      playerIds: [quarterback.id],
+      startWeek: 6,
+      startYear: 2026,
+      weeksActive: 12,
+      status: 'closed',
+      beats: [{
+        label: 'closing argument',
+        summary: `${quarterback.name} turned a breakout into a legacy season.`,
+        weekNumber: 18,
+        year: 2026,
+      }],
+      heat: 88,
+      nextBeatHint: null,
+      beatIndex: 3,
+      updatedWeek: 18,
+      updatedYear: 2026,
+      closeReason: 'The season is complete.',
+      metadata: {},
+    }];
+
+    const entry = buildScrapbookEntry(makeRecap(game), game);
+
+    expect(entry.notableMoments).toContainEqual({
+      headline: `Player story: ${quarterback.name} completed the climb`,
+      detail: `closing argument: ${quarterback.name} turned a breakout into a legacy season.`,
+      week: 18,
+      importance: 'major',
+    });
+  });
+
   it('auto-authors saved season reports into season scrapbook moments', () => {
     const game = makeLeagueState('offseason', 1);
     game.year = 2027;
