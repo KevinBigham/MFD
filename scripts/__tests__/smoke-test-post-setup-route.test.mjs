@@ -602,6 +602,8 @@ test('parses the opt-in Chip Ask summary workflow flag', () => {
 test('Chip Ask summary smoke checks highlighted screen badge wording', () => {
   assert.match(smokeSource, /Must Do: choose or defer/);
   assert.match(smokeSource, /Where: Inbox, Action Center, or highlighted screen badges/);
+  assert.match(smokeSource, /\['Next', 'Got it'\]\.includes\(\(candidate\.textContent \?\? ''\)\.trim\(\)\)/);
+  assert.match(smokeSource, /reason: 'clicked-route-action', id, actionLabel/);
   assert.doesNotMatch(smokeSource, /Must Do: open Inbox, Action Center, or highlighted screen badges/);
   assert.doesNotMatch(smokeSource, /Must Do: open Inbox, Action Center, or route badges/);
 });

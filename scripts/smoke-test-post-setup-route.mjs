@@ -6664,10 +6664,14 @@ async function clearVisibleChipRouteBeats(cdp, sessionId, label) {
         if (!beat) return { done: true };
         const id = beat.getAttribute('data-chip-route-beat');
         const button = [...beat.querySelectorAll('button')]
-          .find((candidate) => !candidate.disabled && (candidate.textContent ?? '').includes('Got it'));
-        if (!(button instanceof HTMLButtonElement)) return { done: false, reason: 'missing-got-it', id };
+          .find((candidate) => (
+            !candidate.disabled
+            && ['Next', 'Got it'].includes((candidate.textContent ?? '').trim())
+          ));
+        if (!(button instanceof HTMLButtonElement)) return { done: false, reason: 'missing-route-action', id };
+        const actionLabel = (button.textContent ?? '').trim();
         button.click();
-        return { done: false, reason: 'clicked-got-it', id };
+        return { done: false, reason: 'clicked-route-action', id, actionLabel };
       })()
     `);
     if (state?.done) return;
