@@ -82,7 +82,14 @@ describe('Chip onboarding machine', () => {
     storage.getItem = () => {
       throw new Error('storage blocked');
     };
-    expect(readChipOnboardingState(storage)).toEqual(createInitialChipOnboardingState());
+    const fallbackState = readChipOnboardingState(storage);
+    expect(fallbackState).toMatchObject({
+      version: 1,
+      completedBeatIds: [],
+      snoozedUntilWeek: null,
+      disabled: false,
+    });
+    expect(fallbackState.lastUpdated).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
 
     storage.getItem = () => null;
     storage.setItem = () => {
