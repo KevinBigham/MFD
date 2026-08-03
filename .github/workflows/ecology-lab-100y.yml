@@ -1,0 +1,55 @@
+name: GOAT Ecology Lab 100y
+
+# Weekly deep-horizon lane. 100-season cells measure ~235+ min remotely, so
+# they cannot share the nightly workflow's sane per-cell timeout. Kept as a
+# separate weekly + manual workflow so the nightly 25/50y certification stays
+# fast and fully green. See ecology-lab.yml for the nightly matrix.
+
+on:
+  schedule:
+    - cron: '41 5 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: goat-ecology-100y-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  certify:
+    name: ${{ matrix.persona }} / seed ${{ matrix.seed }} / 100y
+    runs-on: ubuntu-latest
+    # GitHub-hosted runner per-job ceiling is 360 min; 100y cells estimate
+    # ~235 min (2x measured 50y). A cell exceeding this is a real regression
+    # signal and should fail loudly.
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      # 50 cells x ~235 min / 10 parallel ~= 20h window, under the 24h limit
+      # where GitHub auto-cancels long-queued jobs.
+      max-parallel: 10
+      matrix:
+        seed: [11, 29, 42, 73, 101, 211, 307, 401, 509, 601]
+        persona: [CHEAPSKATE, CHURN_ARTIST, GLUTTON, INJURY_MAGNET, SPEEDRUNNER]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run hard-threshold ecology certification
+        run: pnpm ecology:cell --persona "${{ matrix.persona }}" --seed "${{ matrix.seed }}" --seasons 100
+      - name: Upload certification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecology-${{ matrix.persona }}-${{ matrix.seed }}-100y
+          path: tmp/playtest-report-${{ matrix.persona }}-${{ matrix.seed }}.json
+          if-no-files-found: error
+          retention-days: 30
