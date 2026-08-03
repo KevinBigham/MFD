@@ -16,14 +16,19 @@ jobs:
   certify:
     name: ${{ matrix.persona }} / seed ${{ matrix.seed }} / ${{ matrix.seasons }}y
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # 50y cells measure ~115-118 min remotely; 180 gives headroom without
+    # letting a hung cell burn runner hours. 100y lives in ecology-lab-100y.yml
+    # because ~235 min cannot fit a sane nightly timeout.
+    timeout-minutes: 180
     strategy:
       fail-fast: false
-      max-parallel: 6
+      # 100 cells x ~86 min avg / 10 parallel ~= 14h window, safely under the
+      # 24h limit where GitHub auto-cancels long-queued jobs.
+      max-parallel: 10
       matrix:
         seed: [11, 29, 42, 73, 101, 211, 307, 401, 509, 601]
         persona: [CHEAPSKATE, CHURN_ARTIST, GLUTTON, INJURY_MAGNET, SPEEDRUNNER]
-        seasons: [25, 50, 100]
+        seasons: [25, 50]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
