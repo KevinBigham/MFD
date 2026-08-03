@@ -149,6 +149,39 @@ export const PressConferenceSchema = z.object({
   effects: z.array(TimedEffectSchema),
 });
 
+// WeeklySummary — field set verified against types/sim.ts and the single
+// writer (systems/weekly-summary.ts buildWeeklySummary), plus all engine +
+// web readers. The v34 golden fixture carries a legacy minimal entry
+// (year/week/teamId/headline/result only), so every post-legacy field
+// carries a default: modern entries round-trip byte-equal, legacy entries
+// parse losslessly with neutral defaults.
+export const WeeklyInjurySummarySchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  severity: z.enum(['questionable', 'doubtful', 'out', 'ir']),
+  gamesOut: z.number(),
+  type: z.string(),
+});
+
+export const WeeklySummarySchema = z.object({
+  id: z.string().default(''),
+  year: z.number(),
+  week: z.number(),
+  phase: z.enum(['preseason', 'regular_season', 'playoffs', 'offseason', 'free_agency', 'draft', 'post_draft', 'training_camp']).default('regular_season'),
+  teamId: z.string(),
+  opponentTeamId: z.string().nullable().default(null),
+  opponentName: z.string().default(''),
+  result: z.enum(['win', 'loss', 'tie', 'pending']),
+  teamScore: z.number().nullable().default(null),
+  opponentScore: z.number().nullable().default(null),
+  record: z.string().default(''),
+  headline: z.string(),
+  ownerDelta: z.number().default(0),
+  injuries: z.array(WeeklyInjurySummarySchema).default([]),
+  mvpPlayerId: z.string().nullable().default(null),
+  notes: z.array(z.string()).default([]),
+});
+
 export const OffFieldEventSchema = z.object({
   id: z.string(),
   type: z.string(),
@@ -2208,7 +2241,7 @@ export const SaveStateSchema = z.object({
   leagueRivalries: z.array(LeagueRivalrySchema),
   activeEffects: z.array(TimedEffectSchema),
   gameDayState: GameDayStateSchema,
-  weekSummaries: z.array(z.any()),
+  weekSummaries: z.array(WeeklySummarySchema),
   playoffBracket: z.any().nullable(),
   offseasonState: OffseasonStateSchema.nullable(),
   expansionDraftState: ExpansionDraftStateSchema.optional(),
