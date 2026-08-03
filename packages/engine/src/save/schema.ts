@@ -2135,6 +2135,34 @@ export const TeamPersistedSchema = z.object({
   gmStrategy: GmStrategySchema,
 }).passthrough();
 
+// ── Owner island (schema hardening island 2) ─────────────
+// Types GameState.owners entries against the real Owner interface in
+// types/franchise.ts. Both writers (convention-save createOwner,
+// franchise-setup ensureOwnerRecord) produce exactly this shape. Goals and
+// personality gain defaults for legacy-era entries that predate them, and
+// .passthrough() preserves any historical extra keys so round-trips can
+// never destroy owner data.
+export const OwnerSeasonGoalsSchema = z.object({
+  floor: z.string().default(''),
+  target: z.string().default(''),
+  ceiling: z.string().default(''),
+});
+
+export const OwnerPersonalitySchema = z.object({
+  spending: z.number().default(5),
+  patience: z.number().default(5),
+  mediaAwareness: z.number().default(5),
+});
+
+export const OwnerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  archetype: z.string(),
+  patience: z.number().default(50),
+  goals: OwnerSeasonGoalsSchema.default({ floor: '', target: '', ceiling: '' }),
+  personality: OwnerPersonalitySchema.default({ spending: 5, patience: 5, mediaAwareness: 5 }),
+}).passthrough();
+
 export const SaveStateSchema = z.object({
   version: z.number(),
   seed: z.number(),
@@ -2148,7 +2176,7 @@ export const SaveStateSchema = z.object({
   }),
   players: z.record(PlayerSchema),
   teams: z.record(TeamPersistedSchema),
-  owners: z.record(z.any()),
+  owners: z.record(OwnerSchema),
   schedule: z.array(ScheduleWeekSchema),
   draftClass: z.array(z.any()),
   freeAgents: z.array(z.string()),
