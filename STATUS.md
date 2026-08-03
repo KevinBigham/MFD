@@ -1,5 +1,48 @@
 # STATUS
 
+<!-- evidence-dashboard:begin -->
+
+## Evidence Dashboard
+
+_Refreshed 2026-08-03T01:06:59Z by `node scripts/evidence-dashboard.mjs`. Rows are evidence, not vibes: ✅ current/healthy, ⚠️ aging/attention, ❌ failing, ➖ unavailable here with the exact command to get it._
+
+| Area | Status | Evidence | How to refresh |
+|---|---|---|---|
+| Remote gate (CI on main) | ✅ | success @ 10d9da3 (2026-07-29) — test:success determinism-gate:success release-gate:success | `https://github.com/KevinBigham/MFD/actions/runs/30451781406` |
+| Route sweep (G6 visual/playability) | ✅ | G6 sweep step present in the 37-step release contract (runs inside every release-gate, local + remote) | `node scripts/release-gate.mjs --only browser (local sweep)` |
+| Ecology Lab nightly (sim anomalies soak) | ⚠️ | pending (2026-08-02) | `https://github.com/KevinBigham/MFD/actions/runs/30740118489` |
+| Local release-gate contract | ✅ | contract intact (37-step list renders); full local gate is manual | `node scripts/release-gate.mjs (full 37-step local gate)` |
+| Bundle size (engine chunk) | ➖ | no local build — size unmeasured | `pnpm --filter @mfd/web build && bash scripts/check-bundle-size.sh` |
+| Determinism scan (Math.random ban) | ✅ | no banned randomness in sim code | `bash scripts/check-math-random.sh` |
+| Playtest anomalies (local fast tier) | ➖ | not run (heavy) — remote nightly row above is the standing soak | `node scripts/evidence-dashboard.mjs --with-playtest  OR  corepack pnpm playtest` |
+| Run-ledger freshness | ✅ | newest ledger entry 2026-08-02 (1d old) | `STATUS.md` |
+
+<!-- evidence-dashboard:end -->
+
+## Run Ledger - 2026-08-02 C4 Evidence Dashboard
+
+Implemented C4 — release evidence dashboard. New `scripts/evidence-dashboard.mjs` (exposed as `pnpm evidence:dashboard`) refreshes a marked `## Evidence Dashboard` section at the top of `STATUS.md` with evidence rows: remote CI gate on main (per-required-check conclusions via `gh`), G6 route-sweep presence in the 37-step release contract, Ecology Lab nightly scoreboard, local release-gate contract integrity, engine-chunk bundle size vs the 312 KB ceiling (when a local build exists), the Math.random determinism scan, opt-in fast-tier playtest anomaly counts (`--with-playtest`), and run-ledger freshness. Every row carries the exact command to refresh it; `--check` exits non-zero on any red row for future CI use. No `GameState` shape, save schema, migrations, `SAVE_VERSION`, sim math, RNG channels, dependencies, CI/deploy wiring, or engine source changed.
+
+### Files Changed
+
+- `scripts/evidence-dashboard.mjs`
+- `package.json`
+- `STATUS.md`
+
+### Verification
+
+- Passed: `node scripts/evidence-dashboard.mjs` renders all rows (remote gate green @ main `10d9da3` with test/determinism-gate/release-gate success, G6 contract step present, determinism scan clean) and is idempotent across repeat runs via the begin/end markers.
+- Passed: `node scripts/evidence-dashboard.mjs --check` exit code reflects red rows only.
+- Confirmed: no files under `packages/engine/src` or `apps/web/src` were edited by this run.
+
+### Checks Not Run
+
+- Full local 37-step release gate, playtests, production build, and browser smokes were not run locally; the remote 37-step gate runs on the PR as a required check. The `--with-playtest` fast tier was not run in this session (row verified against `scripts/playtest-report.ts` output format).
+
+### Rollback
+
+Revert the files listed above. Removes the dashboard script and STATUS.md section only; no save, migration, engine, RNG, or gameplay impact.
+
 ## Run Ledger - 2026-07-06 GOAT Director Patch 3.1 Team Window Read-Model
 
 Implemented Patch 3.1 — Team window read-model. `computeTeamWindow` is a web-only deterministic read-model that classifies CPU clubs as `ALL_IN`, `CONTEND`, `RETOOL`, or `REBUILD`, with `clear` or `mixed` confidence and 2-4 receipted drivers. The rubric reads only already-saved or render-derived inputs: roster/QB/core age and OVR, current cap space, draft-pick inventory, saved `team.gmStrategy`, saved `team.philosophy`, current record, team-needs cap flexibility, and saved `game.franchiseHistory`.

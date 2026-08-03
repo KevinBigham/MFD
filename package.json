@@ -19,7 +19,8 @@
     "playtest:all": "pnpm --filter @mfd/engine playtest:all",
     "test:perft": "pnpm --filter @mfd/engine playtest:all",
     "test:shadow": "bash scripts/shadow-regression.sh",
-    "ecology:cell": "bash scripts/playtest-report.sh"
+    "ecology:cell": "bash scripts/playtest-report.sh",
+    "evidence:dashboard": "node scripts/evidence-dashboard.mjs"
   },
   "engines": {
     "node": ">=24",
