@@ -516,6 +516,29 @@ function normalizeCareerEpilogueInput(raw: unknown): unknown {
   return result.success ? result.data : undefined;
 }
 
+
+export const FarewellMomentSchema = z.object({
+  week: z.number().int().min(0),
+  type: z.enum([
+    'standing_ovation',
+    'gift_exchange',
+    'emotional_speech',
+    'final_home_game',
+    'final_game',
+  ]),
+  narrative: z.string(),
+  opponent: z.string(),
+});
+
+export const FarewellTourSchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  teamId: z.string(),
+  finalSeason: z.boolean(),
+  announcedWeek: z.number().int().min(0),
+  moments: z.array(FarewellMomentSchema),
+});
+
 export const HallOfFameEntrySchema = z.object({
   playerId: z.string(),
   name: z.string(),
@@ -2170,7 +2193,7 @@ export const SaveStateSchema = z.object({
   playerArchive: z.array(z.any()),
   playerSeasonHistory: z.record(z.string(), z.array(PlayerSeasonHistoryEntrySchema)).default({}),
   playerRivalries: z.array(z.any()).default([]),
-  farewellTours: z.array(z.any()).default([]),
+  farewellTours: z.array(FarewellTourSchema).default([]),
   endorsementOffers: EndorsementDealsSchema,
   leagueRules: LeagueRulesSchema,
   cbaState: CBAStateSchema,
