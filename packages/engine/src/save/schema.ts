@@ -2135,6 +2135,55 @@ export const TeamPersistedSchema = z.object({
   gmStrategy: GmStrategySchema,
 }).passthrough();
 
+// ── Draft class prospects ───────────────────────────────
+// Field set verified against the DraftProspect interface
+// (packages/engine/src/types/draft.ts) and every writer/reader:
+// makeProspect, runCombine, runScoutingAction, applyDraftSelection,
+// scouting-staff, draft-war-room, and all web screens. Migrations 7/15/30
+// already backfill combine/region/bloodline on load, so strict strip is
+// safe — no production or fixture data carries extra keys.
+export const CombineMeasurablesSchema = z.object({
+  fortyYard: z.number(),
+  benchPress: z.number(),
+  vertical: z.number(),
+  broadJump: z.number(),
+  threeCone: z.number(),
+  shuttle: z.number(),
+});
+
+export const ScoutingReportSchema = z.object({
+  type: z.enum(['film', 'combine', 'interview']),
+  accuracy: z.number(),
+  grade: z.number(),
+  notes: z.string(),
+});
+
+export const DraftProspectSchema = z.object({
+  id: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  pos: PlayerPositionSchema,
+  college: z.string(),
+  region: ScoutingRegionSchema,
+  ratings: z.record(z.number()),
+  projectedRound: z.number(),
+  scoutGrade: z.number(),
+  trueGrade: z.number(),
+  personality: PersonalitySchema,
+  traits: z.array(z.string()),
+  archetype: z.object({
+    archetype: z.string(),
+    label: z.string(),
+    description: z.string(),
+  }).nullable(),
+  characterArchetype: z.string(),
+  bustProbability: z.number(),
+  stealProbability: z.number(),
+  scoutingReports: z.array(ScoutingReportSchema),
+  combine: CombineMeasurablesSchema.nullable().default(null),
+  bloodline: BloodlineInfoSchema.nullable().default(null),
+});
+
 export const SaveStateSchema = z.object({
   version: z.number(),
   seed: z.number(),
@@ -2150,7 +2199,7 @@ export const SaveStateSchema = z.object({
   teams: z.record(TeamPersistedSchema),
   owners: z.record(z.any()),
   schedule: z.array(ScheduleWeekSchema),
-  draftClass: z.array(z.any()),
+  draftClass: z.array(DraftProspectSchema),
   freeAgents: z.array(z.string()),
   records: RecordBookSchema,
   activeRecordChases: z.array(RecordChaseSchema).default([]),
