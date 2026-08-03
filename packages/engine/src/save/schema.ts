@@ -1795,6 +1795,45 @@ export const ScheduleWeekSchema = z.object({
   games: z.array(ScheduledGameSchema),
 });
 
+// ── Playoff bracket ─────────────────────────────────────
+// Field set verified against types/schedule.ts and the closed writer pair
+// (seedPlayoffBracket / advancePlayoffBracket in systems/playoff-bracket.ts):
+// toSeed and createMatchup emit exactly these shapes, and advance only fills
+// winnerTeamId/result. All golden fixtures carry playoffBracket: null, so
+// strict strip is lossless. matchup.result is a GameResult payload — it is
+// typed by island 1's GameResultSchema (PR #82); wire it here in a one-line
+// follow-up once that island lands, rather than stacking this patch on it.
+export const PlayoffSeedSchema = z.object({
+  seed: z.number(),
+  teamId: z.string(),
+  conference: z.enum(['AFC', 'NFC']),
+  division: z.string(),
+  divisionWinner: z.boolean(),
+  wins: z.number(),
+  losses: z.number(),
+  ties: z.number(),
+  pointDifferential: z.number(),
+});
+
+export const PlayoffMatchupSchema = z.object({
+  id: z.string(),
+  round: z.enum(['wild_card', 'divisional', 'conference', 'super_bowl']),
+  conference: z.enum(['AFC', 'NFC', 'NFL']),
+  week: z.number(),
+  homeTeamId: z.string(),
+  awayTeamId: z.string(),
+  winnerTeamId: z.string().nullable(),
+  result: z.any().nullable(),
+});
+
+export const PlayoffBracketSchema = z.object({
+  season: z.number(),
+  afc: z.array(PlayoffSeedSchema),
+  nfc: z.array(PlayoffSeedSchema),
+  matchups: z.array(PlayoffMatchupSchema),
+  championTeamId: z.string().nullable(),
+});
+
 function normalizeTutorialStepInput(raw: unknown): unknown {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
   const step = raw as Record<string, unknown>;
@@ -2209,7 +2248,7 @@ export const SaveStateSchema = z.object({
   activeEffects: z.array(TimedEffectSchema),
   gameDayState: GameDayStateSchema,
   weekSummaries: z.array(z.any()),
-  playoffBracket: z.any().nullable(),
+  playoffBracket: PlayoffBracketSchema.nullable(),
   offseasonState: OffseasonStateSchema.nullable(),
   expansionDraftState: ExpansionDraftStateSchema.optional(),
   stadiumDealOffers: z.array(StadiumDealSchema).default([]),
