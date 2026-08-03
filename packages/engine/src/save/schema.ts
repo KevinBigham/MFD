@@ -110,6 +110,18 @@ export const StoryArcSchema = z.object({
   data: z.record(z.string(), z.unknown()),
 });
 
+// NarrativeHook — field set verified against types/franchise.ts and both
+// writers (franchise-week-helpers weekly refresh, convention-save seed).
+// `type` is a free-form string by design (hooks-engine cat values are an
+// open set: dev/owner/injury/draft/streak/playoff_race/...).
+export const NarrativeHookSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  description: z.string(),
+  resolved: z.boolean(),
+  deadline: z.number(),
+});
+
 export const TimedEffectSchema = z.object({
   id: z.string(),
   sourceType: z.enum(['off_field_event', 'press_conference', 'rivalry']),
@@ -2199,7 +2211,7 @@ export const SaveStateSchema = z.object({
   eventLog: z.array(GameEventSchema),
   narrativeState: z.object({
     activeArcs: z.array(StoryArcSchema),
-    hooks: z.array(z.any()),
+    hooks: z.array(NarrativeHookSchema),
     recentHeadlines: z.array(z.string()),
   }),
   offFieldEvents: z.array(OffFieldEventSchema),
