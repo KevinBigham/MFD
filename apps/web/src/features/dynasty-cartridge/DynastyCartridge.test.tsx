@@ -92,6 +92,8 @@ describe('DynastyCartridge', () => {
     const markup = renderToStaticMarkup(<DynastyCartridge />);
 
     expect(markup).toContain('Portable backup exports');
+    expect(markup).toContain('strip generated broadcast commentary payloads');
+    expect(markup).toContain('Scores, stats, standings, records, and dynasty history all export normally');
     expect(markup).toContain('data-spotlight-target="chip.route.dynasty-save-load.beat-1"');
   });
 
