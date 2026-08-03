@@ -1885,6 +1885,17 @@ export const DynastyEventSchema = z.object({
   namedGame: NamedGameEventSchema.optional(),
 });
 
+export const EarnedDoctrineSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  origin: z.string(),
+  bonus: z.string(),
+  category: z.enum(['culture', 'strategy', 'reputation', 'personnel']),
+  earnedYear: z.number().int().min(1900),
+  earnedWeek: z.number().int().min(0),
+});
+
 export const NearMissEntrySchema = z.object({
   type: z.enum(['declined_trade', 'passed_pick', 'missed_fa']),
   playerName: z.string(),
@@ -2310,7 +2321,7 @@ export const SaveStateSchema = z.object({
   breakingNewsQueue: z.array(BreakingNewsEventSchema).default([]),
   ownerPersonalityInbox: z.array(OwnerPersonalityEventSchema).default([]),
   commissionerDisciplineLog: z.array(CommissionerRulingSchema).default([]),
-  earnedDoctrines: z.array(z.any()).default([]),
+  earnedDoctrines: z.array(EarnedDoctrineSchema).default([]),
   nearMissTracker: NearMissTrackerSchema.optional(),
   seasonNearMissReceipts: z.array(NearMissEntrySchema).default([]),
   activeCallYourShot: ShotDeclarationSchema.optional(),
