@@ -6570,6 +6570,17 @@ async function runChipMuteSmoke(cdp, sessionId, baseUrl) {
     })()
   `));
 
+  // E4: the quiet trio lives inside the quiet menu; open it before looking
+  // for the Mute season control.
+  await waitFor('open Chip quiet menu', () => evaluate(cdp, sessionId, `
+    (() => {
+      if (document.querySelector('[data-chip-quiet-menu="true"]')) return true;
+      const trigger = document.querySelector('button[data-chip-control-id="quietMenu"]');
+      if (trigger instanceof HTMLButtonElement && !trigger.disabled) trigger.click();
+      return false;
+    })()
+  `));
+
   try {
     await waitFor('visible Mute season control', () => evaluate(cdp, sessionId, `
       (() => {
@@ -6978,10 +6989,13 @@ async function runChipReceiptRespectSmoke(cdp, sessionId, baseUrl) {
   const firstTenRosterBeat = 'chip.first10.roster';
   const rosterBeatOne = 'chip.route.roster.beat-1';
   const rosterBeatTwo = 'chip.route.roster.beat-2';
+  const rosterBeatThree = 'chip.route.roster.beat-3';
+  const firstTenTradeBeat = 'chip.first10.trades';
   const tradeBeatOne = 'chip.route.trade-center.beat-1';
   const firstTenRosterText = 'Recommended: open Roster before Game Plan. Where: injuries and first backups. Consequence: uncovered backups force emergency signings.';
   const rosterBeatOneText = 'Recommended: decide starter, backup, trade, or cut. Where: highlighted player. Consequence: extra names do not fix the role.';
   const rosterBeatTwoText = 'Recommended: open Roster for injury and backup health. Where: Roster, then Depth Chart. Consequence: uncovered injuries force signings.';
+  const rosterBeatThreeText = 'Optional: name expiring starters before cuts. Where: Roster. Consequence: contract years change which jobs depth must cover.';
   console.log('Running Chip route receipt-respect smoke...');
 
   await setHashRoute(cdp, sessionId, rosterRoute);
@@ -6992,7 +7006,7 @@ async function runChipReceiptRespectSmoke(cdp, sessionId, baseUrl) {
     cdp,
     sessionId,
     [firstTenRosterBeat],
-    [rosterBeatOne, rosterBeatTwo],
+    [rosterBeatOne, rosterBeatTwo, rosterBeatThree],
     'first-ten roster beat persisted immediately after Next',
   );
   await waitForChipOnboardingCompleted(
@@ -7007,28 +7021,39 @@ async function runChipReceiptRespectSmoke(cdp, sessionId, baseUrl) {
     cdp,
     sessionId,
     [firstTenRosterBeat, rosterBeatOne],
-    [rosterBeatTwo],
+    [rosterBeatTwo, rosterBeatThree],
     'first roster route beat persisted immediately after Next',
   );
   await waitForChipRouteBeatText(cdp, sessionId, rosterBeatTwo, rosterBeatTwoText, 'second roster route beat text after first receipt');
+  await clickRouteBeatAction(cdp, sessionId, 'Next', 'clickable Next control for second roster route beat');
+  await waitForChipReadReceipts(
+    cdp,
+    sessionId,
+    [firstTenRosterBeat, rosterBeatOne, rosterBeatTwo],
+    [rosterBeatThree],
+    'second roster route beat persisted immediately after Next',
+  );
+  await waitForChipRouteBeatText(cdp, sessionId, rosterBeatThree, rosterBeatThreeText, 'third roster route beat text after second receipt');
 
   await clickRouteBeatAction(cdp, sessionId, 'Got it', 'clickable Got it control for final roster route beat');
   await waitForChipReadReceipts(
     cdp,
     sessionId,
-    [firstTenRosterBeat, rosterBeatOne, rosterBeatTwo],
+    [firstTenRosterBeat, rosterBeatOne, rosterBeatTwo, rosterBeatThree],
     [],
-    'all roster route beats persisted after second Got it',
+    'all roster route beats persisted after final Got it',
   );
   await waitForNoChipRouteBeat(
     cdp,
     sessionId,
-    [firstTenRosterBeat, rosterBeatOne, rosterBeatTwo],
+    [firstTenRosterBeat, rosterBeatOne, rosterBeatTwo, rosterBeatThree],
     'roster route guidance suppressed by read receipts without quiet prefs',
   );
 
   await setHashRoute(cdp, sessionId, tradeRoute);
   await waitForBodyText(cdp, sessionId, 'Trade Center Sources', 'Chip receipt-respect trade source panel');
+  await waitForChipRouteBeat(cdp, sessionId, firstTenTradeBeat, 'unseen first-ten trade beat appears after roster receipts');
+  await clickRouteBeatAction(cdp, sessionId, 'Next', 'clickable Next control for first-ten trade beat');
   await waitForChipRouteBeat(cdp, sessionId, tradeBeatOne, 'unseen trade route beat still appears after roster receipts');
 
   await setHashRoute(cdp, sessionId, rosterRoute);
@@ -7036,7 +7061,7 @@ async function runChipReceiptRespectSmoke(cdp, sessionId, baseUrl) {
   await waitForNoChipRouteBeat(
     cdp,
     sessionId,
-    [firstTenRosterBeat, rosterBeatOne, rosterBeatTwo],
+    [firstTenRosterBeat, rosterBeatOne, rosterBeatTwo, rosterBeatThree],
     'roster route receipts suppress replay after route return',
   );
 
@@ -7046,7 +7071,7 @@ async function runChipReceiptRespectSmoke(cdp, sessionId, baseUrl) {
   await waitForNoChipRouteBeat(
     cdp,
     sessionId,
-    [firstTenRosterBeat, rosterBeatOne, rosterBeatTwo],
+    [firstTenRosterBeat, rosterBeatOne, rosterBeatTwo, rosterBeatThree],
     'roster route receipts suppress replay after hard reload',
   );
 }
