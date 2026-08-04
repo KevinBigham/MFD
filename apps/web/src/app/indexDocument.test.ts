@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const indexHtml = readFileSync(fileURLToPath(new URL('../../index.html', import.meta.url)), 'utf8');
@@ -42,5 +42,28 @@ describe('index document release metadata', () => {
     expect(legacyRootManifest.start_url).toBe('/mr-football-dynasty/');
     expect(legacyRootManifest.scope).toBe('/mr-football-dynasty/');
     expect(indexHtml).not.toContain('/mr-football-dynasty/');
+  });
+});
+
+describe('Chip pose preloads (H10)', () => {
+  const PRELOADED_POSES = [
+    'pose-think',
+    'pose-point-right',
+    'pose-celebrate',
+    'pose-reviewing-tablet',
+    'pose-skeptical',
+    'pose-proud',
+  ] as const;
+
+  it('preloads the six most common Chip poses with deploy-base-relative paths', () => {
+    for (const pose of PRELOADED_POSES) {
+      const href = `assets/chip/inline/${pose}.png`;
+      expect(indexHtml).toContain(`<link rel="preload" as="image" href="${href}" />`);
+      // The preloaded asset must exist or the link is dead weight.
+      const stat = statSync(fileURLToPath(new URL(`../../public/${href}`, import.meta.url)), { throwIfNoEntry: false });
+      expect(stat?.isFile(), href).toBe(true);
+      // Relative hrefs only — never hardcode the deploy base.
+      expect(indexHtml).not.toContain(`href="/MFD/${href}"`);
+    }
   });
 });

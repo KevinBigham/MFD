@@ -4,8 +4,45 @@ export interface PendingDecisionCounts {
   emptyDepthSlots: number;
   unspentPicks: number;
   openStaffSlots: number;
+  /** D4: injured user players needing a status/backup decision. */
+  injuries: number;
   total: number;
 }
+
+/**
+ * I3: the canonical category list. `countPendingDecisions` computes exactly
+ * these keys, and the dock badge/beat copy table (`PENDING_DECISION_COPY` in
+ * ChipDock.tsx) must cover exactly the same set — a guard test pins the sync
+ * so adding a category is a deliberate, tested change.
+ */
+export const PENDING_DECISION_CATEGORY_KEYS = [
+  'tradeOffers',
+  'expiringContracts',
+  'emptyDepthSlots',
+  'unspentPicks',
+  'openStaffSlots',
+  'injuries',
+] as const satisfies readonly (keyof Omit<PendingDecisionCounts, 'total'>)[];
+
+export type PendingDecisionCategoryKey = (typeof PENDING_DECISION_CATEGORY_KEYS)[number];
+
+/**
+ * F6: which decision category a coaching route "owns". Ask Chip leads the
+ * pending-decisions beat with the category for the screen the player is
+ * standing on (on Trades, trade counts come first). Keys are route-coaching
+ * `RouteKey`s; routes without an entry keep the canonical category order.
+ */
+export const ROUTE_DECISION_CATEGORY: Readonly<Record<string, PendingDecisionCategoryKey>> = {
+  'trade-center': 'tradeOffers',
+  'trade-market-radar': 'tradeOffers',
+  'trade-deadline': 'tradeOffers',
+  'cap-laboratory': 'expiringContracts',
+  'front-office': 'expiringContracts',
+  'depth-chart': 'emptyDepthSlots',
+  roster: 'emptyDepthSlots',
+  'draft-board': 'unspentPicks',
+  staff: 'openStaffSlots',
+};
 
 type LooseRecord = Record<string, unknown>;
 
@@ -105,6 +142,19 @@ function countOpenStaffSlots(team: LooseRecord | null): number {
   return (['hc', 'oc', 'dc'] as const).filter((role) => staff?.[role] == null).length;
 }
 
+/**
+ * D4: injured players on the user roster, counted from the canonical
+ * `game.players` record — the same source F8's Where Am I injury count uses,
+ * so the dock badge and the summary never disagree.
+ */
+function countInjuredUserPlayers(game: LooseRecord | null, teamId: string | null): number {
+  if (!teamId) return 0;
+  return Object.values(asRecord(game?.players) ?? {}).filter((playerValue) => {
+    const player = asRecord(playerValue);
+    return player?.teamId === teamId && Boolean(player?.injury);
+  }).length;
+}
+
 export function countPendingDecisions(state: unknown): PendingDecisionCounts {
   const root = asRecord(state);
   const game = asRecord(root?.game);
@@ -117,6 +167,7 @@ export function countPendingDecisions(state: unknown): PendingDecisionCounts {
     emptyDepthSlots: countEmptyDepthSlots(team),
     unspentPicks: countUnspentPicks(game, teamId),
     openStaffSlots: countOpenStaffSlots(team),
+    injuries: countInjuredUserPlayers(game, teamId),
   };
 
   return {
@@ -125,6 +176,7 @@ export function countPendingDecisions(state: unknown): PendingDecisionCounts {
       + counts.expiringContracts
       + counts.emptyDepthSlots
       + counts.unspentPicks
-      + counts.openStaffSlots,
+      + counts.openStaffSlots
+      + counts.injuries,
   };
 }

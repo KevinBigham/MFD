@@ -13,6 +13,12 @@ import {
 } from '@mfd/engine';
 import { useAudio } from '../audio/AudioManager';
 import {
+  ChipIntroScreen,
+  isChipFeatureEnabled,
+  writeChipIntroState,
+} from '../companion/ChipHost';
+import { resolveBrowserStorage } from '../companion/storageBoundary';
+import {
   PixelBadge,
   PixelButton,
   PixelPanel,
@@ -305,6 +311,8 @@ export function Settings() {
   const medicalHiringOpen = phase === 'offseason';
   const teamName = team ? [team.city, team.name].filter(Boolean).join(' ') || team.name : 'Franchise';
   const [actionReceipt, setActionReceipt] = useState<SettingsActionReceipt | null>(null);
+  const chipEnabled = isChipFeatureEnabled();
+  const [introReplayOpen, setIntroReplayOpen] = useState(false);
   const debugModeEnabled = isDebugModeEnabled();
   const invariantResult = useMemo(
     () => (debugModeEnabled && game ? validateGameState(game) : null),
@@ -345,6 +353,13 @@ export function Settings() {
       recoveryImpact: forecast.recoveryImpact,
       preventionImpact: forecast.preventionImpact,
     }));
+  };
+
+  // G8: closing the replay re-marks the intro seen so new-dynasty setup behavior
+  // stays exactly as it was; replay changes no saved state.
+  const closeIntroReplay = (skipped: boolean) => {
+    writeChipIntroState(resolveBrowserStorage(), skipped);
+    setIntroReplayOpen(false);
   };
 
   return (
@@ -594,7 +609,39 @@ export function Settings() {
             </div>
           </div>
         </PixelPanel>
+
+        {chipEnabled ? (
+          <PixelPanel title="Chip" accent="gold">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <span style={{ ...monoSm, color: '#fff' }}>Franchise Ops Companion</span>
+              <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+                Replay the day-one welcome from Chip. Roster, cap space, owner patience, and saved state do not change.
+              </span>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <PixelButton
+                  type="button"
+                  accent="gold"
+                  data-chip-control-id="replay-intro"
+                  onClick={() => setIntroReplayOpen(true)}
+                >
+                  Replay Chip Intro
+                </PixelButton>
+                <PixelBadge variant="default">Saved state untouched</PixelBadge>
+              </div>
+            </div>
+          </PixelPanel>
+        ) : null}
       </div>
+
+      {introReplayOpen ? (
+        <ChipIntroScreen
+          onContinue={() => closeIntroReplay(false)}
+          onSkip={() => closeIntroReplay(true)}
+          reducedMotion={false}
+          continueLabel="Back to Settings"
+          skipLabel="Close Replay"
+        />
+      ) : null}
 
       <div style={autoGrid(360)}>
         <PixelPanel title="Facilities" accent="gold">

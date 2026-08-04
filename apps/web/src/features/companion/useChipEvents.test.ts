@@ -3,6 +3,7 @@ import {
   createChipEventsController,
   createChipStoreBridgeAdapter,
   createGameStoreBridgeAdapter,
+  deriveConsecutiveOutcomeWeeks,
   isChipEventsEnabled,
   resolveChipEventRoute,
 } from './useChipEvents';
@@ -68,7 +69,7 @@ describe('useChipEvents adapter', () => {
           'What changed: Week 2: close win; open Recap for injuries, backup order, and Game Plan miss.',
           'Deadline: Open Monday Briefing. Fix or accept any Action Center injury, backup, morale, cap, or matchup note before Advance Week.',
           'Optional: Make any legal roster, depth chart, training, game plan, cap space, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical move this week; prioritize moves that change lineup, cap space, market offer, staff plan, recovery, or matchup before Advance Week.',
-          'Where: Action Center, then any legal football-ops screen: Roster, Depth Chart, Training, Game Plan, Contracts, Cap Lab, Trades, Waivers, Practice Squad, Free Agency, Scouting, Coaching, Facility, or Medical.',
+          'Where: Action Center, then any legal football-ops screen: Roster, Depth Chart, Training Camp, Game Plan, Contracts, Cap Lab, Trades, Waiver Wire, Practice Squad, Free Agency, Scouting, Coaching, or Front Office.',
           'Optional later: Open awards, records, and history after you fix or accept Monday Briefing and Action Center notes; awards, records, and history do not change the next game.',
           'Consequence: Skipping Monday Briefing leaves a named injury, unassigned first backup, tight cap choice, or uncovered matchup call locked into Advance Week.',
         ]),
@@ -79,7 +80,11 @@ describe('useChipEvents adapter', () => {
       ...(showWeeklyDialogue.mock.calls[0]?.[0]?.contextDetails ?? []),
     ].join(' ');
     expect(showWeeklyDialogue.mock.calls[0]?.[0]?.text).toBe(
-      'Must Do: open Monday Briefing. Where: Action Center. Consequence: Advance Week locks saved lineups, cap moves, morale, and matchup calls. Monday Briefing names injuries, backup gaps, morale drops, or uncovered protection, coverage, or run-defense calls before Advance Week locks the next game.',
+      'Must Do: open Monday Briefing. Where: Action Center. Consequence: Advance Week locks saved lineups, cap moves, morale, and matchup calls.',
+    );
+    expect(showWeeklyDialogue.mock.calls[0]?.[0]?.text.length).toBeLessThanOrEqual(240);
+    expect(showWeeklyDialogue.mock.calls[0]?.[0]?.contextDetails).toContain(
+      'Why: Monday Briefing names injuries, backup gaps, morale drops, or uncovered protection, coverage, or run-defense calls before Advance Week locks the next game.',
     );
     expect(showWeeklyDialogue.mock.calls[0]?.[0]?.text).not.toMatch(/Must Do:.*Must Do:/i);
     expect(playerFacingCopy).toContain('cap space');
@@ -136,6 +141,54 @@ describe('useChipEvents adapter', () => {
         ]),
       }),
     );
+  });
+
+  it('sets a deterministic reduced-motion pose on the piped weekly entry (B8)', () => {
+    const showWeeklyDialogue = vi.fn();
+    const controller = createChipEventsController({
+      bridge: { start: vi.fn(), stop: vi.fn() },
+      chipStore: { showWeeklyDialogue },
+    });
+
+    controller.handleEvent(makeWeekEvent({ gameOutcome: 'uglyWin' }));
+    const firstPose = showWeeklyDialogue.mock.calls[0]?.[0]?.reducedMotionPose;
+    expect(firstPose).toBeDefined();
+
+    const replaySpy = vi.fn();
+    const replay = createChipEventsController({
+      bridge: { start: vi.fn(), stop: vi.fn() },
+      chipStore: { showWeeklyDialogue: replaySpy },
+    });
+    replay.handleEvent(makeWeekEvent({ gameOutcome: 'uglyWin' }));
+    expect(replaySpy.mock.calls[0]?.[0]?.reducedMotionPose).toBe(firstPose);
+  });
+
+  it('threads average morale and owner patience into the weekly guidance snapshot (A5)', () => {
+    const adapter = createGameStoreBridgeAdapter({
+      getState: () => ({
+        game: {
+          week: 6,
+          year: 2028,
+          seed: 101,
+          phase: 'regular_season',
+          teams: {
+            user: { id: 'user', city: 'Chicago', name: 'Monsters', isUser: true, ownerId: 'owner-1' },
+          },
+          owners: { 'owner-1': { patience: 25 } },
+          players: {
+            p1: { teamId: 'user', morale: 40 },
+            p2: { teamId: 'user', morale: 50 },
+            p3: { teamId: 'rival', morale: 90 },
+          },
+          weekSummaries: [{ result: 'win', teamScore: 24, opponentScore: 14 }],
+        },
+      }),
+      subscribe: () => () => undefined,
+    });
+
+    const snapshot = adapter.getState();
+    expect(snapshot.weeklyGuidance?.averageMorale).toBe(45);
+    expect(snapshot.weeklyGuidance?.ownerPatience).toBe(25);
   });
 
   it('adapts app game store state into bridge snapshots', () => {
@@ -234,6 +287,87 @@ describe('useChipEvents adapter', () => {
     });
   });
 
+  it('serves preseason guidance when the regular season has no results yet', () => {
+    const adapter = createGameStoreBridgeAdapter({
+      getState: () => ({
+        game: {
+          week: 1,
+          year: 2028,
+          seed: 101,
+          phase: 'regular_season',
+          weekSummaries: [],
+        },
+      }),
+      subscribe: () => () => undefined,
+    });
+
+    expect(adapter.getState()).toMatchObject({ weeklyOutcome: 'preseason' });
+  });
+
+  it('keeps the midseason fallback when later weeks still lack summaries', () => {
+    const adapter = createGameStoreBridgeAdapter({
+      getState: () => ({
+        game: {
+          week: 8,
+          year: 2028,
+          seed: 101,
+          phase: 'regular_season',
+          weekSummaries: [],
+        },
+      }),
+      subscribe: () => () => undefined,
+    });
+
+    expect(adapter.getState()).toMatchObject({ weeklyOutcome: 'midseason' });
+  });
+
+  it('counts consecutive weeks with the same derived outcome for continuity copy', () => {
+    expect(deriveConsecutiveOutcomeWeeks({
+      week: 4,
+      year: 2028,
+      seed: 101,
+      phase: 'regular_season',
+      weekSummaries: [
+        { result: 'win', teamScore: 24, opponentScore: 14 },
+        { result: 'win', teamScore: 27, opponentScore: 10 },
+        { result: 'win', teamScore: 31, opponentScore: 17 },
+      ],
+    })).toBe(3);
+
+    expect(deriveConsecutiveOutcomeWeeks({
+      week: 4,
+      year: 2028,
+      seed: 101,
+      phase: 'regular_season',
+      weekSummaries: [
+        { result: 'loss', teamScore: 10, opponentScore: 24 },
+        { result: 'win', teamScore: 27, opponentScore: 10 },
+        { result: 'win', teamScore: 31, opponentScore: 17 },
+      ],
+    })).toBe(2);
+
+    expect(deriveConsecutiveOutcomeWeeks({
+      week: 2,
+      year: 2028,
+      seed: 101,
+      phase: 'regular_season',
+      weekSummaries: [
+        { result: 'win', teamScore: 27, opponentScore: 10 },
+        { result: 'loss', teamScore: 10, opponentScore: 24 },
+      ],
+    })).toBeUndefined();
+
+    expect(deriveConsecutiveOutcomeWeeks({
+      week: 1,
+      year: 2028,
+      seed: 101,
+      phase: 'regular_season',
+      weekSummaries: [{ result: 'win', teamScore: 27, opponentScore: 10 }],
+    })).toBeUndefined();
+
+    expect(deriveConsecutiveOutcomeWeeks(null)).toBeUndefined();
+  });
+
   it('adapts Chip store state without exposing dialogue text to the bridge', () => {
     const adapter = createChipStoreBridgeAdapter({
       getState: () => ({
@@ -262,5 +396,203 @@ describe('useChipEvents adapter', () => {
     expect(resolveChipEventRoute({ hash: '#/league/weather', pathname: '/MFD/' }, '/MFD/')).toBe('/league/weather');
     expect(resolveChipEventRoute({ hash: '', pathname: '/MFD/roster' }, '/MFD/')).toBe('/roster');
     expect(resolveChipEventRoute(null, '/MFD/')).toBe('/');
+  });
+});
+
+describe('B7 conversation wiring', () => {
+  it('queues reaction + coaching beats for big-moment outcomes', () => {
+    const showWeeklyDialogue = vi.fn();
+    const queueDialogue = vi.fn();
+    const controller = createChipEventsController({
+      bridge: { start: vi.fn(), stop: vi.fn() },
+      chipStore: { showWeeklyDialogue, queueDialogue },
+    });
+
+    controller.handleEvent(makeWeekEvent({ gameOutcome: 'blowoutLoss', dialogueId: 'chip.weekly.blowoutLoss' }));
+
+    expect(queueDialogue).toHaveBeenCalledTimes(1);
+    const conversation = queueDialogue.mock.calls[0]![0] as Array<{ id: string; text: string; contextDetails?: string[] }>;
+    expect(conversation.length).toBeGreaterThanOrEqual(2);
+    expect(conversation[0]!.id).toMatch(/\.reaction/);
+    expect(conversation.at(-1)!.id).toMatch(/\.plan/);
+    expect(conversation.at(-1)!.contextDetails?.length).toBeGreaterThan(0);
+    expect(showWeeklyDialogue).not.toHaveBeenCalled();
+  });
+
+  it('keeps the single-bubble path for non-big outcomes', () => {
+    const showWeeklyDialogue = vi.fn();
+    const queueDialogue = vi.fn();
+    const controller = createChipEventsController({
+      bridge: { start: vi.fn(), stop: vi.fn() },
+      chipStore: { showWeeklyDialogue, queueDialogue },
+    });
+
+    controller.handleEvent(makeWeekEvent({ gameOutcome: 'cleanWin', dialogueId: 'chip.weekly.cleanWin' }));
+
+    expect(queueDialogue).not.toHaveBeenCalled();
+    expect(showWeeklyDialogue).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'chip.weekly.cleanWin' }),
+    );
+  });
+
+  it('falls back to showWeeklyDialogue with the first beat when the store has no queue', () => {
+    const showWeeklyDialogue = vi.fn();
+    const controller = createChipEventsController({
+      bridge: { start: vi.fn(), stop: vi.fn() },
+      chipStore: { showWeeklyDialogue },
+    });
+
+    controller.handleEvent(makeWeekEvent({ gameOutcome: 'championship', dialogueId: 'chip.weekly.championship' }));
+
+    expect(showWeeklyDialogue).toHaveBeenCalledTimes(1);
+    expect(showWeeklyDialogue.mock.calls[0]![0].id).toMatch(/\.reaction/);
+  });
+});
+
+describe('C13 stacked-moment precedence', () => {
+  function makeQueueStore(active: { currentDialogueId: string | null; dismissed: boolean }) {
+    return {
+      showWeeklyDialogue: vi.fn(),
+      queueDialogue: vi.fn(),
+      appendDialogueQueue: vi.fn(),
+      getDialogueState: vi.fn(() => active),
+    };
+  }
+
+  it('appends a lower-precedence event behind the active conversation instead of overwriting', () => {
+    const chipStore = makeQueueStore({ currentDialogueId: 'chip.weekly.championship', dismissed: false });
+    const controller = createChipEventsController({
+      bridge: { start: vi.fn(), stop: vi.fn() },
+      chipStore,
+    });
+
+    controller.handleEvent(makeWeekEvent({
+      category: 'seasonEnd',
+      trigger: 'seasonEnd',
+      gameOutcome: 'championship',
+      dialogueId: 'chip.weekly.championship',
+    }));
+    expect(chipStore.queueDialogue).toHaveBeenCalledTimes(1);
+    expect(chipStore.appendDialogueQueue).not.toHaveBeenCalled();
+
+    controller.handleEvent(makeWeekEvent({
+      category: 'weekRollover',
+      trigger: 'weekRollover',
+      gameOutcome: 'cleanWin',
+      dialogueId: 'chip.weekly.cleanWin',
+      currentWeek: 3,
+    }));
+
+    expect(chipStore.appendDialogueQueue).toHaveBeenCalledTimes(1);
+    expect(chipStore.queueDialogue).toHaveBeenCalledTimes(1);
+    expect(chipStore.showWeeklyDialogue).not.toHaveBeenCalled();
+  });
+
+  it('lets a strictly higher-precedence event preempt the active conversation', () => {
+    const chipStore = makeQueueStore({ currentDialogueId: 'chip.weekly.cleanWin', dismissed: false });
+    const controller = createChipEventsController({
+      bridge: { start: vi.fn(), stop: vi.fn() },
+      chipStore,
+    });
+
+    controller.handleEvent(makeWeekEvent({ gameOutcome: 'cleanWin' }));
+    controller.handleEvent(makeWeekEvent({
+      category: 'seasonEnd',
+      trigger: 'seasonEnd',
+      gameOutcome: 'championship',
+      dialogueId: 'chip.weekly.championship',
+    }));
+
+    expect(chipStore.appendDialogueQueue).not.toHaveBeenCalled();
+    // The championship conversation replaces the mid-read weekly beat.
+    expect(chipStore.queueDialogue).toHaveBeenCalledTimes(1);
+  });
+
+  it('replaces normally when the active dialogue was dismissed or nothing is showing', () => {
+    const chipStore = makeQueueStore({ currentDialogueId: 'chip.weekly.cleanWin', dismissed: true });
+    const controller = createChipEventsController({
+      bridge: { start: vi.fn(), stop: vi.fn() },
+      chipStore,
+    });
+
+    controller.handleEvent(makeWeekEvent({ gameOutcome: 'cleanWin' }));
+    controller.handleEvent(makeWeekEvent({ gameOutcome: 'cleanWin', currentWeek: 3 }));
+
+    expect(chipStore.appendDialogueQueue).not.toHaveBeenCalled();
+    expect(chipStore.showWeeklyDialogue).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps legacy replace behavior when the store predates the C13 surface', () => {
+    const showWeeklyDialogue = vi.fn();
+    const queueDialogue = vi.fn();
+    const controller = createChipEventsController({
+      bridge: { start: vi.fn(), stop: vi.fn() },
+      chipStore: { showWeeklyDialogue, queueDialogue },
+    });
+
+    controller.handleEvent(makeWeekEvent({ gameOutcome: 'blowoutLoss', dialogueId: 'chip.weekly.blowoutLoss' }));
+    controller.handleEvent(makeWeekEvent({ gameOutcome: 'cleanWin', currentWeek: 3 }));
+
+    expect(queueDialogue).toHaveBeenCalledTimes(1);
+    expect(showWeeklyDialogue).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('D8 explicit tie handling', () => {
+  function outcomeFor(summaries: readonly { result: 'win' | 'loss' | 'tie'; teamScore: number; opponentScore: number }[], week = 6) {
+    const adapter = createGameStoreBridgeAdapter({
+      getState: () => ({
+        game: {
+          week,
+          year: 2028,
+          seed: 101,
+          phase: 'regular_season',
+          weekSummaries: summaries,
+        },
+      }),
+      subscribe: () => () => undefined,
+    });
+    return adapter.getState().weeklyOutcome;
+  }
+
+  it('serves the neutral midseason variant for a tie week, not win or loss copy', () => {
+    expect(outcomeFor([
+      { result: 'win', teamScore: 27, opponentScore: 10 },
+      { result: 'tie', teamScore: 17, opponentScore: 17 },
+    ])).toBe('midseason');
+  });
+
+  it('breaks a loss streak on a tie week instead of extending it', () => {
+    // L-L-T-L: the tie resets the count, so the latest loss stands alone.
+    expect(outcomeFor([
+      { result: 'loss', teamScore: 10, opponentScore: 24 },
+      { result: 'loss', teamScore: 13, opponentScore: 27 },
+      { result: 'tie', teamScore: 20, opponentScore: 20 },
+      { result: 'loss', teamScore: 17, opponentScore: 20 },
+    ])).toBe('loss');
+
+    // Sanity: three straight losses still trigger the streak variant...
+    expect(outcomeFor([
+      { result: 'loss', teamScore: 10, opponentScore: 24 },
+      { result: 'loss', teamScore: 13, opponentScore: 27 },
+      { result: 'loss', teamScore: 17, opponentScore: 20 },
+    ])).toBe('threeLossStreak');
+
+    // ...and a fresh three-loss run after a tie counts again.
+    expect(outcomeFor([
+      { result: 'tie', teamScore: 20, opponentScore: 20 },
+      { result: 'loss', teamScore: 10, opponentScore: 24 },
+      { result: 'loss', teamScore: 13, opponentScore: 27 },
+      { result: 'loss', teamScore: 17, opponentScore: 20 },
+    ])).toBe('threeLossStreak');
+  });
+
+  it('never lets a tie week inherit the streak variant', () => {
+    expect(outcomeFor([
+      { result: 'loss', teamScore: 10, opponentScore: 24 },
+      { result: 'loss', teamScore: 13, opponentScore: 27 },
+      { result: 'loss', teamScore: 17, opponentScore: 20 },
+      { result: 'tie', teamScore: 23, opponentScore: 23 },
+    ])).toBe('midseason');
   });
 });

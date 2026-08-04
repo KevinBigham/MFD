@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { APP_ROUTE_REGISTRY } from '@mfd/engine/config';
 import { ROUTE_BEAT_REGISTRY, ROUTE_KEYS, type RouteKey } from './routeBeatRegistry';
 import {
+  ALL_ROUTE_COACHING_BEAT_IDS,
   __getActiveRouteBeatCacheSize,
   __resetActiveRouteBeatCacheForTests,
   resolveRouteKey,
@@ -157,6 +158,7 @@ describe('useActiveRouteBeats selectors', () => {
 
     expect(selectActiveRouteBeats('/trades', seen).map((beat) => beat.id)).toEqual([
       'chip.route.trade-center.beat-2',
+      'chip.route.trade-center.beat-3',
     ]);
   });
 
@@ -447,5 +449,134 @@ describe('useActiveRouteBeats selectors', () => {
     ]);
 
     expect(ROUTE_KEYS.filter((routeKey) => !reachableRouteKeys.has(routeKey))).toEqual([]);
+  });
+});
+
+describe('ALL_ROUTE_COACHING_BEAT_IDS (G7)', () => {
+  it('covers every first-ten beat and every registry beat exactly once', () => {
+    const registryIds = ROUTE_KEYS.flatMap((key) => ROUTE_BEAT_REGISTRY[key].map((beat) => beat.id));
+    for (const id of registryIds) {
+      expect(ALL_ROUTE_COACHING_BEAT_IDS, id).toContain(id);
+    }
+    expect(ALL_ROUTE_COACHING_BEAT_IDS.some((id) => id.startsWith('chip.first10.'))).toBe(true);
+    expect(new Set(ALL_ROUTE_COACHING_BEAT_IDS).size).toBe(ALL_ROUTE_COACHING_BEAT_IDS.length);
+  });
+});
+
+describe('G9 seeded first-ten flavor through the hook', () => {
+  afterEach(() => {
+    __resetActiveRouteBeatCacheForTests();
+    vi.unstubAllGlobals();
+  });
+
+  function flavorProbeMarkup(seed?: number): string {
+    function RouteBeatProbe() {
+      const beats = useActiveRouteBeats('/roster', { currentWeek: 4, dynastySeed: seed });
+      return createElement('div', { 'data-first-beat-text': beats[0]?.text ?? '' });
+    }
+    return renderToStaticMarkup(createElement(RouteBeatProbe));
+  }
+
+  it('serves canonical first-ten text byte-for-byte without a seed', () => {
+    const unseeded = flavorProbeMarkup(undefined);
+    expect(unseeded).toContain(
+      'Recommended: open Roster before Game Plan. Where: injuries and first backups. Consequence: uncovered backups force emergency signings.',
+    );
+    expect(unseeded).not.toMatch(/Fifty-three names|Roles first|Every name on this page/);
+  });
+
+  it('appends a deterministic seeded flavor closer inside the bubble budget', () => {
+    const seeded = flavorProbeMarkup(42);
+    expect(seeded).toContain('Consequence: uncovered backups force emergency signings.');
+    expect(seeded).toMatch(/Fifty-three names|Roles first|Every name on this page/);
+    // Same seed + week replays the identical text.
+    expect(flavorProbeMarkup(42)).toBe(seeded);
+  });
+});
+
+describe('G2 playoff beat variants through the hook', () => {
+  afterEach(() => {
+    __resetActiveRouteBeatCacheForTests();
+    vi.unstubAllGlobals();
+  });
+
+  function playoffProbeMarkup(phase?: string): string {
+    function RouteBeatProbe() {
+      const beats = useActiveRouteBeats('/trades', { currentWeek: 19, phase });
+      return createElement('div', { 'data-beats': beats.map((beat) => `${beat.id}=${beat.text}`).join('|') });
+    }
+    return renderToStaticMarkup(createElement(RouteBeatProbe));
+  }
+
+  it('serves the playoff variant for a covered tier-1 beat during the playoffs', () => {
+    function BriefingProbe() {
+      const beats = useActiveRouteBeats('/', { currentWeek: 19, phase: 'playoffs' });
+      return createElement('div', { 'data-beats': beats.map((beat) => `${beat.id}=${beat.text}`).join('|') });
+    }
+    const markup = renderToStaticMarkup(createElement(BriefingProbe));
+    expect(markup).toContain('one missed injury or matchup call ends the season.');
+  });
+
+  it('keeps canonical text byte-for-byte outside the playoffs and for uncovered beats', () => {
+    const regular = playoffProbeMarkup('regular_season');
+    expect(regular).toContain('Recommended: choose starter or backup job before calls.');
+    expect(regular).not.toContain('ends the season.');
+
+    // Trades is not one of the ten covered routes: playoffs change nothing.
+    const playoff = playoffProbeMarkup('playoffs');
+    expect(playoff).toContain('Recommended: choose starter or backup job before calls.');
+  });
+});
+
+describe('G3 week-toned beat variants through the hook', () => {
+  afterEach(() => {
+    __resetActiveRouteBeatCacheForTests();
+    vi.unstubAllGlobals();
+  });
+
+  function briefingBeatMarkup(context: { currentWeek?: number; phase?: string }): string {
+    function BriefingProbe() {
+      const beats = useActiveRouteBeats('/', context);
+      return createElement('div', { 'data-beats': beats.map((beat) => `${beat.id}=${beat.text}`).join('|') });
+    }
+    return renderToStaticMarkup(createElement(BriefingProbe));
+  }
+
+  it('serves the early-season variant during weeks 1 through 4', () => {
+    const week2 = briefingBeatMarkup({ currentWeek: 2 });
+    expect(week2).toContain('small misses in September grow into real problems later.');
+    expect(week2).not.toContain('open Action Center. Where: Monday Briefing. Consequence: Advance Week locks');
+
+    const week4 = briefingBeatMarkup({ currentWeek: 4 });
+    expect(week4).toContain('small misses in September grow into real problems later.');
+  });
+
+  it('serves the stretch-run variant from week 15 on', () => {
+    const week16 = briefingBeatMarkup({ currentWeek: 16 });
+    expect(week16).toContain('one missed note now costs the playoff picture.');
+    expect(week16).not.toContain('open Action Center. Where: Monday Briefing. Consequence: Advance Week locks');
+
+    const week15 = briefingBeatMarkup({ currentWeek: 15 });
+    expect(week15).toContain('one missed note now costs the playoff picture.');
+  });
+
+  it('keeps canonical text byte-for-byte in mid-season weeks and without context', () => {
+    const week8 = briefingBeatMarkup({ currentWeek: 8 });
+    expect(week8).toContain('Must Do: open Action Center. Where: Monday Briefing. Consequence: Advance Week locks injuries, promises, deadlines, and opponent prep.');
+    expect(week8).not.toContain('September');
+    expect(week8).not.toContain('playoff picture');
+
+    const noContext = briefingBeatMarkup({});
+    expect(noContext).toContain('Must Do: open Action Center. Where: Monday Briefing. Consequence: Advance Week locks injuries, promises, deadlines, and opponent prep.');
+  });
+
+  it('lets the playoff variant win the collision with late-season weeks', () => {
+    const playoffWeek19 = briefingBeatMarkup({ currentWeek: 19, phase: 'playoffs' });
+    expect(playoffWeek19).toContain('one missed injury or matchup call ends the season.');
+    expect(playoffWeek19).not.toContain('playoff picture');
+
+    // Late-season tone still applies to non-playoff phases at the same week.
+    const regularWeek19 = briefingBeatMarkup({ currentWeek: 19, phase: 'regular_season' });
+    expect(regularWeek19).toContain('one missed note now costs the playoff picture.');
   });
 });

@@ -1,5 +1,8 @@
 import type { DialogueCatalogEntry } from './dialogue/types';
+import { MAX_CHIP_DIALOGUE_CHARS } from './dialogue/types';
 import type { WeeklyDialogueVariant } from './dialogue/weekly';
+import { fnv1a } from './hash';
+import { selectSidelineNote, seasonArcForWeek } from './sidelineFlavor';
 
 export interface WeeklyGuidanceInput {
   outcome: WeeklyDialogueVariant;
@@ -11,9 +14,61 @@ export interface WeeklyGuidanceInput {
   pendingDecisionCount?: number;
   capSpace?: number;
   difficulty?: string;
+  dynastySeed?: number;
+  consecutiveOutcomeWeeks?: number;
+  averageMorale?: number;
+  ownerPatience?: number;
+  /** B5: last served flavor line from the memory sidecar; the seeded flavor
+   * pick rotates one slot instead of repeating it across sessions. */
+  avoidFlavorLine?: string;
 }
 
 export type WeeklyGuidanceTrigger = 'weekRollover' | 'gameComplete' | 'seasonEnd';
+
+/**
+ * Cap-space pressure thresholds (in $M). At or below these, risk copy names the
+ * tight cap. High-pressure difficulties warn earlier because skipped cap work
+ * punishes harder there. Exported so tuning stays out of the copy functions.
+ */
+export const CAP_TIGHT_MAX_MILLIONS = 8;
+export const CAP_TIGHT_HIGH_PRESSURE_MAX_MILLIONS = 12;
+
+/**
+ * Seeded variant pools (B3) for the generic recommended/optional guidance
+ * lines. Index 0 is the canonical line served to unseeded callers byte-for-byte;
+ * seeded dynasties rotate by seed + week so long saves stop reading the same
+ * sentence every Monday.
+ */
+export const GENERIC_RECOMMENDED_LINES = [
+  'Open Action Center for current notes; then any legal roster, depth chart, training, game plan, contracts, Cap Lab, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical move remains available before Advance Week.',
+  'Open Monday Briefing notes first; then the strongest legal roster, depth, cap, trade, waiver, practice-squad, free-agency, scouting, or coaching move before Advance Week locks.',
+  'Scan Action Center, then Roster and Cap Lab; pick the one legal move whose gain beats its cost before Advance Week.',
+] as const;
+
+export const GENERIC_OPTIONAL_LINES = [
+  "Make any legal roster, depth chart, training, game plan, cap space, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical move this week; prioritize moves that change lineup, cap space, market offer, staff plan, recovery, or matchup before Advance Week.",
+  'After the priority work, one extra legal move is a bonus: training camp, scouting, practice-squad, or staff work all compound before Advance Week.',
+  'If the Must Do and Recommended are done, any remaining legal football-ops move is fair game this week; favor moves that shape starters, cap space, or staff before Advance Week.',
+] as const;
+
+function selectSeededLine(
+  pool: readonly string[],
+  input: WeeklyGuidanceInput,
+  salt: string,
+): string {
+  if (!Number.isFinite(input.dynastySeed)) return pool[0]!;
+  const seed = Math.trunc(Number(input.dynastySeed));
+  const week = Math.max(0, Math.trunc(input.currentWeek));
+  return pool[fnv1a(`chip.guidance.${salt}|${seed}|${week}`) % pool.length]!;
+}
+
+function isHighPressureDifficulty(difficulty: string | undefined): boolean {
+  const normalized = difficulty?.toLowerCase();
+  return normalized === 'hard'
+    || normalized === 'allpro'
+    || normalized === 'all-pro'
+    || normalized === 'legend';
+}
 
 export interface WeeklyGuidance {
   id: string;
@@ -28,6 +83,8 @@ export interface WeeklyGuidance {
   deadline: string;
   canWait: string;
   risk: string;
+  sidelineNote: string;
+  continuityNote?: string;
 }
 
 function outcomeLabel(outcome: WeeklyDialogueVariant): string {
@@ -95,7 +152,7 @@ function whereFor(input: WeeklyGuidanceInput, pending: number, injuries: number)
   if (input.eventTrigger === 'gameComplete') return 'Open Post-Week Command Deck, then open Roster, Depth Chart, and Game Plan before Advance Week.';
   if (pending > 0) return 'Inbox, Action Center, or highlighted screen badges; choose or defer there, then return to Monday Briefing.';
   if (injuries > 0) return 'Open Roster, then Depth Chart for the first backup; open Game Plan if the injury changes calls.';
-  return 'Action Center, then any legal football-ops screen: Roster, Depth Chart, Training, Game Plan, Contracts, Cap Lab, Trades, Waivers, Practice Squad, Free Agency, Scouting, Coaching, Facility, or Medical.';
+  return 'Action Center, then any legal football-ops screen: Roster, Depth Chart, Training Camp, Game Plan, Contracts, Cap Lab, Trades, Waiver Wire, Practice Squad, Free Agency, Scouting, Coaching, or Front Office.';
 }
 
 function recommendedFor(input: WeeklyGuidanceInput, pending: number, injuries: number): string {
@@ -103,16 +160,17 @@ function recommendedFor(input: WeeklyGuidanceInput, pending: number, injuries: n
   if (injuries > 0) return 'Set injured roles, first backups, and one legal free-agent or practice-squad option.';
   if (input.eventTrigger === 'seasonEnd') return 'Open Contracts, Staff, Cap Lab, and Free Agency for expiring starters, open staff seats, aging positions, and cap space before the first bid.';
   if (input.eventTrigger === 'gameComplete') return 'Open Recap notes, then fix the Game Plan call, Depth Chart order, or roster role Recap names before lower-impact moves.';
-  return input.opponentName
-    ? `Scout ${input.opponentName} for injuries, backup order, cap space, and matchup calls; then make any legal roster, cap, market, staff, or matchup move whose gain beats the cost.`
-    : 'Open Action Center for current notes; then any legal roster, depth chart, training, game plan, contracts, Cap Lab, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical move remains available before Advance Week.';
+  if (input.opponentName) {
+    return `Scout ${input.opponentName} for injuries, backup order, cap space, and matchup calls; then make any legal roster, cap, market, staff, or matchup move whose gain beats the cost.`;
+  }
+  return selectSeededLine(GENERIC_RECOMMENDED_LINES, input, 'recommended');
 }
 
 function optionalFor(input: WeeklyGuidanceInput): string {
   if (input.eventTrigger === 'seasonEnd') {
     return 'Open awards, records, and history after Season Recap, Contracts, Staff, Cap Lab, and the first-bid plan; those screens do not fix extensions, bids, or empty staff seats.';
   }
-  return "Make any legal roster, depth chart, training, game plan, cap space, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical move this week; prioritize moves that change lineup, cap space, market offer, staff plan, recovery, or matchup before Advance Week.";
+  return selectSeededLine(GENERIC_OPTIONAL_LINES, input, 'optional');
 }
 
 function whyItMattersFor(input: WeeklyGuidanceInput): string {
@@ -141,17 +199,16 @@ function canWaitFor(trigger: WeeklyGuidanceTrigger | undefined): string {
 
 function riskFor(input: WeeklyGuidanceInput, pending: number, injuries: number): string {
   const capSpace = input.capSpace;
-  const difficulty = input.difficulty?.toLowerCase();
-  const highPressureDifficulty = difficulty === 'hard'
-    || difficulty === 'allpro'
-    || difficulty === 'all-pro'
-    || difficulty === 'legend';
+  const highPressureDifficulty = isHighPressureDifficulty(input.difficulty);
   if (pending > 0) return 'Ignored decisions expire, remove offers, cut owner patience, or lock weaker starter, backup, cap, lineup, or morale choices after Advance Week.';
   if (injuries > 0) return 'Uncovered injuries put an unassigned first backup on the field or break the saved Game Plan.';
-  if (highPressureDifficulty) return 'Higher difficulty punishes skipped injury, backup, cap, and matchup work; Advance Week locks what you leave.';
-  if (capSpace !== undefined && capSpace < 8) {
+  if (
+    capSpace !== undefined
+    && capSpace < (highPressureDifficulty ? CAP_TIGHT_HIGH_PRESSURE_MAX_MILLIONS : CAP_TIGHT_MAX_MILLIONS)
+  ) {
     return 'Cap space is tight. Open Contracts or Cap Lab before short-term fixes; new money blocks injury replacements, extensions, or next-offseason moves.';
   }
+  if (highPressureDifficulty) return 'Higher difficulty punishes skipped injury, backup, cap, and matchup work; Advance Week locks what you leave.';
   if (input.eventTrigger === 'seasonEnd') {
     return 'Bidding before Season Recap, Contracts, Staff, and Cap Lab decisions wastes cap space on a veteran role the roster does not need, misses an extension, or leaves a staff vacancy slowing prep.';
   }
@@ -165,6 +222,28 @@ function riskFor(input: WeeklyGuidanceInput, pending: number, injuries: number):
     return 'Skipping Recap, Roster, or Game Plan repeats matchup, injury, or starter mistakes by kickoff.';
   }
   return 'Skipping Monday Briefing leaves a named injury, unassigned first backup, tight cap choice, or uncovered matchup call locked into Advance Week.';
+}
+
+/**
+ * "We talked about this" continuity line. When the derived outcome repeats for
+ * two or more straight weeks, Chip acknowledges the pattern instead of reading
+ * the week like it is brand new.
+ */
+function continuityNoteFor(input: WeeklyGuidanceInput): string | undefined {
+  const count = Math.max(0, Math.trunc(input.consecutiveOutcomeWeeks ?? 0));
+  if (count < 2) return undefined;
+  if (input.outcome === 'cleanWin' || input.outcome === 'uglyWin' || input.outcome === 'championship') {
+    return `${count} straight weeks in the win column; protect the routine earning it.`;
+  }
+  if (
+    input.outcome === 'loss'
+    || input.outcome === 'blowoutLoss'
+    || input.outcome === 'threeLossStreak'
+    || input.outcome === 'darkMoment'
+  ) {
+    return `${count} straight weeks on the wrong side of the table; the named fix is still the assignment.`;
+  }
+  return `${count} straight weeks with the same assignment; the standard does not change.`;
 }
 
 export function buildWeeklyGuidance(input: WeeklyGuidanceInput): WeeklyGuidance {
@@ -200,6 +279,18 @@ export function buildWeeklyGuidance(input: WeeklyGuidanceInput): WeeklyGuidance 
     deadline,
     canWait: canWaitFor(input.eventTrigger),
     risk: riskFor(input, pending, injuries),
+    sidelineNote: selectSidelineNote({
+      outcome: input.outcome,
+      currentWeek: input.currentWeek,
+      dynastySeed: input.dynastySeed,
+      opponentName: input.opponentName,
+      difficulty: input.difficulty,
+      seasonArc: seasonArcForWeek(input.currentWeek),
+      averageMorale: input.averageMorale,
+      ownerPatience: input.ownerPatience,
+      avoidLine: input.avoidFlavorLine,
+    }),
+    continuityNote: continuityNoteFor(input),
   };
 }
 
@@ -207,14 +298,35 @@ function stripLeadingGuidanceLabel(text: string): string {
   return text.replace(/^(Must Do|Recommended|Optional|Where|Deadline|Later|Risk):\s*/i, '');
 }
 
+/**
+ * The dock bubble hard-caps visible text at MAX_CHIP_DIALOGUE_CHARS. Weekly
+ * Must Do + why-it-matters pairs regularly exceed that cap, which previously
+ * meant production bubbles ended mid-sentence with an ellipsis. Compose the
+ * visible text so it always fits: keep the Must Do action intact, then append
+ * the why only when the budget allows; the full detail set renders in the
+ * dock details panel, so nothing is lost.
+ */
+export function composeWeeklyDialogueText(
+  topAction: string,
+  whyItMatters: string,
+  maxChars: number = MAX_CHIP_DIALOGUE_CHARS,
+): string {
+  const combined = `${topAction} ${whyItMatters}`;
+  if (combined.length <= maxChars) return combined;
+  if (topAction.length <= maxChars) return topAction;
+  return `${topAction.slice(0, Math.max(0, maxChars - 3))}...`;
+}
+
 export function weeklyGuidanceToDialogueEntry(guidance: WeeklyGuidance): DialogueCatalogEntry {
   return {
     id: guidance.id,
     beat: 0,
     pose: guidance.pose,
-    text: `${guidance.topAction} ${guidance.whyItMatters}`,
+    text: composeWeeklyDialogueText(guidance.topAction, guidance.whyItMatters),
     contextDetails: [
       `What changed: ${guidance.whatChanged}`,
+      `Why: ${guidance.whyItMatters}`,
+      ...(guidance.continuityNote ? [`Continuity: ${guidance.continuityNote}`] : []),
       `Must Do: ${stripLeadingGuidanceLabel(guidance.mustDo)}`,
       `Recommended: ${guidance.recommended}`,
       `Optional: ${guidance.optional}`,
@@ -222,6 +334,7 @@ export function weeklyGuidanceToDialogueEntry(guidance: WeeklyGuidance): Dialogu
       `Deadline: ${guidance.deadline}`,
       `Optional later: ${guidance.canWait}`,
       `Consequence: ${guidance.risk}`,
+      `Sideline note: ${guidance.sidelineNote}`,
     ],
     archetype: 'weekly',
     priority: 4,

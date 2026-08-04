@@ -195,6 +195,16 @@ describe('ChipDialogueBubble', () => {
     expect(() => result.cancelFrame(handle)).not.toThrow();
   });
 
+  it('announces bubble copy politely to screen readers', () => {
+    const markup = renderToStaticMarkup(
+      <ChipDialogueBubble text="The tape is ready when you are." reducedMotion />,
+    );
+
+    expect(markup).toContain('role="status"');
+    expect(markup).toContain('aria-live="polite"');
+    expect(markup).toContain('aria-label="The tape is ready when you are."');
+  });
+
   it('binds rAF helpers when the host window provides them', () => {
     const requestSpy = vi.fn(() => 99);
     const cancelSpy = vi.fn();

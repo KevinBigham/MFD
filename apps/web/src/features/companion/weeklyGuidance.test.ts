@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildWeeklyGuidance,
+  composeWeeklyDialogueText,
   weeklyGuidanceToDialogueEntry,
+  GENERIC_OPTIONAL_LINES,
+  GENERIC_RECOMMENDED_LINES,
 } from './weeklyGuidance';
+import { MAX_CHIP_DIALOGUE_CHARS } from './dialogue/types';
 
 describe('weekly guidance', () => {
   it('turns a post-loss injury week into one clear next action', () => {
@@ -64,7 +68,7 @@ describe('weekly guidance', () => {
     expect(guidance.whyItMatters).not.toContain('mismatched calls');
     expect(guidance.whyItMatters).toContain('before Advance Week locks the next game');
     expect(guidance.deadline).toBe('Open Monday Briefing. Fix or accept any Action Center injury, backup, morale, cap, or matchup note before Advance Week.');
-    expect(guidance.where).toBe('Action Center, then any legal football-ops screen: Roster, Depth Chart, Training, Game Plan, Contracts, Cap Lab, Trades, Waivers, Practice Squad, Free Agency, Scouting, Coaching, Facility, or Medical.');
+    expect(guidance.where).toBe('Action Center, then any legal football-ops screen: Roster, Depth Chart, Training Camp, Game Plan, Contracts, Cap Lab, Trades, Waiver Wire, Practice Squad, Free Agency, Scouting, Coaching, or Front Office.');
     expect(guidance.recommended).toContain('Open Action Center for current notes');
     expect(guidance.recommended).toContain('any legal roster, depth chart, training');
     expect(guidance.recommended).toContain('contracts');
@@ -266,7 +270,7 @@ describe('weekly guidance', () => {
     expect(copy).not.toContain('Must Do: open Inbox, Action Center, or highlighted screen badges');
     expect(copy).toContain('Must Do: choose or defer 2 pending decisions before Advance Week');
     expect(copy).not.toMatch(/yes, no, or later|decision screen flagged by the badge|future cap years/i);
-    expect(copy).toContain('Roster, Depth Chart, Training, Game Plan, Contracts, Cap Lab');
+    expect(copy).toContain('Roster, Depth Chart, Training Camp, Game Plan, Contracts, Cap Lab');
     expect(copy).toContain('Contracts, Staff, Cap Lab');
     expect(copy).toContain('Season Recap, Contracts, Staff, Cap Lab, Free Agency');
     expect(copy).toContain('awards, records, and history do not change');
@@ -301,5 +305,170 @@ describe('weekly guidance', () => {
       expect(guidance.topAction, guidance.topAction).toContain('Consequence:');
       expect(guidance.topAction, guidance.topAction).not.toMatch(/check|review|verify|triage|context|cap room/i);
     }
+  });
+
+  it('keeps every generated weekly dialogue text inside the bubble budget', () => {
+    const examples = [
+      buildWeeklyGuidance({ outcome: 'midseason', currentWeek: 2 }),
+      buildWeeklyGuidance({ outcome: 'loss', currentWeek: 4, pendingDecisionCount: 2 }),
+      buildWeeklyGuidance({ outcome: 'cleanWin', currentWeek: 8, eventTrigger: 'gameComplete', opponentName: 'Omaha Railmen' }),
+      buildWeeklyGuidance({ outcome: 'championship', currentWeek: 1, eventTrigger: 'seasonEnd' }),
+      buildWeeklyGuidance({ outcome: 'loss', currentWeek: 4, injuryCount: 3 }),
+      buildWeeklyGuidance({ outcome: 'threeLossStreak', currentWeek: 6, record: '1-5' }),
+      buildWeeklyGuidance({ outcome: 'playoffs', currentWeek: 19 }),
+      buildWeeklyGuidance({ outcome: 'preseason', currentWeek: 1 }),
+    ];
+
+    for (const guidance of examples) {
+      const entry = weeklyGuidanceToDialogueEntry(guidance);
+      expect(entry.text.length, entry.text).toBeLessThanOrEqual(MAX_CHIP_DIALOGUE_CHARS);
+      expect(entry.text, entry.id).toContain('Must Do:');
+      // The why survives inside the context details even when the visible
+      // bubble text must be trimmed to the Must Do action.
+      expect(entry.contextDetails).toContain(`Why: ${guidance.whyItMatters}`);
+    }
+  });
+
+  it('composes dialogue text without truncating the Must Do action', () => {
+    const shortWhy = 'Short reason.';
+    expect(composeWeeklyDialogueText('Must Do: open Recap. Where: Recap. Consequence: misses repeat.', shortWhy))
+      .toBe('Must Do: open Recap. Where: Recap. Consequence: misses repeat. Short reason.');
+
+    const longAction = 'Must Do: choose or defer 2 pending decisions before Advance Week. Where: Inbox, Action Center, or highlighted screen badges. Consequence: offers, promises, votes, cap, lineup, and morale expire or lock.';
+    const longWhy = 'Monday Briefing names injuries, backup gaps, morale drops, or uncovered protection, coverage, or run-defense calls before Advance Week locks the next game.';
+    expect(composeWeeklyDialogueText(longAction, longWhy)).toBe(longAction);
+    expect(composeWeeklyDialogueText(longAction, longWhy).length).toBeLessThanOrEqual(MAX_CHIP_DIALOGUE_CHARS);
+  });
+
+  it('attaches a deterministic sideline note and rotates it for seeded dynasties', () => {
+    const unseeded = buildWeeklyGuidance({ outcome: 'midseason', currentWeek: 2 });
+    expect(unseeded.sidelineNote.length).toBeGreaterThan(0);
+
+    const seededA = buildWeeklyGuidance({ outcome: 'midseason', currentWeek: 2, dynastySeed: 42 });
+    const seededB = buildWeeklyGuidance({ outcome: 'midseason', currentWeek: 2, dynastySeed: 42 });
+    expect(seededA.sidelineNote).toBe(seededB.sidelineNote);
+
+    const weekRotation = new Set(
+      Array.from({ length: 12 }, (_, index) =>
+        buildWeeklyGuidance({ outcome: 'cleanWin', currentWeek: index + 1, dynastySeed: 42 }).sidelineNote),
+    );
+    expect(weekRotation.size).toBeGreaterThan(1);
+
+    const entry = weeklyGuidanceToDialogueEntry(seededA);
+    expect(entry.contextDetails?.some((detail) => detail.startsWith('Sideline note: '))).toBe(true);
+    expect(entry.contextDetails?.some((detail) => detail.endsWith(seededA.sidelineNote))).toBe(true);
+  });
+
+  it('ties the tight-cap risk threshold to difficulty', () => {
+    const legendTight = buildWeeklyGuidance({ outcome: 'midseason', currentWeek: 7, capSpace: 9, difficulty: 'legend' });
+    expect(legendTight.risk).toContain('Cap space is tight');
+
+    const rookieComfortable = buildWeeklyGuidance({ outcome: 'midseason', currentWeek: 7, capSpace: 9, difficulty: 'rookie' });
+    expect(rookieComfortable.risk).not.toContain('Cap space is tight');
+
+    const legendComfortable = buildWeeklyGuidance({ outcome: 'midseason', currentWeek: 7, capSpace: 20, difficulty: 'legend' });
+    expect(legendComfortable.risk).toContain('Higher difficulty punishes');
+
+    const standardTight = buildWeeklyGuidance({ outcome: 'midseason', currentWeek: 7, capSpace: 6 });
+    expect(standardTight.risk).toContain('Cap space is tight');
+  });
+
+  it('acknowledges repeat outcomes with a continuity detail after two straight weeks', () => {
+    const skid = buildWeeklyGuidance({ outcome: 'loss', currentWeek: 6, consecutiveOutcomeWeeks: 3 });
+    expect(skid.continuityNote).toContain('3 straight weeks on the wrong side of the table');
+    const skidEntry = weeklyGuidanceToDialogueEntry(skid);
+    expect(skidEntry.contextDetails?.some((detail) => detail.startsWith('Continuity: '))).toBe(true);
+
+    const heater = buildWeeklyGuidance({ outcome: 'cleanWin', currentWeek: 8, consecutiveOutcomeWeeks: 4 });
+    expect(heater.continuityNote).toContain('4 straight weeks in the win column');
+
+    const steady = buildWeeklyGuidance({ outcome: 'midseason', currentWeek: 8, consecutiveOutcomeWeeks: 2 });
+    expect(steady.continuityNote).toContain('2 straight weeks with the same assignment');
+
+    const fresh = buildWeeklyGuidance({ outcome: 'loss', currentWeek: 6, consecutiveOutcomeWeeks: 1 });
+    expect(fresh.continuityNote).toBeUndefined();
+    expect(weeklyGuidanceToDialogueEntry(fresh).contextDetails?.some((detail) => detail.startsWith('Continuity: '))).toBe(false);
+
+    const unknown = buildWeeklyGuidance({ outcome: 'loss', currentWeek: 6 });
+    expect(unknown.continuityNote).toBeUndefined();
+  });
+
+  it('keeps the canonical generic recommended/optional lines byte-identical for unseeded callers (B3)', () => {
+    const guidance = buildWeeklyGuidance({ outcome: 'midseason', currentWeek: 7 });
+    expect(guidance.recommended).toBe(GENERIC_RECOMMENDED_LINES[0]);
+    expect(guidance.optional).toBe(GENERIC_OPTIONAL_LINES[0]);
+    expect(GENERIC_RECOMMENDED_LINES[0]).toContain('Open Action Center for current notes');
+    expect(GENERIC_OPTIONAL_LINES[0]).toContain('Make any legal roster, depth chart, training');
+  });
+
+  it('rotates generic recommended/optional lines deterministically for seeded dynasties (B3)', () => {
+    const seenRecommended = new Set<string>();
+    const seenOptional = new Set<string>();
+    for (let week = 1; week <= 18; week += 1) {
+      const input = { outcome: 'midseason' as const, currentWeek: week, dynastySeed: 42 };
+      const first = buildWeeklyGuidance(input);
+      const replay = buildWeeklyGuidance(input);
+      expect(replay.recommended).toBe(first.recommended);
+      expect(replay.optional).toBe(first.optional);
+      expect(GENERIC_RECOMMENDED_LINES).toContain(first.recommended);
+      expect(GENERIC_OPTIONAL_LINES).toContain(first.optional);
+      seenRecommended.add(first.recommended);
+      seenOptional.add(first.optional);
+    }
+    expect(seenRecommended.size).toBeGreaterThan(1);
+    expect(seenOptional.size).toBeGreaterThan(1);
+  });
+
+  it('threads morale and owner patience into the sideline note (A5)', () => {
+    const hurting = buildWeeklyGuidance({
+      outcome: 'cleanWin',
+      currentWeek: 5,
+      dynastySeed: 42,
+      averageMorale: 30,
+    });
+    expect(hurting.sidelineNote).toMatch(
+      /The room is hurting; steady it\.|Protect the room first\.|Heads are down; lift the room\./,
+    );
+    const healthy = buildWeeklyGuidance({
+      outcome: 'cleanWin',
+      currentWeek: 5,
+      dynastySeed: 42,
+      averageMorale: 80,
+      ownerPatience: 90,
+    });
+    expect(healthy.sidelineNote).not.toMatch(
+      /The room is hurting; steady it\.|Protect the room first\.|Heads are down; lift the room\./,
+    );
+    expect(healthy.sidelineNote).not.toMatch(
+      /Upstairs patience is thin\.|The owner wants answers\.|Patience upstairs runs short\./,
+    );
+  });
+});
+
+describe('B5 avoidFlavorLine passthrough', () => {
+  it('rotates the sideline note when the remembered line would repeat', () => {
+    // Scan for a week whose deterministic pick comes from the pool (not an
+    // easter egg), then pass that served line back as the one to avoid.
+    for (let week = 1; week <= 18; week += 1) {
+      const base = buildWeeklyGuidance({ outcome: 'loss', currentWeek: week, dynastySeed: 42 });
+      const avoided = buildWeeklyGuidance({
+        outcome: 'loss',
+        currentWeek: week,
+        dynastySeed: 42,
+        avoidFlavorLine: base.sidelineNote,
+      });
+      if (avoided.sidelineNote === base.sidelineNote) continue; // easter-egg week
+      // The rotation only changes the pool line; guidance structure is intact.
+      expect(avoided.topAction).toBe(base.topAction);
+      expect(avoided.whyItMatters).toBe(base.whyItMatters);
+      return;
+    }
+    throw new Error('expected a non-easter-egg week in the scan');
+  });
+
+  it('keeps the deterministic note when nothing is remembered', () => {
+    const base = buildWeeklyGuidance({ outcome: 'cleanWin', currentWeek: 9, dynastySeed: 42 });
+    const same = buildWeeklyGuidance({ outcome: 'cleanWin', currentWeek: 9, dynastySeed: 42, avoidFlavorLine: undefined });
+    expect(same.sidelineNote).toBe(base.sidelineNote);
   });
 });

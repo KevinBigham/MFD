@@ -79,7 +79,7 @@ describe('direct Chip copy surfaces', () => {
     const copy = [dialogue.text, ...(dialogue.contextDetails ?? [])].join(' ');
 
     expectDirectChipCopy(copy, 'setup cold open');
-    expect(copy).toContain('Must Do: hire the Assistant GM.');
+    expect(copy).toContain('Must Do: hire the Assistant GM');
     expect(copy).toContain('Consequence:');
   });
 
@@ -111,7 +111,9 @@ describe('direct Chip copy surfaces', () => {
     expectDirectChipCopy(createWhereAmIBeat(whereAmI).text, 'where am I clear');
     expectDirectChipCopy(createAskChipLiveBeat({ pendingDecisionTotal: 2, whereAmI })?.text ?? '', 'ask Chip pending');
     expectDirectChipCopy(createAskChipLiveBeat({ pendingDecisionTotal: 0, whereAmI })?.text ?? '', 'ask Chip clear');
-    expect(createAskChipLiveBeat({ pendingDecisionTotal: 0, whereAmI: null })).toBeNull();
+    const fallbackBeat = createAskChipLiveBeat({ pendingDecisionTotal: 0, whereAmI: null });
+    expect(fallbackBeat).not.toBeNull();
+    expectDirectChipCopy(fallbackBeat?.text ?? '', 'ask Chip fallback');
   });
 
   it('keeps first-ten onboarding and route-coaching beats actionable', () => {

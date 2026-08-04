@@ -55,6 +55,9 @@ describe('dockPersistence', () => {
       quietForSeason: 2031,
       reducedGuidance: true,
       animationsDisabled: true,
+      typewriterSpeed: 'fast' as const,
+      dockPosition: 'left' as const,
+      graduationAcked: true,
       lastUpdated: '2026-04-29T18:00:00.000Z',
     };
 
@@ -62,6 +65,74 @@ describe('dockPersistence', () => {
 
     expect(storage.getItem(CHIP_DOCK_STORAGE_KEY)).toBe(JSON.stringify(prefs));
     expect(readDockPrefs(storage)).toEqual(prefs);
+  });
+
+  it('backfills typewriterSpeed for prefs saved before the H2 speed control', () => {
+    const storage = new MemoryStorage();
+    const legacyPrefs = {
+      collapsed: true,
+      quietForScreen: '/roster',
+      quietUntilWeek: 8,
+      quietForSeason: 2031,
+      reducedGuidance: true,
+      animationsDisabled: true,
+      lastUpdated: '2026-04-29T18:00:00.000Z',
+    };
+    storage.setItem(CHIP_DOCK_STORAGE_KEY, JSON.stringify(legacyPrefs));
+
+    expect(readDockPrefs(storage)).toEqual({ ...legacyPrefs, typewriterSpeed: 'normal', dockPosition: 'right', graduationAcked: false });
+  });
+
+  it('backfills graduationAcked for prefs saved before the G7 graduation notice', () => {
+    const storage = new MemoryStorage();
+    const legacyPrefs = {
+      ...createDefaultDockPrefs(),
+      collapsed: true,
+      lastUpdated: '2026-08-03T12:00:00.000Z',
+    } as Record<string, unknown>;
+    delete legacyPrefs.graduationAcked;
+    storage.setItem(CHIP_DOCK_STORAGE_KEY, JSON.stringify(legacyPrefs));
+
+    expect(readDockPrefs(storage)).toEqual({ ...legacyPrefs, graduationAcked: false });
+  });
+
+  it('rejects a non-boolean graduationAcked value (G7)', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_DOCK_STORAGE_KEY,
+      JSON.stringify({
+        ...createDefaultDockPrefs(),
+        graduationAcked: 'yes',
+      }),
+    );
+
+    expect(readDockPrefs(storage)).toEqual(createDefaultDockPrefs());
+  });
+
+  it('rejects an unknown dockPosition value (E10)', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_DOCK_STORAGE_KEY,
+      JSON.stringify({
+        ...createDefaultDockPrefs(),
+        dockPosition: 'top',
+      }),
+    );
+
+    expect(readDockPrefs(storage)).toEqual(createDefaultDockPrefs());
+  });
+
+  it('rejects an unknown typewriterSpeed value', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_DOCK_STORAGE_KEY,
+      JSON.stringify({
+        ...createDefaultDockPrefs(),
+        typewriterSpeed: 'ludicrous',
+      }),
+    );
+
+    expect(readDockPrefs(storage)).toEqual(createDefaultDockPrefs());
   });
 
   it('falls back to defaults for malformed JSON without throwing', () => {

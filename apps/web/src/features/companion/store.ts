@@ -24,6 +24,12 @@ export interface ChipState {
   currentDialogueId: string | null;
   currentDialogueText: string | null;
   lastWeeklyDialogue: DialogueCatalogEntry | null;
+  /** B7: beats remaining after the current one in a queued conversation. */
+  dialogueQueue: DialogueCatalogEntry[];
+  /** B7: total beats in the active conversation (for "2 of 3" affordances). */
+  dialogueQueueTotal: number;
+  /** B7: the last full conversation, so Ask Chip replay can re-queue it. */
+  lastConversation: DialogueCatalogEntry[] | null;
   spotlightTargetId: string | null;
   seenBeats: Set<string>;
   dismissed: boolean;
@@ -43,6 +49,16 @@ export interface ChipActions {
   hasSeenBeat: (id: string) => boolean;
   showDialogue: (dialogueId: string, options?: ShowDialogueOptions) => void;
   showWeeklyDialogue: (entry: DialogueCatalogEntry) => void;
+  /** B7: show the first beat of a conversation and queue the rest. */
+  queueDialogue: (entries: readonly DialogueCatalogEntry[]) => void;
+  /** B7: advance to the next queued beat; no-op on an empty queue. */
+  advanceDialogueQueue: () => void;
+  /**
+   * C13: append beats behind the active conversation instead of overwriting
+   * it. With no active (or a dismissed) dialogue this behaves exactly like
+   * `queueDialogue`.
+   */
+  appendDialogueQueue: (entries: readonly DialogueCatalogEntry[]) => void;
   advance: () => void;
   dismiss: () => void;
   reset: () => void;
@@ -114,6 +130,9 @@ function createInitialChipState(): ChipState {
     currentDialogueId: null,
     currentDialogueText: null,
     lastWeeklyDialogue: null,
+    dialogueQueue: [],
+    dialogueQueueTotal: 0,
+    lastConversation: null,
     spotlightTargetId: null,
     seenBeats: readChipReadReceipts(),
     dismissed: false,
@@ -159,6 +178,8 @@ export const useChipStore = create<ChipStore>((set, get) => ({
     set((state) => ({
       currentDialogueId: dialogueId,
       currentDialogueText: null,
+      dialogueQueue: [],
+      dialogueQueueTotal: 0,
       ...resetPoseWindow(options.pose ?? state.currentPose),
       context: options.context ?? 'event',
       dismissed: false,
@@ -168,9 +189,78 @@ export const useChipStore = create<ChipStore>((set, get) => ({
       currentDialogueId: entry.id,
       currentDialogueText: entry.text,
       lastWeeklyDialogue: entry,
+      dialogueQueue: [],
+      dialogueQueueTotal: 0,
+      lastConversation: null,
       ...resetPoseWindow(entry.pose),
       context: 'event',
       dismissed: false,
+    }),
+  queueDialogue: (entries) =>
+    set((state) => {
+      const first = entries[0];
+      if (!first) return state;
+      // The details panel and Ask Chip replay read lastWeeklyDialogue, so it
+      // tracks the beat carrying contextDetails, not whichever beat is showing.
+      const detailBeat = entries.find((entry) => entry.contextDetails?.length) ?? first;
+      return {
+        currentDialogueId: first.id,
+        currentDialogueText: first.text,
+        lastWeeklyDialogue: detailBeat,
+        dialogueQueue: entries.slice(1),
+        dialogueQueueTotal: entries.length,
+        lastConversation: [...entries],
+        ...resetPoseWindow(first.pose),
+        context: 'event',
+        dismissed: false,
+      };
+    }),
+  appendDialogueQueue: (entries) =>
+    set((state) => {
+      const first = entries[0];
+      if (!first) return state;
+      // C13: with nothing active (or after a dismiss) an append is just a
+      // fresh conversation — identical semantics to queueDialogue.
+      if (!state.currentDialogueId || state.dismissed) {
+        const detailBeat = entries.find((entry) => entry.contextDetails?.length) ?? first;
+        return {
+          currentDialogueId: first.id,
+          currentDialogueText: first.text,
+          lastWeeklyDialogue: detailBeat,
+          dialogueQueue: entries.slice(1),
+          dialogueQueueTotal: entries.length,
+          lastConversation: [...entries],
+          ...resetPoseWindow(first.pose),
+          context: 'event' as const,
+          dismissed: false,
+        };
+      }
+      // The active beat keeps showing; the incoming conversation waits in
+      // line. The details panel stays with the active conversation's details
+      // beat until the user advances into the appended beats (see
+      // advanceDialogueQueue).
+      return {
+        dialogueQueue: [...state.dialogueQueue, ...entries],
+        dialogueQueueTotal: state.dialogueQueueTotal + entries.length,
+        lastConversation: [...(state.lastConversation ?? []), ...entries],
+      };
+    }),
+  advanceDialogueQueue: () =>
+    set((state) => {
+      const next = state.dialogueQueue[0];
+      if (!next) return state;
+      return {
+        currentDialogueId: next.id,
+        currentDialogueText: next.text,
+        dialogueQueue: state.dialogueQueue.slice(1),
+        // C13: when the beat being advanced into carries the details, the
+        // panel follows it — identical to the queue-time pick for B7
+        // conversations, and what makes appended conversations coherent.
+        ...(next.contextDetails?.length ? { lastWeeklyDialogue: next } : {}),
+        ...resetPoseWindow(next.pose),
+        context: 'event',
+        dismissed: false,
+      };
     }),
   advance: () =>
     set((state) => ({
@@ -181,6 +271,8 @@ export const useChipStore = create<ChipStore>((set, get) => ({
     set({
       currentDialogueId: null,
       currentDialogueText: null,
+      dialogueQueue: [],
+      dialogueQueueTotal: 0,
       dismissed: true,
       context: 'dismissed',
     }),
@@ -189,6 +281,24 @@ export const useChipStore = create<ChipStore>((set, get) => ({
 
 function readUiNowMs(): number {
   return typeof Date.now === 'function' ? Date.now() : 0;
+}
+
+/**
+ * Publish gate for the pose ticker. Hidden tabs stop publishing entirely (the
+ * rAF loop still runs, but no state churn reaches React), and visible tabs
+ * publish at most once per POSE_TICK_MS.
+ */
+export function shouldPublishPoseTick({
+  hidden,
+  nextNowMs,
+  lastPublishedMs,
+}: {
+  hidden: boolean;
+  nextNowMs: number;
+  lastPublishedMs: number;
+}): boolean {
+  if (hidden) return false;
+  return nextNowMs - lastPublishedMs >= POSE_TICK_MS;
 }
 
 export function useChipPoseNow(): number {
@@ -203,7 +313,8 @@ export function useChipPoseNow(): number {
     let frameHandle = 0;
     const tick = () => {
       const nextNowMs = readUiNowMs();
-      if (nextNowMs - lastPublishedMs.current >= POSE_TICK_MS) {
+      const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+      if (shouldPublishPoseTick({ hidden, nextNowMs, lastPublishedMs: lastPublishedMs.current })) {
         lastPublishedMs.current = nextNowMs;
         setNowMs(nextNowMs);
       }

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CHIP_EVENT_CATEGORY_PRECEDENCE,
+  POSE_EVENT_PRECEDENCE,
+  buildSessionMuteNoticeEntry,
   createChipEventBridge,
+  resolveChipPoseReaction,
+  sortPoseEventsByPrecedence,
   type ChipEvent,
   type ChipPoseEventTrigger,
   type ChipPosePriority,
@@ -8,7 +13,25 @@ import {
   type GameStoreSnapshot,
   type SubscribableStore,
 } from './eventBridge';
+import { isDialogueCatalogEntry } from './dialogue/types';
 import { createDefaultDockPrefs, type DockPrefs } from './dockPersistence';
+import { createEmptyChipMemory, type ChipMemory, type ChipMemoryStore } from './chipMemory';
+
+class FakeMemoryStore implements ChipMemoryStore {
+  state: ChipMemory;
+  writes = 0;
+  constructor(initial: ChipMemory = createEmptyChipMemory()) {
+    this.state = initial;
+  }
+  read(): ChipMemory {
+    return this.state;
+  }
+  write(memory: ChipMemory): ChipMemory {
+    this.writes += 1;
+    this.state = memory;
+    return memory;
+  }
+}
 
 class FakeStore<TState> implements SubscribableStore<TState> {
   private state: TState;
@@ -67,9 +90,13 @@ function makeChip(overrides: Partial<ChipStoreSnapshot> = {}): ChipStoreSnapshot
 function setupBridge({
   route = '/briefing',
   prefs = createDefaultDockPrefs(),
+  onSessionMute,
+  memory,
 }: {
   route?: string;
   prefs?: DockPrefs;
+  onSessionMute?: (category: ChipEvent['category']) => void;
+  memory?: ChipMemoryStore;
 } = {}) {
   const gameStore = new FakeStore(makeGame());
   const chipStore = new FakeStore(makeChip());
@@ -96,6 +123,8 @@ function setupBridge({
       });
     },
     onEvent: (event) => events.push(event),
+    onSessionMute,
+    memory,
   });
   return { bridge, gameStore, chipStore, events, poseSets };
 }
@@ -228,11 +257,72 @@ describe('createChipEventBridge', () => {
     expect(events.map((event) => event.currentWeek)).toEqual([2, 3]);
   });
 
+  it('announces the session auto-mute exactly once when the second dismissal engages it (E3)', () => {
+    const muted: ChipEvent['category'][] = [];
+    const { bridge, gameStore, chipStore, events } = setupBridge({
+      onSessionMute: (category) => muted.push(category),
+    });
+    bridge.start();
+
+    gameStore.setState(makeGame({ currentWeek: 2 }));
+    chipStore.setState(makeChip({ dismissed: true, currentDialogueId: null }));
+    chipStore.setState(makeChip({ dismissed: false, currentDialogueId: 'chip.weekly.midseason' }));
+    gameStore.setState(makeGame({ currentWeek: 3 }));
+    expect(muted).toEqual([]);
+
+    chipStore.setState(makeChip({ dismissed: true, currentDialogueId: null }));
+    expect(muted).toEqual(['weekRollover']);
+
+    // A third dismissal must not re-announce, and the category stays muted.
+    chipStore.setState(makeChip({ dismissed: false, currentDialogueId: 'chip.weekly.midseason' }));
+    chipStore.setState(makeChip({ dismissed: true, currentDialogueId: null }));
+    gameStore.setState(makeGame({ currentWeek: 4 }));
+    expect(muted).toEqual(['weekRollover']);
+    expect(events.map((event) => event.currentWeek)).toEqual([2, 3]);
+  });
+
+  it('builds a valid one-bubble session-mute notice entry (E3)', () => {
+    const entry = buildSessionMuteNoticeEntry('weekRollover');
+    expect(isDialogueCatalogEntry(entry)).toBe(true);
+    expect(entry.id).toBe('chip.weekly.sessionMute.weekRollover');
+    expect(entry.text).toContain('Ask Chip');
+    expect(entry.text).toContain('fresh session');
+    expect(entry.pose).toBe('idle');
+  });
+
+  it('attributes dismissal-mute to the category of the shown guidance dialogue id', () => {
+    const { bridge, gameStore, chipStore, events } = setupBridge();
+    bridge.start();
+
+    gameStore.setState(makeGame({ currentWeek: 2 }));
+    chipStore.setState(makeChip({ dismissed: true, currentDialogueId: 'chip.weekly.guidance.2' }));
+    chipStore.setState(makeChip({ dismissed: false, currentDialogueId: 'chip.weekly.guidance.2' }));
+    gameStore.setState(makeGame({ currentWeek: 3 }));
+    chipStore.setState(makeChip({ dismissed: true, currentDialogueId: 'chip.weekly.guidance.3' }));
+    gameStore.setState(makeGame({ currentWeek: 4 }));
+
+    expect(events.map((event) => event.currentWeek)).toEqual([2, 3]);
+  });
+
+  it('bounds the dialogue-category map so long dynasties cannot grow it forever', async () => {
+    const source = await import('node:fs/promises').then((fs) =>
+      fs.readFile(new URL('./eventBridge.ts', import.meta.url), 'utf8'),
+    );
+
+    expect(source).toContain('MAX_DIALOGUE_CATEGORY_ENTRIES');
+    expect(source).toContain('categoryByDialogueId.size > MAX_DIALOGUE_CATEGORY_ENTRIES');
+    expect(source).toContain('rememberDialogueCategory(guidance.id, category)');
+  });
+
   it.each([
     ['USER_TEAM_TOUCHDOWN', 'rallying', 4000, 'celebrate'],
     ['USER_TEAM_FIRST_LAUNCH', 'greeting', 5000, 'routine'],
     ['CAP_PROJECTION_OVER_LIMIT', 'head-in-hands', 3500, 'warning'],
+    ['OWNER_PATIENCE_CRITICAL', 'warning', 5000, 'warning'],
     ['USER_TEAM_LOSS_BIG', 'facepalm', 6000, 'sad'],
+    ['USER_TEAM_BLOWOUT_WIN', 'celebrate', 4500, 'celebrate'],
+    ['USER_TEAM_SHUTOUT_WIN', 'celebrate', 4500, 'celebrate'],
+    ['USER_TEAM_WIN_STREAK', 'excited', 4500, 'celebrate'],
     ['PLAYOFF_UPSET_WIN', 'laughing', 4000, 'routine'],
     ['TRADE_RUMOR_FOR_USER_PLAYER', 'on-phone', 3500, 'routine'],
     ['PLAYER_RETIREMENT_USER_HOF', 'head-in-hands', 4000, 'sad'],
@@ -273,6 +363,41 @@ describe('createChipEventBridge', () => {
     expect(poseSets).toHaveLength(1);
   });
 
+  it('emits same-transition pose stacks in ascending precedence so the top trigger wins (C13)', () => {
+    const { bridge, gameStore, poseSets } = setupBridge();
+    bridge.start();
+
+    // Deliberately reversed emitter order: the record-broken reaction must
+    // still resolve above the blowout-win and decision-locked reactions.
+    gameStore.setState(makeGame({
+      poseEvents: [
+        makePoseEvent('USER_DECISION_LOCKED_IN', 'stack-decision'),
+        makePoseEvent('USER_TEAM_RECORD_BROKEN', 'stack-record'),
+        makePoseEvent('USER_TEAM_BLOWOUT_WIN', 'stack-blowout'),
+      ],
+    }));
+
+    expect(poseSets.map((call) => call.pose)).toEqual(['fist-bump', 'celebrate', 'proud']);
+    expect(poseSets.map((call) => call.priority)).toEqual(['routine', 'celebrate', 'celebrate']);
+  });
+
+  it('resolves a sad-vs-celebrate stack by precedence, not emitter order (C13)', () => {
+    const { bridge, gameStore, poseSets } = setupBridge();
+    bridge.start();
+
+    gameStore.setState(makeGame({
+      poseEvents: [
+        makePoseEvent('USER_TEAM_WIN_STREAK', 'stack-streak'),
+        makePoseEvent('USER_TEAM_LOSS_BIG', 'stack-loss'),
+      ],
+    }));
+
+    // USER_TEAM_LOSS_BIG (60) outranks USER_TEAM_WIN_STREAK (55), so the sad
+    // reaction emits last and survives the store's equal-window resolution.
+    expect(poseSets.map((call) => call.pose)).toEqual(['excited', 'facepalm']);
+    expect(poseSets.map((call) => call.priority)).toEqual(['celebrate', 'sad']);
+  });
+
   it('start and stop manage subscriptions without import-time side effects', () => {
     const { bridge, gameStore, chipStore } = setupBridge();
 
@@ -303,5 +428,103 @@ describe('createChipEventBridge', () => {
     for (let index = 0; index < 100; index += 1) {
       expect(runSequence()).toEqual(first);
     }
+  });
+});
+
+describe('B5/B13 memory sidecar wiring', () => {
+  it('records the outcome, served flavor line, and Must Do advice after an emit', () => {
+    const memory = new FakeMemoryStore();
+    const { bridge, gameStore, events } = setupBridge({ memory });
+    bridge.start();
+
+    gameStore.setState(makeGame({ currentWeek: 2, weeklyOutcome: 'cleanWin' }));
+
+    expect(memory.writes).toBe(1);
+    expect(memory.state.outcomes).toEqual([{ year: 2026, week: 2, variant: 'cleanWin' }]);
+    expect(memory.state.lastFlavor).toEqual({
+      variant: 'cleanWin',
+      line: events[0]!.guidance!.sidelineNote,
+    });
+    expect(memory.state.lastAdvice).toEqual({
+      year: 2026,
+      week: 2,
+      advice: events[0]!.guidance!.mustDo,
+    });
+  });
+
+  it('dodges the remembered flavor line on the next emit', () => {
+    const first = new FakeMemoryStore();
+    const firstRun = setupBridge({ memory: first });
+    firstRun.bridge.start();
+    firstRun.gameStore.setState(makeGame({ currentWeek: 2, weeklyOutcome: 'cleanWin' }));
+    firstRun.bridge.stop();
+    const servedNote = firstRun.events[0]!.guidance!.sidelineNote;
+
+    // A fresh bridge holding the prior week's memory must not serve the same
+    // flavor line for the identical deterministic inputs.
+    const second = new FakeMemoryStore(first.state);
+    const secondRun = setupBridge({ memory: second });
+    secondRun.bridge.start();
+    secondRun.gameStore.setState(makeGame({ currentWeek: 2, weeklyOutcome: 'cleanWin' }));
+    secondRun.bridge.stop();
+
+    expect(secondRun.events[0]!.guidance!.sidelineNote).not.toBe(servedNote);
+  });
+
+  it('forms no memories when quiet prefs suppress the dialogue', () => {
+    const memory = new FakeMemoryStore();
+    const prefs = { ...createDefaultDockPrefs(), quietForSeason: 2026 };
+    const { bridge, gameStore, events } = setupBridge({ memory, prefs });
+    bridge.start();
+
+    gameStore.setState(makeGame({ currentWeek: 2, weeklyOutcome: 'cleanWin' }));
+
+    expect(events).toEqual([]);
+    expect(memory.writes).toBe(0);
+    expect(memory.state).toEqual(createEmptyChipMemory());
+  });
+
+  it('keeps emitting when the default memory store has no browser storage', () => {
+    const { bridge, gameStore, events } = setupBridge();
+    bridge.start();
+
+    gameStore.setState(makeGame({ currentWeek: 2, weeklyOutcome: 'cleanWin' }));
+
+    expect(events).toHaveLength(1);
+  });
+});
+
+describe('C13 precedence tables', () => {
+  it('gives every dialogue category a distinct precedence with seasonEnd on top', () => {
+    expect(Object.keys(CHIP_EVENT_CATEGORY_PRECEDENCE).sort()).toEqual([
+      'gameComplete',
+      'seasonEnd',
+      'weekRollover',
+    ]);
+    expect(CHIP_EVENT_CATEGORY_PRECEDENCE.weekRollover).toBeLessThan(CHIP_EVENT_CATEGORY_PRECEDENCE.gameComplete);
+    expect(CHIP_EVENT_CATEGORY_PRECEDENCE.gameComplete).toBeLessThan(CHIP_EVENT_CATEGORY_PRECEDENCE.seasonEnd);
+  });
+
+  it('covers every pose trigger exactly once with a total order', () => {
+    const entries = Object.entries(POSE_EVENT_PRECEDENCE);
+    expect(entries).toHaveLength(20);
+    const values = entries.map(([, value]) => value);
+    expect(new Set(values).size).toBe(values.length);
+    for (const trigger of entries.map(([trigger]) => trigger) as ChipPoseEventTrigger[]) {
+      expect(typeof resolveChipPoseReaction(trigger).pose).toBe('string');
+    }
+  });
+
+  it('sorts pose events ascending by precedence with an id tiebreak', () => {
+    const sorted = sortPoseEventsByPrecedence([
+      makePoseEvent('USER_TEAM_ELIMINATED', 'b-elim'),
+      makePoseEvent('USER_TEAM_TOUCHDOWN', 'a-td'),
+      makePoseEvent('USER_TEAM_CLINCH', 'c-clinch'),
+    ]);
+    expect(sorted.map((event) => event.trigger)).toEqual([
+      'USER_TEAM_TOUCHDOWN',
+      'USER_TEAM_CLINCH',
+      'USER_TEAM_ELIMINATED',
+    ]);
   });
 });

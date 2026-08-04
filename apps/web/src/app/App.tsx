@@ -2138,7 +2138,7 @@ function PostSetupApp() {
   const chipDialogueText = useChipStore((s) => s.currentDialogueText);
   const chipDialoguePose = useChipStore((s) => s.pose);
   const chipDockRoute = useCurrentAppRoute();
-  const chipRouteBeats = useActiveRouteBeats(chipDockRoute, { currentWeek: chipDockWeek });
+  const chipRouteBeats = useActiveRouteBeats(chipDockRoute, { currentWeek: chipDockWeek, dynastySeed: chipGame?.seed, phase: chipGame?.phase });
   const chipPendingDecisions = useMemo(
     () => countPendingDecisions({ game: chipGame }),
     [chipGame],

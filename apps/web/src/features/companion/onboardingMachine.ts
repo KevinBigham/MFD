@@ -1,3 +1,4 @@
+import { fnv1a } from './hash';
 import type { RouteBeat } from '../route-coaching/routeBeatRegistry';
 
 export const CHIP_ONBOARDING_STATE_STORAGE_KEY = 'mfd.chip.onboarding.v2';
@@ -16,6 +17,8 @@ export interface ChipOnboardingState {
 
 export interface ChipOnboardingContext {
   currentWeek: number;
+  /** Seeded dynasties get a rotating flavor closer on first-ten beats (G9). */
+  dynastySeed?: number;
 }
 
 export const FIRST_TEN_MINUTE_ONBOARDING_BEATS: readonly ChipOnboardingBeat[] = [
@@ -54,9 +57,103 @@ export const FIRST_TEN_MINUTE_ONBOARDING_BEATS: readonly ChipOnboardingBeat[] = 
     text: 'Must Do: start Advance Week last. Where: advance screen. Consequence: results, injuries, morale, deadlines, and opponent prep become final.',
     spotlightTarget: 'chip.route.week-advance.beat-1',
   },
+  {
+    id: 'chip.first10.inbox',
+    route: '/inbox',
+    pose: 'note-taking',
+    text: 'Must Do: answer waiting decisions before Advance Week. Where: Inbox. Consequence: offers, promises, and votes expire.',
+    spotlightTarget: null,
+  },
+  {
+    id: 'chip.first10.standings',
+    route: '/standings',
+    pose: 'reviewing-tablet',
+    text: 'Recommended: open Standings before buy, sell, or hold calls. Where: Standings. Consequence: rushed moves cost picks or a playoff spot.',
+    spotlightTarget: null,
+  },
+  {
+    id: 'chip.first10.trades',
+    route: '/trades',
+    pose: 'on-phone',
+    text: 'Recommended: name the job before making offers. Where: Trades. Consequence: untargeted offers overpay for unused roles.',
+    spotlightTarget: null,
+  },
 ] as const;
 
 const FIRST_TEN_IDS = new Set(FIRST_TEN_MINUTE_ONBOARDING_BEATS.map((beat) => beat.id));
+
+/**
+ * G9: seeded coach-speak closers for the first-ten beats, keyed by beat id.
+ * Served at selection time only — the canonical beat catalog above is never
+ * mutated. Voice rules match the sideline flavor engine: plain coach-speak,
+ * no banned shorthand, every line stands alone, and the combined beat text
+ * must stay inside the 240-char bubble budget. Unseeded callers always get
+ * `beat.text` byte-for-byte.
+ */
+export const FIRST_TEN_FLAVOR_POOLS: Record<string, readonly string[]> = {
+  'chip.first10.monday-briefing': [
+    'The week starts at this desk, coach.',
+    'Five minutes here saves an hour on Sunday.',
+    'I keep the map; you make the calls.',
+  ],
+  'chip.first10.roster': [
+    'Fifty-three names, one puzzle. Start with the highlighted row.',
+    'Roles first, feelings second.',
+    'Every name on this page wants a job.',
+  ],
+  'chip.first10.depth-chart': [
+    'Paper depth means nothing until you save it.',
+    'Starters set the plan; backups save the fourth quarter.',
+    'One missing name here becomes a Sunday problem.',
+  ],
+  'chip.first10.game-plan': [
+    'Calls age fast after injury news.',
+    'Safer calls protect hurt starters.',
+    'Three phases, one page, no surprises.',
+  ],
+  'chip.first10.week-advance': [
+    'Advance last; everything else comes first.',
+    'Once you advance, the week is ink.',
+    'That button is a final answer. Treat it like one.',
+  ],
+  'chip.first10.inbox': [
+    'That badge is a clock, not decoration.',
+    'Answer or defer; both beat ignoring.',
+    'One reply now saves a Sunday apology.',
+  ],
+  'chip.first10.standings': [
+    'The table talks; listen weekly.',
+    'Record first, feelings later.',
+    'Buy, sell, or hold starts here.',
+  ],
+  'chip.first10.trades': [
+    'Every offer needs a job description.',
+    'The phone works both ways, coach.',
+    'Picks are seeds; players are the harvest.',
+  ],
+};
+
+const MAX_FIRST_TEN_TEXT_CHARS = 240;
+
+/**
+ * G9: resolve the served text for a first-ten beat. Deterministic for a given
+ * seed + week; the flavor closer appends only when the budget allows, so the
+ * Must Do / Where / Consequence contract is never clipped.
+ */
+export function firstTenBeatText(
+  beat: RouteBeat,
+  context: ChipOnboardingContext,
+): string {
+  if (!Number.isFinite(context.dynastySeed)) return beat.text;
+  const pool = FIRST_TEN_FLAVOR_POOLS[beat.id];
+  if (!pool || pool.length === 0) return beat.text;
+  const seed = Math.trunc(Number(context.dynastySeed));
+  const week = Math.max(0, Math.trunc(context.currentWeek));
+  const flavor = pool[fnv1a(`chip.first10.flavor|${beat.id}|${seed}|${week}`) % pool.length]!;
+  const combined = `${beat.text} ${flavor}`;
+  return combined.length <= MAX_FIRST_TEN_TEXT_CHARS ? combined : beat.text;
+}
+
 
 function nowIso(now: () => Date): string {
   return now().toISOString();

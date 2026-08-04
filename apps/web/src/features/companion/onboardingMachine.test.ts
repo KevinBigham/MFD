@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   CHIP_ONBOARDING_STATE_STORAGE_KEY,
+  FIRST_TEN_FLAVOR_POOLS,
   FIRST_TEN_MINUTE_ONBOARDING_BEATS,
   createInitialChipOnboardingState,
+  firstTenBeatText,
   readChipOnboardingState,
   recordChipOnboardingBeat,
   resetChipOnboardingState,
@@ -29,6 +31,10 @@ describe('Chip onboarding machine', () => {
       ['chip.first10.depth-chart', '/depth-chart'],
       ['chip.first10.game-plan', '/game-plan'],
       ['chip.first10.week-advance', '/week-advance'],
+      // G1: the arc grew 5 -> 8 beats; new stops append after the core tour.
+      ['chip.first10.inbox', '/inbox'],
+      ['chip.first10.standings', '/standings'],
+      ['chip.first10.trades', '/trades'],
     ]);
   });
 
@@ -134,5 +140,67 @@ describe('Chip onboarding machine', () => {
     expect(FIRST_TEN_MINUTE_ONBOARDING_BEATS.find((beat) => beat.id === 'chip.first10.week-advance')?.text).toContain(
       'Consequence: results, injuries, morale, deadlines, and opponent prep become final.',
     );
+  });
+});
+
+describe('G9 first-ten flavor lines', () => {
+  const RETIRED_SHORTHAND =
+    /\b(vibe|feels?|story|context|identity|foundation|momentum|real answer|good energy|tone setter|read|verify|confirm|check|review|compare|worth|use|sim|triage)\b/i;
+
+  it('covers exactly the first-ten beat ids, each inside the voice guard', () => {
+    expect(Object.keys(FIRST_TEN_FLAVOR_POOLS).sort()).toEqual(
+      FIRST_TEN_MINUTE_ONBOARDING_BEATS.map((beat) => beat.id).sort(),
+    );
+    for (const [beatId, pool] of Object.entries(FIRST_TEN_FLAVOR_POOLS)) {
+      expect(pool.length, beatId).toBeGreaterThanOrEqual(3);
+      for (const line of pool) {
+        expect(line, `${beatId}: ${line}`).not.toMatch(RETIRED_SHORTHAND);
+        expect(line.length, `${beatId}: ${line}`).toBeLessThanOrEqual(100);
+      }
+    }
+  });
+
+  it('serves canonical text byte-for-byte when no dynasty seed is available', () => {
+    for (const beat of FIRST_TEN_MINUTE_ONBOARDING_BEATS) {
+      expect(firstTenBeatText(beat, { currentWeek: 3 })).toBe(beat.text);
+      expect(firstTenBeatText(beat, { currentWeek: 3, dynastySeed: Number.NaN })).toBe(beat.text);
+    }
+  });
+
+  it('is deterministic for a seed + week and rotates across weeks', () => {
+    const beat = FIRST_TEN_MINUTE_ONBOARDING_BEATS[0]!;
+    const weekFive = firstTenBeatText(beat, { currentWeek: 5, dynastySeed: 42 });
+    expect(firstTenBeatText(beat, { currentWeek: 5, dynastySeed: 42 })).toBe(weekFive);
+    expect(weekFive.startsWith(beat.text)).toBe(true);
+
+    const served = new Set(
+      Array.from({ length: 12 }, (_, index) =>
+        firstTenBeatText(beat, { currentWeek: index + 1, dynastySeed: 42 })),
+    );
+    // 3-line pool over 12 weeks must rotate at least twice.
+    expect(served.size).toBeGreaterThanOrEqual(2);
+
+    const otherSeed = Array.from({ length: 12 }, (_, index) =>
+      firstTenBeatText(beat, { currentWeek: index + 1, dynastySeed: 777 }));
+    expect(otherSeed.some((text) => !served.has(text) || text !== firstTenBeatText(beat, { currentWeek: 1, dynastySeed: 42 }))).toBe(true);
+  });
+
+  it('keeps the combined beat text inside the 240-char bubble budget', () => {
+    for (const beat of FIRST_TEN_MINUTE_ONBOARDING_BEATS) {
+      for (let week = 1; week <= 18; week += 1) {
+        const text = firstTenBeatText(beat, { currentWeek: week, dynastySeed: 42 });
+        expect(text.length, `${beat.id} week ${week}`).toBeLessThanOrEqual(240);
+      }
+    }
+  });
+
+  it('never clips the Must Do / Where / Consequence contract', () => {
+    for (const beat of FIRST_TEN_MINUTE_ONBOARDING_BEATS) {
+      for (let seed = 1; seed <= 7; seed += 1) {
+        const text = firstTenBeatText(beat, { currentWeek: seed * 2, dynastySeed: seed });
+        expect(text, beat.id).toContain('Where:');
+        expect(text, beat.id).toContain('Consequence:');
+      }
+    }
   });
 });

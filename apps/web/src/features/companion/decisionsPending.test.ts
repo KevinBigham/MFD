@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { countPendingDecisions } from './decisionsPending';
+import { countPendingDecisions, PENDING_DECISION_CATEGORY_KEYS } from './decisionsPending';
+import { PENDING_DECISION_COPY } from './ChipDock';
 
 function stateWithGame(game: Record<string, unknown>) {
   return { game };
@@ -23,8 +24,24 @@ describe('countPendingDecisions', () => {
       emptyDepthSlots: 0,
       unspentPicks: 0,
       openStaffSlots: 0,
+      injuries: 0,
       total: 0,
     });
+  });
+
+  it('counts injured user players independently and ignores other teams (D4)', () => {
+    const counts = countPendingDecisions(stateWithGame({
+      teams: { user: userTeam() },
+      players: {
+        'p-1': { teamId: 'team-1', injury: { weeksRemaining: 2 } },
+        'p-2': { teamId: 'team-1', injury: 'questionable' },
+        'p-3': { teamId: 'team-1' },
+        'p-4': { teamId: 'team-2', injury: { weeksRemaining: 4 } },
+      },
+    }));
+
+    expect(counts.injuries).toBe(2);
+    expect(counts.total).toBe(2);
   });
 
   it('counts pending trade offers independently', () => {
@@ -111,7 +128,8 @@ describe('countPendingDecisions', () => {
       + counts.expiringContracts
       + counts.emptyDepthSlots
       + counts.unspentPicks
-      + counts.openStaffSlots,
+      + counts.openStaffSlots
+      + counts.injuries,
     );
   });
 
@@ -156,5 +174,20 @@ describe('countPendingDecisions', () => {
 
     expect(counts.tradeOffers).toBe(0);
     expect(counts.expiringContracts).toBe(1);
+  });
+
+  it('keeps the dock badge/beat copy in sync with the counted categories (I3)', () => {
+    // countPendingDecisions computes exactly the canonical category keys...
+    const counts = countPendingDecisions({ game: null });
+    expect(Object.keys(counts).filter((key) => key !== 'total').sort())
+      .toEqual([...PENDING_DECISION_CATEGORY_KEYS].sort());
+    // ...and the dock copy table covers exactly the same set, so a new
+    // category cannot silently ship without badge, tooltip, and beat copy.
+    expect(PENDING_DECISION_COPY.map((entry) => entry.key).sort())
+      .toEqual([...PENDING_DECISION_CATEGORY_KEYS].sort());
+    for (const entry of PENDING_DECISION_COPY) {
+      expect(entry.screen.length).toBeGreaterThan(0);
+      expect(entry.consequence.length).toBeGreaterThan(0);
+    }
   });
 });

@@ -80,6 +80,7 @@ import { TeamLogo } from '../shared/TeamLogo';
 import { LivingPlayerStoryPanel } from '../shared/LivingPlayerStoryPanel';
 import { isChipFeatureEnabled } from '../companion';
 import { selectWeeklyDialogue, type WeeklyDialogueVariant } from '../companion/dialogue/weekly';
+import { resolveResultOutcome } from '../companion/outcomeResolver';
 import type { DialogueCatalogEntry } from '../companion/dialogue/types';
 import { countPendingDecisions } from '../companion/decisionsPending';
 import { buildWeeklyGuidance, weeklyGuidanceToDialogueEntry } from '../companion/weeklyGuidance';
@@ -433,33 +434,19 @@ export interface MondayBriefingChipInput {
   recentResults?: ReadonlyArray<'win' | 'loss' | 'tie' | 'pending' | string | null | undefined>;
 }
 
-const BLOWOUT_MARGIN = 21;
-const UGLY_WIN_MARGIN = 3;
-
-function isLossStreak(results: ReadonlyArray<string | null | undefined>, length: number): boolean {
-  const streak = results.slice(-length);
-  return streak.length === length && streak.every((result) => result === 'loss');
-}
-
 function selectMondayBriefingVariant(input: MondayBriefingChipInput): WeeklyDialogueVariant {
   if (input.phase === 'preseason' || input.phase === 'training_camp') return 'preseason';
   if (input.phase === 'playoffs') return 'playoffs';
 
-  const result = input.latestResult;
-  const teamScore = input.latestTeamScore;
-  const opponentScore = input.latestOpponentScore;
-  const margin = typeof teamScore === 'number' && typeof opponentScore === 'number'
-    ? teamScore - opponentScore
-    : null;
-
-  if (result === 'win') {
-    return margin !== null && margin <= UGLY_WIN_MARGIN ? 'uglyWin' : 'cleanWin';
-  }
-
-  if (result === 'loss') {
-    if (isLossStreak(input.recentResults ?? [], 3)) return 'threeLossStreak';
-    return margin !== null && margin <= -BLOWOUT_MARGIN ? 'blowoutLoss' : 'loss';
-  }
+  // I2: the win/loss margin + streak core lives in outcomeResolver; only the
+  // phase and no-result fallbacks stay here.
+  const outcome = resolveResultOutcome({
+    result: input.latestResult,
+    teamScore: input.latestTeamScore,
+    opponentScore: input.latestOpponentScore,
+    recentResults: input.recentResults,
+  });
+  if (outcome) return outcome;
 
   if (input.week >= 8 && input.phase === 'regular_season') return 'midseason';
   return 'preseason';
@@ -481,6 +468,7 @@ export function selectMondayBriefingChipDialogue(input: MondayBriefingChipInput)
     pendingDecisionCount: input.pendingDecisionCount,
     capSpace: input.capSpace,
     difficulty: input.difficulty,
+    dynastySeed: input.dynastySeed,
   }));
 
   return {
@@ -497,7 +485,7 @@ function chipDetail(entry: DialogueCatalogEntry, label: string): string | null {
   return entry.contextDetails?.find((detail) => detail.startsWith(prefix))?.slice(prefix.length) ?? null;
 }
 
-const MONDAY_CHIP_DETAIL_PREFIXES = ['Must Do:', 'Recommended:', 'Optional:', 'Consequence:', 'Where:'] as const;
+const MONDAY_CHIP_DETAIL_PREFIXES = ['Must Do:', 'Recommended:', 'Optional:', 'Consequence:', 'Where:', 'Continuity:', 'Sideline note:'] as const;
 
 export function chipBriefingDetails(entry: DialogueCatalogEntry): string[] {
   return entry.contextDetails?.filter((detail) => (
@@ -553,6 +541,14 @@ function chipRecommendedSummary(recommended: string | null): string | null {
   if (recommended.startsWith('Open Action Center for current notes')) {
     return 'Open Action Center; roster, cap, staff, and matchup moves stay open before Advance Week.';
   }
+  if (
+    recommended.startsWith('Open Monday Briefing notes first')
+    || recommended.startsWith('Scan Action Center')
+  ) {
+    // B3 seeded alternates for the generic recommended line condense to the
+    // same summary as the canonical line.
+    return 'Open Action Center; roster, cap, staff, and matchup moves stay open before Advance Week.';
+  }
   if (recommended.includes('backup order') && recommended.includes('cap space')) {
     return 'Scout opponent injuries, backup order, cap space, and matchup calls.';
   }
@@ -570,6 +566,8 @@ function chipOptionalSummary(optional: string | null): string | null {
   if (
     optional.startsWith('Roster, depth chart, training')
     || optional.startsWith('Make any legal roster')
+    || optional.startsWith('After the priority work')
+    || optional.startsWith('If the Must Do and Recommended are done')
   ) {
     return 'Roster, depth, cap, market, staff, and matchup moves stay open before Advance Week.';
   }
@@ -641,7 +639,6 @@ function parseFinalScore(finalScore: string | null | undefined): { teamScore: nu
 export function chipBriefingOutro(entry: DialogueCatalogEntry): string {
   const structured = chipStructuredOutro(entry);
   if (structured) return structured;
-
   if (entry.id === 'chip.weekly.threeLossStreak') {
     return 'Next: fix one root cause before Advance Week. Ignoring it lets the streak cut prep quality and owner patience.';
   }
@@ -655,6 +652,24 @@ export function chipBriefingOutro(entry: DialogueCatalogEntry): string {
     return 'Next: stabilize injuries, starters, and game plan before Advance Week; major roster moves first make the loss worse.';
   }
   return 'Next: clear Must Do first, resolve or accept Recommended items, then prioritize Optional moves that affect lineup, cap, market, staff, or matchup before Advance Week.';
+}
+
+// Chip bubbles cap at 240 characters, while a fully structured outro may
+// legitimately run longer (the integration contract allows up to 310). Fit
+// the rendered bubble at sentence boundaries so the dev-mode length guard
+// never trips; every clipped clause still appears in the guidance details
+// panel under the intro bubble.
+export function fitChipBubbleText(text: string, maxLength = 240): string {
+  if (text.length <= maxLength) return text;
+  const sentences = text.match(/[^.]+\.\s*/g) ?? [];
+  let fitted = '';
+  for (const sentence of sentences) {
+    const candidate = fitted ? `${fitted} ${sentence.trim()}` : sentence.trim();
+    if (candidate.length > maxLength - 2) break;
+    fitted = candidate;
+  }
+  if (!fitted) return `${text.slice(0, maxLength - 3).trimEnd()}...`;
+  return `${fitted} …`;
 }
 
 function tierAccent(tier: Achievement['tier']): 'default' | 'gold' | 'cyan' | 'green' | 'red' {
@@ -1833,7 +1848,7 @@ export function MondayBriefing() {
           }}
         >
           <ChipDialogueBubble
-            text={chipBriefingOutro(chipBriefingEntry)}
+            text={fitChipBubbleText(chipBriefingOutro(chipBriefingEntry))}
             pose={chipBriefingEntry.reducedMotionPose ?? chipBriefingEntry.pose}
             pointer="right"
             reducedMotion={reducedMotion}

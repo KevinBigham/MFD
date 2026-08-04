@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   CHIP_ROUTE_POSES,
+  EARLY_SEASON_MAX_WEEK,
+  EARLY_SEASON_ROUTE_BEAT_TEXT,
+  LATE_SEASON_MIN_WEEK,
+  LATE_SEASON_ROUTE_BEAT_TEXT,
+  PLAYOFF_ROUTE_BEAT_TEXT,
   ROUTE_BEAT_REGISTRY,
   ROUTE_KEYS,
+  isTierOneRouteBeatId,
   type RouteBeat,
   type RouteKey,
 } from './routeBeatRegistry';
@@ -15,7 +21,39 @@ const allBeats: readonly RouteBeat[] = ROUTE_KEYS.reduce<RouteBeat[]>(
 describe('route beat registry', () => {
   it('keeps total route beats inside the public-release range', () => {
     expect(allBeats.length).toBeGreaterThanOrEqual(46);
-    expect(allBeats.length).toBeLessThanOrEqual(106);
+    // G10: 53 routes x 2 beats + 15 third beats on the highest-traffic routes.
+    expect(allBeats.length).toBeLessThanOrEqual(121);
+  });
+
+  it('serves a third beat on the 15 highest-traffic routes (G10)', () => {
+    const thirdBeatRoutes = [
+      'monday-briefing',
+      'roster',
+      'depth-chart',
+      'locker-room',
+      'game-plan',
+      'game-day-recap',
+      'film-room',
+      'week-advance',
+      'inbox',
+      'staff',
+      'cap-laboratory',
+      'draft-board',
+      'trade-center',
+      'scouting-board',
+      'standings',
+    ] as const;
+
+    for (const routeKey of thirdBeatRoutes) {
+      const beats = ROUTE_BEAT_REGISTRY[routeKey];
+      expect(beats.length, routeKey).toBe(3);
+      const third = beats[2]!;
+      expect(third.id, routeKey).toBe(`chip.route.${routeKey}.beat-3`);
+      // Beat-3 spotlight anchors land with the G6 anchor audit; until then the
+      // third beat is text-only and must not point at a missing anchor.
+      expect(third.spotlightTarget, routeKey).toBeNull();
+      expect(isTierOneRouteBeatId(third.id), routeKey).toBe(false);
+    }
   });
 
   it('gives every coached route at least two beats', () => {
@@ -1020,32 +1058,32 @@ describe('route beat registry', () => {
 
   it('keeps beat order stable by route and beat number', () => {
     expect(ROUTE_KEYS.map((routeKey) => ROUTE_BEAT_REGISTRY[routeKey].map((beat) => beat.id))).toEqual([
-      ['chip.route.monday-briefing.beat-1', 'chip.route.monday-briefing.beat-2'],
-      ['chip.route.roster.beat-1', 'chip.route.roster.beat-2'],
-      ['chip.route.depth-chart.beat-1', 'chip.route.depth-chart.beat-2'],
-      ['chip.route.locker-room.beat-1', 'chip.route.locker-room.beat-2'],
-      ['chip.route.game-plan.beat-1', 'chip.route.game-plan.beat-2'],
-      ['chip.route.game-day-recap.beat-1', 'chip.route.game-day-recap.beat-2'],
+      ['chip.route.monday-briefing.beat-1', 'chip.route.monday-briefing.beat-2', 'chip.route.monday-briefing.beat-3'],
+      ['chip.route.roster.beat-1', 'chip.route.roster.beat-2', 'chip.route.roster.beat-3'],
+      ['chip.route.depth-chart.beat-1', 'chip.route.depth-chart.beat-2', 'chip.route.depth-chart.beat-3'],
+      ['chip.route.locker-room.beat-1', 'chip.route.locker-room.beat-2', 'chip.route.locker-room.beat-3'],
+      ['chip.route.game-plan.beat-1', 'chip.route.game-plan.beat-2', 'chip.route.game-plan.beat-3'],
+      ['chip.route.game-day-recap.beat-1', 'chip.route.game-day-recap.beat-2', 'chip.route.game-day-recap.beat-3'],
       ['chip.route.broadcast-suite.beat-1', 'chip.route.broadcast-suite.beat-2'],
-      ['chip.route.film-room.beat-1', 'chip.route.film-room.beat-2'],
+      ['chip.route.film-room.beat-1', 'chip.route.film-room.beat-2', 'chip.route.film-room.beat-3'],
       ['chip.route.super-bowl.beat-1', 'chip.route.super-bowl.beat-2'],
-      ['chip.route.week-advance.beat-1', 'chip.route.week-advance.beat-2'],
+      ['chip.route.week-advance.beat-1', 'chip.route.week-advance.beat-2', 'chip.route.week-advance.beat-3'],
       ['chip.route.schedule.beat-1', 'chip.route.schedule.beat-2'],
       ['chip.route.watch-list.beat-1', 'chip.route.watch-list.beat-2'],
-      ['chip.route.inbox.beat-1', 'chip.route.inbox.beat-2'],
+      ['chip.route.inbox.beat-1', 'chip.route.inbox.beat-2', 'chip.route.inbox.beat-3'],
       ['chip.route.owner-promises.beat-1', 'chip.route.owner-promises.beat-2'],
-      ['chip.route.staff.beat-1', 'chip.route.staff.beat-2'],
-      ['chip.route.cap-laboratory.beat-1', 'chip.route.cap-laboratory.beat-2'],
+      ['chip.route.staff.beat-1', 'chip.route.staff.beat-2', 'chip.route.staff.beat-3'],
+      ['chip.route.cap-laboratory.beat-1', 'chip.route.cap-laboratory.beat-2', 'chip.route.cap-laboratory.beat-3'],
       ['chip.route.front-office.beat-1', 'chip.route.front-office.beat-2'],
       ['chip.route.endorsements.beat-1', 'chip.route.endorsements.beat-2'],
-      ['chip.route.draft-board.beat-1', 'chip.route.draft-board.beat-2'],
+      ['chip.route.draft-board.beat-1', 'chip.route.draft-board.beat-2', 'chip.route.draft-board.beat-3'],
       ['chip.route.draft-recap.beat-1', 'chip.route.draft-recap.beat-2'],
-      ['chip.route.trade-center.beat-1', 'chip.route.trade-center.beat-2'],
+      ['chip.route.trade-center.beat-1', 'chip.route.trade-center.beat-2', 'chip.route.trade-center.beat-3'],
       ['chip.route.trade-market-radar.beat-1', 'chip.route.trade-market-radar.beat-2'],
       ['chip.route.market-planning.beat-1', 'chip.route.market-planning.beat-2'],
       ['chip.route.roster-churn.beat-1', 'chip.route.roster-churn.beat-2'],
-      ['chip.route.scouting-board.beat-1', 'chip.route.scouting-board.beat-2'],
-      ['chip.route.standings.beat-1', 'chip.route.standings.beat-2'],
+      ['chip.route.scouting-board.beat-1', 'chip.route.scouting-board.beat-2', 'chip.route.scouting-board.beat-3'],
+      ['chip.route.standings.beat-1', 'chip.route.standings.beat-2', 'chip.route.standings.beat-3'],
       ['chip.route.analytics-evidence.beat-1', 'chip.route.analytics-evidence.beat-2'],
       ['chip.route.player-profile.beat-1', 'chip.route.player-profile.beat-2'],
       ['chip.route.player-timeline.beat-1', 'chip.route.player-timeline.beat-2'],
@@ -1074,5 +1112,128 @@ describe('route beat registry', () => {
       ['chip.route.relocation.beat-1', 'chip.route.relocation.beat-2'],
       ['chip.route.expansion-draft.beat-1', 'chip.route.expansion-draft.beat-2'],
     ]);
+  });
+});
+
+describe('isTierOneRouteBeatId (B9)', () => {
+  it('marks every registry beat-1 as tier-1 and beat-2+ as advanced', () => {
+    for (const beat of allBeats) {
+      expect(isTierOneRouteBeatId(beat.id), beat.id).toBe(beat.id.endsWith('.beat-1'));
+    }
+  });
+
+  it('always treats first-ten onboarding beats as tier-1', () => {
+    expect(isTierOneRouteBeatId('chip.first10.roster')).toBe(true);
+    expect(isTierOneRouteBeatId('chip.first10.week-advance')).toBe(true);
+  });
+
+  it('rejects unknown beat shapes', () => {
+    expect(isTierOneRouteBeatId('chip.dock.summary')).toBe(false);
+    expect(isTierOneRouteBeatId('chip.route.roster.beat-3')).toBe(false);
+  });
+});
+
+describe('PLAYOFF_ROUTE_BEAT_TEXT (G2)', () => {
+  it('covers exactly tier-1 beats of the ten core routes', () => {
+    const ids = Object.keys(PLAYOFF_ROUTE_BEAT_TEXT).sort();
+    expect(ids).toEqual([
+      'chip.route.depth-chart.beat-1',
+      'chip.route.film-room.beat-1',
+      'chip.route.game-day-recap.beat-1',
+      'chip.route.game-plan.beat-1',
+      'chip.route.inbox.beat-1',
+      'chip.route.locker-room.beat-1',
+      'chip.route.monday-briefing.beat-1',
+      'chip.route.roster.beat-1',
+      'chip.route.schedule.beat-1',
+      'chip.route.week-advance.beat-1',
+    ]);
+    for (const id of ids) {
+      expect(allBeats.some((beat) => beat.id === id), id).toBe(true);
+    }
+  });
+
+  it('keeps every playoff variant inside the beat voice contract', () => {
+    for (const [id, text] of Object.entries(PLAYOFF_ROUTE_BEAT_TEXT)) {
+      expect(text, id).toMatch(/\b(Must Do|Recommended):/);
+      expect(text, id).toContain('Where:');
+      expect(text, id).toContain('Consequence:');
+      expect(text.length, id).toBeLessThanOrEqual(140);
+      expect(text, id).not.toMatch(
+        /\b(vibe|feels?|story|context|identity|foundation|momentum|real answer|good energy|tone setter|read|verify|confirm|check|review|compare|worth|use|sim|triage)\b/i,
+      );
+    }
+  });
+});
+
+describe('EARLY_SEASON_ROUTE_BEAT_TEXT (G3)', () => {
+  it('covers exactly tier-1 beats of the ten core routes', () => {
+    const ids = Object.keys(EARLY_SEASON_ROUTE_BEAT_TEXT).sort();
+    expect(ids).toEqual([
+      'chip.route.depth-chart.beat-1',
+      'chip.route.film-room.beat-1',
+      'chip.route.game-day-recap.beat-1',
+      'chip.route.game-plan.beat-1',
+      'chip.route.inbox.beat-1',
+      'chip.route.locker-room.beat-1',
+      'chip.route.monday-briefing.beat-1',
+      'chip.route.roster.beat-1',
+      'chip.route.schedule.beat-1',
+      'chip.route.week-advance.beat-1',
+    ]);
+    for (const id of ids) {
+      expect(allBeats.some((beat) => beat.id === id), id).toBe(true);
+    }
+  });
+
+  it('keeps every early-season variant inside the beat voice contract', () => {
+    for (const [id, text] of Object.entries(EARLY_SEASON_ROUTE_BEAT_TEXT)) {
+      expect(text, id).toMatch(/\b(Must Do|Recommended):/);
+      expect(text, id).toContain('Where:');
+      expect(text, id).toContain('Consequence:');
+      expect(text.length, id).toBeLessThanOrEqual(140);
+      expect(text, id).not.toMatch(
+        /\b(vibe|feels?|story|context|identity|foundation|momentum|real answer|good energy|tone setter|read|verify|confirm|check|review|compare|worth|use|sim|triage)\b/i,
+      );
+    }
+  });
+
+  it('keeps the early-season window below the late-season window', () => {
+    expect(EARLY_SEASON_MAX_WEEK).toBe(4);
+    expect(LATE_SEASON_MIN_WEEK).toBe(15);
+    expect(EARLY_SEASON_MAX_WEEK).toBeLessThan(LATE_SEASON_MIN_WEEK);
+  });
+});
+
+describe('LATE_SEASON_ROUTE_BEAT_TEXT (G3)', () => {
+  it('covers exactly tier-1 beats of the ten core routes', () => {
+    const ids = Object.keys(LATE_SEASON_ROUTE_BEAT_TEXT).sort();
+    expect(ids).toEqual([
+      'chip.route.depth-chart.beat-1',
+      'chip.route.film-room.beat-1',
+      'chip.route.game-day-recap.beat-1',
+      'chip.route.game-plan.beat-1',
+      'chip.route.inbox.beat-1',
+      'chip.route.locker-room.beat-1',
+      'chip.route.monday-briefing.beat-1',
+      'chip.route.roster.beat-1',
+      'chip.route.schedule.beat-1',
+      'chip.route.week-advance.beat-1',
+    ]);
+    for (const id of ids) {
+      expect(allBeats.some((beat) => beat.id === id), id).toBe(true);
+    }
+  });
+
+  it('keeps every stretch-run variant inside the beat voice contract', () => {
+    for (const [id, text] of Object.entries(LATE_SEASON_ROUTE_BEAT_TEXT)) {
+      expect(text, id).toMatch(/\b(Must Do|Recommended):/);
+      expect(text, id).toContain('Where:');
+      expect(text, id).toContain('Consequence:');
+      expect(text.length, id).toBeLessThanOrEqual(140);
+      expect(text, id).not.toMatch(
+        /\b(vibe|feels?|story|context|identity|foundation|momentum|real answer|good energy|tone setter|read|verify|confirm|check|review|compare|worth|use|sim|triage)\b/i,
+      );
+    }
   });
 });

@@ -3,10 +3,11 @@ import { readFileSync } from 'fs';
 import {
   chipBriefingDetails,
   chipBriefingOutro,
+  fitChipBubbleText,
   selectMondayBriefingChipDialogue,
   type MondayBriefingChipInput,
 } from './MondayBriefing';
-import { buildWeeklyGuidance, weeklyGuidanceToDialogueEntry } from '../companion/weeklyGuidance';
+import { buildWeeklyGuidance, weeklyGuidanceToDialogueEntry, GENERIC_OPTIONAL_LINES } from '../companion/weeklyGuidance';
 import type { DialogueCatalogEntry } from '../companion/dialogue/types';
 
 const source = readFileSync(new URL('./MondayBriefing.tsx', import.meta.url), 'utf-8');
@@ -36,16 +37,21 @@ describe('MondayBriefing Chip integration', () => {
 
     expect(entry.id).toBe('chip.weekly.cleanWin');
     expect(entry.text).toContain('Must Do: set injury status, first backups, and safer calls before kickoff. Where: Roster, Depth Chart, Game Plan. Consequence: unassigned backups enter saved calls.');
-    expect(entry.text).toContain('Scout Austin Armadillos now');
-    expect(entry.text).toContain('choices affect depth, morale, cap space, and Game Plan');
+    expect(entry.text.length).toBeLessThanOrEqual(240);
+    expect(entry.contextDetails).toContain('Why: Scout Austin Armadillos now; choices affect depth, morale, cap space, and Game Plan.');
     expect(entry.contextDetails).toEqual(expect.arrayContaining([
       expect.stringContaining('Must Do: set injury status, first backups'),
       expect.stringContaining('Recommended: Set injured roles, first backups'),
-      expect.stringContaining('Optional: Make any legal roster, depth chart, training'),
-      expect.stringContaining('prioritize moves that change lineup, cap space, market offer, staff plan, recovery, or matchup'),
       expect.stringContaining('Optional later: Open awards, records, and history after you fix or accept Monday Briefing and Action Center notes'),
       expect.stringContaining('Consequence: Uncovered injuries put an unassigned first backup on the field or break the saved Game Plan'),
     ]));
+    // B3: the seeded dynasty rotates the generic Optional line through its
+    // pool; whichever line the seed serves must be a pool member.
+    const optionalDetail = entry.contextDetails?.find((detail) => detail.startsWith('Optional: '));
+    expect(optionalDetail).toBeDefined();
+    expect(
+      GENERIC_OPTIONAL_LINES.some((line) => optionalDetail === `Optional: ${line}`),
+    ).toBe(true);
     expect(entry.text).not.toContain('only if injuries change calls');
     expect(chipBriefingDetails(entry)).toEqual(expect.arrayContaining([
       expect.stringContaining('Must Do:'),
@@ -207,5 +213,29 @@ describe('MondayBriefing Chip integration', () => {
     expect(chipBriefingOutro(threeLoss)).toContain('owner patience');
     expect(chipBriefingOutro(threeLoss)).not.toContain('raises owner pressure');
     expect(source).not.toMatch(/owner heat|room temperature|training room is quiet|crowding the wire|race board|prep board|Monday board/i);
+  });
+
+  it('fits oversized outro copy into the 240-character bubble at sentence boundaries', { timeout: 15_000 }, () => {
+    const short = 'Next: keep what worked.';
+    expect(fitChipBubbleText(short)).toBe(short);
+
+    const longEntry = selectMondayBriefingChipDialogue(input({ week: 13, pendingDecisionCount: 2, injuryCount: 2 }));
+    const longOutro = chipBriefingOutro(longEntry);
+    const fitted = fitChipBubbleText(longOutro);
+    expect(fitted.length).toBeLessThanOrEqual(240);
+    if (longOutro.length > 240) {
+      expect(fitted.endsWith('…')).toBe(true);
+      expect(fitted.startsWith('Must Do:')).toBe(true);
+      // Clipped text stops after a complete sentence, never mid-clause.
+      expect(fitted.slice(0, -1).trimEnd().endsWith('.')).toBe(true);
+    }
+
+    const singleHugeSentence = `Must Do: ${'open every football-ops screen and name the fix, '.repeat(12)}before Advance Week locks.`;
+    const hardCut = fitChipBubbleText(singleHugeSentence);
+    expect(hardCut.length).toBeLessThanOrEqual(240);
+    expect(hardCut.endsWith('...')).toBe(true);
+
+    // The render site always passes through the fitter.
+    expect(source).toContain('text={fitChipBubbleText(chipBriefingOutro(chipBriefingEntry))}');
   });
 });
