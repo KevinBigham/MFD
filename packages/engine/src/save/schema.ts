@@ -651,6 +651,40 @@ export const PowerRankingSchema = z.object({
   record: z.string(),
 });
 
+// ── Franchise history (per-team season archive) ─────────
+// Field set verified against types/franchise.ts FranchiseHistoryEntry and
+// both writers: history.ts archiveSeasonHistory emits the full modern
+// shape (all five optional fields), while scenario-challenge seeds a
+// minimal pre-identity shape without them — so fanbase/prestige/
+// attendance/stadiumName/keyStats stay optional exactly as the interface
+// declares. playoffFinish is a free-form string (champion /
+// missed_playoffs / playoff_team / PLAYOFF_FINISH_LABELS values).
+// Fixtures all carry empty franchiseHistory; strict strip is lossless.
+export const FranchiseHistoryKeyStatsSchema = z.object({
+  totalYards: z.number(),
+  pointsFor: z.number(),
+  pointsAgainst: z.number(),
+});
+
+export const FranchiseHistoryEntrySchema = z.object({
+  year: z.number(),
+  teamId: z.string(),
+  wins: z.number(),
+  losses: z.number(),
+  ties: z.number(),
+  record: z.string(),
+  pointDifferential: z.number(),
+  playoffFinish: z.string(),
+  majorEvents: z.array(z.string()),
+  awardsWon: z.array(z.string()),
+  recordsBroken: z.array(z.string()),
+  fanbase: z.number().optional(),
+  prestige: z.number().optional(),
+  attendance: z.number().optional(),
+  stadiumName: z.string().optional(),
+  keyStats: FranchiseHistoryKeyStatsSchema.optional(),
+});
+
 export const MediaPowerRankingSchema = z.object({
   teamId: z.string(),
   teamName: z.string(),
@@ -2478,7 +2512,7 @@ export const SaveStateSchema = z.object({
     weeklyDigests: [],
     powerRankingHistory: [],
   }),
-  franchiseHistory: z.array(z.any()),
+  franchiseHistory: z.array(FranchiseHistoryEntrySchema),
   playerArchive: z.array(PlayerArchiveEntrySchema),
   playerSeasonHistory: z.record(z.string(), z.array(PlayerSeasonHistoryEntrySchema)).default({}),
   playerRivalries: z.array(z.any()).default([]),
