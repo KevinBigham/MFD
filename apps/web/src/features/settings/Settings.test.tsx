@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { ChipIntroScreen } from '../companion/ChipHost';
 import {
   Settings,
   SettingsActionReceiptPanel,
@@ -196,6 +198,16 @@ vi.mock('../../app/store/ui-store', () => ({
   }),
 }));
 
+// G8: force the Chip feature gate on so the replay panel renders in every
+// suite regardless of the VITE_CHIP_ENABLED env the shard was launched with.
+vi.mock('../companion/ChipHost', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../companion/ChipHost')>();
+  return {
+    ...actual,
+    isChipFeatureEnabled: () => true,
+  };
+});
+
 describe('Settings', () => {
   beforeEach(() => {
     Object.defineProperty(globalThis, 'location', {
@@ -381,5 +393,56 @@ describe('Settings', () => {
     expect(markup).toContain('INVARIANT DEBUG');
     expect(markup).toContain('State Clean');
     expect(markup).toContain('Developer only');
+  });
+
+  it('renders the Chip intro replay panel (G8) without opening the overlay', () => {
+    const markup = renderToStaticMarkup(<Settings />);
+
+    expect(markup).toContain('Franchise Ops Companion');
+    expect(markup).toContain('Replay Chip Intro');
+    expect(markup).toContain('data-chip-control-id="replay-intro"');
+    expect(markup).toContain('Saved state untouched');
+    expect(markup).not.toContain('data-chip-intro="true"');
+  });
+
+  it('wires the replay overlay through ChipIntroScreen with re-labeled actions', () => {
+    const source = readFileSync(new URL('./Settings.tsx', import.meta.url), 'utf8');
+
+    expect(source).toContain('ChipIntroScreen');
+    expect(source).toContain('closeIntroReplay');
+    expect(source).toContain('writeChipIntroState(resolveBrowserStorage(), skipped)');
+    expect(source).toContain('continueLabel="Back to Settings"');
+    expect(source).toContain('skipLabel="Close Replay"');
+  });
+
+  it('renders the exported intro screen with replay labels', () => {
+    const markup = renderToStaticMarkup(
+      <ChipIntroScreen
+        onContinue={() => undefined}
+        onSkip={() => undefined}
+        reducedMotion={false}
+        continueLabel="Back to Settings"
+        skipLabel="Close Replay"
+      />,
+    );
+
+    expect(markup).toContain('data-chip-intro="true"');
+    expect(markup).toContain('Back to Settings');
+    expect(markup).toContain('Close Replay');
+    expect(markup).not.toContain('Start Setup');
+    expect(markup).not.toContain('Skip Chip Intro');
+  });
+
+  it('keeps setup-flow intro labels as the default', () => {
+    const markup = renderToStaticMarkup(
+      <ChipIntroScreen
+        onContinue={() => undefined}
+        onSkip={() => undefined}
+        reducedMotion={false}
+      />,
+    );
+
+    expect(markup).toContain('Start Setup');
+    expect(markup).toContain('Skip Chip Intro');
   });
 });

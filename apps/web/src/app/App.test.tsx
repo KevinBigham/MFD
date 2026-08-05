@@ -298,7 +298,7 @@ describe('App Chip setup wiring', () => {
 
   it('passes active route coaching beats into the post-setup ChipDock', () => {
     expect(content).toContain("import { useActiveRouteBeats } from '../features/route-coaching/useActiveRouteBeats'");
-    expect(content).toContain('const chipRouteBeats = useActiveRouteBeats(chipDockRoute, { currentWeek: chipDockWeek });');
+    expect(content).toContain('const chipRouteBeats = useActiveRouteBeats(chipDockRoute, { currentWeek: chipDockWeek, dynastySeed: chipGame?.seed, phase: chipGame?.phase });');
     expect(content).toContain('routeBeats={chipRouteBeats}');
   });
 

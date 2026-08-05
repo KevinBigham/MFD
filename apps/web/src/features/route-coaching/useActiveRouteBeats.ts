@@ -1,11 +1,18 @@
 import { useMemo } from 'react';
 import { useChipStore } from '../companion/store';
 import {
+  FIRST_TEN_MINUTE_ONBOARDING_BEATS,
+  firstTenBeatText,
   readChipOnboardingState,
   selectChipOnboardingRouteBeats,
 } from '../companion/onboardingMachine';
 import { resolveBrowserStorage } from '../companion/storageBoundary';
 import {
+  EARLY_SEASON_MAX_WEEK,
+  EARLY_SEASON_ROUTE_BEAT_TEXT,
+  LATE_SEASON_MIN_WEEK,
+  LATE_SEASON_ROUTE_BEAT_TEXT,
+  PLAYOFF_ROUTE_BEAT_TEXT,
   ROUTE_BEAT_REGISTRY,
   ROUTE_KEYS,
   type RouteBeat,
@@ -13,6 +20,15 @@ import {
 } from './routeBeatRegistry';
 
 const EMPTY_ROUTE_BEATS: readonly RouteBeat[] = [];
+
+/**
+ * G7: every route-coaching beat id (first-ten tour + every registry beat).
+ * When all of these are read, route coaching graduates to advisor-only mode.
+ */
+export const ALL_ROUTE_COACHING_BEAT_IDS: readonly string[] = [
+  ...FIRST_TEN_MINUTE_ONBOARDING_BEATS.map((beat) => beat.id),
+  ...ROUTE_KEYS.flatMap((key) => ROUTE_BEAT_REGISTRY[key].map((beat) => beat.id)),
+];
 
 // Cache is bounded at ROUTE_KEYS.length. Each entry stores the
 // route-specific seen-beat signature so cache hits are content-equality not
@@ -179,20 +195,44 @@ export function selectActiveRouteBeats(
 
 export function useActiveRouteBeats(
   currentRoute: string,
-  context: { currentWeek?: number } = {},
+  context: { currentWeek?: number; dynastySeed?: number; phase?: string } = {},
 ): readonly RouteBeat[] {
   const seenBeats = useChipStore((state) => state.seenBeats);
 
   return useMemo(
     () => {
       const storage = resolveBrowserStorage();
+      const onboardingContext = {
+        currentWeek: context.currentWeek ?? 0,
+        dynastySeed: context.dynastySeed,
+      };
       const onboardingBeats = selectChipOnboardingRouteBeats(
         currentRoute,
         readChipOnboardingState(storage),
-        { currentWeek: context.currentWeek ?? 0 },
-      ).filter((beat) => !seenBeats.has(beat.id));
-      return [...onboardingBeats, ...selectActiveRouteBeats(currentRoute, seenBeats)];
+        onboardingContext,
+      )
+        .filter((beat) => !seenBeats.has(beat.id))
+        // G9: seeded dynasties get a rotating flavor closer on first-ten
+        // beats; unseeded callers receive the canonical text byte-for-byte.
+        .map((beat) => ({ ...beat, text: firstTenBeatText(beat, onboardingContext) }));
+      const registryBeats = selectActiveRouteBeats(currentRoute, seenBeats)
+        // G2/G3: playoff phase serves the high-stakes tier-1 variants; late
+        // and early regular-season weeks serve the season-toned variants
+        // (precedence: playoffs > late > early). Every other context keeps
+        // the canonical registry text byte-for-byte.
+        .map((beat) => {
+          const week = context.currentWeek ?? 0;
+          const variantText = context.phase === 'playoffs'
+            ? PLAYOFF_ROUTE_BEAT_TEXT[beat.id]
+            : week >= LATE_SEASON_MIN_WEEK
+              ? LATE_SEASON_ROUTE_BEAT_TEXT[beat.id]
+              : week >= 1 && week <= EARLY_SEASON_MAX_WEEK
+                ? EARLY_SEASON_ROUTE_BEAT_TEXT[beat.id]
+                : undefined;
+          return variantText ? { ...beat, text: variantText } : beat;
+        });
+      return [...onboardingBeats, ...registryBeats];
     },
-    [context.currentWeek, currentRoute, seenBeats],
+    [context.currentWeek, context.dynastySeed, context.phase, currentRoute, seenBeats],
   );
 }

@@ -9,6 +9,7 @@ import {
 import { CHIP_DOCK_STORAGE_KEY, createDefaultDockPrefs, readDockPrefs } from './dockPersistence';
 import { CHIP_ONBOARDING_STATE_STORAGE_KEY, readChipOnboardingState } from './onboardingMachine';
 import { writeChipReadReceipts, readChipReadReceipts } from './readReceipts';
+import { CHIP_MEMORY_STORAGE_KEY } from './chipMemory';
 import type { DialogueCatalogEntry } from './dialogue/types';
 
 class MemoryStorage implements Storage {
@@ -66,6 +67,31 @@ function applyControl(control: ChipDockControl, storage = new MemoryStorage()) {
 }
 
 describe('dock controls', () => {
+  it('flips the dock position right -> left -> right (E10)', () => {
+    const storage = new MemoryStorage();
+
+    const first = applyControl('dockPosition', storage);
+    expect(first.prefs.dockPosition).toBe('left');
+    expect(readDockPrefs(storage).dockPosition).toBe('left');
+
+    const second = applyControl('dockPosition', storage);
+    expect(second.prefs.dockPosition).toBe('right');
+  });
+
+  it('cycles the typewriter speed normal -> fast -> slow -> normal (H2)', () => {
+    const storage = new MemoryStorage();
+
+    const first = applyControl('typewriterSpeed', storage);
+    expect(first.prefs.typewriterSpeed).toBe('fast');
+    expect(readDockPrefs(storage).typewriterSpeed).toBe('fast');
+
+    const second = applyControl('typewriterSpeed', storage);
+    expect(second.prefs.typewriterSpeed).toBe('slow');
+
+    const third = applyControl('typewriterSpeed', storage);
+    expect(third.prefs.typewriterSpeed).toBe('normal');
+  });
+
   it('replays the latest weekly line for What now without changing prefs', () => {
     const { prefs, store, storage } = applyControl('whatNow');
 
@@ -108,6 +134,23 @@ describe('dock controls', () => {
     expect(storage.getItem(CHIP_INTRO_RECEIPT_STORAGE_KEY)).toBeNull();
     expect(store.reset).toHaveBeenCalledTimes(1);
     expect(prefs).toEqual(createDefaultDockPrefs());
+  });
+
+  it('clears the memory sidecar on resetOnboarding (B13)', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_MEMORY_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        outcomes: [{ year: 2030, week: 4, variant: 'loss' }],
+        lastFlavor: { variant: 'loss', line: 'Line one.' },
+        lastAdvice: { year: 2030, week: 4, advice: 'Must Do: name the fix.' },
+      }),
+    );
+
+    applyControl('resetOnboarding', storage);
+
+    expect(storage.getItem(CHIP_MEMORY_STORAGE_KEY)).toBeNull();
   });
 
   it('snoozes first-ten onboarding at the current week', () => {

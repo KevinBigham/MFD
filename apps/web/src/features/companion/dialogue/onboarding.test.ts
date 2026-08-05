@@ -25,22 +25,22 @@ describe('onboardingDialogue', () => {
 
   it('opens with a direct Assistant GM consequence line', () => {
     expect(onboardingDialogue[0]?.text).toBe(
-      'Must Do: hire the Assistant GM. This sets my first setup priority: cap space, starter and backup roles, the Week 1 game plan, or owner patience.',
+      'Must Do: hire the Assistant GM — your first call, Coach. My first setup priority follows yours: cap space, starter and backup roles, the Week 1 game plan, or owner patience.',
     );
   });
 
-  it('preserves the ten phase-mapped onboarding lines verbatim', () => {
+  it('pins the ten phase-mapped onboarding lines verbatim after the A12 warmth pass', () => {
     expect(onboardingDialogue.map((entry) => entry.text)).toEqual([
-      'Must Do: hire the Assistant GM. This sets my first setup priority: cap space, starter and backup roles, the Week 1 game plan, or owner patience.',
-      'Must Do: open the highlighted Intel card. It names whether roster, cap, staff, or owner patience needs action first before Week 1.',
-      'Must Do: name protected stars and first backups before roster moves. Contracts that block injury replacements make Week 1 fixes harder.',
-      "Must Do: hire the coach whose calls match today's starters. A coach-player pairing that does not match slows install, costs development reps, and exposes Week 1 assignments.",
-      'Must Do: hire scouting for the starter, backup, or future replacement free agency would overprice. Missing scout info wastes picks and veteran bids.',
-      'Must Do: choose schemes that protect current starters. Bad fits create missed assignments and force Depth Chart or Game Plan protection by Week 1.',
-      'Must Do: set starters deliberately. Higher-rated players reduce matchup mistakes, veterans cut assignment misses, and young starters trade Week 1 points for development snaps.',
-      'Must Do: choose the cap plan before moves. Restructures create cap space now by moving money into future seasons.',
-      'Must Do: pick promises the roster must defend. Owner goals become expectations; missed promises cut owner patience even after roster upgrades.',
-      'Must Do: open the blueprint before Week 1. It locks staff, scouting, scheme, lineup rules, cap plan, and owner promises.',
+      'Must Do: hire the Assistant GM — your first call, Coach. My first setup priority follows yours: cap space, starter and backup roles, the Week 1 game plan, or owner patience.',
+      'Must Do: open the highlighted Intel card. It names whether roster, cap, staff, or owner patience needs action first — no guessing before Week 1.',
+      'Must Do: name your protected stars and first backups before any roster move. Contracts that block injury replacements make Week 1 fixes harder.',
+      "Must Do: hire the coach whose calls fit today's starters, not the roster you wish you had. A pairing that does not fit slows install, costs development reps, and exposes Week 1 assignments.",
+      'Must Do: hire scouting for the starter, backup, or future replacement free agency would overprice. Scout info we skip now becomes picks and veteran bids wasted later.',
+      'Must Do: choose schemes that protect the starters already on this roster. Bad fits create missed assignments and force Depth Chart or Game Plan protection by Week 1.',
+      'Must Do: set starters deliberately — this one is your call, Coach. Higher-rated players reduce matchup mistakes, veterans cut assignment misses, and young starters trade Week 1 points for development snaps.',
+      'Must Do: choose the cap plan before any moves. Restructures create cap space now by moving money into future seasons — the bill always comes due.',
+      'Must Do: pick promises this roster can defend. Owner goals become expectations; missed promises cut owner patience even after roster upgrades.',
+      'Must Do: open the blueprint before Week 1 — walk it with me. It locks staff, scouting, scheme, lineup rules, cap plan, and owner promises.',
     ]);
   });
 

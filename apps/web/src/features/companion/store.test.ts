@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveCurrentChipPose, useChipStore } from './store';
+import { resolveCurrentChipPose, shouldPublishPoseTick, useChipStore } from './store';
 
 describe('useChipStore', () => {
   beforeEach(() => {
@@ -233,5 +233,204 @@ describe('useChipStore', () => {
       beat: first.beat,
       context: first.context,
     });
+  });
+});
+
+describe('pose tick publish gate', () => {
+  it('never publishes while the tab is hidden', () => {
+    expect(shouldPublishPoseTick({ hidden: true, nextNowMs: 10_000, lastPublishedMs: 0 })).toBe(false);
+    expect(shouldPublishPoseTick({ hidden: true, nextNowMs: 100, lastPublishedMs: 0 })).toBe(false);
+  });
+
+  it('publishes at most once per tick interval while visible', () => {
+    expect(shouldPublishPoseTick({ hidden: false, nextNowMs: 100, lastPublishedMs: 0 })).toBe(false);
+    expect(shouldPublishPoseTick({ hidden: false, nextNowMs: 250, lastPublishedMs: 0 })).toBe(true);
+    expect(shouldPublishPoseTick({ hidden: false, nextNowMs: 499, lastPublishedMs: 250 })).toBe(false);
+    expect(shouldPublishPoseTick({ hidden: false, nextNowMs: 500, lastPublishedMs: 250 })).toBe(true);
+  });
+
+  it('publishes immediately when the tab becomes visible again after a long hidden stretch', () => {
+    expect(shouldPublishPoseTick({ hidden: false, nextNowMs: 60_000, lastPublishedMs: 1_000 })).toBe(true);
+  });
+});
+
+describe('dialogue queue (B7)', () => {
+  function entry(id: string, text: string, withDetails = false) {
+    return {
+      id,
+      beat: 0,
+      pose: 'talk' as const,
+      text,
+      archetype: 'weekly' as const,
+      contextDetails: withDetails ? ['Must Do: open Recap.'] : undefined,
+    };
+  }
+
+  it('queues the remaining beats and tracks the details beat for the panel', () => {
+    useChipStore.getState().reset();
+    const beats = [
+      entry('chip.weekly.blowoutLoss.reaction', 'That one hurts.'),
+      entry('chip.weekly.blowoutLoss.plan', 'Must Do: open Postgame Recap.', true),
+    ];
+
+    useChipStore.getState().queueDialogue(beats);
+    const state = useChipStore.getState();
+
+    expect(state.currentDialogueId).toBe('chip.weekly.blowoutLoss.reaction');
+    expect(state.currentDialogueText).toBe('That one hurts.');
+    expect(state.dialogueQueue.map((beat) => beat.id)).toEqual(['chip.weekly.blowoutLoss.plan']);
+    expect(state.dialogueQueueTotal).toBe(2);
+    expect(state.lastConversation?.map((beat) => beat.id)).toEqual([
+      'chip.weekly.blowoutLoss.reaction',
+      'chip.weekly.blowoutLoss.plan',
+    ]);
+    // The details panel follows the beat carrying contextDetails, not the
+    // reaction beat currently showing.
+    expect(state.lastWeeklyDialogue?.id).toBe('chip.weekly.blowoutLoss.plan');
+    expect(state.dismissed).toBe(false);
+  });
+
+  it('advances through the queue and no-ops when empty', () => {
+    useChipStore.getState().reset();
+    useChipStore.getState().queueDialogue([
+      entry('beat-1', 'First.'),
+      entry('beat-2', 'Second.'),
+      entry('beat-3', 'Third.'),
+    ]);
+
+    useChipStore.getState().advanceDialogueQueue();
+    expect(useChipStore.getState().currentDialogueId).toBe('beat-2');
+    expect(useChipStore.getState().dialogueQueue.map((beat) => beat.id)).toEqual(['beat-3']);
+
+    useChipStore.getState().advanceDialogueQueue();
+    expect(useChipStore.getState().currentDialogueId).toBe('beat-3');
+    expect(useChipStore.getState().dialogueQueue).toEqual([]);
+
+    useChipStore.getState().advanceDialogueQueue();
+    expect(useChipStore.getState().currentDialogueId).toBe('beat-3');
+  });
+
+  it('clears the queue on dismiss and on a fresh single dialogue', () => {
+    useChipStore.getState().reset();
+    useChipStore.getState().queueDialogue([entry('beat-1', 'First.'), entry('beat-2', 'Second.')]);
+
+    useChipStore.getState().dismiss();
+    expect(useChipStore.getState().dialogueQueue).toEqual([]);
+    expect(useChipStore.getState().dialogueQueueTotal).toBe(0);
+    // The conversation survives dismissal for Ask Chip replay.
+    expect(useChipStore.getState().lastConversation).toHaveLength(2);
+
+    useChipStore.getState().queueDialogue([entry('beat-1', 'First.'), entry('beat-2', 'Second.')]);
+    useChipStore.getState().showWeeklyDialogue(entry('chip.weekly.cleanWin', 'Solo.', true));
+    expect(useChipStore.getState().dialogueQueue).toEqual([]);
+    expect(useChipStore.getState().dialogueQueueTotal).toBe(0);
+    expect(useChipStore.getState().lastConversation).toBeNull();
+  });
+
+  it('ignores an empty queue call', () => {
+    useChipStore.getState().reset();
+    useChipStore.getState().showWeeklyDialogue(entry('chip.weekly.cleanWin', 'Solo.'));
+    const before = useChipStore.getState().currentDialogueId;
+
+    useChipStore.getState().queueDialogue([]);
+    expect(useChipStore.getState().currentDialogueId).toBe(before);
+    expect(useChipStore.getState().dialogueQueueTotal).toBe(0);
+  });
+});
+
+describe('dialogue queue append (C13)', () => {
+  function entry(id: string, text: string, withDetails = false) {
+    return {
+      id,
+      beat: 0,
+      pose: 'talk' as const,
+      text,
+      archetype: 'weekly' as const,
+      contextDetails: withDetails ? ['Must Do: open Recap.'] : undefined,
+    };
+  }
+
+  it('appends behind the active conversation without touching the current beat', () => {
+    useChipStore.getState().reset();
+    useChipStore.getState().queueDialogue([
+      entry('active-1', 'Active reaction.'),
+      entry('active-2', 'Active plan.', true),
+    ]);
+
+    useChipStore.getState().appendDialogueQueue([
+      entry('stacked-1', 'Stacked reaction.'),
+      entry('stacked-2', 'Stacked plan.', true),
+    ]);
+    const state = useChipStore.getState();
+
+    expect(state.currentDialogueId).toBe('active-1');
+    expect(state.currentDialogueText).toBe('Active reaction.');
+    expect(state.dialogueQueue.map((beat) => beat.id)).toEqual(['active-2', 'stacked-1', 'stacked-2']);
+    expect(state.dialogueQueueTotal).toBe(4);
+    expect(state.lastConversation?.map((beat) => beat.id)).toEqual([
+      'active-1',
+      'active-2',
+      'stacked-1',
+      'stacked-2',
+    ]);
+    // The details panel stays with the active conversation's details beat.
+    expect(state.lastWeeklyDialogue?.id).toBe('active-2');
+  });
+
+  it('moves the details panel when the user advances into an appended details beat', () => {
+    useChipStore.getState().reset();
+    useChipStore.getState().queueDialogue([
+      entry('active-1', 'Active reaction.'),
+      entry('active-2', 'Active plan.', true),
+    ]);
+    useChipStore.getState().appendDialogueQueue([
+      entry('stacked-1', 'Stacked reaction.'),
+      entry('stacked-2', 'Stacked plan.', true),
+    ]);
+
+    useChipStore.getState().advanceDialogueQueue();
+    expect(useChipStore.getState().currentDialogueId).toBe('active-2');
+    expect(useChipStore.getState().lastWeeklyDialogue?.id).toBe('active-2');
+
+    useChipStore.getState().advanceDialogueQueue();
+    expect(useChipStore.getState().currentDialogueId).toBe('stacked-1');
+    // A reaction beat carries no details: the panel keeps the previous beat.
+    expect(useChipStore.getState().lastWeeklyDialogue?.id).toBe('active-2');
+
+    useChipStore.getState().advanceDialogueQueue();
+    expect(useChipStore.getState().currentDialogueId).toBe('stacked-2');
+    expect(useChipStore.getState().lastWeeklyDialogue?.id).toBe('stacked-2');
+  });
+
+  it('behaves like queueDialogue when nothing is active or Chip was dismissed', () => {
+    useChipStore.getState().reset();
+    useChipStore.getState().appendDialogueQueue([
+      entry('fresh-1', 'Fresh reaction.'),
+      entry('fresh-2', 'Fresh plan.', true),
+    ]);
+    let state = useChipStore.getState();
+    expect(state.currentDialogueId).toBe('fresh-1');
+    expect(state.dialogueQueue.map((beat) => beat.id)).toEqual(['fresh-2']);
+    expect(state.dialogueQueueTotal).toBe(2);
+    expect(state.lastWeeklyDialogue?.id).toBe('fresh-2');
+
+    useChipStore.getState().dismiss();
+    useChipStore.getState().appendDialogueQueue([
+      entry('post-dismiss-1', 'After dismiss reaction.'),
+      entry('post-dismiss-2', 'After dismiss plan.', true),
+    ]);
+    state = useChipStore.getState();
+    expect(state.currentDialogueId).toBe('post-dismiss-1');
+    expect(state.dialogueQueue.map((beat) => beat.id)).toEqual(['post-dismiss-2']);
+    expect(state.dismissed).toBe(false);
+  });
+
+  it('ignores an empty append call', () => {
+    useChipStore.getState().reset();
+    useChipStore.getState().showWeeklyDialogue(entry('chip.weekly.cleanWin', 'Solo.', true));
+
+    useChipStore.getState().appendDialogueQueue([]);
+    expect(useChipStore.getState().currentDialogueId).toBe('chip.weekly.cleanWin');
+    expect(useChipStore.getState().dialogueQueueTotal).toBe(0);
   });
 });

@@ -20,6 +20,7 @@ import {
 } from './ChipHost';
 import { onboardingDialogue } from './dialogue/onboarding';
 import { useChipStore } from './store';
+import { FIRST_TEN_COMPLETED_KEY } from '../franchise-setup/setupPersistence';
 
 const stages = [
   { id: 'chip.onboarding.beat-1', label: 'Hire Assistant GM', content: <div>Cold stage</div>, spotlightStageId: 'cold-open' },
@@ -121,6 +122,11 @@ describe('ChipHost', () => {
     expect(markup).toContain('point to the exact screen to open');
     expect(markup).toContain('explain the consequence');
     expect(markup).toContain('roster, cap space, owner patience, or the next game');
+    // A13: one line of character alongside the job description.
+    expect(markup).toContain('data-chip-intro-character="true"');
+    expect(markup).toContain('40-yard dash decide a season');
+    expect(markup).toContain('You bring the calls;');
+    expect(markup).toContain('I bring the map.');
     expect(markup).not.toContain('point to the exact screen to use');
     expect(markup).not.toContain('owner trust');
     expect(markup).not.toContain('right-hand man');
@@ -142,8 +148,8 @@ describe('ChipHost', () => {
     expect(markup).toContain('Chip, franchise operations chief');
     expect(markup).toContain('FRANCHISE OPS // CHIP');
     expect(markup).toContain('data-chip-host-portrait="true"');
-    expect(markup).toContain('Must Do: hire the Assistant GM.');
-    expect(markup).toContain('first setup priority: cap space, starter and backup roles, the Week 1 game plan, or owner patience.');
+    expect(markup).toContain('Must Do: hire the Assistant GM');
+    expect(markup).toContain('first setup priority follows yours: cap space, starter and backup roles, the Week 1 game plan, or owner patience.');
     expect(markup).toContain('Where: choose the advisor promise that matches the biggest Week 1 danger');
     expect(markup).toContain('Consequence: choose cap-first and I keep money warnings up front; starter jobs and the coach responsible for Week 1 still need fixing before kickoff.');
     expect(markup).not.toContain('the opener can start');
@@ -316,7 +322,7 @@ describe('ChipHost', () => {
 
     expect(markup).toContain('data-chip-motion="reduced"');
     expect(markup).not.toContain('data-chip-host-reveal=');
-    expect(markup).toContain('Must Do: hire the Assistant GM.');
+    expect(markup).toContain('Must Do: hire the Assistant GM');
     expect(markup).not.toContain('mfd-chip-bubble__caret');
   });
 
@@ -395,6 +401,16 @@ describe('ChipHost', () => {
       body: 'Read this before choosing.',
       kind: 'note',
     });
+    expect(splitChipContextDetail('Must Do: open Monday Briefing.')).toEqual({
+      label: 'Must Do',
+      body: 'open Monday Briefing.',
+      kind: 'decision',
+    });
+    expect(splitChipContextDetail('Deadline: Advance Week locks saved lineups.')).toEqual({
+      label: 'Deadline',
+      body: 'Advance Week locks saved lineups.',
+      kind: 'risk',
+    });
   });
 
   it('keeps a timeout fallback so the setup reveal cannot hide Chip copy forever', async () => {
@@ -422,5 +438,61 @@ describe('ChipHost', () => {
     expect(markup).toContain('data-chip-ask-button="true"');
     expect(markup).toContain('Ask Chip');
     expect(markup).not.toContain('data-chip-host="true"');
+  });
+
+  it('hides setup beat navigation for first-time players (G4)', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderToStaticMarkup(
+      <ChipHost newGame stages={stages} reducedMotion storage={createIntroSeenStorage()}>
+        <div data-wizard="setup">Wizard</div>
+      </ChipHost>,
+    );
+
+    expect(markup).toContain('data-chip-host-controls="true"');
+    expect(markup).not.toContain('data-chip-beat-nav-controls="true"');
+    expect(markup).not.toContain('data-chip-beat-nav="back"');
+    expect(markup).not.toContain('data-chip-beat-nav="forward"');
+  });
+
+  it('offers setup beat navigation to returning players (G4)', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = createIntroSeenStorage();
+    storage.setItem(FIRST_TEN_COMPLETED_KEY, 'true');
+
+    const markup = renderToStaticMarkup(
+      <ChipHost newGame stages={stages} reducedMotion storage={storage}>
+        <div data-wizard="setup">Wizard</div>
+      </ChipHost>,
+    );
+
+    expect(markup).toContain('data-chip-beat-nav-controls="true"');
+    expect(markup).toContain('data-chip-beat-nav="back"');
+    expect(markup).toContain('data-chip-beat-nav="forward"');
+    expect(markup).toContain('Previous Chip briefing');
+    expect(markup).toContain('Next Chip briefing');
+  });
+
+  it('disables Back on the first beat and enables Forward for returning players (G4)', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = createIntroSeenStorage();
+    storage.setItem(FIRST_TEN_COMPLETED_KEY, 'true');
+
+    const markup = renderToStaticMarkup(
+      <ChipHost newGame stages={stages} reducedMotion storage={storage}>
+        <div data-wizard="setup">Wizard</div>
+      </ChipHost>,
+    );
+
+    const backStart = markup.indexOf('data-chip-beat-nav="back"');
+    const forwardStart = markup.indexOf('data-chip-beat-nav="forward"');
+    expect(backStart).toBeGreaterThan(-1);
+    expect(forwardStart).toBeGreaterThan(backStart);
+    const backButton = markup.slice(markup.lastIndexOf('<button', backStart), markup.indexOf('</button>', backStart));
+    const forwardButton = markup.slice(markup.lastIndexOf('<button', forwardStart), markup.indexOf('</button>', forwardStart));
+    expect(backButton).toContain('data-mfd-button-state="disabled"');
+    expect(backButton).toContain('disabled=""');
+    expect(forwardButton).toContain('data-mfd-button-state="enabled"');
+    expect(forwardButton).not.toContain('disabled=""');
   });
 });

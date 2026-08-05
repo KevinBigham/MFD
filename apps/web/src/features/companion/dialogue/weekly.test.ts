@@ -3,7 +3,9 @@ import {
   WEEKLY_DIALOGUE_COOLDOWN_MS,
   WEEKLY_DIALOGUE_VARIANTS,
   weeklyDialogue,
+  weeklyDialogueAlternates,
   selectWeeklyDialogue,
+  selectWeeklyReducedMotionPose,
   type WeeklyDialogueVariant,
 } from './weekly';
 import { MAX_CHIP_DIALOGUE_CHARS, isDialogueCatalogEntry } from './types';
@@ -142,6 +144,51 @@ describe('weekly dialogue catalog', () => {
   it('rejects unsupported weekly variants through the typed selector boundary', () => {
     expect(() =>
       selectWeeklyDialogue({
+        gameOutcome: 'badVariant' as WeeklyDialogueVariant,
+        currentWeek: 4,
+        dynastySeed: 42,
+      }),
+    ).toThrow(/Unsupported weekly dialogue variant/);
+  });
+
+  it('exports one validated fallback alternate per weekly variant (B8)', () => {
+    expect(weeklyDialogueAlternates.map((entry) => entry.id)).toEqual(
+      WEEKLY_DIALOGUE_VARIANTS.map((variant) => `chip.weekly.${variant}.alt`),
+    );
+    for (const entry of weeklyDialogueAlternates) {
+      expect(isDialogueCatalogEntry(entry)).toBe(true);
+      expect(entry.archetype).toBe('weekly');
+      expect(entry.beat).toBe(0);
+      expect(entry.text.length).toBeLessThanOrEqual(MAX_CHIP_DIALOGUE_CHARS);
+      expect(entry.cooldownMs).toBe(WEEKLY_DIALOGUE_COOLDOWN_MS);
+      expect(entry.text, entry.id).toMatch(/\b(Must Do|Recommended):/);
+      expect(entry.text, entry.id).toContain('Where:');
+      expect(entry.text, entry.id).toContain('Consequence:');
+      expect(entry.text, entry.id).not.toMatch(/\buse\b/i);
+      expect(entry.text, entry.id).not.toMatch(/\b(verify|confirm|unverified)\b/i);
+      expect(entry.text, entry.id).not.toMatch(/compare standings|check Roster|read Recap/i);
+      expect(entry.reducedMotionPose, entry.id).toBeDefined();
+    }
+  });
+
+  it('keeps the canonical weekly selection untouched by the alternates (B8)', () => {
+    for (const variant of WEEKLY_DIALOGUE_VARIANTS) {
+      expect(selectWeeklyDialogue(baseContext(variant)).id).toBe(`chip.weekly.${variant}`);
+    }
+    expect(weeklyDialogue).toHaveLength(WEEKLY_DIALOGUE_VARIANTS.length);
+  });
+
+  it('rotates the reduced-motion pose deterministically between canonical and alternate (B8)', () => {
+    const poses = new Set<string>();
+    for (let week = 1; week <= 18; week += 1) {
+      const input = { gameOutcome: 'midseason' as const, currentWeek: week, dynastySeed: 42 };
+      const pose = selectWeeklyReducedMotionPose(input);
+      expect(selectWeeklyReducedMotionPose(input)).toBe(pose);
+      poses.add(pose);
+    }
+    expect(poses.size).toBeGreaterThan(1);
+    expect(() =>
+      selectWeeklyReducedMotionPose({
         gameOutcome: 'badVariant' as WeeklyDialogueVariant,
         currentWeek: 4,
         dynastySeed: 42,

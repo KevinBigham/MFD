@@ -88,8 +88,8 @@ describe('SetupColdOpen', () => {
     });
     const text = dialogue.text ?? '';
 
-    expect(text).toContain('Must Do: hire the Assistant GM.');
-    expect(text).toContain('first setup priority: cap space, starter and backup roles, the Week 1 game plan, or owner patience.');
+    expect(text).toContain('Must Do: hire the Assistant GM');
+    expect(text).toContain('first setup priority follows yours: cap space, starter and backup roles, the Week 1 game plan, or owner patience.');
     expect(text.length).toBeLessThanOrEqual(240);
     expect(dialogue.contextDetails).toHaveLength(4);
     expect(dialogue.contextDetails?.join(' ')).toContain(

@@ -134,7 +134,7 @@ export function buildColdOpenChipDialogue({
   return {
     pose: 'reviewing-tablet',
     text: truncateChipSummary(
-      'Must Do: hire the Assistant GM. This sets my first setup priority: cap space, starter and backup roles, the Week 1 game plan, or owner patience.',
+      'Must Do: hire the Assistant GM — your first call, Coach. My first setup priority follows yours: cap space, starter and backup roles, the Week 1 game plan, or owner patience.',
     ),
     contextDetails: [
       'Decision up next: hire the Assistant GM whose promise matches the first Week 1 danger to track.',
@@ -165,7 +165,7 @@ const SETUP_PHASE_CHIP_GUIDANCE: Record<SetupPhase, {
 }> = {
   choose_agm: {
     pose: 'reviewing-tablet',
-    text: 'Must Do: hire the Assistant GM. This sets my first setup priority: cap space, starter and backup roles, the Week 1 game plan, or owner patience.',
+    text: 'Must Do: hire the Assistant GM — your first call, Coach. My first setup priority follows yours: cap space, starter and backup roles, the Week 1 game plan, or owner patience.',
     why: 'this hire decides whether I call out cap space, starter and backup roles, the Week 1 game plan, or owner patience first.',
     decision: 'hire the Assistant GM whose promise matches the first Week 1 danger to track.',
     where: 'choose the advisor promise that matches the biggest Week 1 danger: cap space, roster roles, game plan, or owner patience.',

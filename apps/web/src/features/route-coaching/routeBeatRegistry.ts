@@ -99,6 +99,12 @@ export const ROUTE_BEAT_REGISTRY = {
       text: 'Recommended: after Action Center, open Depth Chart or Game Plan. Where: team screens. Consequence: saved lineup and calls lock.',
       spotlightTarget: 'chip.route.monday-briefing.beat-2',
     },
+    {
+      id: 'chip.route.monday-briefing.beat-3',
+      pose: 'thinking',
+      text: 'Optional: pin the Must Do order before Advance Week. Where: Monday Briefing. Consequence: an unordered week buries the one expiring item.',
+      spotlightTarget: null,
+    },
   ],
   roster: [
     {
@@ -112,6 +118,12 @@ export const ROUTE_BEAT_REGISTRY = {
       pose: 'thinking',
       text: 'Recommended: open Roster for injury and backup health. Where: Roster, then Depth Chart. Consequence: uncovered injuries force signings.',
       spotlightTarget: 'chip.route.roster.beat-2',
+    },
+    {
+      id: 'chip.route.roster.beat-3',
+      pose: 'reviewing-tablet',
+      text: 'Optional: name expiring starters before cuts. Where: Roster. Consequence: contract years change which jobs depth must cover.',
+      spotlightTarget: null,
     },
   ],
   'depth-chart': [
@@ -127,6 +139,12 @@ export const ROUTE_BEAT_REGISTRY = {
       text: 'Recommended: set injured starters and backups. Where: Depth Chart. Consequence: missed order sends an unassigned backup into calls.',
       spotlightTarget: 'chip.route.depth-chart.beat-2',
     },
+    {
+      id: 'chip.route.depth-chart.beat-3',
+      pose: 'coaching-crouch',
+      text: 'Optional: set third-down and red-zone roles after starters. Where: Depth Chart. Consequence: specialty snaps default to tired starters.',
+      spotlightTarget: null,
+    },
   ],
   'locker-room': [
     {
@@ -139,6 +157,12 @@ export const ROUTE_BEAT_REGISTRY = {
       id: 'chip.route.locker-room.beat-2',
       pose: 'note-taking',
       text: 'Optional: pick meetings, rallies, or captains. Where: Locker Room. Consequence: morale changes lock for the week.',
+      spotlightTarget: null,
+    },
+    {
+      id: 'chip.route.locker-room.beat-3',
+      pose: 'proud',
+      text: 'Optional: name one captain before big games. Where: Locker Room. Consequence: captain choice shapes morale when the room is flat.',
       spotlightTarget: null,
     },
   ],
@@ -155,6 +179,12 @@ export const ROUTE_BEAT_REGISTRY = {
       text: 'Recommended: name opponent strengths and injuries. Where: Game Plan. Consequence: missed protection or coverage repeats next game.',
       spotlightTarget: 'chip.route.game-plan.beat-2',
     },
+    {
+      id: 'chip.route.game-plan.beat-3',
+      pose: 'whistle-blow',
+      text: "Optional: save one counter for the opponent's best call. Where: Game Plan. Consequence: without it, halftime adjustments start empty.",
+      spotlightTarget: null,
+    },
   ],
   'game-day-recap': [
     {
@@ -167,6 +197,12 @@ export const ROUTE_BEAT_REGISTRY = {
       id: 'chip.route.game-day-recap.beat-2',
       pose: 'reviewing-tablet',
       text: 'Recommended: answer press, then fix injuries or play-call misses. Where: Roster, Game Plan. Consequence: misses repeat next week.',
+      spotlightTarget: null,
+    },
+    {
+      id: 'chip.route.game-day-recap.beat-3',
+      pose: 'coffee-sip',
+      text: 'Optional: note one fix for Monday after press answers. Where: Game Day. Consequence: unnamed misses return in the next film session.',
       spotlightTarget: null,
     },
   ],
@@ -197,6 +233,12 @@ export const ROUTE_BEAT_REGISTRY = {
       text: 'Recommended: fix each protection, coverage, or call miss. Where: Game Plan or Depth Chart. Consequence: Advance Week locks the plan.',
       spotlightTarget: null,
     },
+    {
+      id: 'chip.route.film-room.beat-3',
+      pose: 'pointing-at-tape',
+      text: 'Optional: finish film with one Depth Chart and one Game Plan change. Where: Film Room. Consequence: notes without edits change nothing.',
+      spotlightTarget: null,
+    },
   ],
   'super-bowl': [
     {
@@ -224,6 +266,12 @@ export const ROUTE_BEAT_REGISTRY = {
       pose: 'time-out',
       text: 'Must Do: fix injuries, save starters, and answer offers first. Where: team screens. Consequence: lineup and morale lock.',
       spotlightTarget: 'chip.route.week-advance.beat-2',
+    },
+    {
+      id: 'chip.route.week-advance.beat-3',
+      pose: 'note-taking',
+      text: 'Optional: open Inbox one last time before Advance Week. Where: Inbox. Consequence: expiring offers and owner requests lock with the week.',
+      spotlightTarget: null,
     },
   ],
   schedule: [
@@ -267,6 +315,12 @@ export const ROUTE_BEAT_REGISTRY = {
       text: 'Recommended: after Inbox, fix injuries or matchup calls. Where: Roster or Game Plan. Consequence: missed fixes lock at Advance Week.',
       spotlightTarget: null,
     },
+    {
+      id: 'chip.route.inbox.beat-3',
+      pose: 'on-phone',
+      text: 'Optional: answer owner requests before agent counters. Where: Inbox. Consequence: patience cuts hit harder than declined offers.',
+      spotlightTarget: null,
+    },
   ],
   'owner-promises': [
     {
@@ -295,6 +349,12 @@ export const ROUTE_BEAT_REGISTRY = {
       text: 'Must Do: fill coordinator jobs before Advance Week. Where: Staff. Consequence: open slots weaken prep and player growth.',
       spotlightTarget: 'chip.route.staff.beat-2',
     },
+    {
+      id: 'chip.route.staff.beat-3',
+      pose: 'coaching-crouch',
+      text: 'Optional: set mentor assignments with scheme teachers. Where: Staff. Consequence: crossed assignments slow young starter growth.',
+      spotlightTarget: null,
+    },
   ],
   'cap-laboratory': [
     {
@@ -308,6 +368,12 @@ export const ROUTE_BEAT_REGISTRY = {
       pose: 'reviewing-tablet',
       text: "Recommended: preview next year's cap before cuts. Where: Cap Lab. Consequence: dead money is cap space already spent.",
       spotlightTarget: 'chip.route.cap-laboratory.beat-2',
+    },
+    {
+      id: 'chip.route.cap-laboratory.beat-3',
+      pose: 'thinking',
+      text: 'Optional: save one injury-replacement fund. Where: Cap Lab. Consequence: a midseason injury with no space forces a cut.',
+      spotlightTarget: null,
     },
   ],
   'front-office': [
@@ -351,6 +417,12 @@ export const ROUTE_BEAT_REGISTRY = {
       text: 'Recommended: mark targets before draft starts. Where: Draft Board. Consequence: draft clock forces reaches or extra-pick trades.',
       spotlightTarget: 'chip.route.draft-board.beat-2',
     },
+    {
+      id: 'chip.route.draft-board.beat-3',
+      pose: 'time-out',
+      text: 'Optional: pin one trade-down price before the clock. Where: Draft Board. Consequence: unnamed prices turn into rushed deadline deals.',
+      spotlightTarget: null,
+    },
   ],
   'draft-recap': [
     {
@@ -378,6 +450,12 @@ export const ROUTE_BEAT_REGISTRY = {
       pose: 'reviewing-tablet',
       text: 'Must Do: preview cap, depth, and picks before accept or counter. Where: Trades. Consequence: pending offers expire.',
       spotlightTarget: 'chip.route.trade-center.beat-2',
+    },
+    {
+      id: 'chip.route.trade-center.beat-3',
+      pose: 'point-side',
+      text: 'Optional: open Depth Chart after an accepted trade. Where: Depth Chart. Consequence: new arrivals sit behind saved starters until moved.',
+      spotlightTarget: null,
     },
   ],
   'trade-market-radar': [
@@ -435,6 +513,12 @@ export const ROUTE_BEAT_REGISTRY = {
       text: 'Recommended: add role, medical-limit, and coachability answers. Where: Scouting. Consequence: mismatches waste scout work.',
       spotlightTarget: 'chip.route.scouting-board.beat-2',
     },
+    {
+      id: 'chip.route.scouting-board.beat-3',
+      pose: 'coffee-sip',
+      text: 'Optional: mark two fallback targets per open job before the draft. Where: Scouting. Consequence: losing the first target forces a reach.',
+      spotlightTarget: null,
+    },
   ],
   standings: [
     {
@@ -447,6 +531,12 @@ export const ROUTE_BEAT_REGISTRY = {
       id: 'chip.route.standings.beat-2',
       pose: 'skeptical',
       text: 'Recommended: decide deadline posture from record, division, and schedule. Where: Standings. Consequence: skipping them costs picks.',
+      spotlightTarget: null,
+    },
+    {
+      id: 'chip.route.standings.beat-3',
+      pose: 'point-down',
+      text: 'Optional: mark the tiebreaker game on the schedule. Where: Standings. Consequence: playoff seeding can hinge on one final division date.',
       spotlightTarget: null,
     },
   ],
@@ -829,3 +919,82 @@ export const ROUTE_BEAT_REGISTRY = {
     },
   ],
 } as const satisfies Record<RouteKey, readonly RouteBeat[]>;
+
+/**
+ * B9: tier-1 beats are the always-on orientation line for a route; tier-2+
+ * beats (`beat-2` and beyond) are the advanced follow-ups, suppressed when
+ * the player picks compact guidance (E11 "Just the Must Do" mode). First-ten
+ * onboarding beats always count as tier-1 so the opening tour never truncates.
+ */
+export function isTierOneRouteBeatId(beatId: string): boolean {
+  return beatId.startsWith('chip.first10.') || beatId.endsWith('.beat-1');
+}
+
+/**
+ * G2: playoff-served replacements for the tier-1 beat of the ten core routes.
+ * When the season phase is 'playoffs', `useActiveRouteBeats` serves these
+ * texts in place of the canonical beat text (same ids, poses, and spotlight
+ * targets — only the words change). Outside the playoffs the canonical text
+ * serves byte-for-byte. Voice contract matches the registry: decision cue,
+ * Where, Consequence, <= 140 chars.
+ */
+export const PLAYOFF_ROUTE_BEAT_TEXT: Readonly<Record<string, string>> = {
+  'chip.route.monday-briefing.beat-1': 'Must Do: open Action Center. Where: Monday Briefing. Consequence: one missed injury or matchup call ends the season.',
+  'chip.route.roster.beat-1': 'Must Do: decide starter, backup, trade, or cut. Where: highlighted player. Consequence: playoff snap counts expose every open role.',
+  'chip.route.depth-chart.beat-1': 'Must Do: save starters and first backups. Where: Depth Chart. Consequence: one missing role ends a playoff drive.',
+  'chip.route.locker-room.beat-1': 'Recommended: open morale and captains. Where: Locker Room. Consequence: a flat room loses playoff quarters.',
+  'chip.route.game-plan.beat-1': 'Must Do: set offense, protection, and coverage after injuries. Where: Game Plan. Consequence: playoff defenses punish stale calls.',
+  'chip.route.game-day-recap.beat-1': 'Must Do: open score, injuries, weather, and press. Where: Game Day. Consequence: missed notes repeat in elimination games.',
+  'chip.route.film-room.beat-1': 'Recommended: name protection, coverage, run-defense, and play-call misses. Where: Film Room. Consequence: the next opponent saw them.',
+  'chip.route.week-advance.beat-1': 'Must Do: run Advance Week last. Where: Advance screen. Consequence: playoff results, injuries, and morale become final.',
+  'chip.route.schedule.beat-1': 'Recommended: open Schedule before Advance Week. Where: Schedule. Consequence: playoff travel and weather change rest and calls.',
+  'chip.route.inbox.beat-1': 'Must Do: answer deadlines before Advance Week. Where: Inbox. Consequence: playoff-week offers and votes expire.',
+};
+
+/**
+ * G3: week boundaries for the season-toned beat variants below. Weeks 1
+ * through EARLY_SEASON_MAX_WEEK serve the early-season tone; weeks at or
+ * past LATE_SEASON_MIN_WEEK serve the stretch-run tone (playoff phase wins
+ * that collision via the G2 map). Week 0 — the default when a caller passes
+ * no context — is mid-tone and keeps the canonical text byte-for-byte.
+ */
+export const EARLY_SEASON_MAX_WEEK = 4;
+export const LATE_SEASON_MIN_WEEK = 15;
+
+/**
+ * G3: early-season replacements for the tier-1 beat of the ten core routes.
+ * Same ids, poses, and spotlight targets — only the words change. Voice
+ * contract matches the registry: decision cue, Where, Consequence,
+ * <= 140 chars.
+ */
+export const EARLY_SEASON_ROUTE_BEAT_TEXT: Readonly<Record<string, string>> = {
+  'chip.route.monday-briefing.beat-1': 'Must Do: open Action Center. Where: Monday Briefing. Consequence: small misses in September grow into real problems later.',
+  'chip.route.roster.beat-1': 'Must Do: decide starter, backup, trade, or cut. Where: highlighted player. Consequence: early roles set the depth the season stands on.',
+  'chip.route.depth-chart.beat-1': 'Must Do: save starters and first backups. Where: Depth Chart. Consequence: Week 1 jobs settle fastest when the chart is honest.',
+  'chip.route.locker-room.beat-1': 'Recommended: open morale and captains. Where: Locker Room. Consequence: a room that bonds early absorbs the hard weeks later.',
+  'chip.route.game-plan.beat-1': 'Must Do: set offense, protection, and coverage. Where: Game Plan. Consequence: early tape writes the report opponents save all season.',
+  'chip.route.game-day-recap.beat-1': 'Must Do: open score, injuries, weather, and press. Where: Game Day. Consequence: the first week teaches who this roster is.',
+  'chip.route.film-room.beat-1': 'Recommended: name protection, coverage, and run-defense misses. Where: Film Room. Consequence: early tells are cheap to fix before October.',
+  'chip.route.week-advance.beat-1': 'Must Do: run Advance Week last. Where: Advance screen. Consequence: early habits lock the whole calendar.',
+  'chip.route.schedule.beat-1': 'Recommended: open Schedule before Advance Week. Where: Schedule. Consequence: the soft stretch ends before you notice.',
+  'chip.route.inbox.beat-1': 'Must Do: answer deadlines before Advance Week. Where: Inbox. Consequence: early promises shape owner patience all year.',
+};
+
+/**
+ * G3: stretch-run replacements for the tier-1 beat of the ten core routes.
+ * Same ids, poses, and spotlight targets — only the words change. Voice
+ * contract matches the registry: decision cue, Where, Consequence,
+ * <= 140 chars.
+ */
+export const LATE_SEASON_ROUTE_BEAT_TEXT: Readonly<Record<string, string>> = {
+  'chip.route.monday-briefing.beat-1': 'Must Do: open Action Center. Where: Monday Briefing. Consequence: one missed note now costs the playoff picture.',
+  'chip.route.roster.beat-1': 'Must Do: decide starter, backup, trade, or cut. Where: highlighted player. Consequence: December depth charts do not get second chances.',
+  'chip.route.depth-chart.beat-1': 'Must Do: save starters and first backups. Where: Depth Chart. Consequence: a thin chart in December risks the season.',
+  'chip.route.locker-room.beat-1': 'Recommended: open morale and captains. Where: Locker Room. Consequence: tired rooms fail in the fourth quarter.',
+  'chip.route.game-plan.beat-1': 'Must Do: set offense, protection, and coverage after injuries. Where: Game Plan. Consequence: opponents save every December tell.',
+  'chip.route.game-day-recap.beat-1': 'Must Do: open score, injuries, weather, and press. Where: Game Day. Consequence: every missed note repeats in the stretch run.',
+  'chip.route.film-room.beat-1': 'Recommended: name protection, coverage, and run-defense misses. Where: Film Room. Consequence: December tells repeat against rivals.',
+  'chip.route.week-advance.beat-1': 'Must Do: run Advance Week last. Where: Advance screen. Consequence: December results are final when the dust settles.',
+  'chip.route.schedule.beat-1': 'Recommended: open Schedule before Advance Week. Where: Schedule. Consequence: December travel and weather change close games.',
+  'chip.route.inbox.beat-1': 'Must Do: answer deadlines before Advance Week. Where: Inbox. Consequence: December offers and votes expire fast.',
+};

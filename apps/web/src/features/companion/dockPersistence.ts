@@ -2,6 +2,23 @@ import { resolveBrowserStorage } from './storageBoundary';
 
 export const CHIP_DOCK_STORAGE_KEY = 'mfd.chip.local';
 
+export type ChipTypewriterSpeed = 'slow' | 'normal' | 'fast';
+
+export type DockPosition = 'left' | 'right';
+
+export const CHIP_TYPEWRITER_SPEEDS: readonly ChipTypewriterSpeed[] = ['slow', 'normal', 'fast'];
+
+/**
+ * Typewriter reveal rates in characters per second (H2). 'normal' matches the
+ * design-system bubble default (42), so existing players keep the same pacing
+ * until they opt into slow or fast.
+ */
+export const CHIP_TYPEWRITER_SPEED_CHARS_PER_SECOND: Record<ChipTypewriterSpeed, number> = {
+  slow: 24,
+  normal: 42,
+  fast: 84,
+};
+
 export interface DockPrefs {
   collapsed: boolean;
   quietForScreen: string | null;
@@ -9,6 +26,10 @@ export interface DockPrefs {
   quietForSeason: number | null;
   reducedGuidance: boolean;
   animationsDisabled: boolean;
+  typewriterSpeed: ChipTypewriterSpeed;
+  dockPosition: DockPosition;
+  /** G7: set once the route-coaching graduation notice has been shown. */
+  graduationAcked: boolean;
   lastUpdated: string;
 }
 
@@ -22,6 +43,9 @@ export function createDefaultDockPrefs(): DockPrefs {
     quietForSeason: null,
     reducedGuidance: false,
     animationsDisabled: false,
+    typewriterSpeed: 'normal',
+    dockPosition: 'right',
+    graduationAcked: false,
     lastUpdated: '',
   };
 }
@@ -38,6 +62,14 @@ function isNullableInteger(value: unknown): value is number | null {
   return value === null || (typeof value === 'number' && Number.isInteger(value));
 }
 
+function isTypewriterSpeed(value: unknown): value is ChipTypewriterSpeed {
+  return value === 'slow' || value === 'normal' || value === 'fast';
+}
+
+function isDockPosition(value: unknown): value is DockPosition {
+  return value === 'left' || value === 'right';
+}
+
 export function isDockPrefs(value: unknown): value is DockPrefs {
   if (!value || typeof value !== 'object') return false;
   const prefs = value as DockPrefs;
@@ -48,6 +80,12 @@ export function isDockPrefs(value: unknown): value is DockPrefs {
     isNullableInteger(prefs.quietForSeason) &&
     typeof prefs.reducedGuidance === 'boolean' &&
     typeof prefs.animationsDisabled === 'boolean' &&
+    // Saved prefs from before H2/E10/G7 have no typewriterSpeed, dockPosition,
+    // or graduationAcked; treat missing values as valid and let readDockPrefs
+    // fill the defaults.
+    (prefs.typewriterSpeed === undefined || isTypewriterSpeed(prefs.typewriterSpeed)) &&
+    (prefs.dockPosition === undefined || isDockPosition(prefs.dockPosition)) &&
+    (prefs.graduationAcked === undefined || typeof prefs.graduationAcked === 'boolean') &&
     typeof prefs.lastUpdated === 'string'
   );
 }
@@ -65,7 +103,10 @@ export function readDockPrefs(storage: Storage | null = resolveDockStorage()): D
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!isDockPrefs(parsed)) return createDefaultDockPrefs();
-    return parsed;
+    // Fill fields introduced after the player's save was written (currently
+    // typewriterSpeed, dockPosition, graduationAcked) with defaults instead
+    // of resetting all prefs.
+    return { ...createDefaultDockPrefs(), ...parsed };
   } catch {
     return createDefaultDockPrefs();
   }

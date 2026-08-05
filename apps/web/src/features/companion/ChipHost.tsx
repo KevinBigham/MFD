@@ -14,6 +14,7 @@ import {
   getOnboardingRevealFrame,
 } from './onboardingReveal';
 import { resolveBrowserStorage } from './storageBoundary';
+import { readFirstTenMinutesCompleted } from '../franchise-setup/setupPersistence';
 
 export const CHIP_ONBOARDING_STORAGE_KEY = 'mfd.chip.onboarding';
 export const CHIP_INTRO_STORAGE_KEY = 'mfd.chip.intro.v1';
@@ -224,6 +225,8 @@ interface ChipContextDetailParts {
 
 function resolveChipContextDetailKind(label: string): ChipContextDetailParts['kind'] {
   const normalized = label.toLowerCase();
+  if (normalized.includes('must do') || normalized.includes('recommended') || normalized.includes('optional')) return 'decision';
+  if (normalized.includes('deadline')) return 'risk';
   if (normalized.includes('consequence')) return 'consequence';
   if (normalized.includes('decision')) return 'decision';
   if (normalized.includes('where')) return 'where';
@@ -259,9 +262,18 @@ interface ChipIntroScreenProps {
   onContinue: () => void;
   onSkip: () => void;
   reducedMotion: boolean;
+  /** G8: Settings replay re-labels the setup-oriented actions. */
+  continueLabel?: string;
+  skipLabel?: string;
 }
 
-function ChipIntroScreen({ onContinue, onSkip, reducedMotion }: ChipIntroScreenProps) {
+export function ChipIntroScreen({
+  onContinue,
+  onSkip,
+  reducedMotion,
+  continueLabel = 'Start Setup',
+  skipLabel = 'Skip Chip Intro',
+}: ChipIntroScreenProps) {
   return (
     <section
       className="mfd-chip-intro"
@@ -277,7 +289,7 @@ function ChipIntroScreen({ onContinue, onSkip, reducedMotion }: ChipIntroScreenP
         data-chip-intro-skip="true"
         onClick={onSkip}
       >
-        Skip Chip Intro
+        {skipLabel}
       </PixelButton>
 
       <div className="mfd-chip-intro__stage">
@@ -292,13 +304,17 @@ function ChipIntroScreen({ onContinue, onSkip, reducedMotion }: ChipIntroScreenP
             I separate Must Do, Recommended, and Optional work, point to the exact screen to open, and explain the
             consequence before a choice hurts the roster, cap space, owner patience, or the next game.
           </p>
+          <p className="mfd-chip-intro__character" data-chip-intro-character="true">
+            I've seen a 40-yard dash decide a season and one missed backup decide a Sunday. You bring the calls;
+            I bring the map.
+          </p>
           <div className="mfd-chip-intro__actions">
             <PixelButton
               accent="gold"
               data-chip-intro-start="true"
               onClick={onContinue}
             >
-              Start Setup
+              {continueLabel}
             </PixelButton>
           </div>
         </div>
@@ -325,6 +341,9 @@ export function ChipHost({
   const [skipOverride, setSkipOverride] = useState(false);
   const revealStartMs = useRef<number | null>(null);
   const backingStorage = storage === undefined ? resolveStorage() : storage;
+  // G4: players who already finished a full setup run know the beats; they
+  // get view-only Back/Forward navigation through Chip's briefings.
+  const returningPlayer = readFirstTenMinutesCompleted(backingStorage);
   const skipped = readOnboardingSkipState(backingStorage)?.skipped === true && !skipOverride;
   const enabled = isChipFeatureEnabled();
   const [introDismissed, setIntroDismissed] = useState(() => readChipIntroState(backingStorage)?.seen === true);
@@ -393,6 +412,15 @@ export function ChipHost({
       gap: 'var(--mfd-sp-sm)',
       alignItems: 'center',
       justifyContent: 'space-between' as const,
+    }),
+    [],
+  );
+
+  const beatNavStyle = useMemo(
+    () => ({
+      display: 'flex',
+      gap: 'var(--mfd-sp-xs)',
+      alignItems: 'center',
     }),
     [],
   );
@@ -558,6 +586,15 @@ export function ChipHost({
     });
   }, []);
 
+  // G4: returning-player beat navigation is view-only — it moves Chip's
+  // briefing and spotlight, never the store's onboarding progress.
+  const navigateBeat = useCallback((delta: number) => {
+    const next = Math.max(0, Math.min(beatIndex + delta, onboardingDialogue.length - 1));
+    if (next === beatIndex) return;
+    setBeatIndex(next);
+    setActiveStageId(resolveStageSpotlightId(stages[next]));
+  }, [beatIndex, stages]);
+
   const dismissForNow = useCallback(() => {
     useChipStore.getState().dismiss();
     setDismissed(true);
@@ -681,6 +718,28 @@ export function ChipHost({
               Finish the visible setup choice. Continue saves that decision and moves Chip to the next consequence.
             </div>
           )}
+          {returningPlayer && onboardingDialogue.length > 1 ? (
+            <div data-chip-beat-nav-controls="true" style={beatNavStyle}>
+              <PixelButton
+                accent="default"
+                data-chip-beat-nav="back"
+                aria-label="Previous Chip briefing"
+                disabled={beatIndex === 0}
+                onClick={() => navigateBeat(-1)}
+              >
+                Back
+              </PixelButton>
+              <PixelButton
+                accent="default"
+                data-chip-beat-nav="forward"
+                aria-label="Next Chip briefing"
+                disabled={beatIndex >= onboardingDialogue.length - 1}
+                onClick={() => navigateBeat(1)}
+              >
+                Forward
+              </PixelButton>
+            </div>
+          ) : null}
           <PixelButton
             accent="cyan"
             onClick={dismissForNow}

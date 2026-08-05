@@ -3,7 +3,7 @@ import type { ChipPose } from './Chip';
 import './Chip.css';
 
 const MAX_BUBBLE_TEXT_LENGTH = 240;
-const DEFAULT_TYPEWRITER_SPEED = 28;
+const DEFAULT_TYPEWRITER_SPEED = 42;
 
 type ImportMetaWithEnv = ImportMeta & { env?: { PROD?: boolean } };
 
@@ -247,6 +247,8 @@ export function ChipDialogueBubble({
       data-chip-bubble-pointer={pointer}
       data-chip-bubble-pose={pose}
       data-chip-bubble-body={monoBody ? 'mono' : undefined}
+      role="status"
+      aria-live="polite"
       aria-label={normalizedText}
       onClick={handleSkip}
     >

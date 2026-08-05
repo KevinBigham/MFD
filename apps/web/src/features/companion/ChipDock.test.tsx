@@ -4,10 +4,14 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   ChipDock,
+  CHIP_GRADUATION_BEAT,
   applyDockControl,
   createAskChipLiveBeat,
   createPendingDecisionsBeat,
+  DockPoseCrossfade,
   filterUnseenRouteBeats,
+  formatPendingBadgeTitle,
+  isRouteCoachingGraduated,
   isRouteCoachingQuieted,
   persistRouteBeatProgress,
   resolveChipDockRoute,
@@ -22,8 +26,14 @@ import { CHIP_DOCK_STORAGE_KEY, createDefaultDockPrefs, readDockPrefs } from './
 import { CHIP_INTRO_STORAGE_KEY, CHIP_ONBOARDING_STORAGE_KEY } from './ChipHost';
 import { CHIP_READ_RECEIPTS_STORAGE_KEY, readChipReadReceipts, writeChipReadReceipts } from './readReceipts';
 import { ROUTE_BEAT_REGISTRY } from '../route-coaching/routeBeatRegistry';
+import { ALL_ROUTE_COACHING_BEAT_IDS } from '../route-coaching/useActiveRouteBeats';
 import { useChipStore } from './store';
 import { CHIP_ONBOARDING_STATE_STORAGE_KEY, readChipOnboardingState } from './onboardingMachine';
+
+const chipDockSource = readFileSync(
+  fileURLToPath(new URL('./ChipDock.tsx', import.meta.url)),
+  'utf8',
+);
 
 const chipDockCss = readFileSync(
   fileURLToPath(new URL('./ChipDock.css', import.meta.url)),
@@ -144,18 +154,25 @@ describe('ChipDock', () => {
     expect(markup).toContain('data-chip-dock-state="expanded"');
     expect(markup).toContain('data-chip-dock-beat="idle"');
     expect(markup).toContain('data-chip-dock-controls="true"');
-    expect(markup).toContain('not now Chip!');
-    expect(markup).toContain('Not this week Chip!');
-    expect(markup).toContain('Mute season');
-    expect(markup).toContain('Reduce guidance');
+    // E4: the three quiet controls consolidate behind a single Quiet Chip
+    // menu trigger; the options only render while the menu is open.
+    expect(markup).toContain('data-chip-control-id="quietMenu"');
+    expect(markup).toContain('aria-haspopup="menu"');
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain('Quiet Chip');
+    expect(markup).toContain('Detail: everything');
     expect(markup).toContain('Disable animations');
     expect(markup).toContain('Ask Chip');
     expect(markup).toContain('Where am I?');
     expect(markup).not.toContain('Current board');
     expect(markup).toContain('data-chip-control-id="whatNow"');
     expect(markup).toContain('data-chip-control-weight="primary"');
-    expect(markup).toContain('data-chip-control-id="quietForScreen"');
     expect(markup).toContain('data-chip-control-weight="quiet"');
+    expect(markup).not.toContain('not now Chip!');
+    expect(markup).not.toContain('Not this week Chip!');
+    expect(markup).not.toContain('Mute season');
+    expect(markup).not.toContain('data-chip-control-id="quietForScreen"');
+    expect(markup).not.toContain('data-chip-quiet-menu="true"');
     expect(markup).toContain('Monday briefing: open Roster, Depth Chart, and Game Plan before Advance Week.');
   });
 
@@ -166,6 +183,131 @@ describe('ChipDock', () => {
     const markup = renderDock(<ChipDock collapsed={false} storage={new MemoryStorage()} />);
 
     expect(markup).toContain('data-chip-pose="warning"');
+  });
+
+  it('renders weekly guidance context details under the live dialogue bubble', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    useChipStore.getState().showWeeklyDialogue({
+      id: 'chip.weekly.midseason',
+      beat: 0,
+      pose: 'reviewing-tablet',
+      text: 'Must Do: open Monday Briefing. Where: Action Center. Consequence: Advance Week locks saved lineups, cap moves, morale, and matchup calls.',
+      contextDetails: [
+        'What changed: Week 7.',
+        'Why: Monday Briefing names injuries, backup gaps, morale drops, or uncovered protection, coverage, or run-defense calls before Advance Week locks the next game.',
+        'Must Do: open Monday Briefing. Where: Action Center. Consequence: Advance Week locks saved lineups, cap moves, morale, and matchup calls.',
+        'Sideline note: Middle of the grind. The table starts telling the truth from here.',
+      ],
+      archetype: 'weekly',
+    });
+
+    const markup = renderDock(
+      <ChipDock collapsed={false} storage={new MemoryStorage()}>
+        <p>Weekly dialogue bubble</p>
+      </ChipDock>,
+    );
+
+    expect(markup).toContain('data-chip-dock-details="true"');
+    expect(markup).toContain('Chip weekly guidance details');
+    expect(markup).toContain('What changed');
+    expect(markup).toContain('Monday Briefing names injuries, backup gaps');
+    expect(markup).toContain('Sideline note');
+    expect(markup).toContain('Middle of the grind');
+    expect(markup).toContain('data-chip-dock-detail-kind="note"');
+    expect(markup).toContain('data-chip-dock-detail-kind="decision"');
+  });
+
+  it('omits the details panel when no weekly dialogue details exist', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(
+      <ChipDock collapsed={false} storage={new MemoryStorage()}>
+        <p>Weekly dialogue bubble</p>
+      </ChipDock>,
+    );
+
+    expect(markup).not.toContain('data-chip-dock-details="true"');
+  });
+
+  it('hides Optional-tier details when reduced guidance is on', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_DOCK_STORAGE_KEY,
+      JSON.stringify({ ...createDefaultDockPrefs(), reducedGuidance: true }),
+    );
+    useChipStore.getState().showWeeklyDialogue({
+      id: 'chip.weekly.midseason',
+      beat: 0,
+      pose: 'reviewing-tablet',
+      text: 'Must Do: open Monday Briefing.',
+      contextDetails: [
+        'Must Do: open Monday Briefing.',
+        'Recommended: scout the next opponent.',
+        'Optional: browse awards and history.',
+        'Optional later: records can wait.',
+        'Sideline note: Middle of the grind.',
+      ],
+      archetype: 'weekly',
+    });
+
+    const markup = renderDock(
+      <ChipDock collapsed={false} storage={storage}>
+        <p>Weekly dialogue bubble</p>
+      </ChipDock>,
+    );
+
+    expect(markup).toContain('data-chip-dock-details="true"');
+    expect(markup).toContain('open Monday Briefing.');
+    expect(markup).toContain('scout the next opponent.');
+    expect(markup).toContain('Middle of the grind.');
+    expect(markup).not.toContain('browse awards and history.');
+    expect(markup).not.toContain('records can wait.');
+  });
+
+  it('marks active quiet controls pressed with a quieted label suffix', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_DOCK_STORAGE_KEY,
+      JSON.stringify({ ...createDefaultDockPrefs(), quietUntilWeek: 5 }),
+    );
+
+    const markup = renderDock(
+      <ChipDock collapsed={false} storage={storage} currentWeek={3} quietMenuDefaultOpen />,
+    );
+
+    expect(markup).toContain('Not this week Chip! (quieted)');
+    expect(markup).toContain('aria-label="Not this week Chip! (quieted)"');
+    // E4: the consolidated trigger also announces the active quiet state.
+    expect(markup).toContain('aria-label="Quiet Chip (quieted)"');
+    expect(markup).toContain('data-chip-control-id="quietMenu"');
+  });
+
+  it('renders the quiet menu options with menu semantics when open', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(
+      <ChipDock collapsed={false} storage={new MemoryStorage()} quietMenuDefaultOpen />,
+    );
+
+    expect(markup).toContain('data-chip-quiet-menu="true"');
+    expect(markup).toContain('role="menu"');
+    expect(markup).toContain('aria-label="Quiet Chip options"');
+    expect(markup).toContain('aria-expanded="true"');
+    expect(markup).toContain('data-chip-control-id="quietForScreen"');
+    expect(markup).toContain('data-chip-control-id="quietUntilNextWeek"');
+    expect(markup).toContain('data-chip-control-id="quietThisSeason"');
+    expect(markup).toContain('role="menuitem"');
+    expect(markup).toContain('not now Chip!');
+    expect(markup).toContain('Not this week Chip!');
+    expect(markup).toContain('Mute season');
+  });
+
+  it('anchors the quiet menu options above the bottom dock', () => {
+    expect(chipDockCss).toContain('.mfd-chip-dock__quiet-menu {');
+    expect(chipDockCss).toContain('.mfd-chip-dock__quiet-menu-options {');
+    expect(chipDockCss).toContain('bottom: calc(100% + 6px);');
   });
 
   it('auto-expands and renders the first unseen route beat', () => {
@@ -215,13 +357,18 @@ describe('ChipDock', () => {
 
   it('labels intermediate guidance Next and reserves Got it for final dismissal', () => {
     expect(routeBeatActionLabel(0, ROUTE_BEAT_REGISTRY.roster)).toBe('Next');
-    expect(routeBeatActionLabel(1, ROUTE_BEAT_REGISTRY.roster)).toBe('Got it');
+    expect(routeBeatActionLabel(1, ROUTE_BEAT_REGISTRY.roster)).toBe('Next');
+    expect(routeBeatActionLabel(2, ROUTE_BEAT_REGISTRY.roster)).toBe('Got it');
     expect(resolveNextRouteBeatIndex(0, ROUTE_BEAT_REGISTRY.roster)).toEqual({
       nextIndex: 1,
       complete: false,
     });
     expect(resolveNextRouteBeatIndex(1, ROUTE_BEAT_REGISTRY.roster)).toEqual({
-      nextIndex: 1,
+      nextIndex: 2,
+      complete: false,
+    });
+    expect(resolveNextRouteBeatIndex(2, ROUTE_BEAT_REGISTRY.roster)).toEqual({
+      nextIndex: 2,
       complete: true,
     });
   });
@@ -229,13 +376,16 @@ describe('ChipDock', () => {
   it('renders Got it when only the final unseen route beat remains', () => {
     vi.stubEnv('VITE_CHIP_ENABLED', 'true');
     const storage = new MemoryStorage();
-    writeChipReadReceipts(storage, ['chip.route.monday-briefing.beat-1']);
+    writeChipReadReceipts(storage, [
+      'chip.route.monday-briefing.beat-1',
+      'chip.route.monday-briefing.beat-2',
+    ]);
 
     const markup = renderDock(
       <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY['monday-briefing']} storage={storage} />,
     );
 
-    expect(markup).toContain('data-chip-route-beat="chip.route.monday-briefing.beat-2"');
+    expect(markup).toContain('data-chip-route-beat="chip.route.monday-briefing.beat-3"');
     expect(markup).toContain('aria-label="Got it"');
     expect(markup).not.toContain('aria-label="Next"');
   });
@@ -366,6 +516,7 @@ describe('ChipDock', () => {
     storage.setItem(CHIP_READ_RECEIPTS_STORAGE_KEY, JSON.stringify([
       'chip.route.roster.beat-1',
       'chip.route.roster.beat-2',
+      'chip.route.roster.beat-3',
     ]));
 
     const markup = renderDock(
@@ -466,6 +617,43 @@ describe('ChipDock', () => {
     expect(markup).toContain('>7</button>');
   });
 
+  it('names pending categories in the badge tooltip on hover/focus (E6)', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(
+      <ChipDock collapsed pendingDecisions={{ total: 3, tradeOffers: 2, expiringContracts: 1 }} />,
+    );
+
+    expect(markup).toContain('title="3 decisions pending: Trades (2), Contracts (1)"');
+  });
+
+  it('keeps the badge tooltip plain when category detail is unavailable (E6)', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(<ChipDock collapsed pendingDecisions={{ total: 7 }} />);
+
+    expect(markup).toContain('title="7 decisions pending"');
+  });
+
+  it('shows the current pose as a mini-portrait on the collapsed handle (E13)', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(<ChipDock collapsed />);
+
+    expect(markup).toContain('mfd-chip-dock__collapsed-portrait');
+    expect(markup).toContain('data-chip-size="sm"');
+    expect(markup).not.toContain('mfd-chip-dock__collapsed-icon');
+  });
+
+  it('shows the pending count on the collapsed handle and in its label (E8)', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(<ChipDock collapsed pendingDecisions={{ total: 4 }} />);
+
+    expect(markup).toContain('data-chip-collapsed-count="true"');
+    expect(markup).toContain('Ask Chip, 4 decisions pending');
+  });
+
   it('treats the pending-decisions beat as an active dock expansion', () => {
     expect(resolveEffectiveDockCollapsed({
       activeRouteBeat: false,
@@ -519,6 +707,77 @@ describe('ChipDock', () => {
     expect(allCategoryCopy.length).toBeLessThanOrEqual(285);
   });
 
+  it('serves injury copy for injury-only pending weeks instead of generic text (D4)', () => {
+    const injuryOnly = createPendingDecisionsBeat({
+      tradeOffers: 0,
+      expiringContracts: 0,
+      emptyDepthSlots: 0,
+      unspentPicks: 0,
+      openStaffSlots: 0,
+      injuries: 2,
+      total: 2,
+    });
+
+    expect(injuryOnly.text).toBe(
+      'Must Do: choose or defer before Advance Week. Where: Roster (2). Consequence: uncovered injuries force unassigned backups.',
+    );
+    expect(injuryOnly.text.length).toBeLessThanOrEqual(240);
+
+    // Mixed weeks list injuries alongside the other categories...
+    const mixed = createPendingDecisionsBeat({
+      tradeOffers: 1,
+      injuries: 1,
+      total: 2,
+    }).text;
+    expect(mixed).toContain('Trades (1) and Roster (1)');
+    expect(mixed).toContain('offers expire and uncovered injuries force unassigned backups');
+
+    // ...and the badge tooltip names the injury count too (E6).
+    expect(formatPendingBadgeTitle({ injuries: 3, total: 3 })).toBe(
+      '3 decisions pending: Roster (3)',
+    );
+  });
+
+  it('renders the dock pose cross-fade wrapper with no outgoing layer on first render (H5)', () => {
+    const markup = renderDock(<DockPoseCrossfade pose="celebrate" reducedMotion={false} />);
+
+    expect(markup).toContain('data-chip-pose-crossfade="idle"');
+    expect(markup).toContain('data-chip-pose="celebrate"');
+    expect(markup).not.toContain('data-chip-pose-crossfade-outgoing');
+    // Reduced-motion first render is identical — a hard cut, no layer.
+    expect(renderDock(<DockPoseCrossfade pose="celebrate" reducedMotion />)).not.toContain(
+      'data-chip-pose-crossfade-outgoing',
+    );
+  });
+
+  it('wires the pose cross-fade into the dock portrait with reduced-motion CSS guards (H5)', () => {
+    expect(chipDockSource).toContain('<DockPoseCrossfade pose={portraitPose} reducedMotion={motionMode === \'reduced\'} />');
+    expect(chipDockCss).toContain('.mfd-chip-dock__crossfade {\n  display: contents;');
+    expect(chipDockCss).toContain('.mfd-chip-dock__crossfade-outgoing {');
+    expect(chipDockCss).toContain('animation: mfd-chip-dock-pose-depart 240ms');
+    expect(chipDockCss).toContain('@keyframes mfd-chip-dock-pose-depart');
+    // Second line of defense: both reduced-motion paths hard-hide the layer.
+    expect(chipDockCss).toContain("[data-chip-dock-motion='reduced'] .mfd-chip-dock__crossfade-outgoing");
+    const mediaReduce = chipDockCss.slice(chipDockCss.indexOf('@media (prefers-reduced-motion: reduce)'));
+    expect(mediaReduce).toContain('.mfd-chip-dock__crossfade-outgoing');
+  });
+
+  it('gates dock idle micro-animations behind animated motion with reduced-motion guards (H6)', () => {
+    expect(chipDockCss).toContain(
+      "[data-chip-dock-motion='animated'] .mfd-chip-dock__portrait-stage {\n  animation: mfd-chip-dock-portrait-idle-tap 9s",
+    );
+    expect(chipDockCss).toContain(
+      "[data-chip-dock-motion='animated'] .mfd-chip-dock__portrait-stage::after {\n  animation: mfd-chip-dock-stage-light-blink 9s",
+    );
+    expect(chipDockCss).toContain('@keyframes mfd-chip-dock-portrait-idle-tap');
+    expect(chipDockCss).toContain('@keyframes mfd-chip-dock-stage-light-blink');
+    expect(chipDockCss).toContain("[data-chip-dock-motion='reduced'] .mfd-chip-dock__portrait-stage,");
+    expect(chipDockCss).toContain("[data-chip-dock-motion='reduced'] .mfd-chip-dock__portrait-stage::after,");
+    const mediaReduce = chipDockCss.slice(chipDockCss.indexOf('@media (prefers-reduced-motion: reduce)'));
+    expect(mediaReduce).toContain('.mfd-chip-dock__portrait-stage,');
+    expect(mediaReduce).toContain('.mfd-chip-dock__portrait-stage::after,');
+  });
+
   it('chooses useful ask-chip live guidance instead of reopening to empty idle chrome', () => {
     const whereAmI = {
       week: 14,
@@ -542,7 +801,11 @@ describe('ChipDock', () => {
       pose: 'thinking',
       text: 'Week 14/18, 9-4, Division 2. Must Do: none right now. Recommended: open Monday Briefing. Where: Action Center, then any legal team screen: roster, depth, cap, market, staff, scouting, medical, or Game Plan. Consequence: Advance Week locks saved lineups, cap, morale, and matchup calls.',
     });
-    expect(createAskChipLiveBeat({ pendingDecisionTotal: 0, whereAmI: null })).toBeNull();
+    expect(createAskChipLiveBeat({ pendingDecisionTotal: 0, whereAmI: null })).toEqual({
+      id: 'chip.dock.summary',
+      pose: 'thinking',
+      text: 'Must Do: open Monday Briefing. Where: Action Center. Consequence: Advance Week locks saved lineups, cap moves, morale, and matchup calls.',
+    });
   });
 
   it('keeps generated Ask Chip copy structured around action and consequence', () => {
@@ -984,6 +1247,94 @@ describe('ChipDock', () => {
       expect(markup).toContain('data-chip-control-id="disableAnimations"');
       expect(markup).toContain('aria-pressed="true"');
     });
+
+    it('exposes the current typewriter speed on the dock and its control label (H2)', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(
+        CHIP_DOCK_STORAGE_KEY,
+        JSON.stringify({
+          ...createDefaultDockPrefs(),
+          typewriterSpeed: 'fast',
+        }),
+      );
+
+      const markup = renderDock(<ChipDock collapsed={false} storage={storage} />);
+
+      expect(markup).toContain('data-chip-typewriter-speed="fast"');
+      expect(markup).toContain('data-chip-control-id="typewriterSpeed"');
+      expect(markup).toContain('Type speed: Fast');
+    });
+
+    it('defaults the typewriter speed control to normal (H2)', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(CHIP_DOCK_STORAGE_KEY, JSON.stringify(createDefaultDockPrefs()));
+
+      const markup = renderDock(<ChipDock collapsed={false} storage={storage} />);
+
+      expect(markup).toContain('data-chip-typewriter-speed="normal"');
+      expect(markup).toContain('Type speed: Normal');
+    });
+
+    it('grays out the Enable control when nothing is quieted or skipped (E5)', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(CHIP_DOCK_STORAGE_KEY, JSON.stringify(createDefaultDockPrefs()));
+
+      const markup = renderDock(<ChipDock collapsed={false} storage={storage} />);
+
+      const enableButton = markup.match(/<button[^>]*data-chip-control-id="enableGuidance"[^>]*>/)?.[0] ?? '';
+      expect(enableButton).toContain('disabled=""');
+      expect(enableButton).toContain('data-mfd-button-state="disabled"');
+    });
+
+    it('keeps the Enable control live when a quiet pref is active (E5)', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(
+        CHIP_DOCK_STORAGE_KEY,
+        JSON.stringify({ ...createDefaultDockPrefs(), quietUntilWeek: 9 }),
+      );
+
+      const markup = renderDock(
+        <ChipDock collapsed={false} storage={storage} currentWeek={7} currentSeason={2032} />,
+      );
+
+      const enableButton = markup.match(/<button[^>]*data-chip-control-id="enableGuidance"[^>]*>/)?.[0] ?? '';
+      expect(enableButton).not.toContain('disabled=""');
+      expect(enableButton).toContain('data-mfd-button-state="enabled"');
+    });
+
+    it('exposes the dock position pref on the dock (E10)', () => {
+      vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+      const storage = new MemoryStorage();
+      storage.setItem(
+        CHIP_DOCK_STORAGE_KEY,
+        JSON.stringify({ ...createDefaultDockPrefs(), dockPosition: 'left' }),
+      );
+
+      const markup = renderDock(<ChipDock collapsed={false} storage={storage} />);
+
+      expect(markup).toContain('data-chip-dock-position="left"');
+      expect(markup).toContain('data-chip-control-id="dockPosition"');
+      expect(markup).toContain('Dock side: Left');
+    });
+
+    it('ships left-position and collapsed-handle styles in the dock stylesheet (E8/E10/E13)', () => {
+      expect(chipDockCss).toContain(".mfd-chip-dock[data-chip-dock-position='left']");
+      expect(chipDockCss).toContain('.mfd-chip-dock__collapsed-portrait');
+      expect(chipDockCss).toContain('.mfd-chip-dock__collapsed-count');
+    });
+
+    it('wires Escape handling on the expanded dock (E7)', () => {
+      const source = readFileSync(
+        fileURLToPath(new URL('./ChipDock.tsx', import.meta.url)),
+        'utf8',
+      );
+      expect(source).toContain("event.key !== 'Escape'");
+      expect(source).toContain('resolveDockEscapeAction');
+    });
   });
 
   describe('mobile route tolerance', () => {
@@ -1039,5 +1390,200 @@ describe('ChipDock', () => {
       expect(pendingBadgeBlock).toContain('box-sizing: border-box;');
       expect(pendingBadgeBlock).toContain('min-width: 60px;');
     });
+  });
+});
+
+describe('B9/E11 compact guidance mode', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    useChipStore.getState().reset();
+  });
+
+  it('suppresses advanced beat-2 follow-ups when reducedGuidance is on', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_DOCK_STORAGE_KEY,
+      JSON.stringify({ ...createDefaultDockPrefs(), reducedGuidance: true }),
+    );
+    writeChipReadReceipts(storage, ['chip.route.roster.beat-1']);
+
+    const markup = renderDock(
+      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY.roster} storage={storage} />,
+    );
+
+    expect(markup).not.toContain('data-chip-route-beat=');
+  });
+
+  it('serves the advanced beat-2 in full mode once beat-1 is read', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    writeChipReadReceipts(storage, ['chip.route.roster.beat-1']);
+
+    const markup = renderDock(
+      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY.roster} storage={storage} />,
+    );
+
+    expect(markup).toContain('data-chip-route-beat="chip.route.roster.beat-2"');
+  });
+
+  it('always serves first-ten beats in compact mode (tier-1 tour beats)', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem(
+      CHIP_DOCK_STORAGE_KEY,
+      JSON.stringify({ ...createDefaultDockPrefs(), reducedGuidance: true }),
+    );
+    const firstTenBeat = [{
+      id: 'chip.first10.roster',
+      route: '/roster',
+      pose: 'thinking' as const,
+      text: 'Recommended: open Roster before Game Plan. Where: injuries and first backups. Consequence: uncovered backups force emergency signings.',
+      spotlightTarget: 'chip.route.roster.beat-1',
+    }];
+
+    const markup = renderDock(
+      <ChipDock collapsed routeBeats={firstTenBeat} storage={storage} />,
+    );
+
+    expect(markup).toContain('data-chip-route-beat="chip.first10.roster"');
+  });
+});
+
+describe('F6 route-aware Ask Chip', () => {
+  it('leads with trade counts on the Trades screen', () => {
+    const beat = createAskChipLiveBeat({
+      pendingDecisions: { tradeOffers: 2, openStaffSlots: 1, total: 3 },
+      route: '/trades',
+    });
+
+    expect(beat?.text).toContain('Where: Trades (2) and Coaching (1)');
+  });
+
+  it('leads with contracts on the Cap Lab screen', () => {
+    const beat = createAskChipLiveBeat({
+      pendingDecisions: { tradeOffers: 1, expiringContracts: 2, total: 3 },
+      route: '/cap-lab',
+    });
+
+    expect(beat?.text).toContain('Where: Contracts (2) and Trades (1)');
+  });
+
+  it('keeps canonical category order on routes without a decision category', () => {
+    const beat = createAskChipLiveBeat({
+      pendingDecisions: { openStaffSlots: 1, tradeOffers: 2, total: 3 },
+      route: '/locker-room',
+    });
+
+    expect(beat?.text).toContain('Where: Trades (2) and Coaching (1)');
+  });
+
+  it('keeps canonical category order when no route is provided', () => {
+    const beat = createAskChipLiveBeat({
+      pendingDecisions: { openStaffSlots: 1, tradeOffers: 2, total: 3 },
+    });
+
+    expect(beat?.text).toContain('Where: Trades (2) and Coaching (1)');
+  });
+});
+
+describe('G7 route-coaching graduation', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    useChipStore.getState().reset();
+  });
+
+  it('detects graduation only when every route-coaching beat is read or session-seen', () => {
+    const [first, ...rest] = ALL_ROUTE_COACHING_BEAT_IDS;
+    expect(isRouteCoachingGraduated(new Set(ALL_ROUTE_COACHING_BEAT_IDS), new Set())).toBe(true);
+    expect(isRouteCoachingGraduated(new Set(), new Set(ALL_ROUTE_COACHING_BEAT_IDS))).toBe(true);
+    expect(isRouteCoachingGraduated(new Set(rest), new Set())).toBe(false);
+    expect(isRouteCoachingGraduated(new Set(rest), new Set([first!]))).toBe(true);
+  });
+
+  it('keeps the graduation notice inside the voice guards', () => {
+    expect(CHIP_GRADUATION_BEAT.id).toBe('chip.dock.graduation');
+    expect(CHIP_GRADUATION_BEAT.pose).toBe('proud');
+    expect(CHIP_GRADUATION_BEAT.text.length).toBeLessThanOrEqual(240);
+    expect(CHIP_GRADUATION_BEAT.text).not.toMatch(
+      /\b(vibe|feels?|story|context|identity|foundation|momentum|real answer|good energy|tone setter|read|verify|confirm|check|review|compare|worth|use|sim|triage)\b/i,
+    );
+  });
+
+  it('wires the one-time notice and the graduationAcked persistence', () => {
+    expect(chipDockSource).toContain('setActiveLiveBeat(CHIP_GRADUATION_BEAT)');
+    expect(chipDockSource).toContain("current?.id === 'chip.dock.graduation'");
+    expect(chipDockSource).toContain('graduationAcked: true');
+    expect(chipDockSource).toContain('if (prefs.graduationAcked) return;');
+    // Fires only when nothing else demands the dock.
+    expect(chipDockSource).toContain('if (activeRouteBeat || activeLiveBeat) return;');
+  });
+});
+
+describe('B7 conversation next control', () => {
+  function queueTwoBeatConversation() {
+    useChipStore.getState().queueDialogue([
+      {
+        id: 'chip.weekly.blowoutLoss.reaction',
+        beat: 0,
+        pose: 'sad',
+        text: 'That one hurts, and it should. One fix at a time from here.',
+        archetype: 'weekly',
+      },
+      {
+        id: 'chip.weekly.blowoutLoss.plan',
+        beat: 1,
+        pose: 'reviewing-tablet',
+        text: 'Must Do: open Postgame Recap. The fix list starts at the top.',
+        contextDetails: ['Must Do: open Postgame Recap.'],
+        archetype: 'weekly',
+      },
+    ]);
+  }
+
+  it('renders the Next control with progress while beats remain', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    queueTwoBeatConversation();
+
+    const markup = renderDock(
+      <ChipDock collapsed={false} storage={new MemoryStorage()}>
+        <p>Weekly dialogue bubble</p>
+      </ChipDock>,
+    );
+
+    expect(markup).toContain('data-chip-conversation="true"');
+    expect(markup).toContain('data-chip-conversation-next="true"');
+    expect(markup).toContain('Next (2/2)');
+
+    useChipStore.getState().reset();
+    const solo = renderDock(
+      <ChipDock collapsed={false} storage={new MemoryStorage()}>
+        <p>Weekly dialogue bubble</p>
+      </ChipDock>,
+    );
+    expect(solo).not.toContain('data-chip-conversation-next="true"');
+  });
+
+  it('replays a queued conversation through the whatNow control', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    queueTwoBeatConversation();
+    useChipStore.getState().dismiss();
+
+    const store = useChipStore.getState();
+    applyDockControl('whatNow', {
+      storage: new MemoryStorage(),
+      chipStore: store,
+      currentRoute: '/roster',
+      currentWeek: 9,
+      currentSeason: 2030,
+      now: () => new Date('2030-04-30T04:00:00.000Z'),
+    });
+
+    const state = useChipStore.getState();
+    expect(state.currentDialogueId).toBe('chip.weekly.blowoutLoss.reaction');
+    expect(state.dialogueQueue.map((beat) => beat.id)).toEqual(['chip.weekly.blowoutLoss.plan']);
+    expect(state.dismissed).toBe(false);
+
+    useChipStore.getState().reset();
   });
 });
