@@ -589,6 +589,43 @@ export const HallOfFameBallotEntrySchema = z.object({
   votePct: z.number().min(0).max(100),
 });
 
+// ── Player archive (career history vault) ───────────────
+// Field set verified against types/franchise.ts PlayerArchiveEntry and the
+// closed writer set (history.ts ensureArchiveEntry/syncPlayerArchiveEntry/
+// recordPlayerRetirement — the only producers, exact interface shape).
+// Reader audit (bloodlines, franchise-legends, roster-identity, web legacy
+// screens) stays inside the interface; award/championship extras are
+// locally derived, never stored on the entry. careerStats mirrors
+// CareerStats' open index signature via catchall; jerseyNumber was
+// backfilled by migration 18, retirementYear defaults for the same era.
+export const PlayerArchiveTeamStintSchema = z.object({
+  teamId: z.string(),
+  firstYear: z.number(),
+  lastYear: z.number(),
+});
+
+export const PlayerArchiveCareerStatsSchema = z.object({
+  seasons: z.number(),
+  gp: z.number(),
+  snaps: z.number(),
+}).catchall(z.number());
+
+export const PlayerArchiveEntrySchema = z.object({
+  playerId: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  name: z.string(),
+  positions: z.array(PlayerPositionSchema),
+  jerseyNumber: z.number().nullable().default(null),
+  peakOvr: z.number(),
+  peakYear: z.number(),
+  firstYear: z.number(),
+  lastYear: z.number(),
+  retirementYear: z.number().nullable().default(null),
+  teamHistory: z.array(PlayerArchiveTeamStintSchema),
+  careerStats: PlayerArchiveCareerStatsSchema.optional(),
+});
+
 function normalizeHallOfFameBallotInput(raw: unknown): unknown {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -2442,7 +2479,7 @@ export const SaveStateSchema = z.object({
     powerRankingHistory: [],
   }),
   franchiseHistory: z.array(z.any()),
-  playerArchive: z.array(z.any()),
+  playerArchive: z.array(PlayerArchiveEntrySchema),
   playerSeasonHistory: z.record(z.string(), z.array(PlayerSeasonHistoryEntrySchema)).default({}),
   playerRivalries: z.array(z.any()).default([]),
   farewellTours: z.array(z.any()).default([]),
