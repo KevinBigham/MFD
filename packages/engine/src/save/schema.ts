@@ -247,6 +247,35 @@ export const LeagueRivalrySchema = z.object({
   lastMetWeek: z.number().nullable(),
 });
 
+// ── Player rivalries ────────────────────────────────────
+// Field set verified against types/season.ts PlayerRivalry and the closed
+// writer set: player-rivalries.ts detectNewRivalries/decayRivalries build
+// and mutate exactly this shape, the convention save seeds one literal of
+// the same shape, and franchise-week updaters only touch
+// intensity/tier/history. Fixtures carry empty or absent playerRivalries,
+// so strict strip is lossless.
+export const PlayerRivalryEventSchema = z.object({
+  year: z.number(),
+  week: z.number(),
+  description: z.string(),
+  intensityDelta: z.number(),
+});
+
+export const PlayerRivalrySchema = z.object({
+  id: z.string(),
+  playerAId: z.string(),
+  playerBId: z.string(),
+  playerAName: z.string(),
+  playerBName: z.string(),
+  teamAId: z.string(),
+  teamBId: z.string(),
+  intensity: z.number(),
+  tier: z.enum(['budding', 'heated', 'nemesis']),
+  origin: z.string(),
+  history: z.array(PlayerRivalryEventSchema),
+  seasonStarted: z.number(),
+});
+
 export const BrokenRecordSchema = z.object({
   playerId: z.string(),
   playerName: z.string().default('Unknown Player'),
@@ -2515,7 +2544,7 @@ export const SaveStateSchema = z.object({
   franchiseHistory: z.array(FranchiseHistoryEntrySchema),
   playerArchive: z.array(PlayerArchiveEntrySchema),
   playerSeasonHistory: z.record(z.string(), z.array(PlayerSeasonHistoryEntrySchema)).default({}),
-  playerRivalries: z.array(z.any()).default([]),
+  playerRivalries: z.array(PlayerRivalrySchema).default([]),
   farewellTours: z.array(z.any()).default([]),
   endorsementOffers: EndorsementDealsSchema,
   leagueRules: LeagueRulesSchema,
