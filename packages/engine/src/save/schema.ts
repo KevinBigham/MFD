@@ -666,7 +666,9 @@ export const PlayerArchiveEntrySchema = z.object({
   playerId: z.string(),
   firstName: z.string(),
   lastName: z.string(),
-  name: z.string(),
+  // Same tolerance as PlayerGameLineSchema.name: archived players inherit a
+  // possibly-missing derived `name`, which JSON.stringify drops entirely.
+  name: z.string().default(''),
   positions: z.array(PlayerPositionSchema),
   jerseyNumber: z.number().nullable().default(null),
   peakOvr: z.number(),
@@ -1964,7 +1966,10 @@ export const SpecialTeamsGameSummarySchema = z.object({
 // optional and are hardened as their own islands in later patches.
 export const PlayerGameLineSchema = z.object({
   playerId: z.string(),
-  name: z.string(),
+  // Players can legitimately lack a derived `name` at runtime (see
+  // living-player-story / record-tracker tests); JSON.stringify then drops
+  // the undefined, so a required string here rejects real autosaves.
+  name: z.string().default(''),
   pos: PlayerPositionSchema,
   passAtt: z.number().optional(),
   passComp: z.number().optional(),
