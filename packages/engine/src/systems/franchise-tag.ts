@@ -9,7 +9,7 @@ import { makeContract } from './contracts';
 import { v36CapHit } from './contract-helpers';
 import { getActiveRule } from './league-rules';
 import { getPersonality } from './personality';
-import { cl } from '../utils';
+import { cl, playerDisplayName } from '../utils';
 import type { Contract, GameState, Player, Team, Position, FranchiseTagType, FranchiseTagState } from '../types';
 
 // ── Tag Type Definitions ───────────────────────────────
@@ -130,7 +130,7 @@ export function applyFranchiseTag(
 
   const tagState: FranchiseTagState = {
     playerId: player.id,
-    playerName: player.name,
+    playerName: playerDisplayName(player),
     pos: player.pos,
     salary: tagSal,
     year,

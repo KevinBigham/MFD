@@ -11,7 +11,7 @@ import type {
   Player,
   Team,
 } from '../types';
-import { cl } from '../utils';
+import { cl, playerDisplayName } from '../utils';
 
 export const CLIQUE_ASSIGNMENT_RULES = {
   vets: { minAge: 28, minYearsExp: 6 },
@@ -375,7 +375,7 @@ export function electCaptains(team: Team, lockerRoom: LockerRoomState, _rng: Prn
 
   return selected.map((player) => ({
     playerId: player.id,
-    playerName: player.name,
+    playerName: playerDisplayName(player),
     captainMoments: 0,
     rallyCooldown: 0,
     perks: captainPerkPriority(player).slice(0, 1),
@@ -391,7 +391,7 @@ export function appointCaptain(team: Team, lockerRoom: LockerRoomState, playerId
     ...withoutPlayer,
     {
       playerId: player.id,
-      playerName: player.name,
+      playerName: playerDisplayName(player),
       captainMoments: 0,
       rallyCooldown: 0,
       perks: captainPerkPriority(player).slice(0, 1),

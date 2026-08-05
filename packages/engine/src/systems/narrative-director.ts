@@ -1,5 +1,6 @@
 import type { PrngFn } from '../rng';
 import type { GameState, NarrativeBeat, NarrativeIntensity, TradeOfferAsset } from '../types';
+import { playerDisplayName } from '../utils';
 import { calcPickValue, calcPlayerValue } from './trade-value';
 
 const STAR_INJURY_OVR = 86;
@@ -194,10 +195,10 @@ function buildStarInjuryNews(game: GameState, rng: PrngFn): BreakingNewsEvent[] 
     .filter((player) => player.ovr >= STAR_INJURY_OVR && player.injury?.severityTier === 'season_ending')
     .map((player) => ({
       headline: chooseVariant(rng, [
-        `${player.name.toUpperCase()} LOST FOR THE YEAR`,
-        `SEASON OVER FOR ${player.name.toUpperCase()}`,
+        `${playerDisplayName(player).toUpperCase()} LOST FOR THE YEAR`,
+        `SEASON OVER FOR ${playerDisplayName(player).toUpperCase()}`,
       ]),
-      detail: `${player.name} is dealing with a ${player.injury?.type} injury and has been ruled out for the rest of the season.`,
+      detail: `${playerDisplayName(player)} is dealing with a ${player.injury?.type} injury and has been ruled out for the rest of the season.`,
       source: 'INJURY REPORT' as const,
       priority: 'high' as const,
     }));

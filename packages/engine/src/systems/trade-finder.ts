@@ -1,6 +1,7 @@
 import { calcCapHit } from './contracts';
 import { conditionalPickExpectedValue } from './conditional-picks';
 import { getTradeableAssets, getTradeTargets } from './trade-negotiation';
+import { playerDisplayName } from '../utils';
 import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
 import { analyzeTeamNeeds, buildLeagueAverageByGroup } from './team-needs';
 import type { LeagueAverageByGroup } from './team-needs';
@@ -107,7 +108,7 @@ export function findTradeTargets(game: GameState, teamId: string): TradeSuggesti
         teamId: partner.id,
         playerId: player.id,
         pickId: null,
-        description: player.name,
+        description: playerDisplayName(player),
         need: player.pos,
       }));
 

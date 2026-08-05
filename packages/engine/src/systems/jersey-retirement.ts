@@ -10,7 +10,7 @@ import type {
   ScheduledGame,
   Team,
 } from '../types';
-import { cl } from '../utils';
+import { cl, playerDisplayName } from '../utils';
 
 const POSITION_NUMBER_PREFERENCES: Record<Player['pos'], number[][]> = {
   QB: [[1, 19]],
@@ -168,14 +168,14 @@ export function startFarewellTour(
     return {
       week,
       type,
-      narrative: inferMomentNarrative(player.name, type, opponentName),
+      narrative: inferMomentNarrative(playerDisplayName(player), type, opponentName),
       opponent: opponentName,
     };
   });
 
   return {
     playerId: player.id,
-    playerName: player.name,
+    playerName: playerDisplayName(player),
     teamId: team.id,
     finalSeason: true,
     announcedWeek: currentWeek,
@@ -229,7 +229,7 @@ export function generateJerseyRetirement(
     100,
   );
   const spotlightYear = player.peakYear;
-  const peakLine = `${player.name} reached a peak ${player.peakOvr} OVR in ${spotlightYear}.`;
+  const peakLine = `${playerDisplayName(player)} reached a peak ${player.peakOvr} OVR in ${spotlightYear}.`;
   const titleLine = championships > 0
     ? `${team.city} won ${championships} title${championships > 1 ? 's' : ''} with ${player.lastName} in the room.`
     : `${player.lastName} defined the franchise even without a confetti moment.`;
@@ -240,7 +240,7 @@ export function generateJerseyRetirement(
   return {
     id: retirementId(rng, 'jersey'),
     playerId: player.playerId,
-    playerName: player.name,
+    playerName: playerDisplayName(player),
     pos: player.positions[0] ?? 'QB',
     jerseyNumber: player.jerseyNumber ?? 0,
     teamId: team.id,
@@ -248,9 +248,9 @@ export function generateJerseyRetirement(
     peakOvr: player.peakOvr,
     seasonsWithTeam: tenure,
     championships,
-    headline: `${team.city} retires #${player.jerseyNumber ?? 0} for ${player.name}`,
+    headline: `${team.city} retires #${player.jerseyNumber ?? 0} for ${playerDisplayName(player)}`,
     ceremony: [
-      `${team.city} ${team.name} pulled the cover off the rafters and sent #${player.jerseyNumber ?? 0} into permanent retirement for ${player.name}.`,
+      `${team.city} ${team.name} pulled the cover off the rafters and sent #${player.jerseyNumber ?? 0} into permanent retirement for ${playerDisplayName(player)}.`,
       `${peakLine} ${titleLine}`,
       hallLine,
     ].join('\n\n'),

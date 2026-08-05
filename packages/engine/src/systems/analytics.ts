@@ -5,6 +5,7 @@ import type {
   Team,
   TeamSeasonStats,
 } from '../types';
+import { playerDisplayName } from '../utils';
 
 const EXPECTED_POINTS_PER_GAME = 21;
 
@@ -95,7 +96,7 @@ export function getStatLeaders(game: GameState, stat: keyof Player['stats'], cou
     .map((player) => ({
       playerId: player.id,
       teamId: player.teamId,
-      name: player.name,
+      name: playerDisplayName(player),
       value: Number(player.stats[stat] ?? 0),
     }))
     .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name))

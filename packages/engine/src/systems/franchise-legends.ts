@@ -12,6 +12,7 @@ import type {
   RecordBook,
   RecordEntry,
 } from '../types';
+import { playerDisplayName } from '../utils';
 
 const STARTER_REQUIREMENTS: Array<[Position, number]> = [
   ['QB', 1],
@@ -106,13 +107,13 @@ function buildCandidateEntries(game: GameState, teamId: string, startYear: numbe
       const score = entry.peakOvr * 0.3 + seasons * 6.5 + (awards.mvps * 12 + awards.allPros * 4 + awards.proBowls * 2) + championships * 10;
       return {
         playerId: entry.playerId,
-        playerName: entry.name,
+        playerName: playerDisplayName(entry),
         pos: playerPosition(entry),
         peakOvr: entry.peakOvr,
         seasonsWithTeam: seasons,
         highlights: generateLegendHighlights({
           playerId: entry.playerId,
-          playerName: entry.name,
+          playerName: playerDisplayName(entry),
           pos: playerPosition(entry),
           legacyScore: score,
           tenureYears: tenureWithTeam(entry, teamId),
@@ -151,7 +152,7 @@ function eligibleRosterPlayers(game: GameState, teamId: string, startYear: numbe
         playerId: player.id,
         firstName: player.firstName,
         lastName: player.lastName,
-        name: player.name,
+        name: playerDisplayName(player),
         positions: [player.pos],
         jerseyNumber: player.jerseyNumber ?? null,
         peakOvr: player.ovr,
@@ -213,7 +214,7 @@ export function getFranchiseLegends(gameState: GameState, teamId: string, limit 
       const championships = hallEntry?.awards.championships ?? championshipCountForPlayer(entry, teamId, gameState.franchiseHistory);
       return {
         playerId: entry.playerId,
-        playerName: entry.name,
+        playerName: playerDisplayName(entry),
         pos: playerPosition(entry),
         legacyScore: calculateLegacyScore(entry, teamId, gameState.awardsHistory, gameState.hallOfFame, gameState.records),
         tenureYears: tenureWithTeam(entry, teamId),

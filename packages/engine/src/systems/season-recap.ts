@@ -9,6 +9,7 @@ import type {
 import type { BreakoutCandidate } from './development-insights';
 import { identifyBreakoutCandidates } from './development-insights';
 import { getStatLeaderboard } from './stat-central';
+import { playerDisplayName } from '../utils';
 
 export type SeasonRecapPlayoffResult =
   | 'missed'
@@ -203,7 +204,7 @@ function fallbackLeader(
     .sort((left, right) =>
       Number(right.stats[stat] ?? 0) - Number(left.stats[stat] ?? 0)
       || Number(right.stats.gamesPlayed ?? 0) - Number(left.stats.gamesPlayed ?? 0)
-      || left.name.localeCompare(right.name))[0];
+      || playerDisplayName(left).localeCompare(playerDisplayName(right)))[0];
 
   if (!candidate) return null;
 
@@ -213,7 +214,7 @@ function fallbackLeader(
   const gamesPlayed = Number(candidate.stats.gamesPlayed ?? 0);
   return {
     playerId: candidate.id,
-    playerName: candidate.name,
+    playerName: playerDisplayName(candidate),
     pos: candidate.pos,
     value,
     gamesPlayed,

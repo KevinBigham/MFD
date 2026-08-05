@@ -28,6 +28,7 @@ import type {
   PlayerArchiveTeamStint,
   ScheduleWeek,
 } from '../types';
+import { playerDisplayName } from '../utils';
 
 // ── Types ───────────────────────────────────────────────
 
@@ -141,7 +142,7 @@ function buildPlayerProtagonist(
 
   return {
     subjectId: player.id,
-    subjectName: player.name,
+    subjectName: playerDisplayName(player),
     subjectKind: 'player',
     subjectRole: player.pos,
     formerTeamId: stint.teamId,

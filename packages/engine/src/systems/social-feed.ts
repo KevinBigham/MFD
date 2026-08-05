@@ -11,6 +11,7 @@ import type {
   Team,
 } from '../types';
 import type { PrngFn } from '../rng';
+import { playerDisplayName } from '../utils';
 
 const ANALYSTS = ['Sarah Chen, MFSN', 'Marcus Vega, MFSN', 'Jordan Price, MFSN'] as const;
 const REPORTERS = ['Noah Lane, MFSN', 'Avery Brooks, MFSN', 'Taylor Quinn, MFSN'] as const;
@@ -138,7 +139,7 @@ export function generatePlayerReaction(
 
   return buildPost({
     source: 'player',
-    authorName: player.name,
+    authorName: playerDisplayName(player),
     authorPlayerId: player.id,
     content,
     trigger,

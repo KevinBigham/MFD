@@ -1,6 +1,7 @@
 import { RNG } from '../rng';
 import { getMinSalary, getSalaryCap } from '../config';
 import { calcCapHit, calcDeadMoney, makeContract } from './contracts';
+import { playerDisplayName } from '../utils';
 import { assignJerseyNumber } from './jersey-retirement';
 import { getActiveRule } from './league-rules';
 import { recordNewsItem } from './league-news';
@@ -239,8 +240,8 @@ function awardClaim(game: GameState, claim: WaiverClaim): void {
     year: game.year,
     week: game.week,
     type: 'waiver',
-    headline: `${team.city} claims ${player.name} off waivers`,
-    body: `${team.city} ${team.name} adds ${player.name} after a waiver run.`,
+    headline: `${team.city} claims ${playerDisplayName(player)} off waivers`,
+    body: `${team.city} ${team.name} adds ${playerDisplayName(player)} after a waiver run.`,
     teamIds: [team.id],
     playerIds: [player.id],
     importance: 'minor',

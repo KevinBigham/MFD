@@ -6,7 +6,7 @@
  * and play-level stat accumulation.
  */
 import { HOME_FIELD_ADV } from '../config';
-import { avg, cl } from '../utils';
+import { avg, cl, playerDisplayName } from '../utils';
 import { getGameAvailability } from './injury-system';
 import { applyGamePlan } from './game-plan';
 import { applyContingency, evaluateContingencies, getContingencyCallout } from './contingency-plans';
@@ -673,7 +673,7 @@ function simulateDrive(
 function ensureLine(lines: Map<string, PlayerGameLine>, player: Player): PlayerGameLine {
   let line = lines.get(player.id);
   if (!line) {
-    line = { playerId: player.id, name: player.name, pos: player.pos };
+    line = { playerId: player.id, name: playerDisplayName(player), pos: player.pos };
     lines.set(player.id, line);
   }
   return line;

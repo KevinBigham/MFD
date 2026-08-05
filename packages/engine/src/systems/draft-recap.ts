@@ -1,4 +1,5 @@
 import type { DraftRecap, DraftRecapPick, GameState, Player } from '../types';
+import { playerDisplayName } from '../utils';
 
 function draftedPlayersForYear(game: GameState): Player[] {
   return Object.values(game.players)
@@ -12,7 +13,7 @@ function toRecapPick(player: Player, projectedPick: number): DraftRecapPick {
   return {
     playerId: player.id,
     teamId: player.teamId ?? '',
-    playerName: player.name,
+    playerName: playerDisplayName(player),
     position: player.pos,
     ovr: player.ovr,
     round: player.draftRound,

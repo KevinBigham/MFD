@@ -1,4 +1,5 @@
 import { DIFF_SETTINGS } from '../config/difficulty';
+import { playerDisplayName } from '../utils';
 import type { PrngFn, RngState } from '../rng';
 import { createSimulationContext, simGameWithContext, applyPlayerLines } from './game-sim';
 import { buildFatiguePlayerBonuses, processWeeklyFatigue } from './fatigue';
@@ -60,7 +61,7 @@ function maybeInjure(
 
     injuries.push({
       playerId: player.id,
-      playerName: player.name,
+      playerName: playerDisplayName(player),
       severity: injury.severity,
       gamesOut: injury.gamesOut,
       type: injury.type,
