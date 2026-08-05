@@ -14,6 +14,10 @@
 #   the 312 KB Phase 4 baseline ceiling. The engine-content sibling is
 #   excluded below — its ~80 KB lives outside the engine budget.
 # Ceiling: 312 KB (baseline +30 KB per GOAT roadmap).
+# Schema ratchet bump (2026-08-05): 312 -> 320 KB. The any-free ratchet
+#   (PR #98, schema islands 1-12) typed twelve z.any() save-file fields with
+#   real Zod schemas, adding ~1 KB of permanent validation code that tipped
+#   the engine chunk to 313 KB. Kevin-approved bump keeps ~7 KB headroom.
 # Warn window: 10 KB below ceiling.
 #
 # Usage:
@@ -26,7 +30,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-BUNDLE_CEILING_KB="${BUNDLE_CEILING_KB:-312}"
+BUNDLE_CEILING_KB="${BUNDLE_CEILING_KB:-320}"
 WARN_WINDOW_KB=10
 DIST_DIR="apps/web/dist/assets"
 

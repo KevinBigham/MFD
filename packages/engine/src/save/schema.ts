@@ -110,6 +110,18 @@ export const StoryArcSchema = z.object({
   data: z.record(z.string(), z.unknown()),
 });
 
+// NarrativeHook — field set verified against types/franchise.ts and both
+// writers (franchise-week-helpers weekly refresh, convention-save seed).
+// `type` is a free-form string by design (hooks-engine cat values are an
+// open set: dev/owner/injury/draft/streak/playoff_race/...).
+export const NarrativeHookSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  description: z.string(),
+  resolved: z.boolean(),
+  deadline: z.number(),
+});
+
 export const TimedEffectSchema = z.object({
   id: z.string(),
   sourceType: z.enum(['off_field_event', 'press_conference', 'rivalry']),
@@ -147,6 +159,39 @@ export const PressConferenceSchema = z.object({
   quotes: z.array(z.string()),
   reporterQuestions: z.array(ReporterQuestionSchema),
   effects: z.array(TimedEffectSchema),
+});
+
+// WeeklySummary — field set verified against types/sim.ts and the single
+// writer (systems/weekly-summary.ts buildWeeklySummary), plus all engine +
+// web readers. The v34 golden fixture carries a legacy minimal entry
+// (year/week/teamId/headline/result only), so every post-legacy field
+// carries a default: modern entries round-trip byte-equal, legacy entries
+// parse losslessly with neutral defaults.
+export const WeeklyInjurySummarySchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  severity: z.enum(['questionable', 'doubtful', 'out', 'ir']),
+  gamesOut: z.number(),
+  type: z.string(),
+});
+
+export const WeeklySummarySchema = z.object({
+  id: z.string().default(''),
+  year: z.number(),
+  week: z.number(),
+  phase: z.enum(['preseason', 'regular_season', 'playoffs', 'offseason', 'free_agency', 'draft', 'post_draft', 'training_camp']).default('regular_season'),
+  teamId: z.string(),
+  opponentTeamId: z.string().nullable().default(null),
+  opponentName: z.string().default(''),
+  result: z.enum(['win', 'loss', 'tie', 'pending']),
+  teamScore: z.number().nullable().default(null),
+  opponentScore: z.number().nullable().default(null),
+  record: z.string().default(''),
+  headline: z.string(),
+  ownerDelta: z.number().default(0),
+  injuries: z.array(WeeklyInjurySummarySchema).default([]),
+  mvpPlayerId: z.string().nullable().default(null),
+  notes: z.array(z.string()).default([]),
 });
 
 export const OffFieldEventSchema = z.object({
@@ -200,6 +245,35 @@ export const LeagueRivalrySchema = z.object({
   history: z.array(z.string()),
   lastMetYear: z.number().nullable(),
   lastMetWeek: z.number().nullable(),
+});
+
+// ── Player rivalries ────────────────────────────────────
+// Field set verified against types/season.ts PlayerRivalry and the closed
+// writer set: player-rivalries.ts detectNewRivalries/decayRivalries build
+// and mutate exactly this shape, the convention save seeds one literal of
+// the same shape, and franchise-week updaters only touch
+// intensity/tier/history. Fixtures carry empty or absent playerRivalries,
+// so strict strip is lossless.
+export const PlayerRivalryEventSchema = z.object({
+  year: z.number(),
+  week: z.number(),
+  description: z.string(),
+  intensityDelta: z.number(),
+});
+
+export const PlayerRivalrySchema = z.object({
+  id: z.string(),
+  playerAId: z.string(),
+  playerBId: z.string(),
+  playerAName: z.string(),
+  playerBName: z.string(),
+  teamAId: z.string(),
+  teamBId: z.string(),
+  intensity: z.number(),
+  tier: z.enum(['budding', 'heated', 'nemesis']),
+  origin: z.string(),
+  history: z.array(PlayerRivalryEventSchema),
+  seasonStarted: z.number(),
 });
 
 export const BrokenRecordSchema = z.object({
@@ -516,6 +590,29 @@ function normalizeCareerEpilogueInput(raw: unknown): unknown {
   return result.success ? result.data : undefined;
 }
 
+
+export const FarewellMomentSchema = z.object({
+  week: z.number().int().min(0),
+  type: z.enum([
+    'standing_ovation',
+    'gift_exchange',
+    'emotional_speech',
+    'final_home_game',
+    'final_game',
+  ]),
+  narrative: z.string(),
+  opponent: z.string(),
+});
+
+export const FarewellTourSchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  teamId: z.string(),
+  finalSeason: z.boolean(),
+  announcedWeek: z.number().int().min(0),
+  moments: z.array(FarewellMomentSchema),
+});
+
 export const HallOfFameEntrySchema = z.object({
   playerId: z.string(),
   name: z.string(),
@@ -544,6 +641,45 @@ export const HallOfFameBallotEntrySchema = z.object({
   votePct: z.number().min(0).max(100),
 });
 
+// ── Player archive (career history vault) ───────────────
+// Field set verified against types/franchise.ts PlayerArchiveEntry and the
+// closed writer set (history.ts ensureArchiveEntry/syncPlayerArchiveEntry/
+// recordPlayerRetirement — the only producers, exact interface shape).
+// Reader audit (bloodlines, franchise-legends, roster-identity, web legacy
+// screens) stays inside the interface; award/championship extras are
+// locally derived, never stored on the entry. careerStats mirrors
+// CareerStats' open index signature via catchall; jerseyNumber was
+// backfilled by migration 18, retirementYear defaults for the same era.
+export const PlayerArchiveTeamStintSchema = z.object({
+  teamId: z.string(),
+  firstYear: z.number(),
+  lastYear: z.number(),
+});
+
+export const PlayerArchiveCareerStatsSchema = z.object({
+  seasons: z.number(),
+  gp: z.number(),
+  snaps: z.number(),
+}).catchall(z.number());
+
+export const PlayerArchiveEntrySchema = z.object({
+  playerId: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  // Same tolerance as PlayerGameLineSchema.name: archived players inherit a
+  // possibly-missing derived `name`, which JSON.stringify drops entirely.
+  name: z.string().default(''),
+  positions: z.array(PlayerPositionSchema),
+  jerseyNumber: z.number().nullable().default(null),
+  peakOvr: z.number(),
+  peakYear: z.number(),
+  firstYear: z.number(),
+  lastYear: z.number(),
+  retirementYear: z.number().nullable().default(null),
+  teamHistory: z.array(PlayerArchiveTeamStintSchema),
+  careerStats: PlayerArchiveCareerStatsSchema.optional(),
+});
+
 function normalizeHallOfFameBallotInput(raw: unknown): unknown {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -567,6 +703,40 @@ export const PowerRankingSchema = z.object({
   delta: z.number(),
   blurb: z.string(),
   record: z.string(),
+});
+
+// ── Franchise history (per-team season archive) ─────────
+// Field set verified against types/franchise.ts FranchiseHistoryEntry and
+// both writers: history.ts archiveSeasonHistory emits the full modern
+// shape (all five optional fields), while scenario-challenge seeds a
+// minimal pre-identity shape without them — so fanbase/prestige/
+// attendance/stadiumName/keyStats stay optional exactly as the interface
+// declares. playoffFinish is a free-form string (champion /
+// missed_playoffs / playoff_team / PLAYOFF_FINISH_LABELS values).
+// Fixtures all carry empty franchiseHistory; strict strip is lossless.
+export const FranchiseHistoryKeyStatsSchema = z.object({
+  totalYards: z.number(),
+  pointsFor: z.number(),
+  pointsAgainst: z.number(),
+});
+
+export const FranchiseHistoryEntrySchema = z.object({
+  year: z.number(),
+  teamId: z.string(),
+  wins: z.number(),
+  losses: z.number(),
+  ties: z.number(),
+  record: z.string(),
+  pointDifferential: z.number(),
+  playoffFinish: z.string(),
+  majorEvents: z.array(z.string()),
+  awardsWon: z.array(z.string()),
+  recordsBroken: z.array(z.string()),
+  fanbase: z.number().optional(),
+  prestige: z.number().optional(),
+  attendance: z.number().optional(),
+  stadiumName: z.string().optional(),
+  keyStats: FranchiseHistoryKeyStatsSchema.optional(),
 });
 
 export const MediaPowerRankingSchema = z.object({
@@ -1646,6 +1816,14 @@ export const ContractExtensionRecordSchema = z.object({
   week: z.number(),
 });
 
+export const CoordinatorSpecialtySchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  icon: z.string(),
+  effect: z.record(z.string(), z.number()),
+  desc: z.string(),
+});
+
 export const StaffCandidateSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -1655,7 +1833,7 @@ export const StaffCandidateSchema = z.object({
   ratings: z.record(z.number()),
   level: z.number(),
   age: z.number().optional(),
-  specialty75: z.any().nullable().optional(),
+  specialty75: CoordinatorSpecialtySchema.nullable().optional(),
   term: z.number().optional(),
   buyoutPenalty: z.number().optional(),
   loyalty: z.number().optional(),
@@ -1780,10 +1958,127 @@ export const SpecialTeamsGameSummarySchema = z.object({
   highlights: z.array(z.string()),
 });
 
+// ── GameResult island (schema hardening island 1) ────────
+// Types ScheduledGame.result against the real GameResult shape in
+// types/sim.ts. Legacy tolerance: fields introduced after early save
+// versions carry defaults so old saves keep parsing; heavy nested event
+// payloads (broadcast, snapEvents, callYourShotResult, namedGame) stay
+// optional and are hardened as their own islands in later patches.
+export const PlayerGameLineSchema = z.object({
+  playerId: z.string(),
+  // Players can legitimately lack a derived `name` at runtime (see
+  // living-player-story / record-tracker tests); JSON.stringify then drops
+  // the undefined, so a required string here rejects real autosaves.
+  name: z.string().default(''),
+  pos: PlayerPositionSchema,
+  passAtt: z.number().optional(),
+  passComp: z.number().optional(),
+  passYds: z.number().optional(),
+  passTD: z.number().optional(),
+  passINT: z.number().optional(),
+  sacked: z.number().optional(),
+  rushAtt: z.number().optional(),
+  rushYds: z.number().optional(),
+  rushTD: z.number().optional(),
+  fumbles: z.number().optional(),
+  targets: z.number().optional(),
+  rec: z.number().optional(),
+  recYds: z.number().optional(),
+  recTD: z.number().optional(),
+  tackles: z.number().optional(),
+  sacks: z.number().optional(),
+  defINT: z.number().optional(),
+  fgAtt: z.number().optional(),
+  fgMade: z.number().optional(),
+  snaps: z.number().optional(),
+});
+
+export const TeamGameStatsSchema = z.object({
+  totalYards: z.number().default(0),
+  passingYards: z.number().default(0),
+  rushingYards: z.number().default(0),
+  turnovers: z.number().default(0),
+  sacks: z.number().default(0),
+  pressuresAllowed: z.number().default(0),
+  thirdDownConversions: z.number().default(0),
+  thirdDownAttempts: z.number().default(0),
+  timeOfPossession: z.number().default(0),
+  passAttempts: z.number().default(0),
+  passCompletions: z.number().default(0),
+  passTDs: z.number().default(0),
+  interceptions: z.number().default(0),
+  rushAttempts: z.number().default(0),
+  rushTDs: z.number().default(0),
+  fumbles: z.number().default(0),
+  penalties: z.number().default(0),
+  penaltyYards: z.number().default(0),
+  fgMade: z.number().default(0),
+  fgAttempted: z.number().default(0),
+  punts: z.number().default(0),
+  drives: z.number().default(0),
+  yacYards: z.number().default(0),
+  redZoneTrips: z.number().default(0),
+  redZoneScores: z.number().default(0),
+  quarterScores: z.array(z.number()).default([]),
+  playerLines: z.array(PlayerGameLineSchema).default([]),
+});
+
+export const PlayerMatchupEventSchema = z.object({
+  type: z.enum(['interception', 'sack', 'fumble']),
+  offensePlayerId: z.string(),
+  defensePlayerId: z.string(),
+  quarter: z.number(),
+});
+
+export const MatchupHighlightSchema = z.object({
+  label: z.string(),
+  detail: z.string(),
+  teamId: z.string(),
+  playerId: z.string().nullable(),
+  opponentPlayerId: z.string().nullable(),
+  advantage: z.number(),
+});
+
+export const GameResultSchema = z.object({
+  id: z.string(),
+  homeTeamId: z.string(),
+  awayTeamId: z.string(),
+  homeScore: z.number(),
+  awayScore: z.number(),
+  week: z.number(),
+  year: z.number(),
+  overtime: z.boolean().default(false),
+  mvpPlayerId: z.string().nullable().default(null),
+  stats: z.record(TeamGameStatsSchema).default({}),
+  weather: z.enum(['dome', 'clear', 'rain', 'snow', 'wind']).nullable().optional(),
+  matchupHighlight: MatchupHighlightSchema.nullable().optional(),
+  broadcastNetwork: z.enum(['MFN', 'ESPN8', 'FOX8', 'CBS8', 'NBC8']).nullable().optional(),
+  broadcast: z.any().optional(),
+  primetime: z.boolean().optional(),
+  flexed: z.boolean().optional(),
+  specialTeams: z.record(SpecialTeamsGameSummarySchema).optional(),
+  playerMatchupEvents: z.array(PlayerMatchupEventSchema).default([]),
+  snapEvents: z.array(z.any()).optional(),
+  snapLedgerMode: z.enum(['shadow', 'canonical']).optional(),
+  healthyStarterShortages: z.record(z.number()).optional(),
+  healthyStarterShortagesByTeam: z.record(z.record(z.number())).optional(),
+  callYourShotResult: z.any().optional(),
+  namedGame: z.any().optional(),
+  contingencyActivations: z.array(z.object({
+    teamId: z.string(),
+    ruleId: z.string(),
+    label: z.string(),
+    triggerLabel: z.string().optional(),
+    responseLabel: z.string().optional(),
+    quarter: z.number(),
+    callout: z.string().nullable().optional(),
+  })).optional(),
+});
+
 export const ScheduledGameSchema = z.object({
   homeTeamId: z.string(),
   awayTeamId: z.string(),
-  result: z.any().nullable(),
+  result: GameResultSchema.nullable(),
   weather: z.enum(['dome', 'clear', 'rain', 'snow', 'wind']).nullable().optional(),
   flexed: z.boolean().default(false),
   primetime: z.boolean().default(false),
@@ -1793,6 +2088,45 @@ export const ScheduledGameSchema = z.object({
 export const ScheduleWeekSchema = z.object({
   week: z.number(),
   games: z.array(ScheduledGameSchema),
+});
+
+// ── Playoff bracket ─────────────────────────────────────
+// Field set verified against types/schedule.ts and the closed writer pair
+// (seedPlayoffBracket / advancePlayoffBracket in systems/playoff-bracket.ts):
+// toSeed and createMatchup emit exactly these shapes, and advance only fills
+// winnerTeamId/result. All golden fixtures carry playoffBracket: null, so
+// strict strip is lossless. matchup.result is a GameResult payload — it is
+// typed by island 1's GameResultSchema (PR #82); wire it here in a one-line
+// follow-up once that island lands, rather than stacking this patch on it.
+export const PlayoffSeedSchema = z.object({
+  seed: z.number(),
+  teamId: z.string(),
+  conference: z.enum(['AFC', 'NFC']),
+  division: z.string(),
+  divisionWinner: z.boolean(),
+  wins: z.number(),
+  losses: z.number(),
+  ties: z.number(),
+  pointDifferential: z.number(),
+});
+
+export const PlayoffMatchupSchema = z.object({
+  id: z.string(),
+  round: z.enum(['wild_card', 'divisional', 'conference', 'super_bowl']),
+  conference: z.enum(['AFC', 'NFC', 'NFL']),
+  week: z.number(),
+  homeTeamId: z.string(),
+  awayTeamId: z.string(),
+  winnerTeamId: z.string().nullable(),
+  result: z.any().nullable(),
+});
+
+export const PlayoffBracketSchema = z.object({
+  season: z.number(),
+  afc: z.array(PlayoffSeedSchema),
+  nfc: z.array(PlayoffSeedSchema),
+  matchups: z.array(PlayoffMatchupSchema),
+  championTeamId: z.string().nullable(),
 });
 
 function normalizeTutorialStepInput(raw: unknown): unknown {
@@ -1883,6 +2217,17 @@ export const DynastyEventSchema = z.object({
   playerIds: z.array(z.string()),
   teamIds: z.array(z.string()),
   namedGame: NamedGameEventSchema.optional(),
+});
+
+export const EarnedDoctrineSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  origin: z.string(),
+  bonus: z.string(),
+  category: z.enum(['culture', 'strategy', 'reputation', 'personnel']),
+  earnedYear: z.number().int().min(1900),
+  earnedWeek: z.number().int().min(0),
 });
 
 export const NearMissEntrySchema = z.object({
@@ -2135,6 +2480,83 @@ export const TeamPersistedSchema = z.object({
   gmStrategy: GmStrategySchema,
 }).passthrough();
 
+// ── Owner island (schema hardening island 2) ─────────────
+// Types GameState.owners entries against the real Owner interface in
+// types/franchise.ts. Both writers (convention-save createOwner,
+// franchise-setup ensureOwnerRecord) produce exactly this shape. Goals and
+// personality gain defaults for legacy-era entries that predate them, and
+// .passthrough() preserves any historical extra keys so round-trips can
+// never destroy owner data.
+export const OwnerSeasonGoalsSchema = z.object({
+  floor: z.string().default(''),
+  target: z.string().default(''),
+  ceiling: z.string().default(''),
+});
+
+export const OwnerPersonalitySchema = z.object({
+  spending: z.number().default(5),
+  patience: z.number().default(5),
+  mediaAwareness: z.number().default(5),
+});
+
+export const OwnerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  archetype: z.string(),
+  patience: z.number().default(50),
+  goals: OwnerSeasonGoalsSchema.default({ floor: '', target: '', ceiling: '' }),
+  personality: OwnerPersonalitySchema.default({ spending: 5, patience: 5, mediaAwareness: 5 }),
+}).passthrough();
+
+// ── Draft class prospects ───────────────────────────────
+// Field set verified against the DraftProspect interface
+// (packages/engine/src/types/draft.ts) and every writer/reader:
+// makeProspect, runCombine, runScoutingAction, applyDraftSelection,
+// scouting-staff, draft-war-room, and all web screens. Migrations 7/15/30
+// already backfill combine/region/bloodline on load, so strict strip is
+// safe — no production or fixture data carries extra keys.
+export const CombineMeasurablesSchema = z.object({
+  fortyYard: z.number(),
+  benchPress: z.number(),
+  vertical: z.number(),
+  broadJump: z.number(),
+  threeCone: z.number(),
+  shuttle: z.number(),
+});
+
+export const ScoutingReportSchema = z.object({
+  type: z.enum(['film', 'combine', 'interview']),
+  accuracy: z.number(),
+  grade: z.number(),
+  notes: z.string(),
+});
+
+export const DraftProspectSchema = z.object({
+  id: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  pos: PlayerPositionSchema,
+  college: z.string(),
+  region: ScoutingRegionSchema,
+  ratings: z.record(z.number()),
+  projectedRound: z.number(),
+  scoutGrade: z.number(),
+  trueGrade: z.number(),
+  personality: PersonalitySchema,
+  traits: z.array(z.string()),
+  archetype: z.object({
+    archetype: z.string(),
+    label: z.string(),
+    description: z.string(),
+  }).nullable(),
+  characterArchetype: z.string(),
+  bustProbability: z.number(),
+  stealProbability: z.number(),
+  scoutingReports: z.array(ScoutingReportSchema),
+  combine: CombineMeasurablesSchema.nullable().default(null),
+  bloodline: BloodlineInfoSchema.nullable().default(null),
+});
+
 export const SaveStateSchema = z.object({
   version: z.number(),
   seed: z.number(),
@@ -2148,9 +2570,9 @@ export const SaveStateSchema = z.object({
   }),
   players: z.record(PlayerSchema),
   teams: z.record(TeamPersistedSchema),
-  owners: z.record(z.any()),
+  owners: z.record(OwnerSchema),
   schedule: z.array(ScheduleWeekSchema),
-  draftClass: z.array(z.any()),
+  draftClass: z.array(DraftProspectSchema),
   freeAgents: z.array(z.string()),
   records: RecordBookSchema,
   activeRecordChases: z.array(RecordChaseSchema).default([]),
@@ -2166,11 +2588,11 @@ export const SaveStateSchema = z.object({
     weeklyDigests: [],
     powerRankingHistory: [],
   }),
-  franchiseHistory: z.array(z.any()),
-  playerArchive: z.array(z.any()),
+  franchiseHistory: z.array(FranchiseHistoryEntrySchema),
+  playerArchive: z.array(PlayerArchiveEntrySchema),
   playerSeasonHistory: z.record(z.string(), z.array(PlayerSeasonHistoryEntrySchema)).default({}),
-  playerRivalries: z.array(z.any()).default([]),
-  farewellTours: z.array(z.any()).default([]),
+  playerRivalries: z.array(PlayerRivalrySchema).default([]),
+  farewellTours: z.array(FarewellTourSchema).default([]),
   endorsementOffers: EndorsementDealsSchema,
   leagueRules: LeagueRulesSchema,
   cbaState: CBAStateSchema,
@@ -2199,7 +2621,7 @@ export const SaveStateSchema = z.object({
   eventLog: z.array(GameEventSchema),
   narrativeState: z.object({
     activeArcs: z.array(StoryArcSchema),
-    hooks: z.array(z.any()),
+    hooks: z.array(NarrativeHookSchema),
     recentHeadlines: z.array(z.string()),
   }),
   offFieldEvents: z.array(OffFieldEventSchema),
@@ -2208,8 +2630,8 @@ export const SaveStateSchema = z.object({
   leagueRivalries: z.array(LeagueRivalrySchema),
   activeEffects: z.array(TimedEffectSchema),
   gameDayState: GameDayStateSchema,
-  weekSummaries: z.array(z.any()),
-  playoffBracket: z.any().nullable(),
+  weekSummaries: z.array(WeeklySummarySchema),
+  playoffBracket: PlayoffBracketSchema.nullable(),
   offseasonState: OffseasonStateSchema.nullable(),
   expansionDraftState: ExpansionDraftStateSchema.optional(),
   stadiumDealOffers: z.array(StadiumDealSchema).default([]),
@@ -2310,7 +2732,7 @@ export const SaveStateSchema = z.object({
   breakingNewsQueue: z.array(BreakingNewsEventSchema).default([]),
   ownerPersonalityInbox: z.array(OwnerPersonalityEventSchema).default([]),
   commissionerDisciplineLog: z.array(CommissionerRulingSchema).default([]),
-  earnedDoctrines: z.array(z.any()).default([]),
+  earnedDoctrines: z.array(EarnedDoctrineSchema).default([]),
   nearMissTracker: NearMissTrackerSchema.optional(),
   seasonNearMissReceipts: z.array(NearMissEntrySchema).default([]),
   activeCallYourShot: ShotDeclarationSchema.optional(),
