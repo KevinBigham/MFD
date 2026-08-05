@@ -1780,10 +1780,124 @@ export const SpecialTeamsGameSummarySchema = z.object({
   highlights: z.array(z.string()),
 });
 
+// ── GameResult island (schema hardening island 1) ────────
+// Types ScheduledGame.result against the real GameResult shape in
+// types/sim.ts. Legacy tolerance: fields introduced after early save
+// versions carry defaults so old saves keep parsing; heavy nested event
+// payloads (broadcast, snapEvents, callYourShotResult, namedGame) stay
+// optional and are hardened as their own islands in later patches.
+export const PlayerGameLineSchema = z.object({
+  playerId: z.string(),
+  name: z.string(),
+  pos: PlayerPositionSchema,
+  passAtt: z.number().optional(),
+  passComp: z.number().optional(),
+  passYds: z.number().optional(),
+  passTD: z.number().optional(),
+  passINT: z.number().optional(),
+  sacked: z.number().optional(),
+  rushAtt: z.number().optional(),
+  rushYds: z.number().optional(),
+  rushTD: z.number().optional(),
+  fumbles: z.number().optional(),
+  targets: z.number().optional(),
+  rec: z.number().optional(),
+  recYds: z.number().optional(),
+  recTD: z.number().optional(),
+  tackles: z.number().optional(),
+  sacks: z.number().optional(),
+  defINT: z.number().optional(),
+  fgAtt: z.number().optional(),
+  fgMade: z.number().optional(),
+  snaps: z.number().optional(),
+});
+
+export const TeamGameStatsSchema = z.object({
+  totalYards: z.number().default(0),
+  passingYards: z.number().default(0),
+  rushingYards: z.number().default(0),
+  turnovers: z.number().default(0),
+  sacks: z.number().default(0),
+  pressuresAllowed: z.number().default(0),
+  thirdDownConversions: z.number().default(0),
+  thirdDownAttempts: z.number().default(0),
+  timeOfPossession: z.number().default(0),
+  passAttempts: z.number().default(0),
+  passCompletions: z.number().default(0),
+  passTDs: z.number().default(0),
+  interceptions: z.number().default(0),
+  rushAttempts: z.number().default(0),
+  rushTDs: z.number().default(0),
+  fumbles: z.number().default(0),
+  penalties: z.number().default(0),
+  penaltyYards: z.number().default(0),
+  fgMade: z.number().default(0),
+  fgAttempted: z.number().default(0),
+  punts: z.number().default(0),
+  drives: z.number().default(0),
+  yacYards: z.number().default(0),
+  redZoneTrips: z.number().default(0),
+  redZoneScores: z.number().default(0),
+  quarterScores: z.array(z.number()).default([]),
+  playerLines: z.array(PlayerGameLineSchema).default([]),
+});
+
+export const PlayerMatchupEventSchema = z.object({
+  type: z.enum(['interception', 'sack', 'fumble']),
+  offensePlayerId: z.string(),
+  defensePlayerId: z.string(),
+  quarter: z.number(),
+});
+
+export const MatchupHighlightSchema = z.object({
+  label: z.string(),
+  detail: z.string(),
+  teamId: z.string(),
+  playerId: z.string().nullable(),
+  opponentPlayerId: z.string().nullable(),
+  advantage: z.number(),
+});
+
+export const GameResultSchema = z.object({
+  id: z.string(),
+  homeTeamId: z.string(),
+  awayTeamId: z.string(),
+  homeScore: z.number(),
+  awayScore: z.number(),
+  week: z.number(),
+  year: z.number(),
+  overtime: z.boolean().default(false),
+  mvpPlayerId: z.string().nullable().default(null),
+  stats: z.record(TeamGameStatsSchema).default({}),
+  weather: z.enum(['dome', 'clear', 'rain', 'snow', 'wind']).nullable().optional(),
+  matchupHighlight: MatchupHighlightSchema.nullable().optional(),
+  broadcastNetwork: z.enum(['MFN', 'ESPN8', 'FOX8', 'CBS8', 'NBC8']).nullable().optional(),
+  broadcast: z.any().optional(),
+  primetime: z.boolean().optional(),
+  flexed: z.boolean().optional(),
+  specialTeams: z.record(SpecialTeamsGameSummarySchema).optional(),
+  playerMatchupEvents: z.array(PlayerMatchupEventSchema).default([]),
+  snapEvents: z.array(z.any()).optional(),
+  snapLedgerMode: z.enum(['shadow', 'canonical']).optional(),
+  healthyStarterShortages: z.record(z.number()).optional(),
+  healthyStarterShortagesByTeam: z.record(z.record(z.number())).optional(),
+  callYourShotResult: z.any().optional(),
+  namedGame: z.any().optional(),
+  contingencyActivations: z.array(z.object({
+    teamId: z.string(),
+    ruleId: z.string(),
+    label: z.string(),
+    triggerLabel: z.string().optional(),
+    responseLabel: z.string().optional(),
+    quarter: z.number(),
+    callout: z.string().nullable().optional(),
+  })).optional(),
+});
+
 export const ScheduledGameSchema = z.object({
   homeTeamId: z.string(),
   awayTeamId: z.string(),
-  result: z.any().nullable(),
+  result: GameResultSchema.nullable(),
   weather: z.enum(['dome', 'clear', 'rain', 'snow', 'wind']).nullable().optional(),
   flexed: z.boolean().default(false),
   primetime: z.boolean().default(false),
