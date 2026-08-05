@@ -1814,6 +1814,14 @@ export const ContractExtensionRecordSchema = z.object({
   week: z.number(),
 });
 
+export const CoordinatorSpecialtySchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  icon: z.string(),
+  effect: z.record(z.string(), z.number()),
+  desc: z.string(),
+});
+
 export const StaffCandidateSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -1823,7 +1831,7 @@ export const StaffCandidateSchema = z.object({
   ratings: z.record(z.number()),
   level: z.number(),
   age: z.number().optional(),
-  specialty75: z.any().nullable().optional(),
+  specialty75: CoordinatorSpecialtySchema.nullable().optional(),
   term: z.number().optional(),
   buyoutPenalty: z.number().optional(),
   loyalty: z.number().optional(),
