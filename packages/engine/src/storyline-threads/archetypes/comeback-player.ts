@@ -1,4 +1,5 @@
 import type { GameState, Player } from '../../types';
+import { playerDisplayName } from '../../utils';
 import type { StorylineSeedCandidate, StorylineThread } from '../types';
 
 const BEATS = [
@@ -54,15 +55,15 @@ export function seedComebackPlayerThreads(state: GameState, _weekNumber: number)
     .sort((left, right) => left.id.localeCompare(right.id))
     .map((player) => ({
       key: `comeback-player|${state.year}|${player.id}`,
-      title: `${player.name} is writing a comeback season`,
-      summary: `${player.name} is matching or beating the pre-injury baseline and forcing a comeback narrative.`,
+      title: `${playerDisplayName(player)} is writing a comeback season`,
+      summary: `${playerDisplayName(player)} is matching or beating the pre-injury baseline and forcing a comeback narrative.`,
       teamIds: player.teamId ? [player.teamId] : [],
       playerIds: [player.id],
       heat: clampHeat(50 + Math.max(0, player.ovr - Number(player.careerStats.previousSeasonOvr ?? player.ovr)) * 5),
       nextBeatHint: nextHint(0),
       metadata: {
         playerId: player.id,
-        playerName: player.name,
+        playerName: playerDisplayName(player),
         baselineOvr: Number(player.careerStats.previousSeasonOvr ?? player.ovr),
       },
     }));

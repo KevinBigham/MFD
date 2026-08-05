@@ -1,4 +1,5 @@
 import { analyzeTeamNeeds, buildLeagueAverageByGroup, getTeamPositionNeed } from './team-needs';
+import { playerDisplayName } from '../utils';
 import type {
   DecisionReceipt,
   DynastyMemoryGraph,
@@ -229,7 +230,7 @@ function receiptForTransaction(game: GameState, team: Team, entry: TransactionLo
   const need = player ? getTeamPositionNeed(report, player.pos) : null;
   const priorityRank = player ? plan.priorityPositions.indexOf(player.pos) + 1 : 0;
   const eventType = eventTypeForTransaction(entry);
-  const outcome = `${team.abbr} ${eventType.replace('_', ' ')}${player ? ` ${player.name}` : ''}`;
+  const outcome = `${team.abbr} ${eventType.replace('_', ' ')}${player ? ` ${playerDisplayName(player)}` : ''}`;
   const counterfactual = need && (need.needScore ?? 0) >= 12
     ? `Without the move, ${team.abbr} would keep a ${need.needScore} need score at ${player?.pos}.`
     : `A lower-risk alternative was to preserve cap and draft capital for the ${plan.windowYears[0]}–${plan.windowYears[1]} window.`;

@@ -1,6 +1,7 @@
 import { mulberry32, uid } from '../rng';
 import type { AgentProfile, ContractOffer, GameState, Player, ReSignDecision, Team } from '../types';
 import { recordNewsItem } from './league-news';
+import { playerDisplayName } from '../utils';
 
 const FIRST_NAMES = ['Parker', 'Jordan', 'Avery', 'Mason', 'Quinn', 'Rowan', 'Harper', 'Logan', 'Casey', 'Blake', 'Skyler', 'Riley'];
 const LAST_NAMES = ['Stone', 'Carter', 'Lane', 'Bishop', 'Price', 'Reed', 'Hale', 'Brooks', 'Quade', 'Bennett', 'Pike', 'Dawson'];
@@ -197,14 +198,14 @@ export function holdoutCheck(game: GameState, teamId: string, playerId: string):
   player.holdout = true;
   player.isStarter = false;
   player.morale = Math.max(0, player.morale - 20);
-  decision.agentResponse = `${player.name} is now holding out while ${getPlayerAgent(game, playerId)?.name ?? 'his agent'} waits for movement.`;
+  decision.agentResponse = `${playerDisplayName(player)} is now holding out while ${getPlayerAgent(game, playerId)?.name ?? 'his agent'} waits for movement.`;
   recordNewsItem(game, {
     id: `holdout-${player.id}-${game.year}-${game.week}`,
     year: game.year,
     week: game.week,
     type: 'milestone',
-    headline: `${player.name} starts a contract holdout`,
-    body: `${player.name} stayed away from team activities as contract talks stalled.`,
+    headline: `${playerDisplayName(player)} starts a contract holdout`,
+    body: `${playerDisplayName(player)} stayed away from team activities as contract talks stalled.`,
     teamIds: [teamId],
     playerIds: [player.id],
     importance: 'major',
@@ -217,7 +218,7 @@ export function agentMediaLeak(game: GameState, rng: () => number, playerId: str
   const agent = getPlayerAgent(game, playerId);
   if (!player?.holdout || !agent || rng() > 0.15) return false;
 
-  const headline = `${agent.name} leaks pressure around ${player.name}`;
+  const headline = `${agent.name} leaks pressure around ${playerDisplayName(player)}`;
   game.offFieldEvents.push({
     id: `agent-leak-${uid()}`,
     type: 'agent_media_leak',
@@ -227,7 +228,7 @@ export function agentMediaLeak(game: GameState, rng: () => number, playerId: str
     playerIds: [player.id],
     teamId: player.teamId ?? '',
     headline,
-    description: `${agent.name} pushed the contract fight into the media cycle while ${player.name} remains away from the club.`,
+    description: `${agent.name} pushed the contract fight into the media cycle while ${playerDisplayName(player)} remains away from the club.`,
     effects: [],
   });
   recordNewsItem(game, {
@@ -236,7 +237,7 @@ export function agentMediaLeak(game: GameState, rng: () => number, playerId: str
     week: game.week,
     type: 'milestone',
     headline,
-    body: `${agent.name} publicly escalated the contract standoff for ${player.name}.`,
+    body: `${agent.name} publicly escalated the contract standoff for ${playerDisplayName(player)}.`,
     teamIds: player.teamId ? [player.teamId] : [],
     playerIds: [player.id],
     importance: 'major',
@@ -270,8 +271,8 @@ export function processCarryoverHoldouts(game: GameState, teamId: string, rng: (
         year: game.year,
         week: game.week,
         type: 'milestone',
-        headline: `${player.name} escalates into a holdout`,
-        body: `${player.name} stayed away from the club as ${agent.name} kept contract pressure on the front office.`,
+        headline: `${playerDisplayName(player)} escalates into a holdout`,
+        body: `${playerDisplayName(player)} stayed away from the club as ${agent.name} kept contract pressure on the front office.`,
         teamIds: [team.id],
         playerIds: [player.id],
         importance: 'major',
@@ -298,8 +299,8 @@ export function processCarryoverHoldouts(game: GameState, teamId: string, rng: (
       year: game.year,
       week: game.week,
       type: 'signing',
-      headline: `${player.name} is headed to free agency`,
-      body: `${agent.name} ended the standoff and sent ${player.name} to the open market.`,
+      headline: `${playerDisplayName(player)} is headed to free agency`,
+      body: `${agent.name} ended the standoff and sent ${playerDisplayName(player)} to the open market.`,
       teamIds: [team.id],
       playerIds: [player.id],
       importance: 'major',

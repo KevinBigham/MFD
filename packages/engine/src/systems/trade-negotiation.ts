@@ -98,7 +98,7 @@ function playerAsset(teamId: string, player: Player): TradeOfferAsset {
     teamId,
     playerId: player.id,
     pickId: null,
-    description: player.name,
+    description: playerDisplayName(player),
   };
 }
 

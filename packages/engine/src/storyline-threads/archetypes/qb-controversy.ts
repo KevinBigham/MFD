@@ -1,6 +1,7 @@
 import type { Player, ScheduledGame, Team } from '../../types';
 import type { GameState } from '../../types';
 import type { StorylineSeedCandidate, StorylineThread } from '../types';
+import { playerDisplayName } from '../../utils';
 
 const BEATS = [
   'media questions',
@@ -103,7 +104,7 @@ export function seedQbControversyThreads(state: GameState, _weekNumber: number):
       return [{
         key: `qb-controversy|${state.year}|${team.id}|${starter.id}|${backup.id}`,
         title: `${team.city} has a quarterback controversy`,
-        summary: `${starter.name}'s ${starterRating.toFixed(1)} passer rating over the last three games opened the door for ${backup.name}.`,
+        summary: `${playerDisplayName(starter)}'s ${starterRating.toFixed(1)} passer rating over the last three games opened the door for ${playerDisplayName(backup)}.`,
         teamIds: [team.id],
         playerIds: [starter.id, backup.id],
         heat: clampHeat(60 + Math.max(0, 75 - starterRating)),
@@ -111,9 +112,9 @@ export function seedQbControversyThreads(state: GameState, _weekNumber: number):
         metadata: {
           teamId: team.id,
           starterId: starter.id,
-          starterName: starter.name,
+          starterName: playerDisplayName(starter),
           backupId: backup.id,
-          backupName: backup.name,
+          backupName: playerDisplayName(backup),
           backupStartedWeeks: 0,
         },
       }];

@@ -200,7 +200,7 @@ function currentYearStats(game: GameState, stat: string, pos?: Position): StatLe
     .map((player) => ({
       rank: 0,
       playerId: player.id,
-      playerName: player.name,
+      playerName: playerDisplayName(player, player.id),
       teamId: player.teamId,
       teamAbbr: teamAbbr(game, player.teamId),
       pos: player.pos,
@@ -404,13 +404,13 @@ export function getPositionRankings(game: GameState, pos: Position): PositionRan
     .sort((a, b) =>
       b.ovr - a.ovr
       || Number(b.stats[POSITION_STAT_KEYS[pos][0]!] ?? 0) - Number(a.stats[POSITION_STAT_KEYS[pos][0]!] ?? 0)
-      || a.name.localeCompare(b.name))
+      || playerDisplayName(a, a.id).localeCompare(playerDisplayName(b, b.id)))
     .map((player, index) => {
       const value = getPlayerValue(player, game);
       return {
         rank: index + 1,
         playerId: player.id,
-        playerName: player.name,
+        playerName: playerDisplayName(player, player.id),
         teamId: player.teamId,
         ovr: player.ovr,
         keyStats: POSITION_STAT_KEYS[pos].reduce<Record<string, number>>((acc, key) => {

@@ -6,6 +6,7 @@
  */
 import type { PrngFn } from '../rng';
 import type { Player, TraitId } from '../types';
+import { playerDisplayName } from '../utils';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -183,7 +184,7 @@ export function generateCareerEpilogue(
     }
   }
 
-  const name = player.name;
+  const name = playerDisplayName(player);
 
   if (bestTemplate && bestMatchCount > 0) {
     const headline = bestTemplate.headlines[Math.floor(rng() * bestTemplate.headlines.length)]!

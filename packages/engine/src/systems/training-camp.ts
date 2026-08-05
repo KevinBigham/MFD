@@ -9,6 +9,7 @@
 import { mulberry32 } from '../rng';
 import type { PrngFn } from '../rng';
 import type { GameState, Player, Position } from '../types';
+import { playerDisplayName } from '../utils';
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -141,13 +142,13 @@ export function runTrainingCamp(game: GameState, teamId: string): TrainingCampRe
       game.players[player.id] = player;
       standouts.push({
         playerId: player.id,
-        playerName: player.name,
+        playerName: playerDisplayName(player),
         pos: player.pos,
         ovrBefore,
         ovrAfter: player.ovr,
         reason: 'breakout',
       });
-      headlines.push(`${player.name} is the surprise of camp — coaches are raving.`);
+      headlines.push(`${playerDisplayName(player)} is the surprise of camp — coaches are raving.`);
     }
   }
 
@@ -191,12 +192,12 @@ export function runTrainingCamp(game: GameState, teamId: string): TrainingCampRe
       game.players[player.id] = player;
       injuries.push({
         playerId: player.id,
-        playerName: player.name,
+        playerName: playerDisplayName(player),
         pos: player.pos,
         weeksOut: CAMP_INJURY_WEEKS,
       });
       headlines.push(
-        `${player.name} (${player.pos}) suffered a minor injury in camp — expected back Week ${CAMP_INJURY_WEEKS + 1}.`,
+        `${playerDisplayName(player)} (${player.pos}) suffered a minor injury in camp — expected back Week ${CAMP_INJURY_WEEKS + 1}.`,
       );
     }
   }

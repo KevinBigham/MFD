@@ -1,4 +1,5 @@
 import { DIFF_SETTINGS } from '../config/difficulty';
+import { playerDisplayName } from '../utils';
 import { createWeekRngState, mulberry32, type RngState } from '../rng';
 import { checkAchievements } from './achievements';
 import { generateAwards } from './awards';
@@ -127,7 +128,7 @@ function ensureNearMissTracker(game: GameState) {
 
 function recordMissedFreeAgentNearMiss(game: GameState, player: Player, signedWithTeam: Team): void {
   recordMissedFA(ensureNearMissTracker(game), {
-    playerName: player.name,
+    playerName: playerDisplayName(player),
     playerOvr: player.ovr,
     signedWithTeam: `${signedWithTeam.city} ${signedWithTeam.name}`,
     position: player.pos,

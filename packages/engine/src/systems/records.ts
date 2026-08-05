@@ -7,6 +7,7 @@ import type {
   RecordEntry,
   Team,
 } from '../types';
+import { playerDisplayName } from '../utils';
 
 const SINGLE_GAME_STATS = ['passYds', 'rushYds', 'recYds', 'touchdowns', 'sacks', 'defINT', 'pointsGame'] as const;
 const SINGLE_SEASON_STATS = ['passYds', 'rushYds', 'recYds', 'passTD', 'rushTD', 'sacks', 'defINT', 'wins', 'pointsFor'] as const;
@@ -243,7 +244,7 @@ export function updateSeasonRecords(game: GameState, year: number): RecordEntry[
           teamName,
           year,
           playerId: player.id,
-          playerName: player.name,
+          playerName: playerDisplayName(player),
         };
         upsertRecord(book, 'singleSeason', stat, record);
         changed.push(record);
@@ -304,7 +305,7 @@ export function updateCareerRecords(game: GameState, year: number): RecordEntry[
         teamName,
         year,
         playerId: player.id,
-        playerName: player.name,
+        playerName: playerDisplayName(player),
       };
       upsertRecord(book, 'career', stat, record);
       changed.push(record);
@@ -339,9 +340,10 @@ function formatRecordLabel(stat: string, entry: RecordEntry): string {
 
 export function getPlayerSeasonAwardLabel(player: Player): string {
   const touchdowns = totalTouchdowns(player);
-  if (touchdowns >= 15) return `${player.name} scored ${touchdowns} TD`;
-  if ((player.stats.passYds ?? 0) >= 4500) return `${player.name} threw for ${player.stats.passYds} yards`;
-  if ((player.stats.sacks ?? 0) >= 12) return `${player.name} posted ${player.stats.sacks} sacks`;
-  if ((player.stats.defINT ?? 0) >= 5) return `${player.name} grabbed ${player.stats.defINT} INT`;
-  return `${player.name} made a record push`;
+  const name = playerDisplayName(player);
+  if (touchdowns >= 15) return `${name} scored ${touchdowns} TD`;
+  if ((player.stats.passYds ?? 0) >= 4500) return `${name} threw for ${player.stats.passYds} yards`;
+  if ((player.stats.sacks ?? 0) >= 12) return `${name} posted ${player.stats.sacks} sacks`;
+  if ((player.stats.defINT ?? 0) >= 5) return `${name} grabbed ${player.stats.defINT} INT`;
+  return `${name} made a record push`;
 }

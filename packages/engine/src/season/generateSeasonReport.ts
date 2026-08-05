@@ -7,6 +7,7 @@ import type {
   Team,
   TradeOfferAsset,
 } from '../types';
+import { playerDisplayName } from '../utils';
 import type {
   AwardReport,
   GenerateSeasonReportOptions,
@@ -232,7 +233,7 @@ function topPlayers(players: Player[], statField: keyof Player['stats']): StatLe
   return [...players]
     .map((player) => ({
       playerId: player.id,
-      playerName: player.name,
+      playerName: playerDisplayName(player),
       teamId: player.teamId,
       value: Number(player.stats[statField] ?? 0),
     }))
@@ -320,7 +321,7 @@ function buildInjuries(game: GameState): SeasonReport['injuries'] {
     bySeverity[player.injury.severity] += 1;
     mostImpactful.push({
       playerId: player.id,
-      playerName: player.name,
+      playerName: playerDisplayName(player),
       teamId: player.teamId,
       injuryType: player.injury.type,
       severity: player.injury.severity,

@@ -7,7 +7,7 @@
  */
 
 import type { Player, PlayerArchetype, Position } from '../types';
-import { cl } from '../utils';
+import { cl, playerDisplayName } from '../utils';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -200,7 +200,7 @@ export function checkArchetypeEvolution(
     previousLabel: prevLabel,
     newArchetype: bestId,
     newLabel: newLabel,
-    narrative: `${player.name}'s development has shifted — evolving from ${prevLabel} to ${newLabel}.`,
+    narrative: `${playerDisplayName(player)}'s development has shifted — evolving from ${prevLabel} to ${newLabel}.`,
   };
 }
 

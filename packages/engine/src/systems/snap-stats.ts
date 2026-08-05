@@ -1,5 +1,6 @@
 import type { Player, PlayerGameLine, SnapEvent, Team, TeamGameStats } from '../types';
 import { getGameAvailability } from './injury-system';
+import { playerDisplayName } from '../utils';
 
 export interface SnapTeamBoxScore {
   stats: TeamGameStats;
@@ -14,7 +15,7 @@ function available(team: Team, positions: readonly Player['pos'][]): Player[] {
 
 function ensureLine(lines: Map<string, PlayerGameLine>, player: Player | undefined): PlayerGameLine | null {
   if (!player) return null;
-  const line = lines.get(player.id) ?? { playerId: player.id, name: player.name, pos: player.pos };
+  const line = lines.get(player.id) ?? { playerId: player.id, name: playerDisplayName(player), pos: player.pos };
   lines.set(player.id, line);
   return line;
 }

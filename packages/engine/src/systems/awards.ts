@@ -8,6 +8,7 @@ import type {
   Position,
   Team,
 } from '../types';
+import { playerDisplayName } from '../utils';
 
 const ALL_PRO_SLOTS: Array<[Position, number]> = [
   ['QB', 1],
@@ -105,7 +106,7 @@ function createPlayerEntity(team: Team, player: Player): AwardEntity {
   return {
     entityId: player.id,
     entityType: 'player',
-    name: player.name,
+    name: playerDisplayName(player),
     teamId: team.id,
     teamName: teamLabel(team),
     position: player.pos,

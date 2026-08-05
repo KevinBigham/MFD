@@ -1,4 +1,5 @@
 import { mulberry32, type PrngFn } from '../rng';
+import { playerDisplayName } from '../utils';
 import type {
   BroadcastOutput,
   DefensiveGamePlan,
@@ -109,7 +110,7 @@ function buildPlayerMap(team: Team): Record<string, PlayerRef> {
   return team.roster.reduce<Record<string, PlayerRef>>((map, player) => {
     map[player.id] = {
       id: player.id,
-      name: player.name,
+      name: playerDisplayName(player),
       ovr: player.ovr,
     };
     return map;
@@ -204,7 +205,7 @@ function isRivalryGame(homeTeam: Team, awayTeam: Team): boolean {
 function buildNameMap(...teams: Team[]): Record<string, string> {
   return teams.reduce<Record<string, string>>((map, team) => {
     for (const player of team.roster) {
-      map[player.id] = player.name;
+      map[player.id] = playerDisplayName(player);
     }
     return map;
   }, {});

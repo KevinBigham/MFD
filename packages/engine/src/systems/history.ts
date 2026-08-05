@@ -7,6 +7,7 @@ import type {
   PlayoffRound,
 } from '../types';
 import { createDefaultFranchiseIdentity } from './franchise-identity';
+import { playerDisplayName } from '../utils';
 
 const PLAYOFF_FINISH_LABELS: Record<PlayoffRound, string> = {
   wild_card: 'wild_card_exit',
@@ -26,7 +27,7 @@ function ensureArchiveEntry(game: GameState, player: Player, year: number): Play
       playerId: player.id,
       firstName: player.firstName,
       lastName: player.lastName,
-      name: player.name,
+      name: playerDisplayName(player),
       positions: [player.pos],
       jerseyNumber: player.jerseyNumber ?? null,
       peakOvr: player.ovr,
@@ -42,7 +43,7 @@ function ensureArchiveEntry(game: GameState, player: Player, year: number): Play
 
   entry.firstName = player.firstName;
   entry.lastName = player.lastName;
-  entry.name = player.name;
+  entry.name = playerDisplayName(player);
   entry.jerseyNumber = player.jerseyNumber ?? entry.jerseyNumber ?? null;
   entry.lastYear = Math.max(entry.lastYear, year);
   entry.careerStats = { ...player.careerStats };
