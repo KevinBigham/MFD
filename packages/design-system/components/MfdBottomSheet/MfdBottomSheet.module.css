@@ -5,10 +5,12 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: var(--mfd-v2-canvas);
-  /* Dark enough to signal modality, sheer enough to keep context visible —
-   * a sheet that hides where you came from is a route change in disguise. */
-  opacity: 0.98;
+  /* A translucent token, not `opacity` on this element: opacity inherits to
+   * the sheet inside and creates a stacking context, so the sheet would fade
+   * along with its own backdrop. Dark enough to signal modality, sheer enough
+   * to keep context visible — a sheet that hides where you came from is a
+   * route change in disguise. */
+  background: var(--mfd-v2-scrim);
 }
 
 .sheet {

@@ -102,8 +102,12 @@ export function MfdButtonV2({
   const description = disabled ? disabledReason : (consequence ?? hint);
   const state = resolveButtonState({ tone, loading, disabled });
 
+  // Wrapped rather than returned as a fragment. A bare fragment makes the
+  // description a sibling of the button, so any flex or grid parent — the
+  // action dock among them, which sizes every child to 48px — treats the
+  // explanation as a second control.
   return (
-    <>
+    <span className={styles.wrap} data-mfd-v2-button-wrap="true">
       <button
         {...rest}
         {...state}
@@ -123,6 +127,6 @@ export function MfdButtonV2({
           {description}
         </span>
       ) : null}
-    </>
+    </span>
   );
 }

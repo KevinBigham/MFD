@@ -6,7 +6,12 @@ import { MfdButtonV2, resolveButtonState } from './MfdButtonV2';
 import { MfdStateFrame } from '../MfdStateFrame/MfdStateFrame';
 import { MfdLocalNav, resolveNavItemState } from '../MfdLocalNav/MfdLocalNav';
 import { MfdStickyAction } from '../MfdStickyAction/MfdStickyAction';
-import { FOCUSABLE_SELECTOR, getFocusable, nextFocusIndex } from '../MfdBottomSheet/MfdBottomSheet';
+import {
+  FOCUSABLE_SELECTOR,
+  getFocusable,
+  nextFocusIndex,
+  selectInertTargets,
+} from '../MfdBottomSheet/MfdBottomSheet';
 
 const css = (file: string) =>
   readFileSync(fileURLToPath(new URL(file, import.meta.url)), 'utf8');
@@ -95,6 +100,19 @@ describe('button state matrix', () => {
 
   it('defaults to type=button, so it cannot submit a form it happens to sit in', () => {
     expect(renderToStaticMarkup(<MfdButtonV2>Go</MfdButtonV2>)).toContain('type="button"');
+  });
+
+  it('presents as one element to its parent, description included', () => {
+    // A bare fragment makes the description a sibling of the button, and any
+    // flex or grid parent — the action dock sizes every child to 48px — treats
+    // the explanation as a second control.
+    const html = renderToStaticMarkup(
+      <MfdButtonV2 disabled disabledReason="Locked until Week 4">Go</MfdButtonV2>,
+    );
+
+    expect(html.startsWith('<span')).toBe(true);
+    expect(html).toContain('data-mfd-v2-button-wrap="true"');
+    expect(html.match(/data-mfd-v2-button-wrap/g)).toHaveLength(1);
   });
 });
 
@@ -189,6 +207,41 @@ describe('overlay focus arithmetic', () => {
   it('returns nothing for a missing container rather than throwing', () => {
     expect(getFocusable(null)).toEqual([]);
   });
+
+  it('skips stops that are present but not perceivable', () => {
+    // No jsdom here, so the container is a stub — but this is the filtering
+    // the function exists for, and it was previously never executed.
+    const stop = (attrs: { hidden?: boolean; insideHidden?: boolean }) => ({
+      hasAttribute: (name: string) => name === 'hidden' && Boolean(attrs.hidden),
+      closest: () => (attrs.insideHidden ? {} : null),
+      id: JSON.stringify(attrs),
+    });
+    const visible = stop({});
+    const container = {
+      querySelectorAll: () => [visible, stop({ hidden: true }), stop({ insideHidden: true })],
+    } as unknown as ParentNode;
+
+    expect(getFocusable(container)).toEqual([visible]);
+  });
+});
+
+describe('overlay inertness', () => {
+  it('inerts every top-level sibling that does not contain the sheet', () => {
+    // aria-modal tells a screen reader the rest of the page is out of play. It
+    // does not stop a swipe-navigating user reaching it, and it does not stop
+    // Tab escaping in older engines.
+    const sheet = { tag: 'sheet' };
+    const holder = { contains: (node: unknown) => node === sheet };
+    const sibling = { contains: () => false };
+    const other = { contains: () => false };
+
+    expect(selectInertTargets([holder, sibling, other] as unknown as Element[], sheet as unknown as Node))
+      .toEqual([sibling, other]);
+  });
+
+  it('inerts nothing when there is no sheet to protect', () => {
+    expect(selectInertTargets([{ contains: () => false }] as unknown as Element[], null)).toEqual([]);
+  });
 });
 
 describe('local nav', () => {
@@ -233,7 +286,7 @@ describe('local nav', () => {
     expect(html).toContain('items need attention');
   });
 
-  it('keeps a locked section focusable so its explanation is reachable', () => {
+  it('puts a locked reason in the accessible name, not in a hover-only title', () => {
     const html = renderToStaticMarkup(
       <MfdLocalNav
         label="Office sections"
@@ -245,6 +298,9 @@ describe('local nav', () => {
     expect(html).toContain('aria-disabled="true"');
     expect(html).toContain('Opens after the season');
     expect(html).not.toContain('tabindex="-1"');
+    // A `title` is hover-only, which means a locked section would explain
+    // itself to everyone except a phone.
+    expect(html).not.toContain('title=');
   });
 });
 
@@ -302,6 +358,14 @@ describe('v2 component stylesheets', () => {
     expect(buttonCss).toContain('@media (prefers-reduced-motion: reduce)');
     expect(buttonCss).toMatch(/prefers-reduced-motion[\s\S]*animation: none/);
     expect(sheetCss).toMatch(/prefers-reduced-motion[\s\S]*animation: none/);
+  });
+
+  it('tint the scrim with a token instead of fading the sheet inside it', () => {
+    // `opacity` on the scrim inherits to the sheet and creates a stacking
+    // context, so the sheet would fade along with its own backdrop.
+    expect(sheetCss).toContain('background: var(--mfd-v2-scrim);');
+    const scrim = sheetCss.slice(sheetCss.indexOf('.scrim {'));
+    expect(scrim.slice(0, scrim.indexOf('}'))).not.toMatch(/^\s*opacity:/m);
   });
 
   it('keep the sheet clear of the gesture bar and inside the window', () => {

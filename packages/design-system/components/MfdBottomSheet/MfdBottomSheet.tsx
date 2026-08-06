@@ -63,6 +63,31 @@ export function nextFocusIndex(current: number, delta: 1 | -1, length: number): 
   return (current + delta + length) % length;
 }
 
+/**
+ * Top-level siblings that do not contain the sheet.
+ *
+ * Exported and pure over a supplied list so the selection rule is testable
+ * without a DOM: the ancestors of the open sheet must stay live, everything
+ * else must not.
+ */
+export function selectInertTargets(
+  candidates: readonly Element[],
+  sheet: Node | null,
+): Element[] {
+  if (!sheet) return [];
+  return candidates.filter((element) => !element.contains(sheet));
+}
+
+function inertBackground(sheet: HTMLElement | null): Element[] {
+  if (!sheet || typeof document === 'undefined') return [];
+
+  const targets = selectInertTargets([...document.body.children], sheet)
+    .filter((element) => !element.hasAttribute('inert'));
+
+  targets.forEach((element) => element.setAttribute('inert', ''));
+  return targets;
+}
+
 export interface MfdBottomSheetProps {
   open: boolean;
   onClose: () => void;
@@ -93,7 +118,18 @@ export function MfdBottomSheet({
     const [first] = getFocusable(sheetRef.current);
     (first ?? sheetRef.current)?.focus();
 
+    // Background inertness. `aria-modal` alone tells a screen reader the rest
+    // of the page is out of play; it does not stop a swipe-navigating user
+    // reaching it, and it does not stop Tab escaping in older engines.
+    const inerted = inertBackground(sheetRef.current);
+    // The page behind must not scroll under the sheet either — chained
+    // scrolling is the second half of the same failure.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     return () => {
+      inerted.forEach((element) => element.removeAttribute('inert'));
+      document.body.style.overflow = previousOverflow;
       returnFocusRef.current?.focus?.();
     };
   }, [open]);

@@ -61,7 +61,6 @@ export function MfdLocalNav({ items, activeId, label, onNavigate }: MfdLocalNavP
                 // Removing it from the tab order hides the explanation from
                 // exactly the people who need it read aloud.
                 aria-disabled={state.locked ? 'true' : undefined}
-                title={item.lockedReason}
                 onClick={(event) => {
                   if (state.locked) {
                     event.preventDefault();
@@ -71,6 +70,12 @@ export function MfdLocalNav({ items, activeId, label, onNavigate }: MfdLocalNavP
                 }}
               >
                 <span className={styles.label}>{item.label}</span>
+                {/* In the accessibility tree and in the accessible name, not
+                    in a `title`. A tooltip is hover-only, which means a locked
+                    section explains itself to everyone except a phone. */}
+                {item.lockedReason ? (
+                  <span className={styles.srOnly}>{` — ${item.lockedReason}`}</span>
+                ) : null}
                 {state.badge ? (
                   <span className={styles.badge} data-mfd-v2-nav-badge="true">
                     {state.badge}

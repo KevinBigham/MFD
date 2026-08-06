@@ -2,6 +2,15 @@
  * WP-03 button styling. Tokens only — no raw colour, no raw spacing.
  */
 
+/* One element from the parent's point of view, so a flex or grid container
+ * cannot mistake the description for a second control and size it like one. */
+.wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+}
+
 .button {
   display: inline-flex;
   align-items: center;
