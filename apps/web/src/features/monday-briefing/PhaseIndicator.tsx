@@ -1,5 +1,6 @@
 import React from 'react';
 import { pixelSm, monoSm } from '../shared/pixelUi';
+import { phaseVocabulary } from '../../ui/today/phase-vocabulary';
 
 interface PhaseIndicatorProps {
   phase: string;
@@ -7,57 +8,28 @@ interface PhaseIndicatorProps {
   year: number;
 }
 
-const PHASE_CONFIG: Record<string, { label: string; color: string; tip: string }> = {
-  preseason: {
-    label: 'PRESEASON',
-    color: 'var(--mfd-cyan)',
-    tip: 'Set roster, depth chart, and Game Plan before the regular season begins.',
-  },
-  regular_season: {
-    label: 'REGULAR SEASON',
-    color: 'var(--mfd-green)',
-    tip: 'Set injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.',
-  },
-  playoffs: {
-    label: 'PLAYOFFS',
-    color: 'var(--mfd-gold)',
-    tip: 'Set health, depth, and matchup calls now; one missed assignment ends the season.',
-  },
-  offseason: {
-    label: 'OFFSEASON',
-    color: 'var(--mfd-cyan)',
-    tip: 'Re-sign core players, clear cap space, and save room for Free Agency bids.',
-  },
-  free_agency: {
-    label: 'FREE AGENCY',
-    color: 'var(--mfd-gold)',
-    tip: 'Sign free agents for open starter or backup jobs before the draft.',
-  },
-  draft: {
-    label: 'DRAFT',
-    color: 'var(--mfd-green)',
-    tip: 'Pick players for named starter, backup, or development jobs.',
-  },
-  post_draft: {
-    label: 'POST-DRAFT',
-    color: 'var(--mfd-cyan)',
-    tip: 'Set rookie roles and roster cuts before camp opens.',
-  },
-  training_camp: {
-    label: 'TRAINING CAMP',
-    color: 'var(--mfd-gold)',
-    tip: 'Assign rookie reps, veteran jobs, and injury backup plans before Week 1.',
-  },
+/**
+ * The words come from `ui/today/phase-vocabulary.ts` so the legacy strip and
+ * the new shell cannot describe the same phase differently. The colours stay
+ * here: they are legacy pixel-shell tokens with no v2 equivalent, and an
+ * unknown phase deliberately renders dim rather than picking an accent.
+ */
+const PHASE_COLOR: Record<string, string> = {
+  preseason: 'var(--mfd-cyan)',
+  regular_season: 'var(--mfd-green)',
+  playoffs: 'var(--mfd-gold)',
+  offseason: 'var(--mfd-cyan)',
+  free_agency: 'var(--mfd-gold)',
+  draft: 'var(--mfd-green)',
+  post_draft: 'var(--mfd-cyan)',
+  training_camp: 'var(--mfd-gold)',
 };
 
-const DEFAULT_CONFIG = (phase: string) => ({
-  label: phase.toUpperCase().replace(/_/g, ' '),
-  color: 'var(--mfd-text-dim)',
-  tip: '',
-});
-
 export function PhaseIndicator({ phase, week, year }: PhaseIndicatorProps) {
-  const config = PHASE_CONFIG[phase] ?? DEFAULT_CONFIG(phase);
+  const config = {
+    ...phaseVocabulary(phase),
+    color: PHASE_COLOR[phase] ?? 'var(--mfd-text-dim)',
+  };
 
   return (
     <div
