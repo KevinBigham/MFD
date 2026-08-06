@@ -103,6 +103,32 @@ describe('buildTaskLedger', () => {
       .toBe('Fill depth chart (15/22 starters)');
   });
 
+  it('pins the severity of every state-derived task', () => {
+    // Severity drives the card accent and the whole panel accent through
+    // SEVERITY_ACCENT in ActionCenter. Nothing else fails when one flips, so
+    // this is the guard.
+    const tasks = buildTaskLedger({
+      phase: 'regular_season',
+      hasGamePlan: false,
+      starterCount: 15,
+      tradeOfferCount: 2,
+      ownerApproval: 30,
+      injuredCount: 4,
+    });
+
+    expect(tasks.map((task) => [task.id, task.severity])).toEqual([
+      ['game-plan-missing', 'blocking'],
+      ['depth-chart-incomplete', 'warning'],
+      ['trade-offers-pending', 'warning'],
+      // Red, but it never stops the week — that asymmetry is what makes the
+      // panel go red while Advance Week stays available.
+      ['owner-patience-low', 'blocking'],
+      ['injuries-unresolved', 'warning'],
+    ]);
+    expect(readyToAdvanceTask().severity).toBe('clear');
+    expect(noRecommendationsTask().severity).toBe('clear');
+  });
+
   it('is pure: the same input twice gives identical output, and results are independent', () => {
     const input: TaskLedgerInput = { ...CLEAR, injuredCount: 2 };
     const first = buildTaskLedger(input);
@@ -168,6 +194,46 @@ describe('task destinations', () => {
     }
   });
 
+  it('pins the destination label table, so a deletion cannot silently show a raw path', () => {
+    // The divergence test below only catches labels that change. A deleted
+    // label falls through to the route itself, which reads as a bug on screen
+    // but passes every other assertion here.
+    expect(Object.fromEntries(
+      [
+        '/game-plan', '/depth-chart', '/trades', '/trade-block', '/owner', '/roster',
+        '/week-advance', '/contracts', '/cap-lab', '/waivers', '/practice-squad',
+        '/free-agency', '/scouting', '/coaching', '/settings', '/dynasty', '/team-needs',
+      ].map((route) => [route, taskDestination(route).label]),
+    )).toEqual({
+      '/game-plan': 'Game Plan',
+      '/depth-chart': 'Depth Chart',
+      '/trades': 'Trades',
+      '/trade-block': 'Trade Block',
+      '/owner': 'Owner',
+      '/roster': 'Roster',
+      '/week-advance': 'Advance Week',
+      '/contracts': 'Contracts',
+      '/cap-lab': 'Cap Lab',
+      '/waivers': 'Waiver Wire',
+      '/practice-squad': 'Practice Squad',
+      '/free-agency': 'Free Agency',
+      '/scouting': 'Scouting',
+      '/coaching': 'Coaching',
+      '/settings': 'Settings',
+      '/dynasty': 'Save/Load',
+      '/team-needs': 'Team Needs',
+    });
+  });
+
+  it('pins the action verb for every task destination', () => {
+    expect(taskDestination('/game-plan').actionLabel).toBe('Set Plan');
+    expect(taskDestination('/depth-chart').actionLabel).toBe('Fix Depth');
+    expect(taskDestination('/trades').actionLabel).toBe('Decide');
+    expect(taskDestination('/roster').actionLabel).toBe('View');
+    expect(taskDestination('/week-advance').actionLabel).toBe('Advance Week');
+    expect(taskDestination('/owner').actionLabel).toBe('Open');
+  });
+
   it('keeps exactly one deliberate label divergence from the registry', () => {
     const divergent = APP_ROUTE_REGISTRY
       .map((definition) => definition.path)
@@ -205,6 +271,35 @@ describe('OPTIONAL_TASKS', () => {
     expect(OPTIONAL_TASKS).toHaveLength(7);
     expect(new Set(ids([...OPTIONAL_TASKS])).size).toBe(OPTIONAL_TASKS.length);
     expect(OPTIONAL_TASKS.every((task) => task.category === 'optional')).toBe(true);
+  });
+
+  it('pins the ids the board persists verbatim as closed-card ids', () => {
+    // These eight go into leagueEvents as action_center.closed payloads exactly
+    // as written. Unlike the Must Do and Recommended lanes, whose ids the board
+    // builds from a lane index, renaming one of these resurrects a card the
+    // player already dismissed. Changing this list is a save-visible change.
+    expect(ids([...OPTIONAL_TASKS])).toEqual([
+      'optional-roster-training-medical',
+      'optional-depth',
+      'optional-prep',
+      'optional-cap',
+      'optional-market',
+      'optional-scouting-staff-facility',
+      'optional-save',
+    ]);
+    expect(noRecommendationsTask().id).toBe('recommended-clear');
+  });
+
+  it('pins optional-lane severities, which set each card accent', () => {
+    expect(OPTIONAL_TASKS.map((task) => [task.id, task.severity])).toEqual([
+      ['optional-roster-training-medical', 'info'],
+      ['optional-depth', 'info'],
+      ['optional-prep', 'warning'],
+      ['optional-cap', 'info'],
+      ['optional-market', 'warning'],
+      ['optional-scouting-staff-facility', 'info'],
+      ['optional-save', 'clear'],
+    ]);
   });
 
   it('never blocks Advance Week — that is what makes it optional', () => {

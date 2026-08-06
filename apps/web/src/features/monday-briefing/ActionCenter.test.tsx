@@ -16,6 +16,21 @@ const source = [
 const RESTRICTIVE_ACTION_CENTER_COPY =
   /\b(?:open|use|worth using)\b[^.!?;]*(?:only if|only when)\b|Required only when|Optional (?:before Advance Week )?unless|unresolved roles may expose backups|You can click Advance Week anyway|Offers can expire|can cut owner patience|changes can alter/i;
 
+/**
+ * The accent a card actually renders with.
+ *
+ * WP-09a replaced per-item accent literals with a severity -> accent mapping in
+ * the component. Nothing else in the suite fails if a ledger severity flips, so
+ * this reads the colour straight off the rendered card that contains the given
+ * "What" text.
+ */
+function renderedAccent(html: string, whatText: string): string | null {
+  const at = html.indexOf(whatText);
+  if (at < 0) return null;
+  const borders = [...html.slice(0, at).matchAll(/border:1px solid var\(--mfd-([a-z-]+)\)/g)];
+  return borders.at(-1)?.[1] ?? null;
+}
+
 describe('ActionCenter', () => {
   it('renders game plan needed action during regular season', () => {
     const html = renderToStaticMarkup(
@@ -78,6 +93,56 @@ describe('ActionCenter', () => {
       />,
     );
     expect(html).toContain('15/22 starters');
+  });
+
+  it('maps every ledger severity onto the accent the card has always rendered', () => {
+    const html = renderToStaticMarkup(
+      <ActionCenter
+        phase="regular_season"
+        hasGamePlan={false}
+        starterCount={15}
+        tradeOfferCount={2}
+        ownerApproval={30}
+        injuredCount={4}
+      />,
+    );
+
+    expect(renderedAccent(html, 'Set your game plan')).toBe('red');
+    expect(renderedAccent(html, 'Fill depth chart (15/22 starters)')).toBe('gold');
+    expect(renderedAccent(html, '2 pending trade offers')).toBe('gold');
+    expect(renderedAccent(html, 'Owner patience is dropping')).toBe('red');
+    // The Recommended lane shows three; injuries are fourth in ledger order and
+    // are cut. That slice is legacy behaviour and is pinned here on purpose.
+    expect(renderedAccent(html, '4 injured players')).toBeNull();
+    expect(renderedAccent(html, 'Roster, weekly training, and medical roster calls')).toBe('cyan');
+    expect(renderedAccent(html, 'Tune game-plan and prep changes')).toBe('gold');
+    expect(renderedAccent(html, 'Save slot and backup export')).toBe('green');
+  });
+
+  it('renders the all-clear card green and the blocked panel red', () => {
+    const clear = renderToStaticMarkup(
+      <ActionCenter
+        phase="regular_season"
+        hasGamePlan={true}
+        starterCount={22}
+        tradeOfferCount={0}
+        ownerApproval={80}
+        injuredCount={0}
+      />,
+    );
+    const blocked = renderToStaticMarkup(
+      <ActionCenter
+        phase="regular_season"
+        hasGamePlan={false}
+        starterCount={22}
+        tradeOfferCount={0}
+        ownerApproval={80}
+        injuredCount={0}
+      />,
+    );
+
+    expect(renderedAccent(clear, 'Ready for Advance Week')).toBe('green');
+    expect(renderedAccent(blocked, 'Set your game plan')).toBe('red');
   });
 
   it('separates the living week plan into must do, recommended, and optional lanes', () => {
