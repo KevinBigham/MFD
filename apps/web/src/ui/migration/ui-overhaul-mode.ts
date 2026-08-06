@@ -9,6 +9,8 @@
  * Legacy is the default and remains the rollback path until release approval.
  */
 
+import { splitHref } from '../routes/href';
+
 export type UiOverhaulMode = 'legacy' | 'v2';
 
 export const DEFAULT_UI_OVERHAUL_MODE: UiOverhaulMode = 'legacy';
@@ -30,26 +32,46 @@ export function isUiOverhaulEnabled(state: { uiOverhaulMode: UiOverhaulMode }): 
   return selectUiOverhaulMode(state) === 'v2';
 }
 
+export const TODAY_ROUTE = '/today';
+
 /**
- * The new shell's own route.
+ * The routes the new shell renders, and the legacy shell must not.
  *
- * Two places in `App.tsx` branch on it — `RootLayout` returns a bare `Outlet`
- * so `AppFrame` is not nested inside 383–425px of legacy chrome, and
- * `PostSetupApp` suppresses the legacy Chip dock so its 193px of permanent
- * clearance does not land on a screen with a 152px budget.
+ * This is the strangler boundary as a data structure. Two places in `App.tsx`
+ * branch on it — `RootLayout` returns a bare `Outlet` so `MfdAppShell` is not
+ * nested inside 383–425px of legacy chrome, and `PostSetupApp` suppresses the
+ * legacy Chip dock so its 193px of permanent clearance does not land on a
+ * screen with a 152px budget.
  *
- * They read the current path from different sources: TanStack's
+ * Keeping it a set rather than a route-by-route condition is the point: each
+ * migrated hub adds one string here, and neither branch in the 2,276-line
+ * shell is edited again. Both branches read the *same* set, which is what
+ * stops them from disagreeing about which shell owns a route — a disagreement
+ * that renders both at once.
+ */
+export const V2_SHELL_ROUTES: ReadonlySet<string> = new Set([TODAY_ROUTE]);
+
+/**
+ * Normalises the many shapes a current path arrives in.
+ *
+ * The two call sites read from different sources: TanStack's
  * `location.pathname`, and `resolveCurrentAppRoute(window.location)`, which
  * returns the raw hash including any query string or trailing slash. Comparing
  * each against a bare string made `#/today?panel=x` match one and not the
  * other — the new shell would render with the legacy Chip dock on top of it.
- * Both go through this instead.
+ *
+ * The parsing is `splitHref`'s, not a second copy of it: `ui/routes/href.ts`
+ * is the UI layer's one href parser and has no dependencies, so importing it
+ * here costs nothing and keeps the boundary from disagreeing with route
+ * resolution about what a path means. Absent input answers `null` rather than
+ * `/`, so "no path" and "the home path" stay distinguishable.
  */
-export const TODAY_ROUTE = '/today';
+export function normalizeRoutePath(path: string | null | undefined): string | null {
+  if (!path) return null;
+  return splitHref(path).path;
+}
 
-export function isTodayRoute(path: string | null | undefined): boolean {
-  if (!path) return false;
-  const withoutHash = path.startsWith('#') ? path.slice(1) : path;
-  const [pathname = ''] = withoutHash.split(/[?#]/);
-  return (pathname.replace(/\/+$/, '') || '/') === TODAY_ROUTE;
+export function isV2ShellRoute(path: string | null | undefined): boolean {
+  const normalized = normalizeRoutePath(path);
+  return normalized !== null && V2_SHELL_ROUTES.has(normalized);
 }

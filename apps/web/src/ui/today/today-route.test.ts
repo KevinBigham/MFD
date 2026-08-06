@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { APP_ROUTE_REGISTRY } from '@mfd/engine/config';
 import { ROUTE_SURFACE_ENTRIES } from '../routes/route-surface-map';
-import { TODAY_ROUTE, isTodayRoute } from '../migration/ui-overhaul-mode';
+import { TODAY_ROUTE, V2_SHELL_ROUTES, isV2ShellRoute } from '../migration/ui-overhaul-mode';
 
 const APP_SOURCE = readFileSync(new URL('../../app/App.tsx', import.meta.url), 'utf8');
 const MOBILE_TABS_SOURCE = readFileSync(new URL('../../app/MobileBottomTabBar.tsx', import.meta.url), 'utf8');
@@ -39,6 +39,18 @@ describe('/today mount', () => {
     expect(ROUTE_SURFACE_ENTRIES.some((entry) => entry.legacyPath === '/today')).toBe(false);
   });
 
+  it('keeps every shell-owned route off the canonical surface, not just this one', () => {
+    // The boundary is a set now, so the guard has to be about the set. A path
+    // added here that a legacy route already owns would make `RootLayout`
+    // return a bare `Outlet` on a shipping screen and delete it — the exact A1
+    // violation this branch exists to avoid.
+    expect(V2_SHELL_ROUTES.size).toBeGreaterThan(0);
+    for (const path of V2_SHELL_ROUTES) {
+      expect(APP_ROUTE_REGISTRY.some((definition) => definition.path === path), path).toBe(false);
+      expect(ROUTE_SURFACE_ENTRIES.some((entry) => entry.legacyPath === path), path).toBe(false);
+    }
+  });
+
   it('loads lazily, so the legacy default pays nothing for it', () => {
     expect(APP_SOURCE).toMatch(
       /const LazyTodayRoute = lazy\(async \(\) => \(\{ default: \(await import\('\.\.\/ui\/today\/TodayRoute'\)\)\.TodayRoute \}\)\);/,
@@ -50,7 +62,7 @@ describe('/today mount', () => {
   });
 
   it('escapes the legacy shell, and can only do so on a path no legacy route owns', () => {
-    expect(APP_SOURCE).toMatch(/if \(isTodayRoute\(activePath\)\) \{\s*return <Outlet \/>;/);
+    expect(APP_SOURCE).toMatch(/if \(isV2ShellRoute\(activePath\)\) \{\s*return <Outlet \/>;/);
 
     // The branch is unreachable from every canonical destination, which is
     // what makes it safe under amendment A1.
@@ -60,7 +72,7 @@ describe('/today mount', () => {
   });
 
   it('suppresses the legacy Chip dock, and only there', () => {
-    expect(APP_SOURCE).toMatch(/\{chipDockEnabled && !isTodayRoute\(chipDockRoute\) \? \(/);
+    expect(APP_SOURCE).toMatch(/\{chipDockEnabled && !isV2ShellRoute\(chipDockRoute\) \? \(/);
     // A mutation to any canonical path would delete the Chip dock from a
     // legacy route, which is a direct A1 violation. Nothing else in App.tsx may
     // gate the dock on a path.
@@ -74,10 +86,10 @@ describe('/today mount', () => {
     // match one and not the other — the new shell would render with the legacy
     // Chip dock, and its 193px of clearance, on top of it.
     for (const path of ['/today', '#/today', '/today/', '/today?panel=readiness', '#/today?panel=readiness#focus']) {
-      expect(isTodayRoute(path), path).toBe(true);
+      expect(isV2ShellRoute(path), path).toBe(true);
     }
     for (const path of ['/', '/roster', '/todays', '/today-recap', '', null, undefined]) {
-      expect(isTodayRoute(path), String(path)).toBe(false);
+      expect(isV2ShellRoute(path), String(path)).toBe(false);
     }
   });
 

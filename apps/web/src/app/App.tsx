@@ -18,7 +18,7 @@ import {
 import { getRegisteredShortcuts, registerShortcut, useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
 import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
-import { isTodayRoute } from '../ui/migration/ui-overhaul-mode';
+import { isV2ShellRoute } from '../ui/migration/ui-overhaul-mode';
 import {
   selectCeremonies,
   selectCurrentWeeklyPrepPlan,
@@ -607,12 +607,13 @@ function RootLayout() {
    * spends 383–425px of it on phone before a screen renders anything. Nesting
    * one inside the other would measure the sum and prove nothing.
    *
-   * This branch cannot change legacy rendering: `/today` is absent from
-   * `APP_ROUTE_REGISTRY`, so no canonical path reaches it, and
-   * `ui/today/today-route.test.ts` pins that. Every hook above has already
-   * run, so the early return is a rendering decision only.
+   * This branch cannot change legacy rendering: every path in
+   * `V2_SHELL_ROUTES` is absent from `APP_ROUTE_REGISTRY`, so no canonical
+   * path reaches it, and `ui/today/today-route.test.ts` pins that for the
+   * whole set rather than for one route. Every hook above has already run, so
+   * the early return is a rendering decision only.
    */
-  if (isTodayRoute(activePath)) {
+  if (isV2ShellRoute(activePath)) {
     return <Outlet />;
   }
 
@@ -2198,7 +2199,7 @@ function PostSetupApp() {
         * new shell suppresses the legacy dock on its own route. No canonical
         * route is affected: `/today` is not in `APP_ROUTE_REGISTRY`.
         */}
-      {chipDockEnabled && !isTodayRoute(chipDockRoute) ? (
+      {chipDockEnabled && !isV2ShellRoute(chipDockRoute) ? (
         <ChipDock
           currentWeek={chipDockWeek}
           currentSeason={chipDockSeason}
