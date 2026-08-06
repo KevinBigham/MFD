@@ -1,0 +1,239 @@
+{
+  "shell": "v2",
+  "screen": "today",
+  "pinnedNow": 1767225600000,
+  "seedSource": "Date.now frozen before app boot; demo scenario seed is derived from it",
+  "budgets": {
+    "contentScrollPx": 2110,
+    "budgetViewport": "phone-390x844",
+    "fixedChromeHeight": 152,
+    "minTargetPx": 44
+  },
+  "legacyBriefingScrollPx": {
+    "phone-320x568": 13449,
+    "phone-390x844": 11945,
+    "phone-430x932": 11590,
+    "landscape-844x390": 7416,
+    "tablet-768x1024": 7396,
+    "desktop-1440x900": 6273
+  },
+  "repeatRunIdentical": true,
+  "captures": [
+    {
+      "viewport": "phone-320x568",
+      "document": {
+        "scrollWidth": 320,
+        "scrollHeight": 568
+      },
+      "content": {
+        "clientHeight": 352,
+        "scrollHeight": 1640,
+        "viewportsOfScroll": 2.887
+      },
+      "viewportsOfScroll": 1,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "div",
+          "position": "sticky",
+          "top": 427,
+          "height": 141
+        }
+      ],
+      "fixedChromeHeight": 141,
+      "interactiveCount": 20,
+      "smallTargetCount": 0,
+      "smallTargets": [],
+      "visibleTextCount": 59,
+      "smallTextCount": 0,
+      "bodyFontSize": 16,
+      "readiness": "blocked",
+      "layoutMode": "compact",
+      "compactHeight": "true",
+      "taskRowCount": 8,
+      "openDisclosures": 0,
+      "viewportClass": "phone-portrait"
+    },
+    {
+      "viewport": "phone-390x844",
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 844
+      },
+      "content": {
+        "clientHeight": 679,
+        "scrollHeight": 1452,
+        "viewportsOfScroll": 1.72
+      },
+      "viewportsOfScroll": 1,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "div",
+          "position": "sticky",
+          "top": 755,
+          "height": 89
+        }
+      ],
+      "fixedChromeHeight": 89,
+      "interactiveCount": 20,
+      "smallTargetCount": 0,
+      "smallTargets": [],
+      "visibleTextCount": 59,
+      "smallTextCount": 0,
+      "bodyFontSize": 16,
+      "readiness": "blocked",
+      "layoutMode": "compact",
+      "compactHeight": "false",
+      "taskRowCount": 8,
+      "openDisclosures": 0,
+      "viewportClass": "phone-portrait"
+    },
+    {
+      "viewport": "phone-430x932",
+      "document": {
+        "scrollWidth": 430,
+        "scrollHeight": 932
+      },
+      "content": {
+        "clientHeight": 767,
+        "scrollHeight": 1428,
+        "viewportsOfScroll": 1.532
+      },
+      "viewportsOfScroll": 1,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "div",
+          "position": "sticky",
+          "top": 843,
+          "height": 89
+        }
+      ],
+      "fixedChromeHeight": 89,
+      "interactiveCount": 20,
+      "smallTargetCount": 0,
+      "smallTargets": [],
+      "visibleTextCount": 59,
+      "smallTextCount": 0,
+      "bodyFontSize": 16,
+      "readiness": "blocked",
+      "layoutMode": "compact",
+      "compactHeight": "false",
+      "taskRowCount": 8,
+      "openDisclosures": 0,
+      "viewportClass": "phone-portrait"
+    },
+    {
+      "viewport": "landscape-844x390",
+      "document": {
+        "scrollWidth": 844,
+        "scrollHeight": 390
+      },
+      "content": {
+        "clientHeight": 225,
+        "scrollHeight": 1228,
+        "viewportsOfScroll": 3.149
+      },
+      "viewportsOfScroll": 1,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "div",
+          "position": "sticky",
+          "top": 301,
+          "height": 89
+        }
+      ],
+      "fixedChromeHeight": 89,
+      "interactiveCount": 20,
+      "smallTargetCount": 0,
+      "smallTargets": [],
+      "visibleTextCount": 59,
+      "smallTextCount": 0,
+      "bodyFontSize": 16,
+      "readiness": "blocked",
+      "layoutMode": "medium",
+      "compactHeight": "true",
+      "taskRowCount": 8,
+      "openDisclosures": 0,
+      "viewportClass": "phone-landscape"
+    },
+    {
+      "viewport": "tablet-768x1024",
+      "document": {
+        "scrollWidth": 768,
+        "scrollHeight": 1024
+      },
+      "content": {
+        "clientHeight": 859,
+        "scrollHeight": 1284,
+        "viewportsOfScroll": 1.254
+      },
+      "viewportsOfScroll": 1,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "div",
+          "position": "sticky",
+          "top": 935,
+          "height": 89
+        }
+      ],
+      "fixedChromeHeight": 89,
+      "interactiveCount": 20,
+      "smallTargetCount": 0,
+      "smallTargets": [],
+      "visibleTextCount": 59,
+      "smallTextCount": 0,
+      "bodyFontSize": 16,
+      "readiness": "blocked",
+      "layoutMode": "medium",
+      "compactHeight": "false",
+      "taskRowCount": 8,
+      "openDisclosures": 0,
+      "viewportClass": "tablet"
+    },
+    {
+      "viewport": "desktop-1440x900",
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 900
+      },
+      "content": {
+        "clientHeight": 735,
+        "scrollHeight": 1236,
+        "viewportsOfScroll": 1.373
+      },
+      "viewportsOfScroll": 1,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "div",
+          "position": "sticky",
+          "top": 811,
+          "height": 89
+        }
+      ],
+      "fixedChromeHeight": 89,
+      "interactiveCount": 20,
+      "smallTargetCount": 0,
+      "smallTargets": [],
+      "visibleTextCount": 59,
+      "smallTextCount": 0,
+      "bodyFontSize": 16,
+      "readiness": "blocked",
+      "layoutMode": "wide",
+      "compactHeight": "false",
+      "taskRowCount": 8,
+      "openDisclosures": 0,
+      "viewportClass": "desktop"
+    }
+  ]
+}

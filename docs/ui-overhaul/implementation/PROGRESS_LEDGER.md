@@ -1058,3 +1058,216 @@ One methodology note, again: the first sweep ran the design-system suite, the
 web suite and a production build back to back and produced a single
 `game-store.gameweek` timeout with zero assertion failures — the contention
 artifact WP-00 recorded. Re-run serially: 269/269 and 2348/2348, exit 0.
+
+---
+
+## Today — direction proof (pre-H0)
+
+The amended plan's own sequencing step, not a numbered packet: *"mount a new
+`/today` route behind the migration flag, rendering the WP-09a presenter
+against real save data, before touching `App.tsx`."* It is the first thing in
+this migration a player can see, and it is what H0 grades.
+
+Scope taken deliberately narrower than WP-09b-full: one screen, one route, the
+ledger's AGM lane, and the geometry harness the budget needs. Nav badges, Chip,
+and Week Advance still read their own sources; unifying them is WP-09b-full,
+after WP-05/06/07.
+
+### Files added
+
+| File | What it is |
+|---|---|
+| `apps/web/src/ui/today/phase-vocabulary.ts` | The one place the app names a season phase and says what it is for |
+| `apps/web/src/ui/today/today-presenter.ts` | `presentToday` — pure, JSX-free view model |
+| `apps/web/src/ui/today/today-input.ts` | `selectTodayInput` — the only impure edge, composed from existing selectors |
+| `apps/web/src/ui/today/TodayScreen.tsx` | The screen. Takes a view model and a navigate function; touches no store |
+| `apps/web/src/ui/today/today.module.css` | Tokens only, no legacy `--mfd-*` name |
+| `apps/web/src/ui/today/TodayRoute.tsx` | Route container: reads the store, gates on the migration flag |
+| `apps/web/src/ui/today/today-presenter.test.ts` | 30 tests |
+| `apps/web/src/ui/today/TodayScreen.test.tsx` | 23 tests |
+| `apps/web/src/ui/today/today-route.test.ts` | 9 tests — the migration boundary |
+| `apps/web/e2e/ui-overhaul-today.pw.cjs` | The geometry harness LAY-04 needs |
+| `docs/ui-overhaul/evidence/today/geometry.json` + 2 PNGs | H0 evidence |
+| `docs/ui-overhaul/evidence/a1-regression/wp09b-agm-fold-in.json` | A1 proof for the ledger change |
+
+### Files modified
+
+`apps/web/src/ui/tasks/task-ledger.ts` (+`source`, `dedupeKey`, `agmTask`,
+`mergeTaskLedger`) · `apps/web/src/features/monday-briefing/ActionCenter.tsx`
+(consumes the AGM lane from the ledger; `SEVERITY_ACCENT` exported for the
+round-trip proof) · `apps/web/src/features/monday-briefing/PhaseIndicator.tsx`
+(reads the shared vocabulary, keeps its own palette) ·
+`apps/web/src/app/App.tsx` (lazy `/today`; the new shell escapes the legacy
+chrome; the legacy Chip dock is suppressed on `/today`) ·
+`apps/web/src/app/a11y.css` (body margin reset, conditioned on the v2 frame) ·
+`packages/design-system/components/MfdStickyAction/MfdStickyAction.module.css`
+(stops printing the blocked reason twice) · four test files.
+
+### The AGM lane was bypassing the ledger
+
+WP-09a's entry recorded this as unfinished: *"'One derivation' is not yet true.
+`recommendationDeadline()` copy and `PRIORITY_ACCENT` still live in
+`ActionCenter.tsx`, so the AGM lane bypasses the ledger."* It does not any more.
+`agmTask()` maps an `AGMRecommendation` to a `UiTask`, and the board reads it
+through the same `taskToBoardAction` as everything else.
+
+The colour contract is proved, not asserted. `AGM_SEVERITY` is chosen so that a
+recommendation routed through `TaskSeverity` and back out through the board's
+`SEVERITY_ACCENT` lands on the accent the deleted `PRIORITY_ACCENT` table
+produced, and the test walks all four priorities to check it. Changing one
+entry in either table fails.
+
+**One thing found on the way in: the engine never emits `priority: 'low'`.** No
+branch in `packages/engine/src/systems/agm.ts` sets it, so the fourth arm of
+`recommendationDeadline()` has always been unreachable. Its copy is now pinned
+in `task-ledger.ts` so that if a future engine branch does emit `low`, it
+inherits the wording the audit approved rather than getting new copy by
+accident. Recorded rather than deleted.
+
+### The deduper has a real job
+
+`dedupeKey` arrived in WP-09a's scope and was left out on purpose — *"a dedupe
+key without a deduper is decoration."* `mergeTaskLedger` is the deduper, and
+the duplication it collapses is not hypothetical:
+
+| Key | What was competing |
+|---|---|
+| `roster-moves` | `injuries-unresolved` (state) · AGM `injury_watch` · AGM `sandra_development_mandate` · `optional-roster-training-medical` |
+| `game-plan` | `game-plan-missing` (state, blocking) · AGM `next_opponent` · `optional-prep` |
+| `cap` | AGM `cap_trouble` · `optional-cap` |
+| `depth-chart` | `depth-chart-incomplete` (state) · `optional-depth` |
+
+On the demo save at 390×844 that is 12 task candidates rendering as **8 rows**.
+
+Two decisions worth naming:
+
+- **Merging is lossless.** The losers travel on the winner as `merged` and the
+  screen renders them inside the row's disclosure. "No feature data deleted" is
+  discharged by construction rather than by remembering.
+- **Keys are authored per task, not derived from the route.** The AGM's cap
+  mandate and the owner-approval warning both point at `/owner` and are
+  genuinely different work; its injury advisory and the state-derived injury
+  task both point at `/roster` and are genuinely the same. A route-derived key
+  gets one of those two wrong. An AGM id with no key gets a unique one and
+  never merges — a recommendation the engine grows later shows up as its own
+  row rather than being absorbed into something unrelated.
+
+### A1: the legacy board is byte-identical
+
+`docs/ui-overhaul/evidence/a1-regression/wp09b-agm-fold-in.json`. `ActionCenter`
+rendered through `renderToStaticMarkup` on `main` (7577176) and on this branch,
+five scenarios, seeded fixture 424242: **all five identical, sha256 for sha256**,
+covering `urgent`, `high` and `medium` recommendations.
+
+Disclosed with it: the AGM modal body is **not** in that diff. `PixelModal`
+renders nothing while closed, its open state is component-local, and there is no
+jsdom here — so `renderToStaticMarkup` cannot reach it. The three mappings that
+changed inside it (card accent, badge word, title/reason) are covered by
+assertions in `task-ledger.test.ts` instead of by a render diff. That is weaker
+evidence and it is labelled as such.
+
+### Two changes to legacy files that are not legacy behaviour
+
+Both are branches no canonical route can reach, and `today-route.test.ts` pins
+that by walking `APP_ROUTE_REGISTRY`:
+
+1. **`RootLayout` returns a bare `<Outlet />` on `/today`.** `AppFrame` budgets
+   all fixed chrome at 152px; the legacy shell spends 383–425px of it on phone
+   before a screen renders anything. Nesting one inside the other measures the
+   sum and proves nothing.
+2. **The legacy Chip dock does not render on `/today`.** It is a sibling of the
+   router, so it renders on every route. Measured on Today before the change:
+   **193px of sticky clearance plus a 91–246px fixed panel**, on top of a 152px
+   budget — the audit's own permanent-clearance finding, reproduced inside the
+   thing built to fix it. WP-08 replaces it with a Chip fed by this ledger.
+
+### The 2.5-viewport budget, measured properly
+
+WP-00 recorded the blocker: the baseline harness seeds state by clicking "Launch
+Demo Scenario", which builds a dynasty from `Date.now()`, and two runs of
+identical code differ by up to 93px. The new harness **freezes `Date.now`
+before the app boots**, which makes the demo seed a constant, and then runs the
+entire viewport matrix twice and requires identical geometry. It is not a claim
+that the state is pinned; it is a test that fails if it is not.
+
+That assertion earned its keep immediately: the first passing run failed on the
+repeat, `visibleTextCount` 55 vs 59 at 844×390, because a fixed 400ms wait let a
+lazy chunk land inside the window on the warm second pass. Replaced with a
+settle loop that waits for the DOM to stop changing.
+
+**LAY-04 is `content.scrollHeight`, not `document.scrollHeight`.** `AppFrame`
+is a fixed-height grid, so the document never scrolls and
+`document.scrollHeight / innerHeight` is 1.0 at any content depth — asserting on
+it would have passed at every depth and measured only that the frame exists.
+doc 09 states the criterion in absolute pixels, and that is what is asserted.
+
+| Viewport | Today content | Legacy Briefing | Ratio | Fixed chrome | Scroll owners |
+|---|---|---|---|---|---|
+| 390×844 (LAY-04's viewport) | **1,452 px** (budget 2,110) | 11,945 px | **8.2×** | 89 px | 1 |
+| 320×568 | 1,640 px | 13,449 px | 8.2× | 141 px | 1 |
+| 430×932 | 1,428 px | 11,590 px | 8.1× | 89 px | 1 |
+| 844×390 (compact height) | 1,228 px | 7,416 px | 6.0× | 89 px | 1 |
+| 768×1024 | 1,284 px | 7,396 px | 5.8× | 89 px | 1 |
+| 1440×900 | 1,236 px | 6,273 px | 5.1× | 89 px | 1 |
+
+Every viewport: **0 sub-44px targets, 0 sub-12px text, 1 scroll owner**. Legacy
+fixed chrome at the same viewports was 383–429px on phone and 2,309–3,626px on
+tablet and desktop.
+
+Mutation-checked, so the numbers are not decoration:
+
+| Mutation | Result |
+|---|---|
+| `OPTIONAL_VISIBLE` 0 → 7 (uncollapse the standing lane) | **fails** — 2,280 px against the 2,110 px budget |
+| Body margin reset disabled | **fails** — 2 scroll owners at 320×568 |
+| `RECOMMENDED_VISIBLE` 3 → 5, and 3 → 2 | **both fail** |
+| Primary task prefers advice over blockers | **fails** |
+| Week label shown in every phase | **fails** |
+| Merge skipped | **fails** |
+
+### Two defects the geometry found
+
+- **`MfdStickyAction` printed the blocked reason twice.** It renders the reason
+  in its own status line *and* passes it to `MfdButtonV2` as `disabledReason`,
+  which renders it again as a visible description 8px below. Duplicated copy on
+  screen, and 16px of a 152px budget. The button's copy is now visually hidden
+  and still `aria-describedby`-linked, so the reason stays reachable from the
+  control. Measured: 161px → 145px at 320px.
+- **The document was a second scroller at every viewport.** The user agent's
+  `body { margin: 8px }` adds 16px under a `100dvh` frame. One scroll owner is
+  the archetype's one hard rule. Fixed with a reset conditioned on the v2 frame
+  being mounted, so the legacy shell keeps rendering inside that margin.
+
+### Deviations, disclosed
+
+- **File paths.** The packet names `ui/presenters/` and `ui/screens/today/`.
+  WP-09a already put the ledger in `ui/tasks/`, and this follows that shape:
+  `ui/today/` holds the presenter, the screen and the route together. One
+  concept, one folder, consistent with what already shipped.
+- **`availability`, `isComplete`, `completionExplanation` and `entityRef` from
+  doc 07's `UiTask` are still not implemented.** Same reasoning that kept
+  `dedupeKey` out of WP-09a: none of them has a producer yet. `isComplete`
+  needs a previous-ledger snapshot to diff against, which is WP-06's
+  return-to-task work; `availability` needs a locked task, and the ledger emits
+  none. They arrive with the packets that give them a job.
+- **Desktop is a single column.** The blueprint specifies a task column plus a
+  context rail. `PaneLayout` exists and is still unused. The split needs
+  WP-06's navigation rail to be worth building against, and a half-built
+  two-column desktop is worse evidence for H0 than an honest one-column one.
+- **The screen is not yet the source for nav badges, Chip, or Week Advance.**
+  The packet's definition of done requires that. This is the direction proof;
+  WP-09b-full does the unification after WP-05/06/07.
+- **`/today` is registered through `CONTEXTUAL_ROUTE_PATHS`, not the registry.**
+  Adding it to `APP_ROUTE_REGISTRY` would make the canonical surface 80 routes
+  and put it in legacy navigation. It is documented in
+  `nav-items.test.ts`'s direct-only reasons and marked deliberately uncoached in
+  `useActiveRouteBeats.test.ts` — route coaching is the legacy Chip's
+  explanation system, and the new shell explains itself in the task rows.
+
+### Rollback
+
+Set `uiOverhaulMode` back to `legacy` and `/today` renders a locked state.
+Revert the route commit and it 404s. Nothing else changes: the ledger additions
+are pure, the `ActionCenter` change is proved byte-identical, and the
+`PhaseIndicator` change is a lookup-table extraction whose four tests pin every
+label and tip it renders.
