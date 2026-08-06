@@ -4,3 +4,29 @@ button:focus-visible,
   outline: 3px solid var(--mfd-cyan);
   outline-offset: 2px;
 }
+
+/**
+ * New-shell focus (WP-02).
+ *
+ * Scoped inside `[data-mfd-v2-viewport]`, so the legacy rule above keeps
+ * owning every legacy screen unchanged. Two differences that matter:
+ *
+ * - A two-stop ring rather than a single outline. The inner canvas-coloured
+ *   stop is what keeps focus visible on a team-coloured surface, where a bare
+ *   outline can land on a near-identical hue.
+ * - `outline` is kept alongside the shadow rather than replaced by it. Windows
+ *   high contrast discards box-shadow entirely; without the transparent
+ *   outline underneath, focus disappears in forced-colors mode.
+ */
+[data-mfd-v2-viewport] :focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: var(--mfd-v2-focus-ring);
+}
+
+@media (forced-colors: active) {
+  [data-mfd-v2-viewport] :focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+}
