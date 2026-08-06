@@ -103,7 +103,7 @@ function normalizedCanonical(entry: RouteSurfaceMeta): string {
  * when a hub's screen lands and its canonical path enters `V2_SHELL_ROUTES`,
  * this starts returning the new path with no edit here.
  */
-function destinationRoute(entry: RouteSurfaceMeta): { route: string; migrated: boolean } {
+export function destinationRoute(entry: RouteSurfaceMeta): { route: string; migrated: boolean } {
   // Ownership is decided on the normalised path; the *link* keeps the full
   // canonical path. Several canonical paths carry structural query state
   // (`/today?panel=readiness`), and linking to the normalised form would drop
@@ -122,10 +122,14 @@ function badgeLabel(count: number): string {
  * Open jobs per hub, taken from the same ledger Today renders.
  *
  * The audit's requirement is one derivation: the number on a tab and the rows
- * on Today must not be able to disagree. Merged duplicates are not counted
+ * Today holds must not be able to disagree. Merged duplicates are not counted
  * twice — `mergeTaskLedger` has already collapsed them — and the always-
  * available standing lane is excluded, because a badge that never reaches zero
  * teaches players to ignore badges.
+ *
+ * Rows behind the recommended lane's overflow disclosure still count. The badge
+ * is a count of open work, and a summary the player has not opened does not
+ * close any of it.
  */
 export function hubBadges(tasks: readonly MergedTask[]): Partial<Record<HubId, number>> {
   const counts: Partial<Record<HubId, number>> = {};

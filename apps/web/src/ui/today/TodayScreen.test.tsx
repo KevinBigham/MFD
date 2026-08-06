@@ -146,7 +146,7 @@ describe('task rows', () => {
     // carries urgency. Asserted per row rather than per document — the
     // standing lane always contains `warning` rows, so a document-level
     // "does not contain" would be checking the wrong thing.
-    const rows = [...render().matchAll(/data-mfd-v2-severity="(\w+)">(.*?)<\/a>/g)];
+    const rows = [...render().matchAll(/data-mfd-v2-severity="(\w+)"[^>]*>(.*?)<\/a>/g)];
     expect(rows.length).toBeGreaterThan(0);
     for (const [, severity = '', body = ''] of rows) {
       const hasWord = /mfd-v2-kicker">(Blocking|Warning)</.test(body);

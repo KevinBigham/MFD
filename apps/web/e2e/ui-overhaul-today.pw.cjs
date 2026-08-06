@@ -274,6 +274,42 @@ function collectTodayGeometry() {
 
   const frame = document.querySelector('[data-mfd-v2-frame="true"]');
 
+  /**
+   * Chrome laid *over* the content instead of beside it.
+   *
+   * `viewportHeight - content.clientHeight` catches anything that takes a grid
+   * row. It cannot catch anything that takes no space: making the header
+   * `position: fixed; min-height: 260px` improved the reported envelope from
+   * 141px to 65px while covering the top of every screen, and the whole
+   * harness passed. That is the previous review's finding with the sign
+   * reversed — the old metric missed a `relative` header, this one missed a
+   * `fixed` one — and overlay chrome is exactly what LAY-06 bounds.
+   *
+   * So the occlusion is measured directly: the area of every out-of-flow
+   * element that intersects the content region. In-flow grid rows contribute
+   * zero by construction, which is the point.
+   */
+  const contentRect = content ? content.getBoundingClientRect() : null;
+  const occluders = contentRect
+    ? visible
+      .filter((el) => {
+        if (el === content || el.contains(content) || content.contains(el)) return false;
+        return /^(fixed|absolute|sticky)$/.test(getComputedStyle(el).position);
+      })
+      .map((el) => {
+        const rect = el.getBoundingClientRect();
+        const overlapY = Math.max(0, Math.min(rect.bottom, contentRect.bottom) - Math.max(rect.top, contentRect.top));
+        const overlapX = Math.max(0, Math.min(rect.right, contentRect.right) - Math.max(rect.left, contentRect.left));
+        return {
+          tag: el.tagName.toLowerCase(),
+          position: getComputedStyle(el).position,
+          height: Math.round(rect.height),
+          area: Math.round(overlapX * overlapY),
+        };
+      })
+      .filter((entry) => entry.area > 0)
+    : [];
+
   return {
     viewport: { width: viewportWidth, height: viewportHeight },
     document: { scrollWidth: doc.scrollWidth, scrollHeight: doc.scrollHeight },
@@ -320,6 +356,8 @@ function collectTodayGeometry() {
       }
       : null,
     navDockOverlapPx: overlapPx,
+    contentOccluders: occluders,
+    contentOcclusionPx: occluders.reduce((total, entry) => total + entry.area, 0),
     interactiveCount: interactive.length,
     smallTargetCount: smallTargets.length,
     smallTargets,
@@ -331,6 +369,27 @@ function collectTodayGeometry() {
     compactHeight: doc.dataset.mfdV2CompactHeight ?? null,
     taskRowCount: document.querySelectorAll('[data-mfd-v2-task]').length,
     openDisclosures: document.querySelectorAll('details[open]').length,
+
+    /**
+     * The badge on each tab, and the rows on the screen that feed it.
+     *
+     * Both read from the running app. The unit tests build the navigation
+     * model themselves, so they cannot see `TodayRoute`'s wiring: replacing
+     * `view.ledger` with `[]` there left the entire suite green while every
+     * badge disappeared. This is the only assertion that fails for that.
+     */
+    badgeByHub: [...document.querySelectorAll('[data-mfd-v2-nav-badge]')].reduce((counts, node) => {
+      const link = node.closest('[data-mfd-v2-nav-hub]');
+      if (link) counts[link.getAttribute('data-mfd-v2-nav-hub')] = Number(node.getAttribute('data-mfd-v2-nav-badge'));
+      return counts;
+    }, {}),
+    rowsByHub: [
+      ...document.querySelectorAll('[data-mfd-v2-lane]:not([data-mfd-v2-lane="optional"]) [data-mfd-v2-task][data-mfd-v2-hub]'),
+    ].reduce((counts, node) => {
+      const hub = node.getAttribute('data-mfd-v2-hub');
+      counts[hub] = (counts[hub] ?? 0) + 1;
+      return counts;
+    }, {}),
   };
 }
 
@@ -410,12 +469,15 @@ function comparable(captures) {
     frameLayout: capture.frameLayout,
     nav: capture.nav,
     navDockOverlapPx: capture.navDockOverlapPx,
+    contentOcclusionPx: capture.contentOcclusionPx,
     navScrolls: capture.navScrolls,
     interactiveCount: capture.interactiveCount,
     smallTargetCount: capture.smallTargetCount,
     visibleTextCount: capture.visibleTextCount,
     smallTextCount: capture.smallTextCount,
     taskRowCount: capture.taskRowCount,
+    badgeByHub: capture.badgeByHub,
+    rowsByHub: capture.rowsByHub,
     readiness: capture.readiness,
   }));
 }
@@ -469,6 +531,12 @@ test.describe('Today geometry', () => {
         .toBeLessThanOrEqual(DOCK_BUDGET);
       expect(capture.permanentChrome, `${capture.viewport} chrome accounting`)
         .toBe(capture.shellChrome + capture.dockHeight);
+
+      // Chrome must cost the envelope, not hide inside it. Anything out of
+      // flow that covers the content region is chrome the metric above cannot
+      // see, so it is measured on its own.
+      expect(capture.contentOccluders, `${capture.viewport} chrome over content`).toEqual([]);
+      expect(capture.contentOcclusionPx, `${capture.viewport} occluded content area`).toBe(0);
       expect(capture.horizontalOverflow, `${capture.viewport} horizontal overflow`).toBe(false);
       expect(capture.smallTargets, `${capture.viewport} sub-44px targets`).toEqual([]);
       expect(capture.smallTextCount, `${capture.viewport} sub-12px text`).toBe(0);
@@ -508,6 +576,14 @@ test.describe('Today geometry', () => {
       expect(capture.nav.activeHub, `${capture.viewport} current hub`).toBe('today');
       expect(capture.nav.activeCount, `${capture.viewport} current hubs`).toBe(1);
       expect(capture.nav.ariaCurrentCount, `${capture.viewport} aria-current`).toBe(1);
+
+      // One derivation, checked in the running app rather than in a test that
+      // builds the model for itself. The number on every tab equals the rows
+      // that hub owns in the two lanes that badge, and there is at least one —
+      // otherwise this assertion is `{} === {}`.
+      expect(capture.badgeByHub, `${capture.viewport} badges vs rows`).toEqual(capture.rowsByHub);
+      expect(Object.keys(capture.badgeByHub).length, `${capture.viewport} badge coverage`)
+        .toBeGreaterThan(0);
     }
 
     // The phone bar carries the five job destinations and costs vertical
@@ -581,5 +657,40 @@ test.describe('Today geometry', () => {
     await expect(page.locator('[data-mfd-app-shell="true"]')).toBeVisible();
     await settle(page);
     await expect(page.locator('.mfd-chip-dock')).toHaveCount(1);
+  });
+
+  /**
+   * The skip link, on a hash router.
+   *
+   * `href="#mfd-v2-content"` is not a fragment jump here — it is a route
+   * change to `/mfd-v2-content`. Activating it unmounted the new shell and
+   * left the player in the legacy one on a route that does not exist, while
+   * every unit test passed, because the ordering they assert is about the DOM
+   * and this is about the router.
+   */
+  test('skips to the content without leaving the screen', async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await bootPinned(page);
+
+    await page.evaluate(() => { window.location.hash = '/today'; });
+    await expect(page.locator('[data-mfd-v2-screen="today"]')).toBeVisible();
+    await settle(page);
+
+    await page.keyboard.press('Tab');
+    const firstStop = await page.evaluate(() => document.activeElement?.textContent?.trim());
+    expect(firstStop, 'the skip link is the first tab stop').toBe('Skip to main content');
+
+    await page.keyboard.press('Enter');
+    await settle(page);
+
+    expect(new URL(page.url()).hash, 'still on Today').toBe('#/today');
+    await expect(page.locator('[data-mfd-v2-screen="today"]')).toBeVisible();
+    await expect(page.locator('[data-mfd-app-shell="true"]')).toHaveCount(0);
+
+    // And it did what it says: focus is on the content region, so the next tab
+    // stop is inside the screen rather than back in the navigation.
+    const landed = await page.evaluate(() => document.activeElement?.id);
+    expect(landed, 'focus moved to the main landmark').toBe('mfd-v2-content');
   });
 });

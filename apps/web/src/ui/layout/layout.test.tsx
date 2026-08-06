@@ -120,6 +120,19 @@ describe('AppFrame', () => {
     expect(html).toContain(`id="${APP_CONTENT_ID}"`);
   });
 
+  it('moves focus itself rather than letting the hash router follow the link', () => {
+    // The app runs on `createHashHistory`, so `href="#mfd-v2-content"` is a
+    // route change to `/mfd-v2-content`, not a fragment jump. Measured: the
+    // skip link unmounted the new shell and landed the player in the legacy
+    // one on a route that does not exist. The `href` stays for the link role
+    // and the accessible name; the default is cancelled and focus is moved.
+    const source = readFileSync(fileURLToPath(new URL('./AppFrame.tsx', import.meta.url)), 'utf8');
+
+    expect(source).toContain('onClick={skipToContent(contentId)}');
+    expect(source).toContain('event.preventDefault()');
+    expect(source).toContain('target.focus()');
+  });
+
   it('publishes the layout mode to the DOM, where CSS and Playwright can read it', () => {
     const html = renderToStaticMarkup(<AppFrame>content</AppFrame>);
 
@@ -352,8 +365,27 @@ describe('layout stylesheet', () => {
   it('pays the home-indicator clearance once, not once per bottom element', () => {
     // Dock and nav both sit at the bottom on phone, and both defaulting to
     // safe-bottom spends the inset twice on a device that has one.
-    expect(layoutCss).toContain(
-      ".frame[data-mfd-v2-frame-layout='stacked']:has(.navSlot) .actionDock",
+    //
+    // Asserting the selector exists is not the rule — the declaration inside it
+    // is. `env(safe-area-inset-bottom)` resolves to 0 in headless Chromium, so
+    // no browser measurement can catch a rule that pays the inset twice or
+    // three times; this is the only place it can be caught at all.
+    const selector = ".frame[data-mfd-v2-frame-layout='stacked']:has(.navSlot) .actionDock";
+    const start = layoutCss.indexOf(selector);
+    expect(start, 'stacked dock rule').toBeGreaterThan(-1);
+
+    const body = layoutCss.slice(layoutCss.indexOf('{', start) + 1, layoutCss.indexOf('}', start));
+    expect(body.trim()).toBe('padding-bottom: var(--mfd-v2-space-2);');
+  });
+
+  it('spends the bottom safe area exactly once in this stylesheet', () => {
+    // One rule here, for the dock when it is bottom-most. The phone nav bar
+    // pays it in `navigation.module.css` for the case where the nav is, and
+    // the rule above cancels the dock's so the two are never both charged.
+    const bottomInsets = [...layoutCss.matchAll(/padding-bottom:[^;]*safe-bottom[^;]*;/g)];
+    expect(bottomInsets).toHaveLength(1);
+    expect(bottomInsets[0]![0]).toBe(
+      'padding-bottom: calc(var(--mfd-v2-space-2) + var(--mfd-v2-safe-bottom));',
     );
   });
 

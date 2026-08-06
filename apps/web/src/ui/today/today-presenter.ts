@@ -93,10 +93,17 @@ export interface TodayViewModel {
    * Every row the three lanes render, in lane order.
    *
    * Navigation badges are counted from this rather than from the ledger the
-   * presenter was handed, so the number on a hub tab counts exactly the rows a
-   * player can see on Today. The two synthetic all-clear rows are already
-   * gone, which is what stops "Ready to advance" from also reading as one open
-   * job in the Today tab.
+   * presenter was handed, so a badge cannot count a job the screen does not
+   * hold. The two synthetic all-clear rows are already gone, which is what
+   * stops "Ready to advance" from also reading as one open job in the Today
+   * tab.
+   *
+   * "Hold", not "show". The recommended lane renders three rows and puts the
+   * rest behind a disclosure, so a hub with nine recommended jobs badges 9
+   * while three are in view. That is the intended reading — the badge counts
+   * open work, and a summary the player has not opened has closed none of it —
+   * but it is not the same claim as "the rows on screen", and the difference is
+   * worth naming rather than discovering.
    */
   ledger: readonly MergedTask[];
 }

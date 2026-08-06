@@ -62,6 +62,11 @@ function TaskRow({ task }: { task: MergedTask }) {
         href={href(task.destination.route)}
         data-mfd-v2-task={task.id}
         data-mfd-v2-severity={task.severity}
+        /* The hub this row belongs to, so the geometry harness can check the
+           number on a tab against the rows on the screen in the running app.
+           Without it the only proof of that agreement was a test that built
+           the navigation model itself, which cannot see the route's wiring. */
+        data-mfd-v2-hub={task.destination.hub}
       >
         {severityWord ? (
           <span className={`${styles.severity} mfd-v2-kicker`}>{severityWord}</span>
@@ -122,12 +127,14 @@ function TaskList({ tasks }: { tasks: readonly MergedTask[] }) {
 
 function Lane({
   id,
+  lane,
   title,
   section,
   emptyReason,
   moreLabel,
 }: {
   id: string;
+  lane: 'must' | 'recommended' | 'optional';
   title: string;
   section: TodaySection;
   emptyReason: string;
@@ -136,7 +143,7 @@ function Lane({
   const total = section.tasks.length + section.hidden.length;
 
   return (
-    <section className={styles.lane} aria-labelledby={`${id}-heading`}>
+    <section className={styles.lane} aria-labelledby={`${id}-heading`} data-mfd-v2-lane={lane}>
       <h2 id={`${id}-heading`} className={`${styles.laneHeading} mfd-v2-title-sm`}>
         {title}
         {total > 0 ? <span className={`${styles.count} mfd-v2-caption`}>{total}</span> : null}
@@ -219,6 +226,7 @@ export function TodayScreen({ view, navigation, onNavigate }: TodayScreenProps) 
 
         <Lane
           id="today-must"
+          lane="must"
           title="Must do"
           section={view.mustDo}
           emptyReason="Nothing is blocking Advance Week this week."
@@ -227,6 +235,7 @@ export function TodayScreen({ view, navigation, onNavigate }: TodayScreenProps) 
 
         <Lane
           id="today-recommended"
+          lane="recommended"
           title="Recommended"
           section={view.recommended}
           emptyReason="No injury, cap, owner, trade, depth, or matchup warning needs action this week."
@@ -235,6 +244,7 @@ export function TodayScreen({ view, navigation, onNavigate }: TodayScreenProps) 
 
         <Lane
           id="today-optional"
+          lane="optional"
           title="Always available"
           section={view.optional}
           emptyReason="No optional moves are available in this phase."

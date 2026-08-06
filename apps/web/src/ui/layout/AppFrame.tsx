@@ -11,7 +11,7 @@
  * counted separately, and anything else has to scroll.
  */
 
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import styles from './layout.module.css';
 import { AdaptiveViewport, useLayoutMode, type LayoutMode } from './AdaptiveViewport';
 import { PageScroll } from './PageScroll';
@@ -45,6 +45,29 @@ export interface AppFrameProps {
 
 export const APP_CONTENT_ID = 'mfd-v2-content';
 
+/**
+ * Moves focus to the content region without letting the browser navigate.
+ *
+ * The app is on `createHashHistory`, so `href="#mfd-v2-content"` is not a
+ * fragment jump — it is a route change to `/mfd-v2-content`. Activating the
+ * skip link ejected the player out of the new shell into the legacy one on a
+ * route that does not exist. Measured, at 390×844 on a real save.
+ *
+ * The `href` stays so the control keeps its link role and its accessible name,
+ * and because a skip link is a link everywhere else on the web. The default is
+ * cancelled and the focus is moved directly, which is what the fragment would
+ * have done under a history router.
+ */
+function skipToContent(contentId: string) {
+  return (event: MouseEvent<HTMLAnchorElement>) => {
+    const target = typeof document === 'undefined' ? null : document.getElementById(contentId);
+    if (!target) return;
+    event.preventDefault();
+    target.focus();
+    target.scrollTop = 0;
+  };
+}
+
 function Frame({ nav, chrome, children, dock, contentId }: Required<Pick<AppFrameProps, 'contentId'>> & AppFrameProps) {
   const { mode } = useLayoutMode();
   const layout = resolveFrameLayout(mode, Boolean(nav));
@@ -52,7 +75,7 @@ function Frame({ nav, chrome, children, dock, contentId }: Required<Pick<AppFram
   return (
     <div className={styles.frame} data-mfd-v2-frame="true" data-mfd-v2-frame-layout={layout}>
       {/* Placed before everything so it is the first tab stop on every screen. */}
-      <a className={styles.skipLink} href={`#${contentId}`}>
+      <a className={styles.skipLink} href={`#${contentId}`} onClick={skipToContent(contentId)}>
         Skip to main content
       </a>
 

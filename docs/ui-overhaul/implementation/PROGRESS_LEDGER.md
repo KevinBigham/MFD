@@ -1469,7 +1469,11 @@ migrated screen renders inside.
 | `apps/web/src/ui/today/TodayScreen.tsx` | Renders `MfdAppShell`, not `AppFrame` |
 | `apps/web/src/ui/today/TodayRoute.tsx` | Builds the navigation model |
 | `apps/web/src/ui/today/today-presenter.ts` | Exposes `ledger` — the rows on screen |
-| `apps/web/e2e/ui-overhaul-today.pw.cjs` | Nav geometry, overlap, fit |
+| `apps/web/e2e/ui-overhaul-today.pw.cjs` | Nav geometry, overlap, occlusion, fit, two behaviour tests |
+| `apps/web/src/ui/layout/layout.test.tsx` | Frame layout, grid areas, safe-area accounting, skip link |
+| `apps/web/src/ui/migration/ui-overhaul-mode.test.ts` | Route-set ownership and path normalisation |
+| `apps/web/src/ui/today/TodayScreen.test.tsx` | Badge/row agreement, current-page state |
+| `apps/web/src/ui/today/today-route.test.ts` | The guard now covers the whole route set |
 
 ### The navigation is derived, not declared
 
@@ -1510,18 +1514,31 @@ with no edit to the navigation, and neither branch in the 2,276-line `App.tsx`
 is touched again.
 
 Four of five destinations currently cross back into the legacy shell. That is the
-pattern working, not a defect, and it is surfaced on the element
-(`data-mfd-v2-nav-migrated`) rather than hidden — a boundary the player can feel
-but not name is worse than one that is at least legible in the DOM.
+pattern working, not a defect. `data-mfd-v2-nav-migrated` records it **for the
+tests** — it is a data attribute, invisible to sighted users and to assistive
+technology alike, so it is not a signal to a player and the first version of this
+entry overclaimed by calling it "surfaced". Four of five taps still swap the
+entire chrome with nothing a player can perceive telling them why. Naming the
+boundary in the interface is open work.
 
-### Badges come from the rows on screen
+### Badges come from the rows Today holds
 
 `presentToday` now returns `ledger` — every row the three lanes render, in lane
 order — and the navigation counts *that*, not the ledger it was handed. The
 difference is what makes the audit's one-derivation rule structural: a badge
-cannot count a job Today does not show. The end-to-end test walks the rendered
-markup and asserts, per hub, that the badge number equals the number of task rows
-present.
+cannot count a job Today does not hold.
+
+**Holds, not shows.** The recommended lane renders three rows and puts the rest
+behind a disclosure, so a hub with nine recommended jobs badges 9 while three are
+in view. That is the intended reading — the badge counts open work, and a summary
+the player has not opened has closed none of it — but it is a different claim
+from "the rows on screen", and the first version of this entry made the wrong
+one.
+
+The check runs against the running app, not against a test that builds the
+navigation model for itself: the geometry harness reads `data-mfd-v2-nav-badge`
+off each tab and `data-mfd-v2-hub` off each row in the two lanes that badge, and
+requires the two maps to be equal at every viewport.
 
 Two exclusions, both deliberate. The always-available lane does not badge — a
 count that never reaches zero teaches players to ignore counts. The two synthetic
@@ -1619,10 +1636,16 @@ Reordering the DOM at the breakpoint instead would move focus on resize.
   is WP-09b-full. Prose is already bounded to 68ch by `.mfd-v2-body`, so this is
   card width, not line length. The 1440×900 screenshot in
   `evidence/today/` is the evidence for the next packet, not a claim of done.
-- **Dynasty and System are desktop-only.** On phone they are reached from Today,
-  from a task, or from an event, which is what the audit specifies — but nothing
-  currently routes to them from Today, so on phone they are unreachable from the
-  new shell. They stay reachable from the legacy shell throughout.
+- **Dynasty is not reachable from the new shell on phone.** System is: the
+  standing save task points at `/dynasty`, which the surface map places in the
+  System hub, and Today renders it in the optional lane at every viewport. The
+  first version of this entry said neither was, which was wrong. Dynasty has no
+  task, no event and no contextual entry pointing at it yet, so on phone it is
+  reachable only from the legacy shell — which it remains throughout.
+- **An AGM recommendation aimed at a Dynasty or System route would badge a tab
+  no phone player can see**, because the bar variant drops the secondary hubs.
+  Latent: all six `targetRoute` values in `packages/engine/src/systems/agm.ts`
+  land in team, office or game.
 
 ### The boundary is exercised, not asserted from source
 
@@ -1646,12 +1669,13 @@ comparison against a number taken a different way.
 | Check | Result |
 |---|---|
 | `pnpm -r typecheck` | **PASS** — design-system, engine, web |
-| Full web suite | **PASS** — see the run below |
+| Full web suite | **PASS** — 278/278 files, 2,516/2,516 tests |
 | `pnpm --filter @mfd/design-system test` | **PASS** — 20/20 files, 175/175 tests |
 | `node scripts/check-ui-route-coverage.mjs` | **PASS** — 79/79, 79 surface-map keys |
 | `bash scripts/check-math-random.sh` | **PASS** |
 | `node --test scripts/__tests__/*.mjs` | **PASS** — 95/95 |
-| `playwright test ui-overhaul-today` | **PASS** — matrix identical across two runs; boundary crossing both ways |
+| `playwright test ui-overhaul-today` | **PASS** — 3/3: matrix identical across two runs, boundary crossing both ways, skip link |
+| `pnpm lint` | **PASS** — 0 errors, 42 warnings (pre-existing count) |
 | PERF-02 | eager `index-*.js` **279.2 KB gzip** against the 316 KB ceiling, **+0.2 KB**; `/today` chunk 4.2 → **5.3 KB**, still lazy |
 | `SAVE_VERSION` | 37, unchanged |
 | Protected paths touched | **0** — `packages/engine`, `.github`, `release-gate.mjs`, the CODEX trio |
@@ -1662,3 +1686,111 @@ comparison against a number taken a different way.
 navigation, and the shell — which also carries the dock-reservation fix, since
 both live in `layout.module.css`. Setting the mode to `legacy` makes all of it
 inert without reverting anything.
+
+---
+
+## Review pass — shell and navigation (goat-reviewer, 2026-08-06)
+
+**FAIL, 11 findings.** All fixed or corrected below. The reviewer re-ran every
+suite serially, reproduced `geometry.json` byte-identically across all six
+viewports, reproduced both PERF-02 numbers, and confirmed the packet touches
+nothing under `packages/engine`, `.github`, `release-gate.mjs` or the CODEX trio.
+
+### The skip link navigated away from the screen
+
+`AppFrame` rendered `<a href="#mfd-v2-content">`. The app runs on
+`createHashHistory`, so that is not a fragment jump — it is a route change to
+`/mfd-v2-content`. Measured in a real browser at 390×844 on a pinned save:
+
+```
+BEFORE hash = #/today
+AFTER  hash = #mfd-v2-content
+AFTER  v2 frames = 0 · legacy shells = 1 · today screens = 0
+```
+
+The player was ejected out of the new shell into the legacy one on a route that
+does not exist. The link predates this packet, but this packet made it
+load-bearing: `AppFrame` had no navigation before, so the mitigation cost one tab
+stop; it now costs five, and the source comment, the ledger and a new test all
+cited it as the reason navigation may come first in the DOM.
+
+The `href` stays — the control keeps its link role and its accessible name — and
+the default is now cancelled with focus moved directly, which is what the
+fragment would have done under a history router. A third Playwright test presses
+Tab, presses Enter, and asserts the hash is unchanged, the screen is still
+mounted, no legacy shell appeared, and `document.activeElement.id` is the content
+region. Reverting the handler fails it.
+
+### The LAY-06 gate was blind to overlay chrome
+
+The previous review found this gate measuring nothing because it summed
+`position: fixed | sticky` and the header is `relative`. The replacement —
+`viewportHeight - content.clientHeight` — has the opposite hole. Making the
+header `position: fixed; min-height: 260px`, a 261px band over the top of every
+screen, *improved* the reported envelope from 141px to 65px and the whole harness
+passed.
+
+Chrome that costs no layout still costs the player the content underneath it, so
+occlusion is now measured directly: the intersection area of every out-of-flow
+element with the content region, asserted at zero. In-flow grid rows contribute
+nothing by construction, which is the point. The mutation above now fails at the
+first viewport.
+
+Three mutations the previous metric already killed still do: a 300px nav link, a
+320px header, and rewriting the sided template from a nav column to a nav row.
+
+### The packet's headline wiring had no test at all
+
+`TodayRoute.tsx:51` is the one production line joining the badges to the rendered
+ledger. Replacing `view.ledger` with `[]` there left **every** unit test and
+**both** Playwright tests green while every badge disappeared. The tests that
+claim to prove badge/row agreement build the navigation model themselves, so they
+cannot see the route's wiring, and the harness collected `badgedHubs` without
+asserting on it.
+
+Rows now carry `data-mfd-v2-hub` and lanes carry `data-mfd-v2-lane`, and the
+harness compares the badge map against the row map at every viewport. Both
+mutations now fail.
+
+### Eight more
+
+| # | Finding | Resolution |
+|---|---|---|
+| 4 | "Badges count exactly the rows a player can see" is false — 9 recommended jobs badge 9 with 3 in view | Claim corrected in the source docstring and above; a test pins that hidden rows *do* count |
+| 5 | The safe-area test asserted a selector substring; tripling the inset inside the rule passed | Asserts the declaration; a second test allows exactly one `safe-bottom` on a bottom edge in the whole stylesheet |
+| 6 | The "keeps structural query state" test was vacuous — the only migrated entry has no query | `destinationRoute` exported and exercised on a constructed entry that has one |
+| 7 | Route-change focus untested past the pure predicate; a wrong `contentId` would not be caught | Source guard pins that the effect and the frame take the same binding. The effect is dormant until a second route joins the shell — stated, not hidden |
+| 8 | Focus order does not match visual order on phone: five bottom-bar stops before content | Accepted, with the skip link as the mitigation — which is why finding 1 had to be fixed first |
+| 9 | `data-mfd-v2-nav-migrated` claimed as "surfaced" | Corrected above: it is a test hook, not a player-visible signal |
+| 10 | "Dynasty and System are unreachable from Today on phone" is false — System is, via the standing save task | Corrected above |
+| 11 | `resolveActiveHub`'s legacy-first lookup order had no guard | The precondition is pinned instead: no path, legacy or canonical, is claimed by two hubs — so the order cannot matter |
+
+### Risks the review raised, recorded rather than fixed
+
+- **LAY-06's split accounting hides the total.** At 320×568 the shell spends
+  120px of chrome and 141px of dock — 261px of a 568px window, 46% — and both
+  halves are individually in budget. doc 09 accounts them separately, so the
+  criterion cannot see the sum. `DOCK_BUDGET = 152` is this packet's number, not
+  doc 09's.
+- **PERF-02 has no CI gate.** `scripts/check-bundle-size.sh` gates only
+  `engine-*.js`. The 316 KB eager ceiling is asserted by hand in this ledger.
+- **A1 across the 49 legacy routes is not verified locally.** The local evidence
+  is `ActionCenter.a1.test.tsx` alone; the real net is the CDP smoke harness in
+  release-gate steps 22–37, which is CI's job. The reviewer did verify by reading
+  that `isTodayRoute` → `isV2ShellRoute` is behaviourally identical on every
+  input the two call sites can produce, with one divergence — a bare `today`
+  without a leading slash now matches — that has no call site.
+- **`:has()`** is unsupported on Safari < 15.4 and Firefox < 121. The fallback is
+  double safe-area padding, and `env(safe-area-inset-bottom)` resolves to 0 in
+  headless Chromium, so no browser measurement can detect either state. The unit
+  assertion above is the only guard there is.
+
+### Confirmed in the packet's favour
+
+The boundary test is load-bearing: disabling the `RootLayout` branch fails both
+Playwright tests. Fourteen of twenty mutations the reviewer tried were already
+killed, including dropping the `permanentNav` filter, counting the optional lane,
+an off-by-one on the badge bound, always-on `aria-current`, removing the
+screen-reader count, removing the nav's accessible name, moving the nav after the
+content, un-filtering the all-clear rows, and adding `/roster` to the shell's
+route set. Evidence and bundle numbers reproduce exactly.

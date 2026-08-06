@@ -19,6 +19,8 @@ const todayScreenSource = readFileSync(
   'utf8',
 );
 
+const frameSource = readFileSync(fileURLToPath(new URL('../layout/AppFrame.tsx', import.meta.url)), 'utf8');
+
 function render(): string {
   return renderToStaticMarkup(
     <MfdAppShell
@@ -84,6 +86,20 @@ describe('route-change focus', () => {
     // Store notifications re-render the shell constantly. Focusing the main
     // landmark on every one of them would eject a player mid-keystroke.
     expect(shouldMoveFocus('/today', '/today')).toBe(false);
+  });
+
+  it('aims the focus at the element the frame actually renders', () => {
+    // The effect itself cannot be executed here — no jsdom — and it is dormant
+    // in production until a second route joins the shell, so nothing catches
+    // the two ids drifting apart. This does: both come from one binding.
+    const source = readFileSync(fileURLToPath(new URL('./MfdAppShell.tsx', import.meta.url)), 'utf8');
+
+    expect(source).toContain('useRouteFocus(routeKey, contentId)');
+    expect(source).toContain('contentId={contentId}');
+    expect(source).toContain("document.getElementById(contentId)?.focus()");
+    // The frame gives that id to `PageScroll`, which carries `tabIndex={-1}`
+    // so it is focusable as a target without joining the tab order.
+    expect(frameSource).toContain('<PageScroll id={contentId}');
   });
 });
 

@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest';
 import { APP_ROUTE_REGISTRY } from '@mfd/engine/config';
 import { ROUTE_SURFACE_ENTRIES, routeSurface } from '../routes/route-surface-map';
-import { HUB_IDS, HUB_LABELS, type HubId } from '../routes/route-surface-types';
+import { HUB_IDS, HUB_LABELS, type HubId, type RouteSurfaceMeta } from '../routes/route-surface-types';
 import { V2_SHELL_ROUTES } from '../migration/ui-overhaul-mode';
 import { mergeTaskLedger, taskDestination, type UiTask } from '../tasks/task-ledger';
 import {
@@ -21,6 +21,7 @@ import {
   SECONDARY_HUB_LANDINGS,
   V2_ROUTE_HUBS,
   buildNavigationModel,
+  destinationRoute,
   hubBadges,
   navDestination,
   resolveActiveHub,
@@ -90,11 +91,18 @@ describe('navigation destinations', () => {
     // `migrated` is decided on the normalised path so `/today?panel=readiness`
     // resolves to the shell's `/today`; the link must still be the full path,
     // or the destination lands on the right screen with the wrong panel.
-    for (const destination of buildNavigationModel('/').primary) {
-      if (!destination.migrated) continue;
-      const entry = ROUTE_SURFACE_ENTRIES.find((candidate) => candidate.hub === destination.hub && candidate.permanentNav)!;
-      expect(destination.route, destination.hub).toBe(entry.canonicalPath);
-    }
+    //
+    // Every real migrated entry today is `/` → `/today`, with no query, so
+    // walking the model proves nothing: returning the normalised path instead
+    // passes. The rule is exercised on a constructed entry that has one.
+    const withPanel: RouteSurfaceMeta = {
+      ...ROUTE_SURFACE_ENTRIES.find((entry) => entry.permanentNav && entry.hub === 'today')!,
+      canonicalPath: '/today?panel=readiness',
+    };
+
+    expect(destinationRoute(withPanel)).toEqual({ route: '/today?panel=readiness', migrated: true });
+    expect(destinationRoute({ ...withPanel, canonicalPath: '/team/roster?pos=QB' }))
+      .toEqual({ route: withPanel.legacyPath, migrated: false });
   });
 
   it('marks a destination migrated only when the shell actually owns that path', () => {
@@ -165,19 +173,27 @@ describe('active hub', () => {
     }
   });
 
-  it('has no canonical path claimed by two hubs, so the fallback is unambiguous', () => {
-    // `resolveActiveHub` falls back to the first surface whose canonical path
-    // matches. That is only sound while a normalised canonical path belongs to
-    // one hub — otherwise the active tab depends on map order.
+  it('never has to choose: no path is claimed by two hubs, either way round', () => {
+    // `resolveActiveHub` tries legacy paths first and canonical paths second.
+    // That order is only safe while no path is claimed twice — otherwise the
+    // active tab depends on which lookup ran first and on map order. Rather
+    // than pin the order, pin the precondition that makes it irrelevant:
+    // every path, legacy or canonical, resolves to exactly one hub.
     const owners = new Map<string, Set<string>>();
-    for (const entry of ROUTE_SURFACE_ENTRIES) {
-      const [path = entry.canonicalPath] = entry.canonicalPath.split('?');
+    const claim = (raw: string, hub: string) => {
+      const [path = raw] = raw.split('?');
       const normalized = path.replace(/\/+$/, '') || '/';
-      owners.set(normalized, (owners.get(normalized) ?? new Set()).add(entry.hub));
+      owners.set(normalized, (owners.get(normalized) ?? new Set()).add(hub));
+    };
+
+    for (const entry of ROUTE_SURFACE_ENTRIES) {
+      claim(entry.legacyPath, entry.hub);
+      claim(entry.canonicalPath, entry.hub);
     }
 
+    expect(owners.size).toBeGreaterThan(79);
     for (const [path, hubs] of owners) {
-      expect([...hubs], path).toHaveLength(1);
+      expect([...hubs], `${path} is claimed by ${[...hubs].join(' and ')}`).toHaveLength(1);
     }
   });
 
@@ -208,6 +224,19 @@ describe('hub badges', () => {
 
     expect(merged).toHaveLength(1);
     expect(hubBadges(merged)).toEqual({ team: 1 });
+  });
+
+  it('counts jobs behind the overflow disclosure, not only the visible rows', () => {
+    // The recommended lane renders three rows and hides the rest. The badge
+    // counts open work, so it counts all of them — pinned because the opposite
+    // reading ("the rows on screen") is the one the wording invites.
+    const merged = mergeTaskLedger(
+      Array.from({ length: 9 }, (_unused, index) =>
+        task({ id: `r${index}`, route: '/roster', dedupeKey: `roster-${index}` })),
+    );
+
+    expect(merged).toHaveLength(9);
+    expect(hubBadges(merged)).toEqual({ team: 9 });
   });
 
   it('excludes the always-available lane, so a badge can reach zero', () => {

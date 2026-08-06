@@ -65,6 +65,13 @@ function NavItem({
         aria-current={active ? 'page' : undefined}
         data-mfd-v2-nav-hub={destination.hub}
         data-mfd-v2-nav-active={active ? 'true' : 'false'}
+        /**
+         * A test hook, not a signal to the player. Following an unmigrated
+         * destination swaps the whole chrome, and nothing in the interface says
+         * why — naming that boundary where a player can perceive it is open
+         * work, recorded in the progress ledger. This attribute only lets the
+         * tests assert which side of the boundary each destination is on.
+         */
         data-mfd-v2-nav-migrated={destination.migrated ? 'true' : 'false'}
       >
         <span className={`${styles.label} mfd-v2-label`}>{destination.label}</span>

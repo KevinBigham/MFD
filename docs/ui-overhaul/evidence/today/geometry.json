@@ -62,6 +62,8 @@
         "badgedHubs": 3
       },
       "navDockOverlapPx": 0,
+      "contentOccluders": [],
+      "contentOcclusionPx": 0,
       "interactiveCount": 29,
       "smallTargetCount": 0,
       "smallTargets": [],
@@ -73,6 +75,16 @@
       "compactHeight": "true",
       "taskRowCount": 8,
       "openDisclosures": 0,
+      "badgeByHub": {
+        "team": 1,
+        "game": 1,
+        "office": 2
+      },
+      "rowsByHub": {
+        "game": 1,
+        "team": 1,
+        "office": 2
+      },
       "viewportClass": "phone-portrait",
       "viewportWidth": 320,
       "viewportHeight": 568
@@ -115,6 +127,8 @@
         "badgedHubs": 3
       },
       "navDockOverlapPx": 0,
+      "contentOccluders": [],
+      "contentOcclusionPx": 0,
       "interactiveCount": 29,
       "smallTargetCount": 0,
       "smallTargets": [],
@@ -126,6 +140,16 @@
       "compactHeight": "false",
       "taskRowCount": 8,
       "openDisclosures": 0,
+      "badgeByHub": {
+        "team": 1,
+        "game": 1,
+        "office": 2
+      },
+      "rowsByHub": {
+        "game": 1,
+        "team": 1,
+        "office": 2
+      },
       "viewportClass": "phone-portrait",
       "viewportWidth": 390,
       "viewportHeight": 844
@@ -168,6 +192,8 @@
         "badgedHubs": 3
       },
       "navDockOverlapPx": 0,
+      "contentOccluders": [],
+      "contentOcclusionPx": 0,
       "interactiveCount": 29,
       "smallTargetCount": 0,
       "smallTargets": [],
@@ -179,6 +205,16 @@
       "compactHeight": "false",
       "taskRowCount": 8,
       "openDisclosures": 0,
+      "badgeByHub": {
+        "team": 1,
+        "game": 1,
+        "office": 2
+      },
+      "rowsByHub": {
+        "game": 1,
+        "team": 1,
+        "office": 2
+      },
       "viewportClass": "phone-portrait",
       "viewportWidth": 430,
       "viewportHeight": 932
@@ -221,6 +257,8 @@
         "badgedHubs": 3
       },
       "navDockOverlapPx": 0,
+      "contentOccluders": [],
+      "contentOcclusionPx": 0,
       "interactiveCount": 31,
       "smallTargetCount": 0,
       "smallTargets": [],
@@ -232,6 +270,16 @@
       "compactHeight": "true",
       "taskRowCount": 8,
       "openDisclosures": 0,
+      "badgeByHub": {
+        "team": 1,
+        "game": 1,
+        "office": 2
+      },
+      "rowsByHub": {
+        "game": 1,
+        "team": 1,
+        "office": 2
+      },
       "viewportClass": "phone-landscape",
       "viewportWidth": 844,
       "viewportHeight": 390
@@ -274,6 +322,8 @@
         "badgedHubs": 3
       },
       "navDockOverlapPx": 0,
+      "contentOccluders": [],
+      "contentOcclusionPx": 0,
       "interactiveCount": 31,
       "smallTargetCount": 0,
       "smallTargets": [],
@@ -285,6 +335,16 @@
       "compactHeight": "false",
       "taskRowCount": 8,
       "openDisclosures": 0,
+      "badgeByHub": {
+        "team": 1,
+        "game": 1,
+        "office": 2
+      },
+      "rowsByHub": {
+        "game": 1,
+        "team": 1,
+        "office": 2
+      },
       "viewportClass": "tablet",
       "viewportWidth": 768,
       "viewportHeight": 1024
@@ -327,6 +387,8 @@
         "badgedHubs": 3
       },
       "navDockOverlapPx": 0,
+      "contentOccluders": [],
+      "contentOcclusionPx": 0,
       "interactiveCount": 31,
       "smallTargetCount": 0,
       "smallTargets": [],
@@ -338,6 +400,16 @@
       "compactHeight": "false",
       "taskRowCount": 8,
       "openDisclosures": 0,
+      "badgeByHub": {
+        "team": 1,
+        "game": 1,
+        "office": 2
+      },
+      "rowsByHub": {
+        "game": 1,
+        "team": 1,
+        "office": 2
+      },
       "viewportClass": "desktop",
       "viewportWidth": 1440,
       "viewportHeight": 900
