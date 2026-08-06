@@ -161,6 +161,90 @@ describe('DynastyCartridge', () => {
     expect(markup).toContain('Confirm Combined Import');
   });
 
+  it('renders per-dynasty selection with conflict hints and merge-safety copy when selection is provided', () => {
+    const markup = renderToStaticMarkup(
+      <DynastyImportPreview
+        title="Sidecar Archive Import Preview"
+        confirmLabel="Import 1 of 2 Dynasties"
+        summary={{
+          dynasties: 2,
+          hallOfFameInductees: 3,
+          scrapbookEntries: 4,
+          pendingPlayoffLoreCards: 1,
+          rookieOfYearEntries: 2,
+          rosterContinuityDynasties: 1,
+          careerMetaDynasties: 2,
+          rivalryTeams: 2,
+          rivalryRecords: 2,
+          dynastyIds: ['dynasty-a', 'dynasty-b'],
+          includedStores: ['hallOfFame', 'scrapbook', 'rookieOfYear', 'rosterContinuity', 'careerMeta', 'rivalries'],
+          missingStores: [],
+        }}
+        selection={{
+          selectedIds: ['dynasty-a'],
+          onToggle: () => undefined,
+          plan: {
+            selectedDynastyIds: ['dynasty-a'],
+            conflicts: [
+              {
+                dynastyId: 'dynasty-a',
+                stores: [{ store: 'hallOfFame', outcome: 'overwritten', detail: '1 inductee(s)' }],
+              },
+              {
+                dynastyId: 'dynasty-b',
+                stores: [{ store: 'scrapbook', outcome: 'added', detail: '2 scrapbook entrie(s)' }],
+              },
+            ],
+            notes: ['Rivalry heat is league-scoped, not per-dynasty — selective import leaves it untouched. Use the full-archive import to move rivalry data.'],
+          },
+        }}
+        onConfirm={() => undefined}
+        onCancel={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain('Dynasties to import (1 of 2)');
+    expect(markup).toContain('overwrites local: Hall of Fame archive');
+    expect(markup).toContain('excluded — archive data for this dynasty stays out, local data untouched');
+    expect(markup).toContain('Rivalry heat is league-scoped');
+    expect(markup).toContain('nothing local can be surprise-wiped');
+    expect(markup).toContain('Import 1 of 2 Dynasties');
+    expect(markup).toContain('type="checkbox"');
+  });
+
+  it('disables confirm when every dynasty is deselected', () => {
+    const markup = renderToStaticMarkup(
+      <DynastyImportPreview
+        title="Sidecar Archive Import Preview"
+        confirmLabel="Import 0 of 1 Dynasties"
+        summary={{
+          dynasties: 1,
+          hallOfFameInductees: 1,
+          scrapbookEntries: 1,
+          pendingPlayoffLoreCards: 0,
+          rookieOfYearEntries: 1,
+          rosterContinuityDynasties: 1,
+          careerMetaDynasties: 1,
+          rivalryTeams: 0,
+          rivalryRecords: 0,
+          dynastyIds: ['dynasty-a'],
+          includedStores: ['hallOfFame', 'scrapbook', 'rookieOfYear', 'rosterContinuity', 'careerMeta'],
+          missingStores: ['rivalries'],
+        }}
+        selection={{
+          selectedIds: [],
+          onToggle: () => undefined,
+          plan: { selectedDynastyIds: [], conflicts: [], notes: ['No dynasties selected — importing nothing.'] },
+        }}
+        onConfirm={() => undefined}
+        onCancel={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain('No dynasties selected — importing nothing.');
+    expect(markup).toMatch(/<button[^>]*disabled[^>]*>Import 0 of 1 Dynasties<\/button>/);
+  });
+
   it('points blocked clipboard exports to the download fallback', () => {
     expect(portableCopyFallbackMessage('CHI_S2026_W5.mfd')).toBe(
       'Clipboard blocked. Use Advanced: Download .mfd for CHI_S2026_W5.mfd.',

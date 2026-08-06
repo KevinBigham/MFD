@@ -138,9 +138,11 @@ describe('DynastyCartridge source contracts', () => {
     expect(stageSidecarImport).toContain('parseDynastySidecarArchiveJson(raw)');
     expect(stageSidecarImport).toContain('setPendingSidecarImport({');
     expect(stageSidecarImport).not.toContain('importDynastySidecarArchiveJson');
+    expect(stageSidecarImport).not.toContain('mergeDynastySidecarArchiveJson');
     expectSourceOrder(confirmSidecarImport, [
       'if (!pendingSidecarImport) return;',
-      'const result: SuccessfulSidecarImport | { ok: false; reason: string } = importDynastySidecarArchiveJson',
+      'const result = mergeDynastySidecarArchiveJson(',
+      '{ dynastyIds: sidecarSelection }',
       'setPendingSidecarImport(null);',
       'setSidecarRevision((current) => current + 1);',
     ]);

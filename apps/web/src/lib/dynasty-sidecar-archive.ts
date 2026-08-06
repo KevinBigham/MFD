@@ -269,3 +269,200 @@ export function importDynastySidecarArchiveJson(raw: string): DynastySidecarArch
     payload: readDynastySidecarArchivePayload(),
   };
 }
+
+// ── C8 phase 2: selective per-dynasty merge ─────────────
+// Unlike the wholesale import above (which replaces whole stores), the
+// selective merge works per dynasty: chosen archive dynasties are written
+// over (or added to) the local stores while every unselected dynasty —
+// local or archive — is left byte-identical. Nothing local can be
+// surprise-wiped. Rivalry heat is league-scoped rather than
+// dynasty-scoped, so selective import never touches it; the wholesale
+// import remains the rivalry path.
+
+export type DynastySidecarMergeOutcome = 'added' | 'overwritten';
+
+export interface DynastySidecarStoreMergeDetail {
+  store: DynastySidecarStoreKey;
+  outcome: DynastySidecarMergeOutcome;
+  detail: string;
+}
+
+export interface DynastySidecarMergeConflict {
+  dynastyId: string;
+  stores: DynastySidecarStoreMergeDetail[];
+}
+
+export interface DynastySidecarMergePlan {
+  selectedDynastyIds: string[];
+  conflicts: DynastySidecarMergeConflict[];
+  notes: string[];
+}
+
+export type DynastySidecarArchiveMergeResult =
+  | {
+    ok: true;
+    payload: DynastySidecarArchivePayload;
+    summary: DynastySidecarArchiveSummary;
+    plan: DynastySidecarMergePlan;
+  }
+  | {
+    ok: false;
+    reason: string;
+  };
+
+export const SELECTIVE_MERGE_RIVALRY_NOTE =
+  'Rivalry heat is league-scoped, not per-dynasty — selective import leaves it untouched. Use the full-archive import to move rivalry data.';
+
+function detail(store: DynastySidecarStoreKey, hasLocal: boolean, text: string): DynastySidecarStoreMergeDetail {
+  return { store, outcome: hasLocal ? 'overwritten' : 'added', detail: text };
+}
+
+export function planDynastySidecarMerge(
+  imported: DynastySidecarArchivePayload,
+  selectedDynastyIds: readonly string[],
+  current: DynastySidecarArchivePayload = readDynastySidecarArchivePayload(),
+): DynastySidecarMergePlan {
+  const archiveIds = new Set(summarizeDynastySidecarArchive(imported).dynastyIds);
+  const known = [...new Set(selectedDynastyIds)].filter((id) => archiveIds.has(id));
+  const unknown = [...new Set(selectedDynastyIds)].filter((id) => !archiveIds.has(id));
+
+  const conflicts: DynastySidecarMergeConflict[] = known.map((dynastyId) => {
+    const stores: DynastySidecarStoreMergeDetail[] = [];
+
+    const importedHof = imported.sidecars.hallOfFame.dynastiesById[dynastyId];
+    if (importedHof) {
+      stores.push(detail('hallOfFame', Boolean(current.sidecars.hallOfFame.dynastiesById[dynastyId]),
+        `${importedHof.entries.length} inductee(s), synced through ${importedHof.lastSyncedYear}`));
+    }
+
+    const importedEntries = imported.sidecars.scrapbook.entriesByDynastyId[dynastyId];
+    const importedLore = imported.sidecars.scrapbook.pendingPlayoffLoreByDynastyId[dynastyId];
+    if (importedEntries || importedLore) {
+      const loreCount = Object.values(importedLore ?? {}).reduce((total, cards) => total + cards.length, 0);
+      const hasLocal = Boolean(current.sidecars.scrapbook.entriesByDynastyId[dynastyId])
+        || Boolean(current.sidecars.scrapbook.pendingPlayoffLoreByDynastyId[dynastyId]);
+      stores.push(detail('scrapbook', hasLocal,
+        `${importedEntries?.length ?? 0} scrapbook entrie(s), ${loreCount} pending lore card(s)`));
+    }
+
+    const importedRoy = imported.sidecars.rookieOfYear.byDynastyId[dynastyId];
+    if (importedRoy) {
+      stores.push(detail('rookieOfYear', Boolean(current.sidecars.rookieOfYear.byDynastyId[dynastyId]),
+        `${importedRoy.length} Rookie of the Year entrie(s)`));
+    }
+
+    const importedContinuity = imported.sidecars.rosterContinuity.byDynastyId[dynastyId];
+    if (importedContinuity) {
+      stores.push(detail('rosterContinuity', Boolean(current.sidecars.rosterContinuity.byDynastyId[dynastyId]),
+        `continuity snapshot through ${importedContinuity.lastSyncedYear}`));
+    }
+
+    const importedCareer = imported.sidecars.careerMeta.dynasties.find((dynasty) => dynasty.dynastyId === dynastyId);
+    if (importedCareer) {
+      stores.push(detail('careerMeta',
+        current.sidecars.careerMeta.dynasties.some((dynasty) => dynasty.dynastyId === dynastyId),
+        `${importedCareer.seasonsCoached} season(s) coached, ${importedCareer.wins}-${importedCareer.losses}`));
+    }
+
+    return { dynastyId, stores };
+  });
+
+  const notes: string[] = [];
+  if (unknown.length > 0) {
+    notes.push(`Not present in this archive, ignored: ${unknown.join(', ')}.`);
+  }
+  if (known.length === 0) {
+    notes.push('No dynasties selected — importing nothing.');
+  }
+  notes.push(SELECTIVE_MERGE_RIVALRY_NOTE);
+
+  return { selectedDynastyIds: known, conflicts, notes };
+}
+
+export function mergeDynastySidecarPayloads(
+  imported: DynastySidecarArchivePayload,
+  current: DynastySidecarArchivePayload,
+  selectedDynastyIds: readonly string[],
+): DynastySidecarArchivePayload {
+  const picked = new Set(selectedDynastyIds);
+  const pickKeys = <T>(source: Record<string, T>): Record<string, T> => Object.fromEntries(
+    Object.entries(source).filter(([dynastyId]) => picked.has(dynastyId)),
+  );
+
+  const careerKeep = current.sidecars.careerMeta.dynasties.filter((dynasty) => !picked.has(dynasty.dynastyId));
+  const careerAdd = imported.sidecars.careerMeta.dynasties.filter((dynasty) => picked.has(dynasty.dynastyId));
+
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    sidecars: {
+      hallOfFame: {
+        schemaVersion: current.sidecars.hallOfFame.schemaVersion,
+        dynastiesById: {
+          ...current.sidecars.hallOfFame.dynastiesById,
+          ...pickKeys(imported.sidecars.hallOfFame.dynastiesById),
+        },
+      },
+      scrapbook: {
+        schemaVersion: current.sidecars.scrapbook.schemaVersion,
+        entriesByDynastyId: {
+          ...current.sidecars.scrapbook.entriesByDynastyId,
+          ...pickKeys(imported.sidecars.scrapbook.entriesByDynastyId),
+        },
+        pendingPlayoffLoreByDynastyId: {
+          ...current.sidecars.scrapbook.pendingPlayoffLoreByDynastyId,
+          ...pickKeys(imported.sidecars.scrapbook.pendingPlayoffLoreByDynastyId),
+        },
+      },
+      rookieOfYear: {
+        schemaVersion: current.sidecars.rookieOfYear.schemaVersion,
+        byDynastyId: {
+          ...current.sidecars.rookieOfYear.byDynastyId,
+          ...pickKeys(imported.sidecars.rookieOfYear.byDynastyId),
+        },
+      },
+      rosterContinuity: {
+        schemaVersion: current.sidecars.rosterContinuity.schemaVersion,
+        byDynastyId: {
+          ...current.sidecars.rosterContinuity.byDynastyId,
+          ...pickKeys(imported.sidecars.rosterContinuity.byDynastyId),
+        },
+      },
+      careerMeta: {
+        schemaVersion: current.sidecars.careerMeta.schemaVersion,
+        dynasties: [...careerKeep, ...careerAdd],
+        // replaceCareerMeta normalizes on write and recomputes careerTotals
+        // from the merged dynasty list, so the carried value is inert.
+        careerTotals: current.sidecars.careerMeta.careerTotals,
+      },
+      // Rivalries are league-scoped: untouched by selective merge.
+      ...(current.sidecars.rivalries ? { rivalries: current.sidecars.rivalries } : {}),
+    },
+  };
+}
+
+export function mergeDynastySidecarArchiveJson(
+  raw: string,
+  options: { dynastyIds?: readonly string[] } = {},
+): DynastySidecarArchiveMergeResult {
+  const result = parseDynastySidecarArchiveJson(raw);
+  if (!result.ok) return result;
+
+  const selection = options.dynastyIds ?? result.summary.dynastyIds;
+  const current = readDynastySidecarArchivePayload();
+  const plan = planDynastySidecarMerge(result.payload, selection, current);
+  const merged = mergeDynastySidecarPayloads(result.payload, current, plan.selectedDynastyIds);
+
+  replaceHallOfFameArchive(merged.sidecars.hallOfFame);
+  replaceScrapbookStore(merged.sidecars.scrapbook);
+  replaceRookieOfYearStore(merged.sidecars.rookieOfYear);
+  replaceRosterContinuity(merged.sidecars.rosterContinuity);
+  replaceCareerMeta(merged.sidecars.careerMeta);
+
+  const payload = readDynastySidecarArchivePayload();
+  return {
+    ok: true,
+    payload,
+    summary: summarizeDynastySidecarArchive(payload),
+    plan,
+  };
+}
