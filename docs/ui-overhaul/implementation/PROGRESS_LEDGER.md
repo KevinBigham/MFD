@@ -224,3 +224,96 @@ Delete `apps/web/src/ui/`, `scripts/check-ui-route-coverage*.mjs`,
 `apps/web/e2e/ui-overhaul-baseline.pw.cjs`; revert the two `ui-store` files and
 the `@playwright/test` devDependency. No simulation, save, schema or engine state
 is involved, so nothing user-facing changes.
+
+---
+
+## WP-04 — Route-Surface Metadata and Deep-Link Compatibility
+
+Status: **complete** — 79/79 modelled, compatibility resolver and return-to-task
+origin landed, no route deleted
+Branch: `feat/ui-overhaul-wp00`
+Save/determinism impact: **none** — no engine, RNG, schema, migration or
+mutation-action file touched; `SAVE_VERSION` unchanged at 37
+
+| SHA | Subject |
+|---|---|
+| `937cecc` | `feat(ui-routes): model the future surface of all 79 canonical routes` |
+| `b8179e8` | `feat(ui-routes): resolve old deep links and restore return-to-task origin` |
+| `9834af6` | `feat(ui-routes): split the current location and roll badges up to hubs` |
+
+### Files touched (enumerated, per the packet's anti-glob rule)
+
+Added:
+
+| File | Purpose |
+|---|---|
+| `apps/web/src/ui/routes/route-surface-types.ts` | `HubId`, `SurfaceType`, `RouteSurfaceMeta`, frequency/urgency enums |
+| `apps/web/src/ui/routes/route-surface-map.ts` | 79 entries + `routeSurface` / `hubForLegacyPath` / `routesInHub` / `routeUnlock` |
+| `apps/web/src/ui/routes/route-compatibility.ts` | `splitHref`, `resolveCompatibleRoute`, `isResolvable` |
+| `apps/web/src/ui/routes/navigation-origin.ts` | `NavigationOrigin` encode/decode, `withNavigationOrigin`, `returnToOriginHref` |
+| `apps/web/src/ui/routes/route-surface-map.test.ts` | 8 tests — registry parity + field-level matrix equality |
+| `apps/web/src/ui/routes/route-compatibility.test.ts` | 15 tests |
+| `apps/web/src/ui/routes/navigation-origin.test.ts` | 17 tests |
+| `scripts/check-ui-route-coverage.d.mts` | Types for the gate's `parseCsv`, reused by the parity test |
+
+Modified: `apps/web/src/app/currentAppRoute.ts` (+ its test),
+`apps/web/src/app/navBadges.ts` (+ its test). Deleted: none.
+
+### Deviations from the packet, and why
+
+1. **No per-route `compatibility` field.** All 79 matrix rows carry the same
+   decision — alias until H2 — so the field would have been a column of
+   identical values with a `retired` branch no test could reach. Kept in the
+   CSV, enforced non-empty by the gate. Retirement is WP-23 and lands with its
+   own failing test.
+2. **`lifecycle_phase` is not copied into the runtime model.** `routeUnlock()`
+   reads `unlockWeek` / `unlockPhase` from `APP_ROUTE_REGISTRY` instead. The
+   packet's own non-scope forbids a second maintained copy of registry logic.
+3. **`splitHref` is duplicated in `currentAppRoute.ts` rather than imported.**
+   Importing it would pull the 79-entry surface map into the error boundary and
+   the Chip dock, which are eager and legacy-only. A cross-implementation test
+   over 79 routes × 5 decorations pins the two together.
+
+### Facts the model surfaced
+
+- **`/dynasty` is a genuine collision.** It is the legacy Save/Load screen and
+  belongs to **System** (`/system/saves`), while the new Dynasty hub owns
+  `/dynasty/*`. Prefix matching would silently reroute Save/Load into Dynasty.
+  Resolution is exact-match, and both halves are pinned by tests.
+- **Canonical paths do not always sit under their hub.** `/scenarios` stays
+  `/scenarios` under Dynasty and `/faq` becomes `/help` under System, so no code
+  may infer a hub from a path prefix.
+- **Two routes legitimately share one canonical path.** `/` and `/week-advance`
+  both land on `/today`; the second is a panel (`?panel=readiness`). The
+  canonical index resolves the query-less entry as the hub root.
+- All 79 registry paths resolve to a hub, and resolution is a **fixed point** —
+  resolving an already-resolved href changes nothing. That is what "no circular
+  mappings" has to mean operationally.
+
+### Verification of this packet
+
+| Check | Result |
+|---|---|
+| `pnpm -r typecheck` | **PASS** — all 3 projects |
+| `vitest run src/ui src/app/navBadges.test.ts src/app/currentAppRoute.test.ts src/app/architecture-boundaries.test.ts` | **PASS** — 79/79 |
+| Full web suite (gate's `--exclude` command) | **PASS** — 265/265 files, 2279/2279 tests, exit 0 |
+| `node scripts/check-ui-route-coverage.mjs` | **PASS** — 79/79/79, now three-way |
+| `node --test scripts/__tests__/check-ui-route-coverage.test.mjs` | **PASS** — 11/11 |
+| `pnpm lint` | **PASS** — 0 errors; 42 pre-existing warnings, none in WP-04 files |
+| `vite build` + `check-bundle-size.sh` | **PASS** — engine 313 KB unchanged |
+
+**PERF-02:** eager `index-*.js` 275.8 KB gzip against the 275 KB baseline and the
+316 KB ceiling — **≈ +0.8 KB**, roughly 40 KB of headroom left. The surface map
+is eager by necessity: any deep link must resolve before the shell picks a tree.
+
+Engine and design-system suites were **not** re-run — no file in either package
+was touched, and the boundary test proves the new modules import only
+`@mfd/engine/config`.
+
+### Rollback
+
+Delete `apps/web/src/ui/routes/` and `scripts/check-ui-route-coverage.d.mts`;
+revert `currentAppRoute.ts` and `navBadges.ts`. The coverage gate returns to
+matrix-only mode on its own, since the surface map is optional when absent. The
+canonical registry was never touched and no route was deleted, so legacy routing
+is unaffected either way.
