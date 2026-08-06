@@ -21,6 +21,15 @@ export const ORIGIN_PARAM = 'from';
  */
 export const ORIGIN_BUDGET = 512;
 
+/**
+ * Longest label a decoded origin may carry into a return control.
+ *
+ * The budget above only constrains what *we* encode. The parameter is
+ * user-editable, so a hand-written URL can arrive with a megabyte of label text
+ * headed straight for a button.
+ */
+export const ORIGIN_LABEL_MAX = 120;
+
 export interface NavigationOrigin {
   /** Canonical href of the surface the player left. */
   route: string;
@@ -113,7 +122,7 @@ export function decodeNavigationOrigin(encoded: string | null | undefined): Navi
 
   const route = asOptionalString(record.route);
   const label = asOptionalString(record.label);
-  if (!route || !label) return null;
+  if (!route || !label || label.length > ORIGIN_LABEL_MAX) return null;
   if (resolveCompatibleRoute(route).status === 'unknown') return null;
 
   const origin: NavigationOrigin = { route, label };

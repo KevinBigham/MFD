@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ORIGIN_BUDGET,
+  ORIGIN_LABEL_MAX,
   ORIGIN_PARAM,
   createNavigationOrigin,
   decodeNavigationOrigin,
@@ -86,6 +87,20 @@ describe('encode / decode', () => {
     expect(decodeNavigationOrigin(encodeURIComponent('"a string"'))).toBeNull();
     expect(decodeNavigationOrigin(encodeURIComponent(JSON.stringify({ label: 'no route' })))).toBeNull();
     expect(decodeNavigationOrigin(encodeURIComponent(JSON.stringify({ route: '/today' })))).toBeNull();
+  });
+
+  it('refuses a label long enough to wreck the control that renders it', () => {
+    // The encode budget only constrains what we produce. This parameter is
+    // user-editable, so decode has to defend itself.
+    const atLimit = encodeURIComponent(
+      JSON.stringify({ route: '/today', label: 'x'.repeat(ORIGIN_LABEL_MAX) }),
+    );
+    const overLimit = encodeURIComponent(
+      JSON.stringify({ route: '/today', label: 'x'.repeat(ORIGIN_LABEL_MAX + 1) }),
+    );
+
+    expect(decodeNavigationOrigin(atLimit)?.label).toHaveLength(ORIGIN_LABEL_MAX);
+    expect(decodeNavigationOrigin(overLimit)).toBeNull();
   });
 
   it('refuses an origin pointing at a route that does not exist', () => {
