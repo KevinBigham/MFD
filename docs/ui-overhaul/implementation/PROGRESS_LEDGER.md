@@ -735,3 +735,84 @@ Remove the three `@import` lines from `tokens/index.css`; delete the three v2
 CSS files, `components/density.ts`, and the two tests; drop the export block
 from `components/index.ts`. Legacy tokens were never edited, so the legacy shell
 is unaffected either way.
+
+---
+
+## WP-02 — Adaptive Viewport and Screen Archetype Primitives
+
+Status: **complete** — five primitives, zero bundle cost until something imports them
+Branch: `feat/ui-overhaul-wp00`
+Save/determinism impact: **none** — layout components and one global CSS rule;
+no engine, RNG, schema, migration or mutation-action file touched;
+`SAVE_VERSION` unchanged at 37
+
+| SHA | Subject |
+|---|---|
+| `5a9143f` | `feat(ui-layout): add adaptive viewport primitives` |
+| `23771a8` | `feat(ui-layout): add single-scroll and sticky-action contracts` |
+| `ccc4527` | `test(ui-layout): cover safe area, compact height, and the chrome budget` |
+
+### Files touched
+
+Added: `apps/web/src/ui/layout/{AdaptiveViewport,AppFrame,PageScroll,StickyActionDock,PaneLayout}.tsx`,
+`layout.module.css`, `layout.test.tsx` (26 tests). Modified:
+`apps/web/src/app/a11y.css`. Deleted: none. **This is the packet's exact file
+list with no additions.**
+
+### Design decisions worth the ledger
+
+- **Compact height is a dimension, not a width consequence.** `844×390` is
+  asserted as *medium* width **and** compact height in the same test, because
+  that combination is precisely what width-only breakpoints miss — and the
+  WP-00 baseline showed it is this application's worst case at 19.02 viewports.
+- **The layout environment is published as data attributes, not just context.**
+  Hashed CSS-module class names are invisible to Playwright and to the geometry
+  harness. Every LAY- acceptance assertion in doc 09 needs something to select
+  on; `data-mfd-v2-mode` is it.
+- **The pure/impure split is forced by the toolchain, and is better for it.**
+  `apps/web` has no jsdom and no testing-library — component tests render to
+  static markup. So `resolveLayoutEnvironment` and `resolvePaneColumns` are pure
+  exported functions with the hook as a thin `useSyncExternalStore` wrapper,
+  which makes every boundary testable without a browser.
+- **`PageScroll`'s `contained` mode requires a `reason`, enforced by the type.**
+  A second scroll container cannot be added without writing down why, at the
+  call site, where review sees it.
+- **The dock measures itself.** A `ResizeObserver` publishes the real height
+  into `--mfd-v2-dock-measured`, defaulting to `0px`. The legacy shell reserves
+  198px of Chip clearance plus a 64px nav pad unconditionally; that plus the
+  header is the 383–425px of fixed chrome the baseline measured against
+  LAY-06's 152px budget.
+- **CSS-module class names in vitest were probed, not assumed.** With `css`
+  disabled (this repo's default) vitest returns a proxy that yields
+  `_frame_772440` for `styles.frame` — usable but hashed. That is why the tests
+  assert data attributes and stylesheet text rather than class names.
+
+### A1 impact
+
+`a11y.css` is a global stylesheet, so it is the only part of this packet a
+legacy user loads. The added rule is `[data-mfd-v2-viewport] :focus-visible` —
+that attribute is emitted only by `AdaptiveViewport`, which nothing imports yet,
+so **no legacy element can match the selector**. The legacy
+`outline: 3px solid var(--mfd-cyan)` rule is untouched and asserted intact.
+
+Everything else in the packet has no importer, so it is absent from the module
+graph entirely: eager `index-*.js` is **278.3 KB, unchanged**.
+
+### Verification of this packet
+
+| Check | Result |
+|---|---|
+| `pnpm -r typecheck` | **PASS** — all 3 projects |
+| `vitest run src/ui/layout` | **PASS** — 26/26 |
+| Full web suite (gate's `--exclude` command) | **PASS** — 269/269 files, 2344/2344 tests, exit 0 |
+| `pnpm lint` | **PASS** — 0 errors, 42 warnings (pre-existing count) |
+| `vite build` + `check-bundle-size.sh` | **PASS** — engine 313 KB; eager `index-*.js` **278.3 KB, +0 KB**; index CSS 11.8 → 11.9 KB |
+
+Screenshots are deferred with the packet's own logic: these primitives render
+nothing on their own, and the first screen built from them is WP-09b's Today,
+which is where H0 captures them at 390×844 and 1440×900.
+
+### Rollback
+
+Delete `apps/web/src/ui/layout/` and revert the appended block in `a11y.css`.
+Nothing imports either, so removal is inert.
