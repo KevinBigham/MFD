@@ -1,0 +1,225 @@
+/**
+ * Today screen layout.
+ *
+ * Tokens only — every value here resolves through `--mfd-v2-*`. No hex, no
+ * bare pixel spacing, no legacy `--mfd-*` name. That is what lets this screen
+ * mount inside the legacy app without either one repainting the other.
+ *
+ * The row height is the load-bearing number: `--mfd-v2-row-min` is 56px, which
+ * is the blueprint's phone task row and comfortably above the 44px WCAG floor.
+ * It is a min-height rather than a height so a two-line title grows instead of
+ * clipping.
+ */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-v2-space-6);
+  padding: var(--mfd-v2-space-4);
+  padding-left: max(var(--mfd-v2-space-4), var(--mfd-v2-safe-left));
+  padding-right: max(var(--mfd-v2-space-4), var(--mfd-v2-safe-right));
+}
+
+/* ── Chrome ───────────────────────────────────────────── */
+
+.chrome {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-v2-space-1);
+  padding: var(--mfd-v2-space-3) var(--mfd-v2-space-4);
+  padding-top: max(var(--mfd-v2-space-3), var(--mfd-v2-safe-top));
+  background: var(--mfd-v2-surface-1);
+  border-bottom: 1px solid var(--mfd-v2-divider);
+}
+
+.kicker {
+  margin: 0;
+  color: var(--mfd-v2-text-secondary);
+}
+
+.title {
+  margin: 0;
+  color: var(--mfd-v2-text);
+}
+
+/* ── Context ──────────────────────────────────────────── */
+
+.context {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-v2-space-2);
+}
+
+.opponentDetail {
+  margin: 0;
+  color: var(--mfd-v2-text-secondary);
+}
+
+/* Metadata on the page canvas, where `text-muted` clears AA at 5.09:1. It is
+ * never used on surface-2 or surface-3, where it does not. */
+.purpose {
+  margin: 0;
+  color: var(--mfd-v2-text-muted);
+}
+
+.readiness {
+  margin: 0;
+  padding: var(--mfd-v2-space-3);
+  border-radius: var(--mfd-v2-radius-section);
+  background: var(--mfd-v2-surface-1);
+  color: var(--mfd-v2-text);
+}
+
+[data-mfd-v2-readiness='blocked'] .readiness {
+  background: var(--mfd-v2-danger-fill);
+  box-shadow: inset 3px 0 0 var(--mfd-v2-danger);
+}
+
+[data-mfd-v2-readiness='attention'] .readiness {
+  background: var(--mfd-v2-warning-fill);
+  box-shadow: inset 3px 0 0 var(--mfd-v2-warning);
+}
+
+[data-mfd-v2-readiness='ready'] .readiness {
+  background: var(--mfd-v2-success-fill);
+  box-shadow: inset 3px 0 0 var(--mfd-v2-success);
+}
+
+/* ── Lanes ────────────────────────────────────────────── */
+
+.lane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-v2-space-2);
+}
+
+.laneHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--mfd-v2-space-2);
+  margin: 0;
+  color: var(--mfd-v2-text);
+}
+
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 0 var(--mfd-v2-space-1);
+  border-radius: var(--mfd-v2-radius-control);
+  background: var(--mfd-v2-surface-2);
+  color: var(--mfd-v2-text);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-v2-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  border-radius: var(--mfd-v2-radius-section);
+  background: var(--mfd-v2-surface-1);
+}
+
+.rowLink {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-v2-space-1);
+  min-height: var(--mfd-v2-row-min);
+  padding: var(--mfd-v2-space-3);
+  color: var(--mfd-v2-text);
+  text-decoration: none;
+}
+
+.rowLink:hover .rowTitle {
+  text-decoration: underline;
+}
+
+/* Colour is never the only signal: the accent bar is paired with the
+ * severity's own word inside the row's disclosure. */
+[data-mfd-v2-severity='blocking'] {
+  box-shadow: inset 3px 0 0 var(--mfd-v2-danger);
+}
+
+[data-mfd-v2-severity='warning'] {
+  box-shadow: inset 3px 0 0 var(--mfd-v2-warning);
+}
+
+[data-mfd-v2-severity='info'] {
+  box-shadow: inset 3px 0 0 var(--mfd-v2-interactive);
+}
+
+[data-mfd-v2-severity='clear'] {
+  box-shadow: inset 3px 0 0 var(--mfd-v2-success);
+}
+
+.rowTitle {
+  color: var(--mfd-v2-text);
+}
+
+.rowReason {
+  color: var(--mfd-v2-text-secondary);
+}
+
+.rowWhere {
+  color: var(--mfd-v2-text-secondary);
+}
+
+/* ── Disclosure ───────────────────────────────────────── */
+
+.rowDetails {
+  padding: 0 var(--mfd-v2-space-3) var(--mfd-v2-space-2);
+}
+
+.summary {
+  min-height: var(--mfd-v2-control-min);
+  display: flex;
+  align-items: center;
+  color: var(--mfd-v2-interactive);
+  cursor: pointer;
+}
+
+.consequence {
+  margin: 0 0 var(--mfd-v2-space-2);
+  color: var(--mfd-v2-text-secondary);
+}
+
+.mergedList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-v2-space-1);
+  margin: 0;
+  padding-left: var(--mfd-v2-space-4);
+}
+
+.mergedItem {
+  color: var(--mfd-v2-text-secondary);
+}
+
+.overflow {
+  border-radius: var(--mfd-v2-radius-section);
+  background: var(--mfd-v2-surface-1);
+  padding: 0 var(--mfd-v2-space-3) var(--mfd-v2-space-2);
+}
+
+.overflow > .summary {
+  padding: var(--mfd-v2-space-2) 0;
+}
+
+/* ── Dock ─────────────────────────────────────────────── */
+
+.unblock {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--mfd-v2-control-default);
+  padding: 0 var(--mfd-v2-space-4);
+  border-radius: var(--mfd-v2-radius-control);
+  background: var(--mfd-v2-brand-fill);
+  color: var(--mfd-v2-text);
+  text-decoration: none;
+}

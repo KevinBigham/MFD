@@ -322,6 +322,32 @@ describe('sticky action', () => {
     expect(html).toContain('aria-disabled="true"');
   });
 
+  it('prints the reason once on screen while keeping it on the button for a screen reader', () => {
+    const html = renderToStaticMarkup(
+      <MfdStickyAction
+        label="Advance to Week 15"
+        onActivate={() => {}}
+        blocked
+        blockedReason="No game plan saved for this matchup."
+        unblock={<a href="#/game-plan">Set game plan</a>}
+      />,
+    );
+
+    // Twice in the DOM — the status line and the button's description — and
+    // the stylesheet is what keeps only one of them visible.
+    expect(html.split('No game plan saved for this matchup.')).toHaveLength(3);
+    expect(html).toContain('aria-describedby=');
+    expect(html).toContain('data-mfd-v2-button-description="true"');
+
+    // The rule that does it. Without this the same sentence renders twice,
+    // 8px apart, and costs 16px of a 152px fixed-chrome budget.
+    const hidden = stickyCss.match(/\.wrap \[data-mfd-v2-button-description\] \{([^}]+)\}/);
+    expect(hidden?.[1], 'sticky action must visually hide the duplicated description').toBeDefined();
+    expect(hidden?.[1]).toContain('position: absolute');
+    expect(hidden?.[1]).toContain('clip-path: inset(50%)');
+    expect(hidden?.[1]).not.toContain('display: none');
+  });
+
   it('is a plain primary action when nothing blocks it', () => {
     const html = renderToStaticMarkup(
       <MfdStickyAction label="Advance to Week 15" onActivate={() => {}} />,
