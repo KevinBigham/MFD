@@ -816,3 +816,102 @@ which is where H0 captures them at 390×844 and 1440×900.
 
 Delete `apps/web/src/ui/layout/` and revert the appended block in `a11y.css`.
 Nothing imports either, so removal is inert.
+
+---
+
+## WP-03 — Interaction, Focus, Dialog, and Accessibility Foundation
+
+Status: **complete** — five v2 primitives; the legacy dialog defect recorded, not patched
+Branch: `feat/ui-overhaul-wp00`
+Save/determinism impact: **none** — design-system components and two scoped CSS
+blocks; no engine, RNG, schema, migration or mutation-action file touched;
+`SAVE_VERSION` unchanged at 37
+
+| SHA | Subject |
+|---|---|
+| `0b4e8be` | `feat(design-system): add v2 interaction primitives` |
+| `9cd9814` | `feat(a11y): standardize focus and overlay behavior for the new shell` |
+| `69e090a` | `test(a11y): cover keyboard, motion, target size, and semantics` |
+
+### Files touched
+
+Added: `MfdButtonV2/{MfdButtonV2.tsx,.module.css,.test.tsx}`,
+`MfdStateFrame/{MfdStateFrame.tsx,.module.css}`,
+`MfdBottomSheet/{MfdBottomSheet.tsx,.module.css}`,
+`MfdLocalNav/{MfdLocalNav.tsx,.module.css}`,
+`MfdStickyAction/{MfdStickyAction.tsx,.module.css}`, `components/css-modules.d.ts`.
+Modified: `components/index.ts`, `packages/design-system/tsconfig.json`,
+`apps/web/src/app/a11y.css`. Deleted: none.
+
+### A finding that outranks the packet: the legacy dialog has no focus management
+
+`packages/design-system/components/PixelModal/PixelModal.tsx` sets
+`role="dialog"` and `aria-modal="true"` — and stops. There is **no focus trap,
+no focus restore, no Escape handler, and no background inertness**. `MfdDialog`
+is a thin pass-through to it, so this is the behaviour of every dialog in the
+shipped application.
+
+WP-03 lists `MfdDialog.tsx` and `MfdTooltip.tsx` as files to modify, and both
+were deliberately **left untouched**:
+
+- Fixing it changes legacy *behaviour*, which amendment A1 puts off limits for
+  the duration of the migration. A focus trap changes what is reachable, and
+  the CDP harness drives 21 button-text clicks across 49 legacy routes.
+- The blast radius is every dialog in the app, which makes it a change that
+  deserves its own packet and its own gate — not a side effect of a foundation
+  commit.
+- `MfdTooltip` is Radix-backed and already handles focus and Escape correctly;
+  there was nothing to standardise.
+
+The contract is implemented in `MfdBottomSheet` for the new shell.
+**Recommendation: fix `PixelModal` as a standalone, Kevin-gated change**, since
+it benefits every player today rather than only after cutover.
+
+### A bug the tests caught before it shipped
+
+`nextFocusIndex(-1, -1, length)` returned `length - 2`. A negative index means
+focus is *outside* the trap — `indexOf` returns -1 for an element the sheet does
+not contain — and plain modular arithmetic reads that as "one before index 0".
+Shift+Tab from outside would have dropped the player into the middle of the
+sheet instead of its last control.
+
+It was catchable only because the arithmetic is a pure exported function. This
+repo has no jsdom anywhere; component tests render to static markup. **Logic
+reachable only through real DOM events is logic that never gets tested here**,
+which is the constraint that shaped every primitive in WP-02 and WP-03.
+
+### Deviations, disclosed
+
+- `MfdDialog.tsx` / `MfdTooltip.tsx` not modified — see above.
+- The packet lists no test file; `MfdButtonV2.test.tsx` (31 tests) covers all
+  five primitives, because its "Automated tests" section requires coverage the
+  file list has nowhere to live in.
+- Four extra `.module.css` files — the packet names one for `MfdButtonV2`, and
+  doc 07 forbids layout-critical inline styles in new-shell files, so the other
+  four components follow the same pattern rather than regressing to inline.
+- `components/css-modules.d.ts` and a one-line `tsconfig.json` include: this
+  package has no Vite config, so it cannot inherit CSS-module typings from
+  `vite/client` the way `apps/web` does.
+
+### Verification of this packet
+
+| Check | Result |
+|---|---|
+| `pnpm -r typecheck` | **PASS** — all 3 projects |
+| `pnpm --filter @mfd/design-system test` | **PASS** — 20/20 files, 168/168 tests |
+| Full web suite (gate's `--exclude` command) | **PASS** — 269/269 files, 2344/2344 tests, exit 0 |
+| `pnpm lint` | **PASS** — 0 errors, 42 warnings (pre-existing count) |
+| `vite build` + `check-bundle-size.sh` | **PASS** — engine 313 KB; eager `index-*.js` **278.3 KB, +0 KB**; design-system CSS 10.1 → 11.2 KB, index CSS 11.9 → 12.0 KB |
+
+**A1 impact.** The v2 components have no importer, so they are absent from the
+module graph — the eager chunk is unchanged. The only thing a legacy user loads
+is the appended `a11y.css` block, and every rule in it is scoped inside
+`[data-mfd-v2-viewport]`, an attribute emitted solely by `AdaptiveViewport`,
+which nothing imports yet. **No legacy element can match any of it.**
+
+### Rollback
+
+Delete the five `Mfd*V2`/`Mfd*` v2 component directories and
+`components/css-modules.d.ts`, revert the export block in `components/index.ts`,
+the `tsconfig.json` include line, and the two appended blocks in `a11y.css`.
+Nothing imports any of it.
