@@ -245,11 +245,13 @@ export function buildTaskLedger(input: TaskLedgerInput): UiTask[] {
  * The standing Optional lane: legal moves that are always available, listed so
  * the player knows the week is not over when the Must Do lane is empty.
  *
- * SAVE-VISIBLE IDS. Unlike the Must Do and Recommended lanes — whose card ids
- * the board builds from a lane index — every id here is used verbatim as the
- * card id persisted to `leagueEvents` on close. They are a save contract, not a
- * React key: renaming one brings a dismissed card back for every player who
- * closed it. Pinned by `task-ledger.test.ts`.
+ * SAVE-VISIBLE IDS, LATENTLY. Unlike the Must Do and Recommended lanes — whose
+ * card ids the board builds from a lane index — every id here is passed through
+ * as the card id verbatim. The Optional lane renders no Close control today, so
+ * none of these has actually reached `leagueEvents` yet; the moment it gains
+ * one, they become a save contract and renaming one brings a dismissed card
+ * back. Treat them as frozen now rather than discovering it later. Pinned by
+ * `task-ledger.test.ts`.
  */
 export const OPTIONAL_TASKS: readonly UiTask[] = [
   {

@@ -119,6 +119,26 @@ describe('ActionCenter', () => {
     expect(renderedAccent(html, 'Save slot and backup export')).toBe('green');
   });
 
+  it('names the destination screen in the Where cell, never a raw route path', () => {
+    const html = renderToStaticMarkup(
+      <ActionCenter
+        phase="regular_season"
+        hasGamePlan={false}
+        starterCount={15}
+        tradeOfferCount={2}
+        ownerApproval={30}
+        injuredCount={0}
+      />,
+    );
+
+    expect(html).toContain('Game Plan');
+    expect(html).toContain('Depth Chart');
+    expect(html).toContain('Waiver Wire');
+    // A missing destination label falls through to the route, which reads as a
+    // bug on screen and is otherwise invisible to this suite.
+    expect(html).not.toMatch(/>\/[a-z-]+(?:\/[a-z-]+)*</);
+  });
+
   it('renders the all-clear card green and the blocked panel red', () => {
     const clear = renderToStaticMarkup(
       <ActionCenter

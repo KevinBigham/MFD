@@ -273,11 +273,12 @@ describe('OPTIONAL_TASKS', () => {
     expect(OPTIONAL_TASKS.every((task) => task.category === 'optional')).toBe(true);
   });
 
-  it('pins the ids the board persists verbatim as closed-card ids', () => {
-    // These eight go into leagueEvents as action_center.closed payloads exactly
-    // as written. Unlike the Must Do and Recommended lanes, whose ids the board
-    // builds from a lane index, renaming one of these resurrects a card the
-    // player already dismissed. Changing this list is a save-visible change.
+  it('pins the ids the board would persist verbatim as closed-card ids', () => {
+    // The board passes these straight through as card ids, unlike the Must Do
+    // and Recommended lanes, whose ids it builds from a lane index. The Optional
+    // lane has no Close control yet, so only `recommended-clear` currently
+    // reaches leagueEvents — but the day Optional gains one, renaming any of
+    // these resurrects a card the player already dismissed. Frozen from now.
     expect(ids([...OPTIONAL_TASKS])).toEqual([
       'optional-roster-training-medical',
       'optional-depth',

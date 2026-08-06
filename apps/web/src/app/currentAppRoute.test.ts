@@ -39,7 +39,11 @@ describe('resolveCurrentAppLocationParts', () => {
       .toEqual({ path: '/', search: '', fragment: '' });
   });
 
-  it('agrees with the WP-04 compatibility splitter for every canonical route', () => {
+  it('carries hash and base-path handling into the shared splitter for every route', () => {
+    // Both sides now call `splitHref`, so this no longer pins two
+    // implementations together — what it still covers is that
+    // `resolveCurrentAppRoute`'s hash extraction and deploy-base stripping
+    // survive the split intact.
     const decorations = ['', '?pos=QB&sort=ovr', '#row-3', '?pos=QB#row-3', '/'];
 
     for (const definition of APP_ROUTE_REGISTRY) {
