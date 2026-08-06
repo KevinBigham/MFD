@@ -8,6 +8,9 @@ describe('App Chip setup wiring', () => {
   const agmSourceContent = readFileSync(new URL('../../../../packages/engine/src/systems/agm.ts', import.meta.url), 'utf-8');
   const actionCenterContent = readFileSync(new URL('../features/monday-briefing/ActionCenter.tsx', import.meta.url), 'utf-8');
   const weekAdvanceContent = readFileSync(new URL('../features/week-advance/WeekAdvance.tsx', import.meta.url), 'utf-8');
+  // WP-09a moved the command deck's task destinations into the canonical ledger.
+  // The registry guard follows them there rather than shrinking to what is left.
+  const taskLedgerContent = readFileSync(new URL('../ui/tasks/task-ledger.ts', import.meta.url), 'utf-8');
   const inboxMessagesContent = readFileSync(new URL('../features/inbox/buildInboxMessages.ts', import.meta.url), 'utf-8');
   const inboxTriageContent = readFileSync(new URL('../features/inbox/InboxTriage.tsx', import.meta.url), 'utf-8');
   const onboardingMachineContent = readFileSync(new URL('../features/companion/onboardingMachine.ts', import.meta.url), 'utf-8');
@@ -33,6 +36,18 @@ describe('App Chip setup wiring', () => {
         file,
         line: lineNumberForIndex(source, match.index ?? 0),
         routeKey,
+      }),
+    );
+  }
+
+  function taskDestinationTargets(source: string, file: string): Array<{ path: string; file: string; line: number; routeKey: string }> {
+    return Array.from(
+      source.matchAll(/\btaskDestination\(\s*['"]([^'"]+)['"]/g),
+      (match) => ({
+        path: match[1] ?? '',
+        file,
+        line: lineNumberForIndex(source, match.index ?? 0),
+        routeKey: 'taskDestination',
       }),
     );
   }
@@ -757,6 +772,7 @@ describe('App Chip setup wiring', () => {
     const commandDeckTargets = [
       ...routeObjectTargets(actionCenterContent, 'src/features/monday-briefing/ActionCenter.tsx', 'route'),
       ...routeObjectTargets(weekAdvanceContent, 'src/features/week-advance/WeekAdvance.tsx', 'fixRoute'),
+      ...taskDestinationTargets(taskLedgerContent, 'src/ui/tasks/task-ledger.ts'),
     ];
     const violations = commandDeckTargets
       .filter((target) => !routeTargetIsRegistered(registeredPaths, target.path))

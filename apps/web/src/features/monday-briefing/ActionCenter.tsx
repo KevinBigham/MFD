@@ -11,6 +11,15 @@ import {
   type ScenarioConstraintCoverageItem,
 } from '@mfd/engine';
 import { monoSm, pixelSm, navigateTo } from '../shared/pixelUi';
+import {
+  OPTIONAL_TASKS,
+  buildTaskLedger,
+  noRecommendationsTask,
+  readyToAdvanceTask,
+  taskDestination,
+  type TaskSeverity,
+  type UiTask,
+} from '../../ui/tasks/task-ledger';
 import { AlertTriangle, ArrowRight, HelpCircle, X } from 'lucide-react';
 
 interface ActionCenterProps {
@@ -41,16 +50,14 @@ const PRIORITY_LABEL: Record<AGMRecommendation['priority'], string> = {
 
 type ActionAccent = 'red' | 'gold' | 'cyan' | 'green' | 'default';
 
-interface ActionItem {
-  label: string;
-  detail: string;
-  route: string;
-  accent: 'red' | 'gold' | 'green';
-  buttonLabel: string;
-  requiredBeforeAdvance: boolean;
-  consequence: string;
-  where: string;
-}
+/** The legacy board's palette for a ledger severity. Presentation only. */
+const SEVERITY_ACCENT: Record<TaskSeverity, ActionAccent> = {
+  blocking: 'red',
+  warning: 'gold',
+  clear: 'green',
+  info: 'cyan',
+  neutral: 'default',
+};
 
 interface WeeklyBoardAction {
   id: string;
@@ -61,53 +68,6 @@ interface WeeklyBoardAction {
   route: string;
   accent: ActionAccent;
   buttonLabel: string;
-}
-
-const BUTTON_LABELS: Record<string, string> = {
-  '/game-plan': 'Set Plan',
-  '/depth-chart': 'Fix Depth',
-  '/trades': 'Decide',
-  '/owner': 'Open',
-  '/roster': 'View',
-  '/week-advance': 'Advance Week',
-  '/contracts': 'Open',
-  '/cap-lab': 'Open',
-  '/trade-block': 'Open',
-  '/waivers': 'Open',
-  '/practice-squad': 'Open',
-  '/free-agency': 'Open',
-  '/scouting': 'Open',
-  '/coaching': 'Open',
-  '/settings': 'Open',
-  '/dynasty': 'Open',
-};
-
-function getButtonLabel(route: string): string {
-  return BUTTON_LABELS[route] ?? 'Go';
-}
-
-const ROUTE_LABELS: Record<string, string> = {
-  '/game-plan': 'Game Plan',
-  '/depth-chart': 'Depth Chart',
-  '/trades': 'Trades',
-  '/trade-block': 'Trade Block',
-  '/owner': 'Owner',
-  '/roster': 'Roster',
-  '/week-advance': 'Advance Week',
-  '/contracts': 'Contracts',
-  '/cap-lab': 'Cap Lab',
-  '/waivers': 'Waiver Wire',
-  '/practice-squad': 'Practice Squad',
-  '/free-agency': 'Free Agency',
-  '/scouting': 'Scouting',
-  '/coaching': 'Coaching',
-  '/settings': 'Settings',
-  '/dynasty': 'Save/Load',
-  '/team-needs': 'Team Needs',
-};
-
-function routeLabel(route: string): string {
-  return ROUTE_LABELS[route] ?? route;
 }
 
 function borderForAccent(accent: ActionAccent): string {
@@ -143,177 +103,22 @@ function scenarioActionCopy(item: ScenarioConstraintCoverageItem): string {
   return 'Draft-pick submissions will not take effect.';
 }
 
-function buildActions(props: ActionCenterProps): ActionItem[] {
-  const { phase, hasGamePlan, starterCount, tradeOfferCount, ownerApproval, injuredCount } = props;
-  const items: ActionItem[] = [];
-
-  if (!hasGamePlan && (phase === 'regular_season' || phase === 'playoffs')) {
-    items.push({
-      label: 'Set your game plan',
-      detail: 'No prep plan locked for this week',
-      route: '/game-plan',
-      accent: 'red',
-      buttonLabel: getButtonLabel('/game-plan'),
-      requiredBeforeAdvance: true,
-      consequence: 'Advance Week sends you to Game Plan until a prep plan is saved for this matchup.',
-      where: routeLabel('/game-plan'),
-    });
-  }
-
-  if (starterCount < 22) {
-    items.push({
-      label: `Fill depth chart (${starterCount}/22 starters)`,
-      detail: 'Starting lineup has gaps',
-      route: '/depth-chart',
-      accent: 'gold',
-      buttonLabel: getButtonLabel('/depth-chart'),
-      requiredBeforeAdvance: false,
-      consequence: 'Advance Week remains available, but missing starters leave uncovered matchups and put the next backup on the field after injuries.',
-      where: routeLabel('/depth-chart'),
-    });
-  }
-
-  if (tradeOfferCount > 0) {
-    items.push({
-      label: `${tradeOfferCount} pending trade offer${tradeOfferCount > 1 ? 's' : ''}`,
-      detail: 'Accept, counter, or decline before they expire',
-      route: '/trades',
-      accent: 'gold',
-      buttonLabel: getButtonLabel('/trades'),
-      requiredBeforeAdvance: false,
-      consequence: 'Offers expire or get more expensive as the league calendar advances.',
-      where: routeLabel('/trades'),
-    });
-  }
-
-  if (ownerApproval < 50) {
-    items.push({
-      label: 'Owner patience is dropping',
-      detail: `Approval at ${ownerApproval}%`,
-      route: '/owner',
-      accent: 'red',
-      buttonLabel: getButtonLabel('/owner'),
-      requiredBeforeAdvance: false,
-      consequence: 'Advance Week still lets you continue, but future losses or missed promises cut owner patience and job security.',
-      where: routeLabel('/owner'),
-    });
-  }
-
-  if (injuredCount > 0) {
-    items.push({
-      label: `${injuredCount} injured player${injuredCount > 1 ? 's' : ''}`,
-      detail: 'Set roster status and replacement roles',
-      route: '/roster',
-      accent: 'gold',
-      buttonLabel: getButtonLabel('/roster'),
-      requiredBeforeAdvance: false,
-      consequence: 'Advance Week remains available, but unresolved roles expose backups or delay IR decisions.',
-      where: routeLabel('/roster'),
-    });
-  }
-
-  if (items.length === 0) {
-    items.push({
-      label: 'Ready for Advance Week',
-      detail: 'Must Do: none right now.',
-      route: '/week-advance',
-      accent: 'green',
-      buttonLabel: getButtonLabel('/week-advance'),
-      requiredBeforeAdvance: false,
-      consequence: 'Advance Week is available. Make roster, depth, cap, market, staff, or matchup changes before Advance Week, offer expiration, or phase rules lock them.',
-      where: routeLabel('/week-advance'),
-    });
-  }
-
-  return items;
-}
-
-const OPTIONAL_ACTIONS: readonly WeeklyBoardAction[] = [
-  {
-    id: 'optional-roster-training-medical',
-    what: 'Roster, weekly training, and medical roster calls',
-    why: 'Use the roster screen for player moves, training focus changes, and IR or return-from-IR decisions before roles lock.',
-    consequence: 'Optional before Advance Week. Prioritize role changes that fix the current lineup, injury return, or training plan before those choices lock.',
-    where: 'Roster',
-    route: '/roster',
-    accent: 'cyan',
-    buttonLabel: getButtonLabel('/roster'),
-  },
-  {
-    id: 'optional-depth',
-    what: 'Depth-chart freedom',
-    why: 'Set starter and reserve order before Advance Week when every required slot has a legal player.',
-    consequence: 'Optional, but the next game uses the saved depth chart when you press Advance Week.',
-    where: 'Depth Chart',
-    route: '/depth-chart',
-    accent: 'cyan',
-    buttonLabel: getButtonLabel('/depth-chart'),
-  },
-  {
-    id: 'optional-prep',
-    what: 'Tune game-plan and prep changes',
-    why: 'Set offensive, defensive, and weekly prep choices before kickoff when injuries or opponent matchups change.',
-    consequence: 'Required when the week has no saved prep plan; otherwise optional until Advance Week locks the matchup plan.',
-    where: 'Game Plan',
-    route: '/game-plan',
-    accent: 'gold',
-    buttonLabel: getButtonLabel('/game-plan'),
-  },
-  {
-    id: 'optional-cap',
-    what: 'Contracts, restructures, cuts, tags, and Cap Lab batches',
-    why: 'Preview legal releases, extensions, restructures, backloads, and sandboxed batches before cap choices become final.',
-    consequence: 'Optional while the cap move is legal; applied moves immediately change dead money, cap space, and extension money.',
-    where: 'Contracts / Cap Lab',
-    route: '/contracts',
-    accent: 'cyan',
-    buttonLabel: getButtonLabel('/contracts'),
-  },
-  {
-    id: 'optional-market',
-    what: 'Trades, trade block, waiver, practice-squad, and free-agency paths',
-    why: 'Open acquisition screens for legal offers, counters, claims, adds, bids, and signings before deadlines hit.',
-    consequence: 'Optional until offer expirations, waiver or free-agency windows, or phase-specific market rules apply.',
-    where: 'Trades / Waiver Wire / Practice Squad / Free Agency',
-    route: '/trades',
-    accent: 'gold',
-    buttonLabel: getButtonLabel('/trades'),
-  },
-  {
-    id: 'optional-scouting-staff-facility',
-    what: 'Scouting, coaching, facilities, and medical staff',
-    why: 'Open scouting, coaching, facilities, and medical staff after immediate injuries, depth, cap, or matchup calls are covered.',
-    consequence: 'Optional before Advance Week. Staff, facility, or medical changes alter scouting reports, player growth, or injury recovery after the week advances.',
-    where: 'Scouting / Coaching / Settings',
-    route: '/scouting',
-    accent: 'cyan',
-    buttonLabel: getButtonLabel('/scouting'),
-  },
-  {
-    id: 'optional-save',
-    what: 'Save slot and backup export',
-    why: 'Preserve the current dynasty before irreversible trades, cuts, imports, or multi-week advances.',
-    consequence: 'Optional before Advance Week. Skipping it leaves no restore point before irreversible trades, cuts, imports, or multi-week advances.',
-    where: 'Save/Load',
-    route: '/dynasty',
-    accent: 'green',
-    buttonLabel: getButtonLabel('/dynasty'),
-  },
-];
-
-function toBoardAction(item: ActionItem, id: string): WeeklyBoardAction {
+function taskToBoardAction(task: UiTask, id: string): WeeklyBoardAction {
   return {
     id,
-    what: item.label,
-    why: item.detail,
-    consequence: item.consequence,
-    where: item.where,
-    route: item.route,
-    accent: item.accent,
-    buttonLabel: item.buttonLabel,
+    what: task.title,
+    why: task.reason,
+    consequence: task.consequence,
+    where: task.destination.label,
+    route: task.destination.route,
+    accent: SEVERITY_ACCENT[task.severity],
+    buttonLabel: task.destination.actionLabel,
   };
 }
 
+const OPTIONAL_ACTIONS: readonly WeeklyBoardAction[] = OPTIONAL_TASKS.map(
+  (task) => taskToBoardAction(task, task.id),
+);
 function recommendationDeadline(rec: AGMRecommendation): string {
   if (rec.priority === 'urgent') return 'Recommended before Advance Week for lineup, cap space, or matchup changes. Advance Week remains available when no Must Do item stops it.';
   if (rec.priority === 'high') return 'Recommended this week: handle before Advance Week locks the next game for lineup, cap, depth, or Game Plan changes.';
@@ -323,28 +128,16 @@ function recommendationDeadline(rec: AGMRecommendation): string {
 
 function recommendationToBoardAction(rec: AGMRecommendation): WeeklyBoardAction {
   const route = rec.targetRoute ?? '/week-advance';
+  const destination = taskDestination(route);
   return {
     id: `agm-${rec.id}`,
     what: rec.title,
     why: rec.body,
     consequence: recommendationDeadline(rec),
-    where: routeLabel(route),
+    where: destination.label,
     route,
     accent: PRIORITY_ACCENT[rec.priority],
-    buttonLabel: getButtonLabel(route),
-  };
-}
-
-function fallbackRecommendedAction(): WeeklyBoardAction {
-  return {
-    id: 'recommended-clear',
-    what: 'Optional roster, cap, staff, and matchup moves',
-    why: 'No new injury, cap, owner, trade, depth, or matchup warning requires action this week.',
-    consequence: 'Advance Week is available. Make roster, depth, cap, market, staff, or matchup changes before Advance Week, offer expiration, or phase rules lock them.',
-    where: routeLabel('/week-advance'),
-    route: '/week-advance',
-    accent: 'green',
-    buttonLabel: getButtonLabel('/week-advance'),
+    buttonLabel: destination.actionLabel,
   };
 }
 
@@ -442,13 +235,15 @@ function WeeklyBoardLane({
 }
 
 function ActionCenter(props: ActionCenterProps) {
-  const items = buildActions(props);
+  const tasks = buildTaskLedger(props);
   const [showAgmModal, setShowAgmModal] = useState(false);
 
-  const requiredItems = items.filter((item) => item.requiredBeforeAdvance);
-  const advisoryItems = items.filter((item) => !item.requiredBeforeAdvance && item.route !== '/week-advance');
-  const hasRed = requiredItems.length > 0 || advisoryItems.some((item) => item.accent === 'red');
-  const hasGold = items.some((item) => item.accent === 'gold');
+  const requiredItems = tasks.filter((task) => task.blocksAdvance);
+  const advisoryItems = tasks.filter(
+    (task) => !task.blocksAdvance && task.destination.route !== '/week-advance',
+  );
+  const hasRed = requiredItems.length > 0 || advisoryItems.some((task) => task.severity === 'blocking');
+  const hasGold = tasks.some((task) => task.severity === 'warning');
   const panelAccent = hasRed ? 'red' : hasGold ? 'gold' : 'green';
 
   const recommendations = props.game ? getAGMWeeklyRecommendations(props.game, 3) : [];
@@ -469,24 +264,24 @@ function ActionCenter(props: ActionCenterProps) {
     ? getScenarioConstraintCoverage(props.game.scenarioState.activeScenario.constraints).items
       .filter((item) => item.status === 'enforced')
     : [];
+  // Card ids are persisted in leagueEvents as action_center.closed payloads, so
+  // their shape is a save-visible contract: changing it would resurrect cards a
+  // player already dismissed this week.
   const mustDoActions = (requiredItems.length > 0
-    ? requiredItems.slice(0, 3).map((item, index) => toBoardAction(item, `must-${index}-${item.route}`))
-    : [toBoardAction(items.find((item) => item.route === '/week-advance') ?? {
-      label: 'Ready for Advance Week',
-      detail: 'Must Do: none right now.',
-      route: '/week-advance',
-      accent: 'green',
-      buttonLabel: getButtonLabel('/week-advance'),
-      requiredBeforeAdvance: false,
-      consequence: 'Advance Week is available. Make roster, depth, cap, market, staff, or matchup changes before Advance Week, offer expiration, or phase rules lock them.',
-      where: routeLabel('/week-advance'),
-    }, 'must-ready')]).filter((action) => !closedActionIds.has(action.id));
+    ? requiredItems.slice(0, 3).map((task, index) => taskToBoardAction(task, `must-${index}-${task.destination.route}`))
+    : [taskToBoardAction(
+      tasks.find((task) => task.destination.route === '/week-advance') ?? readyToAdvanceTask(),
+      'must-ready',
+    )]).filter((action) => !closedActionIds.has(action.id));
   const openRequiredCount = requiredItems.length > 0 ? mustDoActions.length : 0;
   const recommendedActions = [
-    ...advisoryItems.map((item, index) => toBoardAction(item, `recommended-alert-${index}-${item.route}`)),
+    ...advisoryItems.map((task, index) => taskToBoardAction(task, `recommended-alert-${index}-${task.destination.route}`)),
     ...recommendations.map(recommendationToBoardAction),
   ];
-  const visibleRecommendedActions = (recommendedActions.length > 0 ? recommendedActions : [fallbackRecommendedAction()])
+  const fallbackRecommended = noRecommendationsTask();
+  const visibleRecommendedActions = (recommendedActions.length > 0
+    ? recommendedActions
+    : [taskToBoardAction(fallbackRecommended, fallbackRecommended.id)])
     .filter((action) => !closedActionIds.has(action.id))
     .slice(0, 3);
 

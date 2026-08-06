@@ -5,7 +5,14 @@ import { mulberry32, startScenario } from '@mfd/engine';
 import { createSeedGameState } from '../../app/store/seed';
 import { ActionCenter } from './ActionCenter';
 
-const source = readFileSync(new URL('./ActionCenter.tsx', import.meta.url), 'utf8');
+// The weekly board's copy now lives in two places: presentation and AGM wording
+// stay in the component, task copy moved to the canonical ledger (WP-09a). The
+// copy guards below apply to both, so an extraction cannot smuggle a reword past
+// them.
+const source = [
+  readFileSync(new URL('./ActionCenter.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../ui/tasks/task-ledger.ts', import.meta.url), 'utf8'),
+].join('\n');
 const RESTRICTIVE_ACTION_CENTER_COPY =
   /\b(?:open|use|worth using)\b[^.!?;]*(?:only if|only when)\b|Required only when|Optional (?:before Advance Week )?unless|unresolved roles may expose backups|You can click Advance Week anyway|Offers can expire|can cut owner patience|changes can alter/i;
 

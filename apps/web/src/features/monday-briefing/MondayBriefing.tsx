@@ -51,7 +51,6 @@ import {
   selectStatLeaders,
   selectTeamSchedule,
   selectTeams,
-  selectTradeOffers,
   selectTrainingAssignments,
   selectUpcomingRivalry,
   selectUserPowerRanking,
@@ -87,6 +86,7 @@ import { buildWeeklyGuidance, weeklyGuidanceToDialogueEntry } from '../companion
 import { deriveDynastyId } from '../../lib/career-meta';
 import { buildWeeklyCallbacks, type CallbackCard } from '../../lib/dynasty-callbacks';
 import { readScrapbookForDynasty } from '../../lib/scrapbook-store';
+import { selectTaskLedgerInput } from '../../ui/tasks/task-ledger-input';
 import {
   SESSION_RECAP_STORAGE_KEY,
   buildSessionRecap,
@@ -740,7 +740,6 @@ export function MondayBriefing() {
   const dashboardState = useGameStore(selectDashboardState);
   const teamSchedule = useGameStore(selectTeamSchedule);
   const statLeaders = useGameStore(selectStatLeaders);
-  const tradeOffers = useGameStore(selectTradeOffers);
   const recentDecisionReceipts = (game?.decisionReceipts ?? []).slice(-3).reverse();
   const {
     pinWidget,
@@ -1399,7 +1398,6 @@ export function MondayBriefing() {
     );
   };
 
-  const starterCount = roster.filter((p) => p.isStarter).length;
   const sourceRows = buildBriefingSourceRows({
     phase,
     week,
@@ -1567,12 +1565,7 @@ export function MondayBriefing() {
 
       <div data-spotlight-target="chip.route.monday-briefing.beat-1">
         <ActionCenter
-          phase={phase}
-          hasGamePlan={!!currentWeeklyPrepPlan}
-          starterCount={starterCount}
-          tradeOfferCount={tradeOffers.length}
-          ownerApproval={ownerState?.approval ?? 100}
-          injuredCount={injuredCount}
+          {...selectTaskLedgerInput({ game })}
           game={game}
           onCloseAction={closeActionCenterCard}
         />
