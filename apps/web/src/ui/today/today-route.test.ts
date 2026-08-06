@@ -15,12 +15,14 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { APP_ROUTE_REGISTRY } from '@mfd/engine/config';
 import { ROUTE_SURFACE_ENTRIES } from '../routes/route-surface-map';
+import { TODAY_ROUTE, isTodayRoute } from '../migration/ui-overhaul-mode';
 
 const APP_SOURCE = readFileSync(new URL('../../app/App.tsx', import.meta.url), 'utf8');
 const MOBILE_TABS_SOURCE = readFileSync(new URL('../../app/MobileBottomTabBar.tsx', import.meta.url), 'utf8');
 
 describe('/today mount', () => {
   it('is registered as a route implementation', () => {
+    expect(TODAY_ROUTE).toBe('/today');
     expect(APP_SOURCE).toContain("path: '/today'");
     expect(APP_SOURCE).toMatch(/^ {2}todayRoute,$/m);
   });
@@ -48,12 +50,34 @@ describe('/today mount', () => {
   });
 
   it('escapes the legacy shell, and can only do so on a path no legacy route owns', () => {
-    expect(APP_SOURCE).toMatch(/if \(activePath === '\/today'\) \{\s*return <Outlet \/>;/);
+    expect(APP_SOURCE).toMatch(/if \(isTodayRoute\(activePath\)\) \{\s*return <Outlet \/>;/);
 
     // The branch is unreachable from every canonical destination, which is
     // what makes it safe under amendment A1.
     for (const definition of APP_ROUTE_REGISTRY) {
       expect(definition.path, definition.path).not.toBe('/today');
+    }
+  });
+
+  it('suppresses the legacy Chip dock, and only there', () => {
+    expect(APP_SOURCE).toMatch(/\{chipDockEnabled && !isTodayRoute\(chipDockRoute\) \? \(/);
+    // A mutation to any canonical path would delete the Chip dock from a
+    // legacy route, which is a direct A1 violation. Nothing else in App.tsx may
+    // gate the dock on a path.
+    expect(APP_SOURCE).not.toMatch(/chipDockEnabled && chipDockRoute (===|!==)/);
+  });
+
+  it('resolves both branches through the same predicate, from different sources', () => {
+    // `RootLayout` reads TanStack's pathname; `PostSetupApp` reads
+    // `resolveCurrentAppRoute`, which returns the raw hash including any query
+    // string. Comparing each against a bare string made `#/today?panel=x`
+    // match one and not the other — the new shell would render with the legacy
+    // Chip dock, and its 193px of clearance, on top of it.
+    for (const path of ['/today', '#/today', '/today/', '/today?panel=readiness', '#/today?panel=readiness#focus']) {
+      expect(isTodayRoute(path), path).toBe(true);
+    }
+    for (const path of ['/', '/roster', '/todays', '/today-recap', '', null, undefined]) {
+      expect(isTodayRoute(path), String(path)).toBe(false);
     }
   });
 

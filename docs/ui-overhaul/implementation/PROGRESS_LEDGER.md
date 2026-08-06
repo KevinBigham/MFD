@@ -1201,24 +1201,37 @@ is a fixed-height grid, so the document never scrolls and
 it would have passed at every depth and measured only that the frame exists.
 doc 09 states the criterion in absolute pixels, and that is what is asserted.
 
-| Viewport | Today content | Legacy Briefing | Ratio | Fixed chrome | Scroll owners |
-|---|---|---|---|---|---|
-| 390×844 (LAY-04's viewport) | **1,452 px** (budget 2,110) | 11,945 px | **8.2×** | 89 px | 1 |
-| 320×568 | 1,640 px | 13,449 px | 8.2× | 141 px | 1 |
-| 430×932 | 1,428 px | 11,590 px | 8.1× | 89 px | 1 |
-| 844×390 (compact height) | 1,228 px | 7,416 px | 6.0× | 89 px | 1 |
-| 768×1024 | 1,284 px | 7,396 px | 5.8× | 89 px | 1 |
-| 1440×900 | 1,236 px | 6,273 px | 5.1× | 89 px | 1 |
+| Viewport | Today content | Content viewports | Legacy Briefing | Ratio | Shell chrome | Dock |
+|---|---|---|---|---|---|---|
+| 390×844 (LAY-04's viewport) | **1,512 px** (budget 2,110) | 1.79 | 11,945 px | **7.9×** | 76 px | 89 px |
+| 320×568 | 1,700 px | 2.99 | 13,449 px | 7.9× | 75 px | 141 px |
+| 430×932 | 1,488 px | 1.60 | 11,590 px | 7.8× | 76 px | 89 px |
+| 844×390 (compact height) | 1,288 px | 3.30 | 7,416 px | 5.8× | 76 px | 89 px |
+| 768×1024 | 1,344 px | 1.31 | 7,396 px | 5.5× | 76 px | 89 px |
+| 1440×900 | 1,296 px | 1.44 | 6,273 px | 4.8× | 76 px | 89 px |
 
-Every viewport: **0 sub-44px targets, 0 sub-12px text, 1 scroll owner**. Legacy
-fixed chrome at the same viewports was 383–429px on phone and 2,309–3,626px on
-tablet and desktop.
+Every viewport: **0 sub-44px targets, 0 sub-12px text, 1 scroll owner**.
+
+Two things this table says plainly rather than by omission:
+
+- **The 2.5-viewport ratio holds at 390×844 and at every viewport above it. It
+  does not hold at 320×568 (2.99) or at 844×390 (3.30).** LAY-04 names 390×844
+  and states its budget in absolute pixels, which is what is asserted; those
+  two viewports are recorded as over the ratio rather than quietly dropped. The
+  content is *smaller* at both (1,700 px and 1,288 px) — the ratio moves
+  because the viewport shrinks, not because the screen grew.
+- **LAY-06 is two numbers, not one.** The criterion reads "phone shell fixed
+  chrome envelope ≤152 px … action dock accounted separately without overlap",
+  so the shell envelope (76 px) and the dock (89 px, 141 px at 320) are
+  asserted separately and their sum is asserted to equal total permanent
+  chrome. Legacy's envelope alone measures 383–429 px on phone.
 
 Mutation-checked, so the numbers are not decoration:
 
 | Mutation | Result |
 |---|---|
-| `OPTIONAL_VISIBLE` 0 → 7 (uncollapse the standing lane) | **fails** — 2,280 px against the 2,110 px budget |
+| `min-height: 320px` on the Today header | **fails** — shell envelope 287 px against 152 px |
+| `OPTIONAL_VISIBLE` 0 → 7 (uncollapse the standing lane) | **fails** — over the 2,110 px budget |
 | Body margin reset disabled | **fails** — 2 scroll owners at 320×568 |
 | `RECOMMENDED_VISIBLE` 3 → 5, and 3 → 2 | **both fail** |
 | Primary task prefers advice over blockers | **fails** |
@@ -1271,3 +1284,149 @@ Revert the route commit and it 404s. Nothing else changes: the ledger additions
 are pure, the `ActionCenter` change is proved byte-identical, and the
 `PhaseIndicator` change is a lookup-table extraction whose four tests pin every
 label and tip it renders.
+
+---
+
+## Review pass — Today direction proof (goat-reviewer, 2026-08-06)
+
+**FAIL**, eight findings. All fixed. The three that mattered most were a gate
+that measured nothing, a guard that let a wrong dedupe key through, and a
+correctness bug that deleted a task from the screen.
+
+### The LAY-06 gate measured nothing
+
+`fixedChromeHeight` summed elements with `position: fixed | sticky`. `AppFrame`
+is a three-row grid: the header row is `position: relative` and only the dock is
+sticky, so the header counted as **zero**. Adding `min-height: 320px` to the
+Today header left the reported number at 89 px while the content region
+collapsed to 64 px at 844×390 — the gate said "in budget" for a screen showing
+one line of Today.
+
+Replaced with `viewport height − scroller client height`, split into the shell
+envelope and the separately-accounted dock, with their sum asserted to equal the
+total. The same mutation now fails at 287 px.
+
+The ledger's earlier "89 px vs 383–425 px" comparison was also not like-for-like
+— the legacy baseline's header *is* `position: sticky` and *was* counted. The
+table above is corrected: 76 px of shell envelope against legacy's 383–429 px,
+with the dock stated separately on both sides.
+
+### A wrong dedupe key could ship silently
+
+`task-ledger.test.ts` asserted only that each AGM id had *a* key, never which
+one. Pointing `cap_trouble` at `save` merged "Over the cap — you have $0K of cap
+space" into "Save slot and backup export", removed it from the Recommended lane,
+and **300 tests passed**. The mapping is now pinned entry by entry.
+
+**And one shipped key was already wrong.** `sandra_development_mandate` is an
+active owner mandate whose failure costs patience at season end — structurally
+identical to `marcus_cap_mandate`, which was deliberately given its own key
+*because* sharing a route is not sharing a job. Sandra's carried `roster-moves`,
+so any injured player absorbed it into "N injured players" and it lost its row,
+its link and its at-risk accent. Now `development-mandate`, with a test.
+
+### A task could be deleted from the screen entirely
+
+`presentToday` filtered the two synthetic all-clear rows by
+`destination.route === '/week-advance'`. `agmTask` sends a recommendation with
+no `targetRoute` to exactly that route. An urgent recommendation without a route
+was absent from all three lanes **and** from every `merged` payload, while
+readiness reported "Nothing is waiting on you." Now filtered by key
+(`ALL_CLEAR_KEYS`), with a test that renders a routeless urgent recommendation.
+
+All six of today's engine recommendations set a route, so this was latent — and
+`targetRoute` is optional in the engine type, so it would not have stayed that
+way.
+
+### Five more, all real
+
+- **"Merging is lossless" was false as rendered.** The screen printed each
+  merged task as `title — reason` and dropped its consequence, its destination
+  and its link. Merged tasks now render in full; they sit inside a closed
+  `<details>`, which is `display: none`, so they cost nothing against LAY-04.
+- **The severity accent had no textual equivalent.** The stylesheet claimed the
+  bar was "paired with the severity's own word"; the words appeared **zero**
+  times in rendered markup, and the test asserted the `data-` attribute, which
+  surfaces to no user. Blocking and warning rows now print the word. The test
+  walks every row and requires the word exactly where the severity warrants it.
+- **The repeat-run determinism check omitted the metric LAY-04 is judged on.**
+  It compared `document.scrollHeight`, which the fixed-height frame pins to the
+  viewport height by construction. `content.scrollHeight` and the chrome numbers
+  are now in the comparison.
+- **The ChipDock suppression branch had zero coverage**, and pointing it at
+  `/roster` deleted the legacy Chip dock from a canonical route — a direct A1
+  violation — with **834 tests passing**. Now pinned.
+- **The two `/today` branches used different resolvers.** `RootLayout` compares
+  TanStack's `pathname`; `PostSetupApp` compares `resolveCurrentAppRoute`, which
+  returns the raw hash including any query string. `#/today?panel=x` matched one
+  and not the other, so the new shell would have rendered with the legacy Chip
+  dock and its 193 px of clearance on top of it. Both now go through
+  `isTodayRoute`, tested against queries, fragments and trailing slashes.
+
+### A defect the review's own gap-filling found
+
+Writing the missing `today-input.ts` test surfaced a product bug: `Today` named
+an opponent during the offseason. `selectCurrentMatchup` matches
+`schedule.week === game.week` with no regard for phase, so in offseason week 1
+it returns *next* season's week-1 game — the context block would have read "vs
+Pittsburgh Steel City Iron Smelters" while the player was signing free agents.
+The matchup lookup now gates on `phaseHasGames`, which is the same predicate the
+week label already used.
+
+### Fixed from the risk list
+
+- **No `main` landmark anywhere in the new shell.** The skip link landed on a
+  `div`. `PageScroll` takes a `landmark` prop and `AppFrame` sets it, so the
+  page scroller is now `<main>`; a contained scroller is never main, enforced by
+  the type.
+- **`TodayOpponent.hasGame` was produced, asserted, and consumed by nothing.**
+  Deleted.
+
+### Accepted without change, and why
+
+- **Route-change focus does not happen on `/today`.** `App.tsx` focuses a
+  `mainContentRef` that the early return never mounts, and nothing in `AppFrame`
+  focuses the heading. Real gap. `/today` currently has no in-shell navigation
+  to change *from*, and focus restoration is WP-06's return-to-task contract —
+  building half of it here would mean rebuilding it there. Recorded as an unmet
+  scope line rather than a substitution.
+- **Desktop is still a single column.** Unchanged from the original disclosure.
+
+### Claims the review checked and confirmed
+
+Recorded because they were checked adversarially, not because they were claimed:
+
+- **A1 reproduces independently.** The reviewer extracted `ActionCenter.tsx`
+  verbatim from `7577176`, rendered it against HEAD's across the same five
+  seeded scenarios, and got identical sha256 in all five.
+- **The disclosed "not covered" gap is clean too.** Forcing the AGM modal open
+  in both implementations raised the payload from 36 kB to 44 kB — the body does
+  render — and all five scenarios were still byte-identical. The stated
+  justification ("`renderToStaticMarkup` cannot reach it") understated what a
+  two-character probe could reach; the modal body is byte-identical.
+- The geometry evidence is reproducible: an independent run regenerated
+  `geometry.json` and both PNGs byte-for-byte identical.
+- The `RootLayout` branch is genuinely unreachable from all 79 canonical routes.
+- `getAGMWeeklyRecommendations` is RNG-free, so rendering Today consumes no
+  simulation randomness.
+
+The A1 evidence file was a one-off artifact nobody could re-derive. It is now
+backed by `ActionCenter.a1.test.tsx`, which re-renders the five scenarios every
+run and fails if a hash moves — the evidence is a standing gate rather than a
+snapshot of a claim.
+
+### Verification after the fixes
+
+| Check | Result |
+|---|---|
+| `pnpm -r typecheck` | **PASS** — all 3 projects |
+| `pnpm --filter @mfd/design-system test` | **PASS** — 20/20 files, 175/175 tests |
+| Full web suite | **PASS** — 275/275 files, 2,446/2,446 tests, exit 0 |
+| `node scripts/check-ui-route-coverage.mjs` | **PASS** — 79/79, 79 surface-map keys |
+| `bash scripts/check-math-random.sh` | **PASS** |
+| `node --test scripts/__tests__/*.mjs` | **PASS** — 95/95 |
+| `pnpm lint` | **PASS** — 0 errors, 42 warnings (pre-existing count) |
+| `playwright test ui-overhaul-today` | **PASS** — matrix identical across two runs |
+| PERF-02 | eager `index-*.js` **280.0 KB gzip** against the 316 KB ceiling (278.3 KB before this packet); `/today` chunk **4.2 KB gzip**, lazy |
+| `SAVE_VERSION` | 37, unchanged |
+| Protected paths touched | **0** — `packages/engine`, `.github`, `release-gate.mjs`, the CODEX trio |

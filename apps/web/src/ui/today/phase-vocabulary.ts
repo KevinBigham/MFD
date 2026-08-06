@@ -78,3 +78,18 @@ export function phaseVocabulary(phase: string): PhaseVocabulary {
 }
 
 export const KNOWN_PHASES: readonly string[] = Object.keys(PHASE_VOCABULARY);
+
+/**
+ * Phases where a week number means something and a game is on the schedule.
+ *
+ * `selectCurrentMatchup` matches `schedule.week === game.week` with no regard
+ * for phase, so in offseason week 1 it happily returns the *next* season's
+ * week-1 game. Today would then head its context block with "vs Pittsburgh
+ * Steel City Iron Smelters" while the player is signing free agents. Both the
+ * week label and the matchup lookup gate on this.
+ */
+const WEEKLY_PHASES: ReadonlySet<string> = new Set(['preseason', 'regular_season', 'playoffs']);
+
+export function phaseHasGames(phase: string): boolean {
+  return WEEKLY_PHASES.has(phase);
+}

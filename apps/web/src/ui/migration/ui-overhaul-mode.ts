@@ -29,3 +29,27 @@ export function selectUiOverhaulMode(state: { uiOverhaulMode: UiOverhaulMode }):
 export function isUiOverhaulEnabled(state: { uiOverhaulMode: UiOverhaulMode }): boolean {
   return selectUiOverhaulMode(state) === 'v2';
 }
+
+/**
+ * The new shell's own route.
+ *
+ * Two places in `App.tsx` branch on it — `RootLayout` returns a bare `Outlet`
+ * so `AppFrame` is not nested inside 383–425px of legacy chrome, and
+ * `PostSetupApp` suppresses the legacy Chip dock so its 193px of permanent
+ * clearance does not land on a screen with a 152px budget.
+ *
+ * They read the current path from different sources: TanStack's
+ * `location.pathname`, and `resolveCurrentAppRoute(window.location)`, which
+ * returns the raw hash including any query string or trailing slash. Comparing
+ * each against a bare string made `#/today?panel=x` match one and not the
+ * other — the new shell would render with the legacy Chip dock on top of it.
+ * Both go through this instead.
+ */
+export const TODAY_ROUTE = '/today';
+
+export function isTodayRoute(path: string | null | undefined): boolean {
+  if (!path) return false;
+  const withoutHash = path.startsWith('#') ? path.slice(1) : path;
+  const [pathname = ''] = withoutHash.split(/[?#]/);
+  return (pathname.replace(/\/+$/, '') || '/') === TODAY_ROUTE;
+}

@@ -43,7 +43,7 @@ export function AppFrame({ chrome, children, dock, contentId = APP_CONTENT_ID }:
           </div>
         ) : null}
 
-        <PageScroll id={contentId} className={styles.content}>
+        <PageScroll id={contentId} className={styles.content} landmark>
           {children}
         </PageScroll>
 

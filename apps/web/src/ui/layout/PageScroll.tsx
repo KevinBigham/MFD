@@ -20,14 +20,22 @@ type PageScrollProps = {
   /** Element id, so a skip link and route-change focus have a target. */
   id?: string;
   className?: string;
+  /**
+   * Render as `<main>`. The page-level scroller is the main landmark, and a
+   * skip link that lands on a `div` gives a screen-reader user no landmark to
+   * navigate back to. A contained scroller is never main.
+   */
+  landmark?: boolean;
 } & (
   | { contained?: false; reason?: never }
-  | { contained: true; reason: string }
+  | { contained: true; reason: string; landmark?: false }
 );
 
-export function PageScroll({ children, id, className, contained, reason }: PageScrollProps) {
+export function PageScroll({ children, id, className, contained, reason, landmark }: PageScrollProps) {
+  const Element = landmark ? 'main' : 'div';
+
   return (
-    <div
+    <Element
       id={id}
       className={[styles.pageScroll, contained ? styles.containedScroll : '', className]
         .filter(Boolean)
@@ -37,6 +45,6 @@ export function PageScroll({ children, id, className, contained, reason }: PageS
       tabIndex={-1}
     >
       {children}
-    </div>
+    </Element>
   );
 }

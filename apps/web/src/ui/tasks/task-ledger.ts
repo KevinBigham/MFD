@@ -143,6 +143,15 @@ export function taskDestination(route: string, labelOverride?: string): TaskDest
   };
 }
 
+/**
+ * The two synthetic all-clear rows' keys, exported because Today filters on
+ * them. Filtering on the route instead deleted any task pointing at
+ * `/week-advance`, which is where a recommendation with no target route goes.
+ */
+export const ADVANCE_READY_KEY = 'advance-ready';
+export const ADVANCE_CLEAR_KEY = 'advance-recommended-clear';
+export const ALL_CLEAR_KEYS: ReadonlySet<string> = new Set([ADVANCE_READY_KEY, ADVANCE_CLEAR_KEY]);
+
 const ADVANCE_AVAILABLE_CONSEQUENCE =
   'Advance Week is available. Make roster, depth, cap, market, staff, or matchup changes before Advance Week, offer expiration, or phase rules lock them.';
 
@@ -158,7 +167,7 @@ export function readyToAdvanceTask(): UiTask {
     severity: 'clear',
     blocksAdvance: false,
     source: 'state',
-    dedupeKey: 'advance-ready',
+    dedupeKey: ADVANCE_READY_KEY,
   };
 }
 
@@ -180,7 +189,7 @@ export function noRecommendationsTask(): UiTask {
     severity: 'clear',
     blocksAdvance: false,
     source: 'state',
-    dedupeKey: 'advance-recommended-clear',
+    dedupeKey: ADVANCE_CLEAR_KEY,
   };
 }
 
@@ -423,7 +432,12 @@ const AGM_DEDUPE_KEYS: Record<string, string> = {
   next_opponent: 'game-plan',
   roster_gaps: 'team-needs',
   marcus_cap_mandate: 'owner-mandate',
-  sandra_development_mandate: 'roster-moves',
+  /* A mandate, not a roster chore. It is structurally the same thing as
+   * `marcus_cap_mandate` — an active owner mandate whose failure costs
+   * patience at season end — and giving it `roster-moves` meant any injured
+   * player absorbed it into "N injured players", taking its row, its link and
+   * its at-risk accent with it. Sharing `/roster` is not sharing a job. */
+  sandra_development_mandate: 'development-mandate',
 };
 
 /**

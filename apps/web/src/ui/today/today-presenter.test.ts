@@ -3,6 +3,8 @@ import {
   OPTIONAL_TASKS,
   agmTask,
   buildTaskLedger,
+  noRecommendationsTask,
+  readyToAdvanceTask,
   type UiTask,
 } from '../tasks/task-ledger';
 import {
@@ -96,7 +98,6 @@ describe('opponent', () => {
     expect(presentToday(input()).opponent).toEqual({
       headline: 'vs Harbor Cutters',
       detail: '7–6 · home',
-      hasGame: true,
     });
   });
 
@@ -108,7 +109,6 @@ describe('opponent', () => {
 
   it('explains an empty bye week instead of hiding the region', () => {
     const { opponent } = presentToday(input({ opponent: null }));
-    expect(opponent.hasGame).toBe(false);
     expect(opponent.headline).toBe('No game scheduled this week');
     expect(opponent.detail.length).toBeGreaterThan(0);
   });
@@ -192,6 +192,35 @@ describe('task grouping', () => {
     expect(roster[0]!.id).toBe('injuries-unresolved');
     expect(roster[0]!.merged.map((task) => task.id))
       .toEqual(['agm-injury_watch', 'optional-roster-training-medical']);
+  });
+
+  it('keeps a recommendation that has no target route', () => {
+    // `agmTask` defaults a missing `targetRoute` to `/week-advance`, and the
+    // all-clear filter used to key off that route — so an urgent
+    // recommendation with no route vanished from all three lanes and from
+    // every `merged` payload, while readiness said "Nothing is waiting on
+    // you." All six engine producers set a route today; the field is optional.
+    const routeless = agmTask({
+      id: 'future_urgent', priority: 'urgent', title: 'Something urgent', body: 'It matters.',
+    });
+    const view = presentToday(input({ tasks: [], recommendations: [routeless] }));
+
+    const shown = [
+      ...view.mustDo.tasks, ...view.recommended.tasks, ...view.recommended.hidden,
+    ].map((task) => task.id);
+    expect(shown).toContain('agm-future_urgent');
+    expect(view.readiness.state).toBe('attention');
+    expect(view.primary?.id).toBe('agm-future_urgent');
+  });
+
+  it('still drops the two synthetic all-clear rows, which the dock says once', () => {
+    const view = presentToday(input({ tasks: [readyToAdvanceTask(), noRecommendationsTask()] }));
+    const shown = [
+      ...view.mustDo.tasks, ...view.mustDo.hidden,
+      ...view.recommended.tasks, ...view.recommended.hidden,
+    ].map((task) => task.id);
+    expect(shown).not.toContain('ready-to-advance');
+    expect(shown).not.toContain('recommended-clear');
   });
 
   it('loses no task: every input row is visible, disclosed, or merged into one that is', () => {

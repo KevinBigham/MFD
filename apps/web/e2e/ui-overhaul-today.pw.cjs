@@ -78,8 +78,22 @@ const LEGACY_BRIEFING_SCROLL_PX = {
   'desktop-1440x900': 6273,
 };
 
-/** LAY-06. The legacy shell measures 383–425 px on phone against this. */
-const FIXED_CHROME_BUDGET = 152;
+/**
+ * LAY-06, verbatim: "Phone shell fixed chrome envelope ≤152 px plus safe area
+ * when no modal — geometry assertion; action dock accounted separately without
+ * overlap." So the envelope and the dock are two numbers, not one sum, and
+ * both are asserted. The legacy shell measures 383–429 px on phone for the
+ * envelope alone.
+ */
+const SHELL_CHROME_BUDGET = 152;
+
+/**
+ * The dock's own bound. Not in doc 09 — the criterion only says the dock is
+ * accounted separately — so this is set to the nominal phone primary action
+ * (48 px) plus its reason line and padding, and it is here so a dock that
+ * grows silently fails rather than hiding inside "accounted separately".
+ */
+const DOCK_BUDGET = 152;
 
 /** TOUCH-01 floor. */
 const MIN_TARGET = 44;
@@ -220,6 +234,23 @@ function collectTodayGeometry() {
   const content = document.getElementById('mfd-v2-content');
   const screen = document.querySelector('[data-mfd-v2-screen="today"]');
 
+  /**
+   * Permanent chrome is everything the frame keeps out of the scroller — not
+   * the sum of `position: fixed | sticky` elements.
+   *
+   * `AppFrame` is a three-row grid. Its header row is `position: relative` and
+   * only the dock is sticky, so a fixed/sticky sum reported the header as
+   * zero: adding `min-height: 320px` to the Today header left the number
+   * unchanged at 89px while the content region collapsed to 64px at 844×390.
+   * The gate said "in budget" for a screen showing one line of Today.
+   *
+   * LAY-06 accounts the action dock separately from the shell envelope, so
+   * both numbers are recorded and asserted separately.
+   */
+  const dockNode = document.querySelector('[data-mfd-v2-action-dock="true"]');
+  const dockHeight = dockNode ? Math.round(dockNode.getBoundingClientRect().height) : 0;
+  const permanentChrome = content ? Math.round(viewportHeight - content.clientHeight) : 0;
+
   return {
     viewport: { width: viewportWidth, height: viewportHeight },
     document: { scrollWidth: doc.scrollWidth, scrollHeight: doc.scrollHeight },
@@ -234,7 +265,10 @@ function collectTodayGeometry() {
     horizontalOverflow: doc.scrollWidth > viewportWidth + 1,
     scrollContainerCount: scrollContainers.length,
     stickyOrFixed,
-    fixedChromeHeight: stickyOrFixed.reduce((sum, el) => sum + el.height, 0),
+    permanentChrome,
+    dockHeight,
+    /** LAY-06's envelope: permanent chrome minus the separately-accounted dock. */
+    shellChrome: permanentChrome - dockHeight,
     interactiveCount: interactive.length,
     smallTargetCount: smallTargets.length,
     smallTargets,
@@ -251,6 +285,7 @@ function collectTodayGeometry() {
 
 async function captureMatrix(page, { screenshots }) {
   const captures = [];
+  const expandedCounts = {};
 
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
@@ -274,10 +309,31 @@ async function captureMatrix(page, { screenshots }) {
         fullPage: false,
         animations: 'disabled',
       });
+
+      // The expanded state, so the evidence shows what the disclosures hold —
+      // including the merged tasks the deduper collapsed — rather than only
+      // the bounded default the budget is measured against.
+      const expanded = await page.evaluate(() => {
+        const nodes = [...document.querySelectorAll('details')];
+        for (const node of nodes) node.open = true;
+        return nodes.length;
+      });
+      await settle(page);
+      await page.screenshot({
+        path: resolve(evidenceDir, `today-expanded--${viewport.name}.png`),
+        fullPage: false,
+        animations: 'disabled',
+      });
+      expandedCounts[viewport.name] = expanded;
+
+      for (const node of await page.locator('details').all()) {
+        await node.evaluate((element) => { element.open = false; });
+      }
+      await settle(page);
     }
   }
 
-  return captures;
+  return { captures, expandedCounts };
 }
 
 /** Everything except the wall-clock-free geometry, for the repeat-run diff. */
@@ -286,7 +342,11 @@ function comparable(captures) {
     viewport: capture.viewport,
     scrollHeight: capture.document.scrollHeight,
     viewportsOfScroll: capture.viewportsOfScroll,
-    fixedChromeHeight: capture.fixedChromeHeight,
+    contentScrollHeight: capture.content.scrollHeight,
+    contentClientHeight: capture.content.clientHeight,
+    permanentChrome: capture.permanentChrome,
+    shellChrome: capture.shellChrome,
+    dockHeight: capture.dockHeight,
     interactiveCount: capture.interactiveCount,
     smallTargetCount: capture.smallTargetCount,
     visibleTextCount: capture.visibleTextCount,
@@ -301,8 +361,8 @@ test.describe('Today geometry', () => {
     test.setTimeout(600_000);
     await mkdir(evidenceDir, { recursive: true });
 
-    const first = await captureMatrix(page, { screenshots: true });
-    const second = await captureMatrix(page, { screenshots: false });
+    const { captures: first, expandedCounts } = await captureMatrix(page, { screenshots: true });
+    const { captures: second } = await captureMatrix(page, { screenshots: false });
 
     // The reason this harness exists: the same code measured twice must give
     // the same numbers. If this fails, the state is not pinned and no budget
@@ -319,11 +379,13 @@ test.describe('Today geometry', () => {
         budgets: {
           contentScrollPx: TODAY_SCROLL_BUDGET_PX,
           budgetViewport: TODAY_BUDGET_VIEWPORT,
-          fixedChromeHeight: FIXED_CHROME_BUDGET,
+          shellChromePx: SHELL_CHROME_BUDGET,
+          dockPx: DOCK_BUDGET,
           minTargetPx: MIN_TARGET,
         },
         legacyBriefingScrollPx: LEGACY_BRIEFING_SCROLL_PX,
         repeatRunIdentical: true,
+        disclosuresPerViewport: expandedCounts,
         captures: first,
       }, null, 2)}\n`,
       'utf8',
@@ -336,8 +398,13 @@ test.describe('Today geometry', () => {
     expect(budgetCapture.openDisclosures, 'LAY-04 measures unexpanded content').toBe(0);
 
     for (const capture of first) {
-      expect(capture.fixedChromeHeight, `${capture.viewport} fixed chrome`)
-        .toBeLessThanOrEqual(FIXED_CHROME_BUDGET);
+      // Measured as viewport minus scroller, so a header that grows is caught.
+      expect(capture.shellChrome, `${capture.viewport} shell chrome envelope`)
+        .toBeLessThanOrEqual(SHELL_CHROME_BUDGET);
+      expect(capture.dockHeight, `${capture.viewport} action dock`)
+        .toBeLessThanOrEqual(DOCK_BUDGET);
+      expect(capture.permanentChrome, `${capture.viewport} chrome accounting`)
+        .toBe(capture.shellChrome + capture.dockHeight);
       expect(capture.horizontalOverflow, `${capture.viewport} horizontal overflow`).toBe(false);
       expect(capture.smallTargets, `${capture.viewport} sub-44px targets`).toEqual([]);
       expect(capture.smallTextCount, `${capture.viewport} sub-12px text`).toBe(0);

@@ -92,11 +92,17 @@ describe('semantics', () => {
     expect(html).not.toContain('role="alert"');
   });
 
-  it('offers a skip link before the chrome', () => {
+  it('offers a skip link before the chrome, and lands it on a real landmark', () => {
     const html = render();
     const skip = html.indexOf('Skip to main content');
     expect(skip).toBeGreaterThan(-1);
     expect(skip).toBeLessThan(html.indexOf('Regular Season'));
+
+    // A skip link that lands on a `div` gives a screen-reader user nothing to
+    // navigate back to. The page scroller is the main landmark.
+    expect(html).toContain('href="#mfd-v2-content"');
+    expect(html).toMatch(/<main id="mfd-v2-content"/);
+    expect([...html.matchAll(/<main\b/g)]).toHaveLength(1);
   });
 });
 
@@ -119,12 +125,26 @@ describe('task rows', () => {
       .toContain('Advance Week sends you to Game Plan until a prep plan is saved for this matchup.');
   });
 
-  it('pairs the severity accent with a machine-readable value, never colour alone', () => {
-    const html = render(BLOCKED);
-    expect(html).toContain('data-mfd-v2-severity="blocking"');
+  it('states the severity in words, not only as an accent colour', () => {
+    // A `data-` attribute surfaces to no user. The earlier assertion checked
+    // only that attribute, so a row whose whole urgency signal was a coloured
+    // bar passed the "never colour alone" test.
+    expect(render(BLOCKED)).toContain('>Blocking<');
+    expect(render({ tasks: buildTaskLedger({ ...CLEAR, starterCount: 12 }) })).toContain('>Warning<');
+
+    // Info and clear get no word: a badge on every row is noise, and neither
+    // carries urgency. Asserted per row rather than per document — the
+    // standing lane always contains `warning` rows, so a document-level
+    // "does not contain" would be checking the wrong thing.
+    const rows = [...render().matchAll(/data-mfd-v2-severity="(\w+)">(.*?)<\/a>/g)];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const [, severity = '', body = ''] of rows) {
+      const hasWord = /mfd-v2-kicker">(Blocking|Warning)</.test(body);
+      expect(hasWord, `${severity} row`).toBe(severity === 'blocking' || severity === 'warning');
+    }
   });
 
-  it('renders merged duplicates rather than discarding them', () => {
+  it('renders every merged duplicate in full, not just its title', () => {
     const html = render({
       tasks: buildTaskLedger({ ...CLEAR, injuredCount: 3 }),
       recommendations: [agmTask({ id: 'injury_watch', priority: 'urgent', title: 'Injury fix: 2 starters sidelined', body: 'Hale and Grant are out.', targetRoute: '/roster' })],
@@ -133,6 +153,31 @@ describe('task rows', () => {
     expect(html).toContain('3 injured players');
     expect(html).toContain('Injury fix: 2 starters sidelined');
     expect(html).toContain('Hale and Grant are out.');
+
+    // Rendering only title and reason dropped the consequence, the
+    // destination and the link of every absorbed task, which made "merging is
+    // lossless" false at the only layer a player can see.
+    expect(html).toContain('data-mfd-v2-merged="optional-roster-training-medical"');
+    expect(html).toContain('Optional before Advance Week. Prioritize role changes that fix the current lineup');
+    expect(html).toContain('View · Roster');
+  });
+
+  it('carries every field of every merged task, across a busy week', () => {
+    const view = presentToday(input(BUSY));
+    const html = renderToStaticMarkup(<TodayScreen view={view} onNavigate={() => {}} />);
+
+    const merged = [view.mustDo, view.recommended, view.optional]
+      .flatMap((section) => [...section.tasks, ...section.hidden])
+      .flatMap((task) => task.merged);
+
+    expect(merged.length).toBeGreaterThan(0);
+    for (const task of merged) {
+      expect(html, `${task.id} title`).toContain(task.title);
+      expect(html, `${task.id} reason`).toContain(task.reason);
+      expect(html, `${task.id} consequence`).toContain(task.consequence);
+      expect(html, `${task.id} destination`).toContain(`${task.destination.actionLabel} · ${task.destination.label}`);
+      expect(html, `${task.id} link`).toContain(`href="#${task.destination.route}"`);
+    }
   });
 });
 

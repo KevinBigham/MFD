@@ -12,12 +12,13 @@
  */
 
 import {
+  ALL_CLEAR_KEYS,
   OPTIONAL_TASKS,
   mergeTaskLedger,
   type MergedTask,
   type UiTask,
 } from '../tasks/task-ledger';
-import { phaseVocabulary } from './phase-vocabulary';
+import { phaseHasGames, phaseVocabulary } from './phase-vocabulary';
 
 export interface TodayTeam {
   name: string;
@@ -58,7 +59,6 @@ export interface TodayOpponent {
   /** "vs Harbor Cutters", "at Harbor Cutters", or the reason there is no game. */
   headline: string;
   detail: string;
-  hasGame: boolean;
 }
 
 export type ReadinessState = 'blocked' | 'attention' | 'ready';
@@ -114,15 +114,12 @@ function hasPlayedGames(team: TodayTeam): boolean {
   return team.wins + team.losses + team.ties > 0;
 }
 
-/** Phases where a week number is a real thing a manager tracks. */
-const WEEKLY_PHASES = new Set(['preseason', 'regular_season', 'playoffs']);
-
 function buildContext(input: TodayInput): TodayContext {
   const vocabulary = phaseVocabulary(input.phase);
   const team = input.team;
   return {
     phase: vocabulary.title,
-    week: WEEKLY_PHASES.has(input.phase) ? `Week ${input.week}` : vocabulary.title,
+    week: phaseHasGames(input.phase) ? `Week ${input.week}` : vocabulary.title,
     season: String(input.season),
     team: team ? (hasPlayedGames(team) ? `${team.name} · ${record(team)}` : team.name) : 'No team selected',
     purpose: vocabulary.tip,
@@ -138,9 +135,8 @@ function buildOpponent(input: TodayInput): TodayOpponent {
   if (!opponent) {
     const vocabulary = phaseVocabulary(input.phase);
     return {
-      headline: WEEKLY_PHASES.has(input.phase) ? 'No game scheduled this week' : `No game during ${vocabulary.title}`,
+      headline: phaseHasGames(input.phase) ? 'No game scheduled this week' : `No game during ${vocabulary.title}`,
       detail: vocabulary.tip || 'The weekly matchup returns when the schedule resumes.',
-      hasGame: false,
     };
   }
   return {
@@ -148,7 +144,6 @@ function buildOpponent(input: TodayInput): TodayOpponent {
     detail: hasPlayedGames(opponent)
       ? `${record(opponent)} · ${opponent.isHome ? 'home' : 'away'}`
       : `${opponent.isHome ? 'Home' : 'Away'} · no record yet`,
-    hasGame: true,
   };
 }
 
@@ -210,7 +205,18 @@ function choosePrimary(mustDo: readonly MergedTask[], recommended: readonly Merg
 export function presentToday(input: TodayInput): TodayViewModel {
   const merged = mergeTaskLedger([...input.tasks, ...input.recommendations, ...OPTIONAL_TASKS]);
 
-  const isAllClear = (task: MergedTask): boolean => task.destination.route === ADVANCE_ROUTE;
+  /**
+   * The two synthetic all-clear rows, identified by key rather than by route.
+   *
+   * Keying this off `destination.route === '/week-advance'` deleted any task
+   * that happened to point there — and `agmTask` sends a recommendation with
+   * no `targetRoute` exactly there. An urgent AGM recommendation without a
+   * route vanished from all three lanes *and* from every `merged` payload,
+   * while readiness reported "Nothing is waiting on you." All six of today's
+   * engine recommendations set a route, so it was latent; `targetRoute` is
+   * optional in the engine type, so it would not have stayed that way.
+   */
+  const isAllClear = (task: MergedTask): boolean => ALL_CLEAR_KEYS.has(task.dedupeKey);
 
   const mustDo = merged.filter((task) => task.category === 'must' && !isAllClear(task));
   const recommended = merged.filter((task) => task.category === 'recommended' && !isAllClear(task));

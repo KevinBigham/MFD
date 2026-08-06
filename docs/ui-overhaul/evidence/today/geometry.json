@@ -6,7 +6,8 @@
   "budgets": {
     "contentScrollPx": 2110,
     "budgetViewport": "phone-390x844",
-    "fixedChromeHeight": 152,
+    "shellChromePx": 152,
+    "dockPx": 152,
     "minTargetPx": 44
   },
   "legacyBriefingScrollPx": {
@@ -18,6 +19,10 @@
     "desktop-1440x900": 6273
   },
   "repeatRunIdentical": true,
+  "disclosuresPerViewport": {
+    "phone-390x844": 9,
+    "desktop-1440x900": 9
+  },
   "captures": [
     {
       "viewport": "phone-320x568",
@@ -27,8 +32,8 @@
       },
       "content": {
         "clientHeight": 352,
-        "scrollHeight": 1640,
-        "viewportsOfScroll": 2.887
+        "scrollHeight": 1700,
+        "viewportsOfScroll": 2.993
       },
       "viewportsOfScroll": 1,
       "horizontalOverflow": false,
@@ -41,11 +46,13 @@
           "height": 141
         }
       ],
-      "fixedChromeHeight": 141,
-      "interactiveCount": 20,
+      "permanentChrome": 216,
+      "dockHeight": 141,
+      "shellChrome": 75,
+      "interactiveCount": 24,
       "smallTargetCount": 0,
       "smallTargets": [],
-      "visibleTextCount": 59,
+      "visibleTextCount": 78,
       "smallTextCount": 0,
       "bodyFontSize": 16,
       "readiness": "blocked",
@@ -63,8 +70,8 @@
       },
       "content": {
         "clientHeight": 679,
-        "scrollHeight": 1452,
-        "viewportsOfScroll": 1.72
+        "scrollHeight": 1512,
+        "viewportsOfScroll": 1.791
       },
       "viewportsOfScroll": 1,
       "horizontalOverflow": false,
@@ -77,11 +84,13 @@
           "height": 89
         }
       ],
-      "fixedChromeHeight": 89,
-      "interactiveCount": 20,
+      "permanentChrome": 165,
+      "dockHeight": 89,
+      "shellChrome": 76,
+      "interactiveCount": 24,
       "smallTargetCount": 0,
       "smallTargets": [],
-      "visibleTextCount": 59,
+      "visibleTextCount": 78,
       "smallTextCount": 0,
       "bodyFontSize": 16,
       "readiness": "blocked",
@@ -99,8 +108,8 @@
       },
       "content": {
         "clientHeight": 767,
-        "scrollHeight": 1428,
-        "viewportsOfScroll": 1.532
+        "scrollHeight": 1488,
+        "viewportsOfScroll": 1.597
       },
       "viewportsOfScroll": 1,
       "horizontalOverflow": false,
@@ -113,11 +122,13 @@
           "height": 89
         }
       ],
-      "fixedChromeHeight": 89,
-      "interactiveCount": 20,
+      "permanentChrome": 165,
+      "dockHeight": 89,
+      "shellChrome": 76,
+      "interactiveCount": 24,
       "smallTargetCount": 0,
       "smallTargets": [],
-      "visibleTextCount": 59,
+      "visibleTextCount": 78,
       "smallTextCount": 0,
       "bodyFontSize": 16,
       "readiness": "blocked",
@@ -135,8 +146,8 @@
       },
       "content": {
         "clientHeight": 225,
-        "scrollHeight": 1228,
-        "viewportsOfScroll": 3.149
+        "scrollHeight": 1288,
+        "viewportsOfScroll": 3.303
       },
       "viewportsOfScroll": 1,
       "horizontalOverflow": false,
@@ -149,11 +160,13 @@
           "height": 89
         }
       ],
-      "fixedChromeHeight": 89,
-      "interactiveCount": 20,
+      "permanentChrome": 165,
+      "dockHeight": 89,
+      "shellChrome": 76,
+      "interactiveCount": 24,
       "smallTargetCount": 0,
       "smallTargets": [],
-      "visibleTextCount": 59,
+      "visibleTextCount": 78,
       "smallTextCount": 0,
       "bodyFontSize": 16,
       "readiness": "blocked",
@@ -171,8 +184,8 @@
       },
       "content": {
         "clientHeight": 859,
-        "scrollHeight": 1284,
-        "viewportsOfScroll": 1.254
+        "scrollHeight": 1344,
+        "viewportsOfScroll": 1.313
       },
       "viewportsOfScroll": 1,
       "horizontalOverflow": false,
@@ -185,11 +198,13 @@
           "height": 89
         }
       ],
-      "fixedChromeHeight": 89,
-      "interactiveCount": 20,
+      "permanentChrome": 165,
+      "dockHeight": 89,
+      "shellChrome": 76,
+      "interactiveCount": 24,
       "smallTargetCount": 0,
       "smallTargets": [],
-      "visibleTextCount": 59,
+      "visibleTextCount": 78,
       "smallTextCount": 0,
       "bodyFontSize": 16,
       "readiness": "blocked",
@@ -207,8 +222,8 @@
       },
       "content": {
         "clientHeight": 735,
-        "scrollHeight": 1236,
-        "viewportsOfScroll": 1.373
+        "scrollHeight": 1296,
+        "viewportsOfScroll": 1.44
       },
       "viewportsOfScroll": 1,
       "horizontalOverflow": false,
@@ -221,11 +236,13 @@
           "height": 89
         }
       ],
-      "fixedChromeHeight": 89,
-      "interactiveCount": 20,
+      "permanentChrome": 165,
+      "dockHeight": 89,
+      "shellChrome": 76,
+      "interactiveCount": 24,
       "smallTargetCount": 0,
       "smallTargets": [],
-      "visibleTextCount": 59,
+      "visibleTextCount": 78,
       "smallTextCount": 0,
       "bodyFontSize": 16,
       "readiness": "blocked",

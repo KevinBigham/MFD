@@ -18,6 +18,7 @@ import {
 } from '../../app/store/selectors';
 import { agmTask, buildTaskLedger } from '../tasks/task-ledger';
 import { selectTaskLedgerInput } from '../tasks/task-ledger-input';
+import { phaseHasGames } from './phase-vocabulary';
 import type { TodayInput, TodayOpponentInput, TodayTeam } from './today-presenter';
 
 /** The AGM's own weekly limit, matching what the legacy board asks for. */
@@ -57,7 +58,10 @@ export function selectTodayInput(source: TodaySource): TodayInput {
     };
   }
 
-  const matchup = selectCurrentMatchup(state);
+  // Gated on the phase, not just on the lookup: the schedule still holds last
+  // season's weeks during the offseason, so an ungated lookup names an
+  // opponent for a game nobody is about to play.
+  const matchup = phaseHasGames(game.phase) ? selectCurrentMatchup(state) : null;
   let opponent: TodayOpponentInput | null = null;
   if (matchup) {
     const isHome = matchup.homeTeamId === team.id;

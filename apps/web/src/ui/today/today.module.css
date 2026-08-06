@@ -140,8 +140,21 @@
   text-decoration: underline;
 }
 
-/* Colour is never the only signal: the accent bar is paired with the
- * severity's own word inside the row's disclosure. */
+/* Colour is never the only signal. The accent bar below is paired with
+ * `.severity`, which prints the word — a row that is blocking says so in
+ * text, and `TodayScreen.test.tsx` asserts the word, not the attribute. */
+.severity {
+  color: var(--mfd-v2-text-secondary);
+}
+
+[data-mfd-v2-severity='blocking'] .severity {
+  color: var(--mfd-v2-danger);
+}
+
+[data-mfd-v2-severity='warning'] .severity {
+  color: var(--mfd-v2-warning);
+}
+
 [data-mfd-v2-severity='blocking'] {
   box-shadow: inset 3px 0 0 var(--mfd-v2-danger);
 }
@@ -189,16 +202,34 @@
   color: var(--mfd-v2-text-secondary);
 }
 
+.mergedLead {
+  margin: 0 0 var(--mfd-v2-space-1);
+  color: var(--mfd-v2-text-secondary);
+}
+
 .mergedList {
   display: flex;
   flex-direction: column;
-  gap: var(--mfd-v2-space-1);
+  gap: var(--mfd-v2-space-3);
   margin: 0;
-  padding-left: var(--mfd-v2-space-4);
+  padding: 0;
+  list-style: none;
 }
 
 .mergedItem {
-  color: var(--mfd-v2-text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-v2-space-1);
+  padding-left: var(--mfd-v2-space-3);
+  box-shadow: inset 2px 0 0 var(--mfd-v2-divider);
+}
+
+.mergedLink {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: var(--mfd-v2-control-min);
+  color: var(--mfd-v2-interactive);
 }
 
 .overflow {

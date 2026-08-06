@@ -37,7 +37,21 @@ function href(route: string): string {
   return `#${route}`;
 }
 
+/**
+ * The word that goes with the accent bar.
+ *
+ * The bar alone is colour-only signalling. `neutral` and `info` get no word on
+ * purpose — a badge on every row is noise, and neither carries urgency; the
+ * two that do are the two that get one.
+ */
+const SEVERITY_WORD: Partial<Record<MergedTask['severity'], string>> = {
+  blocking: 'Blocking',
+  warning: 'Warning',
+};
+
 function TaskRow({ task }: { task: MergedTask }) {
+  const severityWord = SEVERITY_WORD[task.severity];
+
   return (
     <li className={styles.row}>
       <a
@@ -46,6 +60,9 @@ function TaskRow({ task }: { task: MergedTask }) {
         data-mfd-v2-task={task.id}
         data-mfd-v2-severity={task.severity}
       >
+        {severityWord ? (
+          <span className={`${styles.severity} mfd-v2-kicker`}>{severityWord}</span>
+        ) : null}
         <span className={`${styles.rowTitle} mfd-v2-body-strong`}>{task.title}</span>
         <span className={`${styles.rowReason} mfd-v2-body`}>{task.reason}</span>
         <span className={`${styles.rowWhere} mfd-v2-caption`}>
@@ -55,18 +72,35 @@ function TaskRow({ task }: { task: MergedTask }) {
 
       {/* The consequence is the "why it matters" the audit found missing, and
           the merged duplicates ride along so nothing the ledger collapsed is
-          lost — both behind a disclosure so the row stays one line tall. */}
+          lost — both behind a disclosure so the row stays one line tall.
+          Disclosure content costs nothing against LAY-04: a closed `details`
+          is `display: none` and contributes no height. */}
       <details className={styles.rowDetails}>
         <summary className={`${styles.summary} mfd-v2-caption`}>Why this matters</summary>
         <p className={`${styles.consequence} mfd-v2-body`}>{task.consequence}</p>
+
+        {/* Merged tasks render in full — title, reason, consequence and their
+            own link. Rendering only title and reason dropped the destination
+            and the consequence of every absorbed task, which made "merging is
+            lossless" false at the only layer a player can see. */}
         {task.merged.length > 0 ? (
-          <ul className={styles.mergedList}>
-            {task.merged.map((entry) => (
-              <li key={entry.id} className={`${styles.mergedItem} mfd-v2-body`}>
-                <span className="mfd-v2-body-strong">{entry.title}</span> — {entry.reason}
-              </li>
-            ))}
-          </ul>
+          <>
+            <p className={`${styles.mergedLead} mfd-v2-caption`}>
+              Also handled here:
+            </p>
+            <ul className={styles.mergedList}>
+              {task.merged.map((entry) => (
+                <li key={entry.id} className={styles.mergedItem} data-mfd-v2-merged={entry.id}>
+                  <span className={`${styles.rowTitle} mfd-v2-body-strong`}>{entry.title}</span>
+                  <span className={`${styles.rowReason} mfd-v2-body`}>{entry.reason}</span>
+                  <span className={`${styles.consequence} mfd-v2-body`}>{entry.consequence}</span>
+                  <a className={`${styles.mergedLink} mfd-v2-label`} href={href(entry.destination.route)}>
+                    {entry.destination.actionLabel} · {entry.destination.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </>
         ) : null}
       </details>
     </li>

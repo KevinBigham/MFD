@@ -399,24 +399,42 @@ describe('agmTask', () => {
     expect(merged.map((entry) => entry.id)).toContain('agm-future_recommendation');
   });
 
-  it('pins the dedupe key of every recommendation the engine emits today', () => {
+  it('pins which task each recommendation merges into, not merely that it has a key', () => {
     const engineSource = readFileSync(
       new URL('../../../../../packages/engine/src/systems/agm.ts', import.meta.url),
       'utf8',
     );
     const emitted = [...engineSource.matchAll(/^\s{6}id: '([a-z_]+)',$/gm)].map((match) => match[1]!);
 
-    expect(emitted.sort()).toEqual([
-      'cap_trouble',
-      'injury_watch',
-      'marcus_cap_mandate',
-      'next_opponent',
-      'roster_gaps',
-      'sandra_development_mandate',
-    ]);
+    // Asserting only "a key was authored" let a wrong key through: pointing
+    // `cap_trouble` at `save` merged "Over the cap" into "Save slot and backup
+    // export" and 300 tests passed. The mapping is pinned entry by entry.
+    const EXPECTED: Record<string, string> = {
+      injury_watch: 'roster-moves',
+      cap_trouble: 'cap',
+      next_opponent: 'game-plan',
+      roster_gaps: 'team-needs',
+      marcus_cap_mandate: 'owner-mandate',
+      sandra_development_mandate: 'development-mandate',
+    };
+
+    expect(emitted.slice().sort()).toEqual(Object.keys(EXPECTED).sort());
     for (const id of emitted) {
-      expect(agmTask(recommendation({ id })).dedupeKey, id).not.toMatch(/^agm:/);
+      expect(agmTask(recommendation({ id })).dedupeKey, id).toBe(EXPECTED[id]);
     }
+  });
+
+  it('keeps an owner mandate out of the lane that would swallow it', () => {
+    // Both mandates are active owner goals whose failure costs patience at
+    // season end. Sandra's used to carry `roster-moves`, so any injured player
+    // absorbed it into "N injured players" — taking its row, its link and its
+    // at-risk accent with it. Sharing a route is not sharing a job.
+    const sandra = agmTask(recommendation({ id: 'sandra_development_mandate', targetRoute: '/roster' }));
+    const injuries = buildTaskLedger({ ...CLEAR, injuredCount: 3 })
+      .find((task) => task.id === 'injuries-unresolved')!;
+
+    expect(sandra.destination.route).toBe(injuries.destination.route);
+    expect(mergeTaskLedger([injuries, sandra])).toHaveLength(2);
   });
 });
 

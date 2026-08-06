@@ -18,6 +18,7 @@ import {
 import { getRegisteredShortcuts, registerShortcut, useGlobalKeyboard, useShortcut } from './hooks/useKeyboard';
 import { useBootSequence } from './hooks/useBootSequence';
 import { useUiStore } from './store/ui-store';
+import { isTodayRoute } from '../ui/migration/ui-overhaul-mode';
 import {
   selectCeremonies,
   selectCurrentWeeklyPrepPlan,
@@ -611,7 +612,7 @@ function RootLayout() {
    * `ui/today/today-route.test.ts` pins that. Every hook above has already
    * run, so the early return is a rendering decision only.
    */
-  if (activePath === '/today') {
+  if (isTodayRoute(activePath)) {
     return <Outlet />;
   }
 
@@ -2197,7 +2198,7 @@ function PostSetupApp() {
         * new shell suppresses the legacy dock on its own route. No canonical
         * route is affected: `/today` is not in `APP_ROUTE_REGISTRY`.
         */}
-      {chipDockEnabled && chipDockRoute !== '/today' ? (
+      {chipDockEnabled && !isTodayRoute(chipDockRoute) ? (
         <ChipDock
           currentWeek={chipDockWeek}
           currentSeason={chipDockSeason}
