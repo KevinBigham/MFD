@@ -1,16 +1,21 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { APP_ROUTE_REGISTRY, appRoute } from '@mfd/engine/config';
+import type { AGMRecommendation, AGMRecommendationPriority } from '@mfd/engine';
 import {
   FIELD_STARTER_TARGET,
   OPTIONAL_TASKS,
   OWNER_APPROVAL_FLOOR,
+  agmTask,
   buildTaskLedger,
+  mergeTaskLedger,
   noRecommendationsTask,
   readyToAdvanceTask,
   taskDestination,
   type TaskLedgerInput,
   type UiTask,
 } from './task-ledger';
+import { SEVERITY_ACCENT } from '../../features/monday-briefing/ActionCenter';
 import { HUB_IDS } from '../routes/route-surface-types';
 import { resolveCompatibleRoute } from '../routes/route-compatibility';
 
@@ -305,5 +310,230 @@ describe('OPTIONAL_TASKS', () => {
 
   it('never blocks Advance Week — that is what makes it optional', () => {
     expect(OPTIONAL_TASKS.some((task) => task.blocksAdvance)).toBe(false);
+  });
+});
+
+/**
+ * The historic table from `ActionCenter.tsx`, kept here verbatim as the thing
+ * the AGM fold-in must not have changed. Amendment A1 pins legacy rendered
+ * output for the whole migration, and card colour is rendered output.
+ */
+const LEGACY_PRIORITY_ACCENT: Record<AGMRecommendationPriority, string> = {
+  urgent: 'red',
+  high: 'gold',
+  medium: 'cyan',
+  low: 'green',
+};
+
+const AGM_PRIORITIES: AGMRecommendationPriority[] = ['urgent', 'high', 'medium', 'low'];
+
+function recommendation(overrides: Partial<AGMRecommendation> = {}): AGMRecommendation {
+  return {
+    id: 'injury_watch',
+    priority: 'urgent',
+    title: 'Injury fix: 2 starters sidelined',
+    body: 'Two starters will miss 2+ weeks.',
+    targetRoute: '/roster',
+    ...overrides,
+  };
+}
+
+describe('agmTask', () => {
+  it('lands on the same card accent the priority table used to produce', () => {
+    for (const priority of AGM_PRIORITIES) {
+      const task = agmTask(recommendation({ priority }));
+      expect(SEVERITY_ACCENT[task.severity], priority).toBe(LEGACY_PRIORITY_ACCENT[priority]);
+    }
+  });
+
+  it('pins the deadline copy for every priority, verbatim from the legacy board', () => {
+    expect(agmTask(recommendation({ priority: 'urgent' })).consequence).toBe(
+      'Recommended before Advance Week for lineup, cap space, or matchup changes. Advance Week remains available when no Must Do item stops it.',
+    );
+    expect(agmTask(recommendation({ priority: 'high' })).consequence).toBe(
+      'Recommended this week: handle before Advance Week locks the next game for lineup, cap, depth, or Game Plan changes.',
+    );
+    expect(agmTask(recommendation({ priority: 'medium' })).consequence).toBe(
+      'Recommended before kickoff for lineup, cap, depth, or Game Plan changes.',
+    );
+    expect(agmTask(recommendation({ priority: 'low' })).consequence).toBe(
+      'Optional: handle lineup, cap space, market offer, staff plan, or matchup changes before Advance Week, offer expiration, market windows, or phase rules lock them. Advance Week remains available when no Must Do item stops it.',
+    );
+  });
+
+  it('pins the lane word each priority carries, which the AGM modal prints as its badge', () => {
+    expect(AGM_PRIORITIES.map((priority) => agmTask(recommendation({ priority })).category))
+      .toEqual(['recommended', 'recommended', 'recommended', 'optional']);
+  });
+
+  it('builds the save-visible card id from the engine recommendation id', () => {
+    expect(agmTask(recommendation({ id: 'cap_trouble' })).id).toBe('agm-cap_trouble');
+  });
+
+  it('sends a recommendation with no target route to Advance Week', () => {
+    const task = agmTask(recommendation({ id: 'next_opponent', targetRoute: undefined }));
+    expect(task.destination.route).toBe('/week-advance');
+    expect(task.destination.actionLabel).toBe('Advance Week');
+  });
+
+  it('carries the recommendation body as the reason, never as the title', () => {
+    const task = agmTask(recommendation({ title: 'Over the cap', body: 'You have $0K of cap space.' }));
+    expect(task.title).toBe('Over the cap');
+    expect(task.reason).toBe('You have $0K of cap space.');
+  });
+
+  it('never blocks Advance Week — advice is not a gate', () => {
+    for (const priority of AGM_PRIORITIES) {
+      expect(agmTask(recommendation({ priority })).blocksAdvance).toBe(false);
+    }
+  });
+
+  it('gives an unrecognised recommendation a key of its own so it cannot be absorbed', () => {
+    const task = agmTask(recommendation({ id: 'future_recommendation', targetRoute: '/roster' }));
+    expect(task.dedupeKey).toBe('agm:future_recommendation');
+
+    const merged = mergeTaskLedger([
+      ...buildTaskLedger({ ...CLEAR, injuredCount: 3 }),
+      task,
+    ]);
+    expect(merged.map((entry) => entry.id)).toContain('agm-future_recommendation');
+  });
+
+  it('pins the dedupe key of every recommendation the engine emits today', () => {
+    const engineSource = readFileSync(
+      new URL('../../../../../packages/engine/src/systems/agm.ts', import.meta.url),
+      'utf8',
+    );
+    const emitted = [...engineSource.matchAll(/^\s{6}id: '([a-z_]+)',$/gm)].map((match) => match[1]!);
+
+    expect(emitted.sort()).toEqual([
+      'cap_trouble',
+      'injury_watch',
+      'marcus_cap_mandate',
+      'next_opponent',
+      'roster_gaps',
+      'sandra_development_mandate',
+    ]);
+    for (const id of emitted) {
+      expect(agmTask(recommendation({ id })).dedupeKey, id).not.toMatch(/^agm:/);
+    }
+  });
+});
+
+describe('mergeTaskLedger', () => {
+  it('collapses the three systems that all say "go to the roster screen"', () => {
+    const state = buildTaskLedger({ ...CLEAR, injuredCount: 3 });
+    const merged = mergeTaskLedger([
+      ...state,
+      agmTask(recommendation({ id: 'injury_watch', priority: 'urgent' })),
+      ...OPTIONAL_TASKS,
+    ]);
+
+    const roster = merged.filter((task) => task.dedupeKey === 'roster-moves');
+    expect(roster).toHaveLength(1);
+    expect(roster[0]!.id).toBe('injuries-unresolved');
+    expect(roster[0]!.merged.map((task) => task.id))
+      .toEqual(['agm-injury_watch', 'optional-roster-training-medical']);
+  });
+
+  it('loses nothing: every input task is either a winner or attached to one', () => {
+    const input = [
+      ...buildTaskLedger({ phase: 'regular_season', hasGamePlan: false, starterCount: 12, tradeOfferCount: 2, ownerApproval: 30, injuredCount: 4 }),
+      ...['injury_watch', 'cap_trouble', 'next_opponent'].map((id) => agmTask(recommendation({ id }))),
+      ...OPTIONAL_TASKS,
+    ];
+    const merged = mergeTaskLedger(input);
+
+    const survived = merged.flatMap((task) => [task.id, ...task.merged.map((entry) => entry.id)]);
+    expect(survived.slice().sort()).toEqual(input.map((task) => task.id).sort());
+  });
+
+  it('lets the blocking task win its key even when advice arrives first', () => {
+    const gamePlan = buildTaskLedger({ ...CLEAR, hasGamePlan: false })
+      .find((task) => task.id === 'game-plan-missing')!;
+    const scout = agmTask(recommendation({ id: 'next_opponent', priority: 'medium' }));
+
+    const merged = mergeTaskLedger([scout, gamePlan]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]!.id).toBe('game-plan-missing');
+    expect(merged[0]!.blocksAdvance).toBe(true);
+    expect(merged[0]!.merged.map((task) => task.id)).toEqual(['agm-next_opponent']);
+  });
+
+  it('keeps a winner in the position its key was first seen', () => {
+    const standing = OPTIONAL_TASKS.find((task) => task.dedupeKey === 'game-plan')!;
+    const gamePlan = buildTaskLedger({ ...CLEAR, hasGamePlan: false })
+      .find((task) => task.id === 'game-plan-missing')!;
+    const save = OPTIONAL_TASKS.find((task) => task.dedupeKey === 'save')!;
+
+    expect(mergeTaskLedger([standing, save, gamePlan]).map((task) => task.id))
+      .toEqual(['game-plan-missing', 'optional-save']);
+  });
+
+  it('ranks state above the AGM above the standing lane at equal category', () => {
+    const key = 'roster-moves';
+    const asOptional = (id: string, source: UiTask['source']): UiTask => ({
+      ...OPTIONAL_TASKS[0]!, id, source, dedupeKey: key,
+    });
+
+    expect(mergeTaskLedger([
+      asOptional('standing', 'standing'),
+      asOptional('agm', 'agm'),
+      asOptional('state', 'state'),
+    ])[0]!.id).toBe('state');
+
+    expect(mergeTaskLedger([
+      asOptional('standing', 'standing'),
+      asOptional('agm', 'agm'),
+    ])[0]!.id).toBe('agm');
+  });
+
+  it('keeps the owner mandate separate from the owner-approval warning', () => {
+    const approval = buildTaskLedger({ ...CLEAR, ownerApproval: 20 })
+      .find((task) => task.id === 'owner-patience-low')!;
+    const mandate = agmTask(recommendation({ id: 'marcus_cap_mandate', targetRoute: '/owner' }));
+
+    expect(approval.destination.route).toBe(mandate.destination.route);
+    expect(mergeTaskLedger([approval, mandate])).toHaveLength(2);
+  });
+
+  it('is stable and pure: same input twice, identical output, inputs untouched', () => {
+    const input = [...buildTaskLedger({ ...CLEAR, injuredCount: 1 }), ...OPTIONAL_TASKS];
+    const frozen = JSON.stringify(input);
+    expect(mergeTaskLedger(input)).toEqual(mergeTaskLedger(input));
+    expect(JSON.stringify(input)).toBe(frozen);
+  });
+
+  it('returns an empty ledger for an empty input rather than inventing a row', () => {
+    expect(mergeTaskLedger([])).toEqual([]);
+  });
+});
+
+describe('dedupe keys', () => {
+  it('gives every task a non-empty key', () => {
+    const all = [
+      ...buildTaskLedger({ phase: 'regular_season', hasGamePlan: false, starterCount: 0, tradeOfferCount: 1, ownerApproval: 1, injuredCount: 1 }),
+      ...OPTIONAL_TASKS,
+      readyToAdvanceTask(),
+      noRecommendationsTask(),
+    ];
+    for (const task of all) {
+      expect(task.dedupeKey, task.id).toMatch(/^[a-z][a-z0-9:-]*$/);
+    }
+  });
+
+  it('keeps the two all-clear fallbacks distinct, so neither swallows the other', () => {
+    const merged = mergeTaskLedger([readyToAdvanceTask(), noRecommendationsTask()]);
+    expect(merged.map((task) => task.id)).toEqual(['ready-to-advance', 'recommended-clear']);
+  });
+
+  it('pins the source of every task the ledger can emit', () => {
+    for (const task of buildTaskLedger({ phase: 'regular_season', hasGamePlan: false, starterCount: 0, tradeOfferCount: 1, ownerApproval: 1, injuredCount: 1 })) {
+      expect(task.source, task.id).toBe('state');
+    }
+    for (const task of OPTIONAL_TASKS) {
+      expect(task.source, task.id).toBe('standing');
+    }
+    expect(agmTask(recommendation()).source).toBe('agm');
   });
 });

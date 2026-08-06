@@ -1,0 +1,116 @@
+{
+  "capture": "ActionCenter renderToStaticMarkup, main (7577176) vs feat/ui-overhaul-wp00 after the AGM fold-in",
+  "why": "Amendment A1 pins legacy-shell rendered copy and behaviour. The AGM lane moved from ActionCenter's own priority tables into the canonical task ledger, so the board's rendered output is the thing that must not have moved.",
+  "fixtureSeed": 424242,
+  "scenarios": {
+    "clear": {
+      "bytes": 36373,
+      "sha256Main": "1fa2f968b7acda80774ced1450e1b9a3dfeedc7bed7635cb16c9c51bb0c6505c",
+      "sha256Head": "1fa2f968b7acda80774ced1450e1b9a3dfeedc7bed7635cb16c9c51bb0c6505c",
+      "identical": true,
+      "recommendations": [
+        [
+          "cap_trouble",
+          "high"
+        ],
+        [
+          "next_opponent",
+          "medium"
+        ],
+        [
+          "roster_gaps",
+          "medium"
+        ]
+      ]
+    },
+    "blocked": {
+      "bytes": 35860,
+      "sha256Main": "914c0f583b811f2cd521632cd29450809a6eb869b2960c3b16e1f2896d1185fe",
+      "sha256Head": "914c0f583b811f2cd521632cd29450809a6eb869b2960c3b16e1f2896d1185fe",
+      "identical": true,
+      "recommendations": [
+        [
+          "cap_trouble",
+          "high"
+        ],
+        [
+          "next_opponent",
+          "medium"
+        ],
+        [
+          "roster_gaps",
+          "medium"
+        ]
+      ]
+    },
+    "overcap": {
+      "bytes": 36385,
+      "sha256Main": "aad1ee993f38f07b0a95069a380f4b404828e1152abfa57ba102d6cb3122ad17",
+      "sha256Head": "aad1ee993f38f07b0a95069a380f4b404828e1152abfa57ba102d6cb3122ad17",
+      "identical": true,
+      "recommendations": [
+        [
+          "cap_trouble",
+          "urgent"
+        ],
+        [
+          "next_opponent",
+          "medium"
+        ],
+        [
+          "roster_gaps",
+          "medium"
+        ]
+      ]
+    },
+    "injured": {
+      "bytes": 36255,
+      "sha256Main": "80168b6a5d12e29235c6c3f1a1e18f4d19d038f7d2e919397b6ac2d6c8dcbef2",
+      "sha256Head": "80168b6a5d12e29235c6c3f1a1e18f4d19d038f7d2e919397b6ac2d6c8dcbef2",
+      "identical": true,
+      "recommendations": [
+        [
+          "injury_watch",
+          "urgent"
+        ],
+        [
+          "cap_trouble",
+          "high"
+        ],
+        [
+          "next_opponent",
+          "medium"
+        ]
+      ]
+    },
+    "playoffs": {
+      "bytes": 33625,
+      "sha256Main": "7eb9c56d901ff1ea8fa36ffd4d15939ba02c918ed9b4a2a97bdc385d77e8b8b8",
+      "sha256Head": "7eb9c56d901ff1ea8fa36ffd4d15939ba02c918ed9b4a2a97bdc385d77e8b8b8",
+      "identical": true,
+      "recommendations": [
+        [
+          "cap_trouble",
+          "high"
+        ],
+        [
+          "roster_gaps",
+          "medium"
+        ]
+      ]
+    }
+  },
+  "coverage": {
+    "agmPrioritiesExercised": [
+      "urgent",
+      "high",
+      "medium"
+    ],
+    "agmPrioritiesNotExercised": [
+      "low"
+    ],
+    "lowPriorityNote": "getAGMWeeklyRecommendations never emits priority 'low' - no branch in packages/engine/src/systems/agm.ts sets it. Its deadline copy was already unreachable before this change and still is; task-ledger.test.ts pins the string so a future engine branch inherits the legacy wording rather than inventing new copy.",
+    "notCovered": "The AGM modal body. PixelModal renders nothing while closed and its open state is component-local, so renderToStaticMarkup cannot reach it and there is no jsdom in this monorepo. The modal's three changed mappings - card accent, badge word, title/reason - are covered by assertions in task-ledger.test.ts instead of by a render diff."
+  },
+  "result": "IDENTICAL"
+}

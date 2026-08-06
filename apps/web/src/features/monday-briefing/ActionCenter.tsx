@@ -4,7 +4,6 @@ import {
   buildPostWeekMoment,
   getAGMWeeklyRecommendations,
   getScenarioConstraintCoverage,
-  type AGMRecommendation,
   type ActionCenterCardClosure,
   type GameState,
   type PostWeekMomentTone,
@@ -13,10 +12,11 @@ import {
 import { monoSm, pixelSm, navigateTo } from '../shared/pixelUi';
 import {
   OPTIONAL_TASKS,
+  agmTask,
   buildTaskLedger,
   noRecommendationsTask,
   readyToAdvanceTask,
-  taskDestination,
+  type TaskCategory,
   type TaskSeverity,
   type UiTask,
 } from '../../ui/tasks/task-ledger';
@@ -34,24 +34,32 @@ interface ActionCenterProps {
   onCloseAction?: (card: ActionCenterCardClosure) => void | Promise<void>;
 }
 
-const PRIORITY_ACCENT: Record<AGMRecommendation['priority'], 'red' | 'gold' | 'cyan' | 'green'> = {
-  urgent: 'red',
-  high: 'gold',
-  medium: 'cyan',
-  low: 'green',
-};
-
-const PRIORITY_LABEL: Record<AGMRecommendation['priority'], string> = {
-  urgent: 'Recommended',
-  high: 'Recommended',
-  medium: 'Recommended',
-  low: 'Optional',
-};
-
 type ActionAccent = 'red' | 'gold' | 'cyan' | 'green' | 'default';
 
-/** The legacy board's palette for a ledger severity. Presentation only. */
-const SEVERITY_ACCENT: Record<TaskSeverity, ActionAccent> = {
+/** The lane word this board prints for a ledger category. */
+const CATEGORY_LABEL: Record<TaskCategory, string> = {
+  must: 'Must Do',
+  recommended: 'Recommended',
+  optional: 'Optional',
+};
+
+/**
+ * The AGM modal's own palette is narrower than the board's — it has no neutral
+ * card — so a ledger severity that carries no accent falls back to the same
+ * green the old priority table's final branch produced.
+ */
+function pixelAccent(accent: ActionAccent): 'red' | 'gold' | 'cyan' | 'green' {
+  return accent === 'default' ? 'green' : accent;
+}
+
+/**
+ * The legacy board's palette for a ledger severity. Presentation only.
+ *
+ * Exported so `task-ledger.test.ts` can prove that an AGM recommendation
+ * routed through `TaskSeverity` still lands on the accent the old
+ * priority→colour table produced, without duplicating the table.
+ */
+export const SEVERITY_ACCENT: Record<TaskSeverity, ActionAccent> = {
   blocking: 'red',
   warning: 'gold',
   clear: 'green',
@@ -119,28 +127,6 @@ function taskToBoardAction(task: UiTask, id: string): WeeklyBoardAction {
 const OPTIONAL_ACTIONS: readonly WeeklyBoardAction[] = OPTIONAL_TASKS.map(
   (task) => taskToBoardAction(task, task.id),
 );
-function recommendationDeadline(rec: AGMRecommendation): string {
-  if (rec.priority === 'urgent') return 'Recommended before Advance Week for lineup, cap space, or matchup changes. Advance Week remains available when no Must Do item stops it.';
-  if (rec.priority === 'high') return 'Recommended this week: handle before Advance Week locks the next game for lineup, cap, depth, or Game Plan changes.';
-  if (rec.priority === 'medium') return 'Recommended before kickoff for lineup, cap, depth, or Game Plan changes.';
-  return 'Optional: handle lineup, cap space, market offer, staff plan, or matchup changes before Advance Week, offer expiration, market windows, or phase rules lock them. Advance Week remains available when no Must Do item stops it.';
-}
-
-function recommendationToBoardAction(rec: AGMRecommendation): WeeklyBoardAction {
-  const route = rec.targetRoute ?? '/week-advance';
-  const destination = taskDestination(route);
-  return {
-    id: `agm-${rec.id}`,
-    what: rec.title,
-    why: rec.body,
-    consequence: recommendationDeadline(rec),
-    where: destination.label,
-    route,
-    accent: PRIORITY_ACCENT[rec.priority],
-    buttonLabel: destination.actionLabel,
-  };
-}
-
 function WeeklyBoardLane({
   title,
   subtitle,
@@ -247,6 +233,7 @@ function ActionCenter(props: ActionCenterProps) {
   const panelAccent = hasRed ? 'red' : hasGold ? 'gold' : 'green';
 
   const recommendations = props.game ? getAGMWeeklyRecommendations(props.game, 3) : [];
+  const agmTasks = recommendations.map(agmTask);
   const userTeamId = props.game
     ? Object.values(props.game.teams).find((team) => team.isUser)?.id ?? null
     : null;
@@ -276,7 +263,7 @@ function ActionCenter(props: ActionCenterProps) {
   const openRequiredCount = requiredItems.length > 0 ? mustDoActions.length : 0;
   const recommendedActions = [
     ...advisoryItems.map((task, index) => taskToBoardAction(task, `recommended-alert-${index}-${task.destination.route}`)),
-    ...recommendations.map(recommendationToBoardAction),
+    ...agmTasks.map((task) => taskToBoardAction(task, task.id)),
   ];
   const fallbackRecommended = noRecommendationsTask();
   const visibleRecommendedActions = (recommendedActions.length > 0
@@ -471,38 +458,40 @@ function ActionCenter(props: ActionCenterProps) {
                 No AGM alert needs action before Advance Week. Prioritize optional roster, depth, cap, market, or staff moves before Advance Week, offer expiration, or a phase rule locks them.
               </div>
             ) : (
-              recommendations.map((rec) => (
-                <div
-                  key={rec.id}
-                  style={{
-                    border: `2px solid var(--mfd-${PRIORITY_ACCENT[rec.priority] === 'red' ? 'red' : PRIORITY_ACCENT[rec.priority] === 'gold' ? 'gold' : PRIORITY_ACCENT[rec.priority] === 'cyan' ? 'cyan' : 'green'})`,
-                    background: 'var(--mfd-bg-2)',
-                    padding: '10px 12px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                    <PixelBadge variant={PRIORITY_ACCENT[rec.priority]}>
-                      {PRIORITY_LABEL[rec.priority]}
-                    </PixelBadge>
-                    <div style={{ ...pixelSm, color: 'var(--mfd-text)' }}>{rec.title}</div>
+              recommendations.map((rec, index) => {
+                const task = agmTasks[index]!;
+                const accent = pixelAccent(SEVERITY_ACCENT[task.severity]);
+                return (
+                  <div
+                    key={rec.id}
+                    style={{
+                      border: `2px solid ${borderForAccent(accent)}`,
+                      background: 'var(--mfd-bg-2)',
+                      padding: '10px 12px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <PixelBadge variant={accent}>{CATEGORY_LABEL[task.category]}</PixelBadge>
+                      <div style={{ ...pixelSm, color: 'var(--mfd-text)' }}>{task.title}</div>
+                    </div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.55, marginBottom: '8px' }}>
+                      {task.reason}
+                    </div>
+                    {rec.targetRoute && (
+                      <PixelButton
+                        accent={accent === 'cyan' ? 'gold' : accent}
+                        onClick={() => {
+                          setShowAgmModal(false);
+                          navigateTo(rec.targetRoute!);
+                        }}
+                      >
+                        <ArrowRight size={12} />
+                        Take me there
+                      </PixelButton>
+                    )}
                   </div>
-                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.55, marginBottom: '8px' }}>
-                    {rec.body}
-                  </div>
-                  {rec.targetRoute && (
-                    <PixelButton
-                      accent={PRIORITY_ACCENT[rec.priority] === 'cyan' ? 'gold' : PRIORITY_ACCENT[rec.priority]}
-                      onClick={() => {
-                        setShowAgmModal(false);
-                        navigateTo(rec.targetRoute!);
-                      }}
-                    >
-                      <ArrowRight size={12} />
-                      Take me there
-                    </PixelButton>
-                  )}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </PixelModal>

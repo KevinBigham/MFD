@@ -354,7 +354,7 @@ describe('ActionCenter', () => {
     expect(source).not.toMatch(/Optional moves matter when|It matters when|Prioritize those moves when|when it changes/i);
     expect(source).toContain('Optional: handle lineup, cap space, market offer, staff plan, or matchup changes before Advance Week, offer expiration, market windows, or phase rules lock them.');
     expect(source).not.toMatch(/'URGENT'|'HIGH'|'MEDIUM'|'LOW'/);
-    expect(source).toContain("urgent: 'Recommended'");
+    expect(source).toContain("recommended: 'Recommended'");
     expect(source).toContain('Advance Week remains available when no Must Do item stops it.');
     expect(source).toContain('Advance Week remains available, but unresolved roles expose backups or delay IR decisions.');
     expect(html).not.toMatch(/lose leverage|weekly board|right room|above the line|selectors|each render|uncommitted|commit button|owning screens|hard Advance Week block|advance blocker|true Advance Week blockers|true blockers|No true blocker|No required action is stopping/i);

@@ -16,10 +16,18 @@
  * `task-ledger-input.ts` derives one from a game.
  */
 
+import type { AGMRecommendation, AGMRecommendationPriority } from '@mfd/engine';
 import { hubForLegacyPath } from '../routes/route-surface-map';
 import type { HubId } from '../routes/route-surface-types';
 
 export type TaskCategory = 'must' | 'recommended' | 'optional';
+
+/**
+ * Where a task came from. This is the tiebreak input for `mergeTaskLedger`, not
+ * a display field — the audit's "hidden/deferred" list for Today puts
+ * provenance behind disclosure precisely so the screen never leads with it.
+ */
+export type TaskSource = 'state' | 'agm' | 'standing';
 
 /**
  * How loudly a task should present. Kept semantic rather than chromatic so the
@@ -50,6 +58,17 @@ export interface UiTask {
   severity: TaskSeverity;
   /** True when Advance Week stops or redirects until this is handled. */
   blocksAdvance: boolean;
+  source: TaskSource;
+  /**
+   * Semantic identity. Two tasks sharing a key are the same job described by
+   * two systems, and `mergeTaskLedger` collapses them to one row.
+   *
+   * Keys are authored per task rather than derived from the route: the AGM's
+   * cap mandate and the owner-approval warning both point at `/owner` and are
+   * genuinely different work, while its injury advisory and the state-derived
+   * injury task point at `/roster` and are genuinely the same.
+   */
+  dedupeKey: string;
 }
 
 export interface TaskLedgerInput {
@@ -138,6 +157,8 @@ export function readyToAdvanceTask(): UiTask {
     destination: taskDestination('/week-advance'),
     severity: 'clear',
     blocksAdvance: false,
+    source: 'state',
+    dedupeKey: 'advance-ready',
   };
 }
 
@@ -158,6 +179,8 @@ export function noRecommendationsTask(): UiTask {
     destination: taskDestination('/week-advance'),
     severity: 'clear',
     blocksAdvance: false,
+    source: 'state',
+    dedupeKey: 'advance-recommended-clear',
   };
 }
 
@@ -181,6 +204,8 @@ export function buildTaskLedger(input: TaskLedgerInput): UiTask[] {
       destination: taskDestination('/game-plan'),
       severity: 'blocking',
       blocksAdvance: true,
+      source: 'state',
+      dedupeKey: 'game-plan',
     });
   }
 
@@ -194,6 +219,8 @@ export function buildTaskLedger(input: TaskLedgerInput): UiTask[] {
       destination: taskDestination('/depth-chart'),
       severity: 'warning',
       blocksAdvance: false,
+      source: 'state',
+      dedupeKey: 'depth-chart',
     });
   }
 
@@ -207,6 +234,8 @@ export function buildTaskLedger(input: TaskLedgerInput): UiTask[] {
       destination: taskDestination('/trades'),
       severity: 'warning',
       blocksAdvance: false,
+      source: 'state',
+      dedupeKey: 'market',
     });
   }
 
@@ -220,6 +249,8 @@ export function buildTaskLedger(input: TaskLedgerInput): UiTask[] {
       destination: taskDestination('/owner'),
       severity: 'blocking',
       blocksAdvance: false,
+      source: 'state',
+      dedupeKey: 'owner-approval',
     });
   }
 
@@ -233,6 +264,8 @@ export function buildTaskLedger(input: TaskLedgerInput): UiTask[] {
       destination: taskDestination('/roster'),
       severity: 'warning',
       blocksAdvance: false,
+      source: 'state',
+      dedupeKey: 'roster-moves',
     });
   }
 
@@ -263,6 +296,8 @@ export const OPTIONAL_TASKS: readonly UiTask[] = [
     destination: taskDestination('/roster'),
     severity: 'info',
     blocksAdvance: false,
+    source: 'standing',
+    dedupeKey: 'roster-moves',
   },
   {
     id: 'optional-depth',
@@ -273,6 +308,8 @@ export const OPTIONAL_TASKS: readonly UiTask[] = [
     destination: taskDestination('/depth-chart'),
     severity: 'info',
     blocksAdvance: false,
+    source: 'standing',
+    dedupeKey: 'depth-chart',
   },
   {
     id: 'optional-prep',
@@ -283,6 +320,8 @@ export const OPTIONAL_TASKS: readonly UiTask[] = [
     destination: taskDestination('/game-plan'),
     severity: 'warning',
     blocksAdvance: false,
+    source: 'standing',
+    dedupeKey: 'game-plan',
   },
   {
     id: 'optional-cap',
@@ -293,6 +332,8 @@ export const OPTIONAL_TASKS: readonly UiTask[] = [
     destination: taskDestination('/contracts', 'Contracts / Cap Lab'),
     severity: 'info',
     blocksAdvance: false,
+    source: 'standing',
+    dedupeKey: 'cap',
   },
   {
     id: 'optional-market',
@@ -303,6 +344,8 @@ export const OPTIONAL_TASKS: readonly UiTask[] = [
     destination: taskDestination('/trades', 'Trades / Waiver Wire / Practice Squad / Free Agency'),
     severity: 'warning',
     blocksAdvance: false,
+    source: 'standing',
+    dedupeKey: 'market',
   },
   {
     id: 'optional-scouting-staff-facility',
@@ -313,6 +356,8 @@ export const OPTIONAL_TASKS: readonly UiTask[] = [
     destination: taskDestination('/scouting', 'Scouting / Coaching / Settings'),
     severity: 'info',
     blocksAdvance: false,
+    source: 'standing',
+    dedupeKey: 'scouting-staff',
   },
   {
     id: 'optional-save',
@@ -323,5 +368,138 @@ export const OPTIONAL_TASKS: readonly UiTask[] = [
     destination: taskDestination('/dynasty', 'Save/Load'),
     severity: 'clear',
     blocksAdvance: false,
+    source: 'standing',
+    dedupeKey: 'save',
   },
 ];
+
+/* ── The AGM lane ─────────────────────────────────────────────────────────
+ *
+ * Until now the Assistant GM's weekly recommendations bypassed the ledger
+ * entirely: `ActionCenter.tsx` mapped them straight to board rows with their
+ * own priority→accent table and their own deadline copy. That is precisely the
+ * "several systems answering the same question" problem the ledger exists to
+ * end, so they become tasks here.
+ *
+ * Copy and colour are reproduced exactly. `AGM_SEVERITY` is chosen so that
+ * routing a recommendation through `TaskSeverity` and back out through the
+ * board's `SEVERITY_ACCENT` lands on the same accent the old `PRIORITY_ACCENT`
+ * table produced, and `task-ledger.test.ts` asserts that round trip rather
+ * than trusting it.
+ */
+
+const AGM_SEVERITY: Record<AGMRecommendationPriority, TaskSeverity> = {
+  urgent: 'blocking',
+  high: 'warning',
+  medium: 'info',
+  low: 'clear',
+};
+
+const AGM_CATEGORY: Record<AGMRecommendationPriority, TaskCategory> = {
+  urgent: 'recommended',
+  high: 'recommended',
+  medium: 'recommended',
+  low: 'optional',
+};
+
+/** Verbatim from `recommendationDeadline()` in `ActionCenter.tsx`. */
+const AGM_CONSEQUENCE: Record<AGMRecommendationPriority, string> = {
+  urgent: 'Recommended before Advance Week for lineup, cap space, or matchup changes. Advance Week remains available when no Must Do item stops it.',
+  high: 'Recommended this week: handle before Advance Week locks the next game for lineup, cap, depth, or Game Plan changes.',
+  medium: 'Recommended before kickoff for lineup, cap, depth, or Game Plan changes.',
+  low: 'Optional: handle lineup, cap space, market offer, staff plan, or matchup changes before Advance Week, offer expiration, market windows, or phase rules lock them. Advance Week remains available when no Must Do item stops it.',
+};
+
+/**
+ * Which state-derived task each recommendation duplicates.
+ *
+ * An id that is absent gets a key of its own and therefore never merges. That
+ * is the safe default: a recommendation the engine grows later must show up as
+ * its own row rather than being silently absorbed into an unrelated task.
+ */
+const AGM_DEDUPE_KEYS: Record<string, string> = {
+  injury_watch: 'roster-moves',
+  cap_trouble: 'cap',
+  next_opponent: 'game-plan',
+  roster_gaps: 'team-needs',
+  marcus_cap_mandate: 'owner-mandate',
+  sandra_development_mandate: 'roster-moves',
+};
+
+/**
+ * SAVE-VISIBLE ID. `agm-${id}` is the card id the legacy board writes to
+ * `leagueEvents` when a player closes a recommendation, so the prefix and the
+ * engine's recommendation id are both frozen. Pinned by `task-ledger.test.ts`.
+ */
+export function agmTask(recommendation: AGMRecommendation): UiTask {
+  const route = recommendation.targetRoute ?? '/week-advance';
+  return {
+    id: `agm-${recommendation.id}`,
+    category: AGM_CATEGORY[recommendation.priority],
+    title: recommendation.title,
+    reason: recommendation.body,
+    consequence: AGM_CONSEQUENCE[recommendation.priority],
+    destination: taskDestination(route),
+    severity: AGM_SEVERITY[recommendation.priority],
+    blocksAdvance: false,
+    source: 'agm',
+    dedupeKey: AGM_DEDUPE_KEYS[recommendation.id] ?? `agm:${recommendation.id}`,
+  };
+}
+
+/* ── Merge ────────────────────────────────────────────────────────────────
+ *
+ * Three sources now describe overlapping work. On the legacy board that shows
+ * up as, for example, "3 injured players → Roster", the AGM's "Injury fix: 2
+ * starters sidelined → Roster", and the standing "Roster, weekly training, and
+ * medical roster calls → Roster" as three separate cards. On a 390 px screen
+ * that is one job wearing three hats.
+ *
+ * Merging is lossless: the losers travel on the winner as `merged`, so a
+ * surface can disclose them and none of the audit's "no feature data deleted"
+ * requirement depends on the caller remembering to keep the raw list.
+ */
+
+export interface MergedTask extends UiTask {
+  /** Lower-precedence tasks sharing this task's key, in encounter order. */
+  merged: readonly UiTask[];
+}
+
+const CATEGORY_RANK: Record<TaskCategory, number> = { must: 0, recommended: 1, optional: 2 };
+const SOURCE_RANK: Record<TaskSource, number> = { state: 0, agm: 1, standing: 2 };
+
+/**
+ * A blocking task always wins, then the more urgent category, then the source
+ * closest to game state. Ties keep the earlier task, which makes the result a
+ * function of input order alone — no clock, no hashing, no set iteration.
+ */
+function outranks(candidate: UiTask, incumbent: UiTask): boolean {
+  if (candidate.blocksAdvance !== incumbent.blocksAdvance) return candidate.blocksAdvance;
+  const byCategory = CATEGORY_RANK[candidate.category] - CATEGORY_RANK[incumbent.category];
+  if (byCategory !== 0) return byCategory < 0;
+  return SOURCE_RANK[candidate.source] < SOURCE_RANK[incumbent.source];
+}
+
+export function mergeTaskLedger(tasks: readonly UiTask[]): MergedTask[] {
+  const order: string[] = [];
+  const winners = new Map<string, UiTask>();
+  const losers = new Map<string, UiTask[]>();
+
+  for (const task of tasks) {
+    const incumbent = winners.get(task.dedupeKey);
+    if (!incumbent) {
+      order.push(task.dedupeKey);
+      winners.set(task.dedupeKey, task);
+      losers.set(task.dedupeKey, []);
+      continue;
+    }
+    if (outranks(task, incumbent)) {
+      winners.set(task.dedupeKey, task);
+      losers.get(task.dedupeKey)!.push(incumbent);
+    } else {
+      losers.get(task.dedupeKey)!.push(task);
+    }
+  }
+
+  return order.map((key) => ({ ...winners.get(key)!, merged: losers.get(key)! }));
+}
