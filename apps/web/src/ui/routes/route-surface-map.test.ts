@@ -4,6 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { APP_ROUTE_REGISTRY } from '@mfd/engine/config';
 import { parseCsv } from '../../../../../scripts/check-ui-route-coverage.mjs';
+// Same table the generator uses. Importing it rather than restating it means the
+// test cannot quietly agree with a generator that has drifted.
+import { SURFACE_TYPES } from '../../../../../scripts/generate-route-surface-map.mjs';
 import {
   ROUTE_SURFACE_ENTRIES,
   ROUTE_SURFACE_MAP,
@@ -17,22 +20,6 @@ import { HUB_IDS, HUB_LABELS } from './route-surface-types';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../..');
 const matrixPath = path.join(repoRoot, 'docs/ui-overhaul/ROUTE_SURFACE_MATRIX.csv');
 
-const SURFACE_TYPE_FROM_MATRIX: Record<string, string> = {
-  'phase-aware hub': 'phase-aware-hub',
-  'hub tab or section': 'hub-section',
-  'drawer or bottom sheet': 'drawer',
-  'collection/list with filters': 'collection',
-  'contextual workflow': 'contextual-workflow',
-  'comparison workbench': 'comparison-workbench',
-  'comparison/transaction workbench': 'transaction-workbench',
-  'decision workflow or wizard': 'decision-workflow',
-  'event-driven presentation': 'event-presentation',
-  'timeline/news/history view': 'timeline',
-  'data dashboard and analytics view': 'dashboard',
-  'archive/history detail': 'archive-detail',
-  'system/settings utility': 'system-utility',
-  'settings and trust-critical utility': 'trust-critical-utility',
-};
 
 interface MatrixRow {
   currentPath: string;
@@ -93,7 +80,7 @@ describe('ROUTE_SURFACE_MAP', () => {
       }).toEqual({
         hub: row.hub.toLowerCase(),
         canonicalPath: row.canonicalPath,
-        surfaceType: SURFACE_TYPE_FROM_MATRIX[row.surfaceType],
+        surfaceType: SURFACE_TYPES[row.surfaceType],
         placement: row.placement,
         permanentNav: row.permanentNav.startsWith('yes'),
       });
@@ -137,6 +124,15 @@ describe('ROUTE_SURFACE_MAP', () => {
     expect(hubForLegacyPath('/cba')).toBe('league');
     expect(routeSurface('/nope')).toBeUndefined();
     expect(hubForLegacyPath('/nope')).toBeUndefined();
+  });
+
+  it('treats an empty path as the root, the same way a URL does', () => {
+    // Normalising lookups made this reachable. It is the correct reading of an
+    // empty path, but it means "" is a hit rather than the unknown-destination
+    // signal, so it is pinned rather than left to surprise someone.
+    expect(routeSurface('')?.legacyPath).toBe('/');
+    expect(routeSurface('   ')?.legacyPath).toBe('/');
+    expect(hubForLegacyPath('')).toBe('today');
   });
 
   it('keeps Save/Load in System even though its path looks like the Dynasty hub', () => {
