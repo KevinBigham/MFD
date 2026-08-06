@@ -16,17 +16,57 @@ import { StickyActionDock } from './StickyActionDock';
 
 const layoutCss = readFileSync(fileURLToPath(new URL('./layout.module.css', import.meta.url)), 'utf8');
 const a11yCss = readFileSync(fileURLToPath(new URL('../../app/a11y.css', import.meta.url)), 'utf8');
+const semanticCss = readFileSync(
+  fileURLToPath(new URL('../../../../../packages/design-system/tokens/semantic-v2.css', import.meta.url)),
+  'utf8',
+);
+
+/** doc 09 LAY-06: total permanent chrome on phone. */
+const LAY_06_CHROME_BUDGET_PX = 152;
 
 describe('layout modes', () => {
+  it('pins the breakpoint values themselves', () => {
+    // Deriving the expectations from the constants makes the test agree with
+    // whatever the constants happen to say. `medium` is the phone/not-phone
+    // boundary and could drift anywhere in (320, 844] undetected.
+    expect(LAYOUT_BREAKPOINTS).toEqual({ medium: 600, expanded: 1024, wide: 1440 });
+    expect(COMPACT_HEIGHT_MAX).toBe(599);
+  });
+
   it('places every boundary on the documented side of the line', () => {
     expect(resolveLayoutMode(320)).toBe('compact');
-    expect(resolveLayoutMode(LAYOUT_BREAKPOINTS.medium - 1)).toBe('compact');
-    expect(resolveLayoutMode(LAYOUT_BREAKPOINTS.medium)).toBe('medium');
-    expect(resolveLayoutMode(LAYOUT_BREAKPOINTS.expanded - 1)).toBe('medium');
-    expect(resolveLayoutMode(LAYOUT_BREAKPOINTS.expanded)).toBe('expanded');
-    expect(resolveLayoutMode(LAYOUT_BREAKPOINTS.wide - 1)).toBe('expanded');
-    expect(resolveLayoutMode(LAYOUT_BREAKPOINTS.wide)).toBe('wide');
+    expect(resolveLayoutMode(599)).toBe('compact');
+    expect(resolveLayoutMode(600)).toBe('medium');
+    expect(resolveLayoutMode(1023)).toBe('medium');
+    expect(resolveLayoutMode(1024)).toBe('expanded');
+    expect(resolveLayoutMode(1439)).toBe('expanded');
+    expect(resolveLayoutMode(1440)).toBe('wide');
     expect(resolveLayoutMode(2560)).toBe('wide');
+  });
+
+  it('classifies every viewport in the doc-09 matrix as the audit does', () => {
+    // The twelve the geometry harness actually captures. A breakpoint that
+    // drifts reclassifies one of these before it reclassifies anything else.
+    const matrix: [number, number, string, boolean][] = [
+      [320, 568, 'compact', true],
+      [360, 800, 'compact', false],
+      [390, 844, 'compact', false],
+      [430, 932, 'compact', false],
+      [667, 375, 'medium', true],
+      [844, 390, 'medium', true],
+      [932, 430, 'medium', true],
+      [768, 1024, 'medium', false],
+      [1024, 768, 'expanded', false],
+      [1280, 720, 'expanded', false],
+      [1440, 900, 'wide', false],
+      [1600, 1000, 'wide', false],
+    ];
+
+    for (const [width, height, mode, compactHeight] of matrix) {
+      const environment = resolveLayoutEnvironment({ width, height, coarsePointer: false });
+      expect(environment.mode, `${width}x${height}`).toBe(mode);
+      expect(environment.compactHeight, `${width}x${height}`).toBe(compactHeight);
+    }
   });
 
   it('treats compact height as its own dimension, not a width consequence', () => {
@@ -220,6 +260,30 @@ describe('layout stylesheet', () => {
 
   it('keeps dock controls at the nominal phone target height', () => {
     expect(layoutCss).toContain('min-height: var(--mfd-v2-control-default);');
+  });
+
+  it('fits nav plus dock inside the LAY-06 fixed-chrome budget', () => {
+    // The budget is 152px of permanent chrome. The legacy shell measures
+    // 383-425px on phone, so this is the arithmetic the whole frame exists to
+    // satisfy — and it is the number that has to hold when WP-06 adds nav.
+    const tokenPx = (name: string) => {
+      const match = new RegExp(`${name}:\\s*(\\d+)px`).exec(semanticCss);
+      expect(match, name).toBeTruthy();
+      return Number(match![1]);
+    };
+
+    const nav = tokenPx('--mfd-v2-nav-compact');
+    const dock = tokenPx('--mfd-v2-action-dock');
+
+    expect(nav + dock).toBeLessThanOrEqual(LAY_06_CHROME_BUDGET_PX);
+    // And each stays at or above the touch floor while doing it.
+    expect(nav).toBeGreaterThanOrEqual(tokenPx('--mfd-v2-control-min'));
+    expect(dock).toBeGreaterThanOrEqual(tokenPx('--mfd-v2-control-min'));
+  });
+
+  it('reserves nothing for a dock that is not there', () => {
+    expect(layoutCss).toContain('var(--mfd-v2-dock-measured, 0px)');
+    expect(layoutCss).not.toMatch(/padding-bottom:\s*\d+px/);
   });
 });
 

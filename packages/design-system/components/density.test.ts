@@ -24,6 +24,6 @@ describe('density mode', () => {
   });
 
   it('matches the attribute the stylesheet actually selects on', () => {
-    expect(DENSITY_ATTRIBUTE).toBe('data-mfd-density');
+    expect(DENSITY_ATTRIBUTE).toBe('data-mfd-v2-density');
   });
 });

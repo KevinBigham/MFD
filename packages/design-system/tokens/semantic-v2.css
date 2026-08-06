@@ -27,9 +27,12 @@
   --mfd-v2-surface-3: #1d2936;   /* overlay, strong selection */
 
   /* ── Text ────────────────────────────────────────────
-   * `text-muted` is metadata only. It is the one role that fails normal-text
-   * contrast on surface-3, and it may never carry instructions, button
-   * labels, or errors. Enforced by test, not by good intentions.
+   * `text-muted` is metadata only, and its legal surfaces are exactly two:
+   * canvas (5.09:1) and surface-1 (4.74:1). It fails AA on **surface-2
+   * (4.29:1)** and surface-3 (3.81:1) — an earlier draft named only
+   * surface-3, which left a real failure unguarded. All four ratios are now
+   * asserted, so the boundary cannot move without the test moving with it.
+   * It may never carry instructions, button labels, or errors on any surface.
    */
   --mfd-v2-text:           #f2f6f8;
   --mfd-v2-text-secondary: #aab7c4;
@@ -104,6 +107,11 @@
   --mfd-v2-elev-base:    none;
   --mfd-v2-elev-raised:  0 1px 2px rgba(0, 0, 0, 0.32);
   --mfd-v2-elev-overlay: 0 12px 32px rgba(0, 0, 0, 0.48);
+
+  /* Modal backdrop. A token rather than an `opacity` on the scrim element:
+   * opacity inherits to the sheet inside it and creates a stacking context,
+   * so the sheet would fade with its own backdrop. */
+  --mfd-v2-scrim: rgba(7, 11, 16, 0.82);
 
   /* ── Layer model ─────────────────────────────────────
    * No feature picks its own z-index. The overlay manager (WP-07) owns the

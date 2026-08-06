@@ -14,7 +14,7 @@ export type DensityMode = 'comfortable' | 'compact';
 
 export const DEFAULT_DENSITY_MODE: DensityMode = 'comfortable';
 
-export const DENSITY_ATTRIBUTE = 'data-mfd-density';
+export const DENSITY_ATTRIBUTE = 'data-mfd-v2-density';
 
 export function normalizeDensityMode(value: unknown): DensityMode {
   return value === 'compact' || value === 'comfortable' ? value : DEFAULT_DENSITY_MODE;

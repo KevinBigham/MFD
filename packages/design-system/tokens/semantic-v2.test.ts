@@ -37,6 +37,34 @@ function declaredVars(css: string): Map<string, string> {
 const legacyVars = declaredVars(legacyCss);
 const v2Vars = declaredVars(v2Css);
 
+/**
+ * Every selector in a stylesheet — not just the ones that start a line.
+ *
+ * Blocks are found by matching everything before a `{` that is not an at-rule,
+ * then split on commas so `.a, body` is two selectors rather than one that
+ * happens to look scoped.
+ */
+export function selectorsIn(css: string): string[] {
+  const withoutAtBlocks = css.replace(/@[\w-]+[^{]*\{/g, '{');
+  return [...withoutAtBlocks.matchAll(/(^|[};])\s*([^{};]+?)\s*\{/g)]
+    .flatMap((match) => match[2]!.split(','))
+    .map((selector) => selector.trim())
+    .filter((selector) => selector.length > 0 && !selector.startsWith('--'));
+}
+
+/**
+ * A selector is safe when it can only match the v2 world.
+ *
+ * `:root` sets custom properties, which are inert until something reads them.
+ * Everything else must be gated on a `.mfd-v2-*` class or a `data-mfd-v2-*`
+ * attribute somewhere in the selector.
+ */
+export function isScoped(selector: string): boolean {
+  if (selector === ':root' || selector === 'from' || selector === 'to') return true;
+  if (/^\d+%$/.test(selector)) return true;
+  return /\.mfd-v2-[\w-]+/.test(selector) || /\[data-mfd-v2-[\w-]+/.test(selector);
+}
+
 // ── WCAG 2.1 relative luminance and contrast ────────────────────────────────
 
 function channel(value: number): number {
@@ -52,9 +80,13 @@ function luminance(hex: string): number {
   return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
 }
 
+/**
+ * Unrounded on purpose. Rounding to two places before comparing lets a true
+ * 4.495:1 present as 4.50 and clear an AA assertion it actually fails.
+ */
 function contrast(a: string, b: string): number {
   const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
-  return Number(((light + 0.05) / (dark + 0.05)).toFixed(2));
+  return (light + 0.05) / (dark + 0.05);
 }
 
 function token(name: string): string {
@@ -85,11 +117,14 @@ describe('semantic v2 isolation', () => {
     expect(dangling).toEqual([]);
   });
 
-  it('scopes new classes under the v2 namespace so legacy markup cannot match them', () => {
-    const classes = [...v2Css.matchAll(/^\.([\w-]+)/gm)].map((match) => match[1]!);
+  it('scopes every selector so no legacy element can match one', () => {
+    // This is the half of the isolation risk that actually repaints pixels,
+    // and an earlier version of this guard only looked at line-start class
+    // selectors. A single `body { font-family: ... }` appended to any of these
+    // files restyled the whole application and the suite stayed green.
+    const offenders = selectorsIn(v2Css).filter((selector) => !isScoped(selector));
 
-    expect(classes.length).toBeGreaterThan(0);
-    expect(classes.filter((name) => !name.startsWith('mfd-v2-'))).toEqual([]);
+    expect(offenders).toEqual([]);
   });
 });
 
@@ -107,16 +142,16 @@ describe('semantic v2 contrast', () => {
     }
   });
 
-  it('shows exactly why text-muted is metadata only', () => {
-    // It clears AA on the two darkest surfaces and fails it on surface-3.
-    // That single fact is the reason for the rule, so it is asserted rather
-    // than trusted: anyone raising the value has to change this test on purpose.
-    expect(contrast(token('--mfd-v2-text-muted'), token('--mfd-v2-canvas')))
-      .toBeGreaterThanOrEqual(4.5);
-    expect(contrast(token('--mfd-v2-text-muted'), token('--mfd-v2-surface-1')))
-      .toBeGreaterThanOrEqual(4.5);
-    expect(contrast(token('--mfd-v2-text-muted'), token('--mfd-v2-surface-3')))
-      .toBeLessThan(4.5);
+  it('states text-muted against every surface, so no failure can hide in a gap', () => {
+    // An earlier version asserted canvas, surface-1 and surface-3 and skipped
+    // surface-2 — where the ratio is 4.29:1 and fails AA. Enumerating all four
+    // is the point: the legal surfaces are exactly canvas and surface-1, and
+    // anyone moving that boundary has to move this test with it.
+    const passes = SURFACES.filter(
+      (surface) => contrast(token('--mfd-v2-text-muted'), token(surface)) >= 4.5,
+    );
+
+    expect(passes).toEqual(['--mfd-v2-canvas', '--mfd-v2-surface-1']);
   });
 
   it('keeps every action and status colour readable as text on surface-1', () => {
@@ -151,6 +186,19 @@ describe('semantic v2 contrast', () => {
     expect(contrast('#aab7c4', '#0e151d')).toBeGreaterThanOrEqual(7.2);
     expect(contrast('#e6b94a', '#0e151d')).toBeGreaterThanOrEqual(8);
     expect(contrast('#42c7e8', '#0e151d')).toBeGreaterThanOrEqual(7.4);
+  });
+
+  it('computes contrast correctly, checked against known WCAG values', () => {
+    // Everything above trusts this function. These are the reference pairs
+    // from the WCAG technique examples, so the math is verified rather than
+    // merely self-consistent.
+    expect(contrast('#000000', '#ffffff')).toBeCloseTo(21, 2);
+    expect(contrast('#ffffff', '#ffffff')).toBeCloseTo(1, 5);
+    expect(contrast('#767676', '#ffffff')).toBeCloseTo(4.54, 2);
+    expect(contrast('#595959', '#ffffff')).toBeCloseTo(7.0, 1);
+    expect(contrast('#ffff00', '#000000')).toBeCloseTo(19.56, 2);
+    // Symmetric: order of arguments cannot change the answer.
+    expect(contrast('#0e151d', '#f2f6f8')).toBe(contrast('#f2f6f8', '#0e151d'));
   });
 });
 
@@ -223,8 +271,8 @@ describe('typography v2', () => {
 
 describe('density v2', () => {
   it('offers exactly two modes, and compact is opt-in', () => {
-    expect(densityCss).toContain("[data-mfd-density='compact']");
-    expect(densityCss).not.toMatch(/data-mfd-density='(?!compact)/);
+    expect(densityCss).toContain("[data-mfd-v2-density='compact']");
+    expect(densityCss).not.toMatch(/data-mfd-v2-density='(?!compact)/);
   });
 
   it('restores the touch floor for compact on a coarse pointer', () => {

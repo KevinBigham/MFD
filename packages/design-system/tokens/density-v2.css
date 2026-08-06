@@ -42,14 +42,14 @@
 }
 
 /**
- * Compact. Opt in by setting `data-mfd-density="compact"` on a container.
+ * Compact. Opt in by setting `data-mfd-v2-density="compact"` on a container.
  *
  * Scoped to an attribute rather than a media query on purpose: density is a
  * user preference that rides the UI-preference boundary, not a fact about the
  * viewport. A phone user who wants compact should be able to have it; the
  * coarse-pointer rule below is what keeps that safe.
  */
-[data-mfd-density='compact'] {
+[data-mfd-v2-density='compact'] {
   --mfd-v2-density-row:          40px;
   --mfd-v2-density-row-compact:  36px;
   --mfd-v2-density-gap:          var(--mfd-v2-space-2);
@@ -66,7 +66,7 @@
  * "compact is available everywhere" a safe promise instead of a trap.
  */
 @media (pointer: coarse) {
-  [data-mfd-density='compact'] {
+  [data-mfd-v2-density='compact'] {
     --mfd-v2-density-row:         var(--mfd-v2-control-min);
     --mfd-v2-density-row-compact: var(--mfd-v2-control-min);
   }
