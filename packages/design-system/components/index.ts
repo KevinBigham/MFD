@@ -56,3 +56,12 @@ export {
   minWidthQuery,
   type BreakpointKey,
 } from '../tokens/breakpoints';
+
+// Broadcast War Room v2 — density scope (WP-01)
+export {
+  DEFAULT_DENSITY_MODE,
+  DENSITY_ATTRIBUTE,
+  densityProps,
+  normalizeDensityMode,
+  type DensityMode,
+} from './density';
