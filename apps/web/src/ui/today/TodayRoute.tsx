@@ -16,7 +16,8 @@ import { useMemo } from 'react';
 import { MfdStateFrame } from '@mfd/design-system/components';
 import { useGameStore } from '../../app/store/game-store';
 import { useUiStore } from '../../app/store/ui-store';
-import { isUiOverhaulEnabled } from '../migration/ui-overhaul-mode';
+import { isUiOverhaulEnabled, TODAY_ROUTE } from '../migration/ui-overhaul-mode';
+import { buildNavigationModel } from '../navigation/navigation-model';
 import { TodayScreen } from './TodayScreen';
 import { selectTodayInput } from './today-input';
 import { presentToday } from './today-presenter';
@@ -42,6 +43,13 @@ export function TodayRoute() {
   const game = useGameStore((state) => state.game);
   const view = useMemo(() => presentToday(selectTodayInput({ game })), [game]);
 
+  /**
+   * The navigation reads the rows Today renders, not the ledger it was built
+   * from. That is the audit's one-derivation rule made structural: a badge
+   * cannot count a job the screen does not show.
+   */
+  const navigation = useMemo(() => buildNavigationModel(TODAY_ROUTE, view.ledger), [view.ledger]);
+
   if (!enabled) {
     return (
       <MfdStateFrame
@@ -53,7 +61,7 @@ export function TodayRoute() {
     );
   }
 
-  return <TodayScreen view={view} onNavigate={navigate} />;
+  return <TodayScreen view={view} navigation={navigation} onNavigate={navigate} />;
 }
 
 export default TodayRoute;

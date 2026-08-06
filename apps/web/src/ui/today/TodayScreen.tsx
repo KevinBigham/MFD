@@ -21,14 +21,17 @@
  */
 
 import { MfdStateFrame, MfdStickyAction } from '@mfd/design-system/components';
-import { AppFrame } from '../layout/AppFrame';
 import { StickyActionDock } from '../layout/StickyActionDock';
+import type { NavigationModel } from '../navigation/navigation-model';
+import { MfdAppShell } from '../shell/MfdAppShell';
+import { TODAY_ROUTE } from '../migration/ui-overhaul-mode';
 import type { MergedTask } from '../tasks/task-ledger';
 import type { TodaySection, TodayViewModel } from './today-presenter';
 import styles from './today.module.css';
 
 export interface TodayScreenProps {
   view: TodayViewModel;
+  navigation: NavigationModel;
   /** Hash navigation, injected so the screen stays renderable without a router. */
   onNavigate: (route: string) => void;
 }
@@ -160,10 +163,10 @@ function Lane({
   );
 }
 
-export function TodayScreen({ view, onNavigate }: TodayScreenProps) {
+export function TodayScreen({ view, navigation, onNavigate }: TodayScreenProps) {
   const { context, opponent, readiness } = view;
 
-  const chrome = (
+  const header = (
     <header className={styles.chrome}>
       <p className={`${styles.kicker} mfd-v2-kicker`}>
         {context.phase} · {context.week} · {context.season}
@@ -196,7 +199,7 @@ export function TodayScreen({ view, onNavigate }: TodayScreenProps) {
   );
 
   return (
-    <AppFrame chrome={chrome} dock={dock}>
+    <MfdAppShell header={header} navigation={navigation} dock={dock} routeKey={TODAY_ROUTE}>
       <div className={styles.screen} data-mfd-v2-screen="today" data-mfd-v2-readiness={readiness.state}>
         <section className={styles.context} aria-labelledby="today-context-heading">
           <h2 id="today-context-heading" className={`${styles.laneHeading} mfd-v2-title-sm`}>
@@ -238,6 +241,6 @@ export function TodayScreen({ view, onNavigate }: TodayScreenProps) {
           moreLabel={(count) => `Show ${count} optional moves`}
         />
       </div>
-    </AppFrame>
+    </MfdAppShell>
   );
 }

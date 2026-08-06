@@ -9,7 +9,7 @@ import {
   resolveLayoutEnvironment,
   resolveLayoutMode,
 } from './AdaptiveViewport';
-import { APP_CONTENT_ID, AppFrame } from './AppFrame';
+import { APP_CONTENT_ID, AppFrame, resolveFrameLayout } from './AppFrame';
 import { PageScroll } from './PageScroll';
 import { PaneLayout, resolvePaneColumns } from './PaneLayout';
 import { StickyActionDock } from './StickyActionDock';
@@ -149,6 +149,53 @@ describe('AppFrame', () => {
     expect(renderToStaticMarkup(<AppFrame>content</AppFrame>))
       .not.toContain('data-mfd-v2-chrome');
   });
+
+  it('omits the nav row entirely rather than reserving an empty column', () => {
+    const html = renderToStaticMarkup(<AppFrame>content</AppFrame>);
+
+    expect(html).not.toContain('data-mfd-v2-nav-slot');
+    expect(html).toContain('data-mfd-v2-frame-layout="stacked"');
+  });
+
+  it('puts navigation before content in the DOM, behind the skip link', () => {
+    const html = renderToStaticMarkup(
+      <AppFrame nav={<nav aria-label="Primary">hubs</nav>} chrome={<p>context</p>}>
+        content
+      </AppFrame>,
+    );
+
+    // The skip link is what makes nav-first acceptable on a phone: one tab
+    // stop reaches the content instead of five. If the nav ever moves ahead of
+    // it, a keyboard user has to walk the whole bar to start reading.
+    expect(html.indexOf('Skip to main content')).toBeLessThan(html.indexOf('aria-label="Primary"'));
+    expect(html.indexOf('aria-label="Primary"')).toBeLessThan(html.indexOf('data-mfd-v2-chrome'));
+    expect(html.indexOf('data-mfd-v2-chrome')).toBeLessThan(html.indexOf('data-mfd-v2-scroll-owner'));
+  });
+});
+
+describe('frame layout', () => {
+  it('stacks the nav under the content on phone and sides it from medium up', () => {
+    expect(resolveFrameLayout('compact', true)).toBe('stacked');
+    expect(resolveFrameLayout('medium', true)).toBe('sided');
+    expect(resolveFrameLayout('expanded', true)).toBe('sided');
+    expect(resolveFrameLayout('wide', true)).toBe('sided');
+  });
+
+  it('stays stacked with no nav, so a bare frame reserves no column', () => {
+    for (const mode of ['compact', 'medium', 'expanded', 'wide'] as const) {
+      expect(resolveFrameLayout(mode, false), mode).toBe('stacked');
+    }
+  });
+
+  it('renders in the default compact shape before it can measure', () => {
+    // The server default is 390x844, so a frame with a nav must arrive stacked
+    // — an expanded first paint would collapse to phone on hydration, which is
+    // the visible flash the mobile-first default exists to avoid.
+    const html = renderToStaticMarkup(<AppFrame nav={<nav>hubs</nav>}>content</AppFrame>);
+
+    expect(html).toContain('data-mfd-v2-frame-layout="stacked"');
+    expect(html).toContain('data-mfd-v2-nav-slot="true"');
+  });
 });
 
 describe('PageScroll', () => {
@@ -248,8 +295,14 @@ describe('layout stylesheet', () => {
     expect(block.slice(0, block.indexOf('}'))).toContain('min-height: 0;');
   });
 
-  it('reserves only the measured dock height, defaulting to zero', () => {
-    expect(layoutCss).toContain('var(--mfd-v2-dock-measured, 0px)');
+  it('reserves nothing for the dock, because content cannot scroll under it', () => {
+    // The dock is a grid row, so the content row already stops above it. The
+    // old reservation added the dock's measured height to the content's
+    // `padding-bottom` as well, which the geometry harness measured as 72px of
+    // empty scroll at the end of every screen. If a dock ever becomes
+    // `position: fixed` this has to come back — and the harness will say so.
+    expect(layoutCss).not.toContain('--mfd-v2-dock-measured');
+    expect(layoutCss).toContain('grid-area: dock;');
   });
 
   it('respects the bottom safe area on the dock', () => {
@@ -281,9 +334,33 @@ describe('layout stylesheet', () => {
     expect(dock).toBeGreaterThanOrEqual(tokenPx('--mfd-v2-control-min'));
   });
 
-  it('reserves nothing for a dock that is not there', () => {
-    expect(layoutCss).toContain('var(--mfd-v2-dock-measured, 0px)');
+  it('spends no raw length on the bottom edge', () => {
     expect(layoutCss).not.toMatch(/padding-bottom:\s*\d+px/);
+  });
+
+  it('gives every slot a named grid area in both shapes', () => {
+    // A slot with no area lands in an implicit track, which on a four-row grid
+    // means the dock quietly stops being the dock. Both templates are pinned
+    // because they are the only place the two shapes are described.
+    for (const area of ['nav', 'chrome', 'content', 'dock']) {
+      expect(layoutCss, area).toMatch(new RegExp(`grid-area: ${area};`));
+    }
+    expect(layoutCss).toContain("'chrome'\n    'content'\n    'dock'\n    'nav'");
+    expect(layoutCss).toContain("'nav chrome'\n    'nav content'\n    'nav dock'");
+  });
+
+  it('pays the home-indicator clearance once, not once per bottom element', () => {
+    // Dock and nav both sit at the bottom on phone, and both defaulting to
+    // safe-bottom spends the inset twice on a device that has one.
+    expect(layoutCss).toContain(
+      ".frame[data-mfd-v2-frame-layout='stacked']:has(.navSlot) .actionDock",
+    );
+  });
+
+  it('lets a rail scroll instead of stretching the frame past the window', () => {
+    const block = layoutCss.slice(layoutCss.indexOf('.navSlot {'));
+
+    expect(block.slice(0, block.indexOf('}'))).toContain('min-height: 0;');
   });
 });
 

@@ -89,6 +89,16 @@ export interface TodayViewModel {
   recommended: TodaySection;
   optional: TodaySection;
   readiness: TodayReadiness;
+  /**
+   * Every row the three lanes render, in lane order.
+   *
+   * Navigation badges are counted from this rather than from the ledger the
+   * presenter was handed, so the number on a hub tab counts exactly the rows a
+   * player can see on Today. The two synthetic all-clear rows are already
+   * gone, which is what stops "Ready to advance" from also reading as one open
+   * job in the Today tab.
+   */
+  ledger: readonly MergedTask[];
 }
 
 /**
@@ -230,5 +240,6 @@ export function presentToday(input: TodayInput): TodayViewModel {
     recommended: split(recommended, RECOMMENDED_VISIBLE),
     optional: split(optional, OPTIONAL_VISIBLE),
     readiness: buildReadiness(mustDo, recommended),
+    ledger: [...mustDo, ...recommended, ...optional],
   };
 }

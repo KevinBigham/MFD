@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { TODAY_ROUTE } from '../migration/ui-overhaul-mode';
+import { buildNavigationModel } from '../navigation/navigation-model';
 import { OPTIONAL_TASKS, agmTask, buildTaskLedger, type UiTask } from '../tasks/task-ledger';
 import { TodayScreen } from './TodayScreen';
-import { presentToday, type TodayInput } from './today-presenter';
+import { presentToday, type TodayInput, type TodayViewModel } from './today-presenter';
 
 const CLEAR = {
   phase: 'regular_season',
@@ -28,8 +30,16 @@ function input(overrides: Partial<TodayInput> = {}): TodayInput {
 }
 
 function render(overrides: Partial<TodayInput> = {}): string {
+  return renderView(presentToday(input(overrides)));
+}
+
+function renderView(view: TodayViewModel): string {
   return renderToStaticMarkup(
-    <TodayScreen view={presentToday(input(overrides))} onNavigate={() => {}} />,
+    <TodayScreen
+      view={view}
+      navigation={buildNavigationModel(TODAY_ROUTE, view.ledger)}
+      onNavigate={() => {}}
+    />,
   );
 }
 
@@ -164,7 +174,7 @@ describe('task rows', () => {
 
   it('carries every field of every merged task, across a busy week', () => {
     const view = presentToday(input(BUSY));
-    const html = renderToStaticMarkup(<TodayScreen view={view} onNavigate={() => {}} />);
+    const html = renderView(view);
 
     const merged = [view.mustDo, view.recommended, view.optional]
       .flatMap((section) => [...section.tasks, ...section.hidden])
@@ -237,16 +247,53 @@ describe('empty and edge states', () => {
   });
 
   it('renders without a team, a matchup, or a single task', () => {
-    const html = renderToStaticMarkup(
-      <TodayScreen
-        view={presentToday({
-          season: 2026, week: 1, phase: 'offseason', team: null, opponent: null, tasks: [], recommendations: [],
-        })}
-        onNavigate={() => {}}
-      />,
+    const html = renderView(
+      presentToday({
+        season: 2026, week: 1, phase: 'offseason', team: null, opponent: null, tasks: [], recommendations: [],
+      }),
     );
     expect(html).toContain('No team selected');
     expect(html).toContain('data-mfd-v2-readiness="ready"');
+  });
+});
+
+describe('navigation and the rows agree', () => {
+  it('counts on a hub tab exactly the rows that hub owns on screen', () => {
+    // The audit's one-derivation rule, asserted end to end: the number a
+    // player reads on the Team tab has to be the number of Team rows they can
+    // count on Today. Two sources for that number is how the legacy shell
+    // ended up with a badge that never cleared.
+    const view = presentToday(input(BUSY));
+    const html = renderView(view);
+
+    const rendered = new Map<string, number>();
+    for (const task of view.ledger) {
+      if (task.category === 'optional' || !task.destination.hub) continue;
+      rendered.set(task.destination.hub, (rendered.get(task.destination.hub) ?? 0) + 1);
+      expect(html, `${task.id} is on screen`).toContain(`data-mfd-v2-task="${task.id}"`);
+    }
+
+    expect(rendered.size).toBeGreaterThan(0);
+    for (const [hub, count] of rendered) {
+      expect(html, `${hub} badge`).toContain(`data-mfd-v2-nav-hub="${hub}"`);
+      expect(html, `${hub} badge`).toContain(`data-mfd-v2-nav-badge="${count}"`);
+    }
+  });
+
+  it('shows the player where they are, on the tab and to a screen reader', () => {
+    const html = render(BUSY);
+
+    expect(html).toMatch(/aria-current="page"[^>]*data-mfd-v2-nav-hub="today"/);
+    expect(html.match(/aria-current="page"/g)).toHaveLength(1);
+  });
+
+  it('carries no badge into a week with nothing outstanding', () => {
+    // A badge that never reaches zero is a badge players learn to ignore, so
+    // the always-available lane must not produce one.
+    const clear = render({ tasks: buildTaskLedger(CLEAR), recommendations: [] });
+
+    expect(clear).toContain('data-mfd-v2-readiness="ready"');
+    expect(clear).not.toContain('data-mfd-v2-nav-badge');
   });
 });
 

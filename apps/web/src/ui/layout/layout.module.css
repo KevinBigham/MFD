@@ -15,7 +15,13 @@
  */
 .frame {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    'chrome'
+    'content'
+    'dock'
+    'nav';
   height: 100vh;
   height: 100dvh;
   background: var(--mfd-v2-canvas);
@@ -26,7 +32,29 @@
   overflow: hidden;
 }
 
+/* From `medium` up the navigation takes a column beside the whole frame.
+ * The vertical budget is what phone is short of, so a rail that costs zero
+ * height is the trade; `resolveFrameLayout` decides, this only draws it. */
+.frame[data-mfd-v2-frame-layout='sided'] {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'nav chrome'
+    'nav content'
+    'nav dock';
+}
+
+/* `min-height: 0` again, for the same reason the scroller needs it: without
+ * it a rail taller than the window grows the frame instead of scrolling. */
+.navSlot {
+  grid-area: nav;
+  display: grid;
+  min-height: 0;
+  z-index: var(--mfd-v2-z-sticky);
+}
+
 .chrome {
+  grid-area: chrome;
   position: relative;
   z-index: var(--mfd-v2-z-sticky);
   padding-top: var(--mfd-v2-safe-top);
@@ -58,18 +86,23 @@
 }
 
 .content {
+  grid-area: content;
   padding: var(--mfd-v2-density-pad-y) var(--mfd-v2-density-pad-x);
-  /* Only what the dock actually measured. No dock, no reservation. */
-  padding-bottom: calc(
-    var(--mfd-v2-density-pad-y) + var(--mfd-v2-dock-measured, 0px)
-  );
 }
 
 /* ── Action dock ───────────────────────────────────────
  * Sticky rather than fixed: sticky participates in the grid, so the frame can
  * see it and the content row cannot slide underneath it.
+ *
+ * Which is also why the content row reserves nothing for it. It used to add
+ * the dock's measured height to its own `padding-bottom`, on the assumption
+ * that content could scroll underneath — it cannot, and the harness measured
+ * the cost: 72px of empty scroll at the end of every screen, at every viewport
+ * but the shortest. Removing it took Today at 390x844 from 1,512px to 1,440px
+ * with nothing rendered differently.
  */
 .actionDock {
+  grid-area: dock;
   position: sticky;
   bottom: 0;
   z-index: var(--mfd-v2-z-sticky);
@@ -85,6 +118,14 @@
 
 .actionDock > * {
   min-height: var(--mfd-v2-control-default);
+}
+
+/* With a bottom bar below it the dock is no longer the last thing on screen,
+ * so the home-indicator clearance belongs to the nav and paying it twice
+ * spends 34px of an 844px phone on nothing. At `sided` the nav is beside the
+ * frame and the dock is bottom-most again, so the rule is scoped to stacked. */
+.frame[data-mfd-v2-frame-layout='stacked']:has(.navSlot) .actionDock {
+  padding-bottom: var(--mfd-v2-space-2);
 }
 
 /* ── Panes ─────────────────────────────────────────────
@@ -147,7 +188,7 @@
 
   .content {
     padding-top: var(--mfd-v2-space-2);
-    padding-bottom: calc(var(--mfd-v2-space-2) + var(--mfd-v2-dock-measured, 0px));
+    padding-bottom: var(--mfd-v2-space-2);
   }
 
   .actionDock {
