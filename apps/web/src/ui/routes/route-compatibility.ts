@@ -11,11 +11,14 @@
  * harness, the shell, and tests all resolve links identically.
  */
 
+import { splitHref } from './href';
 import {
   ROUTE_SURFACE_ENTRIES,
-  ROUTE_SURFACE_MAP,
+  routeSurface,
 } from './route-surface-map';
 import type { HubId, RouteSurfaceMeta } from './route-surface-types';
+
+export { splitHref } from './href';
 
 export type RouteResolutionStatus = 'canonical' | 'alias' | 'unknown';
 
@@ -38,42 +41,6 @@ export interface ResolvedRoute {
   fragment: string;
   /** Where to send the player when the link resolves to nothing. Null on success. */
   recovery: string | null;
-}
-
-function normalizePath(raw: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed) return '/';
-  const withSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-  const withoutTrailing = withSlash.replace(/\/+$/, '');
-  return withoutTrailing || '/';
-}
-
-interface HrefParts {
-  path: string;
-  search: string;
-  fragment: string;
-}
-
-/** Accepts `/roster`, `#/roster`, `/roster?pos=QB#top`, and the empty string. */
-export function splitHref(href: string): HrefParts {
-  let rest = (href ?? '').trim();
-  if (rest.startsWith('#')) rest = rest.slice(1);
-
-  let fragment = '';
-  const fragmentIndex = rest.indexOf('#');
-  if (fragmentIndex >= 0) {
-    fragment = rest.slice(fragmentIndex + 1);
-    rest = rest.slice(0, fragmentIndex);
-  }
-
-  let search = '';
-  const searchIndex = rest.indexOf('?');
-  if (searchIndex >= 0) {
-    search = rest.slice(searchIndex + 1);
-    rest = rest.slice(0, searchIndex);
-  }
-
-  return { path: normalizePath(rest), search, fragment };
 }
 
 /**
@@ -112,7 +79,7 @@ export function resolveCompatibleRoute(href: string): ResolvedRoute {
   const { path, search, fragment } = splitHref(href);
   const params = new URLSearchParams(search);
 
-  const legacy = ROUTE_SURFACE_MAP[path];
+  const legacy = routeSurface(path);
   const canonical = legacy ? null : CANONICAL_INDEX.get(path);
   const surface = legacy ?? canonical ?? null;
 

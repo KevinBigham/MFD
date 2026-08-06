@@ -1,10 +1,11 @@
 /**
  * WP-04 — `ROUTE_SURFACE_MAP`: one future surface per canonical route, 79/79.
  *
- * Generated from `docs/ui-overhaul/ROUTE_SURFACE_MATRIX.csv` and then owned by
- * hand. It is not regenerated at build time on purpose: the matrix is an audit
- * artifact, and a build step that silently rewrites runtime routing would make
- * an edit to a docs CSV a production change.
+ * Generated from `docs/ui-overhaul/ROUTE_SURFACE_MATRIX.csv` by
+ * `scripts/generate-route-surface-map.mjs`, then committed and owned by hand.
+ * It is not regenerated at build time on purpose: the matrix is an audit
+ * artifact, and a build step that silently rewrote runtime routing would make an
+ * edit to a docs CSV a production change.
  *
  * Two independent gates keep the copy honest:
  *   - `scripts/check-ui-route-coverage.mjs` — exact set equality against
@@ -18,6 +19,7 @@
  */
 
 import { appRoute, type AppRouteDefinition } from '@mfd/engine/config';
+import { normalizePath } from './href';
 import type { HubId, RouteSurfaceMeta } from './route-surface-types';
 
 export const ROUTE_SURFACE_MAP: Record<string, RouteSurfaceMeta> = {
@@ -815,12 +817,13 @@ export const ROUTE_SURFACE_MAP: Record<string, RouteSurfaceMeta> = {
 
 export const ROUTE_SURFACE_ENTRIES: readonly RouteSurfaceMeta[] = Object.values(ROUTE_SURFACE_MAP);
 
+/** Normalises first, so `/roster/` and `roster` find the same surface a link would. */
 export function routeSurface(legacyPath: string): RouteSurfaceMeta | undefined {
-  return ROUTE_SURFACE_MAP[legacyPath];
+  return ROUTE_SURFACE_MAP[normalizePath(legacyPath)];
 }
 
 export function hubForLegacyPath(legacyPath: string): HubId | undefined {
-  return ROUTE_SURFACE_MAP[legacyPath]?.hub;
+  return routeSurface(legacyPath)?.hub;
 }
 
 export function routesInHub(hub: HubId): readonly RouteSurfaceMeta[] {
@@ -835,7 +838,7 @@ export function routesInHub(hub: HubId): readonly RouteSurfaceMeta[] {
 export function routeUnlock(
   legacyPath: string,
 ): Pick<AppRouteDefinition, 'unlockWeek' | 'unlockPhase'> | undefined {
-  const definition = appRoute(legacyPath);
+  const definition = appRoute(normalizePath(legacyPath));
   if (!definition) return undefined;
   return { unlockWeek: definition.unlockWeek, unlockPhase: definition.unlockPhase };
 }
