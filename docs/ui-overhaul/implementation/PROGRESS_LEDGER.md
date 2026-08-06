@@ -20,8 +20,19 @@ root manifests was diffed byte-for-byte against `MFD_UI_UX_REINVENTION_AUDITED_R
 
 ## WP-00 — Baseline, Safety Rails, and Migration Boundary
 
-Status: **ready-for-review** — baseline recorded, safety rails landed, uncommitted
-Commit(s): none — changes are in the working tree awaiting owner review
+Status: **complete** — baseline recorded, safety rails landed, committed
+Branch: `feat/ui-overhaul-wp00`
+Commit(s):
+| SHA | Subject |
+|---|---|
+| `9c15d53` | `docs(ui-overhaul): land the audited UI/UX reinvention spec and progress ledger` |
+| `b6833c1` | `feat(ui-migration): add legacy-default UI overhaul boundary` |
+| `e8197bd` | `test(ui): add deterministic fixtures and capture the legacy geometry baseline` |
+| `42aa94b` | `test(routes): enforce 79/79 route surface parity` |
+
+`docs/ui-overhaul/evidence/baseline-legacy/*.png` is gitignored — those
+captures are rewritten by every baseline run, so `geometry.json` is the durable
+artifact. The audit's own one-time `evidence/runtime/` captures are committed.
 Save/determinism impact: **none** — no engine, RNG, schema, migration or
 mutation-action file was touched; `SAVE_VERSION` unchanged at 37
 
