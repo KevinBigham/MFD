@@ -644,3 +644,94 @@ existing selectors rather than adding one.
 | `node scripts/check-ui-route-coverage.mjs` | **PASS** — 79/79/79 |
 | `pnpm lint` | **PASS** — 0 errors, 42 warnings (pre-existing count) |
 | `vite build` + `check-bundle-size.sh` | **PASS** — engine 313 KB; eager `index-*.js` 278.3 KB vs 316 KB ceiling |
+
+---
+
+## WP-01 — Semantic Tokens and Typography Foundation
+
+Status: **complete** — v2 token layer landed, legacy provably unrepainted
+Branch: `feat/ui-overhaul-wp00`
+Save/determinism impact: **none** — CSS and one type module; no engine, RNG,
+schema, migration or mutation-action file touched; `SAVE_VERSION` unchanged at 37
+
+| SHA | Subject |
+|---|---|
+| `fb59155` | `feat(design-system): add the Broadcast War Room token layer` |
+| `e00a0f6` | `feat(design-system): expose DensityMode as a typed scope` |
+| `616a1b1` | `test(design-system): compute the contrast rather than quote it` |
+
+### Files touched
+
+Added: `packages/design-system/tokens/semantic-v2.css`, `typography-v2.css`,
+`density-v2.css`, `semantic-v2.test.ts`; `components/density.ts` and
+`density.test.ts`. Modified: `tokens/index.css` (three `@import` lines and a
+header note), `components/index.ts` (one export block). Deleted: none.
+
+**Disclosed deviations:** `components/density.ts` and `density.test.ts` are not
+in the packet's file list — `DensityMode` is a named packet contract and needed
+somewhere to live; putting it in the barrel alone is not possible. The suggested
+commit split is by concern rather than by file, so the three CSS files landed
+together: they are one token layer, and splitting them would have left a commit
+whose `@import` pointed at a file that did not exist yet.
+
+### The isolation strategy, and why it is testable
+
+Every property is `--mfd-v2-*` and **nothing redefines a legacy `--mfd-*`
+name**. That is the whole coexistence mechanism: legacy reads `--mfd-bg`, the
+new shell reads `--mfd-v2-canvas`. The packet's stated risk — "unscoped token
+aliases can repaint legacy screens" — is closed by a test that enumerates both
+files' declarations and fails on any intersection, not by care.
+
+Loaded eagerly rather than behind the lazy shell. Custom properties paint
+nothing on their own, so the cost is bytes only, and deferring them would flash
+unstyled content on the first v2 navigation.
+
+### Decisions taken inside the packet
+
+- **Georgia, per amendment A7.** Doc 06 asks for a condensed display family;
+  the audit's own prototype ships an editorial serif and the owner chose it. It
+  costs zero bytes, needs no network, and separates front-office from the
+  pixel-retro broadcast layer without adding a second loud voice.
+- **The pixel face has no v2 role token at all.** Not "discouraged" — absent.
+  It cannot reach body, data, forms, or navigation by accident, and a test
+  asserts the string never appears in the v2 layer.
+- **Compact density is attribute-scoped, not a media query.** It is a
+  preference, not a fact about the viewport. `@media (pointer: coarse)` restores
+  44px rows underneath it, which is what makes offering compact on any device
+  safe rather than a trap.
+- **Chart roles reuse the status hues.** A validated categorical ramp for dense
+  multi-series work is deferred to WP-19 rather than invented here; grid and
+  axis are defined now because they are the quiet half and they are needed
+  wherever a chart first appears.
+- **`--mfd-v2-divider` is a judgement call, not an audit value.** Doc 06 names
+  the role but gives no colour; `rgba(242,246,248,0.12)` is a text-tinted rule
+  that reads on all four surfaces.
+
+### Verification of this packet
+
+| Check | Result |
+|---|---|
+| `pnpm -r typecheck` | **PASS** — all 3 projects |
+| `pnpm --filter @mfd/design-system test` | **PASS** — 19/19 files, 137/137 tests |
+| Full web suite (gate's `--exclude` command) | **PASS** — 268/268 files, 2318/2318 tests, exit 0 |
+| `pnpm lint` | **PASS** — 0 errors, 42 warnings (pre-existing count) |
+| `vite build` | **PASS** — `@import` chain resolves; design-system CSS 8.7 → **10.1 KB gzip** (+1.4 KB), total CSS 20.5 → 21.9 KB |
+| Mutation: dim `text-secondary` below AAA | **FAILS** as designed |
+| Mutation: declare `--mfd-bg` in the v2 layer | **FAILS** as designed (2 tests) |
+
+**A1 proved, not argued.** Re-ran the WP-00 geometry capture and diffed the
+three deterministic surfaces — `roster`, `contracts`, `settings` — across all 12
+viewports on document height, small-text count, interactive count, bordered-
+element count, fixed-chrome height, body font size, and horizontal overflow:
+**36/36 captures identical to the WP-00 legacy baseline.** For a change that
+loads new CSS globally, that is the evidence that matters. `briefing` is
+excluded because it carries the known ±100 px demo-seed variance.
+
+Engine suite not re-run: no file under `packages/engine` was touched.
+
+### Rollback
+
+Remove the three `@import` lines from `tokens/index.css`; delete the three v2
+CSS files, `components/density.ts`, and the two tests; drop the export block
+from `components/index.ts`. Legacy tokens were never edited, so the legacy shell
+is unaffected either way.
