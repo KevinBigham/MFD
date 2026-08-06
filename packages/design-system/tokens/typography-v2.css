@@ -1,0 +1,190 @@
+/**
+ * MFD Typography v2 — readable first, broadcast second.
+ *
+ * The audit's readability finding was not that body copy is too small — it is
+ * already 16px — but that 214–247 elements per surface render below 12px. So
+ * the job here is a scale with a hard floor, not a prettier set of headings.
+ *
+ * FONT STRATEGY: system-first, zero network. There is no @font-face, no CDN,
+ * no runtime download. Body and data must be correct with the network off, and
+ * `typography-v2.test.ts` fails if a remote URL ever appears in this file.
+ *
+ * DISPLAY FACE: Georgia. Doc 06 specifies a condensed display family; the
+ * audit's own prototype ships an editorial serif, and the owner chose the
+ * serif (amendment A7). It costs zero bytes because it is already on every
+ * target platform, and it does the one thing a condensed sans could not —
+ * separate "front office" from the pixel-retro broadcast layer without
+ * introducing a second loud voice.
+ *
+ * PIXEL FACE: not defined here at all. The legacy `--mfd-font-pixel` stays
+ * available for logos, kickers, and cinematic micro-labels. It is banned from
+ * body, data, forms, navigation, task reasons, and table labels, and the new
+ * shell has no role token that would let it in by accident.
+ */
+
+:root {
+  /* ── Families ────────────────────────────────────────
+   * Each stack ends in a generic family, so a machine with none of the named
+   * faces still gets the right *kind* of type rather than the browser default.
+   */
+  --mfd-v2-font-body:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mfd-v2-font-display:
+    Georgia, 'Iowan Old Style', 'Times New Roman', 'Liberation Serif', serif;
+  --mfd-v2-font-data:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* ── Roles ───────────────────────────────────────────
+   * Phone/default values. `clamp()` is used only where a role genuinely needs
+   * to grow on a wide canvas; body deliberately does not, because 16px is the
+   * right reading size at every width and scaling it just costs viewports.
+   *
+   * Nothing here goes below 12px. Essential copy never does.
+   */
+
+  /* Nonessential metadata only. The floor of the whole system. */
+  --mfd-v2-caption-size:   12px;
+  --mfd-v2-caption-line:   16px;
+  --mfd-v2-caption-weight: 500;
+
+  /* Controls, fields, tabs. */
+  --mfd-v2-label-size:   14px;
+  --mfd-v2-label-line:   20px;
+  --mfd-v2-label-weight: 600;
+
+  /* Primary reading. The default for everything that is a sentence. */
+  --mfd-v2-body-size:   16px;
+  --mfd-v2-body-line:   24px;
+  --mfd-v2-body-weight: 400;
+
+  /* Task title, important value. */
+  --mfd-v2-body-strong-size:   16px;
+  --mfd-v2-body-strong-line:   24px;
+  --mfd-v2-body-strong-weight: 650;
+
+  /* Section title. */
+  --mfd-v2-title-sm-size:   18px;
+  --mfd-v2-title-sm-line:   24px;
+  --mfd-v2-title-sm-weight: 650;
+
+  /* Screen title block. */
+  --mfd-v2-title-md-size:   clamp(22px, 1.4vw + 18px, 24px);
+  --mfd-v2-title-md-line:   1.27;
+  --mfd-v2-title-md-weight: 700;
+
+  /* Event or major hub. */
+  --mfd-v2-title-lg-size:   clamp(28px, 2.2vw + 22px, 32px);
+  --mfd-v2-title-lg-line:   1.2;
+  --mfd-v2-title-lg-weight: 750;
+
+  /* Cinematic only. Never a section heading. */
+  --mfd-v2-display-size:   clamp(36px, 5vw + 20px, 56px);
+  --mfd-v2-display-line:   1;
+  --mfd-v2-display-weight: 750;
+
+  /* Dense secondary data. */
+  --mfd-v2-data-sm-size: 14px;
+  --mfd-v2-data-sm-line: 20px;
+
+  /* Scores, KPIs. */
+  --mfd-v2-data-md-size: 18px;
+  --mfd-v2-data-md-line: 24px;
+
+  /* Body measure. Help text does not run the width of a desktop canvas. */
+  --mfd-v2-measure: 68ch;
+
+  /* All-caps kickers get tracking; without it they read as shouting. */
+  --mfd-v2-kicker-tracking: 0.08em;
+}
+
+/**
+ * Role classes.
+ *
+ * New-shell markup uses these rather than setting font-size inline — WP-22's
+ * inline-style ledger starts from the premise that the new shell adds none.
+ * Each class is a complete role: family, size, line, weight, and the numeric
+ * behaviour that role needs.
+ */
+
+.mfd-v2-caption {
+  font-family: var(--mfd-v2-font-body);
+  font-size: var(--mfd-v2-caption-size);
+  line-height: var(--mfd-v2-caption-line);
+  font-weight: var(--mfd-v2-caption-weight);
+}
+
+.mfd-v2-label {
+  font-family: var(--mfd-v2-font-body);
+  font-size: var(--mfd-v2-label-size);
+  line-height: var(--mfd-v2-label-line);
+  font-weight: var(--mfd-v2-label-weight);
+}
+
+.mfd-v2-body {
+  font-family: var(--mfd-v2-font-body);
+  font-size: var(--mfd-v2-body-size);
+  line-height: var(--mfd-v2-body-line);
+  font-weight: var(--mfd-v2-body-weight);
+  max-width: var(--mfd-v2-measure);
+}
+
+.mfd-v2-body-strong {
+  font-family: var(--mfd-v2-font-body);
+  font-size: var(--mfd-v2-body-strong-size);
+  line-height: var(--mfd-v2-body-strong-line);
+  font-weight: var(--mfd-v2-body-strong-weight);
+}
+
+.mfd-v2-title-sm {
+  font-family: var(--mfd-v2-font-display);
+  font-size: var(--mfd-v2-title-sm-size);
+  line-height: var(--mfd-v2-title-sm-line);
+  font-weight: var(--mfd-v2-title-sm-weight);
+}
+
+.mfd-v2-title-md {
+  font-family: var(--mfd-v2-font-display);
+  font-size: var(--mfd-v2-title-md-size);
+  line-height: var(--mfd-v2-title-md-line);
+  font-weight: var(--mfd-v2-title-md-weight);
+}
+
+.mfd-v2-title-lg {
+  font-family: var(--mfd-v2-font-display);
+  font-size: var(--mfd-v2-title-lg-size);
+  line-height: var(--mfd-v2-title-lg-line);
+  font-weight: var(--mfd-v2-title-lg-weight);
+}
+
+.mfd-v2-display {
+  font-family: var(--mfd-v2-font-display);
+  font-size: var(--mfd-v2-display-size);
+  line-height: var(--mfd-v2-display-line);
+  font-weight: var(--mfd-v2-display-weight);
+}
+
+/* Tabular figures are the whole point of the data roles: a cap number that
+ * shifts by a pixel between rows is a column you cannot scan. */
+.mfd-v2-data-sm {
+  font-family: var(--mfd-v2-font-data);
+  font-size: var(--mfd-v2-data-sm-size);
+  line-height: var(--mfd-v2-data-sm-line);
+  font-variant-numeric: tabular-nums;
+}
+
+.mfd-v2-data-md {
+  font-family: var(--mfd-v2-font-data);
+  font-size: var(--mfd-v2-data-md-size);
+  line-height: var(--mfd-v2-data-md-line);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Short status words only. An abbreviation still needs an accessible name. */
+.mfd-v2-kicker {
+  font-family: var(--mfd-v2-font-body);
+  font-size: var(--mfd-v2-caption-size);
+  line-height: var(--mfd-v2-caption-line);
+  font-weight: 700;
+  letter-spacing: var(--mfd-v2-kicker-tracking);
+  text-transform: uppercase;
+}

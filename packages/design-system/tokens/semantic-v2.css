@@ -1,0 +1,170 @@
+/**
+ * MFD Semantic Tokens v2 — Broadcast War Room
+ *
+ * The visual system for the UI overhaul. Calm front-office operations, crisp
+ * broadcast context, cinematic moments that are earned rather than constant.
+ *
+ * NAMESPACED ON PURPOSE. Every custom property here is prefixed `--mfd-v2-`
+ * and nothing in this file redefines a `--mfd-*` name from `index.css`. That is
+ * the whole isolation strategy: the legacy shell reads `--mfd-bg`, this shell
+ * reads `--mfd-v2-canvas`, and the two can coexist for the length of the
+ * migration without either repainting the other. `semantic-v2.test.ts` fails if
+ * a single legacy name is shadowed.
+ *
+ * Values come from `docs/ui-overhaul/06_DESIGN_SYSTEM_AND_VISUAL_SPEC.md`. The
+ * audit computed its contrast ratios by hand; the test file recomputes every
+ * one of them from these hex values, so a token edit that breaks WCAG fails.
+ */
+
+:root {
+  /* ── Canvas and surfaces ─────────────────────────────
+   * Four steps, no more. Depth comes from spacing and one elevation cue,
+   * not from a ladder of nearly identical greys.
+   */
+  --mfd-v2-canvas:    #070b10;   /* page background */
+  --mfd-v2-surface-1: #0e151d;   /* shell and primary surface */
+  --mfd-v2-surface-2: #151f2a;   /* raised section, selected region */
+  --mfd-v2-surface-3: #1d2936;   /* overlay, strong selection */
+
+  /* ── Text ────────────────────────────────────────────
+   * `text-muted` is metadata only. It is the one role that fails normal-text
+   * contrast on surface-3, and it may never carry instructions, button
+   * labels, or errors. Enforced by test, not by good intentions.
+   */
+  --mfd-v2-text:           #f2f6f8;
+  --mfd-v2-text-secondary: #aab7c4;
+  --mfd-v2-text-muted:     #748394;
+
+  /* ── Action and status ───────────────────────────────
+   * `brand` is the single primary-action accent. It is not a border colour.
+   * A screen gets one primary accent and one urgent signal at a time.
+   */
+  --mfd-v2-brand:       #e6b94a;
+  --mfd-v2-interactive: #42c7e8;   /* links, focus, informational selection */
+  --mfd-v2-success:     #5bcb8a;
+  --mfd-v2-warning:     #f0a94b;
+  --mfd-v2-danger:      #e76a6a;
+
+  /* Tinted fills for status regions. Colour is never the only signal — every
+   * status also carries an icon or a word. */
+  --mfd-v2-brand-fill:       rgba(230, 185, 74, 0.12);
+  --mfd-v2-interactive-fill: rgba(66, 199, 232, 0.12);
+  --mfd-v2-success-fill:     rgba(91, 203, 138, 0.12);
+  --mfd-v2-warning-fill:     rgba(240, 169, 75, 0.12);
+  --mfd-v2-danger-fill:      rgba(231, 106, 106, 0.14);
+
+  /* ── Borders ─────────────────────────────────────────
+   * Three roles. Sections default to no perimeter border at all — whitespace
+   * and a heading do that job. There is no per-route border taxonomy.
+   */
+  --mfd-v2-divider:  rgba(242, 246, 248, 0.12);
+  --mfd-v2-selected: var(--mfd-v2-interactive);
+  --mfd-v2-critical: var(--mfd-v2-danger);
+
+  /* ── Focus ───────────────────────────────────────────
+   * Two rings: an inner canvas-coloured gap so the outer ring reads against
+   * any surface, including a team-coloured one.
+   */
+  --mfd-v2-focus:      var(--mfd-v2-interactive);
+  --mfd-v2-focus-ring: 0 0 0 2px var(--mfd-v2-canvas), 0 0 0 4px var(--mfd-v2-focus);
+
+  /* ── Team colour ─────────────────────────────────────
+   * The accent is set per team at runtime. Text never assumes the team colour
+   * is legible: anything that must be read uses `team-safe-text`, which is a
+   * neutral, not a tint of the team.
+   */
+  --mfd-v2-team-accent:    var(--mfd-v2-interactive);
+  --mfd-v2-team-safe-text: var(--mfd-v2-text);
+  --mfd-v2-team-fill:      rgba(66, 199, 232, 0.10);
+
+  /* ── Chart ───────────────────────────────────────────
+   * Grid and axis are deliberately quiet — data should outweigh scaffolding.
+   * The series roles reuse the status hues so a chart and the surface around
+   * it cannot disagree about what "good" looks like. A validated categorical
+   * ramp for dense multi-series work lands with WP-19.
+   */
+  --mfd-v2-chart-grid:     rgba(242, 246, 248, 0.08);
+  --mfd-v2-chart-axis:     var(--mfd-v2-text-muted);
+  --mfd-v2-chart-series-1: var(--mfd-v2-interactive);
+  --mfd-v2-chart-series-2: var(--mfd-v2-brand);
+  --mfd-v2-chart-series-3: var(--mfd-v2-success);
+  --mfd-v2-chart-series-4: var(--mfd-v2-warning);
+
+  /* ── Shape ───────────────────────────────────────────
+   * Softer than the legacy pixel chrome, which is the point: the retro frame
+   * is a moment, not the whole application.
+   */
+  --mfd-v2-radius-control: 6px;
+  --mfd-v2-radius-section: 8px;
+  --mfd-v2-radius-sheet:   12px;
+
+  /* ── Elevation ───────────────────────────────────────
+   * Three levels. No constant shadow, no blurred glass.
+   */
+  --mfd-v2-elev-base:    none;
+  --mfd-v2-elev-raised:  0 1px 2px rgba(0, 0, 0, 0.32);
+  --mfd-v2-elev-overlay: 0 12px 32px rgba(0, 0, 0, 0.48);
+
+  /* ── Layer model ─────────────────────────────────────
+   * No feature picks its own z-index. The overlay manager (WP-07) owns the
+   * modal and event layers.
+   */
+  --mfd-v2-z-content:  0;
+  --mfd-v2-z-sticky:   10;
+  --mfd-v2-z-nonmodal: 20;
+  --mfd-v2-z-modal:    40;
+  --mfd-v2-z-event:    50;
+  --mfd-v2-z-critical: 60;
+
+  /* ── Safe area ───────────────────────────────────────
+   * Every sticky element on phone reads these. Bottom is the one that matters:
+   * a gesture bar over the primary action is the classic phone-web failure.
+   */
+  --mfd-v2-safe-top:    env(safe-area-inset-top, 0px);
+  --mfd-v2-safe-right:  env(safe-area-inset-right, 0px);
+  --mfd-v2-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --mfd-v2-safe-left:   env(safe-area-inset-left, 0px);
+
+  /* ── Chrome and control sizing ───────────────────────
+   * LAY-06 caps total fixed chrome at 152px. The legacy shell measures
+   * 383–425px on phone, so these are budgets, not descriptions.
+   */
+  --mfd-v2-nav-compact:      64px;
+  --mfd-v2-action-dock:      64px;
+  --mfd-v2-control-min:      44px;   /* product floor, WCAG 2.5.5 */
+  --mfd-v2-control-default:  48px;   /* nominal phone primary action */
+  --mfd-v2-row-min:          56px;   /* phone task/player row */
+
+  /* ── Motion ──────────────────────────────────────────
+   * Restrained ease-out on entry, ease-in on exit. No spring everywhere.
+   */
+  --mfd-v2-motion-fast:     120ms;
+  --mfd-v2-motion-standard: 180ms;
+  --mfd-v2-motion-panel:    240ms;
+  --mfd-v2-ease-entry:      cubic-bezier(0.16, 1, 0.3, 1);
+  --mfd-v2-ease-exit:       cubic-bezier(0.4, 0, 1, 1);
+}
+
+/**
+ * Reduced motion collapses duration to zero rather than swapping easings.
+ * Anything that only exists during a transition is a bug this cannot fix —
+ * no essential information may live in motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mfd-v2-motion-fast:     0ms;
+    --mfd-v2-motion-standard: 0ms;
+    --mfd-v2-motion-panel:    0ms;
+  }
+}
+
+/**
+ * Forced-colors mode replaces the palette entirely. Keeping the ring bound to
+ * a system colour is what stops focus disappearing in Windows high contrast.
+ */
+@media (forced-colors: active) {
+  :root {
+    --mfd-v2-focus: Highlight;
+    --mfd-v2-focus-ring: 0 0 0 2px Canvas, 0 0 0 4px Highlight;
+  }
+}

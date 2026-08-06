@@ -1,0 +1,88 @@
+/**
+ * MFD Density v2 — two sizes, one information architecture.
+ *
+ * Density changes spacing and row height. It never changes which tasks exist,
+ * what they are called, which routes are reachable, or what is marked urgent.
+ * If a compact mode hides a capability, that is a second IA wearing a
+ * checkbox, and the audit was explicit that MFD already has one too many.
+ *
+ * Comfortable is the default and the only mode on phone. Compact is an opt-in
+ * for tablet and desktop, where a mouse and a tall window make 40px rows
+ * scannable rather than fiddly.
+ */
+
+:root {
+  /* ── Spacing scale ───────────────────────────────────
+   * 4 is only for inside compact data groups. 16–24 is the default section
+   * rhythm. 32–48 separates major hierarchy — reach for space before another
+   * box, which is how the legacy shell ended up with 3,978 inline borders.
+   */
+  --mfd-v2-space-1:  4px;
+  --mfd-v2-space-2:  8px;
+  --mfd-v2-space-3:  12px;
+  --mfd-v2-space-4:  16px;
+  --mfd-v2-space-5:  24px;
+  --mfd-v2-space-6:  32px;
+  --mfd-v2-space-7:  48px;
+  --mfd-v2-space-8:  64px;
+
+  /* ── Comfortable (default) ───────────────────────────
+   * Rows are tall enough to hold a task's reason line without truncation.
+   */
+  --mfd-v2-density-row:          56px;
+  --mfd-v2-density-row-compact:  48px;   /* secondary rows within a comfortable screen */
+  --mfd-v2-density-gap:          var(--mfd-v2-space-3);
+  --mfd-v2-density-section-gap:  var(--mfd-v2-space-5);
+  --mfd-v2-density-pad-x:        var(--mfd-v2-space-4);
+  --mfd-v2-density-pad-y:        var(--mfd-v2-space-3);
+
+  /* The tappable wrapper never shrinks with density. This is the variable that
+   * keeps compact mode legal on a touchscreen. */
+  --mfd-v2-density-target: var(--mfd-v2-control-min);
+}
+
+/**
+ * Compact. Opt in by setting `data-mfd-density="compact"` on a container.
+ *
+ * Scoped to an attribute rather than a media query on purpose: density is a
+ * user preference that rides the UI-preference boundary, not a fact about the
+ * viewport. A phone user who wants compact should be able to have it; the
+ * coarse-pointer rule below is what keeps that safe.
+ */
+[data-mfd-density='compact'] {
+  --mfd-v2-density-row:          40px;
+  --mfd-v2-density-row-compact:  36px;
+  --mfd-v2-density-gap:          var(--mfd-v2-space-2);
+  --mfd-v2-density-section-gap:  var(--mfd-v2-space-4);
+  --mfd-v2-density-pad-x:        var(--mfd-v2-space-3);
+  --mfd-v2-density-pad-y:        var(--mfd-v2-space-2);
+}
+
+/**
+ * Coarse pointer overrides compact's row height back to the touch floor.
+ *
+ * The visual row may still read as 40px — smaller text, tighter padding — but
+ * the thing you actually hit is never below 44px. This is the rule that makes
+ * "compact is available everywhere" a safe promise instead of a trap.
+ */
+@media (pointer: coarse) {
+  [data-mfd-density='compact'] {
+    --mfd-v2-density-row:         var(--mfd-v2-control-min);
+    --mfd-v2-density-row-compact: var(--mfd-v2-control-min);
+  }
+}
+
+/**
+ * Compact height — laptop-in-a-split-window, and phone landscape.
+ *
+ * Measured in the WP-00 baseline: the legacy Briefing at 844×390 is 19.02
+ * viewports tall, worse than portrait's 14.15. Compact height is the worst
+ * case in this application, not an afterthought, so section rhythm tightens
+ * here regardless of the density preference.
+ */
+@media (max-height: 599px) {
+  :root {
+    --mfd-v2-density-section-gap: var(--mfd-v2-space-4);
+    --mfd-v2-density-pad-y:       var(--mfd-v2-space-2);
+  }
+}

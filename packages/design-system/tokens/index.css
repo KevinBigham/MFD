@@ -3,7 +3,19 @@
  *
  * Pixel chrome frames broadcast data. NES borders hold NFL numbers.
  * All visual decisions flow through these custom properties.
+ *
+ * The `--mfd-v2-*` layer imported below is the Broadcast War Room system for
+ * the UI overhaul. It is purely additive: it defines its own namespace and
+ * redefines nothing here, so loading it changes no legacy pixel. It loads
+ * eagerly on purpose — custom properties paint nothing on their own, and
+ * deferring them behind the lazy new shell would flash unstyled content on the
+ * first v2 navigation. `semantic-v2.test.ts` fails if the namespaces ever
+ * collide.
  */
+
+@import './semantic-v2.css';
+@import './typography-v2.css';
+@import './density-v2.css';
 
 :root {
   /* ── Core Identity ──────────────────────────────────── */
