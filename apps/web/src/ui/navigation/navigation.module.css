@@ -1,0 +1,196 @@
+/**
+ * WP-06 navigation.
+ *
+ * Three layouts, one list. The variant attribute comes from
+ * `resolveNavVariant`, so the width rule lives in TypeScript where it can be
+ * tested and CSS only renders the answer — the same split `PaneLayout` uses.
+ *
+ * Every value is a `--mfd-v2-*` token. The one number that is load-bearing is
+ * `--mfd-v2-nav-compact` (64px): the phone bar plus the 76px context header is
+ * 140px against LAY-06's 152px envelope, and the safe area sits outside it.
+ */
+
+/* The v2 layer has no global reset, and this file is pure arithmetic against
+ * a 152px envelope. In `content-box` a 64px `min-height` with 4px of padding
+ * is a 72px bar, and the measurement found exactly that: 149px of a 152px
+ * budget, then a rail that overflowed a 390px-tall window by 14px. Scoped to
+ * the navigation rather than added globally, because the frame's own geometry
+ * is already measured and in evidence. */
+.nav,
+.nav * {
+  box-sizing: border-box;
+}
+
+.nav {
+  background: var(--mfd-v2-surface-1);
+  color: var(--mfd-v2-text);
+}
+
+.list {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  min-width: 0;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: var(--mfd-v2-space-2);
+  min-height: var(--mfd-v2-control-min);
+  padding: var(--mfd-v2-space-2);
+  color: var(--mfd-v2-text-secondary);
+  text-decoration: none;
+  border-radius: var(--mfd-v2-radius-control);
+}
+
+.link:focus-visible {
+  outline: none;
+  box-shadow: var(--mfd-v2-focus-ring);
+}
+
+.link[aria-current='page'] {
+  color: var(--mfd-v2-text);
+  background: var(--mfd-v2-selected);
+}
+
+.label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.placement {
+  color: var(--mfd-v2-text-muted);
+}
+
+/* ── Badge ─────────────────────────────────────────────
+ * Colour is not the signal. The number is the signal; the fill is emphasis,
+ * and the screen-reader text below it says what the number counts.
+ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--mfd-v2-space-5);
+  padding: 0 var(--mfd-v2-space-1);
+  border-radius: var(--mfd-v2-radius-control);
+  background: var(--mfd-v2-warning-fill);
+  color: var(--mfd-v2-text);
+  font-family: var(--mfd-v2-font-data);
+  font-size: var(--mfd-v2-caption-size);
+  line-height: var(--mfd-v2-caption-line);
+  font-variant-numeric: tabular-nums;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Bar (phone) ───────────────────────────────────────
+ * Five equal columns, labels under nothing — there is no icon row, so the
+ * label *is* the target and gets the full height. The top border is the only
+ * separation; a shadow here reads as a second surface on a 390px screen.
+ */
+.nav[data-mfd-v2-nav='bar'] {
+  border-top: 1px solid var(--mfd-v2-divider);
+  padding-bottom: var(--mfd-v2-safe-bottom);
+}
+
+.nav[data-mfd-v2-nav='bar'] .list {
+  align-items: stretch;
+}
+
+.nav[data-mfd-v2-nav='bar'] .item {
+  flex: 1 1 0;
+}
+
+.nav[data-mfd-v2-nav='bar'] .link {
+  position: relative;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--mfd-v2-space-1);
+  min-height: var(--mfd-v2-nav-compact);
+  padding: var(--mfd-v2-space-1);
+  border-radius: 0;
+  text-align: center;
+}
+
+/* The badge cannot take a column of its own at 320px — five labels already
+ * spend the width — so it rides in the corner of its own target. */
+.nav[data-mfd-v2-nav='bar'] .badge {
+  position: absolute;
+  top: var(--mfd-v2-space-1);
+  right: var(--mfd-v2-space-1);
+}
+
+/* ── Rail and sidebar ──────────────────────────────────
+ * Vertical, and the frame gives them a column. Both scroll internally if a
+ * short window cannot show every destination, so the shell never loses one.
+ */
+.nav[data-mfd-v2-nav='rail'],
+.nav[data-mfd-v2-nav='sidebar'] {
+  border-right: 1px solid var(--mfd-v2-divider);
+  padding: var(--mfd-v2-space-2) var(--mfd-v2-space-2) calc(var(--mfd-v2-space-2) + var(--mfd-v2-safe-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.nav[data-mfd-v2-nav='rail'] .list,
+.nav[data-mfd-v2-nav='sidebar'] .list {
+  flex-direction: column;
+  gap: var(--mfd-v2-space-1);
+}
+
+.nav[data-mfd-v2-nav='rail'] .link {
+  min-height: var(--mfd-v2-control-default);
+  padding: var(--mfd-v2-space-2) var(--mfd-v2-space-3);
+}
+
+.nav[data-mfd-v2-nav='sidebar'] {
+  min-width: 13rem;
+}
+
+.nav[data-mfd-v2-nav='sidebar'] .link {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-height: var(--mfd-v2-row-min);
+  padding: var(--mfd-v2-space-2) var(--mfd-v2-space-3);
+}
+
+.nav[data-mfd-v2-nav='sidebar'] .badge {
+  position: absolute;
+  top: 50%;
+  right: var(--mfd-v2-space-3);
+  transform: translateY(-50%);
+}
+
+.nav[data-mfd-v2-nav='sidebar'] .item {
+  position: relative;
+}
+
+/* ── Compact height ────────────────────────────────────
+ * A 390px-wide window 390px tall still has to show five destinations. The bar
+ * gives up its nominal height down to the 44px target floor — never below it.
+ */
+@media (max-height: 599px) {
+  .nav[data-mfd-v2-nav='bar'] .link,
+  .nav[data-mfd-v2-nav='rail'] .link {
+    min-height: var(--mfd-v2-control-min);
+  }
+}
