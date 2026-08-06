@@ -4,7 +4,15 @@
     "outDir": "./dist",
     "rootDir": ".",
     "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ]
   },
-  "include": ["components/**/*.ts", "components/**/*.tsx"]
+  "include": [
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "components/**/*.d.ts"
+  ]
 }

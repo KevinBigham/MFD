@@ -1,0 +1,124 @@
+/**
+ * WP-03 button styling. Tokens only — no raw colour, no raw spacing.
+ */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mfd-v2-space-2);
+  min-height: var(--mfd-v2-control-default);
+  /* A short label must not produce a target narrower than it is tall. */
+  min-width: var(--mfd-v2-control-min);
+  padding: 0 var(--mfd-v2-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--mfd-v2-radius-control);
+  font-family: var(--mfd-v2-font-body);
+  font-size: var(--mfd-v2-label-size);
+  font-weight: var(--mfd-v2-label-weight);
+  line-height: var(--mfd-v2-label-line);
+  cursor: pointer;
+  transition:
+    background-color var(--mfd-v2-motion-fast) var(--mfd-v2-ease-entry),
+    border-color var(--mfd-v2-motion-fast) var(--mfd-v2-ease-entry);
+}
+
+.button[data-mfd-v2-size='compact'] {
+  min-height: var(--mfd-v2-control-min);
+  padding: 0 var(--mfd-v2-space-3);
+}
+
+/* ── Tones ─────────────────────────────────────────────
+ * Gold is the primary action and only the primary action. It is deliberately
+ * not available as a border colour or a decorative accent anywhere else.
+ */
+.button[data-mfd-v2-button='primary'] {
+  background: var(--mfd-v2-brand);
+  color: var(--mfd-v2-canvas);
+}
+
+.button[data-mfd-v2-button='secondary'] {
+  background: var(--mfd-v2-surface-2);
+  color: var(--mfd-v2-text);
+  border-color: var(--mfd-v2-divider);
+}
+
+.button[data-mfd-v2-button='ghost'] {
+  background: transparent;
+  color: var(--mfd-v2-text);
+}
+
+.button[data-mfd-v2-button='destructive'] {
+  background: var(--mfd-v2-danger-fill);
+  color: var(--mfd-v2-danger);
+  border-color: var(--mfd-v2-danger);
+}
+
+/* ── Hover ─────────────────────────────────────────────
+ * Gated on hover capability, so a touch device never gets a state stuck on
+ * after a tap. Nothing appears here that is not already visible.
+ */
+@media (hover: hover) {
+  .button[data-mfd-v2-state='rest']:hover {
+    filter: brightness(1.08);
+  }
+}
+
+/* Pressed is a small tone change, not motion — the matrix requires the state
+ * to read without animation, including under reduced motion. */
+.button[data-mfd-v2-state='rest']:active {
+  filter: brightness(0.94);
+}
+
+/* ── Blocked states ────────────────────────────────────
+ * Lower emphasis but still readable: the label is often the only clue to what
+ * the control would have done.
+ */
+.button[data-mfd-v2-state='disabled'],
+.button[data-mfd-v2-state='loading'] {
+  cursor: default;
+  opacity: 0.62;
+}
+
+.button[data-mfd-v2-state='loading'] {
+  cursor: progress;
+}
+
+.label {
+  /* Keeps its width while busy, so the button cannot resize under a finger. */
+  white-space: nowrap;
+}
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: mfd-v2-spin 700ms linear infinite;
+}
+
+/* Reduced motion keeps the indicator but stops it spinning. Removing it
+ * entirely would leave `aria-busy` as the only signal, which is invisible to
+ * anyone not using a screen reader. */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+@keyframes mfd-v2-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.description {
+  display: block;
+  margin-top: var(--mfd-v2-space-1);
+  font-family: var(--mfd-v2-font-body);
+  font-size: var(--mfd-v2-caption-size);
+  line-height: var(--mfd-v2-caption-line);
+  color: var(--mfd-v2-text-secondary);
+}

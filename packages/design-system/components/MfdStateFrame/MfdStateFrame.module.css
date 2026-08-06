@@ -1,0 +1,50 @@
+.frame {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-v2-space-3);
+  padding: var(--mfd-v2-space-5) var(--mfd-v2-space-4);
+  border-radius: var(--mfd-v2-radius-section);
+  background: var(--mfd-v2-surface-1);
+  font-family: var(--mfd-v2-font-body);
+}
+
+.status {
+  margin: 0;
+  font-size: var(--mfd-v2-body-size);
+  line-height: var(--mfd-v2-body-line);
+  font-weight: var(--mfd-v2-body-strong-weight);
+  color: var(--mfd-v2-text);
+}
+
+/* What was *not* changed. Secondary in weight, never in presence — after a
+ * failed commit this is the sentence that decides whether a player retries. */
+.detail {
+  margin: 0;
+  font-size: var(--mfd-v2-body-size);
+  line-height: var(--mfd-v2-body-line);
+  color: var(--mfd-v2-text-secondary);
+}
+
+/* Status colours are carried by the frame edge, never by the text alone —
+ * every one of these states also says its situation in words. */
+.frame[data-mfd-v2-state-frame='error'] {
+  border-left: 3px solid var(--mfd-v2-danger);
+}
+
+.frame[data-mfd-v2-state-frame='locked'] {
+  border-left: 3px solid var(--mfd-v2-warning);
+}
+
+.frame[data-mfd-v2-state-frame='empty'] {
+  border-left: 3px solid var(--mfd-v2-divider);
+}
+
+.frame[data-mfd-v2-state-frame='loading'] {
+  border-left: 3px solid var(--mfd-v2-interactive);
+}
+
+/* Dimmed, not unmounted: the layout stays put and scroll position survives. */
+.beneath {
+  opacity: 0.45;
+  pointer-events: none;
+}
