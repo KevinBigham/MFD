@@ -75,8 +75,21 @@ describe('encode / decode', () => {
     expect(decoded.taskId).toBe('fill-depth-chart');
   });
 
+  it('clamps a long label instead of dropping the whole breadcrumb', () => {
+    const encoded = encodeNavigationOrigin({
+      route: '/today',
+      label: 'Team > Roster > '.repeat(40),
+    });
+
+    // Encode and decode share one limit, so a legitimately built origin always
+    // survives the round trip — it loses the label's tail, not the breadcrumb.
+    expect(decodeNavigationOrigin(encoded)?.label).toHaveLength(ORIGIN_LABEL_MAX);
+    expect(decodeNavigationOrigin(encoded)?.route).toBe('/today');
+  });
+
   it('gives up rather than emit a link that cannot be shortened', () => {
-    expect(encodeNavigationOrigin({ route: '/today', label: 'x'.repeat(ORIGIN_BUDGET) })).toBeNull();
+    expect(encodeNavigationOrigin({ route: `/${'x'.repeat(ORIGIN_BUDGET)}`, label: 'Today' }))
+      .toBeNull();
   });
 
   it('rejects hostile or malformed origin parameters', () => {
@@ -133,9 +146,14 @@ describe('withNavigationOrigin', () => {
 
   it('returns the href untouched when the origin will not fit', () => {
     const href = '/team/roster';
-    const oversized: NavigationOrigin = { route: '/today', label: 'x'.repeat(ORIGIN_BUDGET) };
+    const oversized: NavigationOrigin = { route: `/${'x'.repeat(ORIGIN_BUDGET)}`, label: 'Today' };
 
     expect(withNavigationOrigin(href, oversized)).toBe(href);
+  });
+
+  it('normalises the destination with the same parser links use', () => {
+    expect(withNavigationOrigin('/team/roster/', todayOrigin)).toMatch(/^\/team\/roster\?/);
+    expect(withNavigationOrigin('#/team/roster', todayOrigin)).toMatch(/^\/team\/roster\?/);
   });
 });
 

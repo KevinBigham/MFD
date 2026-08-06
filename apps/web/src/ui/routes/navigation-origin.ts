@@ -10,6 +10,7 @@
  * shell passes values in and gets a string back.
  */
 
+import { splitHref } from './href';
 import { resolveCompatibleRoute } from './route-compatibility';
 
 /** The query parameter the origin rides in. Short, because it shares the URL. */
@@ -62,7 +63,13 @@ export function createNavigationOrigin(origin: NavigationOrigin): NavigationOrig
 }
 
 function serialize(origin: NavigationOrigin): string {
-  const compact: Record<string, unknown> = { route: origin.route, label: origin.label };
+  const compact: Record<string, unknown> = {
+    route: origin.route,
+    // Clamped here, not just rejected on the way back in: a legitimately built
+    // origin with a long label should lose the label's tail, not the entire
+    // breadcrumb.
+    label: origin.label.slice(0, ORIGIN_LABEL_MAX),
+  };
   for (const field of SHEDDABLE_FIELDS) {
     const value = origin[field];
     if (value !== undefined && !(typeof value === 'object' && Object.keys(value).length === 0)) {
@@ -146,23 +153,10 @@ export function withNavigationOrigin(href: string, origin: NavigationOrigin): st
   const encoded = encodeNavigationOrigin(createNavigationOrigin(origin));
   if (!encoded) return href;
 
-  const { path, search, fragment } = splitDestination(href);
+  const { path, search, fragment } = splitHref(href);
   const params = new URLSearchParams(search);
   params.set(ORIGIN_PARAM, encoded);
   return `${path}?${params.toString()}${fragment ? `#${fragment}` : ''}`;
-}
-
-function splitDestination(href: string): { path: string; search: string; fragment: string } {
-  let rest = href;
-  let fragment = '';
-  const fragmentIndex = rest.indexOf('#');
-  if (fragmentIndex >= 0) {
-    fragment = rest.slice(fragmentIndex + 1);
-    rest = rest.slice(0, fragmentIndex);
-  }
-  const searchIndex = rest.indexOf('?');
-  if (searchIndex < 0) return { path: rest, search: '', fragment };
-  return { path: rest.slice(0, searchIndex), search: rest.slice(searchIndex + 1), fragment };
 }
 
 /**
@@ -171,7 +165,7 @@ function splitDestination(href: string): { path: string; search: string; fragmen
  * — so `focusTarget` is carried but not encoded into the URL here.
  */
 export function returnToOriginHref(origin: NavigationOrigin): string {
-  const { path, search, fragment } = splitDestination(origin.route);
+  const { path, search, fragment } = splitHref(origin.route);
   const params = new URLSearchParams(search);
   for (const [key, value] of Object.entries(origin.query ?? {})) {
     params.set(key, value);
