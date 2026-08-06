@@ -17,9 +17,13 @@ tmp/
 # Playwright runner artifacts
 .playwright-cli/
 .playwright-mcp/
+test-results/
 
 # Generated playwright screenshots
 output/
+# Regenerated on every `playwright test ui-overhaul-baseline` run — the numbers
+# in geometry.json are the durable artifact, not these captures.
+docs/ui-overhaul/evidence/baseline-legacy/*.png
 
 # Corrupt-backup files from iCloud-related editor failures
 *.unreadable-*
