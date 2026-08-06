@@ -7,6 +7,11 @@ import {
   type AudioCategory,
   type AudioPreferences,
 } from './audio-preferences';
+import {
+  DEFAULT_UI_OVERHAUL_MODE,
+  normalizeUiOverhaulMode,
+  type UiOverhaulMode,
+} from '../../ui/migration/ui-overhaul-mode';
 
 type SimSpeed = 'fast' | 'normal' | 'detailed';
 type Density = 'compact' | 'comfortable';
@@ -27,6 +32,10 @@ interface UiState {
 
   density: Density;
   setDensity: (d: Density) => void;
+
+  /** UI-only migration boundary. Never persisted into GameState. */
+  uiOverhaulMode: UiOverhaulMode;
+  setUiOverhaulMode: (mode: UiOverhaulMode) => void;
 
   autosaveEnabled: boolean;
   setAutosaveEnabled: (enabled: boolean) => void;
@@ -74,6 +83,9 @@ export const useUiStore = create<UiState>()(
 
       density: 'compact',
       setDensity: (density) => set({ density }),
+
+      uiOverhaulMode: DEFAULT_UI_OVERHAUL_MODE,
+      setUiOverhaulMode: (uiOverhaulMode) => set({ uiOverhaulMode }),
 
       autosaveEnabled: true,
       setAutosaveEnabled: (enabled) => set({ autosaveEnabled: enabled }),
@@ -137,6 +149,7 @@ export const useUiStore = create<UiState>()(
         autosaveEnabled: state.autosaveEnabled,
         simSpeed: state.simSpeed,
         audioPreferences: state.audioPreferences,
+        uiOverhaulMode: state.uiOverhaulMode,
       }),
       merge: (persistedState, currentState) => {
         const persisted = (persistedState ?? {}) as Partial<UiState>;
@@ -148,6 +161,7 @@ export const useUiStore = create<UiState>()(
           autosaveEnabled: normalizeBooleanPreference(persisted.autosaveEnabled, currentState.autosaveEnabled),
           simSpeed: normalizeSimSpeedPreference(persisted.simSpeed, currentState.simSpeed),
           audioPreferences: normalizeAudioPreferences(persisted.audioPreferences),
+          uiOverhaulMode: normalizeUiOverhaulMode(persisted.uiOverhaulMode),
         };
       },
     },

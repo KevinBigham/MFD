@@ -57,6 +57,7 @@ describe('ui-store audio preferences', () => {
       'density',
       'sidebarCollapsed',
       'simSpeed',
+      'uiOverhaulMode',
     ]);
   });
 
