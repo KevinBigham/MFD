@@ -1,0 +1,156 @@
+/**
+ * WP-02 layout primitives.
+ *
+ * Every value here is a `--mfd-v2-*` token. No raw colour, no raw spacing —
+ * WP-22's inline-style ledger starts from the premise that the new shell adds
+ * none, and a stylesheet full of magic numbers is the same debt in a different
+ * file.
+ */
+
+/* ── Frame ─────────────────────────────────────────────
+ * `dvh` is what makes this correct on a phone: `vh` measures the viewport with
+ * browser chrome collapsed, so a `100vh` frame is taller than the window
+ * whenever the address bar is showing — the classic "content hidden behind the
+ * URL bar" bug. `vh` stays as the fallback for browsers without `dvh`.
+ */
+.frame {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--mfd-v2-canvas);
+  color: var(--mfd-v2-text);
+  font-family: var(--mfd-v2-font-body);
+  padding-left: var(--mfd-v2-safe-left);
+  padding-right: var(--mfd-v2-safe-right);
+  overflow: hidden;
+}
+
+.chrome {
+  position: relative;
+  z-index: var(--mfd-v2-z-sticky);
+  padding-top: var(--mfd-v2-safe-top);
+  background: var(--mfd-v2-surface-1);
+  border-bottom: 1px solid var(--mfd-v2-divider);
+}
+
+/* ── Scroll ────────────────────────────────────────────
+ * `min-height: 0` is load-bearing. Without it a grid row refuses to shrink
+ * below its content, the frame grows past the viewport, and the page scrolls
+ * behind the fixed chrome instead of inside this element.
+ */
+.pageScroll {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pageScroll:focus {
+  outline: none;
+}
+
+/* A declared exception. Contained scrollers keep their own overscroll so a
+ * flick inside a data pane never chains up and moves the page underneath. */
+.containedScroll {
+  overscroll-behavior: contain;
+}
+
+.content {
+  padding: var(--mfd-v2-density-pad-y) var(--mfd-v2-density-pad-x);
+  /* Only what the dock actually measured. No dock, no reservation. */
+  padding-bottom: calc(
+    var(--mfd-v2-density-pad-y) + var(--mfd-v2-dock-measured, 0px)
+  );
+}
+
+/* ── Action dock ───────────────────────────────────────
+ * Sticky rather than fixed: sticky participates in the grid, so the frame can
+ * see it and the content row cannot slide underneath it.
+ */
+.actionDock {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--mfd-v2-z-sticky);
+  display: flex;
+  gap: var(--mfd-v2-space-2);
+  align-items: center;
+  min-height: var(--mfd-v2-action-dock);
+  padding: var(--mfd-v2-space-2) var(--mfd-v2-density-pad-x);
+  padding-bottom: calc(var(--mfd-v2-space-2) + var(--mfd-v2-safe-bottom));
+  background: var(--mfd-v2-surface-1);
+  border-top: 1px solid var(--mfd-v2-divider);
+}
+
+.actionDock > * {
+  min-height: var(--mfd-v2-control-default);
+}
+
+/* ── Panes ─────────────────────────────────────────────
+ * Column count comes from the data attribute, which `PaneLayout` computes from
+ * the layout mode. Keeping the arithmetic in TypeScript is what makes the rule
+ * testable without a browser; CSS only renders the answer.
+ */
+.paneLayout {
+  display: grid;
+  gap: var(--mfd-v2-density-section-gap);
+  grid-template-columns: 1fr;
+}
+
+.paneLayout[data-mfd-v2-panes='2'] {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+
+.paneLayout[data-mfd-v2-panes='3'] {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) minmax(0, 2fr);
+}
+
+.pane {
+  min-width: 0;
+}
+
+/* ── Skip link ─────────────────────────────────────────
+ * Visible only on focus, and it must clear the chrome when it appears.
+ */
+.skipLink {
+  position: absolute;
+  top: calc(var(--mfd-v2-safe-top) + var(--mfd-v2-space-2));
+  left: var(--mfd-v2-space-4);
+  z-index: var(--mfd-v2-z-critical);
+  padding: var(--mfd-v2-space-2) var(--mfd-v2-space-4);
+  min-height: var(--mfd-v2-control-min);
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--mfd-v2-radius-control);
+  background: var(--mfd-v2-surface-3);
+  color: var(--mfd-v2-text);
+  font-size: var(--mfd-v2-label-size);
+  font-weight: var(--mfd-v2-label-weight);
+  transform: translateY(-200%);
+}
+
+.skipLink:focus-visible {
+  transform: translateY(0);
+  box-shadow: var(--mfd-v2-focus-ring);
+}
+
+/* ── Compact height ────────────────────────────────────
+ * The measured worst case: 844×390 legacy Briefing is 19.02 viewports. In a
+ * short window the chrome gives up its vertical padding first, because the
+ * content row is the only thing that can absorb the loss otherwise.
+ */
+@media (max-height: 599px) {
+  .chrome {
+    padding-top: var(--mfd-v2-safe-top);
+  }
+
+  .content {
+    padding-top: var(--mfd-v2-space-2);
+    padding-bottom: calc(var(--mfd-v2-space-2) + var(--mfd-v2-dock-measured, 0px));
+  }
+
+  .actionDock {
+    min-height: var(--mfd-v2-control-default);
+  }
+}
