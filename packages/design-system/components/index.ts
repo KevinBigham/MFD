@@ -65,3 +65,27 @@ export {
   normalizeDensityMode,
   type DensityMode,
 } from './density';
+
+// Broadcast War Room v2 — interaction primitives (WP-03)
+export {
+  MfdButtonV2,
+  resolveButtonState,
+  type ButtonSize,
+  type ButtonTone,
+  type MfdButtonV2Props,
+} from './MfdButtonV2/MfdButtonV2';
+export { MfdStateFrame, type FrameStatus, type MfdStateFrameProps } from './MfdStateFrame/MfdStateFrame';
+export {
+  FOCUSABLE_SELECTOR,
+  MfdBottomSheet,
+  getFocusable,
+  nextFocusIndex,
+  type MfdBottomSheetProps,
+} from './MfdBottomSheet/MfdBottomSheet';
+export {
+  MfdLocalNav,
+  resolveNavItemState,
+  type LocalNavItem,
+  type MfdLocalNavProps,
+} from './MfdLocalNav/MfdLocalNav';
+export { MfdStickyAction, type MfdStickyActionProps } from './MfdStickyAction/MfdStickyAction';

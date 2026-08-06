@@ -1,0 +1,33 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfd-v2-space-2);
+  width: 100%;
+  font-family: var(--mfd-v2-font-body);
+}
+
+/* The reason sits above the button, not in a tooltip. A blocked action that
+ * explains itself only on hover is unexplained on a phone. */
+.reason {
+  margin: 0;
+  font-size: var(--mfd-v2-caption-size);
+  line-height: var(--mfd-v2-caption-line);
+  color: var(--mfd-v2-warning);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--mfd-v2-space-2);
+  flex-wrap: wrap;
+}
+
+/* At 320px the cluster stacks and the primary action stays full width, rather
+ * than shrinking below a comfortable target to keep everything on one line. */
+@media (max-width: 359px) {
+  .row {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}

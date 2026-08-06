@@ -30,3 +30,40 @@ button:focus-visible,
     outline-offset: 2px;
   }
 }
+
+/**
+ * Reduced motion, new shell only (WP-03).
+ *
+ * Duration goes to zero rather than animation being removed, so anything that
+ * only becomes visible at the end of a transition still arrives. `animation:
+ * none` on an entrance keyframe would leave the element at its `from` state —
+ * off-screen, or transparent — which is a worse failure than the motion.
+ *
+ * Scrolling is exempted: `scroll-behavior` is the one place where jumping is
+ * the accessible outcome, and browsers already honour the preference there.
+ */
+@media (prefers-reduced-motion: reduce) {
+  [data-mfd-v2-viewport] *,
+  [data-mfd-v2-viewport] *::before,
+  [data-mfd-v2-viewport] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/**
+ * Target geometry backstop, new shell only.
+ *
+ * Components set their own heights from tokens; this catches anything that
+ * slips through — an icon-only control, a link styled as a button — at the
+ * 44px product floor. Width is left alone so text links inside a paragraph are
+ * not stretched into blocks.
+ */
+[data-mfd-v2-viewport] button,
+[data-mfd-v2-viewport] [role='button'],
+[data-mfd-v2-viewport] select,
+[data-mfd-v2-viewport] input[type='checkbox'],
+[data-mfd-v2-viewport] input[type='radio'] {
+  min-height: var(--mfd-v2-control-min);
+}

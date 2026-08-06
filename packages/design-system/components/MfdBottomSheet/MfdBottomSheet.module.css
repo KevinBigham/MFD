@@ -1,0 +1,69 @@
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--mfd-v2-z-modal);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: var(--mfd-v2-canvas);
+  /* Dark enough to signal modality, sheer enough to keep context visible —
+   * a sheet that hides where you came from is a route change in disguise. */
+  opacity: 0.98;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 640px;
+  /* Never taller than the window, and never under the gesture bar. */
+  max-height: calc(100dvh - var(--mfd-v2-space-7));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--mfd-v2-space-4);
+  padding-bottom: calc(var(--mfd-v2-space-4) + var(--mfd-v2-safe-bottom));
+  border-radius: var(--mfd-v2-radius-sheet) var(--mfd-v2-radius-sheet) 0 0;
+  background: var(--mfd-v2-surface-2);
+  color: var(--mfd-v2-text);
+  font-family: var(--mfd-v2-font-body);
+  box-shadow: var(--mfd-v2-elev-overlay);
+  animation: mfd-v2-sheet-in var(--mfd-v2-motion-panel) var(--mfd-v2-ease-entry);
+}
+
+.sheet:focus {
+  outline: none;
+}
+
+.title {
+  margin: 0 0 var(--mfd-v2-space-3);
+  font-family: var(--mfd-v2-font-display);
+  font-size: var(--mfd-v2-title-sm-size);
+  line-height: var(--mfd-v2-title-sm-line);
+  font-weight: var(--mfd-v2-title-sm-weight);
+}
+
+/* On a short window the sheet stops pretending to be a sheet and behaves as a
+ * full panel — 390px of slide-up in a 390px-tall window is just a jump cut. */
+@media (max-height: 599px) {
+  .scrim {
+    align-items: stretch;
+  }
+
+  .sheet {
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+}
+
+@keyframes mfd-v2-sheet-in {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+}
+
+/* Translation removed, presence kept. The sheet still appears; it just does
+ * not travel. */
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: none;
+  }
+}
