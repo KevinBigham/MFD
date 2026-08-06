@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+<rect width="100%" height="100%" fill="#080d15"/>
+<style>text{font-family:Arial,sans-serif}.t{fill:#f4f0e6}.m{fill:#8f9bac}.g{fill:#f2c14e}.b{fill:#7fc7ff}.box{fill:#111925;stroke:#344358;stroke-width:2}.top{fill:#151f2d;stroke:#f2c14e;stroke-width:2}.ctx{fill:#111925;stroke:#7fc7ff;stroke-width:2}</style>
+<text x="54" y="58" class="t" font-size="30" font-weight="700">Proposed job-centered information architecture</text>
+<text x="54" y="88" class="m" font-size="16">Five stable phone jobs. Dynasty and System remain first-class through contextual entry, desktop navigation, search, and events.</text>
+<rect x="54" y="145" rx="15" width="222" height="126" class="top"/>
+<text x="72" y="179" class="g" font-size="17" font-weight="700">TODAY</text>
+<text x="72" y="214" class="t" font-size="27" font-weight="700">4 routes</text>
+<text x="72" y="243" class="m" font-size="12">Understand / resolve / advance</text>
+<rect x="294" y="145" rx="15" width="222" height="126" class="top"/>
+<text x="312" y="179" class="g" font-size="17" font-weight="700">TEAM</text>
+<text x="312" y="214" class="t" font-size="27" font-weight="700">13 routes</text>
+<text x="312" y="243" class="m" font-size="12">Roster / people / preparation</text>
+<rect x="534" y="145" rx="15" width="222" height="126" class="top"/>
+<text x="552" y="179" class="g" font-size="17" font-weight="700">GAME</text>
+<text x="552" y="214" class="t" font-size="27" font-weight="700">9 routes</text>
+<text x="552" y="243" class="m" font-size="12">Opponent / plan / game center</text>
+<rect x="774" y="145" rx="15" width="222" height="126" class="top"/>
+<text x="792" y="179" class="g" font-size="17" font-weight="700">OFFICE</text>
+<text x="792" y="214" class="t" font-size="27" font-weight="700">17 routes</text>
+<text x="792" y="243" class="m" font-size="12">Finance / personnel / ownership</text>
+<rect x="1014" y="145" rx="15" width="222" height="126" class="top"/>
+<text x="1032" y="179" class="g" font-size="17" font-weight="700">LEAGUE</text>
+<text x="1032" y="214" class="t" font-size="27" font-weight="700">13 routes</text>
+<text x="1032" y="243" class="m" font-size="12">Race / news / stats / rules</text>
+<rect x="174" y="350" rx="15" width="410" height="116" class="ctx"/>
+<text x="198" y="385" class="b" font-size="17" font-weight="700">DYNASTY • 18 routes</text>
+<text x="198" y="418" class="t" font-size="18">Story, people, honors, seasons, records</text>
+<text x="198" y="444" class="m" font-size="13">Surfaced when emotionally relevant; fully searchable/browsable.</text>
+<rect x="696" y="350" rx="15" width="410" height="116" class="ctx"/>
+<text x="720" y="385" class="b" font-size="17" font-weight="700">SYSTEM • 5 routes</text>
+<text x="720" y="418" class="t" font-size="18">Save, recovery, settings, accessibility, help</text>
+<text x="720" y="444" class="m" font-size="13">Always reachable without taking a scarce weekly-loop tab.</text>
+<rect x="54" y="530" rx="16" width="1172" height="120" class="box"/>
+<text x="82" y="568" class="g" font-size="17" font-weight="700">SURFACE MODEL</text>
+<text x="82" y="602" class="t" font-size="18">Global hub → local tab/section → entity detail or decision workflow → exact return-to-task</text>
+<text x="82" y="632" class="m" font-size="14">Every old URL remains an alias/wrapper until 79/79 capability coverage and route-retirement approval.</text>
+</svg>

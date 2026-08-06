@@ -1,0 +1,38 @@
+Full release gate plan (37/37 steps):
+01. [static] release-gate-syntax: /opt/nvm/versions/node/v22.16.0/bin/node --check scripts/release-gate.mjs
+02. [static] browser-smoke-syntax: /opt/nvm/versions/node/v22.16.0/bin/node --check scripts/smoke-test-post-setup-route.mjs
+03. [static] g3-matrix-syntax: /opt/nvm/versions/node/v22.16.0/bin/node --check scripts/smoke-test-g3-football-ops-matrix.mjs
+04. [static] g4-soak-syntax: /opt/nvm/versions/node/v22.16.0/bin/node --check scripts/smoke-test-g4-multi-year-trust.mjs
+05. [tests] script-tests: /opt/nvm/versions/node/v22.16.0/bin/node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/__tests__/release-docs.test.mjs scripts/__tests__/release-gate.test.mjs scripts/__tests__/smoke-test-post-setup-route.test.mjs scripts/__tests__/smoke-test-g3-football-ops-matrix.test.mjs scripts/__tests__/smoke-test-g4-multi-year-trust.test.mjs
+06. [tests] grade-season-tests: /mnt/data/mfd_uiux_audit_work/MFD-main/apps/web/node_modules/.bin/vitest run --root /mnt/data/mfd_uiux_audit_work/MFD-main --dir /mnt/data/mfd_uiux_audit_work/MFD-main/scripts/__tests__ --globals grade-season.test.ts
+07. [typecheck] engine-typecheck: /mnt/data/mfd_uiux_audit_work/MFD-main/packages/engine/node_modules/.bin/tsc --noEmit
+08. [typecheck] web-typecheck: /mnt/data/mfd_uiux_audit_work/MFD-main/apps/web/node_modules/.bin/tsc --noEmit
+09. [typecheck] design-typecheck: /mnt/data/mfd_uiux_audit_work/MFD-main/packages/design-system/node_modules/.bin/tsc --noEmit
+10. [tests] engine-tests: /mnt/data/mfd_uiux_audit_work/MFD-main/packages/engine/node_modules/.bin/vitest run
+11. [tests] web-tests: /mnt/data/mfd_uiux_audit_work/MFD-main/apps/web/node_modules/.bin/vitest run --exclude src/app/store/g4-multi-year-trust.test.ts
+12. [tests] design-tests: /mnt/data/mfd_uiux_audit_work/MFD-main/packages/design-system/node_modules/.bin/vitest run
+13. [build] web-production-build: VITE_CHIP_ENABLED="true" /mnt/data/mfd_uiux_audit_work/MFD-main/apps/web/node_modules/.bin/vite build
+14. [build] bundle-size: bash scripts/check-bundle-size.sh
+15. [browser] built-page-smoke: bash scripts/smoke-test-built-page.sh
+16. [determinism] math-random-ban: bash scripts/check-math-random.sh
+17. [determinism] engine-season-smoke: /mnt/data/mfd_uiux_audit_work/MFD-main/packages/engine/node_modules/.bin/vitest run season-smoke full-season save-round-trip
+18. [determinism] playtest-all: bash scripts/playtest-report.sh --all --seed 42 --seasons 10
+19. [determinism] goat-release-sentinel: bash scripts/playtest-report.sh --benchmark goat-release-sentinel
+20. [determinism] shadow-regression: bash scripts/shadow-regression.sh
+21. [g4] g4-multi-year-soak: VITE_CHIP_ENABLED="true" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-g4-multi-year-trust.mjs
+22. [browser] g1-full-setup-desktop: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_FULL_SETUP_COMPLETE="1" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+23. [mobile] g1-full-setup-mobile: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_FULL_SETUP_COMPLETE="1" SMOKE_VIEWPORT_WIDTH="480" SMOKE_VIEWPORT_HEIGHT="900" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+24. [browser] g5-cba-commissioner-browser: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_POST_SETUP_ROUTES_JSON="[{\"route\":\"/cba\",\"text\":\"CBA SOURCES\"},{\"route\":\"/commissioner\",\"text\":\"CBA Status\"}]" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+25. [g3] g3-football-ops-matrix: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-g3-football-ops-matrix.mjs
+26. [g6-chip] g6-chip-mute-desktop: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_POST_SETUP_ROUTE="/roster" SMOKE_POST_SETUP_TEXT="Roster Sources" SMOKE_CHIP_MUTE="1" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+27. [g6-mobile] g6-chip-mute-mobile: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_POST_SETUP_ROUTE="/roster" SMOKE_POST_SETUP_TEXT="Roster Sources" SMOKE_CHIP_MUTE="1" SMOKE_VIEWPORT_WIDTH="480" SMOKE_VIEWPORT_HEIGHT="900" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+28. [g6-chip] g6-chip-receipts-desktop: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_CHIP_RECEIPT_RESPECT="1" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+29. [g6-mobile] g6-chip-receipts-mobile: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_CHIP_RECEIPT_RESPECT="1" SMOKE_VIEWPORT_WIDTH="480" SMOKE_VIEWPORT_HEIGHT="900" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+30. [g6-chip] g6-chip-reduced-motion-desktop: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_POST_SETUP_ROUTE="/roster" SMOKE_POST_SETUP_TEXT="Roster Sources" SMOKE_CHIP_FOCUS_REDUCED_MOTION="1" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+31. [g6-mobile] g6-chip-reduced-motion-mobile: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_POST_SETUP_ROUTE="/roster" SMOKE_POST_SETUP_TEXT="Roster Sources" SMOKE_CHIP_FOCUS_REDUCED_MOTION="1" SMOKE_VIEWPORT_WIDTH="480" SMOKE_VIEWPORT_HEIGHT="900" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+32. [g6-ux] g6-state-feedback-desktop: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_G6_STATE_FEEDBACK="1" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+33. [g6-mobile] g6-state-feedback-mobile: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_G6_STATE_FEEDBACK="1" SMOKE_VIEWPORT_WIDTH="480" SMOKE_VIEWPORT_HEIGHT="900" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+34. [g6-ux] g6-focus-sweep-desktop: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_G6_FOCUS_SWEEP="1" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+35. [g6-mobile] g6-focus-sweep-mobile: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_G6_FOCUS_SWEEP="1" SMOKE_VIEWPORT_WIDTH="480" SMOKE_VIEWPORT_HEIGHT="900" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+36. [g6-visual] g6-visual-sweep-desktop: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_G6_VISUAL_SWEEP="1" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs
+37. [g6-mobile] g6-visual-sweep-mobile: VITE_CHIP_ENABLED="true" SMOKE_TIMEOUT_MS="90000" SMOKE_PREVIEW_TIMEOUT_MS="240000" SMOKE_G6_VISUAL_SWEEP="1" SMOKE_VIEWPORT_WIDTH="480" SMOKE_VIEWPORT_HEIGHT="900" /opt/nvm/versions/node/v22.16.0/bin/node scripts/smoke-test-post-setup-route.mjs

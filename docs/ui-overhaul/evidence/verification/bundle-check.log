@@ -1,0 +1,4 @@
+Engine chunk: engine-2KmLnDKd.js
+Gzip size: 313 KB (ceiling 320 KB)
+WARN: engine chunk within 10 KB of the 320 KB ceiling. Budget is tightening.
+PASS: engine chunk size OK.

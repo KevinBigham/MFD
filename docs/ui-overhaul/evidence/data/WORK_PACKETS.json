@@ -1,0 +1,796 @@
+[
+  {
+    "id": "WP-00",
+    "title": "Baseline, Safety Rails, and Migration Boundary",
+    "effort": "M",
+    "critical": "Yes",
+    "deps": "None",
+    "phase": "0",
+    "problem": "A shell rewrite cannot begin safely while clean build/test, visual, route, save, and bundle baselines are incomplete or environment-blocked.",
+    "objective": "Re-establish a correctly provisioned baseline; create UI-only migration control, deterministic fixture capture, route-coverage check, and progress ledger before production UI changes.",
+    "add": [
+      "apps/web/src/ui/migration/ui-overhaul-mode.ts",
+      "apps/web/src/ui/test/fixtures/ui-overhaul-fixtures.ts",
+      "apps/web/e2e/ui-overhaul-baseline.spec.ts",
+      "scripts/check-ui-route-coverage.mjs",
+      "docs/ui-overhaul/implementation/PROGRESS_LEDGER.md"
+    ],
+    "modify": [
+      "package.json",
+      "apps/web/package.json",
+      "apps/web/src/app/store/ui-store.ts",
+      "scripts/release-gate.mjs"
+    ],
+    "delete": [],
+    "symbols": [
+      "UiOverhaulMode",
+      "selectUiOverhaulMode",
+      "setUiOverhaulMode",
+      "uiOverhaulFixtures",
+      "checkUiRouteCoverage"
+    ],
+    "tests": "Clean install; all current typechecks/tests/build/bundle/smoke/release gates; save fixture hash; 79-route resolution; baseline screenshots/geometry.",
+    "rollback": "Remove UI-only flag/harness additions; no simulation or save data changes.",
+    "done": "Baseline ledger records command outputs; route count is 79/79; migration mode defaults to legacy; no save schema changes."
+  },
+  {
+    "id": "WP-01",
+    "title": "Semantic Tokens and Typography Foundation",
+    "effort": "M",
+    "critical": "Yes",
+    "deps": "WP-00",
+    "phase": "1",
+    "problem": "Current pixel-heavy, border-heavy styling cannot express a calm hierarchy consistently.",
+    "objective": "Add Broadcast War Room semantic tokens, resilient typography roles, density variables, contrast tests, and strict accent/surface rules without restyling legacy screens accidentally.",
+    "add": [
+      "packages/design-system/tokens/semantic-v2.css",
+      "packages/design-system/tokens/semantic-v2.test.ts",
+      "packages/design-system/tokens/typography-v2.css",
+      "packages/design-system/tokens/density-v2.css"
+    ],
+    "modify": [
+      "packages/design-system/tokens/index.css",
+      "packages/design-system/components/index.ts"
+    ],
+    "delete": [],
+    "symbols": [
+      "--mfd-v2-* semantic tokens",
+      "MfdTypography roles",
+      "DensityMode"
+    ],
+    "tests": "Computed token/contrast tests; network-blocked font fallback; 200% zoom sample; no legacy snapshot change outside migration boundary.",
+    "rollback": "Remove v2 imports; legacy tokens remain untouched.",
+    "done": "Tokens document role/contrast; body/data/pixel roles enforced; new-shell examples pass phone/desktop visual review."
+  },
+  {
+    "id": "WP-02",
+    "title": "Adaptive Viewport and Screen-Archetype Primitives",
+    "effort": "L",
+    "critical": "Yes",
+    "deps": "WP-00, WP-01",
+    "phase": "1",
+    "problem": "Width-only responsive overrides and permanent fixed clearances produce nested scroll and poor short-height behavior.",
+    "objective": "Create safe-area, dynamic-height, scroll-owner, sticky-action, compact-height, rail/sidebar, and pane primitives used by every new screen archetype.",
+    "add": [
+      "apps/web/src/ui/layout/AdaptiveViewport.tsx",
+      "apps/web/src/ui/layout/AppFrame.tsx",
+      "apps/web/src/ui/layout/PageScroll.tsx",
+      "apps/web/src/ui/layout/StickyActionDock.tsx",
+      "apps/web/src/ui/layout/PaneLayout.tsx",
+      "apps/web/src/ui/layout/layout.module.css",
+      "apps/web/src/ui/layout/layout.test.tsx"
+    ],
+    "modify": [
+      "apps/web/src/app/a11y.css"
+    ],
+    "delete": [],
+    "symbols": [
+      "AdaptiveViewport",
+      "AppFrame",
+      "PageScroll",
+      "StickyActionDock",
+      "PaneLayout",
+      "useLayoutMode"
+    ],
+    "tests": "320\u00d7568 through 1600\u00d71000; 375 px height; safe-area emulation; one-scroll-owner assertion; focused element not obscured.",
+    "rollback": "New primitives are isolated and removable before shell adoption.",
+    "done": "All archetype demo states have no unintended overflow/occlusion and expose measured layout mode."
+  },
+  {
+    "id": "WP-03",
+    "title": "Interaction, Focus, Dialog, and Accessibility Foundation",
+    "effort": "L",
+    "critical": "Yes",
+    "deps": "WP-01, WP-02",
+    "phase": "1",
+    "problem": "New components would reproduce inconsistent control states, undersized targets, and overlay focus behavior without a shared interaction layer.",
+    "objective": "Implement/upgrade v2 Button, tabs/links, state frame, sheet/dialog, focus ring, reduced motion, live status, and form conventions.",
+    "add": [
+      "packages/design-system/components/MfdButtonV2/MfdButtonV2.tsx",
+      "packages/design-system/components/MfdButtonV2/MfdButtonV2.module.css",
+      "packages/design-system/components/MfdStateFrame/MfdStateFrame.tsx",
+      "packages/design-system/components/MfdBottomSheet/MfdBottomSheet.tsx",
+      "packages/design-system/components/MfdLocalNav/MfdLocalNav.tsx",
+      "packages/design-system/components/MfdStickyAction/MfdStickyAction.tsx"
+    ],
+    "modify": [
+      "packages/design-system/components/MfdDialog/MfdDialog.tsx",
+      "packages/design-system/components/MfdTooltip/MfdTooltip.tsx",
+      "packages/design-system/components/index.ts",
+      "apps/web/src/app/a11y.css"
+    ],
+    "delete": [],
+    "symbols": [
+      "MfdButtonV2",
+      "MfdStateFrame",
+      "MfdBottomSheet",
+      "MfdLocalNav",
+      "MfdStickyAction"
+    ],
+    "tests": "Keyboard-only stories; focus trap/restore; Escape; target geometry; axe; reduced motion; 200% zoom; screen-reader names/states.",
+    "rollback": "V2 exports coexist with legacy components; remove imports to roll back.",
+    "done": "Every interactive state in 06 spec has tests; no core target under 44 px; focus is visible/unobscured."
+  },
+  {
+    "id": "WP-04",
+    "title": "Route-Surface Metadata and Deep-Link Compatibility",
+    "effort": "L",
+    "critical": "Yes",
+    "deps": "WP-00",
+    "phase": "2",
+    "problem": "The 79-route registry describes destinations but not future hubs, surface types, canonical paths, local tabs, return behavior, or compatibility.",
+    "objective": "Create a UI adapter over the canonical engine registry that accounts for 79/79 paths and resolves old links into the new IA without changing engine route contracts.",
+    "add": [
+      "apps/web/src/ui/routes/route-surface-types.ts",
+      "apps/web/src/ui/routes/route-surface-map.ts",
+      "apps/web/src/ui/routes/route-compatibility.ts",
+      "apps/web/src/ui/routes/navigation-origin.ts",
+      "apps/web/src/ui/routes/route-surface-map.test.ts"
+    ],
+    "modify": [
+      "apps/web/src/app/currentAppRoute.ts",
+      "apps/web/src/app/navBadges.ts"
+    ],
+    "delete": [],
+    "symbols": [
+      "HubId",
+      "SurfaceType",
+      "RouteSurfaceMeta",
+      "ROUTE_SURFACE_MAP",
+      "resolveCompatibleRoute",
+      "NavigationOrigin"
+    ],
+    "tests": "79/79 registry parity; old path resolution; unlock/phase fixtures; entity/query preservation; return origin; no circular mappings.",
+    "rollback": "Adapter can be bypassed; canonical registry remains untouched.",
+    "done": "Coverage script fails any missing/duplicate route; old paths remain functional; no route is deleted."
+  },
+  {
+    "id": "WP-05",
+    "title": "App Shell Decomposition and Migration Host",
+    "effort": "XL",
+    "critical": "Yes",
+    "deps": "WP-01, WP-02, WP-03, WP-04",
+    "phase": "2",
+    "problem": "App.tsx concentrates routing, shell, overlays, lifecycle, and companion behavior in 2,229 lines.",
+    "objective": "Extract a thin MfdAppShell and migration host while preserving current route mounting, hash routing, lifecycle effects, and legacy shell behind the UI-only mode.",
+    "add": [
+      "apps/web/src/ui/shell/MfdAppShell.tsx",
+      "apps/web/src/ui/shell/GlobalHeader.tsx",
+      "apps/web/src/ui/shell/PhaseContextBar.tsx",
+      "apps/web/src/ui/shell/ScreenOutlet.tsx",
+      "apps/web/src/ui/shell/SystemMenu.tsx",
+      "apps/web/src/ui/shell/shell.module.css",
+      "apps/web/src/ui/shell/MfdAppShell.test.tsx"
+    ],
+    "modify": [
+      "apps/web/src/app/App.tsx",
+      "apps/web/src/app/app-shell.css",
+      "apps/web/src/app/appShellLifecycle.ts"
+    ],
+    "delete": [],
+    "symbols": [
+      "MfdAppShell",
+      "LegacyAppShell",
+      "UiMigrationHost",
+      "GlobalHeader",
+      "PhaseContextBar",
+      "ScreenOutlet"
+    ],
+    "tests": "Legacy mode pixel/behavior smoke; new empty shell at full viewport matrix; route mounting; lifecycle effect parity; GitHub Pages base path.",
+    "rollback": "Set mode to legacy or revert extraction commits; no screen migration required.",
+    "done": "App.tsx becomes composition-oriented; legacy still works; new shell has one scroll owner and no permanent Chip clearance."
+  },
+  {
+    "id": "WP-06",
+    "title": "Adaptive Navigation, Wayfinding, and Return-to-Task",
+    "effort": "L",
+    "critical": "Yes",
+    "deps": "WP-04, WP-05",
+    "phase": "2",
+    "problem": "Four phone feature links plus an overloaded More drawer do not represent the new job-centered IA.",
+    "objective": "Implement Today/Team/Game/Office/League adaptive navigation, expanded Dynasty/System entries, local location labels, origin restoration, and power search integration.",
+    "add": [
+      "apps/web/src/ui/navigation/AdaptivePrimaryNav.tsx",
+      "apps/web/src/ui/navigation/MobileHubBar.tsx",
+      "apps/web/src/ui/navigation/NavigationRail.tsx",
+      "apps/web/src/ui/navigation/DesktopSidebar.tsx",
+      "apps/web/src/ui/navigation/ReturnToTask.tsx",
+      "apps/web/src/ui/navigation/navigation.module.css"
+    ],
+    "modify": [
+      "apps/web/src/app/MobileBottomTabBar.tsx",
+      "apps/web/src/app/hooks/useKeyboard.ts",
+      "packages/design-system/components/MfdCommandPalette/MfdCommandPalette.tsx"
+    ],
+    "delete": [],
+    "symbols": [
+      "AdaptivePrimaryNav",
+      "MobileHubBar",
+      "NavigationRail",
+      "DesktopSidebar",
+      "ReturnToTask"
+    ],
+    "tests": "Five destinations at compact; rail/sidebar adaptation; labels/active/badges; 44/48 targets; core loop without search; origin/scroll/focus restoration.",
+    "rollback": "Legacy bar remains in legacy shell; new navigation removable behind mode.",
+    "done": "No all-route More drawer in new shell; five jobs stable at every viewport; Dynasty/System deliberately reachable."
+  },
+  {
+    "id": "WP-07",
+    "title": "Overlay and Notification Orchestration",
+    "effort": "L",
+    "critical": "Yes",
+    "deps": "WP-03, WP-05",
+    "phase": "2",
+    "problem": "Tutorial, achievements, ceremonies, news, halftime, lore, recap, era prompts, save reminders, and dialogs mount independently and can compete.",
+    "objective": "Centralize transient presentation in a deterministic priority/dedupe queue with one blocking overlay, focus management, persistence rules, and durable destinations.",
+    "add": [
+      "apps/web/src/ui/overlays/OverlayProvider.tsx",
+      "apps/web/src/ui/overlays/overlay-store.ts",
+      "apps/web/src/ui/overlays/overlay-policy.ts",
+      "apps/web/src/ui/overlays/OverlayHost.tsx",
+      "apps/web/src/ui/overlays/overlay-policy.test.ts"
+    ],
+    "modify": [
+      "apps/web/src/app/App.tsx",
+      "apps/web/src/app/AutosaveToast.tsx"
+    ],
+    "delete": [],
+    "symbols": [
+      "OverlayRequest",
+      "OverlayPriority",
+      "OverlayProvider",
+      "OverlayHost",
+      "enqueueOverlay",
+      "dismissOverlay"
+    ],
+    "tests": "Synthetic collision ordering; dedupe; preemption; modal focus; toast live region; reduced motion; reload/resume rules.",
+    "rollback": "Route existing overlay mounts through a compatibility bridge; bridge can restore legacy direct mounting.",
+    "done": "Only one exclusive overlay appears; nonblocking stack is bounded; every event has a durable follow-up destination."
+  },
+  {
+    "id": "WP-08",
+    "title": "Chip Presentation Adapter",
+    "effort": "L",
+    "critical": "Yes",
+    "deps": "WP-05, WP-07, WP-09 interface contract",
+    "phase": "2/3",
+    "problem": "Chip\u2019s useful guidance currently reserves up to 320 px bottom or 370 px right and duplicates task messaging.",
+    "objective": "Preserve Chip art/personality/event wiring while replacing the dock with a labeled trigger and task/context-driven sheet/panel adapter.",
+    "add": [
+      "apps/web/src/ui/companion/ChipPresentationAdapter.tsx",
+      "apps/web/src/ui/companion/ChipTrigger.tsx",
+      "apps/web/src/ui/companion/ChipPanel.tsx",
+      "apps/web/src/ui/companion/chip-presentation.module.css",
+      "apps/web/src/ui/companion/chip-presentation.test.tsx"
+    ],
+    "modify": [
+      "apps/web/src/features/companion/ChipDock.tsx",
+      "apps/web/src/features/companion/ChipHost.tsx",
+      "packages/design-system/components/Chip/Chip.tsx",
+      "apps/web/src/app/app-shell.css"
+    ],
+    "delete": [],
+    "symbols": [
+      "ChipPresentationAdapter",
+      "ChipTrigger",
+      "ChipPanel",
+      "ChipSpeechPolicy"
+    ],
+    "tests": "Collapsed/expanded/muted; no layout reservation; sheet/panel focus; task consistency; dedupe; modal coexistence; route-beat/event parity.",
+    "rollback": "Compatibility adapter can render legacy dock under legacy mode.",
+    "done": "Chip never permanently pads content; can minimize/mute/reopen; same task source as Today/readiness."
+  },
+  {
+    "id": "WP-09",
+    "title": "Canonical Task Ledger and Today Screen",
+    "effort": "XL",
+    "critical": "Yes",
+    "deps": "WP-01\u2013WP-06; defines contract for WP-08",
+    "phase": "3",
+    "problem": "Briefing, Action Center, Inbox, badges, Chip, and Advance independently compete to define what matters.",
+    "objective": "Create a pure derived Task Ledger/presenter and replace Monday Briefing in new mode with the bounded Today archetype.",
+    "add": [
+      "apps/web/src/ui/presenters/task-ledger.ts",
+      "apps/web/src/ui/presenters/today-presenter.ts",
+      "apps/web/src/ui/presenters/task-ledger.test.ts",
+      "apps/web/src/ui/screens/today/TodayScreen.tsx",
+      "apps/web/src/ui/screens/today/TaskRow.tsx",
+      "apps/web/src/ui/screens/today/TodayScreen.module.css",
+      "apps/web/src/ui/screens/today/TodayScreen.test.tsx"
+    ],
+    "modify": [
+      "apps/web/src/app/store/selectors.ts",
+      "apps/web/src/features/monday-briefing/MondayBriefing.tsx",
+      "apps/web/src/app/navBadges.ts"
+    ],
+    "delete": [],
+    "symbols": [
+      "UiTask",
+      "TaskLedger",
+      "selectTaskLedger",
+      "TodayViewModel",
+      "presentToday",
+      "TodayScreen"
+    ],
+    "tests": "Phase fixtures; task dedupe/priority/completion; 390\u00d7844 first viewport; \u22642.5 viewports default; return focus; no mutations; legacy parity for blockers.",
+    "rollback": "Legacy MondayBriefing remains mounted in legacy mode; presenter additions are pure.",
+    "done": "One task source drives Today/nav/Chip/readiness; first viewport contract passes; no feature data deleted."
+  },
+  {
+    "id": "WP-10",
+    "title": "Readiness and Week-Advance Integration",
+    "effort": "L",
+    "critical": "Yes",
+    "deps": "WP-09, WP-03, WP-07",
+    "phase": "3",
+    "problem": "Advance is treated as a route/action without one concise, trustworthy blocker/warning/consequence checkpoint.",
+    "objective": "Unify readiness with the Task Ledger, provide actionable sheet/panel and exact transition labels, then preserve existing advance/game mutations behind a presenter boundary.",
+    "add": [
+      "apps/web/src/ui/presenters/readiness-presenter.ts",
+      "apps/web/src/ui/screens/today/ReadinessControl.tsx",
+      "apps/web/src/ui/screens/today/ReadinessSheet.tsx",
+      "apps/web/src/ui/screens/today/readiness.test.tsx"
+    ],
+    "modify": [
+      "apps/web/src/features/week-advance/WeekAdvance.tsx",
+      "apps/web/src/ui/screens/today/TodayScreen.tsx"
+    ],
+    "delete": [],
+    "symbols": [
+      "ReadinessViewModel",
+      "presentReadiness",
+      "ReadinessControl",
+      "ReadinessSheet"
+    ],
+    "tests": "Blocked/warning/ready/stale/save-failure fixtures; exact task destinations; acknowledgement; mutation parity; deterministic before/after state.",
+    "rollback": "Existing WeekAdvance route remains compatibility destination; new control delegates to existing actions.",
+    "done": "Advance label states real transition; blockers actionable; warnings explicit; no UI-only bypass of game rules."
+  },
+  {
+    "id": "WP-11",
+    "title": "Entry and Guided Setup Reinvention",
+    "effort": "L",
+    "critical": "No",
+    "deps": "WP-01\u2013WP-06",
+    "phase": "3",
+    "problem": "New Game is six phone screens and 56 controls before commitment.",
+    "objective": "Stage title/continue/start type/franchise/experience/review into bounded steps, preserving existing creation logic and Chip onboarding.",
+    "add": [
+      "apps/web/src/ui/screens/entry/EntryScreen.tsx",
+      "apps/web/src/ui/screens/entry/StartTypeStep.tsx",
+      "apps/web/src/ui/screens/setup/SetupShell.tsx",
+      "apps/web/src/ui/screens/setup/setup.module.css"
+    ],
+    "modify": [
+      "apps/web/src/app/BootScreen.tsx",
+      "apps/web/src/app/NewGameScreen.tsx",
+      "apps/web/src/app/new-game-screen.css",
+      "apps/web/src/features/franchise-setup/FranchiseSetupWizard.tsx"
+    ],
+    "delete": [],
+    "symbols": [
+      "EntryScreen",
+      "StartTypeStep",
+      "SetupShell",
+      "SetupDraft"
+    ],
+    "tests": "No/one/multiple save; Guided/Instant/Scenario/Import; back preserves; step \u22641.5 viewports; storage error/recovery; keyboard/touch.",
+    "rollback": "Legacy entry/setup retained behind migration mode until H1.",
+    "done": "Primary start choices in first viewport; setup progress/restoration works; creation outputs identical save contracts."
+  },
+  {
+    "id": "WP-12",
+    "title": "Team Hub and Mobile-Native Roster",
+    "effort": "XL",
+    "critical": "No",
+    "deps": "H1, WP-01\u2013WP-06",
+    "phase": "4",
+    "problem": "Team systems are scattered and Roster reaches fourteen phone screens through generic card conversion.",
+    "objective": "Create Team hub and purpose-built responsive Roster collection with position groups, prioritized fields, filters, compare tray, and preserved entity origin.",
+    "add": [
+      "apps/web/src/ui/screens/team/TeamHub.tsx",
+      "apps/web/src/ui/screens/team/RosterScreen.tsx",
+      "apps/web/src/ui/screens/team/PlayerRow.tsx",
+      "apps/web/src/ui/screens/team/roster-presenter.ts",
+      "apps/web/src/ui/screens/team/team.module.css"
+    ],
+    "modify": [
+      "apps/web/src/features/roster/RosterManagement.tsx"
+    ],
+    "delete": [],
+    "symbols": [
+      "TeamHub",
+      "RosterScreen",
+      "RosterViewModel",
+      "PlayerRow",
+      "RosterFilterState"
+    ],
+    "tests": "53/expanded roster fixtures; filters/sort/group; phone priorities; virtualization threshold; player return; 320/390/tablet/desktop; compact/coarse pointer.",
+    "rollback": "Old `/roster` wrapper remains available through compatibility mapping.",
+    "done": "Roster is bounded and scannable; no generic all-field cards; all existing roster actions reachable."
+  },
+  {
+    "id": "WP-13",
+    "title": "Player Entity Detail and Comparison",
+    "effort": "L",
+    "critical": "No",
+    "deps": "WP-12, WP-04",
+    "phase": "4",
+    "problem": "Player drill-down and comparison do not share a consistent entity/local-tab/origin model.",
+    "objective": "Create canonical player detail tabs and comparison flow preserving roster/task/trade origins.",
+    "add": [
+      "apps/web/src/ui/screens/player/PlayerDetailScreen.tsx",
+      "apps/web/src/ui/screens/player/PlayerHeader.tsx",
+      "apps/web/src/ui/screens/player/PlayerLocalNav.tsx",
+      "apps/web/src/ui/screens/player/PlayerComparison.tsx",
+      "apps/web/src/ui/screens/player/player-presenter.ts"
+    ],
+    "modify": [
+      "apps/web/src/features/player/PlayerProfile.tsx"
+    ],
+    "delete": [],
+    "symbols": [
+      "PlayerDetailScreen",
+      "PlayerViewModel",
+      "PlayerComparison",
+      "PlayerActionContext"
+    ],
+    "tests": "Roster/depth/trade/stat origins; injured/prospect/retired/practice states; tab deep links; comparison; focus/scroll restoration.",
+    "rollback": "Compatibility wrapper renders legacy profile when new presenter unsupported.",
+    "done": "One canonical player entity; all old player actions/history accounted for; return origin exact."
+  },
+  {
+    "id": "WP-14",
+    "title": "Depth, Development, Staff, and Culture Surfaces",
+    "effort": "XL",
+    "critical": "No",
+    "deps": "WP-12, WP-13",
+    "phase": "4",
+    "problem": "Core team-preparation and people systems remain separate route-style pages with inconsistent mobile workflows.",
+    "objective": "Migrate Depth, development, coaching/staff, locker room/culture, mentors, commitments, and practice squad into Team sections and workflows.",
+    "add": [
+      "apps/web/src/ui/screens/team/DepthWorkflow.tsx",
+      "apps/web/src/ui/screens/team/DevelopmentSection.tsx",
+      "apps/web/src/ui/screens/team/StaffSection.tsx",
+      "apps/web/src/ui/screens/team/CultureSection.tsx"
+    ],
+    "modify": [
+      "apps/web/src/features/depth-chart/**",
+      "apps/web/src/features/coaching/**",
+      "apps/web/src/features/locker-room/**",
+      "apps/web/src/features/mentors/**",
+      "apps/web/src/features/handshake-ledger/**",
+      "apps/web/src/features/practice-squad/**"
+    ],
+    "delete": [],
+    "symbols": [
+      "DepthWorkflow",
+      "DepthViewModel",
+      "DevelopmentSection",
+      "StaffSection",
+      "CultureSection"
+    ],
+    "tests": "Incomplete/conflict/injury depth; no drag-only path; development/staff/culture states; task completion; route compatibility.",
+    "rollback": "Cluster routes retain legacy wrappers individually.",
+    "done": "All Team matrix rows green; required depth task round-trip passes phone/desktop."
+  },
+  {
+    "id": "WP-15",
+    "title": "Office Finance, Contracts, Ownership, and Operations",
+    "effort": "XL",
+    "critical": "No",
+    "deps": "H1, WP-01\u2013WP-06",
+    "phase": "6",
+    "problem": "Contracts, Cap Lab, Front Office, owner, facilities/operations, and governance signals lack one finance/ownership question model.",
+    "objective": "Create Office hub Finance/Operations/Ownership sections with summary-first data and safe scenario/contract workflows.",
+    "add": [
+      "apps/web/src/ui/screens/office/OfficeHub.tsx",
+      "apps/web/src/ui/screens/office/FinanceSection.tsx",
+      "apps/web/src/ui/screens/office/ContractsScreen.tsx",
+      "apps/web/src/ui/screens/office/CapWorkbench.tsx",
+      "apps/web/src/ui/screens/office/OwnershipSection.tsx"
+    ],
+    "modify": [
+      "apps/web/src/features/contracts/**",
+      "apps/web/src/features/front-office/**",
+      "apps/web/src/features/owner/**"
+    ],
+    "delete": [],
+    "symbols": [
+      "OfficeHub",
+      "FinanceViewModel",
+      "ContractsScreen",
+      "CapWorkbench",
+      "OwnershipSection"
+    ],
+    "tests": "Healthy/over-cap/expirations/owner warning; scenario cancel/no mutation; contract actions; mobile priorities; old-path aliases.",
+    "rollback": "Legacy finance routes remain wrappers; scenarios remain UI-only until commit.",
+    "done": "Finance questions have canonical surfaces; every current action and cap consequence preserved."
+  },
+  {
+    "id": "WP-16",
+    "title": "Trade Desk and Personnel Workbench",
+    "effort": "XL",
+    "critical": "No",
+    "deps": "WP-12, WP-13, WP-15",
+    "phase": "6",
+    "problem": "Trades, block, deadline, and needs are fragmented and difficult to operate on phone.",
+    "objective": "Build phase-aware Trade Desk with needs context, asset selection, cap/value consequence, preserved draft offer, and accessible staged phone workflow.",
+    "add": [
+      "apps/web/src/ui/screens/office/personnel/TradeDesk.tsx",
+      "apps/web/src/ui/screens/office/personnel/TradeWorkbench.tsx",
+      "apps/web/src/ui/screens/office/personnel/TradeMobileFlow.tsx",
+      "apps/web/src/ui/screens/office/personnel/trade-presenter.ts"
+    ],
+    "modify": [
+      "apps/web/src/features/trades/**",
+      "apps/web/src/features/team-needs/**"
+    ],
+    "delete": [],
+    "symbols": [
+      "TradeDesk",
+      "TradeWorkbench",
+      "TradeDraft",
+      "TradeViewModel"
+    ],
+    "tests": "Empty/invalid/counter/accepted/deadline; no drag-only; cap/roster parity; preserve draft; old routes; deterministic outcome/action parity.",
+    "rollback": "Existing trade actions remain source; new workbench delegates and can be disabled.",
+    "done": "Deadline journey completes within Office; all trade/block/needs capabilities accounted for."
+  },
+  {
+    "id": "WP-17",
+    "title": "Scouting, Draft, Free Agency, Waivers, and Camp",
+    "effort": "XL",
+    "critical": "No",
+    "deps": "WP-15, WP-16",
+    "phase": "6",
+    "problem": "The offseason is a sequence of independent global destinations rather than one lifecycle.",
+    "objective": "Create phase-aware Personnel lifecycle with scouting/draft/FA/waiver/camp workbenches and event transitions while preserving every existing rule/action.",
+    "add": [
+      "apps/web/src/ui/screens/office/personnel/PersonnelLifecycle.tsx",
+      "apps/web/src/ui/screens/office/personnel/DraftWorkbench.tsx",
+      "apps/web/src/ui/screens/office/personnel/FreeAgencyWorkbench.tsx",
+      "apps/web/src/ui/screens/office/personnel/MarketRow.tsx"
+    ],
+    "modify": [
+      "apps/web/src/features/scouting/**",
+      "apps/web/src/features/draft/**",
+      "apps/web/src/features/free-agency/**",
+      "apps/web/src/features/waiver-wire/**",
+      "apps/web/src/features/training-camp/**",
+      "apps/web/src/features/practice-squad/**"
+    ],
+    "delete": [],
+    "symbols": [
+      "PersonnelLifecycle",
+      "DraftWorkbench",
+      "FreeAgencyWorkbench",
+      "PersonnelPhaseViewModel"
+    ],
+    "tests": "All lifecycle phases; on-clock/trade offer/pick/recap; FA offer outcomes; waiver/camp; route aliases; save/determinism parity.",
+    "rollback": "Phase sections can fall back route-by-route to legacy components.",
+    "done": "Offseason can be completed as one coherent workflow; every matrix row green."
+  },
+  {
+    "id": "WP-18",
+    "title": "Game Hub and Unified Game Center",
+    "effort": "XL",
+    "critical": "No",
+    "deps": "H1, WP-04\u2013WP-07, WP-10",
+    "phase": "5",
+    "problem": "Preparation and one game\u2019s broadcast, presentation, plays, flow, film, recap, and schedule context are fragmented.",
+    "objective": "Create Game Hub and canonical game-ID Game Center with local tabs, persistent score/context, pre/live/post states, and old-route aliases.",
+    "add": [
+      "apps/web/src/ui/screens/game/GameHub.tsx",
+      "apps/web/src/ui/screens/game/GameCenter.tsx",
+      "apps/web/src/ui/screens/game/GameScoreHeader.tsx",
+      "apps/web/src/ui/screens/game/game-center-presenter.ts",
+      "apps/web/src/ui/screens/game/game.module.css"
+    ],
+    "modify": [
+      "apps/web/src/features/game-plan/**",
+      "apps/web/src/features/game-day/**",
+      "apps/web/src/features/broadcast/**",
+      "apps/web/src/features/film-room/**",
+      "apps/web/src/features/schedule/**"
+    ],
+    "delete": [],
+    "symbols": [
+      "GameHub",
+      "GameCenter",
+      "GameCenterTab",
+      "GameCenterViewModel",
+      "GameScoreHeader"
+    ],
+    "tests": "Pregame/live/halftime/final/replay; tab deep links; no game-context loss; phone landscape/touch; reduced motion; old route resolution; game outcome parity.",
+    "rollback": "Each old game route remains a compatibility wrapper to legacy/new tab.",
+    "done": "One game ID carries every view; start/review/return loop passes; no simulation changes."
+  },
+  {
+    "id": "WP-19",
+    "title": "League Hub and Dense Data Patterns",
+    "effort": "XL",
+    "critical": "No",
+    "deps": "H1, WP-01\u2013WP-06, WP-12 row primitives",
+    "phase": "7",
+    "problem": "League feeds/data overlap and dense screens lack question-specific mobile strategies.",
+    "objective": "Create League Overview/Race/News/Stats/Records/Rules plus reusable standings/stat/chart patterns with entity links and accessible data alternatives.",
+    "add": [
+      "apps/web/src/ui/screens/league/LeagueHub.tsx",
+      "apps/web/src/ui/screens/league/StandingsView.tsx",
+      "apps/web/src/ui/screens/league/LeagueNewsView.tsx",
+      "apps/web/src/ui/screens/league/StatsRecordsView.tsx",
+      "apps/web/src/ui/data/ResponsiveDataView.tsx",
+      "apps/web/src/ui/data/ChartFrame.tsx"
+    ],
+    "modify": [
+      "apps/web/src/features/league/**",
+      "apps/web/src/features/league-news/**",
+      "apps/web/src/features/standings/**",
+      "apps/web/src/features/power-rankings/**",
+      "apps/web/src/features/newsroom/**",
+      "apps/web/src/features/social/**",
+      "apps/web/src/features/analytics/**",
+      "apps/web/src/features/stats/**"
+    ],
+    "delete": [],
+    "symbols": [
+      "LeagueHub",
+      "StandingsView",
+      "ResponsiveDataView",
+      "ChartFrame",
+      "LeagueViewModel"
+    ],
+    "tests": "Early/late/playoff standings; mobile priorities; sort/filter; chart alternatives; team/game return origin; old route aliases; long-list performance.",
+    "rollback": "Legacy routes remain available by tab/route wrapper.",
+    "done": "Each league question has one canonical section; dense patterns pass phone/desktop/a11y tests."
+  },
+  {
+    "id": "WP-20",
+    "title": "Dynasty and Legacy Story Hub",
+    "effort": "XL",
+    "critical": "No",
+    "deps": "WP-07, WP-18, WP-19",
+    "phase": "7",
+    "problem": "Twenty-three legacy routes hide emotional payoff in an archive directory.",
+    "objective": "Create Story/People/Honors/Seasons/Records/Scenarios hub, durable artifacts, and event-driven entry points while preserving every archive route/detail.",
+    "add": [
+      "apps/web/src/ui/screens/dynasty/DynastyHub.tsx",
+      "apps/web/src/ui/screens/dynasty/LegacyArtifact.tsx",
+      "apps/web/src/ui/screens/dynasty/DynastyTimeline.tsx",
+      "apps/web/src/ui/screens/dynasty/dynasty-presenter.ts"
+    ],
+    "modify": [
+      "apps/web/src/features/franchise/**",
+      "apps/web/src/features/legacy/**",
+      "apps/web/src/features/dynasty-era/**",
+      "apps/web/src/features/season/**",
+      "apps/web/src/features/playoffs/**",
+      "apps/web/src/features/scenario/**"
+    ],
+    "delete": [],
+    "symbols": [
+      "DynastyHub",
+      "LegacyArtifact",
+      "DynastyTimeline",
+      "DynastyViewModel"
+    ],
+    "tests": "First-season empty; record, award, named game, retirement, championship, era transition; artifact links; old route aliases; long history performance.",
+    "rollback": "Legacy detail routes stay intact; hub/event entries can be disabled independently.",
+    "done": "23/23 legacy rows have a canonical section/detail and emotionally timed entry."
+  },
+  {
+    "id": "WP-21",
+    "title": "Save, Recovery, Settings, Accessibility, and Help",
+    "effort": "XL",
+    "critical": "No",
+    "deps": "H1, WP-03, WP-05, WP-07",
+    "phase": "8",
+    "problem": "Trust-critical settings/save/recovery are overlong and distributed.",
+    "objective": "Create System entry, Save & Recovery status/actions, categorized settings/accessibility, and help while preserving slots, autosaves, imports/exports, combined backups, and sidecars.",
+    "add": [
+      "apps/web/src/ui/screens/system/SystemHome.tsx",
+      "apps/web/src/ui/screens/system/SaveRecoveryScreen.tsx",
+      "apps/web/src/ui/screens/system/SettingsScreen.tsx",
+      "apps/web/src/ui/screens/system/AccessibilityScreen.tsx",
+      "apps/web/src/ui/screens/system/HelpScreen.tsx"
+    ],
+    "modify": [
+      "apps/web/src/features/dynasty-cartridge/DynastyCartridge.tsx",
+      "apps/web/src/features/settings/Settings.tsx",
+      "apps/web/src/app/AutosaveToast.tsx",
+      "apps/web/src/app/store/persistence.ts"
+    ],
+    "delete": [],
+    "symbols": [
+      "SystemHome",
+      "SaveHealthViewModel",
+      "SaveRecoveryScreen",
+      "SettingsScreen",
+      "AccessibilityScreen"
+    ],
+    "tests": "Healthy/saving/failure/quota/import invalid/recovery; complete backup and sidecars; keyboard/zoom/reduced motion; no persistence format change; old utility routes.",
+    "rollback": "Presentation wraps existing persistence APIs; legacy utilities remain until parity proof.",
+    "done": "Trust state is legible; destructive scope explicit; all save contracts and recovery fixtures pass."
+  },
+  {
+    "id": "WP-22",
+    "title": "Inline-Style Migration and Legacy Shell Cleanup",
+    "effort": "XL",
+    "critical": "No",
+    "deps": "All migrated route clusters; runs incrementally",
+    "phase": "9",
+    "problem": "4,110 direct inline-style blocks and !important responsive overrides prevent stable hierarchy and maintainability.",
+    "objective": "Migrate layout-critical styles for completed clusters to scoped CSS/semantic tokens, maintain an allowlist, remove obsolete overrides/components only after coverage.",
+    "add": [
+      "scripts/audit-inline-styles.mjs",
+      "docs/ui-overhaul/implementation/INLINE_STYLE_LEDGER.md"
+    ],
+    "modify": [
+      "Migrated TSX/CSS modules",
+      "packages/design-system/tokens/index.css",
+      "apps/web/src/app/app-shell.css"
+    ],
+    "delete": [
+      "Legacy components/styles only when no route/packet references remain and H2/coverage permits"
+    ],
+    "symbols": [
+      "inline-style audit allowlist",
+      "semantic CSS modules"
+    ],
+    "tests": "Count trend; no new layout-critical inline styles; visual regression; grep/reference proof before deletion; bundle comparison.",
+    "rollback": "Cleanup commits are separated by cluster; revert without changing feature logic.",
+    "done": "New shell and migrated routes meet style policy; obsolete !important/table-card/Chip-clearance rules removed only when unused."
+  },
+  {
+    "id": "WP-23",
+    "title": "QA, Route Coverage, Performance, and Release Hardening",
+    "effort": "XL",
+    "critical": "Yes",
+    "deps": "All packets; infrastructure starts WP-00",
+    "phase": "9",
+    "problem": "The overhaul cannot be trusted without deterministic route, viewport, journey, accessibility, visual, save, and performance gates.",
+    "objective": "Complete automated/manual matrices, final 79/79 proof, visual baselines, performance/bundle checks, device verification, owner playtest script, and release documentation.",
+    "add": [
+      "apps/web/e2e/ui-overhaul-journeys.spec.ts",
+      "apps/web/e2e/ui-overhaul-viewports.spec.ts",
+      "apps/web/e2e/ui-overhaul-a11y.spec.ts",
+      "scripts/check-ui-acceptance.mjs",
+      "docs/release/MFD_UI_OVERHAUL_PLAYTEST.md"
+    ],
+    "modify": [
+      "scripts/release-gate.mjs",
+      ".github/workflows/*",
+      "docs/release/MFD_FINAL_SHIP_DECISION.md"
+    ],
+    "delete": [],
+    "symbols": [
+      "UI acceptance gate",
+      "route coverage gate",
+      "visual geometry gate"
+    ],
+    "tests": "Everything in 09 QA document, full project checks, long-running save fixtures, GitHub Pages, offline, device matrix.",
+    "rollback": "Testing additions do not alter product behavior; release can remain on legacy mode until gates pass.",
+    "done": "All acceptance thresholds pass; H3 owner script signed; no unaccounted route/feature; rollback mode proven."
+  }
+]

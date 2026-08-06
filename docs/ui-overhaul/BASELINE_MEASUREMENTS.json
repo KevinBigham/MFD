@@ -1,0 +1,3467 @@
+{
+  "metadata": {
+    "baseUrl": "http://127.0.0.1:8765/MFD/",
+    "runtimeSource": "repository existing apps/web/dist",
+    "externalRequests": "aborted; fallback fonts rendered",
+    "notes": [
+      "Fresh Vite build blocked in Linux by archive-installed macOS Rollup optional binary."
+    ]
+  },
+  "states": {
+    "cold-open": {
+      "url": "http://127.0.0.1:8765/MFD/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 844
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 130
+      },
+      "main": null,
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 8,
+        "interactive": 1,
+        "aboveFoldInteractive": 1,
+        "targetsBelow44": 0,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 1,
+        "borderedElements": 0,
+        "fixedOrSticky": 0,
+        "scrollContainers": 0,
+        "tables": 0,
+        "rows": 0,
+        "headings": 0
+      },
+      "primaryActions": [],
+      "chrome": [],
+      "text": "> MR. FOOTBALL DYNASTY\nClick or press any key to skip",
+      "label": "cold-open",
+      "route": "/",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:49:26Z",
+      "screenshot": "evidence/runtime/cold-open--phone-390x844.png"
+    },
+    "new-game": {
+      "url": "http://127.0.0.1:8765/MFD/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 5055
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 5039
+      },
+      "main": null,
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 367,
+        "interactive": 56,
+        "aboveFoldInteractive": 8,
+        "targetsBelow44": 1,
+        "targetsBelow24": 1,
+        "smallTextBelow12": 86,
+        "borderedElements": 91,
+        "fixedOrSticky": 0,
+        "scrollContainers": 1,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "Instant <90 SECOpen a ready-to-play franchise with no setup gates.",
+          "top": 3484,
+          "width": 328,
+          "height": 96,
+          "aboveFold": false
+        },
+        {
+          "text": "Start Guided",
+          "top": 442,
+          "width": 322,
+          "height": 46,
+          "aboveFold": true
+        },
+        {
+          "text": "Launch Demo Scenario",
+          "top": 500,
+          "width": 322,
+          "height": 44,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [],
+      "text": "MFD NETWORK\nMR. FOOTBALL DYNASTY\n\nBuild a franchise, survive the week, keep the save.\n\nv1.0\nSave v37\nBrowser Dynasty\nNEW DYNASTY\nSCENARIO CHALLENGE\nSELECT FRANCHISE\nFIND FRANCHISE\nALL\nAFC\nNFC\nALL\nEAST\nNORTH\nSOUTH\nWEST\n32 teams shown\nAFC\nEAST\nNYC\nNew York\nBOS\nBoston\nPHI\nPhiladelphia\nBAL\nBaltimore\nNORTH\nPIT\nPittsburgh\nCLE\nCleveland\nCIN\nCincinnati\nCOL\nColumbus\nSOUTH\nHOU\nHouston\nDAL\nDallas\nSA\nSan Antonio\nNSH\nNashville\nWEST\nKC\nKansas City\nDEN\nDenver\nLV\nLas Vegas\nPHX\nPhoenix\nNFC\nEAST\nDC\nWashington\nCLT\nCharlotte\nATL\nAtlanta\nMIA\nMiami\nNORTH\nCHI\nChicago\nDET\nDetroit\nMIN\nMinneapolis\nSTL\nSt. Louis\nSOUTH\nTB\nTampa Bay\nORL\nOrlando\nJAX\nJacksonville\nIND\nIndianapolis\nWEST\nLA\nLos Angeles\nSF\nSan Francisco\nSEA\nSeattle\nSD\nSan Diego\nDIFFICULTY\nROOKIE\nREC\nForgiving cap, patient owners\nPRO\nBalanced challenge\nALL-PRO\nTight cap, demanding owners\nLEGEND\nMaximum pressure on every decision\nDIFFICULTY GUIDE\n\nPro: Standard experience. Balanced across all systems.\n\nONBOARDING PATH\nINSTANT\n<90 SEC\nOpen a ready-to-play franchise with no setup gates.\nGUIDED\nRECOMMENDED\nKeep the important choices; preload safe recommendations.\nFULL GM\nRun every Day 1 staffing, identity, and roster decision.\nONBOARDING SOURCE\n\nGuided: Uses createFastLaneSetupState with safe defaults and focused choices.\n\nNEXT SNAP\nNew York Concrete Jungle Cabbies\nAFC East // Pro\nNew York Concrete Jungle Cabbies // Pro // Guided\nSTART GUIDED\nLAUNCH DEMO SCENARIO\nLAUNCH SOURCES\ncreateSeedGameState\nactions.newGame\nvalidated loadGame\nsetup-run mode\n\nSource: New Dynasty starts from the web seed factory, Scenario Challenge applies saved scenario constraints before first-run setup, Convention Demo uses the validated Week 14 showcase builder, Continue calls loadGame only after autosave validation, and Import validates backup text/file data before writing a fresh autosave and calling loadGame. New Dynasty persists the selected onboarding path immediately before `actions.newGame`. Instant opens a playable franchise immediately, Guided preloads safe recommendations, and Full GM keeps every Day 1 setup decision. Rendering this screen does not create a dynasty, clear sidecars, autosave, import backups, start setup, play scheduled games, or write GameState.\n\nCONVENTION DEMO\n\nOne game back. Four weeks left. The division still runs through tonight.\n\nWeek 14\nPlayoff Race\nRECOVERY\n\nLost browser storage or opening this dynasty on a new machine? Import a portable backup first, then use pasted backup code if the file is unavailable.\n\nIMPORT DYNAST",
+      "label": "new-game",
+      "route": "/",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:49:30Z",
+      "screenshot": "evidence/runtime/new-game--phone-390x844.png"
+    },
+    "guided-setup": {
+      "url": "http://127.0.0.1:8765/MFD/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 844
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 0
+      },
+      "main": null,
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 25,
+        "interactive": 2,
+        "aboveFoldInteractive": 2,
+        "targetsBelow44": 0,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 3,
+        "borderedElements": 3,
+        "fixedOrSticky": 2,
+        "scrollContainers": 1,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "Start Setup",
+          "top": 729,
+          "width": 332,
+          "height": 44,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "SECTION",
+          "className": "mfd-chip-intro",
+          "top": 0,
+          "height": 844,
+          "text": "Skip Chip IntroFranchise Ops // ChipI'm ChipI separate Must Do, Recomm"
+        },
+        {
+          "tag": "BUTTON",
+          "className": "mfd-chip-intro__skip",
+          "top": 14,
+          "height": 44,
+          "text": "Skip Chip Intro"
+        }
+      ],
+      "text": "SKIP CHIP INTRO\nFRANCHISE OPS // CHIP\nI'M CHIP\n\nI separate Must Do, Recommended, and Optional work, point to the exact screen to open, and explain the consequence before a choice hurts the roster, cap space, owner patience, or the next game.\n\nI've seen a 40-yard dash decide a season and one missed backup decide a Sunday. You bring the calls; I bring the map.\n\nSTART SETUP",
+      "label": "guided-setup",
+      "route": "setup",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:49:32Z",
+      "screenshot": "evidence/runtime/guided-setup--phone-390x844.png"
+    },
+    "more-drawer": {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 11951
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 11935
+      },
+      "main": {
+        "top": 392,
+        "height": 11551,
+        "scrollHeight": 11551
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 1074,
+        "interactive": 117,
+        "aboveFoldInteractive": 48,
+        "targetsBelow44": 16,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 421,
+        "borderedElements": 230,
+        "fixedOrSticky": 4,
+        "scrollContainers": 3,
+        "tables": 0,
+        "rows": 0,
+        "headings": 6
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 189,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 3047,
+          "width": 76,
+          "height": 44,
+          "aboveFold": false
+        },
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "DIV",
+          "className": "",
+          "top": 0,
+          "height": 844,
+          "text": "ALL DESTINATIONSCurrent: BriefingBRIEFINGInboxWatchFOOTBALL OPSDepthLo"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nJalen Banks-QB1 and Ty Stone-CB9 bring bad blood into primetime\nJalen Banks-QB1 is closing on another statement year, but Ty Stone-CB9 still owns the defining turnover from the first meeting.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nNext action\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facili",
+      "label": "more-drawer",
+      "route": "/",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:49:51Z",
+      "screenshot": "evidence/runtime/more-drawer--phone-390x844.png"
+    }
+  },
+  "viewportMatrix": [
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "document": {
+        "scrollWidth": 320,
+        "scrollHeight": 13224
+      },
+      "body": {
+        "scrollWidth": 304,
+        "scrollHeight": 13208
+      },
+      "main": {
+        "top": 438,
+        "height": 12778,
+        "scrollHeight": 12778
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 667,
+        "interactive": 43,
+        "aboveFoldInteractive": 20,
+        "targetsBelow44": 15,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 270,
+        "borderedElements": 156,
+        "fixedOrSticky": 3,
+        "scrollContainers": 3,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 189,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 3478,
+          "width": 76,
+          "height": 44,
+          "aboveFold": false
+        },
+        {
+          "text": "Advance",
+          "top": 518,
+          "width": 64,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 333,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 517,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 460,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available from its norm",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "phone-320x568",
+      "capturedAt": "2026-08-05T23:49:47Z",
+      "screenshot": "evidence/runtime/briefing--phone-320x568.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "document": {
+        "scrollWidth": 360,
+        "scrollHeight": 12315
+      },
+      "body": {
+        "scrollWidth": 344,
+        "scrollHeight": 12299
+      },
+      "main": {
+        "top": 392,
+        "height": 11915,
+        "scrollHeight": 11915
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 667,
+        "interactive": 43,
+        "aboveFoldInteractive": 20,
+        "targetsBelow44": 15,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 270,
+        "borderedElements": 156,
+        "fixedOrSticky": 3,
+        "scrollContainers": 3,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 189,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 3171,
+          "width": 76,
+          "height": 44,
+          "aboveFold": false
+        },
+        {
+          "text": "Advance",
+          "top": 750,
+          "width": 72,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 749,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 692,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available from its norm",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "phone-360x800",
+      "capturedAt": "2026-08-05T23:49:48Z",
+      "screenshot": "evidence/runtime/briefing--phone-360x800.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 11788
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 11772
+      },
+      "main": {
+        "top": 392,
+        "height": 11388,
+        "scrollHeight": 11388
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 667,
+        "interactive": 43,
+        "aboveFoldInteractive": 20,
+        "targetsBelow44": 15,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 270,
+        "borderedElements": 156,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 189,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 3047,
+          "width": 76,
+          "height": 44,
+          "aboveFold": false
+        },
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available from its norm",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:49:48Z",
+      "screenshot": "evidence/runtime/briefing--phone-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "document": {
+        "scrollWidth": 430,
+        "scrollHeight": 11429
+      },
+      "body": {
+        "scrollWidth": 414,
+        "scrollHeight": 11413
+      },
+      "main": {
+        "top": 392,
+        "height": 11028,
+        "scrollHeight": 11028
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 675,
+        "interactive": 43,
+        "aboveFoldInteractive": 20,
+        "targetsBelow44": 15,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 270,
+        "borderedElements": 156,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 189,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 2924,
+          "width": 76,
+          "height": 44,
+          "aboveFold": false
+        },
+        {
+          "text": "Advance",
+          "top": 882,
+          "width": 86,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 881,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 824,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available from its norm",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "phone-430x932",
+      "capturedAt": "2026-08-05T23:49:48Z",
+      "screenshot": "evidence/runtime/briefing--phone-430x932.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 667,
+        "height": 375
+      },
+      "document": {
+        "scrollWidth": 667,
+        "scrollHeight": 8059
+      },
+      "body": {
+        "scrollWidth": 651,
+        "scrollHeight": 8043
+      },
+      "main": {
+        "top": 372,
+        "height": 7679,
+        "scrollHeight": 7679
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 675,
+        "interactive": 43,
+        "aboveFoldInteractive": 20,
+        "targetsBelow44": 15,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 270,
+        "borderedElements": 156,
+        "fixedOrSticky": 3,
+        "scrollContainers": 1,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 189,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 2395,
+          "width": 76,
+          "height": 44,
+          "aboveFold": false
+        },
+        {
+          "text": "Advance",
+          "top": 325,
+          "width": 133,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 324,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 267,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available from its norm",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "landscape-667x375",
+      "capturedAt": "2026-08-05T23:49:49Z",
+      "screenshot": "evidence/runtime/briefing--landscape-667x375.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "document": {
+        "scrollWidth": 844,
+        "scrollHeight": 7449
+      },
+      "body": {
+        "scrollWidth": 828,
+        "scrollHeight": 7433
+      },
+      "main": {
+        "top": 372,
+        "height": 7069,
+        "scrollHeight": 7069
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 722,
+        "interactive": 49,
+        "aboveFoldInteractive": 26,
+        "targetsBelow44": 48,
+        "targetsBelow24": 2,
+        "smallTextBelow12": 278,
+        "borderedElements": 170,
+        "fixedOrSticky": 3,
+        "scrollContainers": 0,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 189,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 2157,
+          "width": 74,
+          "height": 38,
+          "aboveFold": false
+        },
+        {
+          "text": "Replay",
+          "top": 228,
+          "width": 49,
+          "height": 39,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": -8,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPMust Do: open N"
+        },
+        {
+          "tag": "SPAN",
+          "className": "mfd-spotlight",
+          "top": 1097,
+          "height": 2780,
+          "text": "\u2193"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nNext action\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available f",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "landscape-844x390",
+      "capturedAt": "2026-08-05T23:49:49Z",
+      "screenshot": "evidence/runtime/briefing--landscape-844x390.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 932,
+        "height": 430
+      },
+      "document": {
+        "scrollWidth": 932,
+        "scrollHeight": 6855
+      },
+      "body": {
+        "scrollWidth": 916,
+        "scrollHeight": 6839
+      },
+      "main": {
+        "top": 372,
+        "height": 6474,
+        "scrollHeight": 6474
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 722,
+        "interactive": 49,
+        "aboveFoldInteractive": 26,
+        "targetsBelow44": 48,
+        "targetsBelow24": 2,
+        "smallTextBelow12": 278,
+        "borderedElements": 170,
+        "fixedOrSticky": 3,
+        "scrollContainers": 0,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 189,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 2150,
+          "width": 74,
+          "height": 38,
+          "aboveFold": false
+        },
+        {
+          "text": "Replay",
+          "top": 257,
+          "width": 74,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 32,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPMust Do: open M"
+        },
+        {
+          "tag": "SPAN",
+          "className": "mfd-spotlight",
+          "top": 1099,
+          "height": 2274,
+          "text": "\u2193"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nNext action\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available f",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "landscape-932x430",
+      "capturedAt": "2026-08-05T23:49:50Z",
+      "screenshot": "evidence/runtime/briefing--landscape-932x430.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "document": {
+        "scrollWidth": 768,
+        "scrollHeight": 7520
+      },
+      "body": {
+        "scrollWidth": 752,
+        "scrollHeight": 7504
+      },
+      "main": {
+        "top": 372,
+        "height": 7140,
+        "scrollHeight": 7140
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 750,
+        "interactive": 54,
+        "aboveFoldInteractive": 31,
+        "targetsBelow44": 27,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 288,
+        "borderedElements": 176,
+        "fixedOrSticky": 4,
+        "scrollContainers": 1,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 189,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 2232,
+          "width": 76,
+          "height": 44,
+          "aboveFold": false
+        },
+        {
+          "text": "Advance",
+          "top": 974,
+          "width": 154,
+          "height": 50,
+          "aboveFold": true
+        },
+        {
+          "text": "Replay",
+          "top": 857,
+          "width": 49,
+          "height": 42,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 973,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 608,
+          "height": 394,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPMusNextWhere am"
+        },
+        {
+          "tag": "SPAN",
+          "className": "mfd-spotlight",
+          "top": 1127,
+          "height": 2893,
+          "text": "\u2193"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nNext action\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available f",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "tablet-768x1024",
+      "capturedAt": "2026-08-05T23:50:12Z",
+      "screenshot": "evidence/runtime/briefing--tablet-768x1024.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "document": {
+        "scrollWidth": 1024,
+        "scrollHeight": 6536
+      },
+      "body": {
+        "scrollWidth": 1008,
+        "scrollHeight": 6520
+      },
+      "main": {
+        "top": 372,
+        "height": 6156,
+        "scrollHeight": 6156
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 722,
+        "interactive": 49,
+        "aboveFoldInteractive": 26,
+        "targetsBelow44": 48,
+        "targetsBelow24": 2,
+        "smallTextBelow12": 278,
+        "borderedElements": 170,
+        "fixedOrSticky": 3,
+        "scrollContainers": 0,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 189,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 2098,
+          "width": 74,
+          "height": 38,
+          "aboveFold": false
+        },
+        {
+          "text": "Replay",
+          "top": 595,
+          "width": 74,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 370,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPMust Do: open M"
+        },
+        {
+          "tag": "SPAN",
+          "className": "mfd-spotlight",
+          "top": 1127,
+          "height": 2893,
+          "text": "\u2193"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nNext action\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available f",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "tablet-1024x768",
+      "capturedAt": "2026-08-05T23:50:13Z",
+      "screenshot": "evidence/runtime/briefing--tablet-1024x768.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "document": {
+        "scrollWidth": 1280,
+        "scrollHeight": 6706
+      },
+      "body": {
+        "scrollWidth": 1264,
+        "scrollHeight": 6690
+      },
+      "main": {
+        "top": 214,
+        "height": 6484,
+        "scrollHeight": 6484
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 722,
+        "interactive": 49,
+        "aboveFoldInteractive": 26,
+        "targetsBelow44": 48,
+        "targetsBelow24": 2,
+        "smallTextBelow12": 278,
+        "borderedElements": 170,
+        "fixedOrSticky": 3,
+        "scrollContainers": 0,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 105,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 2006,
+          "width": 74,
+          "height": 38,
+          "aboveFold": false
+        },
+        {
+          "text": "Replay",
+          "top": 547,
+          "width": 74,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 151,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 322,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPMust Do: open M"
+        },
+        {
+          "tag": "SPAN",
+          "className": "mfd-spotlight",
+          "top": 954,
+          "height": 2274,
+          "text": "\u2193"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nNext action\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available f",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "desktop-1280x720",
+      "capturedAt": "2026-08-05T23:50:14Z",
+      "screenshot": "evidence/runtime/briefing--desktop-1280x720.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 6388
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 6372
+      },
+      "main": {
+        "top": 214,
+        "height": 6166,
+        "scrollHeight": 6166
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 722,
+        "interactive": 49,
+        "aboveFoldInteractive": 26,
+        "targetsBelow44": 48,
+        "targetsBelow24": 2,
+        "smallTextBelow12": 278,
+        "borderedElements": 170,
+        "fixedOrSticky": 3,
+        "scrollContainers": 0,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 105,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 1940,
+          "width": 74,
+          "height": 38,
+          "aboveFold": false
+        },
+        {
+          "text": "Replay",
+          "top": 727,
+          "width": 74,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 151,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 478,
+          "height": 400,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPMust Do: open M"
+        },
+        {
+          "tag": "SPAN",
+          "className": "mfd-spotlight",
+          "top": 954,
+          "height": 2274,
+          "text": "\u2193"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nNext action\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available f",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:50:15Z",
+      "screenshot": "evidence/runtime/briefing--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "document": {
+        "scrollWidth": 1600,
+        "scrollHeight": 5902
+      },
+      "body": {
+        "scrollWidth": 1584,
+        "scrollHeight": 5886
+      },
+      "main": {
+        "top": 214,
+        "height": 5680,
+        "scrollHeight": 5680
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 721,
+        "interactive": 49,
+        "aboveFoldInteractive": 26,
+        "targetsBelow44": 48,
+        "targetsBelow24": 2,
+        "smallTextBelow12": 278,
+        "borderedElements": 170,
+        "fixedOrSticky": 3,
+        "scrollContainers": 0,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 105,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 1888,
+          "width": 74,
+          "height": 38,
+          "aboveFold": false
+        },
+        {
+          "text": "Replay",
+          "top": 827,
+          "width": 74,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 151,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 555,
+          "height": 423,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPMust Do: open M"
+        },
+        {
+          "tag": "SPAN",
+          "className": "mfd-spotlight",
+          "top": 998,
+          "height": 2088,
+          "text": "\u2193"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nJalen Banks-QB1 and Ty Stone-CB9 bring bad blood into primetime\nJalen Banks-QB1 is closing on another statement year, but Ty Stone-CB9 still owns the defining turnover from the first meeting.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nNext action\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facili",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "desktop-1600x1000",
+      "capturedAt": "2026-08-05T23:50:16Z",
+      "screenshot": "evidence/runtime/briefing--desktop-1600x1000.png"
+    }
+  ],
+  "routeMatrix": [
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 6276
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 6260
+      },
+      "main": {
+        "top": 214,
+        "height": 6054,
+        "scrollHeight": 6054
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 722,
+        "interactive": 49,
+        "aboveFoldInteractive": 26,
+        "targetsBelow44": 48,
+        "targetsBelow24": 2,
+        "smallTextBelow12": 278,
+        "borderedElements": 170,
+        "fixedOrSticky": 3,
+        "scrollContainers": 0,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 105,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 1940,
+          "width": 74,
+          "height": 38,
+          "aboveFold": false
+        },
+        {
+          "text": "Replay",
+          "top": 745,
+          "width": 49,
+          "height": 39,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 151,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 502,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPMustNextWhere a"
+        },
+        {
+          "tag": "SPAN",
+          "className": "mfd-spotlight",
+          "top": 994,
+          "height": 2088,
+          "text": "\u2193"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nNext action\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available f",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:50:59Z",
+      "screenshot": "evidence/runtime/briefing--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/analytics",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 916
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 900
+      },
+      "main": {
+        "top": 159,
+        "height": 749,
+        "scrollHeight": 749
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 211,
+        "interactive": 35,
+        "aboveFoldInteractive": 35,
+        "targetsBelow44": 35,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 64,
+        "borderedElements": 53,
+        "fixedOrSticky": 2,
+        "scrollContainers": 1,
+        "tables": 0,
+        "rows": 0,
+        "headings": 0
+      },
+      "primaryActions": [
+        {
+          "text": "Replay",
+          "top": 727,
+          "width": 50,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 151,
+          "text": "MFD NETWORKMFDLakeview CapsAnalytics9-4Week 14Season 2026BRIEFINGFOOTB"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 502,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPRecommendedNext"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nANALYTICS\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nWEATHER\nDIGEST\nNEWS\nSOCIAL\nCOMMISH\nCBA\nRULES\nDATA\nRECORDS\nSTATS\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nLOADING ANALYTICS\n4\nYear 2026 \u2014 Coach\nOPS\nCHIP\nOPS CHIEF\nFRANCHISE OPS // CHIP\n\nRecommended\n\nNEXT\nWHERE AM I?\nASK CHIP",
+      "label": "analytics",
+      "route": "/analytics",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:51:49Z",
+      "screenshot": "evidence/runtime/analytics--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/contracts",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 3553
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 3537
+      },
+      "main": {
+        "top": 181,
+        "height": 3364,
+        "scrollHeight": 3364
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 834,
+        "interactive": 81,
+        "aboveFoldInteractive": 49,
+        "targetsBelow44": 69,
+        "targetsBelow24": 12,
+        "smallTextBelow12": 422,
+        "borderedElements": 182,
+        "fixedOrSticky": 11,
+        "scrollContainers": 1,
+        "tables": 1,
+        "rows": 13,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "Replay",
+          "top": 727,
+          "width": 50,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 173,
+          "text": "MFD NETWORKMFDLakeview CapsContracts9-4Week 14Season 2026BRIEFINGFOOTB"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 2406,
+          "height": 28,
+          "text": "NAME"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 2406,
+          "height": 28,
+          "text": "POS"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 2406,
+          "height": 28,
+          "text": "OVR"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 2406,
+          "height": 28,
+          "text": "CAP HIT"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 2406,
+          "height": 28,
+          "text": "DEAD CAP"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 2406,
+          "height": 28,
+          "text": "YEARS"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 2406,
+          "height": 28,
+          "text": "AGENT"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 2406,
+          "height": 28,
+          "text": "VALUE"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 2406,
+          "height": 28,
+          "text": "STATUS"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 502,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPRecommNextWhere"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nCONTRACTS\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nFOOTBALL OPS\nROSTER\nDEPTH\nLOCKER\nCOACH\nTREE\nRELATIONS\nPROMISES\nMENTORS\nDEVELOP\nCOMPARE\nRIVALRIES\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nTRADES\nBLOCK\nDEADLINE\nNEEDS\nSCOUT\nRECAP\nEXPANSION\nTARGETS\nWAIVERS\nPS\nOWNER\nRELOCATE\nLATER\nCamp: Unlocks in Training Camp\nDraft: Unlocks in Draft\nFA: Unlocks in Free Agency\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFD NETWORK\n$25M\n82% used\nCONTRACTS & SALARY CAP\nCap $255M // Used $210M // Space $25M\nSALARY CAP\n$255M\nLeague cap ceiling\nCAP USED\n$210M\n82% committed\nCAP FLOOR\n$229M\n$19M under floor\nDEAD CAP\n$0M\nCurrent year sunk cost\nCAP SPACE\n$25M\nFlexible\nCONTRACT SOURCES\nROSTER CONTRACTS\n12\nselectRoster feeds active contracts, holdouts, cap hits, dead money, agents, and row actions.\nCAP CONTEXT\nGameState\ngetSalaryCap(year, game), getCapFloor(year, game), and selectCapProjection surface active league-rule overrides.\nINCENTIVES\n0\nselectIncentiveSummary reads saved contract clauses and progress without writing payouts from render.\nPROJECTION ROWS\n3\nselectCapProjection owns the multi-year committed/free-space read model shown on this route.\nTAG RULES\n3/1\nfranchise_tag_limit and tag_types_allowed drive selected-player tag eligibility and options.\nOpening /contracts and selecting rows do not write contracts, tags, cap totals, saves, game results or saved outcomes, or player movement. Restructure, Add Void Years, Cut Player, Submit Extension, and Apply Franchise Tag are the explicit store commit buttons.\nCAP BREAKDOWN\nCAP USAGE\n82%\nWR\n$19M\nSHARE\n7%\nQB\n$9M\nSHARE\n4%\nRB\n$9M\nSHARE\n4%\nTE\n$9M\nSHARE\n4%\nOL\n$9M\nSHARE\n4%\nCAP PROJECTIONS\n2027\n$111.6M committed // $0M dead\n$155.4M free\n2028\n$102.3M committed // $0M dead\n$178.7M free\n2029\n$102.3M committed // $0M dead\n$192.7M free\nINCENTIVE SUMMARY\nACTIVE INCENTIVES\n0\nContract clauses in play\nLIKELY TO EARN\n0\nOn current pace\nNOT LIKELY\n0\nNeeds a late push\nFRANCHISE TAG WINDOW\nTAG USAGE\n0/1\nActive limit for 2026\nALLOWED TAGS\n3\nexclusive, non exclusive, transition\nSOURCE\nLeague Rules\nfranchise_tag_limit and tag_types_allowed\nFranchise tags are available only from a selected expiring player row. Applying one writes the current roster player's one-year tag tender, mirrors the flat player map, refreshes cap totals, and autosaves through the Contracts store action.\nNAME\n\tPOS\n\tOVR\n\tCAP HIT\n\tDEAD CAP\n\tYEARS\n\tAGENT\n\tVALUE\tSTATUS\n\nJalen Banks-QB1\tQB\t92\t$9.3M\t$4M\t3yr\t\nUnassigned\nn/a\n\tFair\t\nClear\n\nNico Knox-RB2\tRB\t88\t",
+      "label": "contracts",
+      "route": "/contracts",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:51:04Z",
+      "screenshot": "evidence/runtime/contracts--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/depth-chart",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 2257
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 2241
+      },
+      "main": {
+        "top": 181,
+        "height": 2068,
+        "scrollHeight": 2068
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 475,
+        "interactive": 62,
+        "aboveFoldInteractive": 53,
+        "targetsBelow44": 55,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 168,
+        "borderedElements": 118,
+        "fixedOrSticky": 3,
+        "scrollContainers": 1,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "QB1 DEEPJalen Banks-QB192 OVR // 96 POT // AGE 26Starter Locked",
+          "top": 1254,
+          "width": 243,
+          "height": 161,
+          "aboveFold": false
+        },
+        {
+          "text": "RB1 DEEPNico Knox-RB288 OVR // 92 POT // AGE 26Starter Locked",
+          "top": 1254,
+          "width": 243,
+          "height": 161,
+          "aboveFold": false
+        },
+        {
+          "text": "WR2 DEEPCaleb Stone-WR386 OVR // 90 POT // AGE 26Starter Locked",
+          "top": 1254,
+          "width": 243,
+          "height": 161,
+          "aboveFold": false
+        },
+        {
+          "text": "TE1 DEEPJalen Knox-TE584 OVR // 88 POT // AGE 26Starter Locked",
+          "top": 1254,
+          "width": 243,
+          "height": 161,
+          "aboveFold": false
+        },
+        {
+          "text": "OL1 DEEPDarius Boone-OL686 OVR // 90 POT // AGE 26Starter Locked",
+          "top": 1431,
+          "width": 243,
+          "height": 161,
+          "aboveFold": false
+        },
+        {
+          "text": "Replay",
+          "top": 727,
+          "width": 50,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 173,
+          "text": "MFD NETWORKMFDLakeview CapsDepth Chart9-4Week 14Season 2026BRIEFINGFOO"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 502,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPMust Do: saNext"
+        },
+        {
+          "tag": "SPAN",
+          "className": "mfd-spotlight",
+          "top": 1258,
+          "height": 350,
+          "text": "\u2193"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nDEPTH CHART\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nFOOTBALL OPS\nROSTER\nDEPTH\nLOCKER\nCOACH\nTREE\nRELATIONS\nPROMISES\nMENTORS\nDEVELOP\nCOMPARE\nRIVALRIES\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nTRADES\nBLOCK\nDEADLINE\nNEEDS\nSCOUT\nRECAP\nEXPANSION\nTARGETS\nWAIVERS\nPS\nOWNER\nRELOCATE\nLATER\nCamp: Unlocks in Training Camp\nDraft: Unlocks in Draft\nFA: Unlocks in Free Agency\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFD NETWORK\n12/25 starters\n0 injuries\nDEPTH CHART\nSet starters, monitor competition, and keep every position room broadcast-ready.\nNEXT CALL\nSET LEGAL STARTER SHAPE\n12/25 starter tags are marked. Open rooms: WR -1 / OL -4 / DL -3. Use the room toggles to fit the engine formation before Advance Week.\n12/25 starter shape\n13 open / 0 extra\n0 battles\nUSE RECOMMENDED\nOFFENSE ROOMS\nDEFENSE ROOMS\nOPEN PLAN\nDEPTH CHART SOURCES\nActive roster\n12 players\nRoom cards show the active roster, putting current starters ahead of rating order so the board matches the saved lineup.\nStarter shape\n13 open / 0 extra\nPromote and backup buttons update starter tags. The board checks the engine starter shape by position: Open rooms: WR -1 / OL -4 / DL -3.\nBattle model\n0 battles\nBattle rows are scouting guidance from ratings and starter tags. Opening the route does not save battle receipts.\nSpecial teams\n0/2 returners\nReturner lanes show the current special-teams card. Dropdowns are the only returner commits here.\nJust viewing\ndisplay only\nOpening Depth Chart does not change the lineup. Use Recommended is the explicit one-click commit for starters and special teams; it does not play games, distribute snaps, change contracts, or write player history.\nOPEN BATTLES\n0\nRoster spots still up for grabs\nOFFENSE ROOMS\n5\nSkill groups and trench depth\nDEFENSE ROOMS\n4\nFront seven plus back-end rotation\nOFFENSE\nDEFENSE\nNext action\nQB\n1 DEEP\nJalen Banks-QB1\n92 OVR // 96 POT // AGE 26\nStarter Locked\nRB\n1 DEEP\nNico Knox-RB2\n88 OVR // 92 POT // AGE 26\nStarter Locked\nWR\n2 DEEP\nCaleb Stone-WR3\n86 OVR // 90 POT // AGE 26\nStarter Locked\nTE\n1 DEEP\nJalen Knox-TE5\n84 OVR // 88 POT // AGE 26\nStarter Locked\nOL\n1 DEEP\nDarius Boone-OL6\n86 OVR // 90 POT // AGE 26\nStarter Locked\nSPECIAL TEAMS\nKick Returner\nNico Knox-RB2 // SPD 88\nCaleb Stone-WR3 // SPD 86\nJordan Stone-WR4 // SPD 86\nAssign your best burst threat.\nPunt Returner\nNico Knox-RB2 // SPD 88\nCaleb Stone-WR3 // SPD 86\nJordan Stone-WR4 // SPD 86\nPunt return role is still open.\nLong Snapper\nUnassigned\nAuto-assigned from the be",
+      "label": "depth-chart",
+      "route": "/depth-chart",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:51:02Z",
+      "screenshot": "evidence/runtime/depth-chart--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/dynasty",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 916
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 900
+      },
+      "main": {
+        "top": 159,
+        "height": 749,
+        "scrollHeight": 749
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 301,
+        "interactive": 45,
+        "aboveFoldInteractive": 45,
+        "targetsBelow44": 45,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 84,
+        "borderedElements": 63,
+        "fixedOrSticky": 2,
+        "scrollContainers": 1,
+        "tables": 0,
+        "rows": 0,
+        "headings": 0
+      },
+      "primaryActions": [
+        {
+          "text": "Replay",
+          "top": 727,
+          "width": 50,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 151,
+          "text": "MFD NETWORKMFDLakeview CapsSave/Load9-4Week 14Season 2026BRIEFINGFOOTB"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 502,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPRecommendedNext"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nSAVE/LOAD\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nLEGACY\nFRANCHISE\nLEGENDS\nCAREER\nBOOK\nCHRONICLE\nSCRAP\nHALL\nTROPHIES\nERAS\nMVPS\nLORE\nACHIEVE\nLEGACY\nNAMED\nBLOODLINES\nAWARDS\nRECAP\nCHALLENGE\nABOUT\nCREDITS\nFAQ\nSAVE\nCONFIG\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nLOADING DYNASTY CARTRIDGE\n4\nYear 2026 \u2014 Coach\nOPS\nCHIP\nOPS CHIEF\nFRANCHISE OPS // CHIP\n\nRecommended\n\nNEXT\nWHERE AM I?\nASK CHIP",
+      "label": "save-load",
+      "route": "/dynasty",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:51:51Z",
+      "screenshot": "evidence/runtime/save-load--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/franchise",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 916
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 900
+      },
+      "main": {
+        "top": 159,
+        "height": 749,
+        "scrollHeight": 749
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 305,
+        "interactive": 45,
+        "aboveFoldInteractive": 45,
+        "targetsBelow44": 45,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 84,
+        "borderedElements": 63,
+        "fixedOrSticky": 2,
+        "scrollContainers": 1,
+        "tables": 0,
+        "rows": 0,
+        "headings": 0
+      },
+      "primaryActions": [
+        {
+          "text": "Replay",
+          "top": 727,
+          "width": 50,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 151,
+          "text": "MFD NETWORKMFDLakeview CapsFranchise9-4Week 14Season 2026BRIEFINGFOOTB"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 502,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPOptional: oNext"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nFRANCHISE\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nLEGACY\nFRANCHISE\nLEGENDS\nCAREER\nBOOK\nCHRONICLE\nSCRAP\nHALL\nTROPHIES\nERAS\nMVPS\nLORE\nACHIEVE\nLEGACY\nNAMED\nBLOODLINES\nAWARDS\nRECAP\nCHALLENGE\nABOUT\nCREDITS\nFAQ\nSAVE\nCONFIG\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nLOADING FRANCHISE HUB\n4\nYear 2026 \u2014 Coach\nOPS\nCHIP\nOPS CHIEF\nFRANCHISE OPS // CHIP\n\nOptional: o\n\nNEXT\nWHERE AM I?\nASK CHIP",
+      "label": "franchise",
+      "route": "/franchise",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:51:50Z",
+      "screenshot": "evidence/runtime/franchise--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/game-day",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 1042
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 1026
+      },
+      "main": {
+        "top": 214,
+        "height": 820,
+        "scrollHeight": 820
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 240,
+        "interactive": 32,
+        "aboveFoldInteractive": 32,
+        "targetsBelow44": 32,
+        "targetsBelow24": 1,
+        "smallTextBelow12": 63,
+        "borderedElements": 55,
+        "fixedOrSticky": 2,
+        "scrollContainers": 0,
+        "tables": 0,
+        "rows": 0,
+        "headings": 0
+      },
+      "primaryActions": [
+        {
+          "text": "Replay",
+          "top": 727,
+          "width": 50,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 151,
+          "text": "MFD NETWORKMFDLakeview CapsGame Day9-4Week 14Season 2026BRIEFINGFOOTBA"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 502,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPMustNextWhere a"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nGAME DAY\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nGAME WEEK\nPLAN\nGAME\nLIVE\nCINEMA\nPBP\nFLOW\nFILM\nSCHEDULE\nSB\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nFRANCHISE OPS // CHIP\n\nLake\n\nSKIP\nMFD NETWORK\nAWAITING KICKOFF\nNo postgame package yet. Advance into the regular season to generate the first game day recap.\n4\nYear 2026 \u2014 Coach\nOPS\nCHIP\nOPS CHIEF\nFRANCHISE OPS // CHIP\n\nMust\n\nNEXT\nWHERE AM I?\nASK CHIP",
+      "label": "game-day",
+      "route": "/game-day",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:51:08Z",
+      "screenshot": "evidence/runtime/game-day--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/game-plan",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 916
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 900
+      },
+      "main": {
+        "top": 159,
+        "height": 749,
+        "scrollHeight": 749
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 208,
+        "interactive": 31,
+        "aboveFoldInteractive": 31,
+        "targetsBelow44": 31,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 56,
+        "borderedElements": 49,
+        "fixedOrSticky": 2,
+        "scrollContainers": 0,
+        "tables": 0,
+        "rows": 0,
+        "headings": 0
+      },
+      "primaryActions": [
+        {
+          "text": "Replay",
+          "top": 727,
+          "width": 50,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 151,
+          "text": "MFD NETWORKMFDLakeview CapsGame Plan9-4Week 14Season 2026BRIEFINGFOOTB"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 502,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPRecoNextWhere a"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nGAME PLAN\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nGAME WEEK\nPLAN\nGAME\nLIVE\nCINEMA\nPBP\nFLOW\nFILM\nSCHEDULE\nSB\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nLOADING GAME PLAN\n4\nYear 2026 \u2014 Coach\nOPS\nCHIP\nOPS CHIEF\nFRANCHISE OPS // CHIP\n\nReco\n\nNEXT\nWHERE AM I?\nASK CHIP",
+      "label": "game-plan",
+      "route": "/game-plan",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:51:06Z",
+      "screenshot": "evidence/runtime/game-plan--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/roster",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 2869
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 2853
+      },
+      "main": {
+        "top": 181,
+        "height": 2680,
+        "scrollHeight": 2680
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 944,
+        "interactive": 117,
+        "aboveFoldInteractive": 51,
+        "targetsBelow44": 105,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 564,
+        "borderedElements": 230,
+        "fixedOrSticky": 17,
+        "scrollContainers": 1,
+        "tables": 1,
+        "rows": 13,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "Replay",
+          "top": 727,
+          "width": 50,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 173,
+          "text": "MFD NETWORKMFDLakeview CapsRoster9-4Week 14Season 2026BRIEFINGFOOTBALL"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "MANAGE"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "NAME"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "WATCH"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "POS"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "OVR"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "POT"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "AGE"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "CAP HIT"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "CONTRACT"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "FIT"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "ROLE"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "DEV"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "FATIGUE"
+        },
+        {
+          "tag": "TH",
+          "className": "",
+          "top": 1359,
+          "height": 28,
+          "text": "TRAINING"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 502,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPRecommended: op"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nROSTER\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nFOOTBALL OPS\nROSTER\nDEPTH\nLOCKER\nCOACH\nTREE\nRELATIONS\nPROMISES\nMENTORS\nDEVELOP\nCOMPARE\nRIVALRIES\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nTRADES\nBLOCK\nDEADLINE\nNEEDS\nSCOUT\nRECAP\nEXPANSION\nTARGETS\nWAIVERS\nPS\nOWNER\nRELOCATE\nLATER\nCamp: Unlocks in Training Camp\nDraft: Unlocks in Draft\nFA: Unlocks in Free Agency\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFD NETWORK\n12/53\n12 starters\nROSTER MANAGEMENT\nLakeview Caps // 12 players active\nNEXT CALL\nFIND THE MISSING STARTERS\nThe roster only has 12/22 starters marked. Fix the lineup before reading every contract cell.\n12/53 active\n0 fatigue flags\nOPEN DEPTH\nOPEN PLAN\nROSTER SIZE\n12/53\nIR players do not count against the 53-man cap\nAVG OVR\n86\nOverall team strength\nSTARTERS\n12\nProjected first unit\nAVG AGE\n26.3\nCurrent roster age curve\nTRAINING PLANS\n0\nPlayers with an active weekly focus\nFATIGUE WATCH\n0\nNo red-zone workloads\nROSTER SOURCES\nACTIVE ROSTER\n12/53\nselectRoster and selectRosterLimit feed roster rows, active-count copy, starter flags, contracts, and player vitals.\nTRAINING + FATIGUE\n0/0\nselectTrainingAssignments and selectFatigueReport drive weekly focus, XP preview, and workload warning copy.\nCUT FORECAST\nbuildRosterCutForecast\nUses calcDeadMoney plus buildCutAdvisor(roster, rosterLimit); it previews the existing standard cut and waiver path.\nPRACTICE SQUAD\n0/8\nselectPracticeSquad, selectPracticeSquadLimit, selectFreeAgentPlayers, and selectWaiverWirePlayers feed stash targets and rows.\nWAIVER QUEUE\n0 claims / 0 PS targets\nWaiver claim, practice-squad add, elevation, release, IR, restructure, and trade-block buttons are explicit store commits.\nOpening /roster, filtering positions, selecting a player, or opening Compare does not write roster entries, practice-squad entries, waiver claims, training assignments, injuries, contracts, cap totals, saves, game results or saved outcomes, or player movement.\nALL\nQB\nRB\nWR\nTE\nOL\nDL\nLB\nCB\nS\nK\nP\nNext action\nMANAGE\tNAME\n\tWATCH\tPOS\n\tOVR\n\tPOT\n\tAGE\n\tCAP HIT\tCONTRACT\tFIT\tROLE\tDEV\n\tFATIGUE\tTRAINING\nMANAGE\tJalen Banks-QB1\t\nWATCH\tQB\t92\t96\t26\t$9.3M\t3yr\tB\tStarter\tStar\t\nFresh\n0.0\n\t\nFilm Study\nPosition Drills\nConditioning\nMentorship\nRest\n+3.8 XP/wk\n\nMANAGE\tNico Knox-RB2\t\nWATCH\tRB\t88\t92\t26\t$9.3M\t3yr\tB\tStarter\tStar\t\nFresh\n0.0\n\t\nFilm Study\nPosition Drills\nConditioning\nMentorship\nRest\n+3.8 XP/wk\n\nMANAGE\tCaleb Stone-WR3\t\nWATCH\tWR\t86\t90\t26\t$9.3M\t3yr\tB\tStarter\tStar\t\nFresh\n0.0\n\t\nFilm Study\nPosition Drills\nCon",
+      "label": "roster",
+      "route": "/roster",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:51:01Z",
+      "screenshot": "evidence/runtime/roster--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/settings",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 5452
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 5436
+      },
+      "main": {
+        "top": 159,
+        "height": 5285,
+        "scrollHeight": 5285
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 681,
+        "interactive": 71,
+        "aboveFoldInteractive": 45,
+        "targetsBelow44": 65,
+        "targetsBelow24": 3,
+        "smallTextBelow12": 269,
+        "borderedElements": 197,
+        "fixedOrSticky": 2,
+        "scrollContainers": 1,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "Replay Chip Intro",
+          "top": 3511,
+          "width": 112,
+          "height": 38,
+          "aboveFold": false
+        },
+        {
+          "text": "Replay",
+          "top": 727,
+          "width": 50,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 151,
+          "text": "MFD NETWORKMFDLakeview CapsSettings9-4Week 14Season 2026BRIEFINGFOOTBA"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 502,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPRecNextWhere am"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nSETTINGS\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nLEGACY\nFRANCHISE\nLEGENDS\nCAREER\nBOOK\nCHRONICLE\nSCRAP\nHALL\nTROPHIES\nERAS\nMVPS\nLORE\nACHIEVE\nLEGACY\nNAMED\nBLOODLINES\nAWARDS\nRECAP\nCHALLENGE\nABOUT\nCREDITS\nFAQ\nSAVE\nCONFIG\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFD NETWORK\nPro\nAutosave On\nAdaptive On\nFacilities $10\nSETTINGS\nDifficulty, autosave behavior, sim pacing, and studio identity all in one control room.\nDIFFICULTY\nPro\nStandard simulation. Fair trades, normal injury rates, balanced AI.\nAUTOSAVE\nON\nApply to weekly advances and state-changing actions\nSIM SPEED\nNORMAL\nUI preference stored locally, outside the save file\nHALFTIME HELL\nON\nSaved with the dynasty and interrupts user games\nCOACH MODE\nOFF\nOptional live-call layer; Fast Sim remains the default\nADAPTIVE DIFFICULTY\nON\nLeague slider 50/100\nFACILITY BUDGET\n$10\nAvailable for upgrades at any point in the season\nMEDICAL STAFF\nNONE\nHiring reopens during the offseason\nTEAM OPS IMPACT\nTRAINING XP\nBaseline\nFacility aggregate applied by player development and training systems.\nRECOVERY WINDOW\n4 weeks\nEstimated result for a base four-week injury using current medical staff and facilities.\nINJURY RISK\nBaseline risk\nCombined medical-staff prevention and facility prevention multiplier.\nFATIGUE GAIN\nBaseline fatigue\nFacility aggregate used by workload and fatigue planning.\nMENTOR REACH\n0 players\n0 active alumni mentors; $2.5M budget remaining.\nCAMP RECEIPT\nPending\nTraining camp receipts appear after the training_camp phase resolves.\nOPERATIONS SOURCE\nFacility source\nRows read saved facility levels, saved budget, and each saved facility.effect from the user team.\nteam.facilityState\nUpgrade commit\nUpgrade buttons call the existing store action and engine helper; this screen does not run progression or training camp math.\nupgradeFacility\nMedical source\nCurrent staff is saved on the user team; candidates come from the game-level availableMedicalStaff pool.\nteam.medicalStaff\nHiring gate\nThe button state mirrors hireMedicalStaff's offseason gate; rendering does not refresh the pool or process injury recovery.\noffseason only\nReceipt source\nTeam Ops Impact reuses buildTeamOpsImpactReceipt for facility aggregate, recovery estimate, mentor reach, and saved camp receipts.\nread-only receipt\nDIFFICULTY\nRookie\nrookie\nForgiving trades, fewer injuries, patient owner. Learn the ropes.\nSET DIFFICULTY\nPro\npro\nStandard simulation. Fair trades, normal injury rates, balanced AI.\nCURRENT\nAll-",
+      "label": "settings",
+      "route": "/settings",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:51:53Z",
+      "screenshot": "evidence/runtime/settings--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/standings",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 916
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 900
+      },
+      "main": {
+        "top": 159,
+        "height": 749,
+        "scrollHeight": 749
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 229,
+        "interactive": 35,
+        "aboveFoldInteractive": 35,
+        "targetsBelow44": 35,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 64,
+        "borderedElements": 53,
+        "fixedOrSticky": 2,
+        "scrollContainers": 1,
+        "tables": 0,
+        "rows": 0,
+        "headings": 0
+      },
+      "primaryActions": [
+        {
+          "text": "Replay",
+          "top": 726,
+          "width": 50,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 151,
+          "text": "MFD NETWORKMFDLakeview CapsStandings9-4Week 14Season 2026BRIEFINGFOOTB"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 502,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPRecommended: op"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nSTANDINGS\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nWEATHER\nDIGEST\nNEWS\nSOCIAL\nCOMMISH\nCBA\nRULES\nDATA\nRECORDS\nSTATS\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nLOADING STANDINGS\n4\nYear 2026 \u2014 Coach\nOPS\nCHIP\nOPS CHIEF\nFRANCHISE OPS // CHIP\n\nRecommended: ope\n\nNEXT\nWHERE AM I?\nASK CHIP",
+      "label": "standings",
+      "route": "/standings",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:51:48Z",
+      "screenshot": "evidence/runtime/standings--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/trades",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 2752
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 2736
+      },
+      "main": {
+        "top": 181,
+        "height": 2564,
+        "scrollHeight": 2564
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 473,
+        "interactive": 56,
+        "aboveFoldInteractive": 51,
+        "targetsBelow44": 56,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 165,
+        "borderedElements": 113,
+        "fixedOrSticky": 2,
+        "scrollContainers": 1,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "Replay",
+          "top": 727,
+          "width": 50,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 173,
+          "text": "MFD NETWORKMFDLakeview CapsTrades9-4Week 14Season 2026BRIEFINGFOOTBALL"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 502,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPRecommended:Nex"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nTRADES\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nFOOTBALL OPS\nROSTER\nDEPTH\nLOCKER\nCOACH\nTREE\nRELATIONS\nPROMISES\nMENTORS\nDEVELOP\nCOMPARE\nRIVALRIES\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nTRADES\nBLOCK\nDEADLINE\nNEEDS\nSCOUT\nRECAP\nEXPANSION\nTARGETS\nWAIVERS\nPS\nOWNER\nRELOCATE\nLATER\nCamp: Unlocks in Training Camp\nDraft: Unlocks in Draft\nFA: Unlocks in Free Agency\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFD NETWORK\n0 pending\n0 accepted\nDeadline Passed\nTRADE CENTER\nIncoming offers remain intact. Direct negotiation lets you build and submit your own package.\nNEXT CALL\nMARKET IS CLOSED\nThe regular-season deadline has passed. Use this screen for receipts, not new market moves.\n0 offers\nClosed\nBUILD OFFER\nSCAN BLOCK\nINCOMING OFFERS\n0\nAI packages waiting for your call\nACTIVE PROPOSALS\n0\nUser-initiated trade conversations\nTRADE WINDOW\nCLOSED\nRegular season week 14 // active deadline Week 9\nTRADE CENTER SOURCES\nRead models\nRoute-local builder\nDeadline lock read\nOffer desk\nselectTradeOffers feeds 0 incoming market packages; selectActiveProposals feeds 0 user conversations and partner counters.\nTrade finder\nselectTradeSuggestions feeds 0 advisory packages. Each visible row renders a Generated Offer Receipt from the saved suggestion fields. Loading one copies assets into route-local builder state; it does not submit or stage a trade.\nBuilder inputs\ngetTradeTargets(game, userTeam.id) exposes 0 partner rows, and getTradeableAssets(game, userTeam.id) exposes 12 user assets. selectedPartnerId, offeringKeys, and requestingKeys stay route-local until a commit button runs.\nForecast read\nbuildTradeDecisionForecast reads generated offers or selected proposal assets. Changing tabs, choosing a partner, adding assets, or viewing forecasts does not move players, picks, cap, saves, play scheduled games, reroll saved outcomes, or autosave.\nRules and locks\nselectScenarioState, selectPhase, selectWeek, selectTradeDeadlineState, and getActiveRule(game.leagueRules, 'trade_deadline_week', game.year) drive disabled labels, the deadline badge, and the deadline handoff. Current read: Week 9, scenario open, deadline closed.\nCommit buttons\nacceptTradeOffer, rejectTradeOffer, createTradeProposal then submitTradeProposal, acceptCounter, rejectCounter, and the /trade-deadline route are the explicit write paths.\nWhat-if receipts\nGenerated offer rejections only mark the saved market offer status and do not write nearMissTracker. Rejected direct proposals and counter de",
+      "label": "trades",
+      "route": "/trades",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:51:05Z",
+      "screenshot": "evidence/runtime/trades--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/week-advance",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 2308
+      },
+      "body": {
+        "scrollWidth": 1424,
+        "scrollHeight": 2292
+      },
+      "main": {
+        "top": 159,
+        "height": 2141,
+        "scrollHeight": 2141
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 318,
+        "interactive": 29,
+        "aboveFoldInteractive": 27,
+        "targetsBelow44": 29,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 107,
+        "borderedElements": 97,
+        "fixedOrSticky": 2,
+        "scrollContainers": 0,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 105,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Advance To Week 15",
+          "top": 463,
+          "width": 132,
+          "height": 38,
+          "aboveFold": true
+        },
+        {
+          "text": "Advance Anyway (1)",
+          "top": 1824,
+          "width": 1021,
+          "height": 42,
+          "aboveFold": false
+        },
+        {
+          "text": "Replay",
+          "top": 727,
+          "width": 50,
+          "height": 40,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 151,
+          "text": "MFD NETWORKMFDLakeview CapsAdvance Week9-4Week 14Season 2026BRIEFINGFO"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 502,
+          "height": 376,
+          "text": "4Year 2026 \u2014 CoachOPSCHIPOPS CHIEFFRANCHISE OPS // CHIPNextWhere am I?"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nADVANCE WEEK\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFD NETWORK\nWK 14\n1 FLAGS\nADVANCE TO WEEK 15\nREGULAR SEASON // 1 ITEM(S) // 2026\nNEXT CALL\nRESOLVE OR ACCEPT THE LISTED ITEMS\n1 listed item remains. Fix the injury flag, first-backup choice, cap move, or matchup call, or advance knowing those saved choices become the next result.\nPlan ready\n1 flags\nADVANCE TO WEEK 15\nADVANCE WEEK USES\nLineup and matchup\nchecked\nAdvance Week uses your saved roster, starters, schedule, current week, and Game Plan. Fix lineup or matchup concerns before pressing the button.\nLeague calendar\nclear\nIf the offseason, CBA, or expansion calendar has a required step, its button sends you there before the league moves.\nLast game notes\nwaiting\nIf a recap exists, this screen shows injury, morale, and matchup notes that send you to Roster, Depth Chart, or Game Plan when a fix is still open.\nGame Plan requirement\nplan saved\nIf this matchup has no saved Game Plan, the button opens Game Plan instead of advancing.\nAdvance button\nlocks results\nOnly this button advances the league. It saves the result, injuries, standings, and any halftime, trade-deadline, expansion, or CBA pause that follows.\nADVANCE CHECK\nCHECK\n1 listed item before Advance Week\nSTARTERS\n12/22\nProjected opening lineup\nINJURY LOAD\n0\nClean report\nCAP STATUS\n$25M\nCompliant\nPRE-ADVANCE CHECKLIST\nDepth Chart Set\nOnly 12/22 starters set\nFIX DEPTH CHART\nwarn\nInjury Review\nAll healthy\ndone\nCap Compliant\n$25M free\ndone\nGame Plan\nOFF: balanced / DEF: coverage\ndone\nMATCHUP RADAR\nVS HARBOR KINGS\n10-3\nspread\ncover_3\nBroadcast note: this game will define the next owner pulse and chemistry swing.\nSTAKES\nOwner Patience\n-4 on loss\nChemistry\n+2 on win\nSystem Fit\n+1 weekly reps\nDECISION IMPACT\nNow\nMust Do: fix 1 listed Advance Week item before Advance Week or choose to accept each one. The next game uses the saved injury status, first backups, cap choices, and matchup calls.\nThis season\nAfter Advance Week, owner patience, morale, standings, and injury reports update from the result.\nFuture\nAdvancing with listed items unchanged stacks injury-report chances, morale loss, standings damage, and lower owner patience.\nIf ignored\nIf you skip Roster, Depth Chart, Contracts, or Game Plan before locking the week, an injury flag, unassigned first backup, tight cap choice, or uncovered matchup call becomes the saved game result.\nA",
+      "label": "week-advance",
+      "route": "/week-advance",
+      "viewportLabel": "desktop-1440x900",
+      "capturedAt": "2026-08-05T23:51:08Z",
+      "screenshot": "evidence/runtime/week-advance--desktop-1440x900.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 11806
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 11790
+      },
+      "main": {
+        "top": 392,
+        "height": 11406,
+        "scrollHeight": 11406
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 667,
+        "interactive": 43,
+        "aboveFoldInteractive": 20,
+        "targetsBelow44": 15,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 270,
+        "borderedElements": 156,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 189,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Close Fill depth chart (12/22 starters)",
+          "top": 3047,
+          "width": 76,
+          "height": 44,
+          "aboveFold": false
+        },
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsMonday Briefing9-4Week 14Season 2026BRIEFIN"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nMONDAY BRIEFING\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nREGULAR SEASON\nWK 14 // YR 2026\nSet injuries, depth, and Game Plan before Advance Week; standings punish missed weekly choices.\nMFD NETWORK\n9-4\nWK 14\nYR 2026\nNarrative warm\nDynasty 0\nMONDAY BRIEFING\nLakeview Caps // Season 2026, Week 14\nBRIEFING SOURCES\nSAVED WEEK INPUTS\nregular_season W14\nMonday Briefing reads the saved team, roster, phase, week, schedule, weather, headlines, standings, stats, and open decisions for the current week.\nDASHBOARD LAYOUT\nCommand Center\nSaved dashboard layout controls which cards are pinned. Only Save Layout, Switch Layout, Pin, or Unpin changes that layout.\nWEEKLY CARDS\n8 widgets\nCards summarize dynasty window, training progress, achievements, rankings, playoff race, records, schedule, and stat leaders so weekly risks are visible before decisions lock.\nACTION CENTER\nActionCenter\nAction Center reads phase, prep, starters, trade offers, owner approval, injuries, and scenario locks. Must Do items stop or redirect Advance Week; recommendations explain what to fix or accept.\nSCREEN CONTROLS\n0 pinned\nCustomize, draft names, card columns, draft cards, and reduced-motion display choices stay on this screen until a dashboard button saves them.\nWHAT OPENING DOES NOT DO\nno lock-in\nOpening Monday Briefing for 2026 does not click Advance Week, play scheduled games, create new weather or news, update power rankings, save layouts, pin widgets, write achievements, or reroll saved outcomes.\nCOMMAND QUEUE\nAsk your AGM\nOpen injury, cap, depth, or matchup fixes before Advance Week\nSHOW AGM ADVICE\nLiving week action plan\nChip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.\nAny legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available from its norm",
+      "label": "briefing",
+      "route": "/",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:50:36Z",
+      "screenshot": "evidence/runtime/briefing--phone-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/analytics",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 860
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 844
+      },
+      "main": {
+        "top": 295,
+        "height": 557,
+        "scrollHeight": 557
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 172,
+        "interactive": 29,
+        "aboveFoldInteractive": 29,
+        "targetsBelow44": 22,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 56,
+        "borderedElements": 40,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 0,
+        "rows": 0,
+        "headings": 0
+      },
+      "primaryActions": [
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsAnalytics9-4Week 14Season 2026BRIEFINGFOOTB"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nANALYTICS\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nWEATHER\nDIGEST\nNEWS\nSOCIAL\nCOMMISH\nCBA\nRULES\nDATA\nRECORDS\nSTATS\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nLOADING ANALYTICS\nBRIEFING\nROSTER\nPLAN\nADVANCE\nMORE\n4\nAsk Chip\n4",
+      "label": "analytics",
+      "route": "/analytics",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:50:41Z",
+      "screenshot": "evidence/runtime/analytics--phone-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/contracts",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 9700
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 9684
+      },
+      "main": {
+        "top": 337,
+        "height": 9355,
+        "scrollHeight": 9355
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 733,
+        "interactive": 67,
+        "aboveFoldInteractive": 43,
+        "targetsBelow44": 36,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 394,
+        "borderedElements": 256,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 1,
+        "rows": 13,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 329,
+          "text": "MFD NETWORKMFDLakeview CapsContracts9-4Week 14Season 2026BRIEFINGFOOTB"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nCONTRACTS\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nFOOTBALL OPS\nROSTER\nDEPTH\nLOCKER\nCOACH\nTREE\nRELATIONS\nPROMISES\nMENTORS\nDEVELOP\nCOMPARE\nRIVALRIES\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nTRADES\nBLOCK\nDEADLINE\nNEEDS\nSCOUT\nRECAP\nEXPANSION\nTARGETS\nWAIVERS\nPS\nOWNER\nRELOCATE\nLATER\nCamp: Unlocks in Training Camp\nDraft: Unlocks in Draft\nFA: Unlocks in Free Agency\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFD NETWORK\n$25M\n82% used\nCONTRACTS & SALARY CAP\nCap $255M // Used $210M // Space $25M\nSALARY CAP\n$255M\nLeague cap ceiling\nCAP USED\n$210M\n82% committed\nCAP FLOOR\n$229M\n$19M under floor\nDEAD CAP\n$0M\nCurrent year sunk cost\nCAP SPACE\n$25M\nFlexible\nCONTRACT SOURCES\nROSTER CONTRACTS\n12\nselectRoster feeds active contracts, holdouts, cap hits, dead money, agents, and row actions.\nCAP CONTEXT\nGameState\ngetSalaryCap(year, game), getCapFloor(year, game), and selectCapProjection surface active league-rule overrides.\nINCENTIVES\n0\nselectIncentiveSummary reads saved contract clauses and progress without writing payouts from render.\nPROJECTION ROWS\n3\nselectCapProjection owns the multi-year committed/free-space read model shown on this route.\nTAG RULES\n3/1\nfranchise_tag_limit and tag_types_allowed drive selected-player tag eligibility and options.\nOpening /contracts and selecting rows do not write contracts, tags, cap totals, saves, game results or saved outcomes, or player movement. Restructure, Add Void Years, Cut Player, Submit Extension, and Apply Franchise Tag are the explicit store commit buttons.\nCAP BREAKDOWN\nCAP USAGE\n82%\nWR\n$19M\nSHARE\n7%\nQB\n$9M\nSHARE\n4%\nRB\n$9M\nSHARE\n4%\nTE\n$9M\nSHARE\n4%\nOL\n$9M\nSHARE\n4%\nCAP PROJECTIONS\n2027\n$111.6M committed // $0M dead\n$155.4M free\n2028\n$102.3M committed // $0M dead\n$178.7M free\n2029\n$102.3M committed // $0M dead\n$192.7M free\nINCENTIVE SUMMARY\nACTIVE INCENTIVES\n0\nContract clauses in play\nLIKELY TO EARN\n0\nOn current pace\nNOT LIKELY\n0\nNeeds a late push\nFRANCHISE TAG WINDOW\nTAG USAGE\n0/1\nActive limit for 2026\nALLOWED TAGS\n3\nexclusive, non exclusive, transition\nSOURCE\nLeague Rules\nfranchise_tag_limit and tag_types_allowed\nFranchise tags are available only from a selected expiring player row. Applying one writes the current roster player's one-year tag tender, mirrors the flat player map, refreshes cap totals, and autosaves through the Contracts store action.\nJalen Banks-QB1\nQB\n92\n$9.3M\n$4M\n3yr\nUnassigned\nn/a\nFair\nClear\nNico Knox-RB2\nRB\n88\n$9.3M\n$4M\n3yr\nUnassigned\nn/a\nFair\nClear\nCaleb Stone-WR3\nWR\n86\n$9.3M",
+      "label": "contracts",
+      "route": "/contracts",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:50:37Z",
+      "screenshot": "evidence/runtime/contracts--phone-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/depth-chart",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 3711
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 3695
+      },
+      "main": {
+        "top": 337,
+        "height": 3366,
+        "scrollHeight": 3366
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 414,
+        "interactive": 56,
+        "aboveFoldInteractive": 47,
+        "targetsBelow44": 38,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 160,
+        "borderedElements": 104,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "QB1 DEEPJalen Banks-QB192 OVR // 96 POT // AGE 26Starter Locked",
+          "top": 2068,
+          "width": 354,
+          "height": 161,
+          "aboveFold": false
+        },
+        {
+          "text": "RB1 DEEPNico Knox-RB288 OVR // 92 POT // AGE 26Starter Locked",
+          "top": 2245,
+          "width": 354,
+          "height": 161,
+          "aboveFold": false
+        },
+        {
+          "text": "WR2 DEEPCaleb Stone-WR386 OVR // 90 POT // AGE 26Starter Locked",
+          "top": 2422,
+          "width": 354,
+          "height": 161,
+          "aboveFold": false
+        },
+        {
+          "text": "TE1 DEEPJalen Knox-TE584 OVR // 88 POT // AGE 26Starter Locked",
+          "top": 2599,
+          "width": 354,
+          "height": 161,
+          "aboveFold": false
+        },
+        {
+          "text": "OL1 DEEPDarius Boone-OL686 OVR // 90 POT // AGE 26Starter Locked",
+          "top": 2776,
+          "width": 354,
+          "height": 161,
+          "aboveFold": false
+        },
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 329,
+          "text": "MFD NETWORKMFDLakeview CapsDepth Chart9-4Week 14Season 2026BRIEFINGFOO"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nDEPTH CHART\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nFOOTBALL OPS\nROSTER\nDEPTH\nLOCKER\nCOACH\nTREE\nRELATIONS\nPROMISES\nMENTORS\nDEVELOP\nCOMPARE\nRIVALRIES\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nTRADES\nBLOCK\nDEADLINE\nNEEDS\nSCOUT\nRECAP\nEXPANSION\nTARGETS\nWAIVERS\nPS\nOWNER\nRELOCATE\nLATER\nCamp: Unlocks in Training Camp\nDraft: Unlocks in Draft\nFA: Unlocks in Free Agency\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFD NETWORK\n12/25 starters\n0 injuries\nDEPTH CHART\nSet starters, monitor competition, and keep every position room broadcast-ready.\nNEXT CALL\nSET LEGAL STARTER SHAPE\n12/25 starter tags are marked. Open rooms: WR -1 / OL -4 / DL -3. Use the room toggles to fit the engine formation before Advance Week.\n12/25 starter shape\n13 open / 0 extra\n0 battles\nUSE RECOMMENDED\nOFFENSE ROOMS\nDEFENSE ROOMS\nOPEN PLAN\nDEPTH CHART SOURCES\nActive roster\n12 players\nRoom cards show the active roster, putting current starters ahead of rating order so the board matches the saved lineup.\nStarter shape\n13 open / 0 extra\nPromote and backup buttons update starter tags. The board checks the engine starter shape by position: Open rooms: WR -1 / OL -4 / DL -3.\nBattle model\n0 battles\nBattle rows are scouting guidance from ratings and starter tags. Opening the route does not save battle receipts.\nSpecial teams\n0/2 returners\nReturner lanes show the current special-teams card. Dropdowns are the only returner commits here.\nJust viewing\ndisplay only\nOpening Depth Chart does not change the lineup. Use Recommended is the explicit one-click commit for starters and special teams; it does not play games, distribute snaps, change contracts, or write player history.\nOPEN BATTLES\n0\nRoster spots still up for grabs\nOFFENSE ROOMS\n5\nSkill groups and trench depth\nDEFENSE ROOMS\n4\nFront seven plus back-end rotation\nOFFENSE\nDEFENSE\nQB\n1 DEEP\nJalen Banks-QB1\n92 OVR // 96 POT // AGE 26\nStarter Locked\nRB\n1 DEEP\nNico Knox-RB2\n88 OVR // 92 POT // AGE 26\nStarter Locked\nWR\n2 DEEP\nCaleb Stone-WR3\n86 OVR // 90 POT // AGE 26\nStarter Locked\nTE\n1 DEEP\nJalen Knox-TE5\n84 OVR // 88 POT // AGE 26\nStarter Locked\nOL\n1 DEEP\nDarius Boone-OL6\n86 OVR // 90 POT // AGE 26\nStarter Locked\nSPECIAL TEAMS\nKick Returner\nNico Knox-RB2 // SPD 88\nCaleb Stone-WR3 // SPD 86\nJordan Stone-WR4 // SPD 86\nAssign your best burst threat.\nPunt Returner\nNico Knox-RB2 // SPD 88\nCaleb Stone-WR3 // SPD 86\nJordan Stone-WR4 // SPD 86\nPunt return role is still open.\nLong Snapper\nUnassigned\nAuto-assigned from the best OL/TE awa",
+      "label": "depth-chart",
+      "route": "/depth-chart",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:50:37Z",
+      "screenshot": "evidence/runtime/depth-chart--phone-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/dynasty",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 860
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 844
+      },
+      "main": {
+        "top": 295,
+        "height": 557,
+        "scrollHeight": 557
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 248,
+        "interactive": 39,
+        "aboveFoldInteractive": 39,
+        "targetsBelow44": 32,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 76,
+        "borderedElements": 50,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 0,
+        "rows": 0,
+        "headings": 0
+      },
+      "primaryActions": [
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsSave/Load9-4Week 14Season 2026BRIEFINGFOOTB"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nSAVE/LOAD\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nLEGACY\nFRANCHISE\nLEGENDS\nCAREER\nBOOK\nCHRONICLE\nSCRAP\nHALL\nTROPHIES\nERAS\nMVPS\nLORE\nACHIEVE\nLEGACY\nNAMED\nBLOODLINES\nAWARDS\nRECAP\nCHALLENGE\nABOUT\nCREDITS\nFAQ\nSAVE\nCONFIG\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nLOADING DYNASTY CARTRIDGE\nBRIEFING\nROSTER\nPLAN\nADVANCE\nMORE\n4\nAsk Chip\n4",
+      "label": "save-load",
+      "route": "/dynasty",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:50:41Z",
+      "screenshot": "evidence/runtime/save-load--phone-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/franchise",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 860
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 844
+      },
+      "main": {
+        "top": 295,
+        "height": 557,
+        "scrollHeight": 557
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 248,
+        "interactive": 39,
+        "aboveFoldInteractive": 39,
+        "targetsBelow44": 32,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 76,
+        "borderedElements": 50,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 0,
+        "rows": 0,
+        "headings": 0
+      },
+      "primaryActions": [
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsFranchise9-4Week 14Season 2026BRIEFINGFOOTB"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nFRANCHISE\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nLEGACY\nFRANCHISE\nLEGENDS\nCAREER\nBOOK\nCHRONICLE\nSCRAP\nHALL\nTROPHIES\nERAS\nMVPS\nLORE\nACHIEVE\nLEGACY\nNAMED\nBLOODLINES\nAWARDS\nRECAP\nCHALLENGE\nABOUT\nCREDITS\nFAQ\nSAVE\nCONFIG\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nLOADING FRANCHISE HUB\nBRIEFING\nROSTER\nPLAN\nADVANCE\nMORE\n4\nAsk Chip\n4",
+      "label": "franchise",
+      "route": "/franchise",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:50:41Z",
+      "screenshot": "evidence/runtime/franchise--phone-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/game-day",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 1100
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 1084
+      },
+      "main": {
+        "top": 392,
+        "height": 700,
+        "scrollHeight": 700
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 179,
+        "interactive": 26,
+        "aboveFoldInteractive": 26,
+        "targetsBelow44": 19,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 55,
+        "borderedElements": 42,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 0,
+        "rows": 0,
+        "headings": 0
+      },
+      "primaryActions": [
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsGame Day9-4Week 14Season 2026BRIEFINGFOOTBA"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nGAME DAY\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nGAME WEEK\nPLAN\nGAME\nLIVE\nCINEMA\nPBP\nFLOW\nFILM\nSCHEDULE\nSB\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFSN TICKER\nLakeview enters Week 14 with the division still in play\nLakeview sits at 9-4, one game behind Harbor and shoulder-to-shoulder with the wild-card pack.\nleagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll\nFRANCHISE OPS // CHIP\n\nLakeview C\n\nSKIP\nMFD NETWORK\nAWAITING KICKOFF\nNo postgame package yet. Advance into the regular season to generate the first game day recap.\nBRIEFING\nROSTER\nPLAN\nADVANCE\nMORE\n4\nAsk Chip\n4",
+      "label": "game-day",
+      "route": "/game-day",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:50:39Z",
+      "screenshot": "evidence/runtime/game-day--phone-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/game-plan",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 860
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 844
+      },
+      "main": {
+        "top": 295,
+        "height": 557,
+        "scrollHeight": 557
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 155,
+        "interactive": 25,
+        "aboveFoldInteractive": 25,
+        "targetsBelow44": 18,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 48,
+        "borderedElements": 36,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 0,
+        "rows": 0,
+        "headings": 0
+      },
+      "primaryActions": [
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsGame Plan9-4Week 14Season 2026BRIEFINGFOOTB"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nGAME PLAN\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nGAME WEEK\nPLAN\nGAME\nLIVE\nCINEMA\nPBP\nFLOW\nFILM\nSCHEDULE\nSB\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nLOADING GAME PLAN\nBRIEFING\nROSTER\nPLAN\nADVANCE\nMORE\n4\nAsk Chip\n4",
+      "label": "game-plan",
+      "route": "/game-plan",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:50:38Z",
+      "screenshot": "evidence/runtime/game-plan--phone-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/roster",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 11802
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 11786
+      },
+      "main": {
+        "top": 337,
+        "height": 11457,
+        "scrollHeight": 11457
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 835,
+        "interactive": 105,
+        "aboveFoldInteractive": 45,
+        "targetsBelow44": 48,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 526,
+        "borderedElements": 358,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 1,
+        "rows": 13,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 329,
+          "text": "MFD NETWORKMFDLakeview CapsRoster9-4Week 14Season 2026BRIEFINGFOOTBALL"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nROSTER\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nFOOTBALL OPS\nROSTER\nDEPTH\nLOCKER\nCOACH\nTREE\nRELATIONS\nPROMISES\nMENTORS\nDEVELOP\nCOMPARE\nRIVALRIES\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nTRADES\nBLOCK\nDEADLINE\nNEEDS\nSCOUT\nRECAP\nEXPANSION\nTARGETS\nWAIVERS\nPS\nOWNER\nRELOCATE\nLATER\nCamp: Unlocks in Training Camp\nDraft: Unlocks in Draft\nFA: Unlocks in Free Agency\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFD NETWORK\n12/53\n12 starters\nROSTER MANAGEMENT\nLakeview Caps // 12 players active\nNEXT CALL\nFIND THE MISSING STARTERS\nThe roster only has 12/22 starters marked. Fix the lineup before reading every contract cell.\n12/53 active\n0 fatigue flags\nOPEN DEPTH\nOPEN PLAN\nROSTER SIZE\n12/53\nIR players do not count against the 53-man cap\nAVG OVR\n86\nOverall team strength\nSTARTERS\n12\nProjected first unit\nAVG AGE\n26.3\nCurrent roster age curve\nTRAINING PLANS\n0\nPlayers with an active weekly focus\nFATIGUE WATCH\n0\nNo red-zone workloads\nROSTER SOURCES\nACTIVE ROSTER\n12/53\nselectRoster and selectRosterLimit feed roster rows, active-count copy, starter flags, contracts, and player vitals.\nTRAINING + FATIGUE\n0/0\nselectTrainingAssignments and selectFatigueReport drive weekly focus, XP preview, and workload warning copy.\nCUT FORECAST\nbuildRosterCutForecast\nUses calcDeadMoney plus buildCutAdvisor(roster, rosterLimit); it previews the existing standard cut and waiver path.\nPRACTICE SQUAD\n0/8\nselectPracticeSquad, selectPracticeSquadLimit, selectFreeAgentPlayers, and selectWaiverWirePlayers feed stash targets and rows.\nWAIVER QUEUE\n0 claims / 0 PS targets\nWaiver claim, practice-squad add, elevation, release, IR, restructure, and trade-block buttons are explicit store commits.\nOpening /roster, filtering positions, selecting a player, or opening Compare does not write roster entries, practice-squad entries, waiver claims, training assignments, injuries, contracts, cap totals, saves, game results or saved outcomes, or player movement.\nALL\nQB\nRB\nWR\nTE\nOL\nDL\nLB\nCB\nS\nK\nP\nMANAGE\nJalen Banks-QB1\nWATCH\nQB\n92\n96\n26\n$9.3M\n3yr\nB\nStarter\nStar\nFresh\n0.0\nFilm Study\nPosition Drills\nConditioning\nMentorship\nRest\n+3.8 XP/wk\nMANAGE\nNico Knox-RB2\nWATCH\nRB\n88\n92\n26\n$9.3M\n3yr\nB\nStarter\nStar\nFresh\n0.0\nFilm Study\nPosition Drills\nConditioning\nMentorship\nRest\n+3.8 XP/wk\nMANAGE\nCaleb Stone-WR3\nWATCH\nWR\n86\n90\n26\n$9.3M\n3yr\nB\nStarter\nStar\nFresh\n0.0\nFilm Study\nPosition Drills\nConditioning\nMentorship\nRest\n+3.8 XP/wk\nMANAGE\nJordan Stone-WR4\nWATCH\nWR\n86\n90\n26\n$9.3M\n3yr\nB\nStarter\nStar\nFresh\n0.0",
+      "label": "roster",
+      "route": "/roster",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:50:36Z",
+      "screenshot": "evidence/runtime/roster--phone-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/settings",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 8548
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 8532
+      },
+      "main": {
+        "top": 295,
+        "height": 8245,
+        "scrollHeight": 8245
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 638,
+        "interactive": 65,
+        "aboveFoldInteractive": 39,
+        "targetsBelow44": 35,
+        "targetsBelow24": 3,
+        "smallTextBelow12": 261,
+        "borderedElements": 184,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "Replay Chip Intro",
+          "top": 6277,
+          "width": 114,
+          "height": 44,
+          "aboveFold": false
+        },
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsSettings9-4Week 14Season 2026BRIEFINGFOOTBA"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nSETTINGS\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nLEGACY\nFRANCHISE\nLEGENDS\nCAREER\nBOOK\nCHRONICLE\nSCRAP\nHALL\nTROPHIES\nERAS\nMVPS\nLORE\nACHIEVE\nLEGACY\nNAMED\nBLOODLINES\nAWARDS\nRECAP\nCHALLENGE\nABOUT\nCREDITS\nFAQ\nSAVE\nCONFIG\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFD NETWORK\nPro\nAutosave On\nAdaptive On\nFacilities $10\nSETTINGS\nDifficulty, autosave behavior, sim pacing, and studio identity all in one control room.\nDIFFICULTY\nPro\nStandard simulation. Fair trades, normal injury rates, balanced AI.\nAUTOSAVE\nON\nApply to weekly advances and state-changing actions\nSIM SPEED\nNORMAL\nUI preference stored locally, outside the save file\nHALFTIME HELL\nON\nSaved with the dynasty and interrupts user games\nCOACH MODE\nOFF\nOptional live-call layer; Fast Sim remains the default\nADAPTIVE DIFFICULTY\nON\nLeague slider 50/100\nFACILITY BUDGET\n$10\nAvailable for upgrades at any point in the season\nMEDICAL STAFF\nNONE\nHiring reopens during the offseason\nTEAM OPS IMPACT\nTRAINING XP\nBaseline\nFacility aggregate applied by player development and training systems.\nRECOVERY WINDOW\n4 weeks\nEstimated result for a base four-week injury using current medical staff and facilities.\nINJURY RISK\nBaseline risk\nCombined medical-staff prevention and facility prevention multiplier.\nFATIGUE GAIN\nBaseline fatigue\nFacility aggregate used by workload and fatigue planning.\nMENTOR REACH\n0 players\n0 active alumni mentors; $2.5M budget remaining.\nCAMP RECEIPT\nPending\nTraining camp receipts appear after the training_camp phase resolves.\nOPERATIONS SOURCE\nFacility source\nRows read saved facility levels, saved budget, and each saved facility.effect from the user team.\nteam.facilityState\nUpgrade commit\nUpgrade buttons call the existing store action and engine helper; this screen does not run progression or training camp math.\nupgradeFacility\nMedical source\nCurrent staff is saved on the user team; candidates come from the game-level availableMedicalStaff pool.\nteam.medicalStaff\nHiring gate\nThe button state mirrors hireMedicalStaff's offseason gate; rendering does not refresh the pool or process injury recovery.\noffseason only\nReceipt source\nTeam Ops Impact reuses buildTeamOpsImpactReceipt for facility aggregate, recovery estimate, mentor reach, and saved camp receipts.\nread-only receipt\nDIFFICULTY\nRookie\nrookie\nForgiving trades, fewer injuries, patient owner. Learn the ropes.\nSET DIFFICULTY\nPro\npro\nStandard simulation. Fair trades, normal injury rates, balanced AI.\nCURRENT\nAll-",
+      "label": "settings",
+      "route": "/settings",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:50:42Z",
+      "screenshot": "evidence/runtime/settings--phone-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/standings",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 860
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 844
+      },
+      "main": {
+        "top": 295,
+        "height": 557,
+        "scrollHeight": 557
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 172,
+        "interactive": 29,
+        "aboveFoldInteractive": 29,
+        "targetsBelow44": 22,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 56,
+        "borderedElements": 40,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 0,
+        "rows": 0,
+        "headings": 0
+      },
+      "primaryActions": [
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsStandings9-4Week 14Season 2026BRIEFINGFOOTB"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nSTANDINGS\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nLEAGUE\nSTAND\nRANKINGS\nPULSE\nWEATHER\nDIGEST\nNEWS\nSOCIAL\nCOMMISH\nCBA\nRULES\nDATA\nRECORDS\nSTATS\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nLOADING STANDINGS\nBRIEFING\nROSTER\nPLAN\nADVANCE\nMORE\n4\nAsk Chip\n4",
+      "label": "standings",
+      "route": "/standings",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:50:40Z",
+      "screenshot": "evidence/runtime/standings--phone-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/trades",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 4581
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 4565
+      },
+      "main": {
+        "top": 337,
+        "height": 4236,
+        "scrollHeight": 4236
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 416,
+        "interactive": 50,
+        "aboveFoldInteractive": 45,
+        "targetsBelow44": 36,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 157,
+        "borderedElements": 100,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 329,
+          "text": "MFD NETWORKMFDLakeview CapsTrades9-4Week 14Season 2026BRIEFINGFOOTBALL"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nTRADES\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nFOOTBALL OPS\nROSTER\nDEPTH\nLOCKER\nCOACH\nTREE\nRELATIONS\nPROMISES\nMENTORS\nDEVELOP\nCOMPARE\nRIVALRIES\nCAP\nCAP LAB\nFRONT OFFICE\nDEALS\nTRADES\nBLOCK\nDEADLINE\nNEEDS\nSCOUT\nRECAP\nEXPANSION\nTARGETS\nWAIVERS\nPS\nOWNER\nRELOCATE\nLATER\nCamp: Unlocks in Training Camp\nDraft: Unlocks in Draft\nFA: Unlocks in Free Agency\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFD NETWORK\n0 pending\n0 accepted\nDeadline Passed\nTRADE CENTER\nIncoming offers remain intact. Direct negotiation lets you build and submit your own package.\nNEXT CALL\nMARKET IS CLOSED\nThe regular-season deadline has passed. Use this screen for receipts, not new market moves.\n0 offers\nClosed\nBUILD OFFER\nSCAN BLOCK\nINCOMING OFFERS\n0\nAI packages waiting for your call\nACTIVE PROPOSALS\n0\nUser-initiated trade conversations\nTRADE WINDOW\nCLOSED\nRegular season week 14 // active deadline Week 9\nTRADE CENTER SOURCES\nRead models\nRoute-local builder\nDeadline lock read\nOffer desk\nselectTradeOffers feeds 0 incoming market packages; selectActiveProposals feeds 0 user conversations and partner counters.\nTrade finder\nselectTradeSuggestions feeds 0 advisory packages. Each visible row renders a Generated Offer Receipt from the saved suggestion fields. Loading one copies assets into route-local builder state; it does not submit or stage a trade.\nBuilder inputs\ngetTradeTargets(game, userTeam.id) exposes 0 partner rows, and getTradeableAssets(game, userTeam.id) exposes 12 user assets. selectedPartnerId, offeringKeys, and requestingKeys stay route-local until a commit button runs.\nForecast read\nbuildTradeDecisionForecast reads generated offers or selected proposal assets. Changing tabs, choosing a partner, adding assets, or viewing forecasts does not move players, picks, cap, saves, play scheduled games, reroll saved outcomes, or autosave.\nRules and locks\nselectScenarioState, selectPhase, selectWeek, selectTradeDeadlineState, and getActiveRule(game.leagueRules, 'trade_deadline_week', game.year) drive disabled labels, the deadline badge, and the deadline handoff. Current read: Week 9, scenario open, deadline closed.\nCommit buttons\nacceptTradeOffer, rejectTradeOffer, createTradeProposal then submitTradeProposal, acceptCounter, rejectCounter, and the /trade-deadline route are the explicit write paths.\nWhat-if receipts\nGenerated offer rejections only mark the saved market offer status and do not write nearMissTracker. Rejected direct proposals and counter de",
+      "label": "trades",
+      "route": "/trades",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:50:38Z",
+      "screenshot": "evidence/runtime/trades--phone-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8765/MFD/#/week-advance",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 3471
+      },
+      "body": {
+        "scrollWidth": 374,
+        "scrollHeight": 3455
+      },
+      "main": {
+        "top": 295,
+        "height": 3168,
+        "scrollHeight": 3168
+      },
+      "horizontalOverflow": false,
+      "counts": {
+        "visibleElements": 275,
+        "interactive": 23,
+        "aboveFoldInteractive": 21,
+        "targetsBelow44": 13,
+        "targetsBelow24": 0,
+        "smallTextBelow12": 99,
+        "borderedElements": 84,
+        "fixedOrSticky": 3,
+        "scrollContainers": 2,
+        "tables": 0,
+        "rows": 0,
+        "headings": 1
+      },
+      "primaryActions": [
+        {
+          "text": "ADVANCE",
+          "top": 189,
+          "width": 79,
+          "height": 36,
+          "aboveFold": true
+        },
+        {
+          "text": "Advance To Week 15",
+          "top": 666,
+          "width": 132,
+          "height": 44,
+          "aboveFold": true
+        },
+        {
+          "text": "Advance Anyway (1)",
+          "top": 3094,
+          "width": 354,
+          "height": 44,
+          "aboveFold": false
+        },
+        {
+          "text": "Advance",
+          "top": 794,
+          "width": 78,
+          "height": 50,
+          "aboveFold": true
+        }
+      ],
+      "chrome": [
+        {
+          "tag": "HEADER",
+          "className": "mfd-app-top-nav",
+          "top": 8,
+          "height": 287,
+          "text": "MFD NETWORKMFDLakeview CapsAdvance Week9-4Week 14Season 2026BRIEFINGFO"
+        },
+        {
+          "tag": "NAV",
+          "className": "",
+          "top": 793,
+          "height": 51,
+          "text": "BriefingRosterPlanAdvanceMore"
+        },
+        {
+          "tag": "ASIDE",
+          "className": "mfd-chip-dock",
+          "top": 736,
+          "height": 44,
+          "text": "4Year 2026 \u2014 CoachAsk Chip4"
+        }
+      ],
+      "text": "MFD NETWORK\nMFD\nLakeview Caps\nADVANCE WEEK\n9-4\nWEEK 14\nSEASON 2026\nBRIEFING\nFOOTBALL OPS\nGAME WEEK\nLEAGUE\nLEGACY\nBRIEFING\nBRIEFING\nADVANCE\nINBOX\nWATCH\nGM MODE\nS\n?\nCMD DECK\nCTRL+K\nMFD NETWORK\nWK 14\n1 FLAGS\nADVANCE TO WEEK 15\nREGULAR SEASON // 1 ITEM(S) // 2026\nNEXT CALL\nRESOLVE OR ACCEPT THE LISTED ITEMS\n1 listed item remains. Fix the injury flag, first-backup choice, cap move, or matchup call, or advance knowing those saved choices become the next result.\nPlan ready\n1 flags\nADVANCE TO WEEK 15\nADVANCE WEEK USES\nLineup and matchup\nchecked\nAdvance Week uses your saved roster, starters, schedule, current week, and Game Plan. Fix lineup or matchup concerns before pressing the button.\nLeague calendar\nclear\nIf the offseason, CBA, or expansion calendar has a required step, its button sends you there before the league moves.\nLast game notes\nwaiting\nIf a recap exists, this screen shows injury, morale, and matchup notes that send you to Roster, Depth Chart, or Game Plan when a fix is still open.\nGame Plan requirement\nplan saved\nIf this matchup has no saved Game Plan, the button opens Game Plan instead of advancing.\nAdvance button\nlocks results\nOnly this button advances the league. It saves the result, injuries, standings, and any halftime, trade-deadline, expansion, or CBA pause that follows.\nADVANCE CHECK\nCHECK\n1 listed item before Advance Week\nSTARTERS\n12/22\nProjected opening lineup\nINJURY LOAD\n0\nClean report\nCAP STATUS\n$25M\nCompliant\nPRE-ADVANCE CHECKLIST\nDepth Chart Set\nOnly 12/22 starters set\nFIX DEPTH CHART\nwarn\nInjury Review\nAll healthy\ndone\nCap Compliant\n$25M free\ndone\nGame Plan\nOFF: balanced / DEF: coverage\ndone\nMATCHUP RADAR\nVS HARBOR KINGS\n10-3\nspread\ncover_3\nBroadcast note: this game will define the next owner pulse and chemistry swing.\nSTAKES\nOwner Patience\n-4 on loss\nChemistry\n+2 on win\nSystem Fit\n+1 weekly reps\nDECISION IMPACT\nNow\nMust Do: fix 1 listed Advance Week item before Advance Week or choose to accept each one. The next game uses the saved injury status, first backups, cap choices, and matchup calls.\nThis season\nAfter Advance Week, owner patience, morale, standings, and injury reports update from the result.\nFuture\nAdvancing with listed items unchanged stacks injury-report chances, morale loss, standings damage, and lower owner patience.\nIf ignored\nIf you skip Roster, Depth Chart, Contracts, or Game Plan before locking the week, an injury flag, unassigned first backup, tight cap choice, or uncovered matchup call becomes the saved game result.\nA",
+      "label": "week-advance",
+      "route": "/week-advance",
+      "viewportLabel": "phone-390x844",
+      "capturedAt": "2026-08-05T23:50:40Z",
+      "screenshot": "evidence/runtime/week-advance--phone-390x844.png"
+    }
+  ],
+  "errors": []
+}

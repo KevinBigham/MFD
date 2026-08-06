@@ -1,0 +1,771 @@
+{
+  "verified_product": "Mr. Football Dynasty",
+  "commit": "7577176aa4ae4cbcbbf092fde29347c8d4c610d6",
+  "branch": "main",
+  "dirty": false,
+  "node": "v22.16.0",
+  "pnpm_available": false,
+  "route_count": 79,
+  "route_rooms": {
+    "briefing": 4,
+    "football_ops": 30,
+    "game_week": 9,
+    "league": 13,
+    "legacy": 23
+  },
+  "nerd_groups": {
+    "core": 4,
+    "team": 12,
+    "money": 4,
+    "acquire": 12,
+    "dynasty": 20,
+    "gameday": 9,
+    "league": 13,
+    "meta": 5
+  },
+  "app_tsx_lines": 2229,
+  "monday_briefing_lines": 1987,
+  "web_ts_tsx_files": 525,
+  "tsx_files_total": 402,
+  "inline_style_direct_occurrences": 4110,
+  "inline_style_prop_occurrences": 4519,
+  "tsx_files_with_inline_styles": 199,
+  "pixel_typography_references": 80,
+  "uppercase_transform_references": 52,
+  "largest_web_tsx_files": [
+    {
+      "path": "apps/web/src/app/App.tsx",
+      "lines": 2229
+    },
+    {
+      "path": "apps/web/src/features/monday-briefing/MondayBriefing.tsx",
+      "lines": 1987
+    },
+    {
+      "path": "apps/web/src/features/companion/ChipDock.test.tsx",
+      "lines": 1589
+    },
+    {
+      "path": "apps/web/src/features/franchise-setup/FranchiseSetupWizard.tsx",
+      "lines": 1402
+    },
+    {
+      "path": "apps/web/src/features/game-day/GameDayRecap.tsx",
+      "lines": 1384
+    },
+    {
+      "path": "apps/web/src/features/trades/TradeCenter.tsx",
+      "lines": 1210
+    },
+    {
+      "path": "apps/web/src/features/companion/ChipDock.tsx",
+      "lines": 1177
+    },
+    {
+      "path": "apps/web/src/features/legacy/LegacyTimeline.tsx",
+      "lines": 1038
+    },
+    {
+      "path": "apps/web/src/features/free-agency/FreeAgencyHub.tsx",
+      "lines": 1028
+    },
+    {
+      "path": "apps/web/src/features/coaching/CoachingStaff.tsx",
+      "lines": 1011
+    },
+    {
+      "path": "apps/web/src/features/roster/RosterManagement.tsx",
+      "lines": 946
+    },
+    {
+      "path": "apps/web/src/app/App.test.tsx",
+      "lines": 942
+    },
+    {
+      "path": "apps/web/src/features/draft/DraftBoard.tsx",
+      "lines": 918
+    },
+    {
+      "path": "apps/web/src/features/companion/PoseEventEmitter.test.tsx",
+      "lines": 917
+    },
+    {
+      "path": "apps/web/src/features/week-advance/WeekAdvance.tsx",
+      "lines": 870
+    },
+    {
+      "path": "apps/web/src/features/player/PlayerProfile.tsx",
+      "lines": 866
+    },
+    {
+      "path": "apps/web/src/features/game-day/GameDayRecap.test.tsx",
+      "lines": 847
+    },
+    {
+      "path": "apps/web/src/features/settings/Settings.tsx",
+      "lines": 842
+    },
+    {
+      "path": "apps/web/src/features/game-plan/GamePlanSetup.tsx",
+      "lines": 812
+    },
+    {
+      "path": "apps/web/src/features/companion/ChipHost.tsx",
+      "lines": 797
+    },
+    {
+      "path": "apps/web/src/features/dynasty-cartridge/DynastyCartridge.tsx",
+      "lines": 795
+    },
+    {
+      "path": "apps/web/src/features/team-needs/TeamNeeds.tsx",
+      "lines": 788
+    },
+    {
+      "path": "apps/web/src/features/scouting/ScoutingBoard.tsx",
+      "lines": 734
+    },
+    {
+      "path": "apps/web/src/features/monday-briefing/ActionCenter.tsx",
+      "lines": 719
+    },
+    {
+      "path": "apps/web/src/app/NewGameScreen.tsx",
+      "lines": 703
+    }
+  ],
+  "routes": [
+    {
+      "path": "/",
+      "label": "Monday Briefing",
+      "shortLabel": "Briefing",
+      "room": "briefing",
+      "nerdGroup": "core",
+      "options": ", { shortcut: '1' }"
+    },
+    {
+      "path": "/week-advance",
+      "label": "Advance Week",
+      "shortLabel": "Advance",
+      "room": "briefing",
+      "nerdGroup": "core",
+      "options": ""
+    },
+    {
+      "path": "/inbox",
+      "label": "Inbox",
+      "shortLabel": "Inbox",
+      "room": "briefing",
+      "nerdGroup": "core",
+      "options": ", { shortcut: '9' }"
+    },
+    {
+      "path": "/watch-list",
+      "label": "Watch List",
+      "shortLabel": "Watch",
+      "room": "briefing",
+      "nerdGroup": "core",
+      "options": ""
+    },
+    {
+      "path": "/roster",
+      "label": "Roster",
+      "shortLabel": "Roster",
+      "room": "football_ops",
+      "nerdGroup": "team",
+      "options": ", { shortcut: '2' }"
+    },
+    {
+      "path": "/depth-chart",
+      "label": "Depth Chart",
+      "shortLabel": "Depth",
+      "room": "football_ops",
+      "nerdGroup": "team",
+      "options": ""
+    },
+    {
+      "path": "/locker-room",
+      "label": "Locker Room",
+      "shortLabel": "Locker",
+      "room": "football_ops",
+      "nerdGroup": "team",
+      "options": ""
+    },
+    {
+      "path": "/coaching",
+      "label": "Coaching",
+      "shortLabel": "Coach",
+      "room": "football_ops",
+      "nerdGroup": "team",
+      "options": ""
+    },
+    {
+      "path": "/coaching/tree",
+      "label": "Coaching Tree",
+      "shortLabel": "Tree",
+      "room": "football_ops",
+      "nerdGroup": "team",
+      "options": ""
+    },
+    {
+      "path": "/coaching/relationships",
+      "label": "Staff Relationships",
+      "shortLabel": "Relations",
+      "room": "football_ops",
+      "nerdGroup": "team",
+      "options": ""
+    },
+    {
+      "path": "/handshakes",
+      "label": "Handshakes",
+      "shortLabel": "Promises",
+      "room": "football_ops",
+      "nerdGroup": "team",
+      "options": ""
+    },
+    {
+      "path": "/training-camp",
+      "label": "Training Camp",
+      "shortLabel": "Camp",
+      "room": "football_ops",
+      "nerdGroup": "team",
+      "options": ", { unlockPhase: 'training_camp' }"
+    },
+    {
+      "path": "/mentors",
+      "label": "Alumni Mentors",
+      "shortLabel": "Mentors",
+      "room": "football_ops",
+      "nerdGroup": "team",
+      "options": ""
+    },
+    {
+      "path": "/player-development",
+      "label": "Player Development",
+      "shortLabel": "Develop",
+      "room": "football_ops",
+      "nerdGroup": "team",
+      "options": ""
+    },
+    {
+      "path": "/compare",
+      "label": "Player Compare",
+      "shortLabel": "Compare",
+      "room": "football_ops",
+      "nerdGroup": "team",
+      "options": ""
+    },
+    {
+      "path": "/rivalries",
+      "label": "Player Rivalries",
+      "shortLabel": "Rivalries",
+      "room": "football_ops",
+      "nerdGroup": "team",
+      "options": ""
+    },
+    {
+      "path": "/contracts",
+      "label": "Contracts",
+      "shortLabel": "Cap",
+      "room": "football_ops",
+      "nerdGroup": "money",
+      "options": ", { shortcut: '3', unlockWeek: 4 }"
+    },
+    {
+      "path": "/cap-lab",
+      "label": "Cap Lab",
+      "shortLabel": "Cap Lab",
+      "room": "football_ops",
+      "nerdGroup": "money",
+      "options": ""
+    },
+    {
+      "path": "/front-office",
+      "label": "Front Office",
+      "shortLabel": "Front Office",
+      "room": "football_ops",
+      "nerdGroup": "money",
+      "options": ""
+    },
+    {
+      "path": "/endorsements",
+      "label": "Endorsements",
+      "shortLabel": "Deals",
+      "room": "football_ops",
+      "nerdGroup": "money",
+      "options": ""
+    },
+    {
+      "path": "/trades",
+      "label": "Trades",
+      "shortLabel": "Trades",
+      "room": "football_ops",
+      "nerdGroup": "acquire",
+      "options": ", { shortcut: '4', unlockWeek: 4 }"
+    },
+    {
+      "path": "/trade-block",
+      "label": "Trade Block",
+      "shortLabel": "Block",
+      "room": "football_ops",
+      "nerdGroup": "acquire",
+      "options": ""
+    },
+    {
+      "path": "/trade-deadline",
+      "label": "Trade Deadline",
+      "shortLabel": "Deadline",
+      "room": "football_ops",
+      "nerdGroup": "acquire",
+      "options": ""
+    },
+    {
+      "path": "/team-needs",
+      "label": "Team Needs",
+      "shortLabel": "Needs",
+      "room": "football_ops",
+      "nerdGroup": "acquire",
+      "options": ""
+    },
+    {
+      "path": "/scouting",
+      "label": "Scouting",
+      "shortLabel": "Scout",
+      "room": "football_ops",
+      "nerdGroup": "acquire",
+      "options": ", { shortcut: '5', unlockWeek: 'midseason' }"
+    },
+    {
+      "path": "/draft",
+      "label": "Draft",
+      "shortLabel": "Draft",
+      "room": "football_ops",
+      "nerdGroup": "acquire",
+      "options": ", { shortcut: '6', unlockPhase: 'draft' }"
+    },
+    {
+      "path": "/draft-recap",
+      "label": "Draft Recap",
+      "shortLabel": "Recap",
+      "room": "football_ops",
+      "nerdGroup": "acquire",
+      "options": ""
+    },
+    {
+      "path": "/expansion-draft",
+      "label": "Expansion Draft",
+      "shortLabel": "Expansion",
+      "room": "football_ops",
+      "nerdGroup": "acquire",
+      "options": ""
+    },
+    {
+      "path": "/free-agency",
+      "label": "Free Agency",
+      "shortLabel": "FA",
+      "room": "football_ops",
+      "nerdGroup": "acquire",
+      "options": ", { shortcut: '7', unlockPhase: 'free_agency' }"
+    },
+    {
+      "path": "/fa-targets",
+      "label": "FA Targets",
+      "shortLabel": "Targets",
+      "room": "football_ops",
+      "nerdGroup": "acquire",
+      "options": ""
+    },
+    {
+      "path": "/waivers",
+      "label": "Waiver Wire",
+      "shortLabel": "Waivers",
+      "room": "football_ops",
+      "nerdGroup": "acquire",
+      "options": ""
+    },
+    {
+      "path": "/practice-squad",
+      "label": "Practice Squad",
+      "shortLabel": "PS",
+      "room": "football_ops",
+      "nerdGroup": "acquire",
+      "options": ""
+    },
+    {
+      "path": "/owner",
+      "label": "Owner Suite",
+      "shortLabel": "Owner",
+      "room": "football_ops",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/relocate",
+      "label": "Relocation",
+      "shortLabel": "Relocate",
+      "room": "football_ops",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/game-plan",
+      "label": "Game Plan",
+      "shortLabel": "Plan",
+      "room": "game_week",
+      "nerdGroup": "gameday",
+      "options": ""
+    },
+    {
+      "path": "/game-day",
+      "label": "Game Day",
+      "shortLabel": "Game",
+      "room": "game_week",
+      "nerdGroup": "gameday",
+      "options": ", { shortcut: '8' }"
+    },
+    {
+      "path": "/broadcast",
+      "label": "Broadcast",
+      "shortLabel": "Live",
+      "room": "game_week",
+      "nerdGroup": "gameday",
+      "options": ""
+    },
+    {
+      "path": "/presentation",
+      "label": "Presentation",
+      "shortLabel": "Cinema",
+      "room": "game_week",
+      "nerdGroup": "gameday",
+      "options": ""
+    },
+    {
+      "path": "/play-by-play",
+      "label": "Play-by-Play",
+      "shortLabel": "PbP",
+      "room": "game_week",
+      "nerdGroup": "gameday",
+      "options": ""
+    },
+    {
+      "path": "/game-flow",
+      "label": "Game Flow",
+      "shortLabel": "Flow",
+      "room": "game_week",
+      "nerdGroup": "gameday",
+      "options": ""
+    },
+    {
+      "path": "/film-room",
+      "label": "Film Room",
+      "shortLabel": "Film",
+      "room": "game_week",
+      "nerdGroup": "gameday",
+      "options": ""
+    },
+    {
+      "path": "/schedule",
+      "label": "Schedule",
+      "shortLabel": "Schedule",
+      "room": "game_week",
+      "nerdGroup": "gameday",
+      "options": ""
+    },
+    {
+      "path": "/super-bowl",
+      "label": "Super Bowl",
+      "shortLabel": "SB",
+      "room": "game_week",
+      "nerdGroup": "gameday",
+      "options": ""
+    },
+    {
+      "path": "/standings",
+      "label": "Standings",
+      "shortLabel": "Stand",
+      "room": "league",
+      "nerdGroup": "league",
+      "options": ""
+    },
+    {
+      "path": "/power-rankings",
+      "label": "Power Rankings",
+      "shortLabel": "Rankings",
+      "room": "league",
+      "nerdGroup": "league",
+      "options": ", { unlockWeek: 'midseason' }"
+    },
+    {
+      "path": "/league-pulse",
+      "label": "League Pulse",
+      "shortLabel": "Pulse",
+      "room": "league",
+      "nerdGroup": "league",
+      "options": ""
+    },
+    {
+      "path": "/league/weather",
+      "label": "Weather",
+      "shortLabel": "Weather",
+      "room": "league",
+      "nerdGroup": "league",
+      "options": ""
+    },
+    {
+      "path": "/newsroom",
+      "label": "Newsroom",
+      "shortLabel": "Digest",
+      "room": "league",
+      "nerdGroup": "league",
+      "options": ""
+    },
+    {
+      "path": "/news",
+      "label": "News",
+      "shortLabel": "News",
+      "room": "league",
+      "nerdGroup": "league",
+      "options": ""
+    },
+    {
+      "path": "/social",
+      "label": "MFSN",
+      "shortLabel": "Social",
+      "room": "league",
+      "nerdGroup": "league",
+      "options": ""
+    },
+    {
+      "path": "/commissioner",
+      "label": "Commissioner",
+      "shortLabel": "Commish",
+      "room": "league",
+      "nerdGroup": "league",
+      "options": ""
+    },
+    {
+      "path": "/cba",
+      "label": "CBA Negotiation",
+      "shortLabel": "CBA",
+      "room": "league",
+      "nerdGroup": "league",
+      "options": ""
+    },
+    {
+      "path": "/league-rules",
+      "label": "League Rules",
+      "shortLabel": "Rules",
+      "room": "league",
+      "nerdGroup": "league",
+      "options": ""
+    },
+    {
+      "path": "/analytics",
+      "label": "Analytics",
+      "shortLabel": "Data",
+      "room": "league",
+      "nerdGroup": "league",
+      "options": ""
+    },
+    {
+      "path": "/records",
+      "label": "Record Book",
+      "shortLabel": "Records",
+      "room": "league",
+      "nerdGroup": "league",
+      "options": ""
+    },
+    {
+      "path": "/stat-central",
+      "label": "Stat Central",
+      "shortLabel": "Stats",
+      "room": "league",
+      "nerdGroup": "league",
+      "options": ""
+    },
+    {
+      "path": "/franchise",
+      "label": "Franchise",
+      "shortLabel": "Franchise",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/legends",
+      "label": "Legends",
+      "shortLabel": "Legends",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/franchise/career",
+      "label": "GM Career",
+      "shortLabel": "Career",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/franchise/book",
+      "label": "Franchise Book",
+      "shortLabel": "Book",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/franchise/chronicle",
+      "label": "Chronicle",
+      "shortLabel": "Chronicle",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/franchise/scrapbook",
+      "label": "Scrapbook",
+      "shortLabel": "Scrap",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/franchise/hall",
+      "label": "Hall of Fame",
+      "shortLabel": "Hall",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/franchise/trophy-room",
+      "label": "Trophy Room",
+      "shortLabel": "Trophies",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/franchise/eras",
+      "label": "Era Hall",
+      "shortLabel": "Eras",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/franchise/mvps",
+      "label": "MVP Plaques",
+      "shortLabel": "MVPs",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/franchise/playoff-lore",
+      "label": "Playoff Lore",
+      "shortLabel": "Lore",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/franchise/achievements",
+      "label": "Achievements",
+      "shortLabel": "Achieve",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/legacy",
+      "label": "Legacy",
+      "shortLabel": "Legacy",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/legacy/named-games",
+      "label": "Named Games",
+      "shortLabel": "Named",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/legacy/bloodlines",
+      "label": "Bloodlines",
+      "shortLabel": "Bloodlines",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/awards",
+      "label": "Awards Hub",
+      "shortLabel": "Awards",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/season/recap",
+      "label": "Season Recap",
+      "shortLabel": "Recap",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/scenarios",
+      "label": "Scenarios",
+      "shortLabel": "Challenge",
+      "room": "legacy",
+      "nerdGroup": "dynasty",
+      "options": ""
+    },
+    {
+      "path": "/about",
+      "label": "About",
+      "shortLabel": "About",
+      "room": "legacy",
+      "nerdGroup": "meta",
+      "options": ""
+    },
+    {
+      "path": "/credits",
+      "label": "Credits",
+      "shortLabel": "Credits",
+      "room": "legacy",
+      "nerdGroup": "meta",
+      "options": ""
+    },
+    {
+      "path": "/faq",
+      "label": "FAQ",
+      "shortLabel": "FAQ",
+      "room": "legacy",
+      "nerdGroup": "meta",
+      "options": ""
+    },
+    {
+      "path": "/dynasty",
+      "label": "Save/Load",
+      "shortLabel": "Save",
+      "room": "legacy",
+      "nerdGroup": "meta",
+      "options": ""
+    },
+    {
+      "path": "/settings",
+      "label": "Settings",
+      "shortLabel": "Config",
+      "room": "legacy",
+      "nerdGroup": "meta",
+      "options": ""
+    }
+  ]
+}

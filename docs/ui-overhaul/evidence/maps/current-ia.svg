@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+<rect width="100%" height="100%" fill="#080d15"/>
+<style>text{font-family:Arial,sans-serif}.t{fill:#f4f0e6}.m{fill:#8f9bac}.g{fill:#f2c14e}.box{fill:#111925;stroke:#344358;stroke-width:2}.bad{fill:#1c1513;stroke:#ff7b78;stroke-width:2}</style>
+<text x="54" y="58" class="t" font-size="30" font-weight="700">Current route-first information architecture</text>
+<text x="54" y="88" class="m" font-size="16">79 top-level destinations are organized twice: five rooms and an alternate eight-group Nerd Mode.</text>
+<rect x="54" y="140" rx="14" width="210" height="100" class="box"/>
+<text x="72" y="178" class="g" font-size="14" font-weight="700">BRIEFING</text>
+<text x="72" y="215" class="t" font-size="30" font-weight="700">4 routes</text>
+<rect x="282" y="140" rx="14" width="240" height="100" class="box"/>
+<text x="300" y="178" class="g" font-size="14" font-weight="700">FOOTBALL OPS</text>
+<text x="300" y="215" class="t" font-size="30" font-weight="700">30 routes</text>
+<rect x="540" y="140" rx="14" width="210" height="100" class="box"/>
+<text x="558" y="178" class="g" font-size="14" font-weight="700">GAME WEEK</text>
+<text x="558" y="215" class="t" font-size="30" font-weight="700">9 routes</text>
+<rect x="768" y="140" rx="14" width="210" height="100" class="box"/>
+<text x="786" y="178" class="g" font-size="14" font-weight="700">LEAGUE</text>
+<text x="786" y="215" class="t" font-size="30" font-weight="700">13 routes</text>
+<rect x="996" y="140" rx="14" width="210" height="100" class="box"/>
+<text x="1014" y="178" class="g" font-size="14" font-weight="700">LEGACY</text>
+<text x="1014" y="215" class="t" font-size="30" font-weight="700">23 routes</text>
+<text x="54" y="300" class="t" font-size="21" font-weight="700">Alternate “Nerd Mode” taxonomy</text>
+<rect x="54" y="330" rx="12" width="270" height="86" class="bad"/>
+<text x="72" y="364" class="m" font-size="13">CORE</text>
+<text x="72" y="395" class="t" font-size="24" font-weight="700">4 destinations</text>
+<rect x="344" y="330" rx="12" width="270" height="86" class="bad"/>
+<text x="362" y="364" class="m" font-size="13">TEAM</text>
+<text x="362" y="395" class="t" font-size="24" font-weight="700">12 destinations</text>
+<rect x="634" y="330" rx="12" width="270" height="86" class="bad"/>
+<text x="652" y="364" class="m" font-size="13">MONEY</text>
+<text x="652" y="395" class="t" font-size="24" font-weight="700">4 destinations</text>
+<rect x="924" y="330" rx="12" width="270" height="86" class="bad"/>
+<text x="942" y="364" class="m" font-size="13">ACQUIRE</text>
+<text x="942" y="395" class="t" font-size="24" font-weight="700">12 destinations</text>
+<rect x="54" y="450" rx="12" width="270" height="86" class="bad"/>
+<text x="72" y="484" class="m" font-size="13">DYNASTY</text>
+<text x="72" y="515" class="t" font-size="24" font-weight="700">20 destinations</text>
+<rect x="344" y="450" rx="12" width="270" height="86" class="bad"/>
+<text x="362" y="484" class="m" font-size="13">GAME DAY</text>
+<text x="362" y="515" class="t" font-size="24" font-weight="700">9 destinations</text>
+<rect x="634" y="450" rx="12" width="270" height="86" class="bad"/>
+<text x="652" y="484" class="m" font-size="13">LEAGUE</text>
+<text x="652" y="515" class="t" font-size="24" font-weight="700">13 destinations</text>
+<rect x="924" y="450" rx="12" width="270" height="86" class="bad"/>
+<text x="942" y="484" class="m" font-size="13">META</text>
+<text x="942" y="515" class="t" font-size="24" font-weight="700">5 destinations</text>
+<text x="54" y="610" class="g" font-size="18" font-weight="700">Observed consequence</text>
+<text x="54" y="642" class="t" font-size="18">The player must learn the repository’s route taxonomy before learning the football workflow.</text>
+<text x="54" y="672" class="m" font-size="15">Mobile adds four persistent links plus an overloaded “More” drawer containing most of the map.</text>
+</svg>

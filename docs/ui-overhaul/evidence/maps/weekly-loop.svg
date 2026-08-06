@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="500" viewBox="0 0 1280 500">
+<rect width="100%" height="100%" fill="#080d15"/>
+<style>text{font-family:Arial,sans-serif}.t{fill:#f4f0e6}.m{fill:#8f9bac}.g{fill:#f2c14e}.box{fill:#111925;stroke:#344358;stroke-width:2}.active{fill:#171b1b;stroke:#f2c14e;stroke-width:2}</style>
+<text x="54" y="58" class="t" font-size="30" font-weight="700">Canonical weekly loop</text>
+<text x="54" y="88" class="m" font-size="16">One task source drives Today, badges, Chip, readiness, and return behavior.</text>
+<rect x="38" y="160" rx="14" width="186" height="142" class="active"/>
+<text x="54" y="192" class="g" font-size="14" font-weight="700">UNDERSTAND</text>
+<text x="54" y="226" class="t" font-size="14">Today: week, opponent,</text>
+<text x="54" y="246" class="t" font-size="14">primary task</text>
+<path d="M 229 231 L 249 231" stroke="#7fc7ff" stroke-width="3"/>
+<path d="M 249 231 l -8 -6 m 8 6 l -8 6" stroke="#7fc7ff" stroke-width="3" fill="none"/>
+<rect x="243" y="160" rx="14" width="186" height="142" class="box"/>
+<text x="259" y="192" class="g" font-size="14" font-weight="700">RESOLVE</text>
+<text x="259" y="226" class="t" font-size="14">Required decision</text>
+<text x="259" y="246" class="t" font-size="14">workflows</text>
+<path d="M 434 231 L 454 231" stroke="#7fc7ff" stroke-width="3"/>
+<path d="M 454 231 l -8 -6 m 8 6 l -8 6" stroke="#7fc7ff" stroke-width="3" fill="none"/>
+<rect x="448" y="160" rx="14" width="186" height="142" class="active"/>
+<text x="464" y="192" class="g" font-size="14" font-weight="700">PREPARE</text>
+<text x="464" y="226" class="t" font-size="14">Depth + game plan +</text>
+<text x="464" y="246" class="t" font-size="14">readiness</text>
+<path d="M 639 231 L 659 231" stroke="#7fc7ff" stroke-width="3"/>
+<path d="M 659 231 l -8 -6 m 8 6 l -8 6" stroke="#7fc7ff" stroke-width="3" fill="none"/>
+<rect x="653" y="160" rx="14" width="186" height="142" class="box"/>
+<text x="669" y="192" class="g" font-size="14" font-weight="700">PLAY / SIM</text>
+<text x="669" y="226" class="t" font-size="14">Existing authoritative</text>
+<text x="669" y="246" class="t" font-size="14">game action</text>
+<path d="M 844 231 L 864 231" stroke="#7fc7ff" stroke-width="3"/>
+<path d="M 864 231 l -8 -6 m 8 6 l -8 6" stroke="#7fc7ff" stroke-width="3" fill="none"/>
+<rect x="858" y="160" rx="14" width="186" height="142" class="box"/>
+<text x="874" y="192" class="g" font-size="14" font-weight="700">REVIEW</text>
+<text x="874" y="226" class="t" font-size="14">Game Center +</text>
+<text x="874" y="246" class="t" font-size="14">consequences</text>
+<path d="M 1049 231 L 1069 231" stroke="#7fc7ff" stroke-width="3"/>
+<path d="M 1069 231 l -8 -6 m 8 6 l -8 6" stroke="#7fc7ff" stroke-width="3" fill="none"/>
+<rect x="1063" y="160" rx="14" width="186" height="142" class="box"/>
+<text x="1079" y="192" class="g" font-size="14" font-weight="700">ADVANCE</text>
+<text x="1079" y="226" class="t" font-size="14">Exact next phase / new</text>
+<text x="1079" y="246" class="t" font-size="14">Today</text>
+<path d="M 1165 330 C 1165 420, 130 430, 130 320" stroke="#f2c14e" stroke-width="2" fill="none" stroke-dasharray="7 6"/>
+<text x="516" y="454" class="m" font-size="14">New week or lifecycle phase returns to a newly derived Today screen.</text>
+</svg>

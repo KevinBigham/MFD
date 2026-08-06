@@ -1,0 +1,31 @@
+{
+  "annotated": [
+    "briefing-phone-annotated.png",
+    "current-vs-proposed-phone.png",
+    "more-drawer-phone-annotated.png",
+    "roster-phone-annotated.png"
+  ],
+  "maps": [
+    "current-ia.svg",
+    "proposed-ia.svg",
+    "weekly-loop.svg"
+  ],
+  "route_counts": {
+    "current": {
+      "briefing": 4,
+      "football_ops": 30,
+      "game_week": 9,
+      "league": 13,
+      "legacy": 23
+    },
+    "future": {
+      "Today": 4,
+      "Team": 13,
+      "Office": 17,
+      "Game": 9,
+      "League": 13,
+      "Dynasty": 18,
+      "System": 5
+    }
+  }
+}

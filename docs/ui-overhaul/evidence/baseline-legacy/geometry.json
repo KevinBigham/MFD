@@ -1,0 +1,3156 @@
+{
+  "shell": "legacy",
+  "capturedAt": null,
+  "captures": [
+    {
+      "viewport": "phone-320x568",
+      "document": {
+        "scrollWidth": 320,
+        "scrollHeight": 13449
+      },
+      "viewportsOfScroll": 23.68,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 334
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 517,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 460,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 429,
+      "interactiveCount": 43,
+      "smallTargetCount": 13,
+      "visibleTextCount": 276,
+      "smallTextCount": 243,
+      "borderedElementCount": 138,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 320,
+        "height": 568
+      },
+      "route": "briefing"
+    },
+    {
+      "viewport": "phone-320x568",
+      "document": {
+        "scrollWidth": 320,
+        "scrollHeight": 12250
+      },
+      "viewportsOfScroll": 21.57,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 397
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 517,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 460,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 492,
+      "interactiveCount": 105,
+      "smallTargetCount": 39,
+      "visibleTextCount": 290,
+      "smallTextCount": 238,
+      "borderedElementCount": 207,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 320,
+        "height": 568
+      },
+      "route": "roster"
+    },
+    {
+      "viewport": "phone-320x568",
+      "document": {
+        "scrollWidth": 320,
+        "scrollHeight": 9993
+      },
+      "viewportsOfScroll": 17.59,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 397
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 517,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 460,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 492,
+      "interactiveCount": 67,
+      "smallTargetCount": 36,
+      "visibleTextCount": 268,
+      "smallTextCount": 214,
+      "borderedElementCount": 162,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 320,
+        "height": 568
+      },
+      "route": "contracts"
+    },
+    {
+      "viewport": "phone-320x568",
+      "document": {
+        "scrollWidth": 320,
+        "scrollHeight": 9788
+      },
+      "viewportsOfScroll": 17.23,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 334
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 517,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 460,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 429,
+      "interactiveCount": 65,
+      "smallTargetCount": 35,
+      "visibleTextCount": 251,
+      "smallTextCount": 232,
+      "borderedElementCount": 173,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 320,
+        "height": 568
+      },
+      "route": "settings"
+    },
+    {
+      "viewport": "phone-360x800",
+      "document": {
+        "scrollWidth": 360,
+        "scrollHeight": 12424
+      },
+      "viewportsOfScroll": 15.53,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 749,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 692,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 383,
+      "interactiveCount": 43,
+      "smallTargetCount": 13,
+      "visibleTextCount": 276,
+      "smallTextCount": 243,
+      "borderedElementCount": 138,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 360,
+        "height": 800
+      },
+      "route": "briefing"
+    },
+    {
+      "viewport": "phone-360x800",
+      "document": {
+        "scrollWidth": 360,
+        "scrollHeight": 11844
+      },
+      "viewportsOfScroll": 14.8,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 351
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 749,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 692,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 446,
+      "interactiveCount": 105,
+      "smallTargetCount": 39,
+      "visibleTextCount": 290,
+      "smallTextCount": 238,
+      "borderedElementCount": 207,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 360,
+        "height": 800
+      },
+      "route": "roster"
+    },
+    {
+      "viewport": "phone-360x800",
+      "document": {
+        "scrollWidth": 360,
+        "scrollHeight": 9812
+      },
+      "viewportsOfScroll": 12.27,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 351
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 749,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 692,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 446,
+      "interactiveCount": 67,
+      "smallTargetCount": 36,
+      "visibleTextCount": 268,
+      "smallTextCount": 214,
+      "borderedElementCount": 162,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 360,
+        "height": 800
+      },
+      "route": "contracts"
+    },
+    {
+      "viewport": "phone-360x800",
+      "document": {
+        "scrollWidth": 360,
+        "scrollHeight": 9099
+      },
+      "viewportsOfScroll": 11.37,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 749,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 692,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 383,
+      "interactiveCount": 65,
+      "smallTargetCount": 35,
+      "visibleTextCount": 251,
+      "smallTextCount": 232,
+      "borderedElementCount": 173,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 360,
+        "height": 800
+      },
+      "route": "settings"
+    },
+    {
+      "viewport": "phone-390x844",
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 11945
+      },
+      "viewportsOfScroll": 14.15,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 793,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 736,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 383,
+      "interactiveCount": 43,
+      "smallTargetCount": 13,
+      "visibleTextCount": 276,
+      "smallTextCount": 243,
+      "borderedElementCount": 138,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "route": "briefing"
+    },
+    {
+      "viewport": "phone-390x844",
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 11771
+      },
+      "viewportsOfScroll": 13.95,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 330
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 793,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 736,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 425,
+      "interactiveCount": 105,
+      "smallTargetCount": 39,
+      "visibleTextCount": 290,
+      "smallTextCount": 238,
+      "borderedElementCount": 207,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "route": "roster"
+    },
+    {
+      "viewport": "phone-390x844",
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 9701
+      },
+      "viewportsOfScroll": 11.49,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 330
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 793,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 736,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 425,
+      "interactiveCount": 67,
+      "smallTargetCount": 36,
+      "visibleTextCount": 268,
+      "smallTextCount": 214,
+      "borderedElementCount": 162,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "route": "contracts"
+    },
+    {
+      "viewport": "phone-390x844",
+      "document": {
+        "scrollWidth": 390,
+        "scrollHeight": 8883
+      },
+      "viewportsOfScroll": 10.52,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 793,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 736,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 383,
+      "interactiveCount": 65,
+      "smallTargetCount": 35,
+      "visibleTextCount": 251,
+      "smallTextCount": 232,
+      "borderedElementCount": 173,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "route": "settings"
+    },
+    {
+      "viewport": "phone-430x932",
+      "document": {
+        "scrollWidth": 430,
+        "scrollHeight": 11590
+      },
+      "viewportsOfScroll": 12.44,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 881,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 824,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 383,
+      "interactiveCount": 43,
+      "smallTargetCount": 13,
+      "visibleTextCount": 276,
+      "smallTextCount": 243,
+      "borderedElementCount": 138,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "route": "briefing"
+    },
+    {
+      "viewport": "phone-430x932",
+      "document": {
+        "scrollWidth": 430,
+        "scrollHeight": 11717
+      },
+      "viewportsOfScroll": 12.57,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 330
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 881,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 824,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 425,
+      "interactiveCount": 105,
+      "smallTargetCount": 39,
+      "visibleTextCount": 290,
+      "smallTextCount": 238,
+      "borderedElementCount": 207,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "route": "roster"
+    },
+    {
+      "viewport": "phone-430x932",
+      "document": {
+        "scrollWidth": 430,
+        "scrollHeight": 9631
+      },
+      "viewportsOfScroll": 10.33,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 330
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 881,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 824,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 425,
+      "interactiveCount": 67,
+      "smallTargetCount": 36,
+      "visibleTextCount": 268,
+      "smallTextCount": 214,
+      "borderedElementCount": 162,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "route": "contracts"
+    },
+    {
+      "viewport": "phone-430x932",
+      "document": {
+        "scrollWidth": 430,
+        "scrollHeight": 8499
+      },
+      "viewportsOfScroll": 9.12,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 881,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 824,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 383,
+      "interactiveCount": 65,
+      "smallTargetCount": 35,
+      "visibleTextCount": 251,
+      "smallTextCount": 232,
+      "borderedElementCount": 173,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-portrait",
+      "measuredViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "route": "settings"
+    },
+    {
+      "viewport": "landscape-667x375",
+      "document": {
+        "scrollWidth": 667,
+        "scrollHeight": 8150
+      },
+      "viewportsOfScroll": 21.73,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 324,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 267,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 383,
+      "interactiveCount": 43,
+      "smallTargetCount": 13,
+      "visibleTextCount": 276,
+      "smallTextCount": 243,
+      "borderedElementCount": 138,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-landscape",
+      "measuredViewport": {
+        "width": 667,
+        "height": 375
+      },
+      "route": "briefing"
+    },
+    {
+      "viewport": "landscape-667x375",
+      "document": {
+        "scrollWidth": 667,
+        "scrollHeight": 3473
+      },
+      "viewportsOfScroll": 9.26,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 310
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1851,
+          "height": 28
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 324,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 267,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 797,
+      "interactiveCount": 111,
+      "smallTargetCount": 45,
+      "visibleTextCount": 298,
+      "smallTextCount": 246,
+      "borderedElementCount": 183,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-landscape",
+      "measuredViewport": {
+        "width": 667,
+        "height": 375
+      },
+      "route": "roster"
+    },
+    {
+      "viewport": "landscape-667x375",
+      "document": {
+        "scrollWidth": 667,
+        "scrollHeight": 4262
+      },
+      "viewportsOfScroll": 11.37,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 310
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 3223,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 3223,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 3223,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 3223,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 3223,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 3223,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 3223,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 3223,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 3223,
+          "height": 28
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 324,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 267,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 657,
+      "interactiveCount": 75,
+      "smallTargetCount": 44,
+      "visibleTextCount": 269,
+      "smallTextCount": 215,
+      "borderedElementCount": 138,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-landscape",
+      "measuredViewport": {
+        "width": 667,
+        "height": 375
+      },
+      "route": "contracts"
+    },
+    {
+      "viewport": "landscape-667x375",
+      "document": {
+        "scrollWidth": 667,
+        "scrollHeight": 6442
+      },
+      "viewportsOfScroll": 17.18,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 324,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 267,
+          "height": 44
+        }
+      ],
+      "fixedChromeHeight": 383,
+      "interactiveCount": 65,
+      "smallTargetCount": 35,
+      "visibleTextCount": 251,
+      "smallTextCount": 232,
+      "borderedElementCount": 173,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-landscape",
+      "measuredViewport": {
+        "width": 667,
+        "height": 375
+      },
+      "route": "settings"
+    },
+    {
+      "viewport": "landscape-844x390",
+      "document": {
+        "scrollWidth": 844,
+        "scrollHeight": 7416
+      },
+      "viewportsOfScroll": 19.02,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": -8,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 1099,
+          "height": 2780
+        }
+      ],
+      "fixedChromeHeight": 3444,
+      "interactiveCount": 49,
+      "smallTargetCount": 48,
+      "visibleTextCount": 279,
+      "smallTextCount": 244,
+      "borderedElementCount": 152,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-landscape",
+      "measuredViewport": {
+        "width": 844,
+        "height": 390
+      },
+      "route": "briefing"
+    },
+    {
+      "viewport": "landscape-844x390",
+      "document": {
+        "scrollWidth": 844,
+        "scrollHeight": 3303
+      },
+      "viewportsOfScroll": 8.47,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 310
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1666,
+          "height": 28
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": -8,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 1657,
+          "height": 1053
+        }
+      ],
+      "fixedChromeHeight": 2131,
+      "interactiveCount": 117,
+      "smallTargetCount": 84,
+      "visibleTextCount": 301,
+      "smallTextCount": 247,
+      "borderedElementCount": 197,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-landscape",
+      "measuredViewport": {
+        "width": 844,
+        "height": 390
+      },
+      "route": "roster"
+    },
+    {
+      "viewport": "landscape-844x390",
+      "document": {
+        "scrollWidth": 844,
+        "scrollHeight": 3710
+      },
+      "viewportsOfScroll": 9.51,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 310
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2549,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2549,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2549,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2549,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2549,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2549,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2549,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2549,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2549,
+          "height": 28
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": -8,
+          "height": 376
+        }
+      ],
+      "fixedChromeHeight": 938,
+      "interactiveCount": 81,
+      "smallTargetCount": 69,
+      "visibleTextCount": 270,
+      "smallTextCount": 216,
+      "borderedElementCount": 151,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-landscape",
+      "measuredViewport": {
+        "width": 844,
+        "height": 390
+      },
+      "route": "contracts"
+    },
+    {
+      "viewport": "landscape-844x390",
+      "document": {
+        "scrollWidth": 844,
+        "scrollHeight": 6026
+      },
+      "viewportsOfScroll": 15.45,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": -8,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 2272,
+          "height": 1326
+        }
+      ],
+      "fixedChromeHeight": 1990,
+      "interactiveCount": 71,
+      "smallTargetCount": 65,
+      "visibleTextCount": 254,
+      "smallTextCount": 233,
+      "borderedElementCount": 187,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-landscape",
+      "measuredViewport": {
+        "width": 844,
+        "height": 390
+      },
+      "route": "settings"
+    },
+    {
+      "viewport": "landscape-932x430",
+      "document": {
+        "scrollWidth": 932,
+        "scrollHeight": 6844
+      },
+      "viewportsOfScroll": 15.92,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 32,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 1101,
+          "height": 2314
+        }
+      ],
+      "fixedChromeHeight": 2978,
+      "interactiveCount": 49,
+      "smallTargetCount": 48,
+      "visibleTextCount": 279,
+      "smallTextCount": 244,
+      "borderedElementCount": 152,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-landscape",
+      "measuredViewport": {
+        "width": 932,
+        "height": 430
+      },
+      "route": "briefing"
+    },
+    {
+      "viewport": "landscape-932x430",
+      "document": {
+        "scrollWidth": 932,
+        "scrollHeight": 3288
+      },
+      "viewportsOfScroll": 7.65,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 310
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1651,
+          "height": 28
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 32,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 1642,
+          "height": 1053
+        }
+      ],
+      "fixedChromeHeight": 2131,
+      "interactiveCount": 117,
+      "smallTargetCount": 84,
+      "visibleTextCount": 301,
+      "smallTextCount": 247,
+      "borderedElementCount": 197,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-landscape",
+      "measuredViewport": {
+        "width": 932,
+        "height": 430
+      },
+      "route": "roster"
+    },
+    {
+      "viewport": "landscape-932x430",
+      "document": {
+        "scrollWidth": 932,
+        "scrollHeight": 3681
+      },
+      "viewportsOfScroll": 8.56,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 310
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2520,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2520,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2520,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2520,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2520,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2520,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2520,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2520,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2520,
+          "height": 28
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 32,
+          "height": 376
+        }
+      ],
+      "fixedChromeHeight": 938,
+      "interactiveCount": 81,
+      "smallTargetCount": 69,
+      "visibleTextCount": 270,
+      "smallTextCount": 216,
+      "borderedElementCount": 151,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-landscape",
+      "measuredViewport": {
+        "width": 932,
+        "height": 430
+      },
+      "route": "contracts"
+    },
+    {
+      "viewport": "landscape-932x430",
+      "document": {
+        "scrollWidth": 932,
+        "scrollHeight": 5932
+      },
+      "viewportsOfScroll": 13.8,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 32,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 2313,
+          "height": 1238
+        }
+      ],
+      "fixedChromeHeight": 1902,
+      "interactiveCount": 71,
+      "smallTargetCount": 65,
+      "visibleTextCount": 254,
+      "smallTextCount": 233,
+      "borderedElementCount": 187,
+      "bodyFontSize": 16,
+      "viewportClass": "phone-landscape",
+      "measuredViewport": {
+        "width": 932,
+        "height": 430
+      },
+      "route": "settings"
+    },
+    {
+      "viewport": "tablet-768x1024",
+      "document": {
+        "scrollWidth": 768,
+        "scrollHeight": 7396
+      },
+      "viewportsOfScroll": 7.22,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 973,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 608,
+          "height": 394
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 1132,
+          "height": 2893
+        }
+      ],
+      "fixedChromeHeight": 3626,
+      "interactiveCount": 54,
+      "smallTargetCount": 24,
+      "visibleTextCount": 284,
+      "smallTextCount": 249,
+      "borderedElementCount": 158,
+      "bodyFontSize": 16,
+      "viewportClass": "tablet",
+      "measuredViewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "route": "briefing"
+    },
+    {
+      "viewport": "tablet-768x1024",
+      "document": {
+        "scrollWidth": 768,
+        "scrollHeight": 3220
+      },
+      "viewportsOfScroll": 3.14,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 310
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1705,
+          "height": 28
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 973,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 608,
+          "height": 394
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 1696,
+          "height": 1053
+        }
+      ],
+      "fixedChromeHeight": 2200,
+      "interactiveCount": 122,
+      "smallTargetCount": 56,
+      "visibleTextCount": 306,
+      "smallTextCount": 252,
+      "borderedElementCount": 203,
+      "bodyFontSize": 16,
+      "viewportClass": "tablet",
+      "measuredViewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "route": "roster"
+    },
+    {
+      "viewport": "tablet-768x1024",
+      "document": {
+        "scrollWidth": 768,
+        "scrollHeight": 3445
+      },
+      "viewportsOfScroll": 3.36,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 310
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2406,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2406,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2406,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2406,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2406,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2406,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2406,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2406,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2406,
+          "height": 28
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 973,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 608,
+          "height": 394
+        }
+      ],
+      "fixedChromeHeight": 1007,
+      "interactiveCount": 86,
+      "smallTargetCount": 55,
+      "visibleTextCount": 275,
+      "smallTextCount": 221,
+      "borderedElementCount": 157,
+      "bodyFontSize": 16,
+      "viewportClass": "tablet",
+      "measuredViewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "route": "contracts"
+    },
+    {
+      "viewport": "tablet-768x1024",
+      "document": {
+        "scrollWidth": 768,
+        "scrollHeight": 5836
+      },
+      "viewportsOfScroll": 5.7,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 1,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "nav",
+          "position": "fixed",
+          "top": 973,
+          "height": 51
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 608,
+          "height": 394
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 2194,
+          "height": 1377
+        }
+      ],
+      "fixedChromeHeight": 2110,
+      "interactiveCount": 76,
+      "smallTargetCount": 46,
+      "visibleTextCount": 259,
+      "smallTextCount": 238,
+      "borderedElementCount": 193,
+      "bodyFontSize": 16,
+      "viewportClass": "tablet",
+      "measuredViewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "route": "settings"
+    },
+    {
+      "viewport": "tablet-1024x768",
+      "document": {
+        "scrollWidth": 1024,
+        "scrollHeight": 6554
+      },
+      "viewportsOfScroll": 8.53,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 370,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 1065,
+          "height": 2226
+        }
+      ],
+      "fixedChromeHeight": 2890,
+      "interactiveCount": 49,
+      "smallTargetCount": 48,
+      "visibleTextCount": 279,
+      "smallTextCount": 244,
+      "borderedElementCount": 152,
+      "bodyFontSize": 16,
+      "viewportClass": "tablet",
+      "measuredViewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "route": "briefing"
+    },
+    {
+      "viewport": "tablet-1024x768",
+      "document": {
+        "scrollWidth": 1024,
+        "scrollHeight": 3239
+      },
+      "viewportsOfScroll": 4.22,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 310
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1602,
+          "height": 28
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 370,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 1593,
+          "height": 1053
+        }
+      ],
+      "fixedChromeHeight": 2131,
+      "interactiveCount": 117,
+      "smallTargetCount": 84,
+      "visibleTextCount": 301,
+      "smallTextCount": 247,
+      "borderedElementCount": 197,
+      "bodyFontSize": 16,
+      "viewportClass": "tablet",
+      "measuredViewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "route": "roster"
+    },
+    {
+      "viewport": "tablet-1024x768",
+      "document": {
+        "scrollWidth": 1024,
+        "scrollHeight": 3664
+      },
+      "viewportsOfScroll": 4.77,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 310
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2503,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2503,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2503,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2503,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2503,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2503,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2503,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2503,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2503,
+          "height": 28
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 370,
+          "height": 376
+        }
+      ],
+      "fixedChromeHeight": 938,
+      "interactiveCount": 81,
+      "smallTargetCount": 69,
+      "visibleTextCount": 270,
+      "smallTextCount": 216,
+      "borderedElementCount": 151,
+      "bodyFontSize": 16,
+      "viewportClass": "tablet",
+      "measuredViewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "route": "contracts"
+    },
+    {
+      "viewport": "tablet-1024x768",
+      "document": {
+        "scrollWidth": 1024,
+        "scrollHeight": 5726
+      },
+      "viewportsOfScroll": 7.46,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 288
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 370,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 2115,
+          "height": 1238
+        }
+      ],
+      "fixedChromeHeight": 1902,
+      "interactiveCount": 71,
+      "smallTargetCount": 65,
+      "visibleTextCount": 254,
+      "smallTextCount": 233,
+      "borderedElementCount": 187,
+      "bodyFontSize": 16,
+      "viewportClass": "tablet",
+      "measuredViewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "route": "settings"
+    },
+    {
+      "viewport": "desktop-1280x720",
+      "document": {
+        "scrollWidth": 1280,
+        "scrollHeight": 6697
+      },
+      "viewportsOfScroll": 9.3,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 151
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 322,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 953,
+          "height": 2314
+        }
+      ],
+      "fixedChromeHeight": 2841,
+      "interactiveCount": 49,
+      "smallTargetCount": 48,
+      "visibleTextCount": 279,
+      "smallTextCount": 244,
+      "borderedElementCount": 152,
+      "bodyFontSize": 16,
+      "viewportClass": "desktop",
+      "measuredViewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "route": "briefing"
+    },
+    {
+      "viewport": "desktop-1280x720",
+      "document": {
+        "scrollWidth": 1280,
+        "scrollHeight": 3158
+      },
+      "viewportsOfScroll": 4.39,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 173
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1521,
+          "height": 28
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 322,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 1512,
+          "height": 1053
+        }
+      ],
+      "fixedChromeHeight": 1994,
+      "interactiveCount": 117,
+      "smallTargetCount": 93,
+      "visibleTextCount": 301,
+      "smallTextCount": 247,
+      "borderedElementCount": 197,
+      "bodyFontSize": 16,
+      "viewportClass": "desktop",
+      "measuredViewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "route": "roster"
+    },
+    {
+      "viewport": "desktop-1280x720",
+      "document": {
+        "scrollWidth": 1280,
+        "scrollHeight": 3557
+      },
+      "viewportsOfScroll": 4.94,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 173
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2396,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2396,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2396,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2396,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2396,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2396,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2396,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2396,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2396,
+          "height": 28
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 322,
+          "height": 376
+        }
+      ],
+      "fixedChromeHeight": 801,
+      "interactiveCount": 81,
+      "smallTargetCount": 69,
+      "visibleTextCount": 270,
+      "smallTextCount": 216,
+      "borderedElementCount": 151,
+      "bodyFontSize": 16,
+      "viewportClass": "desktop",
+      "measuredViewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "route": "contracts"
+    },
+    {
+      "viewport": "desktop-1280x720",
+      "document": {
+        "scrollWidth": 1280,
+        "scrollHeight": 5792
+      },
+      "viewportsOfScroll": 8.04,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 151
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 322,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 2173,
+          "height": 1238
+        }
+      ],
+      "fixedChromeHeight": 1765,
+      "interactiveCount": 71,
+      "smallTargetCount": 65,
+      "visibleTextCount": 254,
+      "smallTextCount": 233,
+      "borderedElementCount": 187,
+      "bodyFontSize": 16,
+      "viewportClass": "desktop",
+      "measuredViewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "route": "settings"
+    },
+    {
+      "viewport": "desktop-1440x900",
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 6273
+      },
+      "viewportsOfScroll": 6.97,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 151
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 502,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 975,
+          "height": 2088
+        }
+      ],
+      "fixedChromeHeight": 2615,
+      "interactiveCount": 49,
+      "smallTargetCount": 48,
+      "visibleTextCount": 279,
+      "smallTextCount": 244,
+      "borderedElementCount": 152,
+      "bodyFontSize": 16,
+      "viewportClass": "desktop",
+      "measuredViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "route": "briefing"
+    },
+    {
+      "viewport": "desktop-1440x900",
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 2869
+      },
+      "viewportsOfScroll": 3.19,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 173
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1356,
+          "height": 28
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 502,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 1347,
+          "height": 1053
+        }
+      ],
+      "fixedChromeHeight": 1994,
+      "interactiveCount": 117,
+      "smallTargetCount": 93,
+      "visibleTextCount": 301,
+      "smallTextCount": 247,
+      "borderedElementCount": 197,
+      "bodyFontSize": 16,
+      "viewportClass": "desktop",
+      "measuredViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "route": "roster"
+    },
+    {
+      "viewport": "desktop-1440x900",
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 3553
+      },
+      "viewportsOfScroll": 3.95,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 173
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2392,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2392,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2392,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2392,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2392,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2392,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2392,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2392,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2392,
+          "height": 28
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 502,
+          "height": 376
+        }
+      ],
+      "fixedChromeHeight": 801,
+      "interactiveCount": 81,
+      "smallTargetCount": 69,
+      "visibleTextCount": 270,
+      "smallTextCount": 216,
+      "borderedElementCount": 151,
+      "bodyFontSize": 16,
+      "viewportClass": "desktop",
+      "measuredViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "route": "contracts"
+    },
+    {
+      "viewport": "desktop-1440x900",
+      "document": {
+        "scrollWidth": 1440,
+        "scrollHeight": 5525
+      },
+      "viewportsOfScroll": 6.14,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 151
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 502,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 1976,
+          "height": 1393
+        }
+      ],
+      "fixedChromeHeight": 1920,
+      "interactiveCount": 71,
+      "smallTargetCount": 65,
+      "visibleTextCount": 254,
+      "smallTextCount": 233,
+      "borderedElementCount": 187,
+      "bodyFontSize": 16,
+      "viewportClass": "desktop",
+      "measuredViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "route": "settings"
+    },
+    {
+      "viewport": "desktop-1600x1000",
+      "document": {
+        "scrollWidth": 1600,
+        "scrollHeight": 5740
+      },
+      "viewportsOfScroll": 5.74,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 151
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 602,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 958,
+          "height": 1782
+        }
+      ],
+      "fixedChromeHeight": 2309,
+      "interactiveCount": 49,
+      "smallTargetCount": 48,
+      "visibleTextCount": 279,
+      "smallTextCount": 244,
+      "borderedElementCount": 152,
+      "bodyFontSize": 16,
+      "viewportClass": "desktop",
+      "measuredViewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "route": "briefing"
+    },
+    {
+      "viewport": "desktop-1600x1000",
+      "document": {
+        "scrollWidth": 1600,
+        "scrollHeight": 2854
+      },
+      "viewportsOfScroll": 2.85,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 173
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 1342,
+          "height": 28
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 602,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 1333,
+          "height": 1053
+        }
+      ],
+      "fixedChromeHeight": 1994,
+      "interactiveCount": 117,
+      "smallTargetCount": 101,
+      "visibleTextCount": 301,
+      "smallTextCount": 247,
+      "borderedElementCount": 197,
+      "bodyFontSize": 16,
+      "viewportClass": "desktop",
+      "measuredViewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "route": "roster"
+    },
+    {
+      "viewport": "desktop-1600x1000",
+      "document": {
+        "scrollWidth": 1600,
+        "scrollHeight": 3377
+      },
+      "viewportsOfScroll": 3.38,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 173
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2217,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2217,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2217,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2217,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2217,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2217,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2217,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2217,
+          "height": 28
+        },
+        {
+          "tag": "th",
+          "position": "sticky",
+          "top": 2217,
+          "height": 28
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 602,
+          "height": 376
+        }
+      ],
+      "fixedChromeHeight": 801,
+      "interactiveCount": 81,
+      "smallTargetCount": 69,
+      "visibleTextCount": 270,
+      "smallTextCount": 216,
+      "borderedElementCount": 151,
+      "bodyFontSize": 16,
+      "viewportClass": "desktop",
+      "measuredViewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "route": "contracts"
+    },
+    {
+      "viewport": "desktop-1600x1000",
+      "document": {
+        "scrollWidth": 1600,
+        "scrollHeight": 5427
+      },
+      "viewportsOfScroll": 5.43,
+      "horizontalOverflow": false,
+      "scrollContainerCount": 0,
+      "stickyOrFixed": [
+        {
+          "tag": "header",
+          "position": "sticky",
+          "top": 8,
+          "height": 151
+        },
+        {
+          "tag": "aside",
+          "position": "fixed",
+          "top": 602,
+          "height": 376
+        },
+        {
+          "tag": "span",
+          "position": "fixed",
+          "top": 1946,
+          "height": 1326
+        }
+      ],
+      "fixedChromeHeight": 1853,
+      "interactiveCount": 71,
+      "smallTargetCount": 65,
+      "visibleTextCount": 254,
+      "smallTextCount": 233,
+      "borderedElementCount": 187,
+      "bodyFontSize": 16,
+      "viewportClass": "desktop",
+      "measuredViewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "route": "settings"
+    }
+  ]
+}

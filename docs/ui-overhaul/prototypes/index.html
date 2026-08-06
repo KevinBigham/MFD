@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#0b111b" />
+  <title>MFD UI Reinvention — Weekly Loop Prototype</title>
+  <link rel="stylesheet" href="prototype.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <div class="prototype-banner" role="note">
+    <strong>Non-production reference prototype</strong>
+    <span>Static sample data • no engine or save connection</span>
+    <button class="text-button" id="resetPrototype" type="button">Reset prototype</button>
+  </div>
+
+  <div class="app-frame" id="appFrame">
+    <aside class="desktop-rail" aria-label="Primary navigation">
+      <a class="brand-lockup" href="#today" data-route="today" aria-label="Mr. Football Dynasty, go to Today">
+        <span class="brand-mark" aria-hidden="true">MFD</span>
+        <span><strong>Mr. Football</strong><small>Dynasty</small></span>
+      </a>
+      <nav class="rail-nav" aria-label="Franchise areas">
+        <button class="rail-item is-active" type="button" data-nav="today"><span aria-hidden="true">◎</span><span>Today</span><b class="nav-badge" data-task-count>2</b></button>
+        <button class="rail-item" type="button" data-nav="team"><span aria-hidden="true">♟</span><span>Team</span></button>
+        <button class="rail-item" type="button" data-nav="game"><span aria-hidden="true">◆</span><span>Game</span></button>
+        <button class="rail-item" type="button" data-nav="office"><span aria-hidden="true">▦</span><span>Office</span></button>
+        <button class="rail-item" type="button" data-nav="league"><span aria-hidden="true">◫</span><span>League</span></button>
+      </nav>
+      <div class="rail-secondary">
+        <button class="rail-item rail-item--quiet" type="button" data-nav="dynasty"><span aria-hidden="true">★</span><span>Dynasty</span></button>
+        <button class="rail-item rail-item--quiet" type="button" data-nav="system"><span aria-hidden="true">⚙</span><span>System</span></button>
+      </div>
+      <div class="save-health" aria-label="Save status">
+        <span class="status-dot status-dot--good" aria-hidden="true"></span>
+        <span><strong>Saved</strong><small>Local dynasty • now</small></span>
+      </div>
+    </aside>
+
+    <div class="shell-column">
+      <header class="global-header">
+        <div class="franchise-identity">
+          <span class="team-monogram" aria-hidden="true">KC</span>
+          <span><strong>Kansas City Monarchs</strong><small>2032 • 9–3 • AFC West #1</small></span>
+        </div>
+        <div class="week-context" aria-label="Current season context">
+          <span class="eyebrow">Regular Season</span>
+          <strong>Week <span data-week-number>14</span></strong>
+          <span class="opponent-mini">vs DEN • Sun 3:25 PM</span>
+        </div>
+        <div class="header-actions">
+          <button class="icon-button" type="button" id="searchButton" aria-label="Search MFD" title="Search"><span aria-hidden="true">⌕</span></button>
+          <button class="icon-button" type="button" id="notificationsButton" aria-label="Notifications, one unread" title="Notifications"><span aria-hidden="true">◉</span><i></i></button>
+          <button class="avatar-button" type="button" id="profileButton" aria-label="Open profile and system menu">KB</button>
+        </div>
+      </header>
+
+      <div class="phase-strip" aria-label="Weekly progress">
+        <ol>
+          <li class="is-current"><span>1</span><b>Understand</b></li>
+          <li><span>2</span><b>Resolve</b></li>
+          <li><span>3</span><b>Prepare</b></li>
+          <li><span>4</span><b>Play</b></li>
+          <li><span>5</span><b>Review</b></li>
+        </ol>
+      </div>
+
+      <main id="main-content" class="page-scroll" tabindex="-1">
+        <!-- TODAY -->
+        <section class="screen is-active" id="screen-today" data-screen="today" aria-labelledby="todayTitle">
+          <div class="screen-header screen-header--today">
+            <div>
+              <p class="eyebrow">Monday briefing</p>
+              <h1 id="todayTitle">Win the week.</h1>
+              <p class="screen-deck">Two decisions stand between your franchise and Sunday. Handle those first; everything else can wait.</p>
+            </div>
+            <div class="readiness-chip" data-readiness-summary>
+              <span class="status-dot status-dot--warning" aria-hidden="true"></span>
+              <span><strong>2 required</strong><small>Not ready to advance</small></span>
+            </div>
+          </div>
+
+          <section class="matchup-hero" aria-labelledby="matchupTitle">
+            <div class="matchup-team matchup-team--home">
+              <span class="matchup-logo">KC</span>
+              <span><strong>Monarchs</strong><small>9–3</small></span>
+            </div>
+            <div class="matchup-center">
+              <p class="eyebrow" id="matchupTitle">Week <span data-week-number>14</span> • Arrowhead Field</p>
+              <div class="versus"><span>Sunday</span><strong>3:25</strong><span>PM</span></div>
+              <p>Clear • 41°F • National broadcast</p>
+            </div>
+            <div class="matchup-team matchup-team--away">
+              <span class="matchup-logo matchup-logo--away">DEN</span>
+              <span><strong>Mustangs</strong><small>7–5</small></span>
+            </div>
+          </section>
+
+          <div class="today-grid">
+            <section class="priority-panel" aria-labelledby="priorityTitle">
+              <div class="section-heading">
+                <div><p class="eyebrow">Do this next</p><h2 id="priorityTitle">Protect the blind side</h2></div>
+                <span class="severity-pill">Required</span>
+              </div>
+              <p>Your starting left tackle is out. Set a replacement before game planning so the staff can prepare around the right lineup.</p>
+              <div class="impact-row" aria-label="Decision impact">
+                <span><b>Why now</b> Injury created an empty depth slot</span>
+                <span><b>Risk</b> DEN ranks #3 in pressure rate</span>
+              </div>
+              <button class="button button--primary" type="button" data-open-screen="depth">Set left tackle <span aria-hidden="true">→</span></button>
+            </section>
+
+            <aside class="opponent-card" aria-labelledby="opponentTitle">
+              <div class="section-heading section-heading--compact"><div><p class="eyebrow">Opponent intel</p><h2 id="opponentTitle">Denver Mustangs</h2></div><span class="record-pill">7–5</span></div>
+              <dl class="stat-grid">
+                <div><dt>Defense</dt><dd>#5</dd></div>
+                <div><dt>Pressure</dt><dd>#3</dd></div>
+                <div><dt>Run D</dt><dd>#19</dd></div>
+                <div><dt>Turnovers</dt><dd>+6</dd></div>
+              </dl>
+              <p class="insight"><span aria-hidden="true">◆</span> Their edge rush is elite. Quick game and inside runs grade as the safest answers.</p>
+              <button class="button button--tertiary" type="button" data-open-screen="gameplan">Open matchup plan</button>
+            </aside>
+          </div>
+
+          <section class="task-section" aria-labelledby="tasksTitle">
+            <div class="section-heading">
+              <div><p class="eyebrow">Required before Sunday</p><h2 id="tasksTitle">Your decision queue</h2></div>
+              <span class="task-count" data-task-label>0 of 2 complete</span>
+            </div>
+            <div class="task-list">
+              <button class="task-row" type="button" data-task="depth" data-open-screen="depth">
+                <span class="task-state" aria-hidden="true">1</span>
+                <span class="task-copy"><strong>Fill the LT depth slot</strong><small>Team • Depth chart • 1 decision</small></span>
+                <span class="task-meta"><b>Required</b><small>~30 sec</small></span>
+                <span class="task-arrow" aria-hidden="true">→</span>
+              </button>
+              <button class="task-row" type="button" data-task="gameplan" data-open-screen="gameplan">
+                <span class="task-state" aria-hidden="true">2</span>
+                <span class="task-copy"><strong>Set the Denver game plan</strong><small>Game • Plan • 2 choices</small></span>
+                <span class="task-meta"><b>Required</b><small>~45 sec</small></span>
+                <span class="task-arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </section>
+
+          <details class="optional-disclosure">
+            <summary><span><b>Three optional signals</b><small>Useful, but safe to defer</small></span><span aria-hidden="true">⌄</span></summary>
+            <div class="optional-list">
+              <a href="#office" data-placeholder="Office"><span class="optional-icon">$</span><span><b>Two contracts expire after the season</b><small>Office • No deadline this week</small></span><span>Later</span></a>
+              <a href="#league" data-placeholder="League"><span class="optional-icon">↑</span><span><b>You moved to #4 in the power rankings</b><small>League • Updated today</small></span><span>View</span></a>
+              <a href="#dynasty" data-placeholder="Dynasty"><span class="optional-icon">★</span><span><b>Coach Hayes reached 100 career wins</b><small>Dynasty • New milestone</small></span><span>Celebrate</span></a>
+            </div>
+          </details>
+        </section>
+
+        <!-- DEPTH TASK -->
+        <section class="screen" id="screen-depth" data-screen="depth" aria-labelledby="depthTitle">
+          <div class="return-strip"><button class="text-button" type="button" data-open-screen="today">← Return to Today</button><span>Required task • 1 of 2</span></div>
+          <div class="screen-header">
+            <div><p class="eyebrow">Team / Depth chart</p><h1 id="depthTitle">Choose your starting left tackle.</h1><p class="screen-deck">Marcus Bell is out three weeks. Pick the player who will protect the quarterback against Denver’s top-five pass rush.</p></div>
+            <span class="severity-pill">Required</span>
+          </div>
+
+          <section class="decision-context" aria-label="Decision context">
+            <div><span class="injury-badge">OUT</span><strong>Marcus Bell • LT1</strong><small>High ankle sprain • 3 weeks</small></div>
+            <div class="context-callout"><b>Staff note</b><span>Caleb Ward is safer in pass protection. Jalen Brooks creates more push in the run game.</span></div>
+          </section>
+
+          <form id="depthForm" class="decision-layout">
+            <fieldset class="choice-list">
+              <legend>Select the starter</legend>
+              <label class="player-choice">
+                <input type="radio" name="leftTackle" value="ward" />
+                <span class="player-number">72</span>
+                <span class="player-main"><b>Caleb Ward</b><small>RT • 27 years old • Normal development</small></span>
+                <span class="player-stats"><span><small>OVR</small><b>72</b></span><span><small>Pass</small><b>78</b></span><span><small>Run</small><b>66</b></span></span>
+                <span class="fit-tag fit-tag--safe">Best pass fit</span>
+              </label>
+              <label class="player-choice">
+                <input type="radio" name="leftTackle" value="brooks" />
+                <span class="player-number">68</span>
+                <span class="player-main"><b>Jalen Brooks</b><small>LG • 23 years old • Quick development</small></span>
+                <span class="player-stats"><span><small>OVR</small><b>68</b></span><span><small>Pass</small><b>63</b></span><span><small>Run</small><b>76</b></span></span>
+                <span class="fit-tag fit-tag--risk">High-upside risk</span>
+              </label>
+              <label class="player-choice">
+                <input type="radio" name="leftTackle" value="avery" />
+                <span class="player-number">65</span>
+                <span class="player-main"><b>Derek Avery</b><small>LT • 31 years old • Veteran reserve</small></span>
+                <span class="player-stats"><span><small>OVR</small><b>65</b></span><span><small>Pass</small><b>71</b></span><span><small>Run</small><b>59</b></span></span>
+                <span class="fit-tag">Natural position</span>
+              </label>
+            </fieldset>
+            <aside class="consequence-panel" aria-live="polite">
+              <p class="eyebrow">Projected consequence</p>
+              <h2 id="depthProjectionTitle">Choose a player</h2>
+              <p id="depthProjectionCopy">The staff projection will update here before anything changes.</p>
+              <dl id="depthProjectionStats" class="projection-stats">
+                <div><dt>Pass protection</dt><dd>—</dd></div><div><dt>Run blocking</dt><dd>—</dd></div><div><dt>Continuity</dt><dd>—</dd></div>
+              </dl>
+              <p class="draft-note"><span aria-hidden="true">✓</span> This is a preview. The depth chart changes only when you save.</p>
+            </aside>
+          </form>
+        </section>
+
+        <!-- GAME PLAN TASK -->
+        <section class="screen" id="screen-gameplan" data-screen="gameplan" aria-labelledby="gameplanTitle">
+          <div class="return-strip"><button class="text-button" type="button" data-open-screen="today">← Return to Today</button><span>Required task • 2 of 2</span></div>
+          <div class="screen-header">
+            <div><p class="eyebrow">Game / Matchup plan</p><h1 id="gameplanTitle">Make Denver defend your terms.</h1><p class="screen-deck">Set one offensive identity and one defensive priority. The staff will translate these into the full plan.</p></div>
+            <span class="severity-pill">Required</span>
+          </div>
+
+          <form id="gameplanForm" class="plan-grid">
+            <fieldset class="plan-section">
+              <legend><span>1</span><span><b>Offensive identity</b><small>How should Kansas City attack?</small></span></legend>
+              <div class="plan-options">
+                <label class="plan-card"><input type="radio" name="offense" value="quick" /><span class="plan-icon">↯</span><span><b>Quick rhythm</b><small>Short drops, screens, inside runs. Reduces edge pressure.</small></span><em>Recommended</em></label>
+                <label class="plan-card"><input type="radio" name="offense" value="balanced" /><span class="plan-icon">◇</span><span><b>Stay balanced</b><small>Keep the full playbook open and react in-game.</small></span></label>
+                <label class="plan-card"><input type="radio" name="offense" value="attack" /><span class="plan-icon">↑</span><span><b>Attack vertically</b><small>Challenge Denver’s safeties; accept more pressure risk.</small></span><em class="risk-label">Volatile</em></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="plan-section">
+              <legend><span>2</span><span><b>Defensive priority</b><small>What must Denver fail to do?</small></span></legend>
+              <div class="plan-options">
+                <label class="plan-card"><input type="radio" name="defense" value="contain" /><span class="plan-icon">⊙</span><span><b>Contain the quarterback</b><small>Hold rush lanes and force long drives.</small></span><em>Recommended</em></label>
+                <label class="plan-card"><input type="radio" name="defense" value="pressure" /><span class="plan-icon">»</span><span><b>Bring pressure</b><small>Create negative plays; expose the secondary.</small></span></label>
+                <label class="plan-card"><input type="radio" name="defense" value="takeaway" /><span class="plan-icon">×</span><span><b>Hunt takeaways</b><small>Jump routes and attack the ball.</small></span><em class="risk-label">Aggressive</em></label>
+              </div>
+            </fieldset>
+
+            <aside class="plan-summary" aria-live="polite">
+              <div><p class="eyebrow">Staff translation</p><h2 id="planSummaryTitle">Choose both priorities</h2><p id="planSummaryCopy">Your selected identity and priority will become the staff’s game-day instructions.</p></div>
+              <div class="confidence-meter"><span><b id="planConfidence">—</b><small>Projected plan fit</small></span><div><i id="planConfidenceBar"></i></div></div>
+            </aside>
+          </form>
+        </section>
+
+        <!-- POST ADVANCE -->
+        <section class="screen" id="screen-advanced" data-screen="advanced" aria-labelledby="advancedTitle">
+          <div class="celebration-mark" aria-hidden="true">✓</div>
+          <p class="eyebrow">Week 14 complete</p>
+          <h1 id="advancedTitle">Kansas City 27, Denver 20</h1>
+          <p class="screen-deck screen-deck--center">Your quick-rhythm plan held Denver to two sacks. The Monarchs improve to 10–3 and keep first place in the AFC West.</p>
+          <div class="result-grid">
+            <article><small>Turning point</small><strong>Ward held up on 4th &amp; 2</strong><p>A fourth-quarter conversion set up the winning touchdown.</p></article>
+            <article><small>Decision result</small><strong>Plan fit: A−</strong><p>Quick throws neutralized pressure; contain kept the quarterback in the pocket.</p></article>
+            <article><small>Dynasty change</small><strong>Playoff odds: 94%</strong><p>Kansas City can clinch a berth next week.</p></article>
+          </div>
+          <button class="button button--primary button--center" type="button" id="continueWeek15">Continue to Week 15 <span aria-hidden="true">→</span></button>
+        </section>
+      </main>
+
+      <div class="sticky-action-dock" id="actionDock" aria-label="Current screen actions">
+        <div class="dock-context"><span class="status-dot status-dot--warning" aria-hidden="true"></span><span><strong id="dockTitle">2 decisions required</strong><small id="dockSubtitle">Resolve both before Sunday</small></span></div>
+        <div class="dock-actions">
+          <button class="button button--secondary" type="button" id="dockSecondary">Review tasks</button>
+          <button class="button button--primary" type="button" id="dockPrimary">Check readiness</button>
+        </div>
+      </div>
+
+      <nav class="mobile-bottom-nav" aria-label="Primary navigation">
+        <button class="mobile-nav-item is-active" type="button" data-nav="today"><span aria-hidden="true">◎</span><b>Today</b><i class="nav-badge" data-task-count>2</i></button>
+        <button class="mobile-nav-item" type="button" data-nav="team"><span aria-hidden="true">♟</span><b>Team</b></button>
+        <button class="mobile-nav-item" type="button" data-nav="game"><span aria-hidden="true">◆</span><b>Game</b></button>
+        <button class="mobile-nav-item" type="button" data-nav="office"><span aria-hidden="true">▦</span><b>Office</b></button>
+        <button class="mobile-nav-item" type="button" data-nav="league"><span aria-hidden="true">◫</span><b>League</b></button>
+      </nav>
+    </div>
+
+    <button class="chip-trigger" id="chipTrigger" type="button" aria-haspopup="dialog" aria-controls="chipPanel" aria-expanded="false">
+      <span class="chip-avatar" aria-hidden="true">C</span><span class="chip-trigger-copy"><b>Ask Chip</b><small data-chip-status>2 decisions left</small></span>
+    </button>
+  </div>
+
+  <dialog class="sheet-dialog readiness-dialog" id="readinessDialog" aria-labelledby="readinessTitle">
+    <form method="dialog" class="sheet-shell" id="readinessForm">
+      <header class="sheet-header"><div><p class="eyebrow">Week checkpoint</p><h2 id="readinessTitle">Not ready yet</h2></div><button class="icon-button" value="cancel" aria-label="Close readiness">×</button></header>
+      <div class="sheet-body" id="readinessBody"></div>
+      <footer class="sheet-footer"><button class="button button--secondary" value="cancel">Keep working</button><button class="button button--primary" type="button" id="advanceButton" disabled>Resolve blockers</button></footer>
+    </form>
+  </dialog>
+
+  <dialog class="sheet-dialog chip-dialog" id="chipPanel" aria-labelledby="chipTitle">
+    <form method="dialog" class="sheet-shell">
+      <header class="sheet-header"><div class="chip-heading"><span class="chip-avatar" aria-hidden="true">C</span><span><p class="eyebrow">Franchise assistant</p><h2 id="chipTitle">Chip</h2></span></div><button class="icon-button" value="cancel" aria-label="Close Chip">×</button></header>
+      <div class="sheet-body chip-body" id="chipBody"></div>
+      <footer class="sheet-footer sheet-footer--split"><button class="text-button" type="button" id="muteChip">Mute guidance</button><button class="button button--primary" type="button" id="chipAction">Go to next task</button></footer>
+    </form>
+  </dialog>
+
+  <dialog class="sheet-dialog mini-dialog" id="placeholderDialog" aria-labelledby="placeholderTitle">
+    <form method="dialog" class="sheet-shell">
+      <header class="sheet-header"><div><p class="eyebrow">Prototype boundary</p><h2 id="placeholderTitle">Surface represented, not implemented</h2></div><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
+      <div class="sheet-body"><p>This vertical slice proves the recurring weekly loop. The complete audit blueprints the remaining hub and detail surfaces without connecting this static prototype to production code.</p></div>
+      <footer class="sheet-footer"><button class="button button--primary" value="cancel">Return to the weekly loop</button></footer>
+    </form>
+  </dialog>
+
+  <div class="toast-region" id="toastRegion" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="prototype.js"></script>
+</body>
+</html>

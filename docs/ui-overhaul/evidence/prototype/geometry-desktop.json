@@ -1,0 +1,22 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "body": {
+    "width": 1440,
+    "height": 913
+  },
+  "pageScroll": {
+    "clientHeight": 742,
+    "scrollHeight": 1152,
+    "overflowY": "auto"
+  },
+  "visibleScreens": [
+    "today"
+  ],
+  "smallControls": 5,
+  "horizontalOverflow": false,
+  "bottomNavVisible": false,
+  "primaryNavJobCount": 5
+}
