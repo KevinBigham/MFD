@@ -247,17 +247,30 @@ Added:
 
 | File | Purpose |
 |---|---|
+| `apps/web/src/ui/routes/href.ts` | `normalizePath`, `splitHref` — the one href parser |
 | `apps/web/src/ui/routes/route-surface-types.ts` | `HubId`, `SurfaceType`, `RouteSurfaceMeta`, frequency/urgency enums |
 | `apps/web/src/ui/routes/route-surface-map.ts` | 79 entries + `routeSurface` / `hubForLegacyPath` / `routesInHub` / `routeUnlock` |
-| `apps/web/src/ui/routes/route-compatibility.ts` | `splitHref`, `resolveCompatibleRoute`, `isResolvable` |
+| `apps/web/src/ui/routes/route-compatibility.ts` | `resolveCompatibleRoute`, `isResolvable` |
 | `apps/web/src/ui/routes/navigation-origin.ts` | `NavigationOrigin` encode/decode, `withNavigationOrigin`, `returnToOriginHref` |
+| `apps/web/src/ui/routes/href.test.ts` | 5 tests — normalization, and cross-module agreement |
 | `apps/web/src/ui/routes/route-surface-map.test.ts` | 8 tests — registry parity + field-level matrix equality |
 | `apps/web/src/ui/routes/route-compatibility.test.ts` | 15 tests |
-| `apps/web/src/ui/routes/navigation-origin.test.ts` | 17 tests |
+| `apps/web/src/ui/routes/navigation-origin.test.ts` | 18 tests |
+| `scripts/generate-route-surface-map.mjs` | Regenerates the 79-row map from the matrix; output is byte-identical to the committed file |
 | `scripts/check-ui-route-coverage.d.mts` | Types for the gate's `parseCsv`, reused by the parity test |
 
 Modified: `apps/web/src/app/currentAppRoute.ts` (+ its test),
 `apps/web/src/app/navBadges.ts` (+ its test). Deleted: none.
+
+**Deviations from the packet's file list, disclosed:** the packet names
+`route-surface-map.test.ts` as the only test file; three more were added beside
+their modules (`href`, `route-compatibility`, `navigation-origin`) because the
+packet's own "Automated tests" section demands coverage that spans all of them.
+`href.ts`, the generator, and the `.d.mts` are not in the packet's list either.
+`ROUTE_SURFACE_MAP` is keyed by legacy path rather than "canonical route IDs";
+the registry has no id field, and the legacy path *is* the stable key. WP-04's
+three required before/after screenshots were **not produced** — the surfaces they
+would show do not exist until WP-05/06, so they move to that packet.
 
 ### Deviations from the packet, and why
 
@@ -266,13 +279,29 @@ Modified: `apps/web/src/app/currentAppRoute.ts` (+ its test),
    identical values with a `retired` branch no test could reach. Kept in the
    CSV, enforced non-empty by the gate. Retirement is WP-23 and lands with its
    own failing test.
-2. **`lifecycle_phase` is not copied into the runtime model.** `routeUnlock()`
-   reads `unlockWeek` / `unlockPhase` from `APP_ROUTE_REGISTRY` instead. The
-   packet's own non-scope forbids a second maintained copy of registry logic.
-3. **`splitHref` is duplicated in `currentAppRoute.ts` rather than imported.**
-   Importing it would pull the 79-entry surface map into the error boundary and
-   the Chip dock, which are eager and legacy-only. A cross-implementation test
-   over 79 routes × 5 decorations pins the two together.
+2. **`lifecycle_phase` is not modelled at runtime.** *Corrected after review:* an
+   earlier draft justified this by saying the registry already carries the same
+   data. It does not. `/depth-chart` is `unlockWeek: 'always'` with no
+   `unlockPhase`, yet its `lifecycle_phase` reads *"preseason / regular season"*;
+   the column holds 22 distinct free-text values across 79 rows
+   (`"game day / postgame"`, `"trade deadline"`, `"multi-season"`) with no
+   registry counterpart. The real reason to drop it is that it is unnormalized
+   prose that no consumer can act on, and normalizing 22 descriptive phrases into
+   a runtime enum would be inventing a taxonomy the audit did not decide. It
+   remains in the CSV. `routeUnlock()` separately exposes the registry's actual
+   gating (`unlockWeek` / `unlockPhase`), which is a different thing and the only
+   one that governs access. **This is an unmet scope line, not a substitution.**
+   Whoever needs lifecycle grouping should normalize it deliberately, in the
+   packet that needs it.
+
+Corrected after review — the third deviation no longer exists. `splitHref` was
+briefly duplicated in `currentAppRoute.ts` on the theory that importing it would
+pull the surface map into the error boundary and the Chip dock. That was wrong:
+`App.tsx` → `navBadges.ts` → `route-surface-map` already puts the map in the
+eager chunk, so there was no boundary to protect and the second parser bought
+nothing but drift risk. The parser now lives in `apps/web/src/ui/routes/href.ts`,
+depends on nothing, and is the single implementation behind route lookup,
+deep-link resolution, and "where am I now".
 
 ### Facts the model surfaced
 
@@ -289,6 +318,11 @@ Modified: `apps/web/src/app/currentAppRoute.ts` (+ its test),
 - All 79 registry paths resolve to a hub, and resolution is a **fixed point** —
   resolving an already-resolved href changes nothing. That is what "no circular
   mappings" has to mean operationally.
+- **Lookup and resolution disagreed at the edges.** `resolveCompatibleRoute`
+  normalized `/roster/` and `roster`; `routeSurface` and `hubForLegacyPath` did
+  exact key lookups and returned `undefined` for the same input. Found in review.
+  Both now go through `href.ts`, and `href.test.ts` asserts agreement across all
+  79 routes × 5 decorations.
 
 ### Verification of this packet
 
@@ -296,7 +330,7 @@ Modified: `apps/web/src/app/currentAppRoute.ts` (+ its test),
 |---|---|
 | `pnpm -r typecheck` | **PASS** — all 3 projects |
 | `vitest run src/ui src/app/navBadges.test.ts src/app/currentAppRoute.test.ts src/app/architecture-boundaries.test.ts` | **PASS** — 79/79 |
-| Full web suite (gate's `--exclude` command) | **PASS** — 265/265 files, 2279/2279 tests, exit 0 |
+| Full web suite (gate's `--exclude` command) | **PASS** — 265/265 files, 2279/2279 tests, exit 0 (superseded by the review pass below) |
 | `node scripts/check-ui-route-coverage.mjs` | **PASS** — 79/79/79, now three-way |
 | `node --test scripts/__tests__/check-ui-route-coverage.test.mjs` | **PASS** — 11/11 |
 | `pnpm lint` | **PASS** — 0 errors; 42 pre-existing warnings, none in WP-04 files |
@@ -357,12 +391,16 @@ smuggle a reword past it.
 
 ### Deliberate boundaries
 
-- **Card ids are a save-visible contract.** The board's ids
-  (`must-{index}-{route}`, `agm-{id}`, `must-ready`, `recommended-clear`) are
-  persisted in `leagueEvents` as `action_center.closed` payloads. Changing their
-  shape would resurrect cards a player already dismissed, so id construction
-  stayed in the component and is now commented as such. `UiTask.id` is a
-  separate, stable semantic key for the new shell.
+- **Card ids are a save-visible contract, and eight of them are `UiTask.id`.**
+  The board persists card ids in `leagueEvents` as `action_center.closed`
+  payloads. The Must Do and Recommended lanes build theirs from a lane index
+  (`must-{index}-{route}`), so that construction stayed in the component. But
+  *corrected after review:* all seven `OPTIONAL_TASKS` ids and
+  `noRecommendationsTask()`'s `recommended-clear` are used **verbatim** as the
+  persisted id. An earlier draft of this section claimed `UiTask.id` was a
+  separate key with no save exposure — that was wrong for those eight, and it
+  was the exact failure the section was meant to prevent. They are now labelled
+  SAVE-VISIBLE in `task-ledger.ts` and pinned by name in `task-ledger.test.ts`.
 - **`dedupeKey`, `availability`, `isComplete` and `source` from doc 07's
   `UiTask` are not implemented.** Nothing consumes them yet, and a dedupe key
   without a deduper is decoration. They arrive with WP-09b, which is where
@@ -384,6 +422,24 @@ smuggle a reword past it.
   thresholds — pinned by tests, since an off-by-one here silently changes which
   tasks a player sees.
 
+### Two coverage holes the review found, and how they were closed
+
+Both were introduced by this packet and both passed the entire suite. Each fix
+was verified by re-applying the mutation and watching it fail.
+
+1. **Severity had no test on either hop.** On `main` each item carried a literal
+   accent; this packet replaced that with ledger `severity` → `SEVERITY_ACCENT` →
+   rendered colour. Flipping `depth-chart-incomplete` from `warning` to `info`
+   changed the card gold→cyan and could flip the whole panel gold→green, and
+   **125 tests passed**. Now: `task-ledger.test.ts` pins the severity of every
+   state-derived and optional task, and `ActionCenter.test.tsx` reads the accent
+   straight off the rendered card. The mutation now fails 2 files.
+2. **The label-divergence test only caught additions.** Deleting
+   `'/depth-chart': 'Depth Chart'` made the board render the raw path
+   `/depth-chart` in its "Where" cell, and **190 tests passed** — the divergence
+   predicate filters the fallback case out by construction. Now the full 17-entry
+   label table and the action verbs are pinned. The mutation fails.
+
 ### Verification of this packet
 
 | Check | Result |
@@ -391,11 +447,22 @@ smuggle a reword past it.
 | `pnpm -r typecheck` | **PASS** — all 3 projects |
 | `vitest run src/ui src/features/monday-briefing` | **PASS** — 14 files, 114 tests |
 | `ActionCenter.test.tsx` (11 rendered-markup tests) | **PASS** — unchanged assertions |
-| Full web suite (gate's `--exclude` command) | **PASS** — 267/267 files, 2301/2301 tests, exit 0 |
+| Full web suite (gate's `--exclude` command) | **PASS** — 267/267 files, 2301/2301 tests, exit 0 (superseded by the review pass below) |
 | `pnpm lint` | **PASS** — 0 errors; 42 pre-existing warnings, none in WP-09a files |
 | `vite build` + `check-bundle-size.sh` | **PASS** — engine 313 KB unchanged |
 | Release gate `--only g1-full-setup-desktop` (raw CDP) | **PASS** in 25.1s — full setup from cleared storage, no browser errors |
 | Release gate `--only g6-chip-receipts-desktop` (raw CDP) | **PASS** in 16.3s — demo save, route navigation, persistence after hard reload |
+
+**What the CDP evidence is and is not.** Both steps pass, but neither renders the
+weekly board: g1 completes new-dynasty setup, g6 exercises Chip receipts on
+`/league/weather`. `scripts/smoke-test-post-setup-route.mjs` contains no
+`waitForBodyText` for `Command Queue`, `Living week action plan`, or
+`Ready for Advance Week` — its only Action Center assertion is a Chip intro line.
+**For this packet the CDP harness is not the feature-loss net;
+`ActionCenter.test.tsx` is**, and it holds: 13 tests rendering to static markup
+against unchanged copy assertions. Amendment A1's claim that the smoke harness
+is a continuous zero-cost net is true for the 49 routes it asserts text on, and
+the weekly board is not one of them. Worth knowing before leaning on it again.
 
 **PERF-02:** eager `index-*.js` 278.3 KB gzip (was 275.8 after WP-04) against the
 316 KB ceiling — **+2.5 KB**, ~38 KB headroom. The task copy moved rather than
@@ -448,8 +515,73 @@ as a fixture for the numeric acceptance model in doc 09:
 `ui-overhaul-baseline.pw.cjs` now documents this at the top of the file. Adding
 fixture-backed capture is folded into WP-09b, ahead of H0.
 
+### Open items carried forward, named rather than left implicit
+
+- **"One derivation" is not yet true.** `recommendationDeadline()` copy and
+  `PRIORITY_ACCENT` still live in `ActionCenter.tsx`, so the AGM lane bypasses
+  the ledger. WP-09b folds it in, with dedupe.
+- **`selectTaskLedgerInput({ game: null })` returns `starterCount: 22`; the old
+  inline props produced `0`** and would have rendered "Fill depth chart (0/22
+  starters)" with a gold panel. Unreachable in production — the router is gated
+  on `initialized`, which is only ever set alongside a non-null game — so it is
+  not an A1 breach, but it is a divergence and the test enshrines the new value.
+  Recorded here so nobody rediscovers it as a bug.
+- **`route-surface-map.test.ts`'s field-for-field check is a ratchet, not
+  independent verification.** The map was machine-generated from the same CSV
+  with the same surface-type table the test uses, so it could not have failed at
+  authoring time. Its value is forward-looking: it fails on any later drift.
+  `scripts/generate-route-surface-map.mjs` is now committed and its output is
+  byte-identical to the committed map, so the provenance is checkable instead of
+  claimed. The genuinely failable route tests are 79/79 parity, the fixed-point
+  test, and the no-circular test — all three break on the `/dynasty` bug class.
+- **WP-04's adapters have no non-test callers yet** — `computeHubBadges`,
+  `resolveCurrentAppLocationParts`, and all of `route-compatibility` /
+  `navigation-origin`. WP-00 declined to ship `UiMigrationHost` on the grounds
+  that it would be dead configuration, and that standard deserves restating
+  rather than quietly dropping: a *host that switches between the legacy shell
+  and nothing* is configuration with no second state, whereas these are tested
+  pure functions the packet exists to deliver and WP-05/06/09b consume directly.
+  If WP-06 lands without using them, that is the signal the distinction failed.
+
 ### Rollback
 
 Revert the four modified files and delete `apps/web/src/ui/tasks/`. The ledger is
 additive — the legacy board's behaviour, copy, and persisted card ids are
 byte-identical either side of it.
+
+---
+
+## Review pass — WP-04 + WP-09a (goat-reviewer, 2026-08-05)
+
+Verdict on first submission: **FAIL**, two blocking findings. Both were real,
+both were introduced by these packets, and both passed the full suite. Every
+ledger claim the reviewer checked reproduced; the failures were coverage holes
+and two ledger statements that were factually wrong.
+
+| Finding | Resolution |
+|---|---|
+| **Blocking** — 8 `UiTask.id` values *are* persisted card ids; the ledger said the opposite | Labelled SAVE-VISIBLE in `task-ledger.ts`; all 8 pinned by name in tests; ledger corrected |
+| **Blocking** — severity → accent had no test on either hop; a severity flip passed 125 tests | Severities pinned in `task-ledger.test.ts`; rendered accent read off the card in `ActionCenter.test.tsx`; mutation now fails 2 files |
+| Label-divergence test caught additions only; deleting a label passed 190 tests | Full 17-entry label table and action verbs pinned; mutation now fails |
+| `splitHref` duplication justified by a chunk boundary that does not exist | Duplication removed; one parser in `ui/routes/href.ts`, imported by all three consumers |
+| `lifecycle_phase` deviation rationale was factually wrong | Corrected — it is unnormalized prose with no registry counterpart, and it is an **unmet scope line**, not a substitution |
+| Undisclosed deviations from the packets' file lists | Enumerated in both packet sections, including the three unproduced WP-04 screenshots |
+| Uncommitted generator left the 79-row map hand-maintained | `scripts/generate-route-surface-map.mjs` committed; output byte-identical to the committed map |
+| `--only g1,g6` is weaker A1 evidence than implied | Stated plainly: for the weekly board the CDP harness is not the net, `ActionCenter.test.tsx` is |
+| `decodeNavigationOrigin` accepted an unbounded label from a user-editable URL | `ORIGIN_LABEL_MAX = 120` enforced on decode, with a test either side of the limit |
+| `routeSurface` exact-keyed while `resolveCompatibleRoute` normalized | Both normalize through `href.ts`; agreement asserted across 79 routes × 5 decorations |
+| `selectTaskLedgerInput({ game: null })` diverges from the old inline props | Unreachable in production; recorded as a known divergence rather than left to be rediscovered |
+| "One derivation" not yet true — the AGM lane bypasses the ledger | Named as an open item carried into WP-09b |
+
+### Verification after the fixes
+
+| Check | Result |
+|---|---|
+| `pnpm -r typecheck` | **PASS** — all 3 projects |
+| Full web suite (gate's `--exclude` command) | **PASS** — 268/268 files, 2314/2314 tests, exit 0 |
+| `node scripts/check-ui-route-coverage.mjs` | **PASS** — 79/79/79 |
+| `node --test scripts/__tests__/check-ui-route-coverage.test.mjs` | **PASS** — 11/11 |
+| `pnpm lint` | **PASS** — 0 errors, 42 warnings (the pre-existing count) |
+| `vite build` + `check-bundle-size.sh` | **PASS** — engine 313 KB; eager `index-*.js` 278.3 KB vs 316 KB ceiling |
+| Generator ↔ committed map | **Byte-identical** |
+| Mutation re-check (severity flip, label deletion) | **Both now fail** |
