@@ -253,9 +253,9 @@ Added:
 | `apps/web/src/ui/routes/route-compatibility.ts` | `resolveCompatibleRoute`, `isResolvable` |
 | `apps/web/src/ui/routes/navigation-origin.ts` | `NavigationOrigin` encode/decode, `withNavigationOrigin`, `returnToOriginHref` |
 | `apps/web/src/ui/routes/href.test.ts` | 5 tests — normalization, and cross-module agreement |
-| `apps/web/src/ui/routes/route-surface-map.test.ts` | 8 tests — registry parity + field-level matrix equality |
+| `apps/web/src/ui/routes/route-surface-map.test.ts` | 9 tests — registry parity + field-level matrix equality |
 | `apps/web/src/ui/routes/route-compatibility.test.ts` | 15 tests |
-| `apps/web/src/ui/routes/navigation-origin.test.ts` | 18 tests |
+| `apps/web/src/ui/routes/navigation-origin.test.ts` | 20 tests |
 | `scripts/generate-route-surface-map.mjs` | Regenerates the 79-row map from the matrix; output is byte-identical to the committed file |
 | `scripts/check-ui-route-coverage.d.mts` | Types for the gate's `parseCsv`, reused by the parity test |
 
@@ -369,7 +369,7 @@ contract instead of a blank file.
 ### Files touched
 
 Added: `apps/web/src/ui/tasks/task-ledger.ts`, `task-ledger-input.ts`,
-`task-ledger.test.ts` (15 tests), `task-ledger-input.test.ts` (7 tests).
+`task-ledger.test.ts` (20 tests), `task-ledger-input.test.ts` (7 tests).
 Modified: `apps/web/src/features/monday-briefing/ActionCenter.tsx`,
 `ActionCenter.test.tsx`, `MondayBriefing.tsx`. Deleted: none.
 
@@ -396,11 +396,19 @@ smuggle a reword past it.
   payloads. The Must Do and Recommended lanes build theirs from a lane index
   (`must-{index}-{route}`), so that construction stayed in the component. But
   *corrected after review:* all seven `OPTIONAL_TASKS` ids and
-  `noRecommendationsTask()`'s `recommended-clear` are used **verbatim** as the
-  persisted id. An earlier draft of this section claimed `UiTask.id` was a
-  separate key with no save exposure — that was wrong for those eight, and it
-  was the exact failure the section was meant to prevent. They are now labelled
-  SAVE-VISIBLE in `task-ledger.ts` and pinned by name in `task-ledger.test.ts`.
+  `noRecommendationsTask()`'s `recommended-clear` are passed through **verbatim**
+  as the card id. An earlier draft claimed `UiTask.id` was a separate key with no
+  save exposure — wrong for those eight, and the exact failure the section
+  existed to prevent.
+
+  *Corrected a second time, and in the other direction:* the second review pass
+  showed the Optional lane renders no Close control at all (it is the one
+  `WeeklyBoardLane` call passing neither `lane` nor `onCloseAction`), so the
+  seven `optional-*` ids have never actually reached a save. Only
+  `recommended-clear` is genuinely persisted today. The exposure is latent, not
+  present — the ledger overstated it. The pins stand either way, because the day
+  Optional gains a Close button those ids become frozen retroactively for every
+  player who uses it.
 - **`dedupeKey`, `availability`, `isComplete` and `source` from doc 07's
   `UiTask` are not implemented.** Nothing consumes them yet, and a dedupe key
   without a deduper is decoration. They arrive with WP-09b, which is where
@@ -446,7 +454,7 @@ was verified by re-applying the mutation and watching it fail.
 |---|---|
 | `pnpm -r typecheck` | **PASS** — all 3 projects |
 | `vitest run src/ui src/features/monday-briefing` | **PASS** — 14 files, 114 tests |
-| `ActionCenter.test.tsx` (11 rendered-markup tests) | **PASS** — unchanged assertions |
+| `ActionCenter.test.tsx` (14 rendered-markup tests) | **PASS** — original assertions unchanged |
 | Full web suite (gate's `--exclude` command) | **PASS** — 267/267 files, 2301/2301 tests, exit 0 (superseded by the review pass below) |
 | `pnpm lint` | **PASS** — 0 errors; 42 pre-existing warnings, none in WP-09a files |
 | `vite build` + `check-bundle-size.sh` | **PASS** — engine 313 KB unchanged |
@@ -585,3 +593,54 @@ and two ledger statements that were factually wrong.
 | `vite build` + `check-bundle-size.sh` | **PASS** — engine 313 KB; eager `index-*.js` 278.3 KB vs 316 KB ceiling |
 | Generator ↔ committed map | **Byte-identical** |
 | Mutation re-check (severity flip, label deletion) | **Both now fail** |
+
+---
+
+## Second review pass — WP-04 + WP-09a (goat-reviewer, 2026-08-05)
+
+Verdict: **PASS**. All eleven prior findings verified closed, both mutations
+re-run and confirmed failing, and A1 proved mechanically rather than argued —
+a byte-for-byte `renderToStaticMarkup` diff of `ActionCenter` against `main`
+across 9 scenarios came back identical, as did the captured `action_center.closed`
+payloads and `navigateTo` sequences across 5.
+
+The pass came with nine risks. Seven were worth acting on immediately.
+
+| Risk | Action |
+|---|---|
+| The SAVE-VISIBLE claim was **stronger than the code** — the Optional lane has no Close control, so those 7 ids have never reached a save | Ledger and code comment corrected to "latent, not present". Pins kept: the exposure becomes real the day Optional gains a Close button |
+| A **second href splitter survived** in `navigation-origin.ts` (`splitDestination`), contradicting `href.ts`'s "exactly one implementation" | Deleted; both call sites use `splitHref`. Test added for `/roster/` and `#/roster` destinations |
+| `ORIGIN_LABEL_MAX` was **asymmetric** — encode emitted up to 512, decode rejected over 120, so a legitimate 121–480 char label silently lost the whole breadcrumb | Encode clamps to the same limit. A long label now loses its tail, not the breadcrumb |
+| Normalising lookups made `routeSurface('')` resolve to Today instead of `undefined`, weakening the unknown-destination signal | Pinned by test as the deliberate reading of an empty path |
+| Generator byte-identity was **not gated**, and the parity test carried its own copy of the generator's surface-type table | `scripts/__tests__/generate-route-surface-map.test.mjs` asserts byte-identity; the vitest parity test now imports `SURFACE_TYPES` from the generator instead of restating it |
+| Label deletion was caught **only by a unit test** — the rendered board would have shown a raw `/depth-chart` with the render suite green | `ActionCenter.test.tsx` now asserts the Where cell names a screen and never a route path |
+| Stale test counts, and the undisclosed `ui/presenters/` → `ui/tasks/` path deviation | Counts corrected; path deviation disclosed below |
+
+Two were acknowledged rather than changed:
+
+- **The cross-implementation pin is now near-tautological.** Both sides of
+  `currentAppRoute.test.ts`'s comparison call `splitHref`, which is the point of
+  the fix. What it still covers is that `resolveCurrentAppRoute`'s hash
+  extraction and deploy-base stripping survive the split; the test is renamed to
+  say so rather than keep implying more.
+- **PERF-02 numbers were self-reported.** Re-measured after every fix round:
+  engine 313 KB, eager `index-*.js` 278.3 KB against the 316 KB ceiling.
+
+**Disclosed path deviation:** WP-09 specifies
+`apps/web/src/ui/presenters/task-ledger.ts`; it landed at
+`apps/web/src/ui/tasks/`. WP-09's declared `TaskLedger` / `selectTaskLedger`
+contracts do not exist either — the exported surface is `UiTask[]`,
+`buildTaskLedger`, and `selectTaskLedgerInput`. `selectors.ts` is in WP-09's
+modify list and was not touched, because the input selector composes the
+existing selectors rather than adding one.
+
+### Verification after the second fix round
+
+| Check | Result |
+|---|---|
+| `pnpm -r typecheck` | **PASS** — all 3 projects |
+| Full web suite (gate's `--exclude` command) | **PASS** — 268/268 files, 2318/2318 tests, exit 0 |
+| `node --test scripts/__tests__/{check-ui-route-coverage,generate-route-surface-map}.test.mjs` | **PASS** — 16/16 |
+| `node scripts/check-ui-route-coverage.mjs` | **PASS** — 79/79/79 |
+| `pnpm lint` | **PASS** — 0 errors, 42 warnings (pre-existing count) |
+| `vite build` + `check-bundle-size.sh` | **PASS** — engine 313 KB; eager `index-*.js` 278.3 KB vs 316 KB ceiling |
