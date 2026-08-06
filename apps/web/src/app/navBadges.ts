@@ -1,4 +1,6 @@
 import { getDepthChartStarterReadout } from '../lib/depth-chart-starters';
+import { hubForLegacyPath } from '../ui/routes/route-surface-map';
+import type { HubId } from '../ui/routes/route-surface-types';
 
 export interface NavBadgeInput {
   tradeOfferCount: number;
@@ -29,4 +31,24 @@ export function computeNavBadges(input: NavBadgeInput): Record<string, number> {
   }
 
   return badges;
+}
+
+/**
+ * Roll route badges up to their hubs for the new navigation.
+ *
+ * The hub for each route comes from the WP-04 surface map, so there is never a
+ * second hardcoded list of which screens live where. A badge on a path the map
+ * does not know is dropped rather than silently attributed to a hub — an
+ * unattributed count on a nav tab is worse than no count.
+ */
+export function computeHubBadges(badges: Record<string, number>): Partial<Record<HubId, number>> {
+  const hubBadges: Partial<Record<HubId, number>> = {};
+
+  for (const [path, count] of Object.entries(badges)) {
+    const hub = hubForLegacyPath(path);
+    if (!hub || count <= 0) continue;
+    hubBadges[hub] = (hubBadges[hub] ?? 0) + count;
+  }
+
+  return hubBadges;
 }

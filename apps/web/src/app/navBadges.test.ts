@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeNavBadges } from './navBadges';
+import { computeHubBadges, computeNavBadges } from './navBadges';
 import { DEPTH_CHART_FIELD_STARTER_TARGET } from '../lib/depth-chart-starters';
 
 describe('computeNavBadges', () => {
@@ -96,5 +96,34 @@ describe('computeNavBadges', () => {
       activeHandshakeCount: 0,
     });
     expect(Object.keys(badges).length).toBe(0);
+  });
+});
+
+describe('computeHubBadges', () => {
+  it('rolls every shell badge up to its hub', () => {
+    const badges = computeNavBadges({
+      tradeOfferCount: 2,
+      starterCount: 20,
+      hasGamePlan: false,
+      phase: 'regular_season',
+      activeHandshakeCount: 3,
+    });
+
+    // /trades -> Office; /depth-chart and /handshakes -> Team; /game-plan -> Game.
+    expect(computeHubBadges(badges)).toEqual({ office: 2, team: 5, game: 1 });
+  });
+
+  it('sums routes that share a hub instead of overwriting them', () => {
+    expect(computeHubBadges({ '/depth-chart': 2, '/handshakes': 3, '/roster': 1 }))
+      .toEqual({ team: 6 });
+  });
+
+  it('drops counts it cannot attribute rather than guessing a hub', () => {
+    expect(computeHubBadges({ '/not-a-route': 9 })).toEqual({});
+    expect(computeHubBadges({ '/trades': 0, '/handshakes': -1 })).toEqual({});
+  });
+
+  it('returns nothing when there is nothing to badge', () => {
+    expect(computeHubBadges({})).toEqual({});
   });
 });
