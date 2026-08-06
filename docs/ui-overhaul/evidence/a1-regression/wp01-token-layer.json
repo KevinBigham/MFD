@@ -1,0 +1,849 @@
+{
+  "claim": "Loading the v2 token layer changes no legacy pixel.",
+  "method": "Re-ran apps/web/e2e/ui-overhaul-baseline.pw.cjs after WP-01 and diffed the deterministic surfaces against docs/ui-overhaul/evidence/baseline-legacy/geometry.json.",
+  "baselineCommit": "9c15d53",
+  "excluded": {
+    "briefing": "Demo scenario is seeded from Date.now(); heights vary by up to 93px between runs of identical code. See the WP-09a ledger entry."
+  },
+  "metrics": [
+    "scrollHeight",
+    "smallTextCount",
+    "interactiveCount",
+    "borderedElementCount",
+    "fixedChromeHeight",
+    "bodyFontSize",
+    "horizontalOverflow"
+  ],
+  "capturesCompared": 36,
+  "identicalCaptures": 36,
+  "captures": [
+    {
+      "viewport": "phone-320x568",
+      "route": "roster",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 12250,
+        "smallTextCount": 238,
+        "interactiveCount": 105,
+        "borderedElementCount": 207,
+        "fixedChromeHeight": 492,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 12250,
+        "smallTextCount": 238,
+        "interactiveCount": 105,
+        "borderedElementCount": 207,
+        "fixedChromeHeight": 492,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "phone-320x568",
+      "route": "contracts",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 9993,
+        "smallTextCount": 214,
+        "interactiveCount": 67,
+        "borderedElementCount": 162,
+        "fixedChromeHeight": 492,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 9993,
+        "smallTextCount": 214,
+        "interactiveCount": 67,
+        "borderedElementCount": 162,
+        "fixedChromeHeight": 492,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "phone-320x568",
+      "route": "settings",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 9788,
+        "smallTextCount": 232,
+        "interactiveCount": 65,
+        "borderedElementCount": 173,
+        "fixedChromeHeight": 429,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 9788,
+        "smallTextCount": 232,
+        "interactiveCount": 65,
+        "borderedElementCount": 173,
+        "fixedChromeHeight": 429,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "phone-360x800",
+      "route": "roster",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 11844,
+        "smallTextCount": 238,
+        "interactiveCount": 105,
+        "borderedElementCount": 207,
+        "fixedChromeHeight": 446,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 11844,
+        "smallTextCount": 238,
+        "interactiveCount": 105,
+        "borderedElementCount": 207,
+        "fixedChromeHeight": 446,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "phone-360x800",
+      "route": "contracts",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 9812,
+        "smallTextCount": 214,
+        "interactiveCount": 67,
+        "borderedElementCount": 162,
+        "fixedChromeHeight": 446,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 9812,
+        "smallTextCount": 214,
+        "interactiveCount": 67,
+        "borderedElementCount": 162,
+        "fixedChromeHeight": 446,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "phone-360x800",
+      "route": "settings",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 9099,
+        "smallTextCount": 232,
+        "interactiveCount": 65,
+        "borderedElementCount": 173,
+        "fixedChromeHeight": 383,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 9099,
+        "smallTextCount": 232,
+        "interactiveCount": 65,
+        "borderedElementCount": 173,
+        "fixedChromeHeight": 383,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "phone-390x844",
+      "route": "roster",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 11771,
+        "smallTextCount": 238,
+        "interactiveCount": 105,
+        "borderedElementCount": 207,
+        "fixedChromeHeight": 425,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 11771,
+        "smallTextCount": 238,
+        "interactiveCount": 105,
+        "borderedElementCount": 207,
+        "fixedChromeHeight": 425,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "phone-390x844",
+      "route": "contracts",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 9701,
+        "smallTextCount": 214,
+        "interactiveCount": 67,
+        "borderedElementCount": 162,
+        "fixedChromeHeight": 425,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 9701,
+        "smallTextCount": 214,
+        "interactiveCount": 67,
+        "borderedElementCount": 162,
+        "fixedChromeHeight": 425,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "phone-390x844",
+      "route": "settings",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 8883,
+        "smallTextCount": 232,
+        "interactiveCount": 65,
+        "borderedElementCount": 173,
+        "fixedChromeHeight": 383,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 8883,
+        "smallTextCount": 232,
+        "interactiveCount": 65,
+        "borderedElementCount": 173,
+        "fixedChromeHeight": 383,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "phone-430x932",
+      "route": "roster",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 11717,
+        "smallTextCount": 238,
+        "interactiveCount": 105,
+        "borderedElementCount": 207,
+        "fixedChromeHeight": 425,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 11717,
+        "smallTextCount": 238,
+        "interactiveCount": 105,
+        "borderedElementCount": 207,
+        "fixedChromeHeight": 425,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "phone-430x932",
+      "route": "contracts",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 9631,
+        "smallTextCount": 214,
+        "interactiveCount": 67,
+        "borderedElementCount": 162,
+        "fixedChromeHeight": 425,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 9631,
+        "smallTextCount": 214,
+        "interactiveCount": 67,
+        "borderedElementCount": 162,
+        "fixedChromeHeight": 425,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "phone-430x932",
+      "route": "settings",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 8499,
+        "smallTextCount": 232,
+        "interactiveCount": 65,
+        "borderedElementCount": 173,
+        "fixedChromeHeight": 383,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 8499,
+        "smallTextCount": 232,
+        "interactiveCount": 65,
+        "borderedElementCount": 173,
+        "fixedChromeHeight": 383,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "landscape-667x375",
+      "route": "roster",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 3473,
+        "smallTextCount": 246,
+        "interactiveCount": 111,
+        "borderedElementCount": 183,
+        "fixedChromeHeight": 797,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 3473,
+        "smallTextCount": 246,
+        "interactiveCount": 111,
+        "borderedElementCount": 183,
+        "fixedChromeHeight": 797,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "landscape-667x375",
+      "route": "contracts",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 4262,
+        "smallTextCount": 215,
+        "interactiveCount": 75,
+        "borderedElementCount": 138,
+        "fixedChromeHeight": 657,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 4262,
+        "smallTextCount": 215,
+        "interactiveCount": 75,
+        "borderedElementCount": 138,
+        "fixedChromeHeight": 657,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "landscape-667x375",
+      "route": "settings",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 6442,
+        "smallTextCount": 232,
+        "interactiveCount": 65,
+        "borderedElementCount": 173,
+        "fixedChromeHeight": 383,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 6442,
+        "smallTextCount": 232,
+        "interactiveCount": 65,
+        "borderedElementCount": 173,
+        "fixedChromeHeight": 383,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "landscape-844x390",
+      "route": "roster",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 3303,
+        "smallTextCount": 247,
+        "interactiveCount": 117,
+        "borderedElementCount": 197,
+        "fixedChromeHeight": 2131,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 3303,
+        "smallTextCount": 247,
+        "interactiveCount": 117,
+        "borderedElementCount": 197,
+        "fixedChromeHeight": 2131,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "landscape-844x390",
+      "route": "contracts",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 3710,
+        "smallTextCount": 216,
+        "interactiveCount": 81,
+        "borderedElementCount": 151,
+        "fixedChromeHeight": 938,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 3710,
+        "smallTextCount": 216,
+        "interactiveCount": 81,
+        "borderedElementCount": 151,
+        "fixedChromeHeight": 938,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "landscape-844x390",
+      "route": "settings",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 6026,
+        "smallTextCount": 233,
+        "interactiveCount": 71,
+        "borderedElementCount": 187,
+        "fixedChromeHeight": 1990,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 6026,
+        "smallTextCount": 233,
+        "interactiveCount": 71,
+        "borderedElementCount": 187,
+        "fixedChromeHeight": 1990,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "landscape-932x430",
+      "route": "roster",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 3288,
+        "smallTextCount": 247,
+        "interactiveCount": 117,
+        "borderedElementCount": 197,
+        "fixedChromeHeight": 2131,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 3288,
+        "smallTextCount": 247,
+        "interactiveCount": 117,
+        "borderedElementCount": 197,
+        "fixedChromeHeight": 2131,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "landscape-932x430",
+      "route": "contracts",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 3681,
+        "smallTextCount": 216,
+        "interactiveCount": 81,
+        "borderedElementCount": 151,
+        "fixedChromeHeight": 938,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 3681,
+        "smallTextCount": 216,
+        "interactiveCount": 81,
+        "borderedElementCount": 151,
+        "fixedChromeHeight": 938,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "landscape-932x430",
+      "route": "settings",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 5932,
+        "smallTextCount": 233,
+        "interactiveCount": 71,
+        "borderedElementCount": 187,
+        "fixedChromeHeight": 1902,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 5932,
+        "smallTextCount": 233,
+        "interactiveCount": 71,
+        "borderedElementCount": 187,
+        "fixedChromeHeight": 1902,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "tablet-768x1024",
+      "route": "roster",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 3220,
+        "smallTextCount": 252,
+        "interactiveCount": 122,
+        "borderedElementCount": 203,
+        "fixedChromeHeight": 2200,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 3220,
+        "smallTextCount": 252,
+        "interactiveCount": 122,
+        "borderedElementCount": 203,
+        "fixedChromeHeight": 2200,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "tablet-768x1024",
+      "route": "contracts",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 3445,
+        "smallTextCount": 221,
+        "interactiveCount": 86,
+        "borderedElementCount": 157,
+        "fixedChromeHeight": 1007,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 3445,
+        "smallTextCount": 221,
+        "interactiveCount": 86,
+        "borderedElementCount": 157,
+        "fixedChromeHeight": 1007,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "tablet-768x1024",
+      "route": "settings",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 5836,
+        "smallTextCount": 238,
+        "interactiveCount": 76,
+        "borderedElementCount": 193,
+        "fixedChromeHeight": 2110,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 5836,
+        "smallTextCount": 238,
+        "interactiveCount": 76,
+        "borderedElementCount": 193,
+        "fixedChromeHeight": 2110,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "tablet-1024x768",
+      "route": "roster",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 3239,
+        "smallTextCount": 247,
+        "interactiveCount": 117,
+        "borderedElementCount": 197,
+        "fixedChromeHeight": 2131,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 3239,
+        "smallTextCount": 247,
+        "interactiveCount": 117,
+        "borderedElementCount": 197,
+        "fixedChromeHeight": 2131,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "tablet-1024x768",
+      "route": "contracts",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 3664,
+        "smallTextCount": 216,
+        "interactiveCount": 81,
+        "borderedElementCount": 151,
+        "fixedChromeHeight": 938,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 3664,
+        "smallTextCount": 216,
+        "interactiveCount": 81,
+        "borderedElementCount": 151,
+        "fixedChromeHeight": 938,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "tablet-1024x768",
+      "route": "settings",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 5726,
+        "smallTextCount": 233,
+        "interactiveCount": 71,
+        "borderedElementCount": 187,
+        "fixedChromeHeight": 1902,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 5726,
+        "smallTextCount": 233,
+        "interactiveCount": 71,
+        "borderedElementCount": 187,
+        "fixedChromeHeight": 1902,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "desktop-1280x720",
+      "route": "roster",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 3158,
+        "smallTextCount": 247,
+        "interactiveCount": 117,
+        "borderedElementCount": 197,
+        "fixedChromeHeight": 1994,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 3158,
+        "smallTextCount": 247,
+        "interactiveCount": 117,
+        "borderedElementCount": 197,
+        "fixedChromeHeight": 1994,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "desktop-1280x720",
+      "route": "contracts",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 3557,
+        "smallTextCount": 216,
+        "interactiveCount": 81,
+        "borderedElementCount": 151,
+        "fixedChromeHeight": 801,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 3557,
+        "smallTextCount": 216,
+        "interactiveCount": 81,
+        "borderedElementCount": 151,
+        "fixedChromeHeight": 801,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "desktop-1280x720",
+      "route": "settings",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 5792,
+        "smallTextCount": 233,
+        "interactiveCount": 71,
+        "borderedElementCount": 187,
+        "fixedChromeHeight": 1765,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 5792,
+        "smallTextCount": 233,
+        "interactiveCount": 71,
+        "borderedElementCount": 187,
+        "fixedChromeHeight": 1765,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "desktop-1440x900",
+      "route": "roster",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 2869,
+        "smallTextCount": 247,
+        "interactiveCount": 117,
+        "borderedElementCount": 197,
+        "fixedChromeHeight": 1994,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 2869,
+        "smallTextCount": 247,
+        "interactiveCount": 117,
+        "borderedElementCount": 197,
+        "fixedChromeHeight": 1994,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "desktop-1440x900",
+      "route": "contracts",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 3553,
+        "smallTextCount": 216,
+        "interactiveCount": 81,
+        "borderedElementCount": 151,
+        "fixedChromeHeight": 801,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 3553,
+        "smallTextCount": 216,
+        "interactiveCount": 81,
+        "borderedElementCount": 151,
+        "fixedChromeHeight": 801,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "desktop-1440x900",
+      "route": "settings",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 5525,
+        "smallTextCount": 233,
+        "interactiveCount": 71,
+        "borderedElementCount": 187,
+        "fixedChromeHeight": 1920,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 5525,
+        "smallTextCount": 233,
+        "interactiveCount": 71,
+        "borderedElementCount": 187,
+        "fixedChromeHeight": 1920,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "desktop-1600x1000",
+      "route": "roster",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 2854,
+        "smallTextCount": 247,
+        "interactiveCount": 117,
+        "borderedElementCount": 197,
+        "fixedChromeHeight": 1994,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 2854,
+        "smallTextCount": 247,
+        "interactiveCount": 117,
+        "borderedElementCount": 197,
+        "fixedChromeHeight": 1994,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "desktop-1600x1000",
+      "route": "contracts",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 3377,
+        "smallTextCount": 216,
+        "interactiveCount": 81,
+        "borderedElementCount": 151,
+        "fixedChromeHeight": 801,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 3377,
+        "smallTextCount": 216,
+        "interactiveCount": 81,
+        "borderedElementCount": 151,
+        "fixedChromeHeight": 801,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "viewport": "desktop-1600x1000",
+      "route": "settings",
+      "identical": true,
+      "baseline": {
+        "scrollHeight": 5427,
+        "smallTextCount": 233,
+        "interactiveCount": 71,
+        "borderedElementCount": 187,
+        "fixedChromeHeight": 1853,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      },
+      "afterTokens": {
+        "scrollHeight": 5427,
+        "smallTextCount": 233,
+        "interactiveCount": 71,
+        "borderedElementCount": 187,
+        "fixedChromeHeight": 1853,
+        "bodyFontSize": 16,
+        "horizontalOverflow": false
+      }
+    }
+  ]
+}

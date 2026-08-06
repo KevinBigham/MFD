@@ -727,6 +727,11 @@ element count, fixed-chrome height, body font size, and horizontal overflow:
 loads new CSS globally, that is the evidence that matters. `briefing` is
 excluded because it carries the known ±100 px demo-seed variance.
 
+The per-capture comparison is committed at
+`docs/ui-overhaul/evidence/a1-regression/wp01-token-layer.json` — review
+correctly pointed out that the claim was otherwise unreproducible without a
+12-viewport CDP run.
+
 Engine suite not re-run: no file under `packages/engine` was touched.
 
 ### Rollback
@@ -847,9 +852,20 @@ Modified: `components/index.ts`, `packages/design-system/tsconfig.json`,
 
 `packages/design-system/components/PixelModal/PixelModal.tsx` sets
 `role="dialog"` and `aria-modal="true"` — and stops. There is **no focus trap,
-no focus restore, no Escape handler, and no background inertness**. `MfdDialog`
-is a thin pass-through to it, so this is the behaviour of every dialog in the
-shipped application.
+no focus restore, no Escape handler, and no background inertness**; dismissal is
+a scrim click and a close button. `MfdDialog` is a verbatim pass-through, and
+**24 files import one or the other**.
+
+*Corrected after review:* "every dialog in the app" was an overstatement. Seven
+further `role="dialog"` implementations exist outside `PixelModal`
+(`MobileBottomTabBar`, `DraftPickReveal`, `ChampionshipParade`,
+`CelebrationOverlay`, `EraTransitionReveal`, `ChampionshipParadeEmitter`,
+`ChipHost`), and `ChipHost` has its own focus call and Escape handler. The
+defect is `PixelModal`'s 24 consumers, which is bad enough without inflating it.
+
+Worth knowing before that fix is scoped: **`@radix-ui/react-dialog` is already a
+declared dependency with zero importers.** A correct focus-trapped dialog
+primitive is paid for and unused.
 
 WP-03 lists `MfdDialog.tsx` and `MfdTooltip.tsx` as files to modify, and both
 were deliberately **left untouched**:
@@ -860,8 +876,12 @@ were deliberately **left untouched**:
 - The blast radius is every dialog in the app, which makes it a change that
   deserves its own packet and its own gate — not a side effect of a foundation
   commit.
-- `MfdTooltip` is Radix-backed and already handles focus and Escape correctly;
-  there was nothing to standardise.
+- `MfdTooltip` is Radix-backed and already handles focus and Escape correctly.
+  *Corrected after review:* "nothing to standardise" was wrong. A Radix tooltip
+  opens on hover and keyboard focus only, so its content is unreachable by
+  touch — exactly what WP-03's own non-scope ("do not make hover essential")
+  forbids. Nothing essential may live in a tooltip, and no test enforces that
+  yet. Carried into WP-21.
 
 The contract is implemented in `MfdBottomSheet` for the new shell.
 **Recommendation: fix `PixelModal` as a standalone, Kevin-gated change**, since
@@ -903,11 +923,28 @@ which is the constraint that shaped every primitive in WP-02 and WP-03.
 | `pnpm lint` | **PASS** — 0 errors, 42 warnings (pre-existing count) |
 | `vite build` + `check-bundle-size.sh` | **PASS** — engine 313 KB; eager `index-*.js` **278.3 KB, +0 KB**; design-system CSS 10.1 → 11.2 KB, index CSS 11.9 → 12.0 KB |
 
-**A1 impact.** The v2 components have no importer, so they are absent from the
-module graph — the eager chunk is unchanged. The only thing a legacy user loads
-is the appended `a11y.css` block, and every rule in it is scoped inside
+**A1 impact.** *Corrected after review — the first version of this paragraph
+was wrong about what ships.*
+
+**JavaScript:** absent. Nothing imports the v2 components, so they are not in
+the module graph at all; the eager chunk is unchanged at 278.3 KB, and
+`resolveButtonState`, `nextFocusIndex`, `MfdBottomSheet`, `resolveNavItemState`
+and `AdaptiveViewport` appear in no built asset.
+
+**CSS: it does ship.** All five component stylesheets are compiled into
+`design-system-*.css`, which every legacy user loads — that is the +1.1 KB in
+the bundle row below, and the earlier claim that "the only thing a legacy user
+loads is the appended `a11y.css` block" contradicted it. Rendering is still
+unaffected, but the argument that holds is a different one: every rule is
+compounded onto a hashed CSS-module class (`_button_*`, `_scrim_*`) that no
+legacy markup carries, and the two `a11y.css` blocks are gated on
 `[data-mfd-v2-viewport]`, an attribute emitted solely by `AdaptiveViewport`,
-which nothing imports yet. **No legacy element can match any of it.**
+which nothing imports yet.
+
+The residual risk is real and now named: a single `:global` in a v2 module
+would ship globally with no gate, and `design-system/package.json` declares no
+`sideEffects`, so v2 CSS reaches legacy users the moment a component joins the
+barrel — importer or not.
 
 ### Rollback
 
@@ -915,3 +952,109 @@ Delete the five `Mfd*V2`/`Mfd*` v2 component directories and
 `components/css-modules.d.ts`, revert the export block in `components/index.ts`,
 the `tsconfig.json` include line, and the two appended blocks in `a11y.css`.
 Nothing imports any of it.
+
+---
+
+## Review pass — WP-01 + WP-02 + WP-03 (goat-reviewer, 2026-08-06)
+
+Verdict on first submission: **FAIL**. Every claimed number reproduced; the
+failures were two guards that could not fail, one shipped contrast defect, and
+four ledger statements that were wrong on the facts.
+
+### The two guards that could not fail
+
+1. **Selector scoping was unguarded.** The isolation test matched only
+   line-start class selectors (`/^\.([\w-]+)/gm`). Appending
+   `body { font-family: var(--mfd-v2-font-display); }` and
+   `table td { font-size: 9px; }` to `typography-v2.css` **restyled the entire
+   application and 27/27 tests passed.** A compound selector
+   (`.mfd-v2-body .pixel-card, div.legacy-card`) passed too. The WP-01 ledger
+   claimed the repaint risk was "closed by a test … not by care"; that was true
+   for custom-property shadowing and false for the half that actually repaints
+   pixels. Now: every selector in all three v2 sheets is extracted — including
+   compound and comma-separated ones — and must carry a `.mfd-v2-*` class or a
+   `data-mfd-v2-*` attribute. Both mutations now fail.
+2. **All three width breakpoints were tautological.** `layout.test.tsx` derived
+   its expectations from the constants it was meant to guard, so `medium`
+   600→700, 600→840, `expanded` 1024→900 and `wide` 1440→1900 each passed
+   26/26. `medium` is the phone/not-phone boundary and could have drifted
+   anywhere in (320, 844] undetected — precisely the risk WP-02 names. Now: the
+   values are pinned literally, and every viewport in the doc-09 matrix is
+   asserted to classify as the audit classifies it. 600→840 now fails 3 tests.
+
+### A shipped contrast defect
+
+`--mfd-v2-text-muted` on `--mfd-v2-surface-2` is **4.29:1** — below AA. The
+test asserted canvas, surface-1 and surface-3 and **skipped surface-2**, while
+its own comment claimed muted "fails on surface-3" as though that were the only
+failure. A v2 screen putting metadata on surface-2 would have shipped a
+contrast failure under a suite advertising contrast enforcement.
+
+Now the test enumerates all four surfaces and asserts the passing set is exactly
+`[canvas, surface-1]`, so the boundary cannot move without the test moving.
+`semantic-v2.css` documents both failing surfaces. Raising the token to
+`#8a99aa` now fails.
+
+Related: `contrast()` rounded to two places **before** comparing, so a true
+4.495:1 presented as 4.50 and cleared an AA assertion it failed. Rounding
+removed. And the function itself is now checked against known WCAG reference
+pairs (`#000/#fff` = 21, `#767676/#fff` = 4.54, `#595959/#fff` = 7.0,
+`#ffff00/#000` = 19.56) plus symmetry — previously every contrast claim in the
+suite trusted an unverified implementation.
+
+### Defects found outside the graded list, and fixed
+
+| Defect | Fix |
+|---|---|
+| `.scrim { opacity: 0.98 }` — opacity inherits to the sheet inside it and creates a stacking context, so the sheet faded with its own backdrop. The `rgba(` ban in my own test structurally forced this. | Added `--mfd-v2-scrim` as a token; the scrim uses `background`, and a test asserts `.scrim` declares no `opacity`. |
+| **Background inertness was missing** — WP-03 names it as part of the overlay contract, and only three of four parts were implemented. | `selectInertTargets` (pure, tested) marks every top-level sibling that does not contain the sheet `inert`, plus a body scroll lock. |
+| `MfdLocalNav` delivered `lockedReason` solely through `title=`, which is hover-only — the locked section explained itself to everyone except a phone. And the test asserting "its explanation is reachable" passed on a substring of that attribute. | Reason moves into the accessible name; the test now asserts no `title=` is emitted at all. |
+| `MfdButtonV2` returned a fragment, making the description a **sibling** of the button — any flex or grid parent, including `.actionDock > * { min-height: 48px }`, would have sized the explanation like a second control. | Wrapped in a single element; a test asserts exactly one wrapper and that the markup starts with it. |
+| `getFocusable`'s `[hidden]` / `aria-hidden` filtering — the entire point of the function — was never executed by any test. | Tested against a stub container, since there is no jsdom. |
+| `density-v2.css` used bare `[data-mfd-density='compact']` selectors, unscoped. Harmless in fact, but it made the isolation claim literally false. | Renamed to `data-mfd-v2-density` everywhere, including `DENSITY_ATTRIBUTE`. |
+| Commit `ccc4527` claimed to cover "the chrome budget"; no test asserted LAY-06's 152px. | Added: nav + dock must fit the budget, and each must clear the touch floor. |
+| The "36/36 identical captures" claim had **no committed artifact**. | `docs/ui-overhaul/evidence/a1-regression/wp01-token-layer.json` — per-capture, seven metrics, with the excluded surface and its reason. |
+
+### Four ledger claims corrected in place
+
+- WP-03's A1 paragraph said the only thing a legacy user loads is the `a11y.css`
+  block. **False** — all five v2 component stylesheets compile into
+  `design-system-*.css`, which is exactly the +1.1 KB the bundle row reports one
+  paragraph below. The argument that actually holds is hashed CSS-module class
+  names, and it is now stated.
+- "Every dialog in the shipped application" **overstated** the `PixelModal`
+  defect: seven other `role="dialog"` implementations exist, one with its own
+  focus and Escape handling. The real number is 24 importing files.
+- "`MfdTooltip` — nothing to standardise" was **wrong**. Radix tooltips open on
+  hover and keyboard focus only, so their content is unreachable by touch,
+  which WP-03's own non-scope forbids. Carried into WP-21.
+- The selector-scoping half of the isolation claim was asserted as tested when
+  it was not.
+
+### Accepted without change, and why
+
+- **The cross-implementation and mode-boundary tests still lean on stylesheet
+  string matching.** With no jsdom in the monorepo, `MfdBottomSheet`'s keydown
+  handler, focus restore, and `StickyActionDock`'s ResizeObserver have no
+  coverage. That is a real ceiling on this packet's evidence, not a claim to
+  argue around; the DOM half of the overlay contract gets its proof from the
+  Playwright layer at H0.
+- **`nextFocusIndex(-1, 1, 3) === 0` passes under the buggy implementation
+  too.** True; the Shift+Tab case at the line below is what discriminates, and
+  it is the one that caught the bug.
+
+### Verification after the fixes
+
+| Check | Result |
+|---|---|
+| `pnpm -r typecheck` | **PASS** — all 3 projects |
+| `pnpm --filter @mfd/design-system test` | **PASS** — 20/20 files, 174/174 tests |
+| Full web suite (gate's `--exclude` command) | **PASS** — 269/269 files, 2348/2348 tests, exit 0 |
+| `pnpm lint` | **PASS** — 0 errors, 42 warnings (pre-existing count) |
+| `vite build` | **PASS** — eager `index-*.js` **278.3 KB, unchanged** |
+| Mutations: bare element selector, compound legacy selector, `medium` 600→840, `text-muted` → `#8a99aa` | **All four now fail** |
+
+One methodology note, again: the first sweep ran the design-system suite, the
+web suite and a production build back to back and produced a single
+`game-store.gameweek` timeout with zero assertion failures — the contention
+artifact WP-00 recorded. Re-run serially: 269/269 and 2348/2348, exit 0.
