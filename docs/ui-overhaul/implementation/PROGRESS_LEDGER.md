@@ -1430,3 +1430,235 @@ snapshot of a claim.
 | PERF-02 | eager `index-*.js` **280.0 KB gzip** against the 316 KB ceiling (278.3 KB before this packet); `/today` chunk **4.2 KB gzip**, lazy |
 | `SAVE_VERSION` | 37, unchanged |
 | Protected paths touched | **0** — `packages/engine`, `.github`, `release-gate.mjs`, the CODEX trio |
+
+---
+
+## The shell and its navigation (WP-05 new-shell half + WP-06)
+
+**H0 passed.** The owner opened Today on a real save at 390×844 and 1440×900 and
+confirmed the direction, which is what the amended plan gates the WP-05/06/07
+spend on.
+
+Today was one screen that happened to render standalone: `RootLayout` returned a
+bare `Outlet` for one hardcoded path, and the screen built its own `AppFrame`.
+That works for exactly one route. This packet turns it into a shell — a route
+set, a navigation, a frame that changes shape, and a composition point every
+migrated screen renders inside.
+
+### Files added
+
+| File | What it is |
+|---|---|
+| `apps/web/src/ui/navigation/navigation-model.ts` | Pure: destinations, active hub, badges |
+| `apps/web/src/ui/navigation/navigation-model.test.ts` | 19 tests |
+| `apps/web/src/ui/navigation/AdaptivePrimaryNav.tsx` | One navigation, three shapes |
+| `apps/web/src/ui/navigation/navigation.module.css` | Bar / rail / sidebar |
+| `apps/web/src/ui/navigation/AdaptivePrimaryNav.test.tsx` | 21 tests |
+| `apps/web/src/ui/shell/MfdAppShell.tsx` | The migration host's shell |
+| `apps/web/src/ui/shell/MfdAppShell.test.tsx` | 8 tests |
+
+### Files modified
+
+| File | Change |
+|---|---|
+| `apps/web/src/ui/migration/ui-overhaul-mode.ts` | `isTodayRoute` → `V2_SHELL_ROUTES` + `isV2ShellRoute` |
+| `apps/web/src/app/App.tsx` | Both branches read the route set (3 lines) |
+| `apps/web/src/ui/layout/AppFrame.tsx` | `nav` slot, `resolveFrameLayout` |
+| `apps/web/src/ui/layout/layout.module.css` | Named grid areas, two frame shapes |
+| `apps/web/src/ui/layout/StickyActionDock.tsx` | Measurement machinery deleted |
+| `apps/web/src/ui/today/TodayScreen.tsx` | Renders `MfdAppShell`, not `AppFrame` |
+| `apps/web/src/ui/today/TodayRoute.tsx` | Builds the navigation model |
+| `apps/web/src/ui/today/today-presenter.ts` | Exposes `ledger` — the rows on screen |
+| `apps/web/e2e/ui-overhaul-today.pw.cjs` | Nav geometry, overlap, fit |
+
+### The navigation is derived, not declared
+
+`permanentNav` in the WP-04 surface map already records which route earns a slot
+in permanent navigation, and it marks **exactly one route per phone hub** —
+`/` (today), `/roster`, `/game-day`, `/front-office`, `/standings`. Dynasty and
+System carry none, which is the map agreeing with the audit that they are
+exposed deliberately rather than squeezed into a five-slot bar.
+
+So the nav reads the map. Moving a screen between hubs in the matrix moves it in
+the navigation, and there is no second list to keep in step. The test asserts the
+*property* the derivation depends on — one nominated route per primary hub, zero
+for the secondaries — rather than the five paths it currently produces.
+
+Two things are authored, and both are flagged in the source: the Dynasty and
+System landings. Ranking the hub's routes by frequency and urgency to avoid
+writing two strings produces the wrong answer for System — the most urgent route
+there is save recovery, which you arrive at from a task, not browse to. They are
+`/franchise` and `/settings`, pinned by a test that reads their hub back out of
+the surface map.
+
+### The migration switch is a data structure
+
+`V2_SHELL_ROUTES` is the strangler boundary. A destination links to its canonical
+path when the shell owns it and to its legacy path otherwise:
+
+```ts
+const canonical = normalizedCanonical(entry);
+return isV2ShellRoute(canonical)
+  ? { route: canonical, migrated: true }
+  : { route: entry.legacyPath, migrated: false };
+```
+
+Today that is 1 migrated and 4 unmigrated, and the test asserts exactly that
+split against the set rather than against a literal. When a hub's screen lands
+and its canonical path joins the set, the nav starts pointing at the new path
+with no edit to the navigation, and neither branch in the 2,276-line `App.tsx`
+is touched again.
+
+Four of five destinations currently cross back into the legacy shell. That is the
+pattern working, not a defect, and it is surfaced on the element
+(`data-mfd-v2-nav-migrated`) rather than hidden — a boundary the player can feel
+but not name is worse than one that is at least legible in the DOM.
+
+### Badges come from the rows on screen
+
+`presentToday` now returns `ledger` — every row the three lanes render, in lane
+order — and the navigation counts *that*, not the ledger it was handed. The
+difference is what makes the audit's one-derivation rule structural: a badge
+cannot count a job Today does not show. The end-to-end test walks the rendered
+markup and asserts, per hub, that the badge number equals the number of task rows
+present.
+
+Two exclusions, both deliberate. The always-available lane does not badge — a
+count that never reaches zero teaches players to ignore counts. The two synthetic
+all-clear rows are already filtered, so "Ready to advance" does not also read as
+one open job. Bounded at `9+` with the true number spoken: `11 open jobs`.
+
+### LAY-06 with navigation in it
+
+| Viewport | Frame | Nav | Shell chrome | Dock | Content | vs legacy Briefing |
+|---|---|---|---|---|---|---|
+| 320×568 | stacked | bar, 5, 45px | **120** | 141 | 1,576 | 8.5× |
+| 390×844 | stacked | bar, 5, 65px | **141** | 89 | 1,440 | 8.3× |
+| 430×932 | stacked | bar, 5, 65px | **141** | 89 | 1,416 | 8.2× |
+| 844×390 | sided | rail, 7, 114px wide | **76** | 89 | 1,264 | 5.9× |
+| 768×1024 | sided | rail, 7, 114px wide | **76** | 89 | 1,296 | 5.7× |
+| 1440×900 | sided | sidebar, 7, 208px wide | **76** | 89 | 1,224 | 5.1× |
+
+Budgets: shell chrome ≤152, content ≤2,110 at 390×844. Nav/dock overlap **0 px**
+at every viewport, sub-44px targets **0**, sub-12px text **0**, scroll owners
+**1**. The rail costs width, not height, which is why the frame changes shape
+instead of the navigation changing contents.
+
+### Three defects the measurement found
+
+**The rail did not fit, and hid it by scrolling.** At 844×390 the seven-item rail
+overflowed and became a second scroll owner. `overflow-y: auto` is deliberate —
+a rail that cannot fit its destinations must scroll rather than drop one, because
+a dropped destination is feature loss — so the harness now records `navScrolls`
+separately from the scroll-owner count, and the failure names the cause instead
+of reporting "2". Two fixes: short windows take the rail rather than the sidebar
+(seven 56px two-line rows need 392px), and the arithmetic below.
+
+**`content-box`.** The v2 layer has no global box-sizing reset, so a 64px
+`min-height` with 4px of padding is a 72px bar. That put the phone envelope at
+**149 of 152** — inside budget, three pixels from not being — and overflowed the
+390px-tall rail by 14px. `box-sizing: border-box` is now scoped to the
+navigation, which took the envelope to 141.
+
+**72px of empty scroll on every screen.** The content row added the dock's
+measured height to its own `padding-bottom`, on the assumption that content could
+scroll underneath it. It cannot: the dock is a row of the frame's grid. Measured
+by deleting the reservation and re-running the matrix — 390×844 went from 1,512px
+to 1,440px with nothing rendered differently, and every viewport but the shortest
+moved by exactly 72. The reservation is gone, and so is the `ResizeObserver` and
+the custom property that fed it: with nothing consuming the measurement,
+`StickyActionDock` is a plain component again.
+
+The same accounting fixed a second double-charge: the dock and the phone bar both
+defaulted to `safe-bottom`, spending the home-indicator inset twice. It is now
+scoped to the case where the dock is actually the bottom-most element.
+
+### Deviations from the packet, disclosed
+
+**WP-05's legacy half is not done.** The packet's definition of done includes
+"App.tsx becomes composition-oriented". It does not, and this is deliberate:
+amendment A1 forbids changing legacy rendered output for the whole migration, so
+decomposing the 2,276-line shell delivers no player-visible change while spending
+the largest regression budget in the project. It stays a separate, revertible
+refactor. `App.tsx` gained three changed lines this packet, all inside branches
+that are unreachable from all 79 canonical routes.
+
+**One navigation component, not four.** WP-06 names `AdaptivePrimaryNav`,
+`MobileHubBar`, `NavigationRail` and `DesktopSidebar`. What differs between the
+three shapes is position, density, and whether the secondary hubs have room — all
+layout. What must *not* differ is the destinations, their order, their labels,
+their badges and their current-page semantics, and three components rendering the
+same list is three copies of that contract. The width rule stays in TypeScript
+(`resolveNavVariant`) so it is testable without a browser.
+
+**No icons.** The v2 layer has no icon system, and the packet forbids icon-only
+navigation, so every destination is a visible text label. Asserted at all three
+variants.
+
+**`ReturnToTask` and command-palette integration are not in.** Both need
+navigation origin across a route change, and there is one route in the new shell
+— there is nothing to return *from* yet. They land with the second migrated hub.
+
+### Route-change focus
+
+`shouldMoveFocus` is pure and tested: not on first paint (the player's focus is
+wherever the browser put it, and pulling it into the content region on arrival is
+a steal), not on a re-render reporting the same route (store notifications would
+eject a player mid-keystroke), and yes on an actual change. `PageScroll` already
+carried `tabIndex={-1}` for exactly this.
+
+Navigation sits before content in the DOM, placed visually by the grid. That is
+right at `sided`, where the rail is visually first, and it is the standard
+bottom-bar trade at `stacked`: the skip link is the first tab stop precisely so a
+keyboard user reaches content in one press rather than through five links.
+Reordering the DOM at the breakpoint instead would move focus on resize.
+
+### Still open, and why
+
+- **Desktop Today is one wide column.** The sidebar landed; the two-column split
+  is WP-09b-full. Prose is already bounded to 68ch by `.mfd-v2-body`, so this is
+  card width, not line length. The 1440×900 screenshot in
+  `evidence/today/` is the evidence for the next packet, not a claim of done.
+- **Dynasty and System are desktop-only.** On phone they are reached from Today,
+  from a task, or from an event, which is what the audit specifies — but nothing
+  currently routes to them from Today, so on phone they are unreachable from the
+  new shell. They stay reachable from the legacy shell throughout.
+
+### The boundary is exercised, not asserted from source
+
+Four of five destinations hand the player back to the legacy shell, and that
+hand-off is the one behavioural claim no unit test can make — it needs a real
+router, a real hash change, and both shells in one page. A second Playwright test
+does it: from `/today`, click Team, land on `#/roster` with the legacy shell
+mounted and **zero** new frames; navigate back and get the new shell with **zero**
+legacy shells. Both mounted at once is the failure the route set exists to stop.
+
+The same test checks the legacy Chip dock is absent on `/today` and *present* on
+`/roster`. Asserting only the absence would pass if the Chip were disabled
+outright, which is not the claim.
+
+### Verification
+
+Both bundle numbers are `vite build` with default env, measured on this tree and
+on `b863887` in a throwaway worktree — a like-for-like delta rather than a
+comparison against a number taken a different way.
+
+| Check | Result |
+|---|---|
+| `pnpm -r typecheck` | **PASS** — design-system, engine, web |
+| Full web suite | **PASS** — see the run below |
+| `pnpm --filter @mfd/design-system test` | **PASS** — 20/20 files, 175/175 tests |
+| `node scripts/check-ui-route-coverage.mjs` | **PASS** — 79/79, 79 surface-map keys |
+| `bash scripts/check-math-random.sh` | **PASS** |
+| `node --test scripts/__tests__/*.mjs` | **PASS** — 95/95 |
+| `playwright test ui-overhaul-today` | **PASS** — matrix identical across two runs; boundary crossing both ways |
+| PERF-02 | eager `index-*.js` **279.2 KB gzip** against the 316 KB ceiling, **+0.2 KB**; `/today` chunk 4.2 → **5.3 KB**, still lazy |
+| `SAVE_VERSION` | 37, unchanged |
+| Protected paths touched | **0** — `packages/engine`, `.github`, `release-gate.mjs`, the CODEX trio |
+
+### Rollback
+
+`git revert` the commits independently: the boundary generalisation, the
+navigation, and the shell — which also carries the dock-reservation fix, since
+both live in `layout.module.css`. Setting the mode to `legacy` makes all of it
+inert without reverting anything.

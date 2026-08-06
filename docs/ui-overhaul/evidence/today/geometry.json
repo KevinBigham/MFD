@@ -31,9 +31,9 @@
         "scrollHeight": 568
       },
       "content": {
-        "clientHeight": 352,
-        "scrollHeight": 1700,
-        "viewportsOfScroll": 2.993
+        "clientHeight": 307,
+        "scrollHeight": 1576,
+        "viewportsOfScroll": 2.775
       },
       "viewportsOfScroll": 1,
       "horizontalOverflow": false,
@@ -42,17 +42,30 @@
         {
           "tag": "div",
           "position": "sticky",
-          "top": 427,
+          "top": 382,
           "height": 141
         }
       ],
-      "permanentChrome": 216,
+      "permanentChrome": 261,
       "dockHeight": 141,
-      "shellChrome": 75,
-      "interactiveCount": 24,
+      "shellChrome": 120,
+      "frameLayout": "stacked",
+      "navScrolls": false,
+      "nav": {
+        "variant": "bar",
+        "destinationCount": 5,
+        "height": 45,
+        "width": 320,
+        "activeHub": "today",
+        "activeCount": 1,
+        "ariaCurrentCount": 1,
+        "badgedHubs": 3
+      },
+      "navDockOverlapPx": 0,
+      "interactiveCount": 29,
       "smallTargetCount": 0,
       "smallTargets": [],
-      "visibleTextCount": 78,
+      "visibleTextCount": 89,
       "smallTextCount": 0,
       "bodyFontSize": 16,
       "readiness": "blocked",
@@ -60,7 +73,9 @@
       "compactHeight": "true",
       "taskRowCount": 8,
       "openDisclosures": 0,
-      "viewportClass": "phone-portrait"
+      "viewportClass": "phone-portrait",
+      "viewportWidth": 320,
+      "viewportHeight": 568
     },
     {
       "viewport": "phone-390x844",
@@ -69,9 +84,9 @@
         "scrollHeight": 844
       },
       "content": {
-        "clientHeight": 679,
-        "scrollHeight": 1512,
-        "viewportsOfScroll": 1.791
+        "clientHeight": 614,
+        "scrollHeight": 1440,
+        "viewportsOfScroll": 1.706
       },
       "viewportsOfScroll": 1,
       "horizontalOverflow": false,
@@ -80,17 +95,30 @@
         {
           "tag": "div",
           "position": "sticky",
-          "top": 755,
+          "top": 690,
           "height": 89
         }
       ],
-      "permanentChrome": 165,
+      "permanentChrome": 230,
       "dockHeight": 89,
-      "shellChrome": 76,
-      "interactiveCount": 24,
+      "shellChrome": 141,
+      "frameLayout": "stacked",
+      "navScrolls": false,
+      "nav": {
+        "variant": "bar",
+        "destinationCount": 5,
+        "height": 65,
+        "width": 390,
+        "activeHub": "today",
+        "activeCount": 1,
+        "ariaCurrentCount": 1,
+        "badgedHubs": 3
+      },
+      "navDockOverlapPx": 0,
+      "interactiveCount": 29,
       "smallTargetCount": 0,
       "smallTargets": [],
-      "visibleTextCount": 78,
+      "visibleTextCount": 89,
       "smallTextCount": 0,
       "bodyFontSize": 16,
       "readiness": "blocked",
@@ -98,7 +126,9 @@
       "compactHeight": "false",
       "taskRowCount": 8,
       "openDisclosures": 0,
-      "viewportClass": "phone-portrait"
+      "viewportClass": "phone-portrait",
+      "viewportWidth": 390,
+      "viewportHeight": 844
     },
     {
       "viewport": "phone-430x932",
@@ -107,9 +137,9 @@
         "scrollHeight": 932
       },
       "content": {
-        "clientHeight": 767,
-        "scrollHeight": 1488,
-        "viewportsOfScroll": 1.597
+        "clientHeight": 702,
+        "scrollHeight": 1416,
+        "viewportsOfScroll": 1.519
       },
       "viewportsOfScroll": 1,
       "horizontalOverflow": false,
@@ -118,17 +148,30 @@
         {
           "tag": "div",
           "position": "sticky",
-          "top": 843,
+          "top": 778,
           "height": 89
         }
       ],
-      "permanentChrome": 165,
+      "permanentChrome": 230,
       "dockHeight": 89,
-      "shellChrome": 76,
-      "interactiveCount": 24,
+      "shellChrome": 141,
+      "frameLayout": "stacked",
+      "navScrolls": false,
+      "nav": {
+        "variant": "bar",
+        "destinationCount": 5,
+        "height": 65,
+        "width": 430,
+        "activeHub": "today",
+        "activeCount": 1,
+        "ariaCurrentCount": 1,
+        "badgedHubs": 3
+      },
+      "navDockOverlapPx": 0,
+      "interactiveCount": 29,
       "smallTargetCount": 0,
       "smallTargets": [],
-      "visibleTextCount": 78,
+      "visibleTextCount": 89,
       "smallTextCount": 0,
       "bodyFontSize": 16,
       "readiness": "blocked",
@@ -136,7 +179,9 @@
       "compactHeight": "false",
       "taskRowCount": 8,
       "openDisclosures": 0,
-      "viewportClass": "phone-portrait"
+      "viewportClass": "phone-portrait",
+      "viewportWidth": 430,
+      "viewportHeight": 932
     },
     {
       "viewport": "landscape-844x390",
@@ -146,8 +191,8 @@
       },
       "content": {
         "clientHeight": 225,
-        "scrollHeight": 1288,
-        "viewportsOfScroll": 3.303
+        "scrollHeight": 1264,
+        "viewportsOfScroll": 3.241
       },
       "viewportsOfScroll": 1,
       "horizontalOverflow": false,
@@ -163,10 +208,23 @@
       "permanentChrome": 165,
       "dockHeight": 89,
       "shellChrome": 76,
-      "interactiveCount": 24,
+      "frameLayout": "sided",
+      "navScrolls": false,
+      "nav": {
+        "variant": "rail",
+        "destinationCount": 7,
+        "height": 390,
+        "width": 114,
+        "activeHub": "today",
+        "activeCount": 1,
+        "ariaCurrentCount": 1,
+        "badgedHubs": 3
+      },
+      "navDockOverlapPx": 0,
+      "interactiveCount": 31,
       "smallTargetCount": 0,
       "smallTargets": [],
-      "visibleTextCount": 78,
+      "visibleTextCount": 91,
       "smallTextCount": 0,
       "bodyFontSize": 16,
       "readiness": "blocked",
@@ -174,7 +232,9 @@
       "compactHeight": "true",
       "taskRowCount": 8,
       "openDisclosures": 0,
-      "viewportClass": "phone-landscape"
+      "viewportClass": "phone-landscape",
+      "viewportWidth": 844,
+      "viewportHeight": 390
     },
     {
       "viewport": "tablet-768x1024",
@@ -184,8 +244,8 @@
       },
       "content": {
         "clientHeight": 859,
-        "scrollHeight": 1344,
-        "viewportsOfScroll": 1.313
+        "scrollHeight": 1296,
+        "viewportsOfScroll": 1.266
       },
       "viewportsOfScroll": 1,
       "horizontalOverflow": false,
@@ -201,10 +261,23 @@
       "permanentChrome": 165,
       "dockHeight": 89,
       "shellChrome": 76,
-      "interactiveCount": 24,
+      "frameLayout": "sided",
+      "navScrolls": false,
+      "nav": {
+        "variant": "rail",
+        "destinationCount": 7,
+        "height": 1024,
+        "width": 114,
+        "activeHub": "today",
+        "activeCount": 1,
+        "ariaCurrentCount": 1,
+        "badgedHubs": 3
+      },
+      "navDockOverlapPx": 0,
+      "interactiveCount": 31,
       "smallTargetCount": 0,
       "smallTargets": [],
-      "visibleTextCount": 78,
+      "visibleTextCount": 91,
       "smallTextCount": 0,
       "bodyFontSize": 16,
       "readiness": "blocked",
@@ -212,7 +285,9 @@
       "compactHeight": "false",
       "taskRowCount": 8,
       "openDisclosures": 0,
-      "viewportClass": "tablet"
+      "viewportClass": "tablet",
+      "viewportWidth": 768,
+      "viewportHeight": 1024
     },
     {
       "viewport": "desktop-1440x900",
@@ -222,8 +297,8 @@
       },
       "content": {
         "clientHeight": 735,
-        "scrollHeight": 1296,
-        "viewportsOfScroll": 1.44
+        "scrollHeight": 1224,
+        "viewportsOfScroll": 1.36
       },
       "viewportsOfScroll": 1,
       "horizontalOverflow": false,
@@ -239,10 +314,23 @@
       "permanentChrome": 165,
       "dockHeight": 89,
       "shellChrome": 76,
-      "interactiveCount": 24,
+      "frameLayout": "sided",
+      "navScrolls": false,
+      "nav": {
+        "variant": "sidebar",
+        "destinationCount": 7,
+        "height": 900,
+        "width": 208,
+        "activeHub": "today",
+        "activeCount": 1,
+        "ariaCurrentCount": 1,
+        "badgedHubs": 3
+      },
+      "navDockOverlapPx": 0,
+      "interactiveCount": 31,
       "smallTargetCount": 0,
       "smallTargets": [],
-      "visibleTextCount": 78,
+      "visibleTextCount": 98,
       "smallTextCount": 0,
       "bodyFontSize": 16,
       "readiness": "blocked",
@@ -250,7 +338,9 @@
       "compactHeight": "false",
       "taskRowCount": 8,
       "openDisclosures": 0,
-      "viewportClass": "desktop"
+      "viewportClass": "desktop",
+      "viewportWidth": 1440,
+      "viewportHeight": 900
     }
   ]
 }

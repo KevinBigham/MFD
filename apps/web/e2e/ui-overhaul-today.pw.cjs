@@ -251,6 +251,29 @@ function collectTodayGeometry() {
   const dockHeight = dockNode ? Math.round(dockNode.getBoundingClientRect().height) : 0;
   const permanentChrome = content ? Math.round(viewportHeight - content.clientHeight) : 0;
 
+  /**
+   * Navigation, and whether it collides with the dock.
+   *
+   * LAY-06 says the dock is "accounted separately without overlap". With the
+   * nav in the frame's grid the two cannot overlap by construction — which is
+   * exactly why it is measured: a later change to `position` or `z-index`
+   * would break the construction silently, and the criterion would still read
+   * as satisfied because both heights are individually in budget.
+   */
+  const navSlot = document.querySelector('[data-mfd-v2-nav-slot="true"]');
+  const navElement = navSlot ? navSlot.querySelector('nav') : null;
+  const navRect = navSlot ? navSlot.getBoundingClientRect() : null;
+  const dockRect = dockNode ? dockNode.getBoundingClientRect() : null;
+
+  const overlapPx = navRect && dockRect
+    ? Math.round(
+      Math.max(0, Math.min(navRect.bottom, dockRect.bottom) - Math.max(navRect.top, dockRect.top))
+      * Math.max(0, Math.min(navRect.right, dockRect.right) - Math.max(navRect.left, dockRect.left)),
+    )
+    : 0;
+
+  const frame = document.querySelector('[data-mfd-v2-frame="true"]');
+
   return {
     viewport: { width: viewportWidth, height: viewportHeight },
     document: { scrollWidth: doc.scrollWidth, scrollHeight: doc.scrollHeight },
@@ -269,6 +292,34 @@ function collectTodayGeometry() {
     dockHeight,
     /** LAY-06's envelope: permanent chrome minus the separately-accounted dock. */
     shellChrome: permanentChrome - dockHeight,
+    frameLayout: frame ? frame.getAttribute('data-mfd-v2-frame-layout') : null,
+    /**
+     * Whether the navigation itself became a scroller.
+     *
+     * It has `overflow-y: auto` on purpose — a rail that cannot fit its
+     * destinations must scroll rather than hide one, because a hidden
+     * destination is feature loss. But it scrolling in the documented matrix
+     * means it does not fit, and the first run of this assertion caught
+     * exactly that at 844×390. Recorded separately from the scroll-owner count
+     * so the failure names the cause instead of reporting "2".
+     */
+    navScrolls: scrollContainers.some((el) => navSlot && navSlot.contains(el)),
+    nav: navRect
+      ? {
+        variant: navElement ? navElement.getAttribute('data-mfd-v2-nav') : null,
+        destinationCount: navElement ? Number(navElement.getAttribute('data-mfd-v2-nav-count')) : 0,
+        height: Math.round(navRect.height),
+        width: Math.round(navRect.width),
+        activeHub: (() => {
+          const current = document.querySelector('[data-mfd-v2-nav-active="true"]');
+          return current ? current.getAttribute('data-mfd-v2-nav-hub') : null;
+        })(),
+        activeCount: document.querySelectorAll('[data-mfd-v2-nav-active="true"]').length,
+        ariaCurrentCount: document.querySelectorAll('[aria-current="page"]').length,
+        badgedHubs: [...document.querySelectorAll('[data-mfd-v2-nav-badge]')].length,
+      }
+      : null,
+    navDockOverlapPx: overlapPx,
     interactiveCount: interactive.length,
     smallTargetCount: smallTargets.length,
     smallTargets,
@@ -298,7 +349,16 @@ async function captureMatrix(page, { screenshots }) {
     await settle(page);
 
     const geometry = await page.evaluate(collectTodayGeometry);
-    captures.push({ ...geometry, viewport: viewport.name, viewportClass: viewport.class });
+    // `viewport` is overwritten with the matrix name, so the measured size is
+    // carried under its own keys — reading `capture.viewport.width` after this
+    // is `undefined`, and `undefined < 0.25` is a silently passing assertion.
+    captures.push({
+      ...geometry,
+      viewport: viewport.name,
+      viewportClass: viewport.class,
+      viewportWidth: geometry.viewport.width,
+      viewportHeight: geometry.viewport.height,
+    });
 
     if (screenshots && SCREENSHOT_VIEWPORTS.has(viewport.name)) {
       // The pointer is still where the demo button was clicked, which leaves a
@@ -347,6 +407,10 @@ function comparable(captures) {
     permanentChrome: capture.permanentChrome,
     shellChrome: capture.shellChrome,
     dockHeight: capture.dockHeight,
+    frameLayout: capture.frameLayout,
+    nav: capture.nav,
+    navDockOverlapPx: capture.navDockOverlapPx,
+    navScrolls: capture.navScrolls,
     interactiveCount: capture.interactiveCount,
     smallTargetCount: capture.smallTargetCount,
     visibleTextCount: capture.visibleTextCount,
@@ -411,7 +475,8 @@ test.describe('Today geometry', () => {
 
       // One scroll owner is the archetype's hard rule. The document must not be
       // the second one, which is what the `body` margin reset in `a11y.css`
-      // prevents.
+      // prevents — and neither may the navigation.
+      expect(capture.navScrolls, `${capture.viewport} navigation does not fit`).toBe(false);
       expect(capture.scrollContainerCount, `${capture.viewport} scroll owners`).toBe(1);
       expect(capture.viewportsOfScroll, `${capture.viewport} document scroll`).toBe(1);
 
@@ -431,5 +496,90 @@ test.describe('Today geometry', () => {
     const landscape = first.find((capture) => capture.viewport === 'landscape-844x390');
     expect(landscape.layoutMode).toBe('medium');
     expect(landscape.compactHeight).toBe('true');
+
+    // ── Navigation ────────────────────────────────────────────────────────
+    for (const capture of first) {
+      expect(capture.nav, `${capture.viewport} navigation is present`).not.toBeNull();
+
+      // "Accounted separately without overlap", measured rather than assumed.
+      expect(capture.navDockOverlapPx, `${capture.viewport} nav/dock overlap`).toBe(0);
+
+      // Wayfinding: the player is on Today, and the navigation says so — once.
+      expect(capture.nav.activeHub, `${capture.viewport} current hub`).toBe('today');
+      expect(capture.nav.activeCount, `${capture.viewport} current hubs`).toBe(1);
+      expect(capture.nav.ariaCurrentCount, `${capture.viewport} aria-current`).toBe(1);
+    }
+
+    // The phone bar carries the five job destinations and costs vertical
+    // space; the rail carries seven and costs none, which is the whole reason
+    // the frame changes shape rather than the navigation changing contents.
+    for (const capture of first.filter((entry) => entry.layoutMode === 'compact')) {
+      expect(capture.frameLayout, `${capture.viewport} frame`).toBe('stacked');
+      expect(capture.nav.variant, `${capture.viewport} nav`).toBe('bar');
+      expect(capture.nav.destinationCount, `${capture.viewport} destinations`).toBe(5);
+      expect(capture.nav.height, `${capture.viewport} nav height`).toBeGreaterThanOrEqual(MIN_TARGET);
+      expect(capture.shellChrome, `${capture.viewport} header + nav`)
+        .toBeGreaterThanOrEqual(capture.nav.height);
+    }
+
+    for (const capture of first.filter((entry) => entry.layoutMode !== 'compact')) {
+      expect(capture.frameLayout, `${capture.viewport} frame`).toBe('sided');
+      expect(capture.nav.destinationCount, `${capture.viewport} destinations`).toBe(7);
+      // A side rail must not spend the phone budget it was moved out of.
+      expect(capture.shellChrome, `${capture.viewport} rail costs no vertical chrome`)
+        .toBeLessThan(SHELL_CHROME_BUDGET);
+      // A rail is wayfinding, not a pane. A quarter of the window is the point
+      // past which it stops being chrome and starts being a column of content.
+      expect(capture.viewportWidth, `${capture.viewport} measured width`).toBeGreaterThan(0);
+      expect(capture.nav.width / capture.viewportWidth, `${capture.viewport} rail width share`)
+        .toBeLessThan(0.25);
+    }
+  });
+
+  /**
+   * The strangler boundary, exercised rather than asserted from source.
+   *
+   * Four of the five destinations leave the new shell for the legacy one. That
+   * hand-off is the single behavioural claim this packet rests on, and no unit
+   * test can make it: it needs a real router, a real hash change, and both
+   * shells mounted in one page.
+   */
+  test('carries the player across the shell boundary, both ways', async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await bootPinned(page);
+
+    await page.evaluate(() => { window.location.hash = '/today'; });
+    await expect(page.locator('[data-mfd-v2-screen="today"]')).toBeVisible();
+    await settle(page);
+
+    // Leaving: the Team tab lands on a legacy route, in the legacy shell, with
+    // its chrome back — and with no trace of the new frame left mounted.
+    await page.locator('[data-mfd-v2-nav-hub="team"]').click();
+    await settle(page);
+
+    expect(new URL(page.url()).hash).toBe('#/roster');
+    await expect(page.locator('[data-mfd-app-shell="true"]')).toBeVisible();
+    await expect(page.locator('[data-mfd-v2-frame="true"]')).toHaveCount(0);
+
+    // Returning: the new shell comes back, and the legacy shell goes away.
+    // Both mounted at once is the failure mode the route set exists to stop.
+    await page.evaluate(() => { window.location.hash = '/today'; });
+    await expect(page.locator('[data-mfd-v2-screen="today"]')).toBeVisible();
+    await settle(page);
+
+    await expect(page.locator('[data-mfd-app-shell="true"]')).toHaveCount(0);
+    await expect(page.locator('[data-mfd-v2-frame="true"]')).toHaveCount(1);
+
+    // And the legacy Chip dock, whose 193px of permanent clearance is most of
+    // what LAY-06 is about, is suppressed here — and only here. Asserting its
+    // absence alone would pass if the Chip were disabled outright, so the
+    // legacy route is checked for its presence first.
+    await expect(page.locator('.mfd-chip-dock')).toHaveCount(0);
+
+    await page.evaluate(() => { window.location.hash = '/roster'; });
+    await expect(page.locator('[data-mfd-app-shell="true"]')).toBeVisible();
+    await settle(page);
+    await expect(page.locator('.mfd-chip-dock')).toHaveCount(1);
   });
 });
