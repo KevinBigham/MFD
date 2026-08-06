@@ -6,6 +6,18 @@
  * passing unchanged for the whole migration: it is the "before" side of every
  * LAY-/READ-/TOUCH- acceptance criterion.
  *
+ * KNOWN VARIANCE — read before asserting on these numbers.
+ * The bootstrap clicks "Launch Demo Scenario", which seeds a fresh dynasty from
+ * `Date.now()` (`apps/web/src/app/NewGameScreen.tsx`). Every run therefore gets
+ * different players, and the Briefing — which renders names and generated prose
+ * — varies by up to ~100 px between two runs of identical code. Measured across
+ * repeat runs: `briefing` moves, `roster` / `contracts` / `settings` do not.
+ *
+ * Consequence: Briefing heights here are a magnitude, not a fixture. Any
+ * pass/fail acceptance assertion (LAY-04's 2.5-viewport Today budget above all)
+ * must load a pinned fixture from `src/ui/test/fixtures/ui-overhaul-fixtures.ts`
+ * instead of clicking the demo button.
+ *
  * Run:
  *   pnpm --filter @mfd/web exec playwright test ui-overhaul-baseline
  *

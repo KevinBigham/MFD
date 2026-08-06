@@ -317,3 +317,139 @@ revert `currentAppRoute.ts` and `navBadges.ts`. The coverage gate returns to
 matrix-only mode on its own, since the surface map is optional when absent. The
 canonical registry was never touched and no route was deleted, so legacy routing
 is unaffected either way.
+
+---
+
+## WP-09a — Canonical Task Ledger (pure presenter extraction)
+
+Status: **complete** — one derivation, consumed by the legacy board, zero copy
+change
+Branch: `feat/ui-overhaul-wp00`
+Save/determinism impact: **none** — no engine, RNG, schema, migration or
+mutation-action file touched; `SAVE_VERSION` unchanged at 37
+
+This is the WP-09 split from amendment A4: the presenter lands on its own, ahead
+of the Today screen, so the migration's largest packet starts from a tested
+contract instead of a blank file.
+
+### Files touched
+
+Added: `apps/web/src/ui/tasks/task-ledger.ts`, `task-ledger-input.ts`,
+`task-ledger.test.ts` (15 tests), `task-ledger-input.test.ts` (7 tests).
+Modified: `apps/web/src/features/monday-briefing/ActionCenter.tsx`,
+`ActionCenter.test.tsx`, `MondayBriefing.tsx`. Deleted: none.
+
+### What actually moved
+
+`ActionCenter.tsx` held three things at once: the derivation of what needs doing
+this week, the copy explaining it, and the board that renders it. The first two
+are now `buildTaskLedger()` and `OPTIONAL_TASKS` in `ui/tasks/`; only rendering
+stayed behind. `MondayBriefing.tsx` no longer computes the board's inputs inline
+— it spreads `selectTaskLedgerInput({ game })`, which composes the existing store
+selectors. That removed a `selectTradeOffers` store subscription and a roster
+scan from a 1,987-line component.
+
+**No rendered copy changed.** Every string was moved verbatim, and the existing
+`ActionCenter.test.tsx` — which renders to static markup and asserts on-screen
+text — passes unmodified except for one deliberate change: its copy guard now
+reads both `ActionCenter.tsx` and `task-ledger.ts`, so an extraction cannot
+smuggle a reword past it.
+
+### Deliberate boundaries
+
+- **Card ids are a save-visible contract.** The board's ids
+  (`must-{index}-{route}`, `agm-{id}`, `must-ready`, `recommended-clear`) are
+  persisted in `leagueEvents` as `action_center.closed` payloads. Changing their
+  shape would resurrect cards a player already dismissed, so id construction
+  stayed in the component and is now commented as such. `UiTask.id` is a
+  separate, stable semantic key for the new shell.
+- **`dedupeKey`, `availability`, `isComplete` and `source` from doc 07's
+  `UiTask` are not implemented.** Nothing consumes them yet, and a dedupe key
+  without a deduper is decoration. They arrive with WP-09b, which is where
+  collapsing an AGM recommendation against a duplicate must-do actually happens.
+- **AGM recommendations stay in the component.** They come from
+  `getAGMWeeklyRecommendations(game)` and are engine output, not a UI
+  derivation; folding them into the ledger is WP-09b's call, with dedupe.
+
+### Facts the extraction surfaced
+
+- **The board's destination labels agree with `APP_ROUTE_REGISTRY` everywhere
+  except `/owner`** — the board says "Owner", the registry says "Owner Suite".
+  Unifying them would change rendered copy, which A1 forbids. A test asserts
+  `/owner` is the *only* divergence, so a second one cannot appear quietly.
+- **Every task destination resolves to a covered hub.** Tested against WP-04's
+  resolver across all task sources, which turns "Today will not send you into a
+  dead end" into a gate rather than a hope.
+- Owner-approval and full-lineup checks are boundaries (`< 50`, `< 22`), not
+  thresholds — pinned by tests, since an off-by-one here silently changes which
+  tasks a player sees.
+
+### Verification of this packet
+
+| Check | Result |
+|---|---|
+| `pnpm -r typecheck` | **PASS** — all 3 projects |
+| `vitest run src/ui src/features/monday-briefing` | **PASS** — 14 files, 114 tests |
+| `ActionCenter.test.tsx` (11 rendered-markup tests) | **PASS** — unchanged assertions |
+| Full web suite (gate's `--exclude` command) | **PASS** — 267/267 files, 2301/2301 tests, exit 0 |
+| `pnpm lint` | **PASS** — 0 errors; 42 pre-existing warnings, none in WP-09a files |
+| `vite build` + `check-bundle-size.sh` | **PASS** — engine 313 KB unchanged |
+| Release gate `--only g1-full-setup-desktop` (raw CDP) | **PASS** in 25.1s — full setup from cleared storage, no browser errors |
+| Release gate `--only g6-chip-receipts-desktop` (raw CDP) | **PASS** in 16.3s — demo save, route navigation, persistence after hard reload |
+
+**PERF-02:** eager `index-*.js` 278.3 KB gzip (was 275.8 after WP-04) against the
+316 KB ceiling — **+2.5 KB**, ~38 KB headroom. The task copy moved rather than
+multiplied; the cost is module-boundary overhead, since exported symbols survive
+minification that inlined literals did not.
+
+One test needed updating, and it is worth naming: `App.test.tsx`'s
+"command-deck route object targets" guard scrapes `ActionCenter.tsx` for
+`route: '...'` literals and checks each against the registry. The literals moved,
+so the guard silently narrowed to four routes and its `arrayContaining`
+assertion caught it. It now also scrapes `taskDestination('...')` calls in the
+ledger. **Source-scraping guards in this repo are coupled to file layout** — any
+extraction packet should expect to move them, and should move them rather than
+weaken them.
+
+### A third methodology finding: the Briefing is not geometrically reproducible
+
+Re-running the WP-00 geometry capture after this packet showed the Briefing
+moving ±18–56 px against the recorded baseline, with **identical** interactive
+and small-text element counts. That pattern says text reflow, not structure — so
+before attributing it to the extraction, the same capture was run twice against
+one unchanged build. Those two runs disagreed by up to **93 px**:
+
+| Surface @ two runs of identical code | Δ |
+|---|---|
+| `briefing` phone-320×568 | +93 px |
+| `briefing` phone-430×932 | −74 px |
+| `briefing` phone-390×844 | +56 px |
+| `roster` / `contracts` / `settings`, all 12 viewports | **0 px** |
+
+Root cause: `apps/web/src/app/NewGameScreen.tsx:229` seeds the demo scenario from
+`Date.now()`, so "Launch Demo Scenario" builds a different dynasty every click.
+Different players means different name lengths and different generated prose,
+which reflows the Briefing. Table-driven surfaces have fixed row heights, so they
+do not move.
+
+This is correct product behaviour — a demo *should* be fresh, and `apps/web` is
+not bound by the engine's `Date.now()` ban. But it makes the demo launcher unfit
+as a fixture for the numeric acceptance model in doc 09:
+
+- **Briefing/Today heights from the demo launcher are a magnitude, not a
+  measurement.** The WP-00 baseline's 11,945 px is real and lands inside the
+  observed band (a repeat run hit exactly 11,945), but it carries ~±100 px.
+- **LAY-04's 2.5-viewport Today budget must be asserted against a pinned
+  fixture**, not the demo button — otherwise the gate flickers near the
+  threshold. The WP-00 fixtures exist precisely for this.
+- Non-Briefing surfaces stay valid for exact assertions, so the audit's roster,
+  contracts, and settings figures need no caveat.
+
+`ui-overhaul-baseline.pw.cjs` now documents this at the top of the file. Adding
+fixture-backed capture is folded into WP-09b, ahead of H0.
+
+### Rollback
+
+Revert the four modified files and delete `apps/web/src/ui/tasks/`. The ledger is
+additive — the legacy board's behaviour, copy, and persisted card ids are
+byte-identical either side of it.
