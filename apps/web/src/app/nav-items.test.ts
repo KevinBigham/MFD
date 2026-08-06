@@ -9,6 +9,7 @@ describe('navigation completeness', () => {
   const CONTEXTUAL_ONLY_ROUTE_REASONS: Record<string, string> = {
     '/player/$playerId': 'Requires a concrete saved player id selected from roster, profile links, search, or another player surface.',
     '/player/$playerId/timeline': 'Requires a concrete saved player id selected from roster, profile links, search, or another player surface.',
+    '/today': 'Belongs to the new shell behind the UI overhaul mode, not to the legacy 79-route canonical surface; adding it to primary navigation would ship the preview to players who have not opted in.',
   };
 
   const ROUTES_WITHOUT_ENGINE_UNLOCK_RULES: string[] = [];

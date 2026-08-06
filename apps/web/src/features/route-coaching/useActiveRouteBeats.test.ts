@@ -101,7 +101,13 @@ const ROUTE_COACHED_DIRECT_PATHS = new Map<string, RouteKey>([
   ['/player/$playerId', 'player-profile'],
   ['/player/$playerId/timeline', 'player-timeline'],
 ]);
-const UNCOACHED_DIRECT_PATHS = [] as const;
+/**
+ * `/today` is deliberately uncoached. Route coaching drives the legacy Chip's
+ * beats; the new shell explains itself in the task rows — every task carries
+ * its own reason and consequence — so a second, parallel explanation system
+ * pointing at the same screen is exactly the duplication the overhaul removes.
+ */
+const UNCOACHED_DIRECT_PATHS = ['/today'] as const;
 
 function extractNavItemPaths(): string[] {
   return APP_ROUTE_REGISTRY.map((route) => route.path);

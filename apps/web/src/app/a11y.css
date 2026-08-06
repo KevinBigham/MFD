@@ -67,3 +67,21 @@ button:focus-visible,
 [data-mfd-v2-viewport] input[type='radio'] {
   min-height: var(--mfd-v2-control-min);
 }
+
+/**
+ * The new shell owns the whole window, so the document must not scroll.
+ *
+ * `AppFrame` is `100dvh` and scrolls internally. The user agent's default
+ * `body { margin: 8px }` adds 16px underneath it, which makes the *document*
+ * a second scroller — measured on Today at every viewport in the doc-09
+ * matrix as exactly 1.02 viewports of page scroll behind a frame that already
+ * fits. Two scrollers is the archetype's one hard rule broken.
+ *
+ * Conditioned on the frame being mounted rather than applied globally: the
+ * legacy shell has always rendered inside that margin, and A1 pins its
+ * rendering for the whole migration.
+ */
+:root:has([data-mfd-v2-frame='true']) body {
+  margin: 0;
+  overflow: hidden;
+}

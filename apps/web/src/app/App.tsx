@@ -160,6 +160,10 @@ const LazyAboutScreen = lazy(async () => ({ default: (await import('../features/
 const LazyCreditsScreen = lazy(async () => ({ default: (await import('../features/launch/CreditsScreen')).CreditsScreen }));
 const LazyFaqScreen = lazy(async () => ({ default: (await import('../features/launch/FaqScreen')).FaqScreen }));
 
+/** The new shell, lazy from its first commit (amendment A3): no player on the
+ * legacy default pays a byte for it until they open `/today`. */
+const LazyTodayRoute = lazy(async () => ({ default: (await import('../ui/today/TodayRoute')).TodayRoute }));
+
 // ── Nav items ────────────────────────────────────────────────
 
 interface NavItem {
@@ -594,6 +598,22 @@ function RootLayout() {
       onSelect: () => { void router.navigate({ to: '/week-advance' }); },
     },
   ];
+
+  /**
+   * The new shell owns its own viewport.
+   *
+   * `AppFrame` budgets total fixed chrome at 152px (LAY-06); the legacy shell
+   * spends 383–425px of it on phone before a screen renders anything. Nesting
+   * one inside the other would measure the sum and prove nothing.
+   *
+   * This branch cannot change legacy rendering: `/today` is absent from
+   * `APP_ROUTE_REGISTRY`, so no canonical path reaches it, and
+   * `ui/today/today-route.test.ts` pins that. Every hook above has already
+   * run, so the early return is a rendering decision only.
+   */
+  if (activePath === '/today') {
+    return <Outlet />;
+  }
 
   return (
     <MfdTooltipProvider>
@@ -2019,6 +2039,20 @@ const settingsRoute = createRoute({
   component: SettingsScreen,
 });
 
+/** Deliberately outside `APP_ROUTE_REGISTRY`: `/today` is the new shell's own
+ * surface, not an 80th canonical legacy destination, and adding it to the
+ * registry would put it in legacy navigation and break the 79/79 gate. It is
+ * registered through `CONTEXTUAL_ROUTE_PATHS` instead. */
+const todayRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/today',
+  component: () => (
+    <LazyRouteFrame label="today">
+      <LazyTodayRoute />
+    </LazyRouteFrame>
+  ),
+});
+
 const achievementsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/franchise/achievements',
@@ -2049,6 +2083,7 @@ const ROUTE_IMPLEMENTATIONS = [
   newsRoute, newsroomRoute, recordsRoute, statCentralRoute, standingsRoute, analyticsRoute,
   powerRankingsRoute, leaguePulseRoute, scenarioRoute, legacyRoute, namedGamesRoute, bloodlinesRoute, awardsRoute, dynastyRoute, gmCareerRoute, scrapbookRoute, hallOfFameDirectoryRoute, trophyRoomRoute, eraHallRoute,
   mvpPlaqueWallRoute, playoffLoreDirectoryRoute, dynastyChronicleRoute, achievementsRoute, weatherForecastRoute, superBowlRoute, playerDevRoute, mentorsRoute, aboutRoute, creditsRoute, faqRoute, settingsRoute,
+  todayRoute,
 ] as const;
 
 /** Route components remain colocated with their screens, while the canonical
@@ -2059,7 +2094,7 @@ const getRouteImplementationPath = (implementation: (typeof ROUTE_IMPLEMENTATION
 const routeImplementationByPath = new Map(
   ROUTE_IMPLEMENTATIONS.map((implementation) => [getRouteImplementationPath(implementation), implementation] as const),
 );
-const CONTEXTUAL_ROUTE_PATHS = new Set(['/player/$playerId', '/player/$playerId/timeline']);
+const CONTEXTUAL_ROUTE_PATHS = new Set(['/player/$playerId', '/player/$playerId/timeline', '/today']);
 const canonicalRouteObjects = APP_ROUTE_REGISTRY.map((definition) => {
   const implementation = routeImplementationByPath.get(definition.path);
   if (!implementation) throw new Error(`Missing route implementation for ${definition.path}`);
@@ -2151,7 +2186,18 @@ function PostSetupApp() {
   return (
     <ErrorBoundary>
       <RouterProvider router={router} />
-      {chipDockEnabled ? (
+      {/**
+        * The legacy Chip dock is a sibling of the router, so it renders on
+        * every route. On `/today` that would put 193px of sticky clearance and
+        * a 91–246px fixed panel on top of a shell whose entire LAY-06 budget
+        * is 152px — the audit's own finding about permanent Chip clearance,
+        * reproduced inside the thing built to fix it.
+        *
+        * WP-08 replaces this with a Chip fed by the task ledger. Until then the
+        * new shell suppresses the legacy dock on its own route. No canonical
+        * route is affected: `/today` is not in `APP_ROUTE_REGISTRY`.
+        */}
+      {chipDockEnabled && chipDockRoute !== '/today' ? (
         <ChipDock
           currentWeek={chipDockWeek}
           currentSeason={chipDockSeason}
