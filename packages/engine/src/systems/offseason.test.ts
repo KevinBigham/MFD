@@ -949,6 +949,13 @@ describe('offseason systems', () => {
           pickId: null,
           description: userReceiver.name,
         },
+        {
+          type: 'pick',
+          teamId: 'user',
+          playerId: null,
+          pickId: 'user-2027-2-2-user',
+          description: 'Round 2 pick',
+        },
       ],
       receive: [
         {
@@ -957,13 +964,6 @@ describe('offseason systems', () => {
           playerId: aiCorner.id,
           pickId: null,
           description: aiCorner.name,
-        },
-        {
-          type: 'pick',
-          teamId: 'ai1',
-          playerId: null,
-          pickId: 'ai1-2027-2-2-ai1',
-          description: 'Round 2 pick',
         },
       ],
     };

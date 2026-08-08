@@ -19,6 +19,8 @@ export function buildG4MultiYearTrustCommand(env = process.env, platform = proce
     env: {
       ...env,
       VITE_CHIP_ENABLED: env.VITE_CHIP_ENABLED ?? 'true',
+      G4_SOAK_LOG: env.G4_SOAK_LOG ?? '1',
+      G4_TARGET_SEASONS: env.G4_TARGET_SEASONS ?? '3',
     },
   };
 }

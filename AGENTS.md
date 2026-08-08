@@ -45,3 +45,9 @@ Keep it concise.
 - Design system change: `pnpm --filter @mfd/design-system test`
 - Sim-touching change: also run `pnpm test:perft` or explain why it was not run.
 - This working copy pins `pnpm@9.15.9` in `package.json`.
+
+## Transaction & Integrity Rules
+
+- **Direct Negotiation Preflight**: `submitProposal` and `acceptCounterProposal` MUST run preflight validation (`validateTradeTransaction`) before economic value evaluation, counter generation, near-miss recording, or leg mutations.
+- **Store & UI False-Receipt Immunity**: UI handlers and store actions MUST check `result.ok === true` or `status === 'accepted'` before building action receipts, triggering audio cues, snapshotting for undo, or committing. `null`, `undefined`, or `ok: false` must surface error messages (`role="alert"`) without mutating state.
+- **Execution Fuzzing & Conservation**: Trade engine fuzz tests MUST execute full state transformations and assert exact total player/pick identity set conservation, canonical team mapping (`game.players[id].teamId`), global roster/pick uniqueness, and clone-on-write state preservation on failure.

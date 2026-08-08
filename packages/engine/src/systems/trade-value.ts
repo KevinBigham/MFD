@@ -1,5 +1,6 @@
 import { getSalaryCap } from '../config';
 import { getAgeCurve } from './player-archetypes';
+import { conditionalPickExpectedValue } from './conditional-picks';
 import type {
   DraftPick,
   GameState,
@@ -99,12 +100,7 @@ function resolvePickValue(game: GameState, asset: TradeOfferAsset): number {
   if (asset.type === 'conditional_pick' && asset.conditionalPickId) {
     const conditionalPick = game.conditionalPicks.find((entry) => entry.id === asset.conditionalPickId);
     if (!conditionalPick) return 0;
-    const baseValue = calcPickValue(conditionalPick.basePick);
-    const upgradedValue = calcPickValue({
-      round: Math.min(conditionalPick.basePick.round, conditionalPick.condition.upgradeRound),
-      pick: conditionalPick.basePick.pick,
-    });
-    return (baseValue + upgradedValue) / 2;
+    return conditionalPickExpectedValue(conditionalPick, game);
   }
 
   const pick = game.teams[asset.teamId]?.draftPicks.find((entry) =>
@@ -132,7 +128,17 @@ export function calcPlayerValue(game: GameState, player: Player, acquiringTeam: 
   const positionMultiplier = POSITION_VALUE_MULTIPLIER[player.pos] ?? 1;
   const capPenalty = capAwareness(game, player);
   const philosophy = teamPhilosophy(acquiringTeam);
-  const raw = baseValue * ageMultiplier * contractMultiplier * devMultiplier * positionMultiplier * capPenalty;
+  let raw = baseValue * ageMultiplier * contractMultiplier * devMultiplier * positionMultiplier * capPenalty;
+
+  // Franchise QB protection: Young elite QBs (<= 27 yo, >= 82 OVR) carry a premium
+  if (player.pos === 'QB' && player.age <= 27 && player.ovr >= 82) {
+    raw *= 1.75;
+  }
+
+  // Aging veteran penalty for rebuilding / fire sale acquiring teams
+  if ((acquiringTeam.gmStrategy === 'rebuild' || philosophy === 'rebuild' || philosophy === 'fire_sale') && player.age >= 30) {
+    raw *= player.age >= 33 ? 0.35 : 0.50;
+  }
 
   if (acquiringTeam.gmStrategy === 'contend' && player.age <= 27 && player.ovr >= 80) {
     return raw * 1.05;
@@ -168,7 +174,7 @@ export function evaluateTradeOffer(
 } {
   const philosophy = teamPhilosophy(team);
   const plan = team.isUser ? undefined : game.franchisePlans?.[team.id];
-  const incomingValue = incomingAssets.reduce((sum, asset) => {
+  const rawIncomingValue = incomingAssets.reduce((sum, asset) => {
     if (asset.type === 'player' && asset.playerId) {
       const player = game.players[asset.playerId];
       return sum + (player ? calcPlayerValue(game, player, team) : 0);
@@ -176,6 +182,12 @@ export function evaluateTradeOffer(
     const pickValue = resolvePickValue(game, asset);
     return sum + ((team.gmStrategy === 'rebuild' || philosophy === 'rebuild' || philosophy === 'fire_sale') ? pickValue * 1.12 : pickValue);
   }, 0);
+
+  // Package size diminishing returns penalty for packages with > 2 assets
+  const packageSizePenalty = incomingAssets.length > 2
+    ? 1 / (1 + 0.12 * (incomingAssets.length - 2))
+    : 1;
+  const incomingValue = rawIncomingValue * packageSizePenalty;
 
   const outgoingValue = outgoingAssets.reduce((sum, asset) => {
     if (asset.type === 'player' && asset.playerId) {
@@ -199,6 +211,16 @@ export function evaluateTradeOffer(
     return sum + resolvePickValue(game, asset);
   }, 0);
 
+  // Primary asset floor: for high-value targets (outgoingValue >= 500), at least 1 asset must reach >= 40% of outgoing value
+  const maxSingleIncomingValue = incomingAssets.reduce((maxVal, asset) => {
+    if (asset.type === 'player' && asset.playerId) {
+      const p = game.players[asset.playerId];
+      return Math.max(maxVal, p ? calcPlayerValue(game, p, team) : 0);
+    }
+    return Math.max(maxVal, resolvePickValue(game, asset));
+  }, 0);
+  const satisfiesPrimaryAssetFloor = outgoingValue < 500 || maxSingleIncomingValue >= outgoingValue * 0.40;
+
   const baseThreshold = philosophy === 'fire_sale'
     ? 0.82
     : philosophy === 'rebuild'
@@ -209,8 +231,10 @@ export function evaluateTradeOffer(
   const planRiskMultiplier = plan ? 1.08 - plan.riskTolerance / 500 : 1;
   const threshold = Math.max(0.6, Math.min(1.5, baseThreshold * difficultyMultiplier * planRiskMultiplier));
 
+  const accepted = satisfiesPrimaryAssetFloor && incomingValue >= outgoingValue * threshold;
+
   return {
-    accepted: incomingValue >= outgoingValue * threshold,
+    accepted,
     incomingValue,
     outgoingValue,
     threshold,

@@ -27,12 +27,15 @@ import {
   DYNASTY_SIDECAR_STORE_LABELS,
   exportDynastySidecarArchiveJson,
   importDynastySidecarArchiveJson,
+  mergeDynastySidecarArchiveJson,
   parseDynastySidecarArchiveJson,
+  planDynastySidecarMerge,
   readDynastySidecarArchivePayload,
   summarizeDynastySidecarArchive,
   type DynastySidecarArchiveImportResult,
   type DynastySidecarArchivePayload,
   type DynastySidecarArchiveSummary,
+  type DynastySidecarMergePlan,
 } from '../../lib/dynasty-sidecar-archive';
 import { importCombinedBackupAtomically } from '../../lib/combined-import-journal';
 import {
@@ -122,8 +125,10 @@ interface PendingCombinedImport {
 }
 
 interface PendingSidecarImport {
+  raw: string;
   payload: DynastySidecarArchivePayload;
   summary: DynastySidecarArchiveSummary;
+  selectedDynastyIds: string[];
 }
 
 function sidecarStoreList(stores: DynastySidecarArchiveSummary['missingStores']): string {
@@ -145,13 +150,26 @@ export function DynastyImportPreview({
   confirmLabel,
   onConfirm,
   onCancel,
+  selectedDynastyIds,
+  onToggleDynasty,
+  onSelectAllDynasties,
+  onDeselectAllDynasties,
+  mergePlan,
+  onFullReplacement,
 }: {
   title: string;
   summary: DynastySidecarArchiveSummary;
   confirmLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
+  selectedDynastyIds?: string[];
+  onToggleDynasty?: (dynastyId: string) => void;
+  onSelectAllDynasties?: () => void;
+  onDeselectAllDynasties?: () => void;
+  mergePlan?: DynastySidecarMergePlan | null;
+  onFullReplacement?: () => void;
 }) {
+  const isSelectiveMode = Boolean(selectedDynastyIds && onToggleDynasty);
   const missingStoreCopy = summary.missingStores.length > 0
     ? `${sidecarStoreList(summary.missingStores)} missing; existing local data for missing stores will not be replaced.`
     : 'All sidecar stores are present in this backup.';
@@ -165,6 +183,51 @@ export function DynastyImportPreview({
           <PixelMetricCard label="Scrapbook" value={summary.scrapbookEntries} accent="green" detail={`${summary.pendingPlayoffLoreCards} pending lore`} />
           <PixelMetricCard label="Rivalries" value={summary.rivalryRecords} accent="red" detail={`${summary.rivalryTeams} teams`} />
         </div>
+
+        {isSelectiveMode && summary.dynastyIds.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px', background: 'var(--mfd-bg)', border: '2px solid var(--mfd-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ ...monoSm, color: '#fff', fontWeight: 700 }}>Select Dynasties to Restore:</span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {onSelectAllDynasties ? (
+                  <PixelButton type="button" accent="default" onClick={onSelectAllDynasties}>Select All</PixelButton>
+                ) : null}
+                {onDeselectAllDynasties ? (
+                  <PixelButton type="button" accent="default" onClick={onDeselectAllDynasties}>Deselect All</PixelButton>
+                ) : null}
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {summary.dynastyIds.map((dynastyId) => {
+                const isSelected = selectedDynastyIds?.includes(dynastyId) ?? false;
+                const statusInfo = mergePlan?.dynastyStatuses.find((s) => s.dynastyId === dynastyId);
+                return (
+                  <div key={dynastyId} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="checkbox"
+                      id={`dynasty-checkbox-${dynastyId}`}
+                      checked={isSelected}
+                      onChange={() => onToggleDynasty?.(dynastyId)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <label htmlFor={`dynasty-checkbox-${dynastyId}`} style={{ ...monoSm, color: '#fff', fontWeight: 600, cursor: 'pointer', flexGrow: 1 }}>
+                      {dynastyId}
+                    </label>
+                    {statusInfo ? (
+                      <PixelBadge variant={statusInfo.status === 'overwrite' ? 'gold' : 'green'}>
+                        {statusInfo.status === 'overwrite' ? 'OVERWRITE' : 'NEW'}
+                      </PixelBadge>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', fontSize: '11px' }}>
+              Unselected local dynasties are preserved. Selective mode does not modify rivalry heat.
+            </span>
+          </div>
+        ) : null}
+
         <span
           role={summary.missingStores.length > 0 ? 'alert' : 'status'}
           aria-live={summary.missingStores.length > 0 ? 'assertive' : 'polite'}
@@ -173,11 +236,23 @@ export function DynastyImportPreview({
           {missingStoreCopy}
         </span>
         <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
-          Confirming replaces only the sidecar stores carried by this archive. Previewing does not autosave, load a dynasty, or overwrite browser-local history.
+          {isSelectiveMode
+            ? 'Selective restore merges selected dynasties while preserving all unselected local dynasties.'
+            : 'Confirming replaces only the sidecar stores carried by this archive. Previewing does not autosave, load a dynasty, or overwrite browser-local history.'}
         </span>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <PixelButton type="button" accent="default" onClick={onCancel}>Cancel Import</PixelButton>
-          <PixelButton type="button" accent="green" onClick={onConfirm}>{confirmLabel}</PixelButton>
+          {onFullReplacement ? (
+            <PixelButton type="button" accent="red" onClick={onFullReplacement}>Replace Entire Sidecar Archive</PixelButton>
+          ) : null}
+          <PixelButton
+            type="button"
+            accent="green"
+            disabled={isSelectiveMode && (selectedDynastyIds?.length === 0 || (Boolean(mergePlan) && !mergePlan?.canApply))}
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </PixelButton>
         </div>
       </div>
     </PixelPanel>
@@ -448,6 +523,8 @@ export function DynastyCartridge() {
     setTransientStatus('Complete dynasty sidecar archive downloaded');
   }, [setTransientStatus]);
 
+  const [showWholesaleConfirm, setShowWholesaleConfirm] = useState(false);
+
   const stageSidecarImport = useCallback((raw: string) => {
     setSidecarImportError(null);
     setPendingSidecarImport(null);
@@ -458,10 +535,37 @@ export function DynastyCartridge() {
     }
 
     setPendingSidecarImport({
+      raw,
       payload: result.payload,
       summary: result.summary,
+      selectedDynastyIds: [...result.summary.dynastyIds],
     });
   }, []);
+
+  const handleToggleDynasty = useCallback((dynastyId: string) => {
+    setPendingSidecarImport((current) => {
+      if (!current) return null;
+      const exists = current.selectedDynastyIds.includes(dynastyId);
+      const selectedDynastyIds = exists
+        ? current.selectedDynastyIds.filter((id) => id !== dynastyId)
+        : [...current.selectedDynastyIds, dynastyId];
+      return { ...current, selectedDynastyIds };
+    });
+  }, []);
+
+  const handleSelectAllDynasties = useCallback(() => {
+    setPendingSidecarImport((current) => (current ? { ...current, selectedDynastyIds: [...current.summary.dynastyIds] } : null));
+  }, []);
+
+  const handleDeselectAllDynasties = useCallback(() => {
+    setPendingSidecarImport((current) => (current ? { ...current, selectedDynastyIds: [] } : null));
+  }, []);
+
+  const sidecarMergePlan = useMemo(() => {
+    if (!pendingSidecarImport) return null;
+    const localPayload = readDynastySidecarArchivePayload();
+    return planDynastySidecarMerge(localPayload, pendingSidecarImport.payload, pendingSidecarImport.selectedDynastyIds);
+  }, [pendingSidecarImport, sidecarRevision]);
 
   const handleImportSidecars = useCallback(() => {
     if (!sidecarImportText.trim()) return;
@@ -471,9 +575,23 @@ export function DynastyCartridge() {
   const confirmSidecarImport = useCallback(() => {
     if (!pendingSidecarImport) return;
     setSidecarImportError(null);
-    const result: SuccessfulSidecarImport | { ok: false; reason: string } = importDynastySidecarArchiveJson(
-      exportDynastySidecarArchiveJson(pendingSidecarImport.payload),
-    );
+    const result = mergeDynastySidecarArchiveJson(pendingSidecarImport.raw, pendingSidecarImport.selectedDynastyIds);
+    if (!result.ok) {
+      setSidecarImportError(result.reason);
+      return;
+    }
+
+    setSidecarImportText('');
+    const count = pendingSidecarImport.selectedDynastyIds.length;
+    setPendingSidecarImport(null);
+    setSidecarRevision((current) => current + 1);
+    setTransientStatus(`Imported sidecars for ${count} dynasties (unselected local dynasties preserved)`);
+  }, [pendingSidecarImport, setTransientStatus]);
+
+  const confirmWholesaleSidecarImport = useCallback(() => {
+    if (!pendingSidecarImport) return;
+    setSidecarImportError(null);
+    const result = importDynastySidecarArchiveJson(pendingSidecarImport.raw);
     if (!result.ok) {
       setSidecarImportError(result.reason);
       return;
@@ -481,8 +599,9 @@ export function DynastyCartridge() {
 
     setSidecarImportText('');
     setPendingSidecarImport(null);
+    setShowWholesaleConfirm(false);
     setSidecarRevision((current) => current + 1);
-    setTransientStatus(`Imported sidecars for ${result.summary.dynasties} dynasties`);
+    setTransientStatus(`Replaced entire sidecar archive (${result.summary.dynasties} dynasties)`);
   }, [pendingSidecarImport, setTransientStatus]);
 
   const slotSummary = useMemo(() => slots.map((slot) => ({
@@ -551,7 +670,7 @@ export function DynastyCartridge() {
         </PixelPanel>
       ) : null}
 
-      <div data-spotlight-target="chip.route.dynasty-save-load.beat-1">
+      <div data-spotlight-target="chip.route.dynasty-save-load.beat-1" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <PixelPanel title="Portable Backup" accent="green">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>
@@ -686,10 +805,49 @@ export function DynastyCartridge() {
             <DynastyImportPreview
               title="Sidecar Archive Import Preview"
               summary={pendingSidecarImport.summary}
-              confirmLabel="Confirm Sidecar Import"
+              confirmLabel="Import Selected Dynasty Sidecars"
               onConfirm={confirmSidecarImport}
-              onCancel={() => setPendingSidecarImport(null)}
+              onCancel={() => {
+                setPendingSidecarImport(null);
+                setShowWholesaleConfirm(false);
+              }}
+              selectedDynastyIds={pendingSidecarImport.selectedDynastyIds}
+              onToggleDynasty={handleToggleDynasty}
+              onSelectAllDynasties={handleSelectAllDynasties}
+              onDeselectAllDynasties={handleDeselectAllDynasties}
+              mergePlan={sidecarMergePlan}
+              onFullReplacement={() => setShowWholesaleConfirm(true)}
             />
+          ) : null}
+          {showWholesaleConfirm && pendingSidecarImport ? (
+            <div
+              role="dialog"
+              aria-label="Confirm Wholesale Sidecar Archive Replacement"
+              style={{
+                padding: '16px',
+                background: 'var(--mfd-bg-2)',
+                border: '3px solid var(--mfd-red)',
+                borderRadius: 'var(--mfd-rad-lg)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+              }}
+            >
+              <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '11px', color: 'var(--mfd-red)' }}>
+                REPLACE ENTIRE SIDECAR ARCHIVE
+              </span>
+              <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>
+                WARNING: This action will replace your ENTIRE browser-local sidecar archive with this backup ({pendingSidecarImport.summary.dynasties} dynasties). All existing local Hall of Fame entries, Scrapbook cards, Rookie of the Year records, roster continuity snapshots, GM career stats, and derived rivalry heat across ALL local dynasties will be completely overwritten. Unselected local dynasties will NOT be preserved.
+              </span>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <PixelButton type="button" accent="default" onClick={() => setShowWholesaleConfirm(false)}>
+                  Cancel Wholesale Replacement
+                </PixelButton>
+                <PixelButton type="button" accent="red" onClick={confirmWholesaleSidecarImport}>
+                  Confirm Destructive Wholesale Replacement
+                </PixelButton>
+              </div>
+            </div>
           ) : null}
           <PixelButton type="button" accent="gold" disabled={!sidecarImportText.trim()} onClick={handleImportSidecars}>
             Preview Sidecar Archive

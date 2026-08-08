@@ -8,6 +8,7 @@ import { getScenarioConstraints } from './scenario-challenge';
 import { conditionalPickExpectedValue } from './conditional-picks';
 import { syncTeamCapTotals } from './team-cap';
 import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
+import { validateTradeTransaction } from './trade-validator';
 import type { ConditionalPick, DraftPick, GameState, Player, Team, TradeOfferAsset, TradeProposal } from '../types';
 
 function proposalId(game: GameState): string {
@@ -237,10 +238,10 @@ function transferConditionalPick(game: GameState, asset: TradeOfferAsset, toTeam
   );
 
   const movedPick = index === -1 ? null : fromTeam.draftPicks.splice(index, 1)[0] ?? null;
-  if (movedPick) {
-    movedPick.currentTeamId = toTeamId;
-    toTeam.draftPicks.push(movedPick);
-  }
+  if (!movedPick) return;
+
+  movedPick.currentTeamId = toTeamId;
+  toTeam.draftPicks.push(movedPick);
 
   conditionalPick.toTeamId = toTeamId;
   conditionalPick.basePick.currentTeamId = toTeamId;
@@ -255,7 +256,19 @@ function applyAsset(game: GameState, asset: TradeOfferAsset, toTeamId: string): 
   else transferPick(game, asset, toTeamId);
 }
 
-function executeProposal(game: GameState, proposal: TradeProposal): void {
+function executeProposal(game: GameState, proposal: TradeProposal): boolean {
+  const preflight = validateTradeTransaction(game, {
+    fromTeamId: proposal.fromTeamId,
+    toTeamId: proposal.toTeamId,
+    assetsFromFromTeam: proposal.offering,
+    assetsFromToTeam: proposal.requesting,
+  });
+  if (!preflight.ok) {
+    proposal.status = 'rejected';
+    proposal.aiResponse = 'Trade failed: Stale or invalid assets in package.';
+    return false;
+  }
+
   for (const asset of proposal.offering) applyAsset(game, asset, proposal.toTeamId);
   for (const asset of proposal.requesting) applyAsset(game, asset, proposal.fromTeamId);
 
@@ -281,6 +294,7 @@ function executeProposal(game: GameState, proposal: TradeProposal): void {
     playerIds: [...proposal.offering, ...proposal.requesting].flatMap((asset) => asset.playerId ? [asset.playerId] : []),
     importance: 'breaking',
   });
+  return true;
 }
 
 export function getTradeableAssets(game: GameState, teamId: string): TradeOfferAsset[] {
@@ -302,7 +316,14 @@ export function getTradeableAssets(game: GameState, teamId: string): TradeOfferA
     }))
     .sort((a, b) => b.value - a.value || a.asset.description.localeCompare(b.asset.description))
     .map((entry) => entry.asset);
-  const conditionalPickAssets = availableExtraConditionalPicks(game, teamId, new Set());
+  const conditionalPickAssets = (game.conditionalPicks ?? [])
+    .filter((pick) => pick.toTeamId === teamId && !pick.resolved)
+    .map((pick) => ({
+      asset: conditionalPickAsset(teamId, pick),
+      value: conditionalPickExpectedValue(pick),
+    }))
+    .sort((a, b) => b.value - a.value || a.asset.description.localeCompare(b.asset.description))
+    .map((entry) => entry.asset);
 
   return [...playerAssets, ...pickAssets, ...conditionalPickAssets];
 }
@@ -410,12 +431,31 @@ export function submitProposal(
   if (!aiTeam) {
     throw new Error(`Trade partner ${proposal.toTeamId} not found.`);
   }
+
+  const preflight = validateTradeTransaction(game, {
+    fromTeamId: proposal.fromTeamId,
+    toTeamId: proposal.toTeamId,
+    assetsFromFromTeam: proposal.offering,
+    assetsFromToTeam: proposal.requesting,
+  });
+  if (!preflight.ok) {
+    proposal.status = 'rejected';
+    proposal.aiResponse = `Trade rejected due to stale or invalid assets in package (${preflight.issues.map((i) => i.message).join('; ')})`;
+    proposal.counterOffer = null;
+    return { proposal, nextState: game };
+  }
+
   const evaluation = evaluateTradeOffer(game, aiTeam, proposal.offering, proposal.requesting);
   if (evaluation.accepted) {
-    proposal.status = 'accepted';
-    proposal.aiResponse = 'Accepted. We can get this through the league office.';
-    proposal.counterOffer = null;
-    executeProposal(game, proposal);
+    const executed = executeProposal(game, proposal);
+    if (executed) {
+      proposal.status = 'accepted';
+      proposal.aiResponse = 'Accepted. We can get this through the league office.';
+      proposal.counterOffer = null;
+    } else {
+      proposal.status = 'rejected';
+      proposal.aiResponse = 'Trade rejected due to stale or invalid assets in package.';
+    }
     return { proposal, nextState: game };
   }
 
@@ -445,12 +485,30 @@ export function acceptCounterProposal(game: GameState, proposalIdValue: string):
   if (!proposal?.counterOffer) {
     throw new Error(`Trade proposal ${proposalIdValue} has no counter offer.`);
   }
-  proposal.status = 'accepted';
-  proposal.aiResponse = proposal.counterOffer.aiResponse;
+
+  const preflight = validateTradeTransaction(game, {
+    fromTeamId: proposal.fromTeamId,
+    toTeamId: proposal.toTeamId,
+    assetsFromFromTeam: proposal.counterOffer.offering,
+    assetsFromToTeam: proposal.counterOffer.requesting,
+  });
+  if (!preflight.ok) {
+    proposal.status = 'rejected';
+    proposal.aiResponse = `Trade rejected due to stale or invalid assets in counter offer (${preflight.issues.map((i) => i.message).join('; ')})`;
+    return proposal;
+  }
+
   proposal.offering = proposal.counterOffer.offering;
   proposal.requesting = proposal.counterOffer.requesting;
   proposal.valueDiff = proposal.counterOffer.valueDiff;
-  executeProposal(game, proposal);
+  const executed = executeProposal(game, proposal);
+  if (executed) {
+    proposal.status = 'accepted';
+    proposal.aiResponse = proposal.counterOffer.aiResponse;
+  } else {
+    proposal.status = 'rejected';
+    proposal.aiResponse = 'Trade rejected due to stale or invalid assets in package.';
+  }
   return proposal;
 }
 

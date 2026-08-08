@@ -192,6 +192,7 @@ export function TradeDeadline() {
     rejectDeadlineOffer,
   } = useGameStore((state) => state.actions);
   const [pending, setPending] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [actionReceipt, setActionReceipt] = useState<TradeDeadlineActionReceipt | null>(null);
 
   const handleAction = async (key: string, run: () => Promise<void>) => {
@@ -207,7 +208,12 @@ export function TradeDeadline() {
   const handleAcceptOffer = async (offer: { id: string; summary: string; send: Array<{ description?: string }>; receive: Array<{ description?: string }> }) => {
     await handleAction(offer.id, async () => {
       if (tradesLockedByScenario) return;
-      await acceptDeadlineOffer(offer.id);
+      setError(null);
+      const result = await acceptDeadlineOffer(offer.id);
+      if (!result || !result.ok) {
+        setError(result?.reason ?? 'Deadline trade offer could not be accepted.');
+        return;
+      }
       setActionReceipt(buildTradeDeadlineActionReceipt({
         action: 'accept_offer',
         offerId: offer.id,
@@ -308,6 +314,25 @@ export function TradeDeadline() {
       </div>
 
       <DeadlineSourcesPanel active />
+
+      {error ? (
+        <div
+          role="alert"
+          aria-live="assertive"
+          style={{
+            padding: '12px 16px',
+            background: 'rgba(248, 113, 113, 0.12)',
+            border: '2px solid var(--mfd-red)',
+            borderRadius: 'var(--mfd-rad-md)',
+            color: 'var(--mfd-red)',
+            fontFamily: 'var(--mfd-font-mono)',
+            fontSize: '12px',
+            lineHeight: 1.5,
+          }}
+        >
+          {error}
+        </div>
+      ) : null}
 
       {actionReceipt ? <TradeDeadlineActionReceiptPanel receipt={actionReceipt} /> : null}
 

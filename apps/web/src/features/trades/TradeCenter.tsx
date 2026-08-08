@@ -712,7 +712,12 @@ export function TradeCenter() {
 
   const handleAcceptOffer = async (offer: TradeOffer, forecast?: TradeDecisionForecast | null) => {
     await handleAction(`${offer.id}-accept`, async () => {
-      await acceptTradeOffer(offer.id);
+      setError(null);
+      const result = await acceptTradeOffer(offer.id);
+      if (!result || !result.ok) {
+        setError(result?.reason ?? 'Trade offer could not be accepted.');
+        return;
+      }
       setActionReceipt(buildTradeCenterActionReceipt({
         action: 'accept_offer',
         id: offer.id,
@@ -727,6 +732,7 @@ export function TradeCenter() {
   const handleSubmitProposal = async () => {
     if (!userTeam || !selectedTarget) return;
     await handleAction('submit-proposal', async () => {
+      setError(null);
       const proposal = await createTradeProposal(userTeam.id, selectedTarget.teamId, selectedOffering, selectedRequesting);
       if (!proposal) return;
       setActiveProposalId(proposal.id);
@@ -754,6 +760,7 @@ export function TradeCenter() {
     if (!proposal.counterOffer) return;
     const counter = proposal.counterOffer;
     await handleAction(`reject-counter-${proposal.id}`, async () => {
+      setError(null);
       await rejectCounter(proposal.id);
       setActionReceipt(buildTradeCenterActionReceipt({
         action: 'reject_counter',
@@ -770,7 +777,12 @@ export function TradeCenter() {
     const counter = proposal.counterOffer;
     await handleAction(`accept-counter-${proposal.id}`, async () => {
       if (tradesLockedByScenario) return;
-      await acceptCounter(proposal.id);
+      setError(null);
+      const resolved = await acceptCounter(proposal.id);
+      if (!resolved || resolved.status !== 'accepted') {
+        setError(resolved?.aiResponse || 'Counter offer could not be accepted.');
+        return;
+      }
       setActionReceipt(buildTradeCenterActionReceipt({
         action: 'accept_counter',
         id: proposal.id,

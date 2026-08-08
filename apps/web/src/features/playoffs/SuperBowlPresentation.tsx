@@ -201,7 +201,14 @@ export function SuperBowlPresentationView({
             The Super Bowl has not yet been played. Advance through the playoffs to see the championship presentation.
           </div>
         </PixelPanel>
-        <SuperBowlSourcesPanel />
+        <details>
+          <summary style={{ ...monoSm, color: 'var(--mfd-text-dim)', cursor: 'pointer' }}>
+            How this presentation was generated
+          </summary>
+          <div style={{ marginTop: '8px' }}>
+            <SuperBowlSourcesPanel />
+          </div>
+        </details>
       </div>
     );
   }
@@ -209,7 +216,6 @@ export function SuperBowlPresentationView({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <MatchupCard context={context} />
-      <SuperBowlSourcesPanel />
       {narrative && (
         <PixelPanel title="Championship Recap" accent="gold">
           <div style={{ ...monoSm, color: '#ccc', padding: '12px', lineHeight: 1.6 }}>
@@ -232,6 +238,14 @@ export function SuperBowlPresentationView({
         </PixelPanel>
       ) : null}
       {parade && <ParadeCard parade={parade} />}
+      <details>
+        <summary style={{ ...monoSm, color: 'var(--mfd-text-dim)', cursor: 'pointer' }}>
+          How this presentation was generated
+        </summary>
+        <div style={{ marginTop: '8px' }}>
+          <SuperBowlSourcesPanel />
+        </div>
+      </details>
     </div>
   );
 }

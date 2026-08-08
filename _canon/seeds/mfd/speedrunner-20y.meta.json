@@ -6,13 +6,13 @@
   "updateReason": "Master-plan item 5.5 intentionally replaces mutable global RNG channel consumption with an explicit SimulationContext and isolated week RNG passed through the canonical game, injury, off-field, waiver, and offseason chain. The regenerated corpus records the resulting deterministic sequence after the full engine suite, five-persona 10-season certification, GOAT release sentinel, save round-trip, and explicit-context isolation checks passed with zero high-severity anomalies, zero healthy-starter shortage game-weeks, and complete CPU transaction receipt coverage.",
   "schemaVersion": 37,
   "engineCommit": "unknown",
-  "generatedAt": "2026-07-22T02:20:25.980Z",
-  "generationCommand": "pnpm test:shadow -- --update",
+  "generatedAt": "2026-08-08T14:27:42.611Z",
+  "generationCommand": "pnpm test:shadow -- --update speedrunner-20y",
   "persona": "SPEEDRUNNER",
   "seed": 42,
   "seasonsRequested": 20,
   "seasonsCompleted": 20,
   "weeksAdvanced": 593,
-  "anomalyCount": 504,
+  "anomalyCount": 515,
   "highSeverityCount": 0
 }

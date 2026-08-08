@@ -65,4 +65,20 @@ describe('CeremonyViewer', () => {
     expect(markup).toContain('does not write ceremonies');
     expect(markup).toContain('MVP SPOTLIGHT');
   });
+
+  it('places ceremony sources inside a collapsed details element below highlights', () => {
+    const markup = renderToStaticMarkup(
+      <CeremonyViewer ceremony={makeCeremony()} open onOpenChange={vi.fn()} />,
+    );
+
+    const highlightsIndex = markup.indexOf('HIGHLIGHTS');
+    const detailsSummaryIndex = markup.indexOf('How this ceremony was generated');
+    const sourcesIndex = markup.indexOf('CEREMONY SOURCES');
+
+    expect(highlightsIndex).toBeGreaterThan(-1);
+    expect(detailsSummaryIndex).toBeGreaterThan(-1);
+    expect(sourcesIndex).toBeGreaterThan(-1);
+    expect(highlightsIndex).toBeLessThan(detailsSummaryIndex);
+    expect(detailsSummaryIndex).toBeLessThan(sourcesIndex);
+  });
 });

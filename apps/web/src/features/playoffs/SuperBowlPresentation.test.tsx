@@ -195,4 +195,33 @@ describe('SuperBowlPresentationView', () => {
     expect(markup).toContain('Opening this route does not write playoff brackets');
     expect(markup).toContain('simulation outcomes');
   });
+
+  it('places technical sources in a collapsed details section at the bottom', () => {
+    const markup = renderToStaticMarkup(
+      <SuperBowlPresentationView
+        context={{
+          number: 'LVIII',
+          matchup: 'Team A vs Team B',
+          venue: 'Apex Dome',
+          storylines: [],
+        }}
+        halftimeShow={null}
+        mvp={null}
+        parade={null}
+        championName="Team A"
+        narrative="Super Bowl recap text"
+        awardSpeech={null}
+      />,
+    );
+
+    const recapIndex = markup.indexOf('CHAMPIONSHIP RECAP');
+    const sourcesIndex = markup.indexOf('SUPER BOWL SOURCES');
+    const detailsIndex = markup.indexOf('How this presentation was generated');
+
+    expect(recapIndex).toBeGreaterThan(-1);
+    expect(sourcesIndex).toBeGreaterThan(-1);
+    expect(detailsIndex).toBeGreaterThan(-1);
+    expect(recapIndex).toBeLessThan(sourcesIndex);
+    expect(detailsIndex).toBeLessThan(sourcesIndex);
+  });
 });
