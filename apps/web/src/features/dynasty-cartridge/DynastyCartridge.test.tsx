@@ -161,6 +161,56 @@ describe('DynastyCartridge', () => {
     expect(markup).toContain('Confirm Combined Import');
   });
 
+  it('renders per-dynasty selective checkboxes, NEW/OVERWRITE badges, and zero-selection lockout', () => {
+    const markup = renderToStaticMarkup(
+      <DynastyImportPreview
+        title="Selective Sidecar Import Preview"
+        confirmLabel="Import Selected Dynasty Sidecars"
+        summary={{
+          dynasties: 2,
+          hallOfFameInductees: 1,
+          scrapbookEntries: 2,
+          pendingPlayoffLoreCards: 0,
+          rookieOfYearEntries: 1,
+          rosterContinuityDynasties: 1,
+          careerMetaDynasties: 2,
+          rivalryTeams: 0,
+          rivalryRecords: 0,
+          dynastyIds: ['dynasty-new', 'dynasty-existing'],
+          includedStores: ['hallOfFame', 'scrapbook'],
+          missingStores: [],
+        }}
+        mergePlan={{
+          incomingDynastyIds: ['dynasty-new', 'dynasty-existing'],
+          selectedDynastyIds: ['dynasty-new', 'dynasty-existing'],
+          unknownSelectedDynastyIds: [],
+          canApply: true,
+          dynastyStatuses: [
+            { dynastyId: 'dynasty-new', status: 'new', hasIncomingHallOfFame: true, hasIncomingScrapbook: true, hasIncomingRookieOfYear: false, hasIncomingRosterContinuity: false, hasIncomingCareerMeta: true },
+            { dynastyId: 'dynasty-existing', status: 'overwrite', hasIncomingHallOfFame: true, hasIncomingScrapbook: true, hasIncomingRookieOfYear: false, hasIncomingRosterContinuity: false, hasIncomingCareerMeta: true },
+          ],
+          totalAddedDynasties: 1,
+          totalOverwrittenDynasties: 1,
+        }}
+        selectedDynastyIds={['dynasty-new', 'dynasty-existing']}
+        onToggleDynasty={() => undefined}
+        onSelectAllDynasties={() => undefined}
+        onDeselectAllDynasties={() => undefined}
+        onConfirm={() => undefined}
+        onCancel={() => undefined}
+        onFullReplacement={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain('SELECTIVE SIDECAR IMPORT PREVIEW');
+    expect(markup).toContain('NEW');
+    expect(markup).toContain('OVERWRITE');
+    expect(markup).toContain('Select All');
+    expect(markup).toContain('Deselect All');
+    expect(markup).toContain('Replace Entire Sidecar Archive');
+    expect(markup).toContain('Unselected local dynasties are preserved.');
+  });
+
   it('points blocked clipboard exports to the download fallback', () => {
     expect(portableCopyFallbackMessage('CHI_S2026_W5.mfd')).toBe(
       'Clipboard blocked. Use Advanced: Download .mfd for CHI_S2026_W5.mfd.',

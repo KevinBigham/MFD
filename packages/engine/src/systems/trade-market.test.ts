@@ -32,7 +32,7 @@ function makeOffer(game: GameState): {
   const aiTeam = game.teams.afce2;
   const userPlayer = userTeam.roster.find((player) => player.pos === 'WR')!;
   const aiPlayer = aiTeam.roster.find((player) => player.pos === 'CB')!;
-  const pick = addPick(game, aiTeam.id, 2, 10);
+  const pick = addPick(game, userTeam.id, 2, 10);
   game.offseasonState ??= initializeOffseasonState(game);
 
   const offer: TradeOffer = {
@@ -42,13 +42,22 @@ function makeOffer(game: GameState): {
     direction: 'inbound',
     summary: `${aiTeam.city} offers help in the secondary.`,
     status: 'pending',
-    send: [{
-      type: 'player',
-      teamId: userTeam.id,
-      playerId: userPlayer.id,
-      pickId: null,
-      description: userPlayer.name,
-    }],
+    send: [
+      {
+        type: 'player',
+        teamId: userTeam.id,
+        playerId: userPlayer.id,
+        pickId: null,
+        description: userPlayer.name,
+      },
+      {
+        type: 'pick',
+        teamId: userTeam.id,
+        playerId: null,
+        pickId: `${userTeam.id}-${pick.year}-${pick.round}-${pick.pick}-${pick.originalTeamId}`,
+        description: 'Round 2 pick',
+      },
+    ],
     receive: [
       {
         type: 'player',
@@ -56,13 +65,6 @@ function makeOffer(game: GameState): {
         playerId: aiPlayer.id,
         pickId: null,
         description: aiPlayer.name,
-      },
-      {
-        type: 'pick',
-        teamId: aiTeam.id,
-        playerId: null,
-        pickId: `${aiTeam.id}-${pick.year}-${pick.round}-${pick.pick}-${pick.originalTeamId}`,
-        description: `Round ${pick.round} pick`,
       },
     ],
   };
@@ -213,7 +215,7 @@ describe('trade-market direct coverage', () => {
 
     expect(result.nextState.teams.afce1.roster.some((player) => player.id === aiPlayerId)).toBe(true);
     expect(result.nextState.teams.afce2.roster.some((player) => player.id === userPlayerId)).toBe(true);
-    expect(result.nextState.teams.afce1.draftPicks.some((entry) =>
+    expect(result.nextState.teams.afce2.draftPicks.some((entry) =>
       entry.year === pick.year && entry.round === pick.round && entry.pick === pick.pick,
     )).toBe(true);
     expect(result.nextState.teams.afce1.txLog).toHaveLength(1);

@@ -12,6 +12,7 @@ import { appendToSocialFeed, generateTransactionPosts } from './social-feed';
 import { getActiveRule } from './league-rules';
 import { syncTeamCapTotals } from './team-cap';
 import { calcPickValue, calcPlayerValue, evaluateTradeOffer } from './trade-value';
+import { validateTradeTransaction, type TradeExecutionResult } from './trade-validator';
 import type { DraftPick, EngineOutput, GameState, Player, Team, TradeOffer, TradeOfferAsset } from '../types';
 
 function cloneGame(game: GameState): GameState {
@@ -84,10 +85,10 @@ function transferConditionalPick(game: GameState, asset: TradeOfferAsset, toTeam
   );
 
   const actualPick = index === -1 ? null : fromTeam.draftPicks.splice(index, 1)[0] ?? null;
-  if (actualPick) {
-    actualPick.currentTeamId = toTeamId;
-    toTeam.draftPicks.push(actualPick);
-  }
+  if (!actualPick) return;
+
+  actualPick.currentTeamId = toTeamId;
+  toTeam.draftPicks.push(actualPick);
 
   conditionalPick.toTeamId = toTeamId;
   conditionalPick.basePick.currentTeamId = toTeamId;
@@ -404,19 +405,38 @@ export function generateTradeOffers(game: GameState): TradeOffer[] {
   return offers.slice(0, 6);
 }
 
-export function acceptTradeOffer(game: GameState, offerId: string): EngineOutput {
+export function acceptTradeOffer(game: GameState, offerId: string): TradeExecutionResult {
   const nextState = cloneGame(game);
   if (getScenarioConstraints(nextState)?.blockTrades) {
-    return { nextState, events: [], consequences: [] };
+    return { ok: false, nextState: cloneGame(game), events: [], consequences: [], reason: 'Scenario constraints block trade activity.' };
   }
   if (isTradeWindowClosed(nextState)) {
-    return { nextState, events: [], consequences: [] };
+    return { ok: false, nextState: cloneGame(game), events: [], consequences: [], reason: 'The trade deadline has passed.' };
   }
   const offer = nextState.offseasonState?.tradeOffers.find((entry) => entry.id === offerId);
-  if (!offer) return { nextState, events: [], consequences: [] };
+  if (!offer) {
+    return { ok: false, nextState: cloneGame(game), events: [], consequences: [], reason: `Trade offer ${offerId} not found.` };
+  }
 
-  for (const asset of offer.send) applyAsset(nextState, asset, offer.fromTeamId);
+  const preflight = validateTradeTransaction(nextState, {
+    fromTeamId: offer.fromTeamId,
+    toTeamId: offer.toTeamId,
+    assetsFromFromTeam: offer.receive,
+    assetsFromToTeam: offer.send,
+  });
+  if (!preflight.ok) {
+    return {
+      ok: false,
+      nextState: cloneGame(game),
+      events: [],
+      consequences: [],
+      reason: `Trade validation failed: ${preflight.issues.map((i) => i.message).join('; ')}`,
+      issues: preflight.issues,
+    };
+  }
+
   for (const asset of offer.receive) applyAsset(nextState, asset, offer.toTeamId);
+  for (const asset of offer.send) applyAsset(nextState, asset, offer.fromTeamId);
   const fromTeam = nextState.teams[offer.fromTeamId];
   const toTeam = nextState.teams[offer.toTeamId];
   if (fromTeam) syncTeamCapTotals(nextState, fromTeam);
@@ -475,7 +495,7 @@ export function acceptTradeOffer(game: GameState, offerId: string): EngineOutput
     }, socialRng));
   }
 
-  return { nextState, events: [], consequences: [] };
+  return { ok: true, nextState, events: [], consequences: [] };
 }
 
 export function rejectTradeOffer(game: GameState, offerId: string): EngineOutput {

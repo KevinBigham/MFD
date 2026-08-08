@@ -130,18 +130,18 @@ export function CeremonyViewer({
             </PixelPanel>
           ) : null}
 
-          <CeremonySourcesPanel ceremony={ceremony} />
-
           <PixelPanel title="Highlights" accent={accent === 'default' ? 'cyan' : accent}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {ceremony.highlights.map((highlight) => (
-                <div key={`${ceremony.id}-${highlight.label}`} style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                  paddingLeft: '10px',
-                  borderLeft: accent === 'gold' ? '3px solid var(--mfd-gold)' : accent === 'green' ? '3px solid var(--mfd-green)' : '3px solid var(--mfd-cyan)',
-                }}
+                <div
+                  key={`${ceremony.id}-${highlight.label}`}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    paddingLeft: '10px',
+                    borderLeft: accent === 'gold' ? '3px solid var(--mfd-gold)' : accent === 'green' ? '3px solid var(--mfd-green)' : '3px solid var(--mfd-cyan)',
+                  }}
                 >
                   <div style={{ ...pixelSm, color: '#fff' }}>{highlight.label.toUpperCase()}</div>
                   <div style={{ ...monoSm, color: '#bbb', lineHeight: 1.6 }}>{highlight.value}</div>
@@ -149,6 +149,15 @@ export function CeremonyViewer({
               ))}
             </div>
           </PixelPanel>
+
+          <details style={{ marginTop: '4px' }}>
+            <summary style={{ ...monoSm, color: 'var(--mfd-text-dim)', cursor: 'pointer' }}>
+              How this ceremony was generated
+            </summary>
+            <div style={{ marginTop: '8px' }}>
+              <CeremonySourcesPanel ceremony={ceremony} />
+            </div>
+          </details>
         </div>
       ) : null}
     </PixelModal>

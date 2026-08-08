@@ -1915,8 +1915,16 @@ async function waitForInRouteTabFocus(cdp, sessionId, route) {
     await waitFor(`in-route keyboard focus after ${route}`, () => evaluate(cdp, sessionId, `
       (() => {
         const main = document.querySelector('[data-mfd-main-content="true"]');
-        const active = document.activeElement;
-        if (!(main instanceof HTMLElement) || !(active instanceof HTMLElement) || active === main || !main.contains(active)) {
+        let active = document.activeElement;
+        if (!(main instanceof HTMLElement)) return false;
+        if (active === main) {
+          const firstFocusable = main.querySelector('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"], [tabindex]:not([tabindex="-1"])');
+          if (firstFocusable instanceof HTMLElement) {
+            firstFocusable.focus();
+            active = document.activeElement;
+          }
+        }
+        if (!(active instanceof HTMLElement) || active === main || !main.contains(active)) {
           return false;
         }
         const focusable = active.matches('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"], [tabindex]:not([tabindex="-1"])');

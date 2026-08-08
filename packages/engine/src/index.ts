@@ -1102,6 +1102,16 @@ export {
   rejectTradeOffer,
 } from './systems/trade-market';
 export {
+  validateTradeTransaction,
+  getTradeAssetKey,
+} from './systems/trade-validator';
+export type {
+  TradeTransactionInput,
+  TradeValidationResult,
+  TradeValidationIssue,
+  TradeExecutionResult,
+} from './systems/trade-validator';
+export {
   calcPlayerValue,
   calcPickValue,
   evaluateTradeOffer,

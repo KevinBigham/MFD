@@ -27,7 +27,21 @@ function playerAsset(teamId: string, playerId: string, description = playerId): 
   };
 }
 
-function pickAsset(teamId: string, year: number, round: number, pick: number): TradeOfferAsset {
+function pickAsset(game: GameState, teamId: string, year: number, round: number, pick: number): TradeOfferAsset {
+  const team = game.teams[teamId];
+  if (team) {
+    const existing = team.draftPicks.find((p) => p.year === year && p.round === round && p.pick === pick && p.currentTeamId === teamId);
+    if (!existing) {
+      team.draftPicks.push({
+        currentTeamId: teamId,
+        originalTeamId: teamId,
+        year,
+        round,
+        pick,
+        isCompPick: false,
+      });
+    }
+  }
   return {
     type: 'pick',
     teamId,
@@ -70,7 +84,7 @@ describe('trade negotiation', () => {
       game,
       'afce1',
       'afce2',
-      [pickAsset('afce1', game.year, 1, 3)],
+      [pickAsset(game, 'afce1', game.year, 1, 3)],
       [playerAsset('afce2', fairPlayer.id, fairPlayer.name)],
     );
 
@@ -87,7 +101,7 @@ describe('trade negotiation', () => {
       game,
       'afce1',
       'afce2',
-      [pickAsset('afce1', game.year, 7, 32)],
+      [pickAsset(game, 'afce1', game.year, 7, 32)],
       [playerAsset('afce2', elitePlayer.id, elitePlayer.name)],
     );
 
@@ -109,7 +123,7 @@ describe('trade negotiation', () => {
       game,
       'afce1',
       'afce2',
-      [pickAsset('afce1', game.year, 3, 12)],
+      [pickAsset(game, 'afce1', game.year, 3, 12)],
       [playerAsset('afce2', target.id, target.name)],
     );
 
@@ -145,7 +159,7 @@ describe('trade negotiation', () => {
       normalized,
       'afce1',
       'afce2',
-      [pickAsset('afce1', game.year, 3, 12)],
+      [pickAsset(normalized, 'afce1', game.year, 3, 12)],
       [playerAsset('afce2', normalizedTarget.id, normalizedTarget.name)],
     );
 
@@ -258,7 +272,7 @@ describe('trade negotiation', () => {
       game,
       userTeam.id,
       partner.id,
-      [pickAsset(userTeam.id, game.year, 1, 4)],
+      [pickAsset(game, userTeam.id, game.year, 1, 4)],
       [conditionalPickAsset(partner.id, 'cond-accepted', 'Austin conditional third')],
     );
 
@@ -314,7 +328,7 @@ describe('trade negotiation', () => {
       game,
       'afce1',
       'afce2',
-      [pickAsset('afce1', game.year, 2, 20)],
+      [pickAsset(game, 'afce1', game.year, 2, 20)],
       [playerAsset('afce2', target.id, target.name)],
     );
 
@@ -372,12 +386,12 @@ describe('trade negotiation', () => {
       base,
       'afce1',
       'afce2',
-      [pickAsset('afce1', base.year, 2, 20)],
+      [pickAsset(base, 'afce1', base.year, 2, 20)],
       [playerAsset('afce2', target.id, target.name)],
     );
     proposal.counterOffer = {
       ...proposal,
-      offering: [pickAsset('afce1', base.year, 1, 3)],
+      offering: [pickAsset(base, 'afce1', base.year, 1, 3)],
       status: 'countered',
       aiResponse: 'We need another premium pick.',
       valueDiff: 0.8,
@@ -389,7 +403,7 @@ describe('trade negotiation', () => {
       game,
       'afce1',
       'afce2',
-      [pickAsset('afce1', game.year, 3, 12)],
+      [pickAsset(game, 'afce1', game.year, 3, 12)],
       [playerAsset('afce2', target.id, target.name)],
     )).toThrow(/scenario constraints/i);
     expect(() => submitProposal(game, proposal.id, () => 0.3)).toThrow(/scenario constraints/i);

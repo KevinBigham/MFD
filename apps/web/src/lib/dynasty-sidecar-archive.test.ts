@@ -3,7 +3,10 @@ import {
   DYNASTY_SIDECAR_ARCHIVE_KIND,
   exportDynastySidecarArchiveJson,
   importDynastySidecarArchiveJson,
+  mergeDynastySidecarArchiveJson,
+  mergeDynastySidecarPayloads,
   parseDynastySidecarArchiveJson,
+  planDynastySidecarMerge,
   readDynastySidecarArchivePayload,
   summarizeDynastySidecarArchive,
   type DynastySidecarArchivePayload,
@@ -411,5 +414,194 @@ describe('dynasty-sidecar-archive', () => {
 
     expect(summary.dynasties).toBe(2);
     expect(summary.rosterContinuityDynasties).toBe(1);
+  });
+
+  describe('selective per-dynasty sidecar restore', () => {
+    it('restores only selected dynasty from archive while preserving unselected local dynasty', () => {
+      // Seed local storage with Dynasty A and Dynasty B
+      importDynastySidecarArchiveJson(exportDynastySidecarArchiveJson(makePayload('dynasty-a')));
+      const payloadB = makePayload('dynasty-b');
+      // Append Dynasty B
+      const localCombined: DynastySidecarArchivePayload = {
+        schemaVersion: 1,
+        sidecars: {
+          hallOfFame: {
+            schemaVersion: 1,
+            dynastiesById: {
+              ...readHallOfFameArchive().dynastiesById,
+              ...payloadB.sidecars.hallOfFame.dynastiesById,
+            },
+          },
+          scrapbook: {
+            schemaVersion: 2,
+            entriesByDynastyId: {
+              ...readScrapbookStore().entriesByDynastyId,
+              ...payloadB.sidecars.scrapbook.entriesByDynastyId,
+            },
+            pendingPlayoffLoreByDynastyId: {
+              ...readScrapbookStore().pendingPlayoffLoreByDynastyId,
+              ...payloadB.sidecars.scrapbook.pendingPlayoffLoreByDynastyId,
+            },
+          },
+          rookieOfYear: {
+            schemaVersion: 1,
+            byDynastyId: {
+              ...readRookieOfYearStore().byDynastyId,
+              ...payloadB.sidecars.rookieOfYear.byDynastyId,
+            },
+          },
+          rosterContinuity: {
+            schemaVersion: 1,
+            byDynastyId: {
+              ...readRosterContinuity().byDynastyId,
+              ...payloadB.sidecars.rosterContinuity.byDynastyId,
+            },
+          },
+          careerMeta: {
+            schemaVersion: 1,
+            dynasties: [...readCareerMeta().dynasties, ...payloadB.sidecars.careerMeta.dynasties],
+            careerTotals: readCareerMeta().careerTotals,
+          },
+          rivalries: loadRivalries(),
+        },
+      };
+      importDynastySidecarArchiveJson(exportDynastySidecarArchiveJson(localCombined));
+
+      const beforeA = readHallOfFameArchive().dynastiesById['dynasty-a'];
+      const beforeB = readHallOfFameArchive().dynastiesById['dynasty-b'];
+      expect(beforeA).toBeDefined();
+      expect(beforeB).toBeDefined();
+
+      // Incoming archive contains updated Dynasty A and new Dynasty C
+      const incomingA = makePayload('dynasty-a');
+      incomingA.sidecars.hallOfFame.dynastiesById['dynasty-a']!.entries[0]!.name = 'Jay Stone Updated';
+      const incomingC = makePayload('dynasty-c');
+      const incomingPayload: DynastySidecarArchivePayload = {
+        schemaVersion: 1,
+        sidecars: {
+          hallOfFame: {
+            schemaVersion: 1,
+            dynastiesById: {
+              ...incomingA.sidecars.hallOfFame.dynastiesById,
+              ...incomingC.sidecars.hallOfFame.dynastiesById,
+            },
+          },
+          scrapbook: {
+            schemaVersion: 2,
+            entriesByDynastyId: {
+              ...incomingA.sidecars.scrapbook.entriesByDynastyId,
+              ...incomingC.sidecars.scrapbook.entriesByDynastyId,
+            },
+            pendingPlayoffLoreByDynastyId: {
+              ...incomingA.sidecars.scrapbook.pendingPlayoffLoreByDynastyId,
+              ...incomingC.sidecars.scrapbook.pendingPlayoffLoreByDynastyId,
+            },
+          },
+          rookieOfYear: {
+            schemaVersion: 1,
+            byDynastyId: {
+              ...incomingA.sidecars.rookieOfYear.byDynastyId,
+              ...incomingC.sidecars.rookieOfYear.byDynastyId,
+            },
+          },
+          rosterContinuity: {
+            schemaVersion: 1,
+            byDynastyId: {
+              ...incomingA.sidecars.rosterContinuity.byDynastyId,
+              ...incomingC.sidecars.rosterContinuity.byDynastyId,
+            },
+          },
+          careerMeta: {
+            schemaVersion: 1,
+            dynasties: [...incomingA.sidecars.careerMeta.dynasties, ...incomingC.sidecars.careerMeta.dynasties],
+            careerTotals: incomingA.sidecars.careerMeta.careerTotals,
+          },
+        },
+      };
+
+      // Perform selective merge selecting ONLY dynasty-a
+      const result = mergeDynastySidecarArchiveJson(exportDynastySidecarArchiveJson(incomingPayload), ['dynasty-a']);
+      expect(result.ok).toBe(true);
+
+      const afterHof = readHallOfFameArchive().dynastiesById;
+      expect(afterHof['dynasty-a']?.entries[0]?.name).toBe('Jay Stone Updated');
+      expect(afterHof['dynasty-b']).toEqual(beforeB); // Deeply equal unselected local dynasty!
+      expect(afterHof['dynasty-c']).toBeUndefined(); // Dynasty C not selected
+    });
+
+    it('selective merge never modifies local rivalry storage', () => {
+      const initialPayload = makePayload('dynasty-a');
+      initialPayload.sidecars.rivalries = {
+        schemaVersion: 1,
+        generatedAt: 10,
+        teams: {
+          'team-x': [{
+            opponentId: 'team-y',
+            intensity: 50,
+            dramaTags: [],
+            lastMatchup: null,
+            headToHeadRecent: { wins: 5, losses: 2, ties: 0 },
+          }],
+        },
+      };
+      importDynastySidecarArchiveJson(exportDynastySidecarArchiveJson(initialPayload));
+      const rivalryBefore = loadRivalries();
+
+      const incomingPayload = makePayload('dynasty-b');
+      incomingPayload.sidecars.rivalries = {
+        schemaVersion: 1,
+        generatedAt: 99,
+        teams: {
+          'team-x': [{
+            opponentId: 'team-y',
+            intensity: 99,
+            dramaTags: [],
+            lastMatchup: null,
+            headToHeadRecent: { wins: 99, losses: 99, ties: 0 },
+          }],
+        },
+      };
+
+      mergeDynastySidecarArchiveJson(exportDynastySidecarArchiveJson(incomingPayload), ['dynasty-b']);
+
+      const rivalryAfter = loadRivalries();
+      expect(rivalryAfter).toEqual(rivalryBefore);
+    });
+
+    it('rejects selection of unknown dynasty ID without mutating storage', () => {
+      importDynastySidecarArchiveJson(exportDynastySidecarArchiveJson(makePayload('dynasty-a')));
+      const before = readDynastySidecarArchivePayload();
+
+      const incomingPayload = makePayload('dynasty-b');
+      const result = mergeDynastySidecarArchiveJson(exportDynastySidecarArchiveJson(incomingPayload), ['unknown-dynasty-id']);
+
+      expect(result.ok).toBe(false);
+      expect((result as { ok: false; reason: string }).reason).toContain('Unknown selected dynasty IDs');
+      expect(readDynastySidecarArchivePayload()).toEqual(before);
+    });
+
+    it('rejects empty selection without mutating storage', () => {
+      importDynastySidecarArchiveJson(exportDynastySidecarArchiveJson(makePayload('dynasty-a')));
+      const before = readDynastySidecarArchivePayload();
+
+      const incomingPayload = makePayload('dynasty-b');
+      const result = mergeDynastySidecarArchiveJson(exportDynastySidecarArchiveJson(incomingPayload), []);
+
+      expect(result.ok).toBe(false);
+      expect((result as { ok: false; reason: string }).reason).toBe('No dynasties selected for selective sidecar import.');
+      expect(readDynastySidecarArchivePayload()).toEqual(before);
+    });
+
+    it('recomputes career totals from merged dynasty summaries', () => {
+      importDynastySidecarArchiveJson(exportDynastySidecarArchiveJson(makePayload('dynasty-a')));
+
+      const incomingB = makePayload('dynasty-b');
+      mergeDynastySidecarArchiveJson(exportDynastySidecarArchiveJson(incomingB), ['dynasty-b']);
+
+      const career = readCareerMeta();
+      expect(career.dynasties).toHaveLength(2);
+      expect(career.careerTotals.dynasties).toBe(2);
+      expect(career.careerTotals.wins).toBe(career.dynasties.reduce((sum, d) => sum + d.wins, 0));
+    });
   });
 });

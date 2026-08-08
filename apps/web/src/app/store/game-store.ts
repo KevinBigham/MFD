@@ -41,6 +41,7 @@ import type {
   Team,
   TradeOfferAsset,
   TradeProposal,
+  TradeExecutionResult,
   TrainingFocus,
   WeeklyPrepPlan,
   WeeklySummary,
@@ -305,7 +306,7 @@ interface GameActions {
   resolveHalftimeDecision: (choice: 'stick' | 'switch' | 'gamble') => Promise<WeeklySummary | null>;
   watchBroadcast: (gameId: string) => void;
   advanceDeadlineClock: (minutes: number) => Promise<void>;
-  acceptDeadlineOffer: (offerId: string) => Promise<void>;
+  acceptDeadlineOffer: (offerId: string) => Promise<TradeExecutionResult | null>;
   rejectDeadlineOffer: (offerId: string) => Promise<void>;
   finalizeDeadline: () => Promise<void>;
 
@@ -338,7 +339,7 @@ interface GameActions {
   advanceCBANegotiation: () => Promise<void>;
   upgradeFacility: (teamId: string, facilityType: 'training_complex' | 'medical_center' | 'film_room' | 'weight_room' | 'recovery_suite') => Promise<void>;
   hireMedicalStaff: (teamId: string, staffId: string) => Promise<void>;
-  acceptTradeOffer: (offerId: string) => Promise<void>;
+  acceptTradeOffer: (offerId: string) => Promise<TradeExecutionResult | null>;
   rejectTradeOffer: (offerId: string) => Promise<void>;
   createTradeProposal: (
     fromTeamId: string,
@@ -1617,15 +1618,18 @@ export const useGameStore = create<GameStore>()(
       acceptDeadlineOffer: async (offerId) => {
         const current = get().game;
         const deadlineState = current?.tradeDeadlineState;
-        if (!current || !deadlineState) return;
-        if (getScenarioConstraints(current)?.blockTrades) return;
+        if (!current || !deadlineState) return null;
+        if (getScenarioConstraints(current)?.blockTrades) return null;
         const pendingOffer = deadlineState.pendingOffers.find((offer) => offer.id === offerId);
-        if (!pendingOffer) return;
+        if (!pendingOffer) return null;
 
         const stagedGame = cloneForMutation(current);
         stagedGame.offseasonState = initializeOffseasonState(stagedGame);
         stagedGame.offseasonState.tradeOffers = [...deadlineState.pendingOffers];
         const result = acceptTradeOfferEngine(stagedGame, offerId);
+        if (!result.ok) {
+          return result;
+        }
 
         if (result.nextState.tradeDeadlineState) {
           result.nextState.tradeDeadlineState.pendingOffers = deadlineState.pendingOffers.filter((offer) => offer.id !== offerId);
@@ -1641,6 +1645,7 @@ export const useGameStore = create<GameStore>()(
           requestedAsset: AUDIO_ASSETS.tradeAccepted,
         });
         await commitGame(result.nextState);
+        return result;
       },
 
       rejectDeadlineOffer: async (offerId) => {
@@ -2295,16 +2300,22 @@ export const useGameStore = create<GameStore>()(
 
       acceptTradeOffer: async (offerId) => {
         const current = get().game;
-        if (!current) return;
-        if (getScenarioConstraints(current)?.blockTrades) return;
-        snapshotForUndo('Accept Trade');
+        if (!current) return null;
+        if (getScenarioConstraints(current)?.blockTrades) return null;
+
         const result = acceptTradeOfferEngine(current, offerId);
+        if (!result.ok) {
+          return result;
+        }
+
+        snapshotForUndo('Accept Trade');
         appendAudioCue(result.nextState, 'trade_complete', 'high', {
           source: 'trade-center',
           offerId,
           requestedAsset: AUDIO_ASSETS.tradeAccepted,
         });
         await commitGame(result.nextState);
+        return result;
       },
 
       rejectTradeOffer: async (offerId) => {

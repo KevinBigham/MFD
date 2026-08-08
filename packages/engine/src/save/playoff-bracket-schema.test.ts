@@ -10,9 +10,8 @@ import { PlayoffBracketSchema } from './schema';
  * (systems/playoff-bracket.ts) build seeds via toSeed and matchups via
  * createMatchup — both emit exactly the typed shapes — and advance only
  * fills winnerTeamId/result. All golden fixtures carry
- * playoffBracket: null, so strict strip is lossless. matchup.result stays
- * z.any() for now: that payload is typed by island 1's GameResultSchema
- * and gets wired here in a one-line follow-up once that island lands.
+ * playoffBracket: null, so strict strip is lossless. matchup.result is
+ * typed by GameResultSchema.nullable().
  */
 
 const seed = {
@@ -58,7 +57,20 @@ describe('PlayoffBracketSchema (island 6: typed GameState.playoffBracket)', () =
   it('round-trips a completed bracket (winners filled, champion crowned)', () => {
     const completed = {
       ...bracket,
-      matchups: [{ ...matchup, winnerTeamId: 'afc2', result: { homeTeamId: 'afc2', awayTeamId: 'afc7', homeScore: 27, awayScore: 20 } }],
+      matchups: [{
+        ...matchup,
+        winnerTeamId: 'afc2',
+        result: {
+          id: 'game-19-afc2-afc7',
+          homeTeamId: 'afc2',
+          awayTeamId: 'afc7',
+          homeScore: 27,
+          awayScore: 20,
+          week: 19,
+          year: 2029,
+          stats: {},
+        },
+      }],
       championTeamId: 'afc2',
     };
     const parsed = PlayoffBracketSchema.safeParse(completed);
@@ -66,6 +78,7 @@ describe('PlayoffBracketSchema (island 6: typed GameState.playoffBracket)', () =
     if (parsed.success) {
       expect(parsed.data.championTeamId).toBe('afc2');
       expect(parsed.data.matchups[0]?.winnerTeamId).toBe('afc2');
+      expect(parsed.data.matchups[0]?.result?.homeScore).toBe(27);
     }
   });
 
@@ -80,7 +93,7 @@ describe('PlayoffBracketSchema (island 6: typed GameState.playoffBracket)', () =
     }
   });
 
-  it('rejects malformed brackets loudly instead of passing them through as any', () => {
+  it('rejects malformed bracket results (e.g. invalid score or missing required GameResult fields)', () => {
     expect(PlayoffBracketSchema.safeParse({ season: 2029 }).success).toBe(false);
     expect(
       PlayoffBracketSchema.safeParse({ ...bracket, matchups: [{ ...matchup, round: 'quarterfinal' }] }).success,
@@ -90,6 +103,12 @@ describe('PlayoffBracketSchema (island 6: typed GameState.playoffBracket)', () =
     ).toBe(false);
     expect(
       PlayoffBracketSchema.safeParse({ ...bracket, matchups: [{ ...matchup, conference: 'AFC East' }] }).success,
+    ).toBe(false);
+    expect(
+      PlayoffBracketSchema.safeParse({
+        ...bracket,
+        matchups: [{ ...matchup, result: { homeScore: 'NOT_A_NUMBER' } }],
+      }).success,
     ).toBe(false);
   });
 

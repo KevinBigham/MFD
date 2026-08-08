@@ -2096,8 +2096,7 @@ export const ScheduleWeekSchema = z.object({
 // toSeed and createMatchup emit exactly these shapes, and advance only fills
 // winnerTeamId/result. All golden fixtures carry playoffBracket: null, so
 // strict strip is lossless. matchup.result is a GameResult payload — it is
-// typed by island 1's GameResultSchema (PR #82); wire it here in a one-line
-// follow-up once that island lands, rather than stacking this patch on it.
+// validated with GameResultSchema.nullable().
 export const PlayoffSeedSchema = z.object({
   seed: z.number(),
   teamId: z.string(),
@@ -2118,7 +2117,7 @@ export const PlayoffMatchupSchema = z.object({
   homeTeamId: z.string(),
   awayTeamId: z.string(),
   winnerTeamId: z.string().nullable(),
-  result: z.any().nullable(),
+  result: GameResultSchema.nullable(),
 });
 
 export const PlayoffBracketSchema = z.object({
