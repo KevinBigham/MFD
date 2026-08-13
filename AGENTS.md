@@ -1,53 +1,115 @@
-# Codex Operating Notes for Mr. Football Dynasty
+# AGENTS.md — Mr. Football Dynasty (MFD)
 
-Read `CODEX_GAME_GUIDE.md` before making code changes. This working copy is at:
+Single source of truth for ALL coding agents (Claude, Codex, Cursor,
+Copilot, anyone). Claude Code additionally reads CLAUDE.md, which
+adds a thin Claude-only layer on top of this file. If any other
+document contradicts this file, this file wins — flag the conflict
+to Kevin instead of guessing.
 
-`/Users/tkevinbigham/MFD/MFD-main`
+TypeScript pnpm monorepo for a browser football franchise sim.
+Repo: github.com/KevinBigham/MFD · Live: kevinbigham.github.io/MFD/
+Working copy on Kevin's Mac: /Users/kevin/Projects/MFD-main
+Pinned toolchain: pnpm@9.15.9 (package.json "packageManager").
+
+## Map
+
+- apps/web — React 19 app (Vite dev server, port 5173)
+- packages/engine — pure deterministic sim. No I/O, no Date.now(),
+  no Math.random().
+- packages/content, packages/design-system
+- scripts/ — CI gates & tooling · _canon/seeds — canonical seed data
+- docs/audits · docs/release · docs/sprint-logs · docs/verification
+
+## Prime Laws
+
+1. DETERMINISM. Same seed + same inputs → same outcomes. All
+   randomness flows through packages/engine/src/rng/index.ts
+   (named channels). Math.random() is banned — enforced by
+   scripts/check-math-random.sh (sole exception: synth-sounds.ts).
+2. SAVE SCHEMA. SAVE_VERSION = 37
+   (packages/engine/src/config/difficulty.ts:93) — confirm the
+   local value before any save work. Any persistent GameState
+   change requires ALL of: type update, Zod schema, migration,
+   seed default, old-save tests — and is a Kevin gate.
+3. NO SILENT MATH CHANGES. Constants, probabilities, and formulas
+   change only with before/after formula, sample outputs, and a
+   sanity range check in the packet.
+
+## Landmines
+
+- NEVER modify, move, or delete: CODEX_GAME_GUIDE.md,
+  CODEX_IMPROVEMENT_PLAN.md, CODEX_GOAT_MARATHON_PROMPT.md.
+  save-version-drift.test.ts (lines 63–65) hard-reads them; the
+  engine suite breaks without them. Reading/grepping is fine.
+- NEVER read wholesale (context bombs) — grep the sections
+  relevant to your task instead: STATUS.md (41k lines),
+  RELEASE_CONVERGENCE.md, CODEX_GAME_GUIDE.md (730KB),
+  CODEX_IMPROVEMENT_PLAN.md, CODEX_GOAT_MARATHON_PROMPT.md.
+  (This replaces the old "read CODEX_GAME_GUIDE.md before making
+  code changes" rule — grepping the relevant sections IS the
+  required pre-read.)
+- The legacy mr-football-dynasty game.js monolith is RETIRED.
+  There is no game.js, no legacy copy, no three-file delivery in
+  this repo. If any instruction mentions them, stop and tell Kevin.
 
 ## Default Mode
 
-- Ship small, low-risk changes.
-- Preserve existing patterns unless they are clearly broken.
-- Do not invent product requirements. If ambiguous, make the smallest safe assumption and state it.
-- Keep simulation math deterministic and testable.
-- Do not add heavy dependencies unless explicitly requested.
+- Ship small, low-risk changes. Preserve existing patterns unless
+  they are clearly broken.
+- Do not invent product requirements. If ambiguous, make the
+  smallest safe assumption and state it.
+- No heavy dependencies unless explicitly requested.
+- Response shape, kept concise: Understanding · Plan · Patch ·
+  Verification · Risks/Rollback.
 
-## Required Response Shape
+## Commands
 
-Every response should include:
+- pnpm dev | build | test | test:engine | lint | typecheck
+- pnpm playtest · playtest:all · test:perft (sim-touching work)
+- pnpm test:shadow — shadow regression
+- node scripts/release-gate.mjs --list | --dry-run | --only <ids>
+  (full run ≈ 90+ min — CI's job; never run full locally unasked)
+- bash scripts/check-math-random.sh
 
-1. Understanding
-2. Plan
-3. Patch
-4. Verification
-5. Risks / Rollback
+## Verification defaults
 
-Keep it concise.
+- engine → pnpm test:engine (≡ pnpm --filter @mfd/engine test)
+- web → pnpm --filter @mfd/web test
+- design-system → pnpm --filter @mfd/design-system test
+- sim-touching → also pnpm test:perft, or state why not.
 
-## Simulation Rules
+## How work arrives
 
-- Same seed plus same inputs must produce same outcomes.
-- All simulation randomness flows through `packages/engine/src/rng/index.ts`.
-- Do not use `Math.random()` in sim code.
-- Do not silently change constants, probabilities, or formulas.
-- If touching gameplay math, provide before/after formula, sample outputs, and a sanity range check.
+Work arrives as packets: CONTEXT / OBJECTIVE / CONSTRAINTS /
+VERIFICATION / DELIVERABLE / STOP CONDITIONS. No VERIFICATION
+section = not a packet — ask for one. The phase-packet skill
+(.claude/skills and .agents/skills — identical copies) generates
+one from the GOAT roadmap. The builder never grades its own work:
+get an independent review before requesting merge.
 
-## Save Rules
+## Kevin gates — STOP and ask
 
-- Current launch save schema version in the inspected MFD codebase is `SAVE_VERSION = 37`.
-- Confirm the local value in `packages/engine/src/config/difficulty.ts` before save work.
-- Persistent `GameState` changes require type update, Zod schema update, migration, seed default, and old-save tests.
+Schema/save-format changes · gameplay constants or formulas ·
+edits to CI jobs (test, determinism-gate, release-gate) or
+release-gate.mjs · deploys/prod · the three CODEX files ·
+scope or cost doubling mid-packet.
 
-## Verification Defaults
+## Handoff protocol (multi-computer)
 
-- Engine change: `pnpm --filter @mfd/engine test`
-- Web change: `pnpm --filter @mfd/web test`
-- Design system change: `pnpm --filter @mfd/design-system test`
-- Sim-touching change: also run `pnpm test:perft` or explain why it was not run.
-- This working copy pins `pnpm@9.15.9` in `package.json`.
+Kevin works from three computers; GitHub is the single source of
+truth and local clones are just keyboards.
 
-## Transaction & Integrity Rules
+- "pickup" → git pull, then report: current branch, last commit,
+  any uncommitted files found (if any exist, STOP and ask — they
+  may be from a crashed or forgotten session).
+- "handoff" → git status, commit ALL work-in-progress with a
+  wip(scope): message, pull --rebase, push, then confirm: branch,
+  commit hash, "clean — safe to switch computers."
+- Never leave work uncommitted or unpushed at session end.
+- Never work from a downloaded zip copy — ~/Projects/<repo> only.
 
-- **Direct Negotiation Preflight**: `submitProposal` and `acceptCounterProposal` MUST run preflight validation (`validateTradeTransaction`) before economic value evaluation, counter generation, near-miss recording, or leg mutations.
-- **Store & UI False-Receipt Immunity**: UI handlers and store actions MUST check `result.ok === true` or `status === 'accepted'` before building action receipts, triggering audio cues, snapshotting for undo, or committing. `null`, `undefined`, or `ok: false` must surface error messages (`role="alert"`) without mutating state.
-- **Execution Fuzzing & Conservation**: Trade engine fuzz tests MUST execute full state transformations and assert exact total player/pick identity set conservation, canonical team mapping (`game.players[id].teamId`), global roster/pick uniqueness, and clone-on-write state preservation on failure.
+## Projects HQ
+
+Machine-wide conventions and the working-with-Kevin guide live at
+~/Projects/AGENTS START HERE - Projects HQ/KEVIN.md — read it when
+present (it won't exist in CI or cloud checkouts; that's fine).
