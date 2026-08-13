@@ -19,7 +19,8 @@
     "playtest:all": "pnpm --filter @mfd/engine playtest:all",
     "test:perft": "pnpm --filter @mfd/engine playtest:all",
     "test:shadow": "bash scripts/shadow-regression.sh",
-    "ecology:cell": "bash scripts/playtest-report.sh"
+    "ecology:cell": "bash scripts/playtest-report.sh",
+    "lab:futures": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/counterfactual-futures.ts"
   },
   "engines": {
     "node": ">=24",
