@@ -680,6 +680,10 @@ export function DynastyCartridge() {
               Use Download Combined Backup when you want the current .mfd cartridge plus browser-local history in one file.
               Use Advanced .mfd actions only when you need the old current-save-only cartridge format.
             </span>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              One thing does not travel: exports intentionally strip generated broadcast commentary payloads from played games to keep backup files small.
+              Scores, stats, standings, records, and dynasty history all export normally.
+            </span>
           </div>
         </PixelPanel>
       </div>

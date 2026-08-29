@@ -157,7 +157,8 @@ describe('WatchListScreen', () => {
 
     expect(markup).toContain('WATCH LIST SOURCES');
     expect(markup).toContain('mfd.watchlist.v1');
-    expect(markup).toContain('browser-local and outside GameState cartridges');
+    expect(markup).toContain('browser-local convenience state by design');
+    expect(markup).toContain('not included in .mfd cartridges or Combined Backup exports');
     expect(markup).toContain('buildWatchListRows resolves pinned ids');
     expect(markup).toContain('offseasonState.scoutingWatchlist');
     expect(markup).toContain('faTargetBoard.watchlist');
