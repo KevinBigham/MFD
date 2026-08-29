@@ -1,0 +1,327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mfd.local/schemas/MFD_COUNCIL_PROPOSAL_SCHEMA.json",
+  "title": "MFD Council Proposal Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "packetVersion",
+    "briefFile",
+    "generatedAt",
+    "workingRoot",
+    "evidenceBasis",
+    "gapTriage",
+    "proposals"
+  ],
+  "properties": {
+    "packetVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "briefFile": {
+      "type": "string",
+      "const": "00_MFD_COUNCIL_SHARED_BRIEF.md"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date"
+    },
+    "workingRoot": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidenceBasis": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidenceItem"
+      }
+    },
+    "gapTriage": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "briefGap",
+          "currentStatus",
+          "basis",
+          "proposalIds"
+        ],
+        "properties": {
+          "briefGap": {
+            "type": "string",
+            "minLength": 1
+          },
+          "currentStatus": {
+            "type": "string",
+            "enum": ["open", "partially-mitigated", "superseded", "not-ranked-now"]
+          },
+          "basis": {
+            "type": "string",
+            "minLength": 1
+          },
+          "proposalIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "proposals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/proposal"
+      }
+    }
+  },
+  "$defs": {
+    "evidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "file",
+        "claim"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["brief", "audit", "current_ledger", "current_source", "current_test", "assumption"]
+        },
+        "file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lines": {
+          "type": "string"
+        },
+        "claim": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quotedSourceEvidence": {
+          "type": "string"
+        }
+      }
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "scoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "playerImpact",
+        "trustImprovement",
+        "intelligenceExplainability",
+        "consequenceStrength",
+        "dynastyMemoryCompounding",
+        "reuseOfExistingSystems",
+        "technicalFeasibility",
+        "deterministicTestability",
+        "saveMigrationSafety",
+        "cognitiveLoadEffect",
+        "total"
+      ],
+      "properties": {
+        "playerImpact": {
+          "$ref": "#/$defs/score"
+        },
+        "trustImprovement": {
+          "$ref": "#/$defs/score"
+        },
+        "intelligenceExplainability": {
+          "$ref": "#/$defs/score"
+        },
+        "consequenceStrength": {
+          "$ref": "#/$defs/score"
+        },
+        "dynastyMemoryCompounding": {
+          "$ref": "#/$defs/score"
+        },
+        "reuseOfExistingSystems": {
+          "$ref": "#/$defs/score"
+        },
+        "technicalFeasibility": {
+          "$ref": "#/$defs/score"
+        },
+        "deterministicTestability": {
+          "$ref": "#/$defs/score"
+        },
+        "saveMigrationSafety": {
+          "$ref": "#/$defs/score"
+        },
+        "cognitiveLoadEffect": {
+          "$ref": "#/$defs/score"
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "sliceDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "playerMomentOrCpuTrigger",
+        "decisionOrPolicy",
+        "stateRead",
+        "stateMutation",
+        "deterministicResolutionRules",
+        "immediateReceipt",
+        "laterCallback",
+        "saveAndMigrationImpact",
+        "existingRouteAndSystemIntegrations",
+        "tests",
+        "acceptanceMetrics",
+        "rollbackBoundary"
+      ],
+      "properties": {
+        "playerMomentOrCpuTrigger": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decisionOrPolicy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stateRead": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stateMutation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deterministicResolutionRules": {
+          "type": "string",
+          "minLength": 1
+        },
+        "immediateReceipt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "laterCallback": {
+          "type": "string",
+          "minLength": 1
+        },
+        "saveAndMigrationImpact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "existingRouteAndSystemIntegrations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "tests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "acceptanceMetrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "rollbackBoundary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "summary",
+        "briefAlignment",
+        "complexity",
+        "confidence",
+        "recommendedDisposition",
+        "scoring",
+        "evidence",
+        "assumptions",
+        "falsificationEvidence",
+        "sliceDefinition"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "briefAlignment": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["trust", "intelligence", "consequence", "memory", "clarity"]
+          }
+        },
+        "complexity": {
+          "type": "string",
+          "enum": ["S", "M", "L", "XL"]
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
+        "recommendedDisposition": {
+          "type": "string",
+          "enum": ["now", "next", "later", "reject"]
+        },
+        "scoring": {
+          "$ref": "#/$defs/scoring"
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/evidenceItem"
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "falsificationEvidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "sliceDefinition": {
+          "$ref": "#/$defs/sliceDefinition"
+        }
+      }
+    }
+  }
+}
