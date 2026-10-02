@@ -10,6 +10,25 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('dexie', () => {
+  interface FakeCollection<T> {
+    reverse: () => FakeCollection<T>;
+    filter: (predicate: (row: T) => boolean) => FakeCollection<T>;
+    each: (callback: (row: T) => void) => Promise<void>;
+    first: () => Promise<T | undefined>;
+    toArray: () => Promise<T[]>;
+  }
+
+  // Ordered, optionally filtered view; each filter() keeps the predicates before it.
+  const collectionOf = <T>(rows: T[], keep: (row: T) => boolean = () => true): FakeCollection<T> => ({
+    reverse: () => collectionOf([...rows].reverse(), keep),
+    filter: (predicate) => collectionOf(rows, (row) => keep(row) && predicate(row)),
+    each: async (callback) => {
+      for (const row of rows) if (keep(row)) callback(row);
+    },
+    first: async () => rows.find(keep),
+    toArray: async () => rows.filter(keep),
+  });
+
   // Minimal in-memory stand-in for the Dexie API surface db.ts uses.
   class FakeTable<T extends { id?: number }> {
     private rows: T[] = [];
@@ -36,12 +55,7 @@ vi.mock('dexie', () => {
         const bv = b[field] as unknown as number;
         return av - bv;
       });
-      return {
-        reverse: () => ({
-          toArray: async () => [...data].reverse(),
-        }),
-        toArray: async () => data,
-      };
+      return collectionOf(data);
     }
   }
 

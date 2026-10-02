@@ -9,14 +9,14 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { buildCartridge, generateFileName, type GameState } from '@mfd/engine';
 import {
   deleteSaveSlot,
-  listSaveSlots,
+  listSaveSlotSummaries,
   autosaveDynasty,
   loadImportedCartridge,
   loadImportedCartridgeFile,
   loadSaveSlot,
   saveDynastyToSlot,
 } from '../../app/store/persistence';
-import type { SaveSlot } from '../../lib/db';
+import type { SaveSlotSummary } from '../../lib/db';
 import {
   DYNASTY_COMBINED_BACKUP_KIND,
   exportDynastyCombinedBackupJson,
@@ -50,7 +50,7 @@ import {
 } from '../shared/pixelUi';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 
-const slotColumns: ColumnDef<SaveSlot & { label: string }, unknown>[] = [
+const slotColumns: ColumnDef<SaveSlotSummary & { label: string }, unknown>[] = [
   {
     accessorKey: 'label',
     header: 'Slot',
@@ -266,7 +266,7 @@ export function DynastyCartridge() {
   const year = useGameStore(selectYear);
   const { loadGame, recordPortableExport } = useGameStore((state) => state.actions);
 
-  const [slots, setSlots] = useState<SaveSlot[]>([]);
+  const [slots, setSlots] = useState<SaveSlotSummary[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
@@ -291,7 +291,7 @@ export function DynastyCartridge() {
   }, [sidecarRevision]);
 
   const refreshSlots = useCallback(async () => {
-    setSlots(await listSaveSlots());
+    setSlots(await listSaveSlotSummaries());
   }, []);
 
   useEffect(() => {

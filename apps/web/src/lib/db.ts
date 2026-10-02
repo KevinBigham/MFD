@@ -20,6 +20,9 @@ export interface SaveSlot {
   version: number;
 }
 
+/** Save-manager metadata only; never carries the cartridge JSON payload. */
+export type SaveSlotSummary = Omit<SaveSlot, 'data'>;
+
 class MfdDatabase extends Dexie {
   saves!: EntityTable<SaveSlot, 'id'>;
 
@@ -49,6 +52,27 @@ export async function listSaves(): Promise<SaveSlot[]> {
   return db.saves.orderBy('timestamp').reverse().toArray();
 }
 
+/** List scalar metadata without retaining an array of full cartridge payloads.
+ * The cursor still reads each record; this is not an index-only projection. */
+export async function listSaveSummaries(): Promise<SaveSlotSummary[]> {
+  const summaries: SaveSlotSummary[] = [];
+  await db.saves.orderBy('timestamp').reverse().each((slot) => {
+    // Explicit projection prevents data (or future payload fields) leaking into UI state.
+    summaries.push({
+      id: slot.id,
+      name: slot.name,
+      timestamp: slot.timestamp,
+      year: slot.year,
+      week: slot.week,
+      teamName: slot.teamName,
+      difficulty: slot.difficulty,
+      isAutosave: slot.isAutosave,
+      version: slot.version,
+    });
+  });
+  return summaries;
+}
+
 /** Delete a save by ID. */
 export async function deleteSave(id: number): Promise<void> {
   return db.saves.delete(id);
@@ -56,17 +80,26 @@ export async function deleteSave(id: number): Promise<void> {
 
 /** Get the most recent autosave. */
 export async function getLatestAutosave(): Promise<SaveSlot | undefined> {
-  const saves = await db.saves.orderBy('timestamp').reverse().toArray();
-  return saves.find((slot) => slot.isAutosave);
+  return db.saves.orderBy('timestamp').reverse()
+    .filter((slot) => slot.isAutosave)
+    .first();
 }
 
 /** Trim autosaves to keep only the N most recent. */
 export async function trimAutosaves(keepCount: number = 3): Promise<void> {
-  const autosaves = (await db.saves.orderBy('timestamp').reverse().toArray())
-    .filter((slot) => slot.isAutosave);
+  const obsoleteIds: number[] = [];
+  let autosaveCount = 0;
+  const firstObsoleteIndex = Math.trunc(keepCount);
+  await db.saves.orderBy('timestamp').reverse().each((slot) => {
+    if (!slot.isAutosave) return;
+    if (autosaveCount >= firstObsoleteIndex) obsoleteIds.push(slot.id!);
+    autosaveCount += 1;
+  });
 
-  if (autosaves.length > keepCount) {
-    const toDelete = autosaves.slice(keepCount);
-    await db.saves.bulkDelete(toDelete.map(s => s.id!));
+  if (autosaveCount > keepCount) {
+    // Preserve the old Array.slice behavior for unusual negative/fractional counts.
+    // The normal nonnegative path retains only obsolete IDs, never save payloads.
+    const toDelete = keepCount < 0 ? obsoleteIds.slice(keepCount) : obsoleteIds;
+    await db.saves.bulkDelete(toDelete);
   }
 }
