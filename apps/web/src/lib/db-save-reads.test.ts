@@ -26,27 +26,35 @@ function slot(id: number, timestamp: number, isAutosave: boolean, data = `payloa
     week: id, teamName: `Team ${id}`, difficulty: 'pro', version: 37 };
 }
 
-/** Models the existing reverse timestamp/primary-key order, not native IndexedDB.
- * Real Dexie cursor ordering, early termination and transactions need browser proof. */
+/** Models the timestamp index: iteration is ascending (timestamp, then primary key) until
+ * reverse() is called, so code that forgets reverse() sees oldest-first rows. `ordered` is the
+ * expected newest-first order. Not native IndexedDB: real Dexie cursor ordering, early
+ * termination and transactions need browser proof. */
 function wireRows(rows: SaveSlot[]) {
-  const ordered = [...rows].sort((a, b) => b.timestamp - a.timestamp || b.id! - a.id!);
+  const ascending = [...rows].sort((a, b) => a.timestamp - b.timestamp || a.id! - b.id!);
+  const ordered = [...ascending].reverse();
   const persisted = new Map(rows.map((row) => [row.id!, row]));
   const visitedIds: number[] = [];
   let predicate: (row: SaveSlot) => boolean = () => true;
+  let reversed = false;
+  const iteration = () => (reversed ? ordered : ascending);
   const collection = {
-    reverse: vi.fn(() => collection),
+    reverse: vi.fn(() => {
+      reversed = !reversed;
+      return collection;
+    }),
     filter: vi.fn((filter: (row: SaveSlot) => boolean) => {
       predicate = filter;
       return collection;
     }),
     each: vi.fn(async (callback: (row: SaveSlot) => void) => {
-      for (const row of ordered) {
+      for (const row of iteration()) {
         visitedIds.push(row.id!);
         if (predicate(row)) callback(row);
       }
     }),
     first: vi.fn(async (): Promise<SaveSlot | undefined> => {
-      for (const row of ordered) {
+      for (const row of iteration()) {
         visitedIds.push(row.id!);
         if (predicate(row)) return row;
       }

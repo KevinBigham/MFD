@@ -126,10 +126,12 @@ describe('db (Dexie save slots)', () => {
 
   it('getLatestAutosave skips manual saves', async () => {
     const manualId = await saveGame(makeSlot({ name: 'Manual', isAutosave: false, timestamp: 5000 }));
+    const olderAutoId = await saveGame(makeSlot({ name: 'OlderAuto', isAutosave: true, timestamp: 3000 }));
     const autoId = await saveGame(makeSlot({ name: 'Auto', isAutosave: true, timestamp: 4000 }));
     const latest = await getLatestAutosave();
     expect(latest?.name).toBe('Auto');
     await deleteSave(manualId);
+    await deleteSave(olderAutoId);
     await deleteSave(autoId);
   });
 
@@ -141,6 +143,7 @@ describe('db (Dexie save slots)', () => {
     await trimAutosaves(2);
     const remaining = (await listSaves()).filter((s) => s.isAutosave && s.name.startsWith('A'));
     expect(remaining.length).toBe(2);
+    expect(remaining.map((s) => s.name).sort()).toEqual(['A3', 'A4']);
     for (const slot of remaining) {
       if (slot.id != null) await deleteSave(slot.id);
     }
