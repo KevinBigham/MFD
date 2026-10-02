@@ -43,7 +43,7 @@ vi.mock('../../app/store/game-store', () => ({
 }));
 
 vi.mock('../../app/store/persistence', () => ({
-  listSaveSlots: vi.fn().mockResolvedValue([]),
+  listSaveSlotSummaries: vi.fn().mockResolvedValue([]),
   autosaveDynasty: vi.fn().mockResolvedValue(1),
   saveDynastyToSlot: vi.fn().mockResolvedValue(undefined),
   loadSaveSlot: vi.fn().mockResolvedValue(null),

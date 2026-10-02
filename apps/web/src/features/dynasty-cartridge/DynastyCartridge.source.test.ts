@@ -27,6 +27,23 @@ function expectSourceOrder(source: string, markers: string[]): void {
 }
 
 describe('DynastyCartridge source contracts', () => {
+  it('keeps save-manager state and columns metadata-only', () => {
+    expect(content).toContain("import type { SaveSlotSummary } from '../../lib/db';");
+    expect(content).toContain('useState<SaveSlotSummary[]>([])');
+    expect(content).toContain('ColumnDef<SaveSlotSummary & { label: string }');
+    const refresh = sourceSection('const refreshSlots = useCallback(async () => {', 'useEffect(() => {');
+    expect(refresh).toContain('setSlots(await listSaveSlotSummaries());');
+    expect(content).not.toMatch(/\blistSaveSlots\b/);
+    expect(content).not.toContain('useState<SaveSlot[]>');
+  });
+
+  it('preserves ID-driven slot load and delete handlers', () => {
+    const load = sourceSection('const handleLoadSlot = useCallback(async (id: number) => {', 'const handleDeleteSlot = useCallback(async (id: number) => {');
+    const remove = sourceSection('const handleDeleteSlot = useCallback(async (id: number) => {', 'const handleImport = useCallback(async () => {');
+    expect(load).toContain('await loadSaveSlot(id)');
+    expect(remove).toContain('await deleteSaveSlot(id)');
+  });
+
   it('records clipboard export receipts only after building and copying the cartridge text', () => {
     const handleExport = sourceSection(
       'const handleExport = useCallback(() => {',

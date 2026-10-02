@@ -11,10 +11,12 @@ import {
   deleteSave,
   getLatestAutosave,
   listSaves,
+  listSaveSummaries,
   loadGame,
   saveGame,
   trimAutosaves,
   type SaveSlot,
+  type SaveSlotSummary,
 } from '../../lib/db';
 
 function getUserTeam(game: GameState) {
@@ -77,14 +79,15 @@ export async function listSaveSlots(): Promise<SaveSlot[]> {
   return listSaves();
 }
 
+export async function listSaveSlotSummaries(): Promise<SaveSlotSummary[]> {
+  return listSaveSummaries();
+}
+
 export async function deleteSaveSlot(id: number): Promise<void> {
   await deleteSave(id);
 }
 
-export async function loadSaveSlot(id: number): Promise<GameState | null> {
-  const slot = await loadGame(id);
-  if (!slot) return null;
-
+function decodeSaveSlot(slot: SaveSlot): GameState {
   const parsed = parseCartridge(slot.data);
   if (!parsed.ok) {
     throw new Error(parsed.error);
@@ -93,10 +96,18 @@ export async function loadSaveSlot(id: number): Promise<GameState | null> {
   return normalizeImportedGame(parsed.save);
 }
 
+export async function loadSaveSlot(id: number): Promise<GameState | null> {
+  const slot = await loadGame(id);
+  if (!slot) return null;
+  return decodeSaveSlot(slot);
+}
+
 export async function loadLatestAutosaveGame(): Promise<GameState | null> {
   const slot = await getLatestAutosave();
   if (!slot?.id) return null;
-  return loadSaveSlot(slot.id);
+  // Decode the snapshot selected by the cursor. A concurrent deletion does not
+  // force a second payload read or silently switch to a different dynasty.
+  return decodeSaveSlot(slot);
 }
 
 export function loadImportedCartridge(text: string): GameState {
