@@ -166,28 +166,33 @@ export function isMustDoRouteBeat(beat: Pick<RouteBeat, 'text'> | null): boolean
   return beat !== null && /^must do\b/i.test(beat.text.trim());
 }
 
-/**
- * Chip has a weekly message the player has not opened yet: dialogue is showing in the store, a
- * dock child carries it, and this exact dialogue has not been shown in the open dock.
- */
-export function hasUnreadWeeklyDialogue({
-  dialogueId,
-  hasDialogueChild,
-  viewedDialogueId,
-}: {
-  dialogueId: string | null;
-  hasDialogueChild: boolean;
-  viewedDialogueId: string | null;
-}): boolean {
-  return hasDialogueChild && dialogueId !== null && dialogueId !== viewedDialogueId;
+/** Identifies one weekly message: ids repeat across weeks (same outcome and variant), the text does not always. */
+export function weeklyDialogueKey(id: string | null, text: string | null): string | null {
+  return id === null ? null : `${id}\u0000${text ?? ''}`;
 }
 
 /**
- * What tapping the bubble opens when no route beat is waiting: Chip's weekly dialogue if there is
- * one (it has no other way in once the dock is compact), otherwise the Ask Chip summary.
+ * Chip has a weekly message the player has not opened yet: dialogue is showing in the store, a
+ * dock child carries it, and this exact message has not been shown in the open dock.
  */
-export function resolveBubbleTapView(hasWeeklyDialogue: boolean): 'dialogue' | 'askChip' {
-  return hasWeeklyDialogue ? 'dialogue' : 'askChip';
+export function hasUnreadWeeklyDialogue({
+  dialogueKey,
+  hasDialogueChild,
+  viewedKey,
+}: {
+  dialogueKey: string | null;
+  hasDialogueChild: boolean;
+  viewedKey: string | null;
+}): boolean {
+  return hasDialogueChild && dialogueKey !== null && dialogueKey !== viewedKey;
+}
+
+/**
+ * What tapping the bubble opens when no route beat is waiting: an unread weekly message first (it
+ * has no other way in once the dock is compact), otherwise the Ask Chip decision summary.
+ */
+export function resolveBubbleTapView(hasUnreadMessage: boolean): 'dialogue' | 'askChip' {
+  return hasUnreadMessage ? 'dialogue' : 'askChip';
 }
 
 /**
@@ -665,7 +670,11 @@ export function ChipDock({
   // hide the weekly details in server-rendered output (same pattern as
   // useResolvedChipPose).
   useChipStore((state) => state.currentDialogueId);
-  const currentDialogueId = useChipStore.getState().currentDialogueId;
+  useChipStore((state) => state.currentDialogueText);
+  const currentDialogueKey = weeklyDialogueKey(
+    useChipStore.getState().currentDialogueId,
+    useChipStore.getState().currentDialogueText,
+  );
   useChipStore((state) => state.lastWeeklyDialogue);
   const lastWeeklyDialogue = useChipStore.getState().lastWeeklyDialogue;
   useChipStore((state) => state.dialogueQueue);
@@ -677,7 +686,7 @@ export function ChipDock({
   // not consulted, so returning players get the same compact dock as new ones.
   const [openedRoute, setOpenedRoute] = useState<string | null>(null);
   const [closedByPlayerRoute, setClosedByPlayerRoute] = useState<string | null>(null);
-  const [viewedDialogueId, setViewedDialogueId] = useState<string | null>(null);
+  const [viewedDialogueKey, setViewedDialogueKey] = useState<string | null>(null);
   // E4: the three quiet controls (screen/week/season) live inside one quiet
   // menu; the trigger toggles this state and picking an option closes it.
   const [quietMenuOpen, setQuietMenuOpen] = useState(quietMenuDefaultOpen);
@@ -785,14 +794,14 @@ export function ChipDock({
   });
   const dialogueShowing = !effectiveCollapsed && !activeRouteBeat && !activeLiveBeat && Boolean(children);
   const unreadDialogue = hasUnreadWeeklyDialogue({
-    dialogueId: currentDialogueId,
+    dialogueKey: currentDialogueKey,
     hasDialogueChild: Boolean(children),
-    viewedDialogueId,
+    viewedKey: viewedDialogueKey,
   });
-  // Once the weekly dialogue is on screen in the open dock it counts as read.
+  // Once the weekly message is on screen in the open dock it counts as read.
   useEffect(() => {
-    if (dialogueShowing && currentDialogueId !== null) setViewedDialogueId(currentDialogueId);
-  }, [currentDialogueId, dialogueShowing]);
+    if (dialogueShowing && currentDialogueKey !== null) setViewedDialogueKey(currentDialogueKey);
+  }, [currentDialogueKey, dialogueShowing]);
   // The app shell reserves runway for the dock only while it is expanded; set before paint so a
   // new screen never flashes the old layout.
   useLayoutEffect(() => {
@@ -949,10 +958,7 @@ export function ChipDock({
       if (control === 'expand') {
         openDock();
         setRouteCoachOpened(true);
-        if (!activeRouteBeat) {
-          const hasWeeklyDialogue = Boolean(children) && currentDialogueId !== null;
-          if (resolveBubbleTapView(hasWeeklyDialogue) === 'askChip') showAskChipBeat();
-        }
+        if (!activeRouteBeat && resolveBubbleTapView(unreadDialogue) === 'askChip') showAskChipBeat();
       }
       onCollapseToggle?.();
     },
@@ -960,8 +966,6 @@ export function ChipDock({
       activeLiveBeat,
       activeRouteBeat,
       backingStorage,
-      children,
-      currentDialogueId,
       currentSeason,
       currentWeek,
       dismissLiveBeat,
@@ -973,6 +977,7 @@ export function ChipDock({
       returnToBubble,
       setRouteCoachOpened,
       showAskChipBeat,
+      unreadDialogue,
     ],
   );
   const activateControlFromKeyboard = useCallback(
