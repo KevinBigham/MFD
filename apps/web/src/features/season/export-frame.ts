@@ -88,7 +88,7 @@ export function createExportFrame(node: HTMLElement, options: ExportFrameOptions
   if (options.subtitle) {
     const subtitle = createTextBlock('div', options.subtitle, {
       fontFamily: 'var(--mfd-font-mono), "JetBrains Mono", monospace',
-      fontSize: '12px',
+      fontSize: 'var(--mfd-fs-12)',
       lineHeight: '1.6',
       color: 'var(--mfd-text-dim)',
     });
@@ -107,7 +107,7 @@ export function createExportFrame(node: HTMLElement, options: ExportFrameOptions
 
   const footer = createTextBlock('div', options.footer, {
     fontFamily: 'var(--mfd-font-mono), "JetBrains Mono", monospace',
-    fontSize: '11px',
+    fontSize: 'var(--mfd-fs-11)',
     lineHeight: '1.6',
     color: 'var(--mfd-text-dim)',
     textTransform: 'uppercase',

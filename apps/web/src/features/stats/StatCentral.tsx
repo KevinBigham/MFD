@@ -267,12 +267,12 @@ export default function StatCentral() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: '#fff' }}>
+                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: '#fff' }}>
                   {row.label}
                 </span>
                 <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
               </div>
-              <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+              <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
                 {row.detail}
               </span>
             </div>
@@ -326,7 +326,7 @@ export default function StatCentral() {
                       <div key={entry.playerId} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           <PixelPlayerLink playerId={entry.playerId} name={entry.playerName} ovr={entry.ovr} />
-                          <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                          <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                             {(entry.teamId ? teams[entry.teamId]?.abbr ?? entry.teamId : 'FA')} · Surplus {entry.surplus}
                           </span>
                         </div>
@@ -381,7 +381,7 @@ export default function StatCentral() {
                     <PixelBadge variant="green">{player.championships} Titles</PixelBadge>
                     <PixelBadge variant="cyan">{player.mvps} MVP</PixelBadge>
                   </div>
-                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                     Career length: {player.careerLength} seasons. All-Pro teams: {player.allPros}.
                   </div>
                 </div>
@@ -392,7 +392,7 @@ export default function StatCentral() {
           <PixelPanel title="Comparison Grid" accent="green">
             {comparison.players.length > 0 ? (
               <div style={{ overflow: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--mfd-font-mono)', fontSize: '11px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)' }}>
                   <thead>
                     <tr>
                       <th style={{ textAlign: 'left', padding: '8px', borderBottom: '2px solid var(--mfd-green)' }}>Frame</th>
@@ -422,7 +422,7 @@ export default function StatCentral() {
                 </table>
               </div>
             ) : (
-              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                 Select at least one player to compare career arcs.
               </div>
             )}
@@ -466,21 +466,21 @@ export default function StatCentral() {
                   <div style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '24px', color: 'var(--mfd-text)' }}>
                     {activeHistorySeason.wins}-{activeHistorySeason.losses}-{activeHistorySeason.ties}
                   </div>
-                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                     Finish: {activeHistorySeason.playoffResult}
                   </div>
-                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                     MVP: {activeHistorySeason.mvpName ?? 'No clear MVP'}
                   </div>
-                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                     Total yards: {activeHistorySeason.keyStats.totalYards}
                   </div>
-                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                     Points for / against: {activeHistorySeason.keyStats.pointsFor} / {activeHistorySeason.keyStats.pointsAgainst}
                   </div>
                 </div>
               ) : (
-                <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                   Select a season to inspect the arc of that team.
                 </div>
               )}

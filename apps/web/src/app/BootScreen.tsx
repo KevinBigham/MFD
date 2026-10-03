@@ -33,7 +33,7 @@ export function BootScreen({ lines, onSkip }: BootScreenProps) {
         width: '100%',
         maxWidth: 600,
         fontFamily: 'var(--mfd-font-mono)',
-        fontSize: '0.8125rem',
+        fontSize: 'var(--mfd-fs-13)',
         lineHeight: 1.8,
       }}>
         {lines.map((line, i) => (
@@ -57,7 +57,7 @@ export function BootScreen({ lines, onSkip }: BootScreenProps) {
 
       <div style={{
         marginTop: 'var(--mfd-sp-xxl)',
-        fontSize: '0.625rem',
+        fontSize: 'var(--mfd-fs-10)',
         fontFamily: 'var(--mfd-font-mono)',
         color: 'var(--mfd-text-faint)',
         animation: 'mfd-pulse 2s infinite',

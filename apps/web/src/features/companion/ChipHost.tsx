@@ -483,7 +483,7 @@ export function ChipHost({
       alignItems: 'center',
       color: 'var(--mfd-gold)',
       fontFamily: 'var(--mfd-font-pixel)',
-      fontSize: '8px',
+      fontSize: 'var(--mfd-fs-8)',
       lineHeight: 1.25,
       textTransform: 'uppercase' as const,
     }),
@@ -494,7 +494,7 @@ export function ChipHost({
     () => ({
       color: 'var(--mfd-text-dim)',
       fontFamily: 'var(--mfd-font-mono)',
-      fontSize: '11px',
+      fontSize: 'var(--mfd-fs-11)',
       lineHeight: 1.45,
     }),
     [],
@@ -755,7 +755,7 @@ export function ChipHost({
           >
             <div
               data-chip-host-context-heading="true"
-              style={{ color: 'var(--mfd-cyan)', fontFamily: 'var(--mfd-font-pixel)', fontSize: '8px', lineHeight: 1.35 }}
+              style={{ color: 'var(--mfd-cyan)', fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-8)', lineHeight: 1.35 }}
             >
               Choice Consequences
             </div>

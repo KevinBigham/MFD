@@ -11,11 +11,11 @@ import { resolveTeamContentFromStore } from '../../lib/team-content-resolver';
 
 export type PixelAccent = 'default' | 'gold' | 'cyan' | 'green' | 'red';
 
-export const pixel = { fontFamily: 'var(--mfd-font-pixel)', fontSize: '9px', letterSpacing: 0, lineHeight: 1.35 } as const;
-export const pixelSm = { fontFamily: 'var(--mfd-font-pixel)', fontSize: '8px', letterSpacing: 0, lineHeight: 1.35 } as const;
+export const pixel = { fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-9)', letterSpacing: 0, lineHeight: 1.35 } as const;
+export const pixelSm = { fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-8)', letterSpacing: 0, lineHeight: 1.35 } as const;
 export const display = { fontFamily: 'var(--mfd-font-display)' } as const;
-export const mono = { fontFamily: 'var(--mfd-font-mono)', fontSize: '12px', lineHeight: 1.5 } as const;
-export const monoSm = { fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', lineHeight: 1.55 } as const;
+export const mono = { fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-12)', lineHeight: 1.5 } as const;
+export const monoSm = { fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', lineHeight: 1.55 } as const;
 
 /** Navigate to a route — works with both browser history and hash history. */
 export function navigateTo(path: string): void {

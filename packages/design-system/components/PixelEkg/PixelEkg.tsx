@@ -71,7 +71,7 @@ export function PixelEkg({ points, className, style }: PixelEkgProps) {
           background: 'var(--mfd-bg)',
           color: 'var(--mfd-text-dim)',
           fontFamily: 'var(--mfd-font-pixel)',
-          fontSize: '8px',
+          fontSize: 'var(--mfd-fs-8)',
           letterSpacing: '1px',
         }}
       >

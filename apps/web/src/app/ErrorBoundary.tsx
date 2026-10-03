@@ -32,7 +32,7 @@ const styles = {
   },
   message: {
     fontFamily: 'var(--mfd-font-mono)',
-    fontSize: '0.875rem',
+    fontSize: 'var(--mfd-fs-14)',
     color: 'var(--mfd-text-dim)',
     maxWidth: '600px',
     marginBottom: '2rem',
@@ -66,7 +66,7 @@ const styles = {
   },
   button: {
     fontFamily: 'var(--mfd-font-pixel)',
-    fontSize: '0.75rem',
+    fontSize: 'var(--mfd-fs-12)',
     padding: '0.75rem 1.5rem',
     border: '2px solid var(--mfd-gold)',
     backgroundColor: 'transparent',

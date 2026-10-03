@@ -1375,7 +1375,7 @@
 
 .mfd-chip-bubble__stamp {
   font-family: var(--mfd-font-pixel);
-  font-size: 10px;
+  font-size: var(--mfd-fs-10);
   line-height: 1.35;
   color: var(--mfd-gold);
   text-shadow: 0 0 10px rgba(255, 215, 0, 0.24);
@@ -1441,7 +1441,7 @@
   margin-top: 10px;
   color: var(--mfd-cyan);
   font-family: var(--mfd-font-pixel);
-  font-size: 8px;
+  font-size: var(--mfd-fs-8);
   line-height: 1.4;
   text-transform: uppercase;
 }
@@ -1467,7 +1467,7 @@
     rgba(0, 229, 255, 0.08);
   color: var(--mfd-cyan);
   font-family: var(--mfd-font-pixel);
-  font-size: 8px;
+  font-size: var(--mfd-fs-8);
   letter-spacing: 0;
   cursor: pointer;
 }

@@ -68,7 +68,7 @@ export function PixelNav({
                   : 'var(--mfd-bg-2)',
               color: item.disabled ? 'var(--mfd-text-faint)' : active ? 'var(--mfd-gold)' : 'var(--mfd-text-dim)',
               fontFamily: 'var(--mfd-font-pixel)',
-              fontSize: '8px',
+              fontSize: 'var(--mfd-fs-8)',
               lineHeight: 1.25,
               letterSpacing: 0,
               textTransform: 'uppercase',

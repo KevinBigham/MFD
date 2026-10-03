@@ -40,7 +40,7 @@ export function PixelScreenHeader({
       >
         <span style={{
           fontFamily: 'var(--mfd-font-pixel)',
-          fontSize: '9px',
+          fontSize: 'var(--mfd-fs-9)',
           lineHeight: 1.35,
           letterSpacing: 0,
           color: 'var(--mfd-green)',
@@ -81,7 +81,7 @@ export function PixelScreenHeader({
           {title.toUpperCase()}
         </h1>
         {subtitle ? (
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '12px', lineHeight: 1.55, color: 'var(--mfd-text-dim)', marginTop: '8px' }}>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-12)', lineHeight: 1.55, color: 'var(--mfd-text-dim)', marginTop: '8px' }}>
             {subtitle}
           </div>
         ) : null}

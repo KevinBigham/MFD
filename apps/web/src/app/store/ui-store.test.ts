@@ -57,6 +57,7 @@ describe('ui-store audio preferences', () => {
       'density',
       'sidebarCollapsed',
       'simSpeed',
+      'textSize',
     ]);
   });
 
@@ -154,5 +155,41 @@ describe('ui-store audio preferences', () => {
 
     useUiStore.getState().setAudioCategoryVolume('ambient', -10);
     expect(useUiStore.getState().audioPreferences.categories.ambient.volume).toBe(0);
+  });
+});
+
+describe('ui-store text size', () => {
+  beforeEach(() => {
+    storage.clear();
+    vi.resetModules();
+    vi.stubGlobal('window', { localStorage: storage });
+    vi.stubGlobal('localStorage', storage);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('defaults to Comfortable, persists changes, and rejects junk', async () => {
+    const { useUiStore } = await import('./ui-store');
+    expect(useUiStore.getState().textSize).toBe('m');
+
+    useUiStore.getState().setTextSize('l');
+    expect(useUiStore.getState().textSize).toBe('l');
+    expect(JSON.parse(storage.getItem('mfd-ui-preferences') ?? '{}').state.textSize).toBe('l');
+
+    useUiStore.getState().setTextSize('huge' as never);
+    expect(useUiStore.getState().textSize).toBe('m');
+  });
+
+  it('restores a saved size and ignores an invalid saved value', async () => {
+    storage.setItem('mfd-ui-preferences', JSON.stringify({ state: { textSize: 's' }, version: 0 }));
+    let { useUiStore } = await import('./ui-store');
+    expect(useUiStore.getState().textSize).toBe('s');
+
+    vi.resetModules();
+    storage.setItem('mfd-ui-preferences', JSON.stringify({ state: { textSize: 'banana' }, version: 0 }));
+    ({ useUiStore } = await import('./ui-store'));
+    expect(useUiStore.getState().textSize).toBe('m');
   });
 });

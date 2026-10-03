@@ -193,7 +193,7 @@
 }
 
 .mfd-setup-shell [data-chip-host='true'] .mfd-chip-bubble__stamp {
-  font-size: 8px;
+  font-size: var(--mfd-fs-8);
 }
 
 .mfd-setup-shell [data-chip-host='true'] .mfd-chip-bubble__text {
@@ -380,7 +380,7 @@
   }
 
   .mfd-setup-command-bar > div > div:last-child {
-    font-size: 10px !important;
+    font-size: var(--mfd-fs-10) !important;
     line-height: 1.25 !important;
   }
 
@@ -407,7 +407,7 @@
   }
 
   .mfd-setup-shell [data-chip-host='true'] .mfd-chip-bubble__text {
-    font-size: 13px;
+    font-size: var(--mfd-fs-13);
     line-height: 1.48;
   }
 }

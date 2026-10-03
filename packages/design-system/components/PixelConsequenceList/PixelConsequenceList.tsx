@@ -33,10 +33,10 @@ export function PixelConsequenceList({ items }: PixelConsequenceListProps) {
           borderLeft: `3px solid ${consequenceColor[item.accent]}`,
         }}
         >
-          <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: '#aaa' }}>{item.label}</span>
+          <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: '#aaa' }}>{item.label}</span>
           <span style={{
             fontFamily: 'var(--mfd-font-pixel)',
-            fontSize: '7px',
+            fontSize: 'var(--mfd-fs-7)',
             letterSpacing: '0.8px',
             color: consequenceColor[item.accent],
           }}

@@ -85,7 +85,7 @@ function NamedGameCard({ game, userTeamId }: NamedGameCardProps) {
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span style={{ ...monoSm, color: '#fff', fontSize: '13px' }}>{game.name}</span>
+          <span style={{ ...monoSm, color: '#fff', fontSize: 'var(--mfd-fs-13)' }}>{game.name}</span>
           <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
             {game.year} // Week {game.week} // {formatScore(game)}
           </span>

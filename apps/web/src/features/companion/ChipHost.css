@@ -63,7 +63,7 @@
 .mfd-chip-intro__eyebrow {
   color: var(--mfd-cyan);
   font-family: var(--mfd-font-pixel);
-  font-size: 9px;
+  font-size: var(--mfd-fs-9);
   line-height: 1.35;
   text-transform: uppercase;
 }
@@ -103,7 +103,7 @@
   z-index: 70;
   min-height: 28px !important;
   padding: 5px 8px !important;
-  font-size: 7px !important;
+  font-size: var(--mfd-fs-7) !important;
   line-height: 1.2 !important;
   max-width: min(132px, calc(100vw - 16px));
   opacity: 0.82;
@@ -180,7 +180,7 @@
 .mfd-chip-host__context-detail-label {
   color: var(--mfd-cyan);
   font-family: var(--mfd-font-pixel);
-  font-size: 8px;
+  font-size: var(--mfd-fs-8);
   line-height: 1.35;
   text-transform: uppercase;
 }
@@ -188,7 +188,7 @@
 .mfd-chip-host__context-detail-body {
   min-width: 0;
   color: var(--mfd-text);
-  font-size: 14px;
+  font-size: var(--mfd-fs-14);
   line-height: 1.55;
 }
 
@@ -258,7 +258,7 @@
   }
 
   .mfd-chip-intro p {
-    font-size: 14px;
+    font-size: var(--mfd-fs-14);
     line-height: 1.62;
   }
 
@@ -273,7 +273,7 @@
   }
 
   .mfd-chip-host--setup [data-chip-host-context-details='true'] {
-    font-size: 13px !important;
+    font-size: var(--mfd-fs-13) !important;
     line-height: 1.48 !important;
   }
 
@@ -284,7 +284,7 @@
   }
 
   .mfd-chip-host__context-detail-body {
-    font-size: 13px;
+    font-size: var(--mfd-fs-13);
     line-height: 1.45;
   }
 }
@@ -333,7 +333,7 @@
   }
 
   .mfd-chip-host--setup .mfd-chip-host__context-detail-body {
-    font-size: 13px;
+    font-size: var(--mfd-fs-13);
     line-height: 1.45;
   }
 }

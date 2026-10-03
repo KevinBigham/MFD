@@ -254,12 +254,12 @@ export default function RecordBook() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: '#fff' }}>
+                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: '#fff' }}>
                   {row.label}
                 </span>
                 <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
               </div>
-              <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+              <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
                 {row.detail}
               </span>
             </div>
@@ -279,7 +279,7 @@ export default function RecordBook() {
                 />
                 <PixelBadge variant="cyan">{teams[chase.teamId]?.abbr ?? chase.teamId}</PixelBadge>
               </div>
-              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                 {statLabel(chase.stat)}: {chase.currentValue} / {chase.recordValue}
               </div>
               <PixelProgressBar
@@ -288,12 +288,12 @@ export default function RecordBook() {
                 label="Pace"
                 valueLabel={`${Math.round(chase.pace)}%`}
               />
-              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                 Projected {chase.projected}. {chase.weeksRemaining} games left.
               </div>
             </div>
           )) : (
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
               No record chases above the 80% pace threshold right now.
             </div>
           )}
@@ -352,7 +352,7 @@ export default function RecordBook() {
                       ovr={players[currentChase.playerId]?.ovr}
                     />
                     <PixelProgressBar value={currentChase.pace} accent="green" valueLabel={`${Math.round(currentChase.pace)}%`} />
-                    <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                    <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                       Projected finish: {currentChase.projected}. Record holder: {currentChase.recordHolder}.
                     </div>
                   </div>
@@ -381,7 +381,7 @@ export default function RecordBook() {
                       ) : (
                         <span>{entry.teamName}</span>
                       )}
-                      <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                      <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                         {teams[entry.teamId]?.abbr ?? entry.teamId} · {entry.year}{entry.week ? ` W${entry.week}` : ''}
                       </span>
                     </div>
@@ -391,7 +391,7 @@ export default function RecordBook() {
               </div>
             </div>
           ) : (
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
               Select a record to see the holder history and current chase context.
             </div>
           )}
@@ -418,16 +418,16 @@ export default function RecordBook() {
                   <PixelPlayerLink playerId={record.playerId} name={record.playerName} ovr={players[record.playerId]?.ovr} />
                   <PixelBadge variant="gold">{record.newValue}</PixelBadge>
                 </div>
-                <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                   {record.narrative}
                 </div>
-                <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-faint)' }}>
+                <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-faint)' }}>
                   Previous: {record.previousHolder} at {record.previousValue}
                 </div>
               </div>
             ))}
             {recentRecords.length === 0 ? (
-              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                 No new record breaks this week.
               </div>
             ) : null}
@@ -451,13 +451,13 @@ export default function RecordBook() {
                   <PixelPlayerLink playerId={milestone.playerId} name={milestone.playerName} ovr={players[milestone.playerId]?.ovr} />
                   <PixelBadge variant="green">{milestone.milestoneLabel}</PixelBadge>
                 </div>
-                <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                   {milestone.narrative}
                 </div>
               </div>
             ))}
             {recentMilestones.length === 0 ? (
-              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                 No new milestones recorded this week.
               </div>
             ) : null}

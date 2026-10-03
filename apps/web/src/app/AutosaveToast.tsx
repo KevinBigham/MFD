@@ -13,7 +13,7 @@ const toastStyle: React.CSSProperties = {
   background: 'var(--mfd-bg-2)',
   border: '2px solid var(--mfd-green)',
   fontFamily: 'var(--mfd-font-pixel)',
-  fontSize: '7px',
+  fontSize: 'var(--mfd-fs-7)',
   color: 'var(--mfd-green)',
   zIndex: 9999,
   display: 'flex',

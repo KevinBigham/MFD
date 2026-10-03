@@ -109,7 +109,7 @@ export function AchievementGallery() {
                 </div>
 
                 <div>
-                  <div style={{ ...monoSm, color: '#fff', fontSize: '13px', marginBottom: '6px' }}>
+                  <div style={{ ...monoSm, color: '#fff', fontSize: 'var(--mfd-fs-13)', marginBottom: '6px' }}>
                     {hiddenLocked ? '???' : achievement.title}
                   </div>
                   <div style={{ ...monoSm, color: '#999', lineHeight: 1.6 }}>
@@ -187,7 +187,7 @@ export function AchievementUnlockToast({
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ ...monoSm, color: '#fff', fontSize: '13px' }}>{achievement.title}</div>
+            <div style={{ ...monoSm, color: '#fff', fontSize: 'var(--mfd-fs-13)' }}>{achievement.title}</div>
             <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.6 }}>{achievement.description}</div>
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>

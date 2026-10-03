@@ -53,18 +53,18 @@ export function BreakingNewsTickerView({ item, reducedMotion }: BreakingNewsTick
     >
       <style>{tickerKeyframes}</style>
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', minWidth: 0 }}>
-        <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '9px', color: 'var(--mfd-gold)' }}>
+        <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-9)', color: 'var(--mfd-gold)' }}>
           MFSN TICKER
         </span>
         <span style={{ minWidth: 0, maxWidth: '100%', overflow: 'hidden', fontFamily: 'var(--mfd-font-display)', fontSize: '18px', color: '#fff', lineHeight: 1, textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {item.headline}
         </span>
-        <span style={{ minWidth: 0, maxWidth: '100%', overflow: 'hidden', fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ minWidth: 0, maxWidth: '100%', overflow: 'hidden', fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {item.body}
         </span>
         <span
           title="Source: saved leagueNews passed from the app shell through selectTickerItems; full-screen interrupts stay in breakingNewsQueue. Showing the ticker does not dismiss queue items, create new stories, click Advance Week, change saves, or reroll saved outcomes."
-          style={{ minWidth: 0, maxWidth: '100%', overflow: 'hidden', fontFamily: 'var(--mfd-font-pixel)', fontSize: '7px', color: 'var(--mfd-text-dim)', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          style={{ minWidth: 0, maxWidth: '100%', overflow: 'hidden', fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-7)', color: 'var(--mfd-text-dim)', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
         >
           leagueNews via selectTickerItems // read-only // no queue dismiss, new story, save change, or outcome reroll
         </span>

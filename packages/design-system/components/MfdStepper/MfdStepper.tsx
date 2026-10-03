@@ -55,7 +55,7 @@ export function MfdStepper({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '0.6875rem',
+              fontSize: 'var(--mfd-fs-11)',
               fontFamily: 'var(--mfd-font-mono)',
               fontWeight: 600,
               flexShrink: 0,
@@ -74,7 +74,7 @@ export function MfdStepper({
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{
-                fontSize: '0.75rem',
+                fontSize: 'var(--mfd-fs-12)',
                 fontFamily: 'var(--mfd-font-sans)',
                 fontWeight: isActive ? 600 : 400,
                 color: isActive ? 'var(--mfd-text)' : 'var(--mfd-text-dim)',
@@ -83,7 +83,7 @@ export function MfdStepper({
               </span>
               {step.description && (
                 <span style={{
-                  fontSize: '0.6875rem',
+                  fontSize: 'var(--mfd-fs-11)',
                   color: 'var(--mfd-text-faint)',
                 }}>
                   {step.description}

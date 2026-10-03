@@ -63,7 +63,7 @@ const bannerTextStyle: CSSProperties = {
 
 const mfsnLabelStyle: CSSProperties = {
   ...pixel,
-  fontSize: '9px',
+  fontSize: 'var(--mfd-fs-9)',
   color: 'var(--mfd-gold)',
   letterSpacing: '2px',
   marginBottom: '4px',
@@ -81,7 +81,7 @@ const headlineStyle: CSSProperties = {
 
 const detailStyle: CSSProperties = {
   fontFamily: 'var(--mfd-font-mono)',
-  fontSize: '13px',
+  fontSize: 'var(--mfd-fs-13)',
   color: 'var(--mfd-text-dim, #999)',
   textAlign: 'center',
   maxWidth: '500px',
@@ -91,7 +91,7 @@ const detailStyle: CSSProperties = {
 
 const sourceStyle: CSSProperties = {
   ...pixel,
-  fontSize: '7px',
+  fontSize: 'var(--mfd-fs-7)',
   color: 'var(--mfd-text-dim, #666)',
   margin: '24px 0 0',
   textAlign: 'center',
@@ -103,7 +103,7 @@ const queueMetaStyle: CSSProperties = {
   justifyContent: 'center',
   gap: '10px',
   flexWrap: 'wrap',
-  fontSize: '7px',
+  fontSize: 'var(--mfd-fs-7)',
   color: 'var(--mfd-text-dim, #555)',
   margin: '8px auto 0',
   textAlign: 'center',
@@ -111,7 +111,7 @@ const queueMetaStyle: CSSProperties = {
 
 const dismissStyle: CSSProperties = {
   ...pixel,
-  fontSize: '7px',
+  fontSize: 'var(--mfd-fs-7)',
   color: 'var(--mfd-text-dim, #555)',
   position: 'absolute',
   bottom: '20px',

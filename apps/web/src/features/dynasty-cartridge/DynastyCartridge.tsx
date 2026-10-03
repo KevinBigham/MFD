@@ -222,7 +222,7 @@ export function DynastyImportPreview({
                 );
               })}
             </div>
-            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', fontSize: '11px' }}>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', fontSize: 'var(--mfd-fs-11)' }}>
               Unselected local dynasties are preserved. Selective mode does not modify rivalry heat.
             </span>
           </div>
@@ -723,7 +723,7 @@ export function DynastyCartridge() {
               border: '3px solid var(--mfd-border)',
               color: 'var(--mfd-text)',
               fontFamily: 'var(--mfd-font-mono)',
-              fontSize: '12px',
+              fontSize: 'var(--mfd-fs-12)',
               resize: 'vertical',
             }}
           />
@@ -796,7 +796,7 @@ export function DynastyCartridge() {
               border: '3px solid var(--mfd-border)',
               color: 'var(--mfd-text)',
               fontFamily: 'var(--mfd-font-mono)',
-              fontSize: '12px',
+              fontSize: 'var(--mfd-fs-12)',
               resize: 'vertical',
             }}
           />
@@ -833,7 +833,7 @@ export function DynastyCartridge() {
                 gap: '12px',
               }}
             >
-              <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '11px', color: 'var(--mfd-red)' }}>
+              <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-red)' }}>
                 REPLACE ENTIRE SIDECAR ARCHIVE
               </span>
               <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>
@@ -912,7 +912,7 @@ export function DynastyCartridge() {
                 border: '3px solid var(--mfd-border)',
                 color: 'var(--mfd-text)',
                 fontFamily: 'var(--mfd-font-mono)',
-                fontSize: '12px',
+                fontSize: 'var(--mfd-fs-12)',
                 resize: 'vertical',
               }}
             />

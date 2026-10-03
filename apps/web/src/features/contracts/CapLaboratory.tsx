@@ -180,7 +180,7 @@ function CapLabSourcesPanel({
           detail="Only the Confirm button calls actions.executeCapMoves(sandbox) to write contracts, cap totals, and roster/player movement."
         />
       </div>
-      <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.6, marginTop: '10px' }}>
+      <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)', lineHeight: 1.6, marginTop: '10px' }}>
         Opening /cap-lab, changing filters, adding sandbox rows, and removing sandbox rows do not write saves,
         change cap rules, play scheduled games, reroll saved outcomes, or move players.
       </div>
@@ -252,7 +252,7 @@ export default function CapLaboratory() {
       cell: ({ row }) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span>{row.original.playerName}</span>
-          <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>{row.original.pos}</span>
+          <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>{row.original.pos}</span>
         </div>
       ),
     },
@@ -344,7 +344,7 @@ export default function CapLaboratory() {
                 background: 'var(--mfd-bg-2)',
                 color: 'var(--mfd-text)',
                 fontFamily: 'var(--mfd-font-mono)',
-                fontSize: '12px',
+                fontSize: 'var(--mfd-fs-12)',
               }}
             />
             <PixelSelect
@@ -388,7 +388,7 @@ export default function CapLaboratory() {
                     <span style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '24px', color: 'var(--mfd-text)' }}>
                       {selectedCandidate.playerName}
                     </span>
-                    <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                    <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                       {selectedCandidate.pos} · Cap hit ${selectedCandidate.capHit}M
                     </span>
                   </div>
@@ -435,7 +435,7 @@ export default function CapLaboratory() {
                           background: 'rgba(255, 215, 0, 0.08)',
                           color: 'var(--mfd-gold)',
                           fontFamily: 'var(--mfd-font-mono)',
-                          fontSize: '12px',
+                          fontSize: 'var(--mfd-fs-12)',
                         }}
                       />
                     </>
@@ -449,7 +449,7 @@ export default function CapLaboratory() {
                 </div>
               </>
             ) : (
-              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+              <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                 Select a player from the cap candidate board to start building a scenario.
               </div>
             )}
@@ -462,7 +462,7 @@ export default function CapLaboratory() {
                     <div key={`${move.playerId}-${move.type}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <span>{playerName}</span>
-                        <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                        <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                           {move.type.replaceAll('_', ' ')}
                         </span>
                       </div>
@@ -472,7 +472,7 @@ export default function CapLaboratory() {
                     </div>
                   );
                 }) : (
-                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                     No moves queued yet.
                   </div>
                 )}
@@ -518,7 +518,7 @@ export default function CapLaboratory() {
         accent="gold"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
             Current cap space: ${capHealth.capSpace}M. After moves: ${preview?.capSpaceAfter ?? capHealth.capSpace}M.
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>

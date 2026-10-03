@@ -184,12 +184,12 @@ export default function PlayerTimeline() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: '#fff' }}>
+                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: '#fff' }}>
                   {row.label}
                 </span>
                 <PixelBadge variant={row.accent}>{row.badge}</PixelBadge>
               </div>
-              <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+              <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
                 {row.detail}
               </span>
             </div>
@@ -249,18 +249,18 @@ export default function PlayerTimeline() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <PixelBadge variant={row.accent}>{row.typeLabel}</PixelBadge>
-                  <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                  <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                     {row.yearWeek}
                   </span>
                 </div>
-                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text)', lineHeight: 1.5 }}>
+                <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text)', lineHeight: 1.5 }}>
                   {row.detail}
                 </span>
               </div>
             ))}
           </div>
         ) : (
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
             No saved transaction rows for this player yet.
           </div>
         )}
@@ -271,19 +271,19 @@ export default function PlayerTimeline() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
               <PixelBadge variant={draftRecapMemory.accent}>{draftRecapMemory.badge}</PixelBadge>
-              <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+              <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                 {draftRecapMemory.yearLabel}
               </span>
             </div>
-            <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text)' }}>
+            <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text)' }}>
               {draftRecapMemory.pickLabel}
             </span>
-            <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+            <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
               Saved draft recap: {draftRecapMemory.detail}
             </span>
           </div>
         ) : (
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
             No saved draft recap pick is linked to this player yet.
           </div>
         )}
@@ -304,13 +304,13 @@ export default function PlayerTimeline() {
                     {teamChanged ? <PixelBadge variant="red">New Team</PixelBadge> : null}
                   </div>
                   {season.teamId && teams[season.teamId] ? (
-                    <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                    <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                       {teams[season.teamId]!.city} {teams[season.teamId]!.name}
                     </span>
                   ) : null}
                 </div>
 
-                <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text)' }}>
+                <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text)' }}>
                   GP {season.stats.gamesPlayed ?? 0} · Pass {season.stats.passYds ?? 0} · Rush {season.stats.rushYds ?? 0} · Rec {season.stats.recYds ?? 0} · Sacks {season.stats.sacks ?? 0} · INT {season.stats.defINT ?? 0}
                 </div>
 
@@ -323,13 +323,13 @@ export default function PlayerTimeline() {
                 {season.highlights.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {season.highlights.map((highlight) => (
-                      <div key={`${season.year}-${highlight}`} style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                      <div key={`${season.year}-${highlight}`} style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                         {highlight}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+                  <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
                     No major records or milestone highlights logged for this season.
                   </div>
                 )}
@@ -343,7 +343,7 @@ export default function PlayerTimeline() {
         <PixelPanel title="Career Links" accent="green">
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <PixelPlayerLink playerId={timeline.playerId} name="Open Player Profile" ovr={currentPlayer?.ovr} />
-            <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+            <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
               Use Stat Central to compare this player against other careers in the save.
             </span>
           </div>

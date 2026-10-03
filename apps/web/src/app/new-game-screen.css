@@ -44,7 +44,7 @@
   margin-bottom: 7px;
   color: var(--mfd-green);
   font-family: var(--mfd-font-pixel);
-  font-size: 9px;
+  font-size: var(--mfd-fs-9);
   line-height: 1.2;
   text-transform: uppercase;
 }
@@ -88,7 +88,7 @@
   background: rgba(248, 113, 113, 0.12);
   color: var(--mfd-red);
   font-family: var(--mfd-font-mono);
-  font-size: 0.75rem;
+  font-size: var(--mfd-fs-12);
   line-height: 1.5;
 }
 
@@ -141,7 +141,7 @@
   gap: var(--mfd-sp-sm);
   color: var(--mfd-cyan);
   font-family: var(--mfd-font-pixel);
-  font-size: 8px;
+  font-size: var(--mfd-fs-8);
   line-height: 1.35;
   text-transform: uppercase;
 }
@@ -155,7 +155,7 @@
   background: var(--mfd-bg);
   color: var(--mfd-text);
   font-family: var(--mfd-font-mono);
-  font-size: 12px;
+  font-size: var(--mfd-fs-12);
   line-height: 1.4;
 }
 
@@ -184,7 +184,7 @@
   background: var(--mfd-bg-2);
   color: var(--mfd-text-dim);
   font-family: var(--mfd-font-pixel);
-  font-size: 7px;
+  font-size: var(--mfd-fs-7);
   line-height: 1.2;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -204,7 +204,7 @@
   gap: var(--mfd-sp-sm);
   color: var(--mfd-text-faint);
   font-family: var(--mfd-font-mono);
-  font-size: 11px;
+  font-size: var(--mfd-fs-11);
   line-height: 1.4;
 }
 
@@ -231,7 +231,7 @@
 .mfd-import-label {
   color: var(--mfd-text-faint);
   font-family: var(--mfd-font-pixel);
-  font-size: 8px;
+  font-size: var(--mfd-fs-8);
   line-height: 1.35;
   text-transform: uppercase;
 }
@@ -333,7 +333,7 @@
 .mfd-team-card-abbr {
   color: inherit;
   font-family: var(--mfd-font-mono);
-  font-size: 13px;
+  font-size: var(--mfd-fs-13);
   font-weight: 700;
   line-height: 1.2;
 }
@@ -341,7 +341,7 @@
 .mfd-team-card-city {
   overflow: hidden;
   color: var(--mfd-text-faint);
-  font-size: 11px;
+  font-size: var(--mfd-fs-11);
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -353,7 +353,7 @@
   background: rgba(255, 255, 255, 0.025);
   color: var(--mfd-text-dim);
   font-family: var(--mfd-font-mono);
-  font-size: 12px;
+  font-size: var(--mfd-fs-12);
   line-height: 1.5;
 }
 
@@ -407,7 +407,7 @@
   gap: var(--mfd-sp-sm);
   color: inherit;
   font-family: var(--mfd-font-pixel);
-  font-size: 9px;
+  font-size: var(--mfd-fs-9);
   line-height: 1.35;
   text-transform: uppercase;
 }
@@ -421,7 +421,7 @@
   margin: 0;
   color: var(--mfd-text-dim);
   font-family: var(--mfd-font-mono);
-  font-size: 12px;
+  font-size: var(--mfd-fs-12);
   line-height: 1.65;
 }
 
@@ -450,7 +450,7 @@
   gap: var(--mfd-sp-md);
   color: var(--mfd-gold);
   font-family: var(--mfd-font-pixel);
-  font-size: 10px;
+  font-size: var(--mfd-fs-10);
   line-height: 1.35;
 }
 
@@ -462,12 +462,12 @@
 }
 
 .mfd-scenario-card-tagline {
-  font-size: 11px;
+  font-size: var(--mfd-fs-11);
 }
 
 .mfd-scenario-card-description {
   color: var(--mfd-text);
-  font-size: 12px;
+  font-size: var(--mfd-fs-12);
 }
 
 .mfd-new-game-sidecar {
@@ -503,7 +503,7 @@
 .mfd-selected-team-summary {
   color: var(--mfd-text-dim);
   font-family: var(--mfd-font-mono);
-  font-size: 12px;
+  font-size: var(--mfd-fs-12);
   line-height: 1.5;
 }
 
@@ -524,7 +524,7 @@
   padding: 12px 14px;
   border-radius: var(--mfd-rad-md);
   font-family: var(--mfd-font-pixel);
-  font-size: 9px;
+  font-size: var(--mfd-fs-9);
   line-height: 1.35;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -571,7 +571,7 @@
   background: var(--mfd-bg);
   color: var(--mfd-text);
   font-family: var(--mfd-font-mono);
-  font-size: 0.75rem;
+  font-size: var(--mfd-fs-12);
   line-height: 1.55;
   resize: vertical;
 }

@@ -8,7 +8,7 @@ const PLAY_GUIDE_URL = 'https://github.com/KevinBigham/MFD/blob/main/ACTIVE/MFD_
 const linkStyle = {
   color: 'var(--mfd-cyan)',
   fontFamily: 'var(--mfd-font-mono)',
-  fontSize: '11px',
+  fontSize: 'var(--mfd-fs-11)',
 } as const;
 
 export function AboutScreen() {

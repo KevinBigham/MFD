@@ -353,7 +353,7 @@ describe('ChipHost', () => {
     expect(css).toContain('left: max(8px, env(safe-area-inset-left, 0px));');
     expect(css).toContain('bottom: calc(76px + env(safe-area-inset-bottom, 0px));');
     expect(css).toContain('bottom: calc(112px + env(safe-area-inset-bottom, 0px));');
-    expect(css).toContain('font-size: 7px !important;');
+    expect(css).toContain('font-size: var(--mfd-fs-7) !important;');
     expect(css).toContain('max-width: min(132px, calc(100vw - 16px));');
     expect(css).toContain('grid-template-columns: minmax(240px, 0.42fr) minmax(0, 1fr);');
     expect(css).toContain("grid-template-areas:\n    'portrait controls'\n    'portrait bubble'\n    'portrait details';");

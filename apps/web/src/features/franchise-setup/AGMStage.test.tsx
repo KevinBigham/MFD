@@ -160,7 +160,7 @@ describe('AGMStage', () => {
     expect(css).toContain('.mfd-chip-host__context-detail');
     expect(css).toContain('grid-template-columns: 1fr;');
     expect(css).toContain('.mfd-chip-host__context-detail-body');
-    expect(css).toContain('font-size: 13px;');
+    expect(css).toContain('font-size: var(--mfd-fs-13);');
     expect(css).toContain('overscroll-behavior: auto;');
     expect(css).toContain(".mfd-agm-stage[data-mfd-agm-has-rail-addon='true'] .mfd-agm-stage__rail-addon .mfd-chip-host__context-list::after");
     expect(css).toContain("content: '';");
@@ -236,7 +236,7 @@ describe('AGMStage', () => {
     expect(narrowTabletReachableBlock).toContain('height: auto;');
     expect(narrowTabletReachableBlock).toContain('grid-template-columns: repeat(2, minmax(0, 1fr));');
     expect(narrowTabletReachableBlock).toContain('grid-template-columns: 1fr;');
-    expect(narrowTabletReachableBlock).toContain('font-size: 12px;');
+    expect(narrowTabletReachableBlock).toContain('font-size: var(--mfd-fs-12);');
     expect(narrowTabletReachableBlock).toContain('max-height: none;');
     expect(narrowTabletReachableBlock).toContain('overflow: visible;');
     expect(narrowTabletReachableBlock).toContain('overscroll-behavior: auto;');

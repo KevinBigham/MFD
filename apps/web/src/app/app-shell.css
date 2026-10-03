@@ -42,7 +42,7 @@
   overflow: hidden;
   color: var(--mfd-text-dim);
   font-family: var(--mfd-font-mono);
-  font-size: 10px;
+  font-size: var(--mfd-fs-10);
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -72,7 +72,7 @@
   background: rgba(255, 255, 255, 0.035);
   color: var(--mfd-text-dim);
   font-family: var(--mfd-font-pixel);
-  font-size: 8px;
+  font-size: var(--mfd-fs-8);
   line-height: 1.25;
   text-transform: uppercase;
   white-space: nowrap;
@@ -107,7 +107,7 @@
   background: rgba(255, 255, 255, 0.03) !important;
   color: var(--mfd-text-faint);
   font-family: var(--mfd-font-pixel);
-  font-size: 8px;
+  font-size: var(--mfd-fs-8);
   line-height: 1.2;
   letter-spacing: 0 !important;
   text-transform: uppercase;
@@ -157,7 +157,7 @@
   border-left: 3px solid var(--mfd-gold);
   color: var(--mfd-gold);
   font-family: var(--mfd-font-pixel);
-  font-size: 8px;
+  font-size: var(--mfd-fs-8);
   line-height: 1.2;
   text-transform: uppercase;
   white-space: nowrap;
@@ -244,13 +244,32 @@
 @media (max-width: 1180px) {
   .mfd-app-top-nav {
     grid-template-columns: 1fr;
+    gap: 8px !important;
+    padding: 6px 12px !important;
   }
 
+  /* Stacked header: one row for the brand instead of three lines, so content starts higher. */
   .mfd-app-brand-lockup {
+    display: flex !important;
+    flex-flow: row wrap;
+    align-items: center;
+    gap: 4px 12px !important;
     min-height: auto;
     border-right: 0;
     border-bottom: 1px solid rgba(255, 215, 0, 0.22);
-    padding: 0 0 10px;
+    padding: 0 0 6px !important;
+  }
+
+  .mfd-app-brand-lockup > span:nth-child(1) {
+    order: 2;
+  }
+
+  .mfd-app-brand-lockup > span:nth-child(2) {
+    order: 1;
+  }
+
+  .mfd-app-brand-lockup > span:nth-child(3) {
+    order: 3;
   }
 
   .mfd-app-brand-subtitle {

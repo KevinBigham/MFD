@@ -58,7 +58,7 @@ export function PixelMetricCard({
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
         <span style={{
           fontFamily: 'var(--mfd-font-pixel)',
-          fontSize: '8px',
+          fontSize: 'var(--mfd-fs-8)',
           lineHeight: 1.4,
           color,
           letterSpacing: 0,
@@ -80,7 +80,7 @@ export function PixelMetricCard({
         {detail ? (
           <div style={{
             fontFamily: 'var(--mfd-font-mono)',
-            fontSize: '11px',
+            fontSize: 'var(--mfd-fs-11)',
             lineHeight: 1.5,
             color: 'var(--mfd-text-dim)',
           }}>

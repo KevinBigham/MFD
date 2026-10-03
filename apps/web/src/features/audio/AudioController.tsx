@@ -518,7 +518,7 @@ export function AudioToggle() {
         border: `2px solid ${masterEnabled ? 'var(--mfd-green)' : 'var(--mfd-text-faint)'}`,
         color: masterEnabled ? 'var(--mfd-green)' : 'var(--mfd-text-faint)',
         fontFamily: 'var(--mfd-font-pixel)',
-        fontSize: '10px',
+        fontSize: 'var(--mfd-fs-10)',
         cursor: 'pointer',
       }}
     >

@@ -168,7 +168,7 @@ export function AGMPanel({
             gap: '10px',
           }}>
             <div style={{ ...pixelSm, color: 'var(--mfd-gold)' }}>SETUP WRAP</div>
-            <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.7, fontSize: '12px' }}>
+            <div style={{ ...monoSm, color: 'var(--mfd-text)', lineHeight: 1.7, fontSize: 'var(--mfd-fs-12)' }}>
               &ldquo;{blueprintMonologue}&rdquo;
             </div>
             <div style={{ ...pixelSm, color: 'var(--mfd-cyan)' }}>BEGIN SEASON</div>

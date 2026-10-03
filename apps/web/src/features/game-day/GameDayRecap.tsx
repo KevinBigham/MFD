@@ -33,11 +33,11 @@ import {
 } from '../../app/store/game-store';
 
 /* ── Shared styles ──────────────────────────────────────── */
-const pixel = { fontFamily: 'var(--mfd-font-pixel)', fontSize: '8px' } as const;
-const pixelSm = { fontFamily: 'var(--mfd-font-pixel)', fontSize: '7px' } as const;
+const pixel = { fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-8)' } as const;
+const pixelSm = { fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-7)' } as const;
 const display = { fontFamily: 'var(--mfd-font-display)' } as const;
-const mono = { fontFamily: 'var(--mfd-font-mono)', fontSize: '12px' } as const;
-const monoSm = { fontFamily: 'var(--mfd-font-mono)', fontSize: '11px' } as const;
+const mono = { fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-12)' } as const;
+const monoSm = { fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)' } as const;
 
 /* ── Helpers ────────────────────────────────────────────── */
 
@@ -406,7 +406,7 @@ export function GameDayCenterView({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{
           ...pixel,
-          fontSize: '10px',
+          fontSize: 'var(--mfd-fs-10)',
           color: 'var(--mfd-green)',
           padding: '8px 0',
         }}>
@@ -500,7 +500,7 @@ export function GameDayCenterView({
         padding: '4px 0',
         borderBottom: '3px solid var(--mfd-green)',
       }}>
-        <span style={{ ...pixel, fontSize: '10px', color: 'var(--mfd-green)' }}>
+        <span style={{ ...pixel, fontSize: 'var(--mfd-fs-10)', color: 'var(--mfd-green)' }}>
           MFD NETWORK
         </span>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -981,7 +981,7 @@ const headerCell = {
   padding: '6px 8px',
   textAlign: 'center' as const,
   fontFamily: 'var(--mfd-font-pixel)' as const,
-  fontSize: '7px',
+  fontSize: 'var(--mfd-fs-7)',
   color: '#555',
   borderBottom: '2px solid #333',
   background: '#0c0c0c',

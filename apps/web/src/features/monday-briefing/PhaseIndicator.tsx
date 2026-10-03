@@ -77,7 +77,7 @@ export function PhaseIndicator({ phase, week, year }: PhaseIndicatorProps) {
         <span
           style={{
             ...pixelSm,
-            fontSize: '9px',
+            fontSize: 'var(--mfd-fs-9)',
             letterSpacing: '2px',
             color: config.color,
           }}

@@ -720,7 +720,7 @@ function RootLayout() {
               >
                 <span style={{
                   fontFamily: 'var(--mfd-font-mono)',
-                  fontSize: '11px',
+                  fontSize: 'var(--mfd-fs-11)',
                   color: 'var(--mfd-text)',
                   lineHeight: 1.5,
                 }}
@@ -733,7 +733,7 @@ function RootLayout() {
                   background: 'rgba(0, 229, 255, 0.08)',
                   color: 'var(--mfd-cyan)',
                   fontFamily: 'var(--mfd-font-mono)',
-                  fontSize: '11px',
+                  fontSize: 'var(--mfd-fs-11)',
                   whiteSpace: 'nowrap',
                 }}
                 >
@@ -809,7 +809,7 @@ function NavItemStrip({
                 background: active ? 'rgba(255, 215, 0, 0.13)' : 'var(--mfd-bg-2)',
                 color: active ? 'var(--mfd-gold)' : highlighted ? '#ffe27a' : 'var(--mfd-text-dim)',
                 fontFamily: 'var(--mfd-font-pixel)',
-                fontSize: '8px',
+                fontSize: 'var(--mfd-fs-8)',
                 lineHeight: 1.2,
                 letterSpacing: 0,
                 textTransform: 'uppercase',
@@ -909,7 +909,7 @@ function UndoButton() {
         border: '2px solid var(--mfd-gold)',
         color: 'var(--mfd-gold)',
         fontFamily: 'var(--mfd-font-pixel)',
-        fontSize: '7px',
+        fontSize: 'var(--mfd-fs-7)',
         letterSpacing: '0.8px',
         cursor: 'pointer',
         textTransform: 'uppercase',
@@ -1007,7 +1007,7 @@ function TopNav({
       >
         <span style={{
           fontFamily: 'var(--mfd-font-pixel)',
-          fontSize: '8px',
+          fontSize: 'var(--mfd-fs-8)',
           color: 'var(--mfd-green)',
           letterSpacing: 0,
         }}>
@@ -1076,11 +1076,11 @@ function TopNav({
                 alignItems: 'center',
                 color: 'var(--mfd-text-faint)',
                 fontFamily: 'var(--mfd-font-mono)',
-                fontSize: '10px',
+                fontSize: 'var(--mfd-fs-10)',
                 lineHeight: 1.45,
               }}
             >
-              <span style={{ color: 'var(--mfd-cyan)', fontFamily: 'var(--mfd-font-pixel)', fontSize: '7px' }}>LATER</span>
+              <span style={{ color: 'var(--mfd-cyan)', fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-7)' }}>LATER</span>
               {lockedSelectedItems.map((item) => (
                 <span key={item.path}>
                   {item.shortLabel}: {item.unlockLabel}
@@ -1104,7 +1104,7 @@ function TopNav({
             border: `2px solid ${navigationMode === 'gm' ? 'var(--mfd-cyan)' : 'var(--mfd-gold)'}`,
             color: navigationMode === 'gm' ? 'var(--mfd-cyan)' : 'var(--mfd-gold)',
             fontFamily: 'var(--mfd-font-pixel)',
-            fontSize: '7px',
+            fontSize: 'var(--mfd-fs-7)',
             cursor: 'pointer',
             textTransform: 'uppercase',
           }}
@@ -1128,7 +1128,7 @@ function TopNav({
             border: '3px solid var(--mfd-cyan)',
             color: 'var(--mfd-cyan)',
             fontFamily: 'var(--mfd-font-pixel)',
-            fontSize: '12px',
+            fontSize: 'var(--mfd-fs-12)',
             cursor: 'pointer',
           }}
         >
@@ -1154,7 +1154,7 @@ function CommandPaletteTrigger() {
         gap: '6px',
         minHeight: '44px',
         padding: '8px 11px',
-        fontSize: '8px',
+        fontSize: 'var(--mfd-fs-8)',
         fontFamily: 'var(--mfd-font-pixel)',
         color: 'var(--mfd-cyan)',
         background: 'rgba(0, 229, 255, 0.08)',
@@ -1167,7 +1167,7 @@ function CommandPaletteTrigger() {
       <span>Cmd Deck</span>
       <kbd style={{
         padding: '2px 4px',
-        fontSize: '0.5625rem',
+        fontSize: 'var(--mfd-fs-9)',
         fontFamily: 'var(--mfd-font-mono)',
         background: '#04141a',
         color: '#9be7ff',
@@ -1204,7 +1204,7 @@ function LazyRouteFrame({
         <Loader size={24} style={{ color: 'var(--mfd-gold)', animation: 'spin 1.2s linear infinite' }} />
         <div style={{
           fontFamily: 'var(--mfd-font-pixel)',
-          fontSize: '8px',
+          fontSize: 'var(--mfd-fs-8)',
           letterSpacing: '1px',
           color: 'var(--mfd-gold)',
           textTransform: 'uppercase',

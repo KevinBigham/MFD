@@ -28,7 +28,7 @@ export function MfdHoverCard({
           style={{
             padding: 'var(--mfd-sp-md)',
             fontFamily: 'var(--mfd-font-sans)',
-            fontSize: '0.8125rem',
+            fontSize: 'var(--mfd-fs-13)',
             color: 'var(--mfd-text)',
             background: 'var(--mfd-gradient-card)',
             border: '1px solid var(--mfd-border)',

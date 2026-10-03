@@ -115,7 +115,7 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
                   borderTop: active ? '2px solid var(--mfd-gold)' : '2px solid transparent',
                   color: active ? 'var(--mfd-gold)' : 'var(--mfd-text-dim)',
                   fontFamily: 'var(--mfd-font-pixel)',
-                  fontSize: '7px',
+                  fontSize: 'var(--mfd-fs-7)',
                   lineHeight: 1.2,
                   letterSpacing: 0,
                   textTransform: 'uppercase',
@@ -164,7 +164,7 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
               borderTop: drawerOpen || moreActive ? '2px solid var(--mfd-gold)' : '2px solid transparent',
               color: drawerOpen || moreActive ? 'var(--mfd-gold)' : 'var(--mfd-text-dim)',
               fontFamily: 'var(--mfd-font-pixel)',
-              fontSize: '7px',
+              fontSize: 'var(--mfd-fs-7)',
               lineHeight: 1.2,
               letterSpacing: 0,
               textTransform: 'uppercase',
@@ -230,7 +230,7 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
                 <span style={{
                   fontFamily: 'var(--mfd-font-pixel)',
-                  fontSize: 9,
+                  fontSize: 'var(--mfd-fs-9)',
                   letterSpacing: 0,
                   color: 'var(--mfd-gold)',
                 }}>
@@ -240,7 +240,7 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
                   overflow: 'hidden',
                   color: 'var(--mfd-text-dim)',
                   fontFamily: 'var(--mfd-font-mono)',
-                  fontSize: 11,
+                  fontSize: 'var(--mfd-fs-11)',
                   lineHeight: 1.35,
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -277,7 +277,7 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
                     <h3 style={{
                       margin: '0 0 6px 0',
                       fontFamily: 'var(--mfd-font-pixel)',
-                      fontSize: 7,
+                      fontSize: 'var(--mfd-fs-7)',
                       letterSpacing: 0,
                       color: 'var(--mfd-text-faint)',
                       textTransform: 'uppercase',
@@ -313,7 +313,7 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
                               borderRadius: 'var(--mfd-rad-md)',
                               color: active ? 'var(--mfd-gold)' : 'var(--mfd-text)',
                               fontFamily: 'var(--mfd-font-pixel)',
-                              fontSize: 8,
+                              fontSize: 'var(--mfd-fs-8)',
                               lineHeight: 1.25,
                               letterSpacing: 0,
                               textTransform: 'uppercase',
@@ -330,7 +330,7 @@ export function MobileBottomTabBar({ activePath, drawerGroups, badges }: MobileB
                                   padding: '2px 4px',
                                   border: '1px solid var(--mfd-gold)',
                                   color: 'var(--mfd-gold)',
-                                  fontSize: 6,
+                                  fontSize: 'var(--mfd-fs-6)',
                                   lineHeight: 1,
                                   flexShrink: 0,
                                 }}

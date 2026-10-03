@@ -162,7 +162,7 @@ function PixelMetric({
       background: 'rgba(0,0,0,0.18)',
     }}
     >
-      <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '8px', letterSpacing: 0, color: accent === 'default' ? 'var(--mfd-text-dim)' : `var(--mfd-${accent})` }}>
+      <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-8)', letterSpacing: 0, color: accent === 'default' ? 'var(--mfd-text-dim)' : `var(--mfd-${accent})` }}>
         {label}
       </span>
       <span style={{ ...monoSm, color: 'var(--mfd-text)' }}>{value}</span>

@@ -83,7 +83,7 @@ export function PixelModal({
           <div>
             <div style={{
               fontFamily: 'var(--mfd-font-pixel)',
-              fontSize: '8px',
+              fontSize: 'var(--mfd-fs-8)',
               color: accent === 'default' ? 'var(--mfd-text)' : accentColor[accent],
               letterSpacing: '1px',
             }}>
@@ -93,7 +93,7 @@ export function PixelModal({
               <div style={{
                 marginTop: '6px',
                 fontFamily: 'var(--mfd-font-mono)',
-                fontSize: '11px',
+                fontSize: 'var(--mfd-fs-11)',
                 color: 'var(--mfd-text-dim)',
               }}>
                 {description}

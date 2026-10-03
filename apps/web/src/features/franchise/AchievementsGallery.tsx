@@ -212,7 +212,7 @@ export function AchievementsGalleryView({
                   <PixelBadge variant="default">{categoryLabel(achievement.category)}</PixelBadge>
                   {unlocked ? <PixelBadge variant="gold">Unlocked</PixelBadge> : <PixelBadge variant="default">Locked</PixelBadge>}
                 </div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text)', fontWeight: 700, fontSize: '13px', lineHeight: 1.4 }}>
+                <div style={{ ...monoSm, color: 'var(--mfd-text)', fontWeight: 700, fontSize: 'var(--mfd-fs-13)', lineHeight: 1.4 }}>
                   {title}
                 </div>
                 <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>

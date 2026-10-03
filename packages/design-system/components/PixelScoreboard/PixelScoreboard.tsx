@@ -34,7 +34,7 @@ export function PixelScoreboard({
       {/* Title bar */}
       <div style={{
         fontFamily: 'var(--mfd-font-pixel)',
-        fontSize: '8px',
+        fontSize: 'var(--mfd-fs-8)',
         color: 'var(--mfd-gold)',
         textAlign: 'center',
         padding: '8px',
@@ -60,7 +60,7 @@ export function PixelScoreboard({
         }}>
           <span style={{
             fontFamily: 'var(--mfd-font-pixel)',
-            fontSize: '12px',
+            fontSize: 'var(--mfd-fs-12)',
             color: '#fff',
             padding: '4px 10px',
             border: '3px solid var(--mfd-away-color)',
@@ -77,7 +77,7 @@ export function PixelScoreboard({
             {awayScore}
           </span>
           {awayRecord && (
-            <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '7px', color: '#555' }}>
+            <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-7)', color: '#555' }}>
               {awayRecord}
             </span>
           )}
@@ -95,7 +95,7 @@ export function PixelScoreboard({
         }}>
           <span style={{
             fontFamily: 'var(--mfd-font-pixel)',
-            fontSize: '12px',
+            fontSize: 'var(--mfd-fs-12)',
             color: '#fff',
             padding: '4px 10px',
             border: '3px solid var(--mfd-home-color)',
@@ -112,7 +112,7 @@ export function PixelScoreboard({
             {homeScore}
           </span>
           {homeRecord && (
-            <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '7px', color: '#555' }}>
+            <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-7)', color: '#555' }}>
               {homeRecord}
             </span>
           )}
@@ -159,7 +159,7 @@ function qtrCell(color: string, bg?: string, fontSize?: string): CSSProperties {
     padding: '6px 8px',
     textAlign: 'center',
     fontFamily: 'var(--mfd-font-pixel)',
-    fontSize: fontSize ?? '7px',
+    fontSize: fontSize ?? 'var(--mfd-fs-7)',
     color,
     background: bg,
     borderRight: '2px solid #222',

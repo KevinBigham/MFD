@@ -171,7 +171,7 @@ function HandshakeSourcesPanel({
               background: 'rgba(0, 0, 0, 0.18)',
             }}
           >
-            <div style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '8px', letterSpacing: 0, lineHeight: 1.35, color: item.border }}>
+            <div style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-8)', letterSpacing: 0, lineHeight: 1.35, color: item.border }}>
               {item.label}
             </div>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>

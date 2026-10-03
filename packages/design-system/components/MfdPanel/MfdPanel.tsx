@@ -66,7 +66,7 @@ export function MfdPanel({
               </span>
             )}
             <span style={{
-              fontSize: '0.75rem',
+              fontSize: 'var(--mfd-fs-12)',
               fontFamily: 'var(--mfd-font-mono)',
               fontWeight: 600,
               color: 'var(--mfd-text)',

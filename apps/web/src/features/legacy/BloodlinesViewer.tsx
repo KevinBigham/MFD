@@ -191,7 +191,7 @@ function BloodlineFamilyCard({ family }: BloodlineFamilyCardProps) {
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span style={{ ...monoSm, color: '#fff', fontSize: '13px' }}>{family.parentName}</span>
+          <span style={{ ...monoSm, color: '#fff', fontSize: 'var(--mfd-fs-13)' }}>{family.parentName}</span>
           <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
             {family.parentPosition} // first played for {family.parentTeamId}
           </span>

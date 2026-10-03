@@ -84,14 +84,14 @@ const headlineStyle: CSSProperties = {
 
 const detailStyle: CSSProperties = {
   ...pixel,
-  fontSize: '8px',
+  fontSize: 'var(--mfd-fs-8)',
   color: 'var(--mfd-text-dim, #999)',
   margin: 0,
 };
 
 const labelStyle: CSSProperties = {
   ...pixel,
-  fontSize: '7px',
+  fontSize: 'var(--mfd-fs-7)',
   color: 'var(--mfd-text-dim, #777)',
   marginTop: '8px',
   textAlign: 'right',

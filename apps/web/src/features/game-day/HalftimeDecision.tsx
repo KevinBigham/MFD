@@ -124,7 +124,7 @@ export function HalftimeDecisionView({
             </div>
             <div style={{
               fontFamily: 'var(--mfd-font-mono)',
-              fontSize: '11px',
+              fontSize: 'var(--mfd-fs-11)',
               lineHeight: 1.6,
               color: 'var(--mfd-text)',
             }}
@@ -145,7 +145,7 @@ export function HalftimeDecisionView({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{
                   fontFamily: 'var(--mfd-font-mono)',
-                  fontSize: '11px',
+                  fontSize: 'var(--mfd-fs-11)',
                   lineHeight: 1.6,
                   color: 'var(--mfd-text)',
                   minHeight: '72px',

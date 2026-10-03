@@ -65,7 +65,7 @@ export function PixelSelect({
           : `linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 48%), ${accentStyle.background}`,
         color: disabled ? 'var(--mfd-text-faint)' : accentStyle.color,
         fontFamily: 'var(--mfd-font-pixel)',
-        fontSize: '8px',
+        fontSize: 'var(--mfd-fs-8)',
         lineHeight: 1.25,
         letterSpacing: 0,
         textTransform: 'uppercase',

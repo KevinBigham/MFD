@@ -42,7 +42,7 @@
     linear-gradient(135deg, var(--mfd-gold), #f6b700);
   color: var(--mfd-bg);
   font-family: var(--mfd-font-pixel);
-  font-size: 14px;
+  font-size: var(--mfd-fs-14);
   line-height: 1;
   box-shadow:
     0 13px 24px rgba(0, 0, 0, 0.45),
@@ -61,7 +61,7 @@
   border: 1px solid rgba(0, 229, 255, 0.6);
   background: var(--chip-dock-shell);
   color: var(--mfd-cyan);
-  font-size: 7px;
+  font-size: var(--mfd-fs-7);
   line-height: 1;
   transform: translateX(-50%);
 }
@@ -89,7 +89,7 @@
     var(--chip-dock-shell);
   color: var(--mfd-cyan);
   font-family: var(--mfd-font-pixel);
-  font-size: 10px;
+  font-size: var(--mfd-fs-10);
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -138,7 +138,7 @@
 .mfd-chip-dock__collapsed-label {
   color: var(--mfd-gold);
   font-family: var(--mfd-font-pixel);
-  font-size: 8px;
+  font-size: var(--mfd-fs-8);
   line-height: 1;
   letter-spacing: 0;
   text-align: center;
@@ -345,7 +345,7 @@
   background: rgba(0, 0, 0, 0.48);
   color: var(--mfd-cyan);
   font-family: var(--mfd-font-pixel);
-  font-size: 8px;
+  font-size: var(--mfd-fs-8);
   line-height: 1;
 }
 
@@ -386,7 +386,7 @@
 .mfd-chip-dock__nameplate span:first-child {
   color: var(--mfd-gold);
   font-family: var(--mfd-font-pixel);
-  font-size: 10px;
+  font-size: var(--mfd-fs-10);
   line-height: 1;
   text-shadow: 0 0 10px rgba(255, 215, 0, 0.28);
 }
@@ -396,7 +396,7 @@
   overflow: hidden;
   color: var(--mfd-cyan);
   font-family: var(--mfd-font-pixel);
-  font-size: 7px;
+  font-size: var(--mfd-fs-7);
   line-height: 1.15;
   text-align: left;
   text-overflow: ellipsis;
@@ -533,7 +533,7 @@
 
 .mfd-chip-dock__control[data-chip-control-id='quietForScreen'] .mfd-chip-dock__control-label {
   display: inline;
-  font-size: 8px;
+  font-size: var(--mfd-fs-8);
 }
 
 .mfd-chip-dock__control[data-chip-control-id='quietThisSeason'] {
@@ -544,7 +544,7 @@
 
 .mfd-chip-dock__control[data-chip-control-id='quietThisSeason'] .mfd-chip-dock__control-label {
   display: inline;
-  font-size: 9px;
+  font-size: var(--mfd-fs-9);
 }
 
 .mfd-chip-dock__control[data-chip-control-id='collapse'] {
@@ -763,11 +763,11 @@
     min-width: 56px;
     height: 40px;
     padding: 0 11px;
-    font-size: 13px;
+    font-size: var(--mfd-fs-13);
   }
 
   .mfd-chip-dock__pending-badge::before {
-    font-size: 6px;
+    font-size: var(--mfd-fs-6);
   }
 
   .mfd-chip-dock__pending-badge,
@@ -821,7 +821,7 @@
     top: 10px;
     left: 7px;
     padding: 3px 5px;
-    font-size: 7px;
+    font-size: var(--mfd-fs-7);
   }
 
   .mfd-chip-dock__portrait .mfd-chip[data-chip-size='lg'] {
@@ -842,11 +842,11 @@
   }
 
   .mfd-chip-dock__nameplate span:first-child {
-    font-size: 11px;
+    font-size: var(--mfd-fs-11);
   }
 
   .mfd-chip-dock__nameplate span:last-child {
-    font-size: 7px;
+    font-size: var(--mfd-fs-7);
     text-align: left;
   }
 
@@ -866,12 +866,12 @@
   }
 
   .mfd-chip-dock .mfd-chip-bubble__stamp {
-    font-size: 8px;
+    font-size: var(--mfd-fs-8);
   }
 
   .mfd-chip-dock .mfd-chip-bubble__text {
     min-height: 0;
-    font-size: 11px;
+    font-size: var(--mfd-fs-11);
     line-height: 1.42;
   }
 
@@ -936,7 +936,7 @@
 
   .mfd-chip-dock__control[data-chip-control-id='quietThisSeason'] .mfd-chip-dock__control-label {
     display: inline;
-    font-size: 8px;
+    font-size: var(--mfd-fs-8);
   }
 
   .mfd-chip-dock__collapsed {
@@ -968,7 +968,7 @@
   }
 
   .mfd-chip-dock[data-chip-dock-beat='route'] .mfd-chip-bubble__stamp {
-    font-size: 8px;
+    font-size: var(--mfd-fs-8);
   }
 
   .mfd-chip-dock[data-chip-dock-beat='route'] .mfd-chip-dock__beat-actions .mfd-chip-dock__control {
@@ -1002,7 +1002,7 @@
   }
 
   .mfd-chip-dock[data-chip-dock-beat='route'][data-chip-dock-state='collapsed'] .mfd-chip-dock__collapsed-label {
-    font-size: 8px;
+    font-size: var(--mfd-fs-8);
   }
 
   .mfd-chip-dock[data-chip-dock-beat='route'][data-chip-dock-state='collapsed'] .mfd-chip-dock__pending-badge {
@@ -1011,7 +1011,7 @@
     min-width: 46px;
     height: 34px;
     padding: 0 8px;
-    font-size: 12px;
+    font-size: var(--mfd-fs-12);
   }
 }
 
@@ -1064,7 +1064,7 @@
   border-radius: 4px;
   background: linear-gradient(180deg, rgba(0, 229, 255, 0.06), rgba(0, 0, 0, 0.2));
   font-family: var(--mfd-font-mono);
-  font-size: 11px;
+  font-size: var(--mfd-fs-11);
   line-height: 1.45;
   pointer-events: auto;
 }
@@ -1078,7 +1078,7 @@
 .mfd-chip-dock__detail-label {
   color: var(--mfd-gold);
   font-family: var(--mfd-font-pixel);
-  font-size: 7px;
+  font-size: var(--mfd-fs-7);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1140,7 +1140,7 @@
   border-radius: 9px;
   background: var(--mfd-gold);
   color: #0a0f14;
-  font-size: 11px;
+  font-size: var(--mfd-fs-11);
   font-weight: 700;
   line-height: 1;
 }

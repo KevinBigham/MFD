@@ -196,7 +196,7 @@ export function ApologyTourModalView({
           </span>
         </div>
 
-        <div style={{ ...monoSm, color: '#fff', fontSize: '13px' }}>
+        <div style={{ ...monoSm, color: '#fff', fontSize: 'var(--mfd-fs-13)' }}>
           {interpolatedTitle}
         </div>
 

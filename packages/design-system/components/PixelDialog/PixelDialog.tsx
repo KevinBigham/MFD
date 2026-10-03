@@ -37,7 +37,7 @@ export function PixelDialog({
       {speaker && (
         <div style={{
           fontFamily: 'var(--mfd-font-pixel)',
-          fontSize: '7px',
+          fontSize: 'var(--mfd-fs-7)',
           color,
           marginBottom: '4px',
           letterSpacing: '0.5px',
@@ -47,7 +47,7 @@ export function PixelDialog({
       )}
       <div style={{
         fontFamily: 'var(--mfd-font-pixel)',
-        fontSize: '8px',
+        fontSize: 'var(--mfd-fs-8)',
         color: '#ccc',
         lineHeight: 2,
       }}>

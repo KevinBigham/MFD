@@ -36,6 +36,7 @@
 ## Visual language
 - Color: near-black surfaces, MFD gold as the signature action/accent, cyan/green/red for navigational, positive, and warning states. Use existing custom properties in `packages/design-system/tokens/index.css`.
 - Typography: pixel font for compact labels and command chrome, display/serif for brand and cinematic headlines, mono/sans for readable data and instructional copy.
+- Text size: every font size of 14px or smaller uses a `--mfd-fs-N` token (N = the original px size) from `packages/design-system/tokens/index.css`; never write a literal small size. Players choose Compact (the original sizes), Comfortable (default) or Large in Settings > Text Size, stored as `textSize` in `mfd-ui-preferences` and applied as `data-text-size` on `<html>`. Comfortable keeps reading text at 12px or more and labels at 9px or more. `apps/web/src/lib/type-scale-guard.test.ts` fails on literal small sizes.
 - Spacing/layout rhythm: 8-bit grid discipline with 4/8/12/16/20/32px token rhythm; responsive grids should use `minmax()`/`auto-fit` instead of fixed four-column assumptions on launch-critical screens.
 - Shape/radius/elevation: sharp pixel panels with 0-6px radii; shadows reserved for real elevation or active command surfaces.
 - Motion: short route/loading/feedback motion; respect `prefers-reduced-motion`.
@@ -50,7 +51,7 @@
 ## Accessibility
 - Target standard: WCAG-informed browser game UI, with at least visible focus, keyboard navigation for command surfaces, readable contrast, and 44px touch targets on mobile.
 - Keyboard/focus behavior: all command buttons need `type="button"` where they are not submit controls; custom selectable buttons should expose `aria-pressed` or equivalent state when useful.
-- Contrast/readability: keep tiny pixel text for labels only; body/help text should remain readable, especially in mobile and setup screens.
+- Contrast/readability: keep tiny pixel text for labels only; body/help text should remain readable, especially in mobile and setup screens. Text size is player-adjustable (see Typography).
 - Screen-reader semantics: use real buttons/inputs, labels for import text, `aria-live` for critical import/autosave errors when feasible, and current-route metadata in nav.
 - Reduced motion and sensory considerations: preserve existing reduced-motion tokens and disable decorative route/loading animation when requested.
 

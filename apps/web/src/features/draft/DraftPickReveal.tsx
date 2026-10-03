@@ -73,7 +73,7 @@ function DraftPickRevealCardBody({
             background: 'var(--mfd-bg-3)',
             color: 'var(--mfd-text-dim)',
             fontFamily: 'var(--mfd-font-pixel)',
-            fontSize: '9px',
+            fontSize: 'var(--mfd-fs-9)',
             textAlign: 'center',
           }}
         >
@@ -85,10 +85,10 @@ function DraftPickRevealCardBody({
           <div style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '28px', color: '#fff', lineHeight: 1 }}>
             {playerName.toUpperCase()}
           </div>
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '12px', color: 'var(--mfd-text-dim)' }}>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-12)', color: 'var(--mfd-text-dim)' }}>
             {position} // {college}
           </div>
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '12px', color: 'var(--mfd-cyan)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-12)', color: 'var(--mfd-cyan)', lineHeight: 1.6 }}>
             AGM: {reaction}
           </div>
         </div>

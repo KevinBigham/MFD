@@ -123,12 +123,12 @@ export function MfdCommandPalette({
               background: 'transparent',
               color: 'var(--mfd-text)',
               fontFamily: 'var(--mfd-font-sans)',
-              fontSize: '0.875rem',
+              fontSize: 'var(--mfd-fs-14)',
             }}
           />
           <kbd style={{
             padding: '2px 6px',
-            fontSize: '0.625rem',
+            fontSize: 'var(--mfd-fs-10)',
             fontFamily: 'var(--mfd-font-mono)',
             color: 'var(--mfd-text-faint)',
             background: 'var(--mfd-bg-3)',
@@ -151,7 +151,7 @@ export function MfdCommandPalette({
               padding: 'var(--mfd-sp-xl)',
               textAlign: 'center',
               color: 'var(--mfd-text-faint)',
-              fontSize: '0.8125rem',
+              fontSize: 'var(--mfd-fs-13)',
             }}
           >
             No results found
@@ -168,7 +168,7 @@ export function MfdCommandPalette({
               >
                 <div style={{
                   padding: '6px 8px 2px',
-                  fontSize: '0.625rem',
+                  fontSize: 'var(--mfd-fs-10)',
                   fontFamily: 'var(--mfd-font-mono)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.06em',
@@ -190,7 +190,7 @@ export function MfdCommandPalette({
                       alignItems: 'center',
                       gap: 'var(--mfd-sp-sm)',
                       padding: '8px 10px',
-                      fontSize: '0.8125rem',
+                      fontSize: 'var(--mfd-fs-13)',
                       color: 'var(--mfd-text)',
                       borderRadius: 'var(--mfd-rad-md)',
                       cursor: 'pointer',

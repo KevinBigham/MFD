@@ -13,10 +13,10 @@ import type {
 import { PixelPanel, PixelBadge } from '@mfd/design-system/components';
 
 /* ── Shared styles ──────────────────────────────────────── */
-const pixel = { fontFamily: 'var(--mfd-font-pixel)', fontSize: '8px' } as const;
+const pixel = { fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-8)' } as const;
 const display = { fontFamily: 'var(--mfd-font-display)' } as const;
-const mono = { fontFamily: 'var(--mfd-font-mono)', fontSize: '12px' } as const;
-const monoSm = { fontFamily: 'var(--mfd-font-mono)', fontSize: '11px' } as const;
+const mono = { fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-12)' } as const;
+const monoSm = { fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)' } as const;
 
 /* ── Helpers ────────────────────────────────────────────── */
 

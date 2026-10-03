@@ -63,7 +63,7 @@ export function MfdKpiCard({
         justifyContent: 'space-between',
       }}>
         <span style={{
-          fontSize: '0.6875rem',
+          fontSize: 'var(--mfd-fs-11)',
           fontFamily: 'var(--mfd-font-mono)',
           color: 'var(--mfd-text-dim)',
           textTransform: 'uppercase',
@@ -90,14 +90,14 @@ export function MfdKpiCard({
 
       {trend && (
         <span style={{
-          fontSize: '0.6875rem',
+          fontSize: 'var(--mfd-fs-11)',
           fontFamily: 'var(--mfd-font-mono)',
           color: trendColors[trend],
           display: 'flex',
           alignItems: 'center',
           gap: '4px',
         }}>
-          <span style={{ fontSize: '0.5rem' }}>{trendSymbols[trend]}</span>
+          <span style={{ fontSize: 'var(--mfd-fs-8)' }}>{trendSymbols[trend]}</span>
           {trendLabel}
         </span>
       )}
