@@ -83,7 +83,7 @@ export function buildRuleRegistrySourceRows({
 
 function RuleRegistrySources({ rows }: { rows: RuleSourceRow[] }) {
   return (
-    <PixelPanel title="Rule Registry Sources" accent="cyan">
+    <PixelPanel title="Rule Registry Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
         {rows.map((row) => (
           <div

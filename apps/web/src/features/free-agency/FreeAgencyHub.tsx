@@ -286,7 +286,7 @@ function FreeAgencySourcesPanel({
   lockedByScenario: boolean;
 }) {
   return (
-    <PixelPanel title="Free Agency Sources" accent="cyan">
+    <PixelPanel title="Free Agency Sources" collapsible defaultCollapsed accent="cyan">
       <div style={autoGrid(220)}>
         <PixelMetricCard
           label="Re-Sign Rows"

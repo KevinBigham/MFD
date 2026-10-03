@@ -73,6 +73,30 @@ describe('ActionCenter', () => {
     expect(html).toContain('15/22 starters');
   });
 
+  it('leads with the Must Do lane and keeps the how-it-works copy collapsed at the bottom', () => {
+    const game = createSeedGameState(42, 0, 'pro');
+
+    const html = renderToStaticMarkup(
+      <ActionCenter
+        phase="regular_season"
+        hasGamePlan={false}
+        starterCount={15}
+        tradeOfferCount={2}
+        ownerApproval={42}
+        injuredCount={1}
+        game={game}
+      />,
+    );
+
+    const mustDo = html.indexOf('Stops or redirects Advance Week');
+    expect(mustDo).toBeGreaterThan(-1);
+    expect(mustDo).toBeLessThan(html.indexOf('Ask your AGM'));
+    expect(html.indexOf('Ask your AGM')).toBeLessThan(html.indexOf('Open alerts for injuries, cap, depth'));
+    expect(html.indexOf('Open alerts for injuries, cap, depth')).toBeLessThan(html.indexOf('HOW THIS PLAN WORKS'));
+    expect(html).toMatch(/<details[^>]*data-mfd-panel-details[^>]*>(?:(?!<\/details>)[\s\S])*HOW THIS PLAN WORKS/);
+    expect(html).not.toMatch(/<details[^>]*open[^>]*>(?:(?!<\/details>)[\s\S])*HOW THIS PLAN WORKS/);
+  });
+
   it('separates the living week plan into must do, recommended, and optional lanes', () => {
     const game = createSeedGameState(42, 0, 'pro');
 

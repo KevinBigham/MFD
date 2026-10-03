@@ -516,7 +516,7 @@ export function DraftBoard() {
         <PixelMetricCard label="Remaining Picks" value={remainingUserPicks.length} accent="gold" detail={`${Math.round(projectedPickValue)} projected chart points`} />
       </div>
 
-      <PixelPanel title="Draft Board Sources" accent="cyan">
+      <PixelPanel title="Draft Board Sources" collapsible defaultCollapsed accent="cyan">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <PixelBadge variant="cyan">SAVED DRAFT CLASS</PixelBadge>

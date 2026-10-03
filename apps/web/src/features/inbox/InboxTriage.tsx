@@ -220,7 +220,7 @@ export function InboxTriage() {
         )}
       />
 
-      <PixelPanel title="Inbox Sources" accent="cyan">
+      <PixelPanel title="Inbox Sources" collapsible defaultCollapsed accent="cyan">
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',

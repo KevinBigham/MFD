@@ -153,7 +153,7 @@ function ScenarioSourcesPanel({
   ];
 
   return (
-    <PixelPanel title="Scenario Sources" accent="cyan">
+    <PixelPanel title="Scenario Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
         {rows.map((row) => (
           <div

@@ -1543,7 +1543,7 @@ export function MondayBriefing() {
         onDismiss={dismissSessionRecap}
       />
 
-      <PixelPanel title="Briefing Sources" accent="cyan">
+      <PixelPanel title="Briefing Sources" collapsible defaultCollapsed accent="cyan">
         <div style={autoGrid(220)}>
           {sourceRows.map((row) => (
             <div key={row.label} style={{

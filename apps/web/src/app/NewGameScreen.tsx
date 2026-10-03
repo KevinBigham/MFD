@@ -143,7 +143,7 @@ export function ScenarioLaunchCoverageBadges({
 
 function LaunchSourcesPanel() {
   return (
-    <PixelPanel title="Launch Sources" accent="cyan">
+    <PixelPanel title="Launch Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           <PixelBadge variant="gold">createSeedGameState</PixelBadge>
@@ -533,7 +533,7 @@ export function NewGameScreen() {
                     <span className="mfd-setup-path-desc">Run every Day 1 staffing, identity, and roster decision.</span>
                   </button>
                 </div>
-                <PixelPanel title="Onboarding Source" accent="default" padding="sm" style={{ marginTop: 'var(--mfd-sp-md)' }}>
+                <PixelPanel title="Onboarding Source" collapsible defaultCollapsed accent="default" padding="sm" style={{ marginTop: 'var(--mfd-sp-md)' }}>
                   <p className="mfd-new-game-guide">
                     <strong>{onboardingLabel}:</strong>{' '}
                     {onboardingMode === 'instant'

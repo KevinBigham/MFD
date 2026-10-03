@@ -73,7 +73,7 @@ function recapThemeVars(teamIdOrAbbr: string): CSSProperties {
 
 function SeasonRecapSourcesPanel() {
   return (
-    <PixelPanel title="Season Recap Sources" accent="cyan">
+    <PixelPanel title="Season Recap Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant="cyan">RECAP READ MODEL</PixelBadge>

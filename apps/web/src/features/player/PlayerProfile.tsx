@@ -547,7 +547,7 @@ export function PlayerProfile() {
         )}
       </PixelPanel>
 
-      <PixelPanel title="Profile Sources" accent="cyan">
+      <PixelPanel title="Profile Sources" collapsible defaultCollapsed accent="cyan">
         <div style={autoGrid(190)}>
           <PixelMetricCard
             label="Active Player"

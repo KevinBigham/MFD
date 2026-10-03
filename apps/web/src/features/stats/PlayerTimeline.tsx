@@ -169,7 +169,7 @@ export default function PlayerTimeline() {
         badges={currentPlayer ? <PixelBadge variant="gold">{currentPlayer.ovr} OVR</PixelBadge> : undefined}
       />
 
-      <PixelPanel title="Timeline Sources" accent="cyan">
+      <PixelPanel title="Timeline Sources" collapsible defaultCollapsed accent="cyan">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
           {timelineSourceRows.map((row) => (
             <div

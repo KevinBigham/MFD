@@ -239,7 +239,7 @@ export default function RecordBook() {
         badges={<PixelBadge variant="gold">{activeChases.length} Active Chases</PixelBadge>}
       />
 
-      <PixelPanel title="Record Sources" accent="cyan">
+      <PixelPanel title="Record Sources" collapsible defaultCollapsed accent="cyan">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
           {recordSourceRows.map((row) => (
             <div

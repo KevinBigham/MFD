@@ -56,7 +56,7 @@ export function buildCeremonySourceRows(ceremony: Ceremony): CeremonySourceRow[]
 
 function CeremonySourcesPanel({ ceremony }: { ceremony: Ceremony }) {
   return (
-    <PixelPanel title="Ceremony Sources" accent="cyan">
+    <PixelPanel title="Ceremony Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
         {buildCeremonySourceRows(ceremony).map((row) => (
           <div

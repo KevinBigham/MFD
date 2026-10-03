@@ -15,7 +15,11 @@ import {
   isRouteCoachingQuieted,
   persistRouteBeatProgress,
   resolveChipDockRoute,
+  isMustDoRouteBeat,
+  hasUnreadWeeklyDialogue,
+  resolveBubbleTapView,
   resolveEffectiveDockCollapsed,
+  shouldCollapseForRouteBeat,
   resolveNextRouteBeatIndex,
   routeBeatActionLabel,
   type ChipDockControl,
@@ -310,11 +314,25 @@ describe('ChipDock', () => {
     expect(chipDockCss).toContain('bottom: calc(100% + 6px);');
   });
 
-  it('auto-expands and renders the first unseen route beat', () => {
+  it('auto-expands for an unread Must Do route beat', () => {
     vi.stubEnv('VITE_CHIP_ENABLED', 'true');
 
     const markup = renderDock(
-      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY.roster} storage={new MemoryStorage()} />,
+      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY['monday-briefing']} storage={new MemoryStorage()} />,
+    );
+
+    expect(markup).toContain('data-chip-dock-state="expanded"');
+    expect(markup).toContain('data-chip-route-beat="chip.route.monday-briefing.beat-1"');
+    expect(markup).toContain('Must Do: open Action Center.');
+    expect(markup).toContain('Next');
+    expect(markup).not.toContain('aria-label="Got it"');
+  });
+
+  it('renders the first unseen route beat when opened', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(
+      <ChipDock collapsed routeBeatDefaultOpen routeBeats={ROUTE_BEAT_REGISTRY.roster} storage={new MemoryStorage()} />,
     );
 
     expect(markup).toContain('data-chip-dock-state="expanded"');
@@ -324,14 +342,65 @@ describe('ChipDock', () => {
     expect(markup).not.toContain('aria-label="Got it"');
   });
 
+  it('keeps a Recommended route beat in the compact bubble with a tip dot', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(
+      <ChipDock routeBeats={ROUTE_BEAT_REGISTRY.roster} storage={new MemoryStorage()} />,
+    );
+
+    expect(markup).toContain('data-chip-dock-state="collapsed"');
+    expect(markup).toContain('data-chip-dock-beat="route"');
+    expect(markup).toContain('aria-label="Ask Chip about this screen, tip waiting"');
+    expect(markup).toContain('data-chip-collapsed-tip="tip"');
+    expect(markup).not.toContain('data-chip-route-beat=');
+    expect(markup).not.toContain('Recommended: decide starter');
+  });
+
+  it('names the waiting tip and the pending count on the compact bubble', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(
+      <ChipDock
+        routeBeats={ROUTE_BEAT_REGISTRY.roster}
+        pendingDecisions={{ total: 3 }}
+        storage={new MemoryStorage()}
+      />,
+    );
+
+    // The count badge is hidden while compact, so the bubble's own name has to carry it.
+    expect(markup).toContain('aria-label="Ask Chip about this screen, tip waiting, 3 decisions pending"');
+  });
+
+  it('ignores an old stored collapsed:false so returning players get the compact dock too', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem(CHIP_DOCK_STORAGE_KEY, JSON.stringify({ ...createDefaultDockPrefs(), collapsed: false }));
+
+    const markup = renderDock(<ChipDock routeBeats={ROUTE_BEAT_REGISTRY.roster} storage={storage} />);
+
+    expect(markup).toContain('data-chip-dock-state="collapsed"');
+    expect(markup).toContain('data-chip-collapsed-tip="tip"');
+  });
+
+  it('defaults to the compact bubble when nothing is waiting', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(<ChipDock storage={new MemoryStorage()} />);
+
+    expect(markup).toContain('data-chip-dock-state="collapsed"');
+    expect(markup).toContain('aria-label="Ask Chip"');
+    expect(markup).not.toContain('data-chip-collapsed-tip');
+  });
+
   it('renders unanchored governance route beats', () => {
     vi.stubEnv('VITE_CHIP_ENABLED', 'true');
 
     const cbaMarkup = renderDock(
-      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY.cba} storage={new MemoryStorage()} />,
+      <ChipDock collapsed routeBeatDefaultOpen routeBeats={ROUTE_BEAT_REGISTRY.cba} storage={new MemoryStorage()} />,
     );
     const rulesMarkup = renderDock(
-      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY['league-rules']} storage={new MemoryStorage()} />,
+      <ChipDock collapsed routeBeatDefaultOpen routeBeats={ROUTE_BEAT_REGISTRY['league-rules']} storage={new MemoryStorage()} />,
     );
 
     expect(cbaMarkup).toContain('data-chip-route-beat="chip.route.cba.beat-1"');
@@ -382,7 +451,7 @@ describe('ChipDock', () => {
     ]);
 
     const markup = renderDock(
-      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY['monday-briefing']} storage={storage} />,
+      <ChipDock collapsed routeBeatDefaultOpen routeBeats={ROUTE_BEAT_REGISTRY['monday-briefing']} storage={storage} />,
     );
 
     expect(markup).toContain('data-chip-route-beat="chip.route.monday-briefing.beat-3"');
@@ -492,7 +561,7 @@ describe('ChipDock', () => {
     );
 
     const markup = renderDock(
-      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY.staff} storage={storage} />,
+      <ChipDock collapsed routeBeatDefaultOpen routeBeats={ROUTE_BEAT_REGISTRY.staff} storage={storage} />,
     );
 
     expect(markup).toContain('data-chip-dock-state="collapsed"');
@@ -536,7 +605,7 @@ describe('ChipDock', () => {
     ]));
 
     const markup = renderDock(
-      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY.staff} storage={storage} />,
+      <ChipDock collapsed routeBeatDefaultOpen routeBeats={ROUTE_BEAT_REGISTRY.staff} storage={storage} />,
     );
 
     expect(markup).toContain('data-chip-dock-state="expanded"');
@@ -778,6 +847,18 @@ describe('ChipDock', () => {
     expect(mediaReduce).toContain('.mfd-chip-dock__portrait-stage::after,');
   });
 
+  it('stops the compact tip dot pulse under OS reduced motion and keeps the dot unclipped', () => {
+    const mediaReduce = chipDockCss.slice(chipDockCss.indexOf('@media (prefers-reduced-motion: reduce)'));
+    // Must match the pulse rule's specificity exactly (and come later) or the pulse still wins.
+    expect(mediaReduce).toMatch(
+      /\.mfd-chip-dock\[data-chip-dock-motion='animated'\] \.mfd-chip-dock__collapsed-tip \{\s*animation: none;/,
+    );
+    expect(chipDockCss.indexOf("[data-chip-dock-motion='animated'] .mfd-chip-dock__collapsed-tip {\n  animation: mfd-chip-tip-pulse"))
+      .toBeLessThan(chipDockCss.indexOf("[data-chip-dock-motion='animated'] .mfd-chip-dock__collapsed-tip {\n    animation: none;"));
+    const tipRule = chipDockCss.slice(chipDockCss.indexOf('.mfd-chip-dock__collapsed-tip {'));
+    expect(tipRule.slice(0, tipRule.indexOf('}'))).toMatch(/top: 3px;[\s\S]*right: 3px;/);
+  });
+
   it('chooses useful ask-chip live guidance instead of reopening to empty idle chrome', () => {
     const whereAmI = {
       week: 14,
@@ -916,7 +997,9 @@ describe('ChipDock', () => {
 
     const { prefs } = applyControl('expand', storage);
 
-    expect(prefs.collapsed).toBe(false);
+    // Tapping the bubble opens Chip for now; it must not turn the dock into an always-open one.
+    expect(prefs.collapsed).toBe(true);
+    expect(readDockPrefs(storage).collapsed).toBe(true);
     expect(prefs.quietForScreen).toBeNull();
     expect(prefs.quietUntilWeek).toBeNull();
     expect(prefs.quietForSeason).toBeNull();
@@ -1421,7 +1504,7 @@ describe('B9/E11 compact guidance mode', () => {
     writeChipReadReceipts(storage, ['chip.route.roster.beat-1']);
 
     const markup = renderDock(
-      <ChipDock collapsed routeBeats={ROUTE_BEAT_REGISTRY.roster} storage={storage} />,
+      <ChipDock collapsed routeBeatDefaultOpen routeBeats={ROUTE_BEAT_REGISTRY.roster} storage={storage} />,
     );
 
     expect(markup).toContain('data-chip-route-beat="chip.route.roster.beat-2"');
@@ -1443,7 +1526,7 @@ describe('B9/E11 compact guidance mode', () => {
     }];
 
     const markup = renderDock(
-      <ChipDock collapsed routeBeats={firstTenBeat} storage={storage} />,
+      <ChipDock collapsed routeBeatDefaultOpen routeBeats={firstTenBeat} storage={storage} />,
     );
 
     expect(markup).toContain('data-chip-route-beat="chip.first10.roster"');
@@ -1511,8 +1594,8 @@ describe('G7 route-coaching graduation', () => {
   });
 
   it('wires the one-time notice and the graduationAcked persistence', () => {
-    expect(chipDockSource).toContain('setActiveLiveBeat(CHIP_GRADUATION_BEAT)');
-    expect(chipDockSource).toContain("current?.id === 'chip.dock.graduation'");
+    expect(chipDockSource).toContain('showLiveBeat(CHIP_GRADUATION_BEAT)');
+    expect(chipDockSource).toContain("activeLiveBeat?.id === 'chip.dock.graduation'");
     expect(chipDockSource).toContain('graduationAcked: true');
     expect(chipDockSource).toContain('if (prefs.graduationAcked) return;');
     // Fires only when nothing else demands the dock.
@@ -1585,5 +1668,113 @@ describe('B7 conversation next control', () => {
     expect(state.dismissed).toBe(false);
 
     useChipStore.getState().reset();
+  });
+});
+
+describe('compact-first Chip dock', () => {
+  const mustDo = { text: 'Must Do: open Action Center. Where: Monday Briefing. Consequence: it locks.' };
+  const recommended = { text: 'Recommended: open Roster. Where: Roster. Consequence: depth.' };
+  const optional = { text: 'Optional: name expiring starters. Where: Roster. Consequence: contract years.' };
+
+  it('treats only a leading "Must Do" as a Must Do beat', () => {
+    expect(isMustDoRouteBeat(mustDo)).toBe(true);
+    expect(isMustDoRouteBeat({ text: '  must do: lowercase still counts' })).toBe(true);
+    expect(isMustDoRouteBeat(recommended)).toBe(false);
+    expect(isMustDoRouteBeat(optional)).toBe(false);
+    expect(isMustDoRouteBeat({ text: 'Recommended: you Must Do this later' })).toBe(false);
+    expect(isMustDoRouteBeat(null)).toBe(false);
+  });
+
+  it('collapses to the bubble unless an unread Must Do is waiting on a desktop-width screen', () => {
+    // desktop width
+    expect(shouldCollapseForRouteBeat({ activeRouteBeat: mustDo, phoneWidth: false, opened: false })).toBe(false);
+    expect(shouldCollapseForRouteBeat({ activeRouteBeat: recommended, phoneWidth: false, opened: false })).toBe(true);
+    expect(shouldCollapseForRouteBeat({ activeRouteBeat: optional, phoneWidth: false, opened: false })).toBe(true);
+    // phone width: always the bubble until tapped
+    expect(shouldCollapseForRouteBeat({ activeRouteBeat: mustDo, phoneWidth: true, opened: false })).toBe(true);
+    // once the player opens it (or is stepping through beats) it stays open
+    expect(shouldCollapseForRouteBeat({ activeRouteBeat: recommended, phoneWidth: false, opened: true })).toBe(false);
+    expect(shouldCollapseForRouteBeat({ activeRouteBeat: mustDo, phoneWidth: true, opened: true })).toBe(false);
+    // no beat: not this rule's call
+    expect(shouldCollapseForRouteBeat({ activeRouteBeat: null, phoneWidth: false, opened: false })).toBe(false);
+  });
+
+  it('opens on a Must Do that is waiting behind an earlier Recommended beat', () => {
+    const waiting = [recommended, mustDo];
+    expect(shouldCollapseForRouteBeat({
+      activeRouteBeat: recommended,
+      waitingRouteBeats: waiting,
+      phoneWidth: false,
+      opened: false,
+    })).toBe(false);
+    expect(shouldCollapseForRouteBeat({
+      activeRouteBeat: recommended,
+      waitingRouteBeats: [recommended, optional],
+      phoneWidth: false,
+      opened: false,
+    })).toBe(true);
+    // phones still wait for a tap
+    expect(shouldCollapseForRouteBeat({
+      activeRouteBeat: recommended,
+      waitingRouteBeats: waiting,
+      phoneWidth: true,
+      opened: false,
+    })).toBe(true);
+  });
+
+  it('stays a bubble when the player closed Chip on this screen, even with a Must Do queued', () => {
+    expect(shouldCollapseForRouteBeat({
+      activeRouteBeat: recommended,
+      waitingRouteBeats: [recommended, mustDo],
+      phoneWidth: false,
+      opened: false,
+      closedByPlayer: true,
+    })).toBe(true);
+    // tapping the bubble again opens it regardless
+    expect(shouldCollapseForRouteBeat({
+      activeRouteBeat: recommended,
+      waitingRouteBeats: [recommended, mustDo],
+      phoneWidth: false,
+      opened: true,
+      closedByPlayer: true,
+    })).toBe(false);
+  });
+
+  it('tracks an unread weekly message and opens it on tap instead of the Ask Chip summary', () => {
+    const base = { dialogueId: 'chip.weekly.cleanWin', hasDialogueChild: true, viewedDialogueId: null };
+    expect(hasUnreadWeeklyDialogue(base)).toBe(true);
+    expect(hasUnreadWeeklyDialogue({ ...base, viewedDialogueId: 'chip.weekly.cleanWin' })).toBe(false);
+    expect(hasUnreadWeeklyDialogue({ ...base, viewedDialogueId: 'chip.weekly.older' })).toBe(true);
+    expect(hasUnreadWeeklyDialogue({ ...base, dialogueId: null })).toBe(false);
+    expect(hasUnreadWeeklyDialogue({ ...base, hasDialogueChild: false })).toBe(false);
+    expect(resolveBubbleTapView(true)).toBe('dialogue');
+    expect(resolveBubbleTapView(false)).toBe('askChip');
+  });
+
+  it('shows a tip dot and "new message" on the compact bubble while a weekly dialogue is unread', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    useChipStore.getState().showWeeklyDialogue({
+      id: 'chip.weekly.cleanWin',
+      beat: 0,
+      pose: 'celebrate',
+      text: 'Clean win, coach.',
+      archetype: 'weekly',
+    });
+
+    const markup = renderDock(
+      <ChipDock storage={new MemoryStorage()}>
+        <p>Weekly dialogue bubble</p>
+      </ChipDock>,
+    );
+    useChipStore.getState().reset();
+
+    expect(markup).toContain('data-chip-dock-state="collapsed"');
+    expect(markup).toContain('data-chip-collapsed-tip="tip"');
+    expect(markup).toContain('aria-label="Ask Chip, new message"');
+    expect(markup).not.toContain('Weekly dialogue bubble');
+  });
+
+  it('starts every new dock in the compact state', () => {
+    expect(createDefaultDockPrefs().collapsed).toBe(true);
   });
 });

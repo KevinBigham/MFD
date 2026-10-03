@@ -202,7 +202,7 @@ function ContractsSourcesPanel({
   allowedTagTypes: FranchiseTagType[];
 }) {
   return (
-    <PixelPanel title="Contract Sources" accent="cyan">
+    <PixelPanel title="Contract Sources" collapsible defaultCollapsed accent="cyan">
       <div style={autoGrid(220)}>
         <PixelMetricCard
           label="Roster Contracts"
@@ -527,6 +527,8 @@ export function ContractsCap() {
         density="compact"
         accent="gold"
         responsive="cards"
+        stickyFirstColumn
+        denseCards
         onRowClick={(row) => setSelectedContract(row)}
       />
 

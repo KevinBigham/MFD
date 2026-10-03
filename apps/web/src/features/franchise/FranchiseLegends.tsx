@@ -280,7 +280,7 @@ function FranchiseLegendSourcesPanel({
   ];
 
   return (
-    <PixelPanel title="Franchise Legend Sources" accent="cyan">
+    <PixelPanel title="Franchise Legend Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
         {rows.map((row) => (
           <div

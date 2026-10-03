@@ -15,6 +15,49 @@ describe('design tokens responsive table rules', () => {
   });
 });
 
+describe('design tokens table layout', () => {
+  const cardModeBlock = tokensCss.slice(
+    tokensCss.indexOf('/* Card-mode PixelTable at phone widths'),
+    tokensCss.indexOf('/* Sticky first column'),
+  );
+
+  it('lays phone cards out as a two-column grid with full-width name and control cells', () => {
+    expect(cardModeBlock).toContain('grid-template-columns: repeat(2, minmax(0, 1fr));');
+    expect(cardModeBlock).toContain('grid-column: 1 / -1;');
+    expect(cardModeBlock).toContain('td:has(button, select, input, textarea)');
+  });
+
+  it('puts the self-labelled Manage and Watch buttons side by side without captions', () => {
+    expect(cardModeBlock).toMatch(/td\[data-mfd-table-cell-id="watch"\]\s*\{\s*grid-column: auto;/);
+    expect(cardModeBlock).toMatch(/td\[data-mfd-table-cell-id="watch"\]::before\s*\{\s*content: none;/);
+  });
+
+  it('switches opted-in dense cards to three columns and drops the redundant Name caption', () => {
+    expect(cardModeBlock).toContain('[data-mfd-table-dense="true"] tr');
+    expect(cardModeBlock).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));');
+    expect(cardModeBlock).toMatch(/\[data-mfd-table-dense="true"\] td\[data-mfd-table-cell-id="name"\]::before\s*\{\s*content: none;/);
+  });
+
+  it('lets badges wrap inside dense third-width cells', () => {
+    expect(cardModeBlock).toMatch(/\[data-mfd-table-dense="true"\] td \[data-mfd-pixel-badge\] \{[^}]*white-space: normal !important;/);
+  });
+
+  it('tokenizes the card label size (no literal 8px)', () => {
+    expect(cardModeBlock).toContain('font-size: var(--mfd-fs-8);');
+    expect(cardModeBlock).not.toMatch(/font-size:\s*8px/);
+  });
+
+  it('pins the first column only above the phone breakpoint and keeps its header opaque', () => {
+    const stickyBlock = tokensCss.slice(tokensCss.indexOf('/* Sticky first column'));
+    expect(stickyBlock).toContain('@media (min-width: 481px)');
+    expect(stickyBlock).toContain('[data-mfd-table-sticky-first="true"] td:first-child');
+    expect(stickyBlock).toContain('position: sticky;');
+    expect(stickyBlock).toContain('white-space: nowrap;');
+    expect(stickyBlock).toContain('background: var(--mfd-surface-raised) !important;');
+    expect(stickyBlock).toContain('z-index: 3 !important;');
+  });
+});
+
 describe('design tokens text size scale', () => {
   const sizes = [6, 7, 8, 9, 10, 11, 12, 13, 14];
   const px = (block: string, n: number) => {

@@ -252,7 +252,7 @@ export function buildTradeBlockMarketReason(entry: LeagueTradeBlockEntry): Trade
 
 function TradeBlockSourcePanel({ rows }: { rows: TradeBlockSourceRow[] }) {
   return (
-    <PixelPanel title="Trade Block Source" accent="cyan">
+    <PixelPanel title="Trade Block Source" collapsible defaultCollapsed accent="cyan">
       <div style={autoGrid(220)}>
         {rows.map((row) => (
           <div

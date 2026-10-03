@@ -493,102 +493,6 @@ function ActionCenter(props: ActionCenterProps) {
   return (
     <PixelPanel title="Command Queue" accent={panelAccent}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        {props.game && (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '12px',
-              border: '1px solid var(--mfd-gold-mid)',
-              borderRadius: 'var(--mfd-rad-lg)',
-              background: 'linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent 70%)',
-              flexWrap: 'wrap',
-            }}
-          >
-              <div>
-                <div style={{ ...monoSm, color: 'var(--mfd-gold)' }}>Ask your AGM</div>
-              <div style={{ ...monoSm, color: '#888', marginTop: '2px' }}>Open injury, cap, depth, or matchup fixes before Advance Week</div>
-            </div>
-            <PixelButton
-              accent="gold"
-              onClick={() => setShowAgmModal(true)}
-              data-tutorial-target="agm-recommendations"
-            >
-              <HelpCircle size={12} />
-              Show AGM advice
-            </PixelButton>
-          </div>
-        )}
-
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            padding: '12px',
-            border: '1px solid var(--mfd-border)',
-            borderRadius: 'var(--mfd-rad-lg)',
-            background: 'rgba(255, 255, 255, 0.025)',
-          }}
-        >
-          <div style={{ ...pixelSm, color: 'var(--mfd-cyan)' }}>Living week action plan</div>
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.55 }}>
-            Chip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.
-          </div>
-          <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.55 }}>
-            Any legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available from its normal screen until Advance Week, offer expiration, market window, or phase rule locks that action.
-          </div>
-        </div>
-
-        {postWeekMoment ? (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              padding: '12px',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 'var(--mfd-rad-lg)',
-              background: 'rgba(255, 255, 255, 0.025)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
-                <div style={{ ...monoSm, color: 'var(--mfd-gold)' }}>Last week result</div>
-                <div style={{ ...pixelSm, color: 'var(--mfd-text)', lineHeight: 1.45 }}>
-                  {postWeekMoment.headline.toUpperCase()}
-                </div>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {postWeekMoment.record ? <PixelBadge variant="gold">{postWeekMoment.record}</PixelBadge> : null}
-                  {postWeekMoment.scoreLine ? <PixelBadge variant="cyan">{postWeekMoment.scoreLine}</PixelBadge> : null}
-                  <PixelBadge variant={postWeekMoment.result === 'win' ? 'green' : postWeekMoment.result === 'loss' ? 'red' : 'default'}>
-                    {postWeekMoment.result}
-                  </PixelBadge>
-                </div>
-              </div>
-              <PixelButton accent="cyan" onClick={() => navigateTo('/week-advance')}>
-                <ArrowRight size={12} />
-                Open Advance Week
-              </PixelButton>
-            </div>
-            <div style={{ display: 'grid', gap: '8px' }}>
-              {postWeekMoment.whatNow.slice(0, 2).map((item) => (
-                <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <PixelBadge variant={toneAccent(item.tone)}>{item.label}</PixelBadge>
-                  </div>
-                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{item.detail}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
-              This result is already saved. Reading it does not click Advance Week, create new media, or edit reports.
-            </div>
-          </div>
-        ) : null}
-
         {scenarioLocks.length > 0 ? (
           <div
             style={{
@@ -643,6 +547,35 @@ function ActionCenter(props: ActionCenterProps) {
           onCloseAction={props.onCloseAction}
         />
 
+        {props.game && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px',
+              border: '1px solid var(--mfd-gold-mid)',
+              borderRadius: 'var(--mfd-rad-lg)',
+              background: 'linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent 70%)',
+              flexWrap: 'wrap',
+            }}
+          >
+              <div>
+                <div style={{ ...monoSm, color: 'var(--mfd-gold)' }}>Ask your AGM</div>
+              <div style={{ ...monoSm, color: '#888', marginTop: '2px' }}>Open injury, cap, depth, or matchup fixes before Advance Week</div>
+            </div>
+            <PixelButton
+              accent="gold"
+              onClick={() => setShowAgmModal(true)}
+              data-tutorial-target="agm-recommendations"
+            >
+              <HelpCircle size={12} />
+              Show AGM advice
+            </PixelButton>
+          </div>
+        )}
+
         <WeeklyBoardLane
           title="Recommended"
           subtitle="Open alerts for injuries, cap, depth, owner patience, job security, and matchup calls before Advance Week locks the next game."
@@ -653,6 +586,53 @@ function ActionCenter(props: ActionCenterProps) {
           onCloseAction={props.onCloseAction}
         />
 
+        {postWeekMoment ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              padding: '12px',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 'var(--mfd-rad-lg)',
+              background: 'rgba(255, 255, 255, 0.025)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                <div style={{ ...monoSm, color: 'var(--mfd-gold)' }}>Last week result</div>
+                <div style={{ ...pixelSm, color: 'var(--mfd-text)', lineHeight: 1.45 }}>
+                  {postWeekMoment.headline.toUpperCase()}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {postWeekMoment.record ? <PixelBadge variant="gold">{postWeekMoment.record}</PixelBadge> : null}
+                  {postWeekMoment.scoreLine ? <PixelBadge variant="cyan">{postWeekMoment.scoreLine}</PixelBadge> : null}
+                  <PixelBadge variant={postWeekMoment.result === 'win' ? 'green' : postWeekMoment.result === 'loss' ? 'red' : 'default'}>
+                    {postWeekMoment.result}
+                  </PixelBadge>
+                </div>
+              </div>
+              <PixelButton accent="cyan" onClick={() => navigateTo('/week-advance')}>
+                <ArrowRight size={12} />
+                Open Advance Week
+              </PixelButton>
+            </div>
+            <div style={{ display: 'grid', gap: '8px' }}>
+              {postWeekMoment.whatNow.slice(0, 2).map((item) => (
+                <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <PixelBadge variant={toneAccent(item.tone)}>{item.label}</PixelBadge>
+                  </div>
+                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>{item.detail}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+              This result is already saved. Reading it does not click Advance Week, create new media, or edit reports.
+            </div>
+          </div>
+        ) : null}
+
         <WeeklyBoardLane
           title="Optional"
           subtitle="Prioritize roster, depth, cap, market, staff, and backup choices that alter lineup, cap, offer, staff plan, or matchup before Advance Week."
@@ -660,6 +640,27 @@ function ActionCenter(props: ActionCenterProps) {
           accent="cyan"
           actions={[...OPTIONAL_ACTIONS]}
         />
+        <PixelPanel title="How this plan works" collapsible defaultCollapsed accent="cyan">
+  <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              padding: '12px',
+              border: '1px solid var(--mfd-border)',
+              borderRadius: 'var(--mfd-rad-lg)',
+              background: 'rgba(255, 255, 255, 0.025)',
+            }}
+          >
+            <div style={{ ...pixelSm, color: 'var(--mfd-cyan)' }}>Living week action plan</div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.55 }}>
+              Chip updates this list as the saved week changes. Must Do stops or redirects Advance Week; Recommended names choices to fix or accept; Optional shows legal roster, depth, cap, market, staff, and backup moves. Make those changes before Advance Week, offer expiration, market windows, or phase rules lock them.
+            </div>
+            <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.55 }}>
+              Any legal roster, depth-chart, training, game-plan, cap, trade, waiver, practice-squad, free-agency, scouting, coaching, facility, or medical change remains available from its normal screen until Advance Week, offer expiration, market window, or phase rule locks that action.
+            </div>
+          </div>
+        </PixelPanel>
       </div>
 
       {showAgmModal && (

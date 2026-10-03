@@ -507,7 +507,7 @@ function TradeCenterSourcesPanel({
   ];
 
   return (
-    <PixelPanel title="Trade Center Sources" accent="cyan">
+    <PixelPanel title="Trade Center Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant="cyan">Read models</PixelBadge>

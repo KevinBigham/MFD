@@ -146,7 +146,7 @@ function DraftRecapSourcesPanel({
   activeYear: number | null;
 }) {
   return (
-    <PixelPanel title="Draft Recap Sources" accent="cyan">
+    <PixelPanel title="Draft Recap Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
         {[
           {

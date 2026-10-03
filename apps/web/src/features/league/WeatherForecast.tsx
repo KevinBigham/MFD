@@ -185,7 +185,7 @@ export function WeatherForecastView({
         )}
       />
 
-      <PixelPanel title="Forecast Source" accent="gold">
+      <PixelPanel title="Forecast Source" collapsible defaultCollapsed accent="gold">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <PixelBadge variant="cyan">Saved schedule.weather</PixelBadge>

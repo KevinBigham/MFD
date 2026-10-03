@@ -146,6 +146,41 @@
   white-space: nowrap;
 }
 
+/* Inside the bubble's corner: the bubble clips overflow, so an outside dot would be cut off. */
+.mfd-chip-dock__collapsed-tip {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #0a0f14;
+  border-radius: 50%;
+  background: var(--mfd-gold);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+}
+
+.mfd-chip-dock__collapsed-tip[data-chip-collapsed-tip='must-do'] {
+  background: var(--mfd-red);
+  box-shadow: 0 0 10px rgba(209, 33, 45, 0.8);
+}
+
+.mfd-chip-dock[data-chip-dock-motion='animated'] .mfd-chip-dock__collapsed-tip {
+  animation: mfd-chip-tip-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes mfd-chip-tip-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+
+/* Compact bubble: the pending count already sits on the handle (and in its label), and the
+ * dynasty line is decoration, so neither floats above it and covers content. */
+.mfd-chip-dock[data-chip-dock-state='collapsed'] .mfd-chip-dock__pending-badge,
+.mfd-chip-dock[data-chip-dock-state='collapsed'] .mfd-chip-dock__dynasty-label {
+  display: none;
+}
+
 .mfd-chip-dock__collapsed-icon {
   width: 15px;
   height: 15px;
@@ -735,6 +770,11 @@
     transform: none;
   }
 
+  /* Same specificity as the animated pulse rule and later in the file, so it wins. */
+  .mfd-chip-dock[data-chip-dock-motion='animated'] .mfd-chip-dock__collapsed-tip {
+    animation: none;
+  }
+
   .mfd-chip-dock .mfd-chip-dock__crossfade-outgoing {
     display: none;
     animation: none;
@@ -1164,4 +1204,15 @@
   background: linear-gradient(180deg, rgba(11, 28, 38, 0.97), rgba(3, 6, 10, 0.95));
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
   min-width: 100%;
+}
+
+/* Desktop: the open dock must fit inside the gutter the app shell reserves for it (see
+ * app-shell.css), so it never covers a screen's action buttons. A narrower portrait column
+ * and bubble; the outer width is this max-width plus 24px padding and 2px border. */
+@media (min-width: 1180px) {
+  .mfd-chip-dock[data-chip-dock-state='expanded'] .mfd-chip-dock__panel,
+  .mfd-chip-dock[data-chip-dock-state='expanded'][data-chip-dock-beat='route'] .mfd-chip-dock__panel {
+    grid-template-columns: 84px minmax(0, 1fr);
+    max-width: 360px;
+  }
 }

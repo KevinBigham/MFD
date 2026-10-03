@@ -17,7 +17,7 @@ function navigateTo(path: string) {
 
 function RelocationSourcesPanel({ active }: { active: boolean }) {
   return (
-    <PixelPanel title="Relocation Sources" accent="cyan">
+    <PixelPanel title="Relocation Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant={active ? 'gold' : 'default'}>{active ? 'Selector-gated' : 'No active team'}</PixelBadge>

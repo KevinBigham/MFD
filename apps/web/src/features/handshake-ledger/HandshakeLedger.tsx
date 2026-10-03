@@ -157,7 +157,7 @@ function HandshakeSourcesPanel({
   ];
 
   return (
-    <PixelPanel title="Handshake Sources" accent="cyan">
+    <PixelPanel title="Handshake Sources" collapsible defaultCollapsed accent="cyan">
       <div style={autoGrid(260)}>
         {rows.map((item) => (
           <div

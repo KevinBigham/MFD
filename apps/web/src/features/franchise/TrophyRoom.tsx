@@ -152,7 +152,7 @@ const cardButtonStyle: CSSProperties = {
 
 function TrophySourcesPanel() {
   return (
-    <PixelPanel title="Trophy Sources" accent="cyan">
+    <PixelPanel title="Trophy Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant="gold">SAVE MEMORY</PixelBadge>

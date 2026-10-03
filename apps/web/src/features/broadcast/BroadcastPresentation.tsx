@@ -107,7 +107,7 @@ export function buildBroadcastPresentationSourceRows({
 
 function BroadcastPresentationSources({ rows }: { rows: PresentationSourceRow[] }) {
   return (
-    <PixelPanel title="Presentation Sources" accent="cyan">
+    <PixelPanel title="Presentation Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
         {rows.map((row) => (
           <div

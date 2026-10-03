@@ -72,7 +72,7 @@ export async function exportDynastyChronicleAsPng(
 
 function ChronicleSourcesPanel() {
   return (
-    <PixelPanel title="Chronicle Sources" accent="cyan">
+    <PixelPanel title="Chronicle Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant="gold">saved dynasty memory</PixelBadge>

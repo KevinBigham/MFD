@@ -16,7 +16,7 @@ export interface DynastyEraPromptProps {
 
 function EraNamingSourcesPanel() {
   return (
-    <PixelPanel title="Era Naming Sources" accent="cyan">
+    <PixelPanel title="Era Naming Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant="gold">App prompt gate</PixelBadge>

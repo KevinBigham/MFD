@@ -142,7 +142,7 @@ function ParadeCard({ parade }: { parade: ChampionParade }) {
 
 function SuperBowlSourcesPanel() {
   return (
-    <PixelPanel title="Super Bowl Sources" accent="cyan">
+    <PixelPanel title="Super Bowl Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant="gold">saved playoffBracket</PixelBadge>

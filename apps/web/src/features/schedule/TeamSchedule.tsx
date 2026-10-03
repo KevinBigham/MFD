@@ -201,7 +201,7 @@ export function TeamSchedule() {
         )}
       />
 
-      <PixelPanel title="Schedule Sources" accent="cyan">
+      <PixelPanel title="Schedule Sources" collapsible defaultCollapsed accent="cyan">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
           {sourceRows.map((row) => (
             <div

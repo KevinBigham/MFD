@@ -386,7 +386,7 @@ describe('useChipEvents adapter', () => {
 
   it('provides default dock prefs to bridge construction without touching dynasty saves', () => {
     expect(createDefaultDockPrefs()).toMatchObject({
-      collapsed: false,
+      collapsed: true,
       quietUntilWeek: null,
       quietForSeason: null,
     });

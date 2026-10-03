@@ -252,7 +252,7 @@ export default function StatCentral() {
         badges={<PixelBadge variant="cyan">{leagueLeaders.length} Rows Loaded</PixelBadge>}
       />
 
-      <PixelPanel title="Stat Sources" accent="cyan">
+      <PixelPanel title="Stat Sources" collapsible defaultCollapsed accent="cyan">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
           {statCentralSourceRows.map((row) => (
             <div

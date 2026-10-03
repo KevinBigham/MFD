@@ -976,7 +976,6 @@ function TopNav({
   const lockedSelectedItems = selectedItems
     .map((item) => resolveNavItem(item, navUnlockContext))
     .filter((item) => !item.unlocked && item.path !== activePath);
-  const activeItem = navItemMap.get(activePath);
   const teamName = team ? `${team.city} ${team.name}` : 'No active dynasty';
   const record = team ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}` : '--';
 
@@ -1005,15 +1004,7 @@ function TopNav({
         flexShrink: 0,
       }}
       >
-        <span style={{
-          fontFamily: 'var(--mfd-font-pixel)',
-          fontSize: 'var(--mfd-fs-8)',
-          color: 'var(--mfd-green)',
-          letterSpacing: 0,
-        }}>
-          MFD NETWORK
-        </span>
-        <span style={{
+        <span className="mfd-app-brand-mark" style={{
           fontFamily: 'var(--mfd-font-display)',
           fontSize: '34px',
           lineHeight: 1,
@@ -1023,6 +1014,7 @@ function TopNav({
           MFD
         </span>
         <span className="mfd-app-brand-subtitle">{teamName}</span>
+        <span className="mfd-app-brand-context">{record} · Week {week} · {year || '--'}</span>
       </div>
 
       <div className="mfd-app-nav-groups" style={{
@@ -1031,12 +1023,6 @@ function TopNav({
         display: 'grid',
         gap: '10px',
       }}>
-        <div className="mfd-app-context-strip">
-          <span>{activeItem?.label ?? 'Command Center'}</span>
-          <span>{record}</span>
-          <span>Week {week}</span>
-          <span>Season {year || '--'}</span>
-        </div>
         <nav className="mfd-app-nav-group-rail" aria-label="Franchise command groups">
           {visibleGroups.map((group) => {
             const active = group.id === activeGroupId;
@@ -1069,20 +1055,11 @@ function TopNav({
             <div
               className="mfd-app-nav-unlocks"
               aria-label={`${selectedGroup.label} routes that unlock later`}
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '6px',
-                alignItems: 'center',
-                color: 'var(--mfd-text-faint)',
-                fontFamily: 'var(--mfd-font-mono)',
-                fontSize: 'var(--mfd-fs-10)',
-                lineHeight: 1.45,
-              }}
+              title={lockedSelectedItems.map((item) => `${item.shortLabel}: ${item.unlockLabel}`).join(' · ')}
             >
-              <span style={{ color: 'var(--mfd-cyan)', fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-7)' }}>LATER</span>
+              <span className="mfd-app-nav-unlocks-label">LATER</span>
               {lockedSelectedItems.map((item) => (
-                <span key={item.path}>
+                <span key={item.path} className="mfd-app-nav-unlocks-item">
                   {item.shortLabel}: {item.unlockLabel}
                 </span>
               ))}

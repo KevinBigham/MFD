@@ -8,6 +8,10 @@ interface PixelPanelProps {
   padding?: 'none' | 'sm' | 'md' | 'lg';
   className?: string;
   style?: CSSProperties;
+  /** Make the title a native disclosure that shows or hides the body (no JS state; the body stays in the DOM). */
+  collapsible?: boolean;
+  /** With `collapsible`: start with the body hidden. */
+  defaultCollapsed?: boolean;
 }
 
 const accentBorder: Record<string, string> = {
@@ -43,7 +47,42 @@ export function PixelPanel({
   padding = 'md',
   className,
   style,
+  collapsible = false,
+  defaultCollapsed = false,
 }: PixelPanelProps) {
+  const canCollapse = collapsible && Boolean(title);
+  const headerStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    minHeight: '40px',
+    padding: '9px 13px',
+    borderBottom: `1px solid ${accent === 'default' ? 'var(--mfd-border)' : accentBorder[accent]}`,
+    background: `linear-gradient(90deg, ${accentWash[accent]}, transparent 72%), rgba(0, 0, 0, 0.16)`,
+  };
+  const titleContent = title ? (
+    <>
+      <span
+        aria-hidden="true"
+        style={{
+          width: '18px',
+          height: '4px',
+          background: accentTitleColor[accent],
+          boxShadow: `0 0 16px ${accentTitleColor[accent]}`,
+          flex: '0 0 auto',
+        }}
+      />
+      <span style={{
+        fontFamily: 'var(--mfd-font-pixel)',
+        fontSize: 'var(--mfd-fs-9)',
+        lineHeight: 1.35,
+        color: accentTitleColor[accent],
+        letterSpacing: 0,
+      }}>
+        {title.toUpperCase()}
+      </span>
+    </>
+  ) : null;
   return (
     <section
       data-mfd-pixel-panel="true"
@@ -61,40 +100,39 @@ export function PixelPanel({
         ...style,
       }}
     >
-      {title && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          minHeight: '40px',
-          padding: '9px 13px',
-          borderBottom: `1px solid ${accent === 'default' ? 'var(--mfd-border)' : accentBorder[accent]}`,
-          background: `linear-gradient(90deg, ${accentWash[accent]}, transparent 72%), rgba(0, 0, 0, 0.16)`,
-        }}>
-          <span
-            aria-hidden="true"
-            style={{
-              width: '18px',
-              height: '4px',
-              background: accentTitleColor[accent],
-              boxShadow: `0 0 16px ${accentTitleColor[accent]}`,
-              flex: '0 0 auto',
-            }}
-          />
-          <span style={{
-            fontFamily: 'var(--mfd-font-pixel)',
-            fontSize: 'var(--mfd-fs-9)',
-            lineHeight: 1.35,
-            color: accentTitleColor[accent],
-            letterSpacing: 0,
-          }}>
-            {title.toUpperCase()}
-          </span>
-        </div>
+      {title && canCollapse ? (
+        <details data-mfd-panel-details="true" open={!defaultCollapsed}>
+          <summary data-mfd-panel-toggle="true" style={{ ...headerStyle, cursor: 'pointer' }}>
+            {titleContent}
+            <span
+              data-mfd-panel-toggle-label="true"
+              aria-hidden="true"
+              style={{
+                marginLeft: 'auto',
+                fontFamily: 'var(--mfd-font-pixel)',
+                fontSize: 'var(--mfd-fs-8)',
+                color: 'var(--mfd-text-dim)',
+                letterSpacing: 0,
+                whiteSpace: 'nowrap',
+              }}
+            />
+          </summary>
+          <div style={{ padding: paddingMap[padding] }}>
+            {children}
+          </div>
+        </details>
+      ) : (
+        <>
+          {title ? (
+            <div style={headerStyle}>
+              {titleContent}
+            </div>
+          ) : null}
+          <div style={{ padding: paddingMap[padding] }}>
+            {children}
+          </div>
+        </>
       )}
-      <div style={{ padding: paddingMap[padding] }}>
-        {children}
-      </div>
     </section>
   );
 }
