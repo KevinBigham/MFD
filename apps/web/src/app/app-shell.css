@@ -293,6 +293,30 @@ html[data-mfd-chip-dock='expanded'] [data-mfd-chip-enabled='true'] .mfd-app-main
 }
 
 @media (max-width: 768px) {
+  /* Phones navigate with the bottom tab bar and its More drawer, so the header keeps only the
+   * brand line and the action buttons, and scrolls away instead of pinning. */
+  .mfd-app-top-nav {
+    position: static;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'brand'
+      'actions';
+    gap: 6px !important;
+    padding: 6px 10px !important;
+  }
+
+  .mfd-app-nav-groups {
+    display: none !important;
+  }
+
+  .mfd-app-nav-actions {
+    justify-content: flex-start;
+  }
+
+  .mfd-app-nav-actions kbd {
+    display: none;
+  }
+
   .mfd-app-main {
     padding: 12px 10px calc(var(--mfd-mobile-nav-height) + 64px + env(safe-area-inset-bottom, 0)) !important;
   }

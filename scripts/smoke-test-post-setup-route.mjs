@@ -92,7 +92,7 @@ const defaultPostImportRouteCheck = Object.freeze({
 });
 
 const g6CoreUxRouteChecks = Object.freeze([
-  { route: '/', text: 'Living Week' },
+  { route: '/', text: 'Command Queue' },
   { route: '/roster', text: 'Roster Sources' },
   { route: '/depth-chart', text: 'Depth Chart Sources' },
   { route: '/game-plan', text: 'Weekly Prep Sources' },
@@ -110,7 +110,7 @@ const g6CoreUxRouteChecks = Object.freeze([
 ]);
 
 const g6FocusSweepRouteChecks = Object.freeze([
-  { route: '/', text: 'Living Week' },
+  { route: '/', text: 'Command Queue' },
   { route: '/roster', text: 'Roster Sources' },
   { route: '/contracts', text: 'Contract Sources' },
   { route: '/trades', text: 'Trade Center Sources' },
@@ -121,7 +121,7 @@ const g6FocusSweepRouteChecks = Object.freeze([
 ]);
 
 const g6VisualSweepRouteChecks = Object.freeze([
-  { route: '/', text: 'Living Week' },
+  { route: '/', text: 'Command Queue' },
   { route: '/week-advance', text: 'Advance Week' },
   { route: '/roster', text: 'Roster Sources' },
   { route: '/depth-chart', text: 'Depth Chart Sources' },
@@ -6716,7 +6716,7 @@ async function runChipAskSummarySmoke(cdp, sessionId, baseUrl) {
   console.log('Running Chip Ask summary smoke...');
 
   await setHashRoute(cdp, sessionId, route);
-  await waitForBodyText(cdp, sessionId, 'Living Week', 'Chip Ask summary briefing shell');
+  await waitForBodyText(cdp, sessionId, 'Command Queue', 'Chip Ask summary briefing shell');
   await clearVisibleChipRouteBeats(cdp, sessionId, 'Chip Ask summary route beat clearing');
 
   await waitFor('clickable Where am I control for Ask Chip summary', () => evaluate(cdp, sessionId, `
@@ -6967,7 +6967,7 @@ async function runChipMondayBeatChainSmoke(cdp, sessionId, baseUrl) {
   console.log('Running Chip Monday route beat-chain smoke...');
 
   await setHashRoute(cdp, sessionId, route);
-  await waitForBodyText(cdp, sessionId, 'Living Week', 'Chip Monday beat-chain briefing shell');
+  await waitForBodyText(cdp, sessionId, 'Command Queue', 'Chip Monday beat-chain briefing shell');
   await waitForChipRouteBeatText(
     cdp,
     sessionId,

@@ -31,6 +31,7 @@
 - Principle 2: Preserve the broadcast/pixel identity through tokens, panel chrome, badges, and Chip art rather than new decorative layers.
 - Principle 3: Treat save, load, import, and export as trust-critical flows with calm copy and explicit failure states.
 - Principle 4: Design mobile as a playable narrow command surface, not a squeezed desktop.
+- Decision first: a screen's decisions (Next Call, Must Do, action buttons) come before any explanation of where its data comes from. "Sources" explainer panels are collapsed by default (`PixelPanel collapsible defaultCollapsed`); a panel that holds a control or confirms a player action stays open.
 - Tradeoffs: density is part of the sim's appeal, but first-run paths need stronger hierarchy than expert screens.
 
 ## Visual language
@@ -59,6 +60,8 @@
 ## Responsive behavior
 - Supported breakpoints/devices: phone portrait around 480px, phone landscape/small tablet around 768px, tablet/small desktop around 1024px, wide desktop command layout.
 - Layout adaptations: desktop can use multi-column command layouts; launch/setup screens should collapse to one column on mobile; team/difficulty grids should avoid fixed 4-column overflow.
+- App-shell header: on desktop it carries the brand with the record/week/season, the group rail, the active group's routes and a one-line "Later" list of locked routes; below 760px of window height it scrolls away instead of pinning. At phone width (<=768px) navigation is the bottom tab bar and its More drawer, so the header keeps only the brand line and the action buttons.
+- Wide tables can pin their first column (`PixelTable stickyFirstColumn`, above the phone breakpoint); phone card mode can lay short stats out three across (`denseCards`).
 - Touch/hover differences: hover polish is optional; focus and touch target size are mandatory.
 
 ## Interaction states

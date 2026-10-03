@@ -130,7 +130,7 @@ test('parses the opt-in G6 core UX route matrix', () => {
   assert.equal(shouldRunG6CoreUxSmoke({ SMOKE_G6_CORE_UX: 'true' }), true);
   assert.equal(shouldRunG6CoreUxSmoke({ SMOKE_G6_CORE_UX: 'YES' }), true);
   assert.deepEqual(parsePostSetupRouteChecks({ SMOKE_G6_CORE_UX: '1' }), [
-    { route: '/', text: 'Living Week' },
+    { route: '/', text: 'Command Queue' },
     { route: '/roster', text: 'Roster Sources' },
     { route: '/depth-chart', text: 'Depth Chart Sources' },
     { route: '/game-plan', text: 'Weekly Prep Sources' },

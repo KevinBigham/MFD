@@ -37,6 +37,14 @@ describe('app shell responsive layout CSS', () => {
     expect(shellCss).toMatch(/@media \(min-width: 769px\) and \(max-height: 760px\) \{\s*\.mfd-app-top-nav \{\s*position: static;/);
   });
 
+  it('trims the phone header to the brand line and actions because the bottom tab bar navigates', () => {
+    const phone = shellCss.slice(shellCss.indexOf('@media (max-width: 768px)'));
+    const phoneHeader = phone.slice(0, phone.indexOf('.mfd-app-main {'));
+    expect(phoneHeader).toContain('position: static;');
+    expect(phoneHeader).toMatch(/\.mfd-app-nav-groups \{\s*display: none !important;/);
+    expect(phoneHeader).toMatch(/\.mfd-app-nav-actions kbd \{\s*display: none;/);
+  });
+
   it('adds horizontal nav rail affordance and reduced-motion protection', () => {
     expect(shellCss).toContain('.mfd-app-nav-active-strip::after');
     expect(shellCss).toContain('@media (prefers-reduced-motion: reduce)');
