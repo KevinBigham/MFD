@@ -1753,6 +1753,12 @@ describe('compact-first Chip dock', () => {
     })).toBe(true);
     expect(hasUnreadWeeklyDialogue({ ...base, dialogueKey: null })).toBe(false);
     expect(hasUnreadWeeklyDialogue({ ...base, hasDialogueChild: false })).toBe(false);
+    // the identical id and text one week later (a win streak) is still a new message
+    expect(hasUnreadWeeklyDialogue({
+      ...base,
+      dialogueKey: weeklyDialogueKey('chip.weekly.cleanWin', 'Clean win, coach.', 2026, 4),
+      viewedKey: weeklyDialogueKey('chip.weekly.cleanWin', 'Clean win, coach.', 2026, 3),
+    })).toBe(true);
     expect(weeklyDialogueKey(null, 'x')).toBeNull();
     expect(resolveBubbleTapView(true)).toBe('dialogue');
     expect(resolveBubbleTapView(false)).toBe('askChip');

@@ -166,9 +166,17 @@ export function isMustDoRouteBeat(beat: Pick<RouteBeat, 'text'> | null): boolean
   return beat !== null && /^must do\b/i.test(beat.text.trim());
 }
 
-/** Identifies one weekly message: ids repeat across weeks (same outcome and variant), the text does not always. */
-export function weeklyDialogueKey(id: string | null, text: string | null): string | null {
-  return id === null ? null : `${id}\u0000${text ?? ''}`;
+/**
+ * Identifies one weekly message. Ids repeat across weeks (same outcome and variant) and so can
+ * the text, so the season and week are part of the key.
+ */
+export function weeklyDialogueKey(
+  id: string | null,
+  text: string | null,
+  season = 0,
+  week = 0,
+): string | null {
+  return id === null ? null : `${season}:${week}\u0000${id}\u0000${text ?? ''}`;
 }
 
 /**
@@ -674,6 +682,8 @@ export function ChipDock({
   const currentDialogueKey = weeklyDialogueKey(
     useChipStore.getState().currentDialogueId,
     useChipStore.getState().currentDialogueText,
+    currentSeason,
+    currentWeek,
   );
   useChipStore((state) => state.lastWeeklyDialogue);
   const lastWeeklyDialogue = useChipStore.getState().lastWeeklyDialogue;
