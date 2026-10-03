@@ -528,6 +528,7 @@ export function ContractsCap() {
         accent="gold"
         responsive="cards"
         stickyFirstColumn
+        denseCards
         onRowClick={(row) => setSelectedContract(row)}
       />
 

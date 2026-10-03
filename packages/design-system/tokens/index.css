@@ -366,6 +366,13 @@
   [data-mfd-table-mode="cards"][data-mfd-table-dense="true"] td[data-mfd-table-cell-id="name"]::before {
     content: none;
   }
+  /* Badges carry an inline nowrap; in a third-width cell a long label must wrap, not poke out. */
+  [data-mfd-table-mode="cards"][data-mfd-table-dense="true"] td [data-mfd-pixel-badge] {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
+    white-space: normal !important;
+  }
   /* Manage and Watch are self-labelled buttons: drop the caption and share one row. */
   [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="manage"],
   [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="watch"] {

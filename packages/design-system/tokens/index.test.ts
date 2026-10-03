@@ -38,6 +38,10 @@ describe('design tokens table layout', () => {
     expect(cardModeBlock).toMatch(/\[data-mfd-table-dense="true"\] td\[data-mfd-table-cell-id="name"\]::before\s*\{\s*content: none;/);
   });
 
+  it('lets badges wrap inside dense third-width cells', () => {
+    expect(cardModeBlock).toMatch(/\[data-mfd-table-dense="true"\] td \[data-mfd-pixel-badge\] \{[^}]*white-space: normal !important;/);
+  });
+
   it('tokenizes the card label size (no literal 8px)', () => {
     expect(cardModeBlock).toContain('font-size: var(--mfd-fs-8);');
     expect(cardModeBlock).not.toMatch(/font-size:\s*8px/);
