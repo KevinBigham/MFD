@@ -58,7 +58,7 @@ Open the printed preview URL, usually `http://localhost:4173/MFD/`.
 17. Import the valid exported cartridge.
 18. Try invalid import text and confirm this message: `That file does not look like a valid MFD save. Your current dynasty was not changed. Try exporting again or choose a different file.`
 19. If a Week 9 fixture or dev save is provided, load it and check the live trade-deadline countdown, trade impact, and cap/future-cost copy. Do not block ship only because there is no public Week 9 jump button.
-20. Launch the Convention Demo for the Week 14 late-season path.
+20. Load a Week 14 save through Import Backup Code for the late-season path.
 21. Check Trade Center, Standings, Power Rankings, League Pulse, Records, Scouting, and Draft.
 22. Advance into the playoff sample if practical.
 23. Visit Playoff Lore and Super Bowl.

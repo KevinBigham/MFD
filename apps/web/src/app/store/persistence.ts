@@ -1,4 +1,5 @@
 import {
+  emptyPlayerStats,
   ensureAgentsInitialized,
   SAVE_VERSION,
   SaveStateSchema,
@@ -6,6 +7,7 @@ import {
   migrate,
   parseCartridge,
   type GameState,
+  type Player,
 } from '@mfd/engine';
 import {
   deleteSave,
@@ -21,6 +23,30 @@ import {
 
 function getUserTeam(game: GameState) {
   return Object.values(game.teams).find((team) => team.isUser) ?? null;
+}
+
+/**
+ * The save schema validates the global `players` map with a player schema that has no
+ * current-season `stats` block and no full `name` (and drops other derived fields), but
+ * every team roster keeps the complete player. Screens such as Analytics and Stat Central
+ * read those fields straight from the map, so a freshly loaded dynasty crashed them.
+ *
+ * Mirror the engine's own `syncPlayers`: point each map entry at its roster player (which
+ * restores every field with its real value), then give players on no roster an empty stats
+ * block and a name built from first and last name.
+ */
+function restoreTransientPlayerFields(game: GameState): void {
+  const fill = (player: Player) => {
+    player.stats = { ...emptyPlayerStats(), ...(player.stats ?? {}) };
+    if (!player.name) player.name = `${player.firstName} ${player.lastName}`.trim();
+  };
+  for (const team of Object.values(game.teams)) {
+    for (const player of team.roster) {
+      fill(player);
+      game.players[player.id] = player;
+    }
+  }
+  for (const player of Object.values(game.players)) fill(player);
 }
 
 function normalizeImportedGame(raw: unknown): GameState {
@@ -40,6 +66,7 @@ function normalizeImportedGame(raw: unknown): GameState {
 
   const game = result.data as unknown as GameState;
   ensureAgentsInitialized(game);
+  restoreTransientPlayerFields(game);
   return game;
 }
 

@@ -104,6 +104,66 @@ describe('persistence import helpers', () => {
 });
 
 
+describe('persistence loaded-player fields', () => {
+  function loadWith(mutate?: (game: ReturnType<typeof createSeedGameState>) => void) {
+    const game = createSeedGameState(42, 0, 'pro');
+    mutate?.(game);
+    const built = buildCartridge(game);
+    if (!built.ok) throw new Error(built.error);
+    return { game, loaded: loadImportedCartridge(built.json) };
+  }
+
+  it('gives every loaded player a name and a stats block (the schema does not persist them on the players map)', () => {
+    const { loaded } = loadWith();
+
+    const mapPlayers = Object.values(loaded.players);
+    expect(mapPlayers.length).toBeGreaterThan(0);
+    for (const player of mapPlayers) {
+      expect(player.name).toBe(`${player.firstName} ${player.lastName}`.trim());
+      expect(player.stats).toBeDefined();
+      expect(player.stats.passYds).toBe(0);
+      expect(player.stats.gamesPlayed).toBe(0);
+    }
+    for (const team of Object.values(loaded.teams)) {
+      for (const player of team.roster) {
+        expect(player.name.length).toBeGreaterThan(0);
+        expect(player.stats.rushYds).toBe(0);
+      }
+    }
+  });
+
+  it('restores a rostered player real stats from the roster copy instead of zeroing them', () => {
+    let targetId = '';
+    const { loaded } = loadWith((game) => {
+      const roster = Object.values(game.teams).find((team) => team.isUser)!.roster;
+      const target = roster.find((player) => player.pos === 'QB') ?? roster[0]!;
+      targetId = target.id;
+      target.stats = { ...target.stats, passYds: 1234, gamesPlayed: 9 };
+    });
+
+    const rostered = Object.values(loaded.teams).flatMap((team) => team.roster).find((player) => player.id === targetId)!;
+    expect(rostered.stats.passYds).toBe(1234);
+    expect(loaded.players[targetId]).toBe(rostered);
+    expect(loaded.players[targetId]!.stats.gamesPlayed).toBe(9);
+  });
+
+  it('fills a player who is on no roster with zeros and a derived name', () => {
+    let orphanId = '';
+    const { loaded } = loadWith((game) => {
+      const clone = structuredClone(Object.values(game.players)[0]!);
+      orphanId = 'orphan-player-for-test';
+      clone.id = orphanId;
+      clone.teamId = null;
+      clone.firstName = 'Test';
+      clone.lastName = 'Orphan';
+      game.players[orphanId] = clone;
+    });
+
+    expect(loaded.players[orphanId]!.name).toBe('Test Orphan');
+    expect(loaded.players[orphanId]!.stats.passYds).toBe(0);
+  });
+});
+
 /** Real cartridge normalization with mocked storage boundaries; not native IDB proof. */
 describe('persistence save-slot read boundaries', () => {
   function currentSlot(id = 7): SaveSlot {

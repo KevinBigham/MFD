@@ -104,7 +104,6 @@
 .mfd-launch-primary-command,
 .mfd-launch-support-stack,
 .mfd-recovery-card,
-.mfd-convention-card,
 .mfd-launch-actions {
   min-width: 0;
   display: flex;
@@ -305,7 +304,6 @@
 .mfd-scenario-card:focus-visible,
 .mfd-primary-launch-button:focus-visible,
 .mfd-secondary-launch-button:focus-visible,
-.mfd-demo-launch-button:focus-visible,
 .mfd-import-textarea:focus-visible {
   outline: none;
   box-shadow: var(--mfd-focus-ring);
@@ -415,7 +413,6 @@
 .mfd-difficulty-card-desc,
 .mfd-setup-path-desc,
 .mfd-new-game-guide,
-.mfd-convention-card p,
 .mfd-recovery-card p,
 .mfd-import-help {
   margin: 0;
@@ -514,8 +511,7 @@
 }
 
 .mfd-primary-launch-button,
-.mfd-secondary-launch-button,
-.mfd-demo-launch-button {
+.mfd-secondary-launch-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -544,12 +540,6 @@
   border: 2px solid var(--mfd-cyan);
   background: rgba(0, 229, 255, 0.08);
   color: var(--mfd-cyan);
-}
-
-.mfd-demo-launch-button {
-  border: 2px solid var(--mfd-green);
-  background: rgba(74, 222, 128, 0.08);
-  color: var(--mfd-green);
 }
 
 .mfd-secondary-launch-button:disabled {
@@ -711,8 +701,7 @@
   }
 
   .mfd-primary-launch-button,
-  .mfd-secondary-launch-button,
-  .mfd-demo-launch-button {
+  .mfd-secondary-launch-button {
     width: 100%;
   }
 }
