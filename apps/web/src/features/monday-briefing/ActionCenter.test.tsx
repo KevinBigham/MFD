@@ -73,6 +73,24 @@ describe('ActionCenter', () => {
     expect(html).toContain('15/22 starters');
   });
 
+  it('folds the why/consequence/where detail away when nothing is required', () => {
+    const html = renderToStaticMarkup(
+      <ActionCenter
+        phase="regular_season"
+        hasGamePlan
+        starterCount={25}
+        tradeOfferCount={0}
+        ownerApproval={70}
+        injuredCount={0}
+      />,
+    );
+
+    expect(html).toContain('Ready for Advance Week');
+    expect(html).toContain('Why this is clear');
+    expect(html).toMatch(/<details[^>]*data-mfd-board-details[^>]*>(?:(?!<\/details>)[\s\S])*Must Do: none right now\./);
+    expect(html).not.toMatch(/<details[^>]*data-mfd-board-details[^>]*open/);
+  });
+
   it('leads with the Must Do lane and keeps the how-it-works copy collapsed at the bottom', () => {
     const game = createSeedGameState(42, 0, 'pro');
 
