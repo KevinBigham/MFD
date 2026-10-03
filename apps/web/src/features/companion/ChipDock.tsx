@@ -176,14 +176,18 @@ export function shouldCollapseForRouteBeat({
   waitingRouteBeats,
   phoneWidth,
   opened,
+  closedByPlayer = false,
 }: {
   activeRouteBeat: Pick<RouteBeat, 'text'> | null;
   /** Unread beats from the current one onward; defaults to just the active beat. */
   waitingRouteBeats?: ReadonlyArray<Pick<RouteBeat, 'text'>>;
   phoneWidth: boolean;
   opened: boolean;
+  /** The player collapsed or quieted Chip on this screen: stay a bubble even if a Must Do is queued. */
+  closedByPlayer?: boolean;
 }): boolean {
   if (activeRouteBeat === null || opened) return false;
+  if (closedByPlayer) return true;
   const waiting = waitingRouteBeats ?? [activeRouteBeat];
   return phoneWidth || !waiting.some(isMustDoRouteBeat);
 }
@@ -641,11 +645,12 @@ export function ChipDock({
   useChipStore((state) => state.dialogueQueue);
   const dialogueQueueRemaining = useChipStore.getState().dialogueQueue.length;
   const dialogueQueueTotal = useChipStore.getState().dialogueQueueTotal;
-  const [localCollapsed, setLocalCollapsed] = useState(prefs.collapsed);
-  // Compact-first players (the default) open the dock for one screen at a time: the route it was
-  // opened on is remembered, so moving on or finishing the conversation returns it to the bubble.
+  // Chip is a bubble that opens for one screen at a time: the route it was opened on is
+  // remembered, so moving on or finishing the conversation returns it to the bubble. The old
+  // stored "collapsed" preference (which older versions wrote as false after any dock tap) is
+  // not consulted, so returning players get the same compact dock as new ones.
   const [openedRoute, setOpenedRoute] = useState<string | null>(null);
-  const compactFirst = prefs.collapsed;
+  const [closedByPlayerRoute, setClosedByPlayerRoute] = useState<string | null>(null);
   // E4: the three quiet controls (screen/week/season) live inside one quiet
   // menu; the trigger toggles this state and picking an option closes it.
   const [quietMenuOpen, setQuietMenuOpen] = useState(quietMenuDefaultOpen);
@@ -694,7 +699,7 @@ export function ChipDock({
   const [liveBeatRoute, setLiveBeatRoute] = useState<string | null>(null);
   // Compact-first: a live beat belongs to the screen it was opened on, so it never keeps the next
   // screen's dock expanded.
-  const activeLiveBeat = compactFirst && liveBeatRoute !== resolvedRoute ? null : storedLiveBeat;
+  const activeLiveBeat = liveBeatRoute !== resolvedRoute ? null : storedLiveBeat;
   const [mobileRouteCoach, setMobileRouteCoach] = useState(false);
   const [routeCoachOpenedFor, setRouteCoachOpenedFor] = useState<string | null>(
     routeBeatDefaultOpen ? resolvedRoute : null,
@@ -707,22 +712,18 @@ export function ChipDock({
     [resolvedRoute],
   );
   const openDock = useCallback(() => {
-    setLocalCollapsed(false);
     setOpenedRoute(resolvedRoute);
+    setClosedByPlayerRoute(null);
   }, [resolvedRoute]);
-  const closeDock = useCallback(() => {
-    setLocalCollapsed(true);
-    setOpenedRoute(null);
-  }, []);
-  const returnToBubble = useCallback(() => {
-    if (compactFirst) closeDock();
-  }, [closeDock, compactFirst]);
+  const returnToBubble = useCallback(() => setOpenedRoute(null), []);
   // Leaving a screen forgets that it was opened, so coming back later starts as the bubble again.
   useEffect(() => {
     setOpenedRoute((current) => (current === resolvedRoute ? current : null));
     setRouteCoachOpenedFor((current) => (current === resolvedRoute ? current : null));
-    if (compactFirst && liveBeatRoute !== resolvedRoute) setStoredLiveBeat(null);
-  }, [compactFirst, liveBeatRoute, resolvedRoute]);
+    setClosedByPlayerRoute((current) => (current === resolvedRoute ? current : null));
+    setQuietMenuOpen(false);
+    if (liveBeatRoute !== resolvedRoute) setStoredLiveBeat(null);
+  }, [liveBeatRoute, resolvedRoute]);
   const showLiveBeat = useCallback((beat: DockLiveBeat) => {
     setStoredLiveBeat(beat);
     setLiveBeatRoute(resolvedRoute);
@@ -741,17 +742,18 @@ export function ChipDock({
     ? eligibleRouteBeats.slice(Math.min(routeBeatIndex, eligibleRouteBeats.length - 1))
     : [];
   const mustDoWaiting = waitingRouteBeats.some(isMustDoRouteBeat);
-  const preferRouteBeatCollapsed = compactFirst && shouldCollapseForRouteBeat({
+  const preferRouteBeatCollapsed = shouldCollapseForRouteBeat({
     activeRouteBeat,
     waitingRouteBeats,
     phoneWidth: mobileRouteCoach,
     opened: routeCoachOpened,
+    closedByPlayer: closedByPlayerRoute === resolvedRoute,
   });
   const effectiveCollapsed = resolveEffectiveDockCollapsed({
     activeRouteBeat: activeRouteBeat !== null,
     activeLiveBeat: activeLiveBeat !== null,
     controlledCollapsed: collapsed,
-    localCollapsed: compactFirst ? openedRoute !== resolvedRoute : localCollapsed,
+    localCollapsed: openedRoute !== resolvedRoute,
     preferRouteBeatCollapsed,
   });
   // The app shell reserves runway for the dock only while it is expanded; set before paint so a
@@ -903,22 +905,21 @@ export function ChipDock({
       });
       setPrefs(nextPrefs);
       if (ROUTE_BEAT_DISMISS_CONTROLS.has(control)) {
-        closeDock();
+        returnToBubble();
         setRouteCoachOpened(false);
+        setClosedByPlayerRoute(resolvedRoute);
       }
       if (control === 'expand') {
         openDock();
         setRouteCoachOpened(true);
         if (!activeRouteBeat) showAskChipBeat();
       }
-      if (control === 'disableAnimations') setLocalCollapsed(nextPrefs.collapsed);
       onCollapseToggle?.();
     },
     [
       activeLiveBeat,
       activeRouteBeat,
       backingStorage,
-      closeDock,
       currentSeason,
       currentWeek,
       dismissLiveBeat,
@@ -927,6 +928,7 @@ export function ChipDock({
       onCollapseToggle,
       openDock,
       resolvedRoute,
+      returnToBubble,
       setRouteCoachOpened,
       showAskChipBeat,
     ],

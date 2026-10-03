@@ -764,11 +764,15 @@
   .mfd-chip-dock .mfd-chip-dock__portrait-stage::after,
   .mfd-chip-dock .mfd-chip-dock__controls,
   .mfd-chip-dock .mfd-chip-dock__pending-badge,
-  .mfd-chip-dock .mfd-chip-dock__collapsed-tip,
   .mfd-chip-dock .mfd-chip-dock__control {
     transition: opacity 80ms steps(2, end);
     animation: none;
     transform: none;
+  }
+
+  /* Same specificity as the animated pulse rule and later in the file, so it wins. */
+  .mfd-chip-dock[data-chip-dock-motion='animated'] .mfd-chip-dock__collapsed-tip {
+    animation: none;
   }
 
   .mfd-chip-dock .mfd-chip-dock__crossfade-outgoing {

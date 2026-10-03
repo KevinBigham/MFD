@@ -50,6 +50,7 @@ describe('design tokens table layout', () => {
     expect(stickyBlock).toContain('position: sticky;');
     expect(stickyBlock).toContain('white-space: nowrap;');
     expect(stickyBlock).toContain('background: var(--mfd-surface-raised) !important;');
+    expect(stickyBlock).toContain('z-index: 3 !important;');
   });
 });
 

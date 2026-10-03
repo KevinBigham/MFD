@@ -370,6 +370,17 @@ describe('ChipDock', () => {
     expect(markup).toContain('aria-label="Ask Chip about this screen, tip waiting, 3 decisions pending"');
   });
 
+  it('ignores an old stored collapsed:false so returning players get the compact dock too', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    const storage = new MemoryStorage();
+    storage.setItem(CHIP_DOCK_STORAGE_KEY, JSON.stringify({ ...createDefaultDockPrefs(), collapsed: false }));
+
+    const markup = renderDock(<ChipDock routeBeats={ROUTE_BEAT_REGISTRY.roster} storage={storage} />);
+
+    expect(markup).toContain('data-chip-dock-state="collapsed"');
+    expect(markup).toContain('data-chip-collapsed-tip="tip"');
+  });
+
   it('defaults to the compact bubble when nothing is waiting', () => {
     vi.stubEnv('VITE_CHIP_ENABLED', 'true');
 
@@ -836,7 +847,12 @@ describe('ChipDock', () => {
 
   it('stops the compact tip dot pulse under OS reduced motion and keeps the dot unclipped', () => {
     const mediaReduce = chipDockCss.slice(chipDockCss.indexOf('@media (prefers-reduced-motion: reduce)'));
-    expect(mediaReduce).toContain('.mfd-chip-dock__collapsed-tip');
+    // Must match the pulse rule's specificity exactly (and come later) or the pulse still wins.
+    expect(mediaReduce).toMatch(
+      /\.mfd-chip-dock\[data-chip-dock-motion='animated'\] \.mfd-chip-dock__collapsed-tip \{\s*animation: none;/,
+    );
+    expect(chipDockCss.indexOf("[data-chip-dock-motion='animated'] .mfd-chip-dock__collapsed-tip {\n  animation: mfd-chip-tip-pulse"))
+      .toBeLessThan(chipDockCss.indexOf("[data-chip-dock-motion='animated'] .mfd-chip-dock__collapsed-tip {\n    animation: none;"));
     const tipRule = chipDockCss.slice(chipDockCss.indexOf('.mfd-chip-dock__collapsed-tip {'));
     expect(tipRule.slice(0, tipRule.indexOf('}'))).toMatch(/top: 3px;[\s\S]*right: 3px;/);
   });
@@ -1702,6 +1718,24 @@ describe('compact-first Chip dock', () => {
       phoneWidth: true,
       opened: false,
     })).toBe(true);
+  });
+
+  it('stays a bubble when the player closed Chip on this screen, even with a Must Do queued', () => {
+    expect(shouldCollapseForRouteBeat({
+      activeRouteBeat: recommended,
+      waitingRouteBeats: [recommended, mustDo],
+      phoneWidth: false,
+      opened: false,
+      closedByPlayer: true,
+    })).toBe(true);
+    // tapping the bubble again opens it regardless
+    expect(shouldCollapseForRouteBeat({
+      activeRouteBeat: recommended,
+      waitingRouteBeats: [recommended, mustDo],
+      phoneWidth: false,
+      opened: true,
+      closedByPlayer: true,
+    })).toBe(false);
   });
 
   it('starts every new dock in the compact state', () => {

@@ -409,7 +409,8 @@
   }
   /* The header cell sets an inline translucent background; it must be opaque here. */
   [data-mfd-table-sticky-first="true"] th:first-child {
-    z-index: 3;
+    /* PixelTable sets an inline z-index on every header cell; the pinned corner must outrank them. */
+    z-index: 3 !important;
     background: var(--mfd-surface-raised) !important;
   }
 }
