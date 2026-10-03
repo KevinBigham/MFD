@@ -18,6 +18,7 @@ import {
   isMustDoRouteBeat,
   hasUnreadWeeklyDialogue,
   resolveBubbleTapView,
+  weeklyDialogueKey,
   resolveEffectiveDockCollapsed,
   shouldCollapseForRouteBeat,
   resolveNextRouteBeatIndex,
@@ -1740,13 +1741,25 @@ describe('compact-first Chip dock', () => {
     })).toBe(false);
   });
 
-  it('tracks an unread weekly message and opens it on tap instead of the Ask Chip summary', () => {
-    const base = { dialogueId: 'chip.weekly.cleanWin', hasDialogueChild: true, viewedDialogueId: null };
+  it('tracks an unread weekly message by id and text, and opens it on tap only while unread', () => {
+    const key = weeklyDialogueKey('chip.weekly.cleanWin', 'Clean win, coach.');
+    const base = { dialogueKey: key, hasDialogueChild: true, viewedKey: null };
     expect(hasUnreadWeeklyDialogue(base)).toBe(true);
-    expect(hasUnreadWeeklyDialogue({ ...base, viewedDialogueId: 'chip.weekly.cleanWin' })).toBe(false);
-    expect(hasUnreadWeeklyDialogue({ ...base, viewedDialogueId: 'chip.weekly.older' })).toBe(true);
-    expect(hasUnreadWeeklyDialogue({ ...base, dialogueId: null })).toBe(false);
+    expect(hasUnreadWeeklyDialogue({ ...base, viewedKey: key })).toBe(false);
+    // the same id with new text (back-to-back clean wins) is a new message
+    expect(hasUnreadWeeklyDialogue({
+      ...base,
+      viewedKey: weeklyDialogueKey('chip.weekly.cleanWin', 'Another one, coach.'),
+    })).toBe(true);
+    expect(hasUnreadWeeklyDialogue({ ...base, dialogueKey: null })).toBe(false);
     expect(hasUnreadWeeklyDialogue({ ...base, hasDialogueChild: false })).toBe(false);
+    // the identical id and text one week later (a win streak) is still a new message
+    expect(hasUnreadWeeklyDialogue({
+      ...base,
+      dialogueKey: weeklyDialogueKey('chip.weekly.cleanWin', 'Clean win, coach.', 2026, 4),
+      viewedKey: weeklyDialogueKey('chip.weekly.cleanWin', 'Clean win, coach.', 2026, 3),
+    })).toBe(true);
+    expect(weeklyDialogueKey(null, 'x')).toBeNull();
     expect(resolveBubbleTapView(true)).toBe('dialogue');
     expect(resolveBubbleTapView(false)).toBe('askChip');
   });

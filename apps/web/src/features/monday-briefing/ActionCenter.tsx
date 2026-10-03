@@ -61,6 +61,8 @@ interface WeeklyBoardAction {
   route: string;
   accent: ActionAccent;
   buttonLabel: string;
+  /** Nothing is blocking: show the headline and button, and fold the why/consequence/where detail away. */
+  compact?: boolean;
 }
 
 const BUTTON_LABELS: Record<string, string> = {
@@ -301,9 +303,10 @@ const OPTIONAL_ACTIONS: readonly WeeklyBoardAction[] = [
   },
 ];
 
-function toBoardAction(item: ActionItem, id: string): WeeklyBoardAction {
+function toBoardAction(item: ActionItem, id: string, compact = false): WeeklyBoardAction {
   return {
     id,
+    compact,
     what: item.label,
     why: item.detail,
     consequence: item.consequence,
@@ -405,18 +408,42 @@ function WeeklyBoardLane({
                 <div style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>What</div>
                 <div style={{ ...monoSm, color: 'var(--mfd-text)', fontWeight: 700, lineHeight: 1.45 }}>{action.what}</div>
               </div>
-              <div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>Why</div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.45 }}>{action.why}</div>
-              </div>
-              <div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>Consequence / deadline</div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.45 }}>{action.consequence}</div>
-              </div>
-              <div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>Where</div>
-                <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.45 }}>{action.where}</div>
-              </div>
+              {action.compact ? (
+                <details data-mfd-board-details="true">
+                  <summary style={{ ...monoSm, color: 'var(--mfd-text-faint)', cursor: 'pointer', padding: '4px 0' }}>
+                    Why this is clear
+                  </summary>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', marginTop: '7px' }}>
+                  <div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>Why</div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.45 }}>{action.why}</div>
+                  </div>
+                  <div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>Consequence / deadline</div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.45 }}>{action.consequence}</div>
+                  </div>
+                  <div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>Where</div>
+                    <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.45 }}>{action.where}</div>
+                  </div>
+                  </div>
+                </details>
+              ) : (
+                <>
+                <div>
+                  <div style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>Why</div>
+                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.45 }}>{action.why}</div>
+                </div>
+                <div>
+                  <div style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>Consequence / deadline</div>
+                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.45 }}>{action.consequence}</div>
+                </div>
+                <div>
+                  <div style={{ ...monoSm, color: 'var(--mfd-text-faint)' }}>Where</div>
+                  <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.45 }}>{action.where}</div>
+                </div>
+                </>
+              )}
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <PixelButton accent={action.accent === 'default' ? 'cyan' : action.accent} onClick={() => navigateTo(action.route)}>
@@ -480,7 +507,7 @@ function ActionCenter(props: ActionCenterProps) {
       requiredBeforeAdvance: false,
       consequence: 'Advance Week is available. Make roster, depth, cap, market, staff, or matchup changes before Advance Week, offer expiration, or phase rules lock them.',
       where: routeLabel('/week-advance'),
-    }, 'must-ready')]).filter((action) => !closedActionIds.has(action.id));
+    }, 'must-ready', true)]).filter((action) => !closedActionIds.has(action.id));
   const openRequiredCount = requiredItems.length > 0 ? mustDoActions.length : 0;
   const recommendedActions = [
     ...advisoryItems.map((item, index) => toBoardAction(item, `recommended-alert-${index}-${item.route}`)),
