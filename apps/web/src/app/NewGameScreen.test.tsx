@@ -43,21 +43,18 @@ vi.mock('@mfd/engine', async () => {
     mulberry32: vi.fn(() => () => 0.42),
     startScenario: vi.fn(),
     createFastLaneSetupState: vi.fn(),
-    generateConventionSave: vi.fn(),
     CONVENTION_SAVE_METADATA: { headline: 'Test headline', week: 14, description: 'Test', team: 'Test' },
     getDefaultDifficultyFlags: vi.fn(() => ({ skipHalftimeDecision: true })),
   };
 });
 
 import {
-  buildConventionDemoLaunchState,
   buildLaunchGameState,
   NewGameScreen,
   ScenarioLaunchCoverageBadges,
 } from './NewGameScreen';
 import {
   createFastLaneSetupState,
-  generateConventionSave,
   mulberry32,
   SAVE_VERSION,
   startScenario,
@@ -67,7 +64,6 @@ import { createSeedGameState } from './store/seed';
 const createSeedGameStateMock = vi.mocked(createSeedGameState);
 const startScenarioMock = vi.mocked(startScenario);
 const mulberry32Mock = vi.mocked(mulberry32);
-const generateConventionSaveMock = vi.mocked(generateConventionSave);
 const createFastLaneSetupStateMock = vi.mocked(createFastLaneSetupState);
 
 describe('NewGameScreen', () => {
@@ -81,7 +77,6 @@ describe('NewGameScreen', () => {
     createFastLaneSetupStateMock.mockReturnValue({ currentPhase: 'intel_briefing' } as ReturnType<typeof createFastLaneSetupState>);
     startScenarioMock.mockReturnValue({ id: 'scenario-game', setupState: { completedPhases: ['choose_team'] } } as unknown as ReturnType<typeof createSeedGameState>);
     mulberry32Mock.mockReturnValue(() => 0.42);
-    generateConventionSaveMock.mockReturnValue({ id: 'convention-game' } as unknown as ReturnType<typeof generateConventionSave>);
   });
 
   afterEach(() => {
@@ -176,7 +171,6 @@ describe('NewGameScreen', () => {
     expect(markup).toContain('validated loadGame');
     expect(markup).toContain('setup-run mode');
     expect(markup).toContain('New Dynasty starts from the web seed factory');
-    expect(markup).toContain('Convention Demo uses the validated Week 14');
     expect(markup).toContain('Continue calls loadGame only after autosave validation');
     expect(markup).toContain('Import validates');
     expect(markup).toContain('before writing a fresh autosave and calling loadGame');
@@ -283,15 +277,13 @@ describe('NewGameScreen', () => {
     expect(launched).toEqual({ id: 'scenario-game' });
   });
 
-  it('builds convention demo starts from the validated demo generator and seeded rng', () => {
-    const rng = () => 0.42;
-    mulberry32Mock.mockReturnValueOnce(rng);
+  it('offers no demo scenario launch on the front page', () => {
+    const markup = renderToStaticMarkup(<NewGameScreen />);
 
-    const launched = buildConventionDemoLaunchState(90510);
-
-    expect(mulberry32Mock).toHaveBeenCalledWith(90510);
-    expect(generateConventionSaveMock).toHaveBeenCalledWith('afce1', rng);
-    expect(launched).toEqual({ id: 'convention-game' });
+    expect(markup).not.toContain('Launch Demo Scenario');
+    expect(markup).not.toContain('Convention Demo');
+    expect(markup).not.toContain('mfd-demo-launch-button');
+    expect(markup).not.toContain('Convention Demo uses the validated Week 14');
   });
 
   it('renders source-backed scenario launch coverage badges', () => {

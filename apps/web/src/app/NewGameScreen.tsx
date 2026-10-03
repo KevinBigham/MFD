@@ -8,7 +8,6 @@ import {
   CONVENTION_SAVE_METADATA,
   SAVE_VERSION,
   createFastLaneSetupState,
-  generateConventionSave,
   getAvailableScenarios,
   getDefaultDifficultyFlags,
   getScenarioConstraintCoverage,
@@ -112,10 +111,6 @@ export function buildLaunchGameState({
   return state;
 }
 
-export function buildConventionDemoLaunchState(seed: number): ReturnType<typeof generateConventionSave> {
-  return generateConventionSave('afce1', mulberry32(seed));
-}
-
 function resolveLaunchSetupStorage(): Storage | null {
   return typeof window === 'undefined' ? null : window.localStorage;
 }
@@ -158,8 +153,8 @@ function LaunchSourcesPanel() {
         </div>
         <p className="mfd-new-game-guide">
           Source: New Dynasty starts from the web seed factory, Scenario Challenge applies saved
-          scenario constraints before first-run setup, Convention Demo uses the validated Week 14
-          showcase builder, Continue calls loadGame only after autosave validation, and Import validates
+          scenario constraints before first-run setup, Continue calls loadGame only after autosave
+          validation, and Import validates
           backup text/file data before writing a fresh autosave and calling loadGame.
           New Dynasty persists the selected onboarding path immediately before `actions.newGame`.
           Instant opens a playable franchise immediately, Guided preloads safe recommendations, and
@@ -223,11 +218,6 @@ export function NewGameScreen() {
       }
     }
     await newGame(state);
-  };
-
-  const handleConventionDemo = async () => {
-    const seed = Date.now();
-    await newGame(buildConventionDemoLaunchState(seed));
   };
 
   const handleContinue = async () => {
@@ -624,30 +614,12 @@ export function NewGameScreen() {
                       {loadingAutosave ? 'Loading Latest Autosave...' : 'Continue Latest Autosave'}
                     </button>
                   ) : null}
-                  <button
-                    type="button"
-                    className="mfd-demo-launch-button"
-                    onClick={handleConventionDemo}
-                  >
-                    <Trophy size={16} />
-                    Launch Demo Scenario
-                  </button>
                 </div>
               </PixelPanel>
             </div>
 
             <div className="mfd-launch-support-stack">
               <LaunchSourcesPanel />
-
-              <PixelPanel title="Convention Demo" accent="green">
-                <div className="mfd-convention-card">
-                  <p>{CONVENTION_SAVE_METADATA.headline}</p>
-                  <div className="mfd-new-game-badge-row">
-                    <PixelBadge variant="green">Week {CONVENTION_SAVE_METADATA.week}</PixelBadge>
-                    <PixelBadge variant="gold">Playoff Race</PixelBadge>
-                  </div>
-                </div>
-              </PixelPanel>
 
               <PixelPanel title="Recovery" accent="cyan">
                 <div className="mfd-recovery-card">

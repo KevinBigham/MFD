@@ -2,24 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'fs';
 
 describe('Round 2 — Convention Stage Showroom', () => {
-  describe('NewGameScreen convention demo', () => {
+  describe('NewGameScreen has no convention demo launch', () => {
     const content = readFileSync(new URL('./NewGameScreen.tsx', import.meta.url), 'utf-8');
 
-    it('imports generateConventionSave from engine', () => {
-      expect(content).toContain('generateConventionSave');
-      expect(content).toContain('CONVENTION_SAVE_METADATA');
+    it('does not import the convention save generator or define a demo launcher', () => {
+      expect(content).not.toContain('generateConventionSave');
+      expect(content).not.toContain('handleConventionDemo');
+      expect(content).not.toContain('buildConventionDemoLaunchState');
     });
 
-    it('has handleConventionDemo function', () => {
-      expect(content).toContain('handleConventionDemo');
+    it('renders no Convention Demo panel or Launch Demo Scenario button', () => {
+      expect(content).not.toContain('Convention Demo');
+      expect(content).not.toContain('Launch Demo Scenario');
+      expect(content).not.toContain('mfd-demo-launch-button');
     });
 
-    it('renders Convention Demo panel with launch button', () => {
-      expect(content).toContain('Convention Demo');
-      expect(content).toContain('Launch Demo Scenario');
-    });
-
-    it('shows convention metadata headline', () => {
+    it('still feeds the convention headline to the attract reel', () => {
       expect(content).toContain('CONVENTION_SAVE_METADATA.headline');
     });
   });

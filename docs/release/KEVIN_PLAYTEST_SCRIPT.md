@@ -51,7 +51,7 @@ Open the Vite URL, usually `http://localhost:5173/MFD/`.
 
 ## Late Season
 
-Fast path: launch the Convention Demo from the title screen.
+Fast path: choose Instant on the title screen and press Start Instant.
 
 1. Confirm Week 14 playoff-race setup is understandable.
 2. Visit Trade Center and confirm deadline status is clear.

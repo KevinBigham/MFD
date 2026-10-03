@@ -41,7 +41,8 @@ async function openColdOpen(page, viewport) {
 async function openDemoDock(page, viewport) {
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
   await resetBrowserState(page);
-  await page.getByRole('button', { name: 'Launch Demo Scenario' }).click();
+  await page.getByRole('button', { name: /Instant/ }).first().click();
+  await page.getByRole('button', { name: 'Start Instant' }).click();
   await expect(page.locator('[data-chip-dock="true"]')).toBeVisible();
 }
 

@@ -3,8 +3,9 @@
  * Post-setup route smoke for the production build.
  *
  * This complements smoke-test-built-page.sh. The built-page smoke proves the
- * app boots at deploy URLs; this script clicks the convention demo and then
- * loads one or more real post-setup routes through the hash router.
+ * app boots at deploy URLs; this script loads the Week 14 convention save through
+ * the front page's "Import Backup Code" box (the demo button no longer exists) and
+ * then loads one or more real post-setup routes through the hash router.
  *
  * Requires a built apps/web/dist artifact. Run:
  *   VITE_CHIP_ENABLED=true pnpm --filter @mfd/web build
@@ -51,6 +52,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import net from 'node:net';
+import { buildConventionCartridgeText } from './convention-cartridge.mjs';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const webDir = resolve(rootDir, 'apps/web');
@@ -2817,6 +2819,7 @@ function latestAutosaveCutStateExpression(playerName, expectedPostJune, playerId
       const save = envelope?.save;
       const teams = save?.teams ?? {};
       const players = save?.players ?? {};
+      const nameOf = (player) => (typeof player?.name === 'string' && player.name) || [player?.firstName, player?.lastName].filter(Boolean).join(' ');
       const userTeam = Object.values(teams).find((team) => team?.isUser);
       if (!userTeam) {
         return {
@@ -2834,15 +2837,15 @@ function latestAutosaveCutStateExpression(playerName, expectedPostJune, playerId
       const matchesExpectedPlayer = (candidatePlayerId) => {
         if (!candidatePlayerId) return false;
         if (expectedPlayerId) return candidatePlayerId === expectedPlayerId;
-        return players?.[candidatePlayerId]?.name === playerName;
+        return nameOf(players?.[candidatePlayerId]) === playerName;
       };
       const rosterHasPlayer = (userTeam.roster ?? [])
-        .some((player) => (expectedPlayerId ? player?.id === expectedPlayerId : player?.name === playerName) && player?.contract);
+        .some((player) => (expectedPlayerId ? player?.id === expectedPlayerId : nameOf(player) === playerName) && player?.contract);
       const rosterMatches = (userTeam.roster ?? [])
-        .filter((player) => (expectedPlayerId ? player?.id === expectedPlayerId : player?.name === playerName))
+        .filter((player) => (expectedPlayerId ? player?.id === expectedPlayerId : nameOf(player) === playerName))
         .map((player) => ({
           id: player.id ?? null,
-          name: player.name ?? '',
+          name: nameOf(player),
           teamId: player.teamId ?? null,
           hasContract: Boolean(player.contract),
         }));
@@ -2850,7 +2853,7 @@ function latestAutosaveCutStateExpression(playerName, expectedPostJune, playerId
         .filter((entry) => matchesExpectedPlayer(entry?.playerId))
         .map((entry) => ({
           playerId: entry?.playerId ?? null,
-          playerName: players?.[entry?.playerId]?.name ?? '',
+          playerName: nameOf(players?.[entry?.playerId]),
           releasedByTeamId: entry?.releasedByTeamId ?? null,
           playerTeamId: players?.[entry?.playerId]?.teamId ?? null,
           playerHasContract: Boolean(players?.[entry?.playerId]?.contract),
@@ -2859,7 +2862,7 @@ function latestAutosaveCutStateExpression(playerName, expectedPostJune, playerId
         .filter((entry) => entry?.type === 'CUT' && matchesExpectedPlayer(entry?.playerId))
         .map((entry) => ({
           playerId: entry?.playerId ?? null,
-          playerName: players?.[entry?.playerId]?.name ?? '',
+          playerName: nameOf(players?.[entry?.playerId]),
           notes: entry?.notes ?? '',
           year: entry?.year ?? null,
           week: entry?.week ?? null,
@@ -2922,8 +2925,9 @@ function latestAutosaveRosterPlayerIdExpression(playerName) {
         return null;
       }
       const userTeam = Object.values(envelope?.save?.teams ?? {}).find((team) => team?.isUser);
+      const nameOf = (player) => (typeof player?.name === 'string' && player.name) || [player?.firstName, player?.lastName].filter(Boolean).join(' ');
       const matches = (userTeam?.roster ?? [])
-        .filter((player) => player?.name === playerName && player?.id)
+        .filter((player) => nameOf(player) === playerName && player?.id)
         .map((player) => player.id);
       return matches.length === 1 ? matches[0] : null;
     })()
@@ -3156,8 +3160,9 @@ function latestAutosaveCapLabBatchStateExpression(restructurePlayerId, backloadP
           content: post?.content ?? '',
           trigger: post?.trigger ?? null,
         }));
-      const restructureName = mapRestructurePlayer?.name ?? rosterRestructurePlayer?.name ?? '';
-      const backloadName = mapBackloadPlayer?.name ?? rosterBackloadPlayer?.name ?? '';
+      const nameOf = (player) => (typeof player?.name === 'string' && player.name) || [player?.firstName, player?.lastName].filter(Boolean).join(' ');
+      const restructureName = nameOf(mapRestructurePlayer) || nameOf(rosterRestructurePlayer);
+      const backloadName = nameOf(mapBackloadPlayer) || nameOf(rosterBackloadPlayer);
       const hasRestructurePost = socialPosts.some((post) => (
         post.content.includes(restructureName) && /restructure/i.test(post.content)
       ));
@@ -5078,7 +5083,7 @@ async function stageWeeklyPrepFixture(cdp, sessionId) {
         data: JSON.stringify(envelope),
         year: save.year,
         week: save.week,
-        // Keep the isolated fixture ahead of any slow demo autosave still
+        // Keep the isolated fixture ahead of any slow new-dynasty autosave still
         // committing on a hosted runner. The slot is deleted after Continue
         // loads it, before the workflow creates its real result autosave.
         timestamp: Math.max(Date.now(), newestTimestamp) + (60 * 60 * 1000),
@@ -8101,16 +8106,11 @@ async function run() {
       return;
     }
 
-    console.log('Launching convention demo...');
-    await waitFor('clickable Launch Demo Scenario button', () => evaluate(cdp, sessionId, `
-      (() => {
-        const button = [...document.querySelectorAll('button')]
-          .find((candidate) => candidate.textContent?.includes('Launch Demo Scenario'));
-        if (!button) return false;
-        button.click();
-        return true;
-      })()
-    `));
+    console.log('Loading the Week 14 convention save through Import Backup Code...');
+    const conventionCartridge = await buildConventionCartridgeText({ webDir });
+    await waitForBodyText(cdp, sessionId, 'Paste backup code', 'start-screen backup import');
+    await fillTextareaValue(cdp, sessionId, 'textarea.mfd-import-textarea', conventionCartridge, 'fillable start-screen backup textarea');
+    await clickButtonContaining(cdp, sessionId, 'Import Backup Code', 'clickable Import Backup Code button');
 
     await waitFor('post-setup app shell', () => evaluate(cdp, sessionId, `
       Boolean(document.querySelector('[data-mfd-app-shell="true"]'))
@@ -8245,9 +8245,9 @@ async function run() {
             : runContractBackload
               ? ', backloaded a demo contract'
               : runAdvanceWeek
-                ? ', advanced the demo week'
+                ? ', advanced the week'
                 : '';
-    console.log(`PASS: launched demo save, opened ${routeChecks.length} post-setup route(s), found ${checkedRoutes}${workflow}, and saw no browser errors.`);
+    console.log(`PASS: loaded the Week 14 convention save, opened ${routeChecks.length} post-setup route(s), found ${checkedRoutes}${workflow}, and saw no browser errors.`);
   } finally {
     await cleanup();
   }

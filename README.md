@@ -49,7 +49,7 @@ Chip is your franchise's permanent sideline voice. He shows up across 36 distinc
 ## Start A Dynasty
 
 1. Open [MFD](https://kevinbigham.github.io/MFD/).
-2. Pick a franchise and difficulty, or launch the convention demo.
+2. Pick a franchise, a difficulty, and a start mode (Instant, Guided, or Full GM).
 3. Finish setup, advance weeks, and make decisions when the dashboard flags them.
 4. Use Save/Load to export portable dynasty backups before switching browsers or machines.
 
