@@ -151,7 +151,7 @@ export function OwnerMood() {
         />
       </div>
 
-      <PixelPanel title="Owner Pressure Sources" accent="cyan">
+      <PixelPanel title="Owner Pressure Sources" collapsible defaultCollapsed accent="cyan">
         <div style={autoGrid(260)}>
           {[
             {

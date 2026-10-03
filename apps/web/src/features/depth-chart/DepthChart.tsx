@@ -300,7 +300,7 @@ export function DepthChart() {
         ]}
       />
 
-      <PixelPanel title="Depth Chart Sources" accent="cyan">
+      <PixelPanel title="Depth Chart Sources" collapsible defaultCollapsed accent="cyan">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
           {sourceRows.map((row) => (
             <div

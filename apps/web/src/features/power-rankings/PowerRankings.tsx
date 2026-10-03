@@ -156,7 +156,7 @@ export function PowerRankings() {
         )}
       />
 
-      <PixelPanel title="Ranking Sources" accent="cyan">
+      <PixelPanel title="Ranking Sources" collapsible defaultCollapsed accent="cyan">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
           {rankingSourceRows.map((row) => (
             <div

@@ -339,7 +339,7 @@ export function ScoutingBoard() {
         <PixelMetricCard label="Watchlist" value={watchlist.size} accent="gold" detail="Priority prospects" />
       </div>
 
-      <PixelPanel title="Scouting Sources" accent="cyan">
+      <PixelPanel title="Scouting Sources" collapsible defaultCollapsed accent="cyan">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <PixelBadge variant="cyan">SAVED DRAFT CLASS</PixelBadge>

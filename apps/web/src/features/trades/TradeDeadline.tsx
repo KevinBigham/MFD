@@ -161,7 +161,7 @@ export function TradeDeadlineActionReceiptPanel({ receipt }: { receipt: TradeDea
 
 function DeadlineSourcesPanel({ active }: { active: boolean }) {
   return (
-    <PixelPanel title="Deadline Sources" accent="cyan">
+    <PixelPanel title="Deadline Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant={active ? 'gold' : 'default'}>{active ? 'Saved deadline state' : 'No active state'}</PixelBadge>

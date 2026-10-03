@@ -64,7 +64,7 @@ export function PlayerRivalries() {
         )}
       />
 
-      <PixelPanel title="Rivalry Sources" accent="gold">
+      <PixelPanel title="Rivalry Sources" collapsible defaultCollapsed accent="gold">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <PixelBadge variant="cyan">Saved playerRivalries</PixelBadge>

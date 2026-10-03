@@ -230,7 +230,7 @@ export function FATargetBoard() {
         <PixelMetricCard label="Bargains" value={board.bargains.length} accent="gold" detail="Value targets below expected cost" />
       </div>
 
-      <PixelPanel title="Board Source" accent="gold">
+      <PixelPanel title="Board Source" collapsible defaultCollapsed accent="gold">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <PixelBadge variant="cyan">Saved faTargetBoard</PixelBadge>

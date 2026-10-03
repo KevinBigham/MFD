@@ -171,7 +171,7 @@ export function LockerRoom() {
         )}
       />
 
-      <PixelPanel title="Locker Room Sources" accent="cyan">
+      <PixelPanel title="Locker Room Sources" collapsible defaultCollapsed accent="cyan">
         <div style={autoGrid(220)}>
           {sourceRows.map((row) => (
             <div key={row.label} style={{

@@ -110,7 +110,7 @@ interface NamedGamesBrowserViewProps {
 
 function NamedGamesSourcesPanel({ gameCount, visibleArchetypeCount }: { gameCount: number; visibleArchetypeCount: number }) {
   return (
-    <PixelPanel title="Named Game Sources" accent="cyan">
+    <PixelPanel title="Named Game Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
         {[
           {

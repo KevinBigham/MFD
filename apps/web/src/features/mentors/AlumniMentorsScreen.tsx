@@ -84,7 +84,7 @@ export function AlumniMentorsScreen() {
       </div>
 
       <div data-spotlight-target="chip.route.mentors.beat-2">
-        <PixelPanel title="Network Source" accent="cyan">
+        <PixelPanel title="Network Source" collapsible defaultCollapsed accent="cyan">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <PixelBadge variant="gold">Saved activeMentors</PixelBadge>

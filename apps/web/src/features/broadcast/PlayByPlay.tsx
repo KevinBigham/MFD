@@ -115,7 +115,7 @@ export function buildPlayByPlaySourceRows({
 
 function PlayByPlaySources({ rows }: { rows: PlayByPlaySourceRow[] }) {
   return (
-    <PixelPanel title="Play-by-Play Sources" accent="cyan">
+    <PixelPanel title="Play-by-Play Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
         {rows.map((row) => (
           <div

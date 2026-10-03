@@ -175,7 +175,7 @@ export function NewsroomDigest({ storylines }: NewsroomDigestProps = {}) {
         />
       </div>
 
-      <PixelPanel title="Media Sources" accent="cyan">
+      <PixelPanel title="Media Sources" collapsible defaultCollapsed accent="cyan">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <PixelBadge variant="gold">Saved league wire</PixelBadge>

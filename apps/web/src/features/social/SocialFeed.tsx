@@ -49,7 +49,7 @@ export function SocialFeed() {
         ))}
       </div>
 
-      <PixelPanel title="Feed Source" accent="cyan">
+      <PixelPanel title="Feed Source" collapsible defaultCollapsed accent="cyan">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <PixelBadge variant="cyan">Saved socialFeed</PixelBadge>

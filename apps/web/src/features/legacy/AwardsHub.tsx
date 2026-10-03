@@ -228,7 +228,7 @@ function AwardSourcesPanel({
   activeYear: number | null;
 }) {
   return (
-    <PixelPanel title="Award Sources" accent="cyan">
+    <PixelPanel title="Award Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant="gold">saved game.awardsHistory</PixelBadge>

@@ -394,6 +394,28 @@
   filter: saturate(0.72);
 }
 
+/* ── PixelPanel collapsible disclosure ───────────────────── */
+[data-mfd-panel-details] > summary {
+  list-style: none;
+}
+
+[data-mfd-panel-details] > summary::-webkit-details-marker {
+  display: none;
+}
+
+[data-mfd-panel-details] > summary [data-mfd-panel-toggle-label]::before {
+  content: 'SHOW +';
+}
+
+[data-mfd-panel-details][open] > summary [data-mfd-panel-toggle-label]::before {
+  content: 'HIDE \2212';
+}
+
+[data-mfd-panel-details] > summary:focus-visible {
+  outline: 2px solid var(--mfd-gold);
+  outline-offset: -2px;
+}
+
 /* ── Scanline Overlay (opt-in via class) ─────────────── */
 .mfd-scanlines::after {
   content: '';

@@ -136,7 +136,7 @@ export function FranchiseActionReceiptPanel({ receipt }: { receipt: FranchiseAct
 
 function FranchiseSourcesPanel() {
   return (
-    <PixelPanel title="Franchise Sources" accent="cyan">
+    <PixelPanel title="Franchise Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant="cyan">DASHBOARD READ MODEL</PixelBadge>

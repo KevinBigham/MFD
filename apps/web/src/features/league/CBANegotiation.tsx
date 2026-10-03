@@ -202,7 +202,7 @@ function ProposalColumn({
 
 function CBASourceContext({ rows }: { rows: CBASourceRow[] }) {
   return (
-    <PixelPanel title="CBA Sources" accent="cyan">
+    <PixelPanel title="CBA Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
         {rows.map((row) => (
           <div

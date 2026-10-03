@@ -135,7 +135,7 @@ function sortPlaques(awards: MvpPlaqueAward[], sort: MvpPlaqueSortMode): MvpPlaq
 
 function MvpPlaqueSourcesPanel() {
   return (
-    <PixelPanel title="Plaque Sources" accent="cyan">
+    <PixelPanel title="Plaque Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant="gold">saved awardsHistory</PixelBadge>

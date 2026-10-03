@@ -59,7 +59,7 @@ export function buildSeasonReportSourceRows(report: SeasonReport): SeasonReportS
 
 function SeasonReportSourcesPanel({ report }: { report: SeasonReport }) {
   return (
-    <PixelPanel title="Season Report Sources" accent="cyan">
+    <PixelPanel title="Season Report Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
         {buildSeasonReportSourceRows(report).map((row) => (
           <div

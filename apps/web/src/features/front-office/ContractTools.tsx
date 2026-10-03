@@ -381,7 +381,7 @@ export function ContractTools() {
         <PixelMetricCard label="ACTIVE DEALS" value={String(teamTotals.activeContracts)} />
       </div>
 
-      <PixelPanel title="Contract Tool Sources" accent="cyan">
+      <PixelPanel title="Contract Tool Sources" collapsible defaultCollapsed accent="cyan">
         <div style={autoGrid(220)}>
           {sourceRows.map((row) => (
             <div

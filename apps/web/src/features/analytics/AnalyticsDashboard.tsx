@@ -261,7 +261,7 @@ export function AnalyticsDashboard() {
         )}
       />
 
-      <PixelPanel title="Analytics Sources" accent="cyan">
+      <PixelPanel title="Analytics Sources" collapsible defaultCollapsed accent="cyan">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
           {sourceRows.map((row) => (
             <div

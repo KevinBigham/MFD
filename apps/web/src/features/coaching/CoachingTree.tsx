@@ -315,7 +315,7 @@ function EmptyState() {
 
 function CoachingTreeSourcePanel() {
   return (
-    <PixelPanel title="Coaching Tree Sources" accent="cyan">
+    <PixelPanel title="Coaching Tree Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
         Source: active team.staff HC/OC/DC records across the league, saved game.coachingHistory,
         coach_retirement event labels, and buildCoachingLegacy metrics for your current head coach.

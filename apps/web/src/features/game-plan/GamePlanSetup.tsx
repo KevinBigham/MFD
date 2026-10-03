@@ -196,7 +196,7 @@ export function buildWeeklyPrepSourceRows({
 
 function WeeklyPrepSources({ rows }: { rows: WeeklyPrepSourceRow[] }) {
   return (
-    <PixelPanel title="Weekly Prep Sources" accent="cyan">
+    <PixelPanel title="Weekly Prep Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
         {rows.map((row) => (
           <div

@@ -208,7 +208,7 @@ function buildPetitionOptions(definition: LeagueRuleDefinition, currentValue: Le
 
 function GovernanceSourceContext({ rows }: { rows: GovernanceSourceRow[] }) {
   return (
-    <PixelPanel title="Governance Sources" accent="cyan">
+    <PixelPanel title="Governance Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
         {rows.map((row) => (
           <div

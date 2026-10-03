@@ -108,7 +108,7 @@ export function BloodlinesViewerView({ families, userTeamId }: BloodlinesViewerV
         />
       </div>
 
-      <PixelPanel title="Bloodline Sources" accent="cyan">
+      <PixelPanel title="Bloodline Sources" collapsible defaultCollapsed accent="cyan">
         <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
           Source: selectBloodlineFamilies joins active game.players and current draft prospects that already carry saved bloodline fields. Active sons use current roster OVR/age/team, rookie-class sons use scout grade as the OVR signal, and this route does not assign bloodlines or write family relationship edges.
         </div>

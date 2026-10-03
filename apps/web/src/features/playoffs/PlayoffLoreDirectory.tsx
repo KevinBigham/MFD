@@ -200,7 +200,7 @@ function PlayoffLoreSourcesPanel({
   ];
 
   return (
-    <PixelPanel title="Playoff Lore Sources" accent="cyan">
+    <PixelPanel title="Playoff Lore Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
         {rows.map((row) => (
           <div

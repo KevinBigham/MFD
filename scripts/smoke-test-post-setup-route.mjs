@@ -1920,7 +1920,7 @@ async function waitForInRouteTabFocus(cdp, sessionId, route) {
         let active = document.activeElement;
         if (!(main instanceof HTMLElement)) return false;
         if (active === main) {
-          const firstFocusable = main.querySelector('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"], [tabindex]:not([tabindex="-1"])');
+          const firstFocusable = main.querySelector('a[href], button:not([disabled]), summary, input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"], [tabindex]:not([tabindex="-1"])');
           if (firstFocusable instanceof HTMLElement) {
             firstFocusable.focus();
             active = document.activeElement;
@@ -1929,7 +1929,7 @@ async function waitForInRouteTabFocus(cdp, sessionId, route) {
         if (!(active instanceof HTMLElement) || active === main || !main.contains(active)) {
           return false;
         }
-        const focusable = active.matches('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"], [tabindex]:not([tabindex="-1"])');
+        const focusable = active.matches('a[href], button:not([disabled]), summary, input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"], [tabindex]:not([tabindex="-1"])');
         const rect = active.getBoundingClientRect();
         const style = getComputedStyle(active);
         return focusable
@@ -2416,6 +2416,8 @@ async function runNewDynastyFullSetupSmoke(cdp, sessionId, baseUrl) {
   try {
     await waitFor('playable Year 1 preseason Week 1 app shell after full setup', () => evaluate(cdp, sessionId, `
       (() => {
+        // The Briefing's how-it-works copy sits in a collapsed "Sources" disclosure; open it before reading.
+        document.querySelectorAll('details[data-mfd-panel-details]').forEach((panel) => { panel.open = true; });
         const body = document.body?.innerText ?? '';
         const lowerBody = body.toLowerCase();
         return Boolean(document.querySelector('[data-mfd-app-shell="true"]'))

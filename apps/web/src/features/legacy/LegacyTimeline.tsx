@@ -202,7 +202,7 @@ function LegacySourcesPanel({
   ];
 
   return (
-    <PixelPanel title="Legacy Sources" accent="cyan">
+    <PixelPanel title="Legacy Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
         {rows.map((row) => (
           <div

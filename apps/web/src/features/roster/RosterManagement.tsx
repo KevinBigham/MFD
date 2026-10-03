@@ -272,7 +272,7 @@ function RosterSourcesPanel({
   fatigueFlags: number;
 }) {
   return (
-    <PixelPanel title="Roster Sources" accent="cyan">
+    <PixelPanel title="Roster Sources" collapsible defaultCollapsed accent="cyan">
       <div style={autoGrid(220)}>
         <PixelMetricCard
           label="Active Roster"

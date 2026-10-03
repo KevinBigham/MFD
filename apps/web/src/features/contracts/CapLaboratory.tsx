@@ -147,7 +147,7 @@ function CapLabSourcesPanel({
   previewActive: boolean;
 }) {
   return (
-    <PixelPanel title="Cap Lab Sources" accent="cyan">
+    <PixelPanel title="Cap Lab Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px' }}>
         <PixelMetricCard
           label="Health Model"

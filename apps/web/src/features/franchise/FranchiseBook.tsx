@@ -351,7 +351,7 @@ function ChapterView({
 
 function FranchiseBookSourcesPanel() {
   return (
-    <PixelPanel title="Franchise Book Sources" accent="cyan">
+    <PixelPanel title="Franchise Book Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant="cyan">BOOK READ MODEL</PixelBadge>

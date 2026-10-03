@@ -205,7 +205,7 @@ function MoverRow({ mover, kind }: { mover: LeaguePulseRankMover; kind: 'riser' 
 
 function PulseSourcesPanel() {
   return (
-    <PixelPanel title="Pulse Sources" accent="cyan">
+    <PixelPanel title="Pulse Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
         {pulseSourceRows.map((row) => (
           <div

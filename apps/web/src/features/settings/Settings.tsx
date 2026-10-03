@@ -443,7 +443,7 @@ export function Settings() {
       {actionReceipt ? <SettingsActionReceiptPanel receipt={actionReceipt} /> : null}
 
       <div data-spotlight-target="chip.route.settings.beat-2">
-        <PixelPanel title="Operations Source" accent="cyan">
+        <PixelPanel title="Operations Source" collapsible defaultCollapsed accent="cyan">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', padding: '10px', border: '2px solid var(--mfd-border)', background: 'var(--mfd-bg-2)' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '240px', flex: 1 }}>

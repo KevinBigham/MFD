@@ -99,7 +99,7 @@ export function buildEraHallEntries({
 
 function EraSourcesPanel() {
   return (
-    <PixelPanel title="Era Sources" accent="cyan">
+    <PixelPanel title="Era Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant="cyan">DETECTED ERAS</PixelBadge>

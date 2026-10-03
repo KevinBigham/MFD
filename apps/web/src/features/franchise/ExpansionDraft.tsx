@@ -15,7 +15,7 @@ function defaultProtectedIds(playerIds: string[], limit: number): string[] {
 
 function ExpansionSourcesPanel({ active }: { active: boolean }) {
   return (
-    <PixelPanel title="Expansion Sources" accent="cyan">
+    <PixelPanel title="Expansion Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant={active ? 'gold' : 'default'}>{active ? 'Saved expansion state' : 'No active state'}</PixelBadge>

@@ -106,7 +106,7 @@ export function buildGameFlowSourceRows({
 
 function GameFlowSources({ rows }: { rows: GameFlowSourceRow[] }) {
   return (
-    <PixelPanel title="Game Flow Sources" accent="cyan">
+    <PixelPanel title="Game Flow Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
         {rows.map((row) => (
           <div

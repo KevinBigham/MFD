@@ -48,7 +48,7 @@ export async function exportFullScrapbookAsPng(target: HTMLElement, dynastyName:
 
 function ScrapbookSourcesPanel() {
   return (
-    <PixelPanel title="Scrapbook Sources" accent="cyan">
+    <PixelPanel title="Scrapbook Sources" collapsible defaultCollapsed accent="cyan">
       <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <PixelBadge variant="gold">mfd.scrapbook.v1</PixelBadge>

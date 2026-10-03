@@ -231,7 +231,7 @@ export function PlayerDevelopmentView({
       <RatingGrowthCard report={report} />
       <ProjectionCard projections={projections} currentOvr={report.ovr} />
 
-      <PixelPanel title="Development Sources" accent="gold">
+      <PixelPanel title="Development Sources" collapsible defaultCollapsed accent="gold">
         <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             <PixelBadge variant="cyan">Selected roster player</PixelBadge>
