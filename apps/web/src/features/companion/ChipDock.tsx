@@ -96,6 +96,8 @@ export interface ChipDockProps {
   dynastyIndicator?: DynastyIndicator;
   /** E4: open the quiet menu on first render (test/demo affordance). */
   quietMenuDefaultOpen?: boolean;
+  /** Render route beats already opened rather than as the compact bubble (test/demo affordance). */
+  routeBeatDefaultOpen?: boolean;
 }
 
 const ROUTE_BEAT_DISMISS_CONTROLS = new Set<ChipDockControl>([
@@ -157,6 +159,28 @@ export interface EffectiveDockCollapsedOptions {
   controlledCollapsed?: boolean;
   localCollapsed: boolean;
   preferRouteBeatCollapsed?: boolean;
+}
+
+/** A Must Do the player has not read yet: the one route beat that opens the dock on its own. */
+export function isMustDoRouteBeat(beat: Pick<RouteBeat, 'text'> | null): boolean {
+  return beat !== null && /^must do\b/i.test(beat.text.trim());
+}
+
+/**
+ * Compact first: a waiting route beat keeps the dock as the small "Ask Chip" bubble, except
+ * an unread Must Do on a desktop-width screen. Phones always keep the bubble until it is tapped.
+ */
+export function shouldCollapseForRouteBeat({
+  activeRouteBeat,
+  phoneWidth,
+  opened,
+}: {
+  activeRouteBeat: Pick<RouteBeat, 'text'> | null;
+  phoneWidth: boolean;
+  opened: boolean;
+}): boolean {
+  if (activeRouteBeat === null || opened) return false;
+  return phoneWidth || !isMustDoRouteBeat(activeRouteBeat);
 }
 
 export function resolveEffectiveDockCollapsed({
@@ -597,6 +621,7 @@ export function ChipDock({
   whereAmI,
   dynastyIndicator,
   quietMenuDefaultOpen = false,
+  routeBeatDefaultOpen = false,
 }: ChipDockProps) {
   const backingStorage = storage === undefined ? resolveDockStorage() : storage;
   const [prefs, setPrefs] = useState<DockPrefs>(() =>
@@ -659,7 +684,7 @@ export function ChipDock({
   const [dismissedRouteBeatSignature, setDismissedRouteBeatSignature] = useState<string | null>(null);
   const [activeLiveBeat, setActiveLiveBeat] = useState<DockLiveBeat | null>(null);
   const [mobileRouteCoach, setMobileRouteCoach] = useState(false);
-  const [routeCoachOpened, setRouteCoachOpened] = useState(false);
+  const [routeCoachOpened, setRouteCoachOpened] = useState(routeBeatDefaultOpen);
   const pendingDecisionTotal = Math.max(0, Math.trunc(Number(pendingDecisions?.total ?? 0)));
   const routeBeatActive =
     routeBeatSignature.length > 0
@@ -669,7 +694,11 @@ export function ChipDock({
     ? eligibleRouteBeats[Math.min(routeBeatIndex, eligibleRouteBeats.length - 1)] ?? null
     : null;
   const activeRouteBeatActionLabel = routeBeatActionLabel(routeBeatIndex, eligibleRouteBeats);
-  const preferRouteBeatCollapsed = activeRouteBeat !== null && mobileRouteCoach && !routeCoachOpened;
+  const preferRouteBeatCollapsed = shouldCollapseForRouteBeat({
+    activeRouteBeat,
+    phoneWidth: mobileRouteCoach,
+    opened: routeCoachOpened,
+  });
   const effectiveCollapsed = resolveEffectiveDockCollapsed({
     activeRouteBeat: activeRouteBeat !== null,
     activeLiveBeat: activeLiveBeat !== null,
@@ -677,6 +706,15 @@ export function ChipDock({
     localCollapsed,
     preferRouteBeatCollapsed,
   });
+  // The app shell reserves runway for the dock only while it is expanded.
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const root = document.documentElement;
+    root.dataset.mfdChipDock = effectiveCollapsed ? 'collapsed' : 'expanded';
+    return () => {
+      delete root.dataset.mfdChipDock;
+    };
+  }, [effectiveCollapsed]);
   const portraitPose = activeRouteBeat
     ? routeBeatPoseToChipPose(activeRouteBeat.pose)
     : activeLiveBeat
@@ -757,6 +795,8 @@ export function ChipDock({
       completeRouteBeatSequence();
       return;
     }
+    // The player is reading: keep the dock open for the rest of this screen's beats.
+    setRouteCoachOpened(true);
     setRouteBeatIndex(result.nextIndex);
   }, [completeRouteBeatSequence, eligibleRouteBeats, persistCurrentRouteBeat, routeBeatIndex]);
 
@@ -907,6 +947,13 @@ export function ChipDock({
             <Chip pose={portraitPose} size="sm" reducedMotion={motionMode === 'reduced'} />
           </span>
           <span className="mfd-chip-dock__collapsed-label">Ask Chip</span>
+          {activeRouteBeat ? (
+            <span
+              className="mfd-chip-dock__collapsed-tip"
+              data-chip-collapsed-tip={isMustDoRouteBeat(activeRouteBeat) ? 'must-do' : 'tip'}
+              aria-hidden="true"
+            />
+          ) : null}
           {pendingDecisionTotal > 0 ? (
             <span className="mfd-chip-dock__collapsed-count" data-chip-collapsed-count="true">
               {pendingDecisionTotal}

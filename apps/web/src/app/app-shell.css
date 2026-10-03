@@ -222,12 +222,18 @@
     132px !important;
 }
 
+/* Compact Chip bubble (collapsed): only a little room below the content. */
 [data-mfd-chip-enabled='true'] .mfd-app-main {
+  padding-bottom: 96px !important;
+}
+
+/* Expanded Chip dock: reserve the runway so it does not cover content. */
+html[data-mfd-chip-dock='expanded'] [data-mfd-chip-enabled='true'] .mfd-app-main {
   padding-bottom: 320px !important;
 }
 
 @media (min-width: 1180px) {
-  [data-mfd-chip-enabled='true'] .mfd-app-main {
+  html[data-mfd-chip-dock='expanded'] [data-mfd-chip-enabled='true'] .mfd-app-main {
     max-width: none;
     margin: 0;
     padding-right: clamp(310px, 27vw, 360px) !important;
@@ -236,7 +242,7 @@
 }
 
 @media (min-width: 1360px) {
-  [data-mfd-chip-enabled='true'] .mfd-app-main {
+  html[data-mfd-chip-dock='expanded'] [data-mfd-chip-enabled='true'] .mfd-app-main {
     padding-right: clamp(320px, 25vw, 370px) !important;
   }
 }

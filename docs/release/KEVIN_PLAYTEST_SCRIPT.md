@@ -51,7 +51,7 @@ Open the Vite URL, usually `http://localhost:5173/MFD/`.
 
 ## Late Season
 
-Fast path: choose Instant on the title screen and press Start Instant.
+Fast path: run `node scripts/convention-cartridge.mjs > week14.mfd` to write the Week 14 save, then paste its text into Import Backup Code on the title screen (or Advanced: Upload .mfd).
 
 1. Confirm Week 14 playoff-race setup is understandable.
 2. Visit Trade Center and confirm deadline status is clear.

@@ -37,7 +37,7 @@ export type DockPrefsPatch = Partial<Omit<DockPrefs, 'lastUpdated'>>;
 
 export function createDefaultDockPrefs(): DockPrefs {
   return {
-    collapsed: false,
+    collapsed: true,
     quietForScreen: null,
     quietUntilWeek: null,
     quietForSeason: null,

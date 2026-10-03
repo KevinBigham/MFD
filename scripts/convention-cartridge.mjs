@@ -4,10 +4,13 @@
  * The front page no longer has a demo button, so smokes load this save through the
  * normal "Paste backup code" import. Engine source is TypeScript, so it is loaded
  * through Vite's SSR loader (Vite is already a dependency of apps/web).
+ *
+ * By hand: `node scripts/convention-cartridge.mjs > week14.mfd`, then paste the file's text
+ * into "Import Backup Code" on the title screen (or use Advanced: Upload .mfd).
  */
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const CONVENTION_SMOKE_SEED = 20261001;
 export const CONVENTION_SMOKE_TEAM_ID = 'afce1';
@@ -38,4 +41,10 @@ export async function buildConventionCartridgeText({ webDir, seed = Number(proce
   } finally {
     await server.close();
   }
+}
+
+const isMain = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
+if (isMain) {
+  const webDir = resolve(dirname(fileURLToPath(import.meta.url)), '../apps/web');
+  process.stdout.write(await buildConventionCartridgeText({ webDir }));
 }

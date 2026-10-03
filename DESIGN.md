@@ -45,6 +45,7 @@
 ## Components
 - Existing components to reuse: `PixelPanel`, `MfdPanel`, `PixelButton`, `PixelBadge`, `PixelScreenHeader`, `PixelMetricCard`, `PixelTable`, `MfdCommandPalette`, `Chip`, `ChipDialogueBubble`, `MobileBottomTabBar`.
 - New/changed components: keep launch-screen polish local unless a pattern repeats across screens; promote only reusable, tested patterns into `packages/design-system`.
+- Chip dock: compact "Ask Chip" bubble by default (a gold dot means a tip is waiting, red means an unread Must Do). It opens by itself only for an unread Must Do beat on desktop widths and for live events; phones always keep the bubble until tapped. The shell reserves dock runway only while the dock is expanded (`data-mfd-chip-dock` on `<html>`).
 - Variants and states: selected, hover, focus-visible, disabled, loading, empty, error, success, destructive, route-active, drawer-open, import-in-progress.
 - Token/component ownership: design tokens live in `packages/design-system/tokens`; app-shell layout and launch-only classes live in `apps/web/src/app`.
 
