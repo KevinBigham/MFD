@@ -286,9 +286,10 @@
 }
 
 /* Card-mode PixelTable at phone widths (<= 480px) — component opt-in
- * via responsive="cards". Rows stack into cards; cells become labeled
- * rows using data-mfd-table-label. At wider widths the table renders
- * normally; no behavior change. */
+ * via responsive="cards". Rows stack into cards laid out as a two-column grid of
+ * label-over-value cells (roughly half the height of one full-width row per field);
+ * the name and any cell holding a control span the whole card. Cells use
+ * data-mfd-table-label. At wider widths the table renders normally. */
 @media (max-width: 480px) {
   [data-mfd-table-mode="cards"] {
     display: block;
@@ -303,8 +304,10 @@
   }
   [data-mfd-table-mode="cards"] tr {
     box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--mfd-sp-md);
+    align-content: start;
     min-width: 100%;
     border: 1px solid var(--mfd-border-strong);
     border-top: 3px solid var(--mfd-cyan);
@@ -315,21 +318,19 @@
     box-shadow: var(--mfd-shadow-panel);
   }
   [data-mfd-table-mode="cards"] td {
-    display: grid;
-    grid-template-columns: minmax(88px, 32%) minmax(0, 1fr);
-    align-items: center;
-    gap: var(--mfd-sp-md);
-    padding: var(--mfd-sp-sm) 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+    padding: var(--mfd-sp-xs) 0 var(--mfd-sp-sm);
     border-bottom: 1px dashed var(--mfd-border);
-    line-height: 1.45;
-  }
-  [data-mfd-table-mode="cards"] td:last-child {
-    border-bottom: none;
+    line-height: 1.4;
   }
   [data-mfd-table-mode="cards"] td::before {
     content: attr(data-mfd-table-label);
     font-family: var(--mfd-font-pixel);
-    font-size: 8px;
+    font-size: var(--mfd-fs-8);
     letter-spacing: 0;
     text-transform: uppercase;
     color: var(--mfd-text-dim);
@@ -337,10 +338,11 @@
   }
   [data-mfd-table-mode="cards"] td > * {
     min-width: 0;
-    justify-self: end;
-    text-align: right;
+    max-width: 100%;
+    text-align: left;
   }
   [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="name"] {
+    grid-column: 1 / -1;
     order: -3;
     margin: calc(var(--mfd-sp-sm) * -1) 0 var(--mfd-sp-xs);
     padding: var(--mfd-sp-sm);
@@ -348,22 +350,67 @@
     background: rgba(0, 229, 255, 0.055);
   }
   [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="manage"],
+  [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="watch"],
   [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="status"] {
     order: -2;
   }
+  [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="status"],
+  [data-mfd-table-mode="cards"] td:has(button, select, input, textarea) {
+    grid-column: 1 / -1;
+  }
+  /* Dense cards (opt-in): three columns of short stats; the Name caption is redundant. */
+  [data-mfd-table-mode="cards"][data-mfd-table-dense="true"] tr {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: var(--mfd-sp-sm);
+  }
+  [data-mfd-table-mode="cards"][data-mfd-table-dense="true"] td[data-mfd-table-cell-id="name"]::before {
+    content: none;
+  }
+  /* Manage and Watch are self-labelled buttons: drop the caption and share one row. */
+  [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="manage"],
+  [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="watch"] {
+    grid-column: auto;
+  }
+  [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="manage"]::before,
+  [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="watch"]::before {
+    content: none;
+  }
   [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="name"] > *,
   [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="manage"] > * {
-    justify-self: stretch;
+    align-self: stretch;
     text-align: left;
   }
   [data-mfd-table-mode="cards"] td [data-mfd-focusable="pixel-button"],
   [data-mfd-table-mode="cards"] td button {
-    justify-self: end;
+    align-self: flex-end;
     max-width: 100%;
   }
   [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="manage"] [data-mfd-focusable="pixel-button"],
-  [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="manage"] button {
-    justify-self: stretch;
+  [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="manage"] button,
+  [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="watch"] [data-mfd-focusable="pixel-button"],
+  [data-mfd-table-mode="cards"] td[data-mfd-table-cell-id="watch"] button {
+    align-self: stretch;
+  }
+}
+
+/* Sticky first column (opt-in via stickyFirstColumn): keeps the row's name visible while a wide
+ * table scrolls sideways. Phone card mode stacks cells, so it does not apply there. */
+@media (min-width: 481px) {
+  [data-mfd-table-sticky-first="true"] td:first-child,
+  [data-mfd-table-sticky-first="true"] th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    white-space: nowrap;
+    box-shadow: 1px 0 0 var(--mfd-border-strong), 10px 0 14px -10px rgba(0, 0, 0, 0.8);
+  }
+  [data-mfd-table-sticky-first="true"] td:first-child {
+    background: var(--mfd-surface-raised);
+  }
+  /* The header cell sets an inline translucent background; it must be opaque here. */
+  [data-mfd-table-sticky-first="true"] th:first-child {
+    z-index: 3;
+    background: var(--mfd-surface-raised) !important;
   }
 }
 

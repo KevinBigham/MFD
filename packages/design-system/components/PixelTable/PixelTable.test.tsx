@@ -40,4 +40,22 @@ describe('PixelTable', () => {
     expect(markup).toContain('role="button"');
     expect(markup).toContain('tabindex="0"');
   });
+
+  it('marks a table as sticky-first-column only when asked', () => {
+    const plain = renderToStaticMarkup(<PixelTable data={rows} columns={columns} />);
+    const sticky = renderToStaticMarkup(<PixelTable data={rows} columns={columns} stickyFirstColumn />);
+
+    expect(plain).not.toContain('data-mfd-table-sticky-first');
+    expect(sticky).toContain('data-mfd-table-sticky-first="true"');
+  });
+
+  it('marks dense phone cards only for card-mode tables that ask for them', () => {
+    const dense = renderToStaticMarkup(<PixelTable data={rows} columns={columns} responsive="cards" denseCards />);
+    const plain = renderToStaticMarkup(<PixelTable data={rows} columns={columns} responsive="cards" />);
+    const scroll = renderToStaticMarkup(<PixelTable data={rows} columns={columns} denseCards />);
+
+    expect(dense).toContain('data-mfd-table-dense="true"');
+    expect(plain).not.toContain('data-mfd-table-dense');
+    expect(scroll).not.toContain('data-mfd-table-dense');
+  });
 });

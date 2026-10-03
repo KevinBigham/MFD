@@ -34,6 +34,10 @@ interface PixelTableProps<T> {
   maxHeight?: number | string;
   accent?: Accent;
   responsive?: ResponsiveMode;
+  /** Keep the first column (usually the name) pinned while the table scrolls sideways. */
+  stickyFirstColumn?: boolean;
+  /** Phone card layout (responsive="cards"): 3 columns of short stats instead of 2. */
+  denseCards?: boolean;
   className?: string;
   style?: CSSProperties;
 }
@@ -67,6 +71,8 @@ export function PixelTable<T>({
   maxHeight,
   accent = 'default',
   responsive = 'scroll',
+  stickyFirstColumn = false,
+  denseCards = false,
   className,
   style,
 }: PixelTableProps<T>) {
@@ -106,6 +112,7 @@ export function PixelTable<T>({
       data-mfd-table-accent={accent}
       data-mfd-table-density={density}
       data-mfd-table-responsive={responsive}
+      data-mfd-table-sticky-first={stickyFirstColumn ? 'true' : undefined}
       className={className}
       style={{
         overflow: 'auto',
@@ -120,6 +127,7 @@ export function PixelTable<T>({
     >
       <table
         data-mfd-table-mode={responsive === 'cards' ? 'cards' : undefined}
+        data-mfd-table-dense={responsive === 'cards' && denseCards ? 'true' : undefined}
         style={{
           width: '100%',
           borderCollapse: 'collapse',

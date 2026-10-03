@@ -523,6 +523,7 @@ export function RosterManagement() {
   const [trainingReceipt, setTrainingReceipt] = useState<TrainingAssignmentReceipt | null>(null);
   const [rosterActionReceipt, setRosterActionReceipt] = useState<RosterActionReceipt | null>(null);
   const rosterColumns = useMemo<ColumnDef<Player, unknown>[]>(() => [
+    baseColumns[0]!,
     {
       id: 'manage',
       header: 'Manage',
@@ -538,7 +539,7 @@ export function RosterManagement() {
       ),
       size: 96,
     },
-    ...baseColumns,
+    ...baseColumns.slice(1),
     {
       id: 'training',
       header: 'Training',
@@ -710,6 +711,8 @@ export function RosterManagement() {
       <div data-spotlight-target="chip.route.roster.beat-1">
         <PixelTable
           responsive="cards"
+          stickyFirstColumn
+          denseCards
           data={filtered}
           columns={rosterColumns}
           density="compact"
