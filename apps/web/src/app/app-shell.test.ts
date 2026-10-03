@@ -5,9 +5,18 @@ import { fileURLToPath } from 'node:url';
 const shellCss = readFileSync(fileURLToPath(new URL('./app-shell.css', import.meta.url)), 'utf8');
 
 describe('app shell responsive layout CSS', () => {
-  it('reserves a narrower desktop Chip runway without collapsing the command surface', () => {
-    expect(shellCss).toContain('padding-right: clamp(310px, 27vw, 360px)');
-    expect(shellCss).toContain('padding-right: clamp(320px, 25vw, 370px)');
+  it('reserves a desktop Chip gutter wide enough for the open dock so it never covers content', () => {
+    const dockCss = readFileSync(
+      fileURLToPath(new URL('../features/companion/ChipDock.css', import.meta.url)),
+      'utf8',
+    );
+    const desktopDock = dockCss.slice(dockCss.indexOf('@media (min-width: 1180px)'));
+    const dockContentWidth = Number(desktopDock.match(/max-width: (\d+)px;/)?.[1]);
+    // outer width = content + 24px padding + 2px border; the dock also sits 22px from the edge
+    const dockFootprint = dockContentWidth + 26 + 22;
+    const gutters = [...shellCss.matchAll(/padding-right: (?:clamp\()?(\d+)px/g)].map((m) => Number(m[1]));
+    expect(gutters).toHaveLength(2);
+    for (const gutter of gutters) expect(gutter).toBeGreaterThanOrEqual(dockFootprint + 8);
   });
 
   it('pairs mobile content clearance with the bottom nav and compact Chip dock', () => {

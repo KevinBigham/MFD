@@ -1205,3 +1205,14 @@
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
   min-width: 100%;
 }
+
+/* Desktop: the open dock must fit inside the gutter the app shell reserves for it (see
+ * app-shell.css), so it never covers a screen's action buttons. A narrower portrait column
+ * and bubble; the outer width is this max-width plus 24px padding and 2px border. */
+@media (min-width: 1180px) {
+  .mfd-chip-dock[data-chip-dock-state='expanded'] .mfd-chip-dock__panel,
+  .mfd-chip-dock[data-chip-dock-state='expanded'][data-chip-dock-beat='route'] .mfd-chip-dock__panel {
+    grid-template-columns: 84px minmax(0, 1fr);
+    max-width: 360px;
+  }
+}

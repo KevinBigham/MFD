@@ -238,14 +238,14 @@ html[data-mfd-chip-dock='expanded'] [data-mfd-chip-enabled='true'] .mfd-app-main
   html[data-mfd-chip-dock='expanded'] [data-mfd-chip-enabled='true'] .mfd-app-main {
     max-width: none;
     margin: 0;
-    padding-right: clamp(310px, 27vw, 360px) !important;
+    padding-right: 420px !important;
     padding-left: clamp(20px, 3vw, 46px) !important;
   }
 }
 
 @media (min-width: 1360px) {
   html[data-mfd-chip-dock='expanded'] [data-mfd-chip-enabled='true'] .mfd-app-main {
-    padding-right: clamp(320px, 25vw, 370px) !important;
+    padding-right: clamp(420px, 24vw, 460px) !important;
   }
 }
 
