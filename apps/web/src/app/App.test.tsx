@@ -105,6 +105,7 @@ describe('App Chip setup wiring', () => {
     expect(content).toContain('data-mfd-app-shell="true"');
     expect(content).toContain('data-mfd-main-content="true"');
     expect(content).toContain('data-mfd-brand-lockup="true"');
+    expect(content).toContain('className="mfd-app-brand-context"');
     expect(content).toContain('data-mfd-nav-group={group.id}');
     expect(content).toContain('data-mfd-nav-actions="true"');
   });

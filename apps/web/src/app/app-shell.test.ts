@@ -23,6 +23,20 @@ describe('app shell responsive layout CSS', () => {
     );
   });
 
+  it('keeps the header short: brand carries the season context and locked routes fit one line', () => {
+    expect(shellCss).toContain('.mfd-app-brand-context');
+    expect(shellCss).not.toContain('.mfd-app-context-strip');
+    const unlocks = shellCss.slice(shellCss.indexOf('.mfd-app-nav-unlocks {'));
+    expect(unlocks.slice(0, unlocks.indexOf('}'))).toContain('white-space: nowrap;');
+  });
+
+  it('shares the first tablet row between brand and actions and unpins the header on short windows', () => {
+    const tablet = shellCss.slice(shellCss.indexOf('@media (max-width: 1180px)'));
+    expect(tablet).toContain("'brand actions'");
+    expect(tablet).toContain("'groups groups'");
+    expect(shellCss).toMatch(/@media \(min-width: 769px\) and \(max-height: 760px\) \{\s*\.mfd-app-top-nav \{\s*position: static;/);
+  });
+
   it('adds horizontal nav rail affordance and reduced-motion protection', () => {
     expect(shellCss).toContain('.mfd-app-nav-active-strip::after');
     expect(shellCss).toContain('@media (prefers-reduced-motion: reduce)');
