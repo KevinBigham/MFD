@@ -293,7 +293,8 @@ html[data-mfd-chip-dock='expanded'] [data-mfd-chip-enabled='true'] .mfd-app-main
     padding: 12px 10px calc(var(--mfd-mobile-nav-height) + 64px + env(safe-area-inset-bottom, 0)) !important;
   }
 
-  [data-mfd-chip-enabled='true'] .mfd-app-main {
+  [data-mfd-chip-enabled='true'] .mfd-app-main,
+  html[data-mfd-chip-dock='expanded'] [data-mfd-chip-enabled='true'] .mfd-app-main {
     padding-bottom: calc(var(--mfd-mobile-chip-clearance) + env(safe-area-inset-bottom, 0)) !important;
   }
 

@@ -464,7 +464,7 @@ export function RelationshipGraph() {
         kicker="THE REUNION"
       />
 
-      <PixelPanel title="RELATIONSHIP SOURCES" accent="cyan">
+      <PixelPanel title="RELATIONSHIP SOURCES" collapsible defaultCollapsed accent="cyan">
         <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
           {sourceRows.map((row) => (
             <div

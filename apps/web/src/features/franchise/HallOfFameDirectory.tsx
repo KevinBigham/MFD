@@ -442,7 +442,7 @@ export function HallOfFameDirectory({
         <PixelMetricCard label="Dynasties" value={summary.dynastiesRepresented} accent="default" detail="Represented in the Hall" />
       </div>
 
-      <PixelPanel title="Archive Source" collapsible defaultCollapsed accent="cyan">
+      <PixelPanel title="Archive Source" accent="cyan">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <PixelBadge variant="cyan">mfd.hallOfFame.v1</PixelBadge>

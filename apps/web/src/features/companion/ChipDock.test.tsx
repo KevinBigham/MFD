@@ -349,10 +349,25 @@ describe('ChipDock', () => {
 
     expect(markup).toContain('data-chip-dock-state="collapsed"');
     expect(markup).toContain('data-chip-dock-beat="route"');
-    expect(markup).toContain('aria-label="Ask Chip about this screen"');
+    expect(markup).toContain('aria-label="Ask Chip about this screen, tip waiting"');
     expect(markup).toContain('data-chip-collapsed-tip="tip"');
     expect(markup).not.toContain('data-chip-route-beat=');
     expect(markup).not.toContain('Recommended: decide starter');
+  });
+
+  it('names the waiting tip and the pending count on the compact bubble', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+
+    const markup = renderDock(
+      <ChipDock
+        routeBeats={ROUTE_BEAT_REGISTRY.roster}
+        pendingDecisions={{ total: 3 }}
+        storage={new MemoryStorage()}
+      />,
+    );
+
+    // The count badge is hidden while compact, so the bubble's own name has to carry it.
+    expect(markup).toContain('aria-label="Ask Chip about this screen, tip waiting, 3 decisions pending"');
   });
 
   it('defaults to the compact bubble when nothing is waiting', () => {
@@ -819,6 +834,13 @@ describe('ChipDock', () => {
     expect(mediaReduce).toContain('.mfd-chip-dock__portrait-stage::after,');
   });
 
+  it('stops the compact tip dot pulse under OS reduced motion and keeps the dot unclipped', () => {
+    const mediaReduce = chipDockCss.slice(chipDockCss.indexOf('@media (prefers-reduced-motion: reduce)'));
+    expect(mediaReduce).toContain('.mfd-chip-dock__collapsed-tip');
+    const tipRule = chipDockCss.slice(chipDockCss.indexOf('.mfd-chip-dock__collapsed-tip {'));
+    expect(tipRule.slice(0, tipRule.indexOf('}'))).toMatch(/top: 3px;[\s\S]*right: 3px;/);
+  });
+
   it('chooses useful ask-chip live guidance instead of reopening to empty idle chrome', () => {
     const whereAmI = {
       week: 14,
@@ -957,7 +979,9 @@ describe('ChipDock', () => {
 
     const { prefs } = applyControl('expand', storage);
 
-    expect(prefs.collapsed).toBe(false);
+    // Tapping the bubble opens Chip for now; it must not turn the dock into an always-open one.
+    expect(prefs.collapsed).toBe(true);
+    expect(readDockPrefs(storage).collapsed).toBe(true);
     expect(prefs.quietForScreen).toBeNull();
     expect(prefs.quietUntilWeek).toBeNull();
     expect(prefs.quietForSeason).toBeNull();
@@ -1552,8 +1576,8 @@ describe('G7 route-coaching graduation', () => {
   });
 
   it('wires the one-time notice and the graduationAcked persistence', () => {
-    expect(chipDockSource).toContain('setActiveLiveBeat(CHIP_GRADUATION_BEAT)');
-    expect(chipDockSource).toContain("current?.id === 'chip.dock.graduation'");
+    expect(chipDockSource).toContain('showLiveBeat(CHIP_GRADUATION_BEAT)');
+    expect(chipDockSource).toContain("activeLiveBeat?.id === 'chip.dock.graduation'");
     expect(chipDockSource).toContain('graduationAcked: true');
     expect(chipDockSource).toContain('if (prefs.graduationAcked) return;');
     // Fires only when nothing else demands the dock.
@@ -1655,6 +1679,29 @@ describe('compact-first Chip dock', () => {
     expect(shouldCollapseForRouteBeat({ activeRouteBeat: mustDo, phoneWidth: true, opened: true })).toBe(false);
     // no beat: not this rule's call
     expect(shouldCollapseForRouteBeat({ activeRouteBeat: null, phoneWidth: false, opened: false })).toBe(false);
+  });
+
+  it('opens on a Must Do that is waiting behind an earlier Recommended beat', () => {
+    const waiting = [recommended, mustDo];
+    expect(shouldCollapseForRouteBeat({
+      activeRouteBeat: recommended,
+      waitingRouteBeats: waiting,
+      phoneWidth: false,
+      opened: false,
+    })).toBe(false);
+    expect(shouldCollapseForRouteBeat({
+      activeRouteBeat: recommended,
+      waitingRouteBeats: [recommended, optional],
+      phoneWidth: false,
+      opened: false,
+    })).toBe(true);
+    // phones still wait for a tap
+    expect(shouldCollapseForRouteBeat({
+      activeRouteBeat: recommended,
+      waitingRouteBeats: waiting,
+      phoneWidth: true,
+      opened: false,
+    })).toBe(true);
   });
 
   it('starts every new dock in the compact state', () => {

@@ -146,10 +146,11 @@
   white-space: nowrap;
 }
 
+/* Inside the bubble's corner: the bubble clips overflow, so an outside dot would be cut off. */
 .mfd-chip-dock__collapsed-tip {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: 3px;
+  right: 3px;
   z-index: 1;
   width: 12px;
   height: 12px;
@@ -763,6 +764,7 @@
   .mfd-chip-dock .mfd-chip-dock__portrait-stage::after,
   .mfd-chip-dock .mfd-chip-dock__controls,
   .mfd-chip-dock .mfd-chip-dock__pending-badge,
+  .mfd-chip-dock .mfd-chip-dock__collapsed-tip,
   .mfd-chip-dock .mfd-chip-dock__control {
     transition: opacity 80ms steps(2, end);
     animation: none;
