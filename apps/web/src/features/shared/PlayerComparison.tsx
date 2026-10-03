@@ -260,7 +260,7 @@ function PlayerHeader({ player }: { player: Player }) {
       <div style={{ ...pixelSm, color: 'var(--mfd-text-secondary)', marginBottom: '2px' }}>
         {player.pos} / #{player.jerseyNumber}
       </div>
-      <div style={{ ...mono, fontSize: '14px', fontWeight: 700, color: 'var(--mfd-text)' }}>
+      <div style={{ ...mono, fontSize: 'var(--mfd-fs-14)', fontWeight: 700, color: 'var(--mfd-text)' }}>
         {player.name}
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '4px' }}>

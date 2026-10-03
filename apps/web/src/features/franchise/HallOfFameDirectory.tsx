@@ -526,7 +526,7 @@ export function HallOfFameDirectory({
               borderRadius: '4px',
               padding: '10px',
               fontFamily: 'inherit',
-              fontSize: '12px',
+              fontSize: 'var(--mfd-fs-12)',
               lineHeight: 1.5,
             }}
           />

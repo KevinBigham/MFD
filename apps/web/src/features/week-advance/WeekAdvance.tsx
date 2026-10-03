@@ -777,7 +777,7 @@ export function WeekAdvance() {
             ...pixelSm,
             color: 'var(--mfd-gold)',
             animation: 'mfdSimPulse 1.2s ease-in-out infinite',
-            fontSize: '10px',
+            fontSize: 'var(--mfd-fs-10)',
             letterSpacing: '2px',
           }}>
             SIMULATING {phaseLabel(phase)}...

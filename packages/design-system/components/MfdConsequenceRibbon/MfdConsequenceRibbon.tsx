@@ -56,14 +56,14 @@ export function MfdConsequenceRibbon({ consequences, className, style }: MfdCons
           >
             <Icon size={12} style={{ color, flexShrink: 0 }} />
             <span style={{
-              fontSize: '0.6875rem',
+              fontSize: 'var(--mfd-fs-11)',
               fontFamily: 'var(--mfd-font-mono)',
               color: 'var(--mfd-text-dim)',
             }}>
               {c.label}
             </span>
             <span style={{
-              fontSize: '0.75rem',
+              fontSize: 'var(--mfd-fs-12)',
               fontFamily: 'var(--mfd-font-mono)',
               fontWeight: 600,
               color,

@@ -59,7 +59,7 @@ export function AlumniTicker({ updates, reducedMotion = false }: AlumniTickerPro
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ ...pixelSm, color: '#f7d36b', textTransform: 'uppercase' }}>WHERE ARE THEY NOW</span>
-          <span style={{ ...mono, color: '#7d8593', fontSize: '11px' }}>ALUMNI WIRE</span>
+          <span style={{ ...mono, color: '#7d8593', fontSize: 'var(--mfd-fs-11)' }}>ALUMNI WIRE</span>
         </div>
 
         {reducedMotion ? (

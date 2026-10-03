@@ -662,12 +662,12 @@ export function GamePlanSetup() {
                     textAlign: 'left',
                     cursor: 'pointer',
                     fontFamily: 'var(--mfd-font-mono)',
-                    fontSize: '11px',
+                    fontSize: 'var(--mfd-fs-11)',
                     lineHeight: 1.5,
                   }}
                 >
                   <div style={{ fontWeight: 600, marginBottom: '4px' }}>{decl.label}</div>
-                  <div style={{ fontSize: '10px', opacity: 0.8 }}>{decl.description}</div>
+                  <div style={{ fontSize: 'var(--mfd-fs-10)', opacity: 0.8 }}>{decl.description}</div>
                 </button>
               ))}
             </div>

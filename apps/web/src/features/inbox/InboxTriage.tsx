@@ -367,7 +367,7 @@ export function InboxTriage() {
               <PixelBadge variant={TYPE_CONFIG[selectedMsg.type].badge}>{TYPE_CONFIG[selectedMsg.type].label}</PixelBadge>
               <PixelBadge variant="default">From: {selectedMsg.from}</PixelBadge>
             </div>
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '12px', color: '#ddd', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-12)', color: '#ddd', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
               {selectedMsg.body}
             </div>
             {selectedMsg.consequences ? (

@@ -100,7 +100,7 @@ export function BlueprintPhase({
 
       {/* Blueprint Narrative */}
       <PixelPanel title="The Plan" accent="gold">
-        <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.8, fontSize: '12px' }}>
+        <div style={{ ...monoSm, color: '#ddd', lineHeight: 1.8, fontSize: 'var(--mfd-fs-12)' }}>
           {data.blueprintNarrative}
         </div>
       </PixelPanel>

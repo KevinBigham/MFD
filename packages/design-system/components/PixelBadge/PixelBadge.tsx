@@ -31,7 +31,7 @@ export function PixelBadge({ children, variant = 'default', className, style }: 
         minHeight: '22px',
         padding: '3px 7px',
         fontFamily: 'var(--mfd-font-pixel)',
-        fontSize: '8px',
+        fontSize: 'var(--mfd-fs-8)',
         lineHeight: 1.2,
         letterSpacing: 0,
         border: `1px solid ${v.border}`,

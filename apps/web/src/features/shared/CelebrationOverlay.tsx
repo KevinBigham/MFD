@@ -88,7 +88,7 @@ const titleStyle: CSSProperties = {
 
 const subtitleStyle: CSSProperties = {
   ...pixel,
-  fontSize: '10px',
+  fontSize: 'var(--mfd-fs-10)',
   color: 'var(--mfd-cyan)',
   textAlign: 'center',
   marginBottom: '24px',
@@ -96,7 +96,7 @@ const subtitleStyle: CSSProperties = {
 
 const eraStyle: CSSProperties = {
   ...pixel,
-  fontSize: '9px',
+  fontSize: 'var(--mfd-fs-9)',
   color: 'var(--mfd-gold)',
   textAlign: 'center',
   marginTop: '16px',
@@ -185,10 +185,10 @@ export function CelebrationOverlay({
         {dynastyTotals ? (
           <PixelPanel title="DYNASTY TOTALS" accent="cyan" style={{ maxWidth: '360px', margin: '0 auto 12px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ ...pixel, fontSize: '9px', color: '#fff' }}>
+              <div style={{ ...pixel, fontSize: 'var(--mfd-fs-9)', color: '#fff' }}>
                 Championships // {dynastyTotals.championships}
               </div>
-              <div style={{ ...pixel, fontSize: '9px', color: '#fff' }}>
+              <div style={{ ...pixel, fontSize: 'var(--mfd-fs-9)', color: '#fff' }}>
                 Playoff Record // {dynastyTotals.playoffRecord}
               </div>
             </div>
@@ -199,7 +199,7 @@ export function CelebrationOverlay({
           <PixelPanel title="SIGNATURE PLAYS" accent="green" style={{ maxWidth: '440px', margin: '0 auto 12px', textAlign: 'left' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {signaturePlays.slice(0, 3).map((play) => (
-                <div key={play} style={{ ...pixel, fontSize: '9px', color: '#fff', lineHeight: 1.7 }}>
+                <div key={play} style={{ ...pixel, fontSize: 'var(--mfd-fs-9)', color: '#fff', lineHeight: 1.7 }}>
                   {play}
                 </div>
               ))}

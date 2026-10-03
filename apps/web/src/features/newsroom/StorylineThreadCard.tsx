@@ -166,10 +166,10 @@ export function StorylineThreadCard({ thread, onOpen }: StorylineThreadCardProps
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         <div style={{ ...pixelSm, color: 'var(--mfd-text-dim)' }}>HEAT</div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '13px', color: 'var(--mfd-gold)', letterSpacing: '2px' }}>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-13)', color: 'var(--mfd-gold)', letterSpacing: '2px' }}>
             {heatBlock(thread.heat)}
           </div>
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '12px', color: 'var(--mfd-text-dim)' }}>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-12)', color: 'var(--mfd-text-dim)' }}>
             {Math.max(0, Math.min(100, Math.round(thread.heat)))}
           </div>
         </div>

@@ -87,6 +87,19 @@
   --mfd-font-pixel:   'Press Start 2P', monospace;
   --mfd-font-display: 'Bebas Neue', 'Impact', sans-serif;
 
+  /* ── Text size scale ────────────────────────────────── */
+  /* Every font size of 14px or smaller goes through --mfd-fs-N (N = the original px size). */
+  /* Default is Comfortable (M); Settings > Text Size sets data-text-size on <html>. */
+  --mfd-fs-6: 9px;
+  --mfd-fs-7: 9px;
+  --mfd-fs-8: 10px;
+  --mfd-fs-9: 10px;
+  --mfd-fs-10: 12px;
+  --mfd-fs-11: 13px;
+  --mfd-fs-12: 14px;
+  --mfd-fs-13: 14px;
+  --mfd-fs-14: 15px;
+
   /* ── Spacing Scale ──────────────────────────────────── */
   --mfd-sp-xs:  4px;
   --mfd-sp-sm:  8px;
@@ -129,6 +142,32 @@
   --mfd-touch-min: 44px;   /* iOS HIG / WCAG 2.5.5 */
   --mfd-mobile-nav-height: 56px;
   --mfd-mobile-chip-clearance: 198px;
+}
+
+/* Compact (S): the original sizes. */
+:root[data-text-size="s"] {
+  --mfd-fs-6: 6px;
+  --mfd-fs-7: 7px;
+  --mfd-fs-8: 8px;
+  --mfd-fs-9: 9px;
+  --mfd-fs-10: 10px;
+  --mfd-fs-11: 11px;
+  --mfd-fs-12: 12px;
+  --mfd-fs-13: 13px;
+  --mfd-fs-14: 14px;
+}
+
+/* Large (L). */
+:root[data-text-size="l"] {
+  --mfd-fs-6: 10px;
+  --mfd-fs-7: 11px;
+  --mfd-fs-8: 12px;
+  --mfd-fs-9: 12px;
+  --mfd-fs-10: 14px;
+  --mfd-fs-11: 15px;
+  --mfd-fs-12: 16px;
+  --mfd-fs-13: 16px;
+  --mfd-fs-14: 17px;
 }
 
 /* ── Reduced Motion ───────────────────────────────────── */

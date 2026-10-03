@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { DEFAULT_TEXT_SIZE, normalizeTextSize, type TextSize } from '../../lib/text-size';
 import {
   DEFAULT_AUDIO_PREFERENCES,
   clampAudioVolume,
@@ -27,6 +28,9 @@ interface UiState {
 
   density: Density;
   setDensity: (d: Density) => void;
+
+  textSize: TextSize;
+  setTextSize: (size: TextSize) => void;
 
   autosaveEnabled: boolean;
   setAutosaveEnabled: (enabled: boolean) => void;
@@ -74,6 +78,9 @@ export const useUiStore = create<UiState>()(
 
       density: 'compact',
       setDensity: (density) => set({ density }),
+
+      textSize: DEFAULT_TEXT_SIZE,
+      setTextSize: (textSize) => set({ textSize: normalizeTextSize(textSize) }),
 
       autosaveEnabled: true,
       setAutosaveEnabled: (enabled) => set({ autosaveEnabled: enabled }),
@@ -134,6 +141,7 @@ export const useUiStore = create<UiState>()(
       partialize: (state) => ({
         sidebarCollapsed: state.sidebarCollapsed,
         density: state.density,
+        textSize: state.textSize,
         autosaveEnabled: state.autosaveEnabled,
         simSpeed: state.simSpeed,
         audioPreferences: state.audioPreferences,
@@ -145,6 +153,7 @@ export const useUiStore = create<UiState>()(
           ...currentState,
           sidebarCollapsed: normalizeBooleanPreference(persisted.sidebarCollapsed, currentState.sidebarCollapsed),
           density: normalizeDensityPreference(persisted.density, currentState.density),
+          textSize: normalizeTextSize(persisted.textSize, currentState.textSize),
           autosaveEnabled: normalizeBooleanPreference(persisted.autosaveEnabled, currentState.autosaveEnabled),
           simSpeed: normalizeSimSpeedPreference(persisted.simSpeed, currentState.simSpeed),
           audioPreferences: normalizeAudioPreferences(persisted.audioPreferences),

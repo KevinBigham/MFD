@@ -1686,7 +1686,7 @@ export function MondayBriefing() {
                 background: 'rgba(0, 229, 255, 0.06)',
                 color: 'var(--mfd-text)',
                 fontFamily: 'var(--mfd-font-mono)',
-                fontSize: '12px',
+                fontSize: 'var(--mfd-fs-12)',
                 lineHeight: 1.55,
               }}
             >
@@ -1694,7 +1694,7 @@ export function MondayBriefing() {
                 style={{
                   color: 'var(--mfd-gold)',
                   fontFamily: 'var(--mfd-font-pixel)',
-                  fontSize: '8px',
+                  fontSize: 'var(--mfd-fs-8)',
                   lineHeight: 1.3,
                   textTransform: 'uppercase',
                 }}
@@ -1878,7 +1878,7 @@ export function MondayBriefing() {
                   background: 'var(--mfd-bg-2)',
                   color: 'var(--mfd-text)',
                   fontFamily: 'var(--mfd-font-mono)',
-                  fontSize: '12px',
+                  fontSize: 'var(--mfd-fs-12)',
                 }}
               />
             </label>

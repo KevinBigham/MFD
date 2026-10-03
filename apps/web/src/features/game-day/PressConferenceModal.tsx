@@ -181,7 +181,7 @@ export function PressConferenceModal({
                   textAlign: 'left',
                   cursor: 'pointer',
                   fontFamily: 'var(--mfd-font-mono)',
-                  fontSize: '11px',
+                  fontSize: 'var(--mfd-fs-11)',
                   lineHeight: 1.6,
                 }}
               >

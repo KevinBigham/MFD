@@ -60,12 +60,12 @@ export function PixelSwitch({
     >
       <span style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {label ? (
-          <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '8px', letterSpacing: '0.8px', color }}>
+          <span style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-8)', letterSpacing: '0.8px', color }}>
             {label}
           </span>
         ) : null}
         {description ? (
-          <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
+          <span style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)', lineHeight: 1.5 }}>
             {description}
           </span>
         ) : null}

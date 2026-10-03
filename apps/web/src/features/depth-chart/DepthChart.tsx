@@ -490,7 +490,7 @@ export function DepthChart() {
           {selectedPlayers.map((player, index) => (
             <PixelPanel key={player.id} title={`${index + 1}. ${player.name}`} accent={player.isStarter ? 'gold' : 'default'}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <PlayerNameLink playerId={player.id} name={player.name} ovr={player.ovr} style={{ ...monoSm, fontSize: '14px' }} />
+                <PlayerNameLink playerId={player.id} name={player.name} ovr={player.ovr} style={{ ...monoSm, fontSize: 'var(--mfd-fs-14)' }} />
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <PixelBadge variant="cyan">{player.ovr} OVR</PixelBadge>
                   <PixelBadge variant="green">{player.pot} POT</PixelBadge>

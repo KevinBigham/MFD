@@ -216,7 +216,7 @@ function PlayoffLoreSourcesPanel({
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ ...monoSm, color: '#fff', fontSize: '12px' }}>{row.label}</span>
+              <span style={{ ...monoSm, color: '#fff', fontSize: 'var(--mfd-fs-12)' }}>{row.label}</span>
               <PixelBadge variant={row.accent}>{row.status}</PixelBadge>
             </div>
             <div style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>

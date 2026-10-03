@@ -44,8 +44,8 @@ const densityPadding: Record<Density, string> = {
 };
 
 const densityFontSize: Record<Density, string> = {
-  compact: '11px',
-  comfortable: '12px',
+  compact: 'var(--mfd-fs-11)',
+  comfortable: 'var(--mfd-fs-12)',
 };
 
 const accentBorder: Record<Accent, string> = {
@@ -162,7 +162,7 @@ export function PixelTable<T>({
                       textAlign: 'left',
                       fontFamily: 'var(--mfd-font-pixel)',
                       fontWeight: 400,
-                      fontSize: '8px',
+                      fontSize: 'var(--mfd-fs-8)',
                       textTransform: 'uppercase',
                       letterSpacing: 0,
                       color: sortDirection
@@ -209,7 +209,7 @@ export function PixelTable<T>({
                   textAlign: 'center',
                   color: 'var(--mfd-text-dim)',
                   fontFamily: 'var(--mfd-font-pixel)',
-                  fontSize: '8px',
+                  fontSize: 'var(--mfd-fs-8)',
                 }}
               >
                 {emptyMessage}

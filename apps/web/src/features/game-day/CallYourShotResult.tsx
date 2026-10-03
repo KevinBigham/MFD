@@ -56,14 +56,14 @@ export function CallYourShotResult({ result }: CallYourShotResultProps) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{
               fontFamily: 'var(--mfd-font-pixel)',
-              fontSize: '14px',
+              fontSize: 'var(--mfd-fs-14)',
               letterSpacing: '1px',
               color: 'var(--mfd-text)',
             }}
             >
               {theme.title}
             </div>
-            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '12px', color: 'var(--mfd-text-dim)' }}>
+            <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-12)', color: 'var(--mfd-text-dim)' }}>
               {result.headline}
             </div>
           </div>
@@ -77,10 +77,10 @@ export function CallYourShotResult({ result }: CallYourShotResultProps) {
         <div style={{ fontFamily: 'var(--mfd-font-display)', fontSize: '18px', color: 'var(--mfd-text)' }}>
           {result.reaction.headline}
         </div>
-        <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '12px', lineHeight: 1.6, color: 'var(--mfd-text)' }}>
+        <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-12)', lineHeight: 1.6, color: 'var(--mfd-text)' }}>
           "{result.reaction.quote}"
         </div>
-        <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', color: 'var(--mfd-text-dim)' }}>
+        <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)' }}>
           {result.reaction.speaker} // {result.reaction.speakerType.replace('_', ' ')}
         </div>
         <div
@@ -98,7 +98,7 @@ export function CallYourShotResult({ result }: CallYourShotResultProps) {
             <PixelBadge variant="gold">GameDayPackage</PixelBadge>
             <PixelBadge variant="default">Read-only receipt</PixelBadge>
           </div>
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '11px', lineHeight: 1.6, color: 'var(--mfd-text-dim)' }}>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', lineHeight: 1.6, color: 'var(--mfd-text-dim)' }}>
             Source: resolveCallYourShot resolves saved activeCallYourShot after the user game, applies the fan-confidence delta, clears activeCallYourShot, and stores callYourShotResult on the user GameResult. GameDayPackage copies that payload for recap display. Opening this result does not re-evaluate the shot, apply another fan-confidence swing, queue audio, change the saved game, rerun the game, or reroll saved outcomes.
           </div>
         </div>

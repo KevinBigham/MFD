@@ -207,7 +207,7 @@ export function TutorialOverlay({
                   background: 'transparent',
                   color: '#9a9a9a',
                   fontFamily: 'var(--mfd-font-mono)',
-                  fontSize: '11px',
+                  fontSize: 'var(--mfd-fs-11)',
                   cursor: 'pointer',
                   textDecoration: 'underline',
                 }}

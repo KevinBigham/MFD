@@ -33,6 +33,7 @@ import {
   useGameStore,
 } from '../../app/store/game-store';
 import { useUiStore } from '../../app/store/ui-store';
+import { TEXT_SIZES } from '../../lib/text-size';
 import {
   PixelMetricCard,
   PixelScreenHeader,
@@ -305,6 +306,8 @@ export function Settings() {
   const setAutosaveEnabled = useUiStore((state) => state.setAutosaveEnabled);
   const simSpeed = useUiStore((state) => state.simSpeed);
   const setSimSpeed = useUiStore((state) => state.setSimSpeed);
+  const textSize = useUiStore((state) => state.textSize);
+  const setTextSize = useUiStore((state) => state.setTextSize);
   const audio = useAudio();
   const currentMedical = medicalStaff.current;
   const availableMedicalStaff = medicalStaff.available;
@@ -518,6 +521,33 @@ export function Settings() {
       </PixelPanel>
 
       <div style={autoGrid(320)}>
+        <PixelPanel title="Text Size" accent="gold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              Pick the size that is easiest to read. It applies to every screen and is saved on this device.
+            </span>
+            <div role="group" aria-label="Text size" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {TEXT_SIZES.map((option) => (
+                <PixelButton
+                  key={option.id}
+                  type="button"
+                  accent={option.id === textSize ? 'gold' : 'default'}
+                  aria-pressed={option.id === textSize}
+                  onClick={() => setTextSize(option.id)}
+                >
+                  {option.label}
+                </PixelButton>
+              ))}
+            </div>
+            <span style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
+              {TEXT_SIZES.find((option) => option.id === textSize)?.hint}
+            </span>
+            <span style={{ ...monoSm, color: '#fff', lineHeight: 1.5 }}>
+              Sample: the starting QB is healthy, depth is set, and the Week 1 plan is ready to simulate.
+            </span>
+          </div>
+        </PixelPanel>
+
         <div data-spotlight-target="chip.route.settings.beat-1">
           <PixelPanel title="Simulation Preferences" accent="cyan">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

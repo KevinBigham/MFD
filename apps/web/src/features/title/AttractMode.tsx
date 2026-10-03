@@ -126,7 +126,7 @@ export function AttractModeFrame({ currentMoment, momentCount }: AttractModeFram
             <PixelBadge variant="gold">mulberry32 seed</PixelBadge>
             <PixelBadge variant="default">Render-only reel</PixelBadge>
           </div>
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.68rem', color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-11)', color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>
             Source: {momentCount} seeded demo frames from team catalog, scenario catalog, and the convention headline.
             Idle timers and player input only activate, advance, or dismiss this mount; rendering the reel does
             not create a dynasty, start setup, write GameState, autosave, play scheduled games, or reroll random outcomes.
@@ -142,13 +142,13 @@ export function AttractModeFrame({ currentMoment, momentCount }: AttractModeFram
           background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.08) 0%, rgba(0, 229, 255, 0.04) 100%)',
         }}
         >
-          <div style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: '10px', color: 'var(--mfd-gold)' }}>
+          <div style={{ fontFamily: 'var(--mfd-font-pixel)', fontSize: 'var(--mfd-fs-10)', color: 'var(--mfd-gold)' }}>
             MFD NETWORK DEMO
           </div>
           <div style={{ fontFamily: 'var(--mfd-font-serif)', fontSize: '1.1rem', color: '#fff', fontWeight: 700 }}>
             {currentMoment.headline}
           </div>
-          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: '0.72rem', color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
+          <div style={{ fontFamily: 'var(--mfd-font-mono)', fontSize: 'var(--mfd-fs-12)', color: 'var(--mfd-text-dim)', lineHeight: 1.7 }}>
             {currentMoment.detail}
           </div>
         </div>

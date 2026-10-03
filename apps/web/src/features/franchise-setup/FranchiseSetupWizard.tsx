@@ -1168,7 +1168,7 @@ export function FranchiseSetupWizard({
             railAddon={companionPanel}
           >
             <div className="mfd-setup-phase-kicker">
-              <div style={{ ...pixelSm, color: 'var(--mfd-gold)', fontSize: '10px', marginBottom: '4px' }}>
+              <div style={{ ...pixelSm, color: 'var(--mfd-gold)', fontSize: 'var(--mfd-fs-10)', marginBottom: '4px' }}>
                 {currentMeta.label.toUpperCase()}
               </div>
               <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>{currentMeta.subtitle}</div>

@@ -623,7 +623,7 @@ export function ContractTools() {
                     >
                       <div style={{ ...pixelSm, color: 'var(--mfd-muted)' }}>{entry.year}</div>
                       <div style={monoSm}>{entry.expired ? '—' : fmtMoney(entry.contractHit)}</div>
-                      <div style={{ ...monoSm, color: 'var(--mfd-muted)', fontSize: '10px' }}>
+                      <div style={{ ...monoSm, color: 'var(--mfd-muted)', fontSize: 'var(--mfd-fs-10)' }}>
                         {entry.expired ? 'EXPIRED' : `DEAD ${fmtMoney(entry.deadIfCut)}`}
                       </div>
                     </div>

@@ -39,7 +39,7 @@ export function PixelProgressBar({
           {label ? (
             <span style={{
               fontFamily: 'var(--mfd-font-pixel)',
-              fontSize: '7px',
+              fontSize: 'var(--mfd-fs-7)',
               color: 'var(--mfd-text-faint)',
               letterSpacing: '0.8px',
             }}>

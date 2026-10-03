@@ -28,7 +28,7 @@ export function MfdTooltip({ children, content, side = 'top', delayDuration }: M
           sideOffset={6}
           style={{
             padding: '6px 10px',
-            fontSize: '0.75rem',
+            fontSize: 'var(--mfd-fs-12)',
             fontFamily: 'var(--mfd-font-sans)',
             color: 'var(--mfd-text)',
             background: 'var(--mfd-bg-3)',

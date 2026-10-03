@@ -68,7 +68,7 @@ export function MfdRingProgress({
       </svg>
       {label && (
         <span style={{
-          fontSize: '0.625rem',
+          fontSize: 'var(--mfd-fs-10)',
           fontFamily: 'var(--mfd-font-mono)',
           color: 'var(--mfd-text-dim)',
           textTransform: 'uppercase',

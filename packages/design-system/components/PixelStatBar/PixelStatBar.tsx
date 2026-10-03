@@ -23,7 +23,7 @@ export function PixelStatBar({
       {/* Label */}
       <div style={{
         fontFamily: 'var(--mfd-font-pixel)',
-        fontSize: '7px',
+        fontSize: 'var(--mfd-fs-7)',
         color: '#555',
         textAlign: 'center',
         textTransform: 'uppercase',
@@ -59,7 +59,7 @@ export function PixelStatBar({
         {homeRatio == null && (
           <span style={{
             fontFamily: 'var(--mfd-font-pixel)',
-            fontSize: '6px',
+            fontSize: 'var(--mfd-fs-6)',
             color: '#333',
           }}>
             VS

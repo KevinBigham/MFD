@@ -88,12 +88,12 @@ export function DynastyEraPrompt({ open, onClose }: DynastyEraPromptProps) {
                   textAlign: 'left',
                   cursor: 'pointer',
                   fontFamily: 'var(--mfd-font-mono)',
-                  fontSize: '11px',
+                  fontSize: 'var(--mfd-fs-11)',
                   lineHeight: 1.5,
                 }}
               >
                 <div style={{ fontWeight: 600, marginBottom: '2px' }}>{s.name}</div>
-                <div style={{ fontSize: '10px', opacity: 0.7 }}>{s.reason}</div>
+                <div style={{ fontSize: 'var(--mfd-fs-10)', opacity: 0.7 }}>{s.reason}</div>
               </button>
             ))}
           </div>
@@ -114,7 +114,7 @@ export function DynastyEraPrompt({ open, onClose }: DynastyEraPromptProps) {
               border: `2px solid ${useCustom && customName.trim() ? 'var(--mfd-gold)' : 'var(--mfd-border)'}`,
               color: 'var(--mfd-text)',
               fontFamily: 'var(--mfd-font-mono)',
-              fontSize: '12px',
+              fontSize: 'var(--mfd-fs-12)',
             }}
           />
         </div>

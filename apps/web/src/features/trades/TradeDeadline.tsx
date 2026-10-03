@@ -308,7 +308,7 @@ export function TradeDeadline() {
         border: '2px solid var(--mfd-cyan)',
         color: 'var(--mfd-cyan)',
         fontFamily: 'var(--mfd-font-mono)',
-        fontSize: '12px',
+        fontSize: 'var(--mfd-fs-12)',
       }}>
         {deadlineState.tickerMessages.join(' // ')}
       </div>
@@ -326,7 +326,7 @@ export function TradeDeadline() {
             borderRadius: 'var(--mfd-rad-md)',
             color: 'var(--mfd-red)',
             fontFamily: 'var(--mfd-font-mono)',
-            fontSize: '12px',
+            fontSize: 'var(--mfd-fs-12)',
             lineHeight: 1.5,
           }}
         >

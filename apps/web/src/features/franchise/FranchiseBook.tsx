@@ -326,12 +326,12 @@ function ChapterView({
             </p>
           )}
           {triggerLine && (
-            <p style={{ ...mono, color: 'var(--mfd-text-dim)', lineHeight: 1.55, fontStyle: 'italic', fontSize: '11px' }}>
+            <p style={{ ...mono, color: 'var(--mfd-text-dim)', lineHeight: 1.55, fontStyle: 'italic', fontSize: 'var(--mfd-fs-11)' }}>
               — {triggerLine}
             </p>
           )}
           {milestoneAgmLines.map((line, i) => (
-            <p key={`ms-${i}`} style={{ ...mono, color: 'var(--mfd-gold)', lineHeight: 1.55, fontStyle: 'italic', fontSize: '11px', marginTop: '8px' }}>
+            <p key={`ms-${i}`} style={{ ...mono, color: 'var(--mfd-gold)', lineHeight: 1.55, fontStyle: 'italic', fontSize: 'var(--mfd-fs-11)', marginTop: '8px' }}>
               "{line}"
             </p>
           ))}

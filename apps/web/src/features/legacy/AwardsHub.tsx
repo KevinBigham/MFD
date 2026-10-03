@@ -91,7 +91,7 @@ function AwardCard({
                 <span style={{ ...pixelSm, color: 'var(--mfd-text-faint)' }}>
                   {award.label}
                 </span>
-                <span style={{ ...monoSm, color: 'var(--mfd-text)', fontSize: '14px' }}>
+                <span style={{ ...monoSm, color: 'var(--mfd-text)', fontSize: 'var(--mfd-fs-14)' }}>
                   {award.winnerName}
                 </span>
                 <span style={{ ...monoSm, color: 'var(--mfd-text-dim)', lineHeight: 1.6 }}>

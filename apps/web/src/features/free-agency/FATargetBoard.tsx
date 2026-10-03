@@ -100,7 +100,7 @@ function sectionTargets(
             <div key={`${title}-${target.player.id}`} style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '10px', border: '3px solid var(--mfd-border)', background: 'var(--mfd-bg-3)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <PlayerNameLink playerId={target.player.id} name={target.player.name} ovr={target.player.ovr} style={{ ...monoSm, fontSize: '14px' }} />
+                  <PlayerNameLink playerId={target.player.id} name={target.player.name} ovr={target.player.ovr} style={{ ...monoSm, fontSize: 'var(--mfd-fs-14)' }} />
                   <div style={{ ...monoSm, color: 'var(--mfd-text-dim)' }}>
                     {target.player.pos} // {target.player.ovr} OVR // age {target.player.age} // ${target.projectedSalary}M projected
                   </div>

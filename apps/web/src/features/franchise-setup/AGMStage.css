@@ -157,7 +157,7 @@
 }
 
 .mfd-agm-stage[data-mfd-agm-has-rail-addon='true'] .mfd-agm-stage__rail-addon .mfd-chip-host__context-detail-body {
-  font-size: 13px;
+  font-size: var(--mfd-fs-13);
   line-height: 1.48;
 }
 
@@ -597,7 +597,7 @@
   }
 
   .mfd-agm-stage[data-mfd-agm-has-rail-addon='true'] .mfd-agm-stage__rail-addon .mfd-chip-host__context-detail-body {
-    font-size: 12px;
+    font-size: var(--mfd-fs-12);
     line-height: 1.42;
   }
 

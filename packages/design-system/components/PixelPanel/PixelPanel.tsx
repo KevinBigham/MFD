@@ -83,7 +83,7 @@ export function PixelPanel({
           />
           <span style={{
             fontFamily: 'var(--mfd-font-pixel)',
-            fontSize: '9px',
+            fontSize: 'var(--mfd-fs-9)',
             lineHeight: 1.35,
             color: accentTitleColor[accent],
             letterSpacing: 0,
