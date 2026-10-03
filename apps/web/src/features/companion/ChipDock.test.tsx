@@ -16,6 +16,8 @@ import {
   persistRouteBeatProgress,
   resolveChipDockRoute,
   isMustDoRouteBeat,
+  hasUnreadWeeklyDialogue,
+  resolveBubbleTapView,
   resolveEffectiveDockCollapsed,
   shouldCollapseForRouteBeat,
   resolveNextRouteBeatIndex,
@@ -1736,6 +1738,40 @@ describe('compact-first Chip dock', () => {
       opened: true,
       closedByPlayer: true,
     })).toBe(false);
+  });
+
+  it('tracks an unread weekly message and opens it on tap instead of the Ask Chip summary', () => {
+    const base = { dialogueId: 'chip.weekly.cleanWin', hasDialogueChild: true, viewedDialogueId: null };
+    expect(hasUnreadWeeklyDialogue(base)).toBe(true);
+    expect(hasUnreadWeeklyDialogue({ ...base, viewedDialogueId: 'chip.weekly.cleanWin' })).toBe(false);
+    expect(hasUnreadWeeklyDialogue({ ...base, viewedDialogueId: 'chip.weekly.older' })).toBe(true);
+    expect(hasUnreadWeeklyDialogue({ ...base, dialogueId: null })).toBe(false);
+    expect(hasUnreadWeeklyDialogue({ ...base, hasDialogueChild: false })).toBe(false);
+    expect(resolveBubbleTapView(true)).toBe('dialogue');
+    expect(resolveBubbleTapView(false)).toBe('askChip');
+  });
+
+  it('shows a tip dot and "new message" on the compact bubble while a weekly dialogue is unread', () => {
+    vi.stubEnv('VITE_CHIP_ENABLED', 'true');
+    useChipStore.getState().showWeeklyDialogue({
+      id: 'chip.weekly.cleanWin',
+      beat: 0,
+      pose: 'celebrate',
+      text: 'Clean win, coach.',
+      archetype: 'weekly',
+    });
+
+    const markup = renderDock(
+      <ChipDock storage={new MemoryStorage()}>
+        <p>Weekly dialogue bubble</p>
+      </ChipDock>,
+    );
+    useChipStore.getState().reset();
+
+    expect(markup).toContain('data-chip-dock-state="collapsed"');
+    expect(markup).toContain('data-chip-collapsed-tip="tip"');
+    expect(markup).toContain('aria-label="Ask Chip, new message"');
+    expect(markup).not.toContain('Weekly dialogue bubble');
   });
 
   it('starts every new dock in the compact state', () => {

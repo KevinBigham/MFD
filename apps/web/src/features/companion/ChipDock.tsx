@@ -167,6 +167,30 @@ export function isMustDoRouteBeat(beat: Pick<RouteBeat, 'text'> | null): boolean
 }
 
 /**
+ * Chip has a weekly message the player has not opened yet: dialogue is showing in the store, a
+ * dock child carries it, and this exact dialogue has not been shown in the open dock.
+ */
+export function hasUnreadWeeklyDialogue({
+  dialogueId,
+  hasDialogueChild,
+  viewedDialogueId,
+}: {
+  dialogueId: string | null;
+  hasDialogueChild: boolean;
+  viewedDialogueId: string | null;
+}): boolean {
+  return hasDialogueChild && dialogueId !== null && dialogueId !== viewedDialogueId;
+}
+
+/**
+ * What tapping the bubble opens when no route beat is waiting: Chip's weekly dialogue if there is
+ * one (it has no other way in once the dock is compact), otherwise the Ask Chip summary.
+ */
+export function resolveBubbleTapView(hasWeeklyDialogue: boolean): 'dialogue' | 'askChip' {
+  return hasWeeklyDialogue ? 'dialogue' : 'askChip';
+}
+
+/**
  * Compact first: a waiting route beat keeps the dock as the small "Ask Chip" bubble, except
  * when an unread Must Do is waiting anywhere in this screen's beats on a desktop-width screen.
  * Phones always keep the bubble until it is tapped.
@@ -640,6 +664,8 @@ export function ChipDock({
   // getInitialState during SSR snapshots, so the subscribed value alone would
   // hide the weekly details in server-rendered output (same pattern as
   // useResolvedChipPose).
+  useChipStore((state) => state.currentDialogueId);
+  const currentDialogueId = useChipStore.getState().currentDialogueId;
   useChipStore((state) => state.lastWeeklyDialogue);
   const lastWeeklyDialogue = useChipStore.getState().lastWeeklyDialogue;
   useChipStore((state) => state.dialogueQueue);
@@ -651,6 +677,7 @@ export function ChipDock({
   // not consulted, so returning players get the same compact dock as new ones.
   const [openedRoute, setOpenedRoute] = useState<string | null>(null);
   const [closedByPlayerRoute, setClosedByPlayerRoute] = useState<string | null>(null);
+  const [viewedDialogueId, setViewedDialogueId] = useState<string | null>(null);
   // E4: the three quiet controls (screen/week/season) live inside one quiet
   // menu; the trigger toggles this state and picking an option closes it.
   const [quietMenuOpen, setQuietMenuOpen] = useState(quietMenuDefaultOpen);
@@ -756,6 +783,16 @@ export function ChipDock({
     localCollapsed: openedRoute !== resolvedRoute,
     preferRouteBeatCollapsed,
   });
+  const dialogueShowing = !effectiveCollapsed && !activeRouteBeat && !activeLiveBeat && Boolean(children);
+  const unreadDialogue = hasUnreadWeeklyDialogue({
+    dialogueId: currentDialogueId,
+    hasDialogueChild: Boolean(children),
+    viewedDialogueId,
+  });
+  // Once the weekly dialogue is on screen in the open dock it counts as read.
+  useEffect(() => {
+    if (dialogueShowing && currentDialogueId !== null) setViewedDialogueId(currentDialogueId);
+  }, [currentDialogueId, dialogueShowing]);
   // The app shell reserves runway for the dock only while it is expanded; set before paint so a
   // new screen never flashes the old layout.
   useLayoutEffect(() => {
@@ -912,7 +949,10 @@ export function ChipDock({
       if (control === 'expand') {
         openDock();
         setRouteCoachOpened(true);
-        if (!activeRouteBeat) showAskChipBeat();
+        if (!activeRouteBeat) {
+          const hasWeeklyDialogue = Boolean(children) && currentDialogueId !== null;
+          if (resolveBubbleTapView(hasWeeklyDialogue) === 'askChip') showAskChipBeat();
+        }
       }
       onCollapseToggle?.();
     },
@@ -920,6 +960,8 @@ export function ChipDock({
       activeLiveBeat,
       activeRouteBeat,
       backingStorage,
+      children,
+      currentDialogueId,
       currentSeason,
       currentWeek,
       dismissLiveBeat,
@@ -989,7 +1031,7 @@ export function ChipDock({
           onKeyDown={(event) => activateControlFromKeyboard(event, 'expand')}
           aria-label={[
             activeRouteBeat ? 'Ask Chip about this screen' : 'Ask Chip',
-            mustDoWaiting ? 'Must Do waiting' : activeRouteBeat ? 'tip waiting' : null,
+            mustDoWaiting ? 'Must Do waiting' : activeRouteBeat ? 'tip waiting' : unreadDialogue ? 'new message' : null,
             pendingDecisionTotal > 0
               ? `${pendingDecisionTotal} decision${pendingDecisionTotal === 1 ? '' : 's'} pending`
               : null,
@@ -999,7 +1041,7 @@ export function ChipDock({
             <Chip pose={portraitPose} size="sm" reducedMotion={motionMode === 'reduced'} />
           </span>
           <span className="mfd-chip-dock__collapsed-label">Ask Chip</span>
-          {activeRouteBeat ? (
+          {activeRouteBeat || unreadDialogue ? (
             <span
               className="mfd-chip-dock__collapsed-tip"
               data-chip-collapsed-tip={mustDoWaiting ? 'must-do' : 'tip'}
