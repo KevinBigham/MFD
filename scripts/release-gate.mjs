@@ -84,6 +84,7 @@ export function buildReleaseGatePlan(options = {}) {
     'scripts/__tests__/smoke-test-post-setup-route.test.mjs',
     'scripts/__tests__/smoke-test-g3-football-ops-matrix.test.mjs',
     'scripts/__tests__/smoke-test-g4-multi-year-trust.test.mjs',
+    'scripts/__tests__/shadow-baseline-update.test.mjs',
   ];
   const gradeSeasonTestArgs = [
     'run',

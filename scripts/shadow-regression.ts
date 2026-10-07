@@ -5,7 +5,7 @@
  * Default behavior:
  *   pnpm test:shadow                 # run all scenarios, compare to baselines, exit 1 on diff
  *
- * Update mode (governed by §5.5 baseline_update_protocol — never run blindly):
+ * Update mode (see docs/verification/shadow-tier.md#baseline-updates):
  *   pnpm test:shadow -- --update             # regenerate every baseline + metadata
  *   pnpm test:shadow -- --update <id>        # regenerate one scenario only
  *   pnpm test:shadow -- --only <id>          # run only one scenario in compare mode
@@ -14,13 +14,14 @@
  *   - Compare mode: human-readable PASS / FAIL per scenario, diff body on FAIL.
  *     Exit 0 if every scenario matches its baseline; exit 1 otherwise.
  *   - Update mode: writes <id>.json (canonical PlaytestReport) and <id>.meta.json
- *     under mfd/_canon/seeds/mfd/. Always exit 0 unless an exception is thrown.
+ *     under _canon/seeds/mfd/. Requires a clean, committed Git source checkout
+ *     before any simulation or write. Always exit 0 unless an exception is thrown.
  */
 
-import { execSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { captureBaselineSourceCommit, updateShadowBaselines } from './shadow-baseline-update.mjs';
 
 import { SAVE_VERSION } from '../packages/engine/src/config/difficulty.ts';
 import {
@@ -62,16 +63,6 @@ if (targetId && scenarios.length === 0) {
   process.exit(2);
 }
 
-function readEngineSha(): string {
-  try {
-    return execSync('git rev-parse HEAD', { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] })
-      .toString()
-      .trim();
-  } catch {
-    return 'unknown';
-  }
-}
-
 function generationCommandFor(scenarioId: string, all: boolean): string {
   return all
     ? 'pnpm test:shadow -- --update'
@@ -97,6 +88,7 @@ function writeBaseline(
   report: PlaytestReport,
   canonicalJson: string,
   all: boolean,
+  sourceCommit: string,
 ): void {
   mkdirSync(baselineDir, { recursive: true });
   writeFileSync(baselinePath(scenarioId), canonicalJson + '\n', 'utf8');
@@ -107,7 +99,7 @@ function writeBaseline(
     specCitation: shadowCorpusSpecCitation,
     updateReason: shadowCorpusReason,
     schemaVersion: SAVE_VERSION,
-    engineCommit: readEngineSha(),
+    engineCommit: sourceCommit,
     generatedAt: new Date().toISOString(),
     generationCommand: generationCommandFor(scenarioId, all),
     persona: report.personaId,
@@ -124,12 +116,17 @@ function writeBaseline(
 async function main(): Promise<void> {
   if (isUpdate) {
     const all = targetId === null;
-    for (const scenario of scenarios) {
-      process.stdout.write(`Generating baseline ${scenario.id} (persona=${scenario.personaId} seed=${scenario.seed} seasons=${scenario.seasons})...\n`);
-      const result = runShadowScenario(scenario.id);
-      writeBaseline(scenario.id, result.report, result.canonicalJson, all);
-      process.stdout.write(`  wrote ${baselinePath(scenario.id)}\n`);
-    }
+    updateShadowBaselines(scenarios, {
+      readSourceCommit: () => captureBaselineSourceCommit(repoRoot),
+      generate: (scenario) => {
+        process.stdout.write(`Generating baseline ${scenario.id} (persona=${scenario.personaId} seed=${scenario.seed} seasons=${scenario.seasons})...\n`);
+        return runShadowScenario(scenario.id);
+      },
+      write: (scenario, result, sourceCommit) => {
+        writeBaseline(scenario.id, result.report, result.canonicalJson, all, sourceCommit);
+        process.stdout.write(`  wrote ${baselinePath(scenario.id)}\n`);
+      },
+    });
     process.stdout.write('Baseline regeneration complete. Review the diffs and metadata before committing.\n');
     return;
   }
@@ -152,7 +149,7 @@ async function main(): Promise<void> {
       anyFail = true;
       process.stdout.write(`${formatShadowDiff(diff)}\n`);
       process.stdout.write(`  reproduce: pnpm test:shadow -- --only ${scenario.id}\n`);
-      process.stdout.write(`  see §5.5 baseline_update_protocol before regenerating\n`);
+      process.stdout.write('  see docs/verification/shadow-tier.md#baseline-updates before regenerating\n');
     }
   }
 

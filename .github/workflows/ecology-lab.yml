@@ -1,9 +1,13 @@
 name: GOAT Ecology Lab
 
 on:
-  schedule:
-    - cron: '17 6 * * *'
   workflow_dispatch:
+    inputs:
+      confirm_full_matrix:
+        description: 'Run all 100 certification jobs (25/50 seasons)'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -14,11 +18,12 @@ concurrency:
 
 jobs:
   certify:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm_full_matrix == true }}
     name: ${{ matrix.persona }} / seed ${{ matrix.seed }} / ${{ matrix.seasons }}y
     runs-on: ubuntu-latest
     # 50y cells measure ~115-118 min remotely; 180 gives headroom without
     # letting a hung cell burn runner hours. 100y lives in ecology-lab-100y.yml
-    # because ~235 min cannot fit a sane nightly timeout.
+    # because ~235 min cannot fit this lane's per-cell timeout.
     timeout-minutes: 180
     strategy:
       fail-fast: false

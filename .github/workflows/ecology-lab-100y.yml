@@ -1,14 +1,17 @@
 name: GOAT Ecology Lab 100y
 
-# Weekly deep-horizon lane. 100-season cells measure ~235+ min remotely, so
-# they cannot share the nightly workflow's sane per-cell timeout. Kept as a
-# separate weekly + manual workflow so the nightly 25/50y certification stays
-# fast and fully green. See ecology-lab.yml for the nightly matrix.
+# Manual deep-horizon lane. Its 100-season cells keep a separate timeout
+# from the 25/50-season matrix in ecology-lab.yml. Dispatch requires an
+# explicit acknowledgement of the full 50-job workload.
 
 on:
-  schedule:
-    - cron: '41 5 * * 0'
   workflow_dispatch:
+    inputs:
+      confirm_full_matrix:
+        description: 'Run all 50 certification jobs (100 seasons)'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -19,6 +22,7 @@ concurrency:
 
 jobs:
   certify:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm_full_matrix == true }}
     name: ${{ matrix.persona }} / seed ${{ matrix.seed }} / 100y
     runs-on: ubuntu-latest
     # GitHub-hosted runner per-job ceiling is 360 min; 100y cells estimate

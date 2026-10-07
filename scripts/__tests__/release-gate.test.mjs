@@ -66,6 +66,7 @@ test('runs TypeScript grade-season tests through Vitest instead of plain Node', 
 
   assert.ok(scriptTests);
   assert.equal(scriptTests.args.includes('scripts/__tests__/grade-season.test.ts'), false);
+  assert.ok(scriptTests.args.includes('scripts/__tests__/shadow-baseline-update.test.mjs'));
 
   assert.ok(gradeSeasonTests);
   assert.match(gradeSeasonTests.command, /apps\/web\/node_modules\/\.bin\/vitest$/);
