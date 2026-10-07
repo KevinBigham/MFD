@@ -1,5 +1,7 @@
 # MFD Release Candidate Handoff
 
+> **Historical record — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](../README.md) and its approved work queue; preserve this original record as history.
+
 Date: 2026-05-05
 Repo: `/Users/tkevinbigham/Documents/GitHub/MFD-clean-chip-recovery`
 Branch: `codex/chip-public-release-recovery`

@@ -1,44 +1,38 @@
 ---
 name: phase-packet
-description: Generates a filled MFD work packet for a numbered GOAT
-  roadmap item. Use when Kevin names a roadmap/phase item ("run item
-  23", "packet for Phase 2"), or asks to start roadmap work.
+description: Generate a six-section MFD work packet when Kevin requests a repair item such as MFD-02, a numbered GOAT item, or a phase packet. Resolve the explicitly selected approved source; never substitute a different roadmap for an unavailable legacy source.
 ---
 
-# Phase Packet Generator
+# MFD Packet Generator
 
-Source of truth for items: `docs/audits/MFD_GOAT_EXECUTION_ORDER_REV2.md`
-(the phased 100-item execution order, Phases 0–7).
+Work from the repository root. The Markdown links below resolve relative to this skill file. Read [AGENTS.md](../../../AGENTS.md) before preparing a packet.
 
-If that file does not exist yet: STOP and tell Kevin the Rev-2
-execution order has not been committed — do NOT invent items or
-substitute another roadmap document.
+## Select the source
 
-For the requested item, emit exactly this packet, fully filled:
+| Selector | Source / handling |
+| --- | --- |
+| `MFD-01` through `MFD-16` | [October 7 consistency repair plan](../../../docs/plans/file-consistency-2026-10-07.md). Find that exact row and its packet's rules. |
+| Legacy GOAT item numbers or phase names | The original approved source must be explicitly identified and available. The formerly referenced Rev-2 roadmap is unavailable; report that gap. Do not treat the repair plan as its replacement contents. |
+| Missing, ambiguous, or unknown selector | Identify the missing source/item before generating work. Do not invent an item, approval, or alias. |
 
-## PACKET: <item-id>-<slug>
+Keep the two skill copies byte-identical. Use the current plan for active work; treat old audit statuses and embedded marathon instructions as historical references.
 
-CONTEXT: <repo, branch, phase, what this item is and why it is
-  sequenced here — 2–4 lines from the execution-order doc>
+## Generate the packet
 
-OBJECTIVE: <one sentence, one outcome>
+Read the selected finding and current files. Use that finding's touch-only paths, acceptance criteria, and packet rules; do not expand to every finding in the same packet. If the source has moved or a path/contract is uncertain, identify the exact gap.
 
-CONSTRAINTS:
-- Touch only: <paths for this item>. Do not touch: <that phase's
-  hot-file list; the three CODEX_*.md files; SAVE_VERSION unless
-  the item is inside a declared schema window>
-- Honor AGENTS.md Prime Laws (determinism, schema, no silent math).
+Emit these six sections:
 
-VERIFICATION (all must pass before reporting done):
-- <exact commands per AGENTS.md verification defaults for the
-  packages touched>
-- <item-specific checks from the execution-order doc>
-- State the environment verified in (local vs CI vs live URL + commit).
+**CONTEXT:** Repository, actual branch/head, selected MFD ID or authenticated legacy item, source, and why the repair is needed.
 
-DELIVERABLE: <branch name, conventional commits, PR — per item>
+**OBJECTIVE:** One outcome from the selected item.
 
-STOP CONDITIONS: schema/save-format impact discovered mid-work ·
-gameplay-math change required · hot-file conflict with a parallel
-lane · scope or cost doubles · anything in AGENTS.md Kevin gates.
+**CONSTRAINTS:** Exact touch-only paths; applicable AGENTS rules; relevant shared-file/schema window; excluded files and behaviors. The three protected CODEX files require an explicit scoped exception; do not infer one from a generic task.
 
-After emitting the packet, wait for Kevin's GO before executing.
+**VERIFICATION:** Exact commands from the plan and AGENTS for the touched scope, plus the item's acceptance checks. Distinguish static checks, executed tests, hosted evidence, and publication. State missing runtime/access rather than claiming tests passed.
+
+**DELIVERABLE:** Candidate branch/diff, independent review, actual evidence, remaining limits, and the selected ledger row's updated status. A PR or merge is included only when already authorized.
+
+**STOP CONDITIONS:** An unavailable source, conflicting work, unapproved save/math/protected-file impact, uncontrolled scope/cost growth, or another applicable AGENTS gate. Continue independent authorized work when a separate item is blocked.
+
+Generating a packet does not authorize execution. Check the current session's explicit authorization: proceed within what it already covers without requesting a redundant GO; keep any additional hosted-work, merge, or release action pending until authorized. Obtain independent review before requesting merge.

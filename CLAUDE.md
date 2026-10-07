@@ -21,7 +21,10 @@ and the disagreement is a bug to flag to Kevin.
 - goat-reviewer (.claude/agents/goat-reviewer.md): invoke before
   requesting merge — the builder never grades its own work.
 - /phase-packet (.claude/skills/phase-packet): generates a work
-  packet from the GOAT roadmap. An identical copy lives at
+  packet from the explicitly selected source in the current
+  [repair plan](docs/plans/file-consistency-2026-10-07.md). Legacy
+  GOAT selectors are separate and require their original source.
+  An identical copy lives at
   .agents/skills/phase-packet for other tools — any edit to one
   must be mirrored to the other.
 

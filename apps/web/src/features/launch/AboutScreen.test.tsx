@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { SAVE_VERSION } from '@mfd/engine';
 import appSource from '../../app/App.tsx?raw';
@@ -27,12 +28,17 @@ describe('AboutScreen', () => {
     expect(markup).not.toContain('v35');
   });
 
-  it('links to the repository and play guide', () => {
+  it('links to the repository and a readable checked-in play guide', () => {
     const markup = renderToStaticMarkup(<AboutScreen />);
+    const guideHref = markup.match(/<a\b[^>]*href="([^"]+)"[^>]*>Play Guide<\/a>/)?.[1];
 
     expect(markup).toContain('Repository');
-    expect(markup).toContain('Play Guide');
     expect(markup).toContain('https://github.com/KevinBigham/MFD');
+    expect(guideHref).toBe('https://github.com/KevinBigham/MFD/blob/main/docs/PLAY_GUIDE.md');
+
+    const guidePath = new URL(guideHref!).pathname.replace('/KevinBigham/MFD/blob/main/', '');
+    const guide = readFileSync(new URL(`../../../../../${guidePath}`, import.meta.url), 'utf8');
+    expect(guide.trim().length).toBeGreaterThan(0);
   });
 
   it('is reachable from the app router', () => {

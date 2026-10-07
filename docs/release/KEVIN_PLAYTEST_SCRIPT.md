@@ -1,5 +1,7 @@
 # Kevin Playtest Script
 
+> **Historical record — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](../README.md) and its approved work queue; preserve this original record as history.
+
 Goal: decide ship / no-ship for the MFD public release candidate.
 
 Use this alongside `docs/release/MFD_FINAL_SHIP_DECISION.md`.

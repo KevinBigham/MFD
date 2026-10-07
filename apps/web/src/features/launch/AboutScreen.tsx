@@ -3,7 +3,7 @@ import { SAVE_VERSION } from '@mfd/engine';
 import { PixelMetricCard, PixelScreenHeader, autoGrid, monoSm, screenStackStyle } from '../shared/pixelUi';
 
 const REPO_URL = 'https://github.com/KevinBigham/MFD';
-const PLAY_GUIDE_URL = 'https://github.com/KevinBigham/MFD/blob/main/ACTIVE/MFD_CREATION_GUIDE.md';
+const PLAY_GUIDE_URL = 'https://github.com/KevinBigham/MFD/blob/main/docs/PLAY_GUIDE.md';
 
 const linkStyle = {
   color: 'var(--mfd-cyan)',

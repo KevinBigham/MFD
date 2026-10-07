@@ -1,5 +1,7 @@
 # MFD AI And Simulation Audit
 
+> **Historical record — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](docs/README.md) and its approved work queue; preserve this original record as history.
+
 Verdict: YELLOW. The football and CPU management systems are real and broad, with deterministic release tooling and a 10-season fast tier showing zero high anomalies. The gaps are not "fake sim"; they are depth, explainability, long-horizon proof, and several high-emotion systems that are shallow or disconnected.
 
 ## Football Simulation Scoreboard

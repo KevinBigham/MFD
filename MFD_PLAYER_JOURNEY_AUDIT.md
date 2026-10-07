@@ -1,5 +1,7 @@
 # MFD Player Journey Audit
 
+> **Historical record — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](docs/README.md) and its approved work queue; preserve this original record as history.
+
 Verdict: YELLOW. The first 10 seasons are plausibly playable for motivated franchise-sim players, especially with Chip and the strengthened local release gate. The journey still risks overwhelming new users, under-explaining CPU intent, and losing long-term memory portability unless sidecars and long-horizon proof are improved.
 
 ## Journey Table

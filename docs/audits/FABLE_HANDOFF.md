@@ -1,5 +1,7 @@
 # Fable Handoff
 
+> **Historical record — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](../README.md) and its approved work queue; preserve this original record as history.
+
 ## 1. Fable TL;DR
 
 MFD is stronger than the older root audits suggest. July 5 work fixed major app-shell and UX discoverability gaps: static routes are nav-visible, the command palette no longer caps roster players, owner inbox events are consumed, draft war-room accepted trades are source-backed and update live draft order, and position coaches now have basic initialize/upgrade UI.

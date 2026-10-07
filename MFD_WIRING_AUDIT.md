@@ -1,5 +1,7 @@
 # MFD Wiring Audit
 
+> **Historical record — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](docs/README.md) and its approved work queue; preserve this original record as history.
+
 This audit focuses on mismatches required by `AUDIT_GOAL_MFD.md:131-144`: UI without sim, sim without UI, data without consumers, unexplained state changes, placeholders, duplicate logic, and save read/write gaps.
 
 ## Wiring Scorecard

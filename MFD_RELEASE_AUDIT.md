@@ -1,5 +1,7 @@
 # MFD Release Audit
 
+> **Historical record — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](docs/README.md) and its approved work queue; preserve this original record as history.
+
 Current public-release verdict: YELLOW.
 
 MFD is locally gateable, broadly playable, and much stronger than a prototype. I would not call it GREEN for wide public release because the strongest release contract is not enforced in CI/deploy, long-horizon dynasty trust is not proven, and several player-visible systems are shallow or split across save/sidecar boundaries.

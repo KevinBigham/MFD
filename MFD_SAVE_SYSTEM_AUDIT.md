@@ -1,5 +1,7 @@
 # MFD Save System Audit
 
+> **Historical record — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](docs/README.md) and its approved work queue; preserve this original record as history.
+
 Verdict: YELLOW-GREEN. The main save path is strong enough for early release because versioning, migration, schema validation, IndexedDB slots, cartridge import/export, and autosaves exist. It is not yet "dynasty-sim legendary" because long-history state has permissive schemas, `.mfd` files exclude browser-local sidecars, and no clean 25/50-year trust proof exists.
 
 ## Save Trust Scoreboard

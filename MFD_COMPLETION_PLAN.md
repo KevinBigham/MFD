@@ -1,5 +1,7 @@
 # MFD — Completion Plan (How To Finish The Main List)
 
+> **Historical record — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](docs/README.md) and its approved work queue; preserve this original record as history.
+
 **Compiled:** 2026-08-02 · **Companion doc:** `MFD_MAIN_LIST_OF_IMPROVEMENTS.md` (item IDs C1–C30, D1–D5 used throughout)
 **State baseline:** v1.0.0 · `SAVE_VERSION = 37` · 37/37 local release gate (2026-07-21) + **remote gate green + protected + deployed (verified 2026-08-02)** · git-linked to `origin/main` @ `10d9da3`
 

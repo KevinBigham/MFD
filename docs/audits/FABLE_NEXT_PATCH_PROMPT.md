@@ -1,5 +1,7 @@
 # Fable Next Patch Prompt
 
+> **Historical prompt — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](../README.md) and its approved work queue; preserve this original record as history.
+
 Paste everything below the line into a fresh Claude Code session once implementation is approved.
 
 ---

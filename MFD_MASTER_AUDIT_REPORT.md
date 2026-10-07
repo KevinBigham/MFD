@@ -1,5 +1,7 @@
 # MFD Master Audit Report
 
+> **Historical record — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](docs/README.md) and its approved work queue; preserve this original record as history.
+
 Audit date: 2026-06-19
 
 Governing document: `AUDIT_GOAL_MFD.md`.

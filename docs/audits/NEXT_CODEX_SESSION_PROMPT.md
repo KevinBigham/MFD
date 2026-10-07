@@ -1,5 +1,7 @@
 # Next Codex Session Prompt
 
+> **Historical prompt — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](../README.md) and its approved work queue; preserve this original record as history.
+
 You are continuing the MFD audit from `/Users/kevin/Downloads/MFD/MFD-main`.
 
 Read these first:

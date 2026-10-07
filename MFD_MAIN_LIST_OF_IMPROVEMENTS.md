@@ -1,5 +1,7 @@
 # MFD — Main List of Improvements (Master Consolidation)
 
+> **Historical record — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](docs/README.md) and its approved work queue; preserve this original record as history.
+
 **Compiled:** 2026-08-02 · **Workspace:** `/Users/kevin/Projects/MFD-main` · **State:** v1.0.0 · `SAVE_VERSION = 37` (confirmed `packages/engine/src/config/difficulty.ts:93`) · git-linked to `origin/main` @ `10d9da3`, tree byte-identical (verified 2026-08-02)
 
 **Purpose:** one authoritative list merging every "future goals / tasks-that-need-completed" list in the repo, with per-item status (DONE / PARTIAL / OPEN), evidence, and the next concrete slice.

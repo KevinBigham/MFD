@@ -20,6 +20,8 @@ Pinned toolchain: pnpm@9.15.9 (package.json "packageManager").
 - scripts/ — CI gates & tooling · _canon/seeds — canonical seed data
 - docs/audits · docs/release · docs/sprint-logs · docs/verification
 
+Current documentation and work queue: [docs/README.md](docs/README.md).
+
 ## Prime Laws
 
 1. DETERMINISM. Same seed + same inputs → same outcomes. All
@@ -41,6 +43,9 @@ Pinned toolchain: pnpm@9.15.9 (package.json "packageManager").
   CODEX_IMPROVEMENT_PLAN.md, CODEX_GOAT_MARATHON_PROMPT.md.
   save-version-drift.test.ts (lines 63–65) hard-reads them; the
   engine suite breaks without them. Reading/grepping is fine.
+  Their embedded marathon instructions are historical, not an
+  authorization to expand a current packet. Use the current
+  [handoff](CODEX_FINISH_GAME_MARATHON_PROMPT.md) for new work.
 - NEVER read wholesale (context bombs) — grep the sections
   relevant to your task instead: STATUS.md (41k lines),
   RELEASE_CONVERGENCE.md, CODEX_GAME_GUIDE.md (730KB),
@@ -84,8 +89,14 @@ Work arrives as packets: CONTEXT / OBJECTIVE / CONSTRAINTS /
 VERIFICATION / DELIVERABLE / STOP CONDITIONS. No VERIFICATION
 section = not a packet — ask for one. The phase-packet skill
 (.claude/skills and .agents/skills — identical copies) generates
-one from the GOAT roadmap. The builder never grades its own work:
-get an independent review before requesting merge.
+one from an explicitly selected, approved source. The current
+source is [the consistency repair plan](docs/plans/file-consistency-2026-10-07.md),
+using MFD-01 through MFD-16. Legacy GOAT numbers and phases are
+not aliases for those IDs; an unavailable legacy source remains
+unresolved. Existing explicit authorization applies to its stated
+scope; do not request a second GO for work it already covers.
+The builder never grades its own work: get an independent review
+before requesting merge.
 
 ## Kevin gates — STOP and ask
 

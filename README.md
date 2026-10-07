@@ -6,6 +6,8 @@ Browser-based football franchise dynasty simulation. Build a team, manage the ca
 
 **Version:** v1.0.0 · **Save schema:** v37
 
+[Player guide](docs/PLAY_GUIDE.md) · [Current documentation](docs/README.md) · [Verification and tooling](docs/verification/tooling.md)
+
 ## Screenshots
 
 | Dashboard | Standings |

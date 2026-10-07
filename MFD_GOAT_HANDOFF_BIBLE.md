@@ -1,5 +1,7 @@
 # MFD GOAT Handoff Bible
 
+> **Historical record — labeled October 7, 2026.** The original text below describes its review period, including old paths, findings, and instructions. It is not current execution or release authorization. Use the [current documentation index](docs/README.md) and its approved work queue; preserve this original record as history.
+
 Last updated: 2026-07-21
 
 Workspace inspected for the GOAT master-plan build: `/Users/tkevinbigham/Downloads/MFD-main`
