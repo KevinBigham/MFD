@@ -1284,6 +1284,7 @@ export interface GameState {
   powerRankings: PowerRanking[];
   mediaCycle?: MediaCycleState;
   franchiseHistory: FranchiseHistoryEntry[];
+  /** Durable era history; v38 seeds/migration default absent history to []. */
   userDynastyEras?: import('../systems/dynasty-era').DynastyEra[];
   playerArchive: PlayerArchiveEntry[];
   playerSeasonHistory: Record<string, PlayerSeasonHistoryEntry[]>;
@@ -1318,6 +1319,7 @@ export interface GameState {
   warRoomState: WarRoomState | null;
   contractExtensions: ContractExtensionRecord[];
   difficultyState: DifficultyState;
+  /** Durable hired contracts and remaining budget (including zero), retained since v38. */
   activeMentors?: import('../systems/alumni-mentors').AlumniMentor[];
   mentorBudget?: number;
   availableMedicalStaff: MedicalStaff[];
@@ -1348,6 +1350,7 @@ export interface GameState {
   opponentReports?: OpponentReport[];
   draftRecaps?: DraftRecap[];
   tradeSuggestions?: TradeSuggestion[];
+  /** Recorded camp outcomes; an empty default never reruns camp on load. */
   trainingCampResults?: TrainingCampReport[];
   postGameUi?: PostGameUiState;
   breakingNewsQueue?: import('../systems/narrative-director').BreakingNewsEvent[];
@@ -1356,11 +1359,14 @@ export interface GameState {
   earnedDoctrines?: FranchiseDoctrine[];
   nearMissTracker?: import('../systems/near-miss-receipts').NearMissTracker;
   seasonNearMissReceipts?: import('../systems/near-miss-receipts').NearMissEntry[];
+  /** Durable queue consumed when a bypassed prospect is subsequently drafted. */
   pendingPassedPickTargets?: PendingPassedPickTarget[];
   activeCallYourShot?: import('../systems/call-your-shot').ShotDeclaration;
   apologyTourThreads: ApologyTourThread[];
   lastPortableExportYear?: number | null;
+  /** Optional durable onboarding progress; absent for legacy/scenario/instant games. */
   setupState?: import('../systems/franchise-setup').SetupState;
+  /** Optional finalized summary; loading must not reapply setup effects to recreate it. */
   franchiseBlueprint?: import('../systems/franchise-setup').FranchiseBlueprint;
   // Sprint 45 "The Family Tree" — league-wide relationship graph.
   // Stores coaching lineage, rivalries, and family ties in one flat list.

@@ -26,7 +26,7 @@ Pinned toolchain: pnpm@9.15.9 (package.json "packageManager").
    randomness flows through packages/engine/src/rng/index.ts
    (named channels). Math.random() is banned — enforced by
    scripts/check-math-random.sh (sole exception: synth-sounds.ts).
-2. SAVE SCHEMA. SAVE_VERSION = 37
+2. SAVE SCHEMA. SAVE_VERSION = 38
    (packages/engine/src/config/difficulty.ts:93) — confirm the
    local value before any save work. Any persistent GameState
    change requires ALL of: type update, Zod schema, migration,

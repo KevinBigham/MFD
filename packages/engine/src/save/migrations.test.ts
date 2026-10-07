@@ -21,6 +21,11 @@ function stripCurrentAdditions(state: Record<string, unknown>): Record<string, u
   delete clone['memoryGraph'];
   delete clone['navigationMode'];
   delete clone['onboardingMode'];
+  delete clone['activeMentors'];
+  delete clone['mentorBudget'];
+  delete clone['userDynastyEras'];
+  delete clone['trainingCampResults'];
+  delete clone['pendingPassedPickTargets'];
   const teams = clone['teams'];
   if (teams && typeof teams === 'object') {
     for (const team of Object.values(teams as Record<string, Record<string, unknown>>)) {
@@ -45,6 +50,13 @@ describe('save migrations', () => {
       powerRankingHistory: [],
     });
     expect(migrated['storylineThreads']).toEqual([]);
+    expect(migrated['activeMentors']).toEqual([]);
+    expect(migrated['mentorBudget']).toBe(2.5);
+    expect(migrated['userDynastyEras']).toEqual([]);
+    expect(migrated['trainingCampResults']).toEqual([]);
+    expect(migrated['pendingPassedPickTargets']).toEqual([]);
+    expect(migrated).not.toHaveProperty('setupState');
+    expect(migrated).not.toHaveProperty('franchiseBlueprint');
   });
 
   it('does not mutate the v34 fixture input during migration', () => {

@@ -39,6 +39,7 @@ import {
   syncAllPlayerArchiveEntries,
   DIFF_SETTINGS,
   ensureCausalSpineState,
+  DEFAULT_MENTOR_BUDGET,
 } from '@mfd/engine';
 import { createEmptyRecordBook } from '@mfd/engine';
 
@@ -482,6 +483,11 @@ export function createSeedGameState(
 
   const gameState: GameState = {
     version: SAVE_VERSION,
+    userDynastyEras: [],
+    activeMentors: [],
+    mentorBudget: DEFAULT_MENTOR_BUDGET,
+    trainingCampResults: [],
+    pendingPassedPickTargets: [],
     seed,
     year,
     week: 1,

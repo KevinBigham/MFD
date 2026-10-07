@@ -18,6 +18,7 @@ import { assignJerseyNumber } from '../systems/jersey-retirement';
 import { createEmptyRecordBook } from '../systems/records';
 import { buildSpecialTeamsState, createDefaultSpecialTeamsState } from '../systems/special-teams';
 import { getDefaultHalftimeDecisionSetting } from '../config';
+import { DEFAULT_MENTOR_BUDGET } from '../config/mentors';
 import { ACHIEVEMENT_CONDITION_TYPES, type Team } from '../types';
 
 type MigrationFn = (state: Record<string, unknown>) => Record<string, unknown>;
@@ -1565,6 +1566,43 @@ registerMigration(36, (state) => ({
   navigationMode: state['navigationMode'] === 'nerd' ? 'nerd' : 'gm',
   onboardingMode: state['onboardingMode'] === 'instant' || state['onboardingMode'] === 'full_gm' ? state['onboardingMode'] : 'guided',
 }));
+
+function normalizeLegacyRecordBookForV38(records: unknown): unknown {
+  // Historical v10 used an empty array; there are no records to reconstruct.
+  if (Array.isArray(records)) return records.length === 0 ? createEmptyRecordBook() : records;
+  if (!records || typeof records !== 'object') return records;
+  const book = records as Record<string, unknown>;
+  const hasLegacyBuckets = ['singleGame', 'singleSeason', 'career'].every((key) => {
+    const bucket = book[key];
+    return bucket !== null && typeof bucket === 'object' && !Array.isArray(bucket)
+      && Object.values(bucket).every((entries) => Array.isArray(entries));
+  });
+  // Historical v20 omitted this bucket. Preserve every existing entry/bucket;
+  // explicit null or malformed shapes still fail the regular record schema.
+  return hasLegacyBuckets && book['franchise'] === undefined
+    ? { ...book, franchise: createEmptyRecordBook().franchise }
+    : records;
+}
+
+// v37→v38: retain durable mentor, era, camp, draft-queue and setup state.
+// Only missing values receive defaults. Populated/malformed values reach the
+// schema unchanged, including a missing budget for an active mentor contract.
+// Setup and blueprints remain optional; loading must not rerun onboarding.
+registerMigration(37, (state) => {
+  const mentors = state['activeMentors'];
+  const hasNoMentors = mentors === undefined || (Array.isArray(mentors) && mentors.length === 0);
+  return {
+    ...state,
+    records: normalizeLegacyRecordBookForV38(state['records']),
+    activeMentors: mentors === undefined ? [] : mentors,
+    mentorBudget: state['mentorBudget'] === undefined && hasNoMentors
+      ? DEFAULT_MENTOR_BUDGET
+      : state['mentorBudget'],
+    userDynastyEras: state['userDynastyEras'] === undefined ? [] : state['userDynastyEras'],
+    trainingCampResults: state['trainingCampResults'] === undefined ? [] : state['trainingCampResults'],
+    pendingPassedPickTargets: state['pendingPassedPickTargets'] === undefined ? [] : state['pendingPassedPickTargets'],
+  };
+});
 
 // v30→v31: Add tutorialState.visitedScreens (Sprint 43 "Rookie Card" onboarding)
 registerMigration(30, (state) => {

@@ -23,6 +23,7 @@
  */
 import { getSalaryCap } from '../config';
 import { SAVE_VERSION, getDefaultHalftimeDecisionSetting } from '../config/difficulty';
+import { DEFAULT_MENTOR_BUDGET } from '../config/mentors';
 import {
   applyCBADealToRules,
   checkCBAStatus,
@@ -415,6 +416,11 @@ export function makePlaytestLeagueState(seed: number): GameState {
 
   const game = {
     version: SAVE_VERSION,
+    userDynastyEras: [],
+    activeMentors: [],
+    mentorBudget: DEFAULT_MENTOR_BUDGET,
+    trainingCampResults: [],
+    pendingPassedPickTargets: [],
     seed,
     year: 2026,
     week: 1,

@@ -12,6 +12,7 @@ export { ARCHETYPES, ARCH_BOOST, COACH_TRAITS, ARCH_TRAIT_POOLS, CLIQUE_TYPES } 
 export type { CoachRole, CoachTraitDef, CliqueType } from './coaching';
 
 export { DIFF_SETTINGS, SAVE_VERSION, getDefaultDifficultyFlags, getDefaultHalftimeDecisionSetting } from './difficulty';
+export { DEFAULT_MENTOR_BUDGET } from './mentors';
 export { APP_ROUTE_REGISTRY, APP_ROOMS, NERD_NAV_GROUPS, appRoute } from './route-registry';
 export type { AppRouteDefinition, AppRoutePath, AppRoomId, NerdNavGroupId } from './route-registry';
 export type { DifficultyDefaultFlags } from './difficulty';
