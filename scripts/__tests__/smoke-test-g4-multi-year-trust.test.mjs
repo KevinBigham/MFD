@@ -15,6 +15,13 @@ test('defaults Chip to enabled for the G4 smoke command', () => {
   const command = buildG4MultiYearTrustCommand({}, 'darwin');
 
   assert.equal(command.env.VITE_CHIP_ENABLED, 'true');
+  assert.equal(command.env.G4_TARGET_SEASONS, '3');
+});
+
+test('preserves an explicit ten-season G4 horizon', () => {
+  const command = buildG4MultiYearTrustCommand({ G4_TARGET_SEASONS: '10' }, 'linux');
+
+  assert.equal(command.env.G4_TARGET_SEASONS, '10');
 });
 
 test('preserves an explicit Chip env override', () => {

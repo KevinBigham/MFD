@@ -1,6 +1,10 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "$schema": "https://unpkg.com/knip@6.4.1/schema.json",
   "workspaces": {
+    ".": {
+      "entry": ["scripts/*.{ts,mjs,cjs}", "scripts/__tests__/*.{test,spec}.{ts,mjs,cjs}"],
+      "project": ["scripts/**/*.{ts,mjs,cjs}"]
+    },
     "packages/engine": {
       "entry": [
         "src/index.ts!",
@@ -27,18 +31,6 @@
         "src/**/*.stories.tsx"
       ],
       "project": ["src/**/*.{ts,tsx}"]
-    },
-    "packages/analytics": {
-      "entry": ["src/index.ts!"],
-      "project": ["src/**/*.ts"]
-    },
-    "packages/content": {
-      "entry": ["index.ts!"],
-      "project": ["**/*.ts"]
-    },
-    "packages/testkit": {
-      "entry": ["src/index.ts!"],
-      "project": ["src/**/*.ts"]
     }
   }
 }

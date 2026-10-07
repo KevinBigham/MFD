@@ -11,9 +11,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "lint": "eslint src --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@mfd/design-system": "workspace:*",
@@ -30,6 +28,7 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/node": "^22.15.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

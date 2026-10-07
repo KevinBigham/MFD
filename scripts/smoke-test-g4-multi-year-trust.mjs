@@ -35,8 +35,9 @@ export function runG4MultiYearTrustSmoke() {
   }
 
   const startedAt = Date.now();
-  console.log('Running G4 multi-year trust smoke...');
   const command = buildG4MultiYearTrustCommand();
+  const label = `G4 multi-year trust smoke (${Number(command.env.G4_TARGET_SEASONS)} seasons)`;
+  console.log(`Running ${label}...`);
   const result = spawnSync(command.command, command.args, {
     cwd: command.cwd,
     env: command.env,
@@ -49,7 +50,7 @@ export function runG4MultiYearTrustSmoke() {
   }
 
   const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
-  console.log(`PASS: G4 multi-year trust smoke passed in ${elapsedSeconds}s.`);
+  console.log(`PASS: ${label} passed in ${elapsedSeconds}s.`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

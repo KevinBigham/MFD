@@ -663,7 +663,7 @@ async function runG4Soak(seed: number, completedSeasonsTarget: number, options: 
 }
 
 describe('G4 multi-year trust gate', () => {
-  it('reaches Year 4 Week 1 and replays a deterministic 10-season New Dynasty soak', { timeout: G4_SOAK_TIMEOUT_MS }, async () => {
+  it(`replays a deterministic ${TARGET_COMPLETED_SEASONS}-season New Dynasty soak`, { timeout: G4_SOAK_TIMEOUT_MS }, async () => {
     const left = await runG4Soak(G4_SEED, TARGET_COMPLETED_SEASONS, { saveRoundTrips: true });
     const right = await runG4Soak(G4_SEED, TARGET_COMPLETED_SEASONS, { saveRoundTrips: false });
 

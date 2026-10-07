@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { buildGameDayPackage, buildWeeklySummary } from '../index';
-import type { GameResult, Hook } from '../types';
+import type { GameResult } from '../types';
+import type { Hook } from './hooks-engine';
 import { makeLeagueState } from './test-helpers';
 
 function makeResult(): GameResult {
