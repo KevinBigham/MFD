@@ -160,7 +160,7 @@ export function buildWatchListSourceRows(prefs: WatchListPrefs, rows: WatchListR
       label: 'Browser sidecar',
       badge: `${prefs.playerIds.length} pins`,
       accent: 'gold',
-      detail: `watchListPrefs reads localStorage key ${WATCH_LIST_STORAGE_KEY}. This board is browser-local and outside GameState cartridges.`,
+      detail: `watchListPrefs reads localStorage key ${WATCH_LIST_STORAGE_KEY}. This board is browser-local convenience state by design: pins stay on this browser only and are not included in .mfd cartridges or Combined Backup exports. After moving browsers or machines, re-pin your targets.`,
     },
     {
       id: 'row-resolution',
