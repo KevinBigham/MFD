@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
 
 import {
   isTransientBrowserInfrastructureError,
@@ -38,9 +39,145 @@ import {
   shouldRunTradeCounterBlockSmoke,
   shouldRunWaiverPracticeSquadSmoke,
   shouldRunWeeklyPrepSmoke,
+  stageStaffFacilityMedicalFixture,
 } from '../smoke-test-post-setup-route.mjs';
 
 const smokeSource = readFileSync(new URL('../smoke-test-post-setup-route.mjs', import.meta.url), 'utf8');
+
+// Control request success and transaction completion independently, as IndexedDB
+// does. This exercises the actual browser expression without a browser binary.
+function medicalFixtureWriteHarness() {
+  let committedSlot = {
+    id: 1,
+    isAutosave: true,
+    timestamp: 1,
+    data: JSON.stringify({ save: {
+      year: 2026,
+      week: 14,
+      phase: 'regular_season',
+      teams: { user: { id: 'user', isUser: true, city: 'Lakeview', name: 'Caps' } },
+      availableMedicalStaff: [],
+    } }),
+  };
+  let stagedSlot;
+  let writeRequest;
+  let writeTransaction;
+  let closeCount = 0;
+  let signalWriteReady;
+  const writeReady = new Promise((resolve) => { signalWriteReady = resolve; });
+  const db = {
+    close() { closeCount += 1; },
+    transaction(storeName, mode) {
+      assert.equal(storeName, 'saves');
+      const tx = { error: null };
+      tx.objectStore = () => ({
+        getAll() {
+          const request = { result: [structuredClone(committedSlot)] };
+          queueMicrotask(() => request.onsuccess());
+          return request;
+        },
+        put(slot) {
+          assert.equal(mode, 'readwrite');
+          stagedSlot = structuredClone(slot);
+          writeTransaction = tx;
+          writeRequest = { result: slot.id, error: null };
+          signalWriteReady();
+          return writeRequest;
+        },
+      });
+      return tx;
+    },
+  };
+  const cdp = {
+    async send(method, params) {
+      assert.equal(method, 'Runtime.evaluate');
+      assert.equal(params.awaitPromise, true);
+      const value = await runInNewContext(params.expression, {
+        indexedDB: {
+          open(name) {
+            assert.equal(name, 'mfd');
+            const request = { result: db };
+            queueMicrotask(() => request.onsuccess());
+            return request;
+          },
+        },
+      });
+      return { result: { value } };
+    },
+  };
+  return {
+    cdp,
+    writeReady,
+    requestSucceeded() { writeRequest.onsuccess?.(); },
+    commit() {
+      committedSlot = stagedSlot;
+      writeTransaction.oncomplete?.();
+    },
+    failTransaction(event, error = null) {
+      writeTransaction.error = error;
+      writeTransaction[event]?.();
+    },
+    failRequest(error) {
+      writeRequest.error = error;
+      writeRequest.onerror?.();
+    },
+    snapshot() { return JSON.parse(committedSlot.data).save; },
+    get closeCount() { return closeCount; },
+  };
+}
+
+test('medical fixture stays pending after put success and becomes reloadable only after commit', { timeout: 1_000 }, async () => {
+  const harness = medicalFixtureWriteHarness();
+  let settled = false;
+  const staged = stageStaffFacilityMedicalFixture(harness.cdp, 'test-session');
+  void staged.then(() => { settled = true; });
+  await harness.writeReady;
+  harness.requestSucceeded();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(settled, false, 'request success must not permit a reload before commit');
+  assert.equal(harness.snapshot().phase, 'regular_season');
+  assert.equal(harness.closeCount, 0);
+  harness.commit();
+  const fixture = await staged;
+  assert.equal(harness.snapshot().phase, 'offseason');
+  assert.equal(harness.snapshot().teams.user.medicalStaff.id, fixture.priorStaffId);
+  assert.equal(harness.snapshot().availableMedicalStaff[0].id, fixture.medicalCandidateId);
+  assert.equal(harness.closeCount, 1);
+});
+
+test('medical fixture rejects an abort after put success instead of reporting a staged candidate', { timeout: 1_000 }, async () => {
+  const harness = medicalFixtureWriteHarness();
+  const staged = stageStaffFacilityMedicalFixture(harness.cdp, 'test-session');
+  const rejected = assert.rejects(staged, /staff\/facility\/medical fixture transaction aborted/i);
+  await harness.writeReady;
+  harness.requestSucceeded();
+  harness.failTransaction('onabort');
+  await rejected;
+  assert.equal(harness.snapshot().phase, 'regular_season');
+  assert.equal(harness.closeCount, 1);
+});
+
+test('medical fixture propagates transaction errors and closes its connection', { timeout: 1_000 }, async () => {
+  const harness = medicalFixtureWriteHarness();
+  const staged = stageStaffFacilityMedicalFixture(harness.cdp, 'test-session');
+  const rejected = assert.rejects(staged, /disk write failed/);
+  await harness.writeReady;
+  harness.failTransaction('onerror', new Error('disk write failed'));
+  await rejected;
+  assert.equal(harness.snapshot().phase, 'regular_season');
+  assert.equal(harness.closeCount, 1);
+});
+
+test('medical fixture propagates put errors and closes its connection', { timeout: 1_000 }, async () => {
+  const harness = medicalFixtureWriteHarness();
+  const staged = stageStaffFacilityMedicalFixture(harness.cdp, 'test-session');
+  const rejected = assert.rejects(staged, /quota exceeded/);
+  await harness.writeReady;
+  harness.failRequest(new Error('quota exceeded'));
+  await rejected;
+  assert.equal(harness.snapshot().phase, 'regular_season');
+  assert.equal(harness.closeCount, 1);
+});
 
 test('classifies only Chrome certificate-verifier restarts as transient browser infrastructure', () => {
   const verifierRestart = {
