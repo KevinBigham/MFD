@@ -6252,7 +6252,7 @@ async function runDraftWarRoomTradeSmoke(cdp, sessionId, baseUrl) {
   await waitForBodyText(cdp, sessionId, 'Current Pick', 'draft route current pick after war-room trade hard reload');
 }
 
-async function stageStaffFacilityMedicalFixture(cdp, sessionId) {
+export async function stageStaffFacilityMedicalFixture(cdp, sessionId) {
   return evaluate(cdp, sessionId, `
     (async () => {
       const openDb = () => new Promise((resolveOpen, rejectOpen) => {
@@ -6271,7 +6271,11 @@ async function stageStaffFacilityMedicalFixture(cdp, sessionId) {
         const tx = db.transaction('saves', 'readwrite');
         const store = tx.objectStore('saves');
         const request = store.put(slot);
-        request.onsuccess = () => resolveWrite();
+        // put success precedes commit. Reloading in that gap can abort the
+        // transaction and leave the original Week 14 save in this slot.
+        tx.oncomplete = () => resolveWrite();
+        tx.onabort = () => rejectWrite(tx.error ?? new Error('Staff/facility/medical fixture transaction aborted.'));
+        tx.onerror = () => rejectWrite(tx.error ?? new Error('Could not commit staff/facility/medical fixture.'));
         request.onerror = () => rejectWrite(request.error ?? new Error('Could not write mfd save slot.'));
       });
       const baseEffect = {
@@ -6389,8 +6393,11 @@ async function stageStaffFacilityMedicalFixture(cdp, sessionId) {
       latest.year = save.year;
       latest.week = save.week;
       latest.timestamp = Date.now();
-      await writeSave(db, latest);
-      if (typeof db.close === 'function') db.close();
+      try {
+        await writeSave(db, latest);
+      } finally {
+        if (typeof db.close === 'function') db.close();
+      }
 
       return {
         year: save.year,
