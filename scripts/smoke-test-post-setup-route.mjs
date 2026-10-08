@@ -72,6 +72,24 @@ export function parseSmokePreviewTimeoutMs(env = process.env) {
   return parsePositiveInt(env.SMOKE_PREVIEW_TIMEOUT_MS, Math.max(parseSmokeTimeoutMs(env), 30_000));
 }
 
+// Self-contained: fixture expressions serialize this into the browser context.
+// A successful put is not a committed save. Every staged fixture must finish
+// its transaction before the scenario can reload or report a generated slot ID.
+export async function writeStagedFixtureSave(db, slot, label = 'Smoke fixture') {
+  try {
+    return await new Promise((resolveWrite, rejectWrite) => {
+      const tx = db.transaction('saves', 'readwrite');
+      const request = tx.objectStore('saves').put(slot);
+      tx.oncomplete = () => resolveWrite(request.result);
+      tx.onabort = () => rejectWrite(tx.error ?? new Error(label + ' transaction aborted.'));
+      tx.onerror = () => rejectWrite(tx.error ?? new Error('Could not commit ' + label + '.'));
+      request.onerror = () => rejectWrite(request.error ?? new Error('Could not write ' + label + '.'));
+    });
+  } finally {
+    if (typeof db.close === 'function') db.close();
+  }
+}
+
 export function isTransientBrowserInfrastructureError(entry) {
   return entry?.source === 'network'
     && entry?.level === 'error'
@@ -3286,13 +3304,7 @@ async function stageTradeCounterBlockFixture(cdp, sessionId) {
         request.onsuccess = () => resolveRead(request.result ?? []);
         request.onerror = () => rejectRead(request.error ?? new Error('Could not read mfd saves.'));
       });
-      const writeSave = (db, slot) => new Promise((resolveWrite, rejectWrite) => {
-        const tx = db.transaction('saves', 'readwrite');
-        const store = tx.objectStore('saves');
-        const request = store.put(slot);
-        request.onsuccess = () => resolveWrite();
-        request.onerror = () => rejectWrite(request.error ?? new Error('Could not write mfd save slot.'));
-      });
+      const writeSave = ${writeStagedFixtureSave.toString()};
 
       const db = await openDb();
       const saves = await readSaves(db);
@@ -3392,7 +3404,6 @@ async function stageTradeCounterBlockFixture(cdp, sessionId) {
       latest.week = save.week;
       latest.timestamp = Date.now();
       await writeSave(db, latest);
-      if (typeof db.close === 'function') db.close();
 
       return {
         year: save.year,
@@ -3575,13 +3586,7 @@ async function stageWaiverPracticeSquadFixture(cdp, sessionId) {
         request.onsuccess = () => resolveRead(request.result ?? []);
         request.onerror = () => rejectRead(request.error ?? new Error('Could not read mfd saves.'));
       });
-      const writeSave = (db, slot) => new Promise((resolveWrite, rejectWrite) => {
-        const tx = db.transaction('saves', 'readwrite');
-        const store = tx.objectStore('saves');
-        const request = store.put(slot);
-        request.onsuccess = () => resolveWrite();
-        request.onerror = () => rejectWrite(request.error ?? new Error('Could not write mfd save slot.'));
-      });
+      const writeSave = ${writeStagedFixtureSave.toString()};
 
       const db = await openDb();
       const saves = await readSaves(db);
@@ -3768,7 +3773,6 @@ async function stageWaiverPracticeSquadFixture(cdp, sessionId) {
       latest.week = save.week;
       latest.timestamp = Date.now();
       await writeSave(db, latest);
-      if (typeof db.close === 'function') db.close();
 
       return {
         year: save.year,
@@ -4485,13 +4489,7 @@ async function stageRosterDepthTrainingFixture(cdp, sessionId) {
         request.onsuccess = () => resolveRead(request.result ?? []);
         request.onerror = () => rejectRead(request.error ?? new Error('Could not read mfd saves.'));
       });
-      const writeSave = (db, slot) => new Promise((resolveWrite, rejectWrite) => {
-        const tx = db.transaction('saves', 'readwrite');
-        const store = tx.objectStore('saves');
-        const request = store.put(slot);
-        request.onsuccess = () => resolveWrite();
-        request.onerror = () => rejectWrite(request.error ?? new Error('Could not write mfd save slot.'));
-      });
+      const writeSave = ${writeStagedFixtureSave.toString()};
 
       const db = await openDb();
       const saves = await readSaves(db);
@@ -4647,7 +4645,6 @@ async function stageRosterDepthTrainingFixture(cdp, sessionId) {
       latest.week = save.week;
       latest.timestamp = Date.now();
       await writeSave(db, latest);
-      if (typeof db.close === 'function') db.close();
 
       return {
         year: save.year,
@@ -4924,13 +4921,7 @@ async function stageWeeklyPrepFixture(cdp, sessionId) {
         request.onsuccess = () => resolveRead(request.result ?? []);
         request.onerror = () => rejectRead(request.error ?? new Error('Could not read mfd saves.'));
       });
-      const writeSave = (db, slot) => new Promise((resolveWrite, rejectWrite) => {
-        const tx = db.transaction('saves', 'readwrite');
-        const store = tx.objectStore('saves');
-        const request = store.put(slot);
-        request.onsuccess = () => resolveWrite(request.result);
-        request.onerror = () => rejectWrite(request.error ?? new Error('Could not write mfd save slot.'));
-      });
+      const writeSave = ${writeStagedFixtureSave.toString()};
 
       const db = await openDb();
       const saves = await readSaves(db);
@@ -5092,7 +5083,6 @@ async function stageWeeklyPrepFixture(cdp, sessionId) {
       };
       delete stagedSlot.id;
       const stagedSlotId = await writeSave(db, stagedSlot);
-      if (typeof db.close === 'function') db.close();
 
       return {
         stagedSlotId: Number(stagedSlotId),
@@ -5346,13 +5336,7 @@ async function stageDraftScoutingFixture(cdp, sessionId) {
         request.onsuccess = () => resolveRead(request.result ?? []);
         request.onerror = () => rejectRead(request.error ?? new Error('Could not read mfd saves.'));
       });
-      const writeSave = (db, slot) => new Promise((resolveWrite, rejectWrite) => {
-        const tx = db.transaction('saves', 'readwrite');
-        const store = tx.objectStore('saves');
-        const request = store.put(slot);
-        request.onsuccess = () => resolveWrite();
-        request.onerror = () => rejectWrite(request.error ?? new Error('Could not write mfd save slot.'));
-      });
+      const writeSave = ${writeStagedFixtureSave.toString()};
 
       const db = await openDb();
       const saves = await readSaves(db);
@@ -5593,7 +5577,6 @@ async function stageDraftScoutingFixture(cdp, sessionId) {
       latest.week = save.week;
       latest.timestamp = Date.now();
       await writeSave(db, latest);
-      if (typeof db.close === 'function') db.close();
 
       return {
         year,
@@ -5835,13 +5818,7 @@ async function stageDraftWarRoomTradeFixture(cdp, sessionId) {
         request.onsuccess = () => resolveRead(request.result ?? []);
         request.onerror = () => rejectRead(request.error ?? new Error('Could not read mfd saves.'));
       });
-      const writeSave = (db, slot) => new Promise((resolveWrite, rejectWrite) => {
-        const tx = db.transaction('saves', 'readwrite');
-        const store = tx.objectStore('saves');
-        const request = store.put(slot);
-        request.onsuccess = () => resolveWrite();
-        request.onerror = () => rejectWrite(request.error ?? new Error('Could not write mfd save slot.'));
-      });
+      const writeSave = ${writeStagedFixtureSave.toString()};
       const teamName = (team) => [team?.city, team?.name].filter(Boolean).join(' ') || team?.id || '';
 
       const db = await openDb();
@@ -6022,7 +5999,6 @@ async function stageDraftWarRoomTradeFixture(cdp, sessionId) {
       latest.week = save.week;
       latest.timestamp = Date.now();
       await writeSave(db, latest);
-      if (typeof db.close === 'function') db.close();
 
       return {
         year,
@@ -6267,17 +6243,7 @@ export async function stageStaffFacilityMedicalFixture(cdp, sessionId) {
         request.onsuccess = () => resolveRead(request.result ?? []);
         request.onerror = () => rejectRead(request.error ?? new Error('Could not read mfd saves.'));
       });
-      const writeSave = (db, slot) => new Promise((resolveWrite, rejectWrite) => {
-        const tx = db.transaction('saves', 'readwrite');
-        const store = tx.objectStore('saves');
-        const request = store.put(slot);
-        // put success precedes commit. Reloading in that gap can abort the
-        // transaction and leave the original Week 14 save in this slot.
-        tx.oncomplete = () => resolveWrite();
-        tx.onabort = () => rejectWrite(tx.error ?? new Error('Staff/facility/medical fixture transaction aborted.'));
-        tx.onerror = () => rejectWrite(tx.error ?? new Error('Could not commit staff/facility/medical fixture.'));
-        request.onerror = () => rejectWrite(request.error ?? new Error('Could not write mfd save slot.'));
-      });
+      const writeSave = ${writeStagedFixtureSave.toString()};
       const baseEffect = {
         trainingXPBonus: 1,
         recoveryBonus: 1,
@@ -6393,11 +6359,7 @@ export async function stageStaffFacilityMedicalFixture(cdp, sessionId) {
       latest.year = save.year;
       latest.week = save.week;
       latest.timestamp = Date.now();
-      try {
-        await writeSave(db, latest);
-      } finally {
-        if (typeof db.close === 'function') db.close();
-      }
+      await writeSave(db, latest, 'Staff/facility/medical fixture');
 
       return {
         year: save.year,
@@ -7235,7 +7197,7 @@ async function runChipFocusReducedMotionSmoke(cdp, sessionId, baseUrl) {
   `));
 }
 
-async function stageFreeAgencySigningsFixture(cdp, sessionId, mode) {
+export async function stageFreeAgencySigningsFixture(cdp, sessionId, mode) {
   if (!['re_sign', 'open_market', 'street_sign'].includes(mode)) {
     throw new Error(`Unknown free-agency smoke fixture mode: ${mode}`);
   }
@@ -7271,13 +7233,7 @@ async function stageFreeAgencySigningsFixture(cdp, sessionId, mode) {
         request.onsuccess = () => resolveRead(request.result ?? []);
         request.onerror = () => rejectRead(request.error ?? new Error('Could not read mfd saves.'));
       });
-      const writeSave = (db, slot) => new Promise((resolveWrite, rejectWrite) => {
-        const tx = db.transaction('saves', 'readwrite');
-        const store = tx.objectStore('saves');
-        const request = store.put(slot);
-        request.onsuccess = () => resolveWrite(request.result);
-        request.onerror = () => rejectWrite(request.error ?? new Error('Could not write mfd save slot.'));
-      });
+      const writeSave = ${writeStagedFixtureSave.toString()};
 
       const db = await openDb();
       const saves = await readSaves(db);
@@ -7507,7 +7463,6 @@ async function stageFreeAgencySigningsFixture(cdp, sessionId, mode) {
       };
       delete stagedSlot.id;
       const stagedSlotId = await writeSave(db, stagedSlot);
-      if (typeof db.close === 'function') db.close();
       return {
         ...result,
         stagedSlotId: Number(stagedSlotId),

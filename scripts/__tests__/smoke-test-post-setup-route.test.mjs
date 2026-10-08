@@ -40,6 +40,7 @@ import {
   shouldRunWaiverPracticeSquadSmoke,
   shouldRunWeeklyPrepSmoke,
   stageStaffFacilityMedicalFixture,
+  stageFreeAgencySigningsFixture,
 } from '../smoke-test-post-setup-route.mjs';
 
 const smokeSource = readFileSync(new URL('../smoke-test-post-setup-route.mjs', import.meta.url), 'utf8');
@@ -55,7 +56,15 @@ function medicalFixtureWriteHarness() {
       year: 2026,
       week: 14,
       phase: 'regular_season',
-      teams: { user: { id: 'user', isUser: true, city: 'Lakeview', name: 'Caps' } },
+      teams: {
+        user: { id: 'user', isUser: true, city: 'Lakeview', name: 'Caps', roster: [
+          { id: 'qb1', name: 'Jalen Banks', pos: 'QB', age: 24, ovr: 80 },
+        ] },
+        cpu: { id: 'cpu', isUser: false, roster: [
+          { id: 'wr1', name: 'Miles Carter', pos: 'WR', age: 25, ovr: 75 },
+        ] },
+      },
+      players: {},
       availableMedicalStaff: [],
     } }),
   };
@@ -80,7 +89,7 @@ function medicalFixtureWriteHarness() {
           assert.equal(mode, 'readwrite');
           stagedSlot = structuredClone(slot);
           writeTransaction = tx;
-          writeRequest = { result: slot.id, error: null };
+          writeRequest = { result: slot.id ?? 2, error: null };
           signalWriteReady();
           return writeRequest;
         },
@@ -110,6 +119,7 @@ function medicalFixtureWriteHarness() {
     writeReady,
     requestSucceeded() { writeRequest.onsuccess?.(); },
     commit() {
+      stagedSlot.id = writeRequest.result;
       committedSlot = stagedSlot;
       writeTransaction.oncomplete?.();
     },
@@ -176,6 +186,47 @@ test('medical fixture propagates put errors and closes its connection', { timeou
   harness.failRequest(new Error('quota exceeded'));
   await rejected;
   assert.equal(harness.snapshot().phase, 'regular_season');
+  assert.equal(harness.closeCount, 1);
+});
+
+for (const [mode, expectedPhase] of [
+  ['re_sign', 'offseason'],
+  ['open_market', 'free_agency'],
+  ['street_sign', 'regular_season'],
+]) {
+  test(`free-agency ${mode} fixture cannot report its new slot before commit`, { timeout: 1_000 }, async () => {
+    const harness = medicalFixtureWriteHarness();
+    let settled = false;
+    const staged = stageFreeAgencySigningsFixture(harness.cdp, 'test-session', mode);
+    void staged.then(() => { settled = true; });
+    await harness.writeReady;
+    harness.requestSucceeded();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(settled, false, 'request success must not permit a reload before commit');
+    assert.equal(harness.snapshot().week, 14);
+    assert.equal(harness.closeCount, 0);
+    harness.commit();
+    const fixture = await staged;
+    assert.equal(fixture.stagedSlotId, 2, 'return the generated slot ID after commit');
+    assert.equal(harness.snapshot().phase, expectedPhase);
+    if (mode === 're_sign') {
+      assert.equal(harness.snapshot().offseasonState.reSignDecisions.qb1.status, 'pending');
+    } else {
+      assert.equal(harness.snapshot().freeAgents[0], fixture.playerId);
+    }
+    assert.equal(harness.closeCount, 1);
+  });
+}
+
+test('free-agency fixture rejects an abort after put success', { timeout: 1_000 }, async () => {
+  const harness = medicalFixtureWriteHarness();
+  const staged = stageFreeAgencySigningsFixture(harness.cdp, 'test-session', 're_sign');
+  const rejected = assert.rejects(staged, /fixture transaction aborted/i);
+  await harness.writeReady;
+  harness.requestSucceeded();
+  harness.failTransaction('onabort');
+  await rejected;
+  assert.equal(harness.snapshot().week, 14);
   assert.equal(harness.closeCount, 1);
 });
 
