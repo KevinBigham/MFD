@@ -59,6 +59,9 @@ TypeScript monorepo, pure engine package, React 19 web app, Zustand state, Dexie
 
 ## Contributor Setup
 
+Use Node.js 24 or later and pnpm 9.15.9, as required by `package.json`.
+Confirm both with `node --version` and `pnpm --version` before installing.
+
 ```bash
 git clone git@github.com:KevinBigham/MFD.git
 cd MFD
@@ -71,14 +74,20 @@ pnpm -r typecheck
 pnpm --filter @mfd/web build
 ```
 
-Launch gates:
+Inspect the release plan without running its checks:
 
 ```bash
-# Full public-release contract (37 steps):
-pnpm release:gate
+node scripts/release-gate.mjs --list
 ```
 
-Focused diagnostics:
+For a specific failure, select the relevant step or group. For example, run the
+release tooling tests:
+
+```bash
+node scripts/release-gate.mjs --only script-tests
+```
+
+Other focused diagnostics:
 
 ```bash
 bash scripts/check-math-random.sh
@@ -86,6 +95,10 @@ bash scripts/check-bundle-size.sh
 bash scripts/smoke-full-season.sh
 pnpm playtest:all
 ```
+
+Focused checks are diagnostic evidence. Full release validation uses
+`pnpm release:gate` and can take 90 minutes or more; CI runs it before deployment.
+Run the full gate locally only when that longer validation is explicitly planned.
 
 Regenerate Chip's portrait atlas (only needed if you add or change a pose):
 
