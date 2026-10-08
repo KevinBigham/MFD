@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   PHASE_ORDER,
@@ -18,14 +19,16 @@ import { createSeedGameState } from './seed';
 import {
   createPopulatedDurableState,
   durableFeatureState,
-} from '../../../../../packages/engine/src/save/durable-feature-state.test-helpers';
-import v10Fixture from '../../../../../packages/engine/src/save/fixtures/v10.json';
-import v20Fixture from '../../../../../packages/engine/src/save/fixtures/v20.json';
+} from './durable-feature-state.test-helpers';
 import type { SaveSlot, SaveSlotSummary } from '../../lib/db';
 import {
   loadImportedCartridge, loadImportedCartridgeFile, loadLatestAutosaveGame,
   loadSaveSlot, listSaveSlotSummaries, listSaveSlots, autosaveDynasty, saveDynastyToSlot,
 } from './persistence';
+
+// Read the unchanged historical saves as test data, not private engine modules.
+const v10Fixture = JSON.parse(readFileSync(new URL('../../../../../packages/engine/src/save/fixtures/v10.json', import.meta.url), 'utf8'));
+const v20Fixture = JSON.parse(readFileSync(new URL('../../../../../packages/engine/src/save/fixtures/v20.json', import.meta.url), 'utf8'));
 
 const dbMock = vi.hoisted(() => ({
   deleteSave: vi.fn(), getLatestAutosave: vi.fn(), listSaves: vi.fn(),

@@ -7,7 +7,7 @@ import type { SaveSlot } from './db';
 import {
   createPopulatedDurableState,
   durableFeatureState,
-} from '../../../../packages/engine/src/save/durable-feature-state.test-helpers';
+} from '../app/store/durable-feature-state.test-helpers';
 import type { DynastySidecarArchivePayload } from './dynasty-sidecar-archive';
 import {
   COMBINED_IMPORT_COMPLETE_KEY,

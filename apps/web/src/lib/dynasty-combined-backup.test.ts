@@ -14,7 +14,7 @@ import { loadImportedCartridge } from '../app/store/persistence';
 import {
   createPopulatedDurableState,
   durableFeatureState,
-} from '../../../../packages/engine/src/save/durable-feature-state.test-helpers';
+} from '../app/store/durable-feature-state.test-helpers';
 
 function makeCartridgeJson(): string {
   const cartridge = buildCartridge(
